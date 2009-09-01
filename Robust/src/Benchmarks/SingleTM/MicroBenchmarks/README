@@ -10,17 +10,30 @@ SingleObjectMod.java:
  Compiling and Running
  ----------------------
 
+  Note: For this benchmark the fudgefactor used in the "~/research/Robust/src/Runtime/DSTM/interface/dstm.h" file is 3
+
   To build: 
   make stmlock
   e.g. ~/research/Robust/src/Benchmarks/SingleTM/MicroBenchmarks$ make clean && make stmlock
 
+  To build the base version with no locks:
+  make base
+
+  e.g. ~/research/Robust/src/Benchmarks/SingleTM/MicroBenchmarks$ make clean && make base
+
   To run:
-  ./STATSSingleObjectMod.bin -t <num threads>
+  ./STATSSingleObjectModX.bin -t <num threads>
                              -size <array size>
                              -l <loopsize>
                              -l1 <loopsize1>
                              -l2 <loopsize2>
+                             -p <probability of distribution>
+
+  where X = target probability desired 
+
+  To run the base version:
+  ./STATSSingleObjectModNoLockBase.bin -t 8 -size 1 -l 100000 -l1 10000 -l2 10000 -p 90
   
-  low contention:  -t 8 -size 5000 -l 100
-  high contention: -t 8 -size 5 -l 500000
+  low contention:  -t 8 -size 5000 -l 100 -p 50
+  high contention: -t 8 -size 5 -l 500000 -p 50
 

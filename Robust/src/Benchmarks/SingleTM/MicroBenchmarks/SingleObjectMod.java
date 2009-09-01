@@ -62,6 +62,7 @@ public class SingleObjectMod extends Thread {
   }
 
   public void run() {
+    int eventcount=0;
     int index, val;
     Random rand = new Random();
     rand.random_alloc();
@@ -74,11 +75,10 @@ public class SingleObjectMod extends Thread {
     else
       stop = start + partitionSize;
     LogTime[] lt = new LogTime[8*(stop-start)];
-    for(int i = 0; i<8*(stop-start); i++) {
+    for(int i = 0; i<(7*(stop-start))+3; i++) {
       lt[i] = new LogTime();
     }
 
-    int eventcount=0;
     //System.out.println("Start = " + start+ " stop= " + stop + " partitionSize= " + partitionSize+ " loopsize= " + loopsize + " lsize1= " + lsize1 + " lsize2= " + lsize2);
     rand.random_seed(0);
     int l1, l2;
@@ -100,17 +100,6 @@ public class SingleObjectMod extends Thread {
         //10% short transactions
         l1=l2=lsize2;
       }
-
-      /*
-      //50% distribution 
-      int l3= (int)(rand.random_generate() % 2); 
-      if(l3==0) {
-        l1=l2=lsize2;
-      }
-      if(l3==1) {
-        l1=l2=lsize1;
-      }
-      */
 
       int count;
 
@@ -161,15 +150,18 @@ public class SingleObjectMod extends Thread {
 
     //Output to file
     FileOutputStream fo = new FileOutputStream("test_"+threadid);
-    //test output to file
-    char a = 'a';
-    fo.write(a);
+    //test output to files test_threadid
+    for(int i = 0; i<(7*(stop-start))+3; i++) {
+      fo.write(fillBytes(lt[i].event));
+      fo.write(longToByteArray(lt[i].time));
+    }
+    fo.close();
   }
 
   /*
    * Convert int to a byte array 
    **/
-  public byte[] fillBytes(int key) {
+  static byte[] fillBytes(int key) {
     byte[] b = new byte[4];
     for(int i = 0; i < 4; i++){
       int offset = (3-i) * 8;
@@ -182,6 +174,16 @@ public class SingleObjectMod extends Thread {
     return b;
   }
 
+  static byte[] longToByteArray(long a) {
+    byte[] b = new byte[8];
+    int i, shift;
+    for (i = 0, shift = 56; i < 8; i++, shift -= 8)
+    {
+      b[i] = (byte) (0xFF & (a >> shift));
+    }
+
+    return b;
+  }
 
   public static void main(String[] args) {
     SingleObjectMod som = new SingleObjectMod();
@@ -220,7 +222,6 @@ public class SingleObjectMod extends Thread {
 public class LogTime {
   public int event;
   public long time;
-
   public LogTime() {
     event = 0;
     time = 0;
