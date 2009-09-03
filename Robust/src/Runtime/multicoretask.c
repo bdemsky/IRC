@@ -1688,6 +1688,7 @@ msg:
 	// GC msgs
 	case GCSTARTINIT: {
 		gcflag = true;
+		gcphase = INITPHASE;
 		if(!smemflag) {
 			// is waiting for response of mem request
 			// let it return NULL and start gc
@@ -1731,7 +1732,11 @@ msg:
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb001);
-		} 
+		}
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xe88c);
+		BAMBOO_DEBUGPRINT_REG(msgdata[1]);
+#endif
 		if(msgdata[1] < NUMCORES) {
 			gccorestatus[msgdata[1]] = 0;
 		}
@@ -1909,6 +1914,10 @@ msg:
 		RuntimeHashget(gcpointertbl, msgdata[1], &dstptr);
 		if(NULL == dstptr) {
 			// no such pointer in this core, something is wrong
+#ifdef DEBUG
+			BAMBOO_DEBUGPRINT_REG(msgdata[1]);
+			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
+#endif
 			BAMBOO_EXIT(0xb007);
 		} else {
 			// send back the mapping info
@@ -1925,6 +1934,10 @@ msg:
 		// received a mapping info response msg
 		if(msgdata[1] != gcobj2map) {
 			// obj not matched, something is wrong
+#ifdef DEBUG
+			BAMBOO_DEBUGPRINT_REG(gcobj2map);
+			BAMBOO_DEBUGPRINT_REG(msgdata[1]);
+#endif
 			BAMBOO_EXIT(0xb008);
 		} else {
 			gcmappedobj = msgdata[2];

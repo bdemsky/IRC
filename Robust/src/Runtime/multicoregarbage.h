@@ -18,16 +18,17 @@
 #define NUMPTRS 100
 
 typedef enum {
-	MARKPHASE = 0x0,   // 0x0
-	COMPACTPHASE,      // 0x1
-	SUBTLECOMPACTPHASE,// 0x2
-	FLUSHPHASE,        // 0x3
-	FINISHPHASE        // 0x4
+	INITPHASE = 0x0,   // 0x0
+	MARKPHASE,         // 0x1
+	COMPACTPHASE,      // 0x2
+	SUBTLECOMPACTPHASE,// 0x3
+	FLUSHPHASE,        // 0x4
+	FINISHPHASE        // 0x5
 } GCPHASETYPE;
 
 volatile bool gcflag;
 volatile bool gcprocessing;
-GCPHASETYPE gcphase; // indicating GC phase
+volatile GCPHASETYPE gcphase; // indicating GC phase
 
 int gccurr_heaptop;
 // for mark phase termination
@@ -56,15 +57,15 @@ int gcfilledblocks[NUMCORES]; //indicate how many blocks have been fulfilled
 // move instruction;
 INTPTR gcmovestartaddr;
 int gcdstcore;
-bool gctomove;
+volatile bool gctomove;
 int gcrequiredmems[NUMCORES]; //record pending mem requests
-int gcmovepending;
+volatile int gcmovepending;
 
 // mapping of old address to new address
 struct RuntimeHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;
-bool gcismapped;
+volatile bool gcismapped;
 
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
@@ -101,9 +102,6 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 			BLOCKINDEX((p), &b); \
 			bool reverse = (b / (NUMCORES)) % 2; \
 			int l = b % (NUMCORES); \
-			BAMBOO_DEBUGPRINT_REG(b); \
-			BAMBOO_DEBUGPRINT_REG(l); \
-			BAMBOO_DEBUGPRINT_REG(reverse); \
 			if(reverse) { \
 				if(62 == (NUMCORES)) { \
 					if(l < 14) { \
@@ -112,21 +110,16 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 						l += 2; \
 					} \
 				} \
-				BAMBOO_DEBUGPRINT_REG(l); \
 				(*((int*)y)) = bamboo_height - 1 - (l / bamboo_width); \
-				BAMBOO_DEBUGPRINT_REG(*((int*)y)); \
 			} else { \
 				if(62 == (NUMCORES)) {\
-					if(l > 54) { \
-						l += 2; \
-					} else if(l > 47) {\
+					if (l > 47) {\
 						l += 1; \
 					} \
 				} \
 				(*((int*)y)) = l / bamboo_width; \
 			} \
-			BAMBOO_DEBUGPRINT_REG(*((int*)y)); \
-		if(((!reverse)&&(*((int*)y))%2) || ((reverse)&&((*((int*)y))%2==0))){ \
+			if(((!reverse)&&(*((int*)y))%2) || ((reverse)&&((*((int*)y))%2==0))){ \
 				(*((int*)x)) = bamboo_width - 1 - (l % bamboo_width); \
 			} else { \
 				(*((int*)x)) = (l % bamboo_width); \
@@ -178,9 +171,7 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 				t = x + y * bamboo_width; \
 			} \
 			if(62 == (NUMCORES)) { \
-				if(y > 6) { \
-					t -= 2; \
-				} else if(y > 5) { \
+				if(y > 5) { \
 					t--; \
 				} \
 			} \
