@@ -901,19 +901,29 @@ public class MLPAnalysis {
 	// if this is an op node, don't stall, copy
 	// source and delay until we need to use value
 
-	// but check the source type of rhs variable
-	// and if dynamic, lhs becomes dynamic, too,
-	// and we need to keep dynamic sources during
-	Integer srcType 
+	// ask whether lhs and rhs sources are dynamic, static, etc.
+	Integer lhsSrcType
+	  = vstTableIn.getRefVarSrcType( lhs,
+					 currentSESE,
+					 currentSESE.getParent() );
+
+	Integer rhsSrcType
 	  = vstTableIn.getRefVarSrcType( rhs,
 					 currentSESE,
 					 currentSESE.getParent() );
 
-	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
+	if( rhsSrcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
+	  // if rhs is dynamic going in, lhs will definitely be dynamic
+	  // going out of this node, so track that here	  
 	  plan.addDynAssign( lhs, rhs );
 	  currentSESE.addDynamicVar( lhs );
 	  currentSESE.addDynamicVar( rhs );
-	}
+
+	} else if( lhsSrcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
+	  // otherwise, if the lhs is dynamic, but the rhs is not, we
+	  // need to update the variable's dynamic source as "current SESE"
+	  plan.addDynAssign( lhs );
+	}       
 
 	// only break if this is an ASSIGN op node,
 	// otherwise fall through to default case

@@ -2431,6 +2431,14 @@ public class BuildCode {
 	  output.println("   "+lhs+"_srcSESE   = "+rhs+"_srcSESE;");
 	  output.println("   "+lhs+"_srcOffset = "+rhs+"_srcOffset;");
 	}
+
+	// for each lhs that is dynamic from a non-dynamic source, set the
+	// dynamic source vars to the current SESE
+	dynItr = cp.getDynAssignCurr().iterator();
+	while( dynItr.hasNext() ) {
+	  TempDescriptor dynVar = dynItr.next();
+	  output.println("   "+dynVar+"_srcSESE = NULL;");
+	}
       }     
     }
 

@@ -13,13 +13,15 @@ public class CodePlan {
   private Hashtable< VariableSourceToken, Set<TempDescriptor> > stall2copySet;
   private Set<TempDescriptor>                                   dynamicStallSet;
   private Hashtable<TempDescriptor, TempDescriptor>             dynAssign_lhs2rhs;
+  private Set<TempDescriptor>                                   dynAssign_lhs2curr;
   private FlatSESEEnterNode                                     currentSESE;
   
   public CodePlan( FlatSESEEnterNode fsen ) {
-    stall2copySet     = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
-    dynamicStallSet   = new HashSet<TempDescriptor>();
-    dynAssign_lhs2rhs = new Hashtable<TempDescriptor, TempDescriptor>();
-    currentSESE       = fsen;
+    stall2copySet      = new Hashtable< VariableSourceToken, Set<TempDescriptor> >();
+    dynamicStallSet    = new HashSet<TempDescriptor>();
+    dynAssign_lhs2rhs  = new Hashtable<TempDescriptor, TempDescriptor>();
+    dynAssign_lhs2curr = new HashSet<TempDescriptor>();
+    currentSESE        = fsen;
   }
 
   public FlatSESEEnterNode getCurrentSESE() {
@@ -63,39 +65,12 @@ public class CodePlan {
     return dynAssign_lhs2rhs;
   }
 
-  public boolean equals( Object o ) {
-    if( o == null ) {
-      return false;
-    }
-
-    if( !(o instanceof CodePlan) ) {
-      return false;
-    }
-
-    CodePlan cp = (CodePlan) o;
-
-    boolean copySetsEq = (stall2copySet.equals( cp.stall2copySet ));
-
-    boolean dynStallSetEq = (dynamicStallSet.equals( cp.dynamicStallSet ));
-
-    boolean dynAssignEq = (dynAssign_lhs2rhs.equals( cp.dynAssign_lhs2rhs ));
-        
-    return copySetsEq && dynStallSetEq && dynAssignEq;
+  public void addDynAssign( TempDescriptor lhs ) {
+    dynAssign_lhs2curr.add( lhs );
   }
 
-  public int hashCode() {
-
-    int copySetsHC = stall2copySet.hashCode();
-
-    int dynStallSetHC = dynamicStallSet.hashCode();
-
-    int dynAssignHC = dynAssign_lhs2rhs.hashCode();
-
-    int hash = 7;
-    hash = 31*hash + copySetsHC;
-    hash = 31*hash + dynStallSetHC;
-    hash = 31*hash + dynAssignHC;
-    return hash;
+  public Set<TempDescriptor> getDynAssignCurr() {
+    return dynAssign_lhs2curr;
   }
 
   public String toString() {
@@ -122,6 +97,10 @@ public class CodePlan {
 
     if( !dynAssign_lhs2rhs.isEmpty() ) {
       s += "[DYN ASSIGNS:"+dynAssign_lhs2rhs+"]";
+    }
+
+    if( !dynAssign_lhs2curr.isEmpty() ) {
+      s += "[DYN ASS2CURR:"+dynAssign_lhs2curr+"]";
     }
 
     return s;
