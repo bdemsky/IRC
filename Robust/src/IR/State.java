@@ -104,7 +104,7 @@ public class State {
   public Hashtable flatmethodmap;
   private HashSet arraytypes;
   public Hashtable arraytonumber;
-  private int numclasses=0;
+  private int numclasses=1; // start from 1 instead of 0 for multicore gc
   private int numtasks=0;
   private int arraycount=0;
   public boolean OPTIMIZE=false;

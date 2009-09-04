@@ -1165,7 +1165,9 @@ inline void addNewObjInfo(void * nobj) {
 void * smemalloc(int size, 
 		             int * allocsize) {
 	void * mem = NULL;
-	int isize = size;
+	int isize = size+(BAMBOO_CACHE_LINE_SIZE);
+	int toallocate = ((size+(BAMBOO_CACHE_LINE_SIZE))>(BAMBOO_SMEM_SIZE)) ? 
+			             (size+(BAMBOO_CACHE_LINE_SIZE)):(BAMBOO_SMEM_SIZE);
 #ifdef MULTICORE_GC
 	// go through free mem list for suitable blocks
 	struct freeMemItem * freemem = bamboo_free_mem_list->head;
@@ -1189,14 +1191,13 @@ void * smemalloc(int size,
 		remain = bound - remain%bound;
 		if(remain < isize) {
 			// this object acrosses blocks
-			// try to align the block if required a block
-			if((isize == BAMBOO_SMEM_SIZE) && (freemem->size >= isize + remain)) {
-				isize += remain;
-			}
+			*allocsize = isize;
+		} else {
+			// round the asigned block to the end of the current block
+			*allocsize = remain;
 		}
-		*allocsize = isize;
-		freemem->ptr = ((void*)freemem->ptr) + isize;
-		freemem->size -= isize;
+		freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
+		freemem->size -= *allocsize;
 	} else {
 #else
 	mem = mspace_calloc(bamboo_free_msp, 1, isize);
@@ -1971,7 +1972,9 @@ msg:
 		}
 		// large obj info here
 	  for(int k = 5; k < msgdata[1];) {
-			gc_lobjenqueue_I(msgdata[k++], msgdata[k++], cnum);
+			int lobj = msgdata[k++];
+			int length = msgdata[k++];
+			gc_lobjenqueue_I(lobj, length, cnum);
 			gcnumlobjs++;
 		} // for(int k = 5; k < msgdata[1];)
 		break;

@@ -143,9 +143,8 @@ public class BuildCodeMultiCore extends BuildCode {
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
-    int numclasses = 0;
+    int numclasses = this.state.numClasses();
     while(it.hasNext()) {
-      ++numclasses;
       ClassDescriptor cn=(ClassDescriptor)it.next();
       super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
     }

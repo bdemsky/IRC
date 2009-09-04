@@ -181,8 +181,8 @@ int corestatus[NUMCORES]; // records status of each core
                           // 0: stall
 int numsendobjs[NUMCORES]; // records how many objects a core has sent out
 int numreceiveobjs[NUMCORES]; // records how many objects a core has received
-int numconfirm;
-bool waitconfirm;
+volatile int numconfirm;
+volatile bool waitconfirm;
 bool busystatus;
 int self_numsendobjs;
 int self_numreceiveobjs;
@@ -237,15 +237,15 @@ struct freeMemList {
 	struct freeMemItem * tail;
 };
 
-bool smemflag;
+volatile bool smemflag;
 struct freeMemList * bamboo_free_mem_list;
-INTPTR bamboo_cur_msp;
-int bamboo_smem_size;
+volatile INTPTR bamboo_cur_msp;
+volatile int bamboo_smem_size;
 #else
-bool smemflag;
-mspace bamboo_free_msp;
-INTPTR bamboo_cur_msp;
-int bamboo_smem_size;
+volatile bool smemflag;
+volatile mspace bamboo_free_msp;
+volatile INTPTR bamboo_cur_msp;
+volatile int bamboo_smem_size;
 #endif
 
 // for test TODO

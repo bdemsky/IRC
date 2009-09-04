@@ -913,6 +913,7 @@ public class BuildCode {
 
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     cdarray=new ClassDescriptor[state.numClasses()];
+    cdarray[0] = null;
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
       cdarray[cd.getId()]=cd;
@@ -933,7 +934,11 @@ public class BuildCode {
     outclassdefs.println("/* ");
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cd=cdarray[i];
-      outclassdefs.println(cd +"  "+i);
+      if(cd == null) {
+        outclassdefs.println("NULL " + i);
+      } else {
+        outclassdefs.println(cd +"  "+i);
+      }
     }
 
     for(int i=0; i<state.numArrays(); i++) {
@@ -950,7 +955,11 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       if (needcomma)
 	outclassdefs.print(", ");
-      outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
+      if(i>0) {
+        outclassdefs.print("sizeof(struct "+cdarray[i].getSafeSymbol()+")");
+      } else {
+        outclassdefs.print("0");
+      }
       needcomma=true;
     }
 
@@ -973,7 +982,7 @@ public class BuildCode {
     outclassdefs.print("int typearray[]={");
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cd=cdarray[i];
-      ClassDescriptor supercd=cd.getSuperDesc();
+      ClassDescriptor supercd=i>0?cd.getSuperDesc():null;
       if (needcomma)
 	outclassdefs.print(", ");
       if (supercd==null)
@@ -1174,7 +1183,11 @@ public class BuildCode {
       if (needcomma)
 	output.println(",");
       needcomma=true;
-      output.print(cn.getSafeSymbol()+"_pointers");
+      if(cn != null) {
+        output.print(cn.getSafeSymbol()+"_pointers");
+      } else {
+        output.print("NULL");
+      }
     }
 
     for(int i=0; i<state.numArrays(); i++) {
@@ -1196,7 +1209,7 @@ public class BuildCode {
       if (needcomma)
 	output.println(", ");
       needcomma=true;
-      if (cn.hasFlags())
+      if ((cn != null) && (cn.hasFlags()))
 	output.print("1");
       else
 	output.print("0");
@@ -1213,7 +1226,7 @@ public class BuildCode {
       if (needcomma)
 	output.println(",");
       needcomma=true;
-      if (cn.getSuperDesc()!=null) {
+      if ((cn != null) && (cn.getSuperDesc()!=null)) {
 	ClassDescriptor cdsuper=cn.getSuperDesc();
 	output.print(cdsuper.getId());
       } else
@@ -4438,7 +4451,7 @@ public class BuildCode {
       ClassDescriptor cn=cdarray[i];
       if (i>0)
 	output.print(", ");
-      if (processedcd.contains(cn))
+      if ((cn != null) && (processedcd.contains(cn)))
 	output.print("&classanalysiswrapper_"+cn.getSafeSymbol());
       else
 	output.print("NULL");

@@ -616,7 +616,7 @@ inline bool cacheLObjs() {
 	// check the total mem size need for large objs
 	int sumsize = 0;
 	int size = 0;
-#ifdef DEBUG
+#ifdef GC_DEBUG
 	BAMBOO_DEBUGPRINT(0xe801);
 #endif
 	gclobjtail2 = gclobjtail;
@@ -625,7 +625,8 @@ inline bool cacheLObjs() {
 		gc_lobjdequeue2();
 		size = gclobjtail2->lengths[gclobjtailindex2 - 1];
 		sumsize += size;
-#ifdef DEBUG
+#ifdef GC_DEBUG
+		BAMBOO_DEBUGPRINT_REG(gclobjtail2->lobjs[gclobjtailindex2-1]);
 		BAMBOO_DEBUGPRINT_REG(size);
 		BAMBOO_DEBUGPRINT_REG(sumsize);
 #endif
@@ -637,7 +638,7 @@ inline bool cacheLObjs() {
 		// do not have enough room to cache large objs
 		return false;
 	}
-#ifdef DEBUG
+#ifdef GC_DEBUG
 	BAMBOO_DEBUGPRINT(0xe802);
 	BAMBOO_DEBUGPRINT_REG(dst);
 #endif
@@ -651,9 +652,11 @@ inline bool cacheLObjs() {
 		size = gclobjtail2->lengths[gclobjtailindex2 - 1];
 		// set the mark field to 2, indicating that this obj has been moved and need to be flushed
 		((int *)(gclobjtail2->lobjs[gclobjtailindex2-1]))[6] = 2;
+		// TODO
+		BAMBOO_DEBUGPRINT(0xdcdc);
 		memcpy(dst, gclobjtail2->lobjs[gclobjtailindex2 - 1], size);
 		dst += size;
-#ifdef DEBUG
+#ifdef GC_DEBUG
 		BAMBOO_DEBUGPRINT_REG(gclobjtail2->lobjs[gclobjtailindex2-1]);
 		BAMBOO_DEBUGPRINT(dst-size);
 		BAMBOO_DEBUGPRINT_REG(size);
@@ -805,7 +808,7 @@ inline void moveLObjs() {
 #endif
 	}
 	tochange->ptr = tmpheaptop;
-	tochange->size = BAMBOO_SHARED_MEM_SIZE + BAMBOO_BASE_VA - tmpheaptop;
+	tochange->size = gcheaptop - tmpheaptop;
 	// zero out all these spare memory
 	memset(tochange->ptr, '\0', tochange->size);
 	if(bamboo_free_mem_list->tail != tochange) {
@@ -822,6 +825,8 @@ inline void moveLObjs() {
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xea02);
 	BAMBOO_DEBUGPRINT_REG(tomove);
+	BAMBOO_DEBUGPRINT_REG(tmpheaptop);
+	BAMBOO_DEBUGPRINT_REG(gcheaptop);
 #endif
 	// flush the sbstartbl
 	memset(&(gcsbstarttbl[gcreservedsb]), '\0', 
@@ -874,6 +879,8 @@ inline void moveLObjs() {
 			memcpy(tmpheaptop, gcheaptop, size);
 			// fill the remaining space with -2 padding
 			memset(tmpheaptop+size, -2, isize-size);
+			// zero out original mem caching the lobj
+			memset(gcheaptop, '\0', size);
 #ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xea04);
 			BAMBOO_DEBUGPRINT_REG(gcheaptop);
@@ -971,8 +978,8 @@ inline void moveLObjs() {
 	}
 	gcheaptop = tmpheaptop;
 	// update the free mem list
-	tochange->size -= tmpheaptop-tochange->ptr;
-	tochange->ptr = tmpheaptop;
+	tochange->size = (BAMBOO_BASE_VA)+(BAMBOO_SHARED_MEM_SIZE)-gcheaptop;
+	tochange->ptr = gcheaptop;
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xea06);
 	BAMBOO_DEBUGPRINT_REG(gcheaptop);
@@ -1182,6 +1189,10 @@ inline void mark(bool isfirst,
 					// ptr is a large object
 					if(((int *)ptr)[6] == 0) {
 						// not marked and not enqueued
+#ifdef GC_DEBUG
+						BAMBOO_DEBUGPRINT(0xecec);
+						BAMBOO_DEBUGPRINT_REG(ptr);
+#endif
 						BAMBOO_START_CRITICAL_SECTION();
 						gc_lobjenqueue_I(ptr, size, BAMBOO_NUM_OF_CORE);
 						gcnumlobjs++;
@@ -1558,27 +1569,55 @@ struct moveHelper {
 
 inline void nextSBlock(struct moveHelper * orig) {
 	orig->blockbase = orig->blockbound;
+#ifdef GC_DEBUG
+	BAMBOO_DEBUGPRINT(0xecc0);
+	BAMBOO_DEBUGPRINT_REG(orig->blockbase);
+	BAMBOO_DEBUGPRINT_REG(orig->blockbound);
+	BAMBOO_DEBUGPRINT_REG(orig->bound);
+	BAMBOO_DEBUGPRINT_REG(orig->ptr);
+#endif
+	if((orig->blockbase >= orig->bound) || (orig->ptr >= orig->bound) 
+			|| ((*((int*)orig->ptr))==0) || ((*((int*)orig->blockbase))==0)) {
 innernextSBlock:
-	if(orig->blockbase >= orig->bound) {
 		// end of current heap block, jump to next one
 		orig->numblocks++;
+#ifdef GC_DEBUG
+		BAMBOO_DEBUGPRINT(0xecc1);
+		BAMBOO_DEBUGPRINT_REG(orig->numblocks);
+#endif
 		BASEPTR(BAMBOO_NUM_OF_CORE, orig->numblocks, &(orig->base));
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(orig->base);
+#endif
 		orig->bound = orig->base + BAMBOO_SMEM_SIZE;
 		orig->blockbase = orig->base;
-	}
-	orig->sblockindex = (orig->blockbase-BAMBOO_BASE_VA)/BAMBOO_SMEM_SIZE;
-	if(gcsbstarttbl[orig->sblockindex] == -1) {
-		// goto next sblock
-		orig->sblockindex += 1;
-		orig->blockbase += BAMBOO_SMEM_SIZE;
-		goto innernextSBlock;
-	} else if(gcsbstarttbl[orig->sblockindex] != 0) {
-		// not start from the very beginning
-		orig->blockbase = gcsbstarttbl[orig->sblockindex];
+		orig->sblockindex = (orig->blockbase-BAMBOO_BASE_VA)/BAMBOO_SMEM_SIZE;
+		if(gcsbstarttbl[orig->sblockindex] == -1) {
+			// goto next sblock
+#ifdef DEBUG
+			BAMBOO_DEBUGPRINT(0xecc2);
+#endif
+			orig->sblockindex += 1;
+			orig->blockbase += BAMBOO_SMEM_SIZE;
+			goto innernextSBlock;
+		} else if(gcsbstarttbl[orig->sblockindex] != 0) {
+			// not start from the very beginning
+			orig->blockbase = gcsbstarttbl[orig->sblockindex];
+		}
 	}
 	orig->blockbound = orig->blockbase + *((int*)(orig->blockbase));
 	orig->offset = BAMBOO_CACHE_LINE_SIZE;
 	orig->ptr = orig->blockbase + orig->offset;
+#ifdef GC_DEBUG
+	BAMBOO_DEBUGPRINT(0xecc3);
+	BAMBOO_DEBUGPRINT_REG(orig->base);
+	BAMBOO_DEBUGPRINT_REG(orig->bound);
+	BAMBOO_DEBUGPRINT_REG(orig->ptr);
+#endif
+	if(orig->ptr >= orig->bound) {
+		// met a lobj, move to next block
+		goto innernextSBlock;
+	}
 } // void nextSBlock(struct moveHelper * orig) 
 
 inline void initOrig_Dst(struct moveHelper * orig, 
@@ -1685,7 +1724,7 @@ innermoveobj:
 	// check the obj's type, size and mark flag
 	type = ((int *)(orig->ptr))[0];
 	size = 0;
-	if(type == -1) {
+	if(type == 0) {
 		// end of this block, go to next one
 		nextSBlock(orig);
 		goto innermoveobj;
@@ -1712,9 +1751,9 @@ innermoveobj:
 		ALIGNSIZE(size, &isize);
 		if(to->top + isize > to->bound) {
 			// fill -1 indicating the end of this block
-			if(to->top != to->bound) {
+			/*if(to->top != to->bound) {
 				*((int*)to->ptr) = -1;
-			}
+			}*/
 			//memset(to->ptr+1,  -2, to->bound - to->top - 1);
 			// fill the header of this block and then go to next block
     	to->offset += to->bound - to->top;
@@ -1748,6 +1787,12 @@ innermoveobj:
 		to->ptr += isize;
 		to->offset += isize;
 		to->top += isize;
+		if(to->top == to->bound) {
+			// fill the header of this block and then go to next block
+			memset(to->base, '\0', BAMBOO_CACHE_LINE_SIZE);
+			(*((int*)(to->base))) = to->offset;
+			nextBlock(to);
+		}
 	} // if(mark == 1)
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe205);
@@ -1757,6 +1802,7 @@ innermoveobj:
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT_REG(isize);
 	BAMBOO_DEBUGPRINT_REG(orig->ptr);
+	BAMBOO_DEBUGPRINT_REG(orig->bound);
 #endif
 	if((orig->ptr > orig->bound) || (orig->ptr == orig->blockbound)) {
 #ifdef DEBUG
@@ -1904,6 +1950,7 @@ innercompact:
 		} else {
 #ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xe108);
+			BAMBOO_DEBUGPRINT_REG(*heaptopptr);
 #endif
 			// finish compacting
 			send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,

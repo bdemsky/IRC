@@ -3,7 +3,7 @@ import java.util.*;
 import IR.Tree.*;
 
 public class ClassDescriptor extends Descriptor {
-  private static int UIDCount=0;
+  private static int UIDCount=1; // start from 1 instead of 0 for multicore gc
   private final int classid;
   String superclass;
   ClassDescriptor superdesc;
