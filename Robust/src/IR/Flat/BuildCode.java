@@ -232,6 +232,9 @@ public class BuildCode {
 
     // Output function prototypes and structures for SESE's and code
     if( state.MLP ) {
+
+      // used to differentiate, during code generation, whether we are
+      // passing over SESE body code, or non-SESE code
       nonSESEpass = false;
 
       // first generate code for each sese's internals
@@ -1760,17 +1763,19 @@ public class BuildCode {
     // Build normal temp object for bogus method descriptor
     TempObject objecttemps = new TempObject( objectparams, mdBogus, tag++ );
     tempstable.put( mdBogus, objecttemps );
-    
-    for(Iterator nodeit=fsen.getNodeSet().iterator(); nodeit.hasNext();) {
-      FlatNode fn=(FlatNode)nodeit.next();
-      TempDescriptor[] writes=fn.writesTemps();
-      for(int i=0; i<writes.length; i++) {
-	TempDescriptor temp=writes[i];
-	TypeDescriptor type=temp.getType();
-	if (type.isPtr()&&GENERATEPRECISEGC) {
-	  objecttemps.addPtr(temp);
+
+    for( Iterator nodeit = fsen.getNodeSet().iterator(); nodeit.hasNext(); ) {
+      FlatNode         fn     = (FlatNode)nodeit.next();
+      TempDescriptor[] writes = fn.writesTemps();
+
+      for( int i = 0; i < writes.length; i++ ) {
+	TempDescriptor temp = writes[i];
+	TypeDescriptor type = temp.getType();
+
+	if( type.isPtr() ) {
+	  objecttemps.addPtr( temp );
 	} else {
-	  objecttemps.addPrim(temp);
+	  objecttemps.addPrim( temp );
 	}
       }
     }
@@ -1783,20 +1788,30 @@ public class BuildCode {
                                     PrintWriter outputMethods
                                     ) {
 
-    ParamsObject objectparams = (ParamsObject) paramstable.get( fsen.getmdBogus() );
-                
-    TempObject objecttemps = (TempObject) tempstable.get( fsen.getmdBogus() );
+    ParamsObject objectparams = (ParamsObject) paramstable.get( fsen.getmdBogus() );                
+    TempObject   objecttemps  = (TempObject)   tempstable .get( fsen.getmdBogus() );
     
     // generate locals structure
-    outputStructs.println("struct "+fsen.getcdEnclosing().getSafeSymbol()+fsen.getmdBogus().getSafeSymbol()+"_"+fsen.getmdBogus().getSafeMethodDescriptor()+"_locals {");
+    outputStructs.println("struct "+
+			  fsen.getcdEnclosing().getSafeSymbol()+
+			  fsen.getmdBogus().getSafeSymbol()+"_"+
+			  fsen.getmdBogus().getSafeMethodDescriptor()+
+			  "_locals {");
     outputStructs.println("  INTPTR size;");
     outputStructs.println("  void * next;");
     for(int i=0; i<objecttemps.numPointers(); i++) {
       TempDescriptor temp=objecttemps.getPointer(i);
+
+      if( fsen.getPrettyIdentifier().equals( "calc" ) ) {
+	System.out.println( "  got a pointer "+temp );
+      }
+
       if (temp.getType().isNull())
         outputStructs.println("  void * "+temp.getSafeSymbol()+";");
       else
-        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        outputStructs.println("  struct "+
+			      temp.getType().getSafeSymbol()+" * "+
+			      temp.getSafeSymbol()+";");
     }
     outputStructs.println("};\n");
 
@@ -3116,13 +3131,16 @@ public class BuildCode {
       return;
     }
 
+    // get the enter node for this exit that has meta data embedded
+    FlatSESEEnterNode fsen = fsexn.getFlatEnter();
+
     // there may be an SESE in an unreachable method, skip over
-    if( !mlpa.getAllSESEs().contains( fsexn.getFlatEnter() ) ) {
+    if( !mlpa.getAllSESEs().contains( fsen ) ) {
       return;
     }
 
     // also, if we have encountered a placeholder, just jump it
-    if( fsexn.getFlatEnter().getIsCallerSESEplaceholder() ) {
+    if( fsen.getIsCallerSESEplaceholder() ) {
       return;
     }
 
@@ -3139,12 +3157,35 @@ public class BuildCode {
     output.println("   }");
 
     // copy out-set from local temps into the sese record
-    Iterator<TempDescriptor> itr = fsexn.getFlatEnter().getOutVarSet().iterator();
+    Iterator<TempDescriptor> itr = fsen.getOutVarSet().iterator();
     while( itr.hasNext() ) {
-      TempDescriptor temp = itr.next();      
+      TempDescriptor temp = itr.next();
+
+      // only have to do this for primitives
+      if( !temp.getType().isPrimitive() ) {
+	continue;
+      }
+
+      // have to determine the context enclosing this sese
+      boolean useParentContext = false;
+
+      if( fsen != mlpa.getMainSESE() ) {
+	assert fsen.getParent() != null;
+	if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
+	  useParentContext = true;
+	}
+      }
+
+      String from;
+      if( useParentContext ) {
+	from = generateTemp( fsen.getParent().getfmBogus(), temp, null );
+      } else {
+	from = generateTemp( fsen.getfmEnclosing(),         temp, null );
+      }
+
       output.println("   "+paramsprefix+
 		     "->"+temp.getSafeSymbol()+
-		     " = "+temp.getSafeSymbol()+";" );
+		     " = "+from+";");
     }    
     
     // mark yourself done, your SESE data is now read-only

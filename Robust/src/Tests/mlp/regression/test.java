@@ -1,15 +1,24 @@
+public class Foo {
+  public int z;
+
+  public Foo( int z ) {
+    this.z = z;
+  }  
+}
 
 public class Test {
 
   public static void main( String args[] ) {        
     int x = Integer.parseInt( args[0] );
-    doSomeWork( x );
+    Foo f = new Foo( x + 10000 );
+    doSomeWork( x, f );
     nullMethodBodyFinalNode();
   }
 
-  public static void doSomeWork( int x ) {
+  public static void doSomeWork( int x, Foo f ) {
     for( int i = 0; i < x; ++i ) {
       sese calc {
+	Foo g = new Foo( i );
 	int sum = 0;
 	for( int j = 0; j <= i; ++j ) {
 	  sum = calculateStuff( sum, 1, 0 );
@@ -19,6 +28,10 @@ public class Test {
 	if( i % 3 == 0 ) {
 	  sum = sum + (i % 20);
 	}
+	g.z = sum + 1000;
+      }
+      sese modobj {
+	g.z = g.z + f.z;
       }
       if( i % 2 == 0 ) {
 	sese change {
@@ -30,10 +43,10 @@ public class Test {
 	
 	for( int l = 0; l < 3; ++l ) {
 	  sum = calculateStuff( sum, 2, 2 );
-	}
-      }
+	}	
+      }      
       sese prnt {
-	mightPrint( x, i, sum );
+	mightPrint( x, i, sum, g );
       }
     }
   }
@@ -73,9 +86,9 @@ public class Test {
     }
   }
 
-  public static void mightPrint( int x, int i, int sum ) {
+  public static void mightPrint( int x, int i, int sum, Foo g ) {
     if( i == x - 1 ) {
-      System.out.println( "sum of integers 0-"+i+"("+x+") is "+sum );
+      System.out.println( "Results "+i+", "+x+", "+sum+", "+g.z );
     }
   }
 }

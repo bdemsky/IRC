@@ -3,7 +3,7 @@ echo 'Each single/multi output line pair should be identical'
 echo '' > resultsSingle.txt
 echo '' > resultsMulti.txt
 
-for i in $(seq 20)
+for i in $(seq 3)
 do
 echo 'running...'
 ./testSingle.bin $[ i      ] >> resultsSingle.txt
