@@ -696,6 +696,8 @@ public class LocalityAnalysis {
     while(!lbtovisit.isEmpty()) {
       LocalityBinding lb=(LocalityBinding) lbtovisit.iterator().next();
       lbtovisit.remove(lb);
+
+      System.out.println("Analyzing "+lb);
       Integer returnglobal=lb.getGlobalReturn();
       MethodDescriptor md=lb.getMethod();
       Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>> temptable=new Hashtable<FlatNode,Hashtable<TempDescriptor, Integer>>();
@@ -777,7 +779,7 @@ public class LocalityAnalysis {
 	break;
 
       case FKind.FlatCall:
-	processCallNode(lb, (FlatCall)fn, currtable, isAtomic(atomictable, fn));
+	  processCallNode(lb, (FlatCall)fn, currtable, isAtomic(atomictable, fn), temptable.get(fn));
 	break;
 
       case FKind.FlatFieldNode:
@@ -865,7 +867,7 @@ public class LocalityAnalysis {
     return CONFLICT;
   }
 
-  void processCallNode(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic) {
+    void processCallNode(LocalityBinding currlb, FlatCall fc, Hashtable<TempDescriptor, Integer> currtable, boolean isatomic, Hashtable<TempDescriptor,Integer> oldtable) {
     MethodDescriptor nodemd=fc.getMethod();
     Set methodset=null;
     Set runmethodset=null;
@@ -897,6 +899,12 @@ public class LocalityAnalysis {
     }
 
     Integer currreturnval=EITHER;     //Start off with the either value
+    if (oldtable!=null&&fc.getReturnTemp()!=null&&
+        oldtable.get(fc.getReturnTemp())!=null) {
+	//ensure termination
+	currreturnval=merge(currreturnval, oldtable.get(fc.getReturnTemp()));
+    }
+
     for(Iterator methodit=methodset.iterator(); methodit.hasNext();) {
       MethodDescriptor md=(MethodDescriptor) methodit.next();
 
