@@ -3,8 +3,10 @@ SRC=${MAINCLASS}.java \
     ../KMeans/Random.java \
     ../../../ClassLibrary/intwrapper.java
 
-FLAGSSTATS=-stmstats -mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -64bit -abcclose -dcopts -transstats -arraypad 
-FLAGS=-mainclass ${MAINCLASS} -singleTM -nooptimize -debug -joptimize -64bit -abcclose -dcopts -transstats -arraypad 
+FLAGSSTATS=-stmlog -stmstats -mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -64bit -abcclose -dcopts -transstats -arraypad 
+FLAGS=-stmlog -mainclass ${MAINCLASS} -singleTM -optimize -debug -joptimize -64bit -abcclose -dcopts -transstats -arraypad
+
+#-stmlog creates log files on each core that records the time logging of events in the microbenchmark
 
 base:
 	../../../buildscript ${FLAGS} ${SRC} -o STATS${MAINCLASS}NoLockBase

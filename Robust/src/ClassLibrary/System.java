@@ -66,4 +66,13 @@ public class System {
 
   public static native void deepArrayCopy(Object dst, Object src);
 
+  /* Only used for microbenchmark testing of SingleTM version */
+  public static native void logevent(int event);
+
+  /* Only used for microbenchmark testing of SingleTM version */
+  public static native void initLog();
+
+  public static native void flushToFile(int threadid);
+  /* Only used for microbenchmark testing of SingleTM version */
+
 }

@@ -31,10 +31,21 @@ public class Integer {
   }
 
   public int byteArrayToInt(byte [] b) {
+    int value = 0;
+    for (int i = 0; i < 4; i++) {
+      int shift = (4 - 1 - i) * 8;
+      value += (b[i] & 0x000000FF) << shift;
+    }
+    return value;
+  }
+
+  /*
+  public int byteArrayToInt(byte [] b) {
     int val;
     val = b[0] << 24 + ((b[1] & 0xFF) << 16) + ((b[2] & 0xFF) << 8) + (b[3] & 0xFF);
     return val;
   }
+  */
 
   public static int parseInt(String str) {
     return Integer.parseInt(str, 10);

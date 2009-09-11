@@ -16,6 +16,12 @@
 #include "tm.h"
 #include <pthread.h>
 #endif
+#ifdef STMLOG
+__thread int counter;
+__thread int event[100000*7+3];
+__thread unsigned long long clkticks[100000*7+3];
+#define FILENAME  "log"
+#endif
 
 #if defined(THREADS)||defined(STM)
 /* Global barrier for STM */
@@ -198,6 +204,86 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #endif
 #endif
   exit(___status___);
+}
+
+#if defined(__i386__)
+
+static __inline__ unsigned long long rdtsc(void)
+{
+  unsigned long long int x;
+  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
+  return x;
+}
+#elif defined(__x86_64__)
+
+static __inline__ unsigned long long rdtsc(void)
+{
+  unsigned hi, lo;
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
+#elif defined(__powerpc__)
+
+typedef unsigned long long int unsigned long long;
+
+static __inline__ unsigned long long rdtsc(void)
+{
+  unsigned long long int result=0;
+  unsigned long int upper, lower,tmp;
+  __asm__ volatile(
+      "0:                  \n"
+      "\tmftbu   %0           \n"
+      "\tmftb    %1           \n"
+      "\tmftbu   %2           \n"
+      "\tcmpw    %2,%0        \n"
+      "\tbne     0b         \n"
+      : "=r"(upper),"=r"(lower),"=r"(tmp)
+      );
+  result = upper;
+  result = result<<32;
+  result = result|lower;
+
+  return(result);
+}
+#endif
+
+void CALL11(___System______logevent____I,int ___event___, int ___event___) {
+#ifdef STMLOG
+  event[counter] = ___event___;
+  clkticks[counter] = rdtsc();
+  counter++;
+#endif
+  return;
+}
+
+void CALL11(___System______flushToFile____I, int ___threadid___, int ___threadid___) {
+#ifdef STMLOG
+  FILE *fp;
+  /* Flush to file */
+  char filename[20];
+  memset(filename, 0, 20);
+  sprintf(filename, "%s_%d", FILENAME, ___threadid___);
+  if ((fp = fopen(filename, "w+")) == NULL) {
+    perror("fopen");
+    return;
+  }
+  int i;
+  for (i = 0; i < counter-1; i++) {
+    fprintf(fp, "%d %lld %lld\n", event[i], clkticks[i], clkticks[i+1]);
+  }
+  fprintf(fp, "%d %lld\n", event[i], clkticks[i]);
+
+  fclose(fp);
+#endif
+  return;
+}
+
+void CALL00(___System______initLog____) {
+#ifdef STMLOG
+  counter=0;
+#endif
+  return;
 }
 
 #ifdef D___Vector______removeElement_____AR_L___Object____I_I

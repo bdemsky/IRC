@@ -62,7 +62,6 @@ public class SingleObjectMod extends Thread {
   }
 
   public void run() {
-    int eventcount=0;
     int index, val;
     Random rand = new Random();
     rand.random_alloc();
@@ -74,22 +73,18 @@ public class SingleObjectMod extends Thread {
       stop = loopsize;
     else
       stop = start + partitionSize;
-    LogTime[] lt = new LogTime[8*(stop-start)];
-    for(int i = 0; i<(7*(stop-start))+3; i++) {
-      lt[i] = new LogTime();
-    }
 
-    //System.out.println("Start = " + start+ " stop= " + stop + " partitionSize= " + partitionSize+ " loopsize= " + loopsize + " lsize1= " + lsize1 + " lsize2= " + lsize2);
-    rand.random_seed(0);
+    System.initLog();
+
+    //rand.random_seed(0);
     int l1, l2;
     //Time at Point1
-    lt[eventcount].event = 1;
-    lt[eventcount++].time  = System.getticks();
+    System.logevent(1);
 
+    //System.out.println("id= " + threadid + " Start= " + System.getticks());
     for(int i = start; i < stop; i++) {
       //Time at Point2
-      lt[eventcount].event = 2;
-      lt[eventcount++].time  = System.getticks();
+      System.logevent(2);
 
       int distribution = (int)(rand.random_generate() % 100);
 
@@ -104,13 +99,11 @@ public class SingleObjectMod extends Thread {
       int count;
 
       //Time at point3
-      lt[eventcount].event = 3;
-      lt[eventcount++].time  = System.getticks();
+      System.logevent(3);
 
       atomic {
         //Time at Point4
-        lt[eventcount].event = 4;
-        lt[eventcount++].time  = System.getticks();
+        System.logevent(4);
 
         index = (int)(rand.random_generate() % arrysize);
         // Do computation 1
@@ -119,43 +112,34 @@ public class SingleObjectMod extends Thread {
         }
 
         //Time at Point5
-        lt[eventcount].event = 5;
-        lt[eventcount++].time  = System.getticks();
+        System.logevent(5);
 
         // Only read values from an object
         val = mainobj[index];
 
         //Time at Point6
-        lt[eventcount].event = 6;
-        lt[eventcount++].time  = System.getticks();
+        System.logevent(6);
 
         // Do computation 2
         for(int j = 0; j<l2; j++) {
           count+=val*j*j;
         }
         //Time at Point7
-        lt[eventcount].event = 7;
-        lt[eventcount++].time  = System.getticks();
+        System.logevent(7);
 
         // Write values 
         mainobj[index] = count;
       }
       //Time at Point8
-      lt[eventcount].event = 8;
-      lt[eventcount++].time  = System.getticks();
+      System.logevent(8);
     }
+    //System.out.println("id= " + threadid + " End= " + System.getticks());
+
     //Time at Point9
-    lt[eventcount].event = 9;
-    lt[eventcount++].time  = System.getticks();
+    System.logevent(9);
 
     //Output to file
-    FileOutputStream fo = new FileOutputStream("test_"+threadid);
-    //test output to files test_threadid
-    for(int i = 0; i<(7*(stop-start))+3; i++) {
-      fo.write(fillBytes(lt[i].event));
-      fo.write(longToByteArray(lt[i].time));
-    }
-    fo.close();
+    System.flushToFile(threadid);
   }
 
   /*
@@ -216,14 +200,5 @@ public class SingleObjectMod extends Thread {
 
     System.out.println("Finished......");
     System.exit(0);
-  }
-}
-
-public class LogTime {
-  public int event;
-  public long time;
-  public LogTime() {
-    event = 0;
-    time = 0;
   }
 }

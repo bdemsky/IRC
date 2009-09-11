@@ -199,6 +199,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DSTATDEBUG"
 elif [[ $1 = '-stmstats' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMSTATS"
+elif [[ $1 = '-stmlog' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DSTMLOG"
 elif [[ $1 = '-prefetch' ]]
 then
 JAVAOPTS="$JAVAOPTS -prefetch"
