@@ -3439,7 +3439,7 @@ public class BuildCode {
       return true;
     for(Iterator classit=subclasses.iterator(); classit.hasNext();) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
-      Set possiblematches=cd.getMethodTable().getSet(md.getSymbol());
+      Set possiblematches=cd.getMethodTable().getSetFromSameScope(md.getSymbol());
       for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
 	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 	if (md.matches(matchmd))
