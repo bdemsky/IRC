@@ -244,6 +244,47 @@ public class OwnershipAnalysis {
     bw.write( "\n"+computeAliasContextHistogram() );
     bw.close();
   }
+
+
+
+
+  /*
+  getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
+    return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
+  }
+
+  public AllocationSite getAllocationSiteFromFlatNew(FlatNew fn) {
+    return getAllocationSiteFromFlatNewPRIVATE(fn);
+  }
+  */
+
+  // return the set of allocation sites for the object that the
+  // given variable may reference at the given program point
+  public Set<AllocationSite> possible( TempDescriptor temp,
+				       FlatNode       ppoint ) {
+    assert temp   != null;
+    assert ppoint != null;
+
+    /*
+    OwnershipGraph og = new OwnershipGraph( allocationDepth, typeUtil );
+
+    assert mapDescriptorToAllMethodContexts.containsKey( d );
+    HashSet<MethodContext> contexts = mapDescriptorToAllMethodContexts.get( d );
+    Iterator<MethodContext> mcItr = contexts.iterator();
+    while( mcItr.hasNext() ) {
+      MethodContext mc = mcItr.next();
+
+      OwnershipGraph ogContext = mapMethodContextToCompleteOwnershipGraph.get(mc);
+      assert ogContext != null;
+
+      og.merge( ogContext );
+    }
+
+    return og;
+    */
+
+    return null;
+  }  
   ///////////////////////////////////////////
   //
   // end public interface

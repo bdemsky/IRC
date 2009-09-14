@@ -355,8 +355,10 @@ public class OwnershipGraph {
 	HeapRegionNode hrnHrn  = edgeHrn.getDst();
 	ReachabilitySet betaHrn = edgeHrn.getBeta();
 
-	if( edgeHrn.getType() == null ||
-	    edgeHrn.getType().equals( f.getType() ) ) {
+	if( edgeHrn.getType() == null ||	    
+	    (edgeHrn.getType() .equals( f.getType()   ) &&
+	     edgeHrn.getField().equals( f.getSymbol() )    )
+	  ) {
 
 	  ReferenceEdge edgeNew = new ReferenceEdge(lnX,
 	                                            hrnHrn,
@@ -380,11 +382,6 @@ public class OwnershipGraph {
 
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
     HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
-
-
-    
-    //boolean printDebug = f.getType()    
-
 
     // first look for possible strong updates and remove those edges
     boolean strongUpdate = false;
