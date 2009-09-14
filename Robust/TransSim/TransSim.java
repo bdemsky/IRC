@@ -1,12 +1,12 @@
 public class TransSim {
   public static void main(String[] args) {
-    int numThreads=32;
-    int numTrans=100;
+    int numThreads=16;
+    int numTrans=20;
     int deltaTrans=0;
-    int numObjects=500;
+    int numObjects=4000;
     int numAccesses=20;
     int deltaAccesses=5;
-    int readPercent=30;
+    int readPercent=20;
     //time for operation
     int delay=20;
     int deltaDelay=4;
@@ -24,6 +24,15 @@ public class TransSim {
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
       int besttime=ls.getTime();
       tlazy+=ls.getTime();
+
+      //Lock object accesses
+      ls=new FlexScheduler(e, FlexScheduler.LOCK);
+      ls.dosim();
+      System.out.println("Lock Abort="+ls.getTime());
+      System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
+      if (ls.getTime()<besttime)
+	besttime=ls.getTime();
+      tcommit+=ls.getTime();
 
       //Kill others at commit
       ls=new FlexScheduler(e, FlexScheduler.COMMIT);
