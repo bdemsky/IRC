@@ -79,7 +79,8 @@ public class Scheduler {
 	  int newstart=lastwr[step][evobject]-evtime;
 	  if (newstart>starttime)
 	    starttime=newstart;
-	  newstart=lastrd[step][evobject]-evtime;
+
+	  newstart=lastrd[step][evobject]-trans.getTime(trans.numEvents()-1);
 	  if (newstart>starttime)
 	    starttime=newstart;
 	  break;
@@ -175,6 +176,7 @@ public class Scheduler {
       
       if (!lgood||step==lastEvent) {
 	//go backwards
+	step--;
 	for(;step>=0;step--) {
 	  //check for delay transaction...just skip them
 	  Transaction oldtrans=e.getThread(turn[step]).getTransaction(schedule[0][turn[step]]-schedule[step][turn[step]]);
@@ -183,19 +185,8 @@ public class Scheduler {
 	  
 	  iturn=turn[step]+1;
 	  for(;iturn<e.numThreads();iturn++) {
-	    if (schedule[step][iturn]>0) {
-	      if (step==0)
-		break;
-	      
-	      int lastturn=turn[step-1];
-	      if (iturn<lastturn) {
-		Transaction trans1=e.getThread(lastturn).getTransaction(schedule[0][iturn]-schedule[step][iturn]);
-		Transaction trans2=e.getThread(iturn).getTransaction(schedule[0][lastturn]-schedule[step-1][lastturn]);
-		if (checkConflicts(trans1, trans2))
-		  break;
-	      } else
-		break;
-	    }
+	    if (schedule[step][iturn]>0)
+	      break;
 	  }
 	  if (iturn<e.numThreads()) {
 	    //found something to iterate

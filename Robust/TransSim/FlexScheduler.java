@@ -199,6 +199,11 @@ public class FlexScheduler {
       if (threadid.intValue()!=thread)
 	conflictset.add(threadid);
     }
+    for(Iterator it=((Set)wrobjmap.get(obj)).iterator();it.hasNext();) {
+      Integer threadid=(Integer)it.next();
+      if (threadid.intValue()!=thread)
+	conflictset.add(threadid);
+    }
     if (conflictset.isEmpty())
       return null;
     else
@@ -341,7 +346,16 @@ public class FlexScheduler {
 
     public int compareTo(Object o) {
       Event e=(Event)o;
-      return time-e.time;
+      int delta=time-e.time;
+      if (delta!=0)
+	return delta;
+      if (((getEvent()+1)==getTransaction().numEvents())&&
+	  (e.getEvent()+1)!=e.getTransaction().numEvents())
+	return -1;
+      if (((getEvent()+1)!=getTransaction().numEvents())&&
+	  (e.getEvent()+1)==e.getTransaction().numEvents())
+	return 1;
+      return 0;
     }
   }
 

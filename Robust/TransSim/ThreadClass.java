@@ -1,5 +1,14 @@
 public class ThreadClass {
   Transaction[] trans;
+
+  public String toString() {
+    String s="Thread\n";
+    for(int i=0;i<trans.length;i++) {
+      s+="Transaction "+i+"\n";
+      s+=trans[i].toString();
+    }
+    return s;
+  }
   
   public ThreadClass(int numTrans) {
     trans=new Transaction[numTrans];

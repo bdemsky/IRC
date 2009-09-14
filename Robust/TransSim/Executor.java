@@ -15,6 +15,15 @@ public class Executor {
   Random r;
   ThreadClass[] threads;
 
+  public String toString() {
+    String s="";
+    for(int i=0;i<numThreads;i++)
+      s+=threads[i].toString();
+
+    return s;
+  }
+
+
   public Executor(int numThreads, int numTrans, int deltaTrans, int numObjects, int numAccesses, int deltaAccesses, int readPercent, int delay, int deltaDelay, int nonTrans, int deltaNonTrans) {
     this.numThreads=numThreads;
     this.numTrans=numTrans;
@@ -89,7 +98,7 @@ public class Executor {
     int accesses=getRandom(numAccesses, deltaAccesses);
     Transaction t=new Transaction(accesses);
     int time=0;
-    for(int i=0;i<accesses; i++) {
+    for(int i=0;i<(accesses-1); i++) {
       boolean isRead=r.nextInt(100)<readPercent;
       time+=getRandom(delay, deltaDelay);
       int object=r.nextInt(numObjects);
@@ -100,6 +109,11 @@ public class Executor {
       else
 	t.setEvent(i, Transaction.WRITE);
     }
+    t.setEvent(accesses-1, Transaction.DELAY);
+    t.setObject(accesses-1, Transaction.DELAY);
+    time+=getRandom(delay, deltaDelay);
+    t.setTime(accesses-1, time);
+
     return t;
   }
 

@@ -3,6 +3,20 @@ public class Transaction {
   int[] objects;
   int[] times;
 
+  public String toString() {
+    String s="";
+    for(int i=0;i<numEvents();i++) {
+      if (events[i]==READ)
+	s+="Read";
+      else if(events[i]==WRITE)
+	s+="Write";
+      else 
+	s+="Delay";
+      s+=" on "+objects[i]+" at "+times[i]+"\n";
+    }
+    return s;
+  }
+
   public static final int READ=0;
   public static final int WRITE=1;
   public static final int DELAY=-1;
