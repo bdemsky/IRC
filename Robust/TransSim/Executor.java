@@ -14,6 +14,9 @@ public class Executor {
   int readPercent;
   Random r;
   ThreadClass[] threads;
+  int splitobjects;
+  int splitaccesses;
+  int readPercentSecond;
 
   public String toString() {
     String s="";
@@ -23,8 +26,11 @@ public class Executor {
     return s;
   }
 
-
   public Executor(int numThreads, int numTrans, int deltaTrans, int numObjects, int numAccesses, int deltaAccesses, int readPercent, int delay, int deltaDelay, int nonTrans, int deltaNonTrans) {
+    this(numThreads, numTrans, deltaTrans, numObjects, numAccesses, deltaAccesses, readPercent, delay, deltaDelay, nonTrans, deltaNonTrans, 100, 100, 0);
+  }
+
+  public Executor(int numThreads, int numTrans, int deltaTrans, int numObjects, int numAccesses, int deltaAccesses, int readPercent, int delay, int deltaDelay, int nonTrans, int deltaNonTrans, int splitobjects, int splitaccesses, int readPercentSecond) {
     this.numThreads=numThreads;
     this.numTrans=numTrans;
     this.deltaTrans=deltaTrans;
@@ -36,6 +42,9 @@ public class Executor {
     this.deltaDelay=deltaDelay;
     this.nonTrans=nonTrans;
     this.deltaNonTrans=deltaNonTrans;
+    this.splitobjects=splitobjects;
+    this.splitaccesses=splitaccesses;
+    this.readPercentSecond=readPercentSecond;
     r=new Random();
     threads=new ThreadClass[numThreads];
     generateThreads();
@@ -98,16 +107,29 @@ public class Executor {
     int accesses=getRandom(numAccesses, deltaAccesses);
     Transaction t=new Transaction(accesses);
     int time=0;
+    int splitpoint=(numObjects*splitobjects)/100;
     for(int i=0;i<(accesses-1); i++) {
-      boolean isRead=r.nextInt(100)<readPercent;
-      time+=getRandom(delay, deltaDelay);
-      int object=r.nextInt(numObjects);
-      t.setObject(i, object);
-      t.setTime(i, time);
-      if (isRead)
-	t.setEvent(i, Transaction.READ);
-      else
-	t.setEvent(i, Transaction.WRITE);
+      if (r.nextInt(100)<splitaccesses) {
+	boolean isRead=r.nextInt(100)<readPercent;
+	time+=getRandom(delay, deltaDelay);
+	int object=r.nextInt(splitpoint);
+	t.setObject(i, object);
+	t.setTime(i, time);
+	if (isRead)
+	  t.setEvent(i, Transaction.READ);
+	else
+	  t.setEvent(i, Transaction.WRITE);
+      } else {
+	boolean isRead=r.nextInt(100)<readPercentSecond;
+	time+=getRandom(delay, deltaDelay);
+	int object=r.nextInt(numObjects-splitpoint)+splitpoint;
+	t.setObject(i, object);
+	t.setTime(i, time);
+	if (isRead)
+	  t.setEvent(i, Transaction.READ);
+	else
+	  t.setEvent(i, Transaction.WRITE);
+      }
     }
     t.setEvent(accesses-1, Transaction.DELAY);
     t.setObject(accesses-1, Transaction.DELAY);

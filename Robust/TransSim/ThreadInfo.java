@@ -6,6 +6,15 @@ public class ThreadInfo {
     this.fs=fs;
   }
   boolean stalled;
+  int oid;
+
+  public void setObject(int oid) {
+    this.oid=oid;
+  }
+
+  public int getObject() {
+    return oid;
+  }
 
   public boolean isStalled() {
     return stalled;
