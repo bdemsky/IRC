@@ -67,6 +67,9 @@ public class OwnershipGraph {
   public Hashtable<Integer, TokenTuple> paramIndex2paramTokenSecondaryStar;
 
 
+  public HeapRegionNode hrnNull;
+
+
   public OwnershipGraph(int allocationDepth, TypeUtil typeUtil) {
     this.allocationDepth = allocationDepth;
     this.typeUtil        = typeUtil;
@@ -91,6 +94,16 @@ public class OwnershipGraph {
     paramIndex2paramTokenSecondaryStar = new Hashtable<Integer,        TokenTuple    >();
 
     allocationSites = new HashSet <AllocationSite>();
+
+    hrnNull = createNewHeapRegionNode( OwnershipAnalysis.nullRegionID,
+				       false,
+				       false,
+				       false,
+				       false,
+				       null,
+				       null,
+				       null,
+				       "null" );
   }
 
 
@@ -309,6 +322,23 @@ public class OwnershipGraph {
 
       addReferenceEdge(lnX, referencee, edgeNew);
     }
+  }
+
+
+  public void assignTempXEqualToNull(TempDescriptor x) {
+
+    LabelNode lnX = getLabelNodeFromTemp(x);
+
+    clearReferenceEdgesFrom(lnX, null, null, true);
+
+    ReferenceEdge edgeNew = new ReferenceEdge(lnX,
+					      hrnNull,
+					      null,
+					      null,
+					      false,
+					      null);
+
+    addReferenceEdge(lnX, hrnNull, edgeNew);
   }
 
 
@@ -3221,6 +3251,12 @@ public class OwnershipGraph {
 					 ) {
     
     HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
+
+    if( hrnCallee == ogCallee.hrnNull ) {
+      // this is the null heap region
+      possibleCallerHRNs.add( id2hrn.get( hrnCallee.getID() ) );
+      return possibleCallerHRNs;
+    }
 
     Set<Integer> paramIndicesCallee_p = ogCallee.idPrimary2paramIndexSet  .get( hrnCallee.getID() );
     Set<Integer> paramIndicesCallee_s = ogCallee.idSecondary2paramIndexSet.get( hrnCallee.getID() );
