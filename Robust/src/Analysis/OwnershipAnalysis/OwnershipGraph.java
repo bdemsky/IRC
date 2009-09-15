@@ -245,8 +245,6 @@ public class OwnershipGraph {
 
       if( removeAll                                          || 
 	  (edge.typeEquals( type ) && edge.fieldEquals( field ))
-	  //(type  != null && edge.getType() .equals( type  )) ||
-	  //(field != null && edge.getField().equals( field ))   
         ){
 
 	HeapRegionNode referencee = edge.getDst();
@@ -274,8 +272,6 @@ public class OwnershipGraph {
 
       if( removeAll                                          || 
 	  (edge.typeEquals( type ) && edge.fieldEquals( field ))
-	  //(type  != null && edge.getType() .equals( type  )) ||
-	  //(field != null && edge.getField().equals( field ))   
         ){
 
 	OwnershipNode referencer = edge.getSrc();
@@ -661,8 +657,6 @@ public class OwnershipGraph {
     TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
 					   false, // multi-object
 					   TokenTuple.ARITY_ONE ).makeCanonical();    
-    //TokenTuple ttPrimary = new TokenTuple( hrnPrimary ).makeCanonical();
-
         
     HeapRegionNode hrnSecondary   = null;
     Integer        newSecondaryID = null;
@@ -696,7 +690,6 @@ public class OwnershipGraph {
       ttSecondary = new TokenTuple( newSecondaryID,
 				    true, // multi-object
 				    TokenTuple.ARITY_ONE ).makeCanonical();      
-      //ttSecondary = new TokenTuple( hrnSecondary ).makeCanonical();
     }
 
     // use a beta that has everything and put it all over the
@@ -808,10 +801,7 @@ public class OwnershipGraph {
 								true,
 								TokenTuple.ARITY_ONE).makeCanonical()
 						).makeCanonical();
-    
-    //ReachabilitySet beta = new ReachabilitySet( new TokenTuple( hrn ).makeCanonical()
-    //						).makeCanonical();
-    
+        
     ReferenceEdge edgeFromLabel =
       new ReferenceEdge( lnBlob, hrn, null, null, false, beta );
 
@@ -854,7 +844,6 @@ public class OwnershipGraph {
     TokenTuple ttAliased = new TokenTuple( idAliased,
 					   true, // multi-object
 					   TokenTuple.ARITY_ONE ).makeCanonical();         
-    //TokenTuple ttAliased = new TokenTuple( hrnAliasBlob ).makeCanonical();     
 
 
     HeapRegionNode hrnPrimary = createNewHeapRegionNode( null,      // id or null to generate a new one 
@@ -887,8 +876,6 @@ public class OwnershipGraph {
     TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
 					   false, // multi-object
 					   TokenTuple.ARITY_ONE ).makeCanonical();   
-    //TokenTuple ttPrimary = new TokenTuple( hrnPrimary ).makeCanonical();
-
 
     
     TokenTupleSet tts0 = new TokenTupleSet( ttPrimary ).makeCanonical();
@@ -949,8 +936,7 @@ public class OwnershipGraph {
    
     TokenTuple ttAliased = new TokenTuple( idAliased,
 					   true, // multi-object
-					   TokenTuple.ARITY_ONE ).makeCanonical();      
-    //TokenTuple ttAliased = new TokenTuple( hrnAliasBlob ).makeCanonical();
+					   TokenTuple.ARITY_ONE ).makeCanonical();
 
 
     Iterator<Integer> apItrI = aliasedParamIndices.iterator();
@@ -960,10 +946,10 @@ public class OwnershipGraph {
       TypeDescriptor typeI    = tdParamI.getType();
       LabelNode      lnParamI = getLabelNodeFromTemp( tdParamI );
 
-      Integer idPrimaryI = paramIndex2idPrimary.get( i );
-      assert idPrimaryI != null;
-      HeapRegionNode primaryI = id2hrn.get( idPrimaryI );
-      assert primaryI != null;           
+      Integer        idPrimaryI =  paramIndex2idPrimary.get( i );
+      assert         idPrimaryI != null;
+      HeapRegionNode primaryI   =  id2hrn.get( idPrimaryI );
+      assert         primaryI   != null;           
       
       TokenTuple ttPrimaryI = new TokenTuple( idPrimaryI,
 					      false, // multi-object
@@ -1216,9 +1202,7 @@ public class OwnershipGraph {
     // after the age operation the newest (or zero-ith oldest)
     // node associated with the allocation site should have
     // no references to it as if it were a newly allocated
-    // heap region, so make a reference to it to complete
-    // this operation
-
+    // heap region
     Integer idNewest  = as.getIthOldest(0);
     HeapRegionNode hrnNewest = id2hrn.get(idNewest);
     assert hrnNewest != null;
@@ -1226,10 +1210,62 @@ public class OwnershipGraph {
     LabelNode lnX = getLabelNodeFromTemp(x);
     clearReferenceEdgesFrom(lnX, null, null, true);
 
-    ReferenceEdge edgeNew =
-      new ReferenceEdge(lnX, hrnNewest, null, null, false, hrnNewest.getAlpha() );
+    // make a new reference to allocated node
+    TypeDescriptor type    = as.getType();
+    ReferenceEdge  edgeNew =
+      new ReferenceEdge( lnX,                  // source
+			 hrnNewest,            // dest
+			 type,                 // type
+			 null,                 // field name
+			 false,                // is initial param
+			 hrnNewest.getAlpha()  // beta
+			 );
 
-    addReferenceEdge(lnX, hrnNewest, edgeNew);
+    addReferenceEdge( lnX, hrnNewest, edgeNew );
+
+    // if there are class or array fields, initialize 
+    // all of them to the null heap region
+    if( type.isArray() ) {
+      /*
+      TypeDescriptor  tdElement  = type.dereference();
+      FieldDescriptor fdElement  = OwnershipAnalysis.getArrayField( tdElement );
+      ReferenceEdge   edgeToNull =
+	new ReferenceEdge( hrnNewest,             // source
+			   hrnNull,               // dest
+			   fdElement.getType(),   // type
+			   fdElement.getSymbol(), // field name
+			   false,                 // is initial param
+			   null                   // beta
+			   );
+      addReferenceEdge( hrnNewest, hrnNull, edgeToNull );	        
+      */
+
+    } else if( type.isClass() ) {
+      ClassDescriptor cd = type.getClassDesc();
+      while( cd != null ) {
+
+	Iterator<FieldDescriptor> fieldItr = cd.getFields();
+	while( fieldItr.hasNext() ) {	  
+	  FieldDescriptor fd        = fieldItr.next();
+	  TypeDescriptor  typeField = fd.getType();
+
+	  assert typeField != null;
+
+	  ReferenceEdge edgeToNull =
+	    new ReferenceEdge( hrnNewest,             // source
+			       hrnNull,               // dest
+			       typeField,             // type
+			       typeField.getSymbol(), // field name
+			       false,                 // is initial param
+			       null                   // beta
+			       );
+
+	  addReferenceEdge( hrnNewest, hrnNull, edgeToNull );	  
+	}
+
+	cd = cd.getSuperDesc();
+      }
+    }
   }
 
 
@@ -2771,6 +2807,9 @@ public class OwnershipGraph {
 						 (HeapRegionNode) edgeCallee.getSrc(),
 						 pi2dr,
 						 pi2r );
+
+	  // always remove the null region as a possible source of edges
+	  possibleCallerSrcs.remove( hrnNull );
 
 	  HashSet<HeapRegionNode> possibleCallerDsts =
 	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
