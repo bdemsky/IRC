@@ -375,14 +375,20 @@ public class OwnershipGraph {
 
     Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
-      ReferenceEdge edgeY = itrYhrn.next();
-      HeapRegionNode hrnY  = edgeY.getDst();
+      ReferenceEdge   edgeY = itrYhrn.next();
+      HeapRegionNode  hrnY  = edgeY.getDst();
       ReachabilitySet betaY = edgeY.getBeta();
+
+      // skip the null region, load statement is not
+      // meaningful for this region
+      if( hrnY == hrnNull ) {
+	continue;
+      }
 
       Iterator<ReferenceEdge> itrHrnFhrn = hrnY.iteratorToReferencees();
       while( itrHrnFhrn.hasNext() ) {
-	ReferenceEdge edgeHrn = itrHrnFhrn.next();
-	HeapRegionNode hrnHrn  = edgeHrn.getDst();
+	ReferenceEdge   edgeHrn = itrHrnFhrn.next();
+	HeapRegionNode  hrnHrn  = edgeHrn.getDst();
 	ReachabilitySet betaHrn = edgeHrn.getBeta();
 
 	if( edgeHrn.getType() == null ||	    
@@ -421,6 +427,11 @@ public class OwnershipGraph {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
 
+      // if we are looking at the null region, skip
+      if( hrnX == hrnNull ) {
+	continue;
+      }
+
       // we can do a strong update here if one of two cases holds	
       if( f != null &&
 	  f != OwnershipAnalysis.getArrayField( f.getType() ) &&	    
@@ -439,6 +450,11 @@ public class OwnershipGraph {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
       ReachabilitySet betaX = edgeX.getBeta();
+
+      // if we are looking at the null region, skip
+      if( hrnX == hrnNull ) {
+	continue;
+      }
 
       ReachabilitySet R = hrnX.getAlpha().intersection(edgeX.getBeta() );
 
@@ -493,6 +509,11 @@ public class OwnershipGraph {
     while( itrXhrn.hasNext() ) {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
+
+      // if we are looking at the null region, skip
+      if( hrnX == hrnNull ) {
+	continue;
+      }
 
       Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
