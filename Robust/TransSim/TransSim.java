@@ -3,8 +3,8 @@ public class TransSim {
     int numThreads=1;
     int numTrans=4;
     int deltaTrans=0;
-    int numObjects=400;
-    int numAccesses=10;
+    int numObjects=50;
+    int numAccesses=2;
     int deltaAccesses=0;
     int readPercent=0;
     //time for operation
