@@ -1,10 +1,10 @@
 public class TransSim {
   public static void main(String[] args) {
-    int numThreads=1;
+    int numThreads=64;
     int numTrans=4;
     int deltaTrans=0;
-    int numObjects=50;
-    int numAccesses=2;
+    int numObjects=4000;
+    int numAccesses=10;
     int deltaAccesses=0;
     int readPercent=0;
     //time for operation
@@ -21,18 +21,18 @@ public class TransSim {
     int abortRatio=0;//need 40% aborts vs commits to declare risky
     int deadlockdepth=10;
 
-    long tlazy=0, tcommit=0, tattack=0, tpolite=0, tkarma=0;
+    Plot p=new Plot("plot");
 
-    for(int i=1;i<100;i++) {
+    for(int i=1;i<40;i+=1) {
       System.out.println("i="+i);
-      Executor e=new Executor(i, numTrans, deltaTrans, numObjects, numAccesses, deltaAccesses, readPercent, delay, deltaDelay, nonTrans, deltaNonTrans, splitobjects, splitaccesses, readPercentSecond);
+      Executor e=new Executor(numThreads, numTrans, deltaTrans, numObjects, i, deltaAccesses, readPercent, delay, deltaDelay, nonTrans, deltaNonTrans, splitobjects, splitaccesses, readPercentSecond);
       System.out.println(e.maxTime());
       FlexScheduler ls=new FlexScheduler(e, FlexScheduler.LAZY);
       ls.dosim();
       System.out.println("Lazy Time="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      int besttime=ls.getTime();
-      tlazy+=ls.getTime();
+      p.getSeries("LAZY").addPoint(i, ls.getTime());
+
 
       //Lock object accesses
       ls=new FlexScheduler(e, FlexScheduler.LOCK, abortThreshold, abortRatio, deadlockdepth);
@@ -40,9 +40,7 @@ public class TransSim {
       System.out.println("Deadlock count="+ls.getDeadLockCount());
       System.out.println("Lock Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      if (ls.getTime()<besttime)
-	besttime=ls.getTime();
-      tcommit+=ls.getTime();
+      p.getSeries("LOCK").addPoint(i, ls.getTime());
 
       //Lock Commit object accesses
       ls=new FlexScheduler(e, FlexScheduler.LOCKCOMMIT, abortThreshold, abortRatio, deadlockdepth);
@@ -50,53 +48,40 @@ public class TransSim {
       System.out.println("Deadlock count="+ls.getDeadLockCount());
       System.out.println("LockCommit Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      if (ls.getTime()<besttime)
-	besttime=ls.getTime();
-      tcommit+=ls.getTime();
+      p.getSeries("LOCKCOMMIT").addPoint(i, ls.getTime());
 
       //Kill others at commit
       ls=new FlexScheduler(e, FlexScheduler.COMMIT);
       ls.dosim();
       System.out.println("Fast Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      if (ls.getTime()<besttime)
-	besttime=ls.getTime();
-      tcommit+=ls.getTime();
+      p.getSeries("COMMIT").addPoint(i, ls.getTime());
       
       //Eager attack
       ls=new FlexScheduler(e, FlexScheduler.ATTACK);
       ls.dosim();
       System.out.println("Attack Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      if (ls.getTime()<besttime)
-	besttime=ls.getTime();
-      tattack+=ls.getTime();      
+      p.getSeries("ATTACK").addPoint(i, ls.getTime());
 
       //Eager polite
       ls=new FlexScheduler(e, FlexScheduler.POLITE);
       ls.dosim();
       System.out.println("Polite Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      if (ls.getTime()<besttime)
-	besttime=ls.getTime();
-      tpolite+=ls.getTime();      
+      p.getSeries("POLITE").addPoint(i, ls.getTime());
 
       //Karma
       ls=new FlexScheduler(e, FlexScheduler.KARMA);
       ls.dosim();
       System.out.println("Karma Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
-      if (ls.getTime()<besttime)
-	besttime=ls.getTime();
-      tkarma+=ls.getTime();
+      p.getSeries("KARMA").addPoint(i, ls.getTime());
+
       //    Scheduler s=new Scheduler(e, besttime);
       //s.dosim();
       //System.out.println("Optimal Time="+s.getTime());
     }
-    System.out.println("lazy="+tlazy);
-    System.out.println("commit="+tcommit);
-    System.out.println("attack="+tattack);
-    System.out.println("polite="+tpolite);
-    System.out.println("karma="+tkarma);
+    p.close();
   }
 }
