@@ -313,11 +313,6 @@ public class OwnershipAnalysis {
   // reserved IDs for special purposes
   static private int uniqueIDcount = 10;
 
-  // special purpose region for "null" 
-  // included in every graph
-  static public int nullRegionID =  9;
-
-
   // Use these data structures to track progress of
   // processing all methods in the program, and by methods
   // TaskDescriptor and MethodDescriptor are combined
@@ -760,17 +755,7 @@ public class OwnershipAnalysis {
 	og.merge(ogInitParamAlloc);
       }
       break;
-
-    case FKind.FlatLiteralNode:
-      FlatLiteralNode fln = (FlatLiteralNode) fn;
-      if( fln.getValue() == null ) {
-	// when we set something to null, use the special
-	// "null" heap region as the target
-	lhs = fln.getDst();
-	og.assignTempXEqualToNull(lhs);
-      }
-      break;
-
+      
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
       if( fon.getOp().getOp() == Operation.ASSIGN ) {

@@ -67,9 +67,6 @@ public class OwnershipGraph {
   public Hashtable<Integer, TokenTuple> paramIndex2paramTokenSecondaryStar;
 
 
-  public HeapRegionNode hrnNull;
-
-
   public OwnershipGraph(int allocationDepth, TypeUtil typeUtil) {
     this.allocationDepth = allocationDepth;
     this.typeUtil        = typeUtil;
@@ -94,16 +91,6 @@ public class OwnershipGraph {
     paramIndex2paramTokenSecondaryStar = new Hashtable<Integer,        TokenTuple    >();
 
     allocationSites = new HashSet <AllocationSite>();
-
-    hrnNull = createNewHeapRegionNode( OwnershipAnalysis.nullRegionID,
-				       false,
-				       false,
-				       false,
-				       false,
-				       null,
-				       null,
-				       null,
-				       "null" );
   }
 
 
@@ -321,23 +308,6 @@ public class OwnershipGraph {
   }
 
 
-  public void assignTempXEqualToNull(TempDescriptor x) {
-
-    LabelNode lnX = getLabelNodeFromTemp(x);
-
-    clearReferenceEdgesFrom(lnX, null, null, true);
-
-    ReferenceEdge edgeNew = new ReferenceEdge(lnX,
-					      hrnNull,
-					      null,
-					      null,
-					      false,
-					      null);
-
-    addReferenceEdge(lnX, hrnNull, edgeNew);
-  }
-
-
   public void assignTypedTempXEqualToTempY(TempDescriptor x,
 					   TempDescriptor y,
 					   TypeDescriptor type) {
@@ -374,12 +344,6 @@ public class OwnershipGraph {
       ReferenceEdge   edgeY = itrYhrn.next();
       HeapRegionNode  hrnY  = edgeY.getDst();
       ReachabilitySet betaY = edgeY.getBeta();
-
-      // skip the null region, load statement is not
-      // meaningful for this region
-      if( hrnY == hrnNull ) {
-	continue;
-      }
 
       Iterator<ReferenceEdge> itrHrnFhrn = hrnY.iteratorToReferencees();
       while( itrHrnFhrn.hasNext() ) {
@@ -423,11 +387,6 @@ public class OwnershipGraph {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
 
-      // if we are looking at the null region, skip
-      if( hrnX == hrnNull ) {
-	continue;
-      }
-
       // we can do a strong update here if one of two cases holds	
       if( f != null &&
 	  f != OwnershipAnalysis.getArrayField( f.getType() ) &&	    
@@ -446,11 +405,6 @@ public class OwnershipGraph {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
       ReachabilitySet betaX = edgeX.getBeta();
-
-      // if we are looking at the null region, skip
-      if( hrnX == hrnNull ) {
-	continue;
-      }
 
       ReachabilitySet R = hrnX.getAlpha().intersection(edgeX.getBeta() );
 
@@ -505,11 +459,6 @@ public class OwnershipGraph {
     while( itrXhrn.hasNext() ) {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
-
-      // if we are looking at the null region, skip
-      if( hrnX == hrnNull ) {
-	continue;
-      }
 
       Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
@@ -1197,18 +1146,18 @@ public class OwnershipGraph {
     assert x  != null;
     assert as != null;
 
-    age(as);
+    age( as );
 
     // after the age operation the newest (or zero-ith oldest)
     // node associated with the allocation site should have
     // no references to it as if it were a newly allocated
     // heap region
-    Integer idNewest  = as.getIthOldest(0);
-    HeapRegionNode hrnNewest = id2hrn.get(idNewest);
-    assert hrnNewest != null;
+    Integer        idNewest   = as.getIthOldest( 0 );
+    HeapRegionNode hrnNewest  = id2hrn.get( idNewest );
+    assert         hrnNewest != null;
 
-    LabelNode lnX = getLabelNodeFromTemp(x);
-    clearReferenceEdgesFrom(lnX, null, null, true);
+    LabelNode lnX = getLabelNodeFromTemp( x );
+    clearReferenceEdgesFrom( lnX, null, null, true );
 
     // make a new reference to allocated node
     TypeDescriptor type    = as.getType();
@@ -1222,50 +1171,6 @@ public class OwnershipGraph {
 			 );
 
     addReferenceEdge( lnX, hrnNewest, edgeNew );
-
-    // if there are class or array fields, initialize 
-    // all of them to the null heap region
-    if( type.isArray() ) {
-      /*
-      TypeDescriptor  tdElement  = type.dereference();
-      FieldDescriptor fdElement  = OwnershipAnalysis.getArrayField( tdElement );
-      ReferenceEdge   edgeToNull =
-	new ReferenceEdge( hrnNewest,             // source
-			   hrnNull,               // dest
-			   fdElement.getType(),   // type
-			   fdElement.getSymbol(), // field name
-			   false,                 // is initial param
-			   null                   // beta
-			   );
-      addReferenceEdge( hrnNewest, hrnNull, edgeToNull );	        
-      */
-
-    } else if( type.isClass() ) {
-      ClassDescriptor cd = type.getClassDesc();
-      while( cd != null ) {
-
-	Iterator<FieldDescriptor> fieldItr = cd.getFields();
-	while( fieldItr.hasNext() ) {	  
-	  FieldDescriptor fd        = fieldItr.next();
-	  TypeDescriptor  typeField = fd.getType();
-
-	  assert typeField != null;
-
-	  ReferenceEdge edgeToNull =
-	    new ReferenceEdge( hrnNewest,             // source
-			       hrnNull,               // dest
-			       typeField,             // type
-			       typeField.getSymbol(), // field name
-			       false,                 // is initial param
-			       null                   // beta
-			       );
-
-	  addReferenceEdge( hrnNewest, hrnNull, edgeToNull );	  
-	}
-
-	cd = cd.getSuperDesc();
-      }
-    }
   }
 
 
@@ -2808,9 +2713,6 @@ public class OwnershipGraph {
 						 pi2dr,
 						 pi2r );
 
-	  // always remove the null region as a possible source of edges
-	  possibleCallerSrcs.remove( hrnNull );
-
 	  HashSet<HeapRegionNode> possibleCallerDsts =
 	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
 						 edgeCallee.getDst(),
@@ -3311,12 +3213,6 @@ public class OwnershipGraph {
 					 ) {
     
     HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
-
-    if( hrnCallee == ogCallee.hrnNull ) {
-      // this is the null heap region
-      possibleCallerHRNs.add( id2hrn.get( hrnCallee.getID() ) );
-      return possibleCallerHRNs;
-    }
 
     Set<Integer> paramIndicesCallee_p = ogCallee.idPrimary2paramIndexSet  .get( hrnCallee.getID() );
     Set<Integer> paramIndicesCallee_s = ogCallee.idSecondary2paramIndexSet.get( hrnCallee.getID() );
