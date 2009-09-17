@@ -1,10 +1,10 @@
 public class TransSim {
   public static void main(String[] args) {
-    int numThreads=64;
+    int numThreads=8;
     int numTrans=4;
     int deltaTrans=0;
-    int numObjects=4000;
-    int numAccesses=10;
+    int numObjects=200;
+    int numAccesses=20;
     int deltaAccesses=0;
     int readPercent=0;
     //time for operation
@@ -27,7 +27,7 @@ public class TransSim {
       System.out.println("i="+i);
       Executor e=new Executor(numThreads, numTrans, deltaTrans, numObjects, i, deltaAccesses, readPercent, delay, deltaDelay, nonTrans, deltaNonTrans, splitobjects, splitaccesses, readPercentSecond);
       System.out.println(e.maxTime());
-      FlexScheduler ls=new FlexScheduler(e, FlexScheduler.LAZY);
+      FlexScheduler ls=new FlexScheduler(e, FlexScheduler.LAZY, null);
       ls.dosim();
       System.out.println("Lazy Time="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
@@ -35,7 +35,7 @@ public class TransSim {
 
 
       //Lock object accesses
-      ls=new FlexScheduler(e, FlexScheduler.LOCK, abortThreshold, abortRatio, deadlockdepth);
+      ls=new FlexScheduler(e, FlexScheduler.LOCK, abortThreshold, abortRatio, deadlockdepth, null);
       ls.dosim();
       System.out.println("Deadlock count="+ls.getDeadLockCount());
       System.out.println("Lock Abort="+ls.getTime());
@@ -43,7 +43,7 @@ public class TransSim {
       p.getSeries("LOCK").addPoint(i, ls.getTime());
 
       //Lock Commit object accesses
-      ls=new FlexScheduler(e, FlexScheduler.LOCKCOMMIT, abortThreshold, abortRatio, deadlockdepth);
+      ls=new FlexScheduler(e, FlexScheduler.LOCKCOMMIT, abortThreshold, abortRatio, deadlockdepth, new Plot("FLEX"+i));
       ls.dosim();
       System.out.println("Deadlock count="+ls.getDeadLockCount());
       System.out.println("LockCommit Abort="+ls.getTime());
@@ -51,28 +51,28 @@ public class TransSim {
       p.getSeries("LOCKCOMMIT").addPoint(i, ls.getTime());
 
       //Kill others at commit
-      ls=new FlexScheduler(e, FlexScheduler.COMMIT);
+      ls=new FlexScheduler(e, FlexScheduler.COMMIT, null);
       ls.dosim();
       System.out.println("Fast Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
       p.getSeries("COMMIT").addPoint(i, ls.getTime());
       
       //Eager attack
-      ls=new FlexScheduler(e, FlexScheduler.ATTACK);
+      ls=new FlexScheduler(e, FlexScheduler.ATTACK, null);
       ls.dosim();
       System.out.println("Attack Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
       p.getSeries("ATTACK").addPoint(i, ls.getTime());
 
       //Eager polite
-      ls=new FlexScheduler(e, FlexScheduler.POLITE);
+      ls=new FlexScheduler(e, FlexScheduler.POLITE, null);
       ls.dosim();
       System.out.println("Polite Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
       p.getSeries("POLITE").addPoint(i, ls.getTime());
 
       //Karma
-      ls=new FlexScheduler(e, FlexScheduler.KARMA);
+      ls=new FlexScheduler(e, FlexScheduler.KARMA, null);
       ls.dosim();
       System.out.println("Karma Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());

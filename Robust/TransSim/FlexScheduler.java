@@ -7,14 +7,14 @@ public class FlexScheduler {
   int deadlockcount;
   int checkdepth;
 
-  public FlexScheduler(Executor e, int policy, int abortThreshold, int abortRatio, int checkdepth) {
-    this(e, policy);
+  public FlexScheduler(Executor e, int policy, int abortThreshold, int abortRatio, int checkdepth, Plot p) {
+    this(e, policy, p);
     this.abortThreshold=abortThreshold;
     this.abortRatio=abortRatio;
     this.checkdepth=checkdepth;
   }
   
-  public FlexScheduler(Executor e, int policy) {
+  public FlexScheduler(Executor e, int policy, Plot p) {
     this.e=e;
     aborted=new boolean[e.numThreads()];
     currentevents=new Event[e.numThreads()];
@@ -32,7 +32,24 @@ public class FlexScheduler {
       backoff[i]=BACKOFFSTART;
       threadinfo[i]=new ThreadInfo(this);
     }
+    this.p=p;
+    if (p!=null) {
+      serCommit=p.getSeries("COMMIT");
+      serStart=p.getSeries("START");
+      serAbort=p.getSeries("ABORT");
+      serStall=p.getSeries("STALL");
+      serWake=p.getSeries("WAKE");
+      serAvoid=p.getSeries("AVOIDDEADLOCK");
+    }
   }
+
+  Plot p;
+  Series serCommit;
+  Series serStart;
+  Series serAbort;
+  Series serStall;
+  Series serAvoid;
+  Series serWake;
 
   public int getDeadLockCount() {
     return deadlockcount;
@@ -94,7 +111,9 @@ public class FlexScheduler {
       threadinfo[currthread].setStall(false);
       getmapping(threadinfo[currthread].getObject()).getWaiters().remove(currentevents[currthread]);
     }
-    
+    if (serAbort!=null) {
+      serAbort.addPoint(time, currthread);
+    }
     Transaction trans=currentevents[currthread].getTransaction();
     
     releaseObjects(trans, currthread, time);
@@ -127,6 +146,8 @@ public class FlexScheduler {
 	    waitit.remove();
 	    waiter.setTime(time);
 	    threadinfo[waiter.getThread()].setStall(false);
+	    if (serWake!=null)
+	      serWake.addPoint(time,waiter.getThread());
 	    oi.setOwner(waiter.getThread());
 	    eq.add(waiter);
 	    break;
@@ -169,6 +190,8 @@ public class FlexScheduler {
       }
     }
     shorttesttime=lasttime;
+    if (p!=null)
+      p.close();
   }
 
   private ObjectInfo getmapping(int object) {
@@ -190,6 +213,9 @@ public class FlexScheduler {
       //if it is a transaction, increment comit count
       if (trans.numEvents()>1||trans.getEvent(0)!=Transaction.DELAY) {
 	commitcount++;
+	if (serCommit!=null) {
+	  serCommit.addPoint(ev.getTime(),ev.getThread());
+	}
       }
       //Reset our backoff counter
       backoff[ev.getThread()]=BACKOFFSTART;
@@ -233,6 +259,8 @@ public class FlexScheduler {
 	    if (policy==LAZY||policy==LOCK) {
 	      //just flag to abort when it trie to commit
 	      aborted[threadid]=true;
+	      if (serAbort!=null)
+		serAbort.addPoint(currtime, threadid);
 	    } else if (policy==COMMIT||policy==LOCKCOMMIT) {
 	      //abort it immediately
 	      reschedule(threadid, currtime);
@@ -249,6 +277,12 @@ public class FlexScheduler {
     int nexttransnum=abort?ev.getTransNum():ev.getTransNum()+1;
     if (nexttransnum<e.getThread(ev.getThread()).numTransactions()) {
       Transaction nexttrans=e.getThread(ev.getThread()).getTransaction(nexttransnum);
+      if (serStart!=null) {
+	if (nexttrans.numEvents()>1||nexttrans.getEvent(0)!=Transaction.DELAY) {
+	  serStart.addPoint(ev.getTime(),ev.getThread());
+	}
+      }
+
       Event nev=new Event(currtime+nexttrans.getTime(0), nexttrans, 0, ev.getThread(), nexttransnum);
       currentevents[ev.getThread()]=nev;
       eq.add(nev);
@@ -378,10 +412,15 @@ public class FlexScheduler {
 	    //don't wait on stalled threads, we could deadlock
 	    threadinfo[ev.getThread()].setStall(true);
 	    threadinfo[ev.getThread()].setObject(object);
+	    if (serStall!=null)
+	      serStall.addPoint(ev.getTime(),ev.getThread());
 	    oi.addWaiter(ev);
 	    return;
-	  } else
+	  } else {
+	    if (serAvoid!=null)
+	      serAvoid.addPoint(ev.getTime(),ev.getThread());
 	    deadlockcount++;
+	  }
 	} else {
 	  //we have object
 	  oi.setOwner(ev.getThread());
