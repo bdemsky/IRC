@@ -87,6 +87,7 @@ Analysis/OwnershipAnalysis/ChangeTuple.class                            \
 Analysis/OwnershipAnalysis/ChangeTupleSet.class                         \
 Analysis/OwnershipAnalysis/Canonical.class                              \
 Analysis/OwnershipAnalysis/MethodContext.class                          \
+Analysis/OwnershipAnalysis/ParameterDecomposition.class			\
 Analysis/MLP/MLPAnalysis.class 						\
 Analysis/MLP/VariableSourceToken.class 					\
 Analysis/MLP/SVKey.class 						\

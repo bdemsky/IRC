@@ -27,6 +27,9 @@ public class OwnershipAnalysis {
     return getAllocationSiteFromFlatNewPRIVATE(fn);
   }
 
+  public AllocationSite getAllocationSiteFromHeapRegionNodeID(Integer id) {
+    return mapHrnIdToAllocationSite.get(id);
+  }
 
   public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          int paramIndex1,
@@ -244,47 +247,6 @@ public class OwnershipAnalysis {
     bw.write( "\n"+computeAliasContextHistogram() );
     bw.close();
   }
-
-
-
-
-  /*
-  getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
-    return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
-  }
-
-  public AllocationSite getAllocationSiteFromFlatNew(FlatNew fn) {
-    return getAllocationSiteFromFlatNewPRIVATE(fn);
-  }
-  */
-
-  // return the set of allocation sites for the object that the
-  // given variable may reference at the given program point
-  public Set<AllocationSite> possible( TempDescriptor temp,
-				       FlatNode       ppoint ) {
-    assert temp   != null;
-    assert ppoint != null;
-
-    /*
-    OwnershipGraph og = new OwnershipGraph( allocationDepth, typeUtil );
-
-    assert mapDescriptorToAllMethodContexts.containsKey( d );
-    HashSet<MethodContext> contexts = mapDescriptorToAllMethodContexts.get( d );
-    Iterator<MethodContext> mcItr = contexts.iterator();
-    while( mcItr.hasNext() ) {
-      MethodContext mc = mcItr.next();
-
-      OwnershipGraph ogContext = mapMethodContextToCompleteOwnershipGraph.get(mc);
-      assert ogContext != null;
-
-      og.merge( ogContext );
-    }
-
-    return og;
-    */
-
-    return null;
-  }  
   ///////////////////////////////////////////
   //
   // end public interface
@@ -324,6 +286,7 @@ public class OwnershipAnalysis {
   private Hashtable<MethodContext, Integer>                  mapMethodContextToNumUpdates;
   private Hashtable<Descriptor,    HashSet<MethodContext> >  mapDescriptorToAllMethodContexts;
   private Hashtable<MethodContext, HashSet<MethodContext> >  mapMethodContextToDependentContexts;
+  private Hashtable<Integer,       AllocationSite>           mapHrnIdToAllocationSite;
 
   // Use these data structures to track progress of one pass of
   // processing the FlatNodes of a particular method
@@ -398,6 +361,9 @@ public class OwnershipAnalysis {
 
     mapDescriptorToPriority = 
       new Hashtable<Descriptor, Integer>();
+
+    mapHrnIdToAllocationSite =
+      new Hashtable<Integer, AllocationSite>();
 
 
     if( writeAllDOTs ) {
@@ -1026,6 +992,7 @@ public class OwnershipAnalysis {
       for( int i = 0; i < allocationDepth; ++i ) {
 	Integer id = generateUniqueHeapRegionNodeID();
 	as.setIthOldest(i, id);
+	mapHrnIdToAllocationSite.put( id, as );
       }
 
       // the oldest node is a summary node
