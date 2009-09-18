@@ -41,7 +41,7 @@ public class JavaCallGraph extends CallGraph {
 	FlatNode fn=fnit.next();
 	if (fn.kind()==FKind.FlatCall) {
 	  FlatCall fcall=(FlatCall)fn;
-	  Set callees=getMethods(fcall.getMethod(),fcall.getThis().getType());
+	  Set callees=fcall.getThis()==null?getMethods(fcall.getMethod()):getMethods(fcall.getMethod(),fcall.getThis().getType());
 	  for(Iterator mdit=callees.iterator();mdit.hasNext();) {
 	    MethodDescriptor callee=(MethodDescriptor)mdit.next();
 	    if (!discovered.contains(callee)) {
