@@ -13,16 +13,18 @@ import java.util.*;
 import java.io.*;
 
 public class CallGraph {
-  private State state;
+  protected State state;
 
   // MethodDescriptor maps to HashSet<MethodDescriptor>
-  private Hashtable mapVirtual2ImplementationSet;
+  protected Hashtable mapVirtual2ImplementationSet;
 
   // MethodDescriptor or TaskDescriptor maps to HashSet<MethodDescriptor>
-  private Hashtable mapCaller2CalleeSet;
+  protected Hashtable mapCaller2CalleeSet;
 
   // MethodDescriptor maps to HashSet<MethodDescriptor or TaskDescriptor>
-  private Hashtable mapCallee2CallerSet;
+  protected Hashtable mapCallee2CallerSet;
+
+  protected CallGraph() {}
 
   public CallGraph(State state) {
     this.state=state;
@@ -61,7 +63,7 @@ public class CallGraph {
 
   // build a mapping of virtual methods to all
   // possible implementations of that method
-  private void buildVirtualMap() {
+  protected void buildVirtualMap() {
     //Iterator through classes
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     while(it.hasNext()) {
@@ -183,7 +185,7 @@ public class CallGraph {
     }
   }
 
-  private void analyzeMethod(Object caller, FlatMethod fm) {
+  protected void analyzeMethod(Object caller, FlatMethod fm) {
     HashSet toexplore=new HashSet();
     toexplore.add(fm);
     HashSet explored=new HashSet();
