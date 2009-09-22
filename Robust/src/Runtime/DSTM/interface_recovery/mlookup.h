@@ -37,6 +37,11 @@ unsigned int mhashRemove(unsigned int key); //returns -1 if not found
 unsigned int mhashResize(unsigned int newsize);
 unsigned int *mhashGetKeys(unsigned int *numKeys);
 
+#ifdef RECOVERY
+int mhashGetDuplicate(void** dupeptr,int backup);
+int mhashGetThreadObjects(unsigned int** oidArray,unsigned int** midArray,unsigned int** threadidArray);
+#endif
+
 void mhashPrint();
 
 #endif

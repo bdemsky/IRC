@@ -8,7 +8,7 @@
 #define TRANS_SOFT_ABORT    12
 #define TRANS_ABORT         13
 #define TRANS_COMMIT        14
-
+#define TRANS_ABORT_RETRY         15
 
 /* ========================
  * Library header files
@@ -107,6 +107,19 @@ typedef struct objheader {
 	   } while(1); \
 	 }}
 
+#define TRANSREADRD(x,y) { \
+    void * inputvalue; \
+    if ((inputvalue=y)==NULL) x=NULL;\
+         else { \
+           chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>4]; \
+           do { \
+             if (cnodetmp->key==inputvalue) {x=cnodetmp->val; break;} \
+             cnodetmp=cnodetmp->next; \
+             if (cnodetmp==NULL) {if (((struct ___Object___*)inputvalue)->___objstatus___&NEW) {x=inputvalue; break;} else \
+				    {x=inputvalue;rd_t_chashInsertOnce(inputvalue, ((objheader_t *)inputvalue)[-1].version); break;}} \
+	   } while(1); \
+	 }}
+
 /* =================================
  * Data structures
  * =================================
@@ -137,6 +150,15 @@ extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
 extern objlockstate_t *objlockscope;
 pthread_mutex_t lockedobjstore;
+
+typedef struct objtypestat {
+  int numabort;         
+  int numaccess;
+  int numtrans;    //num of transactions that accessed this object type and aborted
+} objtypestat_t;
+
+/* Variables for probability model */
+#define FACTOR 3
 #endif
 
 
@@ -152,7 +174,7 @@ extern int nSoftAbortCommit;
 #endif
 
 #ifdef STMSTATS
-extern int typesCausingAbort[];
+extern objtypestat_t typesCausingAbort[];
 #endif
 
 
@@ -169,6 +191,9 @@ objheader_t *transCreateObj(void * ptr, unsigned int size);
 unsigned int getNewOID(void);
 void *objstrAlloc(unsigned int size);
 __attribute__((pure)) void *transRead(void *, void *);
+#ifdef READSET
+__attribute__((pure)) void *transReadOnly(void *);
+#endif
 #ifdef DELAYCOMP
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
@@ -184,9 +209,9 @@ int altalttraverseCache();
 void transAbortProcess(void **, int);
 void randomdelay(int);
 #if defined(STMSTATS)||defined(SOFTABORT)
-int getTotalAbortCount(int, int, void *, int, void*, int*);
-int getTotalAbortCount2(void *, int, void *, int *);
-int getReadAbortCount(int, int, void*, int*);
+int getTotalAbortCount(int, int, void *, int, void*, int*, int*, int, objheader_t*, int*);
+int getTotalAbortCount2(void *, int, void *, int *, int*, int, objheader_t*, int*);
+int getReadAbortCount(int, int, void*, int*, int*, int, objheader_t*, int*);
 #endif
 #ifdef STMSTATS
 objheader_t * needLock(objheader_t *, void *);

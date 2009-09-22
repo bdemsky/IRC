@@ -17,6 +17,7 @@
 #ifdef RECOVERY
 #include <unistd.h>
 #include <signal.h>
+#include "tlookup.h"
 #endif
 
 #define BACKLOG 10 //max pending connections
@@ -26,28 +27,30 @@ extern int classsize[];
 extern int numHostsInSystem;
 extern pthread_mutex_t notifymutex;
 
-extern int *liveHosts;
-extern unsigned int *locateObjHosts;
-pthread_mutex_t liveHosts_mutex;
-pthread_mutex_t leaderFixing_mutex;
+extern unsigned int myIpAddr;
+extern unsigned int *hostIpAddrs;
 
+#ifdef RECOVERY
+extern unsigned int *locateObjHosts;
+extern int *liveHosts;
 extern int liveHostsValid;
 extern int numLiveHostsInSystem;
-extern __thread int timeoutFlag;
-extern __thread int timeoutFlag;
-int testcount = 0;
+int clearNotifyListFlag;
+#endif
 
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
 pthread_mutex_t lockObjHeader;
+pthread_mutex_t clearNotifyList_mutex;
 pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a recursive lock */
 
 sockPoolHashTable_t *transPResponseSocketPool;
 extern sockPoolHashTable_t *transRequestSockPool;
+extern sockPoolHashTable_t *transReadSockPool;
 
 int failFlag = 0; //debug
-int leaderFixing;
 
+#ifdef RECOVERY
 /******************************
  * Global variables for Paxos
  ******************************/
@@ -59,6 +62,7 @@ extern int leader;
 extern int paxosRound;
 /* This function initializes the main objects store and creates the
  * global machine and location lookup table */
+#endif
 
 int dstmInit(void) {
   mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);
@@ -68,14 +72,22 @@ int dstmInit(void) {
   pthread_mutex_init(&mainobjstore_mutex, &mainobjstore_mutex_attr);
   pthread_mutex_init(&lockObjHeader,NULL);
 
+#ifdef RECOVERY
 	pthread_mutex_init(&liveHosts_mutex, NULL);
 	pthread_mutex_init(&leaderFixing_mutex, NULL);
+  pthread_mutex_init(&clearNotifyList_mutex,NULL);
+#endif
 
   if (mhashCreate(MHASH_SIZE, MLOADFACTOR))
     return 1;             //failure
 
   if (lhashCreate(HASH_SIZE, LOADFACTOR))
     return 1;             //failure
+
+#ifdef RECOVERY
+  if (thashCreate(THASH_SIZE, LOADFACTOR))
+    return 1;
+#endif
 
   if (notifyhashCreate(N_HASH_SIZE, N_LOADFACTOR))
     return 1;             //failure
@@ -138,12 +150,31 @@ void *dstmListen(void *lfd) {
   socklen_t addrlength = sizeof(struct sockaddr);
   pthread_t thread_dstm_accept;
 
+#ifdef RECOVERY
+  int firsttime = 1;
+  pthread_t thread_dstm_asking;
+#endif
+#ifdef DEBUG
   printf("Listening on port %d, fd = %d\n", LISTEN_PORT, listenfd);
+#endif
   while(1) {
     int retval;
     int flag=1;
-		if(failFlag) while(1);
     acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
+
+#ifdef RECOVERY
+    if(firsttime) {
+      do {
+        retval = pthread_create(&thread_dstm_asking, NULL, startAsking, NULL);
+      }while(retval!=0);
+      firsttime=0;
+      pthread_detach(thread_dstm_asking);
+    }
+#endif
+#ifdef debug
+    printf("%s -> fd accepted\n",__func__);
+#endif
+
     setsockopt(acceptfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
     do {
       	retval=pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
@@ -151,6 +182,96 @@ void *dstmListen(void *lfd) {
     pthread_detach(thread_dstm_accept);
   }
 }
+
+#ifdef RECOVERY
+void* startAsking()
+{
+  unsigned int deadMachineIndex = -1;
+  int i;
+  int validHost;
+  int *socklist;
+  int sd;
+#ifdef DEBUG
+  printf("%s -> Entering\n",__func__);
+#endif
+
+    socklist = (int*) calloc(numHostsInSystem,sizeof(int)); 
+
+    for(i = 0; i< numHostsInSystem;i++) { // for 1
+        if((sd = getSockWithLock(transRequestSockPool,hostIpAddrs[i])) < 0) {
+          printf("%s -> Cannot create socket connection to [%s]\n",__func__,midtoIPString(hostIpAddrs[i]));
+          socklist[i] = -1;
+        }
+        else { // else 1
+          socklist[i] = sd;
+        }   // end of else 1
+    }
+  
+    while(1) {
+
+     deadMachineIndex = checkIfAnyMachineDead(socklist);
+
+      // free socket of dead machine
+      if(deadMachineIndex >= 0) { // if 2
+#ifdef DEBUG
+        printf("%s -> Dead Machine : %s\n",__func__, midtoIPString(hostIpAddrs[deadMachineIndex]));
+#endif
+        restoreDuplicationState(hostIpAddrs[deadMachineIndex]);
+        freeSockWithLock(transRequestSockPool, hostIpAddrs[deadMachineIndex], socklist[deadMachineIndex]);
+        socklist[deadMachineIndex] = -1;
+      } // end of if 2
+    } // end of while 1
+#ifdef DEBUG
+   printf("%s -> Exiting\n",__func__);
+#endif
+}
+
+
+unsigned int checkIfAnyMachineDead(int* socklist)
+{
+  int timeout = 0;
+  int i;
+  char control = RESPOND_LIVE;
+  char response;
+#ifdef DEBUG
+  printf("%s -> Entering\n",__func__);
+#endif
+  
+  while(1){
+    for(i = 0; i< numHostsInSystem;i++) {
+#ifdef DEBUG
+      printf("%s -> socklist[%d] = %d\n",__func__,i,socklist[i]);
+#endif
+      if(socklist[i] > 0) {
+        send_data(socklist[i], &control,sizeof(char));
+
+        if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
+          // if machine is dead, returns index of socket
+#ifdef DEBUG
+          printf("%s -> Machine dead detecteed\n",__func__);
+#endif
+          return i;
+        }
+        else {
+          // machine responded
+          if(response != LIVE) {
+#ifdef DEBUG
+            printf("%s -> Machine dead detected\n",__func__);
+#endif
+            return i;
+          }
+        } // end else
+      }// end if(socklist[i]
+    } // end for()
+
+    clearDeadThreadsNotification();
+
+    sleep(numLiveHostsInSystem);  // wait for seconds for next checking
+  } // end while(1)
+}
+#endif
+
+
 /* This function accepts a new connection request, decodes the control message in the connection
  * and accordingly calls other functions to process new requests */
 void *dstmAccept(void *acceptfd) {
@@ -167,32 +288,35 @@ void *dstmAccept(void *acceptfd) {
   unsigned short objType, *versionarry, version;
 	unsigned int *oidarry, numoid, mid, threadid;
   int n, v;
+  unsigned int transIDreceived;
+  char decision;
+  struct sockaddr_in remoteAddr;
 
+#ifdef DEBUG
 	printf("%s-> Entering dstmAccept\n", __func__);	fflush(stdout);
+#endif
 	/* Receive control messages from other machines */
 	while(1) {
 		int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
-		/*	if(timeoutFlag || timeoutFlag)  {
-		//is there any way to force a context switch?
-		printf("recv_data_errorcode: exiting, timeoutFlag:%d, timeoutFlag:%d\n", failedMachineFlag, timeoutFlag);
-		exit(0);
-		}*/
-		if(failFlag) {
-			while(1) { 
-				sleep(10);
-			}
-		}
+    dupeptr = NULL;
 
 		if (ret==0)
 			break;
 		if (ret==-1) {
+#ifdef DEBUG
 			printf("DEBUG -> RECV Error!.. retrying\n");
-			exit(0);
+#endif
+	//		exit(0);
 			break;
 		}
+#ifdef DEBUG
 		printf("%s-> dstmAccept control = %d\n", __func__, (int)control);
+#endif
 		switch(control) {
 			case READ_REQUEST:
+#ifdef DEBUG
+        printf("control -> READ_REQUEST\n");
+#endif
 				/* Read oid requested and search if available */
 				recv_data((int)acceptfd, &oid, sizeof(unsigned int));
 				while((srcObj = mhashSearch(oid)) == NULL) {
@@ -208,35 +332,12 @@ void *dstmAccept(void *acceptfd) {
 				if (h == NULL) {
 					ctrl = OBJECT_NOT_FOUND;
 					send_data(sockid, &ctrl, sizeof(char));
-					if(timeoutFlag || timeoutFlag) {
-						printf("send_data: remote machine dead, line:%d\n", __LINE__);
-						timeoutFlag = 0;
-						exit(1);
-					}
 				} else {
 					// Type
 					char msg[]={OBJECT_FOUND, 0, 0, 0, 0};
 					*((int *)&msg[1])=size;
-					printf("*****testcount:%d\n", testcount);
-					printf("oid:%u, h->version:%d\n", OID(h), h->version);
-					//if(OID(h) == 1 && ((h->version == 20 && liveHosts[0]) || (h->version == 15000  && liveHosts[2])))
-					if(testcount == 1000)
-					{
-						printf("Pretending to fail\n");
-            failFlag = 1;//sleep(5);
-						while(1) {
-							sleep(10);
-						}//exit(0);
-					}
-					else
-						testcount++;
 					send_data(sockid, &msg, sizeof(msg));
 					send_data(sockid, h, size);
-					if(timeoutFlag || timeoutFlag) {
-						printf("send_data: remote machine dead, line:%d\n", __LINE__);
-						timeoutFlag = 0;
-						exit(1);
-					}
 				}
 				break;
 
@@ -250,6 +351,9 @@ void *dstmAccept(void *acceptfd) {
 				break;
 
 			case TRANS_REQUEST:
+#ifdef DEBUG
+        printf("control -> TRANS_REQUEST\n");
+#endif
 				/* Read transaction request */
 				transinfo.objlocked = NULL;
 				transinfo.objnotfound = NULL;
@@ -261,8 +365,21 @@ void *dstmAccept(void *acceptfd) {
 					pthread_exit(NULL);
 				}
 				break;
+#ifdef RECOVERY
+      case ASK_COMMIT :
 
+        recv_data((int)acceptfd, &transIDreceived, sizeof(unsigned int));
+
+        decision = checkDecision(transIDreceived);
+
+        send_data((int)acceptfd,&decision,sizeof(char));
+
+        break;
+#endif
 			case TRANS_PREFETCH:
+#ifdef DEBUG
+        printf("control -> TRANS_PREFETCH\n");
+#endif
 #ifdef RANGEPREFETCH
 				if((val = rangePrefetchReq((int)acceptfd)) != 0) {
 					printf("Error: In rangePrefetchReq() %s, %d\n", __FILE__, __LINE__);
@@ -277,6 +394,9 @@ void *dstmAccept(void *acceptfd) {
 				break;
 
 			case TRANS_PREFETCH_RESPONSE:
+#ifdef DEBUG
+                printf("control -> TRANS_PREFETCH_RESPONSE\n");
+#endif
 #ifdef RANGEPREFETCH
 				if((val = getRangePrefetchResponse((int)acceptfd)) != 0) {
 					printf("Error: In getRangePrefetchRespose() %s, %d\n", __FILE__, __LINE__);
@@ -291,21 +411,27 @@ void *dstmAccept(void *acceptfd) {
 				break;
 
 			case START_REMOTE_THREAD:
+#ifdef DEBUG
+        printf("control -> START_REMOTE_THREAD\n");
+#endif
 				recv_data((int)acceptfd, &oid, sizeof(unsigned int));
 				objType = getObjType(oid);
-				printf("%s-> Call startDSMthread\n", __func__);
 				startDSMthread(oid, objType);
-				printf("%s-> Finish startDSMthread\n", __func__);
 				break;
 
-			case THREAD_NOTIFY_REQUEST:
+      case THREAD_NOTIFY_REQUEST:
+#ifdef DEBUG
+        printf("control -> THREAD_NOTIFY_REQUEST FD : %d\n",acceptfd);
+#endif
+        numoid = 0;
 				recv_data((int)acceptfd, &numoid, sizeof(unsigned int));
+      
 				size = (sizeof(unsigned int) + sizeof(unsigned short)) * numoid + 2 * sizeof(unsigned int);
 				if((buffer = calloc(1,size)) == NULL) {
 					printf("%s() Calloc error at %s, %d\n", __func__, __FILE__, __LINE__);
 					pthread_exit(NULL);
 				}
-
+                
 				recv_data((int)acceptfd, buffer, size);
 
 				oidarry = calloc(numoid, sizeof(unsigned int));
@@ -323,6 +449,9 @@ void *dstmAccept(void *acceptfd) {
 				break;
 
 			case THREAD_NOTIFY_RESPONSE:
+#ifdef DEBUG
+        printf("control -> THREAD_NOTIFY_RESPONSE\n");
+#endif
 				size = sizeof(unsigned short) + 2 * sizeof(unsigned int);
 				if((buffer = calloc(1,size)) == NULL) {
 					printf("%s() Calloc error at %s, %d\n", __func__, __FILE__, __LINE__);
@@ -340,60 +469,95 @@ void *dstmAccept(void *acceptfd) {
 				threadNotify(oid,version,threadid);
 				free(buffer);
 				break;
+#ifdef RECOVERY
+      case CLEAR_NOTIFY_LIST:
+#ifdef DEBUG
+        printf("control -> CLEAR_NOTIFY_LIST\n");
+#endif  
+        size = sizeof(unsigned int);
+        if((buffer = calloc(1,size)) == NULL) {
+          printf("%s() Caclloc error at CLEAR_NOTIFY_LIST\n");
+          pthread_exit(NULL);
+        }
 
+        recv_data((int)acceptfd,buffer, size);
+
+        oid = *((unsigned int *)buffer);
+
+        pthread_mutex_lock(&clearNotifyList_mutex);
+        if(clearNotifyListFlag == 0) {
+          clearNotifyListFlag = 1;
+          pthread_mutex_unlock(&clearNotifyList_mutex);
+          clearNotifyList(oid);
+        }
+        else {
+          pthread_mutex_unlock(&clearNotifyList_mutex);
+        }
+        free(buffer);
+        break;
+#endif
 			case CLOSE_CONNECTION:
+#ifdef DEBUG
+        printf("control -> CLOSE_CONNECTION\n");
+#endif
 				goto closeconnection;
 
+#ifdef RECOVERY
 			case RESPOND_LIVE:
+#ifdef DEBUG
+        printf("control -> RESPOND_LIVE\n");
+#endif
 				liveHostsValid = 0;
 				ctrl = LIVE;
 				send_data((int)acceptfd, &ctrl, sizeof(ctrl));
-				if(timeoutFlag) {
-					printf("send_data: remote machine dead, line:%d\n", __LINE__);
-					timeoutFlag = 0;
-					exit(1);
-				}
+#ifdef DEBUG
 				printf("%s (RESPOND_LIVE)-> Sending LIVE!\n", __func__);
+#endif
 				break;
-
+#endif
+#ifdef RECOVERY
 			case REMOTE_RESTORE_DUPLICATED_STATE:
-				printf("%s (REMOTE_RESTORE_DUPLICATED_STATE)-> Starting process\n", __func__);	
+#ifdef DEBUG
+        printf("control -> REMOTE_RESTORE_DUPLICATED_STATE\n");
+#endif
 				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
-				ctrl = DUPLICATION_COMPLETE;
-				send_data((int)acceptfd, &ctrl, sizeof(char));	
-				if(!liveHosts[findHost(mid)]) 
+				if(!liveHosts[findHost(mid)]) {
+#ifdef DEBUG
+          printf("%s (REMOTE_RESTORE_DUPLICATED_STATE) -> already fixed\n",__func__);
+#endif
 					break;
-				//ctrl = LIVE;
-				//send_data((int)acceptfd, &ctrl, sizeof(char));	
+        }
 				pthread_mutex_lock(&leaderFixing_mutex);
 				if(!leaderFixing) {
 					leaderFixing = 1;
 					pthread_mutex_unlock(&leaderFixing_mutex);
 					// begin fixing
 					updateLiveHosts();
-					if(!liveHosts[findHost(mid)]) {	//confirmed dead
-						duplicateLostObjects(mid);
-					}
-					if(updateLiveHostsCommit() != 0) {
-						printf("error updateLiveHostsCommit()\n");
-						exit(1);
-					}
-					// finish fixing
-				pthread_mutex_lock(&leaderFixing_mutex);
-					leaderFixing = 0;
-					pthread_mutex_unlock(&leaderFixing_mutex);
-					//ctrl = DUPLICATION_COMPLETE;
-					//send_data((int)acceptfd, &ctrl, sizeof(char));	
+					duplicateLostObjects(mid);
+				if(updateLiveHostsCommit() != 0) {
+					printf("error updateLiveHostsCommit()\n");
+					exit(1);
 				}
-				else {			
+
+        // finish fixing
+				pthread_mutex_lock(&leaderFixing_mutex);
+				leaderFixing = 0;
+				pthread_mutex_unlock(&leaderFixing_mutex);
+				}
+				else {
 					pthread_mutex_unlock(&leaderFixing_mutex);
-					//while(leaderFixing);
+#ifdef DEBUG
+          printf("%s (REMOTE_RESTORE_DUPLICATED_STATE -> LEADER is already fixing\n",__func__);
+#endif
+          sleep(WAIT_TIME);
 				}
 				break;
-
+#endif
+#ifdef RECOVERY
 			case UPDATE_LIVE_HOSTS:
-				// update livehosts.
-				printf("%s (UPDATE_LIVE_HOSTS)-> Attempt to update live machines\n", __func__);	
+#ifdef DEBUG
+        printf("control -> UPDATE_LIVE_HOSTS\n");
+#endif
 				// copy back
 				pthread_mutex_lock(&liveHosts_mutex);
 			  recv_data((int)acceptfd, liveHosts, sizeof(int)*numHostsInSystem);
@@ -401,13 +565,20 @@ void *dstmAccept(void *acceptfd) {
 				pthread_mutex_unlock(&liveHosts_mutex);
 				liveHostsValid = 1;
 				numLiveHostsInSystem = getNumLiveHostsInSystem();
+#ifdef DEBUG
 				printHostsStatus();
 			  printf("%s (UPDATE_LIVE_HOSTS)-> Finished\n", __func__);	
+#endif
 				//exit(0);
 				break;
+#endif
 
+#ifdef RECOVERY
 			case DUPLICATE_ORIGINAL:
+#ifdef DEBUG
+        printf("control -> DUPLICATE_ORIGINAL\n");
 				printf("%s (DUPLICATE_ORIGINAL)-> Attempt to duplicate original objects\n", __func__);	
+#endif
 				//object store stuffffff
 				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
 				tempsize = mhashGetDuplicate(&dupeptr, 0);
@@ -415,65 +586,125 @@ void *dstmAccept(void *acceptfd) {
 				//send control and dupes after
 				ctrl = RECEIVE_DUPES;
 
-				if((sd = getSockWithLock(transRequestSockPool, mid)) < 0) {
-					printf("DUPLICATE_ORIGINAL: socket create error\n");
-					//usleep(1000);
-				}
-				printf("sd:%d, tempsize:%d, dupeptrfirstvalue:%d\n", sd, tempsize, *((unsigned int *)(dupeptr)));
+        if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+          perror("ORIGINAL : ");
+          exit(0);
+        }
 
-				send_data(sd, &ctrl, sizeof(char));
-				send_data(sd, dupeptr, tempsize);
-				
-				recv_data(sd, &response, sizeof(char));
-				if(response != DUPLICATION_COMPLETE) {
-					//fail message
-				}
-				ctrl = DUPLICATION_COMPLETE;
+        bzero(&remoteAddr, sizeof(remoteAddr));
+        remoteAddr.sin_family = AF_INET;
+        remoteAddr.sin_port = htons(LISTEN_PORT);
+        remoteAddr.sin_addr.s_addr = htonl(mid);
+
+        if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {
+          printf("ORIGINAL ERROR : %s\n",strerror(errno));
+          exit(0);
+        }
+        else {
+  				send_data(sd, &ctrl, sizeof(char));
+	  			send_data(sd, dupeptr, tempsize);
+
+  				recv_data(sd, &response, sizeof(char));
+#ifdef DEBUG
+          printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
+#endif
+		  		if(response != DUPLICATION_COMPLETE) {
+#ifdef DEBUG
+           printf("%s(DUPLICATION_ORIGINAL) -> DUPLICATION FAIL\n",__func__);
+#endif
+				  //fail message
+           exit(0);
+  				}
+
+          close(sd);
+        }
+        free(dupeptr);
+
+        ctrl = DUPLICATION_COMPLETE;
 				send_data((int)acceptfd, &ctrl, sizeof(char));
+#ifndef DEBUG
 				printf("%s (DUPLICATE_ORIGINAL)-> Finished\n", __func__);	
-			 freeSockWithLock(transRequestSockPool, mid, sd);
+#endif
 				break;
 
 			case DUPLICATE_BACKUP:
+#ifndef DEBUG
+        printf("control -> DUPLICATE_BACKUP\n");
 				printf("%s (DUPLICATE_BACKUP)-> Attempt to duplicate backup objects\n", __func__);
+#endif
 				//object store stuffffff
 				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
+
+
 				tempsize = mhashGetDuplicate(&dupeptr, 1);
 
-				printf("tempsize:%d, dupeptrfirstvalue:%d\n", tempsize, *((unsigned int *)(dupeptr)));
 				//send control and dupes after
 				ctrl = RECEIVE_DUPES;
-				if((sd = getSockWithLock(transRequestSockPool, mid)) < 0) {
-					printf("DUPLICATE_BACKUP: socket create error\n");
-					//usleep(1000);
-				}
-				
-				printf("sd:%d, tempsize:%d, dupeptrfirstvalue:%d\n", sd, tempsize, *((unsigned int *)(dupeptr)));
-				send_data(sd, &ctrl, sizeof(char));
-				send_data(sd, dupeptr, tempsize);
-				recv_data(sd, &response, sizeof(char));
-				if(response != DUPLICATION_COMPLETE) {
-					//fail message
-				}
+
+        if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+          perror("BACKUP : ");
+          exit(0);
+        }
+
+         bzero(&remoteAddr, sizeof(remoteAddr));                                       
+         remoteAddr.sin_family = AF_INET;                                              
+         remoteAddr.sin_port = htons(LISTEN_PORT);                                     
+         remoteAddr.sin_addr.s_addr = htonl(mid);                                      
+                                                                                       
+         if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {       
+           printf("BACKUP ERROR : %s\n",strerror(errno));
+           exit(0);
+         }                                                                             
+         else {                                                                        
+          send_data(sd, &ctrl, sizeof(char));
+  				send_data(sd, dupeptr, tempsize);
+          
+          recv_data(sd, &response, sizeof(char));
+#ifdef DEBUG
+          printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
+#endif
+		  		if(response != DUPLICATION_COMPLETE) {
+#ifndef DEBUG
+            printf("%s(DUPLICATION_BACKUP) -> DUPLICATION FAIL\n",__func__);
+#endif
+            exit(0);
+          }
+
+          close(sd);
+         }
+
+        free(dupeptr);
+
 				ctrl = DUPLICATION_COMPLETE;
 				send_data((int)acceptfd, &ctrl, sizeof(char));
+#ifndef DEBUG
 				printf("%s (DUPLICATE_BACKUP)-> Finished\n", __func__);	
+#endif
 				
-			 freeSockWithLock(transRequestSockPool, mid, sd);
 				break;
 
 			case RECEIVE_DUPES:
-				if((val = readDuplicateObjs((int)acceptfd)) != 0) {
+#ifndef DEBUG
+        printf("control -> RECEIVE_DUPES sd : %d\n",(int)acceptfd);
+#endif
+				if((readDuplicateObjs((int)acceptfd)) != 0) {
 					printf("Error: In readDuplicateObjs() %s, %d\n", __FILE__, __LINE__);
 					pthread_exit(NULL);
 				}
+
 				ctrl = DUPLICATION_COMPLETE;
 				send_data((int)acceptfd, &ctrl, sizeof(char));
+#ifndef DEBUG
+        printf("%s (RECEIVE_DUPES) -> Finished\n",__func__);
+#endif
 				break;
-
+#endif
+#ifdef RECOVERY
 			case PAXOS_PREPARE:
+#ifdef DEBUG
+        printf("control -> PAXOS_PREPARE\n");
+#endif
 				recv_data((int)acceptfd, &val, sizeof(int));
-				printf("%s (PAXOS_PREPARE)-> prop n:%d, n_h:%d\n", __func__, val, n_h);
 				if (val <= n_h) {
 					control = PAXOS_PREPARE_REJECT;
 					send_data((int)acceptfd, &control, sizeof(char));
@@ -481,7 +712,7 @@ void *dstmAccept(void *acceptfd) {
 				else {
 					n_h = val;
 					control = PAXOS_PREPARE_OK;
-				printf("%s (PAXOS_PREPARE)-> n_h now:%d, sending OK\n", __func__, n_h);
+                    
 					send_data((int)acceptfd, &control, sizeof(char));
 					send_data((int)acceptfd, &n_a, sizeof(int));
 					send_data((int)acceptfd, &v_a, sizeof(int));
@@ -489,6 +720,9 @@ void *dstmAccept(void *acceptfd) {
 				break;
 
 			case PAXOS_ACCEPT:
+#ifdef DEBUG
+        printf("control -> PAXOS_ACCEPT\n");
+#endif
 				recv_data((int)acceptfd, &n, sizeof(int));
 				recv_data((int)acceptfd, &v, sizeof(int));
 				if (n < n_h) {
@@ -505,21 +739,31 @@ void *dstmAccept(void *acceptfd) {
 				break;
 
 			case PAXOS_LEARN:
+#ifdef DEBUG
+        printf("control -> PAXOS_LEARN\n");
+#endif
 				recv_data((int)acceptfd, &v, sizeof(int));
 				leader = v_a;
 				paxosRound++;
+#ifdef DEBUG
 				printf("%s (PAXOS_LEARN)-> This is my leader!: [%s]\n", __func__, midtoIPString(leader));
+#endif
 				break;
 
 			case DELETE_LEADER:
+#ifdef DEBUG
+        printf("control -> DELETE_LEADER\n");
+#endif
 				v_a = 0;
 				break;
-
+#endif
 			default:
 				printf("Error: dstmAccept() Unknown opcode %d at %s, %d\n", control, __FILE__, __LINE__);
 		}
 	}
+#ifdef DEBUG
 	printf("%s-> Exiting\n", __func__); fflush(stdout);
+#endif
 closeconnection:
 	/* Close connection */
 	if (close((int)acceptfd) == -1)
@@ -533,12 +777,13 @@ int readDuplicateObjs(int acceptfd) {
 	void *dupeptr, *ptrcreate, *ptr;
 	objheader_t *header;
 
+#ifdef DEBUG
 	printf("%s-> Start\n", __func__);
+#endif
 	recv_data((int)acceptfd, &numoid, sizeof(unsigned int));
 	recv_data((int)acceptfd, &size, sizeof(int));	
 	// do i need array of oids?
 	// answer: no! now get to work
-	printf("%s-> numoid:%d, size:%d\n", __func__, numoid, size);
 	if(numoid != 0) {
 		if ((dupeptr = calloc(1, size)) == NULL) {
 			printf("calloc error for duplicated objects %s, %d\n", __FILE__, __LINE__);
@@ -552,26 +797,64 @@ int readDuplicateObjs(int acceptfd) {
 			oid = OID(header);
 			GETSIZE(tmpsize, header);
 			tmpsize += sizeof(objheader_t);
+
+#ifdef DEBUG
 			printf("%s-> oid being received/backed:%u, version:%d, type:%d\n", __func__, oid, header->version, TYPE(header));
 			printf("STATUSPTR(header):%u, STATUS:%d\n", STATUSPTR(header), STATUS(header));
-			pthread_mutex_lock(&mainobjstore_mutex);
-			if ((ptrcreate = objstrAlloc(&mainobjstore, tmpsize)) == NULL) {
-				printf("Error: readDuplicateObjs() failed objstrAlloc %s, %d\n", __FILE__, __LINE__);
-				pthread_mutex_unlock(&mainobjstore_mutex);
-				return 1;
-			}
-			pthread_mutex_unlock(&mainobjstore_mutex);
-	    memcpy(ptrcreate, header, tmpsize);
+#endif
 
-			mhashInsert(oid, ptrcreate);
-			ptr += tmpsize;
+      if(mhashSearch(oid) != NULL) {
+#ifdef DEBUG
+        printf("%s -> oid : %d is already in there\n",__func__,oid);
+#endif
+
+        if(header->notifylist != NULL) {
+          unsigned int *listSize = (ptr + tmpsize);
+          tmpsize += sizeof(unsigned int);
+          tmpsize += sizeof(threadlist_t) * (*listSize);
+        }
+      }
+      else {
+  			pthread_mutex_lock(&mainobjstore_mutex);
+	  		if ((ptrcreate = objstrAlloc(&mainobjstore, tmpsize)) == NULL) {
+		  		printf("Error: readDuplicateObjs() failed objstrAlloc %s, %d\n", __FILE__, __LINE__);
+			  	pthread_mutex_unlock(&mainobjstore_mutex);
+				  return 1;
+  			}
+	  		pthread_mutex_unlock(&mainobjstore_mutex);
+	      memcpy(ptrcreate, header, tmpsize);
+
+        objheader_t* oPtr = (objheader_t*)ptrcreate;
+
+        if(oPtr->notifylist != NULL) {
+          oPtr->notifylist = NULL;  // reset for new list
+          threadlist_t *listNode;
+          unsigned int* listSize = (ptr + tmpsize);  // get number of notifylist
+          unsigned int j;
+
+          tmpsize += sizeof(unsigned int);   // skip number of notifylist 
+          listNode = (threadlist_t*)(ptr + tmpsize); // get first element of address
+          for(j = 0; j< *listSize; j++) {      // retreive all threadlist
+            oPtr->notifylist = insNode(oPtr->notifylist,listNode[j].threadid,listNode[j].mid);
+          
+          }
+          tmpsize += sizeof(threadlist_t) * (*listSize);
+
+        }
+    		mhashInsert(oid, ptrcreate);
+      }
+  		ptr += tmpsize;
 		}
-
+#ifdef DEBUG
 		printf("%s-> End\n", __func__);
+#endif
+    free(dupeptr);
 		return 0;
 	}
 	else {
+#ifdef DEBUG
 		printf("%s-> No objects duplicated\n", __func__);
+#endif
 		return 0;
 	}
 }
@@ -585,23 +868,28 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   fixed_data_t fixed;
   objheader_t *headaddr;
   int sum, i, size, n, val;
+  int timeout;
 
   oidmod = NULL;
+#ifdef DEBUG
 	printf("%s-> Entering\n", __func__);
+#endif
 
   /* Read fixed_data_t data structure */
   size = sizeof(fixed) - 1;
   ptr = (char *)&fixed;
   fixed.control = TRANS_REQUEST;
-  recv_data((int)acceptfd, ptr+1, size);
+  timeout = recv_data((int)acceptfd, ptr+1, size);
 
   /* Read list of mids */
   int mcount = fixed.mcount;
   size = mcount * sizeof(unsigned int);
   unsigned int listmid[mcount];
   ptr = (char *) listmid;
-  recv_data((int)acceptfd, ptr, size);
+  timeout = recv_data((int)acceptfd, ptr, size);
 
+  if(timeout < 0)   // coordinator failed
+    return 0;
 
   /* Read oid and version tuples for those objects that are not modified in the transaction */
   int numread = fixed.numread;
@@ -609,7 +897,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   char objread[size];
   if(numread != 0) { //If pile contains more than one object to be read,
     // keep reading all objects
-    recv_data((int)acceptfd, objread, size);
+    timeout = recv_data((int)acceptfd, objread, size);
   }
 
   /* Read modified objects */
@@ -619,8 +907,11 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
       return 1;
     }
     size = fixed.sum_bytes;
-    recv_data((int)acceptfd, modptr, size);
+    timeout = recv_data((int)acceptfd, modptr, size);
   }
+
+  if(timeout < 0) // coordinator failed
+    return 0;
 
   /* Create an array of oids for modified objects */
   oidmod = (unsigned int *) calloc(fixed.nummod, sizeof(unsigned int));
@@ -637,9 +928,9 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
     GETSIZE(tmpsize, headaddr);
     ptr += sizeof(objheader_t) + tmpsize;
   }
-
-	printf("%s-> num oid read = %d, oids modified = %d, size = %d\n", __func__, fixed.numread,  fixed.nummod, size); fflush(stdout);
-// sleep(1); 
+#ifdef DEBUG
+	printf("%s-> num oid read = %d, oids modified = %d, size = %d\n", __func__, fixed.numread,  fixed.nummod, size);
+#endif
   /*Process the information read */
   if((val = processClientReq(&fixed, transinfo, listmid, objread, modptr, oidmod, acceptfd)) != 0) {
     printf("Error: In processClientReq() %s, %d\n", __FILE__, __LINE__);
@@ -654,7 +945,9 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   if(oidmod != NULL) {
     free(oidmod);
   }
+#ifdef DEBUG
 	printf("%s-> Exiting\n", __func__);
+#endif
 
   return 0;
 }
@@ -666,11 +959,18 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
                      unsigned int *listmid, char *objread, void *modptr, unsigned int *oidmod, int acceptfd) {
 
   char control, sendctrl, retval;
+  
   objheader_t *tmp_header;
   void *header;
   int i = 0, val;
-
+  unsigned int transID;
+#ifdef DEBUG
 	printf("%s-> Entering\n", __func__);
+#endif
+
+  /* receives transaction id */
+  recv_data((int)acceptfd, &transID, sizeof(unsigned int));
+
   /* Send reply to the Coordinator */
   if((retval = handleTransReq(fixed, transinfo, listmid, objread, modptr,acceptfd)) == 0 ) {
     printf("Error: In handleTransReq() %s, %d\n", __FILE__, __LINE__);
@@ -678,9 +978,27 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     return 1;
   }
 
-	recv_data((int)acceptfd, &control, sizeof(char));
+	int timeout = recv_data((int)acceptfd, &control, sizeof(char));
 	/* Process the new control message */
-	switch(control) {
+#ifdef DEBUG
+  printf("%s -> timeout = %d   control = %d\n",__func__,timeout,control); 
+#endif
+  
+#ifdef RECOVERY
+  if(timeout < 0) {  // timeout. failed to receiving data from coordinator
+#ifdef DEBUG
+    printf("%s -> timeout!! assumes coordinator is dead\n",__func__);
+#endif
+    control = receiveDecisionFromBackup(transID,fixed->mcount,listmid);
+#ifdef DEBUG
+    printf("%s -> received Decision %d\n",__func__,control);
+#endif
+  }    
+  
+  /* insert received control into thash for another transaction*/
+  thashInsert(transID, control);
+#endif
+  switch(control) {
 		case TRANS_ABORT:
 			if (fixed->nummod > 0)
 				free(modptr);
@@ -718,6 +1036,8 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 				printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
 				return 1;
 			}
+
+
 			break;
 
 		case TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING:
@@ -736,10 +1056,28 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
   if (transinfo->objnotfound != NULL) {
     free(transinfo->objnotfound);
   }
+#ifdef DEBUG
 	printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
+#endif
 
   return 0;
 }
+
+#ifdef RECOVERY
+char checkDecision(unsigned int transID) 
+{
+#ifdef DEBUG
+  printf("%s -> transID :  %u\n",__func__,transID);
+#endif
+
+  char response = thashSearch(transID);
+
+  if(response == 0)
+    return -1;
+  else
+    return response;
+}
+#endif
 
 /* This function increments counters while running a voting decision on all objects involved
  * in TRANS_REQUEST and If a TRANS_DISAGREE sends the response immediately back to the coordinator */
@@ -771,6 +1109,9 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       oid = *((unsigned int *)(objread + incr));
       incr += sizeof(unsigned int);
       version = *((unsigned short *)(objread + incr));
+#ifdef DEBUG
+      printf("%s -> oid : %u    version : %d\n",__func__,oid,version);
+#endif
       getCommitCountForObjRead(oidnotfound, oidlocked, oidvernotmatch, &objnotfound, &objlocked, &objvernotmatch,
                                &v_matchnolock, &v_matchlock, &v_nomatch, &numBytes, &control, oid, version);
     } else {  //Objs modified
@@ -783,6 +1124,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       version = headptr->version;
       GETSIZE(tmpsize, headptr);
       ptr += sizeof(objheader_t) + tmpsize;
+
       getCommitCountForObjMod(oidnotfound, oidlocked, oidvernotmatch, &objnotfound,
                               &objlocked, &objvernotmatch, &v_matchnolock, &v_matchlock, &v_nomatch,
                               &numBytes, &control, oid, version);
@@ -822,18 +1164,16 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			}
 			free(oidlocked);
 		}
-		printf("control = %d, file = %s, line = %d\n", (int)control, __FILE__, __LINE__);
+    
+
+#ifdef DEBUG
+		printf("%s -> control = %d, file = %s, line = %d\n", __func__,(int)control, __FILE__, __LINE__);
+#endif
 
 		send_data(acceptfd, &control, sizeof(char));
 #ifdef CACHE
 		send_data(acceptfd, &numBytes, sizeof(int));
 		send_data(acceptfd, objs, numBytes);
-if(timeoutFlag || timeoutFlag) {
-printf("send_data: remote machine dead, line:%d\n", __LINE__);
-timeoutFlag = 0;
-timeoutFlag = 0;
-exit(1);
-}
 
 		transinfo->objvernotmatch = oidvernotmatch;
 		transinfo->numvernotmatch = objvernotmatch;
@@ -863,25 +1203,28 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 #ifdef RECOVERY
   if(version == 1) {
 		(*v_matchnolock)++;
-		printf("*backup object* oid:%u\n", oid);
+#ifdef DEBUG
+		printf("%s -> *backup object* oid:%u\n", __func__,oid);
+#endif
 		return;
 	}
 #endif
 
 	if ((mobj = mhashSearch(oid)) == NULL) {    /* Obj not found */
+#ifdef DEBUG
 		printf("Obj not found: %s() oid = %d, type = %d\t\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 		fflush(stdout);
+#endif
 		/* Save the oids not found and number of oids not found for later use */
 		oidnotfound[*objnotfound] = oid;
 		(*objnotfound)++;
 	} else {     /* If Obj found in machine (i.e. has not moved) */
-		printf("Obj found: %s() oid = %d, type = %d\t\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
-		fflush(stdout);
 		/* Check if Obj is locked by any previous transaction */
 		if (write_trylock(STATUSPTR(mobj))) { // Can acquire write lock
-
-		printf("****%s->Trying to acquire 'remote' writelock for oid:%d, version:%d\n", __func__, oid, version);
+#ifdef DEBUG
+		  printf("****%s->Trying to acquire 'remote' writelock for oid:%d, version:%d\n", __func__, oid, version);
 			printf("this version: %d, mlookup version: %d\n", version, ((objheader_t *)mobj)->version);
+#endif
 			if (version == ((objheader_t *)mobj)->version) { /* match versions */
 				(*v_matchnolock)++;
 			} else { /* If versions don't match ...HARD ABORT */
@@ -914,7 +1257,9 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 			}
 		}
   }
-	printf("oid: %u, v_matchnolock: %d, v_matchlock: %d, v_nomatch: %d\n", oid, *v_matchnolock, *v_matchlock, *v_nomatch);
+#ifdef DEBUG
+	printf("%s -> oid: %u, v_matchnolock: %d, v_matchlock: %d, v_nomatch: %d\n",__func__,oid, *v_matchnolock, *v_matchlock, *v_nomatch);
+#endif
 }
 
 /* Update Commit info for objects that are read */
@@ -924,6 +1269,9 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
   void *mobj;
   /* Check if object is still present in the machine since the beginning of TRANS_REQUEST */
   //printf("version number: %d\n", version);
+#ifdef DEBUG
+  printf("%s -> Entering\n",__func__);
+#endif
 #ifdef RECOVERY
   if(version == 1) {
 		(*v_matchnolock)++;
@@ -931,49 +1279,59 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 		return;
 	}
 #endif
+
 	if ((mobj = mhashSearch(oid)) == NULL) {    /* Obj not found */
-	printf("Obj not found: %s() file:%s oid = %d, type = %d\t\n", __func__, __FILE__, OID(mobj), TYPE((objheader_t *)mobj));
-	fflush(stdout);
+#ifdef DEBUG
+    printf("%s -> Obj not found!\n",__func__);
+	  printf("%s -> Obj not found: oid = %d, type = %d\t\n", __func__,OID(mobj), TYPE((objheader_t *)mobj));
+  	fflush(stdout);
+#endif
     /* Save the oids not found and number of oids not found for later use */
     oidnotfound[*objnotfound] = oid;
     (*objnotfound)++;
   } else {     /* If Obj found in machine (i.e. has not moved) */
-	printf("Obj found: %s() file:%s oid = %d, type = %d\t\n", __func__, __FILE__, OID(mobj), TYPE((objheader_t *)mobj));
-	fflush(stdout);
+#ifdef DEBUG
+    printf("%s -> Obj found!!\n",__func__);
+  	printf("%s -> Obj found: oid = %d, type = %d\t\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
+	  fflush(stdout);
+#endif
+    
     /* Check if Obj is locked by any previous transaction */
     if (read_trylock(STATUSPTR(mobj))) { //Can further acquire read locks
       if (version == ((objheader_t *)mobj)->version) { /* match versions */
-	(*v_matchnolock)++;
+      	(*v_matchnolock)++;
       } else { /* If versions don't match ...HARD ABORT */
-	(*v_nomatch)++;
-	oidvernotmatch[(*objvernotmatch)++] = oid;
-	int size;
-	GETSIZE(size, mobj);
-	size += sizeof(objheader_t);
-	*numBytes += size;
-	/* Send TRANS_DISAGREE to Coordinator */
-	*control = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
+      	(*v_nomatch)++;
+      	oidvernotmatch[(*objvernotmatch)++] = oid;
+      	int size;
+      	GETSIZE(size, mobj);
+      	size += sizeof(objheader_t);
+      	*numBytes += size;
+      
+        /* Send TRANS_DISAGREE to Coordinator */
+      	*control = TRANS_DISAGREE;
       }
+
       //Keep track of oid locked
       oidlocked[(*objlocked)++] = OID(((objheader_t *)mobj));
     } else { /* Some other transaction has aquired a write lock on this object */
       if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
-	(*v_matchlock)++;
+      	(*v_matchlock)++;
       } else { /* If versions don't match ...HARD ABORT */
-	(*v_nomatch)++;
-	oidvernotmatch[*objvernotmatch] = oid;
-	(*objvernotmatch)++;
-	int size;
-	GETSIZE(size, mobj);
-	size += sizeof(objheader_t);
-	*numBytes += size;
-	*control = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
+      	(*v_nomatch)++;
+      	oidvernotmatch[*objvernotmatch] = oid;
+      	(*objvernotmatch)++;
+      	int size;
+      	GETSIZE(size, mobj);
+      	size += sizeof(objheader_t);
+      	*numBytes += size;
+      	*control = TRANS_DISAGREE;
       }
     }
   }
-	printf("oid: %u, v_matchnolock: %d, v_matchlock: %d, v_nomatch: %d\n", oid, *v_matchnolock, *v_matchlock, *v_nomatch);
+#ifdef DEBUG
+	printf("%s -> oid: %u, v_matchnolock: %d, v_matchlock: %d, v_nomatch: %d\n",__func__, oid, *v_matchnolock, *v_matchlock, *v_nomatch);
+#endif
 }
 
 /* This function decides what control message such as TRANS_AGREE, TRANS_DISAGREE or TRANS_SOFT_ABORT
@@ -988,22 +1346,21 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
   if(*(v_matchnolock) == fixed->numread + fixed->nummod) {
     control = TRANS_AGREE;
     /* Send control message */
-		printf("control = %d, file = %s, line = %d\n", (int)control, __FILE__, __LINE__);
+#ifdef DEBUG
+		printf("%s -> control = %s\n", __func__,"TRANS_AGREE");
+#endif
     send_data(acceptfd, &control, sizeof(char));
-if(timeoutFlag || timeoutFlag) {
-printf("send_data: remote machine dead, line:%d\n", __LINE__);
-timeoutFlag = 0;
-timeoutFlag = 0;
-exit(1);
-}
-
-		printf("finished sending control\n");
+    
+#ifdef DEBUG
+		printf("%s -> finished sending control\n",__func__);
+#endif
   }
   /* Condition to send TRANS_SOFT_ABORT */
-  if((*(v_matchlock) > 0 && *(v_nomatch) == 0) || (*(objnotfound) > 0 && *(v_nomatch) == 0)) {
+  else if((*(v_matchlock) > 0 && *(v_nomatch) == 0) || (*(objnotfound) > 0 && *(v_nomatch) == 0)) {
     control = TRANS_SOFT_ABORT;
-
-		printf("control = %d, file = %s, line = %d\n", (int)control, __FILE__, __LINE__);
+#ifdef DEBUG
+		printf("%s -> control = %s\n", __func__,"TRANS_SOFT_ABORT");
+#endif
     /* Send control message */
     send_data(acceptfd, &control, sizeof(char));
 
@@ -1037,8 +1394,10 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
   char control;
   int tmpsize;
   void *ptrcreate;
+#ifdef DEBUG
 	printf("DEBUG-> Entering transCommitProcess, dstmserver.c\n");
 	printf("nummod: %d, numlocked: %d\n", nummod, numlocked);
+#endif
 
   /* Process each modified object saved in the mainobject store */
   for(i = 0; i < nummod; i++) {
@@ -1047,11 +1406,15 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       printf("Error: mhashsearch returns NULL at dstmserver.c %d\n", __LINE__);
 			return 1;
 #else
+#ifdef DEBUG
 			printf("DEBUG->*backup* i:%d, nummod:%d\n", i, nummod);
+#endif
 			header = (objheader_t *)(modptr+offset);
 			header->version += 1;
 			header->isBackup = 1;
+#ifdef DEBUG
       printf("oid: %u, new header version: %d\n", oidmod[i], header->version);
+#endif
 			GETSIZE(tmpsize, header);
 			tmpsize += sizeof(objheader_t);
 			pthread_mutex_lock(&mainobjstore_mutex);
@@ -1082,10 +1445,24 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
     }
     header->version += 1;
+#ifdef DEBUG
     printf("oid: %u, new header version: %d\n", oidmod[i], header->version);
+#endif
     /* If threads are waiting on this object to be updated, notify them */
     if(header->notifylist != NULL) {
-      notifyAll(&header->notifylist, OID(header), header->version);
+#ifdef DEBUG
+      printf("%s -> type : %d notifylist : %d\n",__func__,TYPE(header),header->notifylist);
+#endif
+
+#ifdef RECOVERY
+      if(header->isBackup != 0)
+        notifyAll(&header->notifylist, OID(header), header->version);
+      else
+        clearNotifyList(OID(header));
+#else
+        notifyAll(&header->notifylist, OID(header), header->version);
+#endif
+
     }
     offset += sizeof(objheader_t) + tmpsize;
   }
@@ -1105,7 +1482,9 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       return 1;
     }
 		
+#ifdef DEBUG
 		printf("header oid:%d, version:%d, useWriteUnlock:%d\n", OID(header), header->version, useWriteUnlock);
+#endif
     if(useWriteUnlock) {
       write_unlock(STATUSPTR(header));
     } else {
@@ -1229,7 +1608,9 @@ int prefetchReq(int acceptfd) {
 }
 
 void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size) {
+#ifdef DEBUG
 		printf("control = %d, file = %s, line = %d\n", (int)control, __FILE__, __LINE__);
+#endif
   send_data(sd, control, sizeof(char));
   /* Send the buffer with its size */
   int length = *(size);
@@ -1256,46 +1637,48 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
       /* Check to see if versions are same */
 checkversion:
       if (write_trylock(STATUSPTR(header))) { // Can acquire write lock
-	newversion = header->version;
-	if(newversion == *(versionarry + i)) {
-	  //Add to the notify list
-	  if((header->notifylist = insNode(header->notifylist, threadid, mid)) == NULL) {
-	    printf("Error: Obj notify list points to NULL %s, %d\n", __FILE__, __LINE__);
-	    return;
-	  }
-	  write_unlock(STATUSPTR(header));
-	} else {
-	  write_unlock(STATUSPTR(header));
-	  if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-	    perror("processReqNotify():socket()");
-	    return;
-	  }
-	  bzero(&remoteAddr, sizeof(remoteAddr));
-	  remoteAddr.sin_family = AF_INET;
-	  remoteAddr.sin_port = htons(LISTEN_PORT);
-	  remoteAddr.sin_addr.s_addr = htonl(mid);
-
-	  if (connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
-	    printf("Error: processReqNotify():error %d connecting to %s:%d\n", errno,
-	           inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
-	    close(sd);
-	    return;
-	  } else {
-	    //Send Update notification
-	    msg[0] = THREAD_NOTIFY_RESPONSE;
-	    *((unsigned int *)&msg[1]) = oid;
-	    size = sizeof(unsigned int);
-	    *((unsigned short *)(&msg[1]+size)) = newversion;
-	    size += sizeof(unsigned short);
-	    *((unsigned int *)(&msg[1]+size)) = threadid;
-	    size = 1+ 2*sizeof(unsigned int) + sizeof(unsigned short);
-	    send_data(sd, msg, size);
-	  }
-	  close(sd);
-	}
+      	newversion = header->version;
+	  
+        if(newversion == *(versionarry + i)) {
+	        //Add to the notify list
+  	      if((header->notifylist = insNode(header->notifylist, threadid, mid)) == NULL) {
+	          printf("Error: Obj notify list points to NULL %s, %d\n", __FILE__, __LINE__);
+  	        return;
+  	      }
+    	    write_unlock(STATUSPTR(header));
+      	} 
+        else {
+          write_unlock(STATUSPTR(header));
+      	  if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+	          perror("processReqNotify():socket()");
+	          return;
+    	    }
+  	      bzero(&remoteAddr, sizeof(remoteAddr));
+    	    remoteAddr.sin_family = AF_INET;
+  	      remoteAddr.sin_port = htons(LISTEN_PORT);
+    	    remoteAddr.sin_addr.s_addr = htonl(mid);
+  
+      	  if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
+  	        printf("Error: processReqNotify():error %d connecting to %s:%d\n", errno,
+            inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+    	      close(sd);
+    	      return;
+    	      } else {
+  	        //Send Update notification
+    	      msg[0] = THREAD_NOTIFY_RESPONSE;
+    	      *((unsigned int *)&msg[1]) = oid;
+      	    size = sizeof(unsigned int);
+        	  *((unsigned short *)(&msg[1]+size)) = newversion;
+            size += sizeof(unsigned short);
+     	      *((unsigned int *)(&msg[1]+size)) = threadid;
+    	      size = 1+ 2*sizeof(unsigned int) + sizeof(unsigned short);
+      	    send_data(sd, msg, size);
+	          }
+      	  close(sd);
+	      }
       } else {
-	randomdelay();
-	goto checkversion;
+  	    randomdelay();
+    	  goto checkversion;
       }
     }
     i++;
@@ -1303,3 +1686,40 @@ checkversion:
   free(oidarry);
   free(versionarry);
 }
+
+#ifdef RECOVERY
+/* go through oid's notifylist and clear them */
+void clearNotifyList(unsigned int oid)
+{
+#ifdef DEBUG
+  printf("%s -> Entering\n",__func__);
+#endif
+
+  objheader_t* header;
+  threadlist_t* t;
+  threadlist_t* tmp;
+  
+  if((header = (objheader_t *) mhashSearch(oid)) == NULL) {
+    printf("%s -> mhashSearch returned NULL!!\n",__func__);
+  }
+
+  if(header->notifylist != NULL) {
+      t = header->notifylist;
+       
+      while(t) {
+        tmp = t;
+        t = t->next;
+
+        free(tmp);
+      }
+      header->notifylist = NULL;
+  }
+  
+  pthread_mutex_lock(&clearNotifyList_mutex);
+  clearNotifyListFlag = 0;
+  pthread_mutex_unlock(&clearNotifyList_mutex);
+#ifdef DEBUG
+  printf("%s -> finished\n",__func__);
+#endif
+}
+#endif

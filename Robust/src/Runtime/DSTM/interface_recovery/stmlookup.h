@@ -17,7 +17,6 @@
 
 #define INLINE    inline __attribute__((always_inline))
 
-
 typedef struct chashlistnode {
   void * key;
   void * val;     //this can be cast to another type or used to point to a larger structure
@@ -49,7 +48,6 @@ unsigned int t_chashResize(unsigned int newsize);
 void t_chashDelete();
 void t_chashreset();
 
-
 extern __thread chashlistnode_t *c_table;
 extern __thread chashlistnode_t *c_list;
 extern __thread unsigned int c_size;
@@ -58,6 +56,38 @@ extern __thread unsigned int c_numelements;
 extern __thread unsigned int c_threshold;
 extern __thread double c_loadfactor;
 extern __thread cliststruct_t *c_structs;
+
+#ifdef READSET
+
+typedef struct rdchashlistnode {
+  void * key;
+  unsigned int version;
+  struct rdchashlistnode *next;
+  struct rdchashlistnode *lnext;
+} rdchashlistnode_t;
+
+typedef struct rdclist {
+  struct rdchashlistnode array[NUMCLIST];
+  int num;
+  struct rdclist *next;
+} rdcliststruct_t;
+
+
+extern __thread rdchashlistnode_t *rd_c_table;
+extern __thread rdchashlistnode_t *rd_c_list;
+extern __thread unsigned int rd_c_size;
+extern __thread unsigned INTPTR rd_c_mask;
+extern __thread unsigned int rd_c_numelements;
+extern __thread unsigned int rd_c_threshold;
+extern __thread double rd_c_loadfactor;
+extern __thread rdcliststruct_t *rd_c_structs;
+
+void rd_t_chashCreate(unsigned int size, double loadfactor);
+void rd_t_chashInsertOnce(void * key, unsigned int val);
+unsigned int rd_t_chashResize(unsigned int newsize);
+void rd_t_chashDelete();
+void rd_t_chashreset();
+#endif
 
 #ifdef DELAYCOMP
 extern __thread chashlistnode_t *dc_c_table;
@@ -76,5 +106,4 @@ unsigned int dc_t_chashResize(unsigned int newsize);
 void dc_t_chashDelete();
 void dc_t_chashreset();
 #endif
-
 #endif

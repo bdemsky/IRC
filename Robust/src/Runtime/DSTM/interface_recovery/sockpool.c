@@ -1,23 +1,19 @@
 #include "sockpool.h"
 #include <netinet/tcp.h>
 
-#ifdef RECOVERY
-#define TIMEOUT_TIME 3
-#endif
-
 #if defined(__i386__)
 inline int test_and_set(volatile unsigned int *addr) {
-	int oldval;
-	/* Note: the "xchg" instruction does not need a "lock" prefix */
-	__asm__ __volatile__ ("xchgl %0, %1"
+  int oldval;
+  /* Note: the "xchg" instruction does not need a "lock" prefix */
+  __asm__ __volatile__ ("xchgl %0, %1"
 			: "=r" (oldval), "=m" (*(addr))
 			: "0" (1), "m" (*(addr)));
-	return oldval;
+  return oldval;
 }
 inline void UnLock(volatile unsigned int *addr) {
-	int oldval;
-	/* Note: the "xchg" instruction does not need a "lock" prefix */
-	__asm__ __volatile__ ("xchgl %0, %1"
+  int oldval;
+  /* Note: the "xchg" instruction does not need a "lock" prefix */
+  __asm__ __volatile__ ("xchgl %0, %1"
 			: "=r" (oldval), "=m" (*(addr))
 			: "0" (0), "m" (*(addr)));
 }
@@ -28,15 +24,15 @@ inline void UnLock(volatile unsigned int *addr) {
 #define MAXSPINS 4
 
 inline void Lock(volatile unsigned int *s) {
-	while(test_and_set(s)) {
-		int i=0;
-		while(*s) {
-			if (i++>MAXSPINS) {
-				sched_yield();
-				i=0;
-			}
-		}
-	}
+  while(test_and_set(s)) {
+    int i=0;
+    while(*s) {
+      if (i++>MAXSPINS) {
+	sched_yield();
+	i=0;
+      }
+    }
+  }
 }
 
 sockPoolHashTable_t *createSockPool(sockPoolHashTable_t * sockhash, unsigned int size) {
@@ -67,17 +63,7 @@ int createNewSocket(unsigned int mid) {
   if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
     printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
     return -1;
-	}
-#ifdef RECOVERY	
-#ifdef DEBUG
-	printf("%s-> Setting timeouts for sd:%d\n", __func__, sd);
-#endif
-	struct timeval tv;
-	tv.tv_sec = TIMEOUT_TIME;
-	tv.tv_usec = 0;
-	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, (struct timeval *)&tv, sizeof(tv));
-	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(tv));
-#endif
+  }
   setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
   struct sockaddr_in remoteAddr;
   bzero(&remoteAddr, sizeof(remoteAddr));
@@ -119,7 +105,6 @@ int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
     inusenode->sd = sd;
     inusenode->mid = mid;
     insToListWithLock(sockhash, inusenode);
-		printf("returning sd:%d\n", sd);
     return sd;
   } else {
     return -1;
@@ -188,7 +173,6 @@ int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   while(*ptr!=NULL) {
     if (mid == (*ptr)->mid) {
       UnLock(&sockhash->mylock);
-			printf("RETURNING SD\n");
       return (*ptr)->sd;
     }
     ptr=&((*ptr)->next);
@@ -199,7 +183,6 @@ int getSock2WithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
     inusenode->sd = sd;
     inusenode->mid = mid;
     addSockWithLock(sockhash, inusenode);
-	  printf("RETURNING NEW SD\n");
     return sd;
   } else {
     return -1;

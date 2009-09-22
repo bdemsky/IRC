@@ -33,11 +33,59 @@ void display(threadlist_t *head) {
     while(head != NULL) {
       ptr = head;
       printf("The threadid waiting is = %d\n", ptr->threadid);
-      printf("The mid on which thread present = %d\n", ptr->mid);
+      printf("The mid on which thread present = %s\n", midtoIPString(ptr->mid));
       head = ptr->next;
     }
   }
 }
+
+/* counts the number of nodes */
+unsigned int getListSize(threadlist_t* head)
+{
+  unsigned int size =0;
+
+  while(head) {
+    size++;
+    head = head->next;
+  }
+  return size;
+}
+
+/* This function creates an array of threadlist_t */
+/* returns number of threadlist_t and need pointer of threadlist to be returned */
+unsigned int convertToArray(threadlist_t* head,threadlist_t ** tPtr)
+{
+  int size = 0;
+  threadlist_t* walker;
+  threadlist_t* ptr;
+  int i = 0;
+  
+  /* counting number of nodes */
+  walker = head;
+  while(walker) {
+    walker = walker->next;
+    size++;
+  }
+
+  /* creates array and duplicate it as array */
+  if((ptr = (threadlist_t*)calloc(size,sizeof(threadlist_t)))== NULL) {
+    printf("%s -> calloc error in %s\n",__func__,__FILE__);
+    exit(0);
+  }
+
+  walker = head;
+  *tPtr = ptr;
+  i =0;
+
+  while(walker) {
+    ptr[i++] = *walker;
+      
+    walker = walker->next;
+  }
+
+  return size;
+}
+
 
 /* This function creates a new hash table that stores a mapping between the threadid and
  * a pointer to the thread notify data */

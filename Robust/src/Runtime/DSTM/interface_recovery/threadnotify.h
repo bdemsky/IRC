@@ -40,6 +40,8 @@ typedef struct notifyhashtable {
 } notifyhashtable_t;
 
 threadlist_t *insNode(threadlist_t *head, unsigned int threadid, unsigned int mid); //Inserts nodes for one object that
+unsigned int getListSize(threadlist_t * head);
+unsigned int convertToArray(threadlist_t* head,threadlist_t **tPtr);
 //needs to send notification to threads waiting on it
 void display(threadlist_t *head); // Displays linked list of nodes for one object
 unsigned int notifyhashCreate(unsigned int size, float loadfactor); //returns 1 if hashtable creation is not successful

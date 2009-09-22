@@ -5,6 +5,11 @@
 #define MSG_NOSIGNAL 0
 #endif
 
+#ifdef RECOVERY
+#define WAIT_TIME 3
+#endif
+
+
 /***********************************************************
  *       Macros
  **********************************************************/
@@ -45,6 +50,8 @@
 #define THREAD_NOTIFY_RESPONSE          25
 #define TRANS_UNSUCESSFUL               26
 #define CLOSE_CONNECTION  							27
+#define ASK_COMMIT                      28
+#define CLEAR_NOTIFY_LIST               29
 /*******************************
  * Duplication Messages
  *****************************/
@@ -221,13 +228,22 @@ typedef struct trans_commit_data {
   int numvernotmatch;           /* no of objects whose version doesn't match */
 } trans_commit_data_t;
 
+#ifdef RECOVERY
+  int leaderFixing;
+  pthread_mutex_t leaderFixing_mutex;
+  pthread_mutex_t liveHosts_mutex;
+#endif
+
+
+
 
 #define PRINT_TID(PTR) printf("DEBUG -> %x %d\n", PTR->mid, PTR->thread_id);
 
 /* Initialize main object store and lookup tables, start server thread. */
 int dstmInit(void);
-void send_data(int fd, void *buf, int buflen);
-void recv_data(int fd, void *buf, int buflen);
+int send_data(int fd, void *buf, int buflen);
+int recv_data(int fd, void *buf, int buflen);
+int recv_data_block(int fd, void *buf, int buflen); // wrapper function for recv_data to check dead machine.
 int recv_data_errorcode(int fd, void *buf, int buflen);
 
 /* Prototypes for object header */
@@ -240,30 +256,52 @@ void objstrDelete(objstr_t *store); //traverse and free entire list
 void *objstrAlloc(objstr_t **store, unsigned int size); //size in bytes
 void clearObjStore(); // TODO:currently only clears the prefetch cache object store
 /* end object store */
+unsigned int getNewTransID(void);
 
+#ifdef RECOVERY
 /* Prototypes for duplications */
-void updateLiveHosts();
+unsigned int updateLiveHosts();
 int updateLiveHostsCommit();
 void setLocateObjHosts();
+void setReLocateObjHosts();
 void printHostsStatus();
 int allHostsLive();
+unsigned int getPrimaryMachine(unsigned int mid);
+unsigned int getBackupMachine(unsigned int mid);
+unsigned int getDuplicatedPrimaryMachine(unsigned int mid);
+int getNumLiveHostsInSystem();
+int getMyStatus();
+void* startAsking();
+unsigned int checkIfAnyMachineDead(int*);
+void clearDeadThreadsNotification();
+/* end duplication */
+
+/* for recovery */
+void reqClearNotifyList(unsigned int oid);
+void clearNotifyList(unsigned int oid);
 void duplicateLostObjects(unsigned int mid);
 void duplicateLocalBackupObjects();
 void duplicateLocalOriginalObjects();
-int readDuplicateObjs(int);
 void restoreDuplicationState(unsigned int deadHost);
-unsigned int getPrimaryMachine(unsigned int mid);
-unsigned int getBackupMachine(unsigned int mid);
-int getNumLiveHostsInSystem();
-unsigned int getNewTransID(void);
-/* end duplication */
+int readDuplicateObjs(int);
+
+/* Paxo's algorithm */
+int paxos();
+int paxosPrepare();
+int paxosAccept();
+void paxosLearn();
+
+#endif
 
 /* Prototypes for server portion */
 void *dstmListen(void *);
 int startlistening();
 void *dstmAccept(void *);
+
 int readClientReq(trans_commit_data_t *, int);
 int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int);
+char checkDecision(unsigned int);
+char receiveDecisionFromBackup(unsigned int,int,unsigned int*);
 char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *, int);
 char decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, int);
 int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
@@ -329,15 +367,14 @@ void commitCountForObjRead(char *, unsigned int *, unsigned int *, int *, int *,
 void commitCountForObjMod(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
-int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);
+#ifdef RECOVERY
+  int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid,int mid);
+#else
+  int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);
+#endif
+
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid);
 int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version);
-
-/* Paxo's algorithm */
-int paxos();
-int paxosPrepare();
-int paxosAccept();
-void paxosLearn();
 
 /* Internal functions from signal.c */
 int getthreadid();

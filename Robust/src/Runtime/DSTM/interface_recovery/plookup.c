@@ -1,5 +1,4 @@
 #include "plookup.h"
-#include "ip.h"
 extern int classsize[];
 
 //NOTE: "pile" ptr points to the head of the linked list of the machine pile data structures
@@ -58,7 +57,6 @@ int pListMid(plistnode_t *pile, unsigned int *list) {
   int i = 0;
   plistnode_t *tmp;
   tmp = pile;
-	char ip[16];
   while (tmp != NULL) {
     list[i] = tmp->mid;
     i++;

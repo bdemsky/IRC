@@ -22,7 +22,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/select.h>
-#define WAIT_TIME 3
+#include "tlookup.h"
 #endif
 
 #define NUM_THREADS 1
@@ -53,6 +53,9 @@ unsigned int *hostIpAddrs;
 int sizeOfHostArray;
 int numHostsInSystem;
 int myIndexInHostArray;
+int waitThreadMid;
+unsigned int waitThreadID; 
+
 unsigned int oidsPerBlock;
 unsigned int oidMin;
 unsigned int oidMax;
@@ -77,6 +80,7 @@ int bytesSent = 0;
 int bytesRecv = 0;
 int totalObjSize = 0;
 
+#ifdef RECOVERY
 /***********************************
  * Global variables for Duplication
  ***********************************/
@@ -85,19 +89,15 @@ int liveHostsValid;
 int numLiveHostsInSystem;	
 int flipBit;								// Used to distribute requests between primary and backup evenly
 unsigned int *locateObjHosts;
-__thread int timeoutFlag;
-extern int leaderFixing;
-extern pthread_mutex_t leaderFixing_mutex;
-extern pthread_mutex_t liveHosts_mutex;
+#endif
 
-unsigned int liveTransactions[25];
+int transRetryFlag;
 unsigned int transIDMax;
 unsigned int transIDMin;
 unsigned int transIDIndex;
-#ifdef DEBUG
 char ip[16];
-#endif
 
+#ifdef RECOVERY
 /******************************
  * Global variables for Paxos
  ******************************/
@@ -109,6 +109,7 @@ unsigned int leader;
 unsigned int origleader;
 unsigned int temp_v_a;
 int paxosRound;
+#endif
 
 void printhex(unsigned char *, int);
 plistnode_t *createPiles();
@@ -117,165 +118,177 @@ plistnode_t *sortPiles(plistnode_t *pileptr);
 /*******************************
 * Send and Recv function calls
 *******************************/
-void send_data(int fd, void *buf, int buflen) {
-#ifdef DEBUG
-//	printf("%s-> Start; fd:%d, buflen:%d\n", __func__, fd, buflen);
-#endif
-	char *buffer = (char *)(buf);
+int send_data(int fd, void *buf, int buflen) {
+  char *buffer = (char *)(buf);
   int size = buflen;
   int numbytes;
-  while (size > 0) {
-		numbytes = send(fd, buffer, size, 0);
-		bytesSent = bytesSent + numbytes;
-#ifdef RECOVERY
-#ifdef DEBUG
-//		printf("%s-> numbytes: %d\n", __func__, numbytes);
-#endif
-		if(errno == ECONNRESET) {	// EINT/EPIPE??; Connection reset, possible disconnected machine
-#ifdef DEBUG
-			printf("%s-> errno = ECONNRESET; connection reset\n", __func__);
-			printf("***SETTING TIMEOUTFLAG***\n");
-#endif
-			errno = 0;
-			timeoutFlag = 1;
-			return;
-		}
-		else if(errno == EAGAIN || errno == EWOULDBLOCK) {
-#ifdef DEBUG
-			printf("%s-> errno = EAGAIN|EWOULDBLOCK; socket timeout\n", __func__);	
-			printf("***SETTING TIMEOUTFLAG***\n");
-#endif
-			errno = 0;
-			timeoutFlag = 1;
-			return;
-		}
-		else if(numbytes == -1) {
-#ifdef DEBUG
-			printf("%s-> numbytes = -1; socket timeout\n", __func__);	
-			printf("***SETTING TIMEOUTFLAG***\n");
-#endif
-			timeoutFlag = 1;
-			return;
-		}
-#else
-		if (numbytes == -1) {
-			perror("send");
-			exit(0);
-		}
-#endif
-		buffer += numbytes;
-		size -= numbytes;
-	}
-#ifdef DEBUG
-//	printf("%s-> Exiting\n", __func__);
-#endif
-}
 
-void recv_data(int fd, void *buf, int buflen) {
-#ifdef DEBUG
-//	printf("%s-> Start; fd:%d, buflen:%d\n", __func__, fd, buflen);
+  while (size > 0) {
+
+#ifdef GDBDEBUG
+GDBSEND1:
 #endif
-	char *buffer = (char *)(buf);
-	int size = buflen;
-  int numbytes;
-	while (size > 0) {
-  	numbytes = recv(fd, buffer, size, 0);
-    bytesRecv = bytesRecv + numbytes;
+    numbytes = send(fd, buffer, size, 0);
+
+    if( numbytes>0) {
+      bytesSent += numbytes;
+      size -= numbytes;
+    }
 #ifdef RECOVERY
-#ifdef DEBUG
-//		printf("%s-> numbytes: %d\n", __func__, numbytes);
+    else if( numbytes < 0) {
+      // Receive returned an error.
+      // Analyze underlying cause
+#ifndef DEBUG
+      printf("%s -> fd : %d errno = %d %s\n",__func__, fd, errno,strerror(errno));
+      fflush(stdout);
 #endif
-		if(errno == ECONNRESET) {
+      if(errno == ECONNRESET || errno == EAGAIN || errno == EWOULDBLOCK) {
+        // machine has failed
+        //
+        // if we see EAGAIN w/o failures, we should record the time
+        // when we start send and finish send see if it is longer
+        // than our threshold
+        //
 #ifdef DEBUG
-			printf("%s-> errno = ECONNRESET; connection reset\n", __func__);
-			printf("***SETTING TIMEOUTFLAG***\n");
+        printf("%s -> EAGAIN : %s\n",__func__,(errno == EAGAIN)?"TRUE":"FALSE");
 #endif
-			errno = 0;
-			timeoutFlag = 1;
-			return;
-		}
-		else if(errno == EAGAIN || errno == EWOULDBLOCK) {
+        return -1;
+      } else {
+#ifdef GDBDEBUG
+      if(errno == 4)
+        goto GDBSEND1;    
+#endif
+
+
 #ifdef DEBUG
-			printf("%s-> errno = EAGAIN|EWOULDBLOCK; socket timeout\n", __func__);	
-			printf("***SETTING TIMEOUTFLAG***\n");
+        printf("%s -> Unexpected ERROR!\n",__func__);
 #endif
-			errno = 0;
-			timeoutFlag = 1;
-			return;
-		}
-		else if(numbytes == -1) {
+        return -2;
+      }
+    }
+    else{
+      // Case : numbytes == 0
+      // // machine has failed -- this case probably doesn't occur in reality
+      //
+
+
+      
 #ifdef DEBUG
-			printf("%s-> numbytes = -1; socket timeout\n", __func__);	
-			printf("***SETTING TIMEOUTFLAG***\n");
+      printf("%s -> SHOULD NOT BE HERE\n",__func__);
 #endif
-			timeoutFlag = 1;
-			return;
-		}
-#else
-		if (numbytes == -1) {
-      perror("recv");
-      exit(0);
+      return -1;
     }
 #endif
-    buffer += numbytes;
-		size -= numbytes;
-	}
+  } // close while loop
 #ifdef DEBUG
-//	printf("%s-> Exiting\n", __func__);
+  printf("%s-> Exiting\n", __func__);
 #endif
+
+  return 0; // completed sending data
 }
 
-void recv_data_block(int fd, void *buf, int buflen) {
-#ifdef DEBUG
-	printf("%s-> Start; fd:%d, buflen:%d\n", __func__, fd, buflen);
+//Returns negative value if receive cannot be completed because of
+//timeout or machine failure
+
+int recv_data(int fd, void *buf, int buflen) {
+  char *buffer = (char *)(buf);
+  int size = buflen;
+  int numbytes;
+  int trycounter = 0;
+  
+  while (size > 0) {
+#ifdef GDBDEBUG
+GDBRECV1:
 #endif
-	char *buffer = (char *)(buf);
-	int size = buflen;
-	int numbytes;
-	while (size > 0) {
-		numbytes = recv(fd, buffer, size, 0);
+    numbytes = recv(fd, buffer, size, 0);
+    
+    if (numbytes>0) {
+      buffer += numbytes;
+      size -= numbytes;
+    }
+#ifdef RECOVERY
+    else if (numbytes<0){ 
+      //Receive returned an error.
+      //Analyze underlying cause
 #ifdef DEBUG
-		printf("%s-> numbytes: %d\n", __func__, numbytes);
+      printf("%s-> fd : %d errno = %d %s\n", __func__, fd, errno, strerror(errno));	
 #endif
-		if(errno == EAGAIN || errno == EWOULDBLOCK) {
-			errno = 0;
-		}
-		if(numbytes != -1) {
-			bytesRecv = bytesRecv + numbytes;
-			buffer += numbytes;
-			size -= numbytes;
-		}
-	}
+      if(errno == ECONNRESET || errno == EAGAIN || errno == EWOULDBLOCK) {
+        //machine has failed
+        //if we see EAGAIN w/o failures, we should record the time
+      	//when we start read and finish read and see if it is longer
+      	//than our threshold
 #ifdef DEBUG
-	printf("%s-> Exiting\n", __func__);
+        printf("%s -> EAGAIN : %s\n",__func__,(errno == EAGAIN)?"TRUE":"FALSE");
 #endif
+        if(errno == EAGAIN) {
+          if(trycounter < 5) {
+#ifndef DEBUG
+            printf("%s -> TRYcounter increases\n",__func__);
+#endif
+            trycounter++;
+            continue;
+          }
+          else
+            return -1;
+        }
+        return -1;
+      } else {
+#ifdef GDBDEBUG
+        if(errno == 4)
+          goto GDBRECV1;
+#endif
+
+#ifdef DEBUG
+        printf("%s -> Unexpected ERROR!\n",__func__);
+        printf("%s-> errno = %d %s\n", __func__, errno, strerror(errno));
+#endif
+      	return -2;
+      }
+    } else {
+      //Case: numbytes==0
+      //machine has failed -- this case probably doesn't occur in reality
+      //
+#ifdef DEBUG
+      printf("%s -> SHOULD NOT BE HERE\n",__func__);
+#endif
+      return -1;
+    }
+#endif
+  } //close while loop
+#ifdef DEBUG
+  printf("%s -> fd = %d Exiting\n",__func__,fd);
+#endif
+  return 0; // got all the data
 }
 
 int recv_data_errorcode(int fd, void *buf, int buflen) {
 #ifdef DEBUG
-	printf("%s-> Start; fd:%d, buflen:%d\n", __func__, fd, buflen);
+  printf("%s-> Start; fd:%d, buflen:%d\n", __func__, fd, buflen);
 #endif
   char *buffer = (char *)(buf);
   int size = buflen;
-	int numbytes;
-	while (size > 0) {
-		numbytes = recv(fd, buffer, size, 0);
+  int numbytes;
+  while (size > 0) {
+    numbytes = recv(fd, buffer, size, 0);
 #ifdef DEBUG
-		printf("%s-> numbytes: %d\n", __func__, numbytes);
+    printf("%s-> numbytes: %d\n", __func__, numbytes);
 #endif
-		if (numbytes==0)
-			return 0;
-		else if (numbytes == -1) {
-			perror("recv_data_errorcode");
-			return -1;
-		}
-		buffer += numbytes;
-		size -= numbytes;
-	}
+    if (numbytes==0)
+      return 0;
+    else if (numbytes == -1) {
+      printf("%s -> ERROR NUMBER = %d %s\n",__func__,errno,strerror(errno));
+      perror("recv_data_errorcode");
+      return -1;
+    }
+    
+    buffer += numbytes;
+    size -= numbytes;
+  }
 #ifdef DEBUG
-	printf("%s-> Exiting\n", __func__);
+  printf("%s-> Exiting\n", __func__);
 #endif
-	return 1;
+  return 1;
 }
 
 void printhex(unsigned char *ptr, int numBytes) {
@@ -383,7 +396,7 @@ int dstmStartup(const char * option) {
 		updateLiveHosts();
 		setLocateObjHosts();
 		updateLiveHostsCommit();
-		leader = paxos();
+		paxos();
 		if(!allHostsLive()) {
 			printf("Not all hosts live. Exiting.\n");
 			exit(-1);
@@ -505,7 +518,6 @@ void transStart() {
 #endif
 }
 
-// Search for an address for a given oid                                                                               
 /*#define INLINE    inline __attribute__((always_inline))
 
 INLINE void * chashSearchI(chashtable_t *table, unsigned int key) {
@@ -665,29 +677,29 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
     addtransaction(oid);
 #endif
 
-  if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
+    if ((objheader = (objheader_t *) mhashSearch(oid)) != NULL) {
 #ifdef DEBUG
-		printf("%s-> Grab from this machine\n", __func__);
+		  printf("%s-> Grab from this machine\n", __func__);
 #endif
 #ifdef TRANSSTATS
-    nmhashSearch++;
+      nmhashSearch++;
 #endif
-    /* Look up in machine lookup table  and copy  into cache*/
-    GETSIZE(size, objheader);
-    size += sizeof(objheader_t);
-    objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
-    memcpy(objcopy, objheader, size);
-    /* Insert into cache's lookup table */
-    STATUS(objcopy)=0;
-    t_chashInsert(OID(objheader), objcopy);
+      /* Look up in machine lookup table  and copy  into cache*/
+      GETSIZE(size, objheader);
+      size += sizeof(objheader_t);
+      objcopy = (objheader_t *) objstrAlloc(&t_cache, size);
+      memcpy(objcopy, objheader, size);
+      /* Insert into cache's lookup table */
+      STATUS(objcopy)=0;
+      t_chashInsert(OID(objheader), objcopy);
 #ifdef COMPILER
-    return &objcopy[1];
+      return &objcopy[1];
 #else
-    return objcopy;
+      return objcopy;
 #endif
-  } else {
+    } else {
 #ifdef CACHE
-    , TYPE(header)if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) {
+      , TYPE(header)if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) {
 #ifdef TRANSSTATS
       nprehashSearch++;
 #endif
@@ -703,44 +715,60 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
 #else
 			return objcopy;
 #endif
-		}
+  	} 
 #endif
 		/* Get the object from the remote location */
+
 #ifdef DEBUG
-			printf("%s-> Grab from remote machine\n", __func__);
+  	printf("%s-> Grab from remote machine\n", __func__);
 #endif
 #ifdef RECOVERY
-		//while(!liveHostsValid) {
-		//}
-		/*if(!liveHostsValid){
-			sleep(WAIT_TIME);
-		}*/
-		unsigned int mindex = findHost(lhashSearch(oid));
-		machinenumber = locateObjHosts[2*mindex+flipBit];
-		flipBit ^= 1;
-		printf("mindex:%d, oid:%d, machinenumber:%s\n", mindex, oid, midtoIPString(machinenumber));
-#else
-		if((machinenumber = lhashSearch(oid)) == 0) {
-			printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
-			return NULL;
-		}
-#endif
-		objcopy = getRemoteObj(machinenumber, oid);
+    transRetryFlag = 0;
+    unsigned int mindex = findHost(lhashSearch(oid));
+    machinenumber = locateObjHosts[2*mindex+flipBit];
+  
+    if(numLiveHostsInSystem > 1)
+      flipBit ^= 1;
+    else
+      flipBit = 0;
 
-		if(objcopy == NULL) {
-			printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
-			return NULL;
-		} else {
+#ifdef DEBUG
+    printf("mindex:%d, oid:%d, machinenumber:%s\n", mindex, oid, midtoIPString(machinenumber));
+#endif
+#else
+    if((machinenumber = lhashSearch(oid)) == 0) {
+      printf("Error: %s() No machine found for oid =% %s,%dx\n",__func__, machinenumber, __FILE__, __LINE__);
+	    return NULL;
+   	}
+#endif
+ 	  objcopy = getRemoteObj(machinenumber, oid);
+#ifdef RECOVERY
+    if(transRetryFlag) {
+      restoreDuplicationState(machinenumber);
+#ifdef DEBUG
+      printf("%s -> Recall transRead2\n",__func__);
+#endif
+      return transRead2(oid);
+    }
+#endif
+   }
+
+  if(objcopy == NULL) {
+	  printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
+		return NULL;
+	} else {
 #ifdef TRANSSTATS
-			nRemoteSend++;
+	  nRemoteSend++;
 #endif
 #ifdef COMPILER
-			return &objcopy[1];
+		return &objcopy[1];
 #else
-			return objcopy;
+		return objcopy;
 #endif
-		}
-  }
+	}
+#ifdef DEBUG
+  printf("%s -> Finished!!\n",__func__);
+#endif
 }
 
 /* This function creates objects in the transaction record */
@@ -776,37 +804,39 @@ plistnode_t *createPiles() {
   unsigned int size = c_size;
 
 	for(i = 0; i < size ; i++) {
-		chashlistnode_t * curr = &ptr[i];
+    chashlistnode_t * curr = &ptr[i];
 		/* Inner loop to traverse the linked list of the cache lookupTable */
-		while(curr != NULL) {
-			//if the first bin in hash table is empty
-			if(curr->key == 0)
-				break;
-			headeraddr=(objheader_t *) curr->val;
+    while(curr != NULL) {
+      //if the first bin in hash table is empty
+      if(curr->key == 0)
+        break;
+      headeraddr=(objheader_t *) curr->val;
 
 #if RECOVERY
-			oid = OID(headeraddr);
+      oid = OID(headeraddr);
 #ifdef DEBUG
 			printf("%s-> oid:%u, version:%d, status:%d, type:%d\n", __func__, OID(headeraddr), headeraddr->version, STATUS(headeraddr), TYPE(headeraddr));
 
 			if (STATUS(headeraddr) & NEW) {  // new/local object
 				printf("%s-> new/local object\n", __func__);
 			} 
-			else if ((mhashSearch(curr->key) != NULL)) {	//local/nonnew
-				if(STATUS(headeraddr) & DIRTY) {	// modified
+      else if ((mhashSearch(curr->key) != NULL)) {	//local/nonnew
+        if(STATUS(headeraddr) & DIRTY) {	// modified
 					printf("%s-> old/local/mod object\n", __func__);
 				}
 				else {	//read
 					printf("%s-> old/local/read object\n", __func__);
 				}
-			} else if ((machinenum = lhashSearch(curr->key)) != 0) { // remote/nonnew object
+			} 
+      else if ((machinenum = lhashSearch(curr->key)) != 0) { // remote/nonnew object
 				if(STATUS(headeraddr) & DIRTY) {		//modified
 					printf("%s-> remote/local/mod object\n", __func__);
 				}
 				else {	//read
 					printf("%s-> remote/local/read object\n", __func__);
 				}
-			} else {
+			} 
+      else {
 				printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
 				return NULL;
 			}
@@ -830,16 +860,15 @@ plistnode_t *createPiles() {
 			if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
 				machinenum = myIpAddr;
 			} else if ((machinenum = lhashSearch(curr->key)) == 0) {
-					printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
-					return NULL;
-				}
-
-			//Make machine groups
-			pile = pInsert(pile, headeraddr, machinenum, c_numelements);
+        printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
+        return NULL;
+      }
+      //Make machine groups
+      pile = pInsert(pile, headeraddr, machinenum, c_numelements);
 #endif
-			curr = curr->next;
-		}
-	}
+      curr = curr->next;
+    }
+  }
 	return pile;
 }
 #else
@@ -886,17 +915,16 @@ plistnode_t *createPiles() {
 int transCommit() {
   unsigned int tot_bytes_mod, *listmid;
   plistnode_t *pile, *pile_ptr;
-  int trecvcount;
   char treplyretry; /* keeps track of the common response that needs to be sent */
   int firsttime=1;
   trans_commit_data_t transinfo; /* keeps track of objs locked during transaction */
   char finalResponse;
+  int deadsd = -1;
+  int deadmid = -1;
+  unsigned int transID = getNewTransID();
 
-	int tmpTransIndex = (transIDIndex++)%25;
-	liveTransactions[tmpTransIndex] = getNewTransID();
-	
 #ifdef DEBUG
-	printf("%s-> Start, transID:%d\n", __func__, liveTransactions[tmpTransIndex]);
+  printf("%s -> Starts transCommit\n",__func__);
 #endif
 
 #ifdef ABORTREADERS
@@ -911,16 +939,11 @@ int transCommit() {
 #ifdef DEBUG
 	  printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-	  liveTransactions[tmpTransIndex] = 0;
-#endif
     return 1;
   }
 #endif
 
-
   do {
-    trecvcount = 0;
     treplyretry = 0;
 
     /* Look through all the objects in the transaction record and make piles
@@ -976,30 +999,19 @@ int transCommit() {
 			tosend[sockindex].oidcreated = pile->oidcreated;
 			int sd = 0;
 			if(pile->mid != myIpAddr) {
-#ifdef RECOVERY
 				if((sd = getSockWithLock(transRequestSockPool, pile->mid)) < 0) {
-#else 
-				if((sd = getSock2WithLock(transRequestSockPool, pile->mid)) < 0) {
-#endif
 					printf("\ntransRequest(): socket create error\n");
 					free(listmid);
 					free(tosend);
 #ifdef DEBUG
 					printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-					liveTransactions[tmpTransIndex] = 0;
-#endif
 					return 1;
 				}
 				socklist[sockindex] = sd;
 				/* Send bytes of data with TRANS_REQUEST control message */
 				send_data(sd, &(tosend[sockindex].f), sizeof(fixed_data_t));
-				/*if(timeoutFlag) {
-						printf("send_data: remote machine dead, line:%d\n", __LINE__);
-						timeoutFlag = 0;
-						exit(1);
-					}*/
+
 				/* Send list of machines involved in the transaction */
 				{
 					int size=sizeof(unsigned int)*(tosend[sockindex].f.mcount);
@@ -1021,9 +1033,6 @@ int transCommit() {
 #ifdef DEBUG
 					printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-					liveTransactions[tmpTransIndex] = 0;
-#endif
 					return 1;
 				}
 				int offset = 0;
@@ -1039,9 +1048,6 @@ int transCommit() {
 #ifdef DEBUG
 						printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-						liveTransactions[tmpTransIndex] = 0;
-#endif
 						return 1;
 					}
 					GETSIZE(size,headeraddr);
@@ -1050,6 +1056,11 @@ int transCommit() {
 					offset+=size;
 				}
 				send_data(sd, modptr, tosend[sockindex].f.sum_bytes);
+
+#ifdef RECOVERY
+        /* send transaction id, number of machine involved, machine ids */
+        send_data(sd, &transID, sizeof(unsigned int));
+#endif
 				free(modptr);
 			} else { //handle request locally
 				localReqsock = sockindex;
@@ -1064,19 +1075,15 @@ int transCommit() {
 		printf("%s-> Finished sending transaction read/mod objects\n",__func__);
 #endif
 		int i;
+
 		for(i = 0; i < pilecount; i++) {
-			printf("i:%d\n", i);
 			if(i == localReqsock)
 				continue;
 			int sd = socklist[i]; 
 			if(sd != 0) {
 				char control;
-				recv_data(sd, &control, sizeof(char));
-				/*if(timeoutFlag) {
-					printf("recv_data: remote machine dead, timeoutFlag:%d, timeoutFlag:%d, line:%d\n", timeoutFlag, timeoutFlag, __LINE__);
-					timeoutFlag = 0;
-					exit(1);
-				}*/
+        int timeout;            // a variable to check if the connection is still alive. if it is -1, then need to transcommit again
+        timeout = recv_data(sd, &control, sizeof(char));
 				//Update common data structure with new ctrl msg
 				getReplyCtrl[i] = control;
 				/* Recv Objects if participant sends TRANS_DISAGREE */
@@ -1084,7 +1091,7 @@ int transCommit() {
 #ifdef CACHE
 				if(control == TRANS_DISAGREE) {
 					int length;
-					recv_data(sd, &length, sizeof(int));
+					timeout = recv_data(sd, &length, sizeof(int));
 					void *newAddr;
 					pthread_mutex_lock(&prefetchcache_mutex);
 					if ((newAddr = prefetchobjstrAlloc((unsigned int)length)) == NULL) {
@@ -1095,13 +1102,10 @@ int transCommit() {
 #ifdef DEBUG
 						printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-						liveTransactions[tmpTransIndex] = 0;
-#endif
 						return 1;
 					}
 					pthread_mutex_unlock(&prefetchcache_mutex);
-					recv_data(sd, newAddr, length);
+					timeout = recv_data(sd, newAddr, length);
 					int offset = 0;
 					while(length != 0) {
 						unsigned int oidToPrefetch;
@@ -1125,8 +1129,25 @@ int transCommit() {
 					}
 				} //end of receiving objs
 #endif
+
+#ifdef RECOVERY
+        if(timeout < 0) {
+#ifdef DEBUG
+          printf("%s -> TIMEOUT!!!!!!!\n",__func__);
+#endif
+
+          deadmid = listmid[i];
+          deadsd = sd;
+#ifdef DEBUG
+          printf("%s -> Dead Machine ID : %s\n",__func__,midtoIPString(deadmid));  
+          printf("%s -> Dead SD         : %d\n",__func__,sd);
+#endif
+          getReplyCtrl[i] = TRANS_DISAGREE;
+        }
+#endif
 			}
 		}
+
 #ifdef DEBUG
 		printf("%s-> Decide final response now\n", __func__);
 #endif
@@ -1138,80 +1159,87 @@ int transCommit() {
 #ifdef DEBUG
 			printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-			liveTransactions[tmpTransIndex] = 0;
-#endif
 			return 1;
 		}
 #ifdef DEBUG
     printf("%s-> Final Response: %d\n", __func__, (int)finalResponse);
 #endif
+    
 		/* Send responses to all machines */
 		for(i = 0; i < pilecount; i++) {
 			int sd = socklist[i];
-			if(sd != 0) {
+
+      if(sd != deadsd) {
+  			if(sd != 0) {
 #ifdef CACHE
-				if(finalResponse == TRANS_COMMIT) {
-					int retval;
-					/* Update prefetch cache */
-					if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
-						printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
-						free(tosend);
-						free(listmid);
+	  			if(finalResponse == TRANS_COMMIT) {
+		  			int retval;
+			  		/* Update prefetch cache */
+				  	if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
+					  	printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+						  free(tosend);
+  						free(listmid);
 #ifdef DEBUG
-						printf("%s-> End, line:%d\n\n", __func__, __LINE__);
+	  					printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-						liveTransactions[tmpTransIndex] = 0;
-#endif
-						return 1;
-					}
+		  				return 1;
+			  		}
 
-
-					/* Invalidate objects in other machine cache */
-					if(tosend[i].f.nummod > 0) {
-						if((retval = invalidateObj(&(tosend[i]))) != 0) {
-							printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
-							free(tosend);
-							free(listmid);
+				  	/* Invalidate objects in other machine cache */
+  					if(tosend[i].f.nummod > 0) {
+	  					if((retval = invalidateObj(&(tosend[i]))) != 0) {
+		  					printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
+			  				free(tosend);
+				  			free(listmid);
 #ifdef DEBUG
-							printf("%s-> End, line:%d\n\n", __func__, __LINE__);
+					  		printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
+						  	return 1;
+  						}
+	  				}
+#ifdef ABORTREADERS
+		  			removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+			  		removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
+#endif
+				  }
+#ifdef ABORTREADERS
+  				else if (!treplyretry) {
+	  				removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+		  			removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+			  	}
+#endif
+#endif
+          send_data(sd,&finalResponse,sizeof(char));
+#ifdef DEBUG
+          printf("%s -> Decision Sent to %s\n",__func__,midtoIPString(listmid[i]));
+#endif
+
+      } else {
+		  		/* Complete local processing */
 #ifdef RECOVERY
-							liveTransactions[tmpTransIndex] = 0;
+          thashInsert(transID,finalResponse);
 #endif
-							return 1;
-						}
-					}
+          doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
+
 #ifdef ABORTREADERS
-					removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-					removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
+				  if(finalResponse == TRANS_COMMIT) {
+					  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+  					removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+	  			} else if (!treplyretry) {
+		  			removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+			  		removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+				  }
 #endif
-				}
+  			}
+      } else {
 #ifdef ABORTREADERS
-				else if (!treplyretry) {
-					removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
-					removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-				}
+        removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+        removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
 #endif
-#endif
-				send_data(sd, &finalResponse, sizeof(char));
-			} else {
-				/* Complete local processing */
-				doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
-#ifdef ABORTREADERS
-				if(finalResponse == TRANS_COMMIT) {
-					removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-					removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-				} else if (!treplyretry) {
-					removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
-					removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-				}
-#endif
-			}
+      }
 		}
 
-#ifdef RECOVERY
+
 #ifdef DEBUG
 		printf("%s-> Free sockets\n", __func__);
 #endif
@@ -1220,7 +1248,7 @@ int transCommit() {
 			  freeSockWithLock(transRequestSockPool, listmid[i], socklist[i]);	
 			}
 		}
-#endif		
+
 			/* Free resources */
     free(tosend);
     free(listmid);
@@ -1233,11 +1261,10 @@ int transCommit() {
 			nSoftAbort++;
 #endif
 		}
-		/* Retry trans commit procedure during soft_abort case */
-	} while (treplyretry);
+	} while (treplyretry && deadmid != -1);
 
 	if(finalResponse == TRANS_ABORT) {
-		//printf("Aborting trans\n");
+
 #ifdef TRANSSTATS
 		numTransAbort++;
 #endif
@@ -1248,7 +1275,16 @@ int transCommit() {
 	  printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
 #ifdef RECOVERY
-	  liveTransactions[tmpTransIndex] = 0;
+    if(deadmid != -1) { /* if deadmid is greater than or equal to 0, 
+                          then there is dead machine. */
+#ifdef DEBUG
+      printf("%s -> Dead machine Detected : %s\n",__func__,midtoIPString(deadmid));
+#endif
+      restoreDuplicationState(deadmid);
+#ifdef DEBUG
+      printf("%s -> Duplication completed\n",__func__);
+#endif
+    }
 #endif
     return TRANS_ABORT;
   } else if(finalResponse == TRANS_COMMIT) {
@@ -1261,9 +1297,6 @@ int transCommit() {
 #ifdef DEBUG
 					printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-					liveTransactions[tmpTransIndex] = 0;
-#endif
     return 0;
   } else {
     //TODO Add other cases
@@ -1271,16 +1304,10 @@ int transCommit() {
 #ifdef DEBUG
 	printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
-#ifdef RECOVERY
-	liveTransactions[tmpTransIndex] = 0;
-#endif
     exit(-1);
   }
 #ifdef DEBUG
 	printf("%s-> End, line:%d\n\n", __func__, __LINE__);
-#endif
-#ifdef RECOVERY
-	liveTransactions[tmpTransIndex] = 0;
 #endif
   return 0;
 }
@@ -1336,15 +1363,22 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
 
   /* Condition to send TRANS_AGREE */
   if(v_matchnolock == tdata->f.numread + tdata->f.nummod) {
+#ifdef DEBUG
+    printf("%s -> TRANS_AGREE\n",__func__);
+#endif
     *getReplyCtrl = TRANS_AGREE;
   }
   /* Condition to send TRANS_SOFT_ABORT */
   if((v_matchlock > 0 && v_nomatch == 0) || (numoidnotfound > 0 && v_nomatch == 0)) {
+#ifdef DEBUG
+    printf("%s -> TRANS_SOFT_ABORT\n",__func__);
+#endif
     *getReplyCtrl = TRANS_SOFT_ABORT;
   }
 }
 
 void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
+
   if(finalResponse == TRANS_ABORT) {
     if(transAbortProcess(transinfo) != 0) {
       printf("Error in transAbortProcess() %s,%d\n", __FILE__, __LINE__);
@@ -1451,58 +1485,96 @@ void *getRemoteObj(unsigned int mnum, unsigned int oid) {
   objheader_t *h;
   void *objcopy = NULL;
 
-  int sd = getSock2(transReadSockPool, mnum);
-  char readrequest[sizeof(char)+sizeof(unsigned int)];
-  readrequest[0] = READ_REQUEST;
-  *((unsigned int *)(&readrequest[1])) = oid;
-  send_data(sd, readrequest, sizeof(readrequest));
+  int sd;
+  int flag;
 
+  if((sd = getSock2(transReadSockPool, mnum)) != -1) {
+    char readrequest[sizeof(char)+sizeof(unsigned int)];
+    readrequest[0] = READ_REQUEST;
+    *((unsigned int *)(&readrequest[1])) = oid;
+    send_data(sd, readrequest, sizeof(readrequest));
+  }
+  else {
+      printf("%s -> creating socket error\n",__func__);
+  }
+  
   /* Read response from the Participant */
-  recv_data(sd, &control, sizeof(char));
+  if(recv_data(sd, &control, sizeof(char)) < 0) {
+      transRetryFlag = 1;
+      return NULL;
+  }
 
   if (control==OBJECT_NOT_FOUND) {
     objcopy = NULL;
   } else if(control==OBJECT_FOUND) {
-    /* Read object if found into local cache */
-    recv_data(sd, &size, sizeof(int));
- objcopy = objstrAlloc(&t_cache, size);
-    recv_data(sd, objcopy, size);
-    STATUS(objcopy)=0;
-    /* Insert into cache's lookup table */
-    t_chashInsert(oid, objcopy);
+  
+  /* Read object if found into local cache */
+
+  if(recv_data(sd, &size, sizeof(int)) < 0) {
+    transRetryFlag = 1;
+    return NULL;
+  }
+
+  objcopy = objstrAlloc(&t_cache, size);
+
+  if(recv_data(sd, objcopy, size) < 0) {
+    transRetryFlag = 1;
+    return NULL;
+  }
+
+  STATUS(objcopy)=0;
+  
+  /* Insert into cache's lookup table */
+  t_chashInsert(oid, objcopy);
 #ifdef TRANSSTATS
-    totalObjSize += size;
+  totalObjSize += size;
 #endif
 	}
-
-#ifdef RECOVERY
-	if( detectMachineFailure(mnum) ) { //check for timeouts
-		printf("looking for oid:%d\n", oid);
-		restoreDuplicationState(mnum);	// suspect machine failure, restore state
-
-		objheader_t *temp;
-		temp = transRead2(oid);		// retry transRead
-#ifdef COMPILER
-		temp -= 1;		// return object w/ objheader
-#endif
-		return (void *)temp;
-	}
-#endif
 	return objcopy;
 }
 
-int detectMachineFailure(unsigned int mid) {
-	if(timeoutFlag == 1) {
+#ifdef RECOVERY
+/* ask machines if they received decision */
+char receiveDecisionFromBackup(unsigned int transID,int nummid,unsigned int *listmid)
+{
 #ifdef DEBUG
-		printf("%s-> Suspect machine failure: [%s]\n", __func__, midtoIPString(mid));
+  printf("%s -> Entering\n",__func__);
 #endif
-		timeoutFlag = 0;
-		return 1;
-	} 
-	else
-		return 0;
-}
 
+  int sd; // socket id
+  int i;
+  char response;
+  
+  for(i = 0; i < nummid; i++) {
+    if((sd = getSock(transReadSockPool, listmid[i])) < 0) {
+      printf("%s -> socket Error!!\n");
+    }
+    else {
+      char control = ASK_COMMIT;
+
+      send_data(sd,&control, sizeof(char));
+      send_data(sd,&transID, sizeof(unsigned int));
+
+      // return -1 if it didn't receive the response
+      int timeout = recv_data(sd,&response, sizeof(char));
+
+
+      if(timeout == 0 || response > 0)
+        break;  // received response
+
+      // else check next machine
+      freeSock(transReadSockPool, listmid[i],sd);
+     }
+  }
+#ifdef DEBUG
+  printf("%s -> response : %d\n",__func__,response);
+#endif
+
+  return (response==-1)?TRANS_ABORT:response;
+}
+#endif
+
+#ifdef RECOVERY
 void restoreDuplicationState(unsigned int deadHost) {
 	int sd;
 	char ctrl;
@@ -1511,11 +1583,12 @@ void restoreDuplicationState(unsigned int deadHost) {
 		sleep(WAIT_TIME);
 		return;
 	}
+
 	if(deadHost == leader)
 		paxos();
 	
 #ifdef DEBUG
-	printf("%s-> leader?:%s, me?:%d\n", __func__, midtoIPString(leader), (myIpAddr == leader));
+	printf("%s-> leader?:%s, me?:%s\n", __func__, midtoIPString(leader), (myIpAddr == leader)?"LEADER":"NOT LEADER");
 #endif
 	
 	if(leader == myIpAddr) {
@@ -1523,40 +1596,52 @@ void restoreDuplicationState(unsigned int deadHost) {
 		if(!leaderFixing) {
 			leaderFixing = 1;
 			pthread_mutex_unlock(&leaderFixing_mutex);
-			//fixit
-			updateLiveHosts();
 
-			if(!liveHosts[findHost(deadHost)]) {	//confirmed dead
-				duplicateLostObjects(deadHost);
-			}
-			if(updateLiveHostsCommit() != 0) {
-				printf("error updateLiveHostsCommit()\n");
-				exit(1);
-			}
-		pthread_mutex_lock(&leaderFixing_mutex);
-			leaderFixing = 0;
-			pthread_mutex_unlock(&leaderFixing_mutex);
+      if(!liveHosts[findHost(deadHost)]) {
+#ifdef DEBUG
+        printf("%s -> already fixed\n",__func__);
+#endif
+        pthread_mutex_lock(&leaderFixing_mutex);
+        leaderFixing =0;
+        pthread_mutex_unlock(&leaderFixing_mutex);
+      }
+      else {
+  			updateLiveHosts();
+        duplicateLostObjects(deadHost);
+			
+		    if(updateLiveHostsCommit() != 0) {
+			  	printf("%s -> error updateLiveHostsCommit()\n",__func__);
+				  exit(1);
+  			}
+    		pthread_mutex_lock(&leaderFixing_mutex);
+		  	leaderFixing = 0;
+			  pthread_mutex_unlock(&leaderFixing_mutex);
+      }
 		}
 		else {
 			pthread_mutex_unlock(&leaderFixing_mutex);
+#ifdef DEBUG
+      printf("%s (REMOTE_RESTORE_DUPLICATED_STATE -> LEADER is already fixing\n",__func__);
+#endif
 			sleep(WAIT_TIME);
-			//while(leaderFixing);
-			return;
 		}
 	}
 	else {
-		if((sd = getSock2WithLock(transRequestSockPool, leader)) < 0) {
-			printf("restoreDuplicationState(): socket create error\n");
+		if((sd = getSockWithLock(transRequestSockPool, leader)) < 0) {
+			printf("%s -> socket create error\n",__func__);
 			exit(-1);
 		}
 		ctrl = REMOTE_RESTORE_DUPLICATED_STATE;
 		send_data(sd, &ctrl, sizeof(char));
 		send_data(sd, &deadHost, sizeof(unsigned int));
-		recv_data(sd, &ctrl, sizeof(char));
+    freeSockWithLock(transRequestSockPool,leader,sd);
 	  sleep(WAIT_TIME);
-		return;
 	}
+
+  printf("%s -> Finished!\n",__func__);
 }
+#endif
+
 
 /*  Commit info for objects modified */
 void commitCountForObjMod(char *getReplyCtrl, unsigned int *oidnotfound, unsigned int *oidlocked, int *numoidnotfound,
@@ -1686,7 +1771,6 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
   numlocked = transinfo->numlocked;
   oidlocked = transinfo->objlocked;
 
-
 #ifdef DEBUG
 	printf("%s-> nummod: %d, numcreated: %d, numlocked: %d\n", __func__, nummod, numcreated, numlocked);
 #endif
@@ -1715,7 +1799,17 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
     header->version += 1;
     //printf("oid: %u, new header version: %d\n", oidmod[i], header->version);
     if(header->notifylist != NULL) {
+#ifdef DEBUG
+      printf("%s -> type : %d notifylist : %d\n",__func__,TYPE(header),header->notifylist);
+#endif
+#ifdef RECOVERY
+      if(header->isBackup != 0)
+        notifyAll(&header->notifylist, OID(header), header->version);
+      else
+        clearNotifyList(OID(header));
+#else  
       notifyAll(&header->notifylist, OID(header), header->version);
+#endif
     }
   }
   /* If object is newly created inside transaction then commit it */
@@ -2113,6 +2207,7 @@ int processConfigFile() {
   char *token;
   const char *delimiters = " \t\n";
   char *commentBegin;
+  unsigned int i;
   in_addr_t tmpAddr;
 
   configFile = fopen(CONFIG_FILENAME, "r");
@@ -2128,6 +2223,7 @@ int processConfigFile() {
 #ifdef RECOVERY	
 	liveHosts = calloc(sizeOfHostArray, sizeof(unsigned int));
 	locateObjHosts = calloc(sizeOfHostArray*2, sizeof(unsigned int));
+
   liveHostsValid = 0;
 #endif
 
@@ -2178,9 +2274,13 @@ int processConfigFile() {
 	transIDMin = oidMin;
 	transIDMax = oidMax;
 
+  waitThreadID = -1;
+  waitThreadMid = -1;
+
   return 0;
 }
 
+#ifdef RECOVERY
 unsigned int getDuplicatedPrimaryMachine(unsigned int mid) {
 	int i;
 	for(i = 0; i < numHostsInSystem; i++) {
@@ -2211,67 +2311,90 @@ unsigned int getBackupMachine(unsigned int mid) {
 	return bmid;
 }
 
-// updates the leader's liveHostArray and locateObj
-void updateLiveHosts() {
+int getStatus(int mid) {
 #ifdef DEBUG
-  printf("%s-> Entering updateLiveHosts\n", __func__);	
+  printf("%s -> host %s : %s\n",__func__,midtoIPString(hostIpAddrs[mid]),(liveHosts[mid] == 1)?"LIVE":"DEAD");
+#endif
+  return liveHosts[mid];
+}
+#endif
+
+#ifdef RECOVERY
+// updates the leader's liveHostArray and locateObj
+unsigned int updateLiveHosts() {
+#ifdef DEBUG
+    printf("%s-> Entering updateLiveHosts\n", __func__);	
 #endif
 	// update everyone's list
-	liveHostsValid = 0;
-  //int *tmpLiveHosts = calloc(sizeOfHostArray, sizeof(unsigned int));
-		//foreach in hostipaddrs, ping -> update list of livemachines	
-    //socket connection?
+    liveHostsValid = 0;
+	
+  //foreach in hostipaddrs, ping -> update list of livemachines	
+  //socket connection?
 
-		//liveHosts lock here
-		int sd = 0, i, j, tmpNumLiveHosts = 0;
-		for(i = 0; i < numHostsInSystem; i++) {
-			if(i == myIndexInHostArray) 
-			{	
-				tmpNumLiveHosts++;
-				continue;
-			}
-			for(j = 0; j < 5; j++) { 	// hard define num of retries
-				if((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
-			  	printf("updateLiveHosts(): Cannot create socket connection to [%s], attempt %d\n", __func__, midtoIPString(hostIpAddrs[i]), j);
-					usleep(1000);
-					if(j == 4)
-						liveHosts[i] = 0;		
-					continue;
-				}
-        char liverequest[sizeof(char)];
-				liverequest[0] = RESPOND_LIVE;
-		
-				send_data(sd, &liverequest[0], sizeof(liverequest));
-				char response = 0;
-				recv_data(sd, &response, sizeof(response));
-				
-				//try to send msg
-				//if timeout, dead host
-				printf("YES received %d\n", response);
-				if(response == LIVE) {
-					printf("must enter here\n");
-				liveHosts[i] = 1;
-				tmpNumLiveHosts++;
-				//locateObjHosts[i*2] = hostIpAddrs[i];
-				}
-				else {
-					printf("or here\n");
-					liveHosts[i] = 0;
-					timeoutFlag = 0;
-				}
-				break;
-				
-			}
-			if(liveHosts[i] == 0)
-				printf("updateLiveHosts(): cannot make connection to machine %s\n", midtoIPString(hostIpAddrs[i]));
+  int deadhost = -1;
+	//liveHosts lock here
+	int sd = 0, i, j, tmpNumLiveHosts = 0;
+	for(i = 0; i < numHostsInSystem; i++) {
+    if(i == myIndexInHostArray) 
+		{	
+			tmpNumLiveHosts++;
+			continue;
 		}
-		numLiveHostsInSystem = tmpNumLiveHosts;
-		printf("numLiveHostsInSystem:%d\n", numLiveHostsInSystem);
-		//have updated list of live machines
+		for(j = 0; j < 5; j++) { 	// hard define num of retries
+			if((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+#ifdef DEBUG
+  	  	printf("%s -> Cannot create socket connection to [%s], attempt %d\n", __func__, midtoIPString(hostIpAddrs[i]), j);
+#endif
+				usleep(1000);
+  
+        if(j == 4) {
+	   		  if(liveHosts[i]) {
+            liveHosts[i] = 0;
+            deadhost = i;
+          }
+        }
+	  		continue;
+		  }
+      
+      char liverequest[sizeof(char)];
+			liverequest[0] = RESPOND_LIVE;
+	
+			send_data(sd, &liverequest[0], sizeof(liverequest));
+      
+			char response = 0;
+			int timeout = recv_data(sd, &response, sizeof(response));
+			
+			//try to send msg
+			//if timeout, dead host
+			if(response == LIVE) {
+    			liveHosts[i] = 1;
+	    		tmpNumLiveHosts++;
+			}
+			else {
+        if(liveHosts[i]) {
+          liveHosts[i] = 0;
+          deadhost = i;
+        }
+		  }
+			break;
+		}
+#ifdef DEBUG
+	  if(liveHosts[i] == 0)
+
+		  printf("updateLiveHosts(): cannot make connection to machine %s\n", midtoIPString(hostIpAddrs[i]));
+#endif
+	}
+	numLiveHostsInSystem = tmpNumLiveHosts;
+#ifdef DEBUG
+	printf("numLiveHostsInSystem:%d\n", numLiveHostsInSystem);
+#endif
+	//have updated list of live machines
 #ifdef DEBUG	
   printf("%s-> Exiting updateLiveHosts\n", __func__);	
 	printHostsStatus();
 #endif
+
+  return deadhost;
 }
 
 int getNumLiveHostsInSystem() {
@@ -2284,58 +2407,44 @@ int getNumLiveHostsInSystem() {
 }
 
 int updateLiveHostsCommit() {
-		int sd = 0, i;
+#ifdef DEBUG      
+  printf("%s -> Enter\n",__func__);
+#endif
+	int sd = 0, i;
 	
-		char updaterequest[sizeof(char)+sizeof(int)*numHostsInSystem+sizeof(unsigned int)*(numHostsInSystem*2)];
-		updaterequest[0] = UPDATE_LIVE_HOSTS;
+	char updaterequest[sizeof(char)+sizeof(int)*numHostsInSystem+sizeof(unsigned int)*(numHostsInSystem*2)];
+  
+  updaterequest[0] = UPDATE_LIVE_HOSTS;
 		
-		for(i = 0; i < numHostsInSystem; i++) {
-			*((int *)(&updaterequest[i*4+1])) = liveHosts[i];  // clean this up later
-		}
+	for(i = 0; i < numHostsInSystem; i++) {
+		*((int *)(&updaterequest[i*4+1])) = liveHosts[i];  // clean this up later
+	}
 
-		for(i = 0; i < numHostsInSystem*2; i++) {
-			*((unsigned int *)(&updaterequest[i*4+(numHostsInSystem*4)+1])) = locateObjHosts[i];	//ditto
-		}
+	for(i = 0; i < numHostsInSystem*2; i++) {
+		*((unsigned int *)(&updaterequest[i*4+(numHostsInSystem*4)+1])) = locateObjHosts[i];	//ditto
+	}
 
-		//for each machine send data
-		for(i = 1; i < numHostsInSystem; i++) { 	// hard define num of retries
-				if(i == myIndexInHostArray) 
-					continue;
-				if(liveHosts[i] == 1) {
-					if((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
-			  		printf("updateLiveHosts(): socket create error, attempt %d\n", i);
-						return -1;
-					}
-					send_data(sd, updaterequest, sizeof(updaterequest));
-				}
-		}
-		liveHostsValid = 1;
-		printHostsStatus();
-		return 0;
-}
-
-/*void updateLocateObjHosts(unsigned int failedmid) {
-	int failedmidIndex = findHost(failedmid);
-	int i = 0, validIndex = 0;
-
-	for(; i < numHostsInSystem; i++) {
-		if(locateObjHosts[(i*2)] == failedmid) {
-			while(liveHosts[(i+validIndex)%numHostsInSystem] == 0) 
-				validIndex++;
-			locateObjHosts[(i*2)] = hostIpAddrs[(i+validIndex)%numHostsInSystem];
-			validIndex++;
-			while(liveHosts[(i+validIndex)%numHostsInSystem] == 0) 
-				validIndex++;
-			locateObjHosts[(i*2)+1] = hostIpAddrs[(i+validIndex)%numHostsInSystem];
-		}
-		else if(locateObjHosts[(i*2)+1] == failedmid) {
-			while(liveHosts[(i+validIndex)%numHostsInSystem] == 0) 
-				validIndex++;
-			locateObjHosts[(i*2)+1] = hostIpAddrs[(i+validIndex)%numHostsInSystem];
-			validIndex = 0;
+	//for each machine send data
+        
+	for(i = 0; i < numHostsInSystem; i++) { 	// hard define num of retries
+		if(i == myIndexInHostArray) 
+			continue;
+		if(liveHosts[i] == 1) {
+			if((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+	  		printf("%s -> socket create error, attempt %d\n",__func__, i);
+				return -1;
+			}
+			send_data(sd, updaterequest, sizeof(updaterequest));
 		}
 	}
-}*/
+	liveHostsValid = 1;
+#ifdef DEBUG
+	printHostsStatus();
+  printf("%s -> Finish\n",__func__);
+#endif
+
+	return 0;
+}
 
 void setLocateObjHosts() {
 	int i = 0, validIndex = 0;
@@ -2371,27 +2480,40 @@ void setLocateObjHosts() {
 	}
 }
 
+void setReLocateObjHosts(int mid)
+{
+  int mIndex = findHost(mid);
+  int backupMachine = getBackupMachine(mid);
+  int newPrimary = getDuplicatedPrimaryMachine(mid);
+  int newPrimaryIndex = findHost(newPrimary);
+  int i;
+
+  locateObjHosts[2*newPrimaryIndex+1] = backupMachine;
+  locateObjHosts[2*mIndex] = newPrimary;
+
+/* relocate the objects of the machines already dead */
+  for(i=0; i<numHostsInSystem *2; i+=2) {
+    if(locateObjHosts[i] == mid)
+      locateObjHosts[i] = newPrimary;
+    if(locateObjHosts[i+1] == mid)
+      locateObjHosts[i+1] = backupMachine;
+  }
+}
+
+
 //debug function
 void printHostsStatus() {
 	int i;
-#ifdef DEBUG
 	printf("%s-> *printing live machines and backups*\n", __func__);
-#endif
 	for(i = 0; i < numHostsInSystem; i++) {
 		if(liveHosts[i]) {
-#ifdef DEBUG
 			printf("%s-> [%s]: LIVE\n", __func__, midtoIPString(hostIpAddrs[i])); 
-#endif
 		}
 		else {
-#ifdef DEBUG
 			printf("%s-> [%s]: DEAD\n", __func__, midtoIPString(hostIpAddrs[i]));
-#endif
 		}
-#ifdef DEBUG
 			printf("%s-> original:\t[%s]\n", __func__, midtoIPString(locateObjHosts[i*2]));
 			printf("%s-> backup:\t[%s]\n", __func__, midtoIPString(locateObjHosts[i*2+1]));
-#endif
 	}
 }
 
@@ -2406,59 +2528,66 @@ int allHostsLive() {
 
 void duplicateLostObjects(unsigned int mid){
 
-#ifdef DEBUG
 	printf("%s-> Start, mid: [%s]\n", __func__, midtoIPString(mid));  
-#endif
 	
 	//this needs to be changed.
-	unsigned int backupMid = getBackupMachine(mid);
-	unsigned int originalMid = getDuplicatedPrimaryMachine(mid);
+	unsigned int backupMid = getBackupMachine(mid); // get backup machine of dead machine
+	unsigned int originalMid = getDuplicatedPrimaryMachine(mid); // get primary machine that used deadmachine as backup machine.
 
 #ifdef DEBUG
 	printf("%s-> backupMid: [%s], ", __func__, midtoIPString(backupMid));
 	printf("originalMid: [%s]\n", midtoIPString(originalMid));
+	printHostsStatus(); 
 #endif
 
-  setLocateObjHosts();
-	printHostsStatus(); 
+  setReLocateObjHosts(mid);
 	
 	//connect to these machines
 	//go through their object store copying necessary (in a transaction)
 	//transRequestSockPool = createSockPool(transRequestSockPool, DEFAULTSOCKPOOLSIZE);
 	int sd = 0, i, j, tmpNumLiveHosts = 0;
 
-	if(originalMid == myIpAddr) {
-		originalMid = getPrimaryMachine(mid);
-		printf("originalMid: [%s]\n", midtoIPString(originalMid));
-		duplicateLocalOriginalObjects(originalMid);	
+  /* duplicateLostObject example
+   * Before M24 die,
+   * MID        21      24      26
+   * Primary    21      24      26
+   * Backup     26      21      24
+   * After M24 die,
+   * MID        21      26
+   * Primary   21,24    26
+   * Backup     26      21,24
+   */
+
+	if(originalMid == myIpAddr) {   // copy local machine's backup data, make it as primary data of backup machine.
+		duplicateLocalOriginalObjects(backupMid);	
 	}
-	else if((sd = getSock2WithLock(transRequestSockPool, originalMid)) < 0) {
-		printf("updateLiveHosts(): socket create error, attempt %d\n", j);
+	else if((sd = getSockWithLock(transRequestSockPool, originalMid)) < 0) {
+		printf("%s -> socket create error, attempt %d\n", __func__,j);
+    exit(0);
 		//usleep(1000);
 	}
-	else {
+	else {      // if original is not local
 		char duperequest;
 		duperequest = DUPLICATE_ORIGINAL;
 		send_data(sd, &duperequest, sizeof(char));
 #ifdef DEBUG
-	  printf("%s-> Sent DUPLICATE_ORIGINAL request\n", __func__);	
+	  printf("%s-> SD : %d  Sent DUPLICATE_ORIGINAL request to %s\n", __func__,sd,midtoIPString(originalMid));	
 #endif
-		originalMid = getPrimaryMachine(mid);
-		printf("originalMid: [%s]\n", midtoIPString(originalMid));
-		send_data(sd, &originalMid, sizeof(unsigned int));
-#ifdef DEBUG
-	  printf("%s-> Sent originalMid\n", __func__);	
-#endif
-		char response;
-		recv_data_block(sd, &response, sizeof(char));
-		printf("YES! Received %d\n", response);
-		}
+		send_data(sd, &backupMid, sizeof(unsigned int));
 
-	if(backupMid == myIpAddr) {
-		backupMid = getBackupMachine(mid);
-		duplicateLocalBackupObjects(backupMid);	
+    char response;
+		recv_data(sd, &response, sizeof(char));
+#ifdef DEBUG
+		printf("%s (DUPLICATE_ORIGINAL) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
+#endif
+
+    freeSockWithLock(transRequestSockPool, originalMid, sd);
 	}
-	else if((sd = getSock2WithLock(transRequestSockPool, backupMid)) < 0) {
+
+	if(backupMid == myIpAddr) {   // copy local machine's primary data, and make it as backup data of original machine.
+		duplicateLocalBackupObjects(originalMid);	
+	}
+	else if((sd = getSockWithLock(transRequestSockPool, backupMid)) < 0) {
 		printf("updateLiveHosts(): socket create error, attempt %d\n", j);
 		exit(1);
 	}
@@ -2467,52 +2596,66 @@ void duplicateLostObjects(unsigned int mid){
 		duperequest = DUPLICATE_BACKUP;
 		send_data(sd, &duperequest, sizeof(char));
 #ifdef DEBUG
-	  printf("%s-> Sent DUPLICATE_BACKUP request\n", __func__);	
+	  printf("%s-> SD : %d  Sent DUPLICATE_BACKUP request to %s\n", __func__,sd,midtoIPString(backupMid));	
 #endif
-		backupMid = getBackupMachine(mid);
-		send_data(sd, &backupMid, sizeof(unsigned int));
-#ifdef DEBUG
-	  printf("%s-> Sent backupMid\n", __func__);	
-#endif
+		send_data(sd, &originalMid, sizeof(unsigned int));
 
 		char response;
-		recv_data_block(sd, &response, sizeof(char));
-		printf("YES! Received %d\n", response);
+		recv_data(sd, &response, sizeof(char));
+#ifdef DEBUG
+		printf("%s (DUPLICATE_BACKUP) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
+#endif
+
+    freeSockWithLock(transRequestSockPool, backupMid, sd);
 	}
 
-#ifdef DEBUG
+#ifndef DEBUG
 	printf("%s-> End\n", __func__);  
 #endif
 }
 
 void duplicateLocalBackupObjects(unsigned int mid) {
 	int tempsize, sd;
+  int i;
 	char *dupeptr, ctrl, response;
-
-#ifdef DEBUG
+#ifndef DEBUG
 	printf("%s-> Start; backup mid:%s\n", __func__, midtoIPString(mid));  
 #endif
-	//copy code from dstmserver here
-	tempsize = mhashGetDuplicate(&dupeptr, 1);
 
+	//copy code from dstmserver here
+	tempsize = mhashGetDuplicate((void**)&dupeptr, 1);
+
+#ifdef DEBUG
 	printf("tempsize:%d, dupeptrfirstvalue:%d\n", tempsize, *((unsigned int *)(dupeptr)));
+#endif
 	//send control and dupes after
 	ctrl = RECEIVE_DUPES;
 	if((sd = getSockWithLock(transRequestSockPool, mid)) < 0) {
 		printf("duplicatelocalbackup: socket create error\n");
 		//usleep(1000);
 	}
-
-	printf("sd:%d, tempsize:%d, dupeptrfirstvalue:%d\n", sd, tempsize, *((unsigned int *)(dupeptr)));
+#ifdef DEBUG
+	printf("%s -> sd:%d, tempsize:%d, dupeptrfirstvalue:%d\n", __func__,sd, tempsize, *((unsigned int *)(dupeptr)));
+#endif
 	send_data(sd, &ctrl, sizeof(char));
 	send_data(sd, dupeptr, tempsize);
-	recv_data(sd, &response, sizeof(char));
-	if(response != DUPLICATION_COMPLETE) {
-		//fail message
-	}
+	
+  recv_data(sd, &response, sizeof(char));
+  freeSockWithLock(transRequestSockPool,mid,sd);
 
-	freeSockWithLock(transRequestSockPool, mid, sd);
 #ifdef DEBUG
+  printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
+#endif
+
+	if(response != DUPLICATION_COMPLETE) {
+#ifndef DEBUG
+    printf("%s -> DUPLICATION_FAIL\n",__func__);
+#endif
+    exit(-1);
+	}
+  free(dupeptr);
+
+#ifndef DEBUG
 	printf("%s-> End\n", __func__);  
 #endif
 
@@ -2522,12 +2665,12 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 	int tempsize, sd;
 	char *dupeptr, ctrl, response;
 
-#ifdef DEBUG
+#ifndef DEBUG
 	printf("%s-> Start\n", __func__);  
 #endif
 	//copy code fom dstmserver here
 
-	tempsize = mhashGetDuplicate(&dupeptr, 0);
+	tempsize = mhashGetDuplicate((void**)&dupeptr, 0);
 
 	//send control and dupes after
 	ctrl = RECEIVE_DUPES;
@@ -2536,22 +2679,37 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 		printf("DUPLICATE_ORIGINAL: socket create error\n");
 		//usleep(1000);
 	}
+#ifdef DEBUG
 	printf("sd:%d, tempsize:%d, dupeptrfirstvalue:%d\n", sd, tempsize, *((unsigned int *)(dupeptr)));
+#endif
 
 	send_data(sd, &ctrl, sizeof(char));
 	send_data(sd, dupeptr, tempsize);
 
 	recv_data(sd, &response, sizeof(char));
-	if(response != DUPLICATION_COMPLETE) {
-		//fail message
-	}
-	freeSockWithLock(transRequestSockPool, mid, sd);
+  freeSockWithLock(transRequestSockPool,mid,sd);
 
 #ifdef DEBUG
+  printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
+#endif
+
+	if(response != DUPLICATION_COMPLETE) {
+		//fail message
+#ifndef DEBUG
+    printf("%s -> DUPLICATION_FAIL\n",__func__);
+#endif
+    exit(0);
+	}
+  
+  free(dupeptr);
+
+#ifndef DEBUG
 	printf("%s-> End\n", __func__);  
 #endif
 
 }
+
+#endif
 
 void addHost(unsigned int hostIp) {
   unsigned int *tmpArray;
@@ -2567,6 +2725,7 @@ void addHost(unsigned int hostIp) {
     free(hostIpAddrs);
     hostIpAddrs = tmpArray;
 
+#ifdef RECOVERY
 		tmpliveHostsArray = calloc(sizeOfHostArray * 2, sizeof(unsigned int));
 		memcpy(tmpliveHostsArray, liveHosts, sizeof(unsigned int) * numHostsInSystem);
     free(liveHosts);
@@ -2576,13 +2735,16 @@ void addHost(unsigned int hostIp) {
 		memcpy(tmplocateObjHostsArray, locateObjHosts, sizeof(unsigned int) * numHostsInSystem);
     free(locateObjHosts);
     locateObjHosts = tmplocateObjHostsArray;
-
+#endif
 		sizeOfHostArray *= 2;
   }
 
   hostIpAddrs[numHostsInSystem] = hostIp;
+
+#ifdef RECOVERY
   liveHosts[numHostsInSystem] = 0;
   locateObjHosts[numHostsInSystem*2] = hostIp;
+#endif
 
 	numHostsInSystem++;
   return;
@@ -2600,13 +2762,16 @@ int findHost(unsigned int hostIp) {
 
 /* This function sends notification request per thread waiting on object(s) whose version
  * changes */
+#ifdef RECOVERY
+int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid, int waitmid) {
+#else
 int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid) {
-  int sock,i;
+#endif
+  int psock,i;
   objheader_t *objheader;
-  struct sockaddr_in remoteAddr;
+  struct sockaddr_in premoteAddr;
   char msg[1 + numoid * (sizeof(unsigned short) + sizeof(unsigned int)) +  3 * sizeof(unsigned int)];
   char *ptr;
-  int bytesSent;
   int status, size;
   unsigned short version;
   unsigned int oid,mid;
@@ -2615,25 +2780,50 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
   pthread_cond_t threadcond = PTHREAD_COND_INITIALIZER;
   notifydata_t *ndata;
 
+#ifdef RECOVERY
+  int bsock;
+  struct sockaddr_in bremoteAddr;
+#endif
+
   oid = oidarry[0];
+
   if((mid = lhashSearch(oid)) == 0) {
     printf("Error: %s() No such machine found for oid =%x\n",__func__, oid);
     return;
   }
+#ifdef RECOVERY
+  int pmid = getPrimaryMachine(mid);
+  int bmid = getBackupMachine(mid);
+#else
+  int pmid = mid;
+#endif
 
-  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+#ifdef RECOVERY
+  if ((psock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||
+      (bsock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ) {
+#else
+  if ((psock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+#endif
     perror("reqNotify():socket()");
     return -1;
   }
 
-  bzero(&remoteAddr, sizeof(remoteAddr));
-  remoteAddr.sin_family = AF_INET;
-  remoteAddr.sin_port = htons(LISTEN_PORT);
-  remoteAddr.sin_addr.s_addr = htonl(mid);
+  /* for primary machine */
+  bzero(&premoteAddr, sizeof(premoteAddr));
+  premoteAddr.sin_family = AF_INET;
+  premoteAddr.sin_port = htons(LISTEN_PORT);
+  premoteAddr.sin_addr.s_addr = htonl(pmid);
 
+#ifdef RECOVERY
+  /* for backup machine */
+  bzero(&bremoteAddr, sizeof(bremoteAddr));
+  bremoteAddr.sin_family = AF_INET;
+  bremoteAddr.sin_port = htons(LISTEN_PORT);
+  bremoteAddr.sin_addr.s_addr = htonl(bmid);
+#endif
   /* Generate unique threadid */
   threadid++;
-
+  
   /* Save threadid, numoid, oidarray, versionarray, pthread_cond_variable for later processing */
   if((ndata = calloc(1, sizeof(notifydata_t))) == NULL) {
     printf("Calloc Error %s, %d\n", __FILE__, __LINE__);
@@ -2652,19 +2842,34 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
   }
 
   /* Send  number of oids, oidarry, version array, machine id and threadid */
-  if (connect(sock, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
+#ifdef RECOVERY
+  if ((connect(psock, (struct sockaddr *)&premoteAddr, sizeof(premoteAddr))< 0) || 
+      (connect(bsock, (struct sockaddr *)&bremoteAddr, sizeof(bremoteAddr))< 0)) {
+#else
+  if ((connect(psock, (struct sockaddr *)&premoteAddr, sizeof(premoteAddr))< 0)) {
+#endif
     printf("reqNotify():error %d connecting to %s:%d\n", errno,
-           inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+    inet_ntoa(premoteAddr.sin_addr), LISTEN_PORT);
     free(ndata);
     return -1;
   } else {
+
+#ifdef DEBUG
+    printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
+    printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
+#endif
+
     msg[0] = THREAD_NOTIFY_REQUEST;
+
     *((unsigned int *)(&msg[1])) = numoid;
     /* Send array of oids  */
     size = sizeof(unsigned int);
 
     for(i = 0;i < numoid; i++) {
       oid = oidarry[i];
+#ifdef DEBUG
+      printf("%s -> oid[%d] = %d\n",__func__,i,oidarry[i]);
+#endif
       *((unsigned int *)(&msg[1] + size)) = oid;
       size += sizeof(unsigned int);
     }
@@ -2676,11 +2881,21 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
       size += sizeof(unsigned short);
     }
 
-    *((unsigned int *)(&msg[1] + size)) = myIpAddr; size += sizeof(unsigned int);
+    *((unsigned int *)(&msg[1] + size)) = myIpAddr; 
+    size += sizeof(unsigned int);
     *((unsigned int *)(&msg[1] + size)) = threadid;
-    pthread_mutex_lock(&(ndata->threadnotify));
+#ifdef RECOVERY
+    waitThreadMid = waitmid;
+    waitThreadID = threadid;
+    printf("%s -> This Thread is waiting for %s\n",__func__,midtoIPString(waitmid));
+#endif
+
     size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
-    send_data(sock, msg, size);
+    pthread_mutex_lock(&(ndata->threadnotify));
+    send_data(psock, msg, size);
+#ifdef RECOVERY
+    send_data(bsock, msg, size);
+#endif
     pthread_cond_wait(&(ndata->threadcond), &(ndata->threadnotify));
     pthread_mutex_unlock(&(ndata->threadnotify));
   }
@@ -2688,14 +2903,22 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
   pthread_cond_destroy(&threadcond);
   pthread_mutex_destroy(&threadnotify);
   free(ndata);
-  close(sock);
+  close(psock);
+
+#ifdef RECOVERY
+  close(bsock);
+#endif
+
   return status;
 }
 
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
   notifydata_t *ndata;
-  int i, objIsFound = 0, index;
+  int i, objIsFound = 0, index = -1;
   void *ptr;
+#ifdef DEBUG
+  printf("%s -> oid = %d   vesion = %d    tid = %d\n",__func__,oid,version,tid);
+#endif
 
   //Look up the tid and call the corresponding pthread_cond_signal
   if((ndata = notifyhashSearch(tid)) == NULL) {
@@ -2704,30 +2927,36 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
   } else  {
     for(i = 0; i < ndata->numoid; i++) {
       if(ndata->oidarry[i] == oid) {
-	objIsFound = 1;
-	index = i;
+        objIsFound = 1;
+        index = i;
+
       }
     }
     if(objIsFound == 0) {
       printf("threadNotify(): Oid not found %s, %d\n", __FILE__, __LINE__);
       return;
-    } else {
-      if(version <= ndata->versionarry[index]) {
-	printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
-	return;
+    } 
+    else {
+      if(version <= ndata->versionarry[index] && version >= 0) {
+	      printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
+    	return;
       } else {
 #ifdef CACHE
 	/* Clear from prefetch cache and free thread related data structure */
-	if((ptr = prehashSearch(oid)) != NULL) {
-	  prehashRemove(oid);
-	}
+      	if((ptr = prehashSearch(oid)) != NULL) {
+      	  prehashRemove(oid);
+      	}
 #endif
-	pthread_mutex_lock(&(ndata->threadnotify));
-	pthread_cond_signal(&(ndata->threadcond));
-	pthread_mutex_unlock(&(ndata->threadnotify));
+    	pthread_mutex_lock(&(ndata->threadnotify));
+    	pthread_cond_signal(&(ndata->threadcond));
+    	pthread_mutex_unlock(&(ndata->threadnotify));
       }
     }
   }
+
+#ifdef DEBUG
+  printf("%s -> Finished\n",__func__);
+#endif
   return;
 }
 
@@ -2737,10 +2966,18 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
   struct sockaddr_in remoteAddr;
   char msg[1 + sizeof(unsigned short) + 2*sizeof(unsigned int)];
   int sock, status, size, bytesSent;
+#ifdef DEBUG
+  printf("%s -> Entering \n",__func__);
+#endif
 
   while(*head != NULL) {
     ptr = *head;
+
     mid = ptr->mid;
+#ifdef DEBUG
+    printf("%s -> trying to connect MID : %s\n",__func__,midtoIPString(mid));
+#endif
+
     //create a socket connection to that machine
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
       perror("notifyAll():socket()");
@@ -2758,6 +2995,9 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
       fflush(stdout);
       status = -1;
     } else {
+#ifdef DEBUG
+      printf("%s -> connected\n",__func__);
+#endif
       bzero(msg, (1+sizeof(unsigned short) + 2*sizeof(unsigned int)));
       msg[0] = THREAD_NOTIFY_RESPONSE;
       *((unsigned int *)&msg[1]) = oid;
@@ -2771,12 +3011,17 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
     }
     //close socket
     close(sock);
+
     // Update head
     *head = ptr->next;
     free(ptr);
+#ifdef DEBUG
+    printf("%s -> End notifying MID : %s\n",__func__,midtoIPString(mid));  
+#endif
   }
   return status;
 }
+
 
 void transAbort() {
 #ifdef ABORTREADERS
@@ -2795,6 +3040,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
   tmp = pile;
   //Add oid into a machine that is already present in the pile linked list structure
   while(tmp != NULL) {
+//    printf("tmp->mid = [%s], mid = [%s]\n", midtoIPString(tmp->mid), midtoIPString(mid));
     if (tmp->mid == mid) {
       int tmpsize;
 
@@ -2803,16 +3049,6 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 				tmp->numcreated++;
 				GETSIZE(tmpsize, headeraddr);
 				tmp->sum_bytes += sizeof(objheader_t) + tmpsize;
-			  /*if(numHostsInSystem > 1) {
-					STATUS(headeraddr) = DIRTY;
-					//printf("Redo pInsert for oid %d, now modified\n", OID(headeraddr));
-					//printf("this machine: %d\n", mid);
-					midtoIP(tmp->mid, ip);
-					pile = pInsert(tmp, headeraddr, locateBackupMachine(headeraddr), num_objs);
-
-				//	printf("header version: %d\n", headeraddr->version);
-					//printf("Finished Redo pInsert for oid %d, now modified\n", OID(headeraddr));
-				}*/
 			} else if (STATUS(headeraddr) & DIRTY) {
 				tmp->oidmod[tmp->nummod] = OID(headeraddr);
 				tmp->nummod++;
@@ -2844,23 +3080,11 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
       ptr->numcreated++;
       GETSIZE(tmpsize, headeraddr);
       ptr->sum_bytes += sizeof(objheader_t) + tmpsize;
-   	  /*if(numHostsInSystem > 1) {
-				STATUS(headeraddr) = DIRTY;
-					midtoIP(ptr->mid, ip);
-
-					printf("np; ptr->mid: %s, oid: %d, header version: %d\n", ip, OID(headeraddr), headeraddr->version);
-					//printf("header version: %d\n", headeraddr->version);
-				pile = pInsert(tmp, headeraddr, locateBackupMachine(headeraddr), num_objs);
-					//printf("header version: %d\n", headeraddr->version);
-	 		}*/
 	  } else if (STATUS(headeraddr) & DIRTY) {
       ptr->oidmod[ptr->nummod] = OID(headeraddr);
       ptr->nummod++;
       GETSIZE(tmpsize, headeraddr);
       ptr->sum_bytes += sizeof(objheader_t) + tmpsize;
-				//printf("Redo oid %d?\n", OID(headeraddr));
-				/*	midtoIP(ptr->mid, ip);
-					printf("np; Redo? ptr->mid: %s, oid: %d, header version: %d\n", ip, OID(headeraddr), headeraddr->version);*/
     } else {
       *((unsigned int *)ptr->objread)=OID(headeraddr);
       offset = sizeof(unsigned int);
@@ -2910,6 +3134,7 @@ plistnode_t *sortPiles(plistnode_t *pileptr) {
 	return pileptr;
 }
 
+#ifdef RECOVERY
 /* Paxo Algorithm: 
  * Executes when the known leader has failed.  
  * Guarantees consensus on next leader among all live hosts.  */
@@ -2938,7 +3163,7 @@ int paxos()
 	} while (ret == -1);
 
 #ifdef DEBUG
-	printf("\n>> Debug : Leader : [%s]\n", midtoIPString(leader));
+	printf("\n>> Debug : Leader : [%s]\t[%u]\n", midtoIPString(leader),leader);
 #endif
 
 	return ret;
@@ -2968,7 +3193,7 @@ int paxosPrepare()
 		if(!liveHosts[i]) 
 			continue;
 
-		if ((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+		if ((sd = getSockWithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
 			printf("paxosPrepare(): socket create error\n");
 			continue;
 		}
@@ -2977,12 +3202,11 @@ int paxosPrepare()
 #endif
 		send_data(sd, &control, sizeof(char)); 	
 		send_data(sd, &my_n, sizeof(int));
-		recv_data(sd, &control, sizeof(char));
-		if ((sd == -1) || (timeoutFlag == 1)) {
+		int timeout = recv_data(sd, &control, sizeof(char));
+		if ((sd == -1) || (timeout < 0)) {
 #ifdef DEBUG
 			printf("%s-> timeout to machine [%s]\n", __func__, midtoIPString(hostIpAddrs[i]));
 #endif
-			timeoutFlag = 0;
 			continue;
 		}
 
@@ -3004,6 +3228,8 @@ int paxosPrepare()
 			case PAXOS_PREPARE_REJECT:
 			 	break;
 		}
+    
+    freeSockWithLock(transRequestSockPool,hostIpAddrs[i],sd);
 	}
 
 #ifdef DEBUG
@@ -3029,13 +3255,13 @@ int paxosAccept()
 #ifdef DEBUG
 	printf("[Accept]...\n");
 #endif
-		
 	for (i = 0; i < numHostsInSystem; ++i) {
 		control = PAXOS_ACCEPT;
-			if(!liveHosts[i]) 
+	  
+    if(!liveHosts[i]) 
 			continue;
 
-	if ((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+  	if ((sd = getSockWithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
 			printf("paxosAccept(): socket create error\n");
 			continue;
 		}
@@ -3044,12 +3270,11 @@ int paxosAccept()
 		send_data(sd, &my_n, sizeof(int));
 		send_data(sd, &remote_v, sizeof(int));
 
-		recv_data(sd, &control, sizeof(char));
-		if ((sd == -1) || (timeoutFlag == 1)) {
+		int timeout = recv_data(sd, &control, sizeof(char));
+		if ((sd == -1) || (timeout < 0)) {
 #ifdef DEBUG
 			printf("%s-> timeout to machine [%s]\n", __func__, midtoIPString(hostIpAddrs[i]));
 #endif
-			timeoutFlag = 0; 
 			continue;  
 		}
 
@@ -3063,6 +3288,7 @@ int paxosAccept()
 #ifdef DEBUG
 		printf(">> Debug : Accept - n_h [%d], n_a [%d], v_a [%s]\n", n_h, n_a, midtoIPString(v_a));
 #endif
+    freeSockWithLock(transRequestSockPool,hostIpAddrs[i],sd);
 	}
 
 	if (cnt >= (numLiveHostsInSystem / 2)) {
@@ -3084,7 +3310,6 @@ void paxosLearn()
 #endif
 
 	control = PAXOS_LEARN;
-	//	transRequestSockPool = createSockPool(transRequestSockPool, DEFAULTSOCKPOOLSIZE);
 
 	for (i = 0; i < numHostsInSystem; ++i) {
 		if(!liveHosts[i]) 
@@ -3098,13 +3323,121 @@ void paxosLearn()
 #endif
 			continue;
 		}
-		if ((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+		if ((sd = getSockWithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
 			continue;
 			//			printf("paxosLearn(): socket create error, attemp\n");
 		}
 
 		send_data(sd, &control, sizeof(char));
 		send_data(sd, &v_a, sizeof(int));
+
+    freeSockWithLock(transRequestSockPool,hostIpAddrs[i],sd);
+
 	}
 	//return v_a;
 }
+
+
+void clearDeadThreadsNotification() 
+{
+
+#ifdef DEBUG
+  printf("%s -> Entered\n",__func__);
+#endif
+// clear all the threadnotify request first
+  
+  if(waitThreadID != -1) {
+    printf("%s -> I was waitng for %s\n",__func__,midtoIPString(waitThreadMid));
+    int waitThreadIndex = findHost(waitThreadMid);
+    int i;
+    notifydata_t *ndata;
+
+    if(liveHosts[waitThreadIndex] == 0) // the thread waiting for is dead
+    {
+      if((ndata = (notifydata_t*)notifyhashSearch(waitThreadID)) == NULL) {
+        return;
+      }
+   
+      for(i =0 ; i < ndata->numoid; i++) {
+        clearNotifyList(ndata->oidarry[i]);  // clear thread object's notifylist
+      }
+
+      pthread_mutex_lock(&(ndata->threadnotify));
+      pthread_cond_signal(&(ndata->threadcond));
+      pthread_mutex_unlock(&(ndata->threadnotify));
+
+      waitThreadMid = -1;
+      waitThreadID = -1;
+    }
+  }
+
+#ifdef DEBUG
+  printf("%s -> Finished\n",__func__);
+#endif
+}
+
+/* request the primary and the backup machines to clear
+   thread obj's notify list */
+void reqClearNotifyList(unsigned int oid)
+{
+  int psock,bsock,i;
+  int mid,pmid,bmid;
+  objheader_t *objheader;
+  struct sockaddr_in premoteAddr, bremoteAddr;
+  char msg[1 + sizeof(unsigned int)];
+
+  if((mid = lhashSearch(oid)) == 0) {
+    printf("%s -> No such machine found for oid %x\n",__func__,oid);
+    return;
+  }
+
+  pmid = getPrimaryMachine(mid);
+  bmid = getBackupMachine(mid);
+
+  if((psock = socket(AF_INET, SOCK_STREAM, 0)) < 0 ||
+     (bsock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("clearNotifyList() : socket()");
+    return ;
+  }
+
+  /* for primary machine */
+  bzero(&premoteAddr, sizeof(premoteAddr));
+  premoteAddr.sin_family = AF_INET;
+  premoteAddr.sin_port = htons(LISTEN_PORT);
+  premoteAddr.sin_addr.s_addr = htonl(pmid);
+
+  /* for backup machine */
+  bzero(&bremoteAddr, sizeof(bremoteAddr));
+  bremoteAddr.sin_family = AF_INET;
+  bremoteAddr.sin_port = htons(LISTEN_PORT);
+  bremoteAddr.sin_addr.s_addr = htonl(bmid);
+
+  /* send message to both the primary and the backup */
+  if((connect(psock, (struct sockaddr *)&premoteAddr, sizeof(premoteAddr)) < 0) ||
+     (connect(bsock, (struct sockaddr *)&bremoteAddr, sizeof(bremoteAddr)) < 0)) {
+      printf("%s -> error in connecting\n",__func__);
+      return;
+  }
+  else {
+    printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
+    printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
+    
+    msg[0] = CLEAR_NOTIFY_LIST;
+    *((unsigned int *)(&msg[1])) = oid;
+    
+    send_data(psock, &msg, sizeof(char) + sizeof(unsigned int));
+    send_data(bsock, &msg, sizeof(char) + sizeof(unsigned int)); 
+  }
+  
+  close(psock);
+  close(bsock);
+  
+}
+   
+
+int checkiftheMachineDead(unsigned int mid) {
+  int mIndex = findHost(mid);
+  return getStatus(mIndex);
+}
+
+#endif

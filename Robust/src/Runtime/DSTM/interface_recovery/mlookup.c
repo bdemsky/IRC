@@ -190,9 +190,10 @@ unsigned int *mhashGetKeys(unsigned int *numKeys) {
   for (i = 0; i < mlookup.size; i++) {
     if (mlookup.table[i].key != 0) {
       curr = &mlookup.table[i];
+
       while (curr != NULL) {
-	keys[keyindex++] = curr->key;
-	curr = curr->next;
+      	keys[keyindex++] = curr->key;
+      	curr = curr->next;
       }
     }
   }
@@ -204,10 +205,14 @@ unsigned int *mhashGetKeys(unsigned int *numKeys) {
   return keys;
 }
 
+#ifdef RECOVERY
 int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
+#ifdef DEBUG
 	printf("%s-> Start\n", __func__); 
+#endif
 	unsigned int numdupe = 0;
-	
+	void* dPtr;
+
 //	ok let's do this;
 	unsigned int oidsdupe[mlookup.size];
   int size = 0, tempsize = 0, i = 0;
@@ -218,6 +223,9 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
 //	track sizes, oids, and num
 	pthread_mutex_lock(&mlookup.locktable); 
 
+  size =0;
+  tempsize =0;
+
 	for(i = 0; i < mlookup.size; i++) {
 		if (mlookup.table[i].key != 0) {
 			node = &mlookup.table[i];
@@ -227,6 +235,11 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
 					oidsdupe[numdupe++] = OID(header);
 					GETSIZE(tempsize, header);
 					size += tempsize + sizeof(objheader_t);
+
+          if(header->notifylist != NULL) {
+            //      number of nodes     +       actual size of array
+            size += (sizeof(unsigned int) + (getListSize(header->notifylist) * sizeof(threadlist_t)));
+          }
 				}
 				node = node->next;
 			}
@@ -234,47 +247,128 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
 	}
 
   pthread_mutex_unlock(&mlookup.locktable);
-	printf("%s-> size:%d, numdupe:%d\n", __func__, size, numdupe);
 
 	//i got sizes, oids, and num now
+  //
 
-	if(((*dupeptr) = calloc(1, sizeof(unsigned int)+sizeof(int)+size)) == NULL) {
-		printf("calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
+	if((dPtr =(void*) malloc(sizeof(unsigned int)+sizeof(int)+ size)) == NULL) {
+		printf("malloc error for modified objects %s, %d\n", __FILE__, __LINE__);
 		return;
 	}
 
 //	for each oid in oiddupe[] get object and format
-	void *ptr = *(dupeptr);
-	*((unsigned int *)(ptr)) = numdupe;
-	ptr += sizeof(unsigned int);
-	*((int *)(ptr)) = size;
-	ptr += sizeof(int);
-	for(i = 0; i < numdupe; i++) {
-		printf("%s-> oid being backed:%u\n", __func__, oidsdupe[i]);
-    header = mhashSearch(oidsdupe[i]);
-		printf("new header oid:%d, version:%d\n", OID(header), header->version);
-			printf("STATUSPTR(header):%u, STATUS:%d\n", STATUSPTR(header), STATUS(header));
-/*			if(write_trylock(STATUSPTR(header))) {
-				printf("this object is not locked\n");
 
-      write_unlock(STATUSPTR(header));
-			}
-			else 
-			printf("its locked\n");*/
-	
+  *dupeptr = dPtr;
+	void* ptr = dPtr;
+  *((unsigned int *)(ptr)) = numdupe;
+	ptr += sizeof(unsigned int);
+  *((int *)(ptr)) = size;
+	ptr += sizeof(int);
+  void* ttt = *dupeptr;
+
+	for(i = 0; i < numdupe; i++) {
+    header = mhashSearch(oidsdupe[i]);
 
 		GETSIZE(tempsize, header);
 		tempsize += sizeof(objheader_t);
 		memcpy(ptr, header, tempsize); //*ptr = header maybe wont work, use memcopy instead probably
+
+		if(header->isBackup && backup) {
+      ((objheader_t*)ptr)->isBackup = 0;
+    }else if(!(header->isBackup) && !backup) {
+      ((objheader_t*)ptr)->isBackup = 1;
+    }
+    else {
+      printf("%s -> ERROR\n",__func__);
+      exit(0);
+    }
+
 		ptr += tempsize;
+
+    if(header->notifylist != NULL) {
+      unsigned int listSize;
+      /* get duplicate array of threadlist */
+      threadlist_t *threadArray;
+      listSize = convertToArray(header->notifylist,&threadArray);
+
+      memcpy(ptr, &listSize,sizeof(unsigned int));
+      ptr += sizeof(unsigned int);
+
+      memcpy(ptr, threadArray, (sizeof(threadlist_t) * listSize));
+      ptr += (sizeof(threadlist_t) * listSize);  
+      free(threadArray);
+    }
 	}
-
-/*   printf("dupeptrfirstvalue:%d\n", *((unsigned int *)(dupeptr)));
-   dupeptr += sizeof(unsigned int); 
-   printf("dupeptrfirstvalue:%d\n", *((int *)(dupeptr)));*/
-
-
-	printf("%s-> End\n", __func__); 
+#ifdef DEBUG
+	printf("%s-> End\n", __func__);
+#endif
+  //          number of oid       size    + data array 
 	return (sizeof(unsigned int) + sizeof(int) + size);
 }
 
+int mhashGetThreadObjects(unsigned int** oidArray,unsigned int** midArray,unsigned int** threadidArray)
+{
+	printf("%s-> Start\n", __func__); 
+	unsigned int oidArr[mlookup.numelements];
+  unsigned int midArr[mlookup.numelements];
+  unsigned int threadidArr[mlookup.numelements];
+  unsigned int* hashkeys;
+  unsigned int numKeys;
+	objheader_t *header;
+  int i;
+
+  int size =0;
+	mhashlistnode_t *node;
+//	go through object store;
+//	track sizes, oids, and num
+
+  hashkeys = mhashGetKeys(&numKeys);
+  printf("%s -> numKeys : %d\n",__func__,numKeys);
+
+  threadlist_t* t;
+  threadlist_t* tmp;
+
+  for(i = 0; i < numKeys; i++) {
+    header = (objheader_t*)mhashSearch(hashkeys[i]);
+    pthread_mutex_lock(&mlookup.locktable);
+
+    if(header->isBackup && header->notifylist != NULL) {
+        
+      t = header->notifylist;
+
+      while(t) {
+        oidArr[size] = OID(header);
+        midArr[size] = t->mid;
+        threadidArr[size++] = t->threadid;
+        tmp = t;
+        t = t->next;
+        free(tmp);
+      }
+
+      header->notifylist = NULL;
+    }
+    pthread_mutex_unlock(&mlookup.locktable);
+  }
+
+  free(hashkeys);
+
+  printf("%s -> end copying    Size : %d\n",__func__,size);
+
+  if(size > 0) {
+    *oidArray = (unsigned int*) calloc(size, sizeof(unsigned int));
+    *midArray = (unsigned int*) calloc(size, sizeof(unsigned int));
+    *threadidArray = (unsigned int*) calloc(size, sizeof(unsigned int));
+
+    for(i = 0; i < size; i++) {
+      (*oidArray)[i] = oidArr[i];
+      (*midArray)[i] = midArr[i];
+      (*threadidArray)[i] = threadidArr[i];
+    }
+  }
+
+  printf("%s -> End\n",__func__);
+
+  return size;
+
+}
+#endif

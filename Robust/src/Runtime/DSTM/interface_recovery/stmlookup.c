@@ -10,6 +10,197 @@ __thread unsigned int c_threshold;
 __thread double c_loadfactor;
 __thread cliststruct_t *c_structs;
 
+#ifdef READSET
+__thread rdchashlistnode_t *rd_c_table;
+__thread rdchashlistnode_t *rd_c_list;
+__thread unsigned int rd_c_size;
+__thread unsigned INTPTR rd_c_mask;
+__thread unsigned int rd_c_numelements;
+__thread unsigned int rd_c_threshold;
+__thread double rd_c_loadfactor;
+__thread rdcliststruct_t *rd_c_structs;
+
+void rd_t_chashCreate(unsigned int size, double loadfactor) {
+  chashtable_t *ctable;
+  chashlistnode_t *nodes;
+  int i;
+
+  // Allocate space for the hash table
+  rd_c_table = calloc(size, sizeof(rdchashlistnode_t));
+  rd_c_loadfactor = loadfactor;
+  rd_c_size = size;
+  rd_c_threshold=size*loadfactor;
+  rd_c_mask = (size << 4)-1;
+  rd_c_structs=calloc(1, sizeof(rdcliststruct_t));
+  rd_c_numelements = 0; // Initial number of elements in the hash
+  rd_c_list=NULL;
+}
+
+void rd_t_chashreset() {
+  rdchashlistnode_t *ptr = rd_c_table;
+  int i;
+
+  if (rd_c_numelements<(rd_c_size>>4)) {
+    rdchashlistnode_t *top=&ptr[rd_c_size];
+    rdchashlistnode_t *tmpptr=rd_c_list;
+    while(tmpptr!=NULL) {
+      rdchashlistnode_t *next=tmpptr->lnext;
+      if (tmpptr>=ptr&&tmpptr<top) {
+	//zero in list
+	tmpptr->key=NULL;
+	tmpptr->next=NULL;
+      }
+      tmpptr=next;
+    }
+  } else {
+    bzero(rd_c_table, sizeof(rdchashlistnode_t)*rd_c_size);
+  }
+  while(rd_c_structs->next!=NULL) {
+    rdcliststruct_t *next=rd_c_structs->next;
+    free(rd_c_structs);
+    rd_c_structs=next;
+  }
+  rd_c_structs->num = 0;
+  rd_c_numelements = 0;
+  rd_c_list=NULL;
+}
+
+//Store objects and their pointers into hash
+void rd_t_chashInsertOnce(void * key, unsigned int version) {
+  rdchashlistnode_t *ptr;
+
+  if (key==NULL)
+    return;
+
+  if(rd_c_numelements > (rd_c_threshold)) {
+    //Resize
+    unsigned int newsize = rd_c_size << 1;
+    rd_t_chashResize(newsize);
+  }
+
+  ptr = &rd_c_table[(((unsigned INTPTR)key)&rd_c_mask)>>4];
+
+  if(ptr->key==0) {
+    ptr->key=key;
+    ptr->version=version;
+    ptr->lnext=rd_c_list;
+    rd_c_list=ptr;
+    rd_c_numelements++;
+  } else { // Insert in the beginning of linked list
+    rdchashlistnode_t * node;
+    rdchashlistnode_t *search=ptr;
+    
+    //make sure it isn't here
+    do {
+      if(search->key == key) {
+	return;
+      }
+      search=search->next;
+    } while(search != NULL);
+
+    rd_c_numelements++;    
+    if (rd_c_structs->num<NUMCLIST) {
+      node=&rd_c_structs->array[rd_c_structs->num];
+      rd_c_structs->num++;
+    } else {
+      //get new list
+      rdcliststruct_t *tcl=calloc(1,sizeof(rdcliststruct_t));
+      tcl->next=rd_c_structs;
+      rd_c_structs=tcl;
+      node=&tcl->array[0];
+      tcl->num=1;
+    }
+    node->key = key;
+    node->version = version;
+    node->next = ptr->next;
+    ptr->next=node;
+    node->lnext=rd_c_list;
+    rd_c_list=node;
+  }
+}
+
+unsigned int rd_t_chashResize(unsigned int newsize) {
+  rdchashlistnode_t *node, *ptr, *curr;    // curr and next keep track of the current and the next chashlistnodes in a linked list
+  unsigned int oldsize;
+  int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
+  unsigned int i,index;
+  unsigned int mask;
+
+  ptr = rd_c_table;
+  oldsize = rd_c_size;
+  rd_c_list=NULL;
+
+  if((node = calloc(newsize, sizeof(rdchashlistnode_t))) == NULL) {
+    printf("Calloc error %s %d\n", __FILE__, __LINE__);
+    return 1;
+  }
+
+  rd_c_table = node;          //Update the global hashtable upon resize()
+  rd_c_size = newsize;
+  rd_c_threshold = newsize * rd_c_loadfactor;
+  mask=rd_c_mask = (newsize << 4)-1;
+
+  for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
+    curr = &ptr[i];
+    isfirst = 1;
+    do {                      //Inner loop to go through linked lists
+      void * key;
+      rdchashlistnode_t *tmp,*next;
+
+      if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
+	break;                  //key = val =0 for element if not present within the hash table
+      }
+      index = (((unsigned INTPTR)key) & mask) >>4;
+      tmp=&node[index];
+      next = curr->next;
+      // Insert into the new table
+      if(tmp->key == 0) {
+	tmp->key = key;
+	tmp->version = curr->version;
+	tmp->lnext=rd_c_list;
+	rd_c_list=tmp;
+      } /*
+          NOTE:  Add this case if you change this...
+          This case currently never happens because of the way things rehash....
+          else if (isfirst) {
+          chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+          newnode->key = curr->key;
+          newnode->val = curr->val;
+          newnode->next = tmp->next;
+          tmp->next=newnode;
+          } */
+      else {
+	curr->next=tmp->next;
+	tmp->next=curr;
+	curr->lnext=rd_c_list;
+	rd_c_list=curr;
+      }
+
+      isfirst = 0;
+      curr = next;
+    } while(curr!=NULL);
+  }
+
+  free(ptr);            //Free the memory of the old hash table
+  return 0;
+}
+
+//Delete the entire hash table
+void rd_t_chashDelete() {
+  int i;
+  rdcliststruct_t *ptr=rd_c_structs;
+  while(ptr!=NULL) {
+    rdcliststruct_t *next=ptr->next;
+    free(ptr);
+    ptr=next;
+  }
+  free(rd_c_table);
+  rd_c_table=NULL;
+  rd_c_structs=NULL;
+  rd_c_list=NULL;
+}
+#endif
+
 #ifdef DELAYCOMP
 __thread chashlistnode_t *dc_c_table;
 __thread chashlistnode_t *dc_c_list;
@@ -48,7 +239,7 @@ void dc_t_chashreset() {
       chashlistnode_t *next=tmpptr->lnext;
       if (tmpptr>=ptr&&tmpptr<top) {
 	//zero in list
-	tmpptr->key=0;
+	tmpptr->key=NULL;
 	tmpptr->next=NULL;
       }
       tmpptr=next;
@@ -247,7 +438,7 @@ void t_chashreset() {
       chashlistnode_t *next=tmpptr->lnext;
       if (tmpptr>=ptr&&tmpptr<top) {
 	//zero in list
-	tmpptr->key=0;
+	tmpptr->key=NULL;
 	tmpptr->next=NULL;
       }
       tmpptr=next;
