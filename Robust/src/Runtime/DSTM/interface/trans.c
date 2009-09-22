@@ -79,13 +79,16 @@ void printhex(unsigned char *, int);
 plistnode_t *createPiles();
 plistnode_t *sortPiles(plistnode_t *pileptr);
 
+#ifdef LOGEVENTS
 char bigarray[16*1024*1024];
 int bigindex=0;
 #define LOGEVENT(x) { \
     int tmp=bigindex++;				\
     bigarray[tmp]=x;				\
   }
-
+#else
+#define LOGEVENT(x)
+#endif
 
 /*******************************
 * Send and Recv function calls
@@ -106,9 +109,43 @@ void send_data(int fd, void *buf, int buflen) {
   }
 }
 
+void recv_dataz(int fd, void *buf, int buflen) {
+  char *buffer = (char *)(buf);
+  int size = buflen;
+  int numbytes;
+  while (size > 0) {
+    numbytes = recv(fd, buffer, size, 0);
+    bytesRecv = bytesRecv + numbytes;
+    if (numbytes == -1) {
+      perror("recv");
+      exit(0);
+    }
+    buffer += numbytes;
+    size -= numbytes;
+  }
+}
+
+int recv_data_errorcodez(int fd, void *buf, int buflen) {
+  char *buffer = (char *)(buf);
+  int size = buflen;
+  int numbytes;
+  while (size > 0) {
+    numbytes = recv(fd, buffer, size, 0);
+    if (numbytes==0)
+      return 0;
+    if (numbytes == -1) {
+      perror("recv");
+      return -1;
+    }
+    buffer += numbytes;
+    size -= numbytes;
+  }
+  return 1;
+}
+
+
 void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buflen) {
   char *buf=(char *)buffer;
-
   int numbytes=readbuffer->head-readbuffer->tail;
   if (numbytes>buflen)
     numbytes=buflen;
@@ -117,13 +154,12 @@ void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buf
     readbuffer->tail+=numbytes;
     buflen-=numbytes;
     buf+=numbytes;
-    if (buflen==0) {
-      return;
-    }
   }
-
+  if (buflen==0) {
+    return;
+  }
   if (buflen>=MAXBUF) {
-    recv_data(fd, buf, buflen);
+    recv_dataz(fd, buf, buflen);
     return;
   }
   
@@ -156,12 +192,12 @@ int recv_data_errorcode_buf(int fd, struct readstruct * readbuffer, void *buffer
     readbuffer->tail+=numbytes;
     buflen-=numbytes;
     buf+=numbytes;
-    if (buflen==0)
-      return 1;
   }
+  if (buflen==0)
+    return 1;
 
   if (buflen>=MAXBUF) {
-    return recv_data_errorcode(fd, buf, buflen);
+    return recv_data_errorcodez(fd, buf, buflen);
   }
 
   int maxbuf=MAXBUF;
@@ -784,7 +820,7 @@ int transCommit() {
   trans_commit_data_t transinfo; /* keeps track of objs locked during transaction */
   char finalResponse;
 
-#ifdef TRANSSTATS
+#ifdef LOGEVENTS
   int iii;
   for(iii=0;iii<bigindex;iii++) {
     printf("%c", bigarray[iii]);

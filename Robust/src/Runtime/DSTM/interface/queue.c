@@ -8,12 +8,16 @@ pthread_cond_t qcond;
 
 #define QSIZE 2048 //2 KB
 
+#ifdef LOGEVENTS
 extern char bigarray[16*1024*1024];
 extern int bigindex;
 #define LOGEVENT(x) { \
     int tmp=bigindex++;				\
     bigarray[tmp]=x;				\
   }
+#else
+#define LOGEVENT(x)
+#endif
 
 void queueInit(void) {
   /* Intitialize primary queue */

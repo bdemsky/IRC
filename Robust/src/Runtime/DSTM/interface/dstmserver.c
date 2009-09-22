@@ -747,7 +747,6 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
   objheader_t *header;
   oidmidpair_t oidmid;
   int sd = -1;
-
   while(1) {
     recv_data_buf((int)acceptfd, readbuffer, &numoffset, sizeof(int));
     if(numoffset == -1)
@@ -840,7 +839,6 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
     //Release socket
   if (mid!=-1)
     freeSockWithLock(transPResponseSocketPool, mid, sd);
-
   return 0;
 }
 
