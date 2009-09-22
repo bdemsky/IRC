@@ -109,41 +109,38 @@ void send_data(int fd, void *buf, int buflen) {
   }
 }
 
-void recv_dataz(int fd, void *buf, int buflen) {
-  char *buffer = (char *)(buf);
-  int size = buflen;
-  int numbytes;
-  while (size > 0) {
-    numbytes = recv(fd, buffer, size, 0);
-    bytesRecv = bytesRecv + numbytes;
-    if (numbytes == -1) {
-      perror("recv");
-      exit(0);
-    }
-    buffer += numbytes;
-    size -= numbytes;
+void send_buf(int fd, struct writestruct * sendbuffer, void *buffer, int buflen) {
+  if (buflen+sendbuffer->offset>WMAXBUF) {
+    send_data(fd, sendbuffer->buf, sendbuffer->offset);
+    sendbuffer->offset=0;
+    send_data(fd, buffer, buflen);
+    return;
+  }
+  memcpy(&sendbuffer->buf[sendbuffer->offset], buffer, buflen);
+  sendbuffer->offset+=buflen;
+  if (sendbuffer->offset>WTOP) {
+    send_data(fd, sendbuffer->buf, sendbuffer->offset);
+    sendbuffer->offset=0;
   }
 }
 
-int recv_data_errorcodez(int fd, void *buf, int buflen) {
-  char *buffer = (char *)(buf);
-  int size = buflen;
-  int numbytes;
-  while (size > 0) {
-    numbytes = recv(fd, buffer, size, 0);
-    if (numbytes==0)
-      return 0;
-    if (numbytes == -1) {
-      perror("recv");
-      return -1;
-    }
-    buffer += numbytes;
-    size -= numbytes;
+void forcesend_buf(int fd, struct writestruct * sendbuffer, void *buffer, int buflen) {
+  if (buflen+sendbuffer->offset>WMAXBUF) {
+    send_data(fd, sendbuffer->buf, sendbuffer->offset);
+    sendbuffer->offset=0;
+    send_data(fd, buffer, buflen);
+    return;
   }
-  return 1;
+  memcpy(&sendbuffer->buf[sendbuffer->offset], buffer, buflen);
+  sendbuffer->offset+=buflen;
+  send_data(fd, sendbuffer->buf, sendbuffer->offset);
+  sendbuffer->offset=0;
 }
 
-
+int recvw(int fd, void *buf, int len, int flags) {
+  return recv(fd, buf, len, flags);
+}
+ 
 void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buflen) {
   char *buf=(char *)buffer;
   int numbytes=readbuffer->head-readbuffer->tail;
@@ -159,7 +156,7 @@ void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buf
     return;
   }
   if (buflen>=MAXBUF) {
-    recv_dataz(fd, buf, buflen);
+    recv_data(fd, buf, buflen);
     return;
   }
   
@@ -168,7 +165,7 @@ void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buf
   readbuffer->head=0;
   
   while (buflen > 0) {
-    int numbytes = recv(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
+    int numbytes = recvw(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
     if (numbytes == -1) {
       perror("recv");
       exit(0);
@@ -197,7 +194,7 @@ int recv_data_errorcode_buf(int fd, struct readstruct * readbuffer, void *buffer
     return 1;
 
   if (buflen>=MAXBUF) {
-    return recv_data_errorcodez(fd, buf, buflen);
+    return recv_data_errorcode(fd, buf, buflen);
   }
 
   int maxbuf=MAXBUF;
@@ -205,7 +202,7 @@ int recv_data_errorcode_buf(int fd, struct readstruct * readbuffer, void *buffer
   readbuffer->head=0;
   
   while (buflen > 0) {
-    int numbytes = recv(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
+    int numbytes = recvw(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
     if (numbytes ==0) {
       return 0;
     }
@@ -228,7 +225,7 @@ void recv_data(int fd, void *buf, int buflen) {
   int size = buflen;
   int numbytes;
   while (size > 0) {
-    numbytes = recv(fd, buffer, size, 0);
+    numbytes = recvw(fd, buffer, size, 0);
     bytesRecv = bytesRecv + numbytes;
     if (numbytes == -1) {
       perror("recv");
@@ -244,7 +241,7 @@ int recv_data_errorcode(int fd, void *buf, int buflen) {
   int size = buflen;
   int numbytes;
   while (size > 0) {
-    numbytes = recv(fd, buffer, size, 0);
+    numbytes = recvw(fd, buffer, size, 0);
     if (numbytes==0)
       return 0;
     if (numbytes == -1) {
