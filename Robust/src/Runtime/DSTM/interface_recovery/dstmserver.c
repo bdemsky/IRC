@@ -198,7 +198,7 @@ void* startAsking()
     socklist = (int*) calloc(numHostsInSystem,sizeof(int)); 
 
     for(i = 0; i< numHostsInSystem;i++) { // for 1
-        if((sd = getSockWithLock(transRequestSockPool,hostIpAddrs[i])) < 0) {
+        if((sd = getSockWithLock(transPResponseSocketPool,hostIpAddrs[i])) < 0) {
           printf("%s -> Cannot create socket connection to [%s]\n",__func__,midtoIPString(hostIpAddrs[i]));
           socklist[i] = -1;
         }
@@ -217,7 +217,7 @@ void* startAsking()
         printf("%s -> Dead Machine : %s\n",__func__, midtoIPString(hostIpAddrs[deadMachineIndex]));
 #endif
         restoreDuplicationState(hostIpAddrs[deadMachineIndex]);
-        freeSockWithLock(transRequestSockPool, hostIpAddrs[deadMachineIndex], socklist[deadMachineIndex]);
+        freeSockWithLock(transPResponseSocketPool, hostIpAddrs[deadMachineIndex], socklist[deadMachineIndex]);
         socklist[deadMachineIndex] = -1;
       } // end of if 2
     } // end of while 1

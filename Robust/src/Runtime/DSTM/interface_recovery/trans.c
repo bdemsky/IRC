@@ -1627,14 +1627,14 @@ void restoreDuplicationState(unsigned int deadHost) {
 		}
 	}
 	else {
-		if((sd = getSockWithLock(transRequestSockPool, leader)) < 0) {
+		if((sd = getSockWithLock(transPrefetchSockPool, leader)) < 0) {
 			printf("%s -> socket create error\n",__func__);
 			exit(-1);
 		}
 		ctrl = REMOTE_RESTORE_DUPLICATED_STATE;
 		send_data(sd, &ctrl, sizeof(char));
 		send_data(sd, &deadHost, sizeof(unsigned int));
-    freeSockWithLock(transRequestSockPool,leader,sd);
+    freeSockWithLock(transPrefetchSockPool,leader,sd);
 	  sleep(WAIT_TIME);
 	}
 
@@ -2341,7 +2341,7 @@ unsigned int updateLiveHosts() {
 			continue;
 		}
 		for(j = 0; j < 5; j++) { 	// hard define num of retries
-			if((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+			if((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
 #ifdef DEBUG
   	  	printf("%s -> Cannot create socket connection to [%s], attempt %d\n", __func__, midtoIPString(hostIpAddrs[i]), j);
 #endif
@@ -2376,6 +2376,7 @@ unsigned int updateLiveHosts() {
           deadhost = i;
         }
 		  }
+      freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
 			break;
 		}
 #ifdef DEBUG
@@ -2430,11 +2431,12 @@ int updateLiveHostsCommit() {
 		if(i == myIndexInHostArray) 
 			continue;
 		if(liveHosts[i] == 1) {
-			if((sd = getSock2WithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+			if((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
 	  		printf("%s -> socket create error, attempt %d\n",__func__, i);
 				return -1;
 			}
 			send_data(sd, updaterequest, sizeof(updaterequest));
+      freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
 		}
 	}
 	liveHostsValid = 1;
@@ -2561,7 +2563,7 @@ void duplicateLostObjects(unsigned int mid){
 	if(originalMid == myIpAddr) {   // copy local machine's backup data, make it as primary data of backup machine.
 		duplicateLocalOriginalObjects(backupMid);	
 	}
-	else if((sd = getSockWithLock(transRequestSockPool, originalMid)) < 0) {
+	else if((sd = getSockWithLock(transPrefetchSockPool, originalMid)) < 0) {
 		printf("%s -> socket create error, attempt %d\n", __func__,j);
     exit(0);
 		//usleep(1000);
@@ -2581,13 +2583,13 @@ void duplicateLostObjects(unsigned int mid){
 		printf("%s (DUPLICATE_ORIGINAL) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
 #endif
 
-    freeSockWithLock(transRequestSockPool, originalMid, sd);
+    freeSockWithLock(transPrefetchSockPool, originalMid, sd);
 	}
 
 	if(backupMid == myIpAddr) {   // copy local machine's primary data, and make it as backup data of original machine.
 		duplicateLocalBackupObjects(originalMid);	
 	}
-	else if((sd = getSockWithLock(transRequestSockPool, backupMid)) < 0) {
+	else if((sd = getSockWithLock(transPrefetchSockPool, backupMid)) < 0) {
 		printf("updateLiveHosts(): socket create error, attempt %d\n", j);
 		exit(1);
 	}
@@ -2606,7 +2608,7 @@ void duplicateLostObjects(unsigned int mid){
 		printf("%s (DUPLICATE_BACKUP) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
 #endif
 
-    freeSockWithLock(transRequestSockPool, backupMid, sd);
+    freeSockWithLock(transPrefetchSockPool, backupMid, sd);
 	}
 
 #ifndef DEBUG
@@ -2630,7 +2632,7 @@ void duplicateLocalBackupObjects(unsigned int mid) {
 #endif
 	//send control and dupes after
 	ctrl = RECEIVE_DUPES;
-	if((sd = getSockWithLock(transRequestSockPool, mid)) < 0) {
+	if((sd = getSockWithLock(transPrefetchSockPool, mid)) < 0) {
 		printf("duplicatelocalbackup: socket create error\n");
 		//usleep(1000);
 	}
@@ -2641,7 +2643,7 @@ void duplicateLocalBackupObjects(unsigned int mid) {
 	send_data(sd, dupeptr, tempsize);
 	
   recv_data(sd, &response, sizeof(char));
-  freeSockWithLock(transRequestSockPool,mid,sd);
+  freeSockWithLock(transPrefetchSockPool,mid,sd);
 
 #ifdef DEBUG
   printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
@@ -2675,7 +2677,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 	//send control and dupes after
 	ctrl = RECEIVE_DUPES;
 
-	if((sd = getSockWithLock(transRequestSockPool, mid)) < 0) {
+	if((sd = getSockWithLock(transPrefetchSockPool, mid)) < 0) {
 		printf("DUPLICATE_ORIGINAL: socket create error\n");
 		//usleep(1000);
 	}
@@ -2687,7 +2689,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 	send_data(sd, dupeptr, tempsize);
 
 	recv_data(sd, &response, sizeof(char));
-  freeSockWithLock(transRequestSockPool,mid,sd);
+  freeSockWithLock(transPrefetchSockPool,mid,sd);
 
 #ifdef DEBUG
   printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
@@ -2856,7 +2858,9 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 
 #ifdef DEBUG
     printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
+#ifdef RECOVERY
     printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
+#endif
 #endif
 
     msg[0] = THREAD_NOTIFY_REQUEST;
@@ -3193,7 +3197,7 @@ int paxosPrepare()
 		if(!liveHosts[i]) 
 			continue;
 
-		if ((sd = getSockWithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+		if ((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
 			printf("paxosPrepare(): socket create error\n");
 			continue;
 		}
@@ -3229,7 +3233,7 @@ int paxosPrepare()
 			 	break;
 		}
     
-    freeSockWithLock(transRequestSockPool,hostIpAddrs[i],sd);
+    freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
 	}
 
 #ifdef DEBUG
@@ -3261,7 +3265,7 @@ int paxosAccept()
     if(!liveHosts[i]) 
 			continue;
 
-  	if ((sd = getSockWithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+  	if ((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
 			printf("paxosAccept(): socket create error\n");
 			continue;
 		}
@@ -3288,7 +3292,7 @@ int paxosAccept()
 #ifdef DEBUG
 		printf(">> Debug : Accept - n_h [%d], n_a [%d], v_a [%s]\n", n_h, n_a, midtoIPString(v_a));
 #endif
-    freeSockWithLock(transRequestSockPool,hostIpAddrs[i],sd);
+    freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
 	}
 
 	if (cnt >= (numLiveHostsInSystem / 2)) {
@@ -3323,7 +3327,7 @@ void paxosLearn()
 #endif
 			continue;
 		}
-		if ((sd = getSockWithLock(transRequestSockPool, hostIpAddrs[i])) < 0) {
+		if ((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
 			continue;
 			//			printf("paxosLearn(): socket create error, attemp\n");
 		}
@@ -3331,7 +3335,7 @@ void paxosLearn()
 		send_data(sd, &control, sizeof(char));
 		send_data(sd, &v_a, sizeof(int));
 
-    freeSockWithLock(transRequestSockPool,hostIpAddrs[i],sd);
+    freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
 
 	}
 	//return v_a;
