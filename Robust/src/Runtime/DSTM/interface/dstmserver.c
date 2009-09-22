@@ -12,6 +12,7 @@
 #include "thread.h"
 #endif
 #include "gCollect.h"
+#include "readstruct.h"
 
 #define BACKLOG 10 //max pending connections
 #define RECEIVE_BUFFER_SIZE 2048
@@ -130,10 +131,13 @@ void *dstmAccept(void *acceptfd) {
   trans_commit_data_t transinfo;
   unsigned short objType, *versionarry, version;
   unsigned int *oidarry, numoid, mid, threadid;
+  struct readstruct readbuffer;
+  readbuffer.head=0;
+  readbuffer.tail=0;
 
   /* Receive control messages from other machines */
   while(1) {
-    int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
+    int ret=recv_data_errorcode_buf((int)acceptfd, &readbuffer, &control, sizeof(char));
     if (ret==0)
       break;
     if (ret==-1) {
@@ -143,7 +147,7 @@ void *dstmAccept(void *acceptfd) {
     switch(control) {
     case READ_REQUEST:
       /* Read oid requested and search if available */
-      recv_data((int)acceptfd, &oid, sizeof(unsigned int));
+      recv_data_buf((int)acceptfd, &readbuffer, &oid, sizeof(unsigned int));
       while((srcObj = mhashSearch(oid)) == NULL) {
 	int ret;
 	if((ret = sched_yield()) != 0) {
@@ -182,7 +186,7 @@ void *dstmAccept(void *acceptfd) {
       transinfo.modptr = NULL;
       transinfo.numlocked = 0;
       transinfo.numnotfound = 0;
-      if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
+      if((val = readClientReq(&transinfo, (int)acceptfd, &readbuffer)) != 0) {
 	printf("Error: In readClientReq() %s, %d\n", __FILE__, __LINE__);
 	pthread_exit(NULL);
       }
@@ -190,12 +194,12 @@ void *dstmAccept(void *acceptfd) {
 
     case TRANS_PREFETCH:
 #ifdef RANGEPREFETCH
-      if((val = rangePrefetchReq((int)acceptfd)) != 0) {
+      if((val = rangePrefetchReq((int)acceptfd, &readbuffer)) != 0) {
 	printf("Error: In rangePrefetchReq() %s, %d\n", __FILE__, __LINE__);
 	break;
       }
 #else
-      if((val = prefetchReq((int)acceptfd)) != 0) {
+      if((val = prefetchReq((int)acceptfd, &readbuffer)) != 0) {
 	printf("Error: In prefetchReq() %s, %d\n", __FILE__, __LINE__);
 	break;
       }
@@ -204,12 +208,12 @@ void *dstmAccept(void *acceptfd) {
 
     case TRANS_PREFETCH_RESPONSE:
 #ifdef RANGEPREFETCH
-      if((val = getRangePrefetchResponse((int)acceptfd)) != 0) {
+      if((val = getRangePrefetchResponse((int)acceptfd, &readbuffer)) != 0) {
 	printf("Error: In getRangePrefetchRespose() %s, %d\n", __FILE__, __LINE__);
 	break;
       }
 #else
-      if((val = getPrefetchResponse((int) acceptfd)) != 0) {
+      if((val = getPrefetchResponse((int) acceptfd, &readbuffer)) != 0) {
 	printf("Error: In getPrefetchResponse() %s, %d\n", __FILE__, __LINE__);
 	break;
       }
@@ -217,20 +221,20 @@ void *dstmAccept(void *acceptfd) {
       break;
 
     case START_REMOTE_THREAD:
-      recv_data((int)acceptfd, &oid, sizeof(unsigned int));
+      recv_data_buf((int)acceptfd, &readbuffer, &oid, sizeof(unsigned int));
       objType = getObjType(oid);
       startDSMthread(oid, objType);
       break;
 
     case THREAD_NOTIFY_REQUEST:
-      recv_data((int)acceptfd, &numoid, sizeof(unsigned int));
+      recv_data_buf((int)acceptfd, &readbuffer, &numoid, sizeof(unsigned int));
       size = (sizeof(unsigned int) + sizeof(unsigned short)) * numoid + 2 * sizeof(unsigned int);
       if((buffer = calloc(1,size)) == NULL) {
 	printf("%s() Calloc error at %s, %d\n", __func__, __FILE__, __LINE__);
 	pthread_exit(NULL);
       }
 
-      recv_data((int)acceptfd, buffer, size);
+      recv_data_buf((int)acceptfd, &readbuffer, buffer, size);
 
       oidarry = calloc(numoid, sizeof(unsigned int));
       memcpy(oidarry, buffer, sizeof(unsigned int) * numoid);
@@ -243,7 +247,6 @@ void *dstmAccept(void *acceptfd) {
       threadid = *((unsigned int *)(buffer+size));
       processReqNotify(numoid, oidarry, versionarry, mid, threadid);
       free(buffer);
-
       break;
 
     case THREAD_NOTIFY_RESPONSE:
@@ -253,7 +256,7 @@ void *dstmAccept(void *acceptfd) {
 	pthread_exit(NULL);
       }
 
-      recv_data((int)acceptfd, buffer, size);
+      recv_data_buf((int)acceptfd, &readbuffer, buffer, size);
 
       oid = *((unsigned int *)buffer);
       size = sizeof(unsigned int);
@@ -281,7 +284,7 @@ closeconnection:
 
 /* This function reads the information available in a transaction request
  * and makes a function call to process the request */
-int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
+int readClientReq(trans_commit_data_t *transinfo, int acceptfd, struct readstruct * readbuffer) {
   char *ptr;
   void *modptr;
   unsigned int *oidmod, oid;
@@ -295,14 +298,14 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   size = sizeof(fixed) - 1;
   ptr = (char *)&fixed;;
   fixed.control = TRANS_REQUEST;
-  recv_data((int)acceptfd, ptr+1, size);
+  recv_data_buf((int)acceptfd, readbuffer, ptr+1, size);
 
   /* Read list of mids */
   int mcount = fixed.mcount;
   size = mcount * sizeof(unsigned int);
   unsigned int listmid[mcount];
   ptr = (char *) listmid;
-  recv_data((int)acceptfd, ptr, size);
+  recv_data_buf((int)acceptfd, readbuffer, ptr, size);
 
   /* Read oid and version tuples for those objects that are not modified in the transaction */
   int numread = fixed.numread;
@@ -310,7 +313,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   char objread[size];
   if(numread != 0) { //If pile contains more than one object to be read,
     // keep reading all objects
-    recv_data((int)acceptfd, objread, size);
+    recv_data_buf((int)acceptfd, readbuffer, objread, size);
   }
 
   /* Read modified objects */
@@ -320,7 +323,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
       return 1;
     }
     size = fixed.sum_bytes;
-    recv_data((int)acceptfd, modptr, size);
+    recv_data_buf((int)acceptfd, readbuffer, modptr, size);
   }
 
   /* Create an array of oids for modified objects */
@@ -340,7 +343,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   }
 
   /*Process the information read */
-  if((val = processClientReq(&fixed, transinfo, listmid, objread, modptr, oidmod, acceptfd)) != 0) {
+  if((val = processClientReq(&fixed, transinfo, listmid, objread, modptr, oidmod, acceptfd, readbuffer)) != 0) {
     printf("Error: In processClientReq() %s, %d\n", __FILE__, __LINE__);
     /* Free resources */
     if(oidmod != NULL) {
@@ -361,7 +364,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
  * function and sends a reply to the co-ordinator.
  * Following this it also receives a new control message from the co-ordinator and processes this message*/
 int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
-                     unsigned int *listmid, char *objread, void *modptr, unsigned int *oidmod, int acceptfd) {
+                     unsigned int *listmid, char *objread, void *modptr, unsigned int *oidmod, int acceptfd, struct readstruct *readbuffer) {
 
   char control, sendctrl, retval;
   objheader_t *tmp_header;
@@ -374,7 +377,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     return 1;
   }
 
-  recv_data((int)acceptfd, &control, sizeof(char));
+  recv_data_buf((int)acceptfd, readbuffer, &control, sizeof(char));
   /* Process the new control message */
   switch(control) {
   case TRANS_ABORT:
@@ -736,7 +739,7 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
  * If objects are not found then record those and if objects are found
  * then use offset values to prefetch references to other objects */
 
-int prefetchReq(int acceptfd) {
+int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
   int i, size, objsize, numoffset = 0;
   int length;
   char *recvbuffer, control;
@@ -746,10 +749,10 @@ int prefetchReq(int acceptfd) {
   int sd = -1;
 
   while(1) {
-    recv_data((int)acceptfd, &numoffset, sizeof(int));
+    recv_data_buf((int)acceptfd, readbuffer, &numoffset, sizeof(int));
     if(numoffset == -1)
       break;
-    recv_data((int)acceptfd, &oidmid, 2*sizeof(unsigned int));
+    recv_data_buf((int)acceptfd, readbuffer, &oidmid, 2*sizeof(unsigned int));
     oid = oidmid.oid;
     if (mid != oidmid.mid) {
       if (mid!=-1) {
@@ -759,23 +762,24 @@ int prefetchReq(int acceptfd) {
       sd = getSockWithLock(transPResponseSocketPool, mid);
     }
     short offsetarry[numoffset];
-    recv_data((int) acceptfd, offsetarry, numoffset*sizeof(short));
+    recv_data_buf((int) acceptfd, readbuffer, offsetarry, numoffset*sizeof(short));
 
     /*Process each oid */
     if ((header = mhashSearch(oid)) == NULL) { /* Obj not found */
       /* Save the oids not found in buffer for later use */
       size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
-      char sendbuffer[size];
-      *((int *) sendbuffer) = size;
-      *((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
-      *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
-      control = TRANS_PREFETCH_RESPONSE;
-      sendPrefetchResponse(sd, &control, sendbuffer, &size);
+      char sendbuffer[size+1];
+      sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
+      *((int *) (sendbuffer+sizeof(char))) = size;
+      *((char *)(sendbuffer + sizeof(char)+sizeof(int))) = OBJECT_NOT_FOUND;
+      *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char)+sizeof(char))) = oid;
+      send_data(sd, sendbuffer, size+1);
     } else { /* Object Found */
-      int incr = 0;
+      int incr = 1;
       GETSIZE(objsize, header);
       size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
-      char sendbuffer[size];
+      char sendbuffer[size+1];
+      sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
       *((int *)(sendbuffer + incr)) = size;
       incr += sizeof(int);
       *((char *)(sendbuffer + incr)) = OBJECT_FOUND;
@@ -783,9 +787,7 @@ int prefetchReq(int acceptfd) {
       *((unsigned int *)(sendbuffer+incr)) = oid;
       incr += sizeof(unsigned int);
       memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
-
-      control = TRANS_PREFETCH_RESPONSE;
-      sendPrefetchResponse(sd, &control, sendbuffer, &size);
+      send_data(sd, sendbuffer, size+1);
 
       /* Calculate the oid corresponding to the offset value */
       for(i = 0 ; i< numoffset ; i++) {
@@ -809,19 +811,20 @@ int prefetchReq(int acceptfd) {
 
 	if((header = mhashSearch(oid)) == NULL) {
 	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
-	  char sendbuffer[size];
-	  *((int *) sendbuffer) = size;
-	  *((char *)(sendbuffer + sizeof(int))) = OBJECT_NOT_FOUND;
-	  *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char))) = oid;
+	  char sendbuffer[size+1];
+	  sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
+	  *((int *) (sendbuffer+1)) = size;
+	  *((char *)(sendbuffer + sizeof(char)+sizeof(int))) = OBJECT_NOT_FOUND;
+	  *((unsigned int *)(sendbuffer + sizeof(char)+sizeof(int) + sizeof(char))) = oid;
 
-	  control = TRANS_PREFETCH_RESPONSE;
-	  sendPrefetchResponse(sd, &control, sendbuffer, &size);
+	  send_data(sd, sendbuffer, size+1);
 	  break;
 	} else { /* Obj Found */
-	  int incr = 0;
+	  int incr = 1;
 	  GETSIZE(objsize, header);
 	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
-	  char sendbuffer[size];
+	  char sendbuffer[size+1];
+	  sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
 	  *((int *)(sendbuffer + incr)) = size;
 	  incr += sizeof(int);
 	  *((char *)(sendbuffer + incr)) = OBJECT_FOUND;
@@ -829,9 +832,7 @@ int prefetchReq(int acceptfd) {
 	  *((unsigned int *)(sendbuffer+incr)) = oid;
 	  incr += sizeof(unsigned int);
 	  memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
-
-	  control = TRANS_PREFETCH_RESPONSE;
-	  sendPrefetchResponse(sd, &control, sendbuffer, &size);
+	  send_data(sd, sendbuffer, size+1);
 	}
       } //end of for
     }

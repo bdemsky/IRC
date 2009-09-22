@@ -79,6 +79,14 @@ void printhex(unsigned char *, int);
 plistnode_t *createPiles();
 plistnode_t *sortPiles(plistnode_t *pileptr);
 
+char bigarray[16*1024*1024];
+int bigindex=0;
+#define LOGEVENT(x) { \
+    int tmp=bigindex++;				\
+    bigarray[tmp]=x;				\
+  }
+
+
 /*******************************
 * Send and Recv function calls
 *******************************/
@@ -97,6 +105,87 @@ void send_data(int fd, void *buf, int buflen) {
     size -= numbytes;
   }
 }
+
+void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buflen) {
+  char *buf=(char *)buffer;
+
+  int numbytes=readbuffer->head-readbuffer->tail;
+  if (numbytes>buflen)
+    numbytes=buflen;
+  if (numbytes>0) {
+    memcpy(buf, &readbuffer->buf[readbuffer->tail], numbytes);
+    readbuffer->tail+=numbytes;
+    buflen-=numbytes;
+    buf+=numbytes;
+    if (buflen==0) {
+      return;
+    }
+  }
+
+  if (buflen>=MAXBUF) {
+    recv_data(fd, buf, buflen);
+    return;
+  }
+  
+  int maxbuf=MAXBUF;
+  int obufflen=buflen;
+  readbuffer->head=0;
+  
+  while (buflen > 0) {
+    int numbytes = recv(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
+    if (numbytes == -1) {
+      perror("recv");
+      exit(0);
+    }
+    buflen-=numbytes;
+    readbuffer->head+=numbytes;
+    maxbuf-=numbytes;
+  }
+  memcpy(buf,readbuffer->buf,obufflen);
+  readbuffer->tail=obufflen;
+}
+
+int recv_data_errorcode_buf(int fd, struct readstruct * readbuffer, void *buffer, int buflen) {
+  char *buf=(char *)buffer;
+  //now tail<=head
+  int numbytes=readbuffer->head-readbuffer->tail;
+  if (numbytes>buflen)
+    numbytes=buflen;
+  if (numbytes>0) {
+    memcpy(buf, &readbuffer->buf[readbuffer->tail], numbytes);
+    readbuffer->tail+=numbytes;
+    buflen-=numbytes;
+    buf+=numbytes;
+    if (buflen==0)
+      return 1;
+  }
+
+  if (buflen>=MAXBUF) {
+    return recv_data_errorcode(fd, buf, buflen);
+  }
+
+  int maxbuf=MAXBUF;
+  int obufflen=buflen;
+  readbuffer->head=0;
+  
+  while (buflen > 0) {
+    int numbytes = recv(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
+    if (numbytes ==0) {
+      return 0;
+    }
+    if (numbytes==-1) {
+      perror("recvbuf");
+      return -1;
+    }
+    buflen-=numbytes;
+    readbuffer->head+=numbytes;
+    maxbuf-=numbytes;
+  }
+  memcpy(buf,readbuffer->buf,obufflen);
+  readbuffer->tail=obufflen;
+  return 1;
+}
+
 
 void recv_data(int fd, void *buf, int buflen) {
   char *buffer = (char *)(buf);
@@ -168,11 +257,17 @@ void prefetch(int siteid, int ntuples, unsigned int *oids, unsigned short *endof
   /* Allocate for the queue node*/
   int qnodesize = 2*sizeof(int) + ntuples * (sizeof(unsigned short) + sizeof(unsigned int)) + endoffsets[ntuples - 1] * sizeof(short);
   int len;
-  char * node= getmemory(qnodesize);
+#ifdef INLINEPREFETCH
+  char node[qnodesize];
+#else
+  char *node=getmemory(qnodesize);
+#endif
   int top=endoffsets[ntuples-1];
 
-  if (node==NULL)
+  if (node==NULL) {
+    LOGEVENT('D');
     return;
+  }
   /* Set queue node values */
 
   /* TODO: Remove this after testing */
@@ -185,8 +280,30 @@ void prefetch(int siteid, int ntuples, unsigned int *oids, unsigned short *endof
   memcpy(node+len+ntuples*sizeof(unsigned int), endoffsets, ntuples*sizeof(unsigned short));
   memcpy(node+len+ntuples*(sizeof(unsigned int)+sizeof(short)), arrayfields, top*sizeof(short));
 
+#ifdef INLINEPREFETCH
+  prefetchpile_t *pilehead = foundLocal(node);
+
+  if (pilehead!=NULL) {
+    // Get sock from shared pool
+    
+    /* Send  Prefetch Request */
+    prefetchpile_t *ptr = pilehead;
+    while(ptr != NULL) {
+      int sd = getSock2(transPrefetchSockPool, ptr->mid);
+      sendPrefetchReq(ptr, sd);
+      ptr = ptr->next;
+    }
+    
+    /* Release socket */
+    //	freeSock(transPrefetchSockPool, pilehead->mid, sd);
+    
+    /* Deallocated pilehead */
+    mcdealloc(pilehead);
+  }
+#else
   /* Lock and insert into primary prefetch queue */
   movehead(qnodesize);
+#endif
 }
 
 /* This function starts up the transaction runtime. */
@@ -302,9 +419,11 @@ void transInit() {
     retval=pthread_create(&tPrefetch, NULL, transPrefetchNew, NULL);
   } while(retval!=0);
 #else
+#ifndef INLINEPREFETCH
   do {
     retval=pthread_create(&tPrefetch, NULL, transPrefetch, NULL);
   } while(retval!=0);
+#endif
 #endif
   pthread_detach(tPrefetch);
 #endif
@@ -523,6 +642,7 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
 #ifdef CACHE
     if((tmp = (objheader_t *) prehashSearch(oid)) != NULL) {
 #ifdef TRANSSTATS
+      LOGEVENT('P')
       nprehashSearch++;
 #endif
       /* Look up in prefetch cache */
@@ -551,6 +671,8 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
       return NULL;
     } else {
 #ifdef TRANSSTATS
+
+      LOGEVENT('R');
       nRemoteSend++;
 #endif
 #ifdef COMPILER
@@ -661,6 +783,13 @@ int transCommit() {
   int firsttime=1;
   trans_commit_data_t transinfo; /* keeps track of objs locked during transaction */
   char finalResponse;
+
+#ifdef TRANSSTATS
+  int iii;
+  for(iii=0;iii<bigindex;iii++) {
+    printf("%c", bigarray[iii]);
+  }
+#endif
 
 #ifdef ABORTREADERS
   if (t_abort) {
@@ -1320,6 +1449,7 @@ prefetchpile_t *foundLocal(char *ptr) {
     unsigned int oid=oidarray[i];
     int newbase;
     int machinenum;
+
     if (oid==0)
       continue;
     //Look up fields locally
@@ -1457,15 +1587,19 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
   objpile_t *tmp;
 
   /* Send TRANS_PREFETCH control message */
-  control = TRANS_PREFETCH;
-  send_data(sd, &control, sizeof(char));
+  int first=1;
 
   /* Send Oids and offsets in pairs */
   tmp = mcpilenode->objpiles;
   while(tmp != NULL) {
     len = sizeof(int) + sizeof(unsigned int) + sizeof(unsigned int) + ((tmp->numoffset) * sizeof(short));
-    char oidnoffset[len];
+    char oidnoffset[len+5];
     char *buf=oidnoffset;
+    if (first) {
+      *buf=TRANS_PREFETCH;
+      buf++;len++;
+      first=0;
+    }
     *((int*)buf) = tmp->numoffset;
     buf+=sizeof(int);
     *((unsigned int *)buf) = tmp->oid;
@@ -1476,30 +1610,32 @@ void sendPrefetchReq(prefetchpile_t *mcpilenode, int sd) {
     *((unsigned int *)buf) = myIpAddr;
     buf += sizeof(unsigned int);
     memcpy(buf, tmp->offset, (tmp->numoffset)*sizeof(short));
-    send_data(sd, oidnoffset, len);
     tmp = tmp->next;
+    if (tmp==NULL) {
+      *((int *)(&oidnoffset[len]))=-1;
+      len+=sizeof(int);
+    }
+    send_data(sd, oidnoffset, len);
   }
 
-  /* Send a special char -1 to represent the end of sending oids + offset pair to remote machine */
-  endpair = -1;
-  send_data(sd, &endpair, sizeof(int));
-
+  LOGEVENT('S');
   return;
 }
 
-int getPrefetchResponse(int sd) {
+int getPrefetchResponse(int sd, struct readstruct *readbuffer) {
   int length = 0, size = 0;
   char control;
   unsigned int oid;
   void *modptr, *oldptr;
 
-  recv_data((int)sd, &length, sizeof(int));
+  recv_data_buf(sd, readbuffer, &length, sizeof(int));
   size = length - sizeof(int);
   char recvbuffer[size];
 #ifdef TRANSSTATS
     getResponse++;
+    LOGEVENT('Z');
 #endif
-  recv_data((int)sd, recvbuffer, size);
+    recv_data_buf(sd, readbuffer, recvbuffer, size);
   control = *((char *) recvbuffer);
   if(control == OBJECT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));

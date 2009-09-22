@@ -331,12 +331,12 @@ void sendRangePrefetchReq(perMcPrefetchList_t *mcpilenode, int sd, unsigned int 
   return;
 }
 
-int getRangePrefetchResponse(int sd) {
+int getRangePrefetchResponse(int sd, struct readstruct * readbuffer) {
   int length = 0;
-  recv_data(sd, &length, sizeof(int));
+  recv_data_buf(sd, readbuffer, &length, sizeof(int));
   int size = length - sizeof(int);
   char recvbuffer[size];
-  recv_data(sd, recvbuffer, size);
+  recv_data_buf(sd, readbuffer, recvbuffer, size);
   char control = *((char *) recvbuffer);
   unsigned int oid;
   if(control == OBJECT_FOUND) {
@@ -390,16 +390,16 @@ int getRangePrefetchResponse(int sd) {
   return 0;
 }
 
-int rangePrefetchReq(int acceptfd) {
+int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer) {
   int numoffset, sd = -1;
   unsigned int baseoid, mid = -1;
   oidmidpair_t oidmid;
 
   while (1) {
-    recv_data(acceptfd, &numoffset, sizeof(int));
+    recv_data_buf(acceptfd, readbuffer, &numoffset, sizeof(int));
     if(numoffset == -1)
       break;
-    recv_data(acceptfd, &oidmid, 2*sizeof(unsigned int));
+    recv_data_buf(acceptfd, readbuffer, &oidmid, 2*sizeof(unsigned int));
     baseoid = oidmid.oid;
     if(mid != oidmid.mid) {
       if(mid!= -1)
@@ -408,7 +408,7 @@ int rangePrefetchReq(int acceptfd) {
       sd = getSockWithLock(transPResponseSocketPool, mid);
     }
     short offsetsarry[numoffset];
-    recv_data(acceptfd, offsetsarry, numoffset*sizeof(short));
+    recv_data_buf(acceptfd, readbuffer, offsetsarry, numoffset*sizeof(short));
 
     perMcPrefetchList_t * pilehead=processRemote(baseoid, offsetsarry, sd, numoffset);
 

@@ -82,6 +82,7 @@
 #include <signal.h>
 #include "plookup.h"
 #include "dsmdebug.h"
+#include "readstruct.h"
 #ifdef ABORTREADERS
 #include <setjmp.h>
 #endif
@@ -234,8 +235,8 @@ void clearObjStore(); // TODO:currently only clears the prefetch cache object st
 void *dstmListen(void *);
 int startlistening();
 void *dstmAccept(void *);
-int readClientReq(trans_commit_data_t *, int);
-int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int);
+int readClientReq(trans_commit_data_t *, int, struct readstruct * readbuffer);
+int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int, struct readstruct *);
 char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *, int);
 char decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, int);
 int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
@@ -292,7 +293,7 @@ int checkoid(unsigned int oid);
 int transPrefetchProcess(int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 void sendPrefetchReqnew(prefetchpile_t*, int);
-int getPrefetchResponse(int);
+int getPrefetchResponse(int, struct readstruct *);
 unsigned short getObjType(unsigned int oid);
 int startRemoteThread(unsigned int oid, unsigned int mid);
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs);

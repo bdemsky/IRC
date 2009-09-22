@@ -8,6 +8,13 @@ pthread_cond_t qcond;
 
 #define QSIZE 2048 //2 KB
 
+extern char bigarray[16*1024*1024];
+extern int bigindex;
+#define LOGEVENT(x) { \
+    int tmp=bigindex++;				\
+    bigarray[tmp]=x;				\
+  }
+
 void queueInit(void) {
   /* Intitialize primary queue */
   headoffset=0;
@@ -58,10 +65,12 @@ void movehead(int size) {
 void * gettail() {
   while(tailoffset==headoffset) {
     //Sleep
-    //    pthread_mutex_lock(&qlock);
-    //    if (tailoffset==headoffset)
-    //      pthread_cond_wait(&qcond, &qlock);
-    //    pthread_mutex_unlock(&qlock);
+    LOGEVENT('T');
+    pthread_mutex_lock(&qlock);
+    if (tailoffset==headoffset)
+      pthread_cond_wait(&qcond, &qlock);
+    pthread_mutex_unlock(&qlock);
+    LOGEVENT('W');
   }
   if (*((int *)(memory+tailoffset))==-1) {
     tailoffset=0; //do loop

@@ -2,6 +2,7 @@
 #define _PREFETCH_H_
 #include "queue.h"
 #include "dstm.h"
+#include "readstruct.h"
 
 #define GET_STRIDE(x) ((x & 0x7000) >> 12)
 #define GET_RANGE(x) (x & 0x0fff)
@@ -54,9 +55,9 @@ void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 
 /******** Sending and Receiving Prefetches *******/
 void sendRangePrefetchReq(perMcPrefetchList_t *, int sd, unsigned int mid);
-int rangePrefetchReq(int acceptfd);
+int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer);
 int processOidFound(objheader_t *, short *, int, int, int);
-int getRangePrefetchResponse(int sd);
+int getRangePrefetchResponse(int sd, struct readstruct *);
 INLINE objheader_t *searchObj(unsigned int);
 
 
