@@ -13,6 +13,7 @@
 #define GET_PTR_OID(x)  ((unsigned int *)(x + 2*sizeof(int)))
 #define GET_PTR_EOFF(x,n) ((short *)(x + 2*sizeof(int) + (n*sizeof(unsigned int))))
 #define GET_PTR_ARRYFLD(x,n) ((short *)(x + 2*sizeof(int) + (n*sizeof(unsigned int)) + (n*sizeof(short))))
+
 #define ENDEBUG(s) { printf("Inside %s()\n", s); fflush(stdout);}
 #define EXDEBUG(s) {printf("Outside %s()\n", s); fflush(stdout);}
 /*****************************************
@@ -287,7 +288,7 @@ void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
-prefetchpile_t *foundLocal(char *); // returns node with prefetch elements(oids, offsets)
+prefetchpile_t *foundLocal(char *, int); // returns node with prefetch elements(oids, offsets)
 int lookupObject(unsigned int * oid, short offset);
 int checkoid(unsigned int oid);
 int transPrefetchProcess(int **, short);

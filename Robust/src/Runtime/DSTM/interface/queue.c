@@ -83,6 +83,38 @@ void * gettail() {
   return memory+tailoffset+sizeof(int);
 }
 
+int numavailable() {
+  int tmp=tailoffset;
+  int available=0;
+  if (*((int *)(memory+tmp))==-1) {
+    tmp=0;
+  }
+  while(tmp!=headoffset) {
+    available++;
+    tmp=tmp+*((int *)(memory+tmp));
+    if (tmp>QSIZE|| (*((int *)(memory+tmp))==-1)) {
+      break;
+    }
+  }
+  return available;
+}
+
+void incmulttail(int num) {
+  int i;
+  for(i=0;i<num;i++) {
+    int tmpoffset=tailoffset+*((int *)(memory+tailoffset));
+    if (tmpoffset>QSIZE)
+      tailoffset=0;
+    else
+      tailoffset=tmpoffset;
+  }
+}
+
+void resetqueue() {
+  headoffset=0;
+  tailoffset=0;
+}
+
 void inctail() {
   int tmpoffset=tailoffset+*((int *)(memory+tailoffset));
   if (tmpoffset>QSIZE)
