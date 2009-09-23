@@ -1780,6 +1780,8 @@ public class OwnershipGraph {
     return rsOut;
   }
 
+  // detects strong updates to the primary parameter object and
+  // effects the removal of old edges in the calling graph
   private void effectCalleeStrongUpdates( Integer paramIndex,
 					  OwnershipGraph ogCallee,
 					  HeapRegionNode hrnCaller
@@ -1827,13 +1829,21 @@ public class OwnershipGraph {
     return true;
   }
 
-  public void resolveMethodCall(FlatCall fc,
-                                boolean isStatic,
-                                FlatMethod fm,
-                                OwnershipGraph ogCallee,
-				MethodContext mc
+  // resolveMethodCall() is used to incorporate a callee graph's effects into
+  // *this* graph, which is the caller.  This method can also be used, after
+  // the entire analysis is complete, to perform parameter decomposition for 
+  // a given call chain.
+  public void resolveMethodCall(FlatCall       fc,        // call site in caller method
+                                boolean        isStatic,  // whether it is a static method
+                                FlatMethod     fm,        // the callee method (when virtual, can be many)
+                                OwnershipGraph ogCallee,  // the callee's current ownership graph
+				MethodContext  mc,        // the aliasing context for this call
+				ParameterDecomposition pd // if this is not null, we're calling after analysis
 				) {
 
+
+    // this debug snippet is harmless for regular use and INVALUABLE at debug time
+    // to see what potentially goes wrong when a specific method calls another
     String debugCaller = "foo";
     String debugCallee = "bar";
     //String debugCaller = "StandardEngine";
@@ -1852,6 +1862,7 @@ public class OwnershipGraph {
 
       System.out.println( "  "+mc+" is calling "+fm );
     }
+
 
 
     // define rewrite rules and other structures to organize data by parameter/argument index
@@ -2131,6 +2142,42 @@ public class OwnershipGraph {
     }
 
     assert defParamObj.size() <= fm.numParameters();
+
+    // if we're in parameter decomposition mode, report some results here
+    if( pd != null ) {
+      Iterator mapItr;
+
+      // report primary parameter object mappings
+      mapItr = pi2dr.entrySet().iterator();
+      while( mapItr.hasNext() ) {
+	Map.Entry           me         = (Map.Entry)           mapItr.next();
+	Integer             paramIndex = (Integer)             me.getKey();
+	Set<HeapRegionNode> hrnAset    = (Set<HeapRegionNode>) me.getValue();
+
+	Iterator<HeapRegionNode> hrnItr = hrnAset.iterator();
+	while( hrnItr.hasNext() ) {
+	  HeapRegionNode hrnA = hrnItr.next();
+	  pd.mapRegionToParamObject( hrnA, paramIndex );
+	}
+      }
+
+      // report parameter-reachable mappings
+      mapItr = pi2r.entrySet().iterator();
+      while( mapItr.hasNext() ) {
+	Map.Entry           me         = (Map.Entry)           mapItr.next();
+	Integer             paramIndex = (Integer)             me.getKey();
+	Set<HeapRegionNode> hrnRset    = (Set<HeapRegionNode>) me.getValue();
+
+	Iterator<HeapRegionNode> hrnItr = hrnRset.iterator();
+	while( hrnItr.hasNext() ) {
+	  HeapRegionNode hrnR = hrnItr.next();
+	  pd.mapRegionToParamReachable( hrnR, paramIndex );
+	}
+      }
+
+      // and we're done in this method for special param decomp mode
+      return;
+    }
 
 
     // now iterate over reachable nodes to rewrite their alpha, and

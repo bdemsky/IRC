@@ -20,21 +20,24 @@ public class OwnershipAnalysis {
 
   public HashSet<AllocationSite>
   getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
+    checkAnalysisComplete();
     return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
   }
 
   public AllocationSite getAllocationSiteFromFlatNew(FlatNew fn) {
+    checkAnalysisComplete();
     return getAllocationSiteFromFlatNewPRIVATE(fn);
   }
 
   public AllocationSite getAllocationSiteFromHeapRegionNodeID(Integer id) {
+    checkAnalysisComplete();
     return mapHrnIdToAllocationSite.get(id);
   }
 
   public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          int paramIndex1,
                                          int paramIndex2) {
-
+    checkAnalysisComplete();
     OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(paramIndex1, paramIndex2);
@@ -43,7 +46,7 @@ public class OwnershipAnalysis {
   public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          int paramIndex,
                                          AllocationSite alloc) {
-
+    checkAnalysisComplete();
     OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(paramIndex, alloc);
@@ -52,7 +55,7 @@ public class OwnershipAnalysis {
   public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          AllocationSite alloc,
                                          int paramIndex) {
-
+    checkAnalysisComplete();
     OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(paramIndex, alloc);
@@ -61,7 +64,7 @@ public class OwnershipAnalysis {
   public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
                                          AllocationSite alloc1,
                                          AllocationSite alloc2) {
-
+    checkAnalysisComplete();
     OwnershipGraph og = getGraphOfAllContextsFromDescriptor(taskOrMethod);
     assert(og != null);
     return og.hasPotentialAlias(alloc1, alloc2);
@@ -69,6 +72,8 @@ public class OwnershipAnalysis {
 
 
   protected OwnershipGraph getGraphOfAllContextsFromDescriptor(Descriptor d) {
+    checkAnalysisComplete();
+
     assert d != null;
 
     OwnershipGraph og = new OwnershipGraph( allocationDepth, typeUtil );
@@ -89,7 +94,9 @@ public class OwnershipAnalysis {
   }
 
 
-  public String prettyPrintNodeSet( Set<HeapRegionNode> s ) {
+  public String prettyPrintNodeSet( Set<HeapRegionNode> s ) {    
+    checkAnalysisComplete();
+
     String out = "{\n";
 
     Iterator<HeapRegionNode> i = s.iterator();
@@ -113,6 +120,7 @@ public class OwnershipAnalysis {
   // between task parameters and flagged allocation sites reachable
   // from the task
   public void writeAllAliases(String outputFile, String timeReport) throws java.io.IOException {
+    checkAnalysisComplete();
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
 
@@ -202,6 +210,8 @@ public class OwnershipAnalysis {
 
   // this version of writeAllAliases is for Java programs that have no tasks
   public void writeAllAliasesJava(String outputFile, String timeReport) throws java.io.IOException {
+    checkAnalysisComplete();
+
     assert !state.TASK;    
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
@@ -253,18 +263,25 @@ public class OwnershipAnalysis {
   //
   ///////////////////////////////////////////
 
-
-
+  protected void checkAnalysisComplete() {
+    if( !analysisComplete ) {
+      throw new Error("Warning: public interface method called while analysis is running.");
+    }
+  }
 
 
 
 
 
   // data from the compiler
-  private State state;
-  private TypeUtil typeUtil;
-  private CallGraph callGraph;
-  private int allocationDepth;
+  public State     state;
+  public CallGraph callGraph;
+  public TypeUtil  typeUtil;
+  public int       allocationDepth;
+
+  // for public interface methods to warn that they
+  // are grabbing results during analysis
+  private boolean analysisComplete;
 
   // used to identify HeapRegionNode objects
   // A unique ID equates an object in one
@@ -280,7 +297,7 @@ public class OwnershipAnalysis {
   // TaskDescriptor and MethodDescriptor are combined
   // together, with a common parent class Descriptor
   private Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToInitialParamAllocGraph;
-  private Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToCompleteOwnershipGraph;
+  public  Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToCompleteOwnershipGraph;
   private Hashtable<FlatNew,       AllocationSite>           mapFlatNewToAllocationSite;
   private Hashtable<Descriptor,    HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
   private Hashtable<MethodContext, Integer>                  mapMethodContextToNumUpdates;
@@ -330,7 +347,7 @@ public class OwnershipAnalysis {
                            boolean writeAllDOTs,
                            String aliasFile) throws java.io.IOException {
 
-    double timeStartAnalysis = (double) System.nanoTime();
+    analysisComplete = false;
 
     this.state           = state;
     this.typeUtil        = tu;
@@ -369,6 +386,9 @@ public class OwnershipAnalysis {
     if( writeAllDOTs ) {
       mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
     }
+
+
+    double timeStartAnalysis = (double) System.nanoTime();
 
 
     if( state.TASK ) {
@@ -420,6 +440,8 @@ public class OwnershipAnalysis {
     // as mentioned above, analyze methods one-by-one, possibly revisiting
     // a method if the methods that it calls are updated
     analyzeMethods();
+    analysisComplete = true;
+
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
@@ -835,7 +857,7 @@ public class OwnershipAnalysis {
 	  }
 	  
 	} else {
-	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc);
+	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc, null);
 	}
 
       } else {
@@ -877,7 +899,7 @@ public class OwnershipAnalysis {
 	    }
 	    
 	  } else {
-	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc);
+	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc, null);
 	  }
 
 	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
