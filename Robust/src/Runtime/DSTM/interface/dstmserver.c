@@ -746,6 +746,7 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
   unsigned int oid, mid=-1;
   objheader_t *header;
   oidmidpair_t oidmid;
+  struct writestruct writebuffer;
   int sd = -1;
   while(1) {
     recv_data_buf((int)acceptfd, readbuffer, &numoffset, sizeof(int));
@@ -755,10 +756,12 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
     oid = oidmid.oid;
     if (mid != oidmid.mid) {
       if (mid!=-1) {
+	forcesend_buf(sd, &writebuffer, NULL, 0);
 	freeSockWithLock(transPResponseSocketPool, mid, sd);
       }
       mid=oidmid.mid;
       sd = getSockWithLock(transPResponseSocketPool, mid);
+      writebuffer.offset=0;
     }
     short offsetarry[numoffset];
     recv_data_buf((int) acceptfd, readbuffer, offsetarry, numoffset*sizeof(short));
@@ -772,7 +775,7 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
       *((int *) (sendbuffer+sizeof(char))) = size;
       *((char *)(sendbuffer + sizeof(char)+sizeof(int))) = OBJECT_NOT_FOUND;
       *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char)+sizeof(char))) = oid;
-      send_data(sd, sendbuffer, size+1);
+      send_buf(sd, &writebuffer, sendbuffer, size+1);
     } else { /* Object Found */
       int incr = 1;
       GETSIZE(objsize, header);
@@ -786,7 +789,7 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
       *((unsigned int *)(sendbuffer+incr)) = oid;
       incr += sizeof(unsigned int);
       memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
-      send_data(sd, sendbuffer, size+1);
+      send_buf(sd, &writebuffer, sendbuffer, size+1);
 
       /* Calculate the oid corresponding to the offset value */
       for(i = 0 ; i< numoffset ; i++) {
@@ -816,7 +819,7 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
 	  *((char *)(sendbuffer + sizeof(char)+sizeof(int))) = OBJECT_NOT_FOUND;
 	  *((unsigned int *)(sendbuffer + sizeof(char)+sizeof(int) + sizeof(char))) = oid;
 
-	  send_data(sd, sendbuffer, size+1);
+	  send_buf(sd, &writebuffer, sendbuffer, size+1);
 	  break;
 	} else { /* Obj Found */
 	  int incr = 1;
@@ -831,14 +834,16 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
 	  *((unsigned int *)(sendbuffer+incr)) = oid;
 	  incr += sizeof(unsigned int);
 	  memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
-	  send_data(sd, sendbuffer, size+1);
+	  send_buf(sd, &writebuffer, sendbuffer, size+1);
 	}
       } //end of for
     }
   } //end of while
     //Release socket
-  if (mid!=-1)
+  if (mid!=-1) {
+    forcesend_buf(sd, &writebuffer, NULL, 0);
     freeSockWithLock(transPResponseSocketPool, mid, sd);
+  }
   return 0;
 }
 
