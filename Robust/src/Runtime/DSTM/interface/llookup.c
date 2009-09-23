@@ -22,7 +22,7 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
   return 0;
 }
 
-unsigned int lhashSearch(unsigned int oid) {
+INLINE unsigned int lhashSearch(unsigned int oid) {
   if (oidsPerBlock == 0)
     return hostIpAddrs[0];
   else

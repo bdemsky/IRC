@@ -13,7 +13,7 @@
 // will fail in odd subtle ways
 
 #define DEFAULT_OBJ_STORE_SIZE (4194304-16) //just a little less the 4MB
-#define PREFETCH_FLUSH_THRESHOLD 10 //MINIMUM SIZE BEFORE FLUSHING
+#define PREFETCH_FLUSH_THRESHOLD 20 //MINIMUM SIZE BEFORE FLUSHING
 #define STALL_THRESHOLD 15 //number of prefetches stores before we can start freeing old ones
 
 

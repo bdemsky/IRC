@@ -375,6 +375,7 @@ public class BuildCode {
 	outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
 	outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
 	outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
+	outmethod.println("printf(\"getResponse= %d\\n\", getResponse);");
 	outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
 	outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
       } else if (state.SINGLETM) {
@@ -901,6 +902,7 @@ public class BuildCode {
       outclassdefs.print("extern int nmhashSearch;\n");
       outclassdefs.print("extern int nprehashSearch;\n");
       outclassdefs.print("extern int nRemoteSend;\n");
+      outclassdefs.print("extern int getResponse;\n");
       outclassdefs.print("extern int bytesSent;\n");
       outclassdefs.print("extern int bytesRecv;\n");
       outclassdefs.print("extern void handle();\n");

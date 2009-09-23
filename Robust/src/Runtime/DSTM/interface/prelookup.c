@@ -70,7 +70,7 @@ void prehashInsert(unsigned int key, void *val) {
 }
 
 // Search for an address for a given oid
-void *prehashSearch(unsigned int key) {
+INLINE void *prehashSearch(unsigned int key) {
   int index;
   prehashlistnode_t *ptr, *node;
 

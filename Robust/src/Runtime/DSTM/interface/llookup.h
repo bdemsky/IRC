@@ -10,6 +10,8 @@
 #define LOADFACTOR 0.5
 #define HASH_SIZE 100
 
+#define INLINE    inline __attribute__((always_inline))
+
 typedef struct lhashlistnode {
   unsigned int oid;
   unsigned int mid;
