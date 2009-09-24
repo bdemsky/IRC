@@ -7,7 +7,7 @@ extern objstr_t *prefetchcache; //Global Prefetch cache
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
 extern unsigned int myIpAddr;
 
-#define LOGEVENTS
+//#define LOGEVENTS
 #ifdef LOGEVENTS
 extern char bigarray[16*1024*1024];
 extern int bigindex;
