@@ -7,6 +7,19 @@ extern objstr_t *prefetchcache; //Global Prefetch cache
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
 extern unsigned int myIpAddr;
 
+#define LOGEVENTS
+#ifdef LOGEVENTS
+extern char bigarray[16*1024*1024];
+extern int bigindex;
+#define LOGEVENT(x) { \
+  int tmp=bigindex++;                         \
+  bigarray[tmp]=x;                            \
+  }
+#else
+#define LOGEVENT(x)
+#endif
+
+
 /* This function creates and initializes the
  * evalPrefetch global array */
 pfcstats_t *initPrefetchStats() {
@@ -51,7 +64,7 @@ void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
     if(getOperationMode(siteid) != 0) {
       evalPrefetch[siteid].uselesscount--;
       if(evalPrefetch[siteid].uselesscount <= 0) {
-	printf("O");
+	LOGEVENT('O');
 	evalPrefetch[siteid].operMode = 0;
       }
     }
