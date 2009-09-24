@@ -334,6 +334,9 @@ public class OwnershipAnalysis {
   // for controlling DOT file output
   private boolean writeDOTs;
   private boolean writeAllDOTs;
+  
+    //map each FlatNode to its own internal ownership graph
+	private Hashtable<FlatNode, OwnershipGraph> mappingFlatNodeToOwnershipGraph;
 
 
 
@@ -381,6 +384,8 @@ public class OwnershipAnalysis {
 
     mapHrnIdToAllocationSite =
       new Hashtable<Integer, AllocationSite>();
+    
+    mappingFlatNodeToOwnershipGraph = new Hashtable<FlatNode, OwnershipGraph>();
 
 
     if( writeAllDOTs ) {
@@ -918,6 +923,8 @@ public class OwnershipAnalysis {
       setRetNodes.add(frn);
       break;
     }
+    
+    mappingFlatNodeToOwnershipGraph.put(fn, og);
 
     return og;
   }
@@ -1251,6 +1258,10 @@ public class OwnershipAnalysis {
     s += String.format( "\n%4d total methods analayzed.\n", total );
 
     return s;
+  }
+  
+  public OwnershipGraph getMappingFlatNodeToOwnershipGraph(FlatNode fn) {
+		return mappingFlatNodeToOwnershipGraph.get(fn);
   }
 
 

@@ -46,6 +46,8 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, VarSrcTokTable           > variableResults;
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
+  
+  private Hashtable<FlatNode, AccSet> effectsResults;
 
   private Hashtable< FlatEdge, FlatWriteDynamicVarNode  > wdvNodesToSpliceIn;
 
@@ -100,6 +102,8 @@ public class MLPAnalysis {
     notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
     wdvNodesToSpliceIn   = new Hashtable< FlatEdge, FlatWriteDynamicVarNode  >();
+    
+    effectsResults = new Hashtable<FlatNode, AccSet>();
 
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
@@ -183,7 +187,14 @@ public class MLPAnalysis {
       // point, in a forward fixed-point pass
       notAvailableForward( fm );
     }
-
+    
+	// new pass for method effects analysis
+	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+	while (methItr.hasNext()) {
+		Descriptor d = methItr.next();
+		FlatMethod fm = state.getMethodFlat(d);
+		effectsForward(fm);
+	}
 
     // 7th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
@@ -638,6 +649,292 @@ public class MLPAnalysis {
     }
   }
 
+  private void effectsForward(FlatMethod fm) {
+		Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+		flatNodesToVisit.add(fm);
+
+		while (!flatNodesToVisit.isEmpty()) {
+			FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+			flatNodesToVisit.remove(fn);
+
+			AccSet prev = effectsResults.get(fn);
+			AccSet curr = new AccSet();
+
+			// merge phase
+			for (int i = 0; i < fn.numPrev(); i++) {
+				FlatNode nn = fn.getPrev(i);
+				AccSet accSet = effectsResults.get(nn);
+				if (accSet != null) {
+					curr.addAll(accSet);
+				}
+			}
+
+			effects_nodeActions(fn, curr);
+
+			// if a new result, schedule forward nodes for analysis
+			if (!curr.equals(prev)) {
+				effectsResults.put(fn, curr);
+				for (int i = 0; i < fn.numNext(); i++) {
+					FlatNode nn = fn.getNext(i);
+					flatNodesToVisit.add(nn);
+				}
+			}
+		}
+
+	}
+
+
+
+
+	private void effects_nodeActions(FlatNode fn, AccSet curr) {
+
+		OwnershipGraph fnOG = ownAnalysis
+				.getMappingFlatNodeToOwnershipGraph(fn);
+
+		switch (fn.kind()) {
+
+		case FKind.FlatMethod: {
+
+			FlatMethod fm = (FlatMethod) fn;
+			int numParam = fm.numParameters();
+
+			for (int i = 0; i < numParam; i++) {
+				TempDescriptor paramTD = fm.getParameter(i);
+
+				curr.addParam(paramTD);
+			}
+
+			// for debug
+			// OwnershipGraph fnOG =
+			// ownAnalysis.getMappingFlatNodeToOwnershipGraph(fn);
+			// try {
+			// fnOG.writeGraph(fn + "FOOGRAPH", true, true, true, true, false);
+			// } catch (IOException e) {
+			// System.out.println("Error writing debug capture.");
+			// System.exit(0);
+			// }
+
+		}
+			break;
+
+		case FKind.FlatSetFieldNode: {
+
+			FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+
+			TempDescriptor dstDesc = fsfn.getDst();
+			FieldDescriptor fieldDesc = fsfn.getField();
+			TempDescriptor srcDesc = fsfn.getSrc();
+
+			LabelNode ln = fnOG.td2ln.get(dstDesc);
+			if (ln != null) {
+				Iterator<ReferenceEdge> heapRegionsItr = ln
+						.iteratorToReferencees();
+
+				String tempStr = "";
+				while (heapRegionsItr.hasNext()) {
+					HeapRegionNode hrn2 = heapRegionsItr.next().getDst();
+
+					Set<Integer> paramSet = fnOG.idSecondary2paramIndexSet
+							.get(hrn2.getID());
+
+					String param = null;
+					if (paramSet != null) {
+						Iterator<Integer> paramIter = paramSet.iterator();
+						param = "";
+						while (paramIter.hasNext()) {
+							param += paramIter.next() + " ";
+						}
+					}
+					tempStr += " " + hrn2 + "(" + param + ")";
+				}
+
+				heapRegionsItr = ln.iteratorToReferencees();
+				while (heapRegionsItr.hasNext()) {
+					ReferenceEdge edge = heapRegionsItr.next();
+					HeapRegionNode hrn = edge.getDst();
+
+					if (hrn.isParameter()) {
+						// currently, handle this case. otherwise, ignore it.
+						Iterator<ReferenceEdge> iter = hrn
+								.iteratorToReferencers();
+						while (iter.hasNext()) {
+							ReferenceEdge re = iter.next();
+							if (re.getSrc() instanceof LabelNode) {
+								LabelNode labelNode = (LabelNode) re.getSrc();
+
+								if (curr.containsParam(labelNode
+										.getTempDescriptor())) {
+
+									curr.addWritingVar(labelNode
+											.getTempDescriptor(), new AccKey(
+											fieldDesc.getSymbol(), dstDesc
+													.getType()));
+
+								}
+
+							}
+						}
+
+						// check weather this heap region is parameter
+						// reachable...
+
+						Set<Integer> paramSet = fnOG.idSecondary2paramIndexSet
+								.get(hrn.getID());
+						if (paramSet != null) {
+							Iterator<Integer> paramIter = paramSet.iterator();
+
+							while (paramIter.hasNext()) {
+								Integer paramID = paramIter.next();
+
+								Integer primaryID = fnOG.paramIndex2idPrimary
+										.get(paramID);
+								HeapRegionNode paramHRN = fnOG.id2hrn
+										.get(primaryID);
+
+								HashSet<LabelNode> LNSet = getParameterLabelNodeSet(
+										fnOG, curr, paramHRN);
+
+								Iterator<LabelNode> LNSetIter = LNSet
+										.iterator();
+								while (LNSetIter.hasNext()) {
+									LabelNode labelNode = LNSetIter.next();
+
+									curr.addWritingVar(labelNode
+											.getTempDescriptor(), new AccKey(
+											fieldDesc.getSymbol(), dstDesc
+													.getType()));
+								}
+
+							}
+						}
+
+					}
+
+				}
+			}
+
+		}
+			break;
+
+		case FKind.FlatFieldNode: {
+
+			FlatFieldNode ffn = (FlatFieldNode) fn;
+
+			TempDescriptor srcDesc = ffn.getSrc();
+			FieldDescriptor fieldDesc = ffn.getField();
+
+			LabelNode ln = fnOG.td2ln.get(srcDesc);
+			if (ln != null) {
+
+				Iterator<ReferenceEdge> heapRegionsItr = ln
+						.iteratorToReferencees();
+				String tempStr = "";
+				while (heapRegionsItr.hasNext()) {
+
+					HeapRegionNode hrn = heapRegionsItr.next().getDst();
+
+					Set<Integer> paramSet = fnOG.idSecondary2paramIndexSet
+							.get(hrn.getID());
+
+					String param = null;
+					if (paramSet != null) {
+						Iterator<Integer> paramIter = paramSet.iterator();
+						param = "";
+						while (paramIter.hasNext()) {
+							param += paramIter.next() + " ";
+						}
+					}
+					tempStr += " " + hrn + "(" + param + ")";
+				}
+
+				heapRegionsItr = ln.iteratorToReferencees();
+				while (heapRegionsItr.hasNext()) {
+					ReferenceEdge edge = heapRegionsItr.next();
+					HeapRegionNode hrn = edge.getDst();
+
+					if (hrn.isParameter()) {
+						Iterator<ReferenceEdge> iter = hrn
+								.iteratorToReferencers();
+
+						while (iter.hasNext()) {
+							ReferenceEdge re = iter.next();
+							if (re.getSrc() instanceof LabelNode) {
+
+								LabelNode labelNode = (LabelNode) re.getSrc();
+
+								if (curr.containsParam(labelNode
+										.getTempDescriptor())) {
+									curr.addReadingVar(labelNode
+											.getTempDescriptor(), new AccKey(
+											fieldDesc.getSymbol(), srcDesc
+													.getType()));
+								}
+							}
+						}
+
+						//
+						// check weather this heap region is parameter
+						// reachable...
+						//
+
+						Set<Integer> paramSet = fnOG.idSecondary2paramIndexSet
+								.get(hrn.getID());
+						if (paramSet != null) {
+							Iterator<Integer> paramIter = paramSet.iterator();
+
+							while (paramIter.hasNext()) {
+								Integer paramID = paramIter.next();
+
+								Integer primaryID = fnOG.paramIndex2idPrimary
+										.get(paramID);
+								HeapRegionNode paramHRN = fnOG.id2hrn
+										.get(primaryID);
+
+								HashSet<LabelNode> LNSet = getParameterLabelNodeSet(
+										fnOG, curr, paramHRN);
+
+								Iterator<LabelNode> LNSetIter = LNSet
+										.iterator();
+								while (LNSetIter.hasNext()) {
+									LabelNode labelNode = LNSetIter.next();
+
+									curr.addReadingVar(labelNode
+											.getTempDescriptor(), new AccKey(
+											fieldDesc.getSymbol(), srcDesc
+													.getType()));
+								}
+							}
+						}
+					}
+				}
+
+			}
+
+		}
+			break;
+
+		}
+
+	}
+
+	// returns the set of parameter label node which are associated with the
+	// specific heap region node.
+	private HashSet<LabelNode> getParameterLabelNodeSet(OwnershipGraph og,
+			AccSet curr, HeapRegionNode hrn) {
+
+		HashSet<LabelNode> set = new HashSet<LabelNode>();
+		Iterator<ReferenceEdge> iter = hrn.iteratorToReferencers();
+		while (iter.hasNext()) {
+			ReferenceEdge re = iter.next();
+			if (re.getSrc() instanceof LabelNode) {
+				LabelNode labelNode = (LabelNode) re.getSrc();
+				if (curr.containsParam(labelNode.getTempDescriptor())) {
+					set.add(labelNode);
+				}
+			}
+		}
+		return set;
+	}
 
   private void notAvailableForward( FlatMethod fm ) {
 
