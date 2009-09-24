@@ -29,19 +29,16 @@ public class Drinker extends Task {
     return null;
 	}
 
-	public void execute(Object myWork) {
-    Segment work = (Segment)myWork;
-
-    int numApple = work.x;
-
-    ownTotal += numApple;
-
+	public void execute() {
+    Segment s;
+    atomic {
+      s = (Segment)myWork;
+      ownTotal += s.x;    
+    }
   }
 
 	public void done(Object work) {
-		atomic {
 			doneList.push(work);
-		}
 	}
 
   public static void main(String[] args) {
@@ -59,14 +56,14 @@ public class Drinker extends Task {
 		}
 
 		int[] mid = new int[NUM_THREADS];
-//		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
-//		mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|24; //dw-5
+/*		mid[0] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
 		mid[3] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
 		mid[4] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
-		mid[5] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
+		mid[5] = (128<<24)|(195<<16)|(136<<8)|169; //dc8*/
 
 		atomic {
 			drinkers = global new Drinker[NUM_THREADS];
