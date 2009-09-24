@@ -17,6 +17,7 @@ public class Work extends Thread {
       workMID = MY_MID;
     }
 
+    Task localTask;
     int chk; 
     int result;
     int i,j;
@@ -28,9 +29,7 @@ public class Work extends Thread {
 					isEmpty = tasks.isTodoListEmpty();		// flag > !keep assigning 
 			
           if (!isEmpty) {
-			      atomic {
-      				currentWorkList[workMID] = tasks.grabTask();	/* grab the work from work pool */
-		    		}
+      			currentWorkList[workMID] = tasks.grabTask();	/* grab the work from work pool */
             chk = 1;
           }
 		    	else {
@@ -40,19 +39,19 @@ public class Work extends Thread {
 
       if(chk == 1) {    // still have work
         atomic {
-          /* compute */
-          tasks.execute(currentWorkList[workMID]);
+          tasks.setWork(currentWorkList[workMID]);
+          localTask = tasks;
+        }
+
+        /* compute */
+        localTask.execution();
+
+        atomic {
           /* push into done list */
           tasks.done(currentWorkList[workMID]);
 					currentWorkList[workMID] = null;
-        }
-
-        atomic {
           cc = ((Drinker)tasks).ownTotal;
         }
-
-//        System.out.println("CC = " + cc);
-//        sleep(1000000);
       }
       else if(chk  == -1) {    // finished all work
         break;
@@ -78,7 +77,7 @@ public class Work extends Thread {
 		int num_threads; 
     int status;
     boolean chk = false;
-    Segment s;
+    Object s;
 
 		atomic {
 	    myID = mywork.MY_MID;
@@ -93,7 +92,7 @@ public class Work extends Thread {
 
       atomic {
 
-        s = (Segment)mywork.currentWorkList[i];
+        s = mywork.currentWorkList[i];
 
         if(status == -1 && null != s) {
           mywork.currentWorkList[myID] = mywork.currentWorkList[i];

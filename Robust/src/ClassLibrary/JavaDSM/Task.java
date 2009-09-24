@@ -1,12 +1,24 @@
 public class Task {
   Queue todoList;
 	Queue doneList;
+  Object myWork;
 
 	Task() {}
 
 	public void init();	
-	public void execute(Object work);
+	public native void execution();
+  public void execute() {
+    System.out.println("Sad");
+  }
+
 	public void done(Object work);
+
+  public void setWork(Object work)
+  {
+    atomic {
+      this.myWork = work;
+    }
+  }
 
 	public Object grabTask() {
 		Object o;
