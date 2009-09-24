@@ -2891,7 +2891,9 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 #ifdef RECOVERY
     waitThreadMid = waitmid;
     waitThreadID = threadid;
+#ifdef DEBUG
     printf("%s -> This Thread is waiting for %s\n",__func__,midtoIPString(waitmid));
+#endif
 #endif
 
     size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
@@ -3351,7 +3353,9 @@ void clearDeadThreadsNotification()
 // clear all the threadnotify request first
   
   if(waitThreadID != -1) {
+#ifdef DEBUG
     printf("%s -> I was waitng for %s\n",__func__,midtoIPString(waitThreadMid));
+#endif
     int waitThreadIndex = findHost(waitThreadMid);
     int i;
     notifydata_t *ndata;
