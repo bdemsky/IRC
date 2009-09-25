@@ -754,7 +754,7 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
       objheader_t *headerObj;
       int size;
       GETSIZE(size, objcopy);
-      if((headerObj = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
+      if((headerObj = prefetchobjstrAlloc(size+sizeof(objheader_t))) == NULL) {
         printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
             __FILE__, __LINE__);
         pthread_mutex_unlock(&prefetchcache_mutex);
@@ -771,7 +771,6 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
         prehashInsert(oid, headerObj);
       }
 #endif
-
       return &objcopy[1];
 #else
       return objcopy;

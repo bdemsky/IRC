@@ -57,7 +57,7 @@
 //Prefetch tuning paramters
 //#define RETRYINTERVAL  20 //N (For Em3d, SOR, Moldyn benchmarks)
 //#define SHUTDOWNINTERVAL  3  //M
-#define RETRYINTERVAL  100 //N  (For MatrixMultiply, 2DFFT benchmarks)
+#define RETRYINTERVAL  75 //N  (For MatrixMultiply, 2DFFT benchmarks)
 #define SHUTDOWNINTERVAL 1  //M
 
 #include <stdlib.h>

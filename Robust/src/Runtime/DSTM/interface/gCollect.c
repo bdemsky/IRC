@@ -112,10 +112,10 @@ void clearBlock(objstr_t *block) {
       if ((val>=tmpbegin)&(val<tmpend)) {
 	prehashlistnode_t *tmp=curr->next=next->next;
 	free(next);
-	next=tmp;
+	next=curr;
 	//loop condition is broken now...need to check before incrementing
-	if (next==NULL)
-	  break;
+	//	if (next==NULL)
+	// break;
       }
     }
     {

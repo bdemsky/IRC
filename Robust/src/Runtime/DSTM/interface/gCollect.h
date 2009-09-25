@@ -9,11 +9,11 @@
 
 #define STALE_MINTHRESHOLD 10 //minimum size
 
-#define STALE_MAXTHRESHOLD 30 //ugly hack..if you make this too small things
+#define STALE_MAXTHRESHOLD 40 //ugly hack..if you make this too small things
 // will fail in odd subtle ways
 
 #define DEFAULT_OBJ_STORE_SIZE (4194304-16) //just a little less the 4MB
-#define PREFETCH_FLUSH_THRESHOLD 20 //MINIMUM SIZE BEFORE FLUSHING
+#define PREFETCH_FLUSH_THRESHOLD 30 //MINIMUM SIZE BEFORE FLUSHING
 #define STALL_THRESHOLD 15 //number of prefetches stores before we can start freeing old ones
 
 

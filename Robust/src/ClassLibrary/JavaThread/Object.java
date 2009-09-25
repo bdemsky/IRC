@@ -6,6 +6,9 @@ public class Object {
   private Object nextlockobject;
   private Object prevlockobject;
 
+  // temporary extra unused int filed to align objects for Java
+  int wkhqwemnbmwnb;
+
   public int hashCode() {
     if (!cachedHash) {
       cachedCode=nativehashCode();
