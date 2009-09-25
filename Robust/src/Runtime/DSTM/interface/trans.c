@@ -641,6 +641,29 @@ __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
       nRemoteSend++;
 #endif
 #ifdef COMPILER
+#ifdef CACHE
+      //Copy object to prefetch cache
+      pthread_mutex_lock(&prefetchcache_mutex);
+      objheader_t *headerObj;
+      int size;
+      GETSIZE(size, objcopy);
+      if((headerObj = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
+        printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
+            __FILE__, __LINE__);
+        pthread_mutex_unlock(&prefetchcache_mutex);
+        return NULL;
+      }
+      pthread_mutex_unlock(&prefetchcache_mutex);
+      memcpy(headerObj, objcopy, size+sizeof(objheader_t));
+      //make an entry in prefetch lookup hashtable
+      void *oldptr;
+      if((oldptr = prehashSearch(oid)) != NULL) {
+        prehashRemove(oid);
+        prehashInsert(oid, headerObj);
+      } else {
+        prehashInsert(oid, headerObj);
+      }
+#endif
       return &objcopy[1];
 #else
       return objcopy;
@@ -725,6 +748,30 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
       nRemoteSend++;
 #endif
 #ifdef COMPILER
+#ifdef CACHE
+      //Copy object to prefetch cache
+      pthread_mutex_lock(&prefetchcache_mutex);
+      objheader_t *headerObj;
+      int size;
+      GETSIZE(size, objcopy);
+      if((headerObj = prefetchobjstrAlloc(size + sizeof(objheader_t))) == NULL) {
+        printf("%s(): Error in getting memory from prefetch cache at %s, %d\n", __func__,
+            __FILE__, __LINE__);
+        pthread_mutex_unlock(&prefetchcache_mutex);
+        return NULL;
+      }
+      pthread_mutex_unlock(&prefetchcache_mutex);
+      memcpy(headerObj, objcopy, size+sizeof(objheader_t));
+      //make an entry in prefetch lookup hashtable
+      void *oldptr;
+      if((oldptr = prehashSearch(oid)) != NULL) {
+        prehashRemove(oid);
+        prehashInsert(oid, headerObj);
+      } else {
+        prehashInsert(oid, headerObj);
+      }
+#endif
+
       return &objcopy[1];
 #else
       return objcopy;

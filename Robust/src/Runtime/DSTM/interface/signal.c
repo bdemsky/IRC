@@ -20,7 +20,6 @@ extern int sendRemoteReq;
 void handle();
 extern pfcstats_t *evalPrefetch;
 
-/*
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
   FILE *fp;
@@ -39,14 +38,16 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   fprintf(fp, "bytesSent = %d\n", bytesSent);
   fprintf(fp, "bytesRecv = %d\n", bytesRecv);
   fprintf(fp, "totalObjSize= %d\n", totalObjSize);
+  fprintf(fp, "sendRemoteReq= %d\n", sendRemoteReq);
+  fprintf(fp, "getResponse= %d\n", getResponse);
   fprintf(fp, "**********************************\n");
   fflush(fp);
   fclose(fp);
   exit(0);
 #endif
 }
-*/
 
+/*
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
   printf("******  Transaction Stats   ******\n");
@@ -67,6 +68,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   exit(0);
 #endif
 }
+*/
 
 void handle() {
 #ifdef TRANSSTATS
