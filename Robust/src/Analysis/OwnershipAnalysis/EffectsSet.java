@@ -5,10 +5,6 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
-import Analysis.MLP.AccKey;
-import Analysis.MLP.AccSet;
-import IR.Flat.TempDescriptor;
-
 public class EffectsSet {
 
 	private Hashtable<Integer, HashSet<EffectsKey>> readTable;

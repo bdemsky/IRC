@@ -1,6 +1,5 @@
 package Analysis.OwnershipAnalysis;
 
-import Analysis.MLP.AccKey;
 import IR.TypeDescriptor;
 
 public class EffectsKey {
