@@ -171,8 +171,8 @@ public class MethodEffects {
 
 		TempDescriptor[] tdArray = fc.readsTemps();
 
-		for (int callerIdx = 0; callerIdx < tdArray.length; callerIdx++) {
-			TempDescriptor paramDesc = tdArray[callerIdx];
+		for (int calleeParamIdx = 0; calleeParamIdx < tdArray.length; calleeParamIdx++) {
+			TempDescriptor paramDesc = tdArray[calleeParamIdx];
 
 			Set<Integer> paramIDs = getReachableParamIndexSet(og, paramDesc);
 
@@ -181,8 +181,8 @@ public class MethodEffects {
 			while (paramIter.hasNext()) {
 				Integer paramIdx = paramIter.next();
 				HashSet<EffectsKey> newSet = callee.getEffects().getReadTable()
-						.get(paramIdx);
-				effectsSet.addReadingEffectsSet(callerIdx, newSet);
+						.get(calleeParamIdx);
+				effectsSet.addReadingEffectsSet(paramIdx, newSet);
 			}
 
 			// handle write effects
@@ -190,8 +190,8 @@ public class MethodEffects {
 			while (paramIter.hasNext()) {
 				Integer paramIdx = paramIter.next();
 				HashSet<EffectsKey> newSet = callee.getEffects()
-						.getWriteTable().get(paramIdx);
-				effectsSet.addWritingEffectsSet(callerIdx, newSet);
+						.getWriteTable().get(calleeParamIdx);
+				effectsSet.addWritingEffectsSet(paramIdx, newSet);
 			}
 
 		}

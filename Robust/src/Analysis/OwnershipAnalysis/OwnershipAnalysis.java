@@ -937,12 +937,13 @@ public class OwnershipAnalysis {
 	  } else {
 	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc, null);
 	  }
-
-	  MethodEffects meFlatCall=mapMethodContextToMethodEffects.get(mcNew);
-	  meFlatCall.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults,fc,mcNew,meFlatCall);	
 		
 	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
+	  
+	  MethodEffects meFlatCall=mapMethodContextToMethodEffects.get(mcNew);
+	  me.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults,fc,mc,meFlatCall);	
 	}
+	
       }
 
       og = ogMergeOfAllPossibleCalleeResults;
@@ -1059,14 +1060,19 @@ public class OwnershipAnalysis {
 			while (mcIter.hasNext()) {
 				MethodContext mc = mcIter.next();
 				MethodDescriptor md = (MethodDescriptor) mc.getDescriptor();
+				
+				int startIdx=0;
+				if(!md.isStatic()){					
+					startIdx=1;
+				}
 
 				MethodEffects me = mapMethodContextToMethodEffects.get(mc);
 				EffectsSet effectsSet = me.getEffects();
 
-				bw.write("Method " + mc +"::"+mc.hashCode() + " :\n");
-				for (int i = 0; i < md.numParameters(); i++) {
+				bw.write("Method " + mc +" :\n");
+				for (int i = startIdx; i < md.numParameters()+startIdx; i++) {
 
-					String paramName = md.getParamName(i);
+					String paramName = md.getParamName(i-startIdx);
 
 					Set<EffectsKey> effectSet = effectsSet
 							.getReadingSet(i);
