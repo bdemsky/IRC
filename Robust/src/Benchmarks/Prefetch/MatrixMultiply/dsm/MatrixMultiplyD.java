@@ -164,7 +164,7 @@ public class MMul{
 		}
 	    }
 	}
-	if(tid>=0||numthreads==1) {
+	if(tid>0||numthreads==1) {
 	    int delta=numthreads>1?numthreads-1:1;
 	    int start=numthreads>1?tid-1:0;
 
