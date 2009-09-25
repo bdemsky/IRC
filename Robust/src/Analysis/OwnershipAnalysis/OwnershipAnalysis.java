@@ -336,7 +336,7 @@ public class OwnershipAnalysis {
   private boolean writeAllDOTs;
   
     //map each FlatNode to its own internal ownership graph
-	private Hashtable<FlatNode, OwnershipGraph> mappingFlatNodeToOwnershipGraph;
+	private Hashtable<MethodContext, MethodEffects> mapMethodContextToMethodEffects;
 
 
 
@@ -385,7 +385,7 @@ public class OwnershipAnalysis {
     mapHrnIdToAllocationSite =
       new Hashtable<Integer, AllocationSite>();
     
-    mappingFlatNodeToOwnershipGraph = new Hashtable<FlatNode, OwnershipGraph>();
+    mapMethodContextToMethodEffects = new Hashtable<MethodContext, MethodEffects>();
 
 
     if( writeAllDOTs ) {
@@ -438,6 +438,11 @@ public class OwnershipAnalysis {
 
       //System.out.println("Previsiting " + mc);
 
+      if(!mapMethodContextToMethodEffects.containsKey(mc)){
+    	  MethodEffects me=new MethodEffects();
+    	  mapMethodContextToMethodEffects.put(mc, me);
+      }
+
       og = analyzeFlatNode(mc, fm, null, og);
       setGraphForMethodContext(mc, og);
     }
@@ -456,6 +461,8 @@ public class OwnershipAnalysis {
     if( writeDOTs && !writeAllDOTs ) {
       writeFinalContextGraphs();      
     }  
+
+    writeMethodEffectsResult();
 
     if( aliasFile != null ) {
       if( state.TASK ) {
@@ -669,6 +676,8 @@ public class OwnershipAnalysis {
                   FlatNode fn,
                   HashSet<FlatReturnNode> setRetNodes,
                   OwnershipGraph og) throws java.io.IOException {
+	  
+	MethodEffects me=mapMethodContextToMethodEffects.get(mc);
 
     TempDescriptor lhs;
     TempDescriptor rhs;
@@ -777,6 +786,9 @@ public class OwnershipAnalysis {
       if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
       }
+      
+      me.analyzeFlatFieldNode(og, rhs, fld);
+      
       break;
 
     case FKind.FlatSetFieldNode:
@@ -787,6 +799,9 @@ public class OwnershipAnalysis {
       if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
 	og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       }
+      
+      me.analyzeFlatSetFieldNode(og, lhs, fld);
+      
       break;
 
     case FKind.FlatElementNode:
@@ -864,6 +879,15 @@ public class OwnershipAnalysis {
 	} else {
 	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc, null);
 	}
+	
+	if(!mapMethodContextToMethodEffects.containsKey(mcNew)){
+		MethodEffects meNew=new MethodEffects();
+		mapMethodContextToMethodEffects.put(mcNew, meNew);
+	}
+	
+	MethodEffects meFlatCall=mapMethodContextToMethodEffects.get(mcNew);
+	me.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults,fc,mc,meFlatCall);	
+	
 
       } else {
 	// if the method descriptor is virtual, then there could be a
@@ -889,7 +913,14 @@ public class OwnershipAnalysis {
 	  Set contexts = mapDescriptorToAllMethodContexts.get( md );
 	  assert contexts != null;
 	  contexts.add( mcNew );
-
+	  
+		
+	if(!mapMethodContextToMethodEffects.containsKey(mcNew)){
+		MethodEffects meNew=new MethodEffects();
+		mapMethodContextToMethodEffects.put(mcNew, meNew);
+	}
+		
+	  
 	  addDependent( mc, mcNew );
 
 	  OwnershipGraph ogPotentialCallee = mapMethodContextToCompleteOwnershipGraph.get( mcNew );
@@ -907,6 +938,9 @@ public class OwnershipAnalysis {
 	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc, null);
 	  }
 
+	  MethodEffects meFlatCall=mapMethodContextToMethodEffects.get(mcNew);
+	  meFlatCall.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults,fc,mcNew,meFlatCall);	
+		
 	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
 	}
       }
@@ -924,8 +958,8 @@ public class OwnershipAnalysis {
       break;
     }
     
-    mappingFlatNodeToOwnershipGraph.put(fn, og);
-
+    setMethodEffectsForMethodContext(mc, me);
+     
     return og;
   }
 
@@ -952,6 +986,10 @@ public class OwnershipAnalysis {
     return fdElement;
   }
 
+  
+  private void setMethodEffectsForMethodContext(MethodContext mc, MethodEffects me){
+	  mapMethodContextToMethodEffects.put(mc,me);
+  }
 
   private void setGraphForMethodContext(MethodContext mc, OwnershipGraph og) {
 
@@ -1009,6 +1047,78 @@ public class OwnershipAnalysis {
       } catch( IOException e ) {}    
     }
   }
+  
+	public void writeMethodEffectsResult() throws IOException {
+
+		try {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(
+					"MethodEffects_resport.txt"));
+
+			Set<MethodContext> mcSet = mapMethodContextToMethodEffects.keySet();
+			Iterator<MethodContext> mcIter = mcSet.iterator();
+			while (mcIter.hasNext()) {
+				MethodContext mc = mcIter.next();
+				MethodDescriptor md = (MethodDescriptor) mc.getDescriptor();
+
+				MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+				EffectsSet effectsSet = me.getEffects();
+
+				bw.write("Method " + mc +"::"+mc.hashCode() + " :\n");
+				for (int i = 0; i < md.numParameters(); i++) {
+
+					String paramName = md.getParamName(i);
+
+					Set<EffectsKey> effectSet = effectsSet
+							.getReadingSet(i);
+					String keyStr = "{";
+					if (effectSet != null) {
+						Iterator<EffectsKey> effectIter = effectSet.iterator();
+						while (effectIter.hasNext()) {
+							EffectsKey key = effectIter.next();
+							keyStr += " " + key;
+						}
+					}
+					keyStr += "}";
+					bw.write("  Paramter " + paramName + " ReadingSet="
+							+ keyStr + "\n");
+
+					effectSet = effectsSet.getWritingSet(new Integer(i));
+					keyStr = "{";
+					if (effectSet != null) {
+						Iterator<EffectsKey> effectIter = effectSet.iterator();
+						while (effectIter.hasNext()) {
+							EffectsKey key = effectIter.next();
+							keyStr += " " + key;
+						}
+					}
+					
+					keyStr += "}";
+					bw.write("  Paramter " + paramName + " WritingngSet="
+							+ keyStr + "\n");
+
+				}
+				bw.write("\n");
+
+			}
+
+			bw.close();
+		} catch (IOException e) {
+			System.err.println(e);
+		}
+
+		// Set entrySet = mapMethodContextToMethodEffects.entrySet();
+		// Iterator itr = entrySet.iterator();
+		// while( itr.hasNext() ) {
+		// Map.Entry me = (Map.Entry) itr.next();
+		// MethodContext mc = (MethodContext) me.getKey();
+		// MethodEffects og = (MethodEffects) me.getValue();
+		//
+		// try {
+		// og.writeGraph(mc, true, true, true, false, false);
+		// } catch( IOException e ) {}
+		// }
+	}
+  
   
 
   // return just the allocation site associated with one FlatNew node
@@ -1260,9 +1370,6 @@ public class OwnershipAnalysis {
     return s;
   }
   
-  public OwnershipGraph getMappingFlatNodeToOwnershipGraph(FlatNode fn) {
-		return mappingFlatNodeToOwnershipGraph.get(fn);
-  }
 
 
 

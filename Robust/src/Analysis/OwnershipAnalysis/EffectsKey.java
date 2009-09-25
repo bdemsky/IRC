@@ -1,15 +1,14 @@
-package Analysis.MLP;
+package Analysis.OwnershipAnalysis;
 
+import Analysis.MLP.AccKey;
 import IR.TypeDescriptor;
 
-public class AccKey {
+public class EffectsKey {
 
 	private String fd;
 	private TypeDescriptor td;
 
-	// private Integer hrnID;
-
-	public AccKey(String fd, TypeDescriptor td) {
+	public EffectsKey(String fd, TypeDescriptor td) {
 		this.fd = fd;
 		this.td = td;
 	}
@@ -23,7 +22,7 @@ public class AccKey {
 	}
 
 	public String toString() {
-		return "(" + td + ")" + fd ;
+		return "(" + td + ")" + fd;
 	}
 
 	public int hashCode() {
@@ -48,13 +47,14 @@ public class AccKey {
 			return false;
 		}
 
-		if (!(o instanceof AccKey)) {
+		if (!(o instanceof EffectsKey)) {
 			return false;
 		}
 
-		AccKey in = (AccKey) o;
+		EffectsKey in = (EffectsKey) o;
 
-		if (fd.equals(in.getFieldDescriptor()) && td.getSymbol().equals(in.getTypeDescriptor().getSymbol())) {
+		if (fd.equals(in.getFieldDescriptor())
+				&& td.getSymbol().equals(in.getTypeDescriptor().getSymbol())) {
 			return true;
 		} else {
 			return false;
