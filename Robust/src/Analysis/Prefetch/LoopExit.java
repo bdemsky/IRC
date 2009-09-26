@@ -63,9 +63,10 @@ public class LoopExit {
 
   void propagateset(Set<FlatNode> tovisit, Hashtable<FlatNode, Set<FlatCondBranch>> table, FlatNode fn, FlatNode fnnext, FlatCondBranch fcb) {
     boolean enqueuechange=false;
+    if (!table.containsKey(fnnext))
+      table.put(fnnext, new HashSet<FlatCondBranch>());
+
     if (table.containsKey(fn)) {
-      if (!table.containsKey(fnnext))
-	table.put(fnnext, new HashSet<FlatCondBranch>());
       HashSet<FlatCondBranch> toadd=new HashSet<FlatCondBranch>();
       toadd.addAll(table.get(fn));
       if (toadd.contains(fnnext))       //can't propagate back to node
@@ -75,16 +76,11 @@ public class LoopExit {
 	enqueuechange=true;
       }
     }
-    if (fcb!=null) {
-      if (!table.containsKey(fnnext))
-	table.put(fnnext, new HashSet<FlatCondBranch>());
-      if (!table.get(fnnext).contains(fcb)) {
-	table.get(fnnext).add(fcb);
-	enqueuechange=true;
-      }
+    if (fcb!=null&&!table.get(fnnext).contains(fcb)) {
+      table.get(fnnext).add(fcb);
+      enqueuechange=true;
     }
     if (enqueuechange)
       tovisit.add(fnnext);
   }
-
 }

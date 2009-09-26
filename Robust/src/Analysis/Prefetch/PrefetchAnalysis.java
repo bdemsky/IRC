@@ -73,8 +73,9 @@ public class PrefetchAnalysis {
     tovisit = fm.getNodeSet();
     while(!tovisit.isEmpty()) {
       FlatNode fn = (FlatNode)tovisit.iterator().next();
-      doChildNodeAnalysis(fm.getMethod(),fn);
       tovisit.remove(fn);
+
+      doChildNodeAnalysis(fm.getMethod(),fn);
     }
   }
 
@@ -696,10 +697,10 @@ public class PrefetchAnalysis {
           newprob<falseprob) {
 	newprob=falseprob;
       }
-
+      
       if(newprob < ANALYSIS_THRESHOLD_PROB)       //Skip pp that are below threshold
 	continue;
-
+      
       tocompare.put(pp, newprob);
       if (truechild.containsKey(pp))
 	truepm.addPair(pp, pp);
@@ -776,7 +777,9 @@ nexttemp:
       Hashtable<PrefetchPair, Double> currhash = (Hashtable) prefetch_hash.get(fn);
       for(Enumeration pphash= currhash.keys(); pphash.hasMoreElements();) {
 	PrefetchPair pp = (PrefetchPair) pphash.nextElement();
-	System.out.print(pp.toString() + ", ");
+	double v=currhash.get(pp).doubleValue();
+	if (v>.2)
+	System.out.print(pp.toString() +"-"+v + ", ");
       }
       System.out.println(")");
     } else {
@@ -786,28 +789,20 @@ nexttemp:
 
   private void doInsPrefetchAnalysis(FlatMethod fm, Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset) {
     Hashtable<FlatNode, HashSet<PrefetchPair>> pset1_hash = new Hashtable<FlatNode, HashSet<PrefetchPair>>();
-    HashSet<PrefetchPair> pset1_init = new HashSet<PrefetchPair>();
-    LinkedList<FlatNode> newtovisit = new LinkedList<FlatNode>();
-    LinkedList<FlatNode> newvisited = new LinkedList<FlatNode>();
 
-    newtovisit.addLast((FlatNode)fm);
-    while(!newtovisit.isEmpty()) {
-      FlatNode fn = (FlatNode) newtovisit.iterator().next();
-      newtovisit.remove(0);
-      pset1_hash.put(fn, pset1_init);       //Initialize pset1_hash
-      newvisited.addLast(fn);
-      for(int i=0; i<fn.numNext(); i++) {
-	FlatNode nn = fn.getNext(i);
-	if(!newtovisit.contains(nn) && !newvisited.contains(nn)) {
-	  newtovisit.addLast(nn);
-	}
-      }
+    Set visitset=fm.getNodeSet();
+    while(!visitset.isEmpty()) {
+      FlatNode fn = (FlatNode) visitset.iterator().next();
+      visitset.remove(fn);
+      pset1_hash.put(fn, new HashSet<PrefetchPair>());
     }
 
+    Set tovisit=fm.getNodeSet();
     /* Start with a top down sorted order of nodes */
-    while(!newvisited.isEmpty()) {
-      applyPrefetchInsertRules((FlatNode) newvisited.getFirst(), newvisited, pset1_hash, newprefetchset);
-      newvisited.remove(0);
+    while(!tovisit.isEmpty()) {
+      FlatNode fn=(FlatNode)tovisit.iterator().next();
+      tovisit.remove(fn);
+      applyPrefetchInsertRules(fn, tovisit, pset1_hash, newprefetchset);
     }
     delSubsetPPairs(newprefetchset);
   }
@@ -892,7 +887,7 @@ nexttemp:
    * this function creates pset1 such that it contains prefetch pairs that have been prefetched at
    * the previous nodes */
 
-  private void applyPrefetchInsertRules(FlatNode fn, LinkedList<FlatNode> newvisited, Hashtable<FlatNode, HashSet<PrefetchPair>> pset1_hash, Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset) {
+  private void applyPrefetchInsertRules(FlatNode fn, Set tovisit, Hashtable<FlatNode, HashSet<PrefetchPair>> pset1_hash, Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset) {
     if(fn.kind() == FKind.FlatMethod) {
       HashSet<PrefetchPair> pset1 = new HashSet<PrefetchPair>();
       Hashtable<PrefetchPair, Double> prefetchset = prefetch_hash.get(fn);
@@ -907,7 +902,7 @@ nexttemp:
       if (comparePSet1(pset1_hash.get(fn), pset1)) {
 	for(int j=0; j<fn.numNext(); j++) {
 	  FlatNode nn = fn.getNext(j);
-	  newvisited.addLast((FlatNode)nn);
+	  tovisit.add(nn);
 	}
 	pset1_hash.put(fn, pset1);
       }
@@ -940,7 +935,7 @@ nexttemp:
 	  /* Build pset2 */
 	  if(pm !=null) {
 	    HashSet pset = pset1_hash.get(parentnode);
-	    if(pset.isEmpty()||!pset.contains((PrefetchPair) pm.getPair(pp)))
+	    if(!pset.contains((PrefetchPair) pm.getPair(pp)))
 	      mapIsPresent = false;
 	  } else
 	    mapIsPresent=false;
@@ -956,11 +951,12 @@ nexttemp:
       HashSet<PrefetchPair> pset1 = new HashSet<PrefetchPair>();
       pset1.addAll(pset2);
       pset1.addAll(newpset);
+
       /* Enqueue child node if Pset1 has changed */
       if (comparePSet1(pset1_hash.get(fn), pset1)) {
 	for(int i=0; i<fn.numNext(); i++) {
 	  FlatNode nn = fn.getNext(i);
-	  newvisited.addLast((FlatNode)nn);
+	  tovisit.add(nn);
 	}
 	pset1_hash.put(fn, pset1);
       }
@@ -976,7 +972,6 @@ nexttemp:
   }
 
   private void addFlatPrefetchNode(Hashtable<FlatNode, HashSet<PrefetchPair>> newprefetchset) {
-    boolean isFNPresent = false;     /* Detects presence of FlatNew node */
     /* This modifies the Flat representation graph */
     for(Enumeration e = newprefetchset.keys(); e.hasMoreElements();) {
       FlatNode fn = (FlatNode) e.nextElement();
@@ -992,24 +987,16 @@ nexttemp:
 	  /* Check if previous node of this FlatNode is a NEW node
 	   * If yes, delete this flatnode and its prefetch set from hash table
 	   * This eliminates prefetches for NULL ptrs*/
-	  for(int i = 0; i< fn.numPrev(); i++) {
-	    FlatNode nn = fn.getPrev(i);
-	    if(nn.kind() == FKind.FlatNew) {
-	      isFNPresent = true;
-	    }
-	  }
-	  if(!isFNPresent) {
-	    while(fn.numPrev() > 0) {
-	      FlatNode nn = fn.getPrev(0);
-	      for(int j = 0; j<nn.numNext(); j++) {
-		if(nn.getNext(j) == fn) {
-		  nn.setNext(j, fpn);
-		}
+	  while(fn.numPrev() > 0) {
+	    FlatNode nn = fn.getPrev(0);
+	    for(int j = 0; j<nn.numNext(); j++) {
+	      if(nn.getNext(j) == fn) {
+		nn.setNext(j, fpn);
 	      }
 	    }
-	    fpn.addNext(fn);
-	    fpn.siteid = prefetchsiteid++;
 	  }
+	  fpn.addNext(fn);
+	  fpn.siteid = prefetchsiteid++;
 	}   //end of else
       }       //End of if
     }     //end of for
