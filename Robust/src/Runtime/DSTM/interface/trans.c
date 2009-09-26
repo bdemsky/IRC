@@ -170,6 +170,7 @@ void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buf
       perror("recv");
       exit(0);
     }
+    bytesRecv+=numbytes;
     buflen-=numbytes;
     readbuffer->head+=numbytes;
     maxbuf-=numbytes;
@@ -210,6 +211,7 @@ int recv_data_errorcode_buf(int fd, struct readstruct * readbuffer, void *buffer
       perror("recvbuf");
       return -1;
     }
+    bytesRecv+=numbytes;
     buflen-=numbytes;
     readbuffer->head+=numbytes;
     maxbuf-=numbytes;
@@ -248,6 +250,7 @@ int recv_data_errorcode(int fd, void *buf, int buflen) {
       perror("recv");
       return -1;
     }
+    bytesRecv+=numbytes;
     buffer += numbytes;
     size -= numbytes;
   }
