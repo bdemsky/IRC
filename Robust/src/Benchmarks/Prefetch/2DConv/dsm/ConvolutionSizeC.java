@@ -18,32 +18,34 @@ public class Convolution extends Thread {
     initKernel15(kernel);
 
     atomic {
+	int myx0=x0;
+	int myy0=y0;
+	int myx1=x1;
+	int myy1=y1;
+
       double tempinput[][] = img.inputImage;
       double tempout[][] = img.outputImage;
 
-      double tinput1[] = tempinput[x0];
-      double tinput2[] = tempinput[x0+1];
-      double tinput3[] = tempinput[x0+2];
-      double tinput4[] = tempinput[x0+3];
-      double tinput5[] = tempinput[x0+4];
-      double tinput6[] = tempinput[x0+5];
-      double tinput7[] = tempinput[x0+6];
-      double tinput8[] = tempinput[x0+7];
-      double tinput9[] = tempinput[x0+8];
-      double tinput10[] = tempinput[x0+9];
-      double tinput11[] = tempinput[x0+10];
-      double tinput12[] = tempinput[x0+11];
-      double tinput13[] = tempinput[x0+12];
-      double tinput14[] = tempinput[x0+13];
+      double tinput1[] = tempinput[myx0+0];
+      double tinput2[] = tempinput[myx0+1];
+      double tinput3[] = tempinput[myx0+2];
+      double tinput4[] = tempinput[myx0+3];
+      double tinput5[] = tempinput[myx0+4];
+      double tinput6[] = tempinput[myx0+5];
+      double tinput7[] = tempinput[myx0+6];
+      double tinput8[] = tempinput[myx0+7];
+      double tinput9[] = tempinput[myx0+8];
+      double tinput10[] = tempinput[myx0+9];
+      double tinput11[] = tempinput[myx0+10];
+      double tinput12[] = tempinput[myx0+11];
+      double tinput13[] = tempinput[myx0+12];
+      double tinput14[] = tempinput[myx0+13];
       double tinput0[] = tinput1;
 
-      int l=x0+14;
-      for(int i=x0;i<x1;i++,l++){
+      int l=myx0+14;
+      for(int i=myx0;i<myx1;i++,l++){
         double tout[] = tempout[i];
-        tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
-        tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
-        tinput10 = tinput11; tinput11=tinput12; tinput12=tinput13; tinput13=tinput14; tinput14=tempinput[l];
-        for(int j=y0;j<y1;++j){
+        for(int j=myy0;j<myy1;++j){
           double s=0;
           for(int b=0;b<kernelHeight;++b) {
             s+=(tinput0[j+b] * kernel[0][b] + tinput1[j+b] * kernel[1][b] + tinput2[j+b]*kernel[2][b] +
@@ -54,9 +56,15 @@ public class Convolution extends Thread {
           }
           tout[j]=s;
         }
+        tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
+        tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
+        tinput10 = tinput11; tinput11=tinput12; tinput12=tinput13; tinput13=tinput14; tinput14=tempinput[l];
       }
     }
   }
+
+    
+
 
   public static void main(String[] args) {
     int SIZE = 256;

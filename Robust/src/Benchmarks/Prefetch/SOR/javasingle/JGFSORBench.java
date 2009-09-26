@@ -37,10 +37,11 @@ public class JGFSORBench {
   public JGFSORBench(int nthreads, JGFInstrumentor instr){
     this.nthreads = nthreads;
     this.instr = instr;
-    datasizes = new int[3];
+    datasizes = new int[4];
     datasizes[0] = 1000;
     datasizes[1] = 1500;
     datasizes[2] = 2000;
+    datasizes[3] = 8000;
     JACOBI_NUM_ITER = 100;
     RANDOM_SEED = 10101010;
     R = new Random(RANDOM_SEED);

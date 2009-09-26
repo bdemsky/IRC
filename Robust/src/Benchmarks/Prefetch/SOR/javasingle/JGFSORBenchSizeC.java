@@ -40,7 +40,7 @@ public class JGFSORBenchSizeC{
     JGFInstrumentor.addTimer("Section2:SOR:Kernel", "Iterations",size, instr.timers);
 
     sor.JGFsetsize(size); 
-    sor.JGFkernel(); 
+    JGFSORBench.JGFkernel(sor,instr); 
     sor.JGFvalidate(); 
 
     JGFInstrumentor.addOpsToTimer("Section2:SOR:Kernel", (double) (sor.JACOBI_NUM_ITER), instr.timers);

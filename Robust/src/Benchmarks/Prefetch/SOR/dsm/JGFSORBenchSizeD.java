@@ -32,7 +32,7 @@ public class JGFSORBenchSizeD{
     }
 
     JGFInstrumentor instr = new JGFInstrumentor();
-    JGFInstrumentor.printHeader(2,0,nthreads);
+    //JGFInstrumentor.printHeader(2,0,nthreads);
 
     JGFSORBench sor;
     atomic {

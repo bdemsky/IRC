@@ -17,18 +17,31 @@ public class Array2D extends Thread {
     }
 
     public void exec() {
-	    int xlength=array[0].length;
-	    int ylength=array[0][0].length;
-	    long sum;
-	for(int ii=0;ii<10;ii++) {
-	    int zz[][]=array[ii];
-	    for(int i=0;i<xlength;i++) {
-		int a[]=zz[i];
-		for(int j=0;j<ylength;j++) {
-		    sum+=a[j];
-		}
-	    }
-	}
+      int xlength=array[0].length;
+      int ylength=array[0][0].length;
+      //long sum;
+      for(int ii=0;ii<10;ii++) {
+        int zz[][]=array[ii];
+        /*
+        for(int i=0;i<xlength;i++) { 
+          int a[]=zz[i];
+          for(int j=0;j<ylength;j++) {
+            sum+=a[j];
+          }
+        }
+        */
+        secondLoop(zz, xlength, ylength);
+      }
+    }
+
+    public void secondLoop(int[][] zz, int xlength, int ylength) {
+      long sum;
+      for(int i=0;i<xlength;i++) {
+        int a[]=zz[i];
+        for(int j=0;j<ylength;j++) {
+          sum+=a[j];
+        }
+      }
     }
     
     public void run() {
