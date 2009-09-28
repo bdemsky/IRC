@@ -6,10 +6,12 @@ public class EffectsKey {
 
 	private String fd;
 	private TypeDescriptor td;
+	private Integer hrnId;
 
-	public EffectsKey(String fd, TypeDescriptor td) {
+	public EffectsKey(String fd, TypeDescriptor td, Integer hrnId) {
 		this.fd = fd;
 		this.td = td;
+		this.hrnId = hrnId;
 	}
 
 	public String getFieldDescriptor() {
@@ -20,8 +22,12 @@ public class EffectsKey {
 		return td;
 	}
 
+	public Integer getHRNId() {
+		return hrnId;
+	}
+
 	public String toString() {
-		return "(" + td + ")" + fd;
+		return "(" + td + ")" + fd + "#" + hrnId;
 	}
 
 	public int hashCode() {
@@ -34,6 +40,10 @@ public class EffectsKey {
 
 		if (td != null) {
 			hash += td.getSymbol().hashCode();
+		}
+
+		if (hrnId != null) {
+			hash += hrnId.hashCode();
 		}
 
 		return hash;
@@ -53,7 +63,8 @@ public class EffectsKey {
 		EffectsKey in = (EffectsKey) o;
 
 		if (fd.equals(in.getFieldDescriptor())
-				&& td.getSymbol().equals(in.getTypeDescriptor().getSymbol())) {
+				&& td.getSymbol().equals(in.getTypeDescriptor().getSymbol())
+				&& hrnId.equals(in.getHRNId())) {
 			return true;
 		} else {
 			return false;

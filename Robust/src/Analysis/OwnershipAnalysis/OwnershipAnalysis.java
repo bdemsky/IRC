@@ -1084,7 +1084,7 @@ public class OwnershipAnalysis {
 							keyStr += " " + key;
 						}
 					}
-					keyStr += "}";
+					keyStr += " }";
 					bw.write("  Paramter " + paramName + " ReadingSet="
 							+ keyStr + "\n");
 
@@ -1098,7 +1098,7 @@ public class OwnershipAnalysis {
 						}
 					}
 					
-					keyStr += "}";
+					keyStr += " }";
 					bw.write("  Paramter " + paramName + " WritingngSet="
 							+ keyStr + "\n");
 

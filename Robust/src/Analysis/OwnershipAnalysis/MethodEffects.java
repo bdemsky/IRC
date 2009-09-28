@@ -40,7 +40,7 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), srcDesc.getType()));
+									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
 						}
 					}
@@ -55,7 +55,7 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), srcDesc.getType()));
+									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
 						}
 					}
@@ -87,7 +87,7 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), dstDesc.getType()));
+									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 
 						}
 					}
@@ -102,7 +102,7 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), dstDesc.getType()));
+									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 
 						}
 					}

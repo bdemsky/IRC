@@ -17,6 +17,7 @@ public class ReferenceEdge {
 
   protected OwnershipNode src;
   protected HeapRegionNode dst;
+  private int taintIdentifier;
 
 
   public ReferenceEdge(OwnershipNode src,
@@ -31,6 +32,7 @@ public class ReferenceEdge {
     this.type                    = type;
     this.field                   = field;
     this.isInitialParam = isInitialParam;
+    this.taintIdentifier = 0;
 
     if( beta != null ) {
       this.beta = beta;
@@ -45,12 +47,14 @@ public class ReferenceEdge {
 
 
   public ReferenceEdge copy() {
-    return new ReferenceEdge(src,
+	  ReferenceEdge copy= new ReferenceEdge(src,
                              dst,
 			     type,
 			     field,
                              isInitialParam,
                              beta);
+	  copy.setTaintIdentifier(this.taintIdentifier);
+	  return copy;
   }
 
 
@@ -218,6 +222,8 @@ public class ReferenceEdge {
     if( isInitialParam ) {
       edgeLabel += "*init*\\n";
     }
+    
+    edgeLabel+="*taint*="+taintIdentifier+"\\n";
 
     edgeLabel += beta.toStringEscapeNewline();
 
@@ -231,4 +237,22 @@ public class ReferenceEdge {
 
     return new String("("+src+"->"+type+" "+field+"->"+dst+")");
   }
+  
+  public void tainedBy(Integer paramIdx){
+	  int newTaint=(int) Math.pow(2, paramIdx.intValue());
+	  taintIdentifier=taintIdentifier | newTaint;
+  }
+  
+  public void setTaintIdentifier(int newTaint){
+	  taintIdentifier=newTaint;
+  }
+  
+  public void unionTaintIdentifier(int newTaint){
+	  taintIdentifier=taintIdentifier | newTaint;
+  }
+  
+  public int getTaintIdentifier(){
+	  return taintIdentifier;
+  }
+  
 }
