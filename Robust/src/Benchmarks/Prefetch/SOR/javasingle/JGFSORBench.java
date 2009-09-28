@@ -17,9 +17,6 @@
  *                         All rights reserved.                            *
  *                                                                         *
  **************************************************************************/
-
-import java.util.Random;
-
 public class JGFSORBench { 
 
   int size; 
@@ -27,16 +24,10 @@ public class JGFSORBench {
   int JACOBI_NUM_ITER;
   long RANDOM_SEED;
   public int nthreads;
-  Random R;
   public double Gtotal;
-  public int cachelinesize;
-  public long sync[][];
 
-  public JGFInstrumentor instr;
-
-  public JGFSORBench(int nthreads, JGFInstrumentor instr){
+  public JGFSORBench(int nthreads){
     this.nthreads = nthreads;
-    this.instr = instr;
     datasizes = new int[4];
     datasizes[0] = 1000;
     datasizes[1] = 1500;
@@ -44,120 +35,65 @@ public class JGFSORBench {
     datasizes[3] = 8000;
     JACOBI_NUM_ITER = 100;
     RANDOM_SEED = 10101010;
-    R = new Random(RANDOM_SEED);
     Gtotal = 0.0;
-    cachelinesize = 128;
   }
 
   public void JGFsetsize(int size){
     this.size = size;
   }
 
-  public static void JGFkernel(JGFSORBench sor, JGFInstrumentor instr) {
-    int numthreads;
+  public static void JGFkernel(JGFSORBench sor) {
+    int numthreads, datasize;
+
+    double[][] G;
+    int num_iterations;
+
     numthreads = sor.nthreads;
+    datasize = sor.datasizes[sor.size];
+    G =  new double[datasize][];
+    num_iterations = sor.JACOBI_NUM_ITER;
 
-    double G[][] = sor.RandomMatrix(sor.datasizes[sor.size], sor.datasizes[sor.size], sor.R);
-    int M = G.length;
-    int N = G[0].length;
     double omega = 1.25;
-    int num_iterations = sor.JACOBI_NUM_ITER;
-
-
     double omega_over_four = omega * 0.25;
     double one_minus_omega = 1.0 - omega;
 
     // update interior points
     //
-    int Mm1 = M-1;
-    int Nm1 = N-1;
-
     //spawn threads
-    int cachelinesize = sor.cachelinesize;
 
-    SORRunner thobjects[] = new SORRunner[numthreads];
-    sor.sync = sor.init_sync(numthreads, cachelinesize);
+    SORWrap[] thobjects = new SORWrap[numthreads];
 
-    JGFInstrumentor.startTimer("Section2:SOR:Kernel", instr.timers); 
+	for(int i=0;i<numthreads;i++) {
+	    thobjects[i] =  new SORWrap( new SORRunner(i,omega,G,num_iterations,numthreads));
+	}
 
-    for(int i=1;i<numthreads;i++) {
-      thobjects[i] = new SORRunner(i,omega,G,num_iterations,sor.sync,numthreads);
-      thobjects[i].start();
+    for(int i=0;i<numthreads;i++) {
+      thobjects[i].sor.run();
     }
 
-    thobjects[0] = new SORRunner(0,omega,G,num_iterations,sor.sync,numthreads);
-    thobjects[0].start();
-    thobjects[0].join();
+    //JGFInstrumentor.stopTimer("Section2:SOR:Kernel", instr.timers);
+	for (int i=1; i<G.length-1; i++) {
+	    for (int j=1; j<G.length-1; j++) {
+		sor.Gtotal += G[i][j];
+	    }
+	}               
+  }
 
+  public int JGFvalidate(){
 
-    for(int i=1;i<numthreads;i++) {
-        thobjects[i].join();
+    double refval[];
+    refval = new double[4];
+    refval[0] = 0.498574406322512;
+    refval[1] = 1.1234778980135105;
+    refval[2] = 1.9954895063582696;
+    refval[3] = 2.654895063582696;
+    double dev = Math.fabs(Gtotal - refval[size]);
+    long l = (long) refval[size] * 1000000;
+    long r = (long) Gtotal * 1000000;
+    if (l != r ){
+      return 1;
+    } else {
+      return 0;
     }
-
-    JGFInstrumentor.stopTimer("Section2:SOR:Kernel", instr.timers);
-
-    for (int i=1; i<Nm1; i++) {
-      for (int j=1; j<Nm1; j++) {
-        sor.Gtotal += G[i][j];
-      }
-    }               
-
   }
-
-  private long[][] init_sync(int nthreads, int cachelinesize) {
-    long sync[][] = new long [nthreads][cachelinesize];
-    for (int i = 0; i<nthreads; i++)
-      sync[i][0] = 0;
-    return sync;
-  }
-
-  public void JGFvalidate(){
-
-      double refval[]=new double[3];
-      refval[0]=0.498574406322512;
-      refval[1]=1.1234778980135105;
-      refval[2]=1.9954895063582696;
-      double dev = Math.abs(Gtotal - refval[size]);
-      if (dev > 1.0e-12 ){
-	  System.printString("Validation failed");
-	  System.printString("Gtotal = " + Gtotal + "  " + dev + "  " + size);
-      }
-  }
-
-  /*
-     public void JGFtidyup(){
-     System.gc();
-     }  
-
-     public void JGFrun(int size){
-
-
-     JGFInstrumentor.addTimer("Section2:SOR:Kernel", "Iterations",size);
-
-     JGFsetsize(size); 
-     JGFinitialise(); 
-     JGFkernel(); 
-     JGFvalidate(); 
-     JGFtidyup(); 
-
-
-     JGFInstrumentor.addOpsToTimer("Section2:SOR:Kernel", (double) (JACOBI_NUM_ITER));
-
-     JGFInstrumentor.printTimer("Section2:SOR:Kernel"); 
-     }
-     */
-
-  public double[][] RandomMatrix(int M, int N, Random R)
-  {
-    double A[][] = new double[M][N];
-
-    for (int i=0; i<N; i++)
-      for (int j=0; j<N; j++)
-      {
-        A[i][j] = R.nextDouble() * 1e-6;
-      }      
-    return A;
-  }
-
-
 }

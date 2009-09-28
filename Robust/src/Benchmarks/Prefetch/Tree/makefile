@@ -1,6 +1,6 @@
 MAINCLASS=TreeT
 SRC1=Tree.java
-FLAGS=-dsm -transstats -debug -prefetch -dsmcaching -optimize -excprefetch Tree.Populate -excprefetch Node.Inorder -excprefetch Node.Postorder -excprefetch TreeT.run -excprefetch TreeT.main -mainclass ${MAINCLASS} -trueprob 0.90
+FLAGS=-dsm -prefetch -dsmcaching -optimize -excprefetch Tree.Populate -excprefetch Node.Inorder -excprefetch Node.Postorder -excprefetch TreeT.run -excprefetch TreeT.main -mainclass ${MAINCLASS} -trueprob 0.98
 FLAGS1=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.98
 FLAGS2=-dsm -optimize -mainclass ${MAINCLASS}
 default:

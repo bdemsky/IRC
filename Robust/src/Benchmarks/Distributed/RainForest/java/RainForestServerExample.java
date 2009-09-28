@@ -1,4 +1,4 @@
-#define ROW                 100  /* columns in the map */
+#define ROW                 400  /* columns in the map */
 #define COLUMN              100  /* rows of in the map */
 
 public class RainForestServerExample {

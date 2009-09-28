@@ -1,6 +1,6 @@
-#define ROW                 100  /* columns in the map */
+#define ROW                 400  /* columns in the map */
 #define COLUMN              100  /* rows of in the map */
-#define ROUNDS              256   /* Number of moves by each player */
+#define ROUNDS              512   /* Number of moves by each player */
 #define PLAYERS             20   /* Number of Players when num Players != num of client machines */
 #define RATI0               0.5  /* Number of lumberjacks to number of planters */
 #define BLOCK               3    /* Area around the gamer to consider */

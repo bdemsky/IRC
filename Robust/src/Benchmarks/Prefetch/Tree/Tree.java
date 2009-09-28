@@ -11,8 +11,8 @@ public class TreeT extends Thread {
     TreeT t;
     atomic {
       t=global new TreeT();
-      t.numTrees=5000;
-      t.TreeDepth=10;
+      t.numTrees=20000;
+      t.TreeDepth=5;
     }
 	t.start((128<<24)|(195<<16)|(136<<8)|162);
 	t.join();
@@ -27,11 +27,29 @@ public class TreeT extends Thread {
       tt = global new Tree[numTrees];
       for(int i =0; i<numTrees; i++) {
         tt[i] = global new Tree(TreeDepth); 
-        tt[i].Populate(tt[i].root);
+        int depth = tt[i].iDepth;
+        tt[i].Populate(tt[i].root, depth);
       }
     }
   }
 
+  public void exec() {
+    Random r = new Random(241);
+    for (int i=0; i <numTrees; i++) {
+      Node n = tt[i].root;
+      while (n != null) {
+        int choice = r.nextInt(2);
+        if (choice == 0) {
+          //System.out.println("i= " + i + " n.data= " +n.element);
+          n = n.left;
+        } else {
+          //System.out.println("i= " + i + " n.data= " +n.element);
+          n = n.right;
+        }
+      }
+    }
+  }
+  /*
   public void exec() {
     Random r = new Random(241);
     for(int i=0; i<numTrees; i++) {
@@ -46,6 +64,7 @@ public class TreeT extends Thread {
       }
     }
   }
+    */
 }
 
 class Tree {
@@ -63,25 +82,23 @@ class Tree {
   }
 
   // Build tree top down, assigning to older objects.
-  public void Populate(Node n) {
+  public void Populate(Node n, int depth) {
     Random r = new Random(0);
     //pick a random seed
-    if (iDepth<=0) {
+    if (depth<=0) {
       return;
     } else {
-      iDepth--;
+      depth--;
       //n.left = global new Node(r.nextInt(100));
       //n.right = global new Node(r.nextInt(100));
-      n.left = global new Node(iDepth);
+      n.left = global new Node(depth);
       n.left.parent = n;
-      n.right = global new Node(iDepth+100);
+      n.right = global new Node(depth+100);
       n.right.parent = n;
-      this.Populate(n.left);
-      this.Populate(n.right);
+      Populate(n.left, depth);
+      Populate(n.right, depth);
     }
   }
-
-  
 }
 
 // Basic node stored in unbalanced binary search trees
