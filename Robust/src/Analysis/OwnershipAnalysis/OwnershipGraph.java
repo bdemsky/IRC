@@ -212,6 +212,11 @@ public class OwnershipGraph {
     assert edge == referencee.getReferenceFrom(referencer,
                                                type,
 					       field);
+       
+//    int oldTaint=edge.getTaintIdentifier();
+//    if(referencer instanceof HeapRegionNode){
+//    	depropagateTaintIdentifier((HeapRegionNode)referencer,oldTaint,new HashSet<HeapRegionNode>());
+//    }
 
     referencer.removeReferencee(edge);
     referencee.removeReferencer(edge);
@@ -362,6 +367,9 @@ public class OwnershipGraph {
 						    null,
 	                                            false,
 	                                            betaY.intersection(betaHrn) );
+	  
+	  int newTaintIdentifier=getTaintIdentifierFromHRN(hrnHrn);
+	  edgeNew.setTaintIdentifier(newTaintIdentifier);
 
 	  addReferenceEdge(lnX, hrnHrn, edgeNew);
 	}
@@ -485,7 +493,7 @@ public class OwnershipGraph {
 			       edgeExisting.getBeta().union( edgeNew.getBeta() )
 			      );
 	  int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-	  edgeExisting.tainedBy(newTaintIdentifier);
+	  edgeExisting.unionTaintIdentifier(newTaintIdentifier);
 	  // a new edge here cannot be reflexive, so existing will
 	  // always be also not reflexive anymore
 	  edgeExisting.setIsInitialParam( false );
@@ -4709,6 +4717,27 @@ public class OwnershipGraph {
 			  if(!refHRN.equals(hrn) && !visitedSet.contains(refHRN)){
 				  visitedSet.add(refHRN);
 				  propagateTaintIdentifier((HeapRegionNode)edge.getSrc(),newTaintIdentifier,visitedSet);
+			  }
+			 
+		  }
+	  }	  
+	  
+  }
+  
+  public void depropagateTaintIdentifier(HeapRegionNode hrn, int newTaintIdentifier, HashSet<HeapRegionNode> visitedSet){
+	  
+	  HashSet<ReferenceEdge> setEdge=hrn.referencers;
+	  Iterator<ReferenceEdge> iter=setEdge.iterator();
+	  while(iter.hasNext()){
+		  ReferenceEdge edge= iter.next();
+		  edge.minusTaintIdentifier(newTaintIdentifier);		  
+		  if(edge.getSrc() instanceof HeapRegionNode){
+			  
+			  HeapRegionNode refHRN=(HeapRegionNode)edge.getSrc();
+			  //check whether it is reflexive edge
+			  if(!refHRN.equals(hrn) && !visitedSet.contains(refHRN)){
+				  visitedSet.add(refHRN);
+				  depropagateTaintIdentifier((HeapRegionNode)edge.getSrc(),newTaintIdentifier,visitedSet);
 			  }
 			 
 		  }

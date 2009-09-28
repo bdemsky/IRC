@@ -223,7 +223,7 @@ public class ReferenceEdge {
       edgeLabel += "*init*\\n";
     }
     
-    edgeLabel+="*taint*="+taintIdentifier+"\\n";
+    edgeLabel+="*taint*="+Integer.toBinaryString(taintIdentifier)+"\\n";
 
     edgeLabel += beta.toStringEscapeNewline();
 
@@ -249,6 +249,10 @@ public class ReferenceEdge {
   
   public void unionTaintIdentifier(int newTaint){
 	  taintIdentifier=taintIdentifier | newTaint;
+  }
+  
+  public void minusTaintIdentifier(int removedTaint){
+	  taintIdentifier = taintIdentifier & (~removedTaint);
   }
   
   public int getTaintIdentifier(){
