@@ -335,8 +335,11 @@ public class OwnershipAnalysis {
   private boolean writeDOTs;
   private boolean writeAllDOTs;
   
+  // for controlling method effects
+  private boolean methodEffects;
+  
     //map each FlatNode to its own internal ownership graph
-	private Hashtable<MethodContext, MethodEffects> mapMethodContextToMethodEffects;
+	private MethodEffectsAnalysis meAnalysis;
 
 
 
@@ -349,128 +352,155 @@ public class OwnershipAnalysis {
                            boolean writeDOTs,
                            boolean writeAllDOTs,
                            String aliasFile) throws java.io.IOException {
+	  
+	  this.methodEffects = false;
+	  init(state,tu,callGraph,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
+	  
+  }
+  
+  public OwnershipAnalysis(State state,
+          TypeUtil tu,
+          CallGraph callGraph,
+          int allocationDepth,
+          boolean writeDOTs,
+          boolean writeAllDOTs,
+          String aliasFile,
+          boolean methodEffects) throws java.io.IOException {
+	  
+	  this.methodEffects = methodEffects;
+	  init(state,tu,callGraph,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
+	  
+  }
+  
+  private void init(State state,
+          TypeUtil tu,
+          CallGraph callGraph,
+          int allocationDepth,
+          boolean writeDOTs,
+          boolean writeAllDOTs,
+          String aliasFile) throws java.io.IOException {
 
-    analysisComplete = false;
+	    analysisComplete = false;
 
-    this.state           = state;
-    this.typeUtil        = tu;
-    this.callGraph       = callGraph;
-    this.allocationDepth = allocationDepth;
-    this.writeDOTs       = writeDOTs;
-    this.writeAllDOTs    = writeAllDOTs;
+	    this.state           = state;
+	    this.typeUtil        = tu;
+	    this.callGraph       = callGraph;
+	    this.allocationDepth = allocationDepth;
+	    this.writeDOTs       = writeDOTs;
+	    this.writeAllDOTs    = writeAllDOTs;
 
-    descriptorsToAnalyze = new HashSet<Descriptor>();
+	    descriptorsToAnalyze = new HashSet<Descriptor>();
 
-    mapMethodContextToInitialParamAllocGraph =
-      new Hashtable<MethodContext, OwnershipGraph>();
+	    mapMethodContextToInitialParamAllocGraph =
+	      new Hashtable<MethodContext, OwnershipGraph>();
 
-    mapMethodContextToCompleteOwnershipGraph =
-      new Hashtable<MethodContext, OwnershipGraph>();
+	    mapMethodContextToCompleteOwnershipGraph =
+	      new Hashtable<MethodContext, OwnershipGraph>();
 
-    mapFlatNewToAllocationSite =
-      new Hashtable<FlatNew, AllocationSite>();
+	    mapFlatNewToAllocationSite =
+	      new Hashtable<FlatNew, AllocationSite>();
 
-    mapDescriptorToAllocationSiteSet =
-      new Hashtable<Descriptor, HashSet<AllocationSite> >();
+	    mapDescriptorToAllocationSiteSet =
+	      new Hashtable<Descriptor, HashSet<AllocationSite> >();
 
-    mapDescriptorToAllMethodContexts = 
-      new Hashtable<Descriptor, HashSet<MethodContext> >();
+	    mapDescriptorToAllMethodContexts = 
+	      new Hashtable<Descriptor, HashSet<MethodContext> >();
 
-    mapMethodContextToDependentContexts =
-      new Hashtable<MethodContext, HashSet<MethodContext> >();
+	    mapMethodContextToDependentContexts =
+	      new Hashtable<MethodContext, HashSet<MethodContext> >();
 
-    mapDescriptorToPriority = 
-      new Hashtable<Descriptor, Integer>();
+	    mapDescriptorToPriority = 
+	      new Hashtable<Descriptor, Integer>();
 
-    mapHrnIdToAllocationSite =
-      new Hashtable<Integer, AllocationSite>();
-    
-    mapMethodContextToMethodEffects = new Hashtable<MethodContext, MethodEffects>();
-
-
-    if( writeAllDOTs ) {
-      mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
-    }
-
-
-    double timeStartAnalysis = (double) System.nanoTime();
-
-
-    if( state.TASK ) {
-      // initialize methods to visit as the set of all tasks in the
-      // program and then any method that could be called starting
-      // from those tasks
-      Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
-      while( taskItr.hasNext() ) {
-	Descriptor d = (Descriptor) taskItr.next();
-	scheduleAllCallees(d);
-      }
-
-    } else {
-      // we are not in task mode, just normal Java, so start with
-      // the main method
-      Descriptor d = typeUtil.getMain();
-      scheduleAllCallees(d);
-    }
-
-
-    // before beginning analysis, initialize every scheduled method
-    // with an ownership graph that has populated parameter index tables
-    // by analyzing the first node which is always a FlatMethod node
-    Iterator<Descriptor> dItr = descriptorsToAnalyze.iterator();
-    while( dItr.hasNext() ) {
-      Descriptor d  = dItr.next();
-      OwnershipGraph og = new OwnershipGraph(allocationDepth, typeUtil);
-
-      FlatMethod fm;
-      if( d instanceof MethodDescriptor ) {
-	fm = state.getMethodFlat( (MethodDescriptor) d);
-      } else {
-	assert d instanceof TaskDescriptor;
-	fm = state.getMethodFlat( (TaskDescriptor) d);
-      }
-
-      MethodContext mc = new MethodContext( d );
-      assert !mapDescriptorToAllMethodContexts.containsKey( d );
-      HashSet<MethodContext> s = new HashSet<MethodContext>();
-      s.add( mc );
-      mapDescriptorToAllMethodContexts.put( d, s );
-
-      //System.out.println("Previsiting " + mc);
-
-      if(!mapMethodContextToMethodEffects.containsKey(mc)){
-    	  MethodEffects me=new MethodEffects();
-    	  mapMethodContextToMethodEffects.put(mc, me);
-      }
-
-      og = analyzeFlatNode(mc, fm, null, og);
-      setGraphForMethodContext(mc, og);
-    }
-
-    // as mentioned above, analyze methods one-by-one, possibly revisiting
-    // a method if the methods that it calls are updated
-    analyzeMethods();
-    analysisComplete = true;
+	    mapHrnIdToAllocationSite =
+	      new Hashtable<Integer, AllocationSite>();
+	    
+	    meAnalysis=new MethodEffectsAnalysis(methodEffects);
 
 
-    double timeEndAnalysis = (double) System.nanoTime();
-    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-    String treport = String.format( "The reachability analysis took %.3f sec.", dt );
-    System.out.println( treport );
+	    if( writeAllDOTs ) {
+	      mapMethodContextToNumUpdates = new Hashtable<MethodContext, Integer>();
+	    }
 
-    if( writeDOTs && !writeAllDOTs ) {
-      writeFinalContextGraphs();      
-    }  
 
-    writeMethodEffectsResult();
+	    double timeStartAnalysis = (double) System.nanoTime();
 
-    if( aliasFile != null ) {
-      if( state.TASK ) {
-	writeAllAliases(aliasFile, treport);
-      } else {
-	writeAllAliasesJava(aliasFile, treport);
-      }
-    }
+
+	    if( state.TASK ) {
+	      // initialize methods to visit as the set of all tasks in the
+	      // program and then any method that could be called starting
+	      // from those tasks
+	      Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+	      while( taskItr.hasNext() ) {
+		Descriptor d = (Descriptor) taskItr.next();
+		scheduleAllCallees(d);
+	      }
+
+	    } else {
+	      // we are not in task mode, just normal Java, so start with
+	      // the main method
+	      Descriptor d = typeUtil.getMain();
+	      scheduleAllCallees(d);
+	    }
+
+
+	    // before beginning analysis, initialize every scheduled method
+	    // with an ownership graph that has populated parameter index tables
+	    // by analyzing the first node which is always a FlatMethod node
+	    Iterator<Descriptor> dItr = descriptorsToAnalyze.iterator();
+	    while( dItr.hasNext() ) {
+	      Descriptor d  = dItr.next();
+	      OwnershipGraph og = new OwnershipGraph(allocationDepth, typeUtil);
+
+	      FlatMethod fm;
+	      if( d instanceof MethodDescriptor ) {
+		fm = state.getMethodFlat( (MethodDescriptor) d);
+	      } else {
+		assert d instanceof TaskDescriptor;
+		fm = state.getMethodFlat( (TaskDescriptor) d);
+	      }
+
+	      MethodContext mc = new MethodContext( d );
+	      assert !mapDescriptorToAllMethodContexts.containsKey( d );
+	      HashSet<MethodContext> s = new HashSet<MethodContext>();
+	      s.add( mc );
+	      mapDescriptorToAllMethodContexts.put( d, s );
+
+	      //System.out.println("Previsiting " + mc);
+
+	      meAnalysis.createNewMapping(mc);
+
+	      og = analyzeFlatNode(mc, fm, null, og);
+	      setGraphForMethodContext(mc, og);
+	    }
+
+	    // as mentioned above, analyze methods one-by-one, possibly revisiting
+	    // a method if the methods that it calls are updated
+	    analyzeMethods();
+	    analysisComplete = true;
+
+
+	    double timeEndAnalysis = (double) System.nanoTime();
+	    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+	    String treport = String.format( "The reachability analysis took %.3f sec.", dt );
+	    System.out.println( treport );
+
+	    if( writeDOTs && !writeAllDOTs ) {
+	      writeFinalContextGraphs();      
+	    }  
+
+	    if(methodEffects){
+	    	meAnalysis.writeMethodEffectsResult();
+	    }
+
+	    if( aliasFile != null ) {
+	      if( state.TASK ) {
+		writeAllAliases(aliasFile, treport);
+	      } else {
+		writeAllAliasesJava(aliasFile, treport);
+	      }
+	    }
+	  
   }
 
   // called from the constructor to help initialize the set
@@ -677,8 +707,6 @@ public class OwnershipAnalysis {
                   HashSet<FlatReturnNode> setRetNodes,
                   OwnershipGraph og) throws java.io.IOException {
 	  
-	MethodEffects me=mapMethodContextToMethodEffects.get(mc);
-
     TempDescriptor lhs;
     TempDescriptor rhs;
     FieldDescriptor fld;
@@ -787,7 +815,7 @@ public class OwnershipAnalysis {
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
       }
       
-      me.analyzeFlatFieldNode(og, rhs, fld);
+      meAnalysis.analyzeFlatFieldNode(mc, og, rhs, fld);
       
       break;
 
@@ -800,7 +828,7 @@ public class OwnershipAnalysis {
 	og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
       }
       
-      me.analyzeFlatSetFieldNode(og, lhs, fld);
+      meAnalysis.analyzeFlatSetFieldNode(mc, og, lhs, fld);
       
       break;
 
@@ -880,13 +908,8 @@ public class OwnershipAnalysis {
 	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc, null);
 	}
 	
-	if(!mapMethodContextToMethodEffects.containsKey(mcNew)){
-		MethodEffects meNew=new MethodEffects();
-		mapMethodContextToMethodEffects.put(mcNew, meNew);
-	}
-	
-	MethodEffects meFlatCall=mapMethodContextToMethodEffects.get(mcNew);
-	me.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults,fc,mc,meFlatCall);	
+	meAnalysis.createNewMapping(mcNew);
+	meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
 	
 
       } else {
@@ -915,10 +938,7 @@ public class OwnershipAnalysis {
 	  contexts.add( mcNew );
 	  
 		
-	if(!mapMethodContextToMethodEffects.containsKey(mcNew)){
-		MethodEffects meNew=new MethodEffects();
-		mapMethodContextToMethodEffects.put(mcNew, meNew);
-	}
+	meAnalysis.createNewMapping(mcNew);
 		
 	  
 	  addDependent( mc, mcNew );
@@ -940,8 +960,7 @@ public class OwnershipAnalysis {
 		
 	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
 	  
-	  MethodEffects meFlatCall=mapMethodContextToMethodEffects.get(mcNew);
-	  me.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults,fc,mc,meFlatCall);	
+	  meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
 	}
 	
       }
@@ -959,8 +978,6 @@ public class OwnershipAnalysis {
       break;
     }
     
-    setMethodEffectsForMethodContext(mc, me);
-     
     return og;
   }
 
@@ -988,10 +1005,6 @@ public class OwnershipAnalysis {
   }
 
   
-  private void setMethodEffectsForMethodContext(MethodContext mc, MethodEffects me){
-	  mapMethodContextToMethodEffects.put(mc,me);
-  }
-
   private void setGraphForMethodContext(MethodContext mc, OwnershipGraph og) {
 
     mapMethodContextToCompleteOwnershipGraph.put(mc, og);
@@ -1048,82 +1061,6 @@ public class OwnershipAnalysis {
       } catch( IOException e ) {}    
     }
   }
-  
-	public void writeMethodEffectsResult() throws IOException {
-
-		try {
-			BufferedWriter bw = new BufferedWriter(new FileWriter(
-					"MethodEffects_resport.txt"));
-
-			Set<MethodContext> mcSet = mapMethodContextToMethodEffects.keySet();
-			Iterator<MethodContext> mcIter = mcSet.iterator();
-			while (mcIter.hasNext()) {
-				MethodContext mc = mcIter.next();
-				MethodDescriptor md = (MethodDescriptor) mc.getDescriptor();
-				
-				int startIdx=0;
-				if(!md.isStatic()){					
-					startIdx=1;
-				}
-
-				MethodEffects me = mapMethodContextToMethodEffects.get(mc);
-				EffectsSet effectsSet = me.getEffects();
-
-				bw.write("Method " + mc +" :\n");
-				for (int i = startIdx; i < md.numParameters()+startIdx; i++) {
-
-					String paramName = md.getParamName(i-startIdx);
-
-					Set<EffectsKey> effectSet = effectsSet
-							.getReadingSet(i);
-					String keyStr = "{";
-					if (effectSet != null) {
-						Iterator<EffectsKey> effectIter = effectSet.iterator();
-						while (effectIter.hasNext()) {
-							EffectsKey key = effectIter.next();
-							keyStr += " " + key;
-						}
-					}
-					keyStr += " }";
-					bw.write("  Paramter " + paramName + " ReadingSet="
-							+ keyStr + "\n");
-
-					effectSet = effectsSet.getWritingSet(new Integer(i));
-					keyStr = "{";
-					if (effectSet != null) {
-						Iterator<EffectsKey> effectIter = effectSet.iterator();
-						while (effectIter.hasNext()) {
-							EffectsKey key = effectIter.next();
-							keyStr += " " + key;
-						}
-					}
-					
-					keyStr += " }";
-					bw.write("  Paramter " + paramName + " WritingngSet="
-							+ keyStr + "\n");
-
-				}
-				bw.write("\n");
-
-			}
-
-			bw.close();
-		} catch (IOException e) {
-			System.err.println(e);
-		}
-
-		// Set entrySet = mapMethodContextToMethodEffects.entrySet();
-		// Iterator itr = entrySet.iterator();
-		// while( itr.hasNext() ) {
-		// Map.Entry me = (Map.Entry) itr.next();
-		// MethodContext mc = (MethodContext) me.getKey();
-		// MethodEffects og = (MethodEffects) me.getValue();
-		//
-		// try {
-		// og.writeGraph(mc, true, true, true, false, false);
-		// } catch( IOException e ) {}
-		// }
-	}
   
   
 

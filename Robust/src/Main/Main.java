@@ -187,7 +187,9 @@ public class Main {
       } else if (option.equals("-mlpdebug")) {
 	state.MLPDEBUG=true;
 
-      } else if (option.equals("-help")) {
+      } else if (option.equals("-methodeffects")) {
+	state.METHODEFFECTS=true;
+      }else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
 	System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -335,7 +337,8 @@ public class Main {
                                                    state.OWNERSHIPALLOCDEPTH,
                                                    state.OWNERSHIPWRITEDOTS,
                                                    state.OWNERSHIPWRITEALL,
-                                                   state.OWNERSHIPALIASFILE);
+                                                   state.OWNERSHIPALIASFILE,
+                                                   state.METHODEFFECTS);
     }
 
     if (state.MLP) {
@@ -346,7 +349,8 @@ public class Main {
 						   state.OWNERSHIPALLOCDEPTH,
                                                    state.OWNERSHIPWRITEDOTS,
                                                    state.OWNERSHIPWRITEALL,
-                                                   state.OWNERSHIPALIASFILE);
+                                                   state.OWNERSHIPALIASFILE,
+                                                   state.METHODEFFECTS);
       mlpa = new MLPAnalysis(state,
                              tu,
                              callGraph,
