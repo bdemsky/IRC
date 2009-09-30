@@ -492,15 +492,21 @@ public class OwnershipGraph {
 	  edgeExisting.setBeta(
 			       edgeExisting.getBeta().union( edgeNew.getBeta() )
 			      );
-	  int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-	  edgeExisting.unionTaintIdentifier(newTaintIdentifier);
+	  if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
+		  int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
+		  edgeExisting.unionTaintIdentifier(newTaintIdentifier);
+	  }
 	  // a new edge here cannot be reflexive, so existing will
 	  // always be also not reflexive anymore
 	  edgeExisting.setIsInitialParam( false );
 	} else {
-		int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-		edgeNew.setTaintIdentifier(newTaintIdentifier);
-		propagateTaintIdentifier(hrnX,newTaintIdentifier,new HashSet<HeapRegionNode>());
+		
+		if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
+			int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
+			edgeNew.setTaintIdentifier(newTaintIdentifier);
+		}
+		//currently, taint isn't propagated through the chain of refrences
+        //propagateTaintIdentifier(hrnX,newTaintIdentifier,new HashSet<HeapRegionNode>());
 	  addReferenceEdge( hrnX, hrnY, edgeNew );
 	}
       }
@@ -696,7 +702,6 @@ public class OwnershipGraph {
 			   null,            // match all fields
 			   true,            // special param initial
 			   betaSoup );      // reachability
-      edgeSecondaryReflexive.tainedBy(paramIndex);
       addReferenceEdge( hrnSecondary, hrnSecondary, edgeSecondaryReflexive );
 
       ReferenceEdge edgeSecondary2Primary =
@@ -706,7 +711,6 @@ public class OwnershipGraph {
 			   null,            // match all fields
 			   true,            // special param initial
 			   betaSoup );      // reachability
-      edgeSecondary2Primary.tainedBy(paramIndex);
       addReferenceEdge( hrnSecondary, hrnPrimary, edgeSecondary2Primary );
 
       ReferenceEdge edgeFromLabelR =
@@ -731,7 +735,6 @@ public class OwnershipGraph {
 			   fd.getSymbol(), // field
 			   true,           // special param initial
 			   betaSoup );     // reachability
-      edgePrimaryReflexive.tainedBy(paramIndex);
       addReferenceEdge( hrnPrimary, hrnPrimary, edgePrimaryReflexive );
     }
 
@@ -746,7 +749,6 @@ public class OwnershipGraph {
 			   fd.getSymbol(), // field
 			   true,           // special param initial
 			   betaSoup );     // reachability      
-      edgePrimary2Secondary.tainedBy(paramIndex);
       addReferenceEdge( hrnPrimary, hrnSecondary, edgePrimary2Secondary );
     }
   }
@@ -880,7 +882,6 @@ public class OwnershipGraph {
 			 null,            // match all fields
 			 true,            // special param initial
 			 betaSoup );      // reachability
-    edgeAliased2Primary.tainedBy(paramIndex);
     addReferenceEdge( hrnAliasBlob, hrnPrimary, edgeAliased2Primary );    
 
     ReferenceEdge edgeFromLabelR =
@@ -999,7 +1000,6 @@ public class OwnershipGraph {
 			     fd.getSymbol(), // field
 			     true,           // special param initial
 			     betaSoup );     // reachability      
-	edgePrimaryReflexive.tainedBy(new Integer(i));
 	addReferenceEdge( primaryI, primaryI, edgePrimaryReflexive );
       }
 
@@ -1016,7 +1016,6 @@ public class OwnershipGraph {
 			     fd.getSymbol(), // field
 			     true,           // special param initial
 			     betaSoup );     // reachability
-	edgePrimary2Secondary.tainedBy(new Integer(i));
 	addReferenceEdge( primaryI, hrnAliasBlob, edgePrimary2Secondary );
 
 	// ask whether these fields might match any of the other aliased
@@ -1051,7 +1050,6 @@ public class OwnershipGraph {
 				 fd.getSymbol(), // field
 				 true,           // special param initial
 				 betaSoupWJ );   // reachability
-	    edgePrimaryI2PrimaryJ.tainedBy(new Integer(i));
 	    addReferenceEdge( primaryI, primaryJ, edgePrimaryI2PrimaryJ );
 	  }
 	}	
@@ -2816,7 +2814,25 @@ public class OwnershipGraph {
 	      // otherwise the caller src and dst pair can match the edge, so make it
 	      ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
 	      edgeNewInCaller.setSrc( src );
-	      edgeNewInCaller.setDst( dst );	      
+	      edgeNewInCaller.setDst( dst );	     
+	      
+	      // handle taint info if callee created this edge
+	      // added by eom
+	      Set<Integer> pParamSet=idPrimary2paramIndexSet.get(dst.getID());
+	      Set<Integer> sParamSet=idSecondary2paramIndexSet.get(dst.getID());
+	      HashSet<Integer> paramSet=new  HashSet<Integer>();
+	      if(pParamSet!=null){
+	    	  paramSet.addAll(pParamSet);  
+	      }
+	      if(sParamSet!=null){
+	    	  paramSet.addAll(sParamSet);  
+	      }
+	      Iterator<Integer> paramIter=paramSet.iterator();
+	      int newTaintIdentifier=0;
+	      while(paramIter.hasNext()){
+	    	  Integer paramIdx=paramIter.next();
+	    	  edgeNewInCaller.tainedBy(paramIdx);
+	      }
 
 	      ReferenceEdge edgeExisting = src.getReferenceTo( dst, 
 							       edgeNewInCaller.getType(),
@@ -3802,7 +3818,6 @@ public class OwnershipGraph {
 	  edgeToMerge.setBeta(
 	    edgeToMerge.getBeta().union(edgeA.getBeta() )
 	    );
-	  	//TODO eom
 	    edgeToMerge.unionTaintIdentifier(edgeA.getTaintIdentifier());
 	  if( !edgeA.isInitialParam() ) {
 	    edgeToMerge.setIsInitialParam(false);
