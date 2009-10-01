@@ -12,6 +12,8 @@
 
 #include "tm.h"
 #include "garbage.h"
+#include <signal.h>
+
 #define likely(x) x
 /* Per thread transaction variables */
 __thread objstr_t *t_cache;
@@ -20,6 +22,7 @@ __thread struct objlist * newobjs;
 
 #ifdef SANDBOX
 __thread jmp_buf aborttrans;
+__thread int abortenabled;
 #endif
 
 #ifdef DELAYCOMP
@@ -298,6 +301,7 @@ void *objstrAlloc(unsigned int size) {
   }
 }
 
+#ifdef SANDBOX
 /* Do sandboxing */
 void errorhandler(int sig, struct sigcontext ctx) {
   if (abortenabled&&checktrans())
@@ -327,6 +331,7 @@ int checktrans() {
   }
   return 0;
 }
+#endif
 
 /* =============================================================
  * transRead
@@ -513,13 +518,14 @@ int transCommit() {
   } while (1);
 }
 
-#ifdef DELAYCOMP
-#define freearrays   if (c_numelements>=200) { \
-    free(oidrdlocked); \
-    free(oidrdversion); 
 #ifdef STMSTATS
-    free(oidrdage); \
+  You need to add free statements for oidrdage in a way that they will not appear if this option is not defined.
 #endif
+
+#ifdef DELAYCOMP
+#define freearrays if (c_numelements>=200) { \
+    free(oidrdlocked); \
+    free(oidrdversion); \
   } \
   if (t_numelements>=200) { \
     free(oidwrlocked); \
@@ -528,11 +534,12 @@ int transCommit() {
 #define freearrays   if (c_numelements>=200) { \
     free(oidrdlocked); \
     free(oidrdversion); \
-#ifdef STMSTATS
-    free(oidrdage); \
-#endif
     free(oidwrlocked); \
   }
+#endif
+
+#ifdef STMSTATS
+    you need to set oidrdage in a way that doesn't appear if this macro is not defined.
 #endif
 
 #ifdef DELAYCOMP
@@ -545,33 +552,21 @@ int transCommit() {
   if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
-#ifdef STMSTATS
-    oidrdage=rdage; \
-#endif
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
-#ifdef STMSTATS
-    oidrdage=malloc(size); \
-#endif
   }
 #else
 #define allocarrays if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
-#ifdef STMSTATS
-    oidrdage=rdage; \
-#endif
     oidwrlocked=wrlocked; \
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
     oidwrlocked=malloc(size); \
-#ifdef STMSTATS
-    oidrdage=malloc(size); \
-#endif
   }
 #endif
 
@@ -959,9 +954,10 @@ int alttraverseCache() {
   void ** oidwrlocked;
   allocarrays;
 
-
+#ifdef STMSTATS
   for(i=0; i<TOTALNUMCLASSANDARRAY; i++)
     objtypetraverse[i] = 0;
+#endif
   chashlistnode_t *curr = c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(curr != NULL)) {
