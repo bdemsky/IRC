@@ -24,6 +24,7 @@ public class LocalityAnalysis {
   Hashtable<MethodDescriptor, Set<LocalityBinding>> methodtolb;
   private LocalityBinding lbmain;
   private LocalityBinding lbrun;
+  private LocalityBinding lbexecute;
 
   CallGraph callgraph;
   TypeUtil typeutil;
@@ -192,8 +193,10 @@ public class LocalityAnalysis {
     Stack<LocalityBinding> lbstack=new Stack<LocalityBinding>();
     lbstack.add(lbmain);
     lbstack.add(lbrun);
+    lbstack.add(lbexecute);
     lbset.add(lbmain);
     lbset.add(lbrun);
+    lbset.add(lbexecute);
     while(!lbstack.isEmpty()) {
       LocalityBinding lb=lbstack.pop();
       if (calldep.containsKey(lb)) {
@@ -693,6 +696,19 @@ public class LocalityAnalysis {
       methodtolb.put(lbrun.getMethod(), new HashSet<LocalityBinding>());
     methodtolb.get(lbrun.getMethod()).add(lbrun);
 
+    lbexecute = new LocalityBinding(typeutil.getExecute(), false);
+    lbexecute.setGlobalReturn(EITHER);
+    lbexecute.setGlobalThis(GLOBAL);
+    lbtovisit.add(lbexecute);
+    discovered.put(lbexecute, lbexecute);
+    if (!classtolb.containsKey(lbexecute.getMethod().getClassDesc()))
+      classtolb.put(lbexecute.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+    classtolb.get(lbexecute.getMethod().getClassDesc()).add(lbexecute);
+
+    if (!methodtolb.containsKey(lbexecute.getMethod()))
+      methodtolb.put(lbexecute.getMethod(), new HashSet<LocalityBinding>());
+    methodtolb.get(lbexecute.getMethod()).add(lbexecute);
+
     while(!lbtovisit.isEmpty()) {
       LocalityBinding lb=(LocalityBinding) lbtovisit.iterator().next();
       lbtovisit.remove(lb);
@@ -766,6 +782,7 @@ public class LocalityAnalysis {
 	}
       }
       atomictable.put(fn, atomicstate);
+
       // Process this node
       switch(fn.kind()) {
       case FKind.FlatAtomicEnterNode:
@@ -871,6 +888,7 @@ public class LocalityAnalysis {
     MethodDescriptor nodemd=fc.getMethod();
     Set methodset=null;
     Set runmethodset=null;
+    Set executemethodset=null;
 
     if (nodemd.isStatic()||nodemd.getReturnType()==null) {
       methodset=new HashSet();
@@ -881,20 +899,44 @@ public class LocalityAnalysis {
       if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.ThreadClass)&&
           nodemd.getSymbol().equals("start")&&!nodemd.getModifiers().isStatic()&&
           nodemd.numParameters()==1&&nodemd.getParamType(0).isInt()) {
-	assert(nodemd.getModifiers().isNative());
+      	assert(nodemd.getModifiers().isNative());
 
-	MethodDescriptor runmd=null;
-	for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext();) {
-	  MethodDescriptor md=(MethodDescriptor) methodit.next();
-	  if (md.numParameters()!=0||md.getModifiers().isStatic())
-	    continue;
-	  runmd=md;
-	  break;
-	}
-	if (runmd!=null) {
-	  runmethodset=callgraph.getMethods(runmd,fc.getThis().getType());
-	  methodset.addAll(runmethodset);
-	} else throw new Error("Can't find run method");
+      	MethodDescriptor runmd=null;
+
+        for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("run").iterator(); methodit.hasNext();) {
+      	  MethodDescriptor md=(MethodDescriptor) methodit.next();
+      
+          if (md.numParameters()!=0||md.getModifiers().isStatic())
+      	    continue;
+      	  runmd=md;
+      	  break;
+	      }
+      	if (runmd!=null) {
+      	  runmethodset=callgraph.getMethods(runmd,fc.getThis().getType());
+      	  methodset.addAll(runmethodset);
+      	} else throw new Error("Can't find run method");
+      }
+    
+      if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.TaskClass) &&
+          nodemd.getSymbol().equals("execution") && !nodemd.getModifiers().isStatic() &&
+          nodemd.numParameters() == 0) {
+        assert(nodemd.getModifiers().isNative());
+        
+        MethodDescriptor exemd = null;
+
+        for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("execute").iterator(); methodit.hasNext();) {
+          MethodDescriptor md = (MethodDescriptor) methodit.next();
+
+          if (md.numParameters() != 0 || md.getModifiers().isStatic())
+            continue;
+          exemd = md;
+          break;
+        }
+
+        if (exemd != null) {
+          executemethodset = callgraph.getMethods(exemd, fc.getThis().getType());
+          methodset.addAll(executemethodset);
+        } else throw new Error("Can't find execute method");
       }
     }
 
@@ -917,8 +959,9 @@ public class LocalityAnalysis {
       if (isnative&&isatomic) {
 	System.out.println("Don't call native methods in atomic blocks!"+currlb.getMethod());
       }
-      if (runmethodset==null||!runmethodset.contains(md)) {
-	//Skip this part if it is a run method
+
+  if ((runmethodset==null||!runmethodset.contains(md)) &&( executemethodset == null || !executemethodset.contains(md))) {
+	//Skip this part if it is a run method or execute method
 	for(int i=0; i<fc.numArgs(); i++) {
 	  TempDescriptor arg=fc.getArg(i);
 	  if(isnative&&(currtable.get(arg).equals(GLOBAL)||
@@ -934,15 +977,15 @@ public class LocalityAnalysis {
 	if (thistype==null)
 	  thistype=EITHER;
 
-	if(runmethodset!=null&&runmethodset.contains(md)&&thistype.equals(LOCAL))
+	if(runmethodset!=null&&runmethodset.contains(md)&&thistype.equals(LOCAL) && executemethodset != null && executemethodset.contains(md))
 	  throw new Error("Starting thread on local object not allowed in context:\n"+currlb.getExplanation());
 	if(isjoin&&thistype.equals(LOCAL))
 	  throw new Error("Joining thread on local object not allowed in context:\n"+currlb.getExplanation());
 	if(thistype.equals(CONFLICT))
 	  throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
-	if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic && !isjoin)
+	if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic && !isjoin && executemethodset == null)
 	  throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
-	if (runmethodset==null&&isnative&&thistype.equals(GLOBAL) && !isjoin && !isObjectgetType && !isObjecthashCode)
+	if (runmethodset==null&&isnative&&thistype.equals(GLOBAL) && !isjoin && executemethodset == null && !isObjectgetType && !isObjecthashCode)
 	  throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 	lb.setGlobalThis(thistype);
       }

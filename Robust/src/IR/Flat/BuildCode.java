@@ -526,12 +526,18 @@ public class BuildCode {
      * numbers for various objects it needs */
     outstructs.println("#define MAXCOUNT "+maxcount);
     if (state.DSM||state.SINGLETM) {
-      LocalityBinding lb=new LocalityBinding(typeutil.getRun(), false);
-      if (state.DSM)
-	lb.setGlobalThis(LocalityAnalysis.GLOBAL);
-      else if (state.SINGLETM)
-	lb.setGlobalThis(LocalityAnalysis.NORMAL);
-      outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lb));
+      LocalityBinding lbrun=new LocalityBinding(typeutil.getRun(), false);
+      LocalityBinding lbexecute = new LocalityBinding(typeutil.getExecute(), false);
+      if (state.DSM) {
+	lbrun.setGlobalThis(LocalityAnalysis.GLOBAL);
+  lbexecute.setGlobalThis(LocalityAnalysis.GLOBAL);
+      }
+      else if (state.SINGLETM) {
+	lbrun.setGlobalThis(LocalityAnalysis.NORMAL);
+  lbexecute.setGlobalThis(LocalityAnalysis.NORMAL);
+      }
+      outstructs.println("#define EXECUTEMETHOD " + virtualcalls.getLocalityNumber(lbexecute));
+      outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lbrun));
     }
 
     outstructs.println("#define STRINGARRAYTYPE "+

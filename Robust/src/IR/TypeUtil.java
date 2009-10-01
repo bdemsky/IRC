@@ -10,6 +10,7 @@ public class TypeUtil {
   public static final String StartupClass="StartupObject";
   public static final String TagClass="TagDescriptor";
   public static final String ThreadClass="Thread";
+  public static final String TaskClass="Task";
   State state;
   Hashtable supertable;
   Hashtable subclasstable;
@@ -82,6 +83,18 @@ public class TypeUtil {
     }
     throw new Error("Can't find Thread.run");
   }
+  
+  public MethodDescriptor getExecute() {
+    ClassDescriptor cd = getClass(TypeUtil.TaskClass);
+    for(Iterator methodit = cd.getMethodTable().getSet("execute").iterator(); methodit.hasNext();) {
+      MethodDescriptor md = (MethodDescriptor) methodit.next();
+      if (md.numParameters()!=0 || md.getModifiers().isStatic())
+        continue;
+      return md;
+    }
+    throw new Error("Can't find Task.execute");
+  }
+
 
   public MethodDescriptor getMain() {
     ClassDescriptor cd=getMainClass();
