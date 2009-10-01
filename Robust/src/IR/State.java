@@ -89,6 +89,7 @@ public class State {
   public static boolean ABORTREADERS=false;
   public static boolean SINGLETM=false;
   public static boolean READSET=false;
+  public boolean SANDBOX=false;
   public int CORENUM = 1;
   public String structfile;
   public String main;

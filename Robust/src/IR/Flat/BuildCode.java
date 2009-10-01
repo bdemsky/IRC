@@ -2870,7 +2870,7 @@ public class BuildCode {
     output.println("transstart"+faen.getIdentifier()+":");
     output.println("transStart();");
 
-    if (state.ABORTREADERS) {
+    if (state.ABORTREADERS||state.SANDBOX) {
       output.println("if (_setjmp(aborttrans)) {");
       output.println("  goto transretry"+faen.getIdentifier()+"; }");
     }

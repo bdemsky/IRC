@@ -111,6 +111,8 @@ public class Main {
 	state.TASK=true;
       else if (option.equals("-abortreaders"))
 	state.ABORTREADERS=true;
+      else if (option.equals("-sandbox"))
+	state.SANDBOX=true;
       else if (option.equals("-taskstate"))
 	state.TASKSTATE=true;
       else if (option.equals("-tagstate"))
