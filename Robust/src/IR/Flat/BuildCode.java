@@ -2871,6 +2871,8 @@ public class BuildCode {
     output.println("transStart();");
 
     if (state.ABORTREADERS||state.SANDBOX) {
+      if (state.SANDBOX)
+	output.println("abortenabled=1;");
       output.println("if (_setjmp(aborttrans)) {");
       output.println("  goto transretry"+faen.getIdentifier()+"; }");
     }
