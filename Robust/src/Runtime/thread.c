@@ -166,7 +166,11 @@ void initializethreads() {
   initializeexithandler();
 
   //deprecated use of sighandler, but apparently still works
+#ifdef SANDBOX
+  sig.sa_handler=(void *)errorhandler;
+#else
   sig.sa_handler=(void *)threadhandler;
+#endif
   sig.sa_flags=SA_RESTART;
   sigemptyset(&sig.sa_mask);
 
