@@ -18,6 +18,10 @@ __thread objstr_t *t_cache;
 __thread objstr_t *t_reserve;
 __thread struct objlist * newobjs;
 
+#ifdef SANDBOX
+__thread jmp_buf aborttrans;
+#endif
+
 #ifdef DELAYCOMP
 #include "delaycomp.h"
 __thread struct pointerlist ptrstack;
@@ -37,16 +41,6 @@ int nSoftAbortAbort = 0;
 #endif
 
 #ifdef STMSTATS
-int timeInMS ()
-{
-  struct timeval t;
-
-  gettimeofday(&t, NULL);
-  return (
-      (int)t.tv_sec * 1000000 +
-      (int)t.tv_usec
-      );
-}
 /* Thread variable for locking/unlocking */
 __thread threadrec_t *trec;
 __thread struct objlist * lockedobjs;
@@ -54,19 +48,13 @@ __thread int t_objnumcount=0;
 
 /* Collect stats for object classes causing abort */
 objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
-/******Keep track of objects and types causing aborts******/
-/* TODO uncomment for later use
-#define DEBUGSTMSTAT(args...) { \
-  printf(args); \
-  fflush(stdout); \
-}
-*/
 
 /**
  * Inline fuction to get Transaction size per object type for those
  * objects that cause 
  *
  **/
+
 INLINE void getTransSize(objheader_t *header , int *isObjTypeTraverse) {
   (typesCausingAbort[TYPE(header)]).numabort++;
   if(isObjTypeTraverse[TYPE(header)] != 1) {
@@ -310,6 +298,35 @@ void *objstrAlloc(unsigned int size) {
   }
 }
 
+/* Do sandboxing */
+void errorhandler(int sig, struct sigcontext ctx) {
+  if (abortenabled&&checktrans())
+    longjmp(aborttrans, 1);
+  threadhandler(sig, ctx);
+}
+
+int checktrans() {
+  /* Create info to keep track of objects that can be locked */
+  chashlistnode_t *curr = c_list;
+
+  /* Inner loop to traverse the linked list of the cache lookupTable */
+  while(likely(curr != NULL)) {
+    //if the first bin in hash table is empty
+    objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
+    objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t));
+    unsigned int version = headeraddr->version;
+    
+    if (header->lock==0) {
+      return 1;
+    }
+    CFENCE;
+    if (version!=header->version) {
+      return 1;
+    }
+    curr = curr->lnext;
+  }
+  return 0;
+}
 
 /* =============================================================
  * transRead
@@ -386,6 +403,9 @@ int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives,
 #else
 int transCommit() {
 #endif
+#ifdef SANDBOX
+  abortenabled=0;
+#endif
 #ifdef TRANSSTATS
   numTransCommit++;
 #endif
@@ -425,6 +445,9 @@ int transCommit() {
       ptrstack.count=0;
       primstack.count=0;
       branchstack.count=0;
+#endif
+#ifdef SANDBOX
+      abortenabled=1;
 #endif
       return TRANS_ABORT;
     }
@@ -493,8 +516,10 @@ int transCommit() {
 #ifdef DELAYCOMP
 #define freearrays   if (c_numelements>=200) { \
     free(oidrdlocked); \
-    free(oidrdversion); \
+    free(oidrdversion); 
+#ifdef STMSTATS
     free(oidrdage); \
+#endif
   } \
   if (t_numelements>=200) { \
     free(oidwrlocked); \
@@ -503,7 +528,9 @@ int transCommit() {
 #define freearrays   if (c_numelements>=200) { \
     free(oidrdlocked); \
     free(oidrdversion); \
+#ifdef STMSTATS
     free(oidrdage); \
+#endif
     free(oidwrlocked); \
   }
 #endif
@@ -518,25 +545,33 @@ int transCommit() {
   if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
+#ifdef STMSTATS
     oidrdage=rdage; \
+#endif
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
+#ifdef STMSTATS
     oidrdage=malloc(size); \
+#endif
   }
 #else
 #define allocarrays if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
+#ifdef STMSTATS
     oidrdage=rdage; \
+#endif
     oidwrlocked=wrlocked; \
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
     oidwrlocked=malloc(size); \
+#ifdef STMSTATS
     oidrdage=malloc(size); \
+#endif
   }
 #endif
 
@@ -559,20 +594,24 @@ int traverseCache() {
   int numoidwrlocked=0;
   void * rdlocked[200];
   int rdversion[200];
-  int rdage[200];
   void * wrlocked[200];
   int softabort=0;
   int i;
   void ** oidrdlocked;
   void ** oidwrlocked;
+#ifdef STMSTATS
+  int rdage[200];
   int * oidrdage;
+  int ObjSeqId;
+  int objtypetraverse[TOTALNUMCLASSANDARRAY];
+#endif
   int * oidrdversion;
   allocarrays;
-  int objtypetraverse[TOTALNUMCLASSANDARRAY];
-  int ObjSeqId;
 
+#ifdef STMSTATS
   for(i=0; i<TOTALNUMCLASSANDARRAY; i++)
     objtypetraverse[i] = 0;
+#endif
 
   chashlistnode_t *ptr = c_table;
   /* Represents number of bins in the chash table */
@@ -644,13 +683,10 @@ int traverseCache() {
 	}
       } else {
 #ifdef STMSTATS
-	oidrdversion[numoidrdlocked]=version;
-	oidrdlocked[numoidrdlocked]=header;
-    oidrdage[numoidrdlocked++]=headeraddr->accessCount;
-#else
+    oidrdage[numoidrdlocked]=headeraddr->accessCount;
+#endif
     oidrdversion[numoidrdlocked]=version;
     oidrdlocked[numoidrdlocked++]=header;
-#endif
       }
       curr = curr->next;
     }
@@ -909,17 +945,20 @@ int alttraverseCache() {
   int numoidwrlocked=0;
   void * rdlocked[200];
   int rdversion[200];
-  int rdage[200];
   void * wrlocked[200];
   int softabort=0;
   int i;
   void ** oidrdlocked;
   int * oidrdversion;
+#ifdef STMSTATS
+  int rdage[200];
   int * oidrdage;
-  void ** oidwrlocked;
-  allocarrays;
   int ObjSeqId;
   int objtypetraverse[TOTALNUMCLASSANDARRAY];
+#endif
+  void ** oidwrlocked;
+  allocarrays;
+
 
   for(i=0; i<TOTALNUMCLASSANDARRAY; i++)
     objtypetraverse[i] = 0;

@@ -216,4 +216,11 @@ int getReadAbortCount(int, int, void*, int*, int*, int, objheader_t*, int*);
 #ifdef STMSTATS
 objheader_t * needLock(objheader_t *, void *);
 #endif
+#ifdef SANDBOX
+#include <setjmp.h>
+extern __thread jmp_buf aborttrans;
+extern __thread int abortenabled;
+int checktrans();
+void errorhandler(int sig, struct sigcontext ctx);
+#endif
 #endif
