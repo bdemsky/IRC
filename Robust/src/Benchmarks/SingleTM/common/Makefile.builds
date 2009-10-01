@@ -1,8 +1,9 @@
 default: prep
-	../../../buildscript ${FLAGSLOCKNOJ} -o LOCKNOJ${MAINCLASS} ${SRC}
-	../../../buildscript ${FLAGSSTMNOJ} -o STMNOJ${MAINCLASS} ${SRC}
-	../../../buildscript ${FLAGSLOCK} -o LOCK${MAINCLASS} ${SRC}
+#	../../../buildscript ${FLAGSLOCKNOJ} -o LOCKNOJ${MAINCLASS} ${SRC}
+#	../../../buildscript ${FLAGSSTMNOJ} -o STMNOJ${MAINCLASS} ${SRC}
+#	../../../buildscript ${FLAGSLOCK} -o LOCK${MAINCLASS} ${SRC}
 	../../../buildscript ${FLAGSSTM} -o STM${MAINCLASS} ${SRC}
 	../../../buildscript ${FLAGSOPTSTM} -o OPTSTM${MAINCLASS} ${SRC}
 	../../../buildscript ${FLAGSFISSION} -o FIS${MAINCLASS} ${SRC}
-	../../../buildscript ${FLAGSSTATS} -o STATS${MAINCLASS} ${SRC}
+#	../../../buildscript ${FLAGSSTATS} -o STATS${MAINCLASS} ${SRC}
+
