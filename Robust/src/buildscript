@@ -9,6 +9,7 @@ echo -stmdebug STM debug
 echo "-stmstats prints single machine commit (stm) statistics for the benchmark"
 echo -fastmemcpy use fast memcpy
 echo -abortreaders abort readers immediately
+echo -sandbox sandbox transactions
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
 echo -mac distributed shared memory mac support
@@ -133,6 +134,10 @@ then
 ABORTREADERS=true
 EXTRAOPTIONS="$EXTRAOPTIONS -DABORTREADERS"
 JAVAOPTS="$JAVAOPTS -abortreaders"
+elif [[ $1 = '-sandbox' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DSANDBOX"
+JAVAOPTS="$JAVAOPTS -sandbox"
 elif [[ $1 = '-robustroot' ]]
 then
 ROBUSTROOT="$2"
