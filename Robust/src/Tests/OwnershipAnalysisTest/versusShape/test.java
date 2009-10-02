@@ -39,15 +39,17 @@ public class Test {
       DenseGraph  d = (DenseGraph)  dSet.iterator().next();
       process(  );
       */
-
-
+      
+      
       Node sNew = disjoint sparse new Node( 3*i );
       //Node dNew = disjoint dense  new Node( 2*i );
-      sSet.add( sNew );
+      
       //dSet.add( dNew );
-      Node s = (Node) sSet.iterator().next();
+      //Node s = (Node) sSet.iterator().next();
       //Node d = (Node) dSet.iterator().next();
-      growSparseAndDense( s /*, d*/ );
+      growSparseAndDense( sNew /*, d*/ );
+    
+      sSet.add( sNew );
     }
   }
 
