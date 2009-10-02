@@ -303,6 +303,7 @@ void *objstrAlloc(unsigned int size) {
 #ifdef SANDBOX
 /* Do sandboxing */
 void errorhandler(int sig, struct sigcontext ctx) {
+  printf("Error\n");
   if (abortenabled&&checktrans())
     longjmp(aborttrans, 1);
   threadhandler(sig, ctx);
