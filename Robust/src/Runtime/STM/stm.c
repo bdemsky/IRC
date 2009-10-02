@@ -12,7 +12,6 @@
 
 #include "tm.h"
 #include "garbage.h"
-#include <signal.h>
 
 #define likely(x) x
 /* Per thread transaction variables */

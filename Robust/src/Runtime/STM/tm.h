@@ -218,6 +218,7 @@ objheader_t * needLock(objheader_t *, void *);
 #endif
 #ifdef SANDBOX
 #include <setjmp.h>
+#include <signal.h>
 extern __thread jmp_buf aborttrans;
 extern __thread int abortenabled;
 int checktrans();
