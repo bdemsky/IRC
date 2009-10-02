@@ -208,7 +208,7 @@ public class ReferenceEdge {
   }
 
 
-  public String toGraphEdgeString() {
+  public String toGraphEdgeString( boolean hideSubsetReachability ) {
     String edgeLabel = "";
 
     if( type != null ) {
@@ -225,7 +225,7 @@ public class ReferenceEdge {
     
     edgeLabel+="*taint*="+Integer.toBinaryString(taintIdentifier)+"\\n";
 
-    edgeLabel += beta.toStringEscapeNewline();
+    edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
 
     return edgeLabel;
   }

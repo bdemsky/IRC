@@ -78,18 +78,33 @@ public class ReachabilitySet extends Canonical {
     return false;    
   }
 
+
   public boolean containsSuperSet(TokenTupleSet tts) {
+    return containsSuperSet( tts, false );
+  }
+
+  public boolean containsStrictSuperSet(TokenTupleSet tts) {
+    return containsSuperSet( tts, true );
+  }
+
+  public boolean containsSuperSet(TokenTupleSet tts, boolean strict) {
     assert tts != null;
 
-    if( possibleReachabilities.contains(tts) ) {
+    if( !strict && possibleReachabilities.contains(tts) ) {
       return true;
     }
 
     Iterator itr = iterator();
     while( itr.hasNext() ) {
       TokenTupleSet ttsThis = (TokenTupleSet) itr.next();
-      if( tts.isSubset(ttsThis) ) {
-	return true;
+      if( strict ) {
+        if( !tts.equals(ttsThis) && tts.isSubset(ttsThis) ) {
+          return true;
+        }
+      } else {
+        if( tts.isSubset(ttsThis) ) {
+          return true;
+        }
       }
     }
 
@@ -471,12 +486,20 @@ public class ReachabilitySet extends Canonical {
   }
 
 
-  public String toStringEscapeNewline() {
+  public String toStringEscapeNewline( boolean hideSubsetReachability ) {
     String s = "[";
 
-    Iterator i = this.iterator();
+    Iterator<TokenTupleSet> i = this.iterator();
     while( i.hasNext() ) {
-      s += i.next();
+      TokenTupleSet tts = i.next();
+
+      // skip this if there is a superset already
+      if( hideSubsetReachability &&
+          containsStrictSuperSet( tts ) ) {
+        continue;
+      }
+
+      s += tts;
       if( i.hasNext() ) {
 	s += "\\n";
       }
@@ -485,13 +508,26 @@ public class ReachabilitySet extends Canonical {
     s += "]";
     return s;
   }
+  
 
   public String toString() {
+    return toString( false );
+  }
+
+  public String toString( boolean hideSubsetReachability ) {
     String s = "[";
 
-    Iterator i = this.iterator();
+    Iterator<TokenTupleSet> i = this.iterator();
     while( i.hasNext() ) {
-      s += i.next();
+      TokenTupleSet tts = i.next();
+
+      // skip this if there is a superset already
+      if( hideSubsetReachability &&
+          containsStrictSuperSet( tts ) ) {
+        continue;
+      }
+
+      s += tts;
       if( i.hasNext() ) {
 	s += "\n";
       }

@@ -4490,6 +4490,25 @@ public class OwnershipGraph {
   }
 
   public void writeGraph(MethodContext mc,
+                         boolean writeLabels,
+                         boolean labelSelect,
+                         boolean pruneGarbage,
+                         boolean writeReferencers,
+                         boolean writeParamMappings,
+                         boolean hideSubsetReachability
+                         ) throws java.io.IOException {
+
+    writeGraph(mc+"COMPLETE",
+               writeLabels,
+               labelSelect,
+               pruneGarbage,
+               writeReferencers,
+               writeParamMappings,
+               hideSubsetReachability
+               );
+  }
+
+  public void writeGraph(MethodContext mc,
                          Integer numUpdate,
                          boolean writeLabels,
                          boolean labelSelect,
@@ -4497,8 +4516,6 @@ public class OwnershipGraph {
                          boolean writeReferencers,
                          boolean writeParamMappings
                          ) throws java.io.IOException {
-
-
 
     writeGraph(mc+"COMPLETE"+String.format("%05d", numUpdate),
                writeLabels,
@@ -4509,12 +4526,50 @@ public class OwnershipGraph {
                );
   }
 
+  public void writeGraph(MethodContext mc,
+                         Integer numUpdate,
+                         boolean writeLabels,
+                         boolean labelSelect,
+                         boolean pruneGarbage,
+                         boolean writeReferencers,
+                         boolean writeParamMappings,
+                         boolean hideSubsetReachability
+                         ) throws java.io.IOException {
+
+    writeGraph(mc+"COMPLETE"+String.format("%05d", numUpdate),
+               writeLabels,
+               labelSelect,
+               pruneGarbage,
+               writeReferencers,
+               writeParamMappings,
+               hideSubsetReachability
+               );
+  }
+
   public void writeGraph(String graphName,
                          boolean writeLabels,
                          boolean labelSelect,
                          boolean pruneGarbage,
                          boolean writeReferencers,
                          boolean writeParamMappings
+                         ) throws java.io.IOException {
+    writeGraph(graphName,
+               writeLabels,
+               labelSelect,
+               pruneGarbage,
+               writeReferencers,
+               writeParamMappings,
+               false
+               );
+  }
+
+  public void writeGraph(String graphName,
+                         boolean writeLabels,
+                         boolean labelSelect,
+                         boolean pruneGarbage,
+                         boolean writeReferencers,
+                         boolean writeParamMappings,
+                         boolean hideSubsetReachability
                          ) throws java.io.IOException {
 
     // remove all non-word characters from the graph name so
@@ -4544,7 +4599,8 @@ public class OwnershipGraph {
 	                          bw,
 	                          null,
 	                          visited,
-	                          writeReferencers);
+	                          writeReferencers,
+                                  hideSubsetReachability);
 	}
       }
     }
@@ -4599,12 +4655,13 @@ public class OwnershipGraph {
 	                            bw,
 	                            null,
 	                            visited,
-	                            writeReferencers);
+	                            writeReferencers,
+                                    hideSubsetReachability);
 	  }
 
 	  bw.write("  "        + ln.toString() +
 	           " -> "      + hrn.toString() +
-	           "[label=\"" + edge.toGraphEdgeString() +
+	           "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability) +
 	           "\",decorate];\n");
 	}
       }
@@ -4620,7 +4677,8 @@ public class OwnershipGraph {
                                          BufferedWriter bw,
                                          TempDescriptor td,
                                          HashSet<HeapRegionNode> visited,
-                                         boolean writeReferencers
+                                         boolean writeReferencers,
+                                         boolean hideSubsetReachability
                                          ) throws java.io.IOException {
 
     if( visited.contains(hrn) ) {
@@ -4653,7 +4711,7 @@ public class OwnershipGraph {
        
       attributes += hrn.getDescription() +
 	            "\\n"                +
-                    hrn.getAlphaString() +
+                    hrn.getAlphaString(hideSubsetReachability) +
                     "\"]";
 
       bw.write("  " + hrn.toString() + attributes + ";\n");
@@ -4690,7 +4748,7 @@ public class OwnershipGraph {
       case VISIT_HRN_WRITE_FULL:
 	bw.write("  "        + hrn.toString() +
 	         " -> "      + hrnChild.toString() +
-	         "[label=\"" + edge.toGraphEdgeString() +
+	         "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability) +
 	         "\",decorate];\n");
 	break;
       }
@@ -4700,7 +4758,8 @@ public class OwnershipGraph {
                               bw,
                               td,
                               visited,
-                              writeReferencers);
+                              writeReferencers,
+                              hideSubsetReachability);
     }
   }
   

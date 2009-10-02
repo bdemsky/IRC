@@ -209,8 +209,8 @@ public class HeapRegionNode extends OwnershipNode {
     return s;
   }
 
-  public String getAlphaString() {
-    return alpha.toStringEscapeNewline();
+  public String getAlphaString( boolean hideSubsetReachability ) {
+    return alpha.toStringEscapeNewline(hideSubsetReachability);
   }
 
   public String toString() {

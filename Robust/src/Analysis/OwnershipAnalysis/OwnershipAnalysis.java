@@ -1015,7 +1015,7 @@ public class OwnershipAnalysis {
       }
       Integer n = mapMethodContextToNumUpdates.get(mc);
       try {
-	og.writeGraph(mc, n, true, true, true, false, false);
+	og.writeGraph(mc, n, true, true, true, false, false, true);
       } catch( IOException e ) {}
       mapMethodContextToNumUpdates.put(mc, n + 1);
     }
@@ -1048,6 +1048,7 @@ public class OwnershipAnalysis {
     // boolean pruneGarbage,
     // boolean writeReferencers
     // boolean writeParamMappings
+    // boolean hideSubsetReachability
 
     Set entrySet = mapMethodContextToCompleteOwnershipGraph.entrySet();
     Iterator itr = entrySet.iterator();
@@ -1057,7 +1058,7 @@ public class OwnershipAnalysis {
       OwnershipGraph og = (OwnershipGraph) me.getValue();
 
       try {
-	og.writeGraph(mc, true, true, true, false, false);
+	og.writeGraph(mc, true, true, true, false, false, true);
       } catch( IOException e ) {}    
     }
   }
