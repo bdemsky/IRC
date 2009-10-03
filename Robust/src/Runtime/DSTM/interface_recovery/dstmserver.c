@@ -33,7 +33,6 @@ extern unsigned int *hostIpAddrs;
 #ifdef RECOVERY
 extern unsigned int *locateObjHosts;
 extern int *liveHosts;
-extern int liveHostsValid;
 extern int numLiveHostsInSystem;
 int clearNotifyListFlag;
 #endif
@@ -321,6 +320,7 @@ void *dstmAccept(void *acceptfd) {
 				recv_data((int)acceptfd, &oid, sizeof(unsigned int));
 				while((srcObj = mhashSearch(oid)) == NULL) {
 					int ret;
+//          printf("HERE!!\n");
 					if((ret = sched_yield()) != 0) {
 						printf("%s(): error no %d in thread yield\n", __func__, errno);
 					}
@@ -507,7 +507,6 @@ void *dstmAccept(void *acceptfd) {
 #ifdef DEBUG
         printf("control -> RESPOND_LIVE\n");
 #endif
-				liveHostsValid = 0;
 				ctrl = LIVE;
 				send_data((int)acceptfd, &ctrl, sizeof(ctrl));
 #ifdef DEBUG
@@ -563,7 +562,6 @@ void *dstmAccept(void *acceptfd) {
 			  recv_data((int)acceptfd, liveHosts, sizeof(int)*numHostsInSystem);
 				recv_data((int)acceptfd, locateObjHosts, sizeof(unsigned int)*numHostsInSystem*2);
 				pthread_mutex_unlock(&liveHosts_mutex);
-				liveHostsValid = 1;
 				numLiveHostsInSystem = getNumLiveHostsInSystem();
 #ifdef DEBUG
 				printHostsStatus();
@@ -1406,9 +1404,6 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
       printf("Error: mhashsearch returns NULL at dstmserver.c %d\n", __LINE__);
 			return 1;
 #else
-#ifdef DEBUG
-			printf("DEBUG->*backup* i:%d, nummod:%d\n", i, nummod);
-#endif
 			header = (objheader_t *)(modptr+offset);
 			header->version += 1;
 			header->isBackup = 1;
