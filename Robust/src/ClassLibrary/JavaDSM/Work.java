@@ -17,14 +17,15 @@ public class Work extends Thread {
       workMID = MY_MID;
     }
 
+    System.out.println("Thread " + workMID + " has started");
     Task localTask;
     int chk; 
     int result;
     int i,j;
-    int cc;
 		boolean isEmpty; 
 
     while(true) {
+
       atomic {
 					isEmpty = tasks.isTodoListEmpty();		// flag > !keep assigning 
 			
@@ -42,7 +43,6 @@ public class Work extends Thread {
           tasks.setWork(currentWorkList[workMID]);
           localTask = tasks;
         }
-
         /* compute */
         localTask.execution();
 
@@ -50,7 +50,6 @@ public class Work extends Thread {
           /* push into done list */
           tasks.done(currentWorkList[workMID]);
 					currentWorkList[workMID] = null;
-          cc = ((Drinker)tasks).ownTotal;
         }
       }
       else if(chk  == -1) {    // finished all work
