@@ -18,6 +18,7 @@ public class ReferenceEdge {
   protected OwnershipNode src;
   protected HeapRegionNode dst;
   private int taintIdentifier;
+  private int SESEtaintIdentifier;
 
 
   public ReferenceEdge(OwnershipNode src,
@@ -33,6 +34,7 @@ public class ReferenceEdge {
     this.field                   = field;
     this.isInitialParam = isInitialParam;
     this.taintIdentifier = 0;
+    this.SESEtaintIdentifier = 0;
 
     if( beta != null ) {
       this.beta = beta;
@@ -208,27 +210,29 @@ public class ReferenceEdge {
   }
 
 
-  public String toGraphEdgeString( boolean hideSubsetReachability ) {
-    String edgeLabel = "";
+	public String toGraphEdgeString(boolean hideSubsetReachability) {
+		String edgeLabel = "";
 
-    if( type != null ) {
-      edgeLabel += type.toPrettyString()+"\\n";
-    }
+		if (type != null) {
+			edgeLabel += type.toPrettyString() + "\\n";
+		}
 
-    if( field != null ) {
-      edgeLabel += field+"\\n";
-    }
+		if (field != null) {
+			edgeLabel += field + "\\n";
+		}
 
-    if( isInitialParam ) {
-      edgeLabel += "*init*\\n";
-    }
-    
-    edgeLabel+="*taint*="+Integer.toBinaryString(taintIdentifier)+"\\n";
+		if (isInitialParam) {
+			edgeLabel += "*init*\\n";
+		}
 
-    edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
+		edgeLabel += "*taint*=" + Integer.toBinaryString(taintIdentifier)
+				+ "\\n*SESE*=" + Integer.toBinaryString(SESEtaintIdentifier)
+				+ "\\n";
 
-    return edgeLabel;
-  }
+		edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
+
+		return edgeLabel;
+	}
 
   public String toString() {
     if( type != null ) {
@@ -258,5 +262,18 @@ public class ReferenceEdge {
   public int getTaintIdentifier(){
 	  return taintIdentifier;
   }
+  
+  public int getSESETaintIdentifier(){
+	  return SESEtaintIdentifier;
+  }
+  
+  public void setSESETaintIdentifier(int newTaint){
+	  SESEtaintIdentifier=newTaint;
+  }
+  
+  public void unionSESETaintIdentifier(int newTaint){
+	  SESEtaintIdentifier=SESEtaintIdentifier | newTaint;
+  }
+  
   
 }

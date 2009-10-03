@@ -297,7 +297,7 @@ public class OwnershipAnalysis {
   // TaskDescriptor and MethodDescriptor are combined
   // together, with a common parent class Descriptor
   private Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToInitialParamAllocGraph;
-  public  Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToCompleteOwnershipGraph;
+  private  Hashtable<MethodContext, OwnershipGraph>           mapMethodContextToCompleteOwnershipGraph;
   private Hashtable<FlatNew,       AllocationSite>           mapFlatNewToAllocationSite;
   private Hashtable<Descriptor,    HashSet<AllocationSite> > mapDescriptorToAllocationSiteSet;
   private Hashtable<MethodContext, Integer>                  mapMethodContextToNumUpdates;
@@ -340,6 +340,9 @@ public class OwnershipAnalysis {
   
     //map each FlatNode to its own internal ownership graph
 	private MethodEffectsAnalysis meAnalysis;
+	
+	//keep internal ownership graph by method context and flat node
+	private Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>> mapMethodContextToFlatNodeOwnershipGraph;
 
 
 
@@ -414,6 +417,8 @@ public class OwnershipAnalysis {
 
 	    mapHrnIdToAllocationSite =
 	      new Hashtable<Integer, AllocationSite>();
+	    
+	    mapMethodContextToFlatNodeOwnershipGraph=new Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>>();
 	    
 	    meAnalysis=new MethodEffectsAnalysis(methodEffects);
 
@@ -978,6 +983,13 @@ public class OwnershipAnalysis {
       break;
     }
     
+    Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(mc);
+    if(table==null){
+    	table=new     Hashtable<FlatNode, OwnershipGraph>();    	
+    }
+    table.put(fn, og);
+    mapMethodContextToFlatNodeOwnershipGraph.put(mc, table);
+    
     return og;
   }
 
@@ -1377,4 +1389,41 @@ public class OwnershipAnalysis {
       System.exit(0);
     }
   }
+  
+  public MethodEffectsAnalysis getMethodEffectsAnalysis(){
+	  return meAnalysis;
+  }
+  
+  public OwnershipGraph getOwnvershipGraphByMethodContext(MethodContext mc){
+	  return mapMethodContextToCompleteOwnershipGraph.get(mc);
+  }
+  
+  public HashSet<MethodContext> getAllMethodContextSetByDescriptor(Descriptor d){
+	  return mapDescriptorToAllMethodContexts.get(d);
+  }
+  
+  public MethodContext getCalleeMethodContext(MethodContext callerMC, FlatCall fc){
+	  
+	  Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(callerMC);
+	  
+	  // merge previous ownership graph to calculate corresponding method context
+	  OwnershipGraph mergeOG = new OwnershipGraph( allocationDepth, typeUtil );
+	  
+	  for(int i=0;i<fc.numPrev();i++){
+		  FlatNode prevNode=fc.getPrev(i);
+		  if(prevNode!=null){
+			  OwnershipGraph prevOG=table.get(prevNode);		  
+			  mergeOG.merge(prevOG);
+		  }
+	  }
+	  
+	  MethodDescriptor md=fc.getMethod();
+	  FlatMethod flatm = state.getMethodFlat(md);
+	  Set<Integer> aliasedParamIndices = mergeOG.calculateAliasedParamSet(fc, md.isStatic(), flatm);
+	  MethodContext calleeMC = new MethodContext( md, aliasedParamIndices );
+	  
+	  return calleeMC;	  
+  }
+  
+  
 }

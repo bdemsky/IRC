@@ -21,6 +21,10 @@ public class MethodEffectsAnalysis {
 		this.methodeffects = methodeffects;
 		mapMethodContextToMethodEffects = new Hashtable<MethodContext, MethodEffects>();
 	}
+	
+	public MethodEffects getMethodEffectsByMethodContext(MethodContext mc){
+		return mapMethodContextToMethodEffects.get(mc);
+	}
 
 	public void createNewMapping(MethodContext mcNew) {
 		if(!methodeffects) return;

@@ -100,7 +100,7 @@ public class MLPAnalysis {
     notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
     wdvNodesToSpliceIn   = new Hashtable< FlatEdge, FlatWriteDynamicVarNode  >();
-
+    
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
 
@@ -182,6 +182,15 @@ public class MLPAnalysis {
       // compute what is not available at every program
       // point, in a forward fixed-point pass
       notAvailableForward( fm );
+    }
+    
+    // new pass
+    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    while( methItr.hasNext() ) {
+      Descriptor d  = methItr.next();      
+      FlatMethod fm = state.getMethodFlat( d );
+      methodEffects(fm);
+      // notAvailableForward( fm );
     }
 
 
@@ -780,6 +789,419 @@ public class MLPAnalysis {
 
     } // end switch
   }
+  
+	private void methodEffects(FlatMethod fm) {
+
+		MethodDescriptor md=fm.getMethod();
+		HashSet<MethodContext> mcSet=ownAnalysis.getAllMethodContextSetByDescriptor(md);
+		Iterator<MethodContext> mcIter=mcSet.iterator();
+		
+		while(mcIter.hasNext()){
+			MethodContext mc=mcIter.next();
+			
+//			System.out.println("#method effects="+fm+" with mc="+mc);
+			Set<FlatNode> visited = new HashSet<FlatNode>();
+			
+			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+			flatNodesToVisit.add(fm);
+
+			while (!flatNodesToVisit.isEmpty()) {
+				FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+				flatNodesToVisit.remove(fn);
+
+				Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
+				assert seseStack != null;
+
+				if (!seseStack.empty()) {
+					effects_nodeActions(mc, fn, seseStack.peek());
+				}
+
+				flatNodesToVisit.remove(fn);
+				visited.add(fn);
+
+				for (int i = 0; i < fn.numNext(); i++) {
+					FlatNode nn = fn.getNext(i);
+					if (!visited.contains(nn)) {
+						flatNodesToVisit.add(nn);
+					}
+				}
+
+			}
+			
+			
+		}
+		
+	}
+  
+	private void effects_nodeActions(MethodContext mc, FlatNode fn,
+			FlatSESEEnterNode currentSESE) {
+
+		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
+
+		switch (fn.kind()) {
+
+		case FKind.FlatSESEEnterNode: {
+
+			FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+			assert fsen.equals(currentSESE);
+
+			// uniquely taint each live-in variable
+			Set<TempDescriptor> set = fsen.getInVarSet();
+			Iterator<TempDescriptor> iter = set.iterator();
+			int idx = 0;
+			while (iter.hasNext()) {
+				TempDescriptor td = iter.next();
+				LabelNode ln = og.td2ln.get(td);
+				if (ln != null) {
+					int taint = (int) Math.pow(2, idx);
+					taintLabelNode(ln, taint);
+				}
+				idx++;
+			}
+
+		}
+			break;
+
+		case FKind.FlatSESEExitNode: {
+			FlatSESEExitNode fsexit = (FlatSESEExitNode) fn;
+
+			fsexit.getFlatEnter().getSeseEffectsSet().printSet();
+
+		}
+			break;
+
+		case FKind.FlatFieldNode: {
+
+			FlatFieldNode ffn = (FlatFieldNode) fn;
+			TempDescriptor src = ffn.getSrc();
+			FieldDescriptor field = ffn.getField();
+
+			LabelNode srcLN = og.td2ln.get(src);
+			if (srcLN != null) {
+				HashSet<TempDescriptor> affectedTDSet = getAccessedTaintNodeSet(srcLN);
+				Iterator<TempDescriptor> affectedIter = affectedTDSet
+						.iterator();
+				while (affectedIter.hasNext()) {
+					TempDescriptor affectedTD = affectedIter.next();
+					if (currentSESE.getInVarSet().contains(affectedTD)) {
+
+						HashSet<Integer> hrnSet = getReferenceHeapIDSet(og,
+								affectedTD);
+						Iterator<Integer> hrnIter = hrnSet.iterator();
+						while (hrnIter.hasNext()) {
+							Integer hrnId = hrnIter.next();
+							currentSESE.readEffects(affectedTD, field
+									.getSymbol(), src.getType(), hrnId);
+						}
+					}
+				}
+
+				// / handle tainted case
+				Iterator<ReferenceEdge> edgeIter = srcLN
+						.iteratorToReferencees();
+				while (edgeIter.hasNext()) {
+					ReferenceEdge edge = edgeIter.next();
+					HeapRegionNode dstHRN = edge.getDst();
+
+					Iterator<ReferenceEdge> referenceeIter = dstHRN
+							.iteratorToReferencees();
+					while (referenceeIter.hasNext()) {
+						ReferenceEdge re = referenceeIter.next();
+
+						if ((re.getField() == null && ffn.getField() == null)
+								|| (re.getField() != null
+										&& ffn.getField() != null
+										&& re.getField().equals(
+												ffn.getField().getSymbol()) && re
+										.getType().equals(
+												ffn.getField().getType()))) {
+							int taintIdentifier = re.getTaintIdentifier();
+
+							if (taintIdentifier > 0) {
+								HeapRegionNode accessHRN = re.getDst();
+								affectedTDSet = getReferenceNodeSet(accessHRN);
+
+								affectedIter = affectedTDSet.iterator();
+								while (affectedIter.hasNext()) {
+									TempDescriptor affectedTD = affectedIter
+											.next();
+									if (currentSESE.getInVarSet().contains(
+											affectedTD)) {
+
+										HashSet<Integer> hrnSet = getReferenceHeapIDSet(
+												og, affectedTD);
+										Iterator<Integer> hrnIter = hrnSet
+												.iterator();
+										while (hrnIter.hasNext()) {
+											Integer hrnId = hrnIter.next();
+											currentSESE.readEffects(affectedTD,
+													field.getSymbol(), src
+															.getType(), hrnId);
+
+										}
+									}
+								}
+
+							}
+
+						}
+					}
+
+				}
+
+			}
+
+		}
+			break;
+
+		case FKind.FlatSetFieldNode: {
+
+			FlatSetFieldNode fsen = (FlatSetFieldNode) fn;
+			TempDescriptor dst = fsen.getDst();
+			FieldDescriptor field = fsen.getField();
+
+			LabelNode dstLN = og.td2ln.get(dst);
+			if (dstLN != null) {
+				HashSet<TempDescriptor> affectedTDSet = getAccessedTaintNodeSet(dstLN);
+
+				Iterator<TempDescriptor> affectedIter = affectedTDSet
+						.iterator();
+
+				while (affectedIter.hasNext()) {
+					TempDescriptor affectedTD = affectedIter.next();
+					if (currentSESE.getInVarSet().contains(affectedTD)) {
+
+						HashSet<Integer> hrnSet = getReferenceHeapIDSet(og,
+								affectedTD);
+						Iterator<Integer> hrnIter = hrnSet.iterator();
+						while (hrnIter.hasNext()) {
+							Integer hrnId = hrnIter.next();
+							currentSESE.writeEffects(affectedTD, field
+									.getSymbol(), dst.getType(), hrnId);
+						}
+					}
+				}
+
+				// / handle tainted case
+				Iterator<ReferenceEdge> edgeIter = dstLN
+						.iteratorToReferencees();
+				while (edgeIter.hasNext()) {
+					ReferenceEdge edge = edgeIter.next();
+					HeapRegionNode dstHRN = edge.getDst();
+
+					Iterator<ReferenceEdge> referenceeIter = dstHRN
+							.iteratorToReferencees();
+					while (referenceeIter.hasNext()) {
+						ReferenceEdge re = referenceeIter.next();
+
+						if ((re.getField() == null && fsen.getField() == null)
+								|| (re.getField() != null
+										&& fsen.getField() != null
+										&& re.getField().equals(
+												fsen.getField().getSymbol()) && re
+										.getType().equals(
+												fsen.getField().getType()))) {
+							int taintIdentifier = re.getTaintIdentifier();
+
+							if (taintIdentifier > 0) {
+								HeapRegionNode accessHRN = re.getDst();
+								affectedTDSet = getReferenceNodeSet(accessHRN);
+
+								affectedIter = affectedTDSet.iterator();
+								while (affectedIter.hasNext()) {
+									TempDescriptor affectedTD = affectedIter
+											.next();
+									if (currentSESE.getInVarSet().contains(
+											affectedTD)) {
+
+										HashSet<Integer> hrnSet = getReferenceHeapIDSet(
+												og, affectedTD);
+										Iterator<Integer> hrnIter = hrnSet
+												.iterator();
+										while (hrnIter.hasNext()) {
+											Integer hrnId = hrnIter.next();
+											currentSESE.readEffects(affectedTD,
+													field.getSymbol(), dst
+															.getType(), hrnId);
+
+										}
+									}
+								}
+
+							}
+
+						}
+					}
+
+				}
+
+			}
+
+		}
+			break;
+
+		case FKind.FlatCall: {
+			FlatCall fc = (FlatCall) fn;
+
+			MethodContext calleeMC = ownAnalysis.getCalleeMethodContext(mc, fc);
+
+			MethodEffects me = ownAnalysis.getMethodEffectsAnalysis()
+					.getMethodEffectsByMethodContext(calleeMC);
+
+			int base;
+			if (((MethodDescriptor) calleeMC.getDescriptor()).isStatic()) {
+				base = 0;
+			} else {
+				base = 1;
+			}
+
+			for (int i = 0; i < fc.numArgs(); i++) {
+
+				TempDescriptor arg = fc.getArg(i);
+				Set<EffectsKey> readSet = me.getEffects().getReadingSet(
+						i + base);
+				Set<EffectsKey> writeSet = me.getEffects().getWritingSet(
+						i + base);
+
+				LabelNode argLN = og.td2ln.get(arg);
+				if (argLN != null) {
+					HashSet<TempDescriptor> affectedTDSet = getAccessedTaintNodeSet(argLN);
+					Iterator<TempDescriptor> affectedIter = affectedTDSet
+							.iterator();
+
+					while (affectedIter.hasNext()) {
+
+						TempDescriptor affectedTD = affectedIter.next();
+						if (currentSESE.getInVarSet().contains(affectedTD)) {
+
+							if (readSet != null) {
+								Iterator<EffectsKey> readIter = readSet
+										.iterator();
+								while (readIter.hasNext()) {
+									EffectsKey key = readIter.next();
+									// TODO need to verify the correctness of
+									// hrnID
+									currentSESE.readEffects(affectedTD, key
+											.getFieldDescriptor(), key
+											.getTypeDescriptor(), key
+											.getHRNId());
+								}
+							}
+
+							if (writeSet != null) {
+								Iterator<EffectsKey> writeIter = writeSet
+										.iterator();
+								while (writeIter.hasNext()) {
+									EffectsKey key = writeIter.next();
+									currentSESE.writeEffects(affectedTD, key
+											.getFieldDescriptor(), key
+											.getTypeDescriptor(), key
+											.getHRNId());
+								}
+							}
+
+						}
+
+					}
+
+				}
+
+			}
+
+		}
+			break;
+
+		}
+	}
+	
+	private void taintLabelNode(LabelNode ln, int identifier) {
+
+		Iterator<ReferenceEdge> edgeIter = ln.iteratorToReferencees();
+		while (edgeIter.hasNext()) {
+			ReferenceEdge edge = edgeIter.next();
+			HeapRegionNode hrn = edge.getDst();
+
+			Iterator<ReferenceEdge> edgeReferencerIter = hrn
+					.iteratorToReferencers();
+			while (edgeReferencerIter.hasNext()) {
+				ReferenceEdge referencerEdge = edgeReferencerIter.next();
+				OwnershipNode node = referencerEdge.getSrc();
+				if (node instanceof LabelNode) {
+					referencerEdge.unionSESETaintIdentifier(identifier);
+				}
+			}
+
+		}
+
+	}
+	
+	private HashSet<TempDescriptor> getReferenceNodeSet(HeapRegionNode hrn){
+		
+		HashSet<TempDescriptor> returnSet=new HashSet<TempDescriptor>();
+		
+		Iterator<ReferenceEdge> edgeIter=hrn.iteratorToReferencers();
+		while(edgeIter.hasNext()){
+			ReferenceEdge edge=edgeIter.next();
+			if(edge.getSrc() instanceof LabelNode){
+				LabelNode ln=(LabelNode)edge.getSrc();
+				returnSet.add(ln.getTempDescriptor());
+			}
+		}
+		
+		return returnSet;
+		
+	}
+	
+	
+	private HashSet<Integer> getReferenceHeapIDSet(OwnershipGraph og, TempDescriptor td){
+		
+		HashSet<Integer> returnSet=new HashSet<Integer>();
+		
+		LabelNode ln=og.td2ln.get(td);
+		Iterator<ReferenceEdge> edgeIter=ln.iteratorToReferencees();
+		while(edgeIter.hasNext()){
+			ReferenceEdge edge=edgeIter.next();
+			HeapRegionNode hrn=edge.getDst();
+			returnSet.add(hrn.getID());
+		}
+		return returnSet;
+	}
+	
+	
+	private HashSet<TempDescriptor> getAccessedTaintNodeSet(LabelNode ln){
+		
+		HashSet<TempDescriptor> returnSet=new HashSet<TempDescriptor>();
+		
+		Iterator<ReferenceEdge> edgeIter=ln.iteratorToReferencees();
+		while(edgeIter.hasNext()){
+			ReferenceEdge edge=edgeIter.next();
+			HeapRegionNode hrn=edge.getDst();
+			
+			Iterator<ReferenceEdge> edgeReferencerIter= hrn.iteratorToReferencers();
+			while(edgeReferencerIter.hasNext()){
+				ReferenceEdge referencerEdge=edgeReferencerIter.next();
+				
+				
+				if(referencerEdge.getSrc() instanceof LabelNode){
+					if( !((LabelNode)referencerEdge.getSrc()).equals(ln) ){
+						
+						if(referencerEdge.getSESETaintIdentifier() > 0){
+							TempDescriptor td=((LabelNode)referencerEdge.getSrc()).getTempDescriptor();
+							returnSet.add(td);
+						}
+
+//						int taintId=referencerEdge.getSESETaintIdentifier();
+//						edge.unionSESETaintIdentifier(taintId);
+					}
+				}				
+			}
+			
+		}
+		
+		return returnSet;
+		
+		
+	}
 
 
   private void codePlansForward( FlatMethod fm ) {
@@ -1105,8 +1527,33 @@ public class MLPAnalysis {
       bw.write( "\n\nVariable Results-Out\n----------------\n"          +fm.printMethod( variableResults ) );
       bw.write( "\n\nNot Available Results-Out\n---------------------\n"+fm.printMethod( notAvailableResults ) );
       bw.write( "\n\nCode Plans\n----------\n"                          +fm.printMethod( codePlans ) );
+      bw.write("\n\nSESE Effects\n----------------------\n"+printSESEEffects());
       bw.close();
     }
+  }
+  
+  private String printSESEEffects(){
+	  
+	  StringWriter writer=new StringWriter();
+	  
+	  Set<FlatNode> keySet=livenessRootView.keySet();
+	  Iterator<FlatNode> keyIter=keySet.iterator();
+	  
+	  while(keyIter.hasNext()){
+		  FlatNode fn=keyIter.next();
+		  if(fn instanceof FlatSESEEnterNode){
+			  FlatSESEEnterNode seseEnter=(FlatSESEEnterNode)fn;
+			  String result=seseEnter.getSeseEffectsSet().printSet();
+			  if(result.length()>0){
+				  writer.write("\nSESE "+seseEnter+"\n");
+				  writer.write(result);
+			  }
+
+		  }
+	  }
+	  
+	  return writer.toString();
+	  
   }
 
   private void printSESEHierarchy( BufferedWriter bw ) throws java.io.IOException {
