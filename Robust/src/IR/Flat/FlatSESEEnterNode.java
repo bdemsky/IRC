@@ -1,12 +1,18 @@
 package IR.Flat;
-import Analysis.MLP.VariableSourceToken;
-import Analysis.MLP.VarSrcTokTable;
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.Set;
+import java.util.Vector;
+
+import Analysis.MLP.SESEEffectsKey;
+import Analysis.MLP.SESEEffectsSet;
 import Analysis.MLP.SESEandAgePair;
-import IR.MethodDescriptor;
+import Analysis.MLP.VariableSourceToken;
 import IR.ClassDescriptor;
+import IR.FieldDescriptor;
+import IR.MethodDescriptor;
 import IR.TypeDescriptor;
 import IR.Tree.SESENode;
-import java.util.*;
 
 public class FlatSESEEnterNode extends FlatNode {
   
@@ -38,6 +44,8 @@ public class FlatSESEEnterNode extends FlatNode {
 
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
   
+  private SESEEffectsSet seseEffectsSet;
+  
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -48,7 +56,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // a normal method to code generation
   protected FlatMethod       fmBogus;
   protected MethodDescriptor mdBogus;
-
+  
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id              = identifier++;
@@ -67,6 +75,8 @@ public class FlatSESEEnterNode extends FlatNode {
     dynamicVars          = new HashSet<TempDescriptor>();
 
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
+    
+    seseEffectsSet = new SESEEffectsSet();
 
     fmEnclosing = null;
     mdEnclosing = null;
@@ -326,4 +336,17 @@ public class FlatSESEEnterNode extends FlatNode {
   public int hashCode() {
     return 31*id;
   }
+  
+  public void writeEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId){
+	  seseEffectsSet.addWritingVar(td, new SESEEffectsKey(fd, type, hrnId));
+  }
+  
+  public void readEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId ){
+	  seseEffectsSet.addReadingVar(td, new SESEEffectsKey(fd, type, hrnId));
+  }
+  
+  public SESEEffectsSet getSeseEffectsSet(){
+	  return seseEffectsSet;
+  }
+  
 }
