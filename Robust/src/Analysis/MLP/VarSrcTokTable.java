@@ -390,18 +390,33 @@ public class VarSrcTokTable {
     if( childItr.hasNext() ) {
       FlatSESEEnterNode child = childItr.next();
       
+      // set of VSTs for removal
+      HashSet<VariableSourceToken> removalSet=new HashSet<VariableSourceToken>();
+      // set of VSTs for additon
+      HashSet<VariableSourceToken> additionSet=new HashSet<VariableSourceToken>();
+      
       Iterator<VariableSourceToken> vstItr = get( child ).iterator();
       while( vstItr.hasNext() ) {
         VariableSourceToken vst = vstItr.next();
-
+        removalSet.add(vst);
+        additionSet.add(new VariableSourceToken( vst.getRefVars(),
+			      curr,
+			      new Integer( 0 ),
+			      vst.getAddrVar()
+                                  ));
+      }
+      
+      // remove( eah item in forremoval )
+      vstItr = removalSet.iterator();
+      while( vstItr.hasNext() ) {
+        VariableSourceToken vst = vstItr.next();
         remove( vst );
-	
-        add( new VariableSourceToken( vst.getRefVars(),
-				      curr,
-				      new Integer( 0 ),
-				      vst.getAddrVar()
-                                      )
-             );
+      }
+      // add( each  ite inm for additon _
+      vstItr = additionSet.iterator();
+      while( vstItr.hasNext() ) {
+        VariableSourceToken vst = vstItr.next();
+        add( vst );
       }
     }
 
