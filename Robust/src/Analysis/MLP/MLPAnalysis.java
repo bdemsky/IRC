@@ -864,7 +864,6 @@ public class MLPAnalysis {
 			FlatSESEExitNode fsexit = (FlatSESEExitNode) fn;
 
 			FlatSESEEnterNode enterNode = fsexit.getFlatEnter();
-
 			FlatSESEEnterNode parent = enterNode.getParent();
 			if (parent != null) {
 
@@ -883,8 +882,15 @@ public class MLPAnalysis {
 					if (parentEffectsSet == null) {
 						parentEffectsSet = new HashSet<SESEEffectsKey>();
 					}
-					parentEffectsSet.addAll(effectsSet);
-					parentReadTable.put(td, effectsSet);
+					
+					for (Iterator iterator = effectsSet.iterator(); iterator
+							.hasNext();) {
+						SESEEffectsKey seseKey = (SESEEffectsKey) iterator
+								.next();
+						parentEffectsSet.add(new SESEEffectsKey(seseKey.getFieldDescriptor(), seseKey.getTypeDescriptor(), seseKey.getHRNId()));
+					}
+					
+					parentReadTable.put(td, parentEffectsSet);
 				}
 
 				Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> writeTable = set
@@ -901,13 +907,21 @@ public class MLPAnalysis {
 					if (parentEffectsSet == null) {
 						parentEffectsSet = new HashSet<SESEEffectsKey>();
 					}
-					parentEffectsSet.addAll(effectsSet);
-					parentWriteTable.put(td, effectsSet);
+					
+					for (Iterator iterator = effectsSet.iterator(); iterator
+							.hasNext();) {
+						SESEEffectsKey seseKey = (SESEEffectsKey) iterator
+								.next();
+						parentEffectsSet.add(new SESEEffectsKey(seseKey
+								.getFieldDescriptor(), seseKey
+								.getTypeDescriptor(), seseKey.getHRNId()));
+					}
+					
+					parentWriteTable.put(td, parentEffectsSet);
 				}
 
 			}
 
-			// fsexit.getFlatEnter().getSeseEffectsSet().printSet();
 		}
 			break;
 
@@ -948,76 +962,38 @@ public class MLPAnalysis {
 						}
 					}
 				}
-
-				// / handle tainted case
-
+				
+				//  handle tainted case
+				
 				Iterator<ReferenceEdge> edgeIter = srcLN
 						.iteratorToReferencees();
 				while (edgeIter.hasNext()) {
 					ReferenceEdge edge = edgeIter.next();
-					HeapRegionNode dstHRN = edge.getDst();
+					
+					if(edge.getTaintIdentifier()>0){
+						HeapRegionNode accessHRN = edge.getDst();
+						affectedTDSet = getReferenceNodeSet(accessHRN);
+						affectedIter = affectedTDSet.iterator();
+						while (affectedIter.hasNext()) {
+							TempDescriptor affectedTD = affectedIter.next();
+							if (currentSESE.getInVarSet().contains(affectedTD)) {
 
-					Iterator<ReferenceEdge> referenceeIter = dstHRN
-							.iteratorToReferencees();
-					while (referenceeIter.hasNext()) {
-						ReferenceEdge re = referenceeIter.next();
-
-						if ((re.getField() == null && ffn.getField() == null)
-								|| (re.getField() != null
-										&& ffn.getField() != null
-										&& re.getField().equals(
-												ffn.getField().getSymbol()) && re
-										.getType().equals(
-												ffn.getField().getType()))) {
-							int taintIdentifier = re.getTaintIdentifier();
-
-							if (taintIdentifier > 0) {
-								HeapRegionNode accessHRN = re.getDst();
-								affectedTDSet = getReferenceNodeSet(accessHRN);
-
-								affectedIter = affectedTDSet.iterator();
-								while (affectedIter.hasNext()) {
-									TempDescriptor affectedTD = affectedIter
-											.next();
-									if (currentSESE.getInVarSet().contains(
-											affectedTD)) {
-
-										HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
-												og, affectedTD);
-										Iterator<HeapRegionNode> hrnIter = hrnSet
-												.iterator();
-										while (hrnIter.hasNext()) {
-											HeapRegionNode hrn = hrnIter.next();
-
-											Iterator<ReferenceEdge> referencers = hrn
-													.iteratorToReferencers();
-											while (referencers.hasNext()) {
-												ReferenceEdge referenceEdge = (ReferenceEdge) referencers
-														.next();
-												if (field.getSymbol().equals(
-														referenceEdge
-																.getField())) {
-													currentSESE.readEffects(
-															affectedTD,
-															field.getSymbol(),
-															src.getType(),
-															referenceEdge
-																	.getDst()
-																	.getID());
-												}
-											}
-
-										} // end of while (hrnIter.hasNext())
-									}
+								HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
+										og, affectedTD);
+								Iterator<HeapRegionNode> hrnIter = hrnSet
+										.iterator();
+								while (hrnIter.hasNext()) {
+									HeapRegionNode hrn = hrnIter.next();
+									currentSESE.readEffects(affectedTD, field
+											.getSymbol(), src.getType(), hrn
+											.getID());
 								}
 
 							}
 
 						}
 					}
-
-				} // end of handling tained cases
-
+				}
 			}
 
 		}
@@ -1050,6 +1026,7 @@ public class MLPAnalysis {
 								currentSESE.writeEffects(affectedTD, field
 										.getSymbol(), dst.getType(), hrn
 										.getID());
+								
 							} else {
 								Iterator<ReferenceEdge> referencers = hrn
 										.iteratorToReferencers();
@@ -1069,87 +1046,36 @@ public class MLPAnalysis {
 						}
 					}
 				}
-
-				// / handle tainted case
+				
+				// handle tainted case
 				Iterator<ReferenceEdge> edgeIter = dstLN
 						.iteratorToReferencees();
 				while (edgeIter.hasNext()) {
 					ReferenceEdge edge = edgeIter.next();
-					HeapRegionNode dstHRN = edge.getDst();
+					if (edge.getTaintIdentifier() > 0) {
+						HeapRegionNode accessHRN = edge.getDst();
+						affectedTDSet = getReferenceNodeSet(accessHRN);
+						affectedIter = affectedTDSet.iterator();
+						while (affectedIter.hasNext()) {
+							TempDescriptor affectedTD = affectedIter.next();
+							if (currentSESE.getInVarSet().contains(affectedTD)) {
 
-					Iterator<ReferenceEdge> referenceeIter = dstHRN
-							.iteratorToReferencees();
-					while (referenceeIter.hasNext()) {
-						ReferenceEdge re = referenceeIter.next();
-
-						if ((re.getField() == null && fsen.getField() == null)
-								|| (re.getField() != null
-										&& fsen.getField() != null
-										&& re.getField().equals(
-												fsen.getField().getSymbol()) && re
-										.getType().equals(
-												fsen.getField().getType()))) {
-							int taintIdentifier = re.getTaintIdentifier();
-
-							if (taintIdentifier > 0) {
-								HeapRegionNode accessHRN = re.getDst();
-								affectedTDSet = getReferenceNodeSet(accessHRN);
-
-								affectedIter = affectedTDSet.iterator();
-								while (affectedIter.hasNext()) {
-									TempDescriptor affectedTD = affectedIter
-											.next();
-									if (currentSESE.getInVarSet().contains(
-											affectedTD)) {
-
-										HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
-												og, affectedTD);
-										Iterator<HeapRegionNode> hrnIter = hrnSet
-												.iterator();
-										while (hrnIter.hasNext()) {
-											HeapRegionNode hrn = hrnIter.next();
-
-											if (field.getType().isImmutable()) {
-												currentSESE.writeEffects(
-														affectedTD, field
-																.getSymbol(),
-														dst.getType(), hrn
-																.getID());
-											} else {
-												Iterator<ReferenceEdge> referencers = hrn
-														.iteratorToReferencers();
-												while (referencers.hasNext()) {
-													ReferenceEdge referenceEdge = (ReferenceEdge) referencers
-															.next();
-													if (field
-															.getSymbol()
-															.equals(
-																	referenceEdge
-																			.getField())) {
-														currentSESE
-																.writeEffects(
-																		affectedTD,
-																		field
-																				.getSymbol(),
-																		dst
-																				.getType(),
-																		referenceEdge
-																				.getDst()
-																				.getID());
-													}
-
-												}
-											}
-
-										}
-									}
+								HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
+										og, affectedTD);
+								Iterator<HeapRegionNode> hrnIter = hrnSet
+										.iterator();
+								while (hrnIter.hasNext()) {
+									HeapRegionNode hrn = hrnIter.next();
+									currentSESE.writeEffects(affectedTD, field
+											.getSymbol(), dst.getType(), hrn
+											.getID());
+									
 								}
 
 							}
 
 						}
 					}
-
 				}
 
 			}
