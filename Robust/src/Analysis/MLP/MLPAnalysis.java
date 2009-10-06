@@ -190,7 +190,6 @@ public class MLPAnalysis {
       Descriptor d  = methItr.next();      
       FlatMethod fm = state.getMethodFlat( d );
       methodEffects(fm);
-      // notAvailableForward( fm );
     }
 
 
@@ -799,7 +798,6 @@ public class MLPAnalysis {
 		while(mcIter.hasNext()){
 			MethodContext mc=mcIter.next();
 			
-//			System.out.println("#method effects="+fm+" with mc="+mc);
 			Set<FlatNode> visited = new HashSet<FlatNode>();
 			
 			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -865,8 +863,51 @@ public class MLPAnalysis {
 		case FKind.FlatSESEExitNode: {
 			FlatSESEExitNode fsexit = (FlatSESEExitNode) fn;
 
-			fsexit.getFlatEnter().getSeseEffectsSet().printSet();
+			FlatSESEEnterNode enterNode = fsexit.getFlatEnter();
 
+			FlatSESEEnterNode parent = enterNode.getParent();
+			if (parent != null) {
+
+				SESEEffectsSet set = enterNode.getSeseEffectsSet();
+				Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> readTable = set
+						.getReadTable();
+				Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> parentReadTable = parent
+						.getSeseEffectsSet().getReadTable();
+				Set<TempDescriptor> keys = readTable.keySet();
+				Iterator<TempDescriptor> keyIter = keys.iterator();
+				while (keyIter.hasNext()) {
+					TempDescriptor td = (TempDescriptor) keyIter.next();
+					HashSet<SESEEffectsKey> effectsSet = readTable.get(td);
+					HashSet<SESEEffectsKey> parentEffectsSet = parentReadTable
+							.get(td);
+					if (parentEffectsSet == null) {
+						parentEffectsSet = new HashSet<SESEEffectsKey>();
+					}
+					parentEffectsSet.addAll(effectsSet);
+					parentReadTable.put(td, effectsSet);
+				}
+
+				Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> writeTable = set
+						.getWriteTable();
+				Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> parentWriteTable = parent
+						.getSeseEffectsSet().getWriteTable();
+				keys = writeTable.keySet();
+				keyIter = keys.iterator();
+				while (keyIter.hasNext()) {
+					TempDescriptor td = (TempDescriptor) keyIter.next();
+					HashSet<SESEEffectsKey> effectsSet = writeTable.get(td);
+					HashSet<SESEEffectsKey> parentEffectsSet = parentWriteTable
+							.get(td);
+					if (parentEffectsSet == null) {
+						parentEffectsSet = new HashSet<SESEEffectsKey>();
+					}
+					parentEffectsSet.addAll(effectsSet);
+					parentWriteTable.put(td, effectsSet);
+				}
+
+			}
+
+			// fsexit.getFlatEnter().getSeseEffectsSet().printSet();
 		}
 			break;
 
@@ -885,18 +926,31 @@ public class MLPAnalysis {
 					TempDescriptor affectedTD = affectedIter.next();
 					if (currentSESE.getInVarSet().contains(affectedTD)) {
 
-						HashSet<Integer> hrnSet = getReferenceHeapIDSet(og,
-								affectedTD);
-						Iterator<Integer> hrnIter = hrnSet.iterator();
+						HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
+								og, affectedTD);
+						Iterator<HeapRegionNode> hrnIter = hrnSet.iterator();
 						while (hrnIter.hasNext()) {
-							Integer hrnId = hrnIter.next();
-							currentSESE.readEffects(affectedTD, field
-									.getSymbol(), src.getType(), hrnId);
+							HeapRegionNode hrn = hrnIter.next();
+
+							Iterator<ReferenceEdge> referencers = hrn
+									.iteratorToReferencers();
+							while (referencers.hasNext()) {
+								ReferenceEdge referenceEdge = (ReferenceEdge) referencers
+										.next();
+								if (field.getSymbol().equals(
+										referenceEdge.getField())) {
+									currentSESE.readEffects(affectedTD, field
+											.getSymbol(), src.getType(),
+											referenceEdge.getDst().getID());
+								}
+							}
+
 						}
 					}
 				}
 
 				// / handle tainted case
+
 				Iterator<ReferenceEdge> edgeIter = srcLN
 						.iteratorToReferencees();
 				while (edgeIter.hasNext()) {
@@ -928,17 +982,32 @@ public class MLPAnalysis {
 									if (currentSESE.getInVarSet().contains(
 											affectedTD)) {
 
-										HashSet<Integer> hrnSet = getReferenceHeapIDSet(
+										HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
 												og, affectedTD);
-										Iterator<Integer> hrnIter = hrnSet
+										Iterator<HeapRegionNode> hrnIter = hrnSet
 												.iterator();
 										while (hrnIter.hasNext()) {
-											Integer hrnId = hrnIter.next();
-											currentSESE.readEffects(affectedTD,
-													field.getSymbol(), src
-															.getType(), hrnId);
+											HeapRegionNode hrn = hrnIter.next();
 
-										}
+											Iterator<ReferenceEdge> referencers = hrn
+													.iteratorToReferencers();
+											while (referencers.hasNext()) {
+												ReferenceEdge referenceEdge = (ReferenceEdge) referencers
+														.next();
+												if (field.getSymbol().equals(
+														referenceEdge
+																.getField())) {
+													currentSESE.readEffects(
+															affectedTD,
+															field.getSymbol(),
+															src.getType(),
+															referenceEdge
+																	.getDst()
+																	.getID());
+												}
+											}
+
+										} // end of while (hrnIter.hasNext())
 									}
 								}
 
@@ -947,7 +1016,7 @@ public class MLPAnalysis {
 						}
 					}
 
-				}
+				} // end of handling tained cases
 
 			}
 
@@ -971,13 +1040,32 @@ public class MLPAnalysis {
 					TempDescriptor affectedTD = affectedIter.next();
 					if (currentSESE.getInVarSet().contains(affectedTD)) {
 
-						HashSet<Integer> hrnSet = getReferenceHeapIDSet(og,
-								affectedTD);
-						Iterator<Integer> hrnIter = hrnSet.iterator();
+						HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
+								og, affectedTD);
+						Iterator<HeapRegionNode> hrnIter = hrnSet.iterator();
 						while (hrnIter.hasNext()) {
-							Integer hrnId = hrnIter.next();
-							currentSESE.writeEffects(affectedTD, field
-									.getSymbol(), dst.getType(), hrnId);
+							HeapRegionNode hrn = hrnIter.next();
+
+							if (field.getType().isImmutable()) {
+								currentSESE.writeEffects(affectedTD, field
+										.getSymbol(), dst.getType(), hrn
+										.getID());
+							} else {
+								Iterator<ReferenceEdge> referencers = hrn
+										.iteratorToReferencers();
+								while (referencers.hasNext()) {
+									ReferenceEdge referenceEdge = (ReferenceEdge) referencers
+											.next();
+									if (field.getSymbol().equals(
+											referenceEdge.getField())) {
+										currentSESE.writeEffects(affectedTD,
+												field.getSymbol(), dst
+														.getType(),
+												referenceEdge.getDst().getID());
+									}
+								}
+							}
+
 						}
 					}
 				}
@@ -1014,15 +1102,44 @@ public class MLPAnalysis {
 									if (currentSESE.getInVarSet().contains(
 											affectedTD)) {
 
-										HashSet<Integer> hrnSet = getReferenceHeapIDSet(
+										HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
 												og, affectedTD);
-										Iterator<Integer> hrnIter = hrnSet
+										Iterator<HeapRegionNode> hrnIter = hrnSet
 												.iterator();
 										while (hrnIter.hasNext()) {
-											Integer hrnId = hrnIter.next();
-											currentSESE.readEffects(affectedTD,
-													field.getSymbol(), dst
-															.getType(), hrnId);
+											HeapRegionNode hrn = hrnIter.next();
+
+											if (field.getType().isImmutable()) {
+												currentSESE.writeEffects(
+														affectedTD, field
+																.getSymbol(),
+														dst.getType(), hrn
+																.getID());
+											} else {
+												Iterator<ReferenceEdge> referencers = hrn
+														.iteratorToReferencers();
+												while (referencers.hasNext()) {
+													ReferenceEdge referenceEdge = (ReferenceEdge) referencers
+															.next();
+													if (field
+															.getSymbol()
+															.equals(
+																	referenceEdge
+																			.getField())) {
+														currentSESE
+																.writeEffects(
+																		affectedTD,
+																		field
+																				.getSymbol(),
+																		dst
+																				.getType(),
+																		referenceEdge
+																				.getDst()
+																				.getID());
+													}
+
+												}
+											}
 
 										}
 									}
@@ -1047,6 +1164,13 @@ public class MLPAnalysis {
 
 			MethodEffects me = ownAnalysis.getMethodEffectsAnalysis()
 					.getMethodEffectsByMethodContext(calleeMC);
+
+			OwnershipGraph calleeOG = ownAnalysis
+					.getOwnvershipGraphByMethodContext(calleeMC);
+
+			FlatMethod fm = state.getMethodFlat(fc.getMethod());
+			ParameterDecomposition decomp = new ParameterDecomposition(
+					ownAnalysis, fc, fm, calleeMC, calleeOG, og);
 
 			int base;
 			if (((MethodDescriptor) calleeMC.getDescriptor()).isStatic()) {
@@ -1079,12 +1203,18 @@ public class MLPAnalysis {
 										.iterator();
 								while (readIter.hasNext()) {
 									EffectsKey key = readIter.next();
-									// TODO need to verify the correctness of
-									// hrnID
-									currentSESE.readEffects(affectedTD, key
-											.getFieldDescriptor(), key
-											.getTypeDescriptor(), key
-											.getHRNId());
+									Set<Integer> hrnSet = getCallerHRNId(
+											new Integer(i + base), calleeOG,
+											key.getHRNId(), decomp);
+									Iterator<Integer> hrnIter = hrnSet
+											.iterator();
+									while (hrnIter.hasNext()) {
+										Integer hrnID = (Integer) hrnIter
+												.next();
+										currentSESE.readEffects(affectedTD, key
+												.getFieldDescriptor(), key
+												.getTypeDescriptor(), hrnID);
+									}
 								}
 							}
 
@@ -1093,10 +1223,21 @@ public class MLPAnalysis {
 										.iterator();
 								while (writeIter.hasNext()) {
 									EffectsKey key = writeIter.next();
-									currentSESE.writeEffects(affectedTD, key
-											.getFieldDescriptor(), key
-											.getTypeDescriptor(), key
-											.getHRNId());
+
+									Set<Integer> hrnSet = getCallerHRNId(
+											new Integer(i + base), calleeOG,
+											key.getHRNId(), decomp);
+									Iterator<Integer> hrnIter = hrnSet
+											.iterator();
+									while (hrnIter.hasNext()) {
+										Integer hrnID = (Integer) hrnIter
+												.next();
+										currentSESE.writeEffects(affectedTD,
+												key.getFieldDescriptor(), key
+														.getTypeDescriptor(),
+												hrnID);
+									}
+
 								}
 							}
 
@@ -1112,6 +1253,24 @@ public class MLPAnalysis {
 			break;
 
 		}
+	}
+	
+	private Set<Integer> getCallerHRNId(Integer paramIdx,
+			OwnershipGraph calleeOG, Integer calleeHRNId,
+			ParameterDecomposition paramDecom) {
+		
+		Integer hrnPrimaryID = calleeOG.paramIndex2idPrimary.get(paramIdx);
+		Integer hrnSecondaryID = calleeOG.paramIndex2idSecondary.get(paramIdx);
+		
+		if (calleeHRNId.equals(hrnPrimaryID)) {
+			// it references to primary param heap region
+			return paramDecom.getParamObject_hrnIDs(paramIdx);
+		} else if (calleeHRNId.equals(hrnSecondaryID)) {
+			// it references to secondary param heap region
+			return paramDecom.getParamReachable_hrnIDs(paramIdx);
+		}
+
+		return new HashSet<Integer>();
 	}
 	
 	private void taintLabelNode(LabelNode ln, int identifier) {
@@ -1153,54 +1312,51 @@ public class MLPAnalysis {
 	}
 	
 	
-	private HashSet<Integer> getReferenceHeapIDSet(OwnershipGraph og, TempDescriptor td){
+	private HashSet<HeapRegionNode> getReferenceHeapIDSet(OwnershipGraph og, TempDescriptor td){
 		
-		HashSet<Integer> returnSet=new HashSet<Integer>();
+		HashSet<HeapRegionNode> returnSet=new HashSet<HeapRegionNode>();
 		
 		LabelNode ln=og.td2ln.get(td);
 		Iterator<ReferenceEdge> edgeIter=ln.iteratorToReferencees();
 		while(edgeIter.hasNext()){
 			ReferenceEdge edge=edgeIter.next();
-			HeapRegionNode hrn=edge.getDst();
-			returnSet.add(hrn.getID());
+				HeapRegionNode hrn=edge.getDst();
+				returnSet.add(hrn);
 		}
 		return returnSet;
 	}
 	
 	
-	private HashSet<TempDescriptor> getAccessedTaintNodeSet(LabelNode ln){
-		
-		HashSet<TempDescriptor> returnSet=new HashSet<TempDescriptor>();
-		
-		Iterator<ReferenceEdge> edgeIter=ln.iteratorToReferencees();
-		while(edgeIter.hasNext()){
-			ReferenceEdge edge=edgeIter.next();
-			HeapRegionNode hrn=edge.getDst();
-			
-			Iterator<ReferenceEdge> edgeReferencerIter= hrn.iteratorToReferencers();
-			while(edgeReferencerIter.hasNext()){
-				ReferenceEdge referencerEdge=edgeReferencerIter.next();
-				
-				
-				if(referencerEdge.getSrc() instanceof LabelNode){
-					if( !((LabelNode)referencerEdge.getSrc()).equals(ln) ){
-						
-						if(referencerEdge.getSESETaintIdentifier() > 0){
-							TempDescriptor td=((LabelNode)referencerEdge.getSrc()).getTempDescriptor();
+	private HashSet<TempDescriptor> getAccessedTaintNodeSet(LabelNode ln) {
+
+		HashSet<TempDescriptor> returnSet = new HashSet<TempDescriptor>();
+
+		Iterator<ReferenceEdge> edgeIter = ln.iteratorToReferencees();
+		while (edgeIter.hasNext()) {
+			ReferenceEdge edge = edgeIter.next();
+			HeapRegionNode hrn = edge.getDst();
+
+			Iterator<ReferenceEdge> edgeReferencerIter = hrn
+					.iteratorToReferencers();
+			while (edgeReferencerIter.hasNext()) {
+				ReferenceEdge referencerEdge = edgeReferencerIter.next();
+
+				if (referencerEdge.getSrc() instanceof LabelNode) {
+					if (!((LabelNode) referencerEdge.getSrc()).equals(ln)) {
+
+						if (referencerEdge.getSESETaintIdentifier() > 0) {
+							TempDescriptor td = ((LabelNode) referencerEdge
+									.getSrc()).getTempDescriptor();
 							returnSet.add(td);
 						}
-
-//						int taintId=referencerEdge.getSESETaintIdentifier();
-//						edge.unionSESETaintIdentifier(taintId);
 					}
-				}				
+				}
 			}
-			
+
 		}
-		
+
 		return returnSet;
-		
-		
+
 	}
 
 
@@ -1532,29 +1688,37 @@ public class MLPAnalysis {
     }
   }
   
-  private String printSESEEffects(){
-	  
-	  StringWriter writer=new StringWriter();
-	  
-	  Set<FlatNode> keySet=livenessRootView.keySet();
-	  Iterator<FlatNode> keyIter=keySet.iterator();
-	  
-	  while(keyIter.hasNext()){
-		  FlatNode fn=keyIter.next();
-		  if(fn instanceof FlatSESEEnterNode){
-			  FlatSESEEnterNode seseEnter=(FlatSESEEnterNode)fn;
-			  String result=seseEnter.getSeseEffectsSet().printSet();
-			  if(result.length()>0){
-				  writer.write("\nSESE "+seseEnter+"\n");
-				  writer.write(result);
-			  }
+	private String printSESEEffects() {
 
-		  }
-	  }
-	  
-	  return writer.toString();
-	  
-  }
+		StringWriter writer = new StringWriter();
+
+		Iterator<FlatSESEEnterNode> keyIter = allSESEs.iterator();
+
+		while (keyIter.hasNext()) {
+			FlatSESEEnterNode seseEnter = keyIter.next();
+			String result = seseEnter.getSeseEffectsSet().printSet();
+			if (result.length() > 0) {
+				writer.write("\nSESE " + seseEnter + "\n");
+				writer.write(result);
+			}
+		}
+		keyIter = rootSESEs.iterator();
+		while (keyIter.hasNext()) {
+			FlatSESEEnterNode seseEnter = keyIter.next();
+			if (seseEnter.getIsCallerSESEplaceholder()) {
+				if (!seseEnter.getChildren().isEmpty()) {
+					String result = seseEnter.getSeseEffectsSet().printSet();
+					if (result.length() > 0) {
+						writer.write("\nSESE " + seseEnter + "\n");
+						writer.write(result);
+					}
+				}
+			}
+		}
+
+		return writer.toString();
+
+	}
 
   private void printSESEHierarchy( BufferedWriter bw ) throws java.io.IOException {
     bw.write( "SESE Hierarchy\n--------------\n" ); 
