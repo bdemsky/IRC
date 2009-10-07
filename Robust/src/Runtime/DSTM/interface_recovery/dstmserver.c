@@ -35,19 +35,15 @@ extern unsigned int *locateObjHosts;
 extern int *liveHosts;
 extern int numLiveHostsInSystem;
 int clearNotifyListFlag;
+pthread_mutex_t clearNotifyList_mutex;
 #endif
 
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
 pthread_mutex_t lockObjHeader;
-pthread_mutex_t clearNotifyList_mutex;
 pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a recursive lock */
 
 sockPoolHashTable_t *transPResponseSocketPool;
-extern sockPoolHashTable_t *transRequestSockPool;
-extern sockPoolHashTable_t *transReadSockPool;
-
-int failFlag = 0; //debug
 
 #ifdef RECOVERY
 /******************************
@@ -150,16 +146,16 @@ void *dstmListen(void *lfd) {
   pthread_t thread_dstm_accept;
 
 #ifdef RECOVERY
-  int firsttime = 1;
+  int firsttime = 1;          // these two are for periodic checking
   pthread_t thread_dstm_asking;
 #endif
-#ifdef DEBUG
+
   printf("Listening on port %d, fd = %d\n", LISTEN_PORT, listenfd);
-#endif
   while(1) {
     int retval;
     int flag=1;
     acceptfd = accept(listenfd, (struct sockaddr *)&client_addr, &addrlength);
+    setsockopt(acceptfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
 
 #ifdef RECOVERY
     if(firsttime) {
@@ -170,11 +166,7 @@ void *dstmListen(void *lfd) {
       pthread_detach(thread_dstm_asking);
     }
 #endif
-#ifdef debug
-    printf("%s -> fd accepted\n",__func__);
-#endif
 
-    setsockopt(acceptfd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
     do {
       	retval=pthread_create(&thread_dstm_accept, NULL, dstmAccept, (void *)acceptfd);
     } while(retval!=0);
@@ -280,16 +272,20 @@ void *dstmAccept(void *acceptfd) {
 	char control,ctrl, response;
 	char *ptr;
 	void *srcObj;
+
+#ifdef RECOVERY
 	void *dupeptr;
+  unsigned int transIDreceived;
+  char decision;
+  int timeout;
+#endif
+
 	int i, tempsize;
 	objheader_t *h;
 	trans_commit_data_t transinfo;
   unsigned short objType, *versionarry, version;
 	unsigned int *oidarry, numoid, mid, threadid;
   int n, v;
-  unsigned int transIDreceived;
-  char decision;
-  struct sockaddr_in remoteAddr;
 
 #ifdef DEBUG
 	printf("%s-> Entering dstmAccept\n", __func__);	fflush(stdout);
@@ -302,9 +298,7 @@ void *dstmAccept(void *acceptfd) {
 		if (ret==0)
 			break;
 		if (ret==-1) {
-#ifdef DEBUG
 			printf("DEBUG -> RECV Error!.. retrying\n");
-#endif
 	//		exit(0);
 			break;
 		}
@@ -317,7 +311,10 @@ void *dstmAccept(void *acceptfd) {
         printf("control -> READ_REQUEST\n");
 #endif
 				/* Read oid requested and search if available */
-				recv_data((int)acceptfd, &oid, sizeof(unsigned int));
+				timeout = recv_data((int)acceptfd, &oid, sizeof(unsigned int));
+
+        if(timeout < 0)
+          break;
 				while((srcObj = mhashSearch(oid)) == NULL) {
 					int ret;
 //          printf("HERE!!\n");
@@ -368,7 +365,8 @@ void *dstmAccept(void *acceptfd) {
 #ifdef RECOVERY
       case ASK_COMMIT :
 
-        recv_data((int)acceptfd, &transIDreceived, sizeof(unsigned int));
+        if(recv_data((int)acceptfd, &transIDreceived, sizeof(unsigned int)) < 0)
+          break;        
 
         decision = checkDecision(transIDreceived);
 
@@ -573,116 +571,125 @@ void *dstmAccept(void *acceptfd) {
 
 #ifdef RECOVERY
 			case DUPLICATE_ORIGINAL:
+       
+       {
+         struct sockaddr_in remoteAddr;
+         int sd;
+
 #ifdef DEBUG
-        printf("control -> DUPLICATE_ORIGINAL\n");
-				printf("%s (DUPLICATE_ORIGINAL)-> Attempt to duplicate original objects\n", __func__);	
+          printf("control -> DUPLICATE_ORIGINAL\n");
+	  			printf("%s (DUPLICATE_ORIGINAL)-> Attempt to duplicate original objects\n", __func__);	
 #endif
-				//object store stuffffff
-				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
-				tempsize = mhashGetDuplicate(&dupeptr, 0);
+		  		//object store stuffffff
+  				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
+	  			tempsize = mhashGetDuplicate(&dupeptr, 0);
 
-				//send control and dupes after
-				ctrl = RECEIVE_DUPES;
+		  		//send control and dupes after
+			  	ctrl = RECEIVE_DUPES;
 
-        if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-          perror("ORIGINAL : ");
-          exit(0);
-        }
-
-        bzero(&remoteAddr, sizeof(remoteAddr));
-        remoteAddr.sin_family = AF_INET;
-        remoteAddr.sin_port = htons(LISTEN_PORT);
-        remoteAddr.sin_addr.s_addr = htonl(mid);
-
-        if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {
-          printf("ORIGINAL ERROR : %s\n",strerror(errno));
-          exit(0);
-        }
-        else {
-  				send_data(sd, &ctrl, sizeof(char));
-	  			send_data(sd, dupeptr, tempsize);
-
-  				recv_data(sd, &response, sizeof(char));
-#ifdef DEBUG
-          printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
-#endif
-		  		if(response != DUPLICATION_COMPLETE) {
-#ifdef DEBUG
-           printf("%s(DUPLICATION_ORIGINAL) -> DUPLICATION FAIL\n",__func__);
-#endif
-				  //fail message
-           exit(0);
-  				}
-
-          close(sd);
-        }
-        free(dupeptr);
-
-        ctrl = DUPLICATION_COMPLETE;
-				send_data((int)acceptfd, &ctrl, sizeof(char));
-#ifndef DEBUG
-				printf("%s (DUPLICATE_ORIGINAL)-> Finished\n", __func__);	
-#endif
-				break;
-
-			case DUPLICATE_BACKUP:
-#ifndef DEBUG
-        printf("control -> DUPLICATE_BACKUP\n");
-				printf("%s (DUPLICATE_BACKUP)-> Attempt to duplicate backup objects\n", __func__);
-#endif
-				//object store stuffffff
-				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
-
-
-				tempsize = mhashGetDuplicate(&dupeptr, 1);
-
-				//send control and dupes after
-				ctrl = RECEIVE_DUPES;
-
-        if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-          perror("BACKUP : ");
-          exit(0);
-        }
-
-         bzero(&remoteAddr, sizeof(remoteAddr));                                       
-         remoteAddr.sin_family = AF_INET;                                              
-         remoteAddr.sin_port = htons(LISTEN_PORT);                                     
-         remoteAddr.sin_addr.s_addr = htonl(mid);                                      
-                                                                                       
-         if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {       
-           printf("BACKUP ERROR : %s\n",strerror(errno));
-           exit(0);
-         }                                                                             
-         else {                                                                        
-          send_data(sd, &ctrl, sizeof(char));
-  				send_data(sd, dupeptr, tempsize);
-          
-          recv_data(sd, &response, sizeof(char));
-#ifdef DEBUG
-          printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
-#endif
-		  		if(response != DUPLICATION_COMPLETE) {
-#ifndef DEBUG
-            printf("%s(DUPLICATION_BACKUP) -> DUPLICATION FAIL\n",__func__);
-#endif
+          if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            perror("ORIGINAL : ");
             exit(0);
           }
 
-          close(sd);
-         }
+          bzero(&remoteAddr, sizeof(remoteAddr));
+          remoteAddr.sin_family = AF_INET;
+          remoteAddr.sin_port = htons(LISTEN_PORT);
+          remoteAddr.sin_addr.s_addr = htonl(mid);
 
-        free(dupeptr);
+          if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {
+            printf("ORIGINAL ERROR : %s\n",strerror(errno));
+            exit(0);
+          }
+          else {
+  		  		send_data(sd, &ctrl, sizeof(char));
+	  		  	send_data(sd, dupeptr, tempsize);
 
-				ctrl = DUPLICATION_COMPLETE;
-				send_data((int)acceptfd, &ctrl, sizeof(char));
-#ifndef DEBUG
-				printf("%s (DUPLICATE_BACKUP)-> Finished\n", __func__);	
+  				  recv_data(sd, &response, sizeof(char));
+#ifdef DEBUG
+            printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
 #endif
-				
+	  	  		if(response != DUPLICATION_COMPLETE) {
+#ifndef DEBUG
+             printf("%s(DUPLICATION_ORIGINAL) -> DUPLICATION FAIL\n",__func__);
+#endif
+			  	  //fail message
+             exit(0);
+  				  }
+
+            close(sd);
+          }
+          free(dupeptr);
+
+          ctrl = DUPLICATION_COMPLETE;
+				  send_data((int)acceptfd, &ctrl, sizeof(char));
+#ifdef DEBUG
+				  printf("%s (DUPLICATE_ORIGINAL)-> Finished\n", __func__);	
+#endif
+       }
+				  break;
+
+			case DUPLICATE_BACKUP:
+        {
+          struct sockaddr_in remoteAddr;
+          int sd;
+#ifdef DEBUG
+          printf("control -> DUPLICATE_BACKUP\n");
+	  			printf("%s (DUPLICATE_BACKUP)-> Attempt to duplicate backup objects\n", __func__);
+#endif
+  				//object store stuffffff
+				  recv_data((int)acceptfd, &mid, sizeof(unsigned int));
+
+
+		  		tempsize = mhashGetDuplicate(&dupeptr, 1);
+
+			  	//send control and dupes after
+	  			ctrl = RECEIVE_DUPES;
+
+          if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+            perror("BACKUP : ");
+            exit(0);
+          }
+
+           bzero(&remoteAddr, sizeof(remoteAddr));                                       
+           remoteAddr.sin_family = AF_INET;                                              
+           remoteAddr.sin_port = htons(LISTEN_PORT);                                     
+           remoteAddr.sin_addr.s_addr = htonl(mid);                                      
+                                                                                       
+           if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {       
+             printf("BACKUP ERROR : %s\n",strerror(errno));
+             exit(0);
+           }                                                                             
+           else {                                                                        
+            send_data(sd, &ctrl, sizeof(char));
+    				send_data(sd, dupeptr, tempsize);
+          
+            recv_data(sd, &response, sizeof(char));
+#ifdef DEBUG
+            printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
+#endif
+		  		  if(response != DUPLICATION_COMPLETE) {
+#ifndef DEBUG
+              printf("%s(DUPLICATION_BACKUP) -> DUPLICATION FAIL\n",__func__);
+#endif
+              exit(0);
+            }
+
+            close(sd);
+           }
+
+          free(dupeptr);
+
+				  ctrl = DUPLICATION_COMPLETE;
+				  send_data((int)acceptfd, &ctrl, sizeof(char));
+#ifdef DEBUG
+				  printf("%s (DUPLICATE_BACKUP)-> Finished\n", __func__);	
+#endif
+        }
 				break;
 
 			case RECEIVE_DUPES:
-#ifndef DEBUG
+#ifdef DEBUG
         printf("control -> RECEIVE_DUPES sd : %d\n",(int)acceptfd);
 #endif
 				if((readDuplicateObjs((int)acceptfd)) != 0) {
@@ -692,7 +699,7 @@ void *dstmAccept(void *acceptfd) {
 
 				ctrl = DUPLICATION_COMPLETE;
 				send_data((int)acceptfd, &ctrl, sizeof(char));
-#ifndef DEBUG
+#ifdef DEBUG
         printf("%s (RECEIVE_DUPES) -> Finished\n",__func__);
 #endif
 				break;
@@ -780,15 +787,15 @@ int readDuplicateObjs(int acceptfd) {
 #endif
 	recv_data((int)acceptfd, &numoid, sizeof(unsigned int));
 	recv_data((int)acceptfd, &size, sizeof(int));	
-	// do i need array of oids?
-	// answer: no! now get to work
-	if(numoid != 0) {
+	
+  if(numoid != 0) {
 		if ((dupeptr = calloc(1, size)) == NULL) {
 			printf("calloc error for duplicated objects %s, %d\n", __FILE__, __LINE__);
 			return 1;
 		}
 
 		recv_data((int)acceptfd, dupeptr, size);
+
 		ptr = dupeptr;
 		for(i = 0; i < numoid; i++) {
 			header = (objheader_t *)ptr;
@@ -898,6 +905,9 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
     timeout = recv_data((int)acceptfd, objread, size);
   }
 
+  if(timeout < 0)
+    return 0;
+
   /* Read modified objects */
   if(fixed.nummod != 0) {
     if ((modptr = calloc(1, fixed.sum_bytes)) == NULL) {
@@ -909,7 +919,11 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   }
 
   if(timeout < 0) // coordinator failed
+  {
+    if(modptr != NULL)
+      free(modptr);
     return 0;
+  }
 
   /* Create an array of oids for modified objects */
   oidmod = (unsigned int *) calloc(fixed.nummod, sizeof(unsigned int));
@@ -992,10 +1006,10 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     printf("%s -> received Decision %d\n",__func__,control);
 #endif
   }    
-  
   /* insert received control into thash for another transaction*/
   thashInsert(transID, control);
 #endif
+
   switch(control) {
 		case TRANS_ABORT:
 			if (fixed->nummod > 0)
@@ -1167,6 +1181,9 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 #ifdef DEBUG
 		printf("%s -> control = %d, file = %s, line = %d\n", __func__,(int)control, __FILE__, __LINE__);
 #endif
+
+    if(control < 0)
+      printf("control = %d\n",control);
 
 		send_data(acceptfd, &control, sizeof(char));
 #ifdef CACHE
@@ -1362,14 +1379,15 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
     /* Send control message */
     send_data(acceptfd, &control, sizeof(char));
 
+    
     /*  FIXME how to send objs Send number of oids not found and the missing oids if objects are missing in the machine */
-    if(*(objnotfound) != 0) {
+    /*if(*(objnotfound) != 0) {
       int msg[1];
       msg[0] = *(objnotfound);
       send_data(acceptfd, &msg, sizeof(int));
       int size = sizeof(unsigned int)* *(objnotfound);
       send_data(acceptfd, oidnotfound, size);
-    }
+    }*/
   }
 
   /* Fill out the trans_commit_data_t data structure. This is required for a trans commit process

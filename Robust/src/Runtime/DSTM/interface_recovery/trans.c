@@ -234,7 +234,7 @@ GDBRECV1:
 #endif
         if(errno == EAGAIN) {
           if(trycounter < 5) {
-#ifndef DEBUG
+#ifdef DEBUG
             printf("%s -> TRYcounter increases\n",__func__);
 #endif
             trycounter++;
@@ -414,7 +414,7 @@ int dstmStartup(const char * option) {
 		setLocateObjHosts();
 		updateLiveHostsCommit();
 		paxos();
-    printHostsStatus();
+//    printHostsStatus();
 		if(!allHostsLive()) {
 			printf("Not all hosts live. Exiting.\n");
 			exit(-1);
@@ -751,7 +751,6 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
 #ifdef RECOVERY
     transRetryFlag = 0;
 
-    unsigned int machinenumber; 
     static int flipBit = 0;        // Used to distribute requests between primary and backup evenly
     // either primary or backup machine
     machinenumber = (flipBit)?getPrimaryMachine(lhashSearch(oid)):getBackupMachine(lhashSearch(oid));
@@ -1070,7 +1069,7 @@ int transCommit() {
 #endif
 				free(modptr);
 			} else { //handle request locally
-				handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
+        handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
 			}
 			sockindex++;
 			pile = pile->next;
@@ -1088,13 +1087,17 @@ int transCommit() {
 				char control;
         int timeout;            // a variable to check if the connection is still alive. if it is -1, then need to transcommit again
         timeout = recv_data(sd, &control, sizeof(char));
+
+//        printf("i = %d control = %d\n",i,control);
+        
+
 				//Update common data structure with new ctrl msg
 				getReplyCtrl[i] = control;
 				/* Recv Objects if participant sends TRANS_DISAGREE */
 #ifdef CACHE
 				if(control == TRANS_DISAGREE) {
 					int length;
-					recv_data(sd, &length, sizeof(int));
+					timeout = recv_data(sd, &length, sizeof(int));
 					void *newAddr;
 					pthread_mutex_lock(&prefetchcache_mutex);
 					if ((newAddr = prefetchobjstrAlloc((unsigned int)length)) == NULL) {
@@ -1105,7 +1108,7 @@ int transCommit() {
 						return 1;
 					}
 					pthread_mutex_unlock(&prefetchcache_mutex);
-					recv_data(sd, newAddr, length);
+					timeout = recv_data(sd, newAddr, length);
 					int offset = 0;
 					while(length != 0) {
 						unsigned int oidToPrefetch;
@@ -1147,6 +1150,8 @@ int transCommit() {
 #ifdef DEBUG
 		printf("%s-> Decide final response now\n", __func__);
 #endif
+
+
 		/* Decide the final response */
 		if((finalResponse = decideResponse(getReplyCtrl, &treplyretry, pilecount)) == 0) {
 			printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
@@ -1277,7 +1282,7 @@ int transCommit() {
     printf("Error: in %s() THIS SHOULD NOT HAPPEN.....EXIT PROGRAM\n", __func__);
     exit(-1);
   }
-#ifndef DEBUG
+#ifdef DEBUG
 	printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
   return 0;
@@ -1389,7 +1394,7 @@ char decideResponse(char *getReplyCtrl, char *treplyretry, int pilecount) {
     control = getReplyCtrl[i];
     switch(control) {
     default:
-#ifdef DEBUG
+#ifndef DEBUG
       printf("%s-> Participant sent unknown message, i:%d, Control: %d\n", __func__, i, (int)control);
 #endif
 
@@ -1452,7 +1457,7 @@ void *getRemoteObj(unsigned int mnum, unsigned int oid) {
   objheader_t *h;
   void *objcopy = NULL;
 
-  int sd = getSock2(transRequestSockPool, mnum);
+  int sd = getSock2(transReadSockPool, mnum);
   char readrequest[sizeof(char)+sizeof(unsigned int)];
   readrequest[0] = READ_REQUEST;
   *((unsigned int *)(&readrequest[1])) = oid;
@@ -1505,7 +1510,7 @@ char receiveDecisionFromBackup(unsigned int transID,int nummid,unsigned int *lis
   char response;
   
   for(i = 0; i < nummid; i++) {
-    if((sd = getSock(transPrefetchSockPool, listmid[i])) < 0) {
+    if((sd = getSockWithLock(transPrefetchSockPool, listmid[i])) < 0) {
       printf("%s -> socket Error!!\n");
     }
     else {
@@ -1522,7 +1527,7 @@ char receiveDecisionFromBackup(unsigned int transID,int nummid,unsigned int *lis
         break;  // received response
 
       // else check next machine
-      freeSock(transPrefetchSockPool, listmid[i],sd);
+      freeSockWithLock(transPrefetchSockPool, listmid[i],sd);
      }
   }
 #ifdef DEBUG
@@ -1567,7 +1572,8 @@ void restoreDuplicationState(unsigned int deadHost) {
       else {                // if i am the leader
   			updateLiveHosts();
         duplicateLostObjects(deadHost);
-			
+			  printf("%s -> got to this point\n",__func__);
+
 		    if(updateLiveHostsCommit() != 0) {
 			  	printf("%s -> error updateLiveHostsCommit()\n",__func__);
 				  exit(1);
@@ -1580,7 +1586,7 @@ void restoreDuplicationState(unsigned int deadHost) {
 		else {
 			pthread_mutex_unlock(&leaderFixing_mutex);
 #ifdef DEBUG
-      printf("%s (REMOTE_RESTORE_DUPLICATED_STATE -> LEADER is already fixing\n",__func__);
+      printf("%s -> LEADER is already fixing\n",__func__);
 #endif
 			sleep(WAIT_TIME);
 		}
@@ -1594,6 +1600,7 @@ void restoreDuplicationState(unsigned int deadHost) {
 		send_data(sd, &ctrl, sizeof(char));
 		send_data(sd, &deadHost, sizeof(unsigned int));
     freeSockWithLock(transPrefetchSockPool,leader,sd);
+    printf("%s -> Message sent\n",__func__);
 	  sleep(WAIT_TIME);
 	}
 
@@ -2380,7 +2387,7 @@ int updateLiveHostsCommit() {
 
 	//for each machine send data
 	for(i = 0; i < numHostsInSystem; i++) { 	// hard define num of retries
-		if(i == myIndexInHostArray) 
+		if(hostIpAddrs[i] == myIpAddr) 
 			continue;
 		if(liveHosts[i] == 1) {
 			if((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
@@ -2492,8 +2499,9 @@ int allHostsLive() {
 
 #ifdef RECOVERY
 void duplicateLostObjects(unsigned int mid){
-
+#ifndef DEBUG
 	printf("%s-> Start, mid: [%s]\n", __func__, midtoIPString(mid));  
+#endif
 	
 	//this needs to be changed.
 	unsigned int backupMid = getBackupMachine(mid); // get backup machine of dead machine
@@ -2629,7 +2637,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 	int tempsize, sd;
 	char *dupeptr, ctrl, response;
 
-#ifndef DEBUG
+#ifdef DEBUG
 	printf("%s-> Start\n", __func__);  
 #endif
 	//copy code fom dstmserver here
@@ -2659,7 +2667,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 
 	if(response != DUPLICATION_COMPLETE) {
 		//fail message
-#ifndef DEBUG
+#ifdef DEBUG
     printf("%s -> DUPLICATION_FAIL\n",__func__);
 #endif
     exit(0);
@@ -2667,7 +2675,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
   
   free(dupeptr);
 
-#ifndef DEBUG
+#ifdef DEBUG
 	printf("%s-> End\n", __func__);  
 #endif
 
@@ -3060,47 +3068,28 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
   return pile;
 }
 
+// relocate the position of myIp pile to end of list
 plistnode_t *sortPiles(plistnode_t *pileptr) {
-	plistnode_t *head, *ptr, *tail;
-	head = pileptr;
-	ptr = pileptr;
-	/* Get tail pointer */
-	while(ptr!= NULL) {
-		tail = ptr;
-		ptr = ptr->next;
+	plistnode_t *ptr, *tail;
+	tail = pileptr;
+  ptr = NULL;
+	/* Get tail pointer and myIp pile ptr */
+	while(tail->next != NULL) {
+    if(tail->mid == myIpAddr)
+      ptr = tail;
+		tail = tail->next;    
 	}
-	ptr = pileptr;
-	plistnode_t *prev = pileptr;
-	/* Arrange local machine processing at the end of the pile list */
-	while(ptr != NULL) {
-		if(ptr != tail) {
-      /*
-			if(ptr->mid == myIpAddr && (prev != pileptr)) {
-				prev->next = ptr->next;
-				ptr->next = NULL;
-				tail->next = ptr;
-				return pileptr;
-			}
-			if((ptr->mid == myIpAddr) && (prev == pileptr)) {
-        prev->next = ptr->next;
-        ptr->next = NULL;
-        tail->next = ptr;
-				return pileptr;
-			}
-      */
+  // if ptr is null, then myIp pile is already at tail
+  if(ptr != NULL) {
+  	/* Arrange local machine processing at the end of the pile list */
+    tail->next = pileptr;
+    pileptr = ptr->next;
+    ptr->next = NULL;
+    return pileptr;
+  }
 
-      if((ptr->mid == myIpAddr))
-      {
-        tail->next = pileptr;
-        pileptr = ptr->next;
-        ptr->next = NULL;
-        return pileptr;
-      }
-			prev = ptr;
-		}
-		ptr = ptr->next;
-	}
-	return pileptr;
+  /* get too this point iff myIpAddr pile is at tail */
+  return pileptr;
 }
 
 #ifdef RECOVERY
