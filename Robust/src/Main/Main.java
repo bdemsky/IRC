@@ -268,6 +268,8 @@ public class Main {
     if (state.THREAD||state.DSM||state.SINGLETM) {
       sc.getClass("Thread");
     }
+    if(state.DSM)
+      sc.getClass("Task");
 
     sc.semanticCheck();
 
