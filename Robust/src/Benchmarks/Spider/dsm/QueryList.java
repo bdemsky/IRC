@@ -1,6 +1,8 @@
 public class QueryList extends Queue {
+	Queue queries;
+
   public QueryList() {
-		Queue();			// ??
+		queries = global new Queue();
   }
 
   public boolean checkQuery(GlobalString x) {
@@ -13,4 +15,8 @@ public class QueryList extends Queue {
 		}
 		return set;
   }
+
+	public void addQuery(GlobalString x) {
+		queries.push(x);
+	}
 }

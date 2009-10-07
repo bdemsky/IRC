@@ -1,36 +1,24 @@
 public class Query {
   GlobalString hostname;
   GlobalString path;
-  GlobalStringBuffer response;
+	int depth;
   
-  public Query(GlobalString hostname, GlobalString path) {
+  public Query(GlobalString hostname, GlobalString path, int depth) {
     this.hostname = global new GlobalString(hostname);
     this.path = global new GlobalString(path);
-    response = global new GlobalStringBuffer();
+		this.depth = depth;
   }
 
+	public int getDepth() {
+		return depth;
+	}
+	
   public GlobalString getHostName() {
     return hostname;
   }
  
   public GlobalString getPath() {
     return path;
-  }
-   
-  public void outputFile() {
-		StringBuffer sb = new StringBuffer(hostname.toLocalString());
-		sb.append(path.toLocalString());
-    FileOutputStream fos = new FileOutputStream(sb.toString().replace('/','#'));
-    fos.write(response.toLocalString().getBytes());
-    fos.close();
-  }
-	
-
-  public GlobalString makewebcanonical(GlobalString page) {
-    GlobalStringBuffer b = global new GlobalStringBuffer(getHostName(page));
-    b.append("/");
-		b.append(getPathName(page));
-    return b.toGlobalString();
   }
 
   public GlobalString getHostName(GlobalString page) {

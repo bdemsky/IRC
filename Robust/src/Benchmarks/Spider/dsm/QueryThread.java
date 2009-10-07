@@ -1,67 +1,83 @@
 public class QueryThread extends Task {
 	int maxDepth;
-	int depthCnt;
 	int maxSearchDepth;
-	int searchDepthCnt;
 
-  public QueryThread(Queue qq, Queue ql, int depth, int searchDepth) {
-    this.todoList = qq;
-		this.doneList = ql;
-		this.maxDepth = depth;
-		this.maxSearchDepth = searchDepth;
-		depthCnt = 1;
-		searchDepthCnt = 0;
+  public QueryThread(Queue todoList, Queue doneList, int maxDepth, int maxSearchDepth) {
+    this.todoList = todoList;
+		this.doneList = doneList;
+		this.maxDepth = maxDepth;
+		this.maxSearchDepth = maxSearchDepth;
   }
 
-  public void execute(Object mywork) {
-		Query q = (Query)mywork;
-		GlobalString ghostname;
-		GlobalString gpath;
-
+  public void execute() {
+		int depth;
+    int max;
+    int maxSearch;
+		
 		atomic {
-			ghostname = q.getHostName();
-			gpath = q.getPath();
+			depth = ((Query)myWork).getDepth();
+      max = this.maxDepth;
+      maxSearch = this.maxSearchDepth;
 		}
 
-		String hostname = new String(GlobalString.toLocalCharArray(ghostname));
-		String path = new String(GlobalString.toLocalCharArray(gpath));
+		if (depth < max) {
+			/* global variables */
+			Query q;
+			GlobalString ghostname;
+			GlobalString gpath;
 
-		System.printString("Processing ");
-		System.printString(hostname + "\n");
-		System.printString(" ");
-		System.printString(path);
-		System.printString("\n");
+			/* local variables */
+			QueryQueue toprocess;
+			LocalQuery lq;
+			String hostname;
+			String path;
 
-		Socket s = new Socket(hostname, 80);
+			atomic {
+				q = (Query)myWork;
+				ghostname = q.getHostName();
+				gpath = q.getPath();
+				hostname = new String(GlobalString.toLocalCharArray(ghostname));
+				path = new String(GlobalString.toLocalCharArray(gpath));
+			}
+			lq = new LocalQuery(hostname, path, depth);
 
-		requestQuery(hostname, path, s);
-//		System.printString("Wait for 5 secs\n");
-//		Thread.sleep(2000000);
+			System.printString("Processing - Hostname : ");
+			System.printString(hostname);
+			System.printString(", Path : ");
+			System.printString(path);
+			System.printString("\n");
 
-		readResponse(q, s);
-//		System.printString("Wait for 5 secs\n");
-//		Thread.sleep(2000000);
+			Socket s = new Socket(hostname, 80);
+    
+			requestQuery(hostname, path, s);
+			readResponse(lq, s);
+			toprocess = processPage(lq,maxSearch);
+			s.close();
 
-		q.outputFile();
-//		System.printString("Wait for 5 secs\n");
-//		Thread.sleep(2000000);
+			atomic {
+				while(!toprocess.isEmpty()) {
+					lq = toprocess.pop();
+					ghostname = global new GlobalString(lq.getHostName());
+					gpath = global new GlobalString(lq.getPath());
 
-		processPage(q, (QueryList)doneList);
-		s.close();
+					q = global new Query(ghostname, gpath, lq.getDepth());
+					todoList.push(q);
+				}
+			}
+		}
   }
 	
-	public void requestQuery(String hostname, String path, Socket sock) {
+	public static void requestQuery(String hostname, String path, Socket sock) {
     StringBuffer req = new StringBuffer("GET "); 
     req.append("/");
 		req.append(path);
     req.append(" HTTP/1.1\r\nHost:");
     req.append(hostname);
     req.append("\r\n\r\n");
-		System.printString("req : " + req + "\n");
     sock.write(req.toString().getBytes());
   }
 
-	public void readResponse(Query q, Socket sock) {
+	public static void readResponse(LocalQuery lq, Socket sock) {
 	//    state 0 - nothing
 	//    state 1 - \r
 	//    state 2 - \r\n
@@ -114,7 +130,7 @@ public class QueryThread extends Task {
           return;
         else {
           String curr=(new String(buffer)).subString(0,numchars);
-					q.response.append(curr);
+					lq.response.append(curr);
         }
       }
     }
@@ -122,48 +138,38 @@ public class QueryThread extends Task {
 	
 	public void done(Object obj) {
 		doneList.push(obj);
-//		System.printString("Size of todoList : " + todoList.size() + "\n");
-//		Thread.sleep(5000000);
 	}
 
-  public void processPage(Query q, QueryList doneList) {
+  public static QueryQueue processPage(LocalQuery lq,int maxSearchDepth) {
     int index = 0;
   	String href = new String("href=\"");
-  	String searchstr = q.response.toLocalString();
+  	String searchstr = lq.response.toString();
+		int depth;
   	boolean cont = true;
 
+		QueryQueue toprocess = new QueryQueue();
+		depth = lq.getDepth() + 1;
+
+		int searchDepthCnt = 0;
 		while(cont && (searchDepthCnt < maxSearchDepth)) {
 			int mindex = searchstr.indexOf(href,index);
 			if (mindex != -1) {	
 				int endquote = searchstr.indexOf('"', mindex+href.length());
      		if (endquote != -1) {
 		      String match = searchstr.subString(mindex+href.length(), endquote);
-					GlobalString gmatch;
-					GlobalString gmatch2;
+					String match2 = lq.makewebcanonical(match);
+	
+		      if (match2 != null) {
+						LocalQuery newlq = new LocalQuery(lq.getHostName(match), lq.getPathName(match), depth);
 
-					atomic {
-						gmatch = global new GlobalString(match);
-						gmatch2 = q.makewebcanonical(gmatch);
+						toprocess.push(newlq);
+						searchDepthCnt++;
 					}
-		      if (gmatch2 != null && !doneList.checkQuery(gmatch2)) {
-//						doneList.push(gmatch2);
-						done(gmatch2);
-						if (depthCnt < maxDepth) {
-							Query newq;
-							System.printString("Depth : " + depthCnt + "\n");
-							atomic {
-								newq = global new Query(q.getHostName(gmatch), q.getPathName(gmatch));
-								todoList.push(newq);
-								System.printString("Size of todoList : " + todoList.size() + "\n");
-								searchDepthCnt++;
-							}
-						}
-					}
-		      index = endquote;
+					index = endquote;
         } else cont = false;
       } else cont = false;
     }
-		depthCnt++;
-		searchDepthCnt = 0;
+
+		return toprocess;
   }
 }

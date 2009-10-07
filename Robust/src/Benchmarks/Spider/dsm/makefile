@@ -2,7 +2,7 @@ MAINCLASS=Spider
 SUBCLASS=Query
 SRC1=${MAINCLASS}.java
 SRC2=${SUBCLASS}.java
-SRC3=${SUBCLASS}List.java
+SRC3=${SUBCLASS}Queue.java
 SRC4=${SUBCLASS}Thread.java
 FLAGS= -dsm -32bit -nooptimize -debug -recovery -mainclass ${MAINCLASS}
 default:
@@ -11,3 +11,8 @@ default:
 clean:
 	rm -rf tmpbuilddirectory
 	rm *.bin
+	rm *.php
+	rm *.css
+	rm www*
+	rm eee*
+	rm web*
