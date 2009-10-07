@@ -202,9 +202,7 @@ void initializethreads() {
   { 
     int i;
     for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
-      typesCausingAbort[i].numabort = 0;
-      typesCausingAbort[i].numaccess = 0;
-      typesCausingAbort[i].numtrans = 0;
+      typesCausingAbort[i] = 0;
     }
   }
 #endif
@@ -321,6 +319,18 @@ void CALL00(___Thread______yield____) {
 #endif
 
 #ifdef DSTM
+#ifdef RECOVERY
+// return if the machine is dead
+int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
+  return getStatus(___mid___);
+}
+#else 
+int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
+  return 0;
+}
+#endif
+#endif
+#ifdef DSTM
 /* Add thread join capability */
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
   unsigned int *oidarray;
@@ -340,8 +350,15 @@ transstart:
 #endif
     transAbort();
     return;
-  } else {
-
+  }
+#ifdef RECOVERY
+  else if( checkiftheMachineDead(p->___mid___) == 0) {
+    printf("Thread oid = %x is dead\n", (unsigned int) VAR(___this___));
+    transAbort();
+    return;
+  }
+#endif
+  else {
     version = (ptr-1)->version;
     if((oidarray = calloc(1, sizeof(unsigned int))) == NULL) {
       printf("Calloc error %s, %d\n", __FILE__, __LINE__);
@@ -360,7 +377,12 @@ transstart:
 #ifdef PRECISE_GC
     stopforgc((struct garbagelist *)___params___);
 #endif
+
+#ifdef RECOVERY
+    reqNotify(oidarray, versionarray, 1,p->___mid___);
+#else
     reqNotify(oidarray, versionarray, 1);
+#endif
 #ifdef PRECISE_GC
     restartaftergc();
 #endif
@@ -498,6 +520,7 @@ void startDSMthread(int oid, int objType) {
   ptr[0]=oid;
   ptr[1]=objType;
   pthread_key_create(&oidval, globalDestructor);
+  
   do {
     retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initDSMthread,  ptr);
     if (retval!=0)
