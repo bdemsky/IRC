@@ -41,7 +41,6 @@ echo "-tilera generate tilera version binary (should be used together with -mult
 echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
 echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
-echo "-multcoregc enable garbage collection in multicore version"
 echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
@@ -77,6 +76,7 @@ DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
+DSMRECOVERY=false
 FASTMEMCPY=false
 SINGLETM=false
 NOJAVA=false
@@ -85,7 +85,6 @@ RECOVERFLAG=false
 MLP_ON=false
 MLPDEBUG=false
 MULTICOREFLAG=false
-MULTICOREGCFLAG=false
 RAWFLAG=false
 TILERAFLAG=false
 TILERACONFIG=''
@@ -198,9 +197,6 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DREADSET"
 elif [[ $1 = '-stmdebug' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMDEBUG"
-elif [[ $1 = '-statdebug' ]]
-then
-EXTRAOPTIONS="$EXTRAOPTIONS -DSTATDEBUG"
 elif [[ $1 = '-stmstats' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMSTATS"
@@ -250,10 +246,6 @@ elif [[ $1 = '-multicore' ]]
 then
 MULTICOREFLAG=true
 JAVAOPTS="$JAVAOPTS -multicore"
-elif [[ $1 = '-multicoregc' ]]
-then
-MULTICOREGCFLAG=true
-JAVAOPTS="$JAVAOPTS -multicoregc"
 elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
@@ -372,6 +364,10 @@ then
 JAVAOPTS="$JAVAOPTS -thread"
 EXTRAOPTIONS="$EXTRAOPTIONS -DTHREADS -lpthread"
 THREADFLAG=true
+elif [[ $1 = '-recovery' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DRECOVERY"
+DSMRECOVERY=true
 elif [[ $1 = '-distributioninfo' ]]
 then
 JAVAOPTS="$JAVAOPTS -distributioninfo"
@@ -392,11 +388,6 @@ shift
 elif [[ $1 = '-outputdir' ]]
 then
 JAVAOPTS="$JAVAOPTS -outputdir $2"
-shift
-elif [[ $1 = '-abrt' ]]
-then
-ABRT="PERCENT_ALLOWED_ABORT=$2"
-EXTRAOPTIONS="$EXTRAOPTIONS -D$ABRT"
 shift
 else
 SRCFILES="$SRCFILES $1"
@@ -626,18 +617,10 @@ then #INTERRUPT version
 TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
-if $MULTICOREGCFLAG
-then #MULTICORE_GC version
-TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC"
-fi #MULTICORE_GC version
-
 cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
 cp $ROBUSTROOT/Tilera/Runtime/$SIMHVC ./sim.hvc
 cp $ROBUSTROOT/Tilera/Runtime/$PCIHVC ./pci.hvc
 cp $ROBUSTROOT/Tilera/Runtime/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
-cp ../Tilera/Runtime/*.c ./
-cp ../Tilera/Runtime/*.h ./
-cp ../Tilera/lib/* ./
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./
@@ -649,7 +632,6 @@ cp ../Runtime/SimpleHash.c ./
 cp ../Runtime/ObjectHash.c ./
 cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
-cp ../Runtime/multicoregarbage.c ./
 cp ../Runtime/GenericHashtable.h ./
 cp ../Runtime/mem.h ./
 cp ../Runtime/multicoreruntime.h ./
@@ -658,8 +640,9 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
-cp ../Runtime/multicoregc.h ./
-cp ../Runtime/multicoregarbage.h ./
+cp ../Tilera/Runtime/*.c ./
+cp ../Tilera/Runtime/*.h ./
+cp ../Tilera/lib/* ./
 cp ../tmpbuilddirectory/*.c ./
 cp ../tmpbuilddirectory/*.h ./
 
@@ -695,6 +678,11 @@ if $DSMFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -DDSTM -I$DSMRUNTIME"
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
+fi
+
+if $DSMRECOVERY
+then
+FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/tlookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
 fi
 
 if $SINGLETM
@@ -778,6 +766,7 @@ fi
 
 
 fi #!RAWFLAG
+
 
 exit
 
