@@ -337,8 +337,11 @@ public class FlatSESEEnterNode extends FlatNode {
     return 31*id;
   }
   
-  public void writeEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId){
+  public void writeEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId, boolean strongUpdate){
 	  seseEffectsSet.addWritingVar(td, new SESEEffectsKey(fd, type, hrnId));
+	  if(strongUpdate){
+		  seseEffectsSet.addStrongUpdateVar(td, new SESEEffectsKey(fd, type, hrnId));
+	  }
   }
   
   public void readEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId ){

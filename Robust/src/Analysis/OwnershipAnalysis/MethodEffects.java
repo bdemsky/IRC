@@ -71,6 +71,26 @@ public class MethodEffects {
 
 		LabelNode ln = getLabelNodeFromTemp(og, dstDesc);
 		if (ln != null) {
+			/// check possible strong updates
+			    boolean strongUpdate = false;
+			    if( !fieldDesc.getType().isImmutable() || fieldDesc.getType().isArray() ) {
+			    	 Iterator<ReferenceEdge> itrXhrn = ln.iteratorToReferencees();
+					    while( itrXhrn.hasNext() ) {
+					      ReferenceEdge edgeX = itrXhrn.next();
+					      HeapRegionNode hrnX = edgeX.getDst();
+			
+					      if( fieldDesc != null &&
+					    		  fieldDesc != OwnershipAnalysis.getArrayField( fieldDesc.getType() ) &&	    
+						  (   (hrnX.getNumReferencers()                         == 1) || // case 1
+						      (hrnX.isSingleObject() && ln.getNumReferencees() == 1)    // case 2
+						      )
+						  ) {
+						strongUpdate = true;
+					      }
+					    }
+			    }
+			////
+			
 			Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
 
 			while (heapRegionsItr.hasNext()) {
@@ -88,6 +108,10 @@ public class MethodEffects {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
 									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+							if(strongUpdate){
+								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+							}
 
 						}
 					}
@@ -103,6 +127,10 @@ public class MethodEffects {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
 									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+							if(strongUpdate){
+								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+							}
 
 						}
 					}
@@ -192,6 +220,15 @@ public class MethodEffects {
 				HashSet<EffectsKey> newSet = callee.getEffects()
 						.getWriteTable().get(calleeParamIdx);
 				effectsSet.addWritingEffectsSet(paramIdx, newSet);
+			}
+			
+			// handle strong update effects
+			paramIter = paramIDs.iterator();
+			while (paramIter.hasNext()) {
+				Integer paramIdx = paramIter.next();
+				HashSet<EffectsKey> newSet = callee.getEffects()
+						.getStrongUpdateTable().get(calleeParamIdx);
+				effectsSet.addStrongUpdateEffectsSet(paramIdx, newSet);
 			}
 
 		}

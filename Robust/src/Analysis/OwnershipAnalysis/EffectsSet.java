@@ -9,10 +9,12 @@ public class EffectsSet {
 
 	private Hashtable<Integer, HashSet<EffectsKey>> readTable;
 	private Hashtable<Integer, HashSet<EffectsKey>> writeTable;
+	private Hashtable<Integer, HashSet<EffectsKey>> strongUpdateTable;
 
 	public EffectsSet() {
 		readTable = new Hashtable<Integer, HashSet<EffectsKey>>();
 		writeTable = new Hashtable<Integer, HashSet<EffectsKey>>();
+		strongUpdateTable = new Hashtable<Integer, HashSet<EffectsKey>>();
 	}
 
 	public void addReadingVar(Integer idx, EffectsKey access) {
@@ -50,6 +52,20 @@ public class EffectsSet {
 		}
 
 	}
+	
+	public void addStrongUpdateEffectsSet(Integer idx, HashSet<EffectsKey> newSet) {
+
+		if (newSet != null) {
+			HashSet<EffectsKey> aSet = strongUpdateTable.get(idx);
+			if (aSet == null) {
+				aSet = new HashSet<EffectsKey>();
+			}
+			aSet.addAll(newSet);
+			strongUpdateTable.put(idx, aSet);
+		}
+
+	}
+	
 
 	public Hashtable<Integer, HashSet<EffectsKey>> getReadTable() {
 		return readTable;
@@ -58,6 +74,10 @@ public class EffectsSet {
 	public Hashtable<Integer, HashSet<EffectsKey>> getWriteTable() {
 		return writeTable;
 	}
+	
+	public Hashtable<Integer, HashSet<EffectsKey>> getStrongUpdateTable() {
+		return strongUpdateTable;
+	}
 
 	public void addWritingVar(Integer idx, EffectsKey access) {
 		HashSet<EffectsKey> aSet = writeTable.get(idx);
@@ -65,7 +85,16 @@ public class EffectsSet {
 			aSet = new HashSet<EffectsKey>();
 		}
 		aSet.add(access);
-		writeTable.put(idx, aSet);
+		writeTable.put(idx, aSet);	
+	}
+	
+	public void addStrongUpdateVar(Integer idx, EffectsKey access) {
+		HashSet<EffectsKey> aSet = strongUpdateTable.get(idx);
+		if (aSet == null) {
+			aSet = new HashSet<EffectsKey>();
+		}
+		aSet.add(access);
+		strongUpdateTable.put(idx, aSet);	
 	}
 
 	public Set<EffectsKey> getReadingSet(Integer idx) {
@@ -74,6 +103,10 @@ public class EffectsSet {
 
 	public Set<EffectsKey> getWritingSet(Integer idx) {
 		return writeTable.get(idx);
+	}
+	
+	public Set<EffectsKey> getStrongUpdateSet(Integer idx) {
+		return strongUpdateTable.get(idx);
 	}
 
 	public void printSet() {
@@ -130,7 +163,8 @@ public class EffectsSet {
 		EffectsSet in = (EffectsSet) o;
 
 		if (getReadTable().equals(in.getReadTable())
-				&& getWriteTable().equals(in.getWriteTable())) {
+				&& getWriteTable().equals(in.getWriteTable())
+				&& getStrongUpdateTable().equals(in.getStrongUpdateTable())) {
 			return true;
 		} else {
 			return false;
@@ -141,7 +175,7 @@ public class EffectsSet {
 	public int hashCode() {
 		int hash = 1;
 
-		hash += getReadTable().hashCode() + getWriteTable().hashCode() * 31;
+		hash += getReadTable().hashCode() + getWriteTable().hashCode() * 31 + getStrongUpdateTable().hashCode();
 
 		return hash;
 	}

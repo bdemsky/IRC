@@ -11,10 +11,12 @@ import IR.Flat.TempDescriptor;
 public class SESEEffectsSet {
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> readTable;
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> writeTable;
+	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> strongUpdateTable;
 
 	public SESEEffectsSet() {
 		readTable = new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 		writeTable = new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
+		strongUpdateTable =  new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 	}
 
 	public void addReadingVar(TempDescriptor td, SESEEffectsKey access) {
@@ -62,6 +64,10 @@ public class SESEEffectsSet {
 	public Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> getWriteTable() {
 		return writeTable;
 	}
+	
+	public Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> getStrongUpdateTable() {
+		return strongUpdateTable;
+	}
 
 	public void addWritingVar(TempDescriptor td, SESEEffectsKey access) {
 		HashSet<SESEEffectsKey> aSet = writeTable.get(td);
@@ -70,6 +76,15 @@ public class SESEEffectsSet {
 		}
 		aSet.add(access);
 		writeTable.put(td, aSet);
+	}
+	
+	public void addStrongUpdateVar(TempDescriptor td, SESEEffectsKey access) {
+		HashSet<SESEEffectsKey> aSet = strongUpdateTable.get(td);
+		if (aSet == null) {
+			aSet = new HashSet<SESEEffectsKey>();
+		}
+		aSet.add(access);
+		strongUpdateTable.put(td, aSet);
 	}
 
 	public Set<SESEEffectsKey> getReadingSet(TempDescriptor td) {
@@ -118,6 +133,23 @@ public class SESEEffectsSet {
 			writer.write("Live-in Var " + td + " Write=" + keyStr+"\n");
 		}
 		
+		keySet = strongUpdateTable.keySet();
+		iter = keySet.iterator();
+		while (iter.hasNext()) {
+			TempDescriptor td = iter.next();
+			Set<SESEEffectsKey> effectSet = strongUpdateTable.get(td);
+			String keyStr = "{";
+			if (effectSet != null) {
+				Iterator<SESEEffectsKey> effectIter = effectSet.iterator();
+				while (effectIter.hasNext()) {
+					SESEEffectsKey key = effectIter.next();
+					keyStr += " " + key;
+				}
+			} 
+			keyStr+=" }";
+			writer.write("Live-in Var " + td + " StrongUpdate=" + keyStr+"\n");
+		}
+		
 		return writer.toString();
 
 	}
@@ -134,7 +166,8 @@ public class SESEEffectsSet {
 		SESEEffectsSet in = (SESEEffectsSet) o;
 
 		if (getReadTable().equals(in.getReadTable())
-				&& getWriteTable().equals(in.getWriteTable())) {
+				&& getWriteTable().equals(in.getWriteTable())
+				&& getStrongUpdateTable().equals(in.getStrongUpdateTable())) {
 			return true;
 		} else {
 			return false;
@@ -145,7 +178,7 @@ public class SESEEffectsSet {
 	public int hashCode() {
 		int hash = 1;
 
-		hash += getReadTable().hashCode() + getWriteTable().hashCode() * 31;
+		hash += getReadTable().hashCode() + getWriteTable().hashCode() * 31 +getStrongUpdateTable().hashCode();
 
 		return hash;
 	}
