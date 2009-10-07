@@ -365,7 +365,31 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
   return;
 }
 #endif
+#ifdef RECOVERY
+extern void* virtualtable[];
 
+// associated with Task.execution(). finds proper execute method and call it
+void CALL01(___Task______execution____,struct ___Task___ * ___this___)
+{
+  unsigned int oid;
+  oid = (unsigned int) VAR(___this___);   // object id
+  int type = getObjType(oid);             // object type
+
+#ifdef PRECISE_GC
+  int p[] = {1,0 , oid};
+   
+  ((void(*) (void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(p);
+#else
+  // call the proper execute method
+  ((void(*) (void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(oid);
+#endif
+}
+#else
+void CALL01(___Task______execution____,struct ___Task___ * ___this___)
+{
+  return;
+}
+#endif
 #endif
 
 /* STM Barrier constructs */
