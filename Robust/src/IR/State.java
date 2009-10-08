@@ -52,6 +52,7 @@ public class State {
   public boolean TASK=false;
   public boolean FASTCHECK=false;
   public boolean DSM=false;
+  public boolean DSMTASK=false;
   public boolean PREFETCH=false;
   public boolean TASKSTATE=false;
   public boolean TAGSTATE=false;

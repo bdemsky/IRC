@@ -527,17 +527,22 @@ public class BuildCode {
     outstructs.println("#define MAXCOUNT "+maxcount);
     if (state.DSM||state.SINGLETM) {
       LocalityBinding lbrun=new LocalityBinding(typeutil.getRun(), false);
-      LocalityBinding lbexecute = new LocalityBinding(typeutil.getExecute(), false);
       if (state.DSM) {
 	lbrun.setGlobalThis(LocalityAnalysis.GLOBAL);
-  lbexecute.setGlobalThis(LocalityAnalysis.GLOBAL);
       }
       else if (state.SINGLETM) {
 	lbrun.setGlobalThis(LocalityAnalysis.NORMAL);
-  lbexecute.setGlobalThis(LocalityAnalysis.NORMAL);
       }
-      outstructs.println("#define EXECUTEMETHOD " + virtualcalls.getLocalityNumber(lbexecute));
       outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lbrun));
+    }
+
+    if (state.DSMTASK) {
+      LocalityBinding lbexecute = new LocalityBinding(typeutil.getExecute(), false);
+      if(state.DSM)
+        lbexecute.setGlobalThis(LocalityAnalysis.GLOBAL);
+      else if( state.SINGLETM)
+        lbexecute.setGlobalThis(LocalityAnalysis.NORMAL);
+      outstructs.println("#define EXECUTEMETHOD " + virtualcalls.getLocalityNumber(lbexecute));
     }
 
     outstructs.println("#define STRINGARRAYTYPE "+

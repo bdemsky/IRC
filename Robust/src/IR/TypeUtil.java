@@ -52,6 +52,7 @@ public class TypeUtil {
       //have to find class
       addNewClass(classname, todo);
       cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
+
       System.out.println("Build class:"+cd);
       todo.add(cd);
     }
@@ -86,6 +87,10 @@ public class TypeUtil {
   
   public MethodDescriptor getExecute() {
     ClassDescriptor cd = getClass(TypeUtil.TaskClass);
+
+    if(cd == null && state.DSMTASK)
+      throw new Error("Task.java is not included");
+
     for(Iterator methodit = cd.getMethodTable().getSet("execute").iterator(); methodit.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) methodit.next();
       if (md.numParameters()!=0 || md.getModifiers().isStatic())

@@ -193,10 +193,14 @@ public class LocalityAnalysis {
     Stack<LocalityBinding> lbstack=new Stack<LocalityBinding>();
     lbstack.add(lbmain);
     lbstack.add(lbrun);
-    lbstack.add(lbexecute);
+
     lbset.add(lbmain);
     lbset.add(lbrun);
-    lbset.add(lbexecute);
+
+    if(state.DSMTASK) {       // when Task.java is used
+      lbstack.add(lbexecute);
+      lbset.add(lbexecute);
+    }
     while(!lbstack.isEmpty()) {
       LocalityBinding lb=lbstack.pop();
       if (calldep.containsKey(lb)) {
@@ -696,18 +700,20 @@ public class LocalityAnalysis {
       methodtolb.put(lbrun.getMethod(), new HashSet<LocalityBinding>());
     methodtolb.get(lbrun.getMethod()).add(lbrun);
 
-    lbexecute = new LocalityBinding(typeutil.getExecute(), false);
-    lbexecute.setGlobalReturn(EITHER);
-    lbexecute.setGlobalThis(GLOBAL);
-    lbtovisit.add(lbexecute);
-    discovered.put(lbexecute, lbexecute);
-    if (!classtolb.containsKey(lbexecute.getMethod().getClassDesc()))
-      classtolb.put(lbexecute.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
-    classtolb.get(lbexecute.getMethod().getClassDesc()).add(lbexecute);
+    if(state.DSMTASK) {
+      lbexecute = new LocalityBinding(typeutil.getExecute(), false);
+      lbexecute.setGlobalReturn(EITHER);
+      lbexecute.setGlobalThis(GLOBAL);
+      lbtovisit.add(lbexecute);
+      discovered.put(lbexecute, lbexecute);
+      if (!classtolb.containsKey(lbexecute.getMethod().getClassDesc()))
+        classtolb.put(lbexecute.getMethod().getClassDesc(), new HashSet<LocalityBinding>());
+      classtolb.get(lbexecute.getMethod().getClassDesc()).add(lbexecute);
 
-    if (!methodtolb.containsKey(lbexecute.getMethod()))
-      methodtolb.put(lbexecute.getMethod(), new HashSet<LocalityBinding>());
-    methodtolb.get(lbexecute.getMethod()).add(lbexecute);
+      if (!methodtolb.containsKey(lbexecute.getMethod()))
+        methodtolb.put(lbexecute.getMethod(), new HashSet<LocalityBinding>());
+      methodtolb.get(lbexecute.getMethod()).add(lbexecute);
+    }
 
     while(!lbtovisit.isEmpty()) {
       LocalityBinding lb=(LocalityBinding) lbtovisit.iterator().next();
@@ -916,27 +922,29 @@ public class LocalityAnalysis {
       	  methodset.addAll(runmethodset);
       	} else throw new Error("Can't find run method");
       }
-    
-      if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.TaskClass) &&
+
+      if(state.DSMTASK) {
+        if (nodemd.getClassDesc().getSymbol().equals(TypeUtil.TaskClass) &&
           nodemd.getSymbol().equals("execution") && !nodemd.getModifiers().isStatic() &&
           nodemd.numParameters() == 0) {
-        assert(nodemd.getModifiers().isNative());
-        
-        MethodDescriptor exemd = null;
+      
+          assert(nodemd.getModifiers().isNative());
+          MethodDescriptor exemd = null;
 
-        for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("execute").iterator(); methodit.hasNext();) {
-          MethodDescriptor md = (MethodDescriptor) methodit.next();
+          for(Iterator methodit=nodemd.getClassDesc().getMethodTable().getSet("execute").iterator(); methodit.hasNext();) {
+            MethodDescriptor md = (MethodDescriptor) methodit.next();
 
-          if (md.numParameters() != 0 || md.getModifiers().isStatic())
-            continue;
-          exemd = md;
-          break;
+            if (md.numParameters() != 0 || md.getModifiers().isStatic())
+              continue;
+            exemd = md;
+            break;
+          }
+
+          if (exemd != null) {
+            executemethodset = callgraph.getMethods(exemd, fc.getThis().getType());
+            methodset.addAll(executemethodset);
+          } else throw new Error("Can't find execute method");
         }
-
-        if (exemd != null) {
-          executemethodset = callgraph.getMethods(exemd, fc.getThis().getType());
-          methodset.addAll(executemethodset);
-        } else throw new Error("Can't find execute method");
       }
     }
 
