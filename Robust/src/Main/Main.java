@@ -173,6 +173,8 @@ public class Main {
 	state.THREAD=true;
       else if (option.equals("-dsm"))
 	state.DSM=true;
+      else if (option.equals("-dsmtask"))
+  state.DSMTASK=true;
       else if (option.equals("-singleTM"))
 	state.SINGLETM=true;
       else if (option.equals("-readset"))
@@ -272,8 +274,6 @@ public class Main {
     if (state.THREAD||state.DSM||state.SINGLETM) {
       sc.getClass("Thread");
     }
-    if(state.DSM)
-      sc.getClass("Task");
 
     sc.semanticCheck();
 
