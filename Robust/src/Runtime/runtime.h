@@ -7,7 +7,11 @@ extern int instructioncount;
 extern int failurecount;
 #endif
 #ifdef DSTM
-#include "dstm.h"
+#ifdef RECOVERY
+#include "DSTM/interface_recovery/dstm.h"
+#else
+#include "DSTM/interface/dstm.h"
+#endif
 #endif
 
 #ifndef INTPTR

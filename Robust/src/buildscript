@@ -73,6 +73,7 @@ echo -help help
 ABORTREADERS=false;
 ROBUSTROOT=~/research/Robust/src
 DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
+DSMRECOVERYRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface_recovery/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
@@ -676,15 +677,15 @@ fi
 
 if $DSMFLAG
 then
+if $DSMRECOVERY
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -DDSTM -I$DSMRECOVERYRUNTIME"
+FILES="$FILES $DSMRECOVERYRUNTIME/trans.c $DSMRECOVERYRUNTIME/mcpileq.c $DSMRECOVERYRUNTIME/objstr.c $DSMRECOVERYRUNTIME/dstm.c $DSMRECOVERYRUNTIME/mlookup.c $DSMRECOVERYRUNTIME/clookup.c $DSMRECOVERYRUNTIME/llookup.c $DSMRECOVERYRUNTIME/tlookup.c $DSMRECOVERYRUNTIME/threadnotify.c $DSMRECOVERYRUNTIME/dstmserver.c $DSMRECOVERYRUNTIME/plookup.c $DSMRECOVERYRUNTIME/ip.c $DSMRECOVERYRUNTIME/queue.c $DSMRECOVERYRUNTIME/prelookup.c $DSMRECOVERYRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRECOVERYRUNTIME/sockpool.c $DSMRECOVERYRUNTIME/addUdpEnhance.c $DSMRECOVERYRUNTIME/signal.c $DSMRECOVERYRUNTIME/gCollect.c $DSMRECOVERYRUNTIME/addPrefetchEnhance.c $DSMRECOVERYRUNTIME/dsmlock.c"
+else
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -DDSTM -I$DSMRUNTIME"
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
 fi
-
-if $DSMRECOVERY
-then
-FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/tlookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
 fi
-
 if $SINGLETM
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"

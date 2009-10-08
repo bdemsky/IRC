@@ -14,7 +14,11 @@
 #include "dmalloc.h"
 #endif
 #ifdef DSTM
-#include "dstm.h"
+#ifdef RECOVERY
+#include <DSTM/interface_recovery/dstm.h>
+#else
+#include <DSTM/interface/dstm.h>
+#endif
 #endif
 #ifdef STM
 #include "tm.h"

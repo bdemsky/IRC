@@ -8,9 +8,14 @@
 #include "option.h"
 #include "methodheaders.h"
 #ifdef DSTM
-#include "dstm.h"
-#include "prelookup.h"
-#include "prefetch.h"
+#ifdef RECOVERY
+#include "DSTM/interface_recovery/dstm.h"
+#include "DSTM/interface_recovery/prelookup.h"
+#else
+#include "DSTM/interface/dstm.h"
+#include "DSTM/interface/prelookup.h"
+#include "DSTM/interface/prefetch.h"
+#endif
 #endif
 #ifdef STM
 #include "tm.h"
@@ -365,9 +370,9 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
   return;
 }
 #endif
-#ifdef RECOVERY
-extern void* virtualtable[];
 
+#ifdef D___Task______execution____ 
+extern void* virtualtable[];
 // associated with Task.execution(). finds proper execute method and call it
 void CALL01(___Task______execution____,struct ___Task___ * ___this___)
 {
@@ -384,13 +389,8 @@ void CALL01(___Task______execution____,struct ___Task___ * ___this___)
   ((void(*) (void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(oid);
 #endif
 }
-#else
-void CALL01(___Task______execution____,struct ___Task___ * ___this___)
-{
-  return;
-}
 #endif
-#endif
+#endif // DSTM
 
 /* STM Barrier constructs */
 #ifdef D___Barrier______setBarrier____I

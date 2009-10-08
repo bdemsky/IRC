@@ -8,8 +8,13 @@
 #include <signal.h>
 
 #ifdef DSTM
+#ifdef RECOVERY
+#include <DSTM/interface_recovery/dstm.h>
+#include <DSTM/interface_recovery/llookup.h>
+#else
 #include <DSTM/interface/dstm.h>
 #include <DSTM/interface/llookup.h>
+#endif
 #endif
 
 #ifndef RAW
