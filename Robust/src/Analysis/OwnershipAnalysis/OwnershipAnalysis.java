@@ -343,6 +343,9 @@ public class OwnershipAnalysis {
 	
 	//keep internal ownership graph by method context and flat node
 	private Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>> mapMethodContextToFlatNodeOwnershipGraph;
+	
+	//map method context to a set of allocation sites of live-in vars
+	private Hashtable<MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet;
 
 
 
@@ -374,6 +377,26 @@ public class OwnershipAnalysis {
 	  init(state,tu,callGraph,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
 	  
   }
+  
+  // new constructor for on-demand disjoint analysis
+	public OwnershipAnalysis(
+			State state,
+			TypeUtil tu,
+			CallGraph callGraph,
+			int allocationDepth,
+			boolean writeDOTs,
+			boolean writeAllDOTs,
+			String aliasFile,
+			boolean methodEffects,
+			Hashtable<MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet)
+			throws java.io.IOException {
+
+		this.methodEffects = methodEffects;
+		this.mapMethodContextToLiveInAllocationSiteSet=mapMethodContextToLiveInAllocationSiteSet;
+		init(state, tu, callGraph, allocationDepth, writeDOTs, writeAllDOTs,
+				aliasFile);
+
+	}
   
   private void init(State state,
           TypeUtil tu,
@@ -874,6 +897,21 @@ public class OwnershipAnalysis {
       lhs = fnn.getDst();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
 	AllocationSite as = getAllocationSiteFromFlatNewPRIVATE(fnn);
+	
+	if (mapMethodContextToLiveInAllocationSiteSet != null){
+		HashSet<AllocationSite> alllocSet=mapMethodContextToLiveInAllocationSiteSet.get(mc);
+		if(alllocSet!=null){
+			for (Iterator iterator = alllocSet.iterator(); iterator
+					.hasNext();) {
+				AllocationSite allocationSite = (AllocationSite) iterator
+						.next();
+				if(allocationSite.flatNew.equals(as.flatNew)){
+					as.setFlag(true);
+				}
+			}
+		}
+	}
+	
 	og.assignTempEqualToNewAlloc(lhs, as);
       }
       break;

@@ -1330,6 +1330,10 @@ public class OwnershipGraph {
       if( as.getType().isClass() ) {
 	hasFlags = as.getType().getClassDesc().hasFlags();
       }
+      
+      if(as.getFlag()){
+    	  hasFlags=as.getFlag();
+      }
 
       hrnSummary = createNewHeapRegionNode(idSummary,    // id or null to generate a new one 
                                            false,	 // single object?			 
