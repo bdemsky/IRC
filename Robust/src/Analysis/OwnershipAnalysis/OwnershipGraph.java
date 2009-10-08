@@ -7,6 +7,11 @@ import java.io.*;
 
 public class OwnershipGraph {
 
+  // use to disable improvements for comparison
+  protected static final boolean DISABLE_STRONG_UPDATES = false;
+  protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
+
+
   private int allocationDepth;
   private TypeUtil typeUtil;
 
@@ -402,8 +407,10 @@ public class OwnershipGraph {
 	      (hrnX.isSingleObject() && lnX.getNumReferencees() == 1)    // case 2
 	      )
 	  ) {
-	strongUpdate = true;
-	clearReferenceEdgesFrom( hrnX, f.getType(), f.getSymbol(), false );
+        if( !DISABLE_STRONG_UPDATES ) {
+          strongUpdate = true;
+          clearReferenceEdgesFrom( hrnX, f.getType(), f.getSymbol(), false );
+        }
       }
     }
     
@@ -514,8 +521,10 @@ public class OwnershipGraph {
 
     // if there was a strong update, make sure to improve
     // reachability with a global sweep
-    if( strongUpdate ) {      
-      globalSweep();
+    if( strongUpdate ) {    
+      if( !DISABLE_GLOBAL_SWEEP ) {
+        globalSweep();
+      }
     }
   }
 
@@ -2091,8 +2100,9 @@ public class OwnershipGraph {
 	  if( (hrn.getNumReferencers()                                == 1) || // case 1
 	      (hrn.isSingleObject() && argLabel_i.getNumReferencees() == 1)    // case 2	     	     
 	    ) {
-	    
-	    effectCalleeStrongUpdates( paramIndex, ogCallee, hrn );
+	    if( !DISABLE_STRONG_UPDATES ) {
+              effectCalleeStrongUpdates( paramIndex, ogCallee, hrn );
+            }
 	  }
 	}
       }
@@ -3025,8 +3035,9 @@ public class OwnershipGraph {
 
 
     // improve reachability as much as possible
-    globalSweep();
-
+    if( !DISABLE_GLOBAL_SWEEP ) {
+      globalSweep();
+    }
 
 
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
@@ -4249,7 +4260,9 @@ public class OwnershipGraph {
     Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
     if( aliasDetected ) {
       common = findCommonReachableNodes( hrn1, hrn2 );
-      assert !common.isEmpty();
+      if( !(DISABLE_STRONG_UPDATES || DISABLE_GLOBAL_SWEEP) ) {
+        assert !common.isEmpty();
+      }
     }
 
     return common;    

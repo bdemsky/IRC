@@ -3,55 +3,155 @@
 
 All versions run with $k=1$ on dw-8.
 
-
-\section{Normal}
-\begin{tabular}{|l|l|r|r|}
-\hline
-Benchmark     & Sharing & Time (s) & Lines & Methods \\
-\hline
-Bank          & 0       &   6.87   & 1,825 &      \\
-Chat          & 3       &   6.45   & 1,510 &      \\
-Conglomerator & 0       &   4.55   & 1,979 &      \\
-MapReduce(1)  & 2       &  11.83   & 2,274 &      \\
-Performance   & 0       &   2.10   & 1,760 &      \\
-PERT          & 0       &   2.77   & 1,950 &      \\
-MapReduce(Sc) & 3       &  17.12   & 2,218 &      \\
-Spider(1)     & 0       &   7.66   & 1,593 &      \\
-Spider(2)     & 0       &   6.90   & 1,597 &      \\
-TileSearch    & 0       &   9.47   & 2,050 &      \\
-TicTacToe     & 0       &   3.80   & 1,532 &      \\
-WebServer(1)  & 0       &   9.28   & 1,856 &      \\
-WebServer(2)  & 0       &   8.27   & 1,855 &      \\
-\hline                                           
-jHTTPp2       & 0       &   6.73   & 2,583 &      \\
-FluidAnimate  & 2       & 368.61   & 3,587 &      \\
-FilterBank    & 0       &   1.83   & 1,321 &      \\
-KMeans        & 2       &   5.60   & 2,659 &      \\
-MonteCarlo    & 0       &   3.69   & 3,542 &      \\
-Moldyn        & 2       &   6.03   & 1,902 &      \\
-Series        & 0       &   1.99   & 1,405 &      \\
-MultiGame     & 10      &  25.57   & 3,003 &      \\
-Fractal       & 1       &   2.13   & 1,334 &      \\
-\hline
-\end{tabular}
+Average of 64.4 methods per benchmark.
 
 
+\section{Alias Context Histogram}
 Histogram of alias contexts per method over all programs analyzed.
 
-\begin{tabular}{|r|r|}
+\begin{tabular}{|r|r|r|}
 \hline
-# unique alias contexts & counting(not important) & # methods \\
+num unique alias contexts & num methods \\
 \hline
-1 & 65+66+91+115+109+44+28+59+9+8+30+49+10+42+88+73+76+79+28+66+93+96 & \\
-2 & 4+2+2+2+1+1+3+4+5+3+3+5+1+1 & \\
-3 & 1+1+4+1+1+1+2+1+2+2 & \\
-4 & 1+1+1+1+1+1 & \\
-5 & 1+1+2+1+2+1+1+1+1 & \\
-6 & & \\
-7 & 1 & \\
+1 & 1324 \\
+2 & 37   \\
+3 & 16   \\
+4 & 6    \\
+5 & 11   \\
+6 & 0    \\
+7 & 1    \\
 \hline
 \end{tabular}
 
+
+ 
+\section{All Improvement On}
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank & 0 & 3.49 & 1825 & 67 \\
+Chat & 3 & 3.58 & 1510 & 71 \\
+Conglomerator & 0 & 3.11 & 1979 & 93 \\
+jHTTPp2 & 0 & 5.57 & 2583 & 122 \\
+MapReduce1 & 2 & 10.43 & 2274 & 114 \\
+MultiGame & 10 & 35.11 & 3003 & 46 \\
+Performance & 0 & 1.43 & 1760 & 30 \\
+PERT & 0 & 2.16 & 1950 & 61 \\
+FilterBank & 0 & 0.79 & 1321 & 9 \\
+Fractal & 1 & 0.68 & 1334 & 8 \\
+MolDynamics & 2 & 8.29 & 1902 & 31 \\
+MonteCarlo & 0 & 2.07 & 3542 & 49 \\
+Series & 0 & 0.77 & 1405 & 10 \\
+KMeans & 2 & 2.92 & 2659 & 45 \\
+MapReduce2 & 3 & 11.35 & 2218 & 95 \\
+FluidAnimate & 2 & 312.60 & 3587 & 82 \\
+Spider1 & 0 & 5.09 & 1593 & 80 \\
+Spider2 & 0 & 4.77 & 1597 & 83 \\
+TileSearch & 0 & 7.10 & 2050 & 34 \\
+TicTacToe & 0 & 2.31 & 1532 & 68 \\
+WebServer1 & 0 & 5.38 & 1856 & 97 \\
+WebServer2 & 0 & 6.62 & 1855 & 100 \\
+\hline
+\end{tabular}
+
+
+
+
+\section{Strong Updates Off}
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank & 0 & 3.99 & 1825 & 67 \\
+Chat & 3 & 5.70 & 1510 & 71 \\
+Conglomerator & 0 & 3.11 & 1979 & 93 \\
+jHTTPp2 & 0 & 4.89 & 2583 & 122 \\
+MapReduce1 & 2 & 12.48 & 2274 & 114 \\
+MultiGame & 10 & 35.61 & 3003 & 46 \\
+Performance & 0 & 1.30 & 1760 & 30 \\
+PERT & 0 & 1.60 & 1950 & 61 \\
+FilterBank & 0 & 0.83 & 1321 & 9 \\
+Fractal & 1 & 0.61 & 1334 & 8 \\
+MolDynamics & 2 & 5.85 & 1902 & 31 \\
+MonteCarlo & 0 & 2.24 & 3542 & 49 \\
+Series & 0 & 0.86 & 1405 & 10 \\
+KMeans & 2 & 2.90 & 2659 & 45 \\
+MapReduce2 & 3 & 10.62 & 2218 & 95 \\
+FluidAnimate & 2 & 461.38 & 3587 & 82 \\
+Spider1 & 0 & 6.03 & 1593 & 80 \\
+Spider2 & 0 & 5.26 & 1597 & 83 \\
+TileSearch & 0 & 5.51 & 2050 & 34 \\
+TicTacToe & 0 & 2.12 & 1532 & 68 \\
+WebServer1 & 0 & 7.87 & 1856 & 97 \\
+WebServer2 & 0 & 6.23 & 1855 & 100 \\
+\hline
+\end{tabular}
+
+
+
+
+\section{Global Sweep Off}
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank & 0 & 2.86 & 1825 & 67 \\
+Chat & 3 & 3.69 & 1510 & 71 \\
+Conglomerator & 0 & 2.61 & 1979 & 93 \\
+jHTTPp2 & 0 & 4.95 & 2583 & 122 \\
+MapReduce1 & 2 & 12.04 & 2274 & 114 \\
+MultiGame & 10 & 51.11 & 3003 & 46 \\
+Performance & 0 & 0.94 & 1760 & 30 \\
+PERT & 0 & 1.81 & 1950 & 61 \\
+FilterBank & 0 & 0.68 & 1321 & 9 \\
+Fractal & 1 & 0.57 & 1334 & 8 \\
+MolDynamics & 2 & 6.06 & 1902 & 31 \\
+MonteCarlo & 0 & 2.02 & 3542 & 49 \\
+Series & 0 & 0.61 & 1405 & 10 \\
+KMeans & 2 & 3.08 & 2659 & 45 \\
+MapReduce2 & 3 & 26.79 & 2218 & 95 \\
+FluidAnimate & 2 & 562.32 & 3587 & 82 \\
+Spider1 & 0 & 4.14 & 1593 & 80 \\
+Spider2 & 0 & 4.15 & 1597 & 83 \\
+TileSearch & 0 & 6.63 & 2050 & 34 \\
+TicTacToe & 0 & 1.77 & 1532 & 68 \\
+WebServer1 & 0 & 4.57 & 1856 & 97 \\
+WebServer2 & 0 & 5.27 & 1855 & 100 \\
+\hline
+\end{tabular}
+
+
+
+\section{Strong Updates AND Global Sweep Off}
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank & 0 & 3.28 & 1825 & 67 \\
+Chat & 3 & 4.22 & 1510 & 71 \\
+Conglomerator & 0 & 2.44 & 1979 & 93 \\
+jHTTPp2 & 0 & 4.74 & 2583 & 122 \\
+MapReduce1 & 2 & 10.88 & 2274 & 114 \\
+MultiGame & 10 & 41.70 & 3003 & 46 \\
+Performance & 0 & 1.14 & 1760 & 30 \\
+PERT & 0 & 1.71 & 1950 & 61 \\
+FilterBank & 0 & 0.71 & 1321 & 9 \\
+Fractal & 1 & 0.65 & 1334 & 8 \\
+MolDynamics & 2 & 6.24 & 1902 & 31 \\
+MonteCarlo & 0 & 2.16 & 3542 & 49 \\
+Series & 0 & 0.62 & 1405 & 10 \\
+KMeans & 2 & 3.12 & 2659 & 45 \\
+MapReduce2 & 3 & 24.33 & 2218 & 95 \\
+FluidAnimate & 2 & 509.12 & 3587 & 82 \\
+Spider1 & 0 & 4.02 & 1593 & 80 \\
+Spider2 & 0 & 4.21 & 1597 & 83 \\
+TileSearch & 0 & 6.40 & 2050 & 34 \\
+TicTacToe & 0 & 1.84 & 1532 & 68 \\
+WebServer1 & 0 & 6.06 & 1856 & 97 \\
+WebServer2 & 0 & 5.68 & 1855 & 100 \\
+\hline
+\end{tabular}
 
 
 

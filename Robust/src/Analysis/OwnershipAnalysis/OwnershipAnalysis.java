@@ -119,25 +119,36 @@ public class OwnershipAnalysis {
   // use the methods given above to check every possible alias
   // between task parameters and flagged allocation sites reachable
   // from the task
-  public void writeAllAliases(String outputFile, String timeReport) throws java.io.IOException {
+  public void writeAllAliases(String outputFile, 
+                              String timeReport,
+                              String justTime,
+                              boolean tabularOutput,
+                              int numLines
+                              ) throws java.io.IOException {
     checkAnalysisComplete();
 
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile) );
 
-    bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth+"\n");
-    bw.write(timeReport+"\n");
+    if( !tabularOutput ) {
+      bw.write("Conducting ownership analysis with allocation depth = "+allocationDepth+"\n");
+      bw.write(timeReport+"\n");
+    }
+    
+    int numAlias = 0;
 
     // look through every task for potential aliases
     Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
     while( taskItr.hasNext() ) {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
 
-      bw.write("\n---------"+td+"--------\n");
+      if( !tabularOutput ) {
+        bw.write("\n---------"+td+"--------\n");
+      }
 
       HashSet<AllocationSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
 
       Set<HeapRegionNode> common;
-
+      
       // for each task parameter, check for aliases with
       // other task parameters and every allocation site
       // reachable from this task
@@ -152,11 +163,15 @@ public class OwnershipAnalysis {
 	  common = createsPotentialAliases(td, i, j);
 	  if( !common.isEmpty() ) {
 	    foundSomeAlias = true;
-	    bw.write("Potential alias between parameters "+i+" and "+j+".\n");
-	    bw.write(prettyPrintNodeSet( common )+"\n" );
+            if( !tabularOutput ) {
+              bw.write("Potential alias between parameters "+i+" and "+j+".\n");
+              bw.write(prettyPrintNodeSet( common )+"\n" );
+            } else {
+              ++numAlias;
+            }
 	  }
 	}
-
+        
 	// for the ith parameter, check for aliases against
 	// the set of allocation sites reachable from this
 	// task context
@@ -166,12 +181,16 @@ public class OwnershipAnalysis {
 	  common = createsPotentialAliases(td, i, as);
 	  if( !common.isEmpty() ) {
 	    foundSomeAlias = true;
-	    bw.write("Potential alias between parameter "+i+" and "+as.getFlatNew()+".\n");
-	    bw.write(prettyPrintNodeSet( common )+"\n" );
+            if( !tabularOutput ) {
+              bw.write("Potential alias between parameter "+i+" and "+as.getFlatNew()+".\n");
+              bw.write(prettyPrintNodeSet( common )+"\n" );
+            } else {
+              ++numAlias;
+            }
 	  }
 	}
       }
-
+      
       // for each allocation site check for aliases with
       // other allocation sites in the context of execution
       // of this task
@@ -186,11 +205,15 @@ public class OwnershipAnalysis {
 	  
 	  if( !outerChecked.contains(as2) ) {
 	    common = createsPotentialAliases(td, as1, as2);
-
+            
 	    if( !common.isEmpty() ) {
 	      foundSomeAlias = true;
-	      bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
-	      bw.write(prettyPrintNodeSet( common )+"\n" );
+              if( !tabularOutput ) {
+                bw.write("Potential alias between "+as1.getFlatNew()+" and "+as2.getFlatNew()+".\n");
+                bw.write(prettyPrintNodeSet( common )+"\n" );
+              } else {
+                ++numAlias;
+              }
 	    }
 	  }
 	}
@@ -199,17 +222,33 @@ public class OwnershipAnalysis {
       }
 
       if( !foundSomeAlias ) {
-	bw.write("No aliases between flagged objects in Task "+td+".\n");
+        if( !tabularOutput ) {
+          bw.write("No aliases between flagged objects in Task "+td+".\n");
+        }
       }
     }
 
-    bw.write( "\n"+computeAliasContextHistogram() );
+    if( !tabularOutput ) {
+      bw.write( "\n"+computeAliasContextHistogram() );
+    } else {
+      bw.write( " & "+numAlias+
+                " & "+justTime+
+                " & "+numLines+
+                " & "+numMethodsAnalyzed()+
+                " \\\\\n" );
+    }
+    
     bw.close();
   }
 
 
   // this version of writeAllAliases is for Java programs that have no tasks
-  public void writeAllAliasesJava(String outputFile, String timeReport) throws java.io.IOException {
+  public void writeAllAliasesJava(String outputFile, 
+                                  String timeReport,
+                                  String justTime,
+                                  boolean tabularOutput,
+                                  int numLines
+                                  ) throws java.io.IOException {
     checkAnalysisComplete();
 
     assert !state.TASK;    
@@ -511,6 +550,7 @@ public class OwnershipAnalysis {
 	    double timeEndAnalysis = (double) System.nanoTime();
 	    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
 	    String treport = String.format( "The reachability analysis took %.3f sec.", dt );
+            String justtime = String.format( "%.2f", dt );
 	    System.out.println( treport );
 
 	    if( writeDOTs && !writeAllDOTs ) {
@@ -523,9 +563,9 @@ public class OwnershipAnalysis {
 
 	    if( aliasFile != null ) {
 	      if( state.TASK ) {
-		writeAllAliases(aliasFile, treport);
+		writeAllAliases(aliasFile, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
 	      } else {
-		writeAllAliasesJava(aliasFile, treport);
+		writeAllAliasesJava(aliasFile, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
 	      }
 	    }
 	  
@@ -1362,6 +1402,10 @@ public class OwnershipAnalysis {
     s += String.format( "\n%4d total methods analayzed.\n", total );
 
     return s;
+  }
+
+  private int numMethodsAnalyzed() {    
+    return descriptorsToAnalyze.size();
   }
   
 

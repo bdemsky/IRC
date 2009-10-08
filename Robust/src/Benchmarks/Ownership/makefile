@@ -1,5 +1,5 @@
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -justanalyze -ownership -ownaliasfile aliases.txt -enable-assertions -ownwritedots final #-flatirtasks
+BSFLAGS= -recover -justanalyze -ownership -ownaliasfiletab aliases.txt -enable-assertions #-ownwritedots final #-flatirtasks
 AD1= -ownallocdepth 1
 AD3= -ownallocdepth 3
 AD5= -ownallocdepth 5
@@ -33,4 +33,7 @@ clean:
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
+	rm -f  *.aux
+	rm -f  *.log
+	rm -f  *.pdf
 	rm -f  aliases.txt

@@ -139,8 +139,12 @@ public class Main {
 	if (args[++i].equals("all")) {
 	  state.OWNERSHIPWRITEALL=true;
 	}
-      } else if (option.equals("-ownaliasfile"))
+      } else if (option.equals("-ownaliasfile")) {
 	state.OWNERSHIPALIASFILE=args[++i];
+      } else if (option.equals("-ownaliasfiletab")) {
+	state.OWNERSHIPALIASFILE=args[++i];
+        state.OWNERSHIPALIASTAB=true;
+      }
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;
       else if (option.equals("-optimize"))
