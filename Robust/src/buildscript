@@ -70,6 +70,7 @@ echo -assembly generate assembly
 echo -help help
 }
 
+SANDBOX=false;
 ABORTREADERS=false;
 ROBUSTROOT=~/research/Robust/src
 DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
@@ -136,6 +137,7 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DABORTREADERS"
 JAVAOPTS="$JAVAOPTS -abortreaders"
 elif [[ $1 = '-sandbox' ]]
 then
+SANDBOX=true
 EXTRAOPTIONS="$EXTRAOPTIONS -DSANDBOX"
 JAVAOPTS="$JAVAOPTS -sandbox"
 elif [[ $1 = '-robustroot' ]]
@@ -690,6 +692,11 @@ if $SINGLETM
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
 FILES="$FILES $DSMRUNTIME/stmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c"
+fi
+
+if $SANDBOX
+then
+FILES="$FILES $DSMRUNTIME/sandbox.c"
 fi
 
 if $ABORTREADERS
