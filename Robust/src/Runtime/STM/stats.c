@@ -1,3 +1,77 @@
+#include "tm.h"
+#include "garbage.h"
+
+#ifdef STMSTATS
+extern __thread threadrec_t *trec;
+extern __thread struct objlist * lockedobjs;
+extern __thread int t_objnumcount=0;
+
+/* Collect stats for object classes causing abort */
+extern objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
+
+INLINE void getTransSize(objheader_t *header , int *isObjTypeTraverse) {
+  (typesCausingAbort[TYPE(header)]).numabort++;
+  if(isObjTypeTraverse[TYPE(header)] != 1) {
+    (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
+    (typesCausingAbort[TYPE(header)]).numtrans+=1; //should this count be kept per object
+  }
+  isObjTypeTraverse[TYPE(header)]=1;
+}
+#endif
+
+#ifdef STMSTATS
+#define DEBUGSTMSTAT(args...)
+#else
+#define DEBUGSTMSTAT(args...)
+#endif
+
+#ifdef STMDEBUG
+#define DEBUGSTM(x...) printf(x);
+#else
+#define DEBUGSTM(x...);
+#endif
+
+#ifdef STATDEBUG
+#define DEBUGSTATS(x...) printf(x);
+#else
+#define DEBUGSTATS(x...);
+#endif
+
+#ifdef STMSTATS
+/*** Global variables *****/
+objlockstate_t *objlockscope;
+/**
+ * ABORTCOUNT
+ * params: object header
+ * Increments the abort count for each object
+ **/
+void ABORTCOUNT(objheader_t * x) {
+  int avgTransSize = typesCausingAbort[TYPE(x)].numaccess / typesCausingAbort[TYPE(x)].numtrans; 
+  float transAbortProbForObj = (PERCENT_ALLOWED_ABORT*FACTOR)/(float) avgTransSize;
+  float ObjAbortProb = x->abortCount/(float) (x->accessCount);
+  DEBUGSTM("ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
+  /* Condition for locking objects */
+  if (((ObjAbortProb*100) >= transAbortProbForObj) && (x->riskyflag != 1)) {	 
+    DEBUGSTATS("AFTER LOCK ABORTSTATS: oid= %x, type= %2d, transAbortProb= %2.2f, ObjAbortProb= %2.2f, Typenumaccess= %3d, avgtranssize = %2d, ObjabortCount= %2d, ObjaccessCount= %3d\n", OID(x), TYPE(x), transAbortProbForObj, ObjAbortProb, typesCausingAbort[TYPE(x)].numaccess, avgTransSize, x->abortCount, x->accessCount);
+    //makes riskflag sticky
+    pthread_mutex_lock(&lockedobjstore); 
+    if (objlockscope->offset<MAXOBJLIST) { 
+      x->objlock=&(objlockscope->lock[objlockscope->offset++]);
+    } else { 
+      objlockstate_t *tmp=malloc(sizeof(objlockstate_t)); 
+      tmp->next=objlockscope; 
+      tmp->offset=1; 
+      x->objlock=&(tmp->lock[0]); 
+      objlockscope=tmp;
+    } 
+    pthread_mutex_unlock(&lockedobjstore); 
+    pthread_mutex_init(x->objlock, NULL);
+    //should put a memory barrier here
+    x->riskyflag = 1;			 
+  }
+}
+#endif
+
 #if defined(STMSTATS)||defined(SOFTABORT)
 /** ========================================================================================
  * getTotalAbortCount (for traverseCache only)
