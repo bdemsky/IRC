@@ -20,8 +20,7 @@ __thread objstr_t *t_reserve;
 __thread struct objlist * newobjs;
 
 #ifdef SANDBOX
-__thread jmp_buf aborttrans;
-__thread int abortenabled;
+#include "sandbox.h"
 #endif
 
 #ifdef DELAYCOMP
@@ -300,38 +299,6 @@ void *objstrAlloc(unsigned int size) {
   }
 }
 
-#ifdef SANDBOX
-/* Do sandboxing */
-void errorhandler(int sig, struct sigcontext ctx) {
-  printf("Error\n");
-  if (abortenabled&&checktrans())
-    longjmp(aborttrans, 1);
-  threadhandler(sig, ctx);
-}
-
-int checktrans() {
-  /* Create info to keep track of objects that can be locked */
-  chashlistnode_t *curr = c_list;
-
-  /* Inner loop to traverse the linked list of the cache lookupTable */
-  while(likely(curr != NULL)) {
-    //if the first bin in hash table is empty
-    objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
-    objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t));
-    unsigned int version = headeraddr->version;
-    
-    if (header->lock==0) {
-      return 1;
-    }
-    CFENCE;
-    if (version!=header->version) {
-      return 1;
-    }
-    curr = curr->lnext;
-  }
-  return 0;
-}
-#endif
 
 /* =============================================================
  * transRead

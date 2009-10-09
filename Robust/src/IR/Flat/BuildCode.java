@@ -125,6 +125,7 @@ public class BuildCode {
   /** The buildCode method outputs C code for all the methods.  The Flat
    * versions of the methods must already be generated and stored in
    * the State object. */
+  PrintWriter outsandbox=null;
 
   public void buildCode() {
     /* Create output streams to write to */
@@ -140,6 +141,9 @@ public class BuildCode {
     PrintWriter optionalheaders=null;
 
     try {
+      if (state.SANDBOX) {
+	outsandbox=new PrintWriter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
+      }
       outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
@@ -170,6 +174,9 @@ public class BuildCode {
     outmethodheader.println("#include \"structdefs.h\"");
     if (state.DSM)
       outmethodheader.println("#include \"dstm.h\"");
+    if (state.SANDBOX) {
+      outmethodheader.println("#include \"sandbox.h\"");
+    }
     if (state.SINGLETM) {
       outmethodheader.println("#include \"tm.h\"");
       outmethodheader.println("#include \"delaycomp.h\"");
@@ -441,6 +448,9 @@ public class BuildCode {
     outmethod.println("#include \"methodheaders.h\"");
     outmethod.println("#include \"virtualtable.h\"");
     outmethod.println("#include \"runtime.h\"");
+    if (state.SANDBOX) {
+      outmethod.println("#include \"sandboxdefs.c\"");
+    }
     if (state.DSM) {
       outmethod.println("#include \"addPrefetchEnhance.h\"");
       outmethod.println("#include \"localobjects.h\"");
@@ -2565,13 +2575,16 @@ public class BuildCode {
       break;
 
     case FKind.FlatBackEdge:
+      if (state.SINGLETM&&state.SANDBOX&&locality.getAtomic(locality.getAtomic(lb).get(fn).intValue()>0)) {
+	output.println("if ((--transaction_check_counter)<=0) checkObjects();");
+      }
       if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
           || (this.state.MULTICOREGC)) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	} else if(this.state.MULTICOREGC) {
-      output.println("if (gcflag) gc("+localsprefixaddr+");");
-    } else
+	  output.println("if (gcflag) gc("+localsprefixaddr+");");
+	} else
 	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       } else
 	output.println("/* nop */");
@@ -2821,6 +2834,7 @@ public class BuildCode {
       output.println(generateTemp(fm, fion.getDst(), lb)+"=instanceof("+generateTemp(fm,fion.getSrc(),lb)+","+type+");");
   }
 
+  int sandboxcounter=0;
   public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
     /* Check to see if we need to generate code for this atomic */
     if (locality==null) {
@@ -2831,6 +2845,11 @@ public class BuildCode {
     if (locality.getAtomic(lb).get(faen.getPrev(0)).intValue()>0)
       return;
 
+
+    if (state.SANDBOX) {
+      outsandbox.println("int atomiccounter"+sandboxcounter+"=LOW_CHECK_FREQUENCY;");
+      output.println("counter_reset_pointer=&atomiccounter"+sandboxcounter+";");
+    }
 
     if (state.DELAYCOMP) {
       AtomicRecord ar=atomicmethodmap.get(faen);
@@ -2879,6 +2898,10 @@ public class BuildCode {
     /******* Tell the runtime to start the transaction *******/
 
     output.println("transstart"+faen.getIdentifier()+":");
+    if (state.SANDBOX) {
+      output.println("transaction_check_counter=*counter_reset_pointer;");
+      sandboxcounter++;
+    }
     output.println("transStart();");
 
     if (state.ABORTREADERS||state.SANDBOX) {
