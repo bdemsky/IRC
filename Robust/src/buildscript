@@ -692,7 +692,7 @@ fi
 if $STM
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$STMRUNTIME"
-FILES="$FILES $STMRUNTIME/stmlock.c $STMRUNTIME/singleTMCommit.c $STMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c"
+FILES="$FILES $STMRUNTIME/stmlock.c $STMRUNTIME/stm.c $STMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c $STMRUNTIME/stats.c $STMRUNTIME/commit.c $STMRUNTIME/objstr.c"
 fi
 
 if $SANDBOX
