@@ -2575,7 +2575,7 @@ public class BuildCode {
       break;
 
     case FKind.FlatBackEdge:
-      if (state.SINGLETM&&state.SANDBOX&&locality.getAtomic(locality.getAtomic(lb).get(fn).intValue()>0)) {
+      if (state.SINGLETM&&state.SANDBOX&&(locality.getAtomic(lb).get(fn).intValue()>0)) {
 	output.println("if ((--transaction_check_counter)<=0) checkObjects();");
       }
       if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
