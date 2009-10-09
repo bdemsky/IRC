@@ -9,6 +9,7 @@ __thread int * counter_reset_pointer;
 
 void checkObjects() {
   if (abortenabled&&checktrans()) {
+    printf("Abort\n");
     transaction_check_counter=(*counter_reset_pointer=HIGH_CHECK_FREQUENCY);
     longjmp(aborttrans, 1);
   }
@@ -18,8 +19,13 @@ void checkObjects() {
 /* Do sandboxing */
 void errorhandler(int sig, struct sigcontext ctx) {
   printf("Error\n");
-  if (abortenabled&&checktrans())
+  if (abortenabled&&checktrans()) {
+    sigset_t toclear;
+    sigemptyset(&toclear);
+    sigaddset(&toclear, sig);
+    sigprocmask(SIG_UNBLOCK, &toclear,NULL); 
     longjmp(aborttrans, 1);
+  }
   threadhandler(sig, ctx);
 }
 
