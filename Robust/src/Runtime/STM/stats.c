@@ -2,11 +2,24 @@
 #include "garbage.h"
 
 #ifdef STMSTATS
-extern __thread threadrec_t *trec;
-extern __thread struct objlist * lockedobjs;
+/* Thread variable for locking/unlocking */
+__thread threadrec_t *trec;
+__thread struct objlist * lockedobjs;
+__thread int t_objnumcount=0;
 
 /* Collect stats for object classes causing abort */
-extern objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
+objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
+
+void freelockedobjs() {
+  struct objlist *ptr=lockedobjs;
+  while(ptr->next!=NULL) {
+    struct objlist *tmp=ptr->next;
+    free(ptr);
+    ptr=tmp;
+  }
+  ptr->offset=0;
+  lockedobjs=ptr;
+}
 
 INLINE void getTransSize(objheader_t *header , int *isObjTypeTraverse) {
   (typesCausingAbort[TYPE(header)]).numabort++;
@@ -16,27 +29,7 @@ INLINE void getTransSize(objheader_t *header , int *isObjTypeTraverse) {
   }
   isObjTypeTraverse[TYPE(header)]=1;
 }
-#endif
 
-#ifdef STMSTATS
-#define DEBUGSTMSTAT(args...)
-#else
-#define DEBUGSTMSTAT(args...)
-#endif
-
-#ifdef STMDEBUG
-#define DEBUGSTM(x...) printf(x);
-#else
-#define DEBUGSTM(x...);
-#endif
-
-#ifdef STATDEBUG
-#define DEBUGSTATS(x...) printf(x);
-#else
-#define DEBUGSTATS(x...);
-#endif
-
-#ifdef STMSTATS
 /*** Global variables *****/
 objlockstate_t *objlockscope;
 /**

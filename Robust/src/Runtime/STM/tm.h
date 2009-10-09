@@ -220,4 +220,38 @@ objheader_t * needLock(objheader_t *, void *);
 #ifdef SANDBOX
 #include "sandbox.h"
 #endif
+
+//STM Macros
+#ifdef STMSTATS
+#define DEBUGSTMSTAT(args...)
+#else
+#define DEBUGSTMSTAT(args...)
+#endif
+
+#ifdef STMDEBUG
+#define DEBUGSTM(x...) printf(x);
+#else
+#define DEBUGSTM(x...);
+#endif
+
+#ifdef STATDEBUG
+#define DEBUGSTATS(x...) printf(x);
+#else
+#define DEBUGSTATS(x...);
+#endif
+
+#ifdef STMSTATS
+/* Thread variable for locking/unlocking */
+extern __thread threadrec_t *trec;
+extern __thread struct objlist * lockedobjs;
+extern __thread int t_objnumcount;
+
+/* Collect stats for object classes causing abort */
+extern objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
+#endif
+
+extern void * curr_heapbase;
+extern void * curr_heapptr;
+extern void * curr_heaptop;
+
 #endif
