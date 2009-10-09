@@ -4,7 +4,6 @@
 #ifdef STMSTATS
 extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
-extern __thread int t_objnumcount=0;
 
 /* Collect stats for object classes causing abort */
 extern objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];

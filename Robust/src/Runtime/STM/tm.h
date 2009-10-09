@@ -149,6 +149,7 @@ typedef struct objlockstate {
 extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
 extern objlockstate_t *objlockscope;
+extern __thread int t_objnumcount;
 pthread_mutex_t lockedobjstore;
 
 typedef struct objtypestat {
