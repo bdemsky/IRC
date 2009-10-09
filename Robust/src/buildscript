@@ -74,13 +74,14 @@ SANDBOX=false;
 ABORTREADERS=false;
 ROBUSTROOT=~/research/Robust/src
 DSMRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface/
+STMRUNTIME=$ROBUSTROOT/Runtime/STM/
 DSMRECOVERYRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface_recovery/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
 DSMFLAG=false
 DSMRECOVERY=false
 FASTMEMCPY=false
-SINGLETM=false
+STM=false
 NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
@@ -192,7 +193,7 @@ elif [[ $1 = '-singleTM' ]]
 then
 JAVAOPTS="$JAVAOPTS -singleTM"
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTM"
-SINGLETM=true
+STM=true
 elif [[ $1 = '-readset' ]]
 then
 JAVAOPTS="$JAVAOPTS -readset"
@@ -428,7 +429,7 @@ if $DSMFLAG
 then
 #dsm stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaDSM"
-elif $SINGLETM
+elif $STM
 then
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaSTM"
 elif $THREADFLAG
@@ -688,15 +689,15 @@ EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -DDSTM -I$DSMRUNTIME"
 FILES="$FILES $DSMRUNTIME/trans.c $DSMRUNTIME/mcpileq.c $DSMRUNTIME/objstr.c $DSMRUNTIME/dstm.c $DSMRUNTIME/mlookup.c $DSMRUNTIME/clookup.c $DSMRUNTIME/llookup.c $DSMRUNTIME/threadnotify.c $DSMRUNTIME/dstmserver.c $DSMRUNTIME/plookup.c $DSMRUNTIME/ip.c $DSMRUNTIME/queue.c $DSMRUNTIME/prelookup.c $DSMRUNTIME/machinepile.c $ROBUSTROOT/Runtime/localobjects.c $ROBUSTROOT/Runtime/thread.c $DSMRUNTIME/sockpool.c $DSMRUNTIME/addUdpEnhance.c $DSMRUNTIME/signal.c $DSMRUNTIME/gCollect.c $DSMRUNTIME/addPrefetchEnhance.c $DSMRUNTIME/dsmlock.c $DSMRUNTIME/prefetch.c"
 fi
 fi
-if $SINGLETM
+if $STM
 then
-EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$DSMRUNTIME"
-FILES="$FILES $DSMRUNTIME/stmlock.c $DSMRUNTIME/singleTMCommit.c $DSMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c"
+EXTRAOPTIONS="$EXTRAOPTIONS -lpthread -DCOMPILER -I$STMRUNTIME"
+FILES="$FILES $STMRUNTIME/stmlock.c $STMRUNTIME/singleTMCommit.c $STMRUNTIME/stmlookup.c $ROBUSTROOT/Runtime/thread.c"
 fi
 
 if $SANDBOX
 then
-FILES="$FILES $DSMRUNTIME/sandbox.c"
+FILES="$FILES $STMRUNTIME/sandbox.c"
 fi
 
 if $ABORTREADERS
@@ -771,7 +772,6 @@ else
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
 tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
 fi
-
 
 fi #!RAWFLAG
 
