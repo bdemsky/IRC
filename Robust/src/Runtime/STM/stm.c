@@ -13,7 +13,6 @@
 #include "tm.h"
 #include "garbage.h"
 
-#define likely(x) x
 /* Per thread transaction variables */
 __thread objstr_t *t_cache;
 __thread objstr_t *t_reserve;

@@ -123,27 +123,31 @@ int transCommit() {
 }
 
 #ifdef STMSTATS
-  You need to add free statements for oidrdage in a way that they will not appear if this option is not defined.
+#define STATFREE free(oidrdage);
+#define STATALLOC oidrdage=malloc(size);
+#define STATASSIGN oidrdage=rdage;
+#else
+  #define STATFREE
+  #define STATALLOC
+  #define STATASSIGN
 #endif
 
 #ifdef DELAYCOMP
 #define freearrays if (c_numelements>=200) { \
-    free(oidrdlocked); \
-    free(oidrdversion); \
+    STATFREE				     \
+    free(oidrdlocked);		     \
+    free(oidrdversion);			     \
   } \
   if (t_numelements>=200) { \
     free(oidwrlocked); \
   }
 #else
 #define freearrays   if (c_numelements>=200) { \
+    STATFREE \
     free(oidrdlocked); \
     free(oidrdversion); \
     free(oidwrlocked); \
   }
-#endif
-
-#ifdef STMSTATS
-    you need to set oidrdage in a way that does not appear if this macro is not defined.
 #endif
 
 #ifdef DELAYCOMP
@@ -156,10 +160,12 @@ int transCommit() {
   if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
+    STATASSIGN		    \
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
+    STATALLOC		       \
   }
 #else
 #define allocarrays if (c_numelements<200) { \
@@ -171,6 +177,7 @@ int transCommit() {
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
     oidwrlocked=malloc(size); \
+    STATALLOC		      \
   }
 #endif
 

@@ -245,10 +245,9 @@ objheader_t * needLock(objheader_t *, void *);
 extern __thread threadrec_t *trec;
 extern __thread struct objlist * lockedobjs;
 extern __thread int t_objnumcount;
-
-/* Collect stats for object classes causing abort */
-extern objtypestat_t typesCausingAbort[TOTALNUMCLASSANDARRAY];
 #endif
+
+#define likely(x) x
 
 extern void * curr_heapbase;
 extern void * curr_heapptr;

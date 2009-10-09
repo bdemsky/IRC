@@ -1,7 +1,6 @@
 #include "sandbox.h"
 #include "tm.h"
 #include <stdio.h>
-#define likely(x) x
 __thread int transaction_check_counter;
 __thread jmp_buf aborttrans;
 __thread int abortenabled;

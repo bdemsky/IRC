@@ -1,6 +1,7 @@
 #include "tm.h"
 #include "garbage.h"
 
+#define PERCENT_ALLOWED_ABORT 0.7
 #ifdef STMSTATS
 /* Thread variable for locking/unlocking */
 __thread threadrec_t *trec;
