@@ -35,7 +35,7 @@ public class JavaCallGraph extends CallGraph {
     while(!tovisit.isEmpty()) {
       MethodDescriptor md=(MethodDescriptor)tovisit.iterator().next();
       tovisit.remove(md);
-      FlatMethod fm=state.getMethodFlat(main);
+      FlatMethod fm=state.getMethodFlat(md);
       analyzeMethod(md, fm);
       for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
 	FlatNode fn=fnit.next();
