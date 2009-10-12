@@ -942,47 +942,51 @@ public class MLPAnalysis {
 			MethodContext calleeMCfromOG = ownAnalysis.getCalleeMethodContext(
 					callerMC, fc);
 
-			if (calleeMC.equals(calleeMCfromOG)) {
-				// in this case, this method context calls corresponding callee.
-				int base;
-				if (((MethodDescriptor) calleeMC.getDescriptor()).isStatic()) {
-					base = 0;
-				} else {
-					base = 1;
-				}
+			// disable below condition. currently collect all possible
+			// allocation sites without regarding method context
 
-				for (Iterator iterator = paramIndexSet.iterator(); iterator
-						.hasNext();) {
-					Integer integer = (Integer) iterator.next();
+			// if (calleeMC.equals(calleeMCfromOG)) { // in this case, this
+			// method context calls corresponding callee.
 
-					int paramIdx = integer - base;
-					if (paramIdx >= 0) {
-						// if paramIdx is less than 0, assumes that it is
-						// related with wrong method contexts.
-						TempDescriptor arg = fc.getArg(paramIdx);
-						LabelNode argLN = og.td2ln.get(arg);
-						if (argLN != null) {
-							Iterator<ReferenceEdge> iterEdge = argLN
-									.iteratorToReferencees();
-							while (iterEdge.hasNext()) {
-								ReferenceEdge referenceEdge = (ReferenceEdge) iterEdge
-										.next();
+			int base;
+			if (((MethodDescriptor) calleeMC.getDescriptor()).isStatic()) {
+				base = 0;
+			} else {
+				base = 1;
+			}
 
-								HeapRegionNode dstHRN = referenceEdge.getDst();
-								if (dstHRN.isParameter()) {
-									if(!visitedHRN.contains(dstHRN)){
-										setupRelatedAllocSiteAnalysis(og, callerMC,
-												dstHRN, visitedHRN);
-									}									
-								} else {
-									addLiveInAllocationSite(callerMC, dstHRN
-											.getAllocationSite());
+			for (Iterator iterator = paramIndexSet.iterator(); iterator
+					.hasNext();) {
+				Integer integer = (Integer) iterator.next();
+
+				int paramIdx = integer - base;
+				if (paramIdx >= 0) {
+					// if paramIdx is less than 0, assumes that it is
+					// related with wrong method contexts.
+					TempDescriptor arg = fc.getArg(paramIdx);
+					LabelNode argLN = og.td2ln.get(arg);
+					if (argLN != null) {
+						Iterator<ReferenceEdge> iterEdge = argLN
+								.iteratorToReferencees();
+						while (iterEdge.hasNext()) {
+							ReferenceEdge referenceEdge = (ReferenceEdge) iterEdge
+									.next();
+
+							HeapRegionNode dstHRN = referenceEdge.getDst();
+							if (dstHRN.isParameter()) {
+								if (!visitedHRN.contains(dstHRN)) {
+									setupRelatedAllocSiteAnalysis(og, callerMC,
+											dstHRN, visitedHRN);
 								}
+							} else {
+								addLiveInAllocationSite(callerMC, dstHRN
+										.getAllocationSite());
 							}
 						}
 					}
 				}
 			}
+			// }
 
 		}
 			break;
