@@ -190,17 +190,18 @@ public class MLPAnalysis {
     
     // new pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+	JavaCallGraph javaCallGraph = new JavaCallGraph(state,tu);
     while( methItr.hasNext() ) {
       Descriptor d  = methItr.next();      
       FlatMethod fm = state.getMethodFlat( d );
-      methodEffects(fm);
+      methodEffects(fm,javaCallGraph);
     }
     
     // disjoint analysis with a set of flagged allocation sites of live-in variable
 	try {
 		OwnershipAnalysis oa2 = new OwnershipAnalysis(state, tu, callGraph,
-				state.OWNERSHIPALLOCDEPTH, state.OWNERSHIPWRITEDOTS,
-				state.OWNERSHIPWRITEALL, state.OWNERSHIPALIASFILE,
+				state.OWNERSHIPALLOCDEPTH, false,
+				false, state.OWNERSHIPALIASFILE,
 				state.METHODEFFECTS,
 				mapMethodContextToLiveInAllocationSiteSet);
 		// debug
@@ -815,7 +816,7 @@ public class MLPAnalysis {
   
   private void debugFunction(OwnershipAnalysis oa2, FlatMethod fm) {
 	  
-	  String methodName="method1";
+	  String methodName="doSomeWork";
 	  
 	  MethodDescriptor md=fm.getMethod();
 		HashSet<MethodContext> mcSet=oa2.getAllMethodContextSetByDescriptor(md);
@@ -825,7 +826,6 @@ public class MLPAnalysis {
 			MethodContext mc=mcIter.next();
 			
 			OwnershipGraph og=oa2.getOwnvershipGraphByMethodContext(mc);
-//			System.out.println("FM="+fm.toString());
 			
 			if(fm.toString().indexOf(methodName)>0){
 				 try {
@@ -842,7 +842,7 @@ public class MLPAnalysis {
 	  
   }
   
-	private void methodEffects(FlatMethod fm) {
+	private void methodEffects(FlatMethod fm, CallGraph callGraph) {
 
 		MethodDescriptor md=fm.getMethod();
 		HashSet<MethodContext> mcSet=ownAnalysis.getAllMethodContextSetByDescriptor(md);
@@ -864,7 +864,7 @@ public class MLPAnalysis {
 				assert seseStack != null;
 
 				if (!seseStack.empty()) {
-					effects_nodeActions(mc, fn, seseStack.peek());
+					effects_nodeActions(mc, fn, seseStack.peek(), callGraph);
 				}
 
 				flatNodesToVisit.remove(fn);
@@ -883,9 +883,143 @@ public class MLPAnalysis {
 		}
 		
 	}
+	
+	private void analyzeRelatedAllocationSite(MethodDescriptor callerMD,
+			MethodContext calleeMC, HashSet<Integer> paramIndexSet) {
+
+		HashSet<MethodContext> mcSet = ownAnalysis
+				.getAllMethodContextSetByDescriptor(callerMD);
+		Iterator<MethodContext> mcIter = mcSet.iterator();
+
+		FlatMethod callerFM = state.getMethodFlat(callerMD);
+
+		while (mcIter.hasNext()) {
+			MethodContext mc = mcIter.next();
+
+			Set<FlatNode> visited = new HashSet<FlatNode>();
+			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+			flatNodesToVisit.add(callerFM);
+
+			while (!flatNodesToVisit.isEmpty()) {
+				FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+				flatNodesToVisit.remove(fn);
+
+				analyzeRelatedAllocationSite_NodeAction(fn, mc, calleeMC, paramIndexSet);
+
+				flatNodesToVisit.remove(fn);
+				visited.add(fn);
+
+				for (int i = 0; i < fn.numNext(); i++) {
+					FlatNode nn = fn.getNext(i);
+					if (!visited.contains(nn)) {
+						flatNodesToVisit.add(nn);
+					}
+				}
+			}
+
+		}
+
+	}
+	
+	private void analyzeRelatedAllocationSite_NodeAction(FlatNode fn, MethodContext callerMC,
+			MethodContext calleeMC, HashSet<Integer> paramIndexSet) {
+
+		OwnershipGraph og = ownAnalysis
+				.getOwnvershipGraphByMethodContext(callerMC);
+
+		switch (fn.kind()) {
+
+		case FKind.FlatCall: {
+
+			FlatCall fc = (FlatCall) fn;
+
+			MethodContext calleeMCfromOG = ownAnalysis.getCalleeMethodContext(
+					callerMC, fc);
+
+			if (calleeMC.equals(calleeMCfromOG)) {
+				// in this case, this method context calls corresponding callee.
+				int base;
+				if (((MethodDescriptor) calleeMC.getDescriptor()).isStatic()) {
+					base = 0;
+				} else {
+					base = 1;
+				}
+				
+				for (Iterator iterator = paramIndexSet.iterator(); iterator
+						.hasNext();) {
+					Integer integer = (Integer) iterator.next();
+					
+					int paramIdx=integer-base;
+					if(paramIdx>=0){
+						// if paramIdx is less than 0, assumes that it is related with wrong method contexts.
+						TempDescriptor arg = fc.getArg(paramIdx );
+						LabelNode argLN = og.td2ln.get(arg);
+						if (argLN != null) {
+							Iterator<ReferenceEdge> iterEdge = argLN
+									.iteratorToReferencees();
+							while (iterEdge.hasNext()) {
+								ReferenceEdge referenceEdge = (ReferenceEdge) iterEdge
+										.next();
+								
+								HeapRegionNode dstHRN=referenceEdge.getDst();
+								if(dstHRN.isParameter()){
+									setupRelatedAllocSiteAnalysis(og,callerMC,dstHRN);
+								}else{
+									addLiveInAllocationSite(callerMC, dstHRN
+											.getAllocationSite());
+								}
+							}
+						}
+					}
+				}
+			}
+
+		}
+			break;
+
+		}
+	}
+	
+	private void setupRelatedAllocSiteAnalysis(OwnershipGraph og,
+			MethodContext mc, HeapRegionNode dstHRN) {
+
+		HashSet<Integer> paramIndexSet = new HashSet<Integer>();
+
+		// collect corresponding param index
+		Set<Integer> pIndexSet = og.idPrimary2paramIndexSet.get(dstHRN.getID());
+		if (pIndexSet != null) {
+			for (Iterator iterator = pIndexSet.iterator(); iterator.hasNext();) {
+				Integer integer = (Integer) iterator.next();
+				paramIndexSet.add(integer);
+			}
+		}
+
+		Set<Integer> sIndexSet = og.idSecondary2paramIndexSet.get(dstHRN
+				.getID());
+		if (sIndexSet != null) {
+			for (Iterator iterator = sIndexSet.iterator(); iterator.hasNext();) {
+				Integer integer = (Integer) iterator.next();
+				paramIndexSet.add(integer);
+			}
+		}
+
+		if (mc.getDescriptor() instanceof MethodDescriptor) {
+			Set callerSet = callGraph.getCallerSet((MethodDescriptor) mc
+					.getDescriptor());
+			for (Iterator iterator = callerSet.iterator(); iterator.hasNext();) {
+				Object obj = (Object) iterator.next();
+				if (obj instanceof MethodDescriptor) {
+					MethodDescriptor callerMD = (MethodDescriptor) obj;
+
+					analyzeRelatedAllocationSite(callerMD, mc, paramIndexSet);
+
+				}
+			}
+		}
+	}
   
 	private void effects_nodeActions(MethodContext mc, FlatNode fn,
-			FlatSESEEnterNode currentSESE) {
+			FlatSESEEnterNode currentSESE, CallGraph callGraph) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
 
@@ -914,7 +1048,11 @@ public class MLPAnalysis {
 						ReferenceEdge referenceEdge = (ReferenceEdge) referenceeIter
 								.next();
 						HeapRegionNode dstHRN = referenceEdge.getDst();
-						if (!dstHRN.isParameter()) {
+						if (dstHRN.isParameter()) {
+							
+							setupRelatedAllocSiteAnalysis(og,mc,dstHRN);
+
+						} else {
 							addLiveInAllocationSite(mc, dstHRN
 									.getAllocationSite());
 						}
