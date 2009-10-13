@@ -46,7 +46,15 @@ public class SESETree {
     return sesemap.get(enter);
   }
 
-  private void analyzeMethod(FlatMethod fm, Set<SESENode> context) {
+  public Set<SESENode> getSESE(MethodDescriptor md) {
+    return discovered.get(md);
+  }
+
+  public Hashtable<FlatNode, Stack<SESENode>> analyzeMethod(FlatMethod fm) {
+    return analyzeMethod(fm, null);
+  }
+
+  private Hashtable<FlatNode, Stack<SESENode>> analyzeMethod(FlatMethod fm, Set<SESENode> context) {
     Hashtable<FlatNode, Stack<SESENode>> stacks=new Hashtable<FlatNode, Stack<SESENode>> ();
     stacks.put(fm, new Stack<SESENode>());
     HashSet<FlatNode> tovisit=new HashSet<FlatNode>();
@@ -59,6 +67,8 @@ public class SESETree {
       Stack<SESENode> instack=stacks.get(fm);
       switch(fn.kind()) {
       case FKind.FlatCall: {
+	if (context==null)
+	  break;
 	FlatCall fc=(FlatCall)fn;
 	//handle method call
 	Set<SESENode> parents;
@@ -81,17 +91,20 @@ public class SESETree {
       }
       case FKind.FlatSESEEnterNode: {
 	FlatSESEEnterNode enter=(FlatSESEEnterNode)fn;
-	Set<SESENode> parents;
-	if (instack.isEmpty()) {
-	  parents=context;
-	} else {
-	  parents=new HashSet<SESENode>();
-	  parents.add(instack.peek());
-	}
-	SESENode sese=getSESE(enter);
-	for(Iterator<SESENode> parentit=parents.iterator();parentit.hasNext();) {
-	  SESENode parentsese=parentit.next();
-	  parentsese.addChild(sese);
+
+	if (context!=null) {
+	  Set<SESENode> parents;
+	  if (instack.isEmpty()) {
+	    parents=context;
+	  } else {
+	    parents=new HashSet<SESENode>();
+	    parents.add(instack.peek());
+	  }
+	  SESENode sese=getSESE(enter);
+	  for(Iterator<SESENode> parentit=parents.iterator();parentit.hasNext();) {
+	    SESENode parentsese=parentit.next();
+	    parentsese.addChild(sese);
+	  }
 	}
 	Stack<SESENode> copy=(Stack<SESENode>)instack.clone();
 	copy.push(sese);
@@ -115,8 +128,7 @@ public class SESETree {
 	}
       }
     }
-
-
+    return stacks;
   }
 
   public static boolean add(Hashtable<MethodDescriptor, Set<SESENode>> discovered, MethodDescriptor md, SESENode sese) {
@@ -132,6 +144,8 @@ public class SESETree {
   class SESENode {
     boolean isRoot;
     HashSet<SESENode> children;
+    HashSet<SESENode> parents;
+
     FlatSESEEnterNode node;
     SESENode(FlatSESEEnterNode node, boolean isRoot) {
       children=new HashSet<SESENode>();
@@ -143,10 +157,15 @@ public class SESETree {
       return children.isEmpty();
     }
 
-    public void addChild(SESENode child) {
+    protected void addChild(SESENode child) {
       children.add(child);
+      child.parents.add(this);
     }
     
+    public Set<SESENode> getParents() {
+      return parents;
+    }
+
     public Set<SESENode> getChildren() {
       return children;
     }
