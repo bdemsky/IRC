@@ -572,18 +572,31 @@ public class DiscoverConflicts {
 	    }
 	    break;
 	  }
-	  case FKind.FlatOpNode: {
-	    FlatOpNode fon=(FlatOpNode)fn;
-	    if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
-	      HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
-	      if (ttofn.containsKey(fon.getLeft()))
-		set.addAll(ttofn.get(fon.getLeft()));
-	      if (normalassign)
-		set.add(new TempFlatPair(fon.getDest(), fn));
-	      ttofn.put(fon.getDest(), set);
-	      break;
+	  case FKind.FlatCastNode:
+	  case FKind.FlatOpNode: 
+	    if (fn.kind()==FKind.FlatCastNode) {
+	      FlatCastNode fcn=(FlatCastNode)fn;
+	      if (fcn.getDst().getType().isPtr()) {
+		HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+		if (ttofn.containsKey(fcn.getSrc()))
+		  set.addAll(ttofn.get(fcn.getSrc()));
+		if (normalassign)
+		  set.add(new TempFlatPair(fcn.getDst(), fn));
+		ttofn.put(fcn.getDst(), set);
+		break;
+	      }
+	    } else if (fn.kind()==FKind.FlatOpNode) {
+	      FlatOpNode fon=(FlatOpNode)fn;
+	      if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
+		HashSet<TempFlatPair> set=new HashSet<TempFlatPair>();
+		if (ttofn.containsKey(fon.getLeft()))
+		  set.addAll(ttofn.get(fon.getLeft()));
+		if (normalassign)
+		  set.add(new TempFlatPair(fon.getDest(), fn));
+		ttofn.put(fon.getDest(), set);
+		break;
+	      }
 	    }
-	  }
 	  default:
 	    //Do kill computation
 	    TempDescriptor[] writes=fn.writesTemps();
@@ -687,16 +700,27 @@ public class DiscoverConflicts {
 	  case FKind.FlatNew:
 	    oldtemps.removeAll(Arrays.asList(fn.readsTemps()));
 	    break;
-	  case FKind.FlatOpNode: {
-	    FlatOpNode fon=(FlatOpNode)fn;
-	    if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
-	      if (oldtemps.contains(fon.getLeft()))
-		oldtemps.add(fon.getDest());
-	      else
-		oldtemps.remove(fon.getDest());
-	      break;
+	  case FKind.FlatOpNode:
+	  case FKind.FlatCastNode: 
+	    if (fn.kind()==FKind.FlatCastNode) {
+	      FlatCastNode fcn=(FlatCastNode)fn;
+	      if (fcn.getDst().getType().isPtr()) {
+		if (oldtemps.contains(fcn.getSrc()))
+		  oldtemps.add(fcn.getDst());
+		else
+		  oldtemps.remove(fcn.getDst());
+		break;
+	      }
+	    } else if (fn.kind()==FKind.FlatOpNode) {
+	      FlatOpNode fon=(FlatOpNode)fn;
+	      if (fon.getOp().getOp()==Operation.ASSIGN&&fon.getDest().getType().isPtr()) {
+		if (oldtemps.contains(fon.getLeft()))
+		  oldtemps.add(fon.getDest());
+		else
+		  oldtemps.remove(fon.getDest());
+		break;
+	      }
 	    }
-	  }
 	  default: {
 	    TempDescriptor[] writes=fn.writesTemps();
 	    for(int i=0;i<writes.length;i++) {
