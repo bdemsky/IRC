@@ -57,52 +57,17 @@ public class Queue_t {
   int capacity;
   Object[] elements;
 
-  public Queue_t() {
-  }
-
   /* =============================================================================
    * queue_alloc
    * =============================================================================
    */
-  public static Queue_t queue_alloc (int initCapacity)
-  {
-    Queue_t queuePtr = new Queue_t();
-
+  public Queue_t(int initCapacity) {
     int capacity = ((initCapacity < 2) ? 2 : initCapacity);
-    queuePtr.elements = new Object[capacity];
-    if (queuePtr.elements == null) {
-      queuePtr = null;
-      return null;
-    }
-    queuePtr.pop      = capacity - 1;
-    queuePtr.push     = 0;
-    queuePtr.capacity = capacity;
-
-    return queuePtr;
+    elements = new Object[capacity];
+    pop      = capacity - 1;
+    push     = 0;
+    this.capacity = capacity;
   }
-
-
-  /* =============================================================================
-   * Pqueue_alloc
-   * =============================================================================
-   */
-  public Queue_t
-    Pqueue_alloc (int initCapacity)
-    {
-      Queue_t queuePtr = new Queue_t();
-
-      int capacity = ((initCapacity < 2) ? 2 : initCapacity);
-      queuePtr.elements = new Object[capacity];
-      if (queuePtr.elements == null) {
-        queuePtr = null;
-        return null;
-      }
-      queuePtr.pop      = capacity - 1;
-      queuePtr.push     = 0;
-      queuePtr.capacity = capacity;
-
-      return queuePtr;
-    }
 
   /* =============================================================================
    * queue_free
@@ -112,20 +77,8 @@ public class Queue_t {
     queue_free (Queue_t queuePtr)
     {
       queuePtr.elements = null;
-      queuePtr = null;
     }
 
-
-  /* =============================================================================
-   * Pqueue_free
-   * =============================================================================
-   */
-  public void
-    Pqueue_free (Queue_t queuePtr)
-    {
-      queuePtr.elements = null;
-      queuePtr = null;
-    }
 
 
   /* =============================================================================
@@ -178,57 +131,51 @@ public class Queue_t {
    * queue_push
    * =============================================================================
    */
-  public boolean
-    queue_push (Object dataPtr)
-    {
-    
-      if(pop == push) {
-
-        System.out.println("push == pop in Queue.java");
-        return false;
-      }
-
-
-      /* Need to resize */
-      int newPush = (push + 1) % capacity;
-      if (newPush == pop) {
-
-        int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
-        Object[] newElements = new Object[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
-
-        int dst = 0;
-        Object[] tmpelements = elements;
-        if (pop < push) {
-          int src;
-          for (src = (pop + 1); src < push; src++, dst++) {
-            newElements[dst] = elements[src];
-          }
-        } else {
-          int src;
-          for (src = (pop + 1); src < capacity; src++, dst++) {
-            newElements[dst] = elements[src];
-          }
-          for (src = 0; src < push; src++, dst++) {
-            newElements[dst] = elements[src];
-          }
-        }
-
-        //elements = null;
-        elements = newElements;
-        pop      = newCapacity - 1;
-        capacity = newCapacity;
-        push = dst;
-        newPush = push + 1; /* no need modulo */
-      }
-
-      elements[push] = dataPtr;
-      push = newPush;
-
-      return true;
+  public boolean queue_push (Object dataPtr) {
+    if(pop == push) {
+      System.out.println("push == pop in Queue.java");
+      return false;
     }
+
+    /* Need to resize */
+    int newPush = (push + 1) % capacity;
+    if (newPush == pop) {
+      int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
+      Object[] newElements = new Object[newCapacity];
+      if (newElements == null) {
+	return false;
+      }
+      
+      int dst = 0;
+      Object[] tmpelements = elements;
+      if (pop < push) {
+	int src;
+	for (src = (pop + 1); src < push; src++, dst++) {
+	  newElements[dst] = elements[src];
+	}
+      } else {
+	int src;
+	for (src = (pop + 1); src < capacity; src++, dst++) {
+	  newElements[dst] = elements[src];
+	}
+	for (src = 0; src < push; src++, dst++) {
+	  newElements[dst] = elements[src];
+	}
+      }
+      
+      //elements = null;
+      elements = newElements;
+      pop      = newCapacity - 1;
+      capacity = newCapacity;
+      push = dst;
+      newPush = push + 1; /* no need modulo */
+    }
+    
+    elements[push] = dataPtr;
+    push = newPush;
+    
+    return true;
+  }
 
 
   /* =============================================================================
@@ -293,26 +240,17 @@ public class Queue_t {
    * queue_pop
    * =============================================================================
    */
-  public Object
-    //queue_pop (Queue queuePtr)
-    queue_pop ()
-    {
-      //int pop      = queuePtr.pop;
-      //int push     = queuePtr.push;
-      //int capacity = queuePtr.capacity;
-
-      int newPop = (pop + 1) % capacity;
-      if (newPop == push) {
-        return null;
-      }
-
-      //Object dataPtr = queuePtr.elements[newPop];
-      //queuePtr.pop = newPop;
-      Object dataPtr = elements[newPop];
-      pop = newPop;
-
-      return dataPtr;
+  public Object queue_pop () {
+    int newPop = (pop + 1) % capacity;
+    if (newPop == push) {
+      return null;
     }
+    
+    Object dataPtr = elements[newPop];
+    pop = newPop;
+    
+    return dataPtr;
+  }
 
   public void queue_shuffle (Random randomPtr)
     {

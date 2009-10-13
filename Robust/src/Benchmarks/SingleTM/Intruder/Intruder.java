@@ -102,14 +102,13 @@ public class Intruder extends Thread {
         threadID = myID;
     }
 
-    private void setDefaultParams() 
-    {
-        percentAttack = PARAM_DEFAULT_ATTACK;
-        maxDataLength = PARAM_DEFAULT_LENGTH;
-        numFlow       = PARAM_DEFAULT_NUM;
-        randomSeed    = PARAM_DEFAULT_SEED;
-        numThread     = PARAM_DEFAULT_THREAD;
-    }
+  private void setDefaultParams() {
+    percentAttack = PARAM_DEFAULT_ATTACK;
+    maxDataLength = PARAM_DEFAULT_LENGTH;
+    numFlow       = PARAM_DEFAULT_NUM;
+    randomSeed    = PARAM_DEFAULT_SEED;
+    numThread     = PARAM_DEFAULT_THREAD;
+  }
 
 
 /* =============================================================================
@@ -188,70 +187,49 @@ public class Intruder extends Thread {
         Vector_t[] errorVectors = argPtr.errorVectors;
       
 
-        Detector detectorPtr = Detector.alloc();
-        if(detectorPtr == null)
-        {
-            System.out.println("Assertion in processPackets");
-            System.exit(1);
-        }
-        
+        Detector detectorPtr = new Detector();
         detectorPtr.addPreprocessor(2);
 
         Vector_t errorVectorPtr = errorVectors[threadID];
 
         while(true) {
             Packet packetPtr;
-
-            System.out.println("Before atomic Brace");
-            // TM_BEGIN();
+		
             atomic {
-                System.out.println("In the atomic");
                 packetPtr = streamPtr.getPacket();
             }
-
-            System.out.println("After atomic");
-            // TM_END();
-            //
 
             if(packetPtr == null) {
                 break;
             }
             int flowId = packetPtr.flowId;
             int error;
-            // TM_BEGIN();
             atomic {
                 error = decoderPtr.process(packetPtr,(packetPtr.length));
             }
-            // TM_END();
-            //
-            //
-            
+
             if (error != 0) {
                 /*
                  * Currently, stream_generate() does not create these errors.
                  */
-                System.out.println("Here?");
-                System.exit(1);
+	      System.out.println("Here?"+error);
             }
             byte[] data;
             int[] decodedFlowId = new int[1];
             
-            // TM_BEGIN();
             atomic {
                 data = decoderPtr.getComplete(decodedFlowId);
             }
 
-            // TM_END();
             if(data != null) {
-                int err = detectorPtr.process(data);
-                
-                if(err != 0) {
-                    boolean status = errorVectorPtr.vector_pushBack(new Integer(decodedFlowId[0]));
-                    if(!status) {
-                        System.out.println("Assertion in Intruder.processPacket");
-                        System.exit(1);
-                    }
-                }
+	      int err = detectorPtr.process(data);
+              
+	      if(err != 0) {
+		boolean status = errorVectorPtr.vector_pushBack(new Integer(decodedFlowId[0]));
+		if(!status) {
+		  System.out.println("Assertion in Intruder.processPacket");
+		}
+	      }
             }
         }
 
@@ -291,44 +269,18 @@ public class Intruder extends Thread {
         System.out.println("Random seed     =   " + in.randomSeed);
 
         Dictionary dictionaryPtr = new Dictionary();
-
-        if(dictionaryPtr == null) {
-            System.out.println("Assertion in main");
-            System.exit(1);
-        }
-
-        Stream streamPtr = Stream.alloc(in.percentAttack);
-        
-        if(streamPtr == null) {
-            System.out.println("Assertion in main");
-            System.exit(1);
-        }
-
+        Stream streamPtr = new Stream(in.percentAttack);
         int numAttack = streamPtr.generate(dictionaryPtr,in.numFlow,in.randomSeed,in.maxDataLength);
 
         System.out.println("Num Attack      =   " + numAttack);
 
-        Decoder decoderPtr = Decoder.alloc();
-        if(decoderPtr == null) {
-            System.out.println("Assertion in main");
-            System.exit(1);
-        }
-
+        Decoder decoderPtr = new Decoder();
         Vector_t[] errorVectors = new Vector_t[in.numThread];
-
-        if(errorVectors ==  null) {
-            System.out.println("Assertion in main");
-            System.exit(1);
-        }
 
         int i;
 
         for(i =0;i< in.numThread;i++) {
-            errorVectors[i] = Vector_t.vector_alloc(in.numFlow);
-            if(errorVectors[i] == null) {
-                System.out.println("Assertion in main");
-                System.exit(1);
-            }
+	  errorVectors[i] = new Vector_t(in.numFlow);
         }
 
         Arg arg = new Arg();
@@ -374,7 +326,7 @@ public class Intruder extends Thread {
             Vector_t errorVectorPtr = errorVectors[i];
             int e;
             int numError = errorVectorPtr.vector_getSize();
-            System.out.println("numError = " + numError);
+            //System.out.println("numError = " + numError);
             numFound += numError;
             for (e = 0; e< numError; e++) {
                 int flowId = ((Integer)errorVectorPtr.vector_at(e)).intValue();

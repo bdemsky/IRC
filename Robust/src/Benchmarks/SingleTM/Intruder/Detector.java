@@ -74,53 +74,15 @@ public class Detector {
     Dictionary dictionaryPtr;
     Vector_t preprocessorVectorPtr;
 
-    public Detector() {}
-
 /* =============================================================================
  * detector_alloc
  * =============================================================================
  detector_t* detector_alloc ();
  */
-    public static Detector alloc() {
-        Detector detectorPtr = new Detector();
-
-        if(detectorPtr != null) {
-            detectorPtr.dictionaryPtr = new Dictionary();
-            if(detectorPtr.dictionaryPtr == null) {
-                System.out.println("Assertion in Detector.alloc");
-                System.exit(1);
-            }
-
-            detectorPtr.preprocessorVectorPtr = Vector_t.vector_alloc(1);
-            if(detectorPtr.preprocessorVectorPtr == null) {
-                 System.out.println("Assertion in Detector.alloc");               
-                 System.exit(1);
-            }
-        }
-
-            return detectorPtr;
-    }
-
-/* =============================================================================
- * Pdetector_alloc
- * =============================================================================
- detector_t* Pdetector_alloc ();
- */
-
-
-/* =============================================================================
- * detector_free
- * =============================================================================
- void detector_free (detector_t* detectorPtr);
- */
-
-
-/* =============================================================================
- * Pdetector_free
- * =============================================================================
- void Pdetector_free (detector_t* detectorPtr);
- */
-
+  public Detector() {
+    dictionaryPtr = new Dictionary();
+    preprocessorVectorPtr = new Vector_t(1);
+  }
 
 /* =============================================================================
  * detector_addPreprocessor
@@ -141,50 +103,38 @@ public class Detector {
  * =============================================================================
  * error_t detector_process (detector_t* detectorPtr, char* str);
  */
-    public int process(byte[] str) 
-    {
-        /*
-         * Apply preprocessors
-         */
-
-        int p;
-        int numPreprocessor = preprocessorVectorPtr.vector_getSize();
-        int i;
-        for(p = 0; p < numPreprocessor; p++) {
-            Integer preprocessor = (Integer)preprocessorVectorPtr.vector_at(p);
-            if(preprocessor.intValue() == 1) {
-                System.out.println("NOOOOOOOOOOOOO");
-            }
-            else if(preprocessor.intValue() == 2) {
-                for(i=0;i<str.length;i++)
-                {
-                    if(str[i] >'A' && str[i] < 'Z')
-                    {
-                        str[i] = (byte)(str[i] + (byte)32);
-                    }
-                }
-
-
-            }
-            else {
-                System.out.println("NOOOOOOOOOOOOO");
-            }
-        }
-
-        /*
-         * Check against signatures of known attacks
-         */
-
-        ERROR err = new ERROR();
-//        System.out.print("str = \"" + str+ "\"");
-        String signature = dictionaryPtr.match(new String(str));
-//      System.out.println("\tSign = \"" + signature+ "\"");
-        if(signature != null) {
-            return err.SIGNATURE;
-        }
-
-        return err.NONE;
+  public int process(byte[] str) {
+    /*
+     * Apply preprocessors
+     */
+    int numPreprocessor = preprocessorVectorPtr.vector_getSize();
+    for(int p = 0; p < numPreprocessor; p++) {
+      Integer preprocessor = (Integer)preprocessorVectorPtr.vector_at(p);
+      if(preprocessor.intValue() == 1) {
+	System.out.println("NOOOOOOOOOOOOO");
+      } else if(preprocessor.intValue() == 2) {
+	for(int i=0;i<str.length;i++) {
+	  if(str[i] >'A' && str[i] < 'Z') {
+	    str[i] +=(byte)32;
+	  }
+	}
+      } else {
+	System.out.println("NOOOOOOOOOOOOO");
+      }
     }
+    
+    /*
+     * Check against signatures of known attacks
+     */
+    
+    ERROR err = new ERROR();
+    String signature = dictionaryPtr.match(new String(str));
+    if(signature != null) {
+      return err.SIGNATURE;
+    }
+
+    return err.NONE;
+  }
 }
 
 /* =============================================================================

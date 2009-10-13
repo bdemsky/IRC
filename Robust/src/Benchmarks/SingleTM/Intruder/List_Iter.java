@@ -7,7 +7,6 @@ public class List_Iter {
        void list_iter_reset (list_iter_t* itPtr, list_t* listPtr);
     */
      public List_Iter() {
-         itPtr = null;
      }
         
      public void reset(List_t listPtr) 
@@ -21,7 +20,7 @@ public class List_Iter {
      * bool_t list_iter_hasNext (list_iter_t* itPtr, list_t* listPtr);
      */
      public boolean hasNext(List_t listPtr) {
-         return (itPtr.nextPtr != null)? true : false;
+       return itPtr.nextPtr != null;
      }
 
     /* =============================================================================

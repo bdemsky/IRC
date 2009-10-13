@@ -4,7 +4,5 @@ public class List_Node {
     List_Node nextPtr;
 
     public List_Node() {
-        dataPtr = null;
-        nextPtr = null;
     }
 }

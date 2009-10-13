@@ -81,7 +81,11 @@
 
 #define RED 0
 #define BLACK 1
-
+#define parentOf(n) (n!=null? n.p : null)
+#define leftOf(n) (n!=null? n.l : null)
+#define rightOf(n) (n!=null? n.r : null)
+#define colorOf(n) (n!=null? n.c : BLACK)
+#define setColor(n, col) if (n!=null) n.c=col;
 
 public class RBTree {
     Node root;
@@ -153,37 +157,7 @@ public class RBTree {
         x.p = l;
     }
 
-    /* parentOf */
-    private Node parentOf (Node n)
-    {
-        return ((n!=null) ? n.p : null);
-    }
 
-    /* leftOf */
-    private Node leftOf (Node n)
-    {
-        return ((n != null)? n.l : null);
-    }
-
-    /* rightOf */
-    private Node rightOf(Node n)
-    {
-        return ((n!= null) ? n.r : null);
-    }
-
-    /* colorOf */
-    private int colorOf(Node n)
-    {
-        return ((n!=null) ? n.c : BLACK);
-    }
-
-    /* setColor */
-    private void setColor(Node n, int c)
-    {
-        if ( n != null) {
-            n.c = c;
-        }
-    }
     
     /* fixAfterInsertion */
     private void fixAfterInsertion(Node x)
@@ -586,16 +560,10 @@ public class RBTree {
  * =============================================================================
  * rbtree_t* rbtree_alloc (long (*compare)(const void*, const void*));
  */
-    public static RBTree alloc(int compID) 
-    {
-        RBTree n = new RBTree();
-        if (n != null) {
-            n.compID = compID;
-            n.root = null;
-        }
-
-        return n;
-    }
+  public RBTree(int compID) {
+    this.compID = compID;
+    this.root = null;
+  }
 
 
 

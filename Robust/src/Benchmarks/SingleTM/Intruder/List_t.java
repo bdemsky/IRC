@@ -91,14 +91,7 @@ public class List_t {
     private List_Node allocNode(Object dataPtr) 
     {
         List_Node nodePtr = new List_Node();
-
-        if(nodePtr == null) {
-            return null;
-        }
-
         nodePtr.dataPtr = dataPtr;
-        nodePtr.nextPtr = null;
-
         return nodePtr;
     }
         
@@ -113,22 +106,10 @@ public class List_t {
  *
  */
 
-    public static List_t alloc(int chk) 
-    {
-        List_t listPtr = new List_t();
-
-        if(listPtr  == null) {
-            return null;
-        }
-
-        listPtr.head.dataPtr = null;
-        listPtr.head.nextPtr = null;
-        listPtr.size = 0;
-        
-        listPtr.chk = chk;
-
-        return listPtr;
-    }
+  public List_t(int chk) {
+    this.head = new List_Node();
+    this.chk=chk;
+  }
     
 /* =============================================================================
  * list_free
@@ -137,12 +118,6 @@ public class List_t {
  * =============================================================================
  * void list_free (list_t* listPtr);
  */
-    public static void free(List_t listPtr) 
-    {
-        listPtr = null;
-    }
-
-//    privae freeList
 
 /* =============================================================================
  * list_isEmpty

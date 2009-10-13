@@ -2,28 +2,17 @@ public class Vector_t {
   int size;
   int capacity;
   Object[] elements;
-//  QuickSort qsort;
-
-  public Vector_t() {
-//    qsort = new QuickSort();
-  }
 
   /* =============================================================================
    * Vector_alloc
    * -- Returns null if failed
    * =============================================================================
    */
-  public static Vector_t vector_alloc (int initCapacity) {
+  public Vector_t(int initCapacity) {
     int capacity = Math.imax(initCapacity, 1);
-    Vector_t vectorPtr = new Vector_t();
-    if(vectorPtr != null) {
-      vectorPtr.size = 0;
-      vectorPtr.capacity = capacity;
-      vectorPtr.elements = new Object[capacity];
-      if(vectorPtr.elements == null) 
-        return null;
-    }
-    return vectorPtr;
+    this.size = 0;
+    this.capacity = capacity;
+    this.elements = new Object[capacity];
   }
 
   /* =============================================================================

@@ -8,6 +8,7 @@ public class Random {
   int MATRIX_A;
   int UPPER_MASK;
   int LOWER_MASK;
+  int[] mag01;
 
   public Random() {
     RANDOM_DEFAULT_SEED = 0;
@@ -18,6 +19,10 @@ public class Random {
     MATRIX_A = 0x9908b0df;   /* constant vector a */
     UPPER_MASK = 0x80000000; /* most significant w-r bits */
     LOWER_MASK = 0x7fffffff; /* least significant r bits */
+    mag01 = new int[2];
+    mag01[0] = 0x0;
+    mag01[1] = MATRIX_A;
+
   }
 
   public void random_alloc() {
@@ -26,9 +31,8 @@ public class Random {
 
   /* initializes mt[N] with a seed */
   public void init_genrand(int s) {
-    int mti;
     mt[0]= s & 0xFFFFFFFF;
-    for (mti=1; mti<N; mti++) {
+    for (int mti=1; mti<N; mti++) {
      mt[mti] = (1812433253 * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
       /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
       /* In the previous versions, MSBs of the seed affect   */
@@ -45,35 +49,36 @@ public class Random {
   }
 
   public int random_generate() {
-    return genrand_int32();
+    return 0x7fffffff&genrand_int32();
   }
 
-  //public static int genrand_int32(int[] mt, int mtiPtr) {
+  public int posrandom_generate() {
+    return 0x7fffffff&genrand_int32();
+  }
+
   public int genrand_int32() {
     int y;
-    int[] mag01= new int[2];
-    mag01[0] = 0x0;
-    mag01[1] = MATRIX_A;
     int mti = this.mti;
 
     /* mag01[x] = x * MATRIX_A  for x=0,1 */
 
-    if (mti >= N) { /* generate N words at one time */
+    if (mti >= 624) { /* generate N words at one time */
       int kk;
+      int[] mt = this.mt;
 
-      if (mti == N+1)   /* if init_genrand() has not been called, */
+      if (mti == 624+1)   /* if init_genrand() has not been called, */
         init_genrand(5489); /* a default initial seed is used */
 
-      for (kk=0;kk<N-M;kk++) {
-        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-        mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[(int)(y & 0x1)];
+      for (kk=0;kk<(624-397);kk++) {
+        y = (mt[kk]&0x80000000)|(mt[kk+1]&0x7fffffff);
+        mt[kk] = mt[kk+397] ^ (y >> 1) ^ ((y & 0x1)==0 ? 0:0x9908b0df);
       }
-      for (;kk<N-1;kk++) {
-        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-        mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[(int)(y & 0x1)];
+      for (;kk<(624-1);kk++) {
+        y = (mt[kk]&0x80000000)|(mt[kk+1]&0x7fffffff);
+        mt[kk] = mt[kk+(397-624)] ^ (y >> 1) ^ ((y & 0x1)==0 ? 0:0x9908b0df);
       }
-      y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
-      mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[(int)(y & 0x1)];
+      y = (mt[624-1]&0x80000000)|(mt[0]&0x7fffffff);
+      mt[624-1] = mt[397-1] ^ (y >> 1) ^ ((y & 0x1)==0 ? 0:0x9908b0df);
 
       mti = 0;
     }
