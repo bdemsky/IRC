@@ -18,7 +18,7 @@ public class MemoryStall {
     for(Iterator<SESENode> seseit=seseset.iterator();seseit.hasNext();) {
       SESENode sese=seseit.next();
       if (!sese.isLeaf())
-	return false
+	return false;
     }
     return true;
   }
