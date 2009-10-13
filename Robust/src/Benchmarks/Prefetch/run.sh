@@ -2,7 +2,7 @@
 
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
-benchmarks='array chase 40962dconv 2048mmver moldynverC 2500fft2d 10lookup rainforest'
+benchmarks='array chase tree 60050mmver moldynverB 2000fft2d 40962dconv sorverD rainforest'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
 TOPDIR=`pwd`
@@ -129,6 +129,7 @@ function runallstats {
       ln -s ${DSTMDIR}/dstm_8.conf dstm.conf
     fi
     chmod +x ~/.tmpvars
+    echo "args=$arg thds=${2}Thd" > ~/.tmpparams
     for machine in `echo $MACHINES`
     do
       ssh ${machine} 'cd `cat ~/.tmpdir`; source ~/.tmpvars; /usr/bin/time -f "%e" ./$bin 2>> ./clienttime_`hostname | cut -f1 -d"."`.txt' &
@@ -221,12 +222,12 @@ for count in 2 4 8
 do
 echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
 run 10 $count $NONPREFETCH_NONCACHE
-echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
-run 10 $count $NONPREFETCH
-#echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
-#run 1 $count $PREFETCH
-echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-run 10 $count $MANUAL_PREFETCH
+#echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
+#run 10 $count $NONPREFETCH
+echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
+run 10 $count $PREFETCH
+#echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+#run 10 $count $MANUAL_PREFETCH
 
 ###########
 #echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
@@ -275,21 +276,22 @@ function callmicrorun {
 
   cd $BMDIR 
   echo "---------- Running local $BMDIR non-prefetch on 1 machine ---------- "
-  localrun 1
+  localrun 10
   echo "---------- Running single thread remote $BMDIR non-prefetch + non-cache on 2 machines ---------- "
   oneremote 10 1 $NONPREFETCH_NONCACHE
-  echo "---------- Running single thread remote $BMDIR non-prefetch on 2 machines ---------- "
-  oneremote 10 1 $NONPREFETCH
-# echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
-# oneremote 10 1 $PREFETCH
-  echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-  oneremote 1 1 $MANUAL_PREFETCH
+#  echo "---------- Running single thread remote $BMDIR non-prefetch on 2 machines ---------- "
+#  oneremote 10 1 $NONPREFETCH
+  echo "---------- Running single thread remote $BMDIR prefetch on 2 machines ---------- "
+  oneremote 10 1 $PREFETCH
+#  echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+#  oneremote 1 1 $MANUAL_PREFETCH
   cd $TOPDIR
 }
 
 
 echo "---------- Clean old files ---------- "
-rm runlog/*
+#rm runlog/*
+mv runlog/* runlog/results/.
 for b in `echo $benchmarks`
 do
   bm=`grep $b bm.txt`
@@ -306,11 +308,12 @@ do
   EXTENSION=`echo $bm | cut -f11 -d":"`
   name1='array'
   name2='chase'
-  if [ $b == $name1 ] || [ $b == $name2 ]; then
+  name3='tree'
+  if [ $b == $name1 ] || [ $b == $name2 ] || [ $b == $name3 ]; then
   callmicrorun
   else
-  callrun
   callrunjavasingle
+  callrun
   fi
 done
 
