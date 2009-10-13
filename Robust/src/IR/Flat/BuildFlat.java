@@ -114,6 +114,22 @@ public class BuildFlat {
 
   FlatAtomicEnterNode curran=null;
 
+  private FlatNode spliceReturn(FlatNode fn) {
+    FlatReturnNode rnflat=null;
+    if (currmd.getReturnType()==null||currmd.getReturnType().isVoid()) {
+      rnflat=new FlatReturnNode(null);
+      fn.addNext(rnflat);
+    } else {
+      TempDescriptor tmp=TempDescriptor.tempFactory("rettmp",currmd.getReturnType());
+      Object o=currmd.getReturnType().isPtr()?null:new Integer(1);
+      FlatLiteralNode fln=new FlatLiteralNode(currmd.getReturnType(),o,tmp);
+      rnflat=new FlatReturnNode(tmp);
+      fln.addNext(rnflat);
+      fn.addNext(fln);	    
+    }
+    return rnflat;
+  }
+
   private void flattenClass(ClassDescriptor cn) {
     Iterator methodit=cn.getMethods();
     while(methodit.hasNext()) {     
@@ -163,8 +179,7 @@ public class BuildFlat {
 	  MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
 	  FlatCall fcunlock=new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
 	  np.getEnd().addNext(fcunlock);
-	  FlatReturnNode rnflat=new FlatReturnNode(null);
-	  fcunlock.addNext(rnflat);
+	  FlatNode rnflat=spliceReturn(fcunlock);
 	  rnflat.addNext(fe);
 	}
       } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
@@ -173,22 +188,20 @@ public class BuildFlat {
 	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	  FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
 	  np.getEnd().addNext(aen);
-	  FlatReturnNode rnflat=new FlatReturnNode(null);
-	  aen.addNext(rnflat);
+	  FlatNode rnflat=spliceReturn(aen);
 	  rnflat.addNext(fe);
 	}	
 
       } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-	FlatReturnNode rnflat=new FlatReturnNode(null);
+	FlatNode rnflat=null;
 	// splice implicit SESE exit after method body
 	if( state.MLP ) {
 	  np.getEnd().addNext(spliceExit);
-	  spliceExit.addNext(rnflat);
+	  rnflat=spliceReturn(spliceExit);
 	} else {
-	  np.getEnd().addNext(rnflat);	
+	  rnflat=spliceReturn(np.getEnd());
 	}
 	rnflat.addNext(fe);
-	  
       } else if (np.getEnd()!=null) {
 	// splice implicit SESE exit after method body
 	if( state.MLP ) {
