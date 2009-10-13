@@ -129,6 +129,22 @@ void randomdelay(int softaborted) {
  * -copies the object into the transaction cache
  * =============================================================
  */
+
+//void *TR(void *x, void * y, void *z) {
+//  void * inputvalue;				
+//  if ((inputvalue=y)==NULL) x=NULL;		
+//  else {
+//    chashlistnode_t * cnodetmp=&c_table[(((unsigned INTPTR)inputvalue)&c_mask)>>4]; 
+//    do { 
+//      if (cnodetmp->key==inputvalue) {x=cnodetmp->val; break;} 
+//      cnodetmp=cnodetmp->next; 
+//      if (cnodetmp==NULL) {if (((struct ___Object___*)inputvalue)->___objstatus___&NEW) {x=inputvalue; break;} else
+//			     {x=transRead(inputvalue,z); asm volatile ("" : "=m" (c_table),"\=m" (c_mask)); break;}}
+//    } while(1);
+//  }
+//  return x;
+//}
+
 //__attribute__ ((pure)) 
 void *transRead(void * oid, void *gl) {
   objheader_t *tmp, *objheader;

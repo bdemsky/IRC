@@ -1,4 +1,7 @@
 #include<tm.h>
+#ifdef DELAYCOMP
+#include<delaycomp.h>
+#endif
 
 /* ================================================================
  * transCommit

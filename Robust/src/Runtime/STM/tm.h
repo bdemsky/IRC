@@ -94,6 +94,7 @@ typedef struct objheader {
 #define NEED_LOCK_THRESHOLD 0.020000
 #define OSUSED(x) (((unsigned INTPTR)(x)->top)-((unsigned INTPTR) (x+1)))
 #define OSFREE(x) ((x)->size-OSUSED(x))
+
 #define TRANSREAD(x,y,z) { \
     void * inputvalue; \
     if ((inputvalue=y)==NULL) x=NULL;\

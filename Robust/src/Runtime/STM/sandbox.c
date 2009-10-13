@@ -5,25 +5,58 @@ __thread int transaction_check_counter;
 __thread jmp_buf aborttrans;
 __thread int abortenabled;
 __thread int * counter_reset_pointer;
+#ifdef DELAYCOMP
+#include "delaycomp.h"
+#endif
 
 void checkObjects() {
   if (abortenabled&&checktrans()) {
-    printf("Abort\n");
+    printf("Loop Abort\n");
     transaction_check_counter=(*counter_reset_pointer=HIGH_CHECK_FREQUENCY);
-    longjmp(aborttrans, 1);
+#ifdef TRANSSTATS
+    numTransAbort++;
+#endif
+    freenewobjs();
+    objstrReset();
+    t_chashreset();
+#ifdef READSET
+    rd_t_chashreset();
+#endif
+#ifdef DELAYCOMP
+    dc_t_chashreset();
+    ptrstack.count=0;
+    primstack.count=0;
+    branchstack.count=0;
+#endif
+    _longjmp(aborttrans, 1);
   }
   transaction_check_counter=*counter_reset_pointer;
 }
 
 /* Do sandboxing */
 void errorhandler(int sig, struct sigcontext ctx) {
-  printf("Error\n");
+  //  printf("Error\n");
   if (abortenabled&&checktrans()) {
     sigset_t toclear;
     sigemptyset(&toclear);
     sigaddset(&toclear, sig);
     sigprocmask(SIG_UNBLOCK, &toclear,NULL); 
-    longjmp(aborttrans, 1);
+#ifdef TRANSSTATS
+    numTransAbort++;
+#endif
+    freenewobjs();
+    objstrReset();
+    t_chashreset();
+#ifdef READSET
+    rd_t_chashreset();
+#endif
+#ifdef DELAYCOMP
+    dc_t_chashreset();
+    ptrstack.count=0;
+    primstack.count=0;
+    branchstack.count=0;
+#endif
+    _longjmp(aborttrans, 1);
   }
   threadhandler(sig, ctx);
 }

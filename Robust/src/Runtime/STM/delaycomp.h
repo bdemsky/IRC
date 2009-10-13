@@ -12,17 +12,17 @@
 struct pointerlist {
   int count;
   void * prev;
-  void * array[MAXPOINTERS];
+  void * array[MAXPOINTERS+1024];
 };
 
 struct primitivelist {
   int count;
-  int array[MAXVALUES];
+  int array[MAXVALUES+1024];
 };
 
 struct branchlist {
   int count;
-  char array[MAXBRANCHES];
+  char array[MAXBRANCHES+4096];
 };
 
 extern __thread struct pointerlist ptrstack;

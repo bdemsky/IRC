@@ -1,5 +1,6 @@
 #include "runtime.h"
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -148,7 +149,7 @@ void threadhandler(int sig, struct sigcontext ctx) {
   threadexit();
 }
 
-struct primitivelist *pl;
+#define downpage(x) ((void *)(((INTPTR)x)&~((INTPTR)4095)))
 
 void initializethreads() {
   struct sigaction sig;
@@ -173,6 +174,7 @@ void initializethreads() {
   //deprecated use of sighandler, but apparently still works
 #ifdef SANDBOX
   sig.sa_handler=(void *)errorhandler;
+  abortenabled=0;
 #else
   sig.sa_handler=(void *)threadhandler;
 #endif
@@ -196,7 +198,16 @@ void initializethreads() {
   dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
   ptrstack.count=0;
   primstack.count=0;
-  pl=&primstack;
+  branchstack.count=0;
+  int a=mprotect((downpage(&ptrstack.array[MAXPOINTERS])), 4096, PROT_NONE);
+  if (a==-1)
+    perror("ptrstack");
+  a=mprotect(downpage(&primstack.array[MAXVALUES]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("primstack");
+  a=mprotect(downpage(&branchstack.array[MAXBRANCHES]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("branchstack");
 #endif
 #ifdef STMSTATS
   trec=calloc(1, sizeof(threadrec_t));
@@ -207,7 +218,9 @@ void initializethreads() {
   { 
     int i;
     for(i=0; i<TOTALNUMCLASSANDARRAY; i++) {
-      typesCausingAbort[i] = 0;
+      typesCausingAbort[i].numaccess = 0;
+      typesCausingAbort[i].numabort = 0;
+      typesCausingAbort[i].numtrans = 0;
     }
   }
 #endif
@@ -232,6 +245,18 @@ void initializethreads() {
 
 #if defined(THREADS)||defined(STM)
 void initthread(struct ___Thread___ * ___this___) {
+#ifdef SANDBOX
+  struct sigaction sig;
+  abortenabled=0;
+  sig.sa_handler=(void *)errorhandler;
+  sig.sa_flags=SA_RESTART;
+  sigemptyset(&sig.sa_mask);
+
+  /* Catch bus errors, segmentation faults, and floating point exceptions*/
+  sigaction(SIGBUS,&sig,0);
+  sigaction(SIGSEGV,&sig,0);
+  sigaction(SIGFPE,&sig,0);
+#endif
 #ifdef PRECISE_GC
   INTPTR p[]={1, (INTPTR) NULL, (INTPTR) ___this___};
   //Add our litem to list of threads
@@ -266,6 +291,16 @@ void initthread(struct ___Thread___ * ___this___) {
   dc_t_chashCreate(CHASH_SIZE, CLOADFACTOR);
   ptrstack.count=0;
   primstack.count=0;
+  branchstack.count=0;
+  int a=mprotect(downpage(&ptrstack.array[MAXPOINTERS]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("ptrstack");
+  a=mprotect(downpage(&primstack.array[MAXVALUES]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("primstack");
+  a=mprotect(downpage(&branchstack.array[MAXBRANCHES]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("branchstack");
 #endif
  ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
  objstrDelete(t_cache);
