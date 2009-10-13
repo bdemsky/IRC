@@ -200,15 +200,15 @@ __attribute__((pure)) void *transReadOnly(void *);
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
-void transCommitProcess(void **, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+void transCommitProcess(struct garbagelist *, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 #else
 int transCommit();
 int traverseCache();
 int alttraverseCache();
-void transCommitProcess(void **, int);
+void transCommitProcess(struct garbagelist *, int);
 #endif
 int altalttraverseCache();
-void transAbortProcess(void **, int);
+void transAbortProcess(struct garbagelist *, int);
 void randomdelay(int);
 #if defined(STMSTATS)||defined(SOFTABORT)
 int getTotalAbortCount(int, int, void *, int, void*, int*, int*, int, objheader_t*, int*);
@@ -253,5 +253,11 @@ extern __thread int t_objnumcount;
 extern void * curr_heapbase;
 extern void * curr_heapptr;
 extern void * curr_heaptop;
+
+struct fixedlist {
+  int size;
+  void * next;
+  void * array[200];
+};
 
 #endif

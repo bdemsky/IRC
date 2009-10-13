@@ -156,9 +156,9 @@ int transCommit() {
 #ifdef DELAYCOMP
 #define allocarrays int t_numelements=c_numelements+dc_c_numelements; \
   if (t_numelements<200) { \
-    oidwrlocked=wrlocked; \
+    oidwrlocked=(struct garbagelist *) &wrlocked;			\
   } else { \
-    oidwrlocked=malloc(t_numelements*sizeof(void *)); \
+    oidwrlocked=malloc(2*sizeof(INTPTR)+t_numelements*sizeof(void *));	\
   } \
   if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
@@ -169,19 +169,21 @@ int transCommit() {
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
     STATALLOC		       \
-  }
+  }\
+  dirwrlocked=oidwrlocked->array;
 #else
 #define allocarrays if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
-    oidwrlocked=wrlocked; \
+    oidwrlocked=(struct garbagelist *) &wrlocked; \
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
-    oidwrlocked=malloc(size); \
+    oidwrlocked=malloc(size+2*sizeof(INTPTR));	\
     STATALLOC		      \
-  }
+  } \
+  dirwrlocked=oidwrlocked->array;
 #endif
 
 /* ==================================================
@@ -200,11 +202,12 @@ int traverseCache() {
   int numoidwrlocked=0;
   void * rdlocked[200];
   int rdversion[200];
-  void * wrlocked[200];
+  struct fixedlist wrlocked;
   int softabort=0;
   int i;
   void ** oidrdlocked;
-  void ** oidwrlocked;
+  struct garbagelist * oidwrlocked;
+  void ** dirwrlocked;
 #ifdef STMSTATS
   int rdage[200];
   int * oidrdage;
@@ -230,18 +233,18 @@ int traverseCache() {
       if(curr->key == NULL)
 	break;
       objheader_t * headeraddr=&((objheader_t *) curr->val)[-1]; //cached object
-      objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t)); //real object
+      void * objptr=curr->key;
+      objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t)); //real object
       unsigned int version = headeraddr->version;
 
       if(STATUS(headeraddr) & DIRTY) {
 	/* Read from the main heap  and compare versions */
 	if(write_trylock(&header->lock)) { //can aquire write lock
-	  printf("LOCK=%u\n", OID(header));
 	  if (version == header->version) { /* versions match */
 	    /* Keep track of objects locked */
-	    oidwrlocked[numoidwrlocked++] = header;
+	    dirwrlocked[numoidwrlocked++] = objptr;
 	  } else {
-	    oidwrlocked[numoidwrlocked++] = header;
+	    dirwrlocked[numoidwrlocked++] = objptr;
 	    transAbortProcess(oidwrlocked, numoidwrlocked);
 #ifdef STMSTATS
 	    header->abortCount++;
@@ -308,10 +311,10 @@ int traverseCache() {
   while(likely(dc_curr != NULL)) {
     //if the first bin in hash table is empty
     objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
-    objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
+    void *objptr=dc_curr->key;
+    objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
     if(write_trylock(&header->lock)) { //can aquire write lock    
-      printf("LOCK=%u\n", OID(header));
-      oidwrlocked[numoidwrtotal++] = header;
+      dirwrlocked[numoidwrtotal++] = objptr;
     } else {
       //maybe we already have lock
       void * key=dc_curr->key;
@@ -553,7 +556,7 @@ int alttraverseCache() {
   int numoidwrlocked=0;
   void * rdlocked[200];
   int rdversion[200];
-  void * wrlocked[200];
+  struct fixedlist wrlocked;
   int softabort=0;
   int i;
   void ** oidrdlocked;
@@ -564,7 +567,8 @@ int alttraverseCache() {
   int ObjSeqId;
   int objtypetraverse[TOTALNUMCLASSANDARRAY];
 #endif
-  void ** oidwrlocked;
+  struct garbagelist * oidwrlocked;
+  void ** dirwrlocked;
   allocarrays;
 
 #ifdef STMSTATS
@@ -576,18 +580,18 @@ int alttraverseCache() {
   while(likely(curr != NULL)) {
     //if the first bin in hash table is empty
     objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
-    objheader_t *header=(objheader_t *)(((char *)curr->key)-sizeof(objheader_t));
+    void *objptr=curr->key;
+    objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
     unsigned int version = headeraddr->version;
 
     if(STATUS(headeraddr) & DIRTY) {
       /* Read from the main heap  and compare versions */
       if(likely(write_trylock(&header->lock))) { //can aquire write lock
-	printf("LOCK=%u\n", OID(header));
 	if (likely(version == header->version)) { /* versions match */
 	  /* Keep track of objects locked */
-	  oidwrlocked[numoidwrlocked++] = header;
+	  dirwrlocked[numoidwrlocked++] = objptr;
 	} else {
-	  oidwrlocked[numoidwrlocked++] = header;
+	  dirwrlocked[numoidwrlocked++] = objptr;
 	  transAbortProcess(oidwrlocked, numoidwrlocked);
 #ifdef STMSTATS
 	  header->abortCount++;
@@ -606,7 +610,6 @@ int alttraverseCache() {
       } else { /* cannot aquire lock */
 	if(version == header->version) {
 	  /* versions match */
-	  printf("Locked %u\n",OID(header));
 	  softabort=1;
 	}
 	transAbortProcess(oidwrlocked, numoidwrlocked);
@@ -646,10 +649,10 @@ int alttraverseCache() {
   while(likely(dc_curr != NULL)) {
     //if the first bin in hash table is empty
     objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
-    objheader_t *header=(objheader_t *)(((char *)dc_curr->key)-sizeof(objheader_t));
+    void *objptr=dc_curr->key;
+    objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
     if(write_trylock(&header->lock)) { //can aquire write lock
-      printf("LOCK=%u\n", OID(header));
-      oidwrlocked[numoidwrtotal++] = header;
+      dirwrlocked[numoidwrtotal++] = objptr;
     } else {
       //maybe we already have lock
       void * key=dc_curr->key;
@@ -738,7 +741,6 @@ int alttraverseCache() {
 #endif
     } else { /* cannot aquire lock */
       if(version == header->version) {
-	printf("Locked %u\n",OID(header));
 	softabort=1;
       }
 #ifdef DELAYCOMP
@@ -874,18 +876,15 @@ int alttraverseCache() {
 
  int logflag=1;
 
-void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
+void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
   int i;
   objheader_t *header;
   /* Release read locks */
-
+  void ** dirwrlocked=oidwrlocked->array;
   /* Release write locks */
   for(i=numoidwrlocked-1; i>=0; i--) {
     /* Read from the main heap */
-    header = (objheader_t *)oidwrlocked[i];
-    if (logflag) {
-      printf("Unlocking %u\n", OID(header));
-    }
+    header = &((objheader_t *)dirwrlocked[i])[-1];
     write_unlock(&header->lock);
   }
 #ifdef STMSTATS
@@ -909,14 +908,15 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
  * =================================
  */
 #ifdef DELAYCOMP
- void transCommitProcess(void ** oidwrlocked, int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
 #else
-   void transCommitProcess(void ** oidwrlocked, int numoidwrlocked) {
+   void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
 #endif
   objheader_t *header;
   void *ptrcreate;
   int i;
   struct objlist *ptr=newobjs;
+  void **dirwrlocked=oidwrlocked->array;
   while(ptr!=NULL) {
     int max=ptr->offset;
     for(i=0; i<max; i++) {
@@ -929,10 +929,10 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
   /* Copy from transaction cache -> main object store */
   for (i = numoidwrlocked-1; i >=0; i--) {
     /* Read from the main heap */
-    header = (objheader_t *)oidwrlocked[i];
+    header = &((objheader_t *)dirwrlocked[i])[-1];
     int tmpsize;
     GETSIZE(tmpsize, header);
-    struct ___Object___ *dst=(struct ___Object___*)(((char *)oidwrlocked[i])+sizeof(objheader_t));
+    struct ___Object___ *dst=(struct ___Object___*)dirwrlocked[i];
     struct ___Object___ *src=t_chashSearch(dst);
     dst->___cachedCode___=src->___cachedCode___;
     dst->___cachedHash___=src->___cachedHash___;
@@ -945,7 +945,12 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
   ptrstack.count=0;
   primstack.count=0;
   branchstack.count=0;
+  //splice oidwrlocked in
+  oidwrlocked->size=numoidwrtotal;
+  oidwrlocked->next=params;
+  ((struct garbagelist *)locals)->next=oidwrlocked;
   commitmethod(params, locals, primitives);
+  ((struct garbagelist *)locals)->next=params;
 #endif
 
   /* Release write locks */
@@ -954,11 +959,8 @@ void transAbortProcess(void **oidwrlocked, int numoidwrlocked) {
 #else
   for(i=numoidwrlocked-1; i>=0; i--) {
 #endif
-    header = (objheader_t *)oidwrlocked[i];
+    header = &((objheader_t *)dirwrlocked[i])[-1];
     header->version++;
-    if (logflag) {
-      printf("Unlocking %u\n", OID(header));
-    }
     write_unlock(&header->lock);
   }
 
