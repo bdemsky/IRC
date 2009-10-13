@@ -469,7 +469,11 @@ __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
 
 /* Array allocation function */
 __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, int type, int length) {
+#ifdef STMARRAY
+  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(int)*(((length*classsize[type])>>DBLINDEXSHIFT)), (length*classsize[type])>>DBLINDEXSHIFT);
+#else
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]);
+#endif
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;
@@ -479,6 +483,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
   v->___length___=length;
   return v;
 }
+
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, classsize[type]+sizeof(objheader_t));
   struct ___Object___ * v=(struct ___Object___ *) &tmp[1];
@@ -492,7 +497,12 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 /* Array allocation function */
 
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
+#ifdef STMARRAY
+  int *tmpint=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t)+sizeof(int)*(((length*classsize[type])>>DBLINDEXSHIFT)));
+  objheader_t *tmp=(objheader_t *)(tmpint+((length*classsize[type])>>DBLINDEXSHIFT));
+#else
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t));
+#endif
   struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
   initdsmlocks(&tmp->lock);
   tmp->version=1;

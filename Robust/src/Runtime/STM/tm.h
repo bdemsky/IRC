@@ -260,4 +260,8 @@ struct fixedlist {
   void * array[200];
 };
 
+#ifdef STMARRAY
+#include "array.h"
+#endif
+
 #endif

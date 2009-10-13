@@ -89,9 +89,15 @@ void transStart() {
  * This function creates objects in the transaction record
  * =======================================================
  */
+#ifdef STMARRAY
+objheader_t *transCreateObj(void * ptr, unsigned int size, int bytelength) {
+  int *tmpint = mygcmalloc(ptr, (sizeof(objheader_t) + size));
+  objheader_t *tmp = (objheader_t *) (tmpint+(bytelength>>DBLINDEXSHIFT));
+#else
 objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *tmp = mygcmalloc(ptr, (sizeof(objheader_t) + size));
-  objheader_t *retval=&tmp[1];
+#endif
+  objheader_t *retval=tmp+1;
   tmp->lock=RW_LOCK_BIAS;
   tmp->version = 1;
   //initialize obj lock to the header
