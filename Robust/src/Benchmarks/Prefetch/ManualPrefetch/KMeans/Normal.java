@@ -113,12 +113,13 @@ public class Normal {
     npoints = args.npoints;
 
     //Add Manual prefetch for 
-        //args.feature[start-> stop]
+    //args.feature[start-> stop]
     short[] offsets = new short[4];
     offsets[0] = getoffset{GlobalArgs, feature};
     offsets[1] = (short) 0;
     offsets[2] = (short) start;
     offsets[3] = (short) npoints;
+    System.rangePrefetch(args, offsets);
     //args.clusters[0-> nclusters]
     offsets[0] = getoffset{GlobalArgs, clusters};
     offsets[1] = (short) 0;
