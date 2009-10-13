@@ -1,24 +1,32 @@
 #!/bin/bash
 
 printhelp() {
-echo -robustroot set up the ROBUSTROOT to directory other than default one
-echo -dsm distributed shared memory
+echo STM Options
 echo -singleTM single machine committing transactions
-echo -readset turn on readset
 echo -stmdebug STM debug
 echo "-stmstats prints single machine commit (stm) statistics for the benchmark"
 echo -fastmemcpy use fast memcpy
-echo -abortreaders abort readers immediately
 echo -sandbox sandbox transactions
+echo -dcopts conflict optimizations for transactional memory
+echo -transstats generates transaction stats on commits and aborts
+echo -inlineatomic depth inline methods inside of transactions to specified depth
+echo "-stmarray partial array treatment"
+echo
+echo DSM options
+echo -dsm distributed shared memory
+echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
+echo
+echo Other options
+echo -robustroot set up the ROBUSTROOT to directory other than default one
+echo -readset turn on readset
 echo -mac distributed shared memory mac support
 echo -check generate check code
 echo -dmalloc link in dmalloc
 echo -64bit compile for 64 bit machine
 echo -32bit compile for 32 bit machine
 echo -joptimize java compiler optimizations
-echo -dcopts conflict optimizations for transactional memory
 echo -recover compile task code
 echo -fastcheck fast checkpointing for Bristlecone
 echo -specdir directory
@@ -45,11 +53,9 @@ echo -threadsimulate generate multi-thread simulate version binary
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
-echo -transstats generates transaction stats on commits and aborts
 echo -garbagestats Print garbage collection statistics
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
-echo -inlineatomic depth inline methods inside of transactions to specified depth
 echo "-thread use support for multiple threads"
 echo "-optimize call gcc with -O9 (optimize)"
 echo "-nooptimize call gcc with -O0 (do not optimize)"
@@ -81,6 +87,7 @@ CURDIR=`pwd`
 DSMFLAG=false
 DSMRECOVERY=false
 FASTMEMCPY=false
+STMARRAY=false
 STM=false
 NOJAVA=false
 CHECKFLAG=false
@@ -194,6 +201,11 @@ then
 JAVAOPTS="$JAVAOPTS -singleTM"
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTM"
 STM=true
+elif [[ $1 = '-stmarray' ]]
+then
+JAVAOPTS="$JAVAOPTS -stmarray"
+EXTRAOPTIONS="$EXTRAOPTIONS -DSTMARRAY"
+STMARRAY=true
 elif [[ $1 = '-readset' ]]
 then
 JAVAOPTS="$JAVAOPTS -readset"

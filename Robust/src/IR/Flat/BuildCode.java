@@ -633,6 +633,11 @@ public class BuildCode {
     }
     printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
 
+    if (state.STMARRAY) {
+      outclassdefs.println("  int lowindex;");
+      outclassdefs.println("  int highindex;");
+    }
+
     if (state.ARRAYPAD)
       outclassdefs.println("  int paddingforarray;");
 

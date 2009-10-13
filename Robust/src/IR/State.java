@@ -51,8 +51,6 @@ public class State {
   public boolean MINIMIZE=false;
   public boolean TASK=false;
   public boolean FASTCHECK=false;
-  public boolean DSM=false;
-  public boolean DSMTASK=false;
   public boolean PREFETCH=false;
   public boolean TASKSTATE=false;
   public boolean TAGSTATE=false;
@@ -61,7 +59,7 @@ public class State {
   public boolean FLATIRGRAPHUSERMETHODS=false;
   public boolean FLATIRGRAPHLIBMETHODS=false;
   public boolean MULTICORE=false;
-	public boolean MULTICOREGC=false;
+  public boolean MULTICOREGC=false;
   public boolean OWNERSHIP=false;
   public int OWNERSHIPALLOCDEPTH=3;
   public boolean OWNERSHIPWRITEDOTS=false;
@@ -88,10 +86,18 @@ public class State {
   public static boolean PRINTSCHEDULING=false;
   public static boolean PRINTSCHEDULESIM=false;
   public static boolean PRINTCRITICALPATH=false;
+  //DSM options
+  public boolean DSM=false;
+  public boolean DSMTASK=false;
   public static boolean ABORTREADERS=false;
+  //STM options
+  public static boolean STMARRAY=false;
   public static boolean SINGLETM=false;
   public static boolean READSET=false;
   public boolean SANDBOX=false;
+  public boolean DCOPTS=false;
+  public boolean DELAYCOMP=false;
+  //Other options
   public int CORENUM = 1;
   public String structfile;
   public String main;
@@ -112,9 +118,6 @@ public class State {
   private int numtasks=0;
   private int arraycount=0;
   public boolean OPTIMIZE=false;
-  public boolean DCOPTS=false;
-  public boolean DELAYCOMP=false;
-
 
   private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
   private Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> analysisresults;

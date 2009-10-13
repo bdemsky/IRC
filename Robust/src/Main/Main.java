@@ -117,6 +117,8 @@ public class Main {
 	state.TASKSTATE=true;
       else if (option.equals("-tagstate"))
 	state.TAGSTATE=true;
+      else if (option.equals("-stmarray"))
+	state.STMARRAY=true;
       else if (option.equals("-flatirtasks")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHTASKS=true;
