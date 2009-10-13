@@ -859,10 +859,18 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
       int elementsize=classsize[type];
       int length=ao->___length___;
 #ifdef STM
+#ifdef STAMARRAY
+      int versionspace=sizeof(int)*(length>>DBLINDEXSHIFT);
+      int size=sizeof(struct ArrayObject)+length*elementsize+sizeof(objheader_t)+versionspace;
+      void *newobj=tomalloc(size);
+      memcpy(newobj, ((char*)orig)-sizeof(objheader_t)-versionspace, size);
+      newobj=((char *)newobj)+sizeof(objheader_t)+versionspace;
+#else
       int size=sizeof(struct ArrayObject)+length*elementsize+sizeof(objheader_t);
       void *newobj=tomalloc(size);
       memcpy(newobj, ((char*)orig)-sizeof(objheader_t), size);
       newobj=((char *)newobj)+sizeof(objheader_t);
+#endif
 #else
       int size=sizeof(struct ArrayObject)+length*elementsize;
       void *newobj=tomalloc(size);

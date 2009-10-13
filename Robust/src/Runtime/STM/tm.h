@@ -189,7 +189,11 @@ void objstrReset();
 void objstrDelete(objstr_t *store);
 objstr_t *objstrCreate(unsigned int size);
 void transStart();
+#ifdef STMARRAY
+objheader_t *transCreateObj(void * ptr, unsigned int size, int bytelength);
+#else
 objheader_t *transCreateObj(void * ptr, unsigned int size);
+#endif
 unsigned int getNewOID(void);
 void *objstrAlloc(unsigned int size);
 __attribute__((pure)) void *transRead(void *, void *);

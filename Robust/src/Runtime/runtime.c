@@ -461,7 +461,11 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, i
 
 /* Object allocation function */
 __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
+#ifdef STMARRAY
+  struct ___Object___ * v=(struct ___Object___ *) transCreateObj(ptr, classsize[type], 0);
+#else
   struct ___Object___ * v=(struct ___Object___ *) transCreateObj(ptr, classsize[type]);
+#endif
   v->type=type;
   v->___objlocation___=v;
   return v;
