@@ -829,7 +829,14 @@ public class MLPAnalysis {
 			
 			if(fm.toString().indexOf(methodName)>0){
 				 try {
-				 og.writeGraph(fm.toString() + "SECONDGRAPH", true, true, true, true, false);
+				   og.writeGraph(fm.toString() + "SECONDGRAPH",
+						 true,  // write labels (variables)
+						 true,  // selectively hide intermediate temp vars
+						 true,  // prune unreachable heap regions
+						 false, // show back edges to confirm graph validity
+						 false, // show parameter indices (unmaintained!)
+						 true,  // hide subset reachability states
+						 false);// hide edge taints				 
 				 } catch (IOException e) {
 				 System.out.println("Error writing debug capture.");
 				 System.exit(0);

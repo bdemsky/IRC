@@ -1906,8 +1906,23 @@ public class OwnershipGraph {
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
 
       try {
-	writeGraph( "debug1BeforeCall", true, true, true, false, false );
-	ogCallee.writeGraph( "debug0Callee", true, true, true, false, false );
+	writeGraph("debug1BeforeCall",
+		      true,  // write labels (variables)
+		      true,  // selectively hide intermediate temp vars
+		      true,  // prune unreachable heap regions
+		      false, // show back edges to confirm graph validity
+		      false, // show parameter indices (unmaintained!)
+		      true,  // hide subset reachability states
+		      true); // hide edge taints
+
+	ogCallee.writeGraph("debug0Callee",
+		      true,  // write labels (variables)
+		      true,  // selectively hide intermediate temp vars
+		      true,  // prune unreachable heap regions
+		      false, // show back edges to confirm graph validity
+		      false, // show parameter indices (unmaintained!)
+		      true,  // hide subset reachability states
+		      true); // hide edge taints
       } catch( IOException e ) {}
 
       System.out.println( "  "+mc+" is calling "+fm );
@@ -2953,7 +2968,14 @@ public class OwnershipGraph {
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
       try {
-	writeGraph( "debug7JustBeforeMergeToKCapacity", true, true, true, false, false );
+	writeGraph("debug7JustBeforeMergeToKCapacity",
+		   true,  // write labels (variables)
+		   true,  // selectively hide intermediate temp vars
+		   true,  // prune unreachable heap regions
+		   false, // show back edges to confirm graph validity
+		   false, // show parameter indices (unmaintained!)
+		   true,  // hide subset reachability states
+		   true); // hide edge taints
       } catch( IOException e ) {}
     }
 
@@ -3029,7 +3051,14 @@ public class OwnershipGraph {
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
       try {
-	writeGraph( "debug8JustBeforeSweep", true, true, true, false, false );
+	writeGraph( "debug8JustBeforeSweep",
+		    true,  // write labels (variables)
+		    true,  // selectively hide intermediate temp vars
+		    true,  // prune unreachable heap regions
+		    false, // show back edges to confirm graph validity
+		    false, // show parameter indices (unmaintained!)
+		    true,  // hide subset reachability states
+		    true); // hide edge taints
       } catch( IOException e ) {}
     }
 
@@ -3043,7 +3072,14 @@ public class OwnershipGraph {
     if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) ) {
       try {
-	writeGraph( "debug9endResolveCall", true, true, true, false, false );
+	writeGraph( "debug9endResolveCall",
+		    true,  // write labels (variables)
+		    true,  // selectively hide intermediate temp vars
+		    true,  // prune unreachable heap regions
+		    false, // show back edges to confirm graph validity
+		    false, // show parameter indices (unmaintained!)
+		    true,  // hide subset reachability states
+		    true); // hide edge taints
       } catch( IOException e ) {}
       System.out.println( "  "+mc+" done calling "+fm );      
       ++x;
@@ -4480,6 +4516,7 @@ public class OwnershipGraph {
   }
 
 
+  /*
   // for writing ownership graphs to dot files
   public void writeGraph(MethodContext mc,
                          FlatNode fn,
@@ -4590,6 +4627,7 @@ public class OwnershipGraph {
                false
                );
   }
+  */
 
   public void writeGraph(String graphName,
                          boolean writeLabels,
@@ -4597,7 +4635,8 @@ public class OwnershipGraph {
                          boolean pruneGarbage,
                          boolean writeReferencers,
                          boolean writeParamMappings,
-                         boolean hideSubsetReachability
+                         boolean hideSubsetReachability,
+			 boolean hideEdgeTaints
                          ) throws java.io.IOException {
 
     // remove all non-word characters from the graph name so
@@ -4628,7 +4667,8 @@ public class OwnershipGraph {
 	                          null,
 	                          visited,
 	                          writeReferencers,
-                                  hideSubsetReachability);
+                                  hideSubsetReachability,
+				  hideEdgeTaints);
 	}
       }
     }
@@ -4684,12 +4724,14 @@ public class OwnershipGraph {
 	                            null,
 	                            visited,
 	                            writeReferencers,
-                                    hideSubsetReachability);
+                                    hideSubsetReachability,
+				    hideEdgeTaints);
 	  }
 
 	  bw.write("  "        + ln.toString() +
 	           " -> "      + hrn.toString() +
-	           "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability) +
+	           "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability,
+							hideEdgeTaints) +
 	           "\",decorate];\n");
 	}
       }
@@ -4706,7 +4748,8 @@ public class OwnershipGraph {
                                          TempDescriptor td,
                                          HashSet<HeapRegionNode> visited,
                                          boolean writeReferencers,
-                                         boolean hideSubsetReachability
+                                         boolean hideSubsetReachability,
+					 boolean hideEdgeTaints
                                          ) throws java.io.IOException {
 
     if( visited.contains(hrn) ) {
@@ -4776,7 +4819,8 @@ public class OwnershipGraph {
       case VISIT_HRN_WRITE_FULL:
 	bw.write("  "        + hrn.toString() +
 	         " -> "      + hrnChild.toString() +
-	         "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability) +
+	         "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability,
+						      hideEdgeTaints) +
 	         "\",decorate];\n");
 	break;
       }
@@ -4787,7 +4831,8 @@ public class OwnershipGraph {
                               td,
                               visited,
                               writeReferencers,
-                              hideSubsetReachability);
+                              hideSubsetReachability,
+			      hideEdgeTaints);
     }
   }
   

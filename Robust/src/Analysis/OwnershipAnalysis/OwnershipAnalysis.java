@@ -1105,7 +1105,14 @@ public class OwnershipAnalysis {
       }
       Integer n = mapMethodContextToNumUpdates.get(mc);
       try {
-	og.writeGraph(mc, n, true, true, true, false, false, true);
+	og.writeGraph(mc+"COMPLETE"+String.format("%05d", n),
+		      true,  // write labels (variables)
+		      true,  // selectively hide intermediate temp vars
+		      true,  // prune unreachable heap regions
+		      false, // show back edges to confirm graph validity
+		      false, // show parameter indices (unmaintained!)
+		      true,  // hide subset reachability states
+		      true); // hide edge taints
       } catch( IOException e ) {}
       mapMethodContextToNumUpdates.put(mc, n + 1);
     }
@@ -1132,14 +1139,6 @@ public class OwnershipAnalysis {
 
 
   private void writeFinalContextGraphs() {
-    // arguments to writeGraph are:
-    // boolean writeLabels,
-    // boolean labelSelect,
-    // boolean pruneGarbage,
-    // boolean writeReferencers
-    // boolean writeParamMappings
-    // boolean hideSubsetReachability
-
     Set entrySet = mapMethodContextToCompleteOwnershipGraph.entrySet();
     Iterator itr = entrySet.iterator();
     while( itr.hasNext() ) {
@@ -1148,7 +1147,14 @@ public class OwnershipAnalysis {
       OwnershipGraph og = (OwnershipGraph) me.getValue();
 
       try {
-	og.writeGraph(mc, true, true, true, false, false, true);
+	og.writeGraph(mc+"COMPLETE",
+		      true,  // write labels (variables)
+		      true,  // selectively hide intermediate temp vars
+		      true,  // prune unreachable heap regions
+		      false, // show back edges to confirm graph validity
+		      false, // show parameter indices (unmaintained!)
+		      true,  // hide subset reachability states
+		      true); // hide edge taints
       } catch( IOException e ) {}    
     }
   }
@@ -1451,15 +1457,14 @@ public class OwnershipAnalysis {
 	graphName = graphName+fn;
       }
       try {
-	// arguments to writeGraph are:
-	// boolean writeLabels,
-	// boolean labelSelect,
-	// boolean pruneGarbage,
-	// boolean writeReferencers
-	// boolean writeParamMappings
-
-	//og.writeGraph(graphName, true, true, true, false, false);
-	og.writeGraph(graphName, true, true, true, false, false);
+	og.writeGraph(graphName,
+		      true,  // write labels (variables)
+		      true,  // selectively hide intermediate temp vars
+		      true,  // prune unreachable heap regions
+		      false, // show back edges to confirm graph validity
+		      false, // show parameter indices (unmaintained!)
+		      true,  // hide subset reachability states
+		      true); // hide edge taints
       } catch( Exception e ) {
 	System.out.println("Error writing debug capture.");
 	System.exit(0);

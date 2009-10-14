@@ -210,29 +210,32 @@ public class ReferenceEdge {
   }
 
 
-	public String toGraphEdgeString(boolean hideSubsetReachability) {
-		String edgeLabel = "";
+  public String toGraphEdgeString(boolean hideSubsetReachability,
+				  boolean hideEdgeTaints) {
+    String edgeLabel = "";
 
-		if (type != null) {
-			edgeLabel += type.toPrettyString() + "\\n";
-		}
+    if (type != null) {
+      edgeLabel += type.toPrettyString() + "\\n";
+    }
 
-		if (field != null) {
-			edgeLabel += field + "\\n";
-		}
+    if (field != null) {
+      edgeLabel += field + "\\n";
+    }
 
-		if (isInitialParam) {
-			edgeLabel += "*init*\\n";
-		}
+    if (isInitialParam) {
+      edgeLabel += "*init*\\n";
+    }
 
-		edgeLabel += "*taint*=" + Integer.toBinaryString(taintIdentifier)
-				+ "\\n*SESE*=" + Integer.toBinaryString(SESEtaintIdentifier)
-				+ "\\n";
+    if( !hideEdgeTaints ) {
+      edgeLabel += "*taint*=" + Integer.toBinaryString(taintIdentifier)
+	+ "\\n*SESE*=" + Integer.toBinaryString(SESEtaintIdentifier)
+	+ "\\n";
+    }
 
-		edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
-
-		return edgeLabel;
-	}
+    edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
+      
+    return edgeLabel;
+  }
 
   public String toString() {
     if( type != null ) {
