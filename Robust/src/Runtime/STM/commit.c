@@ -238,6 +238,22 @@ int transCommit() {
   void * rdlockedarray[200];			\
   void ** oidrdlockedarray;
 
+#define ARRAYABORT							\
+  for(;j>=lowoffset;j--) {						\
+    GETLOCKVAL(status, transao, j);					\
+    if  (status==STMDIRTY) {						\
+      GETLOCKPTR(lockptr, mainao,j);					\
+      write_unlock(lockptr);						\
+    }									\
+  }									\
+  transAbortProcess(oidwrlocked, numoidwrlocked);			\
+  freearrays;								\
+  if (softabort)							\
+    return TRANS_SOFT_ABORT;						\
+  else									\
+    return TRANS_ABORT;
+  
+
 #define PROCESSARRAY							\
   int type=((int *)cachedobj)[0];					\
   if (type>=NUMCLASSES) {						\
@@ -261,14 +277,11 @@ int transCommit() {
 	  if (localversion == remoteversion) {				\
 	    addwrobject=1;						\
 	  } else {							\
-	    dirwrlocked[numoidwrlocked++] = objptr;			\
-	    transAbortProcess(oidwrlocked, numoidwrlocked);		\
-	    freearrays;							\
-	    if (softabort)						\
-	      return TRANS_SOFT_ABORT;					\
-	    else							\
-	      return TRANS_ABORT;					\
+	    ARRAYABORT;							\
 	  }								\
+	} else {							\
+	  j--;								\
+	  ARRAYABORT;							\
 	}								\
       } else if (status==STMCLEAN) {					\
 	addrdobject=1;							\
@@ -278,7 +291,7 @@ int transCommit() {
       dirwrlocked[numoidwrlocked++] = objptr;				\
     }									\
     if (addrdobject) {							\
-      rdlockedarray[numoidrdlockedarray++]=objptr;				\
+      rdlockedarray[numoidrdlockedarray++]=objptr;			\
     }									\
   } else								
 
@@ -808,7 +821,28 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
   /* Release write locks */
   for(i=numoidwrlocked-1; i>=0; i--) {
     /* Read from the main heap */
-    header = &((objheader_t *)dirwrlocked[i])[-1];
+    struct ___Object___ * dst=dirwrlocked[i];
+    header = &((objheader_t *)dst)[-1];
+#ifdef STMARRAY
+    int type=dst->type;
+    if (type>=NUMCLASSES) {
+      //have array, do unlocking of bins
+      struct ArrayObject *src=(struct ArrayObject *)t_chashSearch(dst);
+      int lowoffset=(src->lowindex)>>INDEXSHIFT;
+      int highoffset=(src->highindex)>>INDEXSHIFT;
+      int j;
+      int addwrobject=0, addrdobject=0;
+      for(j=lowoffset; j<=highoffset;j++) {
+	int status;
+	GETLOCKVAL(status, src, j);
+	if (status==STMDIRTY) {
+	  int *lockptr;
+	  GETLOCKPTR(lockptr, ((struct ArrayObject *)dst), j);
+	  write_unlock(lockptr);
+	}
+      }
+    } else
+#endif
     write_unlock(&header->lock);
   }
 #ifdef STMSTATS
@@ -860,7 +894,26 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
     struct ___Object___ *src=t_chashSearch(dst);
     dst->___cachedCode___=src->___cachedCode___;
     dst->___cachedHash___=src->___cachedHash___;
-    A_memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
+#ifdef STMARRAY
+    int type=dst->type;
+    if (type>=NUMCLASSES) {
+      //have array, do copying of bins
+      int lowoffset=(((struct ArrayObject *)src)->lowindex)>>INDEXSHIFT;
+      int highoffset=(((struct ArrayObject *)src)->highindex)>>INDEXSHIFT;
+      int j;
+      int addwrobject=0, addrdobject=0;
+      int elementsize=classsize[type];
+      int baseoffset=(lowoffset*elementsize)&HIGHMASK;
+      for(j=lowoffset; j<=highoffset;j++, baseoffset+=elementsize) {
+	int status;
+	GETLOCKVAL(status, ((struct ArrayObject *)src), j);
+	if (status==STMDIRTY) {
+	  A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
+	}
+      }
+    } else
+#endif 
+      A_memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
   }
   CFENCE;
 
@@ -879,9 +932,34 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
 
   /* Release write locks */
   for(i=NUMWRTOTAL-1; i>=0; i--) {
-    header = &((objheader_t *)dirwrlocked[i])[-1];
-    header->version++;
-    write_unlock(&header->lock);
+    struct ___Object___ * dst=dirwrlocked[i];
+    header = &((objheader_t *)dst)[-1];
+#ifdef STMARRAY
+    int type=dst->type;
+    if (type>=NUMCLASSES) {
+      //have array, do unlocking of bins
+      struct ArrayObject *src=(struct ArrayObject *)t_chashSearch(dst);
+      int lowoffset=(src->lowindex)>>INDEXSHIFT;
+      int highoffset=(src->highindex)>>INDEXSHIFT;
+      int j;
+      int addwrobject=0, addrdobject=0;
+      for(j=lowoffset; j<=highoffset;j++) {
+	int status;
+	GETLOCKVAL(status, src, j);
+	if (status==STMDIRTY) {
+	  int *ptr;
+	  GETVERSIONPTR(intptr, ((struct ArrayObject *)dst), j);
+	  (*intptr)++;
+	  GETLOCKPTR(intptr, ((struct ArrayObject *)dst), j);
+	  write_unlock(intptr);
+	}
+      }
+    } else
+#endif
+    {
+      header->version++;
+      write_unlock(&header->lock);
+    }
   }
 
 #ifdef STMSTATS

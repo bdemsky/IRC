@@ -7,12 +7,16 @@ import java.util.Set;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Hashtable;
+import Analysis.Locality.*;
 
 public class Liveness {
   /* This methods takes in a FlatMethod and returns a map from a
    * FlatNode to the set of temps that are live into the FlatNode.*/
 
   public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm) {
+    return computeLiveTemps(fm, null);
+  }
+  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveTemps(FlatMethod fm, LocalityBinding lb) {
     Hashtable<FlatNode, Set<TempDescriptor>> nodetotemps=new Hashtable<FlatNode, Set<TempDescriptor>>();
     
     Set<FlatNode> toprocess=fm.getNodeSet();
@@ -30,8 +34,11 @@ public class Liveness {
 	if (nodetotemps.containsKey(fnnext))
 	  tempset.addAll(nodetotemps.get(fnnext));
       }
-      tempset.removeAll(writes);
-      tempset.addAll(reads);
+      if ((lb==null)||(!(fn instanceof FlatGlobalConvNode))||
+	  ((FlatGlobalConvNode)fn).getLocality()==lb) {
+	tempset.removeAll(writes);
+	tempset.addAll(reads);
+      }
       if (!nodetotemps.containsKey(fn)||
           !nodetotemps.get(fn).equals(tempset)) {
 	nodetotemps.put(fn, tempset);
@@ -43,7 +50,11 @@ public class Liveness {
   }
   
   public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveOut(FlatMethod fm) {
-    Hashtable<FlatNode, Set<TempDescriptor>> liveinmap=computeLiveTemps(fm);
+    return computeLiveOut(fm, null);
+  }
+
+  public static Hashtable<FlatNode, Set<TempDescriptor>> computeLiveOut(FlatMethod fm, LocalityBinding lb) {
+    Hashtable<FlatNode, Set<TempDescriptor>> liveinmap=computeLiveTemps(fm, lb);
     Hashtable<FlatNode, Set<TempDescriptor>> liveoutmap=new Hashtable<FlatNode, Set<TempDescriptor>>();
     
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator(); fnit.hasNext();) {

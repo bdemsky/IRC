@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Iterator;
 import java.util.Hashtable;
+import Analysis.Locality.*;
 
 public class ReachingDefs {
   /* This methods takes in a FlatMethod and returns a map from a
@@ -13,6 +14,10 @@ public class ReachingDefs {
   /* liveintoset if true computes the reaching defs into the node and if false computes the reaching defs out of the node. */
 
   public static Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> computeReachingDefs(FlatMethod fm, Hashtable<FlatNode, Set<TempDescriptor>> livemap, boolean liveintoset) {
+    return computeReachingDefs(fm, livemap, liveintoset, null);
+  }
+
+  public static Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> computeReachingDefs(FlatMethod fm, Hashtable<FlatNode, Set<TempDescriptor>> livemap, boolean liveintoset, LocalityBinding lb) {
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> nodetotemps=new Hashtable<FlatNode, Hashtable<TempDescriptor,Set<FlatNode>>>();
 
     Hashtable<FlatNode, Hashtable<TempDescriptor, Set<FlatNode>>> liveinto=liveintoset?new Hashtable<FlatNode, Hashtable<TempDescriptor,Set<FlatNode>>>():null;
@@ -47,13 +52,15 @@ public class ReachingDefs {
 	liveinto.put(fn, new Hashtable<TempDescriptor, Set<FlatNode>>(tempset));
       }
       
-      TempDescriptor writes[]=fn.writesTemps();
-      for(int i=0;i<writes.length;i++) {
-	HashSet<FlatNode> s=new HashSet<FlatNode>();
-	s.add(fn);
-	tempset.put(writes[i],s);
+      if (lb==null||(!(fn instanceof FlatGlobalConvNode))||
+	  ((FlatGlobalConvNode) fn).getLocality()==lb) {
+	TempDescriptor writes[]=fn.writesTemps();
+	for(int i=0;i<writes.length;i++) {
+	  HashSet<FlatNode> s=new HashSet<FlatNode>();
+	  s.add(fn);
+	  tempset.put(writes[i],s);
+	}
       }
-
       if (!nodetotemps.containsKey(fn)||
           !nodetotemps.get(fn).equals(tempset)) {
 	nodetotemps.put(fn, tempset);
@@ -63,5 +70,4 @@ public class ReachingDefs {
     }
     return liveintoset?liveinto:nodetotemps;
   }
-  
 }
