@@ -3674,7 +3674,11 @@ public class BuildCode {
     if (state.SINGLETM) {
       //Single machine transaction case
       String dst=generateTemp(fm, fen.getDst(),lb);
-      output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+      if (!state.STMARRAY||wb.needBarrier(fen)||locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())==LocalityAnalysis.SCRATCH) {
+	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+      } else {
+	output.println("STMGETARRAY("+dst+", "+ generateTemp(fm,fen.getSrc(),lb)+", "+generateTemp(fm, fen.getIndex(),lb)+", "+type+");");
+      }
 
       if (elementtype.isPtr()&&locality.getAtomic(lb).get(fen).intValue()>0&&
           locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())!=LocalityAnalysis.SCRATCH) {
@@ -3688,7 +3692,6 @@ public class BuildCode {
       Integer status=locality.getNodePreTempInfo(lb,fen).get(fen.getSrc());
       if (status==LocalityAnalysis.GLOBAL) {
 	String dst=generateTemp(fm, fen.getDst(),lb);
-
 	if (elementtype.isPtr()) {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
 	  output.println("TRANSREAD("+dst+", "+dst+");");
@@ -3731,7 +3734,7 @@ public class BuildCode {
 
     if (state.SINGLETM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       //Transaction set element case
-      if (wb.needBarrier(fsen)&&
+      if (!state.STMARRAY&&wb.needBarrier(fsen)&&
           locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH) {
 	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___objstatus___))|=DIRTY;");
       }
@@ -3744,10 +3747,18 @@ public class BuildCode {
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
 	}
-	output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
+	if (state.STMARRAY&&locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)) {
+	  output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst(),lb)+", "+generateTemp(fm, fsen.getIndex(),lb)+", srcoid, INTPTR);");
+	} else {
+	  output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
+	}
 	output.println("}");
       } else {
-	output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+	if (state.STMARRAY&&locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)) {
+	  output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst(),lb)+", "+generateTemp(fm, fsen.getIndex(),lb)+", "+ generateTemp(fm, fsen.getSrc(), lb) +", "+type+");");
+	} else {
+	  output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+	}
       }
     } else if (state.DSM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(lb,fsen).get(fsen.getSrc());
@@ -3755,7 +3766,7 @@ public class BuildCode {
       boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
       boolean dstglobal=statusdst==LocalityAnalysis.GLOBAL;
       boolean dstlocal=statusdst==LocalityAnalysis.LOCAL;
-
+      
       if (dstglobal) {
 	if (wb.needBarrier(fsen))
 	  output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___localcopy___))|=DIRTY;");

@@ -34,10 +34,12 @@
     int byteindex=index*sizeof(type);					\
     int * lengthoff=&array->___length___;				\
     int *status;							\
-    GETLOCKPTR(status, array, byteindex);				\
-    if ((*status)==STMNONE) {						\
-      arraycopy(array, byteindex);					\
-      *status=STMCLEAN;};						\
+    if (array!=array->___objlocation___) {				\
+      GETLOCKPTR(status, array, byteindex);				\
+      if ((*status)==STMNONE) {						\
+	arraycopy(array, byteindex);					\
+	*status=STMCLEAN;};						\
+    }									\
     dst=((type *)(((char *) lengthoff)+sizeof(int)))[index];		\
   }
 

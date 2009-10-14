@@ -38,6 +38,11 @@ public class WriteBarrier {
 	FlatSetElementNode fsen=(FlatSetElementNode)fn;
 	return !nb.contains(fsen.getDst());
       }
+    case FKind.FlatElementNode:
+      {
+	FlatElementNode fen=(FlatElementNode)fn;
+	return !nb.contains(fen.getSrc());
+      }
     case FKind.FlatSetFieldNode:
       {
 	FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
@@ -80,7 +85,8 @@ public class WriteBarrier {
       case FKind.FlatSetElementNode:
 	{
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  nb.add(fsen.getDst());
+	  if (!state.STMARRAY)
+	    nb.add(fsen.getDst());
 	  break;
 	}
       case FKind.FlatSetFieldNode:
