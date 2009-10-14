@@ -2,7 +2,7 @@ MAINCLASS=Convolution
 SRC=${MAINCLASS}.java
 SRC1=${MAINCLASS}SizeB.java
 SRC2=${MAINCLASS}SizeC.java
-FLAGS =-dsm -transstats -dsmcaching -prefetch -optimize -excprefetch Image.initKernel -excprefetch Image.setValues -excprefetch Convolution.main -trueprob 0.98 -mainclass ${MAINCLASS}
+FLAGS =-dsm -dsmcaching -prefetch -optimize -excprefetch Image.initKernel -excprefetch Image.setValues -excprefetch Convolution.main -trueprob 0.95 -mainclass ${MAINCLASS}
 FLAGS1=-dsm -optimize -mainclass ${MAINCLASS}
 FLAGS2=-dsm -optimize -dsmcaching -mainclass ${MAINCLASS}
 

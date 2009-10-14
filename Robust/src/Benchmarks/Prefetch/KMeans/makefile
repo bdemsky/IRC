@@ -7,10 +7,12 @@ SRC=${MAINCLASS}.java \
     GlobalArgs.java \
     ../../../ClassLibrary/JavaDSM/Barrier.java
 
-FLAGSSTATS=-mainclass ${MAINCLASS} -dsm -optimize -debug -transstats
+FLAGS=-mainclass ${MAINCLASS} -dsm -optimize -transstats
+FLAGS1=-mainclass ${MAINCLASS} -dsm -dsmcaching -optimize -transstats
 
 dsm:
-	../../../buildscript ${FLAGSSTATS} -o ${MAINCLASS} ${SRC}
+	../../../buildscript ${FLAGS} -o ${MAINCLASS}NPNC ${SRC}
+	../../../buildscript ${FLAGS1} -o ${MAINCLASS}NPC ${SRC}
 
 prep:
 

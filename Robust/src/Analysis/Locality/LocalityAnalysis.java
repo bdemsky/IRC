@@ -991,8 +991,9 @@ public class LocalityAnalysis {
 	  throw new Error("Joining thread on local object not allowed in context:\n"+currlb.getExplanation());
 	if(thistype.equals(CONFLICT))
 	  throw new Error("Using type that can be either local or global in context:\n"+currlb.getExplanation());
-	if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic && !isjoin && executemethodset == null)
+	if(runmethodset==null&&thistype.equals(GLOBAL)&&!isatomic && !isjoin && executemethodset == null) {
 	  throw new Error("Using global object outside of transaction in context:\n"+currlb.getExplanation());
+    }
 	if (runmethodset==null&&isnative&&thistype.equals(GLOBAL) && !isjoin && executemethodset == null && !isObjectgetType && !isObjecthashCode)
 	  throw new Error("Potential call to native method "+md+" on global objects:\n"+currlb.getExplanation());
 	lb.setGlobalThis(thistype);
@@ -1066,8 +1067,9 @@ public class LocalityAnalysis {
 	if (!(srctype.equals(GLOBAL)||srctype.equals(EITHER)))
 	  throw new Error("Writing possible local reference to global field in context: \n"+lb.getExplanation());
       } else {
-	if (!(srctype.equals(LOCAL)||srctype.equals(EITHER)))
+	if (!(srctype.equals(LOCAL)||srctype.equals(EITHER))) {
 	  throw new Error("Writing possible global reference to local object in context: \n"+lb.getExplanation());
+    }
       }
     } else if (dsttype.equals(GLOBAL)) {
       if (!transaction)
@@ -1136,8 +1138,9 @@ public class LocalityAnalysis {
     Integer dsttype=currtable.get(fsen.getDst());
 
     if (dsttype.equals(LOCAL)) {
-      if (!(srctype.equals(LOCAL)||srctype.equals(EITHER)))
+      if (!(srctype.equals(LOCAL)||srctype.equals(EITHER))) {
 	throw new Error("Writing possible global reference to local object in context:\n"+lb.getExplanation()+fsen);
+      }
     } else if (dsttype.equals(GLOBAL)) {
       if (srctype.equals(LOCAL) && fsen.getDst().getType().dereference().isPrimitive() && !fsen.getDst().getType().dereference().isArray())
 	return;

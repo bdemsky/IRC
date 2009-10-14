@@ -1,11 +1,16 @@
 MAINCLASS=MatrixMultiply
 SRC1=${MAINCLASS}N.java 	 
+SRC2=MatrixMultiplyD3.java \
+     ../../../../ClassLibrary/JavaDSM/Barrier.java
 FLAGS=-dsm -dsmcaching -prefetch -optimize -excprefetch MatrixMultiply.main -excprefetch MMul.setValues -excprefetch MMul.transpose -mainclass ${MAINCLASS} -trueprob 0.98
 FLAGS1=-dsm -optimize -dsmcaching -mainclass ${MAINCLASS}
 FLAGS2=-dsm -optimize -mainclass ${MAINCLASS}
-FLAGS3= -dsm -32bit -nooptimize -recovery -debug -mainclass ${MAINCLASS}
 default:
-	../../../../buildscript ${FLAGS3} -o ${MAINCLASS} ${SRC1} 
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPNC ${SRC2}
+#	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}NPC ${SRC2}
+	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N ${SRC2}
+#	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPNC200 ${SRC2}
+#	../../../../buildscript ${FLAGS} -o ${MAINCLASS}N200 ${SRC2}
 
 clean:
 	rm -rf tmpbuilddirectory
