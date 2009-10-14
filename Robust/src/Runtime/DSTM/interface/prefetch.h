@@ -12,6 +12,10 @@
 #define GET_OFFSETS(x) ((short *) (x + sizeof(unsigned int) + sizeof(short)))
 
 #define INLINE    inline __attribute__((always_inline))
+#ifdef TRANSSTATS
+extern int getResponse;
+extern int sendRemoteReq;
+#endif
 
 
 /****** Global structure **********/
@@ -49,7 +53,7 @@ void proPrefetchQDealloc(perMcPrefetchList_t *);
 /******** Process Queue Element functions ***********/
 void rangePrefetch(unsigned int, short, short *);
 void *transPrefetchNew();
-perMcPrefetchList_t* processLocal(char *ptr);
+perMcPrefetchList_t* processLocal(char *ptr, int);
 perMcPrefetchList_t *processRemote(unsigned int oid, short * offsetarray, int sd, short numoffset);
 void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 

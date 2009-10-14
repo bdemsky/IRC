@@ -190,6 +190,7 @@ public class SingleObjectMod extends Thread {
       mysom[i] = new SingleObjectMod(nthreads, som.arrysize, som.loopsize, som.lsize1, som.lsize2, som.prob, i, som.mainobj, rand);
     }
 
+    System.logevent();
     for(int i = 0; i < nthreads; i++) {
       mysom[i].start();
     }

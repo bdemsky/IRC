@@ -68,6 +68,7 @@ public class System {
 
   /* Only used for microbenchmark testing of SingleTM version */
   public static native void logevent(int event);
+  public static native void logevent();
 
   /* Only used for microbenchmark testing of SingleTM version */
   public static native void initLog();

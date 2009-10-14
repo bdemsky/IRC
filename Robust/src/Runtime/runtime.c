@@ -22,9 +22,11 @@
 #include <pthread.h>
 #endif
 #ifdef STMLOG
+#define ARRAY_LENGTH 700003
 __thread int counter;
-__thread int event[100000*7+3];
-__thread unsigned long long clkticks[100000*7+3];
+__thread int event[ARRAY_LENGTH];
+__thread unsigned long long clkticks[ARRAY_LENGTH];
+unsigned long long beginClock=0;
 #define FILENAME  "log"
 #endif
 
@@ -262,6 +264,13 @@ void CALL11(___System______logevent____I,int ___event___, int ___event___) {
   return;
 }
 
+void CALL00(___System______logevent____) {
+#ifdef STMLOG
+  beginClock= rdtsc();
+#endif
+  return;
+}
+
 void CALL11(___System______flushToFile____I, int ___threadid___, int ___threadid___) {
 #ifdef STMLOG
   FILE *fp;
@@ -275,9 +284,9 @@ void CALL11(___System______flushToFile____I, int ___threadid___, int ___threadid
   }
   int i;
   for (i = 0; i < counter-1; i++) {
-    fprintf(fp, "%d %lld %lld\n", event[i], clkticks[i], clkticks[i+1]);
+    fprintf(fp, "%d %lld %lld\n", event[i], clkticks[i]-beginClock, clkticks[i+1]-beginClock);
   }
-  fprintf(fp, "%d %lld\n", event[i], clkticks[i]);
+  fprintf(fp, "%d %lld\n", event[i], clkticks[i]-beginClock);
 
   fclose(fp);
 #endif
@@ -287,6 +296,12 @@ void CALL11(___System______flushToFile____I, int ___threadid___, int ___threadid
 void CALL00(___System______initLog____) {
 #ifdef STMLOG
   counter=0;
+  int i;
+  for(i=0; i<ARRAY_LENGTH; i++) {
+    event[i] = 0;
+    clkticks[i] = 0;
+  }
+
 #endif
   return;
 }
@@ -390,6 +405,7 @@ void CALL01(___Task______execution____,struct ___Task___ * ___this___)
 #endif
 }
 #endif
+
 #endif // DSTM
 
 /* STM Barrier constructs */
@@ -428,6 +444,7 @@ void CALL00(___Barrier______enterBarrier____) {
 __attribute__((malloc)) void * allocate_newglobal(int type) {
   struct ___Object___ * v=(struct ___Object___ *) transCreateObj(classsize[type]);
   v->type=type;
+  //printf("DEBUG %s(), type= %x\n", __func__, type);
 #ifdef THREADS
   v->tid=0;
   v->lockentry=0;
