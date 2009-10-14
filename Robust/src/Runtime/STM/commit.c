@@ -45,10 +45,17 @@ int transCommit() {
   do {
     /* Look through all the objects in the transaction hash table */
     int finalResponse;
+#ifdef DELAYCOMP
     if (c_numelements<(c_size>>3))
-      finalResponse=alttraverseCache(DELAYWRAP(commitmethod, primitives, locals, params));
+      finalResponse=alttraverseCache(commitmethod, primitives, locals, params);
     else
-      finalResponse=traverseCache(DELAYWRAP(commitmethod, primitives, locals, params));
+      finalResponse=traverseCache(commitmethod, primitives, locals, params);
+#else
+    if (c_numelements<(c_size>>3))
+      finalResponse=alttraverseCache();
+    else
+      finalResponse=traverseCache();
+#endif
     if(finalResponse == TRANS_ABORT) {
       TRANSWRAP(numTransAbort++;if (softaborted) nSoftAbortAbort++;);
       freenewobjs();
@@ -320,7 +327,11 @@ int transCommit() {
  * ==================================================
  */
 
-int traverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params)) {
+#ifdef DELAYCOMP
+  int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
+  int traverseCache() {
+#endif
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
@@ -543,7 +554,11 @@ int traverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), void *
 #endif
   
   /* Decide the final response */
-  transCommitProcess(oidwrlocked, numoidwrlocked DELAYWRAP(, numoidwrtotal, commitmethod, primitives, locals, params));
+#ifdef DELAYCOMP
+  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
+#else
+  transCommitProcess(oidwrlocked, numoidwrlocked);
+#endif
   freearrays;
   return TRANS_COMMIT;
 }
@@ -555,7 +570,11 @@ int traverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), void *
  * ==================================================
  */
 
-int alttraverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params)) {
+#ifdef DELAYCOMP
+int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
+int alttraverseCache() {
+#endif
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
@@ -762,7 +781,11 @@ int alttraverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), voi
 #endif
 
   /* Decide the final response */
-  transCommitProcess(oidwrlocked, numoidwrlocked DELAYWRAP(, numoidwrtotal, commitmethod, primitives, locals, params));
+#ifdef DELAYCOMP
+  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
+#else
+  transCommitProcess(oidwrlocked, numoidwrlocked);
+#endif
   freearrays;
   return TRANS_COMMIT;
 }
@@ -806,7 +829,11 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
  *
  * =================================
  */
- void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked DELAYWRAP(, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params)) {
+#ifdef DELAYCOMP
+ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+#else
+void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
+#endif
   objheader_t *header;
   void *ptrcreate;
   int i;
