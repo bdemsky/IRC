@@ -2243,19 +2243,19 @@ public class BuildCode {
 	      if (wrtmp.getType().isPtr()) {
 		//only lock the objects that may actually need locking
 		if (recorddc.getNeedTrans(lb, current_node)) {
-		  output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");");
+		  output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");/* "+current_node.nodeid+" */");
 		} else {
-		  output.println("STOREPTRNOLOCK("+generateTemp(fm, wrtmp,lb)+");");
+		  output.println("STOREPTRNOLOCK("+generateTemp(fm, wrtmp,lb)+");/* "+current_node.nodeid+" */");
 		}
 	      } else {
-		output.println("STORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+");");
+		output.println("STORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+");/* "+current_node.nodeid+" */");
 	      }
 	    } else {
 	      //need to read value read by previous node
 	      if (wrtmp.getType().isPtr()) {
-		output.println("RESTOREPTR("+generateTemp(fm, wrtmp,lb)+");");
+		output.println("RESTOREPTR("+generateTemp(fm, wrtmp,lb)+");/* "+current_node.nodeid+" */");
 	      } else {
-		output.println("RESTORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+");");		
+		output.println("RESTORE"+wrtmp.getType().getSafeDescriptor()+"("+generateTemp(fm, wrtmp, lb)+"); /* "+current_node.nodeid+" */");		
 	      }
 	    }
 	  }
@@ -2291,7 +2291,7 @@ public class BuildCode {
 	      generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);	      
 	    } else if (storeset.contains(current_node)) {
 	      //need to do branch
-	      output.println("RESTOREANDBRANCH(L"+nodetolabel.get(current_node.getNext(1))+");");
+	      output.println("RESTOREANDBRANCH(L"+nodetolabel.get(current_node.getNext(1))+"); /* "+current_node.nodeid+" */");
 	    } else {
 	      //which side to execute
 	      computeside=true;
@@ -3958,7 +3958,7 @@ public class BuildCode {
   }
 
   protected void generateStoreFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
-    output.println("STOREANDBRANCH(!"+generateTemp(fm, fcb.getTest(),lb)+", "+label+");");
+    output.println("STOREANDBRANCH(!"+generateTemp(fm, fcb.getTest(),lb)+", "+label+"); /* "+fcb.nodeid+" */");
   }
 
   protected void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
