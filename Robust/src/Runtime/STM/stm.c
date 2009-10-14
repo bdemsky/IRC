@@ -173,7 +173,7 @@ void *transRead(void * oid, void *gl) {
     size = basesize + sizeof(objheader_t)+metasize;
     char *tmpptr = (char *) objstrAlloc(size);
     bzero(objcopy, metasize);//clear out stm data
-    objcopy=tmpptr+metasize;
+    objcopy=(objheader_t *) (tmpptr+metasize);
     A_memcpy(objcopy, header, sizeof(objheader_t)+sizeof(struct ArrayObject)); //copy the metadata and base array info
   } else {
     GETSIZE(size, header);
