@@ -3,6 +3,28 @@
 #include<delaycomp.h>
 #endif
 
+#ifdef TRANSSTATS
+#define TRANSWRAP(x) x
+#else
+#define TRANSWRAP(x)
+#endif
+
+#ifdef STMSTATS
+#define STMWRAP(x) x
+#else
+#define STMWRAP(x)
+#endif
+
+#ifdef STMSTATS
+#define STATFREE free(oidrdage);
+#define STATALLOC oidrdage=malloc(size);
+#define STATASSIGN oidrdage=rdage;
+#else
+#define STATFREE
+#define STATALLOC
+#define STATASSIGN
+#endif
+
 /* ================================================================
  * transCommit
  * - This function initiates the transaction commit process
@@ -18,35 +40,19 @@ int transCommit() {
 #ifdef SANDBOX
   abortenabled=0;
 #endif
-#ifdef TRANSSTATS
-  numTransCommit++;
-#endif
+  TRANSWRAP(numTransCommit++;);
   int softaborted=0;
   do {
     /* Look through all the objects in the transaction hash table */
     int finalResponse;
-#ifdef DELAYCOMP
     if (c_numelements<(c_size>>3))
-      finalResponse= alttraverseCache(commitmethod, primitives, locals, params);
+      finalResponse=alttraverseCache(DELAYWRAP(commitmethod, primitives, locals, params));
     else
-      finalResponse= traverseCache(commitmethod, primitives, locals, params);
-#else
-    if (c_numelements<(c_size>>3))
-      finalResponse= alttraverseCache();
-    else
-      finalResponse= traverseCache();
-#endif
+      finalResponse=traverseCache(DELAYWRAP(commitmethod, primitives, locals, params));
     if(finalResponse == TRANS_ABORT) {
-#ifdef TRANSSTATS
-      numTransAbort++;
-      if (softaborted) {
-	nSoftAbortAbort++;
-      }
-#endif
+      TRANSWRAP(numTransAbort++;if (softaborted) nSoftAbortAbort++;);
       freenewobjs();
-#ifdef STMSTATS
-      freelockedobjs();
-#endif
+      STMWRAP(freelockedobjs(););
       objstrReset();
       t_chashreset();
 #ifdef READSET
@@ -64,16 +70,9 @@ int transCommit() {
       return TRANS_ABORT;
     }
     if(finalResponse == TRANS_COMMIT) {
-#ifdef TRANSSTATS
-      //numTransCommit++;
-      if (softaborted) {
-	nSoftAbortCommit++;
-      }
-#endif
+      TRANSWRAP(numTransCommit++;if (softaborted) nSoftAbortCommit++;);
       freenewobjs();
-#ifdef STMSTATS
-      freelockedobjs();
-#endif
+      STMWRAP(freelockedobjs(););
       objstrReset();
       t_chashreset();
 #ifdef READSET
@@ -90,9 +89,7 @@ int transCommit() {
 
     /* wait a random amount of time before retrying to commit transaction*/
     if(finalResponse == TRANS_SOFT_ABORT) {
-#ifdef TRANSSTATS
-      nSoftAbort++;
-#endif
+      TRANSWRAP(nSoftAbort++;);
       softaborted++;
 #ifdef SOFTABORT
       if (softaborted>1) {
@@ -101,9 +98,7 @@ int transCommit() {
 #endif
 	//retry if too many soft aborts
 	freenewobjs();
-#ifdef STMSTATS
-	freelockedobjs();
-#endif
+	STMWRAP(freelockedobjs(););
 	objstrReset();
 	t_chashreset();
 #ifdef READSET
@@ -117,7 +112,6 @@ int transCommit() {
 #endif
 	return TRANS_ABORT;
       }
-      //randomdelay(softaborted);
     } else {
       printf("Error: in %s() Unknown outcome", __func__);
       exit(-1);
@@ -125,31 +119,23 @@ int transCommit() {
   } while (1);
 }
 
-#ifdef STMSTATS
-#define STATFREE free(oidrdage);
-#define STATALLOC oidrdage=malloc(size);
-#define STATASSIGN oidrdage=rdage;
-#else
-#define STATFREE
-#define STATALLOC
-#define STATASSIGN
-#endif
-
 #ifdef DELAYCOMP
 #define freearrays if (c_numelements>=200) { \
-    STATFREE				     \
-    free(oidrdlocked);		     \
+    STATFREE;				     \
+    STMARRAYFREE;			     \
+    free(oidrdlocked);			     \
     free(oidrdversion);			     \
-  } \
-  if (t_numelements>=200) { \
-    free(oidwrlocked); \
+  }					     \
+  if (t_numelements>=200) {		     \
+    free(oidwrlocked);			     \
   }
 #else
 #define freearrays   if (c_numelements>=200) { \
-    STATFREE \
-    free(oidrdlocked); \
-    free(oidrdversion); \
-    free(oidwrlocked); \
+    STATFREE;				       \
+    STMARRAYFREE;			       \
+    free(oidrdlocked);			       \
+    free(oidrdversion);			       \
+    free(oidwrlocked);			       \
   }
 #endif
 
@@ -163,12 +149,14 @@ int transCommit() {
   if (c_numelements<200) { \
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
-    STATASSIGN		    \
+    STATASSIGN;		    \
+    STMARRAYASSIGN;	    \
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
-    STATALLOC		       \
+    STATALLOC;		       \
+    STATARRAYALLOC;	       \
   }\
   dirwrlocked=oidwrlocked->array;
 #else
@@ -176,14 +164,153 @@ int transCommit() {
     oidrdlocked=rdlocked; \
     oidrdversion=rdversion; \
     oidwrlocked=(struct garbagelist *) &wrlocked; \
+    STATASSIGN;					  \
+    STMARRAYASSIGN;				  \
   } else { \
     int size=c_numelements*sizeof(void*); \
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
     oidwrlocked=malloc(size+2*sizeof(INTPTR));	\
-    STATALLOC		      \
+    STATALLOC;					\
+    STATARRAYALLOC;				\
   } \
   dirwrlocked=oidwrlocked->array;
+#endif
+
+#ifdef STMSTATS
+#define ABORTSTAT1 header->abortCount++;	\
+  ObjSeqId = headeraddr->accessCount;				\
+  (typesCausingAbort[TYPE(header)]).numabort++;				\
+  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;		\
+  (typesCausingAbort[TYPE(header)]).numtrans+=1;			\
+  objtypetraverse[TYPE(header)]=1;					\
+  if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse)) \
+    softabort=0;
+#define ABORTSTAT2				\
+  ObjSeqId = oidrdage[i];\
+  header->abortCount++;					\
+  (typesCausingAbort[TYPE(header)]).numabort++;			\
+  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;	\
+  (typesCausingAbort[TYPE(header)]).numtrans+=1;		\
+  objtypetraverse[TYPE(header)]=1;					\
+  if (getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse)) \
+    softabort=0;
+#define ABORTSTAT3				\
+  header->abortCount++;				\
+  ObjSeqId = headeraddr->accessCount;		\
+  (typesCausingAbort[TYPE(header)]).numabort++;			\
+  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;	\
+  (typesCausingAbort[TYPE(header)]).numtrans+=1;		\
+  objtypetraverse[TYPE(header)]=1;					\
+  if (getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse)) \
+    softabort=0;
+#define ABORTSTAT4 ObjSeqId = oidrdage[i];	\
+  header->abortCount++;							\
+  getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
+#else
+#define ABORTSTAT1
+#define ABORTSTAT2
+#define ABORTSTAT3
+#define ABORTSTAT4
+#endif
+
+#ifdef DELAYCOMP
+#define DELAYWRAP(x) x
+#define NUMWRTOTAL numoidwrtotal
+#else
+#define DELAYWRAP(x)
+#define NUMWRTOTAL numoidwrlocked
+#endif
+
+#ifdef STMARRAY
+#define STMARRAYFREE free(oidrdlockedarray);
+#define STMARRAYALLOC oidrdlockedarray=malloc(size);
+#define STMARRAYASSIGN oidrdlockedarray=rdlockedarray;
+
+#define ARRAYDEFINES int numoidrdlockedarray=0;	\
+  void * rdlockedarray[200];			\
+  void ** oidrdlockedarray;
+
+#define PROCESSARRAY							\
+  int type=((int *)cachedobj)[0];					\
+  if (type>=NUMCLASSES) {						\
+    struct ArrayObject *transao=(struct ArrayObject *) cachedobj;	\
+    struct ArrayObject *mainao=(struct ArrayObject *) objptr;		\
+    int lowoffset=(transao->lowoffset)>>INDEXSHIFT;			\
+    int highoffset=(transao->highoffset)>>INDEXSHIFT;			\
+    int j;								\
+    int addwrobject=0, addrdobject=0;					\
+    for(j=lowoffset; j<=highoffset;j++) {				\
+      int status;							\
+      GETLOCKVAL(status, transao, j);					\
+      if (status==STMDIRTY) {						\
+	unsigned int * lockptr;						\
+	GETLOCKPTR(lockptr, mainao,j);					\
+	if (write_trylock(lockptr)) {					\
+	  unsigned int localversion;					\
+	  unsigned int remoteversion;					\
+	  GETVERSIONVAL(localversion, transao, j);			\
+	  GETVERSIONVAL(remoteversion, mainao, j);			\
+	  if (localversion == remoteversion) {				\
+	    addwrobject=1;						\
+	  } else {							\
+	    dirwrlocked[numoidwrlocked++] = objptr;			\
+	    transAbortProcess(oidwrlocked, numoidwrlocked);		\
+	    freearrays;							\
+	    if (softabort)						\
+	      return TRANS_SOFT_ABORT;					\
+	    else							\
+	      return TRANS_ABORT;					\
+	  }								\
+	}								\
+      } else if (status==STMCLEAN) {					\
+	addrdobject=1;							\
+      }									\
+    }									\
+    if (addwrobject) {							\
+      dirwrlocked[numoidwrlocked++] = objptr;				\
+    }									\
+    if (addrdobject) {							\
+      rdlockedarray[numrdlockedarray++]=objptr;				\
+    }									\
+  } else								
+
+#define READDARRAYS					\
+  for(i=0; i<numoidrdlockedarray; i++) {				\
+    objheader_t * transheader=oidrdlockedarray[i];			\
+    struct ArrayObject * transao=(struct ArrayObject *)&transheader[1];	\
+    objheader_t * mainheader=OID(transheader);				\
+    struct ArrayObject * mainao=(struct ArrayObject *)&transheader[1];	\
+    int lowoffset=(transao->lowoffset)>>INDEXSHIFT;			\
+    int highoffset=(transao->highoffset)>>INDEXSHIFT;			\
+    int j;								\
+    for(j=lowoffset; j<=highoffset;j++) {				\
+      int locallock;GETLOCKVAL(locallock,transao,j);			\
+      if (locallock==STMCLEAN) {					\
+	/* do read check */						\
+	int mainlock; GETLOCKVAL(mainlock, mainao, j);			\
+	if (mainlock>0) {						\
+	  CFENCE;							\
+	  unsigned int localversion;					\
+	  unsigned int remoteversion;					\
+	  GETVERSIONVAL(localversion, transao, j);			\
+	  GETVERSIONVAL(remoteversion, mainao, j);			\
+	  if (localversion != remoteversion) {				\
+	    transAbortProcess(oidwrlocked, NUMWRTOTAL);			\
+	    freearrays;							\
+	    return TRANS_ABORT;						\
+	  }								\
+	}								\
+      }									\
+    }									\
+  }								       
+#else
+#define ARRAYDEFINES
+#define PROCESSARRAY
+#define READDARRAYS
+#define STMARRAYFREE
+#define STMARRAYALLOC
+#define STMARRAYASSIGN
 #endif
 
 /* ==================================================
@@ -192,11 +319,8 @@ int transCommit() {
  * - decides if a transaction should commit or abort
  * ==================================================
  */
-#ifdef DELAYCOMP
-int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
-#else
-int traverseCache() {
-#endif
+
+int traverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params)) {
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
@@ -206,21 +330,14 @@ int traverseCache() {
   int softabort=0;
   int i;
   void ** oidrdlocked;
+  int * oidrdversion;
+  ARRAYDEFINES;
+  STMWRAP(int rdage[200];int * oidrdage;int ObjSeqId;int objtypetraverse[TOTALNUMCLASSANDARRAY];);
   struct garbagelist * oidwrlocked;
   void ** dirwrlocked;
-#ifdef STMSTATS
-  int rdage[200];
-  int * oidrdage;
-  int ObjSeqId;
-  int objtypetraverse[TOTALNUMCLASSANDARRAY];
-#endif
-  int * oidrdversion;
   allocarrays;
 
-#ifdef STMSTATS
-  for(i=0; i<TOTALNUMCLASSANDARRAY; i++)
-    objtypetraverse[i] = 0;
-#endif
+  STMWRAP(for(i=0; i<TOTALNUMCLASSANDARRAY; i++) objtypetraverse[i] = 0;);
 
   chashlistnode_t *ptr = c_table;
   /* Represents number of bins in the chash table */
@@ -237,6 +354,8 @@ int traverseCache() {
       objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t)); //real object
       unsigned int version = headeraddr->version;
 
+      PROCESSARRAY;
+
       if(STATUS(headeraddr) & DIRTY) {
 	/* Read from the main heap  and compare versions */
 	if(write_trylock(&header->lock)) { //can aquire write lock
@@ -246,17 +365,7 @@ int traverseCache() {
 	  } else {
 	    dirwrlocked[numoidwrlocked++] = objptr;
 	    transAbortProcess(oidwrlocked, numoidwrlocked);
-#ifdef STMSTATS
-	    header->abortCount++;
-	    ObjSeqId = headeraddr->accessCount;
-	    (typesCausingAbort[TYPE(header)]).numabort++;
-	    (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-	    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-	    objtypetraverse[TYPE(header)]=1;
-	    getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
-#endif
-	    DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
-	    DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	    ABORTSTAT1;
 	    freearrays;
 	    if (softabort)
 	      return TRANS_SOFT_ABORT;
@@ -269,21 +378,7 @@ int traverseCache() {
 	    softabort=1;
 	  }
 	  transAbortProcess(oidwrlocked, numoidwrlocked);
-#ifdef STMSTATS
-	  header->abortCount++;
-	  ObjSeqId = headeraddr->accessCount;
-	  (typesCausingAbort[TYPE(header)]).numabort++;
-	  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-	  (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-	  objtypetraverse[TYPE(header)]=1;
-	  //(typesCausingAbort[TYPE(header)])++;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-      if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
-	    softabort=0;
-#endif
-	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
-	  DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	  ABORTSTAT1;
 	  freearrays;
 	  if (softabort)
 	    return TRANS_SOFT_ABORT;
@@ -292,16 +387,14 @@ int traverseCache() {
       
 	}
       } else {
-#ifdef STMSTATS
-    oidrdage[numoidrdlocked]=headeraddr->accessCount;
-#endif
-    oidrdversion[numoidrdlocked]=version;
-    oidrdlocked[numoidrdlocked++]=header;
+	STMWRAP(oidrdage[numoidrdlocked]=headeraddr->accessCount;);
+	oidrdversion[numoidrdlocked]=version;
+	oidrdlocked[numoidrdlocked++]=header;
       }
       curr = curr->next;
     }
   } //end of for
-
+  
 #ifdef DELAYCOMP
   //acquire access set locks
   unsigned int numoidwrtotal=numoidwrlocked;
@@ -333,20 +426,7 @@ int traverseCache() {
 
       //have to abort to avoid deadlock
       transAbortProcess(oidwrlocked, numoidwrtotal);
-#ifdef STMSTATS
-      ObjSeqId = headeraddr->accessCount;
-      header->abortCount++;
-      (typesCausingAbort[TYPE(header)]).numabort++;
-      (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-      objtypetraverse[TYPE(header)]=1;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-      if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
-	softabort=0;
-#endif
-      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
-      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      ABORTSTAT1;
       freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
@@ -360,6 +440,8 @@ int traverseCache() {
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
 
+  READARRAYS;
+
   for(i=0; i<numoidrdlocked; i++) {
     /* Read from the main heap  and compare versions */
     objheader_t *header=oidrdlocked[i];
@@ -367,22 +449,8 @@ int traverseCache() {
     if(header->lock>0) { //not write locked
       CFENCE;
       if(version != header->version) { /* versions do not match */
-#ifdef DELAYCOMP
-	transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-	transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-    ObjSeqId = oidrdage[i];
-    header->abortCount++;
-    (typesCausingAbort[TYPE(header)]).numabort++;
-    (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-    objtypetraverse[TYPE(header)]=1;
-	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
-#endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	ABORTSTAT2;
 	freearrays;
 	return TRANS_ABORT;
       }
@@ -392,17 +460,7 @@ int traverseCache() {
       //check if it is the right version number
       if (version!=header->version) {
 	transAbortProcess(oidwrlocked, numoidwrtotal);
-#ifdef STMSTATS
-    ObjSeqId = oidrdage[i];
-    header->abortCount++;
-    (typesCausingAbort[TYPE(header)]).numabort++;
-    (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-    (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-    objtypetraverse[TYPE(header)]=1;
-	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
-#endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u, oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	ABORTSTAT2;
 	freearrays;
 	return TRANS_ABORT;
       }
@@ -412,25 +470,8 @@ int traverseCache() {
       if(version == header->version) {
 	softabort=1;
       }
-#ifdef DELAYCOMP
-      transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-      transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-      ObjSeqId = oidrdage[i];
-      header->abortCount++;
-      (typesCausingAbort[TYPE(header)]).numabort++;
-      (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-      objtypetraverse[TYPE(header)]=1;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-      if(getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
-	softabort=0;
-#endif
-      DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-      DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      ABORTSTAT2;
       freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
@@ -450,21 +491,8 @@ int traverseCache() {
     if(header->lock>0) { //object is not locked
       if (version!=header->version) {
 	//have to abort
-#ifdef DELAYCOMP
-	transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-	transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-	//ABORTCOUNT(header);
-	(typesCausingAbort[TYPE(header)])++;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-	//if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
-	//  softabort=0;
-#endif
-	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	STMWRAP((typesCausingAbort[TYPE(header)])++;);
 	freearrays;
 	if (softabort)
 	  return TRANS_SOFT_ABORT;
@@ -500,23 +528,9 @@ int traverseCache() {
 	  } while(node != NULL);
 	}
       }
-#ifdef DELAYCOMP
       //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-      transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-
-#ifdef STMSTATS
-      //ABORTCOUNT(header);
-      (typesCausingAbort[TYPE(header)])++;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-      //if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
-	//softabort=0;
-#endif
-      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      STMWRAP((typesCausingAbort[TYPE(header)])++;);
       freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
@@ -529,12 +543,7 @@ int traverseCache() {
 #endif
   
   /* Decide the final response */
-#ifdef DELAYCOMP
-  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
-#else
-  transCommitProcess(oidwrlocked, numoidwrlocked);
-#endif
-  DEBUGSTM("Commit: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
+  transCommitProcess(oidwrlocked, numoidwrlocked DELAYWRAP(, numoidwrtotal, commitmethod, primitives, locals, params));
   freearrays;
   return TRANS_COMMIT;
 }
@@ -546,11 +555,7 @@ int traverseCache() {
  * ==================================================
  */
 
-#ifdef DELAYCOMP
-int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
-#else
-int alttraverseCache() {
-#endif
+int alttraverseCache(DELAYWRAP(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params)) {
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
   int numoidwrlocked=0;
@@ -561,20 +566,14 @@ int alttraverseCache() {
   int i;
   void ** oidrdlocked;
   int * oidrdversion;
-#ifdef STMSTATS
-  int rdage[200];
-  int * oidrdage;
-  int ObjSeqId;
-  int objtypetraverse[TOTALNUMCLASSANDARRAY];
-#endif
+  STMWRAP(int rdage[200];int * oidrdage;int ObjSeqId;int objtypetraverse[TOTALNUMCLASSANDARRAY];);
+  ARRAYDEFINES;
   struct garbagelist * oidwrlocked;
   void ** dirwrlocked;
   allocarrays;
 
-#ifdef STMSTATS
-  for(i=0; i<TOTALNUMCLASSANDARRAY; i++)
-    objtypetraverse[i] = 0;
-#endif
+  STMWRAP(for(i=0; i<TOTALNUMCLASSANDARRAY; i++) objtypetraverse[i] = 0;);
+
   chashlistnode_t *curr = c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(curr != NULL)) {
@@ -583,6 +582,8 @@ int alttraverseCache() {
     void *objptr=curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
     unsigned int version = headeraddr->version;
+    
+    PROCESSARRAY;
 
     if(STATUS(headeraddr) & DIRTY) {
       /* Read from the main heap  and compare versions */
@@ -593,17 +594,7 @@ int alttraverseCache() {
 	} else {
 	  dirwrlocked[numoidwrlocked++] = objptr;
 	  transAbortProcess(oidwrlocked, numoidwrlocked);
-#ifdef STMSTATS
-	  header->abortCount++;
-	  ObjSeqId = headeraddr->accessCount; 
-	  (typesCausingAbort[TYPE(header)]).numabort++;
-	  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-	  (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-	  objtypetraverse[TYPE(header)]=1;
-	  getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
-#endif
-	  DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	  DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	  ABORTSTAT3;
 	  freearrays;
 	  return TRANS_ABORT;
 	}
@@ -613,20 +604,7 @@ int alttraverseCache() {
 	  softabort=1;
 	}
 	transAbortProcess(oidwrlocked, numoidwrlocked);
-#ifdef STMSTATS
-	header->abortCount++;
-	ObjSeqId = headeraddr->accessCount; 
-	(typesCausingAbort[TYPE(header)]).numabort++;
-	(typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-	(typesCausingAbort[TYPE(header)]).numtrans+=1; 
-	objtypetraverse[TYPE(header)]=1;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-    if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
-	  softabort=0;
-#endif
-	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	ABORTSTAT3;
 	freearrays;
 	if (softabort)
 	  return TRANS_SOFT_ABORT;
@@ -670,20 +648,7 @@ int alttraverseCache() {
 
       //have to abort to avoid deadlock
       transAbortProcess(oidwrlocked, numoidwrtotal);
-#ifdef STMSTATS
-      header->abortCount++;
-      ObjSeqId = headeraddr->accessCount; 
-      (typesCausingAbort[TYPE(header)]).numabort++;
-      (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-      objtypetraverse[TYPE(header)]=1;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-      if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
-	softabort=0;
-#endif
-      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      ABORTSTAT3;
       freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
@@ -697,28 +662,16 @@ int alttraverseCache() {
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
 
+  READARRAYS;
+
   for(i=0; i<numoidrdlocked; i++) {
     objheader_t * header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
     if(header->lock>0) {
       CFENCE;
       if(version != header->version) {
-#ifdef DELAYCOMP
-	transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-	transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-	ObjSeqId = oidrdage[i];
-	header->abortCount++;
-	(typesCausingAbort[TYPE(header)]).numabort++;
-	(typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-	(typesCausingAbort[TYPE(header)]).numtrans+=1; 
-	objtypetraverse[TYPE(header)]=1;
-	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
-#endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	ABORTSTAT2;
 	freearrays;
 	return TRANS_ABORT;
       }
@@ -728,13 +681,7 @@ int alttraverseCache() {
       //check if it is the right version number
       if (version!=header->version) {
 	transAbortProcess(oidwrlocked, numoidwrtotal);
-#ifdef STMSTATS
-	ObjSeqId = oidrdage[i];
-	header->abortCount++;
-	getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
-#endif
-	DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u oid: %x\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version, OID(header));
-	DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	ABORTSTAT4;
 	freearrays;
 	return TRANS_ABORT;
       }
@@ -743,25 +690,8 @@ int alttraverseCache() {
       if(version == header->version) {
 	softabort=1;
       }
-#ifdef DELAYCOMP
-      transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-      transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-      ObjSeqId = oidrdage[i];
-      header->abortCount++;
-      (typesCausingAbort[TYPE(header)]).numabort++;
-      (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;
-      (typesCausingAbort[TYPE(header)]).numtrans+=1; 
-      objtypetraverse[TYPE(header)]=1;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-      if(getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse))
-	softabort=0;
-#endif
-      DEBUGSTM("RD Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
-      DEBUGSTMSTAT("RD Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      ABORTSTAT2;
       freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
@@ -781,21 +711,8 @@ int alttraverseCache() {
     if(header->lock>0) { //object is not locked
       if (version!=header->version) {
 	//have to abort
-#ifdef DELAYCOMP
-	transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-	transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-	//ABORTCOUNT(header);
-	(typesCausingAbort[TYPE(header)])++;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-	//if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
-	//  softabort=0;
-#endif
-	DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
-	DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	STMWRAP((typesCausingAbort[TYPE(header)])++;);
 	freearrays;
 	if (softabort)
 	  return TRANS_SOFT_ABORT;
@@ -830,22 +747,9 @@ int alttraverseCache() {
 	  } while(node != NULL);
 	}
       }
-#ifdef DELAYCOMP
-	//have to abort to avoid deadlock
-	transAbortProcess(oidwrlocked, numoidwrtotal);
-#else
-	transAbortProcess(oidwrlocked, numoidwrlocked);
-#endif
-#ifdef STMSTATS
-      //ABORTCOUNT(header);
-      (typesCausingAbort[TYPE(header)])++;
-#endif
-#if defined(STMSTATS)||defined(SOFTABORT)
-     // if(getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion))
-	//softabort=0;
-#endif
-      DEBUGSTM("WR Abort: rd: %u wr: %u tot: %u type: %u ver: %u\n", numoidrdlocked, numoidwrlocked, c_numelements, TYPE(header), header->version);
-      DEBUGSTMSTAT("WR Abort: Access Count: %u AbortCount: %u type: %u ver: %u \n", header->accessCount, header->abortCount, TYPE(header), header->version);
+      //have to abort to avoid deadlock
+      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      STMWRAP((typesCausingAbort[TYPE(header)])++;);
       freearrays;
       if (softabort)
 	return TRANS_SOFT_ABORT;
@@ -858,12 +762,7 @@ int alttraverseCache() {
 #endif
 
   /* Decide the final response */
-#ifdef DELAYCOMP
-  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
-#else
-  transCommitProcess(oidwrlocked, numoidwrlocked);
-#endif
-  DEBUGSTM("Commit: rd: %u wr: %u tot: %u\n", numoidrdlocked, numoidwrlocked, c_numelements);
+  transCommitProcess(oidwrlocked, numoidwrlocked DELAYWRAP(, numoidwrtotal, commitmethod, primitives, locals, params));
   freearrays;
   return TRANS_COMMIT;
 }
@@ -874,7 +773,7 @@ int alttraverseCache() {
  * =================================
  */
 
- int logflag=1;
+int logflag=1;
 
 void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
   int i;
@@ -907,11 +806,7 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
  *
  * =================================
  */
-#ifdef DELAYCOMP
- void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
-#else
-   void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
-#endif
+ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked DELAYWRAP(, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params)) {
   objheader_t *header;
   void *ptrcreate;
   int i;
@@ -954,11 +849,7 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
 #endif
 
   /* Release write locks */
-#ifdef DELAYCOMP
-  for(i=numoidwrtotal-1; i>=0; i--) {
-#else
-  for(i=numoidwrlocked-1; i>=0; i--) {
-#endif
+  for(i=NUMWRTOTAL-1; i>=0; i--) {
     header = &((objheader_t *)dirwrlocked[i])[-1];
     header->version++;
     write_unlock(&header->lock);

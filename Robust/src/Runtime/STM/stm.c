@@ -92,7 +92,7 @@ void transStart() {
 #ifdef STMARRAY
 objheader_t *transCreateObj(void * ptr, unsigned int size, int bytelength) {
   int *tmpint = mygcmalloc(ptr, (sizeof(objheader_t) + size));
-  objheader_t *tmp = (objheader_t *) (tmpint+(bytelength>>DBLINDEXSHIFT));
+  objheader_t *tmp = (objheader_t *) (tmpint+bytelength);
 #else
 objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *tmp = mygcmalloc(ptr, (sizeof(objheader_t) + size));
@@ -165,16 +165,18 @@ void *transRead(void * oid, void *gl) {
   }
 #endif
 #ifdef STMARRAY
-  GETSIZE(size, header);
   int type=TYPE(header);
   if (type>=NUMCLASSES) {
-    int metasize=sizeof(int)*((((struct ArrayObject *)oid)->___length___*classsize[type])>>DBLINDEXSHIFT);
-    size += sizeof(objheader_t)+metasize;
+    int basesize=((struct ArrayObject *)oid)->___length___*classsize[type];
+    basesize=(basesize+LOWMASK)&HIGHMASK;
+    int metasize=sizeof(int)*2*(basesize>>INDEXSHIFT);
+    size = basesize + sizeof(objheader_t)+metasize;
     char *tmpptr = (char *) objstrAlloc(size);
     bzero(objcopy, metasize);//clear out stm data
     objcopy=tmpptr+metasize;
     A_memcpy(objcopy, header, sizeof(objheader_t)+sizeof(struct ArrayObject)); //copy the metadata and base array info
   } else {
+    GETSIZE(size, header);
     size += sizeof(objheader_t);
     objcopy = (objheader_t *) objstrAlloc(size);
     A_memcpy(objcopy, header, size);

@@ -491,7 +491,11 @@ __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
 /* Array allocation function */
 __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, int type, int length) {
 #ifdef STMARRAY
-  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(int)*(((length*classsize[type])>>DBLINDEXSHIFT)), (length*classsize[type])>>DBLINDEXSHIFT);
+  int basesize=length*classsize[type];
+  //round the base size up
+  basesize=(basesize+LOWMASK)&HIGHMASK;
+  int bookkeepsize=(basesize>>INDEXSHIFT)*2*sizeof(int);
+  struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+basesize+bookkeepsize, bookkeepsize);
   v->highindex=-1;
   v->lowindex=MAXARRAYSIZE;
 #else
@@ -521,12 +525,19 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 #ifdef STMARRAY
-  int *tmpint=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t)+sizeof(int)*(((length*classsize[type])>>DBLINDEXSHIFT)));
-  objheader_t *tmp=(objheader_t *)(tmpint+((length*classsize[type])>>DBLINDEXSHIFT));
+  int basesize=length*classsize[type];
+  //round the base size up
+  basesize=(basesize+LOWMASK)&HIGHMASK;
+  int bookkeepsize=(basesize>>INDEXSHIFT)*2*sizeof(int);
+  int *tmpint=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+basesize+sizeof(objheader_t)+bookkeepsize);
+  objheader_t *tmp=(objheader_t *)(tmpint+bookkeepsize);
+  struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
+  v->highindex=-1;
+  v->lowindex=MAXARRAYSIZE;
 #else
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t));
-#endif
   struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
+#endif
   initdsmlocks(&tmp->lock);
   tmp->version=1;
   v->type=type;

@@ -823,7 +823,6 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
   }
 }
 
-
 int gc_createcopy(void * orig, void ** copy_ptr) {
   if (orig==0) {
     *copy_ptr=NULL;
@@ -859,9 +858,11 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
       int elementsize=classsize[type];
       int length=ao->___length___;
 #ifdef STM
-#ifdef STAMARRAY
-      int versionspace=sizeof(int)*(length>>DBLINDEXSHIFT);
-      int size=sizeof(struct ArrayObject)+length*elementsize+sizeof(objheader_t)+versionspace;
+#ifdef STMARRAY
+      int basesize=length*elementsize;
+      basesize=(basesize+LOWMASK)&HIGHMASK;
+      int versionspace=sizeof(int)*2*(basesize>>INDEXSHIFT);
+      int size=sizeof(struct ArrayObject)+basesize+sizeof(objheader_t)+versionspace;
       void *newobj=tomalloc(size);
       memcpy(newobj, ((char*)orig)-sizeof(objheader_t)-versionspace, size);
       newobj=((char *)newobj)+sizeof(objheader_t)+versionspace;

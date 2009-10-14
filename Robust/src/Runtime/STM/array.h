@@ -3,7 +3,7 @@
 
 /* Array layout */
 #define INDEXSHIFT 4   //must be at least 3 for doubles
-#define DBLINDEXSHIFT INDEXSHIFT-1   //must be at least 3 for doubles
+//#define DBLINDEXSHIFT INDEXSHIFT-1   //must be at least 3 for doubles
 #define INDEXLENGTH (1<<INDEXSHIFT)
 #define LOWMASK (INDEXLENGTH-1) //mast off low order bits
 #define HIGHMASK ~(LOWMASK) //mask off high order bits
@@ -15,15 +15,19 @@
 #define MAXARRAYSIZE 2147483647
 
 #define GETLOCKPTR(lock, array, byteindex) {				\
-    lock=(int *)((char *)array-sizeof(objheader_t)-sizeof(int)*(byteindex>>DBLINDEXSHIFT)); \
+    lock=(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)); \
   }
 
 #define GETLOCKVAL(lock, array, byteindex) {				\
-    lock=*(int *)((char *)array-sizeof(objheader_t)-sizeof(int)*(byteindex>>DBLINDEXSHIFT)); \
+    lock=*(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)); \
+  }
+
+#define GETVERSIONVAL(version, array, byteindex) {			\
+    version=*(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)-sizeof(int)); \
   }
 
 #define GETVERSIONPTR(version, array, byteindex) {			\
-    version=(int *)((char *)array-sizeof(objheader_t)-sizeof(int)*(byteindex>>DBLINDEXSHIFT)-sizeof(int)); \
+    version=(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)-sizeof(int)); \
   }
 
 #define STMGETARRAY(dst, array, index, type) {				\
