@@ -492,6 +492,8 @@ __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
 __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, int type, int length) {
 #ifdef STMARRAY
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(int)*(((length*classsize[type])>>DBLINDEXSHIFT)), (length*classsize[type])>>DBLINDEXSHIFT);
+  v->highindex=-1;
+  v->lowindex=MAXARRAYSIZE;
 #else
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]);
 #endif

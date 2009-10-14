@@ -157,25 +157,39 @@ void *transRead(void * oid, void *gl) {
   objheader_t *objcopy;
   int size;
 
-  /* Read from the main heap */
-  //No lock for now
   objheader_t *header = (objheader_t *)(((char *)oid) - sizeof(objheader_t));
-  GETSIZE(size, header);
-  size += sizeof(objheader_t);
-  objcopy = (objheader_t *) objstrAlloc(size);
 #ifdef STMSTATS
   header->accessCount++;
   if(header->riskyflag) {
     header=needLock(header,gl);
   }
 #endif
+#ifdef STMARRAY
+  GETSIZE(size, header);
+  int type=TYPE(header);
+  if (type>=NUMCLASSES) {
+    int metasize=sizeof(int)*((((struct ArrayObject *)oid)->___length___*classsize[type])>>DBLINDEXSHIFT);
+    size += sizeof(objheader_t)+metasize;
+    char *tmpptr = (char *) objstrAlloc(size);
+    bzero(objcopy, metasize);//clear out stm data
+    objcopy=tmpptr+metasize;
+    A_memcpy(objcopy, header, sizeof(objheader_t)+sizeof(struct ArrayObject)); //copy the metadata and base array info
+  } else {
+    size += sizeof(objheader_t);
+    objcopy = (objheader_t *) objstrAlloc(size);
+    A_memcpy(objcopy, header, size);
+  }
+#else
+  GETSIZE(size, header);
+  size += sizeof(objheader_t);
+  objcopy = (objheader_t *) objstrAlloc(size);
   A_memcpy(objcopy, header, size);
+#endif
 #ifdef STMSTATS
   /* keep track of the object's access sequence in a transaction */
   objheader_t *tmpheader = objcopy;
   tmpheader->accessCount = ++t_objnumcount;
 #endif
-
   /* Insert into cache's lookup table */
   STATUS(objcopy)=0;
   if (((unsigned INTPTR)oid)<((unsigned INTPTR ) curr_heapbase)|| ((unsigned INTPTR)oid) >((unsigned INTPTR) curr_heapptr))
@@ -183,6 +197,19 @@ void *transRead(void * oid, void *gl) {
   t_chashInsert(oid, &objcopy[1]);
   return &objcopy[1];
 }
+
+#ifdef STMARRAY
+//caller needs to mark data as present
+ void arraycopy(struct ArrayObject *oid, int byteindex) {
+   struct ArrayObject * orig=oid->___objlocation___;
+   int baseoffset=byteindex&HIGHMASK;
+   A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
+   if (oid->lowoffset>baseoffset)
+     oid->lowoffset=baseoffset;
+   if (oid->highoffset<baseoffset)
+     oid->highoffset=baseoffset;
+ }
+#endif
 
 void freenewobjs() {
   struct objlist *ptr=newobjs;
