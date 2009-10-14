@@ -7,10 +7,13 @@ import java.util.Iterator;
 public class FlatNode {
   public Vector next;
   protected Vector prev;
+  static int idcounter=0;
+  public final int nodeid;
 
   public FlatNode() {
     next=new Vector();
     prev=new Vector();
+    nodeid=(idcounter++);
   }
 
   public String toString() {
