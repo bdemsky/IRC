@@ -203,7 +203,7 @@ void *transRead(void * oid, void *gl) {
 #ifdef STMARRAY
 //caller needs to mark data as present
  void arraycopy(struct ArrayObject *oid, int byteindex) {
-   struct ArrayObject * orig=oid->___objlocation___;
+   struct ArrayObject * orig=(struct ArrayObject *) oid->___objlocation___;
    int baseoffset=byteindex&HIGHMASK;
    A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
    if (oid->lowoffset>baseoffset)
