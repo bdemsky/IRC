@@ -10,12 +10,13 @@ public class MessageList {
 
   public Message data() {
     Message m = (Message) messages.elementAt(0);
-    messages.removeElementAt(0);
     return m;
   }
     
   public Message next() {
-    return data();
+    Message m = (Message) messages.elementAt(0);
+    messages.removeElementAt(0);
+    return m;
   }
 
   public boolean hasNext() {
