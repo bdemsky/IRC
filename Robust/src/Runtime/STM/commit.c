@@ -243,8 +243,8 @@ int transCommit() {
   if (type>=NUMCLASSES) {						\
     struct ArrayObject *transao=(struct ArrayObject *) cachedobj;	\
     struct ArrayObject *mainao=(struct ArrayObject *) objptr;		\
-    int lowoffset=(transao->lowoffset)>>INDEXSHIFT;			\
-    int highoffset=(transao->highoffset)>>INDEXSHIFT;			\
+    int lowoffset=(transao->lowindex)>>INDEXSHIFT;			\
+    int highoffset=(transao->highindex)>>INDEXSHIFT;			\
     int j;								\
     int addwrobject=0, addrdobject=0;					\
     for(j=lowoffset; j<=highoffset;j++) {				\
@@ -278,18 +278,18 @@ int transCommit() {
       dirwrlocked[numoidwrlocked++] = objptr;				\
     }									\
     if (addrdobject) {							\
-      rdlockedarray[numrdlockedarray++]=objptr;				\
+      rdlockedarray[numoidrdlockedarray++]=objptr;				\
     }									\
   } else								
 
-#define READDARRAYS					\
+#define READARRAYS					\
   for(i=0; i<numoidrdlockedarray; i++) {				\
     objheader_t * transheader=oidrdlockedarray[i];			\
     struct ArrayObject * transao=(struct ArrayObject *)&transheader[1];	\
     objheader_t * mainheader=OID(transheader);				\
     struct ArrayObject * mainao=(struct ArrayObject *)&transheader[1];	\
-    int lowoffset=(transao->lowoffset)>>INDEXSHIFT;			\
-    int highoffset=(transao->highoffset)>>INDEXSHIFT;			\
+    int lowoffset=(transao->lowindex)>>INDEXSHIFT;			\
+    int highoffset=(transao->highindex)>>INDEXSHIFT;			\
     int j;								\
     for(j=lowoffset; j<=highoffset;j++) {				\
       int locallock;GETLOCKVAL(locallock,transao,j);			\
@@ -314,7 +314,7 @@ int transCommit() {
 #else
 #define ARRAYDEFINES
 #define PROCESSARRAY
-#define READDARRAYS
+#define READARRAYS
 #define STMARRAYFREE
 #define STMARRAYALLOC
 #define STMARRAYASSIGN
@@ -360,7 +360,8 @@ int transCommit() {
       //if the first bin in hash table is empty
       if(curr->key == NULL)
 	break;
-      objheader_t * headeraddr=&((objheader_t *) curr->val)[-1]; //cached object
+      objheader_t * cachedobj=curr->val;
+      objheader_t * headeraddr=&((objheader_t *) cachedobj)[-1]; //cached object
       void * objptr=curr->key;
       objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t)); //real object
       unsigned int version = headeraddr->version;
@@ -597,7 +598,8 @@ int alttraverseCache() {
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(curr != NULL)) {
     //if the first bin in hash table is empty
-    objheader_t * headeraddr=&((objheader_t *) curr->val)[-1];
+      objheader_t * cachedobj=curr->val;
+    objheader_t * headeraddr=&((objheader_t *) cachedobj)[-1];
     void *objptr=curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
     unsigned int version = headeraddr->version;

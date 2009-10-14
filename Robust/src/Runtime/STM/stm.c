@@ -206,10 +206,10 @@ void *transRead(void * oid, void *gl) {
    struct ArrayObject * orig=(struct ArrayObject *) oid->___objlocation___;
    int baseoffset=byteindex&HIGHMASK;
    A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
-   if (oid->lowoffset>baseoffset)
-     oid->lowoffset=baseoffset;
-   if (oid->highoffset<baseoffset)
-     oid->highoffset=baseoffset;
+   if (oid->lowindex>baseoffset)
+     oid->lowindex=baseoffset;
+   if (oid->highindex<baseoffset)
+     oid->highindex=baseoffset;
  }
 #endif
 
