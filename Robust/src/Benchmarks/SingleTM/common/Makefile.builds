@@ -1,9 +1,26 @@
-default: prep
-#	../../../buildscript ${FLAGSLOCKNOJ} -o LOCKNOJ${MAINCLASS} ${SRC}
-#	../../../buildscript ${FLAGSSTMNOJ} -o STMNOJ${MAINCLASS} ${SRC}
-#	../../../buildscript ${FLAGSLOCK} -o LOCK${MAINCLASS} ${SRC}
+default: lock basestm lockjopt stmjopt stmopt fission
+
+lock: prep
+	../../../buildscript ${FLAGSLOCKNOJ} -o LOCKNOJ${MAINCLASS} ${SRC}
+
+basestm: prep
+	../../../buildscript ${FLAGSSTMNOJ} -o STMNOJ${MAINCLASS} ${SRC}
+
+lockjopt: prep
+	../../../buildscript ${FLAGSLOCK} -o LOCK${MAINCLASS} ${SRC}
+
+stmjopt: prep
 	../../../buildscript ${FLAGSSTM} -o STM${MAINCLASS} ${SRC}
+
+stmopt: prep
 	../../../buildscript ${FLAGSOPTSTM} -o OPTSTM${MAINCLASS} ${SRC}
+
+fission: prep
 	../../../buildscript ${FLAGSFISSION} -o FIS${MAINCLASS} ${SRC}
-#	../../../buildscript ${FLAGSSTATS} -o STATS${MAINCLASS} ${SRC}
+
+debug: prep
+	../../../buildscript ${FLAGSDEBUG} -o DEB${MAINCLASS} ${SRC}
+
+stats: prep
+	../../../buildscript ${FLAGSSTATS} -o STATS${MAINCLASS} ${SRC}
 
