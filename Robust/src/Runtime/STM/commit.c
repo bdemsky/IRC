@@ -163,7 +163,7 @@ int transCommit() {
     oidrdlocked=malloc(size); \
     oidrdversion=malloc(size); \
     STATALLOC;		       \
-    STATARRAYALLOC;	       \
+    STMARRAYALLOC;	       \
   }\
   dirwrlocked=oidwrlocked->array;
 #else
@@ -179,7 +179,7 @@ int transCommit() {
     oidrdversion=malloc(size); \
     oidwrlocked=malloc(size+2*sizeof(INTPTR));	\
     STATALLOC;					\
-    STATARRAYALLOC;				\
+    STMARRAYALLOC;				\
   } \
   dirwrlocked=oidwrlocked->array;
 #endif
