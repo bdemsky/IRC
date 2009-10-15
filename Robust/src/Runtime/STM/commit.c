@@ -291,16 +291,14 @@ int transCommit() {
       dirwrlocked[numoidwrlocked++] = objptr;				\
     }									\
     if (addrdobject) {							\
-      rdlockedarray[numoidrdlockedarray++]=objptr;			\
+      oidrdlockedarray[numoidrdlockedarray++]=objptr;			\
     }									\
   } else								
 
 #define READARRAYS							\
   for(i=0; i<numoidrdlockedarray; i++) {				\
-    objheader_t * transheader=oidrdlockedarray[i];			\
-    struct ArrayObject * transao=(struct ArrayObject *)&transheader[1];	\
-    objheader_t * mainheader=OID(transheader);				\
-    struct ArrayObject * mainao=(struct ArrayObject *)&transheader[1];	\
+    struct ArrayObject * transao=(struct ArrayObject *) oidrdlockedarray[i]; \
+    struct ArrayObject * mainao=(struct ArrayObject *) transao->___objlocation___; \
     int lowoffset=(transao->lowindex)>>INDEXSHIFT;			\
     int highoffset=(transao->highindex)>>INDEXSHIFT;			\
     int j;								\
@@ -320,6 +318,19 @@ int transCommit() {
 	    freearrays;							\
 	    return TRANS_ABORT;						\
 	  }								\
+	} else {							\
+	  unsigned int localversion;					\
+	  unsigned int remoteversion;					\
+	  GETVERSIONVAL(localversion, transao, j);			\
+	  GETVERSIONVAL(remoteversion, mainao, j);			\
+	  if (localversion==remoteversion)				\
+	    softabort=1;						\
+	  transAbortProcess(oidwrlocked, NUMWRTOTAL);			\
+	  freearrays;							\
+	  if (softabort)						\
+	    return TRANS_SOFT_ABORT;					\
+	  else								\
+	    return TRANS_ABORT;						\
 	}								\
       }									\
     }									\
@@ -695,7 +706,6 @@ int alttraverseCache() {
 #endif
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
-
   READARRAYS;
 
   for(i=0; i<numoidrdlocked; i++) {

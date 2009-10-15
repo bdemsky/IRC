@@ -3674,7 +3674,7 @@ public class BuildCode {
     if (state.SINGLETM) {
       //Single machine transaction case
       String dst=generateTemp(fm, fen.getDst(),lb);
-      if (!state.STMARRAY||wb.needBarrier(fen)||locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())==LocalityAnalysis.SCRATCH) {
+      if ((!state.STMARRAY)||(!wb.needBarrier(fen))||locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())==LocalityAnalysis.SCRATCH||locality.getAtomic(lb).get(fen).intValue()==0) {
 	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
       } else {
 	output.println("STMGETARRAY("+dst+", "+ generateTemp(fm,fen.getSrc(),lb)+", "+generateTemp(fm, fen.getIndex(),lb)+", "+type+");");
@@ -3747,14 +3747,14 @@ public class BuildCode {
 	} else {
 	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
 	}
-	if (state.STMARRAY&&locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)) {
+	if (state.STMARRAY&&locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)&&locality.getAtomic(lb).get(fsen).intValue()>0) {
 	  output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst(),lb)+", "+generateTemp(fm, fsen.getIndex(),lb)+", srcoid, INTPTR);");
 	} else {
 	  output.println("((INTPTR*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]=srcoid;");
 	}
 	output.println("}");
       } else {
-	if (state.STMARRAY&&locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)) {
+	if (state.STMARRAY&&locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH&&wb.needBarrier(fsen)&&locality.getAtomic(lb).get(fsen).intValue()>0) {
 	  output.println("STMSETARRAY("+generateTemp(fm, fsen.getDst(),lb)+", "+generateTemp(fm, fsen.getIndex(),lb)+", "+ generateTemp(fm, fsen.getSrc(), lb) +", "+type+");");
 	} else {
 	  output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
