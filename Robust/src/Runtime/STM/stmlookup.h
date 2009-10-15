@@ -90,14 +90,30 @@ void rd_t_chashreset();
 #endif
 
 #ifdef DELAYCOMP
-extern __thread chashlistnode_t *dc_c_table;
-extern __thread chashlistnode_t *dc_c_list;
+
+typedef struct dchashlistnode {
+  void * key;
+  unsigned int intkey;
+  void * val;     //this can be cast to another type or used to point to a larger structure
+  struct dchashlistnode *next;
+  struct dchashlistnode *lnext;
+} dchashlistnode_t;
+
+#define NUMDCLIST 250
+typedef struct dclist {
+  struct dchashlistnode array[NUMDCLIST];
+  int num;
+  struct dclist *next;
+} dcliststruct_t;
+
+extern __thread dchashlistnode_t *dc_c_table;
+extern __thread dchashlistnode_t *dc_c_list;
 extern __thread unsigned int dc_c_size;
 extern __thread unsigned INTPTR dc_c_mask;
 extern __thread unsigned int dc_c_numelements;
 extern __thread unsigned int dc_c_threshold;
 extern __thread double dc_c_loadfactor;
-extern __thread cliststruct_t *dc_c_structs;
+extern __thread dcliststruct_t *dc_c_structs;
 
 void dc_t_chashCreate(unsigned int size, double loadfactor);
 void dc_t_chashInsertOnce(void * key, void *val);

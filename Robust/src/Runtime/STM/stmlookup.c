@@ -202,41 +202,40 @@ void rd_t_chashDelete() {
 #endif
 
 #ifdef DELAYCOMP
-__thread chashlistnode_t *dc_c_table;
-__thread chashlistnode_t *dc_c_list;
+__thread dchashlistnode_t *dc_c_table;
+__thread dchashlistnode_t *dc_c_list;
 __thread unsigned int dc_c_size;
 __thread unsigned INTPTR dc_c_mask;
 __thread unsigned int dc_c_numelements;
 __thread unsigned int dc_c_threshold;
 __thread double dc_c_loadfactor;
-__thread cliststruct_t *dc_c_structs;
+__thread dcliststruct_t *dc_c_structs;
 
 void dc_t_chashCreate(unsigned int size, double loadfactor) {
-  chashtable_t *ctable;
-  chashlistnode_t *nodes;
+  dchashlistnode_t *nodes;
   int i;
 
   // Allocate space for the hash table
 
-  dc_c_table = calloc(size, sizeof(chashlistnode_t));
+  dc_c_table = calloc(size, sizeof(dchashlistnode_t));
   dc_c_loadfactor = loadfactor;
   dc_c_size = size;
   dc_c_threshold=size*loadfactor;
   dc_c_mask = (size << 4)-1;
-  dc_c_structs=calloc(1, sizeof(cliststruct_t));
+  dc_c_structs=calloc(1, sizeof(dcliststruct_t));
   dc_c_numelements = 0; // Initial number of elements in the hash
   dc_c_list=NULL;
 }
 
 void dc_t_chashreset() {
-  chashlistnode_t *ptr = dc_c_table;
+  dchashlistnode_t *ptr = dc_c_table;
   int i;
 
   if (dc_c_numelements<(dc_c_size>>4)) {
-    chashlistnode_t *top=&ptr[dc_c_size];
-    chashlistnode_t *tmpptr=dc_c_list;
+    dchashlistnode_t *top=&ptr[dc_c_size];
+    dchashlistnode_t *tmpptr=dc_c_list;
     while(tmpptr!=NULL) {
-      chashlistnode_t *next=tmpptr->lnext;
+      dchashlistnode_t *next=tmpptr->lnext;
       if (tmpptr>=ptr&&tmpptr<top) {
 	//zero in list
 	tmpptr->key=NULL;
@@ -245,10 +244,10 @@ void dc_t_chashreset() {
       tmpptr=next;
     }
   } else {
-    bzero(dc_c_table, sizeof(chashlistnode_t)*dc_c_size);
+    bzero(dc_c_table, sizeof(dchashlistnode_t)*dc_c_size);
   }
   while(dc_c_structs->next!=NULL) {
-    cliststruct_t *next=dc_c_structs->next;
+    dcliststruct_t *next=dc_c_structs->next;
     free(dc_c_structs);
     dc_c_structs=next;
   }
@@ -259,7 +258,7 @@ void dc_t_chashreset() {
 
 //Store objects and their pointers into hash
 void dc_t_chashInsertOnce(void * key, void *val) {
-  chashlistnode_t *ptr;
+  dchashlistnode_t *ptr;
 
   if (key==NULL)
     return;
@@ -279,8 +278,8 @@ void dc_t_chashInsertOnce(void * key, void *val) {
     dc_c_list=ptr;
     dc_c_numelements++;
   } else { // Insert in the beginning of linked list
-    chashlistnode_t * node;
-    chashlistnode_t *search=ptr;
+    dchashlistnode_t * node;
+    dchashlistnode_t *search=ptr;
     
     //make sure it isn't here
     do {
@@ -296,7 +295,7 @@ void dc_t_chashInsertOnce(void * key, void *val) {
       dc_c_structs->num++;
     } else {
       //get new list
-      cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
+      dcliststruct_t *tcl=calloc(1,sizeof(dcliststruct_t));
       tcl->next=dc_c_structs;
       dc_c_structs=tcl;
       node=&tcl->array[0];
@@ -311,8 +310,66 @@ void dc_t_chashInsertOnce(void * key, void *val) {
   }
 }
 
+#ifdef STMARRAY
+//Store objects and their pointers into hash
+void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
+  dchashlistnode_t *ptr;
+
+  if (key==NULL)
+    return;
+
+  if(dc_c_numelements > (dc_c_threshold)) {
+    //Resize
+    unsigned int newsize = dc_c_size << 1;
+    dc_t_chashResize(newsize);
+  }
+
+  ptr = &dc_c_table[(((unsigned INTPTR)key^intkey)&dc_c_mask)>>4];
+
+  if(ptr->key==0) {
+    ptr->key=key;
+    ptr->intkey=intkey;
+    ptr->val=val;
+    ptr->lnext=dc_c_list;
+    dc_c_list=ptr;
+    dc_c_numelements++;
+  } else { // Insert in the beginning of linked list
+    dchashlistnode_t * node;
+    dchashlistnode_t *search=ptr;
+    
+    //make sure it isn't here
+    do {
+      if(search->key == key&&search->intkey==intkey) {
+	return;
+      }
+      search=search->next;
+    } while(search != NULL);
+
+    dc_c_numelements++;
+    if (dc_c_structs->num<NUMCLIST) {
+      node=&dc_c_structs->array[dc_c_structs->num];
+      dc_c_structs->num++;
+    } else {
+      //get new list
+      dcliststruct_t *tcl=calloc(1,sizeof(dcliststruct_t));
+      tcl->next=dc_c_structs;
+      dc_c_structs=tcl;
+      node=&tcl->array[0];
+      tcl->num=1;
+    }
+    node->key = key;
+    node->intkey = intkey;
+    node->val = val;
+    node->next = ptr->next;
+    ptr->next=node;
+    node->lnext=dc_c_list;
+    dc_c_list=node;
+  }
+}
+#endif
+
 unsigned int dc_t_chashResize(unsigned int newsize) {
-  chashlistnode_t *node, *ptr, *curr;    // curr and next keep track of the current and the next chashlistnodes in a linked list
+  dchashlistnode_t *node, *ptr, *curr;    // curr and next keep track of the current and the next chashlistnodes in a linked list
   unsigned int oldsize;
   int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
   unsigned int i,index;
@@ -322,7 +379,7 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
   oldsize = dc_c_size;
   dc_c_list=NULL;
 
-  if((node = calloc(newsize, sizeof(chashlistnode_t))) == NULL) {
+  if((node = calloc(newsize, sizeof(dchashlistnode_t))) == NULL) {
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
@@ -337,17 +394,28 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
     isfirst = 1;
     do {                      //Inner loop to go through linked lists
       void * key;
-      chashlistnode_t *tmp,*next;
+#ifdef STMARRAY
+      unsigned int intkey;
+#endif
+      dchashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
+#ifdef STMARRAY
+      intkey=curr->intkey;
+      index = (((unsigned INTPTR)key^intkey) & mask) >>4;
+#else
       index = (((unsigned INTPTR)key) & mask) >>4;
+#endif
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
 	tmp->key = key;
+#ifdef STMARRAY
+	tmp->intkey = intkey;
+#endif
 	tmp->val = curr->val;
 	tmp->lnext=dc_c_list;
 	dc_c_list=tmp;
@@ -380,9 +448,9 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
 //Delete the entire hash table
 void dc_t_chashDelete() {
   int i;
-  cliststruct_t *ptr=dc_c_structs;
+  dcliststruct_t *ptr=dc_c_structs;
   while(ptr!=NULL) {
-    cliststruct_t *next=ptr->next;
+    dcliststruct_t *next=ptr->next;
     free(ptr);
     ptr=next;
   }
@@ -395,7 +463,7 @@ void dc_t_chashDelete() {
 // Search for an address for a given oid
 INLINE void * dc_t_chashSearch(void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  chashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
+  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
   
   do {
     if(node->key == key) {
@@ -406,6 +474,23 @@ INLINE void * dc_t_chashSearch(void * key) {
 
   return NULL;
 }
+
+#ifdef STMARRAY
+// Search for an address for a given oid
+INLINE void * dc_t_chashSearchArray(void * key, unsigned int intkey) {
+  //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
+  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key^intkey) & dc_c_mask)>>4];
+  
+  do {
+    if(node->key == key && node->intkey==intkey) {
+      return node->val;
+    }
+    node = node->next;
+  } while(node != NULL);
+
+  return NULL;
+}
+#endif
 
 #endif
 

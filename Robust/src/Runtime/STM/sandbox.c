@@ -27,6 +27,9 @@ void checkObjects() {
     ptrstack.count=0;
     primstack.count=0;
     branchstack.count=0;
+#ifdef STMARRAY
+    arraystack.count=0;
+#endif
 #endif
     _longjmp(aborttrans, 1);
   }
@@ -55,6 +58,9 @@ void errorhandler(int sig, struct sigcontext ctx) {
     ptrstack.count=0;
     primstack.count=0;
     branchstack.count=0;
+#ifdef STMARRAY
+    arraystack.count=0;
+#endif
 #endif
     _longjmp(aborttrans, 1);
   }

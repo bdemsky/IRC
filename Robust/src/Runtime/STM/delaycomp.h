@@ -8,11 +8,14 @@
 #define MAXPOINTERS 1024*1024*1
 #define MAXVALUES 1024*1024*2
 #define MAXBRANCHES 1024*1024*4
+#define MAXARRAY 1024*1024
 
 struct pointerlist {
   int count;
   void * prev;
-  void * array[MAXPOINTERS+1024];
+  void * array[MAXPOINTERS];
+  int maxcount;
+  void * buffer[1024];
 };
 
 struct primitivelist {
@@ -28,10 +31,33 @@ struct branchlist {
 extern __thread struct pointerlist ptrstack;
 extern __thread struct primitivelist primstack;
 extern __thread struct branchlist branchstack;
+#ifdef STMARRAY
+struct arraylist {
+  int count;
+  void * prev;
+  void *array[MAXARRAY];
+  int maxcount;
+  int index[MAXARRAY+1024];
+};
+
+extern __thread struct arraylist arraystack;
+#endif
+
+//Arrays
+
+#define RESTOREARRAY(x,z) {x=arraystack.array[arraystack.maxcount];z=arraystack.index[arraystack.maxcount++];}
+
+#define STOREARRAY(x,z) {void * y=COMPOID(x); arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; dc_t_chashInsertOnce(y,y,z);}
+
+#define STOREARRAYNOLOCK(x,z) {void * y=COMPOID(x); arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z;}
+
+#define STOREARRAYNOTRANS(x,z) {void * y=x; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; dc_t_chashInsertOnce(y,y,z);}
+
+#define STOREARRAYNOLOCKNOTRANS(x,z) {void * y=x; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; }
 
 //Pointers
 
-#define RESTOREPTR(x) x=ptrstack.array[ptrstack.count++];
+#define RESTOREPTR(x) x=ptrstack.array[ptrstack.maxcount++];
 
 #define STOREPTR(x) {void * y=COMPOID(x); ptrstack.array[ptrstack.count++]=y; dc_t_chashInsertOnce(y,y);}
 

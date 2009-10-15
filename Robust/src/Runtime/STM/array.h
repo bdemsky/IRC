@@ -37,7 +37,7 @@
 #define STMGETARRAY(dst, array, index, type) {				\
     int byteindex=index*sizeof(type);					\
     int * lengthoff=&array->___length___;				\
-    if (array!=array->___objlocation___) {				\
+    if (((char *)array)!=((char *)array->___objlocation___)) {		\
       if(!(array->___objstatus___&NEW)) {				\
 	int *status;							\
 	GETLOCKPTR(status, array, byteindex>>INDEXSHIFT);		\

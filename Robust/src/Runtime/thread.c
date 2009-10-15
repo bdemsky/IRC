@@ -199,7 +199,10 @@ void initializethreads() {
   ptrstack.count=0;
   primstack.count=0;
   branchstack.count=0;
-  int a=mprotect((downpage(&ptrstack.array[MAXPOINTERS])), 4096, PROT_NONE);
+#ifdef STMARRAY
+  arraystack.count=0;
+#endif
+  int a=mprotect((downpage(&ptrstack.buffer[0])), 4096, PROT_NONE);
   if (a==-1)
     perror("ptrstack");
   a=mprotect(downpage(&primstack.array[MAXVALUES]), 4096, PROT_NONE);
@@ -208,6 +211,11 @@ void initializethreads() {
   a=mprotect(downpage(&branchstack.array[MAXBRANCHES]), 4096, PROT_NONE);
   if (a==-1)
     perror("branchstack");
+#ifdef STMARRAY
+  a=mprotect(downpage(&arraystack.index[MAXARRAY]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("arraystack");
+#endif
 #endif
 #ifdef STMSTATS
   trec=calloc(1, sizeof(threadrec_t));
@@ -292,7 +300,10 @@ void initthread(struct ___Thread___ * ___this___) {
   ptrstack.count=0;
   primstack.count=0;
   branchstack.count=0;
-  int a=mprotect(downpage(&ptrstack.array[MAXPOINTERS]), 4096, PROT_NONE);
+#ifdef STMARRAY
+  arraystack.count=0;
+#endif
+  int a=mprotect(downpage(&ptrstack.buffer[0]), 4096, PROT_NONE);
   if (a==-1)
     perror("ptrstack");
   a=mprotect(downpage(&primstack.array[MAXVALUES]), 4096, PROT_NONE);
@@ -301,6 +312,11 @@ void initthread(struct ___Thread___ * ___this___) {
   a=mprotect(downpage(&branchstack.array[MAXBRANCHES]), 4096, PROT_NONE);
   if (a==-1)
     perror("branchstack");
+#ifdef STMARRAY
+  a=mprotect(downpage(&arraystack.index[MAXARRAY]), 4096, PROT_NONE);
+  if (a==-1)
+    perror("arraystack");
+#endif
 #endif
  ___Thread____NNR____staticStart____L___Thread___((struct ___Thread____NNR____staticStart____L___Thread____params *)p);
  objstrDelete(t_cache);

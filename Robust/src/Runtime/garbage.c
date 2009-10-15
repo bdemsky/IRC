@@ -302,6 +302,10 @@ void collect(struct garbagelist * stackptr) {
 #ifdef DELAYCOMP
   ptrstack.prev=stackptr;
   stackptr=(struct garbagelist *) &ptrstack;
+#ifdef STMARRAY
+  arraystack.prev=stackptr;
+  stackptr=(struct garbagelist *) &arraystack;
+#endif
 #endif
 
 #ifdef GARBAGESTATS
@@ -641,6 +645,10 @@ void stopforgc(struct garbagelist * ptr) {
   //just append us to the list
   ptrstack.prev=ptr;
   ptr=(struct garbagelist *) &ptrstack;
+#ifdef STMARRAY
+  arraystack.prev=ptr;
+  ptr=(struct garbagelist *) &arraystack;
+#endif
 #endif
 #ifndef MAC
   litem.stackptr=ptr;

@@ -8,7 +8,7 @@
 #define TRANS_SOFT_ABORT    12
 #define TRANS_ABORT         13
 #define TRANS_COMMIT        14
-#define TRANS_ABORT_RETRY         15
+#define TRANS_ABORT_RETRY   15
 
 /* ========================
  * Library header files
@@ -253,6 +253,7 @@ extern __thread int t_objnumcount;
 #endif
 
 #define likely(x) x
+#define unlikely(x) x
 
 extern void * curr_heapbase;
 extern void * curr_heapptr;

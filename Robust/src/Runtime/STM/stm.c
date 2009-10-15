@@ -27,9 +27,9 @@ __thread struct objlist * newobjs;
 __thread struct pointerlist ptrstack;
 __thread struct primitivelist primstack;
 __thread struct branchlist branchstack;
-struct pointerlist *c_ptrstack;
-struct primitivelist *c_primstack;
-struct branchlist *c_branchstack;
+#ifdef STMARRAY
+__thread struct arraylist arraystack;
+#endif
 #endif
 
 #ifdef TRANSSTATS
@@ -77,11 +77,6 @@ int stmStartup() {
  */
 void transStart() {
   //Transaction start is currently free...commit and aborting is not
-#ifdef DELAYCOMP
-  c_ptrstack=&ptrstack;
-  c_primstack=&primstack;
-  c_branchstack=&branchstack;
-#endif
 }
 
 /* =======================================================

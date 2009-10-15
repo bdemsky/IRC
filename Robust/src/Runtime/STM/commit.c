@@ -70,6 +70,9 @@ int transCommit() {
       ptrstack.count=0;
       primstack.count=0;
       branchstack.count=0;
+#ifdef STMARRAY
+      arraystack.count=0;
+#endif
 #endif
 #ifdef SANDBOX
       abortenabled=1;
@@ -90,6 +93,9 @@ int transCommit() {
       ptrstack.count=0;
       primstack.count=0;
       branchstack.count=0;
+#ifdef STMARRAY
+      arraystack.count=0;
+#endif
 #endif
       return 0;
     }
@@ -116,6 +122,9 @@ int transCommit() {
 	ptrstack.count=0;
 	primstack.count=0;
 	branchstack.count=0;
+#ifdef STMARRAY
+      arraystack.count=0;
+#endif
 #endif
 	return TRANS_ABORT;
       }
@@ -293,7 +302,7 @@ int transCommit() {
     if (addrdobject) {							\
       oidrdlockedarray[numoidrdlockedarray++]=objptr;			\
     }									\
-  } else								
+  } else
 
 #define READARRAYS							\
   for(i=0; i<numoidrdlockedarray; i++) {				\
@@ -435,7 +444,7 @@ int transCommit() {
   //acquire access set locks
   unsigned int numoidwrtotal=numoidwrlocked;
 
-  chashlistnode_t *dc_curr = dc_c_list;
+  dchashlistnode_t *dc_curr = dc_c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(dc_curr != NULL)) {
     //if the first bin in hash table is empty
@@ -542,7 +551,7 @@ int transCommit() {
 #ifdef DELAYCOMP
 	//check to see if it is in the delaycomp table
 	{
-	  chashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
+	  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
 	  do {
 	    if(node->key == key)
 	      goto nextloopread;
@@ -667,7 +676,7 @@ int alttraverseCache() {
 #ifdef DELAYCOMP
   //acquire other locks
   unsigned int numoidwrtotal=numoidwrlocked;
-  chashlistnode_t *dc_curr = dc_c_list;
+  dchashlistnode_t *dc_curr = dc_c_list;
   /* Inner loop to traverse the linked list of the cache lookupTable */
   while(likely(dc_curr != NULL)) {
     //if the first bin in hash table is empty
@@ -769,7 +778,7 @@ int alttraverseCache() {
 #ifdef DELAYCOMP
 	//check to see if it is in the delaycomp table
 	{
-	  chashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
+	  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
 	  do {
 	    if(node->key == key)
 	      goto nextloopread;
@@ -931,9 +940,12 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
 
 #ifdef DELAYCOMP
   //  call commit method
-  ptrstack.count=0;
+  ptrstack.maxcount=0;
   primstack.count=0;
   branchstack.count=0;
+#ifdef STMARRAY
+  arraystack.maxcount=0;
+#endif
   //splice oidwrlocked in
   oidwrlocked->size=numoidwrtotal;
   oidwrlocked->next=params;
