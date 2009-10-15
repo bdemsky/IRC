@@ -3,7 +3,7 @@
 
 
 inline void initdsmlocks(volatile unsigned int *addr) {
-  (*addr) = RW_LOCK_BIAS;
+  (*addr) = SWAP_LOCK_BIAS;
 }
 
 /*
@@ -15,9 +15,9 @@ int write_trylock(volatile unsigned int *lock) {
 	       : "memory");
   return retval;
 }
-*/
+
 
 void write_unlock(volatile unsigned int *lock) {
   __asm __volatile__("movl $1, %0" : "+m" (*lock)::"memory");
 }
-
+*/

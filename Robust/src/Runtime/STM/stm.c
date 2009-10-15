@@ -98,7 +98,7 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *tmp = mygcmalloc(ptr, (sizeof(objheader_t) + size));
 #endif
   objheader_t *retval=tmp+1;
-  tmp->lock=RW_LOCK_BIAS;
+  tmp->lock=SWAP_LOCK_BIAS;
   tmp->version = 1;
   //initialize obj lock to the header
   STATUS(tmp)=NEW;

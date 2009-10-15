@@ -1,25 +1,28 @@
 #ifndef _STMLOCK_H_
 #define _STMLOCK_H_
 
-#define RW_LOCK_BIAS                 1
-#define LOCK_UNLOCKED          { LOCK_BIAS }
+#define SWAP_LOCK_BIAS                 1
 #define CFENCE   asm volatile("":::"memory");
 
-struct __xchg_dummy {
-	unsigned long a[100];
-};
+#define RW_LOCK_BIAS             0x01000000
 
-#define __xg(x) ((struct __xchg_dummy *)(x))
+#define LOCK_PREFIX \
+  ".section .smp_locks,\"a\"\n"   \
+  "  .align 4\n"                  \
+  "  .long 661f\n"             /* address */\
+  ".previous\n"                   \
+  "661:\n\tlock; "
 
 void initdsmlocks(volatile unsigned int *addr);
 //int write_trylock(volatile unsigned int *lock);
-void write_unlock(volatile unsigned int *lock);
+//void write_unlock(volatile unsigned int *lock);
 
 /*
 static inline void initdsmlocks(volatile unsigned int *addr) {
   (*addr) = RW_LOCK_BIAS;
 }
 */
+
 static inline int write_trylock(volatile unsigned int *lock) {
   int retval=0;
   __asm__ __volatile__("xchgl %0,%1"
@@ -29,10 +32,60 @@ static inline int write_trylock(volatile unsigned int *lock) {
   return retval;
 }
 
-/*
 static inline void write_unlock(volatile unsigned int *lock) {
-  __asm __volatile__("movl $1, %0" : "+m" (*__xg(lock))::"memory");
+  __asm__ __volatile__("movl $1, %0" : "+m" (*lock)::"memory");
 }
-*/
 
+
+static inline void atomic_add(int i, unsigned int *v) {
+  __asm__ __volatile__ (LOCK_PREFIX "addl %1,%0"
+                        : "+m" (*v)
+                        : "ir" (i));
+}
+
+static inline void read_unlock(volatile unsigned int *rw) {
+  __asm__ __volatile__ (LOCK_PREFIX "incl %0" : "+m" (*rw) : : "memory");
+}
+
+static inline void write_unlock(volatile unsigned int *rw) {
+  __asm__ __volatile__ (LOCK_PREFIX "addl %1, %0"
+                        : "+m" (*rw) : "i" (RW_LOCK_BIAS) : "memory");
+}
+
+static inline void atomic_dec(volatile unsigned int *v) {
+  __asm__ __volatile__ (LOCK_PREFIX "decl %0"
+                        : "+m" (*v));
+}
+
+static inline void atomic_inc(volatile unsigned int *v) {
+  __asm__ __volatile__ (LOCK_PREFIX "incl %0"
+                        : "+m" (*v));
+}
+
+static inline int atomic_sub_and_test(int i, unsigned int *v) {
+  unsigned char c;
+
+  __asm__ __volatile__ (LOCK_PREFIX "subl %2,%0; sete %1"
+                        : "+m" (*v), "=qm" (c)
+                        : "ir" (i) : "memory");
+  return c;
+}
+
+#define atomic_read(v)          (*v)
+
+static inline int read_trylock(volatile unsigned int  *lock) {
+  atomic_dec(lock);
+  if (atomic_read(lock) >= 0)
+    return 1; //can aquire a new read lock
+  atomic_inc(lock);
+  return 0; //failure
+}
+
+static inline int write_trylock(volatile unsigned int  *lock) {
+  if (atomic_sub_and_test(RW_LOCK_BIAS, *lock)) {
+    return 1; // get a write lock
+  }
+  atomic_add(RW_LOCK_BIAS, *lock);
+  return 0; // failed to acquire a write lock
+}
 #endif
