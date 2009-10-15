@@ -264,7 +264,7 @@ int transCommit() {
     int j;								\
     int addwrobject=0, addrdobject=0;					\
     for(j=lowoffset; j<=highoffset;j++) {				\
-      int status;							\
+      unsigned int status;						\
       GETLOCKVAL(status, transao, j);					\
       if (status==STMDIRTY) {						\
 	unsigned int * lockptr;						\
@@ -305,10 +305,10 @@ int transCommit() {
     int highoffset=(transao->highindex)>>INDEXSHIFT;			\
     int j;								\
     for(j=lowoffset; j<=highoffset;j++) {				\
-      int locallock;GETLOCKVAL(locallock,transao,j);			\
+      unsigned int locallock;GETLOCKVAL(locallock,transao,j);		\
       if (locallock==STMCLEAN) {					\
 	/* do read check */						\
-	int mainlock; GETLOCKVAL(mainlock, mainao, j);			\
+	unsigned int mainlock; GETLOCKVAL(mainlock, mainao, j);		\
 	if (mainlock>0) {						\
 	  CFENCE;							\
 	  unsigned int localversion;					\
@@ -833,10 +833,10 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
       int j;
       int addwrobject=0, addrdobject=0;
       for(j=lowoffset; j<=highoffset;j++) {
-	int status;
+	unsigned int status;
 	GETLOCKVAL(status, src, j);
 	if (status==STMDIRTY) {
-	  int *lockptr;
+	  unsigned int *lockptr;
 	  GETLOCKPTR(lockptr, ((struct ArrayObject *)dst), j);
 	  write_unlock(lockptr);
 	}
@@ -903,12 +903,14 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       int j;
       int addwrobject=0, addrdobject=0;
       int elementsize=classsize[type];
-      int baseoffset=(lowoffset*elementsize)&HIGHMASK;
-      for(j=lowoffset; j<=highoffset;j++, baseoffset+=elementsize) {
-	int status;
+      int baseoffset=((lowoffset*elementsize)&HIGHMASK)+sizeof(struct ArrayObject);
+      char *dstptr=((char *)dst)+baseoffset;
+      char *srcptr=((char *)src)+baseoffset;
+      for(j=lowoffset; j<=highoffset;j++, srcptr+=INDEXLENGTH,dstptr+=INDEXLENGTH) {
+	unsigned int status;
 	GETLOCKVAL(status, ((struct ArrayObject *)src), j);
 	if (status==STMDIRTY) {
-	  A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
+	  A_memcpy(dstptr, srcptr, INDEXLENGTH);
 	}
       }
     } else
@@ -944,10 +946,10 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       int j;
       int addwrobject=0, addrdobject=0;
       for(j=lowoffset; j<=highoffset;j++) {
-	int status;
+	unsigned int status;
 	GETLOCKVAL(status, src, j);
 	if (status==STMDIRTY) {
-	  int *ptr;
+	  unsigned int *intptr;
 	  GETVERSIONPTR(intptr, ((struct ArrayObject *)dst), j);
 	  (*intptr)++;
 	  GETLOCKPTR(intptr, ((struct ArrayObject *)dst), j);

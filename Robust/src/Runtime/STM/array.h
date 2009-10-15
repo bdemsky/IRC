@@ -15,11 +15,11 @@
 #define MAXARRAYSIZE 2147483647
 
 #define GETLOCKPTR(lock, array, byteindex) {				\
-    lock=(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)); \
+    lock=(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)-2*sizeof(int)); \
   }
 
 #define GETLOCKVAL(lock, array, byteindex) {				\
-    lock=*(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)); \
+    lock=*(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex>>INDEXSHIFT)-2*sizeof(int)); \
   }
 
 #define GETVERSIONVAL(version, array, byteindex) {			\
@@ -36,7 +36,7 @@
     int *status;							\
     if (array!=array->___objlocation___) {				\
       GETLOCKPTR(status, array, byteindex);				\
-      if ((*status)==STMNONE) {						\
+      if ((*status)==STMNONE&&!(array->___objstatus___&NEW)) {		\
 	arraycopy(array, byteindex);					\
 	*status=STMCLEAN;};						\
     }									\
@@ -47,8 +47,8 @@
     int byteindex=index*sizeof(type);					\
     int * lengthoff=&array->___length___;				\
     int *status;							\
-    GETLOCKPTR(status, array);						\
-    if (*status==STMNONE)						\
+    GETLOCKPTR(status, array, byteindex);				\
+    if (*status==STMNONE&&!(array->___objstatus___&NEW))		\
       arraycopy(array, byteindex, sizeof(type)*(*lengthoff));		\
     *status=STMDIRTY;							\
     ((type *)(((char *) lengthoff)+sizeof(int)))[index]=src;		\
