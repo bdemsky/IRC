@@ -8,7 +8,7 @@ SRC=${MAINCLASS}.java \
     ../../../ClassLibrary/JavaDSM/Barrier.java
 
 FLAGS=-mainclass ${MAINCLASS} -dsm -optimize -transstats
-FLAGS1=-mainclass ${MAINCLASS} -dsm -dsmcaching -optimize -transstats
+FLAGS1=-mainclass ${MAINCLASS} -dsm -dsmcaching -profile -optimize -transstats
 
 dsm:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS}NPNC ${SRC}

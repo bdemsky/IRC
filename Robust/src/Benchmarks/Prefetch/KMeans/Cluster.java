@@ -140,20 +140,13 @@ public class Cluster {
         int      numAttributes,          /* size of attribute of each object */
         float[][]  attributes,           /* [numObjects][numAttributes] */
         KMeans kms,                       /* KMeans class hold the inputs and outputs */
-        //int use_zscore_transform,
-        //int max_nclusters,
-        //int min_nclusters,
-        //float threshold,
         GlobalArgs args       /* Global thread arguments */
-        //float[][] cluster_centres,
-        //int best_nclusters
         )
     {
       int itime;
       int nclusters;
 
       float[][] tmp_cluster_centres;
-      //= new float[numAttributes][];
       int[] tmp_membership;
       atomic {
         int[] membership = global new int[numObjects];

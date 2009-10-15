@@ -446,59 +446,60 @@ public class KMeans extends Thread {
     byte oldbytes[]=null;
 
 
-    while ((n = inputFile.read(b)) != 0) {
-      j = -1;
-      int x=0;
+    atomic { //FIXME: temporary fix  Note that this 
+      // transaction will never abort because it is only executed
+      // on master machine and therefore the fileread native call is
+      //allowed as a warning
+      while ((n = inputFile.read(b)) != 0) {
+        j = -1;
+        int x=0;
 
-      if (oldbytes!=null) {
-	//find space
-	for (;x < n; x++) {
-	  if (b[x] == ' ')
-	    break;
-	}
-	byte newbytes[]= new byte[x+oldbytes.length];
-	for(int ii=0;ii<oldbytes.length;ii++)
-	  newbytes[ii]=oldbytes[ii];
-	for(int ii=0;ii<x;ii++)
-	  newbytes[ii+oldbytes.length]=b[ii];
-	x++; //skip past space
-    atomic {
-      if (j>=0) {
-        buf[i][j]=(float)Double.parseDouble(new String(newbytes, 0, newbytes.length));
-      }
-    }
-	j++;
-	oldbytes=null;
-      }
+        if (oldbytes!=null) {
+          //find space
+          for (;x < n; x++) {
+            if (b[x] == ' ')
+              break;
+          }
+          byte newbytes[]= new byte[x+oldbytes.length];
+          for(int ii=0;ii<oldbytes.length;ii++)
+            newbytes[ii]=oldbytes[ii];
+          for(int ii=0;ii<x;ii++)
+            newbytes[ii+oldbytes.length]=b[ii];
+          x++; //skip past space
+          if (j>=0) {
+            buf[i][j]=(float)Double.parseDouble(new String(newbytes, 0, newbytes.length));
+          }
+          j++;
+          oldbytes=null;
+        }
 
-      while (x < n) {
-	int y=x;
-	for(y=x;y<n;y++) {
-	  if (b[y]==' ')
-	    break;
-	  if (b[y]=='\n') {
-	    i++;
-	    j = -1;
-	    x=y;//push end to current character
-	  }
-	}
-	if (y==n) {
-	  //need to continue for another read
-	  oldbytes=new byte[y-x];
-	  for(int ii=0;ii<(y-x);ii++)
-	    oldbytes[ii]=b[ii+x];
-	  break;
-	}
-	
-	//otherwise x is beginning of character string, y is end
-    atomic {
-      if (j>=0) {
-        buf[i][j]=(float)Double.parseDouble(new String(b,x,y-x));
-      }
-    }
-	x=y;//skip to end of number
-	x++;//skip past space
-	j++;
+        while (x < n) {
+          int y=x;
+          for(y=x;y<n;y++) {
+            if (b[y]==' ')
+              break;
+            if (b[y]=='\n') {
+              i++;
+              j = -1;
+              x=y;//push end to current character
+            }
+          }
+          if (y==n) {
+            //need to continue for another read
+            oldbytes=new byte[y-x];
+            for(int ii=0;ii<(y-x);ii++)
+              oldbytes[ii]=b[ii+x];
+            break;
+          }
+
+          //otherwise x is beginning of character string, y is end
+          if (j>=0) {
+            buf[i][j]=(float)Double.parseDouble(new String(b,x,y-x));
+          }
+          x=y;//skip to end of number
+          x++;//skip past space
+          j++;
+        }
       }
     }
     inputFile.close();

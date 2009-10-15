@@ -197,6 +197,7 @@ public class Normal {
     intwrapper[] new_centers_len  = new intwrapper[nclusters];
 
     float[][] new_centers = new float[nclusters][nfeatures];
+    int count;
 
     int loop = 0;
     do {
@@ -216,6 +217,7 @@ public class Normal {
 
       //Work in parallel with other threads
       thread_work(args);
+      count++;
 
       delta = args.global_delta;
 
@@ -236,6 +238,7 @@ public class Normal {
 
     } while ((delta > threshold) && (loop++ < 500));
 
+    //System.out.println("count= " + count);
     return clusters;
   }
 
