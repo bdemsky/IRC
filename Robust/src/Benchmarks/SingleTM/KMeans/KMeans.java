@@ -142,7 +142,7 @@ public class KMeans extends Thread {
     isBinaryFile = 0;
     use_zscore_transform = 1;
     threshold = (float) 0.001;
-    best_nclusters = 0;
+    best_nclusters=0;
   }
 
   public KMeans(int threadid, GlobalArgs g_args) {
@@ -306,7 +306,7 @@ public class KMeans extends Thread {
         }
       } else if(arg.equals("-t")) {
         if(i < args.length) {
-          km.threshold = new Integer(args[i++]).intValue();
+          km.threshold = (float) Double.parseDouble(args[i++]);
         }
       } else if(arg.equals("-i")) {
         if(i < args.length) {
