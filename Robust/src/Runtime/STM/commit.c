@@ -295,7 +295,7 @@ int transCommit() {
     }									\
   } else								
 
-#define READARRAYS					\
+#define READARRAYS							\
   for(i=0; i<numoidrdlockedarray; i++) {				\
     objheader_t * transheader=oidrdlockedarray[i];			\
     struct ArrayObject * transao=(struct ArrayObject *)&transheader[1];	\
@@ -616,7 +616,7 @@ int alttraverseCache() {
     void *objptr=curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
     unsigned int version = headeraddr->version;
-    
+
     PROCESSARRAY;
 
     if(STATUS(headeraddr) & DIRTY) {
@@ -903,7 +903,7 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       int j;
       int addwrobject=0, addrdobject=0;
       int elementsize=classsize[type];
-      int baseoffset=((lowoffset*elementsize)&HIGHMASK)+sizeof(struct ArrayObject);
+      int baseoffset=(lowoffset<<INDEXSHIFT)+sizeof(int)+((int)&(((struct ArrayObject *)0)->___length___));
       char *dstptr=((char *)dst)+baseoffset;
       char *srcptr=((char *)src)+baseoffset;
       for(j=lowoffset; j<=highoffset;j++, srcptr+=INDEXLENGTH,dstptr+=INDEXLENGTH) {

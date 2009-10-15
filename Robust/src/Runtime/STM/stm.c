@@ -205,6 +205,10 @@ void *transRead(void * oid, void *gl) {
  void arraycopy(struct ArrayObject *oid, int byteindex) {
    struct ArrayObject * orig=(struct ArrayObject *) oid->___objlocation___;
    int baseoffset=byteindex&HIGHMASK;
+   unsigned int mainversion;
+   int baseindex=baseoffset>>INDEXSHIFT;
+   GETVERSIONVAL(mainversion, orig, baseindex);
+   SETVERSION(oid, baseindex, mainversion);
    A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
    if (oid->lowindex>baseoffset)
      oid->lowindex=baseoffset;

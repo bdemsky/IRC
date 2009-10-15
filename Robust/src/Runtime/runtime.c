@@ -494,8 +494,14 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
   int basesize=length*classsize[type];
   //round the base size up
   basesize=(basesize+LOWMASK)&HIGHMASK;
-  int bookkeepsize=(basesize>>INDEXSHIFT)*2*sizeof(int);
+  int numlocks=basesize>>INDEXSHIFT;
+  int bookkeepsize=numlocks*2*sizeof(int);
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+basesize+bookkeepsize, bookkeepsize);
+  unsigned int *intptr=(unsigned int *)(((char *)v)-sizeof(objheader_t));
+  for(;numlocks>0;numlocks--) {
+    intptr-=2;
+    intptr[0]=1;
+  }
   v->highindex=-1;
   v->lowindex=MAXARRAYSIZE;
 #else
@@ -528,9 +534,14 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   int basesize=length*classsize[type];
   //round the base size up
   basesize=(basesize+LOWMASK)&HIGHMASK;
-  int bookkeepsize=(basesize>>INDEXSHIFT)*2*sizeof(int);
+  int numlocks=basesize>>INDEXSHIFT;
+  int bookkeepsize=(numlocks)*2*sizeof(int);
   int *tmpint=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+basesize+sizeof(objheader_t)+bookkeepsize);
-  objheader_t *tmp=(objheader_t *)(tmpint+bookkeepsize);
+  for(;numlocks>0;numlocks--) {
+    tmpint[0]=1;
+    tmpint+=2;
+  }
+  objheader_t *tmp=(objheader_t *)tmpint;
   struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
   v->highindex=-1;
   v->lowindex=MAXARRAYSIZE;
