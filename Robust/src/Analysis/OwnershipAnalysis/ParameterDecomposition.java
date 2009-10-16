@@ -58,10 +58,10 @@ public class ParameterDecomposition {
 
     // make copies of the graphs so that resolveMethodCall can
     // destroy the graph while calculating the stuff we want
-    this.ogCallee = new OwnershipGraph( oa.allocationDepth, oa.typeUtil );
+    this.ogCallee = new OwnershipGraph();
     this.ogCallee.merge( cee );
 
-    this.ogCaller = new OwnershipGraph( oa.allocationDepth, oa.typeUtil );
+    this.ogCaller = new OwnershipGraph();
     this.ogCaller.merge( cer );
 
     allocOutputStructs();

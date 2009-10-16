@@ -76,7 +76,7 @@ public class OwnershipAnalysis {
 
     assert d != null;
 
-    OwnershipGraph og = new OwnershipGraph( allocationDepth, typeUtil );
+    OwnershipGraph og = new OwnershipGraph();
 
     assert mapDescriptorToAllMethodContexts.containsKey( d );
     HashSet<MethodContext> contexts = mapDescriptorToAllMethodContexts.get( d );
@@ -454,6 +454,17 @@ public class OwnershipAnalysis {
 	    this.writeDOTs       = writeDOTs;
 	    this.writeAllDOTs    = writeAllDOTs;
 
+	    // set some static configuration for OwnershipGraphs
+	    OwnershipGraph.allocationDepth   = allocationDepth;
+	    OwnershipGraph.typeUtil          = typeUtil;
+	    OwnershipGraph.debugCallMapCount = state.OWNERSHIPDEBUGCALLCOUNT;
+	    OwnershipGraph.debugCallee       = state.OWNERSHIPDEBUGCALLEE;
+	    OwnershipGraph.debugCaller       = state.OWNERSHIPDEBUGCALLER;
+	    if( OwnershipGraph.debugCallee != null &&
+		OwnershipGraph.debugCaller != null ) {
+	      OwnershipGraph.debugCallMap = true;
+	    }
+
 	    descriptorsToAnalyze = new HashSet<Descriptor>();
 
 	    mapMethodContextToInitialParamAllocGraph =
@@ -517,7 +528,7 @@ public class OwnershipAnalysis {
 	    Iterator<Descriptor> dItr = descriptorsToAnalyze.iterator();
 	    while( dItr.hasNext() ) {
 	      Descriptor d  = dItr.next();
-	      OwnershipGraph og = new OwnershipGraph(allocationDepth, typeUtil);
+	      OwnershipGraph og = new OwnershipGraph();
 
 	      FlatMethod fm;
 	      if( d instanceof MethodDescriptor ) {
@@ -709,7 +720,7 @@ public class OwnershipAnalysis {
       // perform this node's contributions to the ownership
       // graph on a new copy, then compare it to the old graph
       // at this node to see if anything was updated.
-      OwnershipGraph og = new OwnershipGraph(allocationDepth, typeUtil);
+      OwnershipGraph og = new OwnershipGraph();
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
@@ -756,7 +767,7 @@ public class OwnershipAnalysis {
     // end by merging all return nodes into a complete
     // ownership graph that represents all possible heap
     // states after the flat method returns
-    OwnershipGraph completeGraph = new OwnershipGraph(allocationDepth, typeUtil);
+    OwnershipGraph completeGraph = new OwnershipGraph();
     Iterator retItr = returnNodesToCombineForCompleteOwnershipGraph.iterator();
     while( retItr.hasNext() ) {
       FlatReturnNode frn = (FlatReturnNode) retItr.next();
@@ -844,7 +855,7 @@ public class OwnershipAnalysis {
 	og.prepareParamTokenMaps( fm );
 
 	// cache the graph
-	OwnershipGraph ogResult = new OwnershipGraph(allocationDepth, typeUtil);
+	OwnershipGraph ogResult = new OwnershipGraph();
 	ogResult.merge(og);
 	mapMethodContextToInitialParamAllocGraph.put(mc, ogResult);
 
@@ -960,7 +971,7 @@ public class OwnershipAnalysis {
       FlatCall fc = (FlatCall) fn;
       MethodDescriptor md = fc.getMethod();
       FlatMethod flatm = state.getMethodFlat(md);
-      OwnershipGraph ogMergeOfAllPossibleCalleeResults = new OwnershipGraph(allocationDepth, typeUtil);
+      OwnershipGraph ogMergeOfAllPossibleCalleeResults = new OwnershipGraph();
 
       if( md.isStatic() ) {
 	// a static method is simply always the same, makes life easy
@@ -1009,7 +1020,7 @@ public class OwnershipAnalysis {
 
 	  // don't alter the working graph (og) until we compute a result for every
 	  // possible callee, merge them all together, then set og to that
-	  OwnershipGraph ogCopy = new OwnershipGraph(allocationDepth, typeUtil);
+	  OwnershipGraph ogCopy = new OwnershipGraph();
 	  ogCopy.merge(og);
 
 	  Set<Integer> aliasedParamIndices = 
@@ -1494,7 +1505,7 @@ public class OwnershipAnalysis {
 	  Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(callerMC);
 	  
 	  // merge previous ownership graph to calculate corresponding method context
-	  OwnershipGraph mergeOG = new OwnershipGraph( allocationDepth, typeUtil );
+	  OwnershipGraph mergeOG = new OwnershipGraph();
 	  
 	  for(int i=0;i<fc.numPrev();i++){
 		  FlatNode prevNode=fc.getPrev(i);

@@ -11,9 +11,12 @@ public class OwnershipGraph {
   protected static final boolean DISABLE_STRONG_UPDATES = false;
   protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
 
-
-  private int allocationDepth;
-  private TypeUtil typeUtil;
+  protected static int      allocationDepth   = -1;
+  protected static TypeUtil typeUtil          = null;
+  protected static boolean  debugCallMap      = false;
+  protected static int      debugCallMapCount = 0;
+  protected static String   debugCallee       = null;
+  protected static String   debugCaller       = null;
 
   // there was already one other very similar reason
   // for traversing heap nodes that is no longer needed
@@ -72,9 +75,7 @@ public class OwnershipGraph {
   public Hashtable<Integer, TokenTuple> paramIndex2paramTokenSecondaryStar;
 
 
-  public OwnershipGraph(int allocationDepth, TypeUtil typeUtil) {
-    this.allocationDepth = allocationDepth;
-    this.typeUtil        = typeUtil;
+  public OwnershipGraph() {
 
     id2hrn                    = new Hashtable<Integer,        HeapRegionNode>();
     td2ln                     = new Hashtable<TempDescriptor, LabelNode     >();
@@ -1891,19 +1892,10 @@ public class OwnershipGraph {
 				ParameterDecomposition pd // if this is not null, we're calling after analysis
 				) {
 
-
-    // this debug snippet is harmless for regular use and INVALUABLE at debug time
-    // to see what potentially goes wrong when a specific method calls another
-    String debugCaller = "foo";
-    String debugCallee = "bar";
-    //String debugCaller = "StandardEngine";
-    //String debugCaller = "register_by_type";
-    //String debugCaller = "register_by_type_front";
-    //String debugCaller = "addFirst";
-    //String debugCallee = "LinkedListElement";
-
-    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+    if( debugCallMap &&
+	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) 
+	) {
 
       try {
 	writeGraph("debug1BeforeCall",
@@ -2965,8 +2957,11 @@ public class OwnershipGraph {
     }
 
 
-    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+    if( debugCallMap &&
+	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) 
+	) {
+
       try {
 	writeGraph("debug7JustBeforeMergeToKCapacity",
 		   true,  // write labels (variables)
@@ -3048,8 +3043,11 @@ public class OwnershipGraph {
     }
 
 
-    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+    if( debugCallMap &&
+	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) 
+	) {
+
       try {
 	writeGraph( "debug8JustBeforeSweep",
 		    true,  // write labels (variables)
@@ -3069,8 +3067,11 @@ public class OwnershipGraph {
     }
 
 
-    if( mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	fm.getMethod().getSymbol().equals( debugCallee ) ) {
+    if( debugCallMap &&
+	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
+	fm.getMethod().getSymbol().equals( debugCallee ) 
+	) {
+      
       try {
 	writeGraph( "debug9endResolveCall",
 		    true,  // write labels (variables)
@@ -3083,7 +3084,7 @@ public class OwnershipGraph {
       } catch( IOException e ) {}
       System.out.println( "  "+mc+" done calling "+fm );      
       ++x;
-      if( x > 2 ) {
+      if( x == debugCallMapCount ) {
 	System.exit( -1 );   
       }
     }

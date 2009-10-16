@@ -145,7 +145,13 @@ public class Main {
 	state.OWNERSHIPALIASFILE=args[++i];
       } else if (option.equals("-ownaliasfiletab")) {
 	state.OWNERSHIPALIASFILE=args[++i];
-        state.OWNERSHIPALIASTAB=true;
+        state.OWNERSHIPALIASTAB=true;      
+      } else if (option.equals("-owndebugcallee")) {
+	state.OWNERSHIPDEBUGCALLEE=args[++i];
+      } else if (option.equals("-owndebugcaller")) {
+	state.OWNERSHIPDEBUGCALLER=args[++i];
+      } else if (option.equals("-owndebugcallcount")) {
+	state.OWNERSHIPDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
       }
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;
