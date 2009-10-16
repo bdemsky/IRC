@@ -11,12 +11,6 @@ public class FlightList {
     f=new Vector(100);
   }
 
-  /*
-  public void addFlight(int index, Flight flight) {
-    f.addElement(index,flight);
-  }
-  */
-
   public  void addFlightPlan(D2 d2, int time, StringTokenizer st) { 
     Flight newFlight=disjoint flightAdd new Flight(st.nextToken());
     noFlights++;

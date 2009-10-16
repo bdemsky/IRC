@@ -7,24 +7,22 @@
 public class D2 {
 
   public ReadWrite             singletonReadWrite            ; public ReadWrite             getReadWrite            () { return singletonReadWrite            ; }
+  public MessageList	       singletonMessageList	     ; public MessageList	    getMessageList	    () { return singletonMessageList	      ; }
   public Static                singletonStatic               ; public Static                getStatic               () { return singletonStatic               ; }
   public AircraftList	       singletonAircraftList	     ; public AircraftList	    getAircraftList	    () { return singletonAircraftList	      ; }   
-  public Algorithm	       singletonAlgorithm            ; public Algorithm	            getAlgorithm	    () { return singletonAlgorithm	      ; }
-  public FixList               singletonFixList	             ; public FixList	            getFixList	            () { return singletonFixList	      ; }
-  public Flight                singletonFlight	             ; public Flight  	            getFlight	            () { return singletonFlight	              ; }
   public FlightList	       singletonFlightList	     ; public FlightList	    getFlightList	    () { return singletonFlightList	      ; }
-  public MessageList	       singletonMessageList	     ; public MessageList	    getMessageList	    () { return singletonMessageList	      ; }
+  public FixList               singletonFixList	             ; public FixList	            getFixList	            () { return singletonFixList	      ; }
+  public Algorithm	       singletonAlgorithm            ; public Algorithm	            getAlgorithm	    () { return singletonAlgorithm	      ; }
   public TrajectorySynthesizer singletonTrajectorySynthesizer; public TrajectorySynthesizer getTrajectorySynthesizer() { return singletonTrajectorySynthesizer; }
 
   public D2() {
     singletonReadWrite             = new ReadWrite            ();
+    singletonMessageList	   = new MessageList	      ();
     singletonStatic                = new Static               ();
     singletonAircraftList	   = new AircraftList	      ();
+    singletonFlightList	       	   = new FlightList	      (); 
     singletonFixList	       	   = new FixList	      ();
     singletonAlgorithm	       	   = new Algorithm	      ();
-    singletonFlight                = new Flight               ("");
-    singletonFlightList	       	   = new FlightList	      (); 
-    singletonMessageList	   = new MessageList	      ();
     singletonTrajectorySynthesizer = new TrajectorySynthesizer();
   }
 

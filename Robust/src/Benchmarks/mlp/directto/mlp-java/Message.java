@@ -11,12 +11,6 @@ public class Message {
     this.parameters=parameters;
   }
 
-  public Message(Message m) {
-    this.time=m.time;
-    this.type=m.type;
-    this.parameters=m.parameters;
-  }
-
   public void executeMessage(D2 d2) {
     System.out.println("Executing message of type "+type);
 
