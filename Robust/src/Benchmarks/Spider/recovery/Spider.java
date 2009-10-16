@@ -4,6 +4,7 @@ public class Spider {
 		int maxDepth = 5;
 		int searchDepth = 10;
 		int i, j;
+		Work[] works;
 		QueryThread[] qt;
 		Query[] currentWorkList;
 
@@ -20,14 +21,15 @@ public class Spider {
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;	 //dc-1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;	 //dc-2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;	 //dc-3
-		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;	 //dc-4
-//		mid[4] = (128<<24)|(195<<16)|(136<<8)|166;	 //dc-5
-//		mid[5] = (128<<24)|(195<<16)|(136<<8)|167;	 //dc-6
+		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;	 //dc-3
+		mid[4] = (128<<24)|(195<<16)|(136<<8)|166;	 //dc-3
+		mid[5] = (128<<24)|(195<<16)|(136<<8)|167;	 //dc-3
 
 		atomic {
 			firstmachine = global new GlobalString(args[1]);
 			firstpage = global new GlobalString(args[2]);
 
+			works = global new Work[NUM_THREADS];
 			qt = global new QueryThread[NUM_THREADS];
 			currentWorkList = global new Query[NUM_THREADS];
 			
@@ -38,22 +40,23 @@ public class Spider {
 			todoList.push(firstquery);
 
 			for (i = 0; i < NUM_THREADS; i++) {
-				qt[i] = global new QueryThread(todoList, doneList, maxDepth, searchDepth,i,NUM_THREADS,currentWorkList);
+				qt[i] = global new QueryThread(todoList, doneList, maxDepth, searchDepth);
+				works[i] = global new Work(qt[i], NUM_THREADS, i, currentWorkList);
 			}
 		}
 		System.printString("Finished to create Objects\n");
 
-		QueryThread tmp;
+		Work tmp;
 		for (i = 0; i < NUM_THREADS; i++) {
 			atomic {
-				tmp = qt[i];
+				tmp = works[i];
 			}
-      tmp.start(mid[i]);
+			Thread.myStart(tmp, mid[i]);
 		}
 
 		for (i = 0; i < NUM_THREADS; i++) {
 			atomic {
-				tmp = qt[i];
+				tmp = works[i];
 			}
 			tmp.join();
 		}

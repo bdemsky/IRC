@@ -1,118 +1,23 @@
-public class QueryThread extends Thread {
+public class QueryThread extends Task {
 	int maxDepth;
 	int maxSearchDepth;
-  int MY_MID;
-  int NUM_THREADS;
-  Queue todoList;
-  Queue doneList;
-  Query myWork;
-  Query[] currentWorkList;
 
-  public QueryThread(Queue todoList, Queue doneList, int maxDepth, int maxSearchDepth,int mid,int NUM_THREADS,Query[] currentWorkList) {    
+  public QueryThread(Queue todoList, Queue doneList, int maxDepth, int maxSearchDepth) {
     this.todoList = todoList;
 		this.doneList = doneList;
 		this.maxDepth = maxDepth;
 		this.maxSearchDepth = maxSearchDepth;
-    this.currentWorkList = currentWorkList;
-    this.MY_MID = mid;
-    this.NUM_THREADS = NUM_THREADS;
   }
 
-  public void run()
-  {
-    int workMID;
-
-    atomic {
-      workMID = MY_MID;
-    }
-
-    System.out.println("Thread " + workMID + " has started");
-
-    int chk;
-
-    while(true) {
-      atomic {
-        myWork = (Query)todoList.pop();
-        
-        if(null == myWork)  // no work in todolist
-        {
-          chk = checkCurrentWorkList(this);        
-        }
-        else {
-          currentWorkList[workMID] = myWork;
-          chk = 1;
-        }
-      }
-
-      if(chk == 1) { // it has query
-        execute(this);
-
-        atomic {
-          doneWork(myWork);
-          currentWorkList[workMID] = null;
-        }
-      }
-      else if(chk == -1) { // finished all work
-        break;
-      }
-      else {  // wait for other thread
-        sleep(5000000);
-      }
-
-    }
-
-   atomic {
-      System.out.println("\n\nDoneSize = " + doneList.size());
-    }
-
-    System.out.println("\n\n\n I'm done");
-  }
-
-	public static int checkCurrentWorkList(QueryThread qt) {		
-    int i;
-    int myID;
-		int num_threads; 
-    boolean chk = false;
-    Object s;
-
-		atomic {
-	    myID = qt.MY_MID;
-			num_threads = qt.NUM_THREADS;
-
-      for(i = 0 ; (i < num_threads); i++) {
-        if(myID == i) {
-          continue;
-        }  
-
-        s = qt.currentWorkList[i];
-
-        if(null != s) {
-          chk = true;
-          break;
-        }
-      }
-			
-    }
-
-    if(chk == false)  // wait for other machine's work
-      return -1;
-    else
-      return 0; // others are still working wait until they finish work
-  }
-
-  public static void execute(QueryThread qt) {
+  public void execute() {
 		int depth;
     int max;
     int maxSearch;
-
-    atomic {
-      if(qt.myWork == null) {
-        System.out.println("What!!!!!!!!!!!!!!!");
-        System.exit(0);
-      }
-			depth = ((Query)qt.myWork).getDepth();
-      max = qt.maxDepth;
-      maxSearch = qt.maxSearchDepth;
+		
+		atomic {
+			depth = ((Query)myWork).getDepth();
+      max = this.maxDepth;
+      maxSearch = this.maxSearchDepth;
 		}
 
 		if (depth < max) {
@@ -128,7 +33,7 @@ public class QueryThread extends Thread {
 			String path;
 
 			atomic {
-				q = (Query)(qt.myWork);
+				q = (Query)myWork;
 				ghostname = q.getHostName();
 				gpath = q.getPath();
 				hostname = new String(GlobalString.toLocalCharArray(ghostname));
@@ -156,7 +61,7 @@ public class QueryThread extends Thread {
 					gpath = global new GlobalString(lq.getPath());
 
 					q = global new Query(ghostname, gpath, lq.getDepth());
-					qt.todoList.push(q);
+					todoList.push(q);
 				}
 			}
 		}
@@ -231,7 +136,7 @@ public class QueryThread extends Thread {
     }
   }
 	
-	public void doneWork(Object obj) {
+	public void done(Object obj) {
 		doneList.push(obj);
 	}
 
