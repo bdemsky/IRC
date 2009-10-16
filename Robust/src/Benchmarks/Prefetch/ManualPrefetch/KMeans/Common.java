@@ -100,7 +100,6 @@ public class Common {
     {
       int index = -1;
       int i;
-      //double max_dist = FLT_MAX;
       float max_dist = (float)3.40282347e+38;
       float limit = (float) 0.99999;
 

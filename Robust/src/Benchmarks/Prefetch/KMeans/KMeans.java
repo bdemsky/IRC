@@ -178,11 +178,15 @@ public class KMeans extends Thread {
 
   public void run() {
     Barrier barr = new Barrier("128.195.136.162");
+    int id;
+    GlobalArgs tmp_g_args;
+    atomic {
+      id = threadid;
+      tmp_g_args = g_args;
+    }
     while(true) {
       Barrier.enterBarrier(barr);
-      atomic {
-        Normal.work(threadid, g_args);
-      }
+      Normal.work(id, tmp_g_args);
       Barrier.enterBarrier(barr);
     }
   }
@@ -391,7 +395,8 @@ public class KMeans extends Thread {
         }
       } else if(arg.equals("-t")) {
         if(i < args.length) {
-          km.threshold = new Integer(args[i++]).intValue();
+          //km.threshold = new Integer(args[i++]).intValue();
+          km.threshold = (float) Double.parseDouble(args[i++]);
         }
       } else if(arg.equals("-i")) {
         if(i < args.length) {

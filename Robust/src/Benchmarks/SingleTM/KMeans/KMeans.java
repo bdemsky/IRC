@@ -234,7 +234,7 @@ public class KMeans extends Thread {
      * The core of the clustering
      */
 
-    int[] cluster_assign = new int[numObjects];
+    //int[] cluster_assign = new int[numObjects];
     int nloops = 1;
     int len = kms.max_nclusters - kms.min_nclusters + 1;
 

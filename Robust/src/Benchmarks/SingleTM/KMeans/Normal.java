@@ -110,6 +110,7 @@ public class Normal {
     int index, start, stop;
 
     start = myId * CHUNK;
+    System.out.println("myId= " + myId + " start= " + start + " npoints= " + npoints);
 
     //    System.out.println("myId= " + myId + " start= " + start + " npoints= " + npoints);
     while (start < npoints) {
@@ -197,7 +198,6 @@ public class Normal {
     intwrapper[] new_centers_len  = new intwrapper[nclusters];
 
     float[][] new_centers = new float[nclusters][nfeatures];
-    int count;
 
     int loop = 0;
     do {
@@ -217,14 +217,13 @@ public class Normal {
 
       //Work in parallel with other threads
       thread_work(args);
-      count++;
 
       delta = args.global_delta;
 
       /* Replace old cluster centers with new_centers */
       for (int i = 0; i < nclusters; i++) {
         for (int j = 0; j < nfeatures; j++) {
-          if (new_centers_len[i] > 0) {
+          if (new_centers_len != null) {
             clusters[i][j] = new_centers[i][j] / new_centers_len[i];
           }
           new_centers[i][j] = (float)0.0;   /* set back to 0 */
@@ -234,11 +233,10 @@ public class Normal {
 
       delta /= npoints;
 
-      //System.out.println("delta= " + delta + " loop= " + loop + " threshold= " + threshold);
+     System.out.println("delta= " + delta + " loop= " + loop);
 
     } while ((delta > threshold) && (loop++ < 500));
 
-    //System.out.println("count= " + count);
     return clusters;
   }
 

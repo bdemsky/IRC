@@ -109,31 +109,25 @@ public class Normal {
     int index, start, stop;
 
     start = myId * CHUNK;
-    nclusters = args.nclusters;
-    npoints = args.npoints;
-
-    //Add Manual prefetch for 
     //args.feature[start-> stop]
     short[] offsets = new short[4];
     offsets[0] = getoffset{GlobalArgs, feature};
     offsets[1] = (short) 0;
     offsets[2] = (short) start;
-    offsets[3] = (short) npoints;
-    System.rangePrefetch(args, offsets);
-    //args.clusters[0-> nclusters]
-    offsets[0] = getoffset{GlobalArgs, clusters};
-    offsets[1] = (short) 0;
-    offsets[2] = (short) 0;
-    offsets[3] = (short) nclusters;
+    offsets[3] = (short) (10*CHUNK);
     System.rangePrefetch(args, offsets);
 
-
-    feature = args.feature;
-    nfeatures = args.nfeatures;
-    membership = args.membership;
-    clusters = args.clusters;
-    new_centers_len = args.new_centers_len;
-    new_centers = args.new_centers;
+    atomic {
+      nclusters = args.nclusters;
+      npoints = args.npoints;
+      
+      feature = args.feature;
+      nfeatures = args.nfeatures;
+      membership = args.membership;
+      clusters = args.clusters;
+      new_centers_len = args.new_centers_len;
+      new_centers = args.new_centers;
+    }
 
     float delta = 0.0f;
 
@@ -141,39 +135,45 @@ public class Normal {
     while (start < npoints) {
       stop = (((start + CHUNK) < npoints) ? (start + CHUNK) : npoints);
       for (int i = start; i < stop; i++) {
-        index = Common.common_findNearestPoint(feature[i],
-            nfeatures,
-            clusters,
-            nclusters);
-        //
-        // If membership changes, increase delta by 1.
-        // membership[i] cannot be changed by other threads
-        //
-        if (membership[i] != index) {
-          delta += 1.0f;
-        }
+        atomic {
+          index = Common.common_findNearestPoint(feature[i],
+              nfeatures,
+              clusters,
+              nclusters);
+          //
+          // If membership changes, increase delta by 1.
+          // membership[i] cannot be changed by other threads
+          //
+          if (membership[i] != index) {
+            delta += 1.0f;
+          }
 
-        // Assign the membership to object i
-        // membership[i] can't be changed by other thread
-        membership[i] = index;
+          // Assign the membership to object i
+          // membership[i] can't be changed by other thread
+          membership[i] = index;
 
-        // Update new cluster centers : sum of objects located within 
-        new_centers_len[index] = new_centers_len[index] + 1;
-        for (int j = 0; j < nfeatures; j++) {
-          new_centers[index][j] = new_centers[index][j] + feature[i][j];
+          // Update new cluster centers : sum of objects located within 
+          new_centers_len[index] = new_centers_len[index] + 1;
+          for (int j = 0; j < nfeatures; j++) {
+            new_centers[index][j] = new_centers[index][j] + feature[i][j];
+          }
         }
       }
 
       // Update task queue 
       if (start + CHUNK < npoints) {
-        start = args.global_i;
-        args.global_i = start + CHUNK;
+        atomic {
+          start = args.global_i;
+          args.global_i = start + CHUNK;
+        }
       } else {
         break;
       }
     }
 
-    args.global_delta = args.global_delta + delta;
+    atomic {
+      args.global_delta = args.global_delta + delta;
+    }
   }
 
   /* =============================================================================
@@ -278,9 +278,7 @@ public class Normal {
   void thread_work(GlobalArgs args, Barrier barr) {
     //System.out.println("Inside thread_work\n");
     Barrier.enterBarrier(barr);
-    atomic {
-      Normal.work(0, args); //threadId = 0 because primary thread
-    }
+    Normal.work(0, args); //threadId = 0 because primary thread
     Barrier.enterBarrier(barr);
   }
 }

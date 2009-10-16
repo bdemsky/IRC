@@ -178,11 +178,23 @@ public class KMeans extends Thread {
 
   public void run() {
     Barrier barr = new Barrier("128.195.136.162");
-    while(true) {
+    int id;
+    GlobalArgs tmp_g_args;
+    atomic {
+      id = threadid;
+      tmp_g_args = g_args;
+      short[] offsets = new short[4];
+      offsets[0] = getoffset{GlobalArgs, clusters};
+      offsets[1] = (short) 0;
+      offsets[2] = (short) 0;
+      offsets[3] = (short) min_nclusters;
+      System.rangePrefetch(g_args, offsets);
+    }
+    //Add Manual prefetch for 
+    //args.clusters[0-> nclusters]
+        while(true) {
       Barrier.enterBarrier(barr);
-      atomic {
-        Normal.work(threadid, g_args);
-      }
+      Normal.work(id, tmp_g_args);
       Barrier.enterBarrier(barr);
     }
   }
@@ -391,7 +403,7 @@ public class KMeans extends Thread {
         }
       } else if(arg.equals("-t")) {
         if(i < args.length) {
-          km.threshold = new Integer(args[i++]).intValue();
+          km.threshold = (float) Double.parseDouble(args[i++]);
         }
       } else if(arg.equals("-i")) {
         if(i < args.length) {
