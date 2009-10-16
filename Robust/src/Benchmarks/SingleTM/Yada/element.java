@@ -69,23 +69,20 @@
  */
 
 public class element {
-    coordinate coordinates[];
-    int numCoordinate;
-    coordinate_t circumCenter;
-    double circumRadius;
-    double minAngle;
-    edge edges[3];
-    int numEdge;
-    coordinate_t midpoints[3]; /* midpoint of each edge */
-    double radii[3];           /* half of edge length */
-    edge encroachedEdgePtr; /* opposite obtuse angle */
-    boolean isSkinny;
-    list_t neighborListPtr;
-    boolean isGarbage;
-    boolean isReferenced;
-
-
-  extern double global_angleConstraint;
+  coordinate coordinates[];
+  int numCoordinate;
+  coordinate circumCenter;
+  double circumRadius;
+  double minAngle;
+  edge edges[];
+  int numEdge;
+  coordinate midpoints[]; /* midpoint of each edge */
+  double radii[];           /* half of edge length */
+  edge encroachedEdgePtr; /* opposite obtuse angle */
+  boolean isSkinny;
+  List_t neighborListPtr;
+  boolean isGarbage;
+  boolean isReferenced;
 
 
 
@@ -121,11 +118,11 @@ public class element {
  * -- Sets isSkinny to TRUE if the angle constraint is not met
  * =============================================================================
  */
-  void checkAngles () {
-    double angleConstraint = global_angleConstraint;
+  void checkAngles (double angleConstraint) {
+    //double angleConstraint = global_angleConstraint;
     minAngle = 180.0;
 
-    assert(numCoordinate == 2 || numCoordinate == 3);
+    yada.Assert(numCoordinate == 2 || numCoordinate == 3);
     isReferenced = false;
     isSkinny = false;
     encroachedEdgePtr = null;
@@ -136,8 +133,8 @@ public class element {
 	  double angle = coordinate_angle(coordinates[i],
 					  coordinates[(i + 1) % 3],
 					  coordinates[(i + 2) % 3]);
-	  assert(angle > 0.0);
-	  assert(angle < 180.0);
+	  yada.Assert(angle > 0.0);
+	  yada.Assert(angle < 180.0);
 	  if (angle > 90.0) {
 	    encroachedEdgePtr = edges[(i + 1) % 3];
 	  }
@@ -148,7 +145,7 @@ public class element {
 	    minAngle = angle;
 	  }
         }
-        assert(minAngle < 180.0);
+        yada.Assert(minAngle < 180.0);
     }
 }
 
@@ -187,7 +184,7 @@ public class element {
   void calculateCircumCircle() {
     coordinate circumCenterPtr = this.circumCenter;
 
-    assert(numCoordinate == 2 || numCoordinate == 3);
+    yada.Assert(numCoordinate == 2 || numCoordinate == 3);
 
     if (numCoordinate == 2) {
       circumCenterPtr.x = (coordinates[0].x + coordinates[1].x) / 2.0;
@@ -210,7 +207,7 @@ public class element {
       double denominator = 2 * ((bxDelta * cyDelta) - (cxDelta * byDelta));
       double rx = ax - (xNumerator / denominator);
       double ry = ay + (yNumerator / denominator);
-      assert(fabs(denominator) > DBL_MIN); /* make sure not colinear */
+      yada.Assert(fabs(denominator) > DBL_MIN); /* make sure not colinear */
       circumCenterPtr.x = rx;
       circumCenterPtr.y = ry;
     }
@@ -232,7 +229,7 @@ public class element {
     
     edge edgePtr = edges[i];
     int cmp = coordinate_compare(firstPtr, secondPtr);
-    assert(cmp != 0);
+    yada.Assert(cmp != 0);
     if (cmp < 0) {
       edgePtr.firstPtr  = firstPtr;
       edgePtr.secondPtr = secondPtr;
@@ -326,6 +323,10 @@ int element_compare (element aElementPtr, element bElementPtr) {
    */
   public element(coordinate[] coordinates, int numCoordinate) {
     this.coordinates=new coordinate[3];
+    this.midpoints=new coordinate[3]; /* midpoint of each edge */
+    this.radii=new double[3];           /* half of edge length */
+
+    this.edges=new edge[3];
     for (int i = 0; i < numCoordinate; i++) {
       this.coordinates[i] = coordinates[i];
     }
@@ -383,9 +384,9 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * For use in list_t
  * ============================================================================
  */
-  int element_listCompareEdge (const void* aPtr, const void* bPtr) {
-    edge_t* aEdgePtr = (edge_t*)(aPtr);
-    edge_t* bEdgePtr = (edge_t*)(bPtr);
+  int element_listCompareEdge (Object aPtr, Object bPtr) {
+    edge aEdgePtr = (edge)(aPtr);
+    edge bEdgePtr = (edge)(bPtr);
     
     return compareEdge(aEdgePtr, bEdgePtr);
   }
@@ -423,7 +424,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
       }
     }
     
-    if (bElementPtr->encroachedEdgePtr) {
+    if (bElementPtr.encroachedEdgePtr) {
       return -1;
     }
     
@@ -588,7 +589,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
 	  return midpoints[e];
 	}
       }
-      assert(0);
+      yada.Assert(0);
     }
     return circumCenter;
   }
@@ -600,8 +601,8 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * Return FALSE if minimum angle constraint not met
  * =============================================================================
  */
-  boolean element_checkAngles() {
-    double angleConstraint = global_angleConstraint;
+  boolean element_checkAngles(double angleConstraint) {
+    //    double angleConstraint = global_angleConstraint;
     if (numCoordinate == 3) {
       for (int i = 0; i < 3; i++) {
 	double angle = coordinate_angle(coordinates[i],

@@ -81,8 +81,8 @@ public class region {
  */
   public region() {
     expandQueuePtr = new Queue_t(-1);
-    beforeListPtr = PLIST_ALLOC(&element_listCompare);
-    borderListPtr = PLIST_ALLOC(&element_listCompareEdge);
+    beforeListPtr = PLIST_ALLOC(element_listCompare);
+    borderListPtr = PLIST_ALLOC(element_listCompareEdge);
     badVectorPtr = new Vector_t(1);
   }
 
@@ -93,7 +93,7 @@ public class region {
    */
   public void TMaddToBadVector(Vector_t badVectorPtr, element badElementPtr) {
     boolean status = badVectorPtr.vector_pushBack(badElementPtr);
-    assert(status);
+    yada.Assert(status);
     badElementPtr.element_setIsReferenced(true);
   }
 
@@ -106,14 +106,14 @@ public class region {
   public int TMretriangulate (element elementPtr,
 			      region regionPtr,
 			      mesh meshPtr,
-			      MAP_T* edgeMapPtr) {
+			      MAP_T edgeMapPtr) {
     Vector_t badVectorPtr = regionPtr.badVectorPtr; /* private */
     list_t beforeListPtr = regionPtr.beforeListPtr; /* private */
     list_t borderListPtr = regionPtr.borderListPtr; /* private */
     list_iter_t it;
     int numDelta = 0;
     
-    assert(edgeMapPtr);
+    yada.Assert(edgeMapPtr);
     
     coordinate centerCoordinate = elementPtr.element_getNewPoint();
     
@@ -121,9 +121,9 @@ public class region {
      * Remove the old triangles
      */
     
-    list_iter_reset(&it, beforeListPtr);
-    while (list_iter_hasNext(&it, beforeListPtr)) {
-      element beforeElementPtr = (element)list_iter_next(&it, beforeListPtr);
+    list_iter_reset(it, beforeListPtr);
+    while (list_iter_hasNext(it, beforeListPtr)) {
+      element beforeElementPtr = (element)list_iter_next(it, beforeListPtr);
       meshPtr.TMmesh_remove(beforeElementPtr);
     }
     
@@ -141,20 +141,20 @@ public class region {
       
       coordinates[1] = (coordinate)(edgePtr.firstPtr);
       element aElementPtr = new element(coordinates, 2);
-      assert(aElementPtr);
+      yada.Assert(aElementPtr);
       meshPtr.TMmesh_insert(aElementPtr, edgeMapPtr);
       
-      coordinates[1] = (coordinate)(edgePtr->secondPtr);
+      coordinates[1] = (coordinate)edgePtr.secondPtr;
       element bElementPtr = new element(coordinates, 2);
-      assert(bElementPtr);
+      yada.Assert(bElementPtr);
       meshPtr.TMmesh_insert(bElementPtr, edgeMapPtr);
       
       boolean status = meshPtr.TMmesh_removeBoundary(elementPtr.element_getEdge(0));
-      assert(status);
+      yada.Assert(status);
       status = mesPtr.TMmesh_insertBoundary(aElementPtr.element_getEdge(0));
-      assert(status);
+      yada.Assert(status);
       status = meshPtr.TMmesh_insertBoundary(bElementPtr.element_getEdge(0));
-      assert(status);
+      yada.Assert(status);
       
       numDelta += 2;
     }
@@ -164,16 +164,16 @@ public class region {
      * point and the two points from the border segment.
      */
 
-    list_iter_reset(&it, borderListPtr);
-    while (list_iter_hasNext(&it, borderListPtr)) {
+    list_iter_reset(it, borderListPtr);
+    while (list_iter_hasNext(it, borderListPtr)) {
       coordinate coordinates[]=new coordinates[3];
-      edge borderEdgePtr = (edge)list_iter_next(&it, borderListPtr);
-      assert(borderEdgePtr);
+      edge borderEdgePtr = (edge)list_iter_next(it, borderListPtr);
+      yada.Assert(borderEdgePtr);
       coordinates[0] = centerCoordinate;
       coordinates[1] = (coordinate)(borderEdgePtr.firstPtr);
       coordinates[2] = (coordinate)(borderEdgePtr.secondPtr);
       element afterElementPtr = new element(coordinates, 3);
-      assert(afterElementPtr);
+      yada.Assert(afterElementPtr!=null);
       meshPtr.TMmesh_insert(afterElementPtr, edgeMapPtr);
       if (afterElementPTr.element_isBad()) {
 	TMaddToBadVector(badVectorPtr, afterElementPtr);
@@ -192,7 +192,7 @@ public class region {
   element TMgrowRegion(element centerElementPtr,
 		       region regionPtr,
 		       mesh meshPtr,
-		       MAP_T* edgeMapPtr) {
+		       MAP_T edgeMapPtr) {
     boolean isBoundary = false;
     
     if (centerElementPtr.element_getNumEdge() == 1) {
@@ -218,9 +218,9 @@ public class region {
       List_t neighborListPtr = currentElementPtr.element_getNeighborListPtr();
       
       list_iter_t it;
-      TMLIST_ITER_RESET(&it, neighborListPtr);
-      while (TMLIST_ITER_HASNEXT(&it, neighborListPtr)) {
-	element neighborElementPtr = (element)TMLIST_ITER_NEXT(&it, neighborListPtr);
+      TMLIST_ITER_RESET(it, neighborListPtr);
+      while (TMLIST_ITER_HASNEXT(it, neighborListPtr)) {
+	element neighborElementPtr = (element)TMLIST_ITER_NEXT(it, neighborListPtr);
 	neighborElementPtr.element_isGarbage(); /* so we can detect conflicts */
 	if (!beforeListPtr.find(neighborElementPtr)) {
 	  if (neighborElementPtr.element_isInCircumCircle(centerCoordinatePtr)) {
@@ -231,7 +231,7 @@ public class region {
 	    } else {
 	      /* Continue breadth-first search */
 	      boolean isSuccess = expandQueuePtr.queue_push(neighborElementPtr);
-	      assert(isSuccess);
+	      yada.Assert(isSuccess);
 	    }
 	  } else {
 	    /* This element borders region; save info for retriangulation */
@@ -266,8 +266,8 @@ public class region {
     elementPtr.element_isGarbage(); /* so we can detect conflicts */
     
     while (true) {
-      edgeMapPtr = PMAP_ALLOC(NULL, &element_mapCompareEdge);
-      assert(edgeMapPtr);
+      edgeMapPtr = PMAP_ALLOC(NULL, element_mapCompareEdge);
+      yada.Assert(edgeMapPtr);
       encroachElementPtr = TMgrowRegion(elementPtr,
 					this,
 					meshPtr,
@@ -324,7 +324,7 @@ public class region {
       if (badElementPtr.element_isGarbage()) {
       } else {
 	boolean status = workHeapPtr.heap_insert(badElementPtr);
-	assert(status);
+	yada.Assert(status);
       }
     }
   }

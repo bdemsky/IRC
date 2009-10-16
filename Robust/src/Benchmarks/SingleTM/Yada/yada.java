@@ -75,7 +75,7 @@ public class yada {
     System.out.println("Usage: Yada [options]");
     System.out.println("Options:                              (defaults)");
     System.out.println("    a <FLT>   Min [a]ngle constraint  (20.0)");
-    System.out.println("    i <STR>   [i]nput name prefix     ("")");
+    System.out.println("    i <STR>   [i]nput name prefix     (\"\")");
     System.out.println("    t <UINT>  Number of [t]hreads     (1L)");
     System.exit(1);
   }
@@ -121,14 +121,16 @@ public class yada {
         }
         numBad++;
         boolean status = workHeapPtr.heap_insert(elementPtr);
-        assert(status);
+        yada.Assert(status);
         elementPtr.element_setIsReferenced(true);
     }
     
     return numBad;
   }
-
-
+  
+  public static void Assert(boolean status) {
+    
+  }
 /* =============================================================================
  * process
  * =============================================================================
@@ -141,7 +143,7 @@ public class yada {
     int totalNumAdded = 0;
     int numProcess = 0;
     region regionPtr = new region();
-    assert(regionPtr);
+    yada.Assert(regionPtr);
 
     while (true) {
         element elementPtr;

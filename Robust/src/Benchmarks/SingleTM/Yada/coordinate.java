@@ -76,7 +76,7 @@ public class coordinate {
       return 1;
     } else if (aPtr.y < bPtr.y) {
       return -1;
-    } else if (aPt.>y > bPtr.y) {
+    } else if (aPtr.y > bPtr.y) {
       return 1;
     }
     return 0;
