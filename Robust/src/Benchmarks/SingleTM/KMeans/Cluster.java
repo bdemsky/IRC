@@ -88,9 +88,7 @@ public class Cluster {
     {
       float[] moments = new float[num_moments];
 
-      //float mzero=0.0f;
       for (int i = 0; i < num_elts; i++) {
-        //mzero += data[i];
         moments[0] += data[i];
       }
 
@@ -98,7 +96,7 @@ public class Cluster {
       for (int j = 1; j < num_moments; j++) {
         moments[j] = 0;
         for (int i = 0; i < num_elts; i++) {
-          moments[j] += (float) Math.pow((data[i]-moments[0]), j+1);
+          moments[j] = (float)(moments[j]+ Math.pow((data[i]-moments[0]), j+1));
         }
         moments[j] = moments[j] / num_elts;
       }
@@ -126,9 +124,7 @@ public class Cluster {
         for (int j = 0; j < numObjects; j++) {
           data[j][i] = (data[j][i]-moments[0])/moments[1];
         }
-        moments=null;
       }
-      single_variable=null;
     }
 
 
@@ -142,8 +138,8 @@ public class Cluster {
         int      numObjects,             /* number of input objects */
         int      numAttributes,          /* size of attribute of each object */
         float[][]  attributes,           /* [numObjects][numAttributes] */
-        KMeans kms,                      /* KMeans class hold the inputs and outputs */
-        GlobalArgs args                  /* Global thread arguments */
+        KMeans kms,                       /* KMeans class hold the inputs and outputs */
+        GlobalArgs args                 /* Global thread arguments */
         )
     {
       int itime;
@@ -163,12 +159,10 @@ public class Cluster {
 
       /*
        * From min_nclusters to max_nclusters, find best_nclusters
-       */ 
-      System.out.println("min_nclusters= " + kms.min_nclusters + " max_nclusters= " + kms.max_nclusters);
+       */
       for (nclusters = kms.min_nclusters; nclusters <= kms.max_nclusters; nclusters++) {
 
         randomPtr.random_seed(7);
-        args.nclusters = nclusters;
 
         Normal norm = new Normal();
 
@@ -182,10 +176,9 @@ public class Cluster {
             randomPtr,
             args);
 
-        {
-          kms.cluster_centres = tmp_cluster_centres;
-          kms.best_nclusters = nclusters;
-        }
+	kms.cluster_centres = tmp_cluster_centres;
+	kms.best_nclusters = nclusters;
+
 
         itime++;
       } /* nclusters */

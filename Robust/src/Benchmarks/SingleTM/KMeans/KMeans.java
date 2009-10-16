@@ -234,7 +234,7 @@ public class KMeans extends Thread {
      * The core of the clustering
      */
 
-    //int[] cluster_assign = new int[numObjects];
+    int[] cluster_assign = new int[numObjects];
     int nloops = 1;
     int len = kms.max_nclusters - kms.min_nclusters + 1;
 
@@ -317,9 +317,7 @@ public class KMeans extends Thread {
           km.isBinaryFile = new Integer(args[i++]).intValue();
         }
       } else if(arg.equals("-z")) {
-        if(i < args.length) {
-
-        }
+	km.use_zscore_transform=0;
       } else if(arg.equals("-nthreads")) {
         if(i < args.length) {
           km.nthreads = new Integer(args[i++]).intValue();
@@ -361,38 +359,60 @@ public class KMeans extends Thread {
     byte oldbytes[]=null;
 
 
+    j = -1;
     while ((n = inputFile.read(b)) != 0) {
-      j = -1;
       int x=0;
 
       if (oldbytes!=null) {
 	//find space
+	boolean cr=false;
 	for (;x < n; x++) {
 	  if (b[x] == ' ')
 	    break;
+	  if (b[x] == '\n') {
+	    cr=true;
+	    break;
+	  }
 	}
 	byte newbytes[]=new byte[x+oldbytes.length];
-	for(int ii=0;ii<oldbytes.length;ii++)
+	boolean isnumber=false;
+	for(int ii=0;ii<oldbytes.length;ii++) {
+	  if (oldbytes[ii]>='0'&&oldbytes[ii]<='9')
+	    isnumber=true;
 	  newbytes[ii]=oldbytes[ii];
-	for(int ii=0;ii<x;ii++)
-	  newbytes[ii+oldbytes.length]=b[ii];
-	x++; //skip past space
-	if (j>=0) {
-	  buf[i][j]=(float)Double.parseDouble(new String(newbytes, 0, newbytes.length));
 	}
-	j++;
+	for(int ii=0;ii<x;ii++) {
+	  if (b[ii]>='0'&&b[ii]<='9')
+	    isnumber=true;
+	  newbytes[ii+oldbytes.length]=b[ii];
+	}
+	if (x!=n)
+	  x++; //skip past space or cr
+	if (isnumber) {
+	  if (j>=0) {
+	    buf[i][j]=(float)Double.parseDouble(new String(newbytes, 0, newbytes.length));
+	  }
+	  j++;
+	}
+	if (cr) {
+	  j=-1;
+	  i++;
+	}
 	oldbytes=null;
       }
 
       while (x < n) {
 	int y=x;
+	boolean cr=false;
+	boolean isnumber=false;
 	for(y=x;y<n;y++) {
+	  if ((b[y]>='0')&&(b[y]<='9'))
+	    isnumber=true;
 	  if (b[y]==' ')
 	    break;
 	  if (b[y]=='\n') {
-	    i++;
-	    j = -1;
-	    x=y;//push end to current character
+	    cr=true;
+	    break;
 	  }
 	}
 	if (y==n) {
@@ -404,13 +424,21 @@ public class KMeans extends Thread {
 	}
 	
 	//otherwise x is beginning of character string, y is end
-	if (j>=0) {
-
-	  buf[i][j]=(float)Double.parseDouble(new String(b,x,y-x));
+	if (isnumber) {
+	  if (j>=0) {
+	    buf[i][j]=(float)Double.parseDouble(new String(b,x,y-x));
+	  }
+	  j++;
 	}
-	x=y;//skip to end of number
-	x++;//skip past space
-	j++;
+	if (cr) {
+	  i++;//skip to next line
+	  j = -1;//don't store line number
+	  x=y;//skip to end of number
+	  x++;//skip past return
+	} else {
+	  x=y;//skip to end of number
+	  x++;//skip past space
+	}
       }
     }
     inputFile.close();
