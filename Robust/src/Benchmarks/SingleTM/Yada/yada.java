@@ -54,7 +54,7 @@ public class yada {
   int global_numThread;
   double global_angleConstraint;
   mesh  global_meshPtr;
-  heap_t  global_workHeapPtr;
+  heap  global_workHeapPtr;
   int global_totalNumAdded;
   int global_numProcess;
 
@@ -146,7 +146,7 @@ public class yada {
     while (true) {
         element elementPtr;
         atomic {
-	  elementPtr = TMHEAP_REMOVE(workHeapPtr);
+	  elementPtr = (element) workHeapPtr.heap_remove();
         }
         if (elementPtr == null) {
 	  break;
@@ -206,7 +206,7 @@ public class yada {
     System.out.println("Reading input... ");
     int initNumElement = global_meshPtr.mesh_read(global_inputPrefix);
     System.out.println("done.");
-    y.global_workHeapPtr = new heap(1, &element_heapCompare);
+    y.global_workHeapPtr = new heap(1);
 
     int initNumBadElement = global_workHeapPtr.initializeWork(global_meshPtr);
 

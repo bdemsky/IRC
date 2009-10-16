@@ -296,9 +296,9 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * For use in list_t
  * =============================================================================
  */
-  int element_listCompare (const void* aPtr, const void* bPtr) {
-    element_t* aElementPtr = (element_t*)aPtr;
-    element_t* bElementPtr = (element_t*)bPtr;
+  int element_listCompare (Object aPtr, Object  bPtr) {
+    element aElementPtr = (element)aPtr;
+    element bElementPtr = (element)bPtr;
     
     return element_compare(aElementPtr, bElementPtr);
   }
@@ -310,9 +310,9 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * For use in MAP_T
  * =============================================================================
  */
-  int element_mapCompare (const pair_t* aPtr, const pair_t* bPtr) {
-    element_t* aElementPtr = (element_t*)(aPtr->firstPtr);
-    element_t* bElementPtr = (element_t*)(bPtr->firstPtr);
+  int element_mapCompare(Object aPtr, Object bPtr) {
+    element aElementPtr = (element)(aPtr.firstPtr);
+    element bElementPtr = (element)(bPtr.firstPtr);
     
     return element_compare(aElementPtr, bElementPtr);
   }
@@ -367,8 +367,8 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * =============================================================================
  */
   static int compareEdge(edge aEdgePtr, edge bEdgePtr) {
-    int diffFirst = coordinate_compare((coordinate_t*)aEdgePtr.firstPtr,
-                                        (coordinate_t*)bEdgePtr.firstPtr);
+    int diffFirst = coordinate_compare((coordinate)aEdgePtr.firstPtr,
+                                        (coordinate)bEdgePtr.firstPtr);
 
     return ((diffFirst != 0) ?
             (diffFirst) :
@@ -397,9 +397,9 @@ int element_compare (element aElementPtr, element bElementPtr) {
   * For use in MAP_T
  * =============================================================================
  */
-  int element_mapCompareEdge (const pair_t* aPtr, const pair_t* bPtr) {
-    edge_t* aEdgePtr = (edge_t*)(aPtr.firstPtr);
-    edge_t* bEdgePtr = (edge_t*)(bPtr.firstPtr);
+  int element_mapCompareEdge (Object aPtr, Object bPtr) {
+    edge aEdgePtr = (edge)(aPtr.firstPtr);
+    edge bEdgePtr = (edge)(bPtr.firstPtr);
     
     return compareEdge(aEdgePtr, bEdgePtr);
   }
@@ -411,10 +411,10 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * For use in heap_t. Consider using minAngle instead of "do not care".
  * =============================================================================
  */
-  int element_heapCompare (const void* aPtr, const void* bPtr) {
-    element_t* aElementPtr = (element_t*)aPtr;
-    element_t* bElementPtr = (element_t*)bPtr;
-    
+  int element_heapCompare (Object aPtr, Object bPtr) {
+    element aElementPtr = (element)aPtr;
+    element bElementPtr = (element)bPtr;
+   
     if (aElementPtr.encroachedEdgePtr) {
       if (bElementPtr.encroachedEdgePtr) {
 	return 0; /* do not care */

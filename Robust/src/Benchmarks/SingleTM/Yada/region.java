@@ -323,7 +323,7 @@ public class region {
       element badElementPtr = (element)badVectorPtr.vector_at(i);
       if (badElementPtr.element_isGarbage()) {
       } else {
-	boolean status = TMHEAP_INSERT(workHeapPtr, (void*)badElementPtr);
+	boolean status = workHeapPtr.heap_insert(badElementPtr);
 	assert(status);
       }
     }
