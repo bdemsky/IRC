@@ -108,8 +108,8 @@ public class region {
 			      mesh meshPtr,
 			      MAP_T edgeMapPtr) {
     Vector_t badVectorPtr = regionPtr.badVectorPtr; /* private */
-    list_t beforeListPtr = regionPtr.beforeListPtr; /* private */
-    list_t borderListPtr = regionPtr.borderListPtr; /* private */
+    List_t beforeListPtr = regionPtr.beforeListPtr; /* private */
+    List_t borderListPtr = regionPtr.borderListPtr; /* private */
     list_iter_t it;
     int numDelta = 0;
     

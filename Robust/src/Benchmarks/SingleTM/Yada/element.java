@@ -546,7 +546,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * element_getNeighborListPtr
  * =============================================================================
  */
-  list_t element_getNeighborListPtr () {
+  List_t element_getNeighborListPtr () {
     return neighborListPtr;
   }
 
