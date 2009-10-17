@@ -11,6 +11,7 @@ SRC=${MAINCLASS}.java \
 	mesh.java  \
 	region.java  \
 	Vector_t.java \
+	avltree.java \
 	../../../ClassLibrary/JavaSTM/Barrier.java 
 
 include ../common/Makefile.flags
@@ -18,6 +19,7 @@ include ../common/Makefile.builds
 
 prep:
 	cpp -P heap.java > tmpheap.java
+	cpp -P avltree.java > tmpavltree.java
 	cpp -P Queue_t.java > tmpQueue_t.java
 
 clean:
