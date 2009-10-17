@@ -90,7 +90,7 @@ public class mesh {
    * TMmesh_insert
    * =============================================================================
    */
-  void TMmesh_insert (element elementPtr, MAP_T edgeMapPtr) {
+  void TMmesh_insert (element elementPtr, avltree edgeMapPtr) {
     /*
      * Assuming fully connected graph, we just need to record one element.
      * The root element is not needed for the actual refining, but rather
@@ -198,9 +198,9 @@ boolean TMmesh_removeBoundary(edge boundaryPtr) {
  */
 static void createElement (coordinate coordinates,
                int numCoordinate,
-			   MAP_T edgeMapPtr) {
+			   avltree edgeMapPtr) {
     element elementPtr = new element(coordinates, numCoordinate);
-    yada.Assert(elementPtr);
+    yada.Assert(elementPtr!=null);
 
     if (numCoordinate == 2) {
         edge boundaryPtr = elementPtr.element_getEdge(0);
@@ -238,8 +238,7 @@ int mesh_read(String fileNamePrefix) {
     int i;
     int numElement = 0;
 
-    MAP_T edgeMapPtr = MAP_ALLOC(NULL, element_mapCompareEdge);
-    yada.Assert(edgeMapPtr);
+    avltree edgeMapPtr = new avltree(0);
 
     /*
      * Read .node file
@@ -375,9 +374,7 @@ boolean mesh_check(int expectedNumElement) {
     System.out.println("Checking final mesh:");
     
     Queue_t searchQueuePtr = new Queue_t(-1);
-    yada.Assert(searchQueuePtr);
-    MAP_T visitedMapPtr = MAP_ALLOC(NULL, element_mapCompare);
-    yada.Assert(visitedMapPtr);
+    avltree visitedMapPtr = new avltree(1);
 
     /*
      * Do breadth-first search starting from rootElementPtr
@@ -389,10 +386,10 @@ boolean mesh_check(int expectedNumElement) {
         List_t neighborListPtr;
 
         element currentElementPtr = (element)queue_pop(searchQueuePtr);
-        if (MAP_CONTAINS(visitedMapPtr, currentElementPtr)) {
+        if (visitedMapPtr.contains(currentElementPtr)) {
             continue;
         }
-        boolean isSuccess = MAP_INSERT(visitedMapPtr, currentElementPtr, null);
+        boolean isSuccess = visitedMapPtr.insert(currentElementPtr, null);
         yada.Assert(isSuccess);
         if (!currentElementPtr.checkAngles()) {
             numBadTriangle++;
@@ -406,7 +403,7 @@ boolean mesh_check(int expectedNumElement) {
             /*
              * Continue breadth-first search
              */
-            if (!MAP_CONTAINS(visitedMapPtr, neighborElementPtr)) {
+            if (!visitedMapPtr.contains(neighborElementPtr)) {
                 boolean isSuccess = searchQueuePtr.queue_push(neighborElementPtr);
                 yada.Assert(isSuccess);
             }
@@ -418,8 +415,6 @@ boolean mesh_check(int expectedNumElement) {
 
     System.out.println("Number of elements      = "+ numElement);
     System.out.println("Number of bad triangles = "+ numBadTriangle);
-
-    MAP_FREE(visitedMapPtr);
 
     return (!(numBadTriangle > 0 ||
 	      numFalseNeighbor > 0 ||

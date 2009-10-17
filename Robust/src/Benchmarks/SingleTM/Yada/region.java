@@ -106,7 +106,7 @@ public class region {
   public int TMretriangulate (element elementPtr,
 			      region regionPtr,
 			      mesh meshPtr,
-			      MAP_T edgeMapPtr) {
+			      avltree edgeMapPtr) {
     Vector_t badVectorPtr = regionPtr.badVectorPtr; /* private */
     List_t beforeListPtr = regionPtr.beforeListPtr; /* private */
     List_t borderListPtr = regionPtr.borderListPtr; /* private */
@@ -192,7 +192,7 @@ public class region {
   element TMgrowRegion(element centerElementPtr,
 		       region regionPtr,
 		       mesh meshPtr,
-		       MAP_T edgeMapPtr) {
+		       avltree edgeMapPtr) {
     boolean isBoundary = false;
     
     if (centerElementPtr.element_getNumEdge() == 1) {
@@ -212,7 +212,7 @@ public class region {
     expandQueuePtr.queue_push(centerElementPtr);
     while (!expandQueuePtr.queue_isEmpty()) {
       
-      element currentElementPtr = expandQueuePtr.queue_pop();
+      element currentElementPtr = (element) expandQueuePtr.queue_pop();
       
       beforeListPtr.insert(currentElementPtr); /* no duplicates */
       List_t neighborListPtr = currentElementPtr.element_getNeighborListPtr();
@@ -240,8 +240,8 @@ public class region {
 	      TM_RESTART();
 	    }
 	    borderListPtr.insert(borderEdgePtr); /* no duplicates */
-	    if (!MAP_CONTAINS(edgeMapPtr, borderEdgePtr)) {
-	      PMAP_INSERT(edgeMapPtr, borderEdgePtr, neighborElementPtr);
+	    if (!edgeMapPtr.contains(borderEdgePtr)) {
+	      edgeMapPtr.insert(borderEdgePtr, neighborElementPtr);
 	    }
 	  }
 	} /* not visited before */
@@ -260,20 +260,20 @@ public class region {
  */
   int TMregion_refine(element elementPtr, mesh meshPtr) {
     int numDelta = 0;
-    MAP_T edgeMapPtr = null;
+    avltree edgeMapPtr = null;
     element encroachElementPtr = null;
     
     elementPtr.element_isGarbage(); /* so we can detect conflicts */
     
     while (true) {
-      edgeMapPtr = PMAP_ALLOC(NULL, element_mapCompareEdge);
-      yada.Assert(edgeMapPtr);
+      edgeMapPtr = new avltree(1);
+      yada.Assert(edgeMapPtr!=null);
       encroachElementPtr = TMgrowRegion(elementPtr,
 					this,
 					meshPtr,
 					edgeMapPtr);
       
-      if (encroachElementPtr) {
+      if (encroachElementPtr!=null) {
 	encroachElementPtr.element_setIsReferenced(true);
 	numDelta += TMregion_refine(regionPtr,
 				    encroachElementPtr,
@@ -296,8 +296,6 @@ public class region {
 				  meshPtr,
 				  edgeMapPtr);
     }
-    
-    PMAP_FREE(edgeMapPtr); /* no need to free elements */
     
     return numDelta;
   }

@@ -248,14 +248,61 @@ class avltrav {
 public class avltree {
   avlnode root; /* Top of the tree */
   int         size;   /* Number of items (user-defined) */
+  int mode;
+  //mode=0 element_mapCompareEdge
+  //mode=1 element_mapCompare
 
-
-  public avltree() {
+  public avltree(int mode) {
     size = 0;
+    this.mode=mode;
   }
 
   int cmp(Object a, Object b) {
     return 0;
+  }
+
+
+  boolean contains(Object key) {
+    boolean success = false;
+    edge searchPair=new edge();
+    searchPair.firstPtr = key;
+    if (map.avlfind(map, searchPair) != null) {
+      success = true;
+    }
+    return success;
+  }
+
+  Object find(Object key) {
+    Object dataPtr = null;
+    edge searchPair=new edge();
+    searchPair.firstPtr = key;
+    edge pairPtr = (edge)map.avlfind(searchPair);
+    if (pairPtr != null) {
+      dataPtr = pairPtr.secondPtr;
+    }
+    return dataPtr;
+  }
+
+  boolean insert(Object key, Object data) {
+    boolean success = false;
+    edge insertPtr = new edge(key, data);
+    if (insertPtr != null) {
+      if (map.insert(insertPtr)) {
+	success = true;
+      }
+    }
+    return success;
+  }
+
+  boolean remove(Object key) {
+    boolean success = false;
+    edge searchPair=new edge();
+    searchPair.firstPtr = key;
+    edge pairPtr = (edge) map.avlfind(searchPair);
+    if (map.avlerase(searchPair)) {
+      success=true;
+    }
+    return success;
   }
 
   Object avlfind(Object data ) {
