@@ -97,7 +97,7 @@ public class element {
     int minPosition = 0;
 
     for (int i = 1; i < numCoordinate; i++) {
-      if (coordinate_compare(coordinates[i], coordinates[minPosition]) < 0) {
+      if (coordinate.coordinate_compare(coordinates[i], coordinates[minPosition]) < 0) {
 	minPosition = i;
       }
     }
@@ -130,7 +130,7 @@ public class element {
     if (numCoordinate == 3) {
         int i;
         for (i = 0; i < 3; i++) {
-	  double angle = coordinate_angle(coordinates[i],
+	  double angle = coordinate.coordinate_angle(coordinates[i],
 					  coordinates[(i + 1) % 3],
 					  coordinates[(i + 2) % 3]);
 	  yada.Assert(angle > 0.0);
@@ -212,7 +212,7 @@ public class element {
       circumCenterPtr.y = ry;
     }
 
-    elementPtr.circumRadius = coordinate_distance(circumCenterPtr,
+    elementPtr.circumRadius = coordinate.coordinate_distance(circumCenterPtr,
 						  coordinates[0]);
   }
 
@@ -228,7 +228,7 @@ public class element {
     coordinate secondPtr = coordinates[(i + 1) % numCoordinate];
     
     edge edgePtr = edges[i];
-    int cmp = coordinate_compare(firstPtr, secondPtr);
+    int cmp = coordinate.coordinate_compare(firstPtr, secondPtr);
     yada.Assert(cmp != 0);
     if (cmp < 0) {
       edgePtr.firstPtr  = firstPtr;
@@ -242,7 +242,7 @@ public class element {
     midpointPtr.x = (firstPtr.x + secondPtr.x) / 2.0;
     midpointPtr.y = (firstPtr.y + secondPtr.y) / 2.0;
 
-    elementPtr.radii[i] = coordinate_distance(firstPtr, midpointPtr);
+    elementPtr.radii[i] = coordinate.coordinate_distance(firstPtr, midpointPtr);
   }
 
 
@@ -266,8 +266,8 @@ public class element {
 int element_compare (element aElementPtr, element bElementPtr) {
   int aNumCoordinate = aElementPtr.numCoordinate;
   int bNumCoordinate = bElementPtr.numCoordinate;
-  coordinate aCoordinates = aElementPtr.coordinates;
-  coordinate bCoordinates = bElementPtr.coordinates;
+  coordinate aCoordinates[] = aElementPtr.coordinates;
+  coordinate bCoordinates[] = bElementPtr.coordinates;
 
   if (aNumCoordinate < bNumCoordinate) {
     return -1;
@@ -277,7 +277,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
 
   for (int i = 0; i < aNumCoordinate; i++) {
     int compareCoordinate =
-      coordinate_compare(aCoordinates[i], bCoordinates[i]);
+      coordinate.coordinate_compare(aCoordinates[i], bCoordinates[i]);
     if (compareCoordinate != 0) {
       return compareCoordinate;
     }
@@ -368,12 +368,12 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * =============================================================================
  */
   static int compareEdge(edge aEdgePtr, edge bEdgePtr) {
-    int diffFirst = coordinate_compare((coordinate)aEdgePtr.firstPtr,
+    int diffFirst = coordinate.coordinate_compare((coordinate)aEdgePtr.firstPtr,
                                         (coordinate)bEdgePtr.firstPtr);
 
     return ((diffFirst != 0) ?
             (diffFirst) :
-            (coordinate_compare((coordinate)aEdgePtr.secondPtr,
+            (coordinate.coordinate_compare((coordinate)aEdgePtr.secondPtr,
                                 (coordinate)bEdgePtr.secondPtr)));
   }
 
@@ -416,15 +416,15 @@ int element_compare (element aElementPtr, element bElementPtr) {
     element aElementPtr = (element)aPtr;
     element bElementPtr = (element)bPtr;
    
-    if (aElementPtr.encroachedEdgePtr) {
-      if (bElementPtr.encroachedEdgePtr) {
+    if (aElementPtr.encroachedEdgePtr!=null) {
+      if (bElementPtr.encroachedEdgePtr!=null) {
 	return 0; /* do not care */
       } else {
 	return 1;
       }
     }
     
-    if (bElementPtr.encroachedEdgePtr) {
+    if (bElementPtr.encroachedEdgePtr!=null) {
       return -1;
     }
     
@@ -437,7 +437,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * =============================================================================
  */
   boolean element_isInCircumCircle(coordinate coordinatePtr) {
-    double distance = coordinate_distance(coordinatePtr, circumCenter);
+    double distance = coordinate.coordinate_distance(coordinatePtr, circumCenter);
     return distance <= circumRadius;
   }
 
@@ -538,7 +538,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * =============================================================================
  */
   void element_addNeighbor(element neighborPtr) {
-    TMLIST_INSERT(neighborListPtr, neighborPtr);
+    neighborListPtr.insert(neighborPtr);
   }
 
 
@@ -605,7 +605,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
     //    double angleConstraint = global_angleConstraint;
     if (numCoordinate == 3) {
       for (int i = 0; i < 3; i++) {
-	double angle = coordinate_angle(coordinates[i],
+	double angle = coordinate.coordinate_angle(coordinates[i],
 					coordinates[(i + 1) % 3],
 					coordinates[(i + 2) % 3]);
 	if (angle < angleConstraint) {
@@ -623,7 +623,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  */
   void element_print() {
     for (int c = 0; c < numCoordinate; c++) {
-      coordinate_print(coordinates[c]);
+      coordinates[c].coordinate_print();
       System.out.println(" ");
     }
   }
@@ -634,9 +634,9 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * =============================================================================
  */
   void element_printEdge (edge edgePtr) {
-    coordinate_print((coordinate)edgePtr.firstPtr);
+    ((coordinate)edgePtr.firstPtr).coordinate_print();
     System.out.println(" -> ");
-    coordinate_print((coordinate)edgePtr.secondPtr);
+    ((coordinate)edgePtr.secondPtr).coordinate_print();
   }
 
 
@@ -647,7 +647,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
   void element_printAngles() {
     if (numCoordinate == 3) {
       for (int i = 0; i < 3; i++) {
-	double angle = coordinate_angle(coordinates[i],
+	double angle = coordinate.coordinate_angle(coordinates[i],
 					coordinates[(i + 1) % 3],
 					coordinates[(i + 2) % 3]);
 	System.out.println(angle);

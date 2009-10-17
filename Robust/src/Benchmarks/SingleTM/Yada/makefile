@@ -2,6 +2,7 @@ MAINCLASS=yada
 SRC=${MAINCLASS}.java \
 	tmpheap.java \
 	List_t.java \
+	tmpRBTree.java \
 	Random.java  \
 	tmpQueue_t.java  \
 	coordinate.java  \
@@ -21,7 +22,7 @@ prep:
 	cpp -P heap.java > tmpheap.java
 	cpp -P avltree.java > tmpavltree.java
 	cpp -P Queue_t.java > tmpQueue_t.java
-
+	cpp -P RBTree.java > tmpRBTree.java
 clean:
 	rm tmp*.java
 	rm ttt*.java

@@ -74,12 +74,12 @@
 import java.util.*;
 
 public class edge {
-  public Object first;
-  public Object second;
+  public Object firstPtr;
+  public Object secondPtr;
   
   public edge() {
-    first = null;
-    second = null;
+    firstPtr = null;
+    secondPtr = null;
   }
   
 
@@ -91,8 +91,8 @@ public class edge {
    * =============================================================================
    */
   public edge(Object first,Object second) {
-    this.first = first;
-    this.second = second;
+    this.firstPtr = first;
+    this.secondPtr = second;
   }
 
 
@@ -103,9 +103,9 @@ public class edge {
    * void pair_swap (pair_t* pairPtr);
    */
   public void swap() {
-    Object tmpPtr = first;
-    first=second;
-    second=tmpPtr;
+    Object tmpPtr = firstPtr;
+    firstPtr=secondPtr;
+    secondPtr=tmpPtr;
   }
 }    
 

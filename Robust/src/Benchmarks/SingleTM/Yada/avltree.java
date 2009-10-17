@@ -118,10 +118,10 @@
 
 /* Rebalance after insertion */
 #define jsw_insert_balance(root,dir) do {  \
-  avlnode n = root.link[dir];      \
+  avlnode ni = root.link[dir];      \
   int bal = dir == 0 ? -1 : +1;	  \
-  if ( n.balance == bal ) {               \
-    root.balance = n.balance = 0;        \
+  if ( ni.balance == bal ) {               \
+    root.balance = ni.balance = 0;        \
     jsw_single ( root, 1-dir );             \
   }                                        \
   else { /* n.balance == -bal */          \
@@ -132,19 +132,19 @@
 
 /* Rebalance after deletion */
 #define jsw_remove_balance(root,dir,done) do { \
-  avlnode n = root.link[1-dir];         \
+  avlnode nr = root.link[1-dir];         \
   int bal = dir == 0 ? -1 : +1;	      \
-  if ( n.balance == -bal ) {                  \
-    root.balance = n.balance = 0;            \
+  if ( nr.balance == -bal ) {		     \
+    root.balance = nr.balance = 0;            \
     jsw_single ( root, dir );                  \
   }                                            \
-  else if ( n.balance == bal ) {              \
+  else if ( nr.balance == bal ) {              \
     jsw_adjust_balance ( root, 1-dir, -bal );   \
     jsw_double ( root, dir );                  \
   }                                            \
   else { /* n.balance == 0 */                 \
     root.balance = -bal;                      \
-    n.balance = bal;                          \
+    nr.balance = bal;			       \
     jsw_single ( root, dir );                  \
     done = 1;                                  \
   }                                            \
@@ -276,7 +276,7 @@ public class avltree {
   boolean avlinsert(Object data ) {
     /* Empty tree case */
     if ( root == null ) {
-      root = new avlnode(tree,data);
+      root = new avlnode(this,data);
     } else {
       avlnode head =new avlnode(); /* Temporary tree root */
       avlnode s, t;     /* Place to rebalance and parent */
@@ -301,7 +301,7 @@ public class avltree {
 	}
       }
       
-      p.link[dir] = q = new avlnode(tree, data);
+      p.link[dir] = q = new avlnode(this, data);
       if (q==null)
 	return false;
       
@@ -349,7 +349,7 @@ public class avltree {
 	  break;
 	
 	/* Push direction and node onto stack */
-	upd[top] = cmp ( it.data, data ) < 0;
+	upd[top] = (cmp ( it.data, data ) < 0)?1:0;
 	up[top++] = it;
 	
 	it = it.link[upd[top - 1]];
@@ -364,7 +364,7 @@ public class avltree {
 	if (top != 0)
 	  up[top-1].link[upd[top - 1]] = it.link[dir];
 	else
-	  tree.root = it.link[dir];
+	  root = it.link[dir];
       } else {
 	/* Find the inorder successor */
 	avlnode heir = it.link[1];
@@ -385,7 +385,7 @@ public class avltree {
 	heir.data = save;
 
 	/* Unlink successor and fix parent */
-	up[top-1].link[up[top - 1] == it] = heir.link[1];
+	up[top-1].link[(up[top - 1] == it)?1:0] = heir.link[1];
     }
 
       /* Walk back up the search path */
@@ -394,9 +394,9 @@ public class avltree {
 	up[top].balance += upd[top] != 0 ? -1 : +1;
 	
 	/* Terminate or rebalance as necessary */
-	if ( abs ( up[top].balance ) == 1 )
+	if (up[top].balance == 1 || up[top].balance==-1 )
 	  break;
-	else if ( abs ( up[top].balance ) > 1 ) {
+	else if ( up[top].balance > 1 ||up[top].balance < -1) {
 	  jsw_remove_balance ( up[top], upd[top], done );
 	  
 	  /* Fix parent */

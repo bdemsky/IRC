@@ -72,7 +72,7 @@ public class mesh {
     element rootElementPtr;
     Queue_t initBadQueuePtr;
     int size;
-    SET_T boundarySetPtr;
+    RBTree boundarySetPtr;
 
 /* =============================================================================
  * mesh_alloc
@@ -82,7 +82,7 @@ public class mesh {
     rootElementPtr = null;
     initBadQueuePtr = new Queue_t(-1);
     size = 0;
-    boundarySetPtr = SET_ALLOC(null, element_listCompareEdge);
+    boundarySetPtr = new RBTree(null, element_listCompareEdge);
   }
 
 
@@ -135,7 +135,7 @@ public class mesh {
   
   edge encroachedPtr = elementPtr.element_getEncroachedPtr();
   if (encroachedPtr!=null) {
-    if (!TMSET_CONTAINS(meshPtr.boundarySetPtr, encroachedPtr)) {
+    if (!boundarySetPtr.contains(encroachedPtr)) {
       element_clearEncroached(elementPtr);
     }
   }
@@ -179,7 +179,7 @@ public void TMmesh_remove(element elementPtr) {
  * =============================================================================
  */
 boolean TMmesh_insertBoundary(edge boundaryPtr) {
-  return TMSET_INSERT(boundarySetPtr, boundaryPtr);
+  return boundarySetPtr.insert(boundaryPtr,null);
 }
 
 
@@ -188,7 +188,7 @@ boolean TMmesh_insertBoundary(edge boundaryPtr) {
  * =============================================================================
  */
 boolean TMmesh_removeBoundary(edge boundaryPtr) {
-  return TMSET_REMOVE(boundarySetPtr, boundaryPtr);
+  return boundarySetPtr.remove(boundaryPtr);
 }
 
 
@@ -204,7 +204,7 @@ static void createElement (coordinate coordinates,
 
     if (numCoordinate == 2) {
         edge boundaryPtr = elementPtr.element_getEdge(0);
-        boolean status = SET_INSERT(boundarySetPtr, boundaryPtr);
+        boolean status = boundarySetPtr.insert(boundaryPtr, null);
         yada.Assert(status);
     }
 
