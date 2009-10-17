@@ -69,6 +69,12 @@
  */
 
 public class coordinate {
+  double x;
+  double y;
+
+  public coordinate() {
+  }
+
   static int coordinate_compare (coordinate aPtr, coordinate bPtr) {
     if (aPtr.x < bPtr.x) {
         return -1;

@@ -74,8 +74,9 @@
 
 public class List_t {
 
-    public List_Node head;
-    int size;
+  public List_Node head;
+  int size;
+  int mode;
 
     public List_t() {
         head = new List_Node();
@@ -112,35 +113,17 @@ public class List_t {
  *
  */
 
-  public static List_t alloc()
-    {
-        List_t listPtr = new List_t();
+  //mode 0 = element_list_compare
+  //mode 1 = element_list_compareedge
 
-        if(listPtr  == null) {
-            return null;
-        }
-
-        listPtr.head.dataPtr = null;
-        listPtr.head.nextPtr = null;
-        listPtr.size = 0;
-
-        return listPtr;
-    }
+  public List_t(int mode) {
+    List_t();
+    this.mode=mode;
+    head.dataPtr = null;
+    head.nextPtr = null;
+    size = 0;
+  }
     
-/* =============================================================================
- * list_free
- * -- If NULL passed for 'compare' function, will compare data pointer addresses
- * -- Returns NULL on failure
- * =============================================================================
- * void list_free (list_t* listPtr);
- */
-    public static void free(List_t listPtr) 
-    {
-        listPtr = null;
-    }
-
-//    privae freeList
-
 /* =============================================================================
  * list_isEmpty
  * -- Return TRUE if list is empty, else FALSE
@@ -188,30 +171,30 @@ public class List_t {
      * =============================================================================
      * void* list_find (list_t* listPtr, void* dataPtr);
      */
-    public Object find(Object dataPtr) {
-        List_Node nodePtr;
-        List_Node prevPtr = findPrevious(dataPtr);
-
-        nodePtr = prevPtr.nextPtr;
-
-        if((nodePtr == null) ||
-                (compare(nodePtr.dataPtr,dataPtr) != 0)) {
-            return null;
-        }
-
-        return (nodePtr.dataPtr);
+  public Object find(Object dataPtr) {
+    List_Node nodePtr;
+    List_Node prevPtr = findPrevious(dataPtr);
+    
+    nodePtr = prevPtr.nextPtr;
+    
+    if((nodePtr == null) ||
+       (compare(nodePtr.dataPtr,dataPtr) != 0)) {
+      return null;
     }
+    
+    return nodePtr.dataPtr;
+  }
 
-    public int compare(Object obj1,Object obj2) 
-    {
-      Reservation_Info aPtr=(Reservation_Info)obj1;
-      Reservation_Info bPtr=(Reservation_Info)obj2;
-      int typeDiff;
-      
-      typeDiff = aPtr.type - bPtr.type;
-      
-      return ((typeDiff != 0) ? (typeDiff) : (aPtr.id - bPtr.id));
+  //mode 0 = element_list_compare
+  //mode 1 = element_list_compareedge
+
+  public int compare(Object obj1,Object obj2) {
+    if (mode==0) {
+      return element.element_compare((element)obj1, (element)obj2);
+    } else {
+      return element.compareEdge((edge)obj1, (edge) obj2);
     }
+  }
 
 /* =============================================================================
  * list_insert
@@ -302,7 +285,7 @@ public class List_t {
      int i;
 
      System.out.println("Starting...");
-        }
+ }
 
 }
 

@@ -223,7 +223,7 @@ public class element {
   * Note: Makes pairPtr sorted; i.e., coordinate_compare(first, second) < 0
  * =============================================================================
  */
-  publicvoid setEdge(int i) {
+  public void setEdge(int i) {
     coordinate firstPtr = coordinates[i];
     coordinate secondPtr = coordinates[(i + 1) % numCoordinate];
     
@@ -335,7 +335,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
     checkAngles();
     calculateCircumCircle();
     initEdges(coordinates, numCoordinate);
-    neighborListPtr = TMLIST_ALLOC(element_listCompare);
+    neighborListPtr = new List_t(0);//TMLIST_ALLOC(element_listCompare);
     isGarbage = false;
     isReferenced = false;
   }

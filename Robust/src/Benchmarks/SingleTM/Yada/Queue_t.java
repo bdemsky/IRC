@@ -69,63 +69,6 @@ public class Queue_t {
     this.capacity = capacity;
   }
 
-
-  /* =============================================================================
-   * Pqueue_alloc
-   * =============================================================================
-   */
-  public Queue_t
-    Pqueue_alloc (int initCapacity)
-    {
-      Queue_t queuePtr = new Queue_t();
-
-      int capacity = ((initCapacity < 2) ? 2 : initCapacity);
-      queuePtr.elements = new Object[capacity];
-      if (queuePtr.elements == null) {
-        queuePtr = null;
-        return null;
-      }
-      queuePtr.pop      = capacity - 1;
-      queuePtr.push     = 0;
-      queuePtr.capacity = capacity;
-
-      return queuePtr;
-    }
-
-  /* =============================================================================
-   * queue_free
-   * =============================================================================
-   */
-  public void queue_free (Queue_t queuePtr) {
-    queuePtr.elements = null;
-    queuePtr = null;
-  }
-
-
-  /* =============================================================================
-   * Pqueue_free
-   * =============================================================================
-   */
-  public void
-    Pqueue_free (Queue_t queuePtr)
-    {
-      queuePtr.elements = null;
-      queuePtr = null;
-    }
-
-
-  /* =============================================================================
-   * TMqueue_free
-   * =============================================================================
-   *
-  public void
-    TMqueue_free (TM_ARGDECL  Queue* queuePtr)
-    {
-      queuePtr.elements = null;
-      queuePtr = null;
-    }
-
-*/
   /* =============================================================================
    * queue_isEmpty
    * =============================================================================

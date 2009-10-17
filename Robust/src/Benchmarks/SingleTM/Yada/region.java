@@ -81,8 +81,8 @@ public class region {
  */
   public region() {
     expandQueuePtr = new Queue_t(-1);
-    beforeListPtr = PLIST_ALLOC(element_listCompare);
-    borderListPtr = PLIST_ALLOC(element_listCompareEdge);
+    beforeListPtr = new List_t(0);//PLIST_ALLOC(element_listCompare);
+    borderListPtr = new List_t(1);//PLIST_ALLOC(element_listCompareEdge);
     badVectorPtr = new Vector_t(1);
   }
 

@@ -1,17 +1,17 @@
 MAINCLASS=yada
 SRC=${MAINCLASS}.java \
 	tmpheap.java \
+	List_t.java \
 	Random.java  \
 	tmpQueue_t.java  \
 	coordinate.java  \
 	edge.java	\
 	element.java  \
 	List_Node.java  \
-	List_t.java \
 	mesh.java  \
 	region.java  \
 	Vector_t.java \
-	avltree.java \
+	tmpavltree.java \
 	../../../ClassLibrary/JavaSTM/Barrier.java 
 
 include ../common/Makefile.flags

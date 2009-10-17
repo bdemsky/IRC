@@ -77,30 +77,32 @@
  * =============================================================================
  */
 
+#define HEIGHT_LIMIT 64
+
 /* Two way single rotation */
 #define jsw_single(root,dir) do {         \
-  jsw_avlnode_t *save = root.link[!dir]; \
-  root.link[!dir] = save.link[dir];     \
+  avlnode save = root.link[1-dir]; \
+  root.link[1-dir] = save.link[dir];     \
   save.link[dir] = root;                 \
   root = save;                            \
 } while (false)
 
 /* Two way double rotation */
 #define jsw_double(root,dir) do {                    \
-  jsw_avlnode_t *save = root.link[!dir].link[dir]; \
-  root.link[!dir].link[dir] = save.link[!dir];    \
-  save.link[!dir] = root.link[!dir];               \
-  root.link[!dir] = save;                           \
-  save = root.link[!dir];                           \
-  root.link[!dir] = save.link[dir];                \
+  avlnode save = root.link[1-dir].link[dir]; \
+  root.link[1-dir].link[dir] = save.link[1-dir];    \
+  save.link[1-dir] = root.link[1-dir];               \
+  root.link[1-dir] = save;                           \
+  save = root.link[1-dir];                           \
+  root.link[1-dir] = save.link[dir];                \
   save.link[dir] = root;                            \
   root = save;                                       \
 } while (false)
 
 /* Adjust balance before double rotation */
 #define jsw_adjust_balance(root,dir,bal) do { \
-  jsw_avlnode_t *n = root.link[dir];         \
-  jsw_avlnode_t *nn = n.link[!dir];          \
+  avlnode n = root.link[dir];         \
+  avlnode nn = n.link[1-dir];          \
   if ( nn.balance == 0 )                     \
     root.balance = n.balance = 0;           \
   else if ( nn.balance == bal ) {            \
@@ -116,28 +118,28 @@
 
 /* Rebalance after insertion */
 #define jsw_insert_balance(root,dir) do {  \
-  jsw_avlnode_t *n = root.link[dir];      \
-  long bal = dir == 0 ? -1 : +1;           \
+  avlnode n = root.link[dir];      \
+  int bal = dir == 0 ? -1 : +1;	  \
   if ( n.balance == bal ) {               \
     root.balance = n.balance = 0;        \
-    jsw_single ( root, !dir );             \
+    jsw_single ( root, 1-dir );             \
   }                                        \
   else { /* n.balance == -bal */          \
-    jsw_adjust_balance ( root, dir, bal ); \
-    jsw_double ( root, !dir );             \
+    jsw_adjust_balance( root, dir, bal ); \
+    jsw_double( root, 1-dir );             \
   }                                        \
 } while (false)
 
 /* Rebalance after deletion */
 #define jsw_remove_balance(root,dir,done) do { \
-  jsw_avlnode_t *n = root.link[!dir];         \
-  long bal = dir == 0 ? -1 : +1;               \
+  avlnode n = root.link[1-dir];         \
+  int bal = dir == 0 ? -1 : +1;	      \
   if ( n.balance == -bal ) {                  \
     root.balance = n.balance = 0;            \
     jsw_single ( root, dir );                  \
   }                                            \
   else if ( n.balance == bal ) {              \
-    jsw_adjust_balance ( root, !dir, -bal );   \
+    jsw_adjust_balance ( root, 1-dir, -bal );   \
     jsw_double ( root, dir );                  \
   }                                            \
   else { /* n.balance == 0 */                 \
@@ -204,9 +206,9 @@ class avltrav {
       path[top++] = it;
       it = it.link[dir];
 
-      while (it.link[!dir] != null ) {
+      while (it.link[1-dir] != null ) {
 	path[top++] = it;
-	it = it.link[!dir];
+	it = it.link[1-dir];
       }
     } else {
       /* Move to the next branch */
@@ -219,7 +221,7 @@ class avltrav {
 	}
 
 	last = it;
-	it = path[--trav.top];
+	it = path[--top];
       } while ( last == it.link[dir] );
     }
 
@@ -245,27 +247,30 @@ class avltrav {
 
 public class avltree {
   avlnode root; /* Top of the tree */
-  cmp_f          cmp;    /* Compare two items */
   int         size;   /* Number of items (user-defined) */
 
 
-  public avltree( cmp_f cmp ) {
+  public avltree() {
     size = 0;
   }
 
-  void avlfind(Object data ) {
-    avlnode it = tree.root;
+  int cmp(Object a, Object b) {
+    return 0;
+  }
 
-    while ( it != NULL ) {
-      long cmp =cmp(it.data, data );
+  Object avlfind(Object data ) {
+    avlnode it = root;
+    
+    while ( it != null ) {
+      int cmp =cmp(it.data, data );
       
       if ( cmp == 0 )
 	break;
       
-      it = it.link[cmp < 0];
+      it = it.link[(cmp < 0)?1:0];
     }
     
-    return it == NULL ? NULL : it.data;
+    return it == null ? null : it.data;
   }
 
   boolean avlinsert(Object data ) {
@@ -283,8 +288,8 @@ public class avltree {
       t.link[1] = root;
       
       /* Search down the tree, saving rebalance points */
-      for ( s = p = t.link[1]; ; p=q ) {
-	dir = cmp ( p.data, data ) < 0;
+      for ( s = p = t.link[1]; true ; p=q ) {
+	dir = (cmp ( p.data, data ) < 0)?1:0;
 	q = p.link[dir];
 	
 	if ( q == null )
@@ -302,15 +307,15 @@ public class avltree {
       
       /* Update balance factors */
       for ( p = s; p != q; p = p.link[dir] ) {
-	dir = cmp ( p.data, data ) < 0;
-	p.balance += dir == 0 ? -1 : +1;
+	dir = (cmp ( p.data, data ) < 0)?1:0;
+	p.balance += (dir == 0) ? -1 : +1;
       }
       
       q = s; /* Save rebalance point for parent fix */
       
       /* Rebalance if necessary */
-      if (abs(s.balance)>1) {
-	dir = cmp(s.data,data) < 0;
+      if ((s.balance<0?-s.balance:s.balance)>1) {
+	dir =(cmp(s.data,data) < 0)?1:0;
 	jsw_insert_balance ( s, dir );
       }
       
@@ -318,7 +323,7 @@ public class avltree {
       if ( q == head.link[1] )
 	root = s;
       else
-	t.link[q == t.link[1]] = s;
+	t.link[(q == t.link[1])?1:0] = s;
     }
     
     size++;
@@ -337,7 +342,7 @@ public class avltree {
       it = root;
 
       /* Search down tree and save path */
-      for ( ; ; ) {
+      for ( ; true ; ) {
 	if ( it == null )
 	  return false;
 	else if ( cmp ( it.data, data ) == 0 )
@@ -353,7 +358,7 @@ public class avltree {
       /* Remove the node */
       if ( it.link[0] == null || it.link[1] == null ) {
       /* Which child is not null? */
-	int dir = it.link[0] == null;
+	int dir = (it.link[0] == null)?1:0;
 
 	/* Fix parent */
 	if (top != 0)
@@ -384,7 +389,7 @@ public class avltree {
     }
 
       /* Walk back up the search path */
-      while ( --top >= 0 && !done ) {
+      while ( --top >= 0 && (done==0) ) {
 	/* Update balance factors */
 	up[top].balance += upd[top] != 0 ? -1 : +1;
 	
