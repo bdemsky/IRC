@@ -181,7 +181,6 @@ public class element {
  */
   void calculateCircumCircle() {
     coordinate circumCenterPtr = this.circumCenter;
-
     yada.Assert(numCoordinate == 2 || numCoordinate == 3);
 
     if (numCoordinate == 2) {
@@ -322,11 +321,15 @@ int element_compare (element aElementPtr, element bElementPtr) {
 
   double angleConstraint;
   public element(coordinate[] coordinates, int numCoordinate, double angle) {
+    this.circumCenter=new coordinate();
     this.coordinates=new coordinate[3];
     this.midpoints=new coordinate[3]; /* midpoint of each edge */
     this.radii=new double[3];           /* half of edge length */
-
     this.edges=new edge[3];
+    for (int i = 0; i < 3; i++) {
+      this.midpoints[i] = new coordinate();
+      this.edges[i]=new edge();
+    }
     for (int i = 0; i < numCoordinate; i++) {
       this.coordinates[i] = coordinates[i];
     }

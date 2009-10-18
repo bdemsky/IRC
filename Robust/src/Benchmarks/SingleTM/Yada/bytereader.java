@@ -54,6 +54,18 @@ public class bytereader {
   }
 
   private void getBytes() {
+    boolean searching=true;
+    while(searching) {
+      for(;pos<lastlocation;pos++) {
+	if (buffer[pos]!=' '&&buffer[pos]!='\n'&&buffer[pos]!='\t') {
+	  searching=false;
+	  break;
+	}
+      }
+      if (searching) {
+	readnewdata();
+      }
+    }
     start=pos;
     for(;pos<lastlocation;pos++) {
       if (buffer[pos]==' '||
@@ -71,16 +83,17 @@ public class bytereader {
     }
     readnewdata();
     start=lastlocation-start;
-    for(;true;pos++) {
+    for(;pos<lastlocation;pos++) {
       if (buffer[pos]==' '||
 	  buffer[pos]=='\n') {
+	end=pos+start;
+	start=0;
 	pos++;
 	skipline();
 	return;
       }
       tmp[pos+start]=buffer[pos];
     }
-    end=pos+start;
   }
 
 }

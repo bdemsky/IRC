@@ -227,10 +227,8 @@ boolean TMmesh_removeBoundary(edge boundaryPtr) {
  * =============================================================================
  */
 int mesh_read(String fileNamePrefix) {
-    char inputBuff[]=new char[256];
     int i;
     int numElement = 0;
-
     avltree edgeMapPtr = new avltree(0);
 
     /*
@@ -242,6 +240,7 @@ int mesh_read(String fileNamePrefix) {
     bytereader br=new bytereader(inputFile);
     int numEntry=br.getInt();
     int numDimension=br.getInt();
+    br.jumptonextline();
     yada.Assert(numDimension == 2); /* must be 2-D */
     int numCoordinate = numEntry + 1; /* numbering can start from 1 */
     coordinate coordinates[] = new coordinate[numCoordinate];
@@ -255,6 +254,7 @@ int mesh_read(String fileNamePrefix) {
       id=br.getInt();
       x=br.getDouble();
       y=br.getDouble();
+      br.jumptonextline();
       coordinates[id].x = x;
       coordinates[id].y = y;
     }
@@ -269,9 +269,11 @@ int mesh_read(String fileNamePrefix) {
     br=new bytereader(inputFile);
     numEntry=br.getInt();
     numDimension=br.getInt();
+    br.jumptonextline();
     yada.Assert(numEntry == 0); /* .node file used for vertices */
     yada.Assert(numDimension == 2); /* must be edge */
     numEntry=br.getInt();
+    br.jumptonextline();
     for (i = 0; i < numEntry; i++) {
       int id;
       int a;
@@ -280,6 +282,7 @@ int mesh_read(String fileNamePrefix) {
       id=br.getInt();
       a=br.getInt();
       b=br.getInt();
+      br.jumptonextline();
       yada.Assert(a >= 0 && a < numCoordinate);
       yada.Assert(b >= 0 && b < numCoordinate);
       insertCoordinates[0] = coordinates[a];
@@ -298,6 +301,7 @@ int mesh_read(String fileNamePrefix) {
     br=new bytereader(inputFile);
     numEntry=br.getInt();
     numDimension=br.getInt();
+    br.jumptonextline();
     yada.Assert(numDimension == 3); /* must be triangle */
     for (i = 0; i < numEntry; i++) {
       int id;
@@ -309,6 +313,7 @@ int mesh_read(String fileNamePrefix) {
       a=br.getInt();
       b=br.getInt();
       c=br.getInt();
+      br.jumptonextline();
       yada.Assert(a >= 0 && a < numCoordinate);
       yada.Assert(b >= 0 && b < numCoordinate);
       yada.Assert(c >= 0 && c < numCoordinate);

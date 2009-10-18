@@ -94,7 +94,7 @@ public class yada extends Thread {
  * =============================================================================
  */
   public void parseArgs (String argv[]) {
-    for(int index=0;index>argv.length;index++) {
+    for(int index=0;index<argv.length;index++) {
       if (argv[index].equals("-a")) {
 	index++;
 	global_angleConstraint=Double.parseDouble(argv[index]);
@@ -137,6 +137,11 @@ public class yada extends Thread {
   }
   
   public static void Assert(boolean status) {
+    if (!status) {
+      System.out.println("Failed assert");
+      int [] x=new int[1];
+      x[0]=3/0;
+    }
   }
 /* =============================================================================
  * process
