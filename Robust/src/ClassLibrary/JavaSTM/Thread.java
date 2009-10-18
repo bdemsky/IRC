@@ -5,6 +5,9 @@ public class Thread {
     nativeCreate();
   }
 
+  public static native void abort() {
+  }
+
   private static void staticStart(Thread t) {
     t.run();
   }
