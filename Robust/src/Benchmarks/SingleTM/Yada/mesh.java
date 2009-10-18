@@ -160,14 +160,16 @@ public void TMmesh_remove(element elementPtr) {
   /*
    * Remove from neighbors
    */
-  list_iter_t it;
+  
   List_t neighborListPtr = elementPtr.element_getNeighborListPtr();
-  TMLIST_ITER_RESET(it, neighborListPtr);
-  while (TMLIST_ITER_HASNEXT(it, neighborListPtr)) {
-      element neighborPtr = (element)TMLIST_ITER_NEXT(it, neighborListPtr);
-      List_t neighborNeighborListPtr = neighborPtr.element_getNeighborListPtr();
-      boolean status = neighborNeighborListPtr.remove(elementPtr);
-      yada.Assert(status);
+  List_Node it=neighborListPtr.head;
+
+  while (it.nextPtr!=null) {
+    it=it.nextPtr;
+    element neighborPtr = (element)it.dataPtr;
+    List_t neighborNeighborListPtr = neighborPtr.element_getNeighborListPtr();
+    boolean status = neighborNeighborListPtr.remove(elementPtr);
+    yada.Assert(status);
   }
 
   elementPtr.element_isGarbage(true);
@@ -349,7 +351,7 @@ int mesh_read(String fileNamePrefix) {
  * =============================================================================
  */
 element mesh_getBad() {
-  return (element)queue_pop(initBadQueuePtr);
+  return (element)initBadQueuePtr.queue_pop();
 }
 
 
@@ -358,7 +360,7 @@ element mesh_getBad() {
  * =============================================================================
  */
 void mesh_shuffleBad (Random randomPtr) {
-  queue_shuffle(initBadQueuePtr, randomPtr);
+  initBadQueuePtr.queue_shuffle(randomPtr);
 }
 
 
@@ -382,7 +384,6 @@ boolean mesh_check(int expectedNumElement) {
     yada.Assert(rootElementPtr!=null);
     searchQueuePtr.queue_push(rootElementPtr);
     while (!searchQueuePtr.queue_isEmpty()) {
-        list_iter_t it;
         List_t neighborListPtr;
 
         element currentElementPtr = (element)queue_pop(searchQueuePtr);
@@ -396,19 +397,20 @@ boolean mesh_check(int expectedNumElement) {
         }
         neighborListPtr = currentElementPtr.element_getNeighborListPtr();
 
-        list_iter_reset(it, neighborListPtr);
-        while (list_iter_hasNext(it, neighborListPtr)) {
-            element neighborElementPtr =
-                (element)list_iter_next(it, neighborListPtr);
-            /*
-             * Continue breadth-first search
-             */
-            if (!visitedMapPtr.contains(neighborElementPtr)) {
-                boolean isSuccess = searchQueuePtr.queue_push(neighborElementPtr);
-                yada.Assert(isSuccess);
-            }
+        List_Node it=neighborListPtr.head;
+        while (it.nextPtr!=null) {
+	  it=it.nextPtr;
+	  element neighborElementPtr =
+	    (element)it.dataPtr;
+	  /*
+	   * Continue breadth-first search
+	   */
+	  if (!visitedMapPtr.contains(neighborElementPtr)) {
+	    boolean isSuccess = searchQueuePtr.queue_push(neighborElementPtr);
+	    yada.Assert(isSuccess);
+	  }
         } /* for each neighbor */
-
+	
         numElement++;
 
     } /* breadth-first search */

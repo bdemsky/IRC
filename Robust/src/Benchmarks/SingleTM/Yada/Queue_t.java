@@ -69,6 +69,9 @@ public class Queue_t {
     this.capacity = capacity;
   }
 
+
+
+
   /* =============================================================================
    * queue_isEmpty
    * =============================================================================
@@ -98,6 +101,27 @@ public class Queue_t {
    * TMqueue_isEmpty
    * =============================================================================
    */
+
+
+  public void queue_shuffle(Random randomPtr) {
+    int numElement;
+    if (pop < push) {
+      numElement = push - (pop + 1);
+    } else {
+      numElement = capacity - (pop - push + 1);
+    }
+    
+    int base = pop + 1;
+    for (int i = 0; i < numElement; i++) {
+      int r1 = (int) randomPtr.random_generate() % numElement;
+      int r2 = (int) randomPtr.random_generate() % numElement;
+      int i1 = (base + r1) % capacity;
+      int i2 = (base + r2) % capacity;
+      Object tmp = elements[i1];
+      elements[i1] = elements[i2];
+      elements[i2] = tmp;
+    }
+  }
 
 
 

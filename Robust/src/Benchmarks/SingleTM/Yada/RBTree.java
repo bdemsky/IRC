@@ -580,7 +580,7 @@ public class RBTree {
  * =============================================================================
  * bool_t rbtree_delete (rbtree_t* r, void* key);
  */
-  public boolean deleteNode(Object key)  {
+  public boolean deleteObjNode(Object key)  {
         Node node = null;
         node = lookup(key);
 

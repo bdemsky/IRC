@@ -308,8 +308,8 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * =============================================================================
  */
   int element_mapCompare(Object aPtr, Object bPtr) {
-    element aElementPtr = (element)(aPtr.firstPtr);
-    element bElementPtr = (element)(bPtr.firstPtr);
+    element aElementPtr = (element)(((edge)aPtr).firstPtr);
+    element bElementPtr = (element)(((edge)bPtr).firstPtr);
     
     return element_compare(aElementPtr, bElementPtr);
   }

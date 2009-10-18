@@ -57,6 +57,7 @@ public class yada {
   heap  global_workHeapPtr;
   int global_totalNumAdded;
   int global_numProcess;
+  global global;
 
   public yada() {
     global_inputPrefix     = "";
@@ -64,6 +65,13 @@ public class yada {
     global_angleConstraint = 20.0;
     global_totalNumAdded = 0;
     global_numProcess    = 0;
+  }
+
+  public yada(mesh meshptr, heap heapptr, double angle, global g) {
+    global_meshPtr=meshptr;
+    global_workHeapPtr=heapptr;
+    global_angleConstraint=angle;
+    global=g;
   }
 
 
@@ -129,15 +137,12 @@ public class yada {
   }
   
   public static void Assert(boolean status) {
-    
   }
 /* =============================================================================
  * process
  * =============================================================================
  */
   public static void process() {
-    TM_THREAD_ENTER();
-
     heap workHeapPtr = global_workHeapPtr;
     mesh meshPtr = global_meshPtr;
     int totalNumAdded = 0;
@@ -184,14 +189,17 @@ public class yada {
     }
 
     atomic {
-      global_totalNumAdded=global_totalNumAdded + totalNumAdded;
-      global_numProcess=global_numProcess + numProcess;
+      global.global_totalNumAdded=global.global_totalNumAdded + totalNumAdded;
+      global.global_numProcess=global.global_numProcess + numProcess;
     }
+  }
 
-    TM_THREAD_EXIT();
-}
-
-
+  public void run() {
+    Barrier.enterBarrier();
+    process()
+    Barrier.enterBarrier();
+  }
+  
 /* =============================================================================
  * main
  * =============================================================================
@@ -201,16 +209,23 @@ public class yada {
      * Initialization
      */
     yada y=new yada();
+    global g=new global();
+    y.global=g;
     y.parseArgs(argv);
-    thread_startup(global_numThread);
+    Barrier.setBarrier(y.global_numThread);
     y.global_meshPtr = new mesh();
-    System.out.println("Angle constraint = "+ global_angleConstraint);
+    System.out.println("Angle constraint = "+ y.global_angleConstraint);
     System.out.println("Reading input... ");
-    int initNumElement = global_meshPtr.mesh_read(global_inputPrefix);
+    int initNumElement = y.global_meshPtr.mesh_read(global_inputPrefix);
     System.out.println("done.");
     y.global_workHeapPtr = new heap(1);
 
-    int initNumBadElement = global_workHeapPtr.initializeWork(global_meshPtr);
+    for(int i=1;i<global_numThread;i++) {
+      yada ychild=new yada(y.global_meshPtr, y.global_angleConstraint, y.global_angleConstraint, g);
+      ychild.start();
+    }
+
+    int initNumBadElement = y.global_workHeapPtr.initializeWork(y.global_meshPtr);
 
     System.out.println("Initial number of mesh elements = "+ initNumElement);
     System.out.println("Initial number of bad elements  = "+ initNumBadElement);
@@ -221,17 +236,15 @@ public class yada {
      */
 
     long start=System.currentTimeMillis();
-
-    thread_start(process, null);
-
+    y.run();
     long stop=System.currentTimeMillis();
 
     System.out.println(" done.");
     System.out.println("Elapsed time                    = "+(stop-start));
 
-    int finalNumElement = initNumElement + global_totalNumAdded;
+    int finalNumElement = initNumElement + y.global.global_totalNumAdded;
     System.out.println("Final mesh size                 = "+ finalNumElement);
-    System.out.println("Number of elements processed    = "+ global_numProcess);
+    System.out.println("Number of elements processed    = "+ y.global.global_numProcess);
   }
 }
 

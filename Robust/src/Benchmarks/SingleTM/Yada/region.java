@@ -110,10 +110,9 @@ public class region {
     Vector_t badVectorPtr = regionPtr.badVectorPtr; /* private */
     List_t beforeListPtr = regionPtr.beforeListPtr; /* private */
     List_t borderListPtr = regionPtr.borderListPtr; /* private */
-    list_iter_t it;
     int numDelta = 0;
     
-    yada.Assert(edgeMapPtr);
+    yada.Assert(edgeMapPtr!=null);
     
     coordinate centerCoordinate = elementPtr.element_getNewPoint();
     
@@ -121,9 +120,11 @@ public class region {
      * Remove the old triangles
      */
     
-    list_iter_reset(it, beforeListPtr);
-    while (list_iter_hasNext(it, beforeListPtr)) {
-      element beforeElementPtr = (element)list_iter_next(it, beforeListPtr);
+    List_Node it=beforeListPtr.head;
+
+    while (it.nextPtr!=null) {
+      it=it.nextPtr;
+      element beforeElementPtr = (element)it.nodePtr;
       meshPtr.TMmesh_remove(beforeElementPtr);
     }
     
@@ -164,10 +165,10 @@ public class region {
      * point and the two points from the border segment.
      */
 
-    list_iter_reset(it, borderListPtr);
-    while (list_iter_hasNext(it, borderListPtr)) {
+    it=borderListPtr.head;
+    while (it.nextPtr!=null) {
       coordinate coordinates[]=new coordinates[3];
-      edge borderEdgePtr = (edge)list_iter_next(it, borderListPtr);
+      edge borderEdgePtr = (edge)it.dataPtr;
       yada.Assert(borderEdgePtr);
       coordinates[0] = centerCoordinate;
       coordinates[1] = (coordinate)(borderEdgePtr.firstPtr);
@@ -217,10 +218,10 @@ public class region {
       beforeListPtr.insert(currentElementPtr); /* no duplicates */
       List_t neighborListPtr = currentElementPtr.element_getNeighborListPtr();
       
-      list_iter_t it;
-      TMLIST_ITER_RESET(it, neighborListPtr);
-      while (TMLIST_ITER_HASNEXT(it, neighborListPtr)) {
-	element neighborElementPtr = (element)TMLIST_ITER_NEXT(it, neighborListPtr);
+      List_Node it=neighborListPtr.head;
+      while (it.nextPtr!=null) {
+	it=it.nextPtr;
+	element neighborElementPtr = (element)it.dataPtr;
 	neighborElementPtr.element_isGarbage(); /* so we can detect conflicts */
 	if (!beforeListPtr.find(neighborElementPtr)) {
 	  if (neighborElementPtr.element_isInCircumCircle(centerCoordinatePtr)) {
@@ -275,10 +276,9 @@ public class region {
       
       if (encroachElementPtr!=null) {
 	encroachElementPtr.element_setIsReferenced(true);
-	numDelta += TMregion_refine(regionPtr,
-				    encroachElementPtr,
+	numDelta += TMregion_refine(encroachElementPtr,
 				    meshPtr);
-	if (elementPtr.elementisGarbage()) {
+	if (elementPtr.element_isGarbage()) {
 	  break;
 	}
       } else {

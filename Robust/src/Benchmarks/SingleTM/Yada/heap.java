@@ -93,8 +93,8 @@ public class heap {
  * siftUp
  * =============================================================================
  */
-  public void siftUp(long startIndex) {
-    long index = startIndex;
+  public void siftUp(int startIndex) {
+    int index = startIndex;
     while ((index > 1)) {
       long parentIndex = PARENT(index);
       Object parentPtr = elements[parentIndex];

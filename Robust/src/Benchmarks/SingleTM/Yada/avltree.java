@@ -266,7 +266,7 @@ public class avltree {
     boolean success = false;
     edge searchPair=new edge();
     searchPair.firstPtr = key;
-    if (map.avlfind(map, searchPair) != null) {
+    if (avlfind(searchPair) != null) {
       success = true;
     }
     return success;
@@ -276,7 +276,7 @@ public class avltree {
     Object dataPtr = null;
     edge searchPair=new edge();
     searchPair.firstPtr = key;
-    edge pairPtr = (edge)map.avlfind(searchPair);
+    edge pairPtr = (edge)avlfind(searchPair);
     if (pairPtr != null) {
       dataPtr = pairPtr.secondPtr;
     }
@@ -286,10 +286,8 @@ public class avltree {
   boolean insert(Object key, Object data) {
     boolean success = false;
     edge insertPtr = new edge(key, data);
-    if (insertPtr != null) {
-      if (map.insert(insertPtr)) {
-	success = true;
-      }
+    if (avlinsert(insertPtr)) {
+      success = true;
     }
     return success;
   }
@@ -298,8 +296,8 @@ public class avltree {
     boolean success = false;
     edge searchPair=new edge();
     searchPair.firstPtr = key;
-    edge pairPtr = (edge) map.avlfind(searchPair);
-    if (map.avlerase(searchPair)) {
+    edge pairPtr = (edge) avlfind(searchPair);
+    if (avlerase(searchPair)) {
       success=true;
     }
     return success;
