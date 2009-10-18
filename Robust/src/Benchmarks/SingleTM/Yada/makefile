@@ -1,9 +1,11 @@
 MAINCLASS=yada
 SRC=${MAINCLASS}.java \
 	tmpheap.java \
+	bytereader.java \
 	List_t.java \
 	tmpRBTree.java \
 	Random.java  \
+	global_arg.java  \
 	tmpQueue_t.java  \
 	coordinate.java  \
 	edge.java	\

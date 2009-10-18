@@ -241,7 +241,7 @@ public class Queue_t {
    * queue_pop
    * =============================================================================
    */
-  public Object queue_pop () {
+  public Object queue_pop() {
     int newPop = (pop + 1) % capacity;
     if (newPop == push) {
       return null;

@@ -96,7 +96,7 @@ public class heap {
   public void siftUp(int startIndex) {
     int index = startIndex;
     while ((index > 1)) {
-      long parentIndex = PARENT(index);
+      int parentIndex = PARENT(index);
       Object parentPtr = elements[parentIndex];
       Object thisPtr   = elements[index];
       if (compare(parentPtr, thisPtr) >= 0) {
@@ -116,7 +116,7 @@ public class heap {
  */
   public boolean heap_insert(Object dataPtr) {
     if ((size + 1) >= capacity) {
-      long newCapacity = capacity * 2;
+      int newCapacity = capacity * 2;
       Object newElements[] = new Object[newCapacity];
       this.capacity = newCapacity;
       for (int i = 0; i <= size; i++) {
@@ -127,7 +127,7 @@ public class heap {
 
     size++;
     elements[size] = dataPtr;
-    siftUp(heapPtr, size);
+    siftUp(size);
     
     return true;
   }
@@ -205,15 +205,15 @@ public class heap {
     element aElementPtr = (element)aPtr;
     element bElementPtr = (element)bPtr;
     
-    if (aElementPtr.encroachedEdgePtr) {
-      if (bElementPtr.encroachedEdgePtr) {
+    if (aElementPtr.encroachedEdgePtr!=null) {
+      if (bElementPtr.encroachedEdgePtr!=null) {
         return 0; /* do not care */
       } else {
         return 1;
       }
     }
     
-    if (bElementPtr.encroachedEdgePtr) {
+    if (bElementPtr.encroachedEdgePtr!=null) {
       return -1;
     }
   }

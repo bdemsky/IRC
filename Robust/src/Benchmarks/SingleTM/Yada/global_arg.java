@@ -1,5 +1,5 @@
-public global {
-  public global() {
+public class global_arg {
+  public global_arg() {
   }
 
   int global_totalNumAdded;

@@ -477,10 +477,9 @@ public class RBTree {
 
     private int compare(Object a,Object b)
     {
+      //0 element_listCompareEdge
         if(compID == 0)
-            return compareKeysDefault(a,b);
-        else
-            return compareKeysDefault(a,b);
+	  return element.compareEdge((edge)a,(edge)b);
     }
 
 
@@ -554,6 +553,9 @@ public class RBTree {
  * =============================================================================
  * rbtree_t* rbtree_alloc (long (*compare)(const void*, const void*));
  */
+
+  //0 element_listCompareEdge
+  
   public RBTree(int compID) {
     this.compID = compID;
     this.root = null;

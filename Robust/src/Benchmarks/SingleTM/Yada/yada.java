@@ -49,7 +49,7 @@
  * =============================================================================
  */
 
-public class yada {
+public class yada extends Thread {
   String global_inputPrefix;
   int global_numThread;
   double global_angleConstraint;
@@ -57,7 +57,7 @@ public class yada {
   heap  global_workHeapPtr;
   int global_totalNumAdded;
   int global_numProcess;
-  global global;
+  global_arg globalvar;
 
   public yada() {
     global_inputPrefix     = "";
@@ -67,11 +67,11 @@ public class yada {
     global_numProcess    = 0;
   }
 
-  public yada(mesh meshptr, heap heapptr, double angle, global g) {
+  public yada(mesh meshptr, heap heapptr, double angle, global_arg g) {
     global_meshPtr=meshptr;
     global_workHeapPtr=heapptr;
     global_angleConstraint=angle;
-    global=g;
+    globalvar=g;
   }
 
 
@@ -100,13 +100,13 @@ public class yada {
 	global_angleConstraint=Double.parseDouble(argv[index]);
       } else if (argv[index].equals("-i")) {
 	index++;
-	global_inputprefix=argv[index];
+	global_inputPrefix=argv[index];
       } else if (argv[index].equals("-t")) {
 	index++;
 	global_numThread=Integer.parseInt(argv[index]);
       } else {
 	displayUsage();
-	System.exit();
+	System.exit(-1);
       }
     }
 }
@@ -118,19 +118,19 @@ public class yada {
  */
   public static int initializeWork (heap workHeapPtr, mesh meshPtr) {
     Random randomPtr = new Random();
-    randomPtr.seed(0);
+    randomPtr.random_seed(0);
     meshPtr.mesh_shuffleBad(randomPtr);
 
     int numBad = 0;
-    while (1) {
-        element elementPtr = mesh_getBad(meshPtr);
-        if (elementPtr==null) {
-	  break;
-        }
-        numBad++;
-        boolean status = workHeapPtr.heap_insert(elementPtr);
-        yada.Assert(status);
-        elementPtr.element_setIsReferenced(true);
+    while (true) {
+      element elementPtr = meshPtr.mesh_getBad();
+      if (elementPtr==null) {
+	break;
+      }
+      numBad++;
+      boolean status = workHeapPtr.heap_insert(elementPtr);
+      yada.Assert(status);
+      elementPtr.element_setIsReferenced(true);
     }
     
     return numBad;
@@ -142,13 +142,12 @@ public class yada {
  * process
  * =============================================================================
  */
-  public static void process() {
+  public void process() {
     heap workHeapPtr = global_workHeapPtr;
     mesh meshPtr = global_meshPtr;
     int totalNumAdded = 0;
     int numProcess = 0;
     region regionPtr = new region();
-    yada.Assert(regionPtr);
 
     while (true) {
         element elementPtr;
@@ -173,7 +172,7 @@ public class yada {
         int numAdded;
         atomic {
 	  regionPtr.region_clearBad();
-	  numAdded = regionPtr.TMregion_refine(elementPtr, meshPtr);
+	  numAdded = regionPtr.TMregion_refine(elementPtr, meshPtr, global_angleConstraint);
         }
         atomic {
 	  elementPtr.element_setIsReferenced(false);
@@ -189,14 +188,14 @@ public class yada {
     }
 
     atomic {
-      global.global_totalNumAdded=global.global_totalNumAdded + totalNumAdded;
-      global.global_numProcess=global.global_numProcess + numProcess;
+      globalvar.global_totalNumAdded=globalvar.global_totalNumAdded + totalNumAdded;
+      globalvar.global_numProcess=globalvar.global_numProcess + numProcess;
     }
   }
 
   public void run() {
     Barrier.enterBarrier();
-    process()
+    process();
     Barrier.enterBarrier();
   }
   
@@ -209,23 +208,23 @@ public class yada {
      * Initialization
      */
     yada y=new yada();
-    global g=new global();
-    y.global=g;
+    global_arg g=new global_arg();
+    y.globalvar=g;
     y.parseArgs(argv);
     Barrier.setBarrier(y.global_numThread);
-    y.global_meshPtr = new mesh();
+    y.global_meshPtr = new mesh(y.global_angleConstraint);
     System.out.println("Angle constraint = "+ y.global_angleConstraint);
     System.out.println("Reading input... ");
-    int initNumElement = y.global_meshPtr.mesh_read(global_inputPrefix);
+    int initNumElement = y.global_meshPtr.mesh_read(y.global_inputPrefix);
     System.out.println("done.");
     y.global_workHeapPtr = new heap(1);
 
-    for(int i=1;i<global_numThread;i++) {
-      yada ychild=new yada(y.global_meshPtr, y.global_angleConstraint, y.global_angleConstraint, g);
+    for(int i=1;i<y.global_numThread;i++) {
+      yada ychild=new yada(y.global_meshPtr, y.global_workHeapPtr, y.global_angleConstraint, g);
       ychild.start();
     }
 
-    int initNumBadElement = y.global_workHeapPtr.initializeWork(y.global_meshPtr);
+    int initNumBadElement = initializeWork(y.global_workHeapPtr,y.global_meshPtr);
 
     System.out.println("Initial number of mesh elements = "+ initNumElement);
     System.out.println("Initial number of bad elements  = "+ initNumBadElement);
@@ -242,9 +241,9 @@ public class yada {
     System.out.println(" done.");
     System.out.println("Elapsed time                    = "+(stop-start));
 
-    int finalNumElement = initNumElement + y.global.global_totalNumAdded;
+    int finalNumElement = initNumElement + y.globalvar.global_totalNumAdded;
     System.out.println("Final mesh size                 = "+ finalNumElement);
-    System.out.println("Number of elements processed    = "+ y.global.global_numProcess);
+    System.out.println("Number of elements processed    = "+ y.globalvar.global_numProcess);
   }
 }
 

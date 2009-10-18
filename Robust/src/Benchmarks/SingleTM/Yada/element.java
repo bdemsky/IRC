@@ -91,9 +91,7 @@ public class element {
  * -- put smallest coordinate in position 0
  * =============================================================================
  */
-  static void minimizeCoordinates (element elementPtr) {
-    coordinate[] coordinates = elementPtr.coordinates;
-    int numCoordinate = elementPtr.numCoordinate;
+  void minimizeCoordinates() {
     int minPosition = 0;
 
     for (int i = 1; i < numCoordinate; i++) {
@@ -207,12 +205,12 @@ public class element {
       double denominator = 2 * ((bxDelta * cyDelta) - (cxDelta * byDelta));
       double rx = ax - (xNumerator / denominator);
       double ry = ay + (yNumerator / denominator);
-      yada.Assert(fabs(denominator) > DBL_MIN); /* make sure not colinear */
+      yada.Assert(Math.fabs(denominator) > 2.2250738585072014e-308); /* make sure not colinear */
       circumCenterPtr.x = rx;
       circumCenterPtr.y = ry;
     }
 
-    elementPtr.circumRadius = coordinate.coordinate_distance(circumCenterPtr,
+    circumRadius = coordinate.coordinate_distance(circumCenterPtr,
 						  coordinates[0]);
   }
 
@@ -238,11 +236,11 @@ public class element {
       edgePtr.secondPtr = firstPtr;
     }
 
-    coordinate midpointPtr = elementPtr.midpoints[i];
+    coordinate midpointPtr = midpoints[i];
     midpointPtr.x = (firstPtr.x + secondPtr.x) / 2.0;
     midpointPtr.y = (firstPtr.y + secondPtr.y) / 2.0;
 
-    elementPtr.radii[i] = coordinate.coordinate_distance(firstPtr, midpointPtr);
+    radii[i] = coordinate.coordinate_distance(firstPtr, midpointPtr);
   }
 
 
@@ -250,7 +248,7 @@ public class element {
  * initEdges
  * =============================================================================
  */
-  void initEdges(coordinate coordinates, int numCoordinate) {
+  void initEdges(coordinate[] coordinates, int numCoordinate) {
     numEdge = ((numCoordinate * (numCoordinate - 1)) / 2);
     
     for (int e = 0; e < numEdge; e++) {
@@ -321,7 +319,9 @@ int element_compare (element aElementPtr, element bElementPtr) {
    * Contains a copy of input arg 'coordinates'
    * =============================================================================
    */
-  public element(coordinate[] coordinates, int numCoordinate) {
+
+  double angleConstraint;
+  public element(coordinate[] coordinates, int numCoordinate, double angle) {
     this.coordinates=new coordinate[3];
     this.midpoints=new coordinate[3]; /* midpoint of each edge */
     this.radii=new double[3];           /* half of edge length */
@@ -332,6 +332,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
     }
     this.numCoordinate = numCoordinate;
     minimizeCoordinates();
+    this.angleConstraint=angle;
     checkAngles();
     calculateCircumCircle();
     initEdges(coordinates, numCoordinate);
@@ -398,7 +399,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
   * For use in MAP_T
  * =============================================================================
  */
-  int element_mapCompareEdge (Object aPtr, Object bPtr) {
+  int element_mapCompareEdge (edge aPtr, edge bPtr) {
     edge aEdgePtr = (edge)(aPtr.firstPtr);
     edge bEdgePtr = (edge)(bPtr.firstPtr);
     
@@ -518,7 +519,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * -- Can we deallocate?
  * =============================================================================
  */
-  boolean element_isGarbage() {
+  public boolean element_isGarbage() {
     return isGarbage;
   }
 
@@ -557,7 +558,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * Returns pointer to aElementPtr's shared edge
  * =============================================================================
  */
-  edge element_getCommonEdge (element aElementPtr, element bElementPtr) {
+  static edge element_getCommonEdge (element aElementPtr, element bElementPtr) {
     edge aEdges[] = aElementPtr.edges;
     edge bEdges[] = bElementPtr.edges;
     int aNumEdge = aElementPtr.numEdge;
@@ -589,7 +590,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
 	  return midpoints[e];
 	}
       }
-      yada.Assert(0);
+      yada.Assert(false);
     }
     return circumCenter;
   }
@@ -601,7 +602,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * Return FALSE if minimum angle constraint not met
  * =============================================================================
  */
-  boolean element_checkAngles(double angleConstraint) {
+  boolean checkAngles() {
     //    double angleConstraint = global_angleConstraint;
     if (numCoordinate == 3) {
       for (int i = 0; i < 3; i++) {

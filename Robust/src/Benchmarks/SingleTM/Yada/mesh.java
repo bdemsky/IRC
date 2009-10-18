@@ -69,20 +69,21 @@
  */
 
 public class mesh {
-    element rootElementPtr;
-    Queue_t initBadQueuePtr;
-    int size;
-    RBTree boundarySetPtr;
-
+  element rootElementPtr;
+  Queue_t initBadQueuePtr;
+  int size;
+  RBTree boundarySetPtr;
+  double angle;
 /* =============================================================================
  * mesh_alloc
  * =============================================================================
  */
-  public mesh() {
+  public mesh(double angle) {
+    this.angle=angle;
     rootElementPtr = null;
     initBadQueuePtr = new Queue_t(-1);
     size = 0;
-    boundarySetPtr = new RBTree(null, element_listCompareEdge);
+    boundarySetPtr = new RBTree(0);
   }
 
 
@@ -106,24 +107,23 @@ public class mesh {
   int numEdge = elementPtr.element_getNumEdge();
   for (int i = 0; i < numEdge; i++) {
     edge edgePtr = elementPtr.element_getEdge(i);
-    if (!MAP_CONTAINS(edgeMapPtr, edgePtr)) {
+    if (!edgeMapPtr.contains(edgePtr)) {
       /* Record existance of this edge */
       boolean isSuccess =
-	PMAP_INSERT(edgeMapPtr, edgePtr, elementPtr);
+	edgeMapPtr.insert(edgePtr, elementPtr);
       yada.Assert(isSuccess);
     } else {
       /*
        * Shared edge; update each element's neighborList
        */
       boolean isSuccess;
-      element sharerPtr = (element)MAP_FIND(edgeMapPtr, edgePtr);
+      element sharerPtr = (element)edgeMapPtr.find(edgePtr);
       yada.Assert(sharerPtr!=null); /* cannot be shared by >2 elements */
       elementPtr.element_addNeighbor(sharerPtr);
       sharerPtr.element_addNeighbor(elementPtr);
-      isSuccess = PMAP_REMOVE(edgeMapPtr, edgePtr);
+      isSuccess = edgeMapPtr.remove(edgePtr);
       yada.Assert(isSuccess);
-      isSuccess = PMAP_INSERT(edgeMapPtr,
-			      edgePtr,
+      isSuccess = edgeMapPtr.insert(edgePtr,
 			      null); /* marker to check >2 sharers */
       yada.Assert(isSuccess);
     }
@@ -136,7 +136,7 @@ public class mesh {
   edge encroachedPtr = elementPtr.element_getEncroachedPtr();
   if (encroachedPtr!=null) {
     if (!boundarySetPtr.contains(encroachedPtr)) {
-      element_clearEncroached(elementPtr);
+      elementPtr.element_clearEncroached();
     }
   }
 }
@@ -172,7 +172,7 @@ public void TMmesh_remove(element elementPtr) {
     yada.Assert(status);
   }
 
-  elementPtr.element_isGarbage(true);
+  elementPtr.element_setIsGarbage(true);
 }
 
 
@@ -190,7 +190,7 @@ boolean TMmesh_insertBoundary(edge boundaryPtr) {
  * =============================================================================
  */
 boolean TMmesh_removeBoundary(edge boundaryPtr) {
-  return boundarySetPtr.remove(boundaryPtr);
+  return boundarySetPtr.deleteObjNode(boundaryPtr);
 }
 
 
@@ -198,24 +198,23 @@ boolean TMmesh_removeBoundary(edge boundaryPtr) {
  * createElement
  * =============================================================================
  */
-static void createElement (coordinate coordinates,
-               int numCoordinate,
+  void createElement(coordinate[] coordinates, int numCoordinate,
 			   avltree edgeMapPtr) {
-    element elementPtr = new element(coordinates, numCoordinate);
-    yada.Assert(elementPtr!=null);
-
-    if (numCoordinate == 2) {
-        edge boundaryPtr = elementPtr.element_getEdge(0);
-        boolean status = boundarySetPtr.insert(boundaryPtr, null);
-        yada.Assert(status);
-    }
-
-    mesh_insert(elementPtr, edgeMapPtr);
-
-    if (elementPtr.element_isBad()) {
-        boolean status = initBadQueuePtr.queue_push(elementPtr);
-        yada.Assert(status);
-    }
+  element elementPtr = new element(coordinates, numCoordinate, angle);
+  yada.Assert(elementPtr!=null);
+  
+  if (numCoordinate == 2) {
+    edge boundaryPtr = elementPtr.element_getEdge(0);
+    boolean status = boundarySetPtr.insert(boundaryPtr, null);
+    yada.Assert(status);
+  }
+  
+  TMmesh_insert(elementPtr, edgeMapPtr);
+  
+  if (elementPtr.element_isBad()) {
+    boolean status = initBadQueuePtr.queue_push(elementPtr);
+    yada.Assert(status);
+  }
 }
 
 
@@ -228,15 +227,7 @@ static void createElement (coordinate coordinates,
  * =============================================================================
  */
 int mesh_read(String fileNamePrefix) {
-    FILE inputFile;
-    coordinate coordinates;
-    char fileName[]=new char[256];
-    int fileNameSize = sizeof(fileName) / sizeof(fileName[0]);
     char inputBuff[]=new char[256];
-    int inputBuffSize = sizeof(inputBuff) / sizeof(inputBuff[0]);
-    int numEntry;
-    int numDimension;
-    int numCoordinate;
     int i;
     int numElement = 0;
 
@@ -245,102 +236,90 @@ int mesh_read(String fileNamePrefix) {
     /*
      * Read .node file
      */
-    snprintf(fileName, fileNameSize, "%s.node", fileNamePrefix);
-    inputFile = fopen(fileName, "r");
-    yada.Assert(inputFile);
-    fgets(inputBuff, inputBuffSize, inputFile);
-    sscanf(inputBuff, "%li %li", numEntry, numDimension);
+    
+    String fileName=fileNamePrefix+".node";
+    FileInputStream inputFile = new FileInputStream(fileName);
+    bytereader br=new bytereader(inputFile);
+    int numEntry=br.getInt();
+    int numDimension=br.getInt();
     yada.Assert(numDimension == 2); /* must be 2-D */
-    numCoordinate = numEntry + 1; /* numbering can start from 1 */
-    coordinates = new coordinate[numCoordinate];
+    int numCoordinate = numEntry + 1; /* numbering can start from 1 */
+    coordinate coordinates[] = new coordinate[numCoordinate];
+    for(i=0;i<numCoordinate;i++)
+      coordinates[i]=new coordinate();
+    
     for (i = 0; i < numEntry; i++) {
-        int id;
-        double x;
-        double y;
-        if (!fgets(inputBuff, inputBuffSize, inputFile)) {
-            break;
-        }
-        if (inputBuff[0] == '#') {
-            continue; /* TODO: handle comments correctly */
-        }
-        sscanf(inputBuff, "%li %lf %lf", id, x, y);
-        coordinates[id].x = x;
-        coordinates[id].y = y;
+      int id;
+      double x;
+      double y;
+      id=br.getInt();
+      x=br.getDouble();
+      y=br.getDouble();
+      coordinates[id].x = x;
+      coordinates[id].y = y;
     }
     yada.Assert(i == numEntry);
-    fclose(inputFile);
-
+    inputFile.close();
+    
     /*
      * Read .poly file, which contains boundary segments
      */
-    snprintf(fileName, fileNameSize, "%s.poly", fileNamePrefix);
-    inputFile = fopen(fileName, "r");
-    yada.Assert(inputFile);
-    fgets(inputBuff, inputBuffSize, inputFile);
-    sscanf(inputBuff, "%li %li", numEntry, numDimension);
+    fileName=fileNamePrefix+".poly";
+    inputFile = new FileInputStream(fileName);
+    br=new bytereader(inputFile);
+    numEntry=br.getInt();
+    numDimension=br.getInt();
     yada.Assert(numEntry == 0); /* .node file used for vertices */
     yada.Assert(numDimension == 2); /* must be edge */
-    fgets(inputBuff, inputBuffSize, inputFile);
-    sscanf(inputBuff, "%li", numEntry);
+    numEntry=br.getInt();
     for (i = 0; i < numEntry; i++) {
-        int id;
-        int a;
-        int b;
-        coordinate insertCoordinates=new coordinate[2];
-        if (!fgets(inputBuff, inputBuffSize, inputFile)) {
-            break;
-        }
-        if (inputBuff[0] == '#') {
-            continue; /* TODO: handle comments correctly */
-        }
-        sscanf(inputBuff, "%li %li %li", id, a, b);
-        yada.Assert(a >= 0 && a < numCoordinate);
-        yada.Assert(b >= 0 && b < numCoordinate);
-        insertCoordinates[0] = coordinates[a];
-        insertCoordinates[1] = coordinates[b];
-        createElement(meshPtr, insertCoordinates, 2, edgeMapPtr);
+      int id;
+      int a;
+      int b;
+      coordinate insertCoordinates[]=new coordinate[2];
+      id=br.getInt();
+      a=br.getInt();
+      b=br.getInt();
+      yada.Assert(a >= 0 && a < numCoordinate);
+      yada.Assert(b >= 0 && b < numCoordinate);
+      insertCoordinates[0] = coordinates[a];
+      insertCoordinates[1] = coordinates[b];
+      createElement(insertCoordinates, 2, edgeMapPtr);
     }
     yada.Assert(i == numEntry);
     numElement += numEntry;
-    fclose(inputFile);
+    inputFile.close();
 
     /*
      * Read .ele file, which contains triangles
      */
-    snprintf(fileName, fileNameSize, "%s.ele", fileNamePrefix);
-    inputFile = fopen(fileName, "r");
-    yada.Assert(inputFile);
-    fgets(inputBuff, inputBuffSize, inputFile);
-    sscanf(inputBuff, "%li %li", numEntry, numDimension);
+    fileName=fileNamePrefix+".ele";
+    inputFile = new FileInputStream(fileName);
+    br=new bytereader(inputFile);
+    numEntry=br.getInt();
+    numDimension=br.getInt();
     yada.Assert(numDimension == 3); /* must be triangle */
     for (i = 0; i < numEntry; i++) {
-        int id;
-        int a;
-        int b;
-        int c;
-        coordinate insertCoordinates[]=new coordinate[3];
-        if (!fgets(inputBuff, inputBuffSize, inputFile)) {
-            break;
-        }
-        if (inputBuff[0] == '#') {
-            continue; /* TODO: handle comments correctly */
-        }
-        sscanf(inputBuff, "%li %li %li %li", id, a, b, c);
-        yada.Assert(a >= 0 && a < numCoordinate);
-        yada.Assert(b >= 0 && b < numCoordinate);
-        yada.Assert(c >= 0 && c < numCoordinate);
-        insertCoordinates[0] = coordinates[a];
-        insertCoordinates[1] = coordinates[b];
-        insertCoordinates[2] = coordinates[c];
-        createElement(meshPtr, insertCoordinates, 3, edgeMapPtr);
+      int id;
+      int a;
+      int b;
+      int c;
+      coordinate insertCoordinates[]=new coordinate[3];
+      id=br.getInt();
+      a=br.getInt();
+      b=br.getInt();
+      c=br.getInt();
+      yada.Assert(a >= 0 && a < numCoordinate);
+      yada.Assert(b >= 0 && b < numCoordinate);
+      yada.Assert(c >= 0 && c < numCoordinate);
+      insertCoordinates[0] = coordinates[a];
+      insertCoordinates[1] = coordinates[b];
+      insertCoordinates[2] = coordinates[c];
+      createElement(insertCoordinates, 3, edgeMapPtr);
     }
     yada.Assert(i == numEntry);
     numElement += numEntry;
-    fclose(inputFile);
-
-    free(coordinates);
-    MAP_FREE(edgeMapPtr);
-
+    inputFile.close();
     return numElement;
 }
 
@@ -386,7 +365,7 @@ boolean mesh_check(int expectedNumElement) {
     while (!searchQueuePtr.queue_isEmpty()) {
         List_t neighborListPtr;
 
-        element currentElementPtr = (element)queue_pop(searchQueuePtr);
+        element currentElementPtr = (element)searchQueuePtr.queue_pop();
         if (visitedMapPtr.contains(currentElementPtr)) {
             continue;
         }
@@ -406,7 +385,7 @@ boolean mesh_check(int expectedNumElement) {
 	   * Continue breadth-first search
 	   */
 	  if (!visitedMapPtr.contains(neighborElementPtr)) {
-	    boolean isSuccess = searchQueuePtr.queue_push(neighborElementPtr);
+	    isSuccess = searchQueuePtr.queue_push(neighborElementPtr);
 	    yada.Assert(isSuccess);
 	  }
         } /* for each neighbor */

@@ -106,7 +106,7 @@ public class region {
   public int TMretriangulate (element elementPtr,
 			      region regionPtr,
 			      mesh meshPtr,
-			      avltree edgeMapPtr) {
+			      avltree edgeMapPtr, double angle) {
     Vector_t badVectorPtr = regionPtr.badVectorPtr; /* private */
     List_t beforeListPtr = regionPtr.beforeListPtr; /* private */
     List_t borderListPtr = regionPtr.borderListPtr; /* private */
@@ -124,7 +124,7 @@ public class region {
 
     while (it.nextPtr!=null) {
       it=it.nextPtr;
-      element beforeElementPtr = (element)it.nodePtr;
+      element beforeElementPtr = (element)it.dataPtr;
       meshPtr.TMmesh_remove(beforeElementPtr);
     }
     
@@ -141,18 +141,18 @@ public class region {
       coordinates[0] = centerCoordinate;
       
       coordinates[1] = (coordinate)(edgePtr.firstPtr);
-      element aElementPtr = new element(coordinates, 2);
-      yada.Assert(aElementPtr);
+      element aElementPtr = new element(coordinates, 2, angle);
+      yada.Assert(aElementPtr!=null);
       meshPtr.TMmesh_insert(aElementPtr, edgeMapPtr);
       
       coordinates[1] = (coordinate)edgePtr.secondPtr;
-      element bElementPtr = new element(coordinates, 2);
-      yada.Assert(bElementPtr);
+      element bElementPtr = new element(coordinates, 2, angle);
+      yada.Assert(bElementPtr!=null);
       meshPtr.TMmesh_insert(bElementPtr, edgeMapPtr);
       
       boolean status = meshPtr.TMmesh_removeBoundary(elementPtr.element_getEdge(0));
       yada.Assert(status);
-      status = mesPtr.TMmesh_insertBoundary(aElementPtr.element_getEdge(0));
+      status = meshPtr.TMmesh_insertBoundary(aElementPtr.element_getEdge(0));
       yada.Assert(status);
       status = meshPtr.TMmesh_insertBoundary(bElementPtr.element_getEdge(0));
       yada.Assert(status);
@@ -167,16 +167,16 @@ public class region {
 
     it=borderListPtr.head;
     while (it.nextPtr!=null) {
-      coordinate coordinates[]=new coordinates[3];
+      coordinate coordinates[]=new coordinate[3];
       edge borderEdgePtr = (edge)it.dataPtr;
-      yada.Assert(borderEdgePtr);
+      yada.Assert(borderEdgePtr!=null);
       coordinates[0] = centerCoordinate;
       coordinates[1] = (coordinate)(borderEdgePtr.firstPtr);
       coordinates[2] = (coordinate)(borderEdgePtr.secondPtr);
-      element afterElementPtr = new element(coordinates, 3);
+      element afterElementPtr = new element(coordinates, 3, angle);
       yada.Assert(afterElementPtr!=null);
       meshPtr.TMmesh_insert(afterElementPtr, edgeMapPtr);
-      if (afterElementPTr.element_isBad()) {
+      if (afterElementPtr.element_isBad()) {
 	TMaddToBadVector(badVectorPtr, afterElementPtr);
       }
     }
@@ -196,7 +196,7 @@ public class region {
 		       avltree edgeMapPtr) {
     boolean isBoundary = false;
     
-    if (centerElementPtr.element_getNumEdge() == 1) {
+    if(centerElementPtr.element_getNumEdge() == 1) {
       isBoundary = true;
     }
   
@@ -223,7 +223,7 @@ public class region {
 	it=it.nextPtr;
 	element neighborElementPtr = (element)it.dataPtr;
 	neighborElementPtr.element_isGarbage(); /* so we can detect conflicts */
-	if (!beforeListPtr.find(neighborElementPtr)) {
+	if (beforeListPtr.find(neighborElementPtr)==null) {
 	  if (neighborElementPtr.element_isInCircumCircle(centerCoordinatePtr)) {
 	    /* This is part of the region */
 	    if (!isBoundary && (neighborElementPtr.element_getNumEdge() == 1)) {
@@ -236,9 +236,10 @@ public class region {
 	    }
 	  } else {
 	    /* This element borders region; save info for retriangulation */
-	    edge borderEdgePtr = neighborElementPtr.element_getCommonEdge(currentElementPtr);
-	    if (!borderEdgePtr) {
-	      TM_RESTART();
+	    edge borderEdgePtr = element.element_getCommonEdge(neighborElementPtr, currentElementPtr);
+
+	    if (borderEdgePtr==null) {
+	      Thread.abort();
 	    }
 	    borderListPtr.insert(borderEdgePtr); /* no duplicates */
 	    if (!edgeMapPtr.contains(borderEdgePtr)) {
@@ -259,7 +260,7 @@ public class region {
  * -- Returns net number of elements added to mesh
  * =============================================================================
  */
-  int TMregion_refine(element elementPtr, mesh meshPtr) {
+  int TMregion_refine(element elementPtr, mesh meshPtr, double angle) {
     int numDelta = 0;
     avltree edgeMapPtr = null;
     element encroachElementPtr = null;
@@ -277,7 +278,7 @@ public class region {
       if (encroachElementPtr!=null) {
 	encroachElementPtr.element_setIsReferenced(true);
 	numDelta += TMregion_refine(encroachElementPtr,
-				    meshPtr);
+				    meshPtr, angle);
 	if (elementPtr.element_isGarbage()) {
 	  break;
 	}
@@ -294,7 +295,7 @@ public class region {
       numDelta += TMretriangulate(elementPtr,
 				  this,
 				  meshPtr,
-				  edgeMapPtr);
+				  edgeMapPtr, angle);
     }
     
     return numDelta;
