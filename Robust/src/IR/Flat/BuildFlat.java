@@ -121,7 +121,28 @@ public class BuildFlat {
       fn.addNext(rnflat);
     } else {
       TempDescriptor tmp=TempDescriptor.tempFactory("rettmp",currmd.getReturnType());
-      Object o=currmd.getReturnType().isPtr()?null:new Integer(1);
+      Object o=null;
+      if (currmd.getReturnType().isPtr()) {
+	o=null;
+      } else if (currmd.getReturnType().isByte()) {
+	o=new Byte((byte)0);
+      } else if (currmd.getReturnType().isShort()) {
+	o=new Short((short)0);
+      } else if (currmd.getReturnType().isChar()) {
+	o=new Character('\0');
+      } else if (currmd.getReturnType().isInt()) {
+	o=new Integer(0);
+      } else if (currmd.getReturnType().isLong()) {
+	o=new Long(0);
+      } else if (currmd.getReturnType().isBoolean()) {
+	o=new Boolean(false);
+      } else if (currmd.getReturnType().isFloat()) {
+	o=new Float(0.0);
+      } else if (currmd.getReturnType().isDouble()) {
+	o=new Double(0.0);
+    }
+
+
       FlatLiteralNode fln=new FlatLiteralNode(currmd.getReturnType(),o,tmp);
       rnflat=new FlatReturnNode(tmp);
       fln.addNext(rnflat);
