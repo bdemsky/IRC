@@ -260,7 +260,7 @@ public class element {
  * element_compare
  * =============================================================================
  */
-int element_compare (element aElementPtr, element bElementPtr) {
+static int element_compare (element aElementPtr, element bElementPtr) {
   int aNumCoordinate = aElementPtr.numCoordinate;
   int bNumCoordinate = bElementPtr.numCoordinate;
   coordinate aCoordinates[] = aElementPtr.coordinates;
@@ -304,7 +304,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
  * For use in MAP_T
  * =============================================================================
  */
-  int element_mapCompare(Object aPtr, Object bPtr) {
+  static int element_mapCompare(Object aPtr, Object bPtr) {
     element aElementPtr = (element)(((edge)aPtr).firstPtr);
     element bElementPtr = (element)(((edge)bPtr).firstPtr);
     
@@ -402,7 +402,7 @@ int element_compare (element aElementPtr, element bElementPtr) {
   * For use in MAP_T
  * =============================================================================
  */
-  int element_mapCompareEdge (edge aPtr, edge bPtr) {
+  static int element_mapCompareEdge (edge aPtr, edge bPtr) {
     edge aEdgePtr = (edge)(aPtr.firstPtr);
     edge bEdgePtr = (edge)(bPtr.firstPtr);
     

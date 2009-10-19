@@ -239,7 +239,7 @@ public class region {
 	    edge borderEdgePtr = element.element_getCommonEdge(neighborElementPtr, currentElementPtr);
 
 	    if (borderEdgePtr==null) {
-	      Thread.abort();
+	      //	      Thread.abort();
 	    }
 	    borderListPtr.insert(borderEdgePtr); /* no duplicates */
 	    if (!edgeMapPtr.contains(borderEdgePtr)) {

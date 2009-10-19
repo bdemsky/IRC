@@ -122,11 +122,11 @@
   int bal = dir == 0 ? -1 : +1;	  \
   if ( ni.balance == bal ) {               \
     root.balance = ni.balance = 0;        \
-    jsw_single ( root, 1-dir );             \
+    jsw_single ( root, (1-dir) );	   \
   }                                        \
   else { /* n.balance == -bal */          \
     jsw_adjust_balance( root, dir, bal ); \
-    jsw_double( root, 1-dir );             \
+    jsw_double( root, (1-dir) );	   \
   }                                        \
 } while (false)
 
@@ -139,7 +139,7 @@
     jsw_single ( root, dir );                  \
   }                                            \
   else if ( nr.balance == bal ) {              \
-    jsw_adjust_balance ( root, 1-dir, -bal );   \
+    jsw_adjust_balance ( root, (1-dir), -bal ); \
     jsw_double ( root, dir );                  \
   }                                            \
   else { /* n.balance == 0 */                 \
@@ -258,6 +258,11 @@ public class avltree {
   }
 
   int cmp(Object a, Object b) {
+    if (mode==0) {
+      return element.element_mapCompareEdge((edge)a, (edge)b);
+    } else if (mode==1) {
+      return element.element_mapCompare((edge)a, (edge)b);      
+    }
     return 0;
   }
 

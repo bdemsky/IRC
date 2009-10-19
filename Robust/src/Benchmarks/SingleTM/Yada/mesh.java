@@ -313,7 +313,6 @@ int mesh_read(String fileNamePrefix) {
       a=br.getInt();
       b=br.getInt();
       c=br.getInt();
-      br.jumptonextline();
       yada.Assert(a >= 0 && a < numCoordinate);
       yada.Assert(b >= 0 && b < numCoordinate);
       yada.Assert(c >= 0 && c < numCoordinate);

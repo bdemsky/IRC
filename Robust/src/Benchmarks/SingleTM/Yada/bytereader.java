@@ -57,7 +57,9 @@ public class bytereader {
     boolean searching=true;
     while(searching) {
       for(;pos<lastlocation;pos++) {
-	if (buffer[pos]!=' '&&buffer[pos]!='\n'&&buffer[pos]!='\t') {
+	if (buffer[pos]=='#') {
+	  jumptonextline();
+	} else if (buffer[pos]!=' '&&buffer[pos]!='\n'&&buffer[pos]!='\t') {
 	  searching=false;
 	  break;
 	}
