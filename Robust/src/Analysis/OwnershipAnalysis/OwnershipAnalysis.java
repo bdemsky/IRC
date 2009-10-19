@@ -977,7 +977,7 @@ public class OwnershipAnalysis {
 	ogMergeOfAllPossibleCalleeResults = og;
 
 	Set<Integer> aliasedParamIndices = 
-	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
+	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, flatm);
 
 	MethodContext mcNew = new MethodContext( md, aliasedParamIndices );
 	Set contexts = mapDescriptorToAllMethodContexts.get( md );
@@ -1023,7 +1023,7 @@ public class OwnershipAnalysis {
 	  ogCopy.merge(og);
 
 	  Set<Integer> aliasedParamIndices = 
-	    ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
+	    ogCopy.calculateAliasedParamSet(fc, pflatm);
 
 	  MethodContext mcNew = new MethodContext( possibleMd, aliasedParamIndices );
 	  Set contexts = mapDescriptorToAllMethodContexts.get( md );
@@ -1516,7 +1516,7 @@ public class OwnershipAnalysis {
 	  
 	  MethodDescriptor md=fc.getMethod();
 	  FlatMethod flatm = state.getMethodFlat(md);
-	  Set<Integer> aliasedParamIndices = mergeOG.calculateAliasedParamSet(fc, md.isStatic(), flatm);
+	  Set<Integer> aliasedParamIndices = mergeOG.calculateAliasedParamSet(fc, flatm);
 	  MethodContext calleeMC = new MethodContext( md, aliasedParamIndices );
 	  
 	  return calleeMC;	  

@@ -931,6 +931,24 @@ public class OwnershipGraph {
       LabelNode      lnParamI = getLabelNodeFromTemp( tdParamI );
 
       Integer        idPrimaryI =  paramIndex2idPrimary.get( i );
+
+      /*
+      if( idPrimaryI == null ) {
+	try { 
+	  writeGraph( "debugalias", 
+		      true,  // write labels (variables)
+		      true,  // selectively hide intermediate temp vars
+		      true,  // prune unreachable heap regions
+		      false, // show back edges to confirm graph validity
+		      false, // show parameter indices (unmaintained!)
+		      true,  // hide subset reachability states
+		      true); // hide edge taints
+	} catch( Exception e ) {}
+	System.out.println( "FlatMethod="+fm+"\nalias set="+aliasedParamIndices+
+			    "\nindex bad="+i);
+      }
+      */
+
       assert         idPrimaryI != null;
       HeapRegionNode primaryI   =  id2hrn.get( idPrimaryI );
       assert         primaryI   != null;           
@@ -1658,111 +1676,117 @@ public class OwnershipGraph {
 
 
   public Set<Integer> calculateAliasedParamSet( FlatCall fc,
-						boolean isStatic,
 						FlatMethod fm ) {
-
-    Hashtable<Integer, LabelNode> paramIndex2ln =
-      new Hashtable<Integer, LabelNode>();
-
-    Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes =
-      new Hashtable<Integer, HashSet<HeapRegionNode> >();
-
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      Integer        paramIndex = new Integer( i );
-      TempDescriptor tdParam    = fm.getParameter( i );
-      TypeDescriptor typeParam  = tdParam.getType();
-
-      if( typeParam.isImmutable() && !typeParam.isArray() ) {
-	// don't bother with this primitive parameter, it
-	// cannot affect reachability
-	continue;
-      }
-
-      // now depending on whether the callee is static or not
-      // we need to account for a "this" argument in order to
-      // find the matching argument in the caller context
-      TempDescriptor argTemp_i;
-      if( isStatic ) {
-	argTemp_i = fc.getArg(paramIndex);
-      } else {
-	if( paramIndex.equals(0) ) {
-	  argTemp_i = fc.getThis();
-	} else {
-	  argTemp_i = fc.getArg(paramIndex - 1);
-	}
-      }
-
-      // in non-static methods there is a "this" pointer
-      // that should be taken into account
-      if( isStatic ) {
-	assert fc.numArgs()     == fm.numParameters();
-      } else {
-	assert fc.numArgs() + 1 == fm.numParameters();
-      }
-
-      LabelNode argLabel_i = getLabelNodeFromTemp(argTemp_i);
-      paramIndex2ln.put(paramIndex, argLabel_i);
-    }
-
-    Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
-    while( lnArgItr.hasNext() ) {
-      Map.Entry me      = (Map.Entry)lnArgItr.next();
-      Integer index     = (Integer)   me.getKey();
-      LabelNode lnArg_i = (LabelNode) me.getValue();
-
-      HashSet<HeapRegionNode> reachableNodes = new HashSet<HeapRegionNode>();
-      HashSet<HeapRegionNode> todoNodes      = new HashSet<HeapRegionNode>();
-
-      // to find all reachable nodes, start with label referencees
-      Iterator<ReferenceEdge> edgeArgItr = lnArg_i.iteratorToReferencees();
-      while( edgeArgItr.hasNext() ) {
-	ReferenceEdge edge = edgeArgItr.next();
-	todoNodes.add( edge.getDst() );
-      }
-
-      // then follow links until all reachable nodes have been found
-      while( !todoNodes.isEmpty() ) {
-	HeapRegionNode hrn = todoNodes.iterator().next();
-	todoNodes.remove(hrn);
-	reachableNodes.add(hrn);
-
-	Iterator<ReferenceEdge> edgeItr = hrn.iteratorToReferencees();
-	while( edgeItr.hasNext() ) {
-	  ReferenceEdge edge = edgeItr.next();
-
-	  if( !reachableNodes.contains(edge.getDst() ) ) {
-	    todoNodes.add(edge.getDst() );
-	  }
-	}
-      }
-
-      // save for later
-      paramIndex2reachableCallerNodes.put(index, reachableNodes);
-    }
+    // to decide if two parameters are aliased, look
+    // at the caller graph (this graph) and if these
+    // two conditions are met, they may be aliased:
+    // 1. The argument labels reference a shared node
+    // 2. The edges to that shared node have a common
+    //    reachability state.
 
     Set<Integer> aliasedIndices = new HashSet<Integer>();
 
-    // check for arguments that are aliased
+
+    //System.out.println("Aliases for "+fm+" at "+fc);
+
+
     for( int i = 0; i < fm.numParameters(); ++i ) {
       for( int j = 0; j < i; ++j ) {	
-	HashSet<HeapRegionNode> s1 = paramIndex2reachableCallerNodes.get( i );
-	HashSet<HeapRegionNode> s2 = paramIndex2reachableCallerNodes.get( j );
 
-	// some parameters are immutable or primitive, so skip em
-	if( s1 == null || s2 == null ) {
-	  continue;
+	TempDescriptor argTemp_i  = fc.getArgMatchingParamIndex( fm, i );
+	LabelNode      argLabel_i = getLabelNodeFromTemp( argTemp_i );
+
+	TempDescriptor argTemp_j  = fc.getArgMatchingParamIndex( fm, j );
+	LabelNode      argLabel_j = getLabelNodeFromTemp( argTemp_j );
+
+	/*
+	System.out.println("  "+argTemp_i.getType()+" "+argTemp_i+" and "+
+			   argTemp_j.getType()+" "+argTemp_j+" aliased?");
+	*/
+
+	// first condition--do these arguments 
+	// reference any common nodes?
+	Iterator<ReferenceEdge> edgeItr;
+
+	Set<HeapRegionNode> hrnSetI = new HashSet<HeapRegionNode>();
+	edgeItr = argLabel_i.iteratorToReferencees();
+	while( edgeItr.hasNext() ) {
+	  hrnSetI.add( edgeItr.next().getDst() );
 	}
 
-	Set<HeapRegionNode> intersection = new HashSet<HeapRegionNode>(s1);
-	intersection.retainAll(s2);
+	Set<HeapRegionNode> hrnSetJ = new HashSet<HeapRegionNode>();
+	edgeItr = argLabel_j.iteratorToReferencees();
+	while( edgeItr.hasNext() ) {
+	  hrnSetJ.add( edgeItr.next().getDst() );
+	}
 
-	if( !intersection.isEmpty() ) {
-	  aliasedIndices.add( new Integer( i ) );
-	  aliasedIndices.add( new Integer( j ) );
+	Set<HeapRegionNode> intersection = 
+	  new HashSet<HeapRegionNode>( hrnSetI );
+	intersection.retainAll( hrnSetJ );
+
+	// condition two--for each shared node, do the reference
+	// edges to it from arguments have a common reachability
+	// state that is *ALSO* on the shared node?
+	boolean foundAlias = false;
+
+	Iterator<HeapRegionNode> hrnItr = intersection.iterator();
+	while( hrnItr.hasNext() ) {
+	  HeapRegionNode hrn = hrnItr.next();
+
+	  ReferenceEdge ei = argLabel_i.getReferenceTo( hrn, 
+							argTemp_i.getType(),
+							null );
+
+	  ReferenceEdge ej = argLabel_j.getReferenceTo( hrn, 
+							argTemp_j.getType(),
+							null );
+	  assert ei != null; 
+	  assert ej != null;
+
+	  ReachabilitySet allStatesForParamI = 
+	    ei.getBeta().intersection( hrn.getAlpha() );
+
+	  ReachabilitySet allStatesForParamJ = 
+	    ej.getBeta().intersection( hrn.getAlpha() );
+
+	  ReachabilitySet commonStates = 
+	    allStatesForParamI.intersection( allStatesForParamJ );
+
+	  if( !commonStates.isEmpty() ) {
+	    foundAlias = true;
+	    aliasedIndices.add( new Integer( i ) );
+	    aliasedIndices.add( new Integer( j ) );
+
+	    //System.out.println( "    yes!" );
+	  }
+	}
+
+	// as soon as we detect one possible way to alias
+	// these parameters, skip on to another pair
+	if( foundAlias ) {
+	  continue;
 	}
       }
     }
 
+    if( !aliasedIndices.isEmpty() ) {
+      try { 
+	writeGraph( "foundaliases", 
+		    true,  // write labels (variables)
+		    true,  // selectively hide intermediate temp vars
+		    true,  // prune unreachable heap regions
+		    false, // show back edges to confirm graph validity
+		    false, // show parameter indices (unmaintained!)
+		    true,  // hide subset reachability states
+		    true); // hide edge taints
+      } catch( Exception e ) {}
+      /*
+      System.out.println("FlatCall="+fc+
+			 "\nflat method="+fm+
+			 "\nAliases="+aliasedIndices );
+      */
+    }
+    
     return aliasedIndices;
   }
 
@@ -2073,24 +2097,7 @@ public class OwnershipGraph {
       // now depending on whether the callee is static or not
       // we need to account for a "this" argument in order to
       // find the matching argument in the caller context
-      TempDescriptor argTemp_i;
-      if( isStatic ) {
-	argTemp_i = fc.getArg( paramIndex );
-      } else {
-	if( paramIndex.equals( 0 ) ) {
-	  argTemp_i = fc.getThis();
-	} else {
-	  argTemp_i = fc.getArg( paramIndex - 1 );
-	}
-      }
-
-      // in non-static methods there is a "this" pointer
-      // that should be taken into account
-      if( isStatic ) {
-	assert fc.numArgs()     == fm.numParameters();
-      } else {
-	assert fc.numArgs() + 1 == fm.numParameters();
-      }
+      TempDescriptor argTemp_i = fc.getArgMatchingParamIndex( fm, paramIndex );
 
       // remember which caller arg label maps to param index
       LabelNode argLabel_i = getLabelNodeFromTemp( argTemp_i );

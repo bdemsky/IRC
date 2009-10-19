@@ -37,3 +37,4 @@ clean:
 	rm -f  *.log
 	rm -f  *.pdf
 	rm -f  aliases.txt
+	rm -f  tabResults.tex

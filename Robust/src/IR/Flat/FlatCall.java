@@ -50,6 +50,26 @@ public class FlatCall extends FlatNode {
     return args[i];
   }
 
+  public TempDescriptor getArgMatchingParamIndex(FlatMethod fm, int i) {
+    // in non-static methods the "this" pointer
+    // affects the matching index
+    if( method.isStatic() ) {
+      assert numArgs()   == fm.numParameters();
+    } else {
+      assert numArgs()+1 == fm.numParameters();
+    }
+
+    if( method.isStatic() ) {
+      return args[i];
+    }
+
+    if( i == 0 ) {
+      return this_temp;
+    }
+    
+    return args[i-1];
+  }
+
   public String toString() {
     String st="FlatCall_";
     if (dst==null) {
