@@ -99,48 +99,45 @@ public class mesh {
      */
     if (rootElementPtr==null) {
       rootElementPtr=elementPtr;
-  }
+    }
 
     /*
      * Record existence of each of this element's edges
      */
-  int numEdge = elementPtr.element_getNumEdge();
-  for (int i = 0; i < numEdge; i++) {
-    edge edgePtr = elementPtr.element_getEdge(i);
-    if (!edgeMapPtr.contains(edgePtr)) {
-      /* Record existance of this edge */
-      boolean isSuccess =
-	edgeMapPtr.insert(edgePtr, elementPtr);
-      yada.Assert(isSuccess);
-    } else {
-      /*
-       * Shared edge; update each element's neighborList
-       */
-      boolean isSuccess;
-      element sharerPtr = (element)edgeMapPtr.find(edgePtr);
-      yada.Assert(sharerPtr!=null); /* cannot be shared by >2 elements */
-      elementPtr.element_addNeighbor(sharerPtr);
-      sharerPtr.element_addNeighbor(elementPtr);
-      isSuccess = edgeMapPtr.remove(edgePtr);
-      yada.Assert(isSuccess);
-      isSuccess = edgeMapPtr.insert(edgePtr,
-			      null); /* marker to check >2 sharers */
-      yada.Assert(isSuccess);
+    int numEdge = elementPtr.element_getNumEdge();
+    for (int i = 0; i < numEdge; i++) {
+      edge edgePtr = elementPtr.element_getEdge(i);
+      if (!edgeMapPtr.contains(edgePtr)) {
+	/* Record existance of this edge */
+	boolean isSuccess = edgeMapPtr.insert(edgePtr, elementPtr);
+	yada.Assert(isSuccess);
+      } else {
+	/*
+	 * Shared edge; update each element's neighborList
+	 */
+	element sharerPtr = (element)edgeMapPtr.find(edgePtr);
+	yada.Assert(sharerPtr!=null); /* cannot be shared by >2 elements */
+	elementPtr.element_addNeighbor(sharerPtr);
+	sharerPtr.element_addNeighbor(elementPtr);
+	boolean isSuccess = edgeMapPtr.remove(edgePtr);
+	yada.Assert(isSuccess);
+	isSuccess = edgeMapPtr.insert(edgePtr, null); /* marker to check >2 sharers */
+	yada.Assert(isSuccess);
+      }
+    }
+    
+    /*
+     * Check if really encroached
+     */
+    
+    edge encroachedPtr = elementPtr.element_getEncroachedPtr();
+    if (encroachedPtr!=null) {
+      if (!boundarySetPtr.contains(encroachedPtr)) {
+	elementPtr.element_clearEncroached();
+      }
     }
   }
-
-  /*
-   * Check if really encroached
-   */
   
-  edge encroachedPtr = elementPtr.element_getEncroachedPtr();
-  if (encroachedPtr!=null) {
-    if (!boundarySetPtr.contains(encroachedPtr)) {
-      elementPtr.element_clearEncroached();
-    }
-  }
-}
-
 
 /* =============================================================================
  * TMmesh_remove
@@ -201,7 +198,6 @@ boolean TMmesh_removeBoundary(edge boundaryPtr) {
   void createElement(coordinate[] coordinates, int numCoordinate,
 			   avltree edgeMapPtr) {
   element elementPtr = new element(coordinates, numCoordinate, angle);
-  yada.Assert(elementPtr!=null);
   
   if (numCoordinate == 2) {
     edge boundaryPtr = elementPtr.element_getEdge(0);
@@ -375,7 +371,7 @@ boolean mesh_check(int expectedNumElement) {
         }
         boolean isSuccess = visitedMapPtr.insert(currentElementPtr, null);
         yada.Assert(isSuccess);
-        if (!currentElementPtr.checkAngles()) {
+        if (!currentElementPtr.element_checkAngles()) {
             numBadTriangle++;
         }
         neighborListPtr = currentElementPtr.element_getNeighborListPtr();

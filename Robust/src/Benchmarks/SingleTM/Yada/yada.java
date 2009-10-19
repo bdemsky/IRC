@@ -122,7 +122,7 @@ public class yada extends Thread {
     meshPtr.mesh_shuffleBad(randomPtr);
 
     int numBad = 0;
-    while (true) {
+    while(true) {
       element elementPtr = meshPtr.mesh_getBad();
       if (elementPtr==null) {
 	break;
@@ -132,7 +132,6 @@ public class yada extends Thread {
       yada.Assert(status);
       elementPtr.element_setIsReferenced(true);
     }
-    
     return numBad;
   }
   
@@ -249,6 +248,11 @@ public class yada extends Thread {
     int finalNumElement = initNumElement + y.globalvar.global_totalNumAdded;
     System.out.println("Final mesh size                 = "+ finalNumElement);
     System.out.println("Number of elements processed    = "+ y.globalvar.global_numProcess);
+
+    //comment this check out for real runs
+    boolean check=y.global_meshPtr.mesh_check(finalNumElement);
+    if (!check)
+      System.out.println("Mesh is invalid");
   }
 }
 

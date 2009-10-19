@@ -37,20 +37,40 @@ public class bytereader {
   int end;
 
   private void skipline() {
-    if (buffer[pos]=='#')
+    if (pos>=lastlocation)
+      readnewdata();
+    if (pos<lastlocation&&buffer[pos]=='#')
       jumptonextline();
   }
 
   public int getInt() {
     getBytes();
-    String str=new String(curbuffer, start, end-start);
-    return Integer.parseInt(str);
+    int value=0;
+    boolean negative=false;
+    for(;start<end;start++) {
+      if (curbuffer[start]>='0'&&curbuffer[start]<='9')
+	value=value*10+(curbuffer[start]-'0');
+      else if (curbuffer[start]=='-')
+	negative=true;
+    }
+    if (negative)
+      value=-value;
+    return value;
   }
 
   public double getDouble() {
     getBytes();
-    String str=new String(curbuffer, start, end-start);
-    return Double.parseDouble(str);
+    boolean negative=false;
+    double value=0;
+    for(;start<end;start++) {
+      if (curbuffer[start]>='0'&&curbuffer[start]<='9')
+	value=value*((double)10.0)+((double)(curbuffer[start]-'0'));
+      else if (curbuffer[start]=='-')
+	negative=true;
+    }
+    if (negative)
+      value=-value;
+    return value;
   }
 
   private void getBytes() {
@@ -74,7 +94,6 @@ public class bytereader {
 	  buffer[pos]=='\n') {
 	end=pos;
 	pos++;
-	skipline();
 	curbuffer=buffer;
 	return;
       }
@@ -83,19 +102,17 @@ public class bytereader {
     for(int i=start;i<lastlocation;i++) {
       tmp[i-start]=buffer[i];
     }
-    readnewdata();
     start=lastlocation-start;
+    readnewdata();
     for(;pos<lastlocation;pos++) {
       if (buffer[pos]==' '||
 	  buffer[pos]=='\n') {
 	end=pos+start;
 	start=0;
 	pos++;
-	skipline();
 	return;
       }
       tmp[pos+start]=buffer[pos];
     }
   }
-
 }

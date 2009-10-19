@@ -35,7 +35,6 @@ public class Random {
 
   public long random_generate() {
     long x= genrand_int32()&0xFFFFFFFFL;
-    System.out.println(x);
     return x;
   }
 

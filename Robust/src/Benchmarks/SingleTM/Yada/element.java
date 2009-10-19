@@ -116,36 +116,33 @@ public class element {
  * -- Sets isSkinny to TRUE if the angle constraint is not met
  * =============================================================================
  */
-  void checkAngles (double angleConstraint) {
-    //double angleConstraint = global_angleConstraint;
+  void checkAngles() {
     minAngle = 180.0;
-
     yada.Assert(numCoordinate == 2 || numCoordinate == 3);
     isReferenced = false;
     isSkinny = false;
     encroachedEdgePtr = null;
 
     if (numCoordinate == 3) {
-        int i;
-        for (i = 0; i < 3; i++) {
-	  double angle = coordinate.coordinate_angle(coordinates[i],
-					  coordinates[(i + 1) % 3],
-					  coordinates[(i + 2) % 3]);
-	  yada.Assert(angle > 0.0);
-	  yada.Assert(angle < 180.0);
-	  if (angle > 90.0) {
-	    encroachedEdgePtr = edges[(i + 1) % 3];
-	  }
-	  if (angle < angleConstraint) {
-	    isSkinny = true;
-	  }
-	  if (angle < minAngle) {
-	    minAngle = angle;
-	  }
-        }
-        yada.Assert(minAngle < 180.0);
+      for (int i = 0; i < 3; i++) {
+	double angle = coordinate.coordinate_angle(coordinates[i],
+						   coordinates[(i + 1) % 3],
+						   coordinates[(i + 2) % 3]);
+	yada.Assert(angle > 0.0);
+	yada.Assert(angle < 180.0);
+	if (angle > 90.0) {
+	  encroachedEdgePtr = edges[(i + 1) % 3];
+	}
+	if (angle < angleConstraint) {
+	  isSkinny = true;
+	}
+	if (angle < minAngle) {
+	  minAngle = angle;
+	}
+      }
+      yada.Assert(minAngle < 180.0);
     }
-}
+  }
 
 
 /* =============================================================================
@@ -334,8 +331,8 @@ static int element_compare (element aElementPtr, element bElementPtr) {
       this.coordinates[i] = coordinates[i];
     }
     this.numCoordinate = numCoordinate;
-    minimizeCoordinates();
     this.angleConstraint=angle;
+    minimizeCoordinates();
     checkAngles();
     calculateCircumCircle();
     initEdges(coordinates, numCoordinate);
@@ -605,7 +602,7 @@ static int element_compare (element aElementPtr, element bElementPtr) {
  * Return FALSE if minimum angle constraint not met
  * =============================================================================
  */
-  boolean checkAngles() {
+  boolean element_checkAngles() {
     //    double angleConstraint = global_angleConstraint;
     if (numCoordinate == 3) {
       for (int i = 0; i < 3; i++) {
