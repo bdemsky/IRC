@@ -746,7 +746,6 @@ public class OwnershipAnalysis {
 	  mc.getDescriptor().getSymbol().equals( mcDescSymbolDebug ) ) {
 	debugSnapshot(og,fn);
       }
-     
 
 
       // if the results of the new graph are different from

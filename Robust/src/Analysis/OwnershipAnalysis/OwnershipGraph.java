@@ -2249,7 +2249,6 @@ public class OwnershipGraph {
     Hashtable< Integer, Set<Vector> > edges_up_dr = new Hashtable< Integer, Set<Vector> >();
     Hashtable< Integer, Set<Vector> > edges_up_r  = new Hashtable< Integer, Set<Vector> >();
 
-
     // so again, with respect to some arg i...
     lnArgItr = paramIndex2ln.entrySet().iterator();
     while( lnArgItr.hasNext() ) {
@@ -2757,6 +2756,7 @@ public class OwnershipGraph {
     // in the caller graph
     Set      sCallee = ogCallee.id2hrn.entrySet();
     Iterator iCallee = sCallee.iterator();
+
     while( iCallee.hasNext() ) {
       Map.Entry      meCallee  = (Map.Entry)      iCallee.next();
       Integer        idCallee  = (Integer)        meCallee.getKey();
@@ -2884,6 +2884,7 @@ public class OwnershipGraph {
     }
 
 
+
     // return value may need to be assigned in caller
     TempDescriptor returnTemp = fc.getReturnTemp();
     if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
@@ -2957,6 +2958,7 @@ public class OwnershipGraph {
     }
 
 
+    /*
     if( debugCallMap &&
 	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) 
@@ -2973,7 +2975,7 @@ public class OwnershipGraph {
 		   true); // hide edge taints
       } catch( IOException e ) {}
     }
-
+    */
 
 
     // merge the shadow nodes of allocation sites back down to normal capacity
@@ -3043,6 +3045,7 @@ public class OwnershipGraph {
     }
 
 
+    /*
     if( debugCallMap &&
 	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
 	fm.getMethod().getSymbol().equals( debugCallee ) 
@@ -3059,6 +3062,7 @@ public class OwnershipGraph {
 		    true); // hide edge taints
       } catch( IOException e ) {}
     }
+    */
 
 
     // improve reachability as much as possible
@@ -3085,7 +3089,7 @@ public class OwnershipGraph {
       System.out.println( "  "+mc+" done calling "+fm );      
       ++x;
       if( x == debugCallMapCount ) {
-	System.exit( -1 );   
+	System.exit( 0 );   
       }
     }
   }

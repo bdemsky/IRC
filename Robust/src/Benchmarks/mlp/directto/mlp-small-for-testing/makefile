@@ -6,8 +6,8 @@ SOURCE_FILES=D2.java
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -debug -nooptimize -mainclass $(MAIN_CLASS) 
 
-#DBCALLFLAGS= -owndebugcaller main -owndebugcallee executeAll 
-DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee executeMessage -owndebugcallcount 1
+DBCALLFLAGS= -owndebugcaller main -owndebugcallee executeAll 
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee executeMessage -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller executeMessage -owndebugcallee amendFlightPlan
 
 ANALYZEFLAGS= -justanalyze $(DBCALLFLAGS) -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
