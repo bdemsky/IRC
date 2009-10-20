@@ -61,15 +61,7 @@ public class bytereader {
   public double getDouble() {
     getBytes();
     boolean negative=false;
-    double value=0;
-    for(;start<end;start++) {
-      if (curbuffer[start]>='0'&&curbuffer[start]<='9')
-	value=value*((double)10.0)+((double)(curbuffer[start]-'0'));
-      else if (curbuffer[start]=='-')
-	negative=true;
-    }
-    if (negative)
-      value=-value;
+    double value=Double.nativeparsedouble(curbuffer, start, end-start);
     return value;
   }
 

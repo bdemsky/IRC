@@ -168,6 +168,7 @@ public class region {
     it=borderListPtr.head;
     while (it.nextPtr!=null) {
       coordinate coordinates[]=new coordinate[3];
+      it=it.nextPtr;
       edge borderEdgePtr = (edge)it.dataPtr;
       yada.Assert(borderEdgePtr!=null);
       coordinates[0] = centerCoordinate;
@@ -268,7 +269,7 @@ public class region {
     elementPtr.element_isGarbage(); /* so we can detect conflicts */
     
     while (true) {
-      edgeMapPtr = new avltree(1);
+      edgeMapPtr = new avltree(0);
       yada.Assert(edgeMapPtr!=null);
       encroachElementPtr = TMgrowRegion(elementPtr,
 					this,

@@ -216,6 +216,7 @@ public class heap {
     if (bElementPtr.encroachedEdgePtr!=null) {
       return -1;
     }
+    return 0;
   }
 
   public void printHeap() {

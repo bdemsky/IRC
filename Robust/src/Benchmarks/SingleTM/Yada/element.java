@@ -625,7 +625,7 @@ static int element_compare (element aElementPtr, element bElementPtr) {
   void element_print() {
     for (int c = 0; c < numCoordinate; c++) {
       coordinates[c].coordinate_print();
-      System.out.println(" ");
+      System.out.print(" ");
     }
   }
   
