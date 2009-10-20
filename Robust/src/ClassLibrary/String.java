@@ -289,7 +289,7 @@ public class String {
   }
 
   public static String valueOf(double val) {
-    char[] chararray=new char[10];
+    char[] chararray=new char[20];
     String s=new String();
     s.offset=0;
     s.count=convertdoubletochar(val, chararray);

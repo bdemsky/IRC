@@ -66,6 +66,8 @@ public class System {
 
   public static native void deepArrayCopy(Object dst, Object src);
 
+  public static native void Assert(boolean status);
+
   /* Only used for microbenchmark testing of SingleTM version */
   public static native void logevent(int event);
   public static native void logevent();
@@ -75,5 +77,4 @@ public class System {
 
   public static native void flushToFile(int threadid);
   /* Only used for microbenchmark testing of SingleTM version */
-
 }

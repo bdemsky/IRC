@@ -1,6 +1,8 @@
 #include "sandbox.h"
 #include "tm.h"
 #include <stdio.h>
+#include "methodheaders.h"
+#include "runtime.h"
 __thread int transaction_check_counter;
 __thread jmp_buf aborttrans;
 __thread int abortenabled;
@@ -35,6 +37,36 @@ void checkObjects() {
   }
   transaction_check_counter=*counter_reset_pointer;
 }
+
+#ifdef D___System______Assert____Z
+CALL11(___System______Assert____Z, int ___status___, int ___status___) {
+  if (!___status___) {
+    if (abortenabled&&checktrans()) {
+#ifdef TRANSSTATS
+      numTransAbort++;
+#endif
+      freenewobjs();
+      objstrReset();
+      t_chashreset();
+#ifdef READSET
+      rd_t_chashreset();
+#endif
+#ifdef DELAYCOMP
+      dc_t_chashreset();
+      ptrstack.count=0;
+      primstack.count=0;
+      branchstack.count=0;
+#ifdef STMARRAY
+      arraystack.count=0;
+#endif
+#endif
+      _longjmp(aborttrans, 1);
+    }
+    printf("Assertion violation\n");
+    *((int *)(NULL)); //force stack trace error                         
+  }
+}
+#endif
 
 /* Do sandboxing */
 void errorhandler(int sig, struct sigcontext ctx) {

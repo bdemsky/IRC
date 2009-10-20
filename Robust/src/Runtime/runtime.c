@@ -688,3 +688,14 @@ void abort_task() {
   exit(-1);
 #endif
 }
+
+#ifndef SANDBOX
+#ifdef D___System______Assert____Z
+ void CALL11(___System______Assert____Z, int ___status___, int ___status___) {
+   if (!___status___) {
+     printf("Assertion violation\n");
+     *((int *)(NULL)); //force stack trace error
+   }
+ }
+#endif
+#endif
