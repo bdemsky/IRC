@@ -202,7 +202,7 @@ void initializethreads() {
 #ifdef STMARRAY
   arraystack.count=0;
 #endif
-  int a=mprotect((downpage(&ptrstack.buffer[0])), 4096, PROT_NONE);
+  int a=mprotect((downpage(&ptrstack.buffer[1024])), 4096, PROT_NONE);
   if (a==-1)
     perror("ptrstack");
   a=mprotect(downpage(&primstack.array[MAXVALUES]), 4096, PROT_NONE);
@@ -303,7 +303,7 @@ void initthread(struct ___Thread___ * ___this___) {
 #ifdef STMARRAY
   arraystack.count=0;
 #endif
-  int a=mprotect(downpage(&ptrstack.buffer[0]), 4096, PROT_NONE);
+  int a=mprotect(downpage(&ptrstack.buffer[1024]), 4096, PROT_NONE);
   if (a==-1)
     perror("ptrstack");
   a=mprotect(downpage(&primstack.array[MAXVALUES]), 4096, PROT_NONE);
@@ -371,6 +371,14 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #if defined(DSTM)|| defined(THREADS)||defined(STM)
 void CALL00(___Thread______yield____) {
   pthread_yield();
+}
+#endif
+
+#ifdef D___Thread______abort____
+void CALL00(___Thread______abort____) {
+#ifdef SANDBOX
+  _longjmp(aborttrans,1);
+#endif
 }
 #endif
 

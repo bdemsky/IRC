@@ -15,7 +15,7 @@ struct pointerlist {
   void * prev;
   void * array[MAXPOINTERS];
   int maxcount;
-  void * buffer[1024];
+  int buffer[2048];
 };
 
 struct primitivelist {

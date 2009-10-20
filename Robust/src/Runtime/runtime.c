@@ -140,6 +140,21 @@ double CALL01(___Double______nativeparsedouble____L___String___,struct ___String
 }
 #endif
 
+#ifdef D___Double______nativeparsedouble_____AR_B_I_I 
+double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int length,int start,int length,struct ArrayObject * ___str___) {
+  int maxlength=(length>60)?60:length;
+  char str[maxlength+1];
+  struct ArrayObject * bytearray=VAR(___str___);
+  int i;
+  for(i=0; i<maxlength; i++) {
+    str[i]=(((char *)&bytearray->___length___)+sizeof(int))[i+start];
+  }
+  str[i]=0;
+  double d=atof(str);
+  return d;
+}
+#endif
+
 #ifdef D___String______convertdoubletochar____D__AR_C
 int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, double ___val___, struct ArrayObject ___chararray___) {
   int length=VAR(___chararray___)->___length___;
