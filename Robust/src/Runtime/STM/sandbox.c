@@ -39,7 +39,7 @@ void checkObjects() {
 }
 
 #ifdef D___System______Assert____Z
-CALL11(___System______Assert____Z, int ___status___, int ___status___) {
+void CALL11(___System______Assert____Z, int ___status___, int ___status___) {
   if (!___status___) {
     if (abortenabled&&checktrans()) {
 #ifdef TRANSSTATS
