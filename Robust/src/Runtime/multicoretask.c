@@ -88,7 +88,7 @@ void initruntimedata() {
 	gcnumlobjs = 0;
 	gcheaptop = 0;
 	gctopcore = 0;
-	gcheapdirection = 1;
+	gctopblock = 0;
 	gcmovestartaddr = 0;
 	gctomove = false;
 	gcmovepending = 0;

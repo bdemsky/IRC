@@ -50,6 +50,7 @@ echo "-tileraconfig config tilera simulator/pci as nxm (should be used together 
 echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
 echo -threadsimulate generate multi-thread simulate version binary
+echo -multicoregc generate multi-core binary with garbage collection
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -107,6 +108,7 @@ ACCURATEPROFILEFLAG=false
 USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
+MULTICOREGCFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -297,6 +299,10 @@ elif [[ $1 = '-optional' ]]
 then
 JAVAOPTS="$JAVAOPTS -optional"
 OPTIONALFLAG=true
+elif [[ $1 = '-multicoregc' ]]
+then
+MULTICOREGCFLAG=true
+JAVAOPTS="$JAVAOPTS -multicoregc"
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -633,6 +639,11 @@ then #INTERRUPT version
 TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
 
+if $MULTICOREGCFLAG
+then #MULTICOREGC version
+TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC"
+fi
+
 cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
 cp $ROBUSTROOT/Tilera/Runtime/$SIMHVC ./sim.hvc
 cp $ROBUSTROOT/Tilera/Runtime/$PCIHVC ./pci.hvc
@@ -648,6 +659,7 @@ cp ../Runtime/SimpleHash.c ./
 cp ../Runtime/ObjectHash.c ./
 cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
+cp ../Runtime/multicoregarbage.c ./
 cp ../Runtime/GenericHashtable.h ./
 cp ../Runtime/mem.h ./
 cp ../Runtime/multicoreruntime.h ./
@@ -656,6 +668,9 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
+cp ../Runtime/multicoregc.h ./
+cp ../Runtime/multicoregarbage.h ./
+cp ../Runtime/multicorehelper.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/lib/* ./

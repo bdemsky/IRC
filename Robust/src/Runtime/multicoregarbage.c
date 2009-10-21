@@ -48,16 +48,17 @@ int gclobjtailindex2=0;
 struct lobjpointerblock *gclobjspare=NULL;
 
 #ifdef GC_DEBUG
+// dump whole mem in blocks
 inline void dumpSMem() {
 	int block = 0;
 	int sblock = 0;
 	int j = 0;
 	int i = 0;
-	bool reverse = false;
 	int coren = 0;
 	int x = 0;
 	int y = 0;
 	tprintf("Dump shared mem: \n");
+	// reserved blocks for sblocktbl
 	tprintf("++++ reserved sblocks ++++ \n");
 	for(i=BAMBOO_BASE_VA; i<gcbaseva; i+= 4*16) {
 		tprintf("0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
@@ -68,71 +69,34 @@ inline void dumpSMem() {
 	}
 	sblock = gcreservedsb;
 	bool advanceblock = false;
+	// remaining memory
 	for(i=gcbaseva;i<BAMBOO_BASE_VA+BAMBOO_SHARED_MEM_SIZE;i+=4*16){
 		advanceblock = false;
+		// computing sblock # and block #, core coordinate (x,y) also
 		if(j%((BAMBOO_SMEM_SIZE)/(4*16)) == 0) {
+			// finished a sblock
 			if(j < ((BAMBOO_LARGE_SMEM_BOUND)/(4*16))) {
 				if((j > 0) && (j%((BAMBOO_SMEM_SIZE_L)/(4*16)) == 0)) {
+					// finished a block
 					block++;
 					advanceblock = true;
 				}
 			} else {
+				// finished a block
 				block++;
 				advanceblock = true;
 			}
+			// compute core #
 			if(advanceblock) {
-				if(block%NUMCORES == 0) {
-					reverse = !reverse;
-				} else {
-					if(((!reverse) && (y%2)) || (reverse && ((y%2)==0))) {
-						if((x == 0) || ((x==1)&&(y==6))){
-							if(reverse) {
-								if(coren > 48) {
-									coren -= bamboo_width - 1;
-								} else {
-									coren -= bamboo_width;
-								}
-							} else {
-								if(coren > 47) {
-									coren += bamboo_width - 1;
-								} else {
-									coren += bamboo_width;
-								}
-							}
-						} else {
-							coren--;
-						}
-					} else {
-						if(x==7) {
-							if(reverse) {
-								if(coren > 48) {
-									coren -= bamboo_width - 1;
-								} else {
-									coren -= bamboo_width;
-								}
-							} else {
-								if(coren > 47) {
-									coren += bamboo_width-1;
-								} else {
-									coren += bamboo_width;
-								}
-							}
-						} else {
-							coren++;
-						}
-					}
-				}
+				coren = gc_block2core[block%124];
 			}
+			// compute core coordinate
 			int tmpcore = coren;
-			if(NUMCORES==62) {
-				if(tmpcore > 54) {
-					tmpcore+=2;
-				} else if(tmpcore > 47) {
-					tmpcore++;
-				}
+			if((NUMCORES==62) && (tmpcore > 5)) {
+				tmpcore+=2;
 			}
-			x = tmpcore%bamboo_width;
-			y = tmpcore/bamboo_width;
+			x = tmpcore/bamboo_width;
+			y = tmpcore%bamboo_width;
 			tprintf("==== %d, %d : core (%d,%d), saddr %x====\n", block, sblock++, 
 					    x, y, (sblock-1)*(BAMBOO_SMEM_SIZE)+BAMBOO_BASE_VA);
 		}
@@ -344,10 +308,12 @@ inline bool isLarge(void * ptr,
 inline int hostcore(void * ptr) {
 	// check the host core of ptr
 	int host = 0;
-	int x = 0;
-	int y = 0;
-	RESIDECORE(ptr, &x, &y);
-	host = (x==0)?(x*bamboo_height+y):(x*bamboo_height+y-2);
+	RESIDECORE(ptr, &host);
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xedd0);
+	BAMBOO_DEBUGPRINT_REG(ptr);
+	BAMBOO_DEBUGPRINT_REG(host);
+#endif
 	return host;
 } // int hostcore(void * ptr)
 
@@ -535,7 +501,7 @@ inline void initGC() {
 		} // for(i = 0; i < NUMCORES; ++i)
 		gcheaptop = 0;
 		gctopcore = 0;
-		gcheapdirection = 1;
+		gctopblock = 0;
 	}
 	gcself_numsendobjs = 0;
 	gcself_numreceiveobjs = 0;
@@ -599,14 +565,9 @@ inline int loadbalance() {
 	BAMBOO_DEBUGPRINT_REG(b);
 	BAMBOO_DEBUGPRINT_REG(numbpc);
 #endif
-	gcheapdirection = (numbpc%2 == 0);
-	int x = 0;
-	int y = 0;
-	RESIDECORE(heaptop, &x, &y);
-	gctopcore = (x == 0 ? y : x * bamboo_height + y - 2);
+	gctopblock = b;
+	RESIDECORE(heaptop, &gctopcore);
 #ifdef DEBUG
-	BAMBOO_DEBUGPRINT_REG(x);
-	BAMBOO_DEBUGPRINT_REG(y);
 	BAMBOO_DEBUGPRINT_REG(gctopcore);
 #endif
 	return numbpc;
@@ -616,7 +577,7 @@ inline bool cacheLObjs() {
 	// check the total mem size need for large objs
 	int sumsize = 0;
 	int size = 0;
-#ifdef GC_DEBUG
+#ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe801);
 #endif
 	gclobjtail2 = gclobjtail;
@@ -625,7 +586,7 @@ inline bool cacheLObjs() {
 		gc_lobjdequeue2();
 		size = gclobjtail2->lengths[gclobjtailindex2 - 1];
 		sumsize += size;
-#ifdef GC_DEBUG
+#ifdef DEBUG
 		BAMBOO_DEBUGPRINT_REG(gclobjtail2->lobjs[gclobjtailindex2-1]);
 		BAMBOO_DEBUGPRINT_REG(size);
 		BAMBOO_DEBUGPRINT_REG(sumsize);
@@ -638,7 +599,7 @@ inline bool cacheLObjs() {
 		// do not have enough room to cache large objs
 		return false;
 	}
-#ifdef GC_DEBUG
+#ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe802);
 	BAMBOO_DEBUGPRINT_REG(dst);
 #endif
@@ -652,11 +613,9 @@ inline bool cacheLObjs() {
 		size = gclobjtail2->lengths[gclobjtailindex2 - 1];
 		// set the mark field to 2, indicating that this obj has been moved and need to be flushed
 		((int *)(gclobjtail2->lobjs[gclobjtailindex2-1]))[6] = 2;
-		// TODO
-		BAMBOO_DEBUGPRINT(0xdcdc);
 		memcpy(dst, gclobjtail2->lobjs[gclobjtailindex2 - 1], size);
 		dst += size;
-#ifdef GC_DEBUG
+#ifdef DEBUG
 		BAMBOO_DEBUGPRINT_REG(gclobjtail2->lobjs[gclobjtailindex2-1]);
 		BAMBOO_DEBUGPRINT(dst-size);
 		BAMBOO_DEBUGPRINT_REG(size);
@@ -777,10 +736,15 @@ inline void moveLObjs() {
 #endif
 	for(int i = 1; i < NUMCORES; i++) {
 		int tmptop = 0;
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xf000+i);
+		BAMBOO_DEBUGPRINT_REG(gcloads[i]);
+		BAMBOO_DEBUGPRINT_REG(gcfilledblocks[i]);
+#endif
 		if((gcfilledblocks[i] > 0) 
 				&& ((gcloads[i] % (BAMBOO_SMEM_SIZE)) == 0)) {
 			// edge of a block, check if this is exactly the heaptop
-			BASEPTR(0, gcfilledblocks[i]-1, &gcloads[i]);
+			BASEPTR(i, gcfilledblocks[i]-1, &gcloads[i]);
 			gcloads[i]
 				+=(gcfilledblocks[i]>1?(BAMBOO_SMEM_SIZE):(BAMBOO_SMEM_SIZE_L));
 			tmptop = gcloads[i];
@@ -939,6 +903,8 @@ inline void moveLObjs() {
 			memcpy(tmpheaptop, gcheaptop, size);
 			// fill the remaining space with -2 padding
 			memset(tmpheaptop+size, -2, isize-size);
+			// zero out original mem caching the lobj
+			memset(gcheaptop, '\0', size);
 #ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xea05);
 			BAMBOO_DEBUGPRINT_REG(gcheaptop);
@@ -1189,7 +1155,7 @@ inline void mark(bool isfirst,
 					// ptr is a large object
 					if(((int *)ptr)[6] == 0) {
 						// not marked and not enqueued
-#ifdef GC_DEBUG
+#ifdef DEBUG
 						BAMBOO_DEBUGPRINT(0xecec);
 						BAMBOO_DEBUGPRINT_REG(ptr);
 #endif
@@ -1199,7 +1165,7 @@ inline void mark(bool isfirst,
 						BAMBOO_CLOSE_CRITICAL_SECTION();
 						// mark this obj
 						((int *)ptr)[6] = 1;
-					}
+					} // if(((int *)ptr)[6] == 0)
 				} else {
 					bool islocal = isLocal(ptr);
 					if (islocal && (((int *)ptr)[6] == 0)) {
@@ -1216,7 +1182,7 @@ inline void mark(bool isfirst,
 						if(ptr + size > gcmarkedptrbound) {
 							gcmarkedptrbound = ptr + size;
 						} // if(ptr + size > gcmarkedptrbound)
-					} else if ((!islocal) && (((int *)ptr)[6] == 0)) {
+					} else if (!islocal /*&& (((int *)ptr)[6] == 0)*/) {
 						int host = hostcore(ptr);
 #ifdef DEBUG
 						BAMBOO_DEBUGPRINT(0xbbbb);
@@ -1261,7 +1227,7 @@ inline void mark(bool isfirst,
 					}
 				} // if (pointer==0) else if ... else ...
 			} // if(checkfield)
-		} // while(!isEmpty(gctomark))
+		} // while(gc_moreItems2())
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xed07);
 #endif
@@ -1284,12 +1250,12 @@ inline void mark(bool isfirst,
 									 gcself_numsendobjs, gcself_numreceiveobjs);
 				sendStall = true;
 			}
-		}
+		} // if(STARTUPCORE == BAMBOO_NUM_OF_CORE) ...
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xed0a);
 #endif
 
-		if(BAMBOO_NUM_OF_CORE == 0) {
+		if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
 #ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xed0b);
 #endif
@@ -1338,7 +1304,8 @@ inline void compact2Heaptophelper(int coren,
 		gcloads[gctopcore] = newbase;
 		gcrequiredmems[coren] -= *remain - BAMBOO_CACHE_LINE_SIZE;
 		gcstopblock[gctopcore]++;
-		gctopcore = nextTopcore(gctopcore, gcheapdirection);
+		gctopcore = NEXTTOPCORE(gctopblock);
+		gctopblock++;
 		*numblocks = gcstopblock[gctopcore];
 		*p = gcloads[gctopcore];
 		BLOCKINDEX(*p, &b);
@@ -1411,6 +1378,7 @@ inline void compact2Heaptop() {
 #endif
 } // void compact2Heaptop()
 
+#if 0
 inline int nextTopcore(int topcore, bool direction) {
 	int nextopcore = topcore;
 	if((NUMCORES == 62) && (nextopcore>5)) {
@@ -1455,6 +1423,7 @@ inline int nextTopcore(int topcore, bool direction) {
 	}
 	return nextopcore;
 } // int nextTopcore(int topcore, bool direction)
+#endif
 
 inline void resolvePendingMoveRequest() {
 #ifdef DEBUG
@@ -1567,21 +1536,24 @@ struct moveHelper {
 	int bound; // bound size of current heap block to check
 }; // struct moveHelper
 
-inline void nextSBlock(struct moveHelper * orig) {
+// if out of boundary of valid shared memory, return false, else return true
+inline bool nextSBlock(struct moveHelper * orig) {
 	orig->blockbase = orig->blockbound;
-#ifdef GC_DEBUG
+#ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xecc0);
 	BAMBOO_DEBUGPRINT_REG(orig->blockbase);
 	BAMBOO_DEBUGPRINT_REG(orig->blockbound);
 	BAMBOO_DEBUGPRINT_REG(orig->bound);
 	BAMBOO_DEBUGPRINT_REG(orig->ptr);
 #endif
+outernextSBlock:
+	// check if across a big block
 	if((orig->blockbase >= orig->bound) || (orig->ptr >= orig->bound) 
 			|| ((*((int*)orig->ptr))==0) || ((*((int*)orig->blockbase))==0)) {
 innernextSBlock:
 		// end of current heap block, jump to next one
 		orig->numblocks++;
-#ifdef GC_DEBUG
+#ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xecc1);
 		BAMBOO_DEBUGPRINT_REG(orig->numblocks);
 #endif
@@ -1589,38 +1561,58 @@ innernextSBlock:
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(orig->base);
 #endif
+		if(orig->base >= BAMBOO_BASE_VA + BAMBOO_SHARED_MEM_SIZE) {
+			// out of boundary
+			orig->ptr = orig->base; // set current ptr to out of boundary too
+			return false;
+		}
 		orig->bound = orig->base + BAMBOO_SMEM_SIZE;
 		orig->blockbase = orig->base;
 		orig->sblockindex = (orig->blockbase-BAMBOO_BASE_VA)/BAMBOO_SMEM_SIZE;
-		if(gcsbstarttbl[orig->sblockindex] == -1) {
-			// goto next sblock
+	} else if(0 == (orig->blockbase%BAMBOO_SMEM_SIZE)) {
+		orig->sblockindex += 1;
+	} // if((orig->blockbase >= orig->bound) || (orig->ptr >= orig->bound) ...
+
+	// check if this sblock should be omitted or have special start point
+	if(gcsbstarttbl[orig->sblockindex] == -1) {
+		// goto next sblock
 #ifdef DEBUG
-			BAMBOO_DEBUGPRINT(0xecc2);
+		BAMBOO_DEBUGPRINT(0xecc2);
 #endif
-			orig->sblockindex += 1;
-			orig->blockbase += BAMBOO_SMEM_SIZE;
-			goto innernextSBlock;
-		} else if(gcsbstarttbl[orig->sblockindex] != 0) {
-			// not start from the very beginning
-			orig->blockbase = gcsbstarttbl[orig->sblockindex];
-		}
-	}
+		orig->sblockindex += 1;
+		orig->blockbase += BAMBOO_SMEM_SIZE;
+		goto outernextSBlock;
+	} else if(gcsbstarttbl[orig->sblockindex] != 0) {
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xecc3);
+#endif
+		// not start from the very beginning
+		orig->blockbase = gcsbstarttbl[orig->sblockindex];
+	} // if(gcsbstarttbl[orig->sblockindex] == -1) else ...
+
+	// setup information for this sblock
 	orig->blockbound = orig->blockbase + *((int*)(orig->blockbase));
 	orig->offset = BAMBOO_CACHE_LINE_SIZE;
 	orig->ptr = orig->blockbase + orig->offset;
-#ifdef GC_DEBUG
-	BAMBOO_DEBUGPRINT(0xecc3);
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xecc4);
 	BAMBOO_DEBUGPRINT_REG(orig->base);
 	BAMBOO_DEBUGPRINT_REG(orig->bound);
 	BAMBOO_DEBUGPRINT_REG(orig->ptr);
+	BAMBOO_DEBUGPRINT_REG(orig->blockbound);
+	BAMBOO_DEBUGPRINT_REG(orig->blockbase);
+	BAMBOO_DEBUGPRINT_REG(orig->offset);
 #endif
 	if(orig->ptr >= orig->bound) {
 		// met a lobj, move to next block
 		goto innernextSBlock;
 	}
-} // void nextSBlock(struct moveHelper * orig) 
 
-inline void initOrig_Dst(struct moveHelper * orig, 
+	return true;
+} // bool nextSBlock(struct moveHelper * orig) 
+
+// return false if there are no available data to compact
+inline bool initOrig_Dst(struct moveHelper * orig, 
 		                     struct moveHelper * to) {
 	// init the dst ptr
 	to->numblocks = 0;
@@ -1663,8 +1655,7 @@ inline void initOrig_Dst(struct moveHelper * orig,
 		// goto next sblock
 		orig->blockbound = 
 			BAMBOO_BASE_VA+BAMBOO_SMEM_SIZE*(orig->sblockindex+1);
-		nextSBlock(orig);
-		return;
+		return nextSBlock(orig);
 	} else if(gcsbstarttbl[orig->sblockindex] != 0) {
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xef04);
@@ -1681,7 +1672,8 @@ inline void initOrig_Dst(struct moveHelper * orig,
 	BAMBOO_DEBUGPRINT(0xef06);
 	BAMBOO_DEBUGPRINT_REG(orig->base);
 #endif
-} // void initOrig_Dst(struct moveHelper * orig, struct moveHelper * to) 
+	return true;
+} // bool initOrig_Dst(struct moveHelper * orig, struct moveHelper * to) 
 
 inline void nextBlock(struct moveHelper * to) {
 	to->top = to->bound + BAMBOO_CACHE_LINE_SIZE; // header!
@@ -1715,7 +1707,10 @@ innermoveobj:
 		orig->ptr = (int*)(orig->ptr) + 1;
 	}
 	if((orig->ptr > orig->bound) || (orig->ptr == orig->blockbound)) {
-		nextSBlock(orig);
+		if(!nextSBlock(orig)) {
+			// finished, no more data
+			return true;
+		}
 		goto innermoveobj;
 	}
 #ifdef DEBUG
@@ -1726,7 +1721,10 @@ innermoveobj:
 	size = 0;
 	if(type == 0) {
 		// end of this block, go to next one
-		nextSBlock(orig);
+		if(!nextSBlock(orig)) {
+			// finished, no more data
+			return true;
+		}
 		goto innermoveobj;
 	} else if(type < NUMCLASSES) {
 		// a normal object
@@ -1741,6 +1739,7 @@ innermoveobj:
 	mark = ((int *)(orig->ptr))[6];
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe203);
+	BAMBOO_DEBUGPRINT_REG(orig->ptr);
 #endif
 	if(mark == 1) {
 #ifdef DEBUG
@@ -1762,8 +1761,6 @@ innermoveobj:
 			nextBlock(to);
 			if(stopblock == to->numblocks) {
 				// already fulfilled the block
-				to->offset = 0;
-				to->ptr = to->base;
 				return true;
 			} // if(stopblock == to->numblocks)
 		} // if(to->top + isize > to->bound)
@@ -1808,7 +1805,10 @@ innermoveobj:
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe206);
 #endif
-		nextSBlock(orig);
+		if(!nextSBlock(orig)) {
+			// finished, no more data
+			return true;
+		}
 	}
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT_REG(orig->ptr);
@@ -2010,7 +2010,12 @@ inline void compact() {
 	struct moveHelper * to = 
 		(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
 
-	initOrig_Dst(orig, to);
+	if(!initOrig_Dst(orig, to)) {
+		// no available data to compact
+		RUNFREE(orig);
+		RUNFREE(to);
+		return;
+	}
 	
 	int filledblocks = 0;
 	INTPTR heaptopptr = 0;
@@ -2383,12 +2388,8 @@ inline void gc(struct garbagelist * stackptr) {
 		tprintf("mark phase finished \n");
 		//dumpSMem();
 #endif
-		int tmpn = 0;
 		int tmptopptr = 0;
-		if(!gcheapdirection) {
-			tmpn = 1;
-		}
-		BASEPTR(gctopcore, tmpn, &tmptopptr);
+		BASEPTR(gctopcore, 0, &tmptopptr);
 		// TODO
 		tmptopptr = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE);
 #ifdef DEBUG
@@ -2397,10 +2398,10 @@ inline void gc(struct garbagelist * stackptr) {
 #endif
 		for(i = 0; i < NUMCORES; ++i) {
 			int tmpcoreptr = 0;
-			BASEPTR(i, tmpn, &tmpcoreptr);
+			BASEPTR(i, 0, &tmpcoreptr);
 			//send start compact messages to all cores
 			if (tmpcoreptr < tmptopptr) {
-				gcstopblock[i] =numpbc + 1;
+				gcstopblock[i] = numpbc + 1;
 				if(i != STARTUPCORE) {
 					send_msg_2(i, GCSTARTCOMPACT, numpbc+1); 
 				} else {
@@ -2516,7 +2517,7 @@ inline void gc(struct garbagelist * stackptr) {
 		} // while(COMPACTPHASE == gcphase) 
 #ifdef GC_DEBUG
 		tprintf("prepare to move large objs \n");
-		//dumpSMem();
+		dumpSMem();
 #endif
 		// move largeObjs
 		moveLObjs();
@@ -2538,8 +2539,6 @@ inline void gc(struct garbagelist * stackptr) {
 #endif
 		// flush phase
 		flush(stackptr);
-		// TODO
-		BAMBOO_DEBUGPRINT(0xefef);
 		gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
 		while(FLUSHPHASE == gcphase) {
 			// check the status of all cores

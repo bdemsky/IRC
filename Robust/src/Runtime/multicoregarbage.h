@@ -1,6 +1,7 @@
 #ifndef MULTICORE_GARBAGE_H
 #define MULTICORE_GARBAGE_H
 #include "multicoregc.h"
+#include "multicorehelper.h"  // for mappins between core # and block #
 #include "structdefs.h"
 
 #ifndef bool
@@ -45,7 +46,7 @@ int gcself_numreceiveobjs;
 INTPTR gcheaptop;
 int gcloads[NUMCORES];
 int gctopcore; // the core host the top of the heap
-bool gcheapdirection; // 0: decrease; 1: increase
+int gctopblock; // the number of current top block
 
 int gcnumlobjs;
 
@@ -82,6 +83,8 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 #define ALIGNSIZE(s, as) \
 	(*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
 
+// mapping of pointer to block # (start from 0), here the block # is the global
+// index
 #define BLOCKINDEX(p, b) \
   { \
 		int t = (p) - gcbaseva; \
@@ -92,8 +95,22 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 		} \
 	}
 
+// mapping of pointer to core #
+#define RESIDECORE(p, c) \
+{ \
+	if(1 == (NUMCORES)) { \
+		(*((int*)c)) = 0; \
+	} else {\
+		int b; \
+		BLOCKINDEX((p), &b); \
+		(*((int*)c)) = gc_block2core[(b%124)]; \
+	}\
+}
+
+#if 0
+// mapping of pointer to host core (x,y)
 #define RESIDECORE(p, x, y) \
-	{ \
+  { \
 		if(1 == (NUMCORES)) { \
 			(*((int*)x)) = 0; \
 			(*((int*)y)) = 0; \
@@ -126,8 +143,12 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 			} \
 		} \
 	}
+#endif
 
 // NOTE: n starts from 0
+// mapping of heaptop (how many bytes there are in the local heap) to the number of
+// the block
+// the number of the block indicates that the block is the xth block on the local heap
 #define NUMBLOCKS(s, n) \
 	if(s < (BAMBOO_SMEM_SIZE_L)) { \
 		(*((int*)(n))) = 0; \
@@ -142,6 +163,9 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 		(*((int*)(o))) = ((s) - (BAMBOO_SMEM_SIZE_L)) % (BAMBOO_SMEM_SIZE); \
 	}
 
+// mapping of (core #, index of the block) to the global block index
+#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+(124*((n)/2))) 
+#if 0
 #define BLOCKINDEX2(c, n, b) \
   { \
 		int x; \
@@ -179,12 +203,12 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 		t += (NUMCORES) * (n); \
 		(*((int*)b)) = t; \
 	}
+#endif
 
-
+// mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
   { \
-		int b; \
-		BLOCKINDEX2(c, n, &b); \
+		int b = BLOCKINDEX2((c), (n)); \
 		if(b < (NUMCORES)) { \
 			(*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
 		} else { \
@@ -192,16 +216,19 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 		} \
 	}
 
+// the next core in the top of the heap
+#define NEXTTOPCORE(b) (gc_block2core[((b)+1)%124])
+
 inline void gc(struct garbagelist * stackptr); // core coordinator routine
 inline void gc_collect(struct garbagelist* stackptr);//core collector routine
 inline void transferMarkResults_I();
 inline void gc_enqueue_I(void *ptr);
 inline void gc_lobjenqueue_I(void *ptr, int length, int host);
 inline bool gcfindSpareMem_I(int * startaddr, 
-		                       int * tomove,
-								  				 int * dstcore,
-									  			 int requiredmem,
-										  		 int requiredcore);
+		                         int * tomove,
+ 								  				   int * dstcore,
+									  			   int requiredmem,
+										  		   int requiredcore);
 
 #endif
 
