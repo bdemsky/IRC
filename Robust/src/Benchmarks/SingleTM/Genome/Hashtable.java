@@ -18,7 +18,7 @@ public class Hashtable {
 
       Pair findPair = new Pair();
       findPair.firstPtr = keyPtr;
-      Pair pairPtr = buckets[(int)i].find(findPair);
+      Pair pairPtr = buckets[i].find(findPair);
       if (pairPtr != null) {
           return false;
       }
@@ -26,7 +26,7 @@ public class Hashtable {
       Pair insertPtr = new Pair(keyPtr, dataPtr);
 
       /* Add new entry  */
-      if (buckets[(int)i].insert(insertPtr) == false) {
+      if (buckets[i].insert(insertPtr) == false) {
           return false;
       }
 
@@ -42,22 +42,7 @@ public class Hashtable {
       
       for (i = 0; i < (numBucket + 1); i++) {
           List chainPtr = new List();
-          buckets[(int)i] = chainPtr;
+          buckets[i] = chainPtr;
       }
-    }
-    
-    int hashSegment (ByteString str) {
-      int hash = 0;
-
-      int index = 0;
-      /* Note: Do not change this hashing scheme */
-      for(index = 0; index < str.length(); index++) {
-        char c = str.byteAt(index);
-        hash = c + (hash << 6) + (hash << 16) - hash;
-      }
-  
-      if(hash < 0) hash *= -1;
-
-      return hash;
     }
 }

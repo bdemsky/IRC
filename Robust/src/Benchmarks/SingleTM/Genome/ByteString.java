@@ -13,10 +13,23 @@ public class ByteString {
     this.offset=0;
   }
 
-  public boolean endsWith(String suffix) {
-    return regionMatches(count - suffix.count, suffix, 0, suffix.count);
+  public int compareTo(ByteString s) {
+    int smallerlength=count<s.count?count:s.count;
+
+    int off=offset;
+    int soff=s.offset;
+    for( int i = 0; i < smallerlength; i++) {
+      int valDiff = this.value[i+offset] - s.value[i+soff];
+      if( valDiff != 0 ) {
+        return valDiff;
+      }
+    }
+    return count-s.count;
   }
 
+  public boolean endsWith(ByteString suffix) {
+    return regionMatches(count - suffix.count, suffix, 0, suffix.count);
+  }
 
   public ByteString substring(int beginIndex) {
     return substring(beginIndex, this.count);
@@ -46,13 +59,6 @@ public class ByteString {
     return this.lastindexOf(ch, count - 1);
   }
 
-  public static ByteString concat2(ByteString s1, ByteString s2) {
-    if (s1==null)
-      return "null".concat(s2);
-    else
-      return s1.concat(s2);
-  }
-
   public ByteString concat(ByteString str) {
     ByteString newstr=new ByteString();
     newstr.count=this.count+str.count;
@@ -62,15 +68,17 @@ public class ByteString {
     for(int i=0; i<count; i++) {
       charstr[i]=value[i+offset];
     }
+    int stroffset=str.offset;
     for(int i=0; i<str.count; i++) {
-      charstr[i+count]=str.value[i+str.offset];
+      charstr[i+count]=str.value[stroffset];
     }
     return newstr;
   }
 
   public int lastindexOf(int ch, int fromIndex) {
+    int off=offset;
     for(int i=fromIndex; i>0; i--)
-      if (this.byteAt(i)==ch)
+      if (this.value[i+offset]==ch)
 	return i;
     return -1;
   }
@@ -80,8 +88,9 @@ public class ByteString {
   }
 
   public int indexOf(int ch, int fromIndex) {
+    int off=offset;
     for(int i=fromIndex; i<count; i++)
-      if (this.byteAt(i)==ch)
+      if (this.value[i+off]==ch)
 	return i;
     return -1;
   }
@@ -148,17 +157,15 @@ public class ByteString {
   }
 
   public int hashCode() {
-    if (cachedHashCode!=0)
-      return cachedHashCode;
+    if (cachedHashcode!=0)
+      return cachedHashcode;
     int hash=0;
     int off=offset;
-    for(int index = 0; index < str.length(); index++) {
-      byte c = str.value[index+off];
+    for(int index = 0; index < count; index++) {
+      byte c = value[index+off];
       hash = c + (hash << 6) + (hash << 16) - hash;
     }
-    if(hash < 0) hash = -hash;
-    
-    cachedHashCode=hash;
+    cachedHashcode=hash<0?-hash:hash;
     return hash;
   }
 

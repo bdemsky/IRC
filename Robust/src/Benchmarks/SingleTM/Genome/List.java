@@ -15,11 +15,11 @@ public class List {
 
     nodePtr = prevPtr.nextPtr;
 
-    if ((nodePtr == null) || (compareSegment(nodePtr.dataPtr, dataPtr) != 0)) {
+    if ((nodePtr == null) || nodePtr.dataPtr.firstPtr.compareTo(dataPtr.firstPtr) !=0 ) {
       return null;
     }
 
-    return (nodePtr.dataPtr);
+    return nodePtr.dataPtr;
   }
 
   ListNode findPrevious (Pair dataPtr) {
@@ -28,7 +28,7 @@ public class List {
     nodePtr = prevPtr.nextPtr;
 
     for (; nodePtr != null; nodePtr = nodePtr.nextPtr) {
-      if (compareSegment(nodePtr.dataPtr, dataPtr) >= 0) {
+      if (nodePtr.dataPtr.firstPtr.compareTo(dataPtr.firstPtr) >= 0) {
         return prevPtr;
       }
       prevPtr = nodePtr;
@@ -45,7 +45,7 @@ public class List {
     prevPtr = findPrevious(dataPtr);
     currPtr = prevPtr.nextPtr;
 
-    if ((currPtr != null) && (compareSegment((Pair)currPtr.dataPtr, (Pair)dataPtr) == 0)) {
+    if ((currPtr != null) && (currPtr.dataPtr.firstPtr.compareTo(dataPtr.firstPtr)==0)) {
       return false;
     }
 
@@ -56,11 +56,5 @@ public class List {
     size++;
 
     return true;
-  }
-
-  int compareSegment (Pair a, Pair b) { 
-    ByteString aString = a.firstPtr;
-    ByteString bString = b.firstPtr;
-    return aString.compareTo(bString);
   }
 }

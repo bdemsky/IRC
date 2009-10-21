@@ -196,18 +196,16 @@ public class Sequencer {
 
         startHash = 0;
         for (newj = 1; newj < segmentLength; newj++) {
-          startHash = segment.charAt((int)newj-1) + (startHash << 6) + (startHash << 16) - startHash;
+          startHash = segment.byteAt(newj-1) + (startHash << 6) + (startHash << 16) - startHash;
           atomic {
             boolean check = startHashToConstructEntryTables[newj].table_insert(startHash, constructEntryPtr);
           }
-
         }
-
 
         /*
          * For looking up construct entries quickly
          */
-        startHash = segment.charAt((int)newj-1) + (startHash << 6) + (startHash << 16) - startHash;
+        startHash = segment.byteAt(newj-1) + (startHash << 6) + (startHash << 16) - startHash;
         atomic {
           hashToConstructEntryTable.table_insert(startHash, constructEntryPtr);
         }
@@ -377,9 +375,9 @@ public class Sequencer {
   static void trans2(ByteString startSegment, ByteString endSegment, constructEntry startConstructEntryPtr, constructEntry endConstructEntryPtr, int segmentLength, int substringLength, endInfoEntry endInfoEntries[], int entryIndex) {
     if(startConstructEntryPtr.isStart &&
        (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
-       (startSegment.substring(0, substringLength.compareTo(endSegment.substring(segmentLength-substringLength))) == 0)) {
+       (startSegment.substring(0, substringLength).compareTo(endSegment.substring(segmentLength-substringLength)) == 0)) {
       startConstructEntryPtr.isStart = false;
-	
+      
       /* Update endInfo (appended something so no inter end) */
       endInfoEntries[entryIndex].isEnd = false;
       /* Update segment chain construct info */
