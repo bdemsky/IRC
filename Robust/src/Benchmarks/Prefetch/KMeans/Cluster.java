@@ -88,16 +88,15 @@ public class Cluster {
     {
       float[] moments = new float[num_moments];
 
-      float mzero=0.0f;
       for (int i = 0; i < num_elts; i++) {
-        mzero += data[i];
+        moments[0] += data[i];
       }
 
-      moments[0] = mzero / num_elts;
+      moments[0] = moments[0] / num_elts;
       for (int j = 1; j < num_moments; j++) {
         moments[j] = 0;
         for (int i = 0; i < num_elts; i++) {
-          moments[j] += (float) Math.pow((data[i]-moments[0]), j+1);
+          moments[j] = (float) (moments[j] + Math.pow((data[i]-moments[0]), j+1));
         }
         moments[j] = moments[j] / num_elts;
       }
@@ -139,8 +138,8 @@ public class Cluster {
         int      numObjects,             /* number of input objects */
         int      numAttributes,          /* size of attribute of each object */
         float[][]  attributes,           /* [numObjects][numAttributes] */
-        KMeans kms,                       /* KMeans class hold the inputs and outputs */
-        GlobalArgs args       /* Global thread arguments */
+        KMeans kms,                      /* KMeans class hold the inputs and outputs */
+        GlobalArgs args                  /* Global thread arguments */
         )
     {
       int itime;
@@ -170,10 +169,6 @@ public class Cluster {
       for (nclusters = kms.min_nclusters; nclusters <= kms.max_nclusters; nclusters++) {
 
         randomPtr.random_seed(7);
-        atomic {
-          args.nclusters = nclusters;
-        }
-
         Normal norm = new Normal();
 
         //System.out.println("nclusters= " + nclusters + " min_nclusters= " + min_nclusters + " max_nclusters= " + max_nclusters);
