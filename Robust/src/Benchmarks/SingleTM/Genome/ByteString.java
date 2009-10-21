@@ -165,7 +165,9 @@ public class ByteString {
       byte c = value[index+off];
       hash = c + (hash << 6) + (hash << 16) - hash;
     }
-    cachedHashcode=hash<0?-hash:hash;
+    if (hash<0)
+      hash=-hash;
+    cachedHashcode=hash;
     return hash;
   }
 

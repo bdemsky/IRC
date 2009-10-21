@@ -1,5 +1,4 @@
 public class Table {
-
     LinkedList buckets[];
     int numBucket;
 
@@ -10,16 +9,11 @@ public class Table {
      * =============================================================================
      */
     Table (int myNumBucket) {
-    
-      int i;
-
       buckets = new LinkedList[myNumBucket];
-      for(i = 0; i < myNumBucket; i++) {
+      for(int i = 0; i < myNumBucket; i++) {
         buckets[i] = new LinkedList();      
       }
-
       numBucket = myNumBucket;
-      
     }
 
 
@@ -29,8 +23,8 @@ public class Table {
      * =============================================================================
      */
     boolean table_insert (int hash, Object dataPtr) {
-      int i = (int)(hash % numBucket);
-      if(i < 0) i *= -1;
+      int i = hash % numBucket;
+      if (i<0) i=-i;
       if(buckets[i].contains(dataPtr)) {
         return false;
       }
@@ -44,16 +38,13 @@ public class Table {
      * =============================================================================
      */
     boolean table_remove (int hash, Object dataPtr) {
-    
-      int i = (int)(hash % numBucket);
+      int i = (hash % numBucket);
+      if (i<0) i=-i;
       boolean tempbool = buckets[i].contains(dataPtr);
       if (tempbool) {
           buckets[i].remove(dataPtr);
           return true;
       }
-
       return false;
-    
     }
-
 }
