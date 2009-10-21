@@ -79,6 +79,7 @@ void printhex(unsigned char *, int);
 plistnode_t *createPiles();
 plistnode_t *sortPiles(plistnode_t *pileptr);
 
+//#define LOGEVENTS
 #ifdef LOGEVENTS
 char bigarray[16*1024*1024];
 int bigindex=0;
@@ -666,6 +667,7 @@ __attribute__((pure)) objheader_t *transRead(unsigned int oid) {
       } else {
         prehashInsert(oid, headerObj);
       }
+      LOGEVENT('B');
 #endif
       return &objcopy[1];
 #else
@@ -773,6 +775,7 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
       } else {
         prehashInsert(oid, headerObj);
       }
+      LOGEVENT('B');
 #endif
       return &objcopy[1];
 #else
@@ -1049,6 +1052,7 @@ int transCommit() {
 	    } else {
 	      prehashInsert(oidToPrefetch, header);
 	    }
+        LOGEVENT('E');
 	    length = length - size;
 	    offset += size;
 	  }
@@ -1135,6 +1139,7 @@ int transCommit() {
   if(finalResponse == TRANS_ABORT) {
     //printf("Aborting trans\n");
 #ifdef TRANSSTATS
+    LOGEVENT('A');
     numTransAbort++;
 #endif
     /* Free Resources */
@@ -1143,6 +1148,7 @@ int transCommit() {
     return TRANS_ABORT;
   } else if(finalResponse == TRANS_COMMIT) {
 #ifdef TRANSSTATS
+    LOGEVENT('C');
     numTransCommit++;
 #endif
     /* Free Resources */
