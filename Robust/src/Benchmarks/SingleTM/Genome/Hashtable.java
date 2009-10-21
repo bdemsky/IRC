@@ -14,7 +14,7 @@ public class Hashtable {
     }
     
     public boolean TMhashtable_insert (ByteString keyPtr, ByteString dataPtr) {
-      int i = hashSegment(keyPtr) % numBucket;
+      int i = keyPtr.hashCode() % numBucket;
 
       Pair findPair = new Pair();
       findPair.firstPtr = keyPtr;

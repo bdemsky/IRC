@@ -146,14 +146,20 @@ public class ByteString {
   public byte byteAt(int i) {
     return value[i+offset];
   }
+
   public int hashCode() {
-    if (cachedHashcode!=0)
-      return cachedHashcode;
-    int hashcode=0;
-    for(int i=0; i<count; i++)
-      hashcode=hashcode*31+value[i+offset];
-    cachedHashcode=hashcode;
-    return hashcode;
+    if (cachedHashCode!=0)
+      return cachedHashCode;
+    int hash=0;
+    int off=offset;
+    for(int index = 0; index < str.length(); index++) {
+      byte c = str.value[index+off];
+      hash = c + (hash << 6) + (hash << 16) - hash;
+    }
+    if(hash < 0) hash = -hash;
+    
+    cachedHashCode=hash;
+    return hash;
   }
 
   public boolean equals(Object o) {

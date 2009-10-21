@@ -192,7 +192,7 @@ public class Sequencer {
          * and compute all of them here.
          */
         /* constructEntryPtr is local now */
-        constructEntryPtr.endHash = hashString(segment.substring(1)); // USE BYTE SUBSTRING FUNCTION
+        constructEntryPtr.endHash = segment.substring(1).hashCode(); // USE BYTE SUBSTRING FUNCTION
 
         startHash = 0;
         for (newj = 1; newj < segmentLength; newj++) {
@@ -312,15 +312,15 @@ public class Sequencer {
           endInfoEntries[0].jumpToNext = i;
           if (endInfoEntries[0].isEnd) {
             ByteString segment = constructEntries[0].segment;
-            constructEntries[0].endHash = hashString(segment.subString((int)index)); // USE BYTE SUBSTRING FUNCTION
+            constructEntries[0].endHash = segment.subString(index).hashCode(); // USE BYTE SUBSTRING FUNCTION
           }
           /* Continue scanning (do not reset i) */
           for (j = 0; i < numUniqueSegment; i+=endInfoEntries[i].jumpToNext) {
 
             if (endInfoEntries[i].isEnd) {
               ByteString segment = constructEntries[i].segment;
-              constructEntries[i].endHash = hashString(segment.substring((int)index)); // USE BYTE SUBSTRING FUNCTION
-              endInfoEntries[j].jumpToNext = Math.imax((int)1, (int)(i - j));
+              constructEntries[i].endHash = segment.substring(index).hashCode(); // USE BYTE SUBSTRING FUNCTION
+              endInfoEntries[j].jumpToNext = Math.imax(1, i - j);
               j = i;
             }
           }
@@ -363,7 +363,7 @@ public class Sequencer {
             if(sequencerPtr.sequence == null) {
               sequencerPtr.sequence = copyPtr;
             } else {
-              sequencerPtr.sequence = sequencerPtr.sequence.concat(copyPtr.substring((int)(prevOverlap)));
+              sequencerPtr.sequence = sequencerPtr.sequence.concat(copyPtr.substring(prevOverlap));
             }
             prevOverlap = constructEntryPtr.overlap;
             constructEntryPtr = constructEntryPtr.nextPtr;
@@ -377,41 +377,20 @@ public class Sequencer {
   static void trans2(ByteString startSegment, ByteString endSegment, constructEntry startConstructEntryPtr, constructEntry endConstructEntryPtr, int segmentLength, int substringLength, endInfoEntry endInfoEntries[], int entryIndex) {
     if(startConstructEntryPtr.isStart &&
        (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
-       (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
-      {
-	startConstructEntryPtr.isStart = false;
+       (startSegment.substring(0, substringLength.compareTo(endSegment.substring(segmentLength-substringLength))) == 0)) {
+      startConstructEntryPtr.isStart = false;
 	
-	/* Update endInfo (appended something so no inter end) */
-	endInfoEntries[entryIndex].isEnd = false;
-	/* Update segment chain construct info */
-	constructEntry startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
-	constructEntry endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
-	startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
-	endConstructEntryPtr.nextPtr = startConstructEntryPtr;
-	endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
-	endConstructEntryPtr.overlap = substringLength;
-	int newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
-	endConstructEntry_startPtr.length = newLength;
-      }
-  }
-
-  /* =============================================================================
-   * hashString
-   * -- uses sdbm hash function
-   * =============================================================================
-   */
-  static int hashString (ByteString str) {
-    int hash = 0;
-
-    int index = 0;
-    // Note: Do not change this hashing scheme 
-    for(index = 0; index < str.length(); index++) {
-      byte c = str.byteAt(index);
-      hash = c + (hash << 6) + (hash << 16) - hash;
+      /* Update endInfo (appended something so no inter end) */
+      endInfoEntries[entryIndex].isEnd = false;
+      /* Update segment chain construct info */
+      constructEntry startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
+      constructEntry endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
+      startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
+      endConstructEntryPtr.nextPtr = startConstructEntryPtr;
+      endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
+      endConstructEntryPtr.overlap = substringLength;
+      int newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
+      endConstructEntry_startPtr.length = newLength;
     }
-
-    if(hash < 0) hash *= -1;
-
-    return hash;
   }
 }

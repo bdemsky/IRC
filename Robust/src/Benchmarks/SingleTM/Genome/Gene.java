@@ -5,7 +5,6 @@ public class Gene {
   
   Gene(int myLength) {
     length = myLength;
-    contents = "";
     startBitmapPtr = new Bitmap(length);
   }
 
@@ -15,21 +14,17 @@ public class Gene {
  * -- Populate contents with random gene
  * =============================================================================
  */
-  void create (Random randomObj) {
+  void create(Random randomObj) {
     int i;
     byte[] nucleotides = new byte[4];
     byte[] arrayContents = new byte[length];
-    nucleotides[0] = 'a';
-    nucleotides[1] = 'c';
-    nucleotides[2] = 'g';
-    nucleotides[3] = 't';
+    nucleotides[0] = (byte) 'a';
+    nucleotides[1] = (byte) 'c';
+    nucleotides[2] = (byte) 'g';
+    nucleotides[3] = (byte) 't';
 
     for (i = 0; i < length; i++) {
-      int legitimateNumber = (int)randomObj.random_generate(); 
-      if(legitimateNumber < 0) {
-        legitimateNumber *= -1;
-      }
-      arrayContents[i] = nucleotides[legitimateNumber % 4];
+      arrayContents[i] = nucleotides[(int)(randomObj.random_generate() % 4)];
     }
     
     contents = new ByteString(arrayContents);
