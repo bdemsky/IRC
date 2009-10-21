@@ -75,6 +75,9 @@ public class OwnershipGraph {
   public Hashtable<Integer, TokenTuple> paramIndex2paramTokenSecondaryStar;
 
 
+
+
+
   public OwnershipGraph() {
 
     id2hrn                    = new Hashtable<Integer,        HeapRegionNode>();
@@ -299,6 +302,34 @@ public class OwnershipGraph {
   //  of the nodes and edges involved.
   //
   ////////////////////////////////////////////////////
+
+  public void nullifyDeadVars( Set<TempDescriptor> liveIn ) {
+
+    // make a set of the temps that are out of scope, don't
+    // consider them when nullifying dead in-scope variables
+    Set<TempDescriptor> outOfScope = new HashSet<TempDescriptor>();
+    outOfScope.add( tdReturn );
+    outOfScope.add( tdAliasBlob );
+    outOfScope.addAll( paramIndex2tdQ.values() );
+    outOfScope.addAll( paramIndex2tdR.values() );    
+    
+    Iterator varItr = td2ln.entrySet().iterator();
+    while( varItr.hasNext() ) {
+      Map.Entry      me = (Map.Entry)      varItr.next();
+      TempDescriptor td = (TempDescriptor) me.getKey();
+      LabelNode      ln = (LabelNode)      me.getValue();
+
+      // if this variable is not out-of-scope or live
+      // in graph, nullify its references to anything
+      if( !outOfScope.contains( td ) &&
+	  !liveIn.contains( td ) 
+	  ) {
+	clearReferenceEdgesFrom( ln, null, null, true );
+      }
+    }
+  }
+
+
   public void assignTempXEqualToTempY(TempDescriptor x,
                                       TempDescriptor y) {
 

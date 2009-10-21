@@ -1,6 +1,7 @@
 package Analysis.MLP;
 
 import Analysis.CallGraph.*;
+import Analysis.Liveness;
 import Analysis.OwnershipAnalysis.*;
 import IR.*;
 import IR.Flat.*;
@@ -199,7 +200,7 @@ public class MLPAnalysis {
     
     // disjoint analysis with a set of flagged allocation sites of live-in variable
 	try {
-		OwnershipAnalysis oa2 = new OwnershipAnalysis(state, tu, callGraph,
+	  OwnershipAnalysis oa2 = new OwnershipAnalysis(state, tu, callGraph, new Liveness(),
 				state.OWNERSHIPALLOCDEPTH, false,
 				false, state.OWNERSHIPALIASFILE,
 				state.METHODEFFECTS,

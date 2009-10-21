@@ -1,0 +1,69 @@
+\documentclass{article}
+\begin{document}
+ 
+Nullfy dead means to remove references from variables when they are no
+longer live.
+
+\section{Analysis without Nullify Dead}
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank & 0 & 6.20 & 1827 & 67 \\
+Chat & 3 & 5.84 & 1512 & 71 \\
+Conglomerator & 0 & 3.84 & 1981 & 93 \\
+jHTTPp2 & 0 & 5.65 & 2585 & 122 \\
+MapReduce1 & 2 & 11.96 & 2276 & 114 \\
+MultiGame & 10 & 30.89 & 3005 & 46 \\
+Performance & 0 & 2.65 & 1762 & 30 \\
+PERT & 0 & 3.20 & 1952 & 61 \\
+FilterBank & 0 & 1.23 & 1323 & 9 \\
+Fractal & 1 & 1.43 & 1336 & 8 \\
+MolDynamics & 2 & 7.96 & 1904 & 31 \\
+MonteCarlo & 0 & 4.10 & 3544 & 49 \\
+Series & 0 & 1.24 & 1407 & 10 \\
+KMeans & 2 & 5.24 & 2661 & 45 \\
+MapReduce2 & 3 & 20.39 & 2220 & 95 \\
+FluidAnimate & 2 & 1045.30 & 3589 & 82 \\
+Spider1 & 0 & 7.01 & 1595 & 80 \\
+Spider2 & 0 & 7.62 & 1599 & 83 \\
+TileSearch & 0 & 8.24 & 2052 & 34 \\
+TicTacToe & 0 & 4.15 & 1534 & 68 \\
+WebServer1 & 0 & 7.81 & 1858 & 97 \\
+WebServer2 & 0 & 8.03 & 1857 & 100 \\
+\hline
+\end{tabular}
+
+
+\section{Using Nullify Dead}
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank & 0 & 5.70 & 1827 & 67 \\
+Chat & 3 & 5.60 & 1512 & 71 \\
+Conglomerator & 0 & 5.42 & 1981 & 93 \\
+jHTTPp2 & 0 & 6.45 & 2585 & 122 \\
+MapReduce1 & 2 & 11.68 & 2276 & 114 \\
+MultiGame & 10 & 22.27 & 3005 & 46 \\
+Performance & 0 & 2.74 & 1762 & 30 \\
+PERT & 0 & 4.24 & 1952 & 61 \\
+FilterBank & 0 & 1.56 & 1323 & 9 \\
+Fractal & 1 & 1.26 & 1336 & 8 \\
+MolDynamics & 2 & 6.58 & 1904 & 31 \\
+MonteCarlo & 0 & 4.24 & 3544 & 49 \\
+Series & 0 & 1.70 & 1407 & 10 \\
+KMeans & 2 & 5.51 & 2661 & 45 \\
+MapReduce2 & 3 & 17.76 & 2220 & 95 \\
+FluidAnimate & 2 & 164.37 & 3589 & 82 \\
+Spider1 & 0 & 6.58 & 1595 & 80 \\
+Spider2 & 0 & 6.24 & 1599 & 83 \\
+TileSearch & 0 & 8.18 & 2052 & 34 \\
+TicTacToe & 0 & 5.16 & 1534 & 68 \\
+WebServer1 & 0 & 6.79 & 1858 & 97 \\
+WebServer2 & 0 & 6.45 & 1857 & 100 \\
+\hline
+\end{tabular}
+
+
+\end{document}

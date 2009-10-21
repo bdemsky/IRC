@@ -1,6 +1,7 @@
 package Analysis.OwnershipAnalysis;
 
 import Analysis.CallGraph.*;
+import Analysis.Liveness;
 import IR.*;
 import IR.Flat.*;
 import IR.Tree.Modifiers;
@@ -315,6 +316,7 @@ public class OwnershipAnalysis {
   // data from the compiler
   public State     state;
   public CallGraph callGraph;
+  public Liveness  liveness;
   public TypeUtil  typeUtil;
   public int       allocationDepth;
 
@@ -393,27 +395,29 @@ public class OwnershipAnalysis {
   public OwnershipAnalysis(State state,
                            TypeUtil tu,
                            CallGraph callGraph,
+			   Liveness liveness,
                            int allocationDepth,
                            boolean writeDOTs,
                            boolean writeAllDOTs,
                            String aliasFile) throws java.io.IOException {
 	  
 	  this.methodEffects = false;
-	  init(state,tu,callGraph,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
+	  init(state,tu,callGraph,liveness,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
 	  
   }
   
   public OwnershipAnalysis(State state,
-          TypeUtil tu,
-          CallGraph callGraph,
-          int allocationDepth,
-          boolean writeDOTs,
-          boolean writeAllDOTs,
-          String aliasFile,
-          boolean methodEffects) throws java.io.IOException {
+			   TypeUtil tu,
+			   CallGraph callGraph,
+			   Liveness liveness,
+			   int allocationDepth,
+			   boolean writeDOTs,
+			   boolean writeAllDOTs,
+			   String aliasFile,
+			   boolean methodEffects) throws java.io.IOException {
 	  
 	  this.methodEffects = methodEffects;
-	  init(state,tu,callGraph,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
+	  init(state,tu,callGraph,liveness,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
 	  
   }
   
@@ -422,6 +426,7 @@ public class OwnershipAnalysis {
 			State state,
 			TypeUtil tu,
 			CallGraph callGraph,
+			Liveness liveness,
 			int allocationDepth,
 			boolean writeDOTs,
 			boolean writeAllDOTs,
@@ -432,24 +437,26 @@ public class OwnershipAnalysis {
 
 		this.methodEffects = methodEffects;
 		this.mapMethodContextToLiveInAllocationSiteSet=mapMethodContextToLiveInAllocationSiteSet;
-		init(state, tu, callGraph, allocationDepth, writeDOTs, writeAllDOTs,
+		init(state, tu, callGraph, liveness, allocationDepth, writeDOTs, writeAllDOTs,
 				aliasFile);
 
 	}
   
   private void init(State state,
-          TypeUtil tu,
-          CallGraph callGraph,
-          int allocationDepth,
-          boolean writeDOTs,
-          boolean writeAllDOTs,
-          String aliasFile) throws java.io.IOException {
+		    TypeUtil tu,
+		    CallGraph callGraph,
+		    Liveness liveness,
+		    int allocationDepth,
+		    boolean writeDOTs,
+		    boolean writeAllDOTs,
+		    String aliasFile) throws java.io.IOException {
 
 	    analysisComplete = false;
 
 	    this.state           = state;
 	    this.typeUtil        = tu;
 	    this.callGraph       = callGraph;
+	    this.liveness        = liveness;
 	    this.allocationDepth = allocationDepth;
 	    this.writeDOTs       = writeDOTs;
 	    this.writeAllDOTs    = writeAllDOTs;
@@ -548,7 +555,7 @@ public class OwnershipAnalysis {
 
 	      meAnalysis.createNewMapping(mc);
 
-	      og = analyzeFlatNode(mc, fm, null, og);
+	      og = analyzeFlatNode(mc, fm, fm, null, og);
 	      setGraphForMethodContext(mc, og);
 	    }
 
@@ -735,6 +742,7 @@ public class OwnershipAnalysis {
       // ownership graph made from the merge of the
       // parent graphs
       og = analyzeFlatNode(mc,
+			   flatm,
                            fn,
                            returnNodesToCombineForCompleteOwnershipGraph,
                            og);
@@ -781,9 +789,19 @@ public class OwnershipAnalysis {
 
   private OwnershipGraph
   analyzeFlatNode(MethodContext mc,
+		  FlatMethod fmContaining,
                   FlatNode fn,
                   HashSet<FlatReturnNode> setRetNodes,
                   OwnershipGraph og) throws java.io.IOException {
+
+
+    // any variables that are no longer live should be
+    // nullified in the graph to reduce edges
+    // NOTE: it is not clear we need this.  It costs a
+    // liveness calculation for every method, so only
+    // turn it on if we find we actually need it.
+    //og.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
+
 	  
     TempDescriptor lhs;
     TempDescriptor rhs;
@@ -1070,6 +1088,7 @@ public class OwnershipAnalysis {
       setRetNodes.add(frn);
       break;
     }
+
     
     Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(mc);
     if(table==null){
