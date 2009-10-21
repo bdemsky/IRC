@@ -84,26 +84,28 @@
 #define CUTOFF 8
 
 public class Sort {
+  int[] lostk;
+  int[] histk;
+
 
   public Sort() {
-
+    lostk= new int[30];
+    histk= new int[30];
   }
 
   /* =============================================================================
    * swap
    * =============================================================================
    */
-  public static void
-    swap (byte[] base, int a, int b, int width)
-    {
-      if (a != b ) {
-        while (width--) {
-          byte tmp = base[a];
-          base[a++] = base[b];
-          base[b++] = tmp;
-        }
+  public static void swap (byte[] base, int a, int b, int width) {
+    if (a != b ) {
+      while(width--) {
+	byte tmp = base[a];
+	base[a++] = base[b];
+	base[b++] = tmp;
       }
     }
+  }
 
 
   /* =============================================================================
@@ -134,106 +136,104 @@ public class Sort {
    * sort
    * =============================================================================
    */
-  public static void
-    sort (byte[] base,
-        int start,
-        int num,
-        int width,
-        int n,
-        int offset)
-    {
-      if (num < 2 || width == 0) {
-        return;
-      }
-
-      /**
-       * Pointers that keep track of
-       * where to start looking in 
-       * the base array
-       **/
-      int[] lostk= new int[30];
-      int[] histk= new int[30];
-
-      int stkptr = 0;
-
-      int lo = start;
-      int hi = start + (width * (num - 1));
-
-      int size = 0;
-
-      int pvlo = lo;
-      int pvhi = hi;
-      int pvwidth = width;
-      int pvn = n;
-      int pvmid;
-      int pvloguy;
-      int pvhiguy;
-      int typeflag;
-
-      while(true) {
-
-        size = (pvhi - pvlo) / pvwidth + 1;
- 
-        if (size <= CUTOFF) {
-
-          shortsort(base, pvlo, pvhi, pvwidth, pvn, offset);
-
-        } else {
-
-          pvmid = pvlo + (size / 2) * pvwidth;
-          swap(base, pvmid, pvlo, pvwidth);
-
-          pvloguy = pvlo;
-          pvhiguy = pvhi + pvwidth;
-
-          while(true) {
-            do {
-              pvloguy += pvwidth;
-            } while (pvloguy <= pvhi && cmp(base, pvloguy, pvlo, pvn, offset) <= 0);
-            do {
-              pvhiguy -= pvwidth;
-            } while (pvhiguy > pvlo && cmp(base, pvhiguy, pvlo, pvn, offset) >= 0);
-            if (pvhiguy < pvloguy) {
-              break;
-            }
-            swap(base, pvloguy, pvhiguy, pvwidth);
-          }
-
-          swap(base, pvlo, pvhiguy, pvwidth);
-
-          if ((pvhiguy - 1 - pvlo) >= (pvhi - pvloguy)) {
-            if (pvlo + pvwidth < pvhiguy) {
-              lostk[stkptr] = pvlo;
-              histk[stkptr] = pvhiguy - pvwidth;
-              ++stkptr;
-            }
-
-            if (pvloguy < pvhi) {
-              pvlo = pvloguy;
-              continue;
-            }
-          } else {
-            if (pvloguy < pvhi) {
-              lostk[stkptr] = pvloguy;
-              histk[stkptr] = pvhi;
-              ++stkptr;
-            }
-            if (pvlo + pvwidth < pvhiguy) {
-              pvhi = pvhiguy - pvwidth;
-              continue;
-            }
-          }
-        }
-
-        --stkptr;
-        if (stkptr >= 0) {
-          pvlo = lostk[stkptr];
-          pvhi = histk[stkptr];
-          continue;
-        }
-	break;
-      }
+  public void sort (byte[] base,
+		    int start,
+		    int num,
+		    int width,
+		    int n,
+		    int offset) {
+    if (num < 2 || width == 0) {
+      return;
     }
+    
+    /**
+     * Pointers that keep track of
+     * where to start looking in 
+     * the base array
+     **/
+    int[] lostk=this.lostk;
+    int[] histk=this.histk;
+    
+    int stkptr = 0;
+    
+    int lo = start;
+    int hi = start + (width * (num - 1));
+    
+    int size = 0;
+    
+    int pvlo = lo;
+    int pvhi = hi;
+    int pvwidth = width;
+    int pvn = n;
+    int pvmid;
+    int pvloguy;
+    int pvhiguy;
+    int typeflag;
+    
+    while(true) {
+      
+      size = (pvhi - pvlo) / pvwidth + 1;
+      
+      if (size <= CUTOFF) {
+	
+	shortsort(base, pvlo, pvhi, pvwidth, pvn, offset);
+	
+      } else {
+	
+	pvmid = pvlo + (size / 2) * pvwidth;
+	swap(base, pvmid, pvlo, pvwidth);
+	
+	pvloguy = pvlo;
+	pvhiguy = pvhi + pvwidth;
+	
+	while(true) {
+	  do {
+	    pvloguy += pvwidth;
+	  } while (pvloguy <= pvhi && cmp(base, pvloguy, pvlo, pvn, offset) <= 0);
+	  do {
+	    pvhiguy -= pvwidth;
+	  } while (pvhiguy > pvlo && cmp(base, pvhiguy, pvlo, pvn, offset) >= 0);
+	  if (pvhiguy < pvloguy) {
+	    break;
+	  }
+	  swap(base, pvloguy, pvhiguy, pvwidth);
+	}
+	
+	swap(base, pvlo, pvhiguy, pvwidth);
+	
+	if ((pvhiguy - 1 - pvlo) >= (pvhi - pvloguy)) {
+	  if (pvlo + pvwidth < pvhiguy) {
+	    lostk[stkptr] = pvlo;
+	    histk[stkptr] = pvhiguy - pvwidth;
+	    ++stkptr;
+	  }
+	  
+	  if (pvloguy < pvhi) {
+	    pvlo = pvloguy;
+	    continue;
+	  }
+	} else {
+	  if (pvloguy < pvhi) {
+	    lostk[stkptr] = pvloguy;
+	    histk[stkptr] = pvhi;
+	    ++stkptr;
+	  }
+	  if (pvlo + pvwidth < pvhiguy) {
+	    pvhi = pvhiguy - pvwidth;
+	    continue;
+            }
+	}
+      }
+      
+      --stkptr;
+      if (stkptr >= 0) {
+	pvlo = lostk[stkptr];
+	pvhi = histk[stkptr];
+	continue;
+      }
+      break;
+    }
+  }
 
   /* =============================================================================
    * compareRecord

@@ -16,7 +16,7 @@ SRC=tmp${MAINCLASS}.java \
 	IntListNode.java \
 	tmpQueue.java \
 	Random.java \
-	../common/Vector_t.java \
+	Vector_t.java \
 	ListNode.java \
 	tmpList.java \
 	QuickSort.java \
@@ -24,9 +24,11 @@ SRC=tmp${MAINCLASS}.java \
     ../../../ClassLibrary/JavaSTM/Barrier.java \
     ../common/LocalStartStop.java
 
-FLAGS=-mainclass ${MAINCLASS} -singleTM -optimize -debug -dcopts -stmstats -fastmemcpy -transstats -abcclose
+include ../common/Makefile.flags
 
-default:
+include ../common/Makefile.builds
+
+prep:
 	cpp Bayes.java > tmp1Bayes.java
 	cpp Data.java > tmp1Data.java
 	cpp Net.java > tmp1Net.java
@@ -37,7 +39,6 @@ default:
 	cpp -DLIST_NO_DUPLICATES IntList.java > tmp1IntList.java
 	cpp -DLIST_NO_DUPLICATES List.java > tmp1List.java
 	./extractLines
-	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}
 
 clean:
 	rm tmp1Bayes.java

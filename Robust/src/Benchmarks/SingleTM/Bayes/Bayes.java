@@ -199,28 +199,27 @@ public class Bayes extends Thread {
    * score
    * =============================================================================
    */
-  public float
-    score (Net netPtr, Adtree adtreePtr)
-    {
-      /*
-       * Create dummy data structures to conform to learner_score assumptions
-       */
+  public float score (Net netPtr, Adtree adtreePtr) {
+    /*
+     * Create dummy data structures to conform to learner_score assumptions
+     */
+    
+    Data dataPtr = new Data(1, 1, null);
+    
+    Learner learnerPtr = new Learner(dataPtr, adtreePtr, 1, global_insertPenalty, global_maxNumEdgeLearned, global_operationQualityFactor);
+    
+    Net tmpNetPtr = learnerPtr.netPtr;
+    learnerPtr.netPtr = netPtr;
+    
+    float score = learnerPtr.learner_score();
+    learnerPtr.netPtr = tmpNetPtr;
+    learnerPtr.learner_free();
+    dataPtr.data_free();
 
-      Data dataPtr = Data.data_alloc(1, 1, null);
 
-      Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, 1, global_insertPenalty, global_maxNumEdgeLearned, global_operationQualityFactor);
 
-      Net tmpNetPtr = learnerPtr.netPtr;
-      learnerPtr.netPtr = netPtr;
-
-      float score = learnerPtr.learner_score();
-
-      learnerPtr.netPtr = tmpNetPtr;
-      learnerPtr.learner_free();
-      dataPtr.data_free();
-
-      return score;
-    }
+    return score;
+  }
 
 
   /**
@@ -282,7 +281,7 @@ public class Bayes extends Thread {
     randomPtr.random_alloc();
     randomPtr.random_seed(randomSeed);
 
-    Data dataPtr = Data.data_alloc(numVar, numRecord, randomPtr); 
+    Data dataPtr = new Data(numVar, numRecord, randomPtr); 
 
     Net netPtr = dataPtr.data_generate(-1, maxNumParent, percentParent);
     System.out.println("done.");
@@ -291,11 +290,12 @@ public class Bayes extends Thread {
      * Generate adtree
      */
 
-    Adtree adtreePtr = Adtree.adtree_alloc();
+    Adtree adtreePtr = new Adtree();
 
     System.out.print("Generating adtree... ");
 
     adtreePtr.adtree_make(dataPtr);
+    dataPtr.data_free();
 
     System.out.println("done.");
 
@@ -310,9 +310,7 @@ public class Bayes extends Thread {
      * Learn structure of Bayesian network
      */
 
-    Learner learnerPtr = Learner.learner_alloc(dataPtr, adtreePtr, numThread, b.global_insertPenalty, b.global_maxNumEdgeLearned, b.global_operationQualityFactor);
-
-    dataPtr.data_free(); /* save memory */
+    Learner learnerPtr = new Learner(dataPtr, adtreePtr, numThread, b.global_insertPenalty, b.global_maxNumEdgeLearned, b.global_operationQualityFactor);
 
     System.out.print("Learning structure...");
 
@@ -359,14 +357,6 @@ public class Bayes extends Thread {
     /*
      * Clean up
      */
-
-#ifndef SIMULATOR
-    adtreePtr.adtree_free();
-#  if 0    
-    learnerPtr.learner_free();
-#  endif    
-#endif
-
   }
 }
 /* =============================================================================

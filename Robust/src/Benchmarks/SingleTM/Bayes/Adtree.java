@@ -83,155 +83,69 @@ public class Adtree {
   int numRecord;
   AdtreeNode rootNodePtr;
 
-  public Adtree() {
-
-  }
-
-  /* =============================================================================
-   * freeNode
-   * =============================================================================
-   */
-  public void
-    freeNode (AdtreeNode nodePtr)
-    {
-      nodePtr.varyVectorPtr.vector_free();
-      nodePtr = null;
-    }
-
-
-
-  /* =============================================================================
-   * freeVary
-   * =============================================================================
-   */
-  public void
-    freeVary (AdtreeVary varyPtr)
-    {
-      varyPtr = null;
-    }
-
-
   /* =============================================================================
    * adtree_alloc
    * =============================================================================
    */
-  public static Adtree adtree_alloc ()
-    {
-      Adtree adtreePtr = new Adtree();
-      if (adtreePtr != null) {
-        adtreePtr.numVar = -1;
-        adtreePtr.numRecord = -1;
-        adtreePtr.rootNodePtr = null;
-      }
+  public Adtree() {
+    numVar = -1;
+    numRecord = -1;
+    rootNodePtr = null;
+  }
 
-      return adtreePtr;
-    }
-
-
-  /* =============================================================================
-   * freeNodes
-   * =============================================================================
-   */
-  public void
-    freeNodes (AdtreeNode nodePtr)
-    {
-      if (nodePtr != null) {
-        Vector_t varyVectorPtr = nodePtr.varyVectorPtr;
-        int numVary = varyVectorPtr.vector_getSize();
-        for (int v = 0; v < numVary; v++) {
-          AdtreeVary varyPtr = (AdtreeVary)(varyVectorPtr.vector_at(v));
-          freeNodes(varyPtr.zeroNodePtr);
-          freeNodes(varyPtr.oneNodePtr);
-          freeVary(varyPtr);
-        }
-        freeNode(nodePtr);
-      }
-    }
-
-
-  /* =============================================================================
-   * adtree_free
-   * =============================================================================
-   */
-  public void
-    adtree_free ()
-    {
-      freeNodes(rootNodePtr);
-    }
 
   /* =============================================================================
    * makeVary
    * =============================================================================
    */
-  public AdtreeVary
-    makeVary (int parentIndex,
-        int index,
-        int start,
-        int numRecord,
-        Data dataPtr)
-    {
-      AdtreeVary varyPtr = AdtreeVary.allocVary(index);
+  public AdtreeVary makeVary (int parentIndex, int index, int start, int numRecord, Data dataPtr) {
+    AdtreeVary varyPtr = new AdtreeVary(index);
 
-      if ((parentIndex + 1 != index) && (numRecord > 1)) {
-        dataPtr.data_sort(start, numRecord, index);
-      }
-
-      int num0 = dataPtr.data_findSplit(start, numRecord, index);
-      int num1 = numRecord - num0;
-
-      int mostCommonValue = ((num0 >= num1) ? 0 : 1);
-      varyPtr.mostCommonValue = mostCommonValue;
-
-      if (num0 == 0 || mostCommonValue == 0) {
-        varyPtr.zeroNodePtr = null;
-      } else {
-        varyPtr.zeroNodePtr =
-          makeNode(index, index, start, num0, dataPtr);
-        varyPtr.zeroNodePtr.value = 0;
-      }
-
-      if (num1 == 0 || mostCommonValue == 1) {
-        varyPtr.oneNodePtr = null;
-      } else {
-        varyPtr.oneNodePtr =
-          makeNode(index, index, (start + num0), num1, dataPtr);
-        varyPtr.oneNodePtr.value = 1;
-      }
-
-      return varyPtr;
+    if ((parentIndex + 1 != index) && (numRecord > 1)) {
+      dataPtr.data_sort(start, numRecord, index);
     }
+    
+    int num0 = dataPtr.data_findSplit(start, numRecord, index);
+    int num1 = numRecord - num0;
+    
+    int mostCommonValue = ((num0 >= num1) ? 0 : 1);
+    varyPtr.mostCommonValue = mostCommonValue;
+    
+    if (num0 == 0 || mostCommonValue == 0) {
+    } else {
+      varyPtr.zeroNodePtr = makeNode(index, index, start, num0, dataPtr);
+      varyPtr.zeroNodePtr.value = 0;
+    }
+    
+    if (num1 == 0 || mostCommonValue == 1) {
+    } else {
+      varyPtr.oneNodePtr = makeNode(index, index, (start + num0), num1, dataPtr);
+      varyPtr.oneNodePtr.value = 1;
+    }
+    
+    return varyPtr;
+  }
 
 
   /* =============================================================================
    * makeNode
    * =============================================================================
    */
-  public AdtreeNode
-    makeNode (int parentIndex,
-        int index,
-        int start,
-        int numRecord,
-        Data dataPtr)
-    {
-      AdtreeNode nodePtr = AdtreeNode.allocNode(index);
+  public AdtreeNode makeNode (int parentIndex, int index, int start, int numRecord, Data dataPtr) {
+    int numVar = dataPtr.numVar;
+    AdtreeNode nodePtr = new AdtreeNode(index, numVar-index-1);
+    nodePtr.count = numRecord;
+    
+    AdtreeVary varyVectorPtr[] = nodePtr.varyVectorPtr;
+    int i=0;
 
-      nodePtr.count = numRecord;
-
-      Vector_t varyVectorPtr = nodePtr.varyVectorPtr;
-
-      int numVar = dataPtr.numVar;
-      for (int v = (index + 1); v < numVar; v++) {
-        AdtreeVary varyPtr =
-          makeVary(parentIndex, v, start, numRecord, dataPtr);
-        boolean status;
-        if((status = varyVectorPtr.vector_pushBack(varyPtr)) != true) {
-          System.out.println("Assert failed: varyVectorPtr.vector_pushBack != true");
-          System.exit(0);
-        }
-      }
-
-      return nodePtr;
+    for (int v = (index + 1); v < numVar; v++) {
+      AdtreeVary varyPtr = makeVary(parentIndex, v, start, numRecord, dataPtr);
+      varyVectorPtr[i++]=varyPtr;
     }
+    
+    return nodePtr;
+  }
 
 
   /* =============================================================================
@@ -239,14 +153,12 @@ public class Adtree {
    * -- Records in dataPtr will get rearranged
    * =============================================================================
    */
-  public void
-    adtree_make (Data dataPtr)
-    {
-      numVar = dataPtr.numVar;
-      numRecord = dataPtr.numRecord;
-      dataPtr.data_sort(0, numRecord, 0);
-      rootNodePtr = makeNode(-1, -1, 0, numRecord, dataPtr);
-    }
+  public void adtree_make (Data dataPtr) {
+    numVar = dataPtr.numVar;
+    numRecord = dataPtr.numRecord;
+    dataPtr.data_sort(0, numRecord, 0);
+    rootNodePtr = makeNode(-1, -1, 0, numRecord, dataPtr);
+  }
 
 
   /* =============================================================================
@@ -282,8 +194,7 @@ public class Adtree {
         System.exit(0);
       }
 
-      Vector_t varyVectorPtr = nodePtr.varyVectorPtr;
-      AdtreeVary varyPtr = (AdtreeVary)(varyVectorPtr.vector_at((queryIndex - nodeIndex - 1)));
+      AdtreeVary varyPtr = nodePtr.varyVectorPtr[queryIndex - nodeIndex - 1];
 
       int queryValue = queryPtr.value;
 
@@ -296,18 +207,16 @@ public class Adtree {
          * query with the current toggled (invertCount).
          */
         int numQuery = queryVectorPtr.vector_getSize();
-        Vector_t superQueryVectorPtr = Vector_t.vector_alloc(numQuery - 1);
+        Vector_t superQueryVectorPtr = new Vector_t(numQuery - 1);
 
         for (int qq = 0; qq < numQuery; qq++) {
           if (qq != q) {
-            boolean status = superQueryVectorPtr.vector_pushBack(
-                queryVectorPtr.vector_at(qq));
+            boolean status = superQueryVectorPtr.vector_pushBack(queryVectorPtr.vector_at(qq));
           }
         }
 
         int superCount = adtree_getCount(superQueryVectorPtr);
-
-        superQueryVectorPtr.vector_free();
+        superQueryVectorPtr.clear();
 
         int invertCount;
         if (queryValue == 0) {

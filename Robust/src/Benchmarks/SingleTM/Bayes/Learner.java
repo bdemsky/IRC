@@ -132,47 +132,33 @@ public class Learner {
    * learner_alloc
    * =============================================================================
    */
-  public static Learner
-    learner_alloc (Data dataPtr, 
-        Adtree adtreePtr, 
-        int numThread, 
-        int global_insertPenalty,
-        int global_maxNumEdgeLearned,
-        float global_operationQualityFactor)
-    {
-      Learner learnerPtr = new Learner();
-
-      if (learnerPtr != null) {
-        learnerPtr.adtreePtr = adtreePtr;
-        learnerPtr.netPtr = Net.net_alloc(dataPtr.numVar);
-        learnerPtr.localBaseLogLikelihoods = new float[dataPtr.numVar];
-        learnerPtr.baseLogLikelihood = 0.0f;
-        learnerPtr.tasks = new LearnerTask[dataPtr.numVar];
-        learnerPtr.taskListPtr = List.list_alloc();
-        learnerPtr.numTotalParent = 0;
+  public Learner(Data dataPtr, 
+		 Adtree adtreePtr, 
+		 int numThread, 
+		 int global_insertPenalty,
+		 int global_maxNumEdgeLearned,
+		 float global_operationQualityFactor) {
+    this.adtreePtr = adtreePtr;
+    this.netPtr = new Net(dataPtr.numVar);
+    this.localBaseLogLikelihoods = new float[dataPtr.numVar];
+    this.baseLogLikelihood = 0.0f;
+    this.tasks = new LearnerTask[dataPtr.numVar];
+    this.taskListPtr = List.list_alloc();
+    this.numTotalParent = 0;
 #ifndef TEST_LEARNER
-        learnerPtr.global_insertPenalty = global_insertPenalty;
-        learnerPtr.global_maxNumEdgeLearned = global_maxNumEdgeLearned;
-        learnerPtr.global_operationQualityFactor = global_operationQualityFactor;
+    this.global_insertPenalty = global_insertPenalty;
+    this.global_maxNumEdgeLearned = global_maxNumEdgeLearned;
+    this.global_operationQualityFactor = global_operationQualityFactor;
 #endif
-      }
+  }
 
-      return learnerPtr;
-    }
-
-
-  /* =============================================================================
-   * learner_free
-   * =============================================================================
-   */
-  public void
-    learner_free ()
-    {
-      taskListPtr.list_free();
-      tasks = null;
-      localBaseLogLikelihoods = null;
-      netPtr.net_free();
-    }
+  public void learner_free() {
+    adtreePtr=null;
+    netPtr=null;
+    localBaseLogLikelihoods=null;
+    tasks=null;
+    taskListPtr=null;
+  }
 
 
   /* =============================================================================
@@ -238,11 +224,7 @@ public class Learner {
       queries[0] = new Query();
       queries[1] = new Query();
 
-      Vector_t queryVectorPtr = Vector_t.vector_alloc(2);
-      if(queryVectorPtr == null) {
-        System.out.println("Assert failed: cannot allocate vector");
-        System.exit(0);
-      }
+      Vector_t queryVectorPtr = new Vector_t(2);
 
       if((status = queryVectorPtr.vector_pushBack(queries[0])) == false) {
         System.out.println("Assert failed: status = "+ status + "vector_pushBack failed in createTaskList()");
@@ -250,12 +232,7 @@ public class Learner {
       }
 
       Query parentQuery = new Query();
-      Vector_t parentQueryVectorPtr = Vector_t.vector_alloc(1); 
-
-      if(parentQueryVectorPtr == null) {
-        System.out.println("Assert failed: for vector_alloc at createTaskList()");
-        System.exit(0);
-      }
+      Vector_t parentQueryVectorPtr = new Vector_t(1); 
 
       int numVar = learnerPtr.adtreePtr.numVar;
       int numRecord = learnerPtr.adtreePtr.numRecord;
@@ -401,8 +378,8 @@ public class Learner {
       } // for each variable 
 
 
-      queryVectorPtr.vector_free();
-      parentQueryVectorPtr.vector_free();
+      queryVectorPtr.clear();
+      parentQueryVectorPtr.clear();
 
 #ifdef TEST_LEARNER
       ListNode it = learnerPtr.taskListPtr.head;
@@ -1137,18 +1114,9 @@ public class Learner {
       }
 
       Queue workQueuePtr = Queue.queue_alloc(-1);
-      if(workQueuePtr == null) {
-        System.out.println("Assert failed: for vector alloc in learnStructure()");
-        System.exit(0);
-      }
 
       int numVar = learnerPtr.adtreePtr.numVar;
       Query[] queries = new Query[numVar];
-
-      if(queries == null) {
-        System.out.println("Assert failed: for queries alloc in learnStructure()");
-        System.exit(0);
-      }
 
       for (int v = 0; v < numVar; v++) {
         queries[v] = new Query();
@@ -1158,30 +1126,10 @@ public class Learner {
 
       float basePenalty = (float)(-0.5 * Math.log((double)numRecord));
 
-      Vector_t queryVectorPtr = Vector_t.vector_alloc(1);
-      if(queryVectorPtr == null) {
-        System.out.println("Assert failed: for vector_alloc in learnStructure()");
-        System.exit(0);
-      }
-
-      Vector_t parentQueryVectorPtr = Vector_t.vector_alloc(1);
-      if(parentQueryVectorPtr == null) {
-        System.out.println("Assert failed: for vector_alloc in learnStructure()");
-        System.exit(0);
-      }
-
-      Vector_t aQueryVectorPtr = Vector_t.vector_alloc(1);
-      if(aQueryVectorPtr == null) {
-        System.out.println("Assert failed: for vector_alloc in learnStructure()");
-        System.exit(0);
-      }
-
-      Vector_t bQueryVectorPtr = Vector_t.vector_alloc(1);
-      if(bQueryVectorPtr == null) {
-        System.out.println("Assert failed: for vector_alloc in learnStructure()");
-        System.exit(0);
-      }
-
+      Vector_t queryVectorPtr = new Vector_t(1);
+      Vector_t parentQueryVectorPtr = new Vector_t(1);
+      Vector_t aQueryVectorPtr = new Vector_t(1);
+      Vector_t bQueryVectorPtr = new Vector_t(1);
 
       FindBestTaskArg arg = new FindBestTaskArg();
       arg.learnerPtr           = learnerPtr;
@@ -1454,10 +1402,10 @@ public class Learner {
 
       visitedBitmapPtr.bitmap_free();
       workQueuePtr.queue_free();
-      bQueryVectorPtr.vector_free();
-      aQueryVectorPtr.vector_free();
-      queryVectorPtr.vector_free();
-      parentQueryVectorPtr.vector_free();
+      bQueryVectorPtr.clear();
+      aQueryVectorPtr.clear();
+      queryVectorPtr.clear();
+      parentQueryVectorPtr.clear();
       queries = null;
     }
 
@@ -1488,8 +1436,8 @@ public class Learner {
     learner_score ()
     {
 
-      Vector_t queryVectorPtr = Vector_t.vector_alloc(1);
-      Vector_t parentQueryVectorPtr = Vector_t.vector_alloc(1);
+      Vector_t queryVectorPtr = new Vector_t(1);
+      Vector_t parentQueryVectorPtr = new Vector_t(1);
 
       int numVar = adtreePtr.numVar;
       Query[] queries = new Query[numVar];
@@ -1522,8 +1470,8 @@ public class Learner {
         logLikelihood += localLogLikelihood;
       }
 
-      queryVectorPtr.vector_free();
-      parentQueryVectorPtr.vector_free();
+      queryVectorPtr.clear();
+      parentQueryVectorPtr.clear();
       queries = null;
 
 

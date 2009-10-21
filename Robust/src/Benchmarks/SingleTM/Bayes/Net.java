@@ -74,8 +74,8 @@ public class Net {
    * allocNode
    * =============================================================================
    */
-  public static NetNode allocNode (int id)
-  {
+
+  public static NetNode allocNode (int id) {
     NetNode nodePtr = new NetNode();
 
     if (nodePtr != null) {
@@ -101,34 +101,14 @@ public class Net {
    * net_alloc
    * =============================================================================
    */
-  public static Net net_alloc (int numNode)
-  {
-    Net netPtr = new Net();
-    if (netPtr != null) {
-      Vector_t nodeVectorPtr = Vector_t.vector_alloc(numNode);
-      if (nodeVectorPtr == null) {
-        netPtr = null;
-        return null;
-      }
+  public Net(int numNode) {
+    Vector_t nodeVectorPtr = new Vector_t(numNode);
 
-      for (int i = 0; i < numNode; i++) {
-        NetNode nodePtr = allocNode(i);
-        if (nodePtr == null) {
-          for (int j = 0; j < i; j++) {
-            nodePtr = (NetNode)(nodeVectorPtr.vector_at(j));
-            nodePtr.freeNode();
-          }
-          nodeVectorPtr.vector_free();
-          netPtr = null;
-          return null;
-        }
-
-        boolean status = nodeVectorPtr.vector_pushBack(nodePtr);
-      }
-      netPtr.nodeVectorPtr = nodeVectorPtr;
+    for (int i = 0; i < numNode; i++) {
+      NetNode nodePtr = allocNode(i);
+      boolean status = nodeVectorPtr.vector_pushBack(nodePtr);
     }
-
-    return netPtr;
+    this.nodeVectorPtr = nodeVectorPtr;
   }
 
 
@@ -136,17 +116,10 @@ public class Net {
    * net_free
    * =============================================================================
    */
-  public void
-    net_free ()
-    {
-      int numNode = nodeVectorPtr.vector_getSize();
-      for (int i = 0; i < numNode; i++) {
-        NetNode nodePtr = (NetNode)(nodeVectorPtr.vector_at(i));
-        nodePtr.freeNode();
-      }
-      nodeVectorPtr.vector_free();
-    }
-
+  public void net_free () {
+    nn=null;
+    nodeVectorPtr=null;
+  }
 
   /* =============================================================================
    * insertEdge

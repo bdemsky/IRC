@@ -60,42 +60,29 @@ public class Data {
   int numRecord;
   byte[] records; /* coordination of all records */
   Random randomPtr;
-
-  public Data() {
-  }
+  Sort sort;
 
   /* =============================================================================
    * data_alloc
    * =============================================================================
    */
-  public static Data data_alloc (int numVar, int numRecord, Random randomPtr)
+  public Data(int numVar, int numRecord, Random randomPtr)
   {
-    Data dataPtr = new Data();
-
-    if (dataPtr != null) {
-      int numDatum = numVar * numRecord;
-      dataPtr.records = new byte[numDatum];
-      for(int i = 0; i<numDatum; i++)
-        dataPtr.records[i] = (byte)DATA_INIT;
-
-      dataPtr.numVar = numVar;
-      dataPtr.numRecord = numRecord;
-      dataPtr.randomPtr = randomPtr;
-    }
-
-    return dataPtr;
+    int numDatum = numVar * numRecord;
+    records = new byte[numDatum];
+    for(int i = 0; i<numDatum; i++)
+      this.records[i] = (byte)DATA_INIT;
+    
+    this.numVar = numVar;
+    this.numRecord = numRecord;
+    this.randomPtr = randomPtr;
+    this.sort=new Sort();
   }
 
-
-  /* =============================================================================
-   * data_free
-   * =============================================================================
-   */
-  void
-    data_free ()
-    {
-      records = null;
-    }
+  public void data_free() {
+    records=null;
+    randomPtr=null;
+  }
 
   /* =============================================================================
    * data_generate
@@ -114,7 +101,7 @@ public class Data {
      * Generate random Bayesian network
      */
 
-    Net netPtr = Net.net_alloc(numVar);
+    Net netPtr = new Net(numVar);
     netPtr.net_generateRandomEdges(maxNumParent, percentParent, randomPtr);
 
     /*
@@ -250,22 +237,6 @@ public class Data {
       }
     }
 
-    /*
-     * Clean up
-     */
-
-    doneBitmapPtr.bitmap_free();
-    orderedBitmapPtr.bitmap_free();
-    dependencyVectorPtr.vector_free();
-    workQueuePtr.queue_free();
-    order = null;
-
-    for (v = 0; v < numVar; v++) {
-      thresholdsTable[v] = null;
-    }
-
-    thresholdsTable = null;
-
     return netPtr;
   }
 
@@ -281,11 +252,7 @@ public class Data {
       int numDstDatum = dstPtr.numVar * dstPtr.numRecord;
       int numSrcDatum = srcPtr.numVar * srcPtr.numRecord;
       if (numDstDatum != numSrcDatum) {
-        dstPtr.records = null;
         dstPtr.records = new byte[numSrcDatum];
-        if (dstPtr.records == null) {
-          return false;
-        }
       }
 
       dstPtr.numVar    = srcPtr.numVar;
@@ -319,7 +286,7 @@ public class Data {
         System.exit(0);
       }
 
-      Sort.sort(records, 
+      sort.sort(records, 
           start * numVar,
           num,
           numVar,

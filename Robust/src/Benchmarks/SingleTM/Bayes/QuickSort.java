@@ -13,17 +13,17 @@ public class QuickSort {
    *
    * @param a the array to sort
    */
-  public void sort(Object[] a)
+  public static void sort(Object[] a)
   {
     qsort(a, 0, a.length);
   }
 
-  public void sort(Object[] a, int fromIndex, int toIndex)
+  public static void sort(Object[] a, int fromIndex, int toIndex)
   {
     qsort(a, fromIndex, toIndex);
   }
 
-  private int med3(int a, int b, int c, Object[]d)
+  private static int med3(int a, int b, int c, Object[]d)
   {
     if(less(d[a], d[b])) {
       if(less(d[b], d[c])) {
@@ -46,14 +46,14 @@ public class QuickSort {
     }
   }
 
-  private void swap(int i, int j, Object[] a)
+  private static void swap(int i, int j, Object[] a)
   {
     Object c = a[i];
     a[i] = a[j];
     a[j] = c;
   }
 
-  private void qsort(Object[] a, int start, int n)
+  private static void qsort(Object[] a, int start, int n)
   {
     // use an insertion sort on small arrays
     if (n <= 7)
@@ -126,7 +126,7 @@ public class QuickSort {
       qsort(a, pn - s, s);
   }
 
-  private void vecswap(int i, int j, int n, Object[] a)
+  private static void vecswap(int i, int j, int n, Object[] a)
   {
     for (; n > 0; i++, j++, n--)
       swap(i, j, a);
@@ -138,7 +138,7 @@ public class QuickSort {
    * -- For vector_sort
    * ===========================================
    */
-  public boolean less(Object x, Object y) {
+  public static boolean less(Object x, Object y) {
     Query aQueryPtr = (Query) x;
     Query bQueryPtr = (Query) y;
     if(aQueryPtr.index < bQueryPtr.index)
@@ -146,7 +146,7 @@ public class QuickSort {
     return false;
   }
 
-  public int diff(Object x, Object y) {
+  public static int diff(Object x, Object y) {
     Query aQueryPtr = (Query) x;
     Query bQueryPtr = (Query) y;
     return (aQueryPtr.index - bQueryPtr.index);

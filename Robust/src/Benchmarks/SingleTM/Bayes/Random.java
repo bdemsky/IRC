@@ -1,23 +1,13 @@
 public class Random {
   long[] mt; 
   int mti;
-  long RANDOM_DEFAULT_SEED;
+  int RANDOM_DEFAULT_SEED;
   /* period parameter */
-  int N;
-  int M;
-  long MATRIX_A;
-  long UPPER_MASK;
-  long LOWER_MASK;
+
 
   public Random() {
-    RANDOM_DEFAULT_SEED = 0L;
-    N = 624;
-    M = 397;
-    mt = new long[N];
-    mti = N;
-    MATRIX_A = 0x9908b0dfL;   /* constant vector a */
-    UPPER_MASK = 0x80000000L; /* most significant w-r bits */
-    LOWER_MASK = 0x7fffffffL; /* least significant r bits */
+    RANDOM_DEFAULT_SEED = 0;
+    mt = new long[624];
   }
 
   public void random_alloc() {
@@ -25,11 +15,10 @@ public class Random {
   }
 
   /* initializes mt[N] with a seed */
-  public void init_genrand(long s) {
-    int mti;
-    mt[0]= s & 0xFFFFFFFFL;
-    for (mti=1; mti<N; mti++) {
-     mt[mti] = (1812433253L * (mt[mti-1] ^ (mt[mti-1] >> 30)) + mti);
+  public void init_genrand(int s) {
+    mt[0]= ((long)s) & 0xFFFFFFFFL;
+    for (int mti=1; mti<624; mti++) {
+      mt[mti] = (1812433253L * (mt[mti-1] ^ (mt[mti-1] >> 30)) + ((long)mti));
       /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
       /* In the previous versions, MSBs of the seed affect   */
       /* only MSBs of the array mt[].                        */
@@ -37,43 +26,48 @@ public class Random {
       mt[mti] &= 0xFFFFFFFFL;
       /* for >32 bit machines */
     }
-    this.mti=mti;
+    this.mti=624;
   }
 
-  public void random_seed(long seed) {
+  public void random_seed(int seed) {
     init_genrand(seed);
   }
 
   public long random_generate() {
-    return genrand_int32();
+    long x= genrand_int32()&0xFFFFFFFFL;
+    return x;
   }
 
-  //public static long genrand_int32(long[] mt, long mtiPtr) {
+  public long posrandom_generate() {
+    long r=genrand_int32();
+    if (r>0)
+      return r;
+    else 
+      return -r;
+  }
+
   public long genrand_int32() {
     long y;
-    long[] mag01= new long[2];
-    mag01[0] = 0x0L;
-    mag01[1] = MATRIX_A;
     int mti = this.mti;
+    long[] mt = this.mt;
 
-    /* mag01[x] = x * MATRIX_A  for x=0,1 */
-
-    if (mti >= N) { /* generate N words at one time */
+    if (mti >= 624) { /* generate N words at one time */
       int kk;
 
-      if (mti == N+1)   /* if init_genrand() has not been called, */
-        init_genrand(5489L); /* a default initial seed is used */
-
-      for (kk=0;kk<N-M;kk++) {
-        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-        mt[kk] = mt[kk+M] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
+      if (mti == 624+1) {  /* if init_genrand() has not been called, */
+        init_genrand(5489); /* a default initial seed is used */
+	mti=this.mti;
       }
-      for (;kk<N-1;kk++) {
-        y = (mt[kk]&UPPER_MASK)|(mt[kk+1]&LOWER_MASK);
-        mt[kk] = mt[kk+(M-N)] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
+      for (kk=0;kk<(624-397);kk++) {
+        y = (mt[kk]&0x80000000L)|(mt[kk+1]&0x7fffffffL);
+        mt[kk] = mt[kk+397] ^ (y >> 1) ^ ((y & 0x1)==0 ? 0L:0x9908b0dfL);
       }
-      y = (mt[N-1]&UPPER_MASK)|(mt[0]&LOWER_MASK);
-      mt[N-1] = mt[M-1] ^ (y >> 1) ^ mag01[(int)(y & 0x1L)];
+      for (;kk<(624-1);kk++) {
+        y = (mt[kk]&0x80000000L)|(mt[kk+1]&0x7fffffffL);
+        mt[kk] = mt[kk+(397-624)] ^ (y >> 1) ^ ((y & 0x1)==0 ? 0L:0x9908b0dfL);
+      }
+      y = (mt[624-1]&0x80000000L)|(mt[0]&0x7fffffffL);
+      mt[624-1] = mt[397-1] ^ (y >> 1) ^ ((y & 0x1)==0 ? 0L:0x9908b0dfL);
 
       mti = 0;
     }

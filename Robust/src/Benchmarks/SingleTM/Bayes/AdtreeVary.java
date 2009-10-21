@@ -13,26 +13,19 @@ public class AdtreeVary {
   AdtreeNode oneNodePtr;
 
   public AdtreeVary() {
-
   }
 
   /* =============================================================================
    * allocVary
    * =============================================================================
    */
-  public AdtreeVary
-    allocVary (int index)
-    {
-      AdtreeVary varyPtr= new AdtreeVary();
+  public AdtreeVary(int index) {
+    this.index = index;
+    mostCommonValue = -1;
+  }
 
-      if (varyPtr != null) {
-        varyPtr.index = index;
-        varyPtr.mostCommonValue = -1;
-        varyPtr.zeroNodePtr = null;
-        varyPtr.oneNodePtr = null;
-      }
-
-      return varyPtr;
-    }
-
+  public void free_vary() {
+    zeroNodePtr=null;
+    oneNodePtr=null;
+  }
 }
