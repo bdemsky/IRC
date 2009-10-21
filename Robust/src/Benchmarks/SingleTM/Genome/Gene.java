@@ -1,6 +1,6 @@
 public class Gene {
   public int length;
-  public String contents;
+  public ByteString contents;
   public Bitmap startBitmapPtr; /* used for creating segments */
   
   Gene(int myLength) {
@@ -17,8 +17,8 @@ public class Gene {
  */
   void create (Random randomObj) {
     int i;
-    char[] nucleotides = new char[4];
-    char[] arrayContents = new char[length];
+    byte[] nucleotides = new byte[4];
+    byte[] arrayContents = new byte[length];
     nucleotides[0] = 'a';
     nucleotides[1] = 'c';
     nucleotides[2] = 'g';
@@ -32,6 +32,6 @@ public class Gene {
       arrayContents[i] = nucleotides[legitimateNumber % 4];
     }
     
-    contents = new String(arrayContents);
+    contents = new ByteString(arrayContents);
   }  
 }

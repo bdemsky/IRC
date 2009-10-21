@@ -5,9 +5,7 @@ public class Hashtable {
     int resizeRatio;
     int growthFactor;
     
-    
     public Hashtable (int initNumBucket, int resizeRatio, int growthFactor) {
-
       allocBuckets(initNumBucket);
       numBucket = initNumBucket;
       size = 0;
@@ -15,7 +13,7 @@ public class Hashtable {
       growthFactor = ((growthFactor < 0) ? 3 : growthFactor);
     }
     
-    public boolean TMhashtable_insert (String keyPtr, String dataPtr) {
+    public boolean TMhashtable_insert (ByteString keyPtr, ByteString dataPtr) {
       int i = hashSegment(keyPtr) % numBucket;
 
       Pair findPair = new Pair();
@@ -48,13 +46,13 @@ public class Hashtable {
       }
     }
     
-    int hashSegment (String str) {
+    int hashSegment (ByteString str) {
       int hash = 0;
 
       int index = 0;
       /* Note: Do not change this hashing scheme */
       for(index = 0; index < str.length(); index++) {
-        char c = str.charAt(index);
+        char c = str.byteAt(index);
         hash = c + (hash << 6) + (hash << 16) - hash;
       }
   

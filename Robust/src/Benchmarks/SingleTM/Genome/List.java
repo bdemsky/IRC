@@ -59,8 +59,8 @@ public class List {
   }
 
   int compareSegment (Pair a, Pair b) { 
-    String aString = a.firstPtr;
-    String bString = b.firstPtr;
+    ByteString aString = a.firstPtr;
+    ByteString bString = b.firstPtr;
     return aString.compareTo(bString);
   }
 }

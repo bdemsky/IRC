@@ -1,13 +1,13 @@
 public class Pair {
-    String firstPtr;
-    String secondPtr;
+    ByteString firstPtr;
+    ByteString secondPtr;
     
     public Pair() {
       firstPtr = null;
       secondPtr = null;
     }
     
-    public Pair(String myFirstPtr, String mySecondPtr) { 
+    public Pair(ByteString myFirstPtr, ByteString mySecondPtr) { 
       firstPtr = myFirstPtr;
       secondPtr = mySecondPtr;
     }

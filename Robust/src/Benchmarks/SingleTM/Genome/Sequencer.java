@@ -1,6 +1,5 @@
 public class Sequencer {
-
-  public String sequence;
+  public ByteString sequence;
 
   public Segments segmentsPtr;
 
@@ -54,7 +53,6 @@ public class Sequencer {
     segmentsPtr = mySegmentsPtr;  
   }
 
-
   /* =============================================================================
    * sequencer_run
    * =============================================================================
@@ -106,7 +104,7 @@ public class Sequencer {
         int ii;
         int ii_stop = Math.imin(i_stop, (i+CHUNK_STEP1));
         for (ii = i; ii < ii_stop; ii++) {
-          String segment = (String)segmentsContentsPtr.elementAt(ii);
+          ByteString segment = (ByteString)segmentsContentsPtr.elementAt(ii);
           if(!uniqueSegmentsPtr.TMhashtable_insert(segment, segment)) {
             ;
           }
@@ -164,17 +162,17 @@ public class Sequencer {
 
       while(it.nextPtr != null) {
         it = it.nextPtr;    
-        String segment = it.dataPtr.firstPtr;
+        ByteString segment = it.dataPtr.firstPtr;
         int newj;
         int startHash;
         boolean status;
 
         /* Find an empty constructEntries entry */
         atomic {
-          while(constructEntries[entryIndex].segment != null) { 
+	  while(constructEntries[entryIndex].segment != null) { 
             entryIndex = (entryIndex + 1) % numUniqueSegment; /* look for empty */
           }
-          constructEntries[entryIndex].segment = segment;
+	  constructEntries[entryIndex].segment = segment;
         }
 
         constructEntry constructEntryPtr = constructEntries[entryIndex];
@@ -252,39 +250,36 @@ public class Sequencer {
 
         /*  ConstructEntries[entryIndex] is local data */
         constructEntry endConstructEntryPtr = constructEntries[entryIndex];
-        String endSegment = endConstructEntryPtr.segment;
+        ByteString endSegment = endConstructEntryPtr.segment;
         int endHash = endConstructEntryPtr.endHash;
 
         LinkedList chainPtr = buckets[(endHash % numBucket)]; /* buckets: constant data */
         LinkedListIterator it = (LinkedListIterator)chainPtr.iterator();
         while (it.hasNext()) {
           constructEntry startConstructEntryPtr = (constructEntry)it.next();
-          String startSegment = startConstructEntryPtr.segment;
-          int newLength = 0;
+          ByteString startSegment = startConstructEntryPtr.segment;
 
           /* endConstructEntryPtr is local except for properties startPtr/endPtr/length */
           atomic {
-            if(startConstructEntryPtr.isStart &&
-                (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
-                (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
-            {
-              startConstructEntryPtr.isStart = false;
-              constructEntry startConstructEntry_endPtr;
-              constructEntry endConstructEntry_startPtr;
+	    trans2(startSegment, endSegment, startConstructEntryPtr, endConstructEntryPtr, segmentLength, substringLength, endInfoEntries, entryIndex);
+	    //            if(startConstructEntryPtr.isStart &&
+	    //   (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
+	    //   (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
+	    // {
+	    // startConstructEntryPtr.isStart = false;
 
               /* Update endInfo (appended something so no inter end) */
-              endInfoEntries[entryIndex].isEnd = false;
+              //endInfoEntries[entryIndex].isEnd = false;
               /* Update segment chain construct info */
-              startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
-              endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
-              startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
-              endConstructEntryPtr.nextPtr = startConstructEntryPtr;
-              endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
-              endConstructEntryPtr.overlap = substringLength;
-              newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
-              endConstructEntry_startPtr.length = newLength;
-            } else {/* if (matched) */
-            }
+	    //   constructEntry startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
+            //  constructEntry endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
+            //  startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
+            //  endConstructEntryPtr.nextPtr = startConstructEntryPtr;
+	    // endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
+	    // endConstructEntryPtr.overlap = substringLength;
+	    // int newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
+	    // endConstructEntry_startPtr.length = newLength;
+	    // }
           }
 
           if (!endInfoEntries[entryIndex].isEnd) { /* if there was a match */
@@ -316,14 +311,14 @@ public class Sequencer {
           /* entry 0 is handled seperately from the loop below */
           endInfoEntries[0].jumpToNext = i;
           if (endInfoEntries[0].isEnd) {
-            String segment = constructEntries[0].segment;
+            ByteString segment = constructEntries[0].segment;
             constructEntries[0].endHash = hashString(segment.subString((int)index)); // USE BYTE SUBSTRING FUNCTION
           }
           /* Continue scanning (do not reset i) */
           for (j = 0; i < numUniqueSegment; i+=endInfoEntries[i].jumpToNext) {
 
             if (endInfoEntries[i].isEnd) {
-              String segment = constructEntries[i].segment;
+              ByteString segment = constructEntries[i].segment;
               constructEntries[i].endHash = hashString(segment.substring((int)index)); // USE BYTE SUBSTRING FUNCTION
               endInfoEntries[j].jumpToNext = Math.imax((int)1, (int)(i - j));
               j = i;
@@ -351,9 +346,9 @@ public class Sequencer {
         }
       }
 
-      String sequence = sequencerPtr.sequence;
+      ByteString sequence = sequencerPtr.sequence;
 
-      String copyPtr = sequence;
+      ByteString copyPtr = sequence;
       int sequenceLength = 0;
 
       for (i = 0; i < numUniqueSegment; i++) {
@@ -378,19 +373,40 @@ public class Sequencer {
     }
   }
 
+
+  static void trans2(ByteString startSegment, ByteString endSegment, constructEntry startConstructEntryPtr, constructEntry endConstructEntryPtr, int segmentLength, int substringLength, endInfoEntry endInfoEntries[], int entryIndex) {
+    if(startConstructEntryPtr.isStart &&
+       (endConstructEntryPtr.startPtr != startConstructEntryPtr) &&
+       (startSegment.substring(0, (int)substringLength).compareTo(endSegment.substring((int)(segmentLength-substringLength))) == 0))
+      {
+	startConstructEntryPtr.isStart = false;
+	
+	/* Update endInfo (appended something so no inter end) */
+	endInfoEntries[entryIndex].isEnd = false;
+	/* Update segment chain construct info */
+	constructEntry startConstructEntry_endPtr = startConstructEntryPtr.endPtr;
+	constructEntry endConstructEntry_startPtr = endConstructEntryPtr.startPtr;
+	startConstructEntry_endPtr.startPtr = endConstructEntry_startPtr;
+	endConstructEntryPtr.nextPtr = startConstructEntryPtr;
+	endConstructEntry_startPtr.endPtr = startConstructEntry_endPtr;
+	endConstructEntryPtr.overlap = substringLength;
+	int newLength = endConstructEntry_startPtr.length + startConstructEntryPtr.length - substringLength;
+	endConstructEntry_startPtr.length = newLength;
+      }
+  }
+
   /* =============================================================================
    * hashString
    * -- uses sdbm hash function
    * =============================================================================
    */
-  static int hashString (String str)
-  {
+  static int hashString (ByteString str) {
     int hash = 0;
 
     int index = 0;
     // Note: Do not change this hashing scheme 
     for(index = 0; index < str.length(); index++) {
-      char c = str.charAt(index);
+      byte c = str.byteAt(index);
       hash = c + (hash << 6) + (hash << 16) - hash;
     }
 
