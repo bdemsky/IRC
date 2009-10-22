@@ -2248,7 +2248,7 @@ public class BuildCode {
 
 	  if (genset==null||genset.contains(current_node)||specialprimitive)
 	    generateFlatNode(fm, lb, current_node, output);
-	  if (state.STMARRAY&&refset.contains(current_node)) {
+	  if (state.STMARRAY&&refset!=null&&refset.contains(current_node)) {
 	    //need to acquire lock
 	    handleArrayDeref(fm, lb, current_node, output, firstpass);
 	  }
@@ -2367,10 +2367,10 @@ public class BuildCode {
 	else
 	  type=elementtype.getSafeSymbol()+" ";
 	output.println("{");
-	output.println("  struct ___ArrayObject___ *array;");
+	output.println("  struct ArrayObject *array;");
 	output.println("  int index;");
 	output.println("  RESTOREARRAY(array,index);");
-	output.println("  (("+type+"*)((struct ___ArrayObject___*) (((char *)&array->___length___))+sizeof(int)))[index]="+fsen.getSrc()+";");
+	output.println("  (("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index]="+fsen.getSrc()+";");
 	output.println("}");
       }
     } else if (fn.kind()==FKind.FlatElementNode) {
@@ -2380,7 +2380,7 @@ public class BuildCode {
       if (firstpass) {
 	output.println("STOREARRAY("+src+","+index+");");
       } else {
-	TypeDescriptor elementtype=fen.getDst().getType().dereference();
+	TypeDescriptor elementtype=fen.getSrc().getType().dereference();
 	String dst=generateTemp(fm, fen.getDst(), lb);
 	String type="";
 	if (elementtype.isArray()||elementtype.isClass())
@@ -2388,10 +2388,10 @@ public class BuildCode {
 	else
 	  type=elementtype.getSafeSymbol()+" ";
 	output.println("{");
-	output.println("  struct ___ArrayObject___ *array;");
+	output.println("  struct ArrayObject *array;");
 	output.println("  int index;");
 	output.println("  RESTOREARRAY(array,index);");
-	output.println("  "+dst+"=(("+type+"*)((struct ___ArrayObject___*) (((char *)&array->___length___))+sizeof(int)))[index];");
+	output.println("  "+dst+"=(("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index];");
 	output.println("}");
       }
     }

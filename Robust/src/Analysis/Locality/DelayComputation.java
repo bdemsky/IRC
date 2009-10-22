@@ -285,7 +285,9 @@ public class DelayComputation {
     FlatMethod fm=state.getMethodFlat(md);
 
     HashSet<FlatNode> delayedset=notreadymap.get(lb);
-    HashSet<FlatNode> derefset=derefmap.get(lb);
+    HashSet<FlatNode> derefset=null;
+    if (state.STMARRAY) 
+      derefset=derefmap.get(lb);
     HashSet<FlatNode> otherset=othermap.get(lb);
     HashSet<FlatNode> cannotdelayset=cannotdelaymap.get(lb);
     Hashtable<FlatNode,Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
@@ -550,7 +552,7 @@ public class DelayComputation {
       
       //Delay branches if possible
       if (fn.kind()==FKind.FlatCondBranch) {
-	Set<FlatNode> branchset=revbranchmap.get(lb);
+	Set<FlatNode> branchset=revbranchmap.get((FlatCondBranch)fn);
 	for(Iterator<FlatNode> brit=branchset.iterator();brit.hasNext();) {
 	  FlatNode branchnode=brit.next();
 	  if (cannotdelay.contains(branchnode)||(state.STMARRAY&&derefset.contains(branchnode))) {
@@ -609,7 +611,7 @@ public class DelayComputation {
 	  for(Iterator<FlatCondBranch> fcbit=fcbset.iterator();fcbit.hasNext();) {
 	    FlatCondBranch fcb=fcbit.next();
 	    //enqueue flatcondbranch node for reanalysis
-	    if (cannotdelay.contains(fcb)) {
+	    if (!cannotdelay.contains(fcb)) {
 	      cannotdelay.add(fcb);
 	      toanalyze.add(fcb);
 	    }

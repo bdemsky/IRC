@@ -47,11 +47,11 @@ extern __thread struct arraylist arraystack;
 
 #define RESTOREARRAY(x,z) {x=arraystack.array[arraystack.maxcount];z=arraystack.index[arraystack.maxcount++];}
 
-#define STOREARRAY(x,z) {void * y=COMPOID(x); arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; dc_t_chashInsertOnce(y,y,z);}
+#define STOREARRAY(x,z) {void * y=COMPOID(x); arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; dc_t_chashInsertOnceArray(y,y,z);}
 
 #define STOREARRAYNOLOCK(x,z) {void * y=COMPOID(x); arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z;}
 
-#define STOREARRAYNOTRANS(x,z) {void * y=x; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; dc_t_chashInsertOnce(y,y,z);}
+#define STOREARRAYNOTRANS(x,z) {void * y=x; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; dc_t_chashInsertOnceArray(y,y,z);}
 
 #define STOREARRAYNOLOCKNOTRANS(x,z) {void * y=x; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; }
 
