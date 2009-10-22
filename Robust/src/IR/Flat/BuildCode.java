@@ -271,13 +271,13 @@ public class BuildCode {
       generateOptionalArrays(outoptionalarrays, optionalheaders, state.getAnalysisResult(), state.getOptionalTaskDescriptors());
       outoptionalarrays.close();
     }
-
+    
     /* Output structure definitions for repair tool */
     if (state.structfile!=null) {
       buildRepairStructs(outrepairstructs);
       outrepairstructs.close();
     }
-
+    
     /* Close files */
     outmethodheader.println("#endif");
     outmethodheader.close();
@@ -285,7 +285,7 @@ public class BuildCode {
     outstructs.println("#endif");
     outstructs.close();
   }
-
+  
 
   /* This code just generates the main C method for java programs.
    * The main C method packs up the arguments into a string array
@@ -2149,20 +2149,32 @@ public class BuildCode {
 
     Set<FlatNode> storeset=null;
     HashSet<FlatNode> genset=null;
+    HashSet<FlatNode> refset=null;
     Set<FlatNode> unionset=null;
 
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       storeset=delaycomp.livecode(lb);
       genset=new HashSet<FlatNode>();
+      if (state.STMARRAY) {
+	refset=new HashSet<FlatNode>();
+	refset.addAll(delaycomp.getDeref(lb));
+	refset.removeAll(delaycomp.getCannotDelay(lb));
+	refset.removeAll(delaycomp.getOther(lb));
+      }
       if (firstpass) {
 	genset.addAll(delaycomp.getCannotDelay(lb));
 	genset.addAll(delaycomp.getOther(lb));
       } else {
 	genset.addAll(delaycomp.getNotReady(lb));
+	if (state.STMARRAY) {
+	  genset.removeAll(refset);
+	}
       }
       unionset=new HashSet<FlatNode>();
       unionset.addAll(storeset);
       unionset.addAll(genset);
+      if (state.STMARRAY)
+	unionset.addAll(refset);
     }
     
     /* Do the actual code generation */
@@ -2236,13 +2248,19 @@ public class BuildCode {
 
 	  if (genset==null||genset.contains(current_node)||specialprimitive)
 	    generateFlatNode(fm, lb, current_node, output);
+	  if (state.STMARRAY&&refset.contains(current_node)) {
+	    //need to acquire lock
+	    handleArrayDeref(fm, lb, current_node, output, firstpass);
+	  }
 	  if (storeset!=null&&storeset.contains(current_node)&&!specialprimitive) {
 	    TempDescriptor wrtmp=current_node.writesTemps()[0];
 	    if (firstpass) {
 	      //need to store value written by previous node
 	      if (wrtmp.getType().isPtr()) {
 		//only lock the objects that may actually need locking
-		if (recorddc.getNeedTrans(lb, current_node)) {
+		if (recorddc.getNeedTrans(lb, current_node)&&
+		    (!state.STMARRAY||!wrtmp.getType().isArray()||
+		     wrtmp.getType().getSymbol().equals(TypeUtil.ObjectClass))) {
 		  output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");/* "+current_node.nodeid+" */");
 		} else {
 		  output.println("STOREPTRNOLOCK("+generateTemp(fm, wrtmp,lb)+");/* "+current_node.nodeid+" */");
@@ -2330,6 +2348,52 @@ public class BuildCode {
 	    current_node=current_node.getNext(0);
 	}
       } else throw new Error();
+    }
+  }
+
+  protected void handleArrayDeref(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output, boolean firstpass) {
+    if (fn.kind()==FKind.FlatSetElementNode) {
+      FlatSetElementNode fsen=(FlatSetElementNode) fn;
+      String dst=generateTemp(fm, fsen.getDst(), lb);
+      String src=generateTemp(fm, fsen.getSrc(), lb);
+      String index=generateTemp(fm, fsen.getIndex(), lb);      
+      if (firstpass) {
+	output.println("STOREARRAY("+dst+","+index+")");
+      } else {
+	TypeDescriptor elementtype=fsen.getDst().getType().dereference();
+	String type="";
+	if (elementtype.isArray()||elementtype.isClass())
+	  type="void *";
+	else
+	  type=elementtype.getSafeSymbol()+" ";
+	output.println("{");
+	output.println("  struct ___ArrayObject___ *array;");
+	output.println("  int index;");
+	output.println("  RESTOREARRAY(array,index);");
+	output.println("  (("+type+"*)((struct ___ArrayObject___*) (((char *)&array->___length___))+sizeof(int)))[index]="+fsen.getSrc()+";");
+	output.println("}");
+      }
+    } else if (fn.kind()==FKind.FlatElementNode) {
+      FlatElementNode fen=(FlatElementNode) fn;
+      String src=generateTemp(fm, fen.getSrc(), lb);
+      String index=generateTemp(fm, fen.getIndex(), lb);
+      if (firstpass) {
+	output.println("STOREARRAY("+src+","+index+");");
+      } else {
+	TypeDescriptor elementtype=fen.getDst().getType().dereference();
+	String dst=generateTemp(fm, fen.getDst(), lb);
+	String type="";
+	if (elementtype.isArray()||elementtype.isClass())
+	  type="void *";
+	else
+	  type=elementtype.getSafeSymbol()+" ";
+	output.println("{");
+	output.println("  struct ___ArrayObject___ *array;");
+	output.println("  int index;");
+	output.println("  RESTOREARRAY(array,index);");
+	output.println("  "+dst+"=(("+type+"*)((struct ___ArrayObject___*) (((char *)&array->___length___))+sizeof(int)))[index];");
+	output.println("}");
+      }
     }
   }
 

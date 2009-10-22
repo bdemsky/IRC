@@ -625,6 +625,9 @@ public class DiscoverConflicts {
   /* See what fields and arrays transactions might modify.  We only
    * look at changes to old objects. */
 
+  //Bug fix: original version forget to check if object is new and
+  //could be optimized
+
   public void computeModified(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
@@ -633,14 +636,17 @@ public class DiscoverConflicts {
       FlatNode fn=fnit.next();
       Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
       if (atomictable.get(fn).intValue()>0) {
+	Set<TempDescriptor> oldtemp=oldtemps.get(fn);
 	switch (fn.kind()) {
 	case FKind.FlatSetFieldNode:
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
-	  fields.add(fsfn.getField());
+	  if (oldtemp.contains(fsfn.getDst()))
+	    fields.add(fsfn.getField());
 	  break;
 	case FKind.FlatSetElementNode:
 	  FlatSetElementNode fsen=(FlatSetElementNode) fn;
-	  arrays.add(fsen.getDst().getType());
+	  if (oldtemp.contains(fsen.getDst()))
+	    arrays.add(fsen.getDst().getType());
 	  break;
 	default:
 	}

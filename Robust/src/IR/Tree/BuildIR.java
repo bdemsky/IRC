@@ -581,9 +581,19 @@ public class BuildIR {
     ParseNode headern=pn.getChild("method_header");
     ParseNode bodyn=pn.getChild("body");
     MethodDescriptor md=parseMethodHeader(headern);
-    BlockNode bn=parseBlock(bodyn);
-    cn.addMethod(md);
-    state.addTreeCode(md,bn);
+    try {
+      BlockNode bn=parseBlock(bodyn);
+      cn.addMethod(md);
+      state.addTreeCode(md,bn);
+    } catch (Exception e) {
+      System.out.println("Error with method:"+md.getSymbol());
+      e.printStackTrace();
+      throw new Error();
+    } catch (Error e) {
+      System.out.println("Error with method:"+md.getSymbol());
+      e.printStackTrace();
+      throw new Error();
+    }
   }
 
   private void parseConstructorDecl(ClassDescriptor cn, ParseNode pn) {

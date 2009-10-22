@@ -24,6 +24,7 @@ public class DelayComputation {
   DiscoverConflicts dcopts;
   Hashtable<LocalityBinding, HashSet<FlatNode>> notreadymap;
   Hashtable<LocalityBinding, HashSet<FlatNode>> cannotdelaymap;
+  Hashtable<LocalityBinding, HashSet<FlatNode>> derefmap;
   Hashtable<LocalityBinding, HashSet<FlatNode>> othermap;
 
   public DelayComputation(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, GlobalFieldType gft) {
@@ -33,6 +34,8 @@ public class DelayComputation {
     this.gft=gft;
     this.notreadymap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
     this.cannotdelaymap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
+    if (state.STMARRAY)
+      this.derefmap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
     this.othermap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
   }
 
@@ -44,7 +47,17 @@ public class DelayComputation {
     return cannotdelaymap;
   }
 
+
+  public HashSet<FlatNode> getDeref(LocalityBinding lb) {
+    return derefmap.get(lb);
+  }
+
   public void doAnalysis() {
+    //first dcopts...use to figure out what we need to lock
+    dcopts=new DiscoverConflicts(locality, state, typeanalysis, null);
+    dcopts.doAnalysis();
+
+    //compute cannotdelaymap
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
     for(Iterator<LocalityBinding> lbit=localityset.iterator();lbit.hasNext();) {
       analyzeMethod(lbit.next());
@@ -272,6 +285,7 @@ public class DelayComputation {
     FlatMethod fm=state.getMethodFlat(md);
 
     HashSet<FlatNode> delayedset=notreadymap.get(lb);
+    HashSet<FlatNode> derefset=derefmap.get(lb);
     HashSet<FlatNode> otherset=othermap.get(lb);
     HashSet<FlatNode> cannotdelayset=cannotdelaymap.get(lb);
     Hashtable<FlatNode,Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
@@ -358,16 +372,27 @@ public class DelayComputation {
       }
 
       if (delayedset.contains(fn)) {
-	//If the node is in the second set, check our readset
-	TempDescriptor readset[]=fn.readsTemps();
-	for(int i=0;i<readset.length;i++) {
-	  TempDescriptor tmp=readset[i];
-	  if (tmptofn.containsKey(tmp)) {
-	    livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
-	    unionset.addAll(tmptofn.get(tmp));
+	if(state.STMARRAY&&derefset.contains(fn)) {
+	  //FlatElementNodes don't read anything...
+	  if (fn.kind()==FKind.FlatSetElementNode) {
+	    //check only the source read tmp
+	    TempDescriptor tmp=((FlatSetElementNode)fn).getSrc();
+	    if (tmptofn.containsKey(tmp)) {
+	      livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
+	      unionset.addAll(tmptofn.get(tmp));
+	    }
+	  }
+	} else {
+	  //If the node is in the second set, check our readset
+	  TempDescriptor readset[]=fn.readsTemps();
+	  for(int i=0;i<readset.length;i++) {
+	    TempDescriptor tmp=readset[i];
+	    if (tmptofn.containsKey(tmp)) {
+	      livenodes.addAll(tmptofn.get(tmp)); //Add live nodes
+	      unionset.addAll(tmptofn.get(tmp));
+	    }
 	  }
 	}
-	
 	//Do kills
 	TempDescriptor writeset[]=fn.writesTemps();
 	for(int i=0;i<writeset.length;i++) {
@@ -437,16 +462,22 @@ public class DelayComputation {
     return reachable;
   }
 
+  //Computes cannotdelayset---flatnodes that must be evaluated in the
+  //speculative component.
+
   public void analyzeMethod(LocalityBinding lb) {
     MethodDescriptor md=lb.getMethod();
     FlatMethod fm=state.getMethodFlat(md);
     HashSet<FlatNode> cannotdelay=new HashSet<FlatNode>();
+    HashSet<FlatNode> derefset=new HashSet<FlatNode>();
     Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
     if (lb.isAtomic()) {
       //We are in a transaction already...
       //skip past this method or something
       return;
     }
+
+    Hashtable<FlatNode, Set<TempDescriptor>> oldtempmap=dcopts.computeOldTemps(lb);
 
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
     toanalyze.addAll(fm.getNodeSet());
@@ -458,6 +489,7 @@ public class DelayComputation {
     Hashtable<FlatNode, HashSet<FieldDescriptor>> nodelayfieldsrd=new Hashtable<FlatNode, HashSet<FieldDescriptor>>();
     Hashtable<FlatNode, HashSet<TypeDescriptor>> nodelayarraysrd=new Hashtable<FlatNode, HashSet<TypeDescriptor>>();
     
+    Hashtable<FlatCondBranch, Set<FlatNode>> revbranchmap=revGetBranchSet(lb);    
     Hashtable<FlatNode, Set<FlatCondBranch>> branchmap=getBranchSet(lb);
     //Effect of adding something to nodelay set is to move it up past everything in delay set
     //Have to make sure we can do this commute
@@ -518,11 +550,14 @@ public class DelayComputation {
       
       //Delay branches if possible
       if (fn.kind()==FKind.FlatCondBranch) {
-	Set<FlatNode> leftset=getNext(fn, 0, cannotdelay, lb, locality,true);
-	Set<FlatNode> rightset=getNext(fn, 1, cannotdelay, lb, locality,true);
-	if (leftset.size()>0&&rightset.size()>0&&
-	    !leftset.equals(rightset)||leftset.size()>1)
-	  isnodelay=true;
+	Set<FlatNode> branchset=revbranchmap.get(lb);
+	for(Iterator<FlatNode> brit=branchset.iterator();brit.hasNext();) {
+	  FlatNode branchnode=brit.next();
+	  if (cannotdelay.contains(branchnode)||(state.STMARRAY&&derefset.contains(branchnode))) {
+	    isnodelay=true;
+	    break;
+	  }
+	}
       }
 
       //Check for field conflicts
@@ -573,8 +608,11 @@ public class DelayComputation {
 	  Set<FlatCondBranch> fcbset=branchmap.get(fn);
 	  for(Iterator<FlatCondBranch> fcbit=fcbset.iterator();fcbit.hasNext();) {
 	    FlatCondBranch fcb=fcbit.next();
-	    cannotdelay.add(fcb);
-	    nodelaytempset.add(fcb.getTest());
+	    //enqueue flatcondbranch node for reanalysis
+	    if (cannotdelay.contains(fcb)) {
+	      cannotdelay.add(fcb);
+	      toanalyze.add(fcb);
+	    }
 	  }
 	}
 	/* Do we write to fields */
@@ -609,26 +647,46 @@ public class DelayComputation {
 	}
       } else {
 	//Need to know which objects to lock on
+	Set<TempDescriptor> oldtemps=oldtempmap.get(fn);
 	switch(fn.kind()) {
-	  //TODO: Can improve by only locking if there is a field that requires a lock
 	case FKind.FlatSetFieldNode: {
 	  FlatSetFieldNode fsfn=(FlatSetFieldNode)fn;
-	  nodelaytempset.add(fsfn.getDst());
+	  if (oldtemps.contains(fsfn.getDst())) {
+	    nodelaytempset.add(fsfn.getDst());
+	  }
 	  break;
 	}
 	case FKind.FlatSetElementNode: {
 	  FlatSetElementNode fsen=(FlatSetElementNode)fn;
-	  nodelaytempset.add(fsen.getDst());
+	  if (oldtemps.contains(fsen.getDst())) {
+	    nodelaytempset.add(fsen.getDst());
+	    //Word Array support requires index
+	    if (state.STMARRAY) {
+	      nodelaytempset.add(fsen.getIndex());
+	      derefset.add(fsen);
+	    }
+	  }
 	  break;
 	}
 	case FKind.FlatFieldNode: {
 	  FlatFieldNode ffn=(FlatFieldNode)fn;
-	  nodelaytempset.add(ffn.getSrc());
+	  if (oldtemps.contains(ffn.getSrc())&&
+	      dcopts.getFields().contains(ffn.getField())) {
+	    nodelaytempset.add(ffn.getSrc());
+	  }
 	  break;
 	}
 	case FKind.FlatElementNode: {
 	  FlatElementNode fen=(FlatElementNode)fn;
-	  nodelaytempset.add(fen.getSrc());
+	  if (oldtemps.contains(fen.getSrc())&&
+	      dcopts.getArrays().contains(fen.getSrc().getType())) {
+	    nodelaytempset.add(fen.getSrc());
+	    //Word Array support requires index
+	    if (state.STMARRAY) {
+	      nodelaytempset.add(fen.getIndex());
+	      derefset.add(fen);
+	    }
+	  }
 	  break;
 	}
 	}
@@ -676,6 +734,8 @@ public class DelayComputation {
     }//end of while loop
 
     if (lb.getHasAtomic()) {
+      if (state.STMARRAY)
+	derefmap.put(lb, derefset);
       cannotdelaymap.put(lb, cannotdelay);
     }
   } //end of method

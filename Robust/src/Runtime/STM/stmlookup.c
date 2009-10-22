@@ -368,6 +368,62 @@ void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
 }
 #endif
 
+#ifdef STMARRAY
+//Store objects and their pointers into hash
+void dc_t_chashInsertOnce(void * key, unsigned int indexkey, void *val) {
+  chashlistnode_t *ptr;
+
+  if (key==NULL)
+    return;
+
+  if(dc_c_numelements > (dc_c_threshold)) {
+    //Resize
+    unsigned int newsize = dc_c_size << 1;
+    dc_t_chashResize(newsize);
+  }
+
+  ptr = &dc_c_table[(((unsigned INTPTR)key)&dc_c_mask)>>4];
+
+  if(ptr->key==0) {
+    ptr->key=key;
+    ptr->val=val;
+    ptr->lnext=dc_c_list;
+    dc_c_list=ptr;
+    dc_c_numelements++;
+  } else { // Insert in the beginning of linked list
+    chashlistnode_t * node;
+    chashlistnode_t *search=ptr;
+    
+    //make sure it isn't here
+    do {
+      if(search->key == key) {
+	return;
+      }
+      search=search->next;
+    } while(search != NULL);
+
+    dc_c_numelements++;    
+    if (dc_c_structs->num<NUMCLIST) {
+      node=&dc_c_structs->array[dc_c_structs->num];
+      dc_c_structs->num++;
+    } else {
+      //get new list
+      cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
+      tcl->next=dc_c_structs;
+      dc_c_structs=tcl;
+      node=&tcl->array[0];
+      tcl->num=1;
+    }
+    node->key = key;
+    node->val = val;
+    node->next = ptr->next;
+    ptr->next=node;
+    node->lnext=dc_c_list;
+    dc_c_list=node;
+  }
+}
+#endif
+
 unsigned int dc_t_chashResize(unsigned int newsize) {
   dchashlistnode_t *node, *ptr, *curr;    // curr and next keep track of the current and the next chashlistnodes in a linked list
   unsigned int oldsize;

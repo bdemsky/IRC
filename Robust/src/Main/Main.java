@@ -479,8 +479,18 @@ public class Main {
   }
 
   public static void loadClass(State state, BuildIR bir, String sourcefile) {
-    ParseNode pn=readSourceFile(state, sourcefile);
-    bir.buildtree(pn, null);
+    try {
+      ParseNode pn=readSourceFile(state, sourcefile);
+      bir.buildtree(pn, null);
+    } catch (Exception e) {
+      System.out.println("Error in sourcefile:"+sourcefile);
+      e.printStackTrace();
+      System.exit(-1);
+    } catch (Error e) {
+      System.out.println("Error in sourcefile:"+sourcefile);
+      e.printStackTrace();
+      System.exit(-1);
+    }
   }
 
   /** Reads in a source file and adds the parse tree to the state object. */
