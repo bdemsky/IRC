@@ -1,5 +1,5 @@
 public class Test {
-  static public void main( String[] args ) {    
+  static public void main( String[] args ) {
     int n = 10;
     Vector v1 = new Vector( n );
     for( int i = 0; i < n; ++i ) {

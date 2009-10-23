@@ -2,6 +2,7 @@ package Analysis.OwnershipAnalysis;
 
 import IR.*;
 import IR.Flat.*;
+import Util.UtilAlgorithms;
 import java.util.*;
 import java.io.*;
 
@@ -75,6 +76,17 @@ public class OwnershipGraph {
   public Hashtable<Integer, TokenTuple> paramIndex2paramTokenSecondaryStar;
 
 
+  // consult these sets in algorithms when considering what
+  // to do with temps or their label nodes found in the graph
+  public Set<TempDescriptor> outOfScopeTemps;
+  public Set<LabelNode>      outOfScopeLabels;
+  public Set<TempDescriptor> parameterTemps;
+  public Set<LabelNode>      parameterLabels;
+
+  // this is kept to allow edges created from variables (a src and dst)
+  // to know the access paths that allowed it, to prune edges when
+  // mapping them back into the caller--an access path must appear
+  public Hashtable< TempDescriptor, Set<AccessPath> > temp2accessPaths;
 
 
 
@@ -100,6 +112,16 @@ public class OwnershipGraph {
     paramIndex2paramTokenSecondaryStar = new Hashtable<Integer,        TokenTuple    >();
 
     allocationSites = new HashSet <AllocationSite>();
+
+    outOfScopeTemps  = new HashSet<TempDescriptor>(); 
+    outOfScopeLabels = new HashSet<LabelNode>();      
+    parameterTemps   = new HashSet<TempDescriptor>(); 
+    parameterLabels  = new HashSet<LabelNode>();
+
+    outOfScopeTemps.add( tdReturn );
+    outOfScopeLabels.add( getLabelNodeFromTemp( tdReturn ) );
+
+    temp2accessPaths = new Hashtable< TempDescriptor, Set<AccessPath> >();
   }
 
 
@@ -644,11 +666,18 @@ public class OwnershipGraph {
 							 null,       // reachability set                 
 							 "param"+paramIndex+" obj" );
 
+    parameterTemps.add( td );
+    parameterLabels.add( lnParam );
+
+
     // this is a non-program-accessible label that picks up beta
     // info to be used for fixing a caller of this method
     TempDescriptor tdParamQ = new TempDescriptor( td+qString );
     paramIndex2tdQ.put( paramIndex, tdParamQ );    
     LabelNode lnParamQ = getLabelNodeFromTemp( tdParamQ );
+
+    outOfScopeTemps.add( tdParamQ );
+    outOfScopeLabels.add( lnParamQ );
 
     // keep track of heap regions that were created for
     // parameter labels, the index of the parameter they
@@ -659,11 +688,11 @@ public class OwnershipGraph {
     s.add( paramIndex );
     idPrimary2paramIndexSet.put( newPrimaryID, s );
     paramIndex2idPrimary.put( paramIndex, newPrimaryID );
-
     
     TokenTuple ttPrimary = new TokenTuple( newPrimaryID,
 					   false, // multi-object
 					   TokenTuple.ARITY_ONE ).makeCanonical();    
+
         
     HeapRegionNode hrnSecondary   = null;
     Integer        newSecondaryID = null;
@@ -675,6 +704,9 @@ public class OwnershipGraph {
       tdParamR = new TempDescriptor( td+rString );
       paramIndex2tdR.put( paramIndex, tdParamR );    
       lnParamR = getLabelNodeFromTemp( tdParamR );
+
+      outOfScopeTemps.add( tdParamR );
+      outOfScopeLabels.add( lnParamR );
 
       hrnSecondary = createNewHeapRegionNode( null,  // id or null to generate a new one  
 					      false, // single object?			 
@@ -796,6 +828,10 @@ public class OwnershipGraph {
   public void makeAliasedParamHeapRegionNode() {
 
     LabelNode lnBlob = getLabelNodeFromTemp( tdAliasBlob );
+
+    outOfScopeTemps.add( tdAliasBlob );
+    outOfScopeLabels.add( lnBlob );
+
     HeapRegionNode hrn = createNewHeapRegionNode( null,  // id or null to generate a new one 
 						  false, // single object?			 
 						  false, // summary?			 
@@ -833,6 +869,9 @@ public class OwnershipGraph {
     LabelNode lnParam   = getLabelNodeFromTemp( tdParam );    
     LabelNode lnAliased = getLabelNodeFromTemp( tdAliasBlob );
 
+    parameterTemps.add( tdParam );
+    parameterLabels.add( lnParam );
+
     // this is a non-program-accessible label that picks up beta
     // info to be used for fixing a caller of this method
     TempDescriptor tdParamQ = new TempDescriptor( tdParam+qString );
@@ -843,6 +882,11 @@ public class OwnershipGraph {
 
     LabelNode lnParamQ = getLabelNodeFromTemp( tdParamQ );
     LabelNode lnParamR = getLabelNodeFromTemp( tdParamR );
+
+    outOfScopeTemps.add( tdParamR );
+    outOfScopeLabels.add( lnParamR );
+    outOfScopeTemps.add( tdParamQ );
+    outOfScopeLabels.add( lnParamQ );
 
     // the lnAliased should always only reference one node, and that
     // heap region node is the aliased param blob
@@ -3719,6 +3763,8 @@ public class OwnershipGraph {
     mergeReferenceEdges(og);
     mergeParamIndexMappings(og);
     mergeAllocationSites(og);
+    mergeAccessPaths(og);
+    mergeTempAndLabelCategories(og);
   }
 
 
@@ -3949,6 +3995,18 @@ public class OwnershipGraph {
     allocationSites.addAll(og.allocationSites);
   }
 
+  protected void mergeAccessPaths(OwnershipGraph og) {
+    UtilAlgorithms.mergeHashtablesWithHashSetValues(temp2accessPaths,
+						    og.temp2accessPaths);
+  }
+
+  protected void mergeTempAndLabelCategories(OwnershipGraph og) {
+    outOfScopeTemps.addAll(og.outOfScopeTemps);
+    outOfScopeLabels.addAll(og.outOfScopeLabels);
+    parameterTemps.addAll(og.parameterTemps);
+    parameterLabels.addAll(og.parameterLabels);
+  }
+
 
 
   // it is necessary in the equals() member functions
@@ -3983,10 +4041,18 @@ public class OwnershipGraph {
       return false;
     }
 
+    if( !areAccessPathsEqual(og) ) {
+      return false;
+    }
+
     // if everything is equal up to this point,
     // assert that allocationSites is also equal--
     // this data is redundant and kept for efficiency
-    assert allocationSites.equals(og.allocationSites);
+    assert allocationSites .equals(og.allocationSites );
+    assert outOfScopeTemps .equals(og.outOfScopeTemps );
+    assert outOfScopeLabels.equals(og.outOfScopeLabels);
+    assert parameterTemps  .equals(og.parameterTemps  );
+    assert parameterLabels .equals(og.parameterLabels );
 
     return true;
   }
@@ -4185,6 +4251,12 @@ public class OwnershipGraph {
 
     return true;
   }
+
+
+  protected boolean areAccessPathsEqual(OwnershipGraph og) {
+    return temp2accessPaths.equals( og.temp2accessPaths );
+  }
+
 
 
   public Set<HeapRegionNode> hasPotentialAlias( HeapRegionNode hrn1, HeapRegionNode hrn2 ) {

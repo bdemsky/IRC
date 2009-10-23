@@ -88,12 +88,14 @@ Analysis/OwnershipAnalysis/ChangeTupleSet.class                         \
 Analysis/OwnershipAnalysis/Canonical.class                              \
 Analysis/OwnershipAnalysis/MethodContext.class                          \
 Analysis/OwnershipAnalysis/ParameterDecomposition.class			\
+Analysis/OwnershipAnalysis/AccessPath.class                             \
 Analysis/MLP/MLPAnalysis.class 						\
 Analysis/MLP/VariableSourceToken.class 					\
 Analysis/MLP/SVKey.class 						\
 Analysis/MLP/VarSrcTokTable.class					\
 Analysis/MLP/CodePlan.class						\
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
+Util/UtilAlgorithms.class                                               \
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
 Interface/HTTPServices.class Interface/HashStrings.class		\
 Interface/JhttpServer.class Interface/JhttpWorker.class			\
