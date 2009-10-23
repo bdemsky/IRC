@@ -51,6 +51,9 @@ public class MLPAnalysis {
   private Hashtable< FlatEdge, FlatWriteDynamicVarNode  > wdvNodesToSpliceIn;
   
   private Hashtable< MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet;
+  
+  private Hashtable < FlatNode, ParentChildConflictsMap > conflictsResults;
+  private ParentChildConflictsMap currentConflictsMap;
 
   public static int maxSESEage = -1;
 
@@ -105,6 +108,8 @@ public class MLPAnalysis {
     wdvNodesToSpliceIn   = new Hashtable< FlatEdge, FlatWriteDynamicVarNode  >();
     
     mapMethodContextToLiveInAllocationSiteSet = new Hashtable< MethodContext, HashSet<AllocationSite>>();
+    
+    conflictsResults = new Hashtable < FlatNode, ParentChildConflictsMap >();
     
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
@@ -197,6 +202,16 @@ public class MLPAnalysis {
       FlatMethod fm = state.getMethodFlat( d );
       methodEffects(fm,javaCallGraph);
     }
+    
+    // Parent/child memory conflicts analysis
+    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    javaCallGraph = new JavaCallGraph(state,tu);
+    while( methItr.hasNext() ) {
+        Descriptor d  = methItr.next();      
+        FlatMethod fm = state.getMethodFlat( d );
+        seseConflictsForward(fm,javaCallGraph);
+      }
+    
     
     // disjoint analysis with a set of flagged allocation sites of live-in variable
 	try {
@@ -1641,11 +1656,13 @@ public class MLPAnalysis {
 		HashSet<HeapRegionNode> returnSet=new HashSet<HeapRegionNode>();
 		
 		LabelNode ln=og.td2ln.get(td);
-		Iterator<ReferenceEdge> edgeIter=ln.iteratorToReferencees();
-		while(edgeIter.hasNext()){
-			ReferenceEdge edge=edgeIter.next();
-				HeapRegionNode hrn=edge.getDst();
-				returnSet.add(hrn);
+		if(ln!=null){
+			Iterator<ReferenceEdge> edgeIter=ln.iteratorToReferencees();
+			while(edgeIter.hasNext()){
+				ReferenceEdge edge=edgeIter.next();
+					HeapRegionNode hrn=edge.getDst();
+					returnSet.add(hrn);
+			}
 		}
 		return returnSet;
 	}
@@ -1682,6 +1699,230 @@ public class MLPAnalysis {
 		return returnSet;
 
 	}
+	
+	private HashSet<TempDescriptor> getTempDescSetReferenceToSameHRN(
+			OwnershipGraph og, TempDescriptor td) {
+
+		HashSet<TempDescriptor> returnSet = new HashSet<TempDescriptor>();
+
+		HashSet<HeapRegionNode> heapIDs = getReferenceHeapIDSet(og, td);
+		for (Iterator<HeapRegionNode> iterator = heapIDs.iterator(); iterator
+				.hasNext();) {
+			HeapRegionNode heapRegionNode = (HeapRegionNode) iterator.next();
+			Iterator<ReferenceEdge> referencerIter = heapRegionNode
+					.iteratorToReferencers();
+			while (referencerIter.hasNext()) {
+				ReferenceEdge edge = (ReferenceEdge) referencerIter.next();
+				if (edge.getSrc() instanceof LabelNode) {
+					LabelNode ln = (LabelNode) edge.getSrc();
+					returnSet.add(ln.getTempDescriptor());
+				}
+			}
+		}
+		return returnSet;
+	}
+	
+	private void seseConflictsForward(FlatMethod fm, JavaCallGraph callGraph) {
+
+		MethodDescriptor md = fm.getMethod();
+		HashSet<MethodContext> mcSet = ownAnalysis
+				.getAllMethodContextSetByDescriptor(md);
+		Iterator<MethodContext> mcIter = mcSet.iterator();
+
+		while (mcIter.hasNext()) {
+			MethodContext mc = mcIter.next();
+
+			Set<FlatNode> visited = new HashSet<FlatNode>();
+
+			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+			flatNodesToVisit.add(fm);
+
+			while (!flatNodesToVisit.isEmpty()) {
+				FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+				flatNodesToVisit.remove(fn);
+
+				Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
+				assert seseStack != null;
+
+				if (!seseStack.empty()) {
+					conflicts_nodeAction(mc, fn, seseStack.peek(), callGraph);
+				}
+
+				flatNodesToVisit.remove(fn);
+				visited.add(fn);
+
+				for (int i = 0; i < fn.numNext(); i++) {
+					FlatNode nn = fn.getNext(i);
+					if (!visited.contains(nn)) {
+						flatNodesToVisit.add(nn);
+					}
+				}
+
+			}
+
+		}
+
+	}
+	
+	private void conflicts_nodeAction(MethodContext mc, FlatNode fn,
+			FlatSESEEnterNode currentSESE, CallGraph callGraph) {
+
+		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
+
+		switch (fn.kind()) {
+
+		case FKind.FlatSESEEnterNode: {
+
+		}
+			break;
+
+		case FKind.FlatSESEExitNode: {
+
+			// all object variables are inaccessible
+			currentConflictsMap = new ParentChildConflictsMap();
+
+		}
+			break;
+
+		case FKind.FlatNew: {
+
+			if (currentConflictsMap != null) {
+				FlatNew fnew = (FlatNew) fn;
+				TempDescriptor dst = fnew.getDst();
+				currentConflictsMap.addAccessibleVar(dst);
+			}
+
+		}
+			break;
+
+		case FKind.FlatFieldNode: {
+
+			if (currentConflictsMap != null) {
+				FlatFieldNode ffn = (FlatFieldNode) fn;
+				TempDescriptor dst = ffn.getDst();
+				TempDescriptor src = ffn.getSrc();
+				FieldDescriptor field = ffn.getField();
+
+				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
+						og, src);
+				for (Iterator iterator = srcTempSet.iterator(); iterator
+						.hasNext();) {
+					TempDescriptor possibleSrc = (TempDescriptor) iterator
+							.next();
+					if (!currentConflictsMap.isAccessible(possibleSrc)) {
+						currentConflictsMap.addStallSite(possibleSrc);
+					}
+
+					currentConflictsMap.addAccessibleVar(possibleSrc);
+
+					// contribute read effect on source's stall site
+					currentConflictsMap.contributeEffect(src, field.getType()
+							.getSafeSymbol(), field.toString(),
+							StallSite.READ_EFFECT);
+				}
+
+				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
+						og, dst);
+				for (Iterator iterator = dstTempSet.iterator(); iterator
+						.hasNext();) {
+					TempDescriptor possibleDst = (TempDescriptor) iterator
+							.next();
+					currentConflictsMap.addAccessibleVar(possibleDst);
+				}
+
+			}
+
+		}
+			break;
+
+		case FKind.FlatSetFieldNode: {
+
+			if (currentConflictsMap != null) {
+
+				FlatSetFieldNode fsen = (FlatSetFieldNode) fn;
+				TempDescriptor dst = fsen.getDst();
+				FieldDescriptor field = fsen.getField();
+				TempDescriptor src = fsen.getSrc();
+
+				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
+						og, src);
+				for (Iterator iterator = srcTempSet.iterator(); iterator
+						.hasNext();) {
+					TempDescriptor possibleSrc = (TempDescriptor) iterator
+							.next();
+					if (!currentConflictsMap.isAccessible(possibleSrc)) {
+						currentConflictsMap.addStallSite(possibleSrc);
+					}
+					currentConflictsMap.addAccessibleVar(possibleSrc);
+				}
+
+				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
+						og, dst);
+				for (Iterator iterator = dstTempSet.iterator(); iterator
+						.hasNext();) {
+					TempDescriptor possibleDst = (TempDescriptor) iterator
+							.next();
+
+					if (!currentConflictsMap.isAccessible(possibleDst)) {
+						currentConflictsMap.addStallSite(possibleDst);
+					}
+					currentConflictsMap.addAccessibleVar(possibleDst);
+					// contribute write effect on destination's stall site
+					currentConflictsMap.contributeEffect(possibleDst, field
+							.getType().getSafeSymbol(), field.toString(),
+							StallSite.WRITE_EFFECT);
+				}
+
+				// TODO need to create edge mapping for newly created edge
+
+			}
+
+		}
+			break;
+
+		case FKind.FlatOpNode: {
+
+			// destination variable gets the status of source.
+			FlatOpNode fon = (FlatOpNode) fn;
+
+			if (fon.getOp().getOp() == Operation.ASSIGN
+					&& currentConflictsMap != null) {
+
+				TempDescriptor dst = fon.getDest();
+				TempDescriptor src = fon.getLeft();
+
+				Integer sourceStatus = currentConflictsMap.getAccessibleMap()
+						.get(src);
+				if(sourceStatus==null){
+					sourceStatus=ParentChildConflictsMap.INACCESSIBLE;
+				}
+
+				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
+						og, dst);
+
+				for (Iterator<TempDescriptor> iterator = dstTempSet.iterator(); iterator
+						.hasNext();) {
+					TempDescriptor possibleDst = iterator.next();
+
+					if (sourceStatus.equals(ParentChildConflictsMap.ACCESSIBLE)) {
+						currentConflictsMap.addAccessibleVar(possibleDst);
+					} else {
+						currentConflictsMap.addInaccessibleVar(possibleDst);
+					}
+
+				}
+			}
+		}
+			break;
+		}
+
+		// for every program point, we keep accessible map and stall map.
+		if (currentConflictsMap != null) {
+			conflictsResults.put(fn, currentConflictsMap);
+		}
+
+	}
+	
 
 
   private void codePlansForward( FlatMethod fm ) {
