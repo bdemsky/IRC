@@ -201,15 +201,25 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
 	  int i;
 	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
 #ifdef STMARRAY
-	  int lowindex=(ao->lowindex)/sizeof(void *);
-	  int highindex=(ao->highindex+INDEXLENGTH)/sizeof(void *);
-	  for(i=lowindex; i<highindex; i++) {
+	  int lowindex=ao->lowindex>>INDEXSHIFT;
+	  int highind=ao->highindex;
+	  int highindex=(highind==-1)?-1:(highind>>INDEXSHIFT);
+	  int j;
+	  for(j=lowindex; j<=highindex; j++) {
+	    unsigned int lockval;
+	    if (GETLOCKVAL(lockval, ao, j)==STMDIRY) {
+	      int lowi=(j<<INDEXSHIFT)/sizeof(void *);
+	      int highi=lowi+(INDEXLENGTH/sizeof(void *));
+	      for(i=lowi; i<highi;i++) {
 #else
-	  for(i=0; i<length; i++) {
+	      for(i=0; i<length; i++) {
 #endif
-	    void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
-	    SENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
-	  }
+		void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
+		SENQUEUE(objptr, ((void **)(((char *)&ao->___length___)+sizeof(int)))[i]);
+	      }
+#ifdef STMARRAY
+	    }
+#endif
 	} else {
 	  INTPTR size=pointer[0];
 	  int i;
