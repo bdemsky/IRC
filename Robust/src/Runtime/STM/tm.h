@@ -204,7 +204,11 @@ __attribute__((pure)) void *transReadOnly(void *);
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+#ifdef STMARRAY
+void transCommitProcess(struct garbagelist *, int *, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+#else
 void transCommitProcess(struct garbagelist *, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
+#endif
 #else
 int transCommit();
 int traverseCache();
@@ -212,7 +216,11 @@ int alttraverseCache();
 void transCommitProcess(struct garbagelist *, int);
 #endif
 int altalttraverseCache();
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrtotal, int * dirwrindex, int numoidwrlocked);
+#else
 void transAbortProcess(struct garbagelist *, int);
+#endif
 void randomdelay(int);
 #if defined(STMSTATS)||defined(SOFTABORT)
 int getTotalAbortCount(int, int, void *, int, void*, int*, int*, int, objheader_t*, int*);
@@ -252,8 +260,8 @@ extern __thread struct objlist * lockedobjs;
 extern __thread int t_objnumcount;
 #endif
 
-#define likely(x) x
-#define unlikely(x) x
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
 
 extern void * curr_heapbase;
 extern void * curr_heapptr;

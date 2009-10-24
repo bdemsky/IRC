@@ -2357,15 +2357,15 @@ public class BuildCode {
       String dst=generateTemp(fm, fsen.getDst(), lb);
       String src=generateTemp(fm, fsen.getSrc(), lb);
       String index=generateTemp(fm, fsen.getIndex(), lb);      
+      TypeDescriptor elementtype=fsen.getDst().getType().dereference();
+      String type="";
+      if (elementtype.isArray()||elementtype.isClass())
+	type="void *";
+      else
+	type=elementtype.getSafeSymbol()+" ";
       if (firstpass) {
-	output.println("STOREARRAY("+dst+","+index+")");
+	output.println("STOREARRAY("+dst+","+index+","+type+")");
       } else {
-	TypeDescriptor elementtype=fsen.getDst().getType().dereference();
-	String type="";
-	if (elementtype.isArray()||elementtype.isClass())
-	  type="void *";
-	else
-	  type=elementtype.getSafeSymbol()+" ";
 	output.println("{");
 	output.println("  struct ArrayObject *array;");
 	output.println("  int index;");
@@ -2377,16 +2377,16 @@ public class BuildCode {
       FlatElementNode fen=(FlatElementNode) fn;
       String src=generateTemp(fm, fen.getSrc(), lb);
       String index=generateTemp(fm, fen.getIndex(), lb);
+      TypeDescriptor elementtype=fen.getSrc().getType().dereference();
+      String dst=generateTemp(fm, fen.getDst(), lb);
+      String type="";
+      if (elementtype.isArray()||elementtype.isClass())
+	type="void *";
+      else
+	type=elementtype.getSafeSymbol()+" ";
       if (firstpass) {
-	output.println("STOREARRAY("+src+","+index+");");
+	output.println("STOREARRAY("+src+","+index+","+type+");");
       } else {
-	TypeDescriptor elementtype=fen.getSrc().getType().dereference();
-	String dst=generateTemp(fm, fen.getDst(), lb);
-	String type="";
-	if (elementtype.isArray()||elementtype.isClass())
-	  type="void *";
-	else
-	  type=elementtype.getSafeSymbol()+" ";
 	output.println("{");
 	output.println("  struct ArrayObject *array;");
 	output.println("  int index;");

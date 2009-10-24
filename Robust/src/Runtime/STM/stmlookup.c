@@ -1,5 +1,6 @@
 #include "stmlookup.h"
 #include "strings.h"
+#include "tm.h"
 
 __thread chashlistnode_t *c_table;
 __thread chashlistnode_t *c_list;
@@ -274,6 +275,9 @@ void dc_t_chashInsertOnce(void * key, void *val) {
   if(ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
+#ifdef STMARRAY
+    ptr->intkey=-1;
+#endif
     ptr->lnext=dc_c_list;
     dc_c_list=ptr;
     dc_c_numelements++;
@@ -301,6 +305,9 @@ void dc_t_chashInsertOnce(void * key, void *val) {
       node=&tcl->array[0];
       tcl->num=1;
     }
+#ifdef STMARRAY
+    node->intkey=-1;
+#endif
     node->key = key;
     node->val = val;
     node->next = ptr->next;
@@ -315,16 +322,16 @@ void dc_t_chashInsertOnce(void * key, void *val) {
 void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
   dchashlistnode_t *ptr;
 
-  if (key==NULL)
+  if (unlikely(key==NULL))
     return;
 
-  if(dc_c_numelements > (dc_c_threshold)) {
+  if(unlikely(dc_c_numelements > dc_c_threshold)) {
     //Resize
     unsigned int newsize = dc_c_size << 1;
     dc_t_chashResize(newsize);
   }
 
-  ptr = &dc_c_table[(((unsigned INTPTR)key^intkey)&dc_c_mask)>>4];
+  ptr = &dc_c_table[(((unsigned INTPTR)key^(intkey<<4))&dc_c_mask)>>4];
 
   if(ptr->key==0) {
     ptr->key=key;
@@ -346,7 +353,7 @@ void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
     } while(search != NULL);
 
     dc_c_numelements++;
-    if (dc_c_structs->num<NUMCLIST) {
+    if (likely(dc_c_structs->num<NUMCLIST)) {
       node=&dc_c_structs->array[dc_c_structs->num];
       dc_c_structs->num++;
     } else {
@@ -404,7 +411,7 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
       }
 #ifdef STMARRAY
       intkey=curr->intkey;
-      index = (((unsigned INTPTR)key^intkey) & mask) >>4;
+      index = (((unsigned INTPTR)key^(intkey<<4)) & mask) >>4;
 #else
       index = (((unsigned INTPTR)key) & mask) >>4;
 #endif

@@ -93,7 +93,9 @@ void rd_t_chashreset();
 
 typedef struct dchashlistnode {
   void * key;
+#ifdef STMARRAY
   unsigned int intkey;
+#endif
   void * val;     //this can be cast to another type or used to point to a larger structure
   struct dchashlistnode *next;
   struct dchashlistnode *lnext;

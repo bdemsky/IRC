@@ -25,6 +25,14 @@
 #define STATASSIGN
 #endif
 
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+#define ARRAYDELAYWRAP(x) x
+#define ARRAYDELAYWRAP1(x) ,x
+#else
+#define ARRAYDELAYWRAP(x)
+#define ARRAYDELAYWRAP1(x)
+#endif
+
 /* ================================================================
  * transCommit
  * - This function initiates the transaction commit process
@@ -32,6 +40,7 @@
  * - a final response
  * ================================================================
  */
+
 #ifdef DELAYCOMP
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
 #else
@@ -144,6 +153,7 @@ int transCommit() {
   }					     \
   if (t_numelements>=200) {		     \
     free(oidwrlocked);			     \
+    STMARRAYDELAYFREE;			     \
   }
 #else
 #define freearrays   if (c_numelements>=200) { \
@@ -156,71 +166,73 @@ int transCommit() {
 #endif
 
 #ifdef DELAYCOMP
-#define allocarrays int t_numelements=c_numelements+dc_c_numelements; \
-  if (t_numelements<200) { \
+#define allocarrays int t_numelements=c_numelements+dc_c_numelements;	\
+  if (t_numelements<200) {						\
     oidwrlocked=(struct garbagelist *) &wrlocked;			\
-  } else { \
-    oidwrlocked=malloc(2*sizeof(INTPTR)+t_numelements*sizeof(void *));	\
-  } \
-  if (c_numelements<200) { \
-    oidrdlocked=rdlocked; \
-    oidrdversion=rdversion; \
-    STATASSIGN;		    \
-    STMARRAYASSIGN;	    \
-  } else { \
-    int size=c_numelements*sizeof(void*); \
-    oidrdlocked=malloc(size); \
-    oidrdversion=malloc(size); \
-    STATALLOC;		       \
-    STMARRAYALLOC;	       \
-  }\
+    STMARRAYDELAYASSIGN;						\
+  } else {								\
+    oidwrlocked=malloc(2*sizeof(INTPTR)+t_numelements*(sizeof(void *))); \
+    STMARRAYDELAYALLOC;							\
+  }									\
+  if (c_numelements<200) {						\
+    oidrdlocked=rdlocked;						\
+    oidrdversion=rdversion;						\
+    STATASSIGN;								\
+    STMARRAYASSIGN;							\
+  } else {								\
+    int size=c_numelements*sizeof(void*);				\
+    oidrdlocked=malloc(size);						\
+    oidrdversion=malloc(size);						\
+    STATALLOC;								\
+    STMARRAYALLOC;							\
+  }									\
   dirwrlocked=oidwrlocked->array;
 #else
-#define allocarrays if (c_numelements<200) { \
-    oidrdlocked=rdlocked; \
-    oidrdversion=rdversion; \
+#define allocarrays if (c_numelements<200) {	  \
+    oidrdlocked=rdlocked;			  \
+    oidrdversion=rdversion;			  \
     oidwrlocked=(struct garbagelist *) &wrlocked; \
     STATASSIGN;					  \
     STMARRAYASSIGN;				  \
-  } else { \
-    int size=c_numelements*sizeof(void*); \
-    oidrdlocked=malloc(size); \
-    oidrdversion=malloc(size); \
-    oidwrlocked=malloc(size+2*sizeof(INTPTR));	\
-    STATALLOC;					\
-    STMARRAYALLOC;				\
-  } \
+  } else {					  \
+    int size=c_numelements*sizeof(void*);	  \
+    oidrdlocked=malloc(size);			  \
+    oidrdversion=malloc(size);			  \
+    oidwrlocked=malloc(size+2*sizeof(INTPTR));	  \
+    STATALLOC;					  \
+    STMARRAYALLOC;				  \
+  }						  \
   dirwrlocked=oidwrlocked->array;
 #endif
 
 #ifdef STMSTATS
-#define ABORTSTAT1 header->abortCount++;	\
-  ObjSeqId = headeraddr->accessCount;				\
+#define ABORTSTAT1 header->abortCount++;				\
+  ObjSeqId = headeraddr->accessCount;					\
   (typesCausingAbort[TYPE(header)]).numabort++;				\
   (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;		\
   (typesCausingAbort[TYPE(header)]).numtrans+=1;			\
   objtypetraverse[TYPE(header)]=1;					\
   if(getTotalAbortCount(i+1, size, (void *)(curr->next), numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse)) \
     softabort=0;
-#define ABORTSTAT2				\
-  ObjSeqId = oidrdage[i];\
-  header->abortCount++;					\
-  (typesCausingAbort[TYPE(header)]).numabort++;			\
-  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;	\
-  (typesCausingAbort[TYPE(header)]).numtrans+=1;		\
+#define ABORTSTAT2							\
+  ObjSeqId = oidrdage[i];						\
+  header->abortCount++;							\
+  (typesCausingAbort[TYPE(header)]).numabort++;				\
+  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;		\
+  (typesCausingAbort[TYPE(header)]).numtrans+=1;			\
   objtypetraverse[TYPE(header)]=1;					\
   if (getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse)) \
     softabort=0;
-#define ABORTSTAT3				\
-  header->abortCount++;				\
-  ObjSeqId = headeraddr->accessCount;		\
-  (typesCausingAbort[TYPE(header)]).numabort++;			\
-  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;	\
-  (typesCausingAbort[TYPE(header)]).numtrans+=1;		\
+#define ABORTSTAT3							\
+  header->abortCount++;							\
+  ObjSeqId = headeraddr->accessCount;					\
+  (typesCausingAbort[TYPE(header)]).numabort++;				\
+  (typesCausingAbort[TYPE(header)]).numaccess+=c_numelements;		\
+  (typesCausingAbort[TYPE(header)]).numtrans+=1;			\
   objtypetraverse[TYPE(header)]=1;					\
   if (getTotalAbortCount2((void *) curr->next, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse)) \
     softabort=0;
-#define ABORTSTAT4 ObjSeqId = oidrdage[i];	\
+#define ABORTSTAT4 ObjSeqId = oidrdage[i];				\
   header->abortCount++;							\
   getReadAbortCount(i+1, numoidrdlocked, oidrdlocked, oidrdversion, oidrdage, ObjSeqId, header, objtypetraverse);
 #else
@@ -242,6 +254,9 @@ int transCommit() {
 #define STMARRAYFREE free(oidrdlockedarray);
 #define STMARRAYALLOC oidrdlockedarray=malloc(size);
 #define STMARRAYASSIGN oidrdlockedarray=rdlockedarray;
+#define STMARRAYDELAYFREE free(dirwrindex);
+#define STMARRAYDELAYALLOC dirwrindex=malloc(t_numelements*sizeof(int));
+#define STMARRAYDELAYASSIGN dirwrindex=wrindex;
 
 #define ARRAYDEFINES int numoidrdlockedarray=0;	\
   void * rdlockedarray[200];			\
@@ -255,7 +270,7 @@ int transCommit() {
       write_unlock(lockptr);						\
     }									\
   }									\
-  transAbortProcess(oidwrlocked, numoidwrlocked);			\
+  transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked)); \
   freearrays;								\
   if (softabort)							\
     return TRANS_SOFT_ABORT;						\
@@ -278,12 +293,12 @@ int transCommit() {
       if (status==STMDIRTY) {						\
 	unsigned int * lockptr;						\
 	GETLOCKPTR(lockptr, mainao,j);					\
-	if (write_trylock(lockptr)) {					\
+	if (likely(write_trylock(lockptr))) {				\
 	  unsigned int localversion;					\
 	  unsigned int remoteversion;					\
 	  GETVERSIONVAL(localversion, transao, j);			\
 	  GETVERSIONVAL(remoteversion, mainao, j);			\
-	  if (localversion == remoteversion) {				\
+	  if (likely(localversion == remoteversion)) {			\
 	    addwrobject=1;						\
 	  } else {							\
 	    ARRAYABORT;							\
@@ -323,7 +338,7 @@ int transCommit() {
 	  GETVERSIONVAL(localversion, transao, j);			\
 	  GETVERSIONVAL(remoteversion, mainao, j);			\
 	  if (localversion != remoteversion) {				\
-	    transAbortProcess(oidwrlocked, NUMWRTOTAL);			\
+	    transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked)); \
 	    freearrays;							\
 	    return TRANS_ABORT;						\
 	  }								\
@@ -334,7 +349,7 @@ int transCommit() {
 	  GETVERSIONVAL(remoteversion, mainao, j);			\
 	  if (localversion==remoteversion)				\
 	    softabort=1;						\
-	  transAbortProcess(oidwrlocked, NUMWRTOTAL);			\
+	  transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked)); \
 	  freearrays;							\
 	  if (softabort)						\
 	    return TRANS_SOFT_ABORT;					\
@@ -351,7 +366,87 @@ int transCommit() {
 #define STMARRAYFREE
 #define STMARRAYALLOC
 #define STMARRAYASSIGN
+#define STMARRAYDELAYFREE
+#define STMARRAYDELAYALLOC
+#define STMARRAYDELAYASSIGN
 #endif
+
+#ifdef DELAYCOMP
+#ifdef STMARRAY
+#define ARRAYLOCK							\
+  int intkey=dc_curr->intkey;						\
+  if (intkey!=-1) {							\
+    unsigned int *lockptr;						\
+    GETLOCKPTR(lockptr, objptr, intkey);				\
+    if (likely(write_trylock(lockptr))) {				\
+      /*have lock on element */						\
+      dirwrlocked[numoidwrtotal]=objptr;				\
+      dirwrindex[numoidwrtotal++]=intkey;				\
+    } else {								\
+      unsigned int lockval;						\
+      GETLOCKVAL(lockval, valptr, intkey);				\
+      if (lockval!=STMDIRTY) {						\
+	/*have to abort to avoid deadlock*/				\
+	transAbortProcess(oidwrlocked, numoidwrtotal, dirwrindex, numoidwrlocked); \
+	ABORTSTAT1;							\
+	freearrays;							\
+	if (softabort)							\
+	  return TRANS_SOFT_ABORT;					\
+	else								\
+	  return TRANS_ABORT;						\
+      }									\
+    }									\
+  } else
+#else
+#define ARRAYLOCK
+#endif
+#define ACCESSLOCKS							\
+  unsigned int numoidwrtotal=numoidwrlocked;				\
+  dchashlistnode_t *dc_curr = dc_c_list;				\
+  /* Inner loop to traverse the linked list of the cache lookupTable */ \
+  while(likely(dc_curr != NULL)) {					\
+    /*if the first bin in hash table is empty	*/			\
+    void *valptr=dc_curr->val;						\
+    objheader_t * headeraddr=&((objheader_t *) valptr)[-1];		\
+    void *objptr=dc_curr->key;						\
+    objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t)); \
+    ARRAYLOCK								\
+    if(likely(write_trylock(&header->lock))) { /*can aquire write lock*/ \
+      ARRAYDELAYWRAP(dirwrindex[numoidwrtotal]=-1;)			\
+      dirwrlocked[numoidwrtotal++] = objptr;				\
+    } else {								\
+      /* maybe we already have lock*/					\
+      chashlistnode_t *node = &c_table[(((unsigned INTPTR)objptr) & c_mask)>>4]; \
+      									\
+      do {								\
+	if(node->key == objptr) {					\
+	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	\
+	  if(STATUS(headeraddr) & DIRTY) {				\
+	    goto nextloop;						\
+	  } else							\
+	    break;							\
+	}								\
+	node = node->next;						\
+      } while(node != NULL);						\
+									\
+      /*have to abort to avoid deadlock	*/				\
+      transAbortProcess(oidwrlocked, numoidwrtotal ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked)); \
+      ABORTSTAT1;							\
+      freearrays;							\
+      if (softabort)							\
+	return TRANS_SOFT_ABORT;					\
+      else								\
+	return TRANS_ABORT;						\
+    }									\
+  nextloop:								\
+    dc_curr = dc_curr->lnext;						\
+  }							
+#else
+#define ACCESSLOCKS
+#endif
+
+
+
 
 /* ==================================================
  * traverseCache
@@ -361,9 +456,9 @@ int transCommit() {
  */
 
 #ifdef DELAYCOMP
-  int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
 #else
-  int traverseCache() {
+int traverseCache() {
 #endif
   /* Create info to keep track of objects that can be locked */
   int numoidrdlocked=0;
@@ -379,6 +474,10 @@ int transCommit() {
   STMWRAP(int rdage[200];int * oidrdage;int ObjSeqId;int objtypetraverse[TOTALNUMCLASSANDARRAY];);
   struct garbagelist * oidwrlocked;
   void ** dirwrlocked;
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+  int wrindex[200];
+  int * dirwrindex;
+#endif
   allocarrays;
 
   STMWRAP(for(i=0; i<TOTALNUMCLASSANDARRAY; i++) objtypetraverse[i] = 0;);
@@ -403,13 +502,13 @@ int transCommit() {
 
       if(STATUS(headeraddr) & DIRTY) {
 	/* Read from the main heap  and compare versions */
-	if(write_trylock(&header->lock)) { //can aquire write lock
-	  if (version == header->version) { /* versions match */
+	if(likely(write_trylock(&header->lock))) { //can aquire write lock
+	  if (likely(version == header->version)) { /* versions match */
 	    /* Keep track of objects locked */
 	    dirwrlocked[numoidwrlocked++] = objptr;
 	  } else {
 	    dirwrlocked[numoidwrlocked++] = objptr;
-	    transAbortProcess(oidwrlocked, numoidwrlocked);
+	    transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked));
 	    ABORTSTAT1;
 	    freearrays;
 	    if (softabort)
@@ -422,7 +521,7 @@ int transCommit() {
 	    /* versions match */
 	    softabort=1;
 	  }
-	  transAbortProcess(oidwrlocked, numoidwrlocked);
+	  transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked));
 	  ABORTSTAT1;
 	  freearrays;
 	  if (softabort)
@@ -440,51 +539,9 @@ int transCommit() {
     }
   } //end of for
   
-#ifdef DELAYCOMP
-  //acquire access set locks
-  unsigned int numoidwrtotal=numoidwrlocked;
-
-  dchashlistnode_t *dc_curr = dc_c_list;
-  /* Inner loop to traverse the linked list of the cache lookupTable */
-  while(likely(dc_curr != NULL)) {
-    //if the first bin in hash table is empty
-    objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
-    void *objptr=dc_curr->key;
-    objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-    if(write_trylock(&header->lock)) { //can aquire write lock    
-      dirwrlocked[numoidwrtotal++] = objptr;
-    } else {
-      //maybe we already have lock
-      void * key=dc_curr->key;
-      chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
-      
-      do {
-	if(node->key == key) {
-	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	  
-	  if(STATUS(headeraddr) & DIRTY) {
-	    goto nextloop;
-	  } else
-	    break;
-	}
-	node = node->next;
-      } while(node != NULL);
-
-      //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, numoidwrtotal);
-      ABORTSTAT1;
-      freearrays;
-      if (softabort)
-	return TRANS_SOFT_ABORT;
-      else
-	return TRANS_ABORT;
-    }
-  nextloop:
-    dc_curr = dc_curr->lnext;
-  }
-#endif
+  ACCESSLOCKS;
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
-
   READARRAYS;
 
   for(i=0; i<numoidrdlocked; i++) {
@@ -494,7 +551,7 @@ int transCommit() {
     if(header->lock>0) { //not write locked
       CFENCE;
       if(version != header->version) { /* versions do not match */
-	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
 	ABORTSTAT2;
 	freearrays;
 	return TRANS_ABORT;
@@ -504,7 +561,7 @@ int transCommit() {
       //couldn't get lock because we already have it
       //check if it is the right version number
       if (version!=header->version) {
-	transAbortProcess(oidwrlocked, numoidwrtotal);
+	transAbortProcess(oidwrlocked, numoidwrtotal ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
 	ABORTSTAT2;
 	freearrays;
 	return TRANS_ABORT;
@@ -515,7 +572,7 @@ int transCommit() {
       if(version == header->version) {
 	softabort=1;
       }
-      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
       ABORTSTAT2;
       freearrays;
       if (softabort)
@@ -536,7 +593,7 @@ int transCommit() {
     if(header->lock>0) { //object is not locked
       if (version!=header->version) {
 	//have to abort
-	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
 	STMWRAP((typesCausingAbort[TYPE(header)])++;);
 	freearrays;
 	if (softabort)
@@ -574,7 +631,7 @@ int transCommit() {
 	}
       }
       //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
       STMWRAP((typesCausingAbort[TYPE(header)])++;);
       freearrays;
       if (softabort)
@@ -589,7 +646,7 @@ int transCommit() {
   
   /* Decide the final response */
 #ifdef DELAYCOMP
-  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
+  transCommitProcess(oidwrlocked ARRAYDELAYWRAP1(dirwrindex), numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
 #else
   transCommitProcess(oidwrlocked, numoidwrlocked);
 #endif
@@ -623,6 +680,10 @@ int alttraverseCache() {
   ARRAYDEFINES;
   struct garbagelist * oidwrlocked;
   void ** dirwrlocked;
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+  int wrindex[200];
+  int * dirwrindex;
+#endif
   allocarrays;
 
   STMWRAP(for(i=0; i<TOTALNUMCLASSANDARRAY; i++) objtypetraverse[i] = 0;);
@@ -647,7 +708,7 @@ int alttraverseCache() {
 	  dirwrlocked[numoidwrlocked++] = objptr;
 	} else {
 	  dirwrlocked[numoidwrlocked++] = objptr;
-	  transAbortProcess(oidwrlocked, numoidwrlocked);
+	  transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked));
 	  ABORTSTAT3;
 	  freearrays;
 	  return TRANS_ABORT;
@@ -657,7 +718,7 @@ int alttraverseCache() {
 	  /* versions match */
 	  softabort=1;
 	}
-	transAbortProcess(oidwrlocked, numoidwrlocked);
+	transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked));
 	ABORTSTAT3;
 	freearrays;
 	if (softabort)
@@ -673,46 +734,7 @@ int alttraverseCache() {
     curr = curr->lnext;
   }
 
-#ifdef DELAYCOMP
-  //acquire other locks
-  unsigned int numoidwrtotal=numoidwrlocked;
-  dchashlistnode_t *dc_curr = dc_c_list;
-  /* Inner loop to traverse the linked list of the cache lookupTable */
-  while(likely(dc_curr != NULL)) {
-    //if the first bin in hash table is empty
-    objheader_t * headeraddr=&((objheader_t *) dc_curr->val)[-1];
-    void *objptr=dc_curr->key;
-    objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-    if(write_trylock(&header->lock)) { //can aquire write lock
-      dirwrlocked[numoidwrtotal++] = objptr;
-    } else {
-      //maybe we already have lock
-      void * key=dc_curr->key;
-      chashlistnode_t *node = &c_table[(((unsigned INTPTR)key) & c_mask)>>4];
-      
-      do {
-	if(node->key == key) {
-	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];
-	  if(STATUS(headeraddr) & DIRTY) {
-	    goto nextloop;
-	  }
-	}
-	node = node->next;
-      } while(node != NULL);
-
-      //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, numoidwrtotal);
-      ABORTSTAT3;
-      freearrays;
-      if (softabort)
-	return TRANS_SOFT_ABORT;
-      else
-	return TRANS_ABORT;
-    }
-  nextloop:
-    dc_curr = dc_curr->lnext;
-  }
-#endif
+  ACCESSLOCKS;
 
   //THIS IS THE SERIALIZATION END POINT (START POINT IS END OF EXECUTION)*****
   READARRAYS;
@@ -723,7 +745,7 @@ int alttraverseCache() {
     if(header->lock>0) {
       CFENCE;
       if(version != header->version) {
-	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
 	ABORTSTAT2;
 	freearrays;
 	return TRANS_ABORT;
@@ -733,7 +755,7 @@ int alttraverseCache() {
       //couldn't get lock because we already have it
       //check if it is the right version number
       if (version!=header->version) {
-	transAbortProcess(oidwrlocked, numoidwrtotal);
+	transAbortProcess(oidwrlocked, numoidwrtotal ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
 	ABORTSTAT4;
 	freearrays;
 	return TRANS_ABORT;
@@ -743,7 +765,7 @@ int alttraverseCache() {
       if(version == header->version) {
 	softabort=1;
       }
-      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
       ABORTSTAT2;
       freearrays;
       if (softabort)
@@ -764,7 +786,7 @@ int alttraverseCache() {
     if(header->lock>0) { //object is not locked
       if (version!=header->version) {
 	//have to abort
-	transAbortProcess(oidwrlocked, NUMWRTOTAL);
+	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
 	STMWRAP((typesCausingAbort[TYPE(header)])++;);
 	freearrays;
 	if (softabort)
@@ -801,7 +823,7 @@ int alttraverseCache() {
 	}
       }
       //have to abort to avoid deadlock
-      transAbortProcess(oidwrlocked, NUMWRTOTAL);
+      transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
       STMWRAP((typesCausingAbort[TYPE(header)])++;);
       freearrays;
       if (softabort)
@@ -816,7 +838,7 @@ int alttraverseCache() {
 
   /* Decide the final response */
 #ifdef DELAYCOMP
-  transCommitProcess(oidwrlocked, numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
+  transCommitProcess(oidwrlocked ARRAYDELAYWRAP1(dirwrindex), numoidwrlocked, numoidwrtotal, commitmethod, primitives, locals, params);
 #else
   transCommitProcess(oidwrlocked, numoidwrlocked);
 #endif
@@ -831,8 +853,12 @@ int alttraverseCache() {
  */
 
 int logflag=1;
-
+ 
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrtotal, int * dirwrindex, int numoidwrlocked) {
+#else
 void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
+#endif
   int i;
   objheader_t *header;
   /* Release read locks */
@@ -864,6 +890,26 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
 #endif
     write_unlock(&header->lock);
   }
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+  //release access locks
+  for(i=numoidwrtotal-1; i>=numoidwrlocked; i--) {
+    struct ___Object___ * dst=dirwrlocked[i];
+    header = &((objheader_t *)dst)[-1];
+    int wrindex=dirwrindex[i];
+    if (wrindex==-1) {
+      //normal object
+      header->version++;
+      write_unlock(&header->lock);
+    } else {
+      //array element
+      unsigned int *intptr;
+      GETVERSIONPTR(intptr, ((struct ArrayObject *)dst), wrindex);
+      (*intptr)++;
+      GETLOCKPTR(intptr, ((struct ArrayObject *)dst), wrindex);
+      write_unlock(intptr);
+    }
+  }
+#endif
 #ifdef STMSTATS
   /* clear trec and then release objects locked */
   struct objlist *ptr=lockedobjs;
@@ -885,7 +931,7 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
  * =================================
  */
 #ifdef DELAYCOMP
- void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
+void transCommitProcess(struct garbagelist * oidwrlocked ARRAYDELAYWRAP1(int * dirwrindex), int numoidwrlocked, int numoidwrtotal, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params) {
 #else
 void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
 #endif
@@ -955,7 +1001,11 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
 #endif
 
   /* Release write locks */
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+  for(i=numoidwrlocked-1; i>=0; i--) {
+#else
   for(i=NUMWRTOTAL-1; i>=0; i--) {
+#endif
     struct ___Object___ * dst=dirwrlocked[i];
     header = &((objheader_t *)dst)[-1];
 #ifdef STMARRAY
@@ -985,7 +1035,26 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       write_unlock(&header->lock);
     }
   }
-
+#if defined(STMARRAY)&&defined(DELAYCOMP)
+  //release access locks
+  for(i=numoidwrtotal-1; i>=numoidwrlocked; i--) {
+    struct ___Object___ * dst=dirwrlocked[i];
+    header = &((objheader_t *)dst)[-1];
+    int wrindex=dirwrindex[i];
+    if (wrindex==-1) {
+      //normal object
+      header->version++;
+      write_unlock(&header->lock);
+    } else {
+      //array element
+      unsigned int *intptr;
+      GETVERSIONPTR(intptr, ((struct ArrayObject *)dst), wrindex);
+      (*intptr)++;
+      GETLOCKPTR(intptr, ((struct ArrayObject *)dst), wrindex);
+      write_unlock(intptr);
+    }
+  }
+#endif
 #ifdef STMSTATS
   /* clear trec and then release objects locked */
   ptr=lockedobjs;
