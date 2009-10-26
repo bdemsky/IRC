@@ -54,6 +54,7 @@ public class MLPAnalysis {
   
   private Hashtable < FlatNode, ParentChildConflictsMap > conflictsResults;
   private ParentChildConflictsMap currentConflictsMap;
+  private Hashtable < ReferenceEdge, StallSite > stallEdgeMapping;
 
   public static int maxSESEage = -1;
 
@@ -110,7 +111,7 @@ public class MLPAnalysis {
     mapMethodContextToLiveInAllocationSiteSet = new Hashtable< MethodContext, HashSet<AllocationSite>>();
     
     conflictsResults = new Hashtable < FlatNode, ParentChildConflictsMap >();
-    
+    stallEdgeMapping = new Hashtable < ReferenceEdge, StallSite >();
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
 
@@ -204,13 +205,7 @@ public class MLPAnalysis {
     }
     
     // Parent/child memory conflicts analysis
-    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
-    javaCallGraph = new JavaCallGraph(state,tu);
-    while( methItr.hasNext() ) {
-        Descriptor d  = methItr.next();      
-        FlatMethod fm = state.getMethodFlat( d );
-        seseConflictsForward(fm,javaCallGraph);
-      }
+    seseConflictsForward(javaCallGraph);
     
     
     // disjoint analysis with a set of flagged allocation sites of live-in variable
@@ -1053,6 +1048,9 @@ public class MLPAnalysis {
 				if (obj instanceof MethodDescriptor) {
 					MethodDescriptor callerMD = (MethodDescriptor) obj;
 
+					if(callerMD.equals(mc.getDescriptor())){
+						continue;
+					}
 					analyzeRelatedAllocationSite(callerMD, mc, paramIndexSet,visitedHRN);
 
 				}
@@ -1700,6 +1698,27 @@ public class MLPAnalysis {
 
 	}
 	
+	private HashSet<ReferenceEdge> getRefEdgeSetReferenceToSameHRN(
+			OwnershipGraph og, TempDescriptor td) {
+
+		HashSet<ReferenceEdge> returnSet = new HashSet<ReferenceEdge>();
+
+		HashSet<HeapRegionNode> heapIDs = getReferenceHeapIDSet(og, td);
+		for (Iterator<HeapRegionNode> iterator = heapIDs.iterator(); iterator
+				.hasNext();) {
+			HeapRegionNode heapRegionNode = (HeapRegionNode) iterator.next();
+			Iterator<ReferenceEdge> referenceeIter = heapRegionNode
+					.iteratorToReferencees();
+			while (referenceeIter.hasNext()) {
+				ReferenceEdge edge = (ReferenceEdge) referenceeIter.next();
+				if (edge.getSrc() instanceof HeapRegionNode) {
+					returnSet.add(edge);
+				}
+			}
+		}
+		return returnSet;
+	}
+	
 	private HashSet<TempDescriptor> getTempDescSetReferenceToSameHRN(
 			OwnershipGraph og, TempDescriptor td) {
 
@@ -1722,65 +1741,102 @@ public class MLPAnalysis {
 		return returnSet;
 	}
 	
-	private void seseConflictsForward(FlatMethod fm, JavaCallGraph callGraph) {
+	private void DFSVisit( MethodDescriptor md,
+			 LinkedList<MethodDescriptor> sorted,
+			HashSet<MethodDescriptor> discovered, JavaCallGraph javaCallGraph) {
 
-		MethodDescriptor md = fm.getMethod();
-		HashSet<MethodContext> mcSet = ownAnalysis
-				.getAllMethodContextSetByDescriptor(md);
-		Iterator<MethodContext> mcIter = mcSet.iterator();
+		discovered.add(md);
 
-		while (mcIter.hasNext()) {
-			MethodContext mc = mcIter.next();
+		Iterator itr = javaCallGraph.getCallerSet(md).iterator();
+		while (itr.hasNext()) {
+			MethodDescriptor mdCaller = (MethodDescriptor) itr.next();
 
-			Set<FlatNode> visited = new HashSet<FlatNode>();
+			if (!discovered.contains(mdCaller)) {
+				DFSVisit(mdCaller, sorted, discovered, javaCallGraph);
+			}
+		}
 
-			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-			flatNodesToVisit.add(fm);
+		sorted.addFirst(md);
+	}
+	
+	
+	private LinkedList<MethodDescriptor> topologicalSort(Set set,
+			JavaCallGraph javaCallGraph) {
+		HashSet<MethodDescriptor> discovered = new HashSet<MethodDescriptor>();
+		LinkedList<MethodDescriptor> sorted = new LinkedList<MethodDescriptor>();
 
-			while (!flatNodesToVisit.isEmpty()) {
-				FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
-				flatNodesToVisit.remove(fn);
+		Iterator<MethodDescriptor> itr = set.iterator();
+		while (itr.hasNext()) {
+			MethodDescriptor md = itr.next();
 
-				Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
-				assert seseStack != null;
+			if (!discovered.contains(md)) {
+				DFSVisit(md, sorted, discovered, javaCallGraph);
+			}
+		}
 
-				if (!seseStack.empty()) {
-					conflicts_nodeAction(mc, fn, seseStack.peek(), callGraph);
-				}
+		return sorted;
+	}
+	 
+	
+	private void seseConflictsForward(JavaCallGraph javaCallGraph) {
 
-				flatNodesToVisit.remove(fn);
-				visited.add(fn);
+		Set methodCallSet = javaCallGraph.getAllMethods(typeUtil.getMain());
 
-				for (int i = 0; i < fn.numNext(); i++) {
-					FlatNode nn = fn.getNext(i);
-					if (!visited.contains(nn)) {
-						flatNodesToVisit.add(nn);
+		// topologically sort java call chain so that leaf calls are ordered
+		// first
+		LinkedList<MethodDescriptor> sortedMethodCalls = topologicalSort(
+				methodCallSet, javaCallGraph);
+
+		for (Iterator iterator = sortedMethodCalls.iterator(); iterator
+				.hasNext();) {
+			MethodDescriptor md = (MethodDescriptor) iterator.next();
+
+			FlatMethod fm = state.getMethodFlat(md);
+
+			HashSet<MethodContext> mcSet = ownAnalysis
+					.getAllMethodContextSetByDescriptor(md);
+			Iterator<MethodContext> mcIter = mcSet.iterator();
+
+			while (mcIter.hasNext()) {
+
+				MethodContext mc = mcIter.next();
+
+				Set<FlatNode> visited = new HashSet<FlatNode>();
+
+				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+				flatNodesToVisit.add(fm);
+
+				while (!flatNodesToVisit.isEmpty()) {
+					FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+					flatNodesToVisit.remove(fn);
+
+					conflicts_nodeAction(mc, fn, callGraph);
+
+					flatNodesToVisit.remove(fn);
+					visited.add(fn);
+
+					for (int i = 0; i < fn.numNext(); i++) {
+						FlatNode nn = fn.getNext(i);
+						if (!visited.contains(nn)) {
+							flatNodesToVisit.add(nn);
+						}
 					}
 				}
-
 			}
-
 		}
 
 	}
 	
 	private void conflicts_nodeAction(MethodContext mc, FlatNode fn,
-			FlatSESEEnterNode currentSESE, CallGraph callGraph) {
+			CallGraph callGraph) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
 
 		switch (fn.kind()) {
 
-		case FKind.FlatSESEEnterNode: {
-
-		}
-			break;
-
 		case FKind.FlatSESEExitNode: {
-
 			// all object variables are inaccessible
 			currentConflictsMap = new ParentChildConflictsMap();
-
 		}
 			break;
 
@@ -1798,6 +1854,7 @@ public class MLPAnalysis {
 		case FKind.FlatFieldNode: {
 
 			if (currentConflictsMap != null) {
+
 				FlatFieldNode ffn = (FlatFieldNode) fn;
 				TempDescriptor dst = ffn.getDst();
 				TempDescriptor src = ffn.getSrc();
@@ -1874,46 +1931,95 @@ public class MLPAnalysis {
 				}
 
 				// TODO need to create edge mapping for newly created edge
+				HashSet<ReferenceEdge> edges = getRefEdgeSetReferenceToSameHRN(
+						og, dst);
 
+				StallSite ss = currentConflictsMap.getStallMap().get(dst);
+				if (ss != null) {
+					for (Iterator iterator = edges.iterator(); iterator
+							.hasNext();) {
+						ReferenceEdge referenceEdge = (ReferenceEdge) iterator
+								.next();
+						stallEdgeMapping.put(referenceEdge, ss);
+						// System.out.println("STALL EDGE MAPPING WITH "+referenceEdge+" -> "+ss);
+					}
+				}
 			}
-
 		}
 			break;
 
 		case FKind.FlatOpNode: {
+			if (currentConflictsMap != null) {
 
-			// destination variable gets the status of source.
-			FlatOpNode fon = (FlatOpNode) fn;
+				// destination variable gets the status of source.
+				FlatOpNode fon = (FlatOpNode) fn;
 
-			if (fon.getOp().getOp() == Operation.ASSIGN
-					&& currentConflictsMap != null) {
+				if (fon.getOp().getOp() == Operation.ASSIGN
+						&& currentConflictsMap != null) {
 
-				TempDescriptor dst = fon.getDest();
-				TempDescriptor src = fon.getLeft();
+					TempDescriptor dst = fon.getDest();
+					TempDescriptor src = fon.getLeft();
 
-				Integer sourceStatus = currentConflictsMap.getAccessibleMap()
-						.get(src);
-				if(sourceStatus==null){
-					sourceStatus=ParentChildConflictsMap.INACCESSIBLE;
-				}
-
-				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
-						og, dst);
-
-				for (Iterator<TempDescriptor> iterator = dstTempSet.iterator(); iterator
-						.hasNext();) {
-					TempDescriptor possibleDst = iterator.next();
-
-					if (sourceStatus.equals(ParentChildConflictsMap.ACCESSIBLE)) {
-						currentConflictsMap.addAccessibleVar(possibleDst);
-					} else {
-						currentConflictsMap.addInaccessibleVar(possibleDst);
+					Integer sourceStatus = currentConflictsMap
+							.getAccessibleMap().get(src);
+					if (sourceStatus == null) {
+						sourceStatus = ParentChildConflictsMap.INACCESSIBLE;
 					}
 
+					HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
+							og, dst);
+
+					for (Iterator<TempDescriptor> iterator = dstTempSet
+							.iterator(); iterator.hasNext();) {
+						TempDescriptor possibleDst = iterator.next();
+
+						if (sourceStatus
+								.equals(ParentChildConflictsMap.ACCESSIBLE)) {
+							currentConflictsMap.addAccessibleVar(possibleDst);
+						} else {
+							currentConflictsMap.addInaccessibleVar(possibleDst);
+						}
+
+					}
 				}
+
 			}
 		}
 			break;
+
+		case FKind.FlatNop: {
+
+			FlatNop fnop = (FlatNop) fn;
+			if (fnop.numPrev() > 1) {
+				// merge point
+				for (int i = 0; i < fnop.numPrev(); i++) {
+					FlatNode prev = fnop.getPrev(i);
+					ParentChildConflictsMap prevConflictsMap = conflictsResults
+							.get(prev);
+					if (prevConflictsMap != null) {
+						if (currentConflictsMap == null) {
+							currentConflictsMap = new ParentChildConflictsMap();
+						}
+						currentConflictsMap.merge(prevConflictsMap);
+					}
+				}
+			}
+
+			// TODO: need to merge edge mappings
+
+		}
+			break;
+
+		case FKind.FlatCall: {
+
+			FlatCall fc = (FlatCall) fn;
+
+			// look at all possible context, and then take all of them into one
+			// context
+
+		}
+			break;
+
 		}
 
 		// for every program point, we keep accessible map and stall map.
