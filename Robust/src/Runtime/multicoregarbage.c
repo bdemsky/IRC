@@ -2286,7 +2286,7 @@ inline void gc(struct garbagelist * stackptr) {
 
 #ifdef GC_DEBUG
 		tprintf("start gc! \n");
-		dumpSMem();
+		//dumpSMem();
 #endif
 
 		gcprocessing = true;
@@ -2419,14 +2419,14 @@ inline void gc(struct garbagelist * stackptr) {
 		bool localcompact = true;
 		while((COMPACTPHASE == gcphase) || (SUBTLECOMPACTPHASE == gcphase)) {
 			if((!finishcompact) && iscontinue) {
-#ifdef GC_DEBUG
+#ifdef DEBUG
 				BAMBOO_DEBUGPRINT(0xe001);
 				BAMBOO_DEBUGPRINT_REG(numpbc);
 				BAMBOO_DEBUGPRINT_REG(gcblock2fill);
 #endif
 				finishcompact = compacthelper(orig, to, &filledblocks, 
 						                          &heaptopptr, &localcompact);
-#ifdef GC_DEBUG
+#ifdef DEBUG
 				BAMBOO_DEBUGPRINT(0xe002);
 				BAMBOO_DEBUGPRINT_REG(finishcompact);
 				BAMBOO_DEBUGPRINT_REG(gctomove);
@@ -2535,7 +2535,7 @@ inline void gc(struct garbagelist * stackptr) {
 		}
 #ifdef GC_DEBUG
 		tprintf("gc finished \n");
-		dumpSMem();
+		//dumpSMem();
 #endif
 	} else {
 		gcprocessing = true;
