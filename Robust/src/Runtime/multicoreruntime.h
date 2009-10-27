@@ -1,6 +1,10 @@
 #ifndef MULTICORE_RUNTIME
 #define MULTICORE_RUNTIME
 
+#ifndef INLINE
+#define INLINE    inline __attribute__((always_inline))
+#endif
+
 ////////////////////////////////////////////////////////////////
 // global variables                                          //
 ///////////////////////////////////////////////////////////////
@@ -213,7 +217,7 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_BASE_VA 0xd000000
 #ifdef GC_DEBUG
 #include "structdefs.h"
-#define BAMBOO_NUM_PAGES (NUMCORES*(1+1))
+#define BAMBOO_NUM_PAGES (NUMCORES*(2+3)+5)
 #define BAMBOO_PAGE_SIZE (16 * 16)
 #define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
 #else
@@ -226,9 +230,23 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #ifdef MULTICORE_GC
 #include "multicoregarbage.h"
 
+typedef enum {
+	SMEMLOCAL = 0x0, // 0x0, using local mem only
+	SMEMFIXED,       // 0x1, use local mem in lower address space(1 block only)
+	                 //      and global mem in higher address space
+	SMEMMIXED,        // 0x2, like FIXED mode but use a threshold to control
+	SMEMGLOBAL,       // 0x3, using global mem only
+	SMEMEND
+} SMEMSTRATEGY;
+
+SMEMSTRATEGY bamboo_smem_mode; //-DSMEML: LOCAL; -DSMEMF: FIXED; 
+                              //-DSMEMM: MIXED; -DSMEMG: GLOBAL;
+
 struct freeMemItem {
 	INTPTR ptr;
 	int size;
+	int startblock;  
+	int endblock;
 	struct freeMemItem * next;
 };
 
@@ -237,16 +255,13 @@ struct freeMemList {
 	struct freeMemItem * tail;
 };
 
-volatile bool smemflag;
 struct freeMemList * bamboo_free_mem_list;
-volatile INTPTR bamboo_cur_msp;
-volatile int bamboo_smem_size;
 #else
-volatile bool smemflag;
 volatile mspace bamboo_free_msp;
+#endif
+volatile bool smemflag;
 volatile INTPTR bamboo_cur_msp;
 volatile int bamboo_smem_size;
-#endif
 
 // for test TODO
 int total_num_t6;
@@ -296,11 +311,11 @@ bool reside;
 ////////////////////////////////////////////////////////////
 #ifdef TASK
 #ifdef MULTICORE
-inline void initialization(void) __attribute__((always_inline));
-inline void initCommunication(void) __attribute__((always_inline));
-inline void fakeExecution(void) __attribute__((always_inline));
-inline void terminate(void) __attribute__((always_inline));
-inline void initlock(struct ___Object___ * v) __attribute__((always_inline));
+INLINE void initialization(void);
+INLINE void initCommunication(void);
+INLINE void fakeExecution(void);
+INLINE void terminate(void);
+INLINE void initlock(struct ___Object___ * v);
 
 // lock related functions
 bool getreadlock(void* ptr);
@@ -317,81 +332,81 @@ void releasewritelock_r(void * lock, void * redirectlock);
 // if return -1: the lock request is redirected
 //            0: the lock request is approved
 //            1: the lock request is denied
-inline int processlockrequest(int locktype, 
+INLINE int processlockrequest(int locktype, 
 		                          int lock, 
 															int obj, 
 															int requestcore, 
 															int rootrequestcore, 
-															bool cache) __attribute__((always_inline));
-inline void processlockrelease(int locktype, 
+															bool cache);
+INLINE void processlockrelease(int locktype, 
 		                           int lock, 
 															 int redirectlock, 
-															 bool redirect)__attribute__((always_inline));
+															 bool redirect);
 
 // msg related functions
-inline void send_hanging_msg() __attribute__((always_inline));
-inline void send_msg_1(int targetcore, 
-		                   unsigned long n0) __attribute__((always_inline));
-inline void send_msg_2(int targetcore, 
+INLINE void send_hanging_msg();
+INLINE void send_msg_1(int targetcore, 
+		                   unsigned long n0);
+INLINE void send_msg_2(int targetcore, 
 		                   unsigned long n0, 
-											 unsigned long n1) __attribute__((always_inline));
-inline void send_msg_3(int targetcore, 
+											 unsigned long n1);
+INLINE void send_msg_3(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
-											 unsigned long n2) __attribute__((always_inline));
-inline void send_msg_4(int targetcore, 
+											 unsigned long n2);
+INLINE void send_msg_4(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
-											 unsigned long n3) __attribute__((always_inline));
-inline void send_msg_5(int targetcore, 
+											 unsigned long n3);
+INLINE void send_msg_5(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
 											 unsigned long n3, 
-											 unsigned long n4) __attribute__((always_inline));
-inline void send_msg_6(int targetcore, 
+											 unsigned long n4);
+INLINE void send_msg_6(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
 											 unsigned long n3, 
 											 unsigned long n4, 
-											 unsigned long n5) __attribute__((always_inline));
-inline void cache_msg_2(int targetcore, 
+											 unsigned long n5);
+INLINE void cache_msg_2(int targetcore, 
 		                    unsigned long n0, 
-												unsigned long n1) __attribute__((always_inline));
-inline void cache_msg_3(int targetcore, 
+												unsigned long n1);
+INLINE void cache_msg_3(int targetcore, 
 		                    unsigned long n0, 
 												unsigned long n1, 
-												unsigned long n2) __attribute__((always_inline));
-inline void cache_msg_4(int targetcore, 
+												unsigned long n2);
+INLINE void cache_msg_4(int targetcore, 
 		                    unsigned long n0, 
 												unsigned long n1, 
 												unsigned long n2, 
-												unsigned long n3) __attribute__((always_inline));
-inline void cache_msg_5(int targetcore, 
+												unsigned long n3);
+INLINE void cache_msg_5(int targetcore, 
 		                    unsigned long n0, 
 												unsigned long n1, 
 												unsigned long n2, 
 												unsigned long n3, 
-												unsigned long n4) __attribute__((always_inline));
-inline void cache_msg_6(int targetcore, 
+												unsigned long n4);
+INLINE void cache_msg_6(int targetcore, 
 		                    unsigned long n0, 
 												unsigned long n1, 
 												unsigned long n2, 
 												unsigned long n3, 
 												unsigned long n4, 
-												unsigned long n5) __attribute__((always_inline));
-inline void transferObject(struct transObjInfo * transObj);
-inline int receiveMsg(void) __attribute__((always_inline));
+												unsigned long n5);
+INLINE void transferObject(struct transObjInfo * transObj);
+INLINE int receiveMsg(void);
 
 #ifdef MULTICORE_GC
-inline void transferMarkResults() __attribute__((always_inline));
+INLINE void transferMarkResults();
 #endif
 
 #ifdef PROFILE
-inline void profileTaskStart(char * taskname) __attribute__((always_inline));
-inline void profileTaskEnd(void) __attribute__((always_inline));
+INLINE void profileTaskStart(char * taskname);
+INLINE void profileTaskEnd(void);
 void outputProfileData();
 #endif  // #ifdef PROFILE
 ///////////////////////////////////////////////////////////

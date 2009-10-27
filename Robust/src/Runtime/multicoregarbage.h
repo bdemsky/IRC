@@ -10,7 +10,7 @@
 
 // data structures for GC
 #ifdef GC_DEBUG
-#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE)
+#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
 #else
 #define BAMBOO_SMEM_SIZE_L (32 * BAMBOO_SMEM_SIZE)
 #endif
@@ -75,7 +75,12 @@ volatile bool gcismapped;
 //          moved or garbage collected.
 INTPTR * gcsbstarttbl;
 int gcreservedsb;  // number of reserved sblock for sbstarttbl
+int gcnumblock; // number of total blocks in the shared mem
 int gcbaseva; // base va for shared memory without reserved sblocks
+
+// table recording the number of used bytes in each block
+// Note: this table resides on master core's local heap
+int * gcsmemtbl;
 
 #define ISSHAREDOBJ(p) \
 	(((p)>gcbaseva)&&((p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
@@ -83,8 +88,8 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 #define ALIGNSIZE(s, as) \
 	(*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
 
-// mapping of pointer to block # (start from 0), here the block # is the global
-// index
+// mapping of pointer to block # (start from 0), here the block # is 
+// the global index
 #define BLOCKINDEX(p, b) \
   { \
 		int t = (p) - gcbaseva; \
@@ -107,48 +112,11 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 	}\
 }
 
-#if 0
-// mapping of pointer to host core (x,y)
-#define RESIDECORE(p, x, y) \
-  { \
-		if(1 == (NUMCORES)) { \
-			(*((int*)x)) = 0; \
-			(*((int*)y)) = 0; \
-		} else { \
-			int b; \
-			BLOCKINDEX((p), &b); \
-			bool reverse = (b / (NUMCORES)) % 2; \
-			int l = b % (NUMCORES); \
-			if(reverse) { \
-				if(62 == (NUMCORES)) { \
-					if(l < 14) { \
-						l += 1; \
-					} else { \
-						l += 2; \
-					} \
-				} \
-				(*((int*)y)) = bamboo_height - 1 - (l / bamboo_width); \
-			} else { \
-				if(62 == (NUMCORES)) {\
-					if (l > 47) {\
-						l += 1; \
-					} \
-				} \
-				(*((int*)y)) = l / bamboo_width; \
-			} \
-			if(((!reverse)&&(*((int*)y))%2) || ((reverse)&&((*((int*)y))%2==0))){ \
-				(*((int*)x)) = bamboo_width - 1 - (l % bamboo_width); \
-			} else { \
-				(*((int*)x)) = (l % bamboo_width); \
-			} \
-		} \
-	}
-#endif
-
 // NOTE: n starts from 0
-// mapping of heaptop (how many bytes there are in the local heap) to the number of
-// the block
-// the number of the block indicates that the block is the xth block on the local heap
+// mapping of heaptop (how many bytes there are in the local heap) to 
+// the number of the block
+// the number of the block indicates that the block is the xth block on 
+// the local heap
 #define NUMBLOCKS(s, n) \
 	if(s < (BAMBOO_SMEM_SIZE_L)) { \
 		(*((int*)(n))) = 0; \
@@ -165,45 +133,6 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 
 // mapping of (core #, index of the block) to the global block index
 #define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+(124*((n)/2))) 
-#if 0
-#define BLOCKINDEX2(c, n, b) \
-  { \
-		int x; \
-		int y; \
-		int t; \
-		int cc = c; \
-		if((62 == (NUMCORES)) && (cc > 5)) cc += 2; \
-		x = cc / bamboo_height; \
-		y = cc % bamboo_height; \
-		if((n) % 2) { \
-			if(y % 2) { \
-				t = x + (bamboo_width - 1 - y) * bamboo_width; \
-			} else { \
-				t = bamboo_width - 1 - x + (bamboo_width - 1 - y) * bamboo_width; \
-			} \
-			if(62 == (NUMCORES)) {\
-				if(y>5) { \
-					t--; \
-				} else { \
-					t -= 2; \
-				} \
-			} \
-		} else { \
-			if(y % 2) { \
-				t = bamboo_width - 1 - x + y * bamboo_width; \
-			} else { \
-				t = x + y * bamboo_width; \
-			} \
-			if(62 == (NUMCORES)) { \
-				if(y > 5) { \
-					t--; \
-				} \
-			} \
-		} \
-		t += (NUMCORES) * (n); \
-		(*((int*)b)) = t; \
-	}
-#endif
 
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
@@ -212,7 +141,8 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 		if(b < (NUMCORES)) { \
 			(*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
 		} else { \
-			(*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+(b-(NUMCORES))*(BAMBOO_SMEM_SIZE); \
+			(*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
+			               (b-(NUMCORES))*(BAMBOO_SMEM_SIZE); \
 		} \
 	}
 

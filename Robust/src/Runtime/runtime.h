@@ -138,17 +138,20 @@ extern struct ___Object___ * ___fcrevert___;
 
 #ifdef MULTICORE
 inline void run(void * arg);
+#ifdef MULTICORE_GC
+inline void setupsmemmode(void);
+#endif
 int receiveObject(void);
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
-void enqueueObject(void * ptr, struct parameterwrapper ** queues, int length);
+void enqueueObject(void * ptr, struct parameterwrapper ** queues,int length);
 #ifdef PROFILE
 inline void setTaskExitIndex(int index);
 inline void addNewObjInfo(void * nobj);
 #endif
 int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl);
 void addAliasLock(void * ptr, int lock);
-void * smemalloc(int size, int * allocsize);
+void * smemalloc(int coren, int size, int * allocsize);
 #else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);

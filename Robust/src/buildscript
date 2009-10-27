@@ -602,7 +602,7 @@ cd $TILERADIR
 make clean
 rm ./*
 
-export TILERACFLAGS="-DTASK -DMULTICORE"
+export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT"
 
 if $CACHEFLUSHFLAG
 then # print path

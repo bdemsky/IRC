@@ -18,6 +18,24 @@ int enqueuetasks_I(struct parameterwrapper *parameter,
 									 int * enterflags, 
 									 int numenterflags);
 
+#ifdef MULTICORE_GC
+inline __attribute__((always_inline)) 
+void setupsmemmode(void) {
+#ifdef SMEML
+	bamboo_smem_mode = SMEMLOCAL;
+#elif defined SMEMF
+	bamboo_smem_mode = SMEMFIXED;
+#elif defined SMEMM
+	bamboo_smem_mode = SMEMMIXED;
+#elif defined SMEMG
+	bamboo_smem_mode = SMEMGLOBAL;
+#else
+	// defaultly using local mode
+	bamboo_smem_mode = SMEMLOCAL;
+#endif
+} // void setupsmemmode(void)
+#endif
+
 inline __attribute__((always_inline)) 
 void initruntimedata() {
 	int i;
@@ -94,6 +112,7 @@ void initruntimedata() {
 	gcmovepending = 0;
 	gcblock2fill = 0;
 	gcsbstarttbl = BAMBOO_BASE_VA;
+	gcsmemtbl = RUNMALLOC_I(sizeof(int)*gcnumblock);
 #else
 	// create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -1162,42 +1181,208 @@ inline void addNewObjInfo(void * nobj) {
 }
 #endif
 
-void * smemalloc(int size, 
+struct freeMemItem * findFreeMemChunk(int coren,
+		                                  int isize,
+		                                  int * tofindb) {
+	struct freeMemItem * freemem = bamboo_free_mem_list->head;
+	struct freeMemItem * prev = NULL;
+	int i = 0;
+	int j = 0;
+	*tofindb = gc_core2block[2*coren+i]+124*j;
+	// check available shared mem chunks
+	do {
+		int foundsmem = 0;
+		switch(bamboo_smem_mode) {
+			case SMEMLOCAL: {
+				int startb = freemem->startblock;
+				int endb = freemem->endblock;
+				while(startb > *tofindb) {
+					i++;
+					if(2==i) {
+						i = 0;
+						j++;
+					}
+					*tofindb = gc_core2block[2*coren+i]+124*j;
+				} // while(startb > tofindb)
+				if(startb <= *tofindb) {
+					if((endb >= *tofindb) && (freemem->size >= isize)) {
+						foundsmem = 1;
+					} else if(*tofindb > gcnumblock-1) {
+						// no more local mem
+						foundsmem = 2;
+					} // if(endb >= tofindb) 
+				} // if(startb <= tofindb)
+				break;
+			}
+
+			case SMEMFIXED: {
+				int startb = freemem->startblock;
+				int endb = freemem->endblock;
+				if(startb <= *tofindb) {
+					if((endb >= *tofindb)  && (freemem->size >= isize)) {
+						foundsmem = 1;
+					} 
+				} else {
+					// use the global mem
+					if(((startb > NUMCORES-1) && (freemem->size >= isize)) || 
+							((endb > NUMCORES-1) && ((freemem->size-
+								(gcbaseva+BAMBOO_LARGE_SMEM_BOUND-freemem->ptr))>=isize))) {
+						foundsmem = 1;
+					}
+				}
+				break;
+			}
+
+			case SMEMMIXED: {
+				// TODO not supported yet
+				BAMBOO_EXIT(0xe001);
+				break;
+			}
+
+			case SMEMGLOBAL: {
+		    foundsmem = (freemem->size >= isize);
+				break;
+			}
+			default:
+				break;
+		}
+
+		if(1 == foundsmem) {
+			// found one
+			break;
+		} else if (2 == foundsmem) {
+			// terminate, no more mem
+			freemem = NULL;
+			break;
+		}
+		prev = freemem;
+		freemem = freemem->next;
+	} while(freemem != NULL);
+
+	return freemem;
+} // struct freeMemItem * findFreeMemChunk(int, int, int *)
+
+void * localmalloc(int tofindb,
+		               int isize,
+		               struct freeMemItem * freemem,
+		               int * allocsize) {
+	void * mem = NULL;
+	int startb = freemem->startblock;
+	int endb = freemem->endblock;
+	int tmpptr = gcbaseva+((tofindb<NUMCORES)?tofindb*BAMBOO_SMEM_SIZE_L
+		:BAMBOO_LARGE_SMEM_BOUND+(tofindb-NUMCORES)*BAMBOO_SMEM_SIZE);
+	if((freemem->size+freemem->ptr-tmpptr)>=isize) {
+		mem = (tmpptr>freemem->ptr)?((void *)tmpptr):(freemem->ptr);
+	} else {
+		mem = (void *)(freemem->size+freemem->ptr-isize);
+	}
+	// check the remaining space in this block
+	int remain = (int)(mem-gcbaseva);
+	int bound = (BAMBOO_SMEM_SIZE);
+	if(remain < BAMBOO_LARGE_SMEM_BOUND) {
+		bound = (BAMBOO_SMEM_SIZE_L);
+	}
+	remain = bound - remain%bound;
+	if(remain < isize) {
+		// this object acrosses blocks
+		*allocsize = isize;
+	} else {
+		// round the asigned block to the end of the current block
+		*allocsize = remain;
+	}
+	if(freemem->ptr == (int)mem) {
+		freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
+		freemem->size -= *allocsize;
+		BLOCKINDEX(freemem->ptr, &(freemem->startblock));
+	} else if((freemem->ptr+freemem->size) == ((int)mem+(*allocsize))) {
+		freemem->size -= *allocsize;
+		BLOCKINDEX(((int)mem)-1, &(freemem->endblock));
+	} else {
+		struct freeMemItem * tmp = 
+			(struct freeMemItem *)RUNMALLOC(sizeof(struct freeMemItem));
+		tmp->ptr = (int)mem+*allocsize;
+		tmp->size = freemem->ptr+freemem->size-(int)mem-*allocsize;
+		BLOCKINDEX(tmp->ptr, &(tmp->startblock));
+		tmp->endblock = freemem->endblock;
+		tmp->next = freemem->next;
+		freemem->next = tmp;
+		freemem->size = (int)mem - freemem->ptr;
+		BLOCKINDEX(((int)mem-1), &(freemem->endblock));
+	}
+	return mem;
+} // void * localmalloc(int, int, struct freeMemItem *, int *)
+
+void * globalmalloc(int isize,
+		                struct freeMemItem * freemem,
+		                int * allocsize) {
+	void * mem = (void *)(freemem->ptr);
+	// check the remaining space in this block
+	int remain = (int)(mem-(BAMBOO_BASE_VA));
+	int bound = (BAMBOO_SMEM_SIZE);
+	if(remain < BAMBOO_LARGE_SMEM_BOUND) {
+		bound = (BAMBOO_SMEM_SIZE_L);
+	}
+	remain = bound - remain%bound;
+	if(remain < isize) {
+		// this object acrosses blocks
+		*allocsize = isize;
+	} else {
+		// round the asigned block to the end of the current block
+		*allocsize = remain;
+	}
+	freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
+	freemem->size -= *allocsize;
+	return mem;
+} // void * globalmalloc(int, struct freeMemItem *, int *)
+
+// malloc from the shared memory
+void * smemalloc(int coren,
+		             int size, 
 		             int * allocsize) {
 	void * mem = NULL;
 	int isize = size+(BAMBOO_CACHE_LINE_SIZE);
 	int toallocate = ((size+(BAMBOO_CACHE_LINE_SIZE))>(BAMBOO_SMEM_SIZE)) ? 
 			             (size+(BAMBOO_CACHE_LINE_SIZE)):(BAMBOO_SMEM_SIZE);
 #ifdef MULTICORE_GC
-	// go through free mem list for suitable blocks
-	struct freeMemItem * freemem = bamboo_free_mem_list->head;
-	struct freeMemItem * prev = NULL;
-	do {
-		if(freemem->size >= isize) {
-			// found one
-			break;
-		}
-		prev = freemem;
-		freemem = freemem->next;
-	} while(freemem != NULL);
+	// go through free mem list for suitable chunks
+	int tofindb = 0;
+	struct freeMemItem * freemem = findFreeMemChunk(coren, isize, &tofindb);
+
+	// allocate shared mem if available
 	if(freemem != NULL) {
-		mem = (void *)(freemem->ptr);
-		// check the remaining space in this block
-		int remain = (int)(mem-(BAMBOO_BASE_VA));
-		int bound = (BAMBOO_SMEM_SIZE);
-		if(remain < BAMBOO_LARGE_SMEM_BOUND) {
-			bound = (BAMBOO_SMEM_SIZE_L);
+		switch(bamboo_smem_mode) {
+			case SMEMLOCAL: {
+				mem = localmalloc(tofindb, isize, freemem, allocsize);
+				break;
+			}
+
+			case SMEMFIXED: {
+				int startb = freemem->startblock;
+				int endb = freemem->endblock;
+				if(startb > tofindb) {
+					// malloc on global mem
+					mem = globalmalloc(isize, freemem, allocsize);
+				} else {
+					// malloc on local mem
+					mem = localmalloc(tofindb, isize, freemem, allocsize);
+				}
+				break;
+			}
+
+			case SMEMMIXED: {
+				// TODO not supported yet
+				BAMBOO_EXIT(0xe002);
+				break;
+			}
+
+			case SMEMGLOBAL: {
+				mem = globalmalloc(isize,freemem, allocsize);
+				break;
+			}
+
+			default:
+				break;
 		}
-		remain = bound - remain%bound;
-		if(remain < isize) {
-			// this object acrosses blocks
-			*allocsize = isize;
-		} else {
-			// round the asigned block to the end of the current block
-			*allocsize = remain;
-		}
-		freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
-		freemem->size -= *allocsize;
 	} else {
 #else
 	mem = mspace_calloc(bamboo_free_msp, 1, isize);
@@ -1250,12 +1435,12 @@ msg:
 				RUNMALLOC_I(sizeof(struct transObjInfo));
       int k = 0;
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT(0xe880);
 #endif
 #endif
       if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 				BAMBOO_EXIT(0xa002);
@@ -1267,13 +1452,13 @@ msg:
       for(k = 0; k < transObj->length; ++k) {
 				transObj->queues[2*k] = msgdata[3+2*k];
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
 #endif
 #endif
 				transObj->queues[2*k+1] = msgdata[3+2*k+1];
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
 #endif
 #endif
@@ -1308,14 +1493,14 @@ msg:
       // receive a stall msg
       if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive stall msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 				BAMBOO_EXIT(0xa003);
       } 
       if(msgdata[1] < NUMCORES) {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT(0xe881);
 #endif
 #endif
@@ -1357,14 +1542,14 @@ msg:
     case LOCKGROUNT: {
       // receive lock grount msg
       if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 				BAMBOO_EXIT(0xa004);
       } 
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT(0xe882);
 #endif
 #endif
@@ -1375,7 +1560,7 @@ msg:
 #endif
 			} else {
 				// conflicts on lockresults
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 				BAMBOO_EXIT(0xa005);
@@ -1386,14 +1571,14 @@ msg:
     case LOCKDENY: {
       // receive lock deny msg
       if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 				BAMBOO_EXIT(0xa006);
       } 
       if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT(0xe883);
 #endif
 #endif
@@ -1404,7 +1589,7 @@ msg:
 #endif
 				} else {
 				// conflicts on lockresults
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 				BAMBOO_EXIT(0xa007);
@@ -1427,7 +1612,7 @@ msg:
 				BAMBOO_EXIT(0xa008);
       }
 #ifdef DEBUG
-#ifndef TILEAR
+#ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT(0xe885);
 #endif
 #endif
@@ -1446,13 +1631,13 @@ msg:
       // receive a profile output finish msg
       if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 				// non startup core can not receive profile output finish msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 				BAMBOO_EXIT(0xa009);
       }
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT(0xe886);
 #endif
 #endif
@@ -1492,14 +1677,14 @@ msg:
 	case REDIRECTGROUNT: {
 		// receive a lock grant msg with redirect info
 		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 			BAMBOO_EXIT(0xa00a);
 		}
 		if(lockobj == msgdata[2]) {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT(0xe891);
 #endif
 #endif
@@ -1511,7 +1696,7 @@ msg:
 #endif
 		} else {
 		  // conflicts on lockresults
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa00b);
@@ -1522,14 +1707,14 @@ msg:
 	case REDIRECTDENY: {
 	  // receive a lock deny msg with redirect info
 	  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa00c);
 	  }
 		if(lockobj == msgdata[2]) {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT(0xe892);
 #endif
 #endif
@@ -1540,7 +1725,7 @@ msg:
 #endif
 		} else {
 		  // conflicts on lockresults
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa00d);
@@ -1564,7 +1749,7 @@ msg:
 		} else {
 		  // send response msg
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT(0xe887);
 #endif
 #endif
@@ -1585,13 +1770,13 @@ msg:
 	  // receive a status confirm info
 	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa00f);
 		} else {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT(0xe888);
 #endif
 #endif
@@ -1608,7 +1793,7 @@ msg:
 	case TERMINATE: {
 	  // receive a terminate msg
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		BAMBOO_DEBUGPRINT(0xe889);
 #endif
 #endif
@@ -1621,13 +1806,13 @@ msg:
 	  // receive a shared memory request msg
 	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xa010);
 		} else {
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT(0xe88a);
 #endif
 #endif
@@ -1638,7 +1823,7 @@ msg:
 			}
 #endif
 			int allocsize = 0;
-		  void * mem = smemalloc(msgdata[1], &allocsize);
+		  void * mem = smemalloc(msgdata[2], msgdata[1], &allocsize);
 			if(mem == NULL) {
 				break;
 			}
@@ -1655,7 +1840,7 @@ msg:
 	case MEMRESPONSE: {
 		// receive a shared memory response msg
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 	  BAMBOO_DEBUGPRINT(0xe88b);
 #endif
 #endif
@@ -1703,7 +1888,7 @@ msg:
 	case GCSTART: {
 		// receive a start GC msg
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 	  BAMBOO_DEBUGPRINT(0xe88c);
 #endif
 #endif
@@ -1729,7 +1914,7 @@ msg:
 		// received a init phase finish msg
 		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive this msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb001);
@@ -1747,7 +1932,7 @@ msg:
 		// received a mark phase finish msg
 		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive this msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb002);
@@ -1765,7 +1950,7 @@ msg:
 		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive this msg
 		  // return -1
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb003);
@@ -1836,7 +2021,7 @@ msg:
 		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // non startup core can not receive this msg
 		  // return -1
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb004);
@@ -1877,7 +2062,7 @@ msg:
 		// received a marked phase finish confirm response msg
 		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
 		  // wrong core to receive such msg
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 		  BAMBOO_EXIT(0xb006);
@@ -1959,7 +2144,7 @@ msg:
 		numconfirm--;
 
 		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 			BAMBOO_EXIT(0xb009);
@@ -1997,7 +2182,7 @@ msg:
 	msgtype = -1;
 	msglength = 30;
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 	BAMBOO_DEBUGPRINT(0xe88d);
 #endif
 #endif
@@ -2014,7 +2199,7 @@ msg:
 } else {
 	// not a whole msg
 #ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
 	BAMBOO_DEBUGPRINT(0xe88e);
 #endif
 #endif
@@ -2277,7 +2462,6 @@ void executetasks() {
   int andmask=0;
   int checkmask=0;
 
-
 newtask:
   while(hashsize(activetasks)>0) {
 #ifdef MULTICORE_GC
@@ -2296,11 +2480,11 @@ newtask:
 #endif
 #endif
 	  busystatus = true;
-      currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
-      genfreekey(activetasks, currtpd);
+		currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
+		genfreekey(activetasks, currtpd);
 
-      numparams=currtpd->task->numParameters;
-      numtotal=currtpd->task->numTotal;
+		numparams=currtpd->task->numParameters;
+		numtotal=currtpd->task->numTotal;
 
 	  // clear the lockRedirectTbl 
 		// (TODO, this table should be empty after all locks are released)
