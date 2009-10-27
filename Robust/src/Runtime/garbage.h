@@ -25,6 +25,8 @@ struct listitem {
 #ifdef STMSTATS
   struct objlist * lockedlist;
 #endif
+#endif
+#if defined(THREADS)||defined(STM)
   char **base;
 #endif
 };

@@ -52,6 +52,11 @@ static inline void rwwrite_unlock(volatile unsigned int *rw) {
                         : "+m" (*rw) : "i" (RW_LOCK_BIAS) : "memory");
 }
 
+static inline void rwconvert_unlock(volatile unsigned int *rw) {
+  __asm__ __volatile__ (LOCK_PREFIX "addl %1, %0"
+                        : "+m" (*rw) : "i" (RW_LOCK_BIAS-1) : "memory");
+}
+
 static inline void atomic_dec(volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "decl %0"
                         : "+m" (*v));
@@ -86,6 +91,14 @@ static inline int rwwrite_trylock(volatile unsigned int  *lock) {
     return 1; // get a write lock
   }
   atomic_add(RW_LOCK_BIAS, lock);
+  return 0; // failed to acquire a write lock
+}
+
+static inline int rwconvert_trylock(volatile unsigned int  *lock) {
+  if (atomic_sub_and_test((RW_LOCK_BIAS-1), lock)) {
+    return 1; // get a write lock
+  }
+  atomic_add((RW_LOCK_BIAS-1), lock);
   return 0; // failed to acquire a write lock
 }
 #endif

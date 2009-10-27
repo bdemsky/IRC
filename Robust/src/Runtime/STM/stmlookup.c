@@ -275,7 +275,7 @@ void dc_t_chashInsertOnce(void * key, void *val) {
   if(ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
     ptr->intkey=-1;
 #endif
     ptr->lnext=dc_c_list;
@@ -305,7 +305,7 @@ void dc_t_chashInsertOnce(void * key, void *val) {
       node=&tcl->array[0];
       tcl->num=1;
     }
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
     node->intkey=-1;
 #endif
     node->key = key;
@@ -317,7 +317,7 @@ void dc_t_chashInsertOnce(void * key, void *val) {
   }
 }
 
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
 //Store objects and their pointers into hash
 void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
   dchashlistnode_t *ptr;
@@ -401,7 +401,7 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
     isfirst = 1;
     do {                      //Inner loop to go through linked lists
       void * key;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
       unsigned int intkey;
 #endif
       dchashlistnode_t *tmp,*next;
@@ -409,7 +409,7 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
       intkey=curr->intkey;
       index = (((unsigned INTPTR)key^(intkey<<4)) & mask) >>4;
 #else
@@ -420,7 +420,7 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
       // Insert into the new table
       if(tmp->key == 0) {
 	tmp->key = key;
-#ifdef STMARRAY
+#if defined(STMARRAY)&!defined(DUALVIEW)
 	tmp->intkey = intkey;
 #endif
 	tmp->val = curr->val;
@@ -482,7 +482,7 @@ INLINE void * dc_t_chashSearch(void * key) {
   return NULL;
 }
 
-#ifdef STMARRAY
+#if defined(STMARRAY)&!defined(DUALVIEW)
 // Search for an address for a given oid
 INLINE void * dc_t_chashSearchArray(void * key, unsigned int intkey) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE

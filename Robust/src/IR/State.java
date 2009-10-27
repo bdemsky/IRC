@@ -100,6 +100,7 @@ public class State {
   public boolean SANDBOX=false;
   public boolean DCOPTS=false;
   public boolean DELAYCOMP=false;
+  public boolean DUALVIEW=false;
   //Other options
   public int CORENUM = 1;
   public String structfile;

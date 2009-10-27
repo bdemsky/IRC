@@ -31,7 +31,7 @@ struct branchlist {
 extern __thread struct pointerlist ptrstack;
 extern __thread struct primitivelist primstack;
 extern __thread struct branchlist branchstack;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
 struct arraylist {
   int count;
   void * prev;

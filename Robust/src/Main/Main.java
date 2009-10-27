@@ -120,6 +120,8 @@ public class Main {
 	state.TAGSTATE=true;
       else if (option.equals("-stmarray"))
 	state.STMARRAY=true;
+      else if (option.equals("-dualview"))
+	state.DUALVIEW=true;
       else if (option.equals("-flatirtasks")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHTASKS=true;

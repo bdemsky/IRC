@@ -71,6 +71,8 @@ public class BuildCode {
   DiscoverConflicts recorddc;
   DelayComputation delaycomp;
   CallGraph callgraph;
+  boolean versionincrement;
+
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
     this(st, temptovar, typeutil, null, sa, pa, null);
@@ -107,7 +109,8 @@ public class BuildCode {
     }
     if (state.SINGLETM&&state.DCOPTS) {
       TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
-      this.dc=new DiscoverConflicts(locality, st, typeanalysis, null);
+      GlobalFieldType gft=new GlobalFieldType(callgraph, st, typeutil.getMain());
+      this.dc=new DiscoverConflicts(locality, st, typeanalysis, gft);
       dc.doAnalysis();
     }
     if (state.DELAYCOMP) {
@@ -637,7 +640,6 @@ public class BuildCode {
       outclassdefs.println("  int lowindex;");
       outclassdefs.println("  int highindex;");
     }
-
     if (state.ARRAYPAD)
       outclassdefs.println("  int paddingforarray;");
 
@@ -1652,7 +1654,11 @@ public class BuildCode {
 	  //turn off write barrier generation
 	  wb.turnoff();
 	  state.SINGLETM=false;
+	  if (state.DUALVIEW)
+	    versionincrement=true;
 	  generateCode(faen, fm, lb, exitset, output, false);
+	  if (state.DUALVIEW)
+	    versionincrement=false;
 	  state.SINGLETM=true;
 	  //turn on write barrier generation
 	  wb.turnon();
@@ -1737,8 +1743,10 @@ public class BuildCode {
 	if (state.DSM&&lb.isAtomic())
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	else if (this.state.MULTICOREGC) {
-      output.println("if(gcflag) gc("+localsprefixaddr+");");
-    } else
+	  output.println("if(gcflag) gc("+localsprefixaddr+");");
+	} else if (state.SINGLETM) {
+	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+	} else
 	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       }
     }
@@ -2075,7 +2083,9 @@ public class BuildCode {
       if (callgraph.getAllMethods(md).contains(md)) {
         if(this.state.MULTICOREGC) {
           output.println("if(gcflag) gc("+localsprefixaddr+");");
-        } else {
+        } else if (state.SINGLETM) {
+	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+	} else {
           output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
         }
       }
@@ -2155,7 +2165,7 @@ public class BuildCode {
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       storeset=delaycomp.livecode(lb);
       genset=new HashSet<FlatNode>();
-      if (state.STMARRAY) {
+      if (state.STMARRAY&&!state.DUALVIEW) {
 	refset=new HashSet<FlatNode>();
 	refset.addAll(delaycomp.getDeref(lb));
 	refset.removeAll(delaycomp.getCannotDelay(lb));
@@ -2166,14 +2176,14 @@ public class BuildCode {
 	genset.addAll(delaycomp.getOther(lb));
       } else {
 	genset.addAll(delaycomp.getNotReady(lb));
-	if (state.STMARRAY) {
+	if (state.STMARRAY&&!state.DUALVIEW) {
 	  genset.removeAll(refset);
 	}
       }
       unionset=new HashSet<FlatNode>();
       unionset.addAll(storeset);
       unionset.addAll(genset);
-      if (state.STMARRAY)
+      if (state.STMARRAY&&!state.DUALVIEW)
 	unionset.addAll(refset);
     }
     
@@ -2248,7 +2258,7 @@ public class BuildCode {
 
 	  if (genset==null||genset.contains(current_node)||specialprimitive)
 	    generateFlatNode(fm, lb, current_node, output);
-	  if (state.STMARRAY&&refset!=null&&refset.contains(current_node)) {
+	  if (state.STMARRAY&&!state.DUALVIEW&&refset!=null&&refset.contains(current_node)) {
 	    //need to acquire lock
 	    handleArrayDeref(fm, lb, current_node, output, firstpass);
 	  }
@@ -2259,7 +2269,7 @@ public class BuildCode {
 	      if (wrtmp.getType().isPtr()) {
 		//only lock the objects that may actually need locking
 		if (recorddc.getNeedTrans(lb, current_node)&&
-		    (!state.STMARRAY||!wrtmp.getType().isArray()||
+		    (!state.STMARRAY||state.DUALVIEW||!wrtmp.getType().isArray()||
 		     wrtmp.getType().getSymbol().equals(TypeUtil.ObjectClass))) {
 		  output.println("STOREPTR("+generateTemp(fm, wrtmp,lb)+");/* "+current_node.nodeid+" */");
 		} else {
@@ -2370,7 +2380,7 @@ public class BuildCode {
 	output.println("  struct ArrayObject *array;");
 	output.println("  int index;");
 	output.println("  RESTOREARRAY(array,index);");
-	output.println("  (("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index]="+fsen.getSrc()+";");
+	output.println("  (("+type+"*)(((char *)&array->___length___)+sizeof(int)))[index]="+src+";");
 	output.println("}");
       }
     } else if (fn.kind()==FKind.FlatElementNode) {
@@ -2645,7 +2655,7 @@ public class BuildCode {
 
     case FKind.FlatBackEdge:
       if (state.SINGLETM&&state.SANDBOX&&(locality.getAtomic(lb).get(fn).intValue()>0)) {
-	output.println("if ((--transaction_check_counter)<=0) checkObjects();");
+	output.println("if (unlikely((--transaction_check_counter)<=0)) checkObjects();");
       }
       if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
           || (this.state.MULTICOREGC)) {
@@ -2653,6 +2663,8 @@ public class BuildCode {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	} else if(this.state.MULTICOREGC) {
 	  output.println("if (gcflag) gc("+localsprefixaddr+");");
+	} else if (state.SINGLETM) {
+	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
 	} else
 	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
       } else
@@ -2907,7 +2919,15 @@ public class BuildCode {
   public void generateFlatAtomicEnterNode(FlatMethod fm,  LocalityBinding lb, FlatAtomicEnterNode faen, PrintWriter output) {
     /* Check to see if we need to generate code for this atomic */
     if (locality==null) {
-      output.println("pthread_mutex_lock(&atomiclock);");
+      if (GENERATEPRECISEGC) {
+	output.println("if (pthread_mutex_trylock(&atomiclock)!=0) {");
+	output.println("stopforgc((struct garbagelist *) &___locals___);");
+	output.println("pthread_mutex_lock(&atomiclock);");
+	output.println("restartaftergc();");
+	output.println("}");
+      } else {
+	output.println("pthread_mutex_lock(&atomiclock);");
+      }
       return;
     }
 
@@ -3872,6 +3892,9 @@ public class BuildCode {
 	output.println("}");
       }
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
+    }
+    if (versionincrement) {
+      output.println("VERSIONINCREMENT("+generateTemp(fm, fsen.getDst(),lb)+","+generateTemp(fm, fsen.getIndex(),lb)+","+type+");");
     }
   }
 

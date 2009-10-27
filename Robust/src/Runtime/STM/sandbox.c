@@ -29,7 +29,7 @@ void checkObjects() {
     ptrstack.count=0;
     primstack.count=0;
     branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
     arraystack.count=0;
 #endif
 #endif
@@ -56,7 +56,7 @@ void CALL11(___System______Assert____Z, int ___status___, int ___status___) {
       ptrstack.count=0;
       primstack.count=0;
       branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
       arraystack.count=0;
 #endif
 #endif
@@ -90,7 +90,7 @@ void errorhandler(int sig, struct sigcontext ctx) {
     ptrstack.count=0;
     primstack.count=0;
     branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
     arraystack.count=0;
 #endif
 #endif

@@ -27,7 +27,7 @@ __thread struct objlist * newobjs;
 __thread struct pointerlist ptrstack;
 __thread struct primitivelist primstack;
 __thread struct branchlist branchstack;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
 __thread struct arraylist arraystack;
 #endif
 #endif
@@ -93,7 +93,15 @@ objheader_t *transCreateObj(void * ptr, unsigned int size) {
   objheader_t *tmp = mygcmalloc(ptr, (sizeof(objheader_t) + size));
 #endif
   objheader_t *retval=tmp+1;
+#ifdef DUALVIEW
+  if (bytelength==0) {
+    tmp->lock=SWAP_LOCK_BIAS;
+  } else {
+    tmp->lock=RW_LOCK_BIAS;
+  }
+#else
   tmp->lock=SWAP_LOCK_BIAS;
+#endif
   tmp->version = 1;
   //initialize obj lock to the header
   STATUS(tmp)=NEW;

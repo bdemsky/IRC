@@ -30,7 +30,7 @@
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 256*1024*1024L
+#define INITIALHEAPSIZE 512*1024*1024L
 #define GCPOINT(x) ((INTPTR)((x)*0.99))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) ((INTPTR)(x+y))*2
@@ -207,7 +207,8 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
 	  int j;
 	  for(j=lowindex; j<=highindex; j++) {
 	    unsigned int lockval;
-	    if (GETLOCKVAL(lockval, ao, j)==STMDIRY) {
+	    GETLOCKVAL(lockval, ao, j);
+	    if (lockval==STMDIRTY) {
 	      int lowi=(j<<INDEXSHIFT)/sizeof(void *);
 	      int highi=lowi+(INDEXLENGTH/sizeof(void *));
 	      for(i=lowi; i<highi;i++) {
@@ -219,6 +220,7 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
 	      }
 #ifdef STMARRAY
 	    }
+	  }
 #endif
 	} else {
 	  INTPTR size=pointer[0];
@@ -318,7 +320,7 @@ void collect(struct garbagelist * stackptr) {
 #ifdef DELAYCOMP
   ptrstack.prev=stackptr;
   stackptr=(struct garbagelist *) &ptrstack;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
   arraystack.prev=stackptr;
   stackptr=(struct garbagelist *) &arraystack;
 #endif
@@ -354,6 +356,8 @@ void collect(struct garbagelist * stackptr) {
     fixobjlist(lockedobjs);
 #endif
   }
+#endif
+#if defined(STM)||defined(THREADS)
   memorybase=NULL;
 #endif
 
@@ -401,6 +405,8 @@ void collect(struct garbagelist * stackptr) {
       fixobjlist(listptr->lockedlist);
 #endif
     }
+#endif
+#if defined(STM)||defined(THREADS)
     *(listptr->base)=NULL;
 #endif
     stackptr=listptr->stackptr;
@@ -661,7 +667,7 @@ void stopforgc(struct garbagelist * ptr) {
   //just append us to the list
   ptrstack.prev=ptr;
   ptr=(struct garbagelist *) &ptrstack;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
   arraystack.prev=ptr;
   ptr=(struct garbagelist *) &arraystack;
 #endif
@@ -670,6 +676,9 @@ void stopforgc(struct garbagelist * ptr) {
   litem.stackptr=ptr;
 #ifdef THREADS
   litem.locklist=pthread_getspecific(threadlocks);
+#endif
+#if defined(STM)||defined(THREADS)
+  litem.base=&memorybase;
 #endif
 #ifdef STM
   litem.tc_size=c_size;
@@ -680,7 +689,6 @@ void stopforgc(struct garbagelist * ptr) {
 #ifdef STMSTATS
   litem.lockedlist=lockedobjs;
 #endif
-  litem.base=&memorybase;
 #endif
 #else
   //handle MAC

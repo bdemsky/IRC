@@ -3,7 +3,6 @@
 
 /* Array layout */
 #define INDEXSHIFT 5   //must be at least 3 for doubles
-//#define DBLINDEXSHIFT INDEXSHIFT-1   //must be at least 3 for doubles
 #define INDEXLENGTH (1<<INDEXSHIFT)
 #define LOWMASK (INDEXLENGTH-1) //mast off low order bits
 #define HIGHMASK ~(LOWMASK) //mask off high order bits
@@ -62,3 +61,9 @@
     ((type *)(((char *) lengthoff)+sizeof(int)))[index]=src;		\
   }
 #endif
+
+#define VERSIONINCREMENT(array, index, type) {			\
+    unsigned int * versionptr;					\
+    GETVERSIONPTR(versionptr, array,((sizeof(type)*index)>>INDEXSHIFT)); \
+    (*versionptr)++;						\
+}

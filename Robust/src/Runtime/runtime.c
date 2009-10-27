@@ -173,6 +173,9 @@ int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, doub
 void deepArrayCopy(struct ___Object___ * dst, struct ___Object___ * src) {
   int dsttype=((int *)dst)[0];
   int srctype=((int *)src)[0];
+#ifdef STMARRAY
+  src=src->___objlocation___;
+#endif
   if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
     return;
   struct ArrayObject *aodst=(struct ArrayObject *)dst;
@@ -564,7 +567,11 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]+sizeof(objheader_t));
   struct ArrayObject * v=(struct ArrayObject *) &tmp[1];
 #endif
+#ifdef DUALVIEW
+  tmp->lock=RW_LOCK_BIAS;
+#else
   initdsmlocks(&tmp->lock);
+#endif
   tmp->version=1;
   v->type=type;
   if (length<0) {

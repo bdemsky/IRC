@@ -33,6 +33,12 @@
 #define ARRAYDELAYWRAP1(x)
 #endif
 
+#ifdef DUALVIEW
+#define DUALVIEWWRAP(x) x
+#else
+#define DUALVIEWWRAP(x)
+#endif
+
 /* ================================================================
  * transCommit
  * - This function initiates the transaction commit process
@@ -79,7 +85,7 @@ int transCommit() {
       ptrstack.count=0;
       primstack.count=0;
       branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
       arraystack.count=0;
 #endif
 #endif
@@ -102,7 +108,7 @@ int transCommit() {
       ptrstack.count=0;
       primstack.count=0;
       branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
       arraystack.count=0;
 #endif
 #endif
@@ -131,7 +137,7 @@ int transCommit() {
 	ptrstack.count=0;
 	primstack.count=0;
 	branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
       arraystack.count=0;
 #endif
 #endif
@@ -250,10 +256,12 @@ int transCommit() {
 #define NUMWRTOTAL numoidwrlocked
 #endif
 
-#ifdef STMARRAY
+#if defined(STMARRAY)
 #define STMARRAYFREE free(oidrdlockedarray);
 #define STMARRAYALLOC oidrdlockedarray=malloc(size);
 #define STMARRAYASSIGN oidrdlockedarray=rdlockedarray;
+
+//allocation statements for dirwrindex
 #define STMARRAYDELAYFREE free(dirwrindex);
 #define STMARRAYDELAYALLOC dirwrindex=malloc(t_numelements*sizeof(int));
 #define STMARRAYDELAYASSIGN dirwrindex=wrindex;
@@ -261,6 +269,15 @@ int transCommit() {
 #define ARRAYDEFINES int numoidrdlockedarray=0;	\
   void * rdlockedarray[200];			\
   void ** oidrdlockedarray;
+
+#define ABORT					\
+  transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked)); \
+  freearrays;								\
+  if (softabort)							\
+    return TRANS_SOFT_ABORT;						\
+  else									\
+    return TRANS_ABORT;
+  
 
 #define ARRAYABORT							\
   for(;j>=lowoffset;j--) {						\
@@ -270,19 +287,52 @@ int transCommit() {
       write_unlock(lockptr);						\
     }									\
   }									\
-  transAbortProcess(oidwrlocked, numoidwrlocked ARRAYDELAYWRAP1(NULL) ARRAYDELAYWRAP1(numoidwrlocked)); \
-  freearrays;								\
-  if (softabort)							\
-    return TRANS_SOFT_ABORT;						\
-  else									\
-    return TRANS_ABORT;
-  
+  ABORT
+
+#ifdef DUALVIEW
+#define DVGETLOCK(x)						\
+  unsigned int * objlock=&(&((objheader_t *)x)[-1])->lock;		\
+  if(!rwread_trylock(objlock)) {				\
+    ABORT;							\
+  }
+
+//not finished...if we can't get the lock, it is okay if it is in our access set
+#define DVCHECKLOCK(x)							\
+  unsigned int * objlock=&(&((objheader_t *)x)[-1])->lock;			\
+  if (objlock<=0) {							\
+    if (dc_t_chashSearch(x)==NULL) {					\
+      ABORT;								\
+    }									\
+  }
+#else
+#define DVGETLOCK(x)
+#define DVCHECKLOCK(x)
+#endif
+
+#if defined(DELAYCOMP)&&!defined(DUALVIEW)
+#define READCHECK							\
+  else if (dc_t_chashSearchArray(mainao,j)) {				\
+    CFENCE;								\
+    unsigned int localversion;						\
+    unsigned int remoteversion;						\
+    GETVERSIONVAL(localversion, transao, j);				\
+    GETVERSIONVAL(remoteversion, mainao, j);				\
+    if (localversion != remoteversion) {				\
+      transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked)); \
+      freearrays;							\
+      return TRANS_ABORT;						\
+    }									\
+  }
+#else
+#define READCHECK
+#endif
 
 #define PROCESSARRAY							\
   int type=((int *)cachedobj)[0];					\
   if (type>=NUMCLASSES) {						\
     struct ArrayObject *transao=(struct ArrayObject *) cachedobj;	\
     struct ArrayObject *mainao=(struct ArrayObject *) objptr;		\
+    DVGETLOCK(mainao);							\
     int lowoffset=(transao->lowindex)>>INDEXSHIFT;			\
     int highoffset=(transao->highindex)>>INDEXSHIFT;			\
     int j;								\
@@ -313,6 +363,7 @@ int transCommit() {
     }									\
     if (addwrobject) {							\
       dirwrlocked[numoidwrlocked++] = objptr;				\
+      DUALVIEWWRAP(transao->___objstatus___ |=DIRTY;)			\
     }									\
     if (addrdobject) {							\
       oidrdlockedarray[numoidrdlockedarray++]=objptr;			\
@@ -323,6 +374,7 @@ int transCommit() {
   for(i=0; i<numoidrdlockedarray; i++) {				\
     struct ArrayObject * transao=(struct ArrayObject *) oidrdlockedarray[i]; \
     struct ArrayObject * mainao=(struct ArrayObject *) transao->___objlocation___; \
+    DVCHECKLOCK(mainao);						\
     int lowoffset=(transao->lowindex)>>INDEXSHIFT;			\
     int highoffset=(transao->highindex)>>INDEXSHIFT;			\
     int j;								\
@@ -342,7 +394,9 @@ int transCommit() {
 	    freearrays;							\
 	    return TRANS_ABORT;						\
 	  }								\
-	} else {							\
+	}								\
+	READCHECK							\
+	else {								\
 	  unsigned int localversion;					\
 	  unsigned int remoteversion;					\
 	  GETVERSIONVAL(localversion, transao, j);			\
@@ -358,7 +412,7 @@ int transCommit() {
 	}								\
       }									\
     }									\
-  }								       
+  }
 #else
 #define ARRAYDEFINES
 #define PROCESSARRAY
@@ -372,7 +426,7 @@ int transCommit() {
 #endif
 
 #ifdef DELAYCOMP
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
 #define ARRAYLOCK							\
   int intkey=dc_curr->intkey;						\
   if (intkey!=-1) {							\
@@ -397,9 +451,37 @@ int transCommit() {
       }									\
     }									\
   } else
+
+#elif defined(STMARRAY)&&defined(DUALVIEW)
+#define ARRAYLOCK							\
+  if (((struct ___Object___ *)objptr)->type>=NUMCLASSES) {		\
+    if (!rwwrite_trylock(&header->lock)) {				\
+      ARRAYDELAYWRAP(dirwrindex[numoidwrtotal]=0;);			\
+      dirwrlocked[numoidwrtotal++] = objptr;				\
+    } else {								\
+      chashlistnode_t *node = &c_table[(((unsigned INTPTR)objptr) & c_mask)>>4]; \
+      do {								\
+	if(node->key == objptr) {					\
+	  objheader_t * headeraddr=&((objheader_t *) node->val)[-1];	\
+	  if(STATUS(headeraddr) & DIRTY) {				\
+	    if (rwconvert_trylock(&header->lock)) {			\
+	      ARRAYDELAYWRAP(dirwrindex[numoidwrtotal]=1;);		\
+	      dirwrlocked[numoidwrtotal++] = objptr;			\
+	      goto nextloop;						\
+	    }								\
+	  }								\
+	  break;							\
+	}								\
+	node = node->next;						\
+      } while(node != NULL);						\
+      ABORT;								\
+    }									\
+  } else
 #else
 #define ARRAYLOCK
 #endif
+
+
 #define ACCESSLOCKS							\
   unsigned int numoidwrtotal=numoidwrlocked;				\
   dchashlistnode_t *dc_curr = dc_c_list;				\
@@ -444,9 +526,6 @@ int transCommit() {
 #else
 #define ACCESSLOCKS
 #endif
-
-
-
 
 /* ==================================================
  * traverseCache
@@ -886,11 +965,15 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
 	  write_unlock(lockptr);
 	}
       }
+#ifdef DUALVIEW
+      //release object array lock
+      rwread_unlock(&header->lock);
+#endif
     } else
 #endif
     write_unlock(&header->lock);
   }
-#if defined(STMARRAY)&&defined(DELAYCOMP)
+#if defined(STMARRAY)&&defined(DELAYCOMP)&&!defined(DUALVIEW)
   //release access locks
   for(i=numoidwrtotal-1; i>=numoidwrlocked; i--) {
     struct ___Object___ * dst=dirwrlocked[i];
@@ -898,15 +981,29 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
     int wrindex=dirwrindex[i];
     if (wrindex==-1) {
       //normal object
-      header->version++;
       write_unlock(&header->lock);
     } else {
       //array element
       unsigned int *intptr;
-      GETVERSIONPTR(intptr, ((struct ArrayObject *)dst), wrindex);
-      (*intptr)++;
       GETLOCKPTR(intptr, ((struct ArrayObject *)dst), wrindex);
       write_unlock(intptr);
+    }
+  }
+#endif
+#if defined(STMARRAY)&&defined(DELAYCOMP)&&defined(DUALVIEW)
+  //release access locks
+  for(i=numoidwrtotal-1; i>=numoidwrlocked; i--) {
+    struct ___Object___ * dst=dirwrlocked[i];
+    header = &((objheader_t *)dst)[-1];
+    int wrindex=dirwrindex[i];
+    if (wrindex==-1) {
+      //normal object
+      write_unlock(&header->lock);
+    } else if (wrindex==0) {
+      //array element
+      rwwrite_unlock(&header->lock);
+    } else {
+      rwconvert_unlock(&header->lock);
     }
   }
 #endif
@@ -989,14 +1086,15 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
   ptrstack.maxcount=0;
   primstack.count=0;
   branchstack.count=0;
-#ifdef STMARRAY
+#if defined(STMARRAY)&&!defined(DUALVIEW)
   arraystack.maxcount=0;
 #endif
   //splice oidwrlocked in
   oidwrlocked->size=numoidwrtotal;
   oidwrlocked->next=params;
   ((struct garbagelist *)locals)->next=oidwrlocked;
-  commitmethod(params, locals, primitives);
+  if (commitmethod!=NULL)
+    commitmethod(params, locals, primitives);
   ((struct garbagelist *)locals)->next=params;
 #endif
 
@@ -1028,6 +1126,9 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
 	  write_unlock(intptr);
 	}
       }
+#ifdef DUALVIEW
+      rwread_unlock(&header->lock);
+#endif
     } else
 #endif
     {
@@ -1035,7 +1136,25 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       write_unlock(&header->lock);
     }
   }
-#if defined(STMARRAY)&&defined(DELAYCOMP)
+#if defined(STMARRAY)&&defined(DELAYCOMP)&&defined(DUALVIEW)
+  //release access locks
+  for(i=numoidwrtotal-1; i>=numoidwrlocked; i--) {
+    struct ___Object___ * dst=dirwrlocked[i];
+    int wrlock=dirwrindex[i];
+    header = &((objheader_t *)dst)[-1];
+    if (wrlock==-1) {
+      //problem...what if we are double locked
+      header->version++;
+      write_unlock(&header->lock);
+    } else if (wrlock==0) {
+      rwwrite_unlock(&header->lock);
+    } else {
+      //normal object
+      rwconvert_unlock(&header->lock);
+    }
+  }
+#endif
+#if defined(STMARRAY)&&defined(DELAYCOMP)&&!defined(DUALVIEW)
   //release access locks
   for(i=numoidwrtotal-1; i>=numoidwrlocked; i--) {
     struct ___Object___ * dst=dirwrlocked[i];
@@ -1069,4 +1188,3 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
   }
 #endif
 }
-

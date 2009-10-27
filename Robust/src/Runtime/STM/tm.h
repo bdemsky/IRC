@@ -189,7 +189,7 @@ void objstrReset();
 void objstrDelete(objstr_t *store);
 objstr_t *objstrCreate(unsigned int size);
 void transStart();
-#ifdef STMARRAY
+#if defined(STMARRAY)
 objheader_t *transCreateObj(void * ptr, unsigned int size, int bytelength);
 #else
 objheader_t *transCreateObj(void * ptr, unsigned int size);
@@ -204,7 +204,7 @@ __attribute__((pure)) void *transReadOnly(void *);
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
-#ifdef STMARRAY
+#if defined(STMARRAY)
 void transCommitProcess(struct garbagelist *, int *, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 #else
 void transCommitProcess(struct garbagelist *, int, int, void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);

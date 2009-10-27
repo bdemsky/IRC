@@ -34,7 +34,7 @@ public class DelayComputation {
     this.gft=gft;
     this.notreadymap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
     this.cannotdelaymap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
-    if (state.STMARRAY)
+    if (state.STMARRAY&&!state.DUALVIEW)
       this.derefmap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
     this.othermap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
   }
@@ -286,7 +286,7 @@ public class DelayComputation {
 
     HashSet<FlatNode> delayedset=notreadymap.get(lb);
     HashSet<FlatNode> derefset=null;
-    if (state.STMARRAY) 
+    if (state.STMARRAY&&!state.DUALVIEW) 
       derefset=derefmap.get(lb);
     HashSet<FlatNode> otherset=othermap.get(lb);
     HashSet<FlatNode> cannotdelayset=cannotdelaymap.get(lb);
@@ -374,7 +374,7 @@ public class DelayComputation {
       }
 
       if (delayedset.contains(fn)) {
-	if(state.STMARRAY&&derefset.contains(fn)) {
+	if(state.STMARRAY&&!state.DUALVIEW&&derefset.contains(fn)) {
 	  //FlatElementNodes don't read anything...
 	  if (fn.kind()==FKind.FlatSetElementNode) {
 	    //check only the source read tmp
@@ -555,7 +555,7 @@ public class DelayComputation {
 	Set<FlatNode> branchset=revbranchmap.get((FlatCondBranch)fn);
 	for(Iterator<FlatNode> brit=branchset.iterator();brit.hasNext();) {
 	  FlatNode branchnode=brit.next();
-	  if (cannotdelay.contains(branchnode)||(state.STMARRAY&&derefset.contains(branchnode))) {
+	  if (cannotdelay.contains(branchnode)||(state.STMARRAY&&!state.DUALVIEW&&derefset.contains(branchnode))) {
 	    isnodelay=true;
 	    break;
 	  }
@@ -663,7 +663,7 @@ public class DelayComputation {
 	  if (oldtemps.contains(fsen.getDst())) {
 	    nodelaytempset.add(fsen.getDst());
 	    //Word Array support requires index
-	    if (state.STMARRAY) {
+	    if (state.STMARRAY&&!state.DUALVIEW) {
 	      nodelaytempset.add(fsen.getIndex());
 	      derefset.add(fsen);
 	    }
@@ -684,7 +684,7 @@ public class DelayComputation {
 	      dcopts.getArrays().contains(fen.getSrc().getType())) {
 	    nodelaytempset.add(fen.getSrc());
 	    //Word Array support requires index
-	    if (state.STMARRAY) {
+	    if (state.STMARRAY&&!state.DUALVIEW) {
 	      nodelaytempset.add(fen.getIndex());
 	      derefset.add(fen);
 	    }
@@ -736,7 +736,7 @@ public class DelayComputation {
     }//end of while loop
 
     if (lb.getHasAtomic()) {
-      if (state.STMARRAY)
+      if (state.STMARRAY&&!state.DUALVIEW)
 	derefmap.put(lb, derefset);
       cannotdelaymap.put(lb, cannotdelay);
     }

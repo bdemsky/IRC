@@ -169,7 +169,9 @@ public class DiscoverConflicts {
   }
 
   public boolean getNeedWriteTrans(LocalityBinding lb, FlatNode fn) {
-    return twritemap.get(lb).contains(fn);
+    if (gft!=null)
+      return twritemap.get(lb).contains(fn);
+    else throw new Error();
   }
 
   public Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> getMap(LocalityBinding lb) {
