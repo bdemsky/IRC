@@ -44,9 +44,17 @@ public class ParentChildConflictsMap {
 		StallSite stallSite = new StallSite();
 		stallMap.put(td, stallSite);
 	}
+	
+	public void addStallSite(TempDescriptor td, StallSite stallSite) {
+		stallMap.put(td, stallSite);
+	}
+
+	public boolean hasStallSite(TempDescriptor td){
+		return stallMap.containsKey(td);
+	}
 
 	public boolean isAccessible(TempDescriptor td) {
-		if (accessibleMap.contains(td)
+		if (accessibleMap.containsKey(td)
 				&& accessibleMap.get(td).equals(ACCESSIBLE)) {
 			return true;
 		}

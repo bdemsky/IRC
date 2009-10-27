@@ -55,6 +55,11 @@ public class MLPAnalysis {
   private Hashtable < FlatNode, ParentChildConflictsMap > conflictsResults;
   private ParentChildConflictsMap currentConflictsMap;
   private Hashtable < ReferenceEdge, StallSite > stallEdgeMapping;
+  private Hashtable< FlatMethod, MethodSummary > methodSummaryResults;
+  
+  // temporal data structures to track analysis progress.
+  private MethodSummary currentMethodSummary;
+  private HashSet<PreEffectsKey> preeffectsSet;
 
   public static int maxSESEage = -1;
 
@@ -112,6 +117,7 @@ public class MLPAnalysis {
     
     conflictsResults = new Hashtable < FlatNode, ParentChildConflictsMap >();
     stallEdgeMapping = new Hashtable < ReferenceEdge, StallSite >();
+    methodSummaryResults=new Hashtable<FlatMethod, MethodSummary>();
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
 
@@ -1796,7 +1802,10 @@ public class MLPAnalysis {
 			HashSet<MethodContext> mcSet = ownAnalysis
 					.getAllMethodContextSetByDescriptor(md);
 			Iterator<MethodContext> mcIter = mcSet.iterator();
-
+			
+			currentMethodSummary=new MethodSummary();
+			preeffectsSet=new HashSet<PreEffectsKey>();
+			
 			while (mcIter.hasNext()) {
 
 				MethodContext mc = mcIter.next();
@@ -1806,11 +1815,12 @@ public class MLPAnalysis {
 				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 				flatNodesToVisit.add(fm);
 
+				currentConflictsMap=null;
 				while (!flatNodesToVisit.isEmpty()) {
 					FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
 					flatNodesToVisit.remove(fn);
 
-					conflicts_nodeAction(mc, fn, callGraph);
+					conflicts_nodeAction(mc, fn, callGraph, preeffectsSet);
 
 					flatNodesToVisit.remove(fn);
 					visited.add(fn);
@@ -1823,19 +1833,43 @@ public class MLPAnalysis {
 					}
 				}
 			}
+			methodSummaryResults.put(fm, currentMethodSummary);
 		}
 
 	}
 	
 	private void conflicts_nodeAction(MethodContext mc, FlatNode fn,
-			CallGraph callGraph) {
+			CallGraph callGraph, HashSet<PreEffectsKey> preeffectsSet) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
 
 		switch (fn.kind()) {
 
+		case FKind.FlatSESEEnterNode: {
+
+			FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+			if (!fsen.getIsCallerSESEplaceholder()) {
+				currentMethodSummary.increaseChildSESECount();
+			}
+
+			if (currentMethodSummary.getChildSESECount() == 1) {
+				// need to store pre-effects
+				currentMethodSummary.getEffectsSet().addAll(preeffectsSet);
+
+				for (Iterator iterator = currentMethodSummary.getEffectsSet()
+						.iterator(); iterator.hasNext();) {
+					PreEffectsKey preEffectsKey = (PreEffectsKey) iterator
+							.next();
+				}
+
+				preeffectsSet.clear();
+			}
+
+		}
+			break;
+
 		case FKind.FlatSESEExitNode: {
-			// all object variables are inaccessible
+			// all object variables are inaccessible.
 			currentConflictsMap = new ParentChildConflictsMap();
 		}
 			break;
@@ -1853,12 +1887,12 @@ public class MLPAnalysis {
 
 		case FKind.FlatFieldNode: {
 
-			if (currentConflictsMap != null) {
+			FlatFieldNode ffn = (FlatFieldNode) fn;
+			TempDescriptor dst = ffn.getDst();
+			TempDescriptor src = ffn.getSrc();
+			FieldDescriptor field = ffn.getField();
 
-				FlatFieldNode ffn = (FlatFieldNode) fn;
-				TempDescriptor dst = ffn.getDst();
-				TempDescriptor src = ffn.getSrc();
-				FieldDescriptor field = ffn.getField();
+			if (currentConflictsMap != null) {
 
 				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
 						og, src);
@@ -1886,7 +1920,11 @@ public class MLPAnalysis {
 							.next();
 					currentConflictsMap.addAccessibleVar(possibleDst);
 				}
+			}
 
+			if (currentMethodSummary.getChildSESECount() == 0) {
+				// analyze preeffects
+				preEffectAnalysis(og, src, field, PreEffectsKey.READ_EFFECT);
 			}
 
 		}
@@ -1894,12 +1932,12 @@ public class MLPAnalysis {
 
 		case FKind.FlatSetFieldNode: {
 
-			if (currentConflictsMap != null) {
+			FlatSetFieldNode fsen = (FlatSetFieldNode) fn;
+			TempDescriptor dst = fsen.getDst();
+			FieldDescriptor field = fsen.getField();
+			TempDescriptor src = fsen.getSrc();
 
-				FlatSetFieldNode fsen = (FlatSetFieldNode) fn;
-				TempDescriptor dst = fsen.getDst();
-				FieldDescriptor field = fsen.getField();
-				TempDescriptor src = fsen.getSrc();
+			if (currentConflictsMap != null) {
 
 				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
 						og, src);
@@ -1945,6 +1983,12 @@ public class MLPAnalysis {
 					}
 				}
 			}
+
+			if (currentMethodSummary.getChildSESECount() == 0) {
+				// analyze preeffects
+				preEffectAnalysis(og, dst, field, PreEffectsKey.WRITE_EFFECT);
+			}
+
 		}
 			break;
 
@@ -1978,6 +2022,7 @@ public class MLPAnalysis {
 							currentConflictsMap.addAccessibleVar(possibleDst);
 						} else {
 							currentConflictsMap.addInaccessibleVar(possibleDst);
+
 						}
 
 					}
@@ -2014,8 +2059,112 @@ public class MLPAnalysis {
 
 			FlatCall fc = (FlatCall) fn;
 
-			// look at all possible context, and then take all of them into one
-			// context
+			FlatMethod calleeFM = state.getMethodFlat(fc.getMethod());
+
+			// retrieve callee's method summary
+			MethodSummary calleeMethodSummary = methodSummaryResults
+					.get(calleeFM);
+
+			if (calleeMethodSummary != null
+					&& calleeMethodSummary.getChildSESECount() > 0) {
+
+				// when parameter variable is accessible,
+				// use callee's preeffects to figure out about how it affects
+				// caller's stall site
+
+				for (int i = 0; i < fc.numArgs(); i++) {
+					TempDescriptor paramTemp = fc.getArg(i);
+
+					if (currentConflictsMap != null) {
+						if (currentConflictsMap.isAccessible(paramTemp)
+								&& currentConflictsMap.hasStallSite(paramTemp)) {
+							// preeffect contribute its effect to caller's stall
+							// site
+
+							int offset = 0;
+							if (!fc.getMethod().isStatic()) {
+								offset = 1;
+							}
+
+							HashSet<PreEffectsKey> preeffectSet = calleeMethodSummary
+									.getEffectsSetByParamIdx(i + offset);
+
+							for (Iterator iterator = preeffectSet.iterator(); iterator
+									.hasNext();) {
+								PreEffectsKey preEffectsKey = (PreEffectsKey) iterator
+										.next();
+								currentConflictsMap.contributeEffect(paramTemp,
+										preEffectsKey.getType(), preEffectsKey
+												.getField(), preEffectsKey
+												.getEffectType());
+							}
+						}
+					}
+					// in other cases, child SESE has not been discovered,
+					// assumes that all variables are accessible
+
+				}
+
+				// If callee has at least one child sese, all parent object
+				// is going to be inaccessible.
+				currentConflictsMap = new ParentChildConflictsMap();
+
+				TempDescriptor returnTemp = fc.getReturnTemp();
+
+				if (calleeMethodSummary.getReturnValueAccessibility().equals(
+						MethodSummary.ACCESSIBLE)) {
+					// when return value is accessible, associate with its
+					// stall site
+					currentConflictsMap.addAccessibleVar(returnTemp);
+					currentConflictsMap.addStallSite(returnTemp,
+							calleeMethodSummary.getReturnStallSite());
+				} else if (calleeMethodSummary.getReturnValueAccessibility()
+						.equals(MethodSummary.INACCESSIBLE)) {
+					// when return value is inaccessible
+					currentConflictsMap.addInaccessibleVar(returnTemp);
+				}
+			}
+
+			// TODO: need to handle edge mappings from callee
+
+		}
+			break;
+
+		case FKind.FlatReturnNode: {
+
+			FlatReturnNode frn = (FlatReturnNode) fn;
+			TempDescriptor returnTD = frn.getReturnTemp();
+
+			if (returnTD != null) {
+				if (currentConflictsMap == null) {
+					// in this case, all variables is accessible. There are no
+					// child SESEs.
+				} else {
+					if (currentConflictsMap.isAccessible(returnTD)) {
+						currentMethodSummary
+								.setReturnValueAccessibility(MethodSummary.ACCESSIBLE);
+						StallSite returnStallSite = currentConflictsMap
+								.getStallMap().get(returnTD);
+						currentMethodSummary
+								.setReturnStallSite(returnStallSite);
+					} else {
+						currentMethodSummary
+								.setReturnValueAccessibility(MethodSummary.INACCESSIBLE);
+					}
+				}
+			}
+		}
+			break;
+
+		case FKind.FlatExit: {
+
+			// store method summary when it has at least one child SESE
+			if (currentMethodSummary.getChildSESECount() > 0) {
+				FlatMethod fm = state.getMethodFlat(mc.getDescriptor()); // current
+																			// flat
+																			// method
+				methodSummaryResults.put(fm, currentMethodSummary);
+			}
 
 		}
 			break;
@@ -2026,6 +2175,81 @@ public class MLPAnalysis {
 		if (currentConflictsMap != null) {
 			conflictsResults.put(fn, currentConflictsMap);
 		}
+
+	}
+	
+	private void preEffectAnalysis(OwnershipGraph og, TempDescriptor td,
+			FieldDescriptor field, Integer effectType) {
+
+		// analyze preeffects
+		HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(og, td);
+		for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
+			HeapRegionNode hrn = (HeapRegionNode) iterator.next();
+			if (hrn.isParameter()) {
+				// effects on param heap region
+
+				Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+						.getID());
+
+				if (paramSet != null) {
+					Iterator<Integer> paramIter = paramSet.iterator();
+					while (paramIter.hasNext()) {
+						Integer paramID = paramIter.next();
+						PreEffectsKey effectKey = new PreEffectsKey(paramID,
+								field.toString(), field.getType()
+										.getSafeSymbol(), effectType);
+						preeffectsSet.add(effectKey);
+					}
+				}
+
+				// check weather this heap region is parameter
+				// reachable...
+
+				paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+				if (paramSet != null) {
+					Iterator<Integer> paramIter = paramSet.iterator();
+
+					while (paramIter.hasNext()) {
+						Integer paramID = paramIter.next();
+						PreEffectsKey effectKey = new PreEffectsKey(paramID,
+								field.toString(), field.getType()
+										.getSafeSymbol(), effectType);
+						preeffectsSet.add(effectKey);
+					}
+				}
+
+			}
+		}
+	}
+	
+	private MethodSummary analysisMethodCall(FlatMethod fm, OwnershipGraph calleeOG){
+	
+		MethodSummary methodSummary=new MethodSummary();
+
+		Set<FlatNode> visited = new HashSet<FlatNode>();
+		Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+		flatNodesToVisit.add(fm);
+
+		while (!flatNodesToVisit.isEmpty()) {
+			FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+			flatNodesToVisit.remove(fn);
+
+//			conflicts_nodeAction(mc, fn, callGraph);
+
+			flatNodesToVisit.remove(fn);
+			visited.add(fn);
+
+			for (int i = 0; i < fn.numNext(); i++) {
+				FlatNode nn = fn.getNext(i);
+				if (!visited.contains(nn)) {
+					flatNodesToVisit.add(nn);
+				}
+			}
+		}
+	
+		
+		
+		return methodSummary;
 
 	}
 	
