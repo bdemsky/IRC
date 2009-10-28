@@ -354,21 +354,7 @@ public class OwnershipGraph {
 
   public void assignTempXEqualToTempY(TempDescriptor x,
                                       TempDescriptor y) {
-
-    LabelNode lnX = getLabelNodeFromTemp(x);
-    LabelNode lnY = getLabelNodeFromTemp(y);
-
-    clearReferenceEdgesFrom(lnX, null, null, true);
-
-    Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
-    while( itrYhrn.hasNext() ) {
-      ReferenceEdge  edgeY      = itrYhrn.next();
-      HeapRegionNode referencee = edgeY.getDst();
-      ReferenceEdge  edgeNew    = edgeY.copy();
-      edgeNew.setSrc(lnX);
-
-      addReferenceEdge(lnX, referencee, edgeNew);
-    }
+    assignTypedTempXEqualToTempY( x, y, null );
   }
 
 
@@ -387,8 +373,11 @@ public class OwnershipGraph {
       HeapRegionNode referencee = edgeY.getDst();
       ReferenceEdge  edgeNew    = edgeY.copy();
       edgeNew.setSrc( lnX );
-      edgeNew.setType( type );
-      edgeNew.setField( null );
+
+      if( type != null ) {
+	edgeNew.setType( type );
+	edgeNew.setField( null );
+      }
 
       addReferenceEdge(lnX, referencee, edgeNew);
     }
@@ -1660,7 +1649,15 @@ public class OwnershipGraph {
       HeapRegionNode n  = (HeapRegionNode) me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      n.setAlphaNew( n.getAlpha().applyChangeSet( C, true ) );
+      // this propagation step is with respect to one change,
+      // so we capture the full change from the old alpha:
+      ReachabilitySet localDelta = n.getAlpha().applyChangeSet( C, true );
+
+      // but this propagation may be only one of many concurrent
+      // possible changes, so keep a running union with the node's
+      // partially updated new alpha set
+      n.setAlphaNew( n.getAlphaNew().union( localDelta ) );
+
       nodesWithNewAlpha.add( n );
     }
 
@@ -1724,7 +1721,15 @@ public class OwnershipGraph {
       ReferenceEdge  e  = (ReferenceEdge)  me.getKey();
       ChangeTupleSet C  = (ChangeTupleSet) me.getValue();
 
-      e.setBetaNew( e.getBetaNew().union( e.getBeta().applyChangeSet( C, true ) ) );
+      // this propagation step is with respect to one change,
+      // so we capture the full change from the old beta:
+      ReachabilitySet localDelta = e.getBeta().applyChangeSet( C, true );
+
+      // but this propagation may be only one of many concurrent
+      // possible changes, so keep a running union with the edge's
+      // partially updated new beta set
+      e.setBetaNew( e.getBetaNew().union( localDelta  ) );
+      
       edgesWithNewBeta.add( e );
     }
   }
