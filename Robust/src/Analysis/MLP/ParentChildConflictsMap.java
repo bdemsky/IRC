@@ -5,7 +5,9 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
+import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.OwnershipAnalysis.ReachabilitySet;
+import Analysis.OwnershipAnalysis.ReferenceEdge;
 import Analysis.OwnershipAnalysis.TokenTupleSet;
 import IR.Flat.TempDescriptor;
 
@@ -16,12 +18,37 @@ public class ParentChildConflictsMap {
 
 	private Hashtable<TempDescriptor, Integer> accessibleMap;
 	private Hashtable<TempDescriptor, StallSite> stallMap;
+	private Hashtable < ReferenceEdge, StallSite > stallEdgeMap;
+
+	private boolean afterChildSESE;
 
 	public ParentChildConflictsMap() {
 
 		accessibleMap = new Hashtable<TempDescriptor, Integer>();
 		stallMap = new Hashtable<TempDescriptor, StallSite>();
+		stallEdgeMap= new Hashtable < ReferenceEdge, StallSite >();
+		afterChildSESE=false;
 
+	}
+	
+	public Hashtable < ReferenceEdge, StallSite > getStallEdgeMap(){
+		return stallEdgeMap;
+	}
+	
+	public void addStallEdge(ReferenceEdge edge, StallSite site){
+		stallEdgeMap.put(edge, site);
+	}
+	
+	public StallSite getStallSiteByEdge(ReferenceEdge edge){
+		return stallEdgeMap.get(edge);
+	}
+	
+	public void setAfterChildSESE(boolean b){
+		this.afterChildSESE=b;
+	}
+	
+	public boolean isAfterChildSESE(){
+		return afterChildSESE;
 	}
 
 	public Hashtable<TempDescriptor, Integer> getAccessibleMap() {
@@ -40,8 +67,8 @@ public class ParentChildConflictsMap {
 		accessibleMap.put(td, INACCESSIBLE);
 	}
 
-	public void addStallSite(TempDescriptor td) {
-		StallSite stallSite = new StallSite();
+	public void addStallSite(TempDescriptor td, HashSet<HeapRegionNode> heapSet) {
+		StallSite stallSite=new StallSite(heapSet);
 		stallMap.put(td, stallSite);
 	}
 	
@@ -72,6 +99,10 @@ public class ParentChildConflictsMap {
 	}
 
 	public void merge(ParentChildConflictsMap newConflictsMap) {
+		
+		if(afterChildSESE==false && newConflictsMap.isAfterChildSESE()){
+			this.afterChildSESE=true;
+		}
 
 		Hashtable<TempDescriptor, Integer> newAccessibleMap = newConflictsMap
 				.getAccessibleMap();
@@ -100,6 +131,10 @@ public class ParentChildConflictsMap {
 
 			StallSite newStallSite = newStallMap.get(key);
 			StallSite currentStallSite = getStallMap().get(key);
+			
+			if(currentStallSite==null){
+				currentStallSite=new StallSite();
+			}
 
 			// handle effects
 			HashSet<Effect> currentEffectSet = currentStallSite.getEffectSet();
@@ -113,10 +148,10 @@ public class ParentChildConflictsMap {
 			}
 
 			// handle heap region
-			HashSet<Integer> currentHRNSet = currentStallSite.getHRNIDSet();
-			HashSet<Integer> newHRNSet = newStallSite.getHRNIDSet();
+			HashSet<HeapRegionNode> currentHRNSet = currentStallSite.getHRNSet();
+			HashSet<HeapRegionNode> newHRNSet = newStallSite.getHRNSet();
 			for (Iterator iterator2 = newHRNSet.iterator(); iterator2.hasNext();) {
-				Integer hrnID = (Integer) iterator2.next();
+				HeapRegionNode hrnID = (HeapRegionNode) iterator2.next();
 				if (!currentHRNSet.contains(hrnID)) {
 					currentHRNSet.add(hrnID);
 				}
@@ -130,15 +165,54 @@ public class ParentChildConflictsMap {
 				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter.next();
 				currentRSet.add(tokenTupleSet);
 			}
+			
+			StallSite merged=new StallSite(currentEffectSet, currentHRNSet,
+					currentRSet);
 
 			getStallMap()
 					.put(
 							key,
-							new StallSite(currentEffectSet, currentHRNSet,
-									currentRSet));
+							merged);
 
 		}
+		
+		// merge edge mapping
+		
+		Hashtable<ReferenceEdge, StallSite> newStallEdgeMapping=newConflictsMap.getStallEdgeMap();
+		Set<ReferenceEdge> edgeSet=newStallEdgeMapping.keySet();
+		for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+			ReferenceEdge stallEdge = (ReferenceEdge) iterator.next();
+			StallSite newStallSite=newStallEdgeMapping.get(stallEdge);
+			getStallEdgeMap().put(stallEdge, newStallSite);
+		}
 
+	}
+	
+	public boolean equals(Object o) {
+
+		if (o == null) {
+			return false;
+		}
+
+		if (!(o instanceof ParentChildConflictsMap)) {
+			return false;
+		}
+
+		ParentChildConflictsMap in = (ParentChildConflictsMap) o;
+
+		if (afterChildSESE==in.isAfterChildSESE() && accessibleMap.equals(in.getAccessibleMap())
+				&& stallMap.equals(in.getStallMap())) {
+			return true;
+		} else {
+			return false;
+		}
+
+	}
+
+	public String toString() {
+		return "ParentChildConflictsMap [accessibleMap=" + accessibleMap
+				+ ", afterChildSESE=" + afterChildSESE + ", stallMap="
+				+ stallMap + "]";
 	}
 
 }

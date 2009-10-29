@@ -2,8 +2,7 @@ package Analysis.MLP;
 
 import java.util.HashSet;
 import java.util.Iterator;
-
-import IR.TypeDescriptor;
+import java.util.Set;
 
 public class MethodSummary {
 	
@@ -15,12 +14,24 @@ public class MethodSummary {
 	private HashSet<PreEffectsKey> effectsSet;
 	private Integer accessibility;
 	private StallSite returnStallSite;
+	private HashSet<Integer> stallParamIdxSet;
 
 	public MethodSummary() {
 		effectsSet = new HashSet<PreEffectsKey>();
 		accessibility = MethodSummary.VOID;
 		childSESECount = 0;
 		returnStallSite=null;
+		stallParamIdxSet=new HashSet<Integer>();
+	}
+	
+	public HashSet<Integer> getStallParamIdxSet(){
+		return stallParamIdxSet;
+	}
+	
+	public void addStallParamIdxSet(Set<Integer> newSet){
+		if(newSet!=null){
+			stallParamIdxSet.addAll(newSet);
+		}
 	}
 	
 	public void setReturnStallSite(StallSite ss){
