@@ -1,7 +1,10 @@
 package Analysis.MLP;
 
 import java.util.HashSet;
+import java.util.Iterator;
 
+import Analysis.OwnershipAnalysis.AllocationSite;
+import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.OwnershipAnalysis.ReachabilitySet;
 
 public class StallSite {
@@ -10,20 +13,45 @@ public class StallSite {
 	public static final Integer WRITE_EFFECT = new Integer(2);
 
 	private HashSet<Effect> effectSet;
-	private HashSet<Integer> hrnIDSet;
+	private HashSet<HeapRegionNode> hrnSet;
+	private HashSet<AllocationSite> allocationSiteSet;
 	private ReachabilitySet rechabilitySet;
 
 	public StallSite() {
 		effectSet = new HashSet<Effect>();
-		hrnIDSet = new HashSet<Integer>();
+		hrnSet = new HashSet<HeapRegionNode>();
 		rechabilitySet = new ReachabilitySet();
+		allocationSiteSet=new HashSet<AllocationSite>();
+	}
+	
+	public StallSite(HashSet<HeapRegionNode> hrnSet){
+		this();
+		setHeapRegionNodeSet(hrnSet);
+		for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
+			HeapRegionNode heapRegionNode = (HeapRegionNode) iterator.next();
+			setAllocationSite(heapRegionNode.getAllocationSite());
+		}
 	}
 
-	public StallSite(HashSet<Effect> effectSet, HashSet<Integer> hrnIDSet,
+	public StallSite(HashSet<Effect> effectSet, HashSet<HeapRegionNode> hrnSet,
 			ReachabilitySet rechabilitySet) {
 		this.effectSet = effectSet;
-		this.hrnIDSet = hrnIDSet;
+		this.hrnSet = hrnSet;
 		this.rechabilitySet = rechabilitySet;
+	}
+	
+	public void setAllocationSite(AllocationSite allocationSite){
+		if(allocationSite!=null){
+			allocationSiteSet.add(allocationSite);
+		}
+	}
+	
+	public void setHeapRegionNodeSet(HashSet<HeapRegionNode> newSet){
+		hrnSet.addAll(newSet);
+	}
+	
+	public HashSet<AllocationSite> getAllocationSiteSet(){
+		return allocationSiteSet;
 	}
 
 	public void addEffect(String type, String field, Integer effect) {
@@ -35,8 +63,8 @@ public class StallSite {
 		return effectSet;
 	}
 
-	public HashSet<Integer> getHRNIDSet() {
-		return hrnIDSet;
+	public HashSet<HeapRegionNode> getHRNSet() {
+		return hrnSet;
 	}
 
 	public ReachabilitySet getReachabilitySet() {
@@ -56,7 +84,7 @@ public class StallSite {
 		StallSite in = (StallSite) o;
 
 		if (effectSet.equals(in.getEffectSet())
-				&& hrnIDSet.equals(in.getHRNIDSet())
+				&& hrnSet.equals(in.getHRNSet())
 				&& rechabilitySet.equals(in.getReachabilitySet())) {
 			return true;
 		} else {
@@ -64,6 +92,12 @@ public class StallSite {
 		}
 
 	}
+
+	public String toString() {
+		return "StallSite [effectSet=" + effectSet + ", hrnIDSet=" + hrnSet
+				+ ", rechabilitySet=" + rechabilitySet + "]";
+	}
+	
 }
 
 class Effect {
