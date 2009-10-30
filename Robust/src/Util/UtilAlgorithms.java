@@ -31,4 +31,46 @@ public class UtilAlgorithms {
     }
   }
 
+  
+  // This method makes hashtable a the intersection of
+  // itself and hashtable b, where the new key set is the
+  // intersection.  The values are sets, so if a key is
+  // common its new value should be the intersection of
+  // the existing values in a and b.  If a new value is
+  // the empty set, then also remove that key.
+  static public void intersectHashtablesWithSetValues( Hashtable a,
+						       Hashtable b ) {
+    Set keysToRemove = new HashSet();
+
+    Iterator mapItr = a.entrySet().iterator();
+    while( mapItr.hasNext() ) {
+      Map.Entry me    = (Map.Entry) mapItr.next();
+      Object    akey  = (Object)    me.getKey();
+      Set       avals = (Set)       me.getValue();
+      Set       bvals = (Set)       b.get( akey );
+    
+      if( bvals == null ) {
+        // if b doesn't have the key, mark it for
+        // safe removal after we traverse the map
+        keysToRemove.add( akey );
+
+      } else {
+        // otherwise we have the key, but pare
+        // down the value set, if needed, and if
+        // nothing is left, remove the key, too
+        avals.retainAll( bvals );
+        if( avals.isEmpty() ) {
+          keysToRemove.add( akey );
+        }
+      }
+    }
+
+    // then safely remove keys
+    Iterator keyItr = keysToRemove.iterator();
+    while( keyItr.hasNext() ) {
+      Object key = keyItr.next();
+      a.remove( key );
+    }  
+  }
+  
 }
