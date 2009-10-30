@@ -1836,7 +1836,6 @@ public class MLPAnalysis {
 
 					// if we have a new result, schedule forward nodes for
 					// analysis
-					
 					if(!currentConflictsMap.isAfterChildSESE()){
 						conflictsResults.put(fn, currentConflictsMap);
 						for (int i = 0; i < fn.numNext(); i++) {
@@ -1922,9 +1921,9 @@ public class MLPAnalysis {
 			TempDescriptor dst = ffn.getDst();
 			TempDescriptor src = ffn.getSrc();
 			FieldDescriptor field = ffn.getField();
-
+			
 			if (currentConflictsMap.isAfterChildSESE()) {
-
+				
 				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
 						og, src);
 				for (Iterator iterator = srcTempSet.iterator(); iterator
@@ -1933,18 +1932,18 @@ public class MLPAnalysis {
 							.next();
 					if (!currentConflictsMap.isAccessible(possibleSrc)) {
 						HashSet<HeapRegionNode> refHRN=getReferenceHeapIDSet(og, possibleSrc);
-						currentConflictsMap.addStallSite(possibleSrc,refHRN);
+						currentConflictsMap.addStallSite(possibleSrc,refHRN,new StallTag(fn));
 					}
 
 					currentConflictsMap.addAccessibleVar(possibleSrc);
 
 					// contribute read effect on source's stall site
-					currentConflictsMap.contributeEffect(src, field.getType()
+					currentConflictsMap.contributeEffect(possibleSrc, field.getType()
 							.getSafeSymbol(), field.toString(),
 							StallSite.READ_EFFECT);
 				}
 
-				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
+								HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
 						og, dst);
 				for (Iterator iterator = dstTempSet.iterator(); iterator
 						.hasNext();) {
@@ -1979,7 +1978,7 @@ public class MLPAnalysis {
 							.next();
 					if (!currentConflictsMap.isAccessible(possibleSrc)) {
 						HashSet<HeapRegionNode> refHRN=getReferenceHeapIDSet(og, possibleSrc);
-						currentConflictsMap.addStallSite(possibleSrc,refHRN);
+						currentConflictsMap.addStallSite(possibleSrc,refHRN,new StallTag(fn));
 					}
 					currentConflictsMap.addAccessibleVar(possibleSrc);
 				}
@@ -1993,7 +1992,7 @@ public class MLPAnalysis {
 
 					if (!currentConflictsMap.isAccessible(possibleDst)) {
 						HashSet<HeapRegionNode> refHRN=getReferenceHeapIDSet(og, possibleDst);
-						currentConflictsMap.addStallSite(possibleDst,refHRN);
+						currentConflictsMap.addStallSite(possibleDst,refHRN,new StallTag(fn));
 					}
 					currentConflictsMap.addAccessibleVar(possibleDst);
 					// contribute write effect on destination's stall site
@@ -2013,7 +2012,7 @@ public class MLPAnalysis {
 						ReferenceEdge referenceEdge = (ReferenceEdge) iterator
 								.next();
 						if(!(referenceEdge.getSrc() instanceof LabelNode)){
-							currentConflictsMap.addStallEdge(referenceEdge, ss);
+							currentConflictsMap.addStallEdge(referenceEdge,new StallTag(fn));
 						}
 					}
 				}
@@ -2069,6 +2068,11 @@ public class MLPAnalysis {
 		case FKind.FlatCall: {
 
 			FlatCall fc = (FlatCall) fn;
+			
+			int base=0;
+			if(!fc.getMethod().isStatic()){
+				base=1;
+			}
 
 			FlatMethod calleeFM = state.getMethodFlat(fc.getMethod());
 
@@ -2118,7 +2122,9 @@ public class MLPAnalysis {
 
 				// If callee has at least one child sese, all parent object
 				// is going to be inaccessible.
-				currentConflictsMap = new ParentChildConflictsMap();
+//				currentConflictsMap = new ParentChildConflictsMap();
+				currentConflictsMap.makeAllInaccessible();
+				currentConflictsMap.setAfterChildSESE(true);
 
 				TempDescriptor returnTemp = fc.getReturnTemp();
 
@@ -2127,20 +2133,44 @@ public class MLPAnalysis {
 					// when return value is accessible, associate with its
 					// stall site
 					currentConflictsMap.addAccessibleVar(returnTemp);
+
+					StallSite returnStallSite=calleeMethodSummary.getReturnStallSite().copy();
+					// handling parameter regions
+					HashSet<Integer> stallParamIdx=returnStallSite.getCallerParamIdxSet();
+					for (Iterator iterator = stallParamIdx.iterator(); iterator
+							.hasNext();) {
+						Integer idx = (Integer) iterator.next();
+						
+						int paramIdx=idx.intValue()-base;
+						TempDescriptor paramTD=fc.getArg(paramIdx);
+						
+						//TODO: resolve callee's parameter heap regions by following call chain
+						
+					}
+					
 					currentConflictsMap.addStallSite(returnTemp,
-							calleeMethodSummary.getReturnStallSite());
+							returnStallSite);
+					
 				} else if (calleeMethodSummary.getReturnValueAccessibility()
 						.equals(MethodSummary.INACCESSIBLE)) {
 					// when return value is inaccessible
 					currentConflictsMap.addInaccessibleVar(returnTemp);
 				}
 				
+			    // TODO: need to handle edge mappings from callee
 				
-				// TODO: need to handle edge mappings from callee
-				HashSet<Integer> stallParamIdx=calleeMethodSummary.getStallParamIdxSet();
+				
+				Set<Integer> stallParamIdx=calleeMethodSummary.getStallParamIdxSet();
 				for (Iterator iterator = stallParamIdx.iterator(); iterator
 						.hasNext();) {
-					Integer paramIdx = (Integer) iterator.next();
+					Integer paramIdx = (Integer) iterator.next();			
+					HashSet<StallTag> stallTagSet=calleeMethodSummary.getStallTagByParamIdx(paramIdx);
+					
+					int argIdx=paramIdx.intValue()-base;
+					TempDescriptor argTD=fc.getArg(argIdx);
+					
+					putStallTagOnReferenceEdges(og, argTD,stallTagSet,currentConflictsMap);
+					
 				}
 			}
 
@@ -2158,12 +2188,28 @@ public class MLPAnalysis {
 					// child SESEs.
 				} else {
 					if (currentConflictsMap.isAccessible(returnTD)) {
+						
 						currentMethodSummary
 								.setReturnValueAccessibility(MethodSummary.ACCESSIBLE);
 						StallSite returnStallSite = currentConflictsMap
 								.getStallMap().get(returnTD);
+						
+						HashSet<HeapRegionNode> stallSiteHRNSet=returnStallSite.getHRNSet();
+						for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+								.hasNext();) {
+							HeapRegionNode stallSiteHRN = (HeapRegionNode) iterator
+									.next();
+							Set<Integer> paramSet=og.idPrimary2paramIndexSet
+							.get(stallSiteHRN.getID());
+							returnStallSite.addCallerParamIdxSet(paramSet);
+							paramSet=og.idSecondary2paramIndexSet
+							.get(stallSiteHRN.getID());
+							returnStallSite.addCallerParamIdxSet(paramSet);
+						}
+						
 						currentMethodSummary
 								.setReturnStallSite(returnStallSite);
+						
 					} else {
 						currentMethodSummary
 								.setReturnValueAccessibility(MethodSummary.INACCESSIBLE);
@@ -2183,22 +2229,27 @@ public class MLPAnalysis {
 				for (Iterator iterator = stallTempSet.iterator(); iterator
 						.hasNext();) {
 					TempDescriptor stallTD = (TempDescriptor) iterator.next();
-					StallSite ss = currentConflictsMap.getStallMap().get(
-							stallTD);
+					StallSite stallSite = currentConflictsMap.getStallMap()
+							.get(stallTD);
 
-					HashSet<HeapRegionNode> stallSiteHRNSet = ss.getHRNSet();
+					HashSet<HeapRegionNode> stallSiteHRNSet = stallSite
+							.getHRNSet();
 					for (Iterator iterator2 = stallSiteHRNSet.iterator(); iterator2
 							.hasNext();) {
 						HeapRegionNode stallSiteHRN = (HeapRegionNode) iterator2
 								.next();
 
 						if (stallSiteHRN.isParameter()) {
-							currentMethodSummary
-									.addStallParamIdxSet(og.idPrimary2paramIndexSet
-											.get(stallSiteHRN.getID()));
-							currentMethodSummary
-									.addStallParamIdxSet(og.idSecondary2paramIndexSet
-											.get(stallSiteHRN.getID()));
+
+							Set<Integer> paramSet = og.idPrimary2paramIndexSet
+									.get(stallSiteHRN.getID());
+							currentMethodSummary.addStallParamIdxSet(paramSet,
+									stallSite.getStallTagSet());
+
+							paramSet = og.idSecondary2paramIndexSet
+									.get(stallSiteHRN.getID());
+							currentMethodSummary.addStallParamIdxSet(paramSet,
+									stallSite.getStallTagSet());
 						}
 
 					}
@@ -2214,6 +2265,33 @@ public class MLPAnalysis {
 
 	}
 	
+
+	private void putStallTagOnReferenceEdges(OwnershipGraph og,
+			TempDescriptor argTD, HashSet stallTagSet,
+			ParentChildConflictsMap currentConflictsMap) {
+				
+		LabelNode ln=og.td2ln.get(argTD);
+		if(ln!=null){
+			
+			Iterator<ReferenceEdge> refrenceeIter=ln.iteratorToReferencees();
+			while (refrenceeIter.hasNext()) {
+				ReferenceEdge refEdge = (ReferenceEdge) refrenceeIter.next();
+				HeapRegionNode stallHRN=refEdge.getDst();
+				
+				Iterator<ReferenceEdge> referencerIter=stallHRN.iteratorToReferencers();
+				while (referencerIter.hasNext()) {
+					ReferenceEdge referencer = (ReferenceEdge) referencerIter
+							.next();
+					for (Iterator iterator = stallTagSet.iterator(); iterator
+							.hasNext();) {
+						StallTag stallTag = (StallTag) iterator.next();
+						currentConflictsMap.addStallEdge(referencer, stallTag);
+					}
+				}
+			}
+		}
+	}
+
 	private void preEffectAnalysis(OwnershipGraph og, TempDescriptor td,
 			FieldDescriptor field, Integer effectType) {
 

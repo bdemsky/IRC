@@ -5,10 +5,12 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
+import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.OwnershipAnalysis.ReachabilitySet;
 import Analysis.OwnershipAnalysis.ReferenceEdge;
 import Analysis.OwnershipAnalysis.TokenTupleSet;
+import IR.Flat.FlatNode;
 import IR.Flat.TempDescriptor;
 
 public class ParentChildConflictsMap {
@@ -18,7 +20,7 @@ public class ParentChildConflictsMap {
 
 	private Hashtable<TempDescriptor, Integer> accessibleMap;
 	private Hashtable<TempDescriptor, StallSite> stallMap;
-	private Hashtable < ReferenceEdge, StallSite > stallEdgeMap;
+	private Hashtable < ReferenceEdge, HashSet<StallTag> > stallEdgeMap;
 
 	private boolean afterChildSESE;
 
@@ -26,20 +28,36 @@ public class ParentChildConflictsMap {
 
 		accessibleMap = new Hashtable<TempDescriptor, Integer>();
 		stallMap = new Hashtable<TempDescriptor, StallSite>();
-		stallEdgeMap= new Hashtable < ReferenceEdge, StallSite >();
+		stallEdgeMap= new Hashtable < ReferenceEdge, HashSet<StallTag> >();
 		afterChildSESE=false;
 
 	}
 	
-	public Hashtable < ReferenceEdge, StallSite > getStallEdgeMap(){
+	public void makeAllInaccessible(){
+		
+		Set<TempDescriptor> keySet=accessibleMap.keySet();
+		for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+			TempDescriptor key = (TempDescriptor) iterator.next();
+			accessibleMap.put(key, INACCESSIBLE);	
+		}
+		
+	}
+	
+	public Hashtable < ReferenceEdge, HashSet<StallTag> > getStallEdgeMap(){
 		return stallEdgeMap;
 	}
 	
-	public void addStallEdge(ReferenceEdge edge, StallSite site){
-		stallEdgeMap.put(edge, site);
+	public void addStallEdge(ReferenceEdge edge, StallTag sTag){
+		
+		HashSet<StallTag> tagSet=stallEdgeMap.get(edge);
+		if(tagSet==null){
+			tagSet=new HashSet<StallTag>();
+		}
+		tagSet.add(sTag);
+		stallEdgeMap.put(edge, tagSet);
 	}
 	
-	public StallSite getStallSiteByEdge(ReferenceEdge edge){
+	public HashSet<StallTag> getStallTagByEdge(ReferenceEdge edge){
 		return stallEdgeMap.get(edge);
 	}
 	
@@ -67,8 +85,8 @@ public class ParentChildConflictsMap {
 		accessibleMap.put(td, INACCESSIBLE);
 	}
 
-	public void addStallSite(TempDescriptor td, HashSet<HeapRegionNode> heapSet) {
-		StallSite stallSite=new StallSite(heapSet);
+	public void addStallSite(TempDescriptor td, HashSet<HeapRegionNode> heapSet, StallTag sTag) {
+		StallSite stallSite=new StallSite(heapSet,sTag);
 		stallMap.put(td, stallSite);
 	}
 	
@@ -121,7 +139,9 @@ public class ParentChildConflictsMap {
 			if (currentStatus != null && currentStatus == ACCESSIBLE
 					&& newStatus == INACCESSIBLE) {
 				getAccessibleMap().put(key, INACCESSIBLE);
-			}
+			}else if(currentStatus == null && newStatus == ACCESSIBLE){
+				getAccessibleMap().put(key, ACCESSIBLE);
+			} 
 		}
 
 		keySet = newStallMap.keySet();
@@ -166,8 +186,24 @@ public class ParentChildConflictsMap {
 				currentRSet.add(tokenTupleSet);
 			}
 			
+			//handle allocationsite
+			HashSet<AllocationSite> currentAloc=currentStallSite.getAllocationSiteSet();
+			HashSet<AllocationSite> newAloc=newStallSite.getAllocationSiteSet();
+			currentAloc.addAll(newAloc);			
+			
+			// handle related stall tags
+			HashSet<StallTag> currentStallTagSet=currentStallSite.getStallTagSet();
+			HashSet<StallTag> newStallTagSet=newStallSite.getStallTagSet();
+			currentStallTagSet.addAll(newStallTagSet);
+			
+			// reaching param idxs
+			HashSet<Integer> currentParamIdx=currentStallSite.getCallerParamIdxSet();
+			HashSet<Integer> newParamIdx=newStallSite.getCallerParamIdxSet();
+			currentParamIdx.addAll(newParamIdx);
+			
 			StallSite merged=new StallSite(currentEffectSet, currentHRNSet,
-					currentRSet);
+					currentRSet, currentAloc, currentStallTagSet,currentParamIdx);
+			
 
 			getStallMap()
 					.put(
@@ -178,12 +214,19 @@ public class ParentChildConflictsMap {
 		
 		// merge edge mapping
 		
-		Hashtable<ReferenceEdge, StallSite> newStallEdgeMapping=newConflictsMap.getStallEdgeMap();
+		Hashtable<ReferenceEdge, HashSet<StallTag>> newStallEdgeMapping=newConflictsMap.getStallEdgeMap();
 		Set<ReferenceEdge> edgeSet=newStallEdgeMapping.keySet();
+		
 		for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
 			ReferenceEdge stallEdge = (ReferenceEdge) iterator.next();
-			StallSite newStallSite=newStallEdgeMapping.get(stallEdge);
-			getStallEdgeMap().put(stallEdge, newStallSite);
+			HashSet<StallTag> newStallTagSet=newStallEdgeMapping.get(stallEdge);
+			HashSet<StallTag>currentStallTagSet=getStallEdgeMap().get(stallEdge);
+			
+			if(currentStallTagSet==null){
+				currentStallTagSet=new 	HashSet<StallTag>();
+			}
+			currentStallTagSet.addAll(newStallTagSet);
+			getStallEdgeMap().put(stallEdge,currentStallTagSet);
 		}
 
 	}

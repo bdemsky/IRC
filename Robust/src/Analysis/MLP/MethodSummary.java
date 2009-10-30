@@ -1,6 +1,7 @@
 package Analysis.MLP;
 
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -14,24 +15,34 @@ public class MethodSummary {
 	private HashSet<PreEffectsKey> effectsSet;
 	private Integer accessibility;
 	private StallSite returnStallSite;
-	private HashSet<Integer> stallParamIdxSet;
-
+	
+	private Hashtable<Integer, HashSet<StallTag>> mapParamIndexToRelatedStallTag;
+	
 	public MethodSummary() {
 		effectsSet = new HashSet<PreEffectsKey>();
 		accessibility = MethodSummary.VOID;
 		childSESECount = 0;
 		returnStallSite=null;
-		stallParamIdxSet=new HashSet<Integer>();
+		mapParamIndexToRelatedStallTag=new Hashtable<Integer, HashSet<StallTag>>();
 	}
 	
-	public HashSet<Integer> getStallParamIdxSet(){
-		return stallParamIdxSet;
-	}
-	
-	public void addStallParamIdxSet(Set<Integer> newSet){
-		if(newSet!=null){
-			stallParamIdxSet.addAll(newSet);
+	public void addStallParamIdxSet(Set<Integer> paramIdxSet, HashSet<StallTag> stallTagSet){
+		
+		if(paramIdxSet!=null){
+			for (Iterator iterator = paramIdxSet.iterator(); iterator.hasNext();) {
+				Integer paramIdx = (Integer) iterator.next();
+				mapParamIndexToRelatedStallTag.put(paramIdx, stallTagSet);
+			}
 		}
+	}
+	
+	public HashSet<StallTag> getStallTagByParamIdx(Integer paramIdx){
+		return mapParamIndexToRelatedStallTag.get(paramIdx);
+	}
+	
+	
+	public Set<Integer> getStallParamIdxSet(){
+		return mapParamIndexToRelatedStallTag.keySet();
 	}
 	
 	public void setReturnStallSite(StallSite ss){
@@ -135,11 +146,6 @@ class PreEffectsKey {
 		}
 
 		PreEffectsKey in = (PreEffectsKey) o;
-
-		this.paramIndex = paramIndex;
-		this.field = field;
-		this.type = type;
-		this.effectType = effectType;
 
 		if (paramIndex.equals(in.getParamIndex())
 				&& field.equals(in.getField()) && type.equals(in.getType())
