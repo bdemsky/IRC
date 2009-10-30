@@ -213,11 +213,15 @@ public class MLPAnalysis {
     
     // disjoint analysis with a set of flagged allocation sites of live-in variable
 	try {
-	  OwnershipAnalysis oa2 = new OwnershipAnalysis(state, tu, callGraph, new Liveness(),
-				state.OWNERSHIPALLOCDEPTH, false,
-				false, state.OWNERSHIPALIASFILE,
-				state.METHODEFFECTS,
-				mapMethodContextToLiveInAllocationSiteSet);
+	  OwnershipAnalysis oa2 = new OwnershipAnalysis(state, 
+                                                        tu, 
+                                                        callGraph, 
+                                                        ownAnalysis.liveness,
+                                                        ownAnalysis.arrayReferencees,
+                                                        state.OWNERSHIPALLOCDEPTH, false,
+                                                        false, state.OWNERSHIPALIASFILE,
+                                                        state.METHODEFFECTS,
+                                                        mapMethodContextToLiveInAllocationSiteSet);
 		// debug
 		methItr = oa2.descriptorsToAnalyze.iterator();
 		while (methItr.hasNext()) {

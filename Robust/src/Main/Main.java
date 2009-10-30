@@ -44,6 +44,7 @@ import Analysis.OwnershipAnalysis.OwnershipAnalysis;
 import Analysis.MLP.MLPAnalysis;
 import Analysis.Loops.*;
 import Analysis.Liveness;
+import Analysis.ArrayReferencees;
 import IR.MethodDescriptor;
 import IR.Flat.FlatMethod;
 import Interface.*;
@@ -351,10 +352,12 @@ public class Main {
     if (state.OWNERSHIP && !state.MLP) {
       CallGraph callGraph = new CallGraph(state);
       Liveness liveness = new Liveness();
+      ArrayReferencees ar = new ArrayReferencees(state);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
                                                    tu,
                                                    callGraph,
 						   liveness,
+                                                   ar,
                                                    state.OWNERSHIPALLOCDEPTH,
                                                    state.OWNERSHIPWRITEDOTS,
                                                    state.OWNERSHIPWRITEALL,
@@ -365,10 +368,12 @@ public class Main {
     if (state.MLP) {
       CallGraph callGraph = new CallGraph(state);
       Liveness liveness = new Liveness();
+      ArrayReferencees ar = new ArrayReferencees(state);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
                                                    tu,
                                                    callGraph,
 						   liveness,
+                                                   ar,
 						   state.OWNERSHIPALLOCDEPTH,
                                                    state.OWNERSHIPWRITEDOTS,
                                                    state.OWNERSHIPWRITEALL,
@@ -414,10 +419,12 @@ public class Main {
 	// Use ownership analysis to get alias information
 	CallGraph callGraph = new CallGraph(state);
 	Liveness liveness = new Liveness();
+        ArrayReferencees ar = new ArrayReferencees(state);
 	OwnershipAnalysis oa = new OwnershipAnalysis(state,
 	                                             tu,
 	                                             callGraph,
 						     liveness,
+                                                     ar,
 	                                             state.OWNERSHIPALLOCDEPTH,
 	                                             state.OWNERSHIPWRITEDOTS,
 	                                             state.OWNERSHIPWRITEALL,

@@ -2,6 +2,7 @@ package Analysis.OwnershipAnalysis;
 
 import Analysis.CallGraph.*;
 import Analysis.Liveness;
+import Analysis.ArrayReferencees;
 import IR.*;
 import IR.Flat.*;
 import IR.Tree.Modifiers;
@@ -314,11 +315,12 @@ public class OwnershipAnalysis {
 
 
   // data from the compiler
-  public State     state;
-  public CallGraph callGraph;
-  public Liveness  liveness;
-  public TypeUtil  typeUtil;
-  public int       allocationDepth;
+  public State            state;
+  public CallGraph        callGraph;
+  public Liveness         liveness;
+  public ArrayReferencees arrayReferencees;
+  public TypeUtil         typeUtil;
+  public int              allocationDepth;
 
   // for public interface methods to warn that they
   // are grabbing results during analysis
@@ -396,13 +398,14 @@ public class OwnershipAnalysis {
                            TypeUtil tu,
                            CallGraph callGraph,
 			   Liveness liveness,
+                           ArrayReferencees ar,
                            int allocationDepth,
                            boolean writeDOTs,
                            boolean writeAllDOTs,
                            String aliasFile) throws java.io.IOException {
 	  
 	  this.methodEffects = false;
-	  init(state,tu,callGraph,liveness,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
+	  init(state,tu,callGraph,liveness,ar,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
 	  
   }
   
@@ -410,6 +413,7 @@ public class OwnershipAnalysis {
 			   TypeUtil tu,
 			   CallGraph callGraph,
 			   Liveness liveness,
+                           ArrayReferencees ar,
 			   int allocationDepth,
 			   boolean writeDOTs,
 			   boolean writeAllDOTs,
@@ -417,7 +421,7 @@ public class OwnershipAnalysis {
 			   boolean methodEffects) throws java.io.IOException {
 	  
 	  this.methodEffects = methodEffects;
-	  init(state,tu,callGraph,liveness,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
+	  init(state,tu,callGraph,liveness,ar,allocationDepth,writeDOTs,writeAllDOTs,aliasFile);
 	  
   }
   
@@ -427,6 +431,7 @@ public class OwnershipAnalysis {
 			TypeUtil tu,
 			CallGraph callGraph,
 			Liveness liveness,
+                        ArrayReferencees ar,
 			int allocationDepth,
 			boolean writeDOTs,
 			boolean writeAllDOTs,
@@ -437,7 +442,7 @@ public class OwnershipAnalysis {
 
 		this.methodEffects = methodEffects;
 		this.mapMethodContextToLiveInAllocationSiteSet=mapMethodContextToLiveInAllocationSiteSet;
-		init(state, tu, callGraph, liveness, allocationDepth, writeDOTs, writeAllDOTs,
+		init(state, tu, callGraph, liveness, ar, allocationDepth, writeDOTs, writeAllDOTs,
 				aliasFile);
 
 	}
@@ -446,6 +451,7 @@ public class OwnershipAnalysis {
 		    TypeUtil tu,
 		    CallGraph callGraph,
 		    Liveness liveness,
+                    ArrayReferencees ar,
 		    int allocationDepth,
 		    boolean writeDOTs,
 		    boolean writeAllDOTs,
@@ -453,13 +459,14 @@ public class OwnershipAnalysis {
 
 	    analysisComplete = false;
 
-	    this.state           = state;
-	    this.typeUtil        = tu;
-	    this.callGraph       = callGraph;
-	    this.liveness        = liveness;
-	    this.allocationDepth = allocationDepth;
-	    this.writeDOTs       = writeDOTs;
-	    this.writeAllDOTs    = writeAllDOTs;
+	    this.state            = state;
+	    this.typeUtil         = tu;
+	    this.callGraph        = callGraph;
+	    this.liveness         = liveness;
+            this.arrayReferencees = ar;
+	    this.allocationDepth  = allocationDepth;
+	    this.writeDOTs        = writeDOTs;
+	    this.writeAllDOTs     = writeAllDOTs;
 
 	    // set some static configuration for OwnershipGraphs
 	    OwnershipGraph.allocationDepth   = allocationDepth;
@@ -946,6 +953,11 @@ public class OwnershipAnalysis {
 
     case FKind.FlatSetElementNode:
       FlatSetElementNode fsen = (FlatSetElementNode) fn;
+
+      if( arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
+        System.out.println( "Skipping no-heap-effect: "+fsen );
+      }
+
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
       if( !rhs.getType().isImmutable() || rhs.getType().isArray() ) {

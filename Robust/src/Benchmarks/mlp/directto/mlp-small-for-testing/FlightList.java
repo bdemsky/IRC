@@ -37,8 +37,16 @@ public class FlightList {
   public  void amendFlightPlan(D2 d2, int time, StringTokenizer st) {
     Flight fAux=getFlight(st.nextToken());
     Route rAux=new Route(Integer.parseInt(st.nextToken()));    
-    for (int i=0;i<rAux.noFixes;i++)
-      rAux.addFix(d2,i,st.nextToken());      
+
+
+    //////////////////////////////
+    // do this once    
+    //for (int i=0;i<rAux.noFixes;i++)
+    //  rAux.addFix(d2,i,st.nextToken());      
+    //////////////////////////////
+    rAux.addFix(d2,0,st.nextToken());      
+
+
     fAux.fPlan.setRoute(rAux);
     fAux.fPlan.setCruiseParam(Double.parseDouble(st.nextToken()), Double.parseDouble(st.nextToken()));
   }

@@ -47,8 +47,18 @@ public class MessageList {
   
   public void executeAll(D2 d2) {
     System.out.println("executeAll: we have "+messages.size()+" messages.");
-    while(hasNext())
-      next().executeMessage(d2);     
+
+
+
+    ///////////////////////////////////
+    // alternate version of this not
+    // in a loop...
+    //while(hasNext())
+    //  next().executeMessage(d2);     
+    ///////////////////////////////////    
+    next().executeMessage(d2);     
+
+
 
     d2.getStatic().printInfo();
     d2.getFixList().printInfo();
