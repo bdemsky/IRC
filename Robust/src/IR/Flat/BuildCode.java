@@ -20,6 +20,7 @@ import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Locality.DiscoverConflicts;
 import Analysis.Locality.DelayComputation;
+import Analysis.Locality.BranchAnalysis;
 import Analysis.CallGraph.CallGraph;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
@@ -1563,6 +1564,8 @@ public class BuildCode {
   Hashtable<FlatAtomicEnterNode, AtomicRecord> atomicmethodmap;
   static int atomicmethodcount=0;
 
+
+  BranchAnalysis branchanalysis;
   private void generateFlatMethod(FlatMethod fm, LocalityBinding lb, PrintWriter output) {
     if (State.PRINTFLAT)
       System.out.println(fm.printMethod());
@@ -1572,6 +1575,7 @@ public class BuildCode {
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : md!=null ? md : task);
 
     HashSet<AtomicRecord> arset=null;
+    branchanalysis=null;
 
     if (state.DELAYCOMP&&!lb.isAtomic()&&lb.getHasAtomic()) {
       //create map
@@ -1582,6 +1586,9 @@ public class BuildCode {
       localsprefixaddr=localsprefix;
       localsprefixderef=localsprefix+"->";
       arset=new HashSet<AtomicRecord>();
+
+      //build branchanalysis
+      branchanalysis=new BranchAnalysis(locality, lb, delaycomp.getNotReady(lb), delaycomp.livecode(lb), state);
       
       //Generate commit methods here
       for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
@@ -2155,8 +2162,14 @@ public class BuildCode {
                               PrintWriter output, boolean firstpass) {
 
     /* Assign labels to FlatNode's if necessary.*/
-    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(first, stopset);
 
+    Hashtable<FlatNode, Integer> nodetolabel;
+
+    if (state.DELAYCOMP&&!firstpass)
+      nodetolabel=dcassignLabels(first, stopset);      
+    else
+      nodetolabel=assignLabels(first, stopset);      
+    
     Set<FlatNode> storeset=null;
     HashSet<FlatNode> genset=null;
     HashSet<FlatNode> refset=null;
@@ -2319,7 +2332,7 @@ public class BuildCode {
 	      generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);	      
 	    } else if (storeset.contains(current_node)) {
 	      //need to do branch
-	      output.println("RESTOREANDBRANCH(L"+nodetolabel.get(current_node.getNext(1))+"); /* "+current_node.nodeid+" */");
+	      branchanalysis.generateGroupCode(current_node, output, nodetolabel);
 	    } else {
 	      //which side to execute
 	      computeside=true;
@@ -2406,8 +2419,55 @@ public class BuildCode {
       }
     }
   }
+  /** Special label assignment for delaycomputation */
+  protected Hashtable<FlatNode, Integer> dcassignLabels(FlatNode first, Set<FlatNode> lastset) {
+    HashSet tovisit=new HashSet();
+    HashSet visited=new HashSet();
+    int labelindex=0;
+    Hashtable<FlatNode, Integer> nodetolabel=new Hashtable<FlatNode, Integer>();
 
-  /** This method assigns labels to FlatNodes */
+    //Label targets of branches
+    Set<FlatNode> targets=branchanalysis.getTargets();
+    for(Iterator<FlatNode> it=targets.iterator();it.hasNext();) {
+      nodetolabel.put(it.next(), new Integer(labelindex++));
+    }
+
+
+    tovisit.add(first);
+    /*Assign labels first.  A node needs a label if the previous
+     * node has two exits or this node is a join point. */
+
+    while(!tovisit.isEmpty()) {
+      FlatNode fn=(FlatNode)tovisit.iterator().next();
+      tovisit.remove(fn);
+      visited.add(fn);
+
+
+      if(lastset!=null&&lastset.contains(fn)) {
+	// if last is not null and matches, don't go 
+	// any further for assigning labels
+	continue;
+      }
+
+      for(int i=0; i<fn.numNext(); i++) {
+	FlatNode nn=fn.getNext(i);
+
+	if(i>0) {
+	  //1) Edge >1 of node
+	  nodetolabel.put(nn,new Integer(labelindex++));
+	}
+	if (!visited.contains(nn)&&!tovisit.contains(nn)) {
+	  tovisit.add(nn);
+	} else {
+	  //2) Join point
+	  nodetolabel.put(nn,new Integer(labelindex++));
+	}
+      }
+    }
+    return nodetolabel;
+
+  }
+
   protected Hashtable<FlatNode, Integer> assignLabels(FlatNode first) {
     return assignLabels(first, null);
   }
@@ -3752,7 +3812,7 @@ public class BuildCode {
       type=elementtype.getSafeSymbol()+" ";
 
     if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
-      output.println("if ("+generateTemp(fm, fen.getIndex(),lb)+"< 0 | "+generateTemp(fm, fen.getIndex(),lb)+" >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
+      output.println("if (((unsigned int)"+generateTemp(fm, fen.getIndex(),lb)+") >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }
     if (state.SINGLETM) {
@@ -3812,13 +3872,13 @@ public class BuildCode {
       type=elementtype.getSafeSymbol()+" ";
 
     if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
-      output.println("if ("+generateTemp(fm, fsen.getIndex(),lb)+"< 0 | "+generateTemp(fm, fsen.getIndex(),lb)+" >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
+      output.println("if (((unsigned int)"+generateTemp(fm, fsen.getIndex(),lb)+") >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
       output.println("failedboundschk();");
     }
 
     if (state.SINGLETM && locality.getAtomic(lb).get(fsen).intValue()>0) {
       //Transaction set element case
-      if (!state.STMARRAY&&wb.needBarrier(fsen)&&
+      if (wb.needBarrier(fsen)&&
           locality.getNodePreTempInfo(lb, fsen).get(fsen.getDst())!=LocalityAnalysis.SCRATCH) {
 	output.println("*((unsigned int *)&("+generateTemp(fm,fsen.getDst(),lb)+"->___objstatus___))|=DIRTY;");
       }
@@ -4056,7 +4116,20 @@ public class BuildCode {
   }
 
   protected void generateStoreFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
-    output.println("STOREANDBRANCH(!"+generateTemp(fm, fcb.getTest(),lb)+", "+label+"); /* "+fcb.nodeid+" */");
+    int left=-1;
+    int right=-1;
+    //only record if this group has more than one exit
+    if (branchanalysis.numJumps(fcb)>1) {
+      left=branchanalysis.jumpValue(fcb, 0);
+      right=branchanalysis.jumpValue(fcb, 1);
+    }
+    output.println("if (!"+generateTemp(fm, fcb.getTest(),lb)+") {");
+    if (right!=-1)
+      output.println("STOREBRANCH("+right+");");
+    output.println("goto "+label+";");
+    output.println("}");
+    if (left!=-1)
+      output.println("STOREBRANCH("+left+");");
   }
 
   protected void generateFlatCondBranch(FlatMethod fm, LocalityBinding lb, FlatCondBranch fcb, String label, PrintWriter output) {
