@@ -110,13 +110,16 @@ public class SpamFilter extends Thread {
    **/
   public FilterResult[] checkMail(Mail mail) {
     //Preprocess emails
-      //StringBuffer[] mailStrings = createMailStrings();
+      //StringBuffer[] partsOfMailStrings = createMailStrings();
+      //RazorMail[] razorMails = 
     //Compute signatures
-      //CommunicationEngine checkEngine = getCheckEngine();
-      //SignatureComputer sigComp = new SignatureComputer();
+    SignatureComputer sigComp = new SignatureComputer();
+    Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+          
     //check with global data structure
+    check(signatures);
 
-    //return results
+    //---- create and  return results --------
     FilterResult[] filterResults = new FilterResult[mailStrings.length];
 
     return filterResults;
