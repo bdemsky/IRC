@@ -61,12 +61,12 @@ int transCommit() {
     /* Look through all the objects in the transaction hash table */
     int finalResponse;
 #ifdef DELAYCOMP
-    if (c_numelements<(c_size>>1))
+    if (c_numelements<(c_size>>3))
       finalResponse=alttraverseCache(commitmethod, primitives, locals, params);
     else
       finalResponse=traverseCache(commitmethod, primitives, locals, params);
 #else
-    if (c_numelements<(c_size>>1))
+    if (c_numelements<(c_size>>3))
       finalResponse=alttraverseCache();
     else
       finalResponse=traverseCache();
@@ -92,6 +92,7 @@ int transCommit() {
 #ifdef SANDBOX
       abortenabled=1;
 #endif
+
       return TRANS_ABORT;
     }
     if(finalResponse == TRANS_COMMIT) {

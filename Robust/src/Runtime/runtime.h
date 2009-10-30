@@ -25,6 +25,10 @@ extern int failurecount;
 extern void * curr_heapbase;
 extern void * curr_heaptop;
 
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
+
+
 #define TAGARRAYINTERVAL 10
 #define OBJECTARRAYINTERVAL 10
 

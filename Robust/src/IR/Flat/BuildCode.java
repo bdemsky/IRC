@@ -1751,10 +1751,9 @@ public class BuildCode {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	else if (this.state.MULTICOREGC) {
 	  output.println("if(gcflag) gc("+localsprefixaddr+");");
-	} else if (state.SINGLETM) {
+	} else {
 	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	} else
-	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
+	}
       }
     }
 
@@ -2090,11 +2089,9 @@ public class BuildCode {
       if (callgraph.getAllMethods(md).contains(md)) {
         if(this.state.MULTICOREGC) {
           output.println("if(gcflag) gc("+localsprefixaddr+");");
-        } else if (state.SINGLETM) {
+        } else {
 	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	} else {
-          output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
-        }
+	}
       }
     }    
 
@@ -2723,10 +2720,9 @@ public class BuildCode {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
 	} else if(this.state.MULTICOREGC) {
 	  output.println("if (gcflag) gc("+localsprefixaddr+");");
-	} else if (state.SINGLETM) {
+	} else {
 	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	} else
-	  output.println("if (needtocollect) checkcollect("+localsprefixaddr+");");
+	}
       } else
 	output.println("/* nop */");
       break;
@@ -3083,6 +3079,8 @@ public class BuildCode {
     } else
       output.println("if (transCommit()) {");
     /* Transaction aborts if it returns true */
+    output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+    
     output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
     if (state.DSM) {
       output.println("} else {");
@@ -3812,7 +3810,7 @@ public class BuildCode {
       type=elementtype.getSafeSymbol()+" ";
 
     if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
-      output.println("if (((unsigned int)"+generateTemp(fm, fen.getIndex(),lb)+") >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___)");
+      output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fen.getIndex(),lb)+") >= "+generateTemp(fm,fen.getSrc(),lb) + "->___length___))");
       output.println("failedboundschk();");
     }
     if (state.SINGLETM) {
@@ -3872,7 +3870,7 @@ public class BuildCode {
       type=elementtype.getSafeSymbol()+" ";
 
     if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
-      output.println("if (((unsigned int)"+generateTemp(fm, fsen.getIndex(),lb)+") >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___)");
+      output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fsen.getIndex(),lb)+") >= "+generateTemp(fm,fsen.getDst(),lb) + "->___length___))");
       output.println("failedboundschk();");
     }
 
