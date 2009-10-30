@@ -34,36 +34,39 @@
   }
 
 #define STMGETARRAY(dst, array, index, type) {				\
-    int byteindex=index*sizeof(type);					\
-    int * lengthoff=&array->___length___;				\
     if (((char *)array)!=((char *)array->___objlocation___)) {		\
       if(!(array->___objstatus___&NEW)) {				\
+	int byteindex=index*sizeof(type);				\
 	int *status;							\
-	GETLOCKPTR(status, array, byteindex>>INDEXSHIFT);		\
-	if ((*status)==STMNONE) {					\
+	int metaindex=(byteindex&HIGHMASK)>>INDEXSHIFT;			\
+	GETLOCKPTR(status, array, metaindex);				\
+	if (metaindex<array->lowindex||metaindex>array->highindex	\
+	    ||(*status)==STMNONE) {					\
 	  arraycopy(array, byteindex);					\
-	  *status=STMCLEAN;}						\
+	  (*status)=STMCLEAN;}						\
       }									\
     }									\
-    dst=((type *)(((char *) lengthoff)+sizeof(int)))[index];		\
+    dst=((type *)(((char *) &array->___length___)+sizeof(int)))[index];	\
   }
 
 #define STMSETARRAY(array, index, src, type) {				\
-    int byteindex=index*sizeof(type);					\
-    int * lengthoff=&array->___length___;				\
     if (!(array->___objstatus___&NEW)) {				\
       int *status;							\
-      GETLOCKPTR(status, array, byteindex>>INDEXSHIFT);			\
-      if ((*status)==STMNONE)						\
+      int byteindex=index*sizeof(type);					\
+      int metaindex=(byteindex&HIGHMASK)>>INDEXSHIFT;			\
+      GETLOCKPTR(status, array, metaindex);				\
+      if (metaindex<array->lowindex||metaindex>array->highindex		\
+	  ||(*status)==STMNONE) {					\
 	arraycopy(array, byteindex);					\
-      *status=STMDIRTY;							\
+      }									\
+      (*status)=STMDIRTY;						\
     }									\
-    ((type *)(((char *) lengthoff)+sizeof(int)))[index]=src;		\
+    ((type *)(((char *) &array->___length___)+sizeof(int)))[index]=src;	\
   }
 #endif
 
-#define VERSIONINCREMENT(array, index, type) {			\
-    unsigned int * versionptr;					\
+#define VERSIONINCREMENT(array, index, type) {				\
+    unsigned int * versionptr;						\
     GETVERSIONPTR(versionptr, array,((sizeof(type)*index)>>INDEXSHIFT)); \
-    (*versionptr)++;						\
+    (*versionptr)++;							\
 }

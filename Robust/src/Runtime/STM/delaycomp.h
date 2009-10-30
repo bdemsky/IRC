@@ -69,9 +69,9 @@ extern __thread struct arraylist arraystack;
 
 //Branches
 
-#define RESTOREANDBRANCH(loc) if (branchstack.array[branchstack.count++]) goto loc
+#define RESTOREBRANCH(loc) (branchstack.array[branchstack.count++])
 
-#define STOREANDBRANCH(cond, loc) if (branchstack.array[branchstack.count++]=cond) goto loc
+#define STOREBRANCH(cond) branchstack.array[branchstack.count++]=cond
 
 //Integers
 

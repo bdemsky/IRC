@@ -201,14 +201,13 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
 	  int i;
 	  SENQUEUE((void *)ao->___objlocation___, *((void **)&ao->___objlocation___));
 #ifdef STMARRAY
-	  int lowindex=ao->lowindex>>INDEXSHIFT;
-	  int highind=ao->highindex;
-	  int highindex=(highind==-1)?-1:(highind>>INDEXSHIFT);
+	  int lowindex=ao->lowindex;
+	  int highindex=ao->highindex;
 	  int j;
 	  for(j=lowindex; j<=highindex; j++) {
 	    unsigned int lockval;
 	    GETLOCKVAL(lockval, ao, j);
-	    if (lockval==STMDIRTY) {
+	    if (lockval!=STMNONE) {
 	      int lowi=(j<<INDEXSHIFT)/sizeof(void *);
 	      int highi=lowi+(INDEXLENGTH/sizeof(void *));
 	      for(i=lowi; i<highi;i++) {

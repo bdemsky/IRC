@@ -1,6 +1,9 @@
 #ifndef _STMLOCK_H_
 #define _STMLOCK_H_
 
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
+
 #define SWAP_LOCK_BIAS                 1
 #define CFENCE   asm volatile("":::"memory");
 
@@ -80,14 +83,14 @@ static inline int atomic_sub_and_test(int i, volatile unsigned int *v) {
 
 static inline int rwread_trylock(volatile unsigned int  *lock) {
   atomic_dec(lock);
-  if (atomic_read(lock) >= 0)
+  if (likely(atomic_read(lock) >= 0))
     return 1; //can aquire a new read lock
   atomic_inc(lock);
   return 0; //failure
 }
 
 static inline int rwwrite_trylock(volatile unsigned int  *lock) {
-  if (atomic_sub_and_test(RW_LOCK_BIAS, lock)) {
+  if (likely(atomic_sub_and_test(RW_LOCK_BIAS, lock))) {
     return 1; // get a write lock
   }
   atomic_add(RW_LOCK_BIAS, lock);
@@ -95,7 +98,7 @@ static inline int rwwrite_trylock(volatile unsigned int  *lock) {
 }
 
 static inline int rwconvert_trylock(volatile unsigned int  *lock) {
-  if (atomic_sub_and_test((RW_LOCK_BIAS-1), lock)) {
+  if (likely(atomic_sub_and_test((RW_LOCK_BIAS-1), lock))) {
     return 1; // get a write lock
   }
   atomic_add((RW_LOCK_BIAS-1), lock);

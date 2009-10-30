@@ -175,7 +175,7 @@ void *transRead(void * oid, void *gl) {
     int metasize=sizeof(int)*2*(basesize>>INDEXSHIFT);
     size = basesize + sizeof(objheader_t)+metasize+sizeof(struct ArrayObject);
     char *tmpptr = (char *) objstrAlloc(size);
-    bzero(tmpptr, metasize);//clear out stm data
+    //    bzero(tmpptr, metasize);//clear out stm data
     objcopy=(objheader_t *) (tmpptr+metasize);
     A_memcpy(objcopy, header, sizeof(objheader_t)+sizeof(struct ArrayObject)); //copy the metadata and base array info
   } else {
@@ -210,13 +210,32 @@ void *transRead(void * oid, void *gl) {
    int baseoffset=byteindex&HIGHMASK;
    unsigned int mainversion;
    int baseindex=baseoffset>>INDEXSHIFT;
+   if (oid->lowindex>baseindex) {
+     unsigned int * ptr;
+     if (oid->lowindex==MAXARRAYSIZE) {
+       GETLOCKPTR(ptr, oid, baseindex);
+       bzero(ptr, sizeof(int)*2);
+     } else {
+       GETLOCKPTR(ptr, oid, oid->lowindex-1);
+       int length=oid->lowindex-baseindex;
+       bzero(ptr, sizeof(int)*2*length);
+     }
+     oid->lowindex=baseindex;
+   }
+   if (oid->highindex<baseindex) {
+     unsigned int * ptr;
+     if (oid->highindex==-1) {
+       GETLOCKPTR(ptr, oid, baseindex);
+       bzero(ptr, 2*sizeof(int));
+     } else {
+       GETLOCKPTR(ptr, oid, baseindex);
+       bzero(ptr, 2*sizeof(int)*(baseindex-oid->highindex));
+     }
+     oid->highindex=baseindex;
+   }
    GETVERSIONVAL(mainversion, orig, baseindex);
    SETVERSION(oid, baseindex, mainversion);
    A_memcpy(((char *)&oid[1])+baseoffset, ((char *)&orig[1])+baseoffset, INDEXLENGTH);
-   if (oid->lowindex>baseoffset)
-     oid->lowindex=baseoffset;
-   if (oid->highindex<baseoffset)
-     oid->highindex=baseoffset;
  }
 #endif
 
