@@ -956,6 +956,7 @@ public class OwnershipAnalysis {
 
       if( arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
         System.out.println( "Skipping no-heap-effect: "+fsen );
+        break;
       }
 
       lhs = fsen.getDst();
@@ -1461,7 +1462,7 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis 
   // to get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String mcDescSymbolDebug = "addFirst";
+  String mcDescSymbolDebug = "insertElementAt";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1478,7 +1479,7 @@ public class OwnershipAnalysis {
   int iterStartCapture = 0;
 
   // the number of snapshots to take
-  int numIterToCapture = 40;
+  int numIterToCapture = 300;
 
   void debugSnapshot(OwnershipGraph og, FlatNode fn) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {
