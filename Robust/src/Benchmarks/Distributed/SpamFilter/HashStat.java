@@ -9,6 +9,12 @@ public class HashStat {
     }
   }
 
+  public void setuser(int id, int spam, int ham, int unknown) {
+    userstat[id].setSpam(spam);
+    userstat[id].setHam(ham);
+    userstat[id].setUnknown(unknown);
+  }
+
   public int getuser(int id) {
     return userid[id];
   }

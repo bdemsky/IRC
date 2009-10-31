@@ -12,7 +12,7 @@ public class SpamFilter extends Thread {
 
   }
 
-  public SpamFilter(int numiter, int numemail,int threadid) {
+  public SpamFilter(int numiter, int numemail,int id) {
     this.numiter=numiter;
     this.numemail=numemail;
     this.id = id;
@@ -20,10 +20,12 @@ public class SpamFilter extends Thread {
 
   public void run() {
     int niter;
-    int nemails
+    int nemails;
+    int thid;
     atomic {
       niter=numiter;
       nemails=numemails;
+      thid = id;
     }
 
     Random rand = new Random(0);
@@ -32,7 +34,7 @@ public class SpamFilter extends Thread {
       for(int j=0; j<nemails; j++) {
         int pickemail = rand.nextInt(100);
         //String email = getEmail(pickemail);
-        //checkMails(email);
+        checkMail(email, thid);
       }
     }
   }
@@ -108,20 +110,108 @@ public class SpamFilter extends Thread {
   /**
    *  Returns signatures to the Spam filter
    **/
-  public FilterResult[] checkMail(Mail mail) {
+  public FilterResult[] checkMail(Mail mail, int userid) {
     //Preprocess emails
-      //StringBuffer[] partsOfMailStrings = createMailStrings();
+      //String[] partsOfMailStrings = createMailStrings();
       //RazorMail[] razorMails = 
     //Compute signatures
     SignatureComputer sigComp = new SignatureComputer();
     Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
           
     //check with global data structure
-    check(signatures);
+    check(signatures, userid);
 
     //---- create and  return results --------
     FilterResult[] filterResults = new FilterResult[mailStrings.length];
 
     return filterResults;
   } 
+
+  public void check(Vector emailParts, int userid) {
+    for(int i=0; i<emailParts.size(); i++) {
+      String part = (String)(emailParts.elementAt(i));
+      char tmpengine = part.charAt(0);
+      String engine =  new String(tmpengine);
+      String signature = part.substring(2); //a:b index(a)=0, index(:)=1, index(b)=2
+      HashEntry myhe = new HashEntry();
+      myhe.setengine(engine);
+      myhe.setsig(signature);
+      //find object in distributedhashMap: if no object then add object 
+      //else read object
+      HashEntry tmphe;
+      if((tmphe=(HashEntry)mydhmap.get(myhe))== null) {
+        //add new object
+        myhe.stats = new HashStat();
+        myhe.stats.setuser(userid, 0, 0, 1);
+      } else {
+        //else if read object
+        Vector<String> enginesToSend = new Vector<String>();
+        Vector<String> sigsToSend = new Vector<String>();
+
+        for (RazorMail mail : razorMails) {
+          for (int partNr = 0; partNr < mail.getPartSize(); partNr++) {
+            Part part = mail.getPart(partNr);
+            if (part.skipMe()) {
+              continue;
+            }
+
+            for (Iterator<String> hashIter = part.getHashIterator(); hashIter.hasNext();) {
+              String curHash = (String)hashIter.next();
+              String[] engineHashSplit = curHash.split(":");
+              String engine = engineHashSplit[0];
+              String signature = engineHashSplit[1];
+              enginesToSend.add(engine);
+              sigsToSend.add(signature);
+            }
+          }
+        }
+
+        if (sigsToSend.size() == 0) { // nothing to send
+          return;
+        }
+
+        String[] enginesToSendArr = new String[enginesToSend.size()];
+        enginesToSend.toArray(enginesToSendArr);
+        String[] sigsToSendArr = new String[sigsToSend.size()];
+        sigsToSend.toArray(sigsToSendArr);
+
+        // ----- now connect to server and ask query -----
+        int[] confidenceVals = null;
+        RazorCommunicationEngine checkEngine = getCheckEngine();
+        try {
+          checkEngine.connect();
+          confidenceVals = checkEngine.askForSpam(sigsToSendArr,enginesToSendArr);
+          checkEngine.disconnect();
+        } finally {
+          checkEngines.add(checkEngine);
+        }
+
+        if (confidenceVals == null) {
+          System.err.println("check got no answer from server. error.");
+          return; // error
+        }
+
+        if (confidenceVals.length != sigsToSendArr.length) {
+          throw new IllegalStateException("We got not enough answers from server. expected: " + sigsToSendArr.length + "  received: " + confidenceVals.length);
+        }
+
+        // ----- now dispatch the answers to the mail objects -----
+        int answerIndex = 0;
+        for (RazorMail mail : razorMails) {
+          for (int partNr = 0; partNr < mail.getPartSize(); partNr++) {
+            Part part = mail.getPart(partNr);
+            if (part.skipMe()) {
+              continue;
+            }
+
+            for (Iterator<String> hashIter = part.getHashIterator(); hashIter.hasNext();) {
+              String curHash = hashIter.next();
+              part.setResponse(curHash,String.valueOf(confidenceVals[answerIndex++]));
+            }
+          }
+        }
+        //  --> after this loop the mail is able to determine if it is spam or not
+      }
+    }
+  }
 }

@@ -70,12 +70,12 @@ public class SignatureComputer {
 		return "4";
 	}
 
-	public Vector computeSigs(StringBuffer[] Mails) {
-		if (Mails == null) return null;
+	public Vector computeSigs(StringBuffer[] EmailParts) {
+		if (EmailParts == null) return null;
 
-		Vector printableSigs = new Vector();
-		for (int mailIndex = 0; mailIndex < Mails.length; mailIndex++) {
-			StringBuffer mail = Mails[mailIndex];
+		Vector printableSigs = new Vector(); // vector of strings
+		for (int mailIndex = 0; mailIndex < EmailParts.length; mailIndex++) {
+			StringBuffer mail = EmailParts[mailIndex];
 
 			if (mail == null) continue;
 
@@ -84,36 +84,29 @@ public class SignatureComputer {
              */
             for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
               int engineNo = enginesToUseForCheck[engineIndex];
-              String[] sig = null;
+              String sig = null;
 
               switch (engineNo) {
                 case 4:
-                  sig = computeSignature(engineNo,curPart.getCleaned());
+                  sig = computeSignature(engineNo,mail.toString());
                   break;
                 case 8:
-                  sig = computeSignature(engineNo,curPart.getBody());
+                  sig = computeSignature(engineNo,mail.toString());
                   break;
                 default:
-                  /*
-                   * for nilsimsa and sha1 wich are no longer supported by
-                   * the server and might be removed someday
-                   */
-                  sig = computeSignature(engineNo,curPart.getCleaned());
+                  System.out.println("Couldn't find the signature engine\n");
+                  //sig = computeSignature(engineNo,curPart.getCleaned());
                   break;
               }//switch engineNo
 
               if (sig != null && sig.length > 0) {
-                for (int curSigIndex = 0; curSigIndex < sig.length; curSigIndex++) {
-                  String hash = engineNo + ":" + sig[curSigIndex];
-                  curPart.addHash(hash);
-                  printableSigs.add(hash);
-                }
-
+                String hash = engineNo + ":" + sig[curSigIndex];
+                printableSigs.add(hash);
               } else {
                 /* we didn't produce a signature for the mail. */
               }
             }//engine
-        }//mails
+        }//each emails part
         return printableSigs;
     }//computeSigs
 
@@ -127,32 +120,11 @@ public class SignatureComputer {
 			case 4:
 				return new String[] { this.sig4.computeSignature(mail) };
 			case 8:
-				String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
+                //TODO device and equivalent for this
+				//String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
 				return this.sig8.computeSignature(cleanedButKeepHTML);
 			default:
 				return null;
 		}
-	}
-
-	public static String[] getCommonSupportedEngines(int serverSupportedEngines) {
-		Vector<String> commonSupported = new Vector<String>();
-		int engineMask = 1;
-		int engineIndex = 1;
-		while (engineIndex < 32) {
-			boolean serverSupported = (serverSupportedEngines & engineMask) > 0;
-			boolean clientSupported = isSigSupported(engineIndex);
-			if (serverSupported && clientSupported) {
-				commonSupported.add(String.valueOf(engineIndex));
-			}
-			//switch to next
-			engineMask <<= 1; //shift one to left
-			engineIndex++;
-		}
-		if (commonSupported.size() == 0) {
-			return null;
-		}
-		String[] result = new String[commonSupported.size()];
-		commonSupported.toArray(result);
-		return result;
 	}
 }
