@@ -30,7 +30,7 @@ public class Mail {
     while((line = fileinput.readLine()) != null)
     {
       String[] splittedLine = line.split();
-      if(splittedLine[0].equals("MessageID:"))  // message id
+      if(splittedLine[0].equals("Header:"))  // message id
       {
         header = splittedLine[1];
       }

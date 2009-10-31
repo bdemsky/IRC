@@ -96,7 +96,7 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
      newFile = fopen(fileNameBuffer,"w");
 
      // write header
-     fprintf(newFile,"MessageID: %d\n",i+1);
+     fprintf(newFile,"Header: %d\n",i+1);
      
      // write to account name
      writeString(newFile,"To: ",al,ac_num);
