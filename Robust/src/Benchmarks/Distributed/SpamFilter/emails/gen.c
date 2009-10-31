@@ -97,8 +97,7 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
      // write header
      fprintf(newFile,"MessageID: %d\n",i+1);
-
-
+     
      // write to account name
      writeString(newFile,"To: ",al,ac_num);
      fprintf(newFile,"\n");
@@ -109,6 +108,10 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
      // write cc
      writeString(newFile,"Cc: ",al,ac_num);
+     fprintf(newFile,"\n");
+
+     // attachments
+     writeString(newFile,"Attch: ",wl,word_num);
      fprintf(newFile,"\n");
 
      // write title
@@ -124,9 +127,9 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
        if(coin < 5) {           // if coin < 50, then write a URL
          if(coin <2)
-           writeString(newFile,"",al,ac_num);
+           writeString(newFile,"",al,ac_num); // email
          else
-           writeString(newFile," ",ul,url_num);
+           writeString(newFile," ",ul,url_num); // url
        }
        else {  // if not, write a word
          writeString(newFile," ",wl,word_num);
