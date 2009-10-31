@@ -11,6 +11,7 @@
 char** readList(char* fileName,int* num);
 void generateEmails(int,char**,int,char**,int,char**,int,char*);
 void freeList(char**,int);
+void writeString(FILE* newFile,char* prefix,char** list,int size_list);
 
 int main()
 {
@@ -91,36 +92,45 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
    for(i=0; i < num_email;i++) {
 
-
      sprintf(fileNameBuffer,"%s%d",fileName,i+1);
      newFile = fopen(fileNameBuffer,"w");
 
-     // write account name
-     rand_index = rand() % ac_num;
-     ptr = al[rand_index];    // get random account name
-     fprintf(newFile,"%s\n",ptr);
-
      // write header
-     fprintf(newFile,"Title%d\n",i+1);
+     fprintf(newFile,"MessageID: %d\n",i+1);
+
+
+     // write to account name
+     writeString(newFile,"To: ",al,ac_num);
+     fprintf(newFile,"\n");
+
+     // write from account name
+     writeString(newFile,"From: ",al,ac_num);
+     fprintf(newFile,"\n");
+
+     // write cc
+     writeString(newFile,"Cc: ",al,ac_num);
+     fprintf(newFile,"\n");
+
+     // write title
+     writeString(newFile,"Title: ",wl,word_num);
+     fprintf(newFile,"\n");
 
      // write Body
      bodyLength = rand() % 500 + 300;
 
-     for(j=0;j<bodyLength;j++)
+     for(j=1;j<bodyLength;j++)
      {
        coin = rand() % 500;
 
        if(coin < 5) {           // if coin < 50, then write a URL
-         rand_index = rand() % url_num;
-         ptr = ul[rand_index];
+         if(coin <2)
+           writeString(newFile,"",al,ac_num);
+         else
+           writeString(newFile," ",ul,url_num);
        }
        else {  // if not, write a word
-         rand_index = rand() % word_num;
-         ptr = wl[rand_index];
+         writeString(newFile," ",wl,word_num);
        }
-
-       fprintf(newFile,"%s ",ptr);
-
        if((j % 10) == 0) 
         fprintf(newFile,"\n");
      }
@@ -130,7 +140,13 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
    }
 }
 
+void writeString(FILE* newFile,char* prefix,char** list,int size_list)
+{
+  int rand_index = rand() % size_list;
+  char* str = list[rand_index];
 
+  fprintf(newFile,"%s%s",prefix,str);
+}
 
 
 
