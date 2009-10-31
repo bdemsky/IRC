@@ -18,9 +18,48 @@ public class Mail {
 	String messageID; // cached message ID for reuse (takes a lot of memory and is used all over the place)
                       //same as hashcode of a class
 
-    public Mail() {
+  public Mail() {
       messageID=null;
+  }
+
+  public Mail(String fileName)  // read a mail from file
+  {
+    FileInputStream fileinput = new FileInputStream(fileName);
+    String line;
+    
+    while((line = fileinput.readLine()) != null)
+    {
+      String[] splittedLine = line.split();
+      if(splittedLine[0].equals("MessageID:"))  // message id
+      {
+        header = splittedLine[1];
+      }
+      else if(splittedLine[0].equals("To:")) // receiver
+      {
+        to = splittedLine[1];
+      }
+      else if(splittedLine[0].equals("From:")) // sender
+      {
+        from = splittedLine[1];
+      }
+      else if(splittedLine[0].equals("Cc:")) // cc
+      {
+        cc = splittedLine[1];
+      }
+      else if(splittedLine[0].equals("Title:")) // Subject
+      {
+        subject = splittedLine[1];
+        break;
+      }
+    } // parsed messageID, To, from, cc, Title
+
+    body = new String();
+
+    while((line = fileinput.readLine()) != null)
+    {
+      body += line;
     }
+  }
 
 	// -------------------------------------------------------
 
@@ -191,4 +230,44 @@ public class Mail {
 
 		return false;
 	}
+  
+  public String[] createMailStrings()
+  {
+    Vector<String> returnStrings = new Vector<String>();
+
+    // add header, sender, and title
+    returnStrings.add(header);
+    returnStrings.add(from);
+    returnStrings.add(subject);
+
+    String[] splittedBody = body.split();
+
+    // add URL and email in the body
+    for(String segment : splittedBody)
+    {
+      if(segment.contains("http://"))  // URL
+      {
+        returnStrings.add(segment);
+      }
+      else if(segment.matches("*@*.*")) // emails
+      {
+        returnStrings.add(segment);
+      }
+    }
+
+    return returnStrings;
+  }
+
+  public static void main(String[] args)
+  {
+    Mail mail = new Mail("./emails/email1");
+
+    String[] a = mail.createMailStrings();
+
+    for(String b : a)
+    {
+      System.out.println(b);
+    }
+  }
+
 }
