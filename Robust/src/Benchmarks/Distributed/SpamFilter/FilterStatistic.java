@@ -1,66 +1,65 @@
 public class FilterStatistic {
-	int unknown;
-	int spam;
-	int ham;
+  int unknown;
+  int spam;
+  int ham;
 
-	// -------------------------------------------------------
-	
-	public FilterStatistic() {
-      this(0,0,0);
-	}
+  // -------------------------------------------------------
 
-	public FilterStatistic(int spam, int ham, int unknown) {
-		this.spam = spam;
-		this.ham = ham;
-		this.unknown = unknown;
-	}
+  public FilterStatistic() {
+    this(0,0,0);
+  }
 
-	public int getChecked() {
-      //TODO Change this formula
-		return getSpam() + getHam() + getUnknown();
-	}
+  public FilterStatistic(int spam, int ham, int unknown) {
+    this.spam = spam;
+    this.ham = ham;
+    this.unknown = unknown;
+  }
 
-	public int getHam() {
-		return ham;
-	}
+  public int getChecked() {
+    return getSpam() + getHam() + getUnknown();
+  }
 
-	public int getSpam() {
-		return spam;
-	}
+  public int getHam() {
+    return ham;
+  }
 
-	public String getName() {
-		return name;
-	}
+  public int getSpam() {
+    return spam;
+  }
 
-	public void setHam(int i) {
-		ham = i;
-	}
+  public String getName() {
+    return name;
+  }
 
-	public void setSpam(int i) {
-		spam = i;
-	}
+  public void setHam(int i) {
+    ham = i;
+  }
 
-	public int getUnknown() {
-		return unknown;
-	}
+  public void setSpam(int i) {
+    spam = i;
+  }
 
-	public void setUnknown(int u) {
-		unknown = u;
-	}
+  public int getUnknown() {
+    return unknown;
+  }
 
-	public void increaseSpam() {
-		setSpam(getSpam() + 1);
-	}
+  public void setUnknown(int u) {
+    unknown = u;
+  }
 
-	public void increaseHam() {
-		setHam(getHam() + 1);
-	}
+  public void increaseSpam() {
+    setSpam(getSpam() + 1);
+  }
 
-	public void increaseUnknown() {
-		setUnknown(getUnknown() + 1);
-	}
+  public void increaseHam() {
+    setHam(getHam() + 1);
+  }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+  public void increaseUnknown() {
+    setUnknown(getUnknown() + 1);
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
 }

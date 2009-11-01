@@ -55,4 +55,14 @@ public class HashEntry {
     //  return false;
     return true;
   }
+
+  public int askForSpam() {
+    Vector users = stats.getUsers();
+    int spamConfidence=0;
+    for(int i=0; i<users.size(); i++) {
+      int userid = (int) (users.elementAt(i));
+      spamConfidence += stats.userstat[userid].getChecked();
+    }
+    return spamConfidence;
+  }
 }

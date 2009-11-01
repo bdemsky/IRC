@@ -17,6 +17,7 @@ public class Mail {
 
 	String messageID; // cached message ID for reuse (takes a lot of memory and is used all over the place)
                       //same as hashcode of a class
+    boolean isSpam;
 
   public Mail() {
       messageID=null;
@@ -258,6 +259,14 @@ public class Mail {
     return returnStrings;
   }
 
+  public void setIsSpam(boolean spam) {
+    isSpam = spam;
+  }
+
+  public boolean getIsSpam() {
+    return isSpam;
+  }
+
   public static void main(String[] args)
   {
     Mail mail = new Mail("./emails/email1");
@@ -269,5 +278,4 @@ public class Mail {
       System.out.println(b);
     }
   }
-
 }
