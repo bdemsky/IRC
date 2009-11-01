@@ -384,7 +384,6 @@ public class String {
 
   public Vector split() {
     Vector splitted = new Vector();
-    char[] token = "\n\t ";
     int i;
     int cnt =0;
 
@@ -392,12 +391,13 @@ public class String {
 
     for(i = 0; i< count; i++) {
       if(value[i] == '\n' || value[i] == '\t' || value[i] == ' ') {
-        splitted.add(tmpStr);
+        splitted.addElement(tmpStr);
         tmpStr = new String();
       }else {
         tmpStr += value[i];
       }
     }
+    splitted.addElement(tmpStr);
 
     return splitted;
 
