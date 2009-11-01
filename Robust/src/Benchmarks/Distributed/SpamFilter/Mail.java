@@ -239,9 +239,9 @@ public class Mail {
     Vector returnStrings = new Vector();
 
     // add header, sender, and title
-    returnStrings.add(header);
-    returnStrings.add(from);
-    returnStrings.add(subject);
+    returnStrings.addElement(header);
+    returnStrings.addElement(from);
+    returnStrings.addElement(subject);
 
     String[] splittedBody = body.split();
 
@@ -250,11 +250,11 @@ public class Mail {
     {
       if(segment.startsWith("http://"))  // URL
       {
-        returnStrings.add(segment);
+        returnStrings.addElement(segment);
       }
       else if(isEmailAccount(segment)) // email
       {
-        returnStrings.add(segment);
+        returnStrings.addElement(segment);
       }
     }
 
@@ -292,9 +292,9 @@ public class Mail {
     Vector returnStrings = new Vector();
 
     // add header, sender, and title
-    returnStrings.add(header);
-    returnStrings.add(from);
-    returnStrings.add(subject);
+    returnStrings.addElement(header);
+    returnStrings.addElement(from);
+    returnStrings.addElement(subject);
 
     char[] charArray = noURLBody.toCharArray();
 
@@ -304,7 +304,7 @@ public class Mail {
     for(int i=1; i< noURLBody.length(); i++)
     {
       if((i % size) == 0) {
-        returnStrings.add(tmpStr);
+        returnStrings.addElement(tmpStr);
         tmpStr = new String();
       }
       else {
@@ -312,7 +312,7 @@ public class Mail {
       }
     }
 
-    returnStrings.add(tmpStr);
+    returnStrings.addElement(tmpStr);
 
     return returnStrings;
   }
