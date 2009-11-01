@@ -11,6 +11,7 @@ public class Mail {
 	String cc;  
 	String subject;
 	String body;
+  String noURLBody;
 	String sourceCode;
 	boolean hasAttachement;
 	//String encoding; //rich text, plain, html
@@ -60,6 +61,7 @@ public class Mail {
     {
       body += line;
     }
+
   }
 
 	// -------------------------------------------------------
@@ -232,9 +234,9 @@ public class Mail {
 		return false;
 	}
   
-  public String[] createMailStrings()
+  public Vector createMailStringsWithURL()
   {
-    Vector<String> returnStrings = new Vector<String>();
+    Vector returnStrings = new Vector();
 
     // add header, sender, and title
     returnStrings.add(header);
@@ -246,11 +248,11 @@ public class Mail {
     // add URL and email in the body
     for(String segment : splittedBody)
     {
-      if(segment.contains("http://"))  // URL
+      if(segment.startsWith("http://"))  // URL
       {
         returnStrings.add(segment);
       }
-      else if(segment.matches("*@*.*")) // emails
+      else if(isEmailAccount(segment)) // email
       {
         returnStrings.add(segment);
       }
@@ -258,6 +260,63 @@ public class Mail {
 
     return returnStrings;
   }
+
+  // check if it is email account string
+  private boolean isEmailAccount(String str)
+  {
+    if(str.contains("@") && str.contains("."))
+      return true;
+    else
+      return false;
+  }
+
+  public void setNoURLBody()
+  {
+    noURLBody = new String();
+    Vector splittedBody = body.split();
+
+    for(int i=0; i< splittedBody.size();i ++)
+    {
+      String segment = splittedBody.elementAt(i);
+      
+      if(!(segment.startsWith("http://") || isEmailAccount(segment)))
+        noURLBody += segment;
+    }
+  }
+
+  // setNoURLBody method has to be called before this method
+  // parameter : bytesize to split.
+  public Vector createMailStringsWithoutURL(int size)
+  {
+    setNoURLBody();
+    Vector returnStrings = new Vector();
+
+    // add header, sender, and title
+    returnStrings.add(header);
+    returnStrings.add(from);
+    returnStrings.add(subject);
+
+    char[] charArray = noURLBody.toCharArray();
+
+    String tmpStr = new String();
+    tmpStr += charArray[0];
+
+    for(int i=1; i< noURLBody.length(); i++)
+    {
+      if((i % size) == 0) {
+        returnStrings.add(tmpStr);
+        tmpStr = new String();
+      }
+      else {
+        tmpStr += charArray[i];
+      }
+    }
+
+    returnStrings.add(tmpStr);
+
+    return returnStrings;
+  }
+
 
   public void setIsSpam(boolean spam) {
     isSpam = spam;
