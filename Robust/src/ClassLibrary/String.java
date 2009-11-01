@@ -381,4 +381,25 @@ public class String {
     }
     return true;
   }
+
+  public Vector split() {
+    Vector splitted = new Vector();
+    char[] token = "\n\t ";
+    int i;
+    int cnt =0;
+
+    String tmpStr = new String();
+
+    for(i = 0; i< count; i++) {
+      if(value[i] == '\n' || value[i] == '\t' || value[i] == ' ') {
+        splitted.add(tmpStr);
+        tmpStr = new String();
+      }else {
+        tmpStr += value[i];
+      }
+    }
+
+    return splitted;
+
+  }
 }
