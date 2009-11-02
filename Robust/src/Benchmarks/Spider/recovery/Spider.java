@@ -1,46 +1,42 @@
 public class Spider {
 	public static void main(String[] args) {
-		int NUM_THREADS = 4;
-		int maxDepth = 5;
-		int searchDepth = 10;
+		int NUM_THREADS = 3;
+		int maxDepth = 3;
 		int i, j;
 		Work[] works;
-		QueryThread[] qt;
-		Query[] currentWorkList;
+		QueryTask[] qt;
+		GlobalQuery[] currentWorkList;
 
 		NUM_THREADS = Integer.parseInt(args[0]);
-		GlobalString firstmachine;
-		GlobalString firstpage;
 
-//		int[] mid = getMID(NUM_THREADS);
+		if (args.length == 3) {
+			maxDepth = Integer.parseInt(args[2]);
+		}
+
+		GlobalString firstmachine;
+
 		int mid[] = new int[NUM_THREADS];
-/*		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;	 //dc-4
-		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;	 //dc-5
-		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;	 //dc-6
-    */
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;	 //dc-1
-		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;	 //dc-2
-		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;	 //dc-3
-		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;	 //dc-3
-		mid[4] = (128<<24)|(195<<16)|(136<<8)|166;	 //dc-3
-		mid[5] = (128<<24)|(195<<16)|(136<<8)|167;	 //dc-3
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;	 
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;	 
+		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;	 
 
 		atomic {
 			firstmachine = global new GlobalString(args[1]);
-			firstpage = global new GlobalString(args[2]);
 
 			works = global new Work[NUM_THREADS];
-			qt = global new QueryThread[NUM_THREADS];
-			currentWorkList = global new Query[NUM_THREADS];
+			qt = global new QueryTask[NUM_THREADS];
+			currentWorkList = global new GlobalQuery[NUM_THREADS];
 			
-			Query firstquery = global new Query(firstmachine, firstpage, 0);
+			GlobalQuery firstquery = global new GlobalQuery(firstmachine);
 
 			Queue todoList = global new Queue();
-			Queue doneList = global new Queue();
+			DistributedHashMap doneList = global new DistributedHashMap(500, 500, 0.75f);
+			DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
+			
 			todoList.push(firstquery);
 
 			for (i = 0; i < NUM_THREADS; i++) {
-				qt[i] = global new QueryThread(todoList, doneList, maxDepth, searchDepth);
+				qt[i] = global new QueryTask(todoList, doneList, maxDepth, results);
 				works[i] = global new Work(qt[i], NUM_THREADS, i, currentWorkList);
 			}
 		}
@@ -60,45 +56,5 @@ public class Spider {
 			}
 			tmp.join();
 		}
-	}
-
-	public static int[] getMID (int num_threads) {
-		int[] mid = new int[num_threads];
-
-		FileInputStream ifs = new FileInputStream("dstm.conf");
-		String str;
-		String sub;
-		int fromIndex;
-		int endIndex;
-		double num;
-
-		for (int i = 0; i < num_threads; i++) { 
-			int power = 3 - i;
-			fromIndex = 0;
-			num = 0;
-
-			str = ifs.readLine();
-
-			endIndex = str.indexOf('.', fromIndex);
-			sub = str.subString(fromIndex, endIndex);
-			num += (Integer.parseInt(sub) << 24);
-
-			fromIndex = endIndex + 1;
-			endIndex = str.indexOf('.', fromIndex);
-			sub = str.subString(fromIndex, endIndex);
-			num += (Integer.parseInt(sub) << 16);
-
-			fromIndex = endIndex + 1;
-			endIndex = str.indexOf('.', fromIndex);
-			sub = str.subString(fromIndex, endIndex);
-			num += (Integer.parseInt(sub) << 8);
-
-			fromIndex = endIndex + 1;
-			sub = str.subString(fromIndex);
-			num += Integer.parseInt(sub);
-
-			mid[i] = (int)num;
-		}
-		return mid;
 	}
 }

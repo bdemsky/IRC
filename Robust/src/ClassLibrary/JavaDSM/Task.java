@@ -1,6 +1,6 @@
 public class Task {
   Queue todoList;
-	Queue doneList;
+	DistributedHashMap doneList;
   Object myWork;
 
 	Task() {}
@@ -25,6 +25,7 @@ public class Task {
 		atomic {
 			o = todoList.pop();
 		}
+//		System.out.println("Size of TodoList : " + todoList.size());
 		return o;
 	}
 

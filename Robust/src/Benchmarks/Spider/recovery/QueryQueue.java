@@ -1,7 +1,6 @@
 public class QueryQueue {
 	HashSet queries;
 	int size;
-  int ddddddddddd;
 
 	public QueryQueue() {
 		queries = new HashSet();
