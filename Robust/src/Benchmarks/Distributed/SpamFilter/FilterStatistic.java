@@ -6,7 +6,9 @@ public class FilterStatistic {
   // -------------------------------------------------------
 
   public FilterStatistic() {
-    this(0,0,0);
+    this.spam = 0;
+    this.ham = 0;
+    this.unknown = 0;
   }
 
   public FilterStatistic(int spam, int ham, int unknown) {
@@ -25,10 +27,6 @@ public class FilterStatistic {
 
   public int getSpam() {
     return spam;
-  }
-
-  public String getName() {
-    return name;
   }
 
   public void setHam(int i) {
@@ -57,9 +55,5 @@ public class FilterStatistic {
 
   public void increaseUnknown() {
     setUnknown(getUnknown() + 1);
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 }

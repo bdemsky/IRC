@@ -61,7 +61,6 @@ public class Mail {
     {
       body += line;
     }
-
   }
 
 	// -------------------------------------------------------
@@ -74,6 +73,7 @@ public class Mail {
 		return header;
 	}
 
+    /*
 	public void setSentOn(String sentOn) {
 		this.sentOn = sentOn;
 	}
@@ -82,7 +82,6 @@ public class Mail {
 		return sentOn;
 	}
 
-    /*
 	public Date getSentOnAsDate() {
 		String sentOn = getSentOn();
 		return parseDate(sentOn);
@@ -225,6 +224,7 @@ public class Mail {
 
 	}
 
+    /*
 	public boolean equals(Object o) {
 		if (o instanceof Mail) {
 			Mail mail = (Mail)o;
@@ -233,6 +233,7 @@ public class Mail {
 
 		return false;
 	}
+    */
   
   public Vector createMailStringsWithURL()
   {
@@ -246,8 +247,10 @@ public class Mail {
     String[] splittedBody = body.split();
 
     // add URL and email in the body
-    for(String segment : splittedBody)
+    for(int i=0; i<splittedBody.length; i++) 
+    //for(String segment : splittedBody)
     {
+      String segment = splittedBody[i];
       if(segment.startsWith("http://"))  // URL
       {
         returnStrings.addElement(segment);
@@ -326,6 +329,8 @@ public class Mail {
     return isSpam;
   }
 
+  /* For tests only */
+  /*
   public static void main(String[] args)
   {
     Mail mail = new Mail("./emails/email1");
@@ -337,4 +342,5 @@ public class Mail {
       System.out.println(b);
     }
   }
+  */
 }

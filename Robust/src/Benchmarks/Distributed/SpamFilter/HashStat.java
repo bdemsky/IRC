@@ -1,7 +1,7 @@
 public class HashStat {
   int[] userid;
   FilterStatistic[] userstat; 
-  Vector listofusers;
+  int[] listofusers;
   public HashStat() {
     userid = new int[8]; //max users for our system=8
     userstat = new FilterStatistic[8];
@@ -26,17 +26,21 @@ public class HashStat {
   }
 
   public int gethamcount(int userid) {
-    return userstat[userid].getham();
+    return userstat[userid].getHam();
   }
 
   public int getunknowncount(int userid) {
     return userstat[userid].getUnknown();
   }
 
-  public Vector getUsers() {
+  public int[] getUsers() {
+    int nusers = numUsers();
+    listofusers = new int[nusers];
+    int j=0;
     for(int i=0; i<8; i++) {
       if(userid[i] == 1) {
-        listofusers.addElement(i);
+        listofusers[j]=i;
+        j++;
       }
     }
     return listofusers;
@@ -47,7 +51,6 @@ public class HashStat {
     for(int i=0; i<8; i++) {
       if(userid[i] == 1) {
         count++;
-        listofusers.addElement(i);
       }
     }
     return count;

@@ -75,7 +75,7 @@ public class SignatureComputer {
 
     Vector printableSigs = new Vector(); // vector of strings
     for (int mailIndex = 0; mailIndex < EmailParts.size(); mailIndex++) {
-      String mail = EmailParts.elementAt(mailIndex);
+      String mail = (String) (EmailParts.elementAt(mailIndex));
 
       if (mail == null) continue;
 
@@ -85,7 +85,17 @@ public class SignatureComputer {
       for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
         int engineNo = enginesToUseForCheck[engineIndex];
         String sig = null;
+        if(engineNo==4) {
+          sig = computeSignature(engineNo,mail);
+        }
+        if(engineNo==8) {
+          sig = computeSignature(engineNo,mail);
+        }
+        if(engineNo!=4 || engineNo!=8) {
+          System.out.println("Couldn't find the signature engine\n");
+        }
 
+        /*
         switch (engineNo) {
           case 4:
             sig = computeSignature(engineNo,mail);
@@ -98,10 +108,11 @@ public class SignatureComputer {
             //sig = computeSignature(engineNo,curPart.getCleaned());
             break;
         }//switch engineNo
+        */
 
-        if (sig != null && sig.length > 0) {
-          String hash = engineNo + ":" + sig[curSigIndex];
-          printableSigs.add(hash);
+        if (sig != null && sig.length() > 0) {
+          String hash = engineNo + ":" + sig;
+          printableSigs.addElement(hash);
         } else {
           /* we didn't produce a signature for the mail. */
         }
@@ -116,6 +127,20 @@ public class SignatureComputer {
    * @return
    */
   private String computeSignature(int engineNo, String mail) {
+    if(engineNo==4) {
+      String s1 = this.sig4.computeSignature(mail);
+      //return new String { this.sig4.computeSignature(mail) };
+    }
+
+    if(engineNo==8) {
+        //String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
+        //return this.sig8.computeSignature(cleanedButKeepHTML);
+      return this.sig8.computeSignature(mail);
+    }
+
+    return null;
+
+    /*
     switch (engineNo) {
       case 4:
         return new String { this.sig4.computeSignature(mail) };
@@ -126,5 +151,6 @@ public class SignatureComputer {
       default:
         return null;
     }
+    */
   }
 }

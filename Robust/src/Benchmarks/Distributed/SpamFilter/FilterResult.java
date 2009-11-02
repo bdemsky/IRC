@@ -25,7 +25,7 @@ public class FilterResult {
     ABSOLUTE_SPAM=1000;
     ABSOLUTE_HAM=0;
     NO_RESULT=-1;
-    this.result = result;
+    //this.result = result;
   }
 
   public FilterResult() {
@@ -33,14 +33,6 @@ public class FilterResult {
     ABSOLUTE_SPAM=1000;
     ABSOLUTE_HAM=0;
     NO_RESULT=-1;
-  }
-
-  public double getResult() {
-    return result;
-  }
-
-  public boolean isSpam() {
-    return result >= SPAM_THRESHOLD;
   }
 
   public boolean getResult(int[] confidenceVals) {
@@ -61,11 +53,11 @@ public class FilterResult {
         max = i;
       }
     }
-    if(i==0)
+    if(max==0)
       return false;
-    if(i==1)
+    if(max==1)
       return false;
-    if(i==2)
+    if(max==2)
       return true;
 
     System.out.println("Err: getResult() Shouldn't come here\n");

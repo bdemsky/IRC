@@ -24,7 +24,7 @@ public class SpamFilter extends Thread {
     int thid;
     atomic {
       niter=numiter;
-      nemails=numemails;
+      nemails=numemail;
       thid = id;
     }
 
@@ -33,17 +33,19 @@ public class SpamFilter extends Thread {
     for(int i=0; i<niter; i++) {
       for(int j=0; j<nemails; j++) {
         int pickemail = rand.nextInt(100);
+        Mail email = new Mail();
         //Mail email = getEmail(pickemail);
         boolean filterAnswer = checkMail(email, thid);
         boolean userAnswer = email.getIsSpam();
         if(filterAnswer != userAnswer) {
-          sendFeedBack(email);
+          //sendFeedBack(email);
         }
       }
     }
   }
 
   public static void main(String[] args) {
+   /* 
     int nthreads;
     int[] mid = new int[8];
     mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc-1.calit2
@@ -56,21 +58,21 @@ public class SpamFilter extends Thread {
     mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc-8.calit2
 
 
-    /**
-     * Read options from command prompt
-     **/
+    
+     //Read options from command prompt
     SpamFilter sf = new SpamFilter();
     SpamFilter.parseCmdLine(args, sf);
 
-    /**
-     * Create Global data structure 
-     **/
+    
+    //Create Global data structure 
+    
     DistributedHashMap dhmap;
     atomic {
       dhmap = global new DistributedHashMap(500, 0.75f);
     }
     //3. N times iteration of work that needs to be done
     //     by each client
+    */
 
   }
 
@@ -90,7 +92,7 @@ public class SpamFilter extends Thread {
         }
       } else if(arg.equals("-t")) { //num of threads
         if(i < args.length) {
-          sf.threshold = new Integer(args[i++]).intValue();
+          sf.nthreads = new Integer(args[i++]).intValue();
         }
       } else if(arg.equals("-h")) {
         sf.usage();
@@ -116,7 +118,7 @@ public class SpamFilter extends Thread {
    **/
   public boolean checkMail(Mail mail, int userid) {
     //Preprocess emails
-    //Vector partsOfMailStrings = createMailStrings(mail);
+    Vector partsOfMailStrings = mail.createMailStringsWithURL();
 
     //Compute signatures
     SignatureComputer sigComp = new SignatureComputer();
@@ -127,7 +129,7 @@ public class SpamFilter extends Thread {
 
     //---- create and  return results --------
     FilterResult filterResult = new FilterResult();
-    boolean spam = filterResult.getResult();
+    boolean spam = filterResult.getResult(confidenceVals);
 
     return spam;
   } 
@@ -154,7 +156,7 @@ public class SpamFilter extends Thread {
         mydhmap.put(myhe, fs);
       } else {
         // ----- now connect to global data structure and ask query -----
-        confidenceVals[i] = tmphe.askForSpam(numparts);
+        confidenceVals[i] = tmphe.askForSpam();
       }
     }
 

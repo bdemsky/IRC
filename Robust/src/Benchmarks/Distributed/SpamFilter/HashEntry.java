@@ -28,7 +28,7 @@ public class HashEntry {
   }
 
   public void setsig(String signature) {
-    this.setsig=signature;
+    this.signature=signature;
   }
 
   public String getEngine() {
@@ -39,7 +39,7 @@ public class HashEntry {
     return signature;
   }
 
-  public Stat getStats() {
+  public HashStat getStats() {
     return stats;
   }
 
@@ -47,9 +47,9 @@ public class HashEntry {
     if(o.getType()!=getType())
       return false;
     HashEntry he = (HashEntry)o;
-    if(!(he.getEngine().equals(Engine)))
+    if(!(he.getEngine().equals(engine)))
       return false;
-    if(!(he.getSignature().equals(Signature)))
+    if(!(he.getSignature().equals(signature)))
       return false;
     //if(!(he.getStats().equals(stats)))
     //  return false;
@@ -57,10 +57,10 @@ public class HashEntry {
   }
 
   public int askForSpam() {
-    Vector users = stats.getUsers();
+    int[] users = stats.getUsers();
     int spamConfidence=0;
-    for(int i=0; i<users.size(); i++) {
-      int userid = (int) (users.elementAt(i));
+    for(int i=0; i<users.length; i++) {
+      int userid = users[i];
       spamConfidence += stats.userstat[userid].getChecked();
     }
     return spamConfidence;
