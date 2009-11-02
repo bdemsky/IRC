@@ -1,16 +1,14 @@
 public class DistributedHashMap {
   DistributedHashEntry[] table;
   float loadFactor;
-  int secondcapacity;
 
-  public DistributedHashMap(int initialCapacity, int secondcapacity, float loadFactor) {
-    init(initialCapacity, secondcapacity, loadFactor);
+  public DistributedHashMap(int initialCapacity, float loadFactor) {
+    init(initialCapacity, loadFactor);
   }
 
-  private void init(int initialCapacity, int secondcapacity, float loadFactor) {
+  private void init(int initialCapacity, float loadFactor) {
     table=global new DistributedHashEntry[initialCapacity];
     this.loadFactor=loadFactor;
-    this.secondcapacity=secondcapacity;
   }
 
   private static int hash1(int hashcode, int length) {
@@ -21,30 +19,8 @@ public class DistributedHashMap {
       return value;
   }
 
-  private static int hash2(int hashcode, int length1, int length2) {
-    int value=(hashcode*31)%length2;
-    if (value<0)
-      return -value;
-    else
-      return value;
-  }
-
-  void resize(int index) {
-    DHashEntry[] oldtable=table[index].array;
-    int newCapacity=oldtable.length*2+1;
-    DHashEntry [] newtable=global new DHashEntry[newCapacity];
-    table[index].array=newtable;
-
-    for(int i=0; i<oldtable.length; i++) {
-      DHashEntry e=oldtable[i];
-      while(e!=null) {
-	DHashEntry next=e.next;
-	int bin=hash2(e.hashval, table.length, newCapacity);
-	e.next=newtable[bin];
-	newtable[bin]=e;
-	e=next;
-      }
-    }
+  public DistributedHashMapIterator iterator(int type) {
+    return new DistributedHashMapIterator(this, type);
   }
 
   Object remove(Object key) {
@@ -53,12 +29,11 @@ public class DistributedHashMap {
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return null;
-    int index2=hash2(hashcode, table.length, dhe.array.length);
-    DHashEntry ptr=dhe.array[index2];
+    DHashEntry ptr=dhe.array;
 
     if (ptr!=null) {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
-	dhe.array[index2]=ptr.next;
+	dhe.array=ptr.next;
 	dhe.count--;
 	return ptr.value;
       }
@@ -78,17 +53,37 @@ public class DistributedHashMap {
   Object get(Object key) {
     int hashcode=key.hashCode();
     int index1=hash1(hashcode, table.length);
+    
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return null;
 
-    int index2=hash2(hashcode, table.length, dhe.array.length);
-    DHashEntry ptr=dhe.array[index2];
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
           &&ptr.key.equals(key)) {
 	return ptr.value;
+      }
+      ptr=ptr.next;
+    }
+    return null;
+  }
+
+
+  Object getKey(Object key) {
+    int hashcode=key.hashCode();
+    int index1=hash1(hashcode, table.length);
+    DistributedHashEntry dhe=table[index1];
+    if (dhe==null)
+      return null;
+
+    DHashEntry ptr=dhe.array;
+
+    while(ptr!=null) {
+      if (ptr.hashval==hashcode
+          &&ptr.key.equals(key)) {
+        return ptr.key;
       }
       ptr=ptr.next;
     }
@@ -101,8 +96,8 @@ public class DistributedHashMap {
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return false;
-    int index2=hash2(hashcode, table.length, dhe.array.length);
-    DHashEntry ptr=dhe.array[index2];
+
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
@@ -119,11 +114,10 @@ public class DistributedHashMap {
     int index1=hash1(hashcode, table.length);
     DistributedHashEntry dhe=table[index1];
     if (dhe==null) {
-      dhe=global new DistributedHashEntry(secondcapacity);
-      table[index1]=dhe;
+	dhe=global new DistributedHashEntry();
+	table[index1]=dhe;
     }
-    int index2=hash2(hashcode, table.length, dhe.array.length);
-    DHashEntry ptr=dhe.array[index2];
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
@@ -138,32 +132,27 @@ public class DistributedHashMap {
     he.value=value;
     he.key=key;
     he.hashval=hashcode;
-    he.next=dhe.array[index2];
-    dhe.array[index2]=he;
+    he.next=dhe.array;
+    dhe.array=he;
 
     dhe.count++;
-    if (dhe.count>(loadFactor*dhe.array.length)) {
-      //Resize the table
-      resize(index1);
-    }
     return null;
   }
 }
 
-
 class DistributedHashEntry {
-  public DistributedHashEntry(int capacity) {
-    array=global new DHashEntry[capacity];
+  public DistributedHashEntry() {
   }
   int count;
-  DHashEntry[] array;
+  DHashEntry array;
 }
 
+
 class DHashEntry {
+  public DHashEntry() {
+  }
   int hashval;
   Object key;
   Object value;
   DHashEntry next;
-  public DHashEntry() {
-  }
 }

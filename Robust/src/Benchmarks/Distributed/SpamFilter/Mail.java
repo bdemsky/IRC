@@ -74,6 +74,7 @@ public class Mail {
 	}
 
    
+    /*
 	public void setSentOn(String sentOn) {
 		this.sentOn = sentOn;
 	}
@@ -99,6 +100,7 @@ public class Mail {
 		String receivedOn = getReceivedOn();
 		return parseDate(receivedOn);
 	}
+    */
     
 
 	/**
@@ -196,9 +198,15 @@ public class Mail {
 		return getEncoding().toLowerCase().indexOf("html") >= 0;
 	}
 
+    /*
 	public String toString() {
 		return getBody() + "," + getCc() + "," + getEncoding() + "," + getFrom() + "," + getHasAttachement() + "," + getHeader() + "," + getReceivedOn() + "," + getSentOn() + "," + getSourceCode() + "," + getSubject() + "," + getTo();
 	}
+    */
+
+	public String toString() {
+		return getBody() + "," + getCc() + "," + getEncoding() + "," + getFrom() + "," + getHasAttachement() + "," + getHeader() + "," + getSourceCode() + "," + getSubject() + "," + getTo();
+    }
 
     /*
 	public String getID() {

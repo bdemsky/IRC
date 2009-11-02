@@ -17,6 +17,10 @@ public class HashStat {
     userstat[id].setUnknown(unknown);
   }
 
+  public void setuserid(int id) {
+    userid[id] = 1;
+  }
+
   public int getuser(int id) {
     return userid[id];
   }
@@ -31,6 +35,14 @@ public class HashStat {
 
   public int getunknowncount(int userid) {
     return userstat[userid].getUnknown();
+  }
+
+  public void incSpamCount(int userid) {
+    userstat[userid].increaseSpam();
+  }
+
+  public void incHamCount(int userid) {
+    userstat[userid].increaseHam();
   }
 
   public int[] getUsers() {

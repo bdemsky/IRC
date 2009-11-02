@@ -33,19 +33,18 @@ public class SpamFilter extends Thread {
     for(int i=0; i<niter; i++) {
       for(int j=0; j<nemails; j++) {
         int pickemail = rand.nextInt(100);
-        Mail email = new Mail();
+        Mail email = new Mail("emails/email"+pickemail);
         //Mail email = getEmail(pickemail);
         boolean filterAnswer = checkMail(email, thid);
         boolean userAnswer = email.getIsSpam();
         if(filterAnswer != userAnswer) {
-          //sendFeedBack(email);
+          sendFeedBack(email, userAnswer);
         }
       }
     }
   }
 
   public static void main(String[] args) {
-   /* 
     int nthreads;
     int[] mid = new int[8];
     mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc-1.calit2
@@ -63,7 +62,18 @@ public class SpamFilter extends Thread {
     SpamFilter sf = new SpamFilter();
     SpamFilter.parseCmdLine(args, sf);
 
-    
+    Random rand = new Random(8);
+    //Randomly set Spam vals for each email
+    for(int i=0; i<sf.numemail; i++) {
+      Mail email = new Mail("./emails/email"+i);
+      int spamval = rand.nextInt(100);
+      if(spamval<90) { //assume 90% are not spam and rest are spam
+        email.setIsSpam(false);
+      } else {
+        email.setIsSpam(true);
+      }
+    }
+
     //Create Global data structure 
     
     DistributedHashMap dhmap;
@@ -72,7 +82,6 @@ public class SpamFilter extends Thread {
     }
     //3. N times iteration of work that needs to be done
     //     by each client
-    */
 
   }
 
@@ -118,7 +127,9 @@ public class SpamFilter extends Thread {
    **/
   public boolean checkMail(Mail mail, int userid) {
     //Preprocess emails
-    Vector partsOfMailStrings = mail.createMailStringsWithURL();
+    //Vector partsOfMailStrings = mail.createMailStringsWithURL();
+    Vector partsOfMailStrings = mail.getCommonPart();
+    partsOfMailStrings.addElement(mail.getBodyString());
 
     //Compute signatures
     SignatureComputer sigComp = new SignatureComputer();
@@ -134,33 +145,67 @@ public class SpamFilter extends Thread {
     return spam;
   } 
 
-  public int[] check(Vector emailParts, int userid) {
-    int numparts = emailParts.size();
+  public int[] check(Vector signatures, int userid) {
+    int numparts = signatures.size();
     int[] confidenceVals = new int[numparts];
     for(int i=0; i<numparts; i++) {
-      String part = (String)(emailParts.elementAt(i));
+      String part = (String)(signatures.elementAt(i));
       char tmpengine = part.charAt(0);
       String engine =  new String(tmpengine);
       String signature = part.substring(2); //a:b index(a)=0, index(:)=1, index(b)=2
       HashEntry myhe = new HashEntry();
       myhe.setengine(engine);
       myhe.setsig(signature);
+
       //find object in distributedhashMap: if no object then add object 
       //else read object
-      HashEntry tmphe= (HashEntry)(mydhmap.get(myhe));
-      if(tmphe == null) {
+
+      if(!mydhmap.containsKey(myhe)) {
         //add new object
         myhe.stats = new HashStat();
         myhe.stats.setuser(userid, 0, 0, -1);
         FilterStatistic fs = new FilterStatistic(0,0,-1);
         mydhmap.put(myhe, fs);
       } else {
-        // ----- now connect to global data structure and ask query -----
+        // ----- now connect to global data structure and ask for spam -----
+        HashEntry tmphe = mydhmap.getKey(myhe);
         confidenceVals[i] = tmphe.askForSpam();
       }
     }
 
     //  --> the mail client is able to determine if it is spam or not
     return confidenceVals;
+  }
+
+  public void sendFeedBack(Mail mail, boolean isSpam, int id) {
+    Vector partsOfMailStrings = mail.getCommonPart();
+    partsOfMailStrings.addElement(mail.getBodyString());
+    //Compute signatures
+    SignatureComputer sigComp = new SignatureComputer();
+    Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+
+    for(int i=0;i<signatures.size();i++) {
+      String part = (String)(signatures.elementAt(i));
+      char tmpengine = part.charAt(0);
+      String engine =  new String(tmpengine);
+      String signature = part.substring(2); //a:b index(a)=0, index(:)=1, index(b)=2
+      HashEntry myhe = new HashEntry();
+      myhe.setengine(engine);
+      myhe.setsig(signature);
+
+      // ----- now connect to global data structure and upate spam count -----
+      HashEntry tmphe = mydhmap.getKey(myhe);
+      if(tmphe.stats.userid[id] != 1) {
+        tmphe.stats.setuserid(id);
+      }
+
+      //Increment spam or ham value 
+      if(isSpam) {
+
+
+      } else {
+
+      }
+    }
   }
 }
