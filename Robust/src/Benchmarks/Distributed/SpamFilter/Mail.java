@@ -14,7 +14,7 @@ public class Mail {
   String noURLBody;
 	String sourceCode;
 	boolean hasAttachement;
-	//String encoding; //rich text, plain, html
+	String encoding; //rich text, plain, html
 
 	String messageID; // cached message ID for reuse (takes a lot of memory and is used all over the place)
                       //same as hashcode of a class
@@ -31,26 +31,26 @@ public class Mail {
     
     while((line = fileinput.readLine()) != null)
     {
-      String[] splittedLine = line.split();
-      if(splittedLine[0].equals("Header:"))  // message id
+      Vector splittedLine = line.split();
+      if(((String)(splittedLine.elementAt(0))).equals("Header:"))  // message id
       {
-        header = splittedLine[1];
+        header = (String)splittedLine.elementAt(1);
       }
-      else if(splittedLine[0].equals("To:")) // receiver
+      else if(((String)(splittedLine.elementAt(0))).equals("To:")) // receiver
       {
-        to = splittedLine[1];
+        to = (String)splittedLine.elementAt(1);
       }
-      else if(splittedLine[0].equals("From:")) // sender
+      else if(((String)(splittedLine.elementAt(0))).equals("From:")) // sender
       {
-        from = splittedLine[1];
+        from = (String)splittedLine.elementAt(1);
       }
-      else if(splittedLine[0].equals("Cc:")) // cc
+      else if(((String)(splittedLine.elementAt(0))).equals("Cc:")) // cc
       {
-        cc = splittedLine[1];
+        cc = (String)splittedLine.elementAt(1);
       }
-      else if(splittedLine[0].equals("Title:")) // Subject
+      else if(((String)(splittedLine.elementAt(0))).equals("Title:")) // Subject
       {
-        subject = splittedLine[1];
+        subject = (String)splittedLine.elementAt(1);
         break;
       }
     } // parsed messageID, To, from, cc, Title
@@ -73,7 +73,7 @@ public class Mail {
 		return header;
 	}
 
-    /*
+   
 	public void setSentOn(String sentOn) {
 		this.sentOn = sentOn;
 	}
@@ -99,7 +99,7 @@ public class Mail {
 		String receivedOn = getReceivedOn();
 		return parseDate(receivedOn);
 	}
-    */
+    
 
 	/**
 	 * Parses a given Date-String in into a real Date-Object
@@ -234,8 +234,8 @@ public class Mail {
 		return false;
 	}
     */
-  
-  public Vector createMailStringsWithURL()
+
+  public Vector getCommonPart()
   {
     Vector returnStrings = new Vector();
 
@@ -244,13 +244,24 @@ public class Mail {
     returnStrings.addElement(from);
     returnStrings.addElement(subject);
 
-    String[] splittedBody = body.split();
+    return returnStrings;
+  }
+
+  public String getBodyString()
+  {
+    return body;
+  }
+
+  
+  public Vector getURLs()
+  {
+    Vector returnStrings = new Vector();
+    Vector splittedBody = body.split();
 
     // add URL and email in the body
-    for(int i=0; i<splittedBody.length; i++) 
-    //for(String segment : splittedBody)
+    for(int i=0; i<splittedBody.size(); i++) 
     {
-      String segment = splittedBody[i];
+      String segment = (String)splittedBody.elementAt(i);
       if(segment.startsWith("http://"))  // URL
       {
         returnStrings.addElement(segment);
@@ -280,7 +291,7 @@ public class Mail {
 
     for(int i=0; i< splittedBody.size();i ++)
     {
-      String segment = splittedBody.elementAt(i);
+      String segment = (String)splittedBody.elementAt(i);
       
       if(!(segment.startsWith("http://") || isEmailAccount(segment)))
         noURLBody += segment;
@@ -289,15 +300,10 @@ public class Mail {
 
   // setNoURLBody method has to be called before this method
   // parameter : bytesize to split.
-  public Vector createMailStringsWithoutURL(int size)
+  public Vector getSplittedBody(int size)
   {
     setNoURLBody();
     Vector returnStrings = new Vector();
-
-    // add header, sender, and title
-    returnStrings.addElement(header);
-    returnStrings.addElement(from);
-    returnStrings.addElement(subject);
 
     char[] charArray = noURLBody.toCharArray();
 
