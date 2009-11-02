@@ -400,6 +400,27 @@ public class String {
     splitted.addElement(tmpStr);
 
     return splitted;
+  }
+
+  public boolean contains(String str)
+  {
+    int i,j;
+    char[] strChar = str.toCharArray();
+    int cnt;
+
+    for(i = 0; i < count; i++) {
+      if(value[i] == strChar[0]) {
+        cnt=0;
+        for(j=0; j < str.length() && i+j < count;j++) {
+          if(value[i+j] == strChar[j])
+            cnt++;
+        }
+        if(cnt == str.length())
+          return true;
+      }
+    }
+
+    return false;
 
   }
 }
