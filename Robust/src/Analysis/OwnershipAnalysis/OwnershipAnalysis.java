@@ -837,7 +837,7 @@ public class OwnershipAnalysis {
 	Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
 
 	if( !aliasedParamIndices.isEmpty() ) {
-	  og.makeAliasedParamHeapRegionNode();
+	  og.makeAliasedParamHeapRegionNode(fm);
 	}
 
 	// set up each parameter
@@ -856,13 +856,13 @@ public class OwnershipAnalysis {
 	    // use the alias blob but give parameters their
 	    // own primary obj region
 	    og.assignTempEqualToAliasedParam( tdParam,
-					      paramIndex );	    
+					      paramIndex, fm );	    
 	  } else {
 	    // this parameter is not aliased to others, give it
 	    // a fresh primary obj and secondary object
 	    og.assignTempEqualToParamAlloc( tdParam,
 					    mc.getDescriptor() instanceof TaskDescriptor,
-					    paramIndex );
+					    paramIndex, fm );
 	  }
 	}
 	

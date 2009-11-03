@@ -157,7 +157,8 @@ public class OwnershipGraph {
 			  TypeDescriptor type,
                           AllocationSite allocSite,
                           ReachabilitySet alpha,
-                          String description) {
+                          String description,
+                          String globalIdentifier) {
 
     boolean markForAnalysis = isFlagged || isParameter;
 
@@ -190,7 +191,7 @@ public class OwnershipGraph {
 	  ).makeCanonical();
       }
     }
-
+    
     HeapRegionNode hrn = new HeapRegionNode(id,
                                             isSingleObject,
                                             markForAnalysis,
@@ -199,7 +200,8 @@ public class OwnershipGraph {
 					    typeToUse,
                                             allocSite,
                                             alpha,
-                                            description);
+                                            description,
+                                            globalIdentifier);
     id2hrn.put(id, hrn);
     return hrn;
   }
@@ -578,9 +580,9 @@ public class OwnershipGraph {
   // primary object, if necessary
   public void assignTempEqualToParamAlloc( TempDescriptor td,
 					   boolean isTask,
-					   Integer paramIndex ) {
+					   Integer paramIndex, FlatMethod fm ) {
     assert td != null;
-
+    
     TypeDescriptor typeParam = td.getType();
     assert typeParam != null;
 
@@ -641,7 +643,7 @@ public class OwnershipGraph {
 	cd = cd.getSuperDesc();
       }
     }
-
+    
 
     // now build everything we need
     LabelNode lnParam = getLabelNodeFromTemp( td );
@@ -653,7 +655,8 @@ public class OwnershipGraph {
 							 typeParam,  // type				 
 							 null,       // allocation site			 
 							 null,       // reachability set                 
-							 "param"+paramIndex+" obj" );
+							 "param"+paramIndex+" obj",
+							 generateUniqueIdentifier(fm,paramIndex,"P"));
 
     parameterTemps.add( td );
     parameterLabels.add( lnParam );
@@ -705,7 +708,8 @@ public class OwnershipGraph {
 					      null,  // type				 
 					      null,  // allocation site			 
 					      null,  // reachability set                 
-					      "param"+paramIndex+" reachable" );
+					      "param"+paramIndex+" reachable", 
+					      generateUniqueIdentifier(fm,paramIndex,"S"));
 
       newSecondaryID = hrnSecondary.getID();
       assert !idSecondary2paramIndexSet.containsKey( newSecondaryID );
@@ -814,13 +818,13 @@ public class OwnershipGraph {
   }
 
 
-  public void makeAliasedParamHeapRegionNode() {
+  public void makeAliasedParamHeapRegionNode(FlatMethod fm) {
 
     LabelNode lnBlob = getLabelNodeFromTemp( tdAliasBlob );
 
     outOfScopeTemps.add( tdAliasBlob );
     outOfScopeLabels.add( lnBlob );
-
+    
     HeapRegionNode hrn = createNewHeapRegionNode( null,  // id or null to generate a new one 
 						  false, // single object?			 
 						  false, // summary?			 
@@ -829,7 +833,8 @@ public class OwnershipGraph {
 						  null,	 // type				 
 						  null,	 // allocation site			 
 						  null,	 // reachability set                 
-						  "aliasedParams" );
+						  "aliasedParams", 
+						  generateUniqueIdentifier(fm,0,"A"));
 
     
     ReachabilitySet beta = new ReachabilitySet( new TokenTuple( hrn.getID(),
@@ -849,7 +854,7 @@ public class OwnershipGraph {
 
 
   public void assignTempEqualToAliasedParam( TempDescriptor tdParam,
-					     Integer        paramIndex ) {
+					     Integer        paramIndex, FlatMethod fm ) {
     assert tdParam != null;
 
     TypeDescriptor typeParam = tdParam.getType();
@@ -897,7 +902,8 @@ public class OwnershipGraph {
 							 typeParam, // type				 
 							 null,	    // allocation site			 
 							 null,	    // reachability set                 
-							 "param"+paramIndex+" obj" );
+							 "param"+paramIndex+" obj",
+							 generateUniqueIdentifier(fm, paramIndex.intValue(), "P"));
 
     Integer newPrimaryID = hrnPrimary.getID();
     assert !idPrimary2paramIndexSet.containsKey( newPrimaryID );
@@ -1415,7 +1421,8 @@ public class OwnershipGraph {
 					   as.getType(), // type				 
                                            as,		 // allocation site			 
                                            null,	 // reachability set                 
-                                           as.toStringForDOT() + "\\nsummary");
+                                           as.toStringForDOT() + "\\nsummary",
+                                           generateUniqueIdentifier(as,0,true));
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 	Integer idIth = as.getIthOldest(i);
@@ -1428,7 +1435,8 @@ public class OwnershipGraph {
 				as.getType(), // type				 
 	                        as,	      // allocation site			 
 	                        null,	      // reachability set                 
-	                        as.toStringForDOT() + "\\n" + i + " oldest");
+	                        as.toStringForDOT() + "\\n" + i + " oldest",
+	                        generateUniqueIdentifier(as,i,false));
       }
     }
 
@@ -1456,7 +1464,8 @@ public class OwnershipGraph {
 						 as.getType(),	  // type				 
                                                  as,		  // allocation site			 
                                                  null,		  // reachability set                 
-                                                 as + "\\n" + as.getType() + "\\nshadowSum");
+                                                 as + "\\n" + as.getType() + "\\nshadowSum",
+                                                 "");
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
 	Integer idShadowIth = as.getIthOldestShadow(i);
@@ -1469,7 +1478,8 @@ public class OwnershipGraph {
 				as.getType(), // type				 
 	                        as,	      // allocation site			 
 	                        null,	      // reachability set                 
-	                        as + "\\n" + as.getType() + "\\n" + i + " shadow");
+	                        as + "\\n" + as.getType() + "\\n" + i + " shadow",
+	                        "");
       }
     }
 
@@ -4854,5 +4864,39 @@ public class OwnershipGraph {
 	  }	  
 	  
   }
+  
+  public String generateUniqueIdentifier(FlatMethod fm, int paramIdx, String type){
+	  
+	  //type: A->aliapsed parameter heap region
+	  // P -> primary paramter heap region
+	  // S -> secondary paramter heap region
+	
+	  String identifier;
+	  if(type.equals("A")){
+		  //aliased param
+		  identifier="FM"+fm.hashCode()+".A";
+	  }else{
+		  identifier="FM"+fm.hashCode()+"."+paramIdx+"."+type;
+	  }
+	  return identifier;
+	  
+  }
+  
+  public String generateUniqueIdentifier(AllocationSite as, int age, boolean isSummary){
+	  
+	  String identifier;
+	  
+	  FlatNew fn=as.getFlatNew();
+	  
+	  if(isSummary){
+		  identifier="FN"+fn.hashCode()+".S";
+	  }else{
+		  identifier="FN"+fn.hashCode()+"."+age;
+	  }
+	  
+	  return identifier;
+	  
+  }
+
   
 }

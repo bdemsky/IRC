@@ -23,6 +23,8 @@ public class HeapRegionNode extends OwnershipNode {
   protected ReachabilitySet alphaNew;
 
   protected String description;
+  
+  protected String globalIdentifier;
 
 
 
@@ -34,7 +36,8 @@ public class HeapRegionNode extends OwnershipNode {
 			TypeDescriptor type,
                         AllocationSite allocSite,
                         ReachabilitySet alpha,
-                        String description) {
+                        String description,
+                        String globalIdentifier) {
     this.id = id;
     this.isSingleObject = isSingleObject;
     this.isFlagged      = isFlagged;
@@ -44,6 +47,7 @@ public class HeapRegionNode extends OwnershipNode {
     this.allocSite      = allocSite;
     this.alpha          = alpha;
     this.description    = description;
+    this.globalIdentifier = globalIdentifier;
 
     referencers = new HashSet<ReferenceEdge>();
     alphaNew    = new ReachabilitySet().makeCanonical();
@@ -58,7 +62,8 @@ public class HeapRegionNode extends OwnershipNode {
 			      type,
                               allocSite,
                               alpha,
-                              description);
+                              description,
+                              globalIdentifier);
   }
 
 
@@ -221,5 +226,9 @@ public class HeapRegionNode extends OwnershipNode {
   public String getDescription() {
     return new String(description);
     //return new String( description+" ID "+getIDString() );
+  }
+  
+  public String getGloballyUniqueIdentifier(){
+	  return globalIdentifier;
   }
 }

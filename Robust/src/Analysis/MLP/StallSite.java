@@ -7,6 +7,7 @@ import java.util.Set;
 import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.OwnershipAnalysis.ReachabilitySet;
+import Analysis.OwnershipAnalysis.TokenTupleSet;
 import IR.Flat.FlatNode;
 
 public class StallSite {
@@ -17,7 +18,7 @@ public class StallSite {
 	private HashSet<Effect> effectSet;
 	private HashSet<HeapRegionNode> hrnSet;
 	private HashSet<AllocationSite> allocationSiteSet;
-	private ReachabilitySet rechabilitySet;
+	private ReachabilitySet reachabilitySet;
 	private HashSet<StallTag> stallTagSet;
 
 	// if stall site is caller's parameter heap regtion, store its parameter idx
@@ -27,12 +28,12 @@ public class StallSite {
 	public StallSite() {
 		effectSet = new HashSet<Effect>();
 		hrnSet = new HashSet<HeapRegionNode>();
-		rechabilitySet = new ReachabilitySet();
+		reachabilitySet = new ReachabilitySet();
 		allocationSiteSet = new HashSet<AllocationSite>();
 		stallTagSet = new HashSet<StallTag>();
 		callerParamIdxSet = new HashSet<Integer>();
 	}
-
+	
 	public StallSite(HashSet<HeapRegionNode> hrnSet, StallTag tag) {
 
 		this();
@@ -45,17 +46,21 @@ public class StallSite {
 			setAllocationSite(heapRegionNode.getAllocationSite());
 		}
 	}
-
+	
 	public StallSite(HashSet<Effect> effectSet, HashSet<HeapRegionNode> hrnSet,
 			ReachabilitySet rechabilitySet, HashSet<AllocationSite> alocSet,
 			HashSet<StallTag> tagSet, HashSet<Integer> paramIdx) {
 		this();
 		this.effectSet.addAll(effectSet);
 		this.hrnSet.addAll(hrnSet);
-		this.rechabilitySet = rechabilitySet;
+		this.reachabilitySet = rechabilitySet;
 		this.allocationSiteSet.addAll(alocSet);
 		this.stallTagSet.addAll(tagSet);
 		this.callerParamIdxSet.addAll(paramIdx);
+	}
+	
+	public void addTokenTupleSet(TokenTupleSet newSet){
+		reachabilitySet.add(newSet);
 	}
 
 	public HashSet<Integer> getCallerParamIdxSet() {
@@ -105,7 +110,7 @@ public class StallSite {
 	}
 
 	public ReachabilitySet getReachabilitySet() {
-		return rechabilitySet;
+		return reachabilitySet;
 	}
 
 	public HashSet<StallTag> getStallTagSet() {
@@ -114,7 +119,7 @@ public class StallSite {
 
 	public StallSite copy() {
 
-		StallSite copy = new StallSite(effectSet, hrnSet, rechabilitySet,
+		StallSite copy = new StallSite(effectSet, hrnSet, reachabilitySet,
 				allocationSiteSet, stallTagSet, callerParamIdxSet);
 		return copy;
 		
@@ -136,7 +141,7 @@ public class StallSite {
 				&& stallTagSet.equals(in.getStallTagSet())
 				&& effectSet.equals(in.getEffectSet())
 				&& hrnSet.equals(in.getHRNSet())
-				&& rechabilitySet.equals(in.getReachabilitySet())) {
+				&& reachabilitySet.equals(in.getReachabilitySet())) {
 			return true;
 		} else {
 			return false;
@@ -149,7 +154,7 @@ public class StallSite {
 		return "StallSite [allocationSiteSet=" + allocationSiteSet
 				+ ", callerParamIdxSet=" + callerParamIdxSet + ", effectSet="
 				+ effectSet + ", hrnSet=" + hrnSet + ", rechabilitySet="
-				+ rechabilitySet + ", stallTagSet=" + stallTagSet + "]";
+				+ reachabilitySet + ", stallTagSet=" + stallTagSet + "]";
 	}
 
 }
