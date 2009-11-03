@@ -2,6 +2,7 @@ public class QueryTask extends Task {
 	int maxDepth;
 	Queue toprocess;
 	DistributedHashMap results;
+	GlobalString gTitle;
 	GlobalString workingURL;
 
   public QueryTask(Queue todoList, DistributedHashMap doneList, int maxDepth, DistributedHashMap results) {
@@ -28,6 +29,7 @@ public class QueryTask extends Task {
 			LocalQuery lq;
 			String hostname;
 			String path;
+			String title;
 
 			atomic {
 				gq = (GlobalQuery)myWork;
@@ -38,10 +40,11 @@ public class QueryTask extends Task {
 				gsb.append("/");
 				gsb.append(path);
 				workingURL = global new GlobalString(gsb.toGlobalString());
+				gTitle = null;
 			}
 			lq = new LocalQuery(hostname, path, depth);
 
-			System.printString(lq.getDepth()+" ");
+			System.printString("["+lq.getDepth()+"] ");
 			System.printString("Processing - Hostname : ");
 			System.printString(hostname);
 			System.printString(", Path : ");
@@ -53,8 +56,10 @@ public class QueryTask extends Task {
 			requestQuery(hostname, path, s);
 			readResponse(lq, s);
 
-			atomic {
-				processList(lq, workingURL, results);
+			if ((title = grabTitle(lq)) != null) {
+				atomic {
+					gTitle = global new GlobalString(title);
+				}
 			}
 
 			atomic {
@@ -66,7 +71,11 @@ public class QueryTask extends Task {
   }
 
 	public void done(Object obj) {
+		if (gTitle != null) 
+			processList();
+
 		GlobalString str = global new GlobalString("true");
+
 		doneList.put(workingURL, str);
 
 		while(!toprocess.isEmpty()) {
@@ -83,6 +92,21 @@ public class QueryTask extends Task {
 				todoList.push(q);
 			}
 		}
+	}
+
+	public static String grabTitle(LocalQuery lq) {
+		String sTitle = new String("<title>");	
+		String eTitle = new String("</title>");
+  	String searchstr = lq.response.toString();
+		String title = null;
+
+		int mindex = searchstr.indexOf(sTitle);
+		if (mindex != -1) {
+			int endquote = searchstr.indexOf(eTitle, mindex+sTitle.length());
+			title = new String(searchstr.subString(mindex+sTitle.length(), endquote));
+		}
+
+		return title;
 	}
 
 	public static void requestQuery(String hostname, String path, Socket sock) {
@@ -154,68 +178,78 @@ public class QueryTask extends Task {
     }
   }
 
-	public static void processList(LocalQuery lq, GlobalString url, DistributedHashMap results) {
-		String sTitle = new String("<title>");	
-		String eTitle = new String("</title>");
-		String searchstr = lq.response.toString();
+	public void processList() {
 		LinkedList ll;
+		GlobalString token = null;
+		int mindex = 0;
+		int endquote = 0;
 
-		int sIndex = searchstr.indexOf(sTitle);
-		if (sIndex != -1) {
-			int eIndex = searchstr.indexOf(eTitle, sIndex+sTitle.length());
-			String title = new String(searchstr.subString(sIndex+sTitle.length(), eIndex));
-			ll = tokenize(title);
+		while (endquote != -1) {
+			endquote = gTitle.indexOf(' ', mindex);
 
-			Queue q;
-			while (!ll.isEmpty()) {
-				GlobalString word = global new GlobalString(ll.pop().toString());
-//				q = (Queue)(results.get(word));
-
-//				if (q == null) {
-				if (!results.containsKey(word)) {
-					q = global new Queue();
+			if (endquote != -1) {
+				token = gTitle.subString(mindex, endquote);
+				mindex = endquote + 1;
+				if (censor(token)) {
+					continue;
 				}
-				else {
-					q = (Queue)(results.get(word));
-				}
-				q.push(url);
-				results.put(word, q);
-
-				System.out.println("Key : ["+word.toLocalString()+"],["+q.size()+"]");
-/*
-				for (int i = 0; i < q.size(); i++) {
-					Object obj = q.elements[i];
-					GlobalString str = global new GlobalString((GlobalString)obj);
-					System.out.println("\t["+i+"] : "+str.toLocalString());
-				}*/
+				token = refinement(token);
 			}
+			else {
+				token = gTitle.subString(mindex);
+				token = refinement(token);
+			}
+
+/*
+			Queue q;
+			if ((q = (Queue)(results.remove(token))) == null) {
+				q = global new Queue();
+			}
+			else {
+				q = (Queue)(results.get(token));
+			}
+			// bug here <- object id changed?? 
+			q.push(workingURL);	
+			results.put(token, q);
+			
+			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
+			*/
 		}
 	}
 
-	public static LinkedList tokenize(String str) {
-		LinkedList ll;
-		int sIndex = 0;
-		int eIndex = 0;
-		String token;
+	public boolean censor(GlobalString str) {
+		if (str.equals("of"))	return true;
+		else if (str.equals("for")) return true;
+		else if (str.equals("a")) return true;
+		else if (str.equals("an")) return true;
+		else if (str.equals("the")) return true;
+		else if (str.equals("at")) return true;
+		else if (str.equals("and")) return true;
+		else if (str.equals("or")) return true;
+		else if (str.equals("but")) return true;
+		else if (str.equals(".")) return true;
+		else if (str.equals("=")) return true;
+		else if (str.equals("-")) return true;
+		else if (str.equals(":")) return true;
+		else if (str.equals(";")) return true;
+		else if (str.equals("\'")) return true;
+		else if (str.equals("\"")) return true;
+		else if (str.equals("@")) return true;
+		else return false;
+	}
 
-		ll = new LinkedList();
-		
-		// and, or, of, at, but, '.', ',', ':' ';', '"', ' ', '-', '='
-		while (true) {
-			eIndex = str.indexOf(' ', sIndex);
-			if (eIndex == -1) {
-				token = str.subString(sIndex);
-				ll.add(token);
-				break;
-			}
-			else {
-				token = str.subString(sIndex, eIndex);
-				ll.add(token);
-				sIndex = eIndex+1;
-			}
+	public GlobalString refinement(GlobalString str) {
+		if (str.charAt(str.length()-1) == ',') {
+			return str.subString(0, str.length()-1);
 		}
-		
-		return ll;
+		else if (str.charAt(str.length()-1) == ':') {
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == 's') {
+			if (str.charAt(str.length()-2) == '\'')
+				return str.subString(0, str.length()-2);	
+		}
+		return str;
 	}
 	
   public static Queue processPage(LocalQuery lq) {
@@ -229,7 +263,6 @@ public class QueryTask extends Task {
 		depth = lq.getDepth() + 1;
 
 		toprocess = global new Queue();
-
 		while(cont) {
 			int mindex = searchstr.indexOf(href,index);
 			if (mindex != -1) {	
