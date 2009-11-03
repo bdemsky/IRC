@@ -99,14 +99,44 @@ public class QueryTask extends Task {
 		String eTitle = new String("</title>");
   	String searchstr = lq.response.toString();
 		String title = null;
+		char ch;
 
 		int mindex = searchstr.indexOf(sTitle);
 		if (mindex != -1) {
 			int endquote = searchstr.indexOf(eTitle, mindex+sTitle.length());
+
 			title = new String(searchstr.subString(mindex+sTitle.length(), endquote));
+			
+			if (Character.isWhitespace(title.charAt(0))){
+				mindex=0;
+				while (Character.isWhitespace(title.charAt(mindex++)));
+				mindex--;
+				title = new String(title.subString(mindex));
+			}
+
+			if (Character.isWhitespace(title.charAt(title.length()-1))) {
+				endquote=title.length()-1;
+				while (Character.isWhitespace(title.charAt(endquote--)));
+				endquote += 2;
+				title = new String(title.subString(0, endquote));
+			}
+
+			if (errorPage(title)) 
+				title = null;
 		}
 
 		return title;
+	}
+
+	public static boolean errorPage(String str) {
+		if (str.equals("301 Moved Permanently")) 
+			return true;
+		else if (str.equals("302 Found")) 
+			return true;
+		else if (str.equals("404 Not Found")) 
+			return true;
+		else
+			return false;
 	}
 
 	public static void requestQuery(String hostname, String path, Socket sock) {
@@ -190,34 +220,27 @@ public class QueryTask extends Task {
 			if (endquote != -1) {
 				token = gTitle.subString(mindex, endquote);
 				mindex = endquote + 1;
-				if (censor(token)) {
+				if (filter(token)) {
 					continue;
 				}
-				token = refinement(token);
+				token = refine(token);
 			}
 			else {
 				token = gTitle.subString(mindex);
-				token = refinement(token);
+				token = refine(token);
 			}
 
-/*
-			Queue q;
-			if ((q = (Queue)(results.remove(token))) == null) {
+			Queue q = (Queue)results.get(token);
+			if (q == null) {
 				q = global new Queue();
 			}
-			else {
-				q = (Queue)(results.get(token));
-			}
-			// bug here <- object id changed?? 
 			q.push(workingURL);	
 			results.put(token, q);
-			
 			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
-			*/
 		}
 	}
 
-	public boolean censor(GlobalString str) {
+	public boolean filter(GlobalString str) {
 		if (str.equals("of"))	return true;
 		else if (str.equals("for")) return true;
 		else if (str.equals("a")) return true;
@@ -227,6 +250,7 @@ public class QueryTask extends Task {
 		else if (str.equals("and")) return true;
 		else if (str.equals("or")) return true;
 		else if (str.equals("but")) return true;
+		else if (str.equals("to")) return true;
 		else if (str.equals(".")) return true;
 		else if (str.equals("=")) return true;
 		else if (str.equals("-")) return true;
@@ -234,18 +258,39 @@ public class QueryTask extends Task {
 		else if (str.equals(";")) return true;
 		else if (str.equals("\'")) return true;
 		else if (str.equals("\"")) return true;
+		else if (str.equals("|")) return true;
 		else if (str.equals("@")) return true;
+		else if (str.equals("&")) return true;
 		else return false;
 	}
 
-	public GlobalString refinement(GlobalString str) {
-		if (str.charAt(str.length()-1) == ',') {
+	public GlobalString refine(GlobalString str) {
+		str = refinePrefix(str);
+		str = refinePostfix(str);
+		return str;
+	}
+
+	public GlobalString refinePrefix(GlobalString str) {
+		if (str.charAt(0) == '&') {		// &
+			return str.subString(1);
+		}
+		return str;
+	}
+
+	public GlobalString refinePostfix(GlobalString str) {
+		if (str.charAt(str.length()-1) == ',') {			// ,
 			return str.subString(0, str.length()-1);
 		}
-		else if (str.charAt(str.length()-1) == ':') {
+		else if (str.charAt(str.length()-1) == ':') {		// :
 			return str.subString(0, str.length()-1);
 		}
-		else if (str.charAt(str.length()-1) == 's') {
+		else if (str.charAt(str.length()-1) == ';') {		// ;
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == '!') {		// !
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == 's') {			// 's
 			if (str.charAt(str.length()-2) == '\'')
 				return str.subString(0, str.length()-2);	
 		}
