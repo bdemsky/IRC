@@ -1,18 +1,22 @@
 public class QueryThread extends Thread {
-	int maxDepth;
-	int maxSearchDepth;
   int MY_MID;
   int NUM_THREADS;
   Queue todoList;
-  Queue doneList;
-  Query myWork;
-  Query[] currentWorkList;
+  DistributedHashMap doneList;
+  GlobalQuery myWork;
+  GlobalQuery[] currentWorkList;
 
-  public QueryThread(Queue todoList, Queue doneList, int maxDepth, int maxSearchDepth,int mid,int NUM_THREADS,Query[] currentWorkList) {    
+  DistributedHashMap results;
+  Queue toprocess;
+  GlobalString gTitle;
+  GlobalString workingURL;
+	int maxDepth;
+
+  public QueryThread(Queue todoList, DistributedHashMap doneList, DistributedHashMap results,int maxDepth,int mid,int NUM_THREADS,GlobalQuery[] currentWorkList) {    
     this.todoList = todoList;
 		this.doneList = doneList;
+    this.results = results;
 		this.maxDepth = maxDepth;
-		this.maxSearchDepth = maxSearchDepth;
     this.currentWorkList = currentWorkList;
     this.MY_MID = mid;
     this.NUM_THREADS = NUM_THREADS;
@@ -32,7 +36,7 @@ public class QueryThread extends Thread {
 
     while(true) {
       atomic {
-        myWork = (Query)todoList.pop();
+        myWork = (GlobalQuery)todoList.pop();
         
         if(null == myWork)  // no work in todolist
         {
@@ -45,10 +49,10 @@ public class QueryThread extends Thread {
       }
 
       if(chk == 1) { // it has query
-        execute(this);
+        QueryThread.execute(this);
 
         atomic {
-          doneWork(myWork);
+          done(myWork);
           currentWorkList[workMID] = null;
         }
       }
@@ -102,40 +106,37 @@ public class QueryThread extends Thread {
 
   public static void execute(QueryThread qt) {
 		int depth;
-    int max;
-    int maxSearch;
-
-    atomic {
-      if(qt.myWork == null) {
-        System.out.println("What!!!!!!!!!!!!!!!");
-        System.exit(0);
-      }
-			depth = ((Query)qt.myWork).getDepth();
+		int max;
+		
+		atomic {
+			depth = qt.myWork.getDepth();
       max = qt.maxDepth;
-      maxSearch = qt.maxSearchDepth;
 		}
 
 		if (depth < max) {
 			/* global variables */
-			Query q;
-			GlobalString ghostname;
-			GlobalString gpath;
+			GlobalQuery gq;
 
 			/* local variables */
-			QueryQueue toprocess;
 			LocalQuery lq;
 			String hostname;
 			String path;
+			String title;
 
 			atomic {
-				q = (Query)(qt.myWork);
-				ghostname = q.getHostName();
-				gpath = q.getPath();
-				hostname = new String(GlobalString.toLocalCharArray(ghostname));
-				path = new String(GlobalString.toLocalCharArray(gpath));
+				gq = qt.myWork;
+				hostname = new String(GlobalString.toLocalCharArray(gq.getHostName()));
+				path = new String(GlobalString.toLocalCharArray(gq.getPath()));
+
+				GlobalStringBuffer gsb = global new GlobalStringBuffer(hostname);
+				gsb.append("/");
+				gsb.append(path);
+				qt.workingURL = global new GlobalString(gsb.toGlobalString());
+				qt.gTitle = null;
 			}
 			lq = new LocalQuery(hostname, path, depth);
 
+			System.printString("["+lq.getDepth()+"] ");
 			System.printString("Processing - Hostname : ");
 			System.printString(hostname);
 			System.printString(", Path : ");
@@ -146,23 +147,91 @@ public class QueryThread extends Thread {
     
 			requestQuery(hostname, path, s);
 			readResponse(lq, s);
-			toprocess = processPage(lq,maxSearch);
-			s.close();
 
-			atomic {
-				while(!toprocess.isEmpty()) {
-					lq = toprocess.pop();
-					ghostname = global new GlobalString(lq.getHostName());
-					gpath = global new GlobalString(lq.getPath());
-
-					q = global new Query(ghostname, gpath, lq.getDepth());
-					qt.todoList.push(q);
+			if ((title = grabTitle(lq)) != null) {
+				atomic {
+					qt.gTitle = global new GlobalString(title);
 				}
 			}
+
+			atomic {
+				qt.toprocess = processPage(lq);
+			}
+
+			s.close();
 		}
   }
-	
-	public static void requestQuery(String hostname, String path, Socket sock) {
+
+	public void done(Object obj) {
+		if (gTitle != null) 
+			processList();
+
+		GlobalString str = global new GlobalString("true");
+
+		doneList.put(workingURL, str);
+
+		while(!toprocess.isEmpty()) {
+			GlobalQuery q = (GlobalQuery)toprocess.pop();
+
+			GlobalString hostname = global new GlobalString(q.getHostName());
+			GlobalString path = global new GlobalString(q.getPath());
+
+			GlobalStringBuffer gsb = global new GlobalStringBuffer(hostname);
+			gsb.append("/");
+			gsb.append(path);
+
+			if (!doneList.containsKey(gsb.toGlobalString())) {
+				todoList.push(q);
+			}
+		}
+	}
+
+	public static String grabTitle(LocalQuery lq) {
+		String sTitle = new String("<title>");	
+		String eTitle = new String("</title>");
+  	String searchstr = lq.response.toString();
+		String title = null;
+		char ch;
+
+		int mindex = searchstr.indexOf(sTitle);
+		if (mindex != -1) {
+			int endquote = searchstr.indexOf(eTitle, mindex+sTitle.length());
+
+			title = new String(searchstr.subString(mindex+sTitle.length(), endquote));
+			
+			if (Character.isWhitespace(title.charAt(0))){
+				mindex=0;
+				while (Character.isWhitespace(title.charAt(mindex++)));
+				mindex--;
+				title = new String(title.subString(mindex));
+			}
+
+			if (Character.isWhitespace(title.charAt(title.length()-1))) {
+				endquote=title.length()-1;
+				while (Character.isWhitespace(title.charAt(endquote--)));
+				endquote += 2;
+				title = new String(title.subString(0, endquote));
+			}
+
+			if (errorPage(title)) 
+				title = null;
+		}
+
+		return title;
+	}
+
+	public static boolean errorPage(String str) {
+		if (str.equals("301 Moved Permanently"))     
+			return true;                               
+		else if (str.equals("302 Found"))            
+			return true;                               
+		else if (str.equals("404 Not Found"))        
+			return true;                               
+		else                                         
+			return false;                              
+	}                                              
+  
+  public static void requestQuery(String hostname, String path, Socket sock) {
     StringBuffer req = new StringBuffer("GET "); 
     req.append("/");
 		req.append(path);
@@ -231,22 +300,107 @@ public class QueryThread extends Thread {
     }
   }
 	
-	public void doneWork(Object obj) {
-		doneList.push(obj);
+	public void processList() {
+		LinkedList ll;
+		GlobalString token = null;
+		int mindex = 0;
+		int endquote = 0;
+
+		while (endquote != -1) {
+			endquote = gTitle.indexOf(' ', mindex);
+
+			if (endquote != -1) {
+				token = gTitle.subString(mindex, endquote);
+				mindex = endquote + 1;
+				if (filter(token)) {
+					continue;
+				}
+				token = refine(token);
+			}
+			else {
+				token = gTitle.subString(mindex);
+				token = refine(token);
+			}
+
+			Queue q = (Queue)results.get(token);
+			if (q == null) {
+				q = global new Queue();
+			}
+			q.push(workingURL);	
+			results.put(token, q);
+			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
+		}
 	}
 
-  public static QueryQueue processPage(LocalQuery lq,int maxSearchDepth) {
+	public boolean filter(GlobalString str) {
+		if (str.equals("of"))	return true;
+		else if (str.equals("for")) return true;
+		else if (str.equals("a")) return true;
+		else if (str.equals("an")) return true;
+		else if (str.equals("the")) return true;
+		else if (str.equals("at")) return true;
+		else if (str.equals("and")) return true;
+		else if (str.equals("or")) return true;
+		else if (str.equals("but")) return true;
+		else if (str.equals("to")) return true;
+		else if (str.equals(".")) return true;
+		else if (str.equals("=")) return true;
+		else if (str.equals("-")) return true;
+		else if (str.equals(":")) return true;
+		else if (str.equals(";")) return true;
+		else if (str.equals("\'")) return true;
+		else if (str.equals("\"")) return true;
+		else if (str.equals("|")) return true;
+		else if (str.equals("@")) return true;
+		else if (str.equals("&")) return true;
+		else return false;
+	}
+
+	public GlobalString refine(GlobalString str) {
+		str = refinePrefix(str);
+		str = refinePostfix(str);
+		return str;
+	}
+
+	public GlobalString refinePrefix(GlobalString str) {
+		if (str.charAt(0) == '&') {		// &
+			return str.subString(1);
+		}
+		return str;
+	}
+
+	public GlobalString refinePostfix(GlobalString str) {
+		if (str.charAt(str.length()-1) == ',') {			// ,
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == ':') {		// :
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == ';') {		// ;
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == '!') {		// !
+			return str.subString(0, str.length()-1);
+		}
+		else if (str.charAt(str.length()-1) == 's') {			// 's
+			if (str.charAt(str.length()-2) == '\'')
+				return str.subString(0, str.length()-2);	
+		}
+		return str;
+	}
+  
+  public static Queue processPage(LocalQuery lq) {
     int index = 0;
   	String href = new String("href=\"");
   	String searchstr = lq.response.toString();
 		int depth;
   	boolean cont = true;
+		Queue toprocess;
 
-		QueryQueue toprocess = new QueryQueue();
 		depth = lq.getDepth() + 1;
 
-		int searchDepthCnt = 0;
-		while(cont && (searchDepthCnt < maxSearchDepth)) {
+		toprocess = global new Queue();
+		while(cont) {
 			int mindex = searchstr.indexOf(href,index);
 			if (mindex != -1) {	
 				int endquote = searchstr.indexOf('"', mindex+href.length());
@@ -254,17 +408,20 @@ public class QueryThread extends Thread {
 		      String match = searchstr.subString(mindex+href.length(), endquote);
 					String match2 = lq.makewebcanonical(match);
 	
-		      if (match2 != null) {
-						LocalQuery newlq = new LocalQuery(lq.getHostName(match), lq.getPathName(match), depth);
+					GlobalString ghostname;
+					GlobalString gpath;
 
-						toprocess.push(newlq);
-						searchDepthCnt++;
+					ghostname = global new GlobalString(lq.getHostName(match));
+					gpath = global new GlobalString(lq.getPathName(match));
+
+		      if (match2 != null) {
+							GlobalQuery gq = global new GlobalQuery(ghostname, gpath, depth);
+							toprocess.push(gq);
 					}
 					index = endquote;
         } else cont = false;
       } else cont = false;
-    }
-
+    }                                                                          
 		return toprocess;
   }
 }
