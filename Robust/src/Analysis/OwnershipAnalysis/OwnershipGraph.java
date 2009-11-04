@@ -89,7 +89,6 @@ public class OwnershipGraph {
   public Hashtable< TempDescriptor, Set<AccessPath> > temp2accessPaths;
 
 
-
   public OwnershipGraph() {
 
     id2hrn                    = new Hashtable<Integer,        HeapRegionNode>();
@@ -231,6 +230,13 @@ public class OwnershipGraph {
     referencee.addReferencer(edge);
   }
 
+  protected void removeReferenceEdge(ReferenceEdge e) {
+    removeReferenceEdge(e.getSrc(),
+			e.getDst(),
+			e.getType(),
+			e.getField() );
+  }
+
   protected void removeReferenceEdge(OwnershipNode referencer,
                                      HeapRegionNode referencee,
                                      TypeDescriptor type,
@@ -354,45 +360,70 @@ public class OwnershipGraph {
   }
 
 
-  public void assignTempXEqualToTempY(TempDescriptor x,
-                                      TempDescriptor y) {
-    assignTypedTempXEqualToTempY( x, y, null );
+  public void assignTempXEqualToTempY( TempDescriptor x,
+				       TempDescriptor y ) {
+    assignTempXEqualToCastedTempY( x, y, null );
   }
 
+  public void assignTempXEqualToCastedTempY( TempDescriptor x,
+					     TempDescriptor y,
+					     TypeDescriptor tdCast ) {
 
-  public void assignTypedTempXEqualToTempY(TempDescriptor x,
-					   TempDescriptor y,
-					   TypeDescriptor type) {
-
-    LabelNode lnX = getLabelNodeFromTemp(x);
-    LabelNode lnY = getLabelNodeFromTemp(y);
+    LabelNode lnX = getLabelNodeFromTemp( x );
+    LabelNode lnY = getLabelNodeFromTemp( y );
     
-    clearReferenceEdgesFrom(lnX, null, null, true);
+    clearReferenceEdgesFrom( lnX, null, null, true );
+
+    // note it is possible that the types of temps in the
+    // flat node to analyze will reveal that some typed
+    // edges in the reachability graph are impossible
+    Set<ReferenceEdge> impossibleEdges = new HashSet<ReferenceEdge>();
 
     Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
       ReferenceEdge  edgeY      = itrYhrn.next();
       HeapRegionNode referencee = edgeY.getDst();
       ReferenceEdge  edgeNew    = edgeY.copy();
-      edgeNew.setSrc( lnX );
 
-      if( type != null ) {
-	edgeNew.setType( type );
-	edgeNew.setField( null );
+      if( !isSuperiorType( x.getType(), edgeY.getType() ) ) {
+	impossibleEdges.add( edgeY );
+	continue;
       }
 
-      addReferenceEdge(lnX, referencee, edgeNew);
+      edgeNew.setSrc( lnX );
+      
+      edgeNew.setType( mostSpecificType( y.getType(),
+					 tdCast, 
+					 edgeY.getType(), 
+					 referencee.getType() 
+					 ) 
+		       );
+
+      edgeNew.setField( null );
+
+      addReferenceEdge( lnX, referencee, edgeNew );
+    }
+
+    Iterator<ReferenceEdge> itrImp = impossibleEdges.iterator();
+    while( itrImp.hasNext() ) {
+      ReferenceEdge edgeImp = itrImp.next();
+      removeReferenceEdge( edgeImp );
     }
   }
 
 
-  public void assignTempXEqualToTempYFieldF(TempDescriptor x,
-                                            TempDescriptor y,
-                                            FieldDescriptor f) {
-    LabelNode lnX = getLabelNodeFromTemp(x);
-    LabelNode lnY = getLabelNodeFromTemp(y);
+  public void assignTempXEqualToTempYFieldF( TempDescriptor  x,
+					     TempDescriptor  y,
+					     FieldDescriptor f ) {
+    LabelNode lnX = getLabelNodeFromTemp( x );
+    LabelNode lnY = getLabelNodeFromTemp( y );
 
-    clearReferenceEdgesFrom(lnX, null, null, true);
+    clearReferenceEdgesFrom( lnX, null, null, true );
+
+    // note it is possible that the types of temps in the
+    // flat node to analyze will reveal that some typed
+    // edges in the reachability graph are impossible
+    Set<ReferenceEdge> impossibleEdges = new HashSet<ReferenceEdge>();
 
     Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
@@ -406,36 +437,69 @@ public class OwnershipGraph {
 	HeapRegionNode  hrnHrn  = edgeHrn.getDst();
 	ReachabilitySet betaHrn = edgeHrn.getBeta();
 
-	if( edgeHrn.getType() == null ||	    
-	    (edgeHrn.getType() .equals( f.getType()   ) &&
-	     edgeHrn.getField().equals( f.getSymbol() )    )
-	  ) {
-
-	  ReferenceEdge edgeNew = new ReferenceEdge(lnX,
-	                                            hrnHrn,
-	                                            f.getType(),
-						    null,
-	                                            false,
-	                                            betaY.intersection(betaHrn) );
-	  
-	  int newTaintIdentifier=getTaintIdentifierFromHRN(hrnHrn);
-	  edgeNew.setTaintIdentifier(newTaintIdentifier);
-
-	  addReferenceEdge(lnX, hrnHrn, edgeNew);
+	// prune edges that are not a matching field
+	if( edgeHrn.getType() != null &&	    	    
+	    !edgeHrn.getField().equals( f.getSymbol() )	    
+	    ) {
+	  continue;
 	}
+
+	// check for impossible edges
+	if( !isSuperiorType( x.getType(), edgeHrn.getType() ) ) {
+	  impossibleEdges.add( edgeHrn );
+	  continue;
+	}
+
+	TypeDescriptor tdNewEdge =
+	  mostSpecificType( edgeHrn.getType(), 
+			    hrnHrn.getType() 
+			    );       
+	  
+	ReferenceEdge edgeNew = new ReferenceEdge( lnX,
+						   hrnHrn,
+						   tdNewEdge,
+						   null,
+						   false,
+						   betaY.intersection( betaHrn )
+						   );
+	
+	int newTaintIdentifier=getTaintIdentifierFromHRN(hrnHrn);
+	edgeNew.setTaintIdentifier(newTaintIdentifier);
+	
+	addReferenceEdge( lnX, hrnHrn, edgeNew );	
+      }
+    }
+
+    Iterator<ReferenceEdge> itrImp = impossibleEdges.iterator();
+    while( itrImp.hasNext() ) {
+      ReferenceEdge edgeImp = itrImp.next();
+      removeReferenceEdge( edgeImp );
+    }
+
+    // anytime you might remove edges between heap regions
+    // you must global sweep to clean up broken reachability
+    if( !impossibleEdges.isEmpty() ) {
+      if( !DISABLE_GLOBAL_SWEEP ) {
+	globalSweep();
       }
     }
   }
 
 
-  public void assignTempXFieldFEqualToTempY(TempDescriptor x,
-                                            FieldDescriptor f,
-                                            TempDescriptor y) {
-    LabelNode lnX = getLabelNodeFromTemp(x);
-    LabelNode lnY = getLabelNodeFromTemp(y);
+  public void assignTempXFieldFEqualToTempY( TempDescriptor  x,
+					     FieldDescriptor f,
+					     TempDescriptor  y ) {
+
+    LabelNode lnX = getLabelNodeFromTemp( x );
+    LabelNode lnY = getLabelNodeFromTemp( y );
 
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
     HashSet<ReferenceEdge>  edgesWithNewBeta  = new HashSet<ReferenceEdge>();
+
+    // note it is possible that the types of temps in the
+    // flat node to analyze will reveal that some typed
+    // edges in the reachability graph are impossible
+    Set<ReferenceEdge> impossibleEdges = new HashSet<ReferenceEdge>();
 
     // first look for possible strong updates and remove those edges
     boolean strongUpdate = false;
@@ -462,23 +526,27 @@ public class OwnershipGraph {
     // then do all token propagation
     itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
-      ReferenceEdge edgeX = itrXhrn.next();
-      HeapRegionNode hrnX = edgeX.getDst();
+      ReferenceEdge   edgeX = itrXhrn.next();
+      HeapRegionNode  hrnX  = edgeX.getDst();
       ReachabilitySet betaX = edgeX.getBeta();
-
-      ReachabilitySet R = hrnX.getAlpha().intersection(edgeX.getBeta() );
+      ReachabilitySet R     = hrnX.getAlpha().intersection( edgeX.getBeta() );
 
       Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
-	ReferenceEdge edgeY = itrYhrn.next();
-	HeapRegionNode hrnY = edgeY.getDst();
-	ReachabilitySet O = edgeY.getBeta();
+	ReferenceEdge   edgeY = itrYhrn.next();
+	HeapRegionNode  hrnY  = edgeY.getDst();
+	ReachabilitySet O     = edgeY.getBeta();
 
+	// check for impossible edges
+	if( !isSuperiorType( f.getType(), edgeY.getType() ) ) {
+	  impossibleEdges.add( edgeY );
+	  continue;
+	}
 
 	// propagate tokens over nodes starting from hrnSrc, and it will
 	// take care of propagating back up edges from any touched nodes
-	ChangeTupleSet Cy = O.unionUpArityToChangeSet(R);
-	propagateTokensOverNodes(hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta);
+	ChangeTupleSet Cy = O.unionUpArityToChangeSet( R );
+	propagateTokensOverNodes( hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta );
 
 
 	// then propagate back just up the edges from hrn
@@ -491,13 +559,13 @@ public class OwnershipGraph {
 	Iterator<ReferenceEdge> referItr = hrnX.iteratorToReferencers();
 	while( referItr.hasNext() ) {
 	  ReferenceEdge edgeUpstream = referItr.next();
-	  todoEdges.add(edgeUpstream);
-	  edgePlannedChanges.put(edgeUpstream, Cx);
+	  todoEdges.add( edgeUpstream );
+	  edgePlannedChanges.put( edgeUpstream, Cx );
 	}
 
-	propagateTokensOverEdges(todoEdges,
-	                         edgePlannedChanges,
-	                         edgesWithNewBeta);
+	propagateTokensOverEdges( todoEdges,
+				  edgePlannedChanges,
+				  edgesWithNewBeta );
       }
     }
 
@@ -519,54 +587,74 @@ public class OwnershipGraph {
     while( itrXhrn.hasNext() ) {
       ReferenceEdge edgeX = itrXhrn.next();
       HeapRegionNode hrnX = edgeX.getDst();
-
+      
       Iterator<ReferenceEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
 	ReferenceEdge edgeY = itrYhrn.next();
 	HeapRegionNode hrnY = edgeY.getDst();
 
+	// skip impossible edges here, we already marked them
+	// when computing reachability propagations above
+	if( !isSuperiorType( f.getType(), edgeY.getType() ) ) {
+	  continue;
+	}
+	
 	// prepare the new reference edge hrnX.f -> hrnY
-	ReferenceEdge edgeNew = new ReferenceEdge(hrnX,
-	                                          hrnY,
-	                                          f.getType(),
-						  f.getSymbol(),
-	                                          false,
-	                                          edgeY.getBeta().pruneBy( hrnX.getAlpha() )
-	                                          );
+	TypeDescriptor tdNewEdge = 	
+	  mostSpecificType( y.getType(),
+			    edgeY.getType(), 
+			    hrnY.getType()
+			    );	
+
+	ReferenceEdge edgeNew = new ReferenceEdge( hrnX,
+						   hrnY,
+						   tdNewEdge,
+						   f.getSymbol(),
+						   false,
+						   edgeY.getBeta().pruneBy( hrnX.getAlpha() )
+						   );
 
 	// look to see if an edge with same field exists
 	// and merge with it, otherwise just add the edge
 	ReferenceEdge edgeExisting = hrnX.getReferenceTo( hrnY, 
-							  f.getType(),
+							  tdNewEdge,
 							  f.getSymbol() );
 	
 	if( edgeExisting != null ) {
 	  edgeExisting.setBeta(
 			       edgeExisting.getBeta().union( edgeNew.getBeta() )
 			      );
+
 	  if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
-		  int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-		  edgeExisting.unionTaintIdentifier(newTaintIdentifier);
+	    int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
+	    edgeExisting.unionTaintIdentifier(newTaintIdentifier);
 	  }
 	  // a new edge here cannot be reflexive, so existing will
 	  // always be also not reflexive anymore
 	  edgeExisting.setIsInitialParam( false );
 	} else {
 		
-		if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
-			int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-			edgeNew.setTaintIdentifier(newTaintIdentifier);
-		}
-		//currently, taint isn't propagated through the chain of refrences
-        //propagateTaintIdentifier(hrnX,newTaintIdentifier,new HashSet<HeapRegionNode>());
+	  if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
+	    int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
+	    edgeNew.setTaintIdentifier(newTaintIdentifier);
+	  }
+	  //currently, taint isn't propagated through the chain of refrences
+	  //propagateTaintIdentifier(hrnX,newTaintIdentifier,new HashSet<HeapRegionNode>());
+	  
 	  addReferenceEdge( hrnX, hrnY, edgeNew );
 	}
       }
     }
 
+    Iterator<ReferenceEdge> itrImp = impossibleEdges.iterator();
+    while( itrImp.hasNext() ) {
+      ReferenceEdge edgeImp = itrImp.next();
+      removeReferenceEdge( edgeImp );
+    }
+
     // if there was a strong update, make sure to improve
     // reachability with a global sweep
-    if( strongUpdate ) {    
+    if( strongUpdate || !impossibleEdges.isEmpty() ) {    
       if( !DISABLE_GLOBAL_SWEEP ) {
         globalSweep();
       }
@@ -2881,7 +2969,7 @@ public class OwnershipGraph {
 	  Iterator srcItr = possibleCallerSrcs.iterator();
 	  while( srcItr.hasNext() ) {
 	    HeapRegionNode src = (HeapRegionNode) srcItr.next();
-
+	    
 	    if( !hasMatchingField( src, edgeCallee ) ) {
 	      // prune this source node possibility
 	      continue;
@@ -2896,10 +2984,38 @@ public class OwnershipGraph {
 		continue;
 	      }
 
+	      
+	      /*
+	    //// KEEP THIS HACK AROUND FOR EXPERIMENTING WITH EDGE REMOVAL
+	      TypeDescriptor tdX = src.getType();
+	      TypeDescriptor tdY = dst.getType();
+	      if( tdX != null && tdY != null ) {
+		if( tdX.toPrettyString().equals( "Object[]" ) &&
+		    tdY.toPrettyString().equals( "D2" ) ) {
+		  System.out.println( "Skipping an edge from Object[] -> D2 during call mapping" );
+		  continue;
+		}
+		if( tdX.toPrettyString().equals( "Object[]" ) &&
+		    tdY.toPrettyString().equals( "MessageList" ) ) {
+		  System.out.println( "Skipping an edge from Object[] -> MessageList during call mapping" );
+		  continue;
+		}
+	      }
+	      */
+
+
 	      // otherwise the caller src and dst pair can match the edge, so make it
+	      TypeDescriptor tdNewEdge =
+		mostSpecificType( edgeCallee.getType(),
+				  hrnChildCallee.getType(),
+				  dst.getType()
+				  );	      
+
 	      ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
 	      edgeNewInCaller.setSrc( src );
 	      edgeNewInCaller.setDst( dst );	     
+	      edgeNewInCaller.setType( tdNewEdge );
+
 	      
 	      // handle taint info if callee created this edge
 	      // added by eom
@@ -2948,7 +3064,16 @@ public class OwnershipGraph {
       LabelNode lnReturnCallee = ogCallee.getLabelNodeFromTemp( tdReturn );
       Iterator<ReferenceEdge> edgeCalleeItr = lnReturnCallee.iteratorToReferencees();
       while( edgeCalleeItr.hasNext() ) {
-	ReferenceEdge edgeCallee = edgeCalleeItr.next();
+	ReferenceEdge  edgeCallee     = edgeCalleeItr.next();
+	HeapRegionNode hrnChildCallee = edgeCallee.getDst();
+
+	// some edge types are not possible return values when we can
+	// see what type variable we are assigning it to
+	if( !isSuperiorType( returnTemp.getType(), edgeCallee.getType() ) ) {
+	  System.out.println( "*** NOT EXPECTING TO SEE THIS: Throwing out "+edgeCallee+" for return temp "+returnTemp );
+	  // prune
+	  continue;
+	}	
 
 	ReferenceEdge edgeNewInCallerTemplate = new ReferenceEdge( null,
 								   null,
@@ -2985,18 +3110,26 @@ public class OwnershipGraph {
 	while( itrHrn.hasNext() ) {
 	  HeapRegionNode hrnCaller = itrHrn.next();
 
-	  if( !hasMatchingType( edgeCallee, hrnCaller ) ) {
-	    // prune
+	  // don't make edge in caller if it is disallowed by types
+	  if( !isSuperiorType( returnTemp.getType(), hrnCaller.getType() ) ) {
+	    // prune	   
 	    continue;
 	  }
+
+	  TypeDescriptor tdNewEdge =
+	    mostSpecificType( edgeCallee.getType(),
+			      hrnChildCallee.getType(),
+			      hrnCaller.getType()
+			      );	      
 
 	  // otherwise caller node can match callee edge, so make it
 	  ReferenceEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
 	  edgeNewInCaller.setSrc( lnLhsCaller );
 	  edgeNewInCaller.setDst( hrnCaller );
+	  edgeNewInCaller.setType( tdNewEdge );
 
 	  ReferenceEdge edgeExisting = lnLhsCaller.getReferenceTo( hrnCaller, 
-								   edgeNewInCaller.getType(),
+								   tdNewEdge,
 								   edgeNewInCaller.getField() );
 	  if( edgeExisting == null ) {
 
@@ -3200,29 +3333,28 @@ public class OwnershipGraph {
 
 
   protected boolean hasMatchingType(ReferenceEdge edge, HeapRegionNode dst) {
-   
+    
     // if the region has no type, matches everything
     TypeDescriptor tdDst = dst.getType();
     if( tdDst == null ) {
       return true;
     }
-
+ 
     // if the type is not a class or an array, don't
     // match because primitives are copied, no aliases
     ClassDescriptor cdDst = tdDst.getClassDesc();
     if( cdDst == null && !tdDst.isArray() ) {
       return false;
     }
-
+ 
     // if the edge type is null, it matches everything
     TypeDescriptor tdEdge = edge.getType();
     if( tdEdge == null ) {
       return true;
     }
-
+ 
     return typeUtil.isSuperorType(tdEdge, tdDst);
   }
-
 
 
   protected void unshadowTokens(AllocationSite as, ReferenceEdge edge) {
@@ -4864,7 +4996,52 @@ public class OwnershipGraph {
 	  }	  
 	  
   }
+
+
+  // in this analysis specifically:
+  // we have a notion that a null type is the "match any" type,
+  // so wrap calls to the utility methods that deal with null
+  public TypeDescriptor mostSpecificType( TypeDescriptor td1,
+					  TypeDescriptor td2 ) {
+    if( td1 == null ) {
+      return td2;
+    }
+    if( td2 == null ) {
+      return td1;
+    }
+    return typeUtil.mostSpecific( td1, td2 );
+  }
   
+  public TypeDescriptor mostSpecificType( TypeDescriptor td1,
+					  TypeDescriptor td2,
+					  TypeDescriptor td3 ) {
+    
+    return mostSpecificType( td1, 
+			     mostSpecificType( td2, td3 )
+			     );
+  }  
+  
+  public TypeDescriptor mostSpecificType( TypeDescriptor td1,
+					  TypeDescriptor td2,
+					  TypeDescriptor td3,
+					  TypeDescriptor td4 ) {
+    
+    return mostSpecificType( mostSpecificType( td1, td2 ), 
+			     mostSpecificType( td3, td4 )
+			     );
+  }  
+
+  // remember, in this analysis a null type means "any type"
+  public boolean isSuperiorType( TypeDescriptor possibleSuper,
+				 TypeDescriptor possibleChild ) {
+    if( possibleSuper == null ||
+	possibleChild == null ) {
+      return true;
+    }
+    
+    return typeUtil.isSuperorType( possibleSuper, possibleChild );
+  }
+
   public String generateUniqueIdentifier(FlatMethod fm, int paramIdx, String type){
 	  
 	  //type: A->aliapsed parameter heap region
@@ -4896,7 +5073,5 @@ public class OwnershipGraph {
 	  
 	  return identifier;
 	  
-  }
-
-  
+  }  
 }

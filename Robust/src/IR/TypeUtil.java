@@ -305,6 +305,19 @@ NextMethod:
       throw new Error("Case not handled:"+possiblesuper+" "+cd2);
   }
 
+  public TypeDescriptor mostSpecific(TypeDescriptor td1, TypeDescriptor td2) {
+    if( isSuperorType( td1, td2 ) ) {
+      return td2;
+    }
+    if( isSuperorType( td2, td1 ) ) {
+      return td1;
+    }
+    throw new Error( td1+" and "+td2+" have no superclass relationship" );
+  }
+
+  public TypeDescriptor mostSpecific(TypeDescriptor td1, TypeDescriptor td2, TypeDescriptor td3) {
+    return mostSpecific( td1, mostSpecific( td2, td3 ) );
+  }
 
   public boolean isSuperorType(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
     if (possiblesuper==cd2)

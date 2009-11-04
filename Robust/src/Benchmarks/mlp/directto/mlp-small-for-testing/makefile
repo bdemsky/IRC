@@ -4,7 +4,7 @@ PROGRAM=test
 SOURCE_FILES=D2.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -debug -mainclass $(MAIN_CLASS) -flatirusermethods -flatirlibmethods -joptimize #-nooptimize
+BSFLAGS= -debug -mainclass $(MAIN_CLASS) -joptimize -flatirusermethods #-flatirlibmethods
 
 #DBCALLFLAGS= -owndebugcaller main -owndebugcallee executeAll 
 #DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee executeMessage -owndebugcallcount 0
@@ -16,7 +16,7 @@ BSFLAGS= -debug -mainclass $(MAIN_CLASS) -flatirusermethods -flatirlibmethods -j
 #DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee getFlight -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee addFix -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee addFix -owndebugcallcount 0
-DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee insertElementAt -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee insertElementAt -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller insertElementAt -owndebugcallee ensureCapacity -owndebugcallcount 0
 
 ANALYZEFLAGS= -justanalyze $(DBCALLFLAGS) -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions

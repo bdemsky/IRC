@@ -906,7 +906,7 @@ public class OwnershipAnalysis {
       TypeDescriptor td = fcn.getType();
       assert td != null;
       
-      og.assignTypedTempXEqualToTempY(lhs, rhs, td);
+      og.assignTempXEqualToCastedTempY(lhs, rhs, td);
       break;
 
     case FKind.FlatFieldNode:
@@ -955,7 +955,7 @@ public class OwnershipAnalysis {
       FlatSetElementNode fsen = (FlatSetElementNode) fn;
 
       if( arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
-        System.out.println( "Skipping no-heap-effect: "+fsen );
+	// skip this node if it cannot create new reachability paths
         break;
       }
 
@@ -1466,6 +1466,10 @@ public class OwnershipAnalysis {
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
+  // IMPORTANT NOTE FOR SETTING THE FOLLOWING VALUES: this
+  // counter increments just after every node is analyzed
+  // from the body of the method whose symbol is specified
+  // above.
   int debugCounter = 0;
 
   // the value of debugCounter to start reporting the debugCounter
