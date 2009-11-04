@@ -30,10 +30,6 @@ public class EphemeralSignature {
     return signature;
   }
 
-  private String computeHexDigest(String body) {
-    return 
-  }
-
   /*
   public long DEKHash(String str)
   {

@@ -19,10 +19,6 @@ public class DistributedHashMap {
       return value;
   }
 
-  public DistributedHashMapIterator iterator(int type) {
-    return new DistributedHashMapIterator(this, type);
-  }
-
   Object remove(Object key) {
     int hashcode=key.hashCode();
     int index1=hash1(hashcode, table.length);

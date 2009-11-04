@@ -11,7 +11,7 @@ public class Mail {
 	String cc;  
 	String subject;
 	String body;
-  String noURLBody;
+    String noURLBody;
 	String sourceCode;
 	boolean hasAttachement;
 	String encoding; //rich text, plain, html
@@ -341,6 +341,22 @@ public class Mail {
 
   public boolean getIsSpam() {
     return isSpam;
+  }
+
+  /**
+   *  Returns result to the Spam filter
+   **/
+  public Vector checkMail(int userid) {
+    //Preprocess emails
+    //Vector partsOfMailStrings = mail.createMailStringsWithURL();
+    Vector partsOfMailStrings = getCommonPart();
+    partsOfMailStrings.addElement(getBodyString());
+
+    //Compute signatures
+    SignatureComputer sigComp = new SignatureComputer();
+    Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+
+    return signatures;
   }
 
   /* For tests only */

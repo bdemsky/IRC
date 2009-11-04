@@ -37,7 +37,7 @@ public class FilterResult {
 
   public boolean getResult(int[] confidenceVals) {
     int[] res = new int[3];
-    for(int i=0; i<confidenceVals; i++) {
+    for(int i=0; i<confidenceVals.length; i++) {
        if(confidenceVals[i] < 0)
          res[0]+=1; //unknown
        if(confidenceVals[i] >= 0 && confidenceVals[i] < 500)
@@ -60,7 +60,7 @@ public class FilterResult {
     if(max==2)
       return true;
 
-    System.out.println("Err: getResult() Shouldn't come here\n");
+    System.out.println("Err: getResult() Control shouldn't come here\n");
     return false;
   }
 

@@ -95,26 +95,11 @@ public class SignatureComputer {
           System.out.println("Couldn't find the signature engine\n");
         }
 
-        /*
-        switch (engineNo) {
-          case 4:
-            sig = computeSignature(engineNo,mail);
-            break;
-          case 8:
-            sig = computeSignature(engineNo,mail);
-            break;
-          default:
-            System.out.println("Couldn't find the signature engine\n");
-            //sig = computeSignature(engineNo,curPart.getCleaned());
-            break;
-        }//switch engineNo
-        */
-
-        if (sig != null && sig.length() > 0) {
+        if (sig != null) {
           String hash = engineNo + ":" + sig;
           printableSigs.addElement(hash);
         } else {
-          /* we didn't produce a signature for the mail. */
+          // we didn't produce a signature for the mail. 
         }
       }//engine
     }//each emails part
@@ -128,29 +113,19 @@ public class SignatureComputer {
    */
   private String computeSignature(int engineNo, String mail) {
     if(engineNo==4) {
-      String s1 = this.sig4.computeSignature(mail);
+      //String s1 = this.sig4.computeSignature(mail);
+      return this.sig4.computeSignature(mail);
       //return new String { this.sig4.computeSignature(mail) };
     }
 
+    /*
     if(engineNo==8) {
         //String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
         //return this.sig8.computeSignature(cleanedButKeepHTML);
       return this.sig8.computeSignature(mail);
     }
+    */
 
     return null;
-
-    /*
-    switch (engineNo) {
-      case 4:
-        return new String { this.sig4.computeSignature(mail) };
-      case 8:
-        //TODO device and equivalent for this
-        //String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
-        return this.sig8.computeSignature(cleanedButKeepHTML);
-      default:
-        return null;
-    }
-    */
   }
 }
