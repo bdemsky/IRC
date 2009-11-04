@@ -2,6 +2,7 @@ public class GlobalString {
   char value[];
   int count;
   int offset;
+	private int cachedHashcode;
 
   public GlobalString() {
   }
@@ -34,6 +35,17 @@ public class GlobalString {
 				value[i] = gsb.value[i];
 		}
 	}
+
+  public int hashCode() {
+    if (cachedHashcode!=0)
+      return cachedHashcode;
+    int hashcode=0;
+    for(int i=0; i<count; i++)
+      hashcode=hashcode*31+value[i+offset];
+    cachedHashcode=hashcode;
+    return hashcode;
+  }
+
 
 	public static char[] toLocalCharArray(GlobalString str) {
 		char[] c;
@@ -107,6 +119,14 @@ public class GlobalString {
 		return true;
 	}
 
+	public GlobalString substring(int beginIndex) {
+		return substring(beginIndex, this.count);
+	}
+
+  public GlobalString subString(int beginIndex) {
+    return subString(beginIndex, this.count);
+  }
+
 	public GlobalString subString(int beginIndex, int endIndex) {
 		return substring(beginIndex, endIndex);
 	}
@@ -115,15 +135,39 @@ public class GlobalString {
 		GlobalString str;
 		atomic {
 			str = global new GlobalString();
-//		}
-//		if (beginIndex > this.count || endIndex > this.count || beginIndex > endIndex) {
-//			System.printString("Index error\n");
-//		}
-//		atomic {
+		}
+		if (beginIndex > this.count || endIndex > this.count || beginIndex > endIndex) {
+			System.printString("Index error\n");
+		}
+		atomic {
 			str.value = this.value;
 			str.count = endIndex-beginIndex;
 			str.offset = this.offset + beginIndex;
 		}
 		return str;	
+	}
+
+	public boolean equals(String str) {
+		GlobalString gstr;
+
+		atomic {
+			gstr = global new GlobalString(str);
+		}
+		return equals(gstr);
+	}
+
+	public boolean equals(Object o) {
+		if (o.getType()!= getType())
+			return false;
+		
+		GlobalString gs = (GlobalString)o;
+		if (gs.count!= count)
+			return false;
+
+		for(int i = 0; i < count; i++) {
+			if (gs.value[i+gs.offset] != value[i+offset])
+				return false;
+		}
+		return true;
 	}
 }

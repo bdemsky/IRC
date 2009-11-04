@@ -25,7 +25,6 @@ public class Work extends Thread {
 		boolean isEmpty; 
 
     while(true) {
-
       atomic {
 					isEmpty = tasks.isTodoListEmpty();		// flag > !keep assigning 
 			
