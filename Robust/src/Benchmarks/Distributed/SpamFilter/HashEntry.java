@@ -1,6 +1,6 @@
 public class HashEntry {
-  String engine;
-  String signature;
+  GString engine;
+  GString signature;
   HashStat stats;
   public HashEntry() {
   }
@@ -19,7 +19,7 @@ public class HashEntry {
     return result;
   }
 
-  public void setengine(String engine) {
+  public void setengine(GString engine) {
     this.engine=engine;
   }
 
@@ -27,15 +27,15 @@ public class HashEntry {
     this.stats=stats;
   }
 
-  public void setsig(String signature) {
+  public void setsig(GString signature) {
     this.signature=signature;
   }
 
-  public String getEngine() {
+  public GString getEngine() {
     return engine;
   }
 
-  public String getSignature() {
+  public GString getSignature() {
     return signature;
   }
 

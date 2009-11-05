@@ -40,14 +40,30 @@ public class SpamFilter extends Thread {
       thid = id;
     }
 
-    Random rand = new Random(0);
+    Random rand = new Random(thid);
+    Random myrand = new Random(0);
+
+    /*
+    if(id==0) {
+      //Randomly set Spam vals for each email
+      for(int i=0; i<nemails; i++) {
+        Mail email = new Mail("emails/email"+i);
+        int spamval = rand.nextInt(100);
+        if(spamval<60) { //assume 60% are spam and rest are ham
+          email.setIsSpam(false);
+        } else {
+          email.setIsSpam(true);
+        }
+      }
+    }
+    */
 
     for(int i=0; i<niter; i++) {
       for(int j=0; j<nemails; j++) {
         int pickemail = rand.nextInt(100);
         Mail email = new Mail("emails/email"+pickemail);
-        //Mail email = getEmail(pickemail);
         Vector signatures = email.checkMail(thid);
+
         //check with global data structure
         int[] confidenceVals=null;
         atomic {
@@ -58,6 +74,15 @@ public class SpamFilter extends Thread {
         FilterResult filterResult = new FilterResult();
         boolean filterAnswer = filterResult.getResult(confidenceVals);
 
+        //---- get user's take on email and send feedback ------
+        /*
+        int spamval = rand.nextInt(100);
+        if(spamval<60) { //assume 60% are spam and rest are ham
+           email.setIsSpam(false);
+        } else {
+          email.setIsSpam(true);
+        }
+        */
         boolean userAnswer = email.getIsSpam();
         if(filterAnswer != userAnswer) {
           atomic {
@@ -83,18 +108,6 @@ public class SpamFilter extends Thread {
     SpamFilter sf = new SpamFilter();
     SpamFilter.parseCmdLine(args, sf);
     int nthreads = sf.nthreads;
-
-    Random rand = new Random(8);
-    //Randomly set Spam vals for each email
-    for(int i=0; i<sf.numemail; i++) {
-      Mail email = new Mail("./emails/email"+i);
-      int spamval = rand.nextInt(100);
-      if(spamval<60) { //assume 60% are spam and rest are ham
-        email.setIsSpam(false);
-      } else {
-        email.setIsSpam(true);
-      }
-    }
 
     //Create Global data structure 
     DistributedHashMap dhmap;
@@ -196,9 +209,17 @@ public class SpamFilter extends Thread {
     for(int i=0; i<numparts; i++) {
       String part = (String)(signatures.elementAt(i));
       char tmpengine = part.charAt(0);
-      String engine =  global new String(tmpengine);
-      String signature = global new String(part.substring(2));
-      //String signature = part.substring(2); //a:b index(a)=0, index(:)=1, index(b)=2
+      GString engine=null;
+      if(tmpengine == '4') { //Ephemeral Signature calculator
+        String tmpstr = new String("4");
+        engine = global new GString(tmpstr);
+      }
+      if(tmpengine == '8') { //Whiplash Signature calculator
+        String tmpstr = new String("8");
+        engine = global new GString(tmpstr);
+      }
+      String str = new String(part.substring(2));//a:b index of a =0, index of : =1, index of b =2
+      GString signature = global new GString(str);
       HashEntry myhe = global new HashEntry();
       myhe.setengine(engine);
       myhe.setsig(signature);
@@ -215,14 +236,22 @@ public class SpamFilter extends Thread {
         // ----- now connect to global data structure and ask for spam -----
         HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
         FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); //get the value from hash
+
         confidenceVals[i] = fs.getChecked();
       }
     }
 
     //  --> the mail client is able to determine if it is spam or not
+    // --- According to the "any"-logic (in Core#check_logic) in original Razor ---
+    // If any answer is spam, the entire email is spam.
     return confidenceVals;
   }
 
+  /**
+   * This method sends feedback from the user to a distributed
+   * spam database and trains the spam database to check future
+   * emails and detect spam
+   **/
   public void sendFeedBack(Mail mail, boolean isSpam, int id) {
     Vector partsOfMailStrings = mail.getCommonPart();
     partsOfMailStrings.addElement(mail.getBodyString());
@@ -232,21 +261,38 @@ public class SpamFilter extends Thread {
 
     for(int i=0;i<signatures.size();i++) {
       String part = (String)(signatures.elementAt(i));
-      char tmpengine = part.charAt(0);
-      String engine =  global new String(tmpengine);
-      String signature = global new String(part.substring(2));
-      //String signature = part.substring(2); //a:b index(a)=0, index(:)=1, index(b)=2
+      //
+      // Signature is of form a:b
+      // where a = string representing a signature engine
+      //           either "4" or "8"
+      //       b = string representing signature
+      //
+      char tmpengine = part.charAt(0); //
+      GString engine;
+      if(tmpengine == '4') {
+        String tmpstr = new String("4");
+        engine = global new GString(tmpstr);
+      }
+      if(tmpengine == '8') {
+        String tmpstr = new String("8");
+        engine = global new GString(tmpstr);
+      }
+      String tmpsig = new String(part.substring(2));
+      GString signature = global new GString(tmpsig);
       HashEntry myhe = global new HashEntry();
       myhe.setengine(engine);
       myhe.setsig(signature);
 
-      // ----- now connect to global data structure and upate spam count -----
+      // ----- now connect to global data structure and update stats -----
       HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
       if(tmphe.stats.userid[id] != 1) {
         tmphe.stats.setuserid(id);
       }
 
-      FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); //get the value from hash
+      //---- get value from distributed hash and update spam count
+      FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); 
+
+      //TODO: Allow users to give incorrect feedback
 
       //Increment spam or ham value 
       if(isSpam) {

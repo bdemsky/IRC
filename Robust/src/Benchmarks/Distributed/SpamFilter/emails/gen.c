@@ -95,6 +95,16 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
      sprintf(fileNameBuffer,"%s%d",fileName,i+1);
      newFile = fopen(fileNameBuffer,"w");
 
+     // write spam or no spam 
+     // 60% of email is spam and rest is ham
+     char yes[] = "yes";
+     char no[] =  "no";
+     int tmprandindex = rand() % num_email;
+     if(tmprandindex<60)
+       fprintf(newFile,"Spam: %s\n",yes);
+     else 
+       fprintf(newFile,"Spam: %s\n",no);
+
      // write header
      fprintf(newFile,"Header: %d\n",i+1);
      

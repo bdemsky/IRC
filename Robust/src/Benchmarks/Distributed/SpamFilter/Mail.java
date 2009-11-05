@@ -13,6 +13,7 @@ public class Mail {
 	String body;
     String noURLBody;
 	String sourceCode;
+    String spam;
 	boolean hasAttachement;
 	String encoding; //rich text, plain, html
 
@@ -32,7 +33,11 @@ public class Mail {
     while((line = fileinput.readLine()) != null)
     {
       Vector splittedLine = line.split();
-      if(((String)(splittedLine.elementAt(0))).equals("Header:"))  // message id
+      if(((String)(splittedLine.elementAt(0))).equals("Spam:"))
+      {
+        spam = (String)splittedLine.elementAt(1);
+      }
+      else if(((String)(splittedLine.elementAt(0))).equals("Header:"))  // message id
       {
         header = (String)splittedLine.elementAt(1);
       }
@@ -173,7 +178,6 @@ public class Mail {
 		return sourceCode;
 	}
 
-	// TODO: String? Is this a boolean, a number, or can be both?
 	public void setHasAttachement(boolean hasAttachement) {
 		this.hasAttachement = hasAttachement;
 	}
@@ -340,7 +344,9 @@ public class Mail {
   }
 
   public boolean getIsSpam() {
-    return isSpam;
+    if(spam.equals("yes"))
+      return true;
+    return false;
   }
 
   /**

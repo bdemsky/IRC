@@ -1,7 +1,7 @@
 public class EphemeralSignature {
   
-  private int serverSeed;
-  private String serverSeparator;
+  int serverSeed;
+  String serverSeparator;
   Random rand;
 
   public EphemeralSignature() {

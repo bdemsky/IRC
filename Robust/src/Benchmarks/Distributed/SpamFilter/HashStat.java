@@ -3,10 +3,10 @@ public class HashStat {
   FilterStatistic[] userstat; 
   int[] listofusers;
   public HashStat() {
-    userid = new int[8]; //max users for our system=8
-    userstat = new FilterStatistic[8];
+    userid = global new int[8]; //max users for our system=8
+    userstat = global new FilterStatistic[8];
     for(int i=0; i<8; i++) {
-      userstat[i] = new FilterStatistic();
+      userstat[i] = global new FilterStatistic();
     }
   }
 
@@ -47,7 +47,7 @@ public class HashStat {
 
   public int[] getUsers() {
     int nusers = numUsers();
-    listofusers = new int[nusers];
+    listofusers = global new int[nusers];
     int j=0;
     for(int i=0; i<8; i++) {
       if(userid[i] == 1) {
