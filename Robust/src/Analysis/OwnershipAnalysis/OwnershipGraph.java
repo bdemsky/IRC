@@ -3116,6 +3116,16 @@ public class OwnershipGraph {
 	    continue;
 	  }
 
+	  if( !isSuperiorType( returnTemp.getType(), hrnChildCallee.getType() ) ) {
+	    // prune	   
+	    continue;
+	  }
+
+	  if( !isSuperiorType( edgeCallee.getType(), hrnCaller.getType() ) ) {
+	    // prune
+	    continue;
+	  }
+	  
 	  TypeDescriptor tdNewEdge =
 	    mostSpecificType( edgeCallee.getType(),
 			      hrnChildCallee.getType(),
@@ -5009,6 +5019,12 @@ public class OwnershipGraph {
     if( td2 == null ) {
       return td1;
     }
+    if( td1.isNull() ) {
+      return td2;
+    }
+    if( td2.isNull() ) {
+      return td1;
+    }
     return typeUtil.mostSpecific( td1, td2 );
   }
   
@@ -5038,7 +5054,12 @@ public class OwnershipGraph {
 	possibleChild == null ) {
       return true;
     }
-    
+
+    if( possibleSuper.isNull() ||
+	possibleChild.isNull() ) {
+      return true;
+    }
+
     return typeUtil.isSuperorType( possibleSuper, possibleChild );
   }
 

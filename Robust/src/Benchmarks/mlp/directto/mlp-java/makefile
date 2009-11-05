@@ -1,10 +1,26 @@
-MAIN_CLASS=D2 #smalltest
+MAIN_CLASS=D2
 
 PROGRAM=test
-SOURCE_FILES=D2.java #smalltest.java
+SOURCE_FILES=D2.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -debug -nooptimize -mainclass $(MAIN_CLASS) -justanalyze -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
+BSFLAGS= -debug -mainclass $(MAIN_CLASS) -joptimize -flatirusermethods #-flatirlibmethods
+
+#DBCALLFLAGS= -owndebugcaller main -owndebugcallee executeAll 
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee executeMessage -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee next -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee hasNext -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee size -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeMessage -owndebugcallee getFlightList -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeMessage -owndebugcallee amendFlightPlan -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee getFlight -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee addFix -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee addFix -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee insertElementAt -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller insertElementAt -owndebugcallee ensureCapacity -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller anyPlanesAlive -owndebugcallee elementAt
+
+ANALYZEFLAGS= -justanalyze $(DBCALLFLAGS) -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
 
 all: $(PROGRAM).bin
 
@@ -18,6 +34,9 @@ DOTs: $(PROGRAM).bin
 
 $(PROGRAM).bin: $(SOURCE_FILES)
 	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
+
+analyze: $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BSFLAGS) $(ANALYZEFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
 
 clean:
 	rm -f  $(PROGRAM).bin
