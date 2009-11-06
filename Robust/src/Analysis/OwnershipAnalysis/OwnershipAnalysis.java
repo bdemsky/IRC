@@ -381,14 +381,14 @@ public class OwnershipAnalysis {
   // for controlling method effects
   private boolean methodEffects;
   
-    //map each FlatNode to its own internal ownership graph
-	private MethodEffectsAnalysis meAnalysis;
+  //map each FlatNode to its own internal ownership graph
+  private MethodEffectsAnalysis meAnalysis;
 	
-	//keep internal ownership graph by method context and flat node
-	private Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>> mapMethodContextToFlatNodeOwnershipGraph;
+  //keep internal ownership graph by method context and flat node
+  private Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>> mapMethodContextToFlatNodeOwnershipGraph;
 	
-	//map method context to a set of allocation sites of live-in vars
-	private Hashtable<MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet;
+  //map method context to a set of allocation sites of live-in vars
+  private Hashtable<MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet;
 
 
 
@@ -505,7 +505,9 @@ public class OwnershipAnalysis {
 	    mapHrnIdToAllocationSite =
 	      new Hashtable<Integer, AllocationSite>();
 	    
-	    mapMethodContextToFlatNodeOwnershipGraph=new Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>>();
+	    if( methodEffects ) {
+	      mapMethodContextToFlatNodeOwnershipGraph=new Hashtable<MethodContext, Hashtable<FlatNode, OwnershipGraph>>();
+	    }
 	    
 	    meAnalysis=new MethodEffectsAnalysis(methodEffects);
 
@@ -1102,14 +1104,16 @@ public class OwnershipAnalysis {
       break;
     }
 
-    
-    Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(mc);
-    if(table==null){
+
+    if( methodEffects ) {
+      Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(mc);
+      if(table==null){
     	table=new     Hashtable<FlatNode, OwnershipGraph>();    	
+      }
+      table.put(fn, og);
+      mapMethodContextToFlatNodeOwnershipGraph.put(mc, table);
     }
-    table.put(fn, og);
-    mapMethodContextToFlatNodeOwnershipGraph.put(mc, table);
-    
+
     return og;
   }
 
@@ -1462,7 +1466,7 @@ public class OwnershipAnalysis {
   // insert a call to debugSnapshot() somewhere in the analysis 
   // to get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String mcDescSymbolDebug = "insertElementAt";
+  String mcDescSymbolDebug = "setRoute";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1536,7 +1540,8 @@ public class OwnershipAnalysis {
   }
   
   public MethodContext getCalleeMethodContext(MethodContext callerMC, FlatCall fc){
-	  
+          assert methodEffects;
+
 	  Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(callerMC);
 	  
 	  // merge previous ownership graph to calculate corresponding method context
