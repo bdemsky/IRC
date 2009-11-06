@@ -327,6 +327,7 @@ public class Bayes extends Thread {
     /** 
       * Parallel work by all threads
       **/
+    long start=System.currentTimeMillis();
 
     Barrier.enterBarrier();
     Learner.createTaskList(0, numThread, learnerPtr);
@@ -335,6 +336,10 @@ public class Bayes extends Thread {
     Barrier.enterBarrier();
     Learner.learnStructure(0, numThread, learnerPtr);
     Barrier.enterBarrier();
+    long stop=System.currentTimeMillis();
+
+    long diff=stop-start;
+    System.out.println("TIME="+diff);
 
     System.out.println("done.");
 

@@ -205,11 +205,10 @@ public class Labyrinth extends Thread{
             lb[i] = new Labyrinth(i,routerArg);
         }
 
-        long start = System.currentTimeMillis();
-
         for(int i = 1; i<labyrinth.numThread;i++) {
             lb[i].start();
         }
+        long start = System.currentTimeMillis();
 
         Barrier.enterBarrier();
         Router.solve(routerArg);        
@@ -217,6 +216,8 @@ public class Labyrinth extends Thread{
 
         /* End of Solve */
         long finish = System.currentTimeMillis();
+	long diff=finish-start;
+	System.out.println("TIME="+diff);
 
 
         int numPathRouted = 0;

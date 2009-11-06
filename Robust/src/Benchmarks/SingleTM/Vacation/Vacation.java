@@ -287,22 +287,20 @@ public class Vacation {
 
     /* Run transactions */
     System.out.println("Running clients... ");
-    start=System.currentTimeMillis();
 
     Barrier.setBarrier(numThread);
 
     for(int i=1;i<numThread;i++) {
       clients[i].start();
     }
-    clients[0].run();
 
-    //    thread_start(client_run, clients);
-    
+    start=System.currentTimeMillis();
+    clients[0].run();
     stop=System.currentTimeMillis();
 
     System.out.print("done.");
     long diff=stop-start;
-    System.out.println("Time = "+diff);
+    System.out.println("TIME="+diff);
     vac.checkTables(managerPtr);
     
     /* Clean up */

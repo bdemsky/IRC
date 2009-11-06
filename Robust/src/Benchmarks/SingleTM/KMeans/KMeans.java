@@ -252,6 +252,7 @@ public class KMeans extends Thread {
 
     System.out.println("Finished Starting threads......");
 
+    long start=System.currentTimeMillis();
     for (int i = 0; i < nloops; i++) {
       /*
        * Since zscore transform may perform in cluster() which modifies the
@@ -270,6 +271,9 @@ public class KMeans extends Thread {
           kms,                    //main class that holds users inputs from command prompt and output arrays that need to be filled
           g_args);                // Global arguments common to all threads
     }
+    long stop=System.currentTimeMillis();
+    long diff=stop-start;
+    System.out.println("TIME="+diff);
 
     System.out.println("Printing output......");
     System.out.println("Best_nclusters= " + kms.best_nclusters);

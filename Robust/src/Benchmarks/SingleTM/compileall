@@ -18,3 +18,19 @@ cd ..
 cd Intruder
 make &
 cd ..
+
+cd Bayes
+make &
+cd ..
+
+cd Vacation
+make &
+cd ..
+
+cd Yada
+make &
+cd ..
+
+cd LeeRouting
+make &
+cd ..

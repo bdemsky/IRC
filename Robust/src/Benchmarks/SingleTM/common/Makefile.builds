@@ -1,7 +1,13 @@
-default: lock basestm lockjopt stmjopt stmopt fission
+default: lockjopt stmopt fission debug fissionarray dv
 
 lock: prep
 	../../../buildscript ${FLAGSLOCKNOJ} -o LOCKNOJ${MAINCLASS} ${SRC}
+
+lockprof: prep
+	../../../buildscript ${FLAGSLOCKPROF} -o LOCKPROF${MAINCLASS} ${SRC}
+
+lockprofo0: prep
+	../../../buildscript ${FLAGSLOCKPROFO0} -o LOCKPROFO0${MAINCLASS} ${SRC}
 
 basestm: prep
 	../../../buildscript ${FLAGSSTMNOJ} -o STMNOJ${MAINCLASS} ${SRC}
@@ -17,6 +23,12 @@ stmopt: prep
 
 fission: prep
 	../../../buildscript ${FLAGSFISSION} -o FIS${MAINCLASS} ${SRC}
+
+fissionarray: prep
+	../../../buildscript ${FLAGSFISSIONARRAY} -o FISAR${MAINCLASS} ${SRC}
+
+dv: prep
+	../../../buildscript ${FLAGSDV} -o DV${MAINCLASS} ${SRC}
 
 debug: prep
 	../../../buildscript ${FLAGSDEBUG} -o DEB${MAINCLASS} ${SRC}

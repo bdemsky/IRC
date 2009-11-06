@@ -52,7 +52,7 @@ public class ComputeGraph {
   public int global_maxNumVertices;
   public int global_outVertexListSize;
   public int[][] global_impliedEdgeList;
-  public Objectwrapper[] global_auxArr;
+  public int[][] global_auxArr;
 
   public ComputeGraph() {
     global_p                 = null;
@@ -121,7 +121,7 @@ public class ComputeGraph {
     }
 
   public void
-    prefix_sumsin (int myId, int numThread, int[] result, intwrapper[] input, int arraySize)
+    prefix_sumsin (int myId, int numThread, int[] result, int[] input, int arraySize)
     {
       int[]  p;
       if (myId == 0) {
@@ -401,7 +401,7 @@ public class ComputeGraph {
       if (myId == 0) {
 	SDGdataPtr.startVertex = null;
 	SDGdataPtr.endVertex = null;
-	GPtr.inDegree = new intwrapper[GPtr.numVertices];
+	GPtr.inDegree = new int[GPtr.numVertices];
 	GPtr.inVertexIndex = new int[GPtr.numVertices];
       }
 
@@ -449,9 +449,9 @@ public class ComputeGraph {
        * MAX_CLUSTER_SIZE
        */
 
-      Objectwrapper[] auxArr;
+      int[][] auxArr;
       if (myId == 0) {
-        auxArr = new Objectwrapper[GPtr.numVertices];
+        auxArr = new int[GPtr.numVertices][];
         computeGraphArgs.global_auxArr = auxArr;
       }
 
@@ -488,7 +488,7 @@ public class ComputeGraph {
 		  a = new int[MAX_CLUSTER_SIZE];
 		  auxArr[v] = a;
                 } else {
-		  a = (int[]) auxArr[v];
+		  a = auxArr[v];
                 }
                 a[inDegree % MAX_CLUSTER_SIZE] = i;
               }
@@ -521,7 +521,7 @@ public class ComputeGraph {
               impliedEdgeList[i][j-GPtr.inVertexIndex[i]];
           } else {
 	    GPtr.inVertexList[j] =
-	      ((int[])auxArr[i])[(j-GPtr.inVertexIndex[i]) % MAX_CLUSTER_SIZE];
+	      (auxArr[i])[(j-GPtr.inVertexIndex[i]) % MAX_CLUSTER_SIZE];
           }
         }
       }

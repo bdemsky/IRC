@@ -107,11 +107,14 @@ public class Genome extends Thread {
     for(int i = 1; i<g.numThread; i++) {
       gn[i].start();
     }
-
+    
+    long start=System.currentTimeMillis();
     Barrier.enterBarrier();
     Sequencer.run(0, g.numThread, g.randomPtr, g.sequencerPtr); 
     Barrier.enterBarrier();
-
+    long stop=System.currentTimeMillis();
+    long diff=stop-start;
+    System.out.println("TIME="+diff);
 
     System.out.println("done.");
 

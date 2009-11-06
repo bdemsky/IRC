@@ -152,7 +152,7 @@ wc:
 	wc Interface/*.java Analysis/*/*.java IR/*.java IR/*/*.java Lex/*.java Util/*.java ClassLibrary/*.java
 
 wcrun:
-	wc Runtime/*.[c,h] Runtime/DSTM/interface/*.[c,h]
+	wc Runtime/*.[c,h] Runtime/DSTM/interface/*.[c,h] Runtime/STM/*.[c,h]
 
 Parse/Parser.java Parse/Sym.java: Parse/java14.cup
 	cd Parse && \

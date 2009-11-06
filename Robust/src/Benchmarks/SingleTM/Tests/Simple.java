@@ -15,7 +15,7 @@ public class Simple extends Thread {
   public static void main(String[] args) {
     Simple[] s;
     Counting c;
-    int numthreads = 32;
+    int numthreads = 2;
 
     atomic {
       c = new Counting();

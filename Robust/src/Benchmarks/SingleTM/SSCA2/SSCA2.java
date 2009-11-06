@@ -227,7 +227,7 @@ public class SSCA2 extends Thread {
     parallel_work_computeGraph(nthreads, glb, computeGraphArgs);
     stoptime=System.currentTimeMillis();
     System.out.println("\n\tcomputeGraph() completed execution.\n");
-    System.out.println("Time="+(stoptime-starttime));
+    System.out.println("TIME="+(stoptime-starttime));
 #endif
 
 #ifdef ENABLE_KERNEL2

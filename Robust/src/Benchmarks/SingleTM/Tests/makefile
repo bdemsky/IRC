@@ -1,7 +1,10 @@
 MAINCLASS=Simple
 SRC=${MAINCLASS}.java
-default:
-	../../../buildscript -singleTM -optimize -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
+
+include ../common/Makefile.flags
+include ../common/Makefile.builds
+
+prep:
 
 clean:
 	rm -rf tmpbuilddirectory

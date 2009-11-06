@@ -300,21 +300,21 @@ public class Intruder extends Thread {
         }
         in.threadID = 0;
 
-        long start = System.currentTimeMillis();
 
         for(i = 1; i< in.numThread;i++) {
             intruders[i].start();
         }
 
+        long start = System.currentTimeMillis();
+
         Barrier.enterBarrier();
         in.processPackets(in.argument);
         Barrier.enterBarrier();
 
-
         long finish = System.currentTimeMillis();
         long elapsed = finish - start;
 
-        System.out.println("Elapsed time        = " + (float)(elapsed)/1000);
+        System.out.println("TIME=" + elapsed);
 
         // finish
         //

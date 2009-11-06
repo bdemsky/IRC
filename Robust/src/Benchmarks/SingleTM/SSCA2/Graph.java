@@ -14,7 +14,7 @@ public class Graph {
   public int[] outVertexList;
   public int[] paralEdgeIndex;
 
-  public intwrapper[] inDegree;
+  public int[] inDegree;
   public int[] inVertexIndex;
   public int[] inVertexList;
 

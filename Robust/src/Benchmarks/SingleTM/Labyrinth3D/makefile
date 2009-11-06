@@ -20,12 +20,12 @@ include ../common/Makefile.flags
 include ../common/Makefile.builds
 
 prep:
-	cpp ${MAINCLASS}.java > tmp${MAINCLASS}.java
-	cpp Grid.java	> tmpGrid.java
-	cpp Router.java > tmpRouter.java
-	cpp Maze.java > tmpMaze.java
-	cpp Queue_t.java > tmpQueue_t.java
-	cpp Queue_Int.java > tmpQueue_Int.java
+	cpp -P ${MAINCLASS}.java > tmp${MAINCLASS}.java
+	cpp -P Grid.java	> tmpGrid.java
+	cpp -P Router.java > tmpRouter.java
+	cpp -P Maze.java > tmpMaze.java
+	cpp -P Queue_t.java > tmpQueue_t.java
+	cpp -P Queue_Int.java > tmpQueue_Int.java
 	./extractLines tmp${MAINCLASS}.java
 	./extractLines tmpGrid.java
 	./extractLines tmpRouter.java
