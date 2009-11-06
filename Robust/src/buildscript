@@ -490,7 +490,7 @@ else
 #if ! ${ROBUSTROOT}/ourjava -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 if ! $NOJAVA
 then
-if ! ${ROBUSTROOT}/ourjava -Xms150m -Xmx2500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
