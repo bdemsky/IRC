@@ -108,6 +108,40 @@ public class DelayComputation {
     }
   }
 
+  public HashSet<FlatNode> computeWriteSet(LocalityBinding lb) {
+    HashSet<FlatNode> writeset=new HashSet<FlatNode>();
+    Set<FlatNode> storeset=livecode(lb);
+    HashSet<FlatNode> delayedset=getNotReady(lb);
+    Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap=dcopts.getMap(lb);
+    for(Iterator<FlatNode> fnit=delayedset.iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      Hashtable<TempDescriptor, Set<TempFlatPair>> tempmap=fnmap.get(fn);
+      if (fn.kind()==FKind.FlatSetElementNode) {
+	FlatSetElementNode fsen=(FlatSetElementNode) fn;
+	Set<TempFlatPair> tfpset=tempmap.get(fsen.getDst());
+	if (tfpset!=null) {
+	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	    TempFlatPair tfp=tfpit.next();
+	    if (storeset.contains(tfp.f))
+	      writeset.add(tfp.f);
+	  }
+	}
+      } else if (fn.kind()==FKind.FlatSetFieldNode) {
+	FlatSetFieldNode fsfn=(FlatSetFieldNode) fn;
+	Set<TempFlatPair> tfpset=tempmap.get(fsfn.getDst());
+	if (tfpset!=null) {
+	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	    TempFlatPair tfp=tfpit.next();
+	    if (storeset.contains(tfp.f))
+	      writeset.add(tfp.f);
+	  }
+	}
+      }
+    }
+    return writeset;
+  }
+
+
   public HashSet<FlatNode> getNotReady(LocalityBinding lb) {
     return notreadymap.get(lb);
   }

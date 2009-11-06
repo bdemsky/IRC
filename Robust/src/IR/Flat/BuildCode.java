@@ -19,6 +19,7 @@ import Analysis.TaskStateAnalysis.TaskIndex;
 import Analysis.Locality.LocalityAnalysis;
 import Analysis.Locality.LocalityBinding;
 import Analysis.Locality.DiscoverConflicts;
+import Analysis.Locality.DCWrapper;
 import Analysis.Locality.DelayComputation;
 import Analysis.Locality.BranchAnalysis;
 import Analysis.CallGraph.CallGraph;
@@ -70,9 +71,8 @@ public class BuildCode {
   WriteBarrier wb;
   DiscoverConflicts dc;
   DiscoverConflicts recorddc;
-  DelayComputation delaycomp;
+  DCWrapper delaycomp;
   CallGraph callgraph;
-  boolean versionincrement;
 
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
@@ -118,8 +118,7 @@ public class BuildCode {
       //TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
       TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
       GlobalFieldType gft=new GlobalFieldType(callgraph, st, typeutil.getMain());
-      delaycomp=new DelayComputation(locality, st, typeanalysis, gft);
-      delaycomp.doAnalysis();
+      delaycomp=new DCWrapper(locality, st, typeanalysis, gft);
       dc=delaycomp.getConflicts();
       recorddc=new DiscoverConflicts(locality, st, typeanalysis, delaycomp.getCannotDelayMap(), true, true, null);
       recorddc.doAnalysis();
@@ -184,6 +183,7 @@ public class BuildCode {
     if (state.SINGLETM) {
       outmethodheader.println("#include \"tm.h\"");
       outmethodheader.println("#include \"delaycomp.h\"");
+      outmethodheader.println("#include \"inlinestm.h\"");
     }
     if (state.ABORTREADERS) {
       outmethodheader.println("#include \"abortreaders.h\"");
@@ -643,6 +643,9 @@ public class BuildCode {
     }
     if (state.ARRAYPAD)
       outclassdefs.println("  int paddingforarray;");
+    if (state.DUALVIEW) {
+      outclassdefs.println("  int arrayversion;");
+    }
 
     outclassdefs.println("  int ___length___;");
     outclassdefs.println("};\n");
@@ -1594,7 +1597,8 @@ public class BuildCode {
       for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
 	FlatNode fn=fnit.next();
 	if (fn.kind()==FKind.FlatAtomicEnterNode&&
-	    locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0) {
+	    locality.getAtomic(lb).get(fn.getPrev(0)).intValue()==0&&
+	    delaycomp.needsFission(lb, (FlatAtomicEnterNode) fn)) {
 	  //We have an atomic enter
 	  FlatAtomicEnterNode faen=(FlatAtomicEnterNode) fn;
 	  Set<FlatNode> exitset=faen.getExits();
@@ -1661,11 +1665,7 @@ public class BuildCode {
 	  //turn off write barrier generation
 	  wb.turnoff();
 	  state.SINGLETM=false;
-	  if (state.DUALVIEW)
-	    versionincrement=true;
 	  generateCode(faen, fm, lb, exitset, output, false);
-	  if (state.DUALVIEW)
-	    versionincrement=false;
 	  state.SINGLETM=true;
 	  //turn on write barrier generation
 	  wb.turnon();
@@ -2097,12 +2097,9 @@ public class BuildCode {
 
     // initialize thread-local var to a non-zero, invalid address
     output.println("   seseCaller = (SESEcommon*) 0x2;");
-
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);    
-
     generateCode(fsen.getNext(0), fm, null, exitset, output, true);
-    
     output.println("}\n\n");
   }
 
@@ -2405,7 +2402,7 @@ public class BuildCode {
       else
 	type=elementtype.getSafeSymbol()+" ";
       if (firstpass) {
-	output.println("STOREARRAY("+src+","+index+","+type+");");
+	output.println("STOREARRAY("+src+","+index+","+type+")");
       } else {
 	output.println("{");
 	output.println("  struct ArrayObject *array;");
@@ -2996,7 +2993,7 @@ public class BuildCode {
       output.println("counter_reset_pointer=&atomiccounter"+sandboxcounter+";");
     }
 
-    if (state.DELAYCOMP) {
+    if (state.DELAYCOMP&&delaycomp.needsFission(lb, faen)) {
       AtomicRecord ar=atomicmethodmap.get(faen);
       //copy in
       for(Iterator<TempDescriptor> tmpit=ar.livein.iterator();tmpit.hasNext();) {
@@ -3066,23 +3063,13 @@ public class BuildCode {
     if (locality.getAtomic(lb).get(faen).intValue()>0)
       return;
     //store the revert list before we lose the transaction object
-    String revertptr=null;
-    if (state.DSM) {
-      revertptr=generateTemp(fm, reverttable.get(lb),lb);
-      output.println(revertptr+"=revertlist;");
-    }
-    if (state.DELAYCOMP) {
-      AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
-
-      //do call
-      output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+")) {");
-    } else
-      output.println("if (transCommit()) {");
-    /* Transaction aborts if it returns true */
-    output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
     
-    output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
     if (state.DSM) {
+      String revertptr=generateTemp(fm, reverttable.get(lb),lb);
+      output.println(revertptr+"=revertlist;");
+      output.println("if (transCommit()) {");
+      output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+      output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
       output.println("} else {");
       /* Need to commit local object store */
       output.println("while ("+revertptr+") {");
@@ -3091,17 +3078,46 @@ public class BuildCode {
       output.println("COMMIT_OBJ("+revertptr+");");
       output.println(revertptr+"=tmpptr;");
       output.println("}");
-    }
-    output.println("}");
-    if (state.DELAYCOMP) {
-      //copy out
-      AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
-      output.println("else {");
-      for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator();tmpit.hasNext();) {
-	TempDescriptor tmp=tmpit.next();
-	output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
-      }
       output.println("}");
+      return;
+    }
+
+    if (!state.DELAYCOMP) {
+      //Normal STM stuff
+      output.println("if (transCommit()) {");
+      /* Transaction aborts if it returns true */
+      output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+      output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
+      output.println("}");
+    } else {
+      if (delaycomp.optimizeTrans(lb, faen.getAtomicEnter())&&(!state.STMARRAY||state.DUALVIEW))  {
+	AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
+	output.println("LIGHTWEIGHTCOMMIT("+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+", transretry"+faen.getAtomicEnter().getIdentifier()+");");
+	//copy out
+	for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator();tmpit.hasNext();) {
+	  TempDescriptor tmp=tmpit.next();
+	  output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
+	}
+      } else if (delaycomp.needsFission(lb, faen.getAtomicEnter())) {
+	AtomicRecord ar=atomicmethodmap.get(faen.getAtomicEnter());
+	//do call
+	output.println("if (transCommit((void (*)(void *, void *, void *))&"+ar.name+", &primitives_"+ar.name+", &"+localsprefix+", "+paramsprefix+")) {");
+	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+	output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
+	output.println("}");
+	//copy out
+	output.println("else {");
+	for(Iterator<TempDescriptor> tmpit=ar.liveout.iterator();tmpit.hasNext();) {
+	  TempDescriptor tmp=tmpit.next();
+	  output.println(tmp.getSafeSymbol()+"=primitives_"+ar.name+"."+tmp.getSafeSymbol()+";");
+	}
+	output.println("}");
+      } else {
+	output.println("if (transCommit(NULL, NULL, NULL, NULL)) {");
+	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+	output.println("goto transretry"+faen.getAtomicEnter().getIdentifier()+";");
+	output.println("}");
+      }
     }
   }
 
@@ -3816,7 +3832,8 @@ public class BuildCode {
     if (state.SINGLETM) {
       //Single machine transaction case
       String dst=generateTemp(fm, fen.getDst(),lb);
-      if ((!state.STMARRAY)||(!wb.needBarrier(fen))||locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())==LocalityAnalysis.SCRATCH||locality.getAtomic(lb).get(fen).intValue()==0) {
+      if ((!state.STMARRAY)||(!wb.needBarrier(fen))||locality.getNodePreTempInfo(lb, fen).get(fen.getSrc())==LocalityAnalysis.SCRATCH||locality.getAtomic(lb).get(fen).intValue()==0||
+	  (state.READSET&&!dc.getNeedGet(lb, fen))) {
 	output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
       } else {
 	output.println("STMGETARRAY("+dst+", "+ generateTemp(fm,fen.getSrc(),lb)+", "+generateTemp(fm, fen.getIndex(),lb)+", "+type+");");
@@ -3950,9 +3967,6 @@ public class BuildCode {
 	output.println("}");
       }
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
-    }
-    if (versionincrement) {
-      output.println("VERSIONINCREMENT("+generateTemp(fm, fsen.getDst(),lb)+","+generateTemp(fm, fsen.getIndex(),lb)+","+type+");");
     }
   }
 

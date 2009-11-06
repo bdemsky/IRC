@@ -123,6 +123,8 @@ public class Main {
 	state.STMARRAY=true;
       else if (option.equals("-dualview"))
 	state.DUALVIEW=true;
+      else if (option.equals("-hybrid"))
+	state.HYBRID=true;
       else if (option.equals("-flatirtasks")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHTASKS=true;

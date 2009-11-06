@@ -11,6 +11,8 @@ echo -dcopts conflict optimizations for transactional memory
 echo -transstats generates transaction stats on commits and aborts
 echo -inlineatomic depth inline methods inside of transactions to specified depth
 echo "-stmarray partial array treatment"
+echo "-dualview dual view of arrays"
+echo "-hybrid use fission only when it looks like a good choice"
 echo
 echo DSM options
 echo -dsm distributed shared memory
@@ -89,6 +91,7 @@ DSMFLAG=false
 DSMRECOVERY=false
 FASTMEMCPY=false
 STMARRAY=false
+DUALVIEW=false
 STM=false
 NOJAVA=false
 CHECKFLAG=false
@@ -208,6 +211,11 @@ then
 JAVAOPTS="$JAVAOPTS -stmarray"
 EXTRAOPTIONS="$EXTRAOPTIONS -DSTMARRAY"
 STMARRAY=true
+elif [[ $1 = '-dualview' ]]
+then
+JAVAOPTS="$JAVAOPTS -dualview"
+EXTRAOPTIONS="$EXTRAOPTIONS -DDUALVIEW"
+DUALVIEW=true
 elif [[ $1 = '-readset' ]]
 then
 JAVAOPTS="$JAVAOPTS -readset"
@@ -330,6 +338,10 @@ elif [[ $1 = '-delaycomp' ]]
 then
 JAVAOPTS="$JAVAOPTS -delaycomp"
 EXTRAOPTIONS="$EXTRAOPTIONS -DDELAYCOMP"
+elif [[ $1 = '-hybrid' ]]
+then
+JAVAOPTS="$JAVAOPTS -hybrid"
+EXTRAOPTIONS="$EXTRAOPTIONS -DHYBRID"
 elif [[ $1 = '-minimize' ]]
 then
 JAVAOPTS="$JAVAOPTS -minimize"
@@ -380,7 +392,7 @@ then
 EXTRAOPTIONS="$EXTRAOPTIONS -O0"
 elif [[ $1 = '-optimize' ]]
 then
-EXTRAOPTIONS="$EXTRAOPTIONS -O9"
+EXTRAOPTIONS="$EXTRAOPTIONS -O3"
 elif [[ $1 = '-thread' ]]
 then
 JAVAOPTS="$JAVAOPTS -thread"
@@ -472,7 +484,7 @@ else
 #if ! ${ROBUSTROOT}/ourjava -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 if ! $NOJAVA
 then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! ${ROBUSTROOT}/ourjava -Xms150m -Xmx2500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?

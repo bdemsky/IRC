@@ -173,7 +173,7 @@ public class DCWrapper {
     for(Iterator<FlatNode> fnit=checkset.iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
       //needs transread
-      if (!state.READSET&&dc.getNeedTrans(lb, fn)||state.READSET&&dc.getNeedWriteTrans(lb, fn)) {
+      if (!state.READSET&&dc.getNeedTrans(lb, fn)||state.READSET&&dc.getNeedWriteTrans(lb, fn)||fn.kind()==FKind.FlatCall) {
 	System.out.println("False because"+fn);
 	if (!state.HYBRID)
 	  return true;

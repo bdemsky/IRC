@@ -47,25 +47,15 @@ extern __thread struct arraylist arraystack;
 
 #define RESTOREARRAY(x,z) {x=arraystack.array[arraystack.maxcount];z=arraystack.index[arraystack.maxcount++];}
 
-#define STOREARRAY(x,z,t) {void * y=COMPOID(x); int ii=z;arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=ii; dc_t_chashInsertOnceArray(y,(ii*sizeof(t))>>INDEXSHIFT,y);}
-
-#define STOREARRAYNOLOCK(x,z) {void * y=COMPOID(x); arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z;}
-
-#define STOREARRAYNOTRANS(x,z,t) {void * y=x; int ii=z; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=ii; dc_t_chashInsertOnceArray(y,(ii*sizeof(t))>>INDEXSHIFT,y);}
-
-#define STOREARRAYNOLOCKNOTRANS(x,z) {void * y=x; arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=z; }
+#define STOREARRAY(x,z,t) {void * y=COMPOID(x); int ii=z;arraystack.array[arraystack.count]=y; arraystack.index[arraystack.count++]=ii; dc_t_chashInsertOnceArray(y,(ii*sizeof(t))>>INDEXSHIFT);}
 
 //Pointers
 
 #define RESTOREPTR(x) x=ptrstack.array[ptrstack.maxcount++];
 
-#define STOREPTR(x) {void * y=COMPOID(x); ptrstack.array[ptrstack.count++]=y; dc_t_chashInsertOnce(y,y);}
+#define STOREPTR(x) {void * y=COMPOID(x); ptrstack.array[ptrstack.count++]=y; dc_t_chashInsertOnce(y);}
 
 #define STOREPTRNOLOCK(x) {void * y=COMPOID(x); ptrstack.array[ptrstack.count++]=y; }
-
-#define STOREPTRNOTRANS(x) {void * y=x; ptrstack.array[ptrstack.count++]=y; dc_t_chashInsertOnce(y,y);}
-
-#define STOREPTRNOLOCKNOTRANS(x) {void * y=x; ptrstack.array[ptrstack.count++]=y; }
 
 //Branches
 

@@ -1,13 +1,20 @@
 #ifndef INLINESTM_H
 #define INLINESTM_H
-#ifdef DELAYCOMP
+#if defined(DELAYCOMP)&&(!defined(STMARRAY)||defined(DUALVIEW))
 
 #ifndef READSET
 #define CHECKREADS(x) 0
 #endif
 
+#ifdef TRANSSTATS
+#define TRANSWRAP(x) x
+#else
+#define TRANSWRAP(x)
+#endif
+
 #define LIGHTWEIGHTCOMMIT(commitmethod, primitives, locals, params, label) \
   if (GETLOCKS()||CHECKREADS()) {					\
+    TRANSWRAP(numTransAbort++;);					\
     if (unlikely(needtocollect)) checkcollect(&___locals___);		\
     goto label;								\
   }									\
@@ -16,7 +23,9 @@
   branchstack.count=0;							\
   commitmethod(params, locals, primitives);				\
   RELEASELOCKS();							\
-  FREELIST();
+  FREELIST();								\
+  TRANSWRAP(numTransCommit++;);
+
 
 #ifdef READSET
 static inline int CHECKREADS() {
@@ -119,9 +128,12 @@ static inline void RELEASELOCKS() {
     objheader_t *header=&((objheader_t *)objptr)[-1];
 #ifdef STMARRAY
     if (objptr->type>=NUMCLASSES) {
+      ((struct ArrayObject *)objptr)->arrayversion++;
+      header->version++;
       rwwrite_unlock(&header->lock);
     } else {
 #endif
+      header->version++;
       write_unlock(&header->lock);
 #ifdef STMARRAY
     }

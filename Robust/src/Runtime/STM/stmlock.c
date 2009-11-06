@@ -2,10 +2,6 @@
 #include <stdio.h>
 
 
-inline void initdsmlocks(volatile unsigned int *addr) {
-  (*addr) = SWAP_LOCK_BIAS;
-}
-
 /*
 int write_trylock(volatile unsigned int *lock) {
   int retval=0;

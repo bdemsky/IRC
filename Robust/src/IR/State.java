@@ -101,6 +101,7 @@ public class State {
   public boolean DCOPTS=false;
   public boolean DELAYCOMP=false;
   public boolean DUALVIEW=false;
+  public boolean HYBRID=false;
   //Other options
   public int CORENUM = 1;
   public String structfile;

@@ -96,7 +96,6 @@ typedef struct dchashlistnode {
 #if defined(STMARRAY)&&!defined(DUALVIEW)
   unsigned int intkey;
 #endif
-  void * val;     //this can be cast to another type or used to point to a larger structure
   struct dchashlistnode *next;
   struct dchashlistnode *lnext;
 } dchashlistnode_t;
@@ -118,8 +117,8 @@ extern __thread double dc_c_loadfactor;
 extern __thread dcliststruct_t *dc_c_structs;
 
 void dc_t_chashCreate(unsigned int size, double loadfactor);
-void dc_t_chashInsertOnce(void * key, void *val);
-void * dc_t_chashSearch(void * key);
+void dc_t_chashInsertOnce(void * key);
+int dc_t_chashSearch(void * key);
 unsigned int dc_t_chashResize(unsigned int newsize);
 void dc_t_chashDelete();
 void dc_t_chashreset();

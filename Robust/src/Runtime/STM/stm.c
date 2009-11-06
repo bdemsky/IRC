@@ -40,24 +40,30 @@ int nSoftAbortCommit = 0;
 int nSoftAbortAbort = 0;
 #endif
 
-void * A_memcpy (void * dest, const void * src, size_t count) {
-  int off=0;
+void A_memcpy (void * dest, const void * src, size_t count) {
+#if 0
+  const char *p=src;
+  char *q=dest;
+  size_t nq=count>>3;
+  asm volatile("cld; rep; movsq; mov %3, %%ecx; rep; movsb":"+c"(nq), "+S"(p), "+D"(q):"r"((unsigned int)(count&7)));
+#else
   INTPTR *desti=(INTPTR *)dest;
   INTPTR *srci=(INTPTR *)src;
 
   //word copy
-  while(count>=sizeof(INTPTR)) {
-    desti[off]=srci[off];
-    off+=1;
-    count-=sizeof(INTPTR);
+  int count2=count>>INTPTRSHIFT;
+  for(;0<count2;count2--) {
+    *desti++=*srci++;
   }
-  off*=sizeof(INTPTR);
   //byte copy
-  while(count>0) {
-    ((char *)dest)[off]=((char *)src)[off];
-    off++;
-    count--;
+  count=count&(sizeof(INTPTR)-1);
+
+  char *dstc=(char *)desti;
+  char *srcc=(char *)srci;
+  for(;0<count;count--) {
+    *dstc++=*srcc++;
   }
+#endif
 }
 
 /* ==================================================

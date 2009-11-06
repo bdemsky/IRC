@@ -70,10 +70,10 @@ void rd_t_chashreset() {
 void rd_t_chashInsertOnce(void * key, unsigned int version) {
   rdchashlistnode_t *ptr;
 
-  if (key==NULL)
+  if (unlikely(key==NULL))
     return;
 
-  if(rd_c_numelements > (rd_c_threshold)) {
+  if(unlikely(rd_c_numelements > (rd_c_threshold))) {
     //Resize
     unsigned int newsize = rd_c_size << 1;
     rd_t_chashResize(newsize);
@@ -258,7 +258,7 @@ void dc_t_chashreset() {
 }
 
 //Store objects and their pointers into hash
-void dc_t_chashInsertOnce(void * key, void *val) {
+void dc_t_chashInsertOnce(void * key) {
   dchashlistnode_t *ptr;
 
   if (unlikely(key==NULL)) {
@@ -270,11 +270,9 @@ void dc_t_chashInsertOnce(void * key, void *val) {
     unsigned int newsize = dc_c_size << 1;
     dc_t_chashResize(newsize);
   }
-
   ptr = &dc_c_table[(((unsigned INTPTR)key)&dc_c_mask)>>4];
   if(likely(ptr->key==0)) {
     ptr->key=key;
-    ptr->val=val;
 #if defined(STMARRAY)&&!defined(DUALVIEW)
     ptr->intkey=-1;
 #endif
@@ -309,7 +307,6 @@ void dc_t_chashInsertOnce(void * key, void *val) {
     node->intkey=-1;
 #endif
     node->key = key;
-    node->val = val;
     node->next = ptr->next;
     ptr->next=node;
     node->lnext=dc_c_list;
@@ -319,7 +316,7 @@ void dc_t_chashInsertOnce(void * key, void *val) {
 
 #if defined(STMARRAY)&&!defined(DUALVIEW)
 //Store objects and their pointers into hash
-void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
+void dc_t_chashInsertOnceArray(void * key, unsigned int intkey) {
   dchashlistnode_t *ptr;
 
   if (unlikely(key==NULL))
@@ -336,7 +333,6 @@ void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
   if(ptr->key==0) {
     ptr->key=key;
     ptr->intkey=intkey;
-    ptr->val=val;
     ptr->lnext=dc_c_list;
     dc_c_list=ptr;
     dc_c_numelements++;
@@ -366,7 +362,6 @@ void dc_t_chashInsertOnceArray(void * key, unsigned int intkey, void *val) {
     }
     node->key = key;
     node->intkey = intkey;
-    node->val = val;
     node->next = ptr->next;
     ptr->next=node;
     node->lnext=dc_c_list;
@@ -423,7 +418,6 @@ unsigned int dc_t_chashResize(unsigned int newsize) {
 #if defined(STMARRAY)&!defined(DUALVIEW)
 	tmp->intkey = intkey;
 #endif
-	tmp->val = curr->val;
 	tmp->lnext=dc_c_list;
 	dc_c_list=tmp;
       } /*
@@ -468,34 +462,34 @@ void dc_t_chashDelete() {
 }
 
 // Search for an address for a given oid
-INLINE void * dc_t_chashSearch(void * key) {
+INLINE int dc_t_chashSearch(void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
   dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>4];
   
   do {
     if(node->key == key) {
-      return node->val;
+      return 1;
     }
     node = node->next;
   } while(node != NULL);
 
-  return NULL;
+  return 0;
 }
 
 #if defined(STMARRAY)&!defined(DUALVIEW)
 // Search for an address for a given oid
-INLINE void * dc_t_chashSearchArray(void * key, unsigned int intkey) {
+INLINE int dc_t_chashSearchArray(void * key, unsigned int intkey) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
   dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key^intkey) & dc_c_mask)>>4];
   
   do {
     if(node->key == key && node->intkey==intkey) {
-      return node->val;
+      return 1;
     }
     node = node->next;
   } while(node != NULL);
 
-  return NULL;
+  return 0;
 }
 #endif
 
@@ -513,7 +507,11 @@ void t_chashCreate(unsigned int size, double loadfactor) {
   c_loadfactor = loadfactor;
   c_size = size;
   c_threshold=size*loadfactor;
-  c_mask = (size << 4)-1;
+#ifdef BIT64
+  c_mask = ((size << 4)-1)&~(15UL);
+#else
+  c_mask = ((size << 4)-1)&~15;
+#endif
   c_structs=calloc(1, sizeof(cliststruct_t));
   c_numelements = 0; // Initial number of elements in the hash
   c_list=NULL;

@@ -16,7 +16,9 @@
   ".previous\n"                   \
   "661:\n\tlock; "
 
-void initdsmlocks(volatile unsigned int *addr);
+static inline initdsmlocks(volatile unsigned int *addr) {
+  (*addr) = SWAP_LOCK_BIAS;
+}
 //int write_trylock(volatile unsigned int *lock);
 //void write_unlock(volatile unsigned int *lock);
 
@@ -79,20 +81,34 @@ static inline int atomic_sub_and_test(int i, volatile unsigned int *v) {
   return c;
 }
 
+static inline unsigned long cas(volatile unsigned int* ptr) {
+  unsigned int prev;
+  __asm__ __volatile__("lock;"
+		       "cmpxchgl %1, %2;"
+		       : "=a"(prev)
+		       : "r"(0), "m"(*ptr), "a"(RW_LOCK_BIAS)
+		       : "memory");
+  return prev==RW_LOCK_BIAS;
+}
+
+
 #define atomic_read(v)          (*v)
 
 static inline int rwread_trylock(volatile unsigned int  *lock) {
   atomic_dec(lock);
-  if (likely(atomic_read(lock) >= 0))
+  if (likely(atomic_read(lock) >=0 ))
     return 1; //can aquire a new read lock
   atomic_inc(lock);
   return 0; //failure
 }
 
 static inline int rwwrite_trylock(volatile unsigned int  *lock) {
-  if (likely(atomic_sub_and_test(RW_LOCK_BIAS, lock))) {
-    return 1; // get a write lock
+  if (likely(cas(lock))) {
+    return 1;
   }
+  //  if (likely(atomic_sub_and_test(RW_LOCK_BIAS, lock))) {
+  // return 1; // get a write lock
+  //}
   atomic_add(RW_LOCK_BIAS, lock);
   return 0; // failed to acquire a write lock
 }

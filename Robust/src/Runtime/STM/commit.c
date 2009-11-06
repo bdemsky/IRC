@@ -299,8 +299,11 @@ int transCommit() {
   ABORT
 
 #ifdef DUALVIEW
-#define DVGETLOCK(x) if (!addwrobject) {				\
-    unsigned int * objlock=&(&((objheader_t *)x)[-1])->lock;		\
+/* Try to grab object lock...If we get it, check object access
+   version and abort on mismatch */
+  
+#define DVGETLOCK if (!addwrobject) {				\
+    unsigned int * objlock=&(&((objheader_t *)mainao)[-1])->lock;	\
     if(!rwread_trylock(objlock)) {					\
       ABORT;								\
     }									\
@@ -311,19 +314,27 @@ int transCommit() {
     rwread_unlock(objlock);						\
   }
 
-//not finished...if we can't get the lock, it is okay if it is in our access set
+/*not finished...if we can't get the lock, it is okay if it is in our
+    access set*/
+
 #define DVCHECKLOCK(x)							\
   unsigned int * objlock=&(&((objheader_t *)x)[-1])->lock;		\
   if (objlock<=0) {							\
-    if (dc_t_chashSearch(x)==NULL) {					\
+    if (!dc_t_chashSearch(x)) {						\
       ABORTREAD;							\
     }									\
   }
+
+#define DVSETINDEX							\
+  dirwrindex[numoidwrlocked]=-1;
+
 #else
-#define DVGETLOCK(x)
+#define DVSETINDEX
+#define DVGETLOCK
 #define DVCHECKLOCK(x)
 #define DVRELEASELOCK(x)
 #endif
+
 
 #if defined(DELAYCOMP)&&!defined(DUALVIEW)
 #define READCHECK							\
@@ -343,6 +354,9 @@ int transCommit() {
 #define READCHECK
 #endif
 
+  /* This code checks arrays to try to lock them if dirty or check
+     later if they were only read. */
+
 #define PROCESSARRAY							\
   int type=((int *)cachedobj)[0];					\
   if (type>=NUMCLASSES) {						\
@@ -356,7 +370,7 @@ int transCommit() {
       unsigned int status;						\
       GETLOCKVAL(status, transao, j);					\
       if (status==STMDIRTY) {						\
-	DVGETLOCK(mainao);						\
+	DVGETLOCK;							\
 	unsigned int * lockptr;						\
 	GETLOCKPTR(lockptr, mainao,j);					\
 	if (likely(write_trylock(lockptr))) {				\
@@ -380,6 +394,7 @@ int transCommit() {
       }									\
     }									\
     if (addwrobject) {							\
+      DVSETINDEX							\
       dirwrlocked[numoidwrlocked++] = objptr;				\
     }   								\
     if (addrdobject) {							\
@@ -388,6 +403,8 @@ int transCommit() {
   } else
 
 
+  /** This code allows us to skip the expensive checks in some cases */
+
 #ifdef DUALVIEW 
 #define QUICKCHECK {							\
     objheader_t * head=&((objheader_t *)mainao)[-1];			\
@@ -395,14 +412,19 @@ int transCommit() {
 	((objheader_t *)transao)[-1].version==head->version)		\
       continue;								\
   }
+#define ARRAYCHECK					\
+  if (transao->arrayversion!=mainao->arrayversion)	\
+    ABORT
 #else
 #define QUICKCHECK
+#define ARRAYCHECK
 #endif
-
+  
 #define READARRAYS							\
   for(i=0; i<numoidrdlockedarray; i++) {				\
     struct ArrayObject * transao=(struct ArrayObject *) oidrdlockedarray[i]; \
     struct ArrayObject * mainao=(struct ArrayObject *) transao->___objlocation___; \
+    ARRAYCHECK;								\
     QUICKCHECK;								\
     DVCHECKLOCK(mainao);						\
     int lowoffset=(transao->lowindex);					\
@@ -467,18 +489,34 @@ int transCommit() {
       dirwrlocked[numoidwrtotal]=objptr;				\
       dirwrindex[numoidwrtotal++]=intkey;				\
     } else {								\
-      unsigned int lockval;						\
-      GETLOCKVAL(lockval, valptr, intkey);				\
-      if (lockval!=STMDIRTY) {						\
-	/*have to abort to avoid deadlock*/				\
-	transAbortProcess(oidwrlocked, numoidwrtotal, dirwrindex, numoidwrlocked); \
-	ABORTSTAT1;							\
-	freearrays;							\
-	if (softabort)							\
-	  return TRANS_SOFT_ABORT;					\
-	else								\
-	  return TRANS_ABORT;						\
-      }									\
+      chashlistnode_t *node = &c_table[(((unsigned INTPTR)objptr) & c_mask)>>4]; \
+      do {								\
+	if(node->key == objptr) {					\
+	  unsigned int lockval;						\
+	  GETLOCKVAL(lockval, ((struct ArrayObject *)node->val), intkey); \
+	  if (lockval!=STMDIRTY) {					\
+	    /*have to abort to avoid deadlock*/				\
+	    transAbortProcess(oidwrlocked, numoidwrtotal, dirwrindex, numoidwrlocked); \
+	    ABORTSTAT1;							\
+	    freearrays;							\
+	    if (softabort)						\
+	      return TRANS_SOFT_ABORT;					\
+	    else							\
+	      return TRANS_ABORT;					\
+	  }								\
+	  break;							\
+	}								\
+	node = node->next;						\
+        if(node==NULL) {						\
+	  transAbortProcess(oidwrlocked, numoidwrtotal, dirwrindex, numoidwrlocked); \
+	  ABORTSTAT1;							\
+	  freearrays;							\
+	  if (softabort)						\
+	    return TRANS_SOFT_ABORT;					\
+	  else								\
+	    return TRANS_ABORT;						\
+	}								\
+       } while(1);							\
     }									\
   } else
 
@@ -518,8 +556,6 @@ int transCommit() {
   /* Inner loop to traverse the linked list of the cache lookupTable */ \
   while(likely(dc_curr != NULL)) {					\
     /*if the first bin in hash table is empty	*/			\
-    void *valptr=dc_curr->val;						\
-    objheader_t * headeraddr=&((objheader_t *) valptr)[-1];		\
     void *objptr=dc_curr->key;						\
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t)); \
     ARRAYLOCK								\
@@ -555,6 +591,48 @@ int transCommit() {
   }							
 #else
 #define ACCESSLOCKS
+#endif
+
+#ifdef DELAYCOMP
+void lwreset(dchashlistnode_t *dc_curr) {
+  dchashlistnode_t *ptr = dc_c_table;				
+  dchashlistnode_t *top=&ptr[dc_c_size];			
+  dchashlistnode_t *tmpptr=dc_c_list;				
+  int reset=1;
+  while(tmpptr!=NULL) {						
+    dchashlistnode_t *next=tmpptr->lnext;			
+    if (reset) {
+      if (tmpptr==dc_curr) {
+	reset=0;
+      } else {
+	struct ___Object___ * objptr=tmpptr->key;		
+	objheader_t *header=&((objheader_t *)objptr)[-1];	
+	if (objptr->type>=NUMCLASSES) {			
+	  rwwrite_unlock(&header->lock);
+	} else {
+	  write_unlock(&header->lock);
+	}
+      }
+    }
+    if (tmpptr>=ptr&&tmpptr<top) {				
+      //zero in list						
+      tmpptr->key=NULL;						
+      tmpptr->next=NULL;					
+    }								
+    tmpptr=next;
+  }								
+  while(dc_c_structs->next!=NULL) {				
+    dcliststruct_t *next=dc_c_structs->next;			
+    free(dc_c_structs);						
+    dc_c_structs=next;						
+  }								
+  dc_c_structs->num = 0;					
+  dc_c_numelements = 0;					       
+  dc_c_list=NULL;
+  ptrstack.count=0;
+  primstack.count=0;
+  branchstack.count=0;
+}
 #endif
 
 /* ==================================================
@@ -665,7 +743,7 @@ int traverseCache() {
 	return TRANS_ABORT;
       }
 #if DELAYCOMP
-    } else if (dc_t_chashSearch(((char *)header)+sizeof(objheader_t))!=NULL) {
+    } else if (dc_t_chashSearch(((char *)header)+sizeof(objheader_t))) {
       //couldn't get lock because we already have it
       //check if it is the right version number
       if (version!=header->version) {
@@ -699,13 +777,8 @@ int traverseCache() {
     unsigned int version=rd_curr->version;
     struct ___Object___ * objptr=rd_curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-#ifdef STMARRAY
-    int isobject=objptr->type<NUMCLASSES;
-    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
-#else
     if(header->lock>0) {
-#endif
-      //object is not locked
+      //object is not write locked
       if (unlikely(version!=header->version)) {
 	//have to abort
 	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
@@ -734,7 +807,7 @@ int traverseCache() {
 #endif
 	//check normal table
 #ifdef STMARRAY
-      if (likely(isobject||header->lock==(RW_LOCK_BIAS-1))) {
+      if (likely(objptr->type>=NUMCLASSES||header->lock==(RW_LOCK_BIAS-1))) {	
 #else
 	{
 #endif
@@ -870,7 +943,7 @@ int alttraverseCache() {
 	return TRANS_ABORT;
       }
 #ifdef DELAYCOMP
-    } else if (dc_t_chashSearch(((char *)header)+sizeof(objheader_t))!=NULL) {
+    } else if (dc_t_chashSearch(((char *)header)+sizeof(objheader_t))) {
       //couldn't get lock because we already have it
       //check if it is the right version number
       if (version!=header->version) {
@@ -903,12 +976,7 @@ int alttraverseCache() {
     int version=rd_curr->version;
     struct ___Object___ * objptr=rd_curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-#ifdef STMARRAY    
-    int isobject=objptr->type<NUMCLASSES;
-    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
-#else
-    if(likely(header->lock>0)) { //object is not locked
-#endif
+    if(likely(header->lock>0)) { //object is not write locked
       if (unlikely(version!=header->version)) {
 	//have to abort
 	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
@@ -935,7 +1003,7 @@ int alttraverseCache() {
 #endif
 	//check normal table
 #ifdef STMARRAY
-	if (likely(isobject||header->lock==(RW_LOCK_BIAS-1))) {	
+	if (likely(objptr->type>=NUMCLASSES||header->lock==(RW_LOCK_BIAS-1))) {	
 #else
 	  {
 #endif
@@ -1021,7 +1089,7 @@ void transAbortProcess(struct garbagelist *oidwrlocked, int numoidwrlocked) {
 #endif
     } else
 #endif
-    write_unlock(&header->lock);
+      write_unlock(&header->lock);
   }
 #if defined(STMARRAY)&&defined(DELAYCOMP)&&!defined(DUALVIEW)
   //release access locks
@@ -1201,6 +1269,9 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       rwwrite_unlock(&header->lock);
     } else {
       header->version++;
+#ifdef DUALVIEW
+      ((struct ArrayObject*)dst)->arrayversion++;
+#endif
       rwconvert_unlock(&header->lock);
     }
   }

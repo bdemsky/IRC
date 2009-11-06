@@ -23,6 +23,8 @@ public class DiscoverConflicts {
   Hashtable<LocalityBinding, Set<TempFlatPair>> transreadmap;
   Hashtable<LocalityBinding, Set<FlatNode>> twritemap;
   Hashtable<LocalityBinding, Set<TempFlatPair>> writemap;
+  Hashtable<LocalityBinding, Set<FlatNode>> getmap;
+
   Hashtable<LocalityBinding, Set<FlatNode>> srcmap;
   Hashtable<LocalityBinding, Set<FlatNode>> leftsrcmap;
   Hashtable<LocalityBinding, Set<FlatNode>> rightsrcmap;
@@ -49,6 +51,7 @@ public class DiscoverConflicts {
       twritemap=new Hashtable<LocalityBinding, Set<FlatNode>>();
       writemap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
     }
+    getmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     this.gft=gft;
   }
 
@@ -71,6 +74,7 @@ public class DiscoverConflicts {
       twritemap=new Hashtable<LocalityBinding, Set<FlatNode>>();
       writemap=new Hashtable<LocalityBinding, Set<TempFlatPair>>();
     }
+    getmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
     this.gft=gft;
   }
 
@@ -95,13 +99,12 @@ public class DiscoverConflicts {
     for(Iterator<LocalityBinding> lb=localityset.iterator();lb.hasNext();) {
       LocalityBinding l=lb.next();
       analyzeLocality(l);
-      setNeedReadTrans(l);
     }
   }
 
   //Change flatnode/temp pairs to just flatnodes that need transactional reads
 
-  public void setNeedReadTrans(LocalityBinding lb) {
+  private void setNeedReadTrans(LocalityBinding lb) {
     HashSet<FlatNode> set=new HashSet<FlatNode>();
     for(Iterator<TempFlatPair> it=transreadmap.get(lb).iterator();it.hasNext();) {
       TempFlatPair tfp=it.next();
@@ -117,6 +120,31 @@ public class DiscoverConflicts {
       }
       twritemap.put(lb, set);
     }
+  }
+  
+  private void computeneedsarrayget(LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
+    Set<FlatNode> writeset=(state.READSET&&gft!=null)?twritemap.get(lb):treadmap.get(lb);
+    FlatMethod fm=state.getMethodFlat(lb.getMethod());
+    HashSet<FlatNode> needsget=new HashSet<FlatNode>();
+    for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
+      FlatNode fn=fnit.next();
+      Hashtable<FlatNode, Integer> atomictable=locality.getAtomic(lb);
+      if (atomictable.get(fn).intValue()>0&&fn.kind()==FKind.FlatElementNode) {
+	FlatElementNode fen=(FlatElementNode)fn;
+	Set<TempFlatPair> tfpset=fnmap.get(fen).get(fen.getSrc());
+	if (tfpset!=null) {
+	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
+	    TempFlatPair tfp=tfpit.next();
+	    if (writeset.contains(tfp.f)) {
+	      needsget.add(tfp.f);
+	      break;
+	    }
+	  }
+	}
+      }
+      
+    }
+    getmap.put(lb, needsget);
   }
 
   //We have a set of things we write to, figure out what things this
@@ -168,6 +196,12 @@ public class DiscoverConflicts {
     return treadmap.get(lb).contains(fn);
   }
 
+  public boolean getNeedGet(LocalityBinding lb, FlatNode fn) {
+    if (gft!=null)
+      return getmap.get(lb).contains(fn);
+    else throw new Error();
+  }
+
   public boolean getNeedWriteTrans(LocalityBinding lb, FlatNode fn) {
     if (gft!=null)
       return twritemap.get(lb).contains(fn);
@@ -209,7 +243,6 @@ public class DiscoverConflicts {
       if (atomictable.get(fn).intValue()>0) {
 	Hashtable<TempDescriptor, Set<TempFlatPair>> tmap=fnmap.get(fn);
 	switch(fn.kind()) {
-
 	  //We might need to translate arguments to pointer comparison
 	  
 	case FKind.FlatOpNode: { 
@@ -315,6 +348,9 @@ public class DiscoverConflicts {
 	}
       }
     }
+    //Update results
+    setNeedReadTrans(lb);
+    computeneedsarrayget(lb, fnmap);
   }
 
   public boolean outofscope(TempFlatPair tfp) {

@@ -201,6 +201,7 @@ __attribute__((pure)) void *transRead(void *, void *);
 __attribute__((pure)) void *transReadOnly(void *);
 #endif
 #ifdef DELAYCOMP
+void lwreset(dchashlistnode_t *dc_curr);
 int transCommit(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int traverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
 int alttraverseCache(void (*commitmethod)(void *, void *, void *), void * primitives, void * locals, void * params);
