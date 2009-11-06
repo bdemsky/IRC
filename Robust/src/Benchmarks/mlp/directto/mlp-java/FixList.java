@@ -21,7 +21,7 @@ public class FixList {
   // and its coordinates
   public /*static*/ void setFix(String name,float x,float y)
   {
-    _fixes.addElement(new Fix(name,(Point2d) new Point2d(x,y)));
+    _fixes.addElement(/* disjoint fix */ new Fix(name,(Point2d) new Point2d(x,y)));
   }
 
   public /*static*/ String getFix(int index)

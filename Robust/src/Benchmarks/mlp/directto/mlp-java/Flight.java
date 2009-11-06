@@ -48,7 +48,7 @@ public class Flight /*implements Cloneable*/ {
   }
 
   public static Flight copyOf(Flight f) {
-    Flight fNew       = disjoint flightCopy new Flight(f.flightID);
+    Flight fNew       = /*disjoint flightCopy*/ new Flight(f.flightID);
     fNew.trialStatus  = f.trialStatus;
     fNew.aircraftType = f.aircraftType;
     fNew.track        = f.track;

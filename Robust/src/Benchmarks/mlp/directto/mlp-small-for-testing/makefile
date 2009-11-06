@@ -6,18 +6,27 @@ SOURCE_FILES=D2.java
 BUILDSCRIPT=~/research/Robust/src/buildscript
 BSFLAGS= -debug -mainclass $(MAIN_CLASS) -joptimize -flatirusermethods #-flatirlibmethods
 
-#DBCALLFLAGS= -owndebugcaller main -owndebugcallee executeAll 
+##########################################################
+## For inspecting a particularly problematic call chain
+##########################################################
+DBCALLFLAGS= -owndebugcaller main -owndebugcallee executeAll 
 #DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee executeMessage -owndebugcallcount 0
-#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee next -owndebugcallcount 0
-#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee hasNext -owndebugcallcount 0
-#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee size -owndebugcallcount 0
-#DBCALLFLAGS= -owndebugcaller executeMessage -owndebugcallee getFlightList -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller executeMessage -owndebugcallee amendFlightPlan -owndebugcallcount 0
-#DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee getFlight -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee setRoute -owndebugcallcount 0
+
+
 #DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee addFix -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee addFix -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller addFix -owndebugcallee insertElementAt -owndebugcallcount 0
 #DBCALLFLAGS= -owndebugcaller insertElementAt -owndebugcallee ensureCapacity -owndebugcallcount 0
+
+
+#DBCALLFLAGS= -owndebugcaller executeMessage -owndebugcallee getFlightList -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller amendFlightPlan -owndebugcallee getFlight -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee next -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee hasNext -owndebugcallcount 0
+#DBCALLFLAGS= -owndebugcaller executeAll -owndebugcallee size -owndebugcallcount 0
+
 
 ANALYZEFLAGS= -justanalyze $(DBCALLFLAGS) -ownership -ownallocdepth 1 -ownwritedots final -ownaliasfile aliases.txt -enable-assertions
 

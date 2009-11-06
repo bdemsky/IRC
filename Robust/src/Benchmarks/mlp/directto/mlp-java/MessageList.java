@@ -37,7 +37,7 @@ public class MessageList {
     StringTokenizer st=new StringTokenizer(line);
     int time=Integer.parseInt(st.nextToken());
     String type=st.nextToken();	
-    Message newMessage=disjoint msgs new Message(time,type,st);
+    Message newMessage=/*disjoint msgs*/ new Message(time,type,st);
     messages.addElement(newMessage);
     if (type.equals("DO_WORK"))
       return true;

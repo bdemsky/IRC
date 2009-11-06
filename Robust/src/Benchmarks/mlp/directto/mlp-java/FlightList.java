@@ -12,7 +12,7 @@ public class FlightList {
   }
 
   public  void addFlightPlan(D2 d2, int time, StringTokenizer st) { 
-    Flight newFlight=disjoint flightAdd new Flight(st.nextToken());
+    Flight newFlight=/*disjoint flightAdd*/ new Flight(st.nextToken());
     noFlights++;
     f.addElement(newFlight);
 

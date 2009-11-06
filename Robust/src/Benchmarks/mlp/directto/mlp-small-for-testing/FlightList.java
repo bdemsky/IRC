@@ -43,12 +43,11 @@ public class FlightList {
     // do this once    
     //for (int i=0;i<rAux.noFixes;i++)
     //  rAux.addFix(d2,i,st.nextToken());      
-    //////////////////////////////
-    rAux.addFix(d2,0,st.nextToken());      
-
+    //////////////////////////////    
+    rAux.addFix(d2,0,st.nextToken());         
 
     fAux.fPlan.setRoute(rAux);
-    fAux.fPlan.setCruiseParam(Double.parseDouble(st.nextToken()), Double.parseDouble(st.nextToken()));
+    //fAux.fPlan.setCruiseParam(Double.parseDouble(st.nextToken()), Double.parseDouble(st.nextToken()));
   }
 
     public  void amendFlightInfo(D2 d2, int time, StringTokenizer st) {

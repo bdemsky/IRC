@@ -16,14 +16,14 @@ public class D2 {
   public TrajectorySynthesizer singletonTrajectorySynthesizer; public TrajectorySynthesizer getTrajectorySynthesizer() { return singletonTrajectorySynthesizer; }
 
   public D2() {
-    singletonReadWrite             = new ReadWrite            ();
-    singletonMessageList	   = new MessageList	      ();
-    singletonStatic                = new Static               ();
-    singletonAircraftList	   = new AircraftList	      ();
-    singletonFlightList	       	   = new FlightList	      (); 
-    singletonFixList	       	   = new FixList	      ();
-    singletonAlgorithm	       	   = new Algorithm	      ();
-    singletonTrajectorySynthesizer = new TrajectorySynthesizer();
+    singletonReadWrite             = disjoint rw new ReadWrite            ();
+    singletonMessageList	   = disjoint ml new MessageList	  ();
+    singletonStatic                = disjoint st new Static               ();
+    singletonAircraftList	   = disjoint al new AircraftList	  ();
+    singletonFlightList	       	   = disjoint fl new FlightList	          (); 
+    singletonFixList	       	   = disjoint xl new FixList	          ();
+    singletonAlgorithm	       	   = disjoint ag new Algorithm	          ();
+    singletonTrajectorySynthesizer = disjoint ts new TrajectorySynthesizer();
   }
 
   public static void main(String arg[]) {

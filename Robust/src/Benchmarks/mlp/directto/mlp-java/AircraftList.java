@@ -13,7 +13,7 @@ public class AircraftList {
 
   // sets the parameters of the aircraft number "pos": its name, its lift and its thrust
   public void setAircraft(String name,double lift,double thrust) {
-    aircrafts.addElement(new Aircraft(name,lift,thrust));
+    aircrafts.addElement(/*disjoint aircraft*/ new Aircraft(name,lift,thrust));
   }
 
   public Aircraft getAircraft(String name) {

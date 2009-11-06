@@ -28,7 +28,7 @@ public class Algorithm {
     return false;
   }
 
-    public /*static*/ Point4d findConflict(D2 d2, Flight a, Flight b) {
+  public /*static*/ Point4d findConflict(D2 d2, Flight a, Flight b) {
     Point4d conflictPoint=new Point4d(Point4d.outOfRangeTime(),0,0,0);
     if (a.flightID!=b.flightID) {
       Vector p1=a.traject.p;
