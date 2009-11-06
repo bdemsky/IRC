@@ -81,7 +81,8 @@ static inline int atomic_sub_and_test(int i, volatile unsigned int *v) {
   return c;
 }
 
-static inline unsigned long cas(volatile unsigned int* ptr) {
+static inline int rwwrite_trylock(volatile unsigned int  *ptr) {
+//static inline unsigned long cas(volatile unsigned int* ptr) {
   unsigned int prev;
   __asm__ __volatile__("lock;"
 		       "cmpxchgl %1, %2;"
@@ -102,16 +103,13 @@ static inline int rwread_trylock(volatile unsigned int  *lock) {
   return 0; //failure
 }
 
-static inline int rwwrite_trylock(volatile unsigned int  *lock) {
-  if (likely(cas(lock))) {
-    return 1;
-  }
-  //  if (likely(atomic_sub_and_test(RW_LOCK_BIAS, lock))) {
-  // return 1; // get a write lock
-  //}
-  atomic_add(RW_LOCK_BIAS, lock);
-  return 0; // failed to acquire a write lock
-}
+//static inline int rwwrite_trylock(volatile unsigned int  *lock) {
+//  if (likely(atomic_sub_and_test(RW_LOCK_BIAS, lock))) {
+//  return 1; // get a write lock
+//  }
+//  atomic_add(RW_LOCK_BIAS, lock);
+//  return 0; // failed to acquire a write lock
+//}
 
 static inline int rwconvert_trylock(volatile unsigned int  *lock) {
   if (likely(atomic_sub_and_test((RW_LOCK_BIAS-1), lock))) {

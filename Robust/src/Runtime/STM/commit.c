@@ -55,7 +55,6 @@ int transCommit() {
 #ifdef SANDBOX
   abortenabled=0;
 #endif
-  TRANSWRAP(numTransCommit++;);
   int softaborted=0;
   do {
     /* Look through all the objects in the transaction hash table */
@@ -302,9 +301,9 @@ int transCommit() {
 /* Try to grab object lock...If we get it, check object access
    version and abort on mismatch */
   
-#define DVGETLOCK if (!addwrobject) {				\
+#define DVGETLOCK if (!addwrobject) {					\
     unsigned int * objlock=&(&((objheader_t *)mainao)[-1])->lock;	\
-    if(!rwread_trylock(objlock)) {					\
+    if(unlikely(!rwread_trylock(objlock))) {				\
       ABORT;								\
     }									\
 }
@@ -413,8 +412,8 @@ int transCommit() {
       continue;								\
   }
 #define ARRAYCHECK					\
-  if (transao->arrayversion!=mainao->arrayversion)	\
-    ABORT
+  if (transao->arrayversion!=mainao->arrayversion) {	\
+    ABORT;}
 #else
 #define QUICKCHECK
 #define ARRAYCHECK
@@ -734,7 +733,12 @@ int traverseCache() {
     /* Read from the main heap  and compare versions */
     objheader_t *header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
-    if(header->lock>0) { //not write locked
+#if defined(STMARRAY)&&defined(DUALVIEW)
+    unsigned int isobject=((struct ___Object___ *)&header[1])->type<NUMCLASSES;
+    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
+#else      
+    if(likely(header->lock>0)) { //not write locked
+#endif
       CFENCE;
       if(version != header->version) { /* versions do not match */
 	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
@@ -777,7 +781,12 @@ int traverseCache() {
     unsigned int version=rd_curr->version;
     struct ___Object___ * objptr=rd_curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-    if(header->lock>0) {
+#if defined(STMARRAY)&&defined(DUALVIEW)
+    unsigned int isobject=objptr->type<NUMCLASSES;
+    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
+#else      
+    if(likely(header->lock>0)) { //not write locked
+#endif
       //object is not write locked
       if (unlikely(version!=header->version)) {
 	//have to abort
@@ -807,7 +816,7 @@ int traverseCache() {
 #endif
 	//check normal table
 #ifdef STMARRAY
-      if (likely(objptr->type>=NUMCLASSES||header->lock==(RW_LOCK_BIAS-1))) {	
+      if (likely(objptr->type<NUMCLASSES||header->lock==(RW_LOCK_BIAS-1))) {	
 #else
 	{
 #endif
@@ -934,7 +943,12 @@ int alttraverseCache() {
   for(i=0; i<numoidrdlocked; i++) {
     objheader_t * header=oidrdlocked[i];
     unsigned int version=oidrdversion[i];
-    if(likely(header->lock>0)) {
+#if defined(STMARRAY)&&defined(DUALVIEW)
+    unsigned int isobject=((struct ___Object___ *)&header[1])->type<NUMCLASSES;
+    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
+#else      
+    if(likely(header->lock>0)) { //not write locked
+#endif
       CFENCE;
       if(unlikely(version != header->version)) {
 	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
@@ -976,7 +990,12 @@ int alttraverseCache() {
     int version=rd_curr->version;
     struct ___Object___ * objptr=rd_curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-    if(likely(header->lock>0)) { //object is not write locked
+#if defined(STMARRAY)&&defined(DUALVIEW)
+    unsigned int isobject=objptr->type<NUMCLASSES;
+    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
+#else      
+    if(likely(header->lock>0)) { //not write locked
+#endif
       if (unlikely(version!=header->version)) {
 	//have to abort
 	transAbortProcess(oidwrlocked, NUMWRTOTAL ARRAYDELAYWRAP1(dirwrindex) ARRAYDELAYWRAP1(numoidwrlocked));
@@ -1003,7 +1022,7 @@ int alttraverseCache() {
 #endif
 	//check normal table
 #ifdef STMARRAY
-	if (likely(objptr->type>=NUMCLASSES||header->lock==(RW_LOCK_BIAS-1))) {	
+	if (likely(objptr->type<NUMCLASSES||header->lock==(RW_LOCK_BIAS-1))) {	
 #else
 	  {
 #endif

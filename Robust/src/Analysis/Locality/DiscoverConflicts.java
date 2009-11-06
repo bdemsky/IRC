@@ -123,7 +123,8 @@ public class DiscoverConflicts {
   }
   
   private void computeneedsarrayget(LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
-    Set<FlatNode> writeset=(state.READSET&&gft!=null)?twritemap.get(lb):treadmap.get(lb);
+    //    Set<FlatNode> gwriteset=(state.READSET&&gft!=null)?twritemap.get(lb):treadmap.get(lb);
+    Set<FlatNode> gwriteset=treadmap.get(lb);
     FlatMethod fm=state.getMethodFlat(lb.getMethod());
     HashSet<FlatNode> needsget=new HashSet<FlatNode>();
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
@@ -135,8 +136,8 @@ public class DiscoverConflicts {
 	if (tfpset!=null) {
 	  for(Iterator<TempFlatPair> tfpit=tfpset.iterator();tfpit.hasNext();) {
 	    TempFlatPair tfp=tfpit.next();
-	    if (writeset.contains(tfp.f)) {
-	      needsget.add(tfp.f);
+	    if (gwriteset.contains(tfp.f)) {
+	      needsget.add(fen);
 	      break;
 	    }
 	  }

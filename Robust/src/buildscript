@@ -21,6 +21,7 @@ echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
 echo
 echo Other options
+echo -builddir setup different build directory
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -readset turn on readset
 echo -mac distributed shared memory mac support
@@ -79,6 +80,7 @@ echo -assembly generate assembly
 echo -help help
 }
 
+tmpbuilddirectory="tmpbuilddirectory"
 SANDBOX=false;
 ABORTREADERS=false;
 ROBUSTROOT=~/research/Robust/src
@@ -156,6 +158,10 @@ JAVAOPTS="$JAVAOPTS -sandbox"
 elif [[ $1 = '-robustroot' ]]
 then
 ROBUSTROOT="$2"
+shift
+elif [[ $1 = '-builddir' ]]
+then
+tmpbuilddirectory="$2"
 shift
 elif [[ $1 = '-nojava' ]]
 then
@@ -429,7 +435,7 @@ fi
 shift
 done
 
-BUILDDIR="$CURDIR/tmpbuilddirectory"
+BUILDDIR="$CURDIR/$tmpbuilddirectory"
 
 cd $1
 cd $CURDIR
@@ -598,8 +604,8 @@ cp ../Runtime/RAW/*.c ./
 cp ../Runtime/RAW/*.h ./
 cp ../Runtime/RAW/*.S ./
 cp ../Runtime/RAW/*.s ./
-cp ../tmpbuilddirectory/*.c ./
-cp ../tmpbuilddirectory/*.h ./
+cp ../$tmpbuilddirectory/*.c ./
+cp ../$tmpbuilddirectory/*.h ./
 
 make
 
@@ -686,8 +692,8 @@ cp ../Runtime/multicorehelper.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/lib/* ./
-cp ../tmpbuilddirectory/*.c ./
-cp ../tmpbuilddirectory/*.h ./
+cp ../$tmpbuilddirectory/*.c ./
+cp ../$tmpbuilddirectory/*.h ./
 
 make
 
@@ -763,7 +769,7 @@ if $MULTICOREFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMULTICORE"
 fi
-FILES="$FILES tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c $ROBUSTROOT/Runtime/chash.c"
+FILES="$FILES $tmpbuilddirectory/taskdefs.c $ROBUSTROOT/Runtime/checkpoint.c $ROBUSTROOT/Runtime/chash.c"
 if $RAWFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DRAW"
@@ -778,7 +784,7 @@ fi
 if $OPTIONALFLAG
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DOPTIONAL"
-FILES="$FILES tmpbuilddirectory/optionalarrays.c"
+FILES="$FILES $tmpbuilddirectory/optionalarrays.c"
 fi
 
 if $THREADFLAG
@@ -800,16 +806,16 @@ fi
 if $ASSEMBLY
 then
 gcc -S $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
--c tmpbuilddirectory/methods.c -lm
+-c $tmpbuilddirectory/methods.c -lm
 fi
 
 if $MULTICOREFLAG
 then
 gcc $INCLUDES $EXTRAOPTIONS \
-tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+$tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
 else
 gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
-tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+$tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
 fi
 
 fi #!RAWFLAG

@@ -38,7 +38,12 @@ static inline int CHECKREADS() {
     unsigned int version=rd_curr->version;
     struct ___Object___ * objptr=rd_curr->key;
     objheader_t *header=(objheader_t *)(((char *)objptr)-sizeof(objheader_t));
-    if(likely(header->lock>0)) {//doesn't matter what type of lock...
+#if defined(STMARRAY)&&defined(DUALVIEW)
+    unsigned int isobject=objptr->type<NUMCLASSES;
+    if(likely((isobject&&header->lock>0)||(!isobject&&header->lock==RW_LOCK_BIAS))) {
+#else
+    if(likely(header->lock>0)) { //not write locked                                                 
+#endif
       if(unlikely(version!=header->version)) {
 	retval=1;break;
       }
