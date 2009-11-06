@@ -2945,7 +2945,7 @@ public class BuildCode {
     } else {
       /* Need to convert to OID */
       if ((dc==null)||dc.getNeedSrcTrans(lb,fgcn)) {
-	if (fgcn.doConvert()||(delaycomp!=null&&atomicmethodmap.get(fgcn.getAtomicEnter()).reallivein.contains(fgcn.getSrc()))) {
+	if (fgcn.doConvert()||(delaycomp!=null&&delaycomp.needsFission(lb, fgcn.getAtomicEnter())&&atomicmethodmap.get(fgcn.getAtomicEnter()).reallivein.contains(fgcn.getSrc()))) {
 	  output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=(void *)COMPOID("+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	} else {
 	  output.println(generateTemp(fm, fgcn.getSrc(),lb)+"=NULL;");
