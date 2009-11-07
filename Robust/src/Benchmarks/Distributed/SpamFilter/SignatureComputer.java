@@ -85,15 +85,18 @@ public class SignatureComputer {
       for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
         int engineNo = enginesToUseForCheck[engineIndex];
         String sig = null;
+        /* EphemeralSignature calculator */
         if(engineNo==4) {
           sig = computeSignature(engineNo,mail);
-        }
+        } 
+        /*
         if(engineNo==8) {
           sig = computeSignature(engineNo,mail);
-        }
+        } 
         if(engineNo!=4 || engineNo!=8) {
-          System.out.println("Couldn't find the signature engine\n");
+          System.out.println("Err: Couldn't find the signature engine: " + engineNo);
         }
+        */
 
         if (sig != null) {
           String hash = engineNo + ":" + sig;
@@ -108,7 +111,7 @@ public class SignatureComputer {
 
   /**
    * @param engineNo
-   * @param cleaned
+   * @param email
    * @return
    */
   private String computeSignature(int engineNo, String mail) {
@@ -118,14 +121,11 @@ public class SignatureComputer {
       //return new String { this.sig4.computeSignature(mail) };
     }
 
-    /*
     if(engineNo==8) {
         //String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
         //return this.sig8.computeSignature(cleanedButKeepHTML);
-      return this.sig8.computeSignature(mail);
+      //return this.sig8.computeSignature(mail);
     }
-    */
-
     return null;
   }
 }

@@ -15,7 +15,7 @@ public class HashEntry {
     result = engine.hashCode();
     result ^= signature.hashCode();
     //result ^= stats.hashCode();
-    System.out.println("result= " + result);
+    //System.out.println("HashEntry: hashCode= " + result);
     return result;
   }
 

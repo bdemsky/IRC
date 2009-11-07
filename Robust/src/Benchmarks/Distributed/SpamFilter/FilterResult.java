@@ -21,28 +21,28 @@ public class FilterResult {
   // -----------------------------------------------------------------------------
 
   public FilterResult(double result) {
-    SPAM_THRESHOLD=500;
-    ABSOLUTE_SPAM=1000;
+    SPAM_THRESHOLD=50;
+    ABSOLUTE_SPAM=100;
     ABSOLUTE_HAM=0;
     NO_RESULT=-1;
     //this.result = result;
   }
 
   public FilterResult() {
-    SPAM_THRESHOLD=500;
-    ABSOLUTE_SPAM=1000;
+    SPAM_THRESHOLD=50;
+    ABSOLUTE_SPAM=100;
     ABSOLUTE_HAM=0;
     NO_RESULT=-1;
   }
 
   public boolean getResult(int[] confidenceVals) {
-    int[] res = new int[3];
+    int[] res = new int[3]; //3 equals spam, ham and unknown
     for(int i=0; i<confidenceVals.length; i++) {
        if(confidenceVals[i] < 0)
          res[0]+=1; //unknown
-       if(confidenceVals[i] >= 0 && confidenceVals[i] < 500)
+       if(confidenceVals[i] >= 0 && confidenceVals[i] < SPAM_THRESHOLD)
          res[1]+=1; //ham
-       if(confidenceVals[i] > SPAM_THRESHOLD)
+       if(confidenceVals[i] >= SPAM_THRESHOLD)
          res[2]+=1;//spam
     }
     int maxVotes=0;
@@ -60,7 +60,7 @@ public class FilterResult {
     if(max==2)
       return true;
 
-    System.out.println("Err: getResult() Control shouldn't come here\n");
+    System.out.println("Err: getResult() Control shouldn't come here, max= " + max);
     return false;
   }
 

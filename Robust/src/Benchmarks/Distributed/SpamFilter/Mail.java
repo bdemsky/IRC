@@ -27,11 +27,16 @@ public class Mail {
 
   public Mail(String fileName)  // read a mail from file
   {
+    //System.out.println("fileName= " + fileName);
+
     FileInputStream fileinput = new FileInputStream(fileName);
     String line;
-    
+    boolean chk = false;
+
     while((line = fileinput.readLine()) != null)
     {
+      chk = true;
+
       Vector splittedLine = line.split();
       if(((String)(splittedLine.elementAt(0))).equals("Spam:"))
       {
@@ -60,12 +65,18 @@ public class Mail {
       }
     } // parsed messageID, To, from, cc, Title
 
+    if(!chk)
+      System.out.println("no line read");
+
+
     body = new String();
 
     while((line = fileinput.readLine()) != null)
     {
       body += line;
     }
+
+    fileinput.close();
   }
 
 	// -------------------------------------------------------
@@ -264,7 +275,17 @@ public class Mail {
     return body;
   }
 
-  
+  /* TODO add this to process entire email
+  public Vector returnEmail() {
+    Vector myemail = new Vector();
+
+    myemail.addElement(getCommonPart());
+    myemail.addElement(getURLs());
+    myemail.addElement(getSplittedBody());
+    return myemail;
+  }
+  */
+
   public Vector getURLs()
   {
     Vector returnStrings = new Vector();
@@ -356,7 +377,7 @@ public class Mail {
     //Preprocess emails
     //Vector partsOfMailStrings = mail.createMailStringsWithURL();
     Vector partsOfMailStrings = getCommonPart();
-    partsOfMailStrings.addElement(getBodyString());
+    //partsOfMailStrings.addElement(getBodyString());
 
     //Compute signatures
     SignatureComputer sigComp = new SignatureComputer();

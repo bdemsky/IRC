@@ -70,6 +70,7 @@ public class DistributedHashMap {
   Object getKey(Object key) {
     int hashcode=key.hashCode();
     int index1=hash1(hashcode, table.length);
+
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return null;
@@ -132,6 +133,7 @@ public class DistributedHashMap {
     dhe.array=he;
 
     dhe.count++;
+    
     return null;
   }
 }

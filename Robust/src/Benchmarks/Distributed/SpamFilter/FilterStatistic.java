@@ -56,4 +56,11 @@ public class FilterStatistic {
   public void increaseUnknown() {
     setUnknown(getUnknown() + 1);
   }
+
+  public String toString() {
+    String str = "Filterstats_spam_"+spam;
+    str += "_ham_" +ham;
+    str += "_unknown_"+unknown;
+    return str;
+  }
 }

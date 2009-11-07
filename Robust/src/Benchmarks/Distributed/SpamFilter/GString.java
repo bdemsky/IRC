@@ -131,4 +131,37 @@ public class GString {
     else
       return o.toString();
   }
+
+  public String toLocalString() {
+    return new String(toLocalCharArray(this));
+  }
+
+  public static char[] toLocalCharArray(GString str) {
+    char[] c;
+    int length;
+    length = str.length();
+    c = new char[length];
+    for (int i = 0; i < length; i++) {
+      c[i] = str.value[i+str.offset];
+    }
+    return c;
+  }
+
+  public int hashCode() {
+    String s = this.toLocalString();
+    return s.hashCode();
+  }
+
+  public boolean equals(Object o) {
+    if(o == null)
+      return false;
+    if(!(o instanceof GString))
+      return false;
+    GString gs = (GString)o;
+    String s1 = gs.toLocalString();
+    String s2 = this.toLocalString();
+    if(s2.equals(s1))
+      return true;
+    return false;
+  }
 }

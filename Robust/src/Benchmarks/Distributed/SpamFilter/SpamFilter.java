@@ -43,24 +43,14 @@ public class SpamFilter extends Thread {
     Random rand = new Random(thid);
     Random myrand = new Random(0);
 
-    /*
-    if(id==0) {
-      //Randomly set Spam vals for each email
-      for(int i=0; i<nemails; i++) {
-        Mail email = new Mail("emails/email"+i);
-        int spamval = rand.nextInt(100);
-        if(spamval<60) { //assume 60% are spam and rest are ham
-          email.setIsSpam(false);
-        } else {
-          email.setIsSpam(true);
-        }
-      }
-    }
-    */
-
     for(int i=0; i<niter; i++) {
       for(int j=0; j<nemails; j++) {
         int pickemail = rand.nextInt(100);
+
+        //System.out.println("pickemail= " + pickemail);
+
+        // randomly pick emails
+        pickemail+=1;
         Mail email = new Mail("emails/email"+pickemail);
         Vector signatures = email.checkMail(thid);
 
@@ -70,23 +60,24 @@ public class SpamFilter extends Thread {
           confidenceVals = check(signatures,thid);
         }
 
+        /* Only for debugging
+        for(int k=0; k<signatures.size();k++) {
+          System.out.println("confidenceVals["+k+"]= "+confidenceVals[k]);
+        }
+        */
+
         //---- create and  return results --------
         FilterResult filterResult = new FilterResult();
         boolean filterAnswer = filterResult.getResult(confidenceVals);
 
         //---- get user's take on email and send feedback ------
-        /*
-        int spamval = rand.nextInt(100);
-        if(spamval<60) { //assume 60% are spam and rest are ham
-           email.setIsSpam(false);
-        } else {
-          email.setIsSpam(true);
-        }
-        */
         boolean userAnswer = email.getIsSpam();
+
+        //System.out.println("userAnswer= " + userAnswer + " filterAnswer= " + filterAnswer);
+
         if(filterAnswer != userAnswer) {
           atomic {
-            sendFeedBack(email, userAnswer, thid);
+            sendFeedBack(signatures, userAnswer, thid);
           }
         }
       } //end num emails
@@ -114,6 +105,8 @@ public class SpamFilter extends Thread {
     SpamFilter[] spf;
     atomic {
       dhmap = global new DistributedHashMap(500, 0.75f);
+    }
+    atomic {
       spf = global new SpamFilter[nthreads];
       for(int i=0; i<nthreads; i++) {
         spf[i] = global new SpamFilter(sf.numiter, sf.numemail, i, dhmap, nthreads);
@@ -205,6 +198,9 @@ public class SpamFilter extends Thread {
 
   public int[] check(Vector signatures, int userid) {
     int numparts = signatures.size();
+
+    //System.out.println("check() numparts= " + numparts);
+
     int[] confidenceVals = new int[numparts];
     for(int i=0; i<numparts; i++) {
       String part = (String)(signatures.elementAt(i));
@@ -218,6 +214,9 @@ public class SpamFilter extends Thread {
         String tmpstr = new String("8");
         engine = global new GString(tmpstr);
       }
+
+      //System.out.println("check(): engine= " + engine.toLocalString());
+
       String str = new String(part.substring(2));//a:b index of a =0, index of : =1, index of b =2
       GString signature = global new GString(str);
       HashEntry myhe = global new HashEntry();
@@ -225,17 +224,20 @@ public class SpamFilter extends Thread {
       myhe.setsig(signature);
 
       //find object in distributedhashMap: if no object then add object 
-      //else read object
       if(!mydhmap.containsKey(myhe)) {
         //add new object
-        myhe.stats = global new HashStat();
-        myhe.stats.setuser(userid, 0, 0, -1);
+        HashStat mystat = global new HashStat();
+        mystat.setuser(userid, 0, 0, -1);
+        myhe.setstats(mystat);
         FilterStatistic fs =  global new FilterStatistic(0,0,-1);
         mydhmap.put(myhe, fs);
-      } else {
+        confidenceVals[i] = 0;
+      } else { //read exsisting object
         // ----- now connect to global data structure and ask for spam -----
         HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
-        FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); //get the value from hash
+        FilterStatistic fs = (FilterStatistic) (mydhmap.get(tmphe)); //get the value from hash
+
+        //System.out.println(fs.toString()+"\n");
 
         confidenceVals[i] = fs.getChecked();
       }
@@ -252,12 +254,7 @@ public class SpamFilter extends Thread {
    * spam database and trains the spam database to check future
    * emails and detect spam
    **/
-  public void sendFeedBack(Mail mail, boolean isSpam, int id) {
-    Vector partsOfMailStrings = mail.getCommonPart();
-    partsOfMailStrings.addElement(mail.getBodyString());
-    //Compute signatures
-    SignatureComputer sigComp = new SignatureComputer();
-    Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+  public void sendFeedBack(Vector signatures, boolean isSpam, int id) {
 
     for(int i=0;i<signatures.size();i++) {
       String part = (String)(signatures.elementAt(i));
@@ -268,17 +265,26 @@ public class SpamFilter extends Thread {
       //       b = string representing signature
       //
       char tmpengine = part.charAt(0); //
-      GString engine;
+
+      GString engine=null;
+
       if(tmpengine == '4') {
         String tmpstr = new String("4");
         engine = global new GString(tmpstr);
       }
+
       if(tmpengine == '8') {
         String tmpstr = new String("8");
         engine = global new GString(tmpstr);
       }
+
+      //System.out.println("sendFeedBack(): engine= " + engine.toLocalString());
+
       String tmpsig = new String(part.substring(2));
       GString signature = global new GString(tmpsig);
+
+      //System.out.println("sendFeedBack(): signature= " + signature.toLocalString());
+
       HashEntry myhe = global new HashEntry();
       myhe.setengine(engine);
       myhe.setsig(signature);
@@ -291,6 +297,8 @@ public class SpamFilter extends Thread {
 
       //---- get value from distributed hash and update spam count
       FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); 
+
+      //System.out.println(fs.toString());
 
       //TODO: Allow users to give incorrect feedback
 
