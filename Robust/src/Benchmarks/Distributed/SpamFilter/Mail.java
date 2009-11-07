@@ -70,11 +70,11 @@ public class Mail {
 
 
     body = new String();
-    byte readBody[100000000];
+    byte[] readBody = new byte[1000000];
 
-    while((fileinput.readByte(readBody)!= EOF)
+    while((fileinput.read(readBody)!= -1))
     {
-      body += new String(readBody);
+      body.concat(new String(readBody));
     }
 
     fileinput.close();
