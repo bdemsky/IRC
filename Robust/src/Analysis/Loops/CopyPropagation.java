@@ -6,13 +6,14 @@ import java.util.Hashtable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
+import Analysis.Liveness;
 
 public class CopyPropagation {
   public CopyPropagation() {
   }
 
   public void optimize(FlatMethod fm) {
-    
+    Hashtable<FlatNode, Set<TempDescriptor>> livetemps=Liveness.computeLiveTemps(fm);
     Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>> table
       =new Hashtable<FlatNode, Hashtable<TempDescriptor, TempDescriptor>>();
     boolean changed=false;
@@ -32,6 +33,7 @@ public class CopyPropagation {
 	  tab=new Hashtable<TempDescriptor, TempDescriptor>();
 	//Compute intersection
 
+	Set<TempDescriptor> liveset=livetemps.get(fn);
 	for(int i=1;i<fn.numPrev();i++) {
 	  Hashtable<TempDescriptor, TempDescriptor> tp=table.get(fn.getPrev(i));
 	  if (tp==null)
@@ -39,10 +41,12 @@ public class CopyPropagation {
 	  for(Iterator tmpit=tp.entrySet().iterator();tmpit.hasNext();) {
 	    Map.Entry t=(Map.Entry)tmpit.next();
 	    TempDescriptor tmp=(TempDescriptor)t.getKey();
-	    
-	    if (!tab.containsKey(tmp))
-	      tab.put(tmp, tp.get(tmp));
-	    else if (tab.get(tmp)!=tp.get(tmp)) {
+	    if (!liveset.contains(tmp))
+	      continue;
+	    TempDescriptor dsttmp=tp.get(tmp);
+	    if (!tab.containsKey(tmp)) {
+	      tab.put(tmp, dsttmp);
+	    } else if (tab.get(tmp)!=dsttmp) {
 	      tab.put(tmp, bogustd);
 	    }
 	  }

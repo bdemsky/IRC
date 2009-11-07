@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Iterator;
+import Analysis.Liveness;
 
 public class UseDef{
   Hashtable<TempFlatPair, Set<FlatNode>> defs;
@@ -38,6 +39,7 @@ public class UseDef{
   public void analyze(FlatMethod fm) {
     Hashtable<FlatNode, Set<TempFlatPair>> tmp=new Hashtable<FlatNode, Set<TempFlatPair>>();
     HashSet<FlatNode> toanalyze=new HashSet<FlatNode>();
+    Hashtable<FlatNode, Set<TempDescriptor>> livemap=Liveness.computeLiveTemps(fm);
     toanalyze.addAll(fm.getNodeSet());
     while(!toanalyze.isEmpty()) {
       FlatNode fn=toanalyze.iterator().next();
@@ -45,6 +47,7 @@ public class UseDef{
 
       toanalyze.remove(fn);
       HashSet<TempFlatPair> s=new HashSet<TempFlatPair>();
+      Set<TempDescriptor> liveset=livemap.get(fn);
       for(int i=0;i<fn.numPrev();i++) {
 	FlatNode prev=fn.getPrev(i);
 	Set<TempFlatPair> prevs=tmp.get(prev);
@@ -52,6 +55,8 @@ public class UseDef{
 	  nexttfp:
 	  for(Iterator<TempFlatPair> tfit=prevs.iterator();tfit.hasNext();) {
 	    TempFlatPair tfp=tfit.next();
+	    if (!liveset.contains(tfp.t))
+	      continue;
 	    for(int j=0;j<fnwrites.length;j++) {
 	      if (tfp.t==fnwrites[j])
 		continue nexttfp;

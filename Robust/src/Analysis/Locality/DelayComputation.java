@@ -394,6 +394,7 @@ public class DelayComputation {
 	continue;
       }
 
+      Set<TempDescriptor> liveset=livemap.get(fn);
       //Do merge on incoming edges
       for(int i=0;i<fn.numPrev();i++) {
 	FlatNode fnprev=fn.getPrev(i);
@@ -401,6 +402,8 @@ public class DelayComputation {
 	if (prevmap!=null)
 	  for(Iterator<TempDescriptor> tmpit=prevmap.keySet().iterator();tmpit.hasNext();) {
 	    TempDescriptor tmp=tmpit.next();
+	    if (!liveset.contains(tmp)) //skip dead temps
+	      continue;
 	    if (!tmptofn.containsKey(tmp))
 	      tmptofn.put(tmp, new HashSet<FlatNode>());
 	    tmptofn.get(tmp).addAll(prevmap.get(tmp));
