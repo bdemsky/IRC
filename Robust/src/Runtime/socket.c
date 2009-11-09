@@ -153,7 +153,8 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
   h=gethostbyname(str);
   free(str);
 
-  for (n=0; h->h_addr_list[n]; n++) /* do nothing */ ;
+	if (h != NULL) {
+		for (n=0; h->h_addr_list[n]; n++) /* do nothing */ ;
 
 #ifdef PRECISE_GC
   arraybytearray=allocate_newarray(___params___,BYTEARRAYARRAYTYPE,n);
@@ -180,6 +181,9 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
 
   return arraybytearray;
 #endif
+	}
+	else
+		return NULL;
 }
 
 

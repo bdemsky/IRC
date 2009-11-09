@@ -4,7 +4,7 @@ public class GlobalQuery {
 	int depth;
   
 	public GlobalQuery(GlobalString hostname) {
-		this.hostname = global new GlobalString(hostname);
+		this.hostname = hostname;
 		this.path = global new GlobalString("");
 		this.depth = 0;
 	}

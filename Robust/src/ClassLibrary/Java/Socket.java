@@ -32,6 +32,18 @@ public class Socket {
     sout=new SocketOutputStream(this);
   }
 
+	public int connect(String host, int port) {
+    InetAddress address=InetAddress.getByName(host);
+		if (address != null) {
+			fd=nativeBind(address.getAddress(), port);
+			nativeConnect(fd, address.getAddress(), port);
+			return 0;
+		}
+		else {
+			return -1;
+		}
+	}
+
   public static native int nativeBind(byte[] address, int port);
 
   public static native int nativeConnect(int fd, byte[] address, int port);

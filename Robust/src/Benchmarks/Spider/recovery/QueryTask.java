@@ -10,6 +10,7 @@ public class QueryTask extends Task {
 		this.doneList = doneList;
 		this.maxDepth = maxDepth;
 		this.results = results;
+		toprocess = global new Queue();
   }
 
   public void execute() {
@@ -51,8 +52,16 @@ public class QueryTask extends Task {
 			System.printString(path);
 			System.printString("\n");
 
-			Socket s = new Socket(hostname, 80);
-    
+			if (isDocument(path)) {
+				return;
+			}
+
+			Socket s = new Socket();
+
+			if(s.connect(hostname, 80) == -1) {
+				return;
+			}
+
 			requestQuery(hostname, path, s);
 			readResponse(lq, s);
 
@@ -60,15 +69,27 @@ public class QueryTask extends Task {
 				atomic {
 					gTitle = global new GlobalString(title);
 				}
+				atomic {
+					toprocess = processPage(lq);
+				}
 			}
-
-			atomic {
-				toprocess = processPage(lq);
-			}
-
 			s.close();
 		}
   }
+	
+	public static boolean isDocument(String str) {
+		int index = str.lastindexOf('.');
+
+		if (index != -1) {
+			if ((str.subString(index+1)).equals("pdf")) return true;
+			else if ((str.subString(index+1)).equals("ps")) return true;
+			else if ((str.subString(index+1)).equals("ppt")) return true;
+			else if ((str.subString(index+1)).equals("pptx")) return true;
+			else if ((str.subString(index+1)).equals("jpg")) return true;
+			else return false;
+		}
+		return false;
+	}
 
 	public void done(Object obj) {
 		if (gTitle != null) 
@@ -95,22 +116,46 @@ public class QueryTask extends Task {
 	}
 
 	public static String grabTitle(LocalQuery lq) {
-		String sTitle = new String("<title>");	
-		String eTitle = new String("</title>");
+		String sBrace = new String("<");	
+		String strTitle = new String("title>");
   	String searchstr = lq.response.toString();
 		String title = null;
 		char ch;
 
-		int mindex = searchstr.indexOf(sTitle);
-		if (mindex != -1) {
-			int endquote = searchstr.indexOf(eTitle, mindex+sTitle.length());
+		int mindex = -1;
+		int endquote = -1;
+		int i, j;
+		String tmp;
 
-			title = new String(searchstr.subString(mindex+sTitle.length(), endquote));
-			
+		for (i = 0; i < searchstr.length(); i++) {
+			if (searchstr.charAt(i) == '<') {
+				i++;
+				if (searchstr.length() > (i+strTitle.length())) {
+					tmp = searchstr.subString(i, i+strTitle.length());
+					if (tmp.equalsIgnoreCase("title>")) {
+						mindex = i + tmp.length();
+						for (j = mindex; j < searchstr.length(); j++) {
+							if (searchstr.charAt(j) == '<') {
+								j++;
+								tmp = searchstr.subString(j, j+strTitle.length()+1);			
+								if (tmp.equalsIgnoreCase("/title>")) {
+									endquote = j - 1;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (mindex != -1) {
+			title = searchstr.subString(mindex, endquote);
 			if (Character.isWhitespace(title.charAt(0))){
 				mindex=0;
 				while (Character.isWhitespace(title.charAt(mindex++)));
 				mindex--;
+				if (mindex >= title.length()) return null;
 				title = new String(title.subString(mindex));
 			}
 
@@ -118,22 +163,29 @@ public class QueryTask extends Task {
 				endquote=title.length()-1;
 				while (Character.isWhitespace(title.charAt(endquote--)));
 				endquote += 2;
+				if (mindex >= endquote) return null;
 				title = new String(title.subString(0, endquote));
 			}
 
-			if (errorPage(title)) 
-				title = null;
+			if (isErrorPage(title)) {
+				return null;
+			}
 		}
+//		System.out.println("Title = [" + title + "]");
 
 		return title;
 	}
 
-	public static boolean errorPage(String str) {
+	public static boolean isErrorPage(String str) {	
 		if (str.equals("301 Moved Permanently")) 
 			return true;
 		else if (str.equals("302 Found")) 
 			return true;
 		else if (str.equals("404 Not Found")) 
+			return true;
+		else if (str.equals("403 Forbidden")) 
+			return true;
+		else if (str.equals("404 File Not Found")) 
 			return true;
 		else
 			return false;
@@ -143,12 +195,32 @@ public class QueryTask extends Task {
     StringBuffer req = new StringBuffer("GET "); 
     req.append("/");
 		req.append(path);
-    req.append(" HTTP/1.1\r\nHost:");
+	  req.append(" HTTP/1.0\r\nHost: ");
     req.append(hostname);
     req.append("\r\n\r\n");
     sock.write(req.toString().getBytes());
   }
 
+	public static void readResponse(LocalQuery lq, Socket sock) {
+	//    state 0 - nothing
+	//    state 1 - \r
+	//    state 2 - \r\n
+	//    state 3 - \r\n\r
+	//    state 4 - \r\n\r\n
+		byte[] buffer = new byte[1024];
+		int numchars;
+
+		do {
+			numchars = sock.read(buffer);
+
+			String curr = (new String(buffer)).subString(0, numchars);
+			
+			lq.response.append(curr);
+			buffer = new byte[1024];
+		} while(numchars > 0);
+  }
+
+/*
 	public static void readResponse(LocalQuery lq, Socket sock) {
 	//    state 0 - nothing
 	//    state 1 - \r
@@ -202,12 +274,13 @@ public class QueryTask extends Task {
           return;
         else {
           String curr=(new String(buffer)).subString(0,numchars);
+//					System.out.println("numchars = "+numchars);
 					lq.response.append(curr);
         }
       }
     }
   }
-
+*/
 	public void processList() {
 		LinkedList ll;
 		GlobalString token = null;
@@ -236,7 +309,7 @@ public class QueryTask extends Task {
 			}
 			q.push(workingURL);	
 			results.put(token, q);
-			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
+//			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
 		}
 	}
 
@@ -251,9 +324,11 @@ public class QueryTask extends Task {
 		else if (str.equals("or")) return true;
 		else if (str.equals("but")) return true;
 		else if (str.equals("to")) return true;
+		else if (str.equals("The")) return true;
 		else if (str.equals(".")) return true;
-		else if (str.equals("=")) return true;
 		else if (str.equals("-")) return true;
+		else if (str.equals("=")) return true;
+		else if (str.equals("_")) return true;
 		else if (str.equals(":")) return true;
 		else if (str.equals(";")) return true;
 		else if (str.equals("\'")) return true;
@@ -261,6 +336,7 @@ public class QueryTask extends Task {
 		else if (str.equals("|")) return true;
 		else if (str.equals("@")) return true;
 		else if (str.equals("&")) return true;
+		else if (str.equals(" ")) return true;
 		else return false;
 	}
 
@@ -272,6 +348,9 @@ public class QueryTask extends Task {
 
 	public GlobalString refinePrefix(GlobalString str) {
 		if (str.charAt(0) == '&') {		// &
+			return str.subString(1);
+		}
+		else if (str.charAt(0) == '/') {		// &
 			return str.subString(1);
 		}
 		return str;
@@ -293,6 +372,11 @@ public class QueryTask extends Task {
 		else if (str.charAt(str.length()-1) == 's') {			// 's
 			if (str.charAt(str.length()-2) == '\'')
 				return str.subString(0, str.length()-2);	
+		}
+		else if (str.charAt(str.length()-1) == '-') {
+			int index = str.length()-2;
+			while (Character.isWhitespace(str.charAt(index--)));
+			return str.subString(0, index+2);
 		}
 		return str;
 	}
