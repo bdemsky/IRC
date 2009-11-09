@@ -124,6 +124,13 @@ public class DiscoverConflicts {
   
   private void computeneedsarrayget(LocalityBinding lb, Hashtable<FlatNode, Hashtable<TempDescriptor, Set<TempFlatPair>>> fnmap) {
     //    Set<FlatNode> gwriteset=(state.READSET&&gft!=null)?twritemap.get(lb):treadmap.get(lb);
+    if (state.READSET&&gft!=null) {
+      if (twritemap.get(lb).size()==0) {
+	getmap.put(lb, new HashSet<FlatNode>());
+        return;
+      }
+    }
+
     Set<FlatNode> gwriteset=treadmap.get(lb);
     FlatMethod fm=state.getMethodFlat(lb.getMethod());
     HashSet<FlatNode> needsget=new HashSet<FlatNode>();
@@ -143,7 +150,6 @@ public class DiscoverConflicts {
 	  }
 	}
       }
-      
     }
     getmap.put(lb, needsget);
   }

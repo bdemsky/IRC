@@ -6,10 +6,6 @@ public class Stream {
   RBTree attackMapPtr;
 
   public Stream(int percentAttack) {
-    if (percentAttack < 0 || percentAttack > 100) {
-      System.out.print("Error: Invalid percentAttack value\n");
-      System.exit(0);
-    }
     this.percentAttack = percentAttack;
     randomPtr = new Random();
     allocVectorPtr = new Vector_t(1);
@@ -34,10 +30,6 @@ public class Stream {
     for (p = 0; p < (numPacket - 1); p++) {
       Packet bytes = new Packet(numDataByte);
       status = allocVectorPtr.vector_pushBack(bytes);
-      if (status == false) {
-        System.out.printString("Error: Vector pushBack failed\n");
-        System.exit(-1);
-      }
       bytes.flowId = flowId;
       bytes.fragmentId = p;
       bytes.numFragment = numPacket;
@@ -47,10 +39,6 @@ public class Stream {
             bytes.data[z] = str[i];
       }
       status = packetQueuePtr.queue_push(bytes);
-      if (status == false) {
-        System.out.printString("Error: Queue push failed\n");
-        System.exit(0);
-      }
       beginIndex = endIndex;
     }
     int lastNumDataByte = numDataByte + numByte % numPacket;
@@ -64,10 +52,6 @@ public class Stream {
         bytes.data[z] = str[i];
     }
     status = packetQueuePtr.queue_push(bytes);
-    if (status == false) {
-      System.out.printString("Error: Queue push failed\n");
-      System.exit(0);
-    }
   }
   /*==================================================
   /* stream_generate 
@@ -81,10 +65,6 @@ public class Stream {
     randomPtr.random_seed(seed);
     packetQueuePtr.queue_clear();
     int range = '~' - ' ' + 1;
-    if (range <= 0) {
-      System.out.printString("Assert failed range <= 0\n");
-      System.exit(0);
-    }
     int f;
     boolean status;
     for (f = 1; f <= numFlow; f++) {
@@ -94,10 +74,6 @@ public class Stream {
         String str = dictionaryPtr.get(s);
         c = str.getBytes();
         status = attackMapPtr.insert(f, c);
-        if (status == false) {
-          System.out.printString("Assert failed: status is false\n");
-          System.exit(0);
-        }
         numAttack++;
       } else {
         /* Create random string */
@@ -108,18 +84,10 @@ public class Stream {
           c[l] =(byte) (' ' + (byte) (randomPtr.random_generate() % range));
         }
         status = allocVectorPtr.vector_pushBack(c);
-        if(!status) {
-            System.out.println("Assert faiiled status is null.");
-            System.exit(0);
-        }
         int err = detectorPtr.process(c);
         if (err == error.SIGNATURE) {
           status = attackMapPtr.insert(f, c);
           System.out.println("Never here");
-          if (!status) {
-            System.out.printString("Assert failed status is null\n");
-            System.exit(0);
-          }
           numAttack++;
         }
       }

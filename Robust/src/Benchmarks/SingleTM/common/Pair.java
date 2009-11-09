@@ -107,19 +107,12 @@ public class Pair {
  * -- Returns NULL if failure
  * =============================================================================
  */
-    public static Pair Ppair_alloc (Object firstPtr, Object secondPtr)
-    {
-        Pair pairPtr;
-
-        pairPtr = new Pair();       
-
-        if(pairPtr != null) {
-            pairPtr.first = firstPtr;
-            pairPtr.second = secondPtr;
-        }
-
-        return pairPtr;
-    }
+  public static Pair Ppair_alloc (Object firstPtr, Object secondPtr) {
+    Pair pairPtr = new Pair();       
+    pairPtr.first = firstPtr;
+    pairPtr.second = secondPtr;
+    return pairPtr;
+  }
 
 
 /* =============================================================================

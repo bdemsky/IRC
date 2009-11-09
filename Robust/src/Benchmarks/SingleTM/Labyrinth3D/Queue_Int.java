@@ -70,10 +70,6 @@ public class Queue_Int {
 
     int capacity = ((initCapacity < 2) ? 2 : initCapacity);
     queuePtr.elements = new int[capacity];
-    if (queuePtr.elements == null) {
-      queuePtr = null;
-      return null;
-    }
     queuePtr.pop      = capacity - 1;
     queuePtr.push     = 0;
     queuePtr.capacity = capacity;
@@ -93,10 +89,6 @@ public class Queue_Int {
 
       int capacity = ((initCapacity < 2) ? 2 : initCapacity);
       queuePtr.elements = new int[capacity];
-      if (queuePtr.elements == null) {
-        queuePtr = null;
-        return null;
-      }
       queuePtr.pop      = capacity - 1;
       queuePtr.push     = 0;
       queuePtr.capacity = capacity;
@@ -115,10 +107,6 @@ public class Queue_Int {
 
     int capacity = ((initCapacity < 2) ? 2 : initCapacity);
     queuePtr.elements = new int[capacity];
-    if (queuePtr.elements == null) {
-      queuePtr = null;
-      return null;
-    }
     queuePtr.pop      = capacity - 1;
     queuePtr.push     = 0;
     queuePtr.capacity = capacity;
@@ -205,10 +193,6 @@ public class Queue_Int {
   public boolean
     queue_push (int dataPtr)
     {
-      if(pop == push) {
-        System.out.println("push == pop in Queue.java");
-        return false;
-      }
 
       /* Need to resize */
       int newPush = (push + 1) % capacity;
@@ -216,9 +200,6 @@ public class Queue_Int {
 
         int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
         int[] newElements = new int[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
 
         int dst = 0;
         int[] tmpelements = elements;
@@ -262,10 +243,6 @@ public class Queue_Int {
       int push     = queuePtr.push;
       int capacity = queuePtr.capacity;
 
-      if(pop == push) {
-        System.out.println("push == pop in Queue.java");
-        return false;
-      }
 
       /* Need to resize */
       int newPush = (push + 1) % capacity;
@@ -273,9 +250,6 @@ public class Queue_Int {
 
         int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
         int[] newElements = new int[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
 
         int dst = 0;
         int[] elements = queuePtr.elements;
@@ -321,19 +295,12 @@ public class Queue_Int {
       int push     = (queuePtr.push);
       int capacity = (queuePtr.capacity);
 
-      if(pop == push) {
-        System.out.println("push == pop in Queue.java");
-        return false;
-      }
 
       /* Need to resize */
       int newPush = (push + 1) % capacity;
       if (newPush == pop) {
         int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
         int[] newElements = new int[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
 
         int dst = 0;
         int[] elements = queuePtr.elements;

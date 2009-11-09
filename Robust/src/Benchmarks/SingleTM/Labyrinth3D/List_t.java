@@ -92,9 +92,6 @@ public class List_t {
     {
         List_Node nodePtr = new List_Node();
 
-        if(nodePtr == null) {
-            return null;
-        }
 
         nodePtr.dataPtr = dataPtr;
         nodePtr.nextPtr = null;
@@ -117,9 +114,6 @@ public class List_t {
     {
         List_t listPtr = new List_t();
 
-        if(listPtr  == null) {
-            return null;
-        }
 
         listPtr.head.dataPtr = null;
         listPtr.head.nextPtr = null;

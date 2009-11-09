@@ -205,9 +205,6 @@ public class List_t {
         currPtr = prevPtr.nextPtr;
 
         nodePtr = allocNode(dataPtr);
-        if (nodePtr == null) {
-            return false;
-        }
 
         nodePtr.nextPtr = currPtr;
         prevPtr.nextPtr = nodePtr;

@@ -91,10 +91,6 @@ public class Detector {
  */
     public void addPreprocessor(int p) {
         boolean status = preprocessorVectorPtr.vector_pushBack(new Integer(p));
-        if(!status) {
-            System.out.println("Assertion in Detector.addPreprocessor");
-            System.exit(1);
-        }
     }
 
 
@@ -111,15 +107,12 @@ public class Detector {
     for(int p = 0; p < numPreprocessor; p++) {
       Integer preprocessor = (Integer)preprocessorVectorPtr.vector_at(p);
       if(preprocessor.intValue() == 1) {
-	System.out.println("NOOOOOOOOOOOOO");
       } else if(preprocessor.intValue() == 2) {
 	for(int i=0;i<str.length;i++) {
 	  if(str[i] >'A' && str[i] < 'Z') {
 	    str[i] +=(byte)32;
 	  }
 	}
-      } else {
-	System.out.println("NOOOOOOOOOOOOO");
       }
     }
     

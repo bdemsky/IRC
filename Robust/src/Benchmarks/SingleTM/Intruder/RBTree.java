@@ -588,7 +588,7 @@ public class RBTree {
         if ( ex != null) {
             node = null;
         }
-        return ((ex == null) ? true : false);
+        return ex == null;
     }
 
 
@@ -607,8 +607,7 @@ public class RBTree {
         }
         if(node != null) {
         }
-        return ((node != null) ? true : false);
-
+        return node != null;
     }
 
 

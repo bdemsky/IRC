@@ -78,21 +78,10 @@ public class Net {
   public static NetNode allocNode (int id) {
     NetNode nodePtr = new NetNode();
 
-    if (nodePtr != null) {
-      nodePtr.parentIdListPtr = IntList.list_alloc(); 
-      if (nodePtr.parentIdListPtr == null) {
-        nodePtr = null;
-        return null;
-      }
-      nodePtr.childIdListPtr = IntList.list_alloc();
-      if (nodePtr.childIdListPtr == null) {
-        nodePtr.parentIdListPtr.list_free();
-        nodePtr = null;
-        return null;
-      }
-      nodePtr.id = id;
-    }
-
+    nodePtr.parentIdListPtr = IntList.list_alloc(); 
+    nodePtr.childIdListPtr = IntList.list_alloc();
+    nodePtr.id = id;
+    
     return nodePtr;
   }
 
@@ -133,18 +122,12 @@ public class Net {
       NetNode childNodePtr = (NetNode)(nodeVectorPtr.vector_at(toId));
       IntList parentIdListPtr = childNodePtr.parentIdListPtr;
 
-      if((status = parentIdListPtr.list_insert(fromId)) != true) {
-        System.out.println("Assert failed for parentIdListPtr.list_insert in insertEdge()");
-        System.exit(0);
-      }
+      status = parentIdListPtr.list_insert(fromId);
 
       NetNode parentNodePtr = (NetNode)(nodeVectorPtr.vector_at(fromId));
       IntList childIdListPtr = parentNodePtr.childIdListPtr;
 
-      if((status = childIdListPtr.list_insert(toId)) != true) {
-        System.out.println("Assert failed for childIdListPtr.list_insert in insertEdge()");
-        System.exit(0);
-      }
+      status = childIdListPtr.list_insert(toId);
     }
 
 
@@ -160,18 +143,10 @@ public class Net {
       NetNode childNodePtr = (NetNode)(nodeVectorPtr.vector_at(toId));
       IntList parentIdListPtr = childNodePtr.parentIdListPtr;
       status = parentIdListPtr.list_remove(fromId);
-      if(status == false) {
-        System.out.println("Assert failed: when removing from list");
-        System.exit(0);
-      }
 
       NetNode parentNodePtr = (NetNode)(nodeVectorPtr.vector_at(fromId));
       IntList childIdListPtr = parentNodePtr.childIdListPtr;
       status = childIdListPtr.list_remove(toId);
-      if(status == false) {
-        System.out.println("Assert failed: when removing from list");
-        System.exit(0);
-      }
     }
 
   /* =============================================================================
@@ -199,9 +174,6 @@ public class Net {
         removeEdge(fromId, toId);
       } else if(op == OPERATION_REVERSE) {
         reverseEdge(fromId, toId);
-      } else {
-        System.out.println("Assert failed: We shouldn't get here in net_applyOperation()");
-        System.exit(0);
       }
     }
 
@@ -266,18 +238,10 @@ public class Net {
     {
       boolean status;
 
-      if(visitedBitmapPtr.numBit != nodeVectorPtr.vector_getSize()) {
-        System.out.println("Assert failed for numbit == vector size in net_isPath()");
-        System.exit(0);
-      }
-
       visitedBitmapPtr.bitmap_clearAll();
       workQueuePtr.queue_clear();
 
-      if((status = workQueuePtr.queue_push(fromId)) != true) {
-        System.out.println("Assert failed while inserting into Queue in net_isPath()");
-        System.exit(0);
-      }
+      status = workQueuePtr.queue_push(fromId);
 
       while (!workQueuePtr.queue_isEmpty()) {
         int id = workQueuePtr.queue_pop();
@@ -286,10 +250,7 @@ public class Net {
           return true;
         }
 
-        if((status = visitedBitmapPtr.bitmap_set(id)) != true) {
-          System.out.println("Assert failed while checking bitmap_set in net_isPath()");
-          System.exit(0);
-        }
+	status = visitedBitmapPtr.bitmap_set(id);
 
         NetNode nodePtr = (NetNode) (nodeVectorPtr.vector_at(id));
         IntList childIdListPtr = nodePtr.childIdListPtr;
@@ -300,10 +261,6 @@ public class Net {
           int childId = it.dataPtr;
           if (!visitedBitmapPtr.bitmap_isSet(childId)) {
             status = workQueuePtr.queue_push(childId);
-            if(status == false) {
-              System.out.println("Assert failed: queue_push failed in net_isPath()");
-              System.exit(0);
-            }
           }
         }
       }
@@ -337,9 +294,6 @@ public class Net {
         return true;
       } else if(nodePtr.mark == NET_NODE_MARK_DONE) {
         return false;
-      } else {
-        System.out.println("We should have never come here in isCycle()");
-        System.exit(0);
       }
 
       nodePtr.mark = NET_NODE_MARK_DONE;
@@ -368,16 +322,6 @@ public class Net {
         } else if(nodePtr.mark == NET_NODE_MARK_DONE) {
           /* do nothing */
           ;
-        } else if(nodePtr.mark == NET_NODE_MARK_TEST) {
-          /* Assert 0 */
-          System.out.println("We should have never come here in net_isCycle()");
-          System.exit(0);
-          break;
-        } else {
-          /* Assert 0 */
-          System.out.println("We should have never come here in net_isCycle()");
-          System.exit(0);
-          break;
         }
       }
 
@@ -393,10 +337,6 @@ public class Net {
     net_getParentIdListPtr (int id)
     {
       NetNode nodePtr = (NetNode) (nodeVectorPtr.vector_at(id));
-      if(nodePtr == null) {
-        System.out.println("Assert failed for nodePtr");
-        System.exit(0);
-      }
 
       return nodePtr.parentIdListPtr;
     }
@@ -410,10 +350,6 @@ public class Net {
     net_getChildIdListPtr (int id)
     {
       NetNode nodePtr = (NetNode) (nodeVectorPtr.vector_at(id));
-      if(nodePtr == null) {
-        System.out.println("Assert failed for nodePtr");
-        System.exit(0);
-      }
 
       return nodePtr.childIdListPtr;
     }
@@ -432,11 +368,6 @@ public class Net {
     {
       boolean status;
 
-      if(ancestorBitmapPtr.numBit != nodeVectorPtr.vector_getSize()) {
-        System.out.println("Assert failed for numbit == vector size in net_findAncestors()");
-        System.exit(0);
-      }
-
       ancestorBitmapPtr.bitmap_clearAll();
       workQueuePtr.queue_clear();
 
@@ -449,14 +380,7 @@ public class Net {
           it = it.nextPtr;
           int parentId = it.dataPtr;
           status = ancestorBitmapPtr.bitmap_set(parentId);
-          if(status == false) {
-            System.out.println("Assert failed: for bitmap_set in net_findAncestors()");
-            System.exit(0);
-          }
-          if((status = workQueuePtr.queue_push(parentId)) == false) {
-            System.out.println("Assert failed: for workQueuePtr.queue_push in net_findAncestors()");
-            System.exit(0);
-          }
+	  status = workQueuePtr.queue_push(parentId);
         }
 
       }
@@ -475,15 +399,9 @@ public class Net {
           it = it.nextPtr;
           int grandParentId = it.dataPtr;
           if (!ancestorBitmapPtr.bitmap_isSet(grandParentId)) {
-            if((status = ancestorBitmapPtr.bitmap_set(grandParentId)) == false) {
-              System.out.println("Assert failed: for ancestorBitmapPtr bitmap_set in net_findAncestors()");
-              System.exit(0);
-            }
+	    status = ancestorBitmapPtr.bitmap_set(grandParentId);
 
-            if((status = workQueuePtr.queue_push(grandParentId)) == false) {
-              System.out.println("Assert failed: for workQueuePtr.queue_push in net_findAncestors()");
-              System.exit(0);
-            }
+	    status = workQueuePtr.queue_push(grandParentId);
           }
         }
       }
@@ -505,11 +423,6 @@ public class Net {
     {
       boolean status;
 
-      if(descendantBitmapPtr.numBit != nodeVectorPtr.vector_getSize()) {
-        System.out.println("Assert failed: for descendantBitmapPtr.numbit in net_findDescendants()");
-        System.exit(0);
-      }
-
       descendantBitmapPtr.bitmap_clearAll();
       workQueuePtr.queue_clear();
 
@@ -521,15 +434,9 @@ public class Net {
         while (it.nextPtr!=null) {
           it = it.nextPtr;
           int childId = it.dataPtr;
-          if((status = descendantBitmapPtr.bitmap_set(childId)) == false) {
-            System.out.println("Assert failed: for descendantBitmapPtr.bitmap_set in net_findDescendants()");
-            System.exit(0);
-          }
+	  status = descendantBitmapPtr.bitmap_set(childId);
 
-          if((status = workQueuePtr.queue_push(childId)) == false) {
-            System.out.println("Assert failed: for workQueuePtr.queue_push in net_findDescendants()");
-            System.exit(0);
-          }
+	  status = workQueuePtr.queue_push(childId);
 
         }
       }
@@ -549,15 +456,8 @@ public class Net {
           it = it.nextPtr;
           int grandChildId = it.dataPtr;
           if (!descendantBitmapPtr.bitmap_isSet(grandChildId)) {
-            if((status = descendantBitmapPtr.bitmap_set(grandChildId)) == false) {
-              System.out.println("Assert failed: for descendantBitmapPtr.bitmap_set in net_findDescendants()");
-              System.exit(0);
-            }
-
-            if((status = workQueuePtr.queue_push(grandChildId)) == false) {
-              System.out.println("Assert failed: for workQueuePtr.queue_push in net_findDescendants()");
-              System.exit(0);
-            }
+	    status = descendantBitmapPtr.bitmap_set(grandChildId);
+	    status = workQueuePtr.queue_push(grandChildId);
           }
         }
       }
@@ -577,10 +477,6 @@ public class Net {
     {
       int numNode = nodeVectorPtr.vector_getSize();
       BitMap visitedBitmapPtr = BitMap.bitmap_alloc(numNode);
-      if(visitedBitmapPtr == null) {
-        System.out.println("Assert failed: during bitmap_alloc in net_generateRandomEdges()");
-        System.exit(0);
-      }
 
       Queue workQueuePtr = Queue.queue_alloc(-1);
 
@@ -597,11 +493,6 @@ public class Net {
             }
           }
         }
-      }
-
-      if(net_isCycle()) {
-        System.out.println("Assert failed: Cycle detected in net_generateRandomEdges()");
-        System.exit(0);
       }
 
       visitedBitmapPtr.bitmap_free();

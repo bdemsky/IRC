@@ -331,12 +331,7 @@ public class Vacation {
     int maxCustomerId = queryRange + 1;
     for (i = 1; i <= maxCustomerId; i++) {
       if (customerTablePtr.find(i)!=null) {
-	if (customerTablePtr.remove(i)) {
-	  if (customerTablePtr.find(i)!=null) {
-	    System.out.println("ERROR");
-	    System.exit(-1);
-	  }
-	}
+	customerTablePtr.remove(i);
       }
     }
 
@@ -346,32 +341,17 @@ public class Vacation {
       for (i = 1; i <= numRelation; i++) {
 	if (tablePtr.find(i)!=null) {
 	  if (t==0) {
-	    if (!managerPtr.manager_addCar(i,0,0)) {
-	      System.out.println("ERROR3");
-	      System.exit(-1);
-	    }
+	    managerPtr.manager_addCar(i,0,0);
 	  } else if (t==1) {
-	    if (!managerPtr.manager_addFlight(i, 0, 0)) {
-	      System.out.println("ERROR3");
-	      System.exit(-1);
-	    }
+	    managerPtr.manager_addFlight(i, 0, 0);
 	  } else if (t==2) {
-	    if (!managerPtr.manager_addRoom(i,0,0)) {
-	      System.out.println("ERROR3");
-	      System.exit(-1);
-	    }
+	    managerPtr.manager_addRoom(i,0,0);
 	  }
-
-	  if (tablePtr.remove(i)) {
-	    if (tablePtr.remove(i)) {
-	      System.out.println("ERROR2");
-	      System.exit(-1);
-	    }
-	  }
+	  tablePtr.remove(i);
 	}
       }
     }
-
+    
     System.out.println("done.");
   }
 

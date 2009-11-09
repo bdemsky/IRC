@@ -92,33 +92,9 @@ public class Reservation {
  */
   public void checkReservation() {
     int numUsed = this.numUsed;
-    if (numUsed < 0) {
-	System.out.println("TMRESTART1");
-	System.exit(-1);
-    }
-    
     int numFree = this.numFree;
-    if (numFree < 0) {
-	System.out.println("TMRESTART2");
-	System.exit(-1);
-    }
-
     int numTotal = this.numTotal;
-    if (numTotal < 0) {
-	System.out.println("TMRESTART3");
-	System.exit(-1);
-    }
-
-    if ((numUsed + numFree) != numTotal) {
-	System.out.println("TMRESTART4");
-	System.exit(-1);
-    }
-
     int price = this.price;
-    if (price < 0) {
-	System.out.println("TMRESTART5");
-	System.exit(-1);
-    }
   }
   
   

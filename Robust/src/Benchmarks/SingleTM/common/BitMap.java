@@ -82,18 +82,10 @@ public class BitMap {
   public static BitMap bitmap_alloc(int numBit)
     {
       BitMap bitmapPtr = new BitMap();
-      if (bitmapPtr == null) {
-        return null;
-      }
-
       bitmapPtr.numBit = numBit;
       int numWord = bitmapPtr.DIVIDE_AND_ROUND_UP(numBit, NUM_BIT_PER_WORD);
       bitmapPtr.numWord = numWord;
-
       bitmapPtr.bits = new int[numWord];
-      if (bitmapPtr.bits == null) {
-        return null;
-      }
       for(int i = 0; i < numWord; i++)
         bitmapPtr.bits[i] = 0;
 

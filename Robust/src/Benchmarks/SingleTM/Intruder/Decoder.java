@@ -123,33 +123,18 @@ public class Decoder {
       if (fragmentListPtr == null) {
 	fragmentListPtr = new List_t(1); // packet_compareFragmentId
 	status = fragmentListPtr.insert(packetPtr);
-	if(!status) {
-	  System.out.println("Assertion Decoer.process");
-	}
 	status = fragmentedMapPtr.insert(flowId, fragmentListPtr);
-	if(!status) {
-	  System.out.println("Assertion Decoder!!!!.process");
-	}
       } else {
 	List_Iter it = new List_Iter();
 	it.reset(fragmentListPtr);
-	if(!it.hasNext(fragmentListPtr)) {
-	  System.out.println("Assertion in Decoder2.process");
-	}
 	System.out.print("");
 	Packet firstFragmentPtr = (Packet)it.next(fragmentListPtr);
 	int expectedNumFragment = firstFragmentPtr.numFragment;
 	if (numFragment != expectedNumFragment) {
 	  status = fragmentedMapPtr.deleteNode(flowId);
-	  if(!status) {
-	    System.out.println("Assertion in process1");
-	  }
 	  return er.NUMFRAGMENT;
 	}
 	status = fragmentListPtr.insert(packetPtr);
-	if(!status) {
-	  System.out.println("Assertion in process2");
-	}
 	/*
 	 * If we have all thefragments we can reassemble them
 	 */
@@ -161,9 +146,6 @@ public class Decoder {
 	    Packet fragmentPtr = (Packet)it.next(fragmentListPtr);
 	    if(fragmentPtr.fragmentId != i) {
 	      status = fragmentedMapPtr.deleteNode(flowId);
-	      if(!status) {
-		System.out.println("Assertion in process3");
-	      }
 	      return er.INCOMPLETE; /* should be sequential */
 	    }
 	    numBytes = numBytes + fragmentPtr.length;
@@ -183,13 +165,7 @@ public class Decoder {
 	  decodedPtr.flowId = flowId;
 	  decodedPtr.data = data;
 	  status = decodedQueuePtr.queue_push(decodedPtr);
-	  if(!status) {
-	    System.out.println("Assertion in process7");
-	  }
 	  status = fragmentedMapPtr.deleteNode(flowId);
-	  if(!status) {
-	    System.out.println("Assertion in process8");
-	  }
 	}
       }
     } else {
@@ -200,17 +176,11 @@ public class Decoder {
 	return er.FRAGMENTID;
       }
       byte[] data = packetPtr.data;
-      if(data == null) {
-	System.out.println("Assertion in proces9");
-      }
       Decoded decodedPtr = new Decoded();
 
       decodedPtr.flowId = flowId;
       decodedPtr.data = data;
       status = decodedQueuePtr.queue_push(decodedPtr);
-      if(!status) {
-	System.out.println("Assertion in process10");
-      }
     }
     return er.NONE;
   }

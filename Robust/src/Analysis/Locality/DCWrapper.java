@@ -20,12 +20,16 @@ public class DCWrapper {
   DelayComputation delaycomp;
   State state;
   LocalityAnalysis locality;
+  TypeAnalysis typeanalysis;
+  GlobalFieldType gft;
 
   public DCWrapper(LocalityAnalysis locality, State state, TypeAnalysis typeanalysis, GlobalFieldType gft) {
     delaycomp=new DelayComputation(locality, state, typeanalysis, gft);
     delaycomp.doAnalysis();
     this.state=state;
     this.locality=locality;
+    this.typeanalysis=typeanalysis;
+    this.gft=gft;
     Set<LocalityBinding> localityset=locality.getLocalityBindings();
     for(Iterator<LocalityBinding> lbit=localityset.iterator();lbit.hasNext();) {
       processlb(lbit.next());
@@ -40,7 +44,9 @@ public class DCWrapper {
   Hashtable<LocalityBinding, Set<FlatNode>> derefmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   
   public DiscoverConflicts getConflicts() {
-    return delaycomp.getConflicts();
+    DiscoverConflicts dc=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap, false, false, state.READSET?gft:null);
+    dc.doAnalysis();
+    return dc;
   }
   
   public Hashtable<LocalityBinding, HashSet<FlatNode>> getCannotDelayMap() {

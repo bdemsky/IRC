@@ -93,21 +93,19 @@ public class Grid {
   public static Grid alloc(int width,int height,int depth) {
     Grid grid = new Grid();
     
-    if(grid != null) {
-      grid.width = width;
-      grid.height = height;
-      grid.depth = depth;
-      
-      int[][][] points_unaligned = new int[width][height][depth];
-
-      
-      for(int i=0;i<width;i++)
-	for(int j=0;j<height;j++)
-	  for(int k=0;k<depth;k++)
-	    points_unaligned[i][j][k]= GRID_POINT_EMPTY;
-      
-      grid.points_unaligned = points_unaligned;
-    }
+    grid.width = width;
+    grid.height = height;
+    grid.depth = depth;
+    
+    int[][][] points_unaligned = new int[width][height][depth];
+    
+    
+    for(int i=0;i<width;i++)
+      for(int j=0;j<height;j++)
+	for(int k=0;k<depth;k++)
+	  points_unaligned[i][j][k]= GRID_POINT_EMPTY;
+    
+    grid.points_unaligned = points_unaligned;
     
     return grid;         
   }

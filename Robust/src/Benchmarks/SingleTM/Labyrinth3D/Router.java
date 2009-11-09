@@ -112,12 +112,10 @@ public class Router {
     routerPtr.MOVE_NEGY = new Point(0,-1,0,0,MOMENTUM_NEGY);
     routerPtr.MOVE_NEGZ = new Point(0,0,-1,0,MOMENTUM_NEGZ);
 
-    if(routerPtr != null) {
-      routerPtr.xCost = xCost;
-      routerPtr.yCost = yCost;
-      routerPtr.zCost = zCost;
-      routerPtr.bendCost = bendCost;
-    }
+    routerPtr.xCost = xCost;
+    routerPtr.yCost = yCost;
+    routerPtr.zCost = zCost;
+    routerPtr.bendCost = bendCost;
     
     return routerPtr;    
   }
@@ -384,10 +382,6 @@ public class Router {
             if(success) {
                 boolean status = myPathVectorPtr.vector_pushBack(pointVectorPtr);
                 
-                if(!status) {
-                    System.out.println("Assert in Router_Solve");
-                    System.exit(1);
-                }
             }
         }
 

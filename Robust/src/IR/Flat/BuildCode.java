@@ -4044,16 +4044,20 @@ public class BuildCode {
 	  output.println(generateTemp(fm, fon.getDest(),lb)+" = ((unsigned int)"+generateTemp(fm, fon.getLeft(),lb)+")>>"+generateTemp(fm,fon.getRight(),lb)+";");
 
       } else if (dc!=null) {
-	output.print(generateTemp(fm, fon.getDest(),lb)+" = ");
+	output.print(generateTemp(fm, fon.getDest(),lb)+" = (");
+	if (fon.getLeft().getType().isPtr()&&(fon.getOp().getOp()==Operation.EQUAL||fon.getOp().getOp()==Operation.NOTEQUAL))
+	    output.print("(void *)");
 	if (dc.getNeedLeftSrcTrans(lb, fon))
 	  output.print("("+generateTemp(fm, fon.getLeft(),lb)+"!=NULL?"+generateTemp(fm, fon.getLeft(),lb)+"->"+oidstr+":NULL)");
 	else
 	  output.print(generateTemp(fm, fon.getLeft(),lb));
-	output.print(fon.getOp().toString());
+	output.print(")"+fon.getOp().toString()+"(");
+	if (fon.getRight().getType().isPtr()&&(fon.getOp().getOp()==Operation.EQUAL||fon.getOp().getOp()==Operation.NOTEQUAL))
+	    output.print("(void *)");
 	if (dc.getNeedRightSrcTrans(lb, fon))
-	  output.println("("+generateTemp(fm, fon.getRight(),lb)+"!=NULL?"+generateTemp(fm, fon.getRight(),lb)+"->"+oidstr+":NULL);");
+	  output.println("("+generateTemp(fm, fon.getRight(),lb)+"!=NULL?"+generateTemp(fm, fon.getRight(),lb)+"->"+oidstr+":NULL));");
 	else
-	  output.println(generateTemp(fm,fon.getRight(),lb)+";");
+	  output.println(generateTemp(fm,fon.getRight(),lb)+");");
       } else
 	output.println(generateTemp(fm, fon.getDest(),lb)+" = "+generateTemp(fm, fon.getLeft(),lb)+fon.getOp().toString()+generateTemp(fm,fon.getRight(),lb)+";");
     } else if (fon.getOp().getOp()==Operation.ASSIGN)

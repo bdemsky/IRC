@@ -142,9 +142,6 @@ public class Queue_t {
     if (newPush == pop) {
       int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
       Object[] newElements = new Object[newCapacity];
-      if (newElements == null) {
-	return false;
-      }
       
       int dst = 0;
       Object[] tmpelements = elements;
@@ -200,9 +197,6 @@ public class Queue_t {
 
         int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
         Object[] newElements = new Object[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
 
         int dst = 0;
         Object[] elements = queuePtr.elements;

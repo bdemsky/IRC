@@ -189,10 +189,6 @@ public class Adtree {
         return nodePtr.count;
       }
       int queryIndex = queryPtr.index;
-      if(queryIndex > lastQueryIndex) {
-        System.out.println("Assert failed: queryIndex > lastQueryIndex in getCount()");
-        System.exit(0);
-      }
 
       AdtreeVary varyPtr = nodePtr.varyVectorPtr[queryIndex - nodeIndex - 1];
 
@@ -252,9 +248,6 @@ public class Adtree {
               (q + 1),
               queryVectorPtr,
               lastQueryIndex);
-        } else { /* QUERY_VALUE_WILDCARD */
-          System.out.println("Adtree_getCount Program shouldn't get here"); // catch bugs in learner
-          System.exit(0);
         }
 
       }

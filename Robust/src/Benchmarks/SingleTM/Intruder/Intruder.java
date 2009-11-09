@@ -208,12 +208,6 @@ public class Intruder extends Thread {
                 error = decoderPtr.process(packetPtr,(packetPtr.length));
             }
 
-            if (error != 0) {
-                /*
-                 * Currently, stream_generate() does not create these errors.
-                 */
-	      System.out.println("Here?"+error);
-            }
             byte[] data;
             int[] decodedFlowId = new int[1];
             
@@ -226,9 +220,6 @@ public class Intruder extends Thread {
               
 	      if(err != 0) {
 		boolean status = errorVectorPtr.vector_pushBack(new Integer(decodedFlowId[0]));
-		if(!status) {
-		  System.out.println("Assertion in Intruder.processPacket");
-		}
 	      }
             }
         }

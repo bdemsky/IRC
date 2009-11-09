@@ -90,14 +90,12 @@ public class Maze {
    {
        Maze mazePtr = new Maze();
 
-       if(mazePtr != null) {
-           mazePtr.gridPtr = null;
-           mazePtr.workQueuePtr = Queue_t.queue_alloc(1024);
-           mazePtr.wallVectorPtr = Vector_t.vector_alloc(1);
-           mazePtr.srcVectorPtr = Vector_t.vector_alloc(1);
-           mazePtr.dstVectorPtr = Vector_t.vector_alloc(1);
+       mazePtr.gridPtr = null;
+       mazePtr.workQueuePtr = Queue_t.queue_alloc(1024);
+       mazePtr.wallVectorPtr = Vector_t.vector_alloc(1);
+       mazePtr.srcVectorPtr = Vector_t.vector_alloc(1);
+       mazePtr.dstVectorPtr = Vector_t.vector_alloc(1);
 
-       }
 
        return mazePtr;
    }
@@ -201,10 +199,6 @@ public class Maze {
                         else { 
                             Pair coordinatePairPtr = Pair.alloc(srcPtr,dstPtr);
                             boolean status = workListPtr.insert(coordinatePairPtr);
-                            if(!status) {
-                                System.out.println("LIST_INSERT????");
-                                System.exit(1);
-                            }
                             srcVectorPtr.vector_pushBack(srcPtr);
                             dstVectorPtr.vector_pushBack(dstPtr);
                             

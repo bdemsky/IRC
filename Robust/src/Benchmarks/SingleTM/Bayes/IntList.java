@@ -104,9 +104,6 @@ public class IntList {
     allocNode (int dataPtr)
     {
       IntListNode nodePtr = new IntListNode();
-      if (nodePtr == null) {
-        return null;
-      }
 
       nodePtr.dataPtr = dataPtr;
       nodePtr.nextPtr = null;
@@ -123,10 +120,6 @@ public class IntList {
   public static IntList list_alloc ()
     {
       IntList listPtr = new IntList();
-      if (listPtr == null) {
-        System.out.println("Cannot allocate IntList");
-        return null;
-      }
 
       listPtr.head = new IntListNode();
       listPtr.head.dataPtr = 0;
@@ -238,9 +231,6 @@ public class IntList {
 #endif
 
       nodePtr = allocNode(dataPtr);
-      if (nodePtr == null) {
-        return false;
-      }
 
       nodePtr.nextPtr = currPtr;
       prevPtr.nextPtr = nodePtr;
@@ -279,10 +269,6 @@ public class IntList {
         nodePtr.nextPtr = null;
         freeNode(nodePtr);
         size--;
-        if(size < 0) {
-          System.out.println("Assert failed: size cannot be negative in list_remove()");
-          System.exit(0);
-        }
 
         return true;
       }

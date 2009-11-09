@@ -1227,12 +1227,13 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
   arraystack.maxcount=0;
 #endif
   //splice oidwrlocked in
-  oidwrlocked->size=numoidwrtotal;
-  oidwrlocked->next=params;
-  ((struct garbagelist *)locals)->next=oidwrlocked;
-  if (commitmethod!=NULL)
+  if (commitmethod!=NULL) {
+    oidwrlocked->size=numoidwrtotal;
+    oidwrlocked->next=params;
+    ((struct garbagelist *)locals)->next=oidwrlocked;
     commitmethod(params, locals, primitives);
-  ((struct garbagelist *)locals)->next=params;
+    ((struct garbagelist *)locals)->next=params;
+  }
 #endif
 
   /* Release write locks */

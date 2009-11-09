@@ -23,13 +23,9 @@ public class IntVector {
   public static IntVector vector_alloc (int initCapacity) {
     int capacity = Math.imax(initCapacity, 1);
     IntVector vectorPtr = new IntVector();
-    if(vectorPtr != null) {
-      vectorPtr.size = 0;
-      vectorPtr.capacity = capacity;
-      vectorPtr.elements = new int[capacity];
-      if(vectorPtr.elements == null) 
-        return null;
-    }
+    vectorPtr.size = 0;
+    vectorPtr.capacity = capacity;
+    vectorPtr.elements = new int[capacity];
     return vectorPtr;
   }
 
@@ -67,9 +63,6 @@ public class IntVector {
       int newCapacity = capacity * 2;
       int[] newElements = new int[newCapacity];
 
-      if (newElements == null) {
-        return false;
-      }
       capacity = newCapacity;
       for (int i = 0; i < size; i++) {
         newElements[i] = elements[i];
@@ -131,9 +124,6 @@ public class IntVector {
         int srcCapacity = srcVectorPtr.capacity;
         int[] elements = new int[srcCapacity];
 
-        if (elements == null) {
-          return false;
-        }
         dstVectorPtr.elements = null;
         dstVectorPtr.elements = elements;
         dstVectorPtr.capacity = srcCapacity;

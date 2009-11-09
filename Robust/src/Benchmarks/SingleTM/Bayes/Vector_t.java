@@ -32,10 +32,6 @@ public class Vector_t {
    * =============================================================================
    */
   public Object vector_at (int i) {
-    if ((i < 0) || (i >= size)) {
-      System.out.println("Illegal Vector.element\n");
-      return null;
-    }
     return (elements[i]);
   }
 
@@ -50,9 +46,6 @@ public class Vector_t {
       int newCapacity = capacity * 2;
       Object[] newElements = new Object[newCapacity];
 
-      if (newElements == null) {
-        return false;
-      }
       capacity = newCapacity;
       for (int i = 0; i < size; i++) {
         newElements[i] = elements[i];
@@ -122,9 +115,6 @@ public class Vector_t {
         int srcCapacity = srcVectorPtr.capacity;
         Object[] elements = new Object[srcCapacity];
 
-        if (elements == null) {
-          return false;
-        }
         dstVectorPtr.elements = null;
         dstVectorPtr.elements = elements;
         dstVectorPtr.capacity = srcCapacity;

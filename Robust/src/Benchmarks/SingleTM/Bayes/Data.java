@@ -153,22 +153,13 @@ public class Data {
          */
 
         workQueuePtr.queue_clear();
-        if((status = workQueuePtr.queue_push(v)) != true) {
-          System.out.println("Assert failed: status= "+ status + "should be true");
-          System.exit(0);
-        }
+	status = workQueuePtr.queue_push(v);
 
         while (!(workQueuePtr.queue_isEmpty())) {
           int id = workQueuePtr.queue_pop();
-          if((status = doneBitmapPtr.bitmap_set(id)) != true) {
-            System.out.println("Assert failed: status= "+ status + "should be true");
-            System.exit(0);
-          }
+	  status = doneBitmapPtr.bitmap_set(id);
 
-          if((status = dependencyVectorPtr.vector_pushBack(id)) == false) {
-            System.out.println("Assert failed: status= "+ status + "should be true");
-            System.exit(0);
-          }
+	  status = dependencyVectorPtr.vector_pushBack(id);
 
           IntList parentIdListPtr = netPtr.net_getParentIdListPtr(id);
           IntListNode it = parentIdListPtr.head;
@@ -176,10 +167,7 @@ public class Data {
           while (it.nextPtr!=null) {
             it = it.nextPtr;
             int parentId = it.dataPtr;
-            if((status = workQueuePtr.queue_push(parentId)) == false) {
-              System.out.println("Assert failed: status= "+ status + "should be true");
-              System.exit(0);
-            }
+	    status = workQueuePtr.queue_push(parentId);
           }
         }
 
@@ -198,10 +186,6 @@ public class Data {
       }
     }
 
-    if(numOrder != numVar) {
-      System.out.println("Assert failed: numVar should be equal to numOrder");
-      System.exit(0);
-    }
 
     /*
      * Create records
@@ -219,11 +203,6 @@ public class Data {
           it = it.nextPtr;
           int parentId = it.dataPtr;
           int value = records[startindex + parentId];
-          if(value == DATA_INIT) {
-            System.out.println("Assert failed value should be != DATA_INIT");
-            System.exit(0);
-          }
-
           index = (index << 1) + value;
         }
         int rnd = (int) (randomPtr.random_generate() % DATA_PRECISION);
@@ -231,10 +210,6 @@ public class Data {
         records[startindex + v] = (byte) ((rnd < threshold) ? 1 : 0);
       }
       startindex += numVar;
-      if(startindex > numRecord * numVar) {
-        System.out.println("Assert failed: value should be != DATA_INIT in data_generate()");
-        System.exit(0);
-      }
     }
 
     return netPtr;
@@ -273,19 +248,6 @@ public class Data {
         int num,
         int offset)
     {
-      if((start < 0) || (start > numRecord)) {
-        System.out.println("start: Assert failed in data_sort");
-        System.exit(0);
-      }
-      if((num < 0) || (num > numRecord)) {
-        System.out.println("num: Assert failed in data_sort");
-        System.exit(0);
-      }
-      if((start + num < 0) || (start + num > numRecord)) {
-        System.out.println("start + num: Assert failed in data_sort");
-        System.exit(0);
-      }
-
       sort.sort(records, 
           start * numVar,
           num,

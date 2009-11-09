@@ -126,9 +126,6 @@ public class List {
     allocNode (LearnerTask dataPtr)
     {
       ListNode nodePtr = new ListNode();
-      if (nodePtr == null) {
-        return null;
-      }
 
       nodePtr.dataPtr = dataPtr;
       nodePtr.nextPtr = null;
@@ -145,10 +142,6 @@ public class List {
   public static List list_alloc ()
     {
       List listPtr = new List();
-      if (listPtr == null) {
-        System.out.println("Cannot create new object List");
-        return null;
-      }
 
       listPtr.head = new ListNode();
       listPtr.head.dataPtr = null;
@@ -280,9 +273,6 @@ public class List {
 #endif
 
       nodePtr = allocNode(dataPtr);
-      if (nodePtr == null) {
-        return false;
-      }
 
       nodePtr.nextPtr = currPtr;
       prevPtr.nextPtr = nodePtr;
@@ -312,10 +302,6 @@ public class List {
         nodePtr.nextPtr = null;
         freeNode(nodePtr);
         size--;
-        if(size < 0) {
-          System.out.println("Assert failed: size cannot be negative in list_remove()");
-          System.exit(0);
-        }
 
         return true;
       }

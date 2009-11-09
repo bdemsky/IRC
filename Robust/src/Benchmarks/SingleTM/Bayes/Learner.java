@@ -179,9 +179,6 @@ public class Learner {
       double probability = (double)count / (double)adtreePtr.numRecord;
       int parentCount = adtreePtr.adtree_getCount(parentQueryVectorPtr);
 
-      if(parentCount < count || parentCount <= 0) {
-        System.exit(0);
-      }
 
       float fval = (float)(probability * (Math.log((double)count/ (double)parentCount)));
 
@@ -226,10 +223,7 @@ public class Learner {
 
       Vector_t queryVectorPtr = new Vector_t(2);
 
-      if((status = queryVectorPtr.vector_pushBack(queries[0])) == false) {
-        System.out.println("Assert failed: status = "+ status + "vector_pushBack failed in createTaskList()");
-        System.exit(0);
-      }
+      status = queryVectorPtr.vector_pushBack(queries[0]);
 
       Query parentQuery = new Query();
       Vector_t parentQueryVectorPtr = new Vector_t(1); 
@@ -278,10 +272,7 @@ public class Learner {
        * For each variable, find if the addition of any edge _to_ it is better
        */
 
-      if((status = parentQueryVectorPtr.vector_pushBack(parentQuery)) == false) {
-        System.out.println("Assert failed: status = "+ status + " vector_pushBack failed in createPartition()");
-        System.exit(0);
-      }
+      status = parentQueryVectorPtr.vector_pushBack(parentQuery);
 
       for (int v = lss.i_start; v < lss.i_stop; v++) {
 
@@ -291,10 +282,7 @@ public class Learner {
         int bestLocalIndex = v;
         float bestLocalLogLikelihood = learnerPtr.localBaseLogLikelihoods[v];
 
-        if((status = queryVectorPtr.vector_pushBack(queries[1])) == false) {
-          System.out.println("Assert failed: status = "+ status + " vector_pushBack failed in createPartition()");
-          System.exit(0);
-        }
+	status = queryVectorPtr.vector_pushBack(queries[1]);
 
         for (int vv = 0; vv < numVar; vv++) {
 
@@ -369,10 +357,6 @@ public class Learner {
             status = learnerPtr.taskListPtr.list_insert(taskPtr);
           }
 
-          if(status == false) {
-            System.out.println("Assert failed: atomic list insert failed at createTaskList()");
-            System.exit(0);
-          }
         }
 
       } // for each variable 
@@ -408,10 +392,6 @@ public class Learner {
         it = it.nextPtr;
         taskPtr = it.dataPtr;
         boolean status = taskListPtr.list_remove(taskPtr);
-        if(status == false) {
-          System.out.println("Assert failed: when removing from a list in TMpopTask()");
-          System.exit(0);
-        }
       }
 
       return taskPtr;
@@ -437,10 +417,6 @@ public class Learner {
         it = it.nextPtr;
         int parentId = it.dataPtr;
         boolean status = parentQueryVectorPtr.vector_pushBack(queries[parentId]);
-        if(status == false) {
-          System.out.println("Assert failed: unable to pushBack in queue");
-          System.exit(0);
-        }
       }
     }
 
@@ -465,10 +441,6 @@ public class Learner {
         it = it.nextPtr;
         int parentId = it.dataPtr;
         boolean status = parentQueryVectorPtr.vector_pushBack(queries[parentId]);
-        if(status == false) {
-          System.out.println("Assert failed: unable to pushBack in queue in TMpopulateParentQueryVector()");
-          System.exit(0);
-        }
       }
     }
 
@@ -489,16 +461,8 @@ public class Learner {
 
       boolean status;
       status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
-      if(status == false ) {
-        System.out.println("Assert failed: while vector copy in populateQueryVectors()");
-        System.exit(0);
-      }
-      
       status = queryVectorPtr.vector_pushBack(queries[id]);
-      if(status == false ) {
-        System.out.println("Assert failed: while vector pushBack in populateQueryVectors()");
-        System.exit(0);
-      }
+
 
       queryVectorPtr.vector_sort();
     }
@@ -520,15 +484,7 @@ public class Learner {
 
       boolean status;
       status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
-      if(status == false ) {
-        System.out.println("Assert failed: while vector copy in TMpopulateQueryVectors()");
-        System.exit(0);
-      }
       status = queryVectorPtr.vector_pushBack(queries[id]);
-      if(status == false ) {
-        System.out.println("Assert failed: while vector pushBack in TMpopulateQueryVectors()");
-        System.exit(0);
-      }
 
       queryVectorPtr.vector_sort();
     }
@@ -648,22 +604,10 @@ public class Learner {
        */
 
       status = Vector_t.vector_copy(baseParentQueryVectorPtr, parentQueryVectorPtr);
-      if(status == false) {
-        System.out.println("Assert failed: copying baseParentQuery vector in TMfindBestInsertTask");
-        System.exit(0);
-      }
 
       status = Vector_t.vector_copy(baseQueryVectorPtr, baseParentQueryVectorPtr);
-      if(status == false) {
-        System.out.println("Assert failed: copying baseQuery vector in TMfindBestInsertTask");
-        System.exit(0);
-      }
 
       status = baseQueryVectorPtr.vector_pushBack(queries[toId]);
-      if(status == false ) {
-        System.out.println("Assert failed: while vector pushBack in TMfindBestInsertTask()");
-        System.exit(0);
-      }
 
       queryVectorPtr.vector_sort();
 
@@ -676,10 +620,6 @@ public class Learner {
       float bestLocalLogLikelihood = oldLocalLogLikelihood;
 
       status = netPtr.net_findDescendants(toId, invalidBitmapPtr, workQueuePtr);
-      if(status == false) {
-        System.out.println("Assert failed: while net_findDescendants in TMfindBestInsertTask()");
-        System.exit(0);
-      }
 
       int fromId = -1;
 
@@ -706,30 +646,13 @@ public class Learner {
           }
 
           status = Vector_t.vector_copy(queryVectorPtr, baseQueryVectorPtr);
-          if(status == false) {
-            System.out.println("Assert failed: copying query vector in TMfindBestInsertTask");
-            System.exit(0);
-          }
 
           status = queryVectorPtr.vector_pushBack(queries[fromId]);
-          if(status == false) {
-            System.out.println("Assert failed: vector pushback for query in TMfindBestInsertTask");
-            System.exit(0);
-          }
 
           queryVectorPtr.vector_sort();
 
           status = Vector_t.vector_copy(parentQueryVectorPtr, baseParentQueryVectorPtr);
-          if(status == false) {
-            System.out.println("Assert failed: copying parentQuery vector in TMfindBestInsertTask");
-            System.exit(0);
-          }
-
           status = parentQueryVectorPtr.vector_pushBack(queries[fromId]);
-          if(status == false) {
-            System.out.println("Assert failed: vector pushBack for parentQuery in TMfindBestInsertTask");
-            System.exit(0);
-          }
 
           parentQueryVectorPtr.vector_sort();
 
@@ -825,10 +748,6 @@ public class Learner {
           if (p != fromId) {
             Query tmpqueryPtr = (Query) (origParentQueryVectorPtr.vector_at(p));
             status = parentQueryVectorPtr.vector_pushBack(queries[tmpqueryPtr.index]);
-            if(status == false) {
-              System.out.println("Assert failed: vector_pushBack to parentQuery in TMfindBestRemoveTask()");
-              System.exit(0);
-            }
           }
         } // create new parent query 
 
@@ -837,17 +756,7 @@ public class Learner {
          */
 
         status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
-        if(status == false) {
-          System.out.println("Assert failed: while vector copy to query in TMfindBestRemoveTask()");
-          System.exit(0);
-        }
-
         status = queryVectorPtr.vector_pushBack(queries[toId]);
-        if(status == false) {
-          System.out.println("Assert failed: while vector_pushBack to query in TMfindBestRemoveTask()");
-          System.exit(0);
-        }
-
         queryVectorPtr.vector_sort();
 
         /*
@@ -955,10 +864,6 @@ public class Learner {
           if (p != fromId) {
             Query tmpqueryPtr = (Query) (toOrigParentQueryVectorPtr.vector_at(p));
             status = parentQueryVectorPtr.vector_pushBack(queries[tmpqueryPtr.index]);
-            if(status == false) {
-              System.out.println("Assert failed: while vector_pushBack parentQueryVectorPtr");
-              System.exit(0);
-            }
           }
         } // create new parent query 
 
@@ -967,16 +872,7 @@ public class Learner {
          */
 
         status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
-        if(status == false) {
-          System.out.println("Assert failed: while vector_copy in TMfindBestReverseTask()");
-          System.exit(0);
-        }
-
         status = queryVectorPtr.vector_pushBack(queries[toId]);
-        if(status == false) {
-          System.out.println("Assert failed: while vector_pushBack in TMfindBestReverseTask()");
-          System.exit(0);
-        }
 
         queryVectorPtr.vector_sort();
 
@@ -997,30 +893,13 @@ public class Learner {
          */
 
         status = Vector_t.vector_copy(parentQueryVectorPtr, fromOrigParentQueryVectorPtr);
-        if(status == false) {
-          System.out.println("Assert failed: while parentQuery vector_copy in TMfindBestReverseTask()");
-          System.exit(0);
-        }
-
         status = parentQueryVectorPtr.vector_pushBack(queries[toId]);
-        if(status == false) {
-          System.out.println("Assert failed: while vector_pushBack into parentQuery on TMfindBestReverseTask()");
-          System.exit(0);
-        }
 
         parentQueryVectorPtr.vector_sort();
 
         status = Vector_t.vector_copy(queryVectorPtr, parentQueryVectorPtr);
-        if(status == false) {
-          System.out.println("Assert failed: while vector_copy on TMfindBestReverseTask()");
-          System.exit(0);
-        }
 
         status = queryVectorPtr.vector_pushBack(queries[fromId]);
-        if(status == false) {
-          System.out.println("Assert failed: while vector_pushBack on TMfindBestReverseTask()");
-          System.exit(0);
-        }
 
         queryVectorPtr.vector_sort();
 
@@ -1108,10 +987,6 @@ public class Learner {
       float operationQualityFactor = learnerPtr.global_operationQualityFactor;
 
       BitMap visitedBitmapPtr = BitMap.bitmap_alloc(learnerPtr.adtreePtr.numVar);
-      if(visitedBitmapPtr == null) {
-        System.out.println("Assert failed: for bitmap alloc in learnStructure()");
-        System.exit(0);
-      }
 
       Queue workQueuePtr = Queue.queue_alloc(-1);
 
@@ -1188,9 +1063,6 @@ public class Learner {
               isTaskValid = false;
             }
             learnerPtr.netPtr.net_applyOperation(OPERATION_INSERT, fromId, toId);
-          } else {
-            System.out.println("Assert failed: We shouldn't get here in learnStructure()");
-            System.exit(0);
           }
 
 
@@ -1309,10 +1181,7 @@ public class Learner {
             }
 
 #endif // LEARNER_TRY_REVERSE 
-          } else {
-            System.out.println("Assert failed: We should not reach here in learnerPtr()");
-            System.exit(0);
-          } //switch op
+          }
 
         } //if isTaskValid
 

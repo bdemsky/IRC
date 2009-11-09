@@ -16,13 +16,8 @@ public class Vector_t {
   public static Vector_t vector_alloc (int initCapacity) {
     int capacity = Math.imax(initCapacity, 1);
     Vector_t vectorPtr = new Vector_t();
-    if(vectorPtr != null) {
-      vectorPtr.size = 0;
-      vectorPtr.capacity = capacity;
-      vectorPtr.elements = new Object[capacity];
-      if(vectorPtr.elements == null) 
-        return null;
-    }
+    vectorPtr.capacity = capacity;
+    vectorPtr.elements = new Object[capacity];
     return vectorPtr;
   }
 
@@ -42,10 +37,6 @@ public class Vector_t {
    * =============================================================================
    */
   public Object vector_at (int i) {
-    if ((i < 0) || (i >= size)) {
-      System.out.println("Illegal Vector.element\n");
-      return null;
-    }
     return (elements[i]);
   }
 
@@ -61,9 +52,6 @@ public class Vector_t {
       Object[] newElements = new Object[newCapacity];
 
       //void** newElements = (void**)malloc(newCapacity * sizeof(void*));
-      if (newElements == null) {
-        return false;
-      }
       capacity = newCapacity;
       for (int i = 0; i < size; i++) {
         newElements[i] = elements[i];
@@ -136,10 +124,6 @@ public class Vector_t {
       if (dstCapacity < srcSize) {
         int srcCapacity = srcVectorPtr.capacity;
         Object[] elements = new Object[srcCapacity];
-
-        if (elements == null) {
-          return false;
-        }
         dstVectorPtr.elements = null;
         dstVectorPtr.elements = elements;
         dstVectorPtr.capacity = srcCapacity;

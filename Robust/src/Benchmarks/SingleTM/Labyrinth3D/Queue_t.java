@@ -70,10 +70,6 @@ public class Queue_t {
 
     int capacity = ((initCapacity < 2) ? 2 : initCapacity);
     queuePtr.elements = new Object[capacity];
-    if (queuePtr.elements == null) {
-      queuePtr = null;
-      return null;
-    }
     queuePtr.pop      = capacity - 1;
     queuePtr.push     = 0;
     queuePtr.capacity = capacity;
@@ -93,10 +89,6 @@ public class Queue_t {
 
       int capacity = ((initCapacity < 2) ? 2 : initCapacity);
       queuePtr.elements = new Object[capacity];
-      if (queuePtr.elements == null) {
-        queuePtr = null;
-        return null;
-      }
       queuePtr.pop      = capacity - 1;
       queuePtr.push     = 0;
       queuePtr.capacity = capacity;
@@ -182,12 +174,6 @@ public class Queue_t {
     queue_push (Object dataPtr)
     {
     
-      if(pop == push) {
-
-        System.out.println("push == pop in Queue.java");
-        return false;
-      }
-
 
       /* Need to resize */
       int newPush = (push + 1) % capacity;
@@ -195,9 +181,6 @@ public class Queue_t {
 
         int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
         Object[] newElements = new Object[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
 
         int dst = 0;
         Object[] tmpelements = elements;
@@ -242,10 +225,6 @@ public class Queue_t {
       int push     = queuePtr.push;
       int capacity = queuePtr.capacity;
 
-      if(pop == push) {
-        System.out.println("push == pop in Queue.java");
-        return false;
-      }
 
       /* Need to resize */
       int newPush = (push + 1) % capacity;
@@ -253,10 +232,6 @@ public class Queue_t {
 
         int newCapacity = capacity * QUEUE_GROWTH_FACTOR;
         Object[] newElements = new Object[newCapacity];
-        if (newElements == null) {
-          return false;
-        }
-
         int dst = 0;
         Object[] elements = queuePtr.elements;
         if (pop < push) {
