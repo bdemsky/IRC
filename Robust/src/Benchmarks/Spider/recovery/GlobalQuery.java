@@ -3,9 +3,9 @@ public class GlobalQuery {
   GlobalString path;
 	int depth;
   
-	public GlobalQuery(GlobalString hostname) {
+	public GlobalQuery(GlobalString hostname, GlobalString path) {
 		this.hostname = hostname;
-		this.path = global new GlobalString("");
+		this.path = path;
 		this.depth = 0;
 	}
 

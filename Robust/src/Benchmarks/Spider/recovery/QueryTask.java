@@ -86,18 +86,21 @@ public class QueryTask extends Task {
 			else if ((str.subString(index+1)).equals("ppt")) return true;
 			else if ((str.subString(index+1)).equals("pptx")) return true;
 			else if ((str.subString(index+1)).equals("jpg")) return true;
+			else if ((str.subString(index+1)).equals("mp3")) return true;
+			else if ((str.subString(index+1)).equals("wmv")) return true;
+			else if ((str.subString(index+1)).equals("doc")) return true;
+			else if ((str.subString(index+1)).equals("docx")) return true;
+			else if ((str.subString(index+1)).equals("mov")) return true;
+			else if ((str.subString(index+1)).equals("flv")) return true;
 			else return false;
 		}
 		return false;
 	}
 
 	public void done(Object obj) {
-		if (gTitle != null) 
+		if ((gTitle != null) && (gTitle.length() > 0)) {
 			processList();
-
-		GlobalString str = global new GlobalString("true");
-
-		doneList.put(workingURL, str);
+		}
 
 		while(!toprocess.isEmpty()) {
 			GlobalQuery q = (GlobalQuery)toprocess.pop();
@@ -111,6 +114,9 @@ public class QueryTask extends Task {
 
 			if (!doneList.containsKey(gsb.toGlobalString())) {
 				todoList.push(q);
+					
+				GlobalString str = global new GlobalString("1");
+				doneList.put(gsb.toGlobalString(), str);
 			}
 		}
 	}
@@ -325,18 +331,21 @@ public class QueryTask extends Task {
 		else if (str.equals("but")) return true;
 		else if (str.equals("to")) return true;
 		else if (str.equals("The")) return true;
-		else if (str.equals(".")) return true;
-		else if (str.equals("-")) return true;
-		else if (str.equals("=")) return true;
-		else if (str.equals("_")) return true;
-		else if (str.equals(":")) return true;
-		else if (str.equals(";")) return true;
-		else if (str.equals("\'")) return true;
-		else if (str.equals("\"")) return true;
-		else if (str.equals("|")) return true;
-		else if (str.equals("@")) return true;
-		else if (str.equals("&")) return true;
-		else if (str.equals(" ")) return true;
+		else if (str.length() == 1) {
+			if (str.charAt(0) == '.') return true;
+			else if (str.charAt(0) == '.') return true;
+			else if (str.charAt(0) == '-') return true;
+			else if (str.charAt(0) == '=') return true;
+			else if (str.charAt(0) == '_') return true;
+			else if (str.charAt(0) == ':') return true;
+			else if (str.charAt(0) == ';') return true;
+			else if (str.charAt(0) == '\'') return true;
+			else if (str.charAt(0) == '\"') return true;
+			else if (str.charAt(0) == '|') return true;
+			else if (str.charAt(0) == '@') return true;
+			else if (str.charAt(0) == '&') return true;
+			else if (str.charAt(0) == ' ') return true;
+		}
 		else return false;
 	}
 

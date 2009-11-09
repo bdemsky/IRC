@@ -1,7 +1,7 @@
 public class Spider {
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
-		int maxDepth = 3;
+		int maxDepth = 4;
 		int i, j;
 		Work[] works;
 		QueryTask[] qt;
@@ -9,11 +9,12 @@ public class Spider {
 
 		NUM_THREADS = Integer.parseInt(args[0]);
 
-		if (args.length == 3) {
-			maxDepth = Integer.parseInt(args[2]);
-		}
+//		if (args.length == 3) {
+//			maxDepth = Integer.parseInt(args[2]);
+//		}
 
 		GlobalString firstmachine;
+		GlobalString firstpage;
 
 		int mid[] = new int[NUM_THREADS];
 //		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;	 
@@ -25,12 +26,17 @@ public class Spider {
 
 		atomic {
 			firstmachine = global new GlobalString(args[1]);
+			if (args.length == 3) {
+				firstpage = global new GlobalString(args[2]);
+			}
+			else 
+				firstpage = global new GlobalString("");;
 
 			works = global new Work[NUM_THREADS];
 			qt = global new QueryTask[NUM_THREADS];
 			currentWorkList = global new GlobalQuery[NUM_THREADS];
 			
-			GlobalQuery firstquery = global new GlobalQuery(firstmachine);
+			GlobalQuery firstquery = global new GlobalQuery(firstmachine, firstpage);
 
 			Queue todoList = global new Queue();
 			DistributedHashMap doneList = global new DistributedHashMap(500, 500, 0.75f);
