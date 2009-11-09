@@ -177,7 +177,6 @@ public class QueryTask extends Task {
 				return null;
 			}
 		}
-//		System.out.println("Title = [" + title + "]");
 
 		return title;
 	}
@@ -226,67 +225,6 @@ public class QueryTask extends Task {
 		} while(numchars > 0);
   }
 
-/*
-	public static void readResponse(LocalQuery lq, Socket sock) {
-	//    state 0 - nothing
-	//    state 1 - \r
-	//    state 2 - \r\n
-	//    state 3 - \r\n\r
-	//    state 4 - \r\n\r\n
-    int state=0;
-    while(true) {
-      if (state<4) {
-        if (state==0) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if ((numchars==1)) {
-            if (b[0]=='\r') {
-              state++;
-            }
-          } else
-						return;
-        } else if (state==1) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if (numchars==1) {
-            if (b[0]=='\n')
-              state++;
-            else
-              state=0;
-          } else return;
-        } else if (state==2) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if (numchars==1) {
-            if (b[0]=='\r')
-              state++;
-            else
-              state=0;
-          } else return;
-        } else if (state==3) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if (numchars==1) {
-            if (b[0]=='\n')
-              state++;
-            else
-              state=0;
-          } else return;
-        }
-      } else {
-				byte[] buffer=new byte[1024];
-        int numchars=sock.read(buffer);
-        if (numchars==0)
-          return;
-        else {
-          String curr=(new String(buffer)).subString(0,numchars);
-//					System.out.println("numchars = "+numchars);
-					lq.response.append(curr);
-        }
-      }
-    }
-  }
-*/
 	public void processList() {
 		LinkedList ll;
 		GlobalString token = null;
@@ -315,7 +253,6 @@ public class QueryTask extends Task {
 			}
 			q.push(workingURL);	
 			results.put(token, q);
-//			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
 		}
 	}
 

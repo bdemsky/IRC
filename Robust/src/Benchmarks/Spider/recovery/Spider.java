@@ -9,17 +9,10 @@ public class Spider {
 
 		NUM_THREADS = Integer.parseInt(args[0]);
 
-//		if (args.length == 3) {
-//			maxDepth = Integer.parseInt(args[2]);
-//		}
-
 		GlobalString firstmachine;
 		GlobalString firstpage;
 
 		int mid[] = new int[NUM_THREADS];
-//		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;	 
-//		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;	 
-//		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;	 
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;
