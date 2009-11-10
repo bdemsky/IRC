@@ -22,6 +22,9 @@ public class BranchAnalysis {
     Set<FlatNode> group=groupmap.get(fn);
     if (group==null)
       return -1;
+    while (next.numNext()==1&&group.contains(next)) {
+      next=fnmap.get(next)[0];
+    }
     if (group.contains(next))
       return -1;
     Vector<FlatNode> exits=table.get(group);
@@ -84,7 +87,7 @@ public class BranchAnalysis {
       output.println(label+":");
       if (numJumps(fn)==1) {
 	FlatNode fndst=getJumps(fn).get(0);
-	output.println("goto "+nodetolabels.get(fndst)+";");
+	output.println("goto L"+nodetolabels.get(fndst)+";");
       } else if (numJumps(fn)==2) {
 	Vector<FlatNode> exits=getJumps(fn);
 	output.println("if(RESTOREBRANCH())");
@@ -110,17 +113,20 @@ public class BranchAnalysis {
 
     for(Iterator<FlatNode> fnit=transset.iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();
-      if (fn.numNext()>1&&storeset.contains(fn)) {
+      if ((fn.numNext()>1&&storeset.contains(fn))||fn.kind()==FKind.FlatBackEdge||fn.kind()==FKind.FlatNop) {
 	FlatNode[] children=fnmap.get(fn);
+	if (children==null)
+	  continue;
 	if (!groupmap.containsKey(fn)) {
 	  groupmap.put(fn, new HashSet<FlatNode>());
 	  groupmap.get(fn).add(fn);
 	}
 	for(int i=0;i<children.length;i++) {
 	  FlatNode child=children[i];
-	  if (child.numNext()>1&&storeset.contains(child))
+	  if ((child.numNext()>1&&storeset.contains(child))||child.kind()==FKind.FlatBackEdge||child.kind()==FKind.FlatNop) {
 	    mergegroups(fn, child, groupmap);
 	  }
+	}
       }
     }
     //now we have groupings...

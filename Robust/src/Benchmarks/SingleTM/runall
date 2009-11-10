@@ -2,32 +2,37 @@
 function run {
 dir="$1"
 command="$2"
+threads="$3"
+shift
 shift
 shift
 args="$@"
 cd $dir
 echo ============================================================
 echo Running Fission $command $@
-for i in 1
+for i in 1 2 3 4 5 6 7 8 9 10
 do
 echo Trial $i
-time ./FIS$command $args
+time ./FIS$command $args &> ../log/${command}_${threads}_FIS_${i}
+cat ../log/${command}_${threads}_FIS_${i}
 done
 echo
 echo
 echo Running Fission Array $command $@
-for i in 1
+for i in 1 2 3 4 5 6 7 8 9 10
 do
 echo Trial $i
-time ./FISAR$command $args
+time ./FISAR$command $args &> ../log/${command}_${threads}_FISAR_${i}
+cat ../log/${command}_${threads}_FISAR_${i}
 done
 echo
 echo
 echo Running Debug Array $command $@
-for i in 1
+for i in 1 2 3 4 5 6 7 8 9 10
 do
 echo Trial $i
-time ./DEB$command $args
+time ./DEB$command $args &> ../log/${command}_${threads}_DEB_${i}
+cat ../log/${command}_${threads}_DEB_${i}
 done
 echo
 echo
@@ -35,31 +40,44 @@ echo
 #for i in 1
 #do
 #echo Trial $i
-#time ./STM$command $args
+#time ./STM$command $args &> ../log/${command}_${threads}_STM_${i}
+#cat ../log/${command}_${threads}_STM_${i}
 #done
 #echo
 #echo
 echo Running Optimized STM $command $@
-for i in 1
+for i in 1 2 3 4 5 6 7 8 9 10
 do
 echo Trial $i
-time ./OPTSTM$command $args
+time ./OPTSTM$command $args &> ../log/${command}_${threads}_OPTSTM_${i}
+cat ../log/${command}_${threads}_OPTSTM_${i}
 done
 echo
 echo
 echo Running Lock $command $@
-for i in 1
+for i in 1 2 3 4 5 6 7 8 9 10
 do
 echo Trial $i
-time ./LOCK$command $args
+time ./LOCK$command $args &> ../log/${command}_${threads}_LOCK_${i}
+cat ../log/${command}_${threads}_LOCK_${i}
 done
 echo
 echo
 echo Running DV $command $@
-for i in 1
+for i in 1 2 3 4 5 6 7 8 9 10
 do
 echo Trial $i
-time ./DV$command $args
+time ./DV$command $args &> ../log/${command}_${threads}_DV_${i}
+cat ../log/${command}_${threads}_DV_${i}
+done
+echo
+echo
+echo Running Hybrid DV $command $@
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+echo Trial $i
+time ./HYDV$command $args &> ../log/${command}_${threads}_HYDV_${i}
+cat ../log/${command}_${threads}_HYDV_${i}
 done
 echo
 echo
@@ -67,7 +85,8 @@ echo
 #for i in 1
 #do
 #echo Trial $i
-#time ./STMNOJ$command $args
+#time ./STMNOJ$command $args &> ../log/${command}_${threads}_STMNOJ_${i}
+#cat ../log/${command}_${threads}_STMNOJ_${i}
 #done
 #echo
 #echo
@@ -75,7 +94,8 @@ echo
 #for i in 1
 #do
 #echo Trial $i
-#time ./LOCKNOJ$command $args
+#time ./LOCKNOJ$command $args &> ../log/${command}_${threads}_LOCKNOJ_${i}
+#cat ../log/${command}_${threads}_LOCKNOJ_${i}
 #done
 #echo
 #echo
@@ -86,61 +106,56 @@ ulimit -s 45000
 
 
 #Kmeans
-#run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 1
-#run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 2
-#run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 4
-#run KMeans KMeans.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 8
+#run KMeans KMeans.bin 1 -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 1
+#run KMeans KMeans.bin 2 -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 2
+#run KMeans KMeans.bin 4 -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 4
+#run KMeans KMeans.bin 8 -m 15 -n 15 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 8
 
 #Kmeans low
-run KMeans KMeans.bin -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 1
-run KMeans KMeans.bin -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 2
-run KMeans KMeans.bin -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 4
-run KMeans KMeans.bin -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 8
+run KMeans KMeans.bin 1 -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 1
+run KMeans KMeans.bin 2 -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 2
+run KMeans KMeans.bin 4 -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 4
+run KMeans KMeans.bin 8 -m 40 -n 40 -t 0.00001 -i inputs/random-n65536-d32-c16.txt -nthreads 8
 
 #Labrynth
-run Labyrinth3D Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 1
-run Labyrinth3D Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 2
-run Labyrinth3D Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 4
-run Labyrinth3D Labyrinth.bin -i inputs/random-x512-y512-z7-n512.txt -t 8
+run Labyrinth3D Labyrinth.bin 1 -i inputs/random-x512-y512-z7-n512.txt -t 1
+run Labyrinth3D Labyrinth.bin 2 -i inputs/random-x512-y512-z7-n512.txt -t 2
+run Labyrinth3D Labyrinth.bin 4 -i inputs/random-x512-y512-z7-n512.txt -t 4
+run Labyrinth3D Labyrinth.bin 8 -i inputs/random-x512-y512-z7-n512.txt -t 8
 
 #SSCA2
-run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 1
-run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 2
-run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 4
-run SSCA2 SSCA2.bin -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 8
+run SSCA2 SSCA2.bin 1 -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 1
+run SSCA2 SSCA2.bin 2 -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 2
+run SSCA2 SSCA2.bin 4 -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 4
+run SSCA2 SSCA2.bin 8 -s 20 -i 1.0 -u 1.0 -l 3 -p 3 -t 8
 
 #Genome
-run Genome Genome.bin -g 8192 -s 64 -n 16777216 -t 1
-run Genome Genome.bin -g 8192 -s 64 -n 16777216 -t 2
-run Genome Genome.bin -g 8192 -s 64 -n 16777216 -t 4
-run Genome Genome.bin -g 8192 -s 64 -n 16777216 -t 8
+run Genome Genome.bin 1 -g 8192 -s 64 -n 16777216 -t 1
+run Genome Genome.bin 2 -g 8192 -s 64 -n 16777216 -t 2
+run Genome Genome.bin 4 -g 8192 -s 64 -n 16777216 -t 4
+run Genome Genome.bin 8 -g 8192 -s 64 -n 16777216 -t 8
 
 #Vacation
-run Vacation Vacation.bin -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 1
-run Vacation Vacation.bin -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 2
-run Vacation Vacation.bin -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 4
-run Vacation Vacation.bin -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 8
+run Vacation Vacation.bin 1 -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 1
+run Vacation Vacation.bin 2 -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 2
+run Vacation Vacation.bin 4 -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 4
+run Vacation Vacation.bin 8 -n 4 -q 60 -u 90 -r 1048576 -t 4194304 -c 8
 
 #Yada
-run Yada yada.bin -a 15 -i input/ttimeu100000.2 -t 1
-run Yada yada.bin -a 15 -i input/ttimeu100000.2 -t 2
-run Yada yada.bin -a 15 -i input/ttimeu100000.2 -t 4
-run Yada yada.bin -a 15 -i input/ttimeu100000.2 -t 8
+run Yada yada.bin 1 -a 15 -i input/ttimeu100000.2 -t 1
+run Yada yada.bin 2 -a 15 -i input/ttimeu100000.2 -t 2
+run Yada yada.bin 4 -a 15 -i input/ttimeu100000.2 -t 4
+run Yada yada.bin 8 -a 15 -i input/ttimeu100000.2 -t 8
 
 #Intruder
-run Intruder Intruder.bin -a 10 -l 128 -n 262144 -s 1 -t 1
-run Intruder Intruder.bin -a 10 -l 128 -n 262144 -s 1 -t 2
-run Intruder Intruder.bin -a 10 -l 128 -n 262144 -s 1 -t 4
-run Intruder Intruder.bin -a 10 -l 128 -n 262144 -s 1 -t 8
-
-#LeeRouting
-run LeeRouting LeeRouter.bin 1 sparselong.txt
-run LeeRouting LeeRouter.bin 2 sparselong.txt
-run LeeRouting LeeRouter.bin 4 sparselong.txt
-run LeeRouting LeeRouter.bin 8 sparselong.txt
+run Intruder Intruder.bin 1 -a 10 -l 128 -n 262144 -s 1 -t 1
+run Intruder Intruder.bin 2 -a 10 -l 128 -n 262144 -s 1 -t 2
+run Intruder Intruder.bin 4 -a 10 -l 128 -n 262144 -s 1 -t 4
+run Intruder Intruder.bin 8 -a 10 -l 128 -n 262144 -s 1 -t 8
 
 #Bayes
-run Bayes Bayes.bin -v 24 -r 1024 -n 2 -p 20 -s 0 -i 2 -e 2 -t 1
-run Bayes Bayes.bin -v 24 -r 1024 -n 2 -p 20 -s 0 -i 2 -e 2 -t 2
-run Bayes Bayes.bin -v 24 -r 1024 -n 2 -p 20 -s 0 -i 2 -e 2 -t 4
-run Bayes Bayes.bin -v 24 -r 1024 -n 2 -p 20 -s 0 -i 2 -e 2 -t 8
+run Bayes Bayes.bin 1 -v 32 -r 4096 -n 10 -p 40 -s 1 -i 2 -e 8 -t 1
+run Bayes Bayes.bin 2 -v 32 -r 4096 -n 10 -p 40 -s 1 -i 2 -e 8 -t 2
+run Bayes Bayes.bin 4 -v 32 -r 4096 -n 10 -p 40 -s 1 -i 2 -e 8 -t 4
+run Bayes Bayes.bin 8 -v 32 -r 4096 -n 10 -p 40 -s 1 -i 2 -e 8 -t 8
+

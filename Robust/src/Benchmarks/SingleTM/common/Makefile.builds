@@ -1,4 +1,4 @@
-default: lockjopt stmopt fission debug fissionarray dv
+default: lockjopt stmopt fission debug fissionarray dv hydv
 
 lock: prep
 	../../../buildscript ${FLAGSLOCKNOJ} -o LOCKNOJ${MAINCLASS} ${SRC}
@@ -29,6 +29,9 @@ fissionarray: prep
 
 dv: prep
 	../../../buildscript ${FLAGSDV} -o DV${MAINCLASS} ${SRC}
+
+hydv: prep
+	../../../buildscript ${FLAGSHYDV} -o HYDV${MAINCLASS} ${SRC}
 
 debug: prep
 	../../../buildscript ${FLAGSDEBUG} -o DEB${MAINCLASS} ${SRC}

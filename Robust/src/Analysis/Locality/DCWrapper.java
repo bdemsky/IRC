@@ -175,6 +175,10 @@ public class DCWrapper {
     if (!optmap.containsKey(lb)) {
       optmap.put(lb, new HashSet<FlatNode>());
     }
+
+    if (state.HYBRID&&recordset.size()>6)
+      return false;
+
     DiscoverConflicts dc=delaycomp.getConflicts();
     for(Iterator<FlatNode> fnit=checkset.iterator();fnit.hasNext();) {
       FlatNode fn=fnit.next();

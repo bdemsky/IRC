@@ -234,7 +234,7 @@ public class DiscoverConflicts {
     if (gft!=null) {
       writemap.put(lb, writeset);
     }
-    
+
     HashSet<FlatNode> srctrans=new HashSet<FlatNode>();
     HashSet<FlatNode> leftsrctrans=new HashSet<FlatNode>();
     HashSet<FlatNode> rightsrctrans=new HashSet<FlatNode>();
@@ -478,7 +478,7 @@ public class DiscoverConflicts {
 	    //this could cause conflict...figure out conflict set
 	    Set<TempFlatPair> tfpset=tmap.get(fen.getSrc());
 	    if (tfpset!=null)
-	      writeset.addAll(tfpset);
+	      tfset.addAll(tfpset);
 	  }
 	  break;
 	}
@@ -494,7 +494,7 @@ public class DiscoverConflicts {
 	    //this could cause conflict...figure out conflict set
 	    Set<TempFlatPair> tfpset=tmap.get(ffn.getSrc());
 	    if (tfpset!=null)
-	      writeset.addAll(tfpset);
+	      tfset.addAll(tfpset);
 	  }
 	  break;
 	}
@@ -800,18 +800,21 @@ public class DiscoverConflicts {
 }
 
 class TempFlatPair {
-    FlatNode f;
-    TempDescriptor t;
-    TempFlatPair(TempDescriptor t, FlatNode f) {
-	this.t=t;
-	this.f=f;
-    }
-
-    public int hashCode() {
-	return f.hashCode()^t.hashCode();
-    }
-    public boolean equals(Object o) {
-	TempFlatPair tf=(TempFlatPair)o;
-	return t.equals(tf.t)&&f.equals(tf.f);
-    }
+  FlatNode f;
+  TempDescriptor t;
+  TempFlatPair(TempDescriptor t, FlatNode f) {
+    this.t=t;
+    this.f=f;
+  }
+  
+  public int hashCode() {
+    return f.hashCode()^t.hashCode();
+  }
+  public boolean equals(Object o) {
+    TempFlatPair tf=(TempFlatPair)o;
+    return t.equals(tf.t)&&f.equals(tf.f);
+  }
+  public String toString() {
+    return f.toString()+" "+t.toString();
+  }
 }

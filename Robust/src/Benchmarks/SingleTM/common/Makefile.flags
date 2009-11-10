@@ -10,3 +10,4 @@ FLAGSLOCKPROF=-mainclass ${MAINCLASS} -thread -optimize -abcclose -64bit -debug 
 FLAGSLOCKPROFO0=-mainclass ${MAINCLASS} -thread -optimize -abcclose -64bit -debug -joptimize -arraypad
 FLAGSFISSIONARRAY=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -abcclose -64bit -debug -transstats -inlineatomic 2 -minimize -arraypad -sandbox -stmarray -builddir fisar
 FLAGSDV=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -64bit -debug -transstats -inlineatomic 2 -minimize -readset -sandbox -stmarray -dualview -abcclose -builddir dv
+FLAGSHYDV=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -64bit -debug -transstats -inlineatomic 2 -minimize -readset -sandbox -stmarray -dualview -abcclose -builddir hydv -hybrid
