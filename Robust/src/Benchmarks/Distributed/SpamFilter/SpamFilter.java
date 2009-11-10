@@ -34,6 +34,8 @@ public class SpamFilter extends Thread {
     int niter;
     int nemails;
     int thid;
+    int correct=0;
+    int wrong=0;
     atomic {
       niter=numiter;
       nemails=numemail;
@@ -44,6 +46,8 @@ public class SpamFilter extends Thread {
     Random myrand = new Random(0);
 
     for(int i=0; i<niter; i++) {
+      correct =0;
+      wrong = 0;
       for(int j=0; j<nemails; j++) {
         int pickemail = rand.nextInt(100);
 
@@ -73,14 +77,18 @@ public class SpamFilter extends Thread {
         //---- get user's take on email and send feedback ------
         boolean userAnswer = email.getIsSpam();
 
-        //System.out.println("userAnswer= " + userAnswer + " filterAnswer= " + filterAnswer);
+ //       System.out.println("userAnswer= " + userAnswer + " filterAnswer= " + filterAnswer);
 
         if(filterAnswer != userAnswer) {
+          wrong++;
           atomic {
             sendFeedBack(signatures, userAnswer, thid);
           }
         }
+        else 
+          correct++;
       } //end num emails
+      System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     }//end num iter
   }
 

@@ -65,14 +65,15 @@ public class Mail {
       }
     } // parsed messageID, To, from, cc, Title
 
+
     if(!chk)
       System.out.println("no line read");
 
 
     body = new String();
-    byte[] readBody = new byte[1000000];
+    byte[] readBody = new byte[256];
 
-    while((fileinput.read(readBody)!= -1))
+    while((fileinput.read(readBody)>0))
     {
       body.concat(new String(readBody));
     }
