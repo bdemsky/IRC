@@ -2,9 +2,11 @@ public class DistributedHashMap {
   DistributedHashEntry[] table;
   float loadFactor;
   int secondcapacity;
+	int size;
 
   public DistributedHashMap(int initialCapacity, int secondcapacity, float loadFactor) {
     init(initialCapacity, secondcapacity, loadFactor);
+		size = 0;
   }
 
   private void init(int initialCapacity, int secondcapacity, float loadFactor) {
@@ -60,6 +62,7 @@ public class DistributedHashMap {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
 				dhe.array[index2]=ptr.next;
 				dhe.count--;
+				size--;
 				return ptr.value;
       }
       while(ptr.next!=null) {
@@ -67,6 +70,7 @@ public class DistributedHashMap {
 					Object oldvalue=ptr.value;
 					ptr.next=ptr.next.next;
 					dhe.count--;
+					size--;
 					return oldvalue;
 				}
 				ptr=ptr.next;
@@ -146,11 +150,12 @@ public class DistributedHashMap {
       //Resize the table
       resize(index1);
     }
+		size++;
     return null;
   }
 	
 	public int size() {
-		return table.length;
+		return size;
 	}
 }
 
