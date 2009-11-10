@@ -839,7 +839,7 @@ plistnode_t *createPiles() {
         break;
       headeraddr=(objheader_t *) curr->val;
 
-#if RECOVERY
+#ifdef RECOVERY
       oid = OID(headeraddr);
 
 			  int makedirty = 0;
@@ -866,6 +866,7 @@ plistnode_t *createPiles() {
 
 			  pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
 #else
+  
 			// Get machine location for object id (and whether local or not)
 			if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
 				machinenum = myIpAddr;
@@ -879,6 +880,7 @@ plistnode_t *createPiles() {
       curr = curr->next;
     }
   }
+
 	return pile;
 }
 #else
@@ -2802,6 +2804,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     return -1;
   }
   ndata->numoid = numoid;
+  printf("%s -> ndata = %d numoid = %d\n",__func__,ndata,numoid);
   ndata->threadid = threadid;
   ndata->oidarry = oidarry;
   ndata->versionarry = versionarry;
@@ -2866,8 +2869,8 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 #endif
 #endif
 
-    size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
     pthread_mutex_lock(&(ndata->threadnotify));
+    size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
     send_data(psock, msg, size);
 #ifdef RECOVERY
     send_data(bsock, msg, size);
@@ -2890,7 +2893,8 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
   notifydata_t *ndata;
-  int i, objIsFound = 0, index = -1;
+  int objIsFound = 0, index = -1;
+  unsigned int i;
   void *ptr;
 #ifdef DEBUG
   printf("%s -> oid = %d   vesion = %d    tid = %d\n",__func__,oid,version,tid);
@@ -2901,11 +2905,10 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
     printf("threadnotify(): No such threadid is present %s, %d\n", __FILE__, __LINE__);
     return;
   } else  {
-    for(i = 0; i < ndata->numoid; i++) {
+    for(i = 0; i < (ndata->numoid); i++) {
       if(ndata->oidarry[i] == oid) {
         objIsFound = 1;
         index = i;
-
       }
     }
     if(objIsFound == 0) {
@@ -2913,7 +2916,7 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
       return;
     } 
     else {
-      if(version <= ndata->versionarry[index] && version >= 0) {
+      if(version <= ndata->versionarry[index]) {
 	      printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
     	return;
       } else {
@@ -3074,11 +3077,15 @@ plistnode_t *sortPiles(plistnode_t *pileptr) {
 	tail = pileptr;
   ptr = NULL;
 	/* Get tail pointer and myIp pile ptr */
+  if(pileptr == NULL)
+    return pileptr;
+
 	while(tail->next != NULL) {
     if(tail->mid == myIpAddr)
       ptr = tail;
 		tail = tail->next;    
 	}
+
   // if ptr is null, then myIp pile is already at tail
   if(ptr != NULL) {
   	/* Arrange local machine processing at the end of the pile list */
