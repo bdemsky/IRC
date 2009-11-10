@@ -15,11 +15,13 @@ public class QueryThread extends Thread {
   public QueryThread(Queue todoList, DistributedHashMap doneList, DistributedHashMap results,int maxDepth,int mid,int NUM_THREADS,GlobalQuery[] currentWorkList) {    
     this.todoList = todoList;
 		this.doneList = doneList;
-    this.results = results;
-		this.maxDepth = maxDepth;
     this.currentWorkList = currentWorkList;
     this.MY_MID = mid;
     this.NUM_THREADS = NUM_THREADS;
+
+		this.maxDepth = maxDepth;
+    this.results = results;
+    toprocess = global new Queue();
   }
 
   public void run()
@@ -143,7 +145,17 @@ public class QueryThread extends Thread {
 			System.printString(path);
 			System.printString("\n");
 
-			Socket s = new Socket(hostname, 80);
+      // check if the url is pdf, ps, ppt, pptx ... etc
+      if(isDocument(path)) {
+        return;
+      }
+
+			Socket s = new Socket();
+
+      // connection fail
+      if(s.connect(hostname, 80) == -1) {
+        return;
+      }
     
 			requestQuery(hostname, path, s);
 			readResponse(lq, s);
@@ -152,23 +164,38 @@ public class QueryThread extends Thread {
 				atomic {
 					qt.gTitle = global new GlobalString(title);
 				}
-			}
-
-			atomic {
-				qt.toprocess = processPage(lq);
-			}
-
+  			atomic {
+	  			qt.toprocess = processPage(lq);
+		  	}
+      }
 			s.close();
 		}
   }
 
+  public static boolean isDocument(String str) {
+		int index = str.lastindexOf('.');
+
+		if (index != -1) {
+			if ((str.subString(index+1)).equals("pdf")) return true;
+			else if ((str.subString(index+1)).equals("ps")) return true;
+			else if ((str.subString(index+1)).equals("ppt")) return true;
+			else if ((str.subString(index+1)).equals("pptx")) return true;
+			else if ((str.subString(index+1)).equals("jpg")) return true;
+			else if ((str.subString(index+1)).equals("mp3")) return true;
+			else if ((str.subString(index+1)).equals("wmv")) return true;
+			else if ((str.subString(index+1)).equals("doc")) return true;
+			else if ((str.subString(index+1)).equals("docx")) return true;
+			else if ((str.subString(index+1)).equals("mov")) return true;
+			else if ((str.subString(index+1)).equals("flv")) return true;
+			else return false;
+		}
+		return false;
+	}
+
 	public void done(Object obj) {
-		if (gTitle != null) 
+		if (gTitle != null && (gTitle.length() > 0)) 
 			processList();
 
-		GlobalString str = global new GlobalString("true");
-
-		doneList.put(workingURL, str);
 
 		while(!toprocess.isEmpty()) {
 			GlobalQuery q = (GlobalQuery)toprocess.pop();
@@ -181,52 +208,85 @@ public class QueryThread extends Thread {
 			gsb.append(path);
 
 			if (!doneList.containsKey(gsb.toGlobalString())) {
-				todoList.push(q);
+        todoList.push(q);
+
+        GlobalString str = global new GlobalString("1");
+    		doneList.put(gsb.toGlobalString(), str);
 			}
 		}
 	}
 
 	public static String grabTitle(LocalQuery lq) {
-		String sTitle = new String("<title>");	
-		String eTitle = new String("</title>");
+		String sBrace = new String("<");	
+		String strTitle = new String("title>");
   	String searchstr = lq.response.toString();
 		String title = null;
 		char ch;
 
-		int mindex = searchstr.indexOf(sTitle);
-		if (mindex != -1) {
-			int endquote = searchstr.indexOf(eTitle, mindex+sTitle.length());
+		int mindex = -1;
+		int endquote = -1;
+		int i, j;
+		String tmp;
 
-			title = new String(searchstr.subString(mindex+sTitle.length(), endquote));
-			
-			if (Character.isWhitespace(title.charAt(0))){
-				mindex=0;
-				while (Character.isWhitespace(title.charAt(mindex++)));
-				mindex--;
-				title = new String(title.subString(mindex));
-			}
+		for (i = 0; i < searchstr.length(); i++) {
+			if (searchstr.charAt(i) == '<') {                                   	
+				i++;                                                                
+				if (searchstr.length() > (i+strTitle.length())) {                   
+					tmp = searchstr.subString(i, i+strTitle.length());                
+					if (tmp.equalsIgnoreCase("title>")) {                             
+						mindex = i + tmp.length();                                      
+						for (j = mindex; j < searchstr.length(); j++) {                 
+							if (searchstr.charAt(j) == '<') {                             
+								j++;                                                        
+								tmp = searchstr.subString(j, j+strTitle.length()+1);			  
+								if (tmp.equalsIgnoreCase("/title>")) {                      
+									endquote = j - 1;                                         
+									break;                                                    
+								}                                                           
+							}                                                             
+						}                                                               
+					}                                                                 
+				}                                                                   
+			}                                                                     
+		}                                                                       
+                                                                            
+		if (mindex != -1) {                                                     
+			title = searchstr.subString(mindex, endquote);                        
+			if (Character.isWhitespace(title.charAt(0))){                         
+				mindex=0;                                                           
+				while (Character.isWhitespace(title.charAt(mindex++)));             
+				mindex--;                                                           
+				if (mindex >= title.length()) return null;                          
+				title = new String(title.subString(mindex));                        
+			}                                                                     
+                                                                            
+			if (Character.isWhitespace(title.charAt(title.length()-1))) {         
+				endquote=title.length()-1;                                          
+				while (Character.isWhitespace(title.charAt(endquote--)));           
+				endquote += 2;                                                      
+				if (mindex >= endquote) return null;                                
+				title = new String(title.subString(0, endquote));                   
+			}                                                                     
+                                                                            
+			if (isErrorPage(title)) {                                             
+				return null;                                                        
+			}                                                                     
+		}                                                                       
+                                                                            
+		return title;                                                           
+  }
 
-			if (Character.isWhitespace(title.charAt(title.length()-1))) {
-				endquote=title.length()-1;
-				while (Character.isWhitespace(title.charAt(endquote--)));
-				endquote += 2;
-				title = new String(title.subString(0, endquote));
-			}
-
-			if (errorPage(title)) 
-				title = null;
-		}
-
-		return title;
-	}
-
-	public static boolean errorPage(String str) {
+	public static boolean isErrorPage(String str) {
 		if (str.equals("301 Moved Permanently"))     
 			return true;                               
 		else if (str.equals("302 Found"))            
 			return true;                               
 		else if (str.equals("404 Not Found"))        
 			return true;                               
+		else if (str.equals("403 Forbidden")) 
+			return true;
+		else if (str.equals("404 File Not Found")) 
+			return true;
 		else                                         
 			return false;                              
 	}                                              
@@ -235,7 +295,7 @@ public class QueryThread extends Thread {
     StringBuffer req = new StringBuffer("GET "); 
     req.append("/");
 		req.append(path);
-    req.append(" HTTP/1.1\r\nHost:");
+    req.append(" HTTP/1.0\r\nHost:");
     req.append(hostname);
     req.append("\r\n\r\n");
     sock.write(req.toString().getBytes());
@@ -247,57 +307,17 @@ public class QueryThread extends Thread {
 	//    state 2 - \r\n
 	//    state 3 - \r\n\r
 	//    state 4 - \r\n\r\n
-    int state=0;
-    while(true) {
-      if (state<4) {
-        if (state==0) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if ((numchars==1)) {
-            if (b[0]=='\r') {
-              state++;
-            }
-          } else
-						return;
-        } else if (state==1) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if (numchars==1) {
-            if (b[0]=='\n')
-              state++;
-            else
-              state=0;
-          } else return;
-        } else if (state==2) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if (numchars==1) {
-            if (b[0]=='\r')
-              state++;
-            else
-              state=0;
-          } else return;
-        } else if (state==3) {
-          byte[] b=new byte[1];
-          int numchars=sock.read(b);
-          if (numchars==1) {
-            if (b[0]=='\n')
-              state++;
-            else
-              state=0;
-          } else return;
-        }
-      } else {
-				byte[] buffer=new byte[1024];
-        int numchars=sock.read(buffer);
-        if (numchars==0)
-          return;
-        else {
-          String curr=(new String(buffer)).subString(0,numchars);
-					lq.response.append(curr);
-        }
-      }
-    }
+    byte[] buffer = new byte[1024];
+    int numchars;
+  
+    do {
+      numchars = sock.read(buffer);
+  
+  	  String curr = (new String(buffer)).subString(0, numchars);
+  			
+  	  lq.response.append(curr);
+  	  buffer = new byte[1024];
+    } while(numchars > 0);
   }
 	
 	public void processList() {
@@ -328,33 +348,39 @@ public class QueryThread extends Thread {
 			}
 			q.push(workingURL);	
 			results.put(token, q);
-			System.out.println("Key : ["+token.toLocalString()+"],["+q.size()+"]");
 		}
 	}
 
 	public boolean filter(GlobalString str) {
-		if (str.equals("of"))	return true;
-		else if (str.equals("for")) return true;
-		else if (str.equals("a")) return true;
-		else if (str.equals("an")) return true;
-		else if (str.equals("the")) return true;
-		else if (str.equals("at")) return true;
-		else if (str.equals("and")) return true;
-		else if (str.equals("or")) return true;
-		else if (str.equals("but")) return true;
-		else if (str.equals("to")) return true;
-		else if (str.equals(".")) return true;
-		else if (str.equals("=")) return true;
-		else if (str.equals("-")) return true;
-		else if (str.equals(":")) return true;
-		else if (str.equals(";")) return true;
-		else if (str.equals("\'")) return true;
-		else if (str.equals("\"")) return true;
-		else if (str.equals("|")) return true;
-		else if (str.equals("@")) return true;
-		else if (str.equals("&")) return true;
-		else return false;
-	}
+	  if (str.equals("of"))	return true;
+  	  else if (str.equals("for")) return true;
+  		else if (str.equals("a")) return true;
+  		else if (str.equals("an")) return true;
+  		else if (str.equals("the")) return true;
+  		else if (str.equals("at")) return true;
+  		else if (str.equals("and")) return true;
+  		else if (str.equals("or")) return true;
+  		else if (str.equals("but")) return true;
+  		else if (str.equals("to")) return true;
+  		else if (str.equals("The")) return true;
+  		else if (str.length() == 1) {
+  			if (str.charAt(0) == '.') return true;
+  			else if (str.charAt(0) == '.') return true;
+  			else if (str.charAt(0) == '-') return true;
+  			else if (str.charAt(0) == '=') return true;
+  			else if (str.charAt(0) == '_') return true;
+  			else if (str.charAt(0) == ':') return true;
+  			else if (str.charAt(0) == ';') return true;
+  			else if (str.charAt(0) == '\'') return true;
+  			else if (str.charAt(0) == '\"') return true;
+  			else if (str.charAt(0) == '|') return true;
+  			else if (str.charAt(0) == '@') return true;
+  			else if (str.charAt(0) == '&') return true;
+  			else if (str.charAt(0) == ' ') return true;
+  		}
+  		else 
+        return false;
+  }
 
 	public GlobalString refine(GlobalString str) {
 		str = refinePrefix(str);
@@ -385,6 +411,11 @@ public class QueryThread extends Thread {
 		else if (str.charAt(str.length()-1) == 's') {			// 's
 			if (str.charAt(str.length()-2) == '\'')
 				return str.subString(0, str.length()-2);	
+		}
+		else if (str.charAt(str.length()-1) == '-') {
+			int index = str.length()-2;
+			while (Character.isWhitespace(str.charAt(index--)));
+			return str.subString(0, index+2);
 		}
 		return str;
 	}
