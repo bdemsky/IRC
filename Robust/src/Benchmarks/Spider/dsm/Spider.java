@@ -11,10 +11,15 @@ public class Spider {
     GlobalString firstmachine;
     GlobalString firstpage;
 
-		int mid[] = new int[NUM_THREADS];
+		int mid[] = new int[8];
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;	 //dc-1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;	 //dc-2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;	 //dc-3
+		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;	 //dc-4
+		mid[4] = (128<<24)|(195<<16)|(136<<8)|166;	 //dc-5
+		mid[5] = (128<<24)|(195<<16)|(136<<8)|167;	 //dc-6
+		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;	 //dc-7
+		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;	 //dc-8
 
 		atomic {
 			firstmachine = global new GlobalString(args[1]);

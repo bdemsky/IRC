@@ -3,7 +3,7 @@ SUBCLASS=Query
 SRC1=${MAINCLASS}.java
 SRC2=Global${SUBCLASS}.java
 SRC3=${SUBCLASS}Thread.java
-FLAGS= -dsm -nooptimize -debug -mainclass ${MAINCLASS}
+FLAGS= -dsm -transstats -nooptimize -debug -mainclass ${MAINCLASS}
 default:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC2} ${SRC3} ${SRC1}
 

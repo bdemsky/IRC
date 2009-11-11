@@ -40,7 +40,7 @@ public class QueryThread extends Thread {
       atomic {
         myWork = (GlobalQuery)todoList.pop();
         
-        if(null == myWork)  // no work in todolist
+        if(myWork == null)  // no work in todolist
         {
           chk = checkCurrentWorkList(this);        
         }
@@ -51,6 +51,10 @@ public class QueryThread extends Thread {
       }
 
       if(chk == 1) { // it has query
+        atomic {
+          if(myWork == null) 
+            System.out.println("myWork is null");
+        }
         QueryThread.execute(this);
 
         atomic {
