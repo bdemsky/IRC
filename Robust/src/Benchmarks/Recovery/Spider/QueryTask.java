@@ -2,12 +2,13 @@ public class QueryTask extends Task {
 	int maxDepth;
 	Queue toprocess;
 	DistributedHashMap results;
+	DistributedHashMap visitedList;
 	GlobalString gTitle;
 	GlobalString workingURL;
 
-  public QueryTask(Queue todoList, DistributedHashMap doneList, int maxDepth, DistributedHashMap results) {
+  public QueryTask(Queue todoList, DistributedHashMap visitedList, int maxDepth, DistributedHashMap results) {
     this.todoList = todoList;
-		this.doneList = doneList;
+		this.visitedList = visitedList;
 		this.maxDepth = maxDepth;
 		this.results = results;
 		toprocess = global new Queue();
@@ -112,11 +113,11 @@ public class QueryTask extends Task {
 			gsb.append("/");
 			gsb.append(path);
 
-			if (!doneList.containsKey(gsb.toGlobalString())) {
+			if (!visitedList.containsKey(gsb.toGlobalString())) {
 				todoList.push(q);
 					
 				GlobalString str = global new GlobalString("1");
-				doneList.put(gsb.toGlobalString(), str);
+				visitedList.put(gsb.toGlobalString(), str);
 			}
 		}
 	}

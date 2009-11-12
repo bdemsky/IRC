@@ -32,13 +32,13 @@ public class Spider {
 			GlobalQuery firstquery = global new GlobalQuery(firstmachine, firstpage);
 
 			Queue todoList = global new Queue();
-			DistributedHashMap doneList = global new DistributedHashMap(500, 500, 0.75f);
+			DistributedHashMap visitedList = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
 			
 			todoList.push(firstquery);
 
 			for (i = 0; i < NUM_THREADS; i++) {
-				qt[i] = global new QueryTask(todoList, doneList, maxDepth, results);
+				qt[i] = global new QueryTask(todoList, visitedList, maxDepth, results);
 				works[i] = global new Work(qt[i], NUM_THREADS, i, currentWorkList);
 			}
 		}
