@@ -77,3 +77,7 @@ float CALL11(___Math______logf____F, float ___a___, float ___a___) {
 float CALL22(___Math______powf____F_F, float ___a___, float ___b___, float ___a___, float ___b___) {
   return powf(___a___,___b___);
 }
+
+float CALL11(___Math______ceilf____F, float ___a___, float ___a___) {
+  return ceilf(___a___);
+}

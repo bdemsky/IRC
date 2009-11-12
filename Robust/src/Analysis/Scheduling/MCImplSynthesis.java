@@ -1085,7 +1085,7 @@ public class MCImplSynthesis {
   generateScheduling(Vector<ScheduleNode> scheduleGraph,
                      Hashtable<TaskDescriptor, ClassDescriptor> td2maincd) {
     Hashtable<TaskDescriptor, Vector<Schedule>> td2cores = 
-      new Hashtable<TaskDescriptor, Vector<Schedule>>(); // multiparam tasks reside on which cores
+      new Hashtable<TaskDescriptor, Vector<Schedule>>(); // tasks reside on which cores
     Vector<Schedule> scheduling = new Vector<Schedule>(scheduleGraph.size());
     // for each ScheduleNode create a schedule node representing a core
     Hashtable<ScheduleNode, Integer> sn2coreNum = 
@@ -1093,7 +1093,10 @@ public class MCImplSynthesis {
     Hashtable<TaskDescriptor, Integer> td2maincore = 
       new Hashtable<TaskDescriptor, Integer>();
     Hashtable<TaskDescriptor, Vector<Schedule>> td2allycores = 
-      new Hashtable<TaskDescriptor, Vector<Schedule>>();
+      new Hashtable<TaskDescriptor, Vector<Schedule>>(); // multiparam tasks -- 
+                                       // ally cores which might have parameters 
+                                       // for the task
+    
     int j = 0;
     for(j = 0; j < scheduleGraph.size(); j++) {
       sn2coreNum.put(scheduleGraph.elementAt(j), j);
@@ -1121,6 +1124,7 @@ public class MCImplSynthesis {
             if(td.numParameters() > 1) {
               // td is a multi-param task, check if this core contains the 
               // main cd of it
+              ClassDescriptor cd1 = td2maincd.get(td);
               if(td2maincd.get(td).equals(cd)) {
                 contain = true;
                 td2maincore.put(td, tmpSchedule.getCoreNum());
@@ -1183,15 +1187,23 @@ public class MCImplSynthesis {
           while(it.hasNext()) {
             TaskDescriptor td = ((FEdge)it.next()).getTask();
             if(td.numParameters() > 1) {
-              tmpSchedule.addFState4TD(td, fs);  // TODO    
+              tmpSchedule.addFState4TD(td, fs);  // TODO   
+              // add this core as a allycore of td
+              if(!td2allycores.containsKey(td)) {
+                td2allycores.put(td, new Vector<Schedule>());
+              }
+              Vector<Schedule> allycores = td2allycores.get(td);
+              if(!allycores.contains(tmpSchedule)) {
+                allycores.addElement(tmpSchedule);
+              }
             } else {
               canTriggerSTask = true;
             }
           }
-          for(int k = 0; k < se.getNewRate(); k++) {
-            if(canTriggerSTask) {
-              // Only transfer the obj when it can trigger some single-parm task
-              // TODO: ensure that multi-param tasks have these objects
+          if(canTriggerSTask) {
+            // Only transfer the obj when it can trigger some single-parm task
+            // TODO: ensure that multi-param tasks have these objects
+            for(int k = 0; k < se.getNewRate(); k++) {
               tmpSchedule.addTargetCore(fs, targetcore);
             }
           }
@@ -1213,6 +1225,14 @@ public class MCImplSynthesis {
             TaskDescriptor td = ((FEdge)it.next()).getTask();
             if(td.numParameters() > 1) {
               tmpSchedule.addFState4TD(td, fs);
+              // add this core as a allycore of td
+              if(!td2allycores.containsKey(td)) {
+                td2allycores.put(td, new Vector<Schedule>());
+              }
+              Vector<Schedule> allycores = td2allycores.get(td);
+              if(!allycores.contains(tmpSchedule)) {
+                allycores.addElement(tmpSchedule);
+              }
             }
           }
           break;
@@ -1235,13 +1255,21 @@ public class MCImplSynthesis {
           while(it.hasNext()) {
             TaskDescriptor td = ((FEdge)it.next()).getTask();
             if(td.numParameters() > 1) {
-              tmpSchedule.addFState4TD(td, fs);  // TODO    
+              tmpSchedule.addFState4TD(td, fs);  // TODO   
+              // add this core as a allycore of td
+              if(!td2allycores.containsKey(td)) {
+                td2allycores.put(td, new Vector<Schedule>());
+              }
+              Vector<Schedule> allycores = td2allycores.get(td);
+              if(!allycores.contains(tmpSchedule)) {
+                allycores.addElement(tmpSchedule);
+              }
             } else {
               canTriggerSTask = true;
             }
           }
-          for(int k = 0; k < se.getNewRate(); k++) {
-            if(canTriggerSTask) {
+          if(canTriggerSTask) {
+            for(int k = 0; k < se.getNewRate(); k++) {
               tmpSchedule.addTargetCore(se.getFstate(), j);
             }
           }
@@ -1253,6 +1281,26 @@ public class MCImplSynthesis {
           tmpSchedule.addTargetCore(se.getFstate(), 
                                     j, 
                                     se.getTargetFState());
+          // check if missed some FlagState associated with some 
+          // multi-parameter task, which has been cloned when 
+          // splitting a ClassNode
+          FlagState fs = se.getSourceFState();
+          FlagState tfs = se.getTargetFState();
+          Iterator it = tfs.edges();
+          while(it.hasNext()) {
+            TaskDescriptor td = ((FEdge)it.next()).getTask();
+            if(td.numParameters() > 1) {
+              tmpSchedule.addFState4TD(td, fs);
+              // add this core as a allycore of td
+              if(!td2allycores.containsKey(td)) {
+                td2allycores.put(td, new Vector<Schedule>());
+              }
+              Vector<Schedule> allycores = td2allycores.get(td);
+              if(!allycores.contains(tmpSchedule)) {
+                allycores.addElement(tmpSchedule);
+              }
+            }
+          }
           break;
         }
         }
@@ -1267,7 +1315,6 @@ public class MCImplSynthesis {
     }
 
     Iterator<TaskDescriptor> it_mptds = td2maincd.keySet().iterator();
-    // set up all the associate ally cores
     while(it_mptds.hasNext()) {
       TaskDescriptor td = it_mptds.next();
       Vector<FEdge> fes = (Vector<FEdge>) this.taskAnalysis.getFEdgesFromTD(td);
@@ -1290,6 +1337,7 @@ public class MCImplSynthesis {
               TaskDescriptor tmptd = ((FEdge)it_edges.next()).getTask();
               if(!tmptds.contains(tmptd)) {
                 tmptds.add(tmptd);
+                // only multiparam task will be processed here!!! TODO
                 Vector<Schedule> tmpcores = td2cores.get(tmptd);
                 for(int m = 0; m < tmpcores.size(); ++m) {
                   Schedule target = tmpcores.elementAt(m);

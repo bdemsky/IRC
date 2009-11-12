@@ -769,7 +769,7 @@ void tagset(struct ___Object___ * obj,
 	ao=(struct ArrayObject *)tagd->flagptr;
 #else
 	struct ArrayObject * aonew=
-		allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL);
+		allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL+ao->___length___);
 #endif
 	aonew->___cachedCode___=ao->___cachedCode___+1;
 	for(i=0; i<ao->___length___; i++) {
@@ -1181,6 +1181,7 @@ inline void addNewObjInfo(void * nobj) {
 }
 #endif
 
+#ifdef MULTICORE_GC
 struct freeMemItem * findFreeMemChunk(int coren,
 		                                  int isize,
 		                                  int * tofindb) {
@@ -1334,6 +1335,7 @@ void * globalmalloc(int isize,
 	freemem->size -= *allocsize;
 	return mem;
 } // void * globalmalloc(int, struct freeMemItem *, int *)
+#endif
 
 // malloc from the shared memory
 void * smemalloc(int coren,
@@ -1400,7 +1402,7 @@ void * smemalloc(int coren,
 #endif
 	}
 	return mem;
-}
+}  // void * smemalloc(int, int, int)
 
 // receive object transferred from other cores
 // or the terminate message from other cores
@@ -3081,12 +3083,14 @@ int containstag(struct ___Object___ *ptr,
   if (objptr->type==OBJECTARRAYTYPE) {
     struct ArrayObject *ao=(struct ArrayObject *)objptr;
     for(j=0; j<ao->___cachedCode___; j++) {
-      if (ptr==ARRAYGET(ao, struct ___Object___*, j))
+      if (ptr==ARRAYGET(ao, struct ___Object___*, j)) {
 	return 1;
+			}
     }
     return 0;
-  } else
+  } else {
     return objptr==ptr;
+	}
 }
 
 void toiNext(struct tagobjectiterator *it, 

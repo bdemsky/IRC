@@ -71,6 +71,14 @@ public class ScheduleAnalysis {
   }
 
   public Hashtable<TaskDescriptor, ClassDescriptor> getTd2maincd() {
+    // TODO, for test
+    /*Iterator<TaskDescriptor> key = td2maincd.keySet().iterator();
+    while(key.hasNext()) {
+      TaskDescriptor td = key.next();
+      System.err.println(td.getSymbol() + ", maincd: " 
+          + this.td2maincd.get(td).getSymbol());
+    }*/
+    
     return td2maincd;
   }
 
@@ -164,9 +172,14 @@ public class ScheduleAnalysis {
             while(it_edges.hasNext()) {
               FEdge edge = (FEdge)it_edges.next();
               TaskInfo taskinfo = taskinfos.get(edge.getTask().getSymbol());
-              tint = taskinfo.m_exetime[edge.getTaskExitIndex()];
+              double idouble = 0.0;
+              if(edge.getTaskExitIndex() >= taskinfo.m_exetime.length) {
+                tint = 0;
+              } else {
+                tint = taskinfo.m_exetime[edge.getTaskExitIndex()];
+                idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
+              }
               edge.setExeTime(tint);
-              double idouble = taskinfo.m_probability[edge.getTaskExitIndex()];
               edge.setProbability(idouble);
               if(taskinfo.m_byObj != -1) {
                 ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
@@ -395,11 +408,17 @@ public class ScheduleAnalysis {
                       (cdname.equals("Fractal")) ||
                       (cdname.equals("KMeans")) || 
                       (cdname.equals("ZTransform")) ||
-											(cdname.equals("TestRunner")) || 
-											(cdname.equals("LinkList"))) {
+                      (cdname.equals("TestRunner")) || 
+                      (cdname.equals("LinkList"))) {
                     newRate = this.coreNum;
                   } else if(cdname.equals("SentenceParser")) {
                     newRate = 4;
+                  } else if(cdname.equals("BlurPiece")){
+                    newRate = 4;
+                  } else if(cdname.equals("ImageX")){
+                    newRate = 2 * 2;
+                  } else if(cdname.equals("ImageY")){
+                    newRate = 1 * 4;
                   }
                   //do {
                   //    tint = r.nextInt()%100;
@@ -509,12 +528,10 @@ public class ScheduleAnalysis {
     }
 
     // Create 'new' edges between the ScheduleNodes.
-    Vector<ClassDescriptor> singleCDs = new Vector<ClassDescriptor>();
     for(i = 0; i < classNodes.size(); i++) {
       ClassNode cNode = classNodes.elementAt(i);
       ClassDescriptor cd = cNode.getClassDescriptor();
       Vector rootnodes  = taskanalysis.getRootNodes(cd);
-      boolean isSingle = false;
       if(rootnodes != null) {
         for(int h = 0; h < rootnodes.size(); h++) {
           FlagState root=(FlagState)rootnodes.elementAt(h);
@@ -534,9 +551,6 @@ public class ScheduleAnalysis {
                   // fake creating edge, do not need to create corresponding 
                   // 'new' edge
                   continue;
-                }
-                if(noi.getNewRate() == 1) {
-                  isSingle = true;
                 }
                 if(noi.getRoot() == null) {
                   // set root FlagState
@@ -567,9 +581,6 @@ public class ScheduleAnalysis {
             }
             allocatingTasks = null;
           }
-          if(isSingle) {
-            singleCDs.add(cd);
-          }
         }
         rootnodes = null;
       }
@@ -578,15 +589,13 @@ public class ScheduleAnalysis {
     
     for(i = 0; i < multiparamtds.size(); i++) {
       TaskDescriptor td = multiparamtds.elementAt(i);
-      for(int j = 0; j < td.numParameters(); j++) {
-        ClassDescriptor cd = td.getParamType(j).getClassDesc();
-        if(singleCDs.contains(cd)) {
-          // set the first parameter which has single creation rate as main cd
-          // TODO: may have bug when cd has multiple new flag states
-          this.td2maincd.put(td, cd);
-          break;
-        }
-      }
+      ClassDescriptor cd = td.getParamType(0).getClassDesc();
+      // set the first parameter as main cd
+      // NOTE: programmer should write in such a style that 
+      //       for all multi-param tasks, the main class should be
+      //       the first parameter
+      // TODO: may have bug when cd has multiple new flag states
+      this.td2maincd.put(td, cd);
     }
 
     return startupNode;
@@ -649,16 +658,39 @@ public class ScheduleAnalysis {
           this.state.outputdir + "scheduling_ori.dot", this.scheduleNodes);
     }
   }
+  
+  private void handleDescenSEs(Vector<ScheduleEdge> ses) {
+    ScheduleEdge tempse = ses.elementAt(0);
+    long temptime = tempse.getListExeTime();
+    // find out the ScheduleEdge with least exeTime
+    for(int k = 1; k < ses.size(); k++) {
+      long ttemp = ses.elementAt(k).getListExeTime();
+      if(ttemp < temptime) {
+        tempse = ses.elementAt(k);
+        temptime = ttemp;
+      } // if(ttemp < temptime)
+    } // for(int k = 1; k < ses.size(); k++)
+    // handle the tempse
+    handleScheduleEdge(tempse, true);
+    ses.removeElement(tempse);
+    // handle other ScheduleEdges
+    for(int k = 0; k < ses.size(); k++) {
+      handleScheduleEdge(ses.elementAt(k), false);
+    } // for(int k = 0; k < ses.size(); k++)
+  }
 
   private void CFSTGTransform() {
     // First iteration
     int i = 0;
-    //Access the ScheduleEdges in reverse topology order
+    
+    // table of all schedule edges associated to one fedge
     Hashtable<FEdge, Vector<ScheduleEdge>> fe2ses = 
       new Hashtable<FEdge, Vector<ScheduleEdge>>();
+    // table of all fedges associated to one schedule node
     Hashtable<ScheduleNode, Vector<FEdge>> sn2fes = 
       new Hashtable<ScheduleNode, Vector<FEdge>>();
     ScheduleNode preSNode = null;
+    // Access the ScheduleEdges in reverse topology order
     for(i = scheduleEdges.size(); i > 0; i--) {
       ScheduleEdge se = (ScheduleEdge)scheduleEdges.elementAt(i-1);
       if(ScheduleEdge.NEWEDGE == se.getType()) {
@@ -669,34 +701,45 @@ public class ScheduleAnalysis {
         boolean split = false;
         FEdge fe = se.getFEdge();
         if(fe.getSource() == fe.getTarget()) {
-          // back edge
+          // the associated start fe is a back edge
           try {
+            // check the number of newly created objs
             int repeat = (int)Math.ceil(se.getNewRate()*se.getProbability()/100);
             int rate = 0;
-            if(repeat > 1) {
+            /*if(repeat > 1) {
+              // more than one new objs, expand the new edge
               for(int j = 1; j< repeat; j++ ) {
                 cloneSNodeList(se, true);
-              }
+              } // for(int j = 1; j< repeat; j++ )
               se.setNewRate(1);
               se.setProbability(100);
-            }
+            } // if(repeat > 1)*/
             try {
+              // match the rates of obj creation and new obj consumption
               rate = (int)Math.ceil(
                   se.getListExeTime()/calInExeTime(se.getSourceFState()));
             } catch (Exception e) {
               e.printStackTrace();
-            }
-            for(int j = rate - 1; j > 0; j--) {
+            } // try-catch {}
+            repeat = (rate > repeat)? rate : repeat;
+            // expand the new edge
+            for(int j = 1; j< repeat; j++ ) {
+              cloneSNodeList(se, true);
+            } // for(int j = 1; j< repeat; j++ )
+            se.setNewRate(1);
+            se.setProbability(100);
+            /*for(int j = rate - 1; j > 0; j--) {
               for(int k = repeat; k > 0; k--) {
                 cloneSNodeList(se, true);
-              }
-            }
+              } // for(int k = repeat; k > 0; k--)
+            } // for(int j = rate - 1; j > 0; j--)*/
           } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
-          }
-        } else {
-          // if preSNode is not the same as se's source ScheduleNode
+          } // try-catch{}
+        } else { // if(fe.getSource() == fe.getTarget())
+          // the associated start fe is not a back edge
+          // Note: if preSNode is not the same as se's source ScheduleNode
           // handle any ScheduleEdges previously put into fe2ses whose source 
           // ScheduleNode is preSNode
           boolean same = (preSNode == se.getSource());
@@ -708,39 +751,32 @@ public class ScheduleAnalysis {
                 for(int j = 0; j < fes.size(); j++) {
                   FEdge tempfe = fes.elementAt(j);
                   Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
-                  ScheduleEdge tempse = ses.elementAt(0);
-                  long temptime = tempse.getListExeTime();
-                  // find out the ScheduleEdge with least exeTime
-                  for(int k = 1; k < ses.size(); k++) {
-                    long ttemp = ses.elementAt(k).getListExeTime();
-                    if(ttemp < temptime) {
-                      tempse = ses.elementAt(k);
-                      temptime = ttemp;
-                    }
-                  }
-                  // handle the tempse
-                  handleScheduleEdge(tempse, true);
-                  ses.removeElement(tempse);
-                  // handle other ScheduleEdges
-                  for(int k = 0; k < ses.size(); k++) {
-                    handleScheduleEdge(ses.elementAt(k), false);
-                  }
+                  this.handleDescenSEs(ses);
                   ses = null;
                   fe2ses.remove(tempfe);
-                }
+                } // for(int j = 0; j < fes.size(); j++)
                 fes = null;
-              }
-            }
+              } 
+            } 
             preSNode = (ScheduleNode)se.getSource();
-          }
-
-          // if fe is the last task inside this ClassNode, delay the expanding 
-          // and merging until we find all such 'new' edges
-          // associated with a last task inside this ClassNode
-          if(!fe.getTarget().edges().hasNext()) {
+          } // if(!same)
+       
+          if(fe.getTarget().edges().hasNext()) { 
+            // not associated with the last task, check if to split the snode
+            if((!(se.getTransTime() < this.transThreshold)) 
+                && (se.getSourceCNode().getTransTime() < se.getTransTime())) {
+              // it's better to transfer the other obj with preSnode
+              split = true;
+              splitSNode(se, true);
+            }
+          } // if(!fe.getTarget().edges().hasNext())
+          
+          if(!split) {
+            // delay the expanding and merging until we find all such 'new' 
+            // edges associated with a last task inside this ClassNode
             if(fe2ses.get(fe) == null) {
               fe2ses.put(fe, new Vector<ScheduleEdge>());
-            }
+            } 
             if(sn2fes.get((ScheduleNode)se.getSource()) == null) {
               sn2fes.put((ScheduleNode)se.getSource(), new Vector<FEdge>());
             }
@@ -750,72 +786,17 @@ public class ScheduleAnalysis {
             if(!sn2fes.get((ScheduleNode)se.getSource()).contains(fe)) {
               sn2fes.get((ScheduleNode)se.getSource()).add(fe);
             }
-          } else {
-            // As this is not a last task, first handle available ScheduleEdges 
-            // previously put into fe2ses
-            if((same) && (sn2fes.containsKey(preSNode))) {
-              Vector<FEdge> fes = sn2fes.remove(preSNode);
-              for(int j = 0; j < fes.size(); j++) {
-                FEdge tempfe = fes.elementAt(j);
-                Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
-                ScheduleEdge tempse = ses.elementAt(0);
-                long temptime = tempse.getListExeTime();
-                // find out the ScheduleEdge with least exeTime
-                for(int k = 1; k < ses.size(); k++) {
-                  long ttemp = ses.elementAt(k).getListExeTime();
-                  if(ttemp < temptime) {
-                    tempse = ses.elementAt(k);
-                    temptime = ttemp;
-                  }
-                }
-                // handle the tempse
-                handleScheduleEdge(tempse, true);
-                ses.removeElement(tempse);
-                // handle other ScheduleEdges
-                for(int k = 0; k < ses.size(); k++) {
-                  handleScheduleEdge(ses.elementAt(k), false);
-                }
-                ses = null;
-                fe2ses.remove(tempfe);
-              }
-              fes = null;
-            }
-
-            if((!(se.getTransTime() < this.transThreshold)) 
-                && (se.getSourceCNode().getTransTime() < se.getTransTime())) {
-              split = true;
-              splitSNode(se, true);
-            } else {
-              // handle this ScheduleEdge
-              handleScheduleEdge(se, true);
-            }
-          }
-        }
-      }
-    }
+          } // if(!split)
+        } // if(fe.getSource() == fe.getTarget())
+      } // if(ScheduleEdge.NEWEDGE == se.getType())
+    } // for(i = scheduleEdges.size(); i > 0; i--)
     if(!fe2ses.isEmpty()) {
       Set<FEdge> keys = fe2ses.keySet();
       Iterator it_keys = keys.iterator();
       while(it_keys.hasNext()) {
         FEdge tempfe = (FEdge)it_keys.next();
         Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
-        ScheduleEdge tempse = ses.elementAt(0);
-        long temptime = tempse.getListExeTime();
-        // find out the ScheduleEdge with least exeTime
-        for(int k = 1; k < ses.size(); k++) {
-          long ttemp = ses.elementAt(k).getListExeTime();
-          if(ttemp < temptime) {
-            tempse = ses.elementAt(k);
-            temptime = ttemp;
-          }
-        }
-        // handle the tempse
-        handleScheduleEdge(tempse, true);
-        ses.removeElement(tempse);
-        // handle other ScheduleEdges
-        for(int k = 0; k < ses.size(); k++) {
-          handleScheduleEdge(ses.elementAt(k), false);
-        }
+        this.handleDescenSEs(ses);
         ses = null;
       }
       keys = null;
@@ -833,7 +814,7 @@ public class ScheduleAnalysis {
   }
 
   private void handleScheduleEdge(ScheduleEdge se, 
-      boolean merge) {
+                                  boolean merge) {
     try {
       int rate = 0;
       int repeat = (int)Math.ceil(se.getNewRate() * se.getProbability() / 100);
@@ -1043,7 +1024,7 @@ public class ScheduleAnalysis {
   }
 
   private ScheduleNode splitSNode(ScheduleEdge se, 
-      boolean copy) {
+                                  boolean copy) {
     assert(ScheduleEdge.NEWEDGE == se.getType());
 
     FEdge fe = se.getFEdge();

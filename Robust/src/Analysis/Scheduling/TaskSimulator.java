@@ -215,6 +215,20 @@ public class TaskSimulator {
     // For shared objects, need to first grab the lock and also check if the version is right
     for(int i = 0; i < paraQueues.size(); i++) {
       ObjectSimulator tpara = paraQueues.elementAt(i).peek();
+      if(tpara == null) {
+        // the parameter is already removed, delete this task too
+        finishTime = 800;
+        this.currentRun.setFinishTime(finishTime);
+        this.currentRun.setExetype(2);
+        for(int j = 0; j < i; ++j) {
+          tpara = this.paraQueues.elementAt(j).poll();
+          if(tpara.isShared() && tpara.isHold()) {
+            tpara.setHold(false);
+          }
+          this.paraQueues.elementAt(j).add(tpara);
+        }
+        return;
+      }
       if(tpara.isShared()) {
 	if(tpara.isHold()) {
 	  // shared object held by other tasks

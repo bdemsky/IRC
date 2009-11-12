@@ -217,11 +217,11 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_BASE_VA 0xd000000
 #ifdef GC_DEBUG
 #include "structdefs.h"
-#define BAMBOO_NUM_PAGES (NUMCORES*(2+3)+5)
-#define BAMBOO_PAGE_SIZE (16 * 16)
+#define BAMBOO_NUM_PAGES (NUMCORES*(2+1)+3)
+#define BAMBOO_PAGE_SIZE (64 * 64)
 #define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
 #else
-#define BAMBOO_NUM_PAGES (1024 * 512)
+#define BAMBOO_NUM_PAGES (1024 * 512 * 4)
 #define BAMBOO_PAGE_SIZE (4096)
 #define BAMBOO_SMEM_SIZE (16 * BAMBOO_PAGE_SIZE)
 #endif
