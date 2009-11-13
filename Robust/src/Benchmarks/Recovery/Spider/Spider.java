@@ -2,6 +2,7 @@ public class Spider {
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
 		int maxDepth = 4;
+		int maxSearchDepth = 10;
 		int i, j;
 		Work[] works;
 		QueryTask[] qt;
@@ -13,9 +14,9 @@ public class Spider {
 		GlobalString firstpage;
 
 		int mid[] = new int[NUM_THREADS];
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;
-		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;
-		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;
+		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;
 
 		atomic {
 			firstmachine = global new GlobalString(args[1]);
@@ -38,7 +39,7 @@ public class Spider {
 			todoList.push(firstquery);
 
 			for (i = 0; i < NUM_THREADS; i++) {
-				qt[i] = global new QueryTask(todoList, visitedList, maxDepth, results);
+				qt[i] = global new QueryTask(todoList, visitedList, maxDepth, maxSearchDepth, results);
 				works[i] = global new Work(qt[i], NUM_THREADS, i, currentWorkList);
 			}
 		}

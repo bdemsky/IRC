@@ -1,15 +1,17 @@
 public class QueryTask extends Task {
 	int maxDepth;
+	int maxSearchDepth;
 	Queue toprocess;
 	DistributedHashMap results;
 	DistributedHashMap visitedList;
 	GlobalString gTitle;
 	GlobalString workingURL;
 
-  public QueryTask(Queue todoList, DistributedHashMap visitedList, int maxDepth, DistributedHashMap results) {
+  public QueryTask(Queue todoList, DistributedHashMap visitedList, int maxDepth, int maxSearchDepth, DistributedHashMap results) {
     this.todoList = todoList;
 		this.visitedList = visitedList;
 		this.maxDepth = maxDepth;
+		this.maxSearchDepth = maxSearchDepth;
 		this.results = results;
 		toprocess = global new Queue();
   }
@@ -17,10 +19,12 @@ public class QueryTask extends Task {
   public void execute() {
 		int depth;
 		int max;
+		int maxSearch;
 		
 		atomic {
 			depth = ((GlobalQuery)myWork).getDepth();
       max = this.maxDepth;
+			maxSearch = this.maxSearchDepth;
 		}
 
 		if (depth < max) {
@@ -103,6 +107,7 @@ public class QueryTask extends Task {
 			processList();
 		}
 
+		int searchCnt = 0;
 		while(!toprocess.isEmpty()) {
 			GlobalQuery q = (GlobalQuery)toprocess.pop();
 
@@ -113,11 +118,12 @@ public class QueryTask extends Task {
 			gsb.append("/");
 			gsb.append(path);
 
-			if (!visitedList.containsKey(gsb.toGlobalString())) {
+			if (!visitedList.containsKey(gsb.toGlobalString()) && (searchCnt < maxSearchDepth)) {
 				todoList.push(q);
 					
 				GlobalString str = global new GlobalString("1");
 				visitedList.put(gsb.toGlobalString(), str);
+				searchCnt++;
 			}
 		}
 	}
