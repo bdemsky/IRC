@@ -83,8 +83,9 @@ public class Mail {
 
     while((fileinput.read(readBody)>0))
     {
-      body.concat(new String(readBody));
+      body += new String(readBody);
     }
+
 
     fileinput.close();
 
@@ -332,6 +333,7 @@ public class Mail {
   public void setNoURLBody()
   {
     noURLBody = new String();
+
     Vector splittedBody = body.split();
 
     System.out.println("DEBUG: splittedBody.size()= " + splittedBody.size());
