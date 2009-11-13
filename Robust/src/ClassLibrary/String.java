@@ -387,9 +387,15 @@ public class String {
     int i;
     int cnt =0;
 
+    // skip fisrt spaces
+    for(i = 0; i< count;i++) {
+      if(value[i] != '\n' && value[i] != '\t' && value[i] != ' ') 
+        break;
+    }
+
     String tmpStr = new String();
 
-    for(i = 0; i< count; i++) {
+    while(i<count) {
       if(value[i] == '\n' || value[i] == '\t' || value[i] == ' ') {
         splitted.addElement(tmpStr);
         tmpStr = "";
@@ -400,13 +406,14 @@ public class String {
         }
       }else {
         tmpStr += value[i];
+        i++;
       }
     }
 
     if(!tmpStr.equals("")) {
       splitted.addElement(tmpStr);
     }
-
+    
     return splitted;
   }
 
