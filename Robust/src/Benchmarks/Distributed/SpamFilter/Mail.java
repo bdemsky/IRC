@@ -21,6 +21,12 @@ public class Mail {
                       //same as hashcode of a class
     boolean isSpam;
 
+    /** 
+     * this is a really simple implementation of a tokenizer
+     * used to build tokens from an email and divide email into parts
+     **/
+    int MAX_TOKEN_SIZE;
+
   public Mail() {
       messageID=null;
   }
@@ -65,7 +71,9 @@ public class Mail {
       }
     } // parsed messageID, To, from, cc, Title
 
-
+    /** 
+     * error checking
+     **/
     if(!chk)
       System.out.println("no line read");
 
@@ -79,6 +87,8 @@ public class Mail {
     }
 
     fileinput.close();
+
+    MAX_TOKEN_SIZE = 1024;
   }
 
 	// -------------------------------------------------------
@@ -277,16 +287,16 @@ public class Mail {
     return body;
   }
 
-  /* TODO add this to process entire email
   public Vector returnEmail() {
     Vector myemail = new Vector();
-
     myemail.addElement(getCommonPart());
+    System.out.println("DEBUG: getCommonPart.size= " + getCommonPart().size());
     myemail.addElement(getURLs());
-    myemail.addElement(getSplittedBody());
+    System.out.println("DEBUG: getURLs.size= " + getURLs().size());
+    myemail.addElement(getSplittedBody(MAX_TOKEN_SIZE));
+    System.out.println("DEBUG: getSplittedBody.size= " + getSplittedBody(MAX_TOKEN_SIZE).size());
     return myemail;
   }
-  */
 
   public Vector getURLs()
   {
@@ -324,9 +334,11 @@ public class Mail {
     noURLBody = new String();
     Vector splittedBody = body.split();
 
+    System.out.println("DEBUG: splittedBody.size()= " + splittedBody.size());
     for(int i=0; i< splittedBody.size();i ++)
     {
-      String segment = (String)splittedBody.elementAt(i);
+      String segment = (String)(splittedBody.elementAt(i));
+      System.out.println("DEBUG: segment= " + segment);
       
       if(!(segment.startsWith("http://") || isEmailAccount(segment)))
         noURLBody += segment;
@@ -344,6 +356,8 @@ public class Mail {
 
     String tmpStr = new String();
     tmpStr += charArray[0];
+
+    System.out.println("tmpStr= " + tmpStr);
 
     for(int i=1; i< noURLBody.length(); i++)
     {
@@ -378,12 +392,15 @@ public class Mail {
   public Vector checkMail(int userid) {
     //Preprocess emails
     //Vector partsOfMailStrings = mail.createMailStringsWithURL();
-    Vector partsOfMailStrings = getCommonPart();
+    //Vector partsOfMailStrings = getCommonPart();
     //partsOfMailStrings.addElement(getBodyString());
+    Vector partsOfMailStrings = returnEmail();
+    
 
     //Compute signatures
     SignatureComputer sigComp = new SignatureComputer();
-    Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+    //Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+    Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of vector of strings
 
     return signatures;
   }

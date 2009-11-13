@@ -56,6 +56,7 @@ public class SpamFilter extends Thread {
         // randomly pick emails
         pickemail+=1;
         Mail email = new Mail("emails/email"+pickemail);
+        System.out.println("DEBUG: emailid = email" + pickemail); 
         Vector signatures = email.checkMail(thid);
 
         //check with global data structure

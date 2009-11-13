@@ -74,29 +74,33 @@ public class SignatureComputer {
     if (EmailParts == null) return null;
 
     Vector printableSigs = new Vector(); // vector of strings
-    for (int mailIndex = 0; mailIndex < EmailParts.size(); mailIndex++) {
-      String mail = (String) (EmailParts.elementAt(mailIndex));
+
+    /** 
+      * Step -I 
+      * Get signatures for the common parts 
+     **/
+
+    Vector commonpart = (Vector) (EmailParts.elementAt(0));
+    for (int mailIndex = 0; mailIndex < commonpart.size(); mailIndex++) {
+      String mail = (String) (commonpart.elementAt(mailIndex));
 
       if (mail == null) continue;
 
       /*
-       * Compute Sig for bodyparts that are cleaned.
+       * Compute Sig for email header that are cleaned.
        */
       for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
         int engineNo = enginesToUseForCheck[engineIndex];
         String sig = null;
+
         /* EphemeralSignature calculator */
         if(engineNo==4) {
           sig = computeSignature(engineNo,mail);
         } 
-        /*
-        if(engineNo==8) {
-          sig = computeSignature(engineNo,mail);
-        } 
+
         if(engineNo!=4 || engineNo!=8) {
           System.out.println("Err: Couldn't find the signature engine: " + engineNo);
         }
-        */
 
         if (sig != null) {
           String hash = engineNo + ":" + sig;
@@ -105,7 +109,153 @@ public class SignatureComputer {
           // we didn't produce a signature for the mail. 
         }
       }//engine
-    }//each emails part
+    }
+
+    /** 
+     * Step -II 
+     * Get signatures for the body parts without URLs 
+     **/
+    Vector getBodywithNoURLs = (Vector)(EmailParts.elementAt(2));
+    for (int mailIndex = 0; mailIndex < getBodywithNoURLs.size(); mailIndex++) {
+      String mail = (String) (getBodywithNoURLs.elementAt(mailIndex));
+
+      System.out.println("mail= " + mail);
+
+      if (mail == null) continue;
+
+      /*
+       * Compute Sig for email header that are cleaned.
+       */
+      for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
+        int engineNo = enginesToUseForCheck[engineIndex];
+        if(engineNo==8)
+          continue;
+        String sig = null;
+
+        /* EphemeralSignature calculator */
+        if(engineNo==4) {
+          sig = computeSignature(engineNo,mail);
+        } 
+
+        if(engineNo!=4 || engineNo!=8) {
+          System.out.println("Err: Couldn't find the signature engine: " + engineNo);
+        }
+
+        if (sig != null) {
+          String hash = engineNo + ":" + sig;
+          printableSigs.addElement(hash);
+        } else {
+          // we didn't produce a signature for the mail. 
+        }
+      }//engine
+    }
+
+    /** 
+     * Step -III
+     * Get signatures for the body parts with URLs 
+     **/
+    Vector getURLs = (Vector)(EmailParts.elementAt(1));
+    for (int mailIndex = 0; mailIndex < getURLs.size(); mailIndex++) {
+      String mail = (String) (getURLs.elementAt(mailIndex));
+      System.out.println("mail= " + mail);
+
+      /*
+       * Compute Sig for bodyparts that are cleaned.
+       */
+      for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
+        int engineNo = enginesToUseForCheck[engineIndex];
+
+        if(engineNo==4) {
+          continue;
+        }
+
+        /* WhiplashSignature calculator */
+        String[] hosts = null;
+        String sig = null;
+        if(engineNo==8) {
+          //hosts = computeSignature(engineNo,mail);
+          hosts = sig8.computeSignature(mail);
+          if(hosts != null) {
+            for(int i=0; i<hosts.length; i++) {
+              sig = hosts[i];
+              //sig = (String) (hosts.elementAt(i));
+              String hash = engineNo + ":" + sig;
+              printableSigs.addElement(hash);
+            }
+          } else {
+            // we didn't produce a signature for the mail.
+          }
+        } 
+
+        if(engineNo!=4 || engineNo!=8) {
+          System.out.println("Err: Couldn't find the signature engine: " + engineNo);
+        }
+
+        /*
+           if (sig != null) {
+           String hash = engineNo + ":" + sig;
+           printableSigs.addElement(hash);
+           } else {
+        // we didn't produce a signature for the mail. 
+        }
+         */
+      }//engine
+    }
+//
+//    for (int mailIndex = 0; mailIndex < EmailParts.size(); mailIndex++) {
+//      String mail = (String) (EmailParts.elementAt(mailIndex));
+//
+//      if (mail == null) continue;
+//
+//      /*
+//       * Compute Sig for bodyparts that are cleaned.
+//       */
+//      for (int engineIndex = 0; engineIndex < enginesToUseForCheck.length; engineIndex++) {
+//        int engineNo = enginesToUseForCheck[engineIndex];
+//        String sig = null;
+//
+//        /* EphemeralSignature calculator */
+//        if(engineNo==4) {
+//          sig = computeSignature(engineNo,mail);
+//          if(sig != null) {
+//            String hash = engineNo + ":" + sig;
+//            printableSigs.addElement(hash);
+//          } else {
+//          // we didn't produce a signature for the mail. 
+//          }
+//        } 
+//
+//        /* WhiplashSignature calculator */
+//        String[] hosts = null;
+//        if(engineNo==8) {
+//          //hosts = computeSignature(engineNo,mail);
+//          hosts = sig8.computeSignature(mail);
+//          if(hosts != null) {
+//            for(int i=0; i<hosts.length; i++) {
+//              sig = hosts[i];
+//              //sig = (String) (hosts.elementAt(i));
+//              String hash = engineNo + ":" + sig;
+//              printableSigs.addElement(hash);
+//            }
+//          } else {
+//            // we didn't produce a signature for the mail.
+//          }
+//        } 
+//
+//        if(engineNo!=4 || engineNo!=8) {
+//          System.out.println("Err: Couldn't find the signature engine: " + engineNo);
+//        }
+//
+//        /*
+//        if (sig != null) {
+//          String hash = engineNo + ":" + sig;
+//          printableSigs.addElement(hash);
+//        } else {
+//          // we didn't produce a signature for the mail. 
+//        }
+//        */
+//      }//engine
+//    }//each emails part
     return printableSigs;
   }//computeSigs
 
@@ -121,11 +271,13 @@ public class SignatureComputer {
       //return new String { this.sig4.computeSignature(mail) };
     }
 
+    /*
     if(engineNo==8) {
         //String cleanedButKeepHTML = Preprocessor.preprocess(mail,Preprocessor.ConfigParams.NO_DEHTML);
         //return this.sig8.computeSignature(cleanedButKeepHTML);
-      //return this.sig8.computeSignature(mail);
+      return this.sig8.computeSignature(mail);
     }
+    */
     return null;
   }
 }
