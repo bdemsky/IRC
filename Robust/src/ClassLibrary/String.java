@@ -392,12 +392,20 @@ public class String {
     for(i = 0; i< count; i++) {
       if(value[i] == '\n' || value[i] == '\t' || value[i] == ' ') {
         splitted.addElement(tmpStr);
-        tmpStr = new String();
+        tmpStr = "";
+
+        // skip extra spaces
+        while( i < count && ( value[i] == '\n' || value[i] == '\t' || value[i] == ' ')) {
+          i++;
+        }
       }else {
         tmpStr += value[i];
       }
     }
-    splitted.addElement(tmpStr);
+
+    if(!tmpStr.equals("")) {
+      splitted.addElement(tmpStr);
+    }
 
     return splitted;
   }
