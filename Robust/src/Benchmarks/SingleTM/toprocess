@@ -1,0 +1,20 @@
+#!/bin/bash
+for bm in KMeans.bin Labyrinth.bin SSCA2.bin Genome.bin Vacation.bin yada.bin Intruder.bin Bayes.bin
+do
+echo Benchmark $bm >> spreadsheet
+echo type, 1, 2, 4, 8 >> spreadsheet
+for type in FIS FISAR DEB OPTSTM LOCK DV HYDV
+do
+line=$type
+stddevline=""
+for num in 1 2 4 8
+do
+cat log/${bm}_${num}_${type}_* | grep TIME= > tmpfile
+ave=`java add tmpfile`
+stddev=`java add tmpfile stddev`
+line="$line, $ave"
+stddevline="$stddevline, $stddev"
+done
+echo ${line}${stddevline} >> spreadsheet
+done
+done
