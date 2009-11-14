@@ -198,6 +198,8 @@ public class Normal {
     float[][] new_centers = new float[nclusters][nfeatures];
 
     int loop = 0;
+
+    long start=System.currentTimeMillis();
     do {
       delta = 0.0f;
 
@@ -232,6 +234,8 @@ public class Normal {
       delta /= npoints;
 
     } while ((delta > threshold) && (loop++ < 500));
+    long stop=System.currentTimeMillis();
+    args.global_time+=(stop-start);
 
     return clusters;
   }

@@ -75,4 +75,6 @@ public class GlobalArgs {
 
   public float global_delta;
 
+  long global_time;
+
 }
