@@ -14,6 +14,10 @@ extern int failurecount;
 #endif
 #endif
 
+#ifdef AFFINITY
+void set_affinity();
+#endif
+
 #ifndef INTPTR
 #ifdef BIT64
 #define INTPTR long

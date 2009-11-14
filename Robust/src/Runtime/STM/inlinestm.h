@@ -109,7 +109,7 @@ static inline void FREELIST() {
   dchashlistnode_t *tmpptr=dc_c_list;
   while(tmpptr!=NULL) {
     dchashlistnode_t *next=tmpptr->lnext;
-    if (tmpptr>=ptr&&tmpptr<top) {
+    if (likely(tmpptr>=ptr)&&likely(tmpptr<top)) {
       /*zero in list	*/
       tmpptr->key=NULL;
       tmpptr->next=NULL;

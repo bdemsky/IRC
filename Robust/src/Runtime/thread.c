@@ -170,6 +170,9 @@ void initializethreads() {
 #endif
   processOptions();
   initializeexithandler();
+#ifdef AFFINITY
+  set_affinity();
+#endif
 
   //deprecated use of sighandler, but apparently still works
 #ifdef SANDBOX
@@ -253,6 +256,9 @@ void initializethreads() {
 
 #if defined(THREADS)||defined(STM)
 void initthread(struct ___Thread___ * ___this___) {
+#ifdef AFFINITY
+  set_affinity();
+#endif
 #ifdef SANDBOX
   struct sigaction sig;
   abortenabled=0;

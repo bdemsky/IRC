@@ -13,6 +13,7 @@ echo -inlineatomic depth inline methods inside of transactions to specified dept
 echo "-stmarray partial array treatment"
 echo "-dualview dual view of arrays"
 echo "-hybrid use fission only when it looks like a good choice"
+echo "-numa numa aware"
 echo
 echo DSM options
 echo -dsm distributed shared memory
@@ -81,6 +82,7 @@ echo -help help
 }
 
 tmpbuilddirectory="tmpbuilddirectory"
+NUMA=false;
 SANDBOX=false;
 ABORTREADERS=false;
 ROBUSTROOT=~/research/Robust/src
@@ -155,6 +157,10 @@ then
 SANDBOX=true
 EXTRAOPTIONS="$EXTRAOPTIONS -DSANDBOX"
 JAVAOPTS="$JAVAOPTS -sandbox"
+elif [[ $1 = '-numa' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DAFFINITY -D_GNU_SOURCE"
+NUMA=true
 elif [[ $1 = '-robustroot' ]]
 then
 ROBUSTROOT="$2"
@@ -717,6 +723,11 @@ $ROBUSTROOT/Runtime/ObjectHash.c \
 $ROBUSTROOT/Runtime/garbage.c $ROBUSTROOT/Runtime/socket.c \
 $ROBUSTROOT/Runtime/math.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
+
+if $NUMA
+then
+FILES="$FILES $ROBUSTROOT/Runtime/affinity.c"
+fi
 
 if $FASTMEMCPY
 then
