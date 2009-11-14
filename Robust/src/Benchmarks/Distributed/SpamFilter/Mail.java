@@ -33,6 +33,7 @@ public class Mail {
 
   public Mail(String fileName)  // read a mail from file
   {
+    fileName = "emails/email41";
     System.out.println("fileName= " + fileName);
 
     FileInputStream fileinput = new FileInputStream(fileName);
@@ -84,6 +85,7 @@ public class Mail {
     while((fileinput.read(readBody)>0))
     {
       body += new String(readBody);
+      readBody = new byte[256];
     }
 
     fileinput.close();
