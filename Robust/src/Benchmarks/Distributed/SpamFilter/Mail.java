@@ -33,7 +33,7 @@ public class Mail {
 
   public Mail(String fileName)  // read a mail from file
   {
-    //System.out.println("fileName= " + fileName);
+    System.out.println("fileName= " + fileName);
 
     FileInputStream fileinput = new FileInputStream(fileName);
     String line;
@@ -46,7 +46,7 @@ public class Mail {
       Vector splittedLine = line.split();
       if(((String)(splittedLine.elementAt(0))).equals("Spam:"))
       {
-        spam = (String)splittedLine.elementAt(1);
+        spam = (String)(splittedLine.elementAt(1));
       }
       else if(((String)(splittedLine.elementAt(0))).equals("Header:"))  // message id
       {
@@ -85,7 +85,6 @@ public class Mail {
     {
       body += new String(readBody);
     }
-
 
     fileinput.close();
 
@@ -291,11 +290,11 @@ public class Mail {
   public Vector returnEmail() {
     Vector myemail = new Vector();
     myemail.addElement(getCommonPart());
-    System.out.println("DEBUG: getCommonPart.size= " + getCommonPart().size());
+    //System.out.println("DEBUG: getCommonPart.size= " + getCommonPart().size());
     myemail.addElement(getURLs());
-    System.out.println("DEBUG: getURLs.size= " + getURLs().size());
+    //System.out.println("DEBUG: getURLs.size= " + getURLs().size());
     myemail.addElement(getSplittedBody(MAX_TOKEN_SIZE));
-    System.out.println("DEBUG: getSplittedBody.size= " + getSplittedBody(MAX_TOKEN_SIZE).size());
+    //System.out.println("DEBUG: getSplittedBody.size= " + getSplittedBody(MAX_TOKEN_SIZE).size());
     return myemail;
   }
 
@@ -307,7 +306,7 @@ public class Mail {
     // add URL and email in the body
     for(int i=0; i<splittedBody.size(); i++) 
     {
-      String segment = (String)splittedBody.elementAt(i);
+      String segment = (String)(splittedBody.elementAt(i));
       if(segment.startsWith("http://"))  // URL
       {
         returnStrings.addElement(segment);
@@ -336,11 +335,11 @@ public class Mail {
 
     Vector splittedBody = body.split();
 
-    System.out.println("DEBUG: splittedBody.size()= " + splittedBody.size());
+    //System.out.println("DEBUG: splittedBody.size()= " + splittedBody.size());
     for(int i=0; i< splittedBody.size();i ++)
     {
       String segment = (String)(splittedBody.elementAt(i));
-      System.out.println("DEBUG: segment= " + segment);
+      //System.out.println("DEBUG: segment= " + segment);
       
       if(!(segment.startsWith("http://") || isEmailAccount(segment)))
         noURLBody += segment;
@@ -359,7 +358,7 @@ public class Mail {
     String tmpStr = new String();
     tmpStr += charArray[0];
 
-    System.out.println("tmpStr= " + tmpStr);
+    //System.out.println("tmpStr= " + tmpStr);
 
     for(int i=1; i< noURLBody.length(); i++)
     {

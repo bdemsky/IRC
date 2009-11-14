@@ -19,13 +19,12 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
- $Id: WhiplashSignature.java,v 1.2 2009/11/13 01:27:02 adash Exp $
+ $Id: WhiplashSignature.java,v 1.3 2009/11/14 02:10:08 adash Exp $
  */
 public class WhiplashSignature {
   char[] b64table;
 
   public WhiplashSignature() {
-    System.out.println("Inside WhiplashSignature");
     b64table = new char[64];
 
     for (int i= 0; i <= 25; i++) {
@@ -43,11 +42,11 @@ public class WhiplashSignature {
 
   public String[] computeSignature(String text) {
 
-    System.out.println("Inside computeSignature");
+    //System.out.println("Inside computeSignature");
     //Current: Simplify the host extraction and signature computation
     String[] sigs = whiplash(text);
+    // TODO: Extract canonical domain name and convert to Base64
     /*
-      TODO: Extract canonical domain name and convert to Base64
     if(sigs != null) {
       for(int i = 0; i<sigs.length; i++) {
         sigs[i] = hexToBase64(sigs[i]);
@@ -136,7 +135,6 @@ public class WhiplashSignature {
 
   public String[] whiplash(String text) {
     
-    //System.out.println("Inside whiplash");
     if (text == null) {
       return null;
     }
@@ -155,6 +153,9 @@ public class WhiplashSignature {
       md.update(buf, len);
       md.md5final(sig);
       String signature = new String(sig);
+
+      // System.out.println("DEBUG: host= " + host + " whiplash sig= " + signature);
+
       sigs[i] = signature;
     }
     return sigs;
@@ -165,20 +166,34 @@ public class WhiplashSignature {
     Vector hosts = new Vector();
     String buf = new String(text);
 
-    System.out.println("buf= " + buf);
+    System.out.println("DEBUG: extractHosts() string= " + buf);
 
-    String strwww = new String("www.");
+    /* Extract hosts from http:// links */
     int idx;
+    String strwww = new String("www.");
     while ((idx = buf.indexOf(strwww)) != -1) {
       int startidx = idx + strwww.length();
-      //System.out.println("idx= " + idx + " startidx= " + startidx);
       String strcom = new String(".");
-      buf = buf.substring(startidx);
+      buf = buf.subString(startidx);
       int endidx = buf.indexOf(strcom);
-      String host = buf.substring(0, endidx);
-      System.out.println(host);
+      String host = buf.subString(0, endidx);
+      System.out.println("http links extracted host= " + host);
       hosts.addElement(host);
-      buf = buf.substring(endidx+strcom.length());
+      buf = buf.subString(endidx+strcom.length());
+    }
+
+    /* Extract hosts from email addressess */
+    buf = new String(text);
+    String strrate = new String("@");
+    while ((idx = buf.indexOf(strrate)) != -1) {
+      int startidx = idx + strrate.length();
+      String strdot = new String(".");
+      buf = buf.subString(startidx);
+      int endidx = buf.indexOf(strdot);
+      String host = buf.subString(0, endidx);
+      System.out.println("email addr extracted host= " + host);
+      hosts.addElement(host);
+      buf = buf.subString(endidx+strdot.length());
     }
 
     if (hosts.size() == 0) {

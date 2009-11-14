@@ -125,7 +125,7 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
      fprintf(newFile,"\n");
 
      // write title
-     writeString(newFile,"Title: ",wl,word_num);
+     writeString(newFile,"Subject: ",wl,word_num);
      fprintf(newFile,"\n");
 
      // write Body
