@@ -43,7 +43,6 @@ public class SpamFilter extends Thread {
     }
 
     Random rand = new Random(thid);
-    Random myrand = new Random(0);
 
     for(int i=0; i<niter; i++) {
       correct =0;
@@ -80,13 +79,16 @@ public class SpamFilter extends Thread {
  //       System.out.println("userAnswer= " + userAnswer + " filterAnswer= " + filterAnswer);
 
         if(filterAnswer != userAnswer) {
+          /* wrong answer from the spam filter */
           wrong++;
           atomic {
-            sendFeedBack(signatures, userAnswer, thid);
+            sendFeedBack(signatures, userAnswer, thid, rand);
           }
         }
-        else 
+        else {
+          /* Correct answer from the spam filter */
           correct++;
+        }
       } //end num emails
       System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     }//end num iter
@@ -262,7 +264,7 @@ public class SpamFilter extends Thread {
    * spam database and trains the spam database to check future
    * emails and detect spam
    **/
-  public void sendFeedBack(Vector signatures, boolean isSpam, int id) {
+  public void sendFeedBack(Vector signatures, boolean isSpam, int id, Random myrand) {
 
     for(int i=0;i<signatures.size();i++) {
       String part = (String)(signatures.elementAt(i));
@@ -308,16 +310,29 @@ public class SpamFilter extends Thread {
 
       //System.out.println(fs.toString());
 
-      //TODO: Allow users to give incorrect feedback
-
-      //Increment spam or ham value 
-      if(isSpam) {
-        tmphe.stats.incSpamCount(id);
-        fs.increaseSpam();
+      //Allow users to give incorrect feedback
+      int pickemail = myrand.nextInt(100);
+      /* Randomly allow user to provide incorrect feedback */
+      if(pickemail < 95) {
+        //give correct feedback 95% of times
+        //Increment spam or ham value 
+        if(isSpam) {
+          tmphe.stats.incSpamCount(id);
+          fs.increaseSpam();
+        } else {
+          tmphe.stats.incHamCount(id);
+          fs.increaseHam();
+        }
       } else {
-        tmphe.stats.incHamCount(id);
-        fs.increaseHam();
-      }
+        // Give incorrect feedback 5% of times
+        if(isSpam) {
+          tmphe.stats.incHamCount(id);
+          fs.increaseHam();
+        } else {
+          tmphe.stats.incSpamCount(id);
+          fs.increaseSpam();
+        }
+      } //end of pickemail
     }
   }
 }

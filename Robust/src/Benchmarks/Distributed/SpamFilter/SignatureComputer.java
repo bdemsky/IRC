@@ -109,7 +109,9 @@ public class SignatureComputer {
         if (sig != null) {
           String hash = engineNo + ":" + sig;
           printableSigs.addElement(hash);
-          // System.out.println("mail= " +mail + " hash= " + hash);
+
+          //System.out.println("DEBUG: mail= " +mail + " hash= " + hash);
+
         } else {
           // we didn't produce a signature for the mail. 
         }
@@ -162,7 +164,6 @@ public class SignatureComputer {
     Vector getURLs = (Vector)(EmailParts.elementAt(1));
     for (int mailIndex = 0; mailIndex < getURLs.size(); mailIndex++) {
       String mail = (String) (getURLs.elementAt(mailIndex));
-      System.out.println("from GETURLS mail= " + mail);
 
       /*
        * Compute Sig for bodyparts that are cleaned.

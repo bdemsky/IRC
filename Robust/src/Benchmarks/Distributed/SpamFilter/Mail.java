@@ -33,8 +33,7 @@ public class Mail {
 
   public Mail(String fileName)  // read a mail from file
   {
-    fileName = "emails/email41";
-    System.out.println("fileName= " + fileName);
+    //System.out.println("DEBUG: fileName= " + fileName);
 
     FileInputStream fileinput = new FileInputStream(fileName);
     String line;
@@ -65,7 +64,7 @@ public class Mail {
       {
         cc = (String)splittedLine.elementAt(1);
       }
-      else if(((String)(splittedLine.elementAt(0))).equals("Title:")) // Subject
+      else if(((String)(splittedLine.elementAt(0))).equals("Subject:")) // Subject
       {
         subject = (String)splittedLine.elementAt(1);
         break;
@@ -359,8 +358,6 @@ public class Mail {
 
     String tmpStr = new String();
     tmpStr += charArray[0];
-
-    //System.out.println("tmpStr= " + tmpStr);
 
     for(int i=1; i< noURLBody.length(); i++)
     {
