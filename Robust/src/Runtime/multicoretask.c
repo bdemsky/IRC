@@ -1342,10 +1342,9 @@ void * smemalloc(int coren,
 		             int size, 
 		             int * allocsize) {
 	void * mem = NULL;
-	int isize = size+(BAMBOO_CACHE_LINE_SIZE);
-	int toallocate = ((size+(BAMBOO_CACHE_LINE_SIZE))>(BAMBOO_SMEM_SIZE)) ? 
-			             (size+(BAMBOO_CACHE_LINE_SIZE)):(BAMBOO_SMEM_SIZE);
 #ifdef MULTICORE_GC
+	int isize = size+(BAMBOO_CACHE_LINE_SIZE);
+	int toallocate = (isize>(BAMBOO_SMEM_SIZE)) ? (isize):(BAMBOO_SMEM_SIZE);
 	// go through free mem list for suitable chunks
 	int tofindb = 0;
 	struct freeMemItem * freemem = findFreeMemChunk(coren, isize, &tofindb);
@@ -1387,8 +1386,9 @@ void * smemalloc(int coren,
 		}
 	} else {
 #else
-	mem = mspace_calloc(bamboo_free_msp, 1, isize);
-	*allocsize = isize;
+	int toallocate = (size>(BAMBOO_SMEM_SIZE)) ? (size):(BAMBOO_SMEM_SIZE);
+	mem = mspace_calloc(bamboo_free_msp, 1, toallocate);
+	*allocsize = toallocate;
 	if(mem == NULL) {
 #endif
 		// no enough shared global memory
@@ -1856,16 +1856,14 @@ msg:
 		  bamboo_smem_size = 0;
 		  bamboo_cur_msp = 0;
 	  } else {
+#ifdef MULTICORE_GC
 			// fill header to store the size of this mem block
 			(*((int*)msgdata[1])) = msgdata[2];
 		  bamboo_smem_size = msgdata[2] - BAMBOO_CACHE_LINE_SIZE;
-#ifdef MULTICORE_GC
 			bamboo_cur_msp = msgdata[1] + BAMBOO_CACHE_LINE_SIZE;
 #else
-		  bamboo_cur_msp = 
-				create_mspace_with_base((void*)(msgdata[1]+BAMBOO_CACHE_LINE_SIZE),
-				                         msgdata[2]-BAMBOO_CACHE_LINE_SIZE, 
-																 0);
+		  bamboo_smem_size = msgdata[2];
+		  bamboo_cur_msp =(void*)(msgdata[1]);
 #endif
 	  }
 	  smemflag = true;

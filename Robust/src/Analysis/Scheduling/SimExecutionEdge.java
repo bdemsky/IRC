@@ -41,7 +41,7 @@ public class SimExecutionEdge extends Edge {
     
     public long getBestStartPoint() {
 	if(this.bestStartPoint == -1) {
-	    if(this.predicates.size() > 0) {
+	    if((this.predicates != null) && (this.predicates.size() > 0)) {
 		// have predicates
 		long starttime = 0;
 		// check the latest finish time of all the predicates

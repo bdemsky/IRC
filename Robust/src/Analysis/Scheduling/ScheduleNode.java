@@ -440,6 +440,9 @@ public class ScheduleNode extends GraphNode implements Cloneable {
   
   public ScheduleNode spliteClassNode(ClassNode cd) {
       ScheduleNode sNode = new ScheduleNode(cd, this.gid);
+      // clean all inedges and edges
+      sNode.edges.clear();
+      sNode.inedges.clear();
       
       this.classNodes.remove(cd);
       cd.setScheduleNode(sNode);
@@ -449,7 +452,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	  e.printStackTrace();
       }
       
-      // redirct all corresponding internal ScheduleEdge to the new snode
+      // redirect all corresponding internal ScheduleEdge to the new snode
       Iterator it_innersEdges = this.scheduleEdges.iterator();
       Vector<ScheduleEdge> toremove = new Vector<ScheduleEdge>();
       if(it_innersEdges != null) {
@@ -476,15 +479,22 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	  }
       }
       toremove.clear();
+      
       // redirect external ScheudleEdges out of this cd to the new ScheduleNode
       Iterator it_exsEdges = this.edges();
       while(it_exsEdges.hasNext()) {
 	  ScheduleEdge tse = (ScheduleEdge)it_exsEdges.next();
 	  if(tse.getSourceCNode().equals(cd)) {
-	      this.removeEdge(tse);
-	      sNode.addEdge(tse);
+        toremove.add(tse);
+	      //this.removeEdge(tse);
+	      //sNode.addEdge(tse);
+        tse.setSource(sNode);
+        sNode.edges.addElement(tse);
 	  }
       }
+      this.edges.removeAll(toremove);
+      toremove.clear();
+      
       it_exsEdges = null;
       // redirect inedges whose target is this Classnode to new ScheduleNode
       Iterator it_insEdges = this.inedges();
@@ -493,6 +503,7 @@ public class ScheduleNode extends GraphNode implements Cloneable {
 	  if(tse.getTargetCNode().equals(cd)) {
 	      toremove.add(tse);
 	      tse.setTarget(sNode);
+          sNode.inedges.addElement(tse);
 	  }
       }
       it_insEdges = null;

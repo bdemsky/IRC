@@ -140,6 +140,7 @@ public class MCImplSynthesis {
     if(this.generateThreshold > 5) {
       this.generateThreshold = 5;
     }
+    this.scheduleSimulator.init();
 
     Vector<Vector<ScheduleNode>> scheduleGraphs = null;
     Vector<Vector<ScheduleNode>> newscheduleGraphs = 
@@ -150,10 +151,12 @@ public class MCImplSynthesis {
     Vector<Integer> selectedSchedulings = new Vector<Integer>();
     Vector<SimExecutionNode> selectedSimExeGraphs = 
       new Vector<SimExecutionNode>();
+    SimExecutionNode selectedSimExeGraph_bk = null;
 
     int tryindex = 1;
     long bestexetime = Long.MAX_VALUE;
     Random rand = new Random();
+    int threshold = this.scheduleThreshold;
     // simulate the generated schedulings and try to optimize it
     do {
       System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
@@ -204,35 +207,79 @@ public class MCImplSynthesis {
             snode.getClassNodes().clear();
           }
           schedulinggraph.clear();
+          selectedSimExeGraph_bk = null;
         }
         scheduling = schedulings.elementAt(selectedSchedulings.elementAt(0));
         schedulinggraph = scheduleGraphs.elementAt(
             selectedSchedulings.elementAt(0));
+        selectedSimExeGraph_bk = selectedSimExeGraphs.elementAt(0);
+        
         System.out.print("end of: #" + tryindex + " (bestexetime: " 
             + bestexetime + ")\n");
         System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
         tryindex++;
+        threshold = this.scheduleThreshold;
       } else if(tmpexetime == bestexetime) {
         System.out.print("end of: #" + tryindex + " (bestexetime: " 
             + bestexetime + ")\n");
         System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
         tryindex++;
+        threshold = this.scheduleThreshold;
         if((Math.abs(rand.nextInt()) % 100) < this.probThreshold) {
           break;
         }
       } else {
-        break;
+        System.out.print("end of: #" + tryindex + " (bestexetime: " 
+            + bestexetime + ")\n");
+        System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        tryindex++;
+        if(threshold == this.scheduleThreshold) {
+          if(scheduleGraphs != null) {
+            scheduleGraphs.clear();
+          }
+          scheduleGraphs.addElement(schedulinggraph);
+          if(selectedSchedulings != null) {
+            selectedSchedulings.clear();
+          }
+          selectedSchedulings.addElement(Integer.valueOf(0));
+          if(selectedSimExeGraphs != null) {
+            selectedSimExeGraphs.clear();
+          }
+          selectedSimExeGraphs.addElement(selectedSimExeGraph_bk);
+        }
+        threshold += 10;
+        if((Math.abs(rand.nextInt()) % 100) < this.probThreshold + 1) {
+          break;
+        }
+        //break;
       }
 
       //if(tooptimize) {
       // try to optimize the best one scheduling
+      //do {
       newscheduleGraphs = optimizeScheduling(scheduleGraphs, 
           selectedSchedulings, 
           selectedSimExeGraphs,
           gid,
-          this.scheduleThreshold);
+          threshold);
+      /*if(newscheduleGraphs != null) {
+        if(this.generateThreshold < 30) {
+          this.generateThreshold = 30;
+        }
+        break;
+      } else {
+        threshold += 10;
+        if(this.generateThreshold > 0) {
+          this.generateThreshold -= 3;
+        }
+        if((Math.abs(rand.nextInt()) % 10000) < this.probThreshold + 1) {
+          break;
+        }
+      }
+      }while(true);*/
       if(remove) {
         scheduleGraphs.removeElementAt(selectedSchedulings.elementAt(0));
+        selectedSimExeGraphs.removeElementAt(0);
       }
       /*} else {
         break;
@@ -330,6 +377,7 @@ public class MCImplSynthesis {
       // Generate all possible schedulings
       this.scheduleAnalysis.setScheduleThreshold(Integer.MAX_VALUE);
       this.scheduleAnalysis.schedule(-1, multiparamtds);
+      this.scheduleSimulator.init();
 
       Vector<Vector<ScheduleNode>> totestscheduleGraphs = 
         this.scheduleAnalysis.getScheduleGraphs();
@@ -600,6 +648,10 @@ public class MCImplSynthesis {
           selectedScheduleGraphs.elementAt(i));
       SimExecutionNode startnode = selectedSimExeGraphs.elementAt(i);
       Vector<SimExecutionEdge> criticalPath = analyzeCriticalPath(startnode); 
+      // for Test
+      if(this.state.PRINTCRITICALPATH) {
+        System.err.println("gid: " + lgid + " endpoint: " + startnode.getTimepoint());
+      }
       Vector<Vector<ScheduleNode>> tmposchedulegraphs = 
         optimizeCriticalPath(schedulegraph, 
                              criticalPath,
@@ -618,7 +670,7 @@ public class MCImplSynthesis {
           tmposchedulegraphs = null;
           break;
         }
-      }
+      } 
       schedulegraph = null;
       criticalPath = null;
       tmposchedulegraphs = null;
@@ -651,7 +703,7 @@ public class MCImplSynthesis {
         (Iterator<SimExecutionEdge>)snode.inedges();
       while(it_iedges.hasNext()) {
         SimExecutionEdge sedge = it_iedges.next();
-        if(sedge.getWeight() != 0) {    
+        //if(sedge.getWeight() != 0) {    
           SimExecutionNode tsnode = (SimExecutionNode)(sedge.getSource());
           if(tsnode.getTimepoint() + sedge.getWeight() == snode.getTimepoint()) {
             nsnode = tsnode;
@@ -659,7 +711,7 @@ public class MCImplSynthesis {
             sum += sedge.getWeight();
             break;
           }
-        }
+        //}
       }
       it_iedges = null;
       snode = nsnode;
@@ -731,14 +783,17 @@ public class MCImplSynthesis {
     for(int i = 0; i < criticalPath.size(); i++) {
       SimExecutionEdge seedge = criticalPath.elementAt(i);
       long starttime = seedge.getBestStartPoint();
-      if(starttime < ((SimExecutionNode)seedge.getSource()).getTimepoint()) {
+      if((starttime < ((SimExecutionNode)seedge.getSource()).getTimepoint()) 
+          && (seedge.getTd() != null)){
+        // Note: must be a task related edge, can not be an object transfer edge
         // no restrictions due to data dependencies
         // have potential to be parallelled and start execution earlier
         seedge.setFixedTime(false);
         // consider to optimize it only when its predicates can NOT 
         // be optimized, otherwise first considering optimize its predicates
-        SimExecutionEdge lastpredicateedge = seedge.getLastpredicateEdge();
-        if(lastpredicateedge.isFixedTime()) {			
+        //SimExecutionEdge lastpredicateedge = seedge.getLastpredicateEdge();
+        // TODO
+        //if(lastpredicateedge.isFixedTime()) {			
           int corenum = seedge.getCoreNum();
           if(!toselects.containsKey(starttime)) {
             toselects.put(starttime, 
@@ -749,7 +804,7 @@ public class MCImplSynthesis {
                 new Vector<SimExecutionEdge>());
           }
           toselects.get(starttime).get(corenum).add(seedge);
-        }
+        //}
       }
     }
 
@@ -985,8 +1040,9 @@ public class MCImplSynthesis {
             }
           }
           it_cnodes = null;
+
           // split the node
-          ScheduleNode splitnode = snode.spliteClassNode(tosplit);
+          ScheduleNode splitnode = snode.spliteClassNode(tosplit);          
           newscheduleGraph.add(splitnode);
           tocombines.add(splitnode);
           tosplit = null;
@@ -1011,8 +1067,14 @@ public class MCImplSynthesis {
 
     Vector<Vector<ScheduleNode>> rootNodes =  
       SchedulingUtil.rangeScheduleNodes(roots);
+    if(rootNodes == null) {
+      return optimizeschedulegraphs;
+    }
     Vector<Vector<ScheduleNode>> nodes2combine = 
       SchedulingUtil.rangeScheduleNodes(tocombines);
+    if(nodes2combine == null) {
+      return optimizeschedulegraphs;
+    }
 
     CombinationUtil.CombineGenerator cGen = 
       CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
@@ -1039,6 +1101,13 @@ public class MCImplSynthesis {
     cGen.clear();
     rootNodes = null;
     nodes2combine = null;
+    for(int j = 0; j < newscheduleGraph.size(); j++) {
+      ScheduleNode snode = newscheduleGraph.elementAt(j);
+      snode.getEdgeVector().clear();
+      snode.getInedgeVector().clear();
+      snode.getScheduleEdges().clear();
+      snode.getClassNodes().clear();
+    }
     newscheduleGraph = null;
     scheduleEdges.clear();
     scheduleEdges = null;

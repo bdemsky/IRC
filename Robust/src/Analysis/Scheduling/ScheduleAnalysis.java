@@ -44,7 +44,7 @@ public class ScheduleAnalysis {
     this.scheduleGraphs = null;
     this.td2maincd = null;
   }
-
+  
   public void setTransThreshold(int tt) {
     this.transThreshold = tt;
   }
@@ -158,6 +158,11 @@ public class ScheduleAnalysis {
                     if(taskinfo.m_byObj != -1) {
                       ((FlagState)pfe.getSource()).setByObj(taskinfo.m_byObj);
                     }
+                    // TODO for test
+                    /*System.err.println("task " + td.getSymbol() + " exit# " + 
+                        pfe.getTaskExitIndex() + " exetime: " + pfe.getExeTime() 
+                        + " prob: " + pfe.getProbability() + "% newobj: "
+                         + pfe.getNewObjInfoHashtable().size());*/
                   }
                   fev = null;
                 }
@@ -184,6 +189,10 @@ public class ScheduleAnalysis {
               if(taskinfo.m_byObj != -1) {
                 ((FlagState)edge.getSource()).setByObj(taskinfo.m_byObj);
               }
+              // TODO for test
+              /*System.err.println("task " + edge.getTask().getSymbol() + " exit# " + 
+                  edge.getTaskExitIndex() + " exetime: " + edge.getExeTime() 
+                  + " prob: " + edge.getProbability());*/
             }
             it_edges = null;
           }
@@ -659,20 +668,23 @@ public class ScheduleAnalysis {
     }
   }
   
-  private void handleDescenSEs(Vector<ScheduleEdge> ses) {
-    ScheduleEdge tempse = ses.elementAt(0);
-    long temptime = tempse.getListExeTime();
-    // find out the ScheduleEdge with least exeTime
-    for(int k = 1; k < ses.size(); k++) {
-      long ttemp = ses.elementAt(k).getListExeTime();
-      if(ttemp < temptime) {
-        tempse = ses.elementAt(k);
-        temptime = ttemp;
-      } // if(ttemp < temptime)
-    } // for(int k = 1; k < ses.size(); k++)
-    // handle the tempse
-    handleScheduleEdge(tempse, true);
-    ses.removeElement(tempse);
+  private void handleDescenSEs(Vector<ScheduleEdge> ses,
+                               boolean isflag) {
+    if(isflag) {
+      ScheduleEdge tempse = ses.elementAt(0);
+      long temptime = tempse.getListExeTime();
+      // find out the ScheduleEdge with least exeTime
+      for(int k = 1; k < ses.size(); k++) {
+        long ttemp = ses.elementAt(k).getListExeTime();
+        if(ttemp < temptime) {
+          tempse = ses.elementAt(k);
+          temptime = ttemp;
+        } // if(ttemp < temptime)
+      } // for(int k = 1; k < ses.size(); k++)
+      // handle the tempse
+      handleScheduleEdge(tempse, true);
+      ses.removeElement(tempse);
+    }
     // handle other ScheduleEdges
     for(int k = 0; k < ses.size(); k++) {
       handleScheduleEdge(ses.elementAt(k), false);
@@ -751,7 +763,8 @@ public class ScheduleAnalysis {
                 for(int j = 0; j < fes.size(); j++) {
                   FEdge tempfe = fes.elementAt(j);
                   Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
-                  this.handleDescenSEs(ses);
+                  boolean isflag = !(preSNode.edges().hasNext());
+                  this.handleDescenSEs(ses, isflag);
                   ses = null;
                   fe2ses.remove(tempfe);
                 } // for(int j = 0; j < fes.size(); j++)
@@ -796,7 +809,8 @@ public class ScheduleAnalysis {
       while(it_keys.hasNext()) {
         FEdge tempfe = (FEdge)it_keys.next();
         Vector<ScheduleEdge> ses = fe2ses.get(tempfe);
-        this.handleDescenSEs(ses);
+        boolean isflag = !(tempfe.getTarget().edges().hasNext());
+        this.handleDescenSEs(ses, isflag);
         ses = null;
       }
       keys = null;

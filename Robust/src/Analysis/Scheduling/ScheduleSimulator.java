@@ -6,9 +6,11 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.Set;
 import java.util.Vector;
 import java.util.Map.Entry;
 
+import Analysis.TaskStateAnalysis.FEdge;
 import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.TaskAnalysis;
 import IR.ClassDescriptor;
@@ -23,6 +25,9 @@ public class ScheduleSimulator {
   private Vector<TaskSimulator> tasks;
   private long processTime;
   private int invoketime;
+  
+  private Vector<FlagState> fstates;
+  private Vector<FEdge> fedges;
 
   State state;
   TaskAnalysis taskanalysis;
@@ -38,6 +43,8 @@ public class ScheduleSimulator {
     this.invoketime = 0;
     this.state = state;
     this.taskanalysis = taskanalysis;
+    this.fstates = new Vector<FlagState>();
+    this.fedges = new Vector<FEdge>();    
   }
 
   public ScheduleSimulator(int corenum, 
@@ -56,7 +63,32 @@ public class ScheduleSimulator {
     this.invoketime = 0;
     this.state = state;
     this.taskanalysis = taskanalysis;
+    this.fstates = new Vector<FlagState>();
+    this.fedges = new Vector<FEdge>();
     applyScheduling();
+  }
+  
+  public void init() {
+    // gather all the flag states and fedges together
+    Iterator it_classes = this.state.getClassSymbolTable().getDescriptorsIterator();
+    while(it_classes.hasNext()) {
+      ClassDescriptor cd = (ClassDescriptor) it_classes.next();
+      Iterator<FlagState> it_fStates = this.taskanalysis.getFlagStates(cd).iterator();
+      
+      while(it_fStates.hasNext()) {
+        FlagState fs = it_fStates.next();
+        if(!this.fstates.contains(fs)) {
+          this.fstates.addElement(fs);
+        }
+        Iterator<FEdge> it_fe = (Iterator<FEdge>)fs.edges();
+        while(it_fe.hasNext()) {
+          FEdge next = it_fe.next();
+          if(!this.fedges.contains(next)) {
+            this.fedges.addElement(next);
+          }
+        }
+      }
+    }
   }
   
   public long simulate(Vector<Vector<Schedule>> schedulings,
@@ -206,6 +238,18 @@ public class ScheduleSimulator {
   public Vector<TaskSimulator> getTasks() {
     return tasks;
   }
+  
+  private void init4Simulation() {
+//  TODO for test
+    /*System.err.println("======Init for Sim # " 
+        + this.scheduling.elementAt(0).getGid() + "======");*/
+    for(int i = 0; i < this.fstates.size(); i++) {
+      this.fstates.elementAt(i).init4Simulate();
+    }
+    for(int i = 0; i < this.fedges.size(); i++) {
+      this.fedges.elementAt(i).init4Simulate();
+    }
+  }
 
   public long process(Vector<CheckPoint> checkpoints,
 	              Vector<SimExecutionNode> simexegraph) {
@@ -213,6 +257,9 @@ public class ScheduleSimulator {
 
     this.invoketime++;
     this.processTime = 0;
+    
+    // initialization
+    this.init4Simulation();
     
     // helper structures for building SimExecutionGraph
     Hashtable<SimExecutionNode, Action> senode2action = 
@@ -427,7 +474,7 @@ public class ScheduleSimulator {
 
     int gid = this.scheduling.elementAt(0).getGid();
     if(this.state.PRINTSCHEDULESIM) {
-	SchedulingUtil.printSimulationResult(this.state.outputdir + "SimulatorResult_" + gid + ".dot", 
+	SchedulingUtil.printSimulationResult(this.state.outputdir + "SimGraph/" + "SimulatorResult_" + gid + ".dot", 
 		                             this.processTime,
 		                             this.coreNum, 
 		                             checkpoints);

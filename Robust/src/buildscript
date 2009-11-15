@@ -487,7 +487,7 @@ fi
 
 if $MULTICOREFLAG
 then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx2500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ \
 -dir $BUILDDIR $JAVAOPTS $SRCFILES
 then exit $?
@@ -626,7 +626,7 @@ cd $TILERADIR
 make clean
 rm ./*
 
-export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT"
+export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT -DTILERA"
 
 if $CACHEFLUSHFLAG
 then # print path

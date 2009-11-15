@@ -287,12 +287,23 @@ public class TaskSimulator {
 	paraQueues.elementAt(j).remove(tpara);
       }
     }
+    long ftime = 0;
     for(int i = 0; i < paraQueues.size(); i++) {
       ObjectSimulator tpara = paraQueues.elementAt(i).peek();
 
       FlagState tfstate = tpara.getCurrentFS();
       FEdge toexecute = tfstate.process(td);
       finishTime += toexecute.getExeTime();
+      // TODO for test
+      if(ftime == 0) {
+        ftime = toexecute.getExeTime();
+      } else if(ftime != toexecute.getExeTime()) {
+        //System.err.println("error for simulation: " + td.getSymbol());
+      }
+      // TODO for test
+      /*if(td.getSymbol().equals("addIYLM")) {
+        System.err.println("# " + i + " time: " + toexecute.getExeTime());
+      }*/
       if((toexecute.getNewObjInfoHashtable() != null) 
 	      && (toexecute.getNewObjInfoHashtable().size() > 0)) {
 	// have new objects
@@ -314,6 +325,11 @@ public class TaskSimulator {
       tpara.increaseVersion();
     }
     finishTime /= paraQueues.size();
+//  TODO for test
+    /*if(td.getSymbol().equals("addIYLM")) {
+      System.err.println("total time: " + finishTime);
+      System.err.println("=====");
+    }*/
     this.currentRun.setFinishTime(finishTime);
     this.currentRun.setExetype(0);
   }

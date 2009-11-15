@@ -155,7 +155,9 @@ public class FEdge extends Edge {
           e.source.equals(source) &&
           e.td==td&&
           e.parameterindex==parameterindex &&
-          e.executeTime == executeTime) {
+          e.executeTime == executeTime &&
+          e.m_taskexitindex == m_taskexitindex &&
+          e.m_isbackedge == m_isbackedge) {
 	if(this.newObjInfos != null) {
 	  if(e.newObjInfos == null) {
 	    return false;
@@ -193,6 +195,17 @@ public class FEdge extends Edge {
       this.newObjInfos = new Hashtable<ClassDescriptor, NewObjInfo>();
     }
     this.newObjInfos.put(cd, new NewObjInfo(newRate, probability));
+  }
+  
+  public void init4Simulate() {
+    this.invokeNum = 0;
+    this.expInvokeNum = 0;
+    if(this.newObjInfos != null) {
+      Iterator<NewObjInfo> it_nobjs = this.newObjInfos.values().iterator();
+      while(it_nobjs.hasNext()) {
+        it_nobjs.next().invokeNum = 0;
+      }
+    }
   }
 
   public void process() {

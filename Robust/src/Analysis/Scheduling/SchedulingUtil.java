@@ -165,40 +165,47 @@ public class SchedulingUtil {
     }
     
     //  Organize the scheduleNodes in order of their cid
-    public static Vector<Vector<ScheduleNode>> rangeScheduleNodes(Vector<ScheduleNode> scheduleNodes) {
-	Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
-	
-	for(int i = 0; i < scheduleNodes.size(); i++) {
-	    ScheduleNode tmpn = scheduleNodes.elementAt(i);
-	    int tmpcid = tmpn.getCid();
-	    int index = 0;
-	    for(index = 0; index < sNodeVecs.size(); index++) {
-		if(sNodeVecs.elementAt(index).elementAt(0).getCid() > tmpcid) {
-		    // find the place to insert
-		    sNodeVecs.add(sNodeVecs.lastElement());
-		    for(int j = sNodeVecs.size() - 2; j > index; j--) {
-			sNodeVecs.setElementAt(sNodeVecs.elementAt(j - 1), j);
-		    }
-		    sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
-		} else if(sNodeVecs.elementAt(index).elementAt(0).getCid() == tmpcid) {
-		    break;
-		}
-	    }
-	    if(index == sNodeVecs.size()) {
-		sNodeVecs.add(new Vector<ScheduleNode>());
-	    }
-	    
-	    /*int index = tmpcid;
+    public static Vector<Vector<ScheduleNode>> 
+    rangeScheduleNodes(Vector<ScheduleNode> scheduleNodes) {
+      try{  
+        Vector<Vector<ScheduleNode>> sNodeVecs = new Vector<Vector<ScheduleNode>>();
+
+        for(int i = 0; i < scheduleNodes.size(); i++) {
+          ScheduleNode tmpn = scheduleNodes.elementAt(i);
+          int tmpcid = tmpn.getCid();
+          int index = 0;
+          for(index = 0; index < sNodeVecs.size(); index++) {
+            if(sNodeVecs.elementAt(index).elementAt(0).getCid() > tmpcid) {
+              // find the place to insert
+              sNodeVecs.add(sNodeVecs.lastElement());
+              for(int j = sNodeVecs.size() - 2; j > index; j--) {
+                sNodeVecs.setElementAt(sNodeVecs.elementAt(j - 1), j);
+              }
+              sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
+            } else if(sNodeVecs.elementAt(index).elementAt(0).getCid() == tmpcid) {
+              break;
+            }
+          }
+          if(index == sNodeVecs.size()) {
+            sNodeVecs.add(new Vector<ScheduleNode>());
+          }
+
+          /*int index = tmpcid;
 	    while(sNodeVecs.size() <= index) {
 		sNodeVecs.add(null);
 	    }
 	    if(sNodeVecs.elementAt(index) == null) {
 		sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
 	    }*/
-	    sNodeVecs.elementAt(index).add(tmpn);
-	}
-	
-	return sNodeVecs;
+          sNodeVecs.elementAt(index).add(tmpn);
+        }
+
+        return sNodeVecs;
+      } catch(Error e) {
+        System.err.println("Error in rangeScheduleNodes");
+        e.printStackTrace();
+        return null;
+      }
     }
 
   /*public static int maxDivisor(int l, int r) {
@@ -839,17 +846,20 @@ public class SchedulingUtil {
 		  label = startnode.getCoreNum() + ":" + startnode.getTimepoint();
 		  output.println("\t" + startnode.getLabel() + " [label=\"" 
 			         + label + "\" ];");
+          nodes.addElement(startnode);
 	      }
 	      if(!nodes.contains(endnode)) {
 		  label = endnode.getCoreNum() + ":" + endnode.getTimepoint();
 		  output.println("\t" + endnode.getLabel() + " [label=\"" 
 			         + label + "\" ];");
+          nodes.addElement(endnode);
 	      }
 	      output.println("\t" + startnode.getLabel() + " -> " + endnode.getLabel() 
 		             + " [" + "label=\"" + seedge.getLabel() + "\"];");
 	  }
 	  output.println("}");
 	  output.close();
+      nodes.clear();
 	  nodes = null;
       } catch (Exception e) {
 	  e.printStackTrace();

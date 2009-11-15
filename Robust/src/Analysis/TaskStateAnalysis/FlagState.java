@@ -438,6 +438,9 @@ public class FlagState extends GraphNode implements Cloneable {
   public FEdge process(TaskDescriptor td) {
     FEdge next = null;
     this.invokeNum++;
+    if(td.getSymbol().equals("addIYLM")) {
+      next = null;
+    }
     // refresh all the expInvokeNum of each edge
     for(int i = 0; i < this.edges.size(); i++) {
       next = (FEdge) this.edges.elementAt(i);
@@ -448,8 +451,8 @@ public class FlagState extends GraphNode implements Cloneable {
       }
     }
 
-    // find the one with the biggest gap between its actual invoke time and the expected invoke time
-    // and associated with task td
+    // find the one with the biggest gap between its actual invoke time and 
+    // the expected invoke time and associated with task td
     int index = 0;
     int gap = 0;
     double prob = 0;

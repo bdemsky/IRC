@@ -180,10 +180,10 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
   }
 
   return arraybytearray;
-#endif
-	}
-	else
+	} else {
 		return NULL;
+	}
+#endif
 }
 
 
