@@ -1,20 +1,39 @@
 #!/bin/bash
 for bm in KMeans.bin Labyrinth.bin SSCA2.bin Genome.bin Vacation.bin yada.bin Intruder.bin Bayes.bin
 do
-echo Benchmark $bm >> spreadsheet
-echo type, 1, 2, 4, 8 >> spreadsheet
-for type in FIS FISAR DEB OPTSTM LOCK DV HYDV
-do
-line=$type
-stddevline=""
+echo $bm FIS FISAR DEB OPSTM DV HYDV > ${bm}_spreadsheet.dat
+cat log/${bm}_1_LOCK_* | grep TIME= > tmpfile
+base=`java add tmpfile`
 for num in 1 2 4 8
 do
+line=""
+stddevline=""
+for type in FIS FISAR DEB OPTSTM DV HYDV
+do
 cat log/${bm}_${num}_${type}_* | grep TIME= > tmpfile
-ave=`java add tmpfile`
-stddev=`java add tmpfile stddev`
-line="$line, $ave"
+ave=`java add -norm $base tmpfile`
+stddev=`java add -err tmpfile`
+line="$line $ave"
 stddevline="$stddevline, $stddev"
 done
-echo ${line}${stddevline} >> spreadsheet
+echo ${num} ${line} ${stddevline} >> ${bm}_spreadsheet.dat
 done
+echo set bar 1.000000 > plot_${bm}.txt
+echo set boxwidth 0.9 absolute >> plot_${bm}.txt
+echo set style fill pattern 0.00 border -1 >> plot_${bm}.txt
+echo set style rectangle back fc lt -3 fillstyle  solid 1.00 border -1 >> plot_${bm}.txt
+echo set key inside left top vertical Right noreverse enhanced autotitles columnhead nobox >> plot_${bm}.txt
+echo set style histogram clustered gap 2 title  offset character 0, 0, 0 >> plot_${bm}.txt
+echo set datafile missing \'-\' >> plot_${bm}.txt
+echo set style data histograms >> plot_${bm}.txt
+echo set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, 0, 0 >> plot_${bm}.txt
+echo set xtics  norangelimit >> plot_${bm}.txt
+echo set xrange [-.7:3.7]
+echo set ylabel  offset character 0, 0, 0 font \"\" textcolor lt -1 rotate by 90 >> plot_${bm}.txt
+echo set y2label  offset character 0, 0, 0 font \"\" textcolor lt -1 rotate by 90 >> plot_${bm}.txt
+echo set yrange [ 0 : 8 ] noreverse nowriteback >> plot_${bm}.txt
+echo set cblabel  offset character 0, 0, 0 font \"\" textcolor lt -1 rotate by 90 >> plot_${bm}.txt
+echo set locale \"C\" >> plot_${bm}.txt
+echo plot \'${bm}_spreadsheet.dat\' using 2:xticlabels\(1\) ti col, \'\' u 3 ti col, \'\' u 4 ti col, \'\' u 5 ti col, \'\' u 6 ti col, \'\' u 7 ti col >> plot_${bm}.txt
+echo pause -1 >> plot_${bm}.txt
 done
