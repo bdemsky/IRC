@@ -1,6 +1,6 @@
-public class IXL {
+public class IYLR {
     flag toprocess;
-    flag tomergeIXL;
+    flag tomergeIYLR;
     flag finish;
     
     /* current processing image related */
@@ -13,30 +13,26 @@ public class IXL {
     int m_rows_rs;
     int m_rows_re;
     int m_cols_r;
-
+    
     /* id indicating the piece # */
     int m_id;  
     int m_range;
     
     /* constructor */
-    public IXL(int id,
-               int range,
-               float[] data,
-               int rows,
-               int cols) {
+    public IYLR(int id,
+                int range,
+                float[] image,
+                int rows,
+                int cols) {
       this.m_id = id;
       this.m_range = range;
-      this.m_image = data;
+      this.m_image = image;
       this.m_rows = rows;
       this.m_cols = cols;
     }
     
     public int getId() {
       return this.m_id;
-    }
-    
-    public float[] getResult() {
-      return this.m_result;
     }
     
     public int getRowsRS() {
@@ -46,9 +42,13 @@ public class IXL {
     public int getRowsRE() {
       return this.m_rows_re;
     }
-    
+
     public int getColsR() {
       return this.m_cols_r;
+    }
+    
+    public float[] getResult() {
+      return this.m_result;
     }
     
     public int getRows() {
@@ -59,7 +59,11 @@ public class IXL {
       return this.m_cols;
     }
     
-    public void calcSobel_dX() {
+    public float[] getImage() {
+      return this.m_image;
+    }
+    
+    public void calcSobel_dY() {
       int rows_k1, cols_k1, rows_k2, cols_k2;
       int[] kernel_1, kernel_2;
       float temp;
@@ -68,7 +72,9 @@ public class IXL {
       float[] result, image;
       int rows = this.m_rows;
       int cols = this.m_cols;
-
+      
+      // level 1 is the base image.
+      
       image = this.m_image;
       
       this.m_rows_rs = this.m_id * this.m_range;
@@ -81,25 +87,25 @@ public class IXL {
       kernel_1 = new int[rows_k1 * cols_k1];
       rows_k2 = 1;
       cols_k2 = 3;
-      kernel_2 = new int[rows_k2 * cols_k2];   
+      kernel_2 = new int[rows_k2 * cols_k2];
 
       kernel_1[0] = 1;
-      kernel_1[1] = 2;
-      kernel_1[2] = 1;
+      kernel_1[1] = 0;
+      kernel_1[2] = -1;
 
       kernelSize = 3;
-      kernelSum_1 = 4;
+      kernelSum_1 = 2;
       
       kernel_2[0] = 1;
-      kernel_2[1] = 0;
-      kernel_2[2] = -1;
+      kernel_2[1] = 2;
+      kernel_2[2] = 1;
 
-      kernelSum_2 = 2;
+      kernelSum_2 = 4;
 
-      startCol = 1;           //((kernelSize)/2);
-      endCol = cols - 1;      //(int)(cols - (kernelSize/2));
-      halfKernel = 1;         //(kernelSize-1)/2;
-
+      startCol = 1;       //(kernelSize/2);
+      endCol = cols - 1;  //(int)(cols - (kernelSize/2));
+      halfKernel = 1;     //(kernelSize-1)/2;
+      
       if((this.m_rows_re < 1) || (this.m_rows_rs > rows - 1)) {
         return;
       }
@@ -117,16 +123,6 @@ public class IXL {
               result[ii * cols + j] = (float)(temp/kernelSum_2);
           }
           ii++;
-      }
-    }
-    
-    public void printResult() {
-      //    result validation
-      System.printI(11111111);
-      for(int i=0; i<this.m_rows_re-this.m_rows_rs; i++) {
-          for(int j=0; j<this.m_cols_r; j++) {
-              System.printI((int)(this.m_result[i * this.m_cols_r + j]*10));
-          }
       }
     }
 }

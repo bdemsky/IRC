@@ -1,6 +1,6 @@
-public class IXL {
+public class IXLR {
     flag toprocess;
-    flag tomergeIXL;
+    flag tomergeIXLR;
     flag finish;
     
     /* current processing image related */
@@ -13,17 +13,17 @@ public class IXL {
     int m_rows_rs;
     int m_rows_re;
     int m_cols_r;
-
+    
     /* id indicating the piece # */
     int m_id;  
     int m_range;
     
     /* constructor */
-    public IXL(int id,
-               int range,
-               float[] data,
-               int rows,
-               int cols) {
+    public IXLR(int id,
+                int range,
+                float[] data,
+                int rows,
+                int cols) {
       this.m_id = id;
       this.m_range = range;
       this.m_image = data;

@@ -14,8 +14,6 @@ public class IYL {
     int m_rows_re;
     int m_cols_r;
     
-    /* processing type */
-    int m_id_t; // 0--Ipyr1; 1--Ipyr2;
     /* id indicating the piece # */
     int m_id;  
     int m_range;
@@ -23,13 +21,11 @@ public class IYL {
     /* constructor */
     public IYL(int id,
                int range,
-               int tid,
                float[] image,
                int rows,
                int cols) {
       this.m_id = id;
       this.m_range = range;
-      this.m_id_t = tid;
       this.m_image = image;
       this.m_rows = rows;
       this.m_cols = cols;
@@ -37,10 +33,6 @@ public class IYL {
     
     public int getId() {
       return this.m_id;
-    }
-    
-    public int getIdT() {
-      return this.m_id_t;
     }
     
     public int getRowsRS() {

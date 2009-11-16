@@ -8,10 +8,11 @@
 task startup(StartupObject s{initialstate}) {
   //System.printString("task startup\n");
  
-  TrackDemo tdmo = new TrackDemo(){toaddBP};
+  int nump = 60;
+  TrackDemo tdmo = new TrackDemo(nump){toaddBP};
   
   int[] input = tdmo.getInput(false);
-  int pnum = 4;
+  int pnum = 60;
   int range = (input[0]) / pnum;
   for(int i = 0; i < pnum; i++) {
     BlurPiece bp = new BlurPiece(i,
@@ -53,7 +54,7 @@ task preresize(TrackDemo tdmo{topreresize}) {
 
   float[] Icur = tdmo.getImage();
 
-  int pnum = 4;
+  int pnum = 30;
   int range = (tdmo.getRows()) / pnum;
   int rows = tdmo.getRows();
   int cols = tdmo.getCols();
@@ -82,7 +83,8 @@ task preresize(TrackDemo tdmo{topreresize}) {
 //create a Lambda to aggregate results from the ImageXs
   Lambda lda = new Lambda(tdmo.WINSZ,
                           tdmo.N_FEA,
-                          pnum){tocalcGF};
+                          pnum,
+                          tdmo.getNumP()){tocalcGF};
 
   taskexit(tdmo{!topreresize, toresize});
 }
@@ -92,7 +94,7 @@ task resize(TrackDemo tdmo{toresize}) {
   
   tdmo.resize();
   
-  taskexit(tdmo{!toresize, toaddLMDA});
+  taskexit(tdmo{!toresize, tomergeIDX});
 }
 
 task processImageX(ImageX imx{toprocess}) {
@@ -146,135 +148,167 @@ task mergeY(ImageYM imym{tomergeY},
 task calcGoodFeature(Lambda lda{tocalcGF},
                      ImageXM imxm{tocalcGF},
                      ImageYM imym{tocalcGF}) {
-//System.printString("task reshape\n");
+//System.printString("task calcGoodFeature\n");
   
   lda.calcGoodFeature(imxm, imym);
   // validation
   //lda.printImage();
-  int r = lda.reshape();
+  lda.reshape();
   // validation
   //lda.printImage();
-  lda.sortInd(r);
-  // validation
-  //lda.printResult();
-  lda.fSortIndices();
-  // validation
-  //lda.printResult();
   
-  taskexit(lda{!tocalcGF, toaddLMDA},
+  taskexit(lda{!tocalcGF, tocalcInd},
            imxm{!tocalcGF, finish},
            imym{!tocalcGF, finish});
+} 
+
+task calcInd(Lambda lda{tocalcInd}) {
+//System.printString("task calcInd\n");
+  
+  int r = lda.getR();
+  float[] data = lda.getImage();
+  int rows = lda.getRows();
+  int cols = lda.getCols();
+  int pnum = lda.getNumP();
+  int range = rows / pnum;
+  for(int i = 0; i < pnum; i++) {
+    IDX idx = new IDX(lda.N_FEA,
+                      i,
+                      range,                 
+                      data,
+                      rows,
+                      cols,
+                      r){toprocess};
+  }
+                    
+  taskexit(lda{!tocalcInd, finish});
 }
 
-task addLMDA(TrackDemo tdmo{toaddLMDA}, 
-             Lambda lmda{toaddLMDA}) {
-//System.printString("task addLMDA\n");
+task processIDX(IDX idx{toprocess}) {
+//System.printString("task processIDX\n");
+  
+  idx.fSortIndices();
+  // validation
+  //idx.printInd();
+  
+  taskexit(idx{!toprocess, tomergeIDX});
+}
 
-  tdmo.addLMDA(lmda);
+task addIDX(TrackDemo tdmo{tomergeIDX}, 
+            IDX idx{tomergeIDX}) {
+//System.printString("task addIDX\n");
 
-  taskexit(tdmo{!toaddLMDA, tocalcF},
-           lmda{!toaddLMDA, finish});
+  boolean isfinished = tdmo.addIDX(idx);
+  //validation
+  //idx.printInd();tdmo.print3f();
+
+  if(isfinished) {
+    //tdmo.print3f();
+    taskexit(tdmo{!tomergeIDX, tocalcF},
+             idx{!tomergeIDX, finish});
+  } else {
+    taskexit(idx{!tomergeIDX, finish});
+  }
 }
 
 task calcFeatures(TrackDemo tdmo{tocalcF}) {
-  //System.printString("task calcFeatures\n");
-  
+//System.printString("task calcFeatures\n");
+
   tdmo.calcFeatures();
-  
+
   taskexit(tdmo{!tocalcF, tostartL});
 }
 
 task startTrackingLoop(TrackDemo tdmo{tostartL}) {
 //System.printString("task startTrackingLoop\n");
 
-  int pnum1 = 4;
+  int pnum1 = 15 * 2;
   float[] data = tdmo.getImage();
   int rows = tdmo.getRows();
   int cols = tdmo.getCols();
   int range = rows / pnum1;
   
-  tag t1=new tag(link);
   for(int i = 0; i < pnum1; i++) {
     IXL ixl = new IXL(i,
                       range,
-                      0, 
                       data,
                       rows,
-                      cols){toprocess}{t1};
+                      cols){toprocess};
     IYL iyl = new IYL(i,
                       range,
-                      0,
                       data,
                       rows,
-                      cols){toprocess}{t1};
+                      cols){toprocess};
   }
-  IXLM ixlm1 = new IXLM(0,
-                        pnum1,
+  IXLM ixlm1 = new IXLM(pnum1,
                         data,
                         rows,
-                        cols){tomergeIXL}{t1};
-  IYLM iylm1 = new IYLM(0,
-                        pnum1,
+                        cols){tomergeIXL};
+  IYLM iylm1 = new IYLM(pnum1,
                         data,
                         rows,
-                        cols){tomergeIYL}{t1};
+                        cols){tomergeIYL};
            
   data = tdmo.getImageR();
   rows = tdmo.getRowsR();
   cols = tdmo.getColsR(); 
   range = rows / pnum1;
-  tag t2=new tag(link);
   for(int i = 0; i < pnum1; i++) {
-    IXL ixl = new IXL(i,
-                      range,
-                      1, 
-                      data,
-                      rows,
-                      cols){toprocess}{t2};
-    IYL imy = new IYL(i,
-                      range,
-                      1,
-                      data,
-                      rows,
-                      cols){toprocess}{t2};
+    IXLR ixl = new IXLR(i,
+                        range,
+                        data,
+                        rows,
+                        cols){toprocess};
+    IYLR imy = new IYLR(i,
+                        range,
+                        data,
+                        rows,
+                        cols){toprocess};
   }
-  IXLM ixlm2 = new IXLM(1,
-                        pnum1,
-                        data,
-                        rows,
-                        cols){tomergeIXL}{t2};
-  IYLM iylm2 = new IYLM(1,
-                        pnum1,
-                        data,
-                        rows,
-                        cols){tomergeIYL}{t2};
+  IXLMR ixlm2 = new IXLMR(pnum1,
+                          data,
+                          rows,
+                          cols){tomergeIXLR};
+  IYLMR iylm2 = new IYLMR(pnum1,
+                          data,
+                          rows,
+                          cols){tomergeIYLR};
                                  
-  int pnum2 = 4;
+  int pnum2 = 60 * 2;
   int[] input = tdmo.getInput(true);
   range = (input[0]) / pnum2;
   for(int i = 0; i < pnum2; i++) {
-    BlurPiece bp = new BlurPiece(i,
-                                 range,
-                                 input){toblur};
+    BlurPieceL bpl = new BlurPieceL(i,
+                                    range,
+                                    input){toblur};
   }
-  tdmo.setBPNum(pnum2);                      
+  tdmo.setBPLNum(pnum2);  
   tdmo.startTrackingLoop();
   
   taskexit(tdmo{!tostartL, toaddBP2});
 }
 
+task blurL(BlurPieceL bpl{toblur}) {
+  //System.printString("task blurL\n");
+  
+  //bpl.printImage();
+  bpl.blur();
+  
+  taskexit(bpl{!toblur, toaddBP});
+}
+
 task addBPL(TrackDemo tdmo{toaddBP2},
-            BlurPiece bp{toaddBP}) {
+            BlurPieceL bpl{toaddBP}) {
 //System.printString("task addBPL\n");
   
-  boolean isfinished = tdmo.addBP(bp);
+  boolean isfinished = tdmo.addBPL(bpl);
 
   if(isfinished) {
     tdmo.postBlur();
     taskexit(tdmo{!toaddBP2, toresize2},
-             bp{!toaddBP, finish});
+             bpl{!toaddBP, finish});
   } else {
-    taskexit(bp{!toaddBP, finish});
+    taskexit(bpl{!toaddBP, finish});
   }
 }
 
@@ -283,7 +317,7 @@ task resizeL(TrackDemo tdmo{toresize2}) {
   
   tdmo.resize();
   
-  taskexit(tdmo{!toresize2, toaddIXL, toaddIYL});
+  taskexit(tdmo{!toresize2, tocalcT});
 }
 
 task processIXL(IXL ixl{toprocess}) {
@@ -302,72 +336,104 @@ task processIYL(IYL iyl{toprocess}) {
   taskexit(iyl{!toprocess, tomergeIYL});
 }
 
-task mergeIXL(IXLM ixlm{tomergeIXL}{link t}, 
-              IXL ixl{tomergeIXL}{link t}) {
+task mergeIXL(IXLM ixlm{tomergeIXL}, 
+              IXL ixl{tomergeIXL}) {
 //System.printString("task mergeIXL\n");
 
   boolean isfinished = ixlm.addCalcSobelResult(ixl);
 
   if(isfinished) {
     ixlm.calcSobel_dX();
-    taskexit(ixlm{!tomergeIXL, toaddIXL}, 
+    taskexit(ixlm{!tomergeIXL, tocalcT}, 
              ixl{!tomergeIXL, finish});
   } else {
     taskexit(ixl{!tomergeIXL, finish});
   }
 }
 
-task mergeIYL(IYLM iylm{tomergeIYL}{link t}, 
-              IYL iyl{tomergeIYL}{link t}) {
+task mergeIYL(IYLM iylm{tomergeIYL}, 
+              IYL iyl{tomergeIYL}) {
 //System.printString("task mergeIYL\n");
 
   boolean isfinished = iylm.addCalcSobelResult(iyl);
 
   if(isfinished) {
     iylm.calcSobel_dY();
-    taskexit(iylm{!tomergeIYL, toaddIYL}, 
+    taskexit(iylm{!tomergeIYL, tocalcT}, 
              iyl{!tomergeIYL, finish});
   } else {
     taskexit(iyl{!tomergeIYL, finish});
   }
 }
 
-task addIXLM(TrackDemo tdmo{toaddIXL},
-             IXLM ixlm{toaddIXL}) {
-//System.printString("task addIXLM()\n");
+task processIXLR(IXLR ixl{toprocess}) {
+//System.printString("task processIXLR\n");
+  
+  ixl.calcSobel_dX();
+  
+  taskexit(ixl{!toprocess, tomergeIXLR});
+}
 
-  if(tdmo.addIXLM(ixlm)) {
-//  finished
-    taskexit(tdmo{!toaddIXL, tocalcT},
-             ixlm{!toaddIXL, finish});
+task processIYLR(IYLR iyl{toprocess}) {
+//System.printString("task processIYLR\n");
+  
+  iyl.calcSobel_dY();
+  
+  taskexit(iyl{!toprocess, tomergeIYLR});
+}
+
+task mergeIXLR(IXLMR ixlm{tomergeIXLR}, 
+               IXLR ixl{tomergeIXLR}) {
+//System.printString("task mergeIXLR\n");
+
+  boolean isfinished = ixlm.addCalcSobelResult(ixl);
+
+  if(isfinished) {
+    ixlm.calcSobel_dX();
+    taskexit(ixlm{!tomergeIXLR, tocalcT}, 
+             ixl{!tomergeIXLR, finish});
   } else {
-    taskexit(ixlm{!toaddIXL, finish});
+    taskexit(ixl{!tomergeIXLR, finish});
   }
 }
 
-task addIYLM(TrackDemo tdmo{toaddIYL},
-             IYLM iylm{toaddIYL}) {
-//System.printString("task addIYLM()\n");
+task mergeIYLR(IYLMR iylm{tomergeIYLR}, 
+               IYLR iyl{tomergeIYLR}) {
+//System.printString("task mergeIYLR\n");
 
-  if(tdmo.addIYLM(iylm)) {
-//  finished
-    taskexit(tdmo{!toaddIYL, tocalcT},
-             iylm{!toaddIYL, finish});
+  boolean isfinished = iylm.addCalcSobelResult(iyl);
+
+  if(isfinished) {
+    iylm.calcSobel_dY();
+    taskexit(iylm{!tomergeIYLR, tocalcT}, 
+             iyl{!tomergeIYLR, finish});
   } else {
-    taskexit(iylm{!toaddIYL, finish});
+    taskexit(iyl{!tomergeIYLR, finish});
   }
 }
 
-task calcTrack(TrackDemo tdmo{!toaddIXL && !toaddIYL && tocalcT}) {
+task calcTrack(TrackDemo tdmo{tocalcT},
+               IXLM ixlm{tocalcT},
+               IYLM iylm{tocalcT},
+               IXLMR ixlmr{tocalcT},
+               IYLMR iylmr{tocalcT}) {
 //System.printString("task calcTrack()\n");
 
-  tdmo.calcTrack();
+  tdmo.calcTrack(ixlm, iylm, ixlmr, iylmr);
 
   if(tdmo.isFinish()) {
     //tdmo.printFeatures();
     // finished
-    taskexit(tdmo{!tocalcT, finish});
+    taskexit(tdmo{!tocalcT, finish},
+             ixlm{!tocalcT, finish},
+             iylm{!tocalcT, finish},
+             ixlmr{!tocalcT, finish},
+             iylmr{!tocalcT, finish});
   } else {
-    taskexit(tdmo{!tocalcT, tostartL});
+    taskexit(tdmo{!tocalcT, tostartL},
+             ixlm{!tocalcT, finish},
+             iylm{!tocalcT, finish},
+             ixlmr{!tocalcT, finish},
+             iylmr{!tocalcT, finish});
   }
 }

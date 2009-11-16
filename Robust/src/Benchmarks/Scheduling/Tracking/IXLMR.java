@@ -1,5 +1,5 @@
-public class IXLM {
-    flag tomergeIXL;
+public class IXLMR {
+    flag tomergeIXLR;
     flag tocalcT;
     flag finish;
     
@@ -16,10 +16,10 @@ public class IXLM {
     int m_counter;
     
     /* constructor */
-    public IXLM(int counter,
-                float[] data,
-                int rows,
-                int cols) {
+    public IXLMR(int counter,
+                 float[] data,
+                 int rows,
+                 int cols) {
       this.m_counter = counter;
       this.m_rows = this.m_rows_r = rows;
       this.m_cols = this.m_cols_r = cols;
@@ -51,7 +51,7 @@ public class IXLM {
       return this.m_result;
     }
     
-    public boolean addCalcSobelResult(IXL ixl) {
+    public boolean addCalcSobelResult(IXLR ixl) {
       int startRow = ixl.getRowsRS();
       int endRow = ixl.getRowsRE();
       int i, j, k, cols;

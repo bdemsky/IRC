@@ -2,13 +2,11 @@ public class TrackDemo {
     flag toaddBP;
     flag topreresize;
     flag toresize;
-    flag toaddLMDA;
+    flag tomergeIDX;
     flag tocalcF;
     flag tostartL;
     flag toaddBP2;
     flag toresize2;
-    flag toaddIXL;
-    flag toaddIYL;
     flag tocalcT;
     flag finish;
     
@@ -26,6 +24,8 @@ public class TrackDemo {
     
     /* BP related */
     int m_num_bp;
+    /* BPL related */
+    int m_num_bpl;
     
     /* feature related */
     float[] m_features;
@@ -34,15 +34,10 @@ public class TrackDemo {
     
     /*  */
     float[][] m_3f;
-    int m_rows_3f[];
-    int m_cols_3f[];
+    int m_rows_3f;
+    int m_cols_3f;
     int m_counter_3f;
-    
-    /* */
-    float[][] m_Ipyrs; // Ipyr1, Ipyr2, dxPyr1, dyPyr1, dxPyr2, dyPyr2;
-    int[] m_rows_i, m_cols_i;
-    int m_counter_ix;
-    int m_counter_iy;
+    int m_num_p;
     
     /* benchmark constants */
     public int WINSZ;
@@ -53,36 +48,27 @@ public class TrackDemo {
     float accuracy;
     
     /* constructor */
-    public TrackDemo() {
+    public TrackDemo(int nump) {
       this.m_inputs = new int[2][];
  
-      int rows = 8;
-      int cols = 12;
+      int rows = 10 * 60 * 2;
+      int cols = 12 * 5;
       int offset = 0;
       this.m_inputs[0] = this.makeImage(rows, cols, offset);
       offset = 100;
       this.m_inputs[1] = this.makeImage(rows, cols, offset);
       this.m_count = 0;
       
-      this.m_3f = new float[3][];
-      this.m_rows_3f = new int[3];
-      this.m_cols_3f = new int[3];
-      this.m_counter_3f = 3;
-      
-      this.m_Ipyrs = new float[6][];
-      this.m_rows_i = new int[6];
-      this.m_cols_i = new int[6];
-      this.m_counter_ix = 2;
-      this.m_counter_iy = 2;
-      
       this.m_num_bp = 0;
       
       this.WINSZ = 8;
-      this.N_FEA = 1600;
+      this.N_FEA = 16; //00;
       this.SUPPRESION_RADIUS = 10;
       this.LK_ITER = 20;
+      this.accuracy = (float)0.03;
+      this.m_counter = 2;
 //    #ifdef test
-      this.WINSZ = 2;
+      /*this.WINSZ = 2;
       this.N_FEA = 10;
       this.LK_ITER = 1;
       this.m_counter = 2;
@@ -100,6 +86,15 @@ public class TrackDemo {
           this.LK_ITER = 4;
           this.counter = 2;
       */
+      this.m_3f = new float[3][this.N_FEA];
+      this.m_rows_3f = this.N_FEA;
+      this.m_cols_3f = this.N_FEA;
+      this.m_counter_3f = 3;
+      this.m_num_p = nump;
+    }
+    
+    public int getNumP() {
+      return this.m_num_p;
     }
     
     public boolean isFinish() {
@@ -141,6 +136,10 @@ public class TrackDemo {
     
     public void setBPNum(int num) {
       this.m_num_bp = num;
+    }
+    
+    public void setBPLNum(int num) {
+      this.m_num_bpl = num;
     }
     
     public int[] makeImage(int rows, 
@@ -190,6 +189,33 @@ public class TrackDemo {
       
       this.m_num_bp--;
       return (0 == this.m_num_bp);
+    }
+    
+    public boolean addBPL(BlurPieceL bpl) {
+      int startRow = bpl.getRowsRS();
+      int endRow = bpl.getRowsRE();
+      int i, j, k, cols;
+      float[] image, input;
+      
+      if(this.m_image == null) {
+        this.m_rows = bpl.getRows();
+        this.m_cols = bpl.getCols();
+        this.m_image = new float[this.m_rows * this.m_cols];
+      }
+      image = this.m_image;
+      cols = this.m_cols;
+      
+      input = bpl.getResult();
+      k = 0;
+      for(i = startRow; i < endRow; i++) {
+        for(j = 0; j < cols; j++) {
+          image[i * cols + j] = input[k * cols + j];
+        }
+        k++;
+      }
+      
+      this.m_num_bpl--;
+      return (0 == this.m_num_bpl);
     }
     
     public void postBlur() {
@@ -312,15 +338,85 @@ public class TrackDemo {
       }
     }
     
-    public void addLMDA(Lambda lmda) {
+    public boolean addIDX(IDX idx) {
       float[][] m3f = this.m_3f;
-      int[] rows = this.m_rows_3f;
-      int[] cols = this.m_cols_3f;
-      for(int i = 0; i < lmda.getNum(); i++) {
-        m3f[i] = lmda.getResult(i);
-        rows[i] = lmda.getRowsR(i);
-        cols[i] = lmda.getColsR(i);
+      int rows = idx.getRowsRS();
+      int rowe = idx.getRowsRE();
+      int threshold = this.N_FEA;
+      int[] ind = idx.getInd();
+      float[] image = idx.getImage();
+      int r = idx.getR();
+      int nfea = this.N_FEA;
+      int length = this.m_rows * this.m_cols;
+      int[] h_ind = new int[this.N_FEA];
+      boolean[] f_ind = new boolean[this.N_FEA];
+      for(int i = 0; i < this.N_FEA; i++) {
+        f_ind[i] = false;
       }
+      
+      int j = 0;
+      int localindex = 0;
+      int rindex = 0;
+      for(int i = rows; i < rowe; i++) {
+        rindex = length - ind[j];
+        if(rindex < nfea) {
+          localindex = j + rows;
+          if(!f_ind[rindex]) {  
+            // empty
+            m3f[2][rindex] = image[localindex];
+            h_ind[rindex] = localindex;
+            localindex++;
+            m3f[0][rindex] = Math.ceilf((float)(localindex / (float)r));
+            m3f[1][rindex] = (float)localindex
+                            -(m3f[0][rindex]-1)*(float)r*(float)1.0;
+            f_ind[rindex] = true;
+          } else {
+            // previously held by some others with the same value
+            int k = rindex; // the place to insert
+            int k1 = rindex; // the first one which is not set
+            for(; k1 < nfea; k1++) {
+              if(h_ind[k1] > localindex) {
+                k = k1;
+              }
+              if(!f_ind[k1]) {
+                break;
+              }
+            }
+            if(k == nfea) {
+              System.printI(77777777);
+              return false;
+            } else if(k == rindex) {
+              k = k1;
+            }
+            if(f_ind[k] && (m3f[2][k] != image[localindex])) {
+              System.printI(88888888);
+              return false;
+            }
+            // move all things after k behind
+            int p  = k1;
+            for(; p > k; p--) {
+              m3f[2][p] = m3f[2][p-1];
+              h_ind[p] = h_ind[p-1];
+              m3f[0][p] = m3f[0][p-1];
+              m3f[1][p] = m3f[1][p-1];
+              f_ind[p] = true;
+            }
+            // insert
+            m3f[2][p] = image[localindex];
+            h_ind[p] = localindex;
+            localindex++;
+            m3f[0][p] = Math.ceilf((float)(localindex / (float)r));
+            m3f[1][p] = (float)localindex
+                            -(m3f[0][p]-1)*(float)r*(float)1.0;
+            f_ind[p] = true;
+          }
+        }
+        j++;
+      }
+
+      this.m_num_p--;
+      
+      return (0 == this.m_num_p);
     }
     
     public void calcFeatures() {
@@ -335,12 +431,12 @@ public class TrackDemo {
       f1 = this.m_3f[0];
       f2 = this.m_3f[1];
       f3 = this.m_3f[2];
-      rows_f1 = this.m_rows_3f[0];
-      rows_f2 = this.m_rows_3f[1];
-      rows_f3 = this.m_rows_3f[2];
-      cols_f1 = this.m_cols_3f[0];
-      cols_f2 = this.m_cols_3f[1];
-      cols_f3 = this.m_cols_3f[2];
+      rows_f1 = this.m_rows_3f;
+      rows_f2 = this.m_rows_3f;
+      rows_f3 = this.m_rows_3f;
+      cols_f1 = this.m_cols_3f;
+      cols_f2 = this.m_cols_3f;
+      cols_f3 = this.m_cols_3f;
       
       interestPnts = this.getANMs(f1, 
                                   rows_f1,
@@ -694,8 +790,6 @@ public class TrackDemo {
     public void startTrackingLoop() {
       this.m_image = null;
       this.m_image_resized = null;
-      this.m_counter_ix = 2;
-      this.m_counter_iy = 2;
     }
     
     public float[] getInterpolatePatch(float[] src, 
@@ -918,74 +1012,38 @@ public class TrackDemo {
       return valid;
     }
     
-    public boolean addIXLM(IXLM ixlm) {
-      float[][] Ipyrs = this.m_Ipyrs; // Ipyr1, Ipyr2, dxPyr1, dyPyr1, dxPyr2, dyPyr2;
-      int[] rows, cols;
-      int i, j, k;
-      rows = this.m_rows_i;
-      cols = this.m_cols_i;
-
-      if(0 == ixlm.getIdT()) {
-//      for Ipyr1
-        i = 0;
-      } else if(1 == ixlm.getIdT()) {
-//      for Ipyr2
-        i = 1;
-      }
-      // dx
-      j = 2 * (i + 1);
-      Ipyrs[i] = ixlm.getImage();
-      rows[i] = ixlm.getRows();
-      cols[i] = ixlm.getCols();
-      Ipyrs[j] = ixlm.getResult();
-      rows[j] = ixlm.getRowsR();
-      cols[j] = ixlm.getColsR();
-      
-      this.m_counter_ix--;
-
-      return (0 == this.m_counter_ix);
-    }
-    
-    public boolean addIYLM(IYLM iylm) {
-      float[][] Ipyrs = this.m_Ipyrs; // Ipyr1, Ipyr2, dxPyr1, dyPyr1, dxPyr2, dyPyr2;
-      int[] rows, cols;
-      int i, j, k;
-      rows = this.m_rows_i;
-      cols = this.m_cols_i;
-
-      if(0 == iylm.getIdT()) {
-//      for Ipyr1
-        i = 0;
-      } else if(1 == iylm.getIdT()) {
-//      for Ipyr2
-        i = 1;
-      }
-      // dy
-      j = 2 * (i + 1) + 1;
-      Ipyrs[i] = iylm.getImage();
-      rows[i] = iylm.getRows();
-      cols[i] = iylm.getCols();
-      Ipyrs[j] = iylm.getResult();
-      rows[j] = iylm.getRowsR();
-      cols[j] = iylm.getColsR();
-
-      this.m_counter_iy--;
-
-      return (0 == this.m_counter_iy);
-    }
-    
-    public void calcTrack() {
-      float[][] Ipyrs;
-      int[] rows, cols;
+    public void calcTrack(IXLM ixlm,
+                          IYLM iylm,
+                          IXLMR ixlmr,
+                          IYLMR iylmr) {
+      float[][] Ipyrs  = new float[6][];
+      int[] rows  = new int[6];
+      int[] cols = new int[6];
       float[] newpoints, features, np_temp;
       int rows_n, cols_n, rows_np, cols_np, i, j, k, m, n, numFind;
       int[] status;
       int rows_s, cols_s;
+
+      Ipyrs[0] = ixlm.getImage();
+      rows[0] = ixlm.getRows();
+      cols[0] = ixlm.getCols();
+      Ipyrs[2] = ixlm.getResult();
+      rows[2] = ixlm.getRowsR();
+      cols[2] = ixlm.getColsR();
+      Ipyrs[3] = iylm.getResult();
+      rows[3] = iylm.getRowsR();
+      cols[3] = iylm.getColsR();
       
-      Ipyrs = this.m_Ipyrs;
-      rows = this.m_rows_i;
-      cols = this.m_cols_i;
-      
+      Ipyrs[1] = ixlmr.getImage();
+      rows[1] = ixlmr.getRows();
+      cols[1] = ixlmr.getCols();
+      Ipyrs[4] = ixlmr.getResult();
+      rows[4] = ixlmr.getRowsR();
+      cols[4] = ixlmr.getColsR();
+      Ipyrs[5] = iylmr.getResult();
+      rows[5] = iylmr.getRowsR();
+      cols[5] = iylmr.getColsR();
+
       features = this.m_features;
       rows_n = 2;
       cols_n = this.m_cols_f;
@@ -1059,6 +1117,22 @@ public class TrackDemo {
           for(int j=0; j<this.m_cols; j++) {
               System.printI((int)(this.m_image[i * this.m_cols + j]*10));
           }
+      }
+    }
+    
+    public void print3f() {
+      //    result validation
+      System.printI(11111111);
+      for(int j=0; j<this.N_FEA; j++) {
+        System.printI((int)(this.m_3f[0][j]*10));
+      }
+      System.printI(22222222);
+      for(int j=0; j<this.N_FEA; j++) {
+        System.printI((int)(this.m_3f[1][j]*10));
+      }
+      System.printI(33333333);
+      for(int j=0; j<this.N_FEA; j++) {
+        System.printI((int)(this.m_3f[2][j]*10));
       }
     }
     

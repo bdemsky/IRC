@@ -1,6 +1,6 @@
 public class IYLM {
     flag tomergeIYL;
-    flag toaddIYL;
+    flag tocalcT;
     flag finish;
     
     /* current processing image related */
@@ -15,25 +15,16 @@ public class IYLM {
     
     int m_counter;
     
-    /* processing type */
-    int m_id_t; // 0--Ipyr1; 1--Ipyr2;
-    
     /* constructor */
-    public IYLM(int tid,
-                int counter,
+    public IYLM(int counter,
                 float[] data,
                 int rows,
                 int cols) {
-      this.m_id_t = tid;
       this.m_counter = counter;
       this.m_rows = this.m_rows_r = rows;
       this.m_cols = this.m_cols_r = cols;
       this.m_image = data;
       this.m_result = new float[rows * cols];
-    }
-    
-    public int getIdT() {
-      return this.m_id_t;
     }
     
     public int getRows() {

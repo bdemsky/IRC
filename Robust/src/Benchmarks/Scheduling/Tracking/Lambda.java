@@ -1,19 +1,15 @@
 public class Lambda {
     flag tocalcGF;
-    flag toaddLMDA;
+    flag tocalcInd;
     flag finish;
     
     /* current processing image related */
     float[] m_image;
     int m_rows;
     int m_cols;
+    int m_r;
     
-    /* results related */
-    float[][] m_result;
-    int m_rows_r;
-    int m_cols_r;
-    int m_num;
-    int[] m_ind;
+    int m_num_p;
     
     /* benchmark constants */
     int WINSZ;
@@ -22,14 +18,19 @@ public class Lambda {
     /* constructor */
     public Lambda(int winsz,
                   int nfea,
-                  int pnum) {
+                  int pnum,
+                  int nump) {
       this.WINSZ = winsz;
       this.N_FEA = nfea;
-
-      this.m_num = 3;
-      this.m_result = new float[this.m_num][this.N_FEA];
-      this.m_rows_r = this.N_FEA;
-      this.m_cols_r = 1;
+      this.m_num_p = nump;
+    }
+    
+    public int getNumP() {
+      return this.m_num_p;
+    }
+    
+    public int getR() {
+      return this.m_r;
     }
     
     public int getRows() {
@@ -40,20 +41,8 @@ public class Lambda {
       return this.m_cols;
     }
     
-    public int getNum() {
-      return this.m_num;
-    }
-    
-    public float[] getResult(int index) {
-      return this.m_result[index];
-    }
-    
-    public int getRowsR(int index) {
-      return this.m_rows_r;
-    }
-    
-    public int getColsR(int index) {
-      return this.m_cols_r;
+    public float[] getImage() {
+      return this.m_image;
     }
     
     public void calcGoodFeature(ImageXM imxm,
@@ -178,7 +167,7 @@ public class Lambda {
       return ret; 
     }
     
-    public int reshape() {
+    public void reshape() {
       float[] out, image;
       int i, j, k;
       int r, c;
@@ -198,93 +187,9 @@ public class Lambda {
       this.m_image = out;
       this.m_rows = r * c;
       this.m_cols = 1;
-      return r;
+      this.m_r= r;
     }
 
-    public void sortInd(int r) {
-      float[] image;
-      int i, j, k;
-      int[] ind;
-      int rows_i, cols_i;
-      float[][] result;
-
-      // fDeepCopy
-      image = new float[this.m_image.length];
-      for(i = 0; i < this.m_image.length; i++) {
-        image[i] = this.m_image[i];
-      }
-      result = this.m_result;
-      
-      rows_i = this.m_rows;
-      cols_i = this.m_cols;
-      ind = this.m_ind = new int[rows_i * cols_i];
-
-      for(k=0; k<cols_i; k++) {
-        for(i=0; i<rows_i; i++) {
-          float localMax = image[i * cols_i + k];
-          int localIndex = i+1;
-          ind[i * cols_i + k] = i+1;
-          for(j=0; j<rows_i; j++) {
-            if(localMax < image[j*cols_i+k]) {
-              localMax = image[j * cols_i + k];
-              localIndex = j+1;
-            }
-          }
-          ind[i * cols_i + k] = localIndex;
-          image[(localIndex-1) * cols_i + k] = 0;
-        }
-      }
-
-      // set the results
-      for(i=0; i<this.N_FEA; i++) {
-        result[0][i] = Math.ceilf((float)(ind[i] / (float)r));
-        result[1][i] = (float)ind[i] - (result[0][i]-1)
-                                       * (float)r * (float)1.0;
-      }
-    }
-
-    public void fSortIndices() {
-      int i, j, k;
-      int[] ind;
-      int rows_i, cols_i;
-      float[][] result;
-      float[] image;
-
-      // fDeepCopy
-      image = new float[this.m_image.length];
-      for(i = 0; i < this.m_image.length; i++) {
-        image[i] = this.m_image[i];
-      }
-      result = this.m_result;
-
-      rows_i = this.m_rows;
-      cols_i = this.m_cols;
-      ind = this.m_ind;
-      for(i = 0; i < ind.length; i++) {
-        ind[i] = 0;
-      }
-
-      for(k=0; k<cols_i; k++) {
-        for(i=0; i<rows_i; i++) {
-          float localMax = image[i * cols_i + k];
-          int localIndex = i;
-          ind[i * cols_i + k] = i;
-          for(j=0; j<rows_i; j++) {
-            if(localMax < image[j*cols_i+k]) {
-              ind[i * cols_i + k] = j;
-              localMax = image[j * cols_i + k];
-              localIndex = j;
-            }
-          }
-          image[localIndex * cols_i + k] = 0;
-        }
-      }
-
-      // set the results
-      for(i=0; i<this.N_FEA; i++) {
-        result[2][i] = this.m_image[ind[i]];
-      }
-    }
     
     public void printImage() {
       //    result validation
@@ -292,27 +197,6 @@ public class Lambda {
           for(int j=0; j<this.m_cols; j++) {
               System.printI((int)(this.m_image[i * this.m_cols + j]*10));
           }
-      }
-    }
-    
-    public void printInd() {
-      //    result validation
-      for(int i=0; i<this.m_rows; i++) {
-          for(int j=0; j<this.m_cols; j++) {
-              System.printI((int)(this.m_ind[i * this.m_cols + j]*10));
-          }
-      }
-    }
-    
-    public void printResult() {
-      //    result validation
-      for(int k=0; k<3; k++) {
-        System.printI(k+100000000);
-        for(int i=0; i<this.m_rows_r; i++) {
-          for(int j=0; j<this.m_cols_r; j++) {
-            System.printI((int)(this.m_result[k][i * this.m_cols_r + j]*10));
-          }
-        }
       }
     }
 }

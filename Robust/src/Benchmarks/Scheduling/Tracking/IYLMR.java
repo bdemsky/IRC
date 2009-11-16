@@ -1,5 +1,5 @@
-public class IXLM {
-    flag tomergeIXL;
+public class IYLMR {
+    flag tomergeIYLR;
     flag tocalcT;
     flag finish;
     
@@ -16,10 +16,10 @@ public class IXLM {
     int m_counter;
     
     /* constructor */
-    public IXLM(int counter,
-                float[] data,
-                int rows,
-                int cols) {
+    public IYLMR(int counter,
+                 float[] data,
+                 int rows,
+                 int cols) {
       this.m_counter = counter;
       this.m_rows = this.m_rows_r = rows;
       this.m_cols = this.m_cols_r = cols;
@@ -51,9 +51,9 @@ public class IXLM {
       return this.m_result;
     }
     
-    public boolean addCalcSobelResult(IXL ixl) {
-      int startRow = ixl.getRowsRS();
-      int endRow = ixl.getRowsRE();
+    public boolean addCalcSobelResult(IYLR iyl) {
+      int startRow = iyl.getRowsRS();
+      int endRow = iyl.getRowsRE();
       int i, j, k, cols;
       float[] image, r;
       
@@ -62,7 +62,7 @@ public class IXLM {
       cols = this.m_cols_r;
       
       // clone data piece      
-      r = ixl.getResult();
+      r = iyl.getResult();
       k = 0;
       for(i = startRow; i < endRow; i++) {
         for(j = 0; j < cols; j++) {
@@ -74,7 +74,7 @@ public class IXLM {
       return (0 == this.m_counter);
     }
     
-    public void calcSobel_dX() {
+    public void calcSobel_dY() {
       int rows_k1, cols_k1, rows_k2, cols_k2;
       int[] kernel_1, kernel_2;
       float temp;
@@ -83,7 +83,9 @@ public class IXLM {
       float[] result, image;
       int rows = this.m_rows_r;
       int cols = this.m_cols_r;
-
+      
+      // level 1 is the base image.
+      
       image = this.m_result;
       
       rows_k1 = 1;
@@ -91,24 +93,24 @@ public class IXLM {
       kernel_1 = new int[rows_k1 * cols_k1];
       rows_k2 = 1;
       cols_k2 = 3;
-      kernel_2 = new int[rows_k2 * cols_k2];   
+      kernel_2 = new int[rows_k2 * cols_k2];
 
       kernel_1[0] = 1;
-      kernel_1[1] = 2;
-      kernel_1[2] = 1;
+      kernel_1[1] = 0;
+      kernel_1[2] = -1;
 
       kernelSize = 3;
-      kernelSum_1 = 4;
+      kernelSum_1 = 2;
       
       kernel_2[0] = 1;
-      kernel_2[1] = 0;
-      kernel_2[2] = -1;
+      kernel_2[1] = 2;
+      kernel_2[2] = 1;
 
-      kernelSum_2 = 2;
+      kernelSum_2 = 4;
 
-      startCol = 1;           //((kernelSize)/2);
-      endCol = cols - 1;      //(int)(cols - (kernelSize/2));
-      halfKernel = 1;         //(kernelSize-1)/2;
+      startCol = 1;       //(kernelSize/2);
+      endCol = cols - 1;  //(int)(cols - (kernelSize/2));
+      halfKernel = 1;     //(kernelSize-1)/2;
 
       startRow = 1;       //(kernelSize)/2;
       endRow = (rows-1);  //(rows - (kernelSize)/2);
