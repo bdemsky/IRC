@@ -1,22 +1,58 @@
 #!/bin/bash
 for bm in KMeans.bin Labyrinth.bin SSCA2.bin Genome.bin Vacation.bin yada.bin Intruder.bin Bayes.bin
 do
-echo $bm FIS FISAR DEB OPSTM DV HYDV > ${bm}_spreadsheet.dat
-cat log/${bm}_1_LOCK_* | grep TIME= > tmpfile
+if [ $bm = "KMeans.bin" ]
+then name="kmeans"
+fi
+if [ $bm = "Labyrinth.bin" ]
+then name="labyrinth"
+fi
+if [ $bm = "SSCA2.bin" ]
+then name="ssca2"
+fi
+if [ $bm = "Genome.bin" ]
+then name="genome"
+fi
+if [ $bm = "Vacation.bin" ]
+then name="vacation"
+fi
+if [ $bm = "yada.bin" ]
+then name="yada"
+fi
+if [ $bm = "Intruder.bin" ]
+then name="intruder"
+fi
+if [ $bm = "Bayes.bin" ]
+then name="bayes"
+fi
+echo $bm CSEQ TL2 SWISSTM BASE FIS FISAR DEB DV HYDV OPTSTM > ${bm}_spreadsheet.dat
+cat logfinalpaper/log/${bm}_1_LOCK_* | grep TIME= > tmpfile
 base=`java add tmpfile`
+cat ~/stamp/stamp-0.9.10/log/${name}_seq_1_* | grep -i time > tmpfile
+cseq=`java add -sec -norm $base tmpfile`
+
 for num in 1 2 4 8
 do
-line=""
+cat ~/stamp/stamp-0.9.10/log/${name}_stm_${num}_* | grep -i time > tmpfile
+tl2=`java add -sec -norm $base tmpfile`
+cat ~/swiss/stamp-0.9.9/log/${name}_stm_${num}_* | grep -i time > tmpfile
+swiss=`java add -sec -norm $base tmpfile`
+if [ $num = "1" ]
+then
+line="${cseq} ${tl2} ${swiss}"
+else
+line="None ${tl2} ${swiss}"
+fi
 stddevline=""
-for type in FIS FISAR DEB OPTSTM DV HYDV
+for type in BASE FIS FISAR DEB DV HYDV OPTSTM
 do
-cat log/${bm}_${num}_${type}_* | grep TIME= > tmpfile
+cat logfinalpaper/log/${bm}_${num}_${type}_* | grep TIME= > tmpfile
 ave=`java add -norm $base tmpfile`
 stddev=`java add -err tmpfile`
 line="$line $ave"
-stddevline="$stddevline, $stddev"
+stddevline="$stddevline $stddev"
 done
-echo ${num} ${line} ${stddevline} >> ${bm}_spreadsheet.dat
+echo ${num} ${line} >> ${bm}_spreadsheet.dat
 done
 echo set bar 1.000000 > plot_${bm}.txt
 echo set boxwidth 0.9 absolute >> plot_${bm}.txt
@@ -28,12 +64,20 @@ echo set datafile missing \'-\' >> plot_${bm}.txt
 echo set style data histograms >> plot_${bm}.txt
 echo set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, 0, 0 >> plot_${bm}.txt
 echo set xtics  norangelimit >> plot_${bm}.txt
-echo set xrange [-.7:3.7]
+echo set xrange [-.7:3.7] >> plot_${bm}.txt
 echo set ylabel  offset character 0, 0, 0 font \"\" textcolor lt -1 rotate by 90 >> plot_${bm}.txt
 echo set y2label  offset character 0, 0, 0 font \"\" textcolor lt -1 rotate by 90 >> plot_${bm}.txt
-echo set yrange [ 0 : 8 ] noreverse nowriteback >> plot_${bm}.txt
+#echo set yrange [ 0 : 8 ] noreverse nowriteback >> plot_${bm}.txt
 echo set cblabel  offset character 0, 0, 0 font \"\" textcolor lt -1 rotate by 90 >> plot_${bm}.txt
 echo set locale \"C\" >> plot_${bm}.txt
-echo plot \'${bm}_spreadsheet.dat\' using 2:xticlabels\(1\) ti col, \'\' u 3 ti col, \'\' u 4 ti col, \'\' u 5 ti col, \'\' u 6 ti col, \'\' u 7 ti col >> plot_${bm}.txt
+if [ $name = "intruder" ]
+then
+echo plot \'${bm}_spreadsheet.dat\' using 4:xticlabels\(1\) ti col, \'\' u 5 ti col, \'\' u 6 ti col, \'\' u 7 ti col, \'\' u 8 ti col, \'\' u 9 ti col, \'\' u 10 ti col >> plot_${bm}.txt
+elif [ $name = "ssca2" ]
+then
+echo plot \'${bm}_spreadsheet.dat\' using 4:xticlabels\(1\) ti col, \'\' u 5 ti col, \'\' u 6 ti col, \'\' u 7 ti col, \'\' u 8 ti col, \'\' u 9 ti col, \'\' u 10 ti col >> plot_${bm}.txt
+else
+echo plot \'${bm}_spreadsheet.dat\' using 4:xticlabels\(1\) ti col, \'\' u 5 ti col, \'\' u 6 ti col, \'\' u 7 ti col, \'\' u 8 ti col, \'\' u 9 ti col, \'\' u 10 ti col, \'\' u 11 ti col >> plot_${bm}.txt
+fi
 echo pause -1 >> plot_${bm}.txt
 done
