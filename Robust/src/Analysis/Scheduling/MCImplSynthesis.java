@@ -1006,6 +1006,11 @@ public class MCImplSynthesis {
     // first clone the whole graph
     Vector<ScheduleNode> newscheduleGraph = 
       cloneScheduleGraph(scheduleGraph, lgid);
+    
+    if(newscheduleGraph.size() == 0) {
+      System.err.println("empty schedule graph!");
+      return optimizeschedulegraphs;
+    }
 
     // these nodes are root nodes
     Vector<ScheduleNode> roots = new Vector<ScheduleNode>();
@@ -1099,7 +1104,17 @@ public class MCImplSynthesis {
       }
     }
     cGen.clear();
+    for(int i = 0; i < rootNodes.size(); i++) {
+      if(rootNodes.elementAt(i) != null) {
+        rootNodes.elementAt(i).clear();
+      }
+    }
     rootNodes = null;
+    for(int i = 0; i < nodes2combine.size(); i++) {
+      if(nodes2combine.elementAt(i) != null) {
+        nodes2combine.elementAt(i).clear();
+      }
+    }
     nodes2combine = null;
     for(int j = 0; j < newscheduleGraph.size(); j++) {
       ScheduleNode snode = newscheduleGraph.elementAt(j);

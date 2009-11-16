@@ -177,11 +177,13 @@ public class SchedulingUtil {
           for(index = 0; index < sNodeVecs.size(); index++) {
             if(sNodeVecs.elementAt(index).elementAt(0).getCid() > tmpcid) {
               // find the place to insert
-              sNodeVecs.add(sNodeVecs.lastElement());
+              sNodeVecs.insertElementAt(new Vector<ScheduleNode>(), index);
+              /*sNodeVecs.add(sNodeVecs.lastElement());
               for(int j = sNodeVecs.size() - 2; j > index; j--) {
                 sNodeVecs.setElementAt(sNodeVecs.elementAt(j - 1), j);
               }
-              sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
+              sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);*/
+              break;
             } else if(sNodeVecs.elementAt(index).elementAt(0).getCid() == tmpcid) {
               break;
             }
@@ -197,13 +199,16 @@ public class SchedulingUtil {
 	    if(sNodeVecs.elementAt(index) == null) {
 		sNodeVecs.setElementAt(new Vector<ScheduleNode>(), index);
 	    }*/
-          sNodeVecs.elementAt(index).add(tmpn);
+          if(!sNodeVecs.elementAt(index).contains(tmpn)) {
+            sNodeVecs.elementAt(index).addElement(tmpn);
+          }
         }
 
         return sNodeVecs;
       } catch(Error e) {
-        System.err.println("Error in rangeScheduleNodes");
+        System.err.println("Error in rangeScheduleNodes: " + scheduleNodes.size());
         e.printStackTrace();
+        //System.exit(-1);
         return null;
       }
     }
