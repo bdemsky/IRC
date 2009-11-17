@@ -501,6 +501,7 @@ public class BuildCode {
 	wb.analyze(lb);
 	if (!md.getModifiers().isNative()) {
 	  generateFlatMethod(fm, lb, outmethod);
+      //System.out.println("fm= " + fm + " md= " + md);
 	}
       }
     } else {
@@ -3923,7 +3924,7 @@ public class BuildCode {
       Integer statusdst=locality.getNodePreTempInfo(lb,fsen).get(fsen.getDst());
       boolean srcglobal=statussrc==LocalityAnalysis.GLOBAL;
       boolean dstglobal=statusdst==LocalityAnalysis.GLOBAL;
-      boolean dstlocal=statusdst==LocalityAnalysis.LOCAL;
+      boolean dstlocal=(statusdst==LocalityAnalysis.LOCAL)||(statusdst==LocalityAnalysis.EITHER);
       
       if (dstglobal) {
 	if (wb.needBarrier(fsen))
@@ -3942,7 +3943,13 @@ public class BuildCode {
 	output.println(dst+"->"+nextobjstr+"="+revertptr+";");
 	output.println("revertlist=(struct ___Object___ *)"+dst+";");
 	output.println("}");
-      } else throw new Error("Unknown array type");
+      } else {
+	System.out.println("Node: "+fsen);
+	System.out.println(lb);
+	System.out.println("statusdst="+statusdst);
+	System.out.println(fm.printMethod());
+	throw new Error("Unknown array type");
+      }
       if (srcglobal) {
 	output.println("{");
 	String src=generateTemp(fm, fsen.getSrc(), lb);
