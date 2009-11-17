@@ -1,176 +1,304 @@
-public class LookUpService extends Thread {
-  DistributedHashMap mydhmap;
-  /**
-   * The thread id involved 
-   **/
-  private int threadid;
-  /**
-   * The total number of threads
-   **/
-  private int numthreads;
+public class LookUpService extends Task {
+	DistributedHashMap dir;
+	DistributedHashMap fs;
+	
+	public LookUpService(Queue todoList, DistributedHashMap dir, DistributedHashMap fs) {
+		this.todoList = todoList;
+		this.dir = dir;
+		this.fs = fs;
+	}
+	
+	public void init() {
+		fillHashTable();
+		fillTodoList();
+	}
+	
+	public void fillHashTable() {
+		GlobalString path;
+		DistributedLinkedList list; 
 
-  /**
-   * The total number of transactions 
-   **/
-  private int numtrans;
+		atomic {
+			path = global new GlobalString("/home/");
+			list = global new DistributedLinkedList();
 
-  /**
-   * The total number of objects created
-   **/
-  private int nobjs;
+			dir.put(path, list);
+		}
+	}
+	
+	public void fillTodoList() {
+		GlobalString directory;
+		GlobalString file;
+		GlobalString val;
+		String str;
+		String str2;
+		Transaction t;
+		char c;
 
-  /**
-   * The probability of initiating a look up
-   * the read probability % between 0-99
-   **/
-  private int rdprob;
+		atomic {
+			c = 'w';
+			for (int i = 0; i < 100; i++) {
+				directory = global new GlobalString("/home/folder_"+i+"/");
+				str = new String("/home/folder_"+i+"/");
+				t = global new Transaction(c, directory);
+				todoList.push(t);
+	
+					for (int j = 0; j < 100; j++) {
+					file = global new GlobalString(str+"file_"+j);
+					str2 = new String(str+"file_"+j);
+					val = global new GlobalString("This is "+str2);
+					t = global new Transaction(c, file, val);
+					todoList.push(t);
+				}
+			}
+	
+			c = 'r';
+			directory = global new GlobalString("/home/");
+			t = global new Transaction(c, directory);
+			todoList.push(t);
 
-  /**
-   * The number of look up operations
-   **/
-  private int nLookUp;
+			directory = global new GlobalString("/home/folder_28/");
+			t = global new Transaction(c, directory);
+			todoList.push(t);
 
-  public LookUpService() {
-  }
+			file = global new GlobalString("/home/folder_98/file_87");
+			t = global new Transaction(c, file);
+			todoList.push(t);
+		}
+	}
+	
+	public void execute() {
+		char command;
+		boolean isDir;
+		GlobalString gkey;
+		GlobalString gval;
+		int index;
 
-  public LookUpService(DistributedHashMap dmap, int threadid, int numthreads, int nobjs, int numtrans, int rdprob, int nLookUp) {
-    mydhmap = dmap;
-    this.threadid = threadid;
-    this.numthreads = numthreads;
-    this.nobjs = nobjs;
-    this.numtrans = numtrans;
-    this.rdprob = rdprob;
-    this.nLookUp = nLookUp;
-  }
+		String key;
+		String val;
 
-  public void run() {
-    int ntrans;
-    atomic {
-      ntrans = numtrans;
-    }
+		atomic {
+			command = ((Transaction)myWork).getCommand();
+			gkey = ((Transaction)myWork).getKey();
 
-    // Do read/writes
-    Random rand = new Random(0);
-      
-    for (int i = 0; i < ntrans; i++) {
-      atomic {
-        for(int j = 0; j < nLookUp; j++) {
-          int rdwr = rand.nextInt(100);
-          int rwkey = rand.nextInt(nobjs);
-          Integer key = global new Integer(rwkey);
-          if (rdwr < rdprob) {
-            Object o3 = mydhmap.get(key); //Read
-          } else {
-            Integer val = global new Integer(j);
-            mydhmap.put(key, val); //Modify 
-          }
-        }
-      }
-    }
-  }
+			key = gkey.toLocalString();
+			index = gkey.lastindexOf('/');
+			if (index+1 == gkey.length()) 
+				isDir = true;
+			else 
+				isDir = false;
+		}
 
-  public static void main(String[] args) {
-    LookUpService ls = new LookUpService();
-    LookUpService.parseCmdLine(args,ls);
+		if (command == 'r') {	
+			System.out.println("["+command+"] ["+key+"]");
+			if (isDir == true) {
+				atomic {
+					readDirectory(gkey);
+				}
+			}
+			else {
+				atomic {
+					readFile(gkey);
+				}
+			}
+		}
+		else if (command == 'w') {	
+			if (isDir == true) {
+				System.out.println("["+command+"] ["+key+"]");
+				atomic {
+					createDirectory(gkey);
+				}
+			}
+			else {
+				atomic {
+					gval = ((Transaction)myWork).getValue();
+					val = gval.toLocalString();
+				}
+				System.out.println("["+command+"] ["+key+"] ["+val+"]");
+				atomic {
+					createFile(gkey, gval);
+				}
+			}
+		}
+	}
 
-    int nthreads = ls.numthreads;
-    int[] mid = new int[8];
-    mid[0] = (128<<24)|(195<<16)|(136<<8)|162;//dc-1
-    mid[1] = (128<<24)|(195<<16)|(136<<8)|163;//dc-2
-    mid[2] = (128<<24)|(195<<16)|(136<<8)|164;//dc-3
-    mid[3] = (128<<24)|(195<<16)|(136<<8)|165;//dc-4
-    mid[4] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
-    mid[5] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
-    mid[6] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
-    mid[7] = (128<<24)|(195<<16)|(136<<8)|169;//dc-8
+	public void readFile(GlobalString gkey) {
+		GlobalString gval;
 
-    LookUpService[] lus;
-    DistributedHashMap dhmap;
+		gval = (GlobalString)(fs.get(gkey));
+		if (gval != null) {
+			System.out.println("<"+gval.toLocalString()+">");
+		}
+		else {
+			System.out.println("No such file or directory");
+		}
+	}
 
-    atomic {
-      dhmap = global new DistributedHashMap(100, 100, 0.75f);
-      //Add to the hash map
-      for(int i = 0; i < ls.nobjs; i++) {
-        Integer key = global new Integer(i);
-        Integer val = global new Integer(i*i);
-        Object o1 = key;
-        Object o2 = val;
-        dhmap.put(o1, o2);
-      }
-      lus = global new LookUpService[nthreads];
-      for(int i = 0; i<nthreads; i++) {
-        lus[i] = global new LookUpService(dhmap, i, ls.numthreads, ls.nobjs, ls.numtrans, ls.rdprob, ls.nLookUp);
-      }
-    }
+	public void readDirectory(GlobalString gkey) {
+		DistributedLinkedList list;
+		Iterator iter;
+		GlobalString gval;
 
-    LookUpService tmp;
-    /* Start threads */
-    for(int i = 0; i<nthreads; i++) {
-      atomic {
-        tmp = lus[i];
-      }
-      tmp.start(mid[i]);
-    }
+		list = (DistributedLinkedList)(dir.get(gkey));
 
-    /* Join threads */
-    for(int i = 0; i<nthreads; i++) {
-      atomic {
-        tmp = lus[i];
-      }
-      tmp.join();
-    }
+		if (list != null) {
+			iter = list.iterator();
+			while (iter.hasNext() == true) {
+				gval = (GlobalString)(iter.next());
+				System.out.print("["+gval.toLocalString()+"] ");
+			}
+			System.out.println("");
+		}
+		else {
+			System.out.println("No such file or directory");
+		}
+	}
 
-    System.printString("Finished\n");
-  }
+	public void createFile(GlobalString gkey, GlobalString gval) {
+		GlobalString path;
+		GlobalString target;
+		int index;
+		DistributedLinkedList list;
 
-  /**
-   * Parse the command line options.
-   **/
-  public static void parseCmdLine(String args[], LookUpService lus) {
-    int i = 0;
-    String arg;
-    while(i < args.length && args[i].startsWith("-")) {
-      arg = args[i++];
-      //check options
-      if(arg.equals("-N")) {
-        if(i < args.length) {
-          lus.numthreads = new Integer(args[i++]).intValue();
-        }
-      } else if(arg.equals("-nEntry")) {
-        if(i < args.length) {
-          lus.nobjs = new Integer(args[i++]).intValue();
-        }
-      } else if (arg.equals("-nTrans")) {
-        if(i < args.length) {
-          lus.numtrans =  new Integer(args[i++]).intValue();
-        }
-      } else if(arg.equals("-probRead")) {
-        if(i < args.length) {
-          lus.rdprob = new Integer(args[i++]).intValue();
-        }
-      } else if(arg.equals("-nLookUp")) {
-        if(i < args.length) {
-          lus.nLookUp = new Integer(args[i++]).intValue();
-        }
-      } else if(arg.equals("-h")) {
-        lus.usage();
-      }
-    }
+		index = gkey.lastindexOf('/');
+		path = gkey.subString(0, index+1);
+		target = gkey.subString(index+1);
 
-    if(lus.nobjs == 0  || lus.numtrans == 0)
-      lus.usage();
-  }
+		if (dir.containsKey(path)) {
+			list = (DistributedLinkedList)(dir.get(path));
+			list.push(target);
+			dir.put(path, list);
+			fs.put(gkey, gval);
+		}
+		else {
+			System.out.println("Cannot create file");
+		}
+	}
 
-  /**
-   * The usage routine which describes the program options.
-   **/
-  public void usage() {
-    System.printString("usage: ./LookUpServiceN.bin master -N <threads> -nEntry <objects in hashmap> -nTrans <number of transactions> -probRead <read probability> -nLookUp <number of lookups>\n");
-    System.printString("    -N the number of threads\n");
-    System.printString("    -nEntry the number of objects to be inserted into distributed hashmap\n");
-    System.printString("    -nTrans the number of transactions to run\n");
-    System.printString("    -probRead the probability of read given a transaction\n");
-    System.printString("    -nLookUp the number of lookups per transaction\n");
-    System.printString("    -h help with usage\n");
-  }
+	public void createDirectory(GlobalString gkey) {
+		int index;
+		GlobalString path;
+		GlobalString target;
+		DistributedLinkedList list;
+
+		index = gkey.lastindexOf('/', gkey.length()-2);
+
+		if (index != -1) {
+			path = gkey.subString(0, index+1);
+			target = gkey.subString(index+1);
+
+			if (dir.containsKey(path)) {
+				list = (DistributedLinkedList)(dir.get(path));
+				list.push(target);
+				dir.put(path, list);
+
+				list = global new DistributedLinkedList();
+				dir.put(gkey, list);
+			}
+			else {
+				System.out.println("Cannot create directory");
+			}
+		}
+	}
+	
+	public void createFile(GlobalString gkey) {
+	}
+
+	public Object read(DistributedHashMap mydhmap, GlobalString key) {
+		Object obj = mydhmap.get(key); 
+		
+		return obj;
+	}
+	
+	public static void main(String[] args) {
+		int NUM_THREADS = 3;
+
+		NUM_THREADS = Integer.parseInt(args[0]);
+		
+		int[] mid = new int[NUM_THREADS];
+//		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
+//		mid[0] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
+//		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
+		mid[0] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
+		mid[1] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
+		mid[2] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
+		
+		LookUpService[] lus;
+		LookUpService initLus;
+
+		Work[] works;
+		Transaction[] currentWorkList;		// type might be something else
+		
+		atomic {
+			Queue todoList = global new Queue();
+			
+			currentWorkList = global new Transaction[NUM_THREADS];		// something else
+			works = global new Work[NUM_THREADS];
+			
+			DistributedHashMap fs = global new DistributedHashMap(500, 500, 0.75f);
+			DistributedHashMap dir = global new DistributedHashMap(500, 500, 0.75f);
+		
+			initLus = global new LookUpService(todoList, dir, fs);
+			initLus.init();
+
+			lus = global new LookUpService[NUM_THREADS];
+			for(int i = 0; i < NUM_THREADS; i++) {
+				lus[i] = global new LookUpService(initLus.todoList, initLus.dir, initLus.fs);
+				works[i] = global new Work(lus[i], NUM_THREADS, i, currentWorkList);
+			}
+		}
+
+		Work tmp;
+		/* Start threads */
+		for(int i = 0; i < NUM_THREADS; i++) {
+			atomic {
+				tmp = works[i];
+			}
+			Thread.myStart(tmp, mid[i]);
+		}
+		
+		/* Join threads */
+		for(int i = 0; i < NUM_THREADS; i++) {
+			atomic {
+				tmp = works[i];
+			}
+			tmp.join();
+		}
+		
+		System.printString("Finished\n");
+	}
+}
+
+public class Transaction {			// object for todoList
+	char command;		// 'r'ead, 'w'rite
+	GlobalString key;
+	GlobalString val;
+	
+	Transaction (char c, GlobalString key) {
+		command = c;
+		
+		atomic {
+			this.key = global new GlobalString(key);
+		}
+	}
+	
+	Transaction (char c, GlobalString key, GlobalString val) {
+		command = c;
+		
+		atomic {
+			this.key = global new GlobalString(key);
+			this.val = global new GlobalString(val);
+		}
+	}
+	
+	public char getCommand() {
+		return command;
+	}
+	
+	public GlobalString getKey() {
+		return key;
+	}
+	
+	public GlobalString getValue() {
+		return val;
+	}
 }
