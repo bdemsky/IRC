@@ -391,16 +391,19 @@ public class Mail {
    **/
   public Vector checkMail(int userid) {
     //Preprocess emails
-    //Vector partsOfMailStrings = mail.createMailStringsWithURL();
-    //Vector partsOfMailStrings = getCommonPart();
-    //partsOfMailStrings.addElement(getBodyString());
-    Vector partsOfMailStrings = returnEmail();
-    
 
+    //long startGetParts=System.currentTimeMillis();
+    Vector partsOfMailStrings = returnEmail();
+    //long stopGetParts=System.currentTimeMillis();
+    //System.out.println("Time to read email= " + (stopGetParts-startGetParts));
+    
     //Compute signatures
     SignatureComputer sigComp = new SignatureComputer();
     //Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
+    //long startGetsignatures=System.currentTimeMillis();
     Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of vector of strings
+    //long stopGetsignatures=System.currentTimeMillis();
+    //System.out.println("Time to Getsignatures= " + (stopGetsignatures-startGetsignatures));
 
     return signatures;
   }

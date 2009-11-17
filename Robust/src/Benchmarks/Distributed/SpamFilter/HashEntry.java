@@ -46,8 +46,6 @@ public class HashEntry {
   }
 
   public boolean equals(Object o) {
-    if(o.getType()!=getType())
-      return false;
     HashEntry he = (HashEntry)o;
     if(!(he.getEngine().equals(engine)))
       return false;

@@ -27,6 +27,7 @@ public class GString {
     this.offset = gstr.offset;
   }
 
+  /*
   public GString(StringBuffer gsb) {
     value = global new char[gsb.length()];
     count = gsb.length();
@@ -34,6 +35,7 @@ public class GString {
     for (int i = 0; i < count; i++) 
       value[i] = gsb.value[i];
   }
+  */
 
   public GString(char str[]) {
     char charstr[]=new char[str.length];
