@@ -2,7 +2,9 @@ public class HashEntry {
   GString engine;
   GString signature;
   HashStat stats;
+
   public HashEntry() {
+
   }
 
   /**
