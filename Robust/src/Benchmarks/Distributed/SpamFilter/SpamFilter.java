@@ -43,11 +43,13 @@ public class SpamFilter extends Thread {
     }
 
     Random rand = new Random(thid);
+    int i;
 
-    for(int i=0; i<niter; i++) {
+    for(i=0; i<niter; i++) {
       correct =0;
       wrong = 0;
       for(int j=0; j<nemails; j++) {
+        // long start = System.currentTimeMillis();
         int pickemail = rand.nextInt(100);
 
         //System.out.println("pickemail= " + pickemail);
@@ -59,9 +61,13 @@ public class SpamFilter extends Thread {
 
         //check with global data structure
         int[] confidenceVals=null;
+        // long startcheck = System.currentTimeMillis(); 
         atomic {
           confidenceVals = check(signatures,thid);
         }
+        // long stopcheckMail = System.currentTimeMillis(); 
+        // long diff = (stopcheckMail-startcheck);
+        // System.out.println("check takes= " + diff + "millisecs");
 
         /* Only for debugging
         for(int k=0; k<signatures.size();k++) {
@@ -71,7 +77,11 @@ public class SpamFilter extends Thread {
 
         //---- create and  return results --------
         FilterResult filterResult = new FilterResult();
+        //long startgetResult = System.currentTimeMillis();
         boolean filterAnswer = filterResult.getResult(confidenceVals);
+        //long stopgetResult = System.currentTimeMillis();
+        //diff = (stopgetResult-startgetResult);
+        //System.out.println("getResult takes= " + diff + "millisecs");
 
         //---- get user's take on email and send feedback ------
         boolean userAnswer = email.getIsSpam();
@@ -81,17 +91,26 @@ public class SpamFilter extends Thread {
         if(filterAnswer != userAnswer) {
           /* wrong answer from the spam filter */
           wrong++;
+          //long startsendFeedBack = System.currentTimeMillis();
           atomic {
             sendFeedBack(signatures, userAnswer, thid, rand);
           }
+          //long stopsendFeedBack = System.currentTimeMillis();
+          //diff = (stopsendFeedBack-startsendFeedBack);
+          //System.out.println("sendFeedback takes= " + diff + "millisecs");
         }
         else {
           /* Correct answer from the spam filter */
           correct++;
         }
+        //long stop = System.currentTimeMillis();
+        //diff = stop-start;
+        //System.out.println("time to complete iteration" + j + " = " + diff + " millisecs");
       } //end num emails
-      System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
+      // System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     }//end num iter
+    // Sanity check
+    System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
   }
 
   public static void main(String[] args) {
@@ -300,8 +319,10 @@ public class SpamFilter extends Thread {
       myhe.setsig(signature);
 
       // ----- now connect to global data structure and update stats -----
-      if(!mydhmap.containsKey(myhe)) {
+      if(mydhmap.containsKey(myhe)) {
         HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
+
+
         if(tmphe.stats.userid[id] != 1) {
           tmphe.stats.setuserid(id);
         }
@@ -334,9 +355,9 @@ public class SpamFilter extends Thread {
             fs.increaseSpam();
           }
         } //end of pickemail
-      }
+      }//end of if
     }//end of for
-  }//end of seedfeedback
+  }//end of sendFeeback()
 }
 
 
