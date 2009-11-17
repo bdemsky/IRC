@@ -299,75 +299,44 @@ public class SpamFilter extends Thread {
       myhe.setengine(engine);
       myhe.setsig(signature);
 
-
-
       // ----- now connect to global data structure and update stats -----
-      //HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
-      HashEntry tmphe;
-      FilterStatistic fs;
-      int hashCode = myhe.hashCode();
-      int index1 = mydhmap.hash1(hashCode, mydhmap.table.length);
-      DistributedHashEntry testhe = mydhmap.table[index1];
-      if(testhe==null) {
-        tmphe=null;
-        fs=null;
-      } else {
-        DHashEntry ptr=testhe.array;
-        int point=0;
-        while(ptr !=null) {
-          if(ptr.hashval==hashcode&&ptr.key.equals(key)) {
-            tmphe=ptr.key;
-            fs=ptr.value;
-            point=1;
-            break;
+      if(!mydhmap.containsKey(myhe)) {
+        HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
+        if(tmphe.stats.userid[id] != 1) {
+          tmphe.stats.setuserid(id);
+        }
+
+        //---- get value from distributed hash and update spam count
+        FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); 
+
+        //System.out.println(fs.toString());
+
+        //Allow users to give incorrect feedback
+        int pickemail = myrand.nextInt(100);
+        /* Randomly allow user to provide incorrect feedback */
+        if(pickemail < 95) {
+          //give correct feedback 95% of times
+          //Increment spam or ham value 
+          if(isSpam) {
+            tmphe.stats.incSpamCount(id);
+            fs.increaseSpam();
+          } else {
+            tmphe.stats.incHamCount(id);
+            fs.increaseHam();
           }
-          ptr=ptr.next;
-        }
-        if(point != 1) {
-          tmphe=null;
-          fs=null;
-        }
-      }
-      //tmphe has the key at the end
-      //fs has the value at the end      
-
-
-      if(tmphe.stats.userid[id] != 1) {
-        tmphe.stats.setuserid(id);
-      }
-
-
-      //---- get value from distributed hash and update spam count
-      //FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); 
-
-
-      //System.out.println(fs.toString());
-
-      //Allow users to give incorrect feedback
-      int pickemail = myrand.nextInt(100);
-      /* Randomly allow user to provide incorrect feedback */
-      if(pickemail < 95) {
-        //give correct feedback 95% of times
-        //Increment spam or ham value 
-        if(isSpam) {
-          tmphe.stats.incSpamCount(id);
-          fs.increaseSpam();
         } else {
-          tmphe.stats.incHamCount(id);
-          fs.increaseHam();
-        }
-      } else {
-        // Give incorrect feedback 5% of times
-        if(isSpam) {
-          tmphe.stats.incHamCount(id);
-          fs.increaseHam();
-        } else {
-          tmphe.stats.incSpamCount(id);
-          fs.increaseSpam();
-        }
-      } //end of pickemail
-    }
-  }
+          // Give incorrect feedback 5% of times
+          if(isSpam) {
+            tmphe.stats.incHamCount(id);
+            fs.increaseHam();
+          } else {
+            tmphe.stats.incSpamCount(id);
+            fs.increaseSpam();
+          }
+        } //end of pickemail
+      }
+    }//end of for
+  }//end of seedfeedback
 }
 
 

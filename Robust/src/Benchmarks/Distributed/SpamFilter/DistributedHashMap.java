@@ -1,6 +1,6 @@
 public class DistributedHashMap {
-  public DistributedHashEntry[] table;
-  public float loadFactor;
+  DistributedHashEntry[] table;
+  float loadFactor;
 
   public DistributedHashMap(int initialCapacity, float loadFactor) {
     init(initialCapacity, loadFactor);
@@ -19,14 +19,13 @@ public class DistributedHashMap {
       return value;
   }
 
-  /*
   Object remove(Object key) {
     int hashcode=key.hashCode();
     int index1=hash1(hashcode, table.length);
     DistributedHashEntry dhe=table[index1];
     if (dhe==null)
       return null;
-    HashEntry ptr=dhe.array;
+    DHashEntry ptr=dhe.array;
 
     if (ptr!=null) {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
@@ -55,7 +54,7 @@ public class DistributedHashMap {
     if (dhe==null)
       return null;
 
-    HashEntry ptr=dhe.array;
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
@@ -76,7 +75,7 @@ public class DistributedHashMap {
     if (dhe==null)
       return null;
 
-    HashEntry ptr=dhe.array;
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
@@ -95,7 +94,7 @@ public class DistributedHashMap {
     if (dhe==null)
       return false;
 
-    HashEntry ptr=dhe.array;
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode
@@ -115,7 +114,7 @@ public class DistributedHashMap {
 	dhe=global new DistributedHashEntry();
 	table[index1]=dhe;
     }
-    HashEntry ptr=dhe.array;
+    DHashEntry ptr=dhe.array;
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
@@ -126,7 +125,7 @@ public class DistributedHashMap {
       ptr=ptr.next;
     }
 
-    HashEntry he=global new HashEntry();
+    DHashEntry he=global new DHashEntry();
     he.value=value;
     he.key=key;
     he.hashval=hashcode;
@@ -137,7 +136,6 @@ public class DistributedHashMap {
     
     return null;
   }
-  */
 }
 
 class DistributedHashEntry {
@@ -149,10 +147,10 @@ class DistributedHashEntry {
 
 
 class DHashEntry {
-  public HashEntry() {
+  public DHashEntry() {
   }
   int hashval;
-  HashEntry key;
-  FilterStatistic value;
+  Object key;
+  Object value;
   DHashEntry next;
 }
