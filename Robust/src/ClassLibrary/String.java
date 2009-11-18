@@ -389,29 +389,36 @@ public class String {
 
     // skip fisrt spaces
     for(i = 0; i< count;i++) {
-      if(value[i] != '\n' && value[i] != '\t' && value[i] != ' ') 
-        break;
+      if(value[i+offset] != '\n' && value[i+offset] != '\t' && value[i+offset] != ' ') 
+	  break;
     }
 
-    String tmpStr = new String();
+    int oldi=i;
 
     while(i<count) {
-      if(value[i] == '\n' || value[i] == '\t' || value[i] == ' ') {
-        splitted.addElement(tmpStr);
-        tmpStr = "";
+      if(value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ') {
+	  String t=new String();
+	  t.value=value;
+	  t.offset=oldi;
+	  t.count=i-oldi;
+	  splitted.addElement(t);
+	  oldi=i;
 
-        // skip extra spaces
-        while( i < count && ( value[i] == '\n' || value[i] == '\t' || value[i] == ' ')) {
-          i++;
-        }
-      }else {
-        tmpStr += value[i];
-        i++;
+	  // skip extra spaces
+	  while( i < count && ( value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ')) {
+	      i++;
+	  }
+      } else {
+	  i++;
       }
     }
 
-    if(!tmpStr.equals("")) {
-      splitted.addElement(tmpStr);
+    if(i!=oldi) {
+	String t=new String();
+	t.value=value;
+	t.offset=oldi;
+	t.count=i-oldi;
+	splitted.addElement(t);
     }
     
     return splitted;
