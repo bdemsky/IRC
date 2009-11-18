@@ -402,12 +402,12 @@ public class String {
 	  t.offset=oldi;
 	  t.count=i-oldi;
 	  splitted.addElement(t);
-	  oldi=i;
 
 	  // skip extra spaces
 	  while( i < count && ( value[i+offset] == '\n' || value[i+offset] == '\t' || value[i+offset] == ' ')) {
 	      i++;
 	  }
+	  oldi=i;
       } else {
 	  i++;
       }
