@@ -36,33 +36,60 @@ public class LookUpService extends Task {
 
 		atomic {
 			c = 'w';
-			for (int i = 0; i < 100; i++) {
-				directory = global new GlobalString("/home/folder_"+i+"/");
-				str = new String("/home/folder_"+i+"/");
-				t = global new Transaction(c, directory);
+
+			directory = global new GlobalString("/home/folder/");
+			str = new String("/home/folder/");
+			t = global new Transaction(c, directory);
+			todoList.push(t);
+
+			for (int i = 0; i < 1000; i++) {
+				file = global new GlobalString(str+"file_"+i);
+				str2 = new String(str+"file_"+i);
+				val = global new GlobalString("This is "+str2);
+				t = global new Transaction(c, file, val);
 				todoList.push(t);
-	
-					for (int j = 0; j < 100; j++) {
-					file = global new GlobalString(str+"file_"+j);
-					str2 = new String(str+"file_"+j);
-					val = global new GlobalString("This is "+str2);
-					t = global new Transaction(c, file, val);
-					todoList.push(t);
-				}
 			}
+		}
+
+		int rdprob = 95;
+		int dirprob = 90;
+		int rdwr;
+		int isdir;
+		int findex;
+		Random rand = new Random(0);
+
+		atomic {
+			for (int i = 0; i < 10000; i++) {
+				rdwr = rand.nextInt(100);
+				isdir = rand.nextInt(100);
+				findex = rand.nextInt(1000);
 	
-			c = 'r';
-			directory = global new GlobalString("/home/");
-			t = global new Transaction(c, directory);
-			todoList.push(t);
-
-			directory = global new GlobalString("/home/folder_28/");
-			t = global new Transaction(c, directory);
-			todoList.push(t);
-
-			file = global new GlobalString("/home/folder_98/file_87");
-			t = global new Transaction(c, file);
-			todoList.push(t);
+				if (rdwr < rdprob) {
+					c = 'r';
+					if (isdir < dirprob) {		// file
+						file = global new GlobalString(str+"file_"+findex);
+						t = global new Transaction(c, file);
+					}
+					else {										// dir
+						directory = global new GlobalString(str);
+						t = global new Transaction(c, directory);
+					}
+				}
+				else {
+					c = 'w';
+					if (isdir < dirprob) {		// file
+						file = global new GlobalString(str+"file_"+findex);
+						str2 = new String(str+"file_"+findex);
+						val = global new GlobalString(str2+" has been modified!!");
+						t = global new Transaction(c, file, val);
+					}
+					else {										// dir
+						directory = global new GlobalString(str+"new_dir_"+findex+"/");
+						t = global new Transaction(c, directory);
+					}
+				}
+				todoList.push(t);
+			}
 		}
 	}
 	
@@ -126,7 +153,7 @@ public class LookUpService extends Task {
 
 		gval = (GlobalString)(fs.get(gkey));
 		if (gval != null) {
-			System.out.println("<"+gval.toLocalString()+">");
+//			System.out.println("<"+gval.toLocalString()+">");
 		}
 		else {
 			System.out.println("No such file or directory");
@@ -144,9 +171,9 @@ public class LookUpService extends Task {
 			iter = list.iterator();
 			while (iter.hasNext() == true) {
 				gval = (GlobalString)(iter.next());
-				System.out.print("["+gval.toLocalString()+"] ");
+//				System.out.print("["+gval.toLocalString()+"] ");
 			}
-			System.out.println("");
+//			System.out.println("");
 		}
 		else {
 			System.out.println("No such file or directory");
