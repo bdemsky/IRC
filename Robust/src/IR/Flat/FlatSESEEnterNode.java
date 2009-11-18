@@ -8,6 +8,7 @@ import Analysis.MLP.SESEEffectsKey;
 import Analysis.MLP.SESEEffectsSet;
 import Analysis.MLP.SESEandAgePair;
 import Analysis.MLP.VariableSourceToken;
+import Analysis.OwnershipAnalysis.HeapRegionNode;
 import IR.ClassDescriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
@@ -337,15 +338,15 @@ public class FlatSESEEnterNode extends FlatNode {
     return 31*id;
   }
   
-  public void writeEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId, boolean strongUpdate){
-	  seseEffectsSet.addWritingVar(td, new SESEEffectsKey(fd, type, hrnId));
+  public void writeEffects(TempDescriptor td, String fd, TypeDescriptor type, HeapRegionNode hrn, boolean strongUpdate){
+	  seseEffectsSet.addWritingVar(td, new SESEEffectsKey(fd, type, hrn.getID(), hrn.getGloballyUniqueIdentifier()));
 	  if(strongUpdate){
-		  seseEffectsSet.addStrongUpdateVar(td, new SESEEffectsKey(fd, type, hrnId));
+		  seseEffectsSet.addStrongUpdateVar(td, new SESEEffectsKey(fd, type, hrn.getID(), hrn.getGloballyUniqueIdentifier()));
 	  }
   }
   
-  public void readEffects(TempDescriptor td, String fd, TypeDescriptor type, Integer hrnId ){
-	  seseEffectsSet.addReadingVar(td, new SESEEffectsKey(fd, type, hrnId));
+  public void readEffects(TempDescriptor td, String fd, TypeDescriptor type, HeapRegionNode hrn ){
+	  seseEffectsSet.addReadingVar(td, new SESEEffectsKey(fd, type, hrn.getID(), hrn.getGloballyUniqueIdentifier()));
   }
   
   public SESEEffectsSet getSeseEffectsSet(){

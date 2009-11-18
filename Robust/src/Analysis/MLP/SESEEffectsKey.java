@@ -7,11 +7,13 @@ public class SESEEffectsKey {
 	private String fd;
 	private TypeDescriptor td;
 	private Integer hrnId;
+	private String hrnUniqueId;
 
-	public SESEEffectsKey(String fd, TypeDescriptor td, Integer hrnId) {
+	public SESEEffectsKey(String fd, TypeDescriptor td, Integer hrnId, String hrnUniqueId) {
 		this.fd = fd;
 		this.td = td;
 		this.hrnId = hrnId;
+		this.hrnUniqueId=hrnUniqueId;
 	}
 
 	public String getFieldDescriptor() {
@@ -24,6 +26,10 @@ public class SESEEffectsKey {
 
 	public Integer getHRNId() {
 		return hrnId;
+	}
+	
+	public String getHRNUniqueId(){
+		return hrnUniqueId;
 	}
 
 	public String toString() {

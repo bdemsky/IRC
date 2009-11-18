@@ -40,7 +40,9 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
+							fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+//							effectsSet.addReadingVar(paramID, new EffectsKey(
+//									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
 						}
 					}
@@ -55,7 +57,9 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
+									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+//							effectsSet.addReadingVar(paramID, new EffectsKey(
+//									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
 						}
 					}
@@ -107,10 +111,14 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+//							effectsSet.addWritingVar(paramID, new EffectsKey(
+//									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							if(strongUpdate){
 								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+//								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+//										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							}
 
 						}
@@ -126,10 +134,14 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+//							effectsSet.addWritingVar(paramID, new EffectsKey(
+//									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							if(strongUpdate){
 								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+//								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+//										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							}
 
 						}

@@ -211,9 +211,18 @@ public class MLPAnalysis {
     // Parent/child memory conflicts analysis
     seseConflictsForward(javaCallGraph);
     
+    Set<MethodContext> keySet=mapMethodContextToLiveInAllocationSiteSet.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+		MethodContext methodContext = (MethodContext) iterator.next();
+		HashSet<AllocationSite> asSet=mapMethodContextToLiveInAllocationSiteSet.get(methodContext);
+		for (Iterator iterator2 = asSet.iterator(); iterator2.hasNext();) {
+			AllocationSite allocationSite = (AllocationSite) iterator2.next();
+		}
+	}
+    
      // disjoint analysis with a set of flagged allocation sites of live-in variables & stall sites
 	try {
-	  OwnershipAnalysis oa2 = new OwnershipAnalysis(state, 
+	  ownAnalysisForSESEConflicts = new OwnershipAnalysis(state, 
                                                         tu, 
                                                         callGraph, 
                                                         ownAnalysis.liveness,
@@ -1074,7 +1083,7 @@ public class MLPAnalysis {
 
 			FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 			assert fsen.equals(currentSESE);
-			
+
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				// uniquely taint each live-in variable
 				Set<TempDescriptor> set = fsen.getInVarSet();
@@ -1118,7 +1127,7 @@ public class MLPAnalysis {
 
 		case FKind.FlatSESEExitNode: {
 			FlatSESEExitNode fsexit = (FlatSESEExitNode) fn;
-			
+
 			if (!fsexit.getFlatEnter().getIsCallerSESEplaceholder()) {
 
 				FlatSESEEnterNode enterNode = fsexit.getFlatEnter();
@@ -1147,7 +1156,8 @@ public class MLPAnalysis {
 									.next();
 							parentEffectsSet.add(new SESEEffectsKey(seseKey
 									.getFieldDescriptor(), seseKey
-									.getTypeDescriptor(), seseKey.getHRNId()));
+									.getTypeDescriptor(), seseKey.getHRNId(),
+									seseKey.getHRNUniqueId()));
 						}
 
 						parentReadTable.put(td, parentEffectsSet);
@@ -1174,7 +1184,8 @@ public class MLPAnalysis {
 									.next();
 							parentEffectsSet.add(new SESEEffectsKey(seseKey
 									.getFieldDescriptor(), seseKey
-									.getTypeDescriptor(), seseKey.getHRNId()));
+									.getTypeDescriptor(), seseKey.getHRNId(),
+									seseKey.getHRNUniqueId()));
 						}
 
 						parentWriteTable.put(td, parentEffectsSet);
@@ -1202,7 +1213,8 @@ public class MLPAnalysis {
 									.next();
 							parentEffectsSet.add(new SESEEffectsKey(seseKey
 									.getFieldDescriptor(), seseKey
-									.getTypeDescriptor(), seseKey.getHRNId()));
+									.getTypeDescriptor(), seseKey.getHRNId(),
+									seseKey.getHRNUniqueId()));
 						}
 
 						parentstrongUpdateTable.put(td, parentEffectsSet);
@@ -1244,9 +1256,14 @@ public class MLPAnalysis {
 										.next();
 								if (field.getSymbol().equals(
 										referenceEdge.getField())) {
-									currentSESE.readEffects(affectedTD, field
-											.getSymbol(), src.getType(),
-											referenceEdge.getDst().getID());
+
+									HeapRegionNode refHRN = og.id2hrn
+											.get(referenceEdge.getDst().getID());
+
+									currentSESE
+											.readEffects(affectedTD, field
+													.getSymbol(),
+													src.getType(), refHRN);
 								}
 							}
 
@@ -1281,8 +1298,7 @@ public class MLPAnalysis {
 							TempDescriptor tempDescriptor = (TempDescriptor) referSetIter
 									.next();
 							currentSESE.readEffects(tempDescriptor, field
-									.getSymbol(), src.getType(), accessHRN
-									.getID());
+									.getSymbol(), src.getType(), accessHRN);
 						}
 						// }
 					}
@@ -1304,8 +1320,7 @@ public class MLPAnalysis {
 								while (hrnIter.hasNext()) {
 									HeapRegionNode hrn = hrnIter.next();
 									currentSESE.readEffects(affectedTD, field
-											.getSymbol(), src.getType(), hrn
-											.getID());
+											.getSymbol(), src.getType(), hrn);
 								}
 
 							}
@@ -1372,10 +1387,13 @@ public class MLPAnalysis {
 										.next();
 								if (field.getSymbol().equals(
 										referenceEdge.getField())) {
+
+									HeapRegionNode refHRN = og.id2hrn
+											.get(referenceEdge.getDst().getID());
+
 									currentSESE.writeEffects(affectedTD, field
 											.getSymbol(), dst.getType(),
-											referenceEdge.getDst().getID(),
-											strongUpdate);
+											refHRN, strongUpdate);
 								}
 							}
 
@@ -1409,8 +1427,8 @@ public class MLPAnalysis {
 							TempDescriptor tempDescriptor = (TempDescriptor) referSetIter
 									.next();
 							currentSESE.writeEffects(tempDescriptor, field
-									.getSymbol(), dst.getType(), accessHRN
-									.getID(), strongUpdate);
+									.getSymbol(), dst.getType(), accessHRN,
+									strongUpdate);
 						}
 						// }
 					}
@@ -1430,8 +1448,8 @@ public class MLPAnalysis {
 								while (hrnIter.hasNext()) {
 									HeapRegionNode hrn = hrnIter.next();
 									currentSESE.writeEffects(affectedTD, field
-											.getSymbol(), dst.getType(), hrn
-											.getID(), strongUpdate);
+											.getSymbol(), dst.getType(), hrn,
+											strongUpdate);
 
 								}
 
@@ -1503,9 +1521,13 @@ public class MLPAnalysis {
 									while (hrnIter.hasNext()) {
 										Integer hrnID = (Integer) hrnIter
 												.next();
+
+										HeapRegionNode refHRN = og.id2hrn
+												.get(hrnID);
+
 										currentSESE.readEffects(affectedTD, key
 												.getFieldDescriptor(), key
-												.getTypeDescriptor(), hrnID);
+												.getTypeDescriptor(), refHRN);
 									}
 								}
 							}
@@ -1524,10 +1546,14 @@ public class MLPAnalysis {
 									while (hrnIter.hasNext()) {
 										Integer hrnID = (Integer) hrnIter
 												.next();
+
+										HeapRegionNode refHRN = og.id2hrn
+												.get(hrnID);
+
 										currentSESE.writeEffects(affectedTD,
 												key.getFieldDescriptor(), key
 														.getTypeDescriptor(),
-												hrnID, false);
+												refHRN, false);
 									}
 
 								}
@@ -1547,10 +1573,14 @@ public class MLPAnalysis {
 									while (hrnIter.hasNext()) {
 										Integer hrnID = (Integer) hrnIter
 												.next();
+
+										HeapRegionNode refHRN = og.id2hrn
+												.get(hrnID);
+
 										currentSESE.writeEffects(affectedTD,
 												key.getFieldDescriptor(), key
 														.getTypeDescriptor(),
-												hrnID, true);
+												refHRN, true);
 									}
 
 								}
@@ -1571,6 +1601,7 @@ public class MLPAnalysis {
 	}
 	
 	private void flagAllocationSite(MethodContext mc, AllocationSite ac){
+		
 		HashSet<AllocationSite> set=mapMethodContextToLiveInAllocationSiteSet.get(mc);
 		if(set==null){
 			set=new HashSet<AllocationSite>();			
