@@ -11,7 +11,7 @@
 char** readList(char* fileName,int* num);
 void generateEmails(int,char**,int,char**,int,char**,int,char*);
 void freeList(char**,int);
-void writeString(FILE* newFile,char* prefix,char** list,int size_list);
+void writeString(FILE* newFile,char* prefix,char** list,int size_list,int* counter);
 
 int main()
 {
@@ -89,6 +89,9 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
    int bodyLength;
    int coin;
+   int accountCounter = 0;
+   int wordCounter = 0;
+   int urlCounter = 0;
    srand(1);
 
    for(i=0; i < num_email;i++) {
@@ -109,23 +112,23 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
      fprintf(newFile,"Header: %d\n",i+1);
      
      // write to account name
-     writeString(newFile,"To: ",al,ac_num);
+     writeString(newFile,"To: ",al,ac_num,&accountCounter);
      fprintf(newFile,"\n");
 
      // write from account name
-     writeString(newFile,"From: ",al,ac_num);
+     writeString(newFile,"From: ",al,ac_num,&accountCounter);
      fprintf(newFile,"\n");
 
      // write cc
-     writeString(newFile,"Cc: ",al,ac_num);
+     writeString(newFile,"Cc: ",al,ac_num,&accountCounter);
      fprintf(newFile,"\n");
 
      // attachments
-     writeString(newFile,"Attch: ",wl,word_num);
+     writeString(newFile,"Attch: ",wl,word_num,&wordCounter);
      fprintf(newFile,"\n");
 
      // write title
-     writeString(newFile,"Subject: ",wl,word_num);
+     writeString(newFile,"Subject: ",wl,word_num,&wordCounter);
      fprintf(newFile,"\n");
 
      // write Body
@@ -138,12 +141,12 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
        if(coin < 5) {           // if coin < 50, then write a URL
          if(coin <2)
-           writeString(newFile,"",al,ac_num); // email
+           writeString(newFile,"",al,ac_num,&accountCounter); // email
          else
-           writeString(newFile," ",ul,url_num); // url
+           writeString(newFile," ",ul,url_num,&urlCounter); // url
        }
        else {  // if not, write a word
-         writeString(newFile," ",wl,word_num);
+         writeString(newFile," ",wl,word_num,&wordCounter);
        }
        if((j % 10) == 0) 
         fprintf(newFile,"\n");
@@ -154,12 +157,16 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
    }
 }
 
-void writeString(FILE* newFile,char* prefix,char** list,int size_list)
+void writeString(FILE* newFile,char* prefix,char** list,int size_list,int* counter)
 {
-  int rand_index = rand() % size_list;
-  char* str = list[rand_index];
+  char* str = list[*counter];
 
   fprintf(newFile,"%s%s",prefix,str);
+
+  (*counter)++;
+
+  if(*counter == size_list)
+    *counter = 0;
 }
 
 
