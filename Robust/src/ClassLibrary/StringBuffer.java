@@ -15,6 +15,11 @@ public class StringBuffer {
     count=0;
   }
 
+    public StringBuffer(int i) {
+	value=new char[i];
+	count=0;
+    }
+
   public int length() {
     return count;
   }
@@ -49,6 +54,18 @@ public class StringBuffer {
     }
     return this;
   }
+
+    public void ensureCapacity(int i) {
+	int size=2*count;
+	if (i>size)
+	    size=i;
+	if (i>value.length) {
+	    char newvalue[]=new char[i];
+	    for(int ii=0;ii<count;ii++)
+		newvalue[ii]=value[ii];
+	    value=newvalue;
+	}
+    }
 
   public StringBuffer append(StringBuffer s) {
     if ((s.count+count)>value.length) {
