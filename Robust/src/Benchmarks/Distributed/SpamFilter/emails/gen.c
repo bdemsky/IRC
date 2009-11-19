@@ -1,17 +1,19 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
+#include<time.h>
 
 #define WORD_FILE "wordList"
 #define URL_FILE  "URLList"
 #define ACCOUNT_FILE "accountList"
 #define FILE_NAME "email"
-#define NUM_EMAIL 100
+#define NUM_EMAIL 600
 
 char** readList(char* fileName,int* num);
 void generateEmails(int,char**,int,char**,int,char**,int,char*);
 void freeList(char**,int);
 void writeString(FILE* newFile,char* prefix,char** list,int size_list,int* counter);
+void shuffle(char** list,int size_int);
 
 int main()
 {
@@ -165,11 +167,30 @@ void writeString(FILE* newFile,char* prefix,char** list,int size_list,int* count
 
   (*counter)++;
 
-  if(*counter == size_list)
+  if(*counter == size_list) {
     *counter = 0;
+    shuffle(list,size_list);
+  }
 }
 
+void shuffle(char** list,int size)
+{
+  int i;
+  srand(time(NULL));
+  int r1;
+  int r2;
+  char* tmp;
 
+  for(i =0;i < size;i++)
+  {
+    r2 = rand() % size;
+
+    tmp = list[i];
+    list[i] = list[r2];
+    list[r2] = tmp;
+  }
+
+}
 
 
 
