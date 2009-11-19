@@ -74,6 +74,7 @@ char** readList(char* fileName,int* num)
     (*num)++;
   }
 
+  fclose(fp);
   return list;  
 }
 
@@ -91,7 +92,6 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
    srand(1);
 
    for(i=0; i < num_email;i++) {
-
      sprintf(fileNameBuffer,"%s%d",fileName,i+1);
      newFile = fopen(fileNameBuffer,"w");
 
@@ -99,7 +99,7 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
      // 60% of email is spam and rest is ham
      char yes[] = "yes";
      char no[] =  "no";
-     int tmprandindex = rand() % num_email;
+     int tmprandindex = rand() % 100;
      if(tmprandindex<60)
        fprintf(newFile,"Spam: %s\n",yes);
      else 
@@ -129,7 +129,8 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
      fprintf(newFile,"\n");
 
      // write Body
-     bodyLength = rand() % 500 + 300;
+     //TODO change this to make length of email small
+     bodyLength = rand() % 200 + 150;
 
      for(j=1;j<bodyLength;j++)
      {
