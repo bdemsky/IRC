@@ -12,3 +12,4 @@ FLAGSFISSIONARRAY=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptim
 FLAGSDV=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -64bit -inlineatomic 2 -minimize -readset -sandbox -stmarray -dualview -abcclose -builddir dv -numa
 FLAGSHYDV=-mainclass ${MAINCLASS} -singleTM -delaycomp -optimize -joptimize -64bit -inlineatomic 2 -minimize -readset -sandbox -stmarray -dualview -abcclose -builddir hydv -hybrid -numa
 FLAGSBASE=-mainclass ${MAINCLASS} -singleTM -optimize -joptimize -64bit -minimize -arraypad -stmarray -sandbox -abcclose -inlineatomic 2 -builddir debug -numa
+
