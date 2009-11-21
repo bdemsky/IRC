@@ -121,6 +121,13 @@ typedef struct objheader {
 	   } while(1); \
 	 }}
 
+#define TRANSREADRDFISSION(x,y) {					\
+    void * inputvalue;							\
+    if ((inputvalue=y)==NULL) x=NULL;					\
+    else {								\
+      x=inputvalue;rd_t_chashInsertOnce(inputvalue, ((objheader_t *)inputvalue)[-1].version);} \
+  }
+
 /* =================================
  * Data structures
  * =================================

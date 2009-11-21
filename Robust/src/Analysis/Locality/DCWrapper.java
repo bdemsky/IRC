@@ -42,6 +42,7 @@ public class DCWrapper {
   Hashtable<LocalityBinding, Set<FlatNode>> notreadymap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   Hashtable<LocalityBinding, HashSet<FlatNode>> cannotdelaymap=new Hashtable<LocalityBinding, HashSet<FlatNode>>();
   Hashtable<LocalityBinding, Set<FlatNode>> derefmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
+  Hashtable<LocalityBinding, Set<FlatNode>> convmap=new Hashtable<LocalityBinding, Set<FlatNode>>();
   
   public DiscoverConflicts getConflicts() {
     DiscoverConflicts dc=new DiscoverConflicts(locality, state, typeanalysis, cannotdelaymap, false, false, state.READSET?gft:null);
@@ -95,12 +96,18 @@ public class DCWrapper {
     return othermap.get(lb);
   }
 
+  public Set<FlatNode> getConv(LocalityBinding lb) {
+    return convmap.get(lb);
+  }
+
   public Set<FlatNode> livecode(LocalityBinding lb) {
     return recordmap.get(lb);
   }
 
   private void processlb(LocalityBinding lb) {
     transmap.put(lb, new HashSet<FlatNode>());
+    Set<FlatNode> convset=new HashSet<FlatNode>();
+    convmap.put(lb, convset);
     if (lb.isAtomic()||!lb.getHasAtomic())
       return;
     
@@ -119,11 +126,13 @@ public class DCWrapper {
     Set<FlatNode> nnotready=new HashSet<FlatNode>();
     Set<FlatNode> nderef=new HashSet<FlatNode>();
 
+
     recordmap.put(lb, nrecordset);
     cannotdelaymap.put(lb, ncannotdelay);
     notreadymap.put(lb, nnotready);
     othermap.put(lb, notherset);
     derefmap.put(lb, nderef);
+
 
     FlatMethod fm=state.getMethodFlat(lb.getMethod());
     for(Iterator<FlatNode> fnit=fm.getNodeSet().iterator();fnit.hasNext();) {
@@ -147,6 +156,7 @@ public class DCWrapper {
 	  if (state.STMARRAY&&!state.DUALVIEW)
 	    nderef.addAll(tderef);
 	  transmap.get(lb).add(fn);
+	  convset.addAll(transSet);
 	} else {
 	  ncannotdelay.addAll(transSet);
 	}

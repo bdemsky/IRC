@@ -2940,7 +2940,10 @@ public class BuildCode {
 	  //need to do translation
 	  output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+", (void *)("+localsprefixaddr+"));");
 	} else if (state.READSET&&dc.getNeedTrans(lb, fgcn)) {
-	  output.println("TRANSREADRD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	  if (state.HYBRID&&delaycomp.getConv(lb).contains(fgcn)) {
+	    output.println("TRANSREADRDFISSION("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	  } else
+	    output.println("TRANSREADRD("+generateTemp(fm, fgcn.getSrc(),lb)+", "+generateTemp(fm, fgcn.getSrc(),lb)+");");
 	}
       }
     } else {
@@ -3045,7 +3048,7 @@ public class BuildCode {
       output.println("transaction_check_counter=*counter_reset_pointer;");
       sandboxcounter++;
     }
-    output.println("transStart();");
+    //output.println("transStart();");
 
     if (state.ABORTREADERS||state.SANDBOX) {
       if (state.SANDBOX)
@@ -3665,7 +3668,10 @@ public class BuildCode {
 	    (state.READSET&&dc.getNeedWriteTrans(lb, ffn))) {
 	  output.println("TRANSREAD("+dst+", "+dst+", (void *) (" + localsprefixaddr + "));");
 	} else if (state.READSET&&dc.getNeedTrans(lb, ffn)) {
-	  output.println("TRANSREADRD("+dst+", "+dst+");");
+	  if (state.HYBRID&&delaycomp.getConv(lb).contains(ffn)) {
+	    output.println("TRANSREADRDFISSION("+dst+", "+dst+");");
+	  } else
+	    output.println("TRANSREADRD("+dst+", "+dst+");");
 	}
       }
     } else if (state.DSM) {
@@ -3844,7 +3850,10 @@ public class BuildCode {
 	if ((dc==null)||!state.READSET&&dc.getNeedTrans(lb, fen)||state.READSET&&dc.getNeedWriteTrans(lb, fen)) {
 	  output.println("TRANSREAD("+dst+", "+dst+", (void *)(" + localsprefixaddr+"));");
 	} else if (state.READSET&&dc.getNeedTrans(lb, fen)) {
-	  output.println("TRANSREADRD("+dst+", "+dst+");");
+	  if (state.HYBRID&&delaycomp.getConv(lb).contains(fen)) {
+	    output.println("TRANSREADRDFISSION("+dst+", "+dst+");");
+	  } else
+	    output.println("TRANSREADRD("+dst+", "+dst+");");
 	}
       }
     } else if (state.DSM) {
