@@ -83,6 +83,7 @@ public class ScheduleAnalysis {
   }
 
   public boolean schedule(int generateThreshold,
+                          int skipThreshold,
                           Vector<TaskDescriptor> multiparamtds) {
     boolean tooptimize = true;
     try {
@@ -103,7 +104,7 @@ public class ScheduleAnalysis {
       // as possible
       CFSTGTransform();
       // mappint to real multi-core processor
-      tooptimize = coreMapping(generateThreshold);
+      tooptimize = coreMapping(generateThreshold, skipThreshold);
       toBreakDown = null;
     } catch (Exception e) {
       e.printStackTrace();
@@ -1198,7 +1199,8 @@ public class ScheduleAnalysis {
 
   // TODO: restrict the number of generated scheduling according to the setted
   // scheduleThreshold
-  private boolean coreMapping(int generateThreshold) throws Exception {
+  private boolean coreMapping(int generateThreshold,
+                              int skipThreshold) throws Exception {
     if(this.coreNum == -1) {
       throw new Exception("Error: un-initialized coreNum when doing scheduling.");
     }
@@ -1257,8 +1259,10 @@ public class ScheduleAnalysis {
                   combine, 
                   gid++);
             this.scheduleGraphs.add(sNodes);
-            combine = null;
             sNodes = null;
+            combine = null;
+          } else if(Math.abs(rand.nextInt()) % 100 > skipThreshold){
+            break;
           }
         }
         cGen.clear();

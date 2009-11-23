@@ -34,6 +34,8 @@ public class MCImplSynthesis {
                      // in the directed simulated annealing
   int generateThreshold; // how many optimized implementation generated in 
                          // each iteration of the directed simulated annealing
+  int skipThreshold; // the probability to skip to producing more optimization 
+                     // with the same root sets(see ScheduleAnalysis.coremapping)
 
   public MCImplSynthesis(State state, 
                          TaskAnalysis ta,
@@ -51,6 +53,7 @@ public class MCImplSynthesis {
     this.scheduleThreshold = 1000;
     this.probThreshold = 0;
     this.generateThreshold = 30;
+    this.skipThreshold = 100; // never skip
   }
 
   public int getCoreNum() {
@@ -136,7 +139,9 @@ public class MCImplSynthesis {
     // generate multiple schedulings
     this.scheduleAnalysis.setScheduleThreshold(this.scheduleThreshold);
     boolean tooptimize = 
-      this.scheduleAnalysis.schedule(this.generateThreshold, multiparamtds);
+      this.scheduleAnalysis.schedule(this.generateThreshold, 
+                                     this.skipThreshold,
+                                     multiparamtds);
     if(this.generateThreshold > 5) {
       this.generateThreshold = 5;
     }
@@ -375,8 +380,12 @@ public class MCImplSynthesis {
       it_tasks = null;
       
       // Generate all possible schedulings
-      this.scheduleAnalysis.setScheduleThreshold(Integer.MAX_VALUE);
-      this.scheduleAnalysis.schedule(-1, multiparamtds);
+      //this.scheduleAnalysis.setScheduleThreshold(Integer.MAX_VALUE);
+      //this.scheduleAnalysis.schedule(-1, multiparamtds);
+      this.scheduleAnalysis.setScheduleThreshold(10000);
+      this.scheduleAnalysis.schedule(80, 
+                                     20, // might skip
+                                     multiparamtds);
       this.scheduleSimulator.init();
 
       Vector<Vector<ScheduleNode>> totestscheduleGraphs = 
@@ -387,7 +396,7 @@ public class MCImplSynthesis {
       Vector<Integer> selectedSchedulings = new Vector<Integer>();
       Vector<SimExecutionNode> selectedSimExeGraphs = 
         new Vector<SimExecutionNode>();
-
+      
       File file=new File(this.state.outputdir+"distributeinfo_s_"+this.coreNum
                          +".out");
       FileOutputStream dotstream = null; 
@@ -442,7 +451,10 @@ public class MCImplSynthesis {
       this.probThreshold = 0;
       this.scheduleAnalysis.setScheduleThreshold(1000);
       boolean tooptimize = 
-        this.scheduleAnalysis.schedule(this.generateThreshold, multiparamtds);
+        this.scheduleAnalysis.schedule(this.generateThreshold, 
+                                       60, // might skip
+                                       multiparamtds);
+      this.scheduleSimulator.init();
 
       Vector<Vector<ScheduleNode>> scheduleGraphs = null;
       Vector<Vector<ScheduleNode>> totestscheduleGraphs = 
@@ -453,6 +465,7 @@ public class MCImplSynthesis {
       Vector<Integer> selectedSchedulings = new Vector<Integer>();
       Vector<SimExecutionNode> selectedSimExeGraphs = 
         new Vector<SimExecutionNode>();
+      SimExecutionNode selectedSimExeGraph_bk = null;
 
       File file=new File(this.state.outputdir + "distributeinfo_s_" 
                          + this.coreNum + ".out");
@@ -469,9 +482,9 @@ public class MCImplSynthesis {
       }
       PrintWriter output = new java.io.PrintWriter(dotstream, true);
       PrintWriter output2 = new java.io.PrintWriter(dotstream2, true);
-      output.println("start time(1,000,000 cycles): " 
+      output.println("start time(100,000,000 cycles): " 
                      + totestscheduleGraphs.size());
-      output2.println("optimized time(1,000,000 cycles): " 
+      output2.println("optimized time(100,000,000 cycles): " 
                       + totestscheduleGraphs.size());
       for(int ii = startnum; ii < totestscheduleGraphs.size(); ii++) {
         Vector<Vector<ScheduleNode>> newscheduleGraphs = 
@@ -484,6 +497,7 @@ public class MCImplSynthesis {
         Vector<ScheduleNode> schedulinggraph = null;
         boolean isfirst = true;
         Random rand = new Random();
+        int threshold = this.scheduleThreshold;
         // simulate the generated schedulings and try to optimize it
         System.out.print("=========================================================\n");
         System.out.print("# " + ii + ": \n");
@@ -538,11 +552,14 @@ public class MCImplSynthesis {
                 snode.getClassNodes().clear();
               }
               schedulinggraph.clear();
+              selectedSimExeGraph_bk = null;
             }
             scheduling = schedulings.elementAt(selectedSchedulings.elementAt(0));
-            schedulinggraph = 
-              scheduleGraphs.elementAt(selectedSchedulings.elementAt(0));
+            schedulinggraph = scheduleGraphs.elementAt(
+                selectedSchedulings.elementAt(0));
+            selectedSimExeGraph_bk = selectedSimExeGraphs.elementAt(0);
             tryindex++;
+            threshold = this.scheduleThreshold;
             System.out.print("end of: #" + tryindex + " (bestexetime: " 
                              + bestexetime + ")\n");
             System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
@@ -551,11 +568,34 @@ public class MCImplSynthesis {
                              + bestexetime + ")\n");
             System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
             tryindex++;
+            threshold = this.scheduleThreshold;
             if((Math.abs(rand.nextInt()) % 100) < this.probThreshold) {
               break;
             }
           } else {
-            break;
+            System.out.print("end of: #" + tryindex + " (bestexetime: " 
+                + bestexetime + ")\n");
+            System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+            tryindex++;
+            if(threshold == this.scheduleThreshold) {
+              if(scheduleGraphs != null) {
+                scheduleGraphs.clear();
+              }
+              scheduleGraphs.addElement(schedulinggraph);
+              if(selectedSchedulings != null) {
+                selectedSchedulings.clear();
+              }
+              selectedSchedulings.addElement(Integer.valueOf(0));
+              if(selectedSimExeGraphs != null) {
+                selectedSimExeGraphs.clear();
+              }
+              selectedSimExeGraphs.addElement(selectedSimExeGraph_bk);
+            }
+            threshold += 10;
+            if((Math.abs(rand.nextInt()) % 100) < this.probThreshold + 1) {
+              break;
+            }
+            //break;
           }
 
           if(tooptimize) {
@@ -611,7 +651,6 @@ public class MCImplSynthesis {
       multiparamtds = null;
       td2maincd.clear();
       td2maincd = null;
-
 
       // Close the streams.
       try {
