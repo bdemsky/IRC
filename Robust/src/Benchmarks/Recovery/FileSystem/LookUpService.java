@@ -1,6 +1,7 @@
 public class LookUpService extends Task {
 	DistributedHashMap dir;
 	DistributedHashMap fs;
+	GlobalString error[];			// String for incorrect path, etc.
 	
 	public LookUpService(Queue todoList, DistributedHashMap dir, DistributedHashMap fs) {
 		this.todoList = todoList;
@@ -9,8 +10,23 @@ public class LookUpService extends Task {
 	}
 	
 	public void init() {
+		makeErrorStatement();
 		fillHashTable();
 		fillTodoList();
+	}
+
+	public void makeErrorStatement() {
+		int num = 4;
+		int i = 0;
+
+		atomic {
+			error = global new GlobalString[num];
+
+			error[i++] = global new GlobalString("/hkhang/error/");						// w: no root (hkhang),	r: non existed path
+			error[i++] = global new GlobalString("/home/abc/def/ghi/");				// w: create multiple directories, r: non existed path
+			error[i++] = global new GlobalString("/home/hkhang/abc");					// w: create directory and file together
+			error[i++] = global new GlobalString("/home/hkhang/abc/def");			// w: create directory and file together
+		}
 	}
 	
 	public void fillHashTable() {
@@ -18,7 +34,7 @@ public class LookUpService extends Task {
 		DistributedLinkedList list; 
 
 		atomic {
-			path = global new GlobalString("/home/");
+			path = global new GlobalString("/home/");			// root is home
 			list = global new DistributedLinkedList();
 
 			dir.put(path, list);
@@ -51,7 +67,8 @@ public class LookUpService extends Task {
 			}
 		}
 
-		int rdprob = 95;
+		int rdprob = 93;
+		int wrtprob = 98;
 		int dirprob = 90;
 		int rdwr;
 		int isdir;
@@ -64,7 +81,7 @@ public class LookUpService extends Task {
 				isdir = rand.nextInt(100);
 				findex = rand.nextInt(1000);
 	
-				if (rdwr < rdprob) {
+				if (rdwr < rdprob) {				// read
 					c = 'r';
 					if (isdir < dirprob) {		// file
 						file = global new GlobalString(str+"file_"+findex);
@@ -75,7 +92,7 @@ public class LookUpService extends Task {
 						t = global new Transaction(c, directory);
 					}
 				}
-				else {
+				else if (rdwr >= rdprob && rdwr < wrtprob) {		// write
 					c = 'w';
 					if (isdir < dirprob) {		// file
 						file = global new GlobalString(str+"file_"+findex);
@@ -87,6 +104,12 @@ public class LookUpService extends Task {
 						directory = global new GlobalString(str+"new_dir_"+findex+"/");
 						t = global new Transaction(c, directory);
 					}
+				}
+				else {			// error
+					int err = rand.nextInt(4);
+					file = error[err];
+					val = global new GlobalString("It is error path!!");
+					t = global new Transaction(c, file, val);
 				}
 				todoList.push(t);
 			}
