@@ -5094,5 +5094,20 @@ public class OwnershipGraph {
 	  
 	  return identifier;
 	  
-  }  
+  }
+  
+	public HeapRegionNode getHRNbyUniqueID(String id) {
+
+		Enumeration<HeapRegionNode> elements = id2hrn.elements();
+		while (elements.hasMoreElements()) {
+			HeapRegionNode hrn = elements.nextElement();
+			if (hrn.getGloballyUniqueIdentifier().equals(id)) {
+				return hrn;
+			}
+		}
+		
+		return null;
+
+	}
+  
 }

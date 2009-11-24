@@ -18,7 +18,8 @@ public class StallSite {
 	private HashSet<Effect> effectSet;
 	private HashSet<HeapRegionNode> hrnSet;
 	private HashSet<AllocationSite> allocationSiteSet;
-	private ReachabilitySet reachabilitySet;
+//	private ReachabilitySet reachabilitySet;
+	HashSet<TokenTupleSet> reachabilitySet;
 	private HashSet<StallTag> stallTagSet;
 
 	// if stall site is caller's parameter heap regtion, store its parameter idx
@@ -28,7 +29,7 @@ public class StallSite {
 	public StallSite() {
 		effectSet = new HashSet<Effect>();
 		hrnSet = new HashSet<HeapRegionNode>();
-		reachabilitySet = new ReachabilitySet();
+		reachabilitySet = new HashSet<TokenTupleSet>();
 		allocationSiteSet = new HashSet<AllocationSite>();
 		stallTagSet = new HashSet<StallTag>();
 		callerParamIdxSet = new HashSet<Integer>();
@@ -48,7 +49,7 @@ public class StallSite {
 	}
 	
 	public StallSite(HashSet<Effect> effectSet, HashSet<HeapRegionNode> hrnSet,
-			ReachabilitySet rechabilitySet, HashSet<AllocationSite> alocSet,
+			HashSet<TokenTupleSet> rechabilitySet, HashSet<AllocationSite> alocSet,
 			HashSet<StallTag> tagSet, HashSet<Integer> paramIdx) {
 		this();
 		this.effectSet.addAll(effectSet);
@@ -109,7 +110,7 @@ public class StallSite {
 		return hrnSet;
 	}
 
-	public ReachabilitySet getReachabilitySet() {
+	public HashSet<TokenTupleSet> getReachabilitySet() {
 		return reachabilitySet;
 	}
 
@@ -221,7 +222,7 @@ class Effect {
 		return type;
 	}
 
-	public Integer getEffect() {
+	public Integer getEffectType() {
 		return effect;
 	}
 
@@ -243,7 +244,7 @@ class Effect {
 
 		if (stallTagSet.equals(in.getStallTagSet())
 				&& type.equals(in.getType()) && field.equals(in.getField())
-				&& effect.equals(in.getEffect())) {
+				&& effect.equals(in.getEffectType())) {
 			return true;
 		} else {
 			return false;

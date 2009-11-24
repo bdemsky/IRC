@@ -178,13 +178,20 @@ public class ParentChildConflictsMap {
 			}
 
 			// handle reachabilitySet
-			ReachabilitySet currentRSet = currentStallSite.getReachabilitySet();
-			ReachabilitySet newRSet = newStallSite.getReachabilitySet();
-			Iterator<TokenTupleSet> ttsIter = newRSet.iterator();
-			while (ttsIter.hasNext()) {
-				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter.next();
+			HashSet<TokenTupleSet> currentRSet=currentStallSite.getReachabilitySet();
+			HashSet<TokenTupleSet> newRSet=newStallSite.getReachabilitySet();
+			Iterator<TokenTupleSet> ttsIter=newRSet.iterator();
+			while(ttsIter.hasNext()){
+				TokenTupleSet tokenTupleSet=(TokenTupleSet) ttsIter.next();
 				currentRSet.add(tokenTupleSet);
 			}
+//			ReachabilitySet currentRSet = currentStallSite.getReachabilitySet();
+//			ReachabilitySet newRSet = newStallSite.getReachabilitySet();
+//			Iterator<TokenTupleSet> ttsIter = newRSet.iterator();
+//			while (ttsIter.hasNext()) {
+//				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter.next();
+//				currentRSet.add(tokenTupleSet);
+//			}
 			
 			//handle allocationsite
 			HashSet<AllocationSite> currentAloc=currentStallSite.getAllocationSiteSet();

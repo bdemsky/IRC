@@ -33,7 +33,7 @@ public class SESEEffectsKey {
 	}
 
 	public String toString() {
-		return "(" + td + ")" + fd + "#" + hrnId;
+		return "(" + td + ")" + fd + "#" + hrnId+":"+hrnUniqueId;
 	}
 
 	public int hashCode() {
