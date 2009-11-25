@@ -161,7 +161,7 @@ inline void addNewObjInfo(void * nobj);
 #endif
 int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl);
 void addAliasLock(void * ptr, int lock);
-void * smemalloc(int coren, int size, int * allocsize);
+void * smemalloc_I(int coren, int size, int * allocsize);
 #else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);

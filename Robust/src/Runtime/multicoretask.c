@@ -1182,9 +1182,9 @@ inline void addNewObjInfo(void * nobj) {
 #endif
 
 #ifdef MULTICORE_GC
-struct freeMemItem * findFreeMemChunk(int coren,
-		                                  int isize,
-		                                  int * tofindb) {
+struct freeMemItem * findFreeMemChunk_I(int coren,
+		                                    int isize,
+		                                    int * tofindb) {
 	struct freeMemItem * freemem = bamboo_free_mem_list->head;
 	struct freeMemItem * prev = NULL;
 	int i = 0;
@@ -1261,12 +1261,12 @@ struct freeMemItem * findFreeMemChunk(int coren,
 	} while(freemem != NULL);
 
 	return freemem;
-} // struct freeMemItem * findFreeMemChunk(int, int, int *)
+} // struct freeMemItem * findFreeMemChunk_I(int, int, int *)
 
-void * localmalloc(int tofindb,
-		               int isize,
-		               struct freeMemItem * freemem,
-		               int * allocsize) {
+void * localmalloc_I(int tofindb,
+		                 int isize,
+		                 struct freeMemItem * freemem,
+		                 int * allocsize) {
 	void * mem = NULL;
 	int startb = freemem->startblock;
 	int endb = freemem->endblock;
@@ -1300,7 +1300,7 @@ void * localmalloc(int tofindb,
 		BLOCKINDEX(((int)mem)-1, &(freemem->endblock));
 	} else {
 		struct freeMemItem * tmp = 
-			(struct freeMemItem *)RUNMALLOC(sizeof(struct freeMemItem));
+			(struct freeMemItem *)RUNMALLOC_I(sizeof(struct freeMemItem));
 		tmp->ptr = (int)mem+*allocsize;
 		tmp->size = freemem->ptr+freemem->size-(int)mem-*allocsize;
 		BLOCKINDEX(tmp->ptr, &(tmp->startblock));
@@ -1311,11 +1311,11 @@ void * localmalloc(int tofindb,
 		BLOCKINDEX(((int)mem-1), &(freemem->endblock));
 	}
 	return mem;
-} // void * localmalloc(int, int, struct freeMemItem *, int *)
+} // void * localmalloc_I(int, int, struct freeMemItem *, int *)
 
-void * globalmalloc(int isize,
-		                struct freeMemItem * freemem,
-		                int * allocsize) {
+void * globalmalloc_I(int isize,
+		                  struct freeMemItem * freemem,
+		                  int * allocsize) {
 	void * mem = (void *)(freemem->ptr);
 	// check the remaining space in this block
 	int remain = (int)(mem-(BAMBOO_BASE_VA));
@@ -1334,26 +1334,26 @@ void * globalmalloc(int isize,
 	freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
 	freemem->size -= *allocsize;
 	return mem;
-} // void * globalmalloc(int, struct freeMemItem *, int *)
+} // void * globalmalloc_I(int, struct freeMemItem *, int *)
 #endif
 
 // malloc from the shared memory
-void * smemalloc(int coren,
-		             int size, 
-		             int * allocsize) {
+void * smemalloc_I(int coren,
+		               int size, 
+		               int * allocsize) {
 	void * mem = NULL;
 #ifdef MULTICORE_GC
 	int isize = size+(BAMBOO_CACHE_LINE_SIZE);
 	int toallocate = (isize>(BAMBOO_SMEM_SIZE)) ? (isize):(BAMBOO_SMEM_SIZE);
 	// go through free mem list for suitable chunks
 	int tofindb = 0;
-	struct freeMemItem * freemem = findFreeMemChunk(coren, isize, &tofindb);
+	struct freeMemItem * freemem = findFreeMemChunk_I(coren, isize, &tofindb);
 
 	// allocate shared mem if available
 	if(freemem != NULL) {
 		switch(bamboo_smem_mode) {
 			case SMEMLOCAL: {
-				mem = localmalloc(tofindb, isize, freemem, allocsize);
+				mem = localmalloc_I(tofindb, isize, freemem, allocsize);
 				break;
 			}
 
@@ -1362,10 +1362,10 @@ void * smemalloc(int coren,
 				int endb = freemem->endblock;
 				if(startb > tofindb) {
 					// malloc on global mem
-					mem = globalmalloc(isize, freemem, allocsize);
+					mem = globalmalloc_I(isize, freemem, allocsize);
 				} else {
 					// malloc on local mem
-					mem = localmalloc(tofindb, isize, freemem, allocsize);
+					mem = localmalloc_I(tofindb, isize, freemem, allocsize);
 				}
 				break;
 			}
@@ -1377,7 +1377,7 @@ void * smemalloc(int coren,
 			}
 
 			case SMEMGLOBAL: {
-				mem = globalmalloc(isize,freemem, allocsize);
+				mem = globalmalloc_I(isize,freemem, allocsize);
 				break;
 			}
 
@@ -1402,7 +1402,7 @@ void * smemalloc(int coren,
 #endif
 	}
 	return mem;
-}  // void * smemalloc(int, int, int)
+}  // void * smemalloc_I(int, int, int)
 
 // receive object transferred from other cores
 // or the terminate message from other cores
@@ -1825,7 +1825,7 @@ msg:
 			}
 #endif
 			int allocsize = 0;
-		  void * mem = smemalloc(msgdata[2], msgdata[1], &allocsize);
+		  void * mem = smemalloc_I(msgdata[2], msgdata[1], &allocsize);
 			if(mem == NULL) {
 				break;
 			}

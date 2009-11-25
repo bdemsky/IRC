@@ -83,7 +83,7 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 int * gcsmemtbl;
 
 #define ISSHAREDOBJ(p) \
-	(((p)>gcbaseva)&&((p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
+	((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 #define ALIGNSIZE(s, as) \
 	(*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
