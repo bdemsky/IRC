@@ -219,12 +219,13 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #include "structdefs.h"
 #define BAMBOO_NUM_PAGES (NUMCORES*(2+1)+3)
 #define BAMBOO_PAGE_SIZE (64 * 64)
-#define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
+#define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
 #else
-#define BAMBOO_NUM_PAGES (1024 * 1024 * 3.5)
-#define BAMBOO_PAGE_SIZE (4096)
-#define BAMBOO_SMEM_SIZE (16 * BAMBOO_PAGE_SIZE)
+#define BAMBOO_NUM_PAGES (64 * 4 * 0.75) //(1024 * 1024 * 3.5)
+#define BAMBOO_PAGE_SIZE (16 * 1024 * 1024)  // (4096)
+#define BAMBOO_SMEM_SIZE (16 * 1024)
 #endif
+
 #define BAMBOO_SHARED_MEM_SIZE (BAMBOO_PAGE_SIZE * BAMBOO_NUM_PAGES)
 
 #ifdef MULTICORE_GC
