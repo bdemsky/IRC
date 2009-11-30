@@ -27,6 +27,7 @@ import Analysis.OwnershipAnalysis.OwnershipNode;
 import Analysis.OwnershipAnalysis.ParameterDecomposition;
 import Analysis.OwnershipAnalysis.ReachabilitySet;
 import Analysis.OwnershipAnalysis.ReferenceEdge;
+import Analysis.OwnershipAnalysis.TokenTuple;
 import Analysis.OwnershipAnalysis.TokenTupleSet;
 import IR.Descriptor;
 import IR.FieldDescriptor;
@@ -38,6 +39,7 @@ import IR.Flat.FKind;
 import IR.Flat.FlatCall;
 import IR.Flat.FlatEdge;
 import IR.Flat.FlatFieldNode;
+import IR.Flat.FlatLiteralNode;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNew;
 import IR.Flat.FlatNode;
@@ -1884,7 +1886,7 @@ public class MLPAnalysis {
 
 		return sorted;
 	}
-	 
+	 /*
 	private void postSESEConflictsForward(JavaCallGraph javaCallGraph) {
 
 		// store the reachability set in stall site data structure
@@ -1978,7 +1980,7 @@ public class MLPAnalysis {
 		}
 
 	}
-	
+	*/
 	private void postConflicts_nodeAction(MethodContext mc, FlatNode fn,
 			ParentChildConflictsMap currentConflictsMap) {
 		
@@ -2033,112 +2035,179 @@ public class MLPAnalysis {
 		// create conflict graph for each flat method
 		ConflictGraph conflictGraph = new ConflictGraph();
 
-		Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-		flatNodesToVisit.add(fm);
+		HashSet<MethodContext> mcSet = ownAnalysisForSESEConflicts
+				.getAllMethodContextSetByDescriptor(fm.getMethod());
+		Iterator<MethodContext> mcIter = mcSet.iterator();
 
-		Set<FlatNode> visited = new HashSet<FlatNode>();
+		while (mcIter.hasNext()) {
+			MethodContext mc = mcIter.next();
 
-		while (!flatNodesToVisit.isEmpty()) {
-			Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
-			FlatNode fn = fnItr.next();
+			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+			flatNodesToVisit.add(fm);
 
-			flatNodesToVisit.remove(fn);
-			visited.add(fn);
+			Set<FlatNode> visited = new HashSet<FlatNode>();
 
-			// ///////////////////////////////////////////////////////////////////////
-			// Adding Stall Node of current program statement
-			ParentChildConflictsMap currentConflictsMap = conflictsResults
-					.get(fn);
+			while (!flatNodesToVisit.isEmpty()) {
+				Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
+				FlatNode fn = fnItr.next();
 
-			Hashtable<TempDescriptor, StallSite> stallMap = currentConflictsMap
-					.getStallMap();
-			Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
-					.entrySet();
+				flatNodesToVisit.remove(fn);
+				visited.add(fn);
 
-			HashSet<String> newStallNodeSet = new HashSet<String>();
+				// ///////////////////////////////////////////////////////////////////////
+				// Adding Stall Node of current program statement
+				ParentChildConflictsMap currentConflictsMap = conflictsResults
+						.get(fn);
 
-			for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
-					.iterator(); iterator2.hasNext();) {
-				Entry<TempDescriptor, StallSite> entry = iterator2.next();
-				TempDescriptor td = entry.getKey();
-				StallSite stallSite = entry.getValue();
-				String stallNodeID;
-				if ((stallNodeID = conflictGraph
-						.addStallNode(td, fm, stallSite)) != null) {
-					// it added new stall node
-					newStallNodeSet.add(stallNodeID);
+				Hashtable<TempDescriptor, StallSite> stallMap = currentConflictsMap
+						.getStallMap();
+				Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
+						.entrySet();
+
+				HashSet<String> newStallNodeSet = new HashSet<String>();
+
+				for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
+						.iterator(); iterator2.hasNext();) {
+					Entry<TempDescriptor, StallSite> entry = iterator2.next();
+					TempDescriptor td = entry.getKey();
+					StallSite stallSite = entry.getValue();
+					String stallNodeID;
+
+					// reachability set
+					OwnershipGraph og = ownAnalysisForSESEConflicts
+							.getOwnvershipGraphByMethodContext(mc);
+					Set<Set> reachabilitySet = calculateReachabilitySet(og, td);
+
+					if ((stallNodeID = conflictGraph.addStallNode(td, fm,
+							stallSite, reachabilitySet)) != null) {
+						// it added new stall node
+						newStallNodeSet.add(stallNodeID);
+					}
 				}
-			}
 
-			// Analyzing write conflicts between stall site and live-in
-			// variables
-			for (Iterator iterator = newStallNodeSet.iterator(); iterator
-					.hasNext();) {
-				String stallNodeID = (String) iterator.next();
+				// Analyzing write conflicts between stall site and live-in
+				// variables
+				for (Iterator iterator = newStallNodeSet.iterator(); iterator
+						.hasNext();) {
+					String stallNodeID = (String) iterator.next();
 
-				StallSiteNode stallNode = conflictGraph
-						.getStallNode(stallNodeID);
+					StallSiteNode stallNode = conflictGraph
+							.getStallNode(stallNodeID);
 
-				if (stallNode != null) {
-					// if prior sese blocks have write effects on this stall
-					// node, it should be connected between them.
-					HashSet<LiveInNode> liveInNodeSet = conflictGraph
-							.getLiveInNodeSet();
-					for (Iterator iterator2 = liveInNodeSet.iterator(); iterator2
-							.hasNext();) {
-						LiveInNode liveInNode = (LiveInNode) iterator2.next();
-						if (liveInNode.isWriteConflictWith(stallNode)) {
-							// create conflict edge
-							conflictGraph.addWriteConflictEdge(stallNode, liveInNode);
+					if (stallNode != null) {
+						// if prior sese blocks have write effects on this stall
+						// node, it should be connected between them.
+						HashSet<LiveInNode> liveInNodeSet = conflictGraph
+								.getLiveInNodeSet();
+						for (Iterator iterator2 = liveInNodeSet.iterator(); iterator2
+								.hasNext();) {
+							LiveInNode liveInNode = (LiveInNode) iterator2
+									.next();
+							if (liveInNode.isWriteConflictWith(stallNode)) {
+								// create conflict edge
+								conflictGraph.addWriteConflictEdge(stallNode,
+										liveInNode);
+							}
 						}
 					}
 				}
-			}
 
-			// ///////////////////////////////////////////////////////////////////////
+				// ///////////////////////////////////////////////////////////////////////
 
-			conflictGraph_nodeAction(fm, fn, conflictGraph, currentConflictsMap);
+				conflictGraph_nodeAction(mc, fm, fn, conflictGraph,
+						currentConflictsMap);
 
-			for (int i = 0; i < fn.numNext(); i++) {
-				FlatNode nn = fn.getNext(i);
-				if (!visited.contains(nn)) {
-					flatNodesToVisit.add(nn);
+				for (int i = 0; i < fn.numNext(); i++) {
+					FlatNode nn = fn.getNext(i);
+					if (!visited.contains(nn)) {
+						flatNodesToVisit.add(nn);
+					}
 				}
-			}
-		}
+
+			} // end of while(flatNodesToVisit)
+
+		} // end of while(mcIter)
+
+		// decide fine-grain edge or coarse-grain edge among all vertexes
+		conflictGraph.analyzeConflicts();
 
 		conflictGraphResults.put(fm, conflictGraph);
 
 	}
 	
-	private void conflictGraph_nodeAction(FlatMethod fm, FlatNode fn,
-			ConflictGraph graph, ParentChildConflictsMap currentConflictsMap) {
+	private Set<Set> calculateReachabilitySet(OwnershipGraph og, TempDescriptor tempDescriptor){
+		// reachability set
+		Set<Set> reachabilitySet = new HashSet();
+		LabelNode ln = og.td2ln.get(tempDescriptor);
+		Iterator<ReferenceEdge> refEdgeIter = ln
+				.iteratorToReferencees();
+		while (refEdgeIter.hasNext()) {
+			ReferenceEdge referenceEdge = (ReferenceEdge) refEdgeIter
+					.next();
+			ReachabilitySet set = referenceEdge.getBeta();
+			Iterator<TokenTupleSet> ttsIter = set.iterator();
+			while (ttsIter.hasNext()) {
+				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter
+						.next();
+
+				HashSet<GloballyUniqueTokenTuple> newTokenTupleSet = new HashSet<GloballyUniqueTokenTuple>();
+				// reachabilitySet.add(tokenTupleSet);
+
+				Iterator iter = tokenTupleSet.iterator();
+				while (iter.hasNext()) {
+					TokenTuple tt = (TokenTuple) iter.next();
+					int token = tt.getToken();
+					String uniqueID = og.id2hrn.get(
+							new Integer(token))
+							.getGloballyUniqueIdentifier();
+					GloballyUniqueTokenTuple gtt = new GloballyUniqueTokenTuple(
+							uniqueID, tt);
+					newTokenTupleSet.add(gtt);
+				}
+
+				reachabilitySet.add(newTokenTupleSet);
+			}
+		}
+		return reachabilitySet;
+	}
+	
+	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm, FlatNode fn,
+ ConflictGraph graph,
+			ParentChildConflictsMap currentConflictsMap) {
 
 		switch (fn.kind()) {
 
 		case FKind.FlatSESEEnterNode: {
 
 			FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+			OwnershipGraph og = ownAnalysisForSESEConflicts
+					.getOwnvershipGraphByMethodContext(mc);
 
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				Set<TempDescriptor> invar_set = fsen.getInVarSet();
-
-				String liveinStr = "";
 
 				for (Iterator iterator = invar_set.iterator(); iterator
 						.hasNext();) {
 					TempDescriptor tempDescriptor = (TempDescriptor) iterator
 							.next();
-					
+
+					// effects set
 					SESEEffectsSet seseEffectsSet = fsen.getSeseEffectsSet();
-					Set<SESEEffectsKey> readEffectsSet=seseEffectsSet.getReadingSet(tempDescriptor);
-					Set<SESEEffectsKey> writeEffectsSet=seseEffectsSet.getWritingSet(tempDescriptor);
-					
-					graph.addLiveInNode(tempDescriptor,fsen,readEffectsSet,writeEffectsSet);
+					Set<SESEEffectsKey> readEffectsSet = seseEffectsSet
+							.getReadingSet(tempDescriptor);
+					Set<SESEEffectsKey> writeEffectsSet = seseEffectsSet
+							.getWritingSet(tempDescriptor);
+
+					Set<Set> reachabilitySet=calculateReachabilitySet(og,tempDescriptor);
+
+					// add new live-in node
+					graph.addLiveInNode(tempDescriptor, fsen, readEffectsSet,
+							writeEffectsSet, reachabilitySet);
+
 				}
 
 			}
-			
+
 		}
 
 			break;
@@ -2358,9 +2427,10 @@ public class MLPAnalysis {
 							}
 						}
 
-					}else{
-						System.out.println("src is accessible="+possibleSrc);
 					}
+//					else{
+//						System.out.println("src is accessible="+possibleSrc);
+//					}
 
 					currentConflictsMap.addAccessibleVar(possibleSrc);
 
@@ -2664,6 +2734,18 @@ public class MLPAnalysis {
 
 		}
 			break;
+
+		/* do we need this case? 
+		case FKind.FlatLiteralNode: {
+
+			if (currentConflictsMap.isAfterChildSESE()) {
+				FlatLiteralNode fln = (FlatLiteralNode) fn;
+				TempDescriptor dst = fln.getDst();
+				currentConflictsMap.addAccessibleVar(dst);
+			}
+
+		} break;
+		*/
 
 		case FKind.FlatReturnNode: {
 

@@ -14,11 +14,38 @@ public class LiveInNode extends ConflictNode {
 
 	public LiveInNode(String id, TempDescriptor td,
 			Set<SESEEffectsKey> readEffectsSet,
-			Set<SESEEffectsKey> writeEffectsSet) {
+			Set<SESEEffectsKey> writeEffectsSet, Set<Set> reachabilitySet) {
 		this.id = id;
 		this.td = td;
 		this.readEffectsSet = readEffectsSet;
 		this.writeEffectsSet = writeEffectsSet;
+		this.reachabilitySet = reachabilitySet;
+	}
+
+	public Set<SESEEffectsKey> getReadEffectsSet() {
+		return readEffectsSet;
+	}
+
+	public Set<SESEEffectsKey> getWriteEffectsSet() {
+		return writeEffectsSet;
+	}
+
+	public void addReadEffectsSet(Set<SESEEffectsKey> newReadEffectsSet) {
+		if (newReadEffectsSet != null) {
+			readEffectsSet.addAll(newReadEffectsSet);
+		}
+	}
+
+	public void addWriteEffectsSet(Set<SESEEffectsKey> newWriteEffectsSet) {
+		if (newWriteEffectsSet != null) {
+			writeEffectsSet.addAll(newWriteEffectsSet);
+		}
+	}
+
+	public void addReachabilitySet(Set<Set> newReachabilitySet) {
+		if (newReachabilitySet != null) {
+			reachabilitySet.addAll(newReachabilitySet);
+		}
 	}
 
 	public boolean isWriteConflictWith(StallSiteNode stallNode) {
@@ -103,6 +130,26 @@ public class LiveInNode extends ConflictNode {
 		}
 
 		return result;
+	}
+
+	public boolean equals(Object o) {
+
+		if (o == null) {
+			return false;
+		}
+
+		if (!(o instanceof LiveInNode)) {
+			return false;
+		}
+
+		LiveInNode in = (LiveInNode) o;
+
+		if (id.equals(in.id)) {
+			return true;
+		} else {
+			return false;
+		}
+
 	}
 
 }
