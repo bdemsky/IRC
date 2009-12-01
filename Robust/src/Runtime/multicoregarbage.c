@@ -15,6 +15,9 @@ extern struct genhashtable * activetasks;
 extern struct parameterwrapper ** objectqueues[][NUMCLASSES];
 extern struct taskparamdescriptor *currtpd;
 
+extern struct LockValue runtime_locks[MAXTASKPARAMS];
+extern int runtime_locklen;
+
 struct pointerblock {
   void * ptrs[NUMPTRS];
   struct pointerblock *next;
@@ -92,7 +95,7 @@ inline void dumpSMem() {
 			}
 			// compute core #
 			if(advanceblock) {
-				coren = gc_block2core[block%124];
+				coren = gc_block2core[block%(NUMCORES*2)];
 			}
 			// compute core coordinate
 			int tmpcore = coren;
@@ -653,7 +656,7 @@ void updateSmemTbl(int coren,
 	int j = 0;
 	int toset = 0;
 	do{
-		toset = gc_core2block[2*coren+i]+124*j;
+		toset = gc_core2block[2*coren+i]+(NUMCORES*2)*j;
 		if(toset < ltopcore) {
 			gcsmemtbl[toset] = (toset<NUMCORES)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
 		} else if(toset == ltopcore) {
@@ -1108,6 +1111,18 @@ inline void tomark(struct garbagelist * stackptr) {
 		BAMBOO_CLOSE_CRITICAL_SECTION();
 		item = getNextQueueItem(item);
 	} // while(item != NULL)
+
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xe508);
+#endif
+	// enqueue lock related info
+	for(i = 0; i < runtime_locklen; ++i) {
+	 gc_enqueue_I((void *)(runtime_locks[i].redirectlock));
+	 if(runtime_locks[i].value != NULL) {
+		 gc_enqueue_I((void *)(runtime_locks[i].value));
+	 }
+	}
+
 } // void tomark(struct garbagelist * stackptr)
 
 inline void markObj(void * objptr) {
@@ -2077,6 +2092,7 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 				ptr->key = flushObj((void *)ptr->key);
 				ptr=ptr->lnext;
 			}
+			ObjectHashrehash(set);
 		}
 	}
 
@@ -2097,6 +2113,7 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 		}
 		ptr=ptr->inext;
 	}
+	genrehash(activetasks);
 
 	// flush cached transferred obj
 	struct QueueItem * tmpobjptr =  getHead(&objqueue);
@@ -2115,6 +2132,15 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 		totransobj->objptr = flushObj(totransobj->objptr);
 		item = getNextQueueItem(item);
 	} // while(item != NULL)
+
+	// enqueue lock related info
+	for(i = 0; i < runtime_locklen; ++i) {
+	  runtime_locks[i].redirectlock = (int)flushObj(runtime_locks[i].redirectlock);
+		if(runtime_locks[i].value != NULL) {
+		  runtime_locks[i].value = (int)flushObj(runtime_locks[i].value);
+	  }
+	}
+
 } // void flushRuntimeObj(struct garbagelist * stackptr)
 
 inline void flush(struct garbagelist * stackptr) {

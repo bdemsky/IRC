@@ -7,6 +7,8 @@
 //  data structures for task invocation
 struct genhashtable * activetasks;
 struct taskparamdescriptor * currtpd;
+struct LockValue runtime_locks[MAXTASKPARAMS];
+int runtime_locklen;
 
 // specific functions used inside critical sections
 void enqueueObject_I(void * ptr, 
@@ -147,6 +149,12 @@ void initruntimedata() {
   /*interruptInfoIndex = 0;
   interruptInfoOverflow = false;*/
 #endif
+
+	for(i = 0; i < MAXTASKPARAMS; i++) {
+		runtime_locks[i].redirectlock = 0;
+		runtime_locks[i].value = 0;
+	}
+	runtime_locklen = 0;
 }
 
 inline __attribute__((always_inline))
@@ -1189,7 +1197,7 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 	struct freeMemItem * prev = NULL;
 	int i = 0;
 	int j = 0;
-	*tofindb = gc_core2block[2*coren+i]+124*j;
+	*tofindb = gc_core2block[2*coren+i]+(NUMCORES*2)*j;
 	// check available shared mem chunks
 	do {
 		int foundsmem = 0;
@@ -1203,7 +1211,7 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 						i = 0;
 						j++;
 					}
-					*tofindb = gc_core2block[2*coren+i]+124*j;
+					*tofindb = gc_core2block[2*coren+i]+(NUMCORES*2)*j;
 				} // while(startb > tofindb)
 				if(startb <= *tofindb) {
 					if((endb >= *tofindb) && (freemem->size >= isize)) {
@@ -2456,8 +2464,6 @@ void executetasks() {
   int x = 0;
   bool islock = true;
 
-  struct LockValue locks[MAXTASKPARAMS];
-  int locklen = 0;
   int grount = 0;
   int andmask=0;
   int checkmask=0;
@@ -2490,11 +2496,11 @@ newtask:
 		// (TODO, this table should be empty after all locks are released)
 	  // reset all locks
 	  for(j = 0; j < MAXTASKPARAMS; j++) {
-		  locks[j].redirectlock = 0;
-		  locks[j].value = 0;
+		  runtime_locks[j].redirectlock = 0;
+		  runtime_locks[j].value = 0;
 	  }
 	  // get all required locks
-	  locklen = 0;
+	  runtime_locklen = 0;
 	  // check which locks are needed
 	  for(i = 0; i < numparams; i++) {
 		  void * param = currtpd->parameterArray[i];
@@ -2512,36 +2518,36 @@ newtask:
 			  tmplock = (int)(((struct ___Object___ *)param)->lock);
 		  }
 		  // insert into the locks array
-		  for(j = 0; j < locklen; j++) {
-			  if(locks[j].value == tmplock) {
+		  for(j = 0; j < runtime_locklen; j++) {
+			  if(runtime_locks[j].value == tmplock) {
 				  insert = false;
 				  break;
-			  } else if(locks[j].value > tmplock) {
+			  } else if(runtime_locks[j].value > tmplock) {
 				  break;
 			  }
 		  }
 		  if(insert) {
-			  int h = locklen;
+			  int h = runtime_locklen;
 			  for(; h > j; h--) {
-				  locks[h].redirectlock = locks[h-1].redirectlock;
-				  locks[h].value = locks[h-1].value;
+				  runtime_locks[h].redirectlock = runtime_locks[h-1].redirectlock;
+				  runtime_locks[h].value = runtime_locks[h-1].value;
 			  }
-			  locks[j].value = tmplock;
-			  locks[j].redirectlock = (int)param;
-			  locklen++;
+			  runtime_locks[j].value = tmplock;
+			  runtime_locks[j].redirectlock = (int)param;
+			  runtime_locklen++;
 		  }		  
 	  } // line 2713: for(i = 0; i < numparams; i++) 
 	  // grab these required locks
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe991);
 #endif
-	  for(i = 0; i < locklen; i++) {
-		  int * lock = (int *)(locks[i].redirectlock);
+	  for(i = 0; i < runtime_locklen; i++) {
+		  int * lock = (int *)(runtime_locks[i].redirectlock);
 		  islock = true;
 		  // require locks for this parameter if it is not a startup object
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
-		  BAMBOO_DEBUGPRINT_REG((int)(locks[i].value));
+		  BAMBOO_DEBUGPRINT_REG((int)(runtime_locks[i].value));
 #endif
 		  getwritelock(lock);
 		  BAMBOO_START_CRITICAL_SECTION();
@@ -2581,11 +2587,12 @@ newtask:
 			  int j = 0;
 #ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xe992);
+				BAMBOO_DEBUGPRINT_REG(lock);
 #endif
 			  // can not get the lock, try later
 			  // releas all grabbed locks for previous parameters
 			  for(j = 0; j < i; ++j) {
-				  lock = (int*)(locks[j].redirectlock);
+				  lock = (int*)(runtime_locks[j].redirectlock);
 				  releasewritelock(lock);
 			  }
 			  genputtable(activetasks, currtpd, currtpd);
@@ -2603,7 +2610,7 @@ newtask:
 #endif
 			  goto newtask;
 		  } // line 2794: if(grount == 0)
-	  } // line 2752:  for(i = 0; i < locklen; i++)
+	  } // line 2752:  for(i = 0; i < runtime_locklen; i++)
 
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe993);
@@ -2625,10 +2632,11 @@ newtask:
 	  if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
 #ifdef DEBUG
 	    BAMBOO_DEBUGPRINT(0xe994);
+			BAMBOO_DEBUGPRINT_REG(parameter);
 #endif
 	    // release grabbed locks
-	    for(j = 0; j < locklen; ++j) {
-		int * lock = (int *)(locks[j].redirectlock);
+	    for(j = 0; j < runtime_locklen; ++j) {
+		int * lock = (int *)(runtime_locks[j].redirectlock);
 		releasewritelock(lock);
 	    }
 	    RUNFREE(currtpd->parameterArray);
@@ -2657,6 +2665,7 @@ newtask:
 	    int * enterflags;
 #ifdef DEBUG
 	    BAMBOO_DEBUGPRINT(0xe995);
+			BAMBOO_DEBUGPRINT_REG(parameter);
 #endif
 	    ObjectHashget(pw->objectset, (int) parameter, (int *) &next, 
 					          (int *) &enterflags, &UNUSED, &UNUSED2);
@@ -2664,8 +2673,8 @@ newtask:
 	    if (enterflags!=NULL)
 	      RUNFREE(enterflags);
 	    // release grabbed locks
-	    for(j = 0; j < locklen; ++j) {
-		 int * lock = (int *)(locks[j].redirectlock);
+	    for(j = 0; j < runtime_locklen; ++j) {
+		 int * lock = (int *)(runtime_locks[j].redirectlock);
 		releasewritelock(lock);
 	    }
 	    RUNFREE(currtpd->parameterArray);
@@ -2693,8 +2702,8 @@ parameterpresent:
 		{
 		// release grabbed locks
 		int tmpj = 0;
-	    for(tmpj = 0; tmpj < locklen; ++tmpj) {
-		 int * lock = (int *)(locks[tmpj].redirectlock);
+	    for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
+		 int * lock = (int *)(runtime_locks[tmpj].redirectlock);
 		releasewritelock(lock);
 	    }
 		}
@@ -2748,9 +2757,9 @@ execute:
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xe999);
 #endif
-	    for(i = 0; i < locklen; ++i) {
-				void * ptr = (void *)(locks[i].redirectlock);
-	      int * lock = (int *)(locks[i].value);
+	    for(i = 0; i < runtime_locklen; ++i) {
+				void * ptr = (void *)(runtime_locks[i].redirectlock);
+	      int * lock = (int *)(runtime_locks[i].value);
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)ptr);
 		  BAMBOO_DEBUGPRINT_REG((int)lock);

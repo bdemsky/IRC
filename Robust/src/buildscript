@@ -128,6 +128,7 @@ JAVAOPTS=''
 OPTIONALFLAG=false
 EXITAFTERANALYSIS=false
 ASSEMBLY=false
+GCCORES=''
 
 if [[ -z $1 ]]
 then
@@ -287,6 +288,7 @@ JAVAOPTS="$JAVAOPTS -multicore"
 elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
+GCCORES="GC_$2"
 shift
 elif [[ $1 = '-raw' ]]
 then
@@ -665,7 +667,7 @@ fi #INTERRUPT version
 
 if $MULTICOREGCFLAG
 then #MULTICOREGC version
-TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC"
+TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC -D${GCCORES}"
 fi
 
 cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile

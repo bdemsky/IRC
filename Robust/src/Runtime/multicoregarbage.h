@@ -108,7 +108,7 @@ int * gcsmemtbl;
 	} else {\
 		int b; \
 		BLOCKINDEX((p), &b); \
-		(*((int*)c)) = gc_block2core[(b%124)]; \
+		(*((int*)c)) = gc_block2core[(b%(NUMCORES*2))]; \
 	}\
 }
 
@@ -132,7 +132,7 @@ int * gcsmemtbl;
 	}
 
 // mapping of (core #, index of the block) to the global block index
-#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+(124*((n)/2))) 
+#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES*2)*((n)/2))) 
 
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
@@ -147,7 +147,7 @@ int * gcsmemtbl;
 	}
 
 // the next core in the top of the heap
-#define NEXTTOPCORE(b) (gc_block2core[((b)+1)%124])
+#define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES*2)])
 
 inline void gc(struct garbagelist * stackptr); // core coordinator routine
 inline void gc_collect(struct garbagelist* stackptr);//core collector routine

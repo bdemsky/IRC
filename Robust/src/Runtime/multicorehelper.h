@@ -1,6 +1,13 @@
 #ifndef MULTICORE_HELPER_H
 #define MULTICORE_HELPER_H
 
+#ifdef GC_1
+// NUMCORES = 1
+static int gc_core2block[2] = {0,1};
+
+static int gc_block2core[2] = { 0,  0};
+#elif defined GC_62
+// NUMCORES = 62
 static int gc_core2block[124] = {0,123,  15,108,  16,107,  31,92,  32,91,  47,76,    
                                  1,122,  14,109,  17,106,  30,93,  33,90,  46,77,  48,75,  61,62,
                                  2,121,  13,110,  18,105,  29,94,  34,89,  45,78,  49,74,  60,63,
@@ -18,5 +25,6 @@ static int gc_block2core[124] = { 0,  6, 14, 22, 30, 38, 46, 54, 55, 47, 39, 31,
                                   5, 11, 19, 27, 35, 43, 51, 59, 58, 50, 42, 34, 26, 18, 10,  4,
                                   3,  9, 17, 25, 33, 41, 49, 57, 56, 48, 40, 32, 24, 16,  8,  2,
                                   1,  7, 15, 23, 31, 39, 47, 55, 54, 46, 38, 30, 22, 14,  6,  0};
+#endif
 
 #endif // MULTICORE_HELPER_H
