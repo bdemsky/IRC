@@ -42,7 +42,7 @@ void mhashInsert(unsigned int key, void *val) {
   }
 
   unsigned int keyindex=(key&mlookup.mask)>>1;
-  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKAMASK].lock;
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
@@ -70,7 +70,7 @@ void *mhashSearch(unsigned int key) {
   unsigned int keyindex=(key&mlookup.mask)>>1;
   volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
 
-  while(!write_trylock(lockptr)) {
+  while(!read_trylock(lockptr)) {
     sched_yield();
   }
 
@@ -84,7 +84,7 @@ void *mhashSearch(unsigned int key) {
     }
     node = node->next;
   } while (node!=NULL);
-  write_unlock(lockptr);
+  read_unlock(lockptr);
   return NULL;
 }
 
