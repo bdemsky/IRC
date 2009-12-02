@@ -16,7 +16,7 @@ unsigned int mhashCreate(unsigned int size, double loadfactor) {
   mlookup.table = nodes;
   mlookup.size = size;
   mlookup.threshold=size*loadfactor;
-  mlookup.mask = (size << 1) -1;
+  mlookup.mask = size -1;
   mlookup.numelements = 0;       // Initial number of elements in the hash
   mlookup.loadfactor = loadfactor;
   int i;
@@ -41,13 +41,13 @@ void mhashInsert(unsigned int key, void *val) {
     mhashResize(newsize);
   }
 
-  unsigned int keyindex=(key&mlookup.mask)>>1;
-  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKAMASK].lock;
+  unsigned int keyindex=key>>1;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
 
-  mhashlistnode_t * ptr = &mlookup.table[keyindex];
+  mhashlistnode_t * ptr = &mlookup.table[keyindex&mlookup.mask];
   atomic_inc(&mlookup.numelements);
 
   if(ptr->key ==0) {
@@ -67,14 +67,14 @@ void mhashInsert(unsigned int key, void *val) {
 void *mhashSearch(unsigned int key) {
   int index;
 
-  unsigned int keyindex=(key&mlookup.mask)>>1;
+  unsigned int keyindex=key>>1;
   volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
 
   while(!read_trylock(lockptr)) {
     sched_yield();
   }
 
-  mhashlistnode_t *node = &mlookup.table[keyindex];
+  mhashlistnode_t *node = &mlookup.table[keyindex&mlookup.mask];
 
   do {
     if(node->key == key) {
@@ -94,14 +94,14 @@ unsigned int mhashRemove(unsigned int key) {
   mhashlistnode_t *prev;
   mhashlistnode_t *ptr, *node;
 
-  unsigned int keyindex=(key&mlookup.mask)>>1;
+  unsigned int keyindex=key>>1;
   volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
 
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
 
-  mhashlistnode_t *curr = &mlookup.table[keyindex];
+  mhashlistnode_t *curr = &mlookup.table[keyindex&mlookup.mask];
 
   for (; curr != NULL; curr = curr->next) {
     if (curr->key == key) {
@@ -163,7 +163,7 @@ void mhashResize(unsigned int newsize) {
   mlookup.table = node;
   mlookup.size = newsize;
   mlookup.threshold=newsize*mlookup.loadfactor;
-  mask=mlookup.mask = (newsize << 1)-1;
+  mask=mlookup.mask = newsize -1;
 
   for(i = 0; i < oldsize; i++) {
     curr = &ptr[i];
@@ -176,7 +176,7 @@ void mhashResize(unsigned int newsize) {
 	break;
       }
       next = curr->next;
-      index = (key & mask) >>1;
+      index = (key >> 1) & mask;
       tmp=&mlookup.table[index];
 
       if(tmp->key ==0) {
