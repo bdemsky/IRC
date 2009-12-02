@@ -2,7 +2,7 @@
 #define _DSMLOCK_H_
 
 #define RW_LOCK_BIAS             0x01000000
-#define atomic_read(v)          (v)
+#define atomic_read(v)          (*v)
 #define RW_LOCK_UNLOCKED          { RW_LOCK_BIAS }
 //#define LOCK_PREFIX ""
 #define LOCK_PREFIX \

@@ -22,12 +22,12 @@ inline void writeLock(volatile unsigned int *addr) {
 
 inline void atomic_dec(volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "decl %0"
-			: "+m" (v));
+			: "+m" (*v));
 }
 
 inline void atomic_inc(volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "incl %0"
-			: "+m" (v));
+			: "+m" (*v));
 }
 
 static inline int atomic_sub_and_test(int i, atomic_t *v) {
