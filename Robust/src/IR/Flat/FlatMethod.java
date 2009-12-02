@@ -11,7 +11,7 @@ public class FlatMethod extends FlatNode {
   Hashtable tagtointmap;
   FlatExit flatExit;
 
-  FlatMethod(MethodDescriptor md, FlatExit fe) {
+  public FlatMethod(MethodDescriptor md, FlatExit fe) {
     method=md;
     task=null;
     parameterTemps=new Vector();
