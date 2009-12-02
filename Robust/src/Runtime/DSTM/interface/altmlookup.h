@@ -17,7 +17,7 @@ typedef struct mhashlistnode {
 struct lockarray {
   volatile unsigned int lock;
   int buf[15];
-}
+};
 
 #define NUMLOCKS 16
 #define LOCKMASK (NUMLOCKS-1)
@@ -29,7 +29,7 @@ typedef struct mhashtable {
   unsigned int numelements;
   unsigned int threshold;
   double loadfactor;
-  struct lockarray[NUMLOCKS];
+  struct lockarray larray[NUMLOCKS];
 } mhashtable_t;
 
 unsigned int mhashCreate(unsigned int size, double loadfactor);
@@ -37,7 +37,7 @@ unsigned int mhashFunction(unsigned int key);
 void mhashInsert(unsigned int key, void *val);
 void *mhashSearch(unsigned int key); //returns val, NULL if not found
 unsigned int mhashRemove(unsigned int key); //returns -1 if not found
-unsigned int mhashResize(unsigned int newsize);
+void mhashResize(unsigned int newsize);
 //unsigned int *mhashGetKeys(unsigned int *numKeys);
 void mhashPrint();
 

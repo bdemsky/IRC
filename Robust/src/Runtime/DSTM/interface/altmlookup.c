@@ -1,4 +1,4 @@
-#include "mlookup.h"
+#include "altmlookup.h"
 #include "dsmlock.h"
 #include <sched.h>
 
@@ -21,7 +21,7 @@ unsigned int mhashCreate(unsigned int size, double loadfactor) {
   mlookup.loadfactor = loadfactor;
   int i;
   for(i=0;i<NUMLOCKS;i++)
-    mlookup.lockarray[i]=RW_LOCK_BIAS;
+    mlookup.larray[i].lock=RW_LOCK_BIAS;
   //Initialize the pthread_mutex variable
   return 0;
 }
@@ -42,7 +42,7 @@ void mhashInsert(unsigned int key, void *val) {
   }
 
   unsigned int keyindex=(key&mlookup.mask)>>1;
-  volatile unsigned int * lockptr=&mlookup.lockarray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
@@ -68,7 +68,7 @@ void *mhashSearch(unsigned int key) {
   int index;
 
   unsigned int keyindex=(key&mlookup.mask)>>1;
-  volatile unsigned int * lockptr=&mlookup.lockarray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
 
   while(!write_trylock(lockptr)) {
     sched_yield();
@@ -95,7 +95,7 @@ unsigned int mhashRemove(unsigned int key) {
   mhashlistnode_t *ptr, *node;
 
   unsigned int keyindex=(key&mlookup.mask)>>1;
-  volatile unsigned int * lockptr=&mlookup.lockarray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
 
   while(!write_trylock(lockptr)) {
     sched_yield();
@@ -105,7 +105,7 @@ unsigned int mhashRemove(unsigned int key) {
 
   for (; curr != NULL; curr = curr->next) {
     if (curr->key == key) {
-      atomic_dec(&mlookup.numelements);
+      atomic_dec(&(mlookup.numelements));
       if ((curr == &ptr[index]) && (curr->next == NULL)) {
 	curr->key = 0;
 	curr->val = NULL;
@@ -129,14 +129,14 @@ unsigned int mhashRemove(unsigned int key) {
 }
 
 // Resize table
-void int mhashResize(unsigned int newsize) {
+void mhashResize(unsigned int newsize) {
   mhashlistnode_t *node, *curr;
   int isfirst;
   unsigned int i,index;
   unsigned int mask;
 
   for(i=0;i<NUMLOCKS;i++) {
-    volatile unsigned int * lockptr=&mlookup.lockarray[i].lock;
+    volatile unsigned int * lockptr=&mlookup.larray[i].lock;
     
     while(!write_trylock(lockptr)) {
       sched_yield();
@@ -146,7 +146,7 @@ void int mhashResize(unsigned int newsize) {
   if (mlookup.numelements < mlookup.threshold) {
     //release lock and return
     for(i=0;i<NUMLOCKS;i++) {
-      volatile unsigned int * lockptr=&mlookup.lockarray[i].lock;
+      volatile unsigned int * lockptr=&mlookup.larray[i].lock;
       write_unlock(lockptr);
     }
     return;
@@ -206,7 +206,7 @@ else if (isfirst) {
 
   free(ptr);
   for(i=0;i<NUMLOCKS;i++) {
-    volatile unsigned int * lockptr=&mlookup.lockarray[i].lock;
+    volatile unsigned int * lockptr=&mlookup.larray[i].lock;
     write_unlock(lockptr);
   }
   return;
