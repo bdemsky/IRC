@@ -79,7 +79,7 @@ void *mhashSearch(unsigned int key) {
   do {
     if(node->key == key) {
       void * tmp=node->val;
-      write_unlock(lockptr);
+      read_unlock(lockptr);
       return tmp;
     }
     node = node->next;
