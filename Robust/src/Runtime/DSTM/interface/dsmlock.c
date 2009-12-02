@@ -20,14 +20,14 @@ inline void writeLock(volatile unsigned int *addr) {
                         :: "a" (addr), "i" (RW_LOCK_BIAS) : "memory");
 }
 
-static inline void atomic_dec(atomic_t *v) {
+inline void atomic_dec(volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "decl %0"
-			: "+m" (v->counter));
+			: "+m" (v));
 }
 
-static inline void atomic_inc(atomic_t *v) {
+inline void atomic_inc(volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "incl %0"
-			: "+m" (v->counter));
+			: "+m" (v));
 }
 
 static inline int atomic_sub_and_test(int i, atomic_t *v) {
@@ -53,12 +53,10 @@ static inline void atomic_add(int i, atomic_t *v) {
 }
 
 inline int read_trylock(volatile unsigned int  *lock) {
-  atomic_t *count = (atomic_t *)lock;
-
-  atomic_dec(count);
-  if (atomic_read(count) >= 0)
+  atomic_dec(lock);
+  if (atomic_read(lock) >= 0)
     return 1; //can aquire a new read lock
-  atomic_inc(count);
+  atomic_inc(lock);
   return 0; //failure
 }
 
