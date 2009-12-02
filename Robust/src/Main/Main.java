@@ -41,6 +41,7 @@ import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
+import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.MLP.MLPAnalysis;
 import Analysis.Loops.*;
 import Analysis.Liveness;
@@ -158,6 +159,35 @@ public class Main {
 	state.OWNERSHIPDEBUGCALLER=args[++i];
       } else if (option.equals("-owndebugcallcount")) {
 	state.OWNERSHIPDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
+      }
+      else if (option.equals("-disjoint"))
+	state.DISJOINT=true;
+      else if (option.equals("-disjoint-k")) {
+	state.DISJOINTALLOCDEPTH=Integer.parseInt(args[++i]);
+      } else if (option.equals("-disjoint-write-dots")) {
+	state.DISJOINTWRITEDOTS = true;
+        String arg = args[++i];
+	if( arg.equals("all") ) {
+	  state.DISJOINTWRITEALL = true;
+	} else if( arg.equals("final") ) {
+          state.DISJOINTWRITEALL = false;
+        } else {
+          throw new Error("disjoint-write-dots requires argument <all/final>");
+        }
+      } else if (option.equals("-disjoint-alias-file")) {
+	state.DISJOINTALIASFILE = args[++i];
+        String arg = args[++i];
+	if( arg.equals("normal") ) {
+	  state.DISJOINTALIASTAB = false;
+	} else if( arg.equals("tabbed") ) {
+          state.DISJOINTALIASTAB = true;
+        } else {
+          throw new Error("disjoint-alias-file requires arguments <filename> <normal/tabbed>");
+        }
+      } else if (option.equals("-disjoint-debug-callsite")) {
+	state.DISJOINTDEBUGCALLEE=args[++i];
+	state.DISJOINTDEBUGCALLER=args[++i];
+	state.DISJOINTDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
       }
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;
@@ -386,6 +416,13 @@ public class Main {
                              callGraph,
                              oa);
     }    
+
+    if (state.DISJOINT) {
+      CallGraph        cg = new CallGraph(state);
+      Liveness         l  = new Liveness();
+      ArrayReferencees ar = new ArrayReferencees(state);
+      DisjointAnalysis oa = new DisjointAnalysis(state, tu, cg, l, ar);
+    }
 
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);

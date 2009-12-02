@@ -69,6 +69,15 @@ public class State {
   public int OWNERSHIPDEBUGCALLCOUNT=0;
   public String OWNERSHIPDEBUGCALLEE=null;
   public String OWNERSHIPDEBUGCALLER=null;
+  public boolean DISJOINT=false;
+  public int DISJOINTALLOCDEPTH=3;
+  public boolean DISJOINTWRITEDOTS=false;
+  public boolean DISJOINTWRITEALL=false;
+  public String DISJOINTALIASFILE=null;
+  public boolean DISJOINTALIASTAB=false;
+  public int DISJOINTDEBUGCALLCOUNT=0;
+  public String DISJOINTDEBUGCALLEE=null;
+  public String DISJOINTDEBUGCALLER=null;
   public boolean OPTIONAL=false;
   public boolean ARRAYBOUNDARYCHECK=true;
   public boolean RAW=false;
