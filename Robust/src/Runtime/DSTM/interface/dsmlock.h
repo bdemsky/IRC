@@ -13,18 +13,13 @@
   "661:\n\tlock; "
 
 
-
-typedef struct {
-  unsigned int counter;
-} atomic_t;
-
-void initdsmlocks(volatile unsigned int *addr);
-int read_trylock(volatile unsigned int *lock);
-int write_trylock(volatile unsigned int *lock);
-void atomic_dec(volatile unsigned int *v);
-void atomic_inc(volatile unsigned int *v);
-static void atomic_add(int i, volatile unsigned int *v);
-static int atomic_sub_and_test(int i, volatile unsigned int *v);
-void read_unlock(volatile unsigned int *rw);
-void write_unlock(volatile unsigned int *rw);
+void initdsmlocks(volatile int *addr);
+int read_trylock(volatile int *lock);
+int write_trylock(volatile int *lock);
+void atomic_dec(volatile int *v);
+void atomic_inc(volatile int *v);
+static void atomic_add(int i, volatile int *v);
+static int atomic_sub_and_test(int i, volatile int *v);
+void read_unlock(volatile int *rw);
+void write_unlock(volatile int *rw);
 #endif
