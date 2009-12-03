@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
-#include "dstm.h"
+//#include "dstm.h"
 
 #define PLOADFACTOR 0.25
 #define PHASH_SIZE 1024
@@ -16,7 +16,7 @@ typedef struct prehashlistnode {
 } prehashlistnode_t;
 
 
-struct lockarray {
+struct prelockarray {
    volatile unsigned int lock;
    int buf[15];
 };
@@ -34,7 +34,7 @@ typedef struct prehashtable {
   unsigned int numelements;
   unsigned int threshold;
   double loadfactor;
-  struct lockarray larray[NUMLOCKS];
+  struct prelockarray larray[NUMLOCKS];
 } prehashtable_t;
 
 /* Prototypes for hash*/
