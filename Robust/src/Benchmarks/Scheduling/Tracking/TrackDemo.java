@@ -51,7 +51,7 @@ public class TrackDemo {
     public TrackDemo(int nump) {
       this.m_inputs = new int[2][];
  
-      int rows = 10 * 60 * 2;
+      int rows = 10 * 60; // * 2;
       int cols = 12 * 5;
       int offset = 0;
       this.m_inputs[0] = this.makeImage(rows, cols, offset);

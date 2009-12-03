@@ -23,8 +23,8 @@
 task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
-    int datasize = 62 * 2000;
-	int threadnum = 62;
+    int datasize = 62 * 100 ;//16 * 2000 * 2;
+	int threadnum = 62 ;//16 * 2;
 	int range = datasize / threadnum;
     for(int i = 0; i < threadnum; ++i) {
 	SeriesRunner sr = new SeriesRunner(i, range){!finish};

@@ -8,11 +8,11 @@
 task startup(StartupObject s{initialstate}) {
   //System.printString("task startup\n");
  
-  int nump = 60;
+  int nump = 32; //60;
   TrackDemo tdmo = new TrackDemo(nump){toaddBP};
   
   int[] input = tdmo.getInput(false);
-  int pnum = 60;
+  int pnum = 32; //60;
   int range = (input[0]) / pnum;
   for(int i = 0; i < pnum; i++) {
     BlurPiece bp = new BlurPiece(i,
@@ -54,7 +54,7 @@ task preresize(TrackDemo tdmo{topreresize}) {
 
   float[] Icur = tdmo.getImage();
 
-  int pnum = 30;
+  int pnum = 16; //30;
   int range = (tdmo.getRows()) / pnum;
   int rows = tdmo.getRows();
   int cols = tdmo.getCols();
@@ -222,7 +222,7 @@ task calcFeatures(TrackDemo tdmo{tocalcF}) {
 task startTrackingLoop(TrackDemo tdmo{tostartL}) {
 //System.printString("task startTrackingLoop\n");
 
-  int pnum1 = 15 * 2;
+  int pnum1 = 8; //15; // * 2;
   float[] data = tdmo.getImage();
   int rows = tdmo.getRows();
   int cols = tdmo.getCols();
@@ -274,7 +274,7 @@ task startTrackingLoop(TrackDemo tdmo{tostartL}) {
                           rows,
                           cols){tomergeIYLR};
                                  
-  int pnum2 = 60 * 2;
+  int pnum2 = 32; //60; // * 2;
   int[] input = tdmo.getInput(true);
   range = (input[0]) / pnum2;
   for(int i = 0; i < pnum2; i++) {

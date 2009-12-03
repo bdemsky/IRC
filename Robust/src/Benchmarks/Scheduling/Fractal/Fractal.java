@@ -3,9 +3,9 @@
 task t1(StartupObject s{initialstate}) {
     //System.printString("task t1\n");
     
-    int width = 62 * 15 * 2; 
-    int height = 62 * 16;
-    int group = 62 * 2;
+    int width = 62 * 14; 
+    int height = 62 * 14;
+    int group = 62;
 
     //int h = height / group;
 	//Random rnd = new Random();
@@ -143,9 +143,9 @@ public class Fractal {
 		    scaleda=(int)((a - amin)*appletWidth/(amax - amin));
 		    scaledb=(int)((b - bmin)*appletHeight/(bmax - bmin));
 		    int index = ((scaledb - id) / group) * appletWidth + scaleda;  //(scaledb * appletWidth + scaleda - id) / group;
-		    //if(index < length) {
+		    if(index < length) {
 			ps[index] = alpha<<24 | red<<16 | iteration<<8 | blue;
-		    //}
+		    }
 		}
 	    }
 	}
