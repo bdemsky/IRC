@@ -18,7 +18,7 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
   }
   pflookup.table = nodes;
   pflookup.size = size;
-  pflookup.mask = (size << 1) -1;
+  pflookup.mask = size -1;
   pflookup.numelements = 0; // Initial number of elements in the hash
   pflookup.loadfactor = loadfactor;
   pflookup.threshold=loadfactor*size;
@@ -27,19 +27,6 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
   for(i=0;i<NUMLOCKS;i++){
     pflookup.larray[i].lock=RW_LOCK_BIAS;
   }
-
-  /*
-  //Intiliaze and set prefetch table mutex attribute
-  pthread_mutexattr_init(&pflookup.prefetchmutexattr);
-  //NOTE:PTHREAD_MUTEX_RECURSIVE is currently inside a #if_def UNIX98 in the pthread.h file
-  //Therefore use PTHREAD_MUTEX_RECURSIVE_NP instead
-  pthread_mutexattr_settype(&pflookup.prefetchmutexattr, PTHREAD_MUTEX_RECURSIVE_NP);
-
-  //Initialize mutex var
-  pthread_mutex_init(&pflookup.lock, &pflookup.prefetchmutexattr);
-  //pthread_mutex_init(&pflookup.lock, NULL);
-  pthread_cond_init(&pflookup.cond, NULL);
-  */
 
   return 0;
 }
@@ -80,6 +67,7 @@ void prehashInsert(unsigned int key, void *val) {
         isFound=1;
         tmp->val = val;//Replace value for an exsisting key
         write_unlock(lockptr);
+
         return;
       }
       tmp=tmp->next;
@@ -125,7 +113,6 @@ unsigned int prehashRemove(unsigned int key) {
   prehashlistnode_t *prev;
   prehashlistnode_t *ptr, *node;
 
-  //eom
   unsigned int keyindex=key>>1;
   volatile unsigned int * lockptr=&pflookup.larray[keyindex&LOCKMASK].lock;
 
@@ -134,8 +121,7 @@ unsigned int prehashRemove(unsigned int key) {
   }
   
   prehashlistnode_t *curr = &pflookup.table[keyindex&pflookup.mask];
-  //eom
-
+  
   for (; curr != NULL; curr = curr->next) {
     if (curr->key == key) {        
       // Find a match in the hash table
@@ -249,7 +235,7 @@ else if (isfirst) {
     volatile unsigned int * lockptr=&pflookup.larray[i].lock;
     write_unlock(lockptr);
   }
-  return 0;
+  return ;
 }
 
 //Note: This is based on the implementation of the inserting a key in the first position of the hashtable
