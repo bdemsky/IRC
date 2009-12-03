@@ -13,7 +13,6 @@
 #define BAMBOO_OUT_BUF_LENGTH 300
 #define BAMBOO_MSG_BUF_LENGTH 30
 int msgdata[BAMBOO_MSG_BUF_LENGTH];
-int msgtype;
 int msgdataindex;
 int msglength;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
@@ -38,143 +37,144 @@ volatile bool isMsgSending;
 
 /* Message format:
  *      type + Msgbody
- * type: 0 -- transfer object
- *       1 -- transfer stall msg
- *       2 -- lock request
- *       3 -- lock grount
- *       4 -- lock deny
- *       5 -- lock release
+ * type: 1 -- transfer object
+ *       2 -- transfer stall msg
+ *       3 -- lock request
+ *       4 -- lock grount
+ *       5 -- lock deny
+ *       6 -- lock release
  *       // add for profile info
- *       6 -- transfer profile output msg
- *       7 -- transfer profile output finish msg
+ *       7 -- transfer profile output msg
+ *       8 -- transfer profile output finish msg
  *       // add for alias lock strategy
- *       8 -- redirect lock request
- *       9 -- lock grant with redirect info
- *       a -- lock deny with redirect info
- *       b -- lock release with redirect info
- *       c -- status confirm request
- *       d -- status report msg
- *       e -- terminate
- *       f -- requiring for new memory
- *      10 -- response for new memory request
- *      11 -- GC init phase start
- *      12 -- GC start
- *      13 -- compact phase start
- *      14 -- flush phase start
- *      15 -- init phase finish
- *      16 -- mark phase finish
- *      17 -- compact phase finish
- *      18 -- flush phase finish
- *      19 -- GC finish
- *      1a -- marked phase finish confirm request
- *      1b -- marked phase finish confirm response
- *      1c -- markedObj msg
- *      1d -- start moving objs msg
- *      1e -- ask for mapping info of a markedObj
- *      1f -- mapping info of a markedObj
- *      20 -- large objs info request
- *      21 -- large objs info response
- *      22 -- large objs mapping info
+ *       9 -- redirect lock request
+ *       a -- lock grant with redirect info
+ *       b -- lock deny with redirect info
+ *       c -- lock release with redirect info
+ *       d -- status confirm request
+ *       e -- status report msg
+ *       f -- terminate
+ *      10 -- requiring for new memory
+ *      11 -- response for new memory request
+ *      12 -- GC init phase start
+ *      13 -- GC start
+ *      14 -- compact phase start
+ *      15 -- flush phase start
+ *      16 -- init phase finish
+ *      17 -- mark phase finish
+ *      18 -- compact phase finish
+ *      19 -- flush phase finish
+ *      1a -- GC finish
+ *      1b -- marked phase finish confirm request
+ *      1c -- marked phase finish confirm response
+ *      1d -- markedObj msg
+ *      1e -- start moving objs msg
+ *      1f -- ask for mapping info of a markedObj
+ *      20 -- mapping info of a markedObj
+ *      21 -- large objs info request
+ *      22 -- large objs info response
+ *      23 -- large objs mapping info
  *
- * ObjMsg: 0 + size of msg + obj's address + (task index + param index)+
- * StallMsg: 1 + corenum + sendobjs + receiveobjs 
+ * ObjMsg: 1 + size of msg + obj's address + (task index + param index)+
+ * StallMsg: 2 + corenum + sendobjs + receiveobjs 
  *             (size is always 4 * sizeof(int))
- * LockMsg: 2 + lock type + obj pointer + lock + request core 
+ * LockMsg: 3 + lock type + obj pointer + lock + request core 
  *            (size is always 5 * sizeof(int))
- *          3/4/5 + lock type + obj pointer + lock 
+ *          4/5/6 + lock type + obj pointer + lock 
  *            (size is always 4 * sizeof(int))
- *          8 + lock type + obj pointer +  redirect lock + root request core 
+ *          9 + lock type + obj pointer +  redirect lock + root request core 
  *            + request core 
  *            (size is always 6 * sizeof(int))
- *          9/a + lock type + obj pointer + redirect lock 
+ *          a/b + lock type + obj pointer + redirect lock 
  *              (size is always 4 * sizeof(int))
- *          b + lock type + lock + redirect lock 
+ *          c + lock type + lock + redirect lock 
  *            (size is always 4 * sizeof(int))
  *          lock type: 0 -- read; 1 -- write
- * ProfileMsg: 6 + totalexetime 
+ * ProfileMsg: 7 + totalexetime 
  *               (size is always 2 * sizeof(int))
- *             7 + corenum 
+ *             8 + corenum 
  *               (size is always 2 * sizeof(int))
- * StatusMsg: c (size is always 1 * sizeof(int))
- *            d + status + corenum + sendobjs + receiveobjs 
+ * StatusMsg: d (size is always 1 * sizeof(int))
+ *            e + status + corenum + sendobjs + receiveobjs 
  *              (size is always 5 * sizeof(int))
  *            status: 0 -- stall; 1 -- busy
- * TerminateMsg: e (size is always 1 * sizeof(int)
- * MemoryMsg: f + size + corenum 
+ * TerminateMsg: f (size is always 1 * sizeof(int)
+ * MemoryMsg: 10 + size + corenum 
  *              (size is always 3 * sizeof(int))
- *           10 + base_va + size 
+ *           11 + base_va + size 
  *              (size is always 3 * sizeof(int))
- * GCMsg: 11/12 (size is always 1 * sizeof(int))
- *        13 + size of msg + (num of objs to move + (start address 
+ * GCMsg: 12/13 (size is always 1 * sizeof(int))
+ *        14 + size of msg + (num of objs to move + (start address 
  *           + end address + dst core + start dst)+)? 
  *           + (num of incoming objs + (start dst + orig core)+)? 
  *           + (num of large obj lists + (start address + lenght 
  *           + start dst)+)?
- *        14 (size is always 1 * sizeof(int))
- *        15 + corenum 
+ *        15 (size is always 1 * sizeof(int))
+ *        16 + corenum 
  *           (size is always 2 * sizeof(int))
- *        16 + corenum + gcsendobjs + gcreceiveobjs 	
+ *        17 + corenum + gcsendobjs + gcreceiveobjs 	
  *           (size if always 4 * sizeof(int))
- *        17 + corenum + fulfilled blocks num + (finish compact(1) + current
+ *        18 + corenum + fulfilled blocks num + (finish compact(1) + current
  *           heap top)/(need mem(0) + mem need) 
  *           size is always 5 * sizeof(int))
- *        18 + corenum 
+ *        19 + corenum 
  *              (size is always 2 * sizeof(int))
- *        19 (size is always 1 * sizeof(int))
- *        1a (size if always 1 * sizeof(int))
- *        1b + size of msg + corenum + gcsendobjs + gcreceiveobjs 
+ *        1a (size is always 1 * sizeof(int))
+ *        1b (size if always 1 * sizeof(int))
+ *        1c + size of msg + corenum + gcsendobjs + gcreceiveobjs 
  *           (size is always 5 * sizeof(int))
- *        1c + obj's address 
+ *        1d + obj's address 
  *           (size is always 2 * sizeof(int))
- *        1d + corenum + start addr + end addr
+ *        1e + corenum + start addr + end addr
  *           (size if always 4 * sizeof(int))
- *        1e + obj's address + corenum 
+ *        1f + obj's address + corenum 
  *           (size is always 3 * sizeof(int))
- *        1f + obj's address + dst address 
+ *        20 + obj's address + dst address 
  *           (size if always 3 * sizeof(int))
- *        20 (size is always 1 * sizeof(int))
- *        21 + size of msg + corenum + current heap size 
+ *        21 (size is always 1 * sizeof(int))
+ *        22 + size of msg + corenum + current heap size 
  *           + (num of large obj lists + (start address + length)+)?
- *        22 + orig large obj ptr + new large obj ptr 
+ *        23 + orig large obj ptr + new large obj ptr 
  *            (size is always 3 * sizeof(int))
  */
 typedef enum {
-	TRANSOBJ = 0x0,  // 0x0
-	TRANSTALL,       // 0x1
-	LOCKREQUEST,     // 0x2
-	LOCKGROUNT,      // 0x3
-	LOCKDENY,        // 0x4
-	LOCKRELEASE,     // 0x5
-	PROFILEOUTPUT,   // 0x6
-	PROFILEFINISH,   // 0x7
-	REDIRECTLOCK,    // 0x8
-	REDIRECTGROUNT,  // 0x9
-	REDIRECTDENY,    // 0xa
-	REDIRECTRELEASE, // 0xb
-	STATUSCONFIRM,   // 0xc
-	STATUSREPORT,    // 0xd
-	TERMINATE,       // 0xe
-	MEMREQUEST,      // 0xf
-	MEMRESPONSE,     // 0x10
+	MSGSTART = 0x0,  // 0x0
+	TRANSOBJ,        // 0x1
+	TRANSTALL,       // 0x2
+	LOCKREQUEST,     // 0x3
+	LOCKGROUNT,      // 0x4
+	LOCKDENY,        // 0x5
+	LOCKRELEASE,     // 0x6
+	PROFILEOUTPUT,   // 0x7
+	PROFILEFINISH,   // 0x8
+	REDIRECTLOCK,    // 0x9
+	REDIRECTGROUNT,  // 0xa
+	REDIRECTDENY,    // 0xb
+	REDIRECTRELEASE, // 0xc
+	STATUSCONFIRM,   // 0xd
+	STATUSREPORT,    // 0xe
+	TERMINATE,       // 0xf
+	MEMREQUEST,      // 0x10
+	MEMRESPONSE,     // 0x11
 #ifdef MULTICORE_GC
-	GCSTARTINIT,     // 0x11
-	GCSTART,         // 0x12
-	GCSTARTCOMPACT,  // 0x13
-	GCSTARTFLUSH,    // 0x14
-	GCFINISHINIT,    // 0x15
-	GCFINISHMARK,    // 0x16
-	GCFINISHCOMPACT, // 0x17
-	GCFINISHFLUSH,   // 0x18
-	GCFINISH,        // 0x19
-	GCMARKCONFIRM,   // 0x1a
-	GCMARKREPORT,    // 0x1b
-	GCMARKEDOBJ,     // 0x1c
-	GCMOVESTART,     // 0x1d
-	GCMAPREQUEST,    // 0x1e
-	GCMAPINFO,       // 0x1f
-	GCLOBJREQUEST,   // 0x20
-	GCLOBJINFO,      // 0x21
-	GCLOBJMAPPING,   // 0x22
+	GCSTARTINIT,     // 0x12
+	GCSTART,         // 0x13
+	GCSTARTCOMPACT,  // 0x14
+	GCSTARTFLUSH,    // 0x15
+	GCFINISHINIT,    // 0x16
+	GCFINISHMARK,    // 0x17
+	GCFINISHCOMPACT, // 0x18
+	GCFINISHFLUSH,   // 0x19
+	GCFINISH,        // 0x1a
+	GCMARKCONFIRM,   // 0x1b
+	GCMARKREPORT,    // 0x1c
+	GCMARKEDOBJ,     // 0x1d
+	GCMOVESTART,     // 0x1e
+	GCMAPREQUEST,    // 0x1f
+	GCMAPINFO,       // 0x20
+	GCLOBJREQUEST,   // 0x21
+	GCLOBJINFO,      // 0x22
+	GCLOBJMAPPING,   // 0x23
 #endif
 	MSGEND
 } MSGTYPE;
@@ -220,13 +220,13 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_NUM_PAGES (NUMCORES*(2+1)+3)
 #define BAMBOO_PAGE_SIZE (64 * 64)
 #define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
+#define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
 #else
-#define BAMBOO_NUM_PAGES (64 * 4 * 0.75) //(1024 * 1024 * 3.5)
+#define BAMBOO_NUM_PAGES (64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #define BAMBOO_PAGE_SIZE (16 * 1024 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (16 * 1024)
+#define BAMBOO_SHARED_MEM_SIZE (3.0 * 1024 * 1024 * 1024) // 3G// ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
 #endif
-
-#define BAMBOO_SHARED_MEM_SIZE (BAMBOO_PAGE_SIZE * BAMBOO_NUM_PAGES)
 
 #ifdef MULTICORE_GC
 #include "multicoregarbage.h"
@@ -253,7 +253,7 @@ struct freeMemItem {
 
 struct freeMemList {
 	struct freeMemItem * head;
-	struct freeMemItem * tail;
+	struct freeMemItem * backuplist;  // hold removed freeMemItem for reuse
 };
 
 struct freeMemList * bamboo_free_mem_list;

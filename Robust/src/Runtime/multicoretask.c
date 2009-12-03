@@ -76,7 +76,6 @@ void initruntimedata() {
   for(i = 0; i < BAMBOO_MSG_BUF_LENGTH; ++i) {
     msgdata[i] = -1;
   }
-  msgtype = -1;
   msgdataindex = 0;
   msglength = BAMBOO_MSG_BUF_LENGTH;
   for(i = 0; i < BAMBOO_OUT_BUF_LENGTH; ++i) {
@@ -1264,8 +1263,23 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 			freemem = NULL;
 			break;
 		}
-		prev = freemem;
-		freemem = freemem->next;
+		if(freemem->size == 0) {
+			// an empty item, remove it
+			struct freeMemItem * toremove = freemem;
+			freemem = freemem->next;
+			if(prev == NULL ){
+				// the head
+				bamboo_free_mem_list->head = freemem;
+			} else {
+				prev->next = freemem;
+			}
+			// put it to the tail of the list for reuse
+			toremove->next = bamboo_free_mem_list->backuplist;
+			bamboo_free_mem_list->backuplist = toremove;
+		} else {
+			prev = freemem;
+			freemem = freemem->next;
+		}
 	} while(freemem != NULL);
 
 	return freemem;
@@ -2184,11 +2198,10 @@ msg:
 	default:
 		break;
 	}
-	for(msgdataindex--; msgdataindex > 0; --msgdataindex) {
-		msgdata[msgdataindex] = -1;
+	for(; msgdataindex > 0; --msgdataindex) {
+		msgdata[msgdataindex-1] = -1;
 	}
-	msgtype = -1;
-	msglength = 30;
+	msglength = BAMBOO_MSG_BUF_LENGTH;
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
 	BAMBOO_DEBUGPRINT(0xe88d);

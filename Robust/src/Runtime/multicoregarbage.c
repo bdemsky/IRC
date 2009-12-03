@@ -686,8 +686,13 @@ inline struct freeMemItem * addFreeMemItem(int ptr,
 	struct freeMemItem * tochange = listtail;
 	if(*sethead) {
 		if(tochange->next == NULL) {
-			tochange->next = 
-				(struct freeMemItem *)RUNMALLOC(sizeof(struct freeMemItem));
+			if(bamboo_free_mem_list->backuplist != NULL) {
+				tochange->next = bamboo_free_mem_list->backuplist;
+				bamboo_free_mem_list->backuplist = NULL;
+			} else {
+				tochange->next = 
+					(struct freeMemItem *)RUNMALLOC(sizeof(struct freeMemItem));
+			}
 		} // if(tochange->next == NULL)
 		tochange = tochange->next;
 	} else {
@@ -956,6 +961,10 @@ inline void moveLObjs() {
 	// update the free mem list
 	// create new free mem list according to gcsmemtbl
 	bool sethead = false;
+	if(bamboo_free_mem_list->head == NULL) {
+		bamboo_free_mem_list->head = bamboo_free_mem_list->backuplist;
+		bamboo_free_mem_list->backuplist = NULL;
+	}
 	struct freeMemItem * tochange = bamboo_free_mem_list->head;
 	if(tochange == NULL) {
 		bamboo_free_mem_list->head = tochange = 
@@ -984,7 +993,8 @@ inline void moveLObjs() {
 				}
 				// start of a new free mem chunk
 				startptr = gcbaseva+((i<NUMCORES)?(i*BAMBOO_SMEM_SIZE_L)
-						:(BAMBOO_LARGE_SMEM_BOUND+(i-NUMCORES)*BAMBOO_SMEM_SIZE))+gcsmemtbl[i];
+				          :((BAMBOO_LARGE_SMEM_BOUND+(i-NUMCORES)*BAMBOO_SMEM_SIZE)))
+									  +gcsmemtbl[i];
 				size = bound-gcsmemtbl[i];
 			} // if(gcsmemtbl[i] == 0) else
 		} else {
@@ -1003,6 +1013,19 @@ inline void moveLObjs() {
 		tochange = addFreeMemItem(startptr, size, tochange, &sethead);
 		startptr = 0;
 		size = 0;
+	}
+	// remove the remaing list to the back up list
+	if(tochange->next != NULL) {
+		struct freeMemItem * blist = bamboo_free_mem_list->backuplist;
+		bamboo_free_mem_list->backuplist = tochange->next;
+		tochange->next = NULL;
+		if(blist != NULL) {
+			struct freeMemItem * tmp = bamboo_free_mem_list->backuplist;
+			while(tmp->next != NULL) {
+				tmp = tmp->next;
+			}
+			tmp->next = blist;
+		} // if(blist != NULL)
 	}
 
 #ifdef DEBUG
@@ -2325,7 +2348,7 @@ inline void gc(struct garbagelist * stackptr) {
 			return;
 		}
 
-#ifdef GC_DEBUG
+#ifdef RAWPATH // TODO GC_DEBUG
 		tprintf("start gc! \n");
 		//dumpSMem();
 #endif
@@ -2578,7 +2601,7 @@ inline void gc(struct garbagelist * stackptr) {
 			send_msg_1(i, GCFINISH);
 			gccorestatus[i] = 1;
 		}
-#ifdef GC_DEBUG
+#ifdef RAWPATH // TODO GC_DEBUG
 		tprintf("gc finished \n");
 		//dumpSMem();
 #endif

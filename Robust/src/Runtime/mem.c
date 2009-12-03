@@ -76,8 +76,14 @@ void * mycalloc_i(int m,
 		              int size) {
   void * p = NULL;
   int isize = size; 
-  p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
-  if(p == NULL) {
+#ifdef DEBUG
+	tprintf("ask for local mem: %x \n", isize);
+#endif
+	p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
+#ifdef DEBUG
+	tprintf("new obj in local mem: %x, %x \n", p, isize);
+#endif
+	if(p == NULL) {
 	  BAMBOO_EXIT(0xc004);
   }
   return p;
