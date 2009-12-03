@@ -399,10 +399,10 @@ int getRangePrefetchResponse(int sd, struct readstruct * readbuffer) {
       /* Insert into prefetch hash lookup table */
       void * oldptr;
       if((oldptr = prehashSearch(oid)) != NULL) {
-	if(((objheader_t *)oldptr)->version <= ((objheader_t *)ptr)->version) {
-	  prehashRemove(oid);
-	  prehashInsert(oid, ptr);
-	}
+        if(((objheader_t *)oldptr)->version < ((objheader_t *)ptr)->version) {
+          //prehashRemove(oid);
+          prehashInsert(oid, ptr);
+        }
       } else {
 	prehashInsert(oid, ptr);
       }

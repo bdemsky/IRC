@@ -27,8 +27,8 @@ typedef struct prehashtable {
   pthread_mutex_t lock;
   pthread_mutexattr_t prefetchmutexattr;
   pthread_cond_t cond;
-  struct objstr *hack2;
-  struct objstr *hack;
+  //struct objstr *hack2;
+  //struct objstr *hack;
 } prehashtable_t;
 
 /* Prototypes for hash*/

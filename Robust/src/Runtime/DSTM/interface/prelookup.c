@@ -9,7 +9,6 @@ prehashtable_t pflookup; //Global prefetch cache table
 
 unsigned int prehashCreate(unsigned int size, float loadfactor) {
   prehashlistnode_t *nodes;
-  int i;
 
   // Allocate space for the hash table
   if((nodes = calloc(size, sizeof(prehashlistnode_t))) == NULL) {
@@ -43,7 +42,53 @@ unsigned int prehashFunction(unsigned int key) {
 
 //Store oids and their pointers into hash
 void prehashInsert(unsigned int key, void *val) {
-  prehashlistnode_t *ptr;
+  prehashlistnode_t *ptr,*node,*tmp;
+  int index, isFound=0;
+  if(key==0) {
+    printf("Error: Trying to insert invalid key and value\n");
+    return;
+  }
+  if(pflookup.numelements > (pflookup.threshold)) {
+    //Resize
+    unsigned int newsize = pflookup.size << 1;
+    pthread_mutex_lock(&pflookup.lock);
+    prehashResize(newsize);
+    pthread_mutex_unlock(&pflookup.lock);
+  }
+
+  ptr = &pflookup.table[(key & pflookup.mask)>>1];
+  pthread_mutex_lock(&pflookup.lock);
+  if((ptr->key==0) && (ptr->next== NULL)) { //Insert at the first bin of the table
+    ptr->key = key;
+    ptr->val = val;
+    pflookup.numelements++;
+  } else {
+    tmp = ptr;
+    while(tmp != NULL) { 
+      if(tmp->key == key) {
+        isFound=1;
+        tmp->val = val;//Replace value for an exsisting key
+        pthread_mutex_unlock(&pflookup.lock);
+        return;
+      }
+      tmp=tmp->next;
+    }
+    if(!isFound) { //Insert new key and value into the chain of linked list for the given bin
+      node = calloc(1, sizeof(prehashlistnode_t));
+      node->key = key;
+      node->val = val ;
+      node->next = ptr->next;
+      ptr->next=node;
+      pflookup.numelements++;
+    }
+  }
+  pthread_mutex_unlock(&pflookup.lock);
+  return;
+}
+
+/*
+void prehashInsert(unsigned int key, void *val) {
+  prehashlistnode_t *ptr,*node;
   pthread_mutex_lock(&pflookup.lock);
 
   if(pflookup.numelements > (pflookup.threshold)) {
@@ -60,7 +105,7 @@ void prehashInsert(unsigned int key, void *val) {
     ptr->key = key;
     ptr->val = val;
   } else {                      // Insert in the beginning of linked list
-    prehashlistnode_t * node = calloc(1, sizeof(prehashlistnode_t));
+    node = calloc(1, sizeof(prehashlistnode_t));
     node->key = key;
     node->val = val ;
     node->next = ptr->next;
@@ -68,6 +113,7 @@ void prehashInsert(unsigned int key, void *val) {
   }
   pthread_mutex_unlock(&pflookup.lock);
 }
+*/
 
 // Search for an address for a given oid
 INLINE void *prehashSearch(unsigned int key) {
