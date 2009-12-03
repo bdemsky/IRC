@@ -3,7 +3,7 @@
 
 
 /*
-int write_trylock(volatile unsigned int *lock) {
+int write_trylock(volatile int *lock) {
   int retval=0;
   __asm__ __volatile__("xchgl %0,%1"
 	       : "=r"(retval)
@@ -13,7 +13,7 @@ int write_trylock(volatile unsigned int *lock) {
 }
 
 
-void write_unlock(volatile unsigned int *lock) {
+void write_unlock(volatile int *lock) {
   __asm __volatile__("movl $1, %0" : "+m" (*lock)::"memory");
 }
 */
