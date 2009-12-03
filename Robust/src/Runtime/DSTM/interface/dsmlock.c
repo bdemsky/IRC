@@ -10,14 +10,14 @@ inline void readLock(volatile unsigned int *addr) {
   __asm__ __volatile__ ("" " subl $1,(%0)\n\t"
                         "jns 1f\n"
                         "1:\n"
-                        :: "a" (addr) : "memory");
+                        :: "a" (*addr) : "memory");
 }
 
 inline void writeLock(volatile unsigned int *addr) {
   __asm__ __volatile__ ("" " subl %1,(%0)\n\t"
                         "jz 1f\n"
                         "1:\n"
-                        :: "a" (addr), "i" (RW_LOCK_BIAS) : "memory");
+                        :: "a" (*addr), "i" (RW_LOCK_BIAS) : "memory");
 }
 
 inline void atomic_dec(volatile unsigned int *v) {
@@ -30,11 +30,11 @@ inline void atomic_inc(volatile unsigned int *v) {
 			: "+m" (*v));
 }
 
-static inline int atomic_sub_and_test(int i, atomic_t *v) {
+static inline int atomic_sub_and_test(int i, volatile unsigned int *v) {
   unsigned char c;
 
   __asm__ __volatile__ (LOCK_PREFIX "subl %2,%0; sete %1"
-			: "+m" (v->counter), "=qm" (c)
+			: "+m" (*v), "=qm" (c)
 			: "ir" (i) : "memory");
   return c;
 }
@@ -46,9 +46,9 @@ static inline int atomic_sub_and_test(int i, atomic_t *v) {
  *
  * Atomically adds @i to @v.
  */
-static inline void atomic_add(int i, atomic_t *v) {
+static inline void atomic_add(int i, volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "addl %1,%0"
-			: "+m" (v->counter)
+			: "+m" (*v)
 			: "ir" (i));
 }
 
@@ -61,11 +61,10 @@ inline int read_trylock(volatile unsigned int  *lock) {
 }
 
 inline int write_trylock(volatile unsigned int  *lock) {
-  atomic_t *count = (atomic_t *)lock;
-  if (atomic_sub_and_test(RW_LOCK_BIAS, count)) {
+  if (atomic_sub_and_test(RW_LOCK_BIAS, lock)) {
     return 1; // get a write lock
   }
-  atomic_add(RW_LOCK_BIAS, count);
+  atomic_add(RW_LOCK_BIAS, lock);
   return 0; // failed to acquire a write lock
 }
 

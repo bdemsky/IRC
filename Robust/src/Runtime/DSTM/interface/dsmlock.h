@@ -25,8 +25,8 @@ int read_trylock(volatile unsigned int *lock);
 int write_trylock(volatile unsigned int *lock);
 void atomic_dec(volatile unsigned int *v);
 void atomic_inc(volatile unsigned int *v);
-static void atomic_add(int i, atomic_t *v);
-static int atomic_sub_and_test(int i, atomic_t *v);
+static void atomic_add(int i, volatile unsigned int *v);
+static int atomic_sub_and_test(int i, volatile unsigned int *v);
 void read_unlock(volatile unsigned int *rw);
 void write_unlock(volatile unsigned int *rw);
 #endif
