@@ -19,8 +19,6 @@ typedef struct {
 } atomic_t;
 
 void initdsmlocks(volatile unsigned int *addr);
-void readLock(volatile unsigned int *addr);
-void writeLock(volatile unsigned int *addr);
 int read_trylock(volatile unsigned int *lock);
 int write_trylock(volatile unsigned int *lock);
 void atomic_dec(volatile unsigned int *v);

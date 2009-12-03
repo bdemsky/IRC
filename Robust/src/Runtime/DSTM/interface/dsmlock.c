@@ -5,21 +5,6 @@ inline void initdsmlocks(volatile unsigned int *addr) {
   (*addr) = RW_LOCK_BIAS;
 }
 
-
-inline void readLock(volatile unsigned int *addr) {
-  __asm__ __volatile__ ("" " subl $1,(%0)\n\t"
-                        "jns 1f\n"
-                        "1:\n"
-                        :: "a" (*addr) : "memory");
-}
-
-inline void writeLock(volatile unsigned int *addr) {
-  __asm__ __volatile__ ("" " subl %1,(%0)\n\t"
-                        "jz 1f\n"
-                        "1:\n"
-                        :: "a" (*addr), "i" (RW_LOCK_BIAS) : "memory");
-}
-
 inline void atomic_dec(volatile unsigned int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "decl %0"
 			: "+m" (*v));
