@@ -24,9 +24,22 @@ unsigned int prehashCreate(unsigned int size, float loadfactor) {
   pflookup.threshold=loadfactor*size;
   
   //Initilize 
-  for(i=0;i<NUMLOCKS;i++){
+  for(i=0;i<PRENUMLOCKS;i++){
     pflookup.larray[i].lock=RW_LOCK_BIAS;
   }
+
+  /*
+  //Intiliaze and set prefetch table mutex attribute
+  pthread_mutexattr_init(&pflookup.prefetchmutexattr);
+  //NOTE:PTHREAD_MUTEX_RECURSIVE is currently inside a #if_def UNIX98 in the pthread.h file
+  //Therefore use PTHREAD_MUTEX_RECURSIVE_NP instead
+  pthread_mutexattr_settype(&pflookup.prefetchmutexattr, PTHREAD_MUTEX_RECURSIVE_NP);
+
+  //Initialize mutex var
+  pthread_mutex_init(&pflookup.lock, &pflookup.prefetchmutexattr);
+  //pthread_mutex_init(&pflookup.lock, NULL);
+  pthread_cond_init(&pflookup.cond, NULL);
+  */
 
   return 0;
 }
@@ -49,14 +62,14 @@ void prehashInsert(unsigned int key, void *val) {
   }
 
   unsigned int keyindex=key>>1;
-  volatile unsigned int * lockptr=&pflookup.larray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&pflookup.larray[keyindex&PRELOCKMASK].lock;
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
 
   ptr = &pflookup.table[keyindex&pflookup.mask];
 
-  if((ptr->key==0) && (ptr->next== NULL)) { //Insert at the first bin of the table
+  if(ptr->key==0) { //Insert at the first bin of the table
     ptr->key = key;
     ptr->val = val;
     atomic_inc(&pflookup.numelements);
@@ -67,7 +80,6 @@ void prehashInsert(unsigned int key, void *val) {
         isFound=1;
         tmp->val = val;//Replace value for an exsisting key
         write_unlock(lockptr);
-
         return;
       }
       tmp=tmp->next;
@@ -86,11 +98,11 @@ void prehashInsert(unsigned int key, void *val) {
 }
 
 // Search for an address for a given oid
-INLINE void *prehashSearch(unsigned int key) {
+void *prehashSearch(unsigned int key) {
   int index;
  
   unsigned int keyindex=key>>1;
-  volatile unsigned int * lockptr=&pflookup.larray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&pflookup.larray[keyindex&PRELOCKMASK].lock;
   while(!read_trylock(lockptr)) {
     sched_yield();
   }
@@ -113,15 +125,17 @@ unsigned int prehashRemove(unsigned int key) {
   prehashlistnode_t *prev;
   prehashlistnode_t *ptr, *node;
 
+  //eom
   unsigned int keyindex=key>>1;
-  volatile unsigned int * lockptr=&pflookup.larray[keyindex&LOCKMASK].lock;
+  volatile unsigned int * lockptr=&pflookup.larray[keyindex&PRELOCKMASK].lock;
 
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
   
   prehashlistnode_t *curr = &pflookup.table[keyindex&pflookup.mask];
-  
+  //eom
+
   for (; curr != NULL; curr = curr->next) {
     if (curr->key == key) {        
       // Find a match in the hash table
@@ -161,7 +175,7 @@ unsigned int prehashResize(unsigned int newsize) {
   int i,index;
   unsigned int mask;
 
-  for(i=0;i<NUMLOCKS;i++) {
+  for(i=0;i<PRENUMLOCKS;i++) {
     volatile unsigned int * lockptr=&pflookup.larray[i].lock;
     
     while(!write_trylock(lockptr)) {
@@ -171,7 +185,7 @@ unsigned int prehashResize(unsigned int newsize) {
   
   if (pflookup.numelements < pflookup.threshold) {
     //release lock and return
-    for(i=0;i<NUMLOCKS;i++) {
+    for(i=0;i<PRENUMLOCKS;i++) {
       volatile unsigned int * lockptr=&pflookup.larray[i].lock;
       write_unlock(lockptr);
     }
@@ -189,7 +203,7 @@ unsigned int prehashResize(unsigned int newsize) {
   pflookup.table = node;                //Update the global hashtable upon resize()
   pflookup.size = newsize;
   pflookup.threshold=newsize*pflookup.loadfactor;
-  mask=pflookup.mask = (newsize << 1) -1;
+  mask=pflookup.mask = newsize -1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     prehashlistnode_t * curr = &ptr[i];
@@ -231,11 +245,11 @@ else if (isfirst) {
   }
 
   free(ptr);            //Free the memory of the old hash table
-  for(i=0;i<NUMLOCKS;i++) {
+  for(i=0;i<PRENUMLOCKS;i++) {
     volatile unsigned int * lockptr=&pflookup.larray[i].lock;
     write_unlock(lockptr);
   }
-  return ;
+  return 0;
 }
 
 //Note: This is based on the implementation of the inserting a key in the first position of the hashtable

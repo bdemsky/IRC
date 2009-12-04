@@ -1,5 +1,9 @@
 #include "gCollect.h"
-#include "prelookup.h"
+#if 0
+#include "altprelookup.h"
+#else
+#inlcude "prelookup.h"
+#endif
 
 
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
@@ -62,7 +66,7 @@ void *prefetchobjstrAlloc(unsigned int size) {
   pNodeInfo.newptr->prev=tmp;
   pNodeInfo.newptr=tmp;
   pNodeInfo.os_count++;
-  
+
   if (pNodeInfo.os_count>PREFETCH_FLUSH_THRESHOLD) {
     //remove oldest from linked list
     objstr_t *tofree=pNodeInfo.oldptr;
@@ -95,15 +99,33 @@ void *prefetchobjstrAlloc(unsigned int size) {
   return ptr;
 }
 
+#if 0
 void clearBlock(objstr_t *block) {
+
   unsigned long int tmpbegin=(unsigned int)block;
   unsigned long int tmpend=(unsigned int)block->top;
   int i, j;
   prehashlistnode_t *ptr;
-  pthread_mutex_lock(&pflookup.lock);
+  //pthread_mutex_lock(&pflookup.lock);
+  /*
+  for(i=0;i<PRENUMLOCKS;i++) {
+    volatile unsigned int * lockptr=&pflookup.larray[i].lock;
+    
+    while(!write_trylock(lockptr)) {
+      sched_yield();
+    }
+  }
+  */
 
+  int lockindex=0;
   ptr = pflookup.table;
+  volatile unsigned int * lockptr_current=&pflookup.larray[lockindex].lock;
+  while(!write_trylock(lockptr_current)) {
+    sched_yield();
+  }
+
   for(i = 0; i<pflookup.size; i++) {
+
     prehashlistnode_t *orig=&ptr[i];
     prehashlistnode_t *curr = orig;
     prehashlistnode_t *next=curr->next;
@@ -133,9 +155,67 @@ void clearBlock(objstr_t *block) {
 	}
       }
     }
+
+    if(((i+1)&(pflookup.mask>>4))==0 && (i+1)<pflookup.size){
+      // try to grab new lock
+      lockindex++;
+      volatile unsigned int * lockptr_new=&pflookup.larray[lockindex].lock;
+      while(!write_trylock(lockptr_new)){
+        sched_yield();
+      }
+      //printf("grab new lock id=%d for %d\n",lockindex,i);
+      write_unlock(lockptr_current);
+      lockptr_current=lockptr_new;      
+    }
+    
+  }// end of for (pflokup)
+  
+  write_unlock(lockptr_current);
+ 
+}
+#else
+void clearBlock(objstr_t *block) {
+  unsigned long int tmpbegin=(unsigned int)block;
+  unsigned long int tmpend=(unsigned int)block->top;
+  int i, j;
+  prehashlistnode_t *ptr;
+  pthread_mutex_lock(&pflookup.lock);
+
+  ptr = pflookup.table;
+  for(i = 0; i<pflookup.size; i++) {
+    prehashlistnode_t *orig=&ptr[i];
+    prehashlistnode_t *curr = orig;
+    prehashlistnode_t *next=curr->next;
+    for(; next != NULL; curr=next, next = next->next) {
+      unsigned int val=(unsigned int)next->val;
+      if ((val>=tmpbegin)&(val<tmpend)) {
+	prehashlistnode_t *tmp=curr->next=next->next;
+	free(next);
+	next=curr;
+	//loop condition is broken now...need to check before incrementing
+	//if (next==NULL)
+	// break;
+      }
+    }
+    {
+      unsigned int val=(unsigned int)orig->val;
+      if ((val>=tmpbegin)&(val<tmpend)) {
+	if (orig->next==NULL) {
+	  orig->key=0;
+	  orig->val=NULL;
+	} else {
+	  next=orig->next;
+	  orig->val=next->val;
+	  orig->key=next->key;
+	  orig->next=next->next;
+	  free(next);
+	}
+      }
+    }
   }
   pthread_mutex_unlock(&pflookup.lock);
 }
+#endif
 
 objstr_t *allocateNew(unsigned int size) {
   objstr_t *tmp;

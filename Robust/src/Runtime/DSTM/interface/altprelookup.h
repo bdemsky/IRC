@@ -21,8 +21,8 @@ struct prelockarray {
    int buf[15];
 };
 
-#define NUMLOCKS 16
-#define LOCKMASK (NUMLOCKS-1)
+#define PRENUMLOCKS 16
+#define PRELOCKMASK (PRENUMLOCKS-1)
 
 
 struct objstr;
@@ -34,7 +34,7 @@ typedef struct prehashtable {
   unsigned int numelements;
   unsigned int threshold;
   double loadfactor;
-  struct prelockarray larray[NUMLOCKS];
+  struct prelockarray larray[PRENUMLOCKS];
 } prehashtable_t;
 
 /* Prototypes for hash*/
