@@ -37,6 +37,7 @@ import IR.Tree.TagExpressionList;
 public class BuildCodeMultiCore extends BuildCode {
   private Vector<Schedule> scheduling;
   int coreNum;
+  int tcoreNum;
   Schedule currentSchedule;
   Hashtable[] fsate2qnames;
   String objqarrayprefix= "objqueuearray4class";
@@ -64,6 +65,7 @@ public class BuildCodeMultiCore extends BuildCode {
     super(st, temptovar, typeutil, sa, pa);
     this.scheduling = scheduling;
     this.coreNum = coreNum;
+    this.tcoreNum = coreNum;
     this.currentSchedule = null;
     this.fsate2qnames = null;
     this.startupcorenum = 0;
@@ -290,8 +292,10 @@ public class BuildCodeMultiCore extends BuildCode {
       outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
       /* Record maximum number of all types, i.e. length of classsize[] */
       outstructs.println("#define NUMTYPES "+(state.numClasses() + state.numArrays()));
-      /* Record number of cores */
-      outstructs.println("#define NUMCORES "+this.coreNum);
+      /* Record number of total cores */
+      outstructs.println("#define NUMCORES "+this.tcoreNum);
+      /* Record number of active cores */
+      outstructs.println("#define NUMCORESACTIVE "+this.coreNum);
       /* Record number of core containing startup task */
       outstructs.println("#define STARTUPCORE "+this.startupcorenum);
     }     //else if (state.main!=null) {

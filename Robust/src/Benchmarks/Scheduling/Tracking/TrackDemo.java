@@ -60,6 +60,7 @@ public class TrackDemo {
       this.m_count = 0;
       
       this.m_num_bp = 0;
+			this.m_num_bpl = 0;
       
       this.WINSZ = 8;
       this.N_FEA = 16; //00;
@@ -91,6 +92,17 @@ public class TrackDemo {
       this.m_cols_3f = this.N_FEA;
       this.m_counter_3f = 3;
       this.m_num_p = nump;
+
+			this.m_rows = 0;
+			this.m_cols = 0;
+			this.m_image = null;
+			this.m_image_resized = null;
+			this.m_rows_r = 0;
+			this.m_cols_r = 0;
+
+			this.m_features = null;
+			this.m_rows_f = 0;
+			this.m_cols_f = 0;
     }
     
     public int getNumP() {
@@ -383,13 +395,13 @@ public class TrackDemo {
               }
             }
             if(k == nfea) {
-              System.printI(77777777);
+              //System.printI(77777777);
               return false;
             } else if(k == rindex) {
               k = k1;
             }
             if(f_ind[k] && (m3f[2][k] != image[localindex])) {
-              System.printI(88888888);
+              //System.printI(88888888);
               return false;
             }
             // move all things after k behind

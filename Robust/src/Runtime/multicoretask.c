@@ -44,7 +44,7 @@ void initruntimedata() {
 	// initialize the arrays
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     // startup core to initialize corestatus[]
-    for(i = 0; i < NUMCORES; ++i) {
+    for(i = 0; i < NUMCORESACTIVE; ++i) {
       corestatus[i] = 1;
       numsendobjs[i] = 0; 
       numreceiveobjs[i] = 0;
@@ -52,7 +52,9 @@ void initruntimedata() {
 			// initialize the profile data arrays
 			profilestatus[i] = 1;
 #endif
+    } // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef MULTICORE_GC
+		for(i = 0; i < NUMCORES; ++i) {
 			gccorestatus[i] = 1;
 			gcnumsendobjs[i] = 0; 
       gcnumreceiveobjs[i] = 0;
@@ -60,8 +62,8 @@ void initruntimedata() {
 			gcrequiredmems[i] = 0;
 			gcstopblock[i] = 0;
 			gcfilledblocks[i] = 0;
-#endif
     } // for(i = 0; i < NUMCORES; ++i)
+#endif
 		numconfirm = 0;
 		waitconfirm = false; 
 		
@@ -328,9 +330,9 @@ void checkCoreStatus() {
 		// check the status of all cores
 		allStall = true;
 #ifdef DEBUG
-		BAMBOO_DEBUGPRINT_REG(NUMCORES);
+		BAMBOO_DEBUGPRINT_REG(NUMCORESACTIVE);
 #endif
-		for(i = 0; i < NUMCORES; ++i) {
+		for(i = 0; i < NUMCORESACTIVE; ++i) {
 #ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xe000 + corestatus[i]);
 #endif
@@ -338,23 +340,23 @@ void checkCoreStatus() {
 				allStall = false;
 				break;
 			}
-		} // for(i = 0; i < NUMCORES; ++i)
+		} // for(i = 0; i < NUMCORESACTIVE; ++i)
 		if(allStall) {
 			// check if the sum of send objs and receive obj are the same
 			// yes->check if the info is the latest; no->go on executing
 			sumsendobj = 0;
-			for(i = 0; i < NUMCORES; ++i) {
+			for(i = 0; i < NUMCORESACTIVE; ++i) {
 				sumsendobj += numsendobjs[i];
 #ifdef DEBUG
 				BAMBOO_DEBUGPRINT(0xf000 + numsendobjs[i]);
 #endif
-			} // for(i = 0; i < NUMCORES; ++i)	
-			for(i = 0; i < NUMCORES; ++i) {
+			} // for(i = 0; i < NUMCORESACTIVE; ++i)	
+			for(i = 0; i < NUMCORESACTIVE; ++i) {
 				sumsendobj -= numreceiveobjs[i];
 #ifdef DEBUG
 				BAMBOO_DEBUGPRINT(0xf000 + numreceiveobjs[i]);
 #endif
-			} // for(i = 0; i < NUMCORES; ++i)
+			} // for(i = 0; i < NUMCORESACTIVE; ++i)
 			if(0 == sumsendobj) {
 				if(!waitconfirm) {
 					// the first time found all cores stall
@@ -364,13 +366,13 @@ void checkCoreStatus() {
 					BAMBOO_DEBUGPRINT(0xee05);
 #endif
 					corestatus[BAMBOO_NUM_OF_CORE] = 1;
-					for(i = 1; i < NUMCORES; ++i) {	
+					for(i = 1; i < NUMCORESACTIVE; ++i) {	
 						corestatus[i] = 1;
 						// send status confirm msg to core i
 						send_msg_1(i, STATUSCONFIRM);
-					} // for(i = 1; i < NUMCORES; ++i)
+					} // for(i = 1; i < NUMCORESACTIVE; ++i)
 					waitconfirm = true;
-					numconfirm = NUMCORES - 1;
+					numconfirm = NUMCORESACTIVE - 1;
 				} else {
 					// all the core status info are the latest
 					// terminate; for profiling mode, send request to all
@@ -393,10 +395,10 @@ void checkCoreStatus() {
 #ifdef DEBUG
 					BAMBOO_DEBUGPRINT(0xf000);
 #endif
-					for(i = 1; i < NUMCORES; ++i) {
+					for(i = 1; i < NUMCORESACTIVE; ++i) {
 						// send profile request msg to core i
 						send_msg_2(i, PROFILEOUTPUT, totalexetime);
-					} // for(i = 1; i < NUMCORES; ++i)
+					} // for(i = 1; i < NUMCORESACTIVE; ++i)
 					// pour profiling data on startup core
 					outputProfileData();
 					while(true) {
@@ -408,9 +410,9 @@ void checkCoreStatus() {
 						// check the status of all cores
 						allStall = true;
 #ifdef DEBUG
-						BAMBOO_DEBUGPRINT_REG(NUMCORES);
+						BAMBOO_DEBUGPRINT_REG(NUMCORESACTIVE);
 #endif	
-						for(i = 0; i < NUMCORES; ++i) {
+						for(i = 0; i < NUMCORESACTIVE; ++i) {
 #ifdef DEBUG
 							BAMBOO_DEBUGPRINT(0xe000 + profilestatus[i]);
 #endif
@@ -418,7 +420,7 @@ void checkCoreStatus() {
 								allStall = false;
 								break;
 							}
-						}  // for(i = 0; i < NUMCORES; ++i)
+						}  // for(i = 0; i < NUMCORESACTIVE; ++i)
 						if(!allStall) {
 							int halt = 100;
 							BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
@@ -485,7 +487,7 @@ inline void run(void * arg) {
   initializeexithandler();
 
   // main process of the execution module
-  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 	// non-executing cores, only processing communications
     activetasks = NULL;
 /*#ifdef PROFILE
@@ -594,7 +596,7 @@ inline void run(void * arg) {
 			  } // if(STARTUPCORE == BAMBOO_NUM_OF_CORE) 
 		  } // if(!tocontinue)
 	  } // while(true) 
-  } // if(BAMBOO_NUM_OF_CORE > NUMCORES - 1)
+  } // if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)
 
 } // run()
 
@@ -934,7 +936,7 @@ void flagbody(struct ___Object___ *ptr,
   int UNUSED, UNUSED2;
   int * enterflags = NULL;
   if((!isnew) && (queues == NULL)) {
-    if(BAMBOO_NUM_OF_CORE < NUMCORES) {
+    if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
 		queues = objectqueues[BAMBOO_NUM_OF_CORE][ptr->type];
 		length = numqueues[BAMBOO_NUM_OF_CORE][ptr->type];
 	} else {
@@ -968,7 +970,7 @@ void enqueueObject(void * vptr,
 		struct ___Object___ *tagptr=NULL;
 		struct parameterwrapper ** queues = vqueues;
 		int length = vlength;
-		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 			return;
 		}
 		if(queues == NULL) {
@@ -1042,7 +1044,7 @@ void enqueueObject_I(void * vptr,
 		struct ___Object___ *tagptr=NULL;
 		struct parameterwrapper ** queues = vqueues;
 		int length = vlength;
-		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 			return;
 		}
 		if(queues == NULL) {
@@ -1463,7 +1465,7 @@ msg:
 			BAMBOO_DEBUGPRINT(0xe880);
 #endif
 #endif
-      if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+      if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
@@ -1522,7 +1524,7 @@ msg:
 #endif
 				BAMBOO_EXIT(0xa003);
       } 
-      if(msgdata[1] < NUMCORES) {
+      if(msgdata[1] < NUMCORESACTIVE) {
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT(0xe881);
@@ -1565,7 +1567,7 @@ msg:
 
     case LOCKGROUNT: {
       // receive lock grount msg
-      if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+      if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
@@ -1594,7 +1596,7 @@ msg:
 
     case LOCKDENY: {
       // receive lock deny msg
-      if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+      if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
 				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
@@ -1700,7 +1702,7 @@ msg:
 
 	case REDIRECTGROUNT: {
 		// receive a lock grant msg with redirect info
-		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
@@ -1730,7 +1732,7 @@ msg:
 	
 	case REDIRECTDENY: {
 	  // receive a lock deny msg with redirect info
-	  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+	  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
 		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
@@ -1767,7 +1769,7 @@ msg:
 	case STATUSCONFIRM: {
       // receive a status confirm info
 	  if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
-				|| (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
+				|| (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
 		  // wrong core to receive such msg
 		  BAMBOO_EXIT(0xa00e);
 		} else {
@@ -1958,7 +1960,7 @@ msg:
 		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
 		  BAMBOO_EXIT(0xb002);
-		} 
+		}
 		if(msgdata[1] < NUMCORES) {
 			gccorestatus[msgdata[1]] = 0;
 			gcnumsendobjs[msgdata[1]] = msgdata[2];
@@ -2769,13 +2771,14 @@ execute:
 	  if(islock) {
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xe999);
-#endif
+#endif 
 	    for(i = 0; i < runtime_locklen; ++i) {
 				void * ptr = (void *)(runtime_locks[i].redirectlock);
 	      int * lock = (int *)(runtime_locks[i].value);
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)ptr);
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
+			BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
 #endif
 #ifndef MULTICORE_GC
 		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
@@ -2936,7 +2939,7 @@ loopstart:
 void printdebug() {
   int i;
   int j;
-  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
     return;
   }
   for(i=0; i<numtasks[BAMBOO_NUM_OF_CORE]; i++) {
@@ -2994,7 +2997,7 @@ void printdebug() {
 
 void processtasks() {
   int i;
-  if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
     return;
   }
   for(i=0; i<numtasks[BAMBOO_NUM_OF_CORE]; i++) {

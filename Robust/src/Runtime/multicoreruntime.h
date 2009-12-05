@@ -180,11 +180,12 @@ typedef enum {
 } MSGTYPE;
 
 // data structures of status for termination
-int corestatus[NUMCORES]; // records status of each core
-                          // 1: running tasks
-                          // 0: stall
-int numsendobjs[NUMCORES]; // records how many objects a core has sent out
-int numreceiveobjs[NUMCORES]; // records how many objects a core has received
+// only check working cores
+int corestatus[NUMCORESACTIVE]; // records status of each core
+                                // 1: running tasks
+                                // 0: stall
+int numsendobjs[NUMCORESACTIVE]; // records how many objects a core has sent out
+int numreceiveobjs[NUMCORESACTIVE]; // records how many objects a core has received
 volatile int numconfirm;
 volatile bool waitconfirm;
 bool busystatus;
@@ -296,7 +297,7 @@ bool taskInfoOverflow;
 /*InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
    int interruptInfoIndex;
    bool interruptInfoOverflow;*/
-int profilestatus[NUMCORES]; // records status of each core
+int profilestatus[NUMCORESACTIVE]; // records status of each core
                              // 1: running tasks
                              // 0: stall
 #endif // #ifdef PROFILE

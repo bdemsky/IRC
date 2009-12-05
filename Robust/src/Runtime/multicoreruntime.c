@@ -197,6 +197,7 @@ void * allocate_new(void * ptr, int type) {
   v->type=type;
   v->version = 0;
   v->lock = NULL;
+	v->lockcount = 0;
 	initlock(v);
   return v;
 }
