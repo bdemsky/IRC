@@ -167,7 +167,9 @@ void disruntimedata() {
 	freeRuntimeHash(objRedirectLockTbl);
 	RUNFREE(locktable.bucket);
 #endif
-	genfreehashtable(activetasks);
+	if(activetasks != NULL) {
+		genfreehashtable(activetasks);
+	}
 	if(currtpd != NULL) {
 		RUNFREE(currtpd->parameterArray);
 		RUNFREE(currtpd);
