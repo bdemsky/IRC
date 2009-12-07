@@ -4,7 +4,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import Analysis.OwnershipAnalysis.HeapRegionNode;
-import Analysis.OwnershipAnalysis.TokenTupleSet;
 import IR.Flat.TempDescriptor;
 
 public class StallSiteNode extends ConflictNode {
@@ -25,6 +24,11 @@ public class StallSiteNode extends ConflictNode {
 
 	public StallSite getStallSite() {
 		return stallSite;
+	}
+	
+	public String toString(){
+		String str="StallSiteNode "+id;
+		return str;
 	}
 
 }

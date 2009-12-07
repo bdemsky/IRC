@@ -2064,7 +2064,7 @@ public class MLPAnalysis {
 				Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
 						.entrySet();
 
-				HashSet<String> newStallNodeSet = new HashSet<String>();
+//				HashSet<String> newStallNodeSet = new HashSet<String>();
 
 				for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
 						.iterator(); iterator2.hasNext();) {
@@ -2078,41 +2078,10 @@ public class MLPAnalysis {
 							.getOwnvershipGraphByMethodContext(mc);
 					Set<Set> reachabilitySet = calculateReachabilitySet(og, td);
 
-					if ((stallNodeID = conflictGraph.addStallNode(td, fm,
-							stallSite, reachabilitySet)) != null) {
-						// it added new stall node
-						newStallNodeSet.add(stallNodeID);
-					}
+					conflictGraph.addStallNode(td, fm, stallSite,
+							reachabilitySet);
+
 				}
-
-				// Analyzing write conflicts between stall site and live-in
-				// variables
-				for (Iterator iterator = newStallNodeSet.iterator(); iterator
-						.hasNext();) {
-					String stallNodeID = (String) iterator.next();
-
-					StallSiteNode stallNode = conflictGraph
-							.getStallNode(stallNodeID);
-
-					if (stallNode != null) {
-						// if prior sese blocks have write effects on this stall
-						// node, it should be connected between them.
-						HashSet<LiveInNode> liveInNodeSet = conflictGraph
-								.getLiveInNodeSet();
-						for (Iterator iterator2 = liveInNodeSet.iterator(); iterator2
-								.hasNext();) {
-							LiveInNode liveInNode = (LiveInNode) iterator2
-									.next();
-							if (liveInNode.isWriteConflictWith(stallNode)) {
-								// create conflict edge
-								conflictGraph.addWriteConflictEdge(stallNode,
-										liveInNode);
-							}
-						}
-					}
-				}
-
-				// ///////////////////////////////////////////////////////////////////////
 
 				conflictGraph_nodeAction(mc, fm, fn, conflictGraph,
 						currentConflictsMap);
@@ -2128,27 +2097,26 @@ public class MLPAnalysis {
 
 		} // end of while(mcIter)
 
-		// decide fine-grain edge or coarse-grain edge among all vertexes
+		// decide fine-grain edge or coarse-grain edge among all vertexes by pair-wise comparison
 		conflictGraph.analyzeConflicts();
 
 		conflictGraphResults.put(fm, conflictGraph);
 
 	}
 	
-	private Set<Set> calculateReachabilitySet(OwnershipGraph og, TempDescriptor tempDescriptor){
+	private Set<Set> calculateReachabilitySet(OwnershipGraph og,
+			TempDescriptor tempDescriptor) {
 		// reachability set
 		Set<Set> reachabilitySet = new HashSet();
 		LabelNode ln = og.td2ln.get(tempDescriptor);
-		Iterator<ReferenceEdge> refEdgeIter = ln
-				.iteratorToReferencees();
+		Iterator<ReferenceEdge> refEdgeIter = ln.iteratorToReferencees();
 		while (refEdgeIter.hasNext()) {
-			ReferenceEdge referenceEdge = (ReferenceEdge) refEdgeIter
-					.next();
+			ReferenceEdge referenceEdge = (ReferenceEdge) refEdgeIter.next();
+
 			ReachabilitySet set = referenceEdge.getBeta();
 			Iterator<TokenTupleSet> ttsIter = set.iterator();
 			while (ttsIter.hasNext()) {
-				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter
-						.next();
+				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter.next();
 
 				HashSet<GloballyUniqueTokenTuple> newTokenTupleSet = new HashSet<GloballyUniqueTokenTuple>();
 				// reachabilitySet.add(tokenTupleSet);
@@ -2157,8 +2125,7 @@ public class MLPAnalysis {
 				while (iter.hasNext()) {
 					TokenTuple tt = (TokenTuple) iter.next();
 					int token = tt.getToken();
-					String uniqueID = og.id2hrn.get(
-							new Integer(token))
+					String uniqueID = og.id2hrn.get(new Integer(token))
 							.getGloballyUniqueIdentifier();
 					GloballyUniqueTokenTuple gtt = new GloballyUniqueTokenTuple(
 							uniqueID, tt);
@@ -2171,8 +2138,8 @@ public class MLPAnalysis {
 		return reachabilitySet;
 	}
 	
-	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm, FlatNode fn,
- ConflictGraph graph,
+	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm,
+			FlatNode fn, ConflictGraph graph,
 			ParentChildConflictsMap currentConflictsMap) {
 
 		switch (fn.kind()) {
@@ -2198,11 +2165,21 @@ public class MLPAnalysis {
 					Set<SESEEffectsKey> writeEffectsSet = seseEffectsSet
 							.getWritingSet(tempDescriptor);
 
-					Set<Set> reachabilitySet=calculateReachabilitySet(og,tempDescriptor);
+					Set<Set> reachabilitySet = calculateReachabilitySet(og,
+							tempDescriptor);
 
 					// add new live-in node
-					graph.addLiveInNode(tempDescriptor, fsen, readEffectsSet,
-							writeEffectsSet, reachabilitySet);
+					LabelNode ln = og.td2ln.get(tempDescriptor);
+					Set<HeapRegionNode> hrnSet = new HashSet<HeapRegionNode>();
+					Iterator<ReferenceEdge> refIter = ln
+							.iteratorToReferencees();
+					while (refIter.hasNext()) {
+						ReferenceEdge referenceEdge = (ReferenceEdge) refIter
+								.next();
+						hrnSet.add(referenceEdge.getDst());
+					}
+					graph.addLiveInNode(tempDescriptor, hrnSet, fsen,
+							readEffectsSet, writeEffectsSet, reachabilitySet);
 
 				}
 
@@ -2303,36 +2280,6 @@ public class MLPAnalysis {
 			
 		}
 		
-		
-		
-		
-		/*
-		// collects related allocation sites
-		Iterator<ReferenceEdge> referenceeIter = ln
-				.iteratorToReferencees();
-		while (referenceeIter.hasNext()) {
-			ReferenceEdge referenceEdge = (ReferenceEdge) referenceeIter
-					.next();
-			HeapRegionNode dstHRN = referenceEdge.getDst();
-			if (dstHRN.isParameter()) {
-
-				HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
-				visitedHRN.add(dstHRN);
-				setupRelatedAllocSiteAnalysis(og, mc, dstHRN,
-						visitedHRN);
-
-			} else {
-				addLiveInAllocationSite(mc, dstHRN
-						.getAllocationSite());
-			}
-		}
-		*/
-		
-
-		// if(currentConflictsMap.isAfterChildSESE()){
-		//			
-		// }
-
 	}
 	
 	private void conflicts_nodeAction(MethodContext mc, FlatNode fn,

@@ -6,7 +6,6 @@ import java.util.Set;
 
 import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
-import Analysis.OwnershipAnalysis.ReachabilitySet;
 import Analysis.OwnershipAnalysis.TokenTupleSet;
 import IR.Flat.FlatNode;
 

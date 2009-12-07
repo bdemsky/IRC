@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import Analysis.OwnershipAnalysis.HeapRegionNode;
-import Analysis.OwnershipAnalysis.TokenTuple;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.TempDescriptor;
@@ -23,63 +22,354 @@ public class ConflictGraph {
 	}
 
 	public void analyzeConflicts() {
+
 		Set<String> keySet = id2cn.keySet();
+		Set<String> analyzedIDSet = new HashSet<String>();
+
 		for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
 			String nodeID = (String) iterator.next();
 			ConflictNode node = id2cn.get(nodeID);
-			analyzePossibleConflicts(node);
+			analyzePossibleConflicts(analyzedIDSet, node);
 		}
 	}
 
-	public void analyzePossibleConflicts(ConflictNode node) {
+	private boolean isWriteConflicts(StallSiteNode nodeA, LiveInNode nodeB) {
+
+		boolean result = false;
+		StallSite stallSite = nodeA.getStallSite();
+
+		Set<SESEEffectsKey> writeEffectsSet = nodeB.getWriteEffectsSet();
+		Set<SESEEffectsKey> readEffectsSet = nodeB.getReadEffectsSet();
+
+		if (writeEffectsSet != null) {
+			Iterator<SESEEffectsKey> writeIter = writeEffectsSet.iterator();
+			while (writeIter.hasNext()) {
+				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIter
+						.next();
+				String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
+				String writeFieldName = seseEffectsKey.getFieldDescriptor();
+
+				HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
+				for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+						.hasNext();) {
+					HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
+					if (stallHRN.getGloballyUniqueIdentifier().equals(
+							writeHeapRegionID)) {
+
+						// check whether there are read or write effects of
+						// stall sites
+
+						HashSet<Effect> effectSet = stallSite.getEffectSet();
+						for (Iterator iterator2 = effectSet.iterator(); iterator2
+								.hasNext();) {
+							Effect effect = (Effect) iterator2.next();
+							String stallEffectfieldName = effect.getField();
+
+							if (stallEffectfieldName.equals(writeFieldName)) {
+								result = result | true;
+							}
+						}
+
+					}
+				}
+
+			}
+		}
+
+		if (readEffectsSet != null) {
+			Iterator<SESEEffectsKey> readIter = readEffectsSet.iterator();
+			while (readIter.hasNext()) {
+
+				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) readIter
+						.next();
+				String readHeapRegionID = seseEffectsKey.getHRNUniqueId();
+				String readFieldName = seseEffectsKey.getFieldDescriptor();
+
+				HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
+				for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+						.hasNext();) {
+					HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
+					if (stallHRN.getGloballyUniqueIdentifier().equals(
+							readHeapRegionID)) {
+
+						HashSet<Effect> effectSet = stallSite.getEffectSet();
+						for (Iterator iterator2 = effectSet.iterator(); iterator2
+								.hasNext();) {
+							Effect effect = (Effect) iterator2.next();
+							String stallEffectfieldName = effect.getField();
+
+							if (effect.getEffectType().equals(
+									StallSite.WRITE_EFFECT)) {
+								if (stallEffectfieldName.equals(readFieldName)) {
+									result = result | true;
+								}
+							}
+
+						}
+
+					}
+
+				}
+
+			}
+		}
+
+		return result;
+	}
+
+	private int determineWriteConflictsType(LiveInNode liveInNodeA,
+			LiveInNode liveInNodeB) {
+
+		Set<HeapRegionNode> liveInHrnSetA = liveInNodeA.getHRNSet();
+		Set<HeapRegionNode> liveInHrnSetB = liveInNodeB.getHRNSet();
+
+		boolean isPointingToSameRegion = compareHRNSet(liveInHrnSetA,
+				liveInHrnSetB);
+
+		boolean isSharingReachability = false;
+
+		Set<Set> liveInNodeReachabilitySetA = liveInNodeA.getReachabilitySet();
+		Set<Set> liveInNodeReachabilitySetB = liveInNodeB.getReachabilitySet();
+
+		Set<GloballyUniqueTokenTuple> overlappedReachableRegionSet = calculateOverlappedReachableRegion(
+				liveInNodeReachabilitySetA, liveInNodeReachabilitySetB);
+		if (overlappedReachableRegionSet.size() > 0) {
+			isSharingReachability = true;
+		}
+
+		if (isPointingToSameRegion && isSharingReachability) {
+			// two node share same reachability and points to same region, then
+			// it is fine grain conflicts
+			return ConflictEdge.FINE_GRAIN_EDGE;
+		} else if (isSharingReachability) {
+			// two node share same reachability but points to different region,
+			// then it is coarse grain conflicts
+			return ConflictEdge.COARSE_GRAIN_EDGE;
+		} else {
+			// otherwise, it is not write conflicts
+			return ConflictEdge.NON_WRITE_CONFLICT;
+		}
+
+	}
+
+	private boolean compareHRNSet(Set<HeapRegionNode> setA,
+			Set<HeapRegionNode> setB) {
+
+		for (Iterator iterator = setA.iterator(); iterator.hasNext();) {
+			HeapRegionNode heapRegionNode = (HeapRegionNode) iterator.next();
+			String gID = heapRegionNode.getGloballyUniqueIdentifier();
+			boolean found = false;
+			for (Iterator iterator2 = setB.iterator(); iterator2.hasNext();) {
+				HeapRegionNode heapRegionNode2 = (HeapRegionNode) iterator2
+						.next();
+				if (heapRegionNode2.getGloballyUniqueIdentifier().equals(gID)) {
+					found = true;
+				}
+			}
+			if (!found) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private int determineWriteConflictsType(StallSiteNode stallNode,
+			LiveInNode liveInNode) {
+
+		System.out.println("determine write ocnflict type between " + stallNode
+				+ "<->" + liveInNode);
+
+		Set<HeapRegionNode> stallHrnSet = stallNode.getHRNSet();
+		Set<HeapRegionNode> liveInHrnSet = liveInNode.getHRNSet();
+
+		System.out.println("stallHrnSet=" + stallHrnSet);
+		System.out.println("liveInHrnSet=" + liveInHrnSet);
+
+		boolean isPointingToSameRegion = compareHRNSet(stallHrnSet,
+				liveInHrnSet);
+		System.out.println("isporintTosameRegion=" + isPointingToSameRegion);
+
+		boolean isSharingReachability = false;
+
+		Set<Set> stallNodeReachabilitySet = stallNode.getReachabilitySet();
+		Set<Set> liveInNodeReachabilitySet = liveInNode.getReachabilitySet();
+
+		Set<GloballyUniqueTokenTuple> overlappedReachableRegionSet = calculateOverlappedReachableRegion(
+				stallNodeReachabilitySet, liveInNodeReachabilitySet);
+		if (overlappedReachableRegionSet.size() > 0) {
+			isSharingReachability = true;
+		}
+		System.out.println("isSharingReachability=" + isSharingReachability);
+
+		if (isPointingToSameRegion && isSharingReachability) {
+			// two node share same reachability and points to same region, then
+			// it is fine grain conflicts
+			return ConflictEdge.FINE_GRAIN_EDGE;
+		} else if (isSharingReachability) {
+			// two node share same reachability but points to different region,
+			// then it is coarse grain conflicts
+			return ConflictEdge.COARSE_GRAIN_EDGE;
+		} else {
+			// otherwise, it is not write conflicts
+			return ConflictEdge.NON_WRITE_CONFLICT;
+		}
+
+	}
+
+	private boolean isWriteConflicts(LiveInNode nodeA, LiveInNode nodeB) {
+
+		Set<SESEEffectsKey> readEffectsSetA = nodeA.getReadEffectsSet();
+		Set<SESEEffectsKey> writeEffectsSetA = nodeA.getWriteEffectsSet();
+		Set<SESEEffectsKey> readEffectsSetB = nodeB.getReadEffectsSet();
+		Set<SESEEffectsKey> writeEffectsSetB = nodeB.getWriteEffectsSet();
+
+		// if node A has write effects on reading/writing regions of node B
+		if (writeEffectsSetA != null) {
+			Iterator<SESEEffectsKey> writeIterA = writeEffectsSetA.iterator();
+			while (writeIterA.hasNext()) {
+				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIterA
+						.next();
+				String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
+				String writeFieldName = seseEffectsKey.getFieldDescriptor();
+
+				if (readEffectsSetB != null) {
+					Iterator<SESEEffectsKey> readIterB = readEffectsSetB
+							.iterator();
+					while (readIterB.hasNext()) {
+						SESEEffectsKey readingEffect = (SESEEffectsKey) readIterB
+								.next();
+
+						if (readingEffect.getHRNUniqueId().equals(
+								writeHeapRegionID)
+								&& readingEffect.getFieldDescriptor().equals(
+										writeFieldName)) {
+							return true;
+						}
+					}
+				}
+
+				if (writeEffectsSetB != null) {
+					Iterator<SESEEffectsKey> writeIterB = writeEffectsSetB
+							.iterator();
+					while (writeIterB.hasNext()) {
+						SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterB
+								.next();
+
+						if (writingEffect.getHRNUniqueId().equals(
+								writeHeapRegionID)
+								&& writingEffect.getFieldDescriptor().equals(
+										writeFieldName)) {
+							return true;
+						}
+					}
+				}
+
+			}
+		}
+
+		// if node B has write effects on reading regions of node A
+		if (writeEffectsSetB != null) {
+			Iterator<SESEEffectsKey> writeIterB = writeEffectsSetB.iterator();
+			while (writeIterB.hasNext()) {
+				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIterB
+						.next();
+				String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
+				String writeFieldName = seseEffectsKey.getFieldDescriptor();
+
+				if (readEffectsSetA != null) {
+					Iterator<SESEEffectsKey> readIterA = readEffectsSetA
+							.iterator();
+					while (readIterA.hasNext()) {
+						SESEEffectsKey readingEffect = (SESEEffectsKey) readIterA
+								.next();
+						if (readingEffect.getHRNUniqueId().equals(
+								writeHeapRegionID)
+								&& readingEffect.getFieldDescriptor().equals(
+										writeFieldName)) {
+							return true;
+						}
+					}
+				}
+
+				if (writeEffectsSetA != null) {
+					Iterator<SESEEffectsKey> writeIterA = writeEffectsSetA
+							.iterator();
+					while (writeIterA.hasNext()) {
+						SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterA
+								.next();
+						if (writingEffect.getHRNUniqueId().equals(
+								writeHeapRegionID)
+								&& writingEffect.getFieldDescriptor().equals(
+										writeFieldName)) {
+							return true;
+						}
+					}
+				}
+
+			}
+		}
+		return false;
+	}
+
+	public void analyzePossibleConflicts(Set<String> analyzedIDSet,
+			ConflictNode currentNode) {
 
 		// compare with all nodes
-
-		Set<Set> nodeReachabilitySet = node.getReachabilitySet();
 
 		Set<Entry<String, ConflictNode>> set = id2cn.entrySet();
 		for (Iterator iterator = set.iterator(); iterator.hasNext();) {
 			Entry<String, ConflictNode> entry = (Entry<String, ConflictNode>) iterator
 					.next();
 
-			String currentNodeID = entry.getKey();
-			ConflictNode currentNode = entry.getValue();
+			String entryNodeID = entry.getKey();
+			ConflictNode entryNode = entry.getValue();
 
-			if ((node instanceof StallSiteNode)
-					&& (currentNode instanceof StallSiteNode)) {
-				continue;
-			}
+			if ((!currentNode.getID().equals(entryNodeID))
+					&& !(analyzedIDSet.contains(currentNode.getID()
+							+ entryNodeID) || analyzedIDSet
+							.contains(entryNodeID + currentNode.getID()))) {
 
-			if (currentNodeID.equals(node.getID())) {
-				continue;
-			}
+				if (currentNode instanceof StallSiteNode
+						&& entryNode instanceof LiveInNode) {
+					if (isWriteConflicts((StallSiteNode) currentNode,
+							(LiveInNode) entryNode)) {
+						int conflictType = determineWriteConflictsType(
+								(StallSiteNode) currentNode,
+								(LiveInNode) entryNode);
+						// System.out.println("WRITE CONFLICT type="
+						// + conflictType + " BETWEEN=" + currentNode
+						// + "<->" + entryNode);
+						if (conflictType > 0) {
+							addConflictEdge(conflictType, currentNode,
+									entryNode);
+						}
+					}
+					analyzedIDSet.add(currentNode.getID() + entryNodeID);
 
-			Set<Set> currentNodeReachabilitySet = currentNode
-					.getReachabilitySet();
+				} else if (currentNode instanceof LiveInNode
+						&& entryNode instanceof LiveInNode) {
+					if (isWriteConflicts((LiveInNode) currentNode,
+							(LiveInNode) entryNode)) {
 
-			Set<GloballyUniqueTokenTuple> overlapSet = calculateOverlappedReachableRegion(
-					nodeReachabilitySet, currentNodeReachabilitySet);
-			if (overlapSet.size() > 0) {
+						int conflictType = determineWriteConflictsType(
+								(LiveInNode) currentNode,
+								(LiveInNode) entryNode);
+//						System.out.println("WRITE CONFLICT type="
+//								+ conflictType + " BETWEEN=" + currentNode
+//								+ "<->" + entryNode);
+						if (conflictType > 0) {
+							addConflictEdge(conflictType, currentNode,
+									entryNode);
+						}
 
-				// System.out.println("OVERLAPPED=" + overlapSet);
-
-				if (node instanceof StallSiteNode
-						&& currentNode instanceof LiveInNode) {
-					int edgeType = decideConflictEdgeType(overlapSet,
-							(StallSiteNode) node, (LiveInNode) currentNode);
-					addConflictEdge(edgeType, node, currentNode);
-				} else if (node instanceof LiveInNode
-						&& currentNode instanceof LiveInNode) {
-					int edgeType = decideConflictEdgeType(overlapSet,
-							(LiveInNode) node, (LiveInNode) currentNode);
-					addConflictEdge(edgeType, node, currentNode);
+					}
+					analyzedIDSet.add(currentNode.getID() + entryNodeID);
 				}
 
-			} else {
-				// System.out.println("DOSE NOT OVERLAPPED " + node + " <-> "
-				// + currentNode);
 			}
+
 		}
+
 	}
 
 	public boolean containsTokenTuple(Set<GloballyUniqueTokenTuple> overlapSet,
@@ -95,68 +385,6 @@ public class ConflictGraph {
 
 		return false;
 
-	}
-
-	private int decideConflictEdgeType(
-			Set<GloballyUniqueTokenTuple> overlapSet,
-			StallSiteNode stallSiteNode, LiveInNode liveInNode) {
-
-		Set<SESEEffectsKey> liveInWriteEffectSet = liveInNode
-				.getWriteEffectsSet();
-
-		if (liveInWriteEffectSet != null) {
-			for (Iterator iterator = liveInWriteEffectSet.iterator(); iterator
-					.hasNext();) {
-				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator
-						.next();
-				String hrnUniqueID = seseEffectsKey.getHRNUniqueId();
-
-				if (containsTokenTuple(overlapSet, hrnUniqueID)) {
-					return ConflictEdge.COARSE_GRAIN_EDGE;
-				}
-			}
-		}
-
-		return ConflictEdge.FINE_GRAIN_EDGE;
-	}
-
-	private int decideConflictEdgeType(
-			Set<GloballyUniqueTokenTuple> overlapSet, LiveInNode liveInNodeA,
-			LiveInNode liveInNodeB) {
-
-		Set<SESEEffectsKey> liveInWriteEffectSetA = liveInNodeA
-				.getWriteEffectsSet();
-
-		if (liveInWriteEffectSetA != null) {
-			for (Iterator iterator = liveInWriteEffectSetA.iterator(); iterator
-					.hasNext();) {
-				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator
-						.next();
-				String hrnUniqueID = seseEffectsKey.getHRNUniqueId();
-
-				if (containsTokenTuple(overlapSet, hrnUniqueID)) {
-					return ConflictEdge.COARSE_GRAIN_EDGE;
-				}
-			}
-		}
-
-		Set<SESEEffectsKey> liveInWriteEffectSetB = liveInNodeB
-				.getWriteEffectsSet();
-
-		if (liveInWriteEffectSetB != null) {
-			for (Iterator iterator = liveInWriteEffectSetB.iterator(); iterator
-					.hasNext();) {
-				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator
-						.next();
-				String hrnUniqueID = seseEffectsKey.getHRNUniqueId();
-
-				if (containsTokenTuple(overlapSet, hrnUniqueID)) {
-					return ConflictEdge.COARSE_GRAIN_EDGE;
-				}
-			}
-		}
-
-		return 0;
 	}
 
 	private Set<GloballyUniqueTokenTuple> calculateOverlappedReachableRegion(
@@ -210,42 +438,24 @@ public class ConflictGraph {
 		}
 	}
 
-	public void addLiveInNode(TempDescriptor td, FlatSESEEnterNode fsen,
-			Set<SESEEffectsKey> readEffectsSet,
+	public void addLiveInNode(TempDescriptor td, Set<HeapRegionNode> hrnSet,
+			FlatSESEEnterNode fsen, Set<SESEEffectsKey> readEffectsSet,
 			Set<SESEEffectsKey> writeEffectsSet, Set<Set> reachabilitySet) {
 
 		String liveinNodeID = td + "_" + fsen.getIdentifier();
 
-		LiveInNode liveInNode = (LiveInNode) id2cn.get(liveinNodeID);
-		if (liveInNode != null) {
-			liveInNode.addReadEffectsSet(readEffectsSet);
-			liveInNode.addWriteEffectsSet(writeEffectsSet);
-			liveInNode.addReachabilitySet(reachabilitySet);
-			id2cn.put(liveinNodeID, liveInNode);
-		} else {
-			LiveInNode newNode = new LiveInNode(liveinNodeID, td,
-					readEffectsSet, writeEffectsSet, reachabilitySet);
-			id2cn.put(liveinNodeID, newNode);
-		}
+		LiveInNode newNode = new LiveInNode(liveinNodeID, td, hrnSet,
+				readEffectsSet, writeEffectsSet, reachabilitySet);
+		id2cn.put(liveinNodeID, newNode);
 
 	}
 
 	public void addConflictEdge(int type, ConflictNode nodeU, ConflictNode nodeV) {
 
-		if (!nodeU.isConflictConnectedTo(nodeV)) {
-			ConflictEdge newEdge = new ConflictEdge(nodeU, nodeV, type);
-			nodeU.addEdge(newEdge);
-			nodeV.addEdge(newEdge);
-		}
+		ConflictEdge newEdge = new ConflictEdge(nodeU, nodeV, type);
+		nodeU.addEdge(newEdge);
+		nodeV.addEdge(newEdge);
 
-	}
-
-	public void addWriteConflictEdge(StallSiteNode stallNode,
-			LiveInNode liveInNode) {
-		ConflictEdge newEdge = new ConflictEdge(stallNode, liveInNode,
-				ConflictEdge.WRITE_CONFLICT);
-		stallNode.addEdge(newEdge);
-		liveInNode.addEdge(newEdge);
 	}
 
 	public HashSet<LiveInNode> getLiveInNodeSet() {
@@ -283,13 +493,13 @@ public class ConflictGraph {
 			Entry<String, ConflictNode> entry = i.next();
 			ConflictNode node = entry.getValue();
 
-			// if (node.getID().startsWith("___dst")
-			// || node.getID().startsWith("___srctmp")
-			// || node.getID().startsWith("___neverused")
-			// || node.getID().startsWith("___temp")) {
-			//				
-			// continue;
-			// }
+			 if (node.getID().startsWith("___dst")
+			 || node.getID().startsWith("___srctmp")
+			 || node.getID().startsWith("___neverused")
+			 || node.getID().startsWith("___temp")) {
+							
+			 continue;
+			 }
 
 			String attributes = "[";
 
@@ -309,28 +519,26 @@ public class ConflictGraph {
 				ConflictNode u = conflictEdge.getVertexU();
 				ConflictNode v = conflictEdge.getVertexV();
 
-				// String uID=u.getID();
-				// String vID=v.getID();
-				// if (uID.startsWith("___dst")
-				// || uID.startsWith("___srctmp")
-				// || uID.startsWith("___neverused")
-				// || uID.startsWith("___temp")
-				// || vID.startsWith("___dst")
-				// || vID.startsWith("___srctmp")
-				// || vID.startsWith("___neverused")
-				// || vID.startsWith("___temp")) {
-				// continue;
-				// }
+				 String uID=u.getID();
+				 String vID=v.getID();
+				 if (uID.startsWith("___dst")
+				 || uID.startsWith("___srctmp")
+				 || uID.startsWith("___neverused")
+				 || uID.startsWith("___temp")
+				 || vID.startsWith("___dst")
+				 || vID.startsWith("___srctmp")
+				 || vID.startsWith("___neverused")
+				 || vID.startsWith("___temp")) {
+				 continue;
+				 }
 
-				if (conflictEdge.getType() == ConflictEdge.WRITE_CONFLICT) {
-					if (!addedSet.contains(conflictEdge)) {
-						bw.write(" " + u.getID() + "--" + v.getID()
-								+ "[label=\""
-								+ conflictEdge.toGraphEdgeString()
-								+ "\",decorate];\n");
-						addedSet.add(conflictEdge);
-					}
+				if (!addedSet.contains(conflictEdge)) {
+					bw.write(" " + u.getID() + "--" + v.getID() + "[label=\""
+							+ conflictEdge.toGraphEdgeString()
+							+ "\",decorate];\n");
+					addedSet.add(conflictEdge);
 				}
+
 			}
 		}
 
@@ -349,7 +557,7 @@ class ConflictEdge {
 	private ConflictNode v;
 	private int type;
 
-	public static final int WRITE_CONFLICT = 0;
+	public static final int NON_WRITE_CONFLICT = 0;
 	public static final int FINE_GRAIN_EDGE = 1;
 	public static final int COARSE_GRAIN_EDGE = 2;
 
@@ -360,9 +568,7 @@ class ConflictEdge {
 	}
 
 	public String toGraphEdgeString() {
-		if (type == WRITE_CONFLICT) {
-			return "W_CONFLICT";
-		} else if (type == FINE_GRAIN_EDGE) {
+		if (type == FINE_GRAIN_EDGE) {
 			return "F_CONFLICT";
 		} else {
 			return "C_CONFLICT";
