@@ -148,35 +148,38 @@ public class DisjointAnalysis {
     makeAnalysisEntryMethod( mdSourceEntry );
     descriptorsToAnalyze.add( mdAnalysisEntry );
 
-
     // topologically sort according to the call graph so 
     // leaf calls are ordered first, smarter analysis order
     LinkedList<Descriptor> sortedDescriptors = 
       topologicalSort( descriptorsToAnalyze );
 
+    // add sorted descriptors to priority queue, and duplicate
+    // the queue as a set for testing whether some method
+    // is marked for analysis
+    PriorityQueue<DescriptorQWrapper> descriptorsToVisitQ     
+      = new PriorityQueue<DescriptorQWrapper>();
 
-    System.out.println( "topological:\n"+sortedDescriptors );
+    HashSet<Descriptor> descriptorsToVisitSet
+      = new HashSet<Descriptor>();
 
-
-    /*
-    methodContextsToVisitQ   = new PriorityQueue<MethodContextQWrapper>();
-    methodContextsToVisitSet = new HashSet<MethodContext>();
+    Hashtable<Descriptor, Integer> mapDescriptorToPriority
+      = new Hashtable<Descriptor, Integer>();
 
     int p = 0;
-    Iterator<MethodContext> mcItr = sortedMethodContexts.iterator();
-    while( mcItr.hasNext() ) {
-      MethodContext mc = mcItr.next();
-      mapDescriptorToPriority.put( mc.getDescriptor(), new Integer( p ) );
-      methodContextsToVisitQ.add( new MethodContextQWrapper( p, mc ) );
-      methodContextsToVisitSet.add( mc );
+    Iterator<Descriptor> dItr = sortedDescriptors.iterator();
+    while( dItr.hasNext() ) {
+      Descriptor d = dItr.next();
+      mapDescriptorToPriority.put( d, new Integer( p ) );
+      descriptorsToVisitQ.add( new DescriptorQWrapper( p, d ) );
+      descriptorsToVisitSet.add( d );
       ++p;
     }
 
     // analyze methods from the priority queue until it is empty
-    while( !methodContextsToVisitQ.isEmpty() ) {
-      MethodContext mc = methodContextsToVisitQ.poll().getMethodContext();
-      assert methodContextsToVisitSet.contains( mc );
-      methodContextsToVisitSet.remove( mc );
+    while( !descriptorsToVisitQ.isEmpty() ) {
+      Descriptor d = descriptorsToVisitQ.poll().getDescriptor();
+      assert descriptorsToVisitSet.contains( d );
+      descriptorsToVisitSet.remove( d );
 
       // because the task or method descriptor just extracted
       // was in the "to visit" set it either hasn't been analyzed
@@ -186,36 +189,40 @@ public class DisjointAnalysis {
       // If there is a change detected, add any methods/tasks
       // that depend on this one to the "to visit" set.
 
-      System.out.println("Analyzing " + mc);
+      System.out.println( "Analyzing " + d );
 
-      Descriptor d = mc.getDescriptor();
+      // get the flat code for this method descriptor
       FlatMethod fm;
-      if( d instanceof MethodDescriptor ) {
-	fm = state.getMethodFlat( (MethodDescriptor) d);
+      if( d == mdAnalysisEntry ) {
+        fm = fmAnalysisEntry;
       } else {
-	assert d instanceof TaskDescriptor;
-	fm = state.getMethodFlat( (TaskDescriptor) d);
+        fm = state.getMethodFlat( d );
       }
+      
 
+      /*
       ReachGraph og = analyzeFlatMethod(mc, fm);
-      ReachGraph ogPrev = mapMethodContextToCompleteReachabilityGraph.get(mc);
+      ReachGraph ogPrev = mapDescriptorToCompleteReachabilityGraph.get(mc);
       if( !og.equals(ogPrev) ) {
-	setGraphForMethodContext(mc, og);
+	setGraphForDescriptor(mc, og);
 
-	Iterator<MethodContext> depsItr = iteratorDependents( mc );
+	Iterator<Descriptor> depsItr = iteratorDependents( mc );
 	while( depsItr.hasNext() ) {
-	  MethodContext mcNext = depsItr.next();
+	  Descriptor mcNext = depsItr.next();
 
-	  if( !methodContextsToVisitSet.contains( mcNext ) ) {
-	    methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( mcNext.getDescriptor() ), 
+	  if( !descriptorsToVisitSet.contains( mcNext ) ) {
+	    descriptorsToVisitQ.add( new DescriptorQWrapper( mapDescriptorToPriority.get( mcNext.getDescriptor() ), 
 								   mcNext ) );
-	    methodContextsToVisitSet.add( mcNext );
+	    descriptorsToVisitSet.add( mcNext );
 	  }
 	}
       }
+      */
     }
-    */
   }
+
+
+
 
   /*
   // keep passing the Descriptor of the method along for debugging
@@ -1072,6 +1079,6 @@ public class DisjointAnalysis {
 
     //FlatCall fc = new
 
-    this.fmAnalysisEntry = new FlatMethod( mdAnalysisEntry, fe );    
+    this.fmAnalysisEntry = new FlatMethod( mdAnalysisEntry, fe );
   }
 }
