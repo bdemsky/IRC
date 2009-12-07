@@ -9,7 +9,8 @@ SRC2=${MAINCLASS2}.java \
 JGFInstrumentor.java \
 JGFTimer.java \
 JGFSORBench.java \
-SORRunner.java
+SORRunner.java \
+SORWrap.java
 
 
 FLAGS2=-thread -optimize -mainclass ${MAINCLASS2} -o ${MAINCLASS2}
