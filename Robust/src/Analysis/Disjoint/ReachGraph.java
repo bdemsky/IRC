@@ -34,15 +34,17 @@ public class ReachGraph {
   protected static String   debugCaller       = null;
 
 
-  /*
+
   public ReachGraph() {
+    /*
     id2hrn = new Hashtable<Integer,        HeapRegionNode>();
     td2vn  = new Hashtable<TempDescriptor, VariableNode  >();
 
     allocSites = new HashSet<AllocSite>();
+    */
   }
 
-
+  /*
   // temp descriptors are globally unique and maps to
   // exactly one variable node, easy
   protected VariableNode getVariableNodeFromTemp( TempDescriptor td ) {

@@ -29,7 +29,7 @@ public class DisjointAnalysis {
   // heap region
   // start at 10 and increment to reserve some
   // IDs for special purposes
-  static private int uniqueIDcount = 10;
+  static protected int uniqueIDcount = 10;
 
 
   // An out-of-scope method created by the
@@ -39,20 +39,39 @@ public class DisjointAnalysis {
   // main method.  The purpose of this is to
   // provide the analysis with an explicit
   // top-level context with no parameters
-  private MethodDescriptor mdAnalysisEntry;
-  private FlatMethod       fmAnalysisEntry;
+  protected MethodDescriptor mdAnalysisEntry;
+  protected FlatMethod       fmAnalysisEntry;
 
   // main method defined by source program
-  private MethodDescriptor mdSourceEntry;
+  protected MethodDescriptor mdSourceEntry;
 
   // the set of task and/or method descriptors
   // reachable in call graph
-  private Set<Descriptor> descriptorsToAnalyze;
+  protected Set<Descriptor> descriptorsToAnalyze;
 
+  // maps a descriptor to its current partial result
+  // from the intraprocedural fixed-point analysis--
+  // then the interprocedural analysis settles, this
+  // mapping will have the final results for each
+  // method descriptor
+  protected Hashtable<Descriptor, ReachGraph> 
+    mapDescriptorToCompleteReachGraph;
+
+  // maps a descriptor to its known dependents: namely
+  // methods or tasks that call the descriptor's method
+  // AND are part of this analysis (reachable from main)
+  protected Hashtable< Descriptor, Set<Descriptor> >
+    mapDescriptorToSetDependents;
 
   // for controlling DOT file output
-  private boolean writeFinalDOTs;
-  private boolean writeAllIncrementalDOTs;
+  protected boolean writeFinalDOTs;
+  protected boolean writeAllIncrementalDOTs;
+
+  // supporting DOT output--when we want to write every
+  // partial method result, keep a tally for generating
+  // unique filenames
+  protected Hashtable<Descriptor, Integer>
+    mapDescriptorToNumUpdates;
 
 
   // this analysis generates a disjoint reachability
@@ -66,12 +85,12 @@ public class DisjointAnalysis {
     init( s, tu, cg, l, ar );
   }
   
-  private void init( State state,
-		     TypeUtil typeUtil,
-		     CallGraph callGraph,
-		     Liveness liveness,
-		     ArrayReferencees arrayReferencees
-                     ) throws java.io.IOException {
+  protected void init( State state,
+                       TypeUtil typeUtil,
+                       CallGraph callGraph,
+                       Liveness liveness,
+                       ArrayReferencees arrayReferencees
+                       ) throws java.io.IOException {
     
     this.state                   = state;
     this.typeUtil                = typeUtil;
@@ -81,21 +100,12 @@ public class DisjointAnalysis {
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
     this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL;
     this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL;
-
 	    
     // set some static configuration for ReachGraphs
     ReachGraph.allocationDepth = allocationDepth;
     ReachGraph.typeUtil        = typeUtil;
 
-
-    // This analysis does not support Bamboo at the moment,
-    // but if it does in the future we would initialize the
-    // set of descriptors to analyze as the program-reachable
-    // tasks and the methods callable by them.  For Java,
-    // just methods reachable from the main method.
-    assert !state.TASK;
-    descriptorsToAnalyze = new HashSet<Descriptor>();
-
+    allocateStructures();
 
     double timeStartAnalysis = (double) System.nanoTime();
 
@@ -128,25 +138,34 @@ public class DisjointAnalysis {
   }
 
 
-
   // fixed-point computation over the call graph--when a
   // method's callees are updated, it must be reanalyzed
-  private void analyzeMethods() throws java.io.IOException {  
+  protected void analyzeMethods() throws java.io.IOException {  
 
-    mdSourceEntry = typeUtil.getMain();
+    if( state.TASK ) {
+      // This analysis does not support Bamboo at the moment,
+      // but if it does in the future we would initialize the
+      // set of descriptors to analyze as the program-reachable
+      // tasks and the methods callable by them.  For Java,
+      // just methods reachable from the main method.
+      System.out.println( "No Bamboo support yet..." );
+      System.exit( -1 );
 
-    // add all methods transitively reachable from the
-    // source's main to set for analysis
-    descriptorsToAnalyze.add( mdSourceEntry );
-    descriptorsToAnalyze.addAll( 
-      callGraph.getAllMethods( mdSourceEntry ) 
-                                 );
+    } else {
+      // add all methods transitively reachable from the
+      // source's main to set for analysis
+      mdSourceEntry = typeUtil.getMain();
+      descriptorsToAnalyze.add( mdSourceEntry );
+      descriptorsToAnalyze.addAll( 
+                                  callGraph.getAllMethods( mdSourceEntry ) 
+                                   );
 
-    // fabricate an empty calling context that will call
-    // the source's main, but call graph doesn't know
-    // about it, so explicitly add it
-    makeAnalysisEntryMethod( mdSourceEntry );
-    descriptorsToAnalyze.add( mdAnalysisEntry );
+      // fabricate an empty calling context that will call
+      // the source's main, but call graph doesn't know
+      // about it, so explicitly add it
+      makeAnalysisEntryMethod( mdSourceEntry );
+      descriptorsToAnalyze.add( mdAnalysisEntry );
+    }
 
     // topologically sort according to the call graph so 
     // leaf calls are ordered first, smarter analysis order
@@ -154,8 +173,8 @@ public class DisjointAnalysis {
       topologicalSort( descriptorsToAnalyze );
 
     // add sorted descriptors to priority queue, and duplicate
-    // the queue as a set for testing whether some method
-    // is marked for analysis
+    // the queue as a set for efficiently testing whether some
+    // method is marked for analysis
     PriorityQueue<DescriptorQWrapper> descriptorsToVisitQ     
       = new PriorityQueue<DescriptorQWrapper>();
 
@@ -184,53 +203,49 @@ public class DisjointAnalysis {
       // because the task or method descriptor just extracted
       // was in the "to visit" set it either hasn't been analyzed
       // yet, or some method that it depends on has been
-      // updated.  Recompute a complete ownership graph for
+      // updated.  Recompute a complete reachability graph for
       // this task/method and compare it to any previous result.
       // If there is a change detected, add any methods/tasks
       // that depend on this one to the "to visit" set.
 
       System.out.println( "Analyzing " + d );
 
-      // get the flat code for this method descriptor
-      FlatMethod fm;
-      if( d == mdAnalysisEntry ) {
-        fm = fmAnalysisEntry;
-      } else {
-        fm = state.getMethodFlat( d );
-      }
-      
+      ReachGraph rg     = analyzeMethod( d );
+      ReachGraph rgPrev = getPartial( d );
+      if( !rg.equals( rgPrev ) ) {
+        setPartial( d, rg );
 
-      /*
-      ReachGraph og = analyzeFlatMethod(mc, fm);
-      ReachGraph ogPrev = mapDescriptorToCompleteReachabilityGraph.get(mc);
-      if( !og.equals(ogPrev) ) {
-	setGraphForDescriptor(mc, og);
-
-	Iterator<Descriptor> depsItr = iteratorDependents( mc );
+        // results for d changed, so queue dependents
+        // of d for further analysis
+	Iterator<Descriptor> depsItr = getDependents( d ).iterator();
 	while( depsItr.hasNext() ) {
-	  Descriptor mcNext = depsItr.next();
+	  Descriptor dNext = depsItr.next();
 
-	  if( !descriptorsToVisitSet.contains( mcNext ) ) {
-	    descriptorsToVisitQ.add( new DescriptorQWrapper( mapDescriptorToPriority.get( mcNext.getDescriptor() ), 
-								   mcNext ) );
-	    descriptorsToVisitSet.add( mcNext );
+	  if( !descriptorsToVisitSet.contains( dNext ) ) {
+            Integer priority = mapDescriptorToPriority.get( dNext );
+	    descriptorsToVisitQ.add( new DescriptorQWrapper( priority , 
+                                                             dNext ) 
+                                     );
+	    descriptorsToVisitSet.add( dNext );
 	  }
 	}
-      }
-      */
+      }      
     }
   }
 
 
+  protected ReachGraph analyzeMethod( Descriptor d ) 
+    throws java.io.IOException {
 
-
-  /*
-  // keep passing the Descriptor of the method along for debugging
-  // and dot file writing
-  private ReachGraph
-  analyzeFlatMethod(MethodContext mc,
-                    FlatMethod flatm) throws java.io.IOException {
-
+    // get the flat code for this descriptor
+    FlatMethod fm;
+    if( d == mdAnalysisEntry ) {
+      fm = fmAnalysisEntry;
+    } else {
+      fm = state.getMethodFlat( d );
+    }
+      
+    /*
     // initialize flat nodes to visit as the flat method
     // because it is the entry point
 
@@ -299,10 +314,14 @@ public class DisjointAnalysis {
       }
     }
 
+    */
+
     // end by merging all return nodes into a complete
     // ownership graph that represents all possible heap
     // states after the flat method returns
     ReachGraph completeGraph = new ReachGraph();
+
+    /*
     Iterator retItr = returnNodesToCombineForCompleteReachabilityGraph.iterator();
     while( retItr.hasNext() ) {
       FlatReturnNode frn = (FlatReturnNode) retItr.next();
@@ -310,13 +329,17 @@ public class DisjointAnalysis {
       ReachGraph ogr = mapFlatNodeToReachabilityGraph.get(frn);
       completeGraph.merge(ogr);
     }
+    */
 
     return completeGraph;
   }
 
 
-  private ReachGraph
-  analyzeFlatNode(MethodContext mc,
+
+
+  /*
+  protected ReachGraph
+  analyzeFlatNode(Descriptor mc,
 		  FlatMethod fmContaining,
                   FlatNode fn,
                   HashSet<FlatReturnNode> setRetNodes,
@@ -350,7 +373,7 @@ public class DisjointAnalysis {
       // parameter IDs are consistent between analysis
       // iterations, so if this step has been done already
       // just merge in the cached version
-      ReachGraph ogInitParamAlloc = mapMethodContextToInitialParamAllocGraph.get(mc);
+      ReachGraph ogInitParamAlloc = mapDescriptorToInitialParamAllocGraph.get(mc);
       if( ogInitParamAlloc == null ) {
 
 	// if the method context has aliased parameters, make sure
@@ -402,7 +425,7 @@ public class DisjointAnalysis {
 	// cache the graph
 	ReachGraph ogResult = new ReachGraph();
 	ogResult.merge(og);
-	mapMethodContextToInitialParamAllocGraph.put(mc, ogResult);
+	mapDescriptorToInitialParamAllocGraph.put(mc, ogResult);
 
       } else {
 	// or just leverage the cached copy
@@ -500,8 +523,8 @@ public class DisjointAnalysis {
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
 	AllocSite as = getAllocSiteFromFlatNewPRIVATE(fnn);
 	
-	if (mapMethodContextToLiveInAllocSiteSet != null){
-		HashSet<AllocSite> alllocSet=mapMethodContextToLiveInAllocSiteSet.get(mc);
+	if (mapDescriptorToLiveInAllocSiteSet != null){
+		HashSet<AllocSite> alllocSet=mapDescriptorToLiveInAllocSiteSet.get(mc);
 		if(alllocSet!=null){
 			for (Iterator iterator = alllocSet.iterator(); iterator
 					.hasNext();) {
@@ -531,20 +554,20 @@ public class DisjointAnalysis {
 	Set<Integer> aliasedParamIndices = 
 	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
 
-	MethodContext mcNew = new MethodContext( md, aliasedParamIndices );
-	Set contexts = mapDescriptorToAllMethodContexts.get( md );
+	Descriptor mcNew = new Descriptor( md, aliasedParamIndices );
+	Set contexts = mapDescriptorToAllDescriptors.get( md );
 	assert contexts != null;
 	contexts.add( mcNew );
 
 	addDependent( mc, mcNew );
 
-	ReachGraph onlyPossibleCallee = mapMethodContextToCompleteReachabilityGraph.get( mcNew );
+	ReachGraph onlyPossibleCallee = mapDescriptorToCompleteReachabilityGraph.get( mcNew );
 
 	if( onlyPossibleCallee == null ) {
 	  // if this method context has never been analyzed just schedule it for analysis
 	  // and skip over this call site for now
 	  if( !methodContextsToVisitSet.contains( mcNew ) ) {
-	    methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( md ), 
+	    methodContextsToVisitQ.add( new DescriptorQWrapper( mapDescriptorToPriority.get( md ), 
 								   mcNew ) );
 	    methodContextsToVisitSet.add( mcNew );
 	  }
@@ -577,8 +600,8 @@ public class DisjointAnalysis {
 	  Set<Integer> aliasedParamIndices = 
 	    ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
 
-	  MethodContext mcNew = new MethodContext( possibleMd, aliasedParamIndices );
-	  Set contexts = mapDescriptorToAllMethodContexts.get( md );
+	  Descriptor mcNew = new Descriptor( possibleMd, aliasedParamIndices );
+	  Set contexts = mapDescriptorToAllDescriptors.get( md );
 	  assert contexts != null;
 	  contexts.add( mcNew );
 	  
@@ -588,13 +611,13 @@ public class DisjointAnalysis {
 	  
 	  addDependent( mc, mcNew );
 
-	  ReachGraph ogPotentialCallee = mapMethodContextToCompleteReachabilityGraph.get( mcNew );
+	  ReachGraph ogPotentialCallee = mapDescriptorToCompleteReachabilityGraph.get( mcNew );
 
 	  if( ogPotentialCallee == null ) {
 	    // if this method context has never been analyzed just schedule it for analysis
 	    // and skip over this call site for now
 	    if( !methodContextsToVisitSet.contains( mcNew ) ) {
-	      methodContextsToVisitQ.add( new MethodContextQWrapper( mapDescriptorToPriority.get( md ), 
+	      methodContextsToVisitQ.add( new DescriptorQWrapper( mapDescriptorToPriority.get( md ), 
 								     mcNew ) );
 	      methodContextsToVisitSet.add( mcNew );
 	    }
@@ -625,16 +648,23 @@ public class DisjointAnalysis {
 
 
     if( methodEffects ) {
-      Hashtable<FlatNode, ReachabilityGraph> table=mapMethodContextToFlatNodeReachabilityGraph.get(mc);
+      Hashtable<FlatNode, ReachabilityGraph> table=mapDescriptorToFlatNodeReachabilityGraph.get(mc);
       if(table==null){
     	table=new     Hashtable<FlatNode, ReachabilityGraph>();    	
       }
       table.put(fn, og);
-      mapMethodContextToFlatNodeReachabilityGraph.put(mc, table);
+      mapDescriptorToFlatNodeReachabilityGraph.put(mc, table);
     }
 
     return og;
   }
+
+  */
+
+
+
+  /*
+
 
 
   // this method should generate integers strictly greater than zero!
@@ -660,55 +690,13 @@ public class DisjointAnalysis {
   }
 
   
-  private void setGraphForMethodContext(MethodContext mc, ReachabilityGraph og) {
-
-    mapMethodContextToCompleteReachabilityGraph.put(mc, og);
-
-    if( writeFinalDOTs && writeAllIncrementalDOTs ) {
-      if( !mapMethodContextToNumUpdates.containsKey(mc) ) {
-	mapMethodContextToNumUpdates.put(mc, new Integer(0) );
-      }
-      Integer n = mapMethodContextToNumUpdates.get(mc);
-      try {
-	og.writeGraph(mc+"COMPLETE"+String.format("%05d", n),
-		      true,  // write labels (variables)
-		      true,  // selectively hide intermediate temp vars
-		      true,  // prune unreachable heap regions
-		      false, // show back edges to confirm graph validity
-		      false, // show parameter indices (unmaintained!)
-		      true,  // hide subset reachability states
-		      true); // hide edge taints
-      } catch( IOException e ) {}
-      mapMethodContextToNumUpdates.put(mc, n + 1);
-    }
-  }
-
-
-  private void addDependent( MethodContext caller, MethodContext callee ) {
-    HashSet<MethodContext> deps = mapMethodContextToDependentContexts.get( callee );
-    if( deps == null ) {
-      deps = new HashSet<MethodContext>();
-    }
-    deps.add( caller );
-    mapMethodContextToDependentContexts.put( callee, deps );
-  }
-
-  private Iterator<MethodContext> iteratorDependents( MethodContext callee ) {
-    HashSet<MethodContext> deps = mapMethodContextToDependentContexts.get( callee );
-    if( deps == null ) {
-      deps = new HashSet<MethodContext>();
-      mapMethodContextToDependentContexts.put( callee, deps );
-    }
-    return deps.iterator();
-  }
-
 
   private void writeFinalContextGraphs() {
-    Set entrySet = mapMethodContextToCompleteReachabilityGraph.entrySet();
+    Set entrySet = mapDescriptorToCompleteReachabilityGraph.entrySet();
     Iterator itr = entrySet.iterator();
     while( itr.hasNext() ) {
       Map.Entry      me = (Map.Entry)      itr.next();
-      MethodContext  mc = (MethodContext)  me.getKey();
+      Descriptor  mc = (Descriptor)  me.getKey();
       ReachabilityGraph og = (ReachabilityGraph) me.getValue();
 
       try {
@@ -727,7 +715,7 @@ public class DisjointAnalysis {
   
 
   // return just the allocation site associated with one FlatNew node
-  private AllocSite getAllocSiteFromFlatNewPRIVATE(FlatNew fn) {
+  protected AllocSite getAllocSiteFromFlatNewPRIVATE(FlatNew fn) {
 
     if( !mapFlatNewToAllocSite.containsKey(fn) ) {
       AllocSite as = new AllocSite(allocationDepth, fn, fn.getDisjointAnalysisId());
@@ -752,7 +740,7 @@ public class DisjointAnalysis {
 
   // return all allocation sites in the method (there is one allocation
   // site per FlatNew node in a method)
-  private HashSet<AllocSite> getAllocSiteSet(Descriptor d) {
+  protected HashSet<AllocSite> getAllocSiteSet(Descriptor d) {
     if( !mapDescriptorToAllocSiteSet.containsKey(d) ) {
       buildAllocSiteSet(d);
     }
@@ -761,7 +749,7 @@ public class DisjointAnalysis {
 
   }
 
-  private void buildAllocSiteSet(Descriptor d) {
+  protected void buildAllocSiteSet(Descriptor d) {
     HashSet<AllocSite> s = new HashSet<AllocSite>();
 
     FlatMethod fm = state.getMethodFlat( d );
@@ -795,7 +783,7 @@ public class DisjointAnalysis {
   }
 
 
-  private HashSet<AllocSite> getFlaggedAllocSites(Descriptor dIn) {
+  protected HashSet<AllocSite> getFlaggedAllocSites(Descriptor dIn) {
     
     HashSet<AllocSite> out     = new HashSet<AllocSite>();
     HashSet<Descriptor>     toVisit = new HashSet<Descriptor>();
@@ -836,7 +824,7 @@ public class DisjointAnalysis {
   }
 
 
-  private HashSet<AllocSite>
+  protected HashSet<AllocSite>
   getFlaggedAllocSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 
     HashSet<AllocSite> asSetTotal = new HashSet<AllocSite>();
@@ -884,72 +872,17 @@ public class DisjointAnalysis {
   }
   */
 
-  private LinkedList<Descriptor> topologicalSort( Set<Descriptor> toSort ) {
-
-    Set       <Descriptor> discovered = new HashSet   <Descriptor>();
-    LinkedList<Descriptor> sorted     = new LinkedList<Descriptor>();
-  
-    Iterator<Descriptor> itr = toSort.iterator();
-    while( itr.hasNext() ) {
-      Descriptor d = itr.next();
-          
-      if( !discovered.contains( d ) ) {
-	dfsVisit( d, toSort, sorted, discovered );
-      }
-    }
-    
-    return sorted;
-  }
-  
-  private void dfsVisit( Descriptor             d,
-                         Set       <Descriptor> toSort,			 
-			 LinkedList<Descriptor> sorted,
-			 Set       <Descriptor> discovered ) {
-    discovered.add( d );
-    
-    // only methods have callers, tasks never do
-    if( d instanceof MethodDescriptor ) {
-
-      MethodDescriptor md = (MethodDescriptor) d;
-
-      // the call graph is not aware that we have a fabricated
-      // analysis entry that calls the program source's entry
-      if( md == mdSourceEntry ) {
-        if( !discovered.contains( mdAnalysisEntry ) ) {
-          dfsVisit( mdAnalysisEntry, toSort, sorted, discovered );
-        }
-      }
-
-      // otherwise call graph guides DFS
-      Iterator itr = callGraph.getCallerSet( md ).iterator();
-      while( itr.hasNext() ) {
-	Descriptor dCaller = (Descriptor) itr.next();
-	
-	// only consider callers in the original set to analyze
-        if( !toSort.contains( dCaller ) ) {
-	  continue;
-        }
-          
-	if( !discovered.contains( dCaller ) ) {
-	  dfsVisit( dCaller, toSort, sorted, discovered );
-	}
-      }
-    }
-    
-    sorted.addFirst( d );
-  }
-
 
   /*
-  private String computeAliasContextHistogram() {
+  protected String computeAliasContextHistogram() {
     
     Hashtable<Integer, Integer> mapNumContexts2NumDesc = 
       new Hashtable<Integer, Integer>();
   
-    Iterator itr = mapDescriptorToAllMethodContexts.entrySet().iterator();
+    Iterator itr = mapDescriptorToAllDescriptors.entrySet().iterator();
     while( itr.hasNext() ) {
       Map.Entry me = (Map.Entry) itr.next();
-      HashSet<MethodContext> s = (HashSet<MethodContext>) me.getValue();
+      HashSet<Descriptor> s = (HashSet<Descriptor>) me.getValue();
       
       Integer i = mapNumContexts2NumDesc.get( s.size() );
       if( i == null ) {
@@ -975,7 +908,7 @@ public class DisjointAnalysis {
     return s;
   }
 
-  private int numMethodsAnalyzed() {    
+  protected int numMethodsAnalyzed() {    
     return descriptorsToAnalyze.size();
   }
   */
@@ -1046,6 +979,23 @@ public class DisjointAnalysis {
     }
   }
   */
+
+
+
+  // allocate various structures that are not local
+  // to a single class method--should be done once
+  protected void allocateStructures() {    
+    descriptorsToAnalyze = new HashSet<Descriptor>();
+
+    mapDescriptorToCompleteReachGraph =
+      new Hashtable<Descriptor, ReachGraph>();
+
+    mapDescriptorToNumUpdates =
+      new Hashtable<Descriptor, Integer>();
+
+    mapDescriptorToSetDependents =
+      new Hashtable< Descriptor, Set<Descriptor> >();
+  }
   
   
   // Take in sourceEntry which is the program's compiled entry and
@@ -1053,7 +1003,7 @@ public class DisjointAnalysis {
   // and appears to allocate the command line arguments and call the
   // sourceEntry with them.  The purpose of this analysis entry is to
   // provide a top-level method context with no parameters left.
-  private void makeAnalysisEntryMethod( MethodDescriptor sourceEntry ) {
+  protected void makeAnalysisEntryMethod( MethodDescriptor mdSourceEntry ) {
 
     Modifiers mods = new Modifiers();
     mods.addModifier( Modifiers.PUBLIC );
@@ -1072,7 +1022,7 @@ public class DisjointAnalysis {
 
     TempDescriptor cmdLineArgs = new TempDescriptor( "args" );
     
-    FlatNew fn = new FlatNew( sourceEntry.getParamType( 0 ),
+    FlatNew fn = new FlatNew( mdSourceEntry.getParamType( 0 ),
                               cmdLineArgs,
                               false // is global 
                               );
@@ -1081,4 +1031,132 @@ public class DisjointAnalysis {
 
     this.fmAnalysisEntry = new FlatMethod( mdAnalysisEntry, fe );
   }
+
+
+  protected LinkedList<Descriptor> topologicalSort( Set<Descriptor> toSort ) {
+
+    Set       <Descriptor> discovered = new HashSet   <Descriptor>();
+    LinkedList<Descriptor> sorted     = new LinkedList<Descriptor>();
+  
+    Iterator<Descriptor> itr = toSort.iterator();
+    while( itr.hasNext() ) {
+      Descriptor d = itr.next();
+          
+      if( !discovered.contains( d ) ) {
+	dfsVisit( d, toSort, sorted, discovered );
+      }
+    }
+    
+    return sorted;
+  }
+  
+  // While we're doing DFS on call graph, remember
+  // dependencies for efficient queuing of methods
+  // during interprocedural analysis:
+  //
+  // a dependent of a method decriptor d for this analysis is:
+  //  1) a method or task that invokes d
+  //  2) in the descriptorsToAnalyze set
+  protected void dfsVisit( Descriptor             d,
+                           Set       <Descriptor> toSort,			 
+                           LinkedList<Descriptor> sorted,
+                           Set       <Descriptor> discovered ) {
+    discovered.add( d );
+    
+    // only methods have callers, tasks never do
+    if( d instanceof MethodDescriptor ) {
+
+      MethodDescriptor md = (MethodDescriptor) d;
+
+      // the call graph is not aware that we have a fabricated
+      // analysis entry that calls the program source's entry
+      if( md == mdSourceEntry ) {
+        if( !discovered.contains( mdAnalysisEntry ) ) {
+          addDependent( mdSourceEntry,  // callee
+                        mdAnalysisEntry // caller
+                        );
+          dfsVisit( mdAnalysisEntry, toSort, sorted, discovered );
+        }
+      }
+
+      // otherwise call graph guides DFS
+      Iterator itr = callGraph.getCallerSet( md ).iterator();
+      while( itr.hasNext() ) {
+	Descriptor dCaller = (Descriptor) itr.next();
+	
+	// only consider callers in the original set to analyze
+        if( !toSort.contains( dCaller ) ) {
+	  continue;
+        }
+          
+	if( !discovered.contains( dCaller ) ) {
+          addDependent( md,     // callee
+                        dCaller // caller
+                        );
+
+	  dfsVisit( dCaller, toSort, sorted, discovered );
+	}
+      }
+    }
+    
+    sorted.addFirst( d );
+  }
+
+
+  protected ReachGraph getPartial( Descriptor d ) {
+    return mapDescriptorToCompleteReachGraph.get( d );
+  }
+
+  protected void setPartial( Descriptor d, ReachGraph rg ) {
+    mapDescriptorToCompleteReachGraph.put( d, rg );
+
+    // when the flag for writing out every partial
+    // result is set, we should spit out the graph,
+    // but in order to give it a unique name we need
+    // to track how many partial results for this
+    // descriptor we've already written out
+    if( writeAllIncrementalDOTs ) {
+      if( !mapDescriptorToNumUpdates.containsKey( d ) ) {
+	mapDescriptorToNumUpdates.put( d, new Integer( 0 ) );
+      }
+      Integer n = mapDescriptorToNumUpdates.get( d );
+      /*
+      try {
+	rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
+                       true,  // write labels (variables)
+                       true,  // selectively hide intermediate temp vars
+                       true,  // prune unreachable heap regions
+                       false, // show back edges to confirm graph validity
+                       false, // show parameter indices (unmaintained!)
+                       true,  // hide subset reachability states
+                       true); // hide edge taints
+      } catch( IOException e ) {}
+      */
+      mapDescriptorToNumUpdates.put( d, n + 1 );
+    }
+  }
+
+
+  // a dependent of a method decriptor d for this analysis is:
+  //  1) a method or task that invokes d
+  //  2) in the descriptorsToAnalyze set
+  protected void addDependent( Descriptor callee, Descriptor caller ) {
+    Set<Descriptor> deps = mapDescriptorToSetDependents.get( callee );
+    if( deps == null ) {
+      deps = new HashSet<Descriptor>();
+    }
+    deps.add( caller );
+    mapDescriptorToSetDependents.put( callee, deps );
+  }
+  
+  protected Set<Descriptor> getDependents( Descriptor callee ) {
+    Set<Descriptor> deps = mapDescriptorToSetDependents.get( callee );
+    if( deps == null ) {
+      deps = new HashSet<Descriptor>();
+      mapDescriptorToSetDependents.put( callee, deps );
+    }
+    return deps;
+  }
+
+
 }
