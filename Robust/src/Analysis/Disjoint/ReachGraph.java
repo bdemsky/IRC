@@ -3759,7 +3759,7 @@ public class ReachGraph {
       edgeItr.next().applyBetaNew();
     } 
   }  
-
+  */
 
 
   ////////////////////////////////////////////////////
@@ -3770,21 +3770,23 @@ public class ReachGraph {
   // merge it into B, so after the operation graph B
   // is the final result.
   ////////////////////////////////////////////////////
-  public void merge(ReachGraph og) {
+  public void merge( ReachGraph rg ) {
 
-    if( og == null ) {
+    if( rg == null ) {
       return;
     }
 
+    /*
     mergeRefSrcNodes(og);
     mergeRefEdges(og);
     mergeParamIndexMappings(og);
     mergeAllocSites(og);
     mergeAccessPaths(og);
     mergeTempAndLabelCategories(og);
+    */
   }
 
-
+  /*
   protected void mergeRefSrcNodes(ReachGraph og) {
     Set sA = og.id2hrn.entrySet();
     Iterator iA = sA.iterator();
@@ -4023,7 +4025,7 @@ public class ReachGraph {
     parameterTemps.addAll(og.parameterTemps);
     parameterLabels.addAll(og.parameterLabels);
   }
-
+  */
 
 
   // it is necessary in the equals() member functions
@@ -4036,12 +4038,13 @@ public class ReachGraph {
   // the only way to know that all edges in both graphs
   // are equally present is to iterate over both data
   // structures and compare against the other graph.
-  public boolean equals(ReachGraph og) {
+  public boolean equals( ReachGraph rg ) {
 
-    if( og == null ) {
+    if( rg == null ) {
       return false;
     }
 
+    /*
     if( !areHeapRegionNodesEqual(og) ) {
       return false;
     }
@@ -4070,10 +4073,12 @@ public class ReachGraph {
     assert outOfScopeLabels.equals(og.outOfScopeLabels);
     assert parameterTemps  .equals(og.parameterTemps  );
     assert parameterLabels .equals(og.parameterLabels );
+    */
 
     return true;
   }
 
+  /*
   protected boolean areHeapRegionNodesEqual(ReachGraph og) {
 
     if( !areallHRNinAalsoinBandequal(this, og) ) {

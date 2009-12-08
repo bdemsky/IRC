@@ -157,7 +157,7 @@ public class DisjointAnalysis {
       mdSourceEntry = typeUtil.getMain();
       descriptorsToAnalyze.add( mdSourceEntry );
       descriptorsToAnalyze.addAll( 
-                                  callGraph.getAllMethods( mdSourceEntry ) 
+        callGraph.getAllMethods( mdSourceEntry ) 
                                    );
 
       // fabricate an empty calling context that will call
@@ -245,92 +245,81 @@ public class DisjointAnalysis {
       fm = state.getMethodFlat( d );
     }
       
-    /*
-    // initialize flat nodes to visit as the flat method
-    // because it is the entry point
+    // intraprocedural work set
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fm );
+    
+    // mapping of current partial results
+    Hashtable<FlatNode, ReachGraph> mapFlatNodeToReachGraph =
+      new Hashtable<FlatNode, ReachGraph>();
 
-    flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add(flatm);
-
-    // initilize the mapping of flat nodes in this flat method to
-    // ownership graph results to an empty mapping
-    mapFlatNodeToReachabilityGraph = new Hashtable<FlatNode, ReachGraph>();
-
-    // initialize the set of return nodes that will be combined as
-    // the final ownership graph result to return as an empty set
-    returnNodesToCombineForCompleteReachabilityGraph = new HashSet<FlatReturnNode>();
-
+    // the set of return nodes partial results that will be combined as
+    // the final, conservative approximation of the entire method
+    HashSet<FlatReturnNode> setReturns = new HashSet<FlatReturnNode>();
 
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
-      flatNodesToVisit.remove(fn);
+      flatNodesToVisit.remove( fn );
 
       //System.out.println( "  "+fn );
 
-      // perform this node's contributions to the ownership
-      // graph on a new copy, then compare it to the old graph
-      // at this node to see if anything was updated.
-      ReachGraph og = new ReachGraph();
+      // effect transfer function defined by this node,
+      // then compare it to the old graph at this node
+      // to see if anything was updated.
+
+      ReachGraph rg = new ReachGraph();
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
-	FlatNode pn = fn.getPrev(i);
-	if( mapFlatNodeToReachabilityGraph.containsKey(pn) ) {
-	  ReachabilityGraph ogParent = mapFlatNodeToReachabilityGraph.get(pn);
-	  og.merge(ogParent);
+	FlatNode pn = fn.getPrev( i );
+	if( mapFlatNodeToReachGraph.containsKey( pn ) ) {
+	  ReachGraph rgParent = mapFlatNodeToReachGraph.get( pn );
+	  rg.merge( rgParent );
 	}
       }
-
-      // apply the analysis of the flat node to the
-      // ownership graph made from the merge of the
-      // parent graphs
-      og = analyzeFlatNode(mc,
-			   flatm,
-                           fn,
-                           returnNodesToCombineForCompleteReachabilityGraph,
-                           og);
-
       
-
-     
+      /*
+      analyzeFlatNode( mc,
+                       flatm,
+                       fn,
+                       returnNodesToCombineForCompleteReachabilityGraph,
+                       og);
+      */
+          
+      /*
       if( takeDebugSnapshots && 
-	  mc.getDescriptor().getSymbol().equals( mcDescSymbolDebug ) ) {
+	  d.getSymbol().equals( descSymbolDebug ) ) {
 	debugSnapshot(og,fn);
       }
-
+      */
 
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
-      // with the update and enqueue the children for
-      // processing
-      ReachGraph ogPrev = mapFlatNodeToReachabilityGraph.get(fn);
-      if( !og.equals(ogPrev) ) {
-	mapFlatNodeToReachabilityGraph.put(fn, og);
+      // with the update and enqueue the children
+      ReachGraph rgPrev = mapFlatNodeToReachGraph.get( fn );
+      if( !rg.equals( rgPrev ) ) {
+	mapFlatNodeToReachGraph.put( fn, rg );
 
 	for( int i = 0; i < fn.numNext(); i++ ) {
-	  FlatNode nn = fn.getNext(i);
-	  flatNodesToVisit.add(nn);
+	  FlatNode nn = fn.getNext( i );
+	  flatNodesToVisit.add( nn );
 	}
       }
     }
-
-    */
 
     // end by merging all return nodes into a complete
     // ownership graph that represents all possible heap
     // states after the flat method returns
     ReachGraph completeGraph = new ReachGraph();
 
-    /*
-    Iterator retItr = returnNodesToCombineForCompleteReachabilityGraph.iterator();
+    Iterator retItr = setReturns.iterator();
     while( retItr.hasNext() ) {
       FlatReturnNode frn = (FlatReturnNode) retItr.next();
-      assert mapFlatNodeToReachabilityGraph.containsKey(frn);
-      ReachGraph ogr = mapFlatNodeToReachabilityGraph.get(frn);
-      completeGraph.merge(ogr);
+      assert mapFlatNodeToReachGraph.containsKey( frn );
+      ReachGraph rgRet = mapFlatNodeToReachGraph.get( frn );
+      completeGraph.merge( rgRet );
     }
-    */
-
+    
     return completeGraph;
   }
 
@@ -338,7 +327,7 @@ public class DisjointAnalysis {
 
 
   /*
-  protected ReachGraph
+    protected void
   analyzeFlatNode(Descriptor mc,
 		  FlatMethod fmContaining,
                   FlatNode fn,
@@ -655,8 +644,6 @@ public class DisjointAnalysis {
       table.put(fn, og);
       mapDescriptorToFlatNodeReachabilityGraph.put(mc, table);
     }
-
-    return og;
   }
 
   */
@@ -998,11 +985,11 @@ public class DisjointAnalysis {
   }
   
   
-  // Take in sourceEntry which is the program's compiled entry and
+  // Take in source entry which is the program's compiled entry and
   // create a new analysis entry, a method that takes no parameters
   // and appears to allocate the command line arguments and call the
-  // sourceEntry with them.  The purpose of this analysis entry is to
-  // provide a top-level method context with no parameters left.
+  // source entry with them.  The purpose of this analysis entry is
+  // to provide a top-level method context with no parameters left.
   protected void makeAnalysisEntryMethod( MethodDescriptor mdSourceEntry ) {
 
     Modifiers mods = new Modifiers();
@@ -1017,8 +1004,6 @@ public class DisjointAnalysis {
                             returnType,
                             "analysisEntryMethod"
                             );
-    
-    FlatExit fe = new FlatExit();    
 
     TempDescriptor cmdLineArgs = new TempDescriptor( "args" );
     
@@ -1026,10 +1011,23 @@ public class DisjointAnalysis {
                               cmdLineArgs,
                               false // is global 
                               );
+    
+    TempDescriptor[] sourceEntryArgs = new TempDescriptor[1];
+    sourceEntryArgs[0] = cmdLineArgs;
+    
+    FlatCall fc = new FlatCall( mdSourceEntry,
+                                null, // dst temp
+                                null, // this temp
+                                sourceEntryArgs
+                                );
 
-    //FlatCall fc = new
+    FlatExit fe = new FlatExit();
 
     this.fmAnalysisEntry = new FlatMethod( mdAnalysisEntry, fe );
+
+    this.fmAnalysisEntry.addNext( fn );
+    fn.addNext( fc );
+    fc.addNext( fe );
   }
 
 
