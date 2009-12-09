@@ -1,14 +1,14 @@
-package Analysis.DisjointAnalysis;
+package Analysis.Disjoint;
 
 import IR.*;
 import IR.Flat.*;
 import java.util.*;
 
-public abstract class ReferenceSourceNode {
+public abstract class RefSrcNode {
 
   protected HashSet<RefEdge> referencees;
 
-  public ReferenceSourceNode() {
+  public RefSrcNode() {
     referencees = new HashSet<RefEdge>();
   }
 

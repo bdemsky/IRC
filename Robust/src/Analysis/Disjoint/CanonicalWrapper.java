@@ -1,4 +1,4 @@
-package Analysis.DisjointAnalysis;
+package Analysis.Disjoint;
 
 public class CanonicalWrapper {
     Canonical a;

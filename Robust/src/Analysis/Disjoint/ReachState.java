@@ -1,4 +1,4 @@
-package Analysis.DisjointAnalysis;
+package Analysis.Disjoint;
 
 import IR.*;
 import IR.Flat.*;
@@ -21,7 +21,7 @@ public class ReachState extends Canonical {
     tokenTuples.add(tt);
   }
 
-  public ReachState(ReachTupleSet tts) {
+  public ReachState(ReachState tts) {
     assert tts != null;
     // okay to clone, ReachTuple and ReachState should be canonical
     tokenTuples = (HashSet<ReachTuple>)tts.tokenTuples.clone();
@@ -92,7 +92,7 @@ public class ReachState extends Canonical {
     if (unionhash.containsKey(ro))
 	return (ReachState) unionhash.get(ro).c;
     else {
-	ReachState ttsOut = new ReachTupleSet(this);
+	ReachState ttsOut = new ReachState(this);
 	ttsOut.tokenTuples.add(ttIn);
 	ro.c=ttsOut=ttsOut.makeCanonical();
 	unionhash.put(ro,ro);
@@ -100,13 +100,13 @@ public class ReachState extends Canonical {
     }
   }
 
-  public ReachState union(ReachTupleSet ttsIn) {
+  public ReachState union(ReachState ttsIn) {
     assert ttsIn != null;
     ReachOperation ro=new ReachOperation(this, ttsIn);
     if (unionhash.containsKey(ro)) {
 	return (ReachState) unionhash.get(ro).c;
     } else {
-	ReachState ttsOut = new ReachTupleSet(this);
+	ReachState ttsOut = new ReachState(this);
 	ttsOut.tokenTuples.addAll(ttsIn.tokenTuples);
 	ro.c=ttsOut=ttsOut.makeCanonical();
 	unionhash.put(ro,ro);
@@ -115,9 +115,9 @@ public class ReachState extends Canonical {
   }
 
 
-  public ReachState unionUpArity(ReachTupleSet ttsIn) {
+  public ReachState unionUpArity(ReachState ttsIn) {
     assert ttsIn != null;
-    ReachState ttsOut = new ReachTupleSet();
+    ReachState ttsOut = new ReachState();
 
     Iterator<ReachTuple> ttItr = this.iterator();
     while( ttItr.hasNext() ) {
@@ -153,7 +153,7 @@ public class ReachState extends Canonical {
 
   public ReachState remove(ReachTuple tt) {
     assert tt != null;
-    ReachState ttsOut = new ReachTupleSet(this);
+    ReachState ttsOut = new ReachState(this);
     ttsOut.tokenTuples.remove(tt);
     return ttsOut.makeCanonical();
   }
@@ -168,7 +168,7 @@ public class ReachState extends Canonical {
       return false;
     }
 
-    ReachState tts = (ReachTupleSet) o;
+    ReachState tts = (ReachState) o;
     return tokenTuples.equals(tts.tokenTuples);
   }
 
@@ -205,7 +205,7 @@ public class ReachState extends Canonical {
   public ReachState ageTokens(AllocSite as) {
     assert as != null;
 
-    ReachState ttsOut = new ReachTupleSet();
+    ReachState ttsOut = new ReachState();
 
     ReachTuple ttSummary = null;
     ReachTuple ttOldest  = null;
@@ -280,7 +280,7 @@ public class ReachState extends Canonical {
   public ReachState unshadowTokens(AllocSite as) {
     assert as != null;
 
-    ReachState ttsOut = new ReachTupleSet();
+    ReachState ttsOut = new ReachState();
 
     ReachTuple ttSummary       = null;
     ReachTuple ttShadowSummary = null;
@@ -348,7 +348,7 @@ public class ReachState extends Canonical {
   public ReachState toShadowTokens(AllocSite as) {
     assert as != null;
 
-    ReachState ttsOut = new ReachTupleSet().makeCanonical();
+    ReachState ttsOut = new ReachState().makeCanonical();
 
     Iterator itrT = this.iterator();
     while( itrT.hasNext() ) {
@@ -385,7 +385,7 @@ public class ReachState extends Canonical {
   public ReachSet rewriteToken(ReachTuple tokenToRewrite,
                                       ReachSet replacements,
                                       boolean makeChangeSet,
-                                      Hashtable<ReachState, HashSet<ReachTupleSet> > forChangeSet) {
+                                      Hashtable<ReachState, HashSet<ReachState> > forChangeSet) {
 
     ReachSet rsOut = new ReachSet().makeCanonical();
 
@@ -393,13 +393,13 @@ public class ReachState extends Canonical {
       rsOut = rsOut.add(this);
 
     } else {
-      ReachState ttsMinusToken = new ReachTupleSet(this);
+      ReachState ttsMinusToken = new ReachState(this);
       ttsMinusToken.tokenTuples.remove(tokenToRewrite);
 
       Iterator<ReachState> replaceItr = replacements.iterator();
       while( replaceItr.hasNext() ) {
 	ReachState replacement = replaceItr.next();
-	ReachState replaced = new ReachTupleSet(ttsMinusToken).makeCanonical();
+	ReachState replaced = new ReachState(ttsMinusToken).makeCanonical();
 	replaced = replaced.unionUpArity(replacement);
 	rsOut = rsOut.add(replaced);
 
@@ -420,7 +420,7 @@ public class ReachState extends Canonical {
 
 
   public ReachState makeArityZeroOrMore() {
-    ReachState ttsOut = new ReachTupleSet().makeCanonical();
+    ReachState ttsOut = new ReachState().makeCanonical();
 
     Iterator<ReachTuple> itrThis = this.iterator();
     while( itrThis.hasNext() ) {

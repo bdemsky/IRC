@@ -1,4 +1,4 @@
-package Analysis.DisjointAnalysis;
+package Analysis.Disjoint;
 
 import IR.*;
 import IR.Flat.*;

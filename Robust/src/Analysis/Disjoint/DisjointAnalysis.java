@@ -212,6 +212,7 @@ public class DisjointAnalysis {
 
       ReachGraph rg     = analyzeMethod( d );
       ReachGraph rgPrev = getPartial( d );
+
       if( !rg.equals( rgPrev ) ) {
         setPartial( d, rg );
 
@@ -283,7 +284,7 @@ public class DisjointAnalysis {
                        flatm,
                        fn,
                        returnNodesToCombineForCompleteReachabilityGraph,
-                       og);
+                       og);      
       */
           
       /*

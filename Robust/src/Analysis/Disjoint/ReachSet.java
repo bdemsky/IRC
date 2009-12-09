@@ -1,4 +1,4 @@
-package Analysis.DisjointAnalysis;
+package Analysis.Disjoint;
 
 import IR.*;
 import IR.Flat.*;
@@ -69,7 +69,7 @@ public class ReachSet extends Canonical {
 
     Iterator itr = iterator();
     while( itr.hasNext() ) {
-      ReachState ttsThis = (ReachTupleSet) itr.next();
+      ReachState ttsThis = (ReachState) itr.next();
       if( ttsThis.containsWithZeroes(tts) ) {
 	return true;
       }
@@ -96,7 +96,7 @@ public class ReachSet extends Canonical {
 
     Iterator itr = iterator();
     while( itr.hasNext() ) {
-      ReachState ttsThis = (ReachTupleSet) itr.next();
+      ReachState ttsThis = (ReachState) itr.next();
       if( strict ) {
         if( !tts.equals(ttsThis) && tts.isSubset(ttsThis) ) {
           return true;
@@ -115,7 +115,7 @@ public class ReachSet extends Canonical {
   public boolean containsTuple(ReachTuple tt) {
     Iterator itr = iterator();
     while( itr.hasNext() ) {
-      ReachState tts = (ReachTupleSet) itr.next();
+      ReachState tts = (ReachState) itr.next();
       if( tts.containsTuple(tt) ) {
 	return true;
       }
@@ -126,7 +126,7 @@ public class ReachSet extends Canonical {
   public boolean containsTupleSetWithBoth(ReachTuple tt1, ReachTuple tt2) {
     Iterator itr = iterator();
     while( itr.hasNext() ) {
-      ReachState tts = (ReachTupleSet) itr.next();
+      ReachState tts = (ReachState) itr.next();
       if( tts.containsTuple(tt1) && tts.containsTuple(tt2) ) {
 	return true;
       }
@@ -190,7 +190,7 @@ public class ReachSet extends Canonical {
 	ReachSet rsOut = new ReachSet();
 	Iterator i = this.iterator();
 	while( i.hasNext() ) {
-	    ReachState tts = (ReachTupleSet) i.next();
+	    ReachState tts = (ReachState) i.next();
 	    if( rsIn.possibleReachabilities.contains(tts) ) {
 		rsOut.possibleReachabilities.add(tts);
 	    }
@@ -223,7 +223,7 @@ public class ReachSet extends Canonical {
 
     Iterator i = this.iterator();
     while( i.hasNext() ) {
-      ReachState tts = (ReachTupleSet) i.next();
+      ReachState tts = (ReachState) i.next();
       if( tts.containsTuple( ttB ) ) {
 	rsOut.possibleReachabilities.add( tts.remove(ttA) );
       } else {
@@ -242,7 +242,7 @@ public class ReachSet extends Canonical {
 
     Iterator i = this.iterator();
     while( i.hasNext() ) {
-      ReachState tts = (ReachTupleSet) i.next();
+      ReachState tts = (ReachState) i.next();
 
       boolean changeFound = false;
 
@@ -272,13 +272,13 @@ public class ReachSet extends Canonical {
 
     Iterator itrO = this.iterator();
     while( itrO.hasNext() ) {
-      ReachState o = (ReachTupleSet) itrO.next();
+      ReachState o = (ReachState) itrO.next();
 
       Iterator itrR = rsIn.iterator();
       while( itrR.hasNext() ) {
-	ReachState r = (ReachTupleSet) itrR.next();
+	ReachState r = (ReachState) itrR.next();
 
-	ReachState theUnion = new ReachTupleSet().makeCanonical();
+	ReachState theUnion = new ReachState().makeCanonical();
 
 	Iterator itrRelement = r.iterator();
 	while( itrRelement.hasNext() ) {
@@ -319,7 +319,7 @@ public class ReachSet extends Canonical {
 
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
-      ReachState tts = (ReachTupleSet) itrS.next();
+      ReachState tts = (ReachState) itrS.next();
       rsOut.possibleReachabilities.add(tts.ageTokens(as) );
     }
 
@@ -334,7 +334,7 @@ public class ReachSet extends Canonical {
 
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
-      ReachState tts = (ReachTupleSet) itrS.next();
+      ReachState tts = (ReachState) itrS.next();
       rsOut.possibleReachabilities.add(tts.unshadowTokens(as) );
     }
 
@@ -349,7 +349,7 @@ public class ReachSet extends Canonical {
 
     Iterator itrS = this.iterator();
     while( itrS.hasNext() ) {
-      ReachState tts = (ReachTupleSet) itrS.next();
+      ReachState tts = (ReachState) itrS.next();
       rsOut.possibleReachabilities.add(tts.toShadowTokens(as) );
     }
 
@@ -364,13 +364,13 @@ public class ReachSet extends Canonical {
 
     Iterator itrB = this.iterator();
     while( itrB.hasNext() ) {
-      ReachState ttsB = (ReachTupleSet) itrB.next();
+      ReachState ttsB = (ReachState) itrB.next();
 
       boolean subsetExists = false;
 
       Iterator itrA = rsIn.iterator();
       while( itrA.hasNext() && !subsetExists ) {
-	ReachState ttsA = (ReachTupleSet) itrA.next();
+	ReachState ttsA = (ReachState) itrA.next();
 
 	if( ttsA.isSubset(ttsB) ) {
 	  subsetExists = true;
@@ -394,7 +394,7 @@ public class ReachSet extends Canonical {
     if( numDimensions > 3 ) {
       // for problems that are too big, punt and use less
       // precise arity for reachability information
-      ReachState ttsImprecise = new ReachTupleSet().makeCanonical();
+      ReachState ttsImprecise = new ReachState().makeCanonical();
 
       Iterator<ReachState> itrThis = this.iterator();
       while( itrThis.hasNext() ) {
@@ -422,7 +422,7 @@ public class ReachSet extends Canonical {
     while( digits[numDimensions] == minArity ) {
 
       // spit out a "coordinate" made from these digits
-      ReachState ttsCoordinate = new ReachTupleSet().makeCanonical();
+      ReachState ttsCoordinate = new ReachState().makeCanonical();
       Iterator<ReachState> ttsItr = this.iterator();
       for( int i = 0; i < numDimensions; ++i ) {
 	assert ttsItr.hasNext();

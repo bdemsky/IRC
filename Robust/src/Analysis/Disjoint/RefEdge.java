@@ -1,4 +1,4 @@
-package Analysis.DisjointAnalysis;
+package Analysis.Disjoint;
 
 import IR.*;
 import IR.Flat.*;
@@ -18,16 +18,16 @@ public class RefEdge {
   protected ReachSet beta;
   protected ReachSet betaNew;
 
-  protected ReferenceSourceNode src;
-  protected HeapRegionNode      dst;
+  protected RefSrcNode     src;
+  protected HeapRegionNode dst;
 
-
-  public RefEdge( ReferenceSourceNode src,
-			HeapRegionNode      dst,
-			TypeDescriptor      type,
-			String              field,
-			boolean             isInitialParam,
-			ReachSet     beta ) {
+  
+  public RefEdge( RefSrcNode     src,
+                  HeapRegionNode dst,
+                  TypeDescriptor type,
+                  String         field,
+                  boolean        isInitialParam,
+                  ReachSet       beta ) {
     assert type != null;
 
     this.src             = src;
@@ -50,11 +50,11 @@ public class RefEdge {
 
   public RefEdge copy() {
     RefEdge copy = new RefEdge( src,
-					    dst,
-					    type,
-					    field,
-					    isInitialParam,
-					    beta );
+                                dst,
+                                type,
+                                field,
+                                isInitialParam,
+                                beta );
     return copy;
   }
 
@@ -110,11 +110,11 @@ public class RefEdge {
   }
 
 
-  public ReferenceSourceNode getSrc() {
+  public RefSrcNode getSrc() {
     return src;
   }
 
-  public void setSrc( ReferenceSourceNode rsn ) {
+  public void setSrc( RefSrcNode rsn ) {
     assert rsn != null;
     src = rsn;
   }
@@ -202,73 +202,32 @@ public class RefEdge {
   }
 
 
-  public String toGraphEdgeString( boolean hideSubsetReachability,
-				   boolean hideEdgeTaints ) {
+  public String toGraphEdgeString( boolean hideSubsetReachability ) {
     String edgeLabel = "";
 
-    if (type != null) {
+    if( type != null ) {
       edgeLabel += type.toPrettyString() + "\\n";
     }
 
-    if (field != null) {
+    if( field != null ) {
       edgeLabel += field + "\\n";
     }
 
-    if (isInitialParam) {
+    if( isInitialParam ) {
       edgeLabel += "*init*\\n";
     }
 
-    if( !hideEdgeTaints ) {
-      edgeLabel += "*taint*=" + Integer.toBinaryString(taintIdentifier)
-	+ "\\n*SESE*=" + Integer.toBinaryString(SESEtaintIdentifier)
-	+ "\\n";
-    }
-
-    edgeLabel += beta.toStringEscapeNewline(hideSubsetReachability);
+    edgeLabel += beta.toStringEscapeNewline( hideSubsetReachability );
       
     return edgeLabel;
   }
 
   public String toString() {
-    if( type != null ) {
-      return new String("("+src+"->"+type.toPrettyString()+" "+field+"->"+dst+")");
-    }
-
-    return new String("("+src+"->"+type+" "+field+"->"+dst+")");
-  }
-  
-  public void tainedBy(Integer paramIdx){
-	  int newTaint=(int) Math.pow(2, paramIdx.intValue());
-	  taintIdentifier=taintIdentifier | newTaint;
-  }
-  
-  public void setTaintIdentifier(int newTaint){
-	  taintIdentifier=newTaint;
-  }
-  
-  public void unionTaintIdentifier(int newTaint){
-	  taintIdentifier=taintIdentifier | newTaint;
-  }
-  
-  public void minusTaintIdentifier(int removedTaint){
-	  taintIdentifier = taintIdentifier & (~removedTaint);
-  }
-  
-  public int getTaintIdentifier(){
-	  return taintIdentifier;
-  }
-  
-  public int getSESETaintIdentifier(){
-	  return SESEtaintIdentifier;
-  }
-  
-  public void setSESETaintIdentifier(int newTaint){
-	  SESEtaintIdentifier=newTaint;
-  }
-  
-  public void unionSESETaintIdentifier(int newTaint){
-	  SESEtaintIdentifier=SESEtaintIdentifier | newTaint;
-  }
-  
-  
+    assert type != null;
+    return new String( "("+src+
+                       "->"+type.toPrettyString()+
+                       " "+field+
+                       "->"+dst+")"
+                       );
+  }  
 }

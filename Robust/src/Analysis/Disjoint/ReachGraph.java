@@ -10,9 +10,8 @@ public class ReachGraph {
 		   
   protected static final TempDescriptor tdReturn    = new TempDescriptor( "_Return___" );
 		   
-  /*
   // some frequently used reachability constants
-  protected static final ReachState rstateEmpty        = new ReachTupleSet().makeCanonical();
+  protected static final ReachState rstateEmpty        = new ReachState().makeCanonical();
   protected static final ReachSet   rsetEmpty          = new ReachSet().makeCanonical();
   protected static final ReachSet   rsetWithEmptyState = new ReachSet( rstateEmpty ).makeCanonical();
 
@@ -20,7 +19,7 @@ public class ReachGraph {
   public Hashtable<TempDescriptor, VariableNode  > td2vn;
 
   public HashSet<AllocSite> allocSites;
-  */
+  
 
   // use to disable improvements for comparison
   protected static final boolean DISABLE_STRONG_UPDATES = false;
@@ -729,11 +728,11 @@ public class ReachGraph {
     // use a beta that has everything and put it all over the
     // parameter model, then use a global sweep later to fix
     // it up, since parameters can have different shapes
-    ReachState tts0 = new ReachTupleSet( ttPrimary ).makeCanonical();
+    ReachState tts0 = new ReachState( ttPrimary ).makeCanonical();
     ReachSet betaSoup;
     if( createSecondaryRegion ) {
-      ReachState tts1 = new ReachTupleSet( ttSecondary ).makeCanonical();
-      ReachState tts2 = new ReachTupleSet( ttPrimary   ).makeCanonical().union( ttSecondary );   
+      ReachState tts1 = new ReachState( ttSecondary ).makeCanonical();
+      ReachState tts2 = new ReachState( ttPrimary   ).makeCanonical().union( ttSecondary );   
       betaSoup = ReachSet.factory( tts0 ).union( tts1 ).union( tts2 );
     } else {
       betaSoup = ReachSet.factory( tts0 );
@@ -929,9 +928,9 @@ public class ReachGraph {
 					   ReachTuple.ARITY_ONE ).makeCanonical();   
 
     
-    ReachState tts0 = new ReachTupleSet( ttPrimary ).makeCanonical();
-    ReachState tts1 = new ReachTupleSet( ttAliased ).makeCanonical();
-    ReachState tts2 = new ReachTupleSet( ttPrimary ).makeCanonical().union( ttAliased );   
+    ReachState tts0 = new ReachState( ttPrimary ).makeCanonical();
+    ReachState tts1 = new ReachState( ttAliased ).makeCanonical();
+    ReachState tts2 = new ReachState( ttPrimary ).makeCanonical().union( ttAliased );   
     ReachSet betaSoup = ReachSet.factory( tts0 ).union( tts1 ).union( tts2 );
 
 
@@ -1009,9 +1008,9 @@ public class ReachGraph {
 					      false, // multi-object
 					      ReachTuple.ARITY_ONE ).makeCanonical();
       
-      ReachState ttsI  = new ReachTupleSet( ttPrimaryI ).makeCanonical();
-      ReachState ttsA  = new ReachTupleSet( ttAliased  ).makeCanonical();
-      ReachState ttsIA = new ReachTupleSet( ttPrimaryI ).makeCanonical().union( ttAliased );   
+      ReachState ttsI  = new ReachState( ttPrimaryI ).makeCanonical();
+      ReachState ttsA  = new ReachState( ttAliased  ).makeCanonical();
+      ReachState ttsIA = new ReachState( ttPrimaryI ).makeCanonical().union( ttAliased );   
       ReachSet betaSoup = ReachSet.factory( ttsI ).union( ttsA ).union( ttsIA );
 
 
@@ -1128,7 +1127,7 @@ public class ReachGraph {
 						    false, // multi-object
 						    ReachTuple.ARITY_ONE ).makeCanonical();
 
-	    ReachState ttsJ   = new ReachTupleSet( ttPrimaryJ ).makeCanonical();
+	    ReachState ttsJ   = new ReachState( ttPrimaryJ ).makeCanonical();
 	    ReachState ttsIJ  = ttsI.union( ttsJ );
 	    ReachState ttsAJ  = ttsA.union( ttsJ );
 	    ReachState ttsIAJ = ttsIA.union( ttsJ );
@@ -3273,13 +3272,13 @@ public class ReachGraph {
     ReachSet callerReachabilityNew = new ReachSet().makeCanonical();
 
     // for initializing structures in this method
-    ReachState ttsEmpty = new ReachTupleSet().makeCanonical();
+    ReachState ttsEmpty = new ReachState().makeCanonical();
 
     // use this to construct a change set if required; the idea is to
     // map every partially rewritten token tuple set to the set of
     // caller-context token tuple sets that were used to generate it
-    Hashtable<ReachState, HashSet<ReachTupleSet> > rewritten2source =
-      new Hashtable<ReachState, HashSet<ReachTupleSet> >();
+    Hashtable<ReachState, HashSet<ReachState> > rewritten2source =
+      new Hashtable<ReachState, HashSet<ReachState> >();
     rewritten2source.put( ttsEmpty, new HashSet<ReachState>() );
 
     
@@ -3332,7 +3331,7 @@ public class ReachGraph {
 
 	} else {
 	  // otherwise there's no need for a rewrite, just pass this one on
-	  ReachState ttsCaller = new ReachTupleSet( ttCallee ).makeCanonical();
+	  ReachState ttsCaller = new ReachState( ttCallee ).makeCanonical();
 	  ttCalleeRewrites = new ReachSet( ttsCaller ).makeCanonical();
 	}
 
@@ -3604,7 +3603,7 @@ public class ReachGraph {
       while( stateItr.hasNext() ) {
 	ReachState ttsOld = stateItr.next();
 
-	ReachState markedTokens = new ReachTupleSet().makeCanonical();
+	ReachState markedTokens = new ReachState().makeCanonical();
 
 	Iterator<ReachTuple> ttItr = ttsOld.iterator();
 	while( ttItr.hasNext() ) {
@@ -3648,7 +3647,7 @@ public class ReachGraph {
 
 	// remove all marked tokens and establish a change set that should
 	// propagate backwards over edges from this node
-	ReachState ttsPruned = new ReachTupleSet().makeCanonical();
+	ReachState ttsPruned = new ReachState().makeCanonical();
 	ttItr = ttsOld.iterator();
 	while( ttItr.hasNext() ) {
 	  ReachTuple ttOld = ttItr.next();
