@@ -19,6 +19,11 @@ public class ReachGraph {
   public Hashtable<TempDescriptor, VariableNode  > td2vn;
 
   public HashSet<AllocSite> allocSites;
+
+  // this is kept to allow edges created from variables (a src and dst)
+  // to know the access paths that allowed it, to prune edges when
+  // mapping them back into the caller--an access path must appear
+  public Hashtable< TempDescriptor, Set<AccessPath> > temp2accessPaths;
   
 
   // use to disable improvements for comparison
@@ -33,17 +38,17 @@ public class ReachGraph {
   protected static String   debugCaller       = null;
 
 
-
   public ReachGraph() {
-    /*
     id2hrn = new Hashtable<Integer,        HeapRegionNode>();
     td2vn  = new Hashtable<TempDescriptor, VariableNode  >();
 
     allocSites = new HashSet<AllocSite>();
-    */
+
+    temp2accessPaths = 
+      new Hashtable< TempDescriptor, Set<AccessPath> >();
   }
 
-  /*
+  
   // temp descriptors are globally unique and maps to
   // exactly one variable node, easy
   protected VariableNode getVariableNodeFromTemp( TempDescriptor td ) {
@@ -70,8 +75,8 @@ public class ReachGraph {
 			     TypeDescriptor type,
 			     AllocSite allocSite,
 			     ReachSet alpha,
-			     String description,
-			     String globalIdentifier ) {
+			     String description
+                             ) {
 
     boolean markForAnalysis = isFlagged;
 
@@ -99,9 +104,7 @@ public class ReachGraph {
 					     ).makeCanonical()
 			     ).makeCanonical();
       } else {
-	alpha = new ReachSet(
-			     new ReachState().makeCanonical()
-			     ).makeCanonical();
+	alpha = rsetWithEmptyState;
       }
     }
     
@@ -112,8 +115,7 @@ public class ReachGraph {
 					     typeToUse,
 					     allocSite,
 					     alpha,
-					     description,
-					     globalIdentifier );
+					     description );
     id2hrn.put( id, hrn );
     return hrn;
   }
@@ -130,54 +132,49 @@ public class ReachGraph {
   //  list of referencers and referencees.
   //
   ////////////////////////////////////////////////
-  protected void addRefEdge(RefSrcNode referencer,
-                                  HeapRegionNode referencee,
-                                  RefEdge edge) {
+  protected void addRefEdge( RefSrcNode     referencer,
+                             HeapRegionNode referencee,
+                             RefEdge        edge ) {
     assert referencer != null;
     assert referencee != null;
     assert edge       != null;
     assert edge.getSrc() == referencer;
     assert edge.getDst() == referencee;
 
-    referencer.addReferencee(edge);
-    referencee.addReferencer(edge);
+    referencer.addReferencee( edge );
+    referencee.addReferencer( edge );
   }
 
-  protected void removeRefEdge(RefEdge e) {
-    removeRefEdge(e.getSrc(),
-			e.getDst(),
-			e.getType(),
-			e.getField() );
+  protected void removeRefEdge( RefEdge e ) {
+    removeRefEdge( e.getSrc(),
+                   e.getDst(),
+                   e.getType(),
+                   e.getField() );
   }
 
-  protected void removeRefEdge(RefSrcNode referencer,
-                                     HeapRegionNode referencee,
-                                     TypeDescriptor type,
-				     String field) {
+  protected void removeRefEdge( RefSrcNode     referencer,
+                                HeapRegionNode referencee,
+                                TypeDescriptor type,
+                                String         field ) {
     assert referencer != null;
     assert referencee != null;
     
-    RefEdge edge = referencer.getReferenceTo(referencee,
-                                                   type,
-						   field);
+    RefEdge edge = referencer.getReferenceTo( referencee,
+                                              type,
+                                              field );
     assert edge != null;
-    assert edge == referencee.getReferenceFrom(referencer,
-                                               type,
-					       field);
+    assert edge == referencee.getReferenceFrom( referencer,
+                                                type,
+                                                field );
        
-//    int oldTaint=edge.getTaintIdentifier();
-//    if(referencer instanceof HeapRegionNode){
-//    	depropagateTaintIdentifier((HeapRegionNode)referencer,oldTaint,new HashSet<HeapRegionNode>());
-//    }
-
-    referencer.removeReferencee(edge);
-    referencee.removeReferencer(edge);
+    referencer.removeReferencee( edge );
+    referencee.removeReferencer( edge );
   }
 
-  protected void clearRefEdgesFrom(RefSrcNode referencer,
-                                         TypeDescriptor type,
-					 String field,
-                                         boolean removeAll) {
+  protected void clearRefEdgesFrom( RefSrcNode     referencer,
+                                    TypeDescriptor type,
+                                    String         field,
+                                    boolean        removeAll ) {
     assert referencer != null;
 
     // get a copy of the set to iterate over, otherwise
@@ -193,18 +190,18 @@ public class ReachGraph {
 
 	HeapRegionNode referencee = edge.getDst();
 	
-	removeRefEdge(referencer,
-	                    referencee,
-	                    edge.getType(),
-			    edge.getField() );
+	removeRefEdge( referencer,
+                       referencee,
+                       edge.getType(),
+                       edge.getField() );
       }
     }
   }
 
-  protected void clearRefEdgesTo(HeapRegionNode referencee,
-				       TypeDescriptor type,
-				       String field,
-                                       boolean removeAll) {
+  protected void clearRefEdgesTo( HeapRegionNode referencee,
+                                  TypeDescriptor type,
+                                  String         field,
+                                  boolean        removeAll ) {
     assert referencee != null;
 
     // get a copy of the set to iterate over, otherwise
@@ -220,10 +217,10 @@ public class ReachGraph {
 
 	RefSrcNode referencer = edge.getSrc();
 
-	removeRefEdge(referencer,
-	                    referencee,
-	                    edge.getType(),
-			    edge.getField() );
+	removeRefEdge( referencer,
+                       referencee,
+                       edge.getType(),
+                       edge.getField() );
       }
     }
   }
@@ -238,16 +235,12 @@ public class ReachGraph {
   //  the low-level reference create/remove methods
   //  above.
   //
-  //  The destination in an assignment statement is
-  //  going to have new references.  The method of
-  //  determining the references depends on the type
-  //  of the FlatNode assignment and the predicates
-  //  of the nodes and edges involved.
-  //
   ////////////////////////////////////////////////////
 
   public void nullifyDeadVars( Set<TempDescriptor> liveIn ) {
+    // THIS IS BUGGGY
 
+    /*
     // make a set of the temps that are out of scope, don't
     // consider them when nullifying dead in-scope variables
     Set<TempDescriptor> outOfScope = new HashSet<TempDescriptor>();
@@ -270,6 +263,7 @@ public class ReachGraph {
 	clearRefEdgesFrom( ln, null, null, true );
       }
     }
+    */
   }
 
 
@@ -294,9 +288,9 @@ public class ReachGraph {
 
     Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
-      RefEdge  edgeY      = itrYhrn.next();
+      RefEdge        edgeY      = itrYhrn.next();
       HeapRegionNode referencee = edgeY.getDst();
-      RefEdge  edgeNew    = edgeY.copy();
+      RefEdge        edgeNew    = edgeY.copy();
 
       if( !isSuperiorType( x.getType(), edgeY.getType() ) ) {
 	impossibleEdges.add( edgeY );
@@ -340,15 +334,15 @@ public class ReachGraph {
 
     Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
     while( itrYhrn.hasNext() ) {
-      RefEdge   edgeY = itrYhrn.next();
-      HeapRegionNode  hrnY  = edgeY.getDst();
-      ReachSet betaY = edgeY.getBeta();
+      RefEdge        edgeY = itrYhrn.next();
+      HeapRegionNode hrnY  = edgeY.getDst();
+      ReachSet       betaY = edgeY.getBeta();
 
       Iterator<RefEdge> itrHrnFhrn = hrnY.iteratorToReferencees();
       while( itrHrnFhrn.hasNext() ) {
-	RefEdge   edgeHrn = itrHrnFhrn.next();
-	HeapRegionNode  hrnHrn  = edgeHrn.getDst();
-	ReachSet betaHrn = edgeHrn.getBeta();
+	RefEdge        edgeHrn = itrHrnFhrn.next();
+	HeapRegionNode hrnHrn  = edgeHrn.getDst();
+	ReachSet       betaHrn = edgeHrn.getBeta();
 
 	// prune edges that are not a matching field
 	if( edgeHrn.getType() != null &&	    	    
@@ -369,15 +363,12 @@ public class ReachGraph {
 			    );       
 	  
 	RefEdge edgeNew = new RefEdge( lnX,
-						   hrnHrn,
-						   tdNewEdge,
-						   null,
-						   false,
-						   betaY.intersection( betaHrn )
-						   );
-	
-	int newTaintIdentifier=getTaintIdentifierFromHRN(hrnHrn);
-	edgeNew.setTaintIdentifier(newTaintIdentifier);
+                                       hrnHrn,
+                                       tdNewEdge,
+                                       null,
+                                       false,
+                                       betaY.intersection( betaHrn )
+                                       );
 	
 	addRefEdge( lnX, hrnHrn, edgeNew );	
       }
@@ -407,7 +398,7 @@ public class ReachGraph {
     VariableNode lnY = getVariableNodeFromTemp( y );
 
     HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
-    HashSet<RefEdge>  edgesWithNewBeta  = new HashSet<RefEdge>();
+    HashSet<RefEdge>        edgesWithNewBeta  = new HashSet<RefEdge>();
 
     // note it is possible that the types of temps in the
     // flat node to analyze will reveal that some typed
@@ -419,8 +410,8 @@ public class ReachGraph {
 
     Iterator<RefEdge> itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
-      RefEdge edgeX = itrXhrn.next();
-      HeapRegionNode hrnX = edgeX.getDst();
+      RefEdge        edgeX = itrXhrn.next();
+      HeapRegionNode hrnX  = edgeX.getDst();
 
       // we can do a strong update here if one of two cases holds	
       if( f != null &&
@@ -439,16 +430,16 @@ public class ReachGraph {
     // then do all token propagation
     itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
-      RefEdge   edgeX = itrXhrn.next();
-      HeapRegionNode  hrnX  = edgeX.getDst();
-      ReachSet betaX = edgeX.getBeta();
-      ReachSet R     = hrnX.getAlpha().intersection( edgeX.getBeta() );
+      RefEdge        edgeX = itrXhrn.next();
+      HeapRegionNode hrnX  = edgeX.getDst();
+      ReachSet       betaX = edgeX.getBeta();
+      ReachSet       R     = hrnX.getAlpha().intersection( edgeX.getBeta() );
 
       Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
-	RefEdge   edgeY = itrYhrn.next();
-	HeapRegionNode  hrnY  = edgeY.getDst();
-	ReachSet O     = edgeY.getBeta();
+	RefEdge        edgeY = itrYhrn.next();
+	HeapRegionNode hrnY  = edgeY.getDst();
+	ReachSet       O     = edgeY.getBeta();
 
 	// check for impossible edges
 	if( !isSuperiorType( f.getType(), edgeY.getType() ) ) {
@@ -460,7 +451,6 @@ public class ReachGraph {
 	// take care of propagating back up edges from any touched nodes
 	ChangeSet Cy = O.unionUpArityToChangeSet( R );
 	propagateTokensOverNodes( hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta );
-
 
 	// then propagate back just up the edges from hrn
 	ChangeSet Cx = R.unionUpArityToChangeSet(O);
@@ -498,13 +488,13 @@ public class ReachGraph {
     // then go back through and add the new edges
     itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
-      RefEdge edgeX = itrXhrn.next();
-      HeapRegionNode hrnX = edgeX.getDst();
+      RefEdge        edgeX = itrXhrn.next();
+      HeapRegionNode hrnX  = edgeX.getDst();
       
       Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
-	RefEdge edgeY = itrYhrn.next();
-	HeapRegionNode hrnY = edgeY.getDst();
+	RefEdge        edgeY = itrYhrn.next();
+	HeapRegionNode hrnY  = edgeY.getDst();
 
 	// skip impossible edges here, we already marked them
 	// when computing reachability propagations above
@@ -520,40 +510,28 @@ public class ReachGraph {
 			    );	
 
 	RefEdge edgeNew = new RefEdge( hrnX,
-						   hrnY,
-						   tdNewEdge,
-						   f.getSymbol(),
-						   false,
-						   edgeY.getBeta().pruneBy( hrnX.getAlpha() )
-						   );
+                                       hrnY,
+                                       tdNewEdge,
+                                       f.getSymbol(),
+                                       false,
+                                       edgeY.getBeta().pruneBy( hrnX.getAlpha() )
+                                       );
 
 	// look to see if an edge with same field exists
 	// and merge with it, otherwise just add the edge
 	RefEdge edgeExisting = hrnX.getReferenceTo( hrnY, 
-							  tdNewEdge,
-							  f.getSymbol() );
+                                                    tdNewEdge,
+                                                    f.getSymbol() );
 	
 	if( edgeExisting != null ) {
 	  edgeExisting.setBeta(
 			       edgeExisting.getBeta().union( edgeNew.getBeta() )
-			      );
-
-	  if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
-	    int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-	    edgeExisting.unionTaintIdentifier(newTaintIdentifier);
-	  }
+                               );
 	  // a new edge here cannot be reflexive, so existing will
 	  // always be also not reflexive anymore
 	  edgeExisting.setIsInitialParam( false );
-	} else {
-		
-	  if((!hrnX.isParameter() && hrnY.isParameter()) || ( hrnX.isParameter() && hrnY.isParameter())){
-	    int newTaintIdentifier=getTaintIdentifierFromHRN(hrnY);
-	    edgeNew.setTaintIdentifier(newTaintIdentifier);
-	  }
-	  //currently, taint isn't propagated through the chain of refrences
-	  //propagateTaintIdentifier(hrnX,newTaintIdentifier,new HashSet<HeapRegionNode>());
-	  
+	
+        } else {			  
 	  addRefEdge( hrnX, hrnY, edgeNew );
 	}
       }
@@ -575,690 +553,27 @@ public class ReachGraph {
   }
 
 
-  // the parameter model is to use a single-object heap region
-  // for the primary parameter, and a multiple-object heap
-  // region for the secondary objects reachable through the
-  // primary object, if necessary
-  public void assignTempEqualToParamAlloc( TempDescriptor td,
-					   boolean isTask,
-					   Integer paramIndex, FlatMethod fm ) {
-    assert td != null;
-    
-    TypeDescriptor typeParam = td.getType();
-    assert typeParam != null;
+  public void assignReturnEqualToTemp( TempDescriptor x ) {
 
-    // either the parameter is an array or a class to be in this method
-    assert typeParam.isArray() || typeParam.isClass();
+    VariableNode lnR = getVariableNodeFromTemp( tdReturn );
+    VariableNode lnX = getVariableNodeFromTemp( x );
 
-    // discover some info from the param type and use it below
-    // to get parameter model as precise as we can
-    boolean createSecondaryRegion = false;
-    Set<FieldDescriptor> primary2primaryFields   = new HashSet<FieldDescriptor>();
-    Set<FieldDescriptor> primary2secondaryFields = new HashSet<FieldDescriptor>();
-
-    // there might be an element reference for array types
-    if( typeParam.isArray() ) {
-      // only bother with this if the dereferenced type can
-      // affect reachability
-      TypeDescriptor typeDeref = typeParam.dereference();
-      if( !typeDeref.isImmutable() || typeDeref.isArray() ) {
-	primary2secondaryFields.add( 
-	  DisjointAnalysis.getArrayField( typeDeref )
-				   );
-	createSecondaryRegion = true;
-
-	// also handle a special case where an array of objects
-	// can point back to the array, which is an object!
-	if( typeParam.toPrettyString().equals( "Object[]" ) &&
-	    typeDeref.toPrettyString().equals( "Object" ) ) {
-
-	  primary2primaryFields.add( 
-	    DisjointAnalysis.getArrayField( typeDeref )
-				   );
-	}
-      }
-    }
-
-    // there might be member references for class types
-    if( typeParam.isClass() ) {
-      ClassDescriptor cd = typeParam.getClassDesc();
-      while( cd != null ) {
-
-	Iterator fieldItr = cd.getFields();
-	while( fieldItr.hasNext() ) {
-	  
-	  FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
-	  TypeDescriptor typeField = fd.getType();
-	  assert typeField != null;	
-	  
-	  if( !typeField.isImmutable() || typeField.isArray() ) {
-	    primary2secondaryFields.add( fd );
-	    createSecondaryRegion = true;
-	  }
-	  
-	  if( typeUtil.isSuperorType( typeField, typeParam ) ) {
-	    primary2primaryFields.add( fd );
-	  }
-	}
-
-	cd = cd.getSuperDesc();
-      }
-    }
-    
-
-    // now build everything we need
-    VariableNode lnParam = getVariableNodeFromTemp( td );
-    HeapRegionNode hrnPrimary = createNewHeapRegionNode( null,       // id or null to generate a new one 
-							 true,	     // single object?			 	
-							 false,      // summary?			 
-							 false,      // flagged?			 
-							 true,       // is a parameter?			 
-							 typeParam,  // type				 
-							 null,       // allocation site			 
-							 null,       // reachability set                 
-							 "param"+paramIndex+" obj",
-							 generateUniqueIdentifier(fm,paramIndex,"P"));
-
-    parameterTemps.add( td );
-    parameterLabels.add( lnParam );
-
-
-    // this is a non-program-accessible label that picks up beta
-    // info to be used for fixing a caller of this method
-    TempDescriptor tdParamQ = new TempDescriptor( td+qString );
-    paramIndex2tdQ.put( paramIndex, tdParamQ );    
-    VariableNode lnParamQ = getVariableNodeFromTemp( tdParamQ );
-
-    outOfScopeTemps.add( tdParamQ );
-    outOfScopeLabels.add( lnParamQ );
-
-    // keep track of heap regions that were created for
-    // parameter labels, the index of the parameter they
-    // are for is important when resolving method calls
-    Integer newPrimaryID = hrnPrimary.getID();
-    assert !idPrimary2paramIndexSet.containsKey( newPrimaryID );
-    Set<Integer> s = new HashSet<Integer>();
-    s.add( paramIndex );
-    idPrimary2paramIndexSet.put( newPrimaryID, s );
-    paramIndex2idPrimary.put( paramIndex, newPrimaryID );
-    
-    ReachTuple ttPrimary = new ReachTuple( newPrimaryID,
-					   false, // multi-object
-					   ReachTuple.ARITY_ONE ).makeCanonical();    
-
-        
-    HeapRegionNode hrnSecondary   = null;
-    Integer        newSecondaryID = null;
-    ReachTuple     ttSecondary    = null;    
-    TempDescriptor tdParamR       = null;
-    VariableNode      lnParamR       = null;
- 
-    if( createSecondaryRegion ) {
-      tdParamR = new TempDescriptor( td+rString );
-      paramIndex2tdR.put( paramIndex, tdParamR );    
-      lnParamR = getVariableNodeFromTemp( tdParamR );
-
-      outOfScopeTemps.add( tdParamR );
-      outOfScopeLabels.add( lnParamR );
-
-      hrnSecondary = createNewHeapRegionNode( null,  // id or null to generate a new one  
-					      false, // single object?			 
-					      false, // summary?			 
-					      false, // flagged?			 
-					      true,  // is a parameter?			 
-					      null,  // type				 
-					      null,  // allocation site			 
-					      null,  // reachability set                 
-					      "param"+paramIndex+" reachable", 
-					      generateUniqueIdentifier(fm,paramIndex,"S"));
-
-      newSecondaryID = hrnSecondary.getID();
-      assert !idSecondary2paramIndexSet.containsKey( newSecondaryID );
-      Set<Integer> s2 = new HashSet<Integer>();
-      s2.add( paramIndex );
-      idSecondary2paramIndexSet.put( newSecondaryID, s2 );
-      paramIndex2idSecondary.put( paramIndex, newSecondaryID );
-            
-      
-      ttSecondary = new ReachTuple( newSecondaryID,
-				    true, // multi-object
-				    ReachTuple.ARITY_ONE ).makeCanonical();      
-    }
-
-    // use a beta that has everything and put it all over the
-    // parameter model, then use a global sweep later to fix
-    // it up, since parameters can have different shapes
-    ReachState tts0 = new ReachState( ttPrimary ).makeCanonical();
-    ReachSet betaSoup;
-    if( createSecondaryRegion ) {
-      ReachState tts1 = new ReachState( ttSecondary ).makeCanonical();
-      ReachState tts2 = new ReachState( ttPrimary   ).makeCanonical().union( ttSecondary );   
-      betaSoup = ReachSet.factory( tts0 ).union( tts1 ).union( tts2 );
-    } else {
-      betaSoup = ReachSet.factory( tts0 );
-    }
-
-    RefEdge edgeFromLabel =
-      new RefEdge( lnParam,            // src
-			 hrnPrimary,         // dst
-			 typeParam,          // type
-			 null,               // field
-			 false,              // special param initial (not needed on label->node)
-			 betaSoup );         // reachability
-    edgeFromLabel.tainedBy(paramIndex);
-    addRefEdge( lnParam, hrnPrimary, edgeFromLabel );
-
-    RefEdge edgeFromLabelQ =
-      new RefEdge( lnParamQ,           // src
-			 hrnPrimary,         // dst
-			 null,               // type
-			 null,               // field
-			 false,              // special param initial (not needed on label->node)
-			 betaSoup );         // reachability
-    edgeFromLabelQ.tainedBy(paramIndex);
-    addRefEdge( lnParamQ, hrnPrimary, edgeFromLabelQ );
-    
-    RefEdge edgeSecondaryReflexive;
-    if( createSecondaryRegion ) {
-      edgeSecondaryReflexive =
-	new RefEdge( hrnSecondary,    // src
-			   hrnSecondary,    // dst
-			   null,            // match all types
-			   null,            // match all fields
-			   true,            // special param initial
-			   betaSoup );      // reachability
-      addRefEdge( hrnSecondary, hrnSecondary, edgeSecondaryReflexive );
-
-      RefEdge edgeSecondary2Primary =
-	new RefEdge( hrnSecondary,    // src
-			   hrnPrimary,      // dst
-			   null,            // match all types
-			   null,            // match all fields
-			   true,            // special param initial
-			   betaSoup );      // reachability
-      addRefEdge( hrnSecondary, hrnPrimary, edgeSecondary2Primary );
-
-      RefEdge edgeFromLabelR =
-	new RefEdge( lnParamR,           // src
-			   hrnSecondary,       // dst
-			   null,               // type
-			   null,               // field
-			   false,              // special param initial (not needed on label->node)
-			   betaSoup );         // reachability
-      edgeFromLabelR.tainedBy(paramIndex);
-      addRefEdge( lnParamR, hrnSecondary, edgeFromLabelR );
-    }
-    
-    Iterator<FieldDescriptor> fieldItr = primary2primaryFields.iterator();
-    while( fieldItr.hasNext() ) {
-      FieldDescriptor fd = fieldItr.next();
-
-      RefEdge edgePrimaryReflexive =
-	new RefEdge( hrnPrimary,     // src
-			   hrnPrimary,     // dst
-			   fd.getType(),   // type
-			   fd.getSymbol(), // field
-			   true,           // special param initial
-			   betaSoup );     // reachability
-      addRefEdge( hrnPrimary, hrnPrimary, edgePrimaryReflexive );
-    }
-
-    fieldItr = primary2secondaryFields.iterator();
-    while( fieldItr.hasNext() ) {
-      FieldDescriptor fd = fieldItr.next();
-
-      RefEdge edgePrimary2Secondary =
-	new RefEdge( hrnPrimary,     // src
-			   hrnSecondary,   // dst
-			   fd.getType(),   // type
-			   fd.getSymbol(), // field
-			   true,           // special param initial
-			   betaSoup );     // reachability      
-      addRefEdge( hrnPrimary, hrnSecondary, edgePrimary2Secondary );
-    }
-  }
-
-
-  public void makeAliasedParamHeapRegionNode(FlatMethod fm) {
-
-    VariableNode lnBlob = getVariableNodeFromTemp( tdAliasBlob );
-
-    outOfScopeTemps.add( tdAliasBlob );
-    outOfScopeLabels.add( lnBlob );
-    
-    HeapRegionNode hrn = createNewHeapRegionNode( null,  // id or null to generate a new one 
-						  false, // single object?			 
-						  false, // summary?			 
-						  false, // flagged?			 
-						  true,	 // is a parameter?			 
-						  null,	 // type				 
-						  null,	 // allocation site			 
-						  null,	 // reachability set                 
-						  "aliasedParams", 
-						  generateUniqueIdentifier(fm,0,"A"));
-
-    
-    ReachSet beta = new ReachSet( new ReachTuple( hrn.getID(),
-								true,
-								ReachTuple.ARITY_ONE).makeCanonical()
-						).makeCanonical();
-        
-    RefEdge edgeFromLabel =
-      new RefEdge( lnBlob, hrn, null, null, false, beta );
-
-    RefEdge edgeReflexive =
-      new RefEdge( hrn,    hrn, null, null, true,  beta );
-    
-    addRefEdge( lnBlob, hrn, edgeFromLabel );
-    addRefEdge( hrn,    hrn, edgeReflexive );
-  }
-
-
-  public void assignTempEqualToAliasedParam( TempDescriptor tdParam,
-					     Integer        paramIndex, FlatMethod fm ) {
-    assert tdParam != null;
-
-    TypeDescriptor typeParam = tdParam.getType();
-    assert typeParam != null;
-
-    VariableNode lnParam   = getVariableNodeFromTemp( tdParam );    
-    VariableNode lnAliased = getVariableNodeFromTemp( tdAliasBlob );
-
-    parameterTemps.add( tdParam );
-    parameterLabels.add( lnParam );
-
-    // this is a non-program-accessible label that picks up beta
-    // info to be used for fixing a caller of this method
-    TempDescriptor tdParamQ = new TempDescriptor( tdParam+qString );
-    TempDescriptor tdParamR = new TempDescriptor( tdParam+rString );
-
-    paramIndex2tdQ.put( paramIndex, tdParamQ );
-    paramIndex2tdR.put( paramIndex, tdParamR );
-
-    VariableNode lnParamQ = getVariableNodeFromTemp( tdParamQ );
-    VariableNode lnParamR = getVariableNodeFromTemp( tdParamR );
-
-    outOfScopeTemps.add( tdParamR );
-    outOfScopeLabels.add( lnParamR );
-    outOfScopeTemps.add( tdParamQ );
-    outOfScopeLabels.add( lnParamQ );
-
-    // the lnAliased should always only reference one node, and that
-    // heap region node is the aliased param blob
-    assert lnAliased.getNumReferencees() == 1;
-    HeapRegionNode hrnAliasBlob = lnAliased.iteratorToReferencees().next().getDst();
-    Integer idAliased = hrnAliasBlob.getID();
-
-    
-    ReachTuple ttAliased = new ReachTuple( idAliased,
-					   true, // multi-object
-					   ReachTuple.ARITY_ONE ).makeCanonical();         
-
-
-    HeapRegionNode hrnPrimary = createNewHeapRegionNode( null,      // id or null to generate a new one 
-							 true,	    // single object?			 
-							 false,	    // summary?			 
-							 false,     // flagged?			  
-							 true,	    // is a parameter?			 
-							 typeParam, // type				 
-							 null,	    // allocation site			 
-							 null,	    // reachability set                 
-							 "param"+paramIndex+" obj",
-							 generateUniqueIdentifier(fm, paramIndex.intValue(), "P"));
-
-    Integer newPrimaryID = hrnPrimary.getID();
-    assert !idPrimary2paramIndexSet.containsKey( newPrimaryID );
-    Set<Integer> s1 = new HashSet<Integer>();
-    s1.add( paramIndex );
-    idPrimary2paramIndexSet.put( newPrimaryID, s1 );
-    paramIndex2idPrimary.put( paramIndex, newPrimaryID );
-
-    Set<Integer> s2 = idSecondary2paramIndexSet.get( idAliased );
-    if( s2 == null ) {
-      s2 = new HashSet<Integer>();
-    }
-    s2.add( paramIndex );
-    idSecondary2paramIndexSet.put( idAliased, s2 );
-    paramIndex2idSecondary.put( paramIndex, idAliased );
-    
-
-    
-    ReachTuple ttPrimary = new ReachTuple( newPrimaryID,
-					   false, // multi-object
-					   ReachTuple.ARITY_ONE ).makeCanonical();   
-
-    
-    ReachState tts0 = new ReachState( ttPrimary ).makeCanonical();
-    ReachState tts1 = new ReachState( ttAliased ).makeCanonical();
-    ReachState tts2 = new ReachState( ttPrimary ).makeCanonical().union( ttAliased );   
-    ReachSet betaSoup = ReachSet.factory( tts0 ).union( tts1 ).union( tts2 );
-
-
-    RefEdge edgeFromLabel =
-      new RefEdge( lnParam,            // src
-			 hrnPrimary,         // dst
-			 typeParam,          // type
-			 null,               // field
-			 false,              // special param initial (not needed on label->node)
-			 betaSoup );         // reachability
-    edgeFromLabel.tainedBy(paramIndex);
-    addRefEdge( lnParam, hrnPrimary, edgeFromLabel );
-
-    RefEdge edgeFromLabelQ =
-      new RefEdge( lnParamQ,           // src
-			 hrnPrimary,         // dst
-			 null,               // type
-			 null,               // field
-			 false,              // special param initial (not needed on label->node)
-			 betaSoup );         // reachability
-    edgeFromLabelQ.tainedBy(paramIndex);
-    addRefEdge( lnParamQ, hrnPrimary, edgeFromLabelQ );
-    
-    RefEdge edgeAliased2Primary =
-      new RefEdge( hrnAliasBlob,    // src
-			 hrnPrimary,      // dst
-			 null,            // match all types
-			 null,            // match all fields
-			 true,            // special param initial
-			 betaSoup );      // reachability
-    addRefEdge( hrnAliasBlob, hrnPrimary, edgeAliased2Primary );    
-
-    RefEdge edgeFromLabelR =
-      new RefEdge( lnParamR,           // src
-			 hrnAliasBlob,       // dst
-			 null,               // type
-			 null,               // field
-			 false,              // special param initial (not needed on label->node)
-			 betaSoup );         // reachability
-    edgeFromLabelR.tainedBy(paramIndex);
-    addRefEdge( lnParamR, hrnAliasBlob, edgeFromLabelR );
-  }
-
-
-  public void addParam2ParamAliasEdges( FlatMethod fm,
-					Set<Integer> aliasedParamIndices ) {
-
-    VariableNode lnAliased = getVariableNodeFromTemp( tdAliasBlob );
-
-    // the lnAliased should always only reference one node, and that
-    // heap region node is the aliased param blob
-    assert lnAliased.getNumReferencees() == 1;
-    HeapRegionNode hrnAliasBlob = lnAliased.iteratorToReferencees().next().getDst();
-    Integer idAliased = hrnAliasBlob.getID();
-
-   
-    ReachTuple ttAliased = new ReachTuple( idAliased,
-					   true, // multi-object
-					   ReachTuple.ARITY_ONE ).makeCanonical();
-
-
-    Iterator<Integer> apItrI = aliasedParamIndices.iterator();
-    while( apItrI.hasNext() ) {
-      Integer i = apItrI.next();
-      TempDescriptor tdParamI = fm.getParameter( i );
-      TypeDescriptor typeI    = tdParamI.getType();
-      VariableNode      lnParamI = getVariableNodeFromTemp( tdParamI );
-
-      Integer        idPrimaryI =  paramIndex2idPrimary.get( i );
-      assert         idPrimaryI != null;
-      HeapRegionNode primaryI   =  id2hrn.get( idPrimaryI );
-      assert         primaryI   != null;           
-      
-      ReachTuple ttPrimaryI = new ReachTuple( idPrimaryI,
-					      false, // multi-object
-					      ReachTuple.ARITY_ONE ).makeCanonical();
-      
-      ReachState ttsI  = new ReachState( ttPrimaryI ).makeCanonical();
-      ReachState ttsA  = new ReachState( ttAliased  ).makeCanonical();
-      ReachState ttsIA = new ReachState( ttPrimaryI ).makeCanonical().union( ttAliased );   
-      ReachSet betaSoup = ReachSet.factory( ttsI ).union( ttsA ).union( ttsIA );
-
-
-      // calculate whether fields of this aliased parameter are able to
-      // reference its own primary object, the blob, or other parameter's
-      // primary objects!
-      Set<FieldDescriptor> primary2primaryFields   = new HashSet<FieldDescriptor>();
-      Set<FieldDescriptor> primary2secondaryFields = new HashSet<FieldDescriptor>();
-    
-      // there might be an element reference for array types
-      if( typeI.isArray() ) {
-	// only bother with this if the dereferenced type can
-	// affect reachability
-	TypeDescriptor typeDeref = typeI.dereference();
-	
-
-
-	/////////////////////////////////////////////////////////////
-	// NOTE! For the KMeans benchmark a parameter of type float
-	// array, which has an immutable dereferenced type, is causing
-	// this assertion to fail.  I'm commenting it out for now which
-	// is safe, because it allows aliasing where no aliasing can occur,
-	// so it can only get a worse-but-not-wrong answer.  FIX!
-	/////////////////////////////////////////////////////////////
-	// for this parameter to be aliased the following must be true
-	//assert !typeDeref.isImmutable() || typeDeref.isArray();
-	
-	
-
-	primary2secondaryFields.add( 
-	  DisjointAnalysis.getArrayField( typeDeref )
-				   );
-
-	// also handle a special case where an array of objects
-	// can point back to the array, which is an object!
-	if( typeI    .toPrettyString().equals( "Object[]" ) &&
-	    typeDeref.toPrettyString().equals( "Object" ) ) {
-	  primary2primaryFields.add( 
-	    DisjointAnalysis.getArrayField( typeDeref )
-				   );
-	}
-      }
-      
-      // there might be member references for class types
-      if( typeI.isClass() ) {
-	ClassDescriptor cd = typeI.getClassDesc();
-	while( cd != null ) {
-	  
-	  Iterator fieldItr = cd.getFields();
-	  while( fieldItr.hasNext() ) {
-	    
-	    FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
-	    TypeDescriptor typeField = fd.getType();
-	    assert typeField != null;	
-	    
-	    if( !typeField.isImmutable() || typeField.isArray() ) {
-	      primary2secondaryFields.add( fd );
-	    }
-	    
-	    if( typeUtil.isSuperorType( typeField, typeI ) ) {
-	      primary2primaryFields.add( fd );
-	    }	
-	  }
-	  
-	  cd = cd.getSuperDesc();
-	}
-      }
-
-      Iterator<FieldDescriptor> fieldItr = primary2primaryFields.iterator();
-      while( fieldItr.hasNext() ) {
-	FieldDescriptor fd = fieldItr.next();
-	
-	RefEdge edgePrimaryReflexive =
-	  new RefEdge( primaryI,       // src
-			     primaryI,       // dst
-			     fd.getType(),   // type
-			     fd.getSymbol(), // field
-			     true,           // special param initial
-			     betaSoup );     // reachability      
-	addRefEdge( primaryI, primaryI, edgePrimaryReflexive );
-      }
-
-      fieldItr = primary2secondaryFields.iterator();
-      while( fieldItr.hasNext() ) {
-	FieldDescriptor fd = fieldItr.next();
-	TypeDescriptor typeField = fd.getType();
-	assert typeField != null;	
-	
-	RefEdge edgePrimary2Secondary =
-	  new RefEdge( primaryI,       // src
-			     hrnAliasBlob,   // dst
-			     fd.getType(),   // type
-			     fd.getSymbol(), // field
-			     true,           // special param initial
-			     betaSoup );     // reachability
-	addRefEdge( primaryI, hrnAliasBlob, edgePrimary2Secondary );
-
-	// ask whether these fields might match any of the other aliased
-	// parameters and make those edges too
-	Iterator<Integer> apItrJ = aliasedParamIndices.iterator();
-	while( apItrJ.hasNext() ) {
-	  Integer        j        = apItrJ.next();
-	  TempDescriptor tdParamJ = fm.getParameter( j );
-	  TypeDescriptor typeJ    = tdParamJ.getType();
-
-	  if( !i.equals( j ) && typeUtil.isSuperorType( typeField, typeJ ) ) {
-
-	    Integer idPrimaryJ = paramIndex2idPrimary.get( j );
-	    assert idPrimaryJ != null;
-	    HeapRegionNode primaryJ = id2hrn.get( idPrimaryJ );
-	    assert primaryJ != null;	    
-
-	    ReachTuple ttPrimaryJ = new ReachTuple( idPrimaryJ,
-						    false, // multi-object
-						    ReachTuple.ARITY_ONE ).makeCanonical();
-
-	    ReachState ttsJ   = new ReachState( ttPrimaryJ ).makeCanonical();
-	    ReachState ttsIJ  = ttsI.union( ttsJ );
-	    ReachState ttsAJ  = ttsA.union( ttsJ );
-	    ReachState ttsIAJ = ttsIA.union( ttsJ );
-	    ReachSet betaSoupWJ = ReachSet.factory( ttsJ ).union( ttsIJ ).union( ttsAJ ).union( ttsIAJ );
-
-	    RefEdge edgePrimaryI2PrimaryJ =
-	      new RefEdge( primaryI,       // src
-				 primaryJ,       // dst
-				 fd.getType(),   // type
-				 fd.getSymbol(), // field
-				 true,           // special param initial
-				 betaSoupWJ );   // reachability
-	    addRefEdge( primaryI, primaryJ, edgePrimaryI2PrimaryJ );
-	  }
-	}	
-      }    
-      
-      
-      // look at whether aliased parameters i and j can
-      // possibly be the same primary object, add edges
-      Iterator<Integer> apItrJ = aliasedParamIndices.iterator();
-      while( apItrJ.hasNext() ) {
-	Integer        j        = apItrJ.next();
-	TempDescriptor tdParamJ = fm.getParameter( j );
-	TypeDescriptor typeJ    = tdParamJ.getType();
-	VariableNode      lnParamJ = getVariableNodeFromTemp( tdParamJ );
-
-	if( !i.equals( j ) && typeUtil.isSuperorType( typeI, typeJ ) ) {
-	  	  	  
-	  Integer idPrimaryJ = paramIndex2idPrimary.get( j );
-	  assert idPrimaryJ != null;
-	  HeapRegionNode primaryJ = id2hrn.get( idPrimaryJ );
-	  assert primaryJ != null;
-	  
-	  RefEdge lnJ2PrimaryJ = lnParamJ.getReferenceTo( primaryJ,
-								tdParamJ.getType(),	
-								null );
-	  assert lnJ2PrimaryJ != null;
-	  
-	  RefEdge lnI2PrimaryJ = lnJ2PrimaryJ.copy();
-	  lnI2PrimaryJ.setSrc( lnParamI );
-	  lnI2PrimaryJ.setType( tdParamI.getType() );
-	  lnI2PrimaryJ.tainedBy(new Integer(j));
-	  addRefEdge( lnParamI, primaryJ, lnI2PrimaryJ );
-	}
-      }
-    }
-  }
-
-  public void prepareParamTokenMaps( FlatMethod fm ) {
-
-    // always add the bogus mappings that are used to
-    // rewrite "with respect to no parameter"
-    paramTokenPrimary2paramIndex.put( bogusToken, bogusIndex );
-    paramIndex2paramTokenPrimary.put( bogusIndex, bogusToken );
-
-    paramTokenSecondary2paramIndex.put( bogusToken, bogusIndex );
-    paramIndex2paramTokenSecondary.put( bogusIndex, bogusToken );
-    paramTokenSecondaryPlus2paramIndex.put( bogusTokenPlus, bogusIndex );
-    paramIndex2paramTokenSecondaryPlus.put( bogusIndex, bogusTokenPlus );
-    paramTokenSecondaryStar2paramIndex.put( bogusTokenStar, bogusIndex );
-    paramIndex2paramTokenSecondaryStar.put( bogusIndex, bogusTokenStar );
-
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      Integer paramIndex = new Integer( i );
-
-      // immutable objects have no primary regions
-      if( paramIndex2idPrimary.containsKey( paramIndex ) ) {
-	Integer idPrimary = paramIndex2idPrimary.get( paramIndex );
-	
-	assert id2hrn.containsKey( idPrimary );
-	HeapRegionNode hrnPrimary = id2hrn.get( idPrimary );
-	
-	ReachTuple p_i = new ReachTuple( hrnPrimary.getID(),
-					 false, // multiple-object?
-					 ReachTuple.ARITY_ONE ).makeCanonical();
-	paramTokenPrimary2paramIndex.put( p_i, paramIndex );
-	paramIndex2paramTokenPrimary.put( paramIndex, p_i );	
-      }	
-	
-      // any parameter object, by type, may have no secondary region
-      if( paramIndex2idSecondary.containsKey( paramIndex ) ) {
-	Integer idSecondary = paramIndex2idSecondary.get( paramIndex );
-	
-	assert id2hrn.containsKey( idSecondary );
-	HeapRegionNode hrnSecondary = id2hrn.get( idSecondary );
-	
-	ReachTuple s_i = new ReachTuple( hrnSecondary.getID(),
-					 true, // multiple-object?
-					 ReachTuple.ARITY_ONE ).makeCanonical();
-	paramTokenSecondary2paramIndex.put( s_i, paramIndex );
-	paramIndex2paramTokenSecondary.put( paramIndex, s_i );
-	
-	ReachTuple s_i_plus = new ReachTuple( hrnSecondary.getID(),
-					      true, // multiple-object?
-					      ReachTuple.ARITY_ONEORMORE ).makeCanonical();
-	paramTokenSecondaryPlus2paramIndex.put( s_i_plus, paramIndex );
-	paramIndex2paramTokenSecondaryPlus.put( paramIndex, s_i_plus );
-	
-	ReachTuple s_i_star = new ReachTuple( hrnSecondary.getID(),
-					      true, // multiple-object?
-					      ReachTuple.ARITY_ZEROORMORE ).makeCanonical();
-	paramTokenSecondaryStar2paramIndex.put( s_i_star, paramIndex );
-	paramIndex2paramTokenSecondaryStar.put( paramIndex, s_i_star );
-      }
-    }
-  }
-
-
-
-  public void assignReturnEqualToTemp(TempDescriptor x) {
-
-    VariableNode lnR = getVariableNodeFromTemp(tdReturn);
-    VariableNode lnX = getVariableNodeFromTemp(x);
-
-    clearRefEdgesFrom(lnR, null, null, true);
+    clearRefEdgesFrom( lnR, null, null, true );
 
     Iterator<RefEdge> itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
-      RefEdge edgeX       = itrXhrn.next();
+      RefEdge        edgeX      = itrXhrn.next();
       HeapRegionNode referencee = edgeX.getDst();
-      RefEdge edgeNew    = edgeX.copy();
-      edgeNew.setSrc(lnR);
+      RefEdge        edgeNew    = edgeX.copy();
+      edgeNew.setSrc( lnR );
 
-      addRefEdge(lnR, referencee, edgeNew);
+      addRefEdge( lnR, referencee, edgeNew );
     }
   }
 
 
-  public void assignTempEqualToNewAlloc(TempDescriptor x,
-                                        AllocSite as) {
+  public void assignTempEqualToNewAlloc( TempDescriptor x,
+                                         AllocSite as ) {
     assert x  != null;
     assert as != null;
 
@@ -1276,15 +591,16 @@ public class ReachGraph {
     clearRefEdgesFrom( lnX, null, null, true );
 
     // make a new reference to allocated node
-    TypeDescriptor type    = as.getType();
-    RefEdge  edgeNew =
+    TypeDescriptor type = as.getType();
+
+    RefEdge edgeNew =
       new RefEdge( lnX,                  // source
-			 hrnNewest,            // dest
-			 type,                 // type
-			 null,                 // field name
-			 false,                // is initial param
-			 hrnNewest.getAlpha()  // beta
-			 );
+                   hrnNewest,            // dest
+                   type,                 // type
+                   null,                 // field name
+                   false,                // is initial param
+                   hrnNewest.getAlpha()  // beta
+                   );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
   }
@@ -1304,21 +620,21 @@ public class ReachGraph {
   // site, attempts to retrieve the heap region nodes using the
   // integer id's contained in the allocation site should always
   // return non-null heap regions.
-  public void age(AllocSite as) {
+  public void age( AllocSite as ) {
 
     // aging adds this allocation site to the graph's
     // list of sites that exist in the graph, or does
     // nothing if the site is already in the list
-    allocSites.add(as);
+    allocSites.add( as );
 
     // get the summary node for the allocation site in the context
     // of this particular ownership graph
-    HeapRegionNode hrnSummary = getSummaryNode(as);
+    HeapRegionNode hrnSummary = getSummaryNode( as );
 
     // merge oldest node into summary
-    Integer idK  = as.getOldest();
-    HeapRegionNode hrnK = id2hrn.get(idK);
-    mergeIntoSummary(hrnK, hrnSummary);
+    Integer        idK  = as.getOldest();
+    HeapRegionNode hrnK = id2hrn.get( idK );
+    mergeIntoSummary( hrnK, hrnSummary );
 
     // move down the line of heap region nodes
     // clobbering the ith and transferring all references
@@ -1328,30 +644,30 @@ public class ReachGraph {
     for( int i = allocationDepth - 1; i > 0; --i ) {
 
       // move references from the i-1 oldest to the ith oldest
-      Integer idIth     = as.getIthOldest(i);
-      HeapRegionNode hrnI      = id2hrn.get(idIth);
-      Integer idImin1th = as.getIthOldest(i - 1);
-      HeapRegionNode hrnImin1  = id2hrn.get(idImin1th);
+      Integer        idIth     = as.getIthOldest( i );
+      HeapRegionNode hrnI      = id2hrn.get( idIth );
+      Integer        idImin1th = as.getIthOldest( i - 1 );
+      HeapRegionNode hrnImin1  = id2hrn.get( idImin1th );
 
-      transferOnto(hrnImin1, hrnI);
+      transferOnto( hrnImin1, hrnI );
     }
 
     // as stated above, the newest node should have had its
     // references moved over to the second oldest, so we wipe newest
     // in preparation for being the new object to assign something to
-    Integer id0th = as.getIthOldest(0);
-    HeapRegionNode hrn0  = id2hrn.get(id0th);
+    Integer        id0th = as.getIthOldest( 0 );
+    HeapRegionNode hrn0  = id2hrn.get( id0th );
     assert hrn0 != null;
 
     // clear all references in and out of newest node
-    clearRefEdgesFrom(hrn0, null, null, true);
-    clearRefEdgesTo(hrn0, null, null, true);
+    clearRefEdgesFrom( hrn0, null, null, true );
+    clearRefEdgesTo  ( hrn0, null, null, true );
 
 
     // now tokens in reachability sets need to "age" also
     Iterator itrAllVariableNodes = td2vn.entrySet().iterator();
     while( itrAllVariableNodes.hasNext() ) {
-      Map.Entry me = (Map.Entry)itrAllVariableNodes.next();
+      Map.Entry    me = (Map.Entry)    itrAllVariableNodes.next();
       VariableNode ln = (VariableNode) me.getValue();
 
       Iterator<RefEdge> itrEdges = ln.iteratorToReferencees();
@@ -1362,39 +678,39 @@ public class ReachGraph {
 
     Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
     while( itrAllHRNodes.hasNext() ) {
-      Map.Entry me       = (Map.Entry)itrAllHRNodes.next();
+      Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
       HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
 
-      ageTokens(as, hrnToAge);
+      ageTokens( as, hrnToAge );
 
       Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencees();
       while( itrEdges.hasNext() ) {
-	ageTokens(as, itrEdges.next() );
+	ageTokens( as, itrEdges.next() );
       }
     }
 
 
     // after tokens have been aged, reset newest node's reachability
     if( hrn0.isFlagged() ) {
-      hrn0.setAlpha(new ReachSet(
-                      new ReachState(
-                        new ReachTuple(hrn0).makeCanonical()
-                        ).makeCanonical()
-                      ).makeCanonical()
-                    );
+      hrn0.setAlpha( new ReachSet(
+                       new ReachState(
+                         new ReachTuple( hrn0 ).makeCanonical()
+                       ).makeCanonical()
+                     ).makeCanonical()
+                   );
     } else {
-      hrn0.setAlpha(new ReachSet(
-                      new ReachState().makeCanonical()
-                      ).makeCanonical()
-                    );
+      hrn0.setAlpha( new ReachSet(
+                       new ReachState().makeCanonical()
+                     ).makeCanonical()
+                   );
     }
   }
 
 
-  protected HeapRegionNode getSummaryNode(AllocSite as) {
+  protected HeapRegionNode getSummaryNode( AllocSite as ) {
 
-    Integer idSummary  = as.getSummary();
-    HeapRegionNode hrnSummary = id2hrn.get(idSummary);
+    Integer        idSummary  = as.getSummary();
+    HeapRegionNode hrnSummary = id2hrn.get( idSummary );
 
     // If this is null then we haven't touched this allocation site
     // in the context of the current ownership graph, so allocate
@@ -1410,34 +726,35 @@ public class ReachGraph {
 	hasFlags = as.getType().getClassDesc().hasFlags();
       }
       
-      if(as.getFlag()){
-    	  hasFlags=as.getFlag();
+      if( as.getFlag() ){
+        hasFlags = as.getFlag();
       }
 
-      hrnSummary = createNewHeapRegionNode(idSummary,    // id or null to generate a new one 
-                                           false,	 // single object?			 
-                                           true,	 // summary?			 
-                                           hasFlags,	 // flagged?			 
-                                           false,	 // is a parameter?			 
-					   as.getType(), // type				 
-                                           as,		 // allocation site			 
-                                           null,	 // reachability set                 
-                                           as.toStringForDOT() + "\\nsummary",
-                                           generateUniqueIdentifier(as,0,true));
-
+      String strDesc = as.toStringForDOT()+"\\nsummary";
+      hrnSummary = 
+        createNewHeapRegionNode( idSummary,    // id or null to generate a new one 
+                                 false,        // single object?		 
+                                 true,         // summary?	 
+                                 hasFlags,     // flagged?
+                                 as.getType(), // type				 
+                                 as,           // allocation site			 
+                                 null,         // reachability set                 
+                                 strDesc       // description
+                                 );
+                                 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	Integer idIth = as.getIthOldest(i);
-	assert !id2hrn.containsKey(idIth);
-	createNewHeapRegionNode(idIth,        // id or null to generate a new one 
-	                        true,	      // single object?			 
-				false,	      // summary?			 
-	                        hasFlags,     // flagged?			 
-	                        false,	      // is a parameter?			 
-				as.getType(), // type				 
-	                        as,	      // allocation site			 
-	                        null,	      // reachability set                 
-	                        as.toStringForDOT() + "\\n" + i + " oldest",
-	                        generateUniqueIdentifier(as,i,false));
+	Integer idIth = as.getIthOldest( i );
+	assert !id2hrn.containsKey( idIth );
+        strDesc = as.toStringForDOT()+"\\n"+i+" oldest";
+	createNewHeapRegionNode( idIth,        // id or null to generate a new one 
+                                 true,	       // single object?			 
+                                 false,	       // summary?			 
+                                 hasFlags,     // flagged?			 
+                                 as.getType(), // type				 
+                                 as,	       // allocation site			 
+                                 null,	       // reachability set                 
+                                 strDesc       // description
+                                 );
       }
     }
 
@@ -1445,10 +762,10 @@ public class ReachGraph {
   }
 
 
-  protected HeapRegionNode getShadowSummaryNode(AllocSite as) {
+  protected HeapRegionNode getShadowSummaryNode( AllocSite as ) {
 
-    Integer idShadowSummary  = as.getSummaryShadow();
-    HeapRegionNode hrnShadowSummary = id2hrn.get(idShadowSummary);
+    Integer        idShadowSummary  = as.getSummaryShadow();
+    HeapRegionNode hrnShadowSummary = id2hrn.get( idShadowSummary );
 
     if( hrnShadowSummary == null ) {
 
@@ -1457,30 +774,35 @@ public class ReachGraph {
 	hasFlags = as.getType().getClassDesc().hasFlags();
       }
 
-      hrnShadowSummary = createNewHeapRegionNode(idShadowSummary, // id or null to generate a new one 
-                                                 false,        	  // single object?			 
-						 true,		  // summary?			 
-                                                 hasFlags,        // flagged?			                                     
-                                                 false,		  // is a parameter?			 
-						 as.getType(),	  // type				 
-                                                 as,		  // allocation site			 
-                                                 null,		  // reachability set                 
-                                                 as + "\\n" + as.getType() + "\\nshadowSum",
-                                                 "");
+      if( as.getFlag() ){
+        hasFlags = as.getFlag();
+      }
+
+      String strDesc = as+"\\n"+as.getType()+"\\nshadowSum";
+      hrnShadowSummary = 
+        createNewHeapRegionNode( idShadowSummary, // id or null to generate a new one 
+                                 false,           // single object?			 
+                                 true,		  // summary?			 
+                                 hasFlags,        // flagged?	                            
+                                 as.getType(),    // type				 
+                                 as,		  // allocation site			 
+                                 null,		  // reachability set                 
+                                 strDesc          // description
+                                 );
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	Integer idShadowIth = as.getIthOldestShadow(i);
-	assert !id2hrn.containsKey(idShadowIth);
-	createNewHeapRegionNode(idShadowIth,  // id or null to generate a new one 
-	                        true,	      // single object?			 
-				false,	      // summary?			 
-	                        hasFlags,     // flagged?			 
-	                        false,	      // is a parameter?			 
-				as.getType(), // type				 
-	                        as,	      // allocation site			 
-	                        null,	      // reachability set                 
-	                        as + "\\n" + as.getType() + "\\n" + i + " shadow",
-	                        "");
+	Integer idShadowIth = as.getIthOldestShadow( i );
+	assert !id2hrn.containsKey( idShadowIth );
+        strDesc = as+"\\n"+as.getType()+"\\n"+i+" shadow";
+	createNewHeapRegionNode( idShadowIth,  // id or null to generate a new one 
+                                 true,	       // single object?			 
+                                 false,	       // summary?			 
+                                 hasFlags,     // flagged?			
+                                 as.getType(), // type				 
+                                 as,	       // allocation site			 
+                                 null,	       // reachability set                 
+                                 strDesc       // description
+                                 );
       }
     }
 
@@ -1746,212 +1068,7 @@ public class ReachGraph {
   }
 
 
-  public Set<Integer> calculateAliasedParamSet( FlatCall fc,
-						boolean isStatic,
-						FlatMethod fm ) {
-
-    Hashtable<Integer, VariableNode> paramIndex2ln =
-      new Hashtable<Integer, VariableNode>();
-
-    Hashtable<Integer, HashSet<HeapRegionNode> > paramIndex2reachableCallerNodes =
-      new Hashtable<Integer, HashSet<HeapRegionNode> >();
-
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      Integer        paramIndex = new Integer( i );
-      TempDescriptor tdParam    = fm.getParameter( i );
-      TypeDescriptor typeParam  = tdParam.getType();
-
-      if( typeParam.isImmutable() && !typeParam.isArray() ) {
-	// don't bother with this primitive parameter, it
-	// cannot affect reachability
-	continue;
-      }
-
-      // now depending on whether the callee is static or not
-      // we need to account for a "this" argument in order to
-      // find the matching argument in the caller context
-      TempDescriptor argTemp_i = fc.getArgMatchingParamIndex( fm, paramIndex );
-
-      VariableNode argLabel_i = getVariableNodeFromTemp(argTemp_i);
-      paramIndex2ln.put(paramIndex, argLabel_i);
-    }
-
-    Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
-    while( lnArgItr.hasNext() ) {
-      Map.Entry me      = (Map.Entry)lnArgItr.next();
-      Integer index     = (Integer)   me.getKey();
-      VariableNode lnArg_i = (VariableNode) me.getValue();
-
-      HashSet<HeapRegionNode> reachableNodes = new HashSet<HeapRegionNode>();
-      HashSet<HeapRegionNode> todoNodes      = new HashSet<HeapRegionNode>();
-
-      // to find all reachable nodes, start with label referencees
-      Iterator<RefEdge> edgeArgItr = lnArg_i.iteratorToReferencees();
-      while( edgeArgItr.hasNext() ) {
-	RefEdge edge = edgeArgItr.next();
-	todoNodes.add( edge.getDst() );
-      }
-
-      // then follow links until all reachable nodes have been found
-      while( !todoNodes.isEmpty() ) {
-	HeapRegionNode hrn = todoNodes.iterator().next();
-	todoNodes.remove(hrn);
-	reachableNodes.add(hrn);
-
-	Iterator<RefEdge> edgeItr = hrn.iteratorToReferencees();
-	while( edgeItr.hasNext() ) {
-	  RefEdge edge = edgeItr.next();
-
-	  if( !reachableNodes.contains(edge.getDst() ) ) {
-	    todoNodes.add(edge.getDst() );
-	  }
-	}
-      }
-
-      // save for later
-      paramIndex2reachableCallerNodes.put(index, reachableNodes);
-    }
-
-    Set<Integer> aliasedIndices = new HashSet<Integer>();
-
-    // check for arguments that are aliased
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      for( int j = 0; j < i; ++j ) {	
-	HashSet<HeapRegionNode> s1 = paramIndex2reachableCallerNodes.get( i );
-	HashSet<HeapRegionNode> s2 = paramIndex2reachableCallerNodes.get( j );
-
-	// some parameters are immutable or primitive, so skip em
-	if( s1 == null || s2 == null ) {
-	  continue;
-	}
-
-	Set<HeapRegionNode> intersection = new HashSet<HeapRegionNode>(s1);
-	intersection.retainAll(s2);
-
-	if( !intersection.isEmpty() ) {
-	  aliasedIndices.add( new Integer( i ) );
-	  aliasedIndices.add( new Integer( j ) );
-	}
-      }
-    }
-
-    return aliasedIndices;
-  }
-
-
-  private String makeMapKey( Integer i, Integer j, String field ) {
-    return i+","+j+","+field;
-  }
-
-  private String makeMapKey( Integer i, String field ) {
-    return i+","+field;
-  }
-
-  // these hashtables are used during the mapping procedure to say that
-  // with respect to some argument i there is an edge placed into some
-  // category for mapping with respect to another argument index j
-  // so the key into the hashtable is i, the value is a two-element vector
-  // that contains in 0 the edge and in 1 the Integer index j
-  private void ensureEmptyEdgeIndexPair( Hashtable< Integer, Set<Vector> > edge_index_pairs,
-					 Integer indexI ) {
-
-    Set<Vector> ei = edge_index_pairs.get( indexI );
-    if( ei == null ) { 
-      ei = new HashSet<Vector>(); 
-    }
-    edge_index_pairs.put( indexI, ei );
-  }
-
-  private void addEdgeIndexPair( Hashtable< Integer, Set<Vector> > edge_index_pairs,
-				 Integer indexI,
-				 RefEdge edge,
-				 Integer indexJ ) {
-    
-    Vector v = new Vector(); v.setSize( 2 );
-    v.set( 0 , edge  );
-    v.set( 1 , indexJ );
-    Set<Vector> ei = edge_index_pairs.get( indexI );
-    if( ei == null ) { 
-      ei = new HashSet<Vector>(); 
-    }
-    ei.add( v );
-    edge_index_pairs.put( indexI, ei );
-  }
-
-  private ReachSet funcScriptR( ReachSet rsIn, 
-				       ReachGraph  ogCallee,
-				       MethodContext   mc ) {
-
-    ReachSet rsOut = new ReachSet( rsIn );
-
-    Iterator itr = ogCallee.paramIndex2paramTokenPrimary.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry  me  = (Map.Entry)  itr.next();
-      Integer    i   = (Integer)    me.getKey();
-      ReachTuple p_i = (ReachTuple) me.getValue();
-      ReachTuple s_i = ogCallee.paramIndex2paramTokenSecondary.get( i );
-
-      // skip this if there is no secondary token or the parameter
-      // is part of the aliasing context
-      if( s_i == null || mc.getAliasedParamIndices().contains( i ) ) {
-	continue;
-      }
-
-      rsOut = rsOut.removeTokenAIfTokenB( p_i, s_i );
-    }
-
-    return rsOut;
-  }
-
-  // detects strong updates to the primary parameter object and
-  // effects the removal of old edges in the calling graph
-  private void effectCalleeStrongUpdates( Integer paramIndex,
-					  ReachGraph ogCallee,
-					  HeapRegionNode hrnCaller
-					  ) {
-    Integer idPrimary = ogCallee.paramIndex2idPrimary.get( paramIndex );
-    assert idPrimary != null;
-
-    HeapRegionNode hrnPrimary = ogCallee.id2hrn.get( idPrimary );
-    assert hrnPrimary != null;
-
-    TypeDescriptor typeParam = hrnPrimary.getType();
-    assert typeParam.isClass();
-  
-    Set<String> fieldNamesToRemove = new HashSet<String>();   
-
-    ClassDescriptor cd = typeParam.getClassDesc();
-    while( cd != null ) {
-
-      Iterator fieldItr = cd.getFields();
-      while( fieldItr.hasNext() ) {
-	  
-	FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
-	TypeDescriptor typeField = fd.getType();
-	assert typeField != null;	
-	  
-	if( ogCallee.hasFieldBeenUpdated( hrnPrimary, fd.getSymbol() ) ) {
-	  clearRefEdgesFrom( hrnCaller, fd.getType(), fd.getSymbol(), false );
-	}
-      }
-      
-      cd = cd.getSuperDesc();
-    }
-  }
-
-  private boolean hasFieldBeenUpdated( HeapRegionNode hrnPrimary, String field ) {
-
-    Iterator<RefEdge> itr = hrnPrimary.iteratorToReferencees();
-    while( itr.hasNext() ) {
-      RefEdge e = itr.next();
-      if( e.fieldEquals( field ) && e.isInitialParam() ) {
-	return false;
-      }
-    }
-
-    return true;
-  }
-
+  /*
   // resolveMethodCall() is used to incorporate a callee graph's effects into
   // *this* graph, which is the caller.  This method can also be used, after
   // the entire analysis is complete, to perform parameter decomposition for 
@@ -3148,8 +2265,9 @@ public class ReachGraph {
       }
     }
   }
+  */
 
-  static int x = 0;
+
 
 
   protected boolean hasMatchingField(HeapRegionNode src, RefEdge edge) {
@@ -3225,7 +2343,7 @@ public class ReachGraph {
     return typeUtil.isSuperorType(tdEdge, tdDst);
   }
 
-
+  /*
   protected void unshadowTokens(AllocSite as, RefEdge edge) {
     edge.setBeta(edge.getBeta().unshadowTokens(as) );
   }
@@ -3491,7 +2609,7 @@ public class ReachGraph {
 
     return possibleCallerHRNs;
   }
-
+  */
 
 
   ////////////////////////////////////////////////////
@@ -3518,16 +2636,16 @@ public class ReachGraph {
     
       // assert that this node and incoming edges have clean alphaNew
       // and betaNew sets, respectively
-      assert rsEmpty.equals( hrn.getAlphaNew() );
+      assert rstateEmpty.equals( hrn.getAlphaNew() );
 
       Iterator<RefEdge> itrRers = hrn.iteratorToReferencers();
       while( itrRers.hasNext() ) {
 	RefEdge edge = itrRers.next();
-	assert rsEmpty.equals( edge.getBetaNew() );
+	assert rstateEmpty.equals( edge.getBetaNew() );
       }      
 
       // calculate boldB for this flagged node
-      if( hrn.isFlagged() || hrn.isParameter() ) {
+      if( hrn.isFlagged() ) {
 	
 	Hashtable<RefEdge, ReachSet> boldB_f =
 	  new Hashtable<RefEdge, ReachSet>();
@@ -3611,7 +2729,7 @@ public class ReachGraph {
 
 	  // never remove the identity token from a flagged region
 	  // because it is trivially satisfied
-	  if( hrn.isFlagged() || hrn.isParameter() ) {	
+	  if( hrn.isFlagged() ) {	
 	    if( ttOld == ttException ) {
 	      continue;
 	    }
@@ -3758,7 +2876,7 @@ public class ReachGraph {
       edgeItr.next().applyBetaNew();
     } 
   }  
-  */
+
 
 
   ////////////////////////////////////////////////////
@@ -3775,86 +2893,84 @@ public class ReachGraph {
       return;
     }
 
-    /*
-    mergeRefSrcNodes(og);
-    mergeRefEdges(og);
-    mergeParamIndexMappings(og);
-    mergeAllocSites(og);
-    mergeAccessPaths(og);
-    mergeTempAndLabelCategories(og);
-    */
+    mergeNodes      ( rg );
+    mergeRefEdges   ( rg );
+    mergeAllocSites ( rg );
+    mergeAccessPaths( rg );
   }
+  
+  protected void mergeNodes( ReachGraph rg ) {
 
-  /*
-  protected void mergeRefSrcNodes(ReachGraph og) {
-    Set sA = og.id2hrn.entrySet();
+    // start with heap region nodes
+    Set      sA = rg.id2hrn.entrySet();
     Iterator iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA  = (Map.Entry)iA.next();
-      Integer idA  = (Integer)        meA.getKey();
+      Map.Entry      meA  = (Map.Entry)      iA.next();
+      Integer        idA  = (Integer)        meA.getKey();
       HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
 
       // if this graph doesn't have a node the
       // incoming graph has, allocate it
-      if( !id2hrn.containsKey(idA) ) {
+      if( !id2hrn.containsKey( idA ) ) {
 	HeapRegionNode hrnB = hrnA.copy();
-	id2hrn.put(idA, hrnB);
+	id2hrn.put( idA, hrnB );
 
       } else {
 	// otherwise this is a node present in both graphs
 	// so make the new reachability set a union of the
 	// nodes' reachability sets
-	HeapRegionNode hrnB = id2hrn.get(idA);
-	hrnB.setAlpha(hrnB.getAlpha().union(hrnA.getAlpha() ) );
+	HeapRegionNode hrnB = id2hrn.get( idA );
+	hrnB.setAlpha( hrnB.getAlpha().union( hrnA.getAlpha() ) );
       }
     }
 
-    // now add any label nodes that are in graph B but
+    // now add any variable nodes that are in graph B but
     // not in A
-    sA = og.td2vn.entrySet();
+    sA = rg.td2vn.entrySet();
     iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA = (Map.Entry)iA.next();
+      Map.Entry      meA = (Map.Entry)      iA.next();
       TempDescriptor tdA = (TempDescriptor) meA.getKey();
-      VariableNode lnA = (VariableNode)      meA.getValue();
+      VariableNode   lnA = (VariableNode)   meA.getValue();
 
-      // if the label doesn't exist in B, allocate and add it
-      VariableNode lnB = getVariableNodeFromTemp(tdA);
+      // if the variable doesn't exist in B, allocate and add it
+      VariableNode lnB = getVariableNodeFromTemp( tdA );
     }
   }
 
-  protected void mergeRefEdges(ReachGraph og) {
+  protected void mergeRefEdges( ReachGraph rg ) {
 
-    // heap regions
-    Set sA = og.id2hrn.entrySet();
+    // between heap regions
+    Set      sA = rg.id2hrn.entrySet();
     Iterator iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA  = (Map.Entry)iA.next();
-      Integer idA  = (Integer)        meA.getKey();
+      Map.Entry      meA  = (Map.Entry)      iA.next();
+      Integer        idA  = (Integer)        meA.getKey();
       HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
 
       Iterator<RefEdge> heapRegionsItrA = hrnA.iteratorToReferencees();
       while( heapRegionsItrA.hasNext() ) {
-	RefEdge edgeA     = heapRegionsItrA.next();
+	RefEdge        edgeA     = heapRegionsItrA.next();
 	HeapRegionNode hrnChildA = edgeA.getDst();
-	Integer idChildA  = hrnChildA.getID();
+	Integer        idChildA  = hrnChildA.getID();
 
 	// at this point we know an edge in graph A exists
 	// idA -> idChildA, does this exist in B?
-	assert id2hrn.containsKey(idA);
-	HeapRegionNode hrnB        = id2hrn.get(idA);
-	RefEdge edgeToMerge = null;
+	assert id2hrn.containsKey( idA );
+	HeapRegionNode hrnB        = id2hrn.get( idA );
+	RefEdge        edgeToMerge = null;
 
 	Iterator<RefEdge> heapRegionsItrB = hrnB.iteratorToReferencees();
 	while( heapRegionsItrB.hasNext() &&
 	       edgeToMerge == null          ) {
 
-	  RefEdge edgeB     = heapRegionsItrB.next();
+	  RefEdge        edgeB     = heapRegionsItrB.next();
 	  HeapRegionNode hrnChildB = edgeB.getDst();
-	  Integer idChildB  = hrnChildB.getID();
+	  Integer        idChildB  = hrnChildB.getID();
 
 	  // don't use the RefEdge.equals() here because
-	  // we're talking about existence between graphs
+	  // we're talking about existence between graphs,
+          // not intragraph equal
 	  if( idChildB.equals( idChildA ) &&
 	      edgeB.typeAndFieldEquals( edgeA ) ) {
 
@@ -3865,12 +2981,12 @@ public class ReachGraph {
 	// if the edge from A was not found in B,
 	// add it to B.
 	if( edgeToMerge == null ) {
-	  assert id2hrn.containsKey(idChildA);
-	  HeapRegionNode hrnChildB = id2hrn.get(idChildA);
+	  assert id2hrn.containsKey( idChildA );
+	  HeapRegionNode hrnChildB = id2hrn.get( idChildA );
 	  edgeToMerge = edgeA.copy();
-	  edgeToMerge.setSrc(hrnB);
-	  edgeToMerge.setDst(hrnChildB);
-	  addRefEdge(hrnB, hrnChildB, edgeToMerge);
+	  edgeToMerge.setSrc( hrnB );
+	  edgeToMerge.setDst( hrnChildB );
+	  addRefEdge( hrnB, hrnChildB, edgeToMerge );
 	}
 	// otherwise, the edge already existed in both graphs
 	// so merge their reachability sets
@@ -3878,42 +2994,40 @@ public class ReachGraph {
 	  // just replace this beta set with the union
 	  assert edgeToMerge != null;
 	  edgeToMerge.setBeta(
-	    edgeToMerge.getBeta().union(edgeA.getBeta() )
+	    edgeToMerge.getBeta().union( edgeA.getBeta() )
 	    );
-	  	//TODO eom
-	    edgeToMerge.unionTaintIdentifier(edgeA.getTaintIdentifier());
 	  if( !edgeA.isInitialParam() ) {
-	    edgeToMerge.setIsInitialParam(false);
+	    edgeToMerge.setIsInitialParam( false );
 	  }
 	}
       }
     }
 
-    // and then again with label nodes
-    sA = og.td2vn.entrySet();
+    // and then again from variable nodes
+    sA = rg.td2vn.entrySet();
     iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA = (Map.Entry)iA.next();
+      Map.Entry      meA = (Map.Entry)      iA.next();
       TempDescriptor tdA = (TempDescriptor) meA.getKey();
-      VariableNode lnA = (VariableNode)      meA.getValue();
+      VariableNode   vnA = (VariableNode)   meA.getValue();
 
-      Iterator<RefEdge> heapRegionsItrA = lnA.iteratorToReferencees();
+      Iterator<RefEdge> heapRegionsItrA = vnA.iteratorToReferencees();
       while( heapRegionsItrA.hasNext() ) {
-	RefEdge edgeA     = heapRegionsItrA.next();
+	RefEdge        edgeA     = heapRegionsItrA.next();
 	HeapRegionNode hrnChildA = edgeA.getDst();
-	Integer idChildA  = hrnChildA.getID();
+	Integer        idChildA  = hrnChildA.getID();
 
 	// at this point we know an edge in graph A exists
 	// tdA -> idChildA, does this exist in B?
-	assert td2vn.containsKey(tdA);
-	VariableNode lnB         = td2vn.get(tdA);
-	RefEdge edgeToMerge = null;
+	assert td2vn.containsKey( tdA );
+	VariableNode vnB         = td2vn.get( tdA );
+	RefEdge      edgeToMerge = null;
 
-	Iterator<RefEdge> heapRegionsItrB = lnB.iteratorToReferencees();
+	Iterator<RefEdge> heapRegionsItrB = vnB.iteratorToReferencees();
 	while( heapRegionsItrB.hasNext() &&
 	       edgeToMerge == null          ) {
 
-	  RefEdge  edgeB     = heapRegionsItrB.next();
+	  RefEdge        edgeB     = heapRegionsItrB.next();
 	  HeapRegionNode hrnChildB = edgeB.getDst();
 	  Integer        idChildB  = hrnChildB.getID();
 
@@ -3929,102 +3043,36 @@ public class ReachGraph {
 	// if the edge from A was not found in B,
 	// add it to B.
 	if( edgeToMerge == null ) {
-	  assert id2hrn.containsKey(idChildA);
-	  HeapRegionNode hrnChildB = id2hrn.get(idChildA);
+	  assert id2hrn.containsKey( idChildA );
+	  HeapRegionNode hrnChildB = id2hrn.get( idChildA );
 	  edgeToMerge = edgeA.copy();
-	  edgeToMerge.setSrc(lnB);
-	  edgeToMerge.setDst(hrnChildB);
-	  addRefEdge(lnB, hrnChildB, edgeToMerge);
+	  edgeToMerge.setSrc( vnB );
+	  edgeToMerge.setDst( hrnChildB );
+	  addRefEdge( vnB, hrnChildB, edgeToMerge );
 	}
 	// otherwise, the edge already existed in both graphs
 	// so merge their reachability sets
 	else {
 	  // just replace this beta set with the union
 	  edgeToMerge.setBeta(
-	    edgeToMerge.getBeta().union(edgeA.getBeta() )
+	    edgeToMerge.getBeta().union( edgeA.getBeta() )
 	    );
-	    edgeToMerge.unionTaintIdentifier(edgeA.getTaintIdentifier());
 	  if( !edgeA.isInitialParam() ) {
-	    edgeToMerge.setIsInitialParam(false);
+	    edgeToMerge.setIsInitialParam( false );
 	  }
 	}
       }
     }
   }
 
-  // you should only merge ownership graphs that have the
-  // same number of parameters, or if one or both parameter
-  // index tables are empty
-  protected void mergeParamIndexMappings(ReachGraph og) {
-    
-    if( idPrimary2paramIndexSet.size() == 0 ) {
-
-      idPrimary2paramIndexSet            = og.idPrimary2paramIndexSet;
-      paramIndex2idPrimary               = og.paramIndex2idPrimary;
-
-      idSecondary2paramIndexSet          = og.idSecondary2paramIndexSet;
-      paramIndex2idSecondary             = og.paramIndex2idSecondary;
-
-      paramIndex2tdQ                     = og.paramIndex2tdQ;
-      paramIndex2tdR                     = og.paramIndex2tdR;
-
-      paramTokenPrimary2paramIndex       = og.paramTokenPrimary2paramIndex;
-      paramIndex2paramTokenPrimary       = og.paramIndex2paramTokenPrimary;      
-
-      paramTokenSecondary2paramIndex     = og.paramTokenSecondary2paramIndex;    
-      paramIndex2paramTokenSecondary     = og.paramIndex2paramTokenSecondary;    
-      paramTokenSecondaryPlus2paramIndex = og.paramTokenSecondaryPlus2paramIndex;
-      paramIndex2paramTokenSecondaryPlus = og.paramIndex2paramTokenSecondaryPlus;
-      paramTokenSecondaryStar2paramIndex = og.paramTokenSecondaryStar2paramIndex;
-      paramIndex2paramTokenSecondaryStar = og.paramIndex2paramTokenSecondaryStar;      
-
-      return;
-    }
-
-    if( og.idPrimary2paramIndexSet.size() == 0 ) {
-
-      og.idPrimary2paramIndexSet            = idPrimary2paramIndexSet;
-      og.paramIndex2idPrimary               = paramIndex2idPrimary;
-         
-      og.idSecondary2paramIndexSet          = idSecondary2paramIndexSet;
-      og.paramIndex2idSecondary             = paramIndex2idSecondary;
-         
-      og.paramIndex2tdQ                     = paramIndex2tdQ;
-      og.paramIndex2tdR                     = paramIndex2tdR;
-         
-      og.paramTokenPrimary2paramIndex       = paramTokenPrimary2paramIndex;
-      og.paramIndex2paramTokenPrimary       = paramIndex2paramTokenPrimary;      
-         
-      og.paramTokenSecondary2paramIndex     = paramTokenSecondary2paramIndex;    
-      og.paramIndex2paramTokenSecondary     = paramIndex2paramTokenSecondary;    
-      og.paramTokenSecondaryPlus2paramIndex = paramTokenSecondaryPlus2paramIndex;
-      og.paramIndex2paramTokenSecondaryPlus = paramIndex2paramTokenSecondaryPlus;
-      og.paramTokenSecondaryStar2paramIndex = paramTokenSecondaryStar2paramIndex;
-      og.paramIndex2paramTokenSecondaryStar = paramIndex2paramTokenSecondaryStar;      
-
-      return;
-    }
-
-    assert idPrimary2paramIndexSet.size()   == og.idPrimary2paramIndexSet.size();
-    assert idSecondary2paramIndexSet.size() == og.idSecondary2paramIndexSet.size();
+  protected void mergeAllocSites( ReachGraph rg ) {
+    allocSites.addAll( rg.allocSites );
   }
 
-  protected void mergeAllocSites(ReachGraph og) {
-    allocSites.addAll(og.allocSites);
+  protected void mergeAccessPaths( ReachGraph rg ) {
+    UtilAlgorithms.mergeHashtablesWithHashSetValues( temp2accessPaths,
+                                                     rg.temp2accessPaths );
   }
-
-  protected void mergeAccessPaths(ReachGraph og) {
-    UtilAlgorithms.mergeHashtablesWithHashSetValues(temp2accessPaths,
-						    og.temp2accessPaths);
-  }
-
-  protected void mergeTempAndLabelCategories(ReachGraph og) {
-    outOfScopeTemps.addAll(og.outOfScopeTemps);
-    outOfScopeLabels.addAll(og.outOfScopeLabels);
-    parameterTemps.addAll(og.parameterTemps);
-    parameterLabels.addAll(og.parameterLabels);
-  }
-  */
 
 
   // it is necessary in the equals() member functions
@@ -4042,100 +3090,90 @@ public class ReachGraph {
     if( rg == null ) {
       return false;
     }
-
-    /*
-    if( !areHeapRegionNodesEqual(og) ) {
+    
+    if( !areHeapRegionNodesEqual( rg ) ) {
       return false;
     }
 
-    if( !areVariableNodesEqual(og) ) {
+    if( !areVariableNodesEqual( rg ) ) {
       return false;
     }
 
-    if( !areRefEdgesEqual(og) ) {
+    if( !areRefEdgesEqual( rg ) ) {
       return false;
     }
 
-    if( !areParamIndexMappingsEqual(og) ) {
-      return false;
-    }
-
-    if( !areAccessPathsEqual(og) ) {
+    if( !areAccessPathsEqual( rg ) ) {
       return false;
     }
 
     // if everything is equal up to this point,
     // assert that allocSites is also equal--
-    // this data is redundant and kept for efficiency
-    assert allocSites .equals(og.allocSites );
-    assert outOfScopeTemps .equals(og.outOfScopeTemps );
-    assert outOfScopeLabels.equals(og.outOfScopeLabels);
-    assert parameterTemps  .equals(og.parameterTemps  );
-    assert parameterLabels .equals(og.parameterLabels );
-    */
+    // this data is redundant but kept for efficiency
+    assert allocSites.equals( rg.allocSites );
 
     return true;
   }
 
-  /*
-  protected boolean areHeapRegionNodesEqual(ReachGraph og) {
+  
+  protected boolean areHeapRegionNodesEqual( ReachGraph rg ) {
 
-    if( !areallHRNinAalsoinBandequal(this, og) ) {
+    if( !areallHRNinAalsoinBandequal( this, rg ) ) {
       return false;
     }
 
-    if( !areallHRNinAalsoinBandequal(og, this) ) {
+    if( !areallHRNinAalsoinBandequal( rg, this ) ) {
       return false;
     }
 
     return true;
   }
 
-  static protected boolean areallHRNinAalsoinBandequal(ReachGraph ogA,
-                                                       ReachGraph ogB) {
-    Set sA = ogA.id2hrn.entrySet();
+  static protected boolean areallHRNinAalsoinBandequal( ReachGraph rgA,
+                                                        ReachGraph rgB ) {
+    Set      sA = rgA.id2hrn.entrySet();
     Iterator iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA  = (Map.Entry)iA.next();
-      Integer idA  = (Integer)        meA.getKey();
+      Map.Entry      meA  = (Map.Entry)      iA.next();
+      Integer        idA  = (Integer)        meA.getKey();
       HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
 
-      if( !ogB.id2hrn.containsKey(idA) ) {
+      if( !rgB.id2hrn.containsKey( idA ) ) {
 	return false;
       }
 
-      HeapRegionNode hrnB = ogB.id2hrn.get(idA);
-      if( !hrnA.equalsIncludingAlpha(hrnB) ) {
+      HeapRegionNode hrnB = rgB.id2hrn.get( idA );
+      if( !hrnA.equalsIncludingAlpha( hrnB ) ) {
 	return false;
       }
+    }
+    
+    return true;
+  }
+  
+
+  protected boolean areVariableNodesEqual( ReachGraph rg ) {
+
+    if( !areallVNinAalsoinBandequal( this, rg ) ) {
+      return false;
+    }
+
+    if( !areallVNinAalsoinBandequal( rg, this ) ) {
+      return false;
     }
 
     return true;
   }
 
-
-  protected boolean areVariableNodesEqual(ReachGraph og) {
-
-    if( !areallLNinAalsoinBandequal(this, og) ) {
-      return false;
-    }
-
-    if( !areallLNinAalsoinBandequal(og, this) ) {
-      return false;
-    }
-
-    return true;
-  }
-
-  static protected boolean areallLNinAalsoinBandequal(ReachGraph ogA,
-                                                      ReachGraph ogB) {
-    Set sA = ogA.td2vn.entrySet();
+  static protected boolean areallVNinAalsoinBandequal( ReachGraph rgA,
+                                                       ReachGraph rgB ) {
+    Set      sA = rgA.td2vn.entrySet();
     Iterator iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA = (Map.Entry)iA.next();
+      Map.Entry      meA = (Map.Entry)      iA.next();
       TempDescriptor tdA = (TempDescriptor) meA.getKey();
 
-      if( !ogB.td2vn.containsKey(tdA) ) {
+      if( !rgB.td2vn.containsKey( tdA ) ) {
 	return false;
       }
     }
@@ -4144,63 +3182,63 @@ public class ReachGraph {
   }
 
 
-  protected boolean areRefEdgesEqual(ReachGraph og) {
-    if( !areallREinAandBequal(this, og) ) {
+  protected boolean areRefEdgesEqual( ReachGraph rg ) {
+    if( !areallREinAandBequal( this, rg ) ) {
       return false;
     }
 
     return true;
   }
 
-  static protected boolean areallREinAandBequal(ReachGraph ogA,
-                                                ReachGraph ogB) {
+  static protected boolean areallREinAandBequal( ReachGraph rgA,
+                                                 ReachGraph rgB ) {
 
     // check all the heap region->heap region edges
-    Set sA = ogA.id2hrn.entrySet();
+    Set      sA = rgA.id2hrn.entrySet();
     Iterator iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA  = (Map.Entry)iA.next();
-      Integer idA  = (Integer)        meA.getKey();
+      Map.Entry      meA  = (Map.Entry)      iA.next();
+      Integer        idA  = (Integer)        meA.getKey();
       HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
 
       // we should have already checked that the same
       // heap regions exist in both graphs
-      assert ogB.id2hrn.containsKey(idA);
+      assert rgB.id2hrn.containsKey( idA );
 
-      if( !areallREfromAequaltoB(ogA, hrnA, ogB) ) {
+      if( !areallREfromAequaltoB( rgA, hrnA, rgB ) ) {
 	return false;
       }
 
       // then check every edge in B for presence in A, starting
       // from the same parent HeapRegionNode
-      HeapRegionNode hrnB = ogB.id2hrn.get(idA);
+      HeapRegionNode hrnB = rgB.id2hrn.get( idA );
 
-      if( !areallREfromAequaltoB(ogB, hrnB, ogA) ) {
+      if( !areallREfromAequaltoB( rgB, hrnB, rgA ) ) {
 	return false;
       }
     }
 
-    // then check all the label->heap region edges
-    sA = ogA.td2vn.entrySet();
+    // then check all the variable->heap region edges
+    sA = rgA.td2vn.entrySet();
     iA = sA.iterator();
     while( iA.hasNext() ) {
-      Map.Entry meA = (Map.Entry)iA.next();
+      Map.Entry      meA = (Map.Entry)      iA.next();
       TempDescriptor tdA = (TempDescriptor) meA.getKey();
-      VariableNode lnA = (VariableNode)      meA.getValue();
+      VariableNode   vnA = (VariableNode)   meA.getValue();
 
       // we should have already checked that the same
       // label nodes exist in both graphs
-      assert ogB.td2vn.containsKey(tdA);
+      assert rgB.td2vn.containsKey( tdA );
 
-      if( !areallREfromAequaltoB(ogA, lnA, ogB) ) {
+      if( !areallREfromAequaltoB( rgA, vnA, rgB ) ) {
 	return false;
       }
 
       // then check every edge in B for presence in A, starting
       // from the same parent VariableNode
-      VariableNode lnB = ogB.td2vn.get(tdA);
+      VariableNode vnB = rgB.td2vn.get( tdA );
 
-      if( !areallREfromAequaltoB(ogB, lnB, ogA) ) {
+      if( !areallREfromAequaltoB( rgB, vnB, rgA ) ) {
 	return false;
       }
     }
@@ -4209,48 +3247,48 @@ public class ReachGraph {
   }
 
 
-  static protected boolean areallREfromAequaltoB(ReachGraph ogA,
-                                                 RefSrcNode onA,
-                                                 ReachGraph ogB) {
+  static protected boolean areallREfromAequaltoB( ReachGraph rgA,
+                                                  RefSrcNode rnA,
+                                                  ReachGraph rgB ) {
 
-    Iterator<RefEdge> itrA = onA.iteratorToReferencees();
+    Iterator<RefEdge> itrA = rnA.iteratorToReferencees();
     while( itrA.hasNext() ) {
-      RefEdge edgeA     = itrA.next();
+      RefEdge        edgeA     = itrA.next();
       HeapRegionNode hrnChildA = edgeA.getDst();
-      Integer idChildA  = hrnChildA.getID();
+      Integer        idChildA  = hrnChildA.getID();
 
-      assert ogB.id2hrn.containsKey(idChildA);
+      assert rgB.id2hrn.containsKey( idChildA );
 
       // at this point we know an edge in graph A exists
-      // onA -> idChildA, does this exact edge exist in B?
+      // rnA -> idChildA, does this exact edge exist in B?
       boolean edgeFound = false;
 
-      RefSrcNode onB = null;
-      if( onA instanceof HeapRegionNode ) {
-	HeapRegionNode hrnA = (HeapRegionNode) onA;
-	onB = ogB.id2hrn.get(hrnA.getID() );
+      RefSrcNode rnB = null;
+      if( rnA instanceof HeapRegionNode ) {
+	HeapRegionNode hrnA = (HeapRegionNode) rnA;
+	rnB = rgB.id2hrn.get( hrnA.getID() );
       } else {
-	VariableNode lnA = (VariableNode) onA;
-	onB = ogB.td2vn.get(lnA.getTempDescriptor() );
+	VariableNode vnA = (VariableNode) rnA;
+	rnB = rgB.td2vn.get( vnA.getTempDescriptor() );
       }
 
-      Iterator<RefEdge> itrB = onB.iteratorToReferencees();
+      Iterator<RefEdge> itrB = rnB.iteratorToReferencees();
       while( itrB.hasNext() ) {
-	RefEdge edgeB     = itrB.next();
+	RefEdge        edgeB     = itrB.next();
 	HeapRegionNode hrnChildB = edgeB.getDst();
-	Integer idChildB  = hrnChildB.getID();
+	Integer        idChildB  = hrnChildB.getID();
 
 	if( idChildA.equals( idChildB ) &&
 	    edgeA.typeAndFieldEquals( edgeB ) ) {
 
 	  // there is an edge in the right place with the right field,
 	  // but do they have the same attributes?
-	  if( edgeA.getBeta().equals(edgeB.getBeta() ) ) {
+	  if( edgeA.getBeta().equals( edgeB.getBeta() ) ) {
 	    edgeFound = true;
 	  }
 	}
       }
-
+      
       if( !edgeFound ) {
 	return false;
       }
@@ -4260,302 +3298,12 @@ public class ReachGraph {
   }
 
 
-  protected boolean areParamIndexMappingsEqual(ReachGraph og) {
-
-    if( idPrimary2paramIndexSet.size() != og.idPrimary2paramIndexSet.size() ) {
-      return false;
-    }
-
-    if( idSecondary2paramIndexSet.size() != og.idSecondary2paramIndexSet.size() ) {
-      return false;
-    }
-
-    return true;
+  protected boolean areAccessPathsEqual( ReachGraph rg ) {
+    return temp2accessPaths.equals( rg.temp2accessPaths );
   }
 
 
-  protected boolean areAccessPathsEqual(ReachGraph og) {
-    return temp2accessPaths.equals( og.temp2accessPaths );
-  }
-
-
-
-  public Set<HeapRegionNode> hasPotentialAlias( HeapRegionNode hrn1, HeapRegionNode hrn2 ) {
-    assert hrn1 != null;
-    assert hrn2 != null;
-
-    // then get the various tokens for these heap regions
-    ReachTuple h1 = new ReachTuple(hrn1.getID(),
-				   !hrn1.isSingleObject(),
-                                   ReachTuple.ARITY_ONE).makeCanonical();
-
-    ReachTuple h1plus = new ReachTuple(hrn1.getID(),
-                                       !hrn1.isSingleObject(),
-                                       ReachTuple.ARITY_ONEORMORE).makeCanonical();
-
-    ReachTuple h1star = new ReachTuple(hrn1.getID(),
-                                       !hrn1.isSingleObject(),
-                                       ReachTuple.ARITY_ZEROORMORE).makeCanonical();
-
-    ReachTuple h2 = new ReachTuple(hrn2.getID(),
-				   !hrn2.isSingleObject(),
-                                   ReachTuple.ARITY_ONE).makeCanonical();
-
-    ReachTuple h2plus = new ReachTuple(hrn2.getID(),
-                                       !hrn2.isSingleObject(),
-                                       ReachTuple.ARITY_ONEORMORE).makeCanonical();
-
-    ReachTuple h2star = new ReachTuple(hrn2.getID(),
-                                       !hrn2.isSingleObject(),
-                                       ReachTuple.ARITY_ZEROORMORE).makeCanonical();
-
-    // then get the merged beta of all out-going edges from these heap regions
-    ReachSet beta1 = new ReachSet().makeCanonical();
-    Iterator<RefEdge> itrEdge = hrn1.iteratorToReferencees();
-    while( itrEdge.hasNext() ) {
-      RefEdge edge = itrEdge.next();
-      beta1 = beta1.union( edge.getBeta() );
-    }
-
-    ReachSet beta2 = new ReachSet().makeCanonical();
-    itrEdge = hrn2.iteratorToReferencees();
-    while( itrEdge.hasNext() ) {
-      RefEdge edge = itrEdge.next();
-      beta2 = beta2.union( edge.getBeta() );
-    }
-
-    boolean aliasDetected = false;
-
-    // only do this one if they are different tokens
-    if( h1 != h2 &&
-        beta1.containsTupleSetWithBoth(h1,     h2) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1plus, h2) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1star, h2) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1,     h2plus) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1plus, h2plus) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1star, h2plus) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1,     h2star) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1plus, h2star) ) {
-      aliasDetected = true;
-    }
-    if( beta1.containsTupleSetWithBoth(h1star, h2star) ) {
-      aliasDetected = true;
-    }
-
-    if( h1 != h2 &&
-	beta2.containsTupleSetWithBoth(h1,     h2) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1plus, h2) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1star, h2) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1,     h2plus) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1plus, h2plus) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1star, h2plus) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1,     h2star) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1plus, h2star) ) {
-      aliasDetected = true;
-    }
-    if( beta2.containsTupleSetWithBoth(h1star, h2star) ) {
-      aliasDetected = true;
-    }
-
-    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
-    if( aliasDetected ) {
-      common = findCommonReachableNodes( hrn1, hrn2 );
-      if( !(DISABLE_STRONG_UPDATES || DISABLE_GLOBAL_SWEEP) ) {
-        assert !common.isEmpty();
-      }
-    }
-
-    return common;    
-  }
-
-
-  public Set<HeapRegionNode> hasPotentialAlias(Integer paramIndex1, Integer paramIndex2) {
-
-    // get parameter 1's heap regions
-    assert paramIndex2idPrimary.containsKey(paramIndex1);
-    Integer idParamPri1 = paramIndex2idPrimary.get(paramIndex1);
-
-    assert id2hrn.containsKey(idParamPri1);
-    HeapRegionNode hrnParamPri1 = id2hrn.get(idParamPri1);
-    assert hrnParamPri1 != null;
-
-    HeapRegionNode hrnParamSec1 = null;
-    if( paramIndex2idSecondary.containsKey(paramIndex1) ) {
-      Integer idParamSec1 = paramIndex2idSecondary.get(paramIndex1);
-
-      assert id2hrn.containsKey(idParamSec1);
-      hrnParamSec1 = id2hrn.get(idParamSec1);
-      assert hrnParamSec1 != null;
-    }
-
-
-    // get the other parameter
-    assert paramIndex2idPrimary.containsKey(paramIndex2);
-    Integer idParamPri2 = paramIndex2idPrimary.get(paramIndex2);
-
-    assert id2hrn.containsKey(idParamPri2);
-    HeapRegionNode hrnParamPri2 = id2hrn.get(idParamPri2);
-    assert hrnParamPri2 != null;
-
-    HeapRegionNode hrnParamSec2 = null;
-    if( paramIndex2idSecondary.containsKey(paramIndex2) ) {
-      Integer idParamSec2 = paramIndex2idSecondary.get(paramIndex2);
-
-      assert id2hrn.containsKey(idParamSec2);
-      hrnParamSec2 = id2hrn.get(idParamSec2);
-      assert hrnParamSec2 != null;
-    }
-
-    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
-    common.addAll( hasPotentialAlias( hrnParamPri1, hrnParamPri2 ) );
-
-    if( hrnParamSec1 != null ) {
-	common.addAll( hasPotentialAlias( hrnParamSec1, hrnParamPri2 ) );
-    }
-
-    if( hrnParamSec2 != null ) {
-	common.addAll( hasPotentialAlias( hrnParamSec2, hrnParamPri1 ) );
-    }
-
-    if( hrnParamSec1 != null && hrnParamSec2 != null ) {
-	common.addAll( hasPotentialAlias( hrnParamSec1, hrnParamSec2 ) );
-    }
-
-    return common;
-  }
-
-
-  public Set<HeapRegionNode> hasPotentialAlias(Integer paramIndex, AllocSite as) {
-
-    // get parameter's heap regions
-    assert paramIndex2idPrimary.containsKey(paramIndex);
-    Integer idParamPri = paramIndex2idPrimary.get(paramIndex);
-
-    assert id2hrn.containsKey(idParamPri);
-    HeapRegionNode hrnParamPri = id2hrn.get(idParamPri);
-    assert hrnParamPri != null;
-
-    HeapRegionNode hrnParamSec = null;
-    if( paramIndex2idSecondary.containsKey(paramIndex) ) {
-      Integer idParamSec = paramIndex2idSecondary.get(paramIndex);
-
-      assert id2hrn.containsKey(idParamSec);
-      hrnParamSec = id2hrn.get(idParamSec);
-      assert hrnParamSec != null;
-    }
-
-    // get summary node
-    assert id2hrn.containsKey( as.getSummary() );
-    HeapRegionNode hrnSummary = id2hrn.get( as.getSummary() );
-    assert hrnSummary != null;
-
-    Set<HeapRegionNode> common = hasPotentialAlias( hrnParamPri, hrnSummary );
-    
-    if( hrnParamSec != null ) {
-	common.addAll( hasPotentialAlias( hrnParamSec, hrnSummary ) );
-    }
-
-    // check for other nodes
-    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-
-      assert id2hrn.containsKey( as.getIthOldest( i ) );
-      HeapRegionNode hrnIthOldest = id2hrn.get( as.getIthOldest( i ) );
-      assert hrnIthOldest != null;
-
-      common = hasPotentialAlias( hrnParamPri, hrnIthOldest );
-    
-      if( hrnParamSec != null ) {
-	  common.addAll( hasPotentialAlias( hrnParamSec, hrnIthOldest ) );
-      }
-    }
-    
-    return common;
-  }
-
-
-  public Set<HeapRegionNode> hasPotentialAlias(AllocSite as1, AllocSite as2) {     
-
-    // get summary node 1's alpha
-    Integer idSum1 = as1.getSummary();
-    assert id2hrn.containsKey(idSum1);
-    HeapRegionNode hrnSum1 = id2hrn.get(idSum1);
-    assert hrnSum1 != null;
-
-    // get summary node 2's alpha
-    Integer idSum2 = as2.getSummary();
-    assert id2hrn.containsKey(idSum2);
-    HeapRegionNode hrnSum2 = id2hrn.get(idSum2);
-    assert hrnSum2 != null;
-
-    Set<HeapRegionNode> common = hasPotentialAlias( hrnSum1, hrnSum2 );
-
-    // check sum2 against alloc1 nodes
-    for( int i = 0; i < as1.getAllocationDepth(); ++i ) {
-      Integer idI1 = as1.getIthOldest(i);
-      assert id2hrn.containsKey(idI1);
-      HeapRegionNode hrnI1 = id2hrn.get(idI1);
-      assert hrnI1 != null;
-
-      common.addAll( hasPotentialAlias( hrnI1, hrnSum2 ) );
-    }
-
-    // check sum1 against alloc2 nodes
-    for( int i = 0; i < as2.getAllocationDepth(); ++i ) {
-      Integer idI2 = as2.getIthOldest(i);
-      assert id2hrn.containsKey(idI2);
-      HeapRegionNode hrnI2 = id2hrn.get(idI2);
-      assert hrnI2 != null;
-
-      common.addAll( hasPotentialAlias( hrnSum1, hrnI2 ) );
-
-      // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
-      for( int j = 0; j < as1.getAllocationDepth(); ++j ) {
-	Integer idI1 = as1.getIthOldest(j);
-
-	// if these are the same site, don't look for the same token, no alias.
-	// different tokens of the same site could alias together though
-	if( idI1.equals( idI2 ) ) {
-	  continue;
-	}
-
-	HeapRegionNode hrnI1 = id2hrn.get(idI1);
-
-	common.addAll( hasPotentialAlias( hrnI1, hrnI2 ) );
-      }
-    }
-
-    return common;
-  }
-
-
+  /*
   public Set<HeapRegionNode> findCommonReachableNodes( HeapRegionNode hrn1,
 						       HeapRegionNode hrn2 ) {
 
@@ -4606,240 +3354,167 @@ public class ReachGraph {
   
     return intersection;
   }
-
+  */
   
-  public void writeGraph(String graphName,
-                         boolean writeLabels,
-                         boolean labelSelect,
-                         boolean pruneGarbage,
-                         boolean writeReferencers,
-                         boolean writeParamMappings,
-                         boolean hideSubsetReachability,
-			 boolean hideEdgeTaints
-                         ) throws java.io.IOException {
 
+  public void writeGraph( String graphName,
+                          boolean writeLabels,
+                          boolean labelSelect,
+                          boolean pruneGarbage,
+                          boolean writeReferencers,
+                          boolean writeParamMappings,
+                          boolean hideSubsetReachability,
+                          boolean hideEdgeTaints
+                          ) throws java.io.IOException {
+    
     // remove all non-word characters from the graph name so
     // the filename and identifier in dot don't cause errors
-    graphName = graphName.replaceAll("[\\W]", "");
+    graphName = graphName.replaceAll( "[\\W]", "" );
 
-    BufferedWriter bw = new BufferedWriter(new FileWriter(graphName+".dot") );
-    bw.write("digraph "+graphName+" {\n");
+    BufferedWriter bw = 
+      new BufferedWriter( new FileWriter( graphName+".dot" ) );
 
-    HashSet<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
+    bw.write( "digraph "+graphName+" {\n" );
+
+    Set<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 
     // then visit every heap region node
-    Set s = id2hrn.entrySet();
+    Set      s = id2hrn.entrySet();
     Iterator i = s.iterator();
     while( i.hasNext() ) {
-      Map.Entry me  = (Map.Entry)i.next();
+      Map.Entry      me  = (Map.Entry)      i.next();
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
 
       if( !pruneGarbage ||
           (hrn.isFlagged() && hrn.getID() > 0) ||
-          hrn.getDescription().startsWith("param")
+          hrn.getDescription().startsWith( "param" )
           ) {
 
-	if( !visited.contains(hrn) ) {
-	  traverseHeapRegionNodes(VISIT_HRN_WRITE_FULL,
-	                          hrn,
-	                          bw,
-	                          null,
-	                          visited,
-	                          writeReferencers,
-                                  hideSubsetReachability,
-				  hideEdgeTaints);
+	if( !visited.contains( hrn ) ) {
+	  traverseHeapRegionNodes( hrn,
+                                   bw,
+                                   null,
+                                   visited,
+                                   writeReferencers,
+                                   hideSubsetReachability,
+                                   hideEdgeTaints );
 	}
       }
     }
 
-    bw.write("  graphTitle[label=\""+graphName+"\",shape=box];\n");
-    }
+    bw.write( "  graphTitle[label=\""+graphName+"\",shape=box];\n" );
+  
 
     // then visit every label node, useful for debugging
     if( writeLabels ) {
       s = td2vn.entrySet();
       i = s.iterator();
       while( i.hasNext() ) {
-	Map.Entry me = (Map.Entry)i.next();
-	VariableNode ln = (VariableNode) me.getValue();
+        Map.Entry    me = (Map.Entry)    i.next();
+        VariableNode vn = (VariableNode) me.getValue();
+        
+        if( labelSelect ) {
+          String labelStr = vn.getTempDescriptorString();
+          if( labelStr.startsWith("___temp") ||
+              labelStr.startsWith("___dst") ||
+              labelStr.startsWith("___srctmp") ||
+              labelStr.startsWith("___neverused")
+              ) {
+            continue;
+          }
+        }
 
-	if( labelSelect ) {
-	  String labelStr = ln.getTempDescriptorString();
-	  if( labelStr.startsWith("___temp") ||
-	      labelStr.startsWith("___dst") ||
-	      labelStr.startsWith("___srctmp") ||
-	      labelStr.startsWith("___neverused") ||
-	      labelStr.contains(qString) ||
-	      labelStr.contains(rString) ||
-	      labelStr.contains(blobString)
-	      ) {
-	    continue;
-	  }
-	}
-
-	//bw.write("  "+ln.toString() + ";\n");
-
-	Iterator<RefEdge> heapRegionsItr = ln.iteratorToReferencees();
-	while( heapRegionsItr.hasNext() ) {
-	  RefEdge edge = heapRegionsItr.next();
-	  HeapRegionNode hrn  = edge.getDst();
-
-	  if( pruneGarbage && !visited.contains(hrn) ) {
-	    traverseHeapRegionNodes(VISIT_HRN_WRITE_FULL,
-	                            hrn,
-	                            bw,
-	                            null,
-	                            visited,
-	                            writeReferencers,
-                                    hideSubsetReachability,
-				    hideEdgeTaints);
-	  }
-
-	  bw.write("  "        + ln.toString() +
-	           " -> "      + hrn.toString() +
-	           "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability,
-							hideEdgeTaints) +
-	           "\",decorate];\n");
-	}
+        //bw.write("  "+vn.toString() + ";\n");
+        
+        Iterator<RefEdge> heapRegionsItr = vn.iteratorToReferencees();
+        while( heapRegionsItr.hasNext() ) {
+          RefEdge        edge = heapRegionsItr.next();
+          HeapRegionNode hrn  = edge.getDst();
+          
+          if( pruneGarbage && !visited.contains( hrn ) ) {
+            traverseHeapRegionNodes( hrn,
+                                     bw,
+                                     null,
+                                     visited,
+                                     writeReferencers,
+                                     hideSubsetReachability,
+                                     hideEdgeTaints );
+          }
+          
+          bw.write( "  "        + vn.toString() +
+                    " -> "      + hrn.toString() +
+                    "[label=\"" + edge.toGraphEdgeString( hideSubsetReachability ) +
+                    "\",decorate];\n" );
+        }
       }
     }
-
-
-    bw.write("}\n");
+    
+    bw.write( "}\n" );
     bw.close();
   }
 
-  protected void traverseHeapRegionNodes(int mode,
-                                         HeapRegionNode hrn,
-                                         BufferedWriter bw,
-                                         TempDescriptor td,
-                                         HashSet<HeapRegionNode> visited,
-                                         boolean writeReferencers,
-                                         boolean hideSubsetReachability,
-					 boolean hideEdgeTaints
-                                         ) throws java.io.IOException {
+  protected void traverseHeapRegionNodes( HeapRegionNode hrn,
+                                          BufferedWriter bw,
+                                          TempDescriptor td,
+                                          Set<HeapRegionNode> visited,
+                                          boolean writeReferencers,
+                                          boolean hideSubsetReachability,
+                                          boolean hideEdgeTaints
+                                          ) throws java.io.IOException {
 
-    if( visited.contains(hrn) ) {
+    if( visited.contains( hrn ) ) {
       return;
     }
-    visited.add(hrn);
+    visited.add( hrn );
 
-    switch( mode ) {
-    case VISIT_HRN_WRITE_FULL:
+    String attributes = "[";
 
-      String attributes = "[";
-
-      if( hrn.isSingleObject() ) {
-	attributes += "shape=box";
-      } else {
-	attributes += "shape=Msquare";
-      }
-
-      if( hrn.isFlagged() ) {
-	attributes += ",style=filled,fillcolor=lightgrey";
-      }
-
-      attributes += ",label=\"ID" +
-                    hrn.getID()   +
-                    "\\n";
-
-      if( hrn.getType() != null ) {
-        attributes += hrn.getType().toPrettyString() + "\\n";
-      }
-       
-      attributes += hrn.getDescription() +
-	            "\\n"                +
-                    hrn.getAlphaString(hideSubsetReachability) +
-                    "\"]";
-
-      bw.write("  " + hrn.toString() + attributes + ";\n");
-      break;
+    if( hrn.isSingleObject() ) {
+      attributes += "shape=box";
+    } else {
+      attributes += "shape=Msquare";
     }
 
+    if( hrn.isFlagged() ) {
+      attributes += ",style=filled,fillcolor=lightgrey";
+    }
+
+    attributes += ",label=\"ID" +
+      hrn.getID()   +
+      "\\n";
+
+    if( hrn.getType() != null ) {
+      attributes += hrn.getType().toPrettyString() + "\\n";
+    }
+       
+    attributes += hrn.getDescription() +
+      "\\n"                +
+      hrn.getAlphaString( hideSubsetReachability ) +
+      "\"]";
+
+    bw.write( "  "+hrn.toString()+attributes+";\n" );
 
 
     Iterator<RefEdge> childRegionsItr = hrn.iteratorToReferencees();
     while( childRegionsItr.hasNext() ) {
-      RefEdge edge     = childRegionsItr.next();
+      RefEdge        edge     = childRegionsItr.next();
       HeapRegionNode hrnChild = edge.getDst();
 
-      switch( mode ) {
-      case VISIT_HRN_WRITE_FULL:
-	bw.write("  "        + hrn.toString() +
-	         " -> "      + hrnChild.toString() +
-	         "[label=\"" + edge.toGraphEdgeString(hideSubsetReachability,
-						      hideEdgeTaints) +
-	         "\",decorate];\n");
-	break;
-      }
+      bw.write( "  "       +hrn.toString()+
+                " -> "     +hrnChild.toString()+
+                "[label=\""+edge.toGraphEdgeString( hideSubsetReachability )+
+                "\",decorate];\n");
 
-      traverseHeapRegionNodes(mode,
-                              hrnChild,
-                              bw,
-                              td,
-                              visited,
-                              writeReferencers,
-                              hideSubsetReachability,
-			      hideEdgeTaints);
+      traverseHeapRegionNodes( hrnChild,
+                               bw,
+                               td,
+                               visited,
+                               writeReferencers,
+                               hideSubsetReachability,
+                               hideEdgeTaints );
     }
   }
   
-  public int getTaintIdentifierFromHRN(HeapRegionNode hrn){
-	  HashSet<RefEdge> referenceEdges=hrn.referencers;
-	  Iterator<RefEdge> iter=referenceEdges.iterator();
-	  
-	  int taintIdentifier=0;
-	  while(iter.hasNext()){
-		  RefEdge edge=iter.next();
-		  taintIdentifier=taintIdentifier | edge.getTaintIdentifier();		  
-	  }
-	  
-	  return taintIdentifier;
-	  
-  }
-  
-  public void propagateTaintIdentifier(HeapRegionNode hrn, int newTaintIdentifier, HashSet<HeapRegionNode> visitedSet){
-	  
-	  HashSet<RefEdge> setEdge=hrn.referencers;
-	  Iterator<RefEdge> iter=setEdge.iterator();
-	  while(iter.hasNext()){
-		  RefEdge edge= iter.next();
-		  edge.unionTaintIdentifier(newTaintIdentifier);		  
-		  if(edge.getSrc() instanceof HeapRegionNode){
-			  
-			  HeapRegionNode refHRN=(HeapRegionNode)edge.getSrc();
-			  //check whether it is reflexive edge
-			  if(!refHRN.equals(hrn) && !visitedSet.contains(refHRN)){
-				  visitedSet.add(refHRN);
-				  propagateTaintIdentifier((HeapRegionNode)edge.getSrc(),newTaintIdentifier,visitedSet);
-			  }
-			 
-		  }
-	  }	  
-	  
-  }
-  
-  public void depropagateTaintIdentifier(HeapRegionNode hrn, int newTaintIdentifier, HashSet<HeapRegionNode> visitedSet){
-	  
-	  HashSet<RefEdge> setEdge=hrn.referencers;
-	  Iterator<RefEdge> iter=setEdge.iterator();
-	  while(iter.hasNext()){
-		  RefEdge edge= iter.next();
-		  edge.minusTaintIdentifier(newTaintIdentifier);		  
-		  if(edge.getSrc() instanceof HeapRegionNode){
-			  
-			  HeapRegionNode refHRN=(HeapRegionNode)edge.getSrc();
-			  //check whether it is reflexive edge
-			  if(!refHRN.equals(hrn) && !visitedSet.contains(refHRN)){
-				  visitedSet.add(refHRN);
-				  depropagateTaintIdentifier((HeapRegionNode)edge.getSrc(),newTaintIdentifier,visitedSet);
-			  }
-			 
-		  }
-	  }	  
-	  
-  }
-
 
   // in this analysis specifically:
   // we have a notion that a null type is the "match any" type,
@@ -4896,6 +3571,7 @@ public class ReachGraph {
     return typeUtil.isSuperorType( possibleSuper, possibleChild );
   }
 
+  /*
   public String generateUniqueIdentifier(FlatMethod fm, int paramIdx, String type){
 	  
 	  //type: A->aliapsed parameter heap region
@@ -4928,5 +3604,5 @@ public class ReachGraph {
 	  return identifier;
 	  
   }  
-*/
+  */
 }

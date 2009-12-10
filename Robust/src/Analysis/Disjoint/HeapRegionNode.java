@@ -10,7 +10,6 @@ public class HeapRegionNode extends RefSrcNode {
 
   protected boolean isSingleObject;
   protected boolean isFlagged;
-  protected boolean isParameter;
   protected boolean isNewSummary;
 
   protected HashSet<RefEdge> referencers;
@@ -23,47 +22,39 @@ public class HeapRegionNode extends RefSrcNode {
   protected ReachSet alphaNew;
 
   protected String description;
-  
-  protected String globalIdentifier;
 
 
-
-  public HeapRegionNode(Integer id,
-                        boolean isSingleObject,
-                        boolean isFlagged,
-			boolean isParameter,
-                        boolean isNewSummary,
-			TypeDescriptor type,
-                        AllocSite allocSite,
-                        ReachSet alpha,
-                        String description,
-                        String globalIdentifier) {
-    this.id = id;
+  public HeapRegionNode( Integer        id,
+                         boolean        isSingleObject,
+                         boolean        isFlagged,
+                         boolean        isNewSummary,
+                         TypeDescriptor type,
+                         AllocSite      allocSite,
+                         ReachSet       alpha,
+                         String         description
+                         ) {
+    this.id             = id;
     this.isSingleObject = isSingleObject;
     this.isFlagged      = isFlagged;
-    this.isParameter    = isParameter;
     this.isNewSummary   = isNewSummary;
     this.type           = type;
     this.allocSite      = allocSite;
     this.alpha          = alpha;
     this.description    = description;
-    this.globalIdentifier = globalIdentifier;
 
     referencers = new HashSet<RefEdge>();
     alphaNew    = new ReachSet().makeCanonical();
   }
 
   public HeapRegionNode copy() {
-    return new HeapRegionNode(id,
-                              isSingleObject,
-                              isFlagged,
-			      isParameter,
-                              isNewSummary,
-			      type,
-                              allocSite,
-                              alpha,
-                              description,
-                              globalIdentifier);
+    return new HeapRegionNode( id,
+                               isSingleObject,
+                               isFlagged,
+                               isNewSummary,
+                               type,
+                               allocSite,
+                               alpha,
+                               description );
   }
 
 
@@ -72,31 +63,30 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
 
-  public boolean equalsIncludingAlpha(HeapRegionNode hrn) {
-    return equals(hrn) && alpha.equals(hrn.alpha);
+  public boolean equalsIncludingAlpha( HeapRegionNode hrn ) {
+    return equals( hrn ) && alpha.equals( hrn.alpha );
   }
 
 
-  public boolean equals(Object o) {
+  public boolean equals( Object o ) {
     if( o == null ) {
       return false;
     }
 
-    if( !( o instanceof HeapRegionNode) ) {
+    if( !(o instanceof HeapRegionNode) ) {
       return false;
     }
 
     HeapRegionNode hrn = (HeapRegionNode) o;
 
-    if( !id.equals(hrn.getID() ) ) {
+    if( !id.equals( hrn.getID() ) ) {
       return false;
     }
 
     assert isSingleObject == hrn.isSingleObject();
     assert isFlagged      == hrn.isFlagged();
-    assert isParameter    == hrn.isParameter();
     assert isNewSummary   == hrn.isNewSummary();
-    assert description.equals(hrn.getDescription() );
+    assert description.equals( hrn.getDescription() );
 
     return true;
   }
@@ -114,14 +104,9 @@ public class HeapRegionNode extends RefSrcNode {
     return isFlagged;
   }
 
-  public boolean isParameter() {
-    return isParameter;
-  }
-
   public boolean isNewSummary() {
     return isNewSummary;
   }
-
 
 
   public Iterator<RefEdge> iteratorToReferencers() {
@@ -137,31 +122,33 @@ public class HeapRegionNode extends RefSrcNode {
     return referencers.size();
   }
 
-
-  public void addReferencer(RefEdge edge) {
+  public void addReferencer( RefEdge edge ) {
     assert edge != null;
 
-    referencers.add(edge);
+    referencers.add( edge );
   }
 
-  public void removeReferencer(RefEdge edge) {
+  public void removeReferencer( RefEdge edge ) {
     assert edge != null;
-    assert referencers.contains(edge);
+    assert referencers.contains( edge );
 
-    referencers.remove(edge);
+    referencers.remove( edge );
   }
 
-  public RefEdge getReferenceFrom(RefSrcNode on,
-                                        TypeDescriptor type,
-					String field) {
-    assert on != null;
+  public RefEdge getReferenceFrom( RefSrcNode     rsn,
+                                   TypeDescriptor type,
+                                   String         field
+                                   ) {
+    assert rsn != null;
 
     Iterator<RefEdge> itrEdge = referencers.iterator();
     while( itrEdge.hasNext() ) {
       RefEdge edge = itrEdge.next();
-      if( edge.getSrc().equals(on) &&
-	  edge.typeEquals(type) &&
-          edge.fieldEquals(field) ) {
+
+      if( edge.getSrc().equals( rsn ) &&
+	  edge.typeEquals( type )     &&
+          edge.fieldEquals( field ) 
+          ) {
 	return edge;
       }
     }
@@ -178,20 +165,19 @@ public class HeapRegionNode extends RefSrcNode {
     return allocSite;
   }
 
-
-  public void setAlpha(ReachSet alpha) {
-    this.alpha = alpha;
-  }
-
   public ReachSet getAlpha() {
     return alpha;
+  }
+
+  public void setAlpha( ReachSet alpha ) {
+    this.alpha = alpha;
   }
 
   public ReachSet getAlphaNew() {
     return alphaNew;
   }
 
-  public void setAlphaNew(ReachSet alpha) {
+  public void setAlphaNew( ReachSet alpha ) {
     this.alphaNew = alpha;
   }
 
@@ -215,20 +201,15 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
   public String getAlphaString( boolean hideSubsetReachability ) {
-    return alpha.toStringEscapeNewline(hideSubsetReachability);
+    return alpha.toStringEscapeNewline( hideSubsetReachability );
   }
 
   public String toString() {
     return "HRN"+getIDString();
   }
 
-  // WHY WHY WHY WHY WHY WHY?!
   public String getDescription() {
-    return new String(description);
-    //return new String( description+" ID "+getIDString() );
-  }
-  
-  public String getGloballyUniqueIdentifier(){
-	  return globalIdentifier;
-  }
+    //return new String(description);
+    return description;
+  }  
 }

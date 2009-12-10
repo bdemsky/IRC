@@ -63,6 +63,22 @@ public class DisjointAnalysis {
   protected Hashtable< Descriptor, Set<Descriptor> >
     mapDescriptorToSetDependents;
 
+  // maps each flat new to one analysis abstraction
+  // allocate site object, these exist outside reach graphs
+  protected Hashtable<FlatNew, AllocSite>
+    mapFlatNewToAllocSite;
+
+  // maps intergraph heap region IDs to intergraph
+  // allocation sites that created them, a redundant
+  // structure for efficiency in some operations
+  protected Hashtable<Integer, AllocSite>
+    mapHrnIdToAllocSite;
+
+  // TODO -- CHANGE EDGE/TYPE/FIELD storage!
+  public static final String arrayElementFieldName = "___element_";
+  static protected Hashtable<TypeDescriptor, FieldDescriptor>
+    mapTypeToArrayField;
+
   // for controlling DOT file output
   protected boolean writeFinalDOTs;
   protected boolean writeAllIncrementalDOTs;
@@ -72,6 +88,32 @@ public class DisjointAnalysis {
   // unique filenames
   protected Hashtable<Descriptor, Integer>
     mapDescriptorToNumUpdates;
+
+
+  // allocate various structures that are not local
+  // to a single class method--should be done once
+  protected void allocateStructures() {    
+    descriptorsToAnalyze = new HashSet<Descriptor>();
+
+    mapDescriptorToCompleteReachGraph =
+      new Hashtable<Descriptor, ReachGraph>();
+
+    mapDescriptorToNumUpdates =
+      new Hashtable<Descriptor, Integer>();
+
+    mapDescriptorToSetDependents =
+      new Hashtable< Descriptor, Set<Descriptor> >();
+
+    mapFlatNewToAllocSite = 
+      new Hashtable<FlatNew, AllocSite>();
+
+    mapHrnIdToAllocSite =
+      new Hashtable<Integer, AllocSite>();
+
+    mapTypeToArrayField = 
+      new Hashtable <TypeDescriptor, FieldDescriptor>();
+  }
+
 
 
   // this analysis generates a disjoint reachability
@@ -278,14 +320,9 @@ public class DisjointAnalysis {
 	  rg.merge( rgParent );
 	}
       }
-      
-      /*
-      analyzeFlatNode( mc,
-                       flatm,
-                       fn,
-                       returnNodesToCombineForCompleteReachabilityGraph,
-                       og);      
-      */
+
+      // modify rg with appropriate transfer function
+      analyzeFlatNode( d, fm, fn, setReturns, rg );
           
       /*
       if( takeDebugSnapshots && 
@@ -324,103 +361,34 @@ public class DisjointAnalysis {
     return completeGraph;
   }
 
+  
+  protected void
+    analyzeFlatNode( Descriptor d,
+                     FlatMethod fmContaining,
+                     FlatNode fn,
+                     HashSet<FlatReturnNode> setRetNodes,
+                     ReachGraph rg
+                     ) throws java.io.IOException {
 
-
-
-  /*
-    protected void
-  analyzeFlatNode(Descriptor mc,
-		  FlatMethod fmContaining,
-                  FlatNode fn,
-                  HashSet<FlatReturnNode> setRetNodes,
-                  ReachGraph og) throws java.io.IOException {
-
-
+    
     // any variables that are no longer live should be
     // nullified in the graph to reduce edges
     // NOTE: it is not clear we need this.  It costs a
     // liveness calculation for every method, so only
     // turn it on if we find we actually need it.
-    //og.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
+    // rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
 	  
     TempDescriptor lhs;
     TempDescriptor rhs;
     FieldDescriptor fld;
 
-    // use node type to decide what alterations to make
-    // to the ownership graph
+    // use node type to decide what transfer function
+    // to apply to the reachability graph
     switch( fn.kind() ) {
 
     case FKind.FlatMethod:
       FlatMethod fm = (FlatMethod) fn;
-
-      // there should only be one FlatMethod node as the
-      // parent of all other FlatNode objects, so take
-      // the opportunity to construct the initial graph by
-      // adding parameters labels to new heap regions
-      // AND this should be done once globally so that the
-      // parameter IDs are consistent between analysis
-      // iterations, so if this step has been done already
-      // just merge in the cached version
-      ReachGraph ogInitParamAlloc = mapDescriptorToInitialParamAllocGraph.get(mc);
-      if( ogInitParamAlloc == null ) {
-
-	// if the method context has aliased parameters, make sure
-	// there is a blob region for all those param to reference
-	Set<Integer> aliasedParamIndices = mc.getAliasedParamIndices();
-
-	if( !aliasedParamIndices.isEmpty() ) {
-	  og.makeAliasedParamHeapRegionNode(fm);
-	}
-
-	// set up each parameter
-	for( int i = 0; i < fm.numParameters(); ++i ) {
-	  TempDescriptor tdParam    = fm.getParameter( i );
-	  TypeDescriptor typeParam  = tdParam.getType();
-	  Integer        paramIndex = new Integer( i );
-
-	  if( typeParam.isImmutable() && !typeParam.isArray() ) {
-	    // don't bother with this primitive parameter, it
-	    // cannot affect reachability
-	    continue;
-	  }
-
-	  if( aliasedParamIndices.contains( paramIndex ) ) {
-	    // use the alias blob but give parameters their
-	    // own primary obj region
-	    og.assignTempEqualToAliasedParam( tdParam,
-					      paramIndex, fm );	    
-	  } else {
-	    // this parameter is not aliased to others, give it
-	    // a fresh primary obj and secondary object
-	    og.assignTempEqualToParamAlloc( tdParam,
-					    mc.getDescriptor() instanceof TaskDescriptor,
-					    paramIndex, fm );
-	  }
-	}
-	
-	// add additional edges for aliased regions if necessary
-	if( !aliasedParamIndices.isEmpty() ) {
-	  og.addParam2ParamAliasEdges( fm, aliasedParamIndices );
-	}
-	
-	// clean up reachability on initial parameter shapes
-	og.globalSweep();
-
-	// this maps tokens to parameter indices and vice versa
-	// for when this method is a callee
-	og.prepareParamTokenMaps( fm );
-
-	// cache the graph
-	ReachGraph ogResult = new ReachGraph();
-	ogResult.merge(og);
-	mapDescriptorToInitialParamAllocGraph.put(mc, ogResult);
-
-      } else {
-	// or just leverage the cached copy
-	og.merge(ogInitParamAlloc);
-      }
       break;
       
     case FKind.FlatOpNode:
@@ -428,7 +396,7 @@ public class DisjointAnalysis {
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
 	lhs = fon.getDest();
 	rhs = fon.getLeft();
-	og.assignTempXEqualToTempY(lhs, rhs);
+	rg.assignTempXEqualToTempY( lhs, rhs );
       }
       break;
 
@@ -440,7 +408,7 @@ public class DisjointAnalysis {
       TypeDescriptor td = fcn.getType();
       assert td != null;
       
-      og.assignTempXEqualToCastedTempY(lhs, rhs, td);
+      rg.assignTempXEqualToCastedTempY( lhs, rhs, td );
       break;
 
     case FKind.FlatFieldNode:
@@ -449,11 +417,8 @@ public class DisjointAnalysis {
       rhs = ffn.getSrc();
       fld = ffn.getField();
       if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
-	og.assignTempXEqualToTempYFieldF(lhs, rhs, fld);
-      }
-      
-      meAnalysis.analyzeFlatFieldNode(mc, og, rhs, fld);
-      
+	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
+      }          
       break;
 
     case FKind.FlatSetFieldNode:
@@ -462,11 +427,8 @@ public class DisjointAnalysis {
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
       if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
-	og.assignTempXFieldFEqualToTempY(lhs, fld, rhs);
-      }
-      
-      meAnalysis.analyzeFlatSetFieldNode(mc, og, lhs, fld);
-      
+	rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
+      }           
       break;
 
     case FKind.FlatElementNode:
@@ -481,7 +443,7 @@ public class DisjointAnalysis {
 	TypeDescriptor  tdElement = rhs.getType().dereference();
 	FieldDescriptor fdElement = getArrayField( tdElement );
   
-	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
+	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
       }
       break;
 
@@ -503,35 +465,21 @@ public class DisjointAnalysis {
 	TypeDescriptor  tdElement = lhs.getType().dereference();
 	FieldDescriptor fdElement = getArrayField( tdElement );
 
-	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
+	rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
       }
       break;
-
+      
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
       lhs = fnn.getDst();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
-	AllocSite as = getAllocSiteFromFlatNewPRIVATE(fnn);
-	
-	if (mapDescriptorToLiveInAllocSiteSet != null){
-		HashSet<AllocSite> alllocSet=mapDescriptorToLiveInAllocSiteSet.get(mc);
-		if(alllocSet!=null){
-			for (Iterator iterator = alllocSet.iterator(); iterator
-					.hasNext();) {
-				AllocSite allocationSite = (AllocSite) iterator
-						.next();
-				if(allocationSite.flatNew.equals(as.flatNew)){
-					as.setFlag(true);
-				}
-			}
-		}
-	}
-	
-	og.assignTempEqualToNewAlloc(lhs, as);
+	AllocSite as = getAllocSiteFromFlatNewPRIVATE( fnn );	
+	rg.assignTempEqualToNewAlloc( lhs, as );
       }
       break;
 
     case FKind.FlatCall:
+      /*
       FlatCall fc = (FlatCall) fn;
       MethodDescriptor md = fc.getMethod();
       FlatMethod flatm = state.getMethodFlat(md);
@@ -624,61 +572,52 @@ public class DisjointAnalysis {
       }
 
       og = ogMergeOfAllPossibleCalleeResults;
+      */
       break;
+      
 
     case FKind.FlatReturnNode:
       FlatReturnNode frn = (FlatReturnNode) fn;
       rhs = frn.getReturnTemp();
       if( rhs != null && !rhs.getType().isImmutable() ) {
-	og.assignReturnEqualToTemp(rhs);
+	rg.assignReturnEqualToTemp( rhs );
       }
-      setRetNodes.add(frn);
+      setRetNodes.add( frn );
       break;
-    }
 
-
-    if( methodEffects ) {
-      Hashtable<FlatNode, ReachabilityGraph> table=mapDescriptorToFlatNodeReachabilityGraph.get(mc);
-      if(table==null){
-    	table=new     Hashtable<FlatNode, ReachabilityGraph>();    	
-      }
-      table.put(fn, og);
-      mapDescriptorToFlatNodeReachabilityGraph.put(mc, table);
-    }
+    } // end switch
+    
+    // at this point rg should be the correct update
+    // by an above transfer function, or untouched if
+    // the flat node type doesn't affect the heap
   }
 
-  */
-
-
-
-  /*
-
-
-
+  
   // this method should generate integers strictly greater than zero!
   // special "shadow" regions are made from a heap region by negating
   // the ID
   static public Integer generateUniqueHeapRegionNodeID() {
     ++uniqueIDcount;
-    return new Integer(uniqueIDcount);
+    return new Integer( uniqueIDcount );
   }
 
 
+  
   static public FieldDescriptor getArrayField( TypeDescriptor tdElement ) {
     FieldDescriptor fdElement = mapTypeToArrayField.get( tdElement );
     if( fdElement == null ) {
-      fdElement = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC),
-				      tdElement,
-				      arrayElementFieldName,
-				      null,
-				      false);
+      fdElement = new FieldDescriptor( new Modifiers( Modifiers.PUBLIC ),
+                                       tdElement,
+                                       arrayElementFieldName,
+                                       null,
+                                       false );
       mapTypeToArrayField.put( tdElement, fdElement );
     }
     return fdElement;
   }
 
   
-
+  /*
   private void writeFinalContextGraphs() {
     Set entrySet = mapDescriptorToCompleteReachabilityGraph.entrySet();
     Iterator itr = entrySet.iterator();
@@ -700,32 +639,34 @@ public class DisjointAnalysis {
     }
   }
   
-  
+  */
 
   // return just the allocation site associated with one FlatNew node
-  protected AllocSite getAllocSiteFromFlatNewPRIVATE(FlatNew fn) {
+  protected AllocSite getAllocSiteFromFlatNewPRIVATE( FlatNew fnew ) {
 
-    if( !mapFlatNewToAllocSite.containsKey(fn) ) {
-      AllocSite as = new AllocSite(allocationDepth, fn, fn.getDisjointAnalysisId());
+    if( !mapFlatNewToAllocSite.containsKey( fnew ) ) {
+      AllocSite as = 
+        new AllocSite( allocationDepth, fnew, fnew.getDisjointId() );
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
 	Integer id = generateUniqueHeapRegionNodeID();
-	as.setIthOldest(i, id);
+	as.setIthOldest( i, id );
 	mapHrnIdToAllocSite.put( id, as );
       }
 
       // the oldest node is a summary node
       Integer idSummary = generateUniqueHeapRegionNodeID();
-      as.setSummary(idSummary);
+      as.setSummary( idSummary );
 
-      mapFlatNewToAllocSite.put(fn, as);
+      mapFlatNewToAllocSite.put( fnew, as );
     }
 
-    return mapFlatNewToAllocSite.get(fn);
+    return mapFlatNewToAllocSite.get( fnew );
   }
 
 
+  /*
   // return all allocation sites in the method (there is one allocation
   // site per FlatNew node in a method)
   protected HashSet<AllocSite> getAllocSiteSet(Descriptor d) {
@@ -736,7 +677,9 @@ public class DisjointAnalysis {
     return mapDescriptorToAllocSiteSet.get(d);
 
   }
+  */
 
+  /*
   protected void buildAllocSiteSet(Descriptor d) {
     HashSet<AllocSite> s = new HashSet<AllocSite>();
 
@@ -769,8 +712,8 @@ public class DisjointAnalysis {
 
     mapDescriptorToAllocSiteSet.put( d, s );
   }
-
-
+  */
+  /*
   protected HashSet<AllocSite> getFlaggedAllocSites(Descriptor dIn) {
     
     HashSet<AllocSite> out     = new HashSet<AllocSite>();
@@ -810,8 +753,9 @@ public class DisjointAnalysis {
     
     return out;
   }
+  */
 
-
+  /*
   protected HashSet<AllocSite>
   getFlaggedAllocSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 
@@ -967,23 +911,6 @@ public class DisjointAnalysis {
     }
   }
   */
-
-
-
-  // allocate various structures that are not local
-  // to a single class method--should be done once
-  protected void allocateStructures() {    
-    descriptorsToAnalyze = new HashSet<Descriptor>();
-
-    mapDescriptorToCompleteReachGraph =
-      new Hashtable<Descriptor, ReachGraph>();
-
-    mapDescriptorToNumUpdates =
-      new Hashtable<Descriptor, Integer>();
-
-    mapDescriptorToSetDependents =
-      new Hashtable< Descriptor, Set<Descriptor> >();
-  }
   
   
   // Take in source entry which is the program's compiled entry and
