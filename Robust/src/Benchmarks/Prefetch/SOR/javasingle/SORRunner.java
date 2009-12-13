@@ -24,13 +24,15 @@ class SORRunner extends Thread {
   int id, num_iterations;
   double G[][],omega;
   int nthreads;
+  long RANDOM_SEED;
 
-  public SORRunner(int id, double omega, double G[][], int num_iterations, int nthreads) {
+  public SORRunner(int id, double omega, double G[][], int num_iterations, int nthreads, long RANDOM_SEED) {
     this.id = id;
     this.omega=omega;
     this.G=G;
     this.num_iterations=num_iterations;
     this.nthreads = nthreads;
+    this.RANDOM_SEED =  RANDOM_SEED;
   }
 
   public void run() {
@@ -55,12 +57,12 @@ class SORRunner extends Thread {
     iupper = ((tmpid+1)*slice)+1;
     if (iupper > Mm1) iupper =  Mm1+1;
     if (tmpid == (numthreads-1)) iupper = Mm1+1;
-    G[0]= new double[N];
+    G[0]=new double[N];
     for(int i=ilow;i<iupper;i++) {
-      G[i]= new double[N];
+      G[i]=new double[N];
     }
 
-    Random rand=new Random();
+    Random rand=new Random(RANDOM_SEED);
     double[] R = G[0];
     for(int j=0;j<M;j++)
       R[j]=rand.nextDouble() * 1e-6;
@@ -131,7 +133,6 @@ class SORRunner extends Thread {
           }
         }
       }
-
     }//end of for
   } //end of run()
 }
