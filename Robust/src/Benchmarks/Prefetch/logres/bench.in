@@ -1,0 +1,7 @@
+RainForest N
+SpamFilter 2_e_500
+fft2d 1500_5 
+Convolution 1000_10000
+MatrixMultiply 650_50
+JGFMolDynBenchSizeB
+JGFSORBenchSizeD

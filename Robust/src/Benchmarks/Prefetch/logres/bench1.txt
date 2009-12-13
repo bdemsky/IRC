@@ -1,0 +1,7 @@
+SpamFilter
+RainForest
+Convolution
+JGFMolDynBenchSizeB
+MatrixMultiply
+JGFSORBenchSizeD
+fft2d
