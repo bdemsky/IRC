@@ -58,6 +58,7 @@ public class JGFSORBench {
 
     double[][] G;
     int num_iterations;
+    long RANDOM_SEED;
 
     atomic {
       numthreads = sor.nthreads;
@@ -65,6 +66,7 @@ public class JGFSORBench {
       mybarr = global new BarrierServer(numthreads);
       G =  global new double[datasize][];
       num_iterations = sor.JACOBI_NUM_ITER;
+      RANDOM_SEED = sor.RANDOM_SEED;
     }
     mybarr.start(mid[0]);
 
@@ -80,7 +82,7 @@ public class JGFSORBench {
 
     atomic {
 	for(int i=0;i<numthreads;i++) {
-	    thobjects[i] =  new SORWrap(global new SORRunner(i,omega,G,num_iterations,numthreads));
+	    thobjects[i] =  new SORWrap(global new SORRunner(i,omega,G,num_iterations,numthreads, RANDOM_SEED));
 	}
     }
 
@@ -107,6 +109,7 @@ public class JGFSORBench {
 		sor.Gtotal += G[i][j];
 	    }
 	}               
+    //System.out.println("DEBUG: G.length= " + G.length+" sor.Gtotal= " + sor.Gtotal);
     }
   }
 

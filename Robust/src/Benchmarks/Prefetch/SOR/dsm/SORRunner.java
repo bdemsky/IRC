@@ -24,13 +24,15 @@ class SORRunner extends Thread {
   int id, num_iterations;
   double G[][],omega;
   int nthreads;
+  long RANDOM_SEED;
 
-  public SORRunner(int id, double omega, double G[][], int num_iterations, int nthreads) {
+  public SORRunner(int id, double omega, double G[][], int num_iterations, int nthreads, long RANDOM_SEED) {
     this.id = id;
     this.omega=omega;
     this.G=G;
     this.num_iterations=num_iterations;
     this.nthreads = nthreads;
+    this.RANDOM_SEED =  RANDOM_SEED;
   }
 
   public void run() {
@@ -66,7 +68,7 @@ class SORRunner extends Thread {
     Barrier.enterBarrier(barr);
     
     atomic {
-      Random rand=new Random();
+      Random rand=new Random(RANDOM_SEED);
       double[] R = G[0];
       for(int j=0;j<M;j++)
         R[j]=rand.nextDouble() * 1e-6;
