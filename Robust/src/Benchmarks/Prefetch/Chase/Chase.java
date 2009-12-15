@@ -13,7 +13,7 @@ public class Chase extends Thread {
     
     public static void main(String [] argv) {
 	Chase c;
-	int numTraverse = 10000;
+	int numTraverse = 1000000;
 	if (argv.length>0)
 	    numTraverse=Integer.parseInt(argv[0]);
 
