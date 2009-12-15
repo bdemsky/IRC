@@ -5,9 +5,11 @@ SRC=${MAINCLASS}.java \
 SRC1=${MAINCLASS}rect.java \
 	fft1d.java \
 	Matrix1.java
+SRC2=${MAINCLASS}N.java \
+	fft1dN.java \
+	MatrixN.java
 default:
-#	../../../../buildscript -thread -optimize -mainclass ${MAINCLASS} ${SRC} -o ${MAINCLASS}
-	../../../../buildscript -thread -optimize -mainclass ${MAINCLASS} ${SRC1} -o ${MAINCLASS}
+	../../../../buildscript -thread -optimize -mainclass ${MAINCLASS} ${SRC2} -o ${MAINCLASS}
 
 clean:
 	rm -rf tmpbuilddirectory

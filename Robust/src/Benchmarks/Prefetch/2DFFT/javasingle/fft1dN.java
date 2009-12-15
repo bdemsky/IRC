@@ -28,7 +28,7 @@
 // still use this program.
 //
 // To save the memory and improve the speed, float data are used
-// instead of double
+// instead of float, but I do have a float version transforms.fft.
 //
 // Factorize() is done in constructor, transforms.fft() is needed to be
 // called to do FFT, this is good for use in fft2d, then

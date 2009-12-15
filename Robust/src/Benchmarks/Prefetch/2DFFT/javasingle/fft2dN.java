@@ -21,67 +21,53 @@ public class fft2d extends Thread {
 
   public void run() {
     fft1d fft1, fft2;
-    Barrier barr;
-    barr = new Barrier("128.195.136.162");
     float tempdataRe[][];
     float tempdataIm[][];
     int rowlength, columnlength;
     int start, end, nmatrix;
 
     // Calculate FFT for each row of the data.
-    atomic {
-      rowlength = data1.M;
-      columnlength = data1.N;
-      nmatrix = data1.numMatrix;
-      start = x0;
-      end = x1;
-      fft1 = new fft1d(columnlength);
-      fft2 = new fft1d(rowlength);
-      int l=8;
-      for(int z=0; z<nmatrix; z++) {
-        tempdataRe = data1.dataRe[z];
-        tempdataIm = data1.dataIm[z];
-        for (int i = start; i < end; i++,l++) {
-          //input of FFT
-          float inputRe[] = tempdataRe[i]; //local array //remote reads here for NPNC
-          float inputIm[] = tempdataIm[i];//remote reads here for NPNC
-          fft(fft1, inputRe, inputIm);
-        } //end of for
-      }
+    rowlength = data1.M;
+    columnlength = data1.N;
+    //tempdataRe = data1.dataRe;
+    //tempdataIm = data1.dataIm;
+    nmatrix = data1.numMatrix;
+    start = x0;
+    end = x1;
+    fft1 = new fft1d(columnlength);
+    fft2 = new fft1d(rowlength);
+    for(int z=0; z<nmatrix; z++) {
+      tempdataRe = data1.dataRe[z];
+      tempdataIm = data1.dataIm[z];
+      for (int i = start; i < end; i++) {
+        //input of FFT
+        float inputRe[] = tempdataRe[i]; //local array
+        float inputIm[] = tempdataIm[i];
+        fft(fft1, inputRe, inputIm);
+      } //end of for
     }
-
-    //Start Barrier
-    Barrier.enterBarrier(barr);
 
     // Tranpose data.
     if (start == 0) {
-      atomic {
-        for(int z=0; z<nmatrix; z++) {
-          tempdataRe = data1.dataRe[z];
-          tempdataIm = data1.dataIm[z];
-          transpose(tempdataRe, tempdataIm, rowlength, columnlength);
-        }
+      for(int z=0; z<nmatrix; z++) {
+        tempdataRe = data1.dataRe[z];
+        tempdataIm = data1.dataIm[z];
+        transpose(tempdataRe, tempdataIm, rowlength, columnlength);
       }
     }
-
-    //Start Barrier
-    Barrier.enterBarrier(barr);
 
     // Calculate FFT for each column of the data.
     float transtempRe[][];
     float transtempIm[][];
-    atomic {
-      for(int z=0; z<nmatrix; z++) {
-        transtempRe = data1.dataRe[z];
-        transtempIm = data1.dataIm[z];
-        int l=8;
-        for (int j = start; j < end; j++,l++) {
-          //input of FFT
-          float inputRe[] = transtempRe[j]; //local array //Remote reads here
-          float inputIm[] = transtempIm[j]; //remote reads here
-          fft(fft2, inputRe, inputIm);
-        } //end of fft2 for
-      }
+    for(int z=0; z<nmatrix; z++) {
+      transtempRe = data1.dataRe[z];
+      transtempIm = data1.dataIm[z];
+      for (int j = start; j < end; j++) {
+        //input of FFT
+        float inputRe[] = transtempRe[j]; //local array
+        float inputIm[] = transtempIm[j];
+        fft(fft2, inputRe, inputIm);
+      } //end of fft2 for
     }
   } //end of run
 
@@ -92,11 +78,11 @@ public class fft2d extends Thread {
       float a;
 
       for(int j = 0; j<i; j++) {
-	a=tempdataRe[j][i];
-	tempdataRe[j][i] = tRe[j];
+        a=tempdataRe[j][i];
+        tempdataRe[j][i] = tRe[j];
         tRe[j]=a;
-	a=tempdataIm[j][i];
-	tempdataIm[j][i] = tIm[j];
+        a=tempdataIm[j][i];
+        tempdataIm[j][i] = tIm[j];
         tIm[j]=a;
       }
     }
@@ -110,75 +96,37 @@ public class fft2d extends Thread {
     if(args.length>0) {
       NUM_THREADS=Integer.parseInt(args[0]);
       if(args.length > 1){
-	SIZE = Integer.parseInt(args[1]);
-    if(args.length > 2)
-      NUM_MATRIX = Integer.parseInt(args[2]);
+        SIZE = Integer.parseInt(args[1]);
+        if(args.length > 2)
+          NUM_MATRIX = Integer.parseInt(args[2]);
       }
     }
 
     System.printString("Num threads = " + NUM_THREADS + " SIZE= " + SIZE + " NUM_MATRIX= " + NUM_MATRIX +"\n");
 
-    int[] mid = new int[8];
-    mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dw-10
-    mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dw-11
-    mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dw-12
-    mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dw-13
-    mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dw-14
-    mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dw-15
-    mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dw-16
-    mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dw-17
-    
-
-    // Start Barrier Server
-    BarrierServer mybarr;
-    atomic {
-      mybarr = global new BarrierServer(NUM_THREADS);
-    }
-    mybarr.start(mid[0]);
-
     Matrix data1;
 
     // Create threads to do FFT
     fft2d[] myfft2d;
-    atomic {
       // Set up data for FFT transform
-      data1 = global new Matrix(SIZE, SIZE, NUM_MATRIX);
+      data1 = new Matrix(SIZE, SIZE, NUM_MATRIX);
       data1.setValues(); //Input Matrix
-      myfft2d = global new fft2d[NUM_THREADS];
+      myfft2d = new fft2d[NUM_THREADS];
       int increment = SIZE/NUM_THREADS;
       int base = 0;
       for(int i =0 ; i<NUM_THREADS; i++) {
 	if((i+1)==NUM_THREADS)
-	  myfft2d[i] = global new fft2d(data1, base, SIZE);
+	  myfft2d[i] = new fft2d(data1, base, SIZE);
 	else
-	  myfft2d[i] = global new fft2d(data1, base, base+increment);
+	  myfft2d[i] = new fft2d(data1, base, base+increment);
 	base+=increment;
       }
-    }
-
-    boolean waitfordone=true;
-    while(waitfordone) {
-      atomic {
-	if (mybarr.done)
-	  waitfordone=false;
-      }
-    }
 
     fft2d tmp;
     //Start a thread to compute each c[l,n]
     for(int i = 0; i<NUM_THREADS; i++) {
-      atomic {
-	tmp = myfft2d[i];
-      }
-      tmp.start(mid[i]);
-    }
-
-    //Wait for thread to finish
-    for(int i = 0; i<NUM_THREADS; i++) {
-      atomic {
-	tmp = myfft2d[i];
-      }
-      tmp.join();
+      tmp = myfft2d[i];
+      tmp.run();
     }
 
     System.printString("2DFFT done! \n");
@@ -194,9 +142,11 @@ public class fft2d extends Thread {
     //Permute() operation
     permute(myfft, outputRe, outputIm, inputRe, inputIm);
 
+    //System.printString("ready to twiddle");
     for (int factorIndex = 0; factorIndex < myfft.NumofFactors; factorIndex++)
       twiddle(factorIndex, myfft, temRe, temIm, outputRe, outputIm);
 
+    //System.printString("ready to copy");
     // Copy the output[] data to input[], so the output can be
     // returned in the input array.
     for (int i = 0; i < myfft.N; i++) {
@@ -253,6 +203,7 @@ public class fft2d extends Thread {
     int dataOffset = 0, groupOffset = 0, address = 0;
 
     for (int dataNo = 0; dataNo < sofarRadix; dataNo++) {
+      //System.printString("datano="+dataNo);
       if (sofarRadix > 1) {
 	twiddleRe[0] = 1.0f;
 	twiddleIm[0] = 0.0f;
@@ -267,6 +218,7 @@ public class fft2d extends Thread {
 	twRe = tem;
       }
       for (int groupNo = 0; groupNo < remainRadix; groupNo++) {
+	//System.printString("groupNo="+groupNo);
 	if ((sofarRadix > 1) && (dataNo > 0)) {
 	  temRe[0] = outputRe[address];
 	  temIm[0] = outputIm[address];
@@ -281,11 +233,14 @@ public class fft2d extends Thread {
 	  } while (blockIndex < radix);
 	} else {
 	  for (int i = 0; i < radix; i++) {
+	    //System.printString("temRe.length="+temRe.length);
+	    //System.printString("i = "+i);
 	    temRe[i] = outputRe[address];
 	    temIm[i] = outputIm[address];
 	    address += sofarRadix;
 	  }
 	}
+	//System.printString("radix="+radix);
 	if(radix == 2) {
 	  tem = temRe[0] + temRe[1];
 	  temRe[1] = temRe[0] - temRe[1];

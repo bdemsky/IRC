@@ -8,15 +8,15 @@ public class Matrix {
     this.M = M;
     this.N = N;
     this.numMatrix = numMatrix;
-    dataRe = global new float[numMatrix][M][N];
-    dataIm = global new float[numMatrix][M][N];
+    dataRe = new float[numMatrix][M][N];
+    dataIm = new float[numMatrix][M][N];
   }
 
   public void setValues() {
     for(int z=0; z<numMatrix; z++) {
       for(int i = 0; i<M; i++) {
-        float dataRei[] = global new float[N];
-        float dataImi[] = global new float[N];
+        float dataRei[] = new float[N];
+        float dataImi[] = new float[N];
         for(int j = 0; j<N; j++) {
           dataRei[j] = j + 1;
           dataImi[j] = j + 1;
@@ -26,19 +26,6 @@ public class Matrix {
       }
     }
   }
-
-  /*
-  public void setZeros() {
-    for (int i = 0; i<M; i++) {
-      float dataRei[] = dataRe[i];
-      float dataImi[] = dataIm[i];
-      for(int j = 0; j<N; j++) {
-	dataRei[j] = 0;
-	dataImi[j] = 0;
-      }
-    }
-  }
-  */
 
   //Transpose matrix input.
   private float[][] transpose(float[][] input) {
