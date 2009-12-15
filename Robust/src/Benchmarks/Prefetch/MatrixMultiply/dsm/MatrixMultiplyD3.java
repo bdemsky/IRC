@@ -14,40 +14,40 @@ public class MatrixMultiply extends Thread{
     }
     
     public void run() {
-	Barrier barr=new Barrier("128.195.136.162");
-	atomic {
-	    mmul.setValues(tid, numthreads);
-	}
-	
-	Barrier.enterBarrier(barr);
+      Barrier barr=new Barrier("128.195.136.162");
+      atomic {
+        mmul.setValues(tid, numthreads);
+      }
+
+      Barrier.enterBarrier(barr);
 
       atomic {
         double la[][][]=mmul.a;
         double lc[][][]=mmul.c;
         double lb[][][]=mmul.btranspose;
         int M=mmul.M;
-	int P=mmul.P;
+        int P=mmul.P;
         //Use btranspose for cache performance
-	for(int q=0;q<P;q++) {
-	    double ra[][]=la[q];
-	    double rb[][]=lb[q];
-	    double rc[][]=lc[q];
-	    for(int i = x0; i< x1; i++){
-		double a[]=ra[i];
-		double c[]=rc[i];
-		for (int j = y0; j < y1; j++) {
-		    double innerProduct=0;
-		    double b[] = rb[j];
-		    for(int k = 0; k < M; k++) {
-			innerProduct += a[k] * b[k];
-		    }
-		    c[j]=innerProduct;
-		}
-	    }
-	}
+        for(int q=0;q<P;q++) {
+          double ra[][]=la[q]; 
+          double rb[][]=lb[q];
+          double rc[][]=lc[q];
+          for(int i = x0; i< x1; i++){
+            double a[]=ra[i]; 
+            double c[]=rc[i];
+            for (int j = y0; j < y1; j++) {
+              double innerProduct=0;
+              double b[] = rb[j];
+              for(int k = 0; k < M; k++) {
+                innerProduct += a[k] * b[k];
+              }
+              c[j]=innerProduct;
+            }
+          }
+        }
       }
     }
-    
+
     public static void main(String[] args) {
 	int NUM_THREADS = 4;
 	int SIZE=150;
@@ -83,6 +83,7 @@ public class MatrixMultiply extends Thread{
 	mybarr.start(mid[0]);
 
 
+    System.out.println("NUM_MATRIX= "+NUM_MATRIX+" SIZE= "+SIZE);
 	atomic {
 	    matrix = global new MMul(NUM_MATRIX, SIZE, SIZE, SIZE);
 	    mm = global new MatrixMultiply[NUM_THREADS];
@@ -139,36 +140,33 @@ public class MMul{
 	this.M = M;
 	this.N = N;
 	this.P = P;
-	//	a = global new double[P][L][M];  
-	//	c = global new double[P][L][N]; 
-	//	btranspose = global new double[P][N][M];
 	a = global new double[P][L][];
 	c = global new double[P][L][];
 	btranspose = global new double[P][N][];
     }
 
     public void setValues(int tid, int numthreads) {
-	int delta=numthreads;
-	int start=tid;
-	
-	for(int q = start; q < P; q+=delta) {
-	    for(int i = 0; i < L; i++) {
-		double ai[] = global new double[M];
-		for(int j = 0; j < M; j++) {
-		    ai[j] = j+1;
-		}
-		a[q][i]=ai;
-	    }
-	    for(int i = 0; i < L; i++) {
-		c[q][i]=global new double[N];
-	    }
-	    for(int i = 0; i < N; i++) {
-		double bi[] = global new double[M];
-		for(int j = 0; j < M; j++) {
-		    bi[j] = j+1;
-		}
-		btranspose[q][i]=bi;
-	    }
-	}
+      int delta=numthreads;
+      int start=tid;
+
+      for(int q = start; q < P; q+=delta) {
+        for(int i = 0; i < L; i++) {
+          double ai[] = global new double[M];
+          for(int j = 0; j < M; j++) {
+            ai[j] = j+1;
+          }
+          a[q][i]=ai; 
+        }
+        for(int i = 0; i < L; i++) {
+          c[q][i]=global new double[N];
+        }
+        for(int i = 0; i < N; i++) {
+          double bi[] = global new double[M];
+          for(int j = 0; j < M; j++) {
+            bi[j] = j+1;
+          }
+          btranspose[q][i]=bi;
+        }
+      }
     }
 }
