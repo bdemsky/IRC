@@ -19,7 +19,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
- $Id: WhiplashSignature.java,v 1.4 2009/11/15 00:03:04 adash Exp $
+ $Id: WhiplashSignature.java,v 1.5 2009/12/15 19:59:38 adash Exp $
  */
 public class WhiplashSignature {
   char[] b64table;
@@ -178,6 +178,11 @@ public class WhiplashSignature {
       int endidx = buf.indexOf(strcom);
       String host = buf.subString(0, endidx);
       //System.out.println("DEBUG: http links extracted host= " + host);
+      
+      buf = buf.subString(endidx);
+      endidx = buf.indexOf(strcom);
+      host += buf.subString(0, endidx);
+
       hosts.addElement(host);
       buf = buf.subString(endidx+strcom.length());
     }
@@ -192,6 +197,11 @@ public class WhiplashSignature {
       int endidx = buf.indexOf(strdot);
       String host = buf.subString(0, endidx);
       //System.out.println("DEBUG: email addr extracted host= " + host);
+
+      buf = buf.subString(endidx);
+      endidx = buf.indexOf(strdot);
+      host += buf.subString(0, endidx);
+
       hosts.addElement(host);
       buf = buf.subString(endidx+strdot.length());
     }

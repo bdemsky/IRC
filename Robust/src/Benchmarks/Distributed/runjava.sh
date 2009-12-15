@@ -29,6 +29,7 @@ function runjava {
    echo "Running Server ... "
    /usr/bin/time -f "%e" ./Server.bin -N $1 $SERVER_ARGS 2>> ${LOGDIR}/server_${1}_${BM_NAME}_java.out &
    # Start the clients
+   sleep 2;
    k=1;
    echo ${BASEDIR}/${BM_DIR} > ~/.tmpdir
    while [ $k -le $1 ]; do

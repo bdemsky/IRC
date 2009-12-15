@@ -1,7 +1,7 @@
 public class GString {
-  char value[];
-  int count;
-  int offset;
+  public char value[];
+  public int count;
+  public int offset;
 
   public GString() {
   }

@@ -42,6 +42,9 @@ public class SpamFilter extends Thread {
       thid = id;
     }
 
+    //if(thid == 0)
+    //  return;
+
     Random rand = new Random(thid);
     int i;
 
@@ -49,65 +52,41 @@ public class SpamFilter extends Thread {
       correct =0;
       wrong = 0;
       for(int j=0; j<nemails; j++) {
-        // long start = System.currentTimeMillis();
-        int pickemail = rand.nextInt(100);
-
-        //System.out.println("pickemail= " + pickemail);
+        int pickemail = rand.nextInt(nemails);
 
         // randomly pick emails
         pickemail+=1;
+        //System.out.println("pickemail= " + pickemail);
         Mail email = new Mail("emails/email"+pickemail);
         Vector signatures = email.checkMail(thid);
 
         //check with global data structure
         int[] confidenceVals=null;
-        // long startcheck = System.currentTimeMillis(); 
         atomic {
           confidenceVals = check(signatures,thid);
         }
-        // long stopcheckMail = System.currentTimeMillis(); 
-        // long diff = (stopcheckMail-startcheck);
-        // System.out.println("check takes= " + diff + "millisecs");
-
-        /* Only for debugging
-        for(int k=0; k<signatures.size();k++) {
-          System.out.println("confidenceVals["+k+"]= "+confidenceVals[k]);
-        }
-        */
 
         //---- create and  return results --------
         FilterResult filterResult = new FilterResult();
-        //long startgetResult = System.currentTimeMillis();
         boolean filterAnswer = filterResult.getResult(confidenceVals);
-        //long stopgetResult = System.currentTimeMillis();
-        //diff = (stopgetResult-startgetResult);
-        //System.out.println("getResult takes= " + diff + "millisecs");
 
         //---- get user's take on email and send feedback ------
         boolean userAnswer = email.getIsSpam();
 
- //       System.out.println("userAnswer= " + userAnswer + " filterAnswer= " + filterAnswer);
+        //System.out.println("userAnswer= " + userAnswer + " filterAnswer= " + filterAnswer);
 
         if(filterAnswer != userAnswer) {
           /* wrong answer from the spam filter */
           wrong++;
-          //long startsendFeedBack = System.currentTimeMillis();
           atomic {
             sendFeedBack(signatures, userAnswer, thid, rand);
           }
-          //long stopsendFeedBack = System.currentTimeMillis();
-          //diff = (stopsendFeedBack-startsendFeedBack);
-          //System.out.println("sendFeedback takes= " + diff + "millisecs");
         }
         else {
           /* Correct answer from the spam filter */
           correct++;
         }
-        //long stop = System.currentTimeMillis();
-        //diff = stop-start;
-        //System.out.println("time to complete iteration" + j + " = " + diff + " millisecs");
       } //end num emails
-      // System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     }//end num iter
     // Sanity check
     System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
@@ -133,7 +112,7 @@ public class SpamFilter extends Thread {
     DistributedHashMap dhmap;
     SpamFilter[] spf;
     atomic {
-      dhmap = global new DistributedHashMap(500, 0.75f);
+      dhmap = global new DistributedHashMap(10000, 0.75f);
     }
     atomic {
       spf = global new SpamFilter[nthreads];
@@ -226,6 +205,9 @@ public class SpamFilter extends Thread {
    */
 
   public int[] check(Vector signatures, int userid) {
+
+    //*** Prefetch ****/
+    //prefetch(this.mydhmap.table);
     int numparts = signatures.size();
 
     //System.out.println("check() numparts= " + numparts);
@@ -234,99 +216,99 @@ public class SpamFilter extends Thread {
     for(int i=0; i<numparts; i++) {
       String part = (String)(signatures.elementAt(i));
       char tmpengine = part.charAt(0);
-      GString engine=null;
+      String enginestr=null;
       if(tmpengine == '4') { //Ephemeral Signature calculator
-        String tmpstr = new String("4");
-        engine = global new GString(tmpstr);
+        enginestr = new String("4");
       }
       if(tmpengine == '8') { //Whiplash Signature calculator
-        String tmpstr = new String("8");
-        engine = global new GString(tmpstr);
+        enginestr = new String("8");
       }
-
-      //System.out.println("check(): engine= " + engine.toLocalString());
-
-      String str = new String(part.substring(2));//a:b index of a =0, index of : =1, index of b =2
-      GString signature = global new GString(str);
-      HashEntry myhe = global new HashEntry();
-      myhe.setengine(engine);
-      myhe.setsig(signature);
+      String signaturestr = new String(part.substring(2));//a:b index of a =0, index of : =1, index of b =2
 
       //find object in distributedhashMap: if no object then add object 
-      //HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
       HashEntry tmphe=null;
-      int hashCode = myhe.hashCode();
+      int hashCode = enginestr.hashCode()^signaturestr.hashCode();
+      
       int index1 = mydhmap.hash1(hashCode, mydhmap.table.length);
+
+      /*** Prefetch ****/
+      //prefetch(mydhmap.table[index1].array.key.stats.userstat[userid],
+      //         mydhmap.table[index1].array.value,
+      //         mydhmap.table[index1].array.key.stats.userid,
+      //         mydhmap.table[index1].array.key.engine.value,
+      //         mydhmap.table[index1].array.key.signature.value);  
+
       DistributedHashEntry testhe = mydhmap.table[index1];
-      int point;
+      boolean foundstatistics=false;
       DHashEntry ptr=null;
-      FilterStatistic fs=null;
-      if(testhe==null) {
-        tmphe=null; 
-        fs=null;
-      } else {
+      if(testhe!=null) {
+        /*** Prefetch ****/
+        //prefetch(testhe.array.next.value,
+        //         testhe.array.next.key.engine.value,
+        //         testhe.array.next.key.stats.userid,
+        //         testhe.array.next.key.stats.userstat[userid],
+        //         testhe.array.next.key.signature,value);
+
         ptr=testhe.array;
-        point=0;
 
         while(ptr !=null) {
-          //TODO: Inline equals method
-          if(ptr.hashval==hashCode&&ptr.key.equals(myhe)) {
-            tmphe=ptr.key;
-            fs= ptr.value;
-            point=1;
-            break;
+          boolean engineVal= inLineEquals(ptr.key.engine.value, ptr.key.engine.count, ptr.key.engine.offset,
+             enginestr.value, enginestr.count, enginestr.offset);
+          boolean SignatureVal= inLineEquals(ptr.key.signature.value, ptr.key.signature.count, ptr.key.signature.offset,
+              signaturestr.value, signaturestr.count, signaturestr.offset);
+	  
+          FilterStatistic tmpfs = ptr.value;
+          int tmpuserid = ptr.key.stats.userid[userid];
+          FilterStatistic myfs = ptr.key.stats.userstat[userid];
+          
+          if(ptr.hashval==hashCode&&engineVal&&SignatureVal) {
+	    //Found statics...get Checked value.
+	    confidenceVals[i] = tmpfs.getChecked(); 
+	    foundstatistics=true;
+	    break;
           }
+          /* Prefetch */
+          //prefetch(ptr.next.next.key.stats.userid,
+          //         ptr.next.next.key.engine.value,
+          //         ptr.next.next.key.signature.value,
+          //         ptr.next.next.key.stats.userstat[userid],
+          //         ptr.next.next.value);
           ptr=ptr.next;
-        }
-        if(point != 1){
-          tmphe=null;
-          fs=null;
         }
       }
 
-      if(tmphe==null) {
-        //add new object
+      if (!foundstatistics) {
+        /* Prefetch */
+        //prefetch(testhe.array);
+        HashEntry myhe = global new HashEntry();
+        GString engine = global new GString(enginestr);
+        GString signature = global new GString(signaturestr);
+
+        myhe.setengine(engine);
+        myhe.setsig(signature);
+
+        DHashEntry he = global new DHashEntry();
+        //application specific fields
         HashStat mystat = global new HashStat();
         mystat.setuser(userid, 0, 0, -1);
         myhe.setstats(mystat);
         FilterStatistic myfs =  global new FilterStatistic(0,0,-1);
-        /** put into hash map **/
-        point=0;
-        if(testhe==null){
-          testhe = global new DistributedHashEntry();
-          mydhmap.table[index1]=testhe;
-        }
-        ptr=testhe.array;
-        while(ptr !=null) {
-          if(ptr.hashval==hashCode&&ptr.key.equals(myhe)) {
-            FilterStatistic oldvalue=ptr.value;
-            ptr.value=myfs;
-            point=1;
-            break;
-          }
-          ptr=ptr.next;
-        }
-        if(point==0) {
-          DHashEntry he = global new DHashEntry();
-          he.value=myfs;
-          he.key=myhe;
-          he.hashval=hashCode;
-          he.next = testhe.array;
+        he.value=myfs;
+        he.key=myhe;
+        he.hashval=hashCode;
+        //link old element into chain
+        //build new element
+
+        if (testhe!=null) {
+          //splice into old list
+          he.next=testhe.array;
           testhe.array=he;
-          testhe.count++;
-          //System.out.println("put method returning null");
+        } else {
+          //create new header...this will cause many aborts
+          DistributedHashEntry newhe=global new DistributedHashEntry();
+          newhe.array=he;
+          mydhmap.table[index1]=newhe;
         }
-
-        //mydhmap.put(myhe,myfs);
-        confidenceVals[i] = 0;
-      } else { //read exsisting object
-        // ----- now connect to global data structure and ask for spam -----
-        //HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
-        //FilterStatistic fs = (FilterStatistic) (mydhmap.get(tmphe)); //get the value from hash
-
-        //System.out.println(fs.toString()+"\n");
-
-        confidenceVals[i] = fs.getChecked();
       }
     }
 
@@ -378,31 +360,25 @@ public class SpamFilter extends Thread {
 
 
       // ----- now connect to global data structure and update stats -----
-      //if(mydhmap.containsKey(myhe))
-      //HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
       HashEntry tmphe=null;
       FilterStatistic fs=null;
       int hashCode = myhe.hashCode();
       int index1 = mydhmap.hash1(hashCode, mydhmap.table.length);
       DistributedHashEntry testhe = mydhmap.table[index1];
-      if(testhe==null) {
-        tmphe=null;
-        fs=null;
-      } else {
+      if(testhe!=null) {
         DHashEntry ptr=testhe.array;
-        int point=0;
-        while(ptr !=null) {
-          if(ptr.hashval==hashCode&&ptr.key.equals(myhe)) {
+        while(ptr!=null) {
+          boolean engineVal= inLineEquals(ptr.key.engine.value, ptr.key.engine.count, ptr.key.engine.offset,
+              myhe.engine.value, myhe.engine.count, myhe.engine.offset);
+          boolean SignatureVal= inLineEquals(ptr.key.signature.value, ptr.key.signature.count, ptr.key.signature.offset,
+              myhe.signature.value, myhe.signature.count, myhe.signature.offset);
+
+          if(ptr.hashval==hashCode&&engineVal&&SignatureVal) {
             tmphe=ptr.key;
             fs=ptr.value;
-            point=1;
             break;
           }
           ptr=ptr.next;
-        }
-        if(point != 1) {
-          tmphe=null;
-          fs=null;
         }
       }
       //tmphe has the key at the end
@@ -418,11 +394,6 @@ public class SpamFilter extends Thread {
 
 
       //---- get value from distributed hash and update spam count
-      //FilterStatistic fs = (FilterStatistic) (mydhmap.get(myhe)); 
-
-      //---- get value from distributed hash and update spam count
-
-      //System.out.println(fs.toString());
 
       //Allow users to give incorrect feedback
       int pickemail = myrand.nextInt(100);
@@ -449,6 +420,15 @@ public class SpamFilter extends Thread {
       } //end of pickemail
     }//end of for
   }//end of sendFeedback
+
+  public static boolean inLineEquals(char[] array1, int count1, int offset1, char[] array2, int count2, int offset2) {
+    if(count1 != count2)
+      return false;
+    for(int i=0; i<count1; i++) {
+      if(array1[i+offset1] != array2[i+offset2]) {
+        return false;
+      }
+    }
+    return true;
+  }
 }
-
-

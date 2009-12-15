@@ -3,11 +3,11 @@
 #include<string.h>
 #include<time.h>
 
-#define WORD_FILE "wordList"
+#define WORD_FILE "wordList1"
 #define URL_FILE  "URLList"
 #define ACCOUNT_FILE "accountList"
 #define FILE_NAME "email"
-#define NUM_EMAIL 600
+#define NUM_EMAIL 5000
 
 char** readList(char* fileName,int* num);
 void generateEmails(int,char**,int,char**,int,char**,int,char*);
@@ -135,7 +135,7 @@ void generateEmails(int num_email,char** wl,int word_num,char** ul,int url_num,c
 
      // write Body
      //TODO change this to make length of email small
-     bodyLength = rand() % 200 + 150;
+     bodyLength = rand() % 100 + 50;
 
      for(j=1;j<bodyLength;j++)
      {

@@ -10,16 +10,24 @@ SRC=tmp${MAINCLASS}.java \
 	Node.java \
 	AStarPathFinder.java 
 
-FLAGS1=-dsm -optimize -mainclass ${MAINCLASS}
-FLAGS2=-dsm -dsmcaching -abortreaders -optimize -mainclass ${MAINCLASS}
-FLAGS3=-dsm -dsmcaching -abortreaders -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
+FLAGS1=-dsm -transstats -optimize -mainclass ${MAINCLASS}
+FLAGS2=-dsm -transstats -dsmcaching -optimize -mainclass ${MAINCLASS}
+FLAGS3=-dsm -dsmcaching -transstats -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
+
+FLAGSNPNC=-dsm -optimize -mainclass ${MAINCLASS}
+FLAGSNPC=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
+FLAGSP=-dsm -dsmcaching -prefetch -optimize -mainclass ${MAINCLASS} -excprefetch BarrierServer.updateAge -excprefetch RainForest.main -excprefetch GameMap.hasRock -excprefetch GameMap.hasTree -trueprob 0.90
+
 
 default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java
 	./extractLines
-	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}NPNC ${SRC}
-	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPC ${SRC}
-	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}N ${SRC}
+	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}withstatNPNC ${SRC}
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}withstatNPC ${SRC}
+	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}withstatN ${SRC}
+	../../../../buildscript ${FLAGSNPNC} -o ${MAINCLASS}NPNC ${SRC}
+	../../../../buildscript ${FLAGSNPC} -o ${MAINCLASS}NPC ${SRC}
+	../../../../buildscript ${FLAGSP} -o ${MAINCLASS}N ${SRC}
 
 clean:
 	rm tmp1RainForest.java

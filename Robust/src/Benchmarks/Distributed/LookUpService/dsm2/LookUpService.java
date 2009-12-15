@@ -59,7 +59,7 @@ public class LookUpService extends Thread {
           int rwkey = rand.nextInt(nobjs);
           Integer key = global new Integer(rwkey);
           if (rdwr < rdprob) {
-            Object o3 = mydhmap.get(key); //Read
+            Integer o3 = (Integer)(mydhmap.get(key)); //Read
           } else {
             Integer val = global new Integer(j);
             mydhmap.put(key, val); //Modify 

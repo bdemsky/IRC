@@ -1,7 +1,7 @@
 public class HashEntry {
-  GString engine;
-  GString signature;
-  HashStat stats;
+  public GString engine;
+  public GString signature;
+  public HashStat stats;
 
   public HashEntry() {
 

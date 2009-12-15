@@ -35,7 +35,7 @@ public class Mail {
   {
     //System.out.println("DEBUG: fileName= " + fileName);
 
-    FileInputStream fileinput = new FileInputStream(fileName);
+    BufferedReader fileinput = new BufferedReader(new FileInputStream(fileName));
     String line;
     boolean chk = false;
 
@@ -332,19 +332,22 @@ public class Mail {
 
   public void setNoURLBody()
   {
-    noURLBody = new String();
-
     Vector splittedBody = body.split();
-
-    //System.out.println("DEBUG: splittedBody.size()= " + splittedBody.size());
-    for(int i=0; i< splittedBody.size();i ++)
-    {
+    int totalsize=0;
+    for(int i=0; i< splittedBody.size();i ++) {
       String segment = (String)(splittedBody.elementAt(i));
-      //System.out.println("DEBUG: segment= " + segment);
-      
       if(!(segment.startsWith("http://") || isEmailAccount(segment)))
-        noURLBody += segment;
+        totalsize+=segment.length();
     }
+
+    StringBuffer sb=new StringBuffer(totalsize);
+    for(int i=0; i< splittedBody.size();i ++) {
+      String segment = (String)(splittedBody.elementAt(i));
+      if(!(segment.startsWith("http://") || isEmailAccount(segment))) {
+        sb.append(segment);
+      }
+    }
+    noURLBody=sb.toString();
   }
 
   // setNoURLBody method has to be called before this method
@@ -353,25 +356,19 @@ public class Mail {
   {
     setNoURLBody();
     Vector returnStrings = new Vector();
+    int end=noURLBody.length();
 
-    char[] charArray = noURLBody.toCharArray();
-
-    String tmpStr = new String();
-    tmpStr += charArray[0];
-
-    for(int i=1; i< noURLBody.length(); i++)
+    for(int i=1; i< end; i+=size)
     {
-      if((i % size) == 0) {
-        returnStrings.addElement(tmpStr);
-        tmpStr = new String();
+      if((i+size)>=end) {
+        String str=noURLBody.substring(i, end);
+        returnStrings.addElement(str);
       }
       else {
-        tmpStr += charArray[i];
+        String str=noURLBody.substring(i, i+size);
+        returnStrings.addElement(str);
       }
     }
-
-    returnStrings.addElement(tmpStr);
-
     return returnStrings;
   }
 

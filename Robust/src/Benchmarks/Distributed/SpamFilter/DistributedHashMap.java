@@ -141,7 +141,6 @@ public class DistributedHashMap {
 class DistributedHashEntry {
   public DistributedHashEntry() {
   }
-  int count;
   DHashEntry array;
 }
 
