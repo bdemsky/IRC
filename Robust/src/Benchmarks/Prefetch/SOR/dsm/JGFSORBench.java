@@ -109,7 +109,7 @@ public class JGFSORBench {
 		sor.Gtotal += G[i][j];
 	    }
 	}               
-    //System.out.println("DEBUG: G.length= " + G.length+" sor.Gtotal= " + sor.Gtotal);
+    System.out.println("DEBUG: G.length= " + G.length+" sor.Gtotal= " + sor.Gtotal);
     }
   }
 
