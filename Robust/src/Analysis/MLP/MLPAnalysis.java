@@ -102,6 +102,8 @@ public class MLPAnalysis {
   // temporal data structures to track analysis progress.
   private MethodSummary currentMethodSummary;
   private HashSet<PreEffectsKey> preeffectsSet;
+  private Hashtable<FlatNode, Boolean> isAfterChildSESEIndicatorMap;
+  private Hashtable<FlatNode, SESESummary> seseSummaryMap;
 
   public static int maxSESEage = -1;
 
@@ -160,6 +162,9 @@ public class MLPAnalysis {
     conflictsResults = new Hashtable < FlatNode, ParentChildConflictsMap >();
     methodSummaryResults=new Hashtable<FlatMethod, MethodSummary>();
     conflictGraphResults=new Hashtable<FlatMethod, ConflictGraph>();
+    
+    seseSummaryMap= new Hashtable<FlatNode, SESESummary>();
+    isAfterChildSESEIndicatorMap= new Hashtable<FlatNode, Boolean>();
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
 
@@ -302,7 +307,7 @@ public class MLPAnalysis {
 		if (fm.toString().indexOf("SomeWork") > 0) {
 			ConflictGraph conflictGraph=conflictGraphResults.get(fm);
 			try {
-				conflictGraph.writeGraph("ConflictGraphForSomeWork");
+				conflictGraph.writeGraph("ConflictGraphForSomeWork", false);
 			} catch (IOException e) {
 				System.out.println("Error writing");
 				System.exit(0);
@@ -944,7 +949,7 @@ public class MLPAnalysis {
 		MethodDescriptor md=fm.getMethod();
 		HashSet<MethodContext> mcSet=ownAnalysis.getAllMethodContextSetByDescriptor(md);
 		Iterator<MethodContext> mcIter=mcSet.iterator();
-		
+				
 		while(mcIter.hasNext()){
 			MethodContext mc=mcIter.next();
 			
@@ -1406,8 +1411,9 @@ public class MLPAnalysis {
 			FieldDescriptor field = fsen.getField();
 			
 			LabelNode dstLN = og.td2ln.get(dst);
+
 			if (dstLN != null) {
-				
+
 				// check possible strong updates
 				boolean strongUpdate = false;
 
@@ -1431,9 +1437,7 @@ public class MLPAnalysis {
 						}
 					}
 				}
-
 				HashSet<TempDescriptor> affectedTDSet = getAccessedTaintNodeSet(dstLN);
-
 				Iterator<TempDescriptor> affectedIter = affectedTDSet
 						.iterator();
 
@@ -1446,7 +1450,6 @@ public class MLPAnalysis {
 						Iterator<HeapRegionNode> hrnIter = hrnSet.iterator();
 						while (hrnIter.hasNext()) {
 							HeapRegionNode hrn = hrnIter.next();
-
 							Iterator<ReferenceEdge> referencers = hrn
 									.iteratorToReferencers();
 							while (referencers.hasNext()) {
@@ -1457,7 +1460,7 @@ public class MLPAnalysis {
 
 									HeapRegionNode refHRN = og.id2hrn
 											.get(referenceEdge.getDst().getID());
-
+									System.out.println("refHRN=" + refHRN);
 									currentSESE.writeEffects(affectedTD, field
 											.getSymbol(), dst.getType(),
 											refHRN, strongUpdate);
@@ -1886,149 +1889,6 @@ public class MLPAnalysis {
 
 		return sorted;
 	}
-	 /*
-	private void postSESEConflictsForward(JavaCallGraph javaCallGraph) {
-
-		// store the reachability set in stall site data structure
-		Set methodCallSet = javaCallGraph.getAllMethods(typeUtil.getMain());
-
-		LinkedList<MethodDescriptor> sortedMethodCalls = topologicalSort(
-				methodCallSet, javaCallGraph);
-
-		for (Iterator iterator = sortedMethodCalls.iterator(); iterator
-				.hasNext();) {
-			MethodDescriptor md = (MethodDescriptor) iterator.next();
-			FlatMethod fm = state.getMethodFlat(md);
-
-			// create conflict graph for each flat method
-			ConflictGraph conflictGraph = new ConflictGraph();
-
-			HashSet<MethodContext> mcSet = ownAnalysis
-					.getAllMethodContextSetByDescriptor(md);
-			Iterator<MethodContext> mcIter = mcSet.iterator();
-
-			while (mcIter.hasNext()) {
-				MethodContext mc = mcIter.next();
-
-				Set<FlatNode> visited = new HashSet<FlatNode>();
-
-				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-				flatNodesToVisit.add(fm);
-
-				while (!flatNodesToVisit.isEmpty()) {
-					FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
-					flatNodesToVisit.remove(fn);
-					visited.add(fn);
-
-					ParentChildConflictsMap currentConflictsMap = conflictsResults
-							.get(fn);
-
-					//
-					Hashtable<TempDescriptor, StallSite> stallMap = currentConflictsMap
-							.getStallMap();
-					Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
-							.entrySet();
-					for (Iterator iterator2 = entrySet.iterator(); iterator2
-							.hasNext();) {
-						Entry<TempDescriptor, StallSite> entry = (Entry<TempDescriptor, StallSite>) iterator2
-								.next();
-						TempDescriptor td = entry.getKey();
-						StallSite stallSite = entry.getValue();
-						conflictGraph.addStallNode(td, fm,  stallSite);
-					}
-					//
-
-					postConflicts_nodeAction(mc, fn, currentConflictsMap);
-
-					Set<TempDescriptor> tdSet = currentConflictsMap
-							.getStallMap().keySet();
-
-					// if(tdSet.size()>0){
-					// System.out.println("# of stalls="+tdSet.size());
-					// }
-
-					// if we have a new result, schedule forward nodes for
-					// analysis
-					conflictsResults.put(fn, currentConflictsMap);
-					for (int i = 0; i < fn.numNext(); i++) {
-						FlatNode nn = fn.getNext(i);
-						if (!visited.contains(nn)) {
-							flatNodesToVisit.add(nn);
-						}
-					}
-				}
-			}
-
-			conflictGraphResults.put(fm, conflictGraph);
-
-		}
-		
-		
-		for (Iterator iterator = sortedMethodCalls.iterator(); iterator
-		.hasNext();) {
-			MethodDescriptor md = (MethodDescriptor) iterator.next();
-			FlatMethod fm = state.getMethodFlat(md);
-			if (fm.toString().indexOf("SomeWork") > 0) {
-				ConflictGraph conflictGraph=conflictGraphResults.get(fm);
-				try {
-					conflictGraph.writeGraph("ConflictGraphForSomeWork");
-				} catch (IOException e) {
-					System.out.println("Error writing");
-					System.exit(0);
-				}
-			}
-		}
-
-	}
-	*/
-	private void postConflicts_nodeAction(MethodContext mc, FlatNode fn,
-			ParentChildConflictsMap currentConflictsMap) {
-		
-		OwnershipGraph og = ownAnalysisForSESEConflicts.getOwnvershipGraphByMethodContext(mc);
-		
-		Hashtable<TempDescriptor,StallSite> stallMap=currentConflictsMap.getStallMap();
-		Set<TempDescriptor> keySet=stallMap.keySet();
-		
-		for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-			TempDescriptor key = (TempDescriptor) iterator.next();
-			StallSite stallSite=stallMap.get(key);
-			
-//			System.out.println("stallSite="+stallSite);
-			
-			Set<HeapRegionNode> hrnSet=stallSite.getHRNSet();
-			for (Iterator iterator2 = hrnSet.iterator(); iterator2.hasNext();) {
-				HeapRegionNode hrn = (HeapRegionNode) iterator2
-						.next();
-				
-				String uniqueHRNID=hrn.getGloballyUniqueIdentifier();
-				HeapRegionNode hrnOG=og.getHRNbyUniqueID(uniqueHRNID);
-				
-//				HeapRegionNode hrnOG=og.id2hrn.get(hrn.getID());
-				if(hrnOG!=null){
-					ReachabilitySet rSet=hrnOG.getAlpha();
-					Iterator<TokenTupleSet> ttIterator=rSet.iterator();
-					while (ttIterator.hasNext()) {
-						TokenTupleSet tts = (TokenTupleSet) ttIterator.next();
-						stallSite.addTokenTupleSet(tts);
-					}
-				}
-
-			}
-		}
-		
-		//DEBUG
-		for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-			TempDescriptor key = (TempDescriptor) iterator.next();
-			StallSite stallSite=stallMap.get(key);
-			HashSet<TokenTupleSet> rs=stallSite.getReachabilitySet();
-			Iterator iter=rs.iterator();
-			while (iter.hasNext()) {
-				TokenTupleSet tts = (TokenTupleSet) iter.next();
-//				System.out.println("TTS="+tts);
-			}
-		}
-
-	}
 	
 	private void makeConflictGraph(FlatMethod fm) {
 
@@ -2192,7 +2052,7 @@ public class MLPAnalysis {
 		}
 
 	}
-
+	
 	private void seseConflictsForward(JavaCallGraph javaCallGraph) {
 
 		Set methodCallSet = javaCallGraph.getAllMethods(typeUtil.getMain());
@@ -2204,6 +2064,7 @@ public class MLPAnalysis {
 
 		for (Iterator iterator = sortedMethodCalls.iterator(); iterator
 				.hasNext();) {
+
 			MethodDescriptor md = (MethodDescriptor) iterator.next();
 
 			FlatMethod fm = state.getMethodFlat(md);
@@ -2215,18 +2076,19 @@ public class MLPAnalysis {
 			currentMethodSummary = new MethodSummary();
 			preeffectsSet = new HashSet<PreEffectsKey>();
 
+			// iterates over all possible method context
 			while (mcIter.hasNext()) {
 				MethodContext mc = mcIter.next();
 
-				Set<FlatNode> visited = new HashSet<FlatNode>();
-                                              
 				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 				flatNodesToVisit.add(fm);
+
+				SESESummary summary = new SESESummary(null, fm);
+				seseSummaryMap.put(fm, summary);
 
 				while (!flatNodesToVisit.isEmpty()) {
 					FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
 					flatNodesToVisit.remove(fn);
-					visited.add(fn);
 
 					ParentChildConflictsMap prevResult = conflictsResults
 							.get(fn);
@@ -2242,93 +2104,120 @@ public class MLPAnalysis {
 						}
 					}
 
+					SESESummary currentSummary = seseSummaryMap.get(fn);
+					if (currentSummary == null) {
+						FlatNode current = null;
+						FlatNode currentParent = null;
+						// calculate sese summary info from previous flat nodes
+
+						for (int i = 0; i < fn.numPrev(); i++) {
+							FlatNode prevFlatNode = fn.getPrev(i);
+							SESESummary prevSummary = seseSummaryMap
+									.get(prevFlatNode);
+							if (prevSummary != null) {
+								if (prevFlatNode instanceof FlatSESEExitNode
+										&& !((FlatSESEExitNode) prevFlatNode)
+												.getFlatEnter()
+												.getIsCallerSESEplaceholder()) {
+									current = prevSummary.getCurrentParent();
+									SESESummary temp = seseSummaryMap
+											.get(current);
+									currentParent = temp.getCurrentParent();
+								} else {
+									current = prevSummary.getCurrentSESE();
+									currentParent = prevSummary
+											.getCurrentParent();
+								}
+								break;
+							}
+						}
+
+						currentSummary = new SESESummary(currentParent, current);
+						seseSummaryMap.put(fn, currentSummary);
+					}
+
 					conflicts_nodeAction(mc, fn, callGraph, preeffectsSet,
-							currentConflictsMap);
+							currentConflictsMap, currentSummary);
 
 					// if we have a new result, schedule forward nodes for
 					// analysis
-					if (!currentConflictsMap.isAfterChildSESE()) {
+					if (!currentConflictsMap.equals(prevResult)) {
 						conflictsResults.put(fn, currentConflictsMap);
 						for (int i = 0; i < fn.numNext(); i++) {
 							FlatNode nn = fn.getNext(i);
-							if (!visited.contains(nn)) {
-								flatNodesToVisit.add(nn);
-							}
-						}
-					} else {
-						if (!currentConflictsMap.equals(prevResult)) {
-							conflictsResults.put(fn, currentConflictsMap);
-							for (int i = 0; i < fn.numNext(); i++) {
-								FlatNode nn = fn.getNext(i);
-								flatNodesToVisit.add(nn);
-							}
+							flatNodesToVisit.add(nn);
 						}
 					}
 
 				}
+
 			}
-			methodSummaryResults.put(fm, currentMethodSummary);
+
 		}
 
-		// if the method has at least one child SESE, we need to calculate the
-		// reachability set of its stall sites.
-		for (Iterator iterator = sortedMethodCalls.iterator(); iterator
-				.hasNext();) {
-			MethodDescriptor md = (MethodDescriptor) iterator.next();
-			FlatMethod fm = state.getMethodFlat(md);
-			
-			
-		}
-		
 	}
 	
+	
 	private void conflicts_nodeAction(MethodContext mc, FlatNode fn,
-			CallGraph callGraph, HashSet<PreEffectsKey> preeffectsSet,ParentChildConflictsMap currentConflictsMap) {
+			CallGraph callGraph, HashSet<PreEffectsKey> preeffectsSet,
+			ParentChildConflictsMap currentConflictsMap,
+			SESESummary currentSummary) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
 
 		switch (fn.kind()) {
 
 		case FKind.FlatSESEEnterNode: {
-			
+
 			FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+
+			if (!fsen.getIsCallerSESEplaceholder()) {
+				FlatNode parentNode = currentSummary.getCurrentSESE();
+				currentSummary.setCurrentParent(parentNode);
+				currentSummary.setCurrentSESE(fsen);
+				seseSummaryMap.put(fsen, currentSummary);
+			}
+
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				currentMethodSummary.increaseChildSESECount();
 			}
-
 			if (currentMethodSummary.getChildSESECount() == 1) {
 				// need to store pre-effects
 				currentMethodSummary.getEffectsSet().addAll(preeffectsSet);
-
 				for (Iterator iterator = currentMethodSummary.getEffectsSet()
 						.iterator(); iterator.hasNext();) {
 					PreEffectsKey preEffectsKey = (PreEffectsKey) iterator
 							.next();
 				}
-
 				preeffectsSet.clear();
 			}
-
 		}
 			break;
 
 		case FKind.FlatSESEExitNode: {
-			
+
 			FlatSESEExitNode fsen = (FlatSESEExitNode) fn;
-			
+
 			if (!fsen.getFlatEnter().getIsCallerSESEplaceholder()) {
 				// all object variables are inaccessible.
-				currentConflictsMap.setAfterChildSESE(true);
-				currentConflictsMap = new ParentChildConflictsMap();
+				isAfterChildSESEIndicatorMap.put(currentSummary
+						.getCurrentParent(), new Boolean(true));
 			}
-		
+
 		}
 			break;
-
 		case FKind.FlatNew: {
 
-			if (currentConflictsMap.isAfterChildSESE()) {
-				FlatNew fnew = (FlatNew) fn;
+			FlatNew fnew = (FlatNew) fn;
+
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+
+			if (isAfterChildSESE) {
 				TempDescriptor dst = fnew.getDst();
 				currentConflictsMap.addAccessibleVar(dst);
 			}
@@ -2342,9 +2231,16 @@ public class MLPAnalysis {
 			TempDescriptor dst = ffn.getDst();
 			TempDescriptor src = ffn.getSrc();
 			FieldDescriptor field = ffn.getField();
-			
-			if (currentConflictsMap.isAfterChildSESE()) {
-				
+
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+
+			if (isAfterChildSESE) {
+
 				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
 						og, src);
 				for (Iterator iterator = srcTempSet.iterator(); iterator
@@ -2375,9 +2271,9 @@ public class MLPAnalysis {
 						}
 
 					}
-//					else{
-//						System.out.println("src is accessible="+possibleSrc);
-//					}
+					// else{
+					// System.out.println("src is accessible="+possibleSrc);
+					// }
 
 					currentConflictsMap.addAccessibleVar(possibleSrc);
 
@@ -2411,8 +2307,15 @@ public class MLPAnalysis {
 			TempDescriptor dst = fsen.getDst();
 			FieldDescriptor field = fsen.getField();
 			TempDescriptor src = fsen.getSrc();
-			
-			if (currentConflictsMap.isAfterChildSESE()) {
+
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+
+			if (isAfterChildSESE) {
 
 				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
 						og, src);
@@ -2431,9 +2334,10 @@ public class MLPAnalysis {
 								.hasNext();) {
 							HeapRegionNode hrn = (HeapRegionNode) iterator2
 									.next();
-							
+
 							if (hrn.isParameter()) {
-								// if stall site is paramter heap region, need to decompose into caller's
+								// if stall site is paramter heap region, need
+								// to decompose into caller's
 								HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
 								visitedHRN.add(hrn);
 								setupRelatedAllocSiteAnalysis(og, mc, hrn,
@@ -2441,7 +2345,7 @@ public class MLPAnalysis {
 							} else {
 								flagAllocationSite(mc, hrn.getAllocationSite());
 							}
-							
+
 						}
 
 					}
@@ -2478,7 +2382,7 @@ public class MLPAnalysis {
 							}
 						}
 					}
-					
+
 					currentConflictsMap.addAccessibleVar(possibleDst);
 					// contribute write effect on destination's stall site
 					currentConflictsMap.contributeEffect(possibleDst, field
@@ -2496,8 +2400,9 @@ public class MLPAnalysis {
 							.hasNext();) {
 						ReferenceEdge referenceEdge = (ReferenceEdge) iterator
 								.next();
-						if(!(referenceEdge.getSrc() instanceof LabelNode)){
-							currentConflictsMap.addStallEdge(referenceEdge,new StallTag(fn));
+						if (!(referenceEdge.getSrc() instanceof LabelNode)) {
+							currentConflictsMap.addStallEdge(referenceEdge,
+									new StallTag(fn));
 						}
 					}
 				}
@@ -2512,7 +2417,15 @@ public class MLPAnalysis {
 			break;
 
 		case FKind.FlatOpNode: {
-			if (currentConflictsMap.isAfterChildSESE()) {
+
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+
+			if (isAfterChildSESE) {
 
 				// destination variable gets the status of source.
 				FlatOpNode fon = (FlatOpNode) fn;
@@ -2554,6 +2467,13 @@ public class MLPAnalysis {
 
 			FlatCall fc = (FlatCall) fn;
 
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+
 			int base = 0;
 			if (!fc.getMethod().isStatic()) {
 				base = 1;
@@ -2575,7 +2495,7 @@ public class MLPAnalysis {
 				for (int i = 0; i < fc.numArgs(); i++) {
 					TempDescriptor paramTemp = fc.getArg(i);
 
-					if (currentConflictsMap.isAfterChildSESE()) {
+					if (isAfterChildSESE) {
 						if (currentConflictsMap.isAccessible(paramTemp)
 								&& currentConflictsMap.hasStallSite(paramTemp)) {
 							// preeffect contribute its effect to caller's stall
@@ -2609,7 +2529,8 @@ public class MLPAnalysis {
 				// is going to be inaccessible.
 				// currentConflictsMap = new ParentChildConflictsMap();
 				currentConflictsMap.makeAllInaccessible();
-				currentConflictsMap.setAfterChildSESE(true);
+				isAfterChildSESEIndicatorMap.put(currentSummary
+						.getCurrentSESE(), new Boolean(true));
 
 				TempDescriptor returnTemp = fc.getReturnTemp();
 
@@ -2636,14 +2557,16 @@ public class MLPAnalysis {
 
 					}
 
-					// flag stall site's allocation sites for disjointness analysis 
-					HashSet<HeapRegionNode> hrnSet=returnStallSite.getHRNSet();
+					// flag stall site's allocation sites for disjointness
+					// analysis
+					HashSet<HeapRegionNode> hrnSet = returnStallSite
+							.getHRNSet();
 					for (Iterator iterator = hrnSet.iterator(); iterator
 							.hasNext();) {
-						HeapRegionNode hrn = (HeapRegionNode) iterator
-								.next();
+						HeapRegionNode hrn = (HeapRegionNode) iterator.next();
 						if (hrn.isParameter()) {
-							// if stall site is paramter heap region, need to decompose into caller's
+							// if stall site is paramter heap region, need to
+							// decompose into caller's
 							HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
 							visitedHRN.add(hrn);
 							setupRelatedAllocSiteAnalysis(og, mc, hrn,
@@ -2682,51 +2605,57 @@ public class MLPAnalysis {
 		}
 			break;
 
-		/* do we need this case? 
-		case FKind.FlatLiteralNode: {
-
-			if (currentConflictsMap.isAfterChildSESE()) {
-				FlatLiteralNode fln = (FlatLiteralNode) fn;
-				TempDescriptor dst = fln.getDst();
-				currentConflictsMap.addAccessibleVar(dst);
-			}
-
-		} break;
-		*/
+		/*
+		 * do we need this case? case FKind.FlatLiteralNode: {
+		 * 
+		 * if (currentConflictsMap.isAfterChildSESE()) { FlatLiteralNode fln =
+		 * (FlatLiteralNode) fn; TempDescriptor dst = fln.getDst();
+		 * currentConflictsMap.addAccessibleVar(dst); }
+		 * 
+		 * } break;
+		 */
 
 		case FKind.FlatReturnNode: {
 
 			FlatReturnNode frn = (FlatReturnNode) fn;
 			TempDescriptor returnTD = frn.getReturnTemp();
 
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+
 			if (returnTD != null) {
-				if (!currentConflictsMap.isAfterChildSESE()) {
+				if (!isAfterChildSESE) {
 					// in this case, all variables are accessible. There are no
 					// child SESEs.
 				} else {
 					if (currentConflictsMap.isAccessible(returnTD)) {
-						
+
 						currentMethodSummary
 								.setReturnValueAccessibility(MethodSummary.ACCESSIBLE);
 						StallSite returnStallSite = currentConflictsMap
 								.getStallMap().get(returnTD);
-						
-						HashSet<HeapRegionNode> stallSiteHRNSet=returnStallSite.getHRNSet();
+
+						HashSet<HeapRegionNode> stallSiteHRNSet = returnStallSite
+								.getHRNSet();
 						for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
 								.hasNext();) {
 							HeapRegionNode stallSiteHRN = (HeapRegionNode) iterator
 									.next();
-							Set<Integer> paramSet=og.idPrimary2paramIndexSet
-							.get(stallSiteHRN.getID());
+							Set<Integer> paramSet = og.idPrimary2paramIndexSet
+									.get(stallSiteHRN.getID());
 							returnStallSite.addCallerParamIdxSet(paramSet);
-							paramSet=og.idSecondary2paramIndexSet
-							.get(stallSiteHRN.getID());
+							paramSet = og.idSecondary2paramIndexSet
+									.get(stallSiteHRN.getID());
 							returnStallSite.addCallerParamIdxSet(paramSet);
 						}
-						
+
 						currentMethodSummary
 								.setReturnStallSite(returnStallSite);
-						
+
 					} else {
 						currentMethodSummary
 								.setReturnValueAccessibility(MethodSummary.INACCESSIBLE);
@@ -2742,7 +2671,8 @@ public class MLPAnalysis {
 			if (currentMethodSummary.getChildSESECount() > 0) {
 				// current flat method
 				FlatMethod fm = state.getMethodFlat(mc.getDescriptor());
-				Set<TempDescriptor> stallTempSet=currentConflictsMap.getStallMap().keySet();
+				Set<TempDescriptor> stallTempSet = currentConflictsMap
+						.getStallMap().keySet();
 				for (Iterator iterator = stallTempSet.iterator(); iterator
 						.hasNext();) {
 					TempDescriptor stallTD = (TempDescriptor) iterator.next();
@@ -2779,8 +2709,9 @@ public class MLPAnalysis {
 
 		}
 
+		seseSummaryMap.put(fn, currentSummary);
+
 	}
-	
 
 	private void putStallTagOnReferenceEdges(OwnershipGraph og,
 			TempDescriptor argTD, HashSet stallTagSet,

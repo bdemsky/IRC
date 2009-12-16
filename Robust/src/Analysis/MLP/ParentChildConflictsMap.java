@@ -7,10 +7,8 @@ import java.util.Set;
 
 import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
-import Analysis.OwnershipAnalysis.ReachabilitySet;
 import Analysis.OwnershipAnalysis.ReferenceEdge;
 import Analysis.OwnershipAnalysis.TokenTupleSet;
-import IR.Flat.FlatNode;
 import IR.Flat.TempDescriptor;
 
 public class ParentChildConflictsMap {
@@ -22,15 +20,11 @@ public class ParentChildConflictsMap {
 	private Hashtable<TempDescriptor, StallSite> stallMap;
 	private Hashtable < ReferenceEdge, HashSet<StallTag> > stallEdgeMap;
 
-	private boolean afterChildSESE;
-
 	public ParentChildConflictsMap() {
 
 		accessibleMap = new Hashtable<TempDescriptor, Integer>();
 		stallMap = new Hashtable<TempDescriptor, StallSite>();
 		stallEdgeMap= new Hashtable < ReferenceEdge, HashSet<StallTag> >();
-		afterChildSESE=false;
-
 	}
 	
 	public void makeAllInaccessible(){
@@ -61,14 +55,6 @@ public class ParentChildConflictsMap {
 		return stallEdgeMap.get(edge);
 	}
 	
-	public void setAfterChildSESE(boolean b){
-		this.afterChildSESE=b;
-	}
-	
-	public boolean isAfterChildSESE(){
-		return afterChildSESE;
-	}
-
 	public Hashtable<TempDescriptor, Integer> getAccessibleMap() {
 		return accessibleMap;
 	}
@@ -118,10 +104,6 @@ public class ParentChildConflictsMap {
 
 	public void merge(ParentChildConflictsMap newConflictsMap) {
 		
-		if(afterChildSESE==false && newConflictsMap.isAfterChildSESE()){
-			this.afterChildSESE=true;
-		}
-
 		Hashtable<TempDescriptor, Integer> newAccessibleMap = newConflictsMap
 				.getAccessibleMap();
 		Hashtable<TempDescriptor, StallSite> newStallMap = newConflictsMap
@@ -250,7 +232,7 @@ public class ParentChildConflictsMap {
 
 		ParentChildConflictsMap in = (ParentChildConflictsMap) o;
 
-		if (afterChildSESE==in.isAfterChildSESE() && accessibleMap.equals(in.getAccessibleMap())
+		if ( accessibleMap.equals(in.getAccessibleMap())
 				&& stallMap.equals(in.getStallMap())) {
 			return true;
 		} else {
@@ -261,7 +243,7 @@ public class ParentChildConflictsMap {
 
 	public String toString() {
 		return "ParentChildConflictsMap [accessibleMap=" + accessibleMap
-				+ ", afterChildSESE=" + afterChildSESE + ", stallMap="
+				+ ", stallMap="
 				+ stallMap + "]";
 	}
 

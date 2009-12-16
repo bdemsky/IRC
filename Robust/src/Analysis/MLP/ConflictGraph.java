@@ -176,18 +176,11 @@ public class ConflictGraph {
 	private int determineWriteConflictsType(StallSiteNode stallNode,
 			LiveInNode liveInNode) {
 
-		System.out.println("determine write ocnflict type between " + stallNode
-				+ "<->" + liveInNode);
-
 		Set<HeapRegionNode> stallHrnSet = stallNode.getHRNSet();
 		Set<HeapRegionNode> liveInHrnSet = liveInNode.getHRNSet();
 
-		System.out.println("stallHrnSet=" + stallHrnSet);
-		System.out.println("liveInHrnSet=" + liveInHrnSet);
-
 		boolean isPointingToSameRegion = compareHRNSet(stallHrnSet,
 				liveInHrnSet);
-		System.out.println("isporintTosameRegion=" + isPointingToSameRegion);
 
 		boolean isSharingReachability = false;
 
@@ -199,7 +192,6 @@ public class ConflictGraph {
 		if (overlappedReachableRegionSet.size() > 0) {
 			isSharingReachability = true;
 		}
-		System.out.println("isSharingReachability=" + isSharingReachability);
 
 		if (isPointingToSameRegion && isSharingReachability) {
 			// two node share same reachability and points to same region, then
@@ -336,9 +328,6 @@ public class ConflictGraph {
 						int conflictType = determineWriteConflictsType(
 								(StallSiteNode) currentNode,
 								(LiveInNode) entryNode);
-						// System.out.println("WRITE CONFLICT type="
-						// + conflictType + " BETWEEN=" + currentNode
-						// + "<->" + entryNode);
 						if (conflictType > 0) {
 							addConflictEdge(conflictType, currentNode,
 									entryNode);
@@ -354,9 +343,6 @@ public class ConflictGraph {
 						int conflictType = determineWriteConflictsType(
 								(LiveInNode) currentNode,
 								(LiveInNode) entryNode);
-//						System.out.println("WRITE CONFLICT type="
-//								+ conflictType + " BETWEEN=" + currentNode
-//								+ "<->" + entryNode);
 						if (conflictType > 0) {
 							addConflictEdge(conflictType, currentNode,
 									entryNode);
@@ -474,7 +460,8 @@ public class ConflictGraph {
 		return resultSet;
 	}
 
-	public void writeGraph(String graphName) throws java.io.IOException {
+	public void writeGraph(String graphName, boolean filter)
+			throws java.io.IOException {
 
 		graphName = graphName.replaceAll("[\\W]", "");
 
@@ -493,13 +480,15 @@ public class ConflictGraph {
 			Entry<String, ConflictNode> entry = i.next();
 			ConflictNode node = entry.getValue();
 
-			 if (node.getID().startsWith("___dst")
-			 || node.getID().startsWith("___srctmp")
-			 || node.getID().startsWith("___neverused")
-			 || node.getID().startsWith("___temp")) {
-							
-			 continue;
-			 }
+			if (filter) {
+				if (node.getID().startsWith("___dst")
+						|| node.getID().startsWith("___srctmp")
+						|| node.getID().startsWith("___neverused")
+						|| node.getID().startsWith("___temp")) {
+
+					continue;
+				}
+			}
 
 			String attributes = "[";
 
@@ -519,18 +508,19 @@ public class ConflictGraph {
 				ConflictNode u = conflictEdge.getVertexU();
 				ConflictNode v = conflictEdge.getVertexV();
 
-				 String uID=u.getID();
-				 String vID=v.getID();
-				 if (uID.startsWith("___dst")
-				 || uID.startsWith("___srctmp")
-				 || uID.startsWith("___neverused")
-				 || uID.startsWith("___temp")
-				 || vID.startsWith("___dst")
-				 || vID.startsWith("___srctmp")
-				 || vID.startsWith("___neverused")
-				 || vID.startsWith("___temp")) {
-				 continue;
-				 }
+				if (filter) {
+					String uID = u.getID();
+					String vID = v.getID();
+					if (uID.startsWith("___dst") || uID.startsWith("___srctmp")
+							|| uID.startsWith("___neverused")
+							|| uID.startsWith("___temp")
+							|| vID.startsWith("___dst")
+							|| vID.startsWith("___srctmp")
+							|| vID.startsWith("___neverused")
+							|| vID.startsWith("___temp")) {
+						continue;
+					}
+				}
 
 				if (!addedSet.contains(conflictEdge)) {
 					bw.write(" " + u.getID() + "--" + v.getID() + "[label=\""
