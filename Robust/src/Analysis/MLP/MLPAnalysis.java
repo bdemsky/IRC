@@ -247,74 +247,77 @@ public class MLPAnalysis {
       // point, in a forward fixed-point pass
       notAvailableForward( fm );
     }
-    
-    // new pass, sese effects analysis
-    methItr = ownAnalysis.descriptorsToAnalyze.iterator();
-	JavaCallGraph javaCallGraph = new JavaCallGraph(state,tu);
-    while( methItr.hasNext() ) {
-      Descriptor d  = methItr.next();      
-      FlatMethod fm = state.getMethodFlat( d );
-      methodEffects(fm,javaCallGraph);
+
+    if(state.METHODEFFECTS){
+        // new pass, sese effects analysis
+        methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    	JavaCallGraph javaCallGraph = new JavaCallGraph(state,tu);
+        while( methItr.hasNext() ) {
+          Descriptor d  = methItr.next();      
+          FlatMethod fm = state.getMethodFlat( d );
+          methodEffects(fm,javaCallGraph);
+        }
+        
+        // Parent/child memory conflicts analysis
+        seseConflictsForward(javaCallGraph);
+        
+        Set<MethodContext> keySet=mapMethodContextToLiveInAllocationSiteSet.keySet();
+        for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+    		MethodContext methodContext = (MethodContext) iterator.next();
+    		HashSet<AllocationSite> asSet=mapMethodContextToLiveInAllocationSiteSet.get(methodContext);
+    		for (Iterator iterator2 = asSet.iterator(); iterator2.hasNext();) {
+    			AllocationSite allocationSite = (AllocationSite) iterator2.next();
+    		}
+    	}
+        
+         // disjoint analysis with a set of flagged allocation sites of live-in variables & stall sites
+    	try {
+    	  ownAnalysisForSESEConflicts = new OwnershipAnalysis(state, 
+                                                            tu, 
+                                                            callGraph, 
+                                                            ownAnalysis.liveness,
+                                                            ownAnalysis.arrayReferencees,
+                                                            state.OWNERSHIPALLOCDEPTH, false,
+                                                            false, state.OWNERSHIPALIASFILE,
+                                                            state.METHODEFFECTS,
+                                                            mapMethodContextToLiveInAllocationSiteSet);
+    		// debug
+    		methItr = ownAnalysisForSESEConflicts.descriptorsToAnalyze.iterator();
+    		while (methItr.hasNext()) {
+    			Descriptor d = methItr.next();
+    			FlatMethod fm = state.getMethodFlat(d);
+    			debugFunction(ownAnalysisForSESEConflicts, fm);
+    		}
+    		//
+    	} catch (IOException e) {
+    		System.err.println(e);
+    	}
+    	
+        //	postSESEConflictsForward(javaCallGraph);
+    	// another pass for making graph
+    	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    	while (methItr.hasNext()) {
+    		Descriptor d = methItr.next();
+    		FlatMethod fm = state.getMethodFlat(d);
+    		makeConflictGraph(fm);
+    	}	    
+    	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
+    	while(methItr.hasNext()){
+    		Descriptor d = methItr.next();
+    		FlatMethod fm = state.getMethodFlat(d);
+    		if (fm.toString().indexOf("SomeWork") > 0) {
+    			ConflictGraph conflictGraph=conflictGraphResults.get(fm);
+    			try {
+    				conflictGraph.writeGraph("ConflictGraphForSomeWork", false);
+    			} catch (IOException e) {
+    				System.out.println("Error writing");
+    				System.exit(0);
+    			}
+    		}
+    	}
+    	////////////////
     }
-    
-    // Parent/child memory conflicts analysis
-    seseConflictsForward(javaCallGraph);
-    
-    Set<MethodContext> keySet=mapMethodContextToLiveInAllocationSiteSet.keySet();
-    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-		MethodContext methodContext = (MethodContext) iterator.next();
-		HashSet<AllocationSite> asSet=mapMethodContextToLiveInAllocationSiteSet.get(methodContext);
-		for (Iterator iterator2 = asSet.iterator(); iterator2.hasNext();) {
-			AllocationSite allocationSite = (AllocationSite) iterator2.next();
-		}
-	}
-    
-     // disjoint analysis with a set of flagged allocation sites of live-in variables & stall sites
-	try {
-	  ownAnalysisForSESEConflicts = new OwnershipAnalysis(state, 
-                                                        tu, 
-                                                        callGraph, 
-                                                        ownAnalysis.liveness,
-                                                        ownAnalysis.arrayReferencees,
-                                                        state.OWNERSHIPALLOCDEPTH, false,
-                                                        false, state.OWNERSHIPALIASFILE,
-                                                        state.METHODEFFECTS,
-                                                        mapMethodContextToLiveInAllocationSiteSet);
-		// debug
-		methItr = ownAnalysisForSESEConflicts.descriptorsToAnalyze.iterator();
-		while (methItr.hasNext()) {
-			Descriptor d = methItr.next();
-			FlatMethod fm = state.getMethodFlat(d);
-			debugFunction(ownAnalysisForSESEConflicts, fm);
-		}
-		//
-	} catch (IOException e) {
-		System.err.println(e);
-	}
-	
-    //	postSESEConflictsForward(javaCallGraph);
-	// another pass for making graph
-	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
-	while (methItr.hasNext()) {
-		Descriptor d = methItr.next();
-		FlatMethod fm = state.getMethodFlat(d);
-		makeConflictGraph(fm);
-	}	    
-	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
-	while(methItr.hasNext()){
-		Descriptor d = methItr.next();
-		FlatMethod fm = state.getMethodFlat(d);
-		if (fm.toString().indexOf("SomeWork") > 0) {
-			ConflictGraph conflictGraph=conflictGraphResults.get(fm);
-			try {
-				conflictGraph.writeGraph("ConflictGraphForSomeWork", false);
-			} catch (IOException e) {
-				System.out.println("Error writing");
-				System.exit(0);
-			}
-		}
-	}
-	////////////////
+
 
     // 7th pass
     methItr = ownAnalysis.descriptorsToAnalyze.iterator();
