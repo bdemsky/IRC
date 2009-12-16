@@ -387,7 +387,7 @@ public class String {
     int i;
     int cnt =0;
 
-    // skip fisrt spaces
+    // skip first spaces
     for(i = 0; i< count;i++) {
       if(value[i+offset] != '\n' && value[i+offset] != '\t' && value[i+offset] != ' ') 
 	  break;

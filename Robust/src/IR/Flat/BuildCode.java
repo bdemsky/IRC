@@ -385,10 +385,13 @@ public class BuildCode {
 	outmethod.println("printf(\"nchashSearch= %d\\n\", nchashSearch);");
 	outmethod.println("printf(\"nmhashSearch= %d\\n\", nmhashSearch);");
 	outmethod.println("printf(\"nprehashSearch= %d\\n\", nprehashSearch);");
+	outmethod.println("printf(\"ndirtyCacheObj= %d\\n\", ndirtyCacheObj);");
 	outmethod.println("printf(\"nRemoteReadSend= %d\\n\", nRemoteSend);");
-	outmethod.println("printf(\"getResponse= %d\\n\", getResponse);");
 	outmethod.println("printf(\"bytesSent= %d\\n\", bytesSent);");
 	outmethod.println("printf(\"bytesRecv= %d\\n\", bytesRecv);");
+	outmethod.println("printf(\"totalObjSize= %d\\n\", totalObjSize);");
+	outmethod.println("printf(\"sendRemoteReq= %d\\n\", sendRemoteReq);");
+	outmethod.println("printf(\"getResponse= %d\\n\", getResponse);");
       } else if (state.SINGLETM) {
 	outmethod.println("printf(\"nSoftAbortAbort= %d\\n\", nSoftAbortAbort);");
 	outmethod.println("printf(\"nSoftAbortCommit= %d\\n\", nSoftAbortCommit);");
@@ -934,10 +937,13 @@ public class BuildCode {
       outclassdefs.print("extern int nchashSearch;\n");
       outclassdefs.print("extern int nmhashSearch;\n");
       outclassdefs.print("extern int nprehashSearch;\n");
+      outclassdefs.print("extern int ndirtyCacheObj;\n");
       outclassdefs.print("extern int nRemoteSend;\n");
+      outclassdefs.print("extern int sendRemoteReq;\n");
       outclassdefs.print("extern int getResponse;\n");
       outclassdefs.print("extern int bytesSent;\n");
       outclassdefs.print("extern int bytesRecv;\n");
+      outclassdefs.print("extern int totalObjSize;\n");
       outclassdefs.print("extern void handle();\n");
     } else if (state.SINGLETM) {
       outclassdefs.println("extern int nSoftAbortAbort;");
@@ -2934,7 +2940,8 @@ public class BuildCode {
     /* Have to generate flat globalconv */
     if (fgcn.getMakePtr()) {
       if (state.DSM) {
-	output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
+	//DEBUG: output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+",\" "+fm+":"+fgcn+"\");");
+	   output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
       } else {
 	if ((dc==null)||!state.READSET&&dc.getNeedTrans(lb, fgcn)||state.READSET&&dc.getNeedWriteTrans(lb, fgcn)) {
 	  //need to do translation
@@ -3696,7 +3703,8 @@ public class BuildCode {
 	  //} else {
 	  output.println(dst+"="+ src +"->"+field+ ";");
 	  //output.println("if ("+dst+"&0x1) {");
-	  output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
+	  //DEBUG: output.println("TRANSREAD("+dst+", (unsigned int) "+dst+",\""+fm+":"+ffn+"\");");
+      output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
 	  //output.println(src+"->"+field+"="+src+"->"+field+";");
 	  //output.println("}");
 	  //}
@@ -3711,6 +3719,7 @@ public class BuildCode {
 	  String dst=generateTemp(fm, ffn.getDst(),lb);
 	  output.println(dst+"="+ src +"->"+field+ ";");
 	  if (locality.getAtomic(lb).get(ffn).intValue()>0)
+	    //DEBUG: output.println("TRANSREAD("+dst+", (unsigned int) "+dst+",\""+fm+":"+ffn+"\");");
 	    output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
 	} else
 	  output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
@@ -3862,6 +3871,7 @@ public class BuildCode {
 	String dst=generateTemp(fm, fen.getDst(),lb);
 	if (elementtype.isPtr()) {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+	  //DEBUG: output.println("TRANSREAD("+dst+", "+dst+",\""+fm+":"+fen+"\");");
 	  output.println("TRANSREAD("+dst+", "+dst+");");
 	} else {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");

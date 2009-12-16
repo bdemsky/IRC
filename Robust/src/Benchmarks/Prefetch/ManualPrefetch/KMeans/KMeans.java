@@ -184,10 +184,10 @@ public class KMeans extends Thread {
       id = threadid;
       tmp_g_args = g_args;
       short[] offsets = new short[4];
-      offsets[0] = getoffset{GlobalArgs, clusters};
+      offsets[0] = getoffset{GlobalArgs, feature};
       offsets[1] = (short) 0;
       offsets[2] = (short) 0;
-      offsets[3] = (short) min_nclusters;
+      offsets[3] = (short) (g_args.nfeatures);
       System.rangePrefetch(g_args, offsets);
     }
     //Add Manual prefetch for 

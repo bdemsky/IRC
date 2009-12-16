@@ -17,7 +17,6 @@ FLAGS2=-thread -optimize -mainclass ${MAINCLASS2} -o ${MAINCLASS2}
 FLAGS=-thread -optimize -mainclass ${MAINCLASS} -o ${MAINCLASS}
 
 default:
-#	../../../../buildscript ${FLAGS} ${SRC1}
 	../../../../buildscript ${FLAGS2} ${SRC2}
 
 clean:

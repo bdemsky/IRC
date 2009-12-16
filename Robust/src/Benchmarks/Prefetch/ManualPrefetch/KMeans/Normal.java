@@ -109,18 +109,17 @@ public class Normal {
     int index, start, stop;
 
     start = myId * CHUNK;
-    //args.feature[start-> stop]
+    //manual prefetch args.feature[start-> stop]
     short[] offsets = new short[4];
-    offsets[0] = getoffset{GlobalArgs, feature};
+    offsets[0] = getoffset{GlobalArgs, clusters};
     offsets[1] = (short) 0;
-    offsets[2] = (short) start;
-    offsets[3] = (short) (10*CHUNK);
+    offsets[2] = (short) 0;
+    offsets[3] = (short) nclusters;
     System.rangePrefetch(args, offsets);
 
     atomic {
       nclusters = args.nclusters;
       npoints = args.npoints;
-      
       feature = args.feature;
       nfeatures = args.nfeatures;
       membership = args.membership;
@@ -169,6 +168,7 @@ public class Normal {
       } else {
         break;
       }
+      //l=(short)(l+(short)(t*CHUNK));
     }
 
     atomic {

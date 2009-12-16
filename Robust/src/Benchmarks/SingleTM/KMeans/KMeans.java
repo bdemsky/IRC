@@ -318,7 +318,7 @@ public class KMeans extends Thread {
           km.isBinaryFile = new Integer(args[i++]).intValue();
         }
       } else if(arg.equals("-z")) {
-	km.use_zscore_transform=0;
+        km.use_zscore_transform=0;
       } else if(arg.equals("-nthreads")) {
         if(i < args.length) {
           km.nthreads = new Integer(args[i++]).intValue();
