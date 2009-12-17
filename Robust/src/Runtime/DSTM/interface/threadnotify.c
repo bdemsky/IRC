@@ -78,12 +78,15 @@ unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
     // Insert at the first position in the hashtable
     ptr[index].threadid = tid;
     ptr[index].ndata = ndata;
+    nlookup.numelements++;
   } else {
     tmp = &ptr[index];
     while(tmp != NULL) {
       if(tmp->threadid == tid) {
 	isFound = 1;
 	tmp->ndata = ndata;
+    pthread_mutex_unlock(&nlookup.locktable);
+    return 0;
       }
       tmp = tmp->next;
     }
@@ -97,6 +100,7 @@ unsigned int notifyhashInsert(unsigned int tid, notifydata_t *ndata) {
       node->ndata = ndata;
       node->next = ptr[index].next;
       ptr[index].next = node;
+      nlookup.numelements++;
     }
   }
   pthread_mutex_unlock(&nlookup.locktable);

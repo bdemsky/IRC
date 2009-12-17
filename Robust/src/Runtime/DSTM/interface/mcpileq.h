@@ -9,6 +9,7 @@
 //Structure to make machine groups when prefetching
 typedef struct objpile {
   unsigned int oid;
+  int siteid;
   short numoffset;
   short *offset;
   struct objpile *next;

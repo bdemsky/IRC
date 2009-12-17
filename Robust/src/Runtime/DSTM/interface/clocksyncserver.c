@@ -13,9 +13,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
 
 #define PORT 		8500
-#define NUMITER     1024
+#define NUMITER     10000
 #define DIRSIZE 	1
 
 static __inline__ unsigned long long rdtsc(void)
@@ -89,7 +90,9 @@ int main() {
     //printf("DEBUG: dir[0]= %lld\n", dir[0]);
     array2[i] = rdtsc();
     //printf("DEBUG: array2[i]= %lld\n", array2[i]);
-    array1[i]=array2[i] - dir[0];
+    //array1[i]=array2[i] - dir[0];
+    array1[i]= dir[0] - array2[i];
+    printf("%lld\n", array1[i]);
 
     /* acknowledge the message, reply w/ the file names */
     if (send(sd_current, &array2[i], sizeof(unsigned long long), MSG_NOSIGNAL) == -1) {
@@ -105,7 +108,20 @@ int main() {
 
   /* spew-out the results */
   //printf("DEBUG: Average offset= %lld\n", (norm/(NUMITER-1)));
-  fprintf(f1,"%lld",(norm/(NUMITER-1)));
+  long long average=(norm/(NUMITER-1));
+  printf("average= %lld",(norm/(NUMITER-1)));
+
+  long long stddev, avg1=0;
+  for(i=0;i<(NUMITER-1);i++) {
+    avg1 += ((array1[i] - average) * (array1[i] - average));
+  }
+  float ans = (avg1/(NUMITER-1));
+  float squareroot= sqrt(ans);
+  float squareroot2= sqrt(avg1);
+
+  printf("stddev= %f\n", squareroot); 
+  printf("error= %f\n", squareroot2/(NUMITER-1));
+  fprintf(f1,"%lld\n",(norm/(NUMITER-1)));
 
 
   /* give client a chance to properly shutdown */

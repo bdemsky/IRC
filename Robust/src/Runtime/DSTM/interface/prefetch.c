@@ -1,5 +1,5 @@
 #include "prefetch.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 #include "sockpool.h"
 #include "gCollect.h"
 
@@ -400,7 +400,6 @@ int getRangePrefetchResponse(int sd, struct readstruct * readbuffer) {
       void * oldptr;
       if((oldptr = prehashSearch(oid)) != NULL) {
         if(((objheader_t *)oldptr)->version < ((objheader_t *)ptr)->version) {
-          //prehashRemove(oid);
           prehashInsert(oid, ptr);
         }
       } else {
@@ -410,9 +409,6 @@ int getRangePrefetchResponse(int sd, struct readstruct * readbuffer) {
       size-=objsize;
     }
 
-    pthread_mutex_lock(&pflookup.lock);
-    pthread_cond_broadcast(&pflookup.cond);
-    pthread_mutex_unlock(&pflookup.lock);
   } else if(control == OBJECT_NOT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
   } else {

@@ -2,7 +2,7 @@
 #define _ADDUDPENHANCE_H
 
 #include "dstm.h"
-#include "mlookup.h"
+#include "altmlookup.h"
 
 
 /*******************************

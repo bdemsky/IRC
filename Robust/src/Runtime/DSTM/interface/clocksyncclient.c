@@ -13,11 +13,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
+#include <math.h>
 
 #define PORT        8500
              /* REPLACE with your server machine name*/
 #define DIRSIZE     64
-#define NUMITER   1024
+#define NUMITER   10000
 
 
 static __inline__ unsigned long long rdtsc(void)
@@ -108,14 +109,30 @@ int main(int argc, char **argv) {
     }
     //printf("DEBUG: dir[0]= %lld\n", dir[0]);
     array2[i]=rdtsc() - dir[0];
+    printf("%lld\n", array2[i]);
   }
 
   for(i=0;i<(NUMITER-1);i++) {
     norm += array2[i];
   }
 
+
+
   /* spew-out the results */
   //printf("DEBUG: Average offset= %lld\n", (norm/(NUMITER-1)));
+  long long average=(norm/(NUMITER-1));
+  printf("average= %lld",(norm/(NUMITER-1)));
+  long long stddev, avg1=0;
+  for(i=0;i<(NUMITER-1);i++) {
+    avg1 += ((array2[i] - average) * (array2[i] - average));
+  }
+  float ans = (avg1/(NUMITER-1));
+  float squareroot= sqrt(ans);
+  float squareroot2= sqrt(avg1);
+
+  printf("stddev= %f\n", squareroot); 
+  printf("error= %f\n", squareroot2/(NUMITER-1));
+
   fprintf(f1,"%lld",(norm/(NUMITER-1)));
 
   close(sd);

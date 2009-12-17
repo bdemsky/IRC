@@ -1,6 +1,6 @@
 #include "machinepile.h"
 
-void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefetchpile_t **head) {
+void insertPile(int mid, unsigned int oid, int siteid, short numoffset, short *offset, prefetchpile_t **head) {
   prefetchpile_t *ptr;
   objpile_t *objnode;
   unsigned int *oidarray;
@@ -16,6 +16,7 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
       objnode->offset = offset;
       objnode->oid = oid;
       objnode->numoffset = numoffset;
+      objnode->siteid = siteid;
       objnode->next = NULL;
       tmp->objpiles = objnode;
       tmp->next = *head;
@@ -37,6 +38,7 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
 	objnode->offset = offset;
 	objnode->oid = oid;
 	objnode->numoffset = numoffset;
+    objnode->siteid = siteid;
 	objnode->next = *tmp;
 	*tmp = objnode;
 	return;
@@ -64,6 +66,7 @@ void insertPile(int mid, unsigned int oid, short numoffset, short *offset, prefe
 	  objnode->offset = offset;
 	  objnode->oid = oid;
 	  objnode->numoffset = numoffset;
+      objnode->siteid = siteid;
 	  objnode->next = *tmp;
 	  *tmp = objnode;
 	  return;

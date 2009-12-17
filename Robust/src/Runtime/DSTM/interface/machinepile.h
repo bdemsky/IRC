@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void insertPile(int, unsigned int, short, short *, prefetchpile_t **);
+//add prefetch site as an argument for debugging
+void insertPile(int, unsigned int, int, short, short *, prefetchpile_t **);
 
 #endif

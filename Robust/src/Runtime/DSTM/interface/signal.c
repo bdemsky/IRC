@@ -2,12 +2,14 @@
 #include "addPrefetchEnhance.h"
 #include <signal.h>
 #include <fcntl.h>
+#include <sys/utsname.h>
 
 extern int numTransAbort;
 extern int numTransCommit;
 extern int nchashSearch;
 extern int nmhashSearch;
 extern int nprehashSearch;
+extern int ndirtyCacheObj;
 extern int nRemoteSend;
 extern int nSoftAbort;
 extern int bytesSent;
@@ -22,10 +24,28 @@ extern pfcstats_t *evalPrefetch;
 
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
-  FILE *fp;
-  if ((fp = fopen("/tmp/client_stats.txt", "a+")) == NULL) {
+  char filepath[200], exectime[10]; 
+  struct utsname buf;
+  FILE *fp, *envfp;
+
+  if ((envfp = fopen("/home/adash/.tmpenvs", "r")) == NULL) {
+    fprintf(stderr, "Error opening file .tmpenvfs");
     exit(-1);
   }
+  memset(filepath, 0, 200);
+  fscanf(envfp, "%s\n", filepath);
+  uname(&buf);
+  strncat(filepath + strlen(filepath), buf.nodename, 4);
+  strcat(filepath, (const char *) ".txt");
+
+  memset(exectime, 0, 10);
+  fscanf(envfp, "%s\n", exectime);
+  fclose(envfp);
+
+  if ((fp = fopen(filepath, "a+")) == NULL) {
+    exit(-1);
+  }
+
   fprintf(fp, "******  Transaction Stats   ******\n");
   fprintf(fp, "myIpAddr = %x\n", myIpAddr);
   fprintf(fp, "numTransAbort = %d\n", numTransAbort);
@@ -33,6 +53,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   fprintf(fp, "nchashSearch = %d\n", nchashSearch);
   fprintf(fp, "nmhashSearch = %d\n", nmhashSearch);
   fprintf(fp, "nprehashSearch = %d\n", nprehashSearch);
+  fprintf(fp, "ndirtyCacheObj = %d\n", ndirtyCacheObj);
   fprintf(fp, "nRemoteReadSend = %d\n", nRemoteSend);
   fprintf(fp, "nSoftAbort = %d\n", nSoftAbort);
   fprintf(fp, "bytesSent = %d\n", bytesSent);
@@ -40,6 +61,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   fprintf(fp, "totalObjSize= %d\n", totalObjSize);
   fprintf(fp, "sendRemoteReq= %d\n", sendRemoteReq);
   fprintf(fp, "getResponse= %d\n", getResponse);
+  fprintf(fp, "executionTime = %s\n", exectime);
   fprintf(fp, "**********************************\n");
   fflush(fp);
   fclose(fp);
@@ -57,6 +79,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("nchashSearch = %d\n", nchashSearch);
   printf("nmhashSearch = %d\n", nmhashSearch);
   printf("nprehashSearch = %d\n", nprehashSearch);
+  printf("ndirtyCacheObj = %d\n", ndirtyCacheObj);
   printf("nRemoteReadSend = %d\n", nRemoteSend);
   printf("nSoftAbort = %d\n", nSoftAbort);
   printf("bytesSent = %d\n", bytesSent);

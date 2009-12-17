@@ -5,7 +5,7 @@
 #include <math.h>
 #include <netinet/tcp.h>
 #include "addUdpEnhance.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 #ifdef ABORTREADERS
 #include "abortreaders.h"
 #endif
@@ -209,7 +209,9 @@ int invalidateFromPrefetchCache(char *buffer) {
       objheader_t *header;
       /* Lookup Objects in prefetch cache and remove them */
       if(((header = prehashSearch(oid)) != NULL)) {
-	prehashRemove(oid);
+        //Keep invalid objects
+        STATUS(header)=DIRTY;
+        //prehashRemove(oid);
       }
       offset += sizeof(unsigned int);
     }

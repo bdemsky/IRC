@@ -3,7 +3,7 @@
 
 #include <netinet/tcp.h>
 #include "dstm.h"
-#include "mlookup.h"
+#include "altmlookup.h"
 #include "llookup.h"
 #include "threadnotify.h"
 #include "prefetch.h"
@@ -13,6 +13,7 @@
 #endif
 #include "gCollect.h"
 #include "readstruct.h"
+#include "debugmacro.h"
 
 #define BACKLOG 10 //max pending connections
 #define RECEIVE_BUFFER_SIZE 2048
@@ -20,6 +21,37 @@
 extern int classsize[];
 extern int numHostsInSystem;
 extern pthread_mutex_t notifymutex;
+extern unsigned long long clockoffset;
+long long startreq, endreq, diff;
+
+//#define LOGTIMES
+#ifdef LOGTIMES
+extern char bigarray1[6*1024*1024];
+extern unsigned int bigarray2[6*1024*1024];
+extern unsigned int bigarray3[6*1024*1024];
+extern long long bigarray4[6*1024*1024];
+extern int bigarray5[6*1024*1024];
+extern int bigindex1;
+#define LOGTIME(x,y,z,a,b) {\
+  int tmp=bigindex1; \
+  bigarray1[tmp]=x; \
+  bigarray2[tmp]=y; \
+  bigarray3[tmp]=z; \
+  bigarray4[tmp]=a; \
+  bigarray5[tmp]=b; \
+  bigindex1++; \
+}
+#else
+#define LOGTIME(x,y,z,a,b)
+#endif
+
+
+long long myrdtsc(void)
+{
+  unsigned hi, lo; 
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
 
 objstr_t *mainobjstore;
 pthread_mutex_t mainobjstore_mutex;
@@ -199,6 +231,7 @@ void *dstmAccept(void *acceptfd) {
 	break;
       }
 #else
+      LOGTIME('X',0,0,myrdtsc(),0);
       if((val = prefetchReq((int)acceptfd, &readbuffer)) != 0) {
 	printf("Error: In prefetchReq() %s, %d\n", __FILE__, __LINE__);
 	break;
@@ -552,7 +585,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       free(oidlocked);
     }
     */
-    //control=TRANS_DISAGREE;
+    control=TRANS_DISAGREE;
     send_data(acceptfd, &control, sizeof(char));
 #ifdef CACHE
     send_data(acceptfd, &numBytes, sizeof(int));
@@ -603,7 +636,6 @@ char getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 	*numBytes += size;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*control = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
       //Keep track of oid locked
       oidlocked[(*objlocked)++] = OID(((objheader_t *)mobj));
@@ -620,7 +652,6 @@ char getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 	size += sizeof(objheader_t);
 	*numBytes += size;
 	*control = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
     }
   }
@@ -653,7 +684,6 @@ char getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 	*numBytes += size;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*control = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
       //Keep track of oid locked
       oidlocked[(*objlocked)++] = OID(((objheader_t *)mobj));
@@ -670,7 +700,6 @@ char getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 	size += sizeof(objheader_t);
 	*numBytes += size;
 	*control = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
     }
   }
@@ -693,10 +722,7 @@ void procRestObjs(char *objread,
   unsigned short version;
 
   /* Process each oid in the machine pile/ group per thread */
-  //printf("DEBUG: index= %d, numread= %d, nummod= %d numread+nummod= %d\n", index,numread,nummod,numread+nummod);
   for (i = index; i < numread+nummod; i++) {
-    //printf("DEBUG: i= %d\n", i);
-    //fflush(stdout);
     if (i < numread) { //Objs only read and not modified
       int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
       incr *= i;
@@ -859,9 +885,8 @@ void processVerNoMatch(unsigned int *oidnotfound,
  * Looks for the objects to be prefetched in the main object store.
  * If objects are not found then record those and if objects are found
  * then use offset values to prefetch references to other objects */
-
 int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
-  int i, size, objsize, numoffset = 0;
+  int i, size, objsize, numoffset = 0, gid=0;
   int length;
   char *recvbuffer, control;
   unsigned int oid, mid=-1;
@@ -869,6 +894,7 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
   oidmidpair_t oidmid;
   struct writestruct writebuffer;
   int sd = -1;
+
   while(1) {
     recv_data_buf((int)acceptfd, readbuffer, &numoffset, sizeof(int));
     if(numoffset == -1)
@@ -885,22 +911,26 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
       writebuffer.offset=0;
     }
     short offsetarry[numoffset];
+    recv_data_buf((int)acceptfd, readbuffer, &gid, sizeof(int));
     recv_data_buf((int) acceptfd, readbuffer, offsetarry, numoffset*sizeof(short));
+    LOGTIME('A',oid ,0,myrdtsc(),gid); //after recv the entire prefetch request 
 
     /*Process each oid */
     if ((header = mhashSearch(oid)) == NULL) { /* Obj not found */
       /* Save the oids not found in buffer for later use */
-      size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
+      size = sizeof(int)+sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
       char sendbuffer[size+1];
       sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
       *((int *) (sendbuffer+sizeof(char))) = size;
       *((char *)(sendbuffer + sizeof(char)+sizeof(int))) = OBJECT_NOT_FOUND;
       *((unsigned int *)(sendbuffer + sizeof(int) + sizeof(char)+sizeof(char))) = oid;
+      *((int *)(sendbuffer+sizeof(int) + sizeof(char)+sizeof(char)+sizeof(unsigned int))) = gid;
       send_buf(sd, &writebuffer, sendbuffer, size+1);
+      LOGTIME('J',oid, 0,myrdtsc(), gid); //send first oid not found prefetch request
     } else { /* Object Found */
       int incr = 1;
       GETSIZE(objsize, header);
-      size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
+      size = sizeof(int)+sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
       char sendbuffer[size+1];
       sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
       *((int *)(sendbuffer + incr)) = size;
@@ -909,8 +939,12 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
       incr += sizeof(char);
       *((unsigned int *)(sendbuffer+incr)) = oid;
       incr += sizeof(unsigned int);
+      *((int *)(sendbuffer+incr)) = gid;
+      incr += sizeof(int);
       memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
       send_buf(sd, &writebuffer, sendbuffer, size+1);
+      LOGOIDTYPE("SRES", oid, TYPE(header), (myrdtsc()-clockoffset));
+      LOGTIME('C',oid,TYPE(header),myrdtsc(), gid); //send first oid found from prefetch request
 
       /* Calculate the oid corresponding to the offset value */
       for(i = 0 ; i< numoffset ; i++) {
@@ -932,20 +966,24 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
 	if (oid==0)
 	  break;
 
+    LOGTIME('B',oid,0,myrdtsc(),gid); //send next oid found from prefetch request
+
 	if((header = mhashSearch(oid)) == NULL) {
-	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
+	  size = sizeof(int)+sizeof(int) + sizeof(char) + sizeof(unsigned int) ;
 	  char sendbuffer[size+1];
 	  sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
 	  *((int *) (sendbuffer+1)) = size;
 	  *((char *)(sendbuffer + sizeof(char)+sizeof(int))) = OBJECT_NOT_FOUND;
 	  *((unsigned int *)(sendbuffer + sizeof(char)+sizeof(int) + sizeof(char))) = oid;
+      *((int *)(sendbuffer+sizeof(int) + sizeof(char)+sizeof(char)+sizeof(unsigned int))) = gid;
 
 	  send_buf(sd, &writebuffer, sendbuffer, size+1);
+      LOGTIME('J',oid, 0,myrdtsc(), gid); //send first oid not found prefetch request
 	  break;
 	} else { /* Obj Found */
 	  int incr = 1;
 	  GETSIZE(objsize, header);
-	  size = sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
+	  size = sizeof(int)+sizeof(int) + sizeof(char) + sizeof(unsigned int) + sizeof(objheader_t) + objsize;
 	  char sendbuffer[size+1];
 	  sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
 	  *((int *)(sendbuffer + incr)) = size;
@@ -954,12 +992,17 @@ int prefetchReq(int acceptfd, struct readstruct * readbuffer) {
 	  incr += sizeof(char);
 	  *((unsigned int *)(sendbuffer+incr)) = oid;
 	  incr += sizeof(unsigned int);
+      *((int *)(sendbuffer+incr)) = gid;
+      incr += sizeof(int);
 	  memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
 	  send_buf(sd, &writebuffer, sendbuffer, size+1);
+      LOGOIDTYPE("SRES", oid, TYPE(header), (myrdtsc()-clockoffset));
+      LOGTIME('C',oid,TYPE(header),myrdtsc(), gid); //send first oid found from prefetch request
 	}
       } //end of for
     }
   } //end of while
+
     //Release socket
   if (mid!=-1) {
     forcesend_buf(sd, &writebuffer, NULL, 0);

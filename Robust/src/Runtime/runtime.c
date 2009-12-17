@@ -13,7 +13,7 @@
 #include "DSTM/interface_recovery/prelookup.h"
 #else
 #include "DSTM/interface/dstm.h"
-#include "DSTM/interface/prelookup.h"
+#include "DSTM/interface/altprelookup.h"
 #include "DSTM/interface/prefetch.h"
 #endif
 #endif

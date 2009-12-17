@@ -121,54 +121,52 @@ void *prehashSearch(unsigned int key) {
 }
 
 unsigned int prehashRemove(unsigned int key) {
-  int index;
-  prehashlistnode_t *prev;
-  prehashlistnode_t *ptr, *node;
-
-  //eom
-  unsigned int keyindex=key>>1;
+  unsigned int keyindex = key >> 1;
   volatile unsigned int * lockptr=&pflookup.larray[keyindex&PRELOCKMASK].lock;
+  prehashlistnode_t *node, *prev;
 
   while(!write_trylock(lockptr)) {
     sched_yield();
   }
-  
   prehashlistnode_t *curr = &pflookup.table[keyindex&pflookup.mask];
-  //eom
-
-  for (; curr != NULL; curr = curr->next) {
-    if (curr->key == key) {        
-      // Find a match in the hash table
-      //decrement the number of elements in the global hashtable  
+  // If there are no elements
+  //delete from first bin of table
+  if (curr->next == NULL && curr->key == key) {
+    curr->key = 0;
+    //TODO free(val) ?
+    curr->val = NULL;
+    atomic_dec(&(pflookup.numelements));
+    write_unlock(lockptr);
+    return 0;
+  }
+  //delete from first bin of table but elements follow in linked list
+  if (curr->next != NULL && curr->key == key) {
+    curr->key = curr->next->key;
+    curr->val = curr->next->val;
+    node = curr->next;
+    curr->next = node->next;
+    free(node);
+    atomic_dec(&(pflookup.numelements));
+    write_unlock(lockptr);
+    return 0;
+  }
+  prev = curr;
+  curr = curr->next;
+  //delete from elements in the linked list
+  for(; curr != NULL; curr = curr->next) {
+    if (curr->key == key) {
+      prev->next = curr->next;
+      free(curr);
       atomic_dec(&(pflookup.numelements));
-      
-     if ((curr == &ptr[index]) && (curr->next == NULL)) {  
-       // Delete the first item inside the hashtable with no linked list of prehashlistnode_t
-	curr->key = 0;
-	curr->val = NULL;
-      } else if ((curr == &ptr[index]) && (curr->next != NULL)) { 
-       //Delete the first item with a linked list of prehashlistnode_t  connected
-	curr->key = curr->next->key;
-	curr->val = curr->next->val;
-	node = curr->next;
-	curr->next = curr->next->next;
-	free(node);
-      } else {                                          
-       // Regular delete from linked listed
-	prev->next = curr->next;
-	free(curr);
-      }
-      //pthread_mutex_unlock(&pflookup.lock);
-     write_unlock(lockptr);
+      write_unlock(lockptr);
       return 0;
     }
     prev = curr;
   }
   write_unlock(lockptr);
-
   return 1;
 }
-
+ 
 unsigned int prehashResize(unsigned int newsize) {
   prehashlistnode_t *node, *ptr;  // curr and next keep track of the current and the next chashlistnodes in a linked list
   unsigned int oldsize;

@@ -56,9 +56,9 @@
 #define UDP_PORT 2158
 //Prefetch tuning paramters
 //#define RETRYINTERVAL  20 //N (For Em3d, SOR, Moldyn benchmarks)
-//#define SHUTDOWNINTERVAL  3  //M
-#define RETRYINTERVAL  20 //N  (For MatrixMultiply, 2DFFT benchmarks)
-#define SHUTDOWNINTERVAL 1  //M
+//#define SHUTDOWNINTERVAL  3 //M
+#define RETRYINTERVAL 100  //N  (For MatrixMultiply, 2DFFT, 2DConv benchmarks)
+#define SHUTDOWNINTERVAL 1 //M
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -264,6 +264,7 @@ void mapObjMethod(unsigned short);
 
 void randomdelay();
 void transStart();
+//#define TRANSREAD(x,y,z(tobe passed as a parameter to transRead2)) {
 #define TRANSREAD(x,y) { \
   unsigned int inputvalue;\
 if ((inputvalue=(unsigned int)y)==0) x=NULL;\
@@ -292,11 +293,11 @@ void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
-prefetchpile_t *foundLocal(char *, int); // returns node with prefetch elements(oids, offsets)
-int lookupObject(unsigned int * oid, short offset);
-int checkoid(unsigned int oid);
+prefetchpile_t *foundLocal(char *, int, int); // returns node with prefetch elements(oids, offsets, siteid)
+int lookupObject(unsigned int * oid, short offset, int *);
+int checkoid(unsigned int oid, int isLastOffset);
 int transPrefetchProcess(int **, short);
-void sendPrefetchReq(prefetchpile_t*, int);
+void sendPrefetchReq(prefetchpile_t*, int, int);
 void sendPrefetchReqnew(prefetchpile_t*, int);
 int getPrefetchResponse(int, struct readstruct *);
 unsigned short getObjType(unsigned int oid);
@@ -305,6 +306,7 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 void commitCountForObjRead(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 void commitCountForObjMod(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 
+long long myrdtsc(void);
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
 int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid);
 void threadNotify(unsigned int oid, unsigned short version, unsigned int tid);

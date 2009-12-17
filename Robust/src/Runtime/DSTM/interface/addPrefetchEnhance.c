@@ -1,5 +1,5 @@
 #include "addPrefetchEnhance.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 
 extern int numprefetchsites; // Number of prefetch sites
 extern pfcstats_t *evalPrefetch; //Global array that keeps track of operation mode (ON/OFF) for each prefetch site
@@ -57,10 +57,11 @@ char getOperationMode(int siteid) {
  * we take action accordingly */
 void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
   if(numLocal < ntuples) {
-    /* prefetch not found locally(miss in cache) */
+    /* prefetch not found locally(miss in cache); turn on prefetching*/
     evalPrefetch[siteid].operMode = 1;
     evalPrefetch[siteid].uselesscount = SHUTDOWNINTERVAL;
   } else {
+    //Turn off prefetch site
     if(getOperationMode(siteid) != 0) {
       evalPrefetch[siteid].uselesscount--;
       if(evalPrefetch[siteid].uselesscount <= 0) {
@@ -175,14 +176,10 @@ int copyToCache(int numoid, unsigned int *oidarray, char oidType) {
       newAddr->version += 1;
       newAddr->notifylist = NULL;
     }
+    STATUS(newAddr)=0;
+
     //make an entry in prefetch lookup hashtable
-    void *oldptr;
-    if((oldptr = prehashSearch(oid)) != NULL) {
-      prehashRemove(oid);
-      prehashInsert(oid, newAddr);
-    } else {
-      prehashInsert(oid, newAddr);
-    }
+    prehashInsert(oid, newAddr);
   } //end of for
   return 0;
 }

@@ -2,7 +2,7 @@
 #define _ADDPREFETCHENHANCE_H_
 
 #include "dstm.h"
-#include "mlookup.h"
+#include "altmlookup.h"
 #include "gCollect.h"
 
 typedef struct prefetchCountStats {
