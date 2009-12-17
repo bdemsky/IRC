@@ -16,12 +16,18 @@ SRC3=${MAINCLASS}2.java \
 
 FLAGS=-dsm -prefetch -optimize -excprefetch Em3d.main -excprefetch BiGraph.create -excprefetch Node.Node -excprefetch Node.fillTable -excprefetch Node.makeUniqueNeighbors -excprefetch Node.makeFromNodes -excprefetch Node.updateFromNodes -debug -mainclass ${MAINCLASS} -trueprob 0.85
 FLAGS1=-dsm -prefetch -transstats -dsmcaching -optimize -excprefetch Node.makeUniqueNeighbors -excprefetch EVector.ensureCapacity -excprefetch EVector.addElement -excprefetch BiGraph.makeFromNodes -excprefetch EVector.elementAt -excprefetch BiGraph.initializeNodes -excprefetch BiGraph.allocateNodes -mainclass ${MAINCLASS} -trueprob 0.85
-FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.85
-FLAGS3=-dsm -optimize -mainclass ${MAINCLASS} -trueprob 0.85
+FLAGS2=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
+FLAGS3=-dsm -optimize -transstats -mainclass ${MAINCLASS}
+
+
+FLAGSP=-dsm -prefetch -dsmcaching -optimize -excprefetch Node.makeUniqueNeighbors -excprefetch EVector.ensureCapacity -excprefetch EVector.addElement -excprefetch BiGraph.makeFromNodes -excprefetch EVector.elementAt -excprefetch BiGraph.initializeNodes -excprefetch BiGraph.allocateNodes -mainclass ${MAINCLASS} -trueprob 0.85
+FLAGSNPNC=-dsm -optimize -mainclass ${MAINCLASS}
 
 default:
-	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}NPNC ${SRC3}
-	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}N ${SRC3}
+	../../../../buildscript ${FLAGS3} -o ${MAINCLASS}withstatNPNC ${SRC3}
+	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}withstatN ${SRC3}
+	../../../../buildscript ${FLAGSNPNC} -o ${MAINCLASS}NPNC ${SRC3}
+	../../../../buildscript ${FLAGSP} -o ${MAINCLASS}N ${SRC3}
 
 clean:
 	rm -rf tmpbuilddirectory

@@ -2,9 +2,11 @@
 
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
-benchmarks='array chase tree 60050mmver moldynverB 2000fft2d 40962dconv sorverD rainforest'
+benchmarks='array chase tree 65050mmver 15005fft2d moldynverB sorverD 1000010002dconv spamfilter2500 rainforest'
+
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/runlog
+LOGDIR1=~/research/Robust/src/Benchmarks/Prefetch/logres
 TOPDIR=`pwd`
 
 function run {
@@ -128,6 +130,10 @@ function runallstats {
       arg=$ARGS8
       ln -s ${DSTMDIR}/dstm_8.conf dstm.conf
     fi
+    envarg=`echo $arg | sed 's/ /_/g'`
+    FILENAME="${LOGDIR1}/${3}_${envarg}_thd_${2}_"
+    echo "$FILENAME" > ~/.tmpenvs
+    chmod +x ~/.tmpenvs
     chmod +x ~/.tmpvars
     echo "args=$arg thds=${2}Thd" > ~/.tmpparams
     for machine in `echo $MACHINES`
@@ -138,6 +144,8 @@ function runallstats {
     sleep 2
     perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl clear_stats settings=switch/clearsettings.txt
     /usr/bin/time -f "%e" ./$3 master $arg 2> ${LOGDIR}/tmp
+    envtime=`cat ${LOGDIR}/tmp | grep -v Command`
+    echo "$envtime" >> ~/.tmpenvs
     perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl settings=switch/settings.txt
     cat ${LOGDIR}/tmp >> ${LOGDIR}/${3}_${2}Thrd_${EXTENSION}.txt
     if [ $i -eq 0 ];then echo "<h3> Benchmark=${3} Thread=${2} Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html  ;fi
@@ -220,24 +228,24 @@ function callrun {
 
 for count in 2 4 8
 do
-echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-run 10 $count $NONPREFETCH_NONCACHE
-#echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
-#run 10 $count $NONPREFETCH
-echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
-run 10 $count $PREFETCH
-#echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-#run 10 $count $MANUAL_PREFETCH
+    echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
+    run 10 $count $NONPREFETCH_NONCACHE
+    echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
+    run 10 $count $NONPREFETCH
+    echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
+    run 10 $count $PREFETCH
+    #echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+    #run 10 $count $MANUAL_PREFETCH
 
 ###########
-#echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-#runallstats 1 $count $NONPREFETCH_NONCACHE
-#echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
-#runallstats 1 $count $NONPREFETCH
-#echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
-#runallstats 1 $count $PREFETCH
-#echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
-#runallstats 1 $count $MANUAL_PREFETCH
+#  echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
+# runallstats 1 $count $NONPREFETCH_NONCACHE
+  #echo "------- Running $count threads $BMDIR non-prefetch on $count machines -----"
+  #runallstats 1 $count $NONPREFETCH
+#  echo "------- Running $count threads $BMDIR normal prefetch on $count machines -----"
+# runallstats 1 $count $PREFETCH
+  #echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
+  #runallstats 1 $count $MANUAL_PREFETCH
 #############
 
 done
@@ -292,6 +300,7 @@ function callmicrorun {
 echo "---------- Clean old files ---------- "
 #rm runlog/*
 mv runlog/* runlog/results/.
+echo  "moving files"
 for b in `echo $benchmarks`
 do
   bm=`grep $b bm.txt`
