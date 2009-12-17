@@ -17,6 +17,10 @@ SRC3=${NAME3}.java \
 SRC4=${NAME4}.java \
 	WriteArrayObjWrap.java
 SRC6=${NAME6}.java
+MAINCLASS7=Chase3
+SRC7=${MAINCLASS7}.java \
+     DistributedHashMap.java
+
 FLAGS1 = -dsm -prefetch -dsmcaching -nooptimize -debug -mainclass ${MAINCLASS1}
 FLAGS2 = -dsm -dsmcaching -optimize -mainclass ${MAINCLASS1}
 FLAGS3 = -dsm -prefetch -dsmcaching -nooptimize -debug -mainclass ${MAINCLASS2}
@@ -29,6 +33,9 @@ FLAGS9 = -dsm -nooptimize -debug -mainclass ${MAINCLASS4}
 FLAGS10= -dsm -nooptimize -recovery -debug -mainclass ${MAINCLASS5}
 FLAGS11= -dsm -runtimedebug -nooptimize -recovery -debug -mainclass ${MAINCLASS6}
 FLAGS12= -nojava -dsm -runtimedebug -nooptimize -recovery -debug -mainclass ${MAINCLASS5}
+FLAGS13= -dsm -transstats -optimize -mainclass ${MAINCLASS7}
+FLAGS14= -dsm -dsmcaching -transstats -optimize -mainclass ${MAINCLASS7}
+FLAGS15= -dsm -dsmcaching -transstats -trueprob 0.95 -excprefetch Chase3.main -prefetch -nooptimize -mainclass ${MAINCLASS7}
 
 
 default:
@@ -68,18 +75,17 @@ default:
 #	cp ${NAME4}NP.bin ${NAME4}6NP.bin
 #	cp ${NAME4}NP.bin ${NAME4}7NP.bin
 #	cp ${NAME4}NP.bin ${NAME4}8NP.bin
-	../../../buildscript ${FLAGS10} -o ${NAME5}NPNC ${SRC5}
-# #	../../../buildscript ${FLAGS11} -o ${NAME6}NPNC ${SRC6}
-
-nojava:
-	../../../buildscript ${FLAGS12} -o ${NAME5}NPNC ${SRC5}
+# 	../../../buildscript ${FLAGS11} -o ${NAME6}NPNC ${SRC6}
 
 test:
 	../../../make
 	default
 
+samplespam:
+	../../../buildscript ${FLAGS13} -o ${MAINCLASS7}NPNC ${SRC7}
+	../../../buildscript ${FLAGS14} -o ${MAINCLASS7}NPC ${SRC7}
+	../../../buildscript ${FLAGS15} -o ${MAINCLASS7}N ${SRC7}
 
-
-clear:
+clean:
 	rm -rf tmpbuilddirectory
 	rm *.bin
