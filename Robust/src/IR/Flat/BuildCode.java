@@ -3055,7 +3055,7 @@ public class BuildCode {
       output.println("transaction_check_counter=*counter_reset_pointer;");
       sandboxcounter++;
     }
-    //output.println("transStart();");
+    output.println("transStart();");
 
     if (state.ABORTREADERS||state.SANDBOX) {
       if (state.SANDBOX)
