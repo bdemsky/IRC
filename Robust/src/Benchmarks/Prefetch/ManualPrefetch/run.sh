@@ -3,7 +3,8 @@
 #set -x
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
 #benchmarks='40962dconv 1200mmver moldynverB'
-benchmarks='1152fft2d 40962dconv 10lookup 1200mmver moldynverB rainforest'
+#benchmarks='1152fft2d 40962dconv 10lookup 1200mmver moldynverB rainforest'
+benchmarks='spamfilter2500'
 
 LOGDIR=~/research/Robust/src/Benchmarks/Prefetch/ManualPrefetch/runlog
 TOPDIR=`pwd`
@@ -87,7 +88,7 @@ function callrun {
   
   cd $BMDIR 
 
-  for count in 2 4 6 8
+  for count in 2 4 8
   do
     echo "------- Running $count threads $BMDIR manual prefetch on $count machines -----"
     run 1 $count ${MANUAL_PREFETCH}
