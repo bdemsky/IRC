@@ -101,7 +101,7 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
       //forward prefetch
       int machinenum = lhashSearch(oid);
       insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
-      return head;
+      continue;
     }
     dfsList[0]=oid;
     dfsList[1]=0;
