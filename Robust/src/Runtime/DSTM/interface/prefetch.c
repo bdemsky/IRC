@@ -92,9 +92,9 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
     unsigned int dfsList[numoffset];
     int offstop=numoffset-2;
 
-    int countInvalidObj=0;
+    int countInvalidObj=-1;
 
-    objheader_t * header = searchObj(oid, top, &countInvalidObj);
+    objheader_t * header = searchObjInv(oid, top, &countInvalidObj);
     //printf("%u %x\n", oid, header);
     if (header==NULL) {
       LOGTIME('b',oid,0,0,countInvalidObj);
@@ -118,7 +118,7 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
         top+=2;
         dfsList[top]=oid;
         dfsList[top+1]=0;
-        header=searchObj(oid, top, &countInvalidObj);
+        header=searchObjInv(oid, top, &countInvalidObj);
         if (header==NULL) {
           LOGTIME('c',oid,top,0,countInvalidObj);
           //forward prefetch
