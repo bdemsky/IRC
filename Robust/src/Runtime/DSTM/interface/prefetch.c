@@ -9,7 +9,7 @@ extern sockPoolHashTable_t *transPResponseSocketPool;
 extern pthread_mutex_t prefetchcache_mutex;
 extern prehashtable_t pflookup;
 
-#define LOGTIMES
+//#define LOGTIMES
 #ifdef LOGTIMES
 extern char bigarray1[6*1024*1024];
 extern unsigned int bigarray2[6*1024*1024];
@@ -88,7 +88,7 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
     unsigned int oid = *(GET_OID(ptr));
     short numoffset = *(GET_NUM_OFFSETS(ptr));
     short *offsetarray = GET_OFFSETS(ptr);
-    int top;
+    int top=0;
     unsigned int dfsList[numoffset];
     int offstop=numoffset-2;
 
@@ -143,7 +143,6 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
       //oid is 0
       //go backwards until we can increment
       do {
-        int countInvalidObj1=0;
         do {
           top-=2;
           if (top<0) {
@@ -179,12 +178,12 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 
   /* Initialize */
   perMcPrefetchList_t *head = NULL;
-  int countInvalidObj=0;
 
   objheader_t * header = searchObj(oid);
+
   int offstop=numoffset-2;
   if (header==NULL) {
-      LOGTIME('g',oid,0,0,countInvalidObj);
+      LOGTIME('g',oid,0,0,0);
     //forward prefetch
     //int machinenum = lhashSearch(oid);
     //insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
@@ -195,11 +194,11 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 
   dfsList[0]=oid;
   dfsList[1]=0;
-  LOGTIME('G',OID(header),TYPE(header),0,countInvalidObj);
+  LOGTIME('G',OID(header),TYPE(header),0, 0);
 
   //Start searching the dfsList
   for(top=0; top>=0;) {
-    oid=getNextOid(header, offsetarray, dfsList, top, &countInvalidObj);
+    oid=getNextOid(header, offsetarray, dfsList, top, NULL);
     if (oid&1) {
       int oldisField=TYPE(header) < NUMCLASSES;
       top+=2;
@@ -207,7 +206,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       dfsList[top+1]=0;
       header=searchObj(oid);
       if (header==NULL) {
-        LOGTIME('h',oid,top,0,countInvalidObj);
+        LOGTIME('h',oid,top,0,0);
 	//forward prefetch
 	//int machinenum = lhashSearch(oid);
 	//if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1])))
@@ -222,7 +221,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 	  continue;
       }
     } else if (oid==2) {
-      LOGTIME('I',oid,top,0,countInvalidObj);
+      LOGTIME('I',oid,top,0,0);
       //send prefetch first
       int objindex=top+2;
       //int machinenum = lhashSearch(dfsList[objindex]);
@@ -239,7 +238,6 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 	}
       } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
 
-      //header=searchObj(dfsList[top], &countInvalidObj);
       header=searchObj(dfsList[top]);
       //header shouldn't be null unless the object moves away, but allow
       //ourselves the option to just continue on if we lose the object
