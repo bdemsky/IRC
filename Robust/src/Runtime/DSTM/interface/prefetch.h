@@ -63,7 +63,8 @@ int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer);
 int processOidFound(objheader_t *, short *, int, int, int);
 int getRangePrefetchResponse(int sd, struct readstruct *);
 //INLINE objheader_t *searchObj(unsigned int);
-INLINE objheader_t *searchObj(unsigned int, int*);
+INLINE objheader_t *searchObj(unsigned int);
+INLINE objheader_t *searchObjInv(unsigned int, int, int*);
 
 
 /*********** Functions for computation at the participant end **********/

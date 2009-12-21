@@ -94,7 +94,7 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
 
     int countInvalidObj=0;
 
-    objheader_t * header = searchObj(oid, &countInvalidObj);
+    objheader_t * header = searchObj(oid, top, &countInvalidObj);
     //printf("%u %x\n", oid, header);
     if (header==NULL) {
       LOGTIME('b',oid,0,0,countInvalidObj);
@@ -118,7 +118,7 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
         top+=2;
         dfsList[top]=oid;
         dfsList[top+1]=0;
-        header=searchObj(oid, &countInvalidObj);
+        header=searchObj(oid, top, &countInvalidObj);
         if (header==NULL) {
           LOGTIME('c',oid,top,0,countInvalidObj);
           //forward prefetch
@@ -143,7 +143,7 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
       //oid is 0
       //go backwards until we can increment
       do {
-        int countInvalidObj1=1;
+        int countInvalidObj1=0;
         do {
           top-=2;
           if (top<0) {
@@ -151,8 +151,11 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
           }
         } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
 
-        //header=searchObj(dfsList[top], &countInvalidObj1);
-        header=searchObj(dfsList[top], NULL);
+	//we backtracked past the invalid obj...set out countInvalidObj=-1
+	if (top<countInvalidObj)
+	  countInvalidObj=-1;
+
+        header=searchObjInv(dfsList[top], top, &countInvalidObj);
         //header shouldn't be null unless the object moves away, but allow
         //ourselves the option to just continue on if we lose the object
       } while(header==NULL);
@@ -178,7 +181,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
   perMcPrefetchList_t *head = NULL;
   int countInvalidObj=0;
 
-  objheader_t * header = searchObj(oid, &countInvalidObj);
+  objheader_t * header = searchObj(oid);
   int offstop=numoffset-2;
   if (header==NULL) {
       LOGTIME('g',oid,0,0,countInvalidObj);
@@ -202,7 +205,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       top+=2;
       dfsList[top]=oid;
       dfsList[top+1]=0;
-      header=searchObj(oid,&countInvalidObj);
+      header=searchObj(oid);
       if (header==NULL) {
         LOGTIME('h',oid,top,0,countInvalidObj);
 	//forward prefetch
@@ -237,7 +240,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
 
       //header=searchObj(dfsList[top], &countInvalidObj);
-      header=searchObj(dfsList[top], NULL);
+      header=searchObj(dfsList[top]);
       //header shouldn't be null unless the object moves away, but allow
       //ourselves the option to just continue on if we lose the object
     } while(header==NULL);
@@ -250,7 +253,22 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 }
 
 
-INLINE objheader_t *searchObj(unsigned int oid, int *countInvalidObj) {
+INLINE objheader_t *searchObj(unsigned int oid) {
+  objheader_t *header;
+  if ((header = (objheader_t *)mhashSearch(oid)) != NULL) {
+    return header;
+  } else {
+    header = prehashSearch(oid);
+    if(header != NULL &&
+       (STATUS(header) & DIRTY)) {
+      return NULL;
+    }
+    return header;
+  }
+}
+
+
+INLINE objheader_t *searchObjInv(unsigned int oid, int top, int *countInvalidObj) {
   objheader_t *header;
   if ((header = (objheader_t *)mhashSearch(oid)) != NULL) {
     return header;
@@ -258,10 +276,11 @@ INLINE objheader_t *searchObj(unsigned int oid, int *countInvalidObj) {
     header = prehashSearch(oid);
     if(header != NULL) {
       if((STATUS(header) & DIRTY) && (countInvalidObj!= NULL)) {
-        (*countInvalidObj)+=1;
-        if(*countInvalidObj > 1) {
-          return NULL;
-        }
+	if ((*countInvalidObj)==-1) {
+	  *countInvalidObj=top;
+	} else {
+	  return NULL;
+	}
       }
     }
     return header;
@@ -560,7 +579,7 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
 
     if(currcount!=0 & range != 0) {
       //go to the next offset
-      header=searchObj(dfsList[top+2],countInvalidObj);
+      header=searchObjInv(dfsList[top+2], top, countInvalidObj);
       if (header==NULL)
 	return 2;
     }
