@@ -431,7 +431,8 @@ public class ConflictGraph {
 		String liveinNodeID = td + "_" + fsen.getIdentifier();
 
 		LiveInNode newNode = new LiveInNode(liveinNodeID, td, hrnSet,
-				readEffectsSet, writeEffectsSet, reachabilitySet);
+				readEffectsSet, writeEffectsSet, reachabilitySet, fsen
+						.getIdentifier());
 		id2cn.put(liveinNodeID, newNode);
 
 	}
@@ -458,6 +459,141 @@ public class ConflictGraph {
 		}
 
 		return resultSet;
+	}
+
+	/*
+	public Set<Integer> getAllocationSiteIDSetBySESEID(int seseID) {
+
+		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+
+		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
+		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+
+		while (i.hasNext()) {
+			Entry<String, ConflictNode> entry = i.next();
+			ConflictNode node = entry.getValue();
+
+			if (node instanceof LiveInNode) {
+				LiveInNode liveInNode = (LiveInNode) node;
+				if (liveInNode.getSESEIdentifier() == seseID) {
+					Set<HeapRegionNode> hrnSet = liveInNode.getHRNSet();
+					for (Iterator iterator = hrnSet.iterator(); iterator
+							.hasNext();) {
+						HeapRegionNode hrn = (HeapRegionNode) iterator.next();
+						// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
+						allocSiteIDSet.add(new    pthread_mutex_lock( &(parentCommon->lock) );
+     addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,196130920,seseToIssue->common.classID);
+     ++(seseToIssue->common.unresolvedDependencies);
+     addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,1289650030,seseToIssue->common.classID); Integer(hrn
+								.getGloballyUniqueIntegerIdentifier()));
+					}
+				}
+			}
+		}
+
+		return allocSiteIDSet;
+
+	}
+*/
+	
+	public Set<Integer> getAllocationSiteIDSetBySESEID(int seseID) {
+
+		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+
+		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
+		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+
+		while (i.hasNext()) {
+			Entry<String, ConflictNode> entry = i.next();
+			ConflictNode node = entry.getValue();
+
+			if (node instanceof LiveInNode) {
+				LiveInNode liveInNode = (LiveInNode) node;
+				if (liveInNode.getSESEIdentifier() == seseID) {
+					
+					HashSet<ConflictEdge> edgeSet = liveInNode.getEdgeSet();
+					for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+						ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+						if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
+							allocSiteIDSet.addAll(getHRNIdentifierSet(conflictEdge.getVertexU()));
+							allocSiteIDSet.addAll(getHRNIdentifierSet(conflictEdge.getVertexV()));
+						}else{// it is fine-grain edge
+							allocSiteIDSet.addAll(getHRNIdentifierSet(node));
+						}
+					}
+					
+					
+//					Set<HeapRegionNode> hrnSet = liveInNode.getHRNSet();
+//					for (Iterator iterator = hrnSet.iterator(); iterator
+//							.hasNext();) {
+//						HeapRegionNode hrn = (HeapRegionNode) iterator.next();
+//						// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
+//						allocSiteIDSet.add(new Integer(hrn
+//								.getGloballyUniqueIntegerIdentifier()));
+//					}
+					
+				}
+			}
+		}
+
+		return allocSiteIDSet;
+
+	}
+	
+	public Set<Integer> getAllocationSiteIDSet() {
+
+		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+
+		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
+		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+
+		while (i.hasNext()) {
+			Entry<String, ConflictNode> entry = i.next();
+			ConflictNode node = entry.getValue();
+			
+			HashSet<ConflictEdge> edgeSet = node.getEdgeSet();
+			for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+				ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+				if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
+					allocSiteIDSet.addAll(getHRNIdentifierSet(conflictEdge.getVertexU()));
+					allocSiteIDSet.addAll(getHRNIdentifierSet(conflictEdge.getVertexV()));
+				}else{// it is fine-grain edge
+					allocSiteIDSet.addAll(getHRNIdentifierSet(node));
+				}
+			}
+
+		}
+
+		return allocSiteIDSet;
+
+	}
+
+	private HashSet<Integer> getHRNIdentifierSet(ConflictNode node) {
+
+		HashSet<Integer> returnSet = new HashSet<Integer>();
+
+		if (node instanceof StallSiteNode) {
+			StallSiteNode stallSiteNode = (StallSiteNode) node;
+			Set<HeapRegionNode> hrnSet = stallSiteNode.getHRNSet();
+			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
+				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
+				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
+				returnSet.add(new Integer(hrn
+						.getGloballyUniqueIntegerIdentifier()));
+			}
+		} else {
+			LiveInNode liveInNode = (LiveInNode) node;
+			Set<HeapRegionNode> hrnSet = liveInNode.getHRNSet();
+			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
+				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
+				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
+				returnSet.add(new Integer(hrn
+						.getGloballyUniqueIntegerIdentifier()));
+			}
+		}
+
+		return returnSet;
+
 	}
 
 	public void writeGraph(String graphName, boolean filter)

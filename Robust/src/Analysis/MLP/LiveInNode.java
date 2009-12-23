@@ -12,16 +12,18 @@ public class LiveInNode extends ConflictNode {
 	Set<SESEEffectsKey> readEffectsSet;
 	Set<SESEEffectsKey> writeEffectsSet;
 	Set<HeapRegionNode> hrnSet;
+	int seseID;
 
 	public LiveInNode(String id, TempDescriptor td, Set<HeapRegionNode> hrnSet,
 			Set<SESEEffectsKey> readEffectsSet,
-			Set<SESEEffectsKey> writeEffectsSet, Set<Set> reachabilitySet) {
+			Set<SESEEffectsKey> writeEffectsSet, Set<Set> reachabilitySet, int seseID) {
 		this.hrnSet = hrnSet;
 		this.id = id;
 		this.td = td;
 		this.readEffectsSet = readEffectsSet;
 		this.writeEffectsSet = writeEffectsSet;
 		this.reachabilitySet = reachabilitySet;
+		this.seseID=seseID;
 	}
 
 	public Set<HeapRegionNode> getHRNSet() {
@@ -136,6 +138,10 @@ public class LiveInNode extends ConflictNode {
 		}
 
 		return result;
+	}
+	
+	public int getSESEIdentifier(){
+		return seseID;
 	}
 
 	public boolean equals(Object o) {

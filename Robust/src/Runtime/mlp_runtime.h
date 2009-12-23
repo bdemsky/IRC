@@ -15,6 +15,12 @@
 #define TRUE 1
 #endif
 
+// each allocation site nees the following
+typedef struct AllocSite_t{
+  int id;
+  struct Queue* waitingQueue;
+} AllocSite;
+
 // forward declaration of pointer type
 typedef struct SESEcommon_t* SESEcommon_p;
 
@@ -48,6 +54,10 @@ typedef struct SESEcommon_t {
 
   SESEcommon_p    parent;
 
+  AllocSite* allocSiteArray;
+  int numRelatedAllocSites;
+  psemaphore stallSiteSem;
+
 } SESEcommon;
 
 
@@ -65,6 +75,8 @@ extern __thread SESEcommon_p seseCaller;
 // deallocation of SESE records
 void* mlpCreateSESErecord( int size );
 void  mlpDestroySESErecord( void* seseRecord );
+
+AllocSite* mlpCreateAllocSiteArray(int numAllocSites);
 
 
 #endif /* __MLP_RUNTIME__ */

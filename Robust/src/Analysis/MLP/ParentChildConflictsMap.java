@@ -27,6 +27,12 @@ public class ParentChildConflictsMap {
 		stallEdgeMap= new Hashtable < ReferenceEdge, HashSet<StallTag> >();
 	}
 	
+	public void clear(){
+		accessibleMap.clear();
+		stallMap.clear();
+		stallEdgeMap.clear();
+	}
+	
 	public void makeAllInaccessible(){
 		
 		Set<TempDescriptor> keySet=accessibleMap.keySet();

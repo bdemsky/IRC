@@ -1540,7 +1540,6 @@ public class OwnershipAnalysis {
   }
   
   public MethodContext getCalleeMethodContext(MethodContext callerMC, FlatCall fc){
-          assert methodEffects;
 
 	  Hashtable<FlatNode, OwnershipGraph> table=mapMethodContextToFlatNodeOwnershipGraph.get(callerMC);
 	  

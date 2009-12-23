@@ -29,3 +29,25 @@ void* mlpAllocSESErecord( int size ) {
 void mlpFreeSESErecord( void* seseRecord ) {
   RUNFREE( seseRecord );
 }
+
+AllocSite* mlpCreateAllocSiteArray(int numAllocSites){
+  int i;
+  AllocSite* newAllocSite=(AllocSite*)RUNMALLOC( sizeof( AllocSite ) * numAllocSites );
+  for(i=0; i<numAllocSites; i++){
+    newAllocSite[i].waitingQueue=createQueue();
+  }
+  return newAllocSite;
+}
+
+void addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, int allocID, void *seseRec){
+  
+  int i;
+  for(i=0;i<numAllocSites;i++){
+    if(allocSiteArray[i].id==allocID){
+      addNewItemBack(allocSiteArray[i].waitingQueue,seseRec);
+      //printf("add new item %d into waiting queue:%d\n",((SESEcommon*)seseRec)->classID,allocID);
+      break;
+    }
+  }
+
+}

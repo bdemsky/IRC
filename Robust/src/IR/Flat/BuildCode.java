@@ -27,6 +27,7 @@ import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
 import Analysis.Loops.GlobalFieldType;
 import Analysis.Locality.TypeAnalysis;
+import Analysis.MLP.ConflictGraph;
 import Analysis.MLP.MLPAnalysis;
 import Analysis.MLP.VariableSourceToken;
 import Analysis.MLP.CodePlan;
@@ -1744,6 +1745,28 @@ public class BuildCode {
 	  }    
 	}
       }
+      
+      // set up related allocation sites's waiting queues
+      // eom
+      output.println("   /* set up waiting queues */");
+      ConflictGraph graph=null;
+      graph=mlpa.getConflictGraphResults().get(fm);
+      if(graph!=null){
+    	  Set<Integer> allocSet=graph.getAllocationSiteIDSet();
+    	  
+    	  if(allocSet.size()>0){
+    		  output.println("   int numRelatedAllocSites="+allocSet.size()+";");    		  
+        	  output.println("   seseCaller->numRelatedAllocSites=numRelatedAllocSites;");        	  
+        	  output.println("   seseCaller->allocSiteArray=mlpCreateAllocSiteArray(numRelatedAllocSites);");
+        	  int idx=0;
+        	  for (Iterator iterator = allocSet.iterator(); iterator.hasNext();) {
+      			Integer allocID = (Integer) iterator.next();
+      			output.println("   seseCaller->allocSiteArray["+idx+"].id="+allocID+";");
+      			idx++;
+          	  }
+        	  output.println();
+    	  }
+      }
     }
 
 
@@ -3171,7 +3194,7 @@ public class BuildCode {
 	output.println("     SESEcommon* parentCommon = seseCaller;");
       }
     }
-
+    
     // before doing anything, lock your own record and increment the running children
     if( fsen != mlpa.getMainSESE() ) {      
       output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
@@ -3224,6 +3247,56 @@ public class BuildCode {
 		       generateTemp( fsen.getfmEnclosing(), temp, null )+";");
       }
     }
+    
+    // count up memory conflict dependencies,
+    // eom
+    ConflictGraph graph=null;
+    FlatSESEEnterNode parent=fsen.getParent();
+    if(parent!=null){
+        if(parent.isCallerSESEplaceholder){
+        	graph=mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
+        }else{
+        	graph=mlpa.getConflictGraphResults().get(fsen);
+        }
+    }
+		if (graph != null) {
+			output.println();
+			output.println("     /*add waiting queue element*/");
+
+			Set<Integer> allocSet = graph.getAllocationSiteIDSetBySESEID(fsen
+					.getIdentifier());
+			if (allocSet.size() > 0) {
+				output.println("     {");
+				output
+						.println("     pthread_mutex_lock( &(parentCommon->lock) );");
+
+				for (Iterator iterator = allocSet.iterator(); iterator
+						.hasNext();) {
+					Integer allocID = (Integer) iterator.next();
+					output
+							.println("     addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,"
+									+ allocID
+									+ ",seseToIssue);");
+					output
+							.println("     ++(seseToIssue->common.unresolvedDependencies);");
+				}
+				output
+						.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
+				output.println("     }");
+			}
+			
+			output.println("     /*decide whether it is runnable or not in regarding to memory conflicts*/");
+			output.println("     {");
+			output.println("     int idx;");
+			output.println("     for(idx = 0 ; idx < numRelatedAllocSites ; idx++){");
+			output.println("        SESEcommon* item=peekItem(seseCaller->allocSiteArray[idx].waitingQueue);");
+			output.println("        if(item->classID==seseToIssue->common.classID){");
+			output.println("           --(seseToIssue->common.unresolvedDependencies);");
+			output.println("        }");
+			output.println("     }");
+			output.println("     }");
+			output.println();
+		}
 
     // before potentially adding this SESE to other forwarding lists,
     //  create it's lock and take it immediately
@@ -3317,6 +3390,7 @@ public class BuildCode {
 	}      
 	output.println("     "+p+" = seseToIssue;");
       }
+ 
     }
 
     // if there were no outstanding dependencies, issue here
@@ -3328,7 +3402,7 @@ public class BuildCode {
     // eventually, for it to mark itself finished
     output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
     output.println("   }");
-
+    
   }
 
   public void generateFlatSESEExitNode( FlatMethod fm,  
@@ -3415,6 +3489,33 @@ public class BuildCode {
     output.println("     }");
     output.println("     pthread_mutex_unlock( &(consumer->lock) );");
     output.println("   }");
+    
+    // eom
+    // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
+    if( fsen != mlpa.getMainSESE() ) {
+    	output.println();    
+        output.println("   /* check memory dependency*/");
+    	output.println("  {");
+    	output.println("   int idx;");
+    	output.println("   for(idx = 0 ; idx < ___params___->common.parent->numRelatedAllocSites ; idx++){");
+    	output.println("     SESEcommon* item=peekItem(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
+    	output.println("     if( item->classID == ___params___->common.classID ){");
+    	output.println("        struct QueueItem* qItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,item);");
+    	output.println("        removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
+    	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
+    	output.println("           SESEcommon* nextItem=peekItem(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
+    	output.println("           pthread_mutex_lock( &(nextItem->lock) );");
+    	output.println("           --(nextItem->unresolvedDependencies);");
+    	output.println("           if( nextItem->unresolvedDependencies == 0){");
+    	output.println("              workScheduleSubmit( (void*)nextItem);");
+    	output.println("           }");
+    	output.println("           pthread_mutex_unlock( &(nextItem->lock) );");
+    	output.println("        }");
+    	output.println("     }");
+    	output.println("  }");
+    	output.println("  }");
+    }
+    
     
     // if parent is stalling on you, let them know you're done
     if( fsexn.getFlatEnter() != mlpa.getMainSESE() ) {

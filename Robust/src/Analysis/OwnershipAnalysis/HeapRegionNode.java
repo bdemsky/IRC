@@ -231,4 +231,17 @@ public class HeapRegionNode extends OwnershipNode {
   public String getGloballyUniqueIdentifier(){
 	  return globalIdentifier;
   }
+  
+	public int getGloballyUniqueIntegerIdentifier() {
+		String fristpart = globalIdentifier;
+		fristpart = fristpart.replaceAll("FN", "1");
+		fristpart = fristpart.replaceAll("FM", "2");
+		int idx = fristpart.indexOf(".");
+		String endpart = fristpart.substring(idx + 1);
+		endpart = endpart.replaceAll("S", "1");
+		endpart = endpart.replaceAll("P", "2");
+		endpart = endpart.replaceAll("A", "3");
+		String modified = fristpart.substring(0, idx) + endpart;
+		return Integer.parseInt(modified);
+	}
 }

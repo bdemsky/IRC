@@ -4,6 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -97,7 +98,7 @@ public class MLPAnalysis {
   private Hashtable < FlatNode, ParentChildConflictsMap > conflictsResults;
   private Hashtable< FlatMethod, MethodSummary > methodSummaryResults;
   private OwnershipAnalysis ownAnalysisForSESEConflicts;
-  private Hashtable <FlatMethod, ConflictGraph> conflictGraphResults;
+  private Hashtable <FlatNode, ConflictGraph> conflictGraphResults;
   
   // temporal data structures to track analysis progress.
   private MethodSummary currentMethodSummary;
@@ -161,7 +162,7 @@ public class MLPAnalysis {
     
     conflictsResults = new Hashtable < FlatNode, ParentChildConflictsMap >();
     methodSummaryResults=new Hashtable<FlatMethod, MethodSummary>();
-    conflictGraphResults=new Hashtable<FlatMethod, ConflictGraph>();
+    conflictGraphResults=new Hashtable<FlatNode, ConflictGraph>();
     
     seseSummaryMap= new Hashtable<FlatNode, SESESummary>();
     isAfterChildSESEIndicatorMap= new Hashtable<FlatNode, Boolean>();
@@ -295,12 +296,37 @@ public class MLPAnalysis {
     	
         //	postSESEConflictsForward(javaCallGraph);
     	// another pass for making graph
+    	makeConflictGraph();
+    	/*
     	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     	while (methItr.hasNext()) {
     		Descriptor d = methItr.next();
     		FlatMethod fm = state.getMethodFlat(d);
-    		makeConflictGraph(fm);
-    	}	    
+    		makeConflictGraph2(fm);
+    	}
+    	
+    	Enumeration<FlatNode> keyEnum1=conflictGraphResults.keys();
+		while (keyEnum1.hasMoreElements()) {
+			FlatNode flatNode = (FlatNode) keyEnum1.nextElement();
+			ConflictGraph conflictGraph=conflictGraphResults.get(flatNode);
+			conflictGraph.analyzeConflicts();
+			conflictGraphResults.put(flatNode, conflictGraph);
+		}
+		*/
+    	
+    	Enumeration<FlatNode> keyEnum=conflictGraphResults.keys();
+    	while (keyEnum.hasMoreElements()) {
+			FlatNode key = (FlatNode) keyEnum.nextElement();
+			ConflictGraph cg=conflictGraphResults.get(key);
+			try {
+				cg.writeGraph("ConflictGraphFor"+key, false);
+			} catch (IOException e) {
+				System.out.println("Error writing");
+				System.exit(0);
+			}
+		}
+    	
+    	/*
     	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     	while(methItr.hasNext()){
     		Descriptor d = methItr.next();
@@ -315,6 +341,7 @@ public class MLPAnalysis {
     			}
     		}
     	}
+    	*/
     	////////////////
     }
 
@@ -1893,10 +1920,7 @@ public class MLPAnalysis {
 		return sorted;
 	}
 	
-	private void makeConflictGraph(FlatMethod fm) {
-
-		// create conflict graph for each flat method
-		ConflictGraph conflictGraph = new ConflictGraph();
+	private void makeConflictGraph2(FlatMethod fm) {
 
 		HashSet<MethodContext> mcSet = ownAnalysisForSESEConflicts
 				.getAllMethodContextSetByDescriptor(fm.getMethod());
@@ -1909,6 +1933,9 @@ public class MLPAnalysis {
 			flatNodesToVisit.add(fm);
 
 			Set<FlatNode> visited = new HashSet<FlatNode>();
+			
+			SESESummary summary = new SESESummary(null, fm);
+			seseSummaryMap.put(fm, summary);
 
 			while (!flatNodesToVisit.isEmpty()) {
 				Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
@@ -1916,7 +1943,7 @@ public class MLPAnalysis {
 
 				flatNodesToVisit.remove(fn);
 				visited.add(fn);
-
+			
 				// ///////////////////////////////////////////////////////////////////////
 				// Adding Stall Node of current program statement
 				ParentChildConflictsMap currentConflictsMap = conflictsResults
@@ -1926,45 +1953,143 @@ public class MLPAnalysis {
 						.getStallMap();
 				Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
 						.entrySet();
-
-//				HashSet<String> newStallNodeSet = new HashSet<String>();
-
+				
+				
+				SESESummary seseSummary=seseSummaryMap.get(fn);
+				
+				ConflictGraph conflictGraph=null;
+				conflictGraph=conflictGraphResults.get(seseSummary.getCurrentSESE());
+				
+				if(conflictGraph==null){
+					conflictGraph = new ConflictGraph();
+				}
 				for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
 						.iterator(); iterator2.hasNext();) {
 					Entry<TempDescriptor, StallSite> entry = iterator2.next();
 					TempDescriptor td = entry.getKey();
 					StallSite stallSite = entry.getValue();
-					String stallNodeID;
 
 					// reachability set
 					OwnershipGraph og = ownAnalysisForSESEConflicts
 							.getOwnvershipGraphByMethodContext(mc);
 					Set<Set> reachabilitySet = calculateReachabilitySet(og, td);
-
 					conflictGraph.addStallNode(td, fm, stallSite,
 							reachabilitySet);
-
+					
+				}
+				
+				if(conflictGraph.id2cn.size()>0){
+					conflictGraphResults.put(seseSummary.getCurrentSESE(), conflictGraph);
 				}
 
-				conflictGraph_nodeAction(mc, fm, fn, conflictGraph,
-						currentConflictsMap);
-
+				conflictGraph_nodeAction(mc, fm, fn);
+				
 				for (int i = 0; i < fn.numNext(); i++) {
 					FlatNode nn = fn.getNext(i);
 					if (!visited.contains(nn)) {
 						flatNodesToVisit.add(nn);
 					}
 				}
-
 			} // end of while(flatNodesToVisit)
 
 		} // end of while(mcIter)
 
 		// decide fine-grain edge or coarse-grain edge among all vertexes by pair-wise comparison
-		conflictGraph.analyzeConflicts();
 
-		conflictGraphResults.put(fm, conflictGraph);
+	}
+	
+	private void makeConflictGraph() {
+		Iterator<Descriptor> methItr = ownAnalysis.descriptorsToAnalyze
+				.iterator();
+		while (methItr.hasNext()) {
+			Descriptor d = methItr.next();
+			FlatMethod fm = state.getMethodFlat(d);
 
+			HashSet<MethodContext> mcSet = ownAnalysisForSESEConflicts
+					.getAllMethodContextSetByDescriptor(fm.getMethod());
+			Iterator<MethodContext> mcIter = mcSet.iterator();
+
+			while (mcIter.hasNext()) {
+				MethodContext mc = mcIter.next();
+
+				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+				flatNodesToVisit.add(fm);
+
+				Set<FlatNode> visited = new HashSet<FlatNode>();
+
+				SESESummary summary = new SESESummary(null, fm);
+				seseSummaryMap.put(fm, summary);
+
+				while (!flatNodesToVisit.isEmpty()) {
+					Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
+					FlatNode fn = fnItr.next();
+
+					flatNodesToVisit.remove(fn);
+					visited.add(fn);
+
+					// Adding Stall Node of current program statement
+					ParentChildConflictsMap currentConflictsMap = conflictsResults
+							.get(fn);
+
+					Hashtable<TempDescriptor, StallSite> stallMap = currentConflictsMap
+							.getStallMap();
+					Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
+							.entrySet();
+
+					SESESummary seseSummary = seseSummaryMap.get(fn);
+
+					ConflictGraph conflictGraph = null;
+					conflictGraph = conflictGraphResults.get(seseSummary
+							.getCurrentSESE());
+
+					if (conflictGraph == null) {
+						conflictGraph = new ConflictGraph();
+					}
+					for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
+							.iterator(); iterator2.hasNext();) {
+						Entry<TempDescriptor, StallSite> entry = iterator2
+								.next();
+						TempDescriptor td = entry.getKey();
+						StallSite stallSite = entry.getValue();
+
+						// reachability set
+						OwnershipGraph og = ownAnalysisForSESEConflicts
+								.getOwnvershipGraphByMethodContext(mc);
+						Set<Set> reachabilitySet = calculateReachabilitySet(og,
+								td);
+						conflictGraph.addStallNode(td, fm, stallSite,
+								reachabilitySet);
+
+					}
+
+					if (conflictGraph.id2cn.size() > 0) {
+						conflictGraphResults.put(seseSummary.getCurrentSESE(),
+								conflictGraph);
+					}
+
+					conflictGraph_nodeAction(mc, fm, fn);
+
+					for (int i = 0; i < fn.numNext(); i++) {
+						FlatNode nn = fn.getNext(i);
+						if (!visited.contains(nn)) {
+							flatNodesToVisit.add(nn);
+						}
+					}
+				} // end of while(flatNodesToVisit)
+
+			} // end of while(mcIter)
+
+		}
+		
+		// decide fine-grain edge or coarse-grain edge among all vertexes by pair-wise comparison
+    	Enumeration<FlatNode> keyEnum1=conflictGraphResults.keys();
+		while (keyEnum1.hasMoreElements()) {
+			FlatNode flatNode = (FlatNode) keyEnum1.nextElement();
+			ConflictGraph conflictGraph=conflictGraphResults.get(flatNode);
+			conflictGraph.analyzeConflicts();
+			conflictGraphResults.put(flatNode, conflictGraph);
+		}
+		
 	}
 	
 	private Set<Set> calculateReachabilitySet(OwnershipGraph og,
@@ -2001,9 +2126,25 @@ public class MLPAnalysis {
 		return reachabilitySet;
 	}
 	
-	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm,
+	private void conflictGraph_nodeAction2(MethodContext mc, FlatMethod fm,
 			FlatNode fn, ConflictGraph graph,
 			ParentChildConflictsMap currentConflictsMap) {
+		
+		switch (fn.kind()) {
+
+		case FKind.FlatSESEEnterNode: {
+			
+		}break;
+		
+		
+		
+		}
+		
+		
+	}
+	
+	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm,
+			FlatNode fn) {
 
 		switch (fn.kind()) {
 
@@ -2015,6 +2156,15 @@ public class MLPAnalysis {
 
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				Set<TempDescriptor> invar_set = fsen.getInVarSet();
+				
+				SESESummary seseSummary=seseSummaryMap.get(fsen);
+				ConflictGraph conflictGraph=null;
+				conflictGraph=conflictGraphResults.get(seseSummary.getCurrentParent());
+				
+				if(conflictGraph==null){
+					conflictGraph = new ConflictGraph();
+				}
+				
 
 				for (Iterator iterator = invar_set.iterator(); iterator
 						.hasNext();) {
@@ -2041,11 +2191,15 @@ public class MLPAnalysis {
 								.next();
 						hrnSet.add(referenceEdge.getDst());
 					}
-					graph.addLiveInNode(tempDescriptor, hrnSet, fsen,
+					
+					conflictGraph.addLiveInNode(tempDescriptor, hrnSet, fsen,
 							readEffectsSet, writeEffectsSet, reachabilitySet);
-
 				}
-
+				
+				if(conflictGraph.id2cn.size()>0){
+					conflictGraphResults.put(seseSummary.getCurrentParent(),conflictGraph);
+				}
+				
 			}
 
 		}
@@ -2206,6 +2360,8 @@ public class MLPAnalysis {
 				isAfterChildSESEIndicatorMap.put(currentSummary
 						.getCurrentParent(), new Boolean(true));
 			}
+//			currentConflictsMap = new ParentChildConflictsMap();
+			currentConflictsMap.clear();
 
 		}
 			break;
@@ -3225,4 +3381,13 @@ public class MLPAnalysis {
       printSESEInfoTree( bw, fsenChild );
     }
   }
+  
+  public Hashtable <FlatNode, ConflictGraph> getConflictGraphResults(){
+	  return conflictGraphResults;
+  }
+  
+  public Hashtable < FlatNode, ParentChildConflictsMap > getConflictsResults(){
+	  return conflictsResults;
+  }
+  
 }
