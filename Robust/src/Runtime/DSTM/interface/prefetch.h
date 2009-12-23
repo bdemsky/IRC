@@ -54,7 +54,8 @@ void proPrefetchQDealloc(perMcPrefetchList_t *);
 void rangePrefetch(unsigned int, short, short *);
 void *transPrefetchNew();
 perMcPrefetchList_t* processLocal(char *ptr, int);
-perMcPrefetchList_t *processRemote(unsigned int oid, short * offsetarray, int sd, short numoffset);
+//perMcPrefetchList_t *processRemote(unsigned int oid, short * offsetarray, int sd, short numoffset);
+perMcPrefetchList_t *processRemote(unsigned int oid, short * offsetarray, int sd, short numoffset, unsigned int mid);
 void insertPrefetch(int, unsigned int, short, short*, perMcPrefetchList_t **);
 
 /******** Sending and Receiving Prefetches *******/
@@ -62,13 +63,11 @@ void sendRangePrefetchReq(perMcPrefetchList_t *, int sd, unsigned int mid);
 int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer);
 int processOidFound(objheader_t *, short *, int, int, int);
 int getRangePrefetchResponse(int sd, struct readstruct *);
-//INLINE objheader_t *searchObj(unsigned int);
 INLINE objheader_t *searchObj(unsigned int);
 INLINE objheader_t *searchObjInv(unsigned int, int, int*);
 
 
 /*********** Functions for computation at the participant end **********/
-//unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int *dfsList, int top);
 unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int *dfsList, int top, int *);
 int sendOidFound(objheader_t *, unsigned int, int, char *buffer, int *bufoffset);
 int sendOidNotFound(unsigned int oid, int sd);
