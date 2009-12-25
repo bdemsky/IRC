@@ -25,6 +25,9 @@
 #include "tm.h"
 #endif
 #include <execinfo.h>
+#ifdef EVENTMONITOR
+#include "monitor.h"
+#endif
 
 
 int threadcount;
@@ -252,12 +255,18 @@ void initializethreads() {
     list->prev=&litem;
   list=&litem;
 #endif
+#ifdef EVENTMONITOR
+  createmonitor();
+#endif
 }
 
 #if defined(THREADS)||defined(STM)
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef AFFINITY
   set_affinity();
+#endif
+#ifdef EVENTMONITOR
+  createmonitor();
 #endif
 #ifdef SANDBOX
   struct sigaction sig;

@@ -11,6 +11,8 @@
 #define EV_START 4
 #define EV_COMMIT 5
 #define EV_ABORT 6
+#define EV_ARRAYREAD 7
+#define EV_ARRAYWRITE 8
 
 struct eventmonitor {
   int index;
@@ -18,26 +20,13 @@ struct eventmonitor {
   unsigned int value[MAXEVENTS];
 };
 
+#define MAXEVTHREADS 16
+#define EVTHREADSHIFT 4
+extern __thread int threadnum;
 extern __thread struct eventmonitor * events;
 extern struct eventmonitor * eventlist;
 void createmonitor();
 void dumpdata();
-
-#if defined(__i386__)
-static __inline__ unsigned long long rdtsc(void)
-{
-  unsigned long long int x;
-  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-  return x;
-}
-#elif defined(__x86_64__)
-static __inline__ unsigned long long rdtsc(void)
-{
-  unsigned hi, lo;
-  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
-#endif
 
 #define LOGTIME *((long long *)&events->value[events->index])=rdtsc();	\
   events->index+=2;
@@ -47,8 +36,14 @@ static __inline__ unsigned long long rdtsc(void)
       }
 
 #define EVLOGEVENTOBJ(x,o) { events->value[events->index++]=x;	\
-  events->value[events->index++]=o;				\
+    events->value[events->index++]=o;				\
   LOGTIME							\
     }
+
+#define EVLOGEVENTARRAY(x,o,i) { events->value[events->index++]=x;	\
+    events->value[events->index++]=o;					\
+    events->value[events->index++]=i;					\
+    LOGTIME								\
+      }
 
 #endif

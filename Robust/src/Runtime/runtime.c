@@ -29,6 +29,16 @@ __thread unsigned long long clkticks[ARRAY_LENGTH];
 unsigned long long beginClock=0;
 #define FILENAME  "log"
 #endif
+#ifdef EVENTMONITOR
+#include "monitor.h"
+__thread int objcount=0;
+#define ASSIGNUID(x) {					\
+    int number=((objcount++)<<EVTHREADSHIFT)|threadnum;	\
+    x->objuid=number;					\
+  }
+#else
+#define ASSIGNUID(x)
+#endif
 
 #if defined(THREADS)||defined(STM)
 /* Global barrier for STM */
@@ -228,50 +238,11 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #endif
 #endif
 #endif
+#ifdef EVENTMONITOR
+  dumpdata();
+#endif
   exit(___status___);
 }
-
-#if defined(__i386__)
-
-static __inline__ unsigned long long rdtsc(void)
-{
-  unsigned long long int x;
-  __asm__ volatile (".byte 0x0f, 0x31" : "=A" (x));
-  return x;
-}
-#elif defined(__x86_64__)
-
-static __inline__ unsigned long long rdtsc(void)
-{
-  unsigned hi, lo;
-  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
-  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
-}
-
-#elif defined(__powerpc__)
-
-typedef unsigned long long int unsigned long long;
-
-static __inline__ unsigned long long rdtsc(void)
-{
-  unsigned long long int result=0;
-  unsigned long int upper, lower,tmp;
-  __asm__ volatile(
-      "0:                  \n"
-      "\tmftbu   %0           \n"
-      "\tmftb    %1           \n"
-      "\tmftbu   %2           \n"
-      "\tcmpw    %2,%0        \n"
-      "\tbne     0b         \n"
-      : "=r"(upper),"=r"(lower),"=r"(tmp)
-      );
-  result = upper;
-  result = result<<32;
-  result = result|lower;
-
-  return(result);
-}
-#endif
 
 void CALL11(___System______logevent____I,int ___event___, int ___event___) {
 #ifdef STMLOG
@@ -453,6 +424,9 @@ void CALL00(___Barrier______enterBarrier____) {
     printf("%s() Could not wait on barrier: error %d in %s\n", __func__, errno, __FILE__);
     exit(-1);
   }
+#ifdef EVENTMONITOR
+  EVLOGEVENT(EV_BARRIER);
+#endif
 }
 #endif
 
@@ -501,6 +475,7 @@ __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
 #else
   struct ___Object___ * v=(struct ___Object___ *) transCreateObj(ptr, classsize[type]);
 #endif
+  ASSIGNUID(v);
   v->type=type;
   v->___objlocation___=v;
   return v;
@@ -525,6 +500,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
 #else
   struct ArrayObject * v=(struct ArrayObject *)transCreateObj(ptr, sizeof(struct ArrayObject)+length*classsize[type]);
 #endif
+  ASSIGNUID(v);
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;
@@ -538,6 +514,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   objheader_t *tmp=mygcmalloc((struct garbagelist *) ptr, classsize[type]+sizeof(objheader_t));
   struct ___Object___ * v=(struct ___Object___ *) &tmp[1];
+  ASSIGNUID(v);
   initdsmlocks(&tmp->lock);
   tmp->version = 1;
   v->___objlocation___=v;
@@ -573,6 +550,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   initdsmlocks(&tmp->lock);
 #endif
   tmp->version=1;
+  ASSIGNUID(v);
   v->type=type;
   if (length<0) {
     printf("ERROR: negative array %d\n", length);

@@ -2,6 +2,9 @@
 #ifdef DELAYCOMP
 #include<delaycomp.h>
 #endif
+#ifdef EVENTMONITOR
+#include"monitor.h"
+#endif
 
 #ifdef TRANSSTATS
 #define TRANSWRAP(x) x
@@ -91,7 +94,9 @@ int transCommit() {
 #ifdef SANDBOX
       abortenabled=1;
 #endif
-
+#ifdef EVENTMONITOR
+      EVLOGEVENT(EV_ABORT);
+#endif
       return TRANS_ABORT;
     }
     if(finalResponse == TRANS_COMMIT) {
@@ -111,6 +116,9 @@ int transCommit() {
 #if defined(STMARRAY)&&!defined(DUALVIEW)
       arraystack.count=0;
 #endif
+#endif
+#ifdef EVENTMONITOR
+      EVLOGEVENT(EV_COMMIT);
 #endif
       return 0;
     }
@@ -140,6 +148,9 @@ int transCommit() {
 #if defined(STMARRAY)&&!defined(DUALVIEW)
       arraystack.count=0;
 #endif
+#endif
+#ifdef EVENTMONITOR
+      EVLOGEVENT(EV_ABORT);
 #endif
 	return TRANS_ABORT;
       }
@@ -1202,7 +1213,7 @@ void transCommitProcess(struct garbagelist * oidwrlocked, int numoidwrlocked) {
       int j;
       int addwrobject=0, addrdobject=0;
       int elementsize=classsize[type];
-      int baseoffset=(lowoffset<<INDEXSHIFT)+sizeof(int)+((int)&(((struct ArrayObject *)0)->___length___));
+      int baseoffset=(lowoffset<<INDEXSHIFT)+sizeof(int)+((int)(INTPTR)&(((struct ArrayObject *)0)->___length___));
       char *dstptr=((char *)dst)+baseoffset;
       char *srcptr=((char *)src)+baseoffset;
       for(j=lowoffset; j<=highoffset;j++, srcptr+=INDEXLENGTH,dstptr+=INDEXLENGTH) {

@@ -103,6 +103,7 @@ public class State {
   public boolean DSMTASK=false;
   public static boolean ABORTREADERS=false;
   //STM options
+  public boolean EVENTMONITOR=false;
   public static boolean STMARRAY=false;
   public static boolean SINGLETM=false;
   public static boolean READSET=false;

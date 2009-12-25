@@ -181,6 +181,9 @@ public class BuildCode {
     if (state.SANDBOX) {
       outmethodheader.println("#include \"sandbox.h\"");
     }
+    if (state.EVENTMONITOR) {
+      outmethodheader.println("#include \"monitor.h\"");
+    }
     if (state.SINGLETM) {
       outmethodheader.println("#include \"tm.h\"");
       outmethodheader.println("#include \"delaycomp.h\"");
@@ -406,6 +409,10 @@ public class BuildCode {
       outmethod.println("#endif\n");
     }
 
+    if (state.EVENTMONITOR) {
+      outmethod.println("dumpdata();");
+    }
+
     if (state.THREAD||state.SINGLETM)
       outmethod.println("pthread_exit(NULL);");
 
@@ -617,6 +624,9 @@ public class BuildCode {
     //Print out definition for array type
     outclassdefs.println("struct "+arraytype+" {");
     outclassdefs.println("  int type;");
+    if (state.EVENTMONITOR) {
+      outclassdefs.println("  int objuid;");
+    }
     if (state.THREAD) {
       outclassdefs.println("  pthread_t tid;");
       outclassdefs.println("  void * lockentry;");
@@ -1351,6 +1361,9 @@ public class BuildCode {
     /* Output class structure */
     classdefout.println("struct "+cn.getSafeSymbol()+" {");
     classdefout.println("  int type;");
+    if (state.EVENTMONITOR) {
+      classdefout.println("  int objuid;");
+    }
     if (state.THREAD) {
       classdefout.println("  pthread_t tid;");
       classdefout.println("  void * lockentry;");
@@ -1629,6 +1642,7 @@ public class BuildCode {
 	  ar.reallivein=new HashSet(liveinto);
 	  ar.liveout=liveout;
 	  ar.liveoutvirtualread=liveoutvirtualread;
+
 
 	  for(Iterator<TempDescriptor> it=liveinto.iterator(); it.hasNext();) {
 	    TempDescriptor tmp=it.next();
@@ -3859,6 +3873,9 @@ public class BuildCode {
       }
       if (wb.needBarrier(fsfn)&&
           locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getDst())!=LocalityAnalysis.SCRATCH) {
+	if (state.EVENTMONITOR) {
+	  output.println("if ("+dst+"->___objstatus___&DIRTY) EVLOGEVENTOBJ(EV_WRITE,"+dst+"->objuid)");
+	}
 	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
       }
       if (srcptr&!fsfn.getSrc().getType().isNull()) {

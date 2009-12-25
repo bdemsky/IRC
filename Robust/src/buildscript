@@ -14,6 +14,7 @@ echo "-stmarray partial array treatment"
 echo "-dualview dual view of arrays"
 echo "-hybrid use fission only when it looks like a good choice"
 echo "-numa numa aware"
+echo "-eventmonitor turn on transaction event trace recording"
 echo
 echo DSM options
 echo -dsm distributed shared memory
@@ -97,6 +98,7 @@ FASTMEMCPY=false
 STMARRAY=false
 DUALVIEW=false
 STM=false
+EVENTMONITOR=false
 NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
@@ -173,6 +175,11 @@ shift
 elif [[ $1 = '-nojava' ]]
 then
 NOJAVA=true
+elif [[ $1 = '-eventmonitor' ]]
+then
+JAVAOPTS="$JAVAOPTS -eventmonitor"
+EVENTMONITOR=true
+EXTRAOPTIONS="$EXTRAOPTIONS -DEVENTMONITOR"
 elif [[ $1 = '-garbagestats' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DGARBAGESTATS"
@@ -729,6 +736,11 @@ $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
 if $NUMA
 then
 FILES="$FILES $ROBUSTROOT/Runtime/affinity.c"
+fi
+
+if $EVENTMONITOR
+then
+FILES="$FILES $ROBUSTROOT/Runtime/STM/monitor.c"
 fi
 
 if $FASTMEMCPY

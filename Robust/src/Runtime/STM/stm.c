@@ -12,6 +12,9 @@
 
 #include "tm.h"
 #include "garbage.h"
+#ifdef EVENTMONITOR
+#include "monitor.h"
+#endif
 
 /* Per thread transaction variables */
 __thread objstr_t *t_cache;
@@ -83,6 +86,9 @@ int stmStartup() {
  */
 void transStart() {
   //Transaction start is currently free...commit and aborting is not
+#ifdef EVENTMONITOR
+  EVLOGEVENT(EV_START);
+#endif
 }
 
 /* =======================================================
@@ -189,12 +195,18 @@ void *transRead(void * oid, void *gl) {
     size += sizeof(objheader_t);
     objcopy = (objheader_t *) objstrAlloc(size);
     A_memcpy(objcopy, header, size);
+#ifdef EVENTMONITOR
+    EVLOGEVENTOBJ(EV_READ, ((struct ___Object___ *)oid)->objuid);
+#endif
   }
 #else
   GETSIZE(size, header);
   size += sizeof(objheader_t);
   objcopy = (objheader_t *) objstrAlloc(size);
   A_memcpy(objcopy, header, size);
+#ifdef EVENTMONITOR
+  EVLOGEVENTOBJ(EV_READ, ((struct ___Object___ *) oid)->objuid);
+#endif
 #endif
 #ifdef STMSTATS
   /* keep track of the object's access sequence in a transaction */

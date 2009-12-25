@@ -33,6 +33,14 @@
     version=(unsigned int *)((char *)array-sizeof(objheader_t)-sizeof(int)*2*(byteindex)-sizeof(int)); \
   }
 
+#ifdef EVENTMONITOR
+#define EVGETARRAY(array, index) EVLOGEVENTARRAY(EV_ARRAYREAD,array->objuid,index)
+#define EVSETARRAY(cond, array, index) if (cond!=STMDIRTY) EVLOGEVENTARRAY(EV_ARRAYWRITE,array->objuid,index)
+#else
+#define EVGETARRAY(array, index)
+#define EVSETARRAY(cond, array, index)
+#endif
+
 #define STMGETARRAY(dst, array, index, type) {				\
     if (((char *)array)!=((char *)array->___objlocation___)) {		\
       if(!(array->___objstatus___&NEW)) {				\
@@ -42,6 +50,7 @@
 	GETLOCKPTR(status, array, metaindex);				\
 	if (metaindex<array->lowindex||metaindex>array->highindex	\
 	    ||(*status)==STMNONE) {					\
+	  EVGETARRAY(array, metaindex);					\
 	  arraycopy(array, byteindex);					\
 	  (*status)=STMCLEAN;}						\
       }									\
@@ -59,6 +68,7 @@
 	  ||(*status)==STMNONE) {					\
 	arraycopy(array, byteindex);					\
       }									\
+      EVSETARRAY(*status, array, metaindex);				\
       (*status)=STMDIRTY;						\
     }									\
     ((type *)(((char *) &array->___length___)+sizeof(int)))[index]=src;	\
