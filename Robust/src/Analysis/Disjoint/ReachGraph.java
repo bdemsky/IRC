@@ -127,7 +127,7 @@ public class ReachGraph {
   //  Low-level referencee and referencer methods
   //
   //  These methods provide the lowest level for
-  //  creating references between ownership nodes
+  //  creating references between reachability nodes
   //  and handling the details of maintaining both
   //  list of referencers and referencees.
   //
@@ -573,7 +573,7 @@ public class ReachGraph {
 
 
   public void assignTempEqualToNewAlloc( TempDescriptor x,
-                                         AllocSite as ) {
+                                         AllocSite      as ) {
     assert x  != null;
     assert as != null;
 
@@ -607,15 +607,15 @@ public class ReachGraph {
 
 
   // use the allocation site (unique to entire analysis) to
-  // locate the heap region nodes in this ownership graph
+  // locate the heap region nodes in this reachability graph
   // that should be aged.  The process models the allocation
   // of new objects and collects all the oldest allocations
   // in a summary node to allow for a finite analysis
   //
   // There is an additional property of this method.  After
-  // running it on a particular ownership graph (many graphs
+  // running it on a particular reachability graph (many graphs
   // may have heap regions related to the same allocation site)
-  // the heap region node objects in this ownership graph will be
+  // the heap region node objects in this reachability graph will be
   // allocated.  Therefore, after aging a graph for an allocation
   // site, attempts to retrieve the heap region nodes using the
   // integer id's contained in the allocation site should always
@@ -628,7 +628,7 @@ public class ReachGraph {
     allocSites.add( as );
 
     // get the summary node for the allocation site in the context
-    // of this particular ownership graph
+    // of this particular reachability graph
     HeapRegionNode hrnSummary = getSummaryNode( as );
 
     // merge oldest node into summary
@@ -713,11 +713,11 @@ public class ReachGraph {
     HeapRegionNode hrnSummary = id2hrn.get( idSummary );
 
     // If this is null then we haven't touched this allocation site
-    // in the context of the current ownership graph, so allocate
+    // in the context of the current reachability graph, so allocate
     // heap region nodes appropriate for the entire allocation site.
-    // This should only happen once per ownership graph per allocation site,
+    // This should only happen once per reachability graph per allocation site,
     // and a particular integer id can be used to locate the heap region
-    // in different ownership graphs that represents the same part of an
+    // in different reachability graphs that represents the same part of an
     // allocation site.
     if( hrnSummary == null ) {
 
@@ -1076,7 +1076,7 @@ public class ReachGraph {
   public void resolveMethodCall(FlatCall       fc,        // call site in caller method
                                 boolean        isStatic,  // whether it is a static method
                                 FlatMethod     fm,        // the callee method (when virtual, can be many)
-                                ReachGraph ogCallee,  // the callee's current ownership graph
+                                ReachGraph ogCallee,  // the callee's current reachability graph
 				MethodContext  mc,        // the aliasing context for this call
 				ParameterDecomposition pd // if this is not null, we're calling after analysis
 				) {
@@ -1942,12 +1942,12 @@ public class ReachGraph {
 	// only address this edge if it is not a special initial edge
 	if( !edgeCallee.isInitialParam() ) {
 
-	  // now we know that in the callee method's ownership graph
+	  // now we know that in the callee method's reachability graph
 	  // there is a heap region->heap region reference edge given
 	  // by heap region pointers:
 	  // hrnCallee -> heapChildCallee
 	  //
-	  // or by the ownership-graph independent ID's:
+	  // or by the reachability-graph independent ID's:
 	  // idCallee -> idChildCallee
 
 	  // make the edge with src and dst so beta info is
@@ -3362,7 +3362,6 @@ public class ReachGraph {
                           boolean labelSelect,
                           boolean pruneGarbage,
                           boolean writeReferencers,
-                          boolean writeParamMappings,
                           boolean hideSubsetReachability,
                           boolean hideEdgeTaints
                           ) throws java.io.IOException {

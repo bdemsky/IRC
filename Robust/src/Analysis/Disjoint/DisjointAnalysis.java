@@ -161,7 +161,7 @@ public class DisjointAnalysis {
     System.out.println( treport );
 
     if( writeFinalDOTs && !writeAllIncrementalDOTs ) {
-      //writeFinalContextGraphs();      
+      writeFinalGraphs();      
     }  
 
     if( state.DISJOINTALIASFILE != null ) {
@@ -350,11 +350,14 @@ public class DisjointAnalysis {
     // states after the flat method returns
     ReachGraph completeGraph = new ReachGraph();
 
+    assert !setReturns.isEmpty();
     Iterator retItr = setReturns.iterator();
     while( retItr.hasNext() ) {
       FlatReturnNode frn = (FlatReturnNode) retItr.next();
+
       assert mapFlatNodeToReachGraph.containsKey( frn );
       ReachGraph rgRet = mapFlatNodeToReachGraph.get( frn );
+
       completeGraph.merge( rgRet );
     }
     
@@ -363,11 +366,11 @@ public class DisjointAnalysis {
 
   
   protected void
-    analyzeFlatNode( Descriptor d,
-                     FlatMethod fmContaining,
-                     FlatNode fn,
+    analyzeFlatNode( Descriptor              d,
+                     FlatMethod              fmContaining,
+                     FlatNode                fn,
                      HashSet<FlatReturnNode> setRetNodes,
-                     ReachGraph rg
+                     ReachGraph              rg
                      ) throws java.io.IOException {
 
     
@@ -379,8 +382,8 @@ public class DisjointAnalysis {
     // rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
 	  
-    TempDescriptor lhs;
-    TempDescriptor rhs;
+    TempDescriptor  lhs;
+    TempDescriptor  rhs;
     FieldDescriptor fld;
 
     // use node type to decide what transfer function
@@ -617,29 +620,27 @@ public class DisjointAnalysis {
   }
 
   
-  /*
-  private void writeFinalContextGraphs() {
-    Set entrySet = mapDescriptorToCompleteReachabilityGraph.entrySet();
+  
+  private void writeFinalGraphs() {
+    Set entrySet = mapDescriptorToCompleteReachGraph.entrySet();
     Iterator itr = entrySet.iterator();
     while( itr.hasNext() ) {
-      Map.Entry      me = (Map.Entry)      itr.next();
-      Descriptor  mc = (Descriptor)  me.getKey();
-      ReachabilityGraph og = (ReachabilityGraph) me.getValue();
+      Map.Entry  me = (Map.Entry)  itr.next();
+      Descriptor  d = (Descriptor) me.getKey();
+      ReachGraph rg = (ReachGraph) me.getValue();
 
-      try {
-	og.writeGraph(mc+"COMPLETE",
-		      true,  // write labels (variables)
-		      true,  // selectively hide intermediate temp vars
-		      true,  // prune unreachable heap regions
-		      false, // show back edges to confirm graph validity
-		      false, // show parameter indices (unmaintained!)
-		      true,  // hide subset reachability states
-		      true); // hide edge taints
+      try {        
+	rg.writeGraph( d+"COMPLETE",
+                       true,   // write labels (variables)
+                       true,   // selectively hide intermediate temp vars
+                       true,   // prune unreachable heap regions
+                       false,  // show back edges to confirm graph validity
+                       true,   // hide subset reachability states
+                       true ); // hide edge taints
       } catch( IOException e ) {}    
     }
   }
-  
-  */
+   
 
   // return just the allocation site associated with one FlatNew node
   protected AllocSite getAllocSiteFromFlatNewPRIVATE( FlatNew fnew ) {
@@ -933,29 +934,40 @@ public class DisjointAnalysis {
                             "analysisEntryMethod"
                             );
 
-    TempDescriptor cmdLineArgs = new TempDescriptor( "args" );
-    
-    FlatNew fn = new FlatNew( mdSourceEntry.getParamType( 0 ),
-                              cmdLineArgs,
-                              false // is global 
-                              );
+    TempDescriptor cmdLineArgs = 
+      new TempDescriptor( "args",
+                          mdSourceEntry.getParamType( 0 )
+                          );
+
+    FlatNew fn = 
+      new FlatNew( mdSourceEntry.getParamType( 0 ),
+                   cmdLineArgs,
+                   false // is global 
+                   );
     
     TempDescriptor[] sourceEntryArgs = new TempDescriptor[1];
     sourceEntryArgs[0] = cmdLineArgs;
     
-    FlatCall fc = new FlatCall( mdSourceEntry,
-                                null, // dst temp
-                                null, // this temp
-                                sourceEntryArgs
-                                );
+    FlatCall fc = 
+      new FlatCall( mdSourceEntry,
+                    null, // dst temp
+                    null, // this temp
+                    sourceEntryArgs
+                    );
+
+    FlatReturnNode frn = new FlatReturnNode( null );
 
     FlatExit fe = new FlatExit();
 
-    this.fmAnalysisEntry = new FlatMethod( mdAnalysisEntry, fe );
+    this.fmAnalysisEntry = 
+      new FlatMethod( mdAnalysisEntry, 
+                      fe
+                      );
 
     this.fmAnalysisEntry.addNext( fn );
     fn.addNext( fc );
-    fc.addNext( fe );
+    fc.addNext( frn );
+    frn.addNext( fe );
   }
 
 
