@@ -61,6 +61,10 @@ public class ReachGraph {
     return td2vn.get( td );
   }
 
+  public boolean hasVariable( TempDescriptor td ) {
+    return td2vn.containsKey( td );
+  }
+
 
   // the reason for this method is to have the option
   // of creating new heap regions with specific IDs, or
@@ -2880,6 +2884,23 @@ public class ReachGraph {
 
 
   ////////////////////////////////////////////////////
+  // high-level merge operations
+  ////////////////////////////////////////////////////
+  public void merge_sameMethodContext( ReachGraph rg ) {
+    // when merging two graphs that abstract the heap
+    // of the same method context, we just call the
+    // basic merge operation
+    merge( rg );
+  }
+
+  public void merge_diffMethodContext( ReachGraph rg ) {
+    // when merging graphs for abstract heaps in
+    // different method contexts we should:
+    // 1) age the allocation sites?
+    merge( rg );
+  }
+
+  ////////////////////////////////////////////////////
   // in merge() and equals() methods the suffix A
   // represents the passed in graph and the suffix
   // B refers to the graph in this object
@@ -2887,7 +2908,7 @@ public class ReachGraph {
   // merge it into B, so after the operation graph B
   // is the final result.
   ////////////////////////////////////////////////////
-  public void merge( ReachGraph rg ) {
+  protected void merge( ReachGraph rg ) {
 
     if( rg == null ) {
       return;
@@ -3300,6 +3321,16 @@ public class ReachGraph {
 
   protected boolean areAccessPathsEqual( ReachGraph rg ) {
     return temp2accessPaths.equals( rg.temp2accessPaths );
+  }
+
+
+  // use this method to make a new reach graph that is
+  // what the callee from the FlatCall would start with
+  // from arguments and heap taken from this reach graph
+  public ReachGraph makeCalleeView( FlatCall fc ) {
+    ReachGraph calleeView = new ReachGraph();
+
+    return calleeView;
   }
 
 

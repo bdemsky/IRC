@@ -47,7 +47,26 @@ public class DisjointAnalysis {
 
   // the set of task and/or method descriptors
   // reachable in call graph
-  protected Set<Descriptor> descriptorsToAnalyze;
+  protected Set<Descriptor> 
+    descriptorsToAnalyze;
+
+  // current descriptors to visit in fixed-point
+  // interprocedural analysis, prioritized by
+  // dependency in the call graph
+  protected PriorityQueue<DescriptorQWrapper> 
+    descriptorsToVisitQ;
+  
+  // a duplication of the above structure, but
+  // for efficient testing of inclusion
+  protected HashSet<Descriptor> 
+    descriptorsToVisitSet;
+
+  // storage for priorities (doesn't make sense)
+  // to add it to the Descriptor class, just in
+  // this analysis
+  protected Hashtable<Descriptor, Integer> 
+    mapDescriptorToPriority;
+
 
   // maps a descriptor to its current partial result
   // from the intraprocedural fixed-point analysis--
@@ -73,6 +92,14 @@ public class DisjointAnalysis {
   // structure for efficiency in some operations
   protected Hashtable<Integer, AllocSite>
     mapHrnIdToAllocSite;
+
+  // maps a method to its initial heap model (IHM) that
+  // is the set of reachability graphs from every caller
+  // site, all merged together.  The reason that we keep
+  // them separate is that any one call site's contribution
+  // to the IHM may changed along the path to the fixed point
+  protected Hashtable< Descriptor, Hashtable< FlatCall, ReachGraph > >
+    mapDescriptorToIHMcontributions;
 
   // TODO -- CHANGE EDGE/TYPE/FIELD storage!
   public static final String arrayElementFieldName = "___element_";
@@ -107,11 +134,23 @@ public class DisjointAnalysis {
     mapFlatNewToAllocSite = 
       new Hashtable<FlatNew, AllocSite>();
 
+    mapDescriptorToIHMcontributions =
+      new Hashtable< Descriptor, Hashtable< FlatCall, ReachGraph > >();
+
     mapHrnIdToAllocSite =
       new Hashtable<Integer, AllocSite>();
 
     mapTypeToArrayField = 
       new Hashtable <TypeDescriptor, FieldDescriptor>();
+
+    descriptorsToVisitQ =
+      new PriorityQueue<DescriptorQWrapper>();
+
+    descriptorsToVisitSet =
+      new HashSet<Descriptor>();
+
+    mapDescriptorToPriority =
+      new Hashtable<Descriptor, Integer>();
   }
 
 
@@ -217,15 +256,6 @@ public class DisjointAnalysis {
     // add sorted descriptors to priority queue, and duplicate
     // the queue as a set for efficiently testing whether some
     // method is marked for analysis
-    PriorityQueue<DescriptorQWrapper> descriptorsToVisitQ     
-      = new PriorityQueue<DescriptorQWrapper>();
-
-    HashSet<Descriptor> descriptorsToVisitSet
-      = new HashSet<Descriptor>();
-
-    Hashtable<Descriptor, Integer> mapDescriptorToPriority
-      = new Hashtable<Descriptor, Integer>();
-
     int p = 0;
     Iterator<Descriptor> dItr = sortedDescriptors.iterator();
     while( dItr.hasNext() ) {
@@ -390,9 +420,38 @@ public class DisjointAnalysis {
     // to apply to the reachability graph
     switch( fn.kind() ) {
 
-    case FKind.FlatMethod:
-      FlatMethod fm = (FlatMethod) fn;
-      break;
+    case FKind.FlatMethod: {
+      // construct this method's initial heap model (IHM)
+      // since we're working on the FlatMethod, we know
+      // the incoming ReachGraph 'rg' is empty
+
+      Hashtable<FlatCall, ReachGraph> heapsFromCallers = 
+        getIHMcontributions( d );
+
+      Set entrySet = heapsFromCallers.entrySet();
+      Iterator itr = entrySet.iterator();
+      while( itr.hasNext() ) {
+        Map.Entry  me        = (Map.Entry)  itr.next();
+        FlatCall   fc        = (FlatCall)   me.getKey();
+        ReachGraph rgContrib = (ReachGraph) me.getValue();
+
+        assert fc.getMethod().equals( d );
+
+        // some call sites are in same method context though,
+        // and all of them should be merged together first,
+        // then heaps from different contexts should be merged
+        // THIS ASSUMES DIFFERENT CONTEXTS NEED SPECIAL CONSIDERATION!
+        // such as, do allocation sites need to be aged?
+
+        rg.merge_diffMethodContext( rgContrib );
+      }
+      
+      FlatMethod fm = (FlatMethod) fn;      
+      for( int i = 0; i < fm.numParameters(); ++i ) {
+        TempDescriptor tdParam = fm.getParameter( i );
+        //assert rg.hasVariable( tdParam );
+      }
+    } break;
       
     case FKind.FlatOpNode:
       FlatOpNode fon = (FlatOpNode) fn;
@@ -481,11 +540,36 @@ public class DisjointAnalysis {
       }
       break;
 
-    case FKind.FlatCall:
+    case FKind.FlatCall: {
+      FlatCall         fc       = (FlatCall) fn;
+      MethodDescriptor mdCallee = fc.getMethod();
+      FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
+
+      ReachGraph heapForThisCall_old = 
+        getIHMcontribution( mdCallee, fc );
+
+      ReachGraph heapForThisCall_cur = rg.makeCalleeView( fc );
+
+      if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {
+        // if heap at call site changed, update the contribution,
+        //  and reschedule the callee for analysis
+        addIHMcontribution( mdCallee, fc, heapForThisCall_cur );
+
+        if( !descriptorsToVisitSet.contains( mdCallee ) ) {
+          Integer priority = mapDescriptorToPriority.get( mdCallee );
+          descriptorsToVisitQ.add( new DescriptorQWrapper( priority, 
+                                                           mdCallee ) 
+                                   );
+          descriptorsToVisitSet.add( mdCallee );
+        }
+      }
+
+      // now that we've got that taken care of, go ahead and update
+      // the reach graph for this FlatCall node by whatever callee
+      // result we do have
+      
+
       /*
-      FlatCall fc = (FlatCall) fn;
-      MethodDescriptor md = fc.getMethod();
-      FlatMethod flatm = state.getMethodFlat(md);
       ReachGraph ogMergeOfAllPossibleCalleeResults = new ReachGraph();
 
       if( md.isStatic() ) {
@@ -576,7 +660,7 @@ public class DisjointAnalysis {
 
       og = ogMergeOfAllPossibleCalleeResults;
       */
-      break;
+    } break;
       
 
     case FKind.FlatReturnNode:
@@ -1096,5 +1180,40 @@ public class DisjointAnalysis {
     return deps;
   }
 
+  
+  public Hashtable<FlatCall, ReachGraph> getIHMcontributions( Descriptor d ) {
+
+    Hashtable<FlatCall, ReachGraph> heapsFromCallers = 
+      mapDescriptorToIHMcontributions.get( d );
+    
+    if( heapsFromCallers == null ) {
+      heapsFromCallers = new Hashtable<FlatCall, ReachGraph>();
+    }
+    
+    return heapsFromCallers;
+  }
+
+  public ReachGraph getIHMcontribution( Descriptor d, 
+                                        FlatCall   fc
+                                        ) {
+    Hashtable<FlatCall, ReachGraph> heapsFromCallers = 
+      getIHMcontributions( d );
+
+    if( !heapsFromCallers.containsKey( fc ) ) {
+      heapsFromCallers.put( fc, new ReachGraph() );
+    }
+
+    return heapsFromCallers.get( fc );
+  }
+
+  public void addIHMcontribution( Descriptor d,
+                                  FlatCall   fc,
+                                  ReachGraph rg
+                                  ) {
+    Hashtable<FlatCall, ReachGraph> heapsFromCallers = 
+      getIHMcontributions( d );
+
+    heapsFromCallers.put( fc, rg );
+  }
 
 }
