@@ -28,7 +28,7 @@ public class ReachGraph {
 
   // use to disable improvements for comparison
   protected static final boolean DISABLE_STRONG_UPDATES = false;
-  protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
+  protected static final boolean DISABLE_GLOBAL_SWEEP   = true;
 
   protected static int      allocationDepth   = -1;
   protected static TypeUtil typeUtil          = null;
@@ -87,6 +87,7 @@ public class ReachGraph {
     TypeDescriptor typeToUse = null;
     if( allocSite != null ) {
       typeToUse = allocSite.getType();
+      allocSites.add( allocSite );
     } else {
       typeToUse = type;
     }
@@ -3325,14 +3326,159 @@ public class ReachGraph {
 
 
   // use this method to make a new reach graph that is
-  // what the callee from the FlatCall would start with
-  // from arguments and heap taken from this reach graph
-  public ReachGraph makeCalleeView( FlatCall fc ) {
-    ReachGraph calleeView = new ReachGraph();
+  // what heap the FlatMethod callee from the FlatCall 
+  // would start with reaching from its arguments in
+  // this reach graph
+  public ReachGraph makeCalleeView( FlatCall   fc,
+                                    FlatMethod fm ) {
 
-    return calleeView;
+    // the callee view is a new graph: DON'T MODIFY
+    // *THIS* graph
+    ReachGraph rg = new ReachGraph();
+
+    // track what parts of this graph have already been
+    // added to callee view, variables not needed.
+    // Note that we need this because when we traverse
+    // this caller graph for each parameter we may find
+    // nodes and edges more than once (which the per-param
+    // "visit" sets won't show) and we only want to create
+    // an element in the new callee view one time
+    Set callerNodesCopiedToCallee = new HashSet<HeapRegionNode>();
+    Set callerEdgesCopiedToCallee = new HashSet<RefEdge>();
+
+    // a conservative starting point is to take the 
+    // mechanically-reachable-from-arguments graph
+    // as opposed to using reachability information
+    // to prune the graph further
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+
+      // for each parameter index, get the symbol in the
+      // caller view and callee view
+      
+      // argument defined here is the symbol in the caller
+      TempDescriptor tdArg = fc.getArgMatchingParamIndex( fm, i );
+
+      // parameter defined here is the symbol in the callee
+      TempDescriptor tdParam = fm.getParameter( i );
+
+      // use these two VariableNode objects to translate
+      // between caller and callee--its easy to compare
+      // a HeapRegionNode across callee and caller because
+      // they will have the same heap region ID
+      VariableNode vnCaller = this.getVariableNodeFromTemp( tdArg );
+      VariableNode vnCallee = rg.getVariableNodeFromTemp( tdParam );
+ 
+      // now traverse the caller view using the argument to
+      // build the callee view which has the parameter symbol
+      Set<RefSrcNode> toVisitInCaller = new HashSet<RefSrcNode>();
+      Set<RefSrcNode> visitedInCaller = new HashSet<RefSrcNode>();
+      toVisitInCaller.add( vnCaller );
+
+      while( !toVisitInCaller.isEmpty() ) {
+        RefSrcNode rsnCaller = toVisitInCaller.iterator().next();
+        RefSrcNode rsnCallee;
+
+        toVisitInCaller.remove( rsnCaller );
+        visitedInCaller.add( rsnCaller );
+        
+        // FIRST - setup the source end of an edge
+
+        if( rsnCaller == vnCaller ) {
+          // if the caller node is the param symbol, we
+          // have to do this translation for the callee
+          rsnCallee = vnCallee;
+        } else {
+          // otherwise the callee-view node is a heap
+          // region with the same ID, that may or may
+          // not have been created already
+          assert rsnCaller instanceof HeapRegionNode;          
+
+          HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
+          if( !callerNodesCopiedToCallee.contains( rsnCaller ) ) {
+            rsnCallee = 
+              rg.createNewHeapRegionNode( hrnSrcCaller.getID(),
+                                          hrnSrcCaller.isSingleObject(),
+                                          hrnSrcCaller.isNewSummary(),
+                                          hrnSrcCaller.isFlagged(),
+                                          hrnSrcCaller.getType(),
+                                          hrnSrcCaller.getAllocSite(),
+                                          hrnSrcCaller.getAlpha(),
+                                          hrnSrcCaller.getDescription()
+                                          );
+            callerNodesCopiedToCallee.add( rsnCaller );
+          } else {
+            rsnCallee = rg.id2hrn.get( hrnSrcCaller.getID() );
+          }
+        }
+
+        // SECOND - go over all edges from that source
+
+        Iterator<RefEdge> itrRefEdges = rsnCaller.iteratorToReferencees();
+        while( itrRefEdges.hasNext() ) {
+          RefEdge        reCaller  = itrRefEdges.next();
+          HeapRegionNode hrnCaller = reCaller.getDst();
+          HeapRegionNode hrnCallee;
+
+          // THIRD - setup destination ends of edges
+
+          if( !callerNodesCopiedToCallee.contains( hrnCaller ) ) {
+            hrnCallee = 
+              rg.createNewHeapRegionNode( hrnCaller.getID(),
+                                          hrnCaller.isSingleObject(),
+                                          hrnCaller.isNewSummary(),
+                                          hrnCaller.isFlagged(),
+                                          hrnCaller.getType(),
+                                          hrnCaller.getAllocSite(),
+                                          hrnCaller.getAlpha(),
+                                          hrnCaller.getDescription()
+                                          );
+            callerNodesCopiedToCallee.add( hrnCaller );
+          } else {
+            hrnCallee = rg.id2hrn.get( hrnCaller.getID() );
+          }
+
+          // FOURTH - copy edge over if needed
+          if( !callerEdgesCopiedToCallee.contains( reCaller ) ) {
+            rg.addRefEdge( rsnCallee,
+                           hrnCallee,
+                           new RefEdge( rsnCallee,
+                                        hrnCallee,
+                                        reCaller.getType(),
+                                        reCaller.getField(),
+                                        true, // isInitialParam
+                                        reCaller.getBeta()
+                                        )
+                           );              
+            callerEdgesCopiedToCallee.add( reCaller );
+          }
+          
+          // keep traversing nodes reachable from param i
+          // that we haven't visited yet
+          if( !visitedInCaller.contains( hrnCaller ) ) {
+            toVisitInCaller.add( hrnCaller );
+          }
+          
+        } // end edge iteration        
+      } // end visiting heap nodes in caller
+    } // end iterating over parameters as starting points
+    
+    // Now take the callee view graph we've built from the
+    // caller and look backwards: for every node in the callee
+    // look back in the caller for "upstream" reference edges.
+    // We need to add special elements to the callee view that
+    // capture relevant effects for mapping back
+
+    try {
+      rg.writeGraph( "calleeview", true, true, true, false, true, true );
+    } catch( IOException e ) {}
+
+    if( fc.getMethod().getSymbol().equals( "f1" ) ) {
+      System.exit( 0 );
+    }
+
+    return rg;
   }
-
+  
 
   /*
   public Set<HeapRegionNode> findCommonReachableNodes( HeapRegionNode hrn1,

@@ -548,7 +548,8 @@ public class DisjointAnalysis {
       ReachGraph heapForThisCall_old = 
         getIHMcontribution( mdCallee, fc );
 
-      ReachGraph heapForThisCall_cur = rg.makeCalleeView( fc );
+      ReachGraph heapForThisCall_cur = rg.makeCalleeView( fc, 
+                                                          fmCallee );
 
       if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {
         // if heap at call site changed, update the contribution,
