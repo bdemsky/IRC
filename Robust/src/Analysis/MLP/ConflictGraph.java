@@ -461,41 +461,6 @@ public class ConflictGraph {
 		return resultSet;
 	}
 
-	/*
-	public Set<Integer> getAllocationSiteIDSetBySESEID(int seseID) {
-
-		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
-
-		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
-		Iterator<Entry<String, ConflictNode>> i = s.iterator();
-
-		while (i.hasNext()) {
-			Entry<String, ConflictNode> entry = i.next();
-			ConflictNode node = entry.getValue();
-
-			if (node instanceof LiveInNode) {
-				LiveInNode liveInNode = (LiveInNode) node;
-				if (liveInNode.getSESEIdentifier() == seseID) {
-					Set<HeapRegionNode> hrnSet = liveInNode.getHRNSet();
-					for (Iterator iterator = hrnSet.iterator(); iterator
-							.hasNext();) {
-						HeapRegionNode hrn = (HeapRegionNode) iterator.next();
-						// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-						allocSiteIDSet.add(new    pthread_mutex_lock( &(parentCommon->lock) );
-     addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,196130920,seseToIssue->common.classID);
-     ++(seseToIssue->common.unresolvedDependencies);
-     addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,1289650030,seseToIssue->common.classID); Integer(hrn
-								.getGloballyUniqueIntegerIdentifier()));
-					}
-				}
-			}
-		}
-
-		return allocSiteIDSet;
-
-	}
-*/
-	
 	public Set<Integer> getAllocationSiteIDSetBySESEID(int seseID) {
 
 		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
@@ -522,22 +487,34 @@ public class ConflictGraph {
 						}
 					}
 					
-					
-//					Set<HeapRegionNode> hrnSet = liveInNode.getHRNSet();
-//					for (Iterator iterator = hrnSet.iterator(); iterator
-//							.hasNext();) {
-//						HeapRegionNode hrn = (HeapRegionNode) iterator.next();
-//						// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-//						allocSiteIDSet.add(new Integer(hrn
-//								.getGloballyUniqueIntegerIdentifier()));
-//					}
-					
 				}
 			}
 		}
 
 		return allocSiteIDSet;
 
+	}
+	
+	public Set<Integer> getAllocationSiteIDSetofStallSite() {
+		
+		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+
+		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
+		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+		
+		while (i.hasNext()) {
+			
+			Entry<String, ConflictNode> entry = i.next();
+			ConflictNode node = entry.getValue();
+			
+			if(node instanceof StallSiteNode){
+				allocSiteIDSet.addAll(getHRNIdentifierSet(node));
+			}
+			
+		}
+		
+		return allocSiteIDSet;
+		
 	}
 	
 	public Set<Integer> getAllocationSiteIDSet() {

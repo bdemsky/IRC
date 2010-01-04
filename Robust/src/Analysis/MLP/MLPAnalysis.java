@@ -2321,6 +2321,8 @@ public class MLPAnalysis {
 			SESESummary currentSummary) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
+		
+		currentConflictsMap.clearStallMap();
 
 		switch (fn.kind()) {
 

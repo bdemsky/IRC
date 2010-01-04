@@ -1,5 +1,6 @@
 package Analysis.MLP;
 
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -31,6 +32,10 @@ public class ParentChildConflictsMap {
 		accessibleMap.clear();
 		stallMap.clear();
 		stallEdgeMap.clear();
+	}
+	
+	public void clearStallMap(){
+		stallMap.clear();
 	}
 	
 	public void makeAllInaccessible(){
@@ -224,6 +229,25 @@ public class ParentChildConflictsMap {
 			getStallEdgeMap().put(stallEdge,currentStallTagSet);
 		}
 
+	}
+	
+	public Set<Integer> getAllocationSiteIDSetofStallSite() {
+		
+		HashSet<Integer> returnSet=new HashSet<Integer>();
+		
+		Enumeration<StallSite> stallSiteEnum=stallMap.elements();
+		while (stallSiteEnum.hasMoreElements()) {
+			StallSite stallSite = (StallSite) stallSiteEnum.nextElement();
+			HashSet<HeapRegionNode> hrnSet=stallSite.getHRNSet();			
+			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
+				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
+				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
+				returnSet.add(new Integer(hrn
+						.getGloballyUniqueIntegerIdentifier()));
+			}
+		}
+		return returnSet;
+		
 	}
 	
 	public boolean equals(Object o) {

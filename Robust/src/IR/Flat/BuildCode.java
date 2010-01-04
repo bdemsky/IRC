@@ -29,6 +29,7 @@ import Analysis.Loops.GlobalFieldType;
 import Analysis.Locality.TypeAnalysis;
 import Analysis.MLP.ConflictGraph;
 import Analysis.MLP.MLPAnalysis;
+import Analysis.MLP.ParentChildConflictsMap;
 import Analysis.MLP.VariableSourceToken;
 import Analysis.MLP.CodePlan;
 import Analysis.MLP.SESEandAgePair;
@@ -2668,6 +2669,41 @@ public class BuildCode {
 	  output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
       }     
+      
+      // eom
+      // handling stall site
+      ParentChildConflictsMap conflictsMap=mlpa.getConflictsResults().get(fn);
+		if (conflictsMap != null) {
+	
+			Set<Integer> allocSet = conflictsMap
+					.getAllocationSiteIDSetofStallSite();
+	
+			if (allocSet.size() > 0) {
+				output.println("   /*  stall on parent's stall sites */");
+				output.println("  {");
+				output
+						.println("  pthread_mutex_lock( &(seseCaller->lock) );");
+	
+				for (Iterator iterator = allocSet.iterator(); iterator
+						.hasNext();) {
+					Integer allocID = (Integer) iterator.next();
+					output
+							.println("  if(addWaitingQueueElement(seseCaller->allocSiteArray,numRelatedAllocSites,"
+									+ allocID + ",seseCaller)!=0){");
+	
+					output
+							.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
+					output
+					.println("     psem_take( &(seseCaller->memoryStallSiteSem) );");
+					output.println("   }");
+				}
+				output
+						.println("  pthread_mutex_unlock( &(seseCaller->lock) );");
+				output.println("  }");
+			}
+	
+		}
+		
     }
 
     switch(fn.kind()) {
@@ -3518,12 +3554,18 @@ public class BuildCode {
     	output.println("        removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
     	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
     	output.println("           SESEcommon* nextItem=peekItem(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
-    	output.println("           pthread_mutex_lock( &(nextItem->lock) );");
-    	output.println("           --(nextItem->unresolvedDependencies);");
-    	output.println("           if( nextItem->unresolvedDependencies == 0){");
-    	output.println("              workScheduleSubmit( (void*)nextItem);");
+    	output.println("           if(nextItem->classID==___params___->common.parent->classID){");
+    	output.println("              struct QueueItem* stallItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
+    	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,stallItem);");
+    	output.println("              psem_give(&(nextItem->memoryStallSiteSem));");
+    	output.println("           }else{");
+    	output.println("              pthread_mutex_lock( &(nextItem->lock) );");
+    	output.println("              --(nextItem->unresolvedDependencies);");
+    	output.println("              if( nextItem->unresolvedDependencies == 0){");
+    	output.println("                 workScheduleSubmit( (void*)nextItem);");
+    	output.println("              }");
+    	output.println("              pthread_mutex_unlock( &(nextItem->lock) );");
     	output.println("           }");
-    	output.println("           pthread_mutex_unlock( &(nextItem->lock) );");
     	output.println("        }");
     	output.println("     }");
     	output.println("  }");
@@ -3548,6 +3590,7 @@ public class BuildCode {
     // data has been taken care of--set sese pointer to remember self over method
     // calls to a non-zero, invalid address
     output.println("   seseCaller = (SESEcommon*) 0x1;");    
+    
   }
 
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
