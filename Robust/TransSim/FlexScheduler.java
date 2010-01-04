@@ -6,6 +6,7 @@ public class FlexScheduler {
   int abortRatio;
   int deadlockcount;
   int checkdepth;
+  int barriercount;
 
   public FlexScheduler(Executor e, int policy, int abortThreshold, int abortRatio, int checkdepth, Plot p) {
     this(e, policy, p);
@@ -16,6 +17,7 @@ public class FlexScheduler {
   
   public FlexScheduler(Executor e, int policy, Plot p) {
     this.e=e;
+    barriercount=e.numThreads();
     aborted=new boolean[e.numThreads()];
     currentevents=new Event[e.numThreads()];
     rdobjmap=new Hashtable();
@@ -70,7 +72,7 @@ public class FlexScheduler {
   PriorityQueue eq;
   int policy;
   boolean[] aborted;
-  int shorttesttime;
+  long shorttesttime;
   Hashtable rdobjmap;
   Hashtable wrobjmap;
   int abortcount;
@@ -99,17 +101,17 @@ public class FlexScheduler {
     return commitcount;
   }
 
-  public int getTime() {
+  public long getTime() {
     return shorttesttime;
   }
 
   //Aborts another thread...
-  public void reschedule(int currthread, int time) {
+  public void reschedule(int currthread, long time) {
     currentevents[currthread].makeInvalid();
     if (threadinfo[currthread].isStalled()) {
       //remove from waiter list
       threadinfo[currthread].setStall(false);
-      getmapping(threadinfo[currthread].getObject()).getWaiters().remove(currentevents[currthread]);
+      getmapping(threadinfo[currthread].getObjIndex()).getWaiters().remove(currentevents[currthread]);
     }
     if (serAbort!=null) {
       serAbort.addPoint(time, currthread);
@@ -123,19 +125,19 @@ public class FlexScheduler {
   }
 
 
-  private void releaseObjects(Transaction trans, int currthread, int time) {
+  private void releaseObjects(Transaction trans, int currthread, long time) {
     //remove all events
     for(int i=0;i<trans.numEvents();i++) {
-      int object=trans.getObject(i);
-      Integer obj=new Integer(object);
-      if (object!=-1&&rdobjmap.containsKey(obj)) {
-	((Set)rdobjmap.get(obj)).remove(new Integer(currthread));
+      ObjIndex object=trans.getObjIndex(i);
+
+      if (object!=null&&rdobjmap.containsKey(object)) {
+	((Set)rdobjmap.get(object)).remove(new Integer(currthread));
       }
-      if (object!=-1&&wrobjmap.containsKey(obj)) {
-	((Set)wrobjmap.get(obj)).remove(new Integer(currthread));
+      if (object!=null&&wrobjmap.containsKey(object)) {
+	((Set)wrobjmap.get(object)).remove(new Integer(currthread));
       }
-      if (object!=-1&&objtoinfo.containsKey(obj)) {
-	ObjectInfo oi=(ObjectInfo)objtoinfo.get(obj);
+      if (object!=null&&objtoinfo.containsKey(object)) {
+	ObjectInfo oi=(ObjectInfo)objtoinfo.get(object);
 	if (oi.getOwner()==currentevents[currthread].getThread()) {
 	  oi.releaseOwner();
 	  
@@ -160,7 +162,7 @@ public class FlexScheduler {
   public void startinitial() {
     for(int i=0;i<e.numThreads();i++) {
       Transaction trans=e.getThread(i).getTransaction(0);
-      int time=trans.getTime(0);
+      long time=trans.getTime(0);
       Event ev=new Event(time, trans, 0, i, 0);
       currentevents[i]=ev;
       eq.add(ev);
@@ -168,7 +170,7 @@ public class FlexScheduler {
   }
 
   public void dosim() {
-    int lasttime=0;
+    long lasttime=0;
     //start first transactions
     startinitial();
 
@@ -180,7 +182,7 @@ public class FlexScheduler {
 
       Transaction trans=ev.getTransaction();
       int event=ev.getEvent();
-      int currtime=ev.getTime();
+      long currtime=ev.getTime();
       lasttime=currtime;
 
       if (trans.numEvents()==(event+1)) {
@@ -194,8 +196,7 @@ public class FlexScheduler {
       p.close();
   }
 
-  private ObjectInfo getmapping(int object) {
-    Integer obj=new Integer(object);
+  private ObjectInfo getmapping(ObjIndex obj) {
     if (!objtoinfo.containsKey(obj))
       objtoinfo.put(obj, new ObjectInfo(this));
     return (ObjectInfo)objtoinfo.get(obj);
@@ -203,7 +204,7 @@ public class FlexScheduler {
 
   public void tryCommit(Event ev, Transaction trans) {
     //ready to commit this one
-    int currtime=ev.getTime();
+    long currtime=ev.getTime();
     releaseObjects(trans, ev.getThread(), currtime);
     
     //See if we have been flagged as aborted for the lazy case
@@ -222,7 +223,7 @@ public class FlexScheduler {
 
       //abort the other threads
       for(int i=0;i<trans.numEvents();i++) {
-	int object=trans.getObject(i);
+	ObjIndex object=trans.getObjIndex(i);
 	int op=trans.getEvent(i);
 	//Mark commits to objects
 	if (isLock()&&(op==Transaction.WRITE||op==Transaction.READ)) {
@@ -231,9 +232,8 @@ public class FlexScheduler {
 	//Check for threads we might cause to abort
 	if (op==Transaction.WRITE) {
 	  HashSet abortset=new HashSet();
-	  Integer obj=new Integer(object);
-	  if (rdobjmap.containsKey(obj)) {
-	    for(Iterator it=((Set)rdobjmap.get(obj)).iterator();it.hasNext();) {
+	  if (rdobjmap.containsKey(object)) {
+	    for(Iterator it=((Set)rdobjmap.get(object)).iterator();it.hasNext();) {
 	      Integer threadid=(Integer)it.next();
 	      abortset.add(threadid);
 	      if (isLock()) {
@@ -242,11 +242,11 @@ public class FlexScheduler {
 	      }
 	    }
 	  }
-	  if (wrobjmap.containsKey(obj)) {
-	    for(Iterator it=((Set)wrobjmap.get(obj)).iterator();it.hasNext();) {
+	  if (wrobjmap.containsKey(object)) {
+	    for(Iterator it=((Set)wrobjmap.get(object)).iterator();it.hasNext();) {
 	      Integer threadid=(Integer)it.next();
 	      abortset.add(threadid);
-	      if (isLock()&&(!rdobjmap.containsKey(obj)||!((Set)rdobjmap.get(obj)).contains(threadid))) {
+	      if (isLock()&&(!rdobjmap.containsKey(object)||!((Set)rdobjmap.get(object)).contains(threadid))) {
 		//if this object hasn't already cause this thread to
 		//abort, then flag it as an abort cause
 		ObjectInfo oi=getmapping(object);
@@ -289,8 +289,7 @@ public class FlexScheduler {
     }
   }
 
-  public Set rdConflictSet(int thread, int object) {
-    Integer obj=new Integer(object);
+  public Set rdConflictSet(int thread, ObjIndex obj) {
     if (!wrobjmap.containsKey(obj))
       return null;
     HashSet conflictset=new HashSet();
@@ -305,9 +304,7 @@ public class FlexScheduler {
       return conflictset;
   }
 
-  public Set wrConflictSet(int thread, int object) {
-    Integer obj=new Integer(object);
-
+  public Set wrConflictSet(int thread, ObjIndex obj) {
     HashSet conflictset=new HashSet();
     if (rdobjmap.containsKey(obj)) {
       for(Iterator it=((Set)rdobjmap.get(obj)).iterator();it.hasNext();) {
@@ -331,7 +328,7 @@ public class FlexScheduler {
   //set of threads, and the current time
   //Returning false causes current transaction not continue to be scheduled
 
-  public boolean handleConflicts(Event ev, Set threadstokill, int time) {
+  public boolean handleConflicts(Event ev, Set threadstokill, long time) {
     if (policy==ATTACK) {
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	Integer thread=(Integer)thit.next();
@@ -346,13 +343,13 @@ public class FlexScheduler {
       abortcount++;
       return false;
     } else if (policy==KARMA) {
-      int opponenttime=0;
+      long opponenttime=0;
 
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	Integer thread=(Integer)thit.next();
 	Event other=currentevents[thread.intValue()];
 	int eventnum=other.getEvent();
-	int otime=other.getTransaction().getTime(other.getEvent());
+	long otime=other.getTransaction().getTime(other.getEvent());
 	if (otime>opponenttime)
 	  opponenttime=otime;
       }
@@ -382,10 +379,9 @@ public class FlexScheduler {
   public void enqueueEvent(Event ev, Transaction trans) {
     //just enqueue next event
     int event=ev.getEvent();
-    int currtime=ev.getTime();
-    int object=trans.getObject(event);
+    long currtime=ev.getTime();
+    ObjIndex object=trans.getObjIndex(event);
     int operation=trans.getEvent(event);
-    Integer obj=new Integer(object);
 
     if ((operation==Transaction.READ||operation==Transaction.WRITE)&&isLock()) {
       ObjectInfo oi=getmapping(object);
@@ -405,13 +401,13 @@ public class FlexScheduler {
 	      break;
 	    }
 	    //follow one more in depth
-	    toi=getmapping(threadinfo[toi.getOwner()].getObject());
+	    toi=getmapping(threadinfo[toi.getOwner()].getObjIndex());
 	  }
 	  
 	  if (!deadlocked) {
 	    //don't wait on stalled threads, we could deadlock
 	    threadinfo[ev.getThread()].setStall(true);
-	    threadinfo[ev.getThread()].setObject(object);
+	    threadinfo[ev.getThread()].setObjIndex(object);
 	    if (serStall!=null)
 	      serStall.addPoint(ev.getTime(),ev.getThread());
 	    oi.addWaiter(ev);
@@ -431,9 +427,9 @@ public class FlexScheduler {
     //process the current event
     if (operation==Transaction.READ) {
       //record read event
-      if (!rdobjmap.containsKey(obj))
-	rdobjmap.put(obj,new HashSet());
-      ((Set)rdobjmap.get(obj)).add(new Integer(ev.getThread()));
+      if (!rdobjmap.containsKey(object))
+	rdobjmap.put(object,new HashSet());
+      ((Set)rdobjmap.get(object)).add(new Integer(ev.getThread()));
       if (isEager()) {
 	//do eager contention management
 	Set conflicts=rdConflictSet(ev.getThread(), object);
@@ -444,9 +440,9 @@ public class FlexScheduler {
       }
     } else if (operation==Transaction.WRITE) {
       //record write event
-      if (!wrobjmap.containsKey(obj))
-	wrobjmap.put(obj,new HashSet());
-      ((Set)wrobjmap.get(obj)).add(new Integer(ev.getThread()));
+      if (!wrobjmap.containsKey(object))
+	wrobjmap.put(object,new HashSet());
+      ((Set)wrobjmap.get(object)).add(new Integer(ev.getThread()));
       if (isEager()) {
 	Set conflicts=wrConflictSet(ev.getThread(), object);
 	if (conflicts!=null) {
@@ -454,10 +450,30 @@ public class FlexScheduler {
 	    return;
 	}
       }
+    } else if (operation==Transaction.BARRIER) {
+      barriercount--;
+      if (barriercount==0) {
+	for(int i=0;i<e.numThreads();i++) {
+	  //enqueue the next event
+	  Event bev=currentevents[i];
+	  int bevent=bev.getEvent();
+	  long bcurrtime=bev.getTime();
+	  Transaction btrans=bev.getTransaction();
+	  long deltatime=btrans.getTime(bevent+1)-btrans.getTime(bevent);
+	  Event nev=new Event(deltatime+currtime, btrans, bevent+1, bev.getThread(), bev.getTransNum());
+	  currentevents[bev.getThread()]=nev;
+	  eq.add(nev);
+	}
+	barriercount=e.numThreads();
+      } else {
+	//Do nothing
+	//wait until all threads in barrier
+      }
+      return;
     }
     
     //enqueue the next event
-    int deltatime=trans.getTime(event+1)-trans.getTime(event);
+    long deltatime=trans.getTime(event+1)-trans.getTime(event);
     Event nev=new Event(deltatime+currtime, trans, event+1, ev.getThread(), ev.getTransNum());
     currentevents[ev.getThread()]=nev;
     eq.add(nev);
@@ -466,7 +482,7 @@ public class FlexScheduler {
   
   class Event implements Comparable {
     boolean valid;
-    int time;
+    long time;
     int num;
     Transaction t;
     int threadid;
@@ -492,11 +508,11 @@ public class FlexScheduler {
       return num;
     }
 
-    public int getTime() {
+    public long getTime() {
       return time;
     }
     
-    public void setTime(int time) {
+    public void setTime(long time) {
       this.time=time;
     }
 
@@ -504,7 +520,7 @@ public class FlexScheduler {
       return threadid;
     }
 
-    public Event(int time, Transaction t, int num, int threadid, int transnum) {
+    public Event(long time, Transaction t, int num, int threadid, int transnum) {
       this.time=time;
       this.t=t;
       this.num=num;
@@ -516,9 +532,13 @@ public class FlexScheduler {
     //break ties to allow commits to occur earliest
     public int compareTo(Object o) {
       Event e=(Event)o;
-      int delta=time-e.time;
-      if (delta!=0)
-	return delta;
+      long delta=time-e.time;
+      if (delta!=0) {
+	if (delta>0)
+	  return 1;
+	else
+	  return -1;
+      }
       if (((getEvent()+1)==getTransaction().numEvents())&&
 	  (e.getEvent()+1)!=e.getTransaction().numEvents())
 	return -1;

@@ -1,6 +1,6 @@
 public class TransSim {
   public static void main(String[] args) {
-    int numThreads=8;
+    int numThreads=20;
     int numTrans=4;
     int deltaTrans=0;
     int numObjects=200;
@@ -23,9 +23,9 @@ public class TransSim {
 
     Plot p=new Plot("plot");
 
-    for(int i=1;i<40;i+=1) {
+    for(int i=10;i<800;i+=5) {
       System.out.println("i="+i);
-      Executor e=new Executor(numThreads, numTrans, deltaTrans, numObjects, i, deltaAccesses, readPercent, delay, deltaDelay, nonTrans, deltaNonTrans, splitobjects, splitaccesses, readPercentSecond);
+      Executor e=new Executor(numThreads, numTrans, deltaTrans, i, numAccesses, deltaAccesses, readPercent, delay, deltaDelay, nonTrans, deltaNonTrans, splitobjects, splitaccesses, readPercentSecond);
       System.out.println(e.maxTime());
       FlexScheduler ls=new FlexScheduler(e, FlexScheduler.LAZY, null);
       ls.dosim();

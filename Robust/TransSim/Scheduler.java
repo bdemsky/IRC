@@ -3,40 +3,39 @@ import java.util.HashSet;
 public class Scheduler {
   Executor e;
 
-  public Scheduler(Executor e, int time) {
+  public Scheduler(Executor e, long time) {
     this.e=e;
     schedule=new int[e.numEvents()+1][e.numThreads()];
     turn=new int[e.numEvents()];
     //give last time an event can be scheduled
-    lasttime=new int[e.maxEvents()][e.numThreads()];
-
-    schedtime=new int[e.maxEvents()][e.numThreads()];
-    lastrd=new int[e.numEvents()+1][e.numObjects()];
-    lastwr=new int[e.numEvents()+1][e.numObjects()];
+    lasttime=new long[e.maxEvents()][e.numThreads()];
+    schedtime=new long[e.maxEvents()][e.numThreads()];
+    lastrd=new long[e.numEvents()+1][e.numObjects()];
+    lastwr=new long[e.numEvents()+1][e.numObjects()];
     shorttesttime=time;
     computeFinishing(time);
   }
-
-  int currbest;
-  int shorttesttime;
+  
+  long currbest;
+  long shorttesttime;
   int[][] schedule;
   int[] turn;
-  int[][] lasttime;
-  int[][] schedtime;
-  int[][] lastrd;
-  int[][] lastwr;
+  long[][] lasttime;
+  long[][] schedtime;
+  long[][] lastrd;
+  long[][] lastwr;
 
-  public int getTime() {
+  public long getTime() {
     return currbest;
   }
 
-  private void computeFinishing(int totaltime) {
+  private void computeFinishing(long totaltime) {
     for(int threadnum=0;threadnum<e.numThreads();threadnum++) {
       ThreadClass thread=e.getThread(threadnum);
-      int threadtime=totaltime;
+      long threadtime=totaltime;
       for(int transnum=thread.numTransactions()-1;transnum>=0;transnum--) {
 	Transaction trans=thread.getTransaction(transnum);
-	int ltime=trans.getTime(trans.numEvents()-1);
+	long ltime=trans.getTime(trans.numEvents()-1);
 	threadtime-=ltime;
 	lasttime[transnum][threadnum]=threadtime;
       }
@@ -53,7 +52,7 @@ public class Scheduler {
     //compute start time
     ThreadClass thread=e.getThread(iturn);
     int transnum=schedule[0][iturn]-schedule[step][iturn];
-    int starttime=0;
+    long starttime=0;
     if (transnum>0) {
       starttime=schedtime[transnum-1][iturn];
       Transaction prevtrans=thread.getTransaction(transnum-1);
@@ -62,13 +61,14 @@ public class Scheduler {
     //Let's check for object conflicts that delay start time
     Transaction trans=thread.getTransaction(transnum);
     for(int ev=0;ev<trans.numEvents();ev++) {
-      int evtime=trans.getTime(ev);
+      long evtime=trans.getTime(ev);
       int evobject=trans.getObject(ev);
+      
       switch(trans.getEvent(ev)) {
       case Transaction.READ:
 	{
 	  //just need to check write time
-	  int newstart=lastwr[step][evobject]-evtime;
+	  long newstart=lastwr[step][evobject]-evtime;
 	  if (newstart>starttime)
 	    starttime=newstart;
 	  break;
@@ -76,7 +76,7 @@ public class Scheduler {
       case Transaction.WRITE:
 	{
 	  //just need to check both write and read times
-	  int newstart=lastwr[step][evobject]-evtime;
+	  long newstart=lastwr[step][evobject]-evtime;
 	  if (newstart>starttime)
 	    starttime=newstart;
 
@@ -101,11 +101,11 @@ public class Scheduler {
       lastwr[step+1][obj]=lastwr[step][obj];
     }
     
-    int finishtime=starttime+trans.getTime(trans.numEvents()-1);
+    long finishtime=starttime+trans.getTime(trans.numEvents()-1);
     
     //Update read and write times
     for(int ev=0;ev<trans.numEvents();ev++) {
-      int evtime=trans.getTime(ev);
+      long evtime=trans.getTime(ev);
       int evobject=trans.getObject(ev);
       switch(trans.getEvent(ev)) {
       case Transaction.READ: {
@@ -157,12 +157,12 @@ public class Scheduler {
       boolean lgood=scheduleTask(step, iturn);
       
       if (step==lastEvent&&lgood) {
-	int maxfinish=0;
+	long maxfinish=0;
 	for(int i=0;i<e.numThreads();i++) {
 	  int numTrans=e.getThread(i).numTransactions();
-	  int startt=schedtime[numTrans-1][i];
+	  long startt=schedtime[numTrans-1][i];
 	  Transaction lasttrans=e.getThread(i).getTransaction(numTrans-1);
-	  int finisht=startt+lasttrans.getTime(lasttrans.numEvents()-1);
+	  long finisht=startt+lasttrans.getTime(lasttrans.numEvents()-1);
 	  if (finisht>maxfinish)
 	    maxfinish=finisht;
 	}
