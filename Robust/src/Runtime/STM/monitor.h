@@ -3,9 +3,8 @@
 
 #define MAXEVENTS (1024*1024*128)
 
-
 #define EV_THREAD 0
-#define EV_BARRIER 1
+#define EV_ENTERBARRIER 1
 #define EV_READ 2
 #define EV_WRITE 3
 #define EV_START 4
@@ -13,6 +12,7 @@
 #define EV_ABORT 6
 #define EV_ARRAYREAD 7
 #define EV_ARRAYWRITE 8
+#define EV_EXITBARRIER 9
 
 struct eventmonitor {
   int index;

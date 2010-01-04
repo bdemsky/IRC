@@ -413,6 +413,9 @@ void CALL11(___Barrier______setBarrier____I, int nthreads, int nthreads) {
 void CALL00(___Barrier______enterBarrier____) {
   // Synchronization point
   int ret;
+#ifdef EVENTMONITOR
+  EVLOGEVENT(EV_ENTERBARRIER);
+#endif
 #ifdef PRECISE_GC
   stopforgc((struct garbagelist *)___params___);
 #endif
@@ -425,7 +428,7 @@ void CALL00(___Barrier______enterBarrier____) {
     exit(-1);
   }
 #ifdef EVENTMONITOR
-  EVLOGEVENT(EV_BARRIER);
+  EVLOGEVENT(EV_EXITBARRIER);
 #endif
 }
 #endif
