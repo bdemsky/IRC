@@ -14,7 +14,6 @@ public class MatrixMultiply extends Task {
 
 	public void init() {
 		todoList = global new Queue();
-		doneList = global new Queue();
 
 		fillTodoList();
 	}
@@ -105,13 +104,10 @@ public class MatrixMultiply extends Task {
   }
 
 	public void done(Object work) {
-		atomic {
-			((Queue)doneList).push(work);
-		}
 	}
 
   public static void main(String[] args) {
-		int NUM_THREADS = 4;
+		int NUM_THREADS=4;
 		int SIZE = 1600;
     int i,j;
 		Work[] works;
@@ -121,12 +117,21 @@ public class MatrixMultiply extends Task {
 
 		if (args.length > 0) {
 			NUM_THREADS = Integer.parseInt(args[0]);
+      SIZE = Integer.parseInt(args[1]);
 		}
+    else {
+      System.out.println("usage: ./MatrixMultiply.bin master <num_threads> <size of matrix>");
+    }
 
-		int[] mid = new int[NUM_THREADS];
-		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dc1
-		mid[1] = (128<<24)|(195<<16)|(180<<8)|24; //dc2
-		mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dc3
+		int[] mid = new int[8];
+		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
+		mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
+		mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
+		mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
+		mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
+		mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
+		mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
+		mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
 
 		atomic {
 			matrix = global new MMul(SIZE, SIZE, SIZE);
