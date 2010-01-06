@@ -14,26 +14,37 @@ public class FileSim {
     FlexScheduler ls=new FlexScheduler(e, FlexScheduler.LAZY, null);
     ls.start();
 
-    
-    
     //Kill others at commit
     FlexScheduler ls4=new FlexScheduler(e, FlexScheduler.COMMIT, null);
     ls4.start();
 
-    
     //Eager attack
     FlexScheduler ls5=new FlexScheduler(e, FlexScheduler.ATTACK, null);
     ls5.start();
 
-    
     //Eager polite
-    FlexScheduler ls6=new FlexScheduler(e, FlexScheduler.POLITE, null);
+    FlexScheduler ls6=new FlexScheduler(e, FlexScheduler.SUICIDE, null);
     ls6.start();
-
     
     //Karma
-    FlexScheduler ls7=new FlexScheduler(e, FlexScheduler.KARMA, null);
+    FlexScheduler ls7=new FlexScheduler(e, FlexScheduler.TIMESTAMP, null);
     ls7.start();
+
+    //Random
+    FlexScheduler ls8=new FlexScheduler(e, FlexScheduler.RANDOM, null);
+    ls8.start();
+
+    //Random
+    FlexScheduler ls9=new FlexScheduler(e, FlexScheduler.KARMA, null);
+    ls9.start();
+
+    //Random
+    FlexScheduler ls10=new FlexScheduler(e, FlexScheduler.POLITE, null);
+    ls10.start();
+
+    //Random
+    FlexScheduler ls11=new FlexScheduler(e, FlexScheduler.ERUPTION, null);
+    ls11.start();
 
 
     ls.join();
@@ -49,32 +60,27 @@ public class FileSim {
     System.out.println("Aborts="+ls5.getAborts()+" Commit="+ls5.getCommits());
 
     ls6.join();
-    System.out.println("Polite Abort="+ls6.getTime());
+    System.out.println("Suicide Abort="+ls6.getTime());
     System.out.println("Aborts="+ls6.getAborts()+" Commit="+ls6.getCommits());
 
     ls7.join();
-    System.out.println("Karma Abort="+ls7.getTime());
+    System.out.println("Timestamp Abort="+ls7.getTime());
     System.out.println("Aborts="+ls7.getAborts()+" Commit="+ls7.getCommits());
-    ls=null;ls4=null;ls5=null;ls6=null;ls7=null;
-    
-    {
-    //Lock object accesses
-      FlexScheduler ls2=new FlexScheduler(e, FlexScheduler.LOCK, abortThreshold, abortRatio, deadlockdepth, null);
-      ls2.start();
-      ls2.join();
-      System.out.println("Deadlock count="+ls2.getDeadLockCount());
-      System.out.println("Lock Abort="+ls2.getTime());
-      System.out.println("Aborts="+ls2.getAborts()+" Commit="+ls2.getCommits());
-      ls2=null;
-    }
-    {
-      //Lock Commit object accesses
-      FlexScheduler ls3=new FlexScheduler(e, FlexScheduler.LOCKCOMMIT, abortThreshold, abortRatio, deadlockdepth, null);
-      ls3.start();
-      ls3.join();
-      System.out.println("Deadlock count="+ls3.getDeadLockCount());
-      System.out.println("LockCommit Abort="+ls3.getTime());
-      System.out.println("Aborts="+ls3.getAborts()+" Commit="+ls3.getCommits());
-    }
+
+    ls8.join();
+    System.out.println("Random Abort="+ls8.getTime());
+    System.out.println("Aborts="+ls8.getAborts()+" Commit="+ls8.getCommits());
+
+    ls9.join();
+    System.out.println("Karma Abort="+ls9.getTime());
+    System.out.println("Aborts="+ls9.getAborts()+" Commit="+ls9.getCommits());
+
+    ls10.join();
+    System.out.println("Polite Abort="+ls10.getTime());
+    System.out.println("Aborts="+ls10.getAborts()+" Commit="+ls10.getCommits());
+
+    ls11.join();
+    System.out.println("Eruption Abort="+ls11.getTime());
+    System.out.println("Aborts="+ls11.getAborts()+" Commit="+ls11.getCommits());
   }
 }

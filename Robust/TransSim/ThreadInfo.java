@@ -8,6 +8,7 @@ public class ThreadInfo {
   boolean stalled;
   int oid;
   int index;
+  int priority;
 
   public void setObject(int oid) {
     this.oid=oid;

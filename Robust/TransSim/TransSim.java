@@ -65,14 +65,14 @@ public class TransSim {
       p.getSeries("ATTACK").addPoint(i, ls.getTime());
 
       //Eager polite
-      ls=new FlexScheduler(e, FlexScheduler.POLITE, null);
+      ls=new FlexScheduler(e, FlexScheduler.SUICIDE, null);
       ls.dosim();
       System.out.println("Polite Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
       p.getSeries("POLITE").addPoint(i, ls.getTime());
 
       //Karma
-      ls=new FlexScheduler(e, FlexScheduler.KARMA, null);
+      ls=new FlexScheduler(e, FlexScheduler.TIMESTAMP, null);
       ls.dosim();
       System.out.println("Karma Abort="+ls.getTime());
       System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());

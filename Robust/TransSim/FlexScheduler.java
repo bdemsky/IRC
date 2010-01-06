@@ -30,6 +30,7 @@ public class FlexScheduler extends Thread {
     r=new Random(100);
     eq=new PriorityQueue();
     backoff=new int[e.numThreads()];
+    retrycount=new int[e.numThreads()];
     objtoinfo=new Hashtable();
     threadinfo=new ThreadInfo[e.numThreads()];
     blocked=new boolean[e.numThreads()];
@@ -68,10 +69,14 @@ public class FlexScheduler extends Thread {
   public static final int LAZY=0;
   public static final int COMMIT=1;
   public static final int ATTACK=2;
-  public static final int POLITE=3;
-  public static final int KARMA=4;
+  public static final int SUICIDE=3;
+  public static final int TIMESTAMP=4;
   public static final int LOCK=5;
   public static final int LOCKCOMMIT=6;
+  public static final int RANDOM=7;
+  public static final int KARMA=8;
+  public static final int POLITE=9;
+  public static final int ERUPTION=10;
 
   PriorityQueue eq;
   int policy;
@@ -85,13 +90,18 @@ public class FlexScheduler extends Thread {
   Event[] currentevents;
   Random r;
   int[] backoff;
+  int[] retrycount;
   Hashtable objtoinfo;
   ThreadInfo[] threadinfo;
   
   boolean[] blocked;
 
   public boolean isEager() {
-    return policy==ATTACK||policy==POLITE||policy==KARMA;
+    return policy==ATTACK||policy==SUICIDE||policy==TIMESTAMP||policy==RANDOM||policy==KARMA||policy==POLITE;
+  }
+
+  public boolean countObjects() {
+    return policy==KARMA||policy==ERUPTION;
   }
 
   public boolean isLock() {
@@ -127,6 +137,12 @@ public class FlexScheduler extends Thread {
     Event nev=new Event(time+trans.getTime(0), trans, 0, currthread, currentevents[currthread].getTransNum());
     currentevents[currthread]=nev;
     eq.add(nev);
+  }
+
+  //Aborts another thread...
+  public void stall(Event ev, long time) {
+    ev.setTime(time);
+    eq.add(ev);
   }
 
 
@@ -229,6 +245,7 @@ public class FlexScheduler extends Thread {
     if (!abort) {
       //if it is a transaction, increment comit count
       if (trans.numEvents()>1||trans.getEvent(0)!=Transaction.DELAY) {
+	threadinfo[ev.getThread()].priority=0;
 	commitcount++;
 	if (serCommit!=null) {
 	  serCommit.addPoint(ev.getTime(),ev.getThread());
@@ -236,6 +253,7 @@ public class FlexScheduler extends Thread {
       }
       //Reset our backoff counter
       backoff[ev.getThread()]=BACKOFFSTART;
+      retrycount[ev.getThread()]=0;
 
       //abort the other threads
       for(int i=0;i<trans.numEvents();i++) {
@@ -348,7 +366,89 @@ public class FlexScheduler extends Thread {
   //Returning false causes current transaction not continue to be scheduled
 
   public boolean handleConflicts(Event ev, Set threadstokill, long time) {
-    if (policy==ATTACK) {
+    if (policy==RANDOM) {
+      boolean b=r.nextBoolean();
+      if (b) {
+	//delay
+	stall(ev, time+r.nextInt(200));
+	return false;
+      } else {
+	//abort other transactions
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time);
+	  abortcount++;
+	}
+	return true;
+      }
+    } else if (policy==KARMA) {
+      int maxpriority=0;
+      //abort other transactions
+      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	Integer thread=(Integer)thit.next();
+	if (threadinfo[thread].priority>maxpriority)
+	  maxpriority=threadinfo[thread].priority;
+      }
+      if (maxpriority>threadinfo[ev.getThread()].priority) {
+	//we lose
+	threadinfo[ev.getThread()].priority++;
+	//stall for a little while
+	stall(ev, time+20);
+	return false;
+      } else {
+	//we win
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time);
+	  abortcount++;
+	}
+	return true;
+      }
+    } else if (policy==ERUPTION) {
+      int maxpriority=0;
+      //abort other transactions
+      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	Integer thread=(Integer)thit.next();
+	if (threadinfo[thread].priority>maxpriority)
+	  maxpriority=threadinfo[thread].priority;
+      }
+      if (maxpriority>threadinfo[ev.getThread()].priority) {
+	//we lose
+	//stall for a little while
+	stall(ev, time);
+	int ourpriority=threadinfo[ev.getThread()].priority;
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  threadinfo[thread].priority+=ourpriority;;
+	}
+	return false;
+      } else {
+	//we win
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time);
+	  abortcount++;
+	}
+	return true;
+      }
+    } else if (policy==POLITE) {
+      int retry=retrycount[ev.getThread()]++;
+      if (retry==22) {
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time);
+	  int dback=backoff[thread.intValue()]*2;
+	  if (dback>0)
+	    backoff[thread.intValue()]=dback;
+	  abortcount++;
+	}
+	return true;
+      } else {
+	//otherwise stall
+	stall(ev, time+r.nextInt((1<<retry)*12));
+	return false;
+      }
+    } else if (policy==ATTACK) {
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	Integer thread=(Integer)thit.next();
 	reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
@@ -358,14 +458,14 @@ public class FlexScheduler extends Thread {
 	abortcount++;
       }
       return true;
-    } else if (policy==POLITE) {
+    } else if (policy==SUICIDE) {
       reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
       int dback=backoff[ev.getThread()]*2;
       if (dback>0)
 	backoff[ev.getThread()]=dback;
       abortcount++;
       return false;
-    } else if (policy==KARMA) {
+    } else if (policy==TIMESTAMP) {
       long opponenttime=0;
 
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
@@ -452,7 +552,12 @@ public class FlexScheduler extends Thread {
       //record read event
       if (!rdobjmap.containsKey(object))
 	rdobjmap.put(object,new HashSet());
-      ((Set)rdobjmap.get(object)).add(new Integer(ev.getThread()));
+      if (((Set)rdobjmap.get(object)).add(new Integer(ev.getThread()))) {
+	//added new object
+	if (countObjects()) {
+	  threadinfo[ev.getThread()].priority++;
+	}
+      }
       if (isEager()) {
 	//do eager contention management
 	Set conflicts=rdConflictSet(ev.getThread(), object);
@@ -465,7 +570,11 @@ public class FlexScheduler extends Thread {
       //record write event
       if (!wrobjmap.containsKey(object))
 	wrobjmap.put(object,new HashSet());
-      ((Set)wrobjmap.get(object)).add(new Integer(ev.getThread()));
+      if (((Set)wrobjmap.get(object)).add(new Integer(ev.getThread()))) {
+	if (countObjects()) {
+	  threadinfo[ev.getThread()].priority++;
+	}
+      }
       if (isEager()) {
 	Set conflicts=wrConflictSet(ev.getThread(), object);
 	if (conflicts!=null) {
