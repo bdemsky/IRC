@@ -40,7 +40,7 @@ public class ConflictGraph {
 
 		Set<SESEEffectsKey> writeEffectsSet = nodeB.getWriteEffectsSet();
 		Set<SESEEffectsKey> readEffectsSet = nodeB.getReadEffectsSet();
-
+		
 		if (writeEffectsSet != null) {
 			Iterator<SESEEffectsKey> writeIter = writeEffectsSet.iterator();
 			while (writeIter.hasNext()) {
@@ -74,6 +74,25 @@ public class ConflictGraph {
 				}
 
 			}
+			
+			// add for another case
+			if (readEffectsSet != null) {
+				Iterator<SESEEffectsKey> readIter = readEffectsSet.iterator();
+				while (readIter.hasNext()) {
+					SESEEffectsKey seseEffectsKey = (SESEEffectsKey) readIter
+					.next();
+					String readHeapRegionID = seseEffectsKey.getHRNUniqueId();
+					HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
+					for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+							.hasNext();) {
+						HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
+						if (stallHRN.getGloballyUniqueIdentifier().equals(
+								readHeapRegionID)) {
+							result = result | true;
+						}
+					}
+				}								
+			}		
 		}
 
 		if (readEffectsSet != null) {
@@ -461,9 +480,9 @@ public class ConflictGraph {
 		return resultSet;
 	}
 
-	public Set<Integer> getAllocationSiteIDSetBySESEID(int seseID) {
+	public Set<Long> getAllocationSiteIDSetBySESEID(int seseID) {
 
-		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+		HashSet<Long> allocSiteIDSet = new HashSet<Long>();
 
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Iterator<Entry<String, ConflictNode>> i = s.iterator();
@@ -475,7 +494,6 @@ public class ConflictGraph {
 			if (node instanceof LiveInNode) {
 				LiveInNode liveInNode = (LiveInNode) node;
 				if (liveInNode.getSESEIdentifier() == seseID) {
-					
 					HashSet<ConflictEdge> edgeSet = liveInNode.getEdgeSet();
 					for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
 						ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
@@ -495,9 +513,9 @@ public class ConflictGraph {
 
 	}
 	
-	public Set<Integer> getAllocationSiteIDSetofStallSite() {
+	public Set<Long> getAllocationSiteIDSetofStallSite() {
 		
-		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+		HashSet<Long> allocSiteIDSet = new HashSet<Long>();
 
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Iterator<Entry<String, ConflictNode>> i = s.iterator();
@@ -517,9 +535,9 @@ public class ConflictGraph {
 		
 	}
 	
-	public Set<Integer> getAllocationSiteIDSet() {
+	public Set<Long> getAllocationSiteIDSet() {
 
-		HashSet<Integer> allocSiteIDSet = new HashSet<Integer>();
+		HashSet<Long> allocSiteIDSet = new HashSet<Long>();
 
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Iterator<Entry<String, ConflictNode>> i = s.iterator();
@@ -545,9 +563,9 @@ public class ConflictGraph {
 
 	}
 
-	private HashSet<Integer> getHRNIdentifierSet(ConflictNode node) {
+	private HashSet<Long> getHRNIdentifierSet(ConflictNode node) {
 
-		HashSet<Integer> returnSet = new HashSet<Integer>();
+		HashSet<Long> returnSet = new HashSet<Long>();
 
 		if (node instanceof StallSiteNode) {
 			StallSiteNode stallSiteNode = (StallSiteNode) node;
@@ -555,7 +573,7 @@ public class ConflictGraph {
 			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
 				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
 				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-				returnSet.add(new Integer(hrn
+				returnSet.add(new Long(hrn
 						.getGloballyUniqueIntegerIdentifier()));
 			}
 		} else {
@@ -564,7 +582,7 @@ public class ConflictGraph {
 			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
 				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
 				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-				returnSet.add(new Integer(hrn
+				returnSet.add(new Long(hrn
 						.getGloballyUniqueIntegerIdentifier()));
 			}
 		}

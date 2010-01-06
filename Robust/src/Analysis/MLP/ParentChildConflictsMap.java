@@ -20,12 +20,22 @@ public class ParentChildConflictsMap {
 	private Hashtable<TempDescriptor, Integer> accessibleMap;
 	private Hashtable<TempDescriptor, StallSite> stallMap;
 	private Hashtable < ReferenceEdge, HashSet<StallTag> > stallEdgeMap;
+	private boolean isAfterSESE;
 
 	public ParentChildConflictsMap() {
 
 		accessibleMap = new Hashtable<TempDescriptor, Integer>();
 		stallMap = new Hashtable<TempDescriptor, StallSite>();
 		stallEdgeMap= new Hashtable < ReferenceEdge, HashSet<StallTag> >();
+		isAfterSESE=false;
+	}
+	
+	public void setIsAfterSESE(boolean after){
+		this.isAfterSESE=after;
+	}
+	
+	public boolean isAfterSESE(){
+		return isAfterSESE;
 	}
 	
 	public void clear(){
@@ -231,9 +241,9 @@ public class ParentChildConflictsMap {
 
 	}
 	
-	public Set<Integer> getAllocationSiteIDSetofStallSite() {
+	public Set<Long> getAllocationSiteIDSetofStallSite() {
 		
-		HashSet<Integer> returnSet=new HashSet<Integer>();
+		HashSet<Long> returnSet=new HashSet<Long>();
 		
 		Enumeration<StallSite> stallSiteEnum=stallMap.elements();
 		while (stallSiteEnum.hasMoreElements()) {
@@ -242,7 +252,7 @@ public class ParentChildConflictsMap {
 			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
 				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
 				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-				returnSet.add(new Integer(hrn
+				returnSet.add(new Long(hrn
 						.getGloballyUniqueIntegerIdentifier()));
 			}
 		}
@@ -263,7 +273,7 @@ public class ParentChildConflictsMap {
 		ParentChildConflictsMap in = (ParentChildConflictsMap) o;
 
 		if ( accessibleMap.equals(in.getAccessibleMap())
-				&& stallMap.equals(in.getStallMap())) {
+				&& stallMap.equals(in.getStallMap()) && isAfterSESE()==in.isAfterSESE()) {
 			return true;
 		} else {
 			return false;

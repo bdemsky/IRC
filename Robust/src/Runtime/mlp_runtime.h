@@ -17,7 +17,7 @@
 
 // each allocation site nees the following
 typedef struct AllocSite_t{
-  int id;
+  long id;
   struct Queue* waitingQueue;
 } AllocSite;
 
@@ -56,7 +56,7 @@ typedef struct SESEcommon_t {
 
   AllocSite* allocSiteArray;
   int numRelatedAllocSites;
-  psemaphore stallSiteSem;
+  psemaphore memoryStallSiteSem;
 
 } SESEcommon;
 

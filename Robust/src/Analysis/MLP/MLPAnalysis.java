@@ -38,6 +38,7 @@ import IR.State;
 import IR.TypeUtil;
 import IR.Flat.FKind;
 import IR.Flat.FlatCall;
+import IR.Flat.FlatCondBranch;
 import IR.Flat.FlatEdge;
 import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatLiteralNode;
@@ -2033,6 +2034,7 @@ public class MLPAnalysis {
 
 					Hashtable<TempDescriptor, StallSite> stallMap = currentConflictsMap
 							.getStallMap();
+					
 					Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
 							.entrySet();
 
@@ -2170,7 +2172,7 @@ public class MLPAnalysis {
 						.hasNext();) {
 					TempDescriptor tempDescriptor = (TempDescriptor) iterator
 							.next();
-
+					
 					// effects set
 					SESEEffectsSet seseEffectsSet = fsen.getSeseEffectsSet();
 					Set<SESEEffectsKey> readEffectsSet = seseEffectsSet
@@ -2237,7 +2239,7 @@ public class MLPAnalysis {
 			while (mcIter.hasNext()) {
 				MethodContext mc = mcIter.next();
 
-				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+				LinkedList<FlatNode> flatNodesToVisit=new LinkedList<FlatNode>();
 				flatNodesToVisit.add(fm);
 
 				SESESummary summary = new SESESummary(null, fm);
@@ -2246,11 +2248,11 @@ public class MLPAnalysis {
 				while (!flatNodesToVisit.isEmpty()) {
 					FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
 					flatNodesToVisit.remove(fn);
-
 					ParentChildConflictsMap prevResult = conflictsResults
 							.get(fn);
 
 					// merge sets from control flow
+					Boolean prevSESE=null;
 					ParentChildConflictsMap currentConflictsMap = new ParentChildConflictsMap();
 					for (int i = 0; i < fn.numPrev(); i++) {
 						FlatNode prevFlatNode = fn.getPrev(i);
@@ -2259,10 +2261,14 @@ public class MLPAnalysis {
 						if (incoming != null) {
 							currentConflictsMap.merge(incoming);
 						}
+						
+						if(prevFlatNode instanceof FlatCondBranch){
+							prevSESE=isAfterChildSESEIndicatorMap.get(prevFlatNode);
+						}
 					}
-
 					SESESummary currentSummary = seseSummaryMap.get(fn);
-					if (currentSummary == null) {
+					//if (currentSummary == null) {
+					if(!(fn instanceof FlatMethod)){
 						FlatNode current = null;
 						FlatNode currentParent = null;
 						// calculate sese summary info from previous flat nodes
@@ -2285,6 +2291,7 @@ public class MLPAnalysis {
 									currentParent = prevSummary
 											.getCurrentParent();
 								}
+								
 								break;
 							}
 						}
@@ -2292,17 +2299,37 @@ public class MLPAnalysis {
 						currentSummary = new SESESummary(currentParent, current);
 						seseSummaryMap.put(fn, currentSummary);
 					}
+					
+					if(prevSESE!=null){
+						if(fn instanceof FlatSESEEnterNode){
+							isAfterChildSESEIndicatorMap.put(currentSummary.getCurrentSESE(), currentConflictsMap.isAfterSESE());
+						}else{
+							isAfterChildSESEIndicatorMap.put(currentSummary.getCurrentSESE(), prevSESE);
+						}
+					}
+					
+					Boolean b=isAfterChildSESEIndicatorMap.get(currentSummary.getCurrentSESE());;
+					if(b==null){
+						currentConflictsMap.setIsAfterSESE(false);
+					}else{
+						currentConflictsMap.setIsAfterSESE(b.booleanValue());
+					}
+
+					FlatNode tempP=currentSummary.getCurrentParent();
+					FlatNode tempS=currentSummary.getCurrentSESE();
 
 					conflicts_nodeAction(mc, fn, callGraph, preeffectsSet,
 							currentConflictsMap, currentSummary);
 
+					
 					// if we have a new result, schedule forward nodes for
 					// analysis
 					if (!currentConflictsMap.equals(prevResult)) {
+						seseSummaryMap.put(fn, currentSummary);
 						conflictsResults.put(fn, currentConflictsMap);
 						for (int i = 0; i < fn.numNext(); i++) {
 							FlatNode nn = fn.getNext(i);
-							flatNodesToVisit.add(nn);
+							flatNodesToVisit.addFirst(nn);
 						}
 					}
 
@@ -2334,7 +2361,7 @@ public class MLPAnalysis {
 				FlatNode parentNode = currentSummary.getCurrentSESE();
 				currentSummary.setCurrentParent(parentNode);
 				currentSummary.setCurrentSESE(fsen);
-				seseSummaryMap.put(fsen, currentSummary);
+//				seseSummaryMap.put(fsen, currentSummary);
 			}
 
 			if (!fsen.getIsCallerSESEplaceholder()) {
@@ -2367,6 +2394,18 @@ public class MLPAnalysis {
 
 		}
 			break;
+			
+		case FKind.FlatCondBranch: {
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+			isAfterChildSESEIndicatorMap.put(fn, new Boolean(isAfterChildSESE));
+		}
+		break;
+		
 		case FKind.FlatNew: {
 
 			FlatNew fnew = (FlatNew) fn;
@@ -2870,7 +2909,7 @@ public class MLPAnalysis {
 
 		}
 
-		seseSummaryMap.put(fn, currentSummary);
+//		seseSummaryMap.put(fn, currentSummary);
 
 	}
 

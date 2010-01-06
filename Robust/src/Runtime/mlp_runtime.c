@@ -39,8 +39,8 @@ AllocSite* mlpCreateAllocSiteArray(int numAllocSites){
   return newAllocSite;
 }
 
-void addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, int allocID, void *seseRec){
-  
+void addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec){
+
   int i;
   for(i=0;i<numAllocSites;i++){
     if(allocSiteArray[i].id==allocID){
@@ -49,5 +49,16 @@ void addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, int al
       break;
     }
   }
+ 
+}
 
+int getQueueIdx(AllocSite* allocSiteArray, int numAllocSites, long  allocID){
+
+  int i;
+  for(i=0;i<numAllocSites;i++){
+    if(allocSiteArray[i].id==allocID){
+      return i;      
+    }
+  }
+  return -1;
 }
