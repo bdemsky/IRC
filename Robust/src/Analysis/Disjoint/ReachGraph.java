@@ -76,8 +76,10 @@ public class ReachGraph {
 			     boolean isSingleObject,
 			     boolean isNewSummary,
 			     boolean isFlagged,
+                             boolean isClean,
 			     TypeDescriptor type,
 			     AllocSite allocSite,
+                             ReachSet inherent,
 			     ReachSet alpha,
 			     String description
                              ) {
@@ -100,25 +102,31 @@ public class ReachGraph {
       id = DisjointAnalysis.generateUniqueHeapRegionNodeID();
     }
 
-    if( alpha == null ) {
+    if( inherent == null ) {
       if( markForAnalysis ) {
-	alpha = new ReachSet(
-			     new ReachTuple( id,
-					     !isSingleObject,
-					     ReachTuple.ARITY_ONE
-					     ).makeCanonical()
-			     ).makeCanonical();
+	inherent = new ReachSet(
+                                new ReachTuple( id,
+                                                !isSingleObject,
+                                                ReachTuple.ARITY_ONE
+                                                ).makeCanonical()
+                                ).makeCanonical();
       } else {
-	alpha = rsetWithEmptyState;
+	inherent = rsetWithEmptyState;
       }
+    }
+
+    if( alpha == null ) {
+      alpha = inherent;
     }
     
     HeapRegionNode hrn = new HeapRegionNode( id,
 					     isSingleObject,
 					     markForAnalysis,
 					     isNewSummary,
+                                             isClean,
 					     typeToUse,
 					     allocSite,
+                                             inherent,
 					     alpha,
 					     description );
     id2hrn.put( id, hrn );
@@ -532,9 +540,9 @@ public class ReachGraph {
 	  edgeExisting.setBeta(
 			       edgeExisting.getBeta().union( edgeNew.getBeta() )
                                );
-	  // a new edge here cannot be reflexive, so existing will
-	  // always be also not reflexive anymore
-	  edgeExisting.setIsInitialParam( false );
+	  // we touched this edge in the current context
+          // so dirty it
+	  edgeExisting.setIsClean( false );
 	
         } else {			  
 	  addRefEdge( hrnX, hrnY, edgeNew );
@@ -741,9 +749,11 @@ public class ReachGraph {
                                  false,        // single object?		 
                                  true,         // summary?	 
                                  hasFlags,     // flagged?
+                                 false,        // dirty?
                                  as.getType(), // type				 
                                  as,           // allocation site			 
-                                 null,         // reachability set                 
+                                 null,         // inherent reach
+                                 null,         // current reach                 
                                  strDesc       // description
                                  );
                                  
@@ -755,9 +765,11 @@ public class ReachGraph {
                                  true,	       // single object?			 
                                  false,	       // summary?			 
                                  hasFlags,     // flagged?			 
+                                 false,        // dirty?
                                  as.getType(), // type				 
                                  as,	       // allocation site			 
-                                 null,	       // reachability set                 
+                                 null,         // inherent reach
+                                 null,	       // current reach
                                  strDesc       // description
                                  );
       }
@@ -789,9 +801,11 @@ public class ReachGraph {
                                  false,           // single object?			 
                                  true,		  // summary?			 
                                  hasFlags,        // flagged?	                            
+                                 false,           // dirty?
                                  as.getType(),    // type				 
                                  as,		  // allocation site			 
-                                 null,		  // reachability set                 
+                                 null,            // inherent reach
+                                 null,		  // current reach
                                  strDesc          // description
                                  );
 
@@ -802,10 +816,12 @@ public class ReachGraph {
 	createNewHeapRegionNode( idShadowIth,  // id or null to generate a new one 
                                  true,	       // single object?			 
                                  false,	       // summary?			 
-                                 hasFlags,     // flagged?			
+                                 hasFlags,     // flagged?	
+                                 false,        // dirty?
                                  as.getType(), // type				 
                                  as,	       // allocation site			 
-                                 null,	       // reachability set                 
+                                 null,         // inherent reach
+                                 null,	       // current reach                 
                                  strDesc       // description
                                  );
       }
@@ -2943,6 +2959,12 @@ public class ReachGraph {
 	// nodes' reachability sets
 	HeapRegionNode hrnB = id2hrn.get( idA );
 	hrnB.setAlpha( hrnB.getAlpha().union( hrnA.getAlpha() ) );
+
+        // if hrnB is already dirty or hrnA is dirty,
+        // the hrnB should end up dirty
+        if( !hrnA.isClean() ) {
+          hrnB.setIsClean( false );
+        }
       }
     }
 
@@ -3018,8 +3040,8 @@ public class ReachGraph {
 	  edgeToMerge.setBeta(
 	    edgeToMerge.getBeta().union( edgeA.getBeta() )
 	    );
-	  if( !edgeA.isInitialParam() ) {
-	    edgeToMerge.setIsInitialParam( false );
+	  if( !edgeA.isClean() ) {
+	    edgeToMerge.setIsClean( false );
 	  }
 	}
       }
@@ -3079,8 +3101,8 @@ public class ReachGraph {
 	  edgeToMerge.setBeta(
 	    edgeToMerge.getBeta().union( edgeA.getBeta() )
 	    );
-	  if( !edgeA.isInitialParam() ) {
-	    edgeToMerge.setIsInitialParam( false );
+	  if( !edgeA.isClean() ) {
+	    edgeToMerge.setIsClean( false );
 	  }
 	}
       }
@@ -3400,8 +3422,10 @@ public class ReachGraph {
                                           hrnSrcCaller.isSingleObject(),
                                           hrnSrcCaller.isNewSummary(),
                                           hrnSrcCaller.isFlagged(),
+                                          true, // clean
                                           hrnSrcCaller.getType(),
                                           hrnSrcCaller.getAllocSite(),
+                                          hrnSrcCaller.getInherent(),
                                           hrnSrcCaller.getAlpha(),
                                           hrnSrcCaller.getDescription()
                                           );
@@ -3427,8 +3451,10 @@ public class ReachGraph {
                                           hrnCaller.isSingleObject(),
                                           hrnCaller.isNewSummary(),
                                           hrnCaller.isFlagged(),
+                                          true, // clean
                                           hrnCaller.getType(),
                                           hrnCaller.getAllocSite(),
+                                          hrnCaller.getInherent(),
                                           hrnCaller.getAlpha(),
                                           hrnCaller.getDescription()
                                           );

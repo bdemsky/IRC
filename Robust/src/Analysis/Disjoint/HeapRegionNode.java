@@ -12,12 +12,23 @@ public class HeapRegionNode extends RefSrcNode {
   protected boolean isFlagged;
   protected boolean isNewSummary;
 
+  // clean means that the node existed
+  // before the current analysis context
+  protected boolean isClean;  
+
   protected HashSet<RefEdge> referencers;
 
   protected TypeDescriptor type;
 
   protected AllocSite allocSite;
 
+  // some reachability states are inherent
+  // to a node by its definition
+  protected ReachSet inherent;  
+
+  // use alpha for the current reach states
+  // and alphaNew during iterative calculations
+  // to update alpha
   protected ReachSet alpha;
   protected ReachSet alphaNew;
 
@@ -28,8 +39,10 @@ public class HeapRegionNode extends RefSrcNode {
                          boolean        isSingleObject,
                          boolean        isFlagged,
                          boolean        isNewSummary,
+                         boolean        isClean,
                          TypeDescriptor type,
                          AllocSite      allocSite,
+                         ReachSet       inherent,
                          ReachSet       alpha,
                          String         description
                          ) {
@@ -37,8 +50,10 @@ public class HeapRegionNode extends RefSrcNode {
     this.isSingleObject = isSingleObject;
     this.isFlagged      = isFlagged;
     this.isNewSummary   = isNewSummary;
+    this.isClean        = isClean;
     this.type           = type;
     this.allocSite      = allocSite;
+    this.inherent       = inherent;
     this.alpha          = alpha;
     this.description    = description;
 
@@ -51,8 +66,10 @@ public class HeapRegionNode extends RefSrcNode {
                                isSingleObject,
                                isFlagged,
                                isNewSummary,
+                               isClean,
                                type,
                                allocSite,
+                               inherent,
                                alpha,
                                description );
   }
@@ -86,6 +103,7 @@ public class HeapRegionNode extends RefSrcNode {
     assert isSingleObject == hrn.isSingleObject();
     assert isFlagged      == hrn.isFlagged();
     assert isNewSummary   == hrn.isNewSummary();
+    assert isClean        == hrn.isClean();
     assert description.equals( hrn.getDescription() );
 
     return true;
@@ -106,6 +124,14 @@ public class HeapRegionNode extends RefSrcNode {
 
   public boolean isNewSummary() {
     return isNewSummary;
+  }
+
+  public boolean isClean() {
+    return isClean();
+  }
+
+  public void setIsClean( boolean isClean ) {
+    this.isClean = isClean;
   }
 
 
@@ -165,6 +191,11 @@ public class HeapRegionNode extends RefSrcNode {
     return allocSite;
   }
 
+  
+  public ReachSet getInherent() {
+    return inherent;
+  }
+  
   public ReachSet getAlpha() {
     return alpha;
   }
@@ -209,7 +240,6 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
   public String getDescription() {
-    //return new String(description);
     return description;
   }  
 }

@@ -565,7 +565,7 @@ public class DisjointAnalysis {
         }
       }
 
-      // now that we've got that taken care of, go ahead and update
+      // now that we've taken care of that, go ahead and update
       // the reach graph for this FlatCall node by whatever callee
       // result we do have
       

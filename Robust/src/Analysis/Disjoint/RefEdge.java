@@ -13,7 +13,9 @@ public class RefEdge {
   // edge models a variable reference
   protected String field;
 
-  protected boolean isInitialParam;
+  // clean means that the reference existed
+  // before the current analysis context
+  protected boolean isClean;
 
   protected ReachSet beta;
   protected ReachSet betaNew;
@@ -26,15 +28,15 @@ public class RefEdge {
                   HeapRegionNode dst,
                   TypeDescriptor type,
                   String         field,
-                  boolean        isInitialParam,
+                  boolean        isClean,
                   ReachSet       beta ) {
     assert type != null;
 
-    this.src             = src;
-    this.dst             = dst;
-    this.type            = type;
-    this.field           = field;
-    this.isInitialParam  = isInitialParam;
+    this.src     = src;
+    this.dst     = dst;
+    this.type    = type;
+    this.field   = field;
+    this.isClean = isClean;
 
     if( beta != null ) {
       this.beta = beta;
@@ -53,7 +55,7 @@ public class RefEdge {
                                 dst,
                                 type,
                                 field,
-                                isInitialParam,
+                                isClean,
                                 beta );
     return copy;
   }
@@ -84,6 +86,8 @@ public class RefEdge {
         !(dst == edge.dst)   ) {
       return false;
     }
+
+    assert isClean == edge.isClean;
 
     return true;
   }
@@ -167,12 +171,12 @@ public class RefEdge {
   }
 
 
-  public boolean isInitialParam() {
-    return isInitialParam;
+  public boolean isClean() {
+    return isClean;
   }
 
-  public void setIsInitialParam( boolean isInitialParam ) {
-    this.isInitialParam = isInitialParam;
+  public void setIsClean( boolean isClean ) {
+    this.isClean = isClean;
   }
 
 
@@ -213,8 +217,8 @@ public class RefEdge {
       edgeLabel += field + "\\n";
     }
 
-    if( isInitialParam ) {
-      edgeLabel += "*init*\\n";
+    if( isClean ) {
+      edgeLabel += "*clean*\\n";
     }
 
     edgeLabel += beta.toStringEscapeNewline( hideSubsetReachability );

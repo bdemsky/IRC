@@ -6,10 +6,12 @@ public class Foo {
 public class Test {
   static public void main( String[] args ) {
     Foo a = new Foo();
-    a.f = new Foo();
     f1( a );
   }
    
   static public void f1( Foo b ) {
+    Foo c = new Foo();
+    b.f = c;
+    f1( c );
   }
 }
