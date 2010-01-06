@@ -221,12 +221,14 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
 	mhashlistnode_t *node;
 //	go through object store;
 //	track sizes, oids, and num
+//  printf("%s -> Before mutex lock\n",__func__);
 	pthread_mutex_lock(&mlookup.locktable); 
+//  printf("%s -> After mutex lock\n",__func__);
 
   size =0;
   tempsize =0;
 
-	for(i = 0; i < mlookup.size; i++) {
+  for(i = 0; i < mlookup.size; i++) {
 		if (mlookup.table[i].key != 0) {
 			node = &mlookup.table[i];
 			while(node != NULL) { // no nodes
@@ -245,6 +247,7 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
 			}
 		}
 	}
+//  printf("%s -> size = %d\n",__func__,size);
 
   pthread_mutex_unlock(&mlookup.locktable);
 
@@ -264,7 +267,6 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
 	ptr += sizeof(unsigned int);
   *((int *)(ptr)) = size;
 	ptr += sizeof(int);
-  void* ttt = *dupeptr;
 
 	for(i = 0; i < numdupe; i++) {
     header = mhashSearch(oidsdupe[i]);

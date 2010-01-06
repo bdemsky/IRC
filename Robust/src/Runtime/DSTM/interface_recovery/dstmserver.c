@@ -457,8 +457,7 @@ void *dstmAccept(void *acceptfd) {
 				}
 
 				recv_data((int)acceptfd, buffer, size);
-
-
+        
 				oid = *((unsigned int *)buffer);
 				size = sizeof(unsigned int);
 				version = *((unsigned short *)(buffer+size));

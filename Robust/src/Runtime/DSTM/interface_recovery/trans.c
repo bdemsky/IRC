@@ -1761,7 +1761,6 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
     }
 
     header->version += 1;
-    //printf("oid: %u, new header version: %d\n", oidmod[i], header->version);
     if(header->notifylist != NULL) {
 #ifdef RECOVERY
       if(header->isBackup != 0)   // if it is primary obj, notify
@@ -2501,6 +2500,9 @@ int allHostsLive() {
 
 #ifdef RECOVERY
 void duplicateLostObjects(unsigned int mid){
+  printf("Recovery Start");
+  time_t st = time(NULL);
+  time_t fi;
 #ifndef DEBUG
 	printf("%s-> Start, mid: [%s]\n", __func__, midtoIPString(mid));  
 #endif
@@ -2582,6 +2584,10 @@ void duplicateLostObjects(unsigned int mid){
 
     freeSockWithLock(transPrefetchSockPool, backupMid, sd);
 	}
+
+  fi = time(NULL);
+
+  printf("time elapse = %d",fi-st);
 
 #ifndef DEBUG
 	printf("%s-> End\n", __func__);  
@@ -2804,7 +2810,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     return -1;
   }
   ndata->numoid = numoid;
-  printf("%s -> ndata = %d numoid = %d\n",__func__,ndata,numoid);
+//  printf("%s -> ndata = %d numoid = %d\n",__func__,ndata,numoid);
   ndata->threadid = threadid;
   ndata->oidarry = oidarry;
   ndata->versionarry = versionarry;
