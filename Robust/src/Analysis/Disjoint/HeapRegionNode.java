@@ -16,6 +16,10 @@ public class HeapRegionNode extends RefSrcNode {
   // before the current analysis context
   protected boolean isClean;  
 
+  // special nodes that represent heap parts
+  // outside of the current method context
+  protected boolean isOutOfContext;
+
   protected HashSet<RefEdge> referencers;
 
   protected TypeDescriptor type;
@@ -40,6 +44,7 @@ public class HeapRegionNode extends RefSrcNode {
                          boolean        isFlagged,
                          boolean        isNewSummary,
                          boolean        isClean,
+                         boolean        isOutOfContext,
                          TypeDescriptor type,
                          AllocSite      allocSite,
                          ReachSet       inherent,
@@ -51,6 +56,7 @@ public class HeapRegionNode extends RefSrcNode {
     this.isFlagged      = isFlagged;
     this.isNewSummary   = isNewSummary;
     this.isClean        = isClean;
+    this.isOutOfContext = isOutOfContext;
     this.type           = type;
     this.allocSite      = allocSite;
     this.inherent       = inherent;
@@ -67,6 +73,7 @@ public class HeapRegionNode extends RefSrcNode {
                                isFlagged,
                                isNewSummary,
                                isClean,
+                               isOutOfContext,
                                type,
                                allocSite,
                                inherent,
@@ -104,6 +111,7 @@ public class HeapRegionNode extends RefSrcNode {
     assert isFlagged      == hrn.isFlagged();
     assert isNewSummary   == hrn.isNewSummary();
     assert isClean        == hrn.isClean();
+    assert isOutOfContext == hrn.isOutOfContext();
     assert description.equals( hrn.getDescription() );
 
     return true;
@@ -124,6 +132,10 @@ public class HeapRegionNode extends RefSrcNode {
 
   public boolean isNewSummary() {
     return isNewSummary;
+  }
+
+  public boolean isOutOfContext() {
+    return isOutOfContext();
   }
 
   public boolean isClean() {

@@ -77,6 +77,7 @@ public class ReachGraph {
 			     boolean isNewSummary,
 			     boolean isFlagged,
                              boolean isClean,
+                             boolean isOutOfContext,
 			     TypeDescriptor type,
 			     AllocSite allocSite,
                              ReachSet inherent,
@@ -124,6 +125,7 @@ public class ReachGraph {
 					     markForAnalysis,
 					     isNewSummary,
                                              isClean,
+                                             isOutOfContext,
 					     typeToUse,
 					     allocSite,
                                              inherent,
@@ -749,7 +751,8 @@ public class ReachGraph {
                                  false,        // single object?		 
                                  true,         // summary?	 
                                  hasFlags,     // flagged?
-                                 false,        // dirty?
+                                 false,        // clean?
+                                 false,        // out-of-context?
                                  as.getType(), // type				 
                                  as,           // allocation site			 
                                  null,         // inherent reach
@@ -765,7 +768,8 @@ public class ReachGraph {
                                  true,	       // single object?			 
                                  false,	       // summary?			 
                                  hasFlags,     // flagged?			 
-                                 false,        // dirty?
+                                 false,        // clean?
+                                 false,        // out-of-context?
                                  as.getType(), // type				 
                                  as,	       // allocation site			 
                                  null,         // inherent reach
@@ -801,7 +805,8 @@ public class ReachGraph {
                                  false,           // single object?			 
                                  true,		  // summary?			 
                                  hasFlags,        // flagged?	                            
-                                 false,           // dirty?
+                                 false,           // clean?
+                                 false,           // out-of-context?
                                  as.getType(),    // type				 
                                  as,		  // allocation site			 
                                  null,            // inherent reach
@@ -817,7 +822,8 @@ public class ReachGraph {
                                  true,	       // single object?			 
                                  false,	       // summary?			 
                                  hasFlags,     // flagged?	
-                                 false,        // dirty?
+                                 false,        // clean?
+                                 false,        // out-of-context?
                                  as.getType(), // type				 
                                  as,	       // allocation site			 
                                  null,         // inherent reach
@@ -3368,6 +3374,7 @@ public class ReachGraph {
     Set callerNodesCopiedToCallee = new HashSet<HeapRegionNode>();
     Set callerEdgesCopiedToCallee = new HashSet<RefEdge>();
 
+
     // a conservative starting point is to take the 
     // mechanically-reachable-from-arguments graph
     // as opposed to using reachability information
@@ -3389,7 +3396,7 @@ public class ReachGraph {
       // they will have the same heap region ID
       VariableNode vnCaller = this.getVariableNodeFromTemp( tdArg );
       VariableNode vnCallee = rg.getVariableNodeFromTemp( tdParam );
- 
+      
       // now traverse the caller view using the argument to
       // build the callee view which has the parameter symbol
       Set<RefSrcNode> toVisitInCaller = new HashSet<RefSrcNode>();
@@ -3422,7 +3429,8 @@ public class ReachGraph {
                                           hrnSrcCaller.isSingleObject(),
                                           hrnSrcCaller.isNewSummary(),
                                           hrnSrcCaller.isFlagged(),
-                                          true, // clean
+                                          true,  // clean?
+                                          false, // out-of-context?
                                           hrnSrcCaller.getType(),
                                           hrnSrcCaller.getAllocSite(),
                                           hrnSrcCaller.getInherent(),
@@ -3451,7 +3459,8 @@ public class ReachGraph {
                                           hrnCaller.isSingleObject(),
                                           hrnCaller.isNewSummary(),
                                           hrnCaller.isFlagged(),
-                                          true, // clean
+                                          true,  // clean?
+                                          false, // out-of-context?
                                           hrnCaller.getType(),
                                           hrnCaller.getAllocSite(),
                                           hrnCaller.getInherent(),
@@ -3471,7 +3480,7 @@ public class ReachGraph {
                                         hrnCallee,
                                         reCaller.getType(),
                                         reCaller.getField(),
-                                        true, // isInitialParam
+                                        true, // clean?
                                         reCaller.getBeta()
                                         )
                            );              
@@ -3487,12 +3496,68 @@ public class ReachGraph {
         } // end edge iteration        
       } // end visiting heap nodes in caller
     } // end iterating over parameters as starting points
-    
-    // Now take the callee view graph we've built from the
-    // caller and look backwards: for every node in the callee
-    // look back in the caller for "upstream" reference edges.
-    // We need to add special elements to the callee view that
-    // capture relevant effects for mapping back
+
+
+    // find the set of edges in this graph with source
+    // out-of-context (not in nodes copied) and have a
+    // destination in context (one of nodes copied) as
+    // a starting point for building out-of-context nodes
+    Iterator<HeapRegionNode> itrInContext =
+      callerNodesCopiedToCallee.iterator();
+    while( itrInContext.hasNext() ) {
+      HeapRegionNode hrnCallerAndInContext = itrInContext.next();
+      
+      Iterator<RefEdge> itrMightCross =
+        hrnCallerAndInContext.iteratorToReferencers();
+      while( itrMightCross.hasNext() ) {
+        RefEdge edgeMightCross = itrMightCross.next();
+
+        // we're only interested in edges with a source
+        // 1) out-of-context and 2) is a heap region
+        if( callerNodesCopiedToCallee.contains( edgeMightCross.getSrc() ) ||
+            !(edgeMightCross.getSrc() instanceof HeapRegionNode)
+            ) { 
+          // then just skip
+          continue;
+        }
+
+        HeapRegionNode hrnCallerAndOutContext = 
+          (HeapRegionNode)edgeMightCross.getSrc();
+
+        // we found a reference that crosses from out-of-context
+        // to in-context, so build a special out-of-context node
+        // for the callee IHM and its reference edge
+        HeapRegionNode hrnCalleeAndOutContext =
+          rg.createNewHeapRegionNode( null,  // ID
+                                      false, // single object?
+                                      false, // new summary?
+                                      false, // flagged?
+                                      true,  // clean?
+                                      true,  // out-of-context?
+                                      hrnCallerAndOutContext.getType(),
+                                      null,  // alloc site, shouldn't be used
+                                      hrnCallerAndOutContext.getAlpha(), // inherent
+                                      hrnCallerAndOutContext.getAlpha(), // alpha
+                                      "out-of-context"
+                                      );
+       
+        HeapRegionNode hrnCalleeAndInContext = 
+          rg.id2hrn.get( hrnCallerAndInContext.getID() );
+
+        rg.addRefEdge( hrnCalleeAndOutContext,
+                       hrnCalleeAndInContext,
+                       new RefEdge( hrnCalleeAndOutContext,
+                                    hrnCalleeAndInContext,
+                                    edgeMightCross.getType(),
+                                    edgeMightCross.getField(),
+                                    true, // clean?
+                                    edgeMightCross.getBeta()
+                                    )
+                       );                      
+        
+      }
+    }    
+
 
     try {
       rg.writeGraph( "calleeview", true, true, true, false, true, true );
