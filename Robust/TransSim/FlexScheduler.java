@@ -1,6 +1,6 @@
 import java.util.*;
 
-public class FlexScheduler {
+public class FlexScheduler extends Thread {
   Executor e;
   int abortThreshold;
   int abortRatio;
@@ -15,6 +15,10 @@ public class FlexScheduler {
     this.checkdepth=checkdepth;
   }
   
+  public void run() {
+    dosim();
+  }
+
   public FlexScheduler(Executor e, int policy, Plot p) {
     this.e=e;
     barriercount=e.numThreads();
@@ -73,6 +77,7 @@ public class FlexScheduler {
   int policy;
   boolean[] aborted;
   long shorttesttime;
+  long starttime=-1;
   Hashtable rdobjmap;
   Hashtable wrobjmap;
   int abortcount;
@@ -102,7 +107,7 @@ public class FlexScheduler {
   }
 
   public long getTime() {
-    return shorttesttime;
+    return shorttesttime-starttime;
   }
 
   //Aborts another thread...
@@ -159,21 +164,26 @@ public class FlexScheduler {
     }
   }
 
-  public void startinitial() {
+  /* Initializes things and returns number of transactions */
+  public int startinitial() {
+    int tcount=0;
     for(int i=0;i<e.numThreads();i++) {
       Transaction trans=e.getThread(i).getTransaction(0);
       long time=trans.getTime(0);
       Event ev=new Event(time, trans, 0, i, 0);
       currentevents[i]=ev;
       eq.add(ev);
+      tcount+=e.getThread(i).numTransactions();
     }
+    return tcount;
   }
 
   public void dosim() {
     long lasttime=0;
     //start first transactions
-    startinitial();
-
+    int numtrans=startinitial();
+    System.out.println("Number of transactions="+numtrans);
+    int tcount=0;
     while(!eq.isEmpty()) {
       Event ev=(Event)eq.poll();
       if (!ev.isValid()) {
@@ -181,12 +191,18 @@ public class FlexScheduler {
       }
 
       Transaction trans=ev.getTransaction();
+
       int event=ev.getEvent();
       long currtime=ev.getTime();
       lasttime=currtime;
+      if (trans.started&&starttime==-1)
+	starttime=currtime;
 
       if (trans.numEvents()==(event+1)) {
 	tryCommit(ev, trans);
+	tcount++;
+	if ((tcount%100000)==0)
+	  System.out.println("Attempted "+tcount+"transactions");
       } else {
 	enqueueEvent(ev, trans);
       }
@@ -227,6 +243,9 @@ public class FlexScheduler {
 	int op=trans.getEvent(i);
 	//Mark commits to objects
 	if (isLock()&&(op==Transaction.WRITE||op==Transaction.READ)) {
+	  if (object==null) {
+	    System.out.println(op);
+	  }
 	  getmapping(object).recordCommit();
 	}
 	//Check for threads we might cause to abort
@@ -333,13 +352,17 @@ public class FlexScheduler {
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	Integer thread=(Integer)thit.next();
 	reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
-	backoff[thread.intValue()]*=2;
+	int dback=backoff[thread.intValue()]*2;
+	if (dback>0)
+	  backoff[thread.intValue()]=dback;
 	abortcount++;
       }
       return true;
     } else if (policy==POLITE) {
       reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
-      backoff[ev.getThread()]*=2;
+      int dback=backoff[ev.getThread()]*2;
+      if (dback>0)
+	backoff[ev.getThread()]=dback;
       abortcount++;
       return false;
     } else if (policy==KARMA) {

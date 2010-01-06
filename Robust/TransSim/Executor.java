@@ -36,14 +36,14 @@ public class Executor {
 
   public static int readInt(InputStream is) {
     try {
-    int b1=is.read();
-    int b2=is.read();
-    int b3=is.read();
-    int b4=is.read();
-    int retval=(b1<<24)|(b2<<16)|(b3<<8)|b4;
-    if (retval<0)
-      throw new Error();
-    return retval;
+      int b1=is.read();
+      int b2=is.read();
+      int b3=is.read();
+      int b4=is.read();
+      int retval=(b4<<24)|(b3<<16)|(b2<<8)|b1;
+      if (retval<0)
+	throw new Error();
+      return retval;
     } catch (Exception e) {
       throw new Error();
     }
@@ -59,8 +59,8 @@ public class Executor {
     long b6=is.read();
     long b7=is.read();
     long b8=is.read();
-    long retval=(b1<<56)|(b2<<48)|(b3<<40)|(b4<<32)|
-      (b5<<24)|(b6<<16)|(b7<<8)|b8;
+    long retval=(b8<<56)|(b7<<48)|(b6<<40)|(b5<<32)|
+	(b4<<24)|(b3<<16)|(b2<<8)|b1;
     if (retval<0)
       throw new Error();
     return retval;
@@ -80,6 +80,7 @@ public class Executor {
     threads=new ThreadClass[numThreads];
     long earliest=-1;
     for(int i=0;i<numThreads;i++) {
+      System.out.println("Loading thread "+i+" of "+numThreads);
       threads[i]=readThread(bir);
       long inittime=threads[i].trans[0].getTime(0);
       if (earliest==-1||earliest>inittime) {
@@ -104,8 +105,8 @@ public class Executor {
   public static final int EV_ARRAYWRITE=8;
   public static final int EV_EXITBARRIER=9;
 
-  private Transaction createTransaction(Vector<TEvent> v) {
-    Transaction t=new Transaction(v.size());
+  private Transaction createTransaction(Vector<TEvent> v, boolean started) {
+    Transaction t=new Transaction(v.size(),started);
     for(int i=0;i<v.size();i++) {
       TEvent e=v.get(i);
       t.setTime(i,e.time);
@@ -118,6 +119,9 @@ public class Executor {
   
   private ThreadClass readThread(InputStream is) {
     int numEvents=readInt(is);
+    long low=-1;
+    long high=-1;
+    boolean started=false;
     Vector<Transaction> transactions=new Vector<Transaction>();
     Vector<TEvent> currtrans=null;
     long starttime=-1;
@@ -130,33 +134,40 @@ public class Executor {
       switch(eventType) {
       case EV_READ:
       case EV_WRITE:
-	object=readInt(is);
+	object=readInt(is);i++;
 	break;
       case EV_ARRAYREAD:
       case EV_ARRAYWRITE:
-	object=readInt(is);
-	index=readInt(is);
+	object=readInt(is);i++;
+	index=readInt(is);i++;
 	break;
       default:
 	break;
       }
-      long time=readLong(is);
+      long time=readLong(is);i+=2;
+      if (low==-1||time<low)
+	low=time;
+      if (high==-1||time>high)
+	high=time;
       //create dummy first transaction
       if (firsttime==-1) {
-	Transaction t=new Transaction(1);
+	Transaction t=new Transaction(1,started);
+	t.setEvent(0, Transaction.DELAY);
 	t.setTime(0, time);
 	t.setObject(0, -1);
 	t.setIndex(0, -1);
 	transactions.add(t);
 	firsttime=time;
+	lasttime=time;
       }
       //have read all data in
       switch(eventType) {
       case EV_START:
 	starttime=time;
 	currtrans=new Vector<TEvent>();
-	if (lasttime!=-1) {
-	  Transaction t=new Transaction(1);
+	started=true;
+	if (lasttime!=-1&&lasttime!=time) {
+	  Transaction t=new Transaction(1,started);
 	  t.setEvent(0, Transaction.DELAY);
 	  t.setTime(0, time-lasttime);
 	  t.setObject(0, -1);
@@ -183,7 +194,7 @@ public class Executor {
 	TEvent ev=new TEvent(Transaction.DELAY, delta);
 	currtrans.add(ev);
 	lasttime=time;
-	transactions.add(createTransaction(currtrans));
+	transactions.add(createTransaction(currtrans, started));
       }
 	break;
       case EV_ABORT:
@@ -195,15 +206,15 @@ public class Executor {
 	break;
       case EV_ENTERBARRIER: {
 	//Barrier
+	Transaction t=new Transaction(1, started);
+	t.setEvent(0, Transaction.BARRIER);
 	if (lasttime!=-1) {
-	  Transaction t=new Transaction(1);
-	  t.setEvent(0, Transaction.DELAY);
 	  t.setTime(0, time-lasttime);
-	  t.setObject(0, -1);
-	  t.setIndex(0, -1);
-	  transactions.add(t);
 	}
-	transactions.add(Transaction.getBarrier());
+	t.setObject(0, -1);
+	t.setIndex(0, -1);
+	transactions.add(t);
+	lasttime=time;
       }
 	break;
       case EV_EXITBARRIER: {
@@ -217,6 +228,7 @@ public class Executor {
     for(int i=0;i<transactions.size();i++) {
       tc.setTransaction(i,transactions.get(i));
     }
+    System.out.println(low+"  "+high);
     return tc;
   }
 
@@ -240,13 +252,17 @@ public class Executor {
     generateThreads();
   }
 
-  public int maxTime() {
-    int maxtime=0;
+  public long maxTime() {
+    long maxtime=0;
     for(int i=0;i<numThreads;i++) {
-      int time=0;
+      long time=0;
+      boolean started=false;
       for(int j=0;j<getThread(i).numTransactions();j++) {
 	Transaction trans=getThread(i).getTransaction(j);
-	time+=trans.getTime(trans.numEvents()-1);
+	if (trans.started)
+	  started=true;
+	if (started)
+	  time+=trans.getTime(trans.numEvents()-1);
       }
       if (time>maxtime)
 	maxtime=time;
@@ -295,7 +311,7 @@ public class Executor {
 
   private Transaction generateTransaction() {
     int accesses=getRandom(numAccesses, deltaAccesses);
-    Transaction t=new Transaction(accesses);
+    Transaction t=new Transaction(accesses,true);
     int time=0;
     int splitpoint=(numObjects*splitobjects)/100;
     for(int i=0;i<(accesses-1); i++) {
@@ -335,7 +351,7 @@ public class Executor {
     for(int i=0;i<numTransactions;i++) {
       Transaction trans=generateTransaction();
       t.setTransaction(i*2, trans);
-      Transaction transdelay=new Transaction(1);
+      Transaction transdelay=new Transaction(1,true);
       transdelay.setObject(0,Transaction.DELAY);
       transdelay.setEvent(0,Transaction.DELAY);
       transdelay.setTime(0, getRandom(nonTrans, deltaNonTrans));

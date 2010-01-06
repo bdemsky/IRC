@@ -1,8 +1,10 @@
 public class Transaction {
-  int[] events;
+  byte[] events;
   int[] objects;
   int[] indices;
-  long[] times;
+  int[] times;
+  long[] alttimes;
+  boolean started;
 
   public String toString() {
     String s="";
@@ -18,34 +20,32 @@ public class Transaction {
     return s;
   }
 
-  public static final int READ=0;
-  public static final int WRITE=1;
-  public static final int BARRIER=2;
-  public static final int DELAY=-1;
+  public static final byte READ=0;
+  public static final byte WRITE=1;
+  public static final byte BARRIER=2;
+  public static final byte DELAY=-1;
 
-  public static Transaction getBarrier() {
-    Transaction t=new Transaction(1);
-    t.setEvent(0, BARRIER);
-    return t;
-  }
-
-  public Transaction(int size) {
-    events=new int[size];
+  public Transaction(int size,boolean started) {
+    events=new byte[size];
     objects=new int[size];
     indices=new int[size];
-    times=new long[size];
+    times=new int[size];
+    this.started=started;
   }
   
   public int numEvents() {
     return events.length;
   }
 
-  public int getEvent(int index) {
+  public byte getEvent(int index) {
     return events[index];
   }
 
   public long getTime(int index) {
-    return times[index];
+    if (times!=null)
+      return times[index];
+    else
+      return alttimes[index];
   }
 
   public int getObject(int index) {
@@ -63,12 +63,25 @@ public class Transaction {
     return new ObjIndex(obj, indices[index]);
   }
 
-  public void setEvent(int index, int val) {
+  public void setEvent(int index, byte val) {
     events[index]=val;
   }
 
   public void setTime(int index, long val) {
-    times[index]=val;
+    if (times==null) {
+      alttimes[index]=val;
+    } else {
+      int v=(int)val;
+      if (v==val) {
+	times[index]=v;
+      } else {
+	alttimes=new long[times.length];
+	for(int i=0;i<times.length;i++)
+	  alttimes[i]=times[i];
+	times=null;
+	alttimes[index]=val;
+      }
+    }
   }
 
   public void setObject(int index, int val) {
