@@ -314,12 +314,20 @@ public class ReachGraph {
 
       edgeNew.setSrc( lnX );
       
-      edgeNew.setType( mostSpecificType( y.getType(),
-					 tdCast, 
-					 edgeY.getType(), 
-					 referencee.getType() 
-					 ) 
-		       );
+      if( tdCast == null ) {
+        edgeNew.setType( mostSpecificType( y.getType(),                           
+                                           edgeY.getType(), 
+                                           referencee.getType() 
+                                           ) 
+                         );
+      } else {
+        edgeNew.setType( mostSpecificType( y.getType(),
+                                           edgeY.getType(), 
+                                           referencee.getType(),
+                                           tdCast
+                                           ) 
+                         );
+      }
 
       edgeNew.setField( null );
 
@@ -1095,11 +1103,226 @@ public class ReachGraph {
   }
 
 
+
+  // use this method to make a new reach graph that is
+  // what heap the FlatMethod callee from the FlatCall 
+  // would start with reaching from its arguments in
+  // this reach graph
+  public ReachGraph makeCalleeView( FlatCall   fc,
+                                    FlatMethod fm ) {
+
+    // the callee view is a new graph: DON'T MODIFY
+    // *THIS* graph
+    ReachGraph rg = new ReachGraph();
+
+    // track what parts of this graph have already been
+    // added to callee view, variables not needed.
+    // Note that we need this because when we traverse
+    // this caller graph for each parameter we may find
+    // nodes and edges more than once (which the per-param
+    // "visit" sets won't show) and we only want to create
+    // an element in the new callee view one time
+    Set callerNodesCopiedToCallee = new HashSet<HeapRegionNode>();
+    Set callerEdgesCopiedToCallee = new HashSet<RefEdge>();
+
+
+    // a conservative starting point is to take the 
+    // mechanically-reachable-from-arguments graph
+    // as opposed to using reachability information
+    // to prune the graph further
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+
+      // for each parameter index, get the symbol in the
+      // caller view and callee view
+      
+      // argument defined here is the symbol in the caller
+      TempDescriptor tdArg = fc.getArgMatchingParamIndex( fm, i );
+
+      // parameter defined here is the symbol in the callee
+      TempDescriptor tdParam = fm.getParameter( i );
+
+      // use these two VariableNode objects to translate
+      // between caller and callee--its easy to compare
+      // a HeapRegionNode across callee and caller because
+      // they will have the same heap region ID
+      VariableNode vnCaller = this.getVariableNodeFromTemp( tdArg );
+      VariableNode vnCallee = rg.getVariableNodeFromTemp( tdParam );
+      
+      // now traverse the caller view using the argument to
+      // build the callee view which has the parameter symbol
+      Set<RefSrcNode> toVisitInCaller = new HashSet<RefSrcNode>();
+      Set<RefSrcNode> visitedInCaller = new HashSet<RefSrcNode>();
+      toVisitInCaller.add( vnCaller );
+
+      while( !toVisitInCaller.isEmpty() ) {
+        RefSrcNode rsnCaller = toVisitInCaller.iterator().next();
+        RefSrcNode rsnCallee;
+
+        toVisitInCaller.remove( rsnCaller );
+        visitedInCaller.add( rsnCaller );
+        
+        // FIRST - setup the source end of an edge
+
+        if( rsnCaller == vnCaller ) {
+          // if the caller node is the param symbol, we
+          // have to do this translation for the callee
+          rsnCallee = vnCallee;
+        } else {
+          // otherwise the callee-view node is a heap
+          // region with the same ID, that may or may
+          // not have been created already
+          assert rsnCaller instanceof HeapRegionNode;          
+
+          HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
+          if( !callerNodesCopiedToCallee.contains( rsnCaller ) ) {
+            rsnCallee = 
+              rg.createNewHeapRegionNode( hrnSrcCaller.getID(),
+                                          hrnSrcCaller.isSingleObject(),
+                                          hrnSrcCaller.isNewSummary(),
+                                          hrnSrcCaller.isFlagged(),
+                                          true,  // clean?
+                                          false, // out-of-context?
+                                          hrnSrcCaller.getType(),
+                                          hrnSrcCaller.getAllocSite(),
+                                          toShadowTokens( this, hrnSrcCaller.getInherent() ),
+                                          toShadowTokens( this, hrnSrcCaller.getAlpha() ),
+                                          hrnSrcCaller.getDescription()
+                                          );
+            callerNodesCopiedToCallee.add( rsnCaller );
+          } else {
+            rsnCallee = rg.id2hrn.get( hrnSrcCaller.getID() );
+          }
+        }
+
+        // SECOND - go over all edges from that source
+
+        Iterator<RefEdge> itrRefEdges = rsnCaller.iteratorToReferencees();
+        while( itrRefEdges.hasNext() ) {
+          RefEdge        reCaller  = itrRefEdges.next();
+          HeapRegionNode hrnCaller = reCaller.getDst();
+          HeapRegionNode hrnCallee;
+
+          // THIRD - setup destination ends of edges
+
+          if( !callerNodesCopiedToCallee.contains( hrnCaller ) ) {
+            hrnCallee = 
+              rg.createNewHeapRegionNode( hrnCaller.getID(),
+                                          hrnCaller.isSingleObject(),
+                                          hrnCaller.isNewSummary(),
+                                          hrnCaller.isFlagged(),
+                                          true,  // clean?
+                                          false, // out-of-context?
+                                          hrnCaller.getType(),
+                                          hrnCaller.getAllocSite(),
+                                          toShadowTokens( this, hrnCaller.getInherent() ),
+                                          toShadowTokens( this, hrnCaller.getAlpha() ),
+                                          hrnCaller.getDescription()
+                                          );
+            callerNodesCopiedToCallee.add( hrnCaller );
+          } else {
+            hrnCallee = rg.id2hrn.get( hrnCaller.getID() );
+          }
+
+          // FOURTH - copy edge over if needed
+          if( !callerEdgesCopiedToCallee.contains( reCaller ) ) {
+            rg.addRefEdge( rsnCallee,
+                           hrnCallee,
+                           new RefEdge( rsnCallee,
+                                        hrnCallee,
+                                        reCaller.getType(),
+                                        reCaller.getField(),
+                                        true, // clean?
+                                        toShadowTokens( this, reCaller.getBeta() )
+                                        )
+                           );              
+            callerEdgesCopiedToCallee.add( reCaller );
+          }
+          
+          // keep traversing nodes reachable from param i
+          // that we haven't visited yet
+          if( !visitedInCaller.contains( hrnCaller ) ) {
+            toVisitInCaller.add( hrnCaller );
+          }
+          
+        } // end edge iteration        
+      } // end visiting heap nodes in caller
+    } // end iterating over parameters as starting points
+
+
+    // find the set of edges in this graph with source
+    // out-of-context (not in nodes copied) and have a
+    // destination in context (one of nodes copied) as
+    // a starting point for building out-of-context nodes
+    Iterator<HeapRegionNode> itrInContext =
+      callerNodesCopiedToCallee.iterator();
+    while( itrInContext.hasNext() ) {
+      HeapRegionNode hrnCallerAndInContext = itrInContext.next();
+      
+      Iterator<RefEdge> itrMightCross =
+        hrnCallerAndInContext.iteratorToReferencers();
+      while( itrMightCross.hasNext() ) {
+        RefEdge edgeMightCross = itrMightCross.next();
+
+        // we're only interested in edges with a source
+        // 1) out-of-context and 2) is a heap region
+        if( callerNodesCopiedToCallee.contains( edgeMightCross.getSrc() ) ||
+            !(edgeMightCross.getSrc() instanceof HeapRegionNode)
+            ) { 
+          // then just skip
+          continue;
+        }
+
+        HeapRegionNode hrnCallerAndOutContext = 
+          (HeapRegionNode)edgeMightCross.getSrc();
+
+        // we found a reference that crosses from out-of-context
+        // to in-context, so build a special out-of-context node
+        // for the callee IHM and its reference edge
+        HeapRegionNode hrnCalleeAndOutContext =
+          rg.createNewHeapRegionNode( null,  // ID
+                                      false, // single object?
+                                      false, // new summary?
+                                      false, // flagged?
+                                      true,  // clean?
+                                      true,  // out-of-context?
+                                      hrnCallerAndOutContext.getType(),
+                                      null,  // alloc site, shouldn't be used
+                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // inherent
+                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // alpha
+                                      "out-of-context"
+                                      );
+       
+        HeapRegionNode hrnCalleeAndInContext = 
+          rg.id2hrn.get( hrnCallerAndInContext.getID() );
+
+        rg.addRefEdge( hrnCalleeAndOutContext,
+                       hrnCalleeAndInContext,
+                       new RefEdge( hrnCalleeAndOutContext,
+                                    hrnCalleeAndInContext,
+                                    edgeMightCross.getType(),
+                                    edgeMightCross.getField(),
+                                    true, // clean?
+                                    toShadowTokens( this, edgeMightCross.getBeta() )
+                                    )
+                       );                      
+        
+      }
+    }    
+
+    /*
+    try {
+      rg.writeGraph( "calleeview", true, true, true, false, true, true );
+    } catch( IOException e ) {}
+
+    if( fc.getMethod().getSymbol().equals( "f1" ) ) {
+      System.exit( 0 );
+    }
+    */
+
+    return rg;
+  }  
+
   /*
-  // resolveMethodCall() is used to incorporate a callee graph's effects into
-  // *this* graph, which is the caller.  This method can also be used, after
-  // the entire analysis is complete, to perform parameter decomposition for 
-  // a given call chain.
   public void resolveMethodCall(FlatCall       fc,        // call site in caller method
                                 boolean        isStatic,  // whether it is a static method
                                 FlatMethod     fm,        // the callee method (when virtual, can be many)
@@ -1107,1268 +1330,8 @@ public class ReachGraph {
 				MethodContext  mc,        // the aliasing context for this call
 				ParameterDecomposition pd // if this is not null, we're calling after analysis
 				) {
-
-    if( debugCallMap &&
-	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	fm.getMethod().getSymbol().equals( debugCallee ) 
-	) {
-
-      try {
-	writeGraph("debug1BeforeCall",
-		      true,  // write labels (variables)
-		      true,  // selectively hide intermediate temp vars
-		      true,  // prune unreachable heap regions
-		      false, // show back edges to confirm graph validity
-		      false, // show parameter indices (unmaintained!)
-		      true,  // hide subset reachability states
-		      true); // hide edge taints
-
-	ogCallee.writeGraph("debug0Callee",
-		      true,  // write labels (variables)
-		      true,  // selectively hide intermediate temp vars
-		      true,  // prune unreachable heap regions
-		      false, // show back edges to confirm graph validity
-		      false, // show parameter indices (unmaintained!)
-		      true,  // hide subset reachability states
-		      true); // hide edge taints
-      } catch( IOException e ) {}
-
-      System.out.println( "  "+mc+" is calling "+fm );
-    }
-
-
-
-    // define rewrite rules and other structures to organize data by parameter/argument index
-    Hashtable<Integer, ReachSet> paramIndex2rewriteH_p = new Hashtable<Integer, ReachSet>();
-    Hashtable<Integer, ReachSet> paramIndex2rewriteH_s = new Hashtable<Integer, ReachSet>();
-    
-    Hashtable<String,  ReachSet> paramIndex2rewriteJ_p2p = new Hashtable<String,  ReachSet>(); // select( i, j, f )
-    Hashtable<String,  ReachSet> paramIndex2rewriteJ_p2s = new Hashtable<String,  ReachSet>(); // select( i,    f )
-    Hashtable<Integer, ReachSet> paramIndex2rewriteJ_s2p = new Hashtable<Integer, ReachSet>();
-    Hashtable<Integer, ReachSet> paramIndex2rewriteJ_s2s = new Hashtable<Integer, ReachSet>();
-
-    Hashtable<Integer, ReachSet> paramIndex2rewriteK_p  = new Hashtable<Integer, ReachSet>();
-    Hashtable<Integer, ReachSet> paramIndex2rewriteK_p2 = new Hashtable<Integer, ReachSet>();
-    Hashtable<Integer, ReachSet> paramIndex2rewriteK_s  = new Hashtable<Integer, ReachSet>();
-
-    Hashtable<Integer, ReachSet> paramIndex2rewrite_d_p = new Hashtable<Integer, ReachSet>();
-    Hashtable<Integer, ReachSet> paramIndex2rewrite_d_s = new Hashtable<Integer, ReachSet>();
-
-    Hashtable<Integer, ReachSet> paramIndex2rewriteD = new Hashtable<Integer, ReachSet>();
-
-
-    Hashtable<Integer, VariableNode> paramIndex2ln = new Hashtable<Integer, VariableNode>();
-
-
-    paramIndex2rewriteH_p.put( bogusIndex, rsIdentity );
-    paramIndex2rewriteH_s.put( bogusIndex, rsIdentity );    
-
-    paramIndex2rewriteJ_p2p.put( bogusIndex.toString(), rsIdentity );
-    paramIndex2rewriteJ_p2s.put( bogusIndex.toString(), rsIdentity );
-    paramIndex2rewriteJ_s2p.put( bogusIndex,            rsIdentity );
-    paramIndex2rewriteJ_s2s.put( bogusIndex,            rsIdentity );
-
-
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-      Integer paramIndex = new Integer(i);
-
-      if( !ogCallee.paramIndex2idPrimary.containsKey( paramIndex ) ) {
-	// skip this immutable parameter
-	continue;
-      }
-      
-      // setup H (primary)
-      Integer idPrimary = ogCallee.paramIndex2idPrimary.get( paramIndex );
-      assert ogCallee.id2hrn.containsKey( idPrimary );
-      HeapRegionNode hrnPrimary = ogCallee.id2hrn.get( idPrimary );
-      assert hrnPrimary != null;
-      paramIndex2rewriteH_p.put( paramIndex, toShadowTokens( ogCallee, hrnPrimary.getAlpha() ) );
-
-      // setup J (primary->X)
-      Iterator<RefEdge> p2xItr = hrnPrimary.iteratorToReferencees();
-      while( p2xItr.hasNext() ) {
-	RefEdge p2xEdge = p2xItr.next();
-
-	// we only care about initial parameter edges here
-	if( !p2xEdge.isInitialParam() ) { continue; }
-
-	HeapRegionNode hrnDst = p2xEdge.getDst();
-
-	if( ogCallee.idPrimary2paramIndexSet.containsKey( hrnDst.getID() ) ) {
-	  Iterator<Integer> jItr = ogCallee.idPrimary2paramIndexSet.get( hrnDst.getID() ).iterator();
-	  while( jItr.hasNext() ) {
-	    Integer j = jItr.next();
-	    paramIndex2rewriteJ_p2p.put( makeMapKey( i, j, p2xEdge.getField() ),
-					 toShadowTokens( ogCallee, p2xEdge.getBeta() ) );
-	  }
-
-	} else {
-	  assert ogCallee.idSecondary2paramIndexSet.containsKey( hrnDst.getID() );
-	  paramIndex2rewriteJ_p2s.put( makeMapKey( i, p2xEdge.getField() ),
-				       toShadowTokens( ogCallee, p2xEdge.getBeta() ) );
-	}
-      }
-
-      // setup K (primary)
-      TempDescriptor tdParamQ = ogCallee.paramIndex2tdQ.get( paramIndex );
-      assert tdParamQ != null;
-      VariableNode lnParamQ = ogCallee.td2vn.get( tdParamQ );
-      assert lnParamQ != null;
-      RefEdge edgeSpecialQ_i = lnParamQ.getReferenceTo( hrnPrimary, null, null );
-      assert edgeSpecialQ_i != null;
-      ReachSet qBeta = toShadowTokens( ogCallee, edgeSpecialQ_i.getBeta() );
-
-      ReachTuple p_i = ogCallee.paramIndex2paramTokenPrimary  .get( paramIndex );
-      ReachTuple s_i = ogCallee.paramIndex2paramTokenSecondary.get( paramIndex );
-
-      ReachSet K_p  = new ReachSet().makeCanonical();
-      ReachSet K_p2 = new ReachSet().makeCanonical();
-      if( s_i == null ) {
-	K_p = qBeta;
-      } else {
-	// sort qBeta into K_p1 and K_p2	
-	Iterator<ReachState> ttsItr = qBeta.iterator();
-	while( ttsItr.hasNext() ) {
-	  ReachState tts = ttsItr.next();
-	  if( s_i != null && tts.containsBoth( p_i, s_i ) ) {
-	    K_p2 = K_p2.union( tts );
-	  } else {
-	    K_p = K_p.union( tts );
-	  }
-	}
-      }
-      paramIndex2rewriteK_p .put( paramIndex, K_p  );
-      paramIndex2rewriteK_p2.put( paramIndex, K_p2 );
-
-
-      // if there is a secondary node, compute the rest of the rewrite rules
-      if( ogCallee.paramIndex2idSecondary.containsKey( paramIndex ) ) {
-
-	// setup H (secondary)
-	Integer idSecondary = ogCallee.paramIndex2idSecondary.get( paramIndex );
-	assert ogCallee.id2hrn.containsKey( idSecondary );
-	HeapRegionNode hrnSecondary = ogCallee.id2hrn.get( idSecondary );
-	assert hrnSecondary != null;
-	paramIndex2rewriteH_s.put( paramIndex, toShadowTokens( ogCallee, hrnSecondary.getAlpha() ) );
-
-	// setup J (secondary->X)
-	Iterator<RefEdge> s2xItr = hrnSecondary.iteratorToReferencees();
-	while( s2xItr.hasNext() ) {
-	  RefEdge s2xEdge = s2xItr.next();
-	  
-	  if( !s2xEdge.isInitialParam() ) { continue; }
-	  
-	  HeapRegionNode hrnDst = s2xEdge.getDst();
-	  
-	  if( ogCallee.idPrimary2paramIndexSet.containsKey( hrnDst.getID() ) ) {
-	    Iterator<Integer> jItr = ogCallee.idPrimary2paramIndexSet.get( hrnDst.getID() ).iterator();
-	    while( jItr.hasNext() ) {
-	      Integer j = jItr.next();
-	      paramIndex2rewriteJ_s2p.put( i, toShadowTokens( ogCallee, s2xEdge.getBeta() ) );
-	    }
-	    
-	  } else {
-	    assert ogCallee.idSecondary2paramIndexSet.containsKey( hrnDst.getID() );
-	    paramIndex2rewriteJ_s2s.put( i, toShadowTokens( ogCallee, s2xEdge.getBeta() ) );
-	  }
-	}
-
-	// setup K (secondary)
-	TempDescriptor tdParamR = ogCallee.paramIndex2tdR.get( paramIndex );
-	assert tdParamR != null;
-	VariableNode lnParamR = ogCallee.td2vn.get( tdParamR );
-	assert lnParamR != null;
-	RefEdge edgeSpecialR_i = lnParamR.getReferenceTo( hrnSecondary, null, null );
-	assert edgeSpecialR_i != null;
-	paramIndex2rewriteK_s.put( paramIndex,
-				   toShadowTokens( ogCallee, edgeSpecialR_i.getBeta() ) );	
-      }
-    
-
-      // now depending on whether the callee is static or not
-      // we need to account for a "this" argument in order to
-      // find the matching argument in the caller context
-      TempDescriptor argTemp_i = fc.getArgMatchingParamIndex( fm, paramIndex );
-
-      // remember which caller arg label maps to param index
-      VariableNode argLabel_i = getVariableNodeFromTemp( argTemp_i );
-      paramIndex2ln.put( paramIndex, argLabel_i );
-
-      // do a callee-effect strong update pre-pass here      
-      if( argTemp_i.getType().isClass() ) {
-
-	Iterator<RefEdge> edgeItr = argLabel_i.iteratorToReferencees();
-	while( edgeItr.hasNext() ) {
-	  RefEdge edge = edgeItr.next();
-	  HeapRegionNode hrn = edge.getDst();
-
-	  if( (hrn.getNumReferencers()                                == 1) || // case 1
-	      (hrn.isSingleObject() && argLabel_i.getNumReferencees() == 1)    // case 2	     	     
-	    ) {
-	    if( !DISABLE_STRONG_UPDATES ) {
-              effectCalleeStrongUpdates( paramIndex, ogCallee, hrn );
-            }
-	  }
-	}
-      }
-
-      // then calculate the d and D rewrite rules
-      ReachSet d_i_p = new ReachSet().makeCanonical();
-      ReachSet d_i_s = new ReachSet().makeCanonical();
-      Iterator<RefEdge> edgeItr = argLabel_i.iteratorToReferencees();
-      while( edgeItr.hasNext() ) {
-	RefEdge edge = edgeItr.next();
-
-	d_i_p = d_i_p.union( edge.getBeta().intersection( edge.getDst().getAlpha() ) );
-	d_i_s = d_i_s.union( edge.getBeta() );
-      }
-      paramIndex2rewrite_d_p.put( paramIndex, d_i_p );
-      paramIndex2rewrite_d_s.put( paramIndex, d_i_s );
-
-      // TODO: we should only do this when we need it, and then
-      // memoize it for the rest of the mapping procedure
-      ReachSet D_i = d_i_s.exhaustiveArityCombinations();
-      paramIndex2rewriteD.put( paramIndex, D_i );
-    }
-
-
-    // with respect to each argument, map parameter effects into caller
-    HashSet<HeapRegionNode> nodesWithNewAlpha = new HashSet<HeapRegionNode>();
-    HashSet<RefEdge>  edgesWithNewBeta  = new HashSet<RefEdge>();
-
-    Hashtable<Integer, Set<HeapRegionNode> > pi2dr =
-      new Hashtable<Integer, Set<HeapRegionNode> >();
-
-    Hashtable<Integer, Set<HeapRegionNode> > pi2r =
-      new Hashtable<Integer, Set<HeapRegionNode> >();
-
-    Set<HeapRegionNode> defParamObj = new HashSet<HeapRegionNode>();
-
-    Iterator lnArgItr = paramIndex2ln.entrySet().iterator();
-    while( lnArgItr.hasNext() ) {
-      Map.Entry me      = (Map.Entry) lnArgItr.next();
-      Integer   index   = (Integer)   me.getKey();
-      VariableNode lnArg_i = (VariableNode) me.getValue();
-      
-      Set<HeapRegionNode> dr   = new HashSet<HeapRegionNode>();
-      Set<HeapRegionNode> r    = new HashSet<HeapRegionNode>();
-      Set<HeapRegionNode> todo = new HashSet<HeapRegionNode>();
-
-      // find all reachable nodes starting with label referencees
-      Iterator<RefEdge> edgeArgItr = lnArg_i.iteratorToReferencees();
-      while( edgeArgItr.hasNext() ) {
-	RefEdge edge = edgeArgItr.next();
-	HeapRegionNode hrn = edge.getDst();
-
-	dr.add( hrn );
-
-	if( lnArg_i.getNumReferencees() == 1 && hrn.isSingleObject() ) {
-	  defParamObj.add( hrn );
-	}
-
-	Iterator<RefEdge> edgeHrnItr = hrn.iteratorToReferencees();
-	while( edgeHrnItr.hasNext() ) {
-	  RefEdge edger = edgeHrnItr.next();
-	  todo.add( edger.getDst() );
-	}
-
-	// then follow links until all reachable nodes have been found
-	while( !todo.isEmpty() ) {
-	  HeapRegionNode hrnr = todo.iterator().next();
-	  todo.remove( hrnr );
-	  
-	  r.add( hrnr );
-	  
-	  Iterator<RefEdge> edgeItr = hrnr.iteratorToReferencees();
-	  while( edgeItr.hasNext() ) {
-	    RefEdge edger = edgeItr.next();
-	    if( !r.contains( edger.getDst() ) ) {
-	      todo.add( edger.getDst() );
-	    }
-	  }
-	}
-
-	if( hrn.isSingleObject() ) {
-	  r.remove( hrn );
-	}
-      }
-
-      pi2dr.put( index, dr );
-      pi2r .put( index, r  );
-    }
-
-    assert defParamObj.size() <= fm.numParameters();
-
-    // if we're in parameter decomposition mode, report some results here
-    if( pd != null ) {
-      Iterator mapItr;
-
-      // report primary parameter object mappings
-      mapItr = pi2dr.entrySet().iterator();
-      while( mapItr.hasNext() ) {
-	Map.Entry           me         = (Map.Entry)           mapItr.next();
-	Integer             paramIndex = (Integer)             me.getKey();
-	Set<HeapRegionNode> hrnAset    = (Set<HeapRegionNode>) me.getValue();
-
-	Iterator<HeapRegionNode> hrnItr = hrnAset.iterator();
-	while( hrnItr.hasNext() ) {
-	  HeapRegionNode hrnA = hrnItr.next();
-	  pd.mapRegionToParamObject( hrnA, paramIndex );
-	}
-      }
-
-      // report parameter-reachable mappings
-      mapItr = pi2r.entrySet().iterator();
-      while( mapItr.hasNext() ) {
-	Map.Entry           me         = (Map.Entry)           mapItr.next();
-	Integer             paramIndex = (Integer)             me.getKey();
-	Set<HeapRegionNode> hrnRset    = (Set<HeapRegionNode>) me.getValue();
-
-	Iterator<HeapRegionNode> hrnItr = hrnRset.iterator();
-	while( hrnItr.hasNext() ) {
-	  HeapRegionNode hrnR = hrnItr.next();
-	  pd.mapRegionToParamReachable( hrnR, paramIndex );
-	}
-      }
-
-      // and we're done in this method for special param decomp mode
-      return;
-    }
-
-
-    // now iterate over reachable nodes to rewrite their alpha, and
-    // classify edges found for beta rewrite    
-    Hashtable<ReachTuple, ReachSet> tokens2states = new Hashtable<ReachTuple, ReachSet>();
-
-    Hashtable< Integer, Set<Vector> > edges_p2p   = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_p2s   = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_s2p   = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_s2s   = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_up_dr = new Hashtable< Integer, Set<Vector> >();
-    Hashtable< Integer, Set<Vector> > edges_up_r  = new Hashtable< Integer, Set<Vector> >();
-
-    // so again, with respect to some arg i...
-    lnArgItr = paramIndex2ln.entrySet().iterator();
-    while( lnArgItr.hasNext() ) {
-      Map.Entry me      = (Map.Entry) lnArgItr.next();
-      Integer   index   = (Integer)   me.getKey();
-      VariableNode lnArg_i = (VariableNode) me.getValue();      
-
-      ReachTuple p_i = ogCallee.paramIndex2paramTokenPrimary.get( index );
-      ReachTuple s_i = ogCallee.paramIndex2paramTokenSecondary.get( index );
-      assert p_i != null;      
-
-      ensureEmptyEdgeIndexPair( edges_p2p,   index );
-      ensureEmptyEdgeIndexPair( edges_p2s,   index );
-      ensureEmptyEdgeIndexPair( edges_s2p,   index );
-      ensureEmptyEdgeIndexPair( edges_s2s,   index );
-      ensureEmptyEdgeIndexPair( edges_up_dr, index );
-      ensureEmptyEdgeIndexPair( edges_up_r,  index );
-
-      Set<HeapRegionNode> dr = pi2dr.get( index );
-      Iterator<HeapRegionNode> hrnItr = dr.iterator();
-      while( hrnItr.hasNext() ) {
-	// this heap region is definitely an "a_i" or primary by virtue of being in dr
-	HeapRegionNode hrn = hrnItr.next();
-
-	tokens2states.clear();
-	tokens2states.put( p_i, hrn.getAlpha() );
-
-	rewriteCallerReachability( index,
-				   hrn,
-				   null,
-				   paramIndex2rewriteH_p.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-
-	nodesWithNewAlpha.add( hrn );
-
-	// sort edges
-	Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
-	while( edgeItr.hasNext() ) {
-	  RefEdge edge = edgeItr.next();
-	  RefSrcNode on   = edge.getSrc();
-
-	  boolean edge_classified = false;
-
-
-	  if( on instanceof HeapRegionNode ) {
-	    // hrn0 may be "a_j" and/or "r_j" or even neither
-	    HeapRegionNode hrn0 = (HeapRegionNode) on;
-
-	    Iterator itr = pi2dr.entrySet().iterator();
-	    while( itr.hasNext() ) {
-	      Map.Entry           mo   = (Map.Entry)           itr.next();
-	      Integer             pi   = (Integer)             mo.getKey();
-	      Set<HeapRegionNode> dr_i = (Set<HeapRegionNode>) mo.getValue();
-
-	      if( dr_i.contains( hrn0 ) ) {		
-		addEdgeIndexPair( edges_p2p, pi, edge, index );
-		edge_classified = true;
-	      }			      
-	    }
-
-	    itr = pi2r.entrySet().iterator();
-	    while( itr.hasNext() ) {
-	      Map.Entry           mo  = (Map.Entry)           itr.next();
-	      Integer             pi  = (Integer)             mo.getKey();
-	      Set<HeapRegionNode> r_i = (Set<HeapRegionNode>) mo.getValue();
-
-	      if( r_i.contains( hrn0 ) ) {
-		addEdgeIndexPair( edges_s2p, pi, edge, index );
-		edge_classified = true;
-	      }			      
-	    }
-	  }
-
-	  // all of these edges are upstream of directly reachable objects
-	  if( !edge_classified ) {
-	    addEdgeIndexPair( edges_up_dr, index, edge, index );
-	  }
-	}
-      }
-
-
-      Set<HeapRegionNode> r = pi2r.get( index );
-      hrnItr = r.iterator();
-      while( hrnItr.hasNext() ) {
-	// this heap region is definitely an "r_i" or secondary by virtue of being in r
-	HeapRegionNode hrn = hrnItr.next();
-      
-	if( paramIndex2rewriteH_s.containsKey( index ) ) {
-
-	  tokens2states.clear();
-	  tokens2states.put( p_i, new ReachSet().makeCanonical() );
-	  tokens2states.put( s_i, hrn.getAlpha() );
-
-	  rewriteCallerReachability( index,
-				     hrn,
-				     null,
-				     paramIndex2rewriteH_s.get( index ),
-				     tokens2states,
-				     paramIndex2rewrite_d_p,
-				     paramIndex2rewrite_d_s,
-				     paramIndex2rewriteD,
-				     ogCallee,
-				     false,
-				     null );
-	
-	  nodesWithNewAlpha.add( hrn );	
-	}       
-
-	// sort edges
-	Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
-	while( edgeItr.hasNext() ) {
-	  RefEdge edge = edgeItr.next();
-	  RefSrcNode on   = edge.getSrc();
-
-	  boolean edge_classified = false;
-
-	  if( on instanceof HeapRegionNode ) {
-	    // hrn0 may be "a_j" and/or "r_j" or even neither
-	    HeapRegionNode hrn0 = (HeapRegionNode) on;
-
-	    Iterator itr = pi2dr.entrySet().iterator();
-	    while( itr.hasNext() ) {
-	      Map.Entry           mo   = (Map.Entry)           itr.next();
-	      Integer             pi   = (Integer)             mo.getKey();
-	      Set<HeapRegionNode> dr_i = (Set<HeapRegionNode>) mo.getValue();
-
-	      if( dr_i.contains( hrn0 ) ) {
-		addEdgeIndexPair( edges_p2s, pi, edge, index );
-		edge_classified = true;
-	      }			      
-	    }
-
-	    itr = pi2r.entrySet().iterator();
-	    while( itr.hasNext() ) {
-	      Map.Entry           mo  = (Map.Entry)           itr.next();
-	      Integer             pi  = (Integer)             mo.getKey();
-	      Set<HeapRegionNode> r_i = (Set<HeapRegionNode>) mo.getValue();
-
-	      if( r_i.contains( hrn0 ) ) {
-		addEdgeIndexPair( edges_s2s, pi, edge, index );
-		edge_classified = true;
-	      }			      
-	    }
-	  }
-
-	  // these edges are all upstream of some reachable node
-	  if( !edge_classified ) {
-	    addEdgeIndexPair( edges_up_r, index, edge, index );
-	  }
-	}
-      }
-    }
-
-
-    // and again, with respect to some arg i...
-    lnArgItr = paramIndex2ln.entrySet().iterator();
-    while( lnArgItr.hasNext() ) {
-      Map.Entry me      = (Map.Entry) lnArgItr.next();
-      Integer   index   = (Integer)   me.getKey();
-      VariableNode lnArg_i = (VariableNode) me.getValue();      
-
-
-      // update reachable edges
-      Iterator edgeItr = edges_p2p.get( index ).iterator();
-      while( edgeItr.hasNext() ) {
-	Vector        mo     = (Vector)        edgeItr.next();
-	RefEdge edge   = (RefEdge) mo.get( 0 );
-	Integer       indexJ = (Integer)       mo.get( 1 );
-
-	if( !paramIndex2rewriteJ_p2p.containsKey( makeMapKey( index, 
-							   indexJ,
- 							   edge.getField() ) ) ) {
-	  continue;
-	}
-
-	ReachTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
-	assert p_j != null;
-       
-	tokens2states.clear();
-	tokens2states.put( p_j, edge.getBeta() );
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteJ_p2p.get( makeMapKey( index, 
-									    indexJ, 
-									    edge.getField() ) ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-	
-	edgesWithNewBeta.add( edge );
-      }
-
-
-      edgeItr = edges_p2s.get( index ).iterator();
-      while( edgeItr.hasNext() ) {
-	Vector        mo     = (Vector)        edgeItr.next();
-	RefEdge edge   = (RefEdge) mo.get( 0 );
-	Integer       indexJ = (Integer)       mo.get( 1 );
-
-	if( !paramIndex2rewriteJ_p2s.containsKey( makeMapKey( index, 
-							      edge.getField() ) ) ) {
-	  continue;
-	}
-
-	ReachTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
-	assert s_j != null;
-
-	tokens2states.clear();
-	tokens2states.put( s_j, edge.getBeta() );
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteJ_p2s.get( makeMapKey( index,
-									    edge.getField() ) ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-	
-	edgesWithNewBeta.add( edge );	
-      }
-
-
-      edgeItr = edges_s2p.get( index ).iterator();
-      while( edgeItr.hasNext() ) {
-	Vector        mo     = (Vector)        edgeItr.next();
-	RefEdge edge   = (RefEdge) mo.get( 0 );
-	Integer       indexJ = (Integer)       mo.get( 1 );
-
-	if( !paramIndex2rewriteJ_s2p.containsKey( index ) ) {
-	  continue;
-	}
-
-	ReachTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
-	assert p_j != null;
-
-	tokens2states.clear();
-	tokens2states.put( p_j, edge.getBeta() );
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteJ_s2p.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-
-	edgesWithNewBeta.add( edge );
-      }
-
-
-      edgeItr = edges_s2s.get( index ).iterator();
-      while( edgeItr.hasNext() ) {
-	Vector        mo     = (Vector)        edgeItr.next();
-	RefEdge edge   = (RefEdge) mo.get( 0 );
-	Integer       indexJ = (Integer)       mo.get( 1 );
-
-	if( !paramIndex2rewriteJ_s2s.containsKey( index ) ) {
-	  continue;
-	}
-
-	ReachTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
-	assert s_j != null;
-
-	tokens2states.clear();
-	tokens2states.put( s_j, edge.getBeta() );
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteJ_s2s.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-
-	edgesWithNewBeta.add( edge );
-      }
-
-
-      // update directly upstream edges
-      Hashtable<RefEdge, ChangeSet> edgeUpstreamPlannedChanges =
-        new Hashtable<RefEdge, ChangeSet>();
-      
-      HashSet<RefEdge> edgesDirectlyUpstream =
-	new HashSet<RefEdge>();
-
-      edgeItr = edges_up_dr.get( index ).iterator();
-      while( edgeItr.hasNext() ) {
-	Vector        mo     = (Vector)        edgeItr.next();
-	RefEdge edge   = (RefEdge) mo.get( 0 );
-	Integer       indexJ = (Integer)       mo.get( 1 );
-
-	edgesDirectlyUpstream.add( edge );
-
-	ReachTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
-	assert p_j != null;
-
-	// start with K_p2 and p_j
-	tokens2states.clear();
-	tokens2states.put( p_j, edge.getBeta() );
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteK_p2.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   true,
-				   edgeUpstreamPlannedChanges );
-
-	// and add in s_j, if required, and do K_p
-	ReachTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
-	if( s_j != null ) {
-	  tokens2states.put( s_j, edge.getBeta() );
-	}
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteK_p.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   true,
-				   edgeUpstreamPlannedChanges );	
-
-	edgesWithNewBeta.add( edge );
-      }
-
-      propagateTokensOverEdges( edgesDirectlyUpstream,
-				edgeUpstreamPlannedChanges,
-				edgesWithNewBeta );
-      
-
-      // update upstream edges
-      edgeUpstreamPlannedChanges =
-        new Hashtable<RefEdge, ChangeSet>();
-
-      HashSet<RefEdge> edgesUpstream =
-	new HashSet<RefEdge>();
-
-      edgeItr = edges_up_r.get( index ).iterator();
-      while( edgeItr.hasNext() ) {
-	Vector        mo     = (Vector)        edgeItr.next();
-	RefEdge edge   = (RefEdge) mo.get( 0 );
-	Integer       indexJ = (Integer)       mo.get( 1 );
-
-	if( !paramIndex2rewriteK_s.containsKey( index ) ) {
-	  continue;
-	}
-
-	edgesUpstream.add( edge );
-
-	ReachTuple p_j = ogCallee.paramIndex2paramTokenPrimary.get( indexJ );
-	assert p_j != null;
-
-	ReachTuple s_j = ogCallee.paramIndex2paramTokenSecondary.get( indexJ );
-	assert s_j != null;
-
-	tokens2states.clear();
-	tokens2states.put( p_j, rsWttsEmpty );
-	tokens2states.put( s_j, edge.getBeta() );
-
-	rewriteCallerReachability( index,
-				   null,
-				   edge,
-				   paramIndex2rewriteK_s.get( index ),
-				   tokens2states,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   true,
-				   edgeUpstreamPlannedChanges );
-
-	edgesWithNewBeta.add( edge );
-      }
-
-      propagateTokensOverEdges( edgesUpstream,
-				edgeUpstreamPlannedChanges,
-				edgesWithNewBeta );
-
-    } // end effects per argument/parameter map
-
-
-    // commit changes to alpha and beta
-    Iterator<HeapRegionNode> nodeItr = nodesWithNewAlpha.iterator();
-    while( nodeItr.hasNext() ) {
-      nodeItr.next().applyAlphaNew();
-    }
-
-    Iterator<RefEdge> edgeItr = edgesWithNewBeta.iterator();
-    while( edgeItr.hasNext() ) {
-      edgeItr.next().applyBetaNew();
-    }
-
-    
-    // verify the existence of allocation sites and their
-    // shadows from the callee in the context of this caller graph
-    // then map allocated nodes of callee onto the caller shadows
-    // of them
-    Hashtable<ReachTuple, ReachSet> tokens2statesEmpty = new Hashtable<ReachTuple, ReachSet>();
-
-    Iterator<AllocSite> asItr = ogCallee.allocSites.iterator();
-    while( asItr.hasNext() ) {
-      AllocSite allocSite  = asItr.next();
-
-      // grab the summary in the caller just to make sure
-      // the allocation site has nodes in the caller
-      HeapRegionNode hrnSummary = getSummaryNode( allocSite );
-
-      // assert that the shadow nodes have no reference edges
-      // because they're brand new to the graph, or last time
-      // they were used they should have been cleared of edges
-      HeapRegionNode hrnShadowSummary = getShadowSummaryNode( allocSite );
-      assert hrnShadowSummary.getNumReferencers() == 0;
-      assert hrnShadowSummary.getNumReferencees() == 0;
-
-      // then bring g_ij onto g'_ij and rewrite
-      HeapRegionNode hrnSummaryCallee = ogCallee.getSummaryNode( allocSite );
-      hrnShadowSummary.setAlpha( toShadowTokens( ogCallee, hrnSummaryCallee.getAlpha() ) );
-
-      // shadow nodes only are touched by a rewrite one time,
-      // so rewrite and immediately commit--and they don't belong
-      // to a particular parameter, so use a bogus param index
-      // that pulls a self-rewrite out of H
-      rewriteCallerReachability( bogusIndex,
-				 hrnShadowSummary,
-				 null,
-				 funcScriptR( hrnShadowSummary.getAlpha(), ogCallee, mc ),
-				 tokens2statesEmpty,
-				 paramIndex2rewrite_d_p,
-				 paramIndex2rewrite_d_s,
-				 paramIndex2rewriteD,
-				 ogCallee,
-				 false,
-				 null );
-
-      hrnShadowSummary.applyAlphaNew();
-
-
-      for( int i = 0; i < allocSite.getAllocationDepth(); ++i ) {
-	Integer idIth = allocSite.getIthOldest(i);
-	assert id2hrn.containsKey(idIth);
-	HeapRegionNode hrnIth = id2hrn.get(idIth);
-
-	Integer idShadowIth = -(allocSite.getIthOldest(i));
-	assert id2hrn.containsKey(idShadowIth);
-	HeapRegionNode hrnIthShadow = id2hrn.get(idShadowIth);
-	assert hrnIthShadow.getNumReferencers() == 0;
-	assert hrnIthShadow.getNumReferencees() == 0;
-
-	assert ogCallee.id2hrn.containsKey(idIth);
-	HeapRegionNode hrnIthCallee = ogCallee.id2hrn.get(idIth);
-	hrnIthShadow.setAlpha(toShadowTokens(ogCallee, hrnIthCallee.getAlpha() ) );
-
-	rewriteCallerReachability( bogusIndex,
-				   hrnIthShadow,
-				   null,
-				   funcScriptR( hrnIthShadow.getAlpha(), ogCallee, mc ),
-				   tokens2statesEmpty,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-
-	hrnIthShadow.applyAlphaNew();
-      }
-    }
-
-
-    // for every heap region->heap region edge in the
-    // callee graph, create the matching edge or edges
-    // in the caller graph
-    Set      sCallee = ogCallee.id2hrn.entrySet();
-    Iterator iCallee = sCallee.iterator();
-
-    while( iCallee.hasNext() ) {
-      Map.Entry      meCallee  = (Map.Entry)      iCallee.next();
-      Integer        idCallee  = (Integer)        meCallee.getKey();
-      HeapRegionNode hrnCallee = (HeapRegionNode) meCallee.getValue();
-
-      Iterator<RefEdge> heapRegionsItrCallee = hrnCallee.iteratorToReferencees();
-      while( heapRegionsItrCallee.hasNext() ) {
-	RefEdge  edgeCallee     = heapRegionsItrCallee.next();
-	HeapRegionNode hrnChildCallee = edgeCallee.getDst();
-	Integer        idChildCallee  = hrnChildCallee.getID();
-
-	// only address this edge if it is not a special initial edge
-	if( !edgeCallee.isInitialParam() ) {
-
-	  // now we know that in the callee method's reachability graph
-	  // there is a heap region->heap region reference edge given
-	  // by heap region pointers:
-	  // hrnCallee -> heapChildCallee
-	  //
-	  // or by the reachability-graph independent ID's:
-	  // idCallee -> idChildCallee
-
-	  // make the edge with src and dst so beta info is
-	  // calculated once, then copy it for each new edge in caller
-
-	  RefEdge edgeNewInCallerTemplate = new RefEdge( null,
-								     null,
-								     edgeCallee.getType(),
-								     edgeCallee.getField(),
-								     false,
-								     funcScriptR( toShadowTokens( ogCallee,
-												  edgeCallee.getBeta()
-												  ),
-										  ogCallee,
-										  mc )
-								     );
-
-	  rewriteCallerReachability( bogusIndex,
-				     null,
-				     edgeNewInCallerTemplate,
-				     edgeNewInCallerTemplate.getBeta(),
-				     tokens2statesEmpty,
-				     paramIndex2rewrite_d_p,
-				     paramIndex2rewrite_d_s,
-				     paramIndex2rewriteD,
-				     ogCallee,
-				     false,
-				     null );
-
-	  edgeNewInCallerTemplate.applyBetaNew();
-
-
-	  // So now make a set of possible source heaps in the caller graph
-	  // and a set of destination heaps in the caller graph, and make
-	  // a reference edge in the caller for every possible (src,dst) pair
-	  HashSet<HeapRegionNode> possibleCallerSrcs =
-	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
-						 (HeapRegionNode) edgeCallee.getSrc(),
-						 pi2dr,
-						 pi2r );
-
-	  HashSet<HeapRegionNode> possibleCallerDsts =
-	    getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
-						 edgeCallee.getDst(),
-						 pi2dr,
-						 pi2r );
-
-	  // make every possible pair of {srcSet} -> {dstSet} edges in the caller
-	  Iterator srcItr = possibleCallerSrcs.iterator();
-	  while( srcItr.hasNext() ) {
-	    HeapRegionNode src = (HeapRegionNode) srcItr.next();
-	    
-	    if( !hasMatchingField( src, edgeCallee ) ) {
-	      // prune this source node possibility
-	      continue;
-	    }
-
-	    Iterator dstItr = possibleCallerDsts.iterator();
-	    while( dstItr.hasNext() ) {
-	      HeapRegionNode dst = (HeapRegionNode) dstItr.next();
-
-	      if( !hasMatchingType( edgeCallee, dst ) ) {
-		// prune
-		continue;
-	      }
-
-	      
-	      
-
-
-	      // otherwise the caller src and dst pair can match the edge, so make it
-	      TypeDescriptor tdNewEdge =
-		mostSpecificType( edgeCallee.getType(),
-				  hrnChildCallee.getType(),
-				  dst.getType()
-				  );	      
-
-	      RefEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
-	      edgeNewInCaller.setSrc( src );
-	      edgeNewInCaller.setDst( dst );	     
-	      edgeNewInCaller.setType( tdNewEdge );
-
-	      
-	      // handle taint info if callee created this edge
-	      // added by eom
-	      Set<Integer> pParamSet=idPrimary2paramIndexSet.get(dst.getID());
-	      Set<Integer> sParamSet=idSecondary2paramIndexSet.get(dst.getID());
-	      HashSet<Integer> paramSet=new  HashSet<Integer>();
-	      if(pParamSet!=null){
-	    	  paramSet.addAll(pParamSet);  
-	      }
-	      if(sParamSet!=null){
-	    	  paramSet.addAll(sParamSet);  
-	      }
-	      Iterator<Integer> paramIter=paramSet.iterator();
-	      int newTaintIdentifier=0;
-	      while(paramIter.hasNext()){
-	    	  Integer paramIdx=paramIter.next();
-	    	  edgeNewInCaller.tainedBy(paramIdx);
-	      }
-
-	      RefEdge edgeExisting = src.getReferenceTo( dst, 
-							       edgeNewInCaller.getType(),
-							       edgeNewInCaller.getField() );
-	      if( edgeExisting == null ) {
-		// if this edge doesn't exist in the caller, create it
-		addRefEdge( src, dst, edgeNewInCaller );
-
-	      } else {
-		// if it already exists, merge with it
-		edgeExisting.setBeta( edgeExisting.getBeta().union( edgeNewInCaller.getBeta() ) );
-	      }
-	    }
-	  }
-	}
-      }
-    }
-
-
-
-    // return value may need to be assigned in caller
-    TempDescriptor returnTemp = fc.getReturnTemp();
-    if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
-
-      VariableNode lnLhsCaller = getVariableNodeFromTemp( returnTemp );
-      clearRefEdgesFrom( lnLhsCaller, null, null, true );
-
-      VariableNode lnReturnCallee = ogCallee.getVariableNodeFromTemp( tdReturn );
-      Iterator<RefEdge> edgeCalleeItr = lnReturnCallee.iteratorToReferencees();
-      while( edgeCalleeItr.hasNext() ) {
-	RefEdge  edgeCallee     = edgeCalleeItr.next();
-	HeapRegionNode hrnChildCallee = edgeCallee.getDst();
-
-	// some edge types are not possible return values when we can
-	// see what type variable we are assigning it to
-	if( !isSuperiorType( returnTemp.getType(), edgeCallee.getType() ) ) {
-	  System.out.println( "*** NOT EXPECTING TO SEE THIS: Throwing out "+edgeCallee+" for return temp "+returnTemp );
-	  // prune
-	  continue;
-	}	
-
-	RefEdge edgeNewInCallerTemplate = new RefEdge( null,
-								   null,
-								   edgeCallee.getType(),
-								   edgeCallee.getField(),
-								   false,
-								   funcScriptR( toShadowTokens(ogCallee,
-											       edgeCallee.getBeta() ),
-										ogCallee,
-										mc )
-								   );
-	rewriteCallerReachability( bogusIndex,
-				   null,
-				   edgeNewInCallerTemplate,
-				   edgeNewInCallerTemplate.getBeta(),
-				   tokens2statesEmpty,
-				   paramIndex2rewrite_d_p,
-				   paramIndex2rewrite_d_s,
-				   paramIndex2rewriteD,
-				   ogCallee,
-				   false,
-				   null );
-
-	edgeNewInCallerTemplate.applyBetaNew();
-
-
-	HashSet<HeapRegionNode> assignCallerRhs =
-	  getHRNSetThatPossiblyMapToCalleeHRN( ogCallee,
-					       edgeCallee.getDst(),
-					       pi2dr,
-					       pi2r );
-
-	Iterator<HeapRegionNode> itrHrn = assignCallerRhs.iterator();
-	while( itrHrn.hasNext() ) {
-	  HeapRegionNode hrnCaller = itrHrn.next();
-
-	  // don't make edge in caller if it is disallowed by types
-	  if( !isSuperiorType( returnTemp.getType(), hrnCaller.getType() ) ) {
-	    // prune	   
-	    continue;
-	  }
-
-	  if( !isSuperiorType( returnTemp.getType(), hrnChildCallee.getType() ) ) {
-	    // prune	   
-	    continue;
-	  }
-
-	  if( !isSuperiorType( edgeCallee.getType(), hrnCaller.getType() ) ) {
-	    // prune
-	    continue;
-	  }
-	  
-	  TypeDescriptor tdNewEdge =
-	    mostSpecificType( edgeCallee.getType(),
-			      hrnChildCallee.getType(),
-			      hrnCaller.getType()
-			      );	      
-
-	  // otherwise caller node can match callee edge, so make it
-	  RefEdge edgeNewInCaller = edgeNewInCallerTemplate.copy();
-	  edgeNewInCaller.setSrc( lnLhsCaller );
-	  edgeNewInCaller.setDst( hrnCaller );
-	  edgeNewInCaller.setType( tdNewEdge );
-
-	  RefEdge edgeExisting = lnLhsCaller.getReferenceTo( hrnCaller, 
-								   tdNewEdge,
-								   edgeNewInCaller.getField() );
-	  if( edgeExisting == null ) {
-
-	    // if this edge doesn't exist in the caller, create it
-	    addRefEdge( lnLhsCaller, hrnCaller, edgeNewInCaller );
-	  } else {
-	    // if it already exists, merge with it
-	    edgeExisting.setBeta( edgeExisting.getBeta().union( edgeNewInCaller.getBeta() ) );
-	  }
-	}
-      }
-    }
-
-
-
-    // merge the shadow nodes of allocation sites back down to normal capacity
-    Iterator<AllocSite> allocItr = ogCallee.allocSites.iterator();
-    while( allocItr.hasNext() ) {
-      AllocSite as = allocItr.next();
-
-      // first age each allocation site enough times to make room for the shadow nodes
-      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	age( as );
-      }
-
-      // then merge the shadow summary into the normal summary
-      HeapRegionNode hrnSummary = getSummaryNode( as );
-      assert hrnSummary != null;
-
-      HeapRegionNode hrnSummaryShadow = getShadowSummaryNode( as );
-      assert hrnSummaryShadow != null;
-
-      mergeIntoSummary( hrnSummaryShadow, hrnSummary );
-
-      // then clear off after merge
-      clearRefEdgesFrom( hrnSummaryShadow, null, null, true );
-      clearRefEdgesTo  ( hrnSummaryShadow, null, null, true );
-      hrnSummaryShadow.setAlpha( new ReachSet().makeCanonical() );
-
-      // then transplant shadow nodes onto the now clean normal nodes
-      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-
-	Integer        idIth        = as.getIthOldest( i );
-	HeapRegionNode hrnIth       = id2hrn.get( idIth );
-	Integer        idIthShadow  = as.getIthOldestShadow( i );
-	HeapRegionNode hrnIthShadow = id2hrn.get( idIthShadow );
-
-	transferOnto( hrnIthShadow, hrnIth );
-
-	// clear off shadow nodes after transfer
-	clearRefEdgesFrom( hrnIthShadow, null, null, true );
-	clearRefEdgesTo  ( hrnIthShadow, null, null, true );
-	hrnIthShadow.setAlpha( new ReachSet().makeCanonical() );
-      }
-
-      // finally, globally change shadow tokens into normal tokens
-      Iterator itrAllVariableNodes = td2vn.entrySet().iterator();
-      while( itrAllVariableNodes.hasNext() ) {
-	Map.Entry me = (Map.Entry) itrAllVariableNodes.next();
-	VariableNode ln = (VariableNode) me.getValue();
-
-	Iterator<RefEdge> itrEdges = ln.iteratorToReferencees();
-	while( itrEdges.hasNext() ) {
-	  unshadowTokens( as, itrEdges.next() );
-	}
-      }
-
-      Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
-      while( itrAllHRNodes.hasNext() ) {
-	Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
-	HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
-
-	unshadowTokens( as, hrnToAge );
-
-	Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencees();
-	while( itrEdges.hasNext() ) {
-	  unshadowTokens( as, itrEdges.next() );
-	}
-      }
-    }
-
-
-
-    // improve reachability as much as possible
-    if( !DISABLE_GLOBAL_SWEEP ) {
-      globalSweep();
-    }
-
-
-    if( debugCallMap &&
-	mc.getDescriptor().getSymbol().equals( debugCaller ) &&
-	fm.getMethod().getSymbol().equals( debugCallee ) 
-	) {
-      
-      try {
-	writeGraph( "debug9endResolveCall",
-		    true,  // write labels (variables)
-		    true,  // selectively hide intermediate temp vars
-		    true,  // prune unreachable heap regions
-		    false, // show back edges to confirm graph validity
-		    false, // show parameter indices (unmaintained!)
-		    true,  // hide subset reachability states
-		    true); // hide edge taints
-      } catch( IOException e ) {}
-      System.out.println( "  "+mc+" done calling "+fm );      
-      ++x;
-      if( x == debugCallMapCount ) {
-	System.exit( 0 );   
-      }
-    }
   }
   */
-
-
-
-
-  protected boolean hasMatchingField(HeapRegionNode src, RefEdge edge) {
-
-    // if no type, then it's a match-everything region
-    TypeDescriptor tdSrc = src.getType();    
-    if( tdSrc == null ) {
-      return true;
-    }
-
-    if( tdSrc.isArray() ) {
-      TypeDescriptor td = edge.getType();
-      assert td != null;
-
-      TypeDescriptor tdSrcDeref = tdSrc.dereference();
-      assert tdSrcDeref != null;
-
-      if( !typeUtil.isSuperorType( tdSrcDeref, td ) ) {
-	return false;
-      }
-
-      return edge.getField().equals( DisjointAnalysis.arrayElementFieldName );
-    }
-
-    // if it's not a class, it doesn't have any fields to match
-    if( !tdSrc.isClass() ) {
-      return false;
-    }
-
-    ClassDescriptor cd = tdSrc.getClassDesc();
-    while( cd != null ) {      
-      Iterator fieldItr = cd.getFields();
-
-      while( fieldItr.hasNext() ) {	
-	FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
-
-	if( fd.getType().equals( edge.getType() ) &&
-	    fd.getSymbol().equals( edge.getField() ) ) {
-	  return true;
-	}
-      }
-      
-      cd = cd.getSuperDesc();
-    }
-    
-    // otherwise it is a class with fields
-    // but we didn't find a match
-    return false;
-  }
-
-
-  protected boolean hasMatchingType(RefEdge edge, HeapRegionNode dst) {
-    
-    // if the region has no type, matches everything
-    TypeDescriptor tdDst = dst.getType();
-    if( tdDst == null ) {
-      return true;
-    }
- 
-    // if the type is not a class or an array, don't
-    // match because primitives are copied, no aliases
-    ClassDescriptor cdDst = tdDst.getClassDesc();
-    if( cdDst == null && !tdDst.isArray() ) {
-      return false;
-    }
- 
-    // if the edge type is null, it matches everything
-    TypeDescriptor tdEdge = edge.getType();
-    if( tdEdge == null ) {
-      return true;
-    }
- 
-    return typeUtil.isSuperorType(tdEdge, tdDst);
-  }
 
   
   protected void unshadowTokens( AllocSite as, 
@@ -2398,249 +1361,6 @@ public class ReachGraph {
     return rsOut.makeCanonical();
   }
 
-
-  /*
-  private void rewriteCallerReachability(Integer paramIndex,
-                                         HeapRegionNode hrn,
-                                         RefEdge edge,
-                                         ReachSet rules,
-					 Hashtable<ReachTuple, ReachSet> tokens2states,
-                                         Hashtable<Integer,    ReachSet> paramIndex2rewrite_d_p,
-                                         Hashtable<Integer,    ReachSet> paramIndex2rewrite_d_s,
-                                         Hashtable<Integer,    ReachSet> paramIndex2rewriteD,
-					 ReachGraph ogCallee,
-                                         boolean makeChangeSet,
-                                         Hashtable<RefEdge, ChangeSet> edgePlannedChanges) {
-
-    assert(hrn == null && edge != null) ||
-          (hrn != null && edge == null);
-
-    assert rules         != null;
-    assert tokens2states != null;
-
-    ReachSet callerReachabilityNew = new ReachSet().makeCanonical();
-
-    // for initializing structures in this method
-    ReachState ttsEmpty = new ReachState().makeCanonical();
-
-    // use this to construct a change set if required; the idea is to
-    // map every partially rewritten token tuple set to the set of
-    // caller-context token tuple sets that were used to generate it
-    Hashtable<ReachState, HashSet<ReachState> > rewritten2source =
-      new Hashtable<ReachState, HashSet<ReachState> >();
-    rewritten2source.put( ttsEmpty, new HashSet<ReachState>() );
-
-    
-    Iterator<ReachState> rulesItr = rules.iterator();
-    while(rulesItr.hasNext()) {
-      ReachState rule = rulesItr.next();
-
-      ReachSet rewrittenRule = new ReachSet(ttsEmpty).makeCanonical();
-
-      Iterator<ReachTuple> ruleItr = rule.iterator();
-      while(ruleItr.hasNext()) {
-	ReachTuple ttCallee = ruleItr.next();	
-
-	// compute the possibilities for rewriting this callee token
-	ReachSet ttCalleeRewrites = null;
-	boolean         callerSourceUsed = false;
-
-	if( tokens2states.containsKey( ttCallee ) ) {
-	  callerSourceUsed = true;
-	  ttCalleeRewrites = tokens2states.get( ttCallee );
-	  assert ttCalleeRewrites != null;
-
-	} else if( ogCallee.paramTokenPrimary2paramIndex.containsKey( ttCallee ) ) {
-	  // use little d_p
-	  Integer paramIndex_j = ogCallee.paramTokenPrimary2paramIndex.get( ttCallee );
-	  assert  paramIndex_j != null;
-	  ttCalleeRewrites = paramIndex2rewrite_d_p.get( paramIndex_j );
-	  assert ttCalleeRewrites != null;
-
-	} else if( ogCallee.paramTokenSecondary2paramIndex.containsKey( ttCallee ) ) {
-	  // use little d_s
-	  Integer paramIndex_j = ogCallee.paramTokenSecondary2paramIndex.get( ttCallee );
-	  assert  paramIndex_j != null;
-	  ttCalleeRewrites = paramIndex2rewrite_d_s.get( paramIndex_j );
-	  assert ttCalleeRewrites != null;
-
-	} else if( ogCallee.paramTokenSecondaryPlus2paramIndex.containsKey( ttCallee ) ) {
-	  // worse, use big D
-	  Integer paramIndex_j = ogCallee.paramTokenSecondaryPlus2paramIndex.get( ttCallee );
-	  assert  paramIndex_j != null;
-	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
-	  assert ttCalleeRewrites != null;
-
-	} else if( ogCallee.paramTokenSecondaryStar2paramIndex.containsKey( ttCallee ) ) {
-	  // worse, use big D
-	  Integer paramIndex_j = ogCallee.paramTokenSecondaryStar2paramIndex.get( ttCallee );
-	  assert  paramIndex_j != null;
-	  ttCalleeRewrites = paramIndex2rewriteD.get( paramIndex_j );
-	  assert ttCalleeRewrites != null;
-
-	} else {
-	  // otherwise there's no need for a rewrite, just pass this one on
-	  ReachState ttsCaller = new ReachState( ttCallee ).makeCanonical();
-	  ttCalleeRewrites = new ReachSet( ttsCaller ).makeCanonical();
-	}
-
-	// branch every version of the working rewritten rule with
-	// the possibilities for rewriting the current callee token
-	ReachSet rewrittenRuleWithTTCallee = new ReachSet().makeCanonical();
-
-	Iterator<ReachState> rewrittenRuleItr = rewrittenRule.iterator();
-	while( rewrittenRuleItr.hasNext() ) {
-	  ReachState ttsRewritten = rewrittenRuleItr.next();
-
-	  Iterator<ReachState> ttCalleeRewritesItr = ttCalleeRewrites.iterator();
-	  while( ttCalleeRewritesItr.hasNext() ) {
-	    ReachState ttsBranch = ttCalleeRewritesItr.next();
-
-	    ReachState ttsRewrittenNext = ttsRewritten.unionUpArity( ttsBranch );
-
-	    if( makeChangeSet ) {
-	      // in order to keep the list of source token tuple sets
-	      // start with the sets used to make the partially rewritten
-	      // rule up to this point
-	      HashSet<ReachState> sourceSets = rewritten2source.get( ttsRewritten );
-	      assert sourceSets != null;
-
-	      // make a shallow copy for possible modification
-	      sourceSets = (HashSet<ReachState>) sourceSets.clone();
-
-	      // if we used something from the caller to rewrite it, remember
-	      if( callerSourceUsed ) {
-		sourceSets.add( ttsBranch );
-	      }
-
-	      // set mapping for the further rewritten rule
-	      rewritten2source.put( ttsRewrittenNext, sourceSets );
-	    }
-
-	    rewrittenRuleWithTTCallee =
-	      rewrittenRuleWithTTCallee.union( ttsRewrittenNext );
-	  }
-	}
-
-	// now the rewritten rule's possibilities have been extended by
-	// rewriting the current callee token, remember result
-	rewrittenRule = rewrittenRuleWithTTCallee;
-      }
-
-      // the rule has been entirely rewritten into the caller context
-      // now, so add it to the new reachability information
-      callerReachabilityNew =
-        callerReachabilityNew.union( rewrittenRule );
-    }
-
-    if( makeChangeSet ) {
-      ChangeSet callerChangeSet = new ChangeSet().makeCanonical();
-
-      // each possibility for the final reachability should have a set of
-      // caller sources mapped to it, use to create the change set
-      Iterator<ReachState> callerReachabilityItr = callerReachabilityNew.iterator();
-      while( callerReachabilityItr.hasNext() ) {
-	ReachState ttsRewrittenFinal = callerReachabilityItr.next();
-	HashSet<ReachState> sourceSets = rewritten2source.get( ttsRewrittenFinal );
-	assert sourceSets != null;
-
-	Iterator<ReachState> sourceSetsItr = sourceSets.iterator();
-	while( sourceSetsItr.hasNext() ) {
-	  ReachState ttsSource = sourceSetsItr.next();
-
-	  callerChangeSet =
-	    callerChangeSet.union( new ChangeTuple( ttsSource, ttsRewrittenFinal ) );
-	}
-      }
-
-      assert edgePlannedChanges != null;
-      edgePlannedChanges.put( edge, callerChangeSet );
-    }
-
-    if( hrn == null ) {
-      edge.setBetaNew( edge.getBetaNew().union( callerReachabilityNew ) );
-    } else {
-      hrn.setAlphaNew( hrn.getAlphaNew().union( callerReachabilityNew ) );
-    }
-  }
-
-
-
-  private HashSet<HeapRegionNode>
-    getHRNSetThatPossiblyMapToCalleeHRN( ReachGraph ogCallee,
-					 HeapRegionNode hrnCallee,
-					 Hashtable<Integer, Set<HeapRegionNode> > pi2dr,
-					 Hashtable<Integer, Set<HeapRegionNode> > pi2r
-					 ) {
-    
-    HashSet<HeapRegionNode> possibleCallerHRNs = new HashSet<HeapRegionNode>();
-
-    Set<Integer> paramIndicesCallee_p = ogCallee.idPrimary2paramIndexSet  .get( hrnCallee.getID() );
-    Set<Integer> paramIndicesCallee_s = ogCallee.idSecondary2paramIndexSet.get( hrnCallee.getID() );
-
-    if( paramIndicesCallee_p == null &&
-	paramIndicesCallee_s == null ) {
-      // this is a node allocated in the callee and it has
-      // exactly one shadow node in the caller to map to
-      AllocSite as = hrnCallee.getAllocSite();
-      assert as != null;
-
-      int age = as.getAgeCategory( hrnCallee.getID() );
-      assert age != AllocSite.AGE_notInThisSite;
-
-      Integer idCaller;
-      if( age == AllocSite.AGE_summary ) {
-	idCaller = as.getSummaryShadow();
-
-      } else if( age == AllocSite.AGE_oldest ) {
-	idCaller = as.getOldestShadow();
-
-      } else {
-	assert age == AllocSite.AGE_in_I;
-
-	Integer I = as.getAge( hrnCallee.getID() );
-	assert I != null;
-
-	idCaller = as.getIthOldestShadow( I );
-      }
-
-      assert id2hrn.containsKey( idCaller );
-      possibleCallerHRNs.add( id2hrn.get( idCaller ) );
-
-      return possibleCallerHRNs;
-    }
-
-    // find out what primary objects this might be
-    if( paramIndicesCallee_p != null ) {
-      // this is a node that was created to represent a parameter
-      // so it maps to some regions directly reachable from the arg labels
-      Iterator<Integer> itrIndex = paramIndicesCallee_p.iterator();
-      while( itrIndex.hasNext() ) {
-	Integer paramIndexCallee = itrIndex.next();
-	assert pi2dr.containsKey( paramIndexCallee );
-	possibleCallerHRNs.addAll( pi2dr.get( paramIndexCallee ) );
-      }
-    }
-
-    // find out what secondary objects this might be
-    if( paramIndicesCallee_s != null ) {
-      // this is a node that was created to represent objs reachable from
-      // some parameter, so it maps to regions reachable from the arg labels
-      Iterator<Integer> itrIndex = paramIndicesCallee_s.iterator();
-      while( itrIndex.hasNext() ) {
-	Integer paramIndexCallee = itrIndex.next();
-	assert pi2r.containsKey( paramIndexCallee );
-	possibleCallerHRNs.addAll( pi2r.get( paramIndexCallee ) );
-      }
-    }
-
-    // TODO: is this true?
-    // one of the two cases above should have put something in here
-    //assert !possibleCallerHRNs.isEmpty();
-
-    return possibleCallerHRNs;
-  }
-  */
 
 
   ////////////////////////////////////////////////////
@@ -3357,276 +2077,122 @@ public class ReachGraph {
   }
 
 
-  // use this method to make a new reach graph that is
-  // what heap the FlatMethod callee from the FlatCall 
-  // would start with reaching from its arguments in
-  // this reach graph
-  public ReachGraph makeCalleeView( FlatCall   fc,
-                                    FlatMethod fm ) {
 
-    // the callee view is a new graph: DON'T MODIFY
-    // *THIS* graph
-    ReachGraph rg = new ReachGraph();
+  // this analysis no longer has the "match anything"
+  // type which was represented by null
+  protected TypeDescriptor mostSpecificType( TypeDescriptor td1,
+                                             TypeDescriptor td2 ) {
+    assert td1 != null;
+    assert td2 != null;
 
-    // track what parts of this graph have already been
-    // added to callee view, variables not needed.
-    // Note that we need this because when we traverse
-    // this caller graph for each parameter we may find
-    // nodes and edges more than once (which the per-param
-    // "visit" sets won't show) and we only want to create
-    // an element in the new callee view one time
-    Set callerNodesCopiedToCallee = new HashSet<HeapRegionNode>();
-    Set callerEdgesCopiedToCallee = new HashSet<RefEdge>();
-
-
-    // a conservative starting point is to take the 
-    // mechanically-reachable-from-arguments graph
-    // as opposed to using reachability information
-    // to prune the graph further
-    for( int i = 0; i < fm.numParameters(); ++i ) {
-
-      // for each parameter index, get the symbol in the
-      // caller view and callee view
-      
-      // argument defined here is the symbol in the caller
-      TempDescriptor tdArg = fc.getArgMatchingParamIndex( fm, i );
-
-      // parameter defined here is the symbol in the callee
-      TempDescriptor tdParam = fm.getParameter( i );
-
-      // use these two VariableNode objects to translate
-      // between caller and callee--its easy to compare
-      // a HeapRegionNode across callee and caller because
-      // they will have the same heap region ID
-      VariableNode vnCaller = this.getVariableNodeFromTemp( tdArg );
-      VariableNode vnCallee = rg.getVariableNodeFromTemp( tdParam );
-      
-      // now traverse the caller view using the argument to
-      // build the callee view which has the parameter symbol
-      Set<RefSrcNode> toVisitInCaller = new HashSet<RefSrcNode>();
-      Set<RefSrcNode> visitedInCaller = new HashSet<RefSrcNode>();
-      toVisitInCaller.add( vnCaller );
-
-      while( !toVisitInCaller.isEmpty() ) {
-        RefSrcNode rsnCaller = toVisitInCaller.iterator().next();
-        RefSrcNode rsnCallee;
-
-        toVisitInCaller.remove( rsnCaller );
-        visitedInCaller.add( rsnCaller );
-        
-        // FIRST - setup the source end of an edge
-
-        if( rsnCaller == vnCaller ) {
-          // if the caller node is the param symbol, we
-          // have to do this translation for the callee
-          rsnCallee = vnCallee;
-        } else {
-          // otherwise the callee-view node is a heap
-          // region with the same ID, that may or may
-          // not have been created already
-          assert rsnCaller instanceof HeapRegionNode;          
-
-          HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
-          if( !callerNodesCopiedToCallee.contains( rsnCaller ) ) {
-            rsnCallee = 
-              rg.createNewHeapRegionNode( hrnSrcCaller.getID(),
-                                          hrnSrcCaller.isSingleObject(),
-                                          hrnSrcCaller.isNewSummary(),
-                                          hrnSrcCaller.isFlagged(),
-                                          true,  // clean?
-                                          false, // out-of-context?
-                                          hrnSrcCaller.getType(),
-                                          hrnSrcCaller.getAllocSite(),
-                                          toShadowTokens( this, hrnSrcCaller.getInherent() ),
-                                          toShadowTokens( this, hrnSrcCaller.getAlpha() ),
-                                          hrnSrcCaller.getDescription()
-                                          );
-            callerNodesCopiedToCallee.add( rsnCaller );
-          } else {
-            rsnCallee = rg.id2hrn.get( hrnSrcCaller.getID() );
-          }
-        }
-
-        // SECOND - go over all edges from that source
-
-        Iterator<RefEdge> itrRefEdges = rsnCaller.iteratorToReferencees();
-        while( itrRefEdges.hasNext() ) {
-          RefEdge        reCaller  = itrRefEdges.next();
-          HeapRegionNode hrnCaller = reCaller.getDst();
-          HeapRegionNode hrnCallee;
-
-          // THIRD - setup destination ends of edges
-
-          if( !callerNodesCopiedToCallee.contains( hrnCaller ) ) {
-            hrnCallee = 
-              rg.createNewHeapRegionNode( hrnCaller.getID(),
-                                          hrnCaller.isSingleObject(),
-                                          hrnCaller.isNewSummary(),
-                                          hrnCaller.isFlagged(),
-                                          true,  // clean?
-                                          false, // out-of-context?
-                                          hrnCaller.getType(),
-                                          hrnCaller.getAllocSite(),
-                                          toShadowTokens( this, hrnCaller.getInherent() ),
-                                          toShadowTokens( this, hrnCaller.getAlpha() ),
-                                          hrnCaller.getDescription()
-                                          );
-            callerNodesCopiedToCallee.add( hrnCaller );
-          } else {
-            hrnCallee = rg.id2hrn.get( hrnCaller.getID() );
-          }
-
-          // FOURTH - copy edge over if needed
-          if( !callerEdgesCopiedToCallee.contains( reCaller ) ) {
-            rg.addRefEdge( rsnCallee,
-                           hrnCallee,
-                           new RefEdge( rsnCallee,
-                                        hrnCallee,
-                                        reCaller.getType(),
-                                        reCaller.getField(),
-                                        true, // clean?
-                                        toShadowTokens( this, reCaller.getBeta() )
-                                        )
-                           );              
-            callerEdgesCopiedToCallee.add( reCaller );
-          }
-          
-          // keep traversing nodes reachable from param i
-          // that we haven't visited yet
-          if( !visitedInCaller.contains( hrnCaller ) ) {
-            toVisitInCaller.add( hrnCaller );
-          }
-          
-        } // end edge iteration        
-      } // end visiting heap nodes in caller
-    } // end iterating over parameters as starting points
-
-
-    // find the set of edges in this graph with source
-    // out-of-context (not in nodes copied) and have a
-    // destination in context (one of nodes copied) as
-    // a starting point for building out-of-context nodes
-    Iterator<HeapRegionNode> itrInContext =
-      callerNodesCopiedToCallee.iterator();
-    while( itrInContext.hasNext() ) {
-      HeapRegionNode hrnCallerAndInContext = itrInContext.next();
-      
-      Iterator<RefEdge> itrMightCross =
-        hrnCallerAndInContext.iteratorToReferencers();
-      while( itrMightCross.hasNext() ) {
-        RefEdge edgeMightCross = itrMightCross.next();
-
-        // we're only interested in edges with a source
-        // 1) out-of-context and 2) is a heap region
-        if( callerNodesCopiedToCallee.contains( edgeMightCross.getSrc() ) ||
-            !(edgeMightCross.getSrc() instanceof HeapRegionNode)
-            ) { 
-          // then just skip
-          continue;
-        }
-
-        HeapRegionNode hrnCallerAndOutContext = 
-          (HeapRegionNode)edgeMightCross.getSrc();
-
-        // we found a reference that crosses from out-of-context
-        // to in-context, so build a special out-of-context node
-        // for the callee IHM and its reference edge
-        HeapRegionNode hrnCalleeAndOutContext =
-          rg.createNewHeapRegionNode( null,  // ID
-                                      false, // single object?
-                                      false, // new summary?
-                                      false, // flagged?
-                                      true,  // clean?
-                                      true,  // out-of-context?
-                                      hrnCallerAndOutContext.getType(),
-                                      null,  // alloc site, shouldn't be used
-                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // inherent
-                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // alpha
-                                      "out-of-context"
-                                      );
-       
-        HeapRegionNode hrnCalleeAndInContext = 
-          rg.id2hrn.get( hrnCallerAndInContext.getID() );
-
-        rg.addRefEdge( hrnCalleeAndOutContext,
-                       hrnCalleeAndInContext,
-                       new RefEdge( hrnCalleeAndOutContext,
-                                    hrnCalleeAndInContext,
-                                    edgeMightCross.getType(),
-                                    edgeMightCross.getField(),
-                                    true, // clean?
-                                    toShadowTokens( this, edgeMightCross.getBeta() )
-                                    )
-                       );                      
-        
-      }
-    }    
-
-
-    try {
-      rg.writeGraph( "calleeview", true, true, true, false, true, true );
-    } catch( IOException e ) {}
-
-    if( fc.getMethod().getSymbol().equals( "f1" ) ) {
-      System.exit( 0 );
+    if( td1.isNull() ) {
+      return td2;
     }
-
-    return rg;
+    if( td2.isNull() ) {
+      return td1;
+    }
+    return typeUtil.mostSpecific( td1, td2 );
   }
   
+  protected TypeDescriptor mostSpecificType( TypeDescriptor td1,
+                                             TypeDescriptor td2,
+                                             TypeDescriptor td3 ) {
+    
+    return mostSpecificType( td1, 
+			     mostSpecificType( td2, td3 )
+			     );
+  }  
+  
+  protected TypeDescriptor mostSpecificType( TypeDescriptor td1,
+                                             TypeDescriptor td2,
+                                             TypeDescriptor td3,
+                                             TypeDescriptor td4 ) {
+    
+    return mostSpecificType( mostSpecificType( td1, td2 ), 
+			     mostSpecificType( td3, td4 )
+			     );
+  }  
 
-  /*
-  public Set<HeapRegionNode> findCommonReachableNodes( HeapRegionNode hrn1,
-						       HeapRegionNode hrn2 ) {
-
-    Set<HeapRegionNode> reachableNodes1 = new HashSet<HeapRegionNode>();
-    Set<HeapRegionNode> reachableNodes2 = new HashSet<HeapRegionNode>();
-
-    Set<HeapRegionNode> todoNodes1 = new HashSet<HeapRegionNode>();
-    todoNodes1.add( hrn1 );
-
-    Set<HeapRegionNode> todoNodes2 = new HashSet<HeapRegionNode>();   
-    todoNodes2.add( hrn2 );
-
-    // follow links until all reachable nodes have been found
-    while( !todoNodes1.isEmpty() ) {
-      HeapRegionNode hrn = todoNodes1.iterator().next();
-      todoNodes1.remove( hrn );
-      reachableNodes1.add(hrn);
-      
-      Iterator<RefEdge> edgeItr = hrn.iteratorToReferencees();
-      while( edgeItr.hasNext() ) {
-	RefEdge edge = edgeItr.next();
-	
-	if( !reachableNodes1.contains( edge.getDst() ) ) {
-	  todoNodes1.add( edge.getDst() );
-	}
-      }
+  protected boolean isSuperiorType( TypeDescriptor possibleSuper,
+                                    TypeDescriptor possibleChild ) {
+    assert possibleSuper != null;
+    assert possibleChild != null;
+    
+    if( possibleSuper.isNull() ||
+	possibleChild.isNull() ) {
+      return true;
     }
 
-    while( !todoNodes2.isEmpty() ) {
-      HeapRegionNode hrn = todoNodes2.iterator().next();
-      todoNodes2.remove( hrn );
-      reachableNodes2.add(hrn);
-      
-      Iterator<RefEdge> edgeItr = hrn.iteratorToReferencees();
-      while( edgeItr.hasNext() ) {
-	RefEdge edge = edgeItr.next();
-	
-	if( !reachableNodes2.contains( edge.getDst() ) ) {
-	  todoNodes2.add( edge.getDst() );
+    return typeUtil.isSuperorType( possibleSuper, possibleChild );
+  }
+
+
+  protected boolean hasMatchingField( HeapRegionNode src, 
+                                      RefEdge        edge ) {
+
+    TypeDescriptor tdSrc = src.getType();    
+    assert tdSrc != null;
+
+    if( tdSrc.isArray() ) {
+      TypeDescriptor td = edge.getType();
+      assert td != null;
+
+      TypeDescriptor tdSrcDeref = tdSrc.dereference();
+      assert tdSrcDeref != null;
+
+      if( !typeUtil.isSuperorType( tdSrcDeref, td ) ) {
+	return false;
+      }
+
+      return edge.getField().equals( DisjointAnalysis.arrayElementFieldName );
+    }
+
+    // if it's not a class, it doesn't have any fields to match
+    if( !tdSrc.isClass() ) {
+      return false;
+    }
+
+    ClassDescriptor cd = tdSrc.getClassDesc();
+    while( cd != null ) {      
+      Iterator fieldItr = cd.getFields();
+
+      while( fieldItr.hasNext() ) {	
+	FieldDescriptor fd = (FieldDescriptor) fieldItr.next();
+
+	if( fd.getType().equals( edge.getType() ) &&
+	    fd.getSymbol().equals( edge.getField() ) ) {
+	  return true;
 	}
       }
+      
+      cd = cd.getSuperDesc();
     }
     
-    Set<HeapRegionNode> intersection = 
-      new HashSet<HeapRegionNode>( reachableNodes1 );
-
-    intersection.retainAll( reachableNodes2 );
-  
-    return intersection;
+    // otherwise it is a class with fields
+    // but we didn't find a match
+    return false;
   }
-  */
+
+  protected boolean hasMatchingType( RefEdge        edge, 
+                                     HeapRegionNode dst  ) {
+    
+    // if the region has no type, matches everything
+    TypeDescriptor tdDst = dst.getType();
+    assert tdDst != null;
+ 
+    // if the type is not a class or an array, don't
+    // match because primitives are copied, no aliases
+    ClassDescriptor cdDst = tdDst.getClassDesc();
+    if( cdDst == null && !tdDst.isArray() ) {
+      return false;
+    }
+ 
+    // if the edge type is null, it matches everything
+    TypeDescriptor tdEdge = edge.getType();
+    assert tdEdge != null;
+ 
+    return typeUtil.isSuperorType( tdEdge, tdDst );
+  }
   
 
   public void writeGraph( String graphName,
@@ -3788,96 +2354,6 @@ public class ReachGraph {
                                hideSubsetReachability,
                                hideEdgeTaints );
     }
-  }
-  
-
-  // in this analysis specifically:
-  // we have a notion that a null type is the "match any" type,
-  // so wrap calls to the utility methods that deal with null
-  public TypeDescriptor mostSpecificType( TypeDescriptor td1,
-					  TypeDescriptor td2 ) {
-    if( td1 == null ) {
-      return td2;
-    }
-    if( td2 == null ) {
-      return td1;
-    }
-    if( td1.isNull() ) {
-      return td2;
-    }
-    if( td2.isNull() ) {
-      return td1;
-    }
-    return typeUtil.mostSpecific( td1, td2 );
-  }
-  
-  public TypeDescriptor mostSpecificType( TypeDescriptor td1,
-					  TypeDescriptor td2,
-					  TypeDescriptor td3 ) {
-    
-    return mostSpecificType( td1, 
-			     mostSpecificType( td2, td3 )
-			     );
-  }  
-  
-  public TypeDescriptor mostSpecificType( TypeDescriptor td1,
-					  TypeDescriptor td2,
-					  TypeDescriptor td3,
-					  TypeDescriptor td4 ) {
-    
-    return mostSpecificType( mostSpecificType( td1, td2 ), 
-			     mostSpecificType( td3, td4 )
-			     );
   }  
 
-  // remember, in this analysis a null type means "any type"
-  public boolean isSuperiorType( TypeDescriptor possibleSuper,
-				 TypeDescriptor possibleChild ) {
-    if( possibleSuper == null ||
-	possibleChild == null ) {
-      return true;
-    }
-
-    if( possibleSuper.isNull() ||
-	possibleChild.isNull() ) {
-      return true;
-    }
-
-    return typeUtil.isSuperorType( possibleSuper, possibleChild );
-  }
-
-  /*
-  public String generateUniqueIdentifier(FlatMethod fm, int paramIdx, String type){
-	  
-	  //type: A->aliapsed parameter heap region
-	  // P -> primary paramter heap region
-	  // S -> secondary paramter heap region
-	
-	  String identifier;
-	  if(type.equals("A")){
-		  //aliased param
-		  identifier="FM"+fm.hashCode()+".A";
-	  }else{
-		  identifier="FM"+fm.hashCode()+"."+paramIdx+"."+type;
-	  }
-	  return identifier;
-	  
-  }
-  
-  public String generateUniqueIdentifier(AllocSite as, int age, boolean isSummary){
-	  
-	  String identifier;
-	  
-	  FlatNew fn=as.getFlatNew();
-	  
-	  if(isSummary){
-		  identifier="FN"+fn.hashCode()+".S";
-	  }else{
-		  identifier="FN"+fn.hashCode()+"."+age;
-	  }
-	  
-	  return identifier;
-	  
-  }  
-  */
 }
