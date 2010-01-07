@@ -3383,20 +3383,17 @@ public class BuildCode {
 			if (allocSet.size() > 0) {
 				output.println("     {");
 				
-				//
 				output.println("     ConflictNode* node;");
 				for (Iterator iterator = connectedSet.iterator(); iterator
 						.hasNext();) {
 					Integer integer = (Integer) iterator.next();
-					//output.print(" "+integer);
 					if(integer.intValue()<0){
-						output.println("     node=mlpCreateConflictNode(seseCaller->classID);");
+						output.println("     node=mlpCreateConflictNode(parentCommon->classID);");
 					}else{
 						output.println("     node=mlpCreateConflictNode( "+integer+" );");
 					}
 					output.println("     addNewItem(seseToIssue->common.connectedList,node);");
 				}
-				//
 				
 				output
 						.println("     pthread_mutex_lock( &(parentCommon->lock) );");
@@ -3639,10 +3636,14 @@ public class BuildCode {
     	output.println("   struct QueueItem* nextQueueItem;");
     	output.println("   for(idx = 0 ; idx < ___params___->common.parent->numRelatedAllocSites ; idx++){");
     	output.println("     if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
-    	output.println("     SESEcommon* item=peekItem(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
-    	output.println("     if( item->classID == ___params___->common.classID ){");
-    	output.println("        struct QueueItem* qItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,item);");
-    	output.println("        removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
+    	output.println("        struct QueueItem* qItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
+    	output.println("        while(qItem!=NULL){");
+    	output.println("           SESEcommon* item=qItem->objectptr;");
+    	output.println("           if(item->classID==___params___->common.classID){");
+    	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
+    	output.println("           }");
+    	output.println("           qItem=getNextQueueItem(qItem);");
+    	output.println("        }");
     	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
     	
     	output.println("           struct QueueItem* nextQItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
@@ -3664,10 +3665,12 @@ public class BuildCode {
     	output.println("              }else{");
     	output.println("                 if(isResolved){");
     	output.println("                    pthread_mutex_lock( &(nextItem->lock) );");
-    	output.println("                    --(nextItem->unresolvedDependencies);");
-    	output.println("                    if( nextItem->unresolvedDependencies == 0){");
-    	//output.println("                       workScheduleSubmit( (void*)nextItem);");
-    	output.println("                         addNewItem(launchQueue,(void*)nextItem);");
+    	output.println("                    if(nextItem->unresolvedDependencies > 0){");
+    	output.println("                       --(nextItem->unresolvedDependencies);");
+    	output.println("                       if( nextItem->unresolvedDependencies == 0){");
+    	//output.println("                          workScheduleSubmit( (void*)nextItem);");
+    	output.println("                            addNewItem(launchQueue,(void*)nextItem);");
+    	output.println("                       }");
     	output.println("                    }");
     	output.println("                    pthread_mutex_unlock( &(nextItem->lock) );");
     	output.println("                 }");
@@ -3676,7 +3679,7 @@ public class BuildCode {
     	output.println("           } "); // end of while(nextQItem!=NULL)
     	output.println("        }");
     	output.println("     }");
-    	output.println("  }");
+//    	output.println("  }");
     	output.println("  }");
     	output.println("  pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
     	output.println("  if(!isEmpty(launchQueue)){");

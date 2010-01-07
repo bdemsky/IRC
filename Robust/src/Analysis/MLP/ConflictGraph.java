@@ -133,6 +133,26 @@ public class ConflictGraph {
 				}
 
 			}
+			
+			// for another case where only reading regions are overlapped
+			readIter = readEffectsSet.iterator();
+			while (readIter.hasNext()) {
+				
+				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) readIter
+				.next();
+				String readHeapRegionID = seseEffectsKey.getHRNUniqueId();
+				
+				HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
+				for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+						.hasNext();) {
+					HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
+					if (stallHRN.getGloballyUniqueIdentifier().equals(
+							readHeapRegionID)) {
+						result = result | true;
+					}
+				}
+			}
+			
 		}
 
 		return result;
