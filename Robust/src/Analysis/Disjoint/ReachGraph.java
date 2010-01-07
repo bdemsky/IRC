@@ -1304,8 +1304,7 @@ public class ReachGraph {
                                     true, // clean?
                                     toShadowTokens( this, edgeMightCross.getBeta() )
                                     )
-                       );                      
-        
+                       );                              
       }
     }    
 
@@ -1322,16 +1321,12 @@ public class ReachGraph {
     return rg;
   }  
 
-  /*
-  public void resolveMethodCall(FlatCall       fc,        // call site in caller method
-                                boolean        isStatic,  // whether it is a static method
-                                FlatMethod     fm,        // the callee method (when virtual, can be many)
-                                ReachGraph ogCallee,  // the callee's current reachability graph
-				MethodContext  mc,        // the aliasing context for this call
-				ParameterDecomposition pd // if this is not null, we're calling after analysis
-				) {
-  }
-  */
+  public void resolveMethodCall( FlatCall   fc,        
+                                 FlatMethod fm,        
+                                 ReachGraph rgCallee
+                                 ) {
+    
+  } 
 
   
   protected void unshadowTokens( AllocSite as, 

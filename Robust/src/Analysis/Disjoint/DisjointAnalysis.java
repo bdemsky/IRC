@@ -288,19 +288,12 @@ public class DisjointAnalysis {
       if( !rg.equals( rgPrev ) ) {
         setPartial( d, rg );
 
-        // results for d changed, so queue dependents
+        // results for d changed, so enqueue dependents
         // of d for further analysis
 	Iterator<Descriptor> depsItr = getDependents( d ).iterator();
 	while( depsItr.hasNext() ) {
 	  Descriptor dNext = depsItr.next();
-
-	  if( !descriptorsToVisitSet.contains( dNext ) ) {
-            Integer priority = mapDescriptorToPriority.get( dNext );
-	    descriptorsToVisitQ.add( new DescriptorQWrapper( priority , 
-                                                             dNext ) 
-                                     );
-	    descriptorsToVisitSet.add( dNext );
-	  }
+          enqueue( dNext );
 	}
       }      
     }
@@ -545,6 +538,55 @@ public class DisjointAnalysis {
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
 
+      // the transformation for a call site should update the
+      // current heap abstraction with any effects from the callee,
+      // or if the method is virtual, the effects from any possible
+      // callees, so find the set of callees...
+      Set<MethodDescriptor> setPossibleCallees =
+        new HashSet<MethodDescriptor>();
+
+      if( mdCallee.isStatic() ) {        
+        setPossibleCallees.add( mdCallee );
+      } else {
+	TypeDescriptor typeDesc = fc.getThis().getType();
+	setPossibleCallees.addAll( callGraph.getMethods( mdCallee, typeDesc ) );
+      }
+
+      ReachGraph rgMergeOfEffects = new ReachGraph();
+
+      Iterator<MethodDescriptor> mdItr = setPossibleCallees.iterator();
+      while( mdItr.hasNext() ) {
+        MethodDescriptor mdPossible = mdItr.next();
+        FlatMethod       fmPossible = state.getMethodFlat( mdPossible );
+
+        addDependent( mdPossible, // callee
+                      d );        // caller
+
+        // don't alter the working graph (rg) until we compute a 
+        // result for every possible callee, merge them all together,
+        // then set rg to that
+        ReachGraph rgCopy = new ReachGraph();
+        rgCopy.merge( rg );		
+                
+        ReachGraph rgEffect = getPartial( mdPossible );
+
+        if( rgEffect == null ) {
+          // if this method has never been analyzed just schedule it 
+          // for analysis and skip over this call site for now
+          enqueue( mdPossible );
+        } else {
+          rgCopy.resolveMethodCall( fc, fmPossible, rgEffect );
+        }
+        
+        rgMergeOfEffects.merge( rgCopy );	 
+      }
+
+	
+      // now we're done, but BEFORE we set rg = rgMergeOfEffects:
+      // calculate the heap this call site can reach--note this is
+      // not used for the current call site transform, we are
+      // grabbing this heap model for future analysis of the callees,
+      // of if different results emerge we will return to this site
       ReachGraph heapForThisCall_old = 
         getIHMcontribution( mdCallee, fc );
 
@@ -553,114 +595,15 @@ public class DisjointAnalysis {
 
       if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {
         // if heap at call site changed, update the contribution,
-        //  and reschedule the callee for analysis
-        addIHMcontribution( mdCallee, fc, heapForThisCall_cur );
-
-        if( !descriptorsToVisitSet.contains( mdCallee ) ) {
-          Integer priority = mapDescriptorToPriority.get( mdCallee );
-          descriptorsToVisitQ.add( new DescriptorQWrapper( priority, 
-                                                           mdCallee ) 
-                                   );
-          descriptorsToVisitSet.add( mdCallee );
-        }
+        // and reschedule the callee for analysis
+        addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
+        enqueue( mdCallee );
       }
 
-      // now that we've taken care of that, go ahead and update
-      // the reach graph for this FlatCall node by whatever callee
-      // result we do have
-      
 
-      /*
-      ReachGraph ogMergeOfAllPossibleCalleeResults = new ReachGraph();
-
-      if( md.isStatic() ) {
-	// a static method is simply always the same, makes life easy
-	ogMergeOfAllPossibleCalleeResults = og;
-
-	Set<Integer> aliasedParamIndices = 
-	  ogMergeOfAllPossibleCalleeResults.calculateAliasedParamSet(fc, md.isStatic(), flatm);
-
-	Descriptor mcNew = new Descriptor( md, aliasedParamIndices );
-	Set contexts = mapDescriptorToAllDescriptors.get( md );
-	assert contexts != null;
-	contexts.add( mcNew );
-
-	addDependent( mc, mcNew );
-
-	ReachGraph onlyPossibleCallee = mapDescriptorToCompleteReachabilityGraph.get( mcNew );
-
-	if( onlyPossibleCallee == null ) {
-	  // if this method context has never been analyzed just schedule it for analysis
-	  // and skip over this call site for now
-	  if( !methodContextsToVisitSet.contains( mcNew ) ) {
-	    methodContextsToVisitQ.add( new DescriptorQWrapper( mapDescriptorToPriority.get( md ), 
-								   mcNew ) );
-	    methodContextsToVisitSet.add( mcNew );
-	  }
-	  
-	} else {
-	  ogMergeOfAllPossibleCalleeResults.resolveMethodCall(fc, md.isStatic(), flatm, onlyPossibleCallee, mc, null);
-	}
-	
-	meAnalysis.createNewMapping(mcNew);
-	meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
-	
-
-      } else {
-	// if the method descriptor is virtual, then there could be a
-	// set of possible methods that will actually be invoked, so
-	// find all of them and merge all of their results together
-	TypeDescriptor typeDesc = fc.getThis().getType();
-	Set possibleCallees = callGraph.getMethods(md, typeDesc);
-
-	Iterator i = possibleCallees.iterator();
-	while( i.hasNext() ) {
-	  MethodDescriptor possibleMd = (MethodDescriptor) i.next();
-	  FlatMethod pflatm = state.getMethodFlat(possibleMd);
-
-	  // don't alter the working graph (og) until we compute a result for every
-	  // possible callee, merge them all together, then set og to that
-	  ReachGraph ogCopy = new ReachGraph();
-	  ogCopy.merge(og);
-
-	  Set<Integer> aliasedParamIndices = 
-	    ogCopy.calculateAliasedParamSet(fc, possibleMd.isStatic(), pflatm);
-
-	  Descriptor mcNew = new Descriptor( possibleMd, aliasedParamIndices );
-	  Set contexts = mapDescriptorToAllDescriptors.get( md );
-	  assert contexts != null;
-	  contexts.add( mcNew );
-	  
-		
-	meAnalysis.createNewMapping(mcNew);
-		
-	  
-	  addDependent( mc, mcNew );
-
-	  ReachGraph ogPotentialCallee = mapDescriptorToCompleteReachabilityGraph.get( mcNew );
-
-	  if( ogPotentialCallee == null ) {
-	    // if this method context has never been analyzed just schedule it for analysis
-	    // and skip over this call site for now
-	    if( !methodContextsToVisitSet.contains( mcNew ) ) {
-	      methodContextsToVisitQ.add( new DescriptorQWrapper( mapDescriptorToPriority.get( md ), 
-								     mcNew ) );
-	      methodContextsToVisitSet.add( mcNew );
-	    }
-	    
-	  } else {
-	    ogCopy.resolveMethodCall(fc, possibleMd.isStatic(), pflatm, ogPotentialCallee, mc, null);
-	  }
-		
-	  ogMergeOfAllPossibleCalleeResults.merge(ogCopy);
-	  
-	  meAnalysis.analyzeFlatCall(ogMergeOfAllPossibleCalleeResults, mcNew, mc, fc);
-	}
-	
-      }
-
-      og = ogMergeOfAllPossibleCalleeResults;
-      */
+      // now that we've taken care of building heap models for
+      // callee analysis, finish this transformation
+      rg = rgMergeOfEffects;
     } break;
       
 
@@ -1126,6 +1069,17 @@ public class DisjointAnalysis {
     }
     
     sorted.addFirst( d );
+  }
+
+
+  protected void enqueue( Descriptor d ) {
+    if( !descriptorsToVisitSet.contains( d ) ) {
+      Integer priority = mapDescriptorToPriority.get( d );
+      descriptorsToVisitQ.add( new DescriptorQWrapper( priority, 
+                                                       d ) 
+                               );
+      descriptorsToVisitSet.add( d );
+    }
   }
 
 
