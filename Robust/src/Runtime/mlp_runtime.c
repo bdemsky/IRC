@@ -39,6 +39,12 @@ AllocSite* mlpCreateAllocSiteArray(int numAllocSites){
   return newAllocSite;
 }
 
+ConflictNode* mlpCreateConflictNode(int id){
+  ConflictNode* newConflictNode=(ConflictNode*)RUNMALLOC( sizeof( ConflictNode ) );
+  newConflictNode->id=id;
+  return newConflictNode;
+}
+
 void addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec){
 
   int i;
@@ -61,4 +67,59 @@ int getQueueIdx(AllocSite* allocSiteArray, int numAllocSites, long  allocID){
     }
   }
   return -1;
+}
+
+int resolveWaitingQueue(struct Queue* waitingQueue,struct QueueItem* qItem){
+
+  if(!isEmpty(waitingQueue)){
+
+    SESEcommon* qCommon=qItem->objectptr;
+    
+    struct QueueItem* current=getHead(waitingQueue);
+    while(current!=NULL){
+         if(current!=qItem){
+	   SESEcommon* currentCommon=current->objectptr;
+	   if(hasConflicts(currentCommon->classID,qCommon->connectedList)){
+	     return 0;
+	   }
+	 }else{
+	   return 1;
+	 }
+	 current=getNextQueueItem(current);
+    }
+  }
+  return 1;
+}
+
+int hasConflicts(int classID, struct Queue* connectedList){
+  
+  if(!isEmpty(connectedList)){
+    struct QueueItem* queueItem=getHead(connectedList); 
+    
+    while(queueItem!=NULL){
+      ConflictNode* node=queueItem->objectptr;
+      if(node->id==classID){
+	return 1;
+      }
+      queueItem=getNextQueueItem(queueItem);      
+    }
+  }
+  return 0;
+}
+
+void addNewConflictNode(ConflictNode* node, struct Queue* connectedList){
+  
+  if(!isEmpty(connectedList)){
+    struct QueueItem* qItem=getHead(connectedList);
+    while(qItem!=NULL){
+      ConflictNode* qNode=qItem->objectptr;
+      if(qNode->id==node->id){
+	return;
+      }
+      qItem=getNextQueueItem(qItem);
+    }
+  }
+
+  addNewItem(connectedList,node);
+
 }

@@ -15,11 +15,15 @@
 #define TRUE 1
 #endif
 
-// each allocation site nees the following
+// each allocation site needs the following
 typedef struct AllocSite_t{
   long id;
   struct Queue* waitingQueue;
 } AllocSite;
+
+typedef struct ConflictNode_t{
+  int id;
+} ConflictNode;
 
 // forward declaration of pointer type
 typedef struct SESEcommon_t* SESEcommon_p;
@@ -57,6 +61,7 @@ typedef struct SESEcommon_t {
   AllocSite* allocSiteArray;
   int numRelatedAllocSites;
   psemaphore memoryStallSiteSem;
+  struct Queue* connectedList;
 
 } SESEcommon;
 
@@ -77,6 +82,7 @@ void* mlpCreateSESErecord( int size );
 void  mlpDestroySESErecord( void* seseRecord );
 
 AllocSite* mlpCreateAllocSiteArray(int numAllocSites);
+ConflictNode* mlpCreateConflictNode(int id);
 
 
 #endif /* __MLP_RUNTIME__ */

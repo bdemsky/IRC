@@ -3431,4 +3431,8 @@ public class MLPAnalysis {
 	  return conflictsResults;
   }
   
+  public Hashtable<FlatNode, SESESummary> getSeseSummaryMap(){
+	  return seseSummaryMap;
+  }
+  
 }

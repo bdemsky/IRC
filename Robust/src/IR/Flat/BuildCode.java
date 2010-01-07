@@ -2701,20 +2701,47 @@ public class BuildCode {
 	  TempDescriptor dynVar = dynItr.next();
 	  output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
-      }     
-      
-      // eom
-      // handling stall site
-      ParentChildConflictsMap conflictsMap=mlpa.getConflictsResults().get(fn);
-		if (conflictsMap != null) {
 	
+	 // eom
+    // handling stall site
+    
+    ParentChildConflictsMap conflictsMap=mlpa.getConflictsResults().get(fn);
+    
+		if (conflictsMap != null) {
+
 			Set<Long> allocSet = conflictsMap
 					.getAllocationSiteIDSetofStallSite();
 	
 			if (allocSet.size() > 0) {
+				
+				FlatNode enclosingFlatNode=null;
+				if( currentSESE.getIsCallerSESEplaceholder() && currentSESE.getParent()==null){
+					enclosingFlatNode=currentSESE.getfmEnclosing();
+				}else{
+					enclosingFlatNode=currentSESE;
+				}
+				
+				ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
+				Set<Integer> connectedSet=graph.getConnectedConflictNodeSet(conflictsMap);
+				
 				output.println("   /*  stall on parent's stall sites */");
 				output.println("  {");
 				output.println("     pthread_mutex_lock( &(seseCaller->lock) );");
+			    //
+				output.println("     ConflictNode* node;");
+				for (Iterator iterator = connectedSet.iterator(); iterator
+						.hasNext();) {
+					Integer integer = (Integer) iterator.next();
+					//output.print(" "+integer);
+					if(integer.intValue()<0){
+						output.println("     node=mlpCreateConflictNode(seseCaller->classID);");
+					}else{
+						output.println("     node=mlpCreateConflictNode( "+integer+" );");
+					}
+					output.println("     addNewConflictNode(node, seseCaller->connectedList);");
+				}
+				//
+				
 				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
 				output.println("     int qIdx;");
 				output.println("     int takeCount=0;");
@@ -2735,6 +2762,7 @@ public class BuildCode {
 				output.println("  }");
 			}
 		}
+      }     
     }
 
     switch(fn.kind()) {
@@ -3296,6 +3324,9 @@ public class BuildCode {
     output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
     output.println("     seseToIssue->common.forwardList = createQueue();");
+    //eom
+    output.println("     seseToIssue->common.connectedList = createQueue();");
+    //
     output.println("     seseToIssue->common.unresolvedDependencies = 0;");
     output.println("     pthread_cond_init( &(seseToIssue->common.doneCond), NULL );");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
@@ -3346,8 +3377,27 @@ public class BuildCode {
 
 			Set<Long> allocSet = graph.getAllocationSiteIDSetBySESEID(fsen
 					.getIdentifier());
+			Set<Integer> connectedSet=graph.getConnectedConflictNodeSet(fsen
+					.getIdentifier());
+			
 			if (allocSet.size() > 0) {
 				output.println("     {");
+				
+				//
+				output.println("     ConflictNode* node;");
+				for (Iterator iterator = connectedSet.iterator(); iterator
+						.hasNext();) {
+					Integer integer = (Integer) iterator.next();
+					//output.print(" "+integer);
+					if(integer.intValue()<0){
+						output.println("     node=mlpCreateConflictNode(seseCaller->classID);");
+					}else{
+						output.println("     node=mlpCreateConflictNode( "+integer+" );");
+					}
+					output.println("     addNewItem(seseToIssue->common.connectedList,node);");
+				}
+				//
+				
 				output
 						.println("     pthread_mutex_lock( &(parentCommon->lock) );");
 
@@ -3585,31 +3635,57 @@ public class BuildCode {
     	output.println("   pthread_mutex_lock( &(___params___->common.parent->lock) );");
     	output.println("   int idx;");
     	output.println("   int giveCount=0;");
+    	output.println("   struct Queue* launchQueue=createQueue();");
+    	output.println("   struct QueueItem* nextQueueItem;");
     	output.println("   for(idx = 0 ; idx < ___params___->common.parent->numRelatedAllocSites ; idx++){");
-    	output.println("      if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
+    	output.println("     if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
     	output.println("     SESEcommon* item=peekItem(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
     	output.println("     if( item->classID == ___params___->common.classID ){");
     	output.println("        struct QueueItem* qItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,item);");
     	output.println("        removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
     	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
-    	output.println("           SESEcommon* nextItem=peekItem(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
-    	output.println("           if(nextItem->classID==___params___->common.parent->classID){");
-    	output.println("              struct QueueItem* stallItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
-    	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,stallItem);");
-    	output.println("              giveCount++;");
-    	output.println("           }else{");
-    	output.println("              pthread_mutex_lock( &(nextItem->lock) );");
-    	output.println("              --(nextItem->unresolvedDependencies);");
-    	output.println("              if( nextItem->unresolvedDependencies == 0){");
-    	output.println("                 workScheduleSubmit( (void*)nextItem);");
-    	output.println("              }");
-    	output.println("              pthread_mutex_unlock( &(nextItem->lock) );");
-    	output.println("           }");
+    	
+    	output.println("           struct QueueItem* nextQItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
+    	output.println("           while(nextQItem!=NULL){");
+    	output.println("              SESEcommon* nextItem=nextQItem->objectptr;");
+    	output.println("              int isResolved=resolveWaitingQueue(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextQItem);");
+    	output.println("              if(nextItem->classID==___params___->common.parent->classID){");
+    	output.println("                 if(isResolved){");
+    	output.println("                    struct QueueItem* stallItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
+    	output.println("                    removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,stallItem);");
+    	output.println("                    giveCount++;");
+    	output.println("                 }");
+    	output.println("                 if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
+//    	output.println("                    nextQItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
+    	output.println("                    nextQItem=getNextQueueItem(nextQItem);");
+    	output.println("                 }else{");
+    	output.println("                    nextQItem=NULL;");
+    	output.println("                 }");
+    	output.println("              }else{");
+    	output.println("                 if(isResolved){");
+    	output.println("                    pthread_mutex_lock( &(nextItem->lock) );");
+    	output.println("                    --(nextItem->unresolvedDependencies);");
+    	output.println("                    if( nextItem->unresolvedDependencies == 0){");
+    	//output.println("                       workScheduleSubmit( (void*)nextItem);");
+    	output.println("                         addNewItem(launchQueue,(void*)nextItem);");
+    	output.println("                    }");
+    	output.println("                    pthread_mutex_unlock( &(nextItem->lock) );");
+    	output.println("                 }");
+    	output.println("                 nextQItem=getNextQueueItem(nextQItem);");
+    	output.println("               }");
+    	output.println("           } "); // end of while(nextQItem!=NULL)
     	output.println("        }");
     	output.println("     }");
-    	output.println("     }");
+    	output.println("  }");
     	output.println("  }");
     	output.println("  pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
+    	output.println("  if(!isEmpty(launchQueue)){");
+    	output.println("     struct QueueItem* qItem=getHead(launchQueue);");
+    	output.println("     while(qItem!=NULL){");
+    	output.println("        workScheduleSubmit(qItem->objectptr);");
+    	output.println("        qItem=getNextQueueItem(qItem);");
+    	output.println("     }");
+    	output.println("  }");
     	output.println("  if(giveCount>0){");
      	output.println("    psem_give(&(___params___->common.parent->memoryStallSiteSem));");
      	output.println("  }");

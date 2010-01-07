@@ -2,6 +2,7 @@ package Analysis.MLP;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -93,6 +94,7 @@ public class ConflictGraph {
 					}
 				}								
 			}		
+			
 		}
 
 		if (readEffectsSet != null) {
@@ -479,6 +481,108 @@ public class ConflictGraph {
 
 		return resultSet;
 	}
+	
+	public Set<Integer> getConnectedConflictNodeSet(ParentChildConflictsMap conflictsMap){
+		
+		HashSet<Integer> nodeIDSet = new HashSet<Integer>();
+		
+		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
+		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+		
+		Collection<StallSite> stallSites=conflictsMap.getStallMap().values();
+		for (Iterator iterator = stallSites.iterator(); iterator.hasNext();) {
+			StallSite stallSite = (StallSite) iterator.next();
+			while (i.hasNext()) {
+				Entry<String, ConflictNode> entry = i.next();
+				ConflictNode node = entry.getValue();
+
+				if (node instanceof StallSiteNode) {
+					StallSiteNode stallSiteNode = (StallSiteNode) node;
+					if (stallSiteNode.getStallSite() == stallSite) {
+						HashSet<ConflictEdge> edgeSet = stallSiteNode.getEdgeSet();
+						for (Iterator iter2 = edgeSet.iterator(); iter2.hasNext();) {
+							ConflictEdge conflictEdge = (ConflictEdge) iter2.next();
+							nodeIDSet.addAll(getConnectedConflictNode(conflictEdge));
+						}
+					}
+				}
+			}
+		}
+		
+		return nodeIDSet;
+		
+	}
+	
+	private Set<Integer> getConnectedConflictNode(ConflictEdge conflictEdge){
+		
+		HashSet<Integer> nodeIDSet = new HashSet<Integer>();
+		
+		if(conflictEdge.getVertexU() instanceof LiveInNode){
+			LiveInNode lin=(LiveInNode)conflictEdge.getVertexU();
+			nodeIDSet.add(new Integer(lin.getSESEIdentifier()));
+		}
+		if(conflictEdge.getVertexV() instanceof LiveInNode){
+			LiveInNode lin=(LiveInNode)conflictEdge.getVertexV();
+			nodeIDSet.add(new Integer(lin.getSESEIdentifier()));
+		}
+		
+		return nodeIDSet;
+	}
+	
+	private Set<Integer> getConnectedConflictNode(ConflictEdge conflictEdge, int seseID){
+		
+		HashSet<Integer> nodeIDSet = new HashSet<Integer>();
+		
+		if(conflictEdge.getVertexU() instanceof LiveInNode){
+			LiveInNode lin=(LiveInNode)conflictEdge.getVertexU();
+			if(lin.getSESEIdentifier()!=seseID){
+				nodeIDSet.add(new Integer(lin.getSESEIdentifier()));
+			}							
+		}else{
+			// it is stall site
+			nodeIDSet.add(new Integer(-1));
+		}	
+		if(conflictEdge.getVertexV() instanceof LiveInNode){
+			LiveInNode lin=(LiveInNode)conflictEdge.getVertexV();
+			if(lin.getSESEIdentifier()!=seseID){
+				nodeIDSet.add(new Integer(lin.getSESEIdentifier()));
+			}							
+		}else{
+			// it is stall site
+			nodeIDSet.add(new Integer(-1));
+		}	
+		
+		return nodeIDSet;
+	}
+	
+	public Set<Integer> getConnectedConflictNodeSet(int seseID){
+		
+		HashSet<Integer> nodeIDSet = new HashSet<Integer>();
+		
+		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
+		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+		
+		while (i.hasNext()) {
+			Entry<String, ConflictNode> entry = i.next();
+			ConflictNode node = entry.getValue();
+
+			if (node instanceof LiveInNode) {
+				LiveInNode liveInNode = (LiveInNode) node;
+				if (liveInNode.getSESEIdentifier() == seseID) {
+					HashSet<ConflictEdge> edgeSet = liveInNode.getEdgeSet();
+					for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+						ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+						//
+						nodeIDSet.addAll(getConnectedConflictNode(conflictEdge,seseID));
+						//
+					}
+				}
+			}
+		}
+		
+		return nodeIDSet;
+		
+	}
 
 	public Set<Long> getAllocationSiteIDSetBySESEID(int seseID) {
 
@@ -497,6 +601,9 @@ public class ConflictGraph {
 					HashSet<ConflictEdge> edgeSet = liveInNode.getEdgeSet();
 					for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
 						ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+						//
+						getConnectedConflictNode(conflictEdge,seseID);
+						//
 						if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
 							allocSiteIDSet.addAll(getHRNIdentifierSet(conflictEdge.getVertexU()));
 							allocSiteIDSet.addAll(getHRNIdentifierSet(conflictEdge.getVertexV()));
