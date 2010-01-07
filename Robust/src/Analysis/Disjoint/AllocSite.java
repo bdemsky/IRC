@@ -21,42 +21,49 @@ import java.util.*;
 
 public class AllocSite {
 
-  static private int uniqueIDcount = 0;
-
-  protected Integer id;
-  protected int allocationDepth;
-  protected Vector<Integer> ithOldest;
-  protected Integer summary;
-  protected FlatNew flatNew;
-  protected String disjointId;
+  static protected int uniqueIDcount = 0;
 
   public static final int AGE_notInThisSite = 100;
   public static final int AGE_in_I          = 101;
   public static final int AGE_oldest        = 102;
   public static final int AGE_summary       = 103;
+  public static final int AGE_siteSummary   = 200;
 
   public static final int SHADOWAGE_notInThisSite = -100;
   public static final int SHADOWAGE_in_I          = -101;
   public static final int SHADOWAGE_oldest        = -102;
   public static final int SHADOWAGE_summary       = -103;
-  
-  private boolean flag=false;
+  public static final int SHADOWAGE_siteSummary   = -200;
+
+  protected Integer         id;
+  protected int             allocationDepth;
+  protected Vector<Integer> ithOldest;
+  protected Integer         summary;
+  protected Integer         siteSummary;
+  protected FlatNew         flatNew;
+  protected String          disjointId;
+  protected boolean         flag;
 
 
-  public AllocSite(int allocationDepth, FlatNew flatNew, String disjointId) {
+  public AllocSite( int     allocationDepth, 
+                    FlatNew flatNew, 
+                    String  disjointId
+                    ) {
+
     assert allocationDepth >= 1;
 
     this.allocationDepth = allocationDepth;
     this.flatNew         = flatNew;
     this.disjointId      = disjointId;
+    this.flag            = false;
 
-    ithOldest = new Vector<Integer>(allocationDepth);
+    ithOldest = new Vector<Integer>( allocationDepth );
     id        = generateUniqueAllocSiteID();
   }
 
   static public Integer generateUniqueAllocSiteID() {
     ++uniqueIDcount;
-    return new Integer(uniqueIDcount);
+    return new Integer( uniqueIDcount );
   }
 
 
@@ -69,37 +76,37 @@ public class AllocSite {
     return allocationDepth;
   }
 
-  public void setIthOldest(int i, Integer id) {
+  public void setIthOldest( int i, Integer id ) {
     assert i  >= 0;
     assert i  <  allocationDepth;
     assert id != null;
 
-    ithOldest.add(i, id);
+    ithOldest.add( i, id );
   }
 
-  public Integer getIthOldest(int i) {
+  public Integer getIthOldest( int i ) {
     assert i >= 0;
     assert i <  allocationDepth;
 
-    return ithOldest.get(i);
+    return ithOldest.get( i );
   }
 
-  public Integer getIthOldestShadow(int i) {
+  public Integer getIthOldestShadow( int i ) {
     assert i >= 0;
     assert i <  allocationDepth;
 
-    return -ithOldest.get(i);
+    return -ithOldest.get( i );
   }
 
   public Integer getOldest() {
-    return ithOldest.get(allocationDepth - 1);
+    return ithOldest.get( allocationDepth - 1 );
   }
 
   public Integer getOldestShadow() {
-    return -ithOldest.get(allocationDepth - 1);
+    return -ithOldest.get( allocationDepth - 1 );
   }
 
-  public void setSummary(Integer id) {
+  public void setSummary( Integer id ) {
     assert id != null;
     summary = id;
   }
@@ -112,6 +119,11 @@ public class AllocSite {
     return -summary;
   }
 
+  public void setSiteSummary( Integer id ) {
+    assert id != null;
+    siteSummary = id;
+  }
+
   public FlatNew getFlatNew() {
     return flatNew;
   }
@@ -120,18 +132,18 @@ public class AllocSite {
     return flatNew.getType();
   }
 
-  public int getAgeCategory(Integer id) {
+  public int getAgeCategory( Integer id ) {
 
-    if( id.equals(summary) ) {
+    if( id.equals( summary ) ) {
       return AGE_summary;
     }
 
-    if( id.equals(getOldest() ) ) {
+    if( id.equals( getOldest() ) ) {
       return AGE_oldest;
     }
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals(ithOldest.get(i) ) ) {
+      if( id.equals( ithOldest.get( i ) ) ) {
 	return AGE_in_I;
       }
     }
@@ -139,27 +151,27 @@ public class AllocSite {
     return AGE_notInThisSite;
   }
 
-  public Integer getAge(Integer id) {
+  public Integer getAge( Integer id ) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals(ithOldest.get(i) ) ) {
-	return new Integer(i);
+      if( id.equals( ithOldest.get( i ) ) ) {
+	return new Integer( i );
       }
     }
 
     return null;
   }
 
-  public int getShadowAgeCategory(Integer id) {
-    if( id.equals(-summary) ) {
+  public int getShadowAgeCategory( Integer id ) {
+    if( id.equals( -summary ) ) {
       return SHADOWAGE_summary;
     }
 
-    if( id.equals(getOldestShadow() ) ) {
+    if( id.equals( getOldestShadow() ) ) {
       return SHADOWAGE_oldest;
     }
 
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals(getIthOldestShadow(i) ) ) {
+      if( id.equals( getIthOldestShadow( i ) ) ) {
 	return SHADOWAGE_in_I;
       }
     }
@@ -167,10 +179,10 @@ public class AllocSite {
     return SHADOWAGE_notInThisSite;
   }
 
-  public Integer getShadowAge(Integer id) {
+  public Integer getShadowAge( Integer id ) {
     for( int i = 0; i < allocationDepth - 1; ++i ) {
-      if( id.equals(getIthOldestShadow(i) ) ) {
-	return new Integer(-i);
+      if( id.equals( getIthOldestShadow( i ) ) ) {
+	return new Integer( -i );
       }
     }
 
@@ -179,31 +191,35 @@ public class AllocSite {
 
   public String toString() {
     if( disjointId == null ) {
-      return "allocSite" + id;
+      return "allocSite"+id;
     }
     return "allocSite "+disjointId+" ("+id+")";
   }
 
   public String toStringVerbose() {
     if( disjointId == null ) {
-      return "allocSite" + id + " "+flatNew.getType().toPrettyString();
+      return "allocSite"+id+" "+
+        flatNew.getType().toPrettyString();
     }
-    return "allocSite "+disjointId+" ("+id+") "+flatNew.getType().toPrettyString();
+    return "allocSite "+disjointId+" ("+id+") "+
+      flatNew.getType().toPrettyString();
   }
 
   public String toStringForDOT() {
     if( disjointId != null ) {
-      return "disjoint "+disjointId+"\\n"+toString()+"\\n"+getType().toPrettyString();
+      return "disjoint "+disjointId+"\\n"+toString()+
+        "\\n"+getType().toPrettyString();
     } else {
-      return                              toString()+"\\n"+getType().toPrettyString();
+      return                              toString()+
+        "\\n"+getType().toPrettyString();
     }
   }
   
-  public void setFlag(boolean flag){
-	  this.flag=flag;
+  public void setFlag( boolean flag ) {
+    this.flag = flag;
   }
   
-  public boolean getFlag(){
-	  return flag;
+  public boolean getFlag() {
+    return flag;
   }
 }

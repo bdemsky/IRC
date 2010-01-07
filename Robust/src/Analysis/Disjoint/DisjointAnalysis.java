@@ -742,8 +742,11 @@ public class DisjointAnalysis {
       }
 
       // the oldest node is a summary node
-      Integer idSummary = generateUniqueHeapRegionNodeID();
-      as.setSummary( idSummary );
+      as.setSummary( generateUniqueHeapRegionNodeID() );
+
+      // and one special node is older than all
+      // nodes and shadow nodes for the site
+      as.setSiteSummary( generateUniqueHeapRegionNodeID() );
 
       mapFlatNewToAllocSite.put( fnew, as );
     }

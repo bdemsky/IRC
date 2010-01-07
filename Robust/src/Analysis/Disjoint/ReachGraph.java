@@ -2370,32 +2370,36 @@ public class ReachGraph {
     return typeUtil.isSuperorType(tdEdge, tdDst);
   }
 
-  /*
-  protected void unshadowTokens(AllocSite as, RefEdge edge) {
-    edge.setBeta(edge.getBeta().unshadowTokens(as) );
+  
+  protected void unshadowTokens( AllocSite as, 
+                                 RefEdge   edge 
+                                 ) {
+    edge.setBeta( edge.getBeta().unshadowTokens( as ) );
   }
 
-  protected void unshadowTokens(AllocSite as, HeapRegionNode hrn) {
-    hrn.setAlpha(hrn.getAlpha().unshadowTokens(as) );
+  protected void unshadowTokens( AllocSite      as, 
+                                 HeapRegionNode hrn 
+                                 ) {
+    hrn.setAlpha( hrn.getAlpha().unshadowTokens( as ) );
   }
 
 
-  private ReachSet toShadowTokens(ReachGraph ogCallee,
-                                         ReachSet rsIn) {
+  private ReachSet toShadowTokens( ReachGraph rg,
+                                   ReachSet   rsIn 
+                                   ) {
+    ReachSet rsOut = new ReachSet( rsIn ).makeCanonical();
 
-    ReachSet rsOut = new ReachSet(rsIn).makeCanonical();
-
-    Iterator<AllocSite> allocItr = ogCallee.allocSites.iterator();
+    Iterator<AllocSite> allocItr = rg.allocSites.iterator();
     while( allocItr.hasNext() ) {
       AllocSite as = allocItr.next();
-
-      rsOut = rsOut.toShadowTokens(as);
+      rsOut = rsOut.toShadowTokens( as );
     }
 
     return rsOut.makeCanonical();
   }
 
 
+  /*
   private void rewriteCallerReachability(Integer paramIndex,
                                          HeapRegionNode hrn,
                                          RefEdge edge,
@@ -3433,8 +3437,8 @@ public class ReachGraph {
                                           false, // out-of-context?
                                           hrnSrcCaller.getType(),
                                           hrnSrcCaller.getAllocSite(),
-                                          hrnSrcCaller.getInherent(),
-                                          hrnSrcCaller.getAlpha(),
+                                          toShadowTokens( this, hrnSrcCaller.getInherent() ),
+                                          toShadowTokens( this, hrnSrcCaller.getAlpha() ),
                                           hrnSrcCaller.getDescription()
                                           );
             callerNodesCopiedToCallee.add( rsnCaller );
@@ -3463,8 +3467,8 @@ public class ReachGraph {
                                           false, // out-of-context?
                                           hrnCaller.getType(),
                                           hrnCaller.getAllocSite(),
-                                          hrnCaller.getInherent(),
-                                          hrnCaller.getAlpha(),
+                                          toShadowTokens( this, hrnCaller.getInherent() ),
+                                          toShadowTokens( this, hrnCaller.getAlpha() ),
                                           hrnCaller.getDescription()
                                           );
             callerNodesCopiedToCallee.add( hrnCaller );
@@ -3481,7 +3485,7 @@ public class ReachGraph {
                                         reCaller.getType(),
                                         reCaller.getField(),
                                         true, // clean?
-                                        reCaller.getBeta()
+                                        toShadowTokens( this, reCaller.getBeta() )
                                         )
                            );              
             callerEdgesCopiedToCallee.add( reCaller );
@@ -3536,8 +3540,8 @@ public class ReachGraph {
                                       true,  // out-of-context?
                                       hrnCallerAndOutContext.getType(),
                                       null,  // alloc site, shouldn't be used
-                                      hrnCallerAndOutContext.getAlpha(), // inherent
-                                      hrnCallerAndOutContext.getAlpha(), // alpha
+                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // inherent
+                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // alpha
                                       "out-of-context"
                                       );
        
@@ -3551,7 +3555,7 @@ public class ReachGraph {
                                     edgeMightCross.getType(),
                                     edgeMightCross.getField(),
                                     true, // clean?
-                                    edgeMightCross.getBeta()
+                                    toShadowTokens( this, edgeMightCross.getBeta() )
                                     )
                        );                      
         
@@ -3652,9 +3656,13 @@ public class ReachGraph {
       Map.Entry      me  = (Map.Entry)      i.next();
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
 
-      if( !pruneGarbage ||
-          (hrn.isFlagged() && hrn.getID() > 0) ||
-          hrn.getDescription().startsWith( "param" )
+      // only visit nodes worth writing out--for instance
+      // not every node at an allocation is referenced
+      // (think of it as garbage-collected), etc.
+      if( !pruneGarbage                              ||
+          (hrn.isFlagged() && hrn.getID() > 0)       ||
+          hrn.getDescription().startsWith( "param" ) ||
+          hrn.isOutOfContext()
           ) {
 
 	if( !visited.contains( hrn ) ) {

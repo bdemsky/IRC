@@ -51,6 +51,7 @@ public class HeapRegionNode extends RefSrcNode {
                          ReachSet       alpha,
                          String         description
                          ) {
+
     this.id             = id;
     this.isSingleObject = isSingleObject;
     this.isFlagged      = isFlagged;
@@ -135,11 +136,11 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
   public boolean isOutOfContext() {
-    return isOutOfContext();
+    return isOutOfContext;
   }
 
   public boolean isClean() {
-    return isClean();
+    return isClean;
   }
 
   public void setIsClean( boolean isClean ) {
