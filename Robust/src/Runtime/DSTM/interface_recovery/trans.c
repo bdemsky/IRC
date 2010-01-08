@@ -117,8 +117,8 @@ int paxosRound;
  * Global variables for Recovery stats
  **************************************/
 int numRecovery=0;
-unsigned int deadMachine[8]={0,0,0,0,0,0,0,0};
-unsigned double elapsedTime[8] ={0,0,0,0,0,0,0,0};
+unsigned int deadMachine[8] ={ 0,0,0,0,0,0,0,0};
+double elapsedTime[8] = {0,0,0,0,0,0,0,0};
 #endif
 
 #endif

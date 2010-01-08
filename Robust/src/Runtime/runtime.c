@@ -16,7 +16,7 @@
   extern int numRecovery;
   extern unsigned int deadMachine[8];
   extern unsigned int sizeOfRedupedData[8];
-  extern double elapsedtime[8];
+  extern double elapsedTime[8];
 #endif
   
 #else
@@ -232,9 +232,9 @@ void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct 
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef RECOVERYSTATS
-  for(int i=0; i < numRecovery; i++) {
-    printf("Dead Machine = %s\n",midtoIPString(deadThread[i]));
-    printf("sizeOfRedupedData = %u\n",sizeOfRedupedData[i]);
+  int i=0;
+  for(i=0; i < numRecovery; i++) {
+    printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
     printf("Elapsed Time = %.2f\n",elapsedTime[i]);
   }
 #endif
