@@ -2711,7 +2711,7 @@ public class BuildCode {
 
 			Set<Long> allocSet = conflictsMap
 					.getAllocationSiteIDSetofStallSite();
-	
+			
 			if (allocSet.size() > 0) {
 				
 				FlatNode enclosingFlatNode=null;
@@ -2723,43 +2723,47 @@ public class BuildCode {
 				
 				ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
 				Set<Integer> connectedSet=graph.getConnectedConflictNodeSet(conflictsMap);
-				
-				output.println("   /*  stall on parent's stall sites */");
-				output.println("  {");
-				output.println("     pthread_mutex_lock( &(seseCaller->lock) );");
-			    //
-				output.println("     ConflictNode* node;");
-				for (Iterator iterator = connectedSet.iterator(); iterator
-						.hasNext();) {
-					Integer integer = (Integer) iterator.next();
-					//output.print(" "+integer);
-					if(integer.intValue()<0){
-						output.println("     node=mlpCreateConflictNode(seseCaller->classID);");
-					}else{
-						output.println("     node=mlpCreateConflictNode( "+integer+" );");
+		
+				if(connectedSet.size()>0){
+					output.println("   /*  stall on parent's stall sites */");
+					output.println("   //"+connectedSet);
+					output.println("  {");
+					output.println("     pthread_mutex_lock( &(seseCaller->lock) );");
+				    //
+					output.println("     ConflictNode* node;");
+					for (Iterator iterator = connectedSet.iterator(); iterator
+							.hasNext();) {
+						Integer integer = (Integer) iterator.next();
+						//output.print(" "+integer);
+						if(integer.intValue()<0){
+							output.println("     node=mlpCreateConflictNode(seseCaller->classID);");
+						}else{
+							output.println("     node=mlpCreateConflictNode( "+integer+" );");
+						}
+						output.println("     addNewConflictNode(node, seseCaller->connectedList);");
 					}
-					output.println("     addNewConflictNode(node, seseCaller->connectedList);");
-				}
-				//
-				
-				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
-				output.println("     int qIdx;");
-				output.println("     int takeCount=0;");
-				for (Iterator iterator = allocSet.iterator(); iterator
-						.hasNext();) {
-					Long allocID = (Long) iterator.next();
-					output.println("     qIdx=getQueueIdx(seseCaller->allocSiteArray,numRelatedAllocSites,"
-									+ allocID + ");");
-					output.println("     if(qIdx!=-1 && !isEmpty(seseCaller->allocSiteArray[qIdx].waitingQueue)){");
-					output.println("        addNewItemBack(seseCaller->allocSiteArray[qIdx].waitingQueue,seseCaller);");
-					output.println("        takeCount++;");
+					//
+					
+					output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
+					output.println("     int qIdx;");
+					output.println("     int takeCount=0;");
+					for (Iterator iterator = allocSet.iterator(); iterator
+							.hasNext();) {
+						Long allocID = (Long) iterator.next();
+						output.println("     qIdx=getQueueIdx(seseCaller->allocSiteArray,numRelatedAllocSites,"
+										+ allocID + ");");
+						output.println("     if(qIdx!=-1 && !isEmpty(seseCaller->allocSiteArray[qIdx].waitingQueue)){");
+						output.println("        addNewItemBack(seseCaller->allocSiteArray[qIdx].waitingQueue,seseCaller);");
+						output.println("        takeCount++;");
+						output.println("     }");
+					}
+					output.println("     pthread_mutex_unlock( &(seseCaller->lock) );");
+					output.println("     if( takeCount>0 ){");
+					output.println("        psem_take( &(seseCaller->memoryStallSiteSem) );");
 					output.println("     }");
+					output.println("  }");
 				}
-				output.println("     pthread_mutex_unlock( &(seseCaller->lock) );");
-				output.println("     if( takeCount>0 ){");
-				output.println("        psem_take( &(seseCaller->memoryStallSiteSem) );");
-				output.println("     }");
-				output.println("  }");
+
 			}
 		}
       }     
@@ -3641,8 +3645,10 @@ public class BuildCode {
     	output.println("           SESEcommon* item=qItem->objectptr;");
     	output.println("           if(item->classID==___params___->common.classID){");
     	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
-    	output.println("           }");
+    	output.println("              qItem=NULL;");
+    	output.println("           }else{");
     	output.println("           qItem=getNextQueueItem(qItem);");
+    	output.println("           }");
     	output.println("        }");
     	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
     	

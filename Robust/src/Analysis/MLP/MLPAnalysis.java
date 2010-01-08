@@ -2440,57 +2440,42 @@ public class MLPAnalysis {
 			}
 
 			if (isAfterChildSESE) {
+				
+				if (!currentConflictsMap.isAccessible(src)) {
+					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
+							og, src);
+					currentConflictsMap.addStallSite(src, refHRN,
+							new StallTag(fn));
 
-				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
-						og, src);
-				for (Iterator iterator = srcTempSet.iterator(); iterator
-						.hasNext();) {
-					TempDescriptor possibleSrc = (TempDescriptor) iterator
-							.next();
-					if (!currentConflictsMap.isAccessible(possibleSrc)) {
-						HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
-								og, possibleSrc);
-						currentConflictsMap.addStallSite(possibleSrc, refHRN,
-								new StallTag(fn));
-
-						// flag stall site for disjoint analysis
-						for (Iterator iterator2 = refHRN.iterator(); iterator2
-								.hasNext();) {
-							HeapRegionNode hrn = (HeapRegionNode) iterator2
-									.next();
-							if (hrn.isParameter()) {
-								// if stall site is paramter heap region, need
-								// to decompose into caller's
-								HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
-								visitedHRN.add(hrn);
-								setupRelatedAllocSiteAnalysis(og, mc, hrn,
-										visitedHRN);
-							} else {
-								flagAllocationSite(mc, hrn.getAllocationSite());
-							}
+					// flag stall site for disjoint analysis
+					for (Iterator iterator2 = refHRN.iterator(); iterator2
+							.hasNext();) {
+						HeapRegionNode hrn = (HeapRegionNode) iterator2
+								.next();
+						if (hrn.isParameter()) {
+							// if stall site is paramter heap region, need
+							// to decompose into caller's
+							HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
+							visitedHRN.add(hrn);
+							setupRelatedAllocSiteAnalysis(og, mc, hrn,
+									visitedHRN);
+						} else {
+							flagAllocationSite(mc, hrn.getAllocationSite());
 						}
-
 					}
-					// else{
-					// System.out.println("src is accessible="+possibleSrc);
-					// }
 
-					currentConflictsMap.addAccessibleVar(possibleSrc);
-
-					// contribute read effect on source's stall site
-					currentConflictsMap.contributeEffect(possibleSrc, field
-							.getType().getSafeSymbol(), field.getSymbol(),
-							StallSite.READ_EFFECT);
 				}
+				currentConflictsMap.addAccessibleVar(src);
 
-				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
-						og, dst);
-				for (Iterator iterator = dstTempSet.iterator(); iterator
-						.hasNext();) {
-					TempDescriptor possibleDst = (TempDescriptor) iterator
-							.next();
-					currentConflictsMap.addAccessibleVar(possibleDst);
+				// contribute read effect on source's stall site
+				currentConflictsMap.contributeEffect(src, field
+						.getType().getSafeSymbol(), field.getSymbol(),
+						StallSite.READ_EFFECT);
+				
+				if(field.getType().isImmutable()){
+					currentConflictsMap.addAccessibleVar(dst);
 				}
+			
 			}
 
 			if (currentMethodSummary.getChildSESECount() == 0) {
@@ -2517,78 +2502,64 @@ public class MLPAnalysis {
 
 			if (isAfterChildSESE) {
 
-				HashSet<TempDescriptor> srcTempSet = getTempDescSetReferenceToSameHRN(
-						og, src);
-				for (Iterator iterator = srcTempSet.iterator(); iterator
-						.hasNext();) {
-					TempDescriptor possibleSrc = (TempDescriptor) iterator
-							.next();
-					if (!currentConflictsMap.isAccessible(possibleSrc)) {
-						HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
-								og, possibleSrc);
-						currentConflictsMap.addStallSite(possibleSrc, refHRN,
-								new StallTag(fn));
+				if (!currentConflictsMap.isAccessible(src)) {
+					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(og,
+							src);
+					currentConflictsMap.addStallSite(src, refHRN, new StallTag(
+							fn));
 
-						// flag stall site for disjoint analysis
-						for (Iterator iterator2 = refHRN.iterator(); iterator2
-								.hasNext();) {
-							HeapRegionNode hrn = (HeapRegionNode) iterator2
-									.next();
+					// flag stall site for disjoint analysis
+					for (Iterator iterator2 = refHRN.iterator(); iterator2
+							.hasNext();) {
+						HeapRegionNode hrn = (HeapRegionNode) iterator2.next();
 
-							if (hrn.isParameter()) {
-								// if stall site is paramter heap region, need
-								// to decompose into caller's
-								HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
-								visitedHRN.add(hrn);
-								setupRelatedAllocSiteAnalysis(og, mc, hrn,
-										visitedHRN);
-							} else {
-								flagAllocationSite(mc, hrn.getAllocationSite());
-							}
-
+						if (hrn.isParameter()) {
+							// if stall site is paramter heap region, need
+							// to decompose into caller's
+							HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
+							visitedHRN.add(hrn);
+							setupRelatedAllocSiteAnalysis(og, mc, hrn,
+									visitedHRN);
+						} else {
+							flagAllocationSite(mc, hrn.getAllocationSite());
 						}
 
 					}
-					currentConflictsMap.addAccessibleVar(possibleSrc);
+
 				}
+				currentConflictsMap.addAccessibleVar(src);
 
-				HashSet<TempDescriptor> dstTempSet = getTempDescSetReferenceToSameHRN(
-						og, dst);
-				for (Iterator iterator = dstTempSet.iterator(); iterator
-						.hasNext();) {
-					TempDescriptor possibleDst = (TempDescriptor) iterator
-							.next();
 
-					if (!currentConflictsMap.isAccessible(possibleDst)) {
-						HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
-								og, possibleDst);
-						currentConflictsMap.addStallSite(possibleDst, refHRN,
-								new StallTag(fn));
+				if (!currentConflictsMap.isAccessible(dst)) {
+					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
+							og, dst);
+					currentConflictsMap.addStallSite(dst, refHRN,
+							new StallTag(fn));
 
-						// flag stall site for disjoint analysis
-						for (Iterator iterator2 = refHRN.iterator(); iterator2
-								.hasNext();) {
-							HeapRegionNode hrn = (HeapRegionNode) iterator2
-									.next();
-							if (hrn.isParameter()) {
-								// if stall site is paramter heap region, need
-								// to decompose into caller's
-								HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
-								visitedHRN.add(hrn);
-								setupRelatedAllocSiteAnalysis(og, mc, hrn,
-										visitedHRN);
-							} else {
-								flagAllocationSite(mc, hrn.getAllocationSite());
-							}
+					// flag stall site for disjoint analysis
+					for (Iterator iterator2 = refHRN.iterator(); iterator2
+							.hasNext();) {
+						HeapRegionNode hrn = (HeapRegionNode) iterator2
+								.next();
+						if (hrn.isParameter()) {
+							// if stall site is paramter heap region, need
+							// to decompose into caller's
+							HashSet<HeapRegionNode> visitedHRN = new HashSet<HeapRegionNode>();
+							visitedHRN.add(hrn);
+							setupRelatedAllocSiteAnalysis(og, mc, hrn,
+									visitedHRN);
+						} else {
+							flagAllocationSite(mc, hrn.getAllocationSite());
 						}
 					}
-
-					currentConflictsMap.addAccessibleVar(possibleDst);
-					// contribute write effect on destination's stall site
-					currentConflictsMap.contributeEffect(possibleDst, field
-							.getType().getSafeSymbol(), field.getSymbol(),
-							StallSite.WRITE_EFFECT);
 				}
+
+				currentConflictsMap.addAccessibleVar(dst);
+				// contribute write effect on destination's stall site
+				currentConflictsMap.contributeEffect(dst, field
+						.getType().getSafeSymbol(), field.getSymbol(),
+						StallSite.WRITE_EFFECT);
+			
 
 				// TODO need to create edge mapping for newly created edge
 				HashSet<ReferenceEdge> edges = getRefEdgeSetReferenceToSameHRN(
