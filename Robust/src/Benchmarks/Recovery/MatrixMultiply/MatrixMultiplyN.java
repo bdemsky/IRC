@@ -61,10 +61,10 @@ public class MatrixMultiply extends Task {
     }
 
 		lc = new double[size][size];
-		System.out.println("Seg x0 = " + x0 + " - x1 = " + x1);
+//		System.out.println("Seg x0 = " + x0 + " - x1 = " + x1);
 		
 		for(i = x0; i < x1 ; i++) {
-			System.printString("i = " + i + "\n");
+//			System.printString("i = " + i + "\n");
 		  atomic {
         rowA = la[i];   // grab first mat's row
 
