@@ -79,6 +79,9 @@ echo "-distributioninfo  execute to collect distribution info for simulated anne
 echo "-disall  execute to collect whole distribution"
 echo "-disstart specify the start number of distribution information collection"
 echo -assembly generate assembly
+echo -recovery compile recovery code
+echo -dsmtask support work and task class library
+echo -recoverystats print out recovery record 
 echo -help help
 }
 
@@ -423,6 +426,9 @@ elif [[ $1 = '-recovery' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DRECOVERY"
 DSMRECOVERY=true
+elif [[ $1 = '-recoverystats' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DRECOVERYSTATS"
 elif [[ $1 = '-distributioninfo' ]]
 then
 JAVAOPTS="$JAVAOPTS -distributioninfo"
