@@ -61,7 +61,7 @@ int createNewSocket(unsigned int mid) {
   int sd;
   int flag=1;
   if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    printf("%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
+    fprintf(stderr,"%s() Error: In creating socket at %s, %d\n", __func__, __FILE__, __LINE__);
     return -1;
   }
   setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(flag));
@@ -72,7 +72,7 @@ int createNewSocket(unsigned int mid) {
   remoteAddr.sin_addr.s_addr = htonl(mid);
   if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) < 0) {
     perror("socket connect: ");
-    printf("%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
+    fprintf(stderr,"%s(): Error %d connecting to %s:%d\n", __func__, errno, inet_ntoa(remoteAddr.sin_addr), LISTEN_PORT);
     close(sd);
     return -1;
   }

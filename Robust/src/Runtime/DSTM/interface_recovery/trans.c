@@ -111,6 +111,16 @@ unsigned int leader;
 unsigned int origleader;
 unsigned int temp_v_a;
 int paxosRound;
+
+#ifdef RECOVERYSTATS
+/**************************************
+ * Global variables for Recovery stats
+ **************************************/
+int numRecovery=0;
+unsigned int deadMachine[8]={0,0,0,0,0,0,0,0};
+unsigned double elapsedTime[8] ={0,0,0,0,0,0,0,0};
+#endif
+
 #endif
 
 void printhex(unsigned char *, int);
@@ -1574,7 +1584,6 @@ void restoreDuplicationState(unsigned int deadHost) {
       else {                // if i am the leader
   			updateLiveHosts();
         duplicateLostObjects(deadHost);
-			  printf("%s -> got to this point\n",__func__);
 
 		    if(updateLiveHostsCommit() != 0) {
 			  	printf("%s -> error updateLiveHostsCommit()\n",__func__);
@@ -2500,12 +2509,21 @@ int allHostsLive() {
 
 #ifdef RECOVERY
 void duplicateLostObjects(unsigned int mid){
-  printf("Recovery Start");
+
+#ifdef RECOVERYSTATS
+  printf("Recovery Start\n");
+  numRecovery++;
   time_t st = time(NULL);
   time_t fi;
+
+  deadMachine[numRecovery-1] = mid;
+#endif
+
 #ifndef DEBUG
 	printf("%s-> Start, mid: [%s]\n", __func__, midtoIPString(mid));  
 #endif
+
+
 	
 	//this needs to be changed.
 	unsigned int backupMid = getBackupMachine(mid); // get backup machine of dead machine
@@ -2585,9 +2603,10 @@ void duplicateLostObjects(unsigned int mid){
     freeSockWithLock(transPrefetchSockPool, backupMid, sd);
 	}
 
+#ifdef RECOVERYSTATS
   fi = time(NULL);
-
-  printf("time elapse = %d",fi-st);
+  elapsedTime[numRecovery-1] = fi-st;
+#endif
 
 #ifndef DEBUG
 	printf("%s-> End\n", __func__);  

@@ -1063,6 +1063,7 @@ checkversion:
 	    close(sd);
 	    return;
 	  } else {
+      
 	    //Send Update notification
 	    msg[0] = THREAD_NOTIFY_RESPONSE;
 	    *((unsigned int *)&msg[1]) = oid;

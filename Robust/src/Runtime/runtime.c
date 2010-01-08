@@ -11,6 +11,14 @@
 #ifdef RECOVERY
 #include "DSTM/interface_recovery/dstm.h"
 #include "DSTM/interface_recovery/prelookup.h"
+
+#ifdef RECOVERYSTATS
+  extern int numRecovery;
+  extern unsigned int deadMachine[8];
+  extern unsigned int sizeOfRedupedData[8];
+  extern double elapsedtime[8];
+#endif
+  
 #else
 #include "DSTM/interface/dstm.h"
 #include "DSTM/interface/altprelookup.h"
@@ -223,6 +231,14 @@ void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct 
 #endif
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
+#ifdef RECOVERYSTATS
+  for(int i=0; i < numRecovery; i++) {
+    printf("Dead Machine = %s\n",midtoIPString(deadThread[i]));
+    printf("sizeOfRedupedData = %u\n",sizeOfRedupedData[i]);
+    printf("Elapsed Time = %.2f\n",elapsedTime[i]);
+  }
+#endif
+
 #ifdef TRANSSTATS
   printf("numTransCommit = %d\n", numTransCommit);
   printf("numTransAbort = %d\n", numTransAbort);
