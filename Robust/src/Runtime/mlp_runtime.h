@@ -83,6 +83,8 @@ void  mlpDestroySESErecord( void* seseRecord );
 
 AllocSite* mlpCreateAllocSiteArray(int numAllocSites);
 ConflictNode* mlpCreateConflictNode(int id);
+struct QueueItem* addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec);
+
 
 
 #endif /* __MLP_RUNTIME__ */

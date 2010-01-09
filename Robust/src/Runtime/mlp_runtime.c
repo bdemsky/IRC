@@ -45,17 +45,18 @@ ConflictNode* mlpCreateConflictNode(int id){
   return newConflictNode;
 }
 
-void addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec){
+struct QueueItem* addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec){
 
   int i;
+  struct QueueItem* newItem=NULL;
   for(i=0;i<numAllocSites;i++){
     if(allocSiteArray[i].id==allocID){
-      addNewItemBack(allocSiteArray[i].waitingQueue,seseRec);
+      newItem=addNewItemBack(allocSiteArray[i].waitingQueue,seseRec);
+      return newItem;
       //printf("add new item %d into waiting queue:%d\n",((SESEcommon*)seseRec)->classID,allocID);
-      break;
     }
   }
- 
+  return newItem;
 }
 
 int getQueueIdx(AllocSite* allocSiteArray, int numAllocSites, long  allocID){
@@ -121,5 +122,21 @@ void addNewConflictNode(ConflictNode* node, struct Queue* connectedList){
   }
 
   addNewItem(connectedList,node);
+
+}
+
+int contains(struct Queue* queue, struct QueueItem* qItem){
+
+  if(!isEmpty(queue)){
+    struct QueueItem* nextQItem=getHead(queue);
+    while(nextQItem!=NULL){
+      if((nextQItem->objectptr)==qItem){
+	return 1;
+      } 
+      nextQItem=getNextQueueItem(nextQItem);
+    }
+  }
+
+  return 0;
 
 }

@@ -310,6 +310,18 @@ public class ConflictGraph {
 			ConflictNode currentNode) {
 
 		// compare with all nodes
+		
+		// examine the case where self-edge exists
+		if(currentNode instanceof LiveInNode){
+			LiveInNode liveInNode=(LiveInNode)currentNode;
+			//Set<SESEEffectsSet> writeSet=liveInNode.getWriteEffectsSet();
+			
+			if(liveInNode.getWriteEffectsSet()!=null && liveInNode.getWriteEffectsSet().size()>0){
+				addConflictEdge(ConflictEdge.FINE_GRAIN_EDGE, currentNode,
+				currentNode);
+			}			
+		}
+		//
 
 		Set<Entry<String, ConflictNode>> set = id2cn.entrySet();
 		for (Iterator iterator = set.iterator(); iterator.hasNext();) {
@@ -318,7 +330,7 @@ public class ConflictGraph {
 
 			String entryNodeID = entry.getKey();
 			ConflictNode entryNode = entry.getValue();
-
+			
 			if ((!currentNode.getID().equals(entryNodeID))
 					&& !(analyzedIDSet.contains(currentNode.getID()
 							+ entryNodeID) || analyzedIDSet
@@ -469,18 +481,19 @@ public class ConflictGraph {
 		HashSet<Integer> nodeIDSet = new HashSet<Integer>();
 		
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
-		Iterator<Entry<String, ConflictNode>> i = s.iterator();
+		
 		
 		Collection<StallSite> stallSites=conflictsMap.getStallMap().values();
 		for (Iterator iterator = stallSites.iterator(); iterator.hasNext();) {
 			StallSite stallSite = (StallSite) iterator.next();
+			Iterator<Entry<String, ConflictNode>> i = s.iterator();
 			while (i.hasNext()) {
 				Entry<String, ConflictNode> entry = i.next();
 				ConflictNode node = entry.getValue();
 
 				if (node instanceof StallSiteNode) {
 					StallSiteNode stallSiteNode = (StallSiteNode) node;
-					if (stallSiteNode.getStallSite() == stallSite) {
+					if (stallSiteNode.getStallSite().equals(stallSite)) {
 						HashSet<ConflictEdge> edgeSet = stallSiteNode.getEdgeSet();
 						for (Iterator iter2 = edgeSet.iterator(); iter2.hasNext();) {
 							ConflictEdge conflictEdge = (ConflictEdge) iter2.next();
@@ -511,29 +524,40 @@ public class ConflictGraph {
 		return nodeIDSet;
 	}
 	
-	private Set<Integer> getConnectedConflictNode(ConflictEdge conflictEdge, int seseID){
-		
+	private Set<Integer> getConnectedConflictNode(ConflictEdge conflictEdge,
+			int seseID) {
+
 		HashSet<Integer> nodeIDSet = new HashSet<Integer>();
-		
-		if(conflictEdge.getVertexU() instanceof LiveInNode){
-			LiveInNode lin=(LiveInNode)conflictEdge.getVertexU();
-			if(lin.getSESEIdentifier()!=seseID){
+
+		if (conflictEdge.getVertexU() instanceof LiveInNode) {
+			LiveInNode lin = (LiveInNode) conflictEdge.getVertexU();
+			if (lin.getSESEIdentifier() != seseID) {
 				nodeIDSet.add(new Integer(lin.getSESEIdentifier()));
-			}							
-		}else{
+			}
+		} else {
 			// it is stall site
 			nodeIDSet.add(new Integer(-1));
-		}	
-		if(conflictEdge.getVertexV() instanceof LiveInNode){
-			LiveInNode lin=(LiveInNode)conflictEdge.getVertexV();
-			if(lin.getSESEIdentifier()!=seseID){
+		}
+		if (conflictEdge.getVertexV() instanceof LiveInNode) {
+			LiveInNode lin = (LiveInNode) conflictEdge.getVertexV();
+			if (lin.getSESEIdentifier() != seseID) {
 				nodeIDSet.add(new Integer(lin.getSESEIdentifier()));
-			}							
-		}else{
+			}
+		} else {
 			// it is stall site
 			nodeIDSet.add(new Integer(-1));
-		}	
-		
+		}
+
+		// self-edge case
+		if (conflictEdge.getVertexU() instanceof LiveInNode
+				&& conflictEdge.getVertexV() instanceof LiveInNode) {
+			if (((LiveInNode) conflictEdge.getVertexU()).getSESEIdentifier() == seseID
+					&& ((LiveInNode) conflictEdge.getVertexV())
+							.getSESEIdentifier() == seseID) {
+				nodeIDSet.add(seseID);
+			}
+		}
+
 		return nodeIDSet;
 	}
 	

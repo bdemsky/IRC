@@ -2723,7 +2723,7 @@ public class BuildCode {
 				
 				ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
 				Set<Integer> connectedSet=graph.getConnectedConflictNodeSet(conflictsMap);
-		
+
 				if(connectedSet.size()>0){
 					output.println("   /*  stall on parent's stall sites */");
 					output.println("   //"+connectedSet);
@@ -3378,6 +3378,8 @@ public class BuildCode {
 		if (graph != null) {
 			output.println();
 			output.println("     /*add waiting queue element*/");
+			output.println("     struct Queue*  newWaitingItemQueue=createQueue();");
+			output.println("     struct QueueItem* newQItem=NULL;");
 
 			Set<Long> allocSet = graph.getAllocationSiteIDSetBySESEID(fsen
 					.getIdentifier());
@@ -3406,9 +3408,10 @@ public class BuildCode {
 						.hasNext();) {
 					Long allocID = (Long) iterator.next();
 					output
-							.println("     addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,"
+							.println("     newQItem=addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedAllocSites,"
 									+ allocID
 									+ ",seseToIssue);");
+					output.println("     addNewItem(newWaitingItemQueue,newQItem);");
 					output
 							.println("     ++(seseToIssue->common.unresolvedDependencies);");
 				}
@@ -3419,18 +3422,25 @@ public class BuildCode {
 			
 			output.println("     /*decide whether it is runnable or not in regarding to memory conflicts*/");
 			output.println("     {");
-			output.println("     int idx;");
-			output.println("              pthread_mutex_lock( &(parentCommon->lock)  );");
-			output.println("     for(idx = 0 ; idx < numRelatedAllocSites ; idx++){");
-			output.println("        struct Queue *allocQueue=parentCommon->allocSiteArray[idx].waitingQueue;");
-			output.println("        if(allocQueue->head!=NULL){");
-			output.println("           SESEcommon* item=peekItem(parentCommon->allocSiteArray[idx].waitingQueue);");
-			output.println("           if(item->classID==seseToIssue->common.classID){");
-			output.println("              --(seseToIssue->common.unresolvedDependencies);");
-			output.println("           }");
-			output.println("        }");
+			output.println("      pthread_mutex_lock( &(parentCommon->lock)  );");
+			output.println("      if( !isEmpty(newWaitingItemQueue) ){");
+			output.println("         int idx;");
+			output.println("         for(idx = 0 ; idx < numRelatedAllocSites ; idx++){");
+			output.println("            struct Queue *allocQueue=parentCommon->allocSiteArray[idx].waitingQueue;");
+			output.println("            if( !isEmpty(allocQueue) ){");
+			output.println("               struct QueueItem* nextQItem=getHead(allocQueue);");
+			output.println("               while( nextQItem != NULL ){");
+			output.println("                  if(contains(newWaitingItemQueue,nextQItem) && resolveWaitingQueue(allocQueue,nextQItem)){");
+			output.println("                     --(seseToIssue->common.unresolvedDependencies);");
+			output.println("                     nextQItem=NULL;");
+			output.println("                  }else{");
+			output.println("                     nextQItem=getNextQueueItem(nextQItem);");
+			output.println("                  }");
+			output.println("               }");
+			output.println("         }");
+			output.println("       }");
+			output.println("     pthread_mutex_unlock( &(parentCommon->lock)  );");
 			output.println("     }");
-			output.println("              pthread_mutex_unlock( &(parentCommon->lock)  );");
 			output.println("     }");
 			output.println();
 		}
