@@ -14,7 +14,7 @@ public class TransSim {
     int nonTrans=20;
     int deltaNonTrans=4;
     //split objects
-    int splitobjects=100;//10 percent of objects special
+    int splitobjects=200;//10 percent of objects special
     int splitaccesses=100;//40 percent of accesses to special objects
     int readPercentSecond=30;//20 percent of accesses are reads
     int abortThreshold=0; //need 4 aborts to declare risky
