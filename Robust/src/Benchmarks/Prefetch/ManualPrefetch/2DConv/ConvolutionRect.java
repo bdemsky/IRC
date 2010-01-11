@@ -90,7 +90,7 @@ public class Convolution extends Thread {
           }
           tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
           tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
-          tinput10 = tinput11; tinput11=tinput12; tinput12=tinput13; tinput13=tinput14; tinput14=tempinput[l];
+          tinput10 = tinput11; tinput11=tinput12; tinput12=tinput13; tinput13=tinput14; tinput14=tempinput[l+myx0];
         }
       } else if(kernelHeight==14){
         l=13;
@@ -104,10 +104,6 @@ public class Convolution extends Thread {
           }
 
           float tout[] = tempout[i];
-          tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
-          tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
-          tinput10 = tinput11; tinput11=tinput12; tinput12=tinput13; tinput13=tempinput[l];
-
           for(int j=myy0;j<myy1;++j){
             float s=0;
             for(int b=0;b<kernelHeight;++b) {
@@ -119,6 +115,9 @@ public class Convolution extends Thread {
             }
             tout[j]=s;
           }
+          tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
+          tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
+          tinput10 = tinput11; tinput11=tinput12; tinput12=tinput13; tinput13=tempinput[l+myx0];
         }
       } else if(kernelHeight==13){
         l=12;
@@ -144,7 +143,7 @@ public class Convolution extends Thread {
           }
           tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
           tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
-          tinput10 = tinput11; tinput11=tinput12; tinput12=tempinput[l];
+          tinput10 = tinput11; tinput11=tinput12; tinput12=tempinput[l+myx0];
         }
       }else if(kernelHeight==12){
         l=11;
@@ -169,7 +168,7 @@ public class Convolution extends Thread {
           }
           tinput0 = tinput1; tinput1=tinput2; tinput2=tinput3; tinput3=tinput4; tinput4=tinput5;
           tinput5 = tinput6; tinput6=tinput7; tinput7=tinput8; tinput8=tinput9; tinput9=tinput10; 
-          tinput10 = tinput11; tinput11=tempinput[l];
+          tinput10 = tinput11; tinput11=tempinput[l+myx0];
         }
       }
     } //end of atomic
