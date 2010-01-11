@@ -219,6 +219,8 @@ public class Main {
 	state.THREAD=true;
       else if (option.equals("-dsm"))
 	state.DSM=true;
+      else if (option.equals("-recoverystats"))
+  state.DSMRECOVERYSTATS=true;
       else if (option.equals("-dsmtask"))
   state.DSMTASK=true;
       else if (option.equals("-singleTM"))
@@ -292,7 +294,7 @@ public class Main {
 	sourcefiles.add(args[i]);
       }
     }
-
+    
     //add default classpath
     if (state.classpath.size()==1)
       state.classpath.add(ClassLibraryPrefix);
