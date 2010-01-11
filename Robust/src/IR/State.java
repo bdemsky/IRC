@@ -102,6 +102,9 @@ public class State {
   public boolean DSM=false;
   public boolean DSMTASK=false;
   public static boolean ABORTREADERS=false;
+
+  // Recovery Stats Options
+  public boolean DSMRECOVERYSTATS=false;
   //STM options
   public boolean EVENTMONITOR=false;
   public static boolean STMARRAY=false;
