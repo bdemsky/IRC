@@ -38,12 +38,10 @@ function runjava {
 
     while [ $k -gt 1 ]; do
       echo "SSH into dc-${k}"
-      echo "ssh dc-${k} 'cd' $DIR'; ./$BM_NAME.bin'"
       ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin' &
       k=`expr $k - 1`
     done
     echo "Running master machine ... "
-    echo "ssh dc-1 'cd '$DIR'; ./$BM_NAME.bin master $NUM_MACHINE $BM_ARGS"
     ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS
 
     sleep 1 ;

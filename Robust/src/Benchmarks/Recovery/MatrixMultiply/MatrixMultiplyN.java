@@ -148,6 +148,9 @@ public class MatrixMultiply extends Task {
 		}
     System.out.println("Finished to createObjects");
 
+    long st = System.currentTimeMillis();
+    long fi;
+
 		Work tmp;
 		for (i = 0; i < NUM_THREADS; i++) {
 			atomic {
@@ -162,7 +165,9 @@ public class MatrixMultiply extends Task {
 			}
 			tmp.join();
 		}
-    
+    fi = System.currentTimeMillis();
+
+    System.out.println("Time Elapse = " + (double)((fi-st)/1000));
     System.printString("Finished\n");
 	}
 }
