@@ -69,6 +69,7 @@ public class FileSim {
     ls9.join();
     System.out.println("Karma Abort="+ls9.getTime());
     System.out.println("Aborts="+ls9.getAborts()+" Commit="+ls9.getCommits());
+    System.out.println("atime="+ls9.aborttime+" stalltime="+ls9.stalltime);
     ls9=null;
 
     ls10.join();
@@ -78,7 +79,19 @@ public class FileSim {
 
     ls11.join();
     System.out.println("Eruption Abort="+ls11.getTime());
+    System.out.println("atime="+ls11.aborttime+" stalltime="+ls11.stalltime);
     System.out.println("Aborts="+ls11.getAborts()+" Commit="+ls11.getCommits());
+  }
+
+  public static void p4(Executor e) throws Exception {
+    FlexScheduler ls9=new FlexScheduler(e, FlexScheduler.THREAD, null);
+    ls9.start();
+
+    ls9.join();
+    System.out.println("Karma Abort="+ls9.getTime());
+    System.out.println("Aborts="+ls9.getAborts()+" Commit="+ls9.getCommits());
+    System.out.println("atime="+ls9.aborttime+" stalltime="+ls9.stalltime);
+    ls9=null;
   }
 
   public static void main(String[] args) throws Exception {
@@ -99,5 +112,7 @@ public class FileSim {
       p2(e);
     if (args.length==1||args[1].equals("3"))
       p3(e);
+    if (args.length==1||args[1].equals("4"))
+      p4(e);
   }
 }

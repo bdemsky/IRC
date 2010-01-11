@@ -78,6 +78,7 @@ public class FlexScheduler extends Thread {
   public static final int KARMA=8;
   public static final int POLITE=9;
   public static final int ERUPTION=10;
+  public static final int THREAD=11;
 
   PriorityQueue eq;
   int policy;
@@ -99,7 +100,7 @@ public class FlexScheduler extends Thread {
   boolean[] blocked;
 
   public boolean isEager() {
-    return policy==ATTACK||policy==SUICIDE||policy==TIMESTAMP||policy==RANDOM||policy==KARMA||policy==POLITE||policy==ERUPTION;
+    return policy==ATTACK||policy==SUICIDE||policy==TIMESTAMP||policy==RANDOM||policy==KARMA||policy==POLITE||policy==ERUPTION||policy==THREAD;
   }
 
   public boolean countObjects() {
@@ -367,6 +368,9 @@ public class FlexScheduler extends Thread {
   //Takes as parameter -- current transaction read event ev, conflicting
   //set of threads, and the current time
   //Returning false causes current transaction not continue to be scheduled
+  long stalltime=0;
+  long aborttime=0;
+
 
   public boolean handleConflicts(Event ev, Set threadstokill, long time) {
     if (policy==RANDOM) {
@@ -399,7 +403,9 @@ public class FlexScheduler extends Thread {
 	//stall for a little while
 	threadinfo[ev.getThread()].priority--;
 	retrycount[ev.getThread()]++;
-	stall(ev, time+r.nextInt(3000));
+	int rtime=r.nextInt(3000);
+	stall(ev, time+rtime);
+	stalltime+=rtime;
 	return false;
       } else {
 	//we win
@@ -408,7 +414,9 @@ public class FlexScheduler extends Thread {
 	  int dback=backoff[thread]*2;
 	  if (dback>0)
 	    backoff[thread]=dback;
-	  reschedule(thread, time+r.nextInt(backoff[thread]));
+	  int atime=r.nextInt(backoff[thread]);
+	  reschedule(thread, time+atime);
+	  aborttime+=atime;
 	  abortcount++;
 	}
 	return true;
@@ -425,7 +433,9 @@ public class FlexScheduler extends Thread {
 	//we lose
 	threadinfo[ev.getThread()].priority--;
 	//stall for a little while
-	stall(ev, time+r.nextInt(3000));
+	int rtime=r.nextInt(3000);
+	stall(ev, time+rtime);
+	stalltime+=rtime;
 	int ourpriority=threadinfo[ev.getThread()].priority;
 	ourpriority-=transferred[ev.getThread()];
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
@@ -443,7 +453,9 @@ public class FlexScheduler extends Thread {
 	  int dback=backoff[thread]*2;
 	  if (dback>0)
 	    backoff[thread]=dback;
-	  reschedule(thread, time+r.nextInt(backoff[thread]));
+	  int atime=r.nextInt(backoff[thread]);
+	  reschedule(thread, time+atime);
+	  aborttime+=atime;
 	  abortcount++;
 	}
 	return true;
@@ -508,7 +520,58 @@ public class FlexScheduler extends Thread {
 	}
 	return true;	
       }
+    } else if (policy==TIMESTAMP) {
+      long opponenttime=0;
+
+      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	Integer thread=(Integer)thit.next();
+	Event other=currentevents[thread.intValue()];
+	int eventnum=other.getEvent();
+	long otime=other.getTransaction().getTime(other.getEvent());
+	if (otime>opponenttime)
+	  opponenttime=otime;
+      }
+      if (opponenttime>ev.getTransaction().getTime(ev.getEvent())) {
+	//kill ourself
+	reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
+	abortcount++;
+	return false;
+      } else {
+	//kill the opponents
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
+	  abortcount++;
+	}
+	return true;	
+      }
+    } else if (policy==THREAD) {
+      long tid=1000;
+
+      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	Integer thread=(Integer)thit.next();
+	Event other=currentevents[thread.intValue()];
+	int eventnum=other.getEvent();
+	long otid=thread.intValue();
+	if (tid>otid)
+	  tid=otid;
+      }
+      if (ev.getThread()>tid) {
+	//kill ourself
+	reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
+	abortcount++;
+	return false;
+      } else {
+	//kill the opponents
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
+	  abortcount++;
+	}
+	return true;	
+      }
     }
+
 
     //Not eager
     return true;
