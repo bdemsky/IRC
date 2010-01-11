@@ -428,7 +428,7 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DRECOVERY"
 DSMRECOVERY=true
 elif [[ $1 = '-recoverystats' ]]
 then
-EXTRAOPTIONS="$EXTRAOPTIONS -DRECOVERYSTATS"
+JAVAOPTS="$JAVAOPTS -recoverystats"
 elif [[ $1 = '-distributioninfo' ]]
 then
 JAVAOPTS="$JAVAOPTS -distributioninfo"
