@@ -38,6 +38,7 @@ public class BuildCodeMultiCore extends BuildCode {
   private Vector<Schedule> scheduling;
   int coreNum;
   int tcoreNum;
+  int gcoreNum;
   Schedule currentSchedule;
   Hashtable[] fsate2qnames;
   String objqarrayprefix= "objqueuearray4class";
@@ -61,11 +62,13 @@ public class BuildCodeMultiCore extends BuildCode {
 	                    SafetyAnalysis sa, 
 	                    Vector<Schedule> scheduling, 
 	                    int coreNum, 
+                        int gcoreNum,
 	                    PrefetchAnalysis pa) {
     super(st, temptovar, typeutil, sa, pa);
     this.scheduling = scheduling;
-    this.coreNum = coreNum;
-    this.tcoreNum = coreNum;
+    this.coreNum = coreNum; // # of the active cores
+    this.tcoreNum = coreNum;  // # of the cores setup by users
+    this.gcoreNum = gcoreNum; // # of the cores for gc if any
     this.currentSchedule = null;
     this.fsate2qnames = null;
     this.startupcorenum = 0;
@@ -295,7 +298,12 @@ public class BuildCodeMultiCore extends BuildCode {
       /* Record number of total cores */
       outstructs.println("#define NUMCORES "+this.tcoreNum);
       /* Record number of active cores */
-      outstructs.println("#define NUMCORESACTIVE "+this.coreNum);
+      outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum 
+                                      // can be reset by the scheduling analysis
+      /* Record number of garbage collection cores */
+      outtask.println("#ifdef MULTICORE_GC");
+      outstructs.println("#define NUMCORES4GC "+this.gcoreNum);
+      outtask.println("#endif");
       /* Record number of core containing startup task */
       outstructs.println("#define STARTUPCORE "+this.startupcorenum);
     }     //else if (state.main!=null) {

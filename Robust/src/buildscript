@@ -56,6 +56,7 @@ echo "-raw generate raw version binary (should be used together with -multicore)
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
 echo -threadsimulate generate multi-thread simulate version binary
 echo -multicoregc generate multi-core binary with garbage collection
+echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -299,6 +300,10 @@ elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
 GCCORES="GC_$2"
+shift
+elif [[ $1 = '-numcore4gc' ]]
+then
+JAVAOPTS="$JAVAOPTS -numcore4gc $2"
 shift
 elif [[ $1 = '-raw' ]]
 then

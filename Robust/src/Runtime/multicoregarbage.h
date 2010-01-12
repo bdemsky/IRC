@@ -14,7 +14,7 @@
 #else
 #define BAMBOO_SMEM_SIZE_L (32 * BAMBOO_SMEM_SIZE)
 #endif
-#define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES) // NUMCORES=62
+#define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC) // NUMCORES=62
 
 #define NUMPTRS 100
 
@@ -33,18 +33,18 @@ volatile GCPHASETYPE gcphase; // indicating GC phase
 
 int gccurr_heaptop;
 // for mark phase termination
-int gccorestatus[NUMCORES]; // records status of each core
+int gccorestatus[NUMCORES4GC]; // records status of each core
                             // 1: running gc
                             // 0: stall
-int gcnumsendobjs[NUMCORES]; // records how many objects sent out
-int gcnumreceiveobjs[NUMCORES]; // records how many objects received
+int gcnumsendobjs[NUMCORES4GC]; // records how many objects sent out
+int gcnumreceiveobjs[NUMCORES4GC]; // records how many objects received
 bool gcbusystatus;
 int gcself_numsendobjs;
 int gcself_numreceiveobjs;
 
 // for load balancing
 INTPTR gcheaptop;
-int gcloads[NUMCORES];
+int gcloads[NUMCORES4GC];
 int gctopcore; // the core host the top of the heap
 int gctopblock; // the number of current top block
 
@@ -53,13 +53,13 @@ int gcnumlobjs;
 // compact instruction
 INTPTR gcmarkedptrbound;
 int gcblock2fill;
-int gcstopblock[NUMCORES]; // indicate when to stop compact phase
-int gcfilledblocks[NUMCORES]; //indicate how many blocks have been fulfilled
+int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
+int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
 // move instruction;
 INTPTR gcmovestartaddr;
 int gcdstcore;
 volatile bool gctomove;
-int gcrequiredmems[NUMCORES]; //record pending mem requests
+int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
 // mapping of old address to new address
@@ -96,19 +96,19 @@ int * gcsmemtbl;
 		if(t < (BAMBOO_LARGE_SMEM_BOUND)) { \
 			(*((int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
 		} else { \
-			(*((int*)b)) = NUMCORES+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE));\
+			(*((int*)b)) = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE));\
 		} \
 	}
 
 // mapping of pointer to core #
 #define RESIDECORE(p, c) \
 { \
-	if(1 == (NUMCORES)) { \
+	if(1 == (NUMCORES4GC)) { \
 		(*((int*)c)) = 0; \
 	} else {\
 		int b; \
 		BLOCKINDEX((p), &b); \
-		(*((int*)c)) = gc_block2core[(b%(NUMCORES*2))]; \
+		(*((int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
 	}\
 }
 
@@ -132,22 +132,22 @@ int * gcsmemtbl;
 	}
 
 // mapping of (core #, index of the block) to the global block index
-#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES*2)*((n)/2))) 
+#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2))) 
 
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
   { \
 		int b = BLOCKINDEX2((c), (n)); \
-		if(b < (NUMCORES)) { \
+		if(b < (NUMCORES4GC)) { \
 			(*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
 		} else { \
 			(*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
-			               (b-(NUMCORES))*(BAMBOO_SMEM_SIZE); \
+			               (b-(NUMCORES4GC))*(BAMBOO_SMEM_SIZE); \
 		} \
 	}
 
 // the next core in the top of the heap
-#define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES*2)])
+#define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES4GC*2)])
 
 inline void gc(struct garbagelist * stackptr); // core coordinator routine
 inline void gc_collect(struct garbagelist* stackptr);//core collector routine

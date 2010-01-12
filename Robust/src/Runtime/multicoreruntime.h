@@ -179,6 +179,19 @@ typedef enum {
 	MSGEND
 } MSGTYPE;
 
+/////////////////////////////////////////////////////////////////////////////////
+// NOTE: BAMBOO_TOTALCORE -- number of the available cores in the processor. 
+//                           No greater than the number of all the cores in 
+//                           the processor
+//       NUMCORES -- number of cores chosen to deploy the application. It can 
+//                   be greater than that required to fully parallelize the 
+//                   application. The same as NUMCORES.
+//       NUMCORESACTIVE -- number of cores that really execute the 
+//                         application. No greater than NUMCORES
+//       NUMCORES4GC -- number of cores for gc. No greater than NUMCORES. 
+//                      NOTE: currently only support ontinuous cores as gc 
+//                            cores, i.e. 0~NUMCORES4GC-1
+////////////////////////////////////////////////////////////////////////////////
 // data structures of status for termination
 // only check working cores
 int corestatus[NUMCORESACTIVE]; // records status of each core
@@ -218,7 +231,7 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_BASE_VA 0xd000000
 #ifdef GC_DEBUG
 #include "structdefs.h"
-#define BAMBOO_NUM_PAGES (NUMCORES*(2+1)+3)
+#define BAMBOO_NUM_PAGES (NUMCORES4GC*(2+1)+3)
 #define BAMBOO_PAGE_SIZE (64 * 64)
 #define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
 #define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
@@ -236,8 +249,8 @@ typedef enum {
 	SMEMLOCAL = 0x0, // 0x0, using local mem only
 	SMEMFIXED,       // 0x1, use local mem in lower address space(1 block only)
 	                 //      and global mem in higher address space
-	SMEMMIXED,        // 0x2, like FIXED mode but use a threshold to control
-	SMEMGLOBAL,       // 0x3, using global mem only
+	SMEMMIXED,       // 0x2, like FIXED mode but use a threshold to control
+	SMEMGLOBAL,      // 0x3, using global mem only
 	SMEMEND
 } SMEMSTRATEGY;
 
@@ -416,7 +429,7 @@ void outputProfileData();
 /////////////////////////////////////////////////////////////////////////////
 // For each version of BAMBOO runtime, there should be a header file named //
 // runtim_arch.h defining following MARCOS:                                //
-// BAMBOO_TOTALCORE: the total # of cores available in the processor       //
+// BAMBOO_TOTALCORE: the total # of cores in the processor                 //
 // BAMBOO_NUM_OF_CORE: the # of current residing core                      //
 // BAMBOO_GET_NUM_OF_CORE(): compute the # of current residing core        //
 // BAMBOO_DEBUGPRINT(x): print out integer x                               //
@@ -454,6 +467,10 @@ void outputProfileData();
 // BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
 // BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //
 // BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
+//                                                                         //
+// runtime_arch.h should also define following global parameters:          //
+// bamboo_cpu2coords: map the cpu # to (x,y) coordinates                   //
+// bamboo_coords2cpu: map the (x,y) coordinates to cpu #                   //
 /////////////////////////////////////////////////////////////////////////////
 
 #endif  // #ifdef MULTICORE

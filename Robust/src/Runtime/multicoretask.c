@@ -54,7 +54,7 @@ void initruntimedata() {
 #endif
     } // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef MULTICORE_GC
-		for(i = 0; i < NUMCORES; ++i) {
+		for(i = 0; i < NUMCORES4GC; ++i) {
 			gccorestatus[i] = 1;
 			gcnumsendobjs[i] = 0; 
       gcnumreceiveobjs[i] = 0;
@@ -62,7 +62,7 @@ void initruntimedata() {
 			gcrequiredmems[i] = 0;
 			gcstopblock[i] = 0;
 			gcfilledblocks[i] = 0;
-    } // for(i = 0; i < NUMCORES; ++i)
+    } // for(i = 0; i < NUMCORES4GC; ++i)
 #endif
 		numconfirm = 0;
 		waitconfirm = false; 
@@ -1200,7 +1200,7 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 	struct freeMemItem * prev = NULL;
 	int i = 0;
 	int j = 0;
-	*tofindb = gc_core2block[2*coren+i]+(NUMCORES*2)*j;
+	*tofindb = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
 	// check available shared mem chunks
 	do {
 		int foundsmem = 0;
@@ -1214,7 +1214,7 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 						i = 0;
 						j++;
 					}
-					*tofindb = gc_core2block[2*coren+i]+(NUMCORES*2)*j;
+					*tofindb = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
 				} // while(startb > tofindb)
 				if(startb <= *tofindb) {
 					if((endb >= *tofindb) && (freemem->size >= isize)) {
@@ -1236,8 +1236,8 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 					} 
 				} else {
 					// use the global mem
-					if(((startb > NUMCORES-1) && (freemem->size >= isize)) || 
-							((endb > NUMCORES-1) && ((freemem->size-
+					if(((startb > NUMCORES4GC-1) && (freemem->size >= isize)) || 
+							((endb > NUMCORES4GC-1) && ((freemem->size-
 								(gcbaseva+BAMBOO_LARGE_SMEM_BOUND-freemem->ptr))>=isize))) {
 						foundsmem = 1;
 					}
@@ -1296,8 +1296,8 @@ void * localmalloc_I(int tofindb,
 	void * mem = NULL;
 	int startb = freemem->startblock;
 	int endb = freemem->endblock;
-	int tmpptr = gcbaseva+((tofindb<NUMCORES)?tofindb*BAMBOO_SMEM_SIZE_L
-		:BAMBOO_LARGE_SMEM_BOUND+(tofindb-NUMCORES)*BAMBOO_SMEM_SIZE);
+	int tmpptr = gcbaseva+((tofindb<NUMCORES4GC)?tofindb*BAMBOO_SMEM_SIZE_L
+		:BAMBOO_LARGE_SMEM_BOUND+(tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE);
 	if((freemem->size+freemem->ptr-tmpptr)>=isize) {
 		mem = (tmpptr>freemem->ptr)?((void *)tmpptr):(freemem->ptr);
 	} else {
@@ -1949,7 +1949,7 @@ msg:
 		BAMBOO_DEBUGPRINT(0xe88c);
 		BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
-		if(msgdata[1] < NUMCORES) {
+		if(msgdata[1] < NUMCORES4GC) {
 			gccorestatus[msgdata[1]] = 0;
 		}
 	}
@@ -1963,7 +1963,7 @@ msg:
 #endif
 		  BAMBOO_EXIT(0xb002);
 		}
-		if(msgdata[1] < NUMCORES) {
+		if(msgdata[1] < NUMCORES4GC) {
 			gccorestatus[msgdata[1]] = 0;
 			gcnumsendobjs[msgdata[1]] = msgdata[2];
 			gcnumreceiveobjs[msgdata[1]] = msgdata[3];
@@ -1985,7 +1985,7 @@ msg:
 		int filledblocks = msgdata[2];
 		int heaptop = msgdata[3];
 		int data4 = msgdata[4];
-		if(cnum < NUMCORES) {
+		if(cnum < NUMCORES4GC) {
 			if(COMPACTPHASE == gcphase) {
 				gcfilledblocks[cnum] = filledblocks;
 				gcloads[cnum] = heaptop;
@@ -2007,12 +2007,12 @@ msg:
 				// check if there is pending move request
 				/*if(gcmovepending > 0) {
 					int j;
-					for(j = 0; j < NUMCORES; j++) {
+					for(j = 0; j < NUMCORES4GC; j++) {
 						if(gcrequiredmems[j]>0) {
 							break;
 						}
 					}
-					if(j < NUMCORES) {
+					if(j < NUMCORES4GC) {
 						// find match
 						int tomove = 0;
 						int startaddr = 0;
@@ -2035,10 +2035,10 @@ msg:
 						if(gcrequiredmems[j] == 0) {
 							gcmovepending--;
 						}
-					} // if(j < NUMCORES)
+					} // if(j < NUMCORES4GC)
 				} // if(gcmovepending > 0) */
 			} // if(data4>0)
-		} // if(cnum < NUMCORES)
+		} // if(cnum < NUMCORES4GC)
 	  break;
 	}
 
@@ -2052,7 +2052,7 @@ msg:
 #endif
 		  BAMBOO_EXIT(0xb004);
 		} 
-		if(msgdata[1] < NUMCORES) {
+		if(msgdata[1] < NUMCORES4GC) {
 		  gccorestatus[msgdata[1]] = 0;
 		}
 	  break;
@@ -2067,7 +2067,7 @@ msg:
 	case GCMARKCONFIRM: {
 		// received a marked phase finish confirm request msg
 		if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
-				|| (BAMBOO_NUM_OF_CORE > NUMCORES - 1)) {
+				|| (BAMBOO_NUM_OF_CORE > NUMCORES4GC - 1)) {
 		  // wrong core to receive such msg
 		  BAMBOO_EXIT(0xb005);
 		} else {
@@ -2169,7 +2169,7 @@ msg:
 		// received a large objs info response msg
 		numconfirm--;
 
-		if(BAMBOO_NUM_OF_CORE > NUMCORES - 1) {
+		if(BAMBOO_NUM_OF_CORE > NUMCORES4GC - 1) {
 #ifndef CLOSE_PRINT
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif

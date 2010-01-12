@@ -92,6 +92,9 @@ public class Main {
       } else if(option.equals("-numcore")) {
 	++i;
 	state.CORENUM = Integer.parseInt(args[i]);
+      } else if(option.equals("-numcore4gc")) {
+        ++i;
+        state.CORENUM4GC = Integer.parseInt(args[i]);
       } else if (option.equals("-mainclass"))
 	state.main=args[++i];
       else if (option.equals("-trueprob")) {
@@ -499,6 +502,7 @@ public class Main {
 			                                      sa,
 			                                      scheduling,
 			                                      mcImplSynthesis.getCoreNum(),
+                                                  state.CORENUM4GC,
 			                                      pa);
 		bcm.setOwnershipAnalysis(oa);
 		bcm.buildCode();

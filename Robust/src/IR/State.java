@@ -117,6 +117,7 @@ public class State {
   public boolean HYBRID=false;
   //Other options
   public int CORENUM = 1;
+  public int CORENUM4GC = 0;
   public String structfile;
   public String main;
   public String outputdir = "/scratch/";
