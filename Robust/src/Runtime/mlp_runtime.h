@@ -25,6 +25,7 @@ typedef struct ConflictNode_t{
   int id;
 } ConflictNode;
 
+
 // forward declaration of pointer type
 typedef struct SESEcommon_t* SESEcommon_p;
 
@@ -62,9 +63,18 @@ typedef struct SESEcommon_t {
   int numRelatedAllocSites;
   psemaphore memoryStallSiteSem;
   struct Queue* connectedList;
+  int numRelatedWaitingQueue;
+  int waitingQueueItemID;
 
 } SESEcommon;
 
+
+typedef struct WaitingElement_t{
+  void* seseRec;
+  int status;
+  int id;
+  struct Queue* list;
+} WaitingElement;
 
 // a thread-local stack of SESEs and function to
 // ensure it is initialized once per thread
@@ -84,7 +94,7 @@ void  mlpDestroySESErecord( void* seseRecord );
 AllocSite* mlpCreateAllocSiteArray(int numAllocSites);
 ConflictNode* mlpCreateConflictNode(int id);
 struct QueueItem* addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec);
-
+WaitingElement* mlpCreateWaitingElement(int status, void* seseToIssue, struct Queue* queue, int id);
 
 
 #endif /* __MLP_RUNTIME__ */

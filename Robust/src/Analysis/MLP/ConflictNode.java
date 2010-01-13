@@ -15,7 +15,7 @@ public abstract class ConflictNode {
 	public ConflictNode() {
 		edgeSet = new HashSet<ConflictEdge>();
 	}
-
+	
 	public TempDescriptor getTempDescriptor() {
 		return td;
 	}

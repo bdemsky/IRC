@@ -206,4 +206,8 @@ public class AllocationSite {
   public boolean getFlag(){
 	  return flag;
   }
+  
+  public int getID(){
+	  return id;
+  }
 }

@@ -106,6 +106,7 @@ public class MLPAnalysis {
   private HashSet<PreEffectsKey> preeffectsSet;
   private Hashtable<FlatNode, Boolean> isAfterChildSESEIndicatorMap;
   private Hashtable<FlatNode, SESESummary> seseSummaryMap;
+  private Hashtable<ConflictGraph, HashSet<SESELock>> conflictGraphLockMap;
 
   public static int maxSESEage = -1;
 
@@ -167,6 +168,7 @@ public class MLPAnalysis {
     
     seseSummaryMap= new Hashtable<FlatNode, SESESummary>();
     isAfterChildSESEIndicatorMap= new Hashtable<FlatNode, Boolean>();
+    conflictGraphLockMap=new Hashtable<ConflictGraph, HashSet<SESELock>>();
 
     FlatMethod fmMain = state.getMethodFlat( typeUtil.getMain() );
 
@@ -298,6 +300,9 @@ public class MLPAnalysis {
         //	postSESEConflictsForward(javaCallGraph);
     	// another pass for making graph
     	makeConflictGraph();
+    	
+    	// lock synthesis
+    	synthesizeLocks();
     	/*
     	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
     	while (methItr.hasNext()) {
@@ -1189,6 +1194,14 @@ public class MLPAnalysis {
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				// uniquely taint each live-in variable
 				Set<TempDescriptor> set = fsen.getInVarSet();
+				//
+//				Set<TempDescriptor> tempSet=fsen.getOutVarSet();
+//				for (Iterator iterator = tempSet.iterator(); iterator.hasNext();) {
+//					TempDescriptor tempDescriptor = (TempDescriptor) iterator
+//							.next();
+//					set.add(tempDescriptor);
+//				}
+				//
 				Iterator<TempDescriptor> iter = set.iterator();
 				int idx = 0;
 				while (iter.hasNext()) {
@@ -1343,7 +1356,7 @@ public class MLPAnalysis {
 				while (affectedIter.hasNext()) {
 					TempDescriptor affectedTD = affectedIter.next();
 
-					if (currentSESE.getInVarSet().contains(affectedTD)) {
+					if (currentSESE.getInVarSet().contains(affectedTD) || ((!currentSESE.getInVarSet().contains(affectedTD)) && currentSESE.getOutVarSet().contains(affectedTD)) ) {
 
 						HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
 								og, affectedTD);
@@ -1474,7 +1487,7 @@ public class MLPAnalysis {
 
 				while (affectedIter.hasNext()) {
 					TempDescriptor affectedTD = affectedIter.next();
-					if (currentSESE.getInVarSet().contains(affectedTD)) {
+					if (currentSESE.getInVarSet().contains(affectedTD) || ((!currentSESE.getInVarSet().contains(affectedTD)) && currentSESE.getOutVarSet().contains(affectedTD)) ) {
 
 						HashSet<HeapRegionNode> hrnSet = getReferenceHeapIDSet(
 								og, affectedTD);
@@ -1491,7 +1504,6 @@ public class MLPAnalysis {
 
 									HeapRegionNode refHRN = og.id2hrn
 											.get(referenceEdge.getDst().getID());
-									System.out.println("refHRN=" + refHRN);
 									currentSESE.writeEffects(affectedTD, field
 											.getSymbol(), dst.getType(),
 											refHRN, strongUpdate);
@@ -1650,7 +1662,6 @@ public class MLPAnalysis {
 
 										HeapRegionNode refHRN = og.id2hrn
 												.get(hrnID);
-
 										currentSESE.writeEffects(affectedTD,
 												key.getFieldDescriptor(), key
 														.getTypeDescriptor(),
@@ -1677,7 +1688,6 @@ public class MLPAnalysis {
 
 										HeapRegionNode refHRN = og.id2hrn
 												.get(hrnID);
-
 										currentSESE.writeEffects(affectedTD,
 												key.getFieldDescriptor(), key
 														.getTypeDescriptor(),
@@ -1921,84 +1931,82 @@ public class MLPAnalysis {
 		return sorted;
 	}
 	
-	private void makeConflictGraph2(FlatMethod fm) {
+	private void calculateCliqueCovering(ConflictGraph conflictGraph) {
 
-		HashSet<MethodContext> mcSet = ownAnalysisForSESEConflicts
-				.getAllMethodContextSetByDescriptor(fm.getMethod());
-		Iterator<MethodContext> mcIter = mcSet.iterator();
+		HashSet<ConflictEdge> tocover = conflictGraph.getEdgeSet();
+		HashSet<SESELock> lockSet=new HashSet<SESELock>();
 
-		while (mcIter.hasNext()) {
-			MethodContext mc = mcIter.next();
+		while (!tocover.isEmpty()) {
+			ConflictEdge edge = (ConflictEdge) tocover.iterator().next();
+			tocover.remove(edge);
 
-			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-			flatNodesToVisit.add(fm);
+			SESELock seseLock = new SESELock();
+			seseLock.addEdge(edge);
 
-			Set<FlatNode> visited = new HashSet<FlatNode>();
-			
-			SESESummary summary = new SESESummary(null, fm);
-			seseSummaryMap.put(fm, summary);
+			boolean changed = false;
+			do {
+				changed = false;
+				for (Iterator edgeit = tocover.iterator(); edgeit.hasNext();) {
+					ConflictEdge newEdge = (ConflictEdge) edgeit.next();
+					if (newEdge.getVertexU() == newEdge.getVertexV()
+							&& seseLock.containsConflictNode(newEdge
+									.getVertexU())) {
+						// for self-edge case
+						tocover.remove(newEdge);
+						changed = true;
+						break;// exit iterator loop
+					} else if (seseLock.testEdge(newEdge)) {
 
-			while (!flatNodesToVisit.isEmpty()) {
-				Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
-				FlatNode fn = fnItr.next();
+						ConflictNode nodeToAdd = seseLock
+								.containsConflictNode(newEdge.getVertexU()) ? newEdge
+								.getVertexV()
+								: newEdge.getVertexU();
 
-				flatNodesToVisit.remove(fn);
-				visited.add(fn);
-			
-				// ///////////////////////////////////////////////////////////////////////
-				// Adding Stall Node of current program statement
-				ParentChildConflictsMap currentConflictsMap = conflictsResults
-						.get(fn);
-
-				Hashtable<TempDescriptor, StallSite> stallMap = currentConflictsMap
-						.getStallMap();
-				Set<Entry<TempDescriptor, StallSite>> entrySet = stallMap
-						.entrySet();
-				
-				
-				SESESummary seseSummary=seseSummaryMap.get(fn);
-				
-				ConflictGraph conflictGraph=null;
-				conflictGraph=conflictGraphResults.get(seseSummary.getCurrentSESE());
-				
-				if(conflictGraph==null){
-					conflictGraph = new ConflictGraph();
-				}
-				for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
-						.iterator(); iterator2.hasNext();) {
-					Entry<TempDescriptor, StallSite> entry = iterator2.next();
-					TempDescriptor td = entry.getKey();
-					StallSite stallSite = entry.getValue();
-
-					// reachability set
-					OwnershipGraph og = ownAnalysisForSESEConflicts
-							.getOwnvershipGraphByMethodContext(mc);
-					Set<Set> reachabilitySet = calculateReachabilitySet(og, td);
-					conflictGraph.addStallNode(td, fm, stallSite,
-							reachabilitySet);
-					
-				}
-				
-				if(conflictGraph.id2cn.size()>0){
-					conflictGraphResults.put(seseSummary.getCurrentSESE(), conflictGraph);
-				}
-
-				conflictGraph_nodeAction(mc, fm, fn);
-				
-				for (int i = 0; i < fn.numNext(); i++) {
-					FlatNode nn = fn.getNext(i);
-					if (!visited.contains(nn)) {
-						flatNodesToVisit.add(nn);
+						for (Iterator newEdgeIter = nodeToAdd.getEdgeSet()
+								.iterator(); newEdgeIter.hasNext();) {
+							ConflictEdge ne = (ConflictEdge) newEdgeIter.next();
+							if (seseLock.containsConflictNode(ne.getVertexU())) {
+								tocover.remove(ne);
+							} else if (seseLock.containsConflictNode(ne
+									.getVertexV())) {
+								tocover.remove(ne);
+							}
+						}
+						// Add in new node to lockset
+						seseLock.addEdge(newEdge);
+						changed = true;
+						break; // exit iterator loop
 					}
+
 				}
-			} // end of while(flatNodesToVisit)
+			} while (changed);
+			seseLock.setID(ConflictGraph.generateUniqueCliqueID());
+			lockSet.add(seseLock);
 
-		} // end of while(mcIter)
-
-		// decide fine-grain edge or coarse-grain edge among all vertexes by pair-wise comparison
-
+		}// end of while
+		
+		//build map from synthsized locks to conflict graph
+		conflictGraphLockMap.put(conflictGraph, lockSet);
+		
 	}
+
 	
+	private void synthesizeLocks(){
+		
+//		conflictGraphResults.put(seseSummary.getCurrentSESE(),
+//				conflictGraph);
+		
+		Set<Entry<FlatNode,ConflictGraph>> graphEntrySet=conflictGraphResults.entrySet();
+		for (Iterator iterator = graphEntrySet.iterator(); iterator.hasNext();) {
+			Entry<FlatNode, ConflictGraph> graphEntry = (Entry<FlatNode, ConflictGraph>) iterator
+					.next();
+			FlatNode sese=graphEntry.getKey();
+			ConflictGraph conflictGraph=graphEntry.getValue();
+			calculateCliqueCovering(conflictGraph);
+		}
+		
+	}
+
 	private void makeConflictGraph() {
 		Iterator<Descriptor> methItr = ownAnalysis.descriptorsToAnalyze
 				.iterator();
@@ -2089,6 +2097,16 @@ public class MLPAnalysis {
 			FlatNode flatNode = (FlatNode) keyEnum1.nextElement();
 			ConflictGraph conflictGraph=conflictGraphResults.get(flatNode);
 			conflictGraph.analyzeConflicts();
+			conflictGraph.addPseudoEdgeBetweenReadOnlyNode();
+			conflictGraphResults.put(flatNode, conflictGraph);
+		}
+		
+		// add pseudo-edge for a pair of read-only node
+    	keyEnum1=conflictGraphResults.keys();
+		while (keyEnum1.hasMoreElements()) {
+			FlatNode flatNode = (FlatNode) keyEnum1.nextElement();
+			ConflictGraph conflictGraph=conflictGraphResults.get(flatNode);
+//			conflictGraph.analyzeConflicts();
 			conflictGraphResults.put(flatNode, conflictGraph);
 		}
 		
@@ -2126,23 +2144,6 @@ public class MLPAnalysis {
 			}
 		}
 		return reachabilitySet;
-	}
-	
-	private void conflictGraph_nodeAction2(MethodContext mc, FlatMethod fm,
-			FlatNode fn, ConflictGraph graph,
-			ParentChildConflictsMap currentConflictsMap) {
-		
-		switch (fn.kind()) {
-
-		case FKind.FlatSESEEnterNode: {
-			
-		}break;
-		
-		
-		
-		}
-		
-		
 	}
 	
 	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm,
@@ -2184,7 +2185,12 @@ public class MLPAnalysis {
 							tempDescriptor);
 
 					// add new live-in node
-					LabelNode ln = og.td2ln.get(tempDescriptor);
+//					LabelNode ln = og.td2ln.get(tempDescriptor);
+					
+					OwnershipGraph lastOG = ownAnalysis
+					.getOwnvershipGraphByMethodContext(mc);
+					LabelNode ln = lastOG.td2ln.get(tempDescriptor);
+					
 					Set<HeapRegionNode> hrnSet = new HashSet<HeapRegionNode>();
 					Iterator<ReferenceEdge> refIter = ln
 							.iteratorToReferencees();
@@ -3404,6 +3410,10 @@ public class MLPAnalysis {
   
   public Hashtable<FlatNode, SESESummary> getSeseSummaryMap(){
 	  return seseSummaryMap;
+  }
+  
+  public Hashtable<ConflictGraph, HashSet<SESELock>> getConflictGraphLockMap(){
+	  return conflictGraphLockMap;
   }
   
 }
