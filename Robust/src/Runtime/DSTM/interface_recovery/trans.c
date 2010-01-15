@@ -2513,9 +2513,10 @@ void duplicateLostObjects(unsigned int mid){
 #ifdef RECOVERYSTATS
   printf("Recovery Start\n");
   numRecovery++;
-  time_t st = time(NULL);
+  time_t st;
   time_t fi;
 
+  time(&st);
   deadMachine[numRecovery-1] = mid;
 #endif
 
@@ -2604,8 +2605,8 @@ void duplicateLostObjects(unsigned int mid){
 	}
 
 #ifdef RECOVERYSTATS
-  fi = time(NULL);
-  elapsedTime[numRecovery-1] = fi-st;
+  time(&fi);
+  elapsedTime[numRecovery-1] = difftime(fi,st);
 #endif
 
 #ifndef DEBUG

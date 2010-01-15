@@ -415,13 +415,12 @@ public class BuildCode {
     if(state.DSMRECOVERYSTATS) {
       outmethod.println("#ifdef RECOVERYSTATS\n");
       outmethod.println("printf(\"***** Recovery Stats *****\\n\");");
-      outmethod.println("printf(\"numRecovery = %d\\n\",numRecovery)");
+      outmethod.println("printf(\"numRecovery = %d\\n\",numRecovery);");
       outmethod.println("int nRecovery=0;");
       outmethod.println("for(nRecovery=0;nRecovery<numRecovery;nRecovery++) {");
-      outmethod.println("  printf(\"Dead Machine = %s\\n\",deadMachine[nRecovery]);");
+      outmethod.println("  printf(\"Dead Machine = %s\\n\",midtoIPString(deadMachine[nRecovery]));");
       outmethod.println("  printf(\"Recovery Time = %.2f\\n\",elapsedTime[nRecovery]);");
-      outmethod.println(" }\n");
-      outmethod.println("fflush(stdout);");
+      outmethod.println("}\n");
       outmethod.println("#endif\n");
     }
 
