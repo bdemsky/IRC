@@ -7,17 +7,49 @@ JVM_DIR=jvm
 DSM_DIR=dsm
 ITERATIONS=1
 
+# killClients <fileName> <# of machines>
 function killclients {
   i=1;
-  let "k= $NUM_MACHINE";
+  fileName=$1
+  let "k= $Num";
   while [ $i -le $k ]; do
-    echo "killing dc-$i"
-    ssh dc-${i} pkill -u jihoonl -f MatrixMultiply.bin
+    echo "killing dc-$i ${fileName}"
+    ssh dc-${i} pkill -u jihoonl -f ${fileName}
     i=`expr $i + 1`
   done
 }
 
-function runjava {
+# killonemachine <Benchmark file name> <machine_num>
+function killonemachine {
+  fileName=$1
+  let "machine= $2";
+  echo "killing dc-$machine";
+  ssh dc-${machine} pkill -u jihoonl -f ${fileName}
+}
+
+function runMachines {
+  echo "Running on ${NUM_MACHINE} machines ... "
+  
+  # Start machines
+  echo "Running machines"
+  let "k= $NUM_MACHINE"
+  
+  echo ${BASEDIR}/${BM_DIR} > ~/.tmpdir
+  DIR=`echo ${BASEDIR}\/${BM_DIR}`;
+  echo "DIR = $DIR";
+  
+  # Run machines
+  while [ $k -gt 1 ]; do
+    echo "SSH into dc-${k}"
+    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin' &
+    k=`expr $k - 1`
+  done
+  
+  echo "Running master machine ... "
+  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS &
+}
+
+function runMultiMachineTest {
 # Run java version
   echo "Runnning ${BM_NAME}"
   j=1;
@@ -26,25 +58,20 @@ function runjava {
   cd ${BM_DIR}    
 
   while [ $j -le $ITERATIONS ]; do
-    echo "Running on ${NUM_MACHINE} machines ... "
-
-    # Start machines
-    echo "Running machines"
-    let "k= $NUM_MACHINE"
-
-    echo ${BASEDIR}/${BM_DIR} > ~/.tmpdir
-    DIR=`echo ${BASEDIR}\/${BM_DIR}`;
-    echo "DIR = $DIR";
-
-    while [ $k -gt 1 ]; do
-      echo "SSH into dc-${k}"
-      ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin' &
-      k=`expr $k - 1`
+    # run all machines
+    runMachines
+    sleep 10 # wait until all machine run
+    fileName="$BM_NAME.bin";
+    # Kill machines
+    for k in 2 4 6 8
+    do
+      killonemachine $fileName $k
+      sleep 30
     done
-    echo "Running master machine ... "
-    ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS
 
-    sleep 1 ;
+    sleep 1000; # wait the end of execution
+    killclients # kill alive machines
+    sleep 10;
     j=`expr $j + 1`
   done
   cd -
@@ -62,22 +89,28 @@ do
   echo "BM_NAME='$BM_NAME'" > ~/.bmargs
   echo "BM_ARGS='$BM_ARGS'" > ~/.bmargs
 
+  fileName=${BM_NAME}.bin
+  echo "fileName='$fileName'"
+
+  # terminate if it doesn't have parameter
   let "NUM_MACHINE= $1 + 0";
 
   if [ $NUM_MACHINE -eq 0 ];
   then
-    echo "Wrong input.. ./runjava.sh <num_machine>"
+    echo "Wrong input"
+    let "Num= 8";
+    killclients $fileName $Num
     exit 0
   fi
 
   echo "BM_NAME= $BM_NAME"
   echo "BM_ARGS= $BM_ARGS"
   echo "NUM_M = $NUM_MACHINE"
-  runjava $NUM_MACHINES
+  runMultiMachineTest $NUM_MACHINES
   
   echo "done run"
-
-  killclients
+  
+  killclients $fileName
 
   # Clean up
   rm ~/.bmargs
