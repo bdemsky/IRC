@@ -1,5 +1,5 @@
 MAINCLASS=MatrixMultiply
-SRC1=${MAINCLASS}N.java 	 
+SRC1=${MAINCLASS}.java 	 
 
 FLAGS= -recovery -recoverystats -dsm -32bit -nooptimize -debug -dsmtask -mainclass ${MAINCLASS}
 

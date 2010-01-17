@@ -11,8 +11,7 @@ ITERATIONS=1
 function killclients {
   i=1;
   fileName=$1
-  let "k= $Num";
-  while [ $i -le $k ]; do
+  while [ $i -le $2 ]; do
     echo "killing dc-$i ${fileName}"
     ssh dc-${i} pkill -u jihoonl -f ${fileName}
     i=`expr $i + 1`
@@ -27,6 +26,7 @@ function killonemachine {
   ssh dc-${machine} pkill -u jihoonl -f ${fileName}
 }
 
+# runmachines <log filename>
 function runMachines {
   echo "Running on ${NUM_MACHINE} machines ... "
   
@@ -43,10 +43,11 @@ function runMachines {
     echo "SSH into dc-${k}"
     ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin' &
     k=`expr $k - 1`
+    sleep 1
   done
-  
   echo "Running master machine ... "
-  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS &
+  echo "ssh dc-1 cd $DIR'; ./$BM_NAME.bin master '$NUM_MACHINE $BM_ARGS";
+  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS 
 }
 
 function runMultiMachineTest {
@@ -54,26 +55,29 @@ function runMultiMachineTest {
   echo "Runnning ${BM_NAME}"
   j=1;
   BM_DIR=${BM_NAME}
+  fileName="$BM_NAME.bin";
+  cd ${BM_DIR}
 
-  cd ${BM_DIR}    
+ ########### Normal execution
+  runMachines 
+  killclients $fileName 8
+  sleep 10
 
-  while [ $j -le $ITERATIONS ]; do
-    # run all machines
-    runMachines
-    sleep 10 # wait until all machine run
-    fileName="$BM_NAME.bin";
-    # Kill machines
-    for k in 2 4 6 8
-    do
-      killonemachine $fileName $k
-      sleep 30
-    done
+ ########### Failure case-1
 
-    sleep 1000; # wait the end of execution
-    killclients # kill alive machines
-    sleep 10;
-    j=`expr $j + 1`
-  done
+  # run all machines
+#  runMachines 
+#  sleep 10 # wait until all machine run
+  # Kill machines
+#  for k in 2 4 6 8
+#    do
+#    killonemachine $fileName $k
+#    sleep 30
+#  done
+
+#  sleep 1000; # wait the end of execution
+  killclients $fileName 8 # kill alive machines
+  sleep 10;
   cd -
 }
 

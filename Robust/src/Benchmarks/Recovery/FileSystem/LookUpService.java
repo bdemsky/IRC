@@ -221,7 +221,7 @@ public class LookUpService extends Thread {
 		NUM_THREADS = Integer.parseInt(args[0]);
 		filename = args[1];
 		
-		int[] mid = new int[NUM_THREADS];
+		int[] mid = new int[8];
 		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
 		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7

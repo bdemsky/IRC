@@ -1,13 +1,20 @@
+/* MatrixMultiplyN.java
+
+   Matrix Multiplication Benchmark using Task Library.
+   a, b, and c are two dimensional array.
+   It computes a * b and assigns to c.
+
+*/
 public class MatrixMultiply extends Task {
 	MMul mmul;
 	int SIZE;
 	int increment;
 	
-	public MatrixMultiply(MMul mmul, int num_threads, int size) {
+	public MatrixMultiply(MMul mmul, int num_threads, int size,int increment) {
 		this.mmul = mmul;
 
 		SIZE = size;
-    increment = 80;
+    this.increment = increment;
 
     init();
 	}
@@ -78,7 +85,6 @@ public class MatrixMultiply extends Task {
 			} 
 		}	// end for i 
 //		}
-		System.out.println("Finished comutation");
 
 		atomic {
 			for (i = x0; i < x1; i++) {
@@ -95,9 +101,7 @@ public class MatrixMultiply extends Task {
     double sum = 0;
 
     for(i = 0 ;i < size; i++) {
-//      atomic {
         sum += rowA[i] * colB[i];
-//      }
     }
 
     return sum;
@@ -109,22 +113,27 @@ public class MatrixMultiply extends Task {
   public static void main(String[] args) {
 		int NUM_THREADS=4;
 		int SIZE = 1600;
+    int increment = 80;
     int i,j;
 		Work[] works;
 		MMul matrix;
 		MatrixMultiply mm;
     Segment[] currentWorkList;
 
-		if (args.length > 0) {
+		if (args.length == 3) {
 			NUM_THREADS = Integer.parseInt(args[0]);
       SIZE = Integer.parseInt(args[1]);
+      increment = Integer.parseInt(args[2]);  // size of subtask
 		}
     else {
-      System.out.println("usage: ./MatrixMultiply.bin master <num_threads> <size of matrix>");
+      System.out.println("usage: ./MatrixMultiply.bin master <num_threads> <size of matrix> <size of subtask>");
     }
 
 		int[] mid = new int[8];
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|24; //dw-5
+		mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
+/*		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
 		mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
@@ -132,12 +141,12 @@ public class MatrixMultiply extends Task {
 		mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
-
+*/
 		atomic {
 			matrix = global new MMul(SIZE, SIZE, SIZE);
 			matrix.setValues();
 			matrix.transpose();
-			mm = global new MatrixMultiply(matrix, NUM_THREADS, SIZE);
+			mm = global new MatrixMultiply(matrix, NUM_THREADS, SIZE,increment);
 
 			works = global new Work[NUM_THREADS];
       currentWorkList = global new Segment[NUM_THREADS];
@@ -146,7 +155,6 @@ public class MatrixMultiply extends Task {
 				works[i] = global new Work(mm, NUM_THREADS, i,currentWorkList);
 			}
 		}
-    System.out.println("Finished to createObjects");
 
     long st = System.currentTimeMillis();
     long fi;
@@ -167,6 +175,12 @@ public class MatrixMultiply extends Task {
 		}
     fi = System.currentTimeMillis();
 
+    double sum= 0;
+    atomic {
+      sum = matrix.getSum();
+    }
+        
+    System.out.println("Sum of matrix = " + sum);
     System.out.println("Time Elapse = " + (double)((fi-st)/1000));
     System.printString("Finished\n");
 	}
@@ -226,6 +240,18 @@ public class MMul{
 			}
 		}
 	}
+
+  public double getSum() {
+    double sum =0;
+
+    for(int row =0; row < L; row++) {
+      double cr[] = c[row];
+      for(int col = 0; col < N; col++) {
+        sum += cr[col];
+      }
+    }
+    return sum;
+  }
 }
 
 public class Segment {
