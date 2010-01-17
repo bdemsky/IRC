@@ -1,32 +1,23 @@
-public class LookUpService extends Task {
+public class LookUpService extends Thread {
 	DistributedHashMap dir;
 	DistributedHashMap fs;
-	GlobalString error[];			// String for incorrect path, etc.
+	GlobalString inputfile;
+	int mid;
 	
-	public LookUpService(Queue todoList, DistributedHashMap dir, DistributedHashMap fs) {
-		this.todoList = todoList;
+	public LookUpService(DistributedHashMap dir, DistributedHashMap fs) {
 		this.dir = dir;
 		this.fs = fs;
 	}
 	
-	public void init() {
-		makeErrorStatement();
-		fillHashTable();
-		fillTodoList();
+	public LookUpService(DistributedHashMap dir, DistributedHashMap fs, String filename, int mid) {
+		this.dir = dir;
+		this.fs = fs;
+		this.mid = mid;
+		this.inputfile = global new GlobalString(filename + "_" + mid);
 	}
 
-	public void makeErrorStatement() {
-		int num = 4;
-		int i = 0;
-
-		atomic {
-			error = global new GlobalString[num];
-
-			error[i++] = global new GlobalString("/hkhang/error/");						// w: no root (hkhang),	r: non existed path
-			error[i++] = global new GlobalString("/home/abc/def/ghi/");				// w: create multiple directories, r: non existed path
-			error[i++] = global new GlobalString("/home/hkhang/abc");					// w: create directory and file together
-			error[i++] = global new GlobalString("/home/hkhang/abc/def");			// w: create directory and file together
-		}
+	public void init() {
+		fillHashTable();
 	}
 	
 	public void fillHashTable() {
@@ -34,138 +25,102 @@ public class LookUpService extends Task {
 		DistributedLinkedList list; 
 
 		atomic {
-			path = global new GlobalString("/home/");			// root is home
+			path = global new GlobalString("/home/");			// root is 'home'
 			list = global new DistributedLinkedList();
 
 			dir.put(path, list);
 		}
 	}
 	
-	public void fillTodoList() {
-		GlobalString directory;
-		GlobalString file;
-		GlobalString val;
-		String str;
-		String str2;
-		Transaction t;
+	public static void fillTodoList(String file, LinkedList todoList) {
+		FileInputStream fis;
+		String comm;
 		char c;
-
-		atomic {
-			c = 'w';
-
-			directory = global new GlobalString("/home/folder/");
-			str = new String("/home/folder/");
-			t = global new Transaction(c, directory);
-			todoList.push(t);
-
-			for (int i = 0; i < 1000; i++) {
-				file = global new GlobalString(str+"file_"+i);
-				str2 = new String(str+"file_"+i);
-				val = global new GlobalString("This is "+str2);
-				t = global new Transaction(c, file, val);
-				todoList.push(t);
-			}
-		}
-
-		int rdprob = 93;
-		int wrtprob = 98;
-		int dirprob = 90;
-		int rdwr;
-		int isdir;
-		int findex;
-		Random rand = new Random(0);
-
-		atomic {
-			for (int i = 0; i < 10000; i++) {
-				rdwr = rand.nextInt(100);
-				isdir = rand.nextInt(100);
-				findex = rand.nextInt(1000);
-	
-				if (rdwr < rdprob) {				// read
-					c = 'r';
-					if (isdir < dirprob) {		// file
-						file = global new GlobalString(str+"file_"+findex);
-						t = global new Transaction(c, file);
-					}
-					else {										// dir
-						directory = global new GlobalString(str);
-						t = global new Transaction(c, directory);
-					}
-				}
-				else if (rdwr >= rdprob && rdwr < wrtprob) {		// write
-					c = 'w';
-					if (isdir < dirprob) {		// file
-						file = global new GlobalString(str+"file_"+findex);
-						str2 = new String(str+"file_"+findex);
-						val = global new GlobalString(str2+" has been modified!!");
-						t = global new Transaction(c, file, val);
-					}
-					else {										// dir
-						directory = global new GlobalString(str+"new_dir_"+findex+"/");
-						t = global new Transaction(c, directory);
-					}
-				}
-				else {			// error
-					int err = rand.nextInt(4);
-					file = error[err];
-					val = global new GlobalString("It is error path!!");
-					t = global new Transaction(c, file, val);
-				}
-				todoList.push(t);
-			}
-		}
-	}
-	
-	public void execute() {
-		char command;
-		boolean isDir;
-		GlobalString gkey;
-		GlobalString gval;
-		int index;
-
 		String key;
 		String val;
+		Transaction t;
 
+		fis = new FileInputStream(file);
+
+		while ((comm = fis.readLine()) != null) {			// 'command' 'path'
+			c = comm.charAt(0);													// ex) w /home/abc.c 
+			key = comm.subString(2);
+			if (c == 'c') {
+//				System.out.println(c + " " + key);
+				t = new Transaction(c, key);
+//				t = new Transaction(c, key, val);
+			}
+			else {
+//				System.out.println(c + " " + key);
+				t = new Transaction(c, key);
+			}
+			todoList.add(t);
+		}
+	}
+
+	public void run() {
+		Transaction t;
+
+		char command;
+		String key;
+		String val;
+		boolean isDir;
+
+		GlobalString gkey;
+		GlobalString gval;
+
+		int index;
+		String file;
 		atomic {
-			command = ((Transaction)myWork).getCommand();
-			gkey = ((Transaction)myWork).getKey();
+			file = inputfile.toLocalString();
+		}
 
-			key = gkey.toLocalString();
-			index = gkey.lastindexOf('/');
-			if (index+1 == gkey.length()) 
+		LinkedList todoList = new LinkedList();
+		fillTodoList(file, todoList);
+
+		while (!todoList.isEmpty()) {
+			t = (Transaction)(todoList.removeFirst());
+
+			command = t.getCommand();
+			key = t.getKey();
+
+			index = key.lastindexOf('/');
+			if (index+1 == key.length()) 
 				isDir = true;
 			else 
 				isDir = false;
-		}
+		
+			atomic {
+				gkey = global new GlobalString(key);
+			}
 
-		if (command == 'r') {	
-			System.out.println("["+command+"] ["+key+"]");
-			if (isDir == true) {
-				atomic {
-					readDirectory(gkey);
-				}
-			}
-			else {
-				atomic {
-					readFile(gkey);
-				}
-			}
-		}
-		else if (command == 'w') {	
-			if (isDir == true) {
+			if (command == 'r') {	
 				System.out.println("["+command+"] ["+key+"]");
-				atomic {
-					createDirectory(gkey);
+				if (isDir == true) {
+					atomic {
+						readDirectory(gkey);
+					}
+				}
+				else {
+					atomic {
+						readFile(gkey);
+					}
 				}
 			}
-			else {
-				atomic {
-					gval = ((Transaction)myWork).getValue();
-					val = gval.toLocalString();
+			else if (command == 'c') {	
+				if (isDir == true) {
+					System.out.println("["+command+"] ["+key+"]");
+					atomic {
+						createDirectory(gkey);
+					}
 				}
-				System.out.println("["+command+"] ["+key+"] ["+val+"]");
-				atomic {
-					createFile(gkey, gval);
+				else {
+					val = t.getValue();
+					System.out.println("["+command+"] ["+key+"] ["+val+"]");
+					atomic {
+						gval = global new GlobalString(val);
+						createFile(gkey, gval);
+					}
 				}
 			}
 		}
@@ -261,16 +216,19 @@ public class LookUpService extends Task {
 	
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
+		String filename;
 
 		NUM_THREADS = Integer.parseInt(args[0]);
+		filename = args[1];
 		
 		int[] mid = new int[NUM_THREADS];
-//		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
-//		mid[0] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
-//		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
-		mid[1] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
-		mid[2] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
+		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
+//		mid[0] = (128<<24)|(195<<16)|(136<<8)|165;//dc-4
+//		mid[1] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
+//		mid[2] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
+//		mid[3] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
 		
 		LookUpService[] lus;
 		LookUpService initLus;
@@ -279,29 +237,26 @@ public class LookUpService extends Task {
 		Transaction[] currentWorkList;		// type might be something else
 		
 		atomic {
-			Queue todoList = global new Queue();
-			
 			currentWorkList = global new Transaction[NUM_THREADS];		// something else
 			works = global new Work[NUM_THREADS];
 			
 			DistributedHashMap fs = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap dir = global new DistributedHashMap(500, 500, 0.75f);
 		
-			initLus = global new LookUpService(todoList, dir, fs);
+			initLus = global new LookUpService(dir, fs);
 			initLus.init();
 
 			lus = global new LookUpService[NUM_THREADS];
 			for(int i = 0; i < NUM_THREADS; i++) {
-				lus[i] = global new LookUpService(initLus.todoList, initLus.dir, initLus.fs);
-				works[i] = global new Work(lus[i], NUM_THREADS, i, currentWorkList);
+				lus[i] = global new LookUpService(initLus.dir, initLus.fs, filename, i);
 			}
 		}
 
-		Work tmp;
+		LookUpService tmp;
 		/* Start threads */
 		for(int i = 0; i < NUM_THREADS; i++) {
 			atomic {
-				tmp = works[i];
+				tmp = lus[i];
 			}
 			Thread.myStart(tmp, mid[i]);
 		}
@@ -309,7 +264,7 @@ public class LookUpService extends Task {
 		/* Join threads */
 		for(int i = 0; i < NUM_THREADS; i++) {
 			atomic {
-				tmp = works[i];
+				tmp = lus[i];
 			}
 			tmp.join();
 		}
@@ -319,36 +274,33 @@ public class LookUpService extends Task {
 }
 
 public class Transaction {			// object for todoList
-	char command;		// 'r'ead, 'w'rite
-	GlobalString key;
-	GlobalString val;
+	char command;				// r: read, w: write
+	String key;
+	String val;
 	
-	Transaction (char c, GlobalString key) {
+	Transaction (char c, String key) {
 		command = c;
 		
-		atomic {
-			this.key = global new GlobalString(key);
-		}
+		this.key = new String(key);
+		this.val = new String();
 	}
 	
-	Transaction (char c, GlobalString key, GlobalString val) {
+	Transaction (char c, String key, String val) {
 		command = c;
 		
-		atomic {
-			this.key = global new GlobalString(key);
-			this.val = global new GlobalString(val);
-		}
+		this.key = new String(key);
+		this.val = new String(val);
 	}
 	
 	public char getCommand() {
 		return command;
 	}
 	
-	public GlobalString getKey() {
+	public String getKey() {
 		return key;
 	}
 	
-	public GlobalString getValue() {
+	public String getValue() {
 		return val;
 	}
 }
