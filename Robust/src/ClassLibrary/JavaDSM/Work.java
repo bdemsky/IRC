@@ -62,7 +62,7 @@ public class Work extends Thread {
 
     /* for debugging purpose */
     atomic {
-      System.out.println("\n\nDoneSize = " + tasks.doneList.size());
+      tasks.output();
     }
     System.out.println("\n\n\n I'm done");
 
