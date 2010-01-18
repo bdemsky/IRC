@@ -1539,9 +1539,16 @@ public class MLPAnalysis {
 						while (referSetIter.hasNext()) {
 							TempDescriptor tempDescriptor = (TempDescriptor) referSetIter
 									.next();
-							currentSESE.writeEffects(tempDescriptor, field
-									.getSymbol(), dst.getType(), accessHRN,
-									strongUpdate);
+							SESEEffectsSet effectSet=currentSESE.getSeseEffectsSet();
+							///// if write effects occurs through variable which was strongly updated, ignore it?
+							if(effectSet.getStrongUpdateSet(tempDescriptor)!=null && effectSet.getStrongUpdateSet(tempDescriptor).size()>0){
+//								System.out.println("not write effect?");
+							}else{
+								currentSESE.writeEffects(tempDescriptor, field
+										.getSymbol(), dst.getType(), accessHRN,
+										strongUpdate);
+							}
+							/////
 						}
 						// }
 					}
@@ -2117,32 +2124,35 @@ public class MLPAnalysis {
 		// reachability set
 		Set<Set> reachabilitySet = new HashSet();
 		LabelNode ln = og.td2ln.get(tempDescriptor);
-		Iterator<ReferenceEdge> refEdgeIter = ln.iteratorToReferencees();
-		while (refEdgeIter.hasNext()) {
-			ReferenceEdge referenceEdge = (ReferenceEdge) refEdgeIter.next();
+		if(ln!=null){
+			Iterator<ReferenceEdge> refEdgeIter = ln.iteratorToReferencees();
+			while (refEdgeIter.hasNext()) {
+				ReferenceEdge referenceEdge = (ReferenceEdge) refEdgeIter.next();
 
-			ReachabilitySet set = referenceEdge.getBeta();
-			Iterator<TokenTupleSet> ttsIter = set.iterator();
-			while (ttsIter.hasNext()) {
-				TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter.next();
+				ReachabilitySet set = referenceEdge.getBeta();
+				Iterator<TokenTupleSet> ttsIter = set.iterator();
+				while (ttsIter.hasNext()) {
+					TokenTupleSet tokenTupleSet = (TokenTupleSet) ttsIter.next();
 
-				HashSet<GloballyUniqueTokenTuple> newTokenTupleSet = new HashSet<GloballyUniqueTokenTuple>();
-				// reachabilitySet.add(tokenTupleSet);
+					HashSet<GloballyUniqueTokenTuple> newTokenTupleSet = new HashSet<GloballyUniqueTokenTuple>();
+					// reachabilitySet.add(tokenTupleSet);
 
-				Iterator iter = tokenTupleSet.iterator();
-				while (iter.hasNext()) {
-					TokenTuple tt = (TokenTuple) iter.next();
-					int token = tt.getToken();
-					String uniqueID = og.id2hrn.get(new Integer(token))
-							.getGloballyUniqueIdentifier();
-					GloballyUniqueTokenTuple gtt = new GloballyUniqueTokenTuple(
-							uniqueID, tt);
-					newTokenTupleSet.add(gtt);
+					Iterator iter = tokenTupleSet.iterator();
+					while (iter.hasNext()) {
+						TokenTuple tt = (TokenTuple) iter.next();
+						int token = tt.getToken();
+						String uniqueID = og.id2hrn.get(new Integer(token))
+								.getGloballyUniqueIdentifier();
+						GloballyUniqueTokenTuple gtt = new GloballyUniqueTokenTuple(
+								uniqueID, tt);
+						newTokenTupleSet.add(gtt);
+					}
+
+					reachabilitySet.add(newTokenTupleSet);
 				}
-
-				reachabilitySet.add(newTokenTupleSet);
 			}
 		}
+
 		return reachabilitySet;
 	}
 	
@@ -2174,13 +2184,18 @@ public class MLPAnalysis {
 					TempDescriptor tempDescriptor = (TempDescriptor) iterator
 							.next();
 					
+					if(tempDescriptor.getType().isImmutable()){
+						continue;
+					}
+					
 					// effects set
 					SESEEffectsSet seseEffectsSet = fsen.getSeseEffectsSet();
 					Set<SESEEffectsKey> readEffectsSet = seseEffectsSet
 							.getReadingSet(tempDescriptor);
 					Set<SESEEffectsKey> writeEffectsSet = seseEffectsSet
 							.getWritingSet(tempDescriptor);
-
+					Set<SESEEffectsKey> strongUpdateSet = seseEffectsSet.getStrongUpdateSet(tempDescriptor);		
+					
 					Set<Set> reachabilitySet = calculateReachabilitySet(og,
 							tempDescriptor);
 
@@ -2201,7 +2216,7 @@ public class MLPAnalysis {
 					}
 					
 					conflictGraph.addLiveInNode(tempDescriptor, hrnSet, fsen,
-							readEffectsSet, writeEffectsSet, reachabilitySet);
+							readEffectsSet, writeEffectsSet, strongUpdateSet, reachabilitySet);
 				}
 				
 				if(conflictGraph.id2cn.size()>0){

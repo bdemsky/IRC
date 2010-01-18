@@ -3416,8 +3416,7 @@ public class BuildCode {
 				output.println("     WaitingElement* newElement=NULL;");
 				output.println("     struct Queue* list=NULL;");
 				output.println("     struct QueueItem* newQItem=NULL;");
-				output
-						.println("     pthread_mutex_lock( &(parentCommon->lock) );");
+				output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
 				for (Iterator iterator = waitingQueueSet.iterator(); iterator
 						.hasNext();) {
 					WaitingElement waitingElement = (WaitingElement) iterator.next();
@@ -3449,8 +3448,8 @@ public class BuildCode {
 			
 			output.println("     /*decide whether it is runnable or not in regarding to memory conflicts*/");
 			output.println("     {");
-			output.println("      pthread_mutex_lock( &(parentCommon->lock)  );");
 			output.println("      if( !isEmpty(newWaitingItemQueue) ){");
+			output.println("         pthread_mutex_lock( &(parentCommon->lock)  );");
 			output.println("         int idx;");
 			output.println("         for(idx = 0 ; idx < numRelatedWaitingQueue ; idx++){");
 			output.println("            struct Queue *allocQueue=parentCommon->allocSiteArray[idx].waitingQueue;");
@@ -3462,9 +3461,9 @@ public class BuildCode {
 			output.println("                  }");
 			output.println("                     nextQItem=getNextQueueItem(nextQItem);");
 			output.println("               }");
-			output.println("         }");
-			output.println("       }");
-			output.println("     pthread_mutex_unlock( &(parentCommon->lock)  );");
+			output.println("          }");
+			output.println("        }");
+			output.println("        pthread_mutex_unlock( &(parentCommon->lock)  );");
 			output.println("     }");
 			output.println("     }");
 			output.println();
@@ -3475,7 +3474,10 @@ public class BuildCode {
     //  create it's lock and take it immediately
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
     output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
-
+    // eom
+//    output.println("     pthread_mutex_init( &(seseToIssue->common.waitingQueueLock), NULL );");
+    //
+    
     if( fsen != mlpa.getMainSESE() ) {
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
@@ -3604,7 +3606,7 @@ public class BuildCode {
     }
 
     output.println("   /* SESE exiting */");
-
+    
     String com = paramsprefix+"->common";
 
     // this SESE cannot be done until all of its children are done
@@ -3663,6 +3665,7 @@ public class BuildCode {
     output.println("     pthread_mutex_unlock( &(consumer->lock) );");
     output.println("   }");
     
+    
     // eom
     // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
     if( fsen != mlpa.getMainSESE() ) {
@@ -3671,6 +3674,7 @@ public class BuildCode {
         output.println("   /* check memory dependency*/");
     	output.println("  {");
     	output.println("   pthread_mutex_lock( &(___params___->common.parent->lock) );");
+//    	output.println("   pthread_mutex_lock( &(___params___->common.parent->waitingQueueLock) );");
     	output.println("   int idx;");
     	output.println("   int giveCount=0;");
     	output.println("   struct Queue* launchQueue=createQueue();");
@@ -3726,6 +3730,7 @@ public class BuildCode {
 //    	output.println("  }");
     	output.println("  }");
     	output.println("  pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
+//    	output.println("  pthread_mutex_unlock( &(___params___->common.parent->waitingQueueLock)  );");
     	output.println("  if(!isEmpty(launchQueue)){");
     	output.println("     struct QueueItem* qItem=getHead(launchQueue);");
     	output.println("     while(qItem!=NULL){");

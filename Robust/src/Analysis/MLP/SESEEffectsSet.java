@@ -94,6 +94,10 @@ public class SESEEffectsSet {
 	public Set<SESEEffectsKey> getWritingSet(TempDescriptor td) {
 		return writeTable.get(td);
 	}
+	
+	public Set<SESEEffectsKey> getStrongUpdateSet(TempDescriptor td){
+		return strongUpdateTable.get(td);		
+	}
 
 	public String printSet() {
 		

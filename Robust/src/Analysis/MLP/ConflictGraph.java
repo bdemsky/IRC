@@ -57,12 +57,13 @@ public class ConflictGraph {
 	}
 
 	private boolean hasSameReadEffects(ConflictNode nodeA, ConflictNode nodeB) {
-		
+
 		StallSiteNode stallSiteNode = null;
 		LiveInNode liveInNode = null;
-		
-		if(nodeA instanceof StallSiteNode && nodeB instanceof StallSiteNode){
-			return hasSameReadEffects((StallSiteNode)nodeA,(StallSiteNode)nodeB);
+
+		if (nodeA instanceof StallSiteNode && nodeB instanceof StallSiteNode) {
+			return hasSameReadEffects((StallSiteNode) nodeA,
+					(StallSiteNode) nodeB);
 		}
 
 		if (nodeA instanceof StallSiteNode) {
@@ -90,51 +91,56 @@ public class ConflictGraph {
 		Set<SESEEffectsKey> readSetA = linA.getReadEffectsSet();
 		Set<SESEEffectsKey> readSetB = linB.getReadEffectsSet();
 
-		boolean returnValue=true;
+		boolean returnValue = true;
 		for (Iterator iterator = readSetA.iterator(); iterator.hasNext();) {
 			SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator.next();
 
 			for (Iterator iterator2 = readSetB.iterator(); iterator2.hasNext();) {
 				SESEEffectsKey opr = (SESEEffectsKey) iterator2.next();
-				if (!(seseEffectsKey.getHRNUniqueId()
-						.equals(opr.getHRNUniqueId())
-						&& seseEffectsKey.getFieldDescriptor().equals(
-								opr.getFieldDescriptor()))) {
-					returnValue=false;
+				if (!(seseEffectsKey.getHRNUniqueId().equals(
+						opr.getHRNUniqueId()) && seseEffectsKey
+						.getFieldDescriptor().equals(opr.getFieldDescriptor()))) {
+					returnValue = false;
 				}
 			}
 		}
 		return returnValue;
 	}
-	
+
 	private boolean hasSameReadEffects(StallSiteNode ssnA, StallSiteNode ssnB) {
-		
+
 		HashSet<Effect> effectSetA = ssnA.getStallSite().getEffectSet();
 		HashSet<HeapRegionNode> nodeSetA = ssnA.getStallSite().getHRNSet();
 		HashSet<Effect> effectSetB = ssnB.getStallSite().getEffectSet();
 		HashSet<HeapRegionNode> nodeSetB = ssnA.getStallSite().getHRNSet();
-		boolean returnValue=true;
-		
+		boolean returnValue = true;
+
 		for (Iterator iteratorA = effectSetA.iterator(); iteratorA.hasNext();) {
 			Effect effectKeyA = (Effect) iteratorA.next();
-			for (Iterator iterator2A = nodeSetA.iterator(); iterator2A.hasNext();) {
+			for (Iterator iterator2A = nodeSetA.iterator(); iterator2A
+					.hasNext();) {
 				HeapRegionNode hrnA = (HeapRegionNode) iterator2A.next();
-				
-				for (Iterator iteratorB = effectSetB.iterator(); iteratorB.hasNext();) {
+
+				for (Iterator iteratorB = effectSetB.iterator(); iteratorB
+						.hasNext();) {
 					Effect effectKeyB = (Effect) iteratorB.next();
-					for (Iterator iterator2B = nodeSetB.iterator(); iterator2B.hasNext();) {
-						HeapRegionNode hrnB = (HeapRegionNode) iterator2B.next();
-						
-						if(!(hrnA.getGloballyUniqueIdentifier().equals(hrnB.getGloballyUniqueIdentifier()) && effectKeyA.getField().equals(effectKeyB.getField()))){
-							returnValue=false;
+					for (Iterator iterator2B = nodeSetB.iterator(); iterator2B
+							.hasNext();) {
+						HeapRegionNode hrnB = (HeapRegionNode) iterator2B
+								.next();
+
+						if (!(hrnA.getGloballyUniqueIdentifier().equals(
+								hrnB.getGloballyUniqueIdentifier()) && effectKeyA
+								.getField().equals(effectKeyB.getField()))) {
+							returnValue = false;
 						}
 					}
 				}
-				
+
 			}
-			
+
 		}
-		
+
 		return returnValue;
 	}
 
@@ -144,11 +150,11 @@ public class ConflictGraph {
 		HashSet<HeapRegionNode> nodeSetA = ssnA.getStallSite().getHRNSet();
 
 		Set<SESEEffectsKey> readSetB = linB.getReadEffectsSet();
-		if(readSetB==null){
+		if (readSetB == null) {
 			return false;
 		}
-		
-		boolean returnValue=true;
+
+		boolean returnValue = true;
 
 		for (Iterator iterator = effectSetA.iterator(); iterator.hasNext();) {
 			Effect effectKey = (Effect) iterator.next();
@@ -161,10 +167,9 @@ public class ConflictGraph {
 							.next();
 
 					if (!(seseEffectsKey.getHRNUniqueId().equals(
-							hrn.getGloballyUniqueIdentifier())
-							&& seseEffectsKey.getFieldDescriptor().equals(
-									effectKey.getField()))) {
-						returnValue=false;
+							hrn.getGloballyUniqueIdentifier()) && seseEffectsKey
+							.getFieldDescriptor().equals(effectKey.getField()))) {
+						returnValue = false;
 					}
 
 				}
@@ -388,52 +393,81 @@ public class ConflictGraph {
 
 	}
 
+	private boolean hasStrongUpdate(SESEEffectsKey writeEffect,
+			Set<SESEEffectsKey> strongUpdateSet) {
+		
+		if(strongUpdateSet!=null){
+			Iterator<SESEEffectsKey> strongUpdateIter = strongUpdateSet.iterator();
+			while (strongUpdateIter.hasNext()) {
+				SESEEffectsKey strongEffect = (SESEEffectsKey) strongUpdateIter
+						.next();
+
+				if (strongEffect.getHRNUniqueId().equals(
+						writeEffect.getHRNUniqueId())
+						&& strongEffect.getFieldDescriptor().equals(
+								writeEffect.getFieldDescriptor())) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	private boolean isWriteConflicts(LiveInNode nodeA, LiveInNode nodeB) {
 
 		Set<SESEEffectsKey> readEffectsSetA = nodeA.getReadEffectsSet();
 		Set<SESEEffectsKey> writeEffectsSetA = nodeA.getWriteEffectsSet();
+		Set<SESEEffectsKey> strongUpdateSetA = nodeA.getStrongUpdateSet();
+
 		Set<SESEEffectsKey> readEffectsSetB = nodeB.getReadEffectsSet();
 		Set<SESEEffectsKey> writeEffectsSetB = nodeB.getWriteEffectsSet();
-
+		Set<SESEEffectsKey> strongUpdateSetB = nodeB.getStrongUpdateSet();
+		
 		// if node A has write effects on reading/writing regions of node B
 		if (writeEffectsSetA != null) {
 			Iterator<SESEEffectsKey> writeIterA = writeEffectsSetA.iterator();
 			while (writeIterA.hasNext()) {
 				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIterA
 						.next();
-				String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
-				String writeFieldName = seseEffectsKey.getFieldDescriptor();
 
-				if (readEffectsSetB != null) {
-					Iterator<SESEEffectsKey> readIterB = readEffectsSetB
-							.iterator();
-					while (readIterB.hasNext()) {
-						SESEEffectsKey readingEffect = (SESEEffectsKey) readIterB
-								.next();
+				if (!hasStrongUpdate(seseEffectsKey, strongUpdateSetA)) {
 
-						if (readingEffect.getHRNUniqueId().equals(
-								writeHeapRegionID)
-								&& readingEffect.getFieldDescriptor().equals(
-										writeFieldName)) {
-							return true;
+					String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
+					String writeFieldName = seseEffectsKey.getFieldDescriptor();
+
+					if (readEffectsSetB != null) {
+						Iterator<SESEEffectsKey> readIterB = readEffectsSetB
+								.iterator();
+						while (readIterB.hasNext()) {
+							SESEEffectsKey readingEffect = (SESEEffectsKey) readIterB
+									.next();
+
+							if (readingEffect.getHRNUniqueId().equals(
+									writeHeapRegionID)
+									&& readingEffect.getFieldDescriptor()
+											.equals(writeFieldName)) {
+								return true;
+							}
 						}
 					}
-				}
 
-				if (writeEffectsSetB != null) {
-					Iterator<SESEEffectsKey> writeIterB = writeEffectsSetB
-							.iterator();
-					while (writeIterB.hasNext()) {
-						SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterB
-								.next();
+					if (writeEffectsSetB != null) {
+						Iterator<SESEEffectsKey> writeIterB = writeEffectsSetB
+								.iterator();
+						while (writeIterB.hasNext()) {
+							SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterB
+									.next();
 
-						if (writingEffect.getHRNUniqueId().equals(
-								writeHeapRegionID)
-								&& writingEffect.getFieldDescriptor().equals(
-										writeFieldName)) {
-							return true;
+							if (writingEffect.getHRNUniqueId().equals(
+									writeHeapRegionID)
+									&& writingEffect.getFieldDescriptor()
+											.equals(writeFieldName)) {
+								return true;
+							}
 						}
 					}
+
 				}
 
 			}
@@ -445,41 +479,75 @@ public class ConflictGraph {
 			while (writeIterB.hasNext()) {
 				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIterB
 						.next();
-				String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
-				String writeFieldName = seseEffectsKey.getFieldDescriptor();
 
-				if (readEffectsSetA != null) {
-					Iterator<SESEEffectsKey> readIterA = readEffectsSetA
-							.iterator();
-					while (readIterA.hasNext()) {
-						SESEEffectsKey readingEffect = (SESEEffectsKey) readIterA
-								.next();
-						if (readingEffect.getHRNUniqueId().equals(
-								writeHeapRegionID)
-								&& readingEffect.getFieldDescriptor().equals(
-										writeFieldName)) {
-							return true;
+				if (!hasStrongUpdate(seseEffectsKey, strongUpdateSetB)) {
+
+					String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
+					String writeFieldName = seseEffectsKey.getFieldDescriptor();
+
+					if (readEffectsSetA != null) {
+						Iterator<SESEEffectsKey> readIterA = readEffectsSetA
+								.iterator();
+						while (readIterA.hasNext()) {
+							SESEEffectsKey readingEffect = (SESEEffectsKey) readIterA
+									.next();
+							if (readingEffect.getHRNUniqueId().equals(
+									writeHeapRegionID)
+									&& readingEffect.getFieldDescriptor()
+											.equals(writeFieldName)) {
+								return true;
+							}
 						}
 					}
-				}
 
-				if (writeEffectsSetA != null) {
-					Iterator<SESEEffectsKey> writeIterA = writeEffectsSetA
-							.iterator();
-					while (writeIterA.hasNext()) {
-						SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterA
-								.next();
-						if (writingEffect.getHRNUniqueId().equals(
-								writeHeapRegionID)
-								&& writingEffect.getFieldDescriptor().equals(
-										writeFieldName)) {
-							return true;
+					if (writeEffectsSetA != null) {
+						Iterator<SESEEffectsKey> writeIterA = writeEffectsSetA
+								.iterator();
+						while (writeIterA.hasNext()) {
+							SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterA
+									.next();
+							if (writingEffect.getHRNUniqueId().equals(
+									writeHeapRegionID)
+									&& writingEffect.getFieldDescriptor()
+											.equals(writeFieldName)) {
+								return true;
+							}
 						}
 					}
 				}
 
 			}
 		}
+		return false;
+	}
+
+	private boolean isSelfConflicted(LiveInNode liveInNode) {
+
+		int strongUpdateCount = 0;
+
+		if (liveInNode.getWriteEffectsSet() != null
+				&& liveInNode.getWriteEffectsSet().size() > 0) {
+
+			Set<SESEEffectsKey> strongUpdateSet = liveInNode
+					.getStrongUpdateSet();
+
+			Iterator<SESEEffectsKey> writeIter = liveInNode
+					.getWriteEffectsSet().iterator();
+			while (writeIter.hasNext()) {
+				SESEEffectsKey writeEffect = (SESEEffectsKey) writeIter.next();
+				if (hasStrongUpdate(writeEffect, strongUpdateSet)) {
+					strongUpdateCount++;
+				}
+			}
+
+			if (liveInNode.getWriteEffectsSet().size() == strongUpdateCount) {
+				return false;
+			}else{
+				return true;
+			}
+
+		}
+
 		return false;
 	}
 
@@ -491,15 +559,17 @@ public class ConflictGraph {
 		// examine the case where self-edge exists
 		if (currentNode instanceof LiveInNode) {
 			LiveInNode liveInNode = (LiveInNode) currentNode;
-			// Set<SESEEffectsSet> writeSet=liveInNode.getWriteEffectsSet();
-
-			if (liveInNode.getWriteEffectsSet() != null
-					&& liveInNode.getWriteEffectsSet().size() > 0) {
+//			if (liveInNode.getWriteEffectsSet() != null
+//					&& liveInNode.getWriteEffectsSet().size() > 0) {
+//				addConflictEdge(ConflictEdge.FINE_GRAIN_EDGE, currentNode,
+//						currentNode);
+//			}
+			if(isSelfConflicted(liveInNode)){				
 				addConflictEdge(ConflictEdge.FINE_GRAIN_EDGE, currentNode,
 						currentNode);
 			}
+			
 		}
-		//
 
 		Set<Entry<String, ConflictNode>> set = id2cn.entrySet();
 		for (Iterator iterator = set.iterator(); iterator.hasNext();) {
@@ -619,13 +689,14 @@ public class ConflictGraph {
 
 	public void addLiveInNode(TempDescriptor td, Set<HeapRegionNode> hrnSet,
 			FlatSESEEnterNode fsen, Set<SESEEffectsKey> readEffectsSet,
-			Set<SESEEffectsKey> writeEffectsSet, Set<Set> reachabilitySet) {
+			Set<SESEEffectsKey> writeEffectsSet,
+			Set<SESEEffectsKey> strongUpdateSet, Set<Set> reachabilitySet) {
 
 		String liveinNodeID = td + "_" + fsen.getIdentifier();
 
 		LiveInNode newNode = new LiveInNode(liveinNodeID, td, hrnSet,
-				readEffectsSet, writeEffectsSet, reachabilitySet, fsen
-						.getIdentifier());
+				readEffectsSet, writeEffectsSet, strongUpdateSet,
+				reachabilitySet, fsen.getIdentifier());
 		id2cn.put(liveinNodeID, newNode);
 
 	}
@@ -653,13 +724,14 @@ public class ConflictGraph {
 
 		return resultSet;
 	}
-	
-	public Set<WaitingElement> getStallSiteWaitingElementSet(ParentChildConflictsMap conflictsMap, HashSet<SESELock> seseLockSet){
-		
+
+	public Set<WaitingElement> getStallSiteWaitingElementSet(
+			ParentChildConflictsMap conflictsMap, HashSet<SESELock> seseLockSet) {
+
 		HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Collection<StallSite> stallSites = conflictsMap.getStallMap().values();
-		
+
 		for (Iterator iterator = stallSites.iterator(); iterator.hasNext();) {
 
 			StallSite stallSite = (StallSite) iterator.next();
@@ -677,10 +749,10 @@ public class ConflictGraph {
 								.hasNext();) {
 							ConflictEdge conflictEdge = (ConflictEdge) iter2
 									.next();
-							
-							int type=-1;
+
+							int type = -1;
 							HashSet<Integer> allocSet = new HashSet<Integer>();
-							
+
 							if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
 								if (isReadOnly(node)) {
 									type = 2; // coarse read
@@ -693,38 +765,43 @@ public class ConflictGraph {
 								allocSet.addAll(getAllocSet(conflictEdge
 										.getVertexV()));
 
-							} else if(conflictEdge.getType() == ConflictEdge.FINE_GRAIN_EDGE){// it is fine-grain edge
+							} else if (conflictEdge.getType() == ConflictEdge.FINE_GRAIN_EDGE) {// it
+																								// is
+																								// fine-grain
+																								// edge
 								allocSet.addAll(getAllocSet(node));
 								if (isReadOnly(node)) {
-									//fine-grain read
-									type=0;
+									// fine-grain read
+									type = 0;
 								} else {
-									//fine-grain write
-									type=1;
+									// fine-grain write
+									type = 1;
 								}
 							}
-							
-							if(type>-1){
-								 for (Iterator<SESELock> seseLockIter = seseLockSet.iterator(); seseLockIter.hasNext();) {
-									 SESELock seseLock=seseLockIter.next();
-									 if(seseLock.containsConflictNode(stallSiteNode)){
-										 WaitingElement newElement=new WaitingElement();
-										 newElement.setAllocList(allocSet);
-										 newElement.setWaitingID(seseLock.getID());
-										 newElement.setStatus(type);
-										 waitingElementSet.add(newElement);
-									 }
-								 }
+
+							if (type > -1) {
+								for (Iterator<SESELock> seseLockIter = seseLockSet
+										.iterator(); seseLockIter.hasNext();) {
+									SESELock seseLock = seseLockIter.next();
+									if (seseLock
+											.containsConflictNode(stallSiteNode)) {
+										WaitingElement newElement = new WaitingElement();
+										newElement.setAllocList(allocSet);
+										newElement.setWaitingID(seseLock
+												.getID());
+										newElement.setStatus(type);
+										waitingElementSet.add(newElement);
+									}
+								}
 							}
 
 						}
 					}
 				}
 			}
-			
+
 		}
-		
-		
+
 		return waitingElementSet;
 	}
 
@@ -853,7 +930,7 @@ public class ConflictGraph {
 			HashSet<SESELock> seseLockSet) {
 
 		HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
-		
+
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Iterator<Entry<String, ConflictNode>> i = s.iterator();
 
@@ -864,16 +941,16 @@ public class ConflictGraph {
 			if (node instanceof LiveInNode) {
 				LiveInNode liveInNode = (LiveInNode) node;
 				if (liveInNode.getSESEIdentifier() == seseID) {
-					
+
 					HashSet<ConflictEdge> edgeSet = liveInNode.getEdgeSet();
 
 					for (Iterator iterator = edgeSet.iterator(); iterator
 							.hasNext();) {
 						ConflictEdge conflictEdge = (ConflictEdge) iterator
 								.next();
-						int type=-1;
+						int type = -1;
 						HashSet<Integer> allocSet = new HashSet<Integer>();
-						
+
 						if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
 							if (isReadOnly(node)) {
 								type = 2; // coarse read
@@ -886,29 +963,33 @@ public class ConflictGraph {
 							allocSet.addAll(getAllocSet(conflictEdge
 									.getVertexV()));
 
-						} else if(conflictEdge.getType() == ConflictEdge.FINE_GRAIN_EDGE){// it is fine-grain edge
+						} else if (conflictEdge.getType() == ConflictEdge.FINE_GRAIN_EDGE) {// it
+																							// is
+																							// fine-grain
+																							// edge
 							allocSet.addAll(getAllocSet(node));
 							if (isReadOnly(node)) {
-								//fine-grain read
-								type=0;
+								// fine-grain read
+								type = 0;
 							} else {
-								//fine-grain write
-								type=1;
+								// fine-grain write
+								type = 1;
 							}
 						}
-						
-						if(type>-1){
-							
-							 for (Iterator<SESELock> seseLockIter = seseLockSet.iterator(); seseLockIter.hasNext();) {
-								 SESELock seseLock=seseLockIter.next();
-								 if(seseLock.containsConflictNode(liveInNode)){
-									 WaitingElement newElement=new WaitingElement();
-									 newElement.setAllocList(allocSet);
-									 newElement.setWaitingID(seseLock.getID());
-									 newElement.setStatus(type);
-									 waitingElementSet.add(newElement);
-								 }
-							 }
+
+						if (type > -1) {
+
+							for (Iterator<SESELock> seseLockIter = seseLockSet
+									.iterator(); seseLockIter.hasNext();) {
+								SESELock seseLock = seseLockIter.next();
+								if (seseLock.containsConflictNode(liveInNode)) {
+									WaitingElement newElement = new WaitingElement();
+									newElement.setAllocList(allocSet);
+									newElement.setWaitingID(seseLock.getID());
+									newElement.setStatus(type);
+									waitingElementSet.add(newElement);
+								}
+							}
 						}
 					}
 
@@ -1024,7 +1105,9 @@ public class ConflictGraph {
 			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
 				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
 				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-				returnSet.add(new Integer(hrn.getAllocationSite().getID()));
+				if (hrn.getAllocationSite() != null) {
+					returnSet.add(new Integer(hrn.getAllocationSite().getID()));
+				}
 			}
 		} else {
 			LiveInNode liveInNode = (LiveInNode) node;
@@ -1032,7 +1115,9 @@ public class ConflictGraph {
 			for (Iterator iterator = hrnSet.iterator(); iterator.hasNext();) {
 				HeapRegionNode hrn = (HeapRegionNode) iterator.next();
 				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
-				returnSet.add(new Integer(hrn.getAllocationSite().getID()));
+				if (hrn.getAllocationSite() != null) {
+					returnSet.add(new Integer(hrn.getAllocationSite().getID()));
+				}
 			}
 		}
 
