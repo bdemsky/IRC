@@ -63,15 +63,12 @@ public class MatrixMultiply extends Task {
 			x1 = seg.x1;  // x end row
       la = mmul.a;          //  first mat
       lb = mmul.btranspose; // second mat
-//      lc = mmul.c;          // destination mat
 			size = SIZE;
     }
 
 		lc = new double[size][size];
-//		System.out.println("Seg x0 = " + x0 + " - x1 = " + x1);
 		
 		for(i = x0; i < x1 ; i++) {
-//			System.printString("i = " + i + "\n");
 		  atomic {
         rowA = la[i];   // grab first mat's row
 
@@ -130,10 +127,10 @@ public class MatrixMultiply extends Task {
     }
 
 		int[] mid = new int[8];
-		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
+/*		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|24; //dw-5
-		mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
-/*		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
+		mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7*/
+		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
 		mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
@@ -141,7 +138,7 @@ public class MatrixMultiply extends Task {
 		mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
-*/
+
 		atomic {
 			matrix = global new MMul(SIZE, SIZE, SIZE);
 			matrix.setValues();
@@ -184,6 +181,11 @@ public class MatrixMultiply extends Task {
     System.out.println("Time Elapse = " + (double)((fi-st)/1000));
     System.printString("Finished\n");
 	}
+  
+  public void output() {
+    System.out.println("Sum = " + mmul.getSum());
+  }
+
 }
 
 public class MMul{
