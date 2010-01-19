@@ -421,6 +421,7 @@ public class BuildCode {
       outmethod.println("  printf(\"Dead Machine = %s\\n\",midtoIPString(deadMachine[nRecovery]));");
       outmethod.println("  printf(\"Recovery Time = %.2f\\n\",elapsedTime[nRecovery]);");
       outmethod.println("}\n");
+      outmethod.println("printf(\"**************************\\n\\n\");");
       outmethod.println("#endif\n");
     }
 

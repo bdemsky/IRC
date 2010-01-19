@@ -64,7 +64,7 @@ public class Work extends Thread {
     atomic {
       tasks.output();
     }
-    System.out.println("\n\n\n I'm done");
+    System.out.println("\n\n I'm done\n\n\n");
 
   }
 
