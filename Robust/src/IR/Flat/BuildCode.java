@@ -3682,13 +3682,19 @@ public class BuildCode {
     	output.println("   for(idx = 0 ; idx < ___params___->common.parent->numRelatedWaitingQueue ; idx++){");
     	output.println("     if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
     	output.println("        struct QueueItem* qItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
+    	output.println("        int removed=0;");
     	output.println("        while(qItem!=NULL){");
     	output.println("           WaitingElement* item=qItem->objectptr;");
     	output.println("           SESEcommon* seseItem=(SESEcommon*)item->seseRec;");
     	output.println("           if(seseItem->classID==___params___->common.classID && item->id==___params___->common.waitingQueueItemID){");
     	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
+    	output.println("              removed=1;");
+       	output.println("              qItem=getNextQueueItem(qItem);");
+    	output.println("           }else if(removed){");
+    	output.println("              qItem=NULL;");
+    	output.println("           }else{");
+    	output.println("              qItem=getNextQueueItem(qItem);");
     	output.println("           }");
-    	output.println("           qItem=getNextQueueItem(qItem);");
     	output.println("        }");
     	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
     	
