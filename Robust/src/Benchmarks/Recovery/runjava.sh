@@ -5,7 +5,7 @@ DSTM_CONFDIR=${HOME}/research/Robust/src
 JAVA_DIR=java
 JVM_DIR=jvm
 DSM_DIR=dsm
-ITERATIONS=1
+ITERATIONS=3
 
 # killClients <fileName> <# of machines>
 function killclients {
@@ -13,7 +13,7 @@ function killclients {
   fileName=$1
   while [ $i -le $2 ]; do
     echo "killing dc-$i ${fileName}"
-    ssh dc-${i} pkill -u jihoonl -f ${fileName}
+    ssh dc-${i} pkill -u jihoonl -f ${fileName} 
     i=`expr $i + 1`
   done
 }
@@ -22,7 +22,7 @@ function killclients {
 function killonemachine {
   fileName=$1
   let "machine= $2";
-  echo "killing dc-$machine";
+  echo "killing dc-$machine ${fileName}";
   ssh dc-${machine} pkill -u jihoonl -f ${fileName}
 }
 
@@ -41,45 +41,84 @@ function runMachines {
   # Run machines
   while [ $k -gt 1 ]; do
     echo "SSH into dc-${k}"
-    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin' &
+    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin '>> $1'-'$k &
     k=`expr $k - 1`
     sleep 1
   done
   echo "Running master machine ... "
-  echo "ssh dc-1 cd $DIR'; ./$BM_NAME.bin master '$NUM_MACHINE $BM_ARGS";
-  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS 
+  echo "ssh dc-1 cd $DIR'; ./$BM_NAME.bin master $NUM_MACHINE $BM_ARGS";
+  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS >> $1'-1' &
 }
 
-function runMultiMachineTest {
+########### Normal execution
+function runNormalTest {
 # Run java version
-  echo "Runnning ${BM_NAME}"
   j=1;
   BM_DIR=${BM_NAME}
   fileName="$BM_NAME.bin";
   cd ${BM_DIR}
 
- ########### Normal execution
-  runMachines 
+  echo $NUM_MACHINE
+  tt=1;
+  while [ $tt -le $NUM_MACHINE ]; do
+    echo "------------------------------- Normal Test $1 ----------------------------" >> log$1-$tt
+    tt=`expr $tt + 1`
+  done
+  
+# run test
+  runMachines log$1
+  
+  sleep 60
+
+  tt=1;
+  while [ $tt -le $NUM_MACHINE ]; do
+    echo "------------------------------- Normal Test $1 End ----------------------------" >> log$1-$tt
+    tt=`expr $tt + 1`
+  done
+
   killclients $fileName 8
   sleep 10
-
- ########### Failure case-1
-
-  # run all machines
-#  runMachines 
-#  sleep 10 # wait until all machine run
-  # Kill machines
-#  for k in 2 4 6 8
-#    do
-#    killonemachine $fileName $k
-#    sleep 30
-#  done
-
-#  sleep 1000; # wait the end of execution
-  killclients $fileName 8 # kill alive machines
-  sleep 10;
   cd -
 }
+
+########### Failure case
+function runFailureTest {
+# Run java version
+  j=1;
+  BM_DIR=${BM_NAME}
+  fileName="$BM_NAME.bin";
+  cd ${BM_DIR}
+
+  tt=1;
+  while [ $tt -le $NUM_MACHINE ]; do
+    echo "------------------------------- Failure Test $1 ----------------------------" >> log$1-$tt
+    tt=`expr $tt + 1`
+  done
+
+  # run all machines
+  runMachines log$1
+  sleep 10 # wait until all machine run
+  # Kill machines
+  for k in 2 4 6 8
+  do
+   echo "------------------------ dc-$k is killed ------------------------" >> log$1-$k
+   echo "------------------------------- Failure Test $1 End ----------------------------" >> log$1-$k
+   killonemachine $fileName $k
+   sleep 10
+  done
+
+  tt=1;
+  while [ $tt -le $NUM_MACHINE ]; do
+    echo "------------------------------- Failure Test $1 End ----------------------------" >> log$1-$tt
+    tt=`expr $tt + 1`
+  done
+
+ sleep 60; # wait the end of execution
+ killclients $fileName 8 # kill alive machines
+ sleep 10;
+
+}
+
 
 echo "---------- Starting Benchmarks ----------"
 exec < bm_args.txt
@@ -103,22 +142,29 @@ do
   then
     echo "Wrong input"
     let "Num= 8";
-    killclients $fileName $Num
     exit 0
   fi
 
   echo "BM_NAME= $BM_NAME"
   echo "BM_ARGS= $BM_ARGS"
   echo "NUM_M = $NUM_MACHINE"
-  runMultiMachineTest $NUM_MACHINES
-  
-  echo "done run"
-  
-  killclients $fileName
 
-  # Clean up
-  rm ~/.bmargs
-  rm ~/.tmpdir
+
+  echo "========================================= 1 ======================================="
+  runNormalTest $NUM_MACHINES 1
+  echo "===================================================================================="
+
+  t=2;
+  while [ $t -le $ITERATIONS ]; do
+    echo "========================================= $t ======================================="
+    runFailureTest $NUM_MACHINES $t
+    sleep 10
+    echo "===================================================================================="
+    t=`expr $t + 1`
+  done
+
+  killclients $fileName 8
+
 done
 
 echo "----------- done ------------"
