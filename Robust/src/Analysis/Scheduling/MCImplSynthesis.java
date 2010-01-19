@@ -53,7 +53,7 @@ public class MCImplSynthesis {
     this.scheduleThreshold = 1000;
     this.probThreshold = 0;
     this.generateThreshold = 30;
-    this.skipThreshold = 100; // never skip
+    this.skipThreshold = 100; // never skip // 30;
   }
 
   public int getCoreNum() {
@@ -1047,7 +1047,7 @@ public class MCImplSynthesis {
       cloneScheduleGraph(scheduleGraph, lgid);
     
     if(newscheduleGraph.size() == 0) {
-      System.err.println("empty schedule graph!");
+      //System.err.println("empty schedule graph!");
       return optimizeschedulegraphs;
     }
 
@@ -1124,6 +1124,7 @@ public class MCImplSynthesis {
       CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
     Random rand = new Random();
     while ((left > 0) && (cGen.nextGen())) {
+    //while ((left > 0) && (cGen.randomGen())) {
       if(Math.abs(rand.nextInt()) % 100 > this.generateThreshold) {
         Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
         Vector<ScheduleNode> sNodes = 

@@ -1,5 +1,6 @@
 package Analysis.Scheduling;
 
+import java.util.Random;
 import java.util.Vector;
 
 public class CombinationUtil {
@@ -23,6 +24,11 @@ public class CombinationUtil {
   public static CombineGenerator allocateCombineGenerator(Vector<Vector<ScheduleNode>> rootnodes, 
 	                                                  Vector<Vector<ScheduleNode>> node2combine) {
     return CombinationUtil.allocateCombinationUtil().new CombineGenerator(rootnodes, node2combine);
+  }
+  
+  public static RandomGenerator allocateRandomGenerator(Vector<Vector<ScheduleNode>> snodevecs, 
+                                                         int rootNum) {
+      return CombinationUtil.allocateCombinationUtil().new RandomGenerator(snodevecs, rootNum);
   }
 
   public class RootsGenerator {
@@ -195,12 +201,16 @@ public class CombinationUtil {
     Vector<Vector<Combine>> combine;
     int[] lastchoices;
     boolean first4choice;
+    Random rand;
+    int limit;
+    int[][] rootLoads;
 
     public CombineGenerator(Vector<Vector<ScheduleNode>> rootnodes, 
 	                    Vector<Vector<ScheduleNode>> node2combine) {
       this.rootNodes = rootnodes;
       this.node2Combine = node2combine;
       this.rootNStates = new Vector<Vector<int[]>>();
+      int rootnum = 0;
       for(int i = 0; i < this.rootNodes.size(); i++) {
 	this.rootNStates.add(new Vector<int[]>());
 	for(int j = 0; j < this.rootNodes.elementAt(i).size(); j++) {
@@ -208,9 +218,11 @@ public class CombinationUtil {
 	  for(int k = 0; k < this.node2Combine.size(); k++) {
 	    this.rootNStates.elementAt(i).elementAt(j)[k] = 0;
 	  }
+	  rootnum++;
 	}
       }
       this.combine = new Vector<Vector<Combine>>();
+      int tomapnum = 0;
       for(int i = 0; i < this.node2Combine.size(); i++) {
 	if(this.node2Combine.elementAt(i) == null) {
 	  this.combine.add(null);
@@ -218,11 +230,16 @@ public class CombinationUtil {
 	  this.combine.add(new Vector<Combine>());
 	  for(int j = 0; j < this.node2Combine.elementAt(i).size(); j++) {
 	    this.combine.elementAt(i).add(new Combine(this.node2Combine.elementAt(i).elementAt(j)));
+	    tomapnum++;
 	  }
 	}
       }
       this.lastchoices = null;
       this.first4choice = false;
+      this.rand = new Random();
+      
+      this.limit = (tomapnum-1)/rootnum+1;
+      this.rootLoads = null;
     }
     
     public void clear() {
@@ -238,6 +255,43 @@ public class CombinationUtil {
 
     public Vector<Vector<Combine>> getCombine() {
       return combine;
+    }
+    
+    // generate next mapping randomly evenly
+    public boolean randomGenE() {
+	this.rootLoads = new int[this.rootNodes.size()][];
+	for(int i = 0; i < this.rootNodes.size(); i++) {
+	    this.rootLoads[i] = new int[this.rootNodes.elementAt(i).size()];
+	}
+	int rootx = this.rootNodes.size();
+	for(int i = 0; i < this.node2Combine.size(); i++) {
+	    for(int j = 0; j < this.node2Combine.elementAt(i).size(); j++) {
+		Combine tmp = this.combine.elementAt(i).elementAt(j);
+		do {
+		    int x = Math.abs(rand.nextInt()) % rootx;
+		    int y = Math.abs(rand.nextInt()) % this.rootNodes.elementAt(x).size();
+		    if(this.rootLoads[x][y] < this.limit) {
+			tmp.root  = x;
+			tmp.index = y;
+			this.rootLoads[tmp.root][tmp.index]++;
+			break;
+		    }
+		}while(true);
+	    }
+	}
+	return true;
+    }
+    
+    public boolean randomGen() {
+	int rootx = this.rootNodes.size();
+	for(int i = 0; i < this.node2Combine.size(); i++) {
+	    for(int j = 0; j < this.node2Combine.elementAt(i).size(); j++) {
+		Combine tmp = this.combine.elementAt(i).elementAt(j);
+		tmp.root = Math.abs(rand.nextInt()) % rootx;
+		tmp.index = Math.abs(rand.nextInt()) % this.rootNodes.elementAt(tmp.root).size();
+	    }
+	}
+	return true;
     }
 
     public boolean nextGen() {
@@ -578,5 +632,56 @@ public class CombinationUtil {
 	return true;
       }
     }
+  }
+  
+  public class RandomGenerator {
+      Vector<Vector<ScheduleNode>> sNodeVecs;
+      Vector<Vector<ScheduleNode>> mapping;
+      int rootNum;
+      Random rand;
+
+      public RandomGenerator(Vector<Vector<ScheduleNode>> snodevecs, 
+  	                     int rootNum) {
+        this.sNodeVecs = snodevecs;
+        this.rootNum = rootNum;
+        
+        this.mapping = new Vector<Vector<ScheduleNode>>();
+        for(int i = 0; i < this.rootNum; i++) {
+            this.mapping.add(null);
+        }
+        this.rand = new Random();
+      }
+      
+      public void clear() {
+  	this.sNodeVecs = null;
+  	this.rootNum = 0;
+  	this.mapping = null;
+      }
+
+      public boolean nextGen() {
+	  this.mapping = null;
+	  this.mapping = new Vector<Vector<ScheduleNode>>();
+	  for(int i = 0; i < this.rootNum; i++) {
+	      this.mapping.add(null);
+	  }
+	  
+	  // randomly choose a core for each node in sNodeVecs
+	  for(int i = 0; i < this.sNodeVecs.size(); i++) {
+	      Vector<ScheduleNode> sNodes = this.sNodeVecs.elementAt(i);
+	      for(int j = 0; j < sNodes.size(); j++) {
+		  ScheduleNode snode = sNodes.elementAt(j);
+		  int core = Math.abs(rand.nextInt()) % this.rootNum;
+		  if(this.mapping.elementAt(core) == null) {
+		      this.mapping.setElementAt(new Vector<ScheduleNode>(), core);
+		  }
+		  this.mapping.elementAt(core).add(snode);
+	      }
+	  }
+	  return true;
+      }
+      
+      public Vector<Vector<ScheduleNode>> getMapping() {
+	  return this.mapping;
+      }
   }
 }

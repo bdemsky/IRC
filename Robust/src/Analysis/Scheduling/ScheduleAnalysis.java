@@ -1229,13 +1229,77 @@ public class ScheduleAnalysis {
       Vector<Vector<ScheduleNode>> sNodeVecs = 
         SchedulingUtil.rangeScheduleNodes(this.scheduleNodes);
 
-      CombinationUtil.RootsGenerator rGen = 
-        CombinationUtil.allocateRootsGenerator(sNodeVecs, 
-            this.coreNum);
-
       int gid = 1;
-      Random rand = new Random();
       boolean isBig = Math.pow(this.coreNum, reduceNum) > 1000;
+      Random rand = new Random();
+      if(false) {
+	  CombinationUtil.RootsGenerator rGen = 
+	        CombinationUtil.allocateRootsGenerator(sNodeVecs, 
+	                                               this.coreNum);
+	  while((!isBig || (gid <= this.scheduleThreshold)) && (rGen.nextGen())) {
+	      // first get the chosen rootNodes
+	      Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
+	      Vector<Vector<ScheduleNode>> nodes2combine = rGen.getNode2Combine();
+
+	      CombinationUtil.CombineGenerator cGen = 
+		  CombinationUtil.allocateCombineGenerator(rootNodes, 
+			  nodes2combine);
+	      while((!isBig || (gid <= this.scheduleThreshold)) && (cGen.randomGenE())) {  
+		  boolean implement = true;
+		  /*if(isBig) {
+		      implement = Math.abs(rand.nextInt()) % 100 > generateThreshold;
+		  }*/
+		  if(implement) {
+		      Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
+		      Vector<ScheduleNode> sNodes = 
+			  SchedulingUtil.generateScheduleGraph(this.state,
+				  this.scheduleNodes,
+				  this.scheduleEdges,
+				  rootNodes, 
+				  combine, 
+				  gid++);
+		      this.scheduleGraphs.add(sNodes);
+		      sNodes = null;
+		      combine = null;
+		  } else if(Math.abs(rand.nextInt()) % 100 > skipThreshold){
+		      break;
+		  }
+	      }
+	      cGen.clear();
+	      rootNodes = null;
+	      nodes2combine = null;
+	  }
+	  rGen.clear();
+	  sNodeVecs = null;
+      } else if (false) {
+	  CombinationUtil.RandomGenerator rGen = 
+	        CombinationUtil.allocateRandomGenerator(sNodeVecs, 
+	                                                this.coreNum);
+	  // random genenration
+	  while((!isBig || (gid <= this.scheduleThreshold)) && (rGen.nextGen())) {
+	      Vector<Vector<ScheduleNode>> mapping = rGen.getMapping();
+	      boolean implement = true;
+	      if(isBig) {
+		  implement = Math.abs(rand.nextInt()) % 100 > generateThreshold;
+	      }
+	      if(implement) {
+		  Vector<ScheduleNode> sNodes = 
+	              SchedulingUtil.generateScheduleGraph(this.state,
+	                  this.scheduleNodes,
+	                  this.scheduleEdges,
+	                  mapping, 
+	                  gid++);
+		  this.scheduleGraphs.add(sNodes);
+		  sNodes = null;
+	      }
+	      mapping = null;
+	  }
+	  rGen.clear();
+	  sNodeVecs = null;
+      } else {
+	  CombinationUtil.RootsGenerator rGen = 
+	        CombinationUtil.allocateRootsGenerator(sNodeVecs, 
+	            this.coreNum);
       while((!isBig || (gid <= this.scheduleThreshold)) && (rGen.nextGen())) {
         // first get the chosen rootNodes
         Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
@@ -1243,7 +1307,7 @@ public class ScheduleAnalysis {
 
         CombinationUtil.CombineGenerator cGen = 
           CombinationUtil.allocateCombineGenerator(rootNodes, 
-              nodes2combine);
+                                                   nodes2combine);
         while((!isBig || (gid <= this.scheduleThreshold)) && (cGen.nextGen())) {  
           boolean implement = true;
           if(isBig) {
@@ -1271,6 +1335,7 @@ public class ScheduleAnalysis {
       }
       rGen.clear();
       sNodeVecs = null;
+      }
       return isBig;
     }
   }
