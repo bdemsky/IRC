@@ -15,62 +15,101 @@ public class MatrixMultiply extends Thread{
     
     public void run() {
       Barrier barr=new Barrier("128.195.136.162");
+      int mynumthreads, mytid, P, myx0, myx1, myy0, myy1;
       atomic {
         mmul.setValues(tid, numthreads);
+        myx0=x0;
+        myx1=x1;
+        myy0=y0;
+        myy1=y1;
+        mynumthreads=numthreads;
+        mytid=tid;
+        P=mmul.P;
       }
 
       Barrier.enterBarrier(barr);
-
+      
       atomic {
-        short[] offsets = new short[4];
-        // Prefetch mmul.btranspose[][] matrix
+        short[] offsets = new short[6];
+        // Prefetch mmul.btranspose[][][] matrix
         //Get all of B first...we need them first
         offsets[0] = getoffset{MMul, btranspose};
         offsets[1] = (short) 0;
-        offsets[2] = (short) y0;
-        offsets[3] = (short) (y1 - y0 -1);
+        offsets[2] = (short) 0;
+        offsets[3] = (short) 15;
+        offsets[4] = (short) y0;
+        offsets[5] = (short) (y1 - y0 -1);
         System.rangePrefetch(mmul, offsets);
 
         //Get first part of A
         offsets[0] = getoffset{MMul, a};
         offsets[1] = (short) 0;
-        offsets[2] = (short) x0;
+        offsets[2] = (short) 0;
         offsets[3] = (short) 15;
+        offsets[4] = (short) x0;
+        offsets[5] = (short) 15;
         System.rangePrefetch(mmul, offsets);
 
         //Get first part of C
         offsets[0] = getoffset{MMul, c};
         offsets[1] = (short) 0;
         System.rangePrefetch(mmul, offsets);
-        short[] offsets2=new short[2];
+        short[] offsets2=new short[4];
 
         double la[][][]=mmul.a;
         double lc[][][]=mmul.c;
         double lb[][][]=mmul.btranspose;
         int M=mmul.M;
-        int P=mmul.P;
         //Use btranspose for cache performance
-        for(int q=0;q<P;q++) {
+        int ll=8;
+        for(int q=0;q<P;q++,ll++) {
           double ra[][]=la[q]; 
           double rb[][]=lb[q];
           double rc[][]=lc[q];
+          if ((ll&15)==0) {
+            offsets2[0] = (short) (ll);
+            if((ll+16)>P) {
+              int lx=P-ll-1;
+              if(lx>0) {
+                offsets2[1]=(short) lx;
+                offsets2[2] = (short) y0;
+                offsets2[3] = (short) (y1 - y0 -1);
+                System.rangePrefetch(lb, offsets2);
+                offsets2[2] = (short) x0;
+                offsets2[3] = (short) 15;
+                System.rangePrefetch(la, offsets2);
+                System.rangePrefetch(lc, offsets2);
+              }
+            } else {
+              offsets2[1]=(short) 15;
+              offsets2[2] = (short) y0;
+              offsets2[3] = (short) (y1 - y0 -1);
+              System.rangePrefetch(lb, offsets2);
+              offsets2[2] = (short) x0;
+              offsets2[3] = (short) 15;
+              System.rangePrefetch(la, offsets2);
+              System.rangePrefetch(lc, offsets2);
+            }
+          }
+
+          short[] offsets3=new short[2];
           int l=8;
           for(int i = x0; i< x1; i++,l++){
             double a[]=ra[i]; 
             double c[]=rc[i];
-            if ((l&15)==0) {
-              offsets2[0] = (short) (x0+l);
+            if((l&15)==0) {
+              offsets3[0]=(short) (x0+l);
               if ((x0+l+16)>x1) {
                 int x=x1-x0-l-1;
                 if (x>0) {
-                  offsets2[1]=(short) x;
-                  System.rangePrefetch(la, offsets2);
-                  System.rangePrefetch(lc, offsets2);
+                  offsets3[1]=(short) x;
+                  System.rangePrefetch(ra, offsets3);
+                  System.rangePrefetch(rc, offsets3);
                 }
               } else {
-                offsets2[1] = (short) 15;
-                System.rangePrefetch(la, offsets2);
-                System.rangePrefetch(lc, offsets2);
+                offsets3[1] = (short) 15;
+                System.rangePrefetch(ra, offsets3);
+                System.rangePrefetch(rc, offsets3);
               }
             }
             for (int j = y0; j < y1; j++) {
@@ -81,10 +120,10 @@ public class MatrixMultiply extends Thread{
               }
               c[j]=innerProduct;
             }
-          }
-        }
-      }
-    }
+          } //end of inner for
+        }//end of outer for
+      }//end of atomic
+    }//end of run
 
     public static void main(String[] args) {
 	int NUM_THREADS = 4;
