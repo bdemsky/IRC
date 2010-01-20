@@ -92,6 +92,8 @@ public class MLPAnalysis {
   private Hashtable< FlatNode, Set<TempDescriptor>      > notAvailableResults;
   private Hashtable< FlatNode, CodePlan                 > codePlans;
 
+  private Hashtable< FlatSESEEnterNode, Set<TempDescriptor> > notAvailableIntoSESE;
+
   private Hashtable< FlatEdge, FlatWriteDynamicVarNode  > wdvNodesToSpliceIn;
   
   private Hashtable< MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet;
@@ -159,6 +161,8 @@ public class MLPAnalysis {
     notAvailableResults  = new Hashtable< FlatNode, Set<TempDescriptor>      >();
     codePlans            = new Hashtable< FlatNode, CodePlan                 >();
     wdvNodesToSpliceIn   = new Hashtable< FlatEdge, FlatWriteDynamicVarNode  >();
+
+    notAvailableIntoSESE = new Hashtable< FlatSESEEnterNode, Set<TempDescriptor> >();
     
     mapMethodContextToLiveInAllocationSiteSet = new Hashtable< MethodContext, HashSet<AllocationSite>>();
     
@@ -858,6 +862,16 @@ public class MLPAnalysis {
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
       assert fsen.equals( currentSESE );
+
+      // keep a copy of what's not available into the SESE
+      // and restore it at the matching exit node
+      Set<TempDescriptor> notAvailCopy = new HashSet<TempDescriptor>();
+      Iterator<TempDescriptor> tdItr = notAvailSet.iterator();
+      while( tdItr.hasNext() ) {
+        notAvailCopy.add( tdItr.next() );
+      }
+      notAvailableIntoSESE.put( fsen, notAvailCopy );
+
       notAvailSet.clear();
     } break;
 
@@ -865,7 +879,13 @@ public class MLPAnalysis {
       FlatSESEExitNode  fsexn = (FlatSESEExitNode)  fn;
       FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       assert currentSESE.getChildren().contains( fsen );
+
       notAvailSet.addAll( fsen.getOutVarSet() );
+
+      Set<TempDescriptor> notAvailIn = notAvailableIntoSESE.get( fsen );
+      assert notAvailIn != null;
+      notAvailSet.addAll( notAvailIn );
+
     } break;
 
     case FKind.FlatMethod: {
