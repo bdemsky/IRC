@@ -5,7 +5,8 @@ DSTM_CONFDIR=${HOME}/research/Robust/src
 JAVA_DIR=java
 JVM_DIR=jvm
 DSM_DIR=dsm
-ITERATIONS=3
+ITERATIONS=2
+WAITTIME=60
 
 # killClients <fileName> <# of machines>
 function killclients {
@@ -61,20 +62,14 @@ function runNormalTest {
   echo $NUM_MACHINE
   tt=1;
   while [ $tt -le $NUM_MACHINE ]; do
-    echo "------------------------------- Normal Test $1 ----------------------------" >> log$1-$tt
+    echo "------------------------------- Normal Test $1 ----------------------------" >> log-$tt
     tt=`expr $tt + 1`
   done
   
 # run test
-  runMachines log$1
+  runMachines log
   
-  sleep 60
-
-  tt=1;
-  while [ $tt -le $NUM_MACHINE ]; do
-    echo "------------------------------- Normal Test $1 End ----------------------------" >> log$1-$tt
-    tt=`expr $tt + 1`
-  done
+  sleep $WAITTIME
 
   killclients $fileName 8
   sleep 10
@@ -91,32 +86,25 @@ function runFailureTest {
 
   tt=1;
   while [ $tt -le $NUM_MACHINE ]; do
-    echo "------------------------------- Failure Test $1 ----------------------------" >> log$1-$tt
+    echo "------------------------------- Failure Test $1 ----------------------------" >> log-$tt
     tt=`expr $tt + 1`
   done
 
   # run all machines
-  runMachines log$1
+  runMachines log
   sleep 10 # wait until all machine run
   # Kill machines
   for k in 2 4 6 8
   do
-   echo "------------------------ dc-$k is killed ------------------------" >> log$1-$k
-   echo "------------------------------- Failure Test $1 End ----------------------------" >> log$1-$k
+   echo "------------------------ dc-$k is killed ------------------------" >> log-$k
    killonemachine $fileName $k
    sleep 10
   done
 
-  tt=1;
-  while [ $tt -le $NUM_MACHINE ]; do
-    echo "------------------------------- Failure Test $1 End ----------------------------" >> log$1-$tt
-    tt=`expr $tt + 1`
-  done
-
- sleep 60; # wait the end of execution
+ sleep $WAITTIME # wait the end of execution
  killclients $fileName 8 # kill alive machines
- sleep 10;
-
+ sleep 10
+ cd -
 }
 
 
@@ -150,16 +138,16 @@ do
   echo "NUM_M = $NUM_MACHINE"
 
 
-  echo "========================================= 1 ======================================="
+  echo "=================================== 1 ================================="
   runNormalTest $NUM_MACHINES 1
-  echo "===================================================================================="
+  echo "======================================================================="
 
   t=2;
   while [ $t -le $ITERATIONS ]; do
-    echo "========================================= $t ======================================="
-    runFailureTest $NUM_MACHINES $t
+    echo "==================================== $t ============================="
+    runFailureTest $NUM_MACHINES 1
     sleep 10
-    echo "===================================================================================="
+    echo "====================================================================="
     t=`expr $t + 1`
   done
 
