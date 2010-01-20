@@ -92,8 +92,11 @@ public class ParentChildConflictsMap {
 		accessibleMap.put(td, INACCESSIBLE);
 	}
 
-	public void addStallSite(TempDescriptor td, HashSet<HeapRegionNode> heapSet, StallTag sTag) {
+	public void addStallSite(TempDescriptor td, HashSet<HeapRegionNode> heapSet, StallTag sTag, TempDescriptor tdA) {
 		StallSite stallSite=new StallSite(heapSet,sTag);
+		if(tdA!=null){
+			stallSite.setTdA(tdA);
+		}
 		stallMap.put(td, stallSite);
 	}
 	

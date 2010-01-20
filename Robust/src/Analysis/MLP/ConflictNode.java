@@ -11,6 +11,7 @@ public abstract class ConflictNode {
 	protected String id;
 	protected HashSet<ConflictEdge> edgeSet;
 	protected Set<Set> reachabilitySet;
+	protected TempDescriptor alias;
 
 	public ConflictNode() {
 		edgeSet = new HashSet<ConflictEdge>();
@@ -34,6 +35,14 @@ public abstract class ConflictNode {
 
 	public Set<Set> getReachabilitySet() {
 		return reachabilitySet;
+	}
+	
+	public TempDescriptor getAlias(){
+		return alias;
+	}
+	
+	public void setAlias(TempDescriptor alias){
+		this.alias=alias;
 	}
 
 }

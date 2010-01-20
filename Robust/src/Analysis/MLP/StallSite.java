@@ -8,6 +8,7 @@ import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.OwnershipAnalysis.TokenTupleSet;
 import IR.Flat.FlatNode;
+import IR.Flat.TempDescriptor;
 
 public class StallSite {
 
@@ -20,6 +21,7 @@ public class StallSite {
 //	private ReachabilitySet reachabilitySet;
 	HashSet<TokenTupleSet> reachabilitySet;
 	private HashSet<StallTag> stallTagSet;
+	private TempDescriptor tdA;
 
 	// if stall site is caller's parameter heap regtion, store its parameter idx
 	// for further analysis
@@ -123,6 +125,14 @@ public class StallSite {
 				allocationSiteSet, stallTagSet, callerParamIdxSet);
 		return copy;
 		
+	}
+	
+	public void setTdA(TempDescriptor tdA){
+		this.tdA=tdA;
+	}
+	
+	public TempDescriptor getTdA(){
+		return tdA;
 	}
 
 	public boolean equals(Object o) {

@@ -231,29 +231,45 @@ public class ConflictGraph {
 						.next();
 				String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
 				String writeFieldName = seseEffectsKey.getFieldDescriptor();
+				
+				if(writeFieldName.length()>0){
+					HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
+					for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+							.hasNext();) {
+						HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
+						if (stallHRN.getGloballyUniqueIdentifier().equals(
+								writeHeapRegionID)) {
 
-				HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
-				for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
-						.hasNext();) {
-					HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
-					if (stallHRN.getGloballyUniqueIdentifier().equals(
-							writeHeapRegionID)) {
+							// check whether there are read or write effects of
+							// stall sites
 
-						// check whether there are read or write effects of
-						// stall sites
+							HashSet<Effect> effectSet = stallSite.getEffectSet();
+							for (Iterator iterator2 = effectSet.iterator(); iterator2
+									.hasNext();) {
+								Effect effect = (Effect) iterator2.next();
+								String stallEffectfieldName = effect.getField();
 
-						HashSet<Effect> effectSet = stallSite.getEffectSet();
-						for (Iterator iterator2 = effectSet.iterator(); iterator2
-								.hasNext();) {
-							Effect effect = (Effect) iterator2.next();
-							String stallEffectfieldName = effect.getField();
-
-							if (stallEffectfieldName.equals(writeFieldName)) {
-								result = result | true;
+								if (stallEffectfieldName.equals(writeFieldName)) {
+									result = result | true;
+								}
 							}
-						}
 
+						}
 					}
+				}else{
+					// no field name
+					
+					HashSet<Effect> effectSet = stallSite.getEffectSet();
+					for (Iterator iterator2 = effectSet.iterator(); iterator2
+							.hasNext();) {
+						Effect effect = (Effect) iterator2.next();
+						String stallEffectfieldName = effect.getField();
+
+						if (stallEffectfieldName.length()==0 && nodeB.getTempDescriptor().equals(nodeA.getStallSite().getTdA())) {
+							result = result | true;
+						}
+					}
+					
 				}
 
 			}
@@ -269,31 +285,50 @@ public class ConflictGraph {
 				String readHeapRegionID = seseEffectsKey.getHRNUniqueId();
 				String readFieldName = seseEffectsKey.getFieldDescriptor();
 
-				HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
-				for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
-						.hasNext();) {
-					HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
-					if (stallHRN.getGloballyUniqueIdentifier().equals(
-							readHeapRegionID)) {
+				if(readFieldName.length()>0){
+					HashSet<HeapRegionNode> stallSiteHRNSet = nodeA.getHRNSet();
+					for (Iterator iterator = stallSiteHRNSet.iterator(); iterator
+							.hasNext();) {
+						HeapRegionNode stallHRN = (HeapRegionNode) iterator.next();
+						if (stallHRN.getGloballyUniqueIdentifier().equals(
+								readHeapRegionID)) {
 
-						HashSet<Effect> effectSet = stallSite.getEffectSet();
-						for (Iterator iterator2 = effectSet.iterator(); iterator2
-								.hasNext();) {
-							Effect effect = (Effect) iterator2.next();
-							String stallEffectfieldName = effect.getField();
+							HashSet<Effect> effectSet = stallSite.getEffectSet();
+							for (Iterator iterator2 = effectSet.iterator(); iterator2
+									.hasNext();) {
+								Effect effect = (Effect) iterator2.next();
+								String stallEffectfieldName = effect.getField();
 
-							if (effect.getEffectType().equals(
-									StallSite.WRITE_EFFECT)) {
-								if (stallEffectfieldName.equals(readFieldName)) {
-									result = result | true;
+								if (effect.getEffectType().equals(
+										StallSite.WRITE_EFFECT)) {
+									if (stallEffectfieldName.equals(readFieldName)) {
+										result = result | true;
+									}
 								}
+
 							}
 
 						}
 
 					}
+				}else{
+					//no field
+					HashSet<Effect> effectSet = stallSite.getEffectSet();
+					for (Iterator iterator2 = effectSet.iterator(); iterator2
+							.hasNext();) {
+						Effect effect = (Effect) iterator2.next();
+						String stallEffectfieldName = effect.getField();
 
+						if (effect.getEffectType().equals(
+								StallSite.WRITE_EFFECT)) {
+							if (stallEffectfieldName.length()==0 && nodeB.getTempDescriptor().equals(nodeA.getStallSite().getTdA())) {
+								result = result | true;
+							}
+						}
+
+					}
 				}
+
 
 			}
 

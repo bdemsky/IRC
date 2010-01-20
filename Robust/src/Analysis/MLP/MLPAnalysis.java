@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
-
 import Analysis.CallGraph.CallGraph;
 import Analysis.CallGraph.JavaCallGraph;
 import Analysis.OwnershipAnalysis.AllocationSite;
@@ -40,6 +39,7 @@ import IR.Flat.FKind;
 import IR.Flat.FlatCall;
 import IR.Flat.FlatCondBranch;
 import IR.Flat.FlatEdge;
+import IR.Flat.FlatElementNode;
 import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatLiteralNode;
 import IR.Flat.FlatMethod;
@@ -49,6 +49,7 @@ import IR.Flat.FlatOpNode;
 import IR.Flat.FlatReturnNode;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.FlatSESEExitNode;
+import IR.Flat.FlatSetElementNode;
 import IR.Flat.FlatSetFieldNode;
 import IR.Flat.FlatWriteDynamicVarNode;
 import IR.Flat.TempDescriptor;
@@ -336,23 +337,6 @@ public class MLPAnalysis {
 			}
 		}
     	
-    	/*
-    	methItr = ownAnalysis.descriptorsToAnalyze.iterator();
-    	while(methItr.hasNext()){
-    		Descriptor d = methItr.next();
-    		FlatMethod fm = state.getMethodFlat(d);
-    		if (fm.toString().indexOf("SomeWork") > 0) {
-    			ConflictGraph conflictGraph=conflictGraphResults.get(fm);
-    			try {
-    				conflictGraph.writeGraph("ConflictGraphForSomeWork", false);
-    			} catch (IOException e) {
-    				System.out.println("Error writing");
-    				System.exit(0);
-    			}
-    		}
-    	}
-    	*/
-    	////////////////
     }
 
 
@@ -1013,6 +997,8 @@ public class MLPAnalysis {
 			
 			Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 			flatNodesToVisit.add(fm);
+			
+			Hashtable<TempDescriptor, TempDescriptor> invarMap=new Hashtable<TempDescriptor,TempDescriptor>();
 
 			while (!flatNodesToVisit.isEmpty()) {
 				FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
@@ -1022,7 +1008,7 @@ public class MLPAnalysis {
 				assert seseStack != null;
 
 				if (!seseStack.empty()) {
-					effects_nodeActions(mc, fn, seseStack.peek(), callGraph);
+					effects_nodeActions(mc, fn, seseStack.peek(), callGraph,invarMap);
 				}
 
 				flatNodesToVisit.remove(fn);
@@ -1200,7 +1186,7 @@ public class MLPAnalysis {
 	}
   
 	private void effects_nodeActions(MethodContext mc, FlatNode fn,
-			FlatSESEEnterNode currentSESE, CallGraph callGraph) {
+			FlatSESEEnterNode currentSESE, CallGraph callGraph,Hashtable<TempDescriptor, TempDescriptor> invarMap) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
 
@@ -1467,7 +1453,45 @@ public class MLPAnalysis {
 
 		}
 			break;
+			
+		case FKind.FlatOpNode:{
+			
+			FlatOpNode fon=(FlatOpNode)fn;
+			TempDescriptor dest=fon.getDest();
+			TempDescriptor src=fon.getLeft();
+			
+//			if(!currentSESE.getIsCallerSESEplaceholder()){
+				if( fon.getOp().getOp() ==Operation.ASSIGN && currentSESE.getInVarSet().contains(src)){
+					invarMap.put(dest, src);
+				}
+//			}
 
+		}break;
+		
+		case FKind.FlatElementNode:{
+			
+			FlatElementNode fsen=(FlatElementNode)fn;			
+			TempDescriptor src = fsen.getSrc();
+			
+			if(invarMap.containsKey(src)){
+				TempDescriptor invarTD=invarMap.get(src);
+				currentSESE.getSeseEffectsSet().addReadingVar(invarTD, new SESEEffectsKey("", src.getType(), new Integer(0), ""));
+			}
+			
+		}break;
+			
+		case FKind.FlatSetElementNode:{
+			
+			FlatSetElementNode fsen=(FlatSetElementNode)fn;			
+			TempDescriptor dst = fsen.getDst();
+			
+			if(invarMap.containsKey(dst)){
+				TempDescriptor invarTD=invarMap.get(dst);
+				currentSESE.getSeseEffectsSet().addWritingVar(invarTD, new SESEEffectsKey("", dst.getType(), new Integer(0), ""));
+			}
+			
+		}break;
+			
 		case FKind.FlatSetFieldNode: {
 
 			FlatSetFieldNode fsen = (FlatSetFieldNode) fn;
@@ -2055,6 +2079,8 @@ public class MLPAnalysis {
 
 				SESESummary summary = new SESESummary(null, fm);
 				seseSummaryMap.put(fm, summary);
+				
+				Hashtable<TempDescriptor, TempDescriptor> invarMap=new Hashtable<TempDescriptor,TempDescriptor>();
 
 				while (!flatNodesToVisit.isEmpty()) {
 					Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
@@ -2104,7 +2130,7 @@ public class MLPAnalysis {
 								conflictGraph);
 					}
 
-					conflictGraph_nodeAction(mc, fm, fn);
+					conflictGraph_nodeAction(mc, fm, fn,invarMap);
 
 					for (int i = 0; i < fn.numNext(); i++) {
 						FlatNode nn = fn.getNext(i);
@@ -2177,7 +2203,7 @@ public class MLPAnalysis {
 	}
 	
 	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm,
-			FlatNode fn) {
+			FlatNode fn,Hashtable<TempDescriptor, TempDescriptor> invarMap) {
 
 		switch (fn.kind()) {
 
@@ -2204,9 +2230,13 @@ public class MLPAnalysis {
 					TempDescriptor tempDescriptor = (TempDescriptor) iterator
 							.next();
 					
-					if(tempDescriptor.getType().isImmutable()){
+					if(!tempDescriptor.getType().isArray() && tempDescriptor.getType().isImmutable()){
 						continue;
 					}
+					
+//					if(tempDescriptor.getType().isArray()){
+//						
+//					}
 					
 					// effects set
 					SESEEffectsSet seseEffectsSet = fsen.getSeseEffectsSet();
@@ -2248,7 +2278,7 @@ public class MLPAnalysis {
 		}
 
 			break;
-
+			
 		}
 
 	}
@@ -2285,6 +2315,8 @@ public class MLPAnalysis {
 
 				SESESummary summary = new SESESummary(null, fm);
 				seseSummaryMap.put(fm, summary);
+				
+				Hashtable<TempDescriptor, TempDescriptor> invarMap=new Hashtable<TempDescriptor,TempDescriptor>();
 
 				while (!flatNodesToVisit.isEmpty()) {
 					FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
@@ -2360,7 +2392,7 @@ public class MLPAnalysis {
 					FlatNode tempS=currentSummary.getCurrentSESE();
 
 					conflicts_nodeAction(mc, fn, callGraph, preeffectsSet,
-							currentConflictsMap, currentSummary);
+							currentConflictsMap, currentSummary,invarMap);
 
 					
 					// if we have a new result, schedule forward nodes for
@@ -2386,7 +2418,8 @@ public class MLPAnalysis {
 	private void conflicts_nodeAction(MethodContext mc, FlatNode fn,
 			CallGraph callGraph, HashSet<PreEffectsKey> preeffectsSet,
 			ParentChildConflictsMap currentConflictsMap,
-			SESESummary currentSummary) {
+			SESESummary currentSummary,
+			Hashtable<TempDescriptor, TempDescriptor> invarMap) {
 
 		OwnershipGraph og = ownAnalysis.getOwnvershipGraphByMethodContext(mc);
 		
@@ -2465,6 +2498,46 @@ public class MLPAnalysis {
 
 		}
 			break;
+			
+		case FKind.FlatElementNode:{
+			
+			
+			FlatElementNode fen = (FlatElementNode) fn;
+			TempDescriptor src=fen.getSrc();
+			
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+			
+			if(isAfterChildSESE){
+				
+				if (!currentConflictsMap.isAccessible(src)) {
+					if(invarMap.containsKey(src)){
+						currentConflictsMap.addStallSite(src, new HashSet<HeapRegionNode>(),
+								new StallTag(fn),invarMap.get(src));
+					}else{
+						currentConflictsMap.addStallSite(src, new HashSet<HeapRegionNode>(),
+								new StallTag(fn),null);
+					}
+				}
+				currentConflictsMap.addAccessibleVar(src);
+				
+				// contribute read effect on source's stall site
+				currentConflictsMap.contributeEffect(src, "", "",
+						StallSite.READ_EFFECT);
+				
+			}
+			
+			if (currentMethodSummary.getChildSESECount() == 0) {
+				// analyze preeffects
+				preEffectAnalysis(og, src, null, PreEffectsKey.READ_EFFECT);
+			}
+			
+			
+		} break;
 
 		case FKind.FlatFieldNode: {
 
@@ -2486,7 +2559,7 @@ public class MLPAnalysis {
 					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
 							og, src);
 					currentConflictsMap.addStallSite(src, refHRN,
-							new StallTag(fn));
+							new StallTag(fn),null);
 
 					// flag stall site for disjoint analysis
 					for (Iterator iterator2 = refHRN.iterator(); iterator2
@@ -2527,6 +2600,61 @@ public class MLPAnalysis {
 		}
 			break;
 
+		case FKind.FlatSetElementNode:{
+			
+			FlatSetElementNode fsen=(FlatSetElementNode)fn;			
+			TempDescriptor dst = fsen.getDst();
+			TempDescriptor src = fsen.getSrc();
+			
+			boolean isAfterChildSESE = false;
+			FlatNode current = currentSummary.getCurrentSESE();
+			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			if (isAfter != null && isAfter.booleanValue()) {
+				isAfterChildSESE = true;
+			}
+			
+			if (isAfterChildSESE) {
+				
+				if (!currentConflictsMap.isAccessible(src)) {
+					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(og,
+							src);
+					currentConflictsMap.addStallSite(src, refHRN , new StallTag(
+							fn),null);
+				}
+				currentConflictsMap.addAccessibleVar(src);
+				
+				if (!currentConflictsMap.isAccessible(dst)) {
+					
+					if(invarMap.containsKey(dst)){
+						currentConflictsMap.addStallSite(dst, new 	HashSet<HeapRegionNode>(),
+								new StallTag(fn),invarMap.get(dst));
+					}else{
+						currentConflictsMap.addStallSite(dst, new 	HashSet<HeapRegionNode>(),
+								new StallTag(fn),null);
+					}
+				}
+				currentConflictsMap.addAccessibleVar(dst);
+				// contribute write effect on destination's stall site
+				currentConflictsMap.contributeEffect(dst, "","",
+						StallSite.WRITE_EFFECT);
+				
+			}
+			
+			if (currentMethodSummary.getChildSESECount() == 0) {
+				// analyze preeffects
+				preEffectAnalysis(og, dst, null, PreEffectsKey.WRITE_EFFECT);
+			}
+			
+			
+//			if(invarMap.containsKey(dst)){
+//				System.out.println("THIS IS FLAT SET FIELD:"+dst+ "with sese="+currentSESE);				
+//				TempDescriptor invarTD=invarMap.get(dst);
+//				currentSESE.getSeseEffectsSet().addWritingVar(invarTD, new SESEEffectsKey("", dst.getType(), new Integer(0), ""));
+//			}
+			
+			
+		} break;
+			
 		case FKind.FlatSetFieldNode: {
 
 			FlatSetFieldNode fsen = (FlatSetFieldNode) fn;
@@ -2547,7 +2675,7 @@ public class MLPAnalysis {
 					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(og,
 							src);
 					currentConflictsMap.addStallSite(src, refHRN, new StallTag(
-							fn));
+							fn),null);
 
 					// flag stall site for disjoint analysis
 					for (Iterator iterator2 = refHRN.iterator(); iterator2
@@ -2575,7 +2703,7 @@ public class MLPAnalysis {
 					HashSet<HeapRegionNode> refHRN = getReferenceHeapIDSet(
 							og, dst);
 					currentConflictsMap.addStallSite(dst, refHRN,
-							new StallTag(fn));
+							new StallTag(fn),null);
 
 					// flag stall site for disjoint analysis
 					for (Iterator iterator2 = refHRN.iterator(); iterator2
@@ -2629,10 +2757,18 @@ public class MLPAnalysis {
 			break;
 
 		case FKind.FlatOpNode: {
+			
+			FlatOpNode fon = (FlatOpNode) fn;
 
 			boolean isAfterChildSESE = false;
 			FlatNode current = currentSummary.getCurrentSESE();
 			Boolean isAfter = isAfterChildSESEIndicatorMap.get(current);
+			
+				
+			if( fon.getOp().getOp() ==Operation.ASSIGN){
+				invarMap.put(fon.getDest(), fon.getLeft());
+			}
+			
 			if (isAfter != null && isAfter.booleanValue()) {
 				isAfterChildSESE = true;
 			}
@@ -2640,7 +2776,6 @@ public class MLPAnalysis {
 			if (isAfterChildSESE) {
 
 				// destination variable gets the status of source.
-				FlatOpNode fon = (FlatOpNode) fn;
 
 				if (fon.getOp().getOp() == Operation.ASSIGN) {
 
@@ -2968,9 +3103,15 @@ public class MLPAnalysis {
 					Iterator<Integer> paramIter = paramSet.iterator();
 					while (paramIter.hasNext()) {
 						Integer paramID = paramIter.next();
-						PreEffectsKey effectKey = new PreEffectsKey(paramID,
-								field.getSymbol(), field.getType()
-										.getSafeSymbol(), effectType);
+						PreEffectsKey effectKey=null;
+						if(field!=null){
+							effectKey = new PreEffectsKey(paramID,
+									field.getSymbol(), field.getType()
+											.getSafeSymbol(), effectType);
+						}else{
+							effectKey = new PreEffectsKey(paramID,
+									"", "", effectType);
+						}
 						preeffectsSet.add(effectKey);
 					}
 				}
@@ -2984,9 +3125,15 @@ public class MLPAnalysis {
 
 					while (paramIter.hasNext()) {
 						Integer paramID = paramIter.next();
-						PreEffectsKey effectKey = new PreEffectsKey(paramID,
-								field.getSymbol(), field.getType()
-										.getSafeSymbol(), effectType);
+						PreEffectsKey effectKey=null;
+						if(field!=null){
+							effectKey = new PreEffectsKey(paramID,
+									field.getSymbol(), field.getType()
+											.getSafeSymbol(), effectType);
+						}else{
+							effectKey = new PreEffectsKey(paramID,
+									"", "", effectType);
+						}
 						preeffectsSet.add(effectKey);
 					}
 				}
