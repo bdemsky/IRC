@@ -3412,14 +3412,14 @@ public class MLPAnalysis {
       // completely outside of the root SESE scope
       if( nextVstTable != null && nextLiveIn != null ) {
 
-	Hashtable<TempDescriptor, VariableSourceToken> static2dynamicSet = 
-	  thisVstTable.getStatic2DynamicSet( nextVstTable, 
-					     nextLiveIn,
-					     currentSESE,
-					     currentSESE.getParent() 
+	Hashtable<TempDescriptor, VariableSourceToken> readyOrStatic2dynamicSet = 
+	  thisVstTable.getReadyOrStatic2DynamicSet( nextVstTable, 
+                                                    nextLiveIn,
+                                                    currentSESE,
+                                                    currentSESE.getParent() 
 					   );
 	
-	if( !static2dynamicSet.isEmpty() ) {
+	if( !readyOrStatic2dynamicSet.isEmpty() ) {
 
 	  // either add these results to partial fixed-point result
 	  // or make a new one if we haven't made any here yet
@@ -3429,12 +3429,12 @@ public class MLPAnalysis {
 	  if( fwdvn == null ) {
 	    fwdvn = new FlatWriteDynamicVarNode( fn, 
 						 nn,
-						 static2dynamicSet,
+						 readyOrStatic2dynamicSet,
 						 currentSESE
 						 );
 	    wdvNodesToSpliceIn.put( fe, fwdvn );
 	  } else {
-	    fwdvn.addMoreVar2Src( static2dynamicSet );
+	    fwdvn.addMoreVar2Src( readyOrStatic2dynamicSet );
 	  }
 	}
       }
@@ -3564,7 +3564,8 @@ public class MLPAnalysis {
 	  bw.write( "    (ready)  "+inVar+"\n" );
 	}
 	if( fsen.getStaticInVarSet().contains( inVar ) ) {
-	  bw.write( "    (static) "+inVar+"\n" );
+	  bw.write( "    (static) "+inVar+" from "+
+                    fsen.getStaticInVarSrc( inVar )+"\n" );
 	} 
 	if( fsen.getDynamicInVarSet().contains( inVar ) ) {
 	  bw.write( "    (dynamic)"+inVar+"\n" );

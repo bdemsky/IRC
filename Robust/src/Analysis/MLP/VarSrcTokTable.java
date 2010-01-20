@@ -556,11 +556,11 @@ public class VarSrcTokTable {
   // which variables are going from a static source to a
   // dynamic source and return them
   public Hashtable<TempDescriptor, VariableSourceToken> 
-    getStatic2DynamicSet( VarSrcTokTable nextTable,
-			  Set<TempDescriptor> nextLiveIn,
-			  FlatSESEEnterNode current,
-			  FlatSESEEnterNode parent
-			) {
+    getReadyOrStatic2DynamicSet( VarSrcTokTable nextTable,
+                                 Set<TempDescriptor> nextLiveIn,
+                                 FlatSESEEnterNode current,
+                                 FlatSESEEnterNode parent
+                                 ) {
     
     Hashtable<TempDescriptor, VariableSourceToken> out = 
       new Hashtable<TempDescriptor, VariableSourceToken>();
@@ -574,7 +574,9 @@ public class VarSrcTokTable {
       // only worth tracking if live
       if( nextLiveIn.contains( var ) ) {
 
-	if(      this.getRefVarSrcType( var, current, parent ) == SrcType_STATIC  &&
+	if( (    this.getRefVarSrcType( var, current, parent ) == SrcType_READY ||
+                 this.getRefVarSrcType( var, current, parent ) == SrcType_STATIC  )
+            &&
 	    nextTable.getRefVarSrcType( var, current, parent ) == SrcType_DYNAMIC
 	  ) {
 	  // remember the variable and a static source

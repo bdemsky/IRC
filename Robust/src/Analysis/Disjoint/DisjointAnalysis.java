@@ -439,11 +439,13 @@ public class DisjointAnalysis {
         rg.merge_diffMethodContext( rgContrib );
       }
       
+      /*
       FlatMethod fm = (FlatMethod) fn;      
       for( int i = 0; i < fm.numParameters(); ++i ) {
         TempDescriptor tdParam = fm.getParameter( i );
-        //assert rg.hasVariable( tdParam );
+        assert rg.hasVariable( tdParam );
       }
+      */
     } break;
       
     case FKind.FlatOpNode:

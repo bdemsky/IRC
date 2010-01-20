@@ -50,7 +50,7 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   }
 
   public String toString() {
-    return "writeDynVars "+var2src.keySet();
+    return "writeDynVars "+var2src;
   }
 
   public int kind() {
