@@ -3623,8 +3623,11 @@ public class BuildCode {
     while( itr.hasNext() ) {
       TempDescriptor temp = itr.next();
 
-      // only have to do this for primitives
-      if( !temp.getType().isPrimitive() ) {
+      // only have to do this for primitives non-arrays
+      if( !(
+            temp.getType().isPrimitive() && !temp.getType().isArray()
+           )
+        ) {
 	continue;
       }
 
