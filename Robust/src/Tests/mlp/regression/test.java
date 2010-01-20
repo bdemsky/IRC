@@ -22,7 +22,7 @@ public class Test {
 	int sum = 0;
 	for( int j = 0; j <= i; ++j ) {
 	  sum = calculateStuff( sum, 1, 0 );
-	}
+	}        
       }
       sese forceVirtualReal {
 	if( i % 3 == 0 ) {
@@ -44,7 +44,7 @@ public class Test {
 	for( int l = 0; l < 3; ++l ) {
 	  sum = calculateStuff( sum, 2, 2 );
 	}	
-      }      
+      } 
       sese prnt {
 	mightPrint( x, i, sum, g );
       }

@@ -1,33 +1,28 @@
-PROGRAM=test
+PROGRAM1=testSingle
+PROGRAM2=testMulti
 
-SOURCE_FILES=$(PROGRAM).java
+SOURCE_FILES=test.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
 USEMLP= -mlp 8 2 -mlpdebug # use to turn mlp on and off and make sure rest of build not broken
-BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -enable-assertions -flatirusermethods #-ownwritedots final -ownaliasfile aliases.txt
+BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -enable-assertions -ownaliasfile aliases.txt
 
-all: $(PROGRAM).bin
+all: $(PROGRAM1).bin $(PROGRAM2).bin
 
-view: PNGs
-	eog *.png &
+$(PROGRAM1).bin: $(SOURCE_FILES)
+	$(BUILDSCRIPT)           $(BSFLAGS) -o $(PROGRAM1) $(SOURCE_FILES)
 
-PNGs: DOTs
-	d2p *COMPLETE*.dot
-
-DOTs: $(PROGRAM).bin
-
-$(PROGRAM).bin: $(SOURCE_FILES)
-	$(BUILDSCRIPT) $(USEMLP) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
-
-nomlp: $(SOURCE_FILES)
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
+$(PROGRAM2).bin: $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(USEMLP) $(BSFLAGS) -o $(PROGRAM2) $(SOURCE_FILES)
 
 clean:
-	rm -f  $(PROGRAM).bin
+	rm -f  $(PROGRAM1).bin
+	rm -f  $(PROGRAM2).bin
 	rm -fr tmpbuilddirectory
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
 	rm -f  aliases.txt
-	rm -f  mlpReport*
+	rm -f  mlpReport*txt
+	rm -f  results*txt
