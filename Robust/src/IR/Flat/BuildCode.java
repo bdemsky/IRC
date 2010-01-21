@@ -3458,6 +3458,7 @@ public class BuildCode {
 			output.println("               struct QueueItem* nextQItem=getHead(allocQueue);");
 			output.println("               while( nextQItem != NULL ){");
 			output.println("                  if(contains(newWaitingItemQueue,nextQItem) && isRunnable(allocQueue,nextQItem)){");
+			output.println("                     if(seseToIssue->common.unresolvedDependencies>0)");
 			output.println("                     --(seseToIssue->common.unresolvedDependencies);");
 			output.println("                  }");
 			output.println("                     nextQItem=getNextQueueItem(nextQItem);");
@@ -3691,9 +3692,10 @@ public class BuildCode {
     	output.println("           WaitingElement* item=qItem->objectptr;");
     	output.println("           SESEcommon* seseItem=(SESEcommon*)item->seseRec;");
     	output.println("           if(seseItem->classID==___params___->common.classID && item->id==___params___->common.waitingQueueItemID){");
+    	output.println("              struct QueueItem* nItem=getNextQueueItem(qItem);");
     	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
     	output.println("              removed=1;");
-       	output.println("              qItem=getNextQueueItem(qItem);");
+       	output.println("              qItem=nItem;");
     	output.println("           }else if(removed){");
     	output.println("              qItem=NULL;");
     	output.println("           }else{");
