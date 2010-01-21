@@ -458,6 +458,17 @@ public class ConflictGraph {
 		Set<SESEEffectsKey> readEffectsSetB = nodeB.getReadEffectsSet();
 		Set<SESEEffectsKey> writeEffectsSetB = nodeB.getWriteEffectsSet();
 		Set<SESEEffectsKey> strongUpdateSetB = nodeB.getStrongUpdateSet();
+		/*
+		System.out.println("nodeA="+nodeA);
+		System.out.println("readEffectsSetA="+readEffectsSetA);
+		System.out.println("writeEffectsSetA="+writeEffectsSetA);
+		System.out.println("strongUpdateSetA="+strongUpdateSetA);
+		System.out.println("nodeB="+nodeB);
+		System.out.println("readEffectsSetB="+readEffectsSetB);
+		System.out.println("writeEffectsSetB="+writeEffectsSetB);
+		System.out.println("strongUpdateSetB="+strongUpdateSetB);
+		System.out.println("--");
+		*/
 		
 		// if node A has write effects on reading/writing regions of node B
 		if (writeEffectsSetA != null) {
@@ -466,7 +477,7 @@ public class ConflictGraph {
 				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIterA
 						.next();
 
-				if (!hasStrongUpdate(seseEffectsKey, strongUpdateSetA)) {
+//				if (!hasStrongUpdate(seseEffectsKey, strongUpdateSetA)) {
 
 					String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
 					String writeFieldName = seseEffectsKey.getFieldDescriptor();
@@ -503,7 +514,7 @@ public class ConflictGraph {
 						}
 					}
 
-				}
+//				} // end of if(hasStrong)
 
 			}
 		}
@@ -515,7 +526,7 @@ public class ConflictGraph {
 				SESEEffectsKey seseEffectsKey = (SESEEffectsKey) writeIterB
 						.next();
 
-				if (!hasStrongUpdate(seseEffectsKey, strongUpdateSetB)) {
+				//if (!hasStrongUpdate(seseEffectsKey, strongUpdateSetB)) {
 
 					String writeHeapRegionID = seseEffectsKey.getHRNUniqueId();
 					String writeFieldName = seseEffectsKey.getFieldDescriptor();
@@ -549,7 +560,7 @@ public class ConflictGraph {
 							}
 						}
 					}
-				}
+				//} // if(hasStrong)
 
 			}
 		}
@@ -573,7 +584,12 @@ public class ConflictGraph {
 				if (hasStrongUpdate(writeEffect, strongUpdateSet)) {
 					strongUpdateCount++;
 				}
+				
+				if(writeEffect.isStrong()){
+					return false;
+				}
 			}
+
 
 			if (liveInNode.getWriteEffectsSet().size() == strongUpdateCount) {
 				return false;
@@ -1022,7 +1038,12 @@ public class ConflictGraph {
 									newElement.setAllocList(allocSet);
 									newElement.setWaitingID(seseLock.getID());
 									newElement.setStatus(type);
-									waitingElementSet.add(newElement);
+									if(!waitingElementSet.contains(newElement)){
+										waitingElementSet.add(newElement);
+									}else{
+									}
+									
+									
 								}
 							}
 						}
@@ -1152,6 +1173,8 @@ public class ConflictGraph {
 				// allocSiteIDSet.add(hrn.getGloballyUniqueIdentifier());
 				if (hrn.getAllocationSite() != null) {
 					returnSet.add(new Integer(hrn.getAllocationSite().getID()));
+				}else{
+					returnSet.add(new Integer(hrn.getID()));
 				}
 			}
 		}

@@ -8,12 +8,18 @@ public class EffectsKey {
 	private TypeDescriptor td;
 	private Integer hrnId;
 	private String hrnUniqueId;
+	private int paramIden;
 
-	public EffectsKey(String fd, TypeDescriptor td, Integer hrnId, String hrnUniqueId) {
+	public EffectsKey(String fd, TypeDescriptor td, Integer hrnId, String hrnUniqueId, int paramIden) {
 		this.fd = fd;
 		this.td = td;
 		this.hrnId = hrnId;
 		this.hrnUniqueId=hrnUniqueId;
+		this.paramIden=paramIden;
+	}
+	
+	public int getParamIden(){
+		return paramIden;
 	}
 
 	public String getFieldDescriptor() {

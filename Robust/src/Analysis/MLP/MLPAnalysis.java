@@ -1196,6 +1196,13 @@ public class MLPAnalysis {
 
 			FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 			assert fsen.equals(currentSESE);
+			
+//			if(fsen.getParent()!=null && fsen.getParent().getSeseEffectsSet()!=null){
+//				Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> strongTable=
+//					fsen.getParent().getSeseEffectsSet().getStrongUpdateTable();
+//				fsen.getSeseEffectsSet().getStrongUpdateTable().putAll(strongTable);
+//			}
+
 
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				// uniquely taint each live-in variable
@@ -1461,11 +1468,20 @@ public class MLPAnalysis {
 			TempDescriptor src=fon.getLeft();
 			
 //			if(!currentSESE.getIsCallerSESEplaceholder()){
-				if( fon.getOp().getOp() ==Operation.ASSIGN && currentSESE.getInVarSet().contains(src)){
+				if( fon.getOp().getOp() ==Operation.ASSIGN && ( currentSESE.getInVarSet().contains(src) || (currentSESE.getOutVarSet().contains(src)))){
 					invarMap.put(dest, src);
 				}
 //			}
 
+		}break;
+		
+		case FKind.FlatNew:{
+			FlatNew fnew=(FlatNew)fn;
+			TempDescriptor dst=fnew.getDst();
+			if(dst.getType().isArray()){
+				currentSESE.getSeseEffectsSet().addStrongUpdateVar(dst,  new SESEEffectsKey("", dst.getType(), new Integer(0), ""));
+			}
+			
 		}break;
 		
 		case FKind.FlatElementNode:{
@@ -1487,7 +1503,18 @@ public class MLPAnalysis {
 			
 			if(invarMap.containsKey(dst)){
 				TempDescriptor invarTD=invarMap.get(dst);
-				currentSESE.getSeseEffectsSet().addWritingVar(invarTD, new SESEEffectsKey("", dst.getType(), new Integer(0), ""));
+				
+				SESEEffectsSet effectSet=currentSESE.getSeseEffectsSet();
+				///// if write effects occurs through variable which was strongly updated, ignore it?
+				if(effectSet.getStrongUpdateSet(invarTD)!=null && effectSet.getStrongUpdateSet(invarTD).size()>0){
+					SESEEffectsKey key=new SESEEffectsKey("", dst.getType(), new Integer(0), "");
+					key.setStrong(true);
+					currentSESE.getSeseEffectsSet().addWritingVar(invarTD, key);
+				}else{
+					currentSESE.getSeseEffectsSet().addWritingVar(invarTD, new SESEEffectsKey("", dst.getType(), new Integer(0), ""));
+				}
+				/////
+				
 			}
 			
 		}break;
@@ -1635,31 +1662,55 @@ public class MLPAnalysis {
 
 			MethodEffects me = ownAnalysis.getMethodEffectsAnalysis()
 					.getMethodEffectsByMethodContext(calleeMC);
+			
 
 			OwnershipGraph calleeOG = ownAnalysis
 					.getOwnvershipGraphByMethodContext(calleeMC);
+			
 
 			FlatMethod fm = state.getMethodFlat(fc.getMethod());
 			ParameterDecomposition decomp = new ParameterDecomposition(
 					ownAnalysis, fc, fm, calleeMC, calleeOG, og);
 
-			int base;
+			int base=0;
 			if (((MethodDescriptor) calleeMC.getDescriptor()).isStatic()) {
 				base = 0;
 			} else {
 				base = 1;
 			}
 
-			for (int i = 0; i < fc.numArgs(); i++) {
-
-				TempDescriptor arg = fc.getArg(i);
-				Set<EffectsKey> readSet = me.getEffects().getReadingSet(
-						i + base);
-				Set<EffectsKey> writeSet = me.getEffects().getWritingSet(
-						i + base);
-
-				Set<EffectsKey> strongUpdateSet = me.getEffects()
-						.getStrongUpdateSet(i + base);
+			for (int i = 0; i < fc.numArgs()+base; i++) {
+				
+				TempDescriptor arg ;
+				Set<EffectsKey> readSet;
+				Set<EffectsKey> writeSet;
+				Set<EffectsKey> strongUpdateSet;
+				
+				int paramIdx=0;
+				
+				boolean isThis=false;
+				if(i==fc.numArgs()){
+					paramIdx=0;
+					 arg = fc.getThis();
+						Integer hrnPrimaryID = calleeOG.paramIndex2idPrimary.get(paramIdx);
+						Integer hrnSecondaryID = calleeOG.paramIndex2idSecondary.get(paramIdx);
+						 readSet = me.getEffects().getReadingSet(
+								0);
+						 writeSet = me.getEffects().getWritingSet(
+								0);
+						 strongUpdateSet = me.getEffects()
+								.getStrongUpdateSet(0);
+						 isThis=true;
+				}else{
+					paramIdx=i + base;
+					 arg = fc.getArg(i);
+					 readSet = me.getEffects().getReadingSet(
+							i + base);
+					 writeSet = me.getEffects().getWritingSet(
+							i + base);
+					 strongUpdateSet = me.getEffects()
+							.getStrongUpdateSet(i + base);
+				}
 
 				LabelNode argLN = og.td2ln.get(arg);
 				if (argLN != null) {
@@ -1670,6 +1721,14 @@ public class MLPAnalysis {
 					while (affectedIter.hasNext()) {
 
 						TempDescriptor affectedTD = affectedIter.next();
+						if(isThis){
+							if (currentSESE.getInVarSet().contains(affectedTD)) {
+//								Integer hrnPrimaryID = calleeOG.paramIndex2idPrimary.get(paramIdx);
+//								Integer hrnSecondaryID = calleeOG.paramIndex2idSecondary.get(paramIdx);
+//								System.out.println("primID="+hrnPrimaryID);
+//								System.out.println("seconID="+hrnSecondaryID);
+							}
+						}
 						if (currentSESE.getInVarSet().contains(affectedTD)) {
 
 							if (readSet != null) {
@@ -1678,7 +1737,7 @@ public class MLPAnalysis {
 								while (readIter.hasNext()) {
 									EffectsKey key = readIter.next();
 									Set<Integer> hrnSet = getCallerHRNId(
-											new Integer(i + base), calleeOG,
+											new Integer(paramIdx), calleeOG,
 											key.getHRNId(), decomp);
 									Iterator<Integer> hrnIter = hrnSet
 											.iterator();
@@ -1692,6 +1751,7 @@ public class MLPAnalysis {
 										currentSESE.readEffects(affectedTD, key
 												.getFieldDescriptor(), key
 												.getTypeDescriptor(), refHRN);
+
 									}
 								}
 							}
@@ -1703,7 +1763,7 @@ public class MLPAnalysis {
 									EffectsKey key = writeIter.next();
 
 									Set<Integer> hrnSet = getCallerHRNId(
-											new Integer(i + base), calleeOG,
+											new Integer(paramIdx), calleeOG,
 											key.getHRNId(), decomp);
 									Iterator<Integer> hrnIter = hrnSet
 											.iterator();
@@ -1729,7 +1789,7 @@ public class MLPAnalysis {
 									EffectsKey key = strongUpdateIter.next();
 
 									Set<Integer> hrnSet = getCallerHRNId(
-											new Integer(i + base), calleeOG,
+											new Integer(paramIdx), calleeOG,
 											key.getHRNId(), decomp);
 									Iterator<Integer> hrnIter = hrnSet
 											.iterator();
@@ -2256,6 +2316,7 @@ public class MLPAnalysis {
 					.getOwnvershipGraphByMethodContext(mc);
 					LabelNode ln = lastOG.td2ln.get(tempDescriptor);
 					
+					
 					Set<HeapRegionNode> hrnSet = new HashSet<HeapRegionNode>();
 					Iterator<ReferenceEdge> refIter = ln
 							.iteratorToReferencees();
@@ -2268,6 +2329,7 @@ public class MLPAnalysis {
 					conflictGraph.addLiveInNode(tempDescriptor, hrnSet, fsen,
 							readEffectsSet, writeEffectsSet, strongUpdateSet, reachabilitySet);
 				}
+				
 				
 				if(conflictGraph.id2cn.size()>0){
 					conflictGraphResults.put(seseSummary.getCurrentParent(),conflictGraph);

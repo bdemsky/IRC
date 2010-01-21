@@ -1,6 +1,7 @@
 package Analysis.MLP;
 
 import java.util.HashSet;
+import java.util.Iterator;
 
 public class WaitingElement {
 
@@ -34,6 +35,49 @@ public class WaitingElement {
 
 	public void setAllocList(HashSet<Integer> allocList) {
 		this.allocList.addAll(allocList);
+	}
+
+	public boolean equals(Object o) {
+
+		if (o == null) {
+			return false;
+		}
+
+		if (!(o instanceof WaitingElement)) {
+			return false;
+		}
+
+		WaitingElement in = (WaitingElement) o;
+
+		if (waitingID == in.getWaitingID() && status == in.getStatus()
+				&& allocList.equals(in.getAllocList())) {
+			return true;
+		} else {
+			return false;
+		}
+
+	}
+
+	public String toString() {
+		return "[waitingID=" + waitingID + " status=" + status + " allocList="
+				+ allocList + "]";
+	}
+
+	public int hashCode() {
+
+		int hash = 1;
+
+		hash = hash * 31 + waitingID;
+
+		hash += status;
+
+		for (Iterator iterator = allocList.iterator(); iterator.hasNext();) {
+			Integer type = (Integer) iterator.next();
+			hash += type.intValue();
+		}
+
+		return hash;
+
 	}
 
 }

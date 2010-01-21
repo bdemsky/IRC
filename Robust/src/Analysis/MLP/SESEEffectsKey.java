@@ -8,12 +8,21 @@ public class SESEEffectsKey {
 	private TypeDescriptor td;
 	private Integer hrnId;
 	private String hrnUniqueId;
+	private boolean wStrong=false;
 
 	public SESEEffectsKey(String fd, TypeDescriptor td, Integer hrnId, String hrnUniqueId) {
 		this.fd = fd;
 		this.td = td;
 		this.hrnId = hrnId;
 		this.hrnUniqueId=hrnUniqueId;
+	}
+	
+	public void setStrong(boolean wStrong){
+		this.wStrong=wStrong;
+	}
+	
+	public boolean isStrong(){
+		return wStrong;
 	}
 
 	public String getFieldDescriptor() {

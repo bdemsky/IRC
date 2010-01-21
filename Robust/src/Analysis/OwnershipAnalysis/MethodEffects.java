@@ -40,7 +40,7 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
-							fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+							fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
 //							effectsSet.addReadingVar(paramID, new EffectsKey(
 //									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
@@ -57,7 +57,7 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
 //							effectsSet.addReadingVar(paramID, new EffectsKey(
 //									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
@@ -111,12 +111,12 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
 //							effectsSet.addWritingVar(paramID, new EffectsKey(
 //									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							if(strongUpdate){
 								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
 //								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
 //										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							}
@@ -134,12 +134,12 @@ public class MethodEffects {
 						while (paramIter.hasNext()) {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
-									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
 //							effectsSet.addWritingVar(paramID, new EffectsKey(
 //									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							if(strongUpdate){
 								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier()));
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
 //								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
 //										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							}
@@ -222,7 +222,39 @@ public class MethodEffects {
 				Integer paramIdx = paramIter.next();
 				HashSet<EffectsKey> newSet = callee.getEffects().getReadTable()
 						.get(calleeParamIdx);
-				effectsSet.addReadingEffectsSet(paramIdx, newSet);
+			
+				
+				if(newSet!=null){
+					HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
+					HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
+					Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
+					HeapRegionNode secHRN=null;
+					if(secIdx!=null){
+						 secHRN=og.id2hrn.get(secIdx);
+					}else{
+						secHRN=priHRN;
+					}
+					
+					for (Iterator iterator = newSet.iterator(); iterator.hasNext();) {
+						EffectsKey effectsKey = (EffectsKey) iterator.next();
+						HeapRegionNode hrnTemp;
+						if(effectsKey.getParamIden()==0){//primary
+							hrnTemp=priHRN;
+						}else{//secondary
+							hrnTemp=secHRN;
+						}
+						EffectsKey newEffectsKey;
+						if(secIdx==null){
+							newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
+						}else{
+							newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
+						}
+						thisSet.add(newEffectsKey);
+					}
+					
+					effectsSet.addReadingEffectsSet(paramIdx, thisSet);
+				}
+		
 			}
 
 			// handle write effects
@@ -231,7 +263,39 @@ public class MethodEffects {
 				Integer paramIdx = paramIter.next();
 				HashSet<EffectsKey> newSet = callee.getEffects()
 						.getWriteTable().get(calleeParamIdx);
-				effectsSet.addWritingEffectsSet(paramIdx, newSet);
+				
+				if(newSet!=null){
+					
+					HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
+					HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
+					Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
+					HeapRegionNode secHRN=null;
+					if(secIdx!=null){
+						 secHRN=og.id2hrn.get(secIdx);
+					}else{
+						secHRN=priHRN;
+					}
+					
+					for (Iterator iterator = newSet.iterator(); iterator.hasNext();) {
+						EffectsKey effectsKey = (EffectsKey) iterator.next();
+						HeapRegionNode hrnTemp;
+						if(effectsKey.getParamIden()==0){//primary
+							hrnTemp=priHRN;
+						}else{//secondary
+							hrnTemp=secHRN;
+						}
+						EffectsKey newEffectsKey;
+						if(secIdx==null){
+							newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
+						}else{
+							newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
+						}
+						thisSet.add(newEffectsKey);
+					}
+					
+					effectsSet.addWritingEffectsSet(paramIdx, thisSet);
+				}
+				
 			}
 			
 			// handle strong update effects
@@ -240,7 +304,38 @@ public class MethodEffects {
 				Integer paramIdx = paramIter.next();
 				HashSet<EffectsKey> newSet = callee.getEffects()
 						.getStrongUpdateTable().get(calleeParamIdx);
-				effectsSet.addStrongUpdateEffectsSet(paramIdx, newSet);
+				if(newSet!=null){
+					
+					HashSet<EffectsKey> thisSet=new HashSet<EffectsKey>();
+					HeapRegionNode priHRN=og.id2hrn.get(og.paramIndex2idPrimary.get(paramIdx));
+					Integer secIdx=og.paramIndex2idSecondary.get(paramIdx);
+					HeapRegionNode secHRN=null;
+					if(secIdx!=null){
+						 secHRN=og.id2hrn.get(secIdx);
+					}else{
+						secHRN=priHRN;
+					}
+					
+					for (Iterator iterator = newSet.iterator(); iterator.hasNext();) {
+						EffectsKey effectsKey = (EffectsKey) iterator.next();
+						HeapRegionNode hrnTemp;
+						if(effectsKey.getParamIden()==0){//primary
+							hrnTemp=priHRN;
+						}else{//secondary
+							hrnTemp=secHRN;
+						}
+						EffectsKey newEffectsKey;
+						if(secIdx==null){
+							newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),0);
+						}else{
+							newEffectsKey=new EffectsKey(effectsKey.getFieldDescriptor(), effectsKey.getTypeDescriptor(), hrnTemp.getID(),hrnTemp.getGloballyUniqueIdentifier(),effectsKey.getParamIden());
+						}
+						thisSet.add(newEffectsKey);
+					}
+					
+					effectsSet.addStrongUpdateEffectsSet(paramIdx, thisSet);
+				}
+				
 			}
 
 		}
