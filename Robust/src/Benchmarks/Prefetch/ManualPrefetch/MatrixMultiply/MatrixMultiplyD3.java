@@ -16,7 +16,20 @@ public class MatrixMultiply extends Thread{
     public void run() {
       Barrier barr=new Barrier("128.195.136.162");
       int mynumthreads, mytid, P, myx0, myx1, myy0, myy1;
+
       atomic {
+        short[] off = new short[2];
+        off[0] = getoffset{MMul, btranspose}; 
+        off[1] = (short) 0;
+        System.rangePrefetch(mmul, off);
+        off[0] = getoffset{MMul, a}; 
+        off[1] = (short) 0;
+        System.rangePrefetch(mmul, off);
+        off[0] = getoffset{MMul, c}; 
+        off[1] = (short) 0;
+        System.rangePrefetch(mmul, off);
+
+
         mmul.setValues(tid, numthreads);
         myx0=x0;
         myx1=x1;
@@ -36,7 +49,7 @@ public class MatrixMultiply extends Thread{
         offsets[0] = getoffset{MMul, btranspose};
         offsets[1] = (short) 0;
         offsets[2] = (short) 0;
-        offsets[3] = (short) 15;
+        offsets[3] = (short) 7;
         offsets[4] = (short) y0;
         offsets[5] = (short) (y1 - y0 -1);
         System.rangePrefetch(mmul, offsets);
@@ -45,7 +58,7 @@ public class MatrixMultiply extends Thread{
         offsets[0] = getoffset{MMul, a};
         offsets[1] = (short) 0;
         offsets[2] = (short) 0;
-        offsets[3] = (short) 15;
+        offsets[3] = (short) 7;
         offsets[4] = (short) x0;
         offsets[5] = (short) 15;
         System.rangePrefetch(mmul, offsets);
@@ -61,34 +74,34 @@ public class MatrixMultiply extends Thread{
         double lb[][][]=mmul.btranspose;
         int M=mmul.M;
         //Use btranspose for cache performance
-        int ll=8;
+        int ll=4;
         for(int q=0;q<P;q++,ll++) {
           double ra[][]=la[q]; 
           double rb[][]=lb[q];
           double rc[][]=lc[q];
-          if ((ll&15)==0) {
+          if ((ll&7)==0) {
             offsets2[0] = (short) (ll);
-            if((ll+16)>P) {
+            if((ll+8)>P) {
               int lx=P-ll-1;
               if(lx>0) {
                 offsets2[1]=(short) lx;
                 offsets2[2] = (short) y0;
                 offsets2[3] = (short) (y1 - y0 -1);
-                System.rangePrefetch(lb, offsets2);
+                System.rangePrefetch(mmul.btranspose, offsets2);
                 offsets2[2] = (short) x0;
                 offsets2[3] = (short) 15;
-                System.rangePrefetch(la, offsets2);
-                System.rangePrefetch(lc, offsets2);
+                System.rangePrefetch(mmul.a, offsets2);
+                System.rangePrefetch(mmul.c, offsets2);
               }
             } else {
-              offsets2[1]=(short) 15;
+              offsets2[1]=(short) 7;
               offsets2[2] = (short) y0;
               offsets2[3] = (short) (y1 - y0 -1);
-              System.rangePrefetch(lb, offsets2);
+              System.rangePrefetch(mmul.btranspose, offsets2);
               offsets2[2] = (short) x0;
               offsets2[3] = (short) 15;
-              System.rangePrefetch(la, offsets2);
-              System.rangePrefetch(lc, offsets2);
+              System.rangePrefetch(mmul.a, offsets2);
+              System.rangePrefetch(mmul.c, offsets2);
             }
           }
 
@@ -120,8 +133,8 @@ public class MatrixMultiply extends Thread{
               }
               c[j]=innerProduct;
             }
-          } //end of inner for
-        }//end of outer for
+          } //end of inner for i
+        }//end of outer for q
       }//end of atomic
     }//end of run
 
@@ -225,6 +238,7 @@ public class MMul{
     public void setValues(int tid, int numthreads) {
       int delta=numthreads;
       int start=tid;
+
 
       for(int q = start; q < P; q+=delta) {
         for(int i = 0; i < L; i++) {
