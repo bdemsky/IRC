@@ -9,6 +9,9 @@
 #if defined(THREADS) || defined(DSTM) || defined(STM)
 #include "thread.h"
 #endif
+#ifdef MLP
+#include "workschedule.h"
+#endif
 
 #ifdef DMALLOC
 #include "dmalloc.h"
@@ -52,7 +55,7 @@ extern struct RuntimeHash *fdtoobject;
 long garbagearray[MAXSTATS];
 #endif
 
-#if defined(THREADS) || defined(DSTM) || defined(STM)
+#if defined(THREADS) || defined(DSTM) || defined(STM)||defined(MLP)
 int needtocollect=0;
 struct listitem * list=NULL;
 int listcount=0;
@@ -299,14 +302,14 @@ void enqueuetag(struct ___TagDescriptor___ *ptr) {
 }
 #endif
 
-#if defined(STM)||defined(THREADS)
+#if defined(STM)||defined(THREADS)||defined(MLP)
 __thread char * memorybase=NULL;
 __thread char * memorytop=NULL;
 #endif
 
 
 void collect(struct garbagelist * stackptr) {
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   needtocollect=1;
   pthread_mutex_lock(&gclistlock);
   while(1) {
@@ -356,12 +359,12 @@ void collect(struct garbagelist * stackptr) {
 #endif
   }
 #endif
-#if defined(STM)||defined(THREADS)
+#if defined(STM)||defined(THREADS)||defined(MLP)
   memorybase=NULL;
 #endif
 
   /* Check current stack */
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   {
     struct listitem *listptr=list;
     while(1) {
@@ -375,7 +378,7 @@ void collect(struct garbagelist * stackptr) {
     }
     stackptr=stackptr->next;
   }
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   /* Go to next thread */
 #ifndef MAC
   //skip over us
@@ -405,7 +408,7 @@ void collect(struct garbagelist * stackptr) {
 #endif
     }
 #endif
-#if defined(STM)||defined(THREADS)
+#if defined(STM)||defined(THREADS)||defined(MLP)
     *(listptr->base)=NULL;
 #endif
     stackptr=listptr->stackptr;
@@ -572,7 +575,7 @@ void collect(struct garbagelist * stackptr) {
   fixtags();
 #endif
 
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   needtocollect=0;
   pthread_mutex_unlock(&gclistlock);
 #endif
@@ -646,7 +649,7 @@ void * tomalloc(int size) {
   return ptr;
 }
 
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
 void checkcollect(void * ptr) {
   stopforgc((struct garbagelist *)ptr);
   restartaftergc();
@@ -676,7 +679,7 @@ void stopforgc(struct garbagelist * ptr) {
 #ifdef THREADS
   litem.locklist=pthread_getspecific(threadlocks);
 #endif
-#if defined(STM)||defined(THREADS)
+#if defined(STM)||defined(THREADS)||defined(MLP)
   litem.base=&memorybase;
 #endif
 #ifdef STM
@@ -717,7 +720,7 @@ void restartaftergc() {
 }
 #endif
 
-#if defined(STM)||defined(THREADS)
+#if defined(STM)||defined(THREADS)||defined(MLP)
 #define MEMORYBLOCK 65536
 void * helper(struct garbagelist *, int);
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
@@ -738,7 +741,7 @@ void * helper(struct garbagelist * stackptr, int size) {
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
 #endif
   void *ptr;
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   while (pthread_mutex_trylock(&gclock)!=0) {
     stopforgc(stackptr);
     restartaftergc();
@@ -769,7 +772,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
       to_heapptr=to_heapbase;
       ptr=curr_heapbase;
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
       pthread_mutex_unlock(&gclock);
 #endif
       return ptr;
@@ -834,20 +837,20 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 
       /* Not enough room :(, redo gc */
       if (curr_heapptr>curr_heapgcpoint) {
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
 	pthread_mutex_unlock(&gclock);
 #endif
 	return mygcmalloc(stackptr, size);
       }
 
       bzero(tmp, curr_heaptop-tmp);
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
       pthread_mutex_unlock(&gclock);
 #endif
       return tmp;
     }
   } else {
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
     pthread_mutex_unlock(&gclock);
 #endif
     return ptr;

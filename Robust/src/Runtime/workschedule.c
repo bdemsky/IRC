@@ -54,6 +54,10 @@ static void(*workFunc)(void*);
 static pthread_cond_t  workAvailCond  = PTHREAD_COND_INITIALIZER;
 
 
+int threadcount;
+pthread_mutex_t gclock;
+pthread_mutex_t gclistlock;
+pthread_cond_t gccond;
 
 /*
 // helper func
@@ -238,6 +242,11 @@ void workScheduleInit( int numProcessors,
 void workScheduleInit( int numProcessors,
                        void(*func)(void*) ) {
   int i, status;
+
+  
+  pthread_mutex_init(&gclock, NULL);
+  pthread_mutex_init(&gclistlock, NULL);
+  pthread_cond_init(&gccond, NULL);
 
   numWorkers = numProcessors*5;
   workFunc   = func;

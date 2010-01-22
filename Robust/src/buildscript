@@ -378,7 +378,7 @@ JAVAOPTS="$JAVAOPTS -minimize"
 elif [[ $1 = '-mlp' ]]
 then
 MLP_ON=true
-EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread"
+EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread -DMLP"
 JAVAOPTS="$JAVAOPTS -mlp $2 $3"
 shift
 shift

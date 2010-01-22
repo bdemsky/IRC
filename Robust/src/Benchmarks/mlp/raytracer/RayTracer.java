@@ -222,7 +222,6 @@ public class RayTracer {
 
 		// For each line
 		for (int y = interval.yfrom; y < interval.yto; y++) {
-//		for (int y = 0; y < 10; y++) {
 			 double ylen = (double) (2.0 * y) / (double) interval.width - 1.0;
 //			 System.out.println("Doing line " + y);
 			// For each pixel of the line, launch parallel sese
@@ -231,7 +230,6 @@ public class RayTracer {
 				int line_checksum=0;
 				Ray tRay = new Ray();
 				Ray r = new Ray(view.from, new Vec(0,0,0));
-				Isect inter=new Isect();
 				
 				for (int x = 0; x < interval.width; x++) {
 					Vec col = new Vec();
@@ -243,7 +241,7 @@ public class RayTracer {
 					r.D.add(viewVec);
 					r.D.normalize();
 					
-					col = trace(0, 1.0, r,inter,new Ray(),new Vec());
+					col = trace(0, 1.0, r,new Isect(),new Ray(),new Vec());
 			
 					// computes the color of the ray
 					
@@ -257,9 +255,6 @@ public class RayTracer {
 					if (blue > 255)
 						blue = 255;
 					
-//					checksum += red;
-//					checksum += green;
-//					checksum += blue;
 					line_checksum += red;
 					line_checksum += green;
 					line_checksum += blue;
@@ -271,7 +266,6 @@ public class RayTracer {
 //					row[pixCounter_t] = alpha | (red << 16) | (green << 8) | (blue);
 					tempArray[x]= alpha | (red << 16) | (green << 8) | (blue);
 				} // end for (x)
-				
 			}		// end of sese line		
 			
 			sese serial{

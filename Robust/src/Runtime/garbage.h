@@ -26,7 +26,7 @@ struct listitem {
   struct objlist * lockedlist;
 #endif
 #endif
-#if defined(THREADS)||defined(STM)
+#if defined(THREADS)||defined(STM)||defined(MLP)
   char **base;
 #endif
 };
@@ -35,7 +35,7 @@ struct listitem {
 void fixtags();
 #endif
 
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
 extern int needtocollect;
 void checkcollect(void * ptr);
 void stopforgc(struct garbagelist * ptr);

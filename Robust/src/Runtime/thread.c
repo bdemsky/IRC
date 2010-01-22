@@ -46,7 +46,7 @@ pthread_mutex_t threadnotifylock;
 pthread_cond_t threadnotifycond;
 pthread_key_t oidval;
 
-#if defined(THREADS) || defined(DSTM) || defined(STM)
+#if defined(THREADS) || defined(DSTM) || defined(STM)||defined(MLP)
 #ifndef MAC
 extern __thread struct listitem litem;
 #else

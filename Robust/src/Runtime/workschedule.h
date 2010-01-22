@@ -23,5 +23,11 @@ void workScheduleSubmit( void* workUnit );
 // should not expect to return from this
 void workScheduleBegin();
 
+extern int threadcount;
+extern pthread_mutex_t gclock;
+extern pthread_mutex_t gclistlock;
+extern pthread_cond_t gccond;
+
+
 
 #endif /* __WORK_SCHEDULE__ */
