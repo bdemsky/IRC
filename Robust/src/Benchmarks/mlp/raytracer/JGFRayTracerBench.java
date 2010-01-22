@@ -67,11 +67,11 @@ public class JGFRayTracerBench extends RayTracer {
 	}
 
 	public void JGFtidyup() {
-		scene = null;
-		lights = null;
-		prim = null;
-		tRay = null;
-		inter = null;
+//		scene = null;
+//		lights = null;
+//		prim = null;
+//		tRay = null;
+//		inter = null;
 
 		// System.gc();
 	}

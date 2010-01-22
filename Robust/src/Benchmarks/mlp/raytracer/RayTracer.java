@@ -1,4 +1,3 @@
-import java.io.FileOutputStream;
 
 
 /**************************************************************************
@@ -47,7 +46,7 @@ public class RayTracer {
 	 * Temporary ray
 	 */
 //	Ray tRay= new Ray();
-	Ray tRay;
+//	Ray tRay;
 
 	/**
 	 * Alpha channel
@@ -59,19 +58,19 @@ public class RayTracer {
 	 * Null vector (for speedup, instead of <code>new Vec(0,0,0)</code>
 	 */
 //	static final Vec voidVec = new Vec();
-	static final Vec voidVec;
+//	static final Vec voidVec;
 
 	/**
 	 * Temporary vect
 	 */
 //	Vec L = new Vec();
-	Vec L;
+//	Vec L;
 
 	/**
 	 * Current intersection instance (only one is needed!)
 	 */
 //	Isect inter = new Isect();
-	Isect inter;
+//	Isect inter;
 
 	/**
 	 * Height of the <code>Image</code> to be rendered
@@ -94,11 +93,11 @@ public class RayTracer {
 	int numobjects;
 	
 	public RayTracer() {
-		tRay = new Ray();
+//		tRay = new Ray();
 		alpha = 255 << 24;
-		voidVec = new Vec();
-		L = new Vec();
-		inter = new Isect();
+//		voidVec = new Vec();
+//		L = new Vec();
+//		inter = new Isect();
 		checksum=0;
 		datasizes = new int[2];
 		datasizes[0] = 150;
@@ -195,29 +194,23 @@ public class RayTracer {
 		int pixCounter = 0; // iterator
 
 		// Rendering variables
-//		int x, y, red, green, blue;
+	//	int x, y, red, green, blue;
 //		double xlen, ylen;
+		
 		Vec viewVec;
-
 		viewVec = Vec.sub(view.at, view.from);
-
 		viewVec.normalize();
-
 		Vec tmpVec = new Vec(viewVec);
 		tmpVec.scale(Vec.dot(view.up, viewVec));
-
 		Vec upVec = Vec.sub(view.up, tmpVec);
 		upVec.normalize();
-
 		Vec leftVec = Vec.cross(view.up, viewVec);
 		leftVec.normalize();
-
 		double frustrumwidth = view.dist * Math.tan(view.angle);
-
 		upVec.scale(-frustrumwidth);
 		leftVec.scale(view.aspect * frustrumwidth);
-
-		Ray r = new Ray(view.from, voidVec);
+		
+//		Ray r = new Ray(view.from, new Vec(0,0,0));
 //		Vec col = new Vec();
 
 		// Header for .ppm file
@@ -229,22 +222,28 @@ public class RayTracer {
 
 		// For each line
 		for (int y = interval.yfrom; y < interval.yto; y++) {
-//		for (int y = 0; y < 3; y++) {
-			double ylen = (double) (2.0 * y) / (double) interval.width - 1.0;
+//		for (int y = 0; y < 10; y++) {
+			 double ylen = (double) (2.0 * y) / (double) interval.width - 1.0;
 //			 System.out.println("Doing line " + y);
 			// For each pixel of the line, launch parallel sese
 			sese parallel{
 				int tempArray[]=new int[interval.width];
+				int line_checksum=0;
+				Ray tRay = new Ray();
+				Ray r = new Ray(view.from, new Vec(0,0,0));
+				Isect inter=new Isect();
+				
 				for (int x = 0; x < interval.width; x++) {
 					Vec col = new Vec();
+				
 					double xlen = (double) (2.0 * x) / (double) interval.width - 1.0;					
 					int pixCounter_t=y*(interval.width)+x;
-						
+
 					r.D = Vec.comb(xlen, leftVec, ylen, upVec);
 					r.D.add(viewVec);
 					r.D.normalize();
 					
-					col = trace(0, 1.0, r);
+					col = trace(0, 1.0, r,inter,new Ray(),new Vec());
 			
 					// computes the color of the ray
 					
@@ -257,11 +256,15 @@ public class RayTracer {
 					int blue = (int) (col.z * 255.0);
 					if (blue > 255)
 						blue = 255;
-
-					checksum += red;
-					checksum += green;
-					checksum += blue;
 					
+//					checksum += red;
+//					checksum += green;
+//					checksum += blue;
+					line_checksum += red;
+					line_checksum += green;
+					line_checksum += blue;
+					
+
 					// RGB values for .ppm file
 					// System.out.println(red + " " + green + " " + blue);
 					// Sets the pixels
@@ -276,6 +279,10 @@ public class RayTracer {
 				    int pixCounter_t=y*(interval.width)+x;
 					row[pixCounter_t] = tempArray[x];
 			    }
+				checksum+=line_checksum;
+				if(y== (interval.yto-1)){
+					System.out.println("CHECKSUM="+checksum);
+				}
 			}
 			
 		} // end for (y)
@@ -283,8 +290,9 @@ public class RayTracer {
 		System.out.println("END OF WORK");
 		
 	}
+	
 
-	boolean intersect(Ray r, double maxt) {
+	boolean intersect(Ray r, double maxt,Isect inter) {
 		Isect tp;
 		int i, nhits;
 
@@ -311,8 +319,8 @@ public class RayTracer {
 	 *            The ray
 	 * @return Returns 1 if there is a shadow, 0 if there isn't
 	 */
-	int Shadow(Ray r, double tmax) {
-		if (intersect(r, tmax))
+	int Shadow(Ray r, double tmax,Isect inter) {
+		if (intersect(r, tmax,inter))
 			return 0;
 		return 1;
 	}
@@ -352,7 +360,7 @@ public class RayTracer {
 	 * 
 	 * @return The color in Vec form (rgb)
 	 */
-	Vec shade(int level, double weight, Vec P, Vec N, Vec I, Isect hit) {
+	Vec shade(int level, double weight, Vec P, Vec N, Vec I, Isect hit,Ray tRay,Vec L) {
 		double n1, n2, eta, c1, cs2;
 		Vec r;
 		Vec tcol;
@@ -371,7 +379,12 @@ public class RayTracer {
 
 		// Computes the effectof each light
 		for (l = 0; l < lights.length; l++) {
-			L.sub2(lights[l].pos, P);
+//			L.sub2(lights[l].pos, P);
+			
+			L.x=lights[l].pos.x-P.x;
+			L.y=lights[l].pos.y-P.y;
+			L.z=lights[l].pos.z-P.z;
+			
 			if (Vec.dot(N, L) >= 0.0) {
 				t = L.normalize();
 
@@ -379,7 +392,7 @@ public class RayTracer {
 				tRay.D = L;
 
 				// Checks if there is a shadow
-				if (Shadow(tRay, t) > 0) {
+				if (Shadow(tRay, t,hit) > 0) {
 					diff = Vec.dot(N, L) * surf.kd * lights[l].brightness;
 
 					col.adds(diff, surf.color);
@@ -399,7 +412,7 @@ public class RayTracer {
 		tRay.P = P;
 		if (surf.ks * weight > 1e-3) {
 			tRay.D = SpecularDirection(I, N);
-			tcol = trace(level + 1, surf.ks * weight, tRay);
+			tcol = trace(level + 1, surf.ks * weight, tRay,hit,tRay,L);
 			col.adds(surf.ks, tcol);
 		}
 		if (surf.kt * weight > 1e-3) {
@@ -407,7 +420,7 @@ public class RayTracer {
 				tRay.D = TransDir(null, surf, I, N);
 			else
 				tRay.D = TransDir(surf, null, I, N);
-			tcol = trace(level + 1, surf.kt * weight, tRay);
+			tcol = trace(level + 1, surf.kt * weight, tRay,hit,tRay,L);
 			col.adds(surf.kt, tcol);
 		}
 
@@ -421,7 +434,8 @@ public class RayTracer {
 	/**
 	 * Launches a ray
 	 */
-	Vec trace(int level, double weight, Ray r) {
+	Vec trace(int level, double weight, Ray r,Isect inter,Ray tRay,Vec L) {
+		
 		Vec P, N;
 		boolean hit;
 
@@ -429,38 +443,18 @@ public class RayTracer {
 		if (level > 6) {
 			return new Vec();
 		}
-
-		hit = intersect(r, 1e6);
+		hit = intersect(r, 1e6,inter);
 		if (hit) {
 			P = r.point(inter.t);
 			N = inter.prim.normal(P);
 			if (Vec.dot(r.D, N) >= 0.0) {
 				N.negate();
 			}
-			return shade(level, weight, P, N, r.D, inter);
+			return shade(level, weight, P, N, r.D, inter,tRay,L);
 		}
+		
 		// no intersection --> col = 0,0,0
-		return voidVec;
-	}
-
-	public static void main(String argv[]) {
-
-		RayTracer rt = new RayTracer();
-
-		// create the objects to be rendered
-		rt.scene = rt.createScene();
-
-		// get lights, objects etc. from scene.
-		rt.setScene(rt.scene);
-
-		// Set interval to be rendered to the whole picture
-		// (overkill, but will be useful to retain this for parallel versions)
-		Interval interval = new Interval(0, rt.width, rt.height, 0, rt.height,
-				1);
-
-		// Do the business!
-		rt.render(interval);
-
+		return new Vec(0,0,0);
 	}
 
 }
