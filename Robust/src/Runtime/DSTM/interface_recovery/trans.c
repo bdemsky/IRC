@@ -767,7 +767,7 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
     flipBit ^= 1;
 
 #ifdef DEBUG
-    printf("mindex:%d, oid:%d, machinenumber:%s\n", mindex, oid, midtoIPString(machinenumber));
+    printf("mindex:%d, oid:%d, machinenumber:%s\n", machinenumber, oid, midtoIPString(machinenumber));
 #endif
 #endif
 
@@ -869,23 +869,23 @@ plistnode_t *createPiles() {
         }
  
 		    pile = pInsert(pile, headeraddr, getPrimaryMachine(mid), c_numelements);
-			
-        if(makedirty) { 
-				  STATUS(headeraddr) = DIRTY;
-   			}
 
-			  pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
+        if(numLiveHostsInSystem > 1) {
+			    if(makedirty) { 
+				    STATUS(headeraddr) = DIRTY;
+     			}
+	  		  pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
+        }
 #else
-  
-			// Get machine location for object id (and whether local or not)
-			if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
-				machinenum = myIpAddr;
-			} else if ((machinenum = lhashSearch(curr->key)) == 0) {
-        printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
-        return NULL;
-      }
-      //Make machine groups
-      pile = pInsert(pile, headeraddr, machinenum, c_numelements);
+    		// Get machine location for object id (and whether local or not)
+		    if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
+				  machinenum = myIpAddr;
+        } else if ((machinenum = lhashSearch(curr->key)) == 0) {
+          printf("Error: No such machine %s, %d\n", __FILE__, __LINE__);
+          return NULL;
+        }
+        //Make machine groups
+        pile = pInsert(pile, headeraddr, machinenum, c_numelements);        
 #endif
       curr = curr->next;
     }
@@ -2815,11 +2815,14 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
   premoteAddr.sin_addr.s_addr = htonl(pmid);
 
 #ifdef RECOVERY
-  /* for backup machine */
-  bzero(&bremoteAddr, sizeof(bremoteAddr));
-  bremoteAddr.sin_family = AF_INET;
-  bremoteAddr.sin_port = htons(LISTEN_PORT);
-  bremoteAddr.sin_addr.s_addr = htonl(bmid);
+
+  if(numLiveHostsInSystem > 1) {
+    /* for backup machine */
+    bzero(&bremoteAddr, sizeof(bremoteAddr));
+    bremoteAddr.sin_family = AF_INET;
+    bremoteAddr.sin_port = htons(LISTEN_PORT);
+    bremoteAddr.sin_addr.s_addr = htonl(bmid);
+  }
 #endif
   /* Generate unique threadid */
   threadid++;
@@ -2844,8 +2847,17 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 
   /* Send  number of oids, oidarry, version array, machine id and threadid */
 #ifdef RECOVERY
-  if ((connect(psock, (struct sockaddr *)&premoteAddr, sizeof(premoteAddr))< 0) || 
-      (connect(bsock, (struct sockaddr *)&bremoteAddr, sizeof(bremoteAddr))< 0)) {
+  // need to handle the single machine case
+  int first = 0;
+  int second = 0;
+
+  first = connect(psock, (struct sockaddr *)&premoteAddr, sizeof(premoteAddr));
+  // if it is running in single machine, it doesn't need to connect to backup machine
+  if(numLiveHostsInSystem > 1)
+    second = connect(bsock, (struct sockaddr *)&premoteAddr, sizeof(bremoteAddr));
+
+  //  primary         backup
+  if ((first < 0) || (second < 0 )) {
 #else
   if ((connect(psock, (struct sockaddr *)&premoteAddr, sizeof(premoteAddr))< 0)) {
 #endif
@@ -2899,7 +2911,8 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     size = 1 + numoid * (sizeof(unsigned int) + sizeof(unsigned short)) + 3 * sizeof(unsigned int);
     send_data(psock, msg, size);
 #ifdef RECOVERY
-    send_data(bsock, msg, size);
+    if(numLiveHostsInSystem > 1)
+      send_data(bsock, msg, size);
 #endif
     pthread_cond_wait(&(ndata->threadcond), &(ndata->threadnotify));
     pthread_mutex_unlock(&(ndata->threadnotify));
