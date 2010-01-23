@@ -3,6 +3,19 @@ public class DistributedHashMap {
   float loadFactor;
   int secondcapacity;
 	int size;
+  int DEFAULT_INITIALCAPACITY;
+  int DEFAULT_SECONDCAPACITY;
+  float DEFAULT_LOADFACTOR;
+
+  public DistributedHashMap() 
+  {
+    DEFAULT_INITIALCAPACITY = 500;
+    DEFAULT_SECONDCAPACITY = 500;
+    DEFAULT_LOADFACTOR = 0.75f;
+
+    init(DEFAULT_INITIALCAPACITY,DEFAULT_SECONDCAPACITY,DEFAULT_LOADFACTOR);
+    size = 0;
+  }
 
   public DistributedHashMap(int initialCapacity, int secondcapacity, float loadFactor) {
     init(initialCapacity, secondcapacity, loadFactor);
