@@ -57,8 +57,6 @@ public class MatrixMultiply extends Thread{
         //Get first part of A
         offsets[0] = getoffset{MMul, a};
         offsets[1] = (short) 0;
-        offsets[2] = (short) 0;
-        offsets[3] = (short) 7;
         offsets[4] = (short) x0;
         offsets[5] = (short) 15;
         System.rangePrefetch(mmul, offsets);
@@ -87,21 +85,21 @@ public class MatrixMultiply extends Thread{
                 offsets2[1]=(short) lx;
                 offsets2[2] = (short) y0;
                 offsets2[3] = (short) (y1 - y0 -1);
-                System.rangePrefetch(mmul.btranspose, offsets2);
+                System.rangePrefetch(lb, offsets2);
                 offsets2[2] = (short) x0;
                 offsets2[3] = (short) 15;
-                System.rangePrefetch(mmul.a, offsets2);
-                System.rangePrefetch(mmul.c, offsets2);
+                System.rangePrefetch(la, offsets2);
+                System.rangePrefetch(lc, offsets2);
               }
             } else {
-              offsets2[1]=(short) 7;
+              offsets2[1]=(short)7;
               offsets2[2] = (short) y0;
               offsets2[3] = (short) (y1 - y0 -1);
-              System.rangePrefetch(mmul.btranspose, offsets2);
+              System.rangePrefetch(lb, offsets2);
               offsets2[2] = (short) x0;
               offsets2[3] = (short) 15;
-              System.rangePrefetch(mmul.a, offsets2);
-              System.rangePrefetch(mmul.c, offsets2);
+              System.rangePrefetch(la, offsets2);
+              System.rangePrefetch(lc, offsets2);
             }
           }
 
