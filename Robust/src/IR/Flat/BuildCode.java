@@ -3349,14 +3349,12 @@ public class BuildCode {
     //output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
 
     // fill in common data
+    output.println("     int localCount=0;");
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
     output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
     output.println("     seseToIssue->common.forwardList = createQueue();");
-    //eom
-    output.println("     seseToIssue->common.connectedList = createQueue();");
-    //
-    output.println("     seseToIssue->common.unresolvedDependencies = 0;");
+    output.println("     seseToIssue->common.unresolvedDependencies = 10000;");
     output.println("     pthread_cond_init( &(seseToIssue->common.doneCond), NULL );");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
@@ -3389,6 +3387,11 @@ public class BuildCode {
       }
     }
     
+    // before potentially adding this SESE to other forwarding lists,
+    //  create it's lock and take it immediately
+    output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
+    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
+    
     // count up memory conflict dependencies,
     // eom
     ConflictGraph graph=null;
@@ -3406,6 +3409,7 @@ public class BuildCode {
 			
 			output.println();
 			output.println("     /*add waiting queue element*/");
+			output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
 			output.println("     struct Queue*  newWaitingItemQueue=createQueue();");
 			
 			Set<WaitingElement> waitingQueueSet=graph.getWaitingElementSetBySESEID(fsen
@@ -3417,7 +3421,7 @@ public class BuildCode {
 				output.println("     WaitingElement* newElement=NULL;");
 				output.println("     struct Queue* list=NULL;");
 				output.println("     struct QueueItem* newQItem=NULL;");
-				output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
+//				output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
 				for (Iterator iterator = waitingQueueSet.iterator(); iterator
 						.hasNext();) {
 					WaitingElement waitingElement = (WaitingElement) iterator.next();
@@ -3437,20 +3441,19 @@ public class BuildCode {
 									+ waitingElement.getWaitingID() + ",newElement);");
 					output
 							.println("     addNewItem(newWaitingItemQueue,newQItem);");
-					output
-							.println("     ++(seseToIssue->common.unresolvedDependencies);");
+//					output.println("     ++(seseToIssue->common.unresolvedDependencies);");
+					output.println("     ++(localCount);");
 					output
 					.println();
 				}
-				output
-						.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
+//				output.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
 				output.println("     }");
 			}
 			
 			output.println("     /*decide whether it is runnable or not in regarding to memory conflicts*/");
 			output.println("     {");
 			output.println("      if( !isEmpty(newWaitingItemQueue) ){");
-			output.println("         pthread_mutex_lock( &(parentCommon->lock)  );");
+//			output.println("         pthread_mutex_lock( &(parentCommon->lock)  );");
 			output.println("         int idx;");
 			output.println("         for(idx = 0 ; idx < numRelatedWaitingQueue ; idx++){");
 			output.println("            struct Queue *allocQueue=parentCommon->allocSiteArray[idx].waitingQueue;");
@@ -3458,24 +3461,22 @@ public class BuildCode {
 			output.println("               struct QueueItem* nextQItem=getHead(allocQueue);");
 			output.println("               while( nextQItem != NULL ){");
 			output.println("                  if(contains(newWaitingItemQueue,nextQItem) && isRunnable(allocQueue,nextQItem)){");
-			output.println("                     if(seseToIssue->common.unresolvedDependencies>0)");
-			output.println("                     --(seseToIssue->common.unresolvedDependencies);");
+//			output.println("                     if(seseToIssue->common.unresolvedDependencies>0)");
+//			output.println("                     --(seseToIssue->common.unresolvedDependencies);");
+			output.println("                     --(localCount);");
 			output.println("                  }");
 			output.println("                     nextQItem=getNextQueueItem(nextQItem);");
 			output.println("               }");
 			output.println("          }");
 			output.println("        }");
+		
+			output.println("     }");
+			output.println("     }");
 			output.println("        pthread_mutex_unlock( &(parentCommon->lock)  );");
-			output.println("     }");
-			output.println("     }");
 			output.println();
 			
 		}
 
-    // before potentially adding this SESE to other forwarding lists,
-    //  create it's lock and take it immediately
-    output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
-    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
     // eom
 //    output.println("     pthread_mutex_init( &(seseToIssue->common.waitingQueueLock), NULL );");
     //
@@ -3495,7 +3496,8 @@ public class BuildCode {
 	output.println("       }");
 	output.println("       if( !src->doneExecuting ) {");
 	output.println("         addNewItem( src->forwardList, seseToIssue );");
-	output.println("         ++(seseToIssue->common.unresolvedDependencies);");
+//	output.println("         ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("         ++(localCount);");
 	output.println("       }");
 	output.println("       pthread_mutex_unlock( &(src->lock) );");
 	output.println("     }");
@@ -3522,7 +3524,8 @@ public class BuildCode {
 	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
 	output.println("           if( !src->doneExecuting ) {");
 	output.println("             addNewItem( src->forwardList, seseToIssue );");
-	output.println("             ++(seseToIssue->common.unresolvedDependencies);");
+//	output.println("             ++(seseToIssue->common.unresolvedDependencies);");
+	output.println("             ++(localCount);");
 	output.println("           }");
 	output.println("         }");
 	output.println("         pthread_mutex_unlock( &(src->lock) );");	
@@ -3569,15 +3572,23 @@ public class BuildCode {
       }
  
     }
-
-    // if there were no outstanding dependencies, issue here
-    output.println("     if( seseToIssue->common.unresolvedDependencies == 0 ) {");
-    output.println("       workScheduleSubmit( (void*)seseToIssue );");
-    output.println("     }");
-
+    
     // release this SESE for siblings to update its dependencies or,
     // eventually, for it to mark itself finished
     output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
+    
+    // if there were no outstanding dependencies, issue here
+    output.println("     if(  atomic_sub_and_test(10000-localCount,&(seseToIssue->common.unresolvedDependencies) ) ) {");
+    output.println("       workScheduleSubmit( (void*)seseToIssue );");
+    output.println("     }");
+    /*
+    output.println("     if( seseToIssue->common.unresolvedDependencies == 0 ) {");
+    output.println("       workScheduleSubmit( (void*)seseToIssue );");
+    output.println("     }");
+    */
+    // release this SESE for siblings to update its dependencies or,
+    // eventually, for it to mark itself finished
+//    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
     output.println("   }");
     
   }
@@ -3662,12 +3673,13 @@ public class BuildCode {
     // decrement dependency count for all SESE's on your forwarding list
     output.println("   while( !isEmpty( "+com+".forwardList ) ) {");
     output.println("     SESEcommon* consumer = (SESEcommon*) getItem( "+com+".forwardList );");
-    output.println("     pthread_mutex_lock( &(consumer->lock) );");
-    output.println("     --(consumer->unresolvedDependencies);");
-    output.println("     if( consumer->unresolvedDependencies == 0 ) {");
+//    output.println("     pthread_mutex_lock( &(consumer->lock) );");
+//  output.println("     --(consumer->unresolvedDependencies);");
+//    output.println("     if( consumer->unresolvedDependencies == 0 ) {");
+    output.println("     if( atomic_sub_and_test(1, &(consumer->unresolvedDependencies)) ){");
     output.println("       workScheduleSubmit( (void*)consumer );");
     output.println("     }");
-    output.println("     pthread_mutex_unlock( &(consumer->lock) );");
+//    output.println("     pthread_mutex_unlock( &(consumer->lock) );");
     output.println("   }");
     
     
@@ -3724,15 +3736,16 @@ public class BuildCode {
     	output.println("                 }");
     	output.println("              }else{");
     	output.println("                 if(isResolved){");
-    	output.println("                    pthread_mutex_lock( &(seseNextItem->lock) );");
-    	output.println("                    if(seseNextItem->unresolvedDependencies > 0){");
-    	output.println("                       --(seseNextItem->unresolvedDependencies);");
-    	output.println("                       if( seseNextItem->unresolvedDependencies == 0){");
+//    	output.println("                    pthread_mutex_lock( &(seseNextItem->lock) );");
+//    	output.println("                    if(seseNextItem->unresolvedDependencies > 0){");
+//    	output.println("                       --(seseNextItem->unresolvedDependencies);");
+//    	output.println("                       if( seseNextItem->unresolvedDependencies == 0){");
     	//output.println("                          workScheduleSubmit( (void*)nextItem);");
+    	output.println("                       if( atomic_sub_and_test(1, &(seseNextItem->unresolvedDependencies)) ){");
     	output.println("                            addNewItem(launchQueue,(void*)seseNextItem);");
     	output.println("                       }");
-    	output.println("                    }");
-    	output.println("                    pthread_mutex_unlock( &(seseNextItem->lock) );");
+//    	output.println("                    }");
+//    	output.println("                    pthread_mutex_unlock( &(seseNextItem->lock) );");
     	output.println("                 }");
     	output.println("                 nextQItem=getNextQueueItem(nextQItem);");
     	output.println("               }");

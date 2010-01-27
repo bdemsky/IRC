@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include "Queue.h"
 #include "psemaphore.h"
-
+#include "mlp_lock.h"
 
 #ifndef FALSE
 #define FALSE 0
@@ -49,7 +49,7 @@ typedef struct SESEcommon_t {
   pthread_mutex_t lock;
 
   struct Queue*   forwardList;
-  int             unresolvedDependencies;
+  volatile int             unresolvedDependencies;
 
   pthread_cond_t  doneCond;
   int             doneExecuting;

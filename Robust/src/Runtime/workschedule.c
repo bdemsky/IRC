@@ -248,7 +248,8 @@ void workScheduleInit( int numProcessors,
   pthread_mutex_init(&gclistlock, NULL);
   pthread_cond_init(&gccond, NULL);
 
-  numWorkers = numProcessors*5;
+  //numWorkers = numProcessors*5;
+  numWorkers = numProcessors + 1;
   workFunc   = func;
 
   dequeWorkUnits = createQueue();
