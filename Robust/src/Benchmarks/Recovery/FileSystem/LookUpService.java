@@ -45,15 +45,7 @@ public class LookUpService extends Thread {
 		while ((comm = fis.readLine()) != null) {			// 'command' 'path'
 			c = comm.charAt(0);													// ex) w /home/abc.c 
 			key = comm.subString(2);
-			if (c == 'c') {
-//				System.out.println(c + " " + key);
-				t = new Transaction(c, key);
-//				t = new Transaction(c, key, val);
-			}
-			else {
-//				System.out.println(c + " " + key);
-				t = new Transaction(c, key);
-			}
+			t = new Transaction(c, key);
 			todoList.add(t);
 		}
 	}
@@ -76,6 +68,7 @@ public class LookUpService extends Thread {
 		}
 
 		LinkedList todoList = new LinkedList();
+		LinkedList myDir = new LinkedList();
 		fillTodoList(file, todoList);
 
 		while (!todoList.isEmpty()) {
@@ -95,7 +88,7 @@ public class LookUpService extends Thread {
 			}
 
 			if (command == 'r') {	
-				System.out.println("["+command+"] ["+key+"]");
+//				System.out.println("["+command+"] ["+key+"]");
 				if (isDir == true) {
 					atomic {
 						readDirectory(gkey);
@@ -109,20 +102,36 @@ public class LookUpService extends Thread {
 			}
 			else if (command == 'c') {	
 				if (isDir == true) {
-					System.out.println("["+command+"] ["+key+"]");
+//					System.out.println("["+command+"] ["+key+"]");
 					atomic {
 						createDirectory(gkey);
+						if(!myDir.contains(key)) {
+							myDir.add(key);
+						}
 					}
 				}
 				else {
 					val = t.getValue();
-					System.out.println("["+command+"] ["+key+"] ["+val+"]");
+//					System.out.println("["+command+"] ["+key+"] ["+val+"]");
 					atomic {
 						gval = global new GlobalString(val);
 						createFile(gkey, gval);
 					}
 				}
 			}
+		}
+		output(myDir);
+	}
+
+	public static void output(LinkedList myDir) { 
+		Iterator iter;
+		String str;
+
+		iter = myDir.iterator();
+
+		while (iter.hasNext()) {
+			str = (String)(iter.next());
+			System.printString(str + "\n");
 		}
 	}
 
@@ -206,6 +215,26 @@ public class LookUpService extends Thread {
 	}
 	
 	public void createFile(GlobalString gkey) {
+		GlobalString path;
+		GlobalString target;
+		GlobalString gval;
+		int index;
+		DistributedLinkedList list;
+
+		index = gkey.lastindexOf('/');
+		path = gkey.subString(0, index+1);
+		target = gkey.subString(index+1);
+		gval = global new GlobalString();
+
+		if (dir.containsKey(path)) {
+			list = (DistributedLinkedList)(dir.get(path));
+			list.push(target);
+			dir.put(path, list);
+			fs.put(gkey, gval);
+		}
+		else {
+			System.out.println("Cannot create file");
+		}
 	}
 
 	public Object read(DistributedHashMap mydhmap, GlobalString key) {
@@ -223,8 +252,8 @@ public class LookUpService extends Thread {
 		
 		int[] mid = new int[8];
 		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
-		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
-		mid[2] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
+//		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
 //		mid[0] = (128<<24)|(195<<16)|(136<<8)|165;//dc-4
 //		mid[1] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
 //		mid[2] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
