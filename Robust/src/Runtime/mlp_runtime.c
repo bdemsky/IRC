@@ -22,6 +22,10 @@ __thread SESEcommon_p seseCaller;
 
 void* mlpAllocSESErecord( int size ) {
   void* newrec = RUNMALLOC( size );  
+  if( newrec == 0 ) {
+    printf( "mlpAllocSESErecord did not obtain memory!\n" );
+    exit( -1 );
+  }
   return newrec;
 }
 
