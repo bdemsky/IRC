@@ -122,6 +122,10 @@ public class FlatSESEEnterNode extends FlatNode {
   public String toString() {
     return "sese "+getPrettyIdentifier()+" enter";
   }
+  
+  public String toPrettyString() {
+    return "sese "+getPrettyIdentifier()+getIdentifier();
+  }
 
   public void setParent( FlatSESEEnterNode parent ) {
     this.parent = parent;

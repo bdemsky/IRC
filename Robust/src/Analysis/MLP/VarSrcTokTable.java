@@ -530,40 +530,17 @@ public class VarSrcTokTable {
   }
 
 
-  // get a sufficient set of VariableSourceTokens to cover all static sources
-  public Set<VariableSourceToken> getStaticSet( FlatSESEEnterNode current,
-						FlatSESEEnterNode parent 
-					      ) {
-    
-    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
-    
-    Iterator itr = var2vst.entrySet().iterator();
-    while( itr.hasNext() ) {
-      Map.Entry                    me  = (Map.Entry)                    itr.next();
-      TempDescriptor               var = (TempDescriptor)               me.getKey();
-      HashSet<VariableSourceToken> s1  = (HashSet<VariableSourceToken>) me.getValue();      
-    
-      if( getRefVarSrcType( var, current, parent ) == SrcType_STATIC ) {
-	out.add( s1.iterator().next() );
-      }
-    }
-
-    return out;
-  }
-
-
   // given a table from a subsequent program point, decide
-  // which variables are going from a static source to a
+  // which variables are going from a non-dynamic to a
   // dynamic source and return them
-  public Hashtable<TempDescriptor, VariableSourceToken> 
+  public Hashtable<TempDescriptor, VSTWrapper> 
     getReadyOrStatic2DynamicSet( VarSrcTokTable nextTable,
                                  Set<TempDescriptor> nextLiveIn,
-                                 FlatSESEEnterNode current,
-                                 FlatSESEEnterNode parent
+                                 FlatSESEEnterNode current
                                  ) {
     
-    Hashtable<TempDescriptor, VariableSourceToken> out = 
-      new Hashtable<TempDescriptor, VariableSourceToken>();
+    Hashtable<TempDescriptor, VSTWrapper> out = 
+      new Hashtable<TempDescriptor, VSTWrapper>();
     
     Iterator itr = var2vst.entrySet().iterator();
     while( itr.hasNext() ) {
@@ -573,15 +550,21 @@ public class VarSrcTokTable {
 
       // only worth tracking if live
       if( nextLiveIn.contains( var ) ) {
+        
+        VSTWrapper vstIfStaticBefore = new VSTWrapper();
+        VSTWrapper vstIfStaticAfter  = new VSTWrapper();
 
-	if( (    this.getRefVarSrcType( var, current, parent ) == SrcType_READY ||
-                 this.getRefVarSrcType( var, current, parent ) == SrcType_STATIC  )
-            &&
-	    nextTable.getRefVarSrcType( var, current, parent ) == SrcType_DYNAMIC
-	  ) {
-	  // remember the variable and a static source
+        Integer srcTypeBefore =      this.getRefVarSrcType( var, current, vstIfStaticBefore );
+        Integer srcTypeAfter  = nextTable.getRefVarSrcType( var, current, vstIfStaticAfter  );
+
+	if( !srcTypeBefore.equals( SrcType_DYNAMIC ) &&
+              srcTypeAfter.equals( SrcType_DYNAMIC )	   
+          ) {
+	  // remember the variable and a source
 	  // it had before crossing the transition
-	  out.put( var, s1.iterator().next() );	  
+          // 1) if it was ready, vstIfStatic.vst is null
+          // 2) if is was static, use vstIfStatic.vst
+	  out.put( var, vstIfStaticBefore );
 	}
       }
     }
@@ -592,75 +575,62 @@ public class VarSrcTokTable {
 
   // for some reference variable, return the type of source
   // it might have in this table, which might be:
-  // 1. Ready -- this variable comes from your parent and is
+  // 1. Ready -- this variable is
   //      definitely available when you are issued.
-  // 2. Static -- there is definitely one SESE that will
-  //      produce the value for this variable
+  // 2. Static -- there is definitely one child SESE with
+  //      a known age that will produce the value
   // 3. Dynamic -- we don't know where the value will come
-  //      from, so we'll track it dynamically
+  //      from statically, so we'll track it dynamically
   public Integer getRefVarSrcType( TempDescriptor    refVar,
 				   FlatSESEEnterNode current,
-				   FlatSESEEnterNode parent ) {
-    assert refVar != null;
-    
-    // if you have no parent (root) and the variable in
-    // question is in your in-set, it's a command line
-    // argument and it is definitely available
-    if( parent == null && 
-	current.getInVarSet().contains( refVar ) ) {
+                                   VSTWrapper        vstIfStatic ) {
+    assert refVar      != null;
+    assert vstIfStatic != null;
+
+    vstIfStatic.vst = null;
+   
+    // when the current SESE is null, that simply means it is
+    // an unknown placeholder, in which case the system will
+    // ensure that any variables are READY
+    if( current == null ) {
       return SrcType_READY;
     }
 
     // if there appear to be no sources, it means this variable
     // comes from outside of any statically-known SESE scope,
-    // which means the system guarantees its READY
-    Set<VariableSourceToken> srcs = get( refVar );
-    if( srcs.isEmpty() ) {
-      return SrcType_READY;
-    }
+    // which means the system guarantees its READY, so jump over
+    // while loop
+    Set<VariableSourceToken>      srcs    = get( refVar );
+    Iterator<VariableSourceToken> itrSrcs = srcs.iterator();
+    while( itrSrcs.hasNext() ) {
+      VariableSourceToken vst = itrSrcs.next();
 
-    // if the variable may have more than one source it might be
-    // dynamic, unless all sources are from a placeholder
-    if( srcs.size() > 1 ) {
-      Iterator<VariableSourceToken> itrSrcs = srcs.iterator();
-      VariableSourceToken oneSrc = itrSrcs.next();
-      while( itrSrcs.hasNext() ) {
-	VariableSourceToken anotherSrc = itrSrcs.next();
-	if( !oneSrc.getSESE().equals( anotherSrc.getSESE() ) ||
-	    !oneSrc.getAge( ).equals( anotherSrc.getAge( ) ) 
-	  ) {
-	  return SrcType_DYNAMIC;
-	}
+      // to make the refVar non-READY we have to find at least
+      // one child token
+      if( current.getChildren().contains( vst.getSESE() ) ) {
+
+        // if we ever have at least one child source with an
+        // unknown age, have to treat var as dynamic
+        if( vst.getAge().equals( MLPAnalysis.maxSESEage ) ) {
+          return SrcType_DYNAMIC;
+        }
+
+        // if we have a known-age child source, this var is
+        // either static or dynamic now: it's static if this
+        // source is the only source, otherwise dynamic
+        if( srcs.size() > 1 ) {
+          return SrcType_DYNAMIC;
+        }
+        
+        vstIfStatic.vst = vst;
+        return SrcType_STATIC;
       }
-      
-      // all sources were same SESE and age, BUT, make sure it's
-      // not a placeholder SESE, who's vars are always ready
-      if( oneSrc.getSESE().getIsCallerSESEplaceholder() ) {
-	return SrcType_READY;
-      }
-
-      return SrcType_DYNAMIC;
     }
 
-    VariableSourceToken singleSrc = srcs.iterator().next();
-    // if the one source is max age, track it dynamically
-    if( singleSrc.getAge() == MLPAnalysis.maxSESEage ) {
-      return SrcType_DYNAMIC;
-    } 
-
-    // if it has one source that comes from the parent, it's ready
-    if( singleSrc.getSESE() == parent ) {
-      return SrcType_READY;
-    }
-    
-    // if the one source is a placeholder SESE then it's ready
-    if( singleSrc.getSESE().getIsCallerSESEplaceholder() ) {
-      return SrcType_READY;
-    }
-
-    // otherwise it comes from one source not the parent (sibling)
-    // and we know exactly which static SESE/age it will come from
-    return SrcType_STATIC;
+    // if we never found a child source, all other
+    // sources must be READY before we could even
+    // begin executing!
+    return SrcType_READY;
   }
 
 

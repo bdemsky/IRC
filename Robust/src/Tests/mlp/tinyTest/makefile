@@ -5,13 +5,14 @@ SOURCE_FILES=test.java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
-USEMLP= -mlp 8 2 -mlpdebug # use to turn mlp on and off and make sure rest of build not broken
-BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -ownership -ownallocdepth 1 -enable-assertions -ownaliasfile aliases.txt
+USEMLP= -mlp 8 2 -mlpdebug -methodeffects -ownership -ownallocdepth 1 -ownaliasfile aliases.txt
+BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -enable-assertions
 
 all: $(PROGRAM1).bin $(PROGRAM2).bin
 
 $(PROGRAM1).bin: $(SOURCE_FILES)
 	$(BUILDSCRIPT)           $(BSFLAGS) -o $(PROGRAM1) $(SOURCE_FILES)
+	rm -fr tmpbuilddirectory
 
 $(PROGRAM2).bin: $(SOURCE_FILES)
 	$(BUILDSCRIPT) $(USEMLP) $(BSFLAGS) -o $(PROGRAM2) $(SOURCE_FILES)
@@ -25,4 +26,5 @@ clean:
 	rm -f  *.png
 	rm -f  aliases.txt
 	rm -f  mlpReport*txt
+	rm -f  MethodEffects*txt
 	rm -f  results*txt

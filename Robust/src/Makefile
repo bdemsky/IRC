@@ -93,6 +93,7 @@ Analysis/Disjoint/DisjointAnalysis.class				\
 Analysis/Disjoint/ReachGraph.class					\
 Analysis/MLP/MLPAnalysis.class 						\
 Analysis/MLP/VariableSourceToken.class 					\
+Analysis/MLP/VSTWrapper.class						\
 Analysis/MLP/SVKey.class 						\
 Analysis/MLP/VarSrcTokTable.class					\
 Analysis/MLP/CodePlan.class						\

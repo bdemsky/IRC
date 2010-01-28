@@ -1,5 +1,5 @@
 package IR.Flat;
-import Analysis.MLP.VariableSourceToken;
+import Analysis.MLP.VSTWrapper;
 import java.util.Hashtable;
 
 
@@ -13,14 +13,14 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   protected FlatNode tailNode;
   protected FlatNode headNode;
   
-  protected Hashtable<TempDescriptor, VariableSourceToken> var2src;
+  protected Hashtable<TempDescriptor, VSTWrapper> var2src;
 
   protected FlatSESEEnterNode enclosingSESE;
 
 
   public FlatWriteDynamicVarNode( FlatNode t,
 				  FlatNode h,
-				  Hashtable<TempDescriptor, VariableSourceToken> v2s,
+				  Hashtable<TempDescriptor, VSTWrapper> v2s,
 				  FlatSESEEnterNode c
 				) {
     tailNode      = t;
@@ -37,11 +37,11 @@ public class FlatWriteDynamicVarNode extends FlatNode {
     this.addNext( headNode );
   }
 
-  public void addMoreVar2Src( Hashtable<TempDescriptor, VariableSourceToken> more ) {
+  public void addMoreVar2Src( Hashtable<TempDescriptor, VSTWrapper> more ) {
     var2src.putAll( more );
   }
 
-  public Hashtable<TempDescriptor, VariableSourceToken> getVar2src() {
+  public Hashtable<TempDescriptor, VSTWrapper> getVar2src() {
     return var2src;
   }
 

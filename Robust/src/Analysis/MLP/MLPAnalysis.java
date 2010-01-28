@@ -643,6 +643,8 @@ public class MLPAnalysis {
       FlatSESEEnterNode fsen  = fsexn.getFlatEnter();
       assert currentSESE.getChildren().contains( fsen );
 
+      // remap all of this child's children tokens to be
+      // from this child as the child exits
       vstTable.remapChildTokens( fsen );
       
       // liveness virtual reads are things that might be 
@@ -913,14 +915,16 @@ public class MLPAnalysis {
 	// get other things from this source as well
 	VarSrcTokTable vstTable = variableResults.get( fn );
 
+        VSTWrapper vstIfStatic = new VSTWrapper();
 	Integer srcType = 
 	  vstTable.getRefVarSrcType( rTemp, 
 				     currentSESE,
-				     currentSESE.getParent() );
+                                     vstIfStatic
+                                     );
 
 	if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
 
-	  VariableSourceToken vst = vstTable.get( rTemp ).iterator().next();
+	  VariableSourceToken vst = vstIfStatic.vst;
 
 	  Iterator<VariableSourceToken> availItr = vstTable.get( vst.getSESE(),
 								 vst.getAge()
@@ -936,10 +940,12 @@ public class MLPAnalysis {
 
 	      // if a variable is available from the same source, AND it ALSO
 	      // only comes from one statically known source, mark it available
+              VSTWrapper vstIfStaticNotUsed = new VSTWrapper();
 	      Integer srcTypeAlso = 
 		vstTable.getRefVarSrcType( refVarAlso, 
 					   currentSESE,
-					   currentSESE.getParent() );
+                                           vstIfStaticNotUsed
+                                           );
 	      if( srcTypeAlso.equals( VarSrcTokTable.SrcType_STATIC ) ) {
 		notAvailSet.remove( refVarAlso );
 	      }
@@ -3274,6 +3280,7 @@ public class MLPAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+      assert fsen.equals( currentSESE );
 
       // track the source types of the in-var set so generated
       // code at this SESE issue can compute the number of
@@ -3281,10 +3288,19 @@ public class MLPAnalysis {
       Iterator<TempDescriptor> inVarItr = fsen.getInVarSet().iterator();
       while( inVarItr.hasNext() ) {
 	TempDescriptor inVar = inVarItr.next();
+
+        // when we get to an SESE enter node we change the
+        // currentSESE variable of this analysis to the
+        // child that is declared by the enter node, so
+        // in order to classify in-vars correctly, pass
+        // the parent SESE in--at other FlatNode types just
+        // use the currentSESE
+        VSTWrapper vstIfStatic = new VSTWrapper();
 	Integer srcType = 
-	  vstTableIn.getRefVarSrcType( inVar, 
-				       fsen,
-				       fsen.getParent() );
+	  vstTableIn.getRefVarSrcType( inVar,
+				       fsen.getParent(),
+                                       vstIfStatic
+                                       );
 
 	// the current SESE needs a local space to track the dynamic
 	// variable and the child needs space in its SESE record
@@ -3294,13 +3310,12 @@ public class MLPAnalysis {
 
 	} else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
 	  fsen.addStaticInVar( inVar );
-	  VariableSourceToken vst = vstTableIn.get( inVar ).iterator().next();
+	  VariableSourceToken vst = vstIfStatic.vst;
 	  fsen.putStaticInVar2src( inVar, vst );
 	  fsen.addStaticInVarSrc( new SESEandAgePair( vst.getSESE(), 
 						      vst.getAge() 
 						    ) 
 				);
-
 	} else {
 	  assert srcType.equals( VarSrcTokTable.SrcType_READY );
 	  fsen.addReadyInVar( inVar );
@@ -3324,15 +3339,17 @@ public class MLPAnalysis {
 	// source and delay until we need to use value
 
 	// ask whether lhs and rhs sources are dynamic, static, etc.
+        VSTWrapper vstIfStatic = new VSTWrapper();
 	Integer lhsSrcType
 	  = vstTableIn.getRefVarSrcType( lhs,
 					 currentSESE,
-					 currentSESE.getParent() );
-
+                                         vstIfStatic
+                                         );
 	Integer rhsSrcType
 	  = vstTableIn.getRefVarSrcType( rhs,
 					 currentSESE,
-					 currentSESE.getParent() );
+                                         vstIfStatic
+                                         );
 
 	if( rhsSrcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  // if rhs is dynamic going in, lhs will definitely be dynamic
@@ -3373,14 +3390,16 @@ public class MLPAnalysis {
 	}
 
 	// check the source type of this variable
+        VSTWrapper vstIfStatic = new VSTWrapper();
 	Integer srcType 
 	  = vstTableIn.getRefVarSrcType( readtmp,
 					 currentSESE,
-					 currentSESE.getParent() );
+                                         vstIfStatic
+                                         );
 
 	if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
 	  // 1) It is not clear statically where this variable will
-	  // come from statically, so dynamically we must keep track
+	  // come from, so dynamically we must keep track
 	  // along various control paths, and therefore when we stall,
 	  // just stall for the exact thing we need and move on
 	  plan.addDynamicStall( readtmp );
@@ -3391,8 +3410,7 @@ public class MLPAnalysis {
 	  // all live variables with same token/age pair at the same
 	  // time.  This is the same stuff that the notavaialable analysis 
 	  // marks as now available.	  
-
-	  VariableSourceToken vst = vstTableIn.get( readtmp ).iterator().next();
+	  VariableSourceToken vst = vstIfStatic.vst;
 
 	  Iterator<VariableSourceToken> availItr = 
 	    vstTableIn.get( vst.getSESE(), vst.getAge() ).iterator();
@@ -3474,12 +3492,11 @@ public class MLPAnalysis {
       // completely outside of the root SESE scope
       if( nextVstTable != null && nextLiveIn != null ) {
 
-	Hashtable<TempDescriptor, VariableSourceToken> readyOrStatic2dynamicSet = 
+	Hashtable<TempDescriptor, VSTWrapper> readyOrStatic2dynamicSet = 
 	  thisVstTable.getReadyOrStatic2DynamicSet( nextVstTable, 
                                                     nextLiveIn,
-                                                    currentSESE,
-                                                    currentSESE.getParent() 
-					   );
+                                                    currentSESE
+                                                    );
 	
 	if( !readyOrStatic2dynamicSet.isEmpty() ) {
 

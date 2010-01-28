@@ -10,8 +10,8 @@ echo 'running...'
 ./testMulti.bin  $[ i      ] >> resultsMulti.txt
 ./testSingle.bin $[ i*7    ] >> resultsSingle.txt
 ./testMulti.bin  $[ i*7    ] >> resultsMulti.txt
-./testSingle.bin $[ 50+i*7 ] >> resultsSingle.txt
-./testMulti.bin  $[ 50+i*7 ] >> resultsMulti.txt
+./testSingle.bin $[ 50+i*9 ] >> resultsSingle.txt
+./testMulti.bin  $[ 50+i*9 ] >> resultsMulti.txt
 done
 
 echo 'Diffing results'

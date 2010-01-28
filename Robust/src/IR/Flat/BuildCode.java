@@ -32,6 +32,7 @@ import Analysis.MLP.MLPAnalysis;
 import Analysis.MLP.ParentChildConflictsMap;
 import Analysis.MLP.SESELock;
 import Analysis.MLP.VariableSourceToken;
+import Analysis.MLP.VSTWrapper;
 import Analysis.MLP.CodePlan;
 import Analysis.MLP.SESEandAgePair;
 import Analysis.MLP.WaitingElement;
@@ -1769,8 +1770,8 @@ public class BuildCode {
 	  output.println("   /* static SESE names */");
 	  Iterator<SESEandAgePair> pItr = callerSESEplaceholder.getNeededStaticNames().iterator();
 	  while( pItr.hasNext() ) {
-	    SESEandAgePair p = pItr.next();
-	    output.println("   void* "+p+";");
+	    SESEandAgePair pair = pItr.next();
+	    output.println("   void* "+pair+";");
 	  }
 
 	  // declare variables for tracking dynamic sources
@@ -1915,10 +1916,6 @@ public class BuildCode {
     for(int i=0; i<objecttemps.numPointers(); i++) {
       TempDescriptor temp=objecttemps.getPointer(i);
 
-      if( fsen.getPrettyIdentifier().equals( "calc" ) ) {
-	System.out.println( "  got a pointer "+temp );
-      }
-
       if (temp.getType().isNull())
         outputStructs.println("  void * "+temp.getSafeSymbol()+";");
       else
@@ -2048,8 +2045,8 @@ public class BuildCode {
     output.println("   /* static SESE names */");
     Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
-      SESEandAgePair p = pItr.next();
-      output.println("   void* "+p+";");
+      SESEandAgePair pair = pItr.next();
+      output.println("   void* "+pair+";");
     }
 
     // declare variables for tracking dynamic sources
@@ -2617,7 +2614,6 @@ public class BuildCode {
     TempObject objecttemps=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
 
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
-      //System.out.println("generateTemp returns " + td.getSafeSymbol());
       return td.getSafeSymbol();
     }
 
@@ -2649,22 +2645,20 @@ public class BuildCode {
 	while( vstItr.hasNext() ) {
 	  VariableSourceToken vst = vstItr.next();
 
-	  SESEandAgePair p = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+	  SESEandAgePair pair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
 
 	  output.println("   {");
-	  output.println("     SESEcommon* common = (SESEcommon*) "+p+";");
+	  output.println("     SESEcommon* common = (SESEcommon*) "+pair+";");
 
 	  output.println("     pthread_mutex_lock( &(common->lock) );");
 	  output.println("     while( common->doneExecuting == FALSE ) {");
 	  output.println("       pthread_cond_wait( &(common->doneCond), &(common->lock) );");
 	  output.println("     }");
 	  output.println("     pthread_mutex_unlock( &(common->lock) );");
-	  	  
-	  //output.println("     psem_take( &(common->stallSem) );");
 
 	  // copy things we might have stalled for	  
-	  output.println("     "+p.getSESE().getSESErecordName()+"* child = ("+
- 			         p.getSESE().getSESErecordName()+"*) "+p+";");
+	  output.println("     "+pair.getSESE().getSESErecordName()+"* child = ("+
+ 			         pair.getSESE().getSESErecordName()+"*) "+pair+";");
 	  
 	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
 	  while( tdItr.hasNext() ) {
@@ -2723,17 +2717,9 @@ public class BuildCode {
 	// dynamic source vars to the current SESE
 	dynItr = cp.getDynAssignCurr().iterator();
 	while( dynItr.hasNext() ) {
-	  TempDescriptor dynVar = dynItr.next();
-	  
-	  // I would like to change the analysis, IF POSSIBLE, to "push" unneeded
-	  // variable source tokens away while analyzing a child and "pop" them
-	  // back at the child exit, otherwise we sometimes think we should inject
-	  // the following code inside a child that is for a parent's variable--in other
-	  // words the variable is not dynamically tracked for the child, but should
-	  // be by the parent.  Quick fix is to use test to rule out whether we do this
-	  if( currentSESE.getDynamicVarSet().contains(dynVar) ) {
-		  output.println("   "+dynVar+"_srcSESE = NULL;");
-	  }
+	  TempDescriptor dynVar = dynItr.next();	  
+          assert currentSESE.getDynamicVarSet().contains( dynVar );
+          output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
 	
 	 // eom
@@ -3536,20 +3522,20 @@ public class BuildCode {
 	output.println("     seseToIssue->"+dynInVar+"_srcSESE = "+dynInVar+"_srcSESE;");
       }
       
-      // maintain pointers for for finding dynamic SESE 
+      // maintain pointers for finding dynamic SESE 
       // instances from static names      
-      SESEandAgePair p = new SESEandAgePair( fsen, 0 );
+      SESEandAgePair pair = new SESEandAgePair( fsen, 0 );
       if(  fsen.getParent() != null && 
 	   //!fsen.getParent().getIsCallerSESEplaceholder() &&
-	   fsen.getParent().getNeededStaticNames().contains( p ) 
+	   fsen.getParent().getNeededStaticNames().contains( pair ) 
 	) {       
 
 	for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
-	  SESEandAgePair p1 = new SESEandAgePair( fsen, i   );
-	  SESEandAgePair p2 = new SESEandAgePair( fsen, i-1 );
-	  output.println("     "+p1+" = "+p2+";");
+	  SESEandAgePair pair1 = new SESEandAgePair( fsen, i   );
+	  SESEandAgePair pair2 = new SESEandAgePair( fsen, i-1 );
+	  output.println("     "+pair1+" = "+pair2+";");
 	}      
-	output.println("     "+p+" = seseToIssue;");
+	output.println("     "+pair+" = seseToIssue;");
       }
  
     }
@@ -3776,42 +3762,37 @@ public class BuildCode {
       throw new Error("Unexpected presence of FlatWriteDynamicVarNode");
     }
     	
-    Hashtable<TempDescriptor, VariableSourceToken> writeDynamic = 
-      fwdvn.getVar2src();
+    Hashtable<TempDescriptor, VSTWrapper> writeDynamic = fwdvn.getVar2src();
 
     assert writeDynamic != null;
 
     Iterator wdItr = writeDynamic.entrySet().iterator();
     while( wdItr.hasNext() ) {
-      Map.Entry           me     = (Map.Entry)           wdItr.next();
-      TempDescriptor      refVar = (TempDescriptor)      me.getKey();
-      VariableSourceToken vst    = (VariableSourceToken) me.getValue();
-      
-      FlatSESEEnterNode current = fwdvn.getEnclosingSESE();
+      Map.Entry           me     = (Map.Entry)      wdItr.next();
+      TempDescriptor      refVar = (TempDescriptor) me.getKey();
+      VSTWrapper          vstW   = (VSTWrapper)     me.getValue();
+      VariableSourceToken vst    =                  vstW.vst;
 
+      /*
       // only do this if the variable in question should be tracked,
       // meaning that it was explicitly added to the dynamic var set
       if( !current.getDynamicVarSet().contains( vst.getAddrVar() ) ) {
 	continue;
       }
+      */
 
-      SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );      
-
-      output.println("   {");
-
-      if( current.equals( vst.getSESE() ) ) {
-	// if the src comes from this SESE, it's a method local variable,
+      if( vst == null ) {
+	// if there is no given source, this variable is ready so
 	// mark src pointer NULL to signify that the var is up-to-date
-	output.println("     "+vst.getAddrVar()+"_srcSESE = NULL;");
-
-      } else {
-	// otherwise we track where it will come from
-	output.println("     "+vst.getAddrVar()+"_srcSESE = "+instance+";");    
-	output.println("     "+vst.getAddrVar()+"_srcOffset = (int) &((("+
-		       vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
+	output.println("     "+refVar+"_srcSESE = NULL;");
+        continue;
       }
 
-      output.println("   }");
+      // otherwise we track where it will come from
+      SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+      output.println("     "+refVar+"_srcSESE = "+instance+";");    
+      output.println("     "+refVar+"_srcOffset = (int) &((("+
+                     vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
     }	
   }
 
