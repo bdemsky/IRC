@@ -73,7 +73,26 @@ struct QueueItem* addWaitingQueueElement2(AllocSite* waitingQueueArray, int numW
   
 }
 
-struct QueueItem* addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec){
+int addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, WaitingElement* wElement){
+
+  int i;
+  struct QueueItem* newItem=NULL;
+  for(i=0;i<numAllocSites;i++){
+    if(allocSiteArray[i].id==allocID){
+      
+      if(isRunnableNewElement(allocSiteArray[i].waitingQueue,wElement)){
+	return 0;
+      }else{
+	addNewItemBack(allocSiteArray[i].waitingQueue,wElement);
+	return 1;
+      }
+    
+    }
+  }
+  return 0;
+}
+
+struct QueueItem* addWaitingQueueElement_backup(AllocSite* allocSiteArray, int numAllocSites, long allocID, void *seseRec){
 
   int i;
   struct QueueItem* newItem=NULL;
@@ -98,6 +117,21 @@ int getQueueIdx(AllocSite* allocSiteArray, int numAllocSites, long  allocID){
   return -1;
 }
 
+int isRunnableNewElement(struct Queue* waitingQueue, WaitingElement* wItem){
+
+  if(!isEmpty(waitingQueue)){
+
+    struct QueueItem* current=getHead(waitingQueue);
+    while(current!=NULL){
+      	 if(isConflicted(current,wItem)){
+	   return 0;
+	 }
+       	 current=getNextQueueItem(current);
+    }
+  }
+  return 1;
+}
+
 int isRunnable(struct Queue* waitingQueue, struct QueueItem* qItem){
 
   if(!isEmpty(waitingQueue)){
@@ -105,7 +139,7 @@ int isRunnable(struct Queue* waitingQueue, struct QueueItem* qItem){
     struct QueueItem* current=getHead(waitingQueue);
     while(current!=NULL){
          if(current!=qItem){
-	   if(isConflicted(current,qItem)){
+	   if(isConflicted(current,(WaitingElement*)qItem->objectptr)){
 	     return 0;
 	   }
 	 }else{
@@ -117,9 +151,8 @@ int isRunnable(struct Queue* waitingQueue, struct QueueItem* qItem){
   return 1;
 }
 
-int isConflicted(struct QueueItem* prevItem, struct QueueItem* item){
+int isConflicted(struct QueueItem* prevItem, WaitingElement* element){
 
-  WaitingElement* element=item->objectptr;
   WaitingElement* prevElement=prevItem->objectptr;
 
   if(prevElement->id!=element->id){

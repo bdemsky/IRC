@@ -3418,9 +3418,6 @@ public class BuildCode {
 			
 			output.println();
 			output.println("     /*add waiting queue element*/");
-			output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
-			output.println("     struct Queue*  newWaitingItemQueue=createQueue();");
-			
 			Set<WaitingElement> waitingQueueSet=graph.getWaitingElementSetBySESEID(fsen
 					.getIdentifier(),seseLockSet);
 			if (waitingQueueSet.size() > 0) {
@@ -3430,7 +3427,7 @@ public class BuildCode {
 				output.println("     WaitingElement* newElement=NULL;");
 				output.println("     struct Queue* list=NULL;");
 				output.println("     struct QueueItem* newQItem=NULL;");
-//				output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
+				output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
 				for (Iterator iterator = waitingQueueSet.iterator(); iterator
 						.hasNext();) {
 					WaitingElement waitingElement = (WaitingElement) iterator.next();
@@ -3446,44 +3443,19 @@ public class BuildCode {
 					output.println("     newElement=mlpCreateWaitingElement( "+waitingElement.getStatus()+", seseToIssue, list, waitingQueueItemID );");
 					
 					output
-							.println("     newQItem=addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedWaitingQueue,"
-									+ waitingElement.getWaitingID() + ",newElement);");
-					output
-							.println("     addNewItem(newWaitingItemQueue,newQItem);");
-//					output.println("     ++(seseToIssue->common.unresolvedDependencies);");
+							.println("     if(addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedWaitingQueue,"
+									+ waitingElement.getWaitingID() + ",newElement)){");
 					output.println("     ++(localCount);");
+					output.println("     } ");
+
 					output
 					.println();
 				}
-//				output.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
+				output.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
 				output.println("     }");
 			}
 			
-			output.println("     /*decide whether it is runnable or not in regarding to memory conflicts*/");
-			output.println("     {");
-			output.println("      if( !isEmpty(newWaitingItemQueue) ){");
-//			output.println("         pthread_mutex_lock( &(parentCommon->lock)  );");
-			output.println("         int idx;");
-			output.println("         for(idx = 0 ; idx < numRelatedWaitingQueue ; idx++){");
-			output.println("            struct Queue *allocQueue=parentCommon->allocSiteArray[idx].waitingQueue;");
-			output.println("            if( !isEmpty(allocQueue) ){");
-			output.println("               struct QueueItem* nextQItem=getHead(allocQueue);");
-			output.println("               while( nextQItem != NULL ){");
-			output.println("                  if(contains(newWaitingItemQueue,nextQItem) && isRunnable(allocQueue,nextQItem)){");
-//			output.println("                     if(seseToIssue->common.unresolvedDependencies>0)");
-//			output.println("                     --(seseToIssue->common.unresolvedDependencies);");
-			output.println("                     --(localCount);");
-			output.println("                  }");
-			output.println("                     nextQItem=getNextQueueItem(nextQItem);");
-			output.println("               }");
-			output.println("          }");
-			output.println("        }");
-		
-			output.println("     }");
-			output.println("     }");
-			output.println("        pthread_mutex_unlock( &(parentCommon->lock)  );");
 			output.println();
-			
 		}
 
     // eom
@@ -3729,7 +3701,6 @@ public class BuildCode {
     	output.println("           while(nextQItem!=NULL){");
     	output.println("              WaitingElement* nextItem=nextQItem->objectptr;");
     	output.println("              SESEcommon* seseNextItem=(SESEcommon*)nextItem->seseRec;");
-//    	output.println("              int isResolved=resolveWaitingQueue(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextQItem);");
     	output.println("              int isResolved=isRunnable(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextQItem);");
     	output.println("              if(seseNextItem->classID==___params___->common.parent->classID){"); // stall site
     	output.println("                 if(isResolved){");
@@ -3738,25 +3709,21 @@ public class BuildCode {
     	output.println("                    giveCount++;");
     	output.println("                 }");
     	output.println("                 if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
-//    	output.println("                    nextQItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
     	output.println("                    nextQItem=getNextQueueItem(nextQItem);");
     	output.println("                 }else{");
     	output.println("                    nextQItem=NULL;");
     	output.println("                 }");
     	output.println("              }else{");
     	output.println("                 if(isResolved){");
-//    	output.println("                    pthread_mutex_lock( &(seseNextItem->lock) );");
-//    	output.println("                    if(seseNextItem->unresolvedDependencies > 0){");
-//    	output.println("                       --(seseNextItem->unresolvedDependencies);");
-//    	output.println("                       if( seseNextItem->unresolvedDependencies == 0){");
-    	//output.println("                          workScheduleSubmit( (void*)nextItem);");
+    	output.println("                    struct QueueItem* currentItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
+    	output.println("                    nextQItem=getNextQueueItem(currentItem);");
+    	output.println("                    removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,currentItem);");
     	output.println("                       if( atomic_sub_and_test(1, &(seseNextItem->unresolvedDependencies)) ){");
     	output.println("                            addNewItem(launchQueue,(void*)seseNextItem);");
     	output.println("                       }");
-//    	output.println("                    }");
-//    	output.println("                    pthread_mutex_unlock( &(seseNextItem->lock) );");
+    	output.println("                 }else{");
+    	output.println("                    nextQItem=getNextQueueItem(nextQItem);");
     	output.println("                 }");
-    	output.println("                 nextQItem=getNextQueueItem(nextQItem);");
     	output.println("               }");
     	output.println("           } "); // end of while(nextQItem!=NULL)
     	output.println("        }");
@@ -3764,7 +3731,6 @@ public class BuildCode {
 //    	output.println("  }");
     	output.println("  }");
     	output.println("  pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
-//    	output.println("  pthread_mutex_unlock( &(___params___->common.parent->waitingQueueLock)  );");
     	output.println("  if(!isEmpty(launchQueue)){");
     	output.println("     struct QueueItem* qItem=getHead(launchQueue);");
     	output.println("     while(qItem!=NULL){");
