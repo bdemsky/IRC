@@ -1,10 +1,12 @@
 MAINCLASS=Chase
 SRC1=${MAINCLASS}.java
-FLAGS1=-dsm -rangeprefetch -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.99 -transstats
+FLAGS1=-dsm -rangeprefetch -dsmcaching -optimize -mainclass ${MAINCLASS} -trueprob 0.99
+FLAGS2=-dsm -optimize -mainclass ${MAINCLASS} -trueprob 0.99
 #for testing no java option
 #FLAGS=-dsm -prefetch -optimize -debug -excprefetch Chase.main -excprefetch Chase.Chase -mainclass ${MAINCLASS} -trueprob 0.99 -nojava
 default:
 	../../../../buildscript ${FLAGS1} -o ${MAINCLASS}RangeN ${SRC1}
+	../../../../buildscript ${FLAGS2} -o ${MAINCLASS}NPNC ${SRC1}
 
 clean:
 	rm -rf tmpbuilddirectory

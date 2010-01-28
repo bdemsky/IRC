@@ -7,9 +7,9 @@ SRC=${MAINCLASS}.java \
 	SORWrap.java \
     ../../../../ClassLibrary/JavaDSM/Barrier.java
 
-FLAGS=-dsm -transstats -rangeprefetch -dsmcaching -builddir tmpbuilddirectory2 -optimize -excprefetch JGFSORBench.JGFSORBench -excprefetch JGFSORBenchSizeA.main -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -trueprob 0.72
-FLAGS1=-dsm -dsmcaching -transstats -optimize -builddir tmpbuilddirectory1 -mainclass ${MAINCLASS} 
-FLAGS2=-dsm -optimize -transstats
+FLAGS=-dsm -rangeprefetch -dsmcaching -builddir tmpbuilddirectory2 -optimize -excprefetch JGFSORBench.JGFSORBench -excprefetch JGFSORBenchSizeA.main -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -trueprob 0.72
+FLAGS1=-dsm -dsmcaching -optimize -builddir tmpbuilddirectory1 -mainclass ${MAINCLASS} 
+FLAGS2=-dsm -optimize 
 
 FLAGSP=-dsm -prefetch -dsmcaching -optimize -builddir tmpbuilddirectory2 -excprefetch JGFSORBench.JGFSORBench -excprefetch JGFSORBenchSizeA.main -excprefetch JGFSORBench.RandomMatrix -excprefetch JGFSORBench.init_sync -excprefetch JGFSORBench.JGFkernel -trueprob 0.72
 FLAGSNPC=-dsm -dsmcaching -optimize -builddir tmpbuilddirectory1 -mainclass ${MAINCLASS} 

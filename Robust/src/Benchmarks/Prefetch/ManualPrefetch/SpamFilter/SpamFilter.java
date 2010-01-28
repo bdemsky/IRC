@@ -42,9 +42,6 @@ public class SpamFilter extends Thread {
       thid = id;
     }
 
-    if(thid == 0)
-      return;
-
     Random rand = new Random(thid);
     int i;
 
@@ -183,7 +180,7 @@ public class SpamFilter extends Thread {
     short[] offsets = new short[2];
     offsets[0] = getoffset{DistributedHashMap, table};
     offsets[1] = (short) 0;
-    System.rangePrefetch(this.mydhmap, offsets);
+    System.rangePrefetch(mydhmap, offsets);
 
     int numparts = signatures.size();
 
@@ -303,60 +300,70 @@ public class SpamFilter extends Thread {
         //         testhe.array.next.key.signature,value);
 
         //prefetch testhe.array.next.key.stats.userstat[userid]
-        short[] offsets4 = new short[10];
-        offsets4[0]= getoffset{DHashEntry, next};
+        short[] offsets4 = new short[12];
+        offsets4[0]= getoffset{DistributedHashEntry, array};
         offsets4[1]=(short) 0;
-        offsets4[2] = getoffset{DHashEntry, key};
-        offsets4[3] = (short)0;
-        offsets4[4] = getoffset{HashEntry, stats};
+        offsets4[2]= getoffset{DHashEntry, next};
+        offsets4[3]=(short) 0;
+        offsets4[4] = getoffset{DHashEntry, key};
         offsets4[5] = (short)0;
-        offsets4[6] = getoffset{HashStat, userstat};
+        offsets4[6] = getoffset{HashEntry, stats};
         offsets4[7] = (short)0;
-        offsets4[8] = (short) userid;
+        offsets4[8] = getoffset{HashStat, userstat};
         offsets4[9] = (short)0;
-        System.rangePrefetch(testhe.array, offsets4);
+        offsets4[10] = (short) userid;
+        offsets4[11] = (short)0;
+        System.rangePrefetch(testhe, offsets4);
 
         //prefetch testhe.array.next.key.engine.value
-        short[] offsets5 = new short[8];
-        offsets5[0]= getoffset{DHashEntry, next};
+        short[] offsets5 = new short[10];
+        offsets5[0]= getoffset{DistributedHashEntry, array};
         offsets5[1]=(short) 0;
-        offsets5[2] = getoffset{DHashEntry, key};
-        offsets5[3] = (short)0;
-        offsets5[4] = getoffset{HashEntry, engine};
+        offsets5[2]= getoffset{DHashEntry, next};
+        offsets5[3]=(short) 0;
+        offsets5[4] = getoffset{DHashEntry, key};
         offsets5[5] = (short)0;
-        offsets5[6] = getoffset{GString, value};
+        offsets5[6] = getoffset{HashEntry, engine};
         offsets5[7] = (short)0;
-        System.rangePrefetch(testhe.array, offsets5);
+        offsets5[8] = getoffset{GString, value};
+        offsets5[9] = (short)0;
+        System.rangePrefetch(testhe, offsets5);
 
         //prefetch testhe.array.next.key.signature.value
-        offsets5[0]= getoffset{DHashEntry, next};
+        offsets5[0]= getoffset{DistributedHashEntry, array};
         offsets5[1]=(short) 0;
-        offsets5[2] = getoffset{DHashEntry, key};
-        offsets5[3] = (short)0;
-        offsets5[4] = getoffset{HashEntry, signature};
+        offsets5[2]= getoffset{DHashEntry, next};
+        offsets5[3]=(short) 0;
+        offsets5[4] = getoffset{DHashEntry, key};
         offsets5[5] = (short)0;
-        offsets5[6] = getoffset{GString, value};
+        offsets5[6] = getoffset{HashEntry, signature};
         offsets5[7] = (short)0;
-        System.rangePrefetch(testhe.array, offsets5);
+        offsets5[8] = getoffset{GString, value};
+        offsets5[9] = (short)0;
+        System.rangePrefetch(testhe, offsets5);
 
         //prefetch testhe.array.next.key.stats.userid
-        offsets5[0]= getoffset{DHashEntry, next};
+        offsets5[0]= getoffset{DistributedHashEntry, array};
         offsets5[1]=(short) 0;
-        offsets5[2] = getoffset{DHashEntry, key};
-        offsets5[3] = (short)0;
-        offsets5[4] = getoffset{HashEntry, stats};
+        offsets5[2]= getoffset{DHashEntry, next};
+        offsets5[3]=(short) 0;
+        offsets5[4] = getoffset{DHashEntry, key};
         offsets5[5] = (short)0;
-        offsets5[6] = getoffset{HashStat, userid};
+        offsets5[6] = getoffset{HashEntry, stats};
         offsets5[7] = (short)0;
-        System.rangePrefetch(testhe.array, offsets5);
+        offsets5[8] = getoffset{HashStat, userid};
+        offsets5[9] = (short)0;
+        System.rangePrefetch(testhe, offsets5);
 
         //prefetch testhe.array.next.value
-        short[] offsets6 = new short[4];
-        offsets6[0]= getoffset{DHashEntry, next};
-        offsets6[1]=(short) 0;
-        offsets6[2] = getoffset{DHashEntry, value};
-        offsets6[3] = (short)0;
-        System.rangePrefetch(testhe.array, offsets6);
+        short[] offsets6 = new short[6];
+        offsets5[0]= getoffset{DistributedHashEntry, array};
+        offsets5[1]=(short) 0;
+        offsets6[2]= getoffset{DHashEntry, next};
+        offsets6[3]=(short) 0;
+        offsets6[4] = getoffset{DHashEntry, value};
+        offsets6[5] = (short)0;
+        System.rangePrefetch(testhe, offsets6);
 
 
         ptr=testhe.array;
@@ -385,60 +392,70 @@ public class SpamFilter extends Thread {
           //         ptr.next.next.value);
 
           //prefetch ptr.next(2).key.stats.userstat[userid]
-          short[] offsets10 = new short[10];
+          short[] offsets10 = new short[12];
           offsets10[0] = getoffset{DHashEntry, next};
           offsets10[1] = (short)0;
-          offsets10[2] = getoffset{DHashEntry, key};
+          offsets10[2] = getoffset{DHashEntry, next};
           offsets10[3] = (short)0;
-          offsets10[4] = getoffset{HashEntry, stats};
+          offsets10[4] = getoffset{DHashEntry, key};
           offsets10[5] = (short)0;
-          offsets10[6] = getoffset{HashStat, userstat};
+          offsets10[6] = getoffset{HashEntry, stats};
           offsets10[7] = (short)0;
-          offsets10[8] = (short) userid;
+          offsets10[8] = getoffset{HashStat, userstat};
           offsets10[9] = (short)0;
-          System.rangePrefetch(ptr.next, offsets10);
+          offsets10[10] = (short) userid;
+          offsets10[11] = (short)0;
+          System.rangePrefetch(ptr, offsets10);
 
           //prefetch ptr.next(2).key.engine.value
-          short[] offsets11 = new short[8];
+          short[] offsets11 = new short[10];
           offsets11[0] = getoffset{DHashEntry, next};
           offsets11[1] = (short)0;
-          offsets11[2] = getoffset{DHashEntry, key};
+          offsets11[2] = getoffset{DHashEntry, next};
           offsets11[3] = (short)0;
-          offsets11[4] = getoffset{HashEntry, engine};
+          offsets11[4] = getoffset{DHashEntry, key};
           offsets11[5] = (short)0;
-          offsets11[6] = getoffset{GString, value};
+          offsets11[6] = getoffset{HashEntry, engine};
           offsets11[7] = (short)0;
-          System.rangePrefetch(ptr.next, offsets11);
+          offsets11[8] = getoffset{GString, value};
+          offsets11[9] = (short)0;
+          System.rangePrefetch(ptr, offsets11);
 
           //prefetch ptr.next(2).key.signature.value
           offsets11[0] = getoffset{DHashEntry, next};
           offsets11[1] = (short)0;
-          offsets11[2] = getoffset{DHashEntry, key};
+          offsets11[2] = getoffset{DHashEntry, next};
           offsets11[3] = (short)0;
-          offsets11[4] = getoffset{HashEntry, signature};
+          offsets11[4] = getoffset{DHashEntry, key};
           offsets11[5] = (short)0;
-          offsets11[6] = getoffset{GString, value};
+          offsets11[6] = getoffset{HashEntry, signature};
           offsets11[7] = (short)0;
-          System.rangePrefetch(ptr.next, offsets11);
+          offsets11[8] = getoffset{GString, value};
+          offsets11[9] = (short)0;
+          System.rangePrefetch(ptr, offsets11);
 
           //prefetch ptr.next(2).key.stats.userid
           offsets11[0] = getoffset{DHashEntry, next};
           offsets11[1] = (short)0;
-          offsets11[2] = getoffset{DHashEntry, key};
+          offsets11[2] = getoffset{DHashEntry, next};
           offsets11[3] = (short)0;
-          offsets11[4] = getoffset{HashEntry, stats};
+          offsets11[4] = getoffset{DHashEntry, key};
           offsets11[5] = (short)0;
-          offsets11[6] = getoffset{HashStat, userid};
+          offsets11[6] = getoffset{HashEntry, stats};
           offsets11[7] = (short)0;
-          System.rangePrefetch(ptr.next, offsets11);
+          offsets11[8] = getoffset{HashStat, userid};
+          offsets11[9] = (short)0;
+          System.rangePrefetch(ptr, offsets11);
 
           //prefetch ptr.next(2).value
-          short[] offsets12 = new short[4];
+          short[] offsets12 = new short[6];
           offsets12[0] = getoffset{DHashEntry, next};
           offsets12[1] = (short)0;
-          offsets12[2] = getoffset{DHashEntry, value};
+          offsets12[2] = getoffset{DHashEntry, next};
           offsets12[3] = (short)0;
-          System.rangePrefetch(ptr.next, offsets12);
+          offsets12[4] = getoffset{DHashEntry, value};
+          offsets12[5] = (short)0;
+          System.rangePrefetch(ptr, offsets12);
 
           ptr=ptr.next;
         }

@@ -3,9 +3,9 @@ SRC=${MAINCLASS}N.java \
 	fft1dN.java \
 	MatrixN.java \
 	../../../../ClassLibrary/JavaDSM/Barrier.java
-FLAGS =-dsm -dsmcaching -transstats -rangeprefetch -optimize -trueprob 0.90 -mainclass ${MAINCLASS}
-FLAGS2 =-dsm -dsmcaching -transstats -optimize -trueprob 0.90 -mainclass ${MAINCLASS}
-FLAGS3 =-dsm -optimize -transstats -trueprob 0.90 -mainclass ${MAINCLASS}
+FLAGS =-dsm -dsmcaching -rangeprefetch -optimize -trueprob 0.90 -mainclass ${MAINCLASS}
+FLAGS2 =-dsm -dsmcaching -optimize -trueprob 0.90 -mainclass ${MAINCLASS}
+FLAGS3 =-dsm -optimize -trueprob 0.90 -mainclass ${MAINCLASS}
 
 default:
 	../../../../buildscript ${FLAGS} ${SRC} -o ${MAINCLASS}RangeN

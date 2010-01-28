@@ -7,7 +7,7 @@
 #define URL_FILE  "URLList"
 #define ACCOUNT_FILE "accountList"
 #define FILE_NAME "email"
-#define NUM_EMAIL 500
+#define NUM_EMAIL 5000
 
 char** readList(char* fileName,int* num);
 void generateEmails(int,char**,int,char**,int,char**,int,char*);
