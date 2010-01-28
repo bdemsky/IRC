@@ -3523,6 +3523,16 @@ public class MLPAnalysis {
 					       md.getSafeMethodDescriptor()+
 					       ".txt" ) );
       bw.write( "MLP Results for "+md+"\n-------------------\n");
+      
+      FlatSESEEnterNode implicitSESE = (FlatSESEEnterNode) fm.getNext(0);
+      if( !implicitSESE.getIsCallerSESEplaceholder() &&
+    	   implicitSESE != mainSESE
+    	   ) {
+    	  System.out.println( implicitSESE+" is not implicit?!" );
+    	  System.exit( -1 );
+      }
+      bw.write( "Dynamic vars to manage:\n  "+implicitSESE.getDynamicVarSet());
+      
       bw.write( "\n\nLive-In, Root View\n------------------\n"          +fm.printMethod( livenessRootView ) );
       bw.write( "\n\nVariable Results-Out\n----------------\n"          +fm.printMethod( variableResults ) );
       bw.write( "\n\nNot Available Results-Out\n---------------------\n"+fm.printMethod( notAvailableResults ) );
@@ -3633,6 +3643,8 @@ public class MLPAnalysis {
 	  bw.write( "    (dynamic)"+inVar+"\n" );
 	}
       }
+      
+      bw.write( "   Dynamic vars to manage: "+fsen.getDynamicVarSet()+"\n");
       
       bw.write( "  out-set: "+fsen.getOutVarSet()+"\n" );
       bw.write( "}\n" );
