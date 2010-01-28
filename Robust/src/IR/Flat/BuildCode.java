@@ -2724,7 +2724,16 @@ public class BuildCode {
 	dynItr = cp.getDynAssignCurr().iterator();
 	while( dynItr.hasNext() ) {
 	  TempDescriptor dynVar = dynItr.next();
-	  output.println("   "+dynVar+"_srcSESE = NULL;");
+	  
+	  // I would like to change the analysis, IF POSSIBLE, to "push" unneeded
+	  // variable source tokens away while analyzing a child and "pop" them
+	  // back at the child exit, otherwise we sometimes think we should inject
+	  // the following code inside a child that is for a parent's variable--in other
+	  // words the variable is not dynamically tracked for the child, but should
+	  // be by the parent.  Quick fix is to use test to rule out whether we do this
+	  if( currentSESE.getDynamicVarSet().contains(dynVar) ) {
+		  output.println("   "+dynVar+"_srcSESE = NULL;");
+	  }
 	}
 	
 	 // eom
@@ -3390,7 +3399,7 @@ public class BuildCode {
     // before potentially adding this SESE to other forwarding lists,
     //  create it's lock and take it immediately
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
-    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
+//    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
     
     // count up memory conflict dependencies,
     // eom
@@ -3575,7 +3584,7 @@ public class BuildCode {
     
     // release this SESE for siblings to update its dependencies or,
     // eventually, for it to mark itself finished
-    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
+    //    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
     
     // if there were no outstanding dependencies, issue here
     output.println("     if(  atomic_sub_and_test(10000-localCount,&(seseToIssue->common.unresolvedDependencies) ) ) {");
