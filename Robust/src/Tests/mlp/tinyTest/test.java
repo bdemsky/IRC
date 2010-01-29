@@ -14,37 +14,42 @@ public class Test {
     int s = doSomeWork( x, f );
     int t = moreWork( x, f );
     int r = s+t;
-    System.out.println( "s+t="+r );
+    System.out.println( "s = "+s+
+                        ", t = "+t+
+                        ", r = "+r );
   }
 
   public static int doSomeWork( int x, Foo f ) {
-    int total = 0;
-    float delta = 0.0f;
-
-    for( int i = 0; i < 10; ++i ) {
-      sese parallel {
-        int[] d = new int[1];
-        d[0] = 2*i;
-        //int d = 2*i;
-      }
-      sese waste {
-        if( true ) {
-          total = total + 1 + d[0];
-          //total = total + 1 + d;
-        }
-
-        for( int j=0; j < 1; ++j ) {
-          if( true ) {
-            delta += 1.0f;
-          }
-        }
-      }
-    }    
-    int temp = 100 + total + (int)delta;
-    return x + temp;
+    float delta = 1.0f;
+    int out = 0;
+    return out;
   }
 
   public static int moreWork( int x, Foo f ) {
-    return f.z - 9000;
+    int total = 0;
+    for( int j = 0; j < x; ++j ) {
+      sese doe {
+        Foo g = new Foo( j );
+        int prod = 1;
+      }
+      sese rae {
+        if( j % 7 == 0 ) {
+          prod = prod * j;
+        }
+        g.z = prod / x;
+      }
+      sese mi {
+        g.z = g.z + f.z;
+      }
+      if( j % 3 == 0 ) {
+        sese fa {
+          prod = prod / 2;
+        }
+      }
+
+      total = total + prod - g.z;
+    }
+
+    return total;
   }
 }
