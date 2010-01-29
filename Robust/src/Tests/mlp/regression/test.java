@@ -15,11 +15,14 @@ public class Test {
     int t = moreWork( x, f );
     nullMethodBodyFinalNode();
     int r = s+t;
-    System.out.println( "s+t="+r );
+    System.out.println( "s = "+s+
+                        ", t = "+t+
+                        ", r = "+r );
   }
 
   public static int doSomeWork( int x, Foo f ) {
     float delta = 1.0f;
+    int out = 0;
     for( int i = 0; i < x; ++i ) {
       sese calc {
 	Foo g = new Foo( i );
@@ -68,10 +71,12 @@ public class Test {
 	}	
       } 
       sese prnt {
-	mightPrint( x, i, sum + (int)delta, g );
+        if( i == x - 1 ) {
+          out = x + i + sum + (int)delta + g.z;
+        }
       }
     }
-    return x;
+    return out;
   }
 
   public static int calculateStuff( int sum, int num, int mode ) {
@@ -136,12 +141,6 @@ public class Test {
       return;
     } else {
       return;
-    }
-  }
-
-  public static void mightPrint( int x, int i, int sum, Foo g ) {
-    if( i == x - 1 ) {
-      System.out.println( "Results "+i+", "+x+", "+sum+", "+g.z );
     }
   }
 }
