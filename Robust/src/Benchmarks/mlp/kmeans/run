@@ -1,0 +1,1 @@
+./test.bin -m 15 -n 15 -t 0.00001 -i inputs/random-n16384-d24-c16.txt -nthreads 1
