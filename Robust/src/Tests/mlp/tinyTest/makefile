@@ -3,7 +3,7 @@ PROGRAM2=testMulti
 
 SOURCE_FILES=test.java
 
-BUILDSCRIPT=~/research/Robust/src/buildscript
+BUILDSCRIPT=../../../buildscript
 
 USEMLP= -mlp 8 2 -mlpdebug -methodeffects -ownership -ownallocdepth 1 -ownaliasfile aliases.txt
 BSFLAGS= -nooptimize -debug -garbagestats -mainclass Test -enable-assertions
