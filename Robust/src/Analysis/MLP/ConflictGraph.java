@@ -458,6 +458,8 @@ public class ConflictGraph {
 		Set<SESEEffectsKey> readEffectsSetB = nodeB.getReadEffectsSet();
 		Set<SESEEffectsKey> writeEffectsSetB = nodeB.getWriteEffectsSet();
 		Set<SESEEffectsKey> strongUpdateSetB = nodeB.getStrongUpdateSet();
+		
+		boolean result=false;
 		/*
 		System.out.println("nodeA="+nodeA);
 		System.out.println("readEffectsSetA="+readEffectsSetA);
@@ -483,19 +485,36 @@ public class ConflictGraph {
 					String writeFieldName = seseEffectsKey.getFieldDescriptor();
 
 					if (readEffectsSetB != null) {
-						Iterator<SESEEffectsKey> readIterB = readEffectsSetB
-								.iterator();
-						while (readIterB.hasNext()) {
-							SESEEffectsKey readingEffect = (SESEEffectsKey) readIterB
-									.next();
+						
+						if(writeFieldName.length()>0){
+							Iterator<SESEEffectsKey> readIterB = readEffectsSetB
+									.iterator();
+							while (readIterB.hasNext()) {
+								SESEEffectsKey readingEffect = (SESEEffectsKey) readIterB
+										.next();
 
-							if (readingEffect.getHRNUniqueId().equals(
-									writeHeapRegionID)
-									&& readingEffect.getFieldDescriptor()
-											.equals(writeFieldName)) {
-								return true;
+								if (readingEffect.getHRNUniqueId().equals(
+										writeHeapRegionID)
+										&& readingEffect.getFieldDescriptor()
+												.equals(writeFieldName)) {
+									result = result | true;
+								}
 							}
+						}else{
+							//no field name
+							Iterator<SESEEffectsKey> readIterB = readEffectsSetB
+							.iterator();
+							while (readIterB.hasNext()) {
+								SESEEffectsKey readingEffect = (SESEEffectsKey) readIterB
+								.next();
+
+								if (readingEffect.getFieldDescriptor().length()==0 && nodeA.getTempDescriptor().equals(nodeB.getTempDescriptor())) {
+									result = result | true;
+								}
+							}
+							
 						}
+	
 					}
 
 					if (writeEffectsSetB != null) {
@@ -504,13 +523,22 @@ public class ConflictGraph {
 						while (writeIterB.hasNext()) {
 							SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterB
 									.next();
-
-							if (writingEffect.getHRNUniqueId().equals(
-									writeHeapRegionID)
-									&& writingEffect.getFieldDescriptor()
-											.equals(writeFieldName)) {
-								return true;
+							
+							if(writeFieldName.length()>0){
+								if (writingEffect.getHRNUniqueId().equals(
+										writeHeapRegionID)
+										&& writingEffect.getFieldDescriptor()
+												.equals(writeFieldName)) {
+									result = result | true;
+								}
+							}else{
+								//no field
+								if (writingEffect.getFieldDescriptor().length()==0 && nodeA.getTempDescriptor().equals(nodeB.getTempDescriptor())) {
+									result = result | true;
+								}
 							}
+
+
 						}
 					}
 
@@ -537,12 +565,20 @@ public class ConflictGraph {
 						while (readIterA.hasNext()) {
 							SESEEffectsKey readingEffect = (SESEEffectsKey) readIterA
 									.next();
-							if (readingEffect.getHRNUniqueId().equals(
-									writeHeapRegionID)
-									&& readingEffect.getFieldDescriptor()
-											.equals(writeFieldName)) {
-								return true;
+							
+							if(writeFieldName.length()>0){
+								if (readingEffect.getHRNUniqueId().equals(
+										writeHeapRegionID)
+										&& readingEffect.getFieldDescriptor()
+												.equals(writeFieldName)) {
+									result = result | true;
+								}
+							}else{
+								if (readingEffect.getFieldDescriptor().length()==0 && nodeA.getTempDescriptor().equals(nodeB.getTempDescriptor())) {
+									result = result | true;
+								}
 							}
+
 						}
 					}
 
@@ -552,19 +588,27 @@ public class ConflictGraph {
 						while (writeIterA.hasNext()) {
 							SESEEffectsKey writingEffect = (SESEEffectsKey) writeIterA
 									.next();
-							if (writingEffect.getHRNUniqueId().equals(
-									writeHeapRegionID)
-									&& writingEffect.getFieldDescriptor()
-											.equals(writeFieldName)) {
-								return true;
+							
+							if(writeFieldName.length()>0){
+								if (writingEffect.getHRNUniqueId().equals(
+										writeHeapRegionID)
+										&& writingEffect.getFieldDescriptor()
+												.equals(writeFieldName)) {
+									result = result | true;
+								}
+							}else{
+								if (writingEffect.getFieldDescriptor().length()==0 && nodeA.getTempDescriptor().equals(nodeB.getTempDescriptor())) {
+									result = result | true;
+								}
 							}
+
 						}
 					}
 				//} // if(hasStrong)
 
 			}
 		}
-		return false;
+		return result;
 	}
 
 	private boolean isSelfConflicted(LiveInNode liveInNode) {
