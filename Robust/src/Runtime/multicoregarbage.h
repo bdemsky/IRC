@@ -3,6 +3,7 @@
 #include "multicoregc.h"
 #include "multicorehelper.h"  // for mappins between core # and block #
 #include "structdefs.h"
+#include "MGCHash.h"
 
 #ifndef bool
 #define bool int
@@ -17,6 +18,15 @@
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC) // NUMCORES=62
 
 #define NUMPTRS 100
+
+typedef enum {
+	INIT = 0,     // 0
+	DISCOVERED,   // 1
+	MARKED,       // 2
+	COMPACTED,    // 3
+	FLUSHED,      // 4
+	END           // 5
+} GCOBJFLAG;
 
 typedef enum {
 	INITPHASE = 0x0,   // 0x0
@@ -64,6 +74,7 @@ volatile int gcmovepending;
 
 // mapping of old address to new address
 struct RuntimeHash * gcpointertbl;
+//struct MGCHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;
 volatile bool gcismapped;
@@ -159,6 +170,10 @@ inline bool gcfindSpareMem_I(int * startaddr,
  								  				   int * dstcore,
 									  			   int requiredmem,
 										  		   int requiredcore);
+
+inline void * gc_lobjdequeue4(int * length, int * host);
+inline int gc_lobjmoreItems4();
+inline void gc_lobjqueueinit4();
 
 #endif
 

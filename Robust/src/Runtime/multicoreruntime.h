@@ -236,10 +236,11 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
 #define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
 #else
-#define BAMBOO_NUM_PAGES (64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
-#define BAMBOO_PAGE_SIZE (16 * 1024 * 1024)  // (4096)
+#define BAMBOO_NUM_PAGES (64 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_PAGE_SIZE (16 * 1024)// * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (16 * 1024)
-#define BAMBOO_SHARED_MEM_SIZE (3.0 * 1024 * 1024 * 1024) // 3G// ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
+#define BAMBOO_SHARED_MEM_SIZE (1024 * 1024 * 1024)
+//(3.0 * 1024 * 1024 * 1024) // 3G// ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
 #endif
 
 #ifdef MULTICORE_GC
@@ -267,10 +268,14 @@ struct freeMemItem {
 
 struct freeMemList {
 	struct freeMemItem * head;
-	struct freeMemItem * backuplist;  // hold removed freeMemItem for reuse
+	struct freeMemItem * backuplist;  // hold removed freeMemItem for reuse; 
+	                                  // only maintain 1 fremmMemItem
 };
 
 struct freeMemList * bamboo_free_mem_list;
+int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
+                          // e.g. 20% of the heap and should not be allocated
+													// otherwise gc is invoked
 #else
 volatile mspace bamboo_free_msp;
 #endif

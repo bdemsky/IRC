@@ -102,7 +102,9 @@ void initruntimedata() {
 	gcself_numsendobjs = 0;
 	gcself_numreceiveobjs = 0;
 	gcmarkedptrbound = 0;
+	//mgchashCreate(2000, 0.75);
 	gcpointertbl = allocateRuntimeHash(20);
+	//gcpointertbl = allocateMGCHash(20);
 	gcobj2map = 0;
 	gcmappedobj = 0;
 	gcismapped = false;
@@ -161,7 +163,12 @@ void initruntimedata() {
 inline __attribute__((always_inline))
 void disruntimedata() {
 #ifdef MULTICORE_GC
+	//mgchashDelete();
 	freeRuntimeHash(gcpointertbl);
+	//freeMGCHash(gcpointertbl);
+	if(gcsmemtbl != NULL) {
+		RUNFREE(gcsmemtbl);
+	}
 #else
 	freeRuntimeHash(lockRedirectTbl);
 	freeRuntimeHash(objRedirectLockTbl);
@@ -1278,8 +1285,14 @@ struct freeMemItem * findFreeMemChunk_I(int coren,
 				prev->next = freemem;
 			}
 			// put it to the tail of the list for reuse
-			toremove->next = bamboo_free_mem_list->backuplist;
-			bamboo_free_mem_list->backuplist = toremove;
+			if(bamboo_free_mem_list->backuplist == NULL) {
+				//toremove->next = bamboo_free_mem_list->backuplist;
+				bamboo_free_mem_list->backuplist = toremove;
+				bamboo_free_mem_list->backuplist->next = NULL;
+			} else {
+				// free it
+				RUNFREE(toremove);
+			}
 		} else {
 			prev = freemem;
 			freemem = freemem->next;
@@ -1500,6 +1513,8 @@ msg:
 						(struct transObjInfo *)(qitem->objectptr);
 					if(tmpinfo->objptr == transObj->objptr) {
 						// the same object, remove outdate one
+						RUNFREE(tmpinfo->queues);
+						RUNFREE(tmpinfo);
 						removeItem(&objqueue, qitem);
 						//break;
 					} else {
@@ -2105,7 +2120,12 @@ msg:
 
 	case GCMARKEDOBJ: {
 		// received a markedObj msg
-		gc_enqueue_I(msgdata[1]);
+		if(((int *)msgdata[1])[6] == INIT) {
+				// this is the first time that this object is discovered,
+				// set the flag as DISCOVERED
+				((int *)msgdata[1])[6] = DISCOVERED;
+				gc_enqueue_I(msgdata[1]);
+		}
 		gcself_numreceiveobjs++;
 		gcbusystatus = true;
 		break;
@@ -2123,7 +2143,9 @@ msg:
 	case GCMAPREQUEST: {
 		// received a mapping info request msg
 		void * dstptr = NULL;
+		//dstptr = mgchashSearch(msgdata[1]);
 		RuntimeHashget(gcpointertbl, msgdata[1], &dstptr);
+		//MGCHashget(gcpointertbl, msgdata[1], &dstptr);
 		if(NULL == dstptr) {
 			// no such pointer in this core, something is wrong
 #ifdef DEBUG
@@ -2131,6 +2153,12 @@ msg:
 			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
 #endif
 			BAMBOO_EXIT(0xb007);
+			//assume that the object was not moved, use the original address
+			/*if(isMsgSending) {
+				cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
+			} else {
+				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
+			}*/
 		} else {
 			// send back the mapping info
 			if(isMsgSending) {
@@ -2153,7 +2181,9 @@ msg:
 			BAMBOO_EXIT(0xb008);
 		} else {
 			gcmappedobj = msgdata[2];
+			//mgchashInsert_I(gcobj2map, gcmappedobj);
 			RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
+			//MGCHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
 		}
 		gcismapped = true;
 		break;
@@ -2193,7 +2223,9 @@ msg:
 	
 	case GCLOBJMAPPING: {
 		// received a large obj mapping info msg
+		//mgchashInsert_I(msgdata[1], msgdata[2]);
 		RuntimeHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
+		//MGCHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
 		break;
 	}
 
@@ -2495,13 +2527,16 @@ newtask:
 #endif
 
     /* See if there are any active tasks */
-    if (hashsize(activetasks)>0) {
+    //if (hashsize(activetasks)>0) {
       int i;
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
 	  profileTaskStart("tpd checking");
 #endif
 #endif
+	  //long clock1;
+	  //clock1 = BAMBOO_GET_EXE_TIME();
+
 	  busystatus = true;
 		currtpd=(struct taskparamdescriptor *) getfirstkey(activetasks);
 		genfreekey(activetasks, currtpd);
@@ -2512,10 +2547,10 @@ newtask:
 	  // clear the lockRedirectTbl 
 		// (TODO, this table should be empty after all locks are released)
 	  // reset all locks
-	  for(j = 0; j < MAXTASKPARAMS; j++) {
+	  /*for(j = 0; j < MAXTASKPARAMS; j++) {
 		  runtime_locks[j].redirectlock = 0;
 		  runtime_locks[j].value = 0;
-	  }
+	  }*/
 	  // get all required locks
 	  runtime_locklen = 0;
 	  // check which locks are needed
@@ -2558,7 +2593,26 @@ newtask:
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe991);
 #endif
+	  //long clock2;
+	  //clock2 = BAMBOO_GET_EXE_TIME();
+
 	  for(i = 0; i < runtime_locklen; i++) {
+	  /*for(i = 0; i < numparams; i++) {
+		  void * param = currtpd->parameterArray[i];
+		  int * lock = 0;
+		  bool insert = true;
+		  if(((struct ___Object___ *)param)->type == STARTUPTYPE) {
+			  islock = false;
+			  taskpointerarray[i+OFFSET]=param;
+			  goto execute;
+		  }
+		  if(((struct ___Object___ *)param)->lock == NULL) {
+			  lock = (int *)param;
+		  } else {
+			  lock = (int *)(((struct ___Object___ *)param)->lock);
+		  }
+		  */
+
 		  int * lock = (int *)(runtime_locks[i].redirectlock);
 		  islock = true;
 		  // require locks for this parameter if it is not a startup object
@@ -2601,14 +2655,23 @@ newtask:
 #endif
 
 		  if(grount == 0) {
-			  int j = 0;
 #ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xe992);
 				BAMBOO_DEBUGPRINT_REG(lock);
 #endif
+				// check if has the lock already
+				/*bool giveup = true;
+				for(j = 0; j < runtime_locklen; j++) {
+			  if(runtime_locks[j].value == lock) {
+				  giveup = false;
+				  break;
+			  }
+		  }
+				if(giveup) {*/
 			  // can not get the lock, try later
-			  // releas all grabbed locks for previous parameters
-			  for(j = 0; j < i; ++j) {
+			  // release all grabbed locks for previous parameters
+			  for(j = 0; j < i; ++j) { 
+			  //for(j = 0; j < runtime_locklen; ++j) {
 				  lock = (int*)(runtime_locks[j].redirectlock);
 				  releasewritelock(lock);
 			  }
@@ -2626,8 +2689,18 @@ newtask:
 #endif
 #endif
 			  goto newtask;
-		  } // line 2794: if(grount == 0)
+				//}
+		  }/* else { // line 2794: if(grount == 0)
+		  // TODO
+		  runtime_locks[runtime_locklen].value = (int)lock;
+		  runtime_locks[runtime_locklen].redirectlock = (int)param;
+		  runtime_locklen++;
+		  }*/
 	  } // line 2752:  for(i = 0; i < runtime_locklen; i++)
+
+	  /*long clock3;
+	  clock3 = BAMBOO_GET_EXE_TIME();
+	  //tprintf("sort: %d, grab: %d \n", clock2-clock1, clock3-clock2);*/
 
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xe993);
@@ -2752,11 +2825,20 @@ execute:
 #endif
 	  profileTaskStart(currtpd->task->name);
 #endif
+	  // TODO
+	  //long clock4;
+	  //clock4 = BAMBOO_GET_EXE_TIME();
+	  //tprintf("sort: %d, grab: %d, check: %d \n", (int)(clock2-clock1), (int)(clock3-clock2), (int)(clock4-clock3));
 
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xe997);
 #endif
 		((void(*) (void **))currtpd->task->taskptr)(taskpointerarray);
+		// TODO
+		//long clock5;
+	  //clock5 = BAMBOO_GET_EXE_TIME();
+	 // tprintf("sort: %d, grab: %d, check: %d \n", (int)(clock2-clock1), (int)(clock3-clock2), (int)(clock4-clock3));
+
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
 	  // task finish, set the end of the checkTaskInfo
@@ -2797,6 +2879,10 @@ execute:
 	    }
 	  } // line 3015: if(islock)
 
+		//long clock6;
+	  //clock6 = BAMBOO_GET_EXE_TIME();
+	  //tprintf("sort: %d, grab: %d, check: %d \n", (int)(clock2-clock1), (int)(clock3-clock2), (int)(clock4-clock3));
+
 #ifdef PROFILE
 	  // post task execution finish, set the end of the postTaskInfo
 	  profileTaskEnd();
@@ -2809,8 +2895,12 @@ execute:
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xe99a);
 #endif
+	  //long clock7;
+	  //clock7 = BAMBOO_GET_EXE_TIME();
+	  //tprintf("sort: %d, grab: %d, check: %d, release: %d, other %d \n", (int)(clock2-clock1), (int)(clock3-clock2), (int)(clock4-clock3), (int)(clock6-clock5), (int)(clock7-clock6));
+
       } //  
-    } //  if (hashsize(activetasks)>0)  
+    //} //  if (hashsize(activetasks)>0)  
   } //  while(hashsize(activetasks)>0)
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe99b);

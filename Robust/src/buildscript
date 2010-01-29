@@ -705,6 +705,7 @@ cp ../Runtime/ObjectHash.c ./
 cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
 cp ../Runtime/multicoregarbage.c ./
+cp ../Runtime/MGCHash.c ./
 cp ../Runtime/GenericHashtable.h ./
 cp ../Runtime/mem.h ./
 cp ../Runtime/multicoreruntime.h ./
@@ -716,6 +717,7 @@ cp ../Runtime/SimpleHash.h ./
 cp ../Runtime/multicoregc.h ./
 cp ../Runtime/multicoregarbage.h ./
 cp ../Runtime/multicorehelper.h ./
+cp ../Runtime/MGCHash.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/lib/* ./
