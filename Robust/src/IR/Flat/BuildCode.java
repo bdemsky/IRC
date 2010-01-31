@@ -413,19 +413,6 @@ public class BuildCode {
       outmethod.println("#endif\n");
     }
 
-    if(state.DSMRECOVERYSTATS) {
-      outmethod.println("#ifdef RECOVERYSTATS\n");
-      outmethod.println("printf(\"***** Recovery Stats *****\\n\");");
-      outmethod.println("printf(\"numRecovery = %d\\n\",numRecovery);");
-      outmethod.println("int nRecovery=0;");
-      outmethod.println("for(nRecovery=0;nRecovery<numRecovery;nRecovery++) {");
-      outmethod.println("  printf(\"Dead Machine = %s\\n\",midtoIPString(deadMachine[nRecovery]));");
-      outmethod.println("  printf(\"Recovery Time = %.2f\\n\",elapsedTime[nRecovery]);");
-      outmethod.println("}\n");
-      outmethod.println("printf(\"**************************\\n\\n\");");
-      outmethod.println("#endif\n");
-    }
-
     if (state.EVENTMONITOR) {
       outmethod.println("dumpdata();");
     }
@@ -982,13 +969,6 @@ public class BuildCode {
     }
     outclassdefs.print("#endif\n");
 
-    if(state.DSMRECOVERYSTATS) {
-      outclassdefs.print("#ifdef RECOVERYSTATS\n");
-      outclassdefs.print("extern int numRecovery;\n");
-      outclassdefs.print("extern unsigned int deadMachine[8];\n");
-      outclassdefs.print("extern double elapsedTime[8];\n");
-      outclassdefs.print("#endif\n");
-    }
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
 
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
