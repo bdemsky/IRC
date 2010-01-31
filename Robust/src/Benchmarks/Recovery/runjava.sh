@@ -1,12 +1,7 @@
 # !/bin/sh
 BASEDIR=`pwd`
-LOGDIR=${BASEDIR}
-DSTM_CONFDIR=${HOME}/research/Robust/src
-JAVA_DIR=java
-JVM_DIR=jvm
-DSM_DIR=dsm
-ITERATIONS=2
-WAITTIME=60
+ITERATIONS=10
+WAITTIME=30
 
 # killClients <fileName> <# of machines>
 function killclients {
@@ -145,8 +140,8 @@ do
   t=2;
   while [ $t -le $ITERATIONS ]; do
     echo "==================================== $t ============================="
-    runFailureTest $NUM_MACHINES 1
-    sleep 10
+#    runFailureTest $NUM_MACHINES 1
+#    sleep 10
     echo "====================================================================="
     t=`expr $t + 1`
   done

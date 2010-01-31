@@ -65,6 +65,7 @@ public class Work extends Thread {
       tasks.output();
     }
     System.out.println("\n\n I'm done\n\n\n");
+    printRecoveryStat();
 
   }
 
@@ -111,5 +112,7 @@ public class Work extends Thread {
     else
       return 0; // others are still working wait until they finish work
   }
+
+  public static native void printRecoveryStat();
 }
 

@@ -15,14 +15,14 @@ public class Task {
 
   public void setWork(Object work)
   {
-    atomic {
+     {
       this.myWork = work;
     }
   }
 
 	public Object grabTask() {
 		Object o;
-		atomic {
+		 {
 			o = todoList.pop();
 		}
 //		System.out.println("Size of TodoList : " + todoList.size());
