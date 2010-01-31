@@ -95,6 +95,6 @@ AllocSite* mlpCreateAllocSiteArray(int numAllocSites);
 ConflictNode* mlpCreateConflictNode(int id);
 int addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, WaitingElement* wElement);
 WaitingElement* mlpCreateWaitingElement(int status, void* seseToIssue, struct Queue* queue, int id);
-
+void* mlpAllocSESErecord( int size );
 
 #endif /* __MLP_RUNTIME__ */
