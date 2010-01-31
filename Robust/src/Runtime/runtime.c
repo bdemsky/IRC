@@ -231,14 +231,6 @@ void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct 
 #endif
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
-#ifdef RECOVERYSTATS
-  int i=0;
-  for(i=0; i < numRecovery; i++) {
-    printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
-    printf("Elapsed Time = %.2f\n",elapsedTime[i]);
-  }
-#endif
-
 #ifdef TRANSSTATS
   printf("numTransCommit = %d\n", numTransCommit);
   printf("numTransAbort = %d\n", numTransAbort);
@@ -361,6 +353,28 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
   fflush(stdout);
 #endif
 }
+
+#ifdef D___Work______printRecoveryStat____ 
+#ifdef RECOVERYSTATS
+void CALL00(___Work______printRecoveryStat____) {
+
+  printf("***** Recovery Stats *****\n");
+  printf("numRecovery = %d\n",numRecovery);
+  int i;
+  for(i=0; i < numRecovery;i++) {
+    printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
+    printf("Recovery Time = %.2f\n",elapsedTime[i]);
+  }
+  printf("**************************\n\n");
+}
+#else
+void CALL00(___Work______printRecoveryStat____) {
+  printf("No Stat\n");
+}
+#endif
+#endif
+
+
 
 #ifdef DSTM
 void CALL00(___System______clearPrefetchCache____) {
