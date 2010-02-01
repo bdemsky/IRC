@@ -1045,6 +1045,8 @@ public class ConflictGraph {
 								.next();
 						int type = -1;
 						HashSet<Integer> allocSet = new HashSet<Integer>();
+						HashSet<Integer> connectedSet=new HashSet<Integer>();
+						String dynID="";
 
 						if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
 							if (isReadOnly(node)) {
@@ -1063,12 +1065,22 @@ public class ConflictGraph {
 																							// fine-grain
 																							// edge
 							allocSet.addAll(getAllocSet(node));
+							if(conflictEdge.getVertexU() instanceof LiveInNode ){
+								connectedSet.add(new Integer(((LiveInNode)conflictEdge.getVertexU()).getSESEIdentifier()));
+							}
+							if(conflictEdge.getVertexV() instanceof LiveInNode ){
+								connectedSet.add(new Integer(((LiveInNode)conflictEdge.getVertexV()).getSESEIdentifier()));
+							}
+							
+							
 							if (isReadOnly(node)) {
 								// fine-grain read
 								type = 0;
+								dynID=node.getTempDescriptor().toString();
 							} else {
 								// fine-grain write
 								type = 1;
+								dynID=node.getTempDescriptor().toString();
 							}
 						}
 
@@ -1082,9 +1094,24 @@ public class ConflictGraph {
 									newElement.setAllocList(allocSet);
 									newElement.setWaitingID(seseLock.getID());
 									newElement.setStatus(type);
+									newElement.setDynID(dynID);
+									newElement.setConnectedSet(connectedSet);
+//									System.out.println(seseID+"connectedSet="+connectedSet);
 									if(!waitingElementSet.contains(newElement)){
 										waitingElementSet.add(newElement);
 									}else{
+										for (Iterator iterator2 = waitingElementSet
+												.iterator(); iterator2
+												.hasNext();) {
+											WaitingElement e = (WaitingElement) iterator2
+													.next();
+											if(e.equals(newElement)){
+												e.getConnectedSet().addAll(connectedSet);
+//												System.out.println(seseID+"!!!connectedSet="+e.getConnectedSet());
+											}
+										}
+									
+
 									}
 									
 									

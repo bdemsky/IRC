@@ -66,6 +66,8 @@ typedef struct SESEcommon_t {
   int numRelatedWaitingQueue;
   int waitingQueueItemID;
 
+  pthread_cond_t stallDone;
+
 } SESEcommon;
 
 
@@ -73,6 +75,7 @@ typedef struct WaitingElement_t{
   void* seseRec;
   int status;
   int id;
+  int resolved;
   struct Queue* list;
 } WaitingElement;
 
@@ -96,5 +99,6 @@ ConflictNode* mlpCreateConflictNode(int id);
 int addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, WaitingElement* wElement);
 WaitingElement* mlpCreateWaitingElement(int status, void* seseToIssue, struct Queue* queue, int id);
 void* mlpAllocSESErecord( int size );
+
 
 #endif /* __MLP_RUNTIME__ */

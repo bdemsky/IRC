@@ -8,15 +8,34 @@ public class WaitingElement {
 	private int waitingID;
 	private int status;
 	private HashSet<Integer> allocList;
+	private String dynID;
+	private HashSet<Integer> connectedSet;
 
 	public WaitingElement() {
 		this.allocList = new HashSet<Integer>();
+		this.connectedSet = new HashSet<Integer>();
 	}
-
+	
 	public void setWaitingID(int waitingID) {
 		this.waitingID = waitingID;
 	}
+	
+	public HashSet<Integer> getConnectedSet() {
+		return connectedSet;
+	}
 
+	public void setConnectedSet(HashSet<Integer> connectedSet) {
+		this.connectedSet.addAll(connectedSet);
+	}
+
+	public String getDynID(){
+		return dynID;
+	}
+	
+	public void setDynID(String dynID){
+		this.dynID=dynID;
+	}
+	
 	public int getWaitingID() {
 		return waitingID;
 	}

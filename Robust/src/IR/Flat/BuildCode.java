@@ -2110,13 +2110,16 @@ public class BuildCode {
       
       // can't grab something from this source until it is done
       output.println("   {");
-      output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+srcPair+";" );
-      output.println("     pthread_mutex_lock( &(com->lock) );");
-      output.println("     while( com->doneExecuting == FALSE ) {");
-      output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
-      output.println("     }");
-      output.println("     pthread_mutex_unlock( &(com->lock) );");
+      /*
+	If we are running, everything is done.  This check is redundant.
 
+	output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+srcPair+";" );
+	output.println("     pthread_mutex_lock( &(com->lock) );");
+	output.println("     while( com->doneExecuting == FALSE ) {");
+	output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
+	output.println("     }");
+	output.println("     pthread_mutex_unlock( &(com->lock) );");
+      */
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
 		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
 
@@ -2134,11 +2137,14 @@ public class BuildCode {
 
       // gotta wait until the source is done
       output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+temp+"_srcSESE;" );
-      output.println("     pthread_mutex_lock( &(com->lock) );");
-      output.println("     while( com->doneExecuting == FALSE ) {");
-      output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
-      output.println("     }");
-      output.println("     pthread_mutex_unlock( &(com->lock) );");
+      /*
+	If we are running, everything is done!
+	output.println("     pthread_mutex_lock( &(com->lock) );");
+	output.println("     while( com->doneExecuting == FALSE ) {");
+	output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
+	output.println("     }");
+	output.println("     pthread_mutex_unlock( &(com->lock) );");
+      */
 
       String typeStr;
       if( type.isNull() ) {
@@ -2734,7 +2740,9 @@ public class BuildCode {
 				output.println("     WaitingElement* newElement=NULL;");
 				output.println("     struct QueueItem* newQItem=NULL;");
 				output.println("     waitingQueueItemID++;");
-				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
+//				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
+			    output.println("     pthread_cond_init( &(seseCaller->stallDone), NULL );");
+//				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
 				output.println("     int qIdx;");
 				output.println("     int takeCount=0;");
 				for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
@@ -2754,13 +2762,13 @@ public class BuildCode {
 					output.println("        addNewItemBack(seseCaller->allocSiteArray[qIdx].waitingQueue,newElement);");
 					output.println("        takeCount++;");
 					output.println("     }");
-	
 				}
+				output.println("     if( takeCount>0 ){");
+//				output.println("        psem_take( &(seseCaller->memoryStallSiteSem) );");
+			    output.println("        pthread_cond_wait( &(seseCaller->stallDone), &(seseCaller->lock) );");
+				output.println("     }");
 				
 				output.println("     pthread_mutex_unlock( &(seseCaller->lock) );");
-				output.println("     if( takeCount>0 ){");
-				output.println("        psem_take( &(seseCaller->memoryStallSiteSem) );");
-				output.println("     }");
 				output.println("  }");
 			}
 
@@ -3310,9 +3318,7 @@ public class BuildCode {
     
     // before doing anything, lock your own record and increment the running children
     if( fsen != mlpa.getMainSESE() ) {      
-      output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
-      output.println("     ++(parentCommon->numRunningChildren);");
-      output.println("     pthread_mutex_unlock( &(parentCommon->lock) );");      
+      output.println("     atomic_inc(&parentCommon->numRunningChildren);");
     }
 
     // just allocate the space for this record
@@ -3667,6 +3673,8 @@ public class BuildCode {
     	output.println("           while(nextQItem!=NULL){");
     	output.println("              WaitingElement* nextItem=nextQItem->objectptr;");
     	output.println("              SESEcommon* seseNextItem=(SESEcommon*)nextItem->seseRec;");
+    	output.println("              if(nextItem->resolved==0){");
+    	
     	output.println("              int isResolved=isRunnable(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextQItem);");
     	output.println("              if(seseNextItem->classID==___params___->common.parent->classID){"); // stall site
     	output.println("                 if(isResolved){");
@@ -3681,9 +3689,10 @@ public class BuildCode {
     	output.println("                 }");
     	output.println("              }else{");
     	output.println("                 if(isResolved){");
-    	output.println("                    struct QueueItem* currentItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
-    	output.println("                    nextQItem=getNextQueueItem(currentItem);");
-    	output.println("                    removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,currentItem);");
+    	//output.println("                    struct QueueItem* currentItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
+    	//output.println("                    nextQItem=getNextQueueItem(currentItem);");
+    	//output.println("                    removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,currentItem);");
+    	output.println("                       nextItem->resolved=1;");
     	output.println("                       if( atomic_sub_and_test(1, &(seseNextItem->unresolvedDependencies)) ){");
     	output.println("                            addNewItem(launchQueue,(void*)seseNextItem);");
     	output.println("                       }");
@@ -3691,6 +3700,11 @@ public class BuildCode {
     	output.println("                    nextQItem=getNextQueueItem(nextQItem);");
     	output.println("                 }");
     	output.println("               }");
+    	
+    	output.println("              }else{");
+    	output.println("                 nextQItem=getNextQueueItem(nextQItem);");
+    	output.println("              }");
+    	
     	output.println("           } "); // end of while(nextQItem!=NULL)
     	output.println("        }");
     	output.println("     }");
@@ -3705,7 +3719,8 @@ public class BuildCode {
     	output.println("     }");
     	output.println("  }");
     	output.println("  if(giveCount>0){");
-     	output.println("    psem_give(&(___params___->common.parent->memoryStallSiteSem));");
+//     	output.println("    psem_give(&(___params___->common.parent->memoryStallSiteSem));");
+    	output.println("    pthread_cond_signal(&(___params___->common.parent->stallDone));");
      	output.println("  }");
     	output.println("  }");
     	
@@ -3718,11 +3733,12 @@ public class BuildCode {
 
     // last of all, decrement your parent's number of running children    
     output.println("   if( "+paramsprefix+"->common.parent != NULL ) {");
-    output.println("     pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
-    output.println("     --("+paramsprefix+"->common.parent->numRunningChildren);");
-    output.println("     pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
-    output.println("     pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
-    output.println("   }");    
+    output.println("     if (atomic_sub_and_test(1, &"+paramsprefix+"->common.parent->numRunningChildren)) {");
+    output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
+    output.println("       pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("     }");
+    output.println("   }");
 
     // this is a thread-only variable that can be handled when critical sese-to-sese
     // data has been taken care of--set sese pointer to remember self over method
@@ -3730,7 +3746,7 @@ public class BuildCode {
     output.println("   seseCaller = (SESEcommon*) 0x1;");    
     
   }
-
+ 
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
 					       LocalityBinding lb, 
 					       FlatWriteDynamicVarNode fwdvn,

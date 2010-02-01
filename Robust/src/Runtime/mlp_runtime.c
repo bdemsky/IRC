@@ -81,8 +81,11 @@ int addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long al
     if(allocSiteArray[i].id==allocID){
       
       if(isRunnableNewElement(allocSiteArray[i].waitingQueue,wElement)){
+	wElement->resolved=1;
+	addNewItemBack(allocSiteArray[i].waitingQueue,wElement);
 	return 0;
       }else{
+	wElement->resolved=0;
 	addNewItemBack(allocSiteArray[i].waitingQueue,wElement);
 	return 1;
       }
