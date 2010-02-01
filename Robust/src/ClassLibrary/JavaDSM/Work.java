@@ -65,7 +65,7 @@ public class Work extends Thread {
       tasks.output();
     }
     System.out.println("\n\n I'm done\n\n\n");
-    printRecoveryStat();
+    RecoveryStat.printRecoveryStat();
 
   }
 

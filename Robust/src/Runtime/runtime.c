@@ -354,9 +354,9 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #endif
 }
 
-#ifdef D___Work______printRecoveryStat____ 
+#ifdef D___RecoveryStat______printRecoveryStat____ 
 #ifdef RECOVERYSTATS
-void CALL00(___Work______printRecoveryStat____) {
+void CALL00(___RecoveryStat______printRecoveryStat____) {
 
   printf("***** Recovery Stats *****\n");
   printf("numRecovery = %d\n",numRecovery);
@@ -368,7 +368,7 @@ void CALL00(___Work______printRecoveryStat____) {
   printf("**************************\n\n");
 }
 #else
-void CALL00(___Work______printRecoveryStat____) {
+void CALL00(___RecoveryStat______printRecoveryStat____) {
   printf("No Stat\n");
 }
 #endif
