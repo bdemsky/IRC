@@ -231,7 +231,9 @@ int mhashGetDuplicate(void **dupeptr, int backup) { //how big?
   for(i = 0; i < mlookup.size; i++) {
 		if (mlookup.table[i].key != 0) {
 			node = &mlookup.table[i];
-			while(node != NULL) { // no nodes
+			while(node != NULL) { // no nodes 
+//        printf("%s -> node : %d node->val : %d \n",__func__,node,node->val);
+
 				header = (objheader_t *)node->val;
 				if((header->isBackup && backup) || (!header->isBackup && !backup)) {
 					oidsdupe[numdupe++] = OID(header);

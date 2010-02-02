@@ -1583,7 +1583,11 @@ void restoreDuplicationState(unsigned int deadHost) {
       }
       else {                // if i am the leader
   			updateLiveHosts();
-        duplicateLostObjects(deadHost);
+
+        if(numLiveHostsInSystem == 1)
+          setReLocateObjHosts(deadHost);
+        else
+          duplicateLostObjects(deadHost);
 
 		    if(updateLiveHostsCommit() != 0) {
 			  	printf("%s -> error updateLiveHostsCommit()\n",__func__);
@@ -1772,11 +1776,15 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
     header->version += 1;
     if(header->notifylist != NULL) {
 #ifdef RECOVERY
-      if(header->isBackup != 0)   // if it is primary obj, notify
+      printf("%s -> to notifyAll\n",__func__);
+      if(header->isBackup == 0) {  // if it is primary obj, notify 
+        printf("%s -> Called notifyAll\n",__func__);
         notifyAll(&header->notifylist, OID(header), header->version);
+      }
       else                        // if not, just clear the notification list
         clearNotifyList(OID(header));
 #else  
+      printf("no way!\n");
       notifyAll(&header->notifylist, OID(header), header->version);
 #endif
     }
@@ -2087,7 +2095,6 @@ unsigned short getObjType(unsigned int oid) {
     /* Read response from the Participant */
     char control;
     recv_data(sd, &control, sizeof(char));
-
     if (control==OBJECT_NOT_FOUND) {
       printf("Error: in %s() THIS SHOULD NOT HAPPEN.....EXIT PROGRAM\n", __func__);
       fflush(stdout);
@@ -2867,7 +2874,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     return -1;
   } else {
 
-#ifdef DEBUG
+#ifndef DEBUG
     printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
 #ifdef RECOVERY
     printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
@@ -2882,7 +2889,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 
     for(i = 0;i < numoid; i++) {
       oid = oidarry[i];
-#ifdef DEBUG
+#ifndef DEBUG
       printf("%s -> oid[%d] = %d\n",__func__,i,oidarry[i]);
 #endif
       *((unsigned int *)(&msg[1] + size)) = oid;
@@ -2935,7 +2942,7 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
   int objIsFound = 0, index = -1;
   unsigned int i;
   void *ptr;
-#ifdef DEBUG
+#ifndef DEBUG
   printf("%s -> oid = %d   vesion = %d    tid = %d\n",__func__,oid,version,tid);
 #endif
 
@@ -2944,17 +2951,22 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
     printf("threadnotify(): No such threadid is present %s, %d\n", __FILE__, __LINE__);
     return;
   } else  {
+    printf("%s -> Get to this point1\n",__func__);
+    printf("%s -> ndata : %d\n",__func__,ndata);
+    printf("%s -> ndata->numoid : %d\n",__func__,ndata->numoid);
     for(i = 0; i < (ndata->numoid); i++) {
       if(ndata->oidarry[i] == oid) {
         objIsFound = 1;
         index = i;
       }
     }
+    printf("%s -> Get to this point2\n",__func__);
     if(objIsFound == 0) {
       printf("threadNotify(): Oid not found %s, %d\n", __FILE__, __LINE__);
       return;
     } 
     else {
+    printf("%s -> Get to this point3\n",__func__);
       if(version <= ndata->versionarry[index]) {
 	      printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
     	return;
@@ -2965,6 +2977,8 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
       	  prehashRemove(oid);
       	}
 #endif
+
+    printf("%s -> Get to this point4\n",__func__);
     	pthread_mutex_lock(&(ndata->threadnotify));
     	pthread_cond_signal(&(ndata->threadcond));
     	pthread_mutex_unlock(&(ndata->threadnotify));
@@ -3010,6 +3024,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
       status = -1;
     } else {
       bzero(msg, (1+sizeof(unsigned short) + 2*sizeof(unsigned int)));
+      printf("%s -> Calling THREAD_NOTIFY_RESPONSE\n",__func__);
       msg[0] = THREAD_NOTIFY_RESPONSE;
       *((unsigned int *)&msg[1]) = oid;
       size = sizeof(unsigned int);

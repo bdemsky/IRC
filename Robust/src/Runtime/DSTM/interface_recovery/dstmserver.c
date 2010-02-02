@@ -463,6 +463,7 @@ void *dstmAccept(void *acceptfd) {
 				version = *((unsigned short *)(buffer+size));
 				size += sizeof(unsigned short);
 				threadid = *((unsigned int *)(buffer+size));
+        printf("Calling threadNotify\n");
 				threadNotify(oid,version,threadid);
 				free(buffer);
 				break;
@@ -1467,8 +1468,11 @@ int transCommitProcess(void *modptr, unsigned int *oidmod, unsigned int *oidlock
 #endif
 
 #ifdef RECOVERY
-      if(header->isBackup != 0)
+      printf("%s -> to notifyAll\n",__func__);
+      if(header->isBackup == 0) {
+        printf("%s -> called notifyAll\n",__func__);
         notifyAll(&header->notifylist, OID(header), header->version);
+      }
       else
         clearNotifyList(OID(header));
 #else
@@ -1650,6 +1654,8 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
 checkversion:
       if (write_trylock(STATUSPTR(header))) { // Can acquire write lock
       	newversion = header->version;
+
+     //   printf("%s -> newversion : %d versionarray : %d i : %d\n",__func__,newversion,*(versionarry + i),i); 
 	  
         if(newversion == *(versionarry + i)) {
 	        //Add to the notify list
@@ -1677,6 +1683,7 @@ checkversion:
     	      return;
     	      } else {
   	        //Send Update notification
+            printf("%s -> Call frm here\n",__func__);
     	      msg[0] = THREAD_NOTIFY_RESPONSE;
     	      *((unsigned int *)&msg[1]) = oid;
       	    size = sizeof(unsigned int);
@@ -1703,7 +1710,7 @@ checkversion:
 /* go through oid's notifylist and clear them */
 void clearNotifyList(unsigned int oid)
 {
-#ifdef DEBUG
+#ifndef DEBUG
   printf("%s -> Entering\n",__func__);
 #endif
 
