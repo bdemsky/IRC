@@ -170,7 +170,11 @@ public class SpamFilter extends Thread {
   }
 
   public static void parseCmdLine(String args[], SpamFilter sf) {
-    int i = 0;
+    int i = 1;
+
+    sf.nthreads = new Integer(args[0]).intValue();
+
+
     String arg;
     while (i < args.length && args[i].startsWith("-")) {
       arg = args[i++];
@@ -183,11 +187,15 @@ public class SpamFilter extends Thread {
         if(i < args.length) {
           sf.numemail = new Integer(args[i++]).intValue();
         }
-      } else if(arg.equals("-t")) { //num of threads
+      }
+      
+      /*else if(arg.equals("-t")) { //num of threads
         if(i < args.length) {
           sf.nthreads = new Integer(args[i++]).intValue();
         }
-      } else if(arg.equals("-h")) {
+      }
+      */
+      else if(arg.equals("-h")) {
         sf.usage();
       }
     }
@@ -200,10 +208,9 @@ public class SpamFilter extends Thread {
    * The usage routine describing the program
    **/
   public void usage() {
-    System.out.println("usage: ./spamfilter -n <num iterations> -e <num emails> -t <num threads>\n");
+    System.out.println("usage: ./spamfilter <num thread> -n <num iterations> -e <num emails>\n");
     System.out.println(                   "  -n : num iterations");
     System.out.println(                   "  -e : number of emails");
-    System.out.println(                   "  -t : number of threads");
   }
 
   /**
