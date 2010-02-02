@@ -1,7 +1,7 @@
 # !/bin/sh
 BASEDIR=`pwd`
 ITERATIONS=10
-WAITTIME=30
+WAITTIME=300
 
 # killClients <fileName> <# of machines>
 function killclients {

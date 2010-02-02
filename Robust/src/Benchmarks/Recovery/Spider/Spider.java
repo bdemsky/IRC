@@ -1,3 +1,9 @@
+/*
+Usage :
+  ./Spider.java master <num_thread> <first machine> <first page> <maxDepth>
+*/
+
+
 public class Spider {
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
@@ -7,14 +13,27 @@ public class Spider {
 		Work[] works;
 		QueryTask[] qt;
 		GlobalQuery[] currentWorkList;
+    String fm = "www.uci.edu";
+    String fp = "";
 
-		NUM_THREADS = Integer.parseInt(args[0]);
+    if(args.length != 4) {
+      System.out.println("./Spider.java master <num_thread> <first machine> <first page> <maxDepth>");
+      System.exit(0);
+    }
+    else {
+      NUM_THREADS = Integer.parseInt(args[0]);
+      fm = args[1];
+      fp = args[2];
+      maxDepth = Integer.parseInt(args[3]);
+    }
 
 		GlobalString firstmachine;
 		GlobalString firstpage;
 
 		int mid[] = new int[8];
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;
+/*		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;
 		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;
@@ -22,15 +41,15 @@ public class Spider {
 		mid[5] = (128<<24)|(195<<16)|(136<<8)|167;
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;
-    
+  */  
 		atomic {
-			firstmachine = global new GlobalString(args[1]);
+			firstmachine = global new GlobalString(fm);
 			if (args.length == 3) {
-				firstpage = global new GlobalString(args[2]);
+				firstpage = global new GlobalString(fp);
 			}
 			else 
 				firstpage = global new GlobalString("");;
-
+      
 			works = global new Work[NUM_THREADS];
 			qt = global new QueryTask[NUM_THREADS];
 			currentWorkList = global new GlobalQuery[NUM_THREADS];

@@ -81,6 +81,14 @@ public class QueryTask extends Task {
 			s.close();
 		}
   }
+  
+  public void output() {
+
+    System.out.println("size = " + results.size());
+
+
+  }
+
 	
 	public static boolean isDocument(String str) {
 		int index = str.lastindexOf('.');
@@ -97,6 +105,8 @@ public class QueryTask extends Task {
 			else if ((str.subString(index+1)).equals("docx")) return true;
 			else if ((str.subString(index+1)).equals("mov")) return true;
 			else if ((str.subString(index+1)).equals("flv")) return true;
+			else if ((str.subString(index+1)).equals("tar")) return true;
+			else if ((str.subString(index+1)).equals("tgz")) return true;
 			else return false;
 		}
 		return false;

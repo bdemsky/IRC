@@ -113,6 +113,8 @@ public class SpamFilter extends Thread {
     // Sanity check
 //    System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     System.out.println("\n\n\n I'm Done\n\n\n");
+    
+    RecoveryStat.printRecoveryStat();
   }
 
   public static void main(String[] args) {

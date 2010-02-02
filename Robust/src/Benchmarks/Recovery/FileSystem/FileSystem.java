@@ -1,22 +1,22 @@
 /*
 Usage :
-  ./LookupService.bin <num thread> <datafile prefix>
+  ./FileSystem.bin <num thread> <datafile prefix>
 */
 
 
 
-public class LookUpService extends Thread {
+public class FileSystem extends Thread {
 	DistributedHashMap dir;
 	DistributedHashMap fs;
 	GlobalString inputfile;
 	int mid;
 	
-	public LookUpService(DistributedHashMap dir, DistributedHashMap fs) {
+	public FileSystem(DistributedHashMap dir, DistributedHashMap fs) {
 		this.dir = dir;
 		this.fs = fs;
 	}
 	
-	public LookUpService(DistributedHashMap dir, DistributedHashMap fs, String filename, int mid) {
+	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, String filename, int mid) {
 		this.dir = dir;
 		this.fs = fs;
 		this.mid = mid;
@@ -255,16 +255,20 @@ public class LookUpService extends Thread {
 		filename = args[1];
 		
 		int[] mid = new int[8];
-		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
-//		mid[1] = (128<<24)|(195<<16)|(180<<8)|24;//dw-5
+/*		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
-//		mid[0] = (128<<24)|(195<<16)|(136<<8)|165;//dc-4
-//		mid[1] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
-//		mid[2] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
-//		mid[3] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
-		
-		LookUpService[] lus;
-		LookUpService initLus;
+*/
+		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;//dc-1
+		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;//dc-2
+		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;//dc-3
+		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;//dc-4
+		mid[4] = (128<<24)|(195<<16)|(136<<8)|166;//dc-5
+    mid[5] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
+		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
+		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;//dc-8
+	
+		FileSystem[] lus;
+		FileSystem initLus;
 
 		Work[] works;
 		Transaction[] currentWorkList;		// type might be something else
@@ -276,16 +280,16 @@ public class LookUpService extends Thread {
 			DistributedHashMap fs = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap dir = global new DistributedHashMap(500, 500, 0.75f);
 		
-			initLus = global new LookUpService(dir, fs);
+			initLus = global new FileSystem(dir, fs);
 			initLus.init();
 
-			lus = global new LookUpService[NUM_THREADS];
+			lus = global new FileSystem[NUM_THREADS];
 			for(int i = 0; i < NUM_THREADS; i++) {
-				lus[i] = global new LookUpService(initLus.dir, initLus.fs, filename, i);
+				lus[i] = global new FileSystem(initLus.dir, initLus.fs, filename, i);
 			}
 		}
 
-		LookUpService tmp;
+		FileSystem tmp;
 		/* Start threads */
 		for(int i = 0; i < NUM_THREADS; i++) {
 			atomic {

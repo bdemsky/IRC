@@ -1,4 +1,4 @@
-MAINCLASS=LookUpService
+MAINCLASS=FileSystem
 SRC1=${MAINCLASS}.java 
 FLAGS= -recoverystats -dsm -dsmtask -32bit -recovery -nooptimize -mainclass ${MAINCLASS}
 default:
