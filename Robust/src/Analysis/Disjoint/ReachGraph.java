@@ -20,6 +20,10 @@ public class ReachGraph {
   protected static final ReachSet   rsetEmpty          = new ReachSet().makeCanonical();
   protected static final ReachSet   rsetWithEmptyState = new ReachSet( rstateEmpty ).makeCanonical();
 
+  // predicate constants
+  protected static final ExistPredSet predsEmpty = new ExistPredSet().makeCanonical();
+
+
   // from DisjointAnalysis for convenience
   protected static int      allocationDepth   = -1;
   protected static TypeUtil typeUtil          = null;
@@ -73,6 +77,7 @@ public class ReachGraph {
 			     AllocSite      allocSite,
                              ReachSet       inherent,
 			     ReachSet       alpha,
+                             ExistPredSet   preds,
 			     String         description
                              ) {
 
@@ -110,6 +115,11 @@ public class ReachGraph {
     if( alpha == null ) {
       alpha = inherent;
     }
+
+    if( preds == null ) {
+      // TODO: do this right?
+      preds = new ExistPredSet().makeCanonical();
+    }
     
     HeapRegionNode hrn = new HeapRegionNode( id,
 					     isSingleObject,
@@ -121,6 +131,7 @@ public class ReachGraph {
 					     allocSite,
                                              inherent,
 					     alpha,
+                                             preds,
 					     description );
     id2hrn.put( id, hrn );
     return hrn;
@@ -351,7 +362,8 @@ public class ReachGraph {
                                        tdNewEdge,
                                        null,
                                        false,
-                                       betaY.intersection( betaHrn )
+                                       betaY.intersection( betaHrn ),
+                                       predsEmpty
                                        );
 	
 	addRefEdge( lnX, hrnHrn, edgeNew );	
@@ -498,7 +510,8 @@ public class ReachGraph {
                                        tdNewEdge,
                                        f.getSymbol(),
                                        false,
-                                       edgeY.getBeta().pruneBy( hrnX.getAlpha() )
+                                       edgeY.getBeta().pruneBy( hrnX.getAlpha() ),
+                                       predsEmpty
                                        );
 
 	// look to see if an edge with same field exists
@@ -583,7 +596,8 @@ public class ReachGraph {
                    type,                 // type
                    null,                 // field name
                    false,                // is initial param
-                   hrnNewest.getAlpha()  // beta
+                   hrnNewest.getAlpha(), // beta
+                   predsEmpty            // predicates
                    );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
@@ -714,6 +728,7 @@ public class ReachGraph {
                                  as,           // allocation site			 
                                  null,         // inherent reach
                                  null,         // current reach                 
+                                 predsEmpty,   // predicates
                                  strDesc       // description
                                  );
                                  
@@ -731,6 +746,7 @@ public class ReachGraph {
                                  as,	       // allocation site			 
                                  null,         // inherent reach
                                  null,	       // current reach
+                                 predsEmpty,   // predicates
                                  strDesc       // description
                                  );
       }
@@ -768,6 +784,7 @@ public class ReachGraph {
                                  as,		  // allocation site			 
                                  null,            // inherent reach
                                  null,		  // current reach
+                                 predsEmpty,      // predicates
                                  strDesc          // description
                                  );
 
@@ -784,7 +801,8 @@ public class ReachGraph {
                                  as.getType(), // type				 
                                  as,	       // allocation site			 
                                  null,         // inherent reach
-                                 null,	       // current reach                 
+                                 null,	       // current reach
+                                 predsEmpty,   // predicates                 
                                  strDesc       // description
                                  );
       }
@@ -1143,6 +1161,7 @@ public class ReachGraph {
                                           hrnSrcCaller.getAllocSite(),
                                           toShadowTokens( this, hrnSrcCaller.getInherent() ),
                                           toShadowTokens( this, hrnSrcCaller.getAlpha() ),
+                                          predsEmpty,
                                           hrnSrcCaller.getDescription()
                                           );
             callerNodesCopiedToCallee.add( rsnCaller );
@@ -1173,6 +1192,7 @@ public class ReachGraph {
                                           hrnCaller.getAllocSite(),
                                           toShadowTokens( this, hrnCaller.getInherent() ),
                                           toShadowTokens( this, hrnCaller.getAlpha() ),
+                                          predsEmpty,
                                           hrnCaller.getDescription()
                                           );
             callerNodesCopiedToCallee.add( hrnCaller );
@@ -1189,7 +1209,8 @@ public class ReachGraph {
                                         reCaller.getType(),
                                         reCaller.getField(),
                                         true, // clean?
-                                        toShadowTokens( this, reCaller.getBeta() )
+                                        toShadowTokens( this, reCaller.getBeta() ),
+                                        predsEmpty
                                         )
                            );              
             callerEdgesCopiedToCallee.add( reCaller );
@@ -1246,6 +1267,7 @@ public class ReachGraph {
                                       null,  // alloc site, shouldn't be used
                                       toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // inherent
                                       toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // alpha
+                                      predsEmpty,
                                       "out-of-context"
                                       );
        
@@ -1259,7 +1281,8 @@ public class ReachGraph {
                                     edgeMightCross.getType(),
                                     edgeMightCross.getField(),
                                     true, // clean?
-                                    toShadowTokens( this, edgeMightCross.getBeta() )
+                                    toShadowTokens( this, edgeMightCross.getBeta() ),
+                                    predsEmpty
                                     )
                        );                              
       }
@@ -1325,6 +1348,7 @@ public class ReachGraph {
                                         hrnCallee.getAllocSite(),
                                         unShadowTokens( rgCallee, hrnCallee.getInherent() ),
                                         unShadowTokens( rgCallee, hrnCallee.getAlpha() ),
+                                        predsEmpty,
                                         hrnCallee.getDescription()
                                         );
           
@@ -1931,7 +1955,7 @@ public class ReachGraph {
       }
 
       HeapRegionNode hrnB = rgB.id2hrn.get( idA );
-      if( !hrnA.equalsIncludingAlpha( hrnB ) ) {
+      if( !hrnA.equalsIncludingAlphaAndPreds( hrnB ) ) {
 	return false;
       }
     }
@@ -2071,7 +2095,9 @@ public class ReachGraph {
 
 	  // there is an edge in the right place with the right field,
 	  // but do they have the same attributes?
-	  if( edgeA.getBeta().equals( edgeB.getBeta() ) ) {
+	  if( edgeA.getBeta().equals( edgeB.getBeta() ) &&
+              edgeA.equalsPreds( edgeB )
+              ) {
 	    edgeFound = true;
 	  }
 	}
@@ -2330,16 +2356,16 @@ public class ReachGraph {
     }
 
     attributes += ",label=\"ID" +
-      hrn.getID()   +
+      hrn.getID() +
       "\\n";
 
     if( hrn.getType() != null ) {
-      attributes += hrn.getType().toPrettyString() + "\\n";
+      attributes += hrn.getType().toPrettyString()+"\\n";
     }
        
-    attributes += hrn.getDescription() +
-      "\\n"                +
-      hrn.getAlphaString( hideSubsetReachability ) +
+    attributes += hrn.getDescription()+
+      "\\n"+hrn.getAlphaString( hideSubsetReachability )+      
+      "\\n"+hrn.getPredString()+
       "\"]";
 
     bw.write( "  "+hrn.toString()+attributes+";\n" );
@@ -2354,7 +2380,7 @@ public class ReachGraph {
                 " -> "     +hrnChild.toString()+
                 "[label=\""+edge.toGraphEdgeString( hideSubsetReachability )+
                 "\",decorate];\n");
-
+      
       traverseHeapRegionNodes( hrnChild,
                                bw,
                                td,

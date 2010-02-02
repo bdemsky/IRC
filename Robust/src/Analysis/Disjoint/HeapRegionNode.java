@@ -38,6 +38,12 @@ public class HeapRegionNode extends RefSrcNode {
 
   protected String description;
 
+  // existence predicates must be true in a caller
+  // context for this node to transfer from this
+  // callee to that context--NOTE, existence predicates
+  // do not factor into node comparisons
+  protected ExistPredSet preds;
+
 
   public HeapRegionNode( Integer        id,
                          boolean        isSingleObject,
@@ -49,6 +55,7 @@ public class HeapRegionNode extends RefSrcNode {
                          AllocSite      allocSite,
                          ReachSet       inherent,
                          ReachSet       alpha,
+                         ExistPredSet   preds,
                          String         description
                          ) {
 
@@ -62,6 +69,7 @@ public class HeapRegionNode extends RefSrcNode {
     this.allocSite      = allocSite;
     this.inherent       = inherent;
     this.alpha          = alpha;
+    this.preds          = preds;
     this.description    = description;
 
     referencers = new HashSet<RefEdge>();
@@ -79,6 +87,7 @@ public class HeapRegionNode extends RefSrcNode {
                                allocSite,
                                inherent,
                                alpha,
+                               preds,
                                description );
   }
 
@@ -88,8 +97,13 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
 
-  public boolean equalsIncludingAlpha( HeapRegionNode hrn ) {
-    return equals( hrn ) && alpha.equals( hrn.alpha );
+  // alpha and preds contribute towards reaching the
+  // fixed point, so use this method to determine if
+  // a node is "equal" to some previous visit, basically
+  public boolean equalsIncludingAlphaAndPreds( HeapRegionNode hrn ) {
+    return equals( hrn ) && 
+      alpha.equals( hrn.alpha ) && 
+      preds.equals( hrn.preds );
   }
 
 
@@ -246,6 +260,10 @@ public class HeapRegionNode extends RefSrcNode {
 
   public String getAlphaString( boolean hideSubsetReachability ) {
     return alpha.toStringEscapeNewline( hideSubsetReachability );
+  }
+
+  public String getPredString() {
+    return preds.toString();
   }
 
   public String toString() {

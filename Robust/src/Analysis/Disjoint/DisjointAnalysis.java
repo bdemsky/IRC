@@ -588,7 +588,7 @@ public class DisjointAnalysis {
       // calculate the heap this call site can reach--note this is
       // not used for the current call site transform, we are
       // grabbing this heap model for future analysis of the callees,
-      // of if different results emerge we will return to this site
+      // so if different results emerge we will return to this site
       ReachGraph heapForThisCall_old = 
         getIHMcontribution( mdCallee, fc );
 

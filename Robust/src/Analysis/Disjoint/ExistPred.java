@@ -11,9 +11,11 @@ import java.io.*;
 // predicates are not satisfied in the
 // caller's context
 
-public class ExistPred extends Canonical {
+abstract public class ExistPred extends Canonical {  
 
-  
+  public ExistPred makeCanonical() {
+    return (ExistPred) Canonical.makeCanonical( this );
+  }
 
   public boolean isSatisfiedBy( ReachGraph rg ) {    
     return true;

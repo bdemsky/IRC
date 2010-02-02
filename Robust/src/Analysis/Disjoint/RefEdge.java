@@ -23,13 +23,20 @@ public class RefEdge {
   protected RefSrcNode     src;
   protected HeapRegionNode dst;
 
+  // existence predicates must be true in a caller
+  // context for this edge to transfer from this
+  // callee to that context--NOTE, existence predicates
+  // do not factor into edge comparisons
+  protected ExistPredSet preds;
+
   
   public RefEdge( RefSrcNode     src,
                   HeapRegionNode dst,
                   TypeDescriptor type,
                   String         field,
                   boolean        isClean,
-                  ReachSet       beta ) {
+                  ReachSet       beta,
+                  ExistPredSet   preds ) {
     assert type != null;
 
     this.src     = src;
@@ -37,6 +44,13 @@ public class RefEdge {
     this.type    = type;
     this.field   = field;
     this.isClean = isClean;
+
+    if( preds != null ) {
+      this.preds = preds;
+    } else {
+      // TODO: do this right?
+      this.preds = new ExistPredSet().makeCanonical();
+    }
 
     if( beta != null ) {
       this.beta = beta;
@@ -55,8 +69,9 @@ public class RefEdge {
                                 dst,
                                 type,
                                 field,
-                                isClean,
-                                beta );
+                                isClean,                               
+                                beta,
+                                preds );
     return copy;
   }
 
@@ -93,10 +108,19 @@ public class RefEdge {
   }
 
 
-  public boolean equalsIncludingBeta( RefEdge edge ) {
-    return equals( edge ) && beta.equals( edge.beta );
+  // beta and preds contribute towards reaching the
+  // fixed point, so use this method to determine if
+  // an edge is "equal" to some previous visit, basically
+  public boolean equalsIncludingBetaAndPreds( RefEdge edge ) {
+    return equals( edge ) && 
+      beta.equals( edge.beta ) &&
+      preds.equals( edge.preds );
   }
-  
+
+  public boolean equalsPreds( RefEdge edge ) {
+    return preds.equals( edge.preds );
+  }
+
 
   public int hashCode() {
     int hash = 0;
@@ -221,7 +245,8 @@ public class RefEdge {
       edgeLabel += "*clean*\\n";
     }
 
-    edgeLabel += beta.toStringEscapeNewline( hideSubsetReachability );
+    edgeLabel += beta.toStringEscapeNewline( hideSubsetReachability ) +
+      "\\n" + preds.toString();
       
     return edgeLabel;
   }
