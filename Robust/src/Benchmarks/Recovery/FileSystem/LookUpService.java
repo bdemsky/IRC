@@ -1,3 +1,10 @@
+/*
+Usage :
+  ./LookupService.bin <num thread> <datafile prefix>
+*/
+
+
+
 public class LookUpService extends Thread {
 	DistributedHashMap dir;
 	DistributedHashMap fs;
@@ -13,7 +20,7 @@ public class LookUpService extends Thread {
 		this.dir = dir;
 		this.fs = fs;
 		this.mid = mid;
-		this.inputfile = global new GlobalString(filename + "_" + mid);
+		this.inputfile = global new GlobalString("data/"+filename + mid);
 	}
 
 	public void init() {
@@ -87,40 +94,37 @@ public class LookUpService extends Thread {
 				gkey = global new GlobalString(key);
 			}
 
-			if (command == 'r') {	
-//				System.out.println("["+command+"] ["+key+"]");
-				if (isDir == true) {
-					atomic {
-						readDirectory(gkey);
-					}
-				}
-				else {
-					atomic {
+			if (command == 'r') {
+		  		System.out.println("["+command+"] ["+key+"]");
+    		atomic {
+			  	if (isDir == true) {
+				  		readDirectory(gkey);
+  				}
+	  			else {
 						readFile(gkey);
-					}
-				}
-			}
-			else if (command == 'c') {	
-				if (isDir == true) {
-//					System.out.println("["+command+"] ["+key+"]");
-					atomic {
-						createDirectory(gkey);
-						if(!myDir.contains(key)) {
-							myDir.add(key);
-						}
-					}
-				}
-				else {
-					val = t.getValue();
-//					System.out.println("["+command+"] ["+key+"] ["+val+"]");
-					atomic {
+				  }
+			  }
+      }
+			else if (command == 'c') {
+	  				System.out.println("["+command+"] ["+key+"]");
+				atomic {
+  				if (isDir == true) {
+		  				createDirectory(gkey);
+			  			if(!myDir.contains(key)) {
+				  			myDir.add(key);
+					  	}
+    			}
+		  		else {
+			  		val = t.getValue();
 						gval = global new GlobalString(val);
 						createFile(gkey, gval);
-					}
-				}
-			}
-		}
+				  }
+  			}
+	  	}
+    }
 		output(myDir);
+
+    RecoveryStat.printRecoveryStat();
 	}
 
 	public static void output(LinkedList myDir) { 

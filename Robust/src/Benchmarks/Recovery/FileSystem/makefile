@@ -1,6 +1,6 @@
 MAINCLASS=LookUpService
 SRC1=${MAINCLASS}.java 
-FLAGS= -dsm -dsmtask -32bit -recovery -nooptimize -mainclass ${MAINCLASS}
+FLAGS= -recoverystats -dsm -dsmtask -32bit -recovery -nooptimize -mainclass ${MAINCLASS}
 default:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC1}
 
