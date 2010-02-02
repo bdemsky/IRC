@@ -33,7 +33,8 @@ void setupsmemmode(void) {
 	bamboo_smem_mode = SMEMGLOBAL;
 #else
 	// defaultly using local mode
-	bamboo_smem_mode = SMEMLOCAL;
+	//bamboo_smem_mode = SMEMLOCAL;
+	bamboo_smem_mode = SMEMGLOBAL;
 #endif
 } // void setupsmemmode(void)
 #endif
@@ -105,6 +106,7 @@ void initruntimedata() {
 	//mgchashCreate(2000, 0.75);
 	gcpointertbl = allocateRuntimeHash(20);
 	//gcpointertbl = allocateMGCHash(20);
+	gcforwardobjtbl = allocateMGCHash(20, 3);
 	gcobj2map = 0;
 	gcmappedobj = 0;
 	gcismapped = false;
@@ -166,6 +168,7 @@ void disruntimedata() {
 	//mgchashDelete();
 	freeRuntimeHash(gcpointertbl);
 	//freeMGCHash(gcpointertbl);
+	freeMGCHash(gcforwardobjtbl);
 	if(gcsmemtbl != NULL) {
 		RUNFREE(gcsmemtbl);
 	}
@@ -378,7 +381,7 @@ void checkCoreStatus() {
 					for(i = 1; i < NUMCORESACTIVE; ++i) {	
 						corestatus[i] = 1;
 						// send status confirm msg to core i
-						send_msg_1(i, STATUSCONFIRM);
+						send_msg_1(i, STATUSCONFIRM, false);
 					} // for(i = 1; i < NUMCORESACTIVE; ++i)
 					waitconfirm = true;
 					numconfirm = NUMCORESACTIVE - 1;
@@ -406,7 +409,7 @@ void checkCoreStatus() {
 #endif
 					for(i = 1; i < NUMCORESACTIVE; ++i) {
 						// send profile request msg to core i
-						send_msg_2(i, PROFILEOUTPUT, totalexetime);
+						send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
 					} // for(i = 1; i < NUMCORESACTIVE; ++i)
 					// pour profiling data on startup core
 					outputProfileData();
@@ -586,8 +589,8 @@ inline void run(void * arg) {
 							  BAMBOO_DEBUGPRINT(0xee0b);
 #endif
 							  // send stall msg
-							  send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE, 
-										       self_numsendobjs, self_numreceiveobjs);
+								send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE, 
+										       self_numsendobjs, self_numreceiveobjs, false);
 							  sendStall = true;
 							  isfirst = true;
 							  busystatus = false;
@@ -1357,7 +1360,7 @@ void * globalmalloc_I(int isize,
 		                  int * allocsize) {
 	void * mem = (void *)(freemem->ptr);
 	// check the remaining space in this block
-	int remain = (int)(mem-(BAMBOO_BASE_VA));
+	int remain = (int)(mem-gcbaseva);
 	int bound = (BAMBOO_SMEM_SIZE);
 	if(remain < BAMBOO_LARGE_SMEM_BOUND) {
 		bound = (BAMBOO_SMEM_SIZE_L);
@@ -1576,7 +1579,7 @@ msg:
 				if(isMsgSending) {
 					cache_msg_4(data4, tmp, msgdata[1], data2, data3);
 				} else {
-					send_msg_4(data4, tmp, msgdata[1], data2, data3);
+					send_msg_4(data4, tmp, msgdata[1], data2, data3, true);
 				}
 			}
       break;
@@ -1665,7 +1668,7 @@ msg:
 			if(isMsgSending) {
 				cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
 			} else {
-				send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+				send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
 			}
       break;
     }
@@ -1710,8 +1713,8 @@ msg:
 			  cache_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
 						        data1, data2, data3);
 		  } else {
-			  send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
-						       data1, data2, data3);
+				send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
+						       data1, data2, data3, true);
 		  }
 	  }
 	  break;
@@ -1801,9 +1804,9 @@ msg:
 						        busystatus?1:0, BAMBOO_NUM_OF_CORE,
 										self_numsendobjs, self_numreceiveobjs);
 		  } else {
-			  send_msg_5(STARTUPCORE, STATUSREPORT, 
-						       busystatus?1:0, BAMBOO_NUM_OF_CORE,
-									 self_numsendobjs, self_numreceiveobjs);
+				send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0, 
+						       BAMBOO_NUM_OF_CORE, self_numsendobjs, 
+									 self_numreceiveobjs, true);
 		  }
 		}
 	  break;
@@ -1874,7 +1877,7 @@ msg:
 			if(isMsgSending) {
 				cache_msg_3(msgdata[2], MEMRESPONSE, mem, allocsize);
 			} else {
-				send_msg_3( msgdata[2], MEMRESPONSE, mem, allocsize);
+				send_msg_3( msgdata[2], MEMRESPONSE, mem, allocsize, true);
 			} 
 		}
 	  break;
@@ -2014,7 +2017,7 @@ msg:
 					if(isMsgSending) {
 						cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
 					} else {
-						send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+						send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
 					}
 				}
 			} else {
@@ -2044,7 +2047,7 @@ msg:
 							if(isMsgSending) {
 								cache_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
 							} else {
-								send_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
+								send_msg_4(j, GCMOVESTART, cnum, startaddr, tomove, true);
 							}
 						} // if(STARTUPCORE == j)
 						if(gcrequiredmems[j] == 0) {
@@ -2092,8 +2095,9 @@ msg:
 						        gcbusystatus, gcself_numsendobjs, 
 										gcself_numreceiveobjs);
 		  } else {
-			  send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
-						       gcbusystatus, gcself_numsendobjs, gcself_numreceiveobjs);
+				send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
+						       gcbusystatus, gcself_numsendobjs, 
+									 gcself_numreceiveobjs, true);
 		  }
 		}
 	  break;
@@ -2157,14 +2161,14 @@ msg:
 			/*if(isMsgSending) {
 				cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
 			} else {
-				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
+				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1], true);
 			}*/
 		} else {
 			// send back the mapping info
 			if(isMsgSending) {
 				cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], (int)dstptr);
 			} else {
-				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], (int)dstptr);
+				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], (int)dstptr, true);
 			}
 		}
 		break;
@@ -2234,9 +2238,11 @@ msg:
 	default:
 		break;
 	}
-	for(; msgdataindex > 0; --msgdataindex) {
+	/*for(; msgdataindex > 0; --msgdataindex) {
 		msgdata[msgdataindex-1] = -1;
-	}
+	}*/
+  memset(msgdata, '\0', sizeof(int) * msgdataindex);
+	msgdataindex = 0;
 	msglength = BAMBOO_MSG_BUF_LENGTH;
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2497,7 +2503,8 @@ void releasewritelock_r(void * lock, void * redirectlock) {
   } else {
 	  // send lock release with redirect info msg
 	  // for 32 bit machine, the size is always 4 words
-	  send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, (int)redirectlock);
+		send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, 
+				       (int)redirectlock, false);
   }
 }
 #endif

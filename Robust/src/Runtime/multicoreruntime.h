@@ -138,43 +138,43 @@ volatile bool isMsgSending;
  *            (size is always 3 * sizeof(int))
  */
 typedef enum {
-	MSGSTART = 0x0,  // 0x0
-	TRANSOBJ,        // 0x1
-	TRANSTALL,       // 0x2
-	LOCKREQUEST,     // 0x3
-	LOCKGROUNT,      // 0x4
-	LOCKDENY,        // 0x5
-	LOCKRELEASE,     // 0x6
-	PROFILEOUTPUT,   // 0x7
-	PROFILEFINISH,   // 0x8
-	REDIRECTLOCK,    // 0x9
-	REDIRECTGROUNT,  // 0xa
-	REDIRECTDENY,    // 0xb
-	REDIRECTRELEASE, // 0xc
-	STATUSCONFIRM,   // 0xd
-	STATUSREPORT,    // 0xe
-	TERMINATE,       // 0xf
-	MEMREQUEST,      // 0x10
-	MEMRESPONSE,     // 0x11
+	MSGSTART = 0xD0, // 0xD0
+	TRANSOBJ,        // 0xD1
+	TRANSTALL,       // 0xD2
+	LOCKREQUEST,     // 0xD3
+	LOCKGROUNT,      // 0xD4
+	LOCKDENY,        // 0xD5
+	LOCKRELEASE,     // 0xD6
+	PROFILEOUTPUT,   // 0xD7
+	PROFILEFINISH,   // 0xD8
+	REDIRECTLOCK,    // 0xD9
+	REDIRECTGROUNT,  // 0xDa
+	REDIRECTDENY,    // 0xDb
+	REDIRECTRELEASE, // 0xDc
+	STATUSCONFIRM,   // 0xDd
+	STATUSREPORT,    // 0xDe
+	TERMINATE,       // 0xDf
+	MEMREQUEST,      // 0xE0
+	MEMRESPONSE,     // 0xE1
 #ifdef MULTICORE_GC
-	GCSTARTINIT,     // 0x12
-	GCSTART,         // 0x13
-	GCSTARTCOMPACT,  // 0x14
-	GCSTARTFLUSH,    // 0x15
-	GCFINISHINIT,    // 0x16
-	GCFINISHMARK,    // 0x17
-	GCFINISHCOMPACT, // 0x18
-	GCFINISHFLUSH,   // 0x19
-	GCFINISH,        // 0x1a
-	GCMARKCONFIRM,   // 0x1b
-	GCMARKREPORT,    // 0x1c
-	GCMARKEDOBJ,     // 0x1d
-	GCMOVESTART,     // 0x1e
-	GCMAPREQUEST,    // 0x1f
-	GCMAPINFO,       // 0x20
-	GCLOBJREQUEST,   // 0x21
-	GCLOBJINFO,      // 0x22
-	GCLOBJMAPPING,   // 0x23
+	GCSTARTINIT,     // 0xE2
+	GCSTART,         // 0xE3
+	GCSTARTCOMPACT,  // 0xE4
+	GCSTARTFLUSH,    // 0xE5
+	GCFINISHINIT,    // 0xE6
+	GCFINISHMARK,    // 0xE7
+	GCFINISHCOMPACT, // 0xE8
+	GCFINISHFLUSH,   // 0xE9
+	GCFINISH,        // 0xEa
+	GCMARKCONFIRM,   // 0xEb
+	GCMARKREPORT,    // 0xEc
+	GCMARKEDOBJ,     // 0xEd
+	GCMOVESTART,     // 0xEe
+	GCMAPREQUEST,    // 0xEf
+	GCMAPINFO,       // 0xF0
+	GCLOBJREQUEST,   // 0xF1
+	GCLOBJINFO,      // 0xF2
+	GCLOBJMAPPING,   // 0xF3
 #endif
 	MSGEND
 } MSGTYPE;
@@ -366,32 +366,38 @@ INLINE void processlockrelease(int locktype,
 // msg related functions
 INLINE void send_hanging_msg();
 INLINE void send_msg_1(int targetcore, 
-		                   unsigned long n0);
+		                   unsigned long n0,
+											 bool isinterrupton);
 INLINE void send_msg_2(int targetcore, 
 		                   unsigned long n0, 
-											 unsigned long n1);
+											 unsigned long n1,
+											 bool isinterrupton);
 INLINE void send_msg_3(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
-											 unsigned long n2);
+											 unsigned long n2,
+											 bool isinterrupton);
 INLINE void send_msg_4(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
-											 unsigned long n3);
+											 unsigned long n3,
+											 bool isinterrupton);
 INLINE void send_msg_5(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
 											 unsigned long n3, 
-											 unsigned long n4);
+											 unsigned long n4,
+											 bool isinterrupton);
 INLINE void send_msg_6(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
 											 unsigned long n3, 
 											 unsigned long n4, 
-											 unsigned long n5);
+											 unsigned long n5,
+											 bool isinterrupton);
 INLINE void cache_msg_2(int targetcore, 
 		                    unsigned long n0, 
 												unsigned long n1);

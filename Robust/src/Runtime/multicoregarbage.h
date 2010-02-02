@@ -42,6 +42,7 @@ volatile bool gcprocessing;
 volatile GCPHASETYPE gcphase; // indicating GC phase
 
 int gccurr_heaptop;
+struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
 int gccorestatus[NUMCORES4GC]; // records status of each core
                             // 1: running gc
@@ -64,7 +65,7 @@ int gcnumlobjs;
 INTPTR gcmarkedptrbound;
 int gcblock2fill;
 int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
-int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
+int gcfilledblocks[NUMCORES4GC];//indicate how many blocks have been fulfilled
 // move instruction;
 INTPTR gcmovestartaddr;
 int gcdstcore;
