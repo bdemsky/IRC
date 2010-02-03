@@ -2048,82 +2048,255 @@ public class MLPAnalysis {
 		return sorted;
 	}
 	
-	private void calculateCliqueCovering(ConflictGraph conflictGraph) {
-
-		HashSet<ConflictEdge> tocover = conflictGraph.getEdgeSet();
+	private void calculateCovering(ConflictGraph conflictGraph){
+		
+		HashSet<ConflictEdge> fineToCover = new HashSet<ConflictEdge>();
+		HashSet<ConflictEdge> coarseToCover = new HashSet<ConflictEdge>();
 		HashSet<SESELock> lockSet=new HashSet<SESELock>();
-
-		while (!tocover.isEmpty()) {
-			ConflictEdge edge = (ConflictEdge) tocover.iterator().next();
-			tocover.remove(edge);
-
+		
+		HashSet<ConflictEdge> tempCover = conflictGraph.getEdgeSet();
+		for (Iterator iterator = tempCover.iterator(); iterator.hasNext();) {
+			ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+			if(conflictEdge.getType()==ConflictEdge.FINE_GRAIN_EDGE){
+				fineToCover.add(conflictEdge);
+			}else if(conflictEdge.getType()==ConflictEdge.COARSE_GRAIN_EDGE){
+				coarseToCover.add(conflictEdge);
+			}
+		}
+	
+		HashSet<ConflictEdge> toCover=new HashSet<ConflictEdge>();
+		toCover.addAll(fineToCover);
+		toCover.addAll(coarseToCover);
+		
+		while (!toCover.isEmpty()) {
+			
 			SESELock seseLock = new SESELock();
-			seseLock.addEdge(edge);
-
-			boolean changed = false;
-			do {
-				changed = false;
-				for (Iterator edgeit = tocover.iterator(); edgeit.hasNext();) {
-					ConflictEdge newEdge = (ConflictEdge) edgeit.next();
-					if (newEdge.getVertexU() == newEdge.getVertexV()
-							&& seseLock.containsConflictNode(newEdge
-									.getVertexU())) {
-						// for self-edge case
-						tocover.remove(newEdge);
-						changed = true;
+		
+			boolean changed;
+			
+			do{	// fine-grained edge
+				
+				changed=false;
+			
+				for (Iterator iterator = fineToCover.iterator(); iterator
+						.hasNext();) {
+					
+					ConflictEdge edge = (ConflictEdge) iterator.next();
+					if(seseLock.getConflictNodeSet().size()==0){
+						//initial setup	
+						if(seseLock.hasSelfEdge(edge.getVertexU())){
+							// mark as fine_write
+							if(edge.getVertexU() instanceof StallSiteNode){
+								edge.getVertexU().setType(ConflictNode.PARENT_WRITE);
+							}else{
+								edge.getVertexU().setType(ConflictNode.FINE_WRITE);
+							}
+							seseLock.getConflictNodeSet().add(edge.getVertexU());
+						}else{
+							// mark as fine_read
+							if(edge.getVertexU() instanceof StallSiteNode){
+								edge.getVertexU().setType(ConflictNode.PARENT_READ);	
+							}else{
+								edge.getVertexU().setType(ConflictNode.FINE_READ);	
+							}
+							seseLock.getConflictNodeSet().add(edge.getVertexU());
+						}
+						if(edge.getVertexV()!=edge.getVertexU()){
+							if(seseLock.hasSelfEdge(edge.getVertexV())){
+								// mark as fine_write
+								if(edge.getVertexV() instanceof StallSiteNode){
+									edge.getVertexV().setType(ConflictNode.PARENT_WRITE);
+								}else{
+									edge.getVertexV().setType(ConflictNode.FINE_WRITE);
+								}
+								seseLock.getConflictNodeSet().add(edge.getVertexV());
+							}else{
+								// mark as fine_read
+								if(edge.getVertexV() instanceof StallSiteNode){
+									edge.getVertexV().setType(ConflictNode.PARENT_WRITE);
+								}else{
+									edge.getVertexV().setType(ConflictNode.FINE_READ);
+								}
+								seseLock.getConflictNodeSet().add(edge.getVertexV());
+							}		
+						}
+						changed=true;
+						fineToCover.remove(edge);
 						break;// exit iterator loop
-					} else if (seseLock.testEdge(newEdge)) {
-
-						ConflictNode nodeToAdd = seseLock
-								.containsConflictNode(newEdge.getVertexU()) ? newEdge
-								.getVertexV()
-								: newEdge.getVertexU();
-
-						for (Iterator newEdgeIter = nodeToAdd.getEdgeSet()
-								.iterator(); newEdgeIter.hasNext();) {
-							ConflictEdge ne = (ConflictEdge) newEdgeIter.next();
-							if (seseLock.containsConflictNode(ne.getVertexU())) {
-								tocover.remove(ne);
-							} else if (seseLock.containsConflictNode(ne
-									.getVertexV())) {
-								tocover.remove(ne);
+					}// end of initial setup
+					
+					ConflictNode newNode;
+					if((newNode=seseLock.getNewNodeConnectedWithGroup(edge))!=null){
+						// new node has a fine-grained edge to all current node
+						// If there is a coarse grained edge where need a fine edge, it's okay to add the node
+						// but the edge must remain uncovered.
+						
+						changed=true;
+						
+						if(seseLock.hasSelfEdge(newNode)){
+							if(newNode instanceof StallSiteNode){
+								newNode.setType(ConflictNode.PARENT_WRITE);
+							}else{
+								newNode.setType(ConflictNode.FINE_WRITE);
+							}
+						}else{
+							if(newNode instanceof StallSiteNode){
+								newNode.setType(ConflictNode.PARENT_READ);
+							}else{
+								newNode.setType(ConflictNode.FINE_READ);
 							}
 						}
-						// Add in new node to lockset
-						seseLock.addEdge(newEdge);
-						changed = true;
-						break; // exit iterator loop
+
+						seseLock.addEdge(edge);
+						HashSet<ConflictEdge> edgeSet=newNode.getEdgeSet();
+						for (Iterator iterator2 = edgeSet.iterator(); iterator2
+								.hasNext();) {
+							ConflictEdge conflictEdge = (ConflictEdge) iterator2
+									.next();
+							
+							
+							// mark all fine edges between new node and nodes in the group as covered
+							if(!conflictEdge.getVertexU().equals(newNode)){
+								if(seseLock.containsConflictNode(conflictEdge.getVertexU())){
+									changed=true;
+									fineToCover.remove(conflictEdge);
+								}
+							}else if(!conflictEdge.getVertexV().equals(newNode)){
+								if(seseLock.containsConflictNode(conflictEdge.getVertexV())){
+									changed=true;
+									fineToCover.remove(conflictEdge);
+								}				
+							}
+							
+						}
+					
+						break;// exit iterator loop
 					}
-
 				}
-			} while (changed);
-			seseLock.setID(ConflictGraph.generateUniqueCliqueID());
-			lockSet.add(seseLock);
+				
+			}while(changed);
+				
+			do{		// coarse
+				
+				changed=false;
+		
+				for (Iterator iterator = coarseToCover.iterator(); iterator
+				.hasNext();) {
+					
+					ConflictEdge edge = (ConflictEdge) iterator.next();
+					
+					if(seseLock.getConflictNodeSet().size()==0){
+						//initial setup	
+						if(seseLock.hasSelfEdge(edge.getVertexU())){
+							// node has a coarse-grained edge with itself
+							if(!(edge.getVertexU() instanceof StallSiteNode)){
+								// and it is not parent
+								edge.getVertexU().setType(ConflictNode.SCC);
+							}else{
+								edge.getVertexU().setType(ConflictNode.PARENT_COARSE);
+							}
+							seseLock.getConflictNodeSet().add(edge.getVertexU());
+						}else{
+							if(edge.getVertexU() instanceof StallSiteNode){
+								edge.getVertexU().setType(ConflictNode.PARENT_COARSE);	
+							}else{
+								edge.getVertexU().setType(ConflictNode.COARSE);	
+							}
+							seseLock.getConflictNodeSet().add(edge.getVertexU());
+						}
+						if(seseLock.hasSelfEdge(edge.getVertexV())){
+							// node has a coarse-grained edge with itself
+							if(!(edge.getVertexV() instanceof StallSiteNode)){
+								// and it is not parent
+								edge.getVertexV().setType(ConflictNode.SCC);
+							}else{
+								edge.getVertexV().setType(ConflictNode.PARENT_COARSE);
+							}
+							seseLock.getConflictNodeSet().add(edge.getVertexV());
+						}else{
+							if(edge.getVertexV() instanceof StallSiteNode){
+								edge.getVertexV().setType(ConflictNode.PARENT_COARSE);	
+							}else{
+								edge.getVertexV().setType(ConflictNode.COARSE);	
+							}
+							seseLock.getConflictNodeSet().add(edge.getVertexV());
+						}						
+						changed=true;
+						break;// exit iterator loop
+					}// end of initial setup
+					
+					
+					ConflictNode newNode;
+					if((newNode=seseLock.getNewNodeConnectedWithGroup(edge))!=null){
+						// new node has a coarse-grained edge to all fine-read, fine-write, parent
+						changed=true;
+						
+						if(seseLock.hasSelfEdge(newNode)){
+							//SCC
+							if(newNode instanceof StallSiteNode){
+								newNode.setType(ConflictNode.PARENT_COARSE);
+							}else{
+								newNode.setType(ConflictNode.SCC);
+							}
+						}else{
+							if(newNode instanceof StallSiteNode){
+								newNode.setType(ConflictNode.PARENT_COARSE);
+							}else{
+								newNode.setType(ConflictNode.COARSE);
+							}
+						}
 
-		}// end of while
+						seseLock.addEdge(edge);
+						HashSet<ConflictEdge> edgeSet=newNode.getEdgeSet();
+						for (Iterator iterator2 = edgeSet.iterator(); iterator2
+								.hasNext();) {
+							ConflictEdge conflictEdge = (ConflictEdge) iterator2
+									.next();
+							// mark all coarse edges between new node and nodes in the group as covered
+							if(!conflictEdge.getVertexU().equals(newNode)){
+								if(seseLock.containsConflictNode(conflictEdge.getVertexU())){
+									changed=true;
+									coarseToCover.remove(conflictEdge);
+								}
+							}else if(!conflictEdge.getVertexV().equals(newNode)){
+								if(seseLock.containsConflictNode(conflictEdge.getVertexV())){
+									changed=true;
+									coarseToCover.remove(conflictEdge);
+								}				
+							}
+							
+						}
+						break;// exit iterator loop
+					}
+					
+					
+				}
+				
+			}while(changed);
+			
+//			System.out.println("lock="+seseLock);
+			lockSet.add(seseLock);
+			
+			toCover.clear();
+			toCover.addAll(fineToCover);
+			toCover.addAll(coarseToCover);
+			
+		}
 		
-		//build map from synthsized locks to conflict graph
 		conflictGraphLockMap.put(conflictGraph, lockSet);
-		
 	}
 
-	
 	private void synthesizeLocks(){
-		
-//		conflictGraphResults.put(seseSummary.getCurrentSESE(),
-//				conflictGraph);
-		
 		Set<Entry<FlatNode,ConflictGraph>> graphEntrySet=conflictGraphResults.entrySet();
 		for (Iterator iterator = graphEntrySet.iterator(); iterator.hasNext();) {
 			Entry<FlatNode, ConflictGraph> graphEntry = (Entry<FlatNode, ConflictGraph>) iterator
 					.next();
 			FlatNode sese=graphEntry.getKey();
 			ConflictGraph conflictGraph=graphEntry.getValue();
-			calculateCliqueCovering(conflictGraph);
+			calculateCovering(conflictGraph);
 		}
-		
 	}
-
+	
 	private void makeConflictGraph() {
 		Iterator<Descriptor> methItr = ownAnalysis.descriptorsToAnalyze
 				.iterator();
@@ -2216,16 +2389,6 @@ public class MLPAnalysis {
 			FlatNode flatNode = (FlatNode) keyEnum1.nextElement();
 			ConflictGraph conflictGraph=conflictGraphResults.get(flatNode);
 			conflictGraph.analyzeConflicts();
-			conflictGraph.addPseudoEdgeBetweenReadOnlyNode();
-			conflictGraphResults.put(flatNode, conflictGraph);
-		}
-		
-		// add pseudo-edge for a pair of read-only node
-    	keyEnum1=conflictGraphResults.keys();
-		while (keyEnum1.hasMoreElements()) {
-			FlatNode flatNode = (FlatNode) keyEnum1.nextElement();
-			ConflictGraph conflictGraph=conflictGraphResults.get(flatNode);
-//			conflictGraph.analyzeConflicts();
 			conflictGraphResults.put(flatNode, conflictGraph);
 		}
 		

@@ -171,7 +171,7 @@ public class LiveInNode extends ConflictNode {
 	}
 
 	public String toString() {
-		String str = "LiveInNode " + id;
+		String str = "LiveInNode " + id +" type="+type;
 		return str;
 	}
 

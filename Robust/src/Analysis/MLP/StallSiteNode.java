@@ -27,7 +27,7 @@ public class StallSiteNode extends ConflictNode {
 	}
 	
 	public String toString(){
-		String str="StallSiteNode "+id;
+		String str="StallSiteNode "+id +" type="+type;
 		return str;
 	}
 
