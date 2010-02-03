@@ -789,6 +789,7 @@ remoteread:
 #ifdef COMPILER
 #ifdef CACHE
       LOGOIDTYPE("RR",oid, TYPE(objcopy),myrdtsc());
+      LOGTIME('r', oid, TYPE(objcopy),myrdtsc(),0);
       //Copy object to prefetch cache
       pthread_mutex_lock(&prefetchcache_mutex);
       objheader_t *headerObj;
@@ -1628,6 +1629,7 @@ int checkoid(unsigned int oid, int isLastOffset) {
     //Found on machine
     return 1;
   } else if ((header=prehashSearch(oid))!=NULL) {
+    //if the last offset then prefetch object
     if((STATUS(header) & DIRTY) && isLastOffset) {
       return 0;
     }
@@ -1829,7 +1831,7 @@ int getPrefetchResponse(int sd, struct readstruct *readbuffer) {
     /* Do a version comparison if the oid exists */
     if((oldptr = prehashSearch(oid)) != NULL) {
       /* If older version then update with new object ptr */
-      if(((objheader_t *)oldptr)->version <= ((objheader_t *)modptr)->version) {
+      if(((objheader_t *)oldptr)->version < ((objheader_t *)modptr)->version) {
         prehashInsert(oid, modptr);
       }
     } else { /* Else add the object ptr to hash table*/

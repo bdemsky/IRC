@@ -279,6 +279,7 @@ cnodetmp=cnodetmp->next;\
 
 __attribute__((pure)) objheader_t *transRead(unsigned int);
 __attribute__((pure)) objheader_t *transRead2(unsigned int);
+//__attribute__((pure)) objheader_t *transRead2(unsigned int, char ptr[]);
 objheader_t *transCreateObj(unsigned int); //returns oid header
 int transCommit(); //return 0 if successful
 void *transRequest(void *);     //the C routine that the thread will execute when TRANS_REQUEST begins

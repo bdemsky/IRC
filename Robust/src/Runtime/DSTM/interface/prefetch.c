@@ -9,6 +9,28 @@ extern sockPoolHashTable_t *transPResponseSocketPool;
 extern pthread_mutex_t prefetchcache_mutex;
 extern prehashtable_t pflookup;
 
+//#define LOGTIMES
+#ifdef LOGTIMES
+extern char bigarray1[6*1024*1024];
+extern unsigned int bigarray2[6*1024*1024];
+extern unsigned int bigarray3[6*1024*1024];
+extern long long bigarray4[6*1024*1024];
+extern int bigarray5[6*1024*1024];
+extern int bigindex1;
+#define LOGTIME(x,y,z,a,b) {\
+  int tmp=bigindex1; \
+  bigarray1[tmp]=x; \
+  bigarray2[tmp]=y; \
+  bigarray3[tmp]=z; \
+  bigarray4[tmp]=a; \
+  bigarray5[tmp]=b; \
+  bigindex1++; \
+}
+#else
+#define LOGTIME(x,y,z,a,b)
+//log(eventname, oid, type, time, unqiue id)
+#endif
+
 // Function for new prefetch call
 void rangePrefetch(unsigned int oid, short numoffset, short *offsets) {
   /* Allocate memory in prefetch queue and push the block there */
@@ -20,6 +42,7 @@ void rangePrefetch(unsigned int oid, short numoffset, short *offsets) {
   ((unsigned int *)node)[0] = oid;
   index = index + (sizeof(unsigned int));
   *((short *)(node+index)) = numoffset;
+  LOGTIME('R',oid,numoffset,0,0);
   index = index + (sizeof(short));
   memcpy(node+index, offsets, numoffset * sizeof(short));
   movehead(qnodesize);
@@ -68,13 +91,20 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
     int offstop=numoffset-2;
 
     int countInvalidObj=-1;
+    int isLastOffset=0;
+    if(offstop==0) { //if no offsets 
+      isLastOffset=1;
+    }
 
-    objheader_t * header = searchObjInv(oid, top, &countInvalidObj);
+    objheader_t * header = searchObjInv(oid, top, &countInvalidObj, &isLastOffset);
     if (header==NULL) {
+      LOGTIME('b',oid,0,0,countInvalidObj);
       //forward prefetch
       if(oid!=0) {
         int machinenum = lhashSearch(oid);
-        insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
+        if(machinenum != myIpAddr) {
+          insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
+        }
       }
       //update ptr
       ptr=((char *)&offsetarray[numoffset])+sizeof(int);
@@ -83,34 +113,45 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
     dfsList[0]=oid;
     dfsList[1]=0;
 
+    LOGTIME('B',oid,TYPE(header),0,countInvalidObj);
 
     //Start searching the dfsList
     for(top=0; top>=0;) {
-      oid=getNextOid(header, offsetarray, dfsList, top, &countInvalidObj);
+      if(top == offstop) {
+        isLastOffset=1;
+      }
+      oid=getNextOid(header, offsetarray, dfsList, top, &countInvalidObj, &isLastOffset);
+      LOGTIME('O',oid,0,0,countInvalidObj);
       if (oid&1) {
         int oldisField=TYPE(header) < NUMCLASSES;
         top+=2;
         dfsList[top]=oid;
         dfsList[top+1]=0;
-        header=searchObjInv(oid, top, &countInvalidObj);
+        header=searchObjInv(oid, top, &countInvalidObj, &isLastOffset);
         if (header==NULL) {
+          LOGTIME('c',oid,top,0,countInvalidObj);
           //forward prefetch
           int machinenum = lhashSearch(oid);
-
-          if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
-            insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
-          } else {
-            insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
+          if(machinenum != myIpAddr) {
+            if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
+              insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
+            } else {
+              insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
+            }
           }
         } else if (top<offstop) {
+          LOGTIME('C',oid,TYPE(header),0,top);
           //okay to continue going down
           continue;
         }
       } else if (oid==2) {
+        LOGTIME('D',oid,0,0,top);
         //send prefetch first
         int objindex=top+2;
         int machinenum = lhashSearch(dfsList[objindex]);
-        insertPrefetch(machinenum, dfsList[objindex], numoffset-top, &offsetarray[top], &head);
+        if(machinenum != myIpAddr) {
+          insertPrefetch(machinenum, dfsList[objindex], numoffset-top, &offsetarray[top], &head);
+        }
       }
       //oid is 0
       //go backwards until we can increment
@@ -127,10 +168,11 @@ perMcPrefetchList_t *processLocal(char *ptr, int numprefetches) {
         if (top<countInvalidObj)
           countInvalidObj=-1;
 
-        header=searchObjInv(dfsList[top], top, &countInvalidObj);
+        header=searchObjInv(dfsList[top], top, &countInvalidObj, NULL);
         //header shouldn't be null unless the object moves away, but allow
         //ourselves the option to just continue on if we lose the object
       } while(header==NULL);
+      LOGTIME('F',OID(header),TYPE(header),0,top);
       //increment
       dfsList[top+1]++;
     }
@@ -141,16 +183,15 @@ tuple:
   return head;
 }
 
-//#define PBUFFERSIZE 16384
-#define PBUFFERSIZE 2048
+#define PBUFFERSIZE 16384
 //#define PBUFFERSIZE 8192 //Used only for Moldyn benchmark
 
 
-perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int sd, short numoffset, unsigned int mid) {
+perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int sd, short numoffset, unsigned int mid, struct writestruct *writebuffer) {
   int top;
   unsigned int dfsList[numoffset];
-  char buffer[PBUFFERSIZE];
-  int bufoffset=0;
+  //char buffer[PBUFFERSIZE];
+  //int bufoffset=0;
 
   /* Initialize */
   perMcPrefetchList_t *head = NULL;
@@ -159,20 +200,22 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
 
   int offstop=numoffset-2;
   if (header==NULL) {
+    LOGTIME('g',oid,0,0,0);
     //forward prefetch
     //int machinenum = lhashSearch(oid);
     //insertPrefetch(machinenum, oid, numoffset, offsetarray, &head);
     return head;
   } else {
-    sendOidFound(header, oid, sd, buffer, &bufoffset);
+    sendOidFound(header, oid, sd, writebuffer);
   }
 
   dfsList[0]=oid;
   dfsList[1]=0;
+  LOGTIME('G',OID(header),TYPE(header),0, 0);
 
   //Start searching the dfsList
   for(top=0; top>=0;) {
-    oid=getNextOid(header, offsetarray, dfsList, top, NULL);
+    oid=getNextOid(header, offsetarray, dfsList, top, NULL, NULL);
     if (oid&1) {
       int oldisField=TYPE(header) < NUMCLASSES;
       top+=2;
@@ -180,24 +223,32 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       dfsList[top+1]=0;
       header=searchObj(oid);
       if (header==NULL) {
-	//forward prefetch
-	//int machinenum = lhashSearch(oid);
-	if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
-	//  insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
-    } else {
-	//  insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
-    }
+        LOGTIME('h',oid,top,0,0);
+        //forward prefetch
+        /*
+           int machinenum = lhashSearch(oid);
+           if (oldisField&&(dfsList[top-1]!=GET_RANGE(offsetarray[top+1]))) {
+            insertPrefetch(machinenum, oid, 2+numoffset-top, &offsetarray[top-2], &head);
+           } else {
+            insertPrefetch(machinenum, oid, numoffset-top, &offsetarray[top], &head);
+           }
+        */
       } else {
-	sendOidFound(header, oid, sd, buffer, &bufoffset);
+	sendOidFound(header, oid, sd,writebuffer); 
+    LOGTIME('H',oid,TYPE(header),0,top);
 	if (top<offstop)
 	  //okay to continue going down
 	  continue;
       }
     } else if (oid==2) {
+      LOGTIME('I',oid,top,0,0);
       //send prefetch first
       int objindex=top+2;
-      //int machinenum = lhashSearch(dfsList[objindex]);
-      //insertPrefetch(machinenum, dfsList[objindex], numoffset-top, &offsetarray[top], &head);
+      //forward prefetch
+      /*
+        int machinenum = lhashSearch(dfsList[objindex]);
+        insertPrefetch(machinenum, dfsList[objindex], numoffset-top, &offsetarray[top], &head);
+      */
     }
     //oid is 0
     //go backwards until we can increment
@@ -205,7 +256,7 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       do {
 	top-=2;
 	if (top<0) {
-	  flushResponses(sd, buffer, &bufoffset);
+	  flushResponses(sd, writebuffer);
 	  return head;
 	}
       } while(dfsList[top+1] == GET_RANGE(offsetarray[top + 3]));
@@ -214,10 +265,11 @@ perMcPrefetchList_t *processRemote(unsigned int oid,  short * offsetarray, int s
       //header shouldn't be null unless the object moves away, but allow
       //ourselves the option to just continue on if we lose the object
     } while(header==NULL);
+    LOGTIME('K',OID(header),TYPE(header),0,top);
     //increment
     dfsList[top+1]++;
   }
-  flushResponses(sd, buffer, &bufoffset);
+  flushResponses(sd, writebuffer);
   return head;
 }
 
@@ -237,7 +289,7 @@ INLINE objheader_t *searchObj(unsigned int oid) {
 }
 
 
-INLINE objheader_t *searchObjInv(unsigned int oid, int top, int *countInvalidObj) {
+INLINE objheader_t *searchObjInv(unsigned int oid, int top, int *countInvalidObj, int *isLastOffset) {
   objheader_t *header;
   if ((header = (objheader_t *)mhashSearch(oid)) != NULL) {
     return header;
@@ -245,12 +297,14 @@ INLINE objheader_t *searchObjInv(unsigned int oid, int top, int *countInvalidObj
     header = prehashSearch(oid);
     if(header != NULL) {
       if((STATUS(header) & DIRTY) && (countInvalidObj!= NULL)) {
-	if ((*countInvalidObj)==-1) {
-	  *countInvalidObj=top;
-	} else {
-	  return NULL;
-	}
+        if ((*countInvalidObj)==-1) {
+          *countInvalidObj=top;
+        } else {
+          return NULL;
+        }
       }
+      if((STATUS(header) & DIRTY) && isLastOffset)
+        return NULL;
     }
     return header;
   }
@@ -389,9 +443,9 @@ void sendRangePrefetchReq(perMcPrefetchList_t *mcpilenode, int sd, unsigned int 
       len+=sizeof(int);
     }
     if(tmp!=NULL)
-      send_buf(sd, & writebuffer, oidnoffset, len);
+      send_buf(sd, &writebuffer, oidnoffset, len);
     else
-      forcesend_buf(sd, & writebuffer, oidnoffset, len);
+      forcesend_buf(sd, &writebuffer, oidnoffset, len);
       //send_data(sd, oidnoffset, len);
     //tmp = tmp->next;
   }
@@ -484,7 +538,7 @@ int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer) {
     short offsetsarry[numoffset];
     recv_data_buf(acceptfd, readbuffer, offsetsarry, numoffset*sizeof(short));
 
-    perMcPrefetchList_t * pilehead=processRemote(baseoid, offsetsarry, sd, numoffset, mid);
+    perMcPrefetchList_t * pilehead=processRemote(baseoid, offsetsarry, sd, numoffset, mid, &writebuffer);
 
     if (pilehead!= NULL) {
       perMcPrefetchList_t *ptr = pilehead;
@@ -507,7 +561,7 @@ int rangePrefetchReq(int acceptfd, struct readstruct * readbuffer) {
 }
 
 
-unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int *dfsList, int top, int *countInvalidObj) 
+unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int *dfsList, int top, int *countInvalidObj, int *isLastOffset) 
 {
   int startindex= offsetarray[top+2];
   int currcount = dfsList[top+1];
@@ -548,7 +602,7 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
 
     if(currcount!=0 & range != 0) {
       //go to the next offset
-      header=searchObjInv(dfsList[top+2], top, countInvalidObj);
+      header=searchObjInv(dfsList[top+2], top, countInvalidObj, isLastOffset);
       if (header==NULL)
 	return 2;
     }
@@ -557,20 +611,32 @@ unsigned int getNextOid(objheader_t * header, short * offsetarray, unsigned int 
   }
 }
 
-void flushResponses(int sd, char * buffer, int * bufoffset) {
-  if ((*bufoffset)!=0) {
-    send_data(sd, buffer, *bufoffset);
-    *bufoffset=0;
+void flushResponses(int sd, struct writestruct *writebuffer) {
+  if ((writebuffer->offset)>WTOP) {
+    send_data(sd, writebuffer->buf, writebuffer->offset);
+    writebuffer->offset=0;
   }
 }
 
-int sendOidFound(objheader_t * header, unsigned int oid, int sd, char *buffer, int *bufoffset) {
-  int incr;
+int sendOidFound(objheader_t * header, unsigned int oid, int sd, struct writestruct *writebuffer) {
+  //char *sendbuffer;
   int objsize;
   GETSIZE(objsize, header);
-  int size  = sizeof(objheader_t) + objsize;
-  char *sendbuffer;
+  int size  = sizeof(int) + sizeof(char) + sizeof(unsigned int) +sizeof(objheader_t) + objsize;
+  char sendbuffer[size+1];
+  sendbuffer[0]=TRANS_PREFETCH_RESPONSE;
+  int incr = 1;
+  *((int *)(sendbuffer + incr)) = size;
+  incr += sizeof(int);
+  *((char *)(sendbuffer + incr)) = OBJECT_FOUND;
+  incr += sizeof(char);
+  *((unsigned int *)(sendbuffer+incr)) = oid;
+  incr += sizeof(unsigned int);
+  memcpy(sendbuffer + incr, header, objsize + sizeof(objheader_t));
+  send_buf(sd, writebuffer, sendbuffer, size+1);
 
+  /*
+  //TODO: dead code --- stick it around for sometime
   if ((incr=(*bufoffset))==0) {
     buffer[incr] = TRANS_PREFETCH_RESPONSE;
     incr+=sizeof(char);
@@ -597,6 +663,7 @@ int sendOidFound(objheader_t * header, unsigned int oid, int sd, char *buffer, i
   if ((*bufoffset)==0) {
     send_data(sd, sendbuffer, size+incr);
   }
+  */
   return 0;
 }
 
