@@ -7,7 +7,7 @@ Usage :
 public class Spider {
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
-		int maxDepth = 4;
+		int maxDepth = 3;
 		int maxSearchDepth = 10;
 		int i, j;
 		Work[] works;
@@ -59,11 +59,12 @@ public class Spider {
 			Queue todoList = global new Queue();
 			DistributedHashMap visitedList = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
+			DistributedLinkedList results_list = global new DistributedLinkedList();
 			
 			todoList.push(firstquery);
 
 			for (i = 0; i < NUM_THREADS; i++) {
-				qt[i] = global new QueryTask(todoList, visitedList, maxDepth, maxSearchDepth, results);
+				qt[i] = global new QueryTask(todoList, visitedList, maxDepth, maxSearchDepth, results, results_list);
 				works[i] = global new Work(qt[i], NUM_THREADS, i, currentWorkList);
 			}
 		}

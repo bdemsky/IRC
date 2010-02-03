@@ -3,16 +3,18 @@ public class QueryTask extends Task {
 	int maxSearchDepth;
 	Queue toprocess;
 	DistributedHashMap results;
+	DistributedLinkedList results_list;
 	DistributedHashMap visitedList;
 	GlobalString gTitle;
 	GlobalString workingURL;
 
-  public QueryTask(Queue todoList, DistributedHashMap visitedList, int maxDepth, int maxSearchDepth, DistributedHashMap results) {
+  public QueryTask(Queue todoList, DistributedHashMap visitedList, int maxDepth, int maxSearchDepth, DistributedHashMap results, DistributedLinkedList results_list) {
     this.todoList = todoList;
 		this.visitedList = visitedList;
 		this.maxDepth = maxDepth;
 		this.maxSearchDepth = maxSearchDepth;
 		this.results = results;
+		this.results_list = results_list;
 		toprocess = global new Queue();
   }
 
@@ -50,13 +52,13 @@ public class QueryTask extends Task {
 			}
 			lq = new LocalQuery(hostname, path, depth);
 
-			System.printString("["+lq.getDepth()+"] ");
+/*			System.printString("["+lq.getDepth()+"] ");
 			System.printString("Processing - Hostname : ");
 			System.printString(hostname);
 			System.printString(", Path : ");
 			System.printString(path);
 			System.printString("\n");
-
+*/
 			if (isDocument(path)) {
 				return;
 			}
@@ -82,13 +84,6 @@ public class QueryTask extends Task {
 		}
   }
   
-  public void output() {
-
-    System.out.println("size = " + results.size());
-
-
-  }
-
 	
 	public static boolean isDocument(String str) {
 		int index = str.lastindexOf('.');
@@ -133,8 +128,19 @@ public class QueryTask extends Task {
 					
 				GlobalString str = global new GlobalString("1");
 				visitedList.put(gsb.toGlobalString(), str);
+				results_list.add(gsb.toGlobalString());
 				searchCnt++;
 			}
+		}
+	}
+
+	public void output() {
+		String str;
+		Iterator iter = results_list.iterator();
+
+		while (iter.hasNext() == true) {
+			str = ((GlobalString)(iter.next())).toLocalString();
+			System.printString(str + "\n");
 		}
 	}
 

@@ -6,19 +6,28 @@ Usage :
 
 
 public class FileSystem extends Thread {
-	DistributedHashMap dir;
-	DistributedHashMap fs;
+	DistributedHashMap dir;		// Directory 
+	DistributedHashMap fs;		// File 
+	DistributedLinkedList dir_list;
 	GlobalString inputfile;
 	int mid;
 	
-	public FileSystem(DistributedHashMap dir, DistributedHashMap fs) {
+	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, DistributedLinkedList dir_list) {
 		this.dir = dir;
 		this.fs = fs;
+		this.dir_list = dir_list;
 	}
 	
-	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, String filename, int mid) {
+	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, DistributedLinkedList dir_list, String filename, int mid) {
 		this.dir = dir;
 		this.fs = fs;
+		this.dir_list = dir_list;
+		this.mid = mid;
+		this.inputfile = global new GlobalString("data/"+filename + mid);
+	}
+
+
+	public void setInputFileName(String filename, int mid) {
 		this.mid = mid;
 		this.inputfile = global new GlobalString("data/"+filename + mid);
 	}
@@ -36,6 +45,7 @@ public class FileSystem extends Thread {
 			list = global new DistributedLinkedList();
 
 			dir.put(path, list);
+			dir_list.add(path);
 		}
 	}
 	
@@ -75,7 +85,6 @@ public class FileSystem extends Thread {
 		}
 
 		LinkedList todoList = new LinkedList();
-		LinkedList myDir = new LinkedList();
 		fillTodoList(file, todoList);
 
 		while (!todoList.isEmpty()) {
@@ -110,9 +119,6 @@ public class FileSystem extends Thread {
 				atomic {
   				if (isDir == true) {
 		  				createDirectory(gkey);
-			  			if(!myDir.contains(key)) {
-				  			myDir.add(key);
-					  	}
     			}
 		  		else {
 			  		val = t.getValue();
@@ -122,20 +128,24 @@ public class FileSystem extends Thread {
   			}
 	  	}
     }
-		output(myDir);
+
+		sleep(3000000);
+		atomic {
+			output();
+		}
 
     RecoveryStat.printRecoveryStat();
 	}
 
-	public static void output(LinkedList myDir) { 
+	public void output() { 
 		Iterator iter;
-		String str;
+		GlobalString gstr;
 
-		iter = myDir.iterator();
+		iter = dir_list.iterator();
 
 		while (iter.hasNext()) {
-			str = (String)(iter.next());
-			System.printString(str + "\n");
+			gstr = (GlobalString)(iter.next());
+			System.printString(gstr.toLocalString() + "\n");
 		}
 	}
 
@@ -211,6 +221,7 @@ public class FileSystem extends Thread {
 
 				list = global new DistributedLinkedList();
 				dir.put(gkey, list);
+				dir_list.add(gkey);
 			}
 			else {
 				System.out.println("Cannot create directory");
@@ -218,29 +229,6 @@ public class FileSystem extends Thread {
 		}
 	}
 	
-	public void createFile(GlobalString gkey) {
-		GlobalString path;
-		GlobalString target;
-		GlobalString gval;
-		int index;
-		DistributedLinkedList list;
-
-		index = gkey.lastindexOf('/');
-		path = gkey.subString(0, index+1);
-		target = gkey.subString(index+1);
-		gval = global new GlobalString();
-
-		if (dir.containsKey(path)) {
-			list = (DistributedLinkedList)(dir.get(path));
-			list.push(target);
-			dir.put(path, list);
-			fs.put(gkey, gval);
-		}
-		else {
-			System.out.println("Cannot create file");
-		}
-	}
-
 	public Object read(DistributedHashMap mydhmap, GlobalString key) {
 		Object obj = mydhmap.get(key); 
 		
@@ -255,9 +243,9 @@ public class FileSystem extends Thread {
 		filename = args[1];
 		
 		int[] mid = new int[8];
-/*		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
+		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
-*/
+/*
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;//dc-1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;//dc-2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;//dc-3
@@ -266,7 +254,7 @@ public class FileSystem extends Thread {
     mid[5] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;//dc-8
-	
+	*/
 		FileSystem[] lus;
 		FileSystem initLus;
 
@@ -279,13 +267,16 @@ public class FileSystem extends Thread {
 			
 			DistributedHashMap fs = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap dir = global new DistributedHashMap(500, 500, 0.75f);
+			DistributedLinkedList dir_list = global new DistributedLinkedList();
 		
-			initLus = global new FileSystem(dir, fs);
+			initLus = global new FileSystem(dir, fs, dir_list);
 			initLus.init();
 
 			lus = global new FileSystem[NUM_THREADS];
 			for(int i = 0; i < NUM_THREADS; i++) {
-				lus[i] = global new FileSystem(initLus.dir, initLus.fs, filename, i);
+//				lus[i] = initLus;
+//				lus[i].setInputFileName(filename, i);
+				lus[i] = global new FileSystem(initLus.dir, initLus.fs, initLus.dir_list, filename, i);
 			}
 		}
 

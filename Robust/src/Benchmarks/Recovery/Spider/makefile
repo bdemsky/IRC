@@ -3,7 +3,7 @@ SUBCLASS=Query
 SRC1=${MAINCLASS}.java
 SRC2=Global${SUBCLASS}.java
 SRC3=${SUBCLASS}Task.java
-FLAGS= -recoverystats -recovery -dsmtask -dsm -32bit -nooptimize -debug -mainclass ${MAINCLASS}
+FLAGS= -recoverystats -recovery -dsmtask -dsm -dsmtask -32bit -nooptimize -debug -mainclass ${MAINCLASS}
 default:
 	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC2} ${SRC3} ${SRC1}
 
