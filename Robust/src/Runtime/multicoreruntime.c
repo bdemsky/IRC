@@ -15,6 +15,8 @@
 //#include "option.h"
 
 extern int classsize[];
+extern int typearray[];
+extern int typearray2[];
 #ifndef MULTICORE
 jmp_buf error_handler;
 int instructioncount;
@@ -34,6 +36,24 @@ int instaccum=0;
 #endif
 
 int debugtask=0;
+
+int instanceof(struct ___Object___ *ptr, int type) {
+  int i=ptr->type;
+  do {
+    if (i==type)
+      return 1;
+    i=typearray[i];
+  } while(i!=-1);
+  i=ptr->type;
+  if (i>NUMCLASSES) {
+    do {
+      if (i==type)
+	return 1;
+      i=typearray2[i-NUMCLASSES];
+    } while(i!=-1);
+  }
+  return 0;
+}
 
 #ifdef MULTICORE
 void initializeexithandler() {
