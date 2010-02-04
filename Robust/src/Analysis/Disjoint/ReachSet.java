@@ -486,7 +486,7 @@ public class ReachSet extends Canonical {
   }
 
 
-  public String toStringEscapeNewline( boolean hideSubsetReachability ) {
+  public String toStringEscNewline( boolean hideSubsetReachability ) {
     String s = "[";
 
     Iterator<ReachState> i = this.iterator();

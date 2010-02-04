@@ -10,7 +10,7 @@ import java.io.*;
 // The reach state may be null--if not the predicate is
 // satisfied when the edge exists AND it has the state.
 
-public class ExistPredEdge extends Canonical {  
+public class ExistPredEdge extends ExistPred {  
 
   // the source of an edge is *either* a variable
   // node or a heap region node
@@ -35,10 +35,13 @@ public class ExistPredEdge extends Canonical {
                         String         field,
                         ReachState     state ) {
 
-    assert (vnSrc == null) || (hrnSrcID == null);
+    assert (tdSrc == null) || (hrnSrcID == null);
     assert hrnDstID != null;
     assert type     != null;
-    assert field    != null;
+
+    // fields can be null when the edge is from
+    // a variable node to a heap region!
+    // assert field    != null;
 
     this.tdSrc    = tdSrc;
     this.hrnSrcID = hrnSrcID;
@@ -132,8 +135,14 @@ public class ExistPredEdge extends Canonical {
       return false;
     }
 
-    if( !field.equals( epn.field ) ) {
-      return false;
+    if( field == null ) {
+      if( epn.field != null ) {
+        return false;
+      }
+    } else {
+      if( !field.equals( epn.field ) ) {
+        return false;
+      }
     }
 
     // ReachState objects are cannonical
@@ -155,7 +164,7 @@ public class ExistPredEdge extends Canonical {
       hash += hrnSrcID.hashCode()*11;
     }
 
-    hash += hrnDst.hashCode();
+    hash += hrnDstID.hashCode();
 
     if( state != null ) {
       hash += state.hashCode();

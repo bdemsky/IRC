@@ -165,10 +165,13 @@ public class Main {
       } else if (option.equals("-owndebugcallcount")) {
 	state.OWNERSHIPDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
       }
+
       else if (option.equals("-disjoint"))
 	state.DISJOINT=true;
+
       else if (option.equals("-disjoint-k")) {
 	state.DISJOINTALLOCDEPTH=Integer.parseInt(args[++i]);
+
       } else if (option.equals("-disjoint-write-dots")) {
 	state.DISJOINTWRITEDOTS = true;
         String arg = args[++i];
@@ -179,6 +182,10 @@ public class Main {
         } else {
           throw new Error("disjoint-write-dots requires argument <all/final>");
         }
+
+      } else if (option.equals("-disjoint-write-ihms")) {
+	state.DISJOINTWRITEIHMS = true;
+
       } else if (option.equals("-disjoint-alias-file")) {
 	state.DISJOINTALIASFILE = args[++i];
         String arg = args[++i];
@@ -189,11 +196,13 @@ public class Main {
         } else {
           throw new Error("disjoint-alias-file requires arguments <filename> <normal/tabbed>");
         }
+
       } else if (option.equals("-disjoint-debug-callsite")) {
 	state.DISJOINTDEBUGCALLEE=args[++i];
 	state.DISJOINTDEBUGCALLER=args[++i];
 	state.DISJOINTDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
       }
+
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;
       else if (option.equals("-optimize"))

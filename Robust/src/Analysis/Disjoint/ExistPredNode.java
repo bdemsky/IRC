@@ -10,7 +10,7 @@ import java.io.*;
 // The reach state may be null--if not the predicate is
 // satisfied when the edge exists AND it has the state.
 
-public class ExistPredNode extends Canonical {  
+public class ExistPredNode extends ExistPred {  
 
   protected Integer    hrnID;
   protected ReachState state;

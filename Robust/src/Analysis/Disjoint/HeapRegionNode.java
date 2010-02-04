@@ -12,10 +12,6 @@ public class HeapRegionNode extends RefSrcNode {
   protected boolean isFlagged;
   protected boolean isNewSummary;
 
-  // clean means that the node existed
-  // before the current analysis context
-  protected boolean isClean;  
-
   // special nodes that represent heap parts
   // outside of the current method context
   protected boolean isOutOfContext;
@@ -49,7 +45,6 @@ public class HeapRegionNode extends RefSrcNode {
                          boolean        isSingleObject,
                          boolean        isFlagged,
                          boolean        isNewSummary,
-                         boolean        isClean,
                          boolean        isOutOfContext,
                          TypeDescriptor type,
                          AllocSite      allocSite,
@@ -63,7 +58,6 @@ public class HeapRegionNode extends RefSrcNode {
     this.isSingleObject = isSingleObject;
     this.isFlagged      = isFlagged;
     this.isNewSummary   = isNewSummary;
-    this.isClean        = isClean;
     this.isOutOfContext = isOutOfContext;
     this.type           = type;
     this.allocSite      = allocSite;
@@ -81,7 +75,6 @@ public class HeapRegionNode extends RefSrcNode {
                                isSingleObject,
                                isFlagged,
                                isNewSummary,
-                               isClean,
                                isOutOfContext,
                                type,
                                allocSite,
@@ -125,7 +118,6 @@ public class HeapRegionNode extends RefSrcNode {
     assert isSingleObject == hrn.isSingleObject();
     assert isFlagged      == hrn.isFlagged();
     assert isNewSummary   == hrn.isNewSummary();
-    assert isClean        == hrn.isClean();
     assert isOutOfContext == hrn.isOutOfContext();
     assert description.equals( hrn.getDescription() );
 
@@ -151,14 +143,6 @@ public class HeapRegionNode extends RefSrcNode {
 
   public boolean isOutOfContext() {
     return isOutOfContext;
-  }
-
-  public boolean isClean() {
-    return isClean;
-  }
-
-  public void setIsClean( boolean isClean ) {
-    this.isClean = isClean;
   }
 
 
@@ -246,6 +230,15 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
 
+  public ExistPredSet getPreds() {
+    return preds;
+  }
+
+  public void setPreds( ExistPredSet preds ) {
+    this.preds = preds;
+  }
+
+
   public String getIDString() {
     String s;
 
@@ -258,19 +251,33 @@ public class HeapRegionNode extends RefSrcNode {
     return s;
   }
 
-  public String getAlphaString( boolean hideSubsetReachability ) {
-    return alpha.toStringEscapeNewline( hideSubsetReachability );
-  }
+  public String getDescription() {
+    return description;
+  }  
 
-  public String getPredString() {
-    return preds.toString();
+  public String toStringDOT( boolean hideSubsetReach ) {
+    String attributes = "";
+    
+    if( isSingleObject ) {
+      attributes += "shape=box";
+    } else {
+      attributes += "shape=Msquare";
+    }
+
+    if( isFlagged ) {
+      attributes += ",style=filled,fillcolor=lightgrey";
+    }
+
+    return new String( "["+attributes+
+                       ",label=\"ID"+getIDString()+"\\n"+
+                       type.toPrettyString()+"\\n"+
+                       description+"\\n"+
+                       alpha.toStringEscNewline( hideSubsetReach )+"\\n"+
+                       preds+"\"]"
+                       );
   }
 
   public String toString() {
     return "HRN"+getIDString();
   }
-
-  public String getDescription() {
-    return description;
-  }  
 }

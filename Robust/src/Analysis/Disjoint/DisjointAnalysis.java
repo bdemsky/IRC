@@ -201,7 +201,11 @@ public class DisjointAnalysis {
 
     if( writeFinalDOTs && !writeAllIncrementalDOTs ) {
       writeFinalGraphs();      
-    }  
+    }
+
+    if( state.DISJOINTWRITEIHMS ) {
+      writeFinalIHMs();
+    }
 
     if( state.DISJOINTALIASFILE != null ) {
       if( state.TASK ) {
@@ -660,7 +664,7 @@ public class DisjointAnalysis {
       ReachGraph rg = (ReachGraph) me.getValue();
 
       try {        
-	rg.writeGraph( d+"COMPLETE",
+	rg.writeGraph( "COMPLETE"+d,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
                        true,   // prune unreachable heap regions
@@ -670,7 +674,35 @@ public class DisjointAnalysis {
       } catch( IOException e ) {}    
     }
   }
+
+  private void writeFinalIHMs() {
+    Iterator d2IHMsItr = mapDescriptorToIHMcontributions.entrySet().iterator();
+    while( d2IHMsItr.hasNext() ) {
+      Map.Entry                        me1 = (Map.Entry)                       d2IHMsItr.next();
+      Descriptor                         d = (Descriptor)                      me1.getKey();
+      Hashtable<FlatCall, ReachGraph> IHMs = (Hashtable<FlatCall, ReachGraph>) me1.getValue();
+
+      Iterator fc2rgItr = IHMs.entrySet().iterator();
+      while( fc2rgItr.hasNext() ) {
+        Map.Entry  me2 = (Map.Entry)  fc2rgItr.next();
+        FlatCall   fc  = (FlatCall)   me2.getKey();
+        ReachGraph rg  = (ReachGraph) me2.getValue();
+                
+        try {        
+          rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
+                         true,   // write labels (variables)
+                         true,   // selectively hide intermediate temp vars
+                         true,   // prune unreachable heap regions
+                         false,  // show back edges to confirm graph validity
+                         true,   // hide subset reachability states
+                         true ); // hide edge taints
+        } catch( IOException e ) {}    
+      }
+    }
+  }
    
+
+
 
   // return just the allocation site associated with one FlatNew node
   protected AllocSite getAllocSiteFromFlatNewPRIVATE( FlatNew fnew ) {

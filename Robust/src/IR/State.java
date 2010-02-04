@@ -73,6 +73,7 @@ public class State {
   public int DISJOINTALLOCDEPTH=3;
   public boolean DISJOINTWRITEDOTS=false;
   public boolean DISJOINTWRITEALL=false;
+  public boolean DISJOINTWRITEIHMS=false;
   public String DISJOINTALIASFILE=null;
   public boolean DISJOINTALIASTAB=false;
   public int DISJOINTDEBUGCALLCOUNT=0;

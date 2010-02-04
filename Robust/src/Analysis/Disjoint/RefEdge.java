@@ -13,10 +13,6 @@ public class RefEdge {
   // edge models a variable reference
   protected String field;
 
-  // clean means that the reference existed
-  // before the current analysis context
-  protected boolean isClean;
-
   protected ReachSet beta;
   protected ReachSet betaNew;
 
@@ -34,7 +30,6 @@ public class RefEdge {
                   HeapRegionNode dst,
                   TypeDescriptor type,
                   String         field,
-                  boolean        isClean,
                   ReachSet       beta,
                   ExistPredSet   preds ) {
     assert type != null;
@@ -43,7 +38,6 @@ public class RefEdge {
     this.dst     = dst;
     this.type    = type;
     this.field   = field;
-    this.isClean = isClean;
 
     if( preds != null ) {
       this.preds = preds;
@@ -69,7 +63,6 @@ public class RefEdge {
                                 dst,
                                 type,
                                 field,
-                                isClean,                               
                                 beta,
                                 preds );
     return copy;
@@ -101,8 +94,6 @@ public class RefEdge {
         !(dst == edge.dst)   ) {
       return false;
     }
-
-    assert isClean == edge.isClean;
 
     return true;
   }
@@ -195,15 +186,6 @@ public class RefEdge {
   }
 
 
-  public boolean isClean() {
-    return isClean;
-  }
-
-  public void setIsClean( boolean isClean ) {
-    this.isClean = isClean;
-  }
-
-
   public ReachSet getBeta() {
     return beta;
   }
@@ -230,29 +212,25 @@ public class RefEdge {
   }
 
 
-  public String toGraphEdgeString( boolean hideSubsetReachability ) {
-    String edgeLabel = "";
+  public ExistPredSet getPreds() {
+    return preds;
+  }
 
-    if( type != null ) {
-      edgeLabel += type.toPrettyString() + "\\n";
-    }
+  public void setPreds( ExistPredSet preds ) {
+    this.preds = preds;
+  }
 
-    if( field != null ) {
-      edgeLabel += field + "\\n";
-    }
 
-    if( isClean ) {
-      edgeLabel += "*clean*\\n";
-    }
-
-    edgeLabel += beta.toStringEscapeNewline( hideSubsetReachability ) +
-      "\\n" + preds.toString();
-      
-    return edgeLabel;
+  public String toStringDOT( boolean hideSubsetReach ) {
+    return new String( "[label=\""+
+                       type.toPrettyString()+"\\n"+
+                       field+"\\n"+
+                       beta.toStringEscNewline( hideSubsetReach )+"\\n"+
+                       preds.toString()+"\",decorate]"
+                       );
   }
 
   public String toString() {
-    assert type != null;
     return new String( "("+src+
                        "->"+type.toPrettyString()+
                        " "+field+

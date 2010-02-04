@@ -17,6 +17,12 @@ public class ExistPredSet extends Canonical {
     preds = new HashSet<ExistPred>();
   }
 
+  public ExistPredSet( ExistPred ep ) {
+    preds = new HashSet<ExistPred>();
+    preds.add( ep );
+  }
+
+
   public ExistPredSet makeCanonical() {
     return (ExistPredSet) ExistPredSet.makeCanonical( this );
   }
@@ -26,15 +32,23 @@ public class ExistPredSet extends Canonical {
     preds.add( pred );
   }
 
+
+  public ExistPredSet join( ExistPredSet eps ) {
+    this.preds.addAll( eps.preds );
+    return this;
+  }
+
+
   public boolean isSatisfiedBy( ReachGraph rg ) {
     Iterator<ExistPred> predItr = preds.iterator();
     while( predItr.hasNext() ) {
-      if( !predItr.next().isSatisfiedBy( rg ) ) {
-        return false;
+      if( predItr.next().isSatisfiedBy( rg ) ) {
+        return true;
       }
     }
-    return true;
+    return false;
   }
+
 
   public String toString() {
     String s = "P[";
