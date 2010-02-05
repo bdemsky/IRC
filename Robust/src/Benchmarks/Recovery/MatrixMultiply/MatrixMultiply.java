@@ -20,7 +20,7 @@ public class MatrixMultiply extends Task {
 	}
 
 	public void init() {
-		todoList = global new Queue();
+		todoList = global new GlobalQueue();
 
 		fillTodoList();
 	}
