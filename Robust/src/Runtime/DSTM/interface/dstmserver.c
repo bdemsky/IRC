@@ -14,6 +14,9 @@
 #include "gCollect.h"
 #include "readstruct.h"
 #include "debugmacro.h"
+#ifdef SANDBOX
+#include "sandbox.h"
+#endif
 
 #define BACKLOG 10 //max pending connections
 #define RECEIVE_BUFFER_SIZE 2048
@@ -157,7 +160,6 @@ void *dstmAccept(void *acceptfd) {
   unsigned int oid;
   char *buffer;
   char control,ctrl;
-  char *ptr;
   void *srcObj;
   objheader_t *h;
   trans_commit_data_t transinfo;
@@ -166,6 +168,11 @@ void *dstmAccept(void *acceptfd) {
   struct readstruct readbuffer;
   readbuffer.head=0;
   readbuffer.tail=0;
+  unsigned int numread=0, nummod=0;
+#ifdef SANDBOX
+  objData_t odata;
+  char *ptr;
+#endif
 
   /* Receive control messages from other machines */
   while(1) {
@@ -300,6 +307,17 @@ void *dstmAccept(void *acceptfd) {
       free(buffer);
       break;
 
+#ifdef SANDBOX
+    case CHECK_OBJECTS: // check if versions of objects match
+      size = sizeof(odata) - 1;
+      ptr = (char*)&odata;
+      recv_data_buf((int)acceptfd, &readbuffer, ptr+1, size);
+      numread = odata.numread;
+      nummod = odata.nummod;
+      checkObjVersion(&readbuffer, (int) acceptfd, numread, nummod);
+      break;
+#endif
+
     case CLOSE_CONNECTION:
       goto closeconnection;
 
@@ -329,7 +347,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd, struct readstruc
 
   /* Read fixed_data_t data structure */
   size = sizeof(fixed) - 1;
-  ptr = (char *)&fixed;;
+  ptr = (char *)&fixed;
   fixed.control = TRANS_REQUEST;
   recv_data_buf((int)acceptfd, readbuffer, ptr+1, size);
 

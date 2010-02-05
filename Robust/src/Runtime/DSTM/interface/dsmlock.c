@@ -61,3 +61,11 @@ inline void write_unlock(volatile int *rw) {
   __asm__ __volatile__ (LOCK_PREFIX "addl %1, %0"
 			: "+m" (*rw) : "i" (RW_LOCK_BIAS) : "memory");
 }
+
+inline int is_write_locked(volatile int *lock) {
+  return lock < 0;
+}
+
+inline int is_read_locked(volatile int *lock) {
+  return lock > 0;
+}

@@ -914,6 +914,9 @@ int transCommit() {
   int firsttime=1;
   trans_commit_data_t transinfo; /* keeps track of objs locked during transaction */
   char finalResponse;
+#ifdef SANDBOX
+  abortenabled=0;
+#endif
 
 #ifdef LOGEVENTS
   int iii;
@@ -1172,6 +1175,9 @@ int transCommit() {
     /* Free Resources */
     objstrDelete(t_cache);
     t_chashDelete();
+#ifdef SANDBOX
+      abortenabled=1;
+#endif
     return TRANS_ABORT;
   } else if(finalResponse == TRANS_COMMIT) {
 #ifdef TRANSSTATS

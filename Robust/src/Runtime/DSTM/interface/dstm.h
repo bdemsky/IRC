@@ -220,6 +220,7 @@ int dstmInit(void);
 void send_data(int fd, void *buf, int buflen);
 void recv_data(int fd, void *buf, int buflen);
 int recv_data_errorcode(int fd, void *buf, int buflen);
+void recv_data_buf(int fd, struct readstruct *, void *, int);
 
 /* Prototypes for object header */
 unsigned int getNewOID(void);
