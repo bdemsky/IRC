@@ -1,6 +1,5 @@
 public class Task {
-  Queue todoList;
-	DistributedHashMap doneList;
+  GlobalQueue todoList;
   Object myWork;
 
 	Task() {}

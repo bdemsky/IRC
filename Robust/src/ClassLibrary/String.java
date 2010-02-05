@@ -177,6 +177,11 @@ public class String {
     return -1;
   }
 
+	public int indexOfIgnoreCase(String str, int fromIndex) {
+		if (fromIndex < 0) 
+			fromIndex = 0;
+	}
+
   public int lastIndexOf(String str, int fromIndex) {
     int k=count-str.count;
     if (k>fromIndex)

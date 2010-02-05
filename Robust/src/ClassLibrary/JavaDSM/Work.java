@@ -59,14 +59,13 @@ public class Work extends Thread {
       }
 
     }
-
     /* for debugging purpose */
     atomic {
       tasks.output();
     }
     System.out.println("\n\n I'm done\n\n\n");
-    RecoveryStat.printRecoveryStat();
 
+    RecoveryStat.printRecoveryStat();
   }
 
 	public static int checkCurrentWorkList(Work mywork) {		

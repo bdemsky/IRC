@@ -56,7 +56,7 @@ public class Spider {
 			
 			GlobalQuery firstquery = global new GlobalQuery(firstmachine, firstpage);
 
-			Queue todoList = global new Queue();
+			GlobalQueue todoList = global new GlobalQueue();
 			DistributedHashMap visitedList = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
 			DistributedLinkedList results_list = global new DistributedLinkedList();

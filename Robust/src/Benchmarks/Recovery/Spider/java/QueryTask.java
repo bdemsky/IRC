@@ -1,89 +1,85 @@
-public class QueryTask extends Task {
+public class QueryTask {
 	int maxDepth;
 	int maxSearchDepth;
-	GlobalQueue toprocess;
-	DistributedHashMap results;
-	DistributedLinkedList results_list;
-	DistributedHashMap visitedList;
-	GlobalString gTitle;
-	GlobalString workingURL;
+	Queue todoList;
+	HashMap results;
+	HashMap visitedList;
+	LinkedList results_list;
 
-  public QueryTask(GlobalQueue todoList, DistributedHashMap visitedList, int maxDepth, int maxSearchDepth, DistributedHashMap results, DistributedLinkedList results_list) {
-    this.todoList = todoList;
+	String title;
+	String workingURL;
+
+  public QueryTask(Queue todoList, HashMap visitedList, int maxDepth, int maxSearchDepth, HashMap results, LinkedList results_list) {
+		this.todoList = todoList;
 		this.visitedList = visitedList;
 		this.maxDepth = maxDepth;
 		this.maxSearchDepth = maxSearchDepth;
 		this.results = results;
 		this.results_list = results_list;
-		toprocess = global new GlobalQueue();
+		title = new String();
+		workingURL = new String();
   }
 
   public void execute() {
 		int depth;
-		int max;
-		int maxSearch;
+		LocalQuery lq;
+		String hostname;
+		String path;
+		String title;
+		Queue toprocess;
+
+		lq = (LocalQuery)(todoList.pop());
+		depth = lq.getDepth();
 		
-		atomic {
-			depth = ((GlobalQuery)myWork).getDepth();
-      max = this.maxDepth;
-			maxSearch = this.maxSearchDepth;
-		}
+		while (depth < maxDepth) {
+			toprocess = new Queue();
+			hostname = lq.getHostName();
+			path = lq.getPath();
 
-		if (depth < max) {
-			/* global variables */
-			GlobalQuery gq;
+			StringBuffer sb = new StringBuffer(hostname);
+			sb.append("/");
+			sb.append(path);
+			workingURL = sb.toString();
+			title = null;
 
-			/* local variables */
-			LocalQuery lq;
-			String hostname;
-			String path;
-			String title;
-
-			atomic {
-				gq = (GlobalQuery)myWork;
-				hostname = new String(GlobalString.toLocalCharArray(gq.getHostName()));
-				path = new String(GlobalString.toLocalCharArray(gq.getPath()));
-
-				GlobalStringBuffer gsb = global new GlobalStringBuffer(hostname);
-				gsb.append("/");
-				gsb.append(path);
-				workingURL = global new GlobalString(gsb.toGlobalString());
-				gTitle = null;
-			}
-			lq = new LocalQuery(hostname, path, depth);
-
-/*			System.printString("["+lq.getDepth()+"] ");
+			System.printString("["+lq.getDepth()+"] ");
 			System.printString("Processing - Hostname : ");
 			System.printString(hostname);
 			System.printString(", Path : ");
 			System.printString(path);
 			System.printString("\n");
-*/
+
 			if (isDocument(path)) {
-				return;
+				lq = (LocalQuery)(todoList.pop());
+				depth = lq.getDepth();
+				continue;
 			}
 
 			Socket s = new Socket();
 
 			if(s.connect(hostname, 80) == -1) {
-				return;
+				lq = (LocalQuery)(todoList.pop());
+				depth = lq.getDepth();
+				continue;
 			}
 
+//			System.out.println("AAA");
 			requestQuery(hostname, path, s);
+//			System.out.println("BBB");
 			readResponse(lq, s);
 
+//			System.out.println("CCC");
 			if ((title = grabTitle(lq)) != null) {
-				atomic {
-					gTitle = global new GlobalString(title);
-				}
-				atomic {
-					toprocess = processPage(lq);
-				}
+				toprocess = processPage(lq);
 			}
+//			System.out.println("DDD");
+
 			s.close();
+			done(toprocess);
+			lq = (LocalQuery)(todoList.pop());
+			depth = lq.getDepth();
 		}
   }
-  
 	
 	public static boolean isDocument(String str) {
 		int index = str.lastindexOf('.');
@@ -100,35 +96,33 @@ public class QueryTask extends Task {
 			else if ((str.subString(index+1)).equals("docx")) return true;
 			else if ((str.subString(index+1)).equals("mov")) return true;
 			else if ((str.subString(index+1)).equals("flv")) return true;
-			else if ((str.subString(index+1)).equals("tar")) return true;
-			else if ((str.subString(index+1)).equals("tgz")) return true;
 			else return false;
 		}
 		return false;
 	}
 
-	public void done(Object obj) {
-		if ((gTitle != null) && (gTitle.length() > 0)) {
+	public void done(Queue toprocess) {
+		if ((title != null) && (title.length() > 0)) {
 			processedList();
 		}
 
 		int searchCnt = 0;
 		while(!toprocess.isEmpty()) {
-			GlobalQuery q = (GlobalQuery)toprocess.pop();
+			LocalQuery q = (LocalQuery)toprocess.pop();
 
-			GlobalString hostname = global new GlobalString(q.getHostName());
-			GlobalString path = global new GlobalString(q.getPath());
+			String hostname = new String(q.getHostName());
+			String path = new String(q.getPath());
 
-			GlobalStringBuffer gsb = global new GlobalStringBuffer(hostname);
-			gsb.append("/");
-			gsb.append(path);
+			StringBuffer sb = new StringBuffer(hostname);
+			sb.append("/");
+			sb.append(path);
 
-			if (!visitedList.containsKey(gsb.toGlobalString()) && (searchCnt < maxSearchDepth)) {
+			if (!visitedList.containsKey(sb.toString()) && (searchCnt < maxSearchDepth)) {
 				todoList.push(q);
 					
-				GlobalString str = global new GlobalString("1");
-				visitedList.put(gsb.toGlobalString(), str);
-				results_list.add(gsb.toGlobalString());
+				String str = new String("1");			// dump data
+				visitedList.put(sb.toString(), str);		// if URL is never visited, put in the list
+				results_list.add(sb.toString());				// the whole list that once visited
 				searchCnt++;
 			}
 		}
@@ -139,7 +133,7 @@ public class QueryTask extends Task {
 		Iterator iter = results_list.iterator();
 
 		while (iter.hasNext() == true) {
-			str = ((GlobalString)(iter.next())).toLocalString();
+			str = ((String)(iter.next()));
 			System.printString(str + "\n");
 		}
 	}
@@ -196,15 +190,15 @@ public class QueryTask extends Task {
 				title = new String(title.subString(0, endquote));
 			}
 
-			if (isErrorPage(title)) {
+			if (isErrorPage(title)) {			// error page
 				return null;
 			}
 		}
 
 		return title;
 	}
-
-	public static boolean isErrorPage(String str) {	
+	
+	public static boolean isErrorPage(String str) {				// error msg list
 		if (str.equals("301 Moved Permanently")) 
 			return true;
 		else if (str.equals("302 Found")) 
@@ -218,7 +212,7 @@ public class QueryTask extends Task {
 		else
 			return false;
 	}
-
+	
 	public static void requestQuery(String hostname, String path, Socket sock) {
     StringBuffer req = new StringBuffer("GET "); 
     req.append("/");
@@ -250,15 +244,15 @@ public class QueryTask extends Task {
 
 	public void processedList() {
 		LinkedList ll;
-		GlobalString token = null;
+		String token = null;
 		int mindex = 0;
 		int endquote = 0;
 
 		while (endquote != -1) {
-			endquote = gTitle.indexOf(' ', mindex);
+			endquote = title.indexOf(' ', mindex);
 
 			if (endquote != -1) {
-				token = gTitle.subString(mindex, endquote);
+				token = title.subString(mindex, endquote);
 				mindex = endquote + 1;
 				if (filter(token)) {
 					continue;
@@ -266,20 +260,20 @@ public class QueryTask extends Task {
 				token = refine(token);
 			}
 			else {
-				token = gTitle.subString(mindex);
+				token = title.subString(mindex);
 				token = refine(token);
 			}
 
-			GlobalQueue q = (GlobalQueue)results.get(token);
+			Queue q = (Queue)results.get(token);
 			if (q == null) {
-				q = global new GlobalQueue();
+				q = new Queue();
 			}
 			q.push(workingURL);	
 			results.put(token, q);
 		}
 	}
-
-	public boolean filter(GlobalString str) {
+	
+	public boolean filter(String str) {
 		if (str.equals("of"))	return true;
 		else if (str.equals("for")) return true;
 		else if (str.equals("a")) return true;
@@ -308,14 +302,14 @@ public class QueryTask extends Task {
 		}
 		else return false;
 	}
-
-	public GlobalString refine(GlobalString str) {
+	
+	public String refine(String str) {		// if title has some unnecessary prefix or postfix 
 		str = refinePrefix(str);
 		str = refinePostfix(str);
 		return str;
 	}
-
-	public GlobalString refinePrefix(GlobalString str) {
+	
+	public String refinePrefix(String str) {
 		if (str.charAt(0) == '&') {		// &
 			return str.subString(1);
 		}
@@ -325,7 +319,7 @@ public class QueryTask extends Task {
 		return str;
 	}
 
-	public GlobalString refinePostfix(GlobalString str) {
+	public String refinePostfix(String str) {
 		if (str.charAt(str.length()-1) == ',') {			// ,
 			return str.subString(0, str.length()-1);
 		}
@@ -349,18 +343,18 @@ public class QueryTask extends Task {
 		}
 		return str;
 	}
-	
-  public static GlobalQueue processPage(LocalQuery lq) {
+
+  public static Queue processPage(LocalQuery lq) {
     int index = 0;
   	String href = new String("href=\"");
   	String searchstr = lq.response.toString();
 		int depth;
   	boolean cont = true;
-		GlobalQueue toprocess;
+		Queue toprocess;
 
 		depth = lq.getDepth() + 1;
 
-		toprocess = global new GlobalQueue();
+		toprocess = new Queue();
 		while(cont) {
 			int mindex = searchstr.indexOf(href,index);
 			if (mindex != -1) {	
@@ -369,14 +363,14 @@ public class QueryTask extends Task {
 		      String match = searchstr.subString(mindex+href.length(), endquote);
 					String match2 = lq.makewebcanonical(match);
 	
-					GlobalString ghostname;
-					GlobalString gpath;
+					String hostname;
+					String path;
 
-					ghostname = global new GlobalString(lq.getHostName(match));
-					gpath = global new GlobalString(lq.getPathName(match));
+					hostname = new String(lq.getHostName(match));
+					path = new String(lq.getPathName(match));
 
 		      if (match2 != null) {
-							GlobalQuery gq = global new GlobalQuery(ghostname, gpath, depth);
+							LocalQuery gq = new LocalQuery(hostname, path, depth);
 							toprocess.push(gq);
 					}
 					index = endquote;
