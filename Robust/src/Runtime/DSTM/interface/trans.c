@@ -87,12 +87,15 @@ int myIndexInHostArray;
 unsigned int oidsPerBlock;
 unsigned int oidMin;
 unsigned int oidMax;
-
 sockPoolHashTable_t *transReadSockPool;
 sockPoolHashTable_t *transPrefetchSockPool;
 sockPoolHashTable_t *transRequestSockPool;
 pthread_mutex_t notifymutex;
 pthread_mutex_t atomicObjLock;
+struct timespec exponential_backoff;
+static int count_exponential_backoff = 0;
+static const int max_exponential_backoff = 1000; // safety limit
+
 
 /***********************************
  * Global Variables for statistics
@@ -534,6 +537,17 @@ void randomdelay() {
   return;
 }
 
+void exponentialdelay() {
+  exponential_backoff.tv_nsec = exponential_backoff.tv_nsec * 2;
+  nanosleep(&exponential_backoff, NULL);
+  ++count_exponential_backoff;
+  if (count_exponential_backoff >= max_exponential_backoff) {
+    printf(" reached max_exponential_backoff at %s, %s(), %d\n", __FILE__, __func__, __LINE__);
+    exit(-1);
+  }
+  return;
+}
+
 /* This function initializes things required in the transaction start*/
 void transStart() {
   t_cache = objstrCreate(1048576);
@@ -943,6 +957,9 @@ int transCommit() {
 #endif
 
 
+  int treplyretryCount = 0;
+  exponential_backoff.tv_sec = 0;
+  exponential_backoff.tv_nsec = (long)(10000);//10 microsec
   do {
     treplyretry = 0;
 
@@ -1159,13 +1176,22 @@ int transCommit() {
       pDelete(pile_ptr);
     /* wait a random amount of time before retrying to commit transaction*/
     if(treplyretry) {
-      randomdelay();
+      treplyretryCount++;
+      if(treplyretryCount >= NUM_TRY_TO_COMMIT)
+        exponentialdelay();
+      else 
+        randomdelay();
 #ifdef TRANSSTATS
       nSoftAbort++;
 #endif
     }
     /* Retry trans commit procedure during soft_abort case */
   } while (treplyretry);
+
+  /* Reset to initial timeout for exponential delay */
+  exponential_backoff.tv_sec = 0;
+  exponential_backoff.tv_nsec = (long)(10000);//10 microsec_
+  count_exponential_backoff = 0;
 
   if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
