@@ -667,7 +667,7 @@ public class DisjointAnalysis {
 	rg.writeGraph( "COMPLETE"+d,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
-                       true,   // prune unreachable heap regions
+                       false,   // prune unreachable heap regions
                        false,  // show back edges to confirm graph validity
                        true,   // hide subset reachability states
                        true ); // hide edge taints
@@ -692,7 +692,7 @@ public class DisjointAnalysis {
           rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
                          true,   // write labels (variables)
                          true,   // selectively hide intermediate temp vars
-                         true,   // prune unreachable heap regions
+                         false,   // prune unreachable heap regions
                          false,  // show back edges to confirm graph validity
                          true,   // hide subset reachability states
                          true ); // hide edge taints

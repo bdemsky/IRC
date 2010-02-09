@@ -379,6 +379,7 @@ public class ReachGraph {
     // you must global sweep to clean up broken reachability
     if( !impossibleEdges.isEmpty() ) {
       if( !DISABLE_GLOBAL_SWEEP ) {
+        abstractGarbageCollect();
 	globalSweep();
       }
     }
@@ -542,6 +543,7 @@ public class ReachGraph {
     // reachability with a global sweep
     if( strongUpdate || !impossibleEdges.isEmpty() ) {    
       if( !DISABLE_GLOBAL_SWEEP ) {
+        abstractGarbageCollect();
         globalSweep();
       }
     }
@@ -598,6 +600,9 @@ public class ReachGraph {
                    );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
+
+    abstractGarbageCollect();
+    globalSweep();
   }
 
 
@@ -617,47 +622,59 @@ public class ReachGraph {
   // return non-null heap regions.
   public void age( AllocSite as ) {
 
-    // aging adds this allocation site to the graph's
-    // list of sites that exist in the graph, or does
-    // nothing if the site is already in the list
+    // keep track of allocation sites that are represented 
+    // in this graph for efficiency with other operations
     allocSites.add( as );
 
-    // get the summary node for the allocation site in the context
-    // of this particular reachability graph
-    HeapRegionNode hrnSummary = getSummaryNode( as );
 
-    // merge oldest node into summary
-    Integer        idK  = as.getOldest();
-    HeapRegionNode hrnK = id2hrn.get( idK );
-    mergeIntoSummary( hrnK, hrnSummary );
+    // if there is a k-th oldest node, it merges into
+    // the summary node
+    Integer idK = as.getOldest();
+    if( id2hrn.containsKey( idK ) ) {
+      HeapRegionNode hrnK = id2hrn.get( idK );
+
+      // retrieve the summary node, or make it
+      // from scratch
+      HeapRegionNode hrnSummary = getSummaryNode( as );      
+      
+      mergeIntoSummary( hrnK, hrnSummary );
+    }
 
     // move down the line of heap region nodes
     // clobbering the ith and transferring all references
-    // to and from i-1 to node i.  Note that this clobbers
-    // the oldest node (hrnK) that was just merged into
-    // the summary
+    // to and from i-1 to node i.
     for( int i = allocationDepth - 1; i > 0; --i ) {
 
-      // move references from the i-1 oldest to the ith oldest
-      Integer        idIth     = as.getIthOldest( i );
-      HeapRegionNode hrnI      = id2hrn.get( idIth );
-      Integer        idImin1th = as.getIthOldest( i - 1 );
-      HeapRegionNode hrnImin1  = id2hrn.get( idImin1th );
+      // if the target (ith) node exists, clobber it
+      // whether the i-1 node exists or not
+      Integer idIth = as.getIthOldest( i );
+      if( id2hrn.containsKey( idIth ) ) {
+        HeapRegionNode hrnI = id2hrn.get( idIth );
 
-      transferOnto( hrnImin1, hrnI );
+        // clear all references in and out
+        clearRefEdgesFrom( hrnI, null, null, true );
+        clearRefEdgesTo  ( hrnI, null, null, true );
+      }
+
+      // only do the transfer if the i-1 node exists
+      Integer idImin1th = as.getIthOldest( i - 1 );
+      if( id2hrn.containsKey( idImin1th ) ) {
+        HeapRegionNode hrnImin1 = id2hrn.get( idImin1th );
+
+        // either retrieve or make target of transfer
+        HeapRegionNode hrnI = getIthNode( as, i );
+
+        transferOnto( hrnImin1, hrnI );
+      }
+
     }
 
     // as stated above, the newest node should have had its
     // references moved over to the second oldest, so we wipe newest
     // in preparation for being the new object to assign something to
-    Integer        id0th = as.getIthOldest( 0 );
-    HeapRegionNode hrn0  = id2hrn.get( id0th );
-    assert hrn0 != null;
-
-    // clear all references in and out of newest node
+    HeapRegionNode hrn0 = getIthNode( as, 0 );
     clearRefEdgesFrom( hrn0, null, null, true );
     clearRefEdgesTo  ( hrn0, null, null, true );
-
 
     // now tokens in reachability sets need to "age" also
     Iterator itrAllVariableNodes = td2vn.entrySet().iterator();
@@ -692,18 +709,12 @@ public class ReachGraph {
   }
 
 
+  // either retrieve or create the needed heap region node
   protected HeapRegionNode getSummaryNode( AllocSite as ) {
 
     Integer        idSummary  = as.getSummary();
     HeapRegionNode hrnSummary = id2hrn.get( idSummary );
 
-    // If this is null then we haven't touched this allocation site
-    // in the context of the current reachability graph, so allocate
-    // heap region nodes appropriate for the entire allocation site.
-    // This should only happen once per reachability graph per allocation site,
-    // and a particular integer id can be used to locate the heap region
-    // in different reachability graphs that represents the same part of an
-    // allocation site.
     if( hrnSummary == null ) {
 
       boolean hasFlags = false;
@@ -728,28 +739,45 @@ public class ReachGraph {
                                  null,         // current reach                 
                                  predsEmpty,   // predicates
                                  strDesc       // description
-                                 );
-                                 
-      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	Integer idIth = as.getIthOldest( i );
-	assert !id2hrn.containsKey( idIth );
-        strDesc = as.toStringForDOT()+"\\n"+i+" oldest";
-	createNewHeapRegionNode( idIth,        // id or null to generate a new one 
-                                 true,	       // single object?			 
-                                 false,	       // summary?			 
-                                 hasFlags,     // flagged?			 
-                                 false,        // out-of-context?
-                                 as.getType(), // type				 
-                                 as,	       // allocation site			 
-                                 null,         // inherent reach
-                                 null,	       // current reach
-                                 predsEmpty,   // predicates
-                                 strDesc       // description
-                                 );
+                                 );                                
+    }
+  
+    return hrnSummary;
+  }
+
+  // either retrieve or create the needed heap region node
+  protected HeapRegionNode getIthNode( AllocSite as, Integer i ) {
+
+    Integer        idIth  = as.getIthOldest( i );
+    HeapRegionNode hrnIth = id2hrn.get( idIth );
+    
+    if( hrnIth == null ) {
+
+      boolean hasFlags = false;
+      if( as.getType().isClass() ) {
+        hasFlags = as.getType().getClassDesc().hasFlags();
       }
+      
+      if( as.getFlag() ){
+        hasFlags = as.getFlag();
+      }
+
+      String strDesc = as.toStringForDOT()+"\\n"+i+" oldest";
+      hrnIth = createNewHeapRegionNode( idIth,        // id or null to generate a new one 
+                                        true,	      // single object?			 
+                                        false,	      // summary?			 
+                                        hasFlags,     // flagged?			 
+                                        false,        // out-of-context?
+                                        as.getType(), // type				 
+                                        as,	      // allocation site			 
+                                        null,         // inherent reach
+                                        null,	      // current reach
+                                        predsEmpty,   // predicates
+                                        strDesc       // description
+                                        );
     }
 
-    return hrnSummary;
+    return hrnIth;
   }
 
 
@@ -1316,14 +1344,16 @@ public class ReachGraph {
     }    
 
 
+
     try {
       rg.writeGraph( "calleeview", true, true, true, false, true, true );
     } catch( IOException e ) {}
 
+    /*
     if( fc.getMethod().getSymbol().equals( "addSomething" ) ) {
       System.exit( 0 );
     }
-
+    */
 
     return rg;
   }  
@@ -1437,6 +1467,95 @@ public class ReachGraph {
   }
 
 
+  ////////////////////////////////////////////////////
+  //
+  //  Abstract garbage collection simply removes
+  //  heap region nodes that are not mechanically
+  //  reachable from a root set.  This step is
+  //  essential for testing node and edge existence
+  //  predicates efficiently
+  //
+  ////////////////////////////////////////////////////
+  public void abstractGarbageCollect() {
+
+    // calculate a root set, will be different for Java
+    // version of analysis versus Bamboo version
+    Set<RefSrcNode> toVisit = new HashSet<RefSrcNode>();
+    Iterator<VariableNode> vnItr = td2vn.values().iterator();
+    while( vnItr.hasNext() ) {
+      toVisit.add( vnItr.next() );
+    }
+
+    // everything visited in a traversal is
+    // considered abstractly live
+    Set<RefSrcNode> visited = new HashSet<RefSrcNode>();
+    
+    while( !toVisit.isEmpty() ) {
+      RefSrcNode rsn = toVisit.iterator().next();
+      toVisit.remove( rsn );
+      visited.add( rsn );
+      
+      Iterator<RefEdge> hrnItr = rsn.iteratorToReferencees();
+      while( hrnItr.hasNext() ) {
+        RefEdge        edge = hrnItr.next();
+        HeapRegionNode hrn  = edge.getDst();
+        
+        if( !visited.contains( hrn ) ) {
+          toVisit.add( hrn );
+        }
+      }
+    }
+
+    // get a copy of the set to iterate over because
+    // we're going to monkey with the graph when we
+    // identify a garbage node
+    Set<HeapRegionNode> hrnAllPrior = new HashSet<HeapRegionNode>();
+    Iterator<HeapRegionNode> hrnItr = id2hrn.values().iterator();
+    while( hrnItr.hasNext() ) {
+      hrnAllPrior.add( hrnItr.next() );
+    }
+
+    Iterator<HeapRegionNode> hrnAllItr = hrnAllPrior.iterator();
+    while( hrnAllItr.hasNext() ) {
+      HeapRegionNode hrn = hrnAllItr.next();
+
+      if( !visited.contains( hrn ) ) {
+        // heap region nodes are compared across ReachGraph
+        // objects by their integer ID, so when discarding
+        // garbage nodes we must also discard entries in
+        // the ID -> heap region hashtable.
+        id2hrn.remove( hrn.getID() );
+
+        // RefEdge objects are two-way linked between
+        // nodes, so when a node is identified as garbage,
+        // actively clear references to and from it so
+        // live nodes won't have dangling RefEdge's
+        clearRefEdgesFrom( hrn, null, null, true );
+        clearRefEdgesTo  ( hrn, null, null, true );        
+
+        // if we just removed the last node from an allocation
+        // site, it should be taken out of the ReachGraph's list
+        AllocSite as = hrn.getAllocSite();
+        if( !hasNodesOf( as ) ) {
+          allocSites.remove( as );
+        }
+      }
+    }
+  }
+
+  protected boolean hasNodesOf( AllocSite as ) {
+    if( id2hrn.containsKey( as.getSummary() ) ) {
+      return true;
+    }
+
+    for( int i = 0; i < allocationDepth; ++i ) {
+      if( id2hrn.containsKey( as.getIthOldest( i ) ) ) {
+        return true;
+      }      
+    }
+    return false;
+  }
+
 
   ////////////////////////////////////////////////////
   //
@@ -1462,12 +1581,12 @@ public class ReachGraph {
     
       // assert that this node and incoming edges have clean alphaNew
       // and betaNew sets, respectively
-      assert rstateEmpty.equals( hrn.getAlphaNew() );
+      assert rsetEmpty.equals( hrn.getAlphaNew() );
 
       Iterator<RefEdge> itrRers = hrn.iteratorToReferencers();
       while( itrRers.hasNext() ) {
 	RefEdge edge = itrRers.next();
-	assert rstateEmpty.equals( edge.getBetaNew() );
+	assert rsetEmpty.equals( edge.getBetaNew() );
       }      
 
       // calculate boldB for this flagged node
