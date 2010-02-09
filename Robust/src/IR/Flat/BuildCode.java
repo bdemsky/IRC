@@ -2862,6 +2862,9 @@ public class BuildCode {
       if (state.SINGLETM&&state.SANDBOX&&(locality.getAtomic(lb).get(fn).intValue()>0)) {
 	output.println("if (unlikely((--transaction_check_counter)<=0)) checkObjects();");
       }
+      if(state.DSM&&state.SANDBOX&&(locality.getAtomic(lb).get(fn).intValue()>0)) {
+        output.println("if (unlikely((--transaction_check_counter)<=0)) checkObjects();");
+      }
       if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
           || (this.state.MULTICOREGC)) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {

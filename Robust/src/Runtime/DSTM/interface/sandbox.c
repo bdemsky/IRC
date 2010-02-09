@@ -22,9 +22,16 @@ void errorhandler(int sig, struct sigcontext ctx) {
     t_chashDelete();
     _longjmp(aborttrans, 1);
   }
+  printf("Error in System at %s, %s(), %d\n", __FILE__, __func__, __LINE__);
+  print_trace();
   threadhandler(sig, ctx);
 }
 
+
+/* 
+ * returns 0 when read set objects are consistent
+ * returns 1 when objects are inconsistent
+ */
 int checktrans() {
  /* Create info to keep track of numelements */ 
   unsigned int size = c_size;
@@ -45,7 +52,7 @@ int checktrans() {
         machinenum = myIpAddr;
       } else if ((machinenum = lhashSearch(curr->key)) == 0) {
         printf("Error: No such machine %s, %d\n", __func__, __LINE__);
-        return 0;
+        return 1;
       }
       if(machinenum != myIpAddr)
         head = createList(head, headeraddr, machinenum, c_numelements);
@@ -58,21 +65,19 @@ int checktrans() {
     retval = verify(head);
   }
 
-  if(retval == 1) {
-    printf("Error in System at %s, %s(), %d\n", __FILE__, __func__, __LINE__);
-    print_trace();
+  if(retval == 1) { //consistent objects
     /* free head */
     deletehead(head);
-    exit(-1);
+    return 0;
   }
 
   if(retval == 0) {
     /* free head */
     deletehead(head);
-    return 1;
+    return 1; //return 1 when objects are inconsistent
   }
 
-  return 0; // return when objects inconsistent
+  return 0; 
 }
 
 nodeElem_t * createList(nodeElem_t *head, objheader_t *headeraddr, unsigned int mid,
@@ -171,6 +176,9 @@ void deletehead(nodeElem_t *head) {
   return;
 }
 
+
+/* returns 0 => Inconsistent Objects found, abort transaction */
+/* returns 1 => consistent objects found, error in system */
 /* Process the linked list of objects */
 int verify(nodeElem_t *pile) {
   /* create and initialize an array of sockets and reply receiving buffer */
