@@ -16,7 +16,7 @@ extern __thread jmp_buf aborttrans;
 extern __thread int abortenabled;
 extern __thread int* counter_reset_pointer;
 extern __thread int transaction_check_counter;
-
+extern __thread int trans_allocation_bytes;
 
 /* Global Variables */
 #define CHECK_OBJECTS   51

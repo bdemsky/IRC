@@ -58,9 +58,14 @@ int bigindex1=0;
 #endif
 
 /* Thread transaction variables */
-
 __thread objstr_t *t_cache;
 __thread struct ___Object___ *revertlist;
+__thread struct timespec exponential_backoff;
+__thread int count_exponential_backoff;
+__thread const int max_exponential_backoff = 1000; // safety limit
+__thread int trans_allocation_bytes;
+
+
 #ifdef ABORTREADERS
 __thread int t_abort;
 __thread jmp_buf aborttrans;
@@ -92,10 +97,6 @@ sockPoolHashTable_t *transPrefetchSockPool;
 sockPoolHashTable_t *transRequestSockPool;
 pthread_mutex_t notifymutex;
 pthread_mutex_t atomicObjLock;
-struct timespec exponential_backoff;
-static int count_exponential_backoff = 0;
-static const int max_exponential_backoff = 1000; // safety limit
-
 
 /***********************************
  * Global Variables for statistics
@@ -553,6 +554,7 @@ void transStart() {
   t_cache = objstrCreate(1048576);
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
   revertlist=NULL;
+  trans_allocation_bytes = 0;
 #ifdef ABORTREADERS
   t_abort=0;
 #endif
@@ -837,6 +839,11 @@ objheader_t *transCreateObj(unsigned int size) {
   tmp->rcount = 1;
   STATUS(tmp) = NEW;
   t_chashInsert(OID(tmp), tmp);
+  trans_allocation_bytes += size;
+  /* Validate the read set if allocation is exceeds threshold */
+  if(trans_allocation_bytes > MEM_ALLOC_THRESHOLD) {
+    check_mem_alloc();
+  }
 
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
@@ -958,8 +965,10 @@ int transCommit() {
 
 
   int treplyretryCount = 0;
+  /* Initialize timeout for exponential delay */
   exponential_backoff.tv_sec = 0;
   exponential_backoff.tv_nsec = (long)(10000);//10 microsec
+  count_exponential_backoff = 0;
   do {
     treplyretry = 0;
 
@@ -1188,10 +1197,8 @@ int transCommit() {
     /* Retry trans commit procedure during soft_abort case */
   } while (treplyretry);
 
-  /* Reset to initial timeout for exponential delay */
   exponential_backoff.tv_sec = 0;
   exponential_backoff.tv_nsec = (long)(10000);//10 microsec_
-  count_exponential_backoff = 0;
 
   if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS

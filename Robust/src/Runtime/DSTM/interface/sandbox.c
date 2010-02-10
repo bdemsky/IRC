@@ -255,6 +255,7 @@ int verify(nodeElem_t *pile) {
   return -1;
 }
 
+/* Check looping */
 void checkObjects() {
   if (abortenabled&&checktrans()) {
     printf("Loop Abort\n");
@@ -267,6 +268,22 @@ void checkObjects() {
     _longjmp(aborttrans, 1);
   }
   transaction_check_counter=*counter_reset_pointer;
+}
+
+/* Check excessive memory allocation */
+void check_mem_alloc() {
+  if (abortenabled&&checktrans()) {
+    printf("Excessive Allocation\n");
+    trans_allocation_bytes=0;
+    transaction_check_counter=(*counter_reset_pointer=HIGH_CHECK_FREQUENCY);
+#ifdef TRANSSTATS
+    numTransAbort++;
+#endif
+    objstrDelete(t_cache);
+    t_chashDelete();
+    _longjmp(aborttrans, 1);
+  }
+  trans_allocation_bytes=0;
 }
 
 /* Obtain a backtrace and print it to stdout */
