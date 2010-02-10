@@ -63,7 +63,9 @@ __thread struct ___Object___ *revertlist;
 __thread struct timespec exponential_backoff;
 __thread int count_exponential_backoff;
 __thread const int max_exponential_backoff = 1000; // safety limit
+#ifdef SANDBOX
 __thread int trans_allocation_bytes;
+#endif
 
 
 #ifdef ABORTREADERS
@@ -554,7 +556,9 @@ void transStart() {
   t_cache = objstrCreate(1048576);
   t_chashCreate(CHASH_SIZE, CLOADFACTOR);
   revertlist=NULL;
+#ifdef SANDBOX
   trans_allocation_bytes = 0;
+#endif
 #ifdef ABORTREADERS
   t_abort=0;
 #endif
@@ -839,11 +843,13 @@ objheader_t *transCreateObj(unsigned int size) {
   tmp->rcount = 1;
   STATUS(tmp) = NEW;
   t_chashInsert(OID(tmp), tmp);
+#ifdef SANDBOX
   trans_allocation_bytes += size;
   /* Validate the read set if allocation is exceeds threshold */
   if(trans_allocation_bytes > MEM_ALLOC_THRESHOLD) {
     check_mem_alloc();
   }
+#endif
 
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
