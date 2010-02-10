@@ -66,7 +66,7 @@ void mgchashreset() {
       tmpptr=next;
     }
   } else {*/
-	  memset(mgc_table, '\0', sizeof(mgchashlistnode_t)*mgc_size);
+	  BAMBOO_MEMSET_WH(mgc_table, '\0', sizeof(mgchashlistnode_t)*mgc_size);
   //}
   while(mgc_structs->next!=NULL) {
     mgcliststruct_t *next=mgc_structs->next;
@@ -328,7 +328,7 @@ struct MGCHash * allocateMGCHash(int size,
   thisvar->bucket = 
 		(struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
 	// zero out all the buckets
-	memset(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
+	BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;

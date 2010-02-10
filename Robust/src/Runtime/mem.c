@@ -51,8 +51,8 @@ memalloc:
   BAMBOO_CLOSE_CRITICAL_SECTION_MEM();
 	void * alignedp = 
 		(void *)(BAMBOO_CACHE_LINE_SIZE+((int)p-1)&(~BAMBOO_CACHE_LINE_MASK));
-	memset(p, -2, (alignedp - p));
-  memset(alignedp + size, -2, p + isize - alignedp - size);
+	BAMBOO_MEMSET_WH(p, -2, (alignedp - p));
+  BAMBOO_MEMSET_WH(alignedp + size, -2, p + isize - alignedp - size);
 	return alignedp;
 }
 #else

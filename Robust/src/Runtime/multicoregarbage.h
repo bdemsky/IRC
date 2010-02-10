@@ -13,11 +13,27 @@
 #ifdef GC_DEBUG
 #define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
 #else
-#define BAMBOO_SMEM_SIZE_L (32 * BAMBOO_SMEM_SIZE)
+#define BAMBOO_SMEM_SIZE_L (2 * BAMBOO_SMEM_SIZE)
 #endif
-#define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC) // NUMCORES=62
+#define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC) 
+         // let each gc core to have one big block, this is very important 
+				 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
 
 #define NUMPTRS 100
+
+// for GC profile
+#ifdef GC_PROFILE
+#define GCINFOLENGTH 100
+
+typedef struct gc_info {
+  unsigned long long time[7];
+	int index;
+} GCInfo;
+
+GCInfo * gc_infoArray[GCINFOLENGTH];
+int gc_infoIndex;
+bool gc_infoOverflow;
+#endif
 
 typedef enum {
 	INIT = 0,     // 0
@@ -44,11 +60,11 @@ volatile GCPHASETYPE gcphase; // indicating GC phase
 int gccurr_heaptop;
 struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
-int gccorestatus[NUMCORES4GC]; // records status of each core
-                            // 1: running gc
-                            // 0: stall
-int gcnumsendobjs[NUMCORES4GC]; // records how many objects sent out
-int gcnumreceiveobjs[NUMCORES4GC]; // records how many objects received
+int gccorestatus[NUMCORESACTIVE]; // records status of each core
+                                  // 1: running gc
+                                  // 0: stall
+int gcnumsendobjs[NUMCORESACTIVE]; // records how many objects sent out
+int gcnumreceiveobjs[NUMCORESACTIVE]; // records how many objects received
 bool gcbusystatus;
 int gcself_numsendobjs;
 int gcself_numreceiveobjs;
@@ -89,10 +105,6 @@ INTPTR * gcsbstarttbl;
 int gcreservedsb;  // number of reserved sblock for sbstarttbl
 int gcnumblock; // number of total blocks in the shared mem
 int gcbaseva; // base va for shared memory without reserved sblocks
-
-// table recording the number of used bytes in each block
-// Note: this table resides on master core's local heap
-int * gcsmemtbl;
 
 #define ISSHAREDOBJ(p) \
 	((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
@@ -163,6 +175,7 @@ int * gcsmemtbl;
 
 inline void gc(struct garbagelist * stackptr); // core coordinator routine
 inline void gc_collect(struct garbagelist* stackptr);//core collector routine
+inline void gc_nocollect(struct garbagelist* stackptr);//non-gc core collector routine
 inline void transferMarkResults_I();
 inline void gc_enqueue_I(void *ptr);
 inline void gc_lobjenqueue_I(void *ptr, int length, int host);
@@ -175,6 +188,13 @@ inline bool gcfindSpareMem_I(int * startaddr,
 inline void * gc_lobjdequeue4(int * length, int * host);
 inline int gc_lobjmoreItems4();
 inline void gc_lobjqueueinit4();
+
+#ifdef GC_PROFILE
+INLINE void gc_profileStart(void);
+INLINE void gc_profileItem(void);
+INLINE void gc_profileEnd(void);
+void gc_outputProfileData();
+#endif
 
 #endif
 

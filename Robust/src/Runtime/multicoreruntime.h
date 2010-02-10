@@ -236,10 +236,10 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
 #define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
 #else
-#define BAMBOO_NUM_PAGES (64 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_NUM_PAGES (15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #define BAMBOO_PAGE_SIZE (16 * 1024)// * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (16 * 1024)
-#define BAMBOO_SHARED_MEM_SIZE (1024 * 1024 * 1024)
+#define BAMBOO_SHARED_MEM_SIZE (1024 * 1024 * 240) //(1024 * 1024 * 1024)
 //(3.0 * 1024 * 1024 * 1024) // 3G// ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
 #endif
 
@@ -272,7 +272,13 @@ struct freeMemList {
 	                                  // only maintain 1 fremmMemItem
 };
 
-struct freeMemList * bamboo_free_mem_list;
+// table recording the number of allocated bytes on each block
+// Note: this table resides on the bottom of the shared heap for all cores
+//       to access
+int * bamboo_smemtbl;
+int bamboo_free_block;
+//bool bamboo_smem_flushed;
+//struct freeMemList * bamboo_free_mem_list;
 int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
                           // e.g. 20% of the heap and should not be allocated
 													// otherwise gc is invoked
@@ -398,6 +404,8 @@ INLINE void send_msg_6(int targetcore,
 											 unsigned long n4, 
 											 unsigned long n5,
 											 bool isinterrupton);
+INLINE void cache_msg_1(int targetcore, 
+												unsigned long n0);
 INLINE void cache_msg_2(int targetcore, 
 		                    unsigned long n0, 
 												unsigned long n1);
@@ -478,6 +486,11 @@ void outputProfileData();
 // BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
 // BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //
 // BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
+// BAMBOO_MEMSET_WH(x, y, z): memset the specified region of memory (start //
+//                            address x, size z) to value y with write     //
+//                            hint, the processor will not fetch the       //
+//                            current content of the memory and directly   //
+//                            write                                        //
 //                                                                         //
 // runtime_arch.h should also define following global parameters:          //
 // bamboo_cpu2coords: map the cpu # to (x,y) coordinates                   //

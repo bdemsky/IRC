@@ -53,17 +53,23 @@ void initruntimedata() {
 			// initialize the profile data arrays
 			profilestatus[i] = 1;
 #endif
-    } // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef MULTICORE_GC
-		for(i = 0; i < NUMCORES4GC; ++i) {
 			gccorestatus[i] = 1;
 			gcnumsendobjs[i] = 0; 
       gcnumreceiveobjs[i] = 0;
+#endif
+    } // for(i = 0; i < NUMCORESACTIVE; ++i)
+#ifdef MULTICORE_GC
+		for(i = 0; i < NUMCORES4GC; ++i) {
 			gcloads[i] = 0;
 			gcrequiredmems[i] = 0;
 			gcstopblock[i] = 0;
 			gcfilledblocks[i] = 0;
     } // for(i = 0; i < NUMCORES4GC; ++i)
+#ifdef GC_PROFILE
+		gc_infoIndex = 0;
+		gc_infoOverflow = false;
+#endif
 #endif
 		numconfirm = 0;
 		waitconfirm = false; 
@@ -119,7 +125,8 @@ void initruntimedata() {
 	gcmovepending = 0;
 	gcblock2fill = 0;
 	gcsbstarttbl = BAMBOO_BASE_VA;
-	gcsmemtbl = RUNMALLOC_I(sizeof(int)*gcnumblock);
+	bamboo_smemtbl = (void *)gcsbstarttbl
+		+ (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(INTPTR); 
 #else
 	// create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -169,9 +176,6 @@ void disruntimedata() {
 	freeRuntimeHash(gcpointertbl);
 	//freeMGCHash(gcpointertbl);
 	freeMGCHash(gcforwardobjtbl);
-	if(gcsmemtbl != NULL) {
-		RUNFREE(gcsmemtbl);
-	}
 #else
 	freeRuntimeHash(lockRedirectTbl);
 	freeRuntimeHash(objRedirectLockTbl);
@@ -446,6 +450,13 @@ void checkCoreStatus() {
 						} // if(!allStall)
 					} // while(true)
 #endif
+
+					// gc_profile mode, ourput gc prfiling data
+#ifdef MULTICORE_GC
+#ifdef GC_PROFILE
+					gc_outputProfileData();
+#endif // #ifdef GC_PROFILE
+#endif // #ifdef MULTICORE_GC
 					disruntimedata();
 					terminate(); // All done.
 				} // if(!waitconfirm)
@@ -1203,181 +1214,160 @@ inline void addNewObjInfo(void * nobj) {
 #endif
 
 #ifdef MULTICORE_GC
-struct freeMemItem * findFreeMemChunk_I(int coren,
-		                                    int isize,
-		                                    int * tofindb) {
-	struct freeMemItem * freemem = bamboo_free_mem_list->head;
-	struct freeMemItem * prev = NULL;
-	int i = 0;
-	int j = 0;
-	*tofindb = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
-	// check available shared mem chunks
-	do {
-		int foundsmem = 0;
-		switch(bamboo_smem_mode) {
-			case SMEMLOCAL: {
-				int startb = freemem->startblock;
-				int endb = freemem->endblock;
-				while(startb > *tofindb) {
-					i++;
-					if(2==i) {
-						i = 0;
-						j++;
-					}
-					*tofindb = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
-				} // while(startb > tofindb)
-				if(startb <= *tofindb) {
-					if((endb >= *tofindb) && (freemem->size >= isize)) {
-						foundsmem = 1;
-					} else if(*tofindb > gcnumblock-1) {
-						// no more local mem
-						foundsmem = 2;
-					} // if(endb >= tofindb) 
-				} // if(startb <= tofindb)
-				break;
-			}
-
-			case SMEMFIXED: {
-				int startb = freemem->startblock;
-				int endb = freemem->endblock;
-				if(startb <= *tofindb) {
-					if((endb >= *tofindb)  && (freemem->size >= isize)) {
-						foundsmem = 1;
-					} 
-				} else {
-					// use the global mem
-					if(((startb > NUMCORES4GC-1) && (freemem->size >= isize)) || 
-							((endb > NUMCORES4GC-1) && ((freemem->size-
-								(gcbaseva+BAMBOO_LARGE_SMEM_BOUND-freemem->ptr))>=isize))) {
-						foundsmem = 1;
-					}
-				}
-				break;
-			}
-
-			case SMEMMIXED: {
-				// TODO not supported yet
-				BAMBOO_EXIT(0xe001);
-				break;
-			}
-
-			case SMEMGLOBAL: {
-		    foundsmem = (freemem->size >= isize);
-				break;
-			}
-			default:
-				break;
-		}
-
-		if(1 == foundsmem) {
-			// found one
-			break;
-		} else if (2 == foundsmem) {
-			// terminate, no more mem
-			freemem = NULL;
-			break;
-		}
-		if(freemem->size == 0) {
-			// an empty item, remove it
-			struct freeMemItem * toremove = freemem;
-			freemem = freemem->next;
-			if(prev == NULL ){
-				// the head
-				bamboo_free_mem_list->head = freemem;
-			} else {
-				prev->next = freemem;
-			}
-			// put it to the tail of the list for reuse
-			if(bamboo_free_mem_list->backuplist == NULL) {
-				//toremove->next = bamboo_free_mem_list->backuplist;
-				bamboo_free_mem_list->backuplist = toremove;
-				bamboo_free_mem_list->backuplist->next = NULL;
-			} else {
-				// free it
-				RUNFREE(toremove);
-			}
-		} else {
-			prev = freemem;
-			freemem = freemem->next;
-		}
-	} while(freemem != NULL);
-
-	return freemem;
-} // struct freeMemItem * findFreeMemChunk_I(int, int, int *)
-
-void * localmalloc_I(int tofindb,
+void * localmalloc_I(int coren,
 		                 int isize,
-		                 struct freeMemItem * freemem,
 		                 int * allocsize) {
 	void * mem = NULL;
-	int startb = freemem->startblock;
-	int endb = freemem->endblock;
-	int tmpptr = gcbaseva+((tofindb<NUMCORES4GC)?tofindb*BAMBOO_SMEM_SIZE_L
-		:BAMBOO_LARGE_SMEM_BOUND+(tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE);
-	if((freemem->size+freemem->ptr-tmpptr)>=isize) {
-		mem = (tmpptr>freemem->ptr)?((void *)tmpptr):(freemem->ptr);
-	} else {
-		mem = (void *)(freemem->size+freemem->ptr-isize);
-	}
-	// check the remaining space in this block
-	int remain = (int)(mem-gcbaseva);
-	int bound = (BAMBOO_SMEM_SIZE);
-	if(remain < BAMBOO_LARGE_SMEM_BOUND) {
-		bound = (BAMBOO_SMEM_SIZE_L);
-	}
-	remain = bound - remain%bound;
-	if(remain < isize) {
-		// this object acrosses blocks
-		*allocsize = isize;
-	} else {
-		// round the asigned block to the end of the current block
-		*allocsize = remain;
-	}
-	if(freemem->ptr == (int)mem) {
-		freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
-		freemem->size -= *allocsize;
-		BLOCKINDEX(freemem->ptr, &(freemem->startblock));
-	} else if((freemem->ptr+freemem->size) == ((int)mem+(*allocsize))) {
-		freemem->size -= *allocsize;
-		BLOCKINDEX(((int)mem)-1, &(freemem->endblock));
-	} else {
-		struct freeMemItem * tmp = 
-			(struct freeMemItem *)RUNMALLOC_I(sizeof(struct freeMemItem));
-		tmp->ptr = (int)mem+*allocsize;
-		tmp->size = freemem->ptr+freemem->size-(int)mem-*allocsize;
-		BLOCKINDEX(tmp->ptr, &(tmp->startblock));
-		tmp->endblock = freemem->endblock;
-		tmp->next = freemem->next;
-		freemem->next = tmp;
-		freemem->size = (int)mem - freemem->ptr;
-		BLOCKINDEX(((int)mem-1), &(freemem->endblock));
-	}
-	return mem;
-} // void * localmalloc_I(int, int, struct freeMemItem *, int *)
+	int i = 0;
+	int j = 0;
+	int tofindb = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
+	int totest = tofindb;
+	int bound = BAMBOO_SMEM_SIZE_L;
+	int foundsmem = 0;
+	int size = 0;
+	do {
+		bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+		int nsize = bamboo_smemtbl[totest];
+		bool islocal = true;
+		if(nsize < bound) {
+			bool tocheck = true;
+			// have some space in the block
+			if(totest == tofindb) {
+				// the first partition
+				size = bound - nsize;
+			} else if(nsize == 0) {
+				// an empty partition, can be appended
+				size += bound;
+			} else {
+				// not an empty partition, can not be appended
+				// the last continuous block is not big enough, go to check the next
+				// local block
+				islocal = true;
+				tocheck = false;
+			} // if(totest == tofindb) else if(nsize == 0) else ...
+			if(tocheck) {
+				if(size >= isize) {
+					// have enough space in the block, malloc
+					foundsmem = 1;
+					break;
+				} else {
+					// no enough space yet, try to append next continuous block
+					islocal = false;
+				} // if(size > isize) else ...
+			} // if(tocheck)
+		} // if(nsize < bound)
+		if(islocal) {
+			// no space in the block, go to check the next block
+			i++;
+			if(2==i) {
+				i = 0;
+				j++;
+			}
+			tofindb = totest = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
+		} else {
+			totest += 1;
+		} // if(islocal) else ...
+		if(totest > gcnumblock-1-bamboo_reserved_smem) {
+			// no more local mem, do not find suitable block
+			foundsmem = 2;
+			break;
+		} // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
+	} while(true);
 
-void * globalmalloc_I(int isize,
-		                  struct freeMemItem * freemem,
-		                  int * allocsize) {
-	void * mem = (void *)(freemem->ptr);
-	// check the remaining space in this block
-	int remain = (int)(mem-gcbaseva);
-	int bound = (BAMBOO_SMEM_SIZE);
-	if(remain < BAMBOO_LARGE_SMEM_BOUND) {
-		bound = (BAMBOO_SMEM_SIZE_L);
+	if(foundsmem == 1) {
+		// find suitable block
+		mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC)?
+				(BAMBOO_SMEM_SIZE_L*tofindb):(BAMBOO_LARGE_SMEM_BOUND+
+					(tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
+		*allocsize = size;
+		// set bamboo_smemtbl
+		for(i = tofindb; i <= totest; i++) {
+			bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+		}
+	} else if(foundsmem == 2) {
+		// no suitable block
+		*allocsize = 0;
 	}
-	remain = bound - remain%bound;
-	if(remain < isize) {
-		// this object acrosses blocks
-		*allocsize = isize;
-	} else {
-		// round the asigned block to the end of the current block
-		*allocsize = remain;
-	}
-	freemem->ptr = ((void*)freemem->ptr) + (*allocsize);
-	freemem->size -= *allocsize;
+
 	return mem;
-} // void * globalmalloc_I(int, struct freeMemItem *, int *)
-#endif
+} // void * localmalloc_I(int, int, int *)
+
+void * globalmalloc_I(int coren,
+		                  int isize,
+		                  int * allocsize) {
+	void * mem = NULL;
+	int tofindb = bamboo_free_block; //0;
+	int totest = tofindb;
+	int bound = BAMBOO_SMEM_SIZE_L;
+	int foundsmem = 0;
+	int size = 0;
+	if(tofindb > gcnumblock-1-bamboo_reserved_smem) {
+		*allocsize = 0;
+		return NULL;
+	}
+	do {
+		bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+		int nsize = bamboo_smemtbl[totest];
+		bool isnext = false;
+		if(nsize < bound) {
+			bool tocheck = true;
+			// have some space in the block
+			if(totest == tofindb) {
+				// the first partition
+				size = bound - nsize;
+			} else if(nsize == 0) {
+				// an empty partition, can be appended
+				size += bound;
+			} else {
+				// not an empty partition, can not be appended
+				// the last continuous block is not big enough, start another block
+				isnext = true;
+				tocheck = false;
+			} // if(totest == tofindb) else if(nsize == 0) else ...
+			if(tocheck) {
+				if(size >= isize) {
+					// have enough space in the block, malloc
+					foundsmem = 1;
+					break;
+				} // if(size > isize) 
+			} // if(tocheck)
+		} else {
+			isnext = true;
+		}// if(nsize < bound) else ...
+		totest += 1;
+		if(totest > gcnumblock-1-bamboo_reserved_smem) {
+			// no more local mem, do not find suitable block
+			foundsmem = 2;
+			break;
+		} // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
+		if(isnext) {
+			// start another block
+			tofindb = totest;
+		} // if(islocal) 
+	} while(true);
+
+	if(foundsmem == 1) {
+		// find suitable block
+		mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC)?
+				(BAMBOO_SMEM_SIZE_L*tofindb):(BAMBOO_LARGE_SMEM_BOUND+
+					(tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
+		*allocsize = size;
+		// set bamboo_smemtbl
+		for(int i = tofindb; i <= totest; i++) {
+			bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+		}
+		if(tofindb == bamboo_free_block) {
+			bamboo_free_block = totest+1;
+		}
+	} else if(foundsmem == 2) {
+		// no suitable block
+		*allocsize = 0;
+		mem = NULL;
+	}
+
+	return mem;
+} // void * globalmalloc_I(int, int, int *)
+#endif // #ifdef MULTICORE_GC
 
 // malloc from the shared memory
 void * smemalloc_I(int coren,
@@ -1386,47 +1376,36 @@ void * smemalloc_I(int coren,
 	void * mem = NULL;
 #ifdef MULTICORE_GC
 	int isize = size+(BAMBOO_CACHE_LINE_SIZE);
-	int toallocate = (isize>(BAMBOO_SMEM_SIZE)) ? (isize):(BAMBOO_SMEM_SIZE);
-	// go through free mem list for suitable chunks
-	int tofindb = 0;
-	struct freeMemItem * freemem = findFreeMemChunk_I(coren, isize, &tofindb);
 
-	// allocate shared mem if available
-	if(freemem != NULL) {
-		switch(bamboo_smem_mode) {
-			case SMEMLOCAL: {
-				mem = localmalloc_I(tofindb, isize, freemem, allocsize);
-				break;
-			}
+	// go through the bamboo_smemtbl for suitable partitions
+	switch(bamboo_smem_mode) {
+		case SMEMLOCAL: {
+		  mem = localmalloc_I(coren, isize, allocsize);
+			break;
+	  }
 
-			case SMEMFIXED: {
-				int startb = freemem->startblock;
-				int endb = freemem->endblock;
-				if(startb > tofindb) {
-					// malloc on global mem
-					mem = globalmalloc_I(isize, freemem, allocsize);
-				} else {
-					// malloc on local mem
-					mem = localmalloc_I(tofindb, isize, freemem, allocsize);
-				}
-				break;
-			}
-
-			case SMEMMIXED: {
-				// TODO not supported yet
-				BAMBOO_EXIT(0xe002);
-				break;
-			}
-
-			case SMEMGLOBAL: {
-				mem = globalmalloc_I(isize,freemem, allocsize);
-				break;
-			}
-
-			default:
-				break;
+		case SMEMFIXED: {
+			// TODO not supported yet
+			BAMBOO_EXIT(0xe001);
+			break;
 		}
-	} else {
+
+		case SMEMMIXED: {
+			// TODO not supported yet
+			BAMBOO_EXIT(0xe002);
+			break;
+		}
+
+		case SMEMGLOBAL: {
+			mem = globalmalloc_I(coren, isize, allocsize);
+			break;
+		}
+
+		default:
+			break;
+	}
+
+	if(mem == NULL) {
 #else
 	int toallocate = (size>(BAMBOO_SMEM_SIZE)) ? (size):(BAMBOO_SMEM_SIZE);
 	mem = mspace_calloc(bamboo_free_msp, 1, toallocate);
@@ -1862,15 +1841,28 @@ msg:
 		  BAMBOO_DEBUGPRINT(0xe88a);
 #endif
 #endif
+			int allocsize = 0;
+		  void * mem = NULL;
 #ifdef MULTICORE_GC
 			if(gcprocessing) {
 				// is currently doing gc, dump this msg
+				if(INITPHASE == gcphase) {
+					// if still in the initphase of gc, send a startinit msg again
+					if(isMsgSending) {
+						cache_msg_1(msgdata[2], GCSTARTINIT);
+					} else {
+						send_msg_1(msgdata[2], GCSTARTINIT, true);
+					}
+				}
 				break;
-			}
+			} 
 #endif
-			int allocsize = 0;
-		  void * mem = smemalloc_I(msgdata[2], msgdata[1], &allocsize);
+			mem = smemalloc_I(msgdata[2], msgdata[1], &allocsize);
 			if(mem == NULL) {
+				// in this case, the gcflag of the startup core has been set
+				// and the gc should be started later, then a GCSTARTINIT msg
+				// will be sent to the requesting core to notice it to start gc
+				// and try malloc again
 				break;
 			}
 			// send the start_va to request core
@@ -1902,6 +1894,7 @@ msg:
 	  } else {
 #ifdef MULTICORE_GC
 			// fill header to store the size of this mem block
+			memset(msgdata[1], 0, BAMBOO_CACHE_LINE_SIZE);
 			(*((int*)msgdata[1])) = msgdata[2];
 		  bamboo_smem_size = msgdata[2] - BAMBOO_CACHE_LINE_SIZE;
 			bamboo_cur_msp = msgdata[1] + BAMBOO_CACHE_LINE_SIZE;
@@ -1967,7 +1960,8 @@ msg:
 		BAMBOO_DEBUGPRINT(0xe88c);
 		BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
-		if(msgdata[1] < NUMCORES4GC) {
+		// All cores should do init GC
+		if(msgdata[1] < NUMCORESACTIVE) {
 			gccorestatus[msgdata[1]] = 0;
 		}
 	}
@@ -1981,7 +1975,8 @@ msg:
 #endif
 		  BAMBOO_EXIT(0xb002);
 		}
-		if(msgdata[1] < NUMCORES4GC) {
+		// all cores should do mark
+		if(msgdata[1] < NUMCORESACTIVE) {
 			gccorestatus[msgdata[1]] = 0;
 			gcnumsendobjs[msgdata[1]] = msgdata[2];
 			gcnumreceiveobjs[msgdata[1]] = msgdata[3];
@@ -2003,6 +1998,7 @@ msg:
 		int filledblocks = msgdata[2];
 		int heaptop = msgdata[3];
 		int data4 = msgdata[4];
+		// only gc cores need to do compact
 		if(cnum < NUMCORES4GC) {
 			if(COMPACTPHASE == gcphase) {
 				gcfilledblocks[cnum] = filledblocks;
@@ -2022,39 +2018,6 @@ msg:
 				}
 			} else {
 				gccorestatus[cnum] = 0;
-				// check if there is pending move request
-				/*if(gcmovepending > 0) {
-					int j;
-					for(j = 0; j < NUMCORES4GC; j++) {
-						if(gcrequiredmems[j]>0) {
-							break;
-						}
-					}
-					if(j < NUMCORES4GC) {
-						// find match
-						int tomove = 0;
-						int startaddr = 0;
-						gcrequiredmems[j] = assignSpareMem_I(cnum, 
-																							   gcrequiredmems[j], 
-																							   &tomove, 
-																							   &startaddr);
-						if(STARTUPCORE == j) {
-							gcdstcore = cnum;
-							gctomove = true;
-							gcmovestartaddr = startaddr;
-							gcblock2fill = tomove;
-						} else {
-							if(isMsgSending) {
-								cache_msg_4(j, GCMOVESTART, cnum, startaddr, tomove);
-							} else {
-								send_msg_4(j, GCMOVESTART, cnum, startaddr, tomove, true);
-							}
-						} // if(STARTUPCORE == j)
-						if(gcrequiredmems[j] == 0) {
-							gcmovepending--;
-						}
-					} // if(j < NUMCORES4GC)
-				} // if(gcmovepending > 0) */
 			} // if(data4>0)
 		} // if(cnum < NUMCORES4GC)
 	  break;
@@ -2070,7 +2033,8 @@ msg:
 #endif
 		  BAMBOO_EXIT(0xb004);
 		} 
-		if(msgdata[1] < NUMCORES4GC) {
+		// all cores should do flush
+		if(msgdata[1] < NUMCORESACTIVE) {
 		  gccorestatus[msgdata[1]] = 0;
 		}
 	  break;
@@ -2084,8 +2048,9 @@ msg:
 
 	case GCMARKCONFIRM: {
 		// received a marked phase finish confirm request msg
+		// all cores should do mark
 		if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
-				|| (BAMBOO_NUM_OF_CORE > NUMCORES4GC - 1)) {
+				|| (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
 		  // wrong core to receive such msg
 		  BAMBOO_EXIT(0xb005);
 		} else {
@@ -2238,9 +2203,6 @@ msg:
 	default:
 		break;
 	}
-	/*for(; msgdataindex > 0; --msgdataindex) {
-		msgdata[msgdataindex-1] = -1;
-	}*/
   memset(msgdata, '\0', sizeof(int) * msgdataindex);
 	msgdataindex = 0;
 	msglength = BAMBOO_MSG_BUF_LENGTH;
@@ -2604,22 +2566,6 @@ newtask:
 	  //clock2 = BAMBOO_GET_EXE_TIME();
 
 	  for(i = 0; i < runtime_locklen; i++) {
-	  /*for(i = 0; i < numparams; i++) {
-		  void * param = currtpd->parameterArray[i];
-		  int * lock = 0;
-		  bool insert = true;
-		  if(((struct ___Object___ *)param)->type == STARTUPTYPE) {
-			  islock = false;
-			  taskpointerarray[i+OFFSET]=param;
-			  goto execute;
-		  }
-		  if(((struct ___Object___ *)param)->lock == NULL) {
-			  lock = (int *)param;
-		  } else {
-			  lock = (int *)(((struct ___Object___ *)param)->lock);
-		  }
-		  */
-
 		  int * lock = (int *)(runtime_locks[i].redirectlock);
 		  islock = true;
 		  // require locks for this parameter if it is not a startup object
@@ -2667,18 +2613,9 @@ newtask:
 				BAMBOO_DEBUGPRINT_REG(lock);
 #endif
 				// check if has the lock already
-				/*bool giveup = true;
-				for(j = 0; j < runtime_locklen; j++) {
-			  if(runtime_locks[j].value == lock) {
-				  giveup = false;
-				  break;
-			  }
-		  }
-				if(giveup) {*/
 			  // can not get the lock, try later
 			  // release all grabbed locks for previous parameters
 			  for(j = 0; j < i; ++j) { 
-			  //for(j = 0; j < runtime_locklen; ++j) {
 				  lock = (int*)(runtime_locks[j].redirectlock);
 				  releasewritelock(lock);
 			  }
@@ -2697,12 +2634,7 @@ newtask:
 #endif
 			  goto newtask;
 				//}
-		  }/* else { // line 2794: if(grount == 0)
-		  // TODO
-		  runtime_locks[runtime_locklen].value = (int)lock;
-		  runtime_locks[runtime_locklen].redirectlock = (int)param;
-		  runtime_locklen++;
-		  }*/
+		  }
 	  } // line 2752:  for(i = 0; i < runtime_locklen; i++)
 
 	  /*long clock3;
@@ -3249,4 +3181,184 @@ void toiNext(struct tagobjectiterator *it,
     Objnext(&it->it);
   }
 }
+
+#ifdef PROFILE
+inline void profileTaskStart(char * taskname) {
+  if(!taskInfoOverflow) {
+	  TaskInfo* taskInfo = RUNMALLOC(sizeof(struct task_info));
+	  taskInfoArray[taskInfoIndex] = taskInfo;
+	  taskInfo->taskName = taskname;
+	  taskInfo->startTime = BAMBOO_GET_EXE_TIME();
+	  taskInfo->endTime = -1;
+	  taskInfo->exitIndex = -1;
+	  taskInfo->newObjs = NULL;
+  }
+}
+
+inline void profileTaskEnd() {
+  if(!taskInfoOverflow) {
+	  taskInfoArray[taskInfoIndex]->endTime = BAMBOO_GET_EXE_TIME();
+	  taskInfoIndex++;
+	  if(taskInfoIndex == TASKINFOLENGTH) {
+		  taskInfoOverflow = true;
+		  //taskInfoIndex = 0;
+	  }
+  }
+}
+
+// output the profiling data
+void outputProfileData() {
+#ifdef USEIO
+  int i;
+  unsigned long long totaltasktime = 0;
+  unsigned long long preprocessingtime = 0;
+  unsigned long long objqueuecheckingtime = 0;
+  unsigned long long postprocessingtime = 0;
+  //int interruptiontime = 0;
+  unsigned long long other = 0;
+  unsigned long long averagetasktime = 0;
+  int tasknum = 0;
+
+  printf("Task Name, Start Time, End Time, Duration, Exit Index(, NewObj Name, Num)+\n");
+  // output task related info
+  for(i = 0; i < taskInfoIndex; i++) {
+    TaskInfo* tmpTInfo = taskInfoArray[i];
+    unsigned long long duration = tmpTInfo->endTime - tmpTInfo->startTime;
+    printf("%s, %lld, %lld, %lld, %lld", 
+			tmpTInfo->taskName, tmpTInfo->startTime, tmpTInfo->endTime, 
+			duration, tmpTInfo->exitIndex);
+	// summarize new obj info
+	if(tmpTInfo->newObjs != NULL) {
+		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
+		struct RuntimeIterator * iter = NULL;
+		while(0 == isEmpty(tmpTInfo->newObjs)) {
+			char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+			if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+				int num = 0;
+				RuntimeHashget(nobjtbl, (int)objtype, &num);
+				RuntimeHashremovekey(nobjtbl, (int)objtype);
+				num++;
+				RuntimeHashadd(nobjtbl, (int)objtype, num);
+			} else {
+				RuntimeHashadd(nobjtbl, (int)objtype, 1);
+			}
+			//printf(stderr, "new obj!\n");
+		}
+
+		// output all new obj info
+		iter = RuntimeHashcreateiterator(nobjtbl);
+		while(RunhasNext(iter)) {
+			char * objtype = (char *)Runkey(iter);
+			int num = Runnext(iter);
+			printf(", %s, %d", objtype, num);
+		}
+	}
+	printf("\n");
+    if(strcmp(tmpTInfo->taskName, "tpd checking") == 0) {
+      preprocessingtime += duration;
+    } else if(strcmp(tmpTInfo->taskName, "post task execution") == 0) {
+      postprocessingtime += duration;
+    } else if(strcmp(tmpTInfo->taskName, "objqueue checking") == 0) {
+      objqueuecheckingtime += duration;
+    } else {
+      totaltasktime += duration;
+      averagetasktime += duration;
+      tasknum++;
+    }
+  }
+
+  if(taskInfoOverflow) {
+    printf("Caution: task info overflow!\n");
+  }
+
+  other = totalexetime-totaltasktime-preprocessingtime-postprocessingtime;
+  averagetasktime /= tasknum;
+
+  printf("\nTotal time: %lld\n", totalexetime);
+  printf("Total task execution time: %lld (%d%%)\n", totaltasktime, 
+			   (int)(((double)totaltasktime/(double)totalexetime)*100));
+  printf("Total objqueue checking time: %lld (%d%%)\n", 
+			   objqueuecheckingtime, 
+				 (int)(((double)objqueuecheckingtime/(double)totalexetime)*100));
+  printf("Total pre-processing time: %lld (%d%%)\n", preprocessingtime, 
+			   (int)(((double)preprocessingtime/(double)totalexetime)*100));
+  printf("Total post-processing time: %lld (%d%%)\n", postprocessingtime, 
+			   (int)(((double)postprocessingtime/(double)totalexetime)*100));
+  printf("Other time: %lld (%d%%)\n", other, 
+			   (int)(((double)other/(double)totalexetime)*100));
+
+  printf("\nAverage task execution time: %lld\n", averagetasktime);
+#else
+  int i = 0;
+  int j = 0;
+
+  BAMBOO_DEBUGPRINT(0xdddd);
+  // output task related info
+  for(i= 0; i < taskInfoIndex; i++) {
+    TaskInfo* tmpTInfo = taskInfoArray[i];
+    char* tmpName = tmpTInfo->taskName;
+    int nameLen = strlen(tmpName);
+    BAMBOO_DEBUGPRINT(0xddda);
+    for(j = 0; j < nameLen; j++) {
+      BAMBOO_DEBUGPRINT_REG(tmpName[j]);
+    }
+    BAMBOO_DEBUGPRINT(0xdddb);
+    BAMBOO_DEBUGPRINT_REG(tmpTInfo->startTime);
+    BAMBOO_DEBUGPRINT_REG(tmpTInfo->endTime);
+	BAMBOO_DEBUGPRINT_REG(tmpTInfo->exitIndex);
+	if(tmpTInfo->newObjs != NULL) {
+		struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
+		struct RuntimeIterator * iter = NULL;
+		while(0 == isEmpty(tmpTInfo->newObjs)) {
+			char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+			if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+				int num = 0;
+				RuntimeHashget(nobjtbl, (int)objtype, &num);
+				RuntimeHashremovekey(nobjtbl, (int)objtype);
+				num++;
+				RuntimeHashadd(nobjtbl, (int)objtype, num);
+			} else {
+				RuntimeHashadd(nobjtbl, (int)objtype, 1);
+			}
+		}
+
+		// ouput all new obj info
+		iter = RuntimeHashcreateiterator(nobjtbl);
+		while(RunhasNext(iter)) {
+			char * objtype = (char *)Runkey(iter);
+			int num = Runnext(iter);
+			int nameLen = strlen(objtype);
+			BAMBOO_DEBUGPRINT(0xddda);
+			for(j = 0; j < nameLen; j++) {
+				BAMBOO_DEBUGPRINT_REG(objtype[j]);
+			}
+			BAMBOO_DEBUGPRINT(0xdddb);
+			BAMBOO_DEBUGPRINT_REG(num);
+		}
+	}
+    BAMBOO_DEBUGPRINT(0xdddc);
+  }
+
+  if(taskInfoOverflow) {
+    BAMBOO_DEBUGPRINT(0xefee);
+  }
+
+  // output interrupt related info
+  /*for(i = 0; i < interruptInfoIndex; i++) {
+       InterruptInfo* tmpIInfo = interruptInfoArray[i];
+       BAMBOO_DEBUGPRINT(0xddde);
+       BAMBOO_DEBUGPRINT_REG(tmpIInfo->startTime);
+       BAMBOO_DEBUGPRINT_REG(tmpIInfo->endTime);
+       BAMBOO_DEBUGPRINT(0xdddf);
+     }
+
+     if(interruptInfoOverflow) {
+       BAMBOO_DEBUGPRINT(0xefef);
+     }*/
+
+  BAMBOO_DEBUGPRINT(0xeeee);
+#endif
+}
+#endif  // #ifdef PROFILE
+
 #endif

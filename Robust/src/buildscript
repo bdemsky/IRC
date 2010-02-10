@@ -72,6 +72,7 @@ echo -o binary
 echo -nojava do not run bristlecone compiler
 echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
+echo -gcprofile build with gcprofile options
 echo -accurateprofile build with accurate profile information including pre/post task processing info
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo "-enable-assertions execute assert statements during compilation"
@@ -117,6 +118,7 @@ RAWCONFIG=''
 DEBUGFLAG=false
 RAWPATHFLAG=false
 PROFILEFLAG=false
+GCPROFILEFLAG=false
 ACCURATEPROFILEFLAG=false
 USEIOFLAG=false
 INTERRUPTFLAG=false
@@ -277,6 +279,9 @@ elif [[ $1 = '-profile' ]]
 then
 PROFILEFLAG=true
 EXTRAOPTIONS="$EXTRAOPTIONS -pg"
+elif [[ $1 = '-gcprofile' ]]
+then
+GCPROFILEFLAG=true
 elif [[ $1 = '-accurateprofile' ]]
 then
 ACCURATEPROFILEFLAG=true
@@ -299,11 +304,11 @@ JAVAOPTS="$JAVAOPTS -multicore"
 elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
-GCCORES="GC_$2"
 shift
 elif [[ $1 = '-numcore4gc' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore4gc $2"
+GCCORES="GC_$2"
 shift
 elif [[ $1 = '-raw' ]]
 then
@@ -687,6 +692,11 @@ fi #INTERRUPT version
 if $MULTICOREGCFLAG
 then #MULTICOREGC version
 TILERACFLAGS="${TILERACFLAGS} -DMULTICORE_GC -D${GCCORES}"
+fi
+
+if $GCPROFILEFLAG
+then # GC_PROFILE version
+TILERACFLAGS="${TILERACFLAGS} -DGC_PROFILE"
 fi
 
 cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
