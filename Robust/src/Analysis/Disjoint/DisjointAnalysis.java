@@ -157,19 +157,19 @@ public class DisjointAnalysis {
 
   // this analysis generates a disjoint reachability
   // graph for every reachable method in the program
-  public DisjointAnalysis( State s,
-			   TypeUtil tu,
-			   CallGraph cg,
-			   Liveness l,
+  public DisjointAnalysis( State            s,
+			   TypeUtil         tu,
+			   CallGraph        cg,
+			   Liveness         l,
 			   ArrayReferencees ar
                            ) throws java.io.IOException {
     init( s, tu, cg, l, ar );
   }
   
-  protected void init( State state,
-                       TypeUtil typeUtil,
-                       CallGraph callGraph,
-                       Liveness liveness,
+  protected void init( State            state,
+                       TypeUtil         typeUtil,
+                       CallGraph        callGraph,
+                       Liveness         liveness,
                        ArrayReferencees arrayReferencees
                        ) throws java.io.IOException {
     
@@ -351,12 +351,12 @@ public class DisjointAnalysis {
       // modify rg with appropriate transfer function
       analyzeFlatNode( d, fm, fn, setReturns, rg );
           
-      /*
+
       if( takeDebugSnapshots && 
 	  d.getSymbol().equals( descSymbolDebug ) ) {
-	debugSnapshot(og,fn);
+	debugSnapshot( rg, fn );
       }
-      */
+
 
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
@@ -403,10 +403,7 @@ public class DisjointAnalysis {
     
     // any variables that are no longer live should be
     // nullified in the graph to reduce edges
-    // NOTE: it is not clear we need this.  It costs a
-    // liveness calculation for every method, so only
-    // turn it on if we find we actually need it.
-    // rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
+    //rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
 	  
     TempDescriptor  lhs;
@@ -441,15 +438,7 @@ public class DisjointAnalysis {
         // such as, do allocation sites need to be aged?
 
         rg.merge_diffMethodContext( rgContrib );
-      }
-      
-      /*
-      FlatMethod fm = (FlatMethod) fn;      
-      for( int i = 0; i < fm.numParameters(); ++i ) {
-        TempDescriptor tdParam = fm.getParameter( i );
-        assert rg.hasVariable( tdParam );
-      }
-      */
+      }      
     } break;
       
     case FKind.FlatOpNode:
@@ -599,7 +588,17 @@ public class DisjointAnalysis {
       ReachGraph heapForThisCall_cur = rg.makeCalleeView( fc, 
                                                           fmCallee );
 
+      
+      try {
+        heapForThisCall_old.writeGraph( "old_"+fc+"TO"+mdCallee, true, false, false, false, false, false );
+        heapForThisCall_cur.writeGraph( "cur_"+fc+"TO"+mdCallee, true, false, false, false, false, false );
+      } catch( IOException e ) {}
+
+
       if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {
+
+        System.out.println( fc+"TO"+mdCallee+" not equal" );
+
         // if heap at call site changed, update the contribution,
         // and reschedule the callee for analysis
         addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
@@ -623,7 +622,16 @@ public class DisjointAnalysis {
       break;
 
     } // end switch
+
     
+    // dead variables were removed before the above transfer function
+    // was applied, so eliminate heap regions and edges that are no
+    // longer part of the abstractly-live heap graph, and sweep up
+    // and reachability effects that are altered by the reduction
+    //rg.abstractGarbageCollect();
+    //rg.globalSweep();
+
+
     // at this point rg should be the correct update
     // by an above transfer function, or untouched if
     // the flat node type doesn't affect the heap
@@ -667,7 +675,7 @@ public class DisjointAnalysis {
 	rg.writeGraph( "COMPLETE"+d,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
-                       false,   // prune unreachable heap regions
+                       true,   // prune unreachable heap regions
                        false,  // show back edges to confirm graph validity
                        true,   // hide subset reachability states
                        true ); // hide edge taints
@@ -691,8 +699,8 @@ public class DisjointAnalysis {
         try {        
           rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
                          true,   // write labels (variables)
-                         true,   // selectively hide intermediate temp vars
-                         false,   // prune unreachable heap regions
+                         false,  // selectively hide intermediate temp vars
+                         false,  // prune unreachable heap regions
                          false,  // show back edges to confirm graph validity
                          true,   // hide subset reachability states
                          true ); // hide edge taints
@@ -911,72 +919,7 @@ public class DisjointAnalysis {
   }
   */
 
-
-  /*
-  // insert a call to debugSnapshot() somewhere in the analysis 
-  // to get successive captures of the analysis state
-  boolean takeDebugSnapshots = false;
-  String mcDescSymbolDebug = "setRoute";
-  boolean stopAfterCapture = true;
-
-  // increments every visit to debugSnapshot, don't fiddle with it
-  // IMPORTANT NOTE FOR SETTING THE FOLLOWING VALUES: this
-  // counter increments just after every node is analyzed
-  // from the body of the method whose symbol is specified
-  // above.
-  int debugCounter = 0;
-
-  // the value of debugCounter to start reporting the debugCounter
-  // to the screen to let user know what debug iteration we're at
-  int numStartCountReport = 0;
-
-  // the frequency of debugCounter values to print out, 0 no report
-  int freqCountReport = 0;
-
-  // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 0;
-
-  // the number of snapshots to take
-  int numIterToCapture = 300;
-
-  void debugSnapshot(ReachabilityGraph og, FlatNode fn) {
-    if( debugCounter > iterStartCapture + numIterToCapture ) {
-      return;
-    }
-
-    ++debugCounter;
-    if( debugCounter > numStartCountReport &&
-	freqCountReport > 0 &&
-        debugCounter % freqCountReport == 0 ) {
-      System.out.println("    @@@ debug counter = "+debugCounter);
-    }
-    if( debugCounter > iterStartCapture ) {
-      System.out.println("    @@@ capturing debug "+(debugCounter-iterStartCapture)+" @@@");
-      String graphName = String.format("snap%04d",debugCounter-iterStartCapture);
-      if( fn != null ) {
-	graphName = graphName+fn;
-      }
-      try {
-	og.writeGraph(graphName,
-		      true,  // write labels (variables)
-		      true,  // selectively hide intermediate temp vars
-		      true,  // prune unreachable heap regions
-		      false, // show back edges to confirm graph validity
-		      false, // show parameter indices (unmaintained!)
-		      true,  // hide subset reachability states
-		      true); // hide edge taints
-      } catch( Exception e ) {
-	System.out.println("Error writing debug capture.");
-	System.exit(0);
-      }
-    }
-
-    if( debugCounter == iterStartCapture + numIterToCapture && stopAfterCapture ) {
-      System.out.println("Stopping analysis after debug captures.");
-      System.exit(0);
-    }
-  }
-  */
+  
   
   
   // Take in source entry which is the program's compiled entry and
@@ -1180,6 +1123,7 @@ public class DisjointAnalysis {
     
     if( heapsFromCallers == null ) {
       heapsFromCallers = new Hashtable<FlatCall, ReachGraph>();
+      mapDescriptorToIHMcontributions.put( d, heapsFromCallers );
     }
     
     return heapsFromCallers;
@@ -1206,6 +1150,76 @@ public class DisjointAnalysis {
       getIHMcontributions( d );
 
     heapsFromCallers.put( fc, rg );
+  }
+
+
+
+  
+  
+  // get successive captures of the analysis state
+  boolean takeDebugSnapshots = false;
+  String descSymbolDebug = "addSomething";
+  boolean stopAfterCapture = true;
+
+  // increments every visit to debugSnapshot, don't fiddle with it
+  int debugCounter = 0;
+
+  // the value of debugCounter to start reporting the debugCounter
+  // to the screen to let user know what debug iteration we're at
+  int numStartCountReport = 0;
+
+  // the frequency of debugCounter values to print out, 0 no report
+  int freqCountReport = 0;
+
+  // the debugCounter value at which to start taking snapshots
+  int iterStartCapture = 0;
+
+  // the number of snapshots to take
+  int numIterToCapture = 300;
+
+  void debugSnapshot( ReachGraph rg, FlatNode fn ) {
+    if( debugCounter > iterStartCapture + numIterToCapture ) {
+      return;
+    }
+
+    ++debugCounter;
+    if( debugCounter    > numStartCountReport &&
+	freqCountReport > 0                   &&
+        debugCounter % freqCountReport == 0 
+        ) {
+      System.out.println( "    @@@ debug counter = "+
+                          debugCounter );
+    }
+    if( debugCounter > iterStartCapture ) {
+      System.out.println( "    @@@ capturing debug "+
+                          (debugCounter - iterStartCapture)+
+                          " @@@" );
+      String graphName = 
+        String.format( "snap%04d",
+                       debugCounter - iterStartCapture );
+      if( fn != null ) {
+	graphName = graphName + fn;
+      }
+      try {
+	rg.writeGraph( graphName,
+                       true,  // write labels (variables)
+                       true,  // selectively hide intermediate temp vars
+                       false, // prune unreachable heap regions
+                       false, // show back edges to confirm graph validity
+                       true,  // hide subset reachability states
+                       true );// hide edge taints
+      } catch( Exception e ) {
+	System.out.println( "Error writing debug capture." );
+	System.exit( 0 );
+      }
+    }
+
+    if( debugCounter == iterStartCapture + numIterToCapture && 
+        stopAfterCapture 
+        ) {
+      System.out.println( "Stopping analysis after debug captures." );
+      System.exit( 0 );
+    }
   }
 
 }

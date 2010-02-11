@@ -214,6 +214,15 @@ public class AllocSite {
         "\\n"+getType().toPrettyString();
     }
   }
+
+  public String toStringWithIDs() {
+    String s = "allocSite ";
+    for( int i = 0; i < ithOldest.size(); ++i ) {
+      s += i+"("+ithOldest.get( i )+") ";
+    }
+    s += "summary("+summary+")";
+    return s;
+  }
   
   public void setFlag( boolean flag ) {
     this.flag = flag;

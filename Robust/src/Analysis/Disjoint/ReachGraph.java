@@ -376,13 +376,12 @@ public class ReachGraph {
     }
 
     // anytime you might remove edges between heap regions
-    // you must global sweep to clean up broken reachability
+    // you must global sweep to clean up broken reachability    
     if( !impossibleEdges.isEmpty() ) {
       if( !DISABLE_GLOBAL_SWEEP ) {
-        abstractGarbageCollect();
 	globalSweep();
       }
-    }
+    }    
   }
 
 
@@ -540,13 +539,12 @@ public class ReachGraph {
     }
 
     // if there was a strong update, make sure to improve
-    // reachability with a global sweep
+    // reachability with a global sweep    
     if( strongUpdate || !impossibleEdges.isEmpty() ) {    
       if( !DISABLE_GLOBAL_SWEEP ) {
-        abstractGarbageCollect();
         globalSweep();
       }
-    }
+    }    
   }
 
 
@@ -600,9 +598,6 @@ public class ReachGraph {
                    );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
-
-    abstractGarbageCollect();
-    globalSweep();
   }
 
 
@@ -625,7 +620,6 @@ public class ReachGraph {
     // keep track of allocation sites that are represented 
     // in this graph for efficiency with other operations
     allocSites.add( as );
-
 
     // if there is a k-th oldest node, it merges into
     // the summary node
@@ -1344,12 +1338,12 @@ public class ReachGraph {
     }    
 
 
-
+    /*
     try {
-      rg.writeGraph( "calleeview", true, true, true, false, true, true );
+      rg.writeGraph( "calleeview", true, false, false, false, true, true );
     } catch( IOException e ) {}
 
-    /*
+
     if( fc.getMethod().getSymbol().equals( "addSomething" ) ) {
       System.exit( 0 );
     }
@@ -1476,14 +1470,35 @@ public class ReachGraph {
   //  predicates efficiently
   //
   ////////////////////////////////////////////////////
-  public void abstractGarbageCollect() {
+  public void abstractGarbageCollect( Set<TempDescriptor> liveSet ) {
 
     // calculate a root set, will be different for Java
     // version of analysis versus Bamboo version
     Set<RefSrcNode> toVisit = new HashSet<RefSrcNode>();
-    Iterator<VariableNode> vnItr = td2vn.values().iterator();
-    while( vnItr.hasNext() ) {
-      toVisit.add( vnItr.next() );
+
+    // visit every variable in graph while building root
+    // set, and do iterating on a copy, so we can remove
+    // dead variables while we're at this
+    Iterator makeCopyItr = td2vn.entrySet().iterator();
+    Set      entrysCopy  = new HashSet();
+    while( makeCopyItr.hasNext() ) {
+      entrysCopy.add( makeCopyItr.next() );
+    }
+    
+    Iterator eItr = entrysCopy.iterator();
+    while( eItr.hasNext() ) {
+      Map.Entry      me = (Map.Entry)      eItr.next();
+      TempDescriptor td = (TempDescriptor) me.getKey();
+      VariableNode   vn = (VariableNode)   me.getValue();
+
+      if( liveSet.contains( td ) ) {
+        toVisit.add( vn );
+
+      } else {
+        // dead var, remove completely from graph
+        td2vn.remove( td );
+        clearRefEdgesFrom( vn, null, null, true );
+      }
     }
 
     // everything visited in a traversal is
@@ -1520,6 +1535,7 @@ public class ReachGraph {
       HeapRegionNode hrn = hrnAllItr.next();
 
       if( !visited.contains( hrn ) ) {
+
         // heap region nodes are compared across ReachGraph
         // objects by their integer ID, so when discarding
         // garbage nodes we must also discard entries in

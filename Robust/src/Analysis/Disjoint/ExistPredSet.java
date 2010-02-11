@@ -50,6 +50,12 @@ public class ExistPredSet extends Canonical {
   }
 
 
+
+  public boolean equals( Object o ) {
+    return true;
+  }
+
+
   public String toString() {
     String s = "P[";
     Iterator<ExistPred> predItr = preds.iterator();
