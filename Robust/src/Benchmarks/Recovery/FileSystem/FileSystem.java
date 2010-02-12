@@ -73,10 +73,9 @@ public class FileSystem extends Thread {
 		char command;
 		String key;
 		String val;
-		boolean isDir;
-
 		GlobalString gkey;
 		GlobalString gval;
+		boolean isDir;
 
 		int index;
 		String file;
@@ -93,39 +92,43 @@ public class FileSystem extends Thread {
 			command = t.getCommand();
 			key = t.getKey();
 
+			atomic {
+				gkey = global new GlobalString(key);
+			}
+
 			index = key.lastindexOf('/');
 			if (index+1 == key.length()) 
 				isDir = true;
 			else 
 				isDir = false;
 		
-			atomic {
-				gkey = global new GlobalString(key);
-			}
-
 			if (command == 'r') {
-		  		System.out.println("["+command+"] ["+key+"]");
-    		atomic {
-			  	if (isDir == true) {
-				  		readDirectory(gkey);
-  				}
-	  			else {
+	  		System.out.println("["+command+"] ["+key+"]");
+			 	if (isDir == true) {
+					atomic {
+						readDirectory(gkey);
+					}
+  			}
+	  		else {
+					atomic {
 						readFile(gkey);
-				  }
+					}
 			  }
-      }
+			}
 			else if (command == 'c') {
-	  				System.out.println("["+command+"] ["+key+"]");
-				atomic {
-  				if (isDir == true) {
-		  				createDirectory(gkey);
-    			}
-		  		else {
-			  		val = t.getValue();
+ 				System.out.println("["+command+"] ["+key+"]");
+  			if (isDir == true) {
+					atomic {
+						createDirectory(gkey);
+					}
+    		}
+		  	else {
+			 		val = t.getValue();
+					atomic {
 						gval = global new GlobalString(val);
 						createFile(gkey, gval);
-				  }
-  			}
+					}
+			  }
 	  	}
     }
 
@@ -151,10 +154,14 @@ public class FileSystem extends Thread {
 
 	public void readFile(GlobalString gkey) {
 		GlobalString gval;
+		String val;
 
-		gval = (GlobalString)(fs.get(gkey));
-		if (gval != null) {
-//			System.out.println("<"+gval.toLocalString()+">");
+		atomic {
+			gval = (GlobalString)(fs.get(gkey));
+			val = gval.toLocalString();
+		}
+		if (val != null) {
+//			System.out.println("<"+val+">");
 		}
 		else {
 			System.out.println("No such file or directory");
@@ -182,19 +189,21 @@ public class FileSystem extends Thread {
 	}
 
 	public void createFile(GlobalString gkey, GlobalString gval) {
-		GlobalString path;
-		GlobalString target;
+		String path;
+		String target;
+		GlobalString gpath;
+		GlobalString gtarget;
 		int index;
 		DistributedLinkedList list;
 
 		index = gkey.lastindexOf('/');
-		path = gkey.subString(0, index+1);
-		target = gkey.subString(index+1);
+		gpath = gkey.subString(0, index+1);
+		gtarget = gkey.subString(index+1);
 
-		if (dir.containsKey(path)) {
-			list = (DistributedLinkedList)(dir.get(path));
-			list.push(target);
-			dir.put(path, list);
+		if (dir.containsKey(gpath)) {
+			list = (DistributedLinkedList)(dir.get(gpath));
+			list.push(gtarget);
+			dir.put(gpath, list);
 			fs.put(gkey, gval);
 		}
 		else {
@@ -204,20 +213,20 @@ public class FileSystem extends Thread {
 
 	public void createDirectory(GlobalString gkey) {
 		int index;
-		GlobalString path;
-		GlobalString target;
+		GlobalString gpath;
+		GlobalString gtarget;
 		DistributedLinkedList list;
 
 		index = gkey.lastindexOf('/', gkey.length()-2);
 
 		if (index != -1) {
-			path = gkey.subString(0, index+1);
-			target = gkey.subString(index+1);
+			gpath = gkey.subString(0, index+1);
+			gtarget = gkey.subString(index+1);
 
-			if (dir.containsKey(path)) {
-				list = (DistributedLinkedList)(dir.get(path));
-				list.push(target);
-				dir.put(path, list);
+			if (dir.containsKey(gpath)) {
+				list = (DistributedLinkedList)(dir.get(gpath));
+				list.push(gtarget);
+				dir.put(gpath, list);
 
 				list = global new DistributedLinkedList();
 				dir.put(gkey, list);
@@ -226,6 +235,9 @@ public class FileSystem extends Thread {
 			else {
 				System.out.println("Cannot create directory");
 			}
+		}
+		else {
+			System.out.println("Cannot create directory");
 		}
 	}
 	
@@ -237,10 +249,16 @@ public class FileSystem extends Thread {
 	
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
-		String filename;
+		String filename = new String();
 
-		NUM_THREADS = Integer.parseInt(args[0]);
-		filename = args[1];
+		if (args.length == 2) {
+			NUM_THREADS = Integer.parseInt(args[0]);
+			filename = args[1];
+		}
+		else {
+			System.out.println("./FileSystem.bin master <num_thread> <data>");
+			System.exit(0);
+		}
 		
 		int[] mid = new int[8];
 		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
