@@ -284,6 +284,7 @@ void duplicateLocalBackupObjects();
 void duplicateLocalOriginalObjects();
 void restoreDuplicationState(unsigned int deadHost);
 int readDuplicateObjs(int);
+void printRecoveryStat();
 
 /* Paxo's algorithm */
 int paxos();

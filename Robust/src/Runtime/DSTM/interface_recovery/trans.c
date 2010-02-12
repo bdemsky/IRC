@@ -808,6 +808,7 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int oid) {
 objheader_t *transCreateObj(unsigned int size) {
   objheader_t *tmp = (objheader_t *) objstrAlloc(&t_cache, (sizeof(objheader_t) + size));
   OID(tmp) = getNewOID();
+  tmp->notifylist = NULL;
   tmp->version = 1;
   tmp->rcount = 1;
 	tmp->isBackup = 0;
@@ -2614,6 +2615,7 @@ void duplicateLostObjects(unsigned int mid){
 #ifdef RECOVERYSTATS
   time(&fi);
   elapsedTime[numRecovery-1] = difftime(fi,st);
+  printRecoveryStat();
 #endif
 
 #ifndef DEBUG
@@ -2630,7 +2632,7 @@ void duplicateLocalBackupObjects(unsigned int mid) {
 #endif
 
 	//copy code from dstmserver here
-	tempsize = mhashGetDuplicate((void**)&dupeptr, 1);
+  dupeptr = (char*) mhashGetDuplicate(&tempsize, 1);
 
 #ifdef DEBUG
 	printf("tempsize:%d, dupeptrfirstvalue:%d\n", tempsize, *((unsigned int *)(dupeptr)));
@@ -2677,7 +2679,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 #endif
 	//copy code fom dstmserver here
 
-	tempsize = mhashGetDuplicate((void**)&dupeptr, 0);
+  dupeptr = (char*) mhashGetDuplicate(&tempsize, 0);
 
 	//send control and dupes after
 	ctrl = RECEIVE_DUPES;
@@ -3461,5 +3463,25 @@ int checkiftheMachineDead(unsigned int mid) {
   int mIndex = findHost(mid);
   return getStatus(mIndex);
 }
+
+#ifdef RECOVERYSTATS
+void printRecoveryStat() {
+  printf("***** Recovery Stats *****\n");
+  printf("numRecovery = %d\n",numRecovery);
+  int i;
+  for(i=0; i < numRecovery;i++) {
+    printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
+    printf("Recovery Time = %.6f\n",elapsedTime[i]);
+  }
+  printf("**************************\n\n");
+}
+#else
+void printRecoveryStat() {
+  printf("No stat\n");
+}
+#endif
+
+
+
 
 #endif

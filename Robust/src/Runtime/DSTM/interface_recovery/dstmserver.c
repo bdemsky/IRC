@@ -582,7 +582,8 @@ void *dstmAccept(void *acceptfd) {
 #endif
 		  		//object store stuffffff
   				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
-	  			tempsize = mhashGetDuplicate(&dupeptr, 0);
+
+          dupeptr = (char*) mhashGetDuplicate(&tempsize, 0);
 
 		  		//send control and dupes after
 			  	ctrl = RECEIVE_DUPES;
@@ -640,8 +641,7 @@ void *dstmAccept(void *acceptfd) {
   				//object store stuffffff
 				  recv_data((int)acceptfd, &mid, sizeof(unsigned int));
 
-
-		  		tempsize = mhashGetDuplicate(&dupeptr, 1);
+          dupeptr = (char*) mhashGetDuplicate(&tempsize, 1);
 
 			  	//send control and dupes after
 	  			ctrl = RECEIVE_DUPES;

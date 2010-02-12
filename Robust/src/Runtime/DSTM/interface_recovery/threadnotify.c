@@ -8,12 +8,17 @@ notifyhashtable_t nlookup; //Global hash table
 threadlist_t *insNode(threadlist_t *head, unsigned int threadid, unsigned int mid) {
   threadlist_t *ptr;
   if(head == NULL) {
-    head = malloc(sizeof(threadlist_t));
+
+    if((head = malloc(sizeof(threadlist_t))) == NULL) {
+      printf("%s -> cannot allocate memory\n",__func__);
+    }
     head->threadid = threadid;
     head->mid = mid;
     head->next = NULL;
   } else {
-    ptr = malloc(sizeof(threadlist_t));
+    if((ptr = malloc(sizeof(threadlist_t))) == NULL) {
+      printf("%s -> cannot allocate memory\n",__func__);
+    }
     ptr->threadid = threadid;
     ptr->mid = mid;
     ptr->next = head;

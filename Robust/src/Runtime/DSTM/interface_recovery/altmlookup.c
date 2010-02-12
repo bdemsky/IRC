@@ -1,4 +1,6 @@
-#include "mlookup.h"
+#include "altmlookup.h"
+#include "dsmlock.h"
+#include <sched.h>
 
 mhashtable_t mlookup;   //Global hash table
 
@@ -14,11 +16,13 @@ unsigned int mhashCreate(unsigned int size, double loadfactor) {
   mlookup.table = nodes;
   mlookup.size = size;
   mlookup.threshold=size*loadfactor;
-  mlookup.mask = (size << 1) -1;
+  mlookup.mask = size -1;
   mlookup.numelements = 0;       // Initial number of elements in the hash
   mlookup.loadfactor = loadfactor;
+  int i;
+  for(i=0;i<NUMLOCKS;i++)
+    mlookup.larray[i].lock=RW_LOCK_BIAS;
   //Initialize the pthread_mutex variable
-  pthread_mutex_init(&mlookup.locktable, NULL);
   return 0;
 }
 
@@ -29,18 +33,22 @@ unsigned int mhashFunction(unsigned int key) {
 
 // Insert value and key mapping into the hash table
 void mhashInsert(unsigned int key, void *val) {
-  mhashlistnode_t *ptr, *node;
+  mhashlistnode_t *node;
 
-  pthread_mutex_lock(&mlookup.locktable);
   if (mlookup.numelements > mlookup.threshold) {
     //Resize Table
     unsigned int newsize = mlookup.size << 1;
     mhashResize(newsize);
   }
 
-  ptr = &mlookup.table[(key & mlookup.mask) >>1];
-  mlookup.numelements++;
+  unsigned int keyindex=key>>1;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
+  while(!write_trylock(lockptr)) {
+    sched_yield();
+  }
 
+  mhashlistnode_t * ptr = &mlookup.table[keyindex&mlookup.mask];
+  atomic_inc(&mlookup.numelements);
 
   if(ptr->key ==0) {
     ptr->key=key;
@@ -53,101 +61,125 @@ void mhashInsert(unsigned int key, void *val) {
     node->next = ptr->next;
     ptr->next=node;
   }
-  pthread_mutex_unlock(&mlookup.locktable);
+  write_unlock(lockptr);
 }
 
 // Return val for a given key in the hash table
 void *mhashSearch(unsigned int key) {
   int index;
-  mhashlistnode_t *node;
-  pthread_mutex_lock(&mlookup.locktable);
-  node = &mlookup.table[(key & mlookup.mask)>>1];
+
+  unsigned int keyindex=key>>1;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
+
+  while(!read_trylock(lockptr)) {
+    sched_yield();
+  }
+
+  mhashlistnode_t *node = &mlookup.table[keyindex&mlookup.mask];
+
   do {
     if(node->key == key) {
       void * tmp=node->val;
-      pthread_mutex_unlock(&mlookup.locktable);
+      read_unlock(lockptr);
       return tmp;
     }
     node = node->next;
   } while (node!=NULL);
-
-  pthread_mutex_unlock(&mlookup.locktable);
+  read_unlock(lockptr);
   return NULL;
 }
 
 // Remove an entry from the hash table
 unsigned int mhashRemove(unsigned int key) {
   int index;
-  mhashlistnode_t *curr, *prev;
+  mhashlistnode_t *prev;
   mhashlistnode_t *ptr, *node;
 
-  pthread_mutex_lock(&mlookup.locktable);
-  ptr = mlookup.table;
-  index = mhashFunction(key);
-  curr = &ptr[index];
+  unsigned int keyindex=key>>1;
+  volatile unsigned int * lockptr=&mlookup.larray[keyindex&LOCKMASK].lock;
+
+  while(!write_trylock(lockptr)) {
+    sched_yield();
+  }
+
+  mhashlistnode_t *curr = &mlookup.table[keyindex&mlookup.mask];
+
   for (; curr != NULL; curr = curr->next) {
-    if (curr->key == key) {                     // Find a match in the hash table
-      mlookup.numelements--;                    // Decrement the number of elements in the global hashtable
-      if ((curr == &ptr[index]) && (curr->next == NULL)) {                    // Delete the first item inside the hashtable with no linked list of mhashlistnode_t
+    if (curr->key == key) {
+      atomic_dec(&(mlookup.numelements));
+      if ((curr == &ptr[index]) && (curr->next == NULL)) {
 	curr->key = 0;
 	curr->val = NULL;
-      } else if ((curr == &ptr[index]) && (curr->next != NULL)) {                   //Delete the first item with a linked list of mhashlistnode_t  connected
+      } else if ((curr == &ptr[index]) && (curr->next != NULL)) {
 	curr->key = curr->next->key;
 	curr->val = curr->next->val;
 	node = curr->next;
 	curr->next = curr->next->next;
 	free(node);
-      } else {                                                                  // Regular delete from linked listed
+      } else {
 	prev->next = curr->next;
 	free(curr);
       }
-      pthread_mutex_unlock(&mlookup.locktable);
+      write_unlock(lockptr);
       return 0;
     }
     prev = curr;
   }
-  pthread_mutex_unlock(&mlookup.locktable);
+  write_unlock(lockptr);
   return 1;
 }
 
-
-
 // Resize table
-unsigned int mhashResize(unsigned int newsize) {
-  mhashlistnode_t *node, *ptr, *curr;            // curr and next keep track of the current and the next mhashlistnodes in a linked list
-  unsigned int oldsize;
-  int isfirst;          // Keeps track of the first element in the mhashlistnode_t for each bin in hashtable
+void mhashResize(unsigned int newsize) {
+  mhashlistnode_t *node, *curr;
+  int isfirst;
   unsigned int i,index;
   unsigned int mask;
 
-  ptr = mlookup.table;
-  oldsize = mlookup.size;
-
-  if((node = calloc(newsize, sizeof(mhashlistnode_t))) == NULL) {
-    printf("Calloc error %s %d\n", __FILE__, __LINE__);
-    return 1;
+  for(i=0;i<NUMLOCKS;i++) {
+    volatile unsigned int * lockptr=&mlookup.larray[i].lock;
+    
+    while(!write_trylock(lockptr)) {
+      sched_yield();
+    }
+  }
+  
+  if (mlookup.numelements < mlookup.threshold) {
+    //release lock and return
+    for(i=0;i<NUMLOCKS;i++) {
+      volatile unsigned int * lockptr=&mlookup.larray[i].lock;
+      write_unlock(lockptr);
+    }
+    return;
   }
 
-  mlookup.table = node;                 //Update the global hashtable upon resize()
+  mhashlistnode_t * ptr = mlookup.table;
+  unsigned int oldsize = mlookup.size;
+  
+  if((node = calloc(newsize, sizeof(mhashlistnode_t))) == NULL) {
+    printf("Calloc error %s %d\n", __FILE__, __LINE__);
+    return;
+  }
+
+  mlookup.table = node;
   mlookup.size = newsize;
   mlookup.threshold=newsize*mlookup.loadfactor;
-  mask=mlookup.mask = (newsize << 1)-1;
+  mask=mlookup.mask = newsize -1;
 
-  for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
+  for(i = 0; i < oldsize; i++) {
     curr = &ptr[i];
     isfirst = 1;
     do {
       unsigned int key;
       mhashlistnode_t *tmp,*next;
 
-      if ((key=curr->key) == 0) {                             //Exit inner loop if there the first element for a given bin/index is NULL
-	break;                                          //key = val =0 for element if not present within the hash table
+      if ((key=curr->key) == 0) {
+	break;
       }
       next = curr->next;
-      index = (key & mask) >>1;
+      index = (key >> 1) & mask;
       tmp=&mlookup.table[index];
 
-      // Insert into the new table
       if(tmp->key ==0) {
 	tmp->key=curr->key;
 	tmp->val=curr->val;
@@ -173,10 +205,14 @@ else if (isfirst) {
     } while(curr!=NULL);
   }
 
-  free(ptr);                    //Free the memory of the old hash table
-  return 0;
+  free(ptr);
+  for(i=0;i<NUMLOCKS;i++) {
+    volatile unsigned int * lockptr=&mlookup.larray[i].lock;
+    write_unlock(lockptr);
+  }
+  return;
 }
-
+/*
 unsigned int *mhashGetKeys(unsigned int *numKeys) {
   unsigned int *keys;
   int i, keyindex;
@@ -191,10 +227,9 @@ unsigned int *mhashGetKeys(unsigned int *numKeys) {
   for (i = 0; i < mlookup.size; i++) {
     if (mlookup.table[i].key != 0) {
       curr = &mlookup.table[i];
-
       while (curr != NULL) {
-      	keys[keyindex++] = curr->key;
-      	curr = curr->next;
+	keys[keyindex++] = curr->key;
+	curr = curr->next;
       }
     }
   }
@@ -204,7 +239,7 @@ unsigned int *mhashGetKeys(unsigned int *numKeys) {
 
   pthread_mutex_unlock(&mlookup.locktable);
   return keys;
-}
+  }*/
 
 #ifdef RECOVERY
 void* mhashGetDuplicate(int *dupeSize, int backup) { //how big?
@@ -213,22 +248,33 @@ void* mhashGetDuplicate(int *dupeSize, int backup) { //how big?
 #endif
 	unsigned int numdupe = 0;
 	void* dPtr;
+  int i;
 
   unsigned int *oidsdupe;
 
-  if((oidsdupe = (unsigned int*) calloc(mlookup.size,unsigned int)) == NULL) {
+  unsigned int mask;
+
+  for(i=0;i<NUMLOCKS;i++) {
+    volatile unsigned int * lockptr=&mlookup.larray[i].lock;
+
+    while(!read_trylock(lockptr)) {
+      sched_yield();
+    }
+  }
+
+  if((oidsdupe = (unsigned int *) calloc(mlookup.size,sizeof(unsigned int))) == NULL) {
     printf("%s %s(): %d -> callock error\n",__FILE__,__func__,__LINE__);
     exit(-1);
   }
   
-  int size = 0, tempsize = 0, i = 0;
+  int size = 0, tempsize = 0;
 	objheader_t *header;
 
 	mhashlistnode_t *node;
 //	go through object store;
 //	track sizes, oids, and num
 //  printf("%s -> Before mutex lock\n",__func__);
-	pthread_mutex_lock(&mlookup.locktable); 
+//	pthread_mutex_lock(&mlookup.locktable); 
 //  printf("%s -> After mutex lock\n",__func__);
 
   size =0;
@@ -257,7 +303,10 @@ void* mhashGetDuplicate(int *dupeSize, int backup) { //how big?
 	}
 //  printf("%s -> size = %d\n",__func__,size);
 
-  pthread_mutex_unlock(&mlookup.locktable);
+  for(i=0;i<NUMLOCKS; i++) {
+    volatile unsigned int * lockptr = &mlookup.larray[i].lock;
+    read_unlock(lockptr);
+  }
 
 	//i got sizes, oids, and num now
   //
@@ -320,6 +369,7 @@ void* mhashGetDuplicate(int *dupeSize, int backup) { //how big?
   return dPtr; 
 }
 
+/*
 int mhashGetThreadObjects(unsigned int** oidArray,unsigned int** midArray,unsigned int** threadidArray)
 {
 	printf("%s-> Start\n", __func__); 
@@ -384,5 +434,5 @@ int mhashGetThreadObjects(unsigned int** oidArray,unsigned int** midArray,unsign
 
   return size;
 
-}
+}*/
 #endif

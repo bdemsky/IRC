@@ -357,15 +357,7 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #ifdef D___RecoveryStat______printRecoveryStat____ 
 #ifdef RECOVERYSTATS
 void CALL00(___RecoveryStat______printRecoveryStat____) {
-
-  printf("***** Recovery Stats *****\n");
-  printf("numRecovery = %d\n",numRecovery);
-  int i;
-  for(i=0; i < numRecovery;i++) {
-    printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
-    printf("Recovery Time = %.2f\n",elapsedTime[i]);
-  }
-  printf("**************************\n\n");
+  printRecoveryStat();
 }
 #else
 void CALL00(___RecoveryStat______printRecoveryStat____) {
@@ -373,8 +365,6 @@ void CALL00(___RecoveryStat______printRecoveryStat____) {
 }
 #endif
 #endif
-
-
 
 #ifdef DSTM
 void CALL00(___System______clearPrefetchCache____) {

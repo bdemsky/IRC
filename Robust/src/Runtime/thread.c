@@ -590,6 +590,8 @@ void startDSMthread(int oid, int objType) {
   int retval;
   pthread_attr_t nattr;
 
+  printf("%s -> oid : %u\n",__func__,oid);
+
   pthread_mutex_lock(&gclistlock);
   threadcount++;
   pthread_mutex_unlock(&gclistlock);
