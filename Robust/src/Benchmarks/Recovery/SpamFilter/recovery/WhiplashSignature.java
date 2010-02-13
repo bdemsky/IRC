@@ -19,7 +19,7 @@
  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 
- $Id: WhiplashSignature.java,v 1.1 2010/01/31 10:04:47 jihoonl Exp $
+ $Id: WhiplashSignature.java,v 1.1 2010/02/13 00:09:44 jihoonl Exp $
  */
 public class WhiplashSignature {
   char[] b64table;

@@ -4,7 +4,7 @@ SRC1=${MAINCLASS}.java
 FLAGS= -recovery -recoverystats -dsm -32bit -nooptimize -debug -dsmtask -mainclass ${MAINCLASS}
 
 default:
-	../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC1}
+	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC1}
 
 clean:
 	rm -rf tmpbuilddirectory

@@ -23,13 +23,13 @@ public class FileSystem extends Thread {
 		this.fs = fs;
 		this.dir_list = dir_list;
 		this.mid = mid;
-		this.inputfile = global new GlobalString("data/"+filename + mid);
+		this.inputfile = global new GlobalString("../data/"+filename + mid);
 	}
 
 
 	public void setInputFileName(String filename, int mid) {
 		this.mid = mid;
-		this.inputfile = global new GlobalString("data/"+filename + mid);
+		this.inputfile = global new GlobalString("../data/"+filename + mid);
 	}
 
 	public void init() {
@@ -138,6 +138,10 @@ public class FileSystem extends Thread {
 		}
 
     RecoveryStat.printRecoveryStat();
+
+
+    System.out.println("\n\n\n I'm done\n\n\n");
+
 	}
 
 	public void output() { 

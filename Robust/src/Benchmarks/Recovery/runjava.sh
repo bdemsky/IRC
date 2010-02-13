@@ -1,5 +1,7 @@
 # !/bin/sh
 BASEDIR=`pwd`
+RECOVERYDIR='recovery'
+JAVASINGLEDIR='java'
 ITERATIONS=10
 WAITTIME=300
 
@@ -31,9 +33,9 @@ function runMachines {
   let "k= $NUM_MACHINE"
   
   echo ${BASEDIR}/${BM_DIR} > ~/.tmpdir
-  DIR=`echo ${BASEDIR}\/${BM_DIR}`;
+  DIR=`echo ${BASEDIR}\/${BM_DIR}\/${RECOVERYDIR}`;
   echo "DIR = $DIR";
-  
+ 
   # Run machines
   while [ $k -gt 1 ]; do
     echo "SSH into dc-${k}"

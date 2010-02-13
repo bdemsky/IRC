@@ -3,7 +3,7 @@
 // Manually translated by Jon Howell <jonh@cs.dartmouth.edu>
 // from some public domain C code (md5.c) included with the ssh-1.2.22 source.
 // Tue Jan 19 15:55:50 EST 1999
-// $Id: MD5.java,v 1.1 2010/01/31 10:04:47 jihoonl Exp $
+// $Id: MD5.java,v 1.1 2010/02/13 00:09:44 jihoonl Exp $
 //
 // To compute the message digest of a chunk of bytes, create an
 // MD5 object 'md5', call md5.update() as needed on buffers full
