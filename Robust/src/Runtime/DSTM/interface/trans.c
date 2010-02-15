@@ -1134,6 +1134,18 @@ int transCommit() {
       return 1;
     }
 
+#ifdef CACHE
+    if (finalResponse == TRANS_COMMIT) {
+      /* Invalidate objects in other machine cache */
+      int retval;
+      if((retval = invalidateObj(tosend, pilecount,finalResponse,socklist)) != 0) {
+	printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
+	free(tosend);
+	free(listmid);
+	return 1;
+      }
+    }
+#endif
     /* Send responses to all machines */
     for(i = 0; i < pilecount; i++) {
       int sd = socklist[i];
@@ -1160,9 +1172,7 @@ int transCommit() {
 	}
 #endif
 #endif
-#ifndef CACHE
-    send_data(sd, &finalResponse, sizeof(char));
-#endif
+	send_data(sd, &finalResponse, sizeof(char));
       } else {
 	/* Complete local processing */
 	doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
@@ -1178,18 +1188,6 @@ int transCommit() {
       }
     }
 
-#ifdef CACHE
-    {
-      /* Invalidate objects in other machine cache */
-      int retval;
-      if((retval = invalidateObj(tosend, pilecount,finalResponse,socklist)) != 0) {
-	printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
-	free(tosend);
-	free(listmid);
-	return 1;
-      }
-    }
-#endif
     /* Free resources */
     free(tosend);
     free(listmid);

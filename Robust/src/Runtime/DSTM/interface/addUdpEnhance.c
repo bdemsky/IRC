@@ -131,11 +131,6 @@ int invalidateObj(trans_req_data_t *tdata, int pilecount, char finalresponse, in
     printf("%s() error in sending udp message at %s, %d\n", __func__, __FILE__, __LINE__);
     return -1;
   }
-  /* Send trans commit or abort message when prefetching or caching */
-  for(i=0;i<pilecount;i++){
-    if(socklist[i] !=0)
-      send_data(socklist[i], &finalresponse, sizeof(char));
-  }
   return 0;
 }
 
