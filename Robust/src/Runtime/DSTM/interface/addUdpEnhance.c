@@ -83,7 +83,6 @@ void *udpListenBroadcast(void *sockfd) {
 
   printf("Listening on port %d, fd = %d\n", UDP_PORT, (int)sockfd);
 
-  memset(readBuffer, 0, MAX_SIZE);
   while(1) {
     int bytesRcvd = recvfrom((int)sockfd, readBuffer, sizeof(readBuffer), 0, (struct sockaddr *)&servaddr, &socklen);
     if(bytesRcvd == -1) {
@@ -113,76 +112,72 @@ void *udpListenBroadcast(void *sockfd) {
 /* Function that invalidate objects that
  * have been currently modified
  * returns -1 on error and 0 on success */
-int invalidateObj(trans_req_data_t *tdata) {
+int invalidateObj(trans_req_data_t *tdata, int pilecount, char finalresponse, int *socklist) {
+  struct timeval start, end;
   struct sockaddr_in clientaddr;
   int retval;
-
+  int i;
+  int nummod=0;
+  for(i=0;i<pilecount;i++) {
+    nummod+=tdata[i].f.nummod;
+  }
   bzero(&clientaddr, sizeof(clientaddr));
   clientaddr.sin_family = AF_INET;
   clientaddr.sin_port = htons(UDP_PORT);
   clientaddr.sin_addr.s_addr = INADDR_BROADCAST;
   int maxObjsPerMsg = (MAX_SIZE - 2*sizeof(unsigned int))/sizeof(unsigned int);
-  if(tdata->f.nummod < maxObjsPerMsg) {
-    /* send single udp msg */
-    int iteration = 0;
-    if((retval = sendUdpMsg(tdata, &clientaddr, iteration)) < 0) {
-      printf("%s() error in sending udp message at %s, %d\n", __func__, __FILE__, __LINE__);
-      return -1;
-    }
-  } else {
-    /* Split into several udp msgs */
-    int maxUdpMsg = tdata->f.nummod/maxObjsPerMsg;
-    if (tdata->f.nummod%maxObjsPerMsg) maxUdpMsg++;
-    int i;
-    for(i = 1; i <= maxUdpMsg; i++) {
-      if((retval = sendUdpMsg(tdata, &clientaddr, i)) < 0) {
-	printf("%s() error in sending udp message at %s, %d\n", __func__, __FILE__, __LINE__);
-	return -1;
-      }
-    }
+  /* send single udp msg */
+  if((retval = sendUdpMsg(tdata, pilecount, nummod, &clientaddr, finalresponse, socklist)) < 0) {
+    printf("%s() error in sending udp message at %s, %d\n", __func__, __FILE__, __LINE__);
+    return -1;
+  }
+  /* Send trans commit or abort message when prefetching or caching */
+  for(i=0;i<pilecount;i++){
+    if(socklist[i] !=0)
+      send_data(socklist[i], &finalresponse, sizeof(char));
   }
   return 0;
 }
 
 /* Function sends a udp broadcast, also distinguishes
- * msg size to be sent based on the iteration flag
+ * msg size to be sent based on the total number of objects modified
  * returns -1 on error and 0 on success */
-int sendUdpMsg(trans_req_data_t *tdata, struct sockaddr_in *clientaddr, int iteration) {
+int sendUdpMsg(trans_req_data_t *tdata, int pilecount, int nummod, struct sockaddr_in *clientaddr, char finalresponse, int *socklist) {
   char writeBuffer[MAX_SIZE];
   int maxObjsPerMsg = (MAX_SIZE - 2*sizeof(unsigned int))/sizeof(unsigned int);
   int offset = 0;
+  int i=0,j=0;
+
   *((short *)&writeBuffer[0]) = INVALIDATE_OBJS; //control msg
   offset += sizeof(short);
   *((unsigned int *)(writeBuffer+offset)) = myIpAddr; //mid sending invalidation
   offset += sizeof(unsigned int);
-  if(iteration == 0) { // iteration flag == zero, send single udp msg
-    *((short *)(writeBuffer+offset)) = (short) (sizeof(unsigned int) * (tdata->f.nummod));  //sizeof msg
-    offset += sizeof(short);
-    int i;
-    for(i = 0; i < tdata->f.nummod; i++) {
-      *((unsigned int *) (writeBuffer+offset)) = tdata->oidmod[i];  //copy objects
-      offset += sizeof(unsigned int);
+
+  while(nummod>0) {
+    int numtosend=nummod>maxObjsPerMsg?maxObjsPerMsg:nummod;
+    int localoffset=offset;
+    int sentmsgs=0;
+    *((short *)(writeBuffer+offset)) = (short) (sizeof(unsigned int) * numtosend);
+    localoffset += sizeof(short);
+
+    for(; j < pilecount; j++) {
+      for(; i < tdata[j].f.nummod; i++) {
+        *((unsigned int *) (writeBuffer+localoffset)) = tdata[j].oidmod[i];  //copy objects
+        localoffset += sizeof(unsigned int);
+        if ((++sentmsgs)==numtosend) {
+          i++;
+          goto send;
+        }
+      }
+      i=0;
     }
-  } else { // iteration flag > zero, send multiple udp msg
-    int numObj;
-    if((tdata->f.nummod - (iteration * maxObjsPerMsg)) > 0)
-      numObj = maxObjsPerMsg;
-    else
-      numObj = tdata->f.nummod - ((iteration - 1)*maxObjsPerMsg);
-    *((short *)(writeBuffer+offset)) = (short) (sizeof(unsigned int) * numObj);
-    offset += sizeof(short);
-    int index = (iteration - 1) * maxObjsPerMsg;
-    int i;
-    for(i = 0; i < numObj; i++) {
-      *((unsigned int *) (writeBuffer+offset)) = tdata->oidmod[index+i];
-      offset += sizeof(unsigned int);
+send:
+    if(sendto(udpSockFd, (const void *) writeBuffer, localoffset, 0, (const struct sockaddr *)clientaddr, sizeof(struct sockaddr_in)) < 0) {
+      perror("sendto error- ");
+      printf("DEBUG-> sendto error: errorno %d\n", errno);
+      return -1;
     }
-  }
-  int n;
-  if((n = sendto(udpSockFd, (const void *) writeBuffer, sizeof(writeBuffer), 0, (const struct sockaddr *)clientaddr, sizeof(struct sockaddr_in))) < 0) {
-    perror("sendto error- ");
-    printf("DEBUG-> sendto error: errorno %d\n", errno);
-    return -1;
+    nummod= nummod - numtosend;
   }
   return 0;
 }
@@ -218,3 +213,4 @@ int invalidateFromPrefetchCache(char *buffer) {
   }
   return 0;
 }
+

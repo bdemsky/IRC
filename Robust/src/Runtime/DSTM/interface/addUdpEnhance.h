@@ -21,7 +21,7 @@
 int createUdpSocket();
 int udpInit();
 void *udpListenBroadcast(void *);
-int invalidateObj(trans_req_data_t *);
+int invalidateObj(trans_req_data_t *, int, char, int*);
 int invalidateFromPrefetchCache(char *);
-int sendUdpMsg(trans_req_data_t *, struct sockaddr_in *, int);
+int sendUdpMsg(trans_req_data_t *, int, int, struct sockaddr_in *, char, int*);
 #endif

@@ -121,8 +121,6 @@ void printhex(unsigned char *, int);
 plistnode_t *createPiles();
 plistnode_t *sortPiles(plistnode_t *pileptr);
 
-
-
 /*******************************
 * Send and Recv function calls
 *******************************/
@@ -935,6 +933,7 @@ plistnode_t *createPiles() {
  * Sends a transrequest() to each remote machines for objects found remotely
  * and calls handleLocalReq() to process objects found locally */
 int transCommit() {
+  char buffer[30];
   unsigned int tot_bytes_mod, *listmid;
   plistnode_t *pile, *pile_ptr;
   char treplyretry; /* keeps track of the common response that needs to be sent */
@@ -944,6 +943,8 @@ int transCommit() {
 #ifdef SANDBOX
   abortenabled=0;
 #endif
+  struct writestruct writebuffer;
+  writebuffer.offset=0;
 
 #ifdef LOGEVENTS
   int iii;
@@ -1031,18 +1032,18 @@ int transCommit() {
 	}
 	socklist[sockindex] = sd;
 	/* Send bytes of data with TRANS_REQUEST control message */
-	send_data(sd, &(tosend[sockindex].f), sizeof(fixed_data_t));
+	send_buf(sd, &writebuffer, &(tosend[sockindex].f), sizeof(fixed_data_t));
 
 	/* Send list of machines involved in the transaction */
 	{
 	  int size=sizeof(unsigned int)*(tosend[sockindex].f.mcount);
-	  send_data(sd, tosend[sockindex].listmid, size);
+	  send_buf(sd, &writebuffer, tosend[sockindex].listmid, size);
 	}
 
 	/* Send oids and version number tuples for objects that are read */
 	{
 	  int size=(sizeof(unsigned int)+sizeof(unsigned short))*(tosend[sockindex].f.numread);
-	  send_data(sd, tosend[sockindex].objread, size);
+	  send_buf(sd, &writebuffer, tosend[sockindex].objread, size);
 	}
 
 	/* Send objects that are modified */
@@ -1070,7 +1071,7 @@ int transCommit() {
 	  memcpy(modptr+offset, headeraddr, size);
 	  offset+=size;
 	}
-	send_data(sd, modptr, tosend[sockindex].f.sum_bytes);
+	forcesend_buf(sd, &writebuffer, modptr, tosend[sockindex].f.sum_bytes);
 	free(modptr);
       } else { //handle request locally
 	handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
@@ -1078,6 +1079,7 @@ int transCommit() {
       sockindex++;
       pile = pile->next;
     } //end of pile processing
+
       /* Recv Ctrl msgs from all machines */
     int i;
     for(i = 0; i < pilecount; i++) {
@@ -1123,6 +1125,7 @@ int transCommit() {
 #endif
       }
     }
+
     /* Decide the final response */
     if((finalResponse = decideResponse(getReplyCtrl, &treplyretry, pilecount)) == 0) {
       printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
@@ -1145,17 +1148,6 @@ int transCommit() {
 	    free(listmid);
 	    return 1;
 	  }
-
-
-	  /* Invalidate objects in other machine cache */
-	  if(tosend[i].f.nummod > 0) {
-	    if((retval = invalidateObj(&(tosend[i]))) != 0) {
-	      printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
-	      free(tosend);
-	      free(listmid);
-	      return 1;
-	    }
-	  }
 #ifdef ABORTREADERS
 	  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
 	  removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
@@ -1168,7 +1160,9 @@ int transCommit() {
 	}
 #endif
 #endif
-	send_data(sd, &finalResponse, sizeof(char));
+#ifndef CACHE
+    send_data(sd, &finalResponse, sizeof(char));
+#endif
       } else {
 	/* Complete local processing */
 	doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
@@ -1184,6 +1178,18 @@ int transCommit() {
       }
     }
 
+#ifdef CACHE
+    {
+      /* Invalidate objects in other machine cache */
+      int retval;
+      if((retval = invalidateObj(tosend, pilecount,finalResponse,socklist)) != 0) {
+	printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
+	free(tosend);
+	free(listmid);
+	return 1;
+      }
+    }
+#endif
     /* Free resources */
     free(tosend);
     free(listmid);
@@ -1195,16 +1201,13 @@ int transCommit() {
       if(treplyretryCount >= NUM_TRY_TO_COMMIT)
         exponentialdelay();
       else 
-        randomdelay();
+      randomdelay();
 #ifdef TRANSSTATS
       nSoftAbort++;
 #endif
     }
     /* Retry trans commit procedure during soft_abort case */
   } while (treplyretry);
-
-  exponential_backoff.tv_sec = 0;
-  exponential_backoff.tv_nsec = (long)(10000);//10 microsec_
 
   if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
@@ -1283,7 +1286,7 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
   transinfo->modptr = NULL;
   transinfo->numlocked = numoidlocked;
   transinfo->numnotfound = numoidnotfound;
-
+  
   /* Condition to send TRANS_AGREE */
   if(v_matchnolock == tdata->f.numread + tdata->f.nummod) {
     *getReplyCtrl = TRANS_AGREE;
@@ -1302,16 +1305,6 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
       return;
     }
   } else if(finalResponse == TRANS_COMMIT) {
-#ifdef CACHE
-    /* Invalidate objects in other machine cache */
-    if(tdata->f.nummod > 0) {
-      int retval;
-      if((retval = invalidateObj(tdata)) != 0) {
-	printf("Error: %s() in invalidating Objects %s, %d\n", __func__, __FILE__, __LINE__);
-	return;
-      }
-    }
-#endif
     if(transComProcess(tdata, transinfo) != 0) {
       printf("Error in transComProcess() %s,%d\n", __FILE__, __LINE__);
       fflush(stdout);

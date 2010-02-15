@@ -48,36 +48,31 @@ int checktrans() {
         break;
       objheader_t *headeraddr=(objheader_t*) curr->val;
       unsigned int machinenum;
-      if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
-        machinenum = myIpAddr;
-      } else if ((machinenum = lhashSearch(curr->key)) == 0) {
-        printf("Error: No such machine %s, %d\n", __func__, __LINE__);
-        return 1;
-      }
-      if(machinenum != myIpAddr)
+      objheader_t *tmp;
+      
+      if (STATUS(headeraddr) & NEW) {
+	//new objects cannot be stale
+      } else if ((tmp=mhashSearch(curr->key)) != NULL) {
+	if (tmp->version!=headeraddr->version) {
+	  //version mismatch
+	  deletehead(head);
+	  return 1; //return 1 when objects are inconsistent
+	}
+      } else {
+	machinenum = lhashSearch(curr->key);
         head = createList(head, headeraddr, machinenum, c_numelements);
+      }
+
       curr = curr->next;
     }
   }
   /* Send oid and versions for checking */
-  int retval=-1;
-  if(head != NULL) {
-    retval = verify(head);
-  }
-
-  if(retval == 1) { //consistent objects
-    /* free head */
-    deletehead(head);
+  if(head == NULL) 
     return 0;
-  }
-
-  if(retval == 0) {
-    /* free head */
-    deletehead(head);
-    return 1; //return 1 when objects are inconsistent
-  }
-
-  return 0; 
+  
+  int retval = verify(head);
+  deletehead(head);
+  return retval==0;
 }
 
 nodeElem_t * createList(nodeElem_t *head, objheader_t *headeraddr, unsigned int mid,

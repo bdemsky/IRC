@@ -472,7 +472,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     break;
 
   default:
-    printf("Error: No response to TRANS_AGREE OR DISAGREE protocol %s, %d\n", __FILE__, __LINE__);
+    printf("Error: No response to TRANS_AGREE OR DISAGREE protocol  control = %d %s, %d\n", control, __FILE__, __LINE__);
     //TODO Use fixed.trans_id  TID since Client may have died
     break;
   }
@@ -814,7 +814,6 @@ void processVerNoMatch(unsigned int *oidnotfound,
     }
     /* Condition to send TRANS_SOFT_ABORT */
     if((*(v_matchlock) > 0 && *(v_nomatch) == 0) || (*(objnotfound) > 0 && *(v_nomatch) == 0)) {
-    //if((*(v_matchlock) > 0 && *(v_nomatch) == 0) || (*(objnotfound) > 0 && *(v_nomatch) == 0)) {
       control = TRANS_SOFT_ABORT;
 
       /* Send control message */
