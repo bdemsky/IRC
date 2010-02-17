@@ -57,6 +57,14 @@ extern int leader;
 extern int paxosRound;
 /* This function initializes the main objects store and creates the
  * global machine and location lookup table */
+
+long long myrdtsc(void)
+{
+  unsigned hi, lo; 
+  __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+  return ( (unsigned long long)lo)|( ((unsigned long long)hi)<<32 );
+}
+
 #endif
 
 int dstmInit(void) {

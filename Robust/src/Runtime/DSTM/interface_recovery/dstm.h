@@ -367,6 +367,8 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
 void commitCountForObjRead(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 void commitCountForObjMod(char *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *, unsigned int, unsigned short);
 
+long long myrdtsc(void);
+
 /* Sends notification request for thread join, if sucessful returns 0 else returns -1 */
 #ifdef RECOVERY
   int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int numoid,int mid);

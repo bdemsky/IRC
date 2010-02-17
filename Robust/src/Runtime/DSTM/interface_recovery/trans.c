@@ -25,6 +25,8 @@
 #include <signal.h>
 #include <sys/select.h>
 #include "tlookup.h"
+
+#define CPU_FREQ 3056842
 #endif
 
 #define NUM_THREADS 1
@@ -118,7 +120,7 @@ int paxosRound;
  **************************************/
 int numRecovery=0;
 unsigned int deadMachine[8] ={ 0,0,0,0,0,0,0,0};
-double elapsedTime[8] = {0,0,0,0,0,0,0,0};
+long long elapsedTime[8] = {0,0,0,0,0,0,0,0};
 #endif
 
 #endif
@@ -2521,10 +2523,10 @@ void duplicateLostObjects(unsigned int mid){
 #ifdef RECOVERYSTATS
   printf("Recovery Start\n");
   numRecovery++;
-  time_t st;
-  time_t fi;
+  long long st;
+  long long fi;
 
-  time(&st);
+  st = myrdtsc(); // to get clock
   deadMachine[numRecovery-1] = mid;
 #endif
 
@@ -2613,8 +2615,8 @@ void duplicateLostObjects(unsigned int mid){
 	}
 
 #ifdef RECOVERYSTATS
-  time(&fi);
-  elapsedTime[numRecovery-1] = fi-st;
+  fi = myrdtsc();
+  elapsedTime[numRecovery-1] = (fi-st)/CPU_FREQ;
   printRecoveryStat();
 #endif
 
@@ -3471,7 +3473,7 @@ void printRecoveryStat() {
   int i;
   for(i=0; i < numRecovery;i++) {
     printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
-    printf("Recovery Time = %.6f\n",elapsedTime[i]);
+    printf("Recovery Time = %ld\n",elapsedTime[i]);
   }
   printf("**************************\n\n");
 }
