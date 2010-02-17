@@ -41,10 +41,10 @@ unsigned int thashInsert(unsigned int transid, char decision) {
     pthread_mutex_unlock(&tlookup.locktable);
   }
 
+  index = thashFunction(transid);
   ptr = tlookup.table;
   tlookup.numelements++;
 
-  index = thashFunction(transid);
 #ifdef DEBUG
   printf("DEBUG(insert) transid = %d, decision  = %d, index = %d\n",transid, decision, index);
 #endif
@@ -73,10 +73,10 @@ char thashSearch(unsigned int transid) {
   int index;
   thashlistnode_t *ptr, *node;
 
+  pthread_mutex_lock(&tlookup.locktable);
   ptr = tlookup.table;          // Address of the beginning of hash table
   index = thashFunction(transid);
   node = &ptr[index];
-  pthread_mutex_lock(&tlookup.locktable);
   while(node != NULL) {
     if(node->transid == transid) {
       pthread_mutex_unlock(&tlookup.locktable);
@@ -94,11 +94,11 @@ unsigned int thashRemove(unsigned int transid) {
   thashlistnode_t *curr, *prev;
   thashlistnode_t *ptr, *node;
 
+  pthread_mutex_lock(&tlookup.locktable);
   ptr = tlookup.table;
   index = thashFunction(transid);
   curr = &ptr[index];
 
-  pthread_mutex_lock(&tlookup.locktable);
   for (; curr != NULL; curr = curr->next) {
     if (curr->transid == transid) {                     // Find a match in the hash table
       tlookup.numelements--;                    // Decrement the number of elements in the global hashtable

@@ -2614,7 +2614,7 @@ void duplicateLostObjects(unsigned int mid){
 
 #ifdef RECOVERYSTATS
   time(&fi);
-  elapsedTime[numRecovery-1] = difftime(fi,st);
+  elapsedTime[numRecovery-1] = fi-st;
   printRecoveryStat();
 #endif
 

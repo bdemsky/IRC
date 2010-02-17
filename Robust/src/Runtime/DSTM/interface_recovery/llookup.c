@@ -76,6 +76,7 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
     pthread_mutex_unlock(&llookup.locktable);
   }
 
+  pthread_mutex_lock(&llookup.locktable);
   ptr = llookup.table;
   llookup.numelements++;
 
@@ -83,7 +84,6 @@ unsigned int lhashInsert(unsigned int oid, unsigned int mid) {
 #ifdef DEBUG
   printf("DEBUG(insert) oid = %d, mid =%d, index =%d\n",oid,mid, index);
 #endif
-  pthread_mutex_lock(&llookup.locktable);
   if(ptr[index].next == NULL && ptr[index].oid == 0) {          // Insert at the first position in the hashtable
     ptr[index].oid = oid;
     ptr[index].mid = mid;
@@ -108,10 +108,10 @@ unsigned int lhashSearch(unsigned int oid) {
   int index;
   lhashlistnode_t *ptr, *node;
 
+  pthread_mutex_lock(&llookup.locktable);
   ptr = llookup.table;          // Address of the beginning of hash table
   index = lhashFunction(oid);
   node = &ptr[index];
-  pthread_mutex_lock(&llookup.locktable);
   while(node != NULL) {
     if(node->oid == oid) {
       pthread_mutex_unlock(&llookup.locktable);
@@ -129,11 +129,11 @@ unsigned int lhashRemove(unsigned int oid) {
   lhashlistnode_t *curr, *prev;
   lhashlistnode_t *ptr, *node;
 
+  pthread_mutex_lock(&llookup.locktable);
   ptr = llookup.table;
   index = lhashFunction(oid);
   curr = &ptr[index];
 
-  pthread_mutex_lock(&llookup.locktable);
   for (; curr != NULL; curr = curr->next) {
     if (curr->oid == oid) {                     // Find a match in the hash table
       llookup.numelements--;                    // Decrement the number of elements in the global hashtable
