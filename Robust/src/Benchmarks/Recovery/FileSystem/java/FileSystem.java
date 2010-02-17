@@ -196,12 +196,6 @@ public class FileSystem {
 		}
 	}
 	
-	public Object read(HashMap mydhmap, String key) {
-		Object obj = mydhmap.get(key); 
-		
-		return obj;
-	}
-	
 	public static void main(String[] args) {
 		String filename;
 
@@ -209,7 +203,7 @@ public class FileSystem {
 			filename = args[0];
 		}
 		else {
-			System.out.println("./FileSystem.bin <data>");
+			System.out.println("usage: ./FileSystem.bin <data>");
 			System.exit(0);
 		}
 		

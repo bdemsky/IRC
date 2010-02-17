@@ -8,6 +8,11 @@ public class Spider {
 		String firstmachine;
 		String firstpage;
 
+		if ((args.length != 1) && (args.length != 2)) {
+			System.printString("usage: ./Spider <first site> [first page]\n");
+			System.exit(0);
+		}
+
 		firstmachine = new String(args[0]);
 		if (args.length == 2) {
 			firstpage = new String(args[1]);

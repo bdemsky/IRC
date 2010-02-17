@@ -23,14 +23,6 @@ public class LocalQuery {
     return path;
   }
 
-  public void outputFile() {
-		StringBuffer sb = new StringBuffer(hostname);
-		sb.append(path);
-    FileOutputStream fos = new FileOutputStream(sb.toString().replace('/','#'));
-    fos.write(response.toString().getBytes());
-    fos.close();
-  }
-
   public String makewebcanonical(String page) {
     StringBuffer b = new StringBuffer(getHostName(page));
     b.append("/");
