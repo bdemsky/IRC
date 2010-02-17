@@ -279,14 +279,8 @@ public class FileSystem extends Thread {
 	*/
 		FileSystem[] lus;
 		FileSystem initLus;
-
-		Work[] works;
-		Transaction[] currentWorkList;		// type might be something else
 		
 		atomic {
-			currentWorkList = global new Transaction[NUM_THREADS];		// something else
-			works = global new Work[NUM_THREADS];
-			
 			DistributedHashMap fs = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedHashMap dir = global new DistributedHashMap(500, 500, 0.75f);
 			DistributedLinkedList dir_list = global new DistributedLinkedList();
@@ -296,8 +290,6 @@ public class FileSystem extends Thread {
 
 			lus = global new FileSystem[NUM_THREADS];
 			for(int i = 0; i < NUM_THREADS; i++) {
-//				lus[i] = initLus;
-//				lus[i].setInputFileName(filename, i);
 				lus[i] = global new FileSystem(initLus.dir, initLus.fs, initLus.dir_list, filename, i);
 			}
 		}
