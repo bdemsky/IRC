@@ -66,6 +66,10 @@ public class Work extends Thread {
     System.out.println("\n\n I'm done\n\n\n");
 
     RecoveryStat.printRecoveryStat();
+
+    while(true) {
+      sleep(100000);
+    }
   }
 
 	public static int checkCurrentWorkList(Work mywork) {		
