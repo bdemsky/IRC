@@ -1710,7 +1710,7 @@ checkversion:
 /* go through oid's notifylist and clear them */
 void clearNotifyList(unsigned int oid)
 {
-#ifndef DEBUG
+#ifdef DEBUG
   printf("%s -> Entering\n",__func__);
 #endif
 

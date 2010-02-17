@@ -2627,7 +2627,7 @@ void duplicateLocalBackupObjects(unsigned int mid) {
 	int tempsize, sd;
   int i;
 	char *dupeptr, ctrl, response;
-#ifndef DEBUG
+#ifdef DEBUG
 	printf("%s-> Start; backup mid:%s\n", __func__, midtoIPString(mid));  
 #endif
 
@@ -2657,7 +2657,7 @@ void duplicateLocalBackupObjects(unsigned int mid) {
 #endif
 
 	if(response != DUPLICATION_COMPLETE) {
-#ifndef DEBUG
+#ifdef DEBUG
     printf("%s -> DUPLICATION_FAIL\n",__func__);
 #endif
     exit(-1);
@@ -2876,7 +2876,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
     return -1;
   } else {
 
-#ifndef DEBUG
+#ifdef DEBUG
     printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
 #ifdef RECOVERY
     printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
@@ -2891,7 +2891,7 @@ int reqNotify(unsigned int *oidarry, unsigned short *versionarry, unsigned int n
 
     for(i = 0;i < numoid; i++) {
       oid = oidarry[i];
-#ifndef DEBUG
+#ifdef DEBUG
       printf("%s -> oid[%d] = %d\n",__func__,i,oidarry[i]);
 #endif
       *((unsigned int *)(&msg[1] + size)) = oid;
@@ -2944,7 +2944,7 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
   int objIsFound = 0, index = -1;
   unsigned int i;
   void *ptr;
-#ifndef DEBUG
+#ifdef DEBUG
   printf("%s -> oid = %d   vesion = %d    tid = %d\n",__func__,oid,version,tid);
 #endif
 
