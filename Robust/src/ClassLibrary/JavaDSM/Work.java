@@ -13,16 +13,20 @@ public class Work extends Thread {
 
 	public void run() {
     int workMID;
+    long fi,st;
+
     atomic {
       workMID = MY_MID;
     }
 
     System.out.println("Thread " + workMID + " has started");
+    st = System.currentTimeMillis();
+
     Task localTask;
     int chk; 
     int result;
     int i,j;
-		boolean isEmpty; 
+		boolean isEmpty;
 
     while(true) {
       atomic {
@@ -59,12 +63,16 @@ public class Work extends Thread {
       }
 
     }
+
+    fi = System.currentTimeMillis();
+
     /* for debugging purpose */
     atomic {
       tasks.output();
     }
     System.out.println("\n\n I'm done\n\n\n");
-
+    System.out.println("Time Elapse = " + (double)((fi-st)/1000));
+        
     RecoveryStat.printRecoveryStat();
 
     while(true) {
