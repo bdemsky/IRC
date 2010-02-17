@@ -115,6 +115,10 @@ public class SpamFilter extends Thread {
     System.out.println("\n\n\n I'm Done\n\n\n");
     
     RecoveryStat.printRecoveryStat();
+
+    while(true) {
+      sleep(1000000);
+    }
   }
 
   public static void main(String[] args) {

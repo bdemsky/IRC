@@ -142,6 +142,10 @@ public class FileSystem extends Thread {
 
     System.out.println("\n\n\n I'm done\n\n\n");
 
+    while(true) {
+      sleep(100000);
+    }
+
 	}
 
 	public void output() { 
