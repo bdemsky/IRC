@@ -7,124 +7,54 @@
 */
 public class MatrixMultiply {
 	MMul mmul;
-	int SIZE;
-	int increment;
-	Queue todoList;
+	int x0, y0, x1, y1;
 	
-	public MatrixMultiply(MMul mmul, int size,int increment) {
+	public MatrixMultiply(MMul mmul, int x0, int x1, int y0, int y1) {
 		this.mmul = mmul;
-
-		SIZE = size;
-    this.increment = increment;
-
-    init();
-	}
-
-	public void init() {
-		todoList = new Queue();
-
-		fillTodoList();
-	}
-
-  // fill up the Work Pool
-	public void fillTodoList() {
-    Segment seg;
-    int i;
-
-    for(i = 0; i < SIZE; i +=increment) {
-
-      if(i+increment > SIZE) {
-        seg = new Segment(i,SIZE);
-      }
-      else {
-        seg = new Segment(i, i + increment);
-      }
-			todoList.push(seg);
-    }
+		this.x0 = x0;
+		this.x1 = x1;
+		this.y0 = y0;
+		this.y1 = y1;
 	}
 
 	public void execute() {
-    double la[][];
-    double lc[][];
-    double lb[][];
-    double rowA[];
-    double colB[];
-    Segment seg;
-		
-    double innerproduct;
-    int i,j;
-    int x0;
-    int x1;
-		int size;
+    double la[][] = mmul.a;
+    double lc[][] = mmul.c;
+    double lb[][] = mmul.btranspose;
+		int M = mmul.M;
 
-    // get matrix 
-    {
-			seg = (Segment)(todoList.pop());
-			x0 = seg.x0;  // x start row
-			x1 = seg.x1;  // x end row
-      la = mmul.a;          //  first mat
-      lb = mmul.btranspose; // second mat
-			size = SIZE;
+    for(int i = x0; i < x1; i++){
+      double a[] = la[i];
+      double c[] = lc[i];
+      for (int j = y0; j < y1; j++) {
+        double innerProduct = 0;
+        double b[] = lb[j];
+        for(int k = 0; k < M; k++) {
+          innerProduct += a[k] *b[k];
+        }
+        c[j] = innerProduct;
+      }
     }
-
-		lc = new double[size][size];
-		
-		for(i = x0; i < x1 ; i++) {
-		  {
-        rowA = la[i];   // grab first mat's row
-
-				for(j = 0; j < size ; j++) {
-          colB = lb[j]; // grab second mat's col
-
-					innerproduct = computeProduct(rowA,colB, size); // computes the value
-
-          lc[i][j] = innerproduct;  // store in dest mat
-				} // end of for j
-			} 
-		}	// end for i 
-//		}
-
-		{
-			for (i = x0; i < x1; i++) {
-				for (j = 0; j < size; j++) {
-					mmul.c[i][j] = lc[i][j];
-				}
-			}
-		}
-  }
-
-  public double computeProduct(double[] rowA,double[] colB, int size)
-  {
-    int i;
-    double sum = 0;
-
-    for(i = 0 ;i < size; i++) {
-        sum += rowA[i] * colB[i];
-    }
-
-    return sum;
   }
 
   public static void main(String[] args) {
-		int SIZE = 1600;
-    int increment = 80;
+		int SIZE;
     int i,j;
 		MMul matrix;
 		MatrixMultiply mm;
 
-		if (args.length == 2) {
+		if (args.length == 1) {
       SIZE = Integer.parseInt(args[0]);
-      increment = Integer.parseInt(args[1]);  // size of subtask
 		}
     else {
-      System.out.println("usage: ./MatrixMultiply.bin <size of matrix> <size of subtask>");
-      System.exit(0);
+      System.out.println("usage: ./MatrixMultiply.bin <size of matrix>");
+			System.exit(0);
     }
 
 		matrix = new MMul(SIZE, SIZE, SIZE);
 		matrix.setValues();
 		matrix.transpose();
-		mm = new MatrixMultiply(matrix, SIZE,increment);
+		mm = new MatrixMultiply(matrix, 0, SIZE, 0, SIZE);
 
     long st = System.currentTimeMillis();
     long fi;
@@ -133,7 +63,7 @@ public class MatrixMultiply {
 
     fi = System.currentTimeMillis();
 
-    double sum= 0;
+    double sum = 0;
     {
       sum = matrix.getSum();
     }
@@ -170,6 +100,7 @@ public class MMul{
 		for(int i = 0; i < L; i++) {
 			double ai[] = a[i];
 			for(int j = 0; j < M; j++) {
+//				ai[j] = j+1;
 				ai[j] = 1;
 			}
 		}
@@ -177,6 +108,7 @@ public class MMul{
 		for(int i = 0; i < M; i++) {
 			double bi[] = b[i];
 			for(int j = 0; j < N; j++) {
+//				bi[j] = j+1;
 				bi[j] = 1;
 			}
 		}
@@ -216,14 +148,3 @@ public class MMul{
     return sum;
   }
 }
-
-public class Segment {
-	int x0;
-	int x1;
-
-	Segment (int x0, int x1) {
-		this.x0 = x0;
-		this.x1 = x1;
-	}
-}
-
