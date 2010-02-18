@@ -126,6 +126,7 @@ public class MatrixMultiply extends Task {
 		}
     else {
       System.out.println("usage: ./MatrixMultiply.bin master <num_threads> <size of matrix> <size of subtask>");
+      System.exit(0);
     }
 
 		int[] mid = new int[8];
