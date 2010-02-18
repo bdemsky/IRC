@@ -108,10 +108,10 @@ public class SpamFilter extends Thread {
         //diff = stop-start;
 //        System.out.println("time to complete iteration" + j + " = " + diff + " millisecs");
       } //end num emails
-      System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
+//      System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     }//end num iter
     // Sanity check
-//    System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
+    System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     System.out.println("\n\n\n I'm Done\n\n\n");
     
     RecoveryStat.printRecoveryStat();

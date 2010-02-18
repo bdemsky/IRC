@@ -1,9 +1,23 @@
 # !/bin/sh
+
+# Usage
+#
+# ./runjava.sh <num_machine>
+#
+
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-ITERATIONS=10
-WAITTIME=300
+ITERATIONS=1
+WAITTIME=30
+
+# 0 mean new test 
+# 1~8 machine id to be killed
+ORDER=( 0 1 3 5 7 8 2    
+        0 1 2 3 4 5 6 
+        0 1 8 4 6 3 7 
+        0 8 7 3 6 5 4
+        0 7 4 6 8 1 2 );
 
 # killClients <fileName> <# of machines>
 function killclients {
@@ -83,23 +97,34 @@ function runFailureTest {
 
   tt=1;
   while [ $tt -le $NUM_MACHINE ]; do
-    echo "------------------------------- Failure Test $1 ----------------------------" >> log-$tt
     tt=`expr $tt + 1`
   done
 
-  # run all machines
-  runMachines log
-  sleep 10 # wait until all machine run
-  # Kill machines
-  for k in 2 4 6 8
+  test_iter=0;
+
+  for k in ${ORDER[@]}
   do
-   echo "------------------------ dc-$k is killed ------------------------" >> log-$k
-   killonemachine $fileName $k
-   sleep 10
+    if [ $k -eq 0 ]; then         # if k = 0, it is a new test
+      if [ $test_iter -ne 1 ]; then
+        sleep $WAITTIME           # wait the end of execution
+        killclients $fileName 8   # kill alive machines
+      else
+        test_iter=`expr $test_iter + 1`
+      fi
+
+      echo "------------------------------- Failure Test $test_iter ----------------------------" >> log-$tt
+      runMachines log   
+      sleep 10           # wait until all machine run
+
+    else                 # if k != 0, time to kill machines!
+      echo "------------------------ dc-$k is killed ------------------------" >> log-$k
+      killonemachine $fileName $k
+      
+      let "killdelay= $RANDOM % 2 + 3"
+      sleep $killdelay
+    fi 
   done
 
- sleep $WAITTIME # wait the end of execution
- killclients $fileName 8 # kill alive machines
  sleep 10
  cd -
 }
@@ -118,15 +143,14 @@ do
   echo "BM_ARGS='$BM_ARGS'" > ~/.bmargs
 
   fileName=${BM_NAME}.bin
-  echo "fileName='$fileName'"
 
   # terminate if it doesn't have parameter
   let "NUM_MACHINE= $1 + 0";
 
-  if [ $NUM_MACHINE -eq 0 ];
+  if [ $NUM_MACHINE -eq 0 ]
   then
     echo "Wrong input"
-    let "Num= 8";
+    echo "Usage : ./runjava.sh <num_machine> <number of machine to be killed>"
     exit 0
   fi
 
@@ -134,23 +158,16 @@ do
   echo "BM_ARGS= $BM_ARGS"
   echo "NUM_M = $NUM_MACHINE"
 
+  echo "====================================== Normal Test =============================="
+  runNormalTest $NUM_MACHINES 1 
 
-  echo "=================================== 1 ================================="
-  runNormalTest $NUM_MACHINES 1
-  echo "======================================================================="
-
-  t=2;
-  while [ $t -le $ITERATIONS ]; do
-    echo "==================================== $t ============================="
-#    runFailureTest $NUM_MACHINES 1
-#    sleep 10
-    echo "====================================================================="
-    t=`expr $t + 1`
-  done
+  echo "================================================================================="
+  echo "====================================== Failure Test ============================="
+  runFailureTest $NUM_MACHINES
+  echo "================================================================================="
 
   killclients $fileName 8
 
-done
 
 echo "----------- done ------------"
 

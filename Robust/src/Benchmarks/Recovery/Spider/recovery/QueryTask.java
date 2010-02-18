@@ -138,6 +138,8 @@ public class QueryTask extends Task {
 		String str;
 		Iterator iter = results_list.iterator();
 
+    System.out.println("Size = " + results_list.size());
+
 		while (iter.hasNext() == true) {
 			str = ((GlobalString)(iter.next())).toLocalString();
 			System.printString(str + "\n");

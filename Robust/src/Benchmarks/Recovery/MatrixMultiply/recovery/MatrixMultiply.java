@@ -56,6 +56,7 @@ public class MatrixMultiply extends Task {
     int x1;
 		int size;
 
+
     // get matrix 
     atomic {
 			seg = (Segment)myWork;
@@ -89,6 +90,7 @@ public class MatrixMultiply extends Task {
 					mmul.c[i][j] = lc[i][j];
 				}
 			}
+
 		}
   }
 
@@ -127,9 +129,9 @@ public class MatrixMultiply extends Task {
     }
 
 		int[] mid = new int[8];
-		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
-		mid[1] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
-/*		mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
+/*		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
+		mid[1] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7*/
+		mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
@@ -138,7 +140,7 @@ public class MatrixMultiply extends Task {
 		mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
-*/
+
 		atomic {
 			matrix = global new MMul(SIZE, SIZE, SIZE);
 			matrix.setValues();
@@ -183,7 +185,7 @@ public class MatrixMultiply extends Task {
 	}
   
   public void output() {
-    System.out.println("Sum = " + mmul.getSum());
+    System.out.println("c[0][0] = " + mmul.c[0][0] + "  c["+(SIZE-1)+"]["+(SIZE-1)+"] : " + mmul.c[SIZE-1][SIZE-1]);
   }
 
 }
@@ -216,7 +218,7 @@ public class MMul{
 		for(int i = 0; i < M; i++) {
 			double bi[] = b[i];
 			for(int j = 0; j < N; j++) {
-				bi[j] = j+1;
+				bi[j] = j+ 1;
 			}
 		}
 

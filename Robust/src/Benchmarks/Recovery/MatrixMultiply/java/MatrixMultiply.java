@@ -112,12 +112,13 @@ public class MatrixMultiply {
 		MMul matrix;
 		MatrixMultiply mm;
 
-		if (args.length == 3) {
+		if (args.length == 2) {
       SIZE = Integer.parseInt(args[0]);
       increment = Integer.parseInt(args[1]);  // size of subtask
 		}
     else {
       System.out.println("usage: ./MatrixMultiply.bin <size of matrix> <size of subtask>");
+      System.exit(0);
     }
 
 		matrix = new MMul(SIZE, SIZE, SIZE);
@@ -169,14 +170,14 @@ public class MMul{
 		for(int i = 0; i < L; i++) {
 			double ai[] = a[i];
 			for(int j = 0; j < M; j++) {
-				ai[j] = j+1;
+				ai[j] = 1;
 			}
 		}
 
 		for(int i = 0; i < M; i++) {
 			double bi[] = b[i];
 			for(int j = 0; j < N; j++) {
-				bi[j] = j+1;
+				bi[j] = 1;
 			}
 		}
 
