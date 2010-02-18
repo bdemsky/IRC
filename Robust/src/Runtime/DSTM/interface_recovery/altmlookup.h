@@ -1,5 +1,5 @@
-#ifndef _MLOOKUP_H_
-#define _MLOOKUP_H_
+#ifndef _ALTMLOOKUP_H_
+#define _ALTMLOOKUP_H_
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,6 +49,6 @@ void mhashPrint();
 #endif
 
 #ifdef RECOVERY
-void* mhashGetDuplicate(int* dupeSize,int backup);
+void* mhashGetDuplicate(unsigned int* dupeSize,int backup);
 //int mhashGetThreadObjects(unsigned int** oidArray,unsigned int** midArray,unsigned int** threadidArray);
 #endif

@@ -26,6 +26,8 @@
 #include <sys/select.h>
 #include "tlookup.h"
 
+//#define CPU_FREQ 2992440
+
 #define CPU_FREQ 3056842
 #endif
 
@@ -115,12 +117,8 @@ unsigned int temp_v_a;
 int paxosRound;
 
 #ifdef RECOVERYSTATS
-/**************************************
- * Global variables for Recovery stats
- **************************************/
-int numRecovery=0;
-unsigned int deadMachine[8] ={ 0,0,0,0,0,0,0,0};
-long long elapsedTime[8] = {0,0,0,0,0,0,0,0};
+  int numRecovery = 0;
+  recovery_stat_t* recoverStat;
 #endif
 
 #endif
@@ -2246,6 +2244,15 @@ int processConfigFile() {
   myIndexInHostArray = findHost(myIpAddr);
 #ifdef RECOVERY
 	liveHosts[myIndexInHostArray] = 1;
+
+#ifdef RECOVERYSTATS
+  numRecovery = 0;
+  if((recoverStat = (recovery_stat_t*) calloc(numHostsInSystem, sizeof(recovery_stat_t))) == NULL) {
+    printf("%s -> Calloc error!\n",__func__);
+    exit(0);
+  }
+#endif
+
 #endif  
 	if (myIndexInHostArray == -1) {
     printf("error in %s: IP Address of eth0 not found\n", CONFIG_FILENAME);
@@ -2525,9 +2532,10 @@ void duplicateLostObjects(unsigned int mid){
   numRecovery++;
   long long st;
   long long fi;
+  unsigned int dupeSize = 0;  // to calculate the size of backed up data
 
   st = myrdtsc(); // to get clock
-  deadMachine[numRecovery-1] = mid;
+  recoverStat[numRecovery-1].deadMachine = mid;
 #endif
 
 #ifndef DEBUG
@@ -2563,8 +2571,10 @@ void duplicateLostObjects(unsigned int mid){
    * Backup     26      21,24
    */
 
+  dupeSize = 0;
+
 	if(originalMid == myIpAddr) {   // copy local machine's backup data, make it as primary data of backup machine.
-		duplicateLocalOriginalObjects(backupMid);	
+		dupeSize += duplicateLocalOriginalObjects(backupMid);	  // size of primary data
 	}
 	else if((sd = getSockWithLock(transPrefetchSockPool, originalMid)) < 0) {
 		printf("%s -> socket create error, attempt %d\n", __func__,j);
@@ -2581,7 +2591,13 @@ void duplicateLostObjects(unsigned int mid){
 		send_data(sd, &backupMid, sizeof(unsigned int));
 
     char response;
+    unsigned int receivedSize;
 		recv_data(sd, &response, sizeof(char));
+    recv_data(sd, &receivedSize, sizeof(unsigned int));
+
+    dupeSize += receivedSize; // size of primary data
+    
+
 #ifdef DEBUG
 		printf("%s (DUPLICATE_ORIGINAL) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
 #endif
@@ -2590,7 +2606,7 @@ void duplicateLostObjects(unsigned int mid){
 	}
 
 	if(backupMid == myIpAddr) {   // copy local machine's primary data, and make it as backup data of original machine.
-		duplicateLocalBackupObjects(originalMid);	
+		dupeSize += duplicateLocalBackupObjects(originalMid); // size of backup data	
 	}
 	else if((sd = getSockWithLock(transPrefetchSockPool, backupMid)) < 0) {
 		printf("updateLiveHosts(): socket create error, attempt %d\n", j);
@@ -2606,7 +2622,12 @@ void duplicateLostObjects(unsigned int mid){
 		send_data(sd, &originalMid, sizeof(unsigned int));
 
 		char response;
+    unsigned int receivedSize;
 		recv_data(sd, &response, sizeof(char));
+    recv_data(sd, &receivedSize, sizeof(unsigned int));
+
+    dupeSize += receivedSize; // size of backup data
+
 #ifdef DEBUG
 		printf("%s (DUPLICATE_BACKUP) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
 #endif
@@ -2616,7 +2637,9 @@ void duplicateLostObjects(unsigned int mid){
 
 #ifdef RECOVERYSTATS
   fi = myrdtsc();
-  elapsedTime[numRecovery-1] = (fi-st)/CPU_FREQ;
+  recoverStat[numRecovery-1].elapsedTime = (fi-st)/CPU_FREQ;
+  recoverStat[numRecovery-1].recoveredData = dupeSize;
+  
   printRecoveryStat();
 #endif
 
@@ -2625,8 +2648,9 @@ void duplicateLostObjects(unsigned int mid){
 #endif
 }
 
-void duplicateLocalBackupObjects(unsigned int mid) {
-	int tempsize, sd;
+unsigned int duplicateLocalBackupObjects(unsigned int mid) {
+	int sd;
+  unsigned int tempsize;
   int i;
 	char *dupeptr, ctrl, response;
 #ifdef DEBUG
@@ -2670,10 +2694,13 @@ void duplicateLocalBackupObjects(unsigned int mid) {
 	printf("%s-> End\n", __func__);  
 #endif
 
+  return tempsize;
+
 }
 
-void duplicateLocalOriginalObjects(unsigned int mid) {
-	int tempsize, sd;
+unsigned int duplicateLocalOriginalObjects(unsigned int mid) {
+	int sd;
+  unsigned int tempsize;
 	char *dupeptr, ctrl, response;
 
 #ifdef DEBUG
@@ -2717,6 +2744,7 @@ void duplicateLocalOriginalObjects(unsigned int mid) {
 #ifdef DEBUG
 	printf("%s-> End\n", __func__);  
 #endif
+  return tempsize;
 
 }
 
@@ -3468,12 +3496,13 @@ int checkiftheMachineDead(unsigned int mid) {
 
 #ifdef RECOVERYSTATS
 void printRecoveryStat() {
-  printf("***** Recovery Stats *****\n");
+  printf("\n***** Recovery Stats *****\n");
   printf("numRecovery = %d\n",numRecovery);
   int i;
   for(i=0; i < numRecovery;i++) {
-    printf("Dead Machine = %s\n",midtoIPString(deadMachine[i]));
-    printf("Recovery Time = %ld\n",elapsedTime[i]);
+    printf("Dead Machine = %s\n",midtoIPString(recoverStat[i].deadMachine));
+    printf("Recoveryed data(byte) = %u\n",recoverStat[i].recoveredData);
+    printf("Recovery Time(us) = %ld\n",recoverStat[i].elapsedTime);
   }
   printf("**************************\n\n");
 }

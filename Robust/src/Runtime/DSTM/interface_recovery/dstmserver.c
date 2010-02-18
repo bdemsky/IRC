@@ -288,7 +288,8 @@ void *dstmAccept(void *acceptfd) {
   int timeout;
 #endif
 
-	int i, tempsize;
+	int i;
+  unsigned int tempsize;
 	objheader_t *h;
 	trans_commit_data_t transinfo;
   unsigned short objType, *versionarry, version;
@@ -632,6 +633,7 @@ void *dstmAccept(void *acceptfd) {
 
           ctrl = DUPLICATION_COMPLETE;
 				  send_data((int)acceptfd, &ctrl, sizeof(char));
+          send_data((int)acceptfd, &tempsize, sizeof(unsigned int));
 #ifdef DEBUG
 				  printf("%s (DUPLICATE_ORIGINAL)-> Finished\n", __func__);	
 #endif
@@ -690,6 +692,7 @@ void *dstmAccept(void *acceptfd) {
 
 				  ctrl = DUPLICATION_COMPLETE;
 				  send_data((int)acceptfd, &ctrl, sizeof(char));
+          send_data((int)acceptfd, &tempsize, sizeof(unsigned int));
 #ifdef DEBUG
 				  printf("%s (DUPLICATE_BACKUP)-> Finished\n", __func__);	
 #endif

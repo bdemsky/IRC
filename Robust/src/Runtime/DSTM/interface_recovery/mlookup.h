@@ -38,7 +38,7 @@ unsigned int mhashResize(unsigned int newsize);
 unsigned int *mhashGetKeys(unsigned int *numKeys);
 
 #ifdef RECOVERY
-void* mhashGetDuplicate(int* dupeSize,int backup);
+void* mhashGetDuplicate(unsigned int* dupeSize,int backup);
 int mhashGetThreadObjects(unsigned int** oidArray,unsigned int** midArray,unsigned int** threadidArray);
 #endif
 

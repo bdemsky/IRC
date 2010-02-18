@@ -234,7 +234,16 @@ typedef struct trans_commit_data {
   pthread_mutex_t liveHosts_mutex;
 #endif
 
-
+#ifdef RECOVERYSTATS
+/**************************************
+ * Structure for Recovery stats
+ **************************************/
+typedef struct recoverystat {
+  unsigned int deadMachine;
+  long long elapsedTime;
+  unsigned int recoveredData;
+} recovery_stat_t;
+#endif
 
 
 #define PRINT_TID(PTR) printf("DEBUG -> %x %d\n", PTR->mid, PTR->thread_id);
@@ -280,8 +289,8 @@ void clearDeadThreadsNotification();
 void reqClearNotifyList(unsigned int oid);
 void clearNotifyList(unsigned int oid);
 void duplicateLostObjects(unsigned int mid);
-void duplicateLocalBackupObjects();
-void duplicateLocalOriginalObjects();
+unsigned int duplicateLocalBackupObjects();
+unsigned int duplicateLocalOriginalObjects();
 void restoreDuplicationState(unsigned int deadHost);
 int readDuplicateObjs(int);
 void printRecoveryStat();
