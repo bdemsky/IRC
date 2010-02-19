@@ -5,29 +5,48 @@ import IR.Flat.*;
 import java.util.*;
 import java.io.*;
 
+///////////////////////////////////////////
+//  IMPORTANT
+//  This class is an immutable Canonical, so
+//
+//  0) construct them with a factory pattern
+//  to ensure only canonical versions escape
+//
+//  1) any operation that modifies a Canonical
+//  is a static method in the Canonical class
+//
+//  2) operations that just read this object
+//  should be defined here
+//
+//  3) every Canonical subclass hashCode should
+//  throw an error if the hash ever changes
+//
+///////////////////////////////////////////
 
 public class ChangeSet extends Canonical {
 
-  private HashSet<ChangeTuple> changeTuples;
+  protected HashSet<ChangeTuple> changeTuples;
 
-  public ChangeSet() {
+  public static ChangeSet factory() {
+    ChangeSet out = new ChangeSet();
+    out = (ChangeSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  public static ChangeSet factory( ChangeTuple ct ) {
+    assert ct != null;
+    assert ct.isCanonical();
+    ChangeSet out = new ChangeSet();
+    out.changeTuples.add( ct );
+    out = (ChangeSet) Canonical.makeCanonical( out );
+    return out;
+  }  
+
+  private ChangeSet() {
     changeTuples = new HashSet<ChangeTuple>();
   }
 
-  public ChangeSet(ChangeTuple ct) {
-    this();
-    changeTuples.add(ct);
-  }
-
-  public ChangeSet(ChangeSet cts) {
-    changeTuples = (HashSet<ChangeTuple>)cts.changeTuples.clone();
-  }
-
-  public ChangeSet makeCanonical() {
-    return (ChangeSet) Canonical.makeCanonical(this);
-  }
-
-  public Iterator iterator() {
+  public Iterator<ChangeTuple> iterator() {
     return changeTuples.iterator();
   }
 
@@ -35,29 +54,13 @@ public class ChangeSet extends Canonical {
     return changeTuples.size();
   }
 
-  public ChangeSet union(ChangeSet ctsIn) {
-    assert ctsIn != null;
-
-    ChangeSet ctsOut = new ChangeSet(this);
-    ctsOut.changeTuples.addAll(ctsIn.changeTuples);
-    return ctsOut.makeCanonical();
-  }
-
-  public ChangeSet union(ChangeTuple ctIn) {
-    assert ctIn != null;
-
-    ChangeSet ctsOut = new ChangeSet(this);
-    ctsOut.changeTuples.add(ctIn);
-    return ctsOut.makeCanonical();
-  }
-
   public boolean isEmpty() {
     return changeTuples.isEmpty();
   }
 
-  public boolean isSubset(ChangeSet ctsIn) {
+  public boolean isSubset( ChangeSet ctsIn ) {
     assert ctsIn != null;
-    return ctsIn.changeTuples.containsAll(this.changeTuples);
+    return ctsIn.changeTuples.containsAll( this.changeTuples );
   }
 
 
@@ -71,26 +74,13 @@ public class ChangeSet extends Canonical {
     }
 
     ChangeSet cts = (ChangeSet) o;
-    return changeTuples.equals(cts.changeTuples);
+    assert this.isCanonical();
+    assert cts.isCanonical();
+    return this == cts;
   }
 
-  private boolean oldHashSet = false;
-  private int oldHash    = 0;
-  public int hashCode() {
-    int currentHash = changeTuples.hashCode();
-
-    if( oldHashSet == false ) {
-      oldHash = currentHash;
-      oldHashSet = true;
-    } else {
-      if( oldHash != currentHash ) {
-	System.out.println("IF YOU SEE THIS A CANONICAL ChangeSet CHANGED");
-	Integer x = null;
-	x.toString();
-      }
-    }
-
-    return currentHash;
+  public int hashCodeSpecific() {
+    return changeTuples.hashCode();
   }
 
 

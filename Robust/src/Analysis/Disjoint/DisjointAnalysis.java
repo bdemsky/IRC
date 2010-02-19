@@ -717,7 +717,11 @@ public class DisjointAnalysis {
 
     if( !mapFlatNewToAllocSite.containsKey( fnew ) ) {
       AllocSite as = 
-        new AllocSite( allocationDepth, fnew, fnew.getDisjointId() );
+        (AllocSite) Canonical.makeCanonical( new AllocSite( allocationDepth, 
+                                                            fnew, 
+                                                            fnew.getDisjointId() 
+                                                            )
+                                             );
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {

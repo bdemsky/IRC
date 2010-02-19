@@ -43,18 +43,18 @@ public class RefEdge {
       this.preds = preds;
     } else {
       // TODO: do this right?
-      this.preds = new ExistPredSet().makeCanonical();
+      this.preds = ExistPredSet.factory();
     }
 
     if( beta != null ) {
       this.beta = beta;
     } else {
-      this.beta = new ReachSet().makeCanonical();
+      this.beta = ReachSet.factory();
     }
 
     // when edges are not undergoing an operation that
     // is changing beta info, betaNew is always empty
-    betaNew = new ReachSet().makeCanonical();
+    betaNew = ReachSet.factory();
   }
 
 
@@ -206,9 +206,8 @@ public class RefEdge {
   
   public void applyBetaNew() {
     assert betaNew != null;
-
     beta    = betaNew;
-    betaNew = new ReachSet().makeCanonical();
+    betaNew = ReachSet.factory();
   }
 
 

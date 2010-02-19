@@ -5,6 +5,24 @@ import IR.Flat.*;
 import java.util.*;
 import java.io.*;
 
+///////////////////////////////////////////
+//  IMPORTANT
+//  This class is an immutable Canonical, so
+//
+//  0) construct them with a factory pattern
+//  to ensure only canonical versions escape
+//
+//  1) any operation that modifies a Canonical
+//  is a static method in the Canonical class
+//
+//  2) operations that just read this object
+//  should be defined here
+//
+//  3) every Canonical subclass hashCode should
+//  throw an error if the hash ever changes
+//
+///////////////////////////////////////////
+
 // a set of existence predicates that are
 // OR'ed terms, if any predicate is true
 // then the set evaluates to true
@@ -13,29 +31,22 @@ public class ExistPredSet extends Canonical {
 
   protected Set<ExistPred> preds;
 
-  public ExistPredSet() {
+  
+  public static ExistPredSet factory() {
+    ExistPredSet out = new ExistPredSet();
+    out = (ExistPredSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  public static ExistPredSet factory( ExistPred pred ) {
+    ExistPredSet out = new ExistPredSet();
+    out.preds.add( pred );
+    out = (ExistPredSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  private ExistPredSet() {
     preds = new HashSet<ExistPred>();
-  }
-
-  public ExistPredSet( ExistPred ep ) {
-    preds = new HashSet<ExistPred>();
-    preds.add( ep );
-  }
-
-
-  public ExistPredSet makeCanonical() {
-    return (ExistPredSet) ExistPredSet.makeCanonical( this );
-  }
-
-
-  public void add( ExistPred pred ) {
-    preds.add( pred );
-  }
-
-
-  public ExistPredSet join( ExistPredSet eps ) {
-    this.preds.addAll( eps.preds );
-    return this;
   }
 
 
@@ -50,12 +61,27 @@ public class ExistPredSet extends Canonical {
   }
 
 
-
   public boolean equals( Object o ) {
-    return true;
+    if( o == null ) {
+      return false;
+    }
+
+    if( !(o instanceof ExistPredSet) ) {
+      return false;
+    }
+
+    ExistPredSet eps = (ExistPredSet) o;
+    assert this.isCanonical();
+    assert eps.isCanonical();
+    return this == eps;
   }
 
 
+  public int hashCodeSpecific() {
+    return preds.hashCode();
+  }
+
+  
   public String toString() {
     String s = "P[";
     Iterator<ExistPred> predItr = preds.iterator();
@@ -63,7 +89,7 @@ public class ExistPredSet extends Canonical {
       ExistPred pred = predItr.next();
       s += pred.toString();
       if( predItr.hasNext() ) {
-        s += " && ";
+        s += " || ";
       }
     }
     s += "]";

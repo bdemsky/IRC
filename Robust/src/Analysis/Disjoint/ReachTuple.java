@@ -5,61 +5,79 @@ import IR.Flat.*;
 import java.util.*;
 import java.io.*;
 
+///////////////////////////////////////////
+//  IMPORTANT
+//  This class is an immutable Canonical, so
+//
+//  0) construct them with a factory pattern
+//  to ensure only canonical versions escape
+//
+//  1) any operation that modifies a Canonical
+//  is a static method in the Canonical class
+//
+//  2) operations that just read this object
+//  should be defined here
+//
+//  3) every Canonical subclass hashCode should
+//  throw an error if the hash ever changes
+//
+///////////////////////////////////////////
 
-// a token touple is a pair that indicates a
+// a reach touple is a pair that indicates a
 // heap region node and an arity
-
-// THIS CLASS IS IMMUTABLE!
 
 public class ReachTuple extends Canonical {
 
-  private Integer token;
-  private boolean isMultiObject;
+  // defined by the source heap region
+  protected Integer hrnID;
+  protected boolean isMultiObject;
 
+  // arity of reachability paths from the
+  // given heap region
   public static final int ARITY_ZEROORMORE = 0;
   public static final int ARITY_ONE        = 1;
   public static final int ARITY_ONEORMORE  = 2;
-  private int arity;
+  protected int arity;
 
 
-  public ReachTuple(HeapRegionNode hrn) {
-    assert hrn != null;
-
-    token         = hrn.getID();
-    isMultiObject = !hrn.isSingleObject();
-    arity         = ARITY_ONE;
-    fixStuff();
+  public static ReachTuple factory( Integer hrnID,
+                                    boolean isMultiObject,
+                                    int     arity ) {
+    ReachTuple out = new ReachTuple( hrnID,
+                                     isMultiObject,
+                                     arity );
+    out = (ReachTuple) Canonical.makeCanonical( out );
+    return out;
+  }
+  
+  public static ReachTuple factory( HeapRegionNode hrn ) {
+    ReachTuple out = new ReachTuple( hrn.getID(),
+                                     !hrn.isSingleObject(),
+                                     ARITY_ONE );
+    out = (ReachTuple) Canonical.makeCanonical( out );
+    return out;
   }
 
-  public ReachTuple(Integer token,
-                    boolean isMultiObject,
-                    int arity) {
-    assert token != null;
+  private ReachTuple( Integer hrnID,
+                      boolean isMultiObject,
+                      int     arity ) {
+    assert hrnID != null;
 
-    this.token         = token;
+    this.hrnID         = hrnID;
     this.isMultiObject = isMultiObject;
     this.arity         = arity;
-    fixStuff();
-  }
 
-  private void fixStuff() {
-      //This is an evil hack...we should fix this stuff elsewhere...
-      if (!isMultiObject) {
-	  arity=ARITY_ONE;
-      } else {
-	  if (arity==ARITY_ONEORMORE)
-	      arity=ARITY_ZEROORMORE;
-      }
+    // just make sure this stuff is true now
+    // that analysis doesn't use ONEORMORE
+    assert arity != ARITY_ONEORMORE;
+    if( !isMultiObject ) {
+      assert arity == ARITY_ONE;
+    }
   }
 
 
-  public ReachTuple makeCanonical() {
-    return (ReachTuple) Canonical.makeCanonical(this);
-  }
-
-
-  public Integer getToken() {
-    return token;
+  public Integer getHrnID() {
+    return hrnID;
   }
 
   public boolean isMultiObject() {
@@ -71,42 +89,7 @@ public class ReachTuple extends Canonical {
   }
 
 
-  public ReachTuple unionArity(ReachTuple tt) {
-    assert tt            != null;
-    assert token         == tt.token;
-    assert isMultiObject == tt.isMultiObject;
-
-    if( isMultiObject ) {
-      // for multiple objects only zero-or-mores combined are still zero-or-more
-      // when two tokens are present (absence of a token is arity=zero and is
-      // handled outside of this method)
-      if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
-	return new ReachTuple(token, true, ARITY_ZEROORMORE).makeCanonical();
-      } else {
-	return new ReachTuple(token, true, ARITY_ONEORMORE).makeCanonical();
-      }
-
-    } else {
-      // a single object region's token can only have ZEROORMORE or ONE
-      if( arity == ARITY_ZEROORMORE && tt.arity == ARITY_ZEROORMORE ) {
-	return new ReachTuple(token, false, ARITY_ZEROORMORE).makeCanonical();
-      } else {
-	return new ReachTuple(token, false, ARITY_ONE).makeCanonical();
-      }
-    }
-  }
-
-
-  public ReachTuple changeTokenTo(Integer tokenToChangeTo) {
-    assert tokenToChangeTo != null;
-
-    return new ReachTuple(tokenToChangeTo,
-                          isMultiObject,
-                          arity).makeCanonical();
-  }
-
-
-  public boolean equals(Object o) {
+  public boolean equals( Object o ) {
     if( o == null ) {
       return false;
     }
@@ -115,19 +98,19 @@ public class ReachTuple extends Canonical {
       return false;
     }
 
-    ReachTuple tt = (ReachTuple) o;
-
-    return token.equals(tt.getToken() ) &&
-           arity ==     tt.getArity();
+    ReachTuple rt = (ReachTuple) o;
+    assert this.isCanonical();
+    assert rt.isCanonical();
+    return this == rt;
   }
 
-  public int hashCode() {
-      return (token.intValue() << 2) ^ arity;
+  public int hashCodeSpecific() {
+    return (hrnID.intValue() << 2) ^ arity;
   }
 
 
   public String toString() {
-    String s = token.toString();
+    String s = hrnID.toString();
 
     if( isMultiObject ) {
       s += "M";

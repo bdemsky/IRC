@@ -5,13 +5,13 @@ import IR.Flat.*;
 import java.util.*;
 
 // allocation sites are independent of any particular
-// ownership graph, unlike most of the other elements
-// of the ownership analysis.  An allocation site is
+// reachability graph, unlike most of the other elements
+// of the reachability analysis.  An allocation site is
 // simply a collection of heap region identifiers that
 // are associated with a single allocation site in the
 // program under analysis.
 
-// So two different ownership graphs may incorporate
+// So two different reachability graphs may incorporate
 // nodes that represent the memory from one allocation
 // site.  In this case there are two different sets of
 // HeapRegionNode objects, but they have the same
@@ -19,7 +19,11 @@ import java.util.*;
 // object associated with the FlatNew node that gives
 // the graphs the identifiers in question.
 
-public class AllocSite {
+// note that an allocsite extends Canonical because they
+// are Canonical, but specifically so an AllocSite can
+// be an operand to a CanonicalOp
+
+public class AllocSite extends Canonical {
 
   static protected int uniqueIDcount = 0;
 
@@ -65,7 +69,6 @@ public class AllocSite {
     ++uniqueIDcount;
     return new Integer( uniqueIDcount );
   }
-
 
   public String getDisjointAnalysisId() {
     return disjointId;
@@ -189,6 +192,7 @@ public class AllocSite {
     return null;
   }
 
+
   public String toString() {
     if( disjointId == null ) {
       return "allocSite"+id;
@@ -222,6 +226,11 @@ public class AllocSite {
     }
     s += "summary("+summary+")";
     return s;
+  }
+
+
+  public int hashCodeSpecific() {
+    return id;
   }
   
   public void setFlag( boolean flag ) {

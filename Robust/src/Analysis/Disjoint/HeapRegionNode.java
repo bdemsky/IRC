@@ -67,7 +67,7 @@ public class HeapRegionNode extends RefSrcNode {
     this.description    = description;
 
     referencers = new HashSet<RefEdge>();
-    alphaNew    = new ReachSet().makeCanonical();
+    alphaNew    = ReachSet.factory();
   }
 
   public HeapRegionNode copy() {
@@ -226,7 +226,7 @@ public class HeapRegionNode extends RefSrcNode {
   public void applyAlphaNew() {
     assert alphaNew != null;
     alpha = alphaNew;
-    alphaNew = new ReachSet().makeCanonical();
+    alphaNew = ReachSet.factory();
   }
 
 
@@ -243,7 +243,7 @@ public class HeapRegionNode extends RefSrcNode {
     String s;
 
     if( id < 0 ) {
-      s = "minus" + new Integer(-id).toString();
+      s = "minus" + new Integer( -id ).toString();
     } else {
       s = id.toString();
     }

@@ -16,14 +16,14 @@ public class ReachGraph {
   protected static final TempDescriptor tdReturn = new TempDescriptor( "_Return___" );
 		   
   // some frequently used reachability constants
-  protected static final ReachState rstateEmpty        = new ReachState().makeCanonical();
-  protected static final ReachSet   rsetEmpty          = new ReachSet().makeCanonical();
-  protected static final ReachSet   rsetWithEmptyState = new ReachSet( rstateEmpty ).makeCanonical();
+  protected static final ReachState rstateEmpty        = ReachState.factory();
+  protected static final ReachSet   rsetEmpty          = ReachSet.factory();
+  protected static final ReachSet   rsetWithEmptyState = ReachSet.factory( rstateEmpty );
 
   // predicate constants
-  protected static final ExistPredTrue predTrue   = new ExistPredTrue();
-  protected static final ExistPredSet  predsEmpty = new ExistPredSet().makeCanonical();
-  protected static final ExistPredSet  predsTrue  = new ExistPredSet( predTrue ).makeCanonical();
+  protected static final ExistPred    predTrue   = ExistPred.factory(); // if no args, true
+  protected static final ExistPredSet predsEmpty = ExistPredSet.factory();
+  protected static final ExistPredSet predsTrue  = ExistPredSet.factory( predTrue );
 
 
   // from DisjointAnalysis for convenience
@@ -102,12 +102,15 @@ public class ReachGraph {
 
     if( inherent == null ) {
       if( markForAnalysis ) {
-	inherent = new ReachSet(
-                                new ReachTuple( id,
-                                                !isSingleObject,
-                                                ReachTuple.ARITY_ONE
-                                                ).makeCanonical()
-                                ).makeCanonical();
+	inherent = 
+          ReachSet.factory(
+                           ReachState.factory(
+                                              ReachTuple.factory( id,
+                                                                  !isSingleObject,
+                                                                  ReachTuple.ARITY_ONE
+                                                                  )
+                                              )
+                           );
       } else {
 	inherent = rsetWithEmptyState;
       }
@@ -119,7 +122,7 @@ public class ReachGraph {
 
     if( preds == null ) {
       // TODO: do this right?  For out-of-context nodes?
-      preds = new ExistPredSet().makeCanonical();
+      preds = ExistPredSet.factory();
     }
     
     HeapRegionNode hrn = new HeapRegionNode( id,
@@ -361,7 +364,7 @@ public class ReachGraph {
                                        hrnHrn,
                                        tdNewEdge,
                                        null,
-                                       betaY.intersection( betaHrn ),
+                                       Canonical.intersection( betaY, betaHrn ),
                                        predsTrue
                                        );
 	
@@ -428,7 +431,9 @@ public class ReachGraph {
       RefEdge        edgeX = itrXhrn.next();
       HeapRegionNode hrnX  = edgeX.getDst();
       ReachSet       betaX = edgeX.getBeta();
-      ReachSet       R     = hrnX.getAlpha().intersection( edgeX.getBeta() );
+      ReachSet       R     = Canonical.intersection( hrnX.getAlpha(),
+                                                     edgeX.getBeta() 
+                                                     );
 
       Iterator<RefEdge> itrYhrn = lnY.iteratorToReferencees();
       while( itrYhrn.hasNext() ) {
@@ -444,11 +449,11 @@ public class ReachGraph {
 
 	// propagate tokens over nodes starting from hrnSrc, and it will
 	// take care of propagating back up edges from any touched nodes
-	ChangeSet Cy = O.unionUpArityToChangeSet( R );
+	ChangeSet Cy = Canonical.unionUpArityToChangeSet( O, R );
 	propagateTokensOverNodes( hrnY, Cy, nodesWithNewAlpha, edgesWithNewBeta );
 
 	// then propagate back just up the edges from hrn
-	ChangeSet Cx = R.unionUpArityToChangeSet(O);
+	ChangeSet Cx = Canonical.unionUpArityToChangeSet( R, O );
   	HashSet<RefEdge> todoEdges = new HashSet<RefEdge>();
 
 	Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
@@ -508,7 +513,9 @@ public class ReachGraph {
                                        hrnY,
                                        tdNewEdge,
                                        f.getSymbol(),
-                                       edgeY.getBeta().pruneBy( hrnX.getAlpha() ),
+                                       Canonical.pruneBy( edgeY.getBeta(),
+                                                          hrnX.getAlpha() 
+                                                          ),
                                        predsTrue
                                        );
 
@@ -520,10 +527,14 @@ public class ReachGraph {
 	
 	if( edgeExisting != null ) {
 	  edgeExisting.setBeta(
-			       edgeExisting.getBeta().union( edgeNew.getBeta() )
+                               Canonical.union( edgeExisting.getBeta(),
+                                                edgeNew.getBeta()
+                                                )
                                );
           edgeExisting.setPreds(
-                                edgeExisting.getPreds().join( edgeNew.getPreds() )
+                                Canonical.join( edgeExisting.getPreds(),
+                                                edgeNew.getPreds()
+                                                )
                                 );
 	
         } else {			  
@@ -678,7 +689,7 @@ public class ReachGraph {
 
       Iterator<RefEdge> itrEdges = ln.iteratorToReferencees();
       while( itrEdges.hasNext() ) {
-	ageTokens(as, itrEdges.next() );
+	ageTuplesFrom( as, itrEdges.next() );
       }
     }
 
@@ -687,11 +698,11 @@ public class ReachGraph {
       Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
       HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
 
-      ageTokens( as, hrnToAge );
+      ageTuplesFrom( as, hrnToAge );
 
       Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencees();
       while( itrEdges.hasNext() ) {
-	ageTokens( as, itrEdges.next() );
+	ageTuplesFrom( as, itrEdges.next() );
       }
     }
 
@@ -775,59 +786,6 @@ public class ReachGraph {
   }
 
 
-  protected HeapRegionNode getShadowSummaryNode( AllocSite as ) {
-
-    Integer        idShadowSummary  = as.getSummaryShadow();
-    HeapRegionNode hrnShadowSummary = id2hrn.get( idShadowSummary );
-
-    if( hrnShadowSummary == null ) {
-
-      boolean hasFlags = false;
-      if( as.getType().isClass() ) {
-	hasFlags = as.getType().getClassDesc().hasFlags();
-      }
-
-      if( as.getFlag() ){
-        hasFlags = as.getFlag();
-      }
-
-      String strDesc = as+"\\n"+as.getType()+"\\nshadowSum";
-      hrnShadowSummary = 
-        createNewHeapRegionNode( idShadowSummary, // id or null to generate a new one 
-                                 false,           // single object?			 
-                                 true,		  // summary?			 
-                                 hasFlags,        // flagged?	                            
-                                 false,           // out-of-context?
-                                 as.getType(),    // type				 
-                                 as,		  // allocation site			 
-                                 null,            // inherent reach
-                                 null,		  // current reach
-                                 predsEmpty,      // predicates
-                                 strDesc          // description
-                                 );
-
-      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-	Integer idShadowIth = as.getIthOldestShadow( i );
-	assert !id2hrn.containsKey( idShadowIth );
-        strDesc = as+"\\n"+as.getType()+"\\n"+i+" shadow";
-	createNewHeapRegionNode( idShadowIth,  // id or null to generate a new one 
-                                 true,	       // single object?			 
-                                 false,	       // summary?			 
-                                 hasFlags,     // flagged?	
-                                 false,        // out-of-context?
-                                 as.getType(), // type				 
-                                 as,	       // allocation site			 
-                                 null,         // inherent reach
-                                 null,	       // current reach
-                                 predsEmpty,   // predicates                 
-                                 strDesc       // description
-                                 );
-      }
-    }
-
-    return hrnShadowSummary;
-  }
-
 
   protected void mergeIntoSummary( HeapRegionNode hrn, 
                                    HeapRegionNode hrnSummary ) {
@@ -852,8 +810,16 @@ public class ReachGraph {
       } else {
 	// otherwise an edge from the referencer to hrnSummary exists already
 	// and the edge referencer->hrn should be merged with it
-	edgeMerged.setBeta( edgeMerged.getBeta().union( edgeSummary.getBeta() ) );
-        edgeMerged.setPreds( edgeMerged.getPreds().join( edgeSummary.getPreds() ) );
+	edgeMerged.setBeta( 
+                           Canonical.union( edgeMerged.getBeta(),
+                                            edgeSummary.getBeta() 
+                                            ) 
+                            );
+        edgeMerged.setPreds( 
+                            Canonical.join( edgeMerged.getPreds(),
+                                            edgeSummary.getPreds() 
+                                            )
+                             );
       }
 
       addRefEdge( hrnSummary, hrnReferencee, edgeMerged );
@@ -878,15 +844,27 @@ public class ReachGraph {
       } else {
 	// otherwise an edge from the referencer to alpha_S exists already
 	// and the edge referencer->alpha_K should be merged with it
-	edgeMerged.setBeta( edgeMerged.getBeta().union( edgeSummary.getBeta() ) );
-        edgeMerged.setPreds( edgeMerged.getPreds().join( edgeSummary.getPreds() ) );
+	edgeMerged.setBeta( 
+                           Canonical.union( edgeMerged.getBeta(),
+                                            edgeSummary.getBeta() 
+                                            ) 
+                            );
+        edgeMerged.setPreds( 
+                            Canonical.join( edgeMerged.getPreds(),
+                                            edgeSummary.getPreds() 
+                                            )
+                             );
       }
 
       addRefEdge( onReferencer, hrnSummary, edgeMerged );
     }
 
     // then merge hrn reachability into hrnSummary
-    hrnSummary.setAlpha( hrnSummary.getAlpha().union( hrn.getAlpha() ) );
+    hrnSummary.setAlpha( 
+                        Canonical.union( hrnSummary.getAlpha(),
+                                         hrn.getAlpha() 
+                                         )
+                         );
   }
 
 
@@ -924,32 +902,39 @@ public class ReachGraph {
   }
 
 
-  protected void ageTokens( AllocSite as, RefEdge edge ) {
-    edge.setBeta( edge.getBeta().ageTokens( as ) );
+  protected void ageTuplesFrom( AllocSite as, RefEdge edge ) {
+    edge.setBeta( 
+                 Canonical.ageTuplesFrom( edge.getBeta(),
+                                          as
+                                          )
+                  );
   }
 
-  protected void ageTokens( AllocSite as, HeapRegionNode hrn ) {
-    hrn.setAlpha( hrn.getAlpha().ageTokens( as ) );
+  protected void ageTuplesFrom( AllocSite as, HeapRegionNode hrn ) {
+    hrn.setAlpha( 
+                 Canonical.ageTuplesFrom( hrn.getAlpha(),
+                                          as
+                                          )
+                  );
   }
 
 
 
-  protected void propagateTokensOverNodes(
-    HeapRegionNode          nPrime,
-    ChangeSet               c0,
-    HashSet<HeapRegionNode> nodesWithNewAlpha,
-    HashSet<RefEdge>        edgesWithNewBeta ) {
+  protected void propagateTokensOverNodes( HeapRegionNode          nPrime,
+                                           ChangeSet               c0,
+                                           HashSet<HeapRegionNode> nodesWithNewAlpha,
+                                           HashSet<RefEdge>        edgesWithNewBeta ) {
 
     HashSet<HeapRegionNode> todoNodes
       = new HashSet<HeapRegionNode>();
-    todoNodes.add(nPrime);
-
+    todoNodes.add( nPrime );
+    
     HashSet<RefEdge> todoEdges
       = new HashSet<RefEdge>();
-
+    
     Hashtable<HeapRegionNode, ChangeSet> nodePlannedChanges
       = new Hashtable<HeapRegionNode, ChangeSet>();
-    nodePlannedChanges.put(nPrime, c0);
+    nodePlannedChanges.put( nPrime, c0 );
 
     Hashtable<RefEdge, ChangeSet> edgePlannedChanges
       = new Hashtable<RefEdge, ChangeSet>();
@@ -957,51 +942,61 @@ public class ReachGraph {
     // first propagate change sets everywhere they can go
     while( !todoNodes.isEmpty() ) {
       HeapRegionNode n = todoNodes.iterator().next();
-      ChangeSet C = nodePlannedChanges.get(n);
+      ChangeSet      C = nodePlannedChanges.get( n );
 
       Iterator<RefEdge> referItr = n.iteratorToReferencers();
       while( referItr.hasNext() ) {
 	RefEdge edge = referItr.next();
-	todoEdges.add(edge);
+	todoEdges.add( edge );
 
-	if( !edgePlannedChanges.containsKey(edge) ) {
-	  edgePlannedChanges.put(edge, new ChangeSet().makeCanonical() );
+	if( !edgePlannedChanges.containsKey( edge ) ) {
+	  edgePlannedChanges.put( edge, 
+                                  ChangeSet.factory()
+                                  );
 	}
 
-	edgePlannedChanges.put(edge, edgePlannedChanges.get(edge).union(C) );
+	edgePlannedChanges.put( edge, 
+                                Canonical.union( edgePlannedChanges.get( edge ),
+                                                 C
+                                                 )
+                                );
       }
 
       Iterator<RefEdge> refeeItr = n.iteratorToReferencees();
       while( refeeItr.hasNext() ) {
-	RefEdge edgeF = refeeItr.next();
+	RefEdge        edgeF = refeeItr.next();
 	HeapRegionNode m     = edgeF.getDst();
 
-	ChangeSet changesToPass = new ChangeSet().makeCanonical();
+	ChangeSet changesToPass = ChangeSet.factory();
 
 	Iterator<ChangeTuple> itrCprime = C.iterator();
 	while( itrCprime.hasNext() ) {
 	  ChangeTuple c = itrCprime.next();
 	  if( edgeF.getBeta().contains( c.getSetToMatch() ) ) {
-	    changesToPass = changesToPass.union(c);
+	    changesToPass = Canonical.union( changesToPass, c );
 	  }
 	}
 
 	if( !changesToPass.isEmpty() ) {
-	  if( !nodePlannedChanges.containsKey(m) ) {
-	    nodePlannedChanges.put(m, new ChangeSet().makeCanonical() );
+	  if( !nodePlannedChanges.containsKey( m ) ) {
+	    nodePlannedChanges.put( m, ChangeSet.factory() );
 	  }
 
-	  ChangeSet currentChanges = nodePlannedChanges.get(m);
+	  ChangeSet currentChanges = nodePlannedChanges.get( m );
 
-	  if( !changesToPass.isSubset(currentChanges) ) {
+	  if( !changesToPass.isSubset( currentChanges ) ) {
 
-	    nodePlannedChanges.put(m, currentChanges.union(changesToPass) );
-	    todoNodes.add(m);
+	    nodePlannedChanges.put( m, 
+                                    Canonical.union( currentChanges,
+                                                     changesToPass
+                                                     )
+                                    );
+	    todoNodes.add( m );
 	  }
 	}
       }
 
-      todoNodes.remove(n);
+      todoNodes.remove( n );
     }
 
     // then apply all of the changes for each node at once
@@ -1009,68 +1004,83 @@ public class ReachGraph {
     while( itrMap.hasNext() ) {
       Map.Entry      me = (Map.Entry)      itrMap.next();
       HeapRegionNode n  = (HeapRegionNode) me.getKey();
-      ChangeSet C  = (ChangeSet) me.getValue();
+      ChangeSet      C  = (ChangeSet)      me.getValue();
 
       // this propagation step is with respect to one change,
       // so we capture the full change from the old alpha:
-      ReachSet localDelta = n.getAlpha().applyChangeSet( C, true );
-
+      ReachSet localDelta = Canonical.applyChangeSet( n.getAlpha(),
+                                                      C,
+                                                      true 
+                                                      );
       // but this propagation may be only one of many concurrent
       // possible changes, so keep a running union with the node's
       // partially updated new alpha set
-      n.setAlphaNew( n.getAlphaNew().union( localDelta ) );
+      n.setAlphaNew( Canonical.union( n.getAlphaNew(),
+                                      localDelta 
+                                      )
+                     );
 
       nodesWithNewAlpha.add( n );
     }
 
-    propagateTokensOverEdges(todoEdges, edgePlannedChanges, edgesWithNewBeta);
+    propagateTokensOverEdges( todoEdges, 
+                              edgePlannedChanges, 
+                              edgesWithNewBeta
+                              );
   }
 
 
-  protected void propagateTokensOverEdges(
-    HashSet  <RefEdge>            todoEdges,
-    Hashtable<RefEdge, ChangeSet> edgePlannedChanges,
-    HashSet  <RefEdge>            edgesWithNewBeta ) {
-
+  protected void propagateTokensOverEdges( HashSet  <RefEdge>            todoEdges,
+                                           Hashtable<RefEdge, ChangeSet> edgePlannedChanges,
+                                           HashSet  <RefEdge>            edgesWithNewBeta ) {
+    
     // first propagate all change tuples everywhere they can go
     while( !todoEdges.isEmpty() ) {
       RefEdge edgeE = todoEdges.iterator().next();
-      todoEdges.remove(edgeE);
+      todoEdges.remove( edgeE );
 
-      if( !edgePlannedChanges.containsKey(edgeE) ) {
-	edgePlannedChanges.put(edgeE, new ChangeSet().makeCanonical() );
+      if( !edgePlannedChanges.containsKey( edgeE ) ) {
+	edgePlannedChanges.put( edgeE, 
+                                ChangeSet.factory()
+                                );
       }
 
-      ChangeSet C = edgePlannedChanges.get(edgeE);
+      ChangeSet C = edgePlannedChanges.get( edgeE );
 
-      ChangeSet changesToPass = new ChangeSet().makeCanonical();
+      ChangeSet changesToPass = ChangeSet.factory();
 
       Iterator<ChangeTuple> itrC = C.iterator();
       while( itrC.hasNext() ) {
 	ChangeTuple c = itrC.next();
 	if( edgeE.getBeta().contains( c.getSetToMatch() ) ) {
-	  changesToPass = changesToPass.union(c);
+	  changesToPass = Canonical.union( changesToPass, c );
 	}
       }
 
-      RefSrcNode onSrc = edgeE.getSrc();
+      RefSrcNode rsn = edgeE.getSrc();
 
-      if( !changesToPass.isEmpty() && onSrc instanceof HeapRegionNode ) {
-	HeapRegionNode n = (HeapRegionNode) onSrc;
+      if( !changesToPass.isEmpty() && rsn instanceof HeapRegionNode ) {
+	HeapRegionNode n = (HeapRegionNode) rsn;
 
 	Iterator<RefEdge> referItr = n.iteratorToReferencers();
 	while( referItr.hasNext() ) {
 	  RefEdge edgeF = referItr.next();
 
-	  if( !edgePlannedChanges.containsKey(edgeF) ) {
-	    edgePlannedChanges.put(edgeF, new ChangeSet().makeCanonical() );
+	  if( !edgePlannedChanges.containsKey( edgeF ) ) {
+	    edgePlannedChanges.put( edgeF,
+                                    ChangeSet.factory()
+                                    );
 	  }
 
-	  ChangeSet currentChanges = edgePlannedChanges.get(edgeF);
+	  ChangeSet currentChanges = edgePlannedChanges.get( edgeF );
 
-	  if( !changesToPass.isSubset(currentChanges) ) {
-	    todoEdges.add(edgeF);
-	    edgePlannedChanges.put(edgeF, currentChanges.union(changesToPass) );
+	  if( !changesToPass.isSubset( currentChanges ) ) {
+	    todoEdges.add( edgeF );
+	    edgePlannedChanges.put( edgeF,
+                                    Canonical.union( currentChanges,
+                                                     changesToPass
+                                                     )
+                                    );
 	  }
 	}
       }
@@ -1079,18 +1089,25 @@ public class ReachGraph {
     // then apply all of the changes for each edge at once
     Iterator itrMap = edgePlannedChanges.entrySet().iterator();
     while( itrMap.hasNext() ) {
-      Map.Entry      me = (Map.Entry)      itrMap.next();
-      RefEdge  e  = (RefEdge)  me.getKey();
+      Map.Entry me = (Map.Entry) itrMap.next();
+      RefEdge   e  = (RefEdge)   me.getKey();
       ChangeSet C  = (ChangeSet) me.getValue();
 
       // this propagation step is with respect to one change,
       // so we capture the full change from the old beta:
-      ReachSet localDelta = e.getBeta().applyChangeSet( C, true );
+      ReachSet localDelta =
+        Canonical.applyChangeSet( e.getBeta(),
+                                  C,
+                                  true 
+                                  );
 
       // but this propagation may be only one of many concurrent
       // possible changes, so keep a running union with the edge's
       // partially updated new beta set
-      e.setBetaNew( e.getBetaNew().union( localDelta  ) );
+      e.setBetaNew( Canonical.union( e.getBetaNew(),
+                                     localDelta  
+                                     )
+                    );
       
       edgesWithNewBeta.add( e );
     }
@@ -1173,15 +1190,16 @@ public class ReachGraph {
           // not have been created already
           assert rsnCaller instanceof HeapRegionNode;          
 
-          HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;                   hrnSrcID = hrnSrcCaller.getID(); 
+          HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
+          hrnSrcID = hrnSrcCaller.getID(); 
 
           if( !callerNodesCopiedToCallee.contains( rsnCaller ) ) {
             
-            ExistPredNode pred = 
-              new ExistPredNode( hrnSrcID, null );
+            ExistPred pred = 
+              ExistPred.factory( hrnSrcID, null );
 
-            ExistPredSet preds = new ExistPredSet();
-            preds.add( pred );
+            ExistPredSet preds = 
+              ExistPredSet.factory( pred );
 
             rsnCallee = 
               rg.createNewHeapRegionNode( hrnSrcCaller.getID(),
@@ -1191,8 +1209,8 @@ public class ReachGraph {
                                           false, // out-of-context?
                                           hrnSrcCaller.getType(),
                                           hrnSrcCaller.getAllocSite(),
-                                          toShadowTokens( this, hrnSrcCaller.getInherent() ),
-                                          toShadowTokens( this, hrnSrcCaller.getAlpha() ),
+                                          /*toShadowTokens( this,*/ hrnSrcCaller.getInherent() /*)*/,
+                                          /*toShadowTokens( this,*/ hrnSrcCaller.getAlpha() /*)*/,
                                           preds,
                                           hrnSrcCaller.getDescription()
                                           );
@@ -1216,11 +1234,11 @@ public class ReachGraph {
 
           if( !callerNodesCopiedToCallee.contains( hrnCaller ) ) {
 
-            ExistPredNode pred = 
-              new ExistPredNode( hrnDstID, null );
+            ExistPred pred = 
+              ExistPred.factory( hrnDstID, null );
 
-            ExistPredSet preds = new ExistPredSet();
-            preds.add( pred );
+            ExistPredSet preds = 
+              ExistPredSet.factory( pred );
             
             hrnCallee = 
               rg.createNewHeapRegionNode( hrnCaller.getID(),
@@ -1230,8 +1248,8 @@ public class ReachGraph {
                                           false, // out-of-context?
                                           hrnCaller.getType(),
                                           hrnCaller.getAllocSite(),
-                                          toShadowTokens( this, hrnCaller.getInherent() ),
-                                          toShadowTokens( this, hrnCaller.getAlpha() ),
+                                          /*toShadowTokens( this,*/ hrnCaller.getInherent() /*)*/,
+                                          /*toShadowTokens( this,*/ hrnCaller.getAlpha() /*)*/,
                                           preds,
                                           hrnCaller.getDescription()
                                           );
@@ -1243,16 +1261,16 @@ public class ReachGraph {
           // FOURTH - copy edge over if needed
           if( !callerEdgesCopiedToCallee.contains( reCaller ) ) {
 
-            ExistPredEdge pred =
-              new ExistPredEdge( tdSrc, 
+            ExistPred pred =
+              ExistPred.factory( tdSrc, 
                                  hrnSrcID, 
                                  hrnDstID,
                                  reCaller.getType(),
                                  reCaller.getField(),
                                  null );
 
-            ExistPredSet preds = new ExistPredSet();
-            preds.add( pred );
+            ExistPredSet preds = 
+              ExistPredSet.factory( pred );
 
             rg.addRefEdge( rsnCallee,
                            hrnCallee,
@@ -1260,7 +1278,7 @@ public class ReachGraph {
                                         hrnCallee,
                                         reCaller.getType(),
                                         reCaller.getField(),
-                                        toShadowTokens( this, reCaller.getBeta() ),
+                                        /*toShadowTokens( this,*/ reCaller.getBeta() /*)*/,
                                         preds
                                         )
                            );              
@@ -1302,7 +1320,7 @@ public class ReachGraph {
         }
 
         HeapRegionNode hrnCallerAndOutContext = 
-          (HeapRegionNode)edgeMightCross.getSrc();
+          (HeapRegionNode) edgeMightCross.getSrc();
 
         // we found a reference that crosses from out-of-context
         // to in-context, so build a special out-of-context node
@@ -1315,8 +1333,8 @@ public class ReachGraph {
                                       true,  // out-of-context?
                                       hrnCallerAndOutContext.getType(),
                                       null,  // alloc site, shouldn't be used
-                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // inherent
-                                      toShadowTokens( this, hrnCallerAndOutContext.getAlpha() ), // alpha
+                                      /*toShadowTokens( this,*/ hrnCallerAndOutContext.getAlpha() /*)*/, // inherent
+                                      /*toShadowTokens( this,*/ hrnCallerAndOutContext.getAlpha() /*)*/, // alpha
                                       predsEmpty,
                                       "out-of-context"
                                       );
@@ -1330,7 +1348,7 @@ public class ReachGraph {
                                     hrnCalleeAndInContext,
                                     edgeMightCross.getType(),
                                     edgeMightCross.getField(),
-                                    toShadowTokens( this, edgeMightCross.getBeta() ),
+                                    /*toShadowTokens( this,*/ edgeMightCross.getBeta() /*)*/,
                                     predsEmpty
                                     )
                        );                              
@@ -1433,33 +1451,6 @@ public class ReachGraph {
   } 
 
   
-  protected void unshadowTokens( AllocSite as, 
-                                 RefEdge   edge 
-                                 ) {
-    edge.setBeta( edge.getBeta().unshadowTokens( as ) );
-  }
-
-  protected void unshadowTokens( AllocSite      as, 
-                                 HeapRegionNode hrn 
-                                 ) {
-    hrn.setAlpha( hrn.getAlpha().unshadowTokens( as ) );
-  }
-
-
-  private ReachSet toShadowTokens( ReachGraph rg,
-                                   ReachSet   rsIn 
-                                   ) {
-    ReachSet rsOut = new ReachSet( rsIn ).makeCanonical();
-
-    Iterator<AllocSite> allocItr = rg.allocSites.iterator();
-    while( allocItr.hasNext() ) {
-      AllocSite as = allocItr.next();
-      rsOut = rsOut.toShadowTokens( as );
-    }
-
-    return rsOut.makeCanonical();
-  }
-
 
   ////////////////////////////////////////////////////
   //
@@ -1588,12 +1579,11 @@ public class ReachGraph {
       new Hashtable< Integer, Hashtable<RefEdge, ReachSet> >();    
 
     // visit every heap region to initialize alphaNew and calculate boldB
-    Set hrns = id2hrn.entrySet();
-    Iterator itrHrns = hrns.iterator();
+    Iterator itrHrns = id2hrn.entrySet().iterator();
     while( itrHrns.hasNext() ) {
-      Map.Entry me = (Map.Entry)itrHrns.next();
-      Integer token = (Integer) me.getKey();
-      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+      Map.Entry      me    = (Map.Entry)      itrHrns.next();
+      Integer        hrnID = (Integer)        me.getKey();
+      HeapRegionNode hrn   = (HeapRegionNode) me.getValue();
     
       // assert that this node and incoming edges have clean alphaNew
       // and betaNew sets, respectively
@@ -1635,111 +1625,132 @@ public class ReachGraph {
 	    RefEdge edgePrime = itrPrime.next();	    
 
 	    ReachSet prevResult   = boldB_f.get( edgePrime );
-	    ReachSet intersection = boldB_f.get( edge ).intersection( edgePrime.getBeta() );
+	    ReachSet intersection = Canonical.intersection( boldB_f.get( edge ),
+                                                            edgePrime.getBeta()
+                                                            );
 	    	    
 	    if( prevResult == null || 
-		prevResult.union( intersection ).size() > prevResult.size() ) {
+		Canonical.union( prevResult,
+                                 intersection ).size() > prevResult.size() ) {
 	      
 	      if( prevResult == null ) {
-		boldB_f.put( edgePrime, edgePrime.getBeta().union( intersection ) );
+		boldB_f.put( edgePrime, 
+                             Canonical.union( edgePrime.getBeta(),
+                                              intersection 
+                                              )
+                             );
 	      } else {
-		boldB_f.put( edgePrime, prevResult         .union( intersection ) );
+		boldB_f.put( edgePrime, 
+                             Canonical.union( prevResult,
+                                              intersection 
+                                              )
+                             );
 	      }
 	      workSetEdges.add( edgePrime );	
 	    }
 	  }
 	}
 	
-       	boldB.put( token, boldB_f );
+       	boldB.put( hrnID, boldB_f );
       }      
     }
 
 
-    // use boldB to prune tokens from alpha states that are impossible
+    // use boldB to prune hrnIDs from alpha states that are impossible
     // and propagate the differences backwards across edges
     HashSet<RefEdge> edgesForPropagation = new HashSet<RefEdge>();
 
     Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
       new Hashtable<RefEdge, ChangeSet>();
 
-    hrns = id2hrn.entrySet();
-    itrHrns = hrns.iterator();
+
+    itrHrns = id2hrn.entrySet().iterator();
     while( itrHrns.hasNext() ) {
-      Map.Entry me = (Map.Entry)itrHrns.next();
-      Integer token = (Integer) me.getKey();
-      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+      Map.Entry      me    = (Map.Entry)      itrHrns.next();
+      Integer        hrnID = (Integer)        me.getKey();
+      HeapRegionNode hrn   = (HeapRegionNode) me.getValue();
+      
+      // create the inherent hrnID from a flagged region
+      // as an exception to removal below
+      ReachTuple rtException = 
+        ReachTuple.factory( hrnID, 
+                            !hrn.isSingleObject(), 
+                            ReachTuple.ARITY_ONE 
+                            );
 
-      // never remove the identity token from a flagged region
-      // because it is trivially satisfied
-      ReachTuple ttException = new ReachTuple( token, 
-					       !hrn.isSingleObject(), 
-					       ReachTuple.ARITY_ONE ).makeCanonical();
+      ChangeSet cts = ChangeSet.factory();
 
-      ChangeSet cts = new ChangeSet().makeCanonical();
-
-      // mark tokens for removal
+      // mark hrnIDs for removal
       Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
       while( stateItr.hasNext() ) {
-	ReachState ttsOld = stateItr.next();
+	ReachState stateOld = stateItr.next();
 
-	ReachState markedTokens = new ReachState().makeCanonical();
+	ReachState markedHrnIDs = ReachState.factory();
 
-	Iterator<ReachTuple> ttItr = ttsOld.iterator();
-	while( ttItr.hasNext() ) {
-	  ReachTuple ttOld = ttItr.next();
+	Iterator<ReachTuple> rtItr = stateOld.iterator();
+	while( rtItr.hasNext() ) {
+	  ReachTuple rtOld = rtItr.next();
 
-	  // never remove the identity token from a flagged region
+	  // never remove the inherent hrnID from a flagged region
 	  // because it is trivially satisfied
 	  if( hrn.isFlagged() ) {	
-	    if( ttOld == ttException ) {
+	    if( rtOld == rtException ) {
 	      continue;
 	    }
 	  }
 
-	  // does boldB_ttOld allow this token?
+	  // does boldB_ttOld allow this hrnID?
 	  boolean foundState = false;
 	  Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
 	  while( incidentEdgeItr.hasNext() ) {
 	    RefEdge incidentEdge = incidentEdgeItr.next();
 
 	    // if it isn't allowed, mark for removal
-	    Integer idOld = ttOld.getToken();
+	    Integer idOld = rtOld.getHrnID();
 	    assert id2hrn.containsKey( idOld );
 	    Hashtable<RefEdge, ReachSet> B = boldB.get( idOld );	    
-	    ReachSet boldB_ttOld_incident = B.get( incidentEdge );// B is NULL!	    
+	    ReachSet boldB_ttOld_incident = B.get( incidentEdge );
 	    if( boldB_ttOld_incident != null &&
-		boldB_ttOld_incident.contains( ttsOld ) ) {
+		boldB_ttOld_incident.contains( stateOld ) ) {
 	      foundState = true;
 	    }
 	  }
 
 	  if( !foundState ) {
-	    markedTokens = markedTokens.add( ttOld );	  
+	    markedHrnIDs = Canonical.add( markedHrnIDs, rtOld );	  
 	  }
 	}
 
 	// if there is nothing marked, just move on
-	if( markedTokens.isEmpty() ) {
-	  hrn.setAlphaNew( hrn.getAlphaNew().union( ttsOld ) );
+	if( markedHrnIDs.isEmpty() ) {
+	  hrn.setAlphaNew( Canonical.union( hrn.getAlphaNew(),
+                                            stateOld
+                                            )
+                           );
 	  continue;
 	}
 
-	// remove all marked tokens and establish a change set that should
+	// remove all marked hrnIDs and establish a change set that should
 	// propagate backwards over edges from this node
-	ReachState ttsPruned = new ReachState().makeCanonical();
-	ttItr = ttsOld.iterator();
-	while( ttItr.hasNext() ) {
-	  ReachTuple ttOld = ttItr.next();
+	ReachState statePruned = ReachState.factory();
+	rtItr = stateOld.iterator();
+	while( rtItr.hasNext() ) {
+	  ReachTuple rtOld = rtItr.next();
 
-	  if( !markedTokens.containsTuple( ttOld ) ) {
-	    ttsPruned = ttsPruned.union( ttOld );
+	  if( !markedHrnIDs.containsTuple( rtOld ) ) {
+	    statePruned = Canonical.union( statePruned, rtOld );
 	  }
 	}
-	assert !ttsOld.equals( ttsPruned );
+	assert !stateOld.equals( statePruned );
 
-	hrn.setAlphaNew( hrn.getAlphaNew().union( ttsPruned ) );
-	ChangeTuple ct = new ChangeTuple( ttsOld, ttsPruned ).makeCanonical();
-	cts = cts.union( ct );
+	hrn.setAlphaNew( Canonical.union( hrn.getAlphaNew(),
+                                          statePruned
+                                          )
+                         );
+	ChangeTuple ct = ChangeTuple.factory( stateOld,
+                                              statePruned
+                                              );
+	cts = Canonical.union( cts, ct );
       }
 
       // throw change tuple set on all incident edges
@@ -1754,9 +1765,11 @@ public class ReachGraph {
 	    edgePlannedChanges.put( incidentEdge, cts );
 	  } else {	    
 	    edgePlannedChanges.put( 
-	      incidentEdge, 
-	      edgePlannedChanges.get( incidentEdge ).union( cts ) 
-				  );
+                                   incidentEdge, 
+                                   Canonical.union( edgePlannedChanges.get( incidentEdge ),
+                                                    cts
+                                                    ) 
+                                    );
 	  }
 	}
       }
@@ -1791,8 +1804,8 @@ public class ReachGraph {
     // 2nd phase    
     Iterator<RefEdge> edgeItr = res.iterator();
     while( edgeItr.hasNext() ) {
-      RefEdge edge = edgeItr.next();
-      HeapRegionNode hrn = edge.getDst();
+      RefEdge        edge = edgeItr.next();
+      HeapRegionNode hrn  = edge.getDst();
 
       // commit results of last phase
       if( edgesUpdated.contains( edge ) ) {
@@ -1800,7 +1813,10 @@ public class ReachGraph {
       }
 
       // compute intial condition of 2nd phase
-      edge.setBetaNew( edge.getBeta().intersection( hrn.getAlpha() ) );      
+      edge.setBetaNew( Canonical.intersection( edge.getBeta(),
+                                               hrn.getAlpha() 
+                                               )
+                       );
     }
         
     // every edge in the graph is the initial workset
@@ -1809,11 +1825,11 @@ public class ReachGraph {
       RefEdge edgePrime = edgeWorkSet.iterator().next();
       edgeWorkSet.remove( edgePrime );
 
-      RefSrcNode on = edgePrime.getSrc();
-      if( !(on instanceof HeapRegionNode) ) {
+      RefSrcNode rsn = edgePrime.getSrc();
+      if( !(rsn instanceof HeapRegionNode) ) {
 	continue;
       }
-      HeapRegionNode hrn = (HeapRegionNode) on;
+      HeapRegionNode hrn = (HeapRegionNode) rsn;
 
       Iterator<RefEdge> itrEdge = hrn.iteratorToReferencers();
       while( itrEdge.hasNext() ) {
@@ -1822,10 +1838,19 @@ public class ReachGraph {
 	ReachSet prevResult = edge.getBetaNew();
 	assert prevResult != null;
 
-	ReachSet intersection = edge.getBeta().intersection( edgePrime.getBetaNew() );
+	ReachSet intersection = 
+          Canonical.intersection( edge.getBeta(),
+                                  edgePrime.getBetaNew() 
+                                  );
 		    
-	if( prevResult.union( intersection ).size() > prevResult.size() ) {	  
-	  edge.setBetaNew( prevResult.union( intersection ) );
+	if( Canonical.union( prevResult,
+                             intersection
+                             ).size() > prevResult.size() ) {
+	  edge.setBetaNew( 
+                          Canonical.union( prevResult,
+                                           intersection 
+                                           )
+                           );
 	  edgeWorkSet.add( edge );
 	}	
       }      
@@ -1897,7 +1922,10 @@ public class ReachGraph {
 	// so make the new reachability set a union of the
 	// nodes' reachability sets
 	HeapRegionNode hrnB = id2hrn.get( idA );
-	hrnB.setAlpha( hrnB.getAlpha().union( hrnA.getAlpha() ) );
+	hrnB.setAlpha( Canonical.union( hrnB.getAlpha(),
+                                        hrnA.getAlpha() 
+                                        )
+                       );
 
         // if hrnB is already dirty or hrnA is dirty,
         // the hrnB should end up dirty: TODO
@@ -1979,8 +2007,10 @@ public class ReachGraph {
 	  // just replace this beta set with the union
 	  assert edgeToMerge != null;
 	  edgeToMerge.setBeta(
-	    edgeToMerge.getBeta().union( edgeA.getBeta() )
-	    );
+                              Canonical.union( edgeToMerge.getBeta(),
+                                               edgeA.getBeta() 
+                                               )
+                              );
           // TODO: what?
           /*
 	  if( !edgeA.isClean() ) {
@@ -2042,9 +2072,10 @@ public class ReachGraph {
 	// so merge their reachability sets
 	else {
 	  // just replace this beta set with the union
-	  edgeToMerge.setBeta(
-	    edgeToMerge.getBeta().union( edgeA.getBeta() )
-	    );
+	  edgeToMerge.setBeta( Canonical.union( edgeToMerge.getBeta(),
+                                                edgeA.getBeta()
+                                                )
+                               );
           // TODO: what?
           /*
 	  if( !edgeA.isClean() ) {
