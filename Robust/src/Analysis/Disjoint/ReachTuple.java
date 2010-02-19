@@ -58,9 +58,9 @@ public class ReachTuple extends Canonical {
     return out;
   }
 
-  private ReachTuple( Integer hrnID,
-                      boolean isMultiObject,
-                      int     arity ) {
+  protected ReachTuple( Integer hrnID,
+                        boolean isMultiObject,
+                        int     arity ) {
     assert hrnID != null;
 
     this.hrnID         = hrnID;

@@ -20,10 +20,10 @@ public class test {
   }
 
   void t1() {
-    ReachTuple rt11a = ReachTuple.factory( 11, true, ReachTuple.ARITY_ONE );
-    ReachTuple rt11b = ReachTuple.factory( 11, true, ReachTuple.ARITY_ONE );
-    ReachTuple rt12  = ReachTuple.factory( 12, true, ReachTuple.ARITY_ONE );
-    ReachTuple rt12z = ReachTuple.factory( 12, true, ReachTuple.ARITY_ZEROORMORE );
+    ReachTuple rt11a = ReachTuple.factory( 11, true,  ReachTuple.ARITY_ONE );
+    ReachTuple rt11b = ReachTuple.factory( 11, true,  ReachTuple.ARITY_ONE );
+    ReachTuple rt12  = ReachTuple.factory( 12, true,  ReachTuple.ARITY_ONE );
+    ReachTuple rt12z = ReachTuple.factory( 12, true,  ReachTuple.ARITY_ZEROORMORE );
     ReachTuple rt13  = ReachTuple.factory( 13, false, ReachTuple.ARITY_ONE );
 
     assert rt11a.equals( rt11b );
@@ -43,7 +43,28 @@ public class test {
   }
 
   void t2() {
-    
+    ReachTuple rt14 = ReachTuple.factory( 14, false, ReachTuple.ARITY_ONE );
+    ReachTuple rt15 = ReachTuple.factory( 15, true,  ReachTuple.ARITY_ZEROORMORE );
+
+    ReachState s1 = ReachState.factory();
+    ReachState s2 = Canonical.union( s1, rt14 );
+
+    ReachState s3 = ReachState.factory();
+    ReachState s4 = Canonical.union( s3, rt15 );
+
+    ReachState s5 = ReachState.factory( rt14 );
+
+    ReachState s6 = ReachState.factory( rt15 );
+
+    ReachState s7 = Canonical.union( s2, s4 );
+    ReachState s8 = Canonical.union( s5, s6 );
+
+    assert s1 == s3;
+    assert s2 == s5;
+    assert s4 == s6;
+    assert s7 == s8;
+    assert !s1.equals( s7 );
+    assert !s8.equals( s5 );
   }
 
 }

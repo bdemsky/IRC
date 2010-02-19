@@ -76,7 +76,7 @@ public class ExistPred extends Canonical {
     return out;
   }
   
-  private ExistPred() {
+  protected ExistPred() {
     this.predType = TYPE_TRUE;
   }
 
@@ -88,8 +88,8 @@ public class ExistPred extends Canonical {
     return out;
   }
   
-  private ExistPred( Integer    hrnID, 
-                     ReachState state ) {
+  protected ExistPred( Integer    hrnID, 
+                       ReachState state ) {
     assert hrnID != null;
     this.n_hrnID  = hrnID;
     this.ne_state = state;
@@ -113,12 +113,12 @@ public class ExistPred extends Canonical {
     return out;
   }
 
-  private ExistPred( TempDescriptor tdSrc, 
-                     Integer        hrnSrcID, 
-                     Integer        hrnDstID,
-                     TypeDescriptor type,
-                     String         field,
-                     ReachState     state ) {
+  protected ExistPred( TempDescriptor tdSrc, 
+                       Integer        hrnSrcID, 
+                       Integer        hrnDstID,
+                       TypeDescriptor type,
+                       String         field,
+                       ReachState     state ) {
     
     assert (tdSrc == null) || (hrnSrcID == null);
     assert hrnDstID != null;

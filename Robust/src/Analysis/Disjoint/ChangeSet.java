@@ -42,7 +42,7 @@ public class ChangeSet extends Canonical {
     return out;
   }  
 
-  private ChangeSet() {
+  protected ChangeSet() {
     changeTuples = new HashSet<ChangeTuple>();
   }
 

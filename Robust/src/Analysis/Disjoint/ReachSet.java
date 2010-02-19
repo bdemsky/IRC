@@ -45,7 +45,7 @@ public class ReachSet extends Canonical {
     return out;
   }
 
-  private ReachSet() {
+  protected ReachSet() {
     reachStates = new HashSet<ReachState>();
   }
 

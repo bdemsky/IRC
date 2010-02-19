@@ -5,6 +5,24 @@ import IR.Flat.*;
 import java.util.*;
 import java.io.*;
 
+
+////////////////////////////////////////////////
+//
+//  important note!  The static operations in this class that take
+//  canonicals and produce a canonical result sometimes need a
+//  "working copy" that IS NOT CANONICAL.  So, even though it isn't
+//  perfectly clean, Canonical constructors have been changed from
+//  private to protected and they may be used in this file--however,
+//  only use a constructor for an object that will mutate during the
+//  calculation--use the factory method to obtain everything else!
+//  This is CRITICAL!
+//
+//  What this boils down to is that the only normally constructed
+//  object in a canonical operation should be the result out.
+//
+////////////////////////////////////////////////
+
+
 abstract public class Canonical {
 
   // for generating unique canonical values
@@ -131,8 +149,8 @@ abstract public class Canonical {
   }
 
 
-  public ReachState union( ReachState rs1,
-                           ReachState rs2 ) {
+  public static ReachState union( ReachState rs1,
+                                  ReachState rs2 ) {
     assert rs1 != null;
     assert rs2 != null;
     assert rs1.isCanonical();
@@ -149,7 +167,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...
-    ReachState out = ReachState.factory();
+    ReachState out = new ReachState();
     out.reachTuples.addAll( rs1.reachTuples );
     out.reachTuples.addAll( rs2.reachTuples );
 
@@ -175,7 +193,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...
-    ReachState out = ReachState.factory();
+    ReachState out = new ReachState();
     out.reachTuples.addAll( rs.reachTuples );
     out.reachTuples.add( rt );
 
@@ -203,7 +221,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...
-    ReachState out = ReachState.factory();
+    ReachState out = new ReachState();
 
     Iterator<ReachTuple> rtItr = rs1.iterator();
     while( rtItr.hasNext() ) {
@@ -251,7 +269,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...    
-    ReachState out = ReachState.factory();
+    ReachState out = new ReachState();
     out.reachTuples.addAll( rs.reachTuples );
     out.reachTuples.remove( rt );
 
@@ -279,7 +297,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...
-    ReachState out = ReachState.factory();
+    ReachState out = new ReachState();
 
     ReachTuple rtSummary = null;
     ReachTuple rtOldest  = null;
@@ -373,7 +391,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
     out.reachStates.addAll( rs1.reachStates );
     out.reachStates.addAll( rs2.reachStates );
 
@@ -401,7 +419,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
     out.reachStates.addAll( rs.reachStates );
     out.reachStates.add( state );
 
@@ -428,7 +446,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
     Iterator<ReachState> itr = rs1.iterator();
     while( itr.hasNext() ) {
       ReachState state = (ReachState) itr.next();
@@ -466,7 +484,7 @@ abstract public class Canonical {
     }
 
     // otherwise, no cached result...    
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
     out.reachStates.addAll( rs.reachStates );
     out.reachStates.remove( state );
 
@@ -505,7 +523,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
 
     Iterator<ReachState> stateItr = rs.iterator();
     while( stateItr.hasNext() ) {
@@ -552,7 +570,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ChangeSet out = ChangeSet.factory();
+    ChangeSet out = new ChangeSet();
 
     Iterator<ReachState> itrO = rsO.iterator();
     while( itrO.hasNext() ) {
@@ -629,7 +647,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
 
     Iterator<ReachState> itrS = rs.iterator();
     while( itrS.hasNext() ) {
@@ -661,7 +679,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ReachSet out = ReachSet.factory();
+    ReachSet out = new ReachSet();
 
     Iterator<ReachState> itrO = rsO.iterator();
     while( itrO.hasNext() ) {
@@ -707,7 +725,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ChangeSet out = ChangeSet.factory();
+    ChangeSet out = new ChangeSet();
     out.changeTuples.addAll( cs1.changeTuples );
     out.changeTuples.addAll( cs2.changeTuples );
 
@@ -734,7 +752,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ChangeSet out = ChangeSet.factory();
+    ChangeSet out = new ChangeSet();
     out.changeTuples.addAll( cs.changeTuples );
     out.changeTuples.add( ct );
     
@@ -764,7 +782,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ExistPredSet out = ExistPredSet.factory();
+    ExistPredSet out = new ExistPredSet();
     out.preds.addAll( eps1.preds );
     out.preds.addAll( eps2.preds );
 
@@ -793,7 +811,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ExistPredSet out = ExistPredSet.factory();
+    ExistPredSet out = new ExistPredSet();
     out.preds.addAll( eps.preds );
     out.preds.add( ep );
     

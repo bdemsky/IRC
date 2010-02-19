@@ -45,7 +45,7 @@ public class ExistPredSet extends Canonical {
     return out;
   }
 
-  private ExistPredSet() {
+  protected ExistPredSet() {
     preds = new HashSet<ExistPred>();
   }
 

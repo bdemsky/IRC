@@ -40,8 +40,8 @@ public class ChangeTuple extends Canonical
     return out;
   }
 
-  private ChangeTuple( ReachState toMatch,
-                       ReachState toAdd ) {
+  protected ChangeTuple( ReachState toMatch,
+                         ReachState toAdd ) {
     this.toMatch = toMatch;
     this.toAdd   = toAdd;
   }
