@@ -16,10 +16,13 @@ public class test {
     System.out.println( "Testing components of disjoint reachability analysis..." );
     t1();
     t2();
+    t3();
     System.out.println( "Testing completed successfully." );    
   }
 
   void t1() {
+    System.out.println( "test 1..." );    
+
     ReachTuple rt11a = ReachTuple.factory( 11, true,  ReachTuple.ARITY_ONE );
     ReachTuple rt11b = ReachTuple.factory( 11, true,  ReachTuple.ARITY_ONE );
     ReachTuple rt12  = ReachTuple.factory( 12, true,  ReachTuple.ARITY_ONE );
@@ -43,6 +46,8 @@ public class test {
   }
 
   void t2() {
+    System.out.println( "test 2..." );    
+
     ReachTuple rt14 = ReachTuple.factory( 14, false, ReachTuple.ARITY_ONE );
     ReachTuple rt15 = ReachTuple.factory( 15, true,  ReachTuple.ARITY_ZEROORMORE );
 
@@ -65,6 +70,33 @@ public class test {
     assert s7 == s8;
     assert !s1.equals( s7 );
     assert !s8.equals( s5 );
+  }
+
+  void t3() {
+    System.out.println( "test 3..." );    
+
+    ExistPred ept   = ExistPred.factory();
+    ExistPred ep21a = ExistPred.factory( 21, null );
+    ExistPred ep21b = ExistPred.factory( 21, null );
+    ExistPred ep22  = ExistPred.factory( 22, null );
+
+    assert !ept.equals( ep21a );
+    assert ep21a.equals( ep21b );
+    assert ep21a == ep21b;
+    assert !ep22.equals( ep21b );
+
+    ExistPredSet eps1 = 
+      Canonical.add( 
+                    Canonical.add( ExistPredSet.factory(), 
+                                   ept ),
+                    ep21a );
+
+    ExistPredSet eps2 = ExistPredSet.factory( ept );
+    ExistPredSet eps3 = ExistPredSet.factory( ep21a );
+
+    ExistPredSet eps4 = Canonical.join( eps2, eps3 );
+
+    assert eps1.equals( eps4 );
   }
 
 }
