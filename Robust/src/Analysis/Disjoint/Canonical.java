@@ -7,6 +7,7 @@ import java.io.*;
 
 abstract public class Canonical {
 
+  // for generating unique canonical values
   private static int canonicalCount = 1;
 
   // the canon of objects
@@ -16,9 +17,12 @@ abstract public class Canonical {
 
 
   public static Canonical makeCanonical( Canonical c ) {
-    if( canon.containsKey( c ) ) {
+
+    if( c.isCanonical() ) {
+      assert canon.containsKey( c );
       return canon.get( c );
     }
+    
     c.canonicalValue = canonicalCount;
     ++canonicalCount;
     canon.put( c, c );
