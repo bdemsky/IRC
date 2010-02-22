@@ -36,8 +36,7 @@ abstract public class Canonical {
 
   public static Canonical makeCanonical( Canonical c ) {
 
-    if( c.isCanonical() ) {
-      assert canon.containsKey( c );
+    if( canon.containsKey( c ) ) {
       return canon.get( c );
     }
     

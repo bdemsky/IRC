@@ -97,9 +97,7 @@ public class ReachState extends Canonical {
     }
 
     ReachState rs = (ReachState) o;
-    assert this.isCanonical();
-    assert rs.isCanonical();
-    return this == rs;
+    return reachTuples.equals( rs.reachTuples );
   }
 
 

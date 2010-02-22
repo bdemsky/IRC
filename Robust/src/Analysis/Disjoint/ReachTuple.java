@@ -99,9 +99,9 @@ public class ReachTuple extends Canonical {
     }
 
     ReachTuple rt = (ReachTuple) o;
-    assert this.isCanonical();
-    assert rt.isCanonical();
-    return this == rt;
+    return 
+      hrnID.equals( rt.hrnID ) &&
+      arity == rt.arity;
   }
 
   public int hashCodeSpecific() {

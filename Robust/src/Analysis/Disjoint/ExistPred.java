@@ -78,12 +78,21 @@ public class ExistPred extends Canonical {
   
   protected ExistPred() {
     this.predType = TYPE_TRUE;
+    ne_state   = null;
+    n_hrnID    = null;
+    e_tdSrc    = null;
+    e_hrnSrcID = null;
+    e_hrnDstID = null;
+    e_type     = null;
+    e_field    = null;
   }
 
   // node predicates
   public static ExistPred factory( Integer    hrnID, 
                                    ReachState state ) {
+
     ExistPred out = new ExistPred( hrnID, state );
+
     out = (ExistPred) Canonical.makeCanonical( out );
     return out;
   }
@@ -94,6 +103,11 @@ public class ExistPred extends Canonical {
     this.n_hrnID  = hrnID;
     this.ne_state = state;
     this.predType = TYPE_NODE;
+    e_tdSrc    = null;
+    e_hrnSrcID = null;
+    e_hrnDstID = null;
+    e_type     = null;
+    e_field    = null;
   }
 
   // edge predicates
@@ -103,12 +117,14 @@ public class ExistPred extends Canonical {
                                    TypeDescriptor type,    
                                    String         field,   
                                    ReachState     state ) {
+
     ExistPred out = new ExistPred( tdSrc,   
                                    hrnSrcID,
                                    hrnDstID,
                                    type,    
                                    field,   
                                    state );
+
     out = (ExistPred) Canonical.makeCanonical( out );
     return out;
   }
@@ -135,6 +151,7 @@ public class ExistPred extends Canonical {
     this.e_field    = field;
     this.ne_state   = state;
     this.predType   = TYPE_EDGE;
+    n_hrnID = null;
   }
 
 
@@ -211,6 +228,7 @@ public class ExistPred extends Canonical {
   }
 
 
+
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;
@@ -221,82 +239,69 @@ public class ExistPred extends Canonical {
     }
 
     ExistPred pred = (ExistPred) o;
-    assert this.isCanonical();
-    assert pred.isCanonical();
-    return this == pred;
-  }
-  /*
-  public boolean equals( Object o ) {
-    if( o == null ) {
+
+    if( this.predType != pred.predType ) {
       return false;
     }
 
-    if( !(o instanceof ExistPredNode) ) {
-      return false;
-    }
-
-    ExistPredNode epn = (ExistPredNode) o;
-
-    if( !hrnID.equals( epn.hrnID ) ) {
-      return false;
-    }
-
-    // ReachState objects are canonical
-    return state == epn.state;
-  }
-
-  public boolean equals( Object o ) {
-    if( o == null ) {
-      return false;
-    }
-
-    if( !(o instanceof ExistPredEdge) ) {
-      return false;
-    }
-
-    ExistPredEdge epn = (ExistPredEdge) o;
-
-    this.tdSrc    = tdSrc;
-    this.hrnSrcID = hrnSrcID;
-    this.hrnDstID = hrnDstID;
-    this.type     = type;
-    this.field    = field;
-    this.state    = state;
-
-    if( tdSrc == null && epn.tdSrc != null ) {
-      return false;
-    } else if( !tdSrc.equals( epn.tdSrc ) ) {
-      return false;
-    }
-
-    if( hrnSrcID == null && epn.hrnSrcID != null ) {
-      return false;
-    } else if( !hrnSrcID.equals( epn.hrnSrcID ) ) {
-      return false;
-    }
-
-    if( !hrnDstID.equals( epn.hrnDstID ) ) {
-      return false;
-    }
-
-    if( !type.equals( epn.type ) ) {
-      return false;
-    }
-
-    if( field == null ) {
-      if( epn.field != null ) {
+    if( ne_state == null ) {
+      if( pred.ne_state != null ) {
         return false;
       }
-    } else {
-      if( !field.equals( epn.field ) ) {
+    } else if( !ne_state.equals( pred.ne_state ) ) {
+      return false;
+    }
+    
+    if( n_hrnID == null ) {
+      if( pred.n_hrnID != null ) {
         return false;
       }
+    } else if( !n_hrnID.equals( pred.n_hrnID ) ) {
+      return false;
+    }
+    
+    if( e_tdSrc == null ) {
+      if( pred.e_tdSrc != null ) {
+        return false;
+      }
+    } else if( !e_tdSrc.equals( pred.e_tdSrc ) ) {
+      return false;
     }
 
-    // ReachState objects are cannonical
-    return state == epn.state;
+    if( e_hrnSrcID == null ) {
+      if( pred.e_hrnSrcID != null ) {
+        return false;
+      }
+    } else if( !e_hrnSrcID.equals( pred.e_hrnSrcID ) ) {
+      return false;
+    }
+
+    if( e_hrnDstID == null ) {
+      if( pred.e_hrnDstID != null ) {
+        return false;
+      }
+    } else if( !e_hrnDstID.equals( pred.e_hrnDstID ) ) {
+      return false;
+    }
+    
+    if( e_type == null ) {
+      if( pred.e_type != null ) {
+        return false;
+      }
+    } else if( !e_type.equals( pred.e_type ) ) {
+      return false;
+    }
+    
+    if( e_field == null ) {
+      if( pred.e_field != null ) {
+        return false;
+      }
+    } else if( !e_field.equals( pred.e_field ) ) {
+      return false;
+    }
+
+    return true;
   }
-  */  
 
 
   public int hashCodeSpecific() {

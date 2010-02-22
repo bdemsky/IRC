@@ -158,9 +158,7 @@ public class ReachSet extends Canonical {
     }
 
     ReachSet rs = (ReachSet) o;
-    assert this.isCanonical();
-    assert rs.isCanonical();
-    return this == rs;
+    return reachStates.equals( rs.reachStates );
   }
 
 

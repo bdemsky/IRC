@@ -71,9 +71,8 @@ public class ExistPredSet extends Canonical {
     }
 
     ExistPredSet eps = (ExistPredSet) o;
-    assert this.isCanonical();
-    assert eps.isCanonical();
-    return this == eps;
+
+    return preds.equals( eps.preds );
   }
 
 

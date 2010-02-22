@@ -94,6 +94,7 @@ public class HeapRegionNode extends RefSrcNode {
   // fixed point, so use this method to determine if
   // a node is "equal" to some previous visit, basically
   public boolean equalsIncludingAlphaAndPreds( HeapRegionNode hrn ) {
+
     return equals( hrn ) && 
       alpha.equals( hrn.alpha ) && 
       preds.equals( hrn.preds );

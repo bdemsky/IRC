@@ -588,17 +588,7 @@ public class DisjointAnalysis {
       ReachGraph heapForThisCall_cur = rg.makeCalleeView( fc, 
                                                           fmCallee );
 
-      
-      try {
-        heapForThisCall_old.writeGraph( "old_"+fc+"TO"+mdCallee, true, false, false, false, false, false );
-        heapForThisCall_cur.writeGraph( "cur_"+fc+"TO"+mdCallee, true, false, false, false, false, false );
-      } catch( IOException e ) {}
-
-
-      if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {
-
-        System.out.println( fc+"TO"+mdCallee+" not equal" );
-
+      if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {        
         // if heap at call site changed, update the contribution,
         // and reschedule the callee for analysis
         addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        

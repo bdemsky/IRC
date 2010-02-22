@@ -64,9 +64,9 @@ public class ChangeTuple extends Canonical
     }
 
     ChangeTuple ct = (ChangeTuple) o;
-    assert this.isCanonical();
-    assert ct.isCanonical();
-    return this == ct;
+    return
+      toMatch.equals( ct.toMatch ) &&
+      toAdd.equals( ct.toAdd );
   }
 
   public int hashCodeSpecific() {

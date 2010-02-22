@@ -74,9 +74,7 @@ public class ChangeSet extends Canonical {
     }
 
     ChangeSet cts = (ChangeSet) o;
-    assert this.isCanonical();
-    assert cts.isCanonical();
-    return this == cts;
+    return changeTuples.equals( cts.changeTuples );
   }
 
   public int hashCodeSpecific() {
