@@ -7,7 +7,7 @@
 
 compile: make
 
-run usage: ./Game.bin -N <number of threads>
+run usage: ./Game.bin <number of threads>
 
 # recovery directory has the source code for a multi threaded execution with
 # enabled
@@ -17,5 +17,5 @@ Building and running recovery version
 
 compile: make
 
-run usage: ./Game.bin master -N <number of threads> (on master machine)
+run usage: ./Game.bin master <number of threads> (on master machine)
           and  ./Game.bin (on slaves)

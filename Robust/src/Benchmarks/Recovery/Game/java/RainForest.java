@@ -269,15 +269,12 @@ public class RainForest extends Thread {
    **/
   public static void parseCmdLine(String args[], RainForest rf) {
     int i = 0;
+    rf.numThreads = new Integer(args[0]).intValue();
     String arg;
     while(i < args.length && args[i].startsWith("-")) {
       arg = args[i++];
       //check options
-      if(arg.equals("-N")) {
-        if(i < args.length) {
-          rf.numThreads = new Integer(args[i++]).intValue();
-        }
-      } else if(arg.equals("-h")) {
+      if(arg.equals("-h")) {
         rf.usage();
       }
     }
