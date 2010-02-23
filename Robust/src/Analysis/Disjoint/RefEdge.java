@@ -220,12 +220,14 @@ public class RefEdge {
   }
 
 
-  public String toStringDOT( boolean hideSubsetReach ) {
+  public String toStringDOT( boolean hideSubsetReach, 
+                             String  otherAttributes ) {
     return new String( "[label=\""+
                        type.toPrettyString()+"\\n"+
                        field+"\\n"+
                        beta.toStringEscNewline( hideSubsetReach )+"\\n"+
-                       preds.toString()+"\",decorate]"
+                       preds.toString()+"\",decorate"+
+                       otherAttributes+"]"
                        );
   }
 

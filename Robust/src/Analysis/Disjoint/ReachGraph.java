@@ -657,8 +657,7 @@ public class ReachGraph {
         HeapRegionNode hrnI = id2hrn.get( idIth );
 
         // clear all references in and out
-        clearRefEdgesFrom( hrnI, null, null, true );
-        clearRefEdgesTo  ( hrnI, null, null, true );
+        wipeOut( hrnI );
       }
 
       // only do the transfer if the i-1 node exists
@@ -678,8 +677,7 @@ public class ReachGraph {
     // references moved over to the second oldest, so we wipe newest
     // in preparation for being the new object to assign something to
     HeapRegionNode hrn0 = getIthNode( as, 0 );
-    clearRefEdgesFrom( hrn0, null, null, true );
-    clearRefEdgesTo  ( hrn0, null, null, true );
+    wipeOut( hrn0 );
 
     // now tokens in reachability sets need to "age" also
     Iterator itrAllVariableNodes = td2vn.entrySet().iterator();
@@ -872,8 +870,7 @@ public class ReachGraph {
                                HeapRegionNode hrnB ) {
 
     // clear references in and out of node b
-    clearRefEdgesFrom( hrnB, null, null, true );
-    clearRefEdgesTo  ( hrnB, null, null, true );
+    wipeOut( hrnB );
 
     // copy each edge in and out of A to B
     Iterator<RefEdge> itrReferencee = hrnA.iteratorToReferencees();
@@ -899,6 +896,19 @@ public class ReachGraph {
     // replace hrnB reachability and preds with hrnA's
     hrnB.setAlpha( hrnA.getAlpha() );
     hrnB.setPreds( hrnA.getPreds() );
+  }
+
+
+  // the purpose of this method is to conceptually "wipe out"
+  // a heap region from the graph--purposefully not called REMOVE
+  // because the node is still hanging around in the graph, just
+  // not mechanically connected or have any reach or predicate
+  // information on it anymore--lots of ops can use this
+  protected void wipeOut( HeapRegionNode hrn ) {
+    clearRefEdgesFrom( hrn, null, null, true );
+    clearRefEdgesTo  ( hrn, null, null, true );
+    hrn.setAlpha( rsetEmpty );
+    hrn.setPreds( predsEmpty );
   }
 
 
@@ -1119,8 +1129,12 @@ public class ReachGraph {
   // what heap the FlatMethod callee from the FlatCall 
   // would start with reaching from its arguments in
   // this reach graph
-  public ReachGraph makeCalleeView( FlatCall   fc,
-                                    FlatMethod fm ) {
+  public ReachGraph 
+    makeCalleeView( FlatCall            fc,
+                    FlatMethod          fm,
+                    Set<HeapRegionNode> callerNodesCopiedToCallee,
+                    Set<RefEdge>        callerEdgesCopiedToCallee
+                    ) {
 
     // the callee view is a new graph: DON'T MODIFY
     // *THIS* graph
@@ -1133,8 +1147,8 @@ public class ReachGraph {
     // nodes and edges more than once (which the per-param
     // "visit" sets won't show) and we only want to create
     // an element in the new callee view one time
-    Set callerNodesCopiedToCallee = new HashSet<HeapRegionNode>();
-    Set callerEdgesCopiedToCallee = new HashSet<RefEdge>();
+    //Set callerNodesCopiedToCallee = new HashSet<HeapRegionNode>();
+    //Set callerEdgesCopiedToCallee = new HashSet<RefEdge>();
 
 
     // a conservative starting point is to take the 
@@ -1214,7 +1228,7 @@ public class ReachGraph {
                                           preds,
                                           hrnSrcCaller.getDescription()
                                           );
-            callerNodesCopiedToCallee.add( rsnCaller );
+            callerNodesCopiedToCallee.add( (HeapRegionNode) rsnCaller );
 
           } else {
             rsnCallee = rg.id2hrn.get( hrnSrcID );
@@ -1370,84 +1384,174 @@ public class ReachGraph {
     return rg;
   }  
 
-  public void resolveMethodCall( FlatCall   fc,        
-                                 FlatMethod fm,        
-                                 ReachGraph rgCallee
-                                 ) {
-    /*
-    // to map the callee effects into the caller graph,
-    // traverse the callee and categorize each element as,
-    // Callee elements:
-    // 1) new node (not in caller)
-    // 2) old node, clean (not modified in callee)
-    // 3) old node, dirty
-    // 4) new edge,
-    // 5) old edge, clean
-    // 6) old edge, dirty
-    // 7) out-of-context nodes
-    // 8) edge that crosses out-of-context to in-
+  public void 
+    resolveMethodCall( FlatCall            fc,        
+                       FlatMethod          fm,        
+                       ReachGraph          rgCallee,
+                       Set<HeapRegionNode> callerNodesCopiedToCallee,
+                       Set<RefEdge>        callerEdgesCopiedToCallee
+                       ) {
 
-    Iterator hrnItr = rgCallee.id2hrn.entrySet().iterator();
-    while( hrnItr.hasNext() ) {
-      Map.Entry      me        = (Map.Entry)      hrnItr.next();
+
+    if( fc.getMethod().getSymbol().equals( "addBar" ) ) {
+
+      try {
+        writeGraph( "caller", true, false, false, false, true, true, callerNodesCopiedToCallee, callerEdgesCopiedToCallee );
+        rgCallee.writeGraph( "callee", true, false, false, false, true, true );
+      } catch( IOException e ) {}
+      
+      //System.exit( 0 );
+    }
+
+
+    // method call transfer function steps:
+    // 1. Use current callee-reachable heap (CRH) to test callee 
+    //    predicates and mark what will be coming in.
+    // 2. Wipe CRH out of caller.
+    // 3. Transplant marked callee parts in:
+    //    a) bring in nodes
+    //    b) bring in callee -> callee edges
+    //    c) resolve out-of-context -> callee edges
+    // 4. Global sweep it.
+
+
+
+    // 1. mark what callee elements have satisfied predicates
+    Set<HeapRegionNode> calleeNodesSatisfied =
+      new HashSet<HeapRegionNode>();
+    
+    Set<RefEdge>        calleeEdgesSatisfied =
+      new HashSet<RefEdge>();
+
+    Iterator meItr = rgCallee.id2hrn.entrySet().iterator();
+    while( meItr.hasNext() ) {
+      Map.Entry      me        = (Map.Entry)      meItr.next();
       Integer        id        = (Integer)        me.getKey();
       HeapRegionNode hrnCallee = (HeapRegionNode) me.getValue();
-      
-      if( hrnCallee.isOutOfContext() ) {
-        // 7) out-of-context nodes aren't altered by callee
-        // analysis, they just help calculate changes to other
-        // elements, so do nothing for this node
-
-      } else {
-        // node is in the callee context...
-       
-        if( !this.id2hrn.containsKey( id ) ) {
-          // 1) this is a new node in the callee
-          assert !hrnCallee.isClean();
-
-          // bring this node into caller as-is, and do the
-          // unshadow of tokens in-place
-          this.createNewHeapRegionNode( id,
-                                        hrnCallee.isSingleObject(),
-                                        hrnCallee.isNewSummary(),
-                                        hrnCallee.isFlagged(),
-                                        false, // clean?
-                                        false, // out-of-context?
-                                        hrnCallee.getType(),
-                                        hrnCallee.getAllocSite(),
-                                        unShadowTokens( rgCallee, hrnCallee.getInherent() ),
-                                        unShadowTokens( rgCallee, hrnCallee.getAlpha() ),
-                                        predsEmpty,
-                                        hrnCallee.getDescription()
-                                        );
-          
-        } else {
-          // otherwise, both graphs have this node, so...
-
-          if( hrnCallee.isClean() ) {
-            // 2) this node was not modified by callee, 
-            // just leave it alone in caller
-            
-          } else {
-            // 3) this node is already in caller, was modified
-            // by the callee, so update caller node in-place
-            hrnCaller = this.id2hrn.get( id );
-            
-            assert hrnCaller.getInherent().equals( 
-                                                  unShadowTokens( rgCallee, hrnCallee.getInherent() )                                                  
-                                                   );
-            hrnCaller.setAlpha( 
-                               unShadowTokens( rgCallee, hrnCallee.getAlpha() )
-                                );
-            
-            hrnCaller.setClean( false );
-          }
-        }      
+    
+      if( hrnCallee.getPreds().isSatisfiedBy( this,
+                                              callerNodesCopiedToCallee,
+                                              callerEdgesCopiedToCallee
+                                              )
+          ) {
+        calleeNodesSatisfied.add( hrnCallee );
       }
-    } // end visiting callee nodes
 
-    // what else?
+      Iterator<RefEdge> reItr = hrnCallee.iteratorToReferencees();
+      while( reItr.hasNext() ) {
+        RefEdge reCallee = reItr.next();
+        
+        if( reCallee.getPreds().isSatisfiedBy( this,
+                                               callerNodesCopiedToCallee,
+                                               callerEdgesCopiedToCallee
+                                               )
+            ) {
+          calleeEdgesSatisfied.add( reCallee );
+        }        
+      }
+    }
+
+
+    // 2. predicates tested, ok to wipe out caller part
+    Iterator<HeapRegionNode> hrnItr = callerNodesCopiedToCallee.iterator();
+    while( hrnItr.hasNext() ) {
+      HeapRegionNode hrnCaller = hrnItr.next();
+      wipeOut( hrnCaller );
+    }
+
+
+    /*
+    // 3. callee elements with satisfied preds come in
+
+    // 3.a) nodes
+    hrnItr = calleeNodesSatisfied.iterator();
+    while( hrnItr.hasNext() ) {
+      HeapRegionNode hrnCallee = hrnItr.next();
+
+      if( hrnCallee.isOutOfContext() ) {
+        continue;
+      }
+
+      HeapRegionNode hrnCaller = id2hrn.get( hrnCallee.getID() );
+      if( hrnCaller == null ) {
+        hrnCaller =
+          createNewHeapRegionNode( hrnCallee.getID(),          // id or null to generate a new one 
+                                   hrnCallee.isSingleObject(), // single object?		 
+                                   hrnCallee.isNewSummary(),   // summary?	 
+                                   hrnCallee.isFlagged(),      // flagged?
+                                   false,                      // out-of-context?
+                                   hrnCallee.getType(),        // type				 
+                                   hrnCallee.getAllocSite(),   // allocation site			 
+                                   hrnCallee.getInherent(),    // inherent reach
+                                   null,                       // current reach                 
+                                   predsEmpty,                 // predicates
+                                   hrnCallee.getDescription()  // description
+                                   );                                        
+      }
+
+      transferOnto( hrnCallee, hrnCaller );
+    }
+
+    // 3.b) callee -> callee edges
+    Iterator<RefEdge> reItr = calleeEdgesSatisfied.iterator();
+    while( reItr.hasNext() ) {
+      RefEdge reCallee = reItr.next();
+
+      RefSrcNode rsnCallee = reCallee.getSrc();
+      RefSrcNode rsnCaller;
+
+      if( rsnCallee instanceof VariableNode ) {          
+        VariableNode   vnCallee = (VariableNode) rsnCallee;
+        TempDescriptor tdParam  = vnCallee.getTempDescriptor();
+        TempDescriptor tdArg    = fc.getArgMatchingParam( fm,
+                                                          tdParam );
+        if( tdArg == null ) {
+          // this means the variable isn't a parameter, its local
+          // to the callee so we ignore it in call site transfer
+          continue;
+        }
+        
+        rsnCaller = this.getVariableNodeFromTemp( tdArg );
+                  
+      } else {
+        HeapRegionNode hrnSrcCallee = (HeapRegionNode) reCallee.getSrc();
+        rsnCaller = id2hrn.get( hrnSrcCallee.getID() );
+      }
+            
+      assert rsnCaller != null;
+      
+      HeapRegionNode hrnDstCallee = reCallee.getDst();
+      HeapRegionNode hrnDstCaller = id2hrn.get( hrnDstCallee.getID() );
+      assert hrnDstCaller != null;
+      
+      RefEdge reCaller = new RefEdge( rsnCaller,
+                                      hrnDstCaller,
+                                      reCallee.getType(),
+                                      reCallee.getField(),
+                                      reCallee.getBeta(),
+                                      reCallee.getPreds()
+                                      );
+      addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
+    }
+
+    // 3.c) resolve out-of-context -> callee edges
     */
+    
+
+    // 4.
+    /*
+    globalSweep();
+    */
+
+    if( fc.getMethod().getSymbol().equals( "addBar" ) ) {
+
+      try {
+        writeGraph( "callerAfter", true, false, false, false, true, true, null, null );
+      } catch( IOException e ) {}
+      
+      //System.exit( 0 );
+    }
+
   } 
 
   
@@ -1537,8 +1641,7 @@ public class ReachGraph {
         // nodes, so when a node is identified as garbage,
         // actively clear references to and from it so
         // live nodes won't have dangling RefEdge's
-        clearRefEdgesFrom( hrn, null, null, true );
-        clearRefEdgesTo  ( hrn, null, null, true );        
+        wipeOut( hrn );
 
         // if we just removed the last node from an allocation
         // site, it should be taken out of the ReachGraph's list
@@ -2431,13 +2534,35 @@ public class ReachGraph {
   }
   
 
-  public void writeGraph( String graphName,
+
+  public void writeGraph( String  graphName,
                           boolean writeLabels,
                           boolean labelSelect,
                           boolean pruneGarbage,
                           boolean writeReferencers,
                           boolean hideSubsetReachability,
                           boolean hideEdgeTaints
+                          ) throws java.io.IOException {
+    writeGraph( graphName,
+                writeLabels,
+                labelSelect,
+                pruneGarbage,
+                writeReferencers,
+                hideSubsetReachability,
+                hideEdgeTaints,
+                null,
+                null );
+  }
+
+  public void writeGraph( String              graphName,
+                          boolean             writeLabels,
+                          boolean             labelSelect,
+                          boolean             pruneGarbage,
+                          boolean             writeReferencers,
+                          boolean             hideSubsetReachability,
+                          boolean             hideEdgeTaints,
+                          Set<HeapRegionNode> callerNodesCopiedToCallee,
+                          Set<RefEdge>        callerEdgesCopiedToCallee
                           ) throws java.io.IOException {
     
     // remove all non-word characters from the graph name so
@@ -2449,11 +2574,35 @@ public class ReachGraph {
 
     bw.write( "digraph "+graphName+" {\n" );
 
+
+    // this is an optional step to form the callee-reachable
+    // "cut-out" into a DOT cluster for visualization
+    if( callerNodesCopiedToCallee != null ) {
+
+      bw.write( "  subgraph cluster0 {\n" );
+      bw.write( "    color=blue;\n" );
+
+      Iterator i = id2hrn.entrySet().iterator();
+      while( i.hasNext() ) {
+        Map.Entry      me  = (Map.Entry)      i.next();
+        HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
+        
+        if( callerNodesCopiedToCallee.contains( hrn ) ) {
+          bw.write( "    "+hrn.toString()+
+                    hrn.toStringDOT( hideSubsetReachability )+
+                    ";\n" );
+          
+        }
+      }
+
+      bw.write( "  }\n" );
+    }
+
+
     Set<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
 
-    // then visit every heap region node
-    Set      s = id2hrn.entrySet();
-    Iterator i = s.iterator();
+    // then visit every heap region node    
+    Iterator i = id2hrn.entrySet().iterator();
     while( i.hasNext() ) {
       Map.Entry      me  = (Map.Entry)      i.next();
       HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
@@ -2474,7 +2623,9 @@ public class ReachGraph {
                                    visited,
                                    writeReferencers,
                                    hideSubsetReachability,
-                                   hideEdgeTaints );
+                                   hideEdgeTaints,
+                                   callerNodesCopiedToCallee,
+                                   callerEdgesCopiedToCallee );
 	}
       }
     }
@@ -2484,8 +2635,7 @@ public class ReachGraph {
 
     // then visit every label node, useful for debugging
     if( writeLabels ) {
-      s = td2vn.entrySet();
-      i = s.iterator();
+      i = td2vn.entrySet().iterator();
       while( i.hasNext() ) {
         Map.Entry    me = (Map.Entry)    i.next();
         VariableNode vn = (VariableNode) me.getValue();
@@ -2513,12 +2663,14 @@ public class ReachGraph {
                                      visited,
                                      writeReferencers,
                                      hideSubsetReachability,
-                                     hideEdgeTaints );
+                                     hideEdgeTaints,
+                                     callerNodesCopiedToCallee,
+                                     callerEdgesCopiedToCallee );
           }
           
           bw.write( "  "+vn.toString()+
                     " -> "+hrn.toString()+
-                    edge.toStringDOT( hideSubsetReachability )+
+                    edge.toStringDOT( hideSubsetReachability, "" )+
                     ";\n" );
         }
       }
@@ -2528,13 +2680,15 @@ public class ReachGraph {
     bw.close();
   }
 
-  protected void traverseHeapRegionNodes( HeapRegionNode hrn,
-                                          BufferedWriter bw,
-                                          TempDescriptor td,
+  protected void traverseHeapRegionNodes( HeapRegionNode      hrn,
+                                          BufferedWriter      bw,
+                                          TempDescriptor      td,
                                           Set<HeapRegionNode> visited,
-                                          boolean writeReferencers,
-                                          boolean hideSubsetReachability,
-                                          boolean hideEdgeTaints
+                                          boolean             writeReferencers,
+                                          boolean             hideSubsetReachability,
+                                          boolean             hideEdgeTaints,
+                                          Set<HeapRegionNode> callerNodesCopiedToCallee,
+                                          Set<RefEdge>        callerEdgesCopiedToCallee
                                           ) throws java.io.IOException {
 
     if( visited.contains( hrn ) ) {
@@ -2542,19 +2696,35 @@ public class ReachGraph {
     }
     visited.add( hrn );
 
-    bw.write( "  "+hrn.toString()+
-              hrn.toStringDOT( hideSubsetReachability )+
-              ";\n" );
+    // if we're drawing the callee-view subgraph, only
+    // write out the node info if it hasn't already been
+    // written
+    if( callerNodesCopiedToCallee == null ||
+        !callerNodesCopiedToCallee.contains( hrn ) 
+        ) {
+      bw.write( "  "+hrn.toString()+
+                hrn.toStringDOT( hideSubsetReachability )+
+                ";\n" );
+    }
 
     Iterator<RefEdge> childRegionsItr = hrn.iteratorToReferencees();
     while( childRegionsItr.hasNext() ) {
       RefEdge        edge     = childRegionsItr.next();
       HeapRegionNode hrnChild = edge.getDst();
 
-      bw.write( "  "+hrn.toString()+
-                " -> "+hrnChild.toString()+
-                edge.toStringDOT( hideSubsetReachability )+
-                ";\n");
+      if( callerEdgesCopiedToCallee != null &&
+          callerEdgesCopiedToCallee.contains( hrn ) 
+          ) {
+        bw.write( "  "+hrn.toString()+
+                  " -> "+hrnChild.toString()+
+                  edge.toStringDOT( hideSubsetReachability, ",color=blue" )+
+                  ";\n");
+      } else {
+        bw.write( "  "+hrn.toString()+
+                  " -> "+hrnChild.toString()+
+                  edge.toStringDOT( hideSubsetReachability, "" )+
+                  ";\n");
+      }
       
       traverseHeapRegionNodes( hrnChild,
                                bw,
@@ -2562,7 +2732,9 @@ public class ReachGraph {
                                visited,
                                writeReferencers,
                                hideSubsetReachability,
-                               hideEdgeTaints );
+                               hideEdgeTaints,
+                               callerNodesCopiedToCallee,
+                               callerEdgesCopiedToCallee );
     }
   }  
 

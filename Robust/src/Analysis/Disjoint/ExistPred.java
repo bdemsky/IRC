@@ -155,7 +155,13 @@ public class ExistPred extends Canonical {
   }
 
 
-  public boolean isSatisfiedBy( ReachGraph rg ) {
+  // only consider the subest of the caller elements that
+  // are reachable by callee when testing predicates
+  public boolean isSatisfiedBy( ReachGraph rg,
+                                Set<HeapRegionNode> calleeReachableNodes,
+                                Set<RefEdge>        calleeReachableEdges   
+                                ) {
+
     if( predType == TYPE_TRUE ) {
       return true;
     }
@@ -164,6 +170,10 @@ public class ExistPred extends Canonical {
       // first find node
       HeapRegionNode hrn = rg.id2hrn.get( n_hrnID );
       if( hrn == null ) {
+        return false;
+      }
+
+      if( !calleeReachableNodes.contains( hrn ) ) {
         return false;
       }
 
@@ -194,6 +204,9 @@ public class ExistPred extends Canonical {
       if( vnSrc != null ) {
         rsn = vnSrc;
       } else {
+        if( !calleeReachableNodes.contains( hrnSrc ) ) {
+          return false;
+        }
         rsn = hrnSrc;
       }
 
@@ -202,6 +215,11 @@ public class ExistPred extends Canonical {
       if( hrnDst == null ) {
         return false;
       }
+
+      if( !calleeReachableNodes.contains( hrnDst ) ) {
+        return false;
+      }
+        
     
       // is there an edge between them with the given
       // type and field?
@@ -213,6 +231,10 @@ public class ExistPred extends Canonical {
         return false;
       }
                                                 
+      if( !calleeReachableEdges.contains( edge ) ) {
+        return false;
+      }
+
       // when state is null it is not part of the predicate
       // so we've satisfied the edge existence
       if( ne_state == null ) {

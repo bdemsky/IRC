@@ -533,6 +533,39 @@ public class DisjointAnalysis {
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
 
+
+      // calculate the heap this call site can reach--note this is
+      // not used for the current call site transform, we are
+      // grabbing this heap model for future analysis of the callees,
+      // so if different results emerge we will return to this site
+      ReachGraph heapForThisCall_old = 
+        getIHMcontribution( mdCallee, fc );
+
+      // the computation of the callee-reachable heap
+      // is useful for making the callee starting point
+      // and for applying the call site transfer function
+      Set<HeapRegionNode> callerNodesCopiedToCallee = 
+        new HashSet<HeapRegionNode>();
+      Set<RefEdge> callerEdgesCopiedToCallee = 
+        new HashSet<RefEdge>();
+
+      ReachGraph heapForThisCall_cur = 
+        rg.makeCalleeView( fc, 
+                           fmCallee,
+                           callerNodesCopiedToCallee,
+                           callerEdgesCopiedToCallee
+                           );
+
+      if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {        
+        // if heap at call site changed, update the contribution,
+        // and reschedule the callee for analysis
+        addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
+        enqueue( mdCallee );
+      }
+
+
+
+
       // the transformation for a call site should update the
       // current heap abstraction with any effects from the callee,
       // or if the method is virtual, the effects from any possible
@@ -544,7 +577,9 @@ public class DisjointAnalysis {
         setPossibleCallees.add( mdCallee );
       } else {
 	TypeDescriptor typeDesc = fc.getThis().getType();
-	setPossibleCallees.addAll( callGraph.getMethods( mdCallee, typeDesc ) );
+	setPossibleCallees.addAll( callGraph.getMethods( mdCallee, 
+                                                         typeDesc )
+                                   );
       }
 
       ReachGraph rgMergeOfEffects = new ReachGraph();
@@ -570,30 +605,18 @@ public class DisjointAnalysis {
           // for analysis and skip over this call site for now
           enqueue( mdPossible );
         } else {
-          rgCopy.resolveMethodCall( fc, fmPossible, rgEffect );
+          rgCopy.resolveMethodCall( fc, 
+                                    fmPossible, 
+                                    rgEffect,
+                                    callerNodesCopiedToCallee,
+                                    callerEdgesCopiedToCallee
+                                    );
         }
         
         rgMergeOfEffects.merge( rgCopy );	 
       }
 
 	
-      // now we're done, but BEFORE we set rg = rgMergeOfEffects:
-      // calculate the heap this call site can reach--note this is
-      // not used for the current call site transform, we are
-      // grabbing this heap model for future analysis of the callees,
-      // so if different results emerge we will return to this site
-      ReachGraph heapForThisCall_old = 
-        getIHMcontribution( mdCallee, fc );
-
-      ReachGraph heapForThisCall_cur = rg.makeCalleeView( fc, 
-                                                          fmCallee );
-
-      if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {        
-        // if heap at call site changed, update the contribution,
-        // and reschedule the callee for analysis
-        addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
-        enqueue( mdCallee );
-      }
 
 
       // now that we've taken care of building heap models for
