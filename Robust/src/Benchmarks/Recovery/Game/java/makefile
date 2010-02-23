@@ -4,14 +4,12 @@ SRC=tmp${MAINCLASS}.java \
 	TreeType.java \
 	GameMap.java \
 	RockType.java \
-	Barrier.java \
 	Goal.java \
 	Path.java \
 	Node.java \
-	AStarPathFinder.java \
-    ../../../../ClassLibrary/JavaDSM/Thread.java
+	AStarPathFinder.java 
     
-FLAGS1=-dsm -recoverystats -recovery -debug -nooptimize -mainclass ${MAINCLASS}
+FLAGS1=-optimize -thread -mainclass ${MAINCLASS} 
 
 default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java

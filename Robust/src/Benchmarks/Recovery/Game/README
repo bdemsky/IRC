@@ -1,0 +1,21 @@
+#Feb 21 2010
+
+# java directory has the source code for a single threaded java execution
+
+ Building and running java single threaded version
+--------------------------------------------------------
+
+compile: make
+
+run usage: ./Game.bin -N <number of threads>
+
+# recovery directory has the source code for a multi threaded execution with
+# enabled
+
+Building and running recovery version
+--------------------------------------------------------
+
+compile: make
+
+run usage: ./Game.bin master -N <number of threads> (on master machine)
+          and  ./Game.bin (on slaves)
