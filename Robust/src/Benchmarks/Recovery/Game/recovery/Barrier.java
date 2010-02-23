@@ -16,6 +16,7 @@ public class Barrier extends Thread {
    **/
   public void updateAge(GameMap[][] land, int maxage, int rows, int cols) {
     int countTrees = 0;
+    //System.out.println("updateAge -> maxAge : "+maxage + " rows : " + rows + " cols : "+ cols);
     for(int i = 0; i<rows; i++) {
       for(int j = 0; j<cols; j++) {
         if(land[i][j].tree != null) {
@@ -28,7 +29,7 @@ public class Barrier extends Thread {
         }
       }
     }
-    /* Debugging-> System.println("Tree count=  "+countTrees); */
+//    System.println("Tree count=  "+countTrees);
   }
 
   public static void enterBarrier(int threadid, threadinfo[] tinfo, int numthreads) {
@@ -44,13 +45,20 @@ public class Barrier extends Thread {
       }
       boolean check = false;
       atomic {
-        if(tinfo[i].counter >= tinfo[threadid].counter)  {
+        if(tinfo[i].status != -1) {
+          if(tinfo[i].counter >= tinfo[threadid].counter)  {
+            check = true;
+          }
+        } else {
           check = true;
         }
       }
       if(!check) {
         int status = Thread.getStatus(i);
         if(status==-1) {//Thread is dead
+          atomic {
+            tinfo[i].status = -1;
+          }
           //System.out.println("DEBUG -> Dead\n");
           continue;
         }
@@ -61,7 +69,7 @@ public class Barrier extends Thread {
 
         //System.out.println("i= " + i + " i's count= " + y + " threadid= " + threadid + " mycount= " + x);
 
-        while(y!=x) {
+        while(y!=x && (Thread.getStatus(i) != -1)) {
           //Wait for 100 microseconds
           sleep(100);
           atomic {
@@ -76,9 +84,10 @@ public class Barrier extends Thread {
 
 public class threadinfo {
   int counter;
-  int id;
+  int status;
   public threadinfo() {
     counter = 0;
+    status = 0;
   }
 }
 
