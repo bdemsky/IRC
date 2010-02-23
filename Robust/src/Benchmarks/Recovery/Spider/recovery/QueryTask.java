@@ -140,10 +140,10 @@ public class QueryTask extends Task {
 
     System.out.println("Size = " + results_list.size());
 
-		while (iter.hasNext() == true) {
+/*		while (iter.hasNext() == true) {
 			str = ((GlobalString)(iter.next())).toLocalString();
 			System.printString(str + "\n");
-		}
+		}*/
 	}
 
 	public static String grabTitle(LocalQuery lq) {

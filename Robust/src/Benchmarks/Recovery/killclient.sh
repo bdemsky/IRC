@@ -1,4 +1,5 @@
 # !/bin/sh
+# killClients <fileName> <# of machines>
 i=1;
 fileName=$1
 k=8;

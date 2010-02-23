@@ -103,7 +103,7 @@ public class FileSystem extends Thread {
 				isDir = false;
 		
 			if (command == 'r') {
-	  		System.out.println("["+command+"] ["+key+"]");
+//        System.out.println("["+command+"] ["+key+"]");
 			 	if (isDir == true) {
 					atomic {
 						readDirectory(gkey);
@@ -116,7 +116,7 @@ public class FileSystem extends Thread {
 			  }
 			}
 			else if (command == 'c') {
- 				System.out.println("["+command+"] ["+key+"]");
+// 				System.out.println("["+command+"] ["+key+"]");
   			if (isDir == true) {
 					atomic {
 						createDirectory(gkey);
@@ -151,13 +151,13 @@ public class FileSystem extends Thread {
 	public void output() { 
 		Iterator iter;
 		GlobalString gstr;
-
+/*
 		iter = dir_list.iterator();
 
 		while (iter.hasNext()) {
 			gstr = (GlobalString)(iter.next());
 			System.printString(gstr.toLocalString() + "\n");
-		}
+		}*/
 	}
 
 	public void readFile(GlobalString gkey) {
@@ -172,7 +172,7 @@ public class FileSystem extends Thread {
 //			System.out.println("<"+val+">");
 		}
 		else {
-			System.out.println("No such file or directory");
+//			System.out.println("No such file or directory");
 		}
 	}
 
@@ -192,7 +192,7 @@ public class FileSystem extends Thread {
 //			System.out.println("");
 		}
 		else {
-			System.out.println("No such file or directory");
+//			System.out.println("No such file or directory");
 		}
 	}
 
@@ -241,11 +241,11 @@ public class FileSystem extends Thread {
 				dir_list.add(gkey);
 			}
 			else {
-				System.out.println("Cannot create directory");
+//				System.out.println("Cannot create directory");
 			}
 		}
 		else {
-			System.out.println("Cannot create directory");
+//			System.out.println("Cannot create directory");
 		}
 	}
 	
@@ -269,9 +269,10 @@ public class FileSystem extends Thread {
 		}
 		
 		int[] mid = new int[8];
+    /*
 		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
-/*
+*/
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;//dc-1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;//dc-2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;//dc-3
@@ -280,8 +281,8 @@ public class FileSystem extends Thread {
     mid[5] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;//dc-8
-	*/
-		FileSystem[] lus;
+		
+    FileSystem[] lus;
 		FileSystem initLus;
 		
 		atomic {

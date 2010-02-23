@@ -8,8 +8,8 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-ITERATIONS=1
-WAITTIME=30
+WAITTIME=1500
+KILLDELAY=20
 
 # 0 mean new test 
 # 1~8 machine id to be killed
@@ -46,20 +46,19 @@ function runMachines {
   echo "Running machines"
   let "k= $NUM_MACHINE"
   
-  echo ${BASEDIR}/${BM_DIR} > ~/.tmpdir
   DIR=`echo ${BASEDIR}\/${BM_DIR}\/${RECOVERYDIR}`;
   echo "DIR = $DIR";
  
   # Run machines
   while [ $k -gt 1 ]; do
     echo "SSH into dc-${k}"
-    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin '>> $1'-'$k &
+    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin '>> $1'-'$k 2>&1 &
     k=`expr $k - 1`
     sleep 1
   done
   echo "Running master machine ... "
   echo "ssh dc-1 cd $DIR'; ./$BM_NAME.bin master $NUM_MACHINE $BM_ARGS";
-  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS >> $1'-1' &
+  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS >> $1'-1' 2>&1 &
 }
 
 ########### Normal execution
@@ -67,10 +66,10 @@ function runNormalTest {
 # Run java version
   j=1;
   BM_DIR=${BM_NAME}
-  fileName="$BM_NAME.bin";
+  fName="$BM_NAME.bin";
+  echo ${BM_DIR}
   cd ${BM_DIR}
 
-  echo $NUM_MACHINE
   tt=1;
   while [ $tt -le $NUM_MACHINE ]; do
     echo "------------------------------- Normal Test $1 ----------------------------" >> log-$tt
@@ -82,7 +81,7 @@ function runNormalTest {
   
   sleep $WAITTIME
 
-  killclients $fileName 8
+  killclients $fName 8
   sleep 10
   cd -
 }
@@ -92,82 +91,77 @@ function runFailureTest {
 # Run java version
   j=1;
   BM_DIR=${BM_NAME}
-  fileName="$BM_NAME.bin";
+  fName="$BM_NAME.bin";
   cd ${BM_DIR}
 
-  tt=1;
-  while [ $tt -le $NUM_MACHINE ]; do
-    tt=`expr $tt + 1`
-  done
-
-  test_iter=0;
+  test_iter=1;
 
   for k in ${ORDER[@]}
   do
     if [ $k -eq 0 ]; then         # if k = 0, it is a new test
       if [ $test_iter -ne 1 ]; then
         sleep $WAITTIME           # wait the end of execution
-        killclients $fileName 8   # kill alive machines
-      else
-        test_iter=`expr $test_iter + 1`
+        killclients $fName 8   # kill alive machines
+        outputIter=0;
+        for outputIter in 1 2 3 4 5 6 7 8
+        do
+          echo "----------------------------------------------------------------------------------" >> log-$outputIter
+        done
       fi
 
-      echo "------------------------------- Failure Test $test_iter ----------------------------" >> log-$tt
+      outputIter=0;
+      for outputIter in 1 2 3 4 5 6 7 8
+      do
+        echo "------------------------------- Failure Test $test_iter ----------------------------" >> log-$outputIter
+      done
+      echo "------------------------------- Failure Test $test_iter ----------------------------"
       runMachines log   
       sleep 10           # wait until all machine run
-
+      test_iter=`expr $test_iter + 1`
     else                 # if k != 0, time to kill machines!
       echo "------------------------ dc-$k is killed ------------------------" >> log-$k
-      killonemachine $fileName $k
+      echo "------------------------ dc-$k is killed ------------------------"
+      killonemachine $fName $k
       
-      let "killdelay= $RANDOM % 2 + 3"
-      sleep $killdelay
+      let "delay= $RANDOM % $KILLDELAY + 3"
+      sleep $delay
     fi 
   done
 
- sleep 10
+  killclients $fName 8   # kill alive machines
+  sleep 10
  cd -
 }
 
 
-echo "---------- Starting Benchmarks ----------"
-exec < bm_args.txt
-while read line
-do
+function testcase {
+  nummachines=$1
+  shift
+  line=$@
   BM_NAME=`echo $line | cut -f1 -d":"`
   BM_ARGS=`echo $line | cut -f2 -d":"`
 
+
   # Setup for remote machine
-  echo "" > ~/.bmargs
-  echo "BM_NAME='$BM_NAME'" > ~/.bmargs
-  echo "BM_ARGS='$BM_ARGS'" > ~/.bmargs
+  echo "BM_NAME='$BM_NAME'" 
+  echo "BM_ARGS='$BM_ARGS'" 
 
   fileName=${BM_NAME}.bin
 
   # terminate if it doesn't have parameter
-  let "NUM_MACHINE= $1 + 0";
-
-  if [ $NUM_MACHINE -eq 0 ]
-  then
-    echo "Wrong input"
-    echo "Usage : ./runjava.sh <num_machine> <number of machine to be killed>"
-    exit 0
-  fi
-
-  echo "BM_NAME= $BM_NAME"
-  echo "BM_ARGS= $BM_ARGS"
-  echo "NUM_M = $NUM_MACHINE"
+  let "NUM_MACHINE= $nummachines + 0";
 
   echo "====================================== Normal Test =============================="
   runNormalTest $NUM_MACHINES 1 
+  echo "================================================================================"
 
-  echo "================================================================================="
   echo "====================================== Failure Test ============================="
   runFailureTest $NUM_MACHINES
   echo "================================================================================="
+}
 
-  killclients $fileName 8
 
-
+echo "---------- Starting Benchmarks ----------"
+nmach=$1
+source bm_args.txt
 echo "----------- done ------------"
-

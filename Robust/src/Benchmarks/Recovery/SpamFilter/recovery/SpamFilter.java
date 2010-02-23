@@ -123,9 +123,11 @@ public class SpamFilter extends Thread {
 
   public static void main(String[] args) {
     int[] mid = new int[8];
+
+    /*
     mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
     mid[1] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
-/*    
+    */
     mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc-1.calit2
     mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc-2.calit2
     mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc-3.calit2
@@ -134,7 +136,7 @@ public class SpamFilter extends Thread {
     mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc-6.calit2
     mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc-7.calit2
     mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc-8.calit2
-*/
+
     //Read options from command prompt
     SpamFilter sf = new SpamFilter();
     SpamFilter.parseCmdLine(args, sf);

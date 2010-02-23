@@ -16,25 +16,26 @@ public class Spider {
     String fm = "www.uci.edu";
     String fp = "";
 
-    if(args.length != 4) {
-      System.out.println("./Spider.java master <num_thread> <first machine> <first page> <maxDepth>");
+    if(args.length != 3) {
+      System.out.println("./Spider.java master <num_thread> <first machine> <maxDepth>");
       System.exit(0);
     }
     else {
       NUM_THREADS = Integer.parseInt(args[0]);
       fm = args[1];
-      fp = args[2];
-      maxDepth = Integer.parseInt(args[3]);
+      maxDepth = Integer.parseInt(args[2]);
     }
 
 		GlobalString firstmachine;
 		GlobalString firstpage;
 
 		int mid[] = new int[8];
+
+    /*
 		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;
 		mid[2] = (128<<24)|(195<<16)|(180<<8)|24;
-/*    
+  */
 		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;
@@ -43,14 +44,10 @@ public class Spider {
 		mid[5] = (128<<24)|(195<<16)|(136<<8)|167;
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;
-  */
+
 		atomic {
 			firstmachine = global new GlobalString(fm);
-			if (args.length == 3) {
-				firstpage = global new GlobalString(fp);
-			}
-			else 
-				firstpage = global new GlobalString("");;
+			firstpage = global new GlobalString("");;
       
 			works = global new Work[NUM_THREADS];
 			qt = global new QueryTask[NUM_THREADS];
