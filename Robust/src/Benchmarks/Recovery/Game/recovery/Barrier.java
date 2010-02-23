@@ -51,7 +51,7 @@ public class Barrier extends Thread {
       if(!check) {
         int status = Thread.getStatus(i);
         if(status==-1) {//Thread is dead
-          System.out.println("DEBUG -> Dead\n");
+          //System.out.println("DEBUG -> Dead\n");
           continue;
         }
         int y;
