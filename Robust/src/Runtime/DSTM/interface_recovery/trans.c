@@ -3505,6 +3505,7 @@ void printRecoveryStat() {
     printf("Recovery Time(us) = %ld\n",recoverStat[i].elapsedTime);
   }
   printf("**************************\n\n");
+  fflush(stdout);
 }
 #else
 void printRecoveryStat() {
