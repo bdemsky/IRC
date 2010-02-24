@@ -83,8 +83,11 @@ public class FileSystem extends Thread {
 			file = inputfile.toLocalString();
 		}
 
-		LinkedList todoList = new LinkedList();
+    LinkedList todoList = new LinkedList();
 		fillTodoList(file, todoList);
+
+    long st = System.currentTimeMillis();
+    long fi;
 
 		while (!todoList.isEmpty()) {
 			t = (Transaction)(todoList.removeFirst());
@@ -132,6 +135,8 @@ public class FileSystem extends Thread {
 	  	}
     }
 
+    fi = System.currentTimeMillis();
+
 		sleep(3000000);
 		atomic {
 			output();
@@ -139,8 +144,7 @@ public class FileSystem extends Thread {
 
     RecoveryStat.printRecoveryStat();
 
-
-    System.out.println("\n\n\n I'm done\n\n\n");
+    System.out.println("\n\n\n I'm done - Time Elapse : "+ ((double)(fi-st)/1000) + "\n\n\n");
 
     while(true) {
       sleep(100000);

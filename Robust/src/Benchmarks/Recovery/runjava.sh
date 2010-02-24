@@ -8,7 +8,7 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-WAITTIME=1500
+WAITTIME=1200
 KILLDELAY=20
 
 # 0 mean new test 

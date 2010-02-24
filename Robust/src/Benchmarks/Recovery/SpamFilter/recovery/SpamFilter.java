@@ -46,6 +46,9 @@ public class SpamFilter extends Thread {
     Random rand = new Random(thid);
     int i;
 
+    long st = System.currentTimeMillis();
+    long fi;
+
     for(i=0; i<niter; i++) {
       correct =0;
       wrong = 0;
@@ -111,8 +114,10 @@ public class SpamFilter extends Thread {
 //      System.out.println((i+1)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     }//end num iter
     // Sanity check
+    fi = System.currentTimeMillis();
+
     System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
-    System.out.println("\n\n\n I'm Done\n\n\n");
+    System.out.println("\n\n\n I'm Done - Time Elapse : " + (double)((fi-st)/1000) +"\n\n\n");
     
     RecoveryStat.printRecoveryStat();
 
