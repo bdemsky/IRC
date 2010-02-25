@@ -1,12 +1,12 @@
 #define ROW                 400   /* columns in the map */
 #define COLUMN              100   /* rows of in the map */
-#define ROUNDS              512  /* Number of moves by each player */
+#define ROUNDS              1000 /* Number of moves by each player */
 #define PLAYERS             20    /* Number of Players when num Players != num of client machines */
 #define RATI0               0.5   /* Number of lumberjacks to number of planters */
 #define BLOCK               3     /* Area around the gamer to consider */
 #define TREE_ZONE           0.4   /* Max percentage of trees in a zone */
 #define AGEUPDATETHRESHOLD  16    /* How frequently/how many rounds to increment age of tree */
-#define MAXAGE              100   /* Max age of a tree */
+#define MAXAGE              200   /* Max age of a tree */
 
 
 #define LUMBERJACK 0            /* If lumberjack */

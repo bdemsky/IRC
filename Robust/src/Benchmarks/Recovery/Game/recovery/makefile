@@ -12,6 +12,7 @@ SRC=tmp${MAINCLASS}.java \
     ../../../../ClassLibrary/JavaDSM/Thread.java
     
 FLAGS1=-dsm -recoverystats -recovery -optimize -mainclass ${MAINCLASS}
+DSMFLAGS=-dsm -optimize -mainclass ${MAINCLASS}
 
 default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java
