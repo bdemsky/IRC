@@ -1,7 +1,7 @@
 MAINCLASS=MatrixMultiply
 SRC1=${MAINCLASS}.java 	 
 
-FLAGS= -recovery -recoverystats -dsm -32bit -nooptimize -debug -dsmtask -mainclass ${MAINCLASS}
+FLAGS= -recovery -recoverystats -dsm -32bit -optimize -dsmtask -mainclass ${MAINCLASS}
 
 default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC1}
