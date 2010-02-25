@@ -4,6 +4,10 @@
 #include "runtime_arch.h"
 #include "GenericHashtable.h"
 
+#ifndef INLINE
+#define INLINE    inline __attribute__((always_inline))
+#endif // #ifndef INLINE
+
 //  data structures for task invocation
 struct genhashtable * activetasks;
 struct taskparamdescriptor * currtpd;
@@ -86,6 +90,7 @@ void initruntimedata() {
     msgdata[i] = -1;
   }
   msgdataindex = 0;
+	msgdatalast = 0;
   msglength = BAMBOO_MSG_BUF_LENGTH;
   for(i = 0; i < BAMBOO_OUT_BUF_LENGTH; ++i) {
     outmsgdata[i] = -1;
@@ -1425,6 +1430,926 @@ void * smemalloc_I(int coren,
 	return mem;
 }  // void * smemalloc_I(int, int, int)
 
+INLINE int checkMsgLength_I(int size) {
+#ifdef DEBUG
+#ifndef TILERA
+  BAMBOO_DEBUGPRINT(0xcccc);
+#endif
+#endif
+	int type = msgdata[msgdataindex];
+	switch(type) {
+		case STATUSCONFIRM:
+		case TERMINATE:
+#ifdef MULTICORE_GC
+		case GCSTARTINIT: 
+		case GCSTART: 
+		case GCSTARTFLUSH: 
+		case GCFINISH: 
+		case GCMARKCONFIRM: 
+		case GCLOBJREQUEST: 
+#endif 
+		{
+			msglength = 1;
+			break;
+		}
+		case PROFILEOUTPUT:
+		case PROFILEFINISH:
+#ifdef MULTICORE_GC
+		case GCSTARTCOMPACT:
+		case GCFINISHINIT: 
+		case GCFINISHFLUSH: 
+		case GCMARKEDOBJ: 
+#endif
+		{
+			msglength = 2;
+			break;
+		}
+		case MEMREQUEST: 
+		case MEMRESPONSE:
+#ifdef MULTICORE_GC
+		case GCMAPREQUEST: 
+		case GCMAPINFO: 
+		case GCLOBJMAPPING: 
+#endif 
+		{
+			msglength = 3;
+			break;
+		}
+		case TRANSTALL:
+		case LOCKGROUNT:
+		case LOCKDENY:
+		case LOCKRELEASE:
+		case REDIRECTGROUNT:
+		case REDIRECTDENY:
+		case REDIRECTRELEASE:
+#ifdef MULTICORE_GC
+		case GCFINISHMARK:
+		case GCMOVESTART:
+#endif
+		{ 
+			msglength = 4;
+			break;
+		}
+		case LOCKREQUEST:
+		case STATUSREPORT:
+#ifdef MULTICORE_GC
+		case GCFINISHCOMPACT:
+		case GCMARKREPORT: 
+#endif 
+		{
+			msglength = 5;
+			break;
+		}
+		case REDIRECTLOCK: 
+		{
+			msglength = 6;
+			break;
+		}
+		case TRANSOBJ:  // nonfixed size
+#ifdef MULTICORE_GC
+		case GCLOBJINFO: 
+#endif
+		{ // nonfixed size 
+			if(size > 1) {
+				msglength = msgdata[msgdataindex+1];
+			} else {
+				return -1;
+			}
+			break;
+		}
+		default: 
+		{
+			BAMBOO_DEBUGPRINT_REG(type);
+			int i = 6;
+			while(i-- > 0) {
+				BAMBOO_DEBUGPRINT(msgdata[msgdataindex+i]);
+			}
+			BAMBOO_EXIT(0xd005);
+			break;
+		}
+	}
+#ifdef DEBUG
+#ifndef TILERA
+	BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex]);
+#endif
+#endif
+#ifdef DEBUG
+#ifndef TILERA
+  BAMBOO_DEBUGPRINT(0xffff);
+#endif
+#endif
+	return msglength;
+}
+
+INLINE void processmsg_transobj_I() {
+	MSG_INDEXINC_I();
+	struct transObjInfo * transObj = RUNMALLOC_I(sizeof(struct transObjInfo));
+	int k = 0;
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+	BAMBOO_DEBUGPRINT(0xe880);
+#endif
+#endif
+	if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex]/*[2]*/);
+#endif
+		BAMBOO_EXIT(0xa002);
+	} 
+	// store the object and its corresponding queue info, enqueue it later
+	transObj->objptr = (void *)msgdata[msgdataindex]; //[2]
+	MSG_INDEXINC_I();
+	transObj->length = (msglength - 3) / 2;
+	transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
+	for(k = 0; k < transObj->length; ++k) {
+		transObj->queues[2*k] = msgdata[msgdataindex]; //[3+2*k];
+		MSG_INDEXINC_I();
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		//BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
+#endif
+#endif
+		transObj->queues[2*k+1] = msgdata[msgdataindex]; //[3+2*k+1];
+		MSG_INDEXINC_I();
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		//BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
+#endif
+#endif
+	}
+	// check if there is an existing duplicate item
+	{
+		struct QueueItem * qitem = getHead(&objqueue);
+		struct QueueItem * prev = NULL;
+		while(qitem != NULL) {
+			struct transObjInfo * tmpinfo = 
+				(struct transObjInfo *)(qitem->objectptr);
+			if(tmpinfo->objptr == transObj->objptr) {
+				// the same object, remove outdate one
+				RUNFREE(tmpinfo->queues);
+				RUNFREE(tmpinfo);
+				removeItem(&objqueue, qitem);
+				//break;
+			} else {
+				prev = qitem;
+			}
+			if(prev == NULL) {
+				qitem = getHead(&objqueue);
+			} else {
+				qitem = getNextQueueItem(prev);
+			}
+		}
+		addNewItem_I(&objqueue, (void *)transObj);
+	}
+	++(self_numreceiveobjs);
+}
+
+INLINE void processmsg_transtall_I() {
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+	// non startup core can not receive stall msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex]/*[1]*/);
+#endif
+		BAMBOO_EXIT(0xa003);
+	} 
+	int num_core = msgdata[msgdataindex]; //[1]
+	MSG_INDEXINC_I();
+	if(num_core < NUMCORESACTIVE) {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe881);
+#endif
+#endif
+		corestatus[num_core] = 0;
+		numsendobjs[num_core] = msgdata[msgdataindex]; //[2];
+		MSG_INDEXINC_I();
+		numreceiveobjs[num_core] = msgdata[msgdataindex]; //[3];
+		MSG_INDEXINC_I();
+	}
+}
+
+#ifndef MULTICORE_GC
+INLINE void processmsg_lockrequest_I() {
+	// check to see if there is a lock exist for the required obj
+	// msgdata[1] -> lock type
+	int locktype = msgdata[msgdataindex]; //[1];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex]; // obj pointer
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex]; // lock
+	MSG_INDEXINC_I();
+	int data4 = msgdata[msgdataindex]; // request core
+	MSG_INDEXINC_I();
+	// -1: redirected, 0: approved, 1: denied
+	deny = processlockrequest(locktype, data3, data2, data4, data4, true);  
+	if(deny == -1) {
+		// this lock request is redirected
+		break;
+	} else {
+		// send response msg
+		// for 32 bit machine, the size is always 4 words
+		int tmp = deny==1?LOCKDENY:LOCKGROUNT;
+		if(isMsgSending) {
+			cache_msg_4(data4, tmp, locktype, data2, data3);
+		} else {
+			send_msg_4(data4, tmp, locktype, data2, data3, true);
+		}
+	}
+}
+
+INLINE void processmsg_lockgrount_I() {
+	MSG_INDEXINC_I();
+	if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex]/*[2]*/);
+#endif
+		BAMBOO_EXIT(0xa004);
+	} 
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if((lockobj == data2) && (lock2require == data3)) {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe882);
+#endif
+#endif
+		lockresult = 1;
+		lockflag = true;
+#ifndef INTERRUPT
+		reside = false;
+#endif
+	} else {
+		// conflicts on lockresults
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa005);
+	}
+}
+
+INLINE void processmsg_lockdeny_I() {
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa006);
+	} 
+	if((lockobj == data2) && (lock2require == data3)) {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe883);
+#endif
+#endif
+		lockresult = 0;
+		lockflag = true;
+#ifndef INTERRUPT
+		reside = false;
+#endif
+		} else {
+		// conflicts on lockresults
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa007);
+	}
+}
+
+INLINE void processmsg_lockrelease_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// receive lock release msg
+	processlockrelease(data1, data2, 0, false);
+}
+
+INLINE void processmsg_redirectlock_I() {
+	// check to see if there is a lock exist for the required obj
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[1]; // lock type
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();//msgdata[2]; // obj pointer
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[3]; // redirect lock
+	int data4 = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[4]; // root request core
+	int data5 = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[5]; // request core
+	deny = processlockrequest(data1, data3, data2, data5, data4, true);
+	if(deny == -1) {
+		// this lock request is redirected
+		break;
+	} else {
+		// send response msg
+		// for 32 bit machine, the size is always 4 words
+		if(isMsgSending) {
+			cache_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
+									data1, data2, data3);
+		} else {
+			send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
+								 data1, data2, data3, true);
+		}
+	}
+}
+
+INLINE void processmsg_redirectgrount_I() {
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa00a);
+	}
+	if(lockobj == data2) {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe891);
+#endif
+#endif
+		int data3 = msgdata[msgdataindex];
+		MSG_INDEXINC_I();
+		lockresult = 1;
+		lockflag = true;
+		RuntimeHashadd_I(objRedirectLockTbl, lockobj, data3);
+#ifndef INTERRUPT
+		reside = false;
+#endif
+	} else {
+		// conflicts on lockresults
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa00b);
+	}
+}
+
+INLINE void processmsg_redirectdeny_I() {
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa00c);
+	}
+	if(lockobj == data2) {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe892);
+#endif
+#endif
+		lockresult = 0;
+		lockflag = true;
+#ifndef INTERRUPT
+		reside = false;
+#endif
+	} else {
+		// conflicts on lockresults
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa00d);
+	}
+}
+
+INLINE void processmsg_redirectrelease_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	processlockrelease(data1, data2, data3, true);
+}
+#endif // #ifndef MULTICORE_GC
+
+#ifdef PROFILE
+INLINE void processmsg_profileoutput_I() {
+	if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
+		// startup core can not receive profile output finish msg
+		BAMBOO_EXIT(0xa008);
+	}
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+	BAMBOO_DEBUGPRINT(0xe885);
+#endif
+#endif
+	stall = true;
+	totalexetime = msgdata[msgdataindex]; //[1]
+	MSG_INDEXINC_I();
+	outputProfileData();
+	if(isMsgSending) {
+		cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+	} else {
+		send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
+	}
+}
+
+INLINE void processmsg_profilefinish_I() {
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// non startup core can not receive profile output finish msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex/*1*/]);
+#endif
+		BAMBOO_EXIT(0xa009);
+	}
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+	BAMBOO_DEBUGPRINT(0xe886);
+#endif
+#endif
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	profilestatus[data1] = 0;
+}
+#endif // #ifdef PROFILE
+
+INLINE void processmsg_statusconfirm_I() {
+	if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
+			|| (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
+		// wrong core to receive such msg
+		BAMBOO_EXIT(0xa00e);
+	} else {
+		// send response msg
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe887);
+#endif
+#endif
+		if(isMsgSending) {
+			cache_msg_5(STARTUPCORE, STATUSREPORT, 
+									busystatus?1:0, BAMBOO_NUM_OF_CORE,
+									self_numsendobjs, self_numreceiveobjs);
+		} else {
+			send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0, 
+								 BAMBOO_NUM_OF_CORE, self_numsendobjs, 
+								 self_numreceiveobjs, true);
+		}
+	}
+}
+
+INLINE void processmsg_statusreport_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data4 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// receive a status confirm info
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// wrong core to receive such msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa00f);
+	} else {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe888);
+#endif
+#endif
+		if(waitconfirm) {
+			numconfirm--;
+		}
+		corestatus[data2] = data1;
+		numsendobjs[data2] = data3;
+		numreceiveobjs[data2] = data4;
+	}
+}
+
+INLINE void processmsg_terminate_I() {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+	BAMBOO_DEBUGPRINT(0xe889);
+#endif
+#endif
+	disruntimedata();
+	BAMBOO_EXIT(0);
+}
+
+INLINE void processmsg_memrequest_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// receive a shared memory request msg
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// wrong core to receive such msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xa010);
+	} else {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT(0xe88a);
+#endif
+#endif
+		int allocsize = 0;
+		void * mem = NULL;
+#ifdef MULTICORE_GC
+		if(gcprocessing) {
+			// is currently doing gc, dump this msg
+			if(INITPHASE == gcphase) {
+				// if still in the initphase of gc, send a startinit msg again
+				if(isMsgSending) {
+					cache_msg_1(data2, GCSTARTINIT);
+				} else {
+					send_msg_1(data2, GCSTARTINIT, true);
+				}
+			}
+		} else { 
+#endif
+		mem = smemalloc_I(data2, data1, &allocsize);
+		if(mem != NULL) {
+			// send the start_va to request core
+			if(isMsgSending) {
+				cache_msg_3(data2, MEMRESPONSE, mem, allocsize);
+			} else {
+				send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
+			} 
+		} // if mem == NULL, the gcflag of the startup core has been set
+			// and the gc should be started later, then a GCSTARTINIT msg
+			// will be sent to the requesting core to notice it to start gc
+			// and try malloc again
+#ifdef MULTICORE_GC
+		}
+#endif
+	}
+}
+
+INLINE void processmsg_memresponse_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// receive a shared memory response msg
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+	BAMBOO_DEBUGPRINT(0xe88b);
+#endif
+#endif
+#ifdef MULTICORE_GC
+	// if is currently doing gc, dump this msg
+	if(!gcprocessing) {
+#endif
+	if(data2 == 0) {
+		bamboo_smem_size = 0;
+		bamboo_cur_msp = 0;
+	} else {
+#ifdef MULTICORE_GC
+		// fill header to store the size of this mem block
+		memset(data1, 0, BAMBOO_CACHE_LINE_SIZE);
+		(*((int*)data1)) = data2;
+		bamboo_smem_size = data2 - BAMBOO_CACHE_LINE_SIZE;
+		bamboo_cur_msp = data1 + BAMBOO_CACHE_LINE_SIZE;
+#else
+		bamboo_smem_size = data2;
+		bamboo_cur_msp =(void*)(data1);
+#endif
+	}
+	smemflag = true;
+#ifdef MULTICORE_GC
+	}
+#endif
+}
+
+#ifdef MULTICORE_GC
+INLINE void processmsg_gcstartinit_I() {
+	gcflag = true;
+	gcphase = INITPHASE;
+	if(!smemflag) {
+		// is waiting for response of mem request
+		// let it return NULL and start gc
+		bamboo_smem_size = 0;
+		bamboo_cur_msp = NULL;
+		smemflag = true;
+	}
+}
+
+INLINE void processmsg_gcstart_I() {
+#ifdef DEBUG
+#ifndef CLOSE_PRINT
+	BAMBOO_DEBUGPRINT(0xe88c);
+#endif
+#endif
+	// set the GC flag
+	gcphase = MARKPHASE;
+}
+
+INLINE void processmsg_gcstartcompact_I() {
+	gcblock2fill = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[1];
+	gcphase = COMPACTPHASE;
+}
+
+INLINE void processmsg_gcstartflush_I() {
+	gcphase = FLUSHPHASE;
+}
+
+INLINE void processmsg_gcfinishinit_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// received a init phase finish msg
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// non startup core can not receive this msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+		BAMBOO_EXIT(0xb001);
+	}
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xe88c);
+	BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+	// All cores should do init GC
+	if(data1 < NUMCORESACTIVE) {
+		gccorestatus[data1] = 0;
+	}
+}
+
+INLINE void processmsg_gcfinishmark_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// received a mark phase finish msg
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// non startup core can not receive this msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+		BAMBOO_EXIT(0xb002);
+	}
+	// all cores should do mark
+	if(data1 < NUMCORESACTIVE) {
+		gccorestatus[data1] = 0;
+		gcnumsendobjs[data1] = data2;
+		gcnumreceiveobjs[data1] = data3;
+	}
+}
+
+INLINE void processmsg_gcfinishcompact_I() {
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// non startup core can not receive this msg
+		// return -1
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex]/*[1]*/);
+#endif
+		BAMBOO_EXIT(0xb003);
+	}
+	int cnum = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[1];
+	int filledblocks = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[2];
+	int heaptop = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[3];
+	int data4 = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[4];
+	// only gc cores need to do compact
+	if(cnum < NUMCORES4GC) {
+		if(COMPACTPHASE == gcphase) {
+			gcfilledblocks[cnum] = filledblocks;
+			gcloads[cnum] = heaptop;
+		}
+		if(data4 > 0) {
+			// ask for more mem
+			int startaddr = 0;
+			int tomove = 0;
+			int dstcore = 0;
+			if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
+				if(isMsgSending) {
+					cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+			  } else {
+					send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
+				}
+			}
+		} else {
+			gccorestatus[cnum] = 0;
+		} // if(data4>0)
+	} // if(cnum < NUMCORES4GC)
+}
+
+INLINE void processmsg_gcfinishflush_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// received a flush phase finish msg
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// non startup core can not receive this msg
+		// return -1
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+		BAMBOO_EXIT(0xb004);
+	} 
+	// all cores should do flush
+	if(data1 < NUMCORESACTIVE) {
+		gccorestatus[data1] = 0;
+	}
+}
+
+INLINE void processmsg_gcmarkconfirm_I() {
+	if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
+			|| (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
+		// wrong core to receive such msg
+		BAMBOO_EXIT(0xb005);
+	} else {
+		// send response msg
+		if(isMsgSending) {
+			cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
+									gcbusystatus, gcself_numsendobjs, 
+									gcself_numreceiveobjs);
+		} else {
+			send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
+								 gcbusystatus, gcself_numsendobjs, 
+								 gcself_numreceiveobjs, true);
+		}
+	}
+}
+
+INLINE void processmsg_gcmarkreport_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data3 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data4 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// received a marked phase finish confirm response msg
+	if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+		// wrong core to receive such msg
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xb006);
+	} else {
+		if(waitconfirm) {
+			numconfirm--;
+		}
+		gccorestatus[data1] = data2;
+		gcnumsendobjs[data1] = data3;
+		gcnumreceiveobjs[data1] = data4;
+	}
+}
+
+INLINE void processmsg_gcmarkedobj_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	// received a markedObj msg
+	if(((int *)data1)[6] == INIT) {
+			// this is the first time that this object is discovered,
+			// set the flag as DISCOVERED
+			((int *)data1)[6] = DISCOVERED;
+			gc_enqueue_I(data1);
+	}
+	gcself_numreceiveobjs++;
+	gcbusystatus = true;
+}
+
+INLINE void processmsg_gcmovestart_I() {
+	gctomove = true;
+	gcdstcore = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[1];
+	gcmovestartaddr = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[2];
+	gcblock2fill = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); //msgdata[3];
+}
+
+INLINE void processmsg_gcmaprequest_I() {
+#ifdef GC_PROFILE
+	//unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+#endif
+	void * dstptr = NULL;
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	//dstptr = mgchashSearch(msgdata[1]);
+#ifdef GC_PROFILE
+	unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+#endif
+	RuntimeHashget(gcpointertbl, data1, &dstptr);
+#ifdef GC_PROFILE
+	flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
+#endif
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	//MGCHashget(gcpointertbl, msgdata[1], &dstptr);
+#ifdef GC_PROFILE
+	unsigned long long ttimei = BAMBOO_GET_EXE_TIME();
+#endif
+	if(NULL == dstptr) {
+		// no such pointer in this core, something is wrong
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT_REG(data1);
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xb007);
+		//assume that the object was not moved, use the original address
+		/*if(isMsgSending) {
+			cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
+		} else {
+			send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1], true);
+		}*/
+	} else {
+		// send back the mapping info
+		if(isMsgSending) {
+			cache_msg_3(data2, GCMAPINFO, data1, (int)dstptr);
+		} else {
+			send_msg_3(data2, GCMAPINFO, data1, (int)dstptr, true);
+		}
+	}
+#ifdef GC_PROFILE
+	flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimei;
+	//num_mapinforequest_i++;
+#endif
+}
+
+INLINE void processmsg_gcmapinfo_I() {
+#ifdef GC_PROFILE
+	//unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+#endif
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if(data1 != gcobj2map) {
+			// obj not matched, something is wrong
+#ifdef DEBUG
+			BAMBOO_DEBUGPRINT_REG(gcobj2map);
+			BAMBOO_DEBUGPRINT_REG(msgdata[1]);
+#endif
+			BAMBOO_EXIT(0xb008);
+		} else {
+			gcmappedobj = msgdata[msgdataindex]; // [2]
+      MSG_INDEXINC_I();
+			//mgchashReplace_I(msgdata[1], msgdata[2]);
+			//mgchashInsert_I(gcobj2map, gcmappedobj);
+			RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
+			//MGCHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
+		}
+		gcismapped = true;
+#ifdef GC_PROFILE
+			//flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
+#endif
+}
+
+INLINE void processmsg_gclobjinfo_I() {
+	numconfirm--;
+
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if(BAMBOO_NUM_OF_CORE > NUMCORES4GC - 1) {
+#ifndef CLOSE_PRINT
+		BAMBOO_DEBUGPRINT_REG(data2);
+#endif
+		BAMBOO_EXIT(0xb009);
+	} 
+	// store the mark result info 
+	int cnum = data2;
+	gcloads[cnum] = msgdata[msgdataindex];
+	MSG_INDEXINC_I(); // msgdata[3];
+	int data4 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	if(gcheaptop < data4) {
+		gcheaptop = data4;
+	}
+	// large obj info here
+	for(int k = 5; k < data1;) {
+		int lobj = msgdata[msgdataindex];
+		MSG_INDEXINC_I(); //msgdata[k++];
+		int length = msgdata[msgdataindex];
+		MSG_INDEXINC_I(); //msgdata[k++];
+		gc_lobjenqueue_I(lobj, length, cnum);
+		gcnumlobjs++;
+	} // for(int k = 5; k < msgdata[1];)
+}
+
+INLINE void processmsg_gclobjmapping_I() {
+	int data1 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	int data2 = msgdata[msgdataindex];
+	MSG_INDEXINC_I();
+	//mgchashInsert_I(msgdata[1], msgdata[2]);
+	RuntimeHashadd_I(gcpointertbl, data1, data2);
+	//MGCHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
+}
+#endif // #ifdef MULTICORE_GC
+
 // receive object transferred from other cores
 // or the terminate message from other cores
 // Should be invoked in critical sections!!
@@ -1443,795 +2368,287 @@ int receiveObject() {
   int deny = 0;
   
 msg:
+	// get the incoming msgs
   if(receiveMsg() == -1) {
 	  return -1;
   }
+processmsg:
+	// processing received msgs
+	int size = 0;
+	MSG_REMAINSIZE_I(&size);
+  if(checkMsgLength_I(size) == -1) {
+		// not a whole msg
+		// have new coming msg
+		if(BAMBOO_MSG_AVAIL() != 0) {
+			goto msg;
+		} else {
+			return -1;
+		}
+	}
 
-  if(msgdataindex == msglength) {
+	if(msglength <= size) {
+		// have some whole msg
+  //if(msgdataindex == msglength) {
     // received a whole msg
-    MSGTYPE type; 
-    type = msgdata[0];
+    MSGTYPE type;
+    type = msgdata[msgdataindex]; //[0]
+		MSG_INDEXINC_I();
+		// TODO
+		//tprintf("msg type: %x\n", type);
     switch(type) {
-    case TRANSOBJ: {
-      // receive a object transfer msg
-      struct transObjInfo * transObj = 
-				RUNMALLOC_I(sizeof(struct transObjInfo));
-      int k = 0;
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-			BAMBOO_DEBUGPRINT(0xe880);
-#endif
-#endif
-      if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-				BAMBOO_EXIT(0xa002);
-			} 
-      // store the object and its corresponding queue info, enqueue it later
-      transObj->objptr = (void *)msgdata[2]; 
-      transObj->length = (msglength - 3) / 2;
-      transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
-      for(k = 0; k < transObj->length; ++k) {
-				transObj->queues[2*k] = msgdata[3+2*k];
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
-#endif
-#endif
-				transObj->queues[2*k+1] = msgdata[3+2*k+1];
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k+1]);
-#endif
-#endif
-			}
-      // check if there is an existing duplicate item
-      {
-				struct QueueItem * qitem = getHead(&objqueue);
-				struct QueueItem * prev = NULL;
-				while(qitem != NULL) {
-					struct transObjInfo * tmpinfo = 
-						(struct transObjInfo *)(qitem->objectptr);
-					if(tmpinfo->objptr == transObj->objptr) {
-						// the same object, remove outdate one
-						RUNFREE(tmpinfo->queues);
-						RUNFREE(tmpinfo);
-						removeItem(&objqueue, qitem);
-						//break;
-					} else {
-						prev = qitem;
-					}
-					if(prev == NULL) {
-						qitem = getHead(&objqueue);
-					} else {
-						qitem = getNextQueueItem(prev);
-					}
-				}
-				addNewItem_I(&objqueue, (void *)transObj);
-			}
-      ++(self_numreceiveobjs);
-      break;
-    }
+			case TRANSOBJ: {
+				// receive a object transfer msg
+				processmsg_transobj_I();
+				break;
+			} // case TRANSOBJ
 
-    case TRANSTALL: {
-      // receive a stall msg
-      if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // non startup core can not receive stall msg
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-				BAMBOO_EXIT(0xa003);
-      } 
-      if(msgdata[1] < NUMCORESACTIVE) {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT(0xe881);
-#endif
-#endif
-				corestatus[msgdata[1]] = 0;
-				numsendobjs[msgdata[1]] = msgdata[2];
-				numreceiveobjs[msgdata[1]] = msgdata[3];
-      }
-      break;
-    }
+			case TRANSTALL: {
+				// receive a stall msg
+				processmsg_transtall_I();
+				break;
+			} // case TRANSTALL
 
 // GC version have no lock msgs
 #ifndef MULTICORE_GC
-    case LOCKREQUEST: {
-      // receive lock request msg, handle it right now
-      // check to see if there is a lock exist for the required obj
-			// msgdata[1] -> lock type
-			int data2 = msgdata[2]; // obj pointer
-      int data3 = msgdata[3]; // lock
-			int data4 = msgdata[4]; // request core
-			// -1: redirected, 0: approved, 1: denied
-      deny = processlockrequest(msgdata[1], data3, data2, 
-					                      data4, data4, true);  
-			if(deny == -1) {
-				// this lock request is redirected
+			case LOCKREQUEST: {
+				// receive lock request msg, handle it right now
+				processmsg_lockrequest_I();
 				break;
-			} else {
-				// send response msg
-				// for 32 bit machine, the size is always 4 words
-				int tmp = deny==1?LOCKDENY:LOCKGROUNT;
-				if(isMsgSending) {
-					cache_msg_4(data4, tmp, msgdata[1], data2, data3);
-				} else {
-					send_msg_4(data4, tmp, msgdata[1], data2, data3, true);
-				}
-			}
-      break;
-    }
+			} // case LOCKREQUEST
 
-    case LOCKGROUNT: {
-      // receive lock grount msg
-      if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-				BAMBOO_EXIT(0xa004);
-      } 
-      if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT(0xe882);
-#endif
-#endif
-				lockresult = 1;
-				lockflag = true;
-#ifndef INTERRUPT
-				reside = false;
-#endif
-			} else {
-				// conflicts on lockresults
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-				BAMBOO_EXIT(0xa005);
-      }
-      break;
-    }
+			case LOCKGROUNT: {
+				// receive lock grount msg
+				processmsg_lockgrount_I();
+				break;
+			} // case LOCKGROUNT
 
-    case LOCKDENY: {
-      // receive lock deny msg
-      if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-				BAMBOO_EXIT(0xa006);
-      } 
-      if((lockobj == msgdata[2]) && (lock2require == msgdata[3])) {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT(0xe883);
-#endif
-#endif
-				lockresult = 0;
-				lockflag = true;
-#ifndef INTERRUPT
-				reside = false;
-#endif
-				} else {
-				// conflicts on lockresults
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-				BAMBOO_EXIT(0xa007);
-      }
-      break;
-    }
+			case LOCKDENY: {
+				// receive lock deny msg
+				processmsg_lockdeny_I();
+				break;
+			} // case LOCKDENY
 
-    case LOCKRELEASE: {
-      // receive lock release msg
-			processlockrelease(msgdata[1], msgdata[2], 0, false);
-      break;
-    }
-#endif
+			case LOCKRELEASE: {
+				processmsg_lockrelease_I();
+				break;
+			} // case LOCKRELEASE
+#endif // #ifndef MULTICORE_GC
 
 #ifdef PROFILE
-    case PROFILEOUTPUT: {
-      // receive an output profile data request msg
-      if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
-				// startup core can not receive profile output finish msg
-				BAMBOO_EXIT(0xa008);
-      }
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-			BAMBOO_DEBUGPRINT(0xe885);
-#endif
-#endif
-			stall = true;
-			totalexetime = msgdata[1];
-			outputProfileData();
-			if(isMsgSending) {
-				cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
-			} else {
-				send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
-			}
-      break;
-    }
+			case PROFILEOUTPUT: {
+				// receive an output profile data request msg
+				processmsg_profileoutput_I();
+				break;
+			} // case PROFILEOUTPUT
 
-    case PROFILEFINISH: {
-      // receive a profile output finish msg
-      if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-				// non startup core can not receive profile output finish msg
-#ifndef CLOSE_PRINT
-				BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-				BAMBOO_EXIT(0xa009);
-      }
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-			BAMBOO_DEBUGPRINT(0xe886);
-#endif
-#endif
-			profilestatus[msgdata[1]] = 0;
-      break;
-    }
-#endif
+			case PROFILEFINISH: {
+				// receive a profile output finish msg
+				processmsg_profilefinish_I();
+				break;
+			} // case PROFILEFINISH
+#endif // #ifdef PROFILE
 
 // GC version has no lock msgs
 #ifndef MULTICORE_GC
-	case REDIRECTLOCK: {
-	  // receive a redirect lock request msg, handle it right now
-		// check to see if there is a lock exist for the required obj
-	  int data1 = msgdata[1]; // lock type
-	  int data2 = msgdata[2]; // obj pointer
-		int data3 = msgdata[3]; // redirect lock
-	  int data4 = msgdata[4]; // root request core
-	  int data5 = msgdata[5]; // request core
-	  deny = processlockrequest(msgdata[1], data3, data2, data5, data4, true);
-	  if(deny == -1) {
-		  // this lock request is redirected
-		  break;
-	  } else {
-		  // send response msg
-		  // for 32 bit machine, the size is always 4 words
-		  if(isMsgSending) {
-			  cache_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
-						        data1, data2, data3);
-		  } else {
-				send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
-						       data1, data2, data3, true);
-		  }
-	  }
-	  break;
-	}
-
-	case REDIRECTGROUNT: {
-		// receive a lock grant msg with redirect info
-		if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-			BAMBOO_EXIT(0xa00a);
-		}
-		if(lockobj == msgdata[2]) {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT(0xe891);
-#endif
-#endif
-		  lockresult = 1;
-		  lockflag = true;
-		  RuntimeHashadd_I(objRedirectLockTbl, lockobj, msgdata[3]);
-#ifndef INTERRUPT
-		  reside = false;
-#endif
-		} else {
-		  // conflicts on lockresults
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xa00b);
-		}
-		break;
-	}
-	
-	case REDIRECTDENY: {
-	  // receive a lock deny msg with redirect info
-	  if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xa00c);
-	  }
-		if(lockobj == msgdata[2]) {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT(0xe892);
-#endif
-#endif
-		  lockresult = 0;
-		  lockflag = true;
-#ifndef INTERRUPT
-		  reside = false;
-#endif
-		} else {
-		  // conflicts on lockresults
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xa00d);
-		}
-		break;
-	}
-
-	case REDIRECTRELEASE: {
-	  // receive a lock release msg with redirect info
-		processlockrelease(msgdata[1], msgdata[2], msgdata[3], true);
-		break;
-	}
-#endif
-	
-	case STATUSCONFIRM: {
-      // receive a status confirm info
-	  if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
-				|| (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
-		  // wrong core to receive such msg
-		  BAMBOO_EXIT(0xa00e);
-		} else {
-		  // send response msg
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT(0xe887);
-#endif
-#endif
-		  if(isMsgSending) {
-			  cache_msg_5(STARTUPCORE, STATUSREPORT, 
-						        busystatus?1:0, BAMBOO_NUM_OF_CORE,
-										self_numsendobjs, self_numreceiveobjs);
-		  } else {
-				send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0, 
-						       BAMBOO_NUM_OF_CORE, self_numsendobjs, 
-									 self_numreceiveobjs, true);
-		  }
-		}
-	  break;
-	}
-
-	case STATUSREPORT: {
-	  // receive a status confirm info
-	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // wrong core to receive such msg
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xa00f);
-		} else {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT(0xe888);
-#endif
-#endif
-		  if(waitconfirm) {
-			  numconfirm--;
-		  }
-		  corestatus[msgdata[2]] = msgdata[1];
-			numsendobjs[msgdata[2]] = msgdata[3];
-			numreceiveobjs[msgdata[2]] = msgdata[4];
-		}
-	  break;
-	}
-
-	case TERMINATE: {
-	  // receive a terminate msg
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-		BAMBOO_DEBUGPRINT(0xe889);
-#endif
-#endif
-		disruntimedata();
-		BAMBOO_EXIT(0);
-	  break;
-	}
-
-	case MEMREQUEST: {
-	  // receive a shared memory request msg
-	  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // wrong core to receive such msg
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xa010);
-		} else {
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT(0xe88a);
-#endif
-#endif
-			int allocsize = 0;
-		  void * mem = NULL;
-#ifdef MULTICORE_GC
-			if(gcprocessing) {
-				// is currently doing gc, dump this msg
-				if(INITPHASE == gcphase) {
-					// if still in the initphase of gc, send a startinit msg again
-					if(isMsgSending) {
-						cache_msg_1(msgdata[2], GCSTARTINIT);
-					} else {
-						send_msg_1(msgdata[2], GCSTARTINIT, true);
-					}
-				}
+			case REDIRECTLOCK: {
+				// receive a redirect lock request msg, handle it right now
+				processmsg_redirectlock_I();
 				break;
-			} 
-#endif
-			mem = smemalloc_I(msgdata[2], msgdata[1], &allocsize);
-			if(mem == NULL) {
-				// in this case, the gcflag of the startup core has been set
-				// and the gc should be started later, then a GCSTARTINIT msg
-				// will be sent to the requesting core to notice it to start gc
-				// and try malloc again
+			} // case REDIRECTLOCK
+
+			case REDIRECTGROUNT: {
+				// receive a lock grant msg with redirect info
+				processmsg_redirectgrount_I();
 				break;
-			}
-			// send the start_va to request core
-			if(isMsgSending) {
-				cache_msg_3(msgdata[2], MEMRESPONSE, mem, allocsize);
-			} else {
-				send_msg_3( msgdata[2], MEMRESPONSE, mem, allocsize, true);
-			} 
-		}
-	  break;
-	}
+			} // case REDIRECTGROUNT
+			
+			case REDIRECTDENY: {
+				// receive a lock deny msg with redirect info
+				processmsg_redirectdeny_I();
+				break;
+			} // case REDIRECTDENY
 
-	case MEMRESPONSE: {
-		// receive a shared memory response msg
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-	  BAMBOO_DEBUGPRINT(0xe88b);
-#endif
-#endif
+			case REDIRECTRELEASE: {
+				// receive a lock release msg with redirect info
+				processmsg_redirectrelease_I();
+				break;
+			} // case REDIRECTRELEASE
+#endif // #ifndef MULTICORE_GC
+	
+			case STATUSCONFIRM: {
+				// receive a status confirm info
+				processmsg_statusconfirm_I();
+				break;
+			} // case STATUSCONFIRM
+
+			case STATUSREPORT: {
+				processmsg_statusreport_I();
+				break;
+			} // case STATUSREPORT
+
+			case TERMINATE: {
+				// receive a terminate msg
+				processmsg_terminate_I();
+				break;
+			} // case TERMINATE
+
+			case MEMREQUEST: {
+				processmsg_memrequest_I();
+				break;
+			} // case MEMREQUEST
+
+			case MEMRESPONSE: {
+				processmsg_memresponse_I();
+				break;
+			} // case MEMRESPONSE
+
 #ifdef MULTICORE_GC
-		if(gcprocessing) {
-			// is currently doing gc, dump this msg
-			break;
-		}
-#endif
-	  if(msgdata[2] == 0) {
-		  bamboo_smem_size = 0;
-		  bamboo_cur_msp = 0;
-	  } else {
-#ifdef MULTICORE_GC
-			// fill header to store the size of this mem block
-			memset(msgdata[1], 0, BAMBOO_CACHE_LINE_SIZE);
-			(*((int*)msgdata[1])) = msgdata[2];
-		  bamboo_smem_size = msgdata[2] - BAMBOO_CACHE_LINE_SIZE;
-			bamboo_cur_msp = msgdata[1] + BAMBOO_CACHE_LINE_SIZE;
-#else
-		  bamboo_smem_size = msgdata[2];
-		  bamboo_cur_msp =(void*)(msgdata[1]);
-#endif
-	  }
-	  smemflag = true;
-	  break;
-	}
+			// GC msgs
+			case GCSTARTINIT: {
+				processmsg_gcstartinit_I();
+				break;
+			} // case GCSTARTINIT
 
-#ifdef MULTICORE_GC
-	// GC msgs
-	case GCSTARTINIT: {
-		gcflag = true;
-		gcphase = INITPHASE;
-		if(!smemflag) {
-			// is waiting for response of mem request
-			// let it return NULL and start gc
-			bamboo_smem_size = 0;
-			bamboo_cur_msp = NULL;
-			smemflag = true;
-		}
-	  break;
-	}
+			case GCSTART: {
+				// receive a start GC msg
+				processmsg_gcstart_I();
+				break;
+			} // case GCSTART
 
-	case GCSTART: {
-		// receive a start GC msg
+			case GCSTARTCOMPACT: {
+				// a compact phase start msg
+				processmsg_gcstartcompact_I();
+				break;
+			} // case GCSTARTCOMPACT
+
+			case GCSTARTFLUSH: {
+				// received a flush phase start msg
+				processmsg_gcstartflush_I();
+				break;
+			} // case GCSTARTFLUSH
+			
+			case GCFINISHINIT: {
+				processmsg_gcfinishinit_I();
+				break;
+			} // case GCFINISHINIT
+
+			case GCFINISHMARK: {
+				processmsg_gcfinishmark_I();
+				break;
+			} // case GCFINISHMARK
+			
+			case GCFINISHCOMPACT: {
+				// received a compact phase finish msg
+				processmsg_gcfinishcompact_I();
+				break;
+			} // case GCFINISHCOMPACT
+
+			case GCFINISHFLUSH: {
+				processmsg_gcfinishflush_I();
+				break;
+			} // case GCFINISHFLUSH
+
+			case GCFINISH: {
+				// received a GC finish msg
+				gcphase = FINISHPHASE;
+				break;
+			} // case GCFINISH
+
+			case GCMARKCONFIRM: {
+				// received a marked phase finish confirm request msg
+				// all cores should do mark
+				processmsg_gcmarkconfirm_I();
+				break;
+			} // case GCMARKCONFIRM
+
+			case GCMARKREPORT: {
+				processmsg_gcmarkreport_I();
+				break;
+			} // case GCMARKREPORT
+
+			case GCMARKEDOBJ: {
+				processmsg_gcmarkedobj_I();
+				break;
+			} // case GCMARKEDOBJ
+
+			case GCMOVESTART: {
+				// received a start moving objs msg
+				processmsg_gcmovestart_I();
+				break;
+			} // case GCMOVESTART
+			
+			case GCMAPREQUEST: {
+				// received a mapping info request msg
+				processmsg_gcmaprequest_I();
+				break;
+			} // case GCMAPREQUEST
+
+			case GCMAPINFO: {
+				// received a mapping info response msg
+				processmsg_gcmapinfo_I();
+				break;
+			} // case GCMAPINFO
+
+			case GCLOBJREQUEST: {
+				// received a large objs info request msg
+				transferMarkResults_I();
+				break;
+			} // case GCLOBJREQUEST
+
+			case GCLOBJINFO: {
+				// received a large objs info response msg
+				processmsg_gclobjinfo_I();
+				break;
+			} // case GCLOBJINFO
+			
+			case GCLOBJMAPPING: {
+				// received a large obj mapping info msg
+				processmsg_gclobjmapping_I();
+				break;
+			} // case GCLOBJMAPPING
+
+#endif // #ifdef MULTICORE_GC
+
+			default:
+				break;
+		} // switch(type)
+		//memset(msgdata, '\0', sizeof(int) * msgdataindex);
+		//msgdataindex = 0;
+		msglength = BAMBOO_MSG_BUF_LENGTH;
+		// TODO
+		//printf("++ msg: %x \n", type);
+		if(msgdataindex != msgdatalast) {
+			// still have available msg
+			goto processmsg;
+		}
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
-	  BAMBOO_DEBUGPRINT(0xe88c);
+		BAMBOO_DEBUGPRINT(0xe88d);
 #endif
 #endif
-	  // set the GC flag
-		gcphase = MARKPHASE;
-	  break;
-	}
 
-	case GCSTARTCOMPACT: {
-		// a compact phase start msg
-		gcblock2fill = msgdata[1];
-		gcphase = COMPACTPHASE;
-		break;
-	}
-
-	case GCSTARTFLUSH: {
-		// received a flush phase start msg
-		gcphase = FLUSHPHASE;
-		break;
-	}
-	
-	case GCFINISHINIT: {
-		// received a init phase finish msg
-		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // non startup core can not receive this msg
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-		  BAMBOO_EXIT(0xb001);
+		// have new coming msg
+		if(BAMBOO_MSG_AVAIL() != 0) {
+			goto msg;
 		}
-#ifdef DEBUG
-		BAMBOO_DEBUGPRINT(0xe88c);
-		BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-		// All cores should do init GC
-		if(msgdata[1] < NUMCORESACTIVE) {
-			gccorestatus[msgdata[1]] = 0;
-		}
-	}
 
-	case GCFINISHMARK: {
-		// received a mark phase finish msg
-		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // non startup core can not receive this msg
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-		  BAMBOO_EXIT(0xb002);
-		}
-		// all cores should do mark
-		if(msgdata[1] < NUMCORESACTIVE) {
-			gccorestatus[msgdata[1]] = 0;
-			gcnumsendobjs[msgdata[1]] = msgdata[2];
-			gcnumreceiveobjs[msgdata[1]] = msgdata[3];
-		}
-	  break;
-	}
-	
-	case GCFINISHCOMPACT: {
-		// received a compact phase finish msg
-		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // non startup core can not receive this msg
-		  // return -1
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-		  BAMBOO_EXIT(0xb003);
-		}
-		int cnum = msgdata[1];
-		int filledblocks = msgdata[2];
-		int heaptop = msgdata[3];
-		int data4 = msgdata[4];
-		// only gc cores need to do compact
-		if(cnum < NUMCORES4GC) {
-			if(COMPACTPHASE == gcphase) {
-				gcfilledblocks[cnum] = filledblocks;
-				gcloads[cnum] = heaptop;
-			}
-			if(data4 > 0) {
-				// ask for more mem
-				int startaddr = 0;
-				int tomove = 0;
-				int dstcore = 0;
-				if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
-					if(isMsgSending) {
-						cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
-					} else {
-						send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
-					}
-				}
-			} else {
-				gccorestatus[cnum] = 0;
-			} // if(data4>0)
-		} // if(cnum < NUMCORES4GC)
-	  break;
-	}
-
-	case GCFINISHFLUSH: {
-		// received a flush phase finish msg
-		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // non startup core can not receive this msg
-		  // return -1
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-		  BAMBOO_EXIT(0xb004);
-		} 
-		// all cores should do flush
-		if(msgdata[1] < NUMCORESACTIVE) {
-		  gccorestatus[msgdata[1]] = 0;
-		}
-	  break;
-	}
-
-	case GCFINISH: {
-		// received a GC finish msg
-		gcphase = FINISHPHASE;
-		break;
-	}
-
-	case GCMARKCONFIRM: {
-		// received a marked phase finish confirm request msg
-		// all cores should do mark
-		if((BAMBOO_NUM_OF_CORE == STARTUPCORE) 
-				|| (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
-		  // wrong core to receive such msg
-		  BAMBOO_EXIT(0xb005);
-		} else {
-		  // send response msg
-		  if(isMsgSending) {
-			  cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
-						        gcbusystatus, gcself_numsendobjs, 
-										gcself_numreceiveobjs);
-		  } else {
-				send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
-						       gcbusystatus, gcself_numsendobjs, 
-									 gcself_numreceiveobjs, true);
-		  }
-		}
-	  break;
-	}
-
-	case GCMARKREPORT: {
-		// received a marked phase finish confirm response msg
-		if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-		  // wrong core to receive such msg
-#ifndef CLOSE_PRINT
-		  BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-		  BAMBOO_EXIT(0xb006);
-		} else {
-		  if(waitconfirm) {
-			  numconfirm--;
-		  }
-		  gccorestatus[msgdata[1]] = msgdata[2];
-		  gcnumsendobjs[msgdata[1]] = msgdata[3];
-		  gcnumreceiveobjs[msgdata[1]] = msgdata[4];
-		}
-	  break;
-	}
-
-	case GCMARKEDOBJ: {
-		// received a markedObj msg
-		if(((int *)msgdata[1])[6] == INIT) {
-				// this is the first time that this object is discovered,
-				// set the flag as DISCOVERED
-				((int *)msgdata[1])[6] = DISCOVERED;
-				gc_enqueue_I(msgdata[1]);
-		}
-		gcself_numreceiveobjs++;
-		gcbusystatus = true;
-		break;
-	}
-
-	case GCMOVESTART: {
-		// received a start moving objs msg
-		gctomove = true;
-		gcdstcore = msgdata[1];
-		gcmovestartaddr = msgdata[2];
-		gcblock2fill = msgdata[3];
-		break;
-	}
-	
-	case GCMAPREQUEST: {
-		// received a mapping info request msg
-		void * dstptr = NULL;
-		//dstptr = mgchashSearch(msgdata[1]);
-		RuntimeHashget(gcpointertbl, msgdata[1], &dstptr);
-		//MGCHashget(gcpointertbl, msgdata[1], &dstptr);
-		if(NULL == dstptr) {
-			// no such pointer in this core, something is wrong
-#ifdef DEBUG
-			BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-			BAMBOO_EXIT(0xb007);
-			//assume that the object was not moved, use the original address
-			/*if(isMsgSending) {
-				cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
-			} else {
-				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1], true);
-			}*/
-		} else {
-			// send back the mapping info
-			if(isMsgSending) {
-				cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], (int)dstptr);
-			} else {
-				send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], (int)dstptr, true);
-			}
-		}
-		break;
-	}
-
-	case GCMAPINFO: {
-		// received a mapping info response msg
-		if(msgdata[1] != gcobj2map) {
-			// obj not matched, something is wrong
-#ifdef DEBUG
-			BAMBOO_DEBUGPRINT_REG(gcobj2map);
-			BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-			BAMBOO_EXIT(0xb008);
-		} else {
-			gcmappedobj = msgdata[2];
-			//mgchashInsert_I(gcobj2map, gcmappedobj);
-			RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
-			//MGCHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
-		}
-		gcismapped = true;
-		break;
-	}
-
-	case GCLOBJREQUEST: {
-		// received a large objs info request msg
-		transferMarkResults_I();
-		break;
-	}
-
-	case GCLOBJINFO: {
-		// received a large objs info response msg
-		numconfirm--;
-
-		if(BAMBOO_NUM_OF_CORE > NUMCORES4GC - 1) {
-#ifndef CLOSE_PRINT
-			BAMBOO_DEBUGPRINT_REG(msgdata[2]);
-#endif
-			BAMBOO_EXIT(0xb009);
-		} 
-		// store the mark result info 
-		int cnum = msgdata[2];
-		gcloads[cnum] = msgdata[3];
-		if(gcheaptop < msgdata[4]) {
-			gcheaptop = msgdata[4];
-		}
-		// large obj info here
-	  for(int k = 5; k < msgdata[1];) {
-			int lobj = msgdata[k++];
-			int length = msgdata[k++];
-			gc_lobjenqueue_I(lobj, length, cnum);
-			gcnumlobjs++;
-		} // for(int k = 5; k < msgdata[1];)
-		break;
-	}
-	
-	case GCLOBJMAPPING: {
-		// received a large obj mapping info msg
-		//mgchashInsert_I(msgdata[1], msgdata[2]);
-		RuntimeHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
-		//MGCHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
-		break;
-	}
-
-#endif
-
-	default:
-		break;
-	}
-  memset(msgdata, '\0', sizeof(int) * msgdataindex);
-	msgdataindex = 0;
-	msglength = BAMBOO_MSG_BUF_LENGTH;
-#ifdef DEBUG
-#ifndef CLOSE_PRINT
-	BAMBOO_DEBUGPRINT(0xe88d);
-#endif
-#endif
-
-	if(BAMBOO_MSG_AVAIL() != 0) {
-		goto msg;
-	}
 #ifdef PROFILE
 /*if(isInterrupt) {
 		profileTaskEnd();
 	}*/
 #endif
-	return (int)type;
-} else {
-	// not a whole msg
+		return (int)type;
+	} else {
+		// not a whole msg
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
-	BAMBOO_DEBUGPRINT(0xe88e);
+		BAMBOO_DEBUGPRINT(0xe88e);
 #endif
 #endif
 #ifdef PROFILE
-/*  if(isInterrupt) {
-		  profileTaskEnd();
-		}*/
+	/*  if(isInterrupt) {
+				profileTaskEnd();
+			}*/
 #endif
     return -2;
   }

@@ -23,14 +23,14 @@
 typedef struct mgchashlistnode {
   void * key;
   void * val; //this can be cast to another type or used to point to a 
-	            //larger structure
+ 	            //larger structure 
   struct mgchashlistnode *next;
 } mgchashlistnode_t;
 
 typedef struct mgchashtable {
   mgchashlistnode_t *table;       // points to beginning of hash table
   unsigned int size;
-  //unsigned int mask;
+  unsigned int mask;
   unsigned int numelements;
   unsigned int threshold;
   double loadfactor;

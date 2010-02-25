@@ -10,10 +10,11 @@
 ///////////////////////////////////////////////////////////////
 
 // data structures for msgs
-#define BAMBOO_OUT_BUF_LENGTH 300
-#define BAMBOO_MSG_BUF_LENGTH 30
+#define BAMBOO_OUT_BUF_LENGTH 3000
+#define BAMBOO_MSG_BUF_LENGTH 3000
 int msgdata[BAMBOO_MSG_BUF_LENGTH];
 int msgdataindex;
+int msgdatalast;
 int msglength;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
 int outmsgindex;
@@ -22,13 +23,33 @@ int outmsgleft;
 bool isMsgHanging;
 volatile bool isMsgSending;
 
+#define MSG_INDEXINC_I() \
+	msgdataindex = (msgdataindex + 1) % (BAMBOO_MSG_BUF_LENGTH)
+
+#define MSG_LASTINDEXINC_I() \
+	msgdatalast = (msgdatalast + 1) % (BAMBOO_MSG_BUF_LENGTH)
+
+#define MSG_CACHE_I(n) \
+	msgdata[msgdatalast] = (n); \
+  MSG_LASTINDEXINC_I() 
+
+// NOTE: if msgdataindex == msgdatalast, it always means that the buffer if 
+//       full. In the case that the buffer is empty, should never call this
+//       MACRO
+#define MSG_REMAINSIZE_I(s) \
+	if(msgdataindex < msgdatalast) { \
+		(*(int*)s) = msgdatalast - msgdataindex; \
+	} else { \
+		(*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) - msgdataindex + msgdatalast; \
+	} 
+
 #define OUTMSG_INDEXINC() \
 	outmsgindex = (outmsgindex + 1) % (BAMBOO_OUT_BUF_LENGTH)
 
 #define OUTMSG_LASTINDEXINC() \
 	outmsglast = (outmsglast + 1) % (BAMBOO_OUT_BUF_LENGTH); \
 	if(outmsglast == outmsgindex) { \
-		BAMBOO_EXIT(0xd001); \
+		BAMBOO_EXIT(0xdd01); \
 	} 
 
 #define OUTMSG_CACHE(n) \
@@ -194,11 +215,13 @@ typedef enum {
 ////////////////////////////////////////////////////////////////////////////////
 // data structures of status for termination
 // only check working cores
-int corestatus[NUMCORESACTIVE]; // records status of each core
-                                // 1: running tasks
-                                // 0: stall
-int numsendobjs[NUMCORESACTIVE]; // records how many objects a core has sent out
-int numreceiveobjs[NUMCORESACTIVE]; // records how many objects a core has received
+volatile int corestatus[NUMCORESACTIVE]; // records status of each core
+                                         // 1: running tasks
+                                         // 0: stall
+volatile int numsendobjs[NUMCORESACTIVE]; // records how many objects a core 
+                                          // has sent out
+volatile int numreceiveobjs[NUMCORESACTIVE]; // records how many objects a 
+                                             // core has received
 volatile int numconfirm;
 volatile bool waitconfirm;
 bool busystatus;
@@ -275,8 +298,8 @@ struct freeMemList {
 // table recording the number of allocated bytes on each block
 // Note: this table resides on the bottom of the shared heap for all cores
 //       to access
-int * bamboo_smemtbl;
-int bamboo_free_block;
+volatile int * bamboo_smemtbl;
+volatile int bamboo_free_block;
 //bool bamboo_smem_flushed;
 //struct freeMemList * bamboo_free_mem_list;
 int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
@@ -321,9 +344,9 @@ bool taskInfoOverflow;
 /*InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
    int interruptInfoIndex;
    bool interruptInfoOverflow;*/
-int profilestatus[NUMCORESACTIVE]; // records status of each core
-                             // 1: running tasks
-                             // 0: stall
+volatile int profilestatus[NUMCORESACTIVE]; // records status of each core
+                                            // 1: running tasks
+                                            // 0: stall
 #endif // #ifdef PROFILE
 
 #ifndef INTERRUPT

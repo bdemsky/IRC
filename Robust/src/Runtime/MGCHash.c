@@ -22,7 +22,7 @@
 /* MGCHASH ********************************************************/
 mgchashlistnode_t *mgc_table;
 unsigned int mgc_size;
-//unsigned INTPTR mgc_mask;
+unsigned INTPTR mgc_mask;
 unsigned int mgc_numelements;
 unsigned int mgc_threshold;
 double mgc_loadfactor;
@@ -38,13 +38,13 @@ void mgchashCreate(unsigned int size, double loadfactor) {
   mgc_loadfactor = loadfactor;
   mgc_size = size;
   mgc_threshold=size*loadfactor;
-	/*
+	
 #ifdef BIT64
-  mgc_mask = ((size << 4)-1)&~(15UL);
+  mgc_mask = ((size << 6)-1)&~(15UL);
 #else
-  mgc_mask = ((size << 4)-1)&~15;
+  mgc_mask = ((size << 6)-1)&~15;
 #endif
-*/
+
   mgc_structs=RUNMALLOC(1*sizeof(mgcliststruct_t));
   mgc_numelements = 0; // Initial number of elements in the hash
 }
@@ -53,7 +53,7 @@ void mgchashreset() {
   mgchashlistnode_t *ptr = mgc_table;
   int i;
 
-  /*if (mgc_numelements<(mgc_size>>4)) {
+  /*if (mgc_numelements<(mgc_size>>6)) {
     mgchashlistnode_t *top=&ptr[mgc_size];
     mgchashlistnode_t *tmpptr=mgc_list;
     while(tmpptr!=NULL) {
@@ -87,11 +87,12 @@ void mgchashInsert(void * key, void *val) {
     mgchashResize(newsize);
   }
 
-	int hashkey = (unsigned int)key % mgc_size; 
-  ptr=&mgc_table[hashkey];//&mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>4];
+	//int hashkey = (unsigned int)key % mgc_size; 
+  ptr=&mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];//&mgc_table[hashkey];
   mgc_numelements++;
 
   if(ptr->key==0) {
+		// the first time insert a value for the key
     ptr->key=key;
     ptr->val=val;
   } else { // Insert in the beginning of linked list
@@ -124,14 +125,15 @@ void mgchashInsert_I(void * key, void *val) {
     mgchashResize_I(newsize);
   }
 
-	int hashkey = (unsigned int)key % mgc_size; 
-  ptr=&mgc_table[hashkey];
-  //ptr = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>4];
+	//int hashkey = (unsigned int)key % mgc_size; 
+  //ptr=&mgc_table[hashkey];
+  ptr = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];
   mgc_numelements++;
 
   if(ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
+		return; 
   } else { // Insert in the beginning of linked list
     mgchashlistnode_t * node;
     if (mgc_structs->num<NUMMGCLIST) {
@@ -156,9 +158,9 @@ void mgchashInsert_I(void * key, void *val) {
 // Search for an address for a given oid
 INLINE void * mgchashSearch(void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
-	int hashkey = (unsigned int)key % mgc_size;
-  mgchashlistnode_t *node = &mgc_table[hashkey];
-		//&mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>4];
+	//int hashkey = (unsigned int)key % mgc_size;
+  mgchashlistnode_t *node = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];
+		//&mgc_table[hashkey];
 
   do {
     if(node->key == key) {
@@ -175,7 +177,7 @@ unsigned int mgchashResize(unsigned int newsize) {
   unsigned int oldsize;
   int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
   unsigned int i,index;
-  //unsigned int mask;
+  unsigned int mask;
 
   ptr = mgc_table;
   oldsize = mgc_size;
@@ -188,7 +190,7 @@ unsigned int mgchashResize(unsigned int newsize) {
   mgc_table = node;          //Update the global hashtable upon resize()
   mgc_size = newsize;
   mgc_threshold = newsize * mgc_loadfactor;
-  //mask=mgc_mask = (newsize << 4)-1;
+  mask=mgc_mask = (newsize << 6)-1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     curr = &ptr[i];
@@ -200,8 +202,8 @@ unsigned int mgchashResize(unsigned int newsize) {
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
-			index = (unsigned int)key % mgc_size; 
-      //index = (((unsigned INTPTR)key) & mask) >>4;
+			//index = (unsigned int)key % mgc_size; 
+      index = (((unsigned INTPTR)key) & mask) >>6;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
@@ -238,7 +240,7 @@ unsigned int mgchashResize_I(unsigned int newsize) {
   unsigned int oldsize;
   int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
   unsigned int i,index;
-  //unsigned int mask;
+  unsigned int mask;
 
   ptr = mgc_table;
   oldsize = mgc_size;
@@ -252,7 +254,7 @@ unsigned int mgchashResize_I(unsigned int newsize) {
   mgc_table = node;          //Update the global hashtable upon resize()
   mgc_size = newsize;
   mgc_threshold = newsize * mgc_loadfactor;
-  //mask=mgc_mask = (newsize << 4)-1;
+  mask=mgc_mask = (newsize << 6)-1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     curr = &ptr[i];
@@ -266,8 +268,8 @@ unsigned int mgchashResize_I(unsigned int newsize) {
 	      break;                  
 				//key = val =0 for element if not present within the hash table
       }
-			index = (unsigned int)key % mgc_size; 
-      //index = (((unsigned INTPTR)key) & mask) >>4;
+			//index = (unsigned int)key % mgc_size; 
+      index = (((unsigned INTPTR)key) & mask) >>6;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table

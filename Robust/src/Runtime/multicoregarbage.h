@@ -33,6 +33,11 @@ typedef struct gc_info {
 GCInfo * gc_infoArray[GCINFOLENGTH];
 int gc_infoIndex;
 bool gc_infoOverflow;
+
+// TODO
+unsigned long long flushstalltime;
+unsigned long long flushstalltime_i;
+int num_mapinforequest_i;
 #endif
 
 typedef enum {
@@ -60,12 +65,13 @@ volatile GCPHASETYPE gcphase; // indicating GC phase
 int gccurr_heaptop;
 struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
-int gccorestatus[NUMCORESACTIVE]; // records status of each core
-                                  // 1: running gc
-                                  // 0: stall
-int gcnumsendobjs[NUMCORESACTIVE]; // records how many objects sent out
-int gcnumreceiveobjs[NUMCORESACTIVE]; // records how many objects received
-bool gcbusystatus;
+volatile int gccorestatus[NUMCORESACTIVE]; // records status of each core
+                                           // 1: running gc
+                                           // 0: stall
+volatile int gcnumsendobjs[NUMCORESACTIVE];//records how many objects sent out
+volatile int gcnumreceiveobjs[NUMCORESACTIVE];//records how many objects 
+                                              //received
+volatile bool gcbusystatus;
 int gcself_numsendobjs;
 int gcself_numreceiveobjs;
 
@@ -89,12 +95,25 @@ volatile bool gctomove;
 int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
+struct flushlist {
+	void * key;
+	struct flushnode * val;
+	struct flushlist * next;
+};
+
+struct flushnode {
+	void ** ptr;
+	struct flushnode * next;
+};
 // mapping of old address to new address
-struct RuntimeHash * gcpointertbl;
+volatile struct RuntimeHash * gcpointertbl;
 //struct MGCHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;
 volatile bool gcismapped;
+//volatile struct flushlist * gcflushlist; // list of (key, list of reference 
+                                         // to be flushed)
+//volatile int gcnumflush;
 
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
