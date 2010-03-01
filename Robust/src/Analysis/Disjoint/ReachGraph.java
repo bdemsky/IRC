@@ -1133,7 +1133,8 @@ public class ReachGraph {
     makeCalleeView( FlatCall            fc,
                     FlatMethod          fm,
                     Set<HeapRegionNode> callerNodesCopiedToCallee,
-                    Set<RefEdge>        callerEdgesCopiedToCallee
+                    Set<RefEdge>        callerEdgesCopiedToCallee,
+                    boolean             writeDebugDOTs
                     ) {
 
     // the callee view is a new graph: DON'T MODIFY
@@ -1370,16 +1371,12 @@ public class ReachGraph {
     }    
 
 
-    /*
-    try {
-      rg.writeGraph( "calleeview", true, false, false, false, true, true );
-    } catch( IOException e ) {}
-
-
-    if( fc.getMethod().getSymbol().equals( "addSomething" ) ) {
-      System.exit( 0 );
+    if( writeDebugDOTs ) {    
+      try {
+        rg.writeGraph( "calleeview", true, false, false, false, true, true );
+      } catch( IOException e ) {}
     }
-    */
+
 
     return rg;
   }  
@@ -1389,18 +1386,17 @@ public class ReachGraph {
                        FlatMethod          fm,        
                        ReachGraph          rgCallee,
                        Set<HeapRegionNode> callerNodesCopiedToCallee,
-                       Set<RefEdge>        callerEdgesCopiedToCallee
+                       Set<RefEdge>        callerEdgesCopiedToCallee,
+                       boolean             writeDebugDOTs
                        ) {
 
 
-    if( fc.getMethod().getSymbol().equals( "addBar" ) ) {
-
+    if( writeDebugDOTs ) {
       try {
-        writeGraph( "caller", true, false, false, false, true, true, callerNodesCopiedToCallee, callerEdgesCopiedToCallee );
+        this.writeGraph( "caller", true, false, false, false, true, true, 
+                         callerNodesCopiedToCallee, callerEdgesCopiedToCallee );
         rgCallee.writeGraph( "callee", true, false, false, false, true, true );
       } catch( IOException e ) {}
-      
-      //System.exit( 0 );
     }
 
 
@@ -1413,6 +1409,9 @@ public class ReachGraph {
     //    b) bring in callee -> callee edges
     //    c) resolve out-of-context -> callee edges
     // 4. Global sweep it.
+
+
+    System.out.println( );
 
 
 
@@ -1435,6 +1434,11 @@ public class ReachGraph {
                                               )
           ) {
         calleeNodesSatisfied.add( hrnCallee );
+
+
+        
+
+
       }
 
       Iterator<RefEdge> reItr = hrnCallee.iteratorToReferencees();
@@ -1460,7 +1464,6 @@ public class ReachGraph {
     }
 
 
-    /*
     // 3. callee elements with satisfied preds come in
 
     // 3.a) nodes
@@ -1535,7 +1538,7 @@ public class ReachGraph {
     }
 
     // 3.c) resolve out-of-context -> callee edges
-    */
+
     
 
     // 4.
@@ -1543,13 +1546,12 @@ public class ReachGraph {
     globalSweep();
     */
 
-    if( fc.getMethod().getSymbol().equals( "addBar" ) ) {
-
+    if( writeDebugDOTs ) {
       try {
-        writeGraph( "callerAfter", true, false, false, false, true, true, null, null );
+        writeGraph( "callerAfter", 
+                    true, false, false, false, true, true, 
+                    null, null );
       } catch( IOException e ) {}
-      
-      //System.exit( 0 );
     }
 
   } 

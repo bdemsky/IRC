@@ -117,6 +117,7 @@ public class DisjointAnalysis {
     mapDescriptorToNumUpdates;
 
 
+
   // allocate various structures that are not local
   // to a single class method--should be done once
   protected void allocateStructures() {    
@@ -529,9 +530,14 @@ public class DisjointAnalysis {
       break;
 
     case FKind.FlatCall: {
+      MethodDescriptor mdCaller = fmContaining.getMethod();
       FlatCall         fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
+
+      boolean writeDebugDOTs = 
+        mdCaller.getSymbol().equals( state.DISJOINTDEBUGCALLER ) &&
+        mdCallee.getSymbol().equals( state.DISJOINTDEBUGCALLEE );      
 
 
       // calculate the heap this call site can reach--note this is
@@ -553,7 +559,8 @@ public class DisjointAnalysis {
         rg.makeCalleeView( fc, 
                            fmCallee,
                            callerNodesCopiedToCallee,
-                           callerEdgesCopiedToCallee
+                           callerEdgesCopiedToCallee,
+                           writeDebugDOTs
                            );
 
       if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {        
@@ -609,7 +616,8 @@ public class DisjointAnalysis {
                                     fmPossible, 
                                     rgEffect,
                                     callerNodesCopiedToCallee,
-                                    callerEdgesCopiedToCallee
+                                    callerEdgesCopiedToCallee,
+                                    writeDebugDOTs
                                     );
         }
         
