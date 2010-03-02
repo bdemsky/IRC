@@ -247,7 +247,7 @@ public class ScheduleAnalysis {
       // read in profile data and set
       //FileInputStream inStream = new FileInputStream("/scratch/profile.rst");
       FileInputStream inStream = 
-        new FileInputStream("/scratch/" + this.state.profilename);
+        new FileInputStream(/*"/scratch/" + */this.state.profilename);
       byte[] b = new byte[1024 * 100];
       int length = inStream.read(b);
       if(length < 0) {
