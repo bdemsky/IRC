@@ -161,6 +161,14 @@ public class ReachGraph {
     assert edge.getSrc() == referencer;
     assert edge.getDst() == referencee;
 
+    // edges are getting added twice to graphs now, the
+    // kind that should have abstract facts merged--use
+    // this check to prevent that
+    assert referencer.getReferenceTo( referencee,
+                                      edge.getType(),
+                                      edge.getField()
+                                      ) == null;
+
     referencer.addReferencee( edge );
     referencee.addReferencer( edge );
   }
@@ -869,6 +877,13 @@ public class ReachGraph {
   protected void transferOnto( HeapRegionNode hrnA, 
                                HeapRegionNode hrnB ) {
 
+    // don't allow a heap region from one graph to
+    // get transferred onto a region from another
+    // graph!!  Do the transfer on the equivalent
+    // elements!
+    assert id2hrn.get( hrnA.getID() ) == hrnA;
+    assert id2hrn.get( hrnB.getID() ) == hrnB;
+
     // clear references in and out of node b
     wipeOut( hrnB );
 
@@ -879,6 +894,7 @@ public class ReachGraph {
       HeapRegionNode hrnReferencee = edge.getDst();
       RefEdge        edgeNew       = edge.copy();
       edgeNew.setSrc( hrnB );
+      edgeNew.setDst( hrnB );
 
       addRefEdge( hrnB, hrnReferencee, edgeNew );
     }
@@ -888,6 +904,7 @@ public class ReachGraph {
       RefEdge    edge         = itrReferencer.next();
       RefSrcNode onReferencer = edge.getSrc();
       RefEdge    edgeNew      = edge.copy();
+      edgeNew.setDst( hrnB );
       edgeNew.setDst( hrnB );
 
       addRefEdge( onReferencer, hrnB, edgeNew );
@@ -1492,7 +1509,11 @@ public class ReachGraph {
                                    );                                        
       }
 
-      transferOnto( hrnCallee, hrnCaller );
+      // TODO: alpha should be some rewritten version of callee in caller context
+      hrnCaller.setAlpha( rsetEmpty );
+
+      // TODO: predicates should be exact same from caller version that satisfied
+      hrnCaller.setPreds( predsTrue );
     }
 
     // 3.b) callee -> callee edges
@@ -1527,12 +1548,13 @@ public class ReachGraph {
       HeapRegionNode hrnDstCaller = id2hrn.get( hrnDstCallee.getID() );
       assert hrnDstCaller != null;
       
+      // TODO: beta rewrites, preds from satisfier in caller
       RefEdge reCaller = new RefEdge( rsnCaller,
                                       hrnDstCaller,
                                       reCallee.getType(),
                                       reCallee.getField(),
-                                      reCallee.getBeta(),
-                                      reCallee.getPreds()
+                                      rsetEmpty,
+                                      predsTrue
                                       );
       addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
     }
