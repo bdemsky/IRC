@@ -13,4 +13,7 @@ void movehead(int size);
 void * gettail();
 void inctail();
 void predealloc();
+int numavailable();
+void resetqueue();
+void incmulttail(int);
 #endif

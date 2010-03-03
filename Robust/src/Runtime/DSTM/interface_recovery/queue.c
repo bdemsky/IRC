@@ -58,16 +58,48 @@ void movehead(int size) {
 void * gettail() {
   while(tailoffset==headoffset) {
     //Sleep
-    //    pthread_mutex_lock(&qlock);
-    //    if (tailoffset==headoffset)
-    //      pthread_cond_wait(&qcond, &qlock);
-    //    pthread_mutex_unlock(&qlock);
+        pthread_mutex_lock(&qlock);
+        if (tailoffset==headoffset)
+          pthread_cond_wait(&qcond, &qlock);
+        pthread_mutex_unlock(&qlock);
   }
   if (*((int *)(memory+tailoffset))==-1) {
     tailoffset=0; //do loop
   }
 
   return memory+tailoffset+sizeof(int);
+}
+
+int numavailable() {
+  int tmp=tailoffset;
+  int available=0;
+  if (*((int *)(memory+tmp))==-1) {
+    tmp=0;
+  }
+  while(tmp!=headoffset) {
+    available++;
+    tmp=tmp+*((int *)(memory+tmp));
+    if (tmp>QSIZE|| (*((int *)(memory+tmp))==-1)) {
+      break;
+    }
+  }
+  return available;
+}
+
+void incmulttail(int num) {
+  int i;
+  for(i=0;i<num;i++) {
+    int tmpoffset=tailoffset+*((int *)(memory+tailoffset));
+    if (tmpoffset>QSIZE)
+      tailoffset=0;
+    else
+      tailoffset=tmpoffset;
+  }
+}
+
+void resetqueue() {
+  headoffset=0;
+  tailoffset=0;
 }
 
 void inctail() {

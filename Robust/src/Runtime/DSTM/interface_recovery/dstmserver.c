@@ -4,7 +4,7 @@
 #include <netinet/tcp.h>
 #include <ip.h>
 #include "dstm.h"
-#include "mlookup.h"
+#include "altmlookup.h"
 #include "llookup.h"
 #include "threadnotify.h"
 #include "prefetch.h"

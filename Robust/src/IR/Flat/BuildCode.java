@@ -313,10 +313,15 @@ public class BuildCode {
     }
 
     if (state.DSM) {
-      outmethod.println("#ifdef TRANSSTATS \n");
-      outmethod.println("handle();\n");
-      outmethod.println("#endif\n");
+      if (state.DSMRECOVERYSTATS)
+        outmethod.println("handle();\n");
+      else {
+        outmethod.println("#ifdef TRANSSTATS \n");
+        outmethod.println("handle();\n");
+        outmethod.println("#endif\n");
+      }
     }
+    
     if (state.THREAD||state.DSM||state.SINGLETM) {
       outmethod.println("initializethreads();");
     }

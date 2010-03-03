@@ -242,6 +242,7 @@ typedef struct recoverystat {
   unsigned int deadMachine;
   long long elapsedTime;
   unsigned int recoveredData;
+  unsigned int recvData;
 } recovery_stat_t;
 #endif
 
@@ -363,9 +364,9 @@ void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);
 void prefetch(int, int, unsigned int *, unsigned short *, short*);
 void *transPrefetch(void *);
 void *mcqProcess(void *);
-prefetchpile_t *foundLocal(char *); // returns node with prefetch elements(oids, offsets)
-int lookupObject(unsigned int * oid, short offset);
-int checkoid(unsigned int oid);
+prefetchpile_t *foundLocal(char *,int); // returns node with prefetch elements(oids, offsets)
+int lookupObject(unsigned int * oid, short offset, int *);
+int checkoid(unsigned int oid, int);
 int transPrefetchProcess(int **, short);
 void sendPrefetchReq(prefetchpile_t*, int);
 void sendPrefetchReqnew(prefetchpile_t*, int);

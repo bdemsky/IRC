@@ -232,9 +232,11 @@ void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct 
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef TRANSSTATS
+#ifndef RECOVERY
   printf("numTransCommit = %d\n", numTransCommit);
   printf("numTransAbort = %d\n", numTransAbort);
   printf("nSoftAbort = %d\n", nSoftAbort);
+#endif
 #ifdef STM
   printf("nSoftAbortCommit = %d\n", nSoftAbortCommit);
   printf("nSoftAbortAbort = %d\n", nSoftAbortAbort);

@@ -1,5 +1,5 @@
-#ifndef _ALTMLOOKUP_H_
-#define _ALTMLOOKUP_H_
+#ifndef _MLOOKUP_H_
+#define _MLOOKUP_H_
 
 #include <stdlib.h>
 #include <stdio.h>
