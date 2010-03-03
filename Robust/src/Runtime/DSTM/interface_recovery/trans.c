@@ -2558,7 +2558,8 @@ void duplicateLostObjects(unsigned int mid){
 	
 	//connect to these machines
 	//go through their object store copying necessary (in a transaction)
-	int sd = 0, i, j, tmpNumLiveHosts = 0;
+	int i, j, tmpNumLiveHosts = 0;
+  int psd,bsd;
 
   /* duplicateLostObject example
    * Before M24 die,
@@ -2573,67 +2574,43 @@ void duplicateLostObjects(unsigned int mid){
 
   dupeSize = 0;
 
-	if(originalMid == myIpAddr) {   // copy local machine's backup data, make it as primary data of backup machine.
-		dupeSize += duplicateLocalOriginalObjects(backupMid);	  // size of primary data
-	}
-	else if((sd = getSockWithLock(transPrefetchSockPool, originalMid)) < 0) {
-		printf("%s -> socket create error, attempt %d\n", __func__,j);
+  if(((psd = getSockWithLock(transPrefetchSockPool, originalMid)) < 0 ) || ((bsd = getSockWithLock(transPrefetchSockPool,backupMid)) <0)) {
+    printf("%s -> Socket create error\n",__func__);
     exit(0);
-		//usleep(1000);
-	}
-	else {      // if original is not local
-		char duperequest;
-		duperequest = DUPLICATE_ORIGINAL;
-		send_data(sd, &duperequest, sizeof(char));
-#ifdef DEBUG
-	  printf("%s-> SD : %d  Sent DUPLICATE_ORIGINAL request to %s\n", __func__,sd,midtoIPString(originalMid));	
-#endif
-		send_data(sd, &backupMid, sizeof(unsigned int));
+  }
 
-    char response;
-    unsigned int receivedSize;
-		recv_data(sd, &response, sizeof(char));
-    recv_data(sd, &receivedSize, sizeof(unsigned int));
+/* request for original */
+	char duperequest;
+	duperequest = DUPLICATE_ORIGINAL;
+	send_data(psd, &duperequest, sizeof(char));
+	send_data(psd, &backupMid, sizeof(unsigned int));
 
-    dupeSize += receivedSize; // size of primary data
-    
+/* request for backup */
+	duperequest = DUPLICATE_BACKUP;
+	send_data(bsd, &duperequest, sizeof(char));
+	send_data(bsd, &originalMid, sizeof(unsigned int));
 
-#ifdef DEBUG
-		printf("%s (DUPLICATE_ORIGINAL) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
-#endif
+	char p_response,b_response;
+  unsigned int p_receivedSize,b_receivedSize;
 
-    freeSockWithLock(transPrefetchSockPool, originalMid, sd);
-	}
+  recv_data(psd, &p_response, sizeof(char));
+  recv_data(psd, &p_receivedSize, sizeof(unsigned int));
 
-	if(backupMid == myIpAddr) {   // copy local machine's primary data, and make it as backup data of original machine.
-		dupeSize += duplicateLocalBackupObjects(originalMid); // size of backup data	
-	}
-	else if((sd = getSockWithLock(transPrefetchSockPool, backupMid)) < 0) {
-		printf("updateLiveHosts(): socket create error, attempt %d\n", j);
-		exit(1);
-	}
-	else {
-		char duperequest;
-		duperequest = DUPLICATE_BACKUP;
-		send_data(sd, &duperequest, sizeof(char));
-#ifdef DEBUG
-	  printf("%s-> SD : %d  Sent DUPLICATE_BACKUP request to %s\n", __func__,sd,midtoIPString(backupMid));	
-#endif
-		send_data(sd, &originalMid, sizeof(unsigned int));
+  dupeSize += p_receivedSize; // size of primary data
 
-		char response;
-    unsigned int receivedSize;
-		recv_data(sd, &response, sizeof(char));
-    recv_data(sd, &receivedSize, sizeof(unsigned int));
+  recv_data(bsd, &b_response, sizeof(char));
+  recv_data(bsd, &b_receivedSize, sizeof(unsigned int));
 
-    dupeSize += receivedSize; // size of backup data
+  dupeSize += b_receivedSize; // size of backup data
 
-#ifdef DEBUG
-		printf("%s (DUPLICATE_BACKUP) -> Received %s\n", __func__,(response==DUPLICATION_COMPLETE)?"DUPLICATION_COMPLETE":"DUPLICATION_FAIL");
-#endif
+  if(p_response != DUPLICATION_COMPLETE || b_response != DUPLICATION_COMPLETE)
+  {
+    printf("%s -> Duplication Fail\n",__func__);
+    exit(0);
+  }
 
-    freeSockWithLock(transPrefetchSockPool, backupMid, sd);
-	}
+  freeSockWithLock(transPrefetchSockPool, originalMid, psd);
+  freeSockWithLock(transPrefetchSockPool, backupMid, bsd);
 
 #ifdef RECOVERYSTATS
   fi = myrdtsc();

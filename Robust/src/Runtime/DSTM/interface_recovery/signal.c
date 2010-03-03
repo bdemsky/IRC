@@ -48,6 +48,10 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
 */
 
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
+#ifdef RECOVERYSTATS
+  fflush(stdout);
+#endif
+
 #ifdef TRANSSTATS
   printf("******  Transaction Stats   ******\n");
   printf("myIpAddr = %x\n", myIpAddr);
