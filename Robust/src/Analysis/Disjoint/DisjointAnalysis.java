@@ -350,11 +350,13 @@ public class DisjointAnalysis {
       }
 
       // modify rg with appropriate transfer function
-      analyzeFlatNode( d, fm, fn, setReturns, rg );
+      rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
+
           
 
       if( takeDebugSnapshots && 
-	  d.getSymbol().equals( descSymbolDebug ) ) {
+	  d.getSymbol().equals( descSymbolDebug ) 
+          ) {
 	debugSnapshot( rg, fn );
       }
 
@@ -393,7 +395,7 @@ public class DisjointAnalysis {
   }
 
   
-  protected void
+  protected ReachGraph
     analyzeFlatNode( Descriptor              d,
                      FlatMethod              fmContaining,
                      FlatNode                fn,
@@ -621,10 +623,8 @@ public class DisjointAnalysis {
                                     );
         }
         
-        rgMergeOfEffects.merge( rgCopy );	 
+        rgMergeOfEffects.merge( rgCopy );
       }
-
-	
 
 
       // now that we've taken care of building heap models for
@@ -656,6 +656,7 @@ public class DisjointAnalysis {
     // at this point rg should be the correct update
     // by an above transfer function, or untouched if
     // the flat node type doesn't affect the heap
+    return rg;
   }
 
   
@@ -696,7 +697,7 @@ public class DisjointAnalysis {
 	rg.writeGraph( "COMPLETE"+d,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
-                       true,   // prune unreachable heap regions
+                       false,  // prune unreachable heap regions
                        false,  // show back edges to confirm graph validity
                        true,   // hide subset reachability states
                        true ); // hide edge taints
@@ -1183,7 +1184,7 @@ public class DisjointAnalysis {
   
   // get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String descSymbolDebug = "addSomething";
+  String descSymbolDebug = "addBar";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1228,7 +1229,7 @@ public class DisjointAnalysis {
       try {
 	rg.writeGraph( graphName,
                        true,  // write labels (variables)
-                       true,  // selectively hide intermediate temp vars
+                       false, // selectively hide intermediate temp vars
                        false, // prune unreachable heap regions
                        false, // show back edges to confirm graph validity
                        true,  // hide subset reachability states

@@ -16,7 +16,7 @@ public class Test {
 
     /*
     Foo f2 = new Foo();
-    addSomething( f2 );    
+    addSomething( f2 );
     */
   }   
 

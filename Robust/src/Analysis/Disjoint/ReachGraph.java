@@ -894,7 +894,7 @@ public class ReachGraph {
       HeapRegionNode hrnReferencee = edge.getDst();
       RefEdge        edgeNew       = edge.copy();
       edgeNew.setSrc( hrnB );
-      edgeNew.setDst( hrnB );
+      edgeNew.setDst( hrnReferencee );
 
       addRefEdge( hrnB, hrnReferencee, edgeNew );
     }
@@ -1387,13 +1387,11 @@ public class ReachGraph {
       }
     }    
 
-
     if( writeDebugDOTs ) {    
       try {
         rg.writeGraph( "calleeview", true, false, false, false, true, true );
       } catch( IOException e ) {}
     }
-
 
     return rg;
   }  
@@ -1429,11 +1427,6 @@ public class ReachGraph {
 
 
 
-    if( writeDebugDOTs ) {
-      System.out.println( "doing call site, edges:"+callerEdgesCopiedToCallee );
-    }
-
-
     // 1. mark what callee elements have satisfied predicates
     Set<HeapRegionNode> calleeNodesSatisfied =
       new HashSet<HeapRegionNode>();
@@ -1453,13 +1446,6 @@ public class ReachGraph {
                                               )
           ) {
         calleeNodesSatisfied.add( hrnCallee );
-
-
-        
-        if( writeDebugDOTs ) {
-          System.out.println( "  node satissfied: "+hrnCallee );
-        }
-
       }
 
       Iterator<RefEdge> reItr = hrnCallee.iteratorToReferencees();
@@ -1486,12 +1472,6 @@ public class ReachGraph {
       Iterator<RefEdge> reItr = vnCallee.iteratorToReferencees();
       while( reItr.hasNext() ) {
         RefEdge reCallee = reItr.next();
-
-
-        if( writeDebugDOTs ) {
-          System.out.println( "  satisfied?: "+reCallee );
-        }
-
         
         if( reCallee.getPreds().isSatisfiedBy( this,
                                                callerNodesCopiedToCallee,
@@ -1499,20 +1479,8 @@ public class ReachGraph {
                                                )
             ) {
           calleeEdgesSatisfied.add( reCallee );
-
-          if( writeDebugDOTs ) {
-            System.out.println( "  satisfied: "+reCallee );
-          }
         }        
-
-        else 
-          if( writeDebugDOTs ) {
-            System.out.println( "  NOT satisfied: "+reCallee );
-          }
-
-
       }
-
     }
 
 
@@ -1522,10 +1490,6 @@ public class ReachGraph {
     while( hrnItr.hasNext() ) {
       HeapRegionNode hrnCaller = hrnItr.next();
       wipeOut( hrnCaller );
-
-      if( writeDebugDOTs ) {
-        System.out.println( "  wiping: "+hrnCaller );
-      }
     }
 
 
@@ -1557,10 +1521,6 @@ public class ReachGraph {
                                    );                                        
       }
 
-      if( writeDebugDOTs ) {
-        System.out.println( "  stitching in: "+hrnCaller );
-      }
-
       // TODO: alpha should be some rewritten version of callee in caller context
       hrnCaller.setAlpha( rsetEmpty );
 
@@ -1581,11 +1541,6 @@ public class ReachGraph {
         TempDescriptor tdParam  = vnCallee.getTempDescriptor();
         TempDescriptor tdArg    = fc.getArgMatchingParam( fm,
                                                           tdParam );
-
-        if( writeDebugDOTs ) {
-          System.out.println( "  considering: "+rsnCallee );
-        }
-
         if( tdArg == null ) {
           // this means the variable isn't a parameter, its local
           // to the callee so we ignore it in call site transfer
@@ -1593,10 +1548,6 @@ public class ReachGraph {
         }
         
         rsnCaller = this.getVariableNodeFromTemp( tdArg );
-
-        if( writeDebugDOTs ) {
-          System.out.println( "  stitching in: "+rsnCaller );
-        }
                   
       } else {
         HeapRegionNode hrnSrcCallee = (HeapRegionNode) reCallee.getSrc();
@@ -1631,7 +1582,7 @@ public class ReachGraph {
 
     if( writeDebugDOTs ) {
       try {
-        writeGraph( "callerAfter", 
+        writeGraph( "callerAfterTransfer", 
                     true, false, false, false, true, true, 
                     null, null );
       } catch( IOException e ) {}
