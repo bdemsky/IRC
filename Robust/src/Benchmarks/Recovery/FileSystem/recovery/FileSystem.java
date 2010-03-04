@@ -11,6 +11,7 @@ public class FileSystem extends Thread {
 	DistributedLinkedList dir_list;
 	GlobalString inputfile;
 	int mid;
+  int threadid;
 	
 	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, DistributedLinkedList dir_list) {
 		this.dir = dir;
@@ -18,11 +19,12 @@ public class FileSystem extends Thread {
 		this.dir_list = dir_list;
 	}
 	
-	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, DistributedLinkedList dir_list, String filename, int mid) {
+	public FileSystem(DistributedHashMap dir, DistributedHashMap fs, DistributedLinkedList dir_list, String filename, int mid,int threadid) {
 		this.dir = dir;
 		this.fs = fs;
 		this.dir_list = dir_list;
 		this.mid = mid;
+    this.threadid = threadid;
 		this.inputfile = global new GlobalString("../data/"+filename + mid);
 	}
 
@@ -68,6 +70,7 @@ public class FileSystem extends Thread {
 	}
 
 	public void run() {
+
 		Transaction t;
 
 		char command;
@@ -89,15 +92,15 @@ public class FileSystem extends Thread {
     long st = System.currentTimeMillis();
     long fi;
 
+			atomic {
 		while (!todoList.isEmpty()) {
 			t = (Transaction)(todoList.removeFirst());
 
 			command = t.getCommand();
 			key = t.getKey();
 
-			atomic {
 				gkey = global new GlobalString(key);
-			}
+			
 
 			index = key.lastindexOf('/');
 			if (index+1 == key.length()) 
@@ -108,33 +111,26 @@ public class FileSystem extends Thread {
 			if (command == 'r') {
 //        System.out.println("["+command+"] ["+key+"]");
 			 	if (isDir == true) {
-					atomic {
 						readDirectory(gkey);
-					}
   			}
 	  		else {
-					atomic {
 						readFile(gkey);
-					}
 			  }
 			}
 			else if (command == 'c') {
 // 				System.out.println("["+command+"] ["+key+"]");
   			if (isDir == true) {
-					atomic {
 						createDirectory(gkey);
-					}
     		}
 		  	else {
 			 		val = t.getValue();
-					atomic {
 						gval = global new GlobalString(val);
 						createFile(gkey, gval);
-					}
 			  }
-	  	}
+	  	  }
     }
 
+			}
     fi = System.currentTimeMillis();
 
 		sleep(3000000);
@@ -273,11 +269,11 @@ public class FileSystem extends Thread {
 		}
 		
 		int[] mid = new int[8];
-    /*
+   /*
 		mid[0] = (128<<24)|(195<<16)|(180<<8)|21;//dw-2
 		mid[1] = (128<<24)|(195<<16)|(180<<8)|26;//dw-7
-*/
-		mid[0] = (128<<24)|(195<<16)|(136<<8)|162;//dc-1
+   */
+  	mid[0] = (128<<24)|(195<<16)|(136<<8)|162;//dc-1
 		mid[1] = (128<<24)|(195<<16)|(136<<8)|163;//dc-2
 		mid[2] = (128<<24)|(195<<16)|(136<<8)|164;//dc-3
 		mid[3] = (128<<24)|(195<<16)|(136<<8)|165;//dc-4
@@ -285,7 +281,7 @@ public class FileSystem extends Thread {
     mid[5] = (128<<24)|(195<<16)|(136<<8)|167;//dc-6
 		mid[6] = (128<<24)|(195<<16)|(136<<8)|168;//dc-7
 		mid[7] = (128<<24)|(195<<16)|(136<<8)|169;//dc-8
-		
+    
     FileSystem[] lus;
 		FileSystem initLus;
 		
@@ -299,7 +295,7 @@ public class FileSystem extends Thread {
 
 			lus = global new FileSystem[NUM_THREADS];
 			for(int i = 0; i < NUM_THREADS; i++) {
-				lus[i] = global new FileSystem(initLus.dir, initLus.fs, initLus.dir_list, filename, i);
+				lus[i] = global new FileSystem(initLus.dir, initLus.fs, initLus.dir_list, filename, i,mid[i]);
 			}
 		}
 
