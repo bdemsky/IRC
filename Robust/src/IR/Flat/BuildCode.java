@@ -1772,28 +1772,24 @@ public class BuildCode {
       
       // set up related allocation sites's waiting queues
       // eom
-      output.println("   /* set up waiting queues */");
-      output.println("   int numRelatedWaitingQueue=0;");
-      output.println("   int waitingQueueItemID=0;");
-      ConflictGraph graph=null;
-      graph=mlpa.getConflictGraphResults().get(fm);
-      if(graph!=null){
-    	  HashSet<SESELock> lockSet=mlpa.getConflictGraphLockMap().get(graph);
-    	  
-    	  if(lockSet.size()>0){
-    		  output.println("   numRelatedWaitingQueue="+lockSet.size()+";");    	
-    		  output.println("   seseCaller->numRelatedWaitingQueue=numRelatedWaitingQueue;");
-    		  output.println("   seseCaller->allocSiteArray=mlpCreateAllocSiteArray(numRelatedWaitingQueue);");
-    		  int idx=0;
-        	  for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-        		SESELock seseLock = (SESELock) iterator.next();
-      			output.println("   seseCaller->allocSiteArray["+idx+"].id="+seseLock.getID()+";");
-      			idx++;
-          	  }
-        	  output.println();
-    	  }
-      }
-      
+		output.println("   /* set up waiting queues */");
+		output.println("   int numMemoryQueue=0;");
+		output.println("   int memoryQueueItemID=0;");
+		ConflictGraph graph = null;
+		graph = mlpa.getConflictGraphResults().get(fm);
+		if (graph != null) {
+			HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
+					graph);
+	
+			if (lockSet.size() > 0) {
+				output.println("   numMemoryQueue=" + lockSet.size() + ";");
+				output
+						.println("   seseCaller->numMemoryQueue=numMemoryQueue;");
+				output
+						.println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+				output.println();
+			}
+		}
     }
 
 
@@ -2071,36 +2067,31 @@ public class BuildCode {
       }
     }    
     
-    // set up related allocation sites's waiting queues
+    // setup memory queue
     // eom
-    output.println("   /* set up waiting queues */");
-    output.println("   int numRelatedWaitingQueue=0;");
-    output.println("   int waitingQueueItemID=0;");
-    ConflictGraph graph=null;
-    graph=mlpa.getConflictGraphResults().get(fsen);
+    output.println("   // set up memory queues ");
+	output.println("   int numMemoryQueue=0;");
+	output.println("   int memoryQueueItemID=0;");
+	ConflictGraph graph = null;
+	graph = mlpa.getConflictGraphResults().get(fsen);
 	if (graph != null) {
 		output.println("   {");
-		output.println("   SESEcommon* parentCommon = &(___params___->common);");
-		HashSet<SESELock> lockSet=mlpa.getConflictGraphLockMap().get(graph);
-	  	  
+		output
+				.println("   SESEcommon* parentCommon = &(___params___->common);");
+		HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
+				graph);
+
 		if (lockSet.size() > 0) {
-			output.println("   numRelatedWaitingQueue=" + lockSet.size()
-					+ ";");
+			output.println("   numMemoryQueue=" + lockSet.size() + ";");
 			output
-					.println("   parentCommon->numRelatedWaitingQueue=numRelatedWaitingQueue;");
+					.println("   parentCommon->numMemoryQueue=numMemoryQueue;");
 			output
-					.println("   parentCommon->allocSiteArray=mlpCreateAllocSiteArray(numRelatedWaitingQueue);");
-			int idx = 0;
-			for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-				SESELock seseLock = (SESELock) iterator.next();
-				output.println("   parentCommon->allocSiteArray[" + idx
-						+ "].id=" + seseLock.getID() + ";");
-				idx++;
-			}
+					.println("   parentCommon->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
 			output.println();
 		}
 		output.println("   }");
 	}
+
 
     // copy in-set into place, ready vars were already 
     // copied when the SESE was issued
@@ -2713,72 +2704,46 @@ public class BuildCode {
           output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
 	
-	 // eom
+	// eom
     // handling stall site
-    
-    ParentChildConflictsMap conflictsMap=mlpa.getConflictsResults().get(fn);
-    
+	ParentChildConflictsMap conflictsMap = mlpa.getConflictsResults().get(fn);
 	if (conflictsMap != null) {
-
-		Set<Long> allocSet = conflictsMap
-				.getAllocationSiteIDSetofStallSite();
-		
+		Set<Long> allocSet = conflictsMap.getAllocationSiteIDSetofStallSite();
 		if (allocSet.size() > 0) {
-			
 			FlatNode enclosingFlatNode=null;
 			if( currentSESE.getIsCallerSESEplaceholder() && currentSESE.getParent()==null){
 				enclosingFlatNode=currentSESE.getfmEnclosing();
 			}else{
 				enclosingFlatNode=currentSESE;
-			}
-			
+			}						
 			ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
 			HashSet<SESELock> seseLockSet=mlpa.getConflictGraphLockMap().get(graph);
 			Set<WaitingElement> waitingElementSet=graph.getStallSiteWaitingElementSet(conflictsMap, seseLockSet);
-
+			
 			if(waitingElementSet.size()>0){
-				output.println("   /*  stall on parent's stall sites */");
-				output.println("  {");
+				output.println("// stall on parent's stall sites ");
+				output.println("   {");
+				output.println("     REntry* rentry;");
 				output.println("     pthread_mutex_lock( &(seseCaller->lock) );");
-				output.println("     ConflictNode* node;");
-				output.println("     struct Queue* list=NULL;");
-				output.println("     WaitingElement* newElement=NULL;");
-				output.println("     struct QueueItem* newQItem=NULL;");
-				output.println("     waitingQueueItemID++;");
-//				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
-			    output.println("     pthread_cond_init( &(seseCaller->stallDone), NULL );");
-//				output.println("     psem_init( &(seseCaller->memoryStallSiteSem) );");
-				output.println("     int qIdx;");
-				output.println("     int takeCount=0;");
+				
 				for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
 					WaitingElement waitingElement = (WaitingElement) iterator.next();
 					
-					output.println("     qIdx=getQueueIdx(seseCaller->allocSiteArray,numRelatedWaitingQueue,"
-									+ waitingElement.getWaitingID() + ");");
-					output.println("     if(qIdx!=-1 && !isEmpty(seseCaller->allocSiteArray[qIdx].waitingQueue)){");
-					output.println("     list=createQueue();");
-					for (Iterator iterator2 = waitingElement.getAllocList().iterator(); iterator2.hasNext();) {
-						Integer allocID = (Integer) iterator2	.next();
-						output.println("     node=mlpCreateConflictNode( "+ allocID + " );");
-						output.println("     addNewItem(list,node);");
-					}
-					output.println("     newElement=mlpCreateWaitingElement( "+ waitingElement.getStatus()
-							+ ", seseCaller, list, waitingQueueItemID );");
-					output.println("        addNewItemBack(seseCaller->allocSiteArray[qIdx].waitingQueue,newElement);");
-					output.println("        takeCount++;");
-					output.println("     }");
+					output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + ");");
+					output.println("     pthread_cond_init( &(rentry->stallDone), NULL );");
+					output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+					output
+							.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+									+ "],rentry)==NOTREADY){");
+					output.println("        pthread_cond_wait( &(rentry->stallDone), &(seseCaller->lock) );");								
+					output.println("     }  ");
 				}
-				output.println("     if( takeCount>0 ){");
-//				output.println("        psem_take( &(seseCaller->memoryStallSiteSem) );");
-			    output.println("        pthread_cond_wait( &(seseCaller->stallDone), &(seseCaller->lock) );");
-				output.println("     }");
-				
 				output.println("     pthread_mutex_unlock( &(seseCaller->lock) );");
-				output.println("  }");
+				output.println("   }");
 			}
-
 		}
-	} // end of if (conflictsMap != null) {		
+	}	
+
       }     
     }
 
@@ -3383,64 +3348,50 @@ public class BuildCode {
     
     // count up memory conflict dependencies,
     // eom
-    ConflictGraph graph=null;
-    FlatSESEEnterNode parent=fsen.getParent();
-    if(parent!=null){
-        if(parent.isCallerSESEplaceholder){
-        	graph=mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
-        }else{
-        	graph=mlpa.getConflictGraphResults().get(parent);
-        }
-    }
-		if (graph != null) {
-			
-			HashSet<SESELock> seseLockSet=mlpa.getConflictGraphLockMap().get(graph);
-			
-			output.println();
-			output.println("     /*add waiting queue element*/");
-			Set<WaitingElement> waitingQueueSet=graph.getWaitingElementSetBySESEID(fsen
-					.getIdentifier(),seseLockSet);
-			if (waitingQueueSet.size() > 0) {
-				output.println("     {");
-				output.println("     waitingQueueItemID++;");
-				output.println("     ConflictNode* node;");
-				output.println("     WaitingElement* newElement=NULL;");
-				output.println("     struct Queue* list=NULL;");
-				output.println("     struct QueueItem* newQItem=NULL;");
-				output.println("     pthread_mutex_lock( &(parentCommon->lock) );");
-				for (Iterator iterator = waitingQueueSet.iterator(); iterator
-						.hasNext();) {
-					WaitingElement waitingElement = (WaitingElement) iterator.next();
-					output.println("     list=createQueue();");
-					for (Iterator iterator2 = waitingElement.getAllocList().iterator(); iterator2
-							.hasNext();) {
-						Integer allocID = (Integer) iterator2
-								.next();
-						output.println("     node=mlpCreateConflictNode( "+allocID+" );");
-						output.println("     addNewItem(list,node);");
-					}
-					output.println("     seseToIssue->common.waitingQueueItemID=waitingQueueItemID;");
-					output.println("     newElement=mlpCreateWaitingElement( "+waitingElement.getStatus()+", seseToIssue, list, waitingQueueItemID );");
-					
-					output
-							.println("     if(addWaitingQueueElement(parentCommon->allocSiteArray,numRelatedWaitingQueue,"
-									+ waitingElement.getWaitingID() + ",newElement)){");
-					output.println("     ++(localCount);");
-					output.println("     } ");
-
-					output
-					.println();
-				}
-				output.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
-				output.println("     }");
-			}
-			
-			output.println();
+	ConflictGraph graph = null;
+	FlatSESEEnterNode parent = fsen.getParent();
+	if (parent != null) {
+		if (parent.isCallerSESEplaceholder) {
+			graph = mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
+		} else {
+			graph = mlpa.getConflictGraphResults().get(parent);
 		}
-
-    // eom
-//    output.println("     pthread_mutex_init( &(seseToIssue->common.waitingQueueLock), NULL );");
-    //
+	}
+	if (graph != null) {
+		HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap().get(
+				graph);
+		output.println();
+		output.println("     //add memory queue element");
+		Set<WaitingElement> waitingQueueSet = graph
+				.getWaitingElementSetBySESEID(fsen.getIdentifier(),
+						seseLockSet);
+		if (waitingQueueSet.size() > 0) {
+			output.println("     {");
+			output.println("     REntry* rentry=NULL;");
+			output.println("     seseToIssue->common.rentryIdx=0;");
+			output
+					.println("     pthread_mutex_lock( &(parentCommon->lock) );");
+			for (Iterator iterator = waitingQueueSet.iterator(); iterator
+					.hasNext();) {
+				WaitingElement waitingElement = (WaitingElement) iterator
+						.next();
+				output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseToIssue,  seseToIssue->"+ waitingElement.getDynID() + ");");
+				output.println("     rentry->queue=parentCommon->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+				output.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+				output
+						.println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
+								+ waitingElement.getQueueID()
+								+ "],rentry)==NOTREADY){");
+				output.println("        ++(localCount);");
+				output.println("     } ");
+				output.println();
+			}
+			output
+					.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
+			output.println("     }");
+		}
+		output.println();
+	}    
     
     if( fsen != mlpa.getMainSESE() ) {
       // count up outstanding dependencies, static first, then dynamic
@@ -3648,90 +3599,20 @@ public class BuildCode {
     // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
     if( fsen != mlpa.getMainSESE() ) {
     	
-    	output.println();    
-        output.println("   /* check memory dependency*/");
-    	output.println("  {");
-    	output.println("   pthread_mutex_lock( &(___params___->common.parent->lock) );");
-//    	output.println("   pthread_mutex_lock( &(___params___->common.parent->waitingQueueLock) );");
-    	output.println("   int idx;");
-    	output.println("   int giveCount=0;");
-    	output.println("   struct Queue* launchQueue=createQueue();");
-    	output.println("   struct QueueItem* nextQueueItem;");
-    	output.println("   for(idx = 0 ; idx < ___params___->common.parent->numRelatedWaitingQueue ; idx++){");
-    	output.println("     if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
-    	output.println("        struct QueueItem* qItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
-    	output.println("        int removed=0;");
-    	output.println("        while(qItem!=NULL){");
-    	output.println("           WaitingElement* item=qItem->objectptr;");
-    	output.println("           SESEcommon* seseItem=(SESEcommon*)item->seseRec;");
-    	output.println("           if(seseItem->classID==___params___->common.classID && item->id==___params___->common.waitingQueueItemID){");
-    	output.println("              struct QueueItem* nItem=getNextQueueItem(qItem);");
-    	output.println("              removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,qItem);");
-    	output.println("              removed=1;");
-       	output.println("              qItem=nItem;");
-    	output.println("           }else if(removed){");
-    	output.println("              qItem=NULL;");
-    	output.println("           }else{");
-    	output.println("              qItem=getNextQueueItem(qItem);");
-    	output.println("           }");
-    	output.println("        }");
-    	output.println("        if( !isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue) ){");
-    	
-    	output.println("           struct QueueItem* nextQItem=getHead(___params___->common.parent->allocSiteArray[idx].waitingQueue);");
-    	output.println("           while(nextQItem!=NULL){");
-    	output.println("              WaitingElement* nextItem=nextQItem->objectptr;");
-    	output.println("              SESEcommon* seseNextItem=(SESEcommon*)nextItem->seseRec;");
-    	output.println("              if(nextItem->resolved==0){");
-    	
-    	output.println("              int isResolved=isRunnable(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextQItem);");
-    	output.println("              if(seseNextItem->classID==___params___->common.parent->classID){"); // stall site
-    	output.println("                 if(isResolved){");
-    	output.println("                    struct QueueItem* stallItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
-    	output.println("                    removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,stallItem);");
-    	output.println("                    giveCount++;");
-    	output.println("                 }");
-    	output.println("                 if(!isEmpty(___params___->common.parent->allocSiteArray[idx].waitingQueue)){");
-    	output.println("                    nextQItem=getNextQueueItem(nextQItem);");
-    	output.println("                 }else{");
-    	output.println("                    nextQItem=NULL;");
-    	output.println("                 }");
-    	output.println("              }else{");
-    	output.println("                 if(isResolved){");
-    	//output.println("                    struct QueueItem* currentItem=findItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,nextItem);");
-    	//output.println("                    nextQItem=getNextQueueItem(currentItem);");
-    	//output.println("                    removeItem(___params___->common.parent->allocSiteArray[idx].waitingQueue,currentItem);");
-    	output.println("                       nextItem->resolved=1;");
-    	output.println("                       if( atomic_sub_and_test(1, &(seseNextItem->unresolvedDependencies)) ){");
-    	output.println("                            addNewItem(launchQueue,(void*)seseNextItem);");
-    	output.println("                       }");
-    	output.println("                 }else{");
-    	output.println("                    nextQItem=getNextQueueItem(nextQItem);");
-    	output.println("                 }");
-    	output.println("               }");
-    	
-    	output.println("              }else{");
-    	output.println("                 nextQItem=getNextQueueItem(nextQItem);");
-    	output.println("              }");
-    	
-    	output.println("           } "); // end of while(nextQItem!=NULL)
-    	output.println("        }");
-    	output.println("     }");
-//    	output.println("  }");
-    	output.println("  }");
-    	output.println("  pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
-    	output.println("  if(!isEmpty(launchQueue)){");
-    	output.println("     struct QueueItem* qItem=getHead(launchQueue);");
-    	output.println("     while(qItem!=NULL){");
-    	output.println("        workScheduleSubmit(qItem->objectptr);");
-    	output.println("        qItem=getNextQueueItem(qItem);");
-    	output.println("     }");
-    	output.println("  }");
-    	output.println("  if(giveCount>0){");
-//     	output.println("    psem_give(&(___params___->common.parent->memoryStallSiteSem));");
-    	output.println("    pthread_cond_signal(&(___params___->common.parent->stallDone));");
-     	output.println("  }");
-    	output.println("  }");
-    	
+		output.println();
+		output.println("   /* check memory dependency*/");
+		output.println("  {");			
+		output
+				.println("      pthread_mutex_lock( &(___params___->common.parent->lock) );");
+		output.println("      int idx;");
+		output.println("      for(idx=0;idx<___params___->common.rentryIdx;idx++){");
+		output.println("           REntry* re=___params___->common.rentryArray[idx];");
+		output.println("           RETIRERENTRY(re->queue,re);");
+		output.println("      }");
+		output
+				.println("      pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
+		output.println("   }");
+		
     }
     
     // if parent is stalling on you, let them know you're done

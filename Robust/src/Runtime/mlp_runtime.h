@@ -15,16 +15,106 @@
 #define TRUE 1
 #endif
 
-// each allocation site needs the following
-typedef struct AllocSite_t{
-  long id;
-  struct Queue* waitingQueue;
-} AllocSite;
+#define NUMBINS 64
+#define NUMREAD 64
+#define NUMITEMS 64
+#define NUMRENTRY 256
 
-typedef struct ConflictNode_t{
-  int id;
-} ConflictNode;
+#define READY 1
+#define NOTREADY 0
 
+#define READ 0
+#define WRITE 1
+#define PARENTREAD 2
+#define PARENTWRITE 3
+#define COARSE 4
+#define PARENTCOARSE 5
+#define SCCITEM 6
+
+#define HASHTABLE 0
+#define VECTOR 1
+#define SINGLEITEM 2
+
+#define READBIN 0
+#define WRITEBIN 1
+
+#define H_MASK (NUMBINS<<4)-1
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+typedef struct REntry_t{
+  int type; // fine read:0, fine write:1, parent read:2, parent write:3 coarse: 4, parent coarse:5, scc: 6
+  struct Hashtable_t* hashtable;
+  struct BinItem_t* binitem;
+  struct Vector_t* vector;
+  struct SCC_t* scc;
+  struct MemoryQueue_t* queue;
+  pthread_cond_t stallDone;
+  void* seseRec;
+  void* dynID;
+} REntry;
+
+typedef struct MemoryQueueItem_t {
+  int type; // hashtable:0, vector:1, singleitem:2
+  int total;        //total non-retired
+  int status;       //NOTREADY, READY
+  struct MemoryQueueItem_t *next;
+} MemoryQueueItem;
+
+typedef struct MemoryQueue_t {
+  MemoryQueueItem * head;
+  MemoryQueueItem * tail;  
+} MemoryQueue;
+
+typedef struct BinItem_t {
+  int total;
+  int status;       //NOTREADY, READY
+  int type;         //READBIN:0, WRITEBIN:1
+  struct BinItem_t * next;
+} BinItem;
+
+typedef struct Hashtable_t {
+  MemoryQueueItem item;
+  struct BinElement_t* array[NUMBINS];
+} Hashtable;
+
+typedef struct BinElement_t {
+  BinItem * head;
+  BinItem * tail;
+} BinElement;
+
+typedef struct WriteBinItem_t {
+  BinItem item;
+  REntry * val;
+} WriteBinItem;
+
+typedef struct ReadBinItem_t {
+  BinItem item;
+  REntry * array;
+  int index;
+} ReadBinItem;
+
+typedef struct Vector_t {
+  MemoryQueueItem item;
+  REntry * array;
+  int index;
+} Vector;
+
+typedef struct SCC_t {
+  MemoryQueueItem item;
+  REntry * val;
+} SCC;
+
+int ADDRENTRY(MemoryQueue* q, REntry * r);
+void RETIRERENTRY(MemoryQueue* Q, REntry * r);
+
+////////////////////////////////////////
 
 // forward declaration of pointer type
 typedef struct SESEcommon_t* SESEcommon_p;
@@ -59,17 +149,15 @@ typedef struct SESEcommon_t {
 
   SESEcommon_p    parent;
 
-  AllocSite* allocSiteArray;
-  int numRelatedAllocSites;
   psemaphore memoryStallSiteSem;
-  struct Queue* connectedList;
-  int numRelatedWaitingQueue;
-  int waitingQueueItemID;
-
   pthread_cond_t stallDone;
 
-} SESEcommon;
+  int numMemoryQueue;
+  int rentryIdx;
+  struct MemoryQueue_t** memoryQueueArray;
+  struct REntry_t* rentryArray[NUMRENTRY];
 
+} SESEcommon;
 
 typedef struct WaitingElement_t{
   void* seseRec;
@@ -93,12 +181,14 @@ extern __thread SESEcommon_p seseCaller;
 // deallocation of SESE records
 void* mlpCreateSESErecord( int size );
 void  mlpDestroySESErecord( void* seseRecord );
-
-AllocSite* mlpCreateAllocSiteArray(int numAllocSites);
-ConflictNode* mlpCreateConflictNode(int id);
-int addWaitingQueueElement(AllocSite* allocSiteArray, int numAllocSites, long allocID, WaitingElement* wElement);
-WaitingElement* mlpCreateWaitingElement(int status, void* seseToIssue, struct Queue* queue, int id);
 void* mlpAllocSESErecord( int size );
+
+MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
+REntry* mlpCreateREntry(int type, void* seseToIssue, void* dynID);
+MemoryQueue* createMemoryQueue();
+
+//////////////////////////////
+
 
 
 #endif /* __MLP_RUNTIME__ */

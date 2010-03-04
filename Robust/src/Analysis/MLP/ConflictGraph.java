@@ -718,6 +718,8 @@ public class ConflictGraph {
 		HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Collection<StallSite> stallSites = conflictsMap.getStallMap().values();
+		
+		String dynID="";
 
 		for (Iterator iterator = stallSites.iterator(); iterator.hasNext();) {
 
@@ -758,11 +760,13 @@ public class ConflictGraph {
 																								// edge
 								allocSet.addAll(getAllocSet(node));
 								if (isReadOnly(node)) {
-									// fine-grain read
-									type = 0;
+									// parent fine-grain read
+									type = 2;
+									dynID=node.getTempDescriptor().toString();
 								} else {
-									// fine-grain write
-									type = 1;
+									// parent fine-grain write
+									type = 3;
+									dynID=node.getTempDescriptor().toString();
 								}
 							}
 
@@ -773,6 +777,7 @@ public class ConflictGraph {
 									if (seseLock
 											.containsConflictNode(stallSiteNode)) {
 										WaitingElement newElement = new WaitingElement();
+										newElement.setDynID(dynID);
 										newElement.setAllocList(allocSet);
 										newElement.setWaitingID(seseLock
 												.getID());

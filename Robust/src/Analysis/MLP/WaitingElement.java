@@ -36,7 +36,7 @@ public class WaitingElement {
 		this.dynID=dynID;
 	}
 	
-	public int getWaitingID() {
+	public int getQueueID() {
 		return waitingID;
 	}
 
@@ -68,7 +68,7 @@ public class WaitingElement {
 
 		WaitingElement in = (WaitingElement) o;
 
-		if (waitingID == in.getWaitingID() && status == in.getStatus()
+		if (waitingID == in.getQueueID() && status == in.getStatus()
 				&& allocList.equals(in.getAllocList())) {
 			return true;
 		} else {
