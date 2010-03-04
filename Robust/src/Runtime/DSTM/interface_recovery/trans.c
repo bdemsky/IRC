@@ -2750,8 +2750,6 @@ void duplicateLostObjects(unsigned int mid){
 	printf("%s-> Start, mid: [%s]\n", __func__, midtoIPString(mid));  
 #endif
 
-
-	
 	//this needs to be changed.
 	unsigned int backupMid = getBackupMachine(mid); // get backup machine of dead machine
 	unsigned int originalMid = getDuplicatedPrimaryMachine(mid); // get primary machine that used deadmachine as backup machine.
@@ -2785,7 +2783,7 @@ void duplicateLostObjects(unsigned int mid){
   if(((psd = getSockWithLock(transPrefetchSockPool, originalMid)) < 0 ) || ((bsd = getSockWithLock(transPrefetchSockPool,backupMid)) <0)) {
     printf("%s -> Socket create error\n",__func__);
     exit(0);
-
+  }
 /* request for original */
 	char duperequest;
 	duperequest = DUPLICATE_ORIGINAL;
