@@ -56,8 +56,7 @@ public class Work extends Thread {
       }
       else if(chk  == -1) {    // finished all work
         break;
-      }
-      else {    // wait for other thread
+      } else {    // wait for other thread
         sleep(5000000); 
       }
     }

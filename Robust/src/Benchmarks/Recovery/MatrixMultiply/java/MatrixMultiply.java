@@ -87,9 +87,9 @@ public class MatrixMultiply extends Task {
       for (i = x0; i < x1; i++) {
         for (j = 0; j < size; j++) {
           mmul.c[i][j] = lc[i][j];
+          //System.out.println("lc["+i+"]["+j+"]= "+mmul.c[i][j]);
         }
       }
-
     }
   }
 
@@ -127,16 +127,6 @@ public class MatrixMultiply extends Task {
       System.out.println("usage: ./MatrixMultiply.bin master <num_threads> <size of matrix> <size of subtask>");
       System.exit(0);
     }
-
-    int[] mid = new int[8];
-    mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
-    mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
-    mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
-    mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
-    mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
-    mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
-    mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
-    mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
 
     {
       matrix =  new MMul(SIZE, SIZE, SIZE);
@@ -178,7 +168,6 @@ public class MatrixMultiply extends Task {
   public void output() {
     System.out.println("c[0][0] = " + mmul.c[0][0] + "  c["+(SIZE-1)+"]["+(SIZE-1)+"] : " + mmul.c[SIZE-1][SIZE-1]);
   }
-
 }
 
 public class MMul{
