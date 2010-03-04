@@ -1428,8 +1428,10 @@ public class ReachGraph {
     // 4. Global sweep it.
 
 
-    System.out.println( );
 
+    if( writeDebugDOTs ) {
+      System.out.println( "doing call site, edges:"+callerEdgesCopiedToCallee );
+    }
 
 
     // 1. mark what callee elements have satisfied predicates
@@ -1454,7 +1456,9 @@ public class ReachGraph {
 
 
         
-
+        if( writeDebugDOTs ) {
+          System.out.println( "  node satissfied: "+hrnCallee );
+        }
 
       }
 
@@ -1472,12 +1476,56 @@ public class ReachGraph {
       }
     }
 
+    // test param -> HRN edges, also
+    for( int i = 0; i < fm.numParameters(); ++i ) {
+
+      // parameter defined here is the symbol in the callee
+      TempDescriptor tdParam  = fm.getParameter( i );
+      VariableNode   vnCallee = rgCallee.getVariableNodeFromTemp( tdParam );
+
+      Iterator<RefEdge> reItr = vnCallee.iteratorToReferencees();
+      while( reItr.hasNext() ) {
+        RefEdge reCallee = reItr.next();
+
+
+        if( writeDebugDOTs ) {
+          System.out.println( "  satisfied?: "+reCallee );
+        }
+
+        
+        if( reCallee.getPreds().isSatisfiedBy( this,
+                                               callerNodesCopiedToCallee,
+                                               callerEdgesCopiedToCallee
+                                               )
+            ) {
+          calleeEdgesSatisfied.add( reCallee );
+
+          if( writeDebugDOTs ) {
+            System.out.println( "  satisfied: "+reCallee );
+          }
+        }        
+
+        else 
+          if( writeDebugDOTs ) {
+            System.out.println( "  NOT satisfied: "+reCallee );
+          }
+
+
+      }
+
+    }
+
+
 
     // 2. predicates tested, ok to wipe out caller part
     Iterator<HeapRegionNode> hrnItr = callerNodesCopiedToCallee.iterator();
     while( hrnItr.hasNext() ) {
       HeapRegionNode hrnCaller = hrnItr.next();
       wipeOut( hrnCaller );
+
+      if( writeDebugDOTs ) {
+        System.out.println( "  wiping: "+hrnCaller );
+      }
     }
 
 
@@ -1509,6 +1557,10 @@ public class ReachGraph {
                                    );                                        
       }
 
+      if( writeDebugDOTs ) {
+        System.out.println( "  stitching in: "+hrnCaller );
+      }
+
       // TODO: alpha should be some rewritten version of callee in caller context
       hrnCaller.setAlpha( rsetEmpty );
 
@@ -1529,6 +1581,11 @@ public class ReachGraph {
         TempDescriptor tdParam  = vnCallee.getTempDescriptor();
         TempDescriptor tdArg    = fc.getArgMatchingParam( fm,
                                                           tdParam );
+
+        if( writeDebugDOTs ) {
+          System.out.println( "  considering: "+rsnCallee );
+        }
+
         if( tdArg == null ) {
           // this means the variable isn't a parameter, its local
           // to the callee so we ignore it in call site transfer
@@ -1536,6 +1593,10 @@ public class ReachGraph {
         }
         
         rsnCaller = this.getVariableNodeFromTemp( tdArg );
+
+        if( writeDebugDOTs ) {
+          System.out.println( "  stitching in: "+rsnCaller );
+        }
                   
       } else {
         HeapRegionNode hrnSrcCallee = (HeapRegionNode) reCallee.getSrc();

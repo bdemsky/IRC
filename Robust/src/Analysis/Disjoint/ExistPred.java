@@ -189,10 +189,20 @@ public class ExistPred extends Canonical {
     }
     
     if( predType == TYPE_EDGE ) {
+
+      System.out.println( "    type==edge" );
+
       // first establish whether the source of the
       // reference edge exists
-      VariableNode   vnSrc  = rg.td2vn.get( e_tdSrc );
-      HeapRegionNode hrnSrc = rg.id2hrn.get( e_hrnSrcID );
+      VariableNode vnSrc = null;
+      if( e_tdSrc != null ) {
+        vnSrc = rg.td2vn.get( e_tdSrc );
+        System.out.println( "    vnSrc="+vnSrc );
+      }
+      HeapRegionNode hrnSrc = null;
+      if( e_hrnSrcID != null ) {
+        hrnSrc = rg.id2hrn.get( e_hrnSrcID );
+      }
       assert (vnSrc == null) || (hrnSrc == null);
     
       // the source is not present in graph
@@ -221,6 +231,8 @@ public class ExistPred extends Canonical {
       }
         
     
+      System.out.println( "    check the edge..." );
+
       // is there an edge between them with the given
       // type and field?
       // TODO: type OR a subtype?
@@ -228,10 +240,12 @@ public class ExistPred extends Canonical {
                                          e_type, 
                                          e_field );
       if( edge == null ) {
+        System.out.println( "    edge is null!" );
         return false;
       }
                                                 
       if( !calleeReachableEdges.contains( edge ) ) {
+        System.out.println( "    edge not reachable!" );
         return false;
       }
 
