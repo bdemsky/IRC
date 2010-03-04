@@ -11,7 +11,7 @@ SRC=${MAINCLASS}.java \
      GString.java \
      WhiplashSignature.java
 
-FLAGS= -prefetch -dsmcaching -dsm -recoverystats -recovery -optimize -mainclass ${MAINCLASS}
+FLAGS=-optimize -thread -mainclass ${MAINCLASS} 
 
 default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC}

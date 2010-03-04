@@ -11,8 +11,8 @@ SRC=tmp${MAINCLASS}.java \
 	AStarPathFinder.java \
     ../../../../ClassLibrary/JavaDSM/Thread.java
     
-FLAGS1=-dsm -recoverystats -recovery -optimize -mainclass ${MAINCLASS}
-DSMFLAGS=-dsm -optimize -mainclass ${MAINCLASS}
+FLAGS1=-dsm -dsmcaching -recoverystats -recovery -optimize -mainclass ${MAINCLASS}
+DSMFLAGS=-dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
 
 default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java

@@ -37,7 +37,7 @@ public class SpamFilter extends Thread {
     int correct=0;
     int wrong=0;
 
-    atomic {
+     {
       niter=numiter;
       nemails=numemail;
       thid = id;
@@ -53,25 +53,25 @@ public class SpamFilter extends Thread {
       correct =0;
       wrong = 0;
       for(int j=0; j<nemails; j++) {
-        //long start = System.currentTimeMillis();
+        // long start = System.currentTimeMillis();
         int pickemail = rand.nextInt(100);
 
-        //System.out.println("pickemail= " + pickemail);
+//        System.out.println("pickemail= " + pickemail);
 
         // randomly pick emails
         pickemail+=1;
         Mail email = new Mail("../emails/email"+pickemail);
         Vector signatures = email.checkMail(thid);
 
-        //check with global data structure
+        //check with  data structure
         int[] confidenceVals=null;
-        //long startcheck = System.currentTimeMillis(); 
-        atomic {
+        // long startcheck = System.currentTimeMillis(); 
+         {
           confidenceVals = check(signatures,thid);
         }
-        //long stopcheckMail = System.currentTimeMillis(); 
-        //long diff = (stopcheckMail-startcheck);
-        //System.out.println("check takes= " + diff + "millisecs");
+        // long stopcheckMail = System.currentTimeMillis(); 
+        // long diff = (stopcheckMail-startcheck);
+        // System.out.println("check takes= " + diff + "millisecs");
 
         /* Only for debugging
         for(int k=0; k<signatures.size();k++) {
@@ -96,7 +96,7 @@ public class SpamFilter extends Thread {
           /* wrong answer from the spam filter */
           wrong++;
           //long startsendFeedBack = System.currentTimeMillis();
-          atomic {
+           {
             sendFeedBack(signatures, userAnswer, thid, rand);
           }
           //long stopsendFeedBack = System.currentTimeMillis();
@@ -118,12 +118,6 @@ public class SpamFilter extends Thread {
 
     System.out.println((i)+"th iteration correct = " + correct + " Wrong = " + wrong + " percentage = " + ((float)correct/(float)nemails));
     System.out.println("\n\n\n I'm Done - Time Elapse : " + (double)((fi-st)/1000) +"\n\n\n");
-    
-    RecoveryStat.printRecoveryStat();
-
-    while(true) {
-      sleep(1000000);
-    }
   }
 
   public static void main(String[] args) {
@@ -150,31 +144,23 @@ public class SpamFilter extends Thread {
     //Create Global data structure 
     DistributedHashMap dhmap;
     SpamFilter[] spf;
-    atomic {
-      dhmap = global new DistributedHashMap(500, 0.75f);
+     {
+      dhmap =  new DistributedHashMap(500, 0.75f);
     }
-    atomic {
-      spf = global new SpamFilter[nthreads];
+     {
+      spf =  new SpamFilter[nthreads];
       for(int i=0; i<nthreads; i++) {
-        spf[i] = global new SpamFilter(sf.numiter, sf.numemail, i, dhmap, nthreads);
+        spf[i] =  new SpamFilter(sf.numiter, sf.numemail, i, dhmap, nthreads);
       }
     }
 
     /* ---- Start Threads ---- */
     SpamFilter tmp;
     for(int i = 0; i<nthreads; i++) {
-      atomic {
+       {
         tmp = spf[i];
       }
-      tmp.start(mid[i]);
-    }
-
-    /* ---- Join threads----- */
-    for(int i = 0; i<nthreads; i++) {
-      atomic {
-        tmp = spf[i];
-      }
-      tmp.join();
+      tmp.run();
     }
 
     System.out.println("Finished");
@@ -239,7 +225,7 @@ public class SpamFilter extends Thread {
     SignatureComputer sigComp = new SignatureComputer();
     Vector signatures = sigComp.computeSigs(partsOfMailStrings);//vector of strings
 
-    //check with global data structure
+    //check with  data structure
     int[] confidenceVals = check(signatures,userid);
 
     //---- create and  return results --------
@@ -262,32 +248,32 @@ public class SpamFilter extends Thread {
       GString engine=null;
       if(tmpengine == '4') { //Ephemeral Signature calculator
         String tmpstr = new String("4");
-        engine = global new GString(tmpstr);
+        engine =  new GString(tmpstr);
       }
       if(tmpengine == '8') { //Whiplash Signature calculator
         String tmpstr = new String("8");
-        engine = global new GString(tmpstr);
+        engine =  new GString(tmpstr);
       }
 
       //System.out.println("check(): engine= " + engine.toLocalString());
 
       String str = new String(part.substring(2));//a:b index of a =0, index of : =1, index of b =2
-      GString signature = global new GString(str);
-      HashEntry myhe = global new HashEntry();
+      GString signature =  new GString(str);
+      HashEntry myhe =  new HashEntry();
       myhe.setengine(engine);
       myhe.setsig(signature);
 
       //find object in distributedhashMap: if no object then add object 
       if(!mydhmap.containsKey(myhe)) {
         //add new object
-        HashStat mystat = global new HashStat();
+        HashStat mystat =  new HashStat();
         mystat.setuser(userid, 0, 0, -1);
         myhe.setstats(mystat);
-        FilterStatistic fs =  global new FilterStatistic(0,0,-1);
+        FilterStatistic fs =   new FilterStatistic(0,0,-1);
         mydhmap.put(myhe, fs);
         confidenceVals[i] = 0;
       } else { //read exsisting object
-        // ----- now connect to global data structure and ask for spam -----
+        // ----- now connect to  data structure and ask for spam -----
         HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
         FilterStatistic fs = (FilterStatistic) (mydhmap.get(tmphe)); //get the value from hash
 
@@ -324,26 +310,26 @@ public class SpamFilter extends Thread {
 
       if(tmpengine == '4') {
         String tmpstr = new String("4");
-        engine = global new GString(tmpstr);
+        engine =  new GString(tmpstr);
       }
 
       if(tmpengine == '8') {
         String tmpstr = new String("8");
-        engine = global new GString(tmpstr);
+        engine =  new GString(tmpstr);
       }
 
       //System.out.println("sendFeedBack(): engine= " + engine.toLocalString());
 
       String tmpsig = new String(part.substring(2));
-      GString signature = global new GString(tmpsig);
+      GString signature =  new GString(tmpsig);
 
       //System.out.println("sendFeedBack(): signature= " + signature.toLocalString());
 
-      HashEntry myhe = global new HashEntry();
+      HashEntry myhe =  new HashEntry();
       myhe.setengine(engine);
       myhe.setsig(signature);
 
-      // ----- now connect to global data structure and update stats -----
+      // ----- now connect to  data structure and update stats -----
       if(mydhmap.containsKey(myhe)) {
         HashEntry tmphe = (HashEntry)(mydhmap.getKey(myhe));
 

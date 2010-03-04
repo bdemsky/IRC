@@ -7,13 +7,13 @@ public class GString {
   }
 
   public GString(char c) {
-    char[] str = global new char[1];
+    char[] str =  new char[1];
     str[0] = c;
     GString(str);
   }
 
   public GString(String str) {
-    value = global new char[str.count];
+    value =  new char[str.count];
     for(int i =0; i< str.count;i++) {
       value[i] = str.value[i+str.offset];
     }
@@ -29,7 +29,7 @@ public class GString {
 
   /*
   public GString(StringBuffer gsb) {
-    value = global new char[gsb.length()];
+    value =  new char[gsb.length()];
     count = gsb.length();
     offset = 0;
     for (int i = 0; i < count; i++) 
@@ -102,7 +102,7 @@ public class GString {
 
   public String substring(int beginIndex, int endIndex) {
     String str;
-    str = global new String();
+    str =  new String();
     str.value = this.value;
     str.count = endIndex-beginIndex;
     str.offset = this.offset + beginIndex;

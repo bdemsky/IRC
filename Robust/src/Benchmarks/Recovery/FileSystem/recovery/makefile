@@ -1,6 +1,6 @@
 MAINCLASS=FileSystem
 SRC1=${MAINCLASS}.java 
-FLAGS= -recoverystats -dsm -recovery -nooptimize -mainclass ${MAINCLASS}
+FLAGS= -recovery -recoverystats -dsm -dsmcaching -optimize -mainclass ${MAINCLASS}
 default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC1}
 
