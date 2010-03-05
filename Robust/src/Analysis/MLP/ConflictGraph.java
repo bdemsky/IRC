@@ -15,6 +15,14 @@ import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.TempDescriptor;
 
 public class ConflictGraph {
+	
+	public static final int FINEREAD = 0;
+	public static final int FINEWRITE = 1;
+	public static final int PARENTREAD = 2;
+	public static final int PARENTWRITE = 3;
+	public static final int COARSE = 4;
+	public static final int PARENTCOARSE = 5;
+	public static final int SCC = 6;	
 
 	static private int uniqueCliqueIDcount = 100;
 
@@ -743,11 +751,7 @@ public class ConflictGraph {
 							HashSet<Integer> allocSet = new HashSet<Integer>();
 
 							if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
-								if (isReadOnly(node)) {
-									type = 2; // coarse read
-								} else {
-									type = 3; // coarse write
-								}
+								type = PARENTCOARSE;
 
 								allocSet.addAll(getAllocSet(conflictEdge
 										.getVertexU()));
@@ -761,11 +765,11 @@ public class ConflictGraph {
 								allocSet.addAll(getAllocSet(node));
 								if (isReadOnly(node)) {
 									// parent fine-grain read
-									type = 2;
+									type = PARENTREAD;
 									dynID=node.getTempDescriptor().toString();
 								} else {
 									// parent fine-grain write
-									type = 3;
+									type = PARENTWRITE;
 									dynID=node.getTempDescriptor().toString();
 								}
 							}
@@ -946,11 +950,7 @@ public class ConflictGraph {
 						String dynID="";
 
 						if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
-							if (isReadOnly(node)) {
-								type = 2; // coarse read
-							} else {
-								type = 3; // coarse write
-							}
+							type = COARSE;
 
 							allocSet.addAll(getAllocSet(conflictEdge
 									.getVertexU()));
@@ -972,11 +972,11 @@ public class ConflictGraph {
 							
 							if (isReadOnly(node)) {
 								// fine-grain read
-								type = 0;
+								type = FINEREAD;
 								dynID=node.getTempDescriptor().toString();
 							} else {
 								// fine-grain write
-								type = 1;
+								type = FINEWRITE;
 								dynID=node.getTempDescriptor().toString();
 							}
 						}
