@@ -1,11 +1,19 @@
 #include "clookup.h"
 
+#define NUMCLIST 250
+typedef struct clist {
+  struct chashlistnode array[NUMCLIST];
+  int num;
+  struct clist *next;
+} cliststruct_t;
+
 __thread chashlistnode_t *c_table;
 __thread unsigned int c_size;
 __thread unsigned int c_mask;
 __thread unsigned int c_numelements;
 __thread unsigned int c_threshold;
 __thread double c_loadfactor;
+__thread cliststruct_t *c_structs;
 
 void t_chashCreate(unsigned int size, double loadfactor) {
   chashtable_t *ctable;
@@ -20,6 +28,7 @@ void t_chashCreate(unsigned int size, double loadfactor) {
   c_size = size;
   c_threshold=size*loadfactor;
   c_mask = (size << 1)-1;
+  c_structs=calloc(1,sizeof(cliststruct_t));
   c_numelements = 0; // Initial number of elements in the hash
 }
 
@@ -101,7 +110,6 @@ INLINE void * chashSearch(chashtable_t *table, unsigned int key) {
 void t_chashInsert(unsigned int key, void *val) {
   chashlistnode_t *ptr;
 
-
   if(c_numelements > (c_threshold)) {
     //Resize
     unsigned int newsize = c_size << 1;
@@ -115,7 +123,18 @@ void t_chashInsert(unsigned int key, void *val) {
     ptr->key=key;
     ptr->val=val;
   } else { // Insert in the beginning of linked list
-    chashlistnode_t * node = calloc(1, sizeof(chashlistnode_t));
+    chashlistnode_t * node;
+    if (c_structs->num<NUMCLIST) {
+      node=&c_structs->array[c_structs->num];
+      c_structs->num++;
+    } else {
+      //get new list                                                                
+      cliststruct_t *tcl=calloc(1,sizeof(cliststruct_t));
+      tcl->next=c_structs;
+      c_structs=tcl;
+      node=&tcl->array[0];
+      tcl->num=1;
+    }
     node->key = key;
     node->val = val;
     node->next = ptr->next;
@@ -273,16 +292,13 @@ unsigned int t_chashResize(unsigned int newsize) {
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
-      next = curr->next;
       index = (key & mask) >>1;
       tmp=&node[index];
+      next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-	tmp->key = curr->key;
+	tmp->key = key;
 	tmp->val = curr->val;
-	if (!isfirst) {
-	  free(curr);
-	}
       }/*
 	 NOTE:  Add this case if you change this...
 	 This case currently never happens because of the way things rehash....
@@ -326,17 +342,13 @@ void chashDelete(chashtable_t *ctable) {
 
 //Delete the entire hash table
 void t_chashDelete() {
-  int i;
-  chashlistnode_t *ptr = c_table;
-
-  for(i=0 ; i<c_size ; i++) {
-    chashlistnode_t * curr = ptr[i].next;
-    while(curr!=NULL) {
-      chashlistnode_t * next = curr->next;
-      free(curr);
-      curr=next;
-    }
+  cliststruct_t *ptr=c_structs;
+  while(ptr!=NULL) {
+    cliststruct_t *next=ptr->next;
+    free(ptr);
+    ptr=next;
   }
-  free(ptr);
+  free(c_table);
   c_table=NULL;
+  c_structs=NULL;
 }

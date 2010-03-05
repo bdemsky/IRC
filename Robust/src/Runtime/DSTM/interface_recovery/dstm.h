@@ -110,6 +110,7 @@
 #include <signal.h>
 #include "plookup.h"
 #include "dsmdebug.h"
+#include "readstruct.h"
 #ifdef ABORTREADERS
 #include <setjmp.h>
 #endif
@@ -133,8 +134,8 @@ int transCount;                  /* TODO Remove, necessary to the transaction id
 typedef struct objheader {
   threadlist_t *notifylist;
   unsigned short version;
-  unsigned short rcount;
-  char isBackup;
+  //unsigned short rcount;
+  short isBackup;
 } objheader_t;
 
 #define OID(x) \

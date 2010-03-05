@@ -107,13 +107,15 @@ void cleanPCache() {
 int updatePrefetchCache(trans_req_data_t *tdata) {
   int retval;
   char oidType;
-  oidType = 'R';
-  if(tdata->f.numread > 0) {
-    if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
-      printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
-      return -1;
-    }
-  }
+  /* TODO commit it for now because objects read
+   * are already copied to cache during remote reading */
+  //oidType = 'R';
+  //if(tdata->f.numread > 0) {
+  //  if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
+  //    printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
+  //    return -1;
+  //  }
+  //}
   if(tdata->f.nummod > 0) {
     oidType = 'M';
     if((retval = copyToCache(tdata->f.nummod, tdata->oidmod, oidType)) != 0) {

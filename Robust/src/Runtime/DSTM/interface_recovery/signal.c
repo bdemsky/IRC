@@ -8,6 +8,7 @@ extern int numTransCommit;
 extern int nchashSearch;
 extern int nmhashSearch;
 extern int nprehashSearch;
+extern int ndirtyCacheObj;
 extern int nRemoteSend;
 extern int nSoftAbort;
 extern int bytesSent;
@@ -34,6 +35,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   fprintf(fp, "nchashSearch = %d\n", nchashSearch);
   fprintf(fp, "nmhashSearch = %d\n", nmhashSearch);
   fprintf(fp, "nprehashSearch = %d\n", nprehashSearch);
+  fprintf(fp, "ndirtyCacheObj = %d\n", ndirtyCacheObj);
   fprintf(fp, "nRemoteReadSend = %d\n", nRemoteSend);
   fprintf(fp, "nSoftAbort = %d\n", nSoftAbort);
   fprintf(fp, "bytesSent = %d\n", bytesSent);
@@ -48,10 +50,6 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
 */
 
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
-#ifdef RECOVERYSTATS
-  fflush(stdout);
-#endif
-
 #ifdef TRANSSTATS
   printf("******  Transaction Stats   ******\n");
   printf("myIpAddr = %x\n", myIpAddr);
@@ -60,6 +58,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("nchashSearch = %d\n", nchashSearch);
   printf("nmhashSearch = %d\n", nmhashSearch);
   printf("nprehashSearch = %d\n", nprehashSearch);
+  printf("ndirtyCacheObj = %d\n", ndirtyCacheObj);
   printf("nRemoteReadSend = %d\n", nRemoteSend);
   printf("nSoftAbort = %d\n", nSoftAbort);
   printf("bytesSent = %d\n", bytesSent);
@@ -68,12 +67,18 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   printf("sendRemoteReq= %d\n", sendRemoteReq);
   printf("getResponse= %d\n", getResponse);
   printf("**********************************\n");
+  fflush(stdout);
+  exit(0);
+#endif
+
+#ifdef RECOVERYSTATS
+  fflush(stdout);
   exit(0);
 #endif
 }
 
 void handle() {
-#ifdef TRANSSTATS
+#if defined(TRANSSTATS) || defined(RECOVERYSTATS)
   struct sigaction siga;
   siga.sa_handler = NULL;
   siga.sa_flags = SA_SIGINFO;
