@@ -72,15 +72,15 @@ public class MatrixMultiply extends Task {
     atomic {
       for(i = x0; i < x1 ; i++) {
         rowA = la[i];   // grab first mat's row
-
+        double c[] = lc[i];
         for(j = 0; j < size ; j++) {
           colB = lb[j]; // grab second mat's col
-
           innerproduct = computeProduct(rowA,colB, size); // computes the value
-
-          lc[i][j] = innerproduct;  // store in dest mat
+          c[j] = innerproduct;  // store in dest mat
         } // end of for j
       } 
+    }
+    atomic {
       for (i = x0; i < x1; i++) {
         for (j = 0; j < size; j++) {
           mmul.c[i][j] = lc[i][j];
@@ -105,6 +105,8 @@ public class MatrixMultiply extends Task {
   }
 
   public static void main(String[] args) {
+    long fi,st;
+    st = System.currentTimeMillis();
     int NUM_THREADS=4;
     int SIZE = 1600;
     int increment = 80;
@@ -129,6 +131,7 @@ public class MatrixMultiply extends Task {
             mid[1] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7*/
     mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
     mid[0] = (128<<24)|(195<<16)|(180<<8)|20; //dw-1
+    mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
     mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
     mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
     mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
@@ -151,8 +154,8 @@ public class MatrixMultiply extends Task {
       }
     }
 
-    long st = System.currentTimeMillis();
-    long fi;
+    //long st = System.currentTimeMillis();
+    //long fi;
 
     Work tmp;
     for (i = 0; i < NUM_THREADS; i++) {
@@ -162,13 +165,16 @@ public class MatrixMultiply extends Task {
       Thread.myStart(tmp,mid[i]);
     }
 
+    fi = System.currentTimeMillis();
+    System.out.println("Time Elapse = " + (double)((fi-st)/1000));
+
     for (i = 0; i < NUM_THREADS; i++) {
       atomic {
         tmp = works[i];
       }
       tmp.join();
     }
-    fi = System.currentTimeMillis();
+    //fi = System.currentTimeMillis();
 
     double sum= 0;
     atomic {
@@ -176,7 +182,7 @@ public class MatrixMultiply extends Task {
     }
 
     System.out.println("Sum of matrix = " + sum);
-    System.out.println("Time Elapse = " + (double)((fi-st)/1000));
+    //System.out.println("Time Elapse = " + (double)((fi-st)/1000));
     System.printString("Finished\n");
   }
 

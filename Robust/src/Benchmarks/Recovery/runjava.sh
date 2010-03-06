@@ -10,9 +10,10 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-WAITTIME=200
+WAITTIME=180
 KILLDELAY=20
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
+DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
 USER='adash'
 
@@ -31,6 +32,17 @@ function killclients {
   while [ $i -le $2 ]; do
     echo "killing dc-$i ${fileName}"
     ssh dc-${i} pkill -u ${USER} -f ${fileName} 
+    i=`expr $i + 1`
+  done
+}
+
+# killClientsWith USR1 signal <fileName> <# of machines>
+function killclientswithSignal {
+  i=1;
+  fileName=$1
+  while [ $i -le $2 ]; do
+    echo "killing dc-$i ${fileName}"
+    ssh dc-${i} killall -USR1 ${fileName} 
     i=`expr $i + 1`
   done
 }
@@ -67,6 +79,7 @@ function runMachines {
 }
 
 ########### Normal execution
+#  runNormalTest $NUM_MACHINES 1 
 function runNormalTest {
 # Run java version
   j=1;
@@ -138,77 +151,126 @@ function runFailureTest {
  cd -
 }
 
-function runDSM {
-  i=0;
-  DIR=`pwd`
+###
+###runRecovery <num iterations> <num machines> <recovery file name>
+###
+function runRecovery {
+  i=1;
+  DIR=`echo ${BASEDIR}\/${BM_NAME}\/${RECOVERYDIR}`;
+  cd ${DIR}
+  fName="$BM_NAME.bin";
   HOSTNAME=`hostname`
-  while [ $i -lt $1 ]; do
-    echo "$DIR" > ~/.tmpdir
-    echo "bin=$3" > ~/.tmpvars
-    ct=0
-    MACHINES=''
-    for j in $MACHINELIST; do
-      if [ $ct -lt $2 ]; then
-        if [ "$j" != "$HOSTNAME" ]; then
-          MACHINES="$MACHINES $j"
-        fi
-      fi
-      let ct=$ct+1
+  while [ $i -le $1 ]; do
+    tt=1;
+    while [ $tt -le $2 ]; do
+      echo "------------------------------- running Recovery on $2 machines for iter=$i ----------------------------" >> log-$tt
+      tt=`expr $tt + 1`
     done
 
+    #select the correct dstm config file
     rm dstm.conf
-    DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
     if [ $2 -eq 2 ]; then 
-      arg=$ARGS2
       ln -s ${DSTMDIR}/dstm_2.conf dstm.conf
     fi
     if [ $2 -eq 3 ]; then 
-      arg=$ARGS3
       ln -s ${DSTMDIR}/dstm_3.conf dstm.conf
     fi
     if [ $2 -eq 4 ]; then 
-      arg=$ARGS4
       ln -s ${DSTMDIR}/dstm_4.conf dstm.conf
     fi
     if [ $2 -eq 5 ]; then 
-      arg=$ARGS5
       ln -s ${DSTMDIR}/dstm_5.conf dstm.conf
     fi
     if [ $2 -eq 6 ]; then 
-      arg=$ARGS6
       ln -s ${DSTMDIR}/dstm_6.conf dstm.conf
     fi
     if [ $2 -eq 7 ]; then 
-      arg=$ARGS7
       ln -s ${DSTMDIR}/dstm_7.conf dstm.conf
     fi
     if [ $2 -eq 8 ]; then 
-      arg=$ARGS8
       ln -s ${DSTMDIR}/dstm_8.conf dstm.conf
     fi
-    chmod +x ~/.tmpvars
-    for machine in `echo $MACHINES`
-    do
-      ssh ${machine} 'cd `cat ~/.tmpdir`; source ~/.tmpvars; ./$bin' &
-      echo ""
+
+    #Start machines
+    let "k= $2"
+    while [ $k -gt 1 ]; do
+      echo "SSH into dc-${k}"
+      ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin '>> log'-'$k 2>&1 &
+      k=`expr $k - 1`
+      sleep 1
     done
     sleep 2
-    perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl clear_stats settings=switch/clearsettings.txt
-    /usr/bin/time -f "%e" ./$3 master $arg 2> ${LOGDIR}/tmp
-    perl -x${TOPDIR} ${TOPDIR}/switch/fetch_stat.pl settings=switch/settings.txt
-    cat ${LOGDIR}/tmp >> ${LOGDIR}/${3}_${2}Thrd_${EXTENSION}.txt
-    if [ $i -eq 0 ];then echo "<h3> Benchmark=${3} Thread=${2} Extension=${EXTENSION}</h3><br>" > ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html  ;fi
-    cat ${LOGDIR}/tmp >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
-    echo "<a href=\"${3}_${2}Thrd_${EXTENSION}_${i}.html\">Network Stats</a><br>" >> ${LOGDIR}/${3}_${EXTENSION}_${2}Thrd_a.html
-    mv ${TOPDIR}/html/dell.html ${LOGDIR}/${3}_${2}Thrd_${EXTENSION}_${i}.html
+    #Start master
+    echo "Running master machine ..."
+    ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$2 $BM_ARGS >> log'-1' 2>&1 &
+    sleep $WAITTIME
     echo "Terminating ... "
-    for machine in `echo $MACHINES`
-    do
-      ssh ${machine} 'source ~/.tmpvars; killall $bin'
-    done
-    sleep 2
+    killclientswithSignal $fName $2
+    sleep 5
     i=`expr $i + 1`
   done
+  cd -
+}
+
+###
+###runDSM <num iterations> <num machines> <dsm file name>
+###
+function runDSM {
+  i=1;
+  DIR=`echo ${BASEDIR}\/${BM_NAME}\/${RECOVERYDIR}`;
+  cd ${DIR}
+  fName="$BM_DSM.bin";
+  HOSTNAME=`hostname`
+  while [ $i -le $1 ]; do
+    tt=1;
+    while [ $tt -le $2 ]; do
+      echo "------------------------------- running DSM on $2 machines for iter=$i ----------------------------" >> log-$tt
+      tt=`expr $tt + 1`
+    done
+
+    #select the correct dstm config file
+    rm dstm.conf
+    if [ $2 -eq 2 ]; then 
+      ln -s ${DSTMDIR}/dstm_2.conf dstm.conf
+    fi
+    if [ $2 -eq 3 ]; then 
+      ln -s ${DSTMDIR}/dstm_3.conf dstm.conf
+    fi
+    if [ $2 -eq 4 ]; then 
+      ln -s ${DSTMDIR}/dstm_4.conf dstm.conf
+    fi
+    if [ $2 -eq 5 ]; then 
+      ln -s ${DSTMDIR}/dstm_5.conf dstm.conf
+    fi
+    if [ $2 -eq 6 ]; then 
+      ln -s ${DSTMDIR}/dstm_6.conf dstm.conf
+    fi
+    if [ $2 -eq 7 ]; then 
+      ln -s ${DSTMDIR}/dstm_7.conf dstm.conf
+    fi
+    if [ $2 -eq 8 ]; then 
+      ln -s ${DSTMDIR}/dstm_8.conf dstm.conf
+    fi
+
+    #Start machines
+    let "k= $2"
+    while [ $k -gt 1 ]; do
+      echo "SSH into dc-${k}"
+      ssh dc-${k} 'cd '$DIR'; ./'$BM_DSM'.bin '>> log'-'$k 2>&1 &
+      k=`expr $k - 1`
+      sleep 1
+    done
+    sleep 2
+    #Start master
+    echo "Running master machine ..."
+    ssh dc-1 'cd '$DIR'; ./'$BM_DSM'.bin master '$2 $BM_ARGS >> log'-1' 2>&1 &
+    sleep $WAITTIME
+    echo "Terminating ... "
+    killclientswithSignal $fName $2
+    sleep 5
+    i=`expr $i + 1`
+  done
+  cd -
 }
 
 function testcase {
@@ -222,6 +284,7 @@ function testcase {
   # Setup for remote machine
   echo "BM_NAME='$BM_NAME'" 
   echo "BM_ARGS='$BM_ARGS'" 
+  BM_DSM=${BM_NAME}DSM
 
   fileName=${BM_NAME}.bin
 
@@ -235,32 +298,32 @@ function testcase {
 #  echo "====================================== Failure Test ============================="
 #  runFailureTest $NUM_MACHINES
 #  echo "================================================================================="
-#
-#  echo "====================================== Recovery Execution Time ============================="
-#  for count in 2 4 6 8
-#  do
-#     echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-#     runRecovery 1 $count $NONPREFETCH_NONCACHE
-#  done
-#  echo "================================================================================="
-#
-#  echo "====================================== Normal DSM Execution Time ============================="
-#  for count in 2 4 6 8
-#  do
-#  echo "------- Running $count threads $BMDIR non-prefetch + non-cache on $count machines -----"
-#  runDSM 1 $count $NONPREFETCH_NONCACHE
-#  done
-#  echo "================================================================================="
-#
-  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
-  javasingle 1 ${BM_NAME}
-  cd $TOPDIR
+
+  echo "====================================== Recovery Execution Time ============================="
+  for count in 2 4 6 8
+  do
+    echo "------- Running $count threads $BM_NAME recovery on $count machines -----"
+    runRecovery 1 $count ${BM_NAME}
+  done
   echo "================================================================================="
 
-  echo "=============== Running recoverysingle for ${BM_NAME} on 1 machines ================="
-  recoverysingle 1 ${BM_NAME}
-  cd $TOPDIR
+  echo "====================================== DSM Execution Time ============================="
+  for count in 2 4 6 8
+  do
+    echo "------- Running $count threads $BM_NAME dsm on $count machines -----"
+    runDSM 1 $count $BM_DSM
+  done
   echo "================================================================================="
+
+#  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
+#  javasingle 1 ${BM_NAME}
+#  cd $TOPDIR
+#  echo "================================================================================="
+
+#  echo "=============== Running recoverysingle for ${BM_NAME} on 1 machines ================="
+#  recoverysingle 1 ${BM_NAME}
+#  cd $TOPDIR
+#  echo "================================================================================="
 
 
 }
@@ -284,7 +347,6 @@ function recoverysingle {
   cd $DIR
   echo ${BM_ARGS}
   rm dstm.conf
-  DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
   ln -s ${DSTMDIR}/dstm_1.conf dstm.conf
   cd `pwd`
   i=0;
