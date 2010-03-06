@@ -944,7 +944,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   }
   ptr = (char *) modptr;
   for(i = 0 ; i < fixed.nummod; i++) {
-    int tmpsize;
+    int tmpsize=0;
     headaddr = (objheader_t *) ptr;
     oid = OID(headaddr);
     oidmod[i] = oid;
