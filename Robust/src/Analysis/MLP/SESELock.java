@@ -1,27 +1,79 @@
 package Analysis.MLP;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 public class SESELock {
 	
 	private HashSet<ConflictNode> conflictNodeSet;
+	private HashSet<ConflictEdge> conflictEdgeSet;
+	private HashMap<ConflictNode, Integer> nodeTypeMap;
 	private int id;
 	
 	public SESELock(){
 		conflictNodeSet=new HashSet<ConflictNode>();
+		conflictEdgeSet=new HashSet<ConflictEdge>();
+		nodeTypeMap=new HashMap<ConflictNode, Integer>();
+	}
+	
+	public void addConflictNode(ConflictNode node, int type){
+		conflictNodeSet.add(node);
+		setNodeType(node, type);
+	}
+	
+	public void setNodeType(ConflictNode node, int type){
+		nodeTypeMap.put(node, new Integer(type));
+	}
+	
+	public int getNodeType(ConflictNode node){
+		return nodeTypeMap.get(node).intValue();
+	}
+	
+	public void addConflictEdge(ConflictEdge e){
+		conflictEdgeSet.add(e);
+	}
+	
+	public boolean containsConflictEdge(ConflictEdge e){
+		return conflictEdgeSet.contains(e);
 	}
 	
 	public HashSet<ConflictNode> getConflictNodeSet(){
 		return conflictNodeSet;
 	}
 	
-	public boolean hasSelfEdge(ConflictNode node){
+	public boolean isWriteNode(ConflictNode node){
+		if (node instanceof StallSiteNode) {
+			StallSiteNode stallSiteNode = (StallSiteNode) node;
+			HashSet<Effect> effectSet = stallSiteNode.getStallSite()
+					.getEffectSet();
+			for (Iterator iterator = effectSet.iterator(); iterator.hasNext();) {
+				Effect effect = (Effect) iterator.next();
+				if (effect.getEffectType().equals(StallSite.WRITE_EFFECT)) {
+					return true;
+				}
+			}
+		} else {
+			LiveInNode liveInNode = (LiveInNode) node;
+			Set<SESEEffectsKey> writeEffectSet = liveInNode
+					.getWriteEffectsSet();
+			if (writeEffectSet != null && writeEffectSet.size() > 0) {
+				return true;
+			}
+		}
+
+		return false;
+		
+	}
+	
+	
+	public boolean hasSelfCoarseEdge(ConflictNode node){
 		
 		HashSet<ConflictEdge> set=node.getEdgeSet();
 		for (Iterator iterator = set.iterator(); iterator.hasNext();) {
 			ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
-			if(conflictEdge.getVertexU()==conflictEdge.getVertexV()){
+			if(conflictEdge.getType()!=ConflictEdge.FINE_GRAIN_EDGE&&conflictEdge.getVertexU()==conflictEdge.getVertexV()){
 				return true;
 			}
 		}
@@ -160,7 +212,7 @@ public class SESELock {
 		
 		for (Iterator<ConflictNode> iterator = conflictNodeSet.iterator(); iterator.hasNext();) {
 			ConflictNode node = (ConflictNode) iterator.next();
-			rtr+=" "+node;
+			rtr+=" "+node+"::"+getNodeType(node);
 		}
 		
 		return rtr;

@@ -19,8 +19,9 @@ public abstract class ConflictNode {
 	public static final int PARENT_READ = 2;
 	public static final int PARENT_WRITE = 3;
 	public static final int COARSE = 4;
-	public static final int SCC = 5;
-	public static final int PARENT_COARSE = 6;
+	public static final int PARENT_COARSE = 5;
+	public static final int SCC = 6;
+
 
 	
 	public ConflictNode() {

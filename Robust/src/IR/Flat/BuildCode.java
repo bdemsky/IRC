@@ -28,6 +28,7 @@ import Analysis.Loops.WriteBarrier;
 import Analysis.Loops.GlobalFieldType;
 import Analysis.Locality.TypeAnalysis;
 import Analysis.MLP.ConflictGraph;
+import Analysis.MLP.ConflictNode;
 import Analysis.MLP.MLPAnalysis;
 import Analysis.MLP.ParentChildConflictsMap;
 import Analysis.MLP.SESELock;
@@ -1772,15 +1773,21 @@ public class BuildCode {
       
       // set up related allocation sites's waiting queues
       // eom
-		output.println("   /* set up waiting queues */");
-		output.println("   int numMemoryQueue=0;");
-		output.println("   int memoryQueueItemID=0;");
 		ConflictGraph graph = null;
 		graph = mlpa.getConflictGraphResults().get(fm);
 		if (graph != null) {
+			output.println("   /* set up waiting queues */");
+			output.println("   int numMemoryQueue=0;");
+			output.println("   int memoryQueueItemID=0;");
 			HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
 					graph);
-	
+			System.out.println("lockset="+lockSet);
+			for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
+				SESELock seseLock = (SESELock) iterator.next();
+				System.out.println("id="+seseLock.getID());
+				System.out.println("#="+seseLock);
+			}
+			System.out.println("size="+lockSet.size());
 			if (lockSet.size() > 0) {
 				output.println("   numMemoryQueue=" + lockSet.size() + ";");
 				output
@@ -2724,21 +2731,23 @@ public class BuildCode {
 				output.println("// stall on parent's stall sites ");
 				output.println("   {");
 				output.println("     REntry* rentry;");
-				output.println("     pthread_mutex_lock( &(seseCaller->lock) );");
 				
 				for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
 					WaitingElement waitingElement = (WaitingElement) iterator.next();
 					
-					output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + ");");
-					output.println("     pthread_cond_init( &(rentry->stallDone), NULL );");
+					if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+						output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+					}else{
+						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + ");");	
+					}					
+					output.println("     psem_init( &(rentry->parentStallSem) );");
 					output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
 					output
 							.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
 									+ "],rentry)==NOTREADY){");
-					output.println("        pthread_cond_wait( &(rentry->stallDone), &(seseCaller->lock) );");								
+					output.println("        psem_take( &(rentry->parentStallSem) );");
 					output.println("     }  ");
 				}
-				output.println("     pthread_mutex_unlock( &(seseCaller->lock) );");
 				output.println("   }");
 			}
 		}
@@ -3369,13 +3378,16 @@ public class BuildCode {
 			output.println("     {");
 			output.println("     REntry* rentry=NULL;");
 			output.println("     seseToIssue->common.rentryIdx=0;");
-			output
-					.println("     pthread_mutex_lock( &(parentCommon->lock) );");
 			for (Iterator iterator = waitingQueueSet.iterator(); iterator
 					.hasNext();) {
 				WaitingElement waitingElement = (WaitingElement) iterator
 						.next();
-				output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseToIssue,  seseToIssue->"+ waitingElement.getDynID() + ");");
+				
+				if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+					output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseToIssue);");
+				}else{
+					output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseToIssue,  seseToIssue->"+ waitingElement.getDynID() + ");");	
+				}		
 				output.println("     rentry->queue=parentCommon->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
 				output.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
 				output
@@ -3386,8 +3398,6 @@ public class BuildCode {
 				output.println("     } ");
 				output.println();
 			}
-			output
-					.println("     pthread_mutex_unlock( &(parentCommon->lock) );");
 			output.println("     }");
 		}
 		output.println();
@@ -3602,15 +3612,11 @@ public class BuildCode {
 		output.println();
 		output.println("   /* check memory dependency*/");
 		output.println("  {");			
-		output
-				.println("      pthread_mutex_lock( &(___params___->common.parent->lock) );");
 		output.println("      int idx;");
 		output.println("      for(idx=0;idx<___params___->common.rentryIdx;idx++){");
 		output.println("           REntry* re=___params___->common.rentryArray[idx];");
 		output.println("           RETIRERENTRY(re->queue,re);");
 		output.println("      }");
-		output
-				.println("      pthread_mutex_unlock( &(___params___->common.parent->lock)  );");
 		output.println("   }");
 		
     }

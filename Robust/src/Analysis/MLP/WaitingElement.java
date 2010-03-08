@@ -7,27 +7,12 @@ public class WaitingElement {
 
 	private int waitingID;
 	private int status;
-	private HashSet<Integer> allocList;
-	private String dynID;
-	private HashSet<Integer> connectedSet;
+	private String dynID="";
 
-	public WaitingElement() {
-		this.allocList = new HashSet<Integer>();
-		this.connectedSet = new HashSet<Integer>();
-	}
-	
 	public void setWaitingID(int waitingID) {
 		this.waitingID = waitingID;
 	}
 	
-	public HashSet<Integer> getConnectedSet() {
-		return connectedSet;
-	}
-
-	public void setConnectedSet(HashSet<Integer> connectedSet) {
-		this.connectedSet.addAll(connectedSet);
-	}
-
 	public String getDynID(){
 		return dynID;
 	}
@@ -48,14 +33,6 @@ public class WaitingElement {
 		return status;
 	}
 
-	public HashSet<Integer> getAllocList() {
-		return allocList;
-	}
-
-	public void setAllocList(HashSet<Integer> allocList) {
-		this.allocList.addAll(allocList);
-	}
-
 	public boolean equals(Object o) {
 
 		if (o == null) {
@@ -68,8 +45,7 @@ public class WaitingElement {
 
 		WaitingElement in = (WaitingElement) o;
 
-		if (waitingID == in.getQueueID() && status == in.getStatus()
-				&& allocList.equals(in.getAllocList())) {
+		if (waitingID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID()) ) {
 			return true;
 		} else {
 			return false;
@@ -78,8 +54,8 @@ public class WaitingElement {
 	}
 
 	public String toString() {
-		return "[waitingID=" + waitingID + " status=" + status + " allocList="
-				+ allocList + "]";
+		return "[waitingID=" + waitingID + " status=" + status + " dynID="
+				+ dynID + "]";
 	}
 
 	public int hashCode() {
@@ -89,11 +65,8 @@ public class WaitingElement {
 		hash = hash * 31 + waitingID;
 
 		hash += status;
-
-		for (Iterator iterator = allocList.iterator(); iterator.hasNext();) {
-			Integer type = (Integer) iterator.next();
-			hash += type.intValue();
-		}
+		
+		hash += dynID.hashCode();
 
 		return hash;
 

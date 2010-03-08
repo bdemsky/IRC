@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define __xg(x) ((volatile long *)(x))
 
 #define CFENCE   asm volatile("":::"memory");
 
@@ -63,6 +64,24 @@ static inline int CAS(volatile int* mem, int cmp, int val){
 		: "=a" (prev)               
 		: "r" (val), "m" (*(mem)), "0"(cmp) 
 		: "memory", "cc");
+  return prev;
+}
+
+static inline long CAS32(volatile void *ptr, unsigned long old, unsigned long new){
+  unsigned long prev;
+  __asm__ __volatile__("lock; cmpxchgl %k1,%2"
+		       : "=a"(prev)
+		       : "r"(new), "m"(*__xg(ptr)), "0"(old)
+		       : "memory");
+  return prev;
+}
+
+static inline long long CAS64(volatile void *ptr, unsigned long long old, unsigned long long new){
+  unsigned long long prev;
+  __asm__ __volatile__(LOCK_PREFIX "cmpxchgq %1,%2"
+		       : "=a"(prev)
+		       : "r"(new), "m"(*__xg(ptr)), "0"(old)
+		       : "memory");
   return prev;
 }
 

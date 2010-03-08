@@ -110,6 +110,7 @@ public class MLPAnalysis {
   private Hashtable<FlatNode, Boolean> isAfterChildSESEIndicatorMap;
   private Hashtable<FlatNode, SESESummary> seseSummaryMap;
   private Hashtable<ConflictGraph, HashSet<SESELock>> conflictGraphLockMap;
+  static private int uniqueLockSetId = 0;
 
   public static int maxSESEage = -1;
 
@@ -336,7 +337,6 @@ public class MLPAnalysis {
 				System.exit(0);
 			}
 		}
-    	
     }
 
 
@@ -2071,6 +2071,7 @@ public class MLPAnalysis {
 		while (!toCover.isEmpty()) {
 			
 			SESELock seseLock = new SESELock();
+			seseLock.setID(uniqueLockSetId++);
 		
 			boolean changed;
 			
@@ -2081,46 +2082,48 @@ public class MLPAnalysis {
 				for (Iterator iterator = fineToCover.iterator(); iterator
 						.hasNext();) {
 					
+					int type;
 					ConflictEdge edge = (ConflictEdge) iterator.next();
 					if(seseLock.getConflictNodeSet().size()==0){
 						//initial setup	
-						if(seseLock.hasSelfEdge(edge.getVertexU())){
+						if(seseLock.isWriteNode(edge.getVertexU())){
 							// mark as fine_write
 							if(edge.getVertexU() instanceof StallSiteNode){
-								edge.getVertexU().setType(ConflictNode.PARENT_WRITE);
+								type=ConflictNode.PARENT_WRITE;
 							}else{
-								edge.getVertexU().setType(ConflictNode.FINE_WRITE);
+								type=ConflictNode.FINE_WRITE;
 							}
-							seseLock.getConflictNodeSet().add(edge.getVertexU());
+							seseLock.addConflictNode(edge.getVertexU(), type);
 						}else{
 							// mark as fine_read
 							if(edge.getVertexU() instanceof StallSiteNode){
-								edge.getVertexU().setType(ConflictNode.PARENT_READ);	
+								type=ConflictNode.PARENT_READ;
 							}else{
-								edge.getVertexU().setType(ConflictNode.FINE_READ);	
+								type=ConflictNode.FINE_READ;
 							}
-							seseLock.getConflictNodeSet().add(edge.getVertexU());
+							seseLock.addConflictNode(edge.getVertexU(), type);
 						}
 						if(edge.getVertexV()!=edge.getVertexU()){
-							if(seseLock.hasSelfEdge(edge.getVertexV())){
+							if(seseLock.isWriteNode(edge.getVertexV())){
 								// mark as fine_write
 								if(edge.getVertexV() instanceof StallSiteNode){
-									edge.getVertexV().setType(ConflictNode.PARENT_WRITE);
+									type=ConflictNode.PARENT_WRITE;
 								}else{
-									edge.getVertexV().setType(ConflictNode.FINE_WRITE);
+									type=ConflictNode.FINE_WRITE;
 								}
-								seseLock.getConflictNodeSet().add(edge.getVertexV());
+								seseLock.addConflictNode(edge.getVertexV(), type);
 							}else{
 								// mark as fine_read
 								if(edge.getVertexV() instanceof StallSiteNode){
-									edge.getVertexV().setType(ConflictNode.PARENT_WRITE);
+									type=ConflictNode.PARENT_READ;
 								}else{
-									edge.getVertexV().setType(ConflictNode.FINE_READ);
+									type=ConflictNode.FINE_READ;
 								}
-								seseLock.getConflictNodeSet().add(edge.getVertexV());
+								seseLock.addConflictNode(edge.getVertexV(), type);
 							}		
 						}
 						changed=true;
+						seseLock.addConflictEdge(edge);
 						fineToCover.remove(edge);
 						break;// exit iterator loop
 					}// end of initial setup
@@ -2133,18 +2136,20 @@ public class MLPAnalysis {
 						
 						changed=true;
 						
-						if(seseLock.hasSelfEdge(newNode)){
+						if(seseLock.isWriteNode(newNode)){
 							if(newNode instanceof StallSiteNode){
-								newNode.setType(ConflictNode.PARENT_WRITE);
+								type=ConflictNode.PARENT_WRITE;
 							}else{
-								newNode.setType(ConflictNode.FINE_WRITE);
+								type=ConflictNode.FINE_WRITE;
 							}
+							seseLock.setNodeType(newNode,type);
 						}else{
 							if(newNode instanceof StallSiteNode){
-								newNode.setType(ConflictNode.PARENT_READ);
+								type=ConflictNode.PARENT_READ;
 							}else{
-								newNode.setType(ConflictNode.FINE_READ);
+								type=ConflictNode.FINE_READ;
 							}
+							seseLock.setNodeType(newNode,type);
 						}
 
 						seseLock.addEdge(edge);
@@ -2159,11 +2164,13 @@ public class MLPAnalysis {
 							if(!conflictEdge.getVertexU().equals(newNode)){
 								if(seseLock.containsConflictNode(conflictEdge.getVertexU())){
 									changed=true;
+									seseLock.addConflictEdge(conflictEdge);
 									fineToCover.remove(conflictEdge);
 								}
 							}else if(!conflictEdge.getVertexV().equals(newNode)){
 								if(seseLock.containsConflictNode(conflictEdge.getVertexV())){
 									changed=true;
+									seseLock.addConflictEdge(conflictEdge);
 									fineToCover.remove(conflictEdge);
 								}				
 							}
@@ -2175,11 +2182,9 @@ public class MLPAnalysis {
 				}
 				
 			}while(changed);
-				
 			do{		// coarse
-				
 				changed=false;
-		
+				int type;
 				for (Iterator iterator = coarseToCover.iterator(); iterator
 				.hasNext();) {
 					
@@ -2187,41 +2192,43 @@ public class MLPAnalysis {
 					
 					if(seseLock.getConflictNodeSet().size()==0){
 						//initial setup	
-						if(seseLock.hasSelfEdge(edge.getVertexU())){
+						if(seseLock.hasSelfCoarseEdge(edge.getVertexU())){
 							// node has a coarse-grained edge with itself
 							if(!(edge.getVertexU() instanceof StallSiteNode)){
 								// and it is not parent
-								edge.getVertexU().setType(ConflictNode.SCC);
+								type=ConflictNode.SCC;
 							}else{
-								edge.getVertexU().setType(ConflictNode.PARENT_COARSE);
+								type=ConflictNode.PARENT_COARSE;
 							}
-							seseLock.getConflictNodeSet().add(edge.getVertexU());
+							seseLock.addConflictNode(edge.getVertexU(), type);
 						}else{
 							if(edge.getVertexU() instanceof StallSiteNode){
-								edge.getVertexU().setType(ConflictNode.PARENT_COARSE);	
+								type=ConflictNode.PARENT_COARSE;
 							}else{
-								edge.getVertexU().setType(ConflictNode.COARSE);	
+								type=ConflictNode.COARSE;
 							}
-							seseLock.getConflictNodeSet().add(edge.getVertexU());
+							seseLock.addConflictNode(edge.getVertexU(), type);
 						}
-						if(seseLock.hasSelfEdge(edge.getVertexV())){
+						if(seseLock.hasSelfCoarseEdge(edge.getVertexV())){
 							// node has a coarse-grained edge with itself
 							if(!(edge.getVertexV() instanceof StallSiteNode)){
 								// and it is not parent
-								edge.getVertexV().setType(ConflictNode.SCC);
+								type=ConflictNode.SCC;
 							}else{
-								edge.getVertexV().setType(ConflictNode.PARENT_COARSE);
+								type=ConflictNode.PARENT_COARSE;
 							}
-							seseLock.getConflictNodeSet().add(edge.getVertexV());
+							seseLock.addConflictNode(edge.getVertexV(), type);
 						}else{
 							if(edge.getVertexV() instanceof StallSiteNode){
-								edge.getVertexV().setType(ConflictNode.PARENT_COARSE);	
+								type=ConflictNode.PARENT_COARSE;
 							}else{
-								edge.getVertexV().setType(ConflictNode.COARSE);	
+								type=ConflictNode.COARSE;
 							}
-							seseLock.getConflictNodeSet().add(edge.getVertexV());
+							seseLock.addConflictNode(edge.getVertexV(), type);
 						}						
 						changed=true;
+						coarseToCover.remove(edge);
+						seseLock.addConflictEdge(edge);
 						break;// exit iterator loop
 					}// end of initial setup
 					
@@ -2229,21 +2236,23 @@ public class MLPAnalysis {
 					ConflictNode newNode;
 					if((newNode=seseLock.getNewNodeConnectedWithGroup(edge))!=null){
 						// new node has a coarse-grained edge to all fine-read, fine-write, parent
-						changed=true;
+						changed=true; 
 						
-						if(seseLock.hasSelfEdge(newNode)){
+						if(seseLock.hasSelfCoarseEdge(newNode)){
 							//SCC
 							if(newNode instanceof StallSiteNode){
-								newNode.setType(ConflictNode.PARENT_COARSE);
+								type=ConflictNode.PARENT_COARSE;
 							}else{
-								newNode.setType(ConflictNode.SCC);
+								type=ConflictNode.SCC;
 							}
+							seseLock.setNodeType(newNode, type);
 						}else{
 							if(newNode instanceof StallSiteNode){
-								newNode.setType(ConflictNode.PARENT_COARSE);
+								type=ConflictNode.PARENT_COARSE;
 							}else{
-								newNode.setType(ConflictNode.COARSE);
+								type=ConflictNode.COARSE;
 							}
+							seseLock.setNodeType(newNode, type);
 						}
 
 						seseLock.addEdge(edge);
@@ -2256,11 +2265,13 @@ public class MLPAnalysis {
 							if(!conflictEdge.getVertexU().equals(newNode)){
 								if(seseLock.containsConflictNode(conflictEdge.getVertexU())){
 									changed=true;
+									seseLock.addConflictEdge(conflictEdge);
 									coarseToCover.remove(conflictEdge);
 								}
 							}else if(!conflictEdge.getVertexV().equals(newNode)){
 								if(seseLock.containsConflictNode(conflictEdge.getVertexV())){
 									changed=true;
+									seseLock.addConflictEdge(conflictEdge);
 									coarseToCover.remove(conflictEdge);
 								}				
 							}
@@ -2269,12 +2280,9 @@ public class MLPAnalysis {
 						break;// exit iterator loop
 					}
 					
-					
 				}
 				
 			}while(changed);
-			
-//			System.out.println("lock="+seseLock);
 			lockSet.add(seseLock);
 			
 			toCover.clear();

@@ -55,7 +55,7 @@ typedef struct REntry_t{
   struct Vector_t* vector;
   struct SCC_t* scc;
   struct MemoryQueue_t* queue;
-  pthread_cond_t stallDone;
+  psemaphore parentStallSem;
   void* seseRec;
   void* dynID;
 } REntry;
@@ -96,13 +96,13 @@ typedef struct WriteBinItem_t {
 
 typedef struct ReadBinItem_t {
   BinItem item;
-  REntry * array;
+  REntry * array[NUMREAD];
   int index;
 } ReadBinItem;
 
 typedef struct Vector_t {
   MemoryQueueItem item;
-  REntry * array;
+  REntry * array[NUMITEMS];
   int index;
 } Vector;
 
@@ -114,7 +114,6 @@ typedef struct SCC_t {
 int ADDRENTRY(MemoryQueue* q, REntry * r);
 void RETIRERENTRY(MemoryQueue* Q, REntry * r);
 
-////////////////////////////////////////
 
 // forward declaration of pointer type
 typedef struct SESEcommon_t* SESEcommon_p;
@@ -149,7 +148,7 @@ typedef struct SESEcommon_t {
 
   SESEcommon_p    parent;
 
-  psemaphore memoryStallSiteSem;
+  psemaphore parentStallSem;
   pthread_cond_t stallDone;
 
   int numMemoryQueue;
@@ -158,14 +157,6 @@ typedef struct SESEcommon_t {
   struct REntry_t* rentryArray[NUMRENTRY];
 
 } SESEcommon;
-
-typedef struct WaitingElement_t{
-  void* seseRec;
-  int status;
-  int id;
-  int resolved;
-  struct Queue* list;
-} WaitingElement;
 
 // a thread-local stack of SESEs and function to
 // ensure it is initialized once per thread
@@ -184,11 +175,8 @@ void  mlpDestroySESErecord( void* seseRecord );
 void* mlpAllocSESErecord( int size );
 
 MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
-REntry* mlpCreateREntry(int type, void* seseToIssue, void* dynID);
+REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID);
+REntry* mlpCreateREntry(int type, void* seseToIssue);
 MemoryQueue* createMemoryQueue();
-
-//////////////////////////////
-
-
 
 #endif /* __MLP_RUNTIME__ */

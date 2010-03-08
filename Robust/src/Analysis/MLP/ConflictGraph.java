@@ -16,14 +16,6 @@ import IR.Flat.TempDescriptor;
 
 public class ConflictGraph {
 	
-	public static final int FINEREAD = 0;
-	public static final int FINEWRITE = 1;
-	public static final int PARENTREAD = 2;
-	public static final int PARENTWRITE = 3;
-	public static final int COARSE = 4;
-	public static final int PARENTCOARSE = 5;
-	public static final int SCC = 6;	
-
 	static private int uniqueCliqueIDcount = 100;
 
 	public Hashtable<String, ConflictNode> id2cn;
@@ -191,6 +183,10 @@ public class ConflictGraph {
 
 	private int determineWriteConflictsType(LiveInNode liveInNodeA,
 			LiveInNode liveInNodeB) {
+		
+		if(liveInNodeA.getSESEIdentifier()==liveInNodeB.getSESEIdentifier()){
+			return ConflictEdge.NON_WRITE_CONFLICT;
+		}
 
 		Set<HeapRegionNode> liveInHrnSetA = liveInNodeA.getHRNSet();
 		Set<HeapRegionNode> liveInHrnSetB = liveInNodeB.getHRNSet();
@@ -216,6 +212,10 @@ public class ConflictGraph {
 		} else if (isSharingReachability) {
 			// two node share same reachability but points to different region,
 			// then it is coarse grain conflicts
+//			System.out.println("##coarse:");
+//			System.out.println(liveInNodeA.getSESEIdentifier()+" <-> "+liveInNodeB.getSESEIdentifier());
+//			System.out.println(liveInNodeA.getID()+" <-> "+liveInNodeB.getID());
+//			System.out.println("--");
 			return ConflictEdge.COARSE_GRAIN_EDGE;
 		} else {
 			// otherwise, it is not write conflicts
@@ -580,7 +580,6 @@ public class ConflictGraph {
 							addConflictEdge(conflictType, currentNode,
 									entryNode);
 						}
-
 					}
 					analyzedIDSet.add(currentNode.getID() + entryNodeID);
 				}
@@ -727,8 +726,6 @@ public class ConflictGraph {
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
 		Collection<StallSite> stallSites = conflictsMap.getStallMap().values();
 		
-		String dynID="";
-
 		for (Iterator iterator = stallSites.iterator(); iterator.hasNext();) {
 
 			StallSite stallSite = (StallSite) iterator.next();
@@ -747,50 +744,20 @@ public class ConflictGraph {
 							ConflictEdge conflictEdge = (ConflictEdge) iter2
 									.next();
 
-							int type = -1;
-							HashSet<Integer> allocSet = new HashSet<Integer>();
-
-							if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
-								type = PARENTCOARSE;
-
-								allocSet.addAll(getAllocSet(conflictEdge
-										.getVertexU()));
-								allocSet.addAll(getAllocSet(conflictEdge
-										.getVertexV()));
-
-							} else if (conflictEdge.getType() == ConflictEdge.FINE_GRAIN_EDGE) {// it
-																								// is
-																								// fine-grain
-																								// edge
-								allocSet.addAll(getAllocSet(node));
-								if (isReadOnly(node)) {
-									// parent fine-grain read
-									type = PARENTREAD;
-									dynID=node.getTempDescriptor().toString();
-								} else {
-									// parent fine-grain write
-									type = PARENTWRITE;
-									dynID=node.getTempDescriptor().toString();
-								}
-							}
-
-							if (type > -1) {
 								for (Iterator<SESELock> seseLockIter = seseLockSet
 										.iterator(); seseLockIter.hasNext();) {
 									SESELock seseLock = seseLockIter.next();
-									if (seseLock
-											.containsConflictNode(stallSiteNode)) {
+									if (seseLock.containsConflictNode(stallSiteNode) && seseLock.containsConflictEdge(conflictEdge)) {
 										WaitingElement newElement = new WaitingElement();
-										newElement.setDynID(dynID);
-										newElement.setAllocList(allocSet);
 										newElement.setWaitingID(seseLock
 												.getID());
-										newElement.setStatus(type);
+										if(isFineElement(newElement.getStatus())){
+											newElement.setDynID(node.getTempDescriptor().toString());
+										}										
+										newElement.setStatus(seseLock.getNodeType(stallSiteNode));
 										waitingElementSet.add(newElement);
 									}
 								}
-							}
-
 						}
 					}
 				}
@@ -924,7 +891,6 @@ public class ConflictGraph {
 
 	public Set<WaitingElement> getWaitingElementSetBySESEID(int seseID,
 			HashSet<SESELock> seseLockSet) {
-
 		HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
 
 		Set<Entry<String, ConflictNode>> s = id2cn.entrySet();
@@ -944,75 +910,21 @@ public class ConflictGraph {
 							.hasNext();) {
 						ConflictEdge conflictEdge = (ConflictEdge) iterator
 								.next();
-						int type = -1;
-						HashSet<Integer> allocSet = new HashSet<Integer>();
-						HashSet<Integer> connectedSet=new HashSet<Integer>();
-						String dynID="";
 
-						if (conflictEdge.getType() == ConflictEdge.COARSE_GRAIN_EDGE) {
-							type = COARSE;
-
-							allocSet.addAll(getAllocSet(conflictEdge
-									.getVertexU()));
-							allocSet.addAll(getAllocSet(conflictEdge
-									.getVertexV()));
-
-						} else if (conflictEdge.getType() == ConflictEdge.FINE_GRAIN_EDGE) {// it
-																							// is
-																							// fine-grain
-																							// edge
-							allocSet.addAll(getAllocSet(node));
-							if(conflictEdge.getVertexU() instanceof LiveInNode ){
-								connectedSet.add(new Integer(((LiveInNode)conflictEdge.getVertexU()).getSESEIdentifier()));
-							}
-							if(conflictEdge.getVertexV() instanceof LiveInNode ){
-								connectedSet.add(new Integer(((LiveInNode)conflictEdge.getVertexV()).getSESEIdentifier()));
-							}
-							
-							
-							if (isReadOnly(node)) {
-								// fine-grain read
-								type = FINEREAD;
-								dynID=node.getTempDescriptor().toString();
-							} else {
-								// fine-grain write
-								type = FINEWRITE;
-								dynID=node.getTempDescriptor().toString();
-							}
-						}
-
-						if (type > -1) {
-
-							for (Iterator<SESELock> seseLockIter = seseLockSet
+						for (Iterator<SESELock> seseLockIter = seseLockSet
 									.iterator(); seseLockIter.hasNext();) {
 								SESELock seseLock = seseLockIter.next();
-								if (seseLock.containsConflictNode(liveInNode)) {
+								if (seseLock.containsConflictNode(liveInNode) && seseLock.containsConflictEdge(conflictEdge)) {
 									WaitingElement newElement = new WaitingElement();
-									newElement.setAllocList(allocSet);
 									newElement.setWaitingID(seseLock.getID());
-									newElement.setStatus(type);
-									newElement.setDynID(dynID);
-									newElement.setConnectedSet(connectedSet);
-//									System.out.println(seseID+"connectedSet="+connectedSet);
+									newElement.setStatus(seseLock.getNodeType(liveInNode));
+									if(isFineElement(newElement.getStatus())){
+										newElement.setDynID(node.getTempDescriptor().toString());
+									}
 									if(!waitingElementSet.contains(newElement)){
 										waitingElementSet.add(newElement);
-									}else{
-										for (Iterator iterator2 = waitingElementSet
-												.iterator(); iterator2
-												.hasNext();) {
-											WaitingElement e = (WaitingElement) iterator2
-													.next();
-											if(e.equals(newElement)){
-												e.getConnectedSet().addAll(connectedSet);
-//												System.out.println(seseID+"!!!connectedSet="+e.getConnectedSet());
-											}
-										}
-									
-
 									}
 									
-									
-								}
 							}
 						}
 					}
@@ -1023,6 +935,16 @@ public class ConflictGraph {
 		}
 
 		return waitingElementSet;
+	}
+	
+	public boolean isFineElement(int type) {
+		if (type == ConflictNode.FINE_READ || type == ConflictNode.FINE_WRITE
+				|| type == ConflictNode.PARENT_READ
+				|| type == ConflictNode.PARENT_WRITE) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	public Set<Long> getAllocationSiteIDSetBySESEID(int seseID) {
