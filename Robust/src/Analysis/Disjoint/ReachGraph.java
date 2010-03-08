@@ -161,6 +161,15 @@ public class ReachGraph {
     assert edge.getSrc() == referencer;
     assert edge.getDst() == referencee;
 
+
+    if( referencer.getReferenceTo( referencee,
+                                   edge.getType(),
+                                   edge.getField()
+                                   ) != null
+        ) {
+      System.out.println( "  edge being added again: "+edge );
+    }
+
     // edges are getting added twice to graphs now, the
     // kind that should have abstract facts merged--use
     // this check to prevent that
@@ -1493,6 +1502,7 @@ public class ReachGraph {
     }
 
 
+
     // 3. callee elements with satisfied preds come in
 
     // 3.a) nodes
@@ -1527,6 +1537,7 @@ public class ReachGraph {
       // TODO: predicates should be exact same from caller version that satisfied
       hrnCaller.setPreds( predsTrue );
     }
+
 
     // 3.b) callee -> callee edges
     Iterator<RefEdge> reItr = calleeEdgesSatisfied.iterator();
@@ -1568,7 +1579,30 @@ public class ReachGraph {
                                       rsetEmpty,
                                       predsTrue
                                       );
-      addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
+
+
+      // look to see if an edge with same field exists
+      // and merge with it, otherwise just add the edge
+      RefEdge edgeExisting = rsnCaller.getReferenceTo( hrnDstCaller, 
+                                                       reCallee.getType(),
+                                                       reCallee.getField()
+                                                       );	
+      if( edgeExisting != null ) {
+        edgeExisting.setBeta(
+                             Canonical.union( edgeExisting.getBeta(),
+                                              reCaller.getBeta()
+                                              )
+                             );
+        edgeExisting.setPreds(
+                              Canonical.join( edgeExisting.getPreds(),
+                                              reCaller.getPreds()
+                                              )
+                              );
+	
+      } else {			  
+        addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
+      }
+      
     }
 
     // 3.c) resolve out-of-context -> callee edges
@@ -1576,9 +1610,9 @@ public class ReachGraph {
     
 
     // 4.
-    /*
     globalSweep();
-    */
+    
+
 
     if( writeDebugDOTs ) {
       try {
@@ -1587,7 +1621,6 @@ public class ReachGraph {
                     null, null );
       } catch( IOException e ) {}
     }
-
   } 
 
   

@@ -13,11 +13,9 @@ public class Test {
 
     Foo f1 = new Foo();
     addSomething( f1 );
-
-    /*
+    
     Foo f2 = new Foo();
-    addSomething( f2 );
-    */
+    addSomething( f2 );    
   }   
 
   public static void addSomething( Foo f ) {
