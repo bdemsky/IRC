@@ -19,14 +19,15 @@ public class Test {
   }   
 
   public static void addSomething( Foo f ) {
-    addBar( f );
+    f.b = new Bar();
+    //addBar( f );
   }
 
   public static void addBar( Foo g ) {
-    if( true ) {
-      g.b = new Bar();
-    } else {
-      g.b = new Bar();
-    }
+    //if( true ) {
+    //g.b = new Bar();
+    //} else {
+    //g.b = new Bar();
+    //}
   }
 }

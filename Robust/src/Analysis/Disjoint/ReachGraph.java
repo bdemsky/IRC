@@ -375,7 +375,7 @@ public class ReachGraph {
 	TypeDescriptor tdNewEdge =
 	  mostSpecificType( edgeHrn.getType(), 
 			    hrnHrn.getType() 
-			    );       
+			    );
 	  
 	RefEdge edgeNew = new RefEdge( lnX,
                                        hrnHrn,
@@ -385,7 +385,7 @@ public class ReachGraph {
                                        predsTrue
                                        );
 	
-	addRefEdge( lnX, hrnHrn, edgeNew );	
+	addRefEdge( lnX, hrnHrn, edgeNew );
       }
     }
 
@@ -1405,6 +1405,8 @@ public class ReachGraph {
     return rg;
   }  
 
+
+
   public void 
     resolveMethodCall( FlatCall            fc,        
                        FlatMethod          fm,        
@@ -1437,11 +1439,11 @@ public class ReachGraph {
 
 
     // 1. mark what callee elements have satisfied predicates
-    Set<HeapRegionNode> calleeNodesSatisfied =
-      new HashSet<HeapRegionNode>();
+    Hashtable<HeapRegionNode, ExistPredSet> calleeNodesSatisfied =
+      new Hashtable<HeapRegionNode, ExistPredSet>();
     
-    Set<RefEdge>        calleeEdgesSatisfied =
-      new HashSet<RefEdge>();
+    Hashtable<RefEdge, ExistPredSet> calleeEdgesSatisfied =
+      new Hashtable<RefEdge, ExistPredSet>();
 
     Iterator meItr = rgCallee.id2hrn.entrySet().iterator();
     while( meItr.hasNext() ) {
@@ -1449,24 +1451,38 @@ public class ReachGraph {
       Integer        id        = (Integer)        me.getKey();
       HeapRegionNode hrnCallee = (HeapRegionNode) me.getValue();
     
-      if( hrnCallee.getPreds().isSatisfiedBy( this,
-                                              callerNodesCopiedToCallee,
-                                              callerEdgesCopiedToCallee
-                                              )
-          ) {
-        calleeNodesSatisfied.add( hrnCallee );
+      ExistPredSet predsIfSatis = 
+        hrnCallee.getPreds().isSatisfiedBy( this,
+                                            callerNodesCopiedToCallee,
+                                            callerEdgesCopiedToCallee
+                                            );
+      if( predsIfSatis != null ) {
+        calleeNodesSatisfied.put( hrnCallee, predsIfSatis );
+      } else {
+        // otherwise don't bother looking at edges from this node
+        continue;
       }
 
       Iterator<RefEdge> reItr = hrnCallee.iteratorToReferencees();
       while( reItr.hasNext() ) {
         RefEdge reCallee = reItr.next();
+
+        ExistPredSet ifDst = 
+          reCallee.getDst().getPreds().isSatisfiedBy( this,
+                                                      callerNodesCopiedToCallee,
+                                                      callerEdgesCopiedToCallee
+                                                      );
+        if( ifDst == null ) {
+          continue;
+        }
         
-        if( reCallee.getPreds().isSatisfiedBy( this,
-                                               callerNodesCopiedToCallee,
-                                               callerEdgesCopiedToCallee
-                                               )
-            ) {
-          calleeEdgesSatisfied.add( reCallee );
+        predsIfSatis = 
+          reCallee.getPreds().isSatisfiedBy( this,
+                                             callerNodesCopiedToCallee,
+                                             callerEdgesCopiedToCallee
+                                             );
+        if( predsIfSatis != null ) {
+          calleeEdgesSatisfied.put( reCallee, predsIfSatis );
         }        
       }
     }
@@ -1481,13 +1497,23 @@ public class ReachGraph {
       Iterator<RefEdge> reItr = vnCallee.iteratorToReferencees();
       while( reItr.hasNext() ) {
         RefEdge reCallee = reItr.next();
-        
-        if( reCallee.getPreds().isSatisfiedBy( this,
-                                               callerNodesCopiedToCallee,
-                                               callerEdgesCopiedToCallee
-                                               )
-            ) {
-          calleeEdgesSatisfied.add( reCallee );
+
+        ExistPredSet ifDst = 
+          reCallee.getDst().getPreds().isSatisfiedBy( this,
+                                                      callerNodesCopiedToCallee,
+                                                      callerEdgesCopiedToCallee
+                                                      );
+        if( ifDst == null ) {
+          continue;
+        }
+
+        ExistPredSet predsIfSatis = 
+          reCallee.getPreds().isSatisfiedBy( this,
+                                             callerNodesCopiedToCallee,
+                                             callerEdgesCopiedToCallee
+                                             );
+        if( predsIfSatis != null ) {
+          calleeEdgesSatisfied.put( reCallee, predsIfSatis );
         }        
       }
     }
@@ -1503,12 +1529,19 @@ public class ReachGraph {
 
 
 
-    // 3. callee elements with satisfied preds come in
+    // 3. callee elements with satisfied preds come in, note that
+    //    the mapping of elements satisfied to preds is like this:
+    //    A callee element EE has preds EEp that are satisfied by
+    //    some caller element ER.  We bring EE into the caller
+    //    context as ERee with the preds of ER, namely ERp, which
+    //    in the following algorithm is the value in the mapping
 
     // 3.a) nodes
-    hrnItr = calleeNodesSatisfied.iterator();
-    while( hrnItr.hasNext() ) {
-      HeapRegionNode hrnCallee = hrnItr.next();
+    Iterator satisItr = calleeNodesSatisfied.entrySet().iterator();
+    while( satisItr.hasNext() ) {
+      Map.Entry      me        = (Map.Entry)      satisItr.next();
+      HeapRegionNode hrnCallee = (HeapRegionNode) me.getKey();
+      ExistPredSet   preds     = (ExistPredSet)   me.getValue();
 
       if( hrnCallee.isOutOfContext() ) {
         continue;
@@ -1526,23 +1559,22 @@ public class ReachGraph {
                                    hrnCallee.getAllocSite(),   // allocation site			 
                                    hrnCallee.getInherent(),    // inherent reach
                                    null,                       // current reach                 
-                                   predsEmpty,                 // predicates
+                                   preds,                      // predicates
                                    hrnCallee.getDescription()  // description
                                    );                                        
       }
 
       // TODO: alpha should be some rewritten version of callee in caller context
       hrnCaller.setAlpha( rsetEmpty );
-
-      // TODO: predicates should be exact same from caller version that satisfied
-      hrnCaller.setPreds( predsTrue );
     }
 
 
     // 3.b) callee -> callee edges
-    Iterator<RefEdge> reItr = calleeEdgesSatisfied.iterator();
-    while( reItr.hasNext() ) {
-      RefEdge reCallee = reItr.next();
+    satisItr = calleeEdgesSatisfied.entrySet().iterator();
+    while( satisItr.hasNext() ) {
+      Map.Entry    me       = (Map.Entry)    satisItr.next();
+      RefEdge      reCallee = (RefEdge)      me.getKey();
+      ExistPredSet preds    = (ExistPredSet) me.getValue();
 
       RefSrcNode rsnCallee = reCallee.getSrc();
       RefSrcNode rsnCaller;
@@ -1564,20 +1596,20 @@ public class ReachGraph {
         HeapRegionNode hrnSrcCallee = (HeapRegionNode) reCallee.getSrc();
         rsnCaller = id2hrn.get( hrnSrcCallee.getID() );
       }
-            
+      
       assert rsnCaller != null;
       
       HeapRegionNode hrnDstCallee = reCallee.getDst();
       HeapRegionNode hrnDstCaller = id2hrn.get( hrnDstCallee.getID() );
       assert hrnDstCaller != null;
       
-      // TODO: beta rewrites, preds from satisfier in caller
+      // TODO: beta rewrites
       RefEdge reCaller = new RefEdge( rsnCaller,
                                       hrnDstCaller,
                                       reCallee.getType(),
                                       reCallee.getField(),
                                       rsetEmpty,
-                                      predsTrue
+                                      preds
                                       );
 
 

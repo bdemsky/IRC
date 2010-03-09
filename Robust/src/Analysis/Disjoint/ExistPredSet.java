@@ -52,20 +52,30 @@ public class ExistPredSet extends Canonical {
 
   // only consider the subest of the caller elements that
   // are reachable by callee when testing predicates
-  public boolean isSatisfiedBy( ReachGraph          rg,
-                                Set<HeapRegionNode> calleeReachableNodes,
-                                Set<RefEdge>        calleeReachableEdges                                
-                                ) {
+  public ExistPredSet isSatisfiedBy( ReachGraph          rg,
+                                     Set<HeapRegionNode> calleeReachableNodes,
+                                     Set<RefEdge>        calleeReachableEdges                                
+                                     ) {
+    ExistPredSet predsOut = null;
+    
     Iterator<ExistPred> predItr = preds.iterator();
     while( predItr.hasNext() ) {
-      if( predItr.next().isSatisfiedBy( rg,
-                                        calleeReachableNodes,
-                                        calleeReachableEdges )
-          ) {
-        return true;
+      ExistPredSet predsFromSatisfier =
+        predItr.next().isSatisfiedBy( rg,
+                                      calleeReachableNodes,
+                                      calleeReachableEdges );
+
+      if( predsFromSatisfier != null ) {
+        if( predsOut == null ) {
+          predsOut = predsFromSatisfier;
+        } else {
+          predsOut = Canonical.join( predsOut,
+                                     predsFromSatisfier );
+        }
       }
     }
-    return false;
+    
+    return predsOut;
   }
 
 

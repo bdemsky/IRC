@@ -156,36 +156,42 @@ public class ExistPred extends Canonical {
 
 
   // only consider the subest of the caller elements that
-  // are reachable by callee when testing predicates
-  public boolean isSatisfiedBy( ReachGraph rg,
-                                Set<HeapRegionNode> calleeReachableNodes,
-                                Set<RefEdge>        calleeReachableEdges   
-                                ) {
+  // are reachable by callee when testing predicates--if THIS
+  // predicate is satisfied, return the predicate set of the 
+  // element that satisfied it, or null for false
+  public ExistPredSet isSatisfiedBy( ReachGraph rg,
+                                     Set<HeapRegionNode> calleeReachableNodes,
+                                     Set<RefEdge>        calleeReachableEdges   
+                                     ) {
 
     if( predType == TYPE_TRUE ) {
-      return true;
+      return ExistPredSet.factory( ExistPred.factory() );
     }
 
     if( predType == TYPE_NODE ) {
       // first find node
       HeapRegionNode hrn = rg.id2hrn.get( n_hrnID );
       if( hrn == null ) {
-        return false;
+        return null;
       }
 
       if( !calleeReachableNodes.contains( hrn ) ) {
-        return false;
+        return null;
       }
 
       // when the state is null it is not part of the
       // predicate, so we've already satisfied
       if( ne_state == null ) {
-        return true;
+        return hrn.getPreds();
       }
 
       // otherwise look for state too
       // TODO: contains OR containsSuperSet OR containsWithZeroes??
-      return hrn.getAlpha().contains( ne_state );
+      if( hrn.getAlpha().contains( ne_state ) ) {
+        return hrn.getPreds();
+      }
+
+      return null;
     }
     
     if( predType == TYPE_EDGE ) {
@@ -203,7 +209,7 @@ public class ExistPred extends Canonical {
     
       // the source is not present in graph
       if( vnSrc == null && hrnSrc == null ) {
-        return false;
+        return null;
       }
 
       RefSrcNode rsn;
@@ -211,7 +217,7 @@ public class ExistPred extends Canonical {
         rsn = vnSrc;
       } else {
         if( !calleeReachableNodes.contains( hrnSrc ) ) {
-          return false;
+          return null;
         }
         rsn = hrnSrc;
       }
@@ -219,11 +225,11 @@ public class ExistPred extends Canonical {
       // is the destination present?
       HeapRegionNode hrnDst = rg.id2hrn.get( e_hrnDstID );
       if( hrnDst == null ) {
-        return false;
+        return null;
       }
 
       if( !calleeReachableNodes.contains( hrnDst ) ) {
-        return false;
+        return null;
       }
 
       // is there an edge between them with the given
@@ -233,22 +239,26 @@ public class ExistPred extends Canonical {
                                          e_type, 
                                          e_field );
       if( edge == null ) {
-        return false;
+        return null;
       }
                                                 
       if( !calleeReachableEdges.contains( edge ) ) {
-        return false;
+        return null;
       }
 
       // when state is null it is not part of the predicate
       // so we've satisfied the edge existence
       if( ne_state == null ) {
-        return true;
+        return edge.getPreds();
       }
       
       // otherwise look for state too
       // TODO: contains OR containsSuperSet OR containsWithZeroes??
-      return hrnDst.getAlpha().contains( ne_state );
+      if( hrnDst.getAlpha().contains( ne_state ) ) {
+        return edge.getPreds();
+      }
+
+      return null;
     }
 
     throw new Error( "Unknown predicate type" );
