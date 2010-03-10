@@ -92,6 +92,7 @@ void initruntimedata() {
   msgdataindex = 0;
 	msgdatalast = 0;
   msglength = BAMBOO_MSG_BUF_LENGTH;
+	msgdatafull = false;
   for(i = 0; i < BAMBOO_OUT_BUF_LENGTH; ++i) {
     outmsgdata[i] = -1;
   }
@@ -403,9 +404,9 @@ void checkCoreStatus() {
 #endif						  
 			 
 #ifdef USEIO
-					totalexetime = BAMBOO_GET_EXE_TIME();
+					totalexetime = BAMBOO_GET_EXE_TIME() - bamboo_start_time;
 #else
-					BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
+					BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
 					BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
 					BAMBOO_DEBUGPRINT(0xbbbbbbbb);
 #endif
@@ -2393,6 +2394,7 @@ processmsg:
     MSGTYPE type;
     type = msgdata[msgdataindex]; //[0]
 		MSG_INDEXINC_I();
+		msgdatafull = false;
 		// TODO
 		//tprintf("msg type: %x\n", type);
     switch(type) {

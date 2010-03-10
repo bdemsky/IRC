@@ -9,6 +9,9 @@
 // global variables                                          //
 ///////////////////////////////////////////////////////////////
 
+// record the starting time
+unsigned long long bamboo_start_time;
+
 // data structures for msgs
 #define BAMBOO_OUT_BUF_LENGTH 3000
 #define BAMBOO_MSG_BUF_LENGTH 3000
@@ -16,11 +19,12 @@ int msgdata[BAMBOO_MSG_BUF_LENGTH];
 int msgdataindex;
 int msgdatalast;
 int msglength;
+volatile bool msgdatafull;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
 int outmsgindex;
 int outmsglast;
 int outmsgleft;
-bool isMsgHanging;
+volatile bool isMsgHanging;
 volatile bool isMsgSending;
 
 #define MSG_INDEXINC_I() \
@@ -39,7 +43,9 @@ volatile bool isMsgSending;
 #define MSG_REMAINSIZE_I(s) \
 	if(msgdataindex < msgdatalast) { \
 		(*(int*)s) = msgdatalast - msgdataindex; \
-	} else { \
+	} else if((msgdataindex == msgdatalast) && (!msgdatafull)) {\
+		(*(int*)s) = 0; \
+	}	else { \
 		(*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) - msgdataindex + msgdatalast; \
 	} 
 
