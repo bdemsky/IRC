@@ -160,6 +160,16 @@ public class HeapRegionNode extends RefSrcNode {
     return referencers.size();
   }
 
+
+  // in other words, this node is not functionally 
+  // part of the graph (anymore)
+  public boolean isWiped() {
+    return 
+      getNumReferencers() == 0 &&
+      getNumReferencees() == 0;
+  }
+
+
   public void addReferencer( RefEdge edge ) {
     assert edge != null;
 

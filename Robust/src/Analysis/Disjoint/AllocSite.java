@@ -192,6 +192,21 @@ public class AllocSite extends Canonical {
     return null;
   }
 
+  public Integer getShadowIDfromID( Integer id ) {
+    int ageCat = getAgeCategory( id );
+    switch( ageCat ) {
+      
+    case AGE_summary:
+    case AGE_oldest:
+    case AGE_in_I:
+      return -id;
+      
+    case AGE_notInThisSite:
+    default:
+      System.out.println( toStringWithIDs() );
+      throw new Error( "ID "+id+" not from this site." );
+    }
+  }
 
   public String toString() {
     if( disjointId == null ) {

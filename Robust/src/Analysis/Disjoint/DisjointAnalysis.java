@@ -552,16 +552,13 @@ public class DisjointAnalysis {
       // the computation of the callee-reachable heap
       // is useful for making the callee starting point
       // and for applying the call site transfer function
-      Set<HeapRegionNode> callerNodesCopiedToCallee = 
-        new HashSet<HeapRegionNode>();
-      Set<RefEdge> callerEdgesCopiedToCallee = 
-        new HashSet<RefEdge>();
+      Set<Integer> callerNodeIDsCopiedToCallee = 
+        new HashSet<Integer>();
 
       ReachGraph heapForThisCall_cur = 
         rg.makeCalleeView( fc, 
                            fmCallee,
-                           callerNodesCopiedToCallee,
-                           callerEdgesCopiedToCallee,
+                           callerNodeIDsCopiedToCallee,
                            writeDebugDOTs
                            );
 
@@ -617,8 +614,7 @@ public class DisjointAnalysis {
           rgCopy.resolveMethodCall( fc, 
                                     fmPossible, 
                                     rgEffect,
-                                    callerNodesCopiedToCallee,
-                                    callerEdgesCopiedToCallee,
+                                    callerNodeIDsCopiedToCallee,
                                     writeDebugDOTs
                                     );
         }
@@ -697,7 +693,7 @@ public class DisjointAnalysis {
 	rg.writeGraph( "COMPLETE"+d,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
-                       false,  // prune unreachable heap regions
+                       true,   // prune unreachable heap regions
                        false,  // show back edges to confirm graph validity
                        true,   // hide subset reachability states
                        true ); // hide edge taints

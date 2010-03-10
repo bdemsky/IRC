@@ -159,9 +159,8 @@ public class ExistPred extends Canonical {
   // are reachable by callee when testing predicates--if THIS
   // predicate is satisfied, return the predicate set of the 
   // element that satisfied it, or null for false
-  public ExistPredSet isSatisfiedBy( ReachGraph rg,
-                                     Set<HeapRegionNode> calleeReachableNodes,
-                                     Set<RefEdge>        calleeReachableEdges   
+  public ExistPredSet isSatisfiedBy( ReachGraph   rg,
+                                     Set<Integer> calleeReachableNodes
                                      ) {
 
     if( predType == TYPE_TRUE ) {
@@ -175,7 +174,7 @@ public class ExistPred extends Canonical {
         return null;
       }
 
-      if( !calleeReachableNodes.contains( hrn ) ) {
+      if( !calleeReachableNodes.contains( n_hrnID ) ) {
         return null;
       }
 
@@ -216,7 +215,7 @@ public class ExistPred extends Canonical {
       if( vnSrc != null ) {
         rsn = vnSrc;
       } else {
-        if( !calleeReachableNodes.contains( hrnSrc ) ) {
+        if( !calleeReachableNodes.contains( e_hrnSrcID ) ) {
           return null;
         }
         rsn = hrnSrc;
@@ -228,7 +227,7 @@ public class ExistPred extends Canonical {
         return null;
       }
 
-      if( !calleeReachableNodes.contains( hrnDst ) ) {
+      if( !calleeReachableNodes.contains( e_hrnDstID ) ) {
         return null;
       }
 
@@ -239,10 +238,6 @@ public class ExistPred extends Canonical {
                                          e_type, 
                                          e_field );
       if( edge == null ) {
-        return null;
-      }
-                                                
-      if( !calleeReachableEdges.contains( edge ) ) {
         return null;
       }
 
