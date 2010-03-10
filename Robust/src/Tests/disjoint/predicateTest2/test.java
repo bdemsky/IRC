@@ -24,10 +24,10 @@ public class Test {
   }
 
   public static void addBar( Foo g ) {
-    //if( true ) {
-    //g.b = new Bar();
-    //} else {
-    //g.b = new Bar();
-    //}
+    if( true ) {
+      g.b = new Bar();
+    } else {
+      g.b = new Bar();
+    }
   }
 }

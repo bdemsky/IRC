@@ -161,15 +161,6 @@ public class ReachGraph {
     assert edge.getSrc() == referencer;
     assert edge.getDst() == referencee;
 
-
-    if( referencer.getReferenceTo( referencee,
-                                   edge.getType(),
-                                   edge.getField()
-                                   ) != null
-        ) {
-      System.out.println( "  edge being added again: "+edge );
-    }
-
     // edges are getting added twice to graphs now, the
     // kind that should have abstract facts merged--use
     // this check to prevent that
@@ -254,6 +245,25 @@ public class ReachGraph {
 
 	RefSrcNode referencer = edge.getSrc();
 
+	removeRefEdge( referencer,
+                       referencee,
+                       edge.getType(),
+                       edge.getField() );
+      }
+    }
+  }
+
+  protected void clearNonVarRefEdgesTo( HeapRegionNode referencee ) {
+    assert referencee != null;
+
+    // get a copy of the set to iterate over, otherwise
+    // we will be trying to take apart the set as we
+    // are iterating over it, which won't work
+    Iterator<RefEdge> i = referencee.iteratorToReferencersClone();
+    while( i.hasNext() ) {
+      RefEdge edge = i.next();
+      RefSrcNode referencer = edge.getSrc();
+      if( !(referencer instanceof VariableNode) ) {
 	removeRefEdge( referencer,
                        referencee,
                        edge.getType(),
@@ -667,18 +677,6 @@ public class ReachGraph {
     // to and from i-1 to node i.
     for( int i = allocationDepth - 1; i > 0; --i ) {
 
-      /*
-      // if the target (ith) node exists, clobber it
-      // whether the i-1 node exists or not
-      Integer idIth = as.getIthOldest( i );
-      if( id2hrn.containsKey( idIth ) ) {
-        HeapRegionNode hrnI = id2hrn.get( idIth );
-
-        // clear all references in and out
-        wipeOut( hrnI );
-      }
-      */
-
       // only do the transfer if the i-1 node exists
       Integer idImin1th = as.getIthOldest( i - 1 );
       if( id2hrn.containsKey( idImin1th ) ) {
@@ -700,7 +698,7 @@ public class ReachGraph {
     // references moved over to the second oldest, so we wipe newest
     // in preparation for being the new object to assign something to
     HeapRegionNode hrn0 = getIthNode( as, 0, false );
-    wipeOut( hrn0 );
+    wipeOut( hrn0, true );
 
     // now tokens in reachability sets need to "age" also
     Iterator itrAllVariableNodes = td2vn.entrySet().iterator();
@@ -862,22 +860,22 @@ public class ReachGraph {
       
       if( edgeSummary == null ) {
 	// the merge is trivial, nothing to be done
+        addRefEdge( hrnSummary, hrnReferencee, edgeMerged );
+
       } else {
 	// otherwise an edge from the referencer to hrnSummary exists already
 	// and the edge referencer->hrn should be merged with it
-	edgeMerged.setBeta( 
-                           Canonical.union( edgeMerged.getBeta(),
-                                            edgeSummary.getBeta() 
-                                            ) 
-                            );
-        edgeMerged.setPreds( 
-                            Canonical.join( edgeMerged.getPreds(),
-                                            edgeSummary.getPreds() 
-                                            )
+	edgeSummary.setBeta( 
+                            Canonical.union( edgeMerged.getBeta(),
+                                             edgeSummary.getBeta() 
+                                             ) 
                              );
+        edgeSummary.setPreds( 
+                             Canonical.join( edgeMerged.getPreds(),
+                                             edgeSummary.getPreds() 
+                                             )
+                              );
       }
-
-      addRefEdge( hrnSummary, hrnReferencee, edgeMerged );
     }
 
     // next transfer references _to_ hrn over to hrnSummary
@@ -896,22 +894,22 @@ public class ReachGraph {
 
       if( edgeSummary == null ) {
 	// the merge is trivial, nothing to be done
+        addRefEdge( onReferencer, hrnSummary, edgeMerged );
+
       } else {
 	// otherwise an edge from the referencer to alpha_S exists already
 	// and the edge referencer->alpha_K should be merged with it
-	edgeMerged.setBeta( 
-                           Canonical.union( edgeMerged.getBeta(),
-                                            edgeSummary.getBeta() 
-                                            ) 
-                            );
-        edgeMerged.setPreds( 
-                            Canonical.join( edgeMerged.getPreds(),
-                                            edgeSummary.getPreds() 
-                                            )
+	edgeSummary.setBeta( 
+                            Canonical.union( edgeMerged.getBeta(),
+                                             edgeSummary.getBeta() 
+                                             ) 
                              );
+        edgeSummary.setPreds( 
+                             Canonical.join( edgeMerged.getPreds(),
+                                             edgeSummary.getPreds() 
+                                             )
+                              );
       }
-
-      addRefEdge( onReferencer, hrnSummary, edgeMerged );
     }
 
     // then merge hrn reachability into hrnSummary
@@ -920,9 +918,15 @@ public class ReachGraph {
                                          hrn.getAlpha() 
                                          )
                          );
+
+    hrnSummary.setPreds(
+                        Canonical.join( hrnSummary.getPreds(),
+                                        hrn.getPreds()
+                                        )
+                        );
     
     // and afterward, this node is gone
-    wipeOut( hrn );
+    wipeOut( hrn, true );
   }
 
 
@@ -963,7 +967,7 @@ public class ReachGraph {
     hrnB.setPreds( hrnA.getPreds() );
 
     // after transfer, wipe out source
-    wipeOut( hrnA );
+    wipeOut( hrnA, true );
   }
 
 
@@ -972,12 +976,19 @@ public class ReachGraph {
   // because the node is still hanging around in the graph, just
   // not mechanically connected or have any reach or predicate
   // information on it anymore--lots of ops can use this
-  protected void wipeOut( HeapRegionNode hrn ) {
+  protected void wipeOut( HeapRegionNode hrn,
+                          boolean        wipeVariableReferences ) {
 
     assert belongsToThis( hrn );
 
     clearRefEdgesFrom( hrn, null, null, true );
-    clearRefEdgesTo  ( hrn, null, null, true );
+
+    if( wipeVariableReferences ) {
+      clearRefEdgesTo( hrn, null, null, true );
+    } else {
+      clearNonVarRefEdgesTo( hrn );
+    }
+
     hrn.setAlpha( rsetEmpty );
     hrn.setPreds( predsEmpty );
   }
@@ -1472,11 +1483,11 @@ public class ReachGraph {
 
     if( writeDebugDOTs ) {
       try {
-        this.writeGraph( "caller", 
-                         true, false, false, false, true, true, 
-                         callerNodeIDsCopiedToCallee );
         rgCallee.writeGraph( "callee", 
                              true, false, false, false, true, true );
+        writeGraph( "caller00In", 
+                    true, false, false, false, true, true, 
+                    callerNodeIDsCopiedToCallee );
       } catch( IOException e ) {}
     }
 
@@ -1489,7 +1500,9 @@ public class ReachGraph {
     //    a) bring in nodes
     //    b) bring in callee -> callee edges
     //    c) resolve out-of-context -> callee edges
-    // 4. Global sweep it.
+    //    d) assign return value
+    // 4. Collapse shadow nodes down
+    // 5. Global sweep it.
 
 
 
@@ -1570,23 +1583,35 @@ public class ReachGraph {
 
 
 
+
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller20BeforeWipe", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+
+
     // 2. predicates tested, ok to wipe out caller part
     Iterator<Integer> hrnItr = callerNodeIDsCopiedToCallee.iterator();
     while( hrnItr.hasNext() ) {
       Integer        hrnID     = hrnItr.next();
       HeapRegionNode hrnCaller = id2hrn.get( hrnID );
       assert hrnCaller != null;
-      wipeOut( hrnCaller );
+
+      // when clearing off nodes, don't eliminate variable
+      // references
+      wipeOut( hrnCaller, false );
     }
+
 
 
     if( writeDebugDOTs ) {
       try {
-        writeGraph( "callerWiped", 
+        writeGraph( "caller30BeforeAddingNodes", 
                     true, false, false, false, true, true );
       } catch( IOException e ) {}
     }
-
 
 
     // 3. callee elements with satisfied preds come in, note that
@@ -1638,6 +1663,15 @@ public class ReachGraph {
     }
 
 
+
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller31BeforeAddingEdges", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+
+
     // 3.b) callee -> callee edges
     satisItr = calleeEdgesSatisfied.entrySet().iterator();
     while( satisItr.hasNext() ) {
@@ -1649,6 +1683,8 @@ public class ReachGraph {
       RefSrcNode rsnCaller;
 
       if( rsnCallee instanceof VariableNode ) {          
+        continue;
+        /*
         VariableNode   vnCallee = (VariableNode) rsnCallee;
         TempDescriptor tdParam  = vnCallee.getTempDescriptor();
         TempDescriptor tdArg    = fc.getArgMatchingParam( fm,
@@ -1659,8 +1695,10 @@ public class ReachGraph {
           continue;
         }
         
+        System.out.println( "going with "+tdParam+" to "+tdArg );
+
         rsnCaller = this.getVariableNodeFromTemp( tdArg );
-                  
+        */
       } else {
         HeapRegionNode hrnSrcCallee = (HeapRegionNode) reCallee.getSrc();
 
@@ -1716,19 +1754,86 @@ public class ReachGraph {
       
     }
 
+
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller33BeforeResolveOutOfContextEdges", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+
     // 3.c) resolve out-of-context -> callee edges
+
+
 
 
     if( writeDebugDOTs ) {
       try {
-        writeGraph( "callerBeforeCollapseShadow", 
+        writeGraph( "caller35BeforeAssignReturnValue", 
                     true, false, false, false, true, true );
       } catch( IOException e ) {}
     }
 
     
+    // 3.d) handle return value assignment if needed
+    TempDescriptor returnTemp = fc.getReturnTemp();
+    if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
 
-    // 3.d) merge shadow nodes so alloc sites are back to k
+      VariableNode vnLhsCaller = getVariableNodeFromTemp( returnTemp );
+      clearRefEdgesFrom( vnLhsCaller, null, null, true );
+
+      VariableNode vnReturnCallee = rgCallee.getVariableNodeFromTemp( tdReturn );
+      Iterator<RefEdge> reCalleeItr = vnReturnCallee.iteratorToReferencees();
+      while( reCalleeItr.hasNext() ) {
+	RefEdge        reCallee     = reCalleeItr.next();
+	HeapRegionNode hrnDstCallee = reCallee.getDst();
+
+	// some edge types are not possible return values when we can
+	// see what type variable we are assigning it to
+	if( !isSuperiorType( returnTemp.getType(), reCallee.getType() ) ) {
+	  System.out.println( "*** NOT EXPECTING TO SEE THIS: Throwing out "+
+                              reCallee+" for return temp "+returnTemp );
+	  // prune
+	  continue;
+	}	
+
+        AllocSite asDst = hrnDstCallee.getAllocSite();
+        allocSites.add( asDst );
+
+        Integer hrnIDDstShadow = asDst.getShadowIDfromID( hrnDstCallee.getID() );
+
+        HeapRegionNode hrnDstCaller = id2hrn.get( hrnIDDstShadow );
+        assert hrnDstCaller != null;
+
+        TypeDescriptor tdNewEdge =
+          mostSpecificType( reCallee.getType(),
+                            hrnDstCallee.getType(),
+                            hrnDstCaller.getType()
+                            );	      
+
+        RefEdge reCaller = new RefEdge( vnLhsCaller,
+                                        hrnDstCaller,
+                                        tdNewEdge,
+                                        null,
+                                        rsetEmpty,
+                                        predsTrue
+                                        );
+
+        addRefEdge( vnLhsCaller, hrnDstCaller, reCaller );
+      }
+    }
+
+
+
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller40BeforeShadowMerge", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+    
+
+    // 4) merge shadow nodes so alloc sites are back to k
     Iterator<AllocSite> asItr = rgCallee.allocSites.iterator();
     while( asItr.hasNext() ) {
       // for each allocation site do the following to merge
@@ -1756,7 +1861,7 @@ public class ReachGraph {
 
         // yes, a normal node exists, is there an empty shadow
         // "slot" to transfer it onto?
-        HeapRegionNode hrnShad = getIthNode( as, ageShad, true );
+        HeapRegionNode hrnShad = getIthNode( as, ageShad, true );        
         if( !hrnShad.isWiped() ) {
           // no, this age of shadow node is not empty
           ageShad++;
@@ -1812,19 +1917,27 @@ public class ReachGraph {
       HeapRegionNode summShad = id2hrn.get( idShad );
       if( summShad != null ) {
         summNorm = getSummaryNode( as, false );
-        transferOnto( summNorm, summShad );
+        transferOnto( summShad, summNorm );
       }      
     }
 
 
-    // 4.
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller50BeforeGlobalSweep", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+
+
+    // 5.
     globalSweep();
     
 
 
     if( writeDebugDOTs ) {
       try {
-        writeGraph( "callerAfterTransfer", 
+        writeGraph( "caller90AfterTransfer", 
                     true, false, false, false, true, true );
       } catch( IOException e ) {}
     }
@@ -1917,7 +2030,7 @@ public class ReachGraph {
         // nodes, so when a node is identified as garbage,
         // actively clear references to and from it so
         // live nodes won't have dangling RefEdge's
-        wipeOut( hrn );
+        wipeOut( hrn, true );
 
         // if we just removed the last node from an allocation
         // site, it should be taken out of the ReachGraph's list
