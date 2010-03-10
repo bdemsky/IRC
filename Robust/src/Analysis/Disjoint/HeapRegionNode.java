@@ -267,6 +267,7 @@ public class HeapRegionNode extends RefSrcNode {
   }  
 
   public String toStringDOT( boolean hideSubsetReach ) {
+    
     String attributes = "";
     
     if( isSingleObject ) {
@@ -279,9 +280,16 @@ public class HeapRegionNode extends RefSrcNode {
       attributes += ",style=filled,fillcolor=lightgrey";
     }
 
+    String typeStr;
+    if( type == null ) {
+      typeStr = "null";
+    } else {
+      typeStr = type.toPrettyString();
+    }
+
     return new String( "["+attributes+
                        ",label=\"ID"+getIDString()+"\\n"+
-                       type.toPrettyString()+"\\n"+
+                       typeStr+"\\n"+
                        description+"\\n"+
                        alpha.toStringEscNewline( hideSubsetReach )+"\\n"+
                        preds+"\"]"

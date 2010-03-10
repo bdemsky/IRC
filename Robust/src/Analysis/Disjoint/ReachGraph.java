@@ -1206,6 +1206,57 @@ public class ReachGraph {
   }
 
 
+  // used in makeCalleeView below to decide if there is
+  // already an appropriate out-of-context edge in a callee
+  // view graph for merging, or null if a new one will be added
+  protected RefEdge
+    getOutOfContextReferenceTo( HeapRegionNode hrn,
+                                TypeDescriptor srcType,
+                                TypeDescriptor refType,
+                                String         refField ) {
+
+    HeapRegionNode hrnInContext = id2hrn.get( hrn.getID() );
+    if( hrnInContext == null ) {
+      return null;
+    }
+
+    Iterator<RefEdge> refItr = hrnInContext.iteratorToReferencers();
+    while( refItr.hasNext() ) {
+      RefEdge re = refItr.next();
+      if( !(re.getSrc() instanceof HeapRegionNode) ) {
+        continue;
+      }
+
+      HeapRegionNode hrnSrc = (HeapRegionNode) re.getSrc();
+      if( !hrnSrc.isOutOfContext() ) {
+        continue;
+      }
+      
+      if( srcType == null ) {
+        if( hrnSrc.getType() != null ) {
+          continue;
+        }
+      } else {
+        if( !srcType.equals( hrnSrc.getType() ) ) {
+          continue;
+        }
+      }
+
+      if( !re.typeEquals( refType ) ) {
+        continue;
+      }
+
+      if( !re.fieldEquals( refField ) ) {
+        continue;
+      }
+
+      // tada!  We found it!
+      return re;
+    }
+    
+    return null;
+  }
+
 
   // use this method to make a new reach graph that is
   // what heap the FlatMethod callee from the FlatCall 
@@ -1403,61 +1454,87 @@ public class ReachGraph {
     Iterator<Integer> itrInContext =
       callerNodeIDsCopiedToCallee.iterator();
     while( itrInContext.hasNext() ) {
-      Integer hrnID = itrInContext.next();
+      Integer        hrnID                 = itrInContext.next();
       HeapRegionNode hrnCallerAndInContext = id2hrn.get( hrnID );
       
       Iterator<RefEdge> itrMightCross =
         hrnCallerAndInContext.iteratorToReferencers();
       while( itrMightCross.hasNext() ) {
-        RefEdge edgeMightCross = itrMightCross.next();
+        RefEdge edgeMightCross = itrMightCross.next();        
 
-        // we're only interested in edges with a source
-        // 1) is a heap region and...
-        if( !(edgeMightCross.getSrc() instanceof HeapRegionNode) ) {
-          // then just skip
-          continue;
-        }
+        RefSrcNode rsnCallerAndOutContext =
+          edgeMightCross.getSrc();
+        
+        TypeDescriptor oocNodeType;
+        ReachSet       oocReach;
 
-        HeapRegionNode hrnCallerAndOutContext = 
-          (HeapRegionNode) edgeMightCross.getSrc();
+        if( rsnCallerAndOutContext instanceof VariableNode ) {
+          // variables are always out-of-context
+          oocNodeType = null;
+          oocReach    = rsetEmpty;
 
-        // ... 2) is out of context
-        if( callerNodeIDsCopiedToCallee.contains( hrnCallerAndOutContext.getID() )            
-            ) {
-          continue;
-        }
+        } else {
+          
+          HeapRegionNode hrnCallerAndOutContext = 
+            (HeapRegionNode) rsnCallerAndOutContext;
+
+          // is this source node out-of-context?
+          if( callerNodeIDsCopiedToCallee.contains( hrnCallerAndOutContext.getID() ) ) {
+            // no, skip this edge
+            continue;
+          }
+
+          oocNodeType = hrnCallerAndOutContext.getType();
+          oocReach    = hrnCallerAndOutContext.getAlpha();          
+        }        
 
 
-        // we found a reference that crosses from out-of-context
-        // to in-context, so build a special out-of-context node
-        // for the callee IHM and its reference edge
-        HeapRegionNode hrnCalleeAndOutContext =
-          rg.createNewHeapRegionNode( null,  // ID
-                                      false, // single object?
-                                      false, // new summary?
-                                      false, // flagged?
-                                      true,  // out-of-context?
-                                      hrnCallerAndOutContext.getType(),
-                                      null,  // alloc site, shouldn't be used
-                                      /*toShadowTokens( this,*/ hrnCallerAndOutContext.getAlpha() /*)*/, // inherent
-                                      /*toShadowTokens( this,*/ hrnCallerAndOutContext.getAlpha() /*)*/, // alpha
-                                      predsEmpty,
-                                      "out-of-context"
-                                      );
-       
         HeapRegionNode hrnCalleeAndInContext = 
           rg.id2hrn.get( hrnCallerAndInContext.getID() );
+        
+        RefEdge oocEdgeExisting =
+          rg.getOutOfContextReferenceTo( hrnCalleeAndInContext,
+                                         oocNodeType,
+                                         edgeMightCross.getType(),
+                                         edgeMightCross.getField()
+                                         );
 
-        rg.addRefEdge( hrnCalleeAndOutContext,
-                       hrnCalleeAndInContext,
-                       new RefEdge( hrnCalleeAndOutContext,
-                                    hrnCalleeAndInContext,
-                                    edgeMightCross.getType(),
-                                    edgeMightCross.getField(),
-                                    /*toShadowTokens( this,*/ edgeMightCross.getBeta() /*)*/,
-                                    predsEmpty
-                                    )
-                       );                              
+        if( oocEdgeExisting == null ) {
+          // we found a reference that crosses from out-of-context
+          // to in-context, so build a special out-of-context node
+          // for the callee IHM and its reference edge
+          HeapRegionNode hrnCalleeAndOutContext =
+            rg.createNewHeapRegionNode( null,  // ID
+                                        false, // single object?
+                                        false, // new summary?
+                                        false, // flagged?
+                                        true,  // out-of-context?
+                                        oocNodeType,
+                                        null,  // alloc site, shouldn't be used
+                                        /*toShadowTokens( this,*/ oocReach  /*)*/, // inherent
+                                        /*toShadowTokens( this,*/ oocReach /*)*/, // alpha
+                                        predsEmpty,
+                                        "out-of-context"
+                                        );       
+
+          rg.addRefEdge( hrnCalleeAndOutContext,
+                         hrnCalleeAndInContext,
+                         new RefEdge( hrnCalleeAndOutContext,
+                                      hrnCalleeAndInContext,
+                                      edgeMightCross.getType(),
+                                      edgeMightCross.getField(),
+                                      /*toShadowTokens( this,*/ edgeMightCross.getBeta() /*)*/,
+                                      predsEmpty
+                                      )
+                         );              
+
+        } else {
+          // the out-of-context edge already exists
+          oocEdgeExisting.setBeta( Canonical.union( oocEdgeExisting.getBeta(),
+                                                    edgeMightCross.getBeta()
+                                                    )
+                                   );          
+        }                
       }
     }    
 
