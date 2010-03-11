@@ -1985,7 +1985,23 @@ public class ReachGraph {
         Integer hrnIDDstShadow = asDst.getShadowIDfromID( hrnDstCallee.getID() );
 
         HeapRegionNode hrnDstCaller = id2hrn.get( hrnIDDstShadow );
-        assert hrnDstCaller != null;
+        if( hrnDstCaller == null ) {
+          hrnDstCaller =
+            createNewHeapRegionNode( hrnIDDstShadow,                // id or null to generate a new one 
+                                     hrnDstCallee.isSingleObject(), // single object?		 
+                                     hrnDstCallee.isNewSummary(),   // summary?	 
+                                     hrnDstCallee.isFlagged(),      // flagged?
+                                     false,                      // out-of-context?
+                                     hrnDstCallee.getType(),        // type				 
+                                     hrnDstCallee.getAllocSite(),   // allocation site			 
+                                     hrnDstCallee.getInherent(),    // inherent reach
+                                     null,                       // current reach                 
+                                     predsTrue,                 // predicates
+                                     hrnDstCallee.getDescription()  // description
+                                     );                                        
+        } else {
+          assert hrnDstCaller.isWiped();
+        }
 
         TypeDescriptor tdNewEdge =
           mostSpecificType( reCallee.getType(),
