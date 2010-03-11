@@ -408,7 +408,7 @@ void checkCoreStatus() {
 #else
 
 					BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
-					BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
+					//BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
 					BAMBOO_DEBUGPRINT(0xbbbbbbbb);
 #endif
 					// profile mode, send msgs to other cores to request pouring
