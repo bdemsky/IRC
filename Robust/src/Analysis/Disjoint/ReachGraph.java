@@ -1503,19 +1503,52 @@ public class ReachGraph {
           // we found a reference that crosses from out-of-context
           // to in-context, so build a special out-of-context node
           // for the callee IHM and its reference edge
-          HeapRegionNode hrnCalleeAndOutContext =
-            rg.createNewHeapRegionNode( null,  // ID
-                                        false, // single object?
-                                        false, // new summary?
-                                        false, // flagged?
-                                        true,  // out-of-context?
-                                        oocNodeType,
-                                        null,  // alloc site, shouldn't be used
-                                        /*toShadowTokens( this,*/ oocReach  /*)*/, // inherent
-                                        /*toShadowTokens( this,*/ oocReach /*)*/, // alpha
-                                        predsEmpty,
-                                        "out-of-context"
-                                        );       
+          
+          // for consistency, map one out-of-context "identifier"
+          // to one heap region node id, otherwise no convergence
+          String oocid = "oocid"+
+            hrnCalleeAndInContext.getIDString()+
+            oocNodeType+
+            edgeMightCross.getType()+
+            edgeMightCross.getField();
+          
+          Integer oocHrnID = oocid2hrnid.get( oocid );
+
+          HeapRegionNode hrnCalleeAndOutContext;
+
+          if( oocHrnID == null ) {
+
+            hrnCalleeAndOutContext =
+              rg.createNewHeapRegionNode( null,  // ID
+                                          false, // single object?
+                                          false, // new summary?
+                                          false, // flagged?
+                                          true,  // out-of-context?
+                                          oocNodeType,
+                                          null,  // alloc site, shouldn't be used
+                                          /*toShadowTokens( this,*/ oocReach  /*)*/, // inherent
+                                          /*toShadowTokens( this,*/ oocReach /*)*/, // alpha
+                                          predsEmpty,
+                                          "out-of-context"
+                                          );       
+
+            oocid2hrnid.put( oocid, hrnCalleeAndOutContext.getID() );
+
+          } else {
+            hrnCalleeAndOutContext =
+              rg.createNewHeapRegionNode( oocHrnID,  // ID
+                                          false, // single object?
+                                          false, // new summary?
+                                          false, // flagged?
+                                          true,  // out-of-context?
+                                          oocNodeType,
+                                          null,  // alloc site, shouldn't be used
+                                          /*toShadowTokens( this,*/ oocReach  /*)*/, // inherent
+                                          /*toShadowTokens( this,*/ oocReach /*)*/, // alpha
+                                          predsEmpty,
+                                          "out-of-context"
+                                          );       
+          }
 
           rg.addRefEdge( hrnCalleeAndOutContext,
                          hrnCalleeAndInContext,
@@ -1546,6 +1579,9 @@ public class ReachGraph {
 
     return rg;
   }  
+
+  private static Hashtable<String, Integer> oocid2hrnid = 
+    new Hashtable<String, Integer>();
 
 
 
