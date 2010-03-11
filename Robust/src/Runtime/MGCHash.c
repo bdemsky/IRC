@@ -115,7 +115,7 @@ void mgchashInsert(void * key, void *val) {
   }
 }
 
-#ifdef MULTICORE
+#ifdef MULTICORE_GC
 void mgchashInsert_I(void * key, void *val) {
   mgchashlistnode_t *ptr;
 

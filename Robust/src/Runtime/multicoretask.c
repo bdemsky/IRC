@@ -406,6 +406,7 @@ void checkCoreStatus() {
 #ifdef USEIO
 					totalexetime = BAMBOO_GET_EXE_TIME() - bamboo_start_time;
 #else
+
 					BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
 					BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
 					BAMBOO_DEBUGPRINT(0xbbbbbbbb);
@@ -1642,10 +1643,10 @@ INLINE void processmsg_lockrequest_I() {
 	int data4 = msgdata[msgdataindex]; // request core
 	MSG_INDEXINC_I();
 	// -1: redirected, 0: approved, 1: denied
-	deny = processlockrequest(locktype, data3, data2, data4, data4, true);  
+	int deny = processlockrequest(locktype, data3, data2, data4, data4, true);  
 	if(deny == -1) {
 		// this lock request is redirected
-		break;
+		return;
 	} else {
 		// send response msg
 		// for 32 bit machine, the size is always 4 words
@@ -1743,10 +1744,10 @@ INLINE void processmsg_redirectlock_I() {
 	MSG_INDEXINC_I(); //msgdata[4]; // root request core
 	int data5 = msgdata[msgdataindex];
 	MSG_INDEXINC_I(); //msgdata[5]; // request core
-	deny = processlockrequest(data1, data3, data2, data5, data4, true);
+	int deny = processlockrequest(data1, data3, data2, data5, data4, true);
 	if(deny == -1) {
 		// this lock request is redirected
-		break;
+		return;
 	} else {
 		// send response msg
 		// for 32 bit machine, the size is always 4 words
@@ -2366,8 +2367,6 @@ INLINE void processmsg_gclobjmapping_I() {
 //               RAW version: -1 -- received nothing
 //                            otherwise -- received msg type
 int receiveObject() {
-  int deny = 0;
-  
 msg:
 	// get the incoming msgs
   if(receiveMsg() == -1) {
