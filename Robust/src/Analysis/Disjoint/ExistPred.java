@@ -56,6 +56,8 @@ public class ExistPred extends Canonical {
   // satisfied when the edge exists AND it has the state.
   // the source of an edge is *either* a variable
   // node or a heap region node
+  protected boolean        e_srcOutContext;
+
   protected TempDescriptor e_tdSrc;
   protected Integer        e_hrnSrcID;
 
@@ -85,6 +87,7 @@ public class ExistPred extends Canonical {
     e_hrnDstID = null;
     e_type     = null;
     e_field    = null;
+    e_srcOutContext = false;
   }
 
   // node predicates
@@ -108,6 +111,7 @@ public class ExistPred extends Canonical {
     e_hrnDstID = null;
     e_type     = null;
     e_field    = null;
+    e_srcOutContext = false;
   }
 
   // edge predicates
@@ -116,14 +120,16 @@ public class ExistPred extends Canonical {
                                    Integer        hrnDstID,
                                    TypeDescriptor type,    
                                    String         field,   
-                                   ReachState     state ) {
+                                   ReachState     state,
+                                   boolean        srcOutContext ) {
 
     ExistPred out = new ExistPred( tdSrc,   
                                    hrnSrcID,
                                    hrnDstID,
                                    type,    
                                    field,   
-                                   state );
+                                   state,
+                                   srcOutContext );
 
     out = (ExistPred) Canonical.makeCanonical( out );
     return out;
@@ -134,7 +140,8 @@ public class ExistPred extends Canonical {
                        Integer        hrnDstID,
                        TypeDescriptor type,
                        String         field,
-                       ReachState     state ) {
+                       ReachState     state,
+                       boolean        srcOutContext ) {
     
     assert (tdSrc == null) || (hrnSrcID == null);
     assert hrnDstID != null;
@@ -143,7 +150,8 @@ public class ExistPred extends Canonical {
     // fields can be null when the edge is from
     // a variable node to a heap region!
     // assert field    != null;
-    
+    this.e_srcOutContext = srcOutContext;
+
     this.e_tdSrc    = tdSrc;
     this.e_hrnSrcID = hrnSrcID;
     this.e_hrnDstID = hrnDstID;
@@ -215,7 +223,10 @@ public class ExistPred extends Canonical {
       if( vnSrc != null ) {
         rsn = vnSrc;
       } else {
-        if( !calleeReachableNodes.contains( e_hrnSrcID ) ) {
+        if( !calleeReachableNodes.contains( e_hrnSrcID ) && !e_srcOutContext ) {
+          return null;
+        }
+        if( calleeReachableNodes.contains( e_hrnSrcID ) && e_srcOutContext ) {
           return null;
         }
         rsn = hrnSrc;
@@ -332,6 +343,10 @@ public class ExistPred extends Canonical {
       return false;
     }
 
+    // if the identifiers match, this should
+    // always match    
+    assert e_srcOutContext == pred.e_srcOutContext;
+
     return true;
   }
 
@@ -399,6 +414,10 @@ public class ExistPred extends Canonical {
         s += e_tdSrc.toString();
       } else {
         s += e_hrnSrcID.toString();
+      }
+
+      if( e_srcOutContext ) {
+        s += "(ooc)";
       }
 
       s += "-->"+e_hrnDstID+")";

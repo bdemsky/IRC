@@ -12,6 +12,7 @@ public class Test {
   static public void main( String[] args ) {
 
     Foo f1 = new Foo();
+    Foo extraVar = f1;
     addSomething( f1 );
     
     Foo f2 = new Foo();
