@@ -7,7 +7,7 @@ import java.util.*;
 public class VariableNode extends RefSrcNode {
   protected TempDescriptor td;
 
-  public VariableNode(TempDescriptor td) {
+  public VariableNode( TempDescriptor td ) {
     this.td = td;
   }
 
@@ -15,18 +15,18 @@ public class VariableNode extends RefSrcNode {
     return td;
   }
 
-  public boolean equals(Object o) {
+  public boolean equals( Object o ) {
     if( o == null ) {
       return false;
     }
 
-    if( !( o instanceof VariableNode) ) {
+    if( !(o instanceof VariableNode) ) {
       return false;
     }
 
-    VariableNode ln = (VariableNode) o;
+    VariableNode vn = (VariableNode) o;
 
-    return td == ln.getTempDescriptor();
+    return td == vn.getTempDescriptor();
   }
 
   public int hashCode() {
@@ -38,6 +38,6 @@ public class VariableNode extends RefSrcNode {
   }
 
   public String toString() {
-    return "LN_"+getTempDescriptorString();
+    return "VN_"+getTempDescriptorString();
   }
 }

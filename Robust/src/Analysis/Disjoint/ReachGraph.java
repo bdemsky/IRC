@@ -1264,7 +1264,7 @@ public class ReachGraph {
   // this reach graph
   public ReachGraph 
     makeCalleeView( FlatCall     fc,
-                    FlatMethod   fm,
+                    FlatMethod   fmCallee,
                     Set<Integer> callerNodeIDsCopiedToCallee,
                     boolean      writeDebugDOTs
                     ) {
@@ -1286,16 +1286,16 @@ public class ReachGraph {
     // mechanically-reachable-from-arguments graph
     // as opposed to using reachability information
     // to prune the graph further
-    for( int i = 0; i < fm.numParameters(); ++i ) {
+    for( int i = 0; i < fmCallee.numParameters(); ++i ) {
 
       // for each parameter index, get the symbol in the
       // caller view and callee view
       
       // argument defined here is the symbol in the caller
-      TempDescriptor tdArg = fc.getArgMatchingParamIndex( fm, i );
+      TempDescriptor tdArg = fc.getArgMatchingParamIndex( fmCallee, i );
 
       // parameter defined here is the symbol in the callee
-      TempDescriptor tdParam = fm.getParameter( i );
+      TempDescriptor tdParam = fmCallee.getParameter( i );
 
       // use these two VariableNode objects to translate
       // between caller and callee--its easy to compare
@@ -1528,6 +1528,7 @@ public class ReachGraph {
           // for consistency, map one out-of-context "identifier"
           // to one heap region node id, otherwise no convergence
           String oocid = "oocid"+
+            fmCallee+
             hrnCalleeAndInContext.getIDString()+
             oocNodeType+
             edgeMightCross.getType()+
@@ -1608,7 +1609,7 @@ public class ReachGraph {
 
   public void 
     resolveMethodCall( FlatCall     fc,        
-                       FlatMethod   fm,        
+                       FlatMethod   fmCallee,        
                        ReachGraph   rgCallee,
                        Set<Integer> callerNodeIDsCopiedToCallee,
                        boolean      writeDebugDOTs
@@ -1687,10 +1688,10 @@ public class ReachGraph {
     }
 
     // test param -> HRN edges, also
-    for( int i = 0; i < fm.numParameters(); ++i ) {
+    for( int i = 0; i < fmCallee.numParameters(); ++i ) {
 
       // parameter defined here is the symbol in the callee
-      TempDescriptor tdParam  = fm.getParameter( i );
+      TempDescriptor tdParam  = fmCallee.getParameter( i );
       VariableNode   vnCallee = rgCallee.getVariableNodeFromTemp( tdParam );
 
       Iterator<RefEdge> reItr = vnCallee.iteratorToReferencees();
@@ -1837,7 +1838,7 @@ public class ReachGraph {
         // come into the caller if its from a param var
         VariableNode   vnCallee = (VariableNode) rsnCallee;
         TempDescriptor tdParam  = vnCallee.getTempDescriptor();
-        TempDescriptor tdArg    = fc.getArgMatchingParam( fm,
+        TempDescriptor tdArg    = fc.getArgMatchingParam( fmCallee,
                                                           tdParam );
         if( tdArg == null ) {
           // this means the variable isn't a parameter, its local
@@ -1861,11 +1862,22 @@ public class ReachGraph {
           // for out-of-context sources we have to find all
           // caller sources that might match
           assert hrnDstCaller != null;
+
+          if( writeDebugDOTs ) {
+            System.out.println( "  looking for matches for OOC: "+reCallee );
+          }
           
           Iterator<RefEdge> reItr = hrnDstCaller.iteratorToReferencers();
           while( reItr.hasNext() ) {
             // the edge and field (either possibly null) must match
             RefEdge reCaller = reItr.next();
+
+
+            if( writeDebugDOTs ) {
+              System.out.println( "    considering: "+reCaller );
+            }
+
+
             if( !reCaller.typeEquals ( reCallee.getType()  ) ||
                 !reCaller.fieldEquals( reCallee.getField() ) 
                 ) {
@@ -1886,6 +1898,12 @@ public class ReachGraph {
                 continue;
               }
             }
+
+
+            if( writeDebugDOTs ) {
+              System.out.println( "    took it" );
+            }
+
 
             // it matches, add to sources of edges to make
             rsnCallers.add( rsnCaller );
@@ -1991,12 +2009,12 @@ public class ReachGraph {
                                      hrnDstCallee.isSingleObject(), // single object?		 
                                      hrnDstCallee.isNewSummary(),   // summary?	 
                                      hrnDstCallee.isFlagged(),      // flagged?
-                                     false,                      // out-of-context?
+                                     false,                         // out-of-context?
                                      hrnDstCallee.getType(),        // type				 
                                      hrnDstCallee.getAllocSite(),   // allocation site			 
                                      hrnDstCallee.getInherent(),    // inherent reach
-                                     null,                       // current reach                 
-                                     predsTrue,                 // predicates
+                                     null,                          // current reach                 
+                                     predsTrue,                     // predicates
                                      hrnDstCallee.getDescription()  // description
                                      );                                        
         } else {
