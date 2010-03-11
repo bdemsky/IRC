@@ -4,7 +4,8 @@ SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
-DEBUGFLAGS= -disjoint-debug-callsite Bar addSomething 1
+#DEBUGFLAGS= -disjoint-debug-callsite Bar addSomething 1
+DEBUGFLAGS= -disjoint-debug-callsite Foo main 1
 
 #DEBUGFLAGS= -disjoint-debug-callsite main analysisEntryMethod 1
 #DEBUGFLAGS= -disjoint-debug-callsite addSomething main 1

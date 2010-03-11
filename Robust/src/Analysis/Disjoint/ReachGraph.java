@@ -1733,9 +1733,9 @@ public class ReachGraph {
       HeapRegionNode hrnCaller = id2hrn.get( hrnID );
       assert hrnCaller != null;
 
-      // when clearing off nodes, don't eliminate variable
+      // when clearing off nodes, also eliminate variable
       // references
-      wipeOut( hrnCaller, false );
+      wipeOut( hrnCaller, true );
     }
 
 

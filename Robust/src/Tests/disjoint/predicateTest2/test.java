@@ -20,8 +20,7 @@ public class Test {
   }   
 
   public static void addSomething( Foo f ) {
-    f.b = new Bar();
-    //addBar( f );
+    addBar( f );
   }
 
   public static void addBar( Foo g ) {
