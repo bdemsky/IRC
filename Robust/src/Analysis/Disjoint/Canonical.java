@@ -569,7 +569,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...    
-    ChangeSet out = new ChangeSet();
+    ChangeSet out = ChangeSet.factory();
 
     Iterator<ReachState> itrO = rsO.iterator();
     while( itrO.hasNext() ) {
@@ -615,14 +615,14 @@ abstract public class Canonical {
           out = 
             Canonical.union( out,
                              ChangeSet.factory( 
-                                 ChangeTuple.factory( o, theUnion ) 
+                                               ChangeTuple.factory( o, theUnion ) 
                                                 )
                              );
 	}
       }
     }
 
-    out = (ChangeSet) makeCanonical( out );
+    assert out.isCanonical();
     op2result.put( op, out );
     return out;
   }
