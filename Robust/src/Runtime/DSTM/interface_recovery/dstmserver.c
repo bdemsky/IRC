@@ -13,6 +13,7 @@
 #include "thread.h"
 #endif
 #include "gCollect.h"
+#include "readstruct.h"
 
 #ifdef RECOVERY
 #include <unistd.h>
@@ -294,7 +295,7 @@ void *dstmAccept(void *acceptfd) {
 	trans_commit_data_t transinfo;
   unsigned short objType, *versionarry, version;
 	unsigned int *oidarry, numoid, mid, threadid;
-  int n, v;
+    int n, v;
 
 #ifdef DEBUG
 	printf("%s-> Entering dstmAccept\n", __func__);	fflush(stdout);
@@ -302,6 +303,7 @@ void *dstmAccept(void *acceptfd) {
 	/* Receive control messages from other machines */
 	while(1) {
 		int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
+		//int ret=recv_data_errorcode_buf((int)acceptfd, &readbuffer, &control, sizeof(char));
     dupeptr = NULL;
 
 		if (ret==0)
@@ -366,6 +368,7 @@ void *dstmAccept(void *acceptfd) {
 				transinfo.modptr = NULL;
 				transinfo.numlocked = 0;
 				transinfo.numnotfound = 0;
+				//if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
 				if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
 					printf("Error: In readClientReq() %s, %d\n", __FILE__, __LINE__);
 					pthread_exit(NULL);
@@ -920,6 +923,7 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
     return 0;
 
   /* Read modified objects */
+  //printf("fixed.sum_bytes= %d\n", fixed.sum_bytes);
   if(fixed.nummod != 0) {
     if ((modptr = calloc(1, fixed.sum_bytes)) == NULL) {
       printf("calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
@@ -943,12 +947,15 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
     return 1;
   }
   ptr = (char *) modptr;
+  //printf("fixed.nummod= %d\n", fixed.nummod);
+  //fflush(stdout);
   for(i = 0 ; i < fixed.nummod; i++) {
     int tmpsize=0;
     headaddr = (objheader_t *) ptr;
     oid = OID(headaddr);
     oidmod[i] = oid;
     GETSIZE(tmpsize, headaddr);
+    //printf("i= %d, tmpsize= %d, oid= %u\n", i, tmpsize, oid);
     ptr += sizeof(objheader_t) + tmpsize;
   }
 #ifdef DEBUG
