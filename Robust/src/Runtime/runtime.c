@@ -350,10 +350,9 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
     short sc=((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
     putchar(sc);
   }
-
-#ifdef RECOVERYSTATS
+//#ifdef RECOVERYSTATS
   fflush(stdout);
-#endif
+//#endif
 }
 
 #ifdef D___RecoveryStat______printRecoveryStat____ 
@@ -364,6 +363,7 @@ void CALL00(___RecoveryStat______printRecoveryStat____) {
 #else
 void CALL00(___RecoveryStat______printRecoveryStat____) {
   printf("No Stat\n");
+  fflush(stdout);
 }
 #endif
 #endif

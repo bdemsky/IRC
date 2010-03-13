@@ -7,7 +7,7 @@ public class Object {
   private Object prevlockobject;
 
   // temporary extra unused int filed to align objects for Java
-  int wkhqwemnbmwnb;
+  //int wkhqwemnbmwnb;
 
   public int hashCode() {
     if (!cachedHash) {

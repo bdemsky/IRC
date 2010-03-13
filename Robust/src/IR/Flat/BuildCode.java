@@ -314,10 +314,12 @@ public class BuildCode {
     }
 
     if (state.DSM) {
-      if (state.DSMRECOVERYSTATS)
+      if (state.DSMRECOVERYSTATS) {
+        outmethod.println("#ifdef RECOVERYSTATS \n");
         outmethod.println("handle();\n");
-      else {
-        outmethod.println("#ifdef TRANSSTATS \n");
+        outmethod.println("#endif\n");
+      } else {
+        outmethod.println("#if defined(TRANSSTATS) || defined(RECOVERYSTATS) \n");
         outmethod.println("handle();\n");
         outmethod.println("#endif\n");
       }
@@ -390,7 +392,8 @@ public class BuildCode {
     }
 
     if (state.DSM||state.SINGLETM) {
-      outmethod.println("#ifdef TRANSSTATS \n");
+      //outmethod.println("#if defined(TRANSSTATS) || defined(RECOVERYSTATS) \n");
+      outmethod.println("#if defined(TRANSSTATS) \n");
       outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
       outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
       outmethod.println("printf(\"numTransAbort= %d\\n\", numTransAbort);");
