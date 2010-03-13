@@ -39,13 +39,19 @@ public class ReachTuple extends Canonical {
   public static final int ARITY_ONEORMORE  = 2;
   protected int arity;
 
+  // whether this represents heap regions out
+  // of the current calling context or not
+  protected boolean isOutOfContext;
+
 
   public static ReachTuple factory( Integer hrnID,
                                     boolean isMultiObject,
-                                    int     arity ) {
+                                    int     arity,
+                                    boolean ooc ) {
     ReachTuple out = new ReachTuple( hrnID,
                                      isMultiObject,
-                                     arity );
+                                     arity,
+                                     ooc );
     out = (ReachTuple) Canonical.makeCanonical( out );
     return out;
   }
@@ -53,19 +59,22 @@ public class ReachTuple extends Canonical {
   public static ReachTuple factory( HeapRegionNode hrn ) {
     ReachTuple out = new ReachTuple( hrn.getID(),
                                      !hrn.isSingleObject(),
-                                     ARITY_ONE );
+                                     ARITY_ONE,
+                                     false );
     out = (ReachTuple) Canonical.makeCanonical( out );
     return out;
   }
 
   protected ReachTuple( Integer hrnID,
                         boolean isMultiObject,
-                        int     arity ) {
+                        int     arity,
+                        boolean ooc ) {
     assert hrnID != null;
 
-    this.hrnID         = hrnID;
-    this.isMultiObject = isMultiObject;
-    this.arity         = arity;
+    this.hrnID          = hrnID;
+    this.isMultiObject  = isMultiObject;
+    this.arity          = arity;
+    this.isOutOfContext = ooc;
 
     // just make sure this stuff is true now
     // that analysis doesn't use ONEORMORE
@@ -88,6 +97,10 @@ public class ReachTuple extends Canonical {
     return arity;
   }
 
+  public boolean isOutOfContext() {
+    return isOutOfContext;
+  }
+
 
   public boolean equals( Object o ) {
     if( o == null ) {
@@ -99,13 +112,18 @@ public class ReachTuple extends Canonical {
     }
 
     ReachTuple rt = (ReachTuple) o;
-    return 
-      hrnID.equals( rt.hrnID ) &&
-      arity == rt.arity;
+
+    return hrnID.equals( rt.hrnID )       &&
+      arity          == rt.arity          &&
+      isOutOfContext == rt.isOutOfContext;
   }
 
   public int hashCodeSpecific() {
-    return (hrnID.intValue() << 2) ^ arity;
+    int hash = (hrnID.intValue() << 2) ^ arity;
+    if( isOutOfContext ) {
+      hash = ~hash;
+    }
+    return hash;
   }
 
 
@@ -114,6 +132,10 @@ public class ReachTuple extends Canonical {
 
     if( isMultiObject ) {
       s += "M";
+    }
+
+    if( isOutOfContext ) {
+      s += "?";
     }
 
     if( arity == ARITY_ZEROORMORE ) {

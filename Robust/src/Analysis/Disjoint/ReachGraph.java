@@ -125,7 +125,8 @@ public class ReachGraph {
                            ReachState.factory(
                                               ReachTuple.factory( id,
                                                                   !isSingleObject,
-                                                                  ReachTuple.ARITY_ONE
+                                                                  ReachTuple.ARITY_ONE,
+                                                                  false // out-of-context
                                                                   )
                                               )
                            );
@@ -1277,6 +1278,19 @@ public class ReachGraph {
     return null;
   }
 
+  // used below to convert a ReachSet to its callee-context
+  // equivalent with respect to allocation sites in this graph
+  protected ReachSet toCalleeContext( ReachSet rs ) {
+    ReachSet out = rs;
+    Iterator<AllocSite> asItr = allocSites.iterator();
+    while( asItr.hasNext() ) {
+      AllocSite as = asItr.next();
+      out = Canonical.toCalleeContext( out, as );
+    }
+    assert out.isCanonical();
+    return out;
+  }
+
 
   // use this method to make a new reach graph that is
   // what heap the FlatMethod callee from the FlatCall 
@@ -1374,8 +1388,8 @@ public class ReachGraph {
                                           false, // out-of-context?
                                           hrnSrcCaller.getType(),
                                           hrnSrcCaller.getAllocSite(),
-                                          /*toShadowTokens( this,*/ hrnSrcCaller.getInherent() /*)*/,
-                                          /*toShadowTokens( this,*/ hrnSrcCaller.getAlpha() /*)*/,
+                                          toCalleeContext( hrnSrcCaller.getInherent() ),
+                                          toCalleeContext( hrnSrcCaller.getAlpha() ),
                                           preds,
                                           hrnSrcCaller.getDescription()
                                           );
@@ -1414,8 +1428,8 @@ public class ReachGraph {
                                           false, // out-of-context?
                                           hrnCaller.getType(),
                                           hrnCaller.getAllocSite(),
-                                          /*toShadowTokens( this,*/ hrnCaller.getInherent() /*)*/,
-                                          /*toShadowTokens( this,*/ hrnCaller.getAlpha() /*)*/,
+                                          toCalleeContext( hrnCaller.getInherent() ),
+                                          toCalleeContext( hrnCaller.getAlpha() ),
                                           preds,
                                           hrnCaller.getDescription()
                                           );
@@ -1451,7 +1465,7 @@ public class ReachGraph {
                                         hrnCallee,
                                         reCaller.getType(),
                                         reCaller.getField(),
-                                        /*toShadowTokens( this,*/ reCaller.getBeta() /*)*/,
+                                        toCalleeContext( reCaller.getBeta() ),
                                         preds
                                         )
                            );              
@@ -1568,8 +1582,8 @@ public class ReachGraph {
                                           true,  // out-of-context?
                                           oocNodeType,
                                           null,  // alloc site, shouldn't be used
-                                          /*toShadowTokens( this,*/ oocReach  /*)*/, // inherent
-                                          /*toShadowTokens( this,*/ oocReach /*)*/, // alpha
+                                          toCalleeContext( oocReach ), // inherent
+                                          toCalleeContext( oocReach ), // alpha
                                           preds,
                                           "out-of-context"
                                           );       
@@ -1591,8 +1605,8 @@ public class ReachGraph {
                                             true,  // out-of-context?
                                             oocNodeType,
                                             null,  // alloc site, shouldn't be used
-                                            /*toShadowTokens( this,*/ oocReach  /*)*/, // inherent
-                                            /*toShadowTokens( this,*/ oocReach /*)*/, // alpha
+                                            toCalleeContext( oocReach ), // inherent
+                                            toCalleeContext( oocReach ), // alpha
                                             preds,
                                             "out-of-context"
                                             );       
@@ -1605,7 +1619,7 @@ public class ReachGraph {
                                       hrnCalleeAndInContext,
                                       edgeMightCross.getType(),
                                       edgeMightCross.getField(),
-                                      /*toShadowTokens( this,*/ edgeMightCross.getBeta() /*)*/,
+                                      toCalleeContext( edgeMightCross.getBeta() ),
                                       preds
                                       )
                          );              
@@ -1613,7 +1627,7 @@ public class ReachGraph {
         } else {
           // the out-of-context edge already exists
           oocEdgeExisting.setBeta( Canonical.union( oocEdgeExisting.getBeta(),
-                                                    edgeMightCross.getBeta()
+                                                    toCalleeContext( edgeMightCross.getBeta() )
                                                     )
                                    );         
  
@@ -2464,7 +2478,8 @@ public class ReachGraph {
       ReachTuple rtException = 
         ReachTuple.factory( hrnID, 
                             !hrn.isSingleObject(), 
-                            ReachTuple.ARITY_ONE 
+                            ReachTuple.ARITY_ONE,
+                            false // out-of-context
                             );
 
       ChangeSet cts = ChangeSet.factory();

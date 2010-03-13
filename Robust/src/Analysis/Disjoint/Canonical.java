@@ -34,7 +34,7 @@ abstract public class Canonical {
   
 
 
-  public static Canonical makeCanonical( Canonical c ) {
+ public static Canonical makeCanonical( Canonical c ) {
 
     if( canon.containsKey( c ) ) {
       return canon.get( c );
@@ -110,8 +110,9 @@ abstract public class Canonical {
     assert rt2 != null;
     assert rt1.isCanonical();
     assert rt2.isCanonical();
-    assert rt1.hrnID         == rt2.hrnID;
-    assert rt1.isMultiObject == rt2.isMultiObject;
+    assert rt1.hrnID          == rt2.hrnID;
+    assert rt1.isMultiObject  == rt2.isMultiObject;
+    assert rt1.isOutOfContext == rt2.isOutOfContext;
     
     ReachTuple out;
 
@@ -120,7 +121,8 @@ abstract public class Canonical {
       // ZERO-OR-MORE
       out = ReachTuple.factory( rt1.hrnID, 
                                 true, 
-                                ReachTuple.ARITY_ZEROORMORE );      
+                                ReachTuple.ARITY_ZEROORMORE,
+                                rt1.isOutOfContext );
       
     } else {
       // a single object region can only be ARITY_ONE (or zero by
@@ -141,7 +143,8 @@ abstract public class Canonical {
 
     ReachTuple out = ReachTuple.factory( hrnIDToChangeTo,
                                          rt.isMultiObject,
-                                         rt.arity
+                                         rt.arity,
+                                         rt.isOutOfContext
                                          );
     assert out.isCanonical();
     return out;
@@ -225,8 +228,9 @@ abstract public class Canonical {
     Iterator<ReachTuple> rtItr = rs1.iterator();
     while( rtItr.hasNext() ) {
       ReachTuple rt1 = rtItr.next();
-      ReachTuple rt2 = rs2.containsHrnID( rt1.getHrnID() );
-
+      ReachTuple rt2 = rs2.containsHrnID( rt1.getHrnID(),
+                                          rt1.isOutOfContext() 
+                                          );
       if( rt2 != null ) {
 	out.reachTuples.add( unionArity( rt1, rt2 ) );
       } else {
@@ -237,8 +241,9 @@ abstract public class Canonical {
     rtItr = rs2.iterator();
     while( rtItr.hasNext() ) {
       ReachTuple rt2 = rtItr.next();
-      ReachTuple rto = out.containsHrnID( rt2.getHrnID() );
-
+      ReachTuple rto = out.containsHrnID( rt2.getHrnID(),
+                                          rt2.isOutOfContext()
+                                          );
       if( rto == null ) {
 	out.reachTuples.add( rto );
       }
@@ -308,8 +313,11 @@ abstract public class Canonical {
       int        age   = as.getAgeCategory( hrnID );
 
       // hrnIDs not associated with
-      // the site should be left alone
-      if( age == AllocSite.AGE_notInThisSite ) {
+      // the site should be left alone, and
+      // those from this site but out-of-context
+      if( age == AllocSite.AGE_notInThisSite ||
+          rt.isOutOfContext()
+          ) {
 	out.reachTuples.add( rt );
 
       } else if( age == AllocSite.AGE_summary ) {
@@ -350,16 +358,18 @@ abstract public class Canonical {
 
     } else if( rtSummary == null && rtOldest != null ) {
       out.reachTuples.add( ReachTuple.factory( as.getSummary(),
-                                               true,
-                                               rtOldest.getArity()
+                                               true, // multi
+                                               rtOldest.getArity(),
+                                               false // out-of-context
                                                )
                            );
 
     } else if( rtSummary != null && rtOldest != null ) {     
       out.reachTuples.add( Canonical.unionArity( rtSummary,
                                                  ReachTuple.factory( as.getSummary(),
-                                                                     true,
-                                                                     rtOldest.getArity()
+                                                                     true, // muli
+                                                                     rtOldest.getArity(),
+                                                                     false // out-of-context
                                                                      )
                                                  )
                            );
@@ -584,8 +594,9 @@ abstract public class Canonical {
 	Iterator<ReachTuple> itrRelement = r.iterator();
 	while( itrRelement.hasNext() ) {
 	  ReachTuple rtR = itrRelement.next();
-	  ReachTuple rtO = o.containsHrnID( rtR.getHrnID() );
-
+	  ReachTuple rtO = o.containsHrnID( rtR.getHrnID(),
+                                            rtR.isOutOfContext()
+                                            );
 	  if( rtO != null ) {
             theUnion = Canonical.union( theUnion,
                                         Canonical.unionArity( rtR,
@@ -602,8 +613,9 @@ abstract public class Canonical {
 	Iterator<ReachTuple> itrOelement = o.iterator();
 	while( itrOelement.hasNext() ) {
 	  ReachTuple rtO = itrOelement.next();
-	  ReachTuple rtR = theUnion.containsHrnID( rtO.getHrnID() );
-
+	  ReachTuple rtR = theUnion.containsHrnID( rtO.getHrnID(),
+                                                   rtO.isOutOfContext()
+                                                   );
 	  if( rtR == null ) {
             theUnion = Canonical.union( theUnion,
                                         rtO
@@ -817,6 +829,118 @@ abstract public class Canonical {
     out = (ExistPredSet) makeCanonical( out );
     op2result.put( op, out );
     return out;    
+  }
+
+
+
+  public static ReachSet toCalleeContext( ReachSet  rs,
+                                          AllocSite as ) {
+    assert rs != null;
+    assert as != null;
+    assert rs.isCanonical();
+    assert as.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSET_TOCALLEECONTEXT_ALLOCSITE,
+                       rs, 
+                       as );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachSet) result;
+    }
+
+    // otherwise, no cached result...
+    ReachSet out = ReachSet.factory();
+    Iterator<ReachState> itr = rs.iterator();
+    while( itr.hasNext() ) {
+      ReachState state = itr.next();
+      out = Canonical.add( out,
+                           Canonical.toCalleeContext( state, as )
+                           );
+    }
+
+    assert out.isCanonical();
+    op2result.put( op, out );
+    return out;
+  }
+
+  public static ReachState toCalleeContext( ReachState state,
+                                            AllocSite  as ) {
+    assert state != null;
+    assert as    != null;
+    assert state.isCanonical();
+    assert as.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSTATE_TOCALLEECONTEXT_ALLOCSITE,
+                       state, 
+                       as );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachState) result;
+    }
+
+    // otherwise, no cached result...
+    ReachState out = ReachState.factory();
+    Iterator<ReachTuple> itr = state.iterator();
+    while( itr.hasNext() ) {
+      ReachTuple rt = itr.next();
+
+      int age = as.getAgeCategory( rt.getHrnID() );
+
+      // this is the current mapping, where 0, 1, 2S were allocated
+      // in the current context, 0?, 1? and 2S? were allocated in a
+      // previous context, and we're translating to a future context
+      //
+      // 0    -> 0?
+      // 1    -> 1?
+      // 2S   -> 2S?
+      // 2S*  -> 2S?*
+      //
+      // 0?   -> 2S?
+      // 1?   -> 2S?
+      // 2S?  -> 2S?
+      // 2S?* -> 2S?*
+      
+      if( age == AllocSite.AGE_notInThisSite ) {
+        // things not from the site just go back in
+	out = Canonical.union( out, rt );
+
+      } else if( age == AllocSite.AGE_summary ||
+                 rt.isOutOfContext()
+                 ) {
+        // the in-context summary and all existing out-of-context
+        // stuff all become
+        out = Canonical.union( out,
+                               ReachTuple.factory( as.getSummary(),
+                                                   true, // multi
+                                                   rt.getArity(),
+                                                   true  // out-of-context
+                                                   )
+                               );
+      } else {
+        // otherwise everything else just goes to an out-of-context
+        // version, everything else the same
+	Integer I = as.getAge( rt.getHrnID() );
+	assert I != null;
+
+        assert !rt.isMultiObject();
+
+        out = Canonical.union( out,
+                               ReachTuple.factory( rt.getHrnID(),
+                                                   rt.isMultiObject(),
+                                                   rt.getArity(),
+                                                   true  // out-of-context
+                                                   )
+                               );        
+      }
+    }
+
+    assert out.isCanonical();
+    op2result.put( op, out );
+    return out;
   }
   
 

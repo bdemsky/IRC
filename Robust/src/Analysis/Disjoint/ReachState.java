@@ -71,13 +71,16 @@ public class ReachState extends Canonical {
   }
 
   // this should be a hash table so we can do this by key
-  public ReachTuple containsHrnID( Integer hrnID ) {
+  public ReachTuple containsHrnID( Integer hrnID,
+                                   boolean isOutOfContext ) {
     assert hrnID != null;
 
     Iterator<ReachTuple> rtItr = reachTuples.iterator();
     while( rtItr.hasNext() ) {
       ReachTuple rt = rtItr.next();
-      if( hrnID.equals( rt.getHrnID() ) ) {
+      if( hrnID.equals( rt.getHrnID() ) &&
+          isOutOfContext == rt.isOutOfContext()
+          ) {
 	return rt;
       }
     }

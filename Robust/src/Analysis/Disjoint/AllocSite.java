@@ -31,19 +31,16 @@ public class AllocSite extends Canonical {
   public static final int AGE_in_I          = 101;
   public static final int AGE_oldest        = 102;
   public static final int AGE_summary       = 103;
-  public static final int AGE_siteSummary   = 200;
 
   public static final int SHADOWAGE_notInThisSite = -100;
   public static final int SHADOWAGE_in_I          = -101;
   public static final int SHADOWAGE_oldest        = -102;
   public static final int SHADOWAGE_summary       = -103;
-  public static final int SHADOWAGE_siteSummary   = -200;
 
   protected Integer         id;
   protected int             allocationDepth;
   protected Vector<Integer> ithOldest;
   protected Integer         summary;
-  protected Integer         siteSummary;
   protected FlatNew         flatNew;
   protected String          disjointId;
   protected boolean         flag;
@@ -120,11 +117,6 @@ public class AllocSite extends Canonical {
 
   public Integer getSummaryShadow() {
     return -summary;
-  }
-
-  public void setSiteSummary( Integer id ) {
-    assert id != null;
-    siteSummary = id;
   }
 
   public FlatNew getFlatNew() {

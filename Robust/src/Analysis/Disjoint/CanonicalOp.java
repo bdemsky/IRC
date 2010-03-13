@@ -27,6 +27,8 @@ public class CanonicalOp {
   public static final int EXISTPREDSET_JOIN_EXISTPREDSET     = 0x8a21;
   public static final int EXISTPREDSET_ADD_EXISTPRED         = 0xba5f;
   public static final int PRIM_OP_UNUSED                     = 0xef01;
+  public static final int REACHSET_TOCALLEECONTEXT_ALLOCSITE = 0x56f6;
+  public static final int REACHSTATE_TOCALLEECONTEXT_ALLOCSITE = 0x7faf;
 
   protected int opCode;
   protected Canonical operand1;

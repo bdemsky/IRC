@@ -349,15 +349,19 @@ public class DisjointAnalysis {
 	}
       }
 
-      // modify rg with appropriate transfer function
-      rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
-
-          
-
       if( takeDebugSnapshots && 
 	  d.getSymbol().equals( descSymbolDebug ) 
           ) {
-	debugSnapshot( rg, fn );
+	debugSnapshot( rg, fn, true );
+      }
+
+      // modify rg with appropriate transfer function
+      rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
+          
+      if( takeDebugSnapshots && 
+	  d.getSymbol().equals( descSymbolDebug ) 
+          ) {
+	debugSnapshot( rg, fn, false );
       }
 
 
@@ -750,10 +754,6 @@ public class DisjointAnalysis {
 
       // the oldest node is a summary node
       as.setSummary( generateUniqueHeapRegionNodeID() );
-
-      // and one special node is older than all
-      // nodes and shadow nodes for the site
-      as.setSiteSummary( generateUniqueHeapRegionNodeID() );
 
       mapFlatNewToAllocSite.put( fnew, as );
     }
@@ -1176,6 +1176,11 @@ public class DisjointAnalysis {
 
 
 
+
+
+  int zzz = 0;
+
+
   
   
   // get successive captures of the analysis state
@@ -1199,12 +1204,15 @@ public class DisjointAnalysis {
   // the number of snapshots to take
   int numIterToCapture = 300;
 
-  void debugSnapshot( ReachGraph rg, FlatNode fn ) {
+  void debugSnapshot( ReachGraph rg, FlatNode fn, boolean in ) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {
       return;
     }
 
-    ++debugCounter;
+    if( in ) {
+      ++debugCounter;
+    }
+
     if( debugCounter    > numStartCountReport &&
 	freqCountReport > 0                   &&
         debugCounter % freqCountReport == 0 
@@ -1212,13 +1220,19 @@ public class DisjointAnalysis {
       System.out.println( "    @@@ debug counter = "+
                           debugCounter );
     }
+
     if( debugCounter > iterStartCapture ) {
       System.out.println( "    @@@ capturing debug "+
                           (debugCounter - iterStartCapture)+
                           " @@@" );
-      String graphName = 
-        String.format( "snap%04d",
-                       debugCounter - iterStartCapture );
+      String graphName;
+      if( in ) {
+        graphName = String.format( "snap%04din",
+                                   debugCounter - iterStartCapture );
+      } else {
+        graphName = String.format( "snap%04dout",
+                                   debugCounter - iterStartCapture );
+      }
       if( fn != null ) {
 	graphName = graphName + fn;
       }
