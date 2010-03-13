@@ -57,8 +57,8 @@
 //Prefetch tuning paramters
 //#define RETRYINTERVAL  20 //N (For Em3d, SOR, Moldyn benchmarks)
 //#define SHUTDOWNINTERVAL  3 //M
-#define RETRYINTERVAL 100  //N  (For MatrixMultiply, 2DFFT, 2DConv benchmarks)
-#define SHUTDOWNINTERVAL 1 //M
+#define RETRYINTERVAL 1  //N  (For MatrixMultiply, 2DFFT, 2DConv benchmarks)
+#define SHUTDOWNINTERVAL 75 //M
 #define NUM_TRY_TO_COMMIT 2
 #define MEM_ALLOC_THRESHOLD 20485760//20MB
 

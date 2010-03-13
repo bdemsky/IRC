@@ -83,6 +83,7 @@ void * gettail() {
   return memory+tailoffset+sizeof(int);
 }
 
+
 int numavailable() {
   int tmp=tailoffset;
   int available=0;

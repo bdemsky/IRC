@@ -1042,7 +1042,7 @@ void processReqNotify(unsigned int numoid, unsigned int *oidarry, unsigned short
   char msg[1+  2 * sizeof(unsigned int) + sizeof(unsigned short)];
   int sd;
   struct sockaddr_in remoteAddr;
-  int bytesSent;
+  //int bytesSent;
   int size;
   int i = 0;
 

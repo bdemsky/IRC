@@ -47,7 +47,7 @@ public class Spider {
 
 		atomic {
 			firstmachine = global new GlobalString(fm);
-			firstpage = global new GlobalString("");;
+			firstpage = global new GlobalString("");
       
 			works = global new Work[NUM_THREADS];
 			qt = global new QueryTask[NUM_THREADS];
@@ -57,7 +57,9 @@ public class Spider {
 
 			GlobalQueue todoList = global new GlobalQueue();
 			DistributedHashMap visitedList = global new DistributedHashMap(500, 500, 0.75f);
+			//DistributedHashMap visitedList = global new DistributedHashMap(500, 0.75f);
 			DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
+			//DistributedHashMap results = global new DistributedHashMap(100, 0.75f);
 			DistributedLinkedList results_list = global new DistributedLinkedList();
 			
 			todoList.push(firstquery);

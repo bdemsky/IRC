@@ -25,7 +25,7 @@ public class QueryTask extends Task {
 		
 		atomic {
 			depth = ((GlobalQuery)myWork).getDepth();
-      max = this.maxDepth;
+            max = this.maxDepth;
 			maxSearch = this.maxSearchDepth;
 		}
 
