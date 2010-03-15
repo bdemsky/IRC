@@ -1291,6 +1291,32 @@ public class ReachGraph {
     return out;
   }
 
+  // used below to convert a ReachSet to its caller-context
+  // equivalent with respect to allocation sites in this graph
+  protected ReachSet toCallerContext( ReachSet rs ) {
+    ReachSet out = rs;
+    Iterator<AllocSite> asItr = allocSites.iterator();
+    while( asItr.hasNext() ) {
+      AllocSite as = asItr.next();
+      out = Canonical.toCallerContext( out, as );
+    }
+    assert out.isCanonical();
+    return out;
+  }
+
+  // used below to convert a ReachSet to an equivalent
+  // version with shadow IDs merged into unshadowed IDs
+  protected ReachSet unshadow( ReachSet rs ) {
+    ReachSet out = rs;
+    Iterator<AllocSite> asItr = allocSites.iterator();
+    while( asItr.hasNext() ) {
+      AllocSite as = asItr.next();
+      out = Canonical.unshadow( out, as );
+    }
+    assert out.isCanonical();
+    return out;
+  }
+
 
   // use this method to make a new reach graph that is
   // what heap the FlatMethod callee from the FlatCall 
@@ -1903,7 +1929,7 @@ public class ReachGraph {
                                    false,                      // out-of-context?
                                    hrnCallee.getType(),        // type				 
                                    hrnCallee.getAllocSite(),   // allocation site			 
-                                   hrnCallee.getInherent(),    // inherent reach
+                                   toCallerContext( hrnCallee.getInherent() ),    // inherent reach
                                    null,                       // current reach                 
                                    predsEmpty,                 // predicates
                                    hrnCallee.getDescription()  // description
@@ -1913,7 +1939,7 @@ public class ReachGraph {
       }
 
       // TODO: alpha should be some rewritten version of callee in caller context
-      hrnCaller.setAlpha( hrnCallee.getAlpha() );
+      hrnCaller.setAlpha( toCallerContext( hrnCallee.getAlpha() ) );
 
       hrnCaller.setPreds( preds );
     }
@@ -1996,8 +2022,8 @@ public class ReachGraph {
                                        false,                         // out-of-context?
                                        hrnSrcCallee.getType(),        // type				 
                                        hrnSrcCallee.getAllocSite(),   // allocation site			 
-                                       hrnSrcCallee.getInherent(),    // inherent reach
-                                       hrnSrcCallee.getAlpha(),       // current reach                 
+                                       toCallerContext( hrnSrcCallee.getInherent() ),    // inherent reach
+                                       toCallerContext( hrnSrcCallee.getAlpha() ),       // current reach                 
                                        predsEmpty,                    // predicates
                                        hrnSrcCallee.getDescription()  // description
                                        );                                        
@@ -2025,7 +2051,7 @@ public class ReachGraph {
                                         hrnDstCaller,
                                         reCallee.getType(),
                                         reCallee.getField(),
-                                        reCallee.getBeta(),
+                                        toCallerContext( reCallee.getBeta() ),
                                         preds
                                         );
         
@@ -2107,8 +2133,8 @@ public class ReachGraph {
                                      false,                         // out-of-context?
                                      hrnDstCallee.getType(),        // type				 
                                      hrnDstCallee.getAllocSite(),   // allocation site			 
-                                     hrnDstCallee.getInherent(),    // inherent reach
-                                     hrnDstCallee.getAlpha(),       // current reach                 
+                                     toCallerContext( hrnDstCallee.getInherent() ),    // inherent reach
+                                     toCallerContext( hrnDstCallee.getAlpha() ),       // current reach                 
                                      predsTrue,                     // predicates
                                      hrnDstCallee.getDescription()  // description
                                      );                                        
@@ -2126,7 +2152,7 @@ public class ReachGraph {
                                         hrnDstCaller,
                                         tdNewEdge,
                                         null,
-                                        reCallee.getBeta(),
+                                        toCallerContext( reCallee.getBeta() ),
                                         predsTrue
                                         );
 
@@ -2231,6 +2257,30 @@ public class ReachGraph {
         transferOnto( summShad, summNorm );
       }      
     }
+
+
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller45BeforeUnshadow", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+    
+    
+    Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
+    while( itrAllHRNodes.hasNext() ) {
+      Map.Entry      me  = (Map.Entry)      itrAllHRNodes.next();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+      
+      hrn.setAlpha( unshadow( hrn.getAlpha() ) );
+      
+      Iterator<RefEdge> itrEdges = hrn.iteratorToReferencers();
+      while( itrEdges.hasNext() ) {
+        RefEdge re = itrEdges.next();
+        re.setBeta( unshadow( re.getBeta() ) );
+      }
+    }
+    
 
 
     if( writeDebugDOTs ) {

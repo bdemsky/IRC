@@ -942,6 +942,290 @@ abstract public class Canonical {
     op2result.put( op, out );
     return out;
   }
-  
+
+
+  public static ReachSet toCallerContext( ReachSet  rs,
+                                          AllocSite as ) {
+    assert rs != null;
+    assert as != null;
+    assert rs.isCanonical();
+    assert as.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSET_TOCALLERCONTEXT_ALLOCSITE,
+                       rs, 
+                       as );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachSet) result;
+    }
+
+    // otherwise, no cached result...
+    ReachSet out = ReachSet.factory();
+    Iterator<ReachState> itr = rs.iterator();
+    while( itr.hasNext() ) {
+      ReachState state = itr.next();
+      out = Canonical.union( out,
+                             Canonical.toCallerContext( state, as )
+                             );
+    }
+
+    assert out.isCanonical();
+    op2result.put( op, out );
+    return out;
+  }
+
+  public static ReachSet toCallerContext( ReachState state,
+                                          AllocSite  as ) {
+    assert state != null;
+    assert as    != null;
+    assert state.isCanonical();
+    assert as.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSTATE_TOCALLERCONTEXT_ALLOCSITE,
+                       state, 
+                       as );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachSet) result;
+    }
+
+    // otherwise, no cached result...
+    ReachSet out = ReachSet.factory();
+
+    // this method returns a ReachSet instead of a ReachState
+    // because the companion method, toCallee, translates
+    // symbols many-to-one, so state->state
+    // but this method does an ~inverse mapping, one-to-many
+    // so one state can split into a set of branched states
+
+    // 0    -> -0
+    // 1    -> -1
+    // 2S   -> -2S
+    // 2S*  -> -2S*
+    //
+    // 0?   -> 0
+    // 1?   -> 1
+    // 2S?  -> 2S
+    //      -> 0?
+    //      -> 1?
+    //      -> 2S?
+    // 2S?* -> {2S*, 2S?*}    
+
+    boolean found2Sooc = false;
+
+    ReachState baseState = ReachState.factory();
+
+    Iterator<ReachTuple> itr = state.iterator();
+    while( itr.hasNext() ) {
+      ReachTuple rt = itr.next();
+
+      int age = as.getAgeCategory( rt.getHrnID() );
+
+      if( age == AllocSite.AGE_notInThisSite ) {
+        // things not from the site just go back in
+	baseState = Canonical.union( baseState, rt );
+
+      } else if( age == AllocSite.AGE_summary ) {
+
+        if( rt.isOutOfContext() ) {
+          // if its out-of-context, we only deal here with the ZERO-OR-MORE
+          // arity, if ARITY-ONE we'll branch the base state after the loop
+          if( rt.getArity() == ReachTuple.ARITY_ZEROORMORE ) {
+            // add two overly conservative symbols to reach state (PUNTING)
+            baseState = Canonical.union( baseState,
+                                         ReachTuple.factory( as.getSummary(),
+                                                             true, // multi
+                                                             ReachTuple.ARITY_ZEROORMORE,
+                                                             false // out-of-context
+                                                             )
+                                         );            
+            baseState = Canonical.union( baseState,
+                                         ReachTuple.factory( as.getSummary(),
+                                                             true, // multi
+                                                             ReachTuple.ARITY_ZEROORMORE,
+                                                             true  // out-of-context
+                                                             )
+                                         );            
+          } else {
+            assert rt.getArity() == ReachTuple.ARITY_ONE;
+            found2Sooc = true;
+          }
+
+        } else {
+          // the in-context just becomes shadow
+          baseState = Canonical.union( baseState,
+                                       ReachTuple.factory( as.getSummaryShadow(),
+                                                           true, // multi
+                                                           rt.getArity(),
+                                                           false  // out-of-context
+                                                           )
+                                       );
+        }
+
+      } else {
+        // otherwise the ith symbol becomes shadowed
+	Integer I = as.getAge( rt.getHrnID() );
+	assert I != null;
+        
+        assert !rt.isMultiObject();
+
+        baseState = Canonical.union( baseState,
+                                     ReachTuple.factory( -rt.getHrnID(),
+                                                         false, // multi
+                                                         rt.getArity(),
+                                                         false  // out-of-context
+                                                         )
+                                     );        
+      }
+    }
+
+    // now either make branches if we have 2S?, or
+    // the current baseState is the only state we need
+    if( found2Sooc ) {
+      // make a branch with every possibility of the one-to-many
+      // mapping for 2S? appended to the baseState
+      out = Canonical.union( out,
+                             Canonical.union( baseState,
+                                              ReachTuple.factory( as.getSummary(),
+                                                                  true, // multi
+                                                                  ReachTuple.ARITY_ONE,
+                                                                  false  // out-of-context
+                                                                  )
+                                              )
+                             );
+
+      out = Canonical.union( out,
+                             Canonical.union( baseState,
+                                              ReachTuple.factory( as.getSummary(),
+                                                                  true, // multi
+                                                                  ReachTuple.ARITY_ONE,
+                                                                  true  // out-of-context
+                                                                  )
+                                              )
+                             );      
+
+      for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+        out = Canonical.union( out,
+                               Canonical.union( baseState,
+                                                ReachTuple.factory( as.getIthOldest( i ),
+                                                                    false, // multi
+                                                                    ReachTuple.ARITY_ONE,
+                                                                    true  // out-of-context
+                                                                    )
+                                                )
+                               );
+      }
+
+    } else {
+      // just use current baseState      
+      out = Canonical.union( out,
+                             baseState );
+    }
+
+
+    assert out.isCanonical();
+    op2result.put( op, out );
+    return out;
+  }
+
+
+
+
+
+
+
+
+
+  public static ReachSet unshadow( ReachSet  rs,
+                                   AllocSite as ) {
+    assert rs != null;
+    assert as != null;
+    assert rs.isCanonical();
+    assert as.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSET_UNSHADOW_ALLOCSITE,
+                       rs, 
+                       as );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachSet) result;
+    }
+
+    // otherwise, no cached result...
+    ReachSet out = ReachSet.factory();
+    Iterator<ReachState> itr = rs.iterator();
+    while( itr.hasNext() ) {
+      ReachState state = itr.next();
+      out = Canonical.add( out,
+                           Canonical.unshadow( state, as )
+                           );
+    }
+
+    assert out.isCanonical();
+    op2result.put( op, out );
+    return out;
+  }
+
+  public static ReachState unshadow( ReachState state,
+                                     AllocSite  as ) {
+    assert state != null;
+    assert as    != null;
+    assert state.isCanonical();
+    assert as.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSTATE_UNSHADOW_ALLOCSITE,
+                       state, 
+                       as );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachState) result;
+    }
+
+    // this is the current mapping, where 0, 1, 2S were allocated
+    // in the current context, 0?, 1? and 2S? were allocated in a
+    // previous context, and we're translating to a future context
+    //
+    // -0   -> 0
+    // -1   -> 1
+    // -2S  -> 2S
+    
+    // otherwise, no cached result...
+    ReachState out = ReachState.factory();
+    Iterator<ReachTuple> itr = state.iterator();
+    while( itr.hasNext() ) {
+      ReachTuple rt = itr.next();
+
+      int age = as.getShadowAgeCategory( rt.getHrnID() );
+      
+      if( age == AllocSite.SHADOWAGE_notInThisSite ) {
+        // things not from the site just go back in
+	out = Canonical.union( out, rt );
+
+      } else {
+        assert !rt.isOutOfContext();
+
+        // otherwise unshadow it
+        out = Canonical.union( out,
+                               ReachTuple.factory( -rt.getHrnID(),
+                                                   rt.isMultiObject(),
+                                                   rt.getArity(),
+                                                   false
+                                                   )
+                               );
+      }
+    }
+
+    assert out.isCanonical();
+    op2result.put( op, out );
+    return out;
+  }
 
 }
