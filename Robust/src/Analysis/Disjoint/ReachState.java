@@ -31,6 +31,11 @@ public class ReachState extends Canonical {
 
   protected HashSet<ReachTuple> reachTuples;
 
+  // existance predicates must be true in a caller
+  // context for this node to transfer from this
+  // callee to that context
+  protected ExistPredSet preds;
+
 
   public static ReachState factory() {
     ReachState out = new ReachState();
@@ -49,6 +54,7 @@ public class ReachState extends Canonical {
 
   protected ReachState() {
     reachTuples = new HashSet<ReachTuple>();
+    preds       = ExistPredSet.factory();
   }
 
 
@@ -88,6 +94,9 @@ public class ReachState extends Canonical {
     return null;
   }
 
+  public ExistPredSet getPreds() {
+    return preds;
+  }
 
 
   public boolean equals( Object o ) {
@@ -100,16 +109,18 @@ public class ReachState extends Canonical {
     }
 
     ReachState rs = (ReachState) o;
-    return reachTuples.equals( rs.reachTuples );
+    return 
+      reachTuples.equals( rs.reachTuples ) &&
+      preds.equals( rs.preds );
   }
 
 
   public int hashCodeSpecific() {
-    return reachTuples.hashCode();
+    return reachTuples.hashCode() ^ preds.hashCode();
   }
 
 
   public String toString() {
-    return reachTuples.toString();
+    return reachTuples+":"+preds;
   }
 }

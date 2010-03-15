@@ -151,6 +151,35 @@ abstract public class Canonical {
   }
 
 
+  public static ReachState attach( ReachState   rs,
+                                   ExistPredSet preds ) {
+    assert rs    != null;
+    assert preds != null;
+    assert rs.isCanonical();
+    assert preds.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSTATE_ATTACH_EXISTPREDSET,
+                       rs, 
+                       preds );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachState) result;
+    }
+    
+    // otherwise, no cached result...
+    ReachState out = new ReachState();
+    out.reachTuples.addAll( rs.reachTuples );
+    out.preds = Canonical.join( rs.preds,
+                                preds );
+
+    out = (ReachState) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
+
+
   public static ReachState union( ReachState rs1,
                                   ReachState rs2 ) {
     assert rs1 != null;
@@ -172,6 +201,9 @@ abstract public class Canonical {
     ReachState out = new ReachState();
     out.reachTuples.addAll( rs1.reachTuples );
     out.reachTuples.addAll( rs2.reachTuples );
+    out.preds = Canonical.join( rs1.getPreds(),
+                                rs2.getPreds()
+                                );
 
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
@@ -198,6 +230,7 @@ abstract public class Canonical {
     ReachState out = new ReachState();
     out.reachTuples.addAll( rs.reachTuples );
     out.reachTuples.add( rt );
+    out.preds = rs.preds;
 
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
@@ -248,6 +281,10 @@ abstract public class Canonical {
 	out.reachTuples.add( rto );
       }
     }
+
+    out.preds = Canonical.join( rs1.getPreds(),
+                                rs2.getPreds()
+                                );
     
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
@@ -276,6 +313,7 @@ abstract public class Canonical {
     ReachState out = new ReachState();
     out.reachTuples.addAll( rs.reachTuples );
     out.reachTuples.remove( rt );
+    out.preds = rs.preds;
 
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
@@ -374,6 +412,8 @@ abstract public class Canonical {
                                                  )
                            );
     }
+
+    out.preds = rs.preds;
 
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
@@ -832,7 +872,7 @@ abstract public class Canonical {
   }
 
 
-
+  /*
   public static ReachSet toCalleeContext( ReachSet  rs,
                                           AllocSite as ) {
     assert rs != null;
@@ -864,6 +904,7 @@ abstract public class Canonical {
     op2result.put( op, out );
     return out;
   }
+  */
 
   public static ReachState toCalleeContext( ReachState state,
                                             AllocSite  as ) {
@@ -937,6 +978,10 @@ abstract public class Canonical {
                                );        
       }
     }
+
+    out = Canonical.attach( out,
+                            state.getPreds()
+                            );
 
     assert out.isCanonical();
     op2result.put( op, out );
@@ -1222,6 +1267,10 @@ abstract public class Canonical {
                                );
       }
     }
+
+    out = Canonical.attach( out,
+                            state.getPreds()
+                            );
 
     assert out.isCanonical();
     op2result.put( op, out );

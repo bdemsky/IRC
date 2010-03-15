@@ -36,8 +36,7 @@ public class HeapRegionNode extends RefSrcNode {
 
   // existence predicates must be true in a caller
   // context for this node to transfer from this
-  // callee to that context--NOTE, existence predicates
-  // do not factor into node comparisons
+  // callee to that context
   protected ExistPredSet preds;
 
 

@@ -9,6 +9,7 @@ package Analysis.Disjoint;
 public class CanonicalOp {
 
   public static final int REACHTUPLE_UNIONARITY_REACHTUPLE     = 0x1a34;
+  public static final int REACHSTATE_ATTACH_EXISTPREDSET       = 0x8358;
   public static final int REACHSTATE_UNION_REACHSTATE          = 0x5678;
   public static final int REACHSTATE_UNION_REACHTUPLE          = 0x32b6;
   public static final int REACHSTATE_UNIONUPARITY_REACHSTATE   = 0x9152;
