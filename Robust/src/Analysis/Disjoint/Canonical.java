@@ -989,6 +989,7 @@ abstract public class Canonical {
   }
 
 
+
   public static ReachSet toCallerContext( ReachSet  rs,
                                           AllocSite as ) {
     assert rs != null;
@@ -1020,6 +1021,7 @@ abstract public class Canonical {
     op2result.put( op, out );
     return out;
   }
+  
 
   public static ReachSet toCallerContext( ReachState state,
                                           AllocSite  as ) {

@@ -1344,13 +1344,45 @@ public class ReachGraph {
 
   // used below to convert a ReachSet to its caller-context
   // equivalent with respect to allocation sites in this graph
-  protected ReachSet toCallerContext( ReachSet rs ) {
-    ReachSet out = rs;
-    Iterator<AllocSite> asItr = allocSites.iterator();
-    while( asItr.hasNext() ) {
-      AllocSite as = asItr.next();
-      out = Canonical.toCallerContext( out, as );
+  protected ReachSet 
+    toCallerContext( ReachSet                            rs,
+                     Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied 
+                     ) {
+    ReachSet out = ReachSet.factory();
+
+    Iterator<ReachState> itr = rs.iterator();
+    while( itr.hasNext() ) {
+      ReachState stateCallee = itr.next();
+
+      if( calleeStatesSatisfied.containsKey( stateCallee ) ) {
+
+        // starting from one callee state...
+        ReachSet rsCaller = ReachSet.factory( stateCallee );
+
+        // possibly branch it into many states, which any
+        // allocation site might do, so lots of derived states
+        Iterator<AllocSite> asItr = allocSites.iterator();
+        while( asItr.hasNext() ) {
+          AllocSite as = asItr.next();
+          rsCaller = Canonical.toCallerContext( rs, as );
+        }
+        
+        // then before adding each derived, now caller-context
+        // states to the output, attach the appropriate pred
+        // based on the source callee state
+        Iterator<ReachState> stateItr = rsCaller.iterator();
+        while( stateItr.hasNext() ) {
+          ReachState stateCaller = stateItr.next();
+          stateCaller = Canonical.attach( stateCaller,
+                                          calleeStatesSatisfied.get( stateCallee )
+                                          );        
+          out = Canonical.union( out,
+                                 stateCaller
+                                 );
+        }
+      }
     }
+    
     assert out.isCanonical();
     return out;
   }
@@ -1823,6 +1855,9 @@ public class ReachGraph {
     Hashtable<RefEdge, ExistPredSet> calleeEdgesSatisfied =
       new Hashtable<RefEdge, ExistPredSet>();
 
+    Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
+      new Hashtable<ReachState, ExistPredSet>();
+
     Hashtable< RefEdge, Set<RefSrcNode> > calleeEdges2oocCallerSrcMatches =
       new Hashtable< RefEdge, Set<RefSrcNode> >();
 
@@ -1846,7 +1881,23 @@ public class ReachGraph {
         // otherwise don't bother looking at edges to this node
         continue;
       }
+      
+      // since the node is coming over, find out which reach
+      // states on it should come over, too
+      Iterator<ReachState> stateItr = hrnCallee.getAlpha().iterator();
+      while( stateItr.hasNext() ) {
+        ReachState stateCallee = stateItr.next();
 
+        predsIfSatis = 
+          stateCallee.getPreds().isSatisfiedBy( this,
+                                                callerNodeIDsCopiedToCallee
+                                                );
+        if( predsIfSatis != null ) {
+          calleeStatesSatisfied.put( stateCallee, predsIfSatis );
+        } 
+      }
+
+      // then look at edges to the node
       Iterator<RefEdge> reItr = hrnCallee.iteratorToReferencers();
       while( reItr.hasNext() ) {
         RefEdge    reCallee  = reItr.next();
@@ -1927,6 +1978,22 @@ public class ReachGraph {
                                              );
         if( predsIfSatis != null ) {
           calleeEdgesSatisfied.put( reCallee, predsIfSatis );
+
+          // since the edge is coming over, find out which reach
+          // states on it should come over, too
+          stateItr = reCallee.getBeta().iterator();
+          while( stateItr.hasNext() ) {
+            ReachState stateCallee = stateItr.next();
+            
+            predsIfSatis = 
+              stateCallee.getPreds().isSatisfiedBy( this,
+                                                    callerNodeIDsCopiedToCallee
+                                                    );
+            if( predsIfSatis != null ) {
+              calleeStatesSatisfied.put( stateCallee, predsIfSatis );
+            } 
+          }
+
         }        
 
       }
@@ -1957,6 +2024,22 @@ public class ReachGraph {
                                              );
         if( predsIfSatis != null ) {
           calleeEdgesSatisfied.put( reCallee, predsIfSatis );
+
+          // since the edge is coming over, find out which reach
+          // states on it should come over, too
+          Iterator<ReachState> stateItr = reCallee.getBeta().iterator();
+          while( stateItr.hasNext() ) {
+            ReachState stateCallee = stateItr.next();
+            
+            predsIfSatis = 
+              stateCallee.getPreds().isSatisfiedBy( this,
+                                                    callerNodeIDsCopiedToCallee
+                                                    );
+            if( predsIfSatis != null ) {
+              calleeStatesSatisfied.put( stateCallee, predsIfSatis );
+            } 
+          }
+
         }        
       }
     }
@@ -2031,7 +2114,8 @@ public class ReachGraph {
                                    false,                      // out-of-context?
                                    hrnCallee.getType(),        // type				 
                                    hrnCallee.getAllocSite(),   // allocation site			 
-                                   toCallerContext( hrnCallee.getInherent() ),    // inherent reach
+                                   toCallerContext( hrnCallee.getInherent(),
+                                                    calleeStatesSatisfied  ),    // inherent reach
                                    null,                       // current reach                 
                                    predsEmpty,                 // predicates
                                    hrnCallee.getDescription()  // description
@@ -2040,8 +2124,10 @@ public class ReachGraph {
         assert hrnCaller.isWiped();
       }
 
-      // TODO: alpha should be some rewritten version of callee in caller context
-      hrnCaller.setAlpha( toCallerContext( hrnCallee.getAlpha() ) );
+      hrnCaller.setAlpha( toCallerContext( hrnCallee.getAlpha(),
+                                           calleeStatesSatisfied 
+                                           )
+                          );
 
       hrnCaller.setPreds( preds );
     }
@@ -2124,8 +2210,10 @@ public class ReachGraph {
                                        false,                         // out-of-context?
                                        hrnSrcCallee.getType(),        // type				 
                                        hrnSrcCallee.getAllocSite(),   // allocation site			 
-                                       toCallerContext( hrnSrcCallee.getInherent() ),    // inherent reach
-                                       toCallerContext( hrnSrcCallee.getAlpha() ),       // current reach                 
+                                       toCallerContext( hrnSrcCallee.getInherent(),
+                                                        calleeStatesSatisfied ),    // inherent reach
+                                       toCallerContext( hrnSrcCallee.getAlpha(),
+                                                        calleeStatesSatisfied ),       // current reach                 
                                        predsEmpty,                    // predicates
                                        hrnSrcCallee.getDescription()  // description
                                        );                                        
@@ -2153,7 +2241,8 @@ public class ReachGraph {
                                         hrnDstCaller,
                                         reCallee.getType(),
                                         reCallee.getField(),
-                                        toCallerContext( reCallee.getBeta() ),
+                                        toCallerContext( reCallee.getBeta(),
+                                                         calleeStatesSatisfied ),
                                         preds
                                         );
         
@@ -2235,8 +2324,10 @@ public class ReachGraph {
                                      false,                         // out-of-context?
                                      hrnDstCallee.getType(),        // type				 
                                      hrnDstCallee.getAllocSite(),   // allocation site			 
-                                     toCallerContext( hrnDstCallee.getInherent() ),    // inherent reach
-                                     toCallerContext( hrnDstCallee.getAlpha() ),       // current reach                 
+                                     toCallerContext( hrnDstCallee.getInherent(),
+                                                      calleeStatesSatisfied  ),    // inherent reach
+                                     toCallerContext( hrnDstCallee.getAlpha(),
+                                                      calleeStatesSatisfied  ),    // current reach                 
                                      predsTrue,                     // predicates
                                      hrnDstCallee.getDescription()  // description
                                      );                                        
@@ -2254,7 +2345,8 @@ public class ReachGraph {
                                         hrnDstCaller,
                                         tdNewEdge,
                                         null,
-                                        toCallerContext( reCallee.getBeta() ),
+                                        toCallerContext( reCallee.getBeta(),
+                                                         calleeStatesSatisfied ),
                                         predsTrue
                                         );
 
