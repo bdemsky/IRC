@@ -234,8 +234,16 @@ public class DisjointAnalysis {
       // set of descriptors to analyze as the program-reachable
       // tasks and the methods callable by them.  For Java,
       // just methods reachable from the main method.
-      System.out.println( "No Bamboo support yet..." );
-      System.exit( -1 );
+      System.out.println( "Bamboo..." );
+      Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+      
+      while (taskItr.hasNext()) {
+	  TaskDescriptor td = (TaskDescriptor) taskItr.next();
+	  if (!descriptorsToAnalyze.contains(td)) {	      
+	      descriptorsToAnalyze.add(td);
+	      descriptorsToAnalyze.addAll(callGraph.getAllMethods(td));
+	  }	  
+      }
 
     } else {
       // add all methods transitively reachable from the
@@ -304,7 +312,6 @@ public class DisjointAnalysis {
     }
   }
 
-
   protected ReachGraph analyzeMethod( Descriptor d ) 
     throws java.io.IOException {
 
@@ -339,6 +346,11 @@ public class DisjointAnalysis {
       // to see if anything was updated.
 
       ReachGraph rg = new ReachGraph();
+      
+      if(fn instanceof FlatMethod && ((FlatMethod)fn).getTask()!=null){
+	  // create initial reach graph for a task
+	  rg=createInitialTaskReachGraph((FlatMethod)fn);
+      }
 
       // start by merging all node's parents' graphs
       for( int i = 0; i < fn.numPrev(); ++i ) {
@@ -536,7 +548,14 @@ public class DisjointAnalysis {
       break;
 
     case FKind.FlatCall: {
-      MethodDescriptor mdCaller = fmContaining.getMethod();
+      //TODO: temporal fix for task descriptor case
+      //MethodDescriptor mdCaller = fmContaining.getMethod();
+      Descriptor mdCaller;
+      if(fmContaining.getMethod()!=null){
+	  mdCaller  = fmContaining.getMethod();
+      }else{
+	  mdCaller = fmContaining.getTask();
+      }      
       FlatCall         fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
@@ -1174,7 +1193,163 @@ public class DisjointAnalysis {
     heapsFromCallers.put( fc, rg );
   }
 
-
+private AllocSite createParameterAllocSite(ReachGraph rg, TempDescriptor tempDesc) {
+    
+    // create temp descriptor for each parameter variable
+    FlatNew flatNew = new FlatNew(tempDesc.getType(), tempDesc, false);
+    // create allocation site
+    AllocSite as = (AllocSite) Canonical.makeCanonical(new AllocSite( allocationDepth, flatNew, flatNew.getDisjointId()));
+    for (int i = 0; i < allocationDepth; ++i) {
+	Integer id = generateUniqueHeapRegionNodeID();
+	as.setIthOldest(i, id);
+	mapHrnIdToAllocSite.put(id, as);
+    }
+    
+    rg.age(as);
+    
+    return as;
+    
+}
+    
+private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
+    ReachGraph rg = new ReachGraph();
+    TaskDescriptor taskDesc = fm.getTask();
+    
+    for (int idx = 0; idx < taskDesc.numParameters(); idx++) {
+	Descriptor paramDesc = taskDesc.getParameter(idx);
+	TypeDescriptor paramTypeDesc = taskDesc.getParamType(idx);
+	
+	// setup data structure
+	Set<HashMap<HeapRegionNode, FieldDescriptor>> workSet = 
+	    new HashSet<HashMap<HeapRegionNode, FieldDescriptor>>();
+	Hashtable<TypeDescriptor, HeapRegionNode> mapTypeToExistingSummaryNode = 
+	    new Hashtable<TypeDescriptor, HeapRegionNode>();
+	Set<String> doneSet = new HashSet<String>();
+	
+	TempDescriptor tempDesc = new TempDescriptor(paramDesc.getSymbol(),
+						     paramTypeDesc);
+	
+	AllocSite as = createParameterAllocSite(rg, tempDesc);
+	VariableNode lnX = rg.getVariableNodeFromTemp(tempDesc);
+	
+	Integer idNewest = as.getIthOldest(0);
+	HeapRegionNode hrnNewest = rg.id2hrn.get(idNewest);
+	// make a new reference to allocated node
+	RefEdge edgeNew = new RefEdge(lnX, // source
+				      hrnNewest, // dest
+				      taskDesc.getParamType(idx), // type
+				      null, // field name
+				      hrnNewest.getAlpha(), // beta
+				      ExistPredSet.factory(rg.predTrue) // predicates
+				      );
+	rg.addRefEdge(lnX, hrnNewest, edgeNew);
+	
+	// set-up a work set for class field
+	ClassDescriptor classDesc = paramTypeDesc.getClassDesc();
+	for (Iterator it = classDesc.getFields(); it.hasNext();) {
+	    FieldDescriptor fd = (FieldDescriptor) it.next();
+	    TypeDescriptor fieldType = fd.getType();
+	    if (!fieldType.isImmutable()) {
+		HashMap<HeapRegionNode, FieldDescriptor> newMap = new HashMap<HeapRegionNode, FieldDescriptor>();
+		newMap.put(hrnNewest, fd);
+		workSet.add(newMap);
+	    }
+	}
+	
+	int uniqueIdentifier = 0;
+	while (!workSet.isEmpty()) {
+	    HashMap<HeapRegionNode, FieldDescriptor> map = workSet
+		.iterator().next();
+	    workSet.remove(map);
+	    
+	    Set<HeapRegionNode> key = map.keySet();
+	    HeapRegionNode srcHRN = key.iterator().next();
+	    FieldDescriptor fd = map.get(srcHRN);
+	    TypeDescriptor type = fd.getType();
+	    String doneSetIdentifier = srcHRN.getIDString() + "_" + fd;
+	    
+	    if (!doneSet.contains(doneSetIdentifier)) {
+		doneSet.add(doneSetIdentifier);
+		if (!mapTypeToExistingSummaryNode.containsKey(type)) {
+		    // create new summary Node
+		    TempDescriptor td = new TempDescriptor("temp"
+							   + uniqueIdentifier, type);
+		    
+		    AllocSite allocSite;
+		    if(type.equals(paramTypeDesc)){
+			allocSite=as;
+		    }else{
+			allocSite = createParameterAllocSite(rg, td);
+		    }
+		    String strDesc = allocSite.toStringForDOT()
+			+ "\\nsummary";
+		    HeapRegionNode hrnSummary = 
+			rg.createNewHeapRegionNode(null, // id or null to generate a new one
+						   false, // single object?
+						   true, // summary?
+						   false, // flagged?
+						   false, // out-of-context?
+						   allocSite.getType(), // type
+						   allocSite, // allocation site
+						   null, // inherent reach
+						   srcHRN.getAlpha(), // current reach
+						   ExistPredSet.factory(), // predicates
+						   strDesc // description
+						   );
+		    
+		    // make a new reference to summary node
+		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source
+							hrnSummary, // dest
+							fd.getType(), // type
+							fd.getSymbol(), // field name
+							srcHRN.getAlpha(), // beta
+							ExistPredSet.factory(rg.predTrue) // predicates
+							);
+		    
+		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
+		    
+		    uniqueIdentifier++;
+		    
+		    mapTypeToExistingSummaryNode.put(type, hrnSummary);
+		    
+		    // set-up a work set for  fields of the class
+		    classDesc = type.getClassDesc();
+		    for (Iterator it = classDesc.getFields(); it.hasNext();) {
+			FieldDescriptor typeFieldDesc = (FieldDescriptor) it.next();
+			TypeDescriptor fieldType = typeFieldDesc.getType();
+			if (!fieldType.isImmutable()) {
+			    doneSetIdentifier = hrnSummary.getIDString() + "_" + typeFieldDesc;								 
+			    if(!doneSet.contains(doneSetIdentifier)){
+				// add new work item
+				HashMap<HeapRegionNode, FieldDescriptor> newMap = 
+				    new HashMap<HeapRegionNode, FieldDescriptor>();
+				newMap.put(hrnSummary, typeFieldDesc);
+				workSet.add(newMap);
+			    }
+			}
+		    }
+		    
+		}else{
+		    // if there exists corresponding summary node
+		    HeapRegionNode hrnDst=mapTypeToExistingSummaryNode.get(type);
+		    
+		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source
+							hrnDst, // dest
+							fd.getType(), // type
+							fd.getSymbol(), // field name
+							srcHRN.getAlpha(), // beta
+							ExistPredSet.factory(rg.predTrue) // predicates
+							);
+		    rg.addRefEdge(srcHRN, hrnDst, edgeToSummary);
+		    
+		}		
+	    }	    
+	}	    
+    }	
+    //debugSnapshot(rg, fm, true);
+    return rg;
+}
+    
 
 
 
