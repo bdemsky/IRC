@@ -6,8 +6,10 @@ public class Foo {
 public class Test {
 
   static public void main( String[] args ) {
+
     Foo top = disjoint inMain new Foo();
-    Foo bot = new Foo();
+    Foo bot = new Foo();    
+
     top.f = bot;
     addSomething( bot );   
   }   

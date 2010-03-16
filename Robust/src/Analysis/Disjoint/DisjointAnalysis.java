@@ -1363,7 +1363,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
   
   // get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String descSymbolDebug = "addBar";
+  String descSymbolDebug = "main";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1417,8 +1417,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
       try {
 	rg.writeGraph( graphName,
                        true,  // write labels (variables)
-                       false, // selectively hide intermediate temp vars
-                       false, // prune unreachable heap regions
+                       true,  // selectively hide intermediate temp vars
+                       true,  // prune unreachable heap regions
                        false, // show back edges to confirm graph validity
                        true,  // hide subset reachability states
                        true );// hide edge taints

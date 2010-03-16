@@ -1280,14 +1280,15 @@ public class ReachGraph {
 
   // used below to convert a ReachSet to its callee-context
   // equivalent with respect to allocation sites in this graph
-  protected ReachSet toCalleeContext( ReachSet       rs,
-                                      Integer        hrnID,
-                                      TempDescriptor tdSrc,
-                                      Integer        hrnSrcID,
-                                      Integer        hrnDstID,
-                                      TypeDescriptor type,
-                                      String         field,
-                                      boolean        outOfContext
+  protected ReachSet toCalleeContext( Set<ReachTuple> oocTuples,
+                                      ReachSet        rs,
+                                      Integer         hrnID,
+                                      TempDescriptor  tdSrc,
+                                      Integer         hrnSrcID,
+                                      Integer         hrnDstID,
+                                      TypeDescriptor  type,
+                                      String          field,
+                                      boolean         outOfContext
                                       ) {
     ReachSet out = ReachSet.factory();
    
@@ -1301,8 +1302,70 @@ public class ReachGraph {
       while( asItr.hasNext() ) {
         AllocSite as = asItr.next();
 
-        stateCallee = Canonical.toCalleeContext( stateCallee, as );
+        ReachState stateNew = ReachState.factory();
+        Iterator<ReachTuple> rtItr = stateCallee.iterator();
+        while( rtItr.hasNext() ) {
+          ReachTuple rt = rtItr.next();
+
+          // only translate this tuple if it is in the out-context bag
+          if( !oocTuples.contains( rt ) ) {
+            stateNew = Canonical.union( stateNew, rt );
+            continue;
+          }
+
+          int age = as.getAgeCategory( rt.getHrnID() );
+          
+          // this is the current mapping, where 0, 1, 2S were allocated
+          // in the current context, 0?, 1? and 2S? were allocated in a
+          // previous context, and we're translating to a future context
+          //
+          // 0    -> 0?
+          // 1    -> 1?
+          // 2S   -> 2S?
+          // 2S*  -> 2S?*
+          //
+          // 0?   -> 2S?
+          // 1?   -> 2S?
+          // 2S?  -> 2S?
+          // 2S?* -> 2S?*
+      
+          if( age == AllocSite.AGE_notInThisSite ) {
+            // things not from the site just go back in
+            stateNew = Canonical.union( stateNew, rt );
+
+          } else if( age == AllocSite.AGE_summary ||
+                     rt.isOutOfContext()
+                     ) {
+            // the in-context summary and all existing out-of-context
+            // stuff all become
+            stateNew = Canonical.union( stateNew,
+                                        ReachTuple.factory( as.getSummary(),
+                                                            true, // multi
+                                                            rt.getArity(),
+                                                            true  // out-of-context
+                                                            )
+                                        );
+          } else {
+            // otherwise everything else just goes to an out-of-context
+            // version, everything else the same
+            Integer I = as.getAge( rt.getHrnID() );
+            assert I != null;
+
+            assert !rt.isMultiObject();
+
+            stateNew = Canonical.union( stateNew,
+                                        ReachTuple.factory( rt.getHrnID(),
+                                                            rt.isMultiObject(),
+                                                            rt.getArity(),
+                                                            true  // out-of-context
+                                                            )
+                                        );        
+          }
+        }
+        
+        stateCallee = stateNew;
       }
+
 
       ExistPredSet preds;
 
@@ -1412,209 +1475,60 @@ public class ReachGraph {
                     boolean      writeDebugDOTs
                     ) {
 
-    // the callee view is a new graph: DON'T MODIFY
-    // *THIS* graph
-    ReachGraph rg = new ReachGraph();
+    // first traverse this context to find nodes and edges
+    //  that will be callee-reachable
+    Set<HeapRegionNode> reachableCallerNodes =
+      new HashSet<HeapRegionNode>();
 
-    // track what parts of this graph have already been
-    // added to callee view, variables not needed.
-    // Note that we need this because when we traverse
-    // this caller graph for each parameter we may find
-    // nodes and edges more than once (which the per-param
-    // "visit" sets won't show) and we only want to create
-    // an element in the new callee view one time
+    Set<RefEdge> reachableCallerEdges =
+      new HashSet<RefEdge>();
 
+    Set<RefEdge> oocCallerEdges =
+      new HashSet<RefEdge>();
 
-    // a conservative starting point is to take the 
-    // mechanically-reachable-from-arguments graph
-    // as opposed to using reachability information
-    // to prune the graph further
     for( int i = 0; i < fmCallee.numParameters(); ++i ) {
 
-      // for each parameter index, get the symbol in the
-      // caller view and callee view
-      
-      // argument defined here is the symbol in the caller
       TempDescriptor tdArg = fc.getArgMatchingParamIndex( fmCallee, i );
-
-      // parameter defined here is the symbol in the callee
-      TempDescriptor tdParam = fmCallee.getParameter( i );
-
-      // use these two VariableNode objects to translate
-      // between caller and callee--its easy to compare
-      // a HeapRegionNode across callee and caller because
-      // they will have the same heap region ID
       VariableNode vnCaller = this.getVariableNodeFromTemp( tdArg );
-      VariableNode vnCallee = rg.getVariableNodeFromTemp( tdParam );
-      
-      // now traverse the calleR view using the argument to
-      // build the calleE view which has the parameter symbol
+
       Set<RefSrcNode> toVisitInCaller = new HashSet<RefSrcNode>();
       Set<RefSrcNode> visitedInCaller = new HashSet<RefSrcNode>();
-      toVisitInCaller.add( vnCaller );
 
+      toVisitInCaller.add( vnCaller );
+      
       while( !toVisitInCaller.isEmpty() ) {
         RefSrcNode rsnCaller = toVisitInCaller.iterator().next();
-        RefSrcNode rsnCallee;
-
         toVisitInCaller.remove( rsnCaller );
         visitedInCaller.add( rsnCaller );
-        
-        // FIRST - setup the source end of an edge, and
-        // remember the identifying info of the source
-        // to build predicates
-        TempDescriptor tdSrc    = null;
-        Integer        hrnSrcID = null;
-
-        if( rsnCaller == vnCaller ) {
-          // if the caller node is the param symbol, we
-          // have to do this translation for the callee
-          rsnCallee = vnCallee;
-          tdSrc     = tdArg;
-
-        } else {
-          // otherwise the callee-view node is a heap
-          // region with the same ID, that may or may
-          // not have been created already
-          assert rsnCaller instanceof HeapRegionNode;          
-
-          HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
-          hrnSrcID = hrnSrcCaller.getID(); 
-
-          if( !callerNodeIDsCopiedToCallee.contains( hrnSrcID ) ) {
-            
-            ExistPred pred = 
-              ExistPred.factory( hrnSrcID, null );
-
-            ExistPredSet preds = 
-              ExistPredSet.factory( pred );
-
-            rsnCallee = 
-              rg.createNewHeapRegionNode( hrnSrcCaller.getID(),
-                                          hrnSrcCaller.isSingleObject(),
-                                          hrnSrcCaller.isNewSummary(),
-                                          hrnSrcCaller.isFlagged(),
-                                          false, // out-of-context?
-                                          hrnSrcCaller.getType(),
-                                          hrnSrcCaller.getAllocSite(),
-                                          toCalleeContext( hrnSrcCaller.getInherent(),   // in state
-                                                           hrnSrcCaller.getID(),         // node pred
-                                                           null, null, null, null, null, // edge pred
-                                                           false ),                      // ooc pred
-                                          toCalleeContext( hrnSrcCaller.getAlpha(),      // in state
-                                                           hrnSrcCaller.getID(),         // node pred
-                                                           null, null, null, null, null, // edge pred
-                                                           false ),                      // ooc pred
-                                          preds,
-                                          hrnSrcCaller.getDescription()
-                                          );
-
-            callerNodeIDsCopiedToCallee.add( hrnSrcID );
-
-          } else {
-            rsnCallee = rg.id2hrn.get( hrnSrcID );
-          }
-        }
-
-        // SECOND - go over all edges from that source
 
         Iterator<RefEdge> itrRefEdges = rsnCaller.iteratorToReferencees();
         while( itrRefEdges.hasNext() ) {
           RefEdge        reCaller  = itrRefEdges.next();
           HeapRegionNode hrnCaller = reCaller.getDst();
-          HeapRegionNode hrnCallee;
 
-          // THIRD - setup destination ends of edges
-          Integer hrnDstID = hrnCaller.getID(); 
+          callerNodeIDsCopiedToCallee.add( hrnCaller.getID() );
+          reachableCallerNodes.add( hrnCaller );
 
-          if( !callerNodeIDsCopiedToCallee.contains( hrnDstID ) ) {
-
-            ExistPred pred = 
-              ExistPred.factory( hrnDstID, null );
-
-            ExistPredSet preds = 
-              ExistPredSet.factory( pred );
-            
-            hrnCallee = 
-              rg.createNewHeapRegionNode( hrnDstID,
-                                          hrnCaller.isSingleObject(),
-                                          hrnCaller.isNewSummary(),
-                                          hrnCaller.isFlagged(),
-                                          false, // out-of-context?
-                                          hrnCaller.getType(),
-                                          hrnCaller.getAllocSite(),
-                                          toCalleeContext( hrnCaller.getInherent(),      // in state
-                                                           hrnDstID,                     // node pred
-                                                           null, null, null, null, null, // edge pred
-                                                           false ),                      // ooc pred
-                                          toCalleeContext( hrnCaller.getAlpha(),         // in state
-                                                           hrnDstID,                     // node pred
-                                                           null, null, null, null, null, // edge pred
-                                                           false ),                      // ooc pred
-                                          preds,
-                                          hrnCaller.getDescription()
-                                          );
-
-            callerNodeIDsCopiedToCallee.add( hrnDstID );
-
+          if( reCaller.getSrc() instanceof HeapRegionNode ) {
+            reachableCallerEdges.add( reCaller );
           } else {
-            hrnCallee = rg.id2hrn.get( hrnDstID );
+            oocCallerEdges.add( reCaller );
           }
 
-          // FOURTH - copy edge over if needed
-          RefEdge reCallee = rsnCallee.getReferenceTo( hrnCallee,
-                                                       reCaller.getType(),
-                                                       reCaller.getField()
-                                                       );
-          if( reCallee == null ) {
-
-            ExistPred pred =
-              ExistPred.factory( tdSrc, 
-                                 hrnSrcID, 
-                                 hrnDstID,
-                                 reCaller.getType(),
-                                 reCaller.getField(),
-                                 null,
-                                 rsnCaller instanceof VariableNode ); // out-of-context
-
-            ExistPredSet preds = 
-              ExistPredSet.factory( pred );
-
-            rg.addRefEdge( rsnCallee,
-                           hrnCallee,
-                           new RefEdge( rsnCallee,
-                                        hrnCallee,
-                                        reCaller.getType(),
-                                        reCaller.getField(),
-                                        toCalleeContext( reCaller.getBeta(),  // in state
-                                                         null,                // node pred
-                                                         tdSrc,               // edge pred
-                                                         hrnSrcID,            // edge pred
-                                                         hrnDstID,            // edge pred
-                                                         reCaller.getType(),  // edge pred
-                                                         reCaller.getField(), // edge pred
-                                                         false ),             // ooc pred
-                                        preds
-                                        )
-                           );              
-          }
-          
-          // keep traversing nodes reachable from param i
-          // that we haven't visited yet
           if( !visitedInCaller.contains( hrnCaller ) ) {
             toVisitInCaller.add( hrnCaller );
           }
           
-        } // end edge iteration        
+        } // end edge iteration
       } // end visiting heap nodes in caller
     } // end iterating over parameters as starting points
 
 
-    // find the set of edges in this graph with source
-    // out-of-context (not in nodes copied) and have a
-    // destination in context (one of nodes copied) as
-    // a starting point for building out-of-context nodes
-    Iterator<Integer> itrInContext =
+    // now collect out-of-context reach tuples and 
+    // more out-of-context edges
+    Set<ReachTuple> oocTuples = new HashSet<ReachTuple>();
+
+    Iterator<Integer> itrInContext = 
       callerNodeIDsCopiedToCallee.iterator();
     while( itrInContext.hasNext() ) {
       Integer        hrnID                 = itrInContext.next();
@@ -1628,94 +1542,241 @@ public class ReachGraph {
         RefSrcNode rsnCallerAndOutContext =
           edgeMightCross.getSrc();
         
-        TypeDescriptor oocNodeType;
-        ReachSet       oocReach;
-
-        TempDescriptor oocPredSrcTemp = null;
-        Integer        oocPredSrcID   = null;
-
         if( rsnCallerAndOutContext instanceof VariableNode ) {
-          // variables are always out-of-context
-          oocNodeType = null;
-          oocReach    = rsetEmpty;
-          oocPredSrcTemp = 
-            ((VariableNode)rsnCallerAndOutContext).getTempDescriptor();
-
-        } else {
+          // variables do not have out-of-context reach states,
+          // so jump out now
+          oocCallerEdges.add( edgeMightCross );
+          continue;
+        }
           
-          HeapRegionNode hrnCallerAndOutContext = 
-            (HeapRegionNode) rsnCallerAndOutContext;
+        HeapRegionNode hrnCallerAndOutContext = 
+          (HeapRegionNode) rsnCallerAndOutContext;
 
-          // is this source node out-of-context?
-          if( callerNodeIDsCopiedToCallee.contains( hrnCallerAndOutContext.getID() ) ) {
-            // no, skip this edge
-            continue;
+        // is this source node out-of-context?
+        if( callerNodeIDsCopiedToCallee.contains( hrnCallerAndOutContext.getID() ) ) {
+          // no, skip this edge
+          continue;
+        }
+
+        // okay, we got one
+        oocCallerEdges.add( edgeMightCross );
+
+        // add all reach tuples on the node to list
+        // of things that are out-of-context: insight
+        // if this node is reachable from someting that WAS
+        // in-context, then this node should already be in-context
+        Iterator<ReachState> stateItr = hrnCallerAndOutContext.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
+
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
+
+            oocTuples.add( rt );
           }
-
-          oocNodeType  = hrnCallerAndOutContext.getType();
-          oocReach     = hrnCallerAndOutContext.getAlpha(); 
-          oocPredSrcID = hrnCallerAndOutContext.getID();
-        }        
-
-        // if we're here we've found an out-of-context edge
-
-        ExistPred pred =
-          ExistPred.factory( oocPredSrcTemp, 
-                             oocPredSrcID, 
-                             hrnID,
-                             edgeMightCross.getType(),
-                             edgeMightCross.getField(),
-                             null,
-                             true ); // out-of-context
-
-        ExistPredSet preds = 
-          ExistPredSet.factory( pred );
+        }
+      }
+    }
 
 
-        HeapRegionNode hrnCalleeAndInContext = 
-          rg.id2hrn.get( hrnCallerAndInContext.getID() );
+    // the callee view is a new graph: DON'T MODIFY *THIS* graph
+    ReachGraph rg = new ReachGraph();
+
+    // add nodes to callee graph
+    Iterator<HeapRegionNode> hrnItr = reachableCallerNodes.iterator();
+    while( hrnItr.hasNext() ) {
+      HeapRegionNode hrnCaller = hrnItr.next();
+
+      assert callerNodeIDsCopiedToCallee.contains( hrnCaller.getID() );
+      assert !rg.id2hrn.containsKey( hrnCaller.getID() );
+            
+      ExistPred    pred  = ExistPred.factory( hrnCaller.getID(), null );
+      ExistPredSet preds = ExistPredSet.factory( pred );
+      
+      rg.createNewHeapRegionNode( hrnCaller.getID(),
+                                  hrnCaller.isSingleObject(),
+                                  hrnCaller.isNewSummary(),
+                                  hrnCaller.isFlagged(),
+                                  false, // out-of-context?
+                                  hrnCaller.getType(),
+                                  hrnCaller.getAllocSite(),
+                                  toCalleeContext( oocTuples,
+                                                   hrnCaller.getInherent(),      // in state
+                                                   hrnCaller.getID(),            // node pred
+                                                   null, null, null, null, null, // edge pred
+                                                   false ),                      // ooc pred
+                                  toCalleeContext( oocTuples,
+                                                   hrnCaller.getAlpha(),         // in state
+                                                   hrnCaller.getID(),            // node pred
+                                                   null, null, null, null, null, // edge pred
+                                                   false ),                      // ooc pred
+                                  preds,
+                                  hrnCaller.getDescription()
+                                  );
+    }
+
+    // add in-context edges to callee graph
+    Iterator<RefEdge> reItr = reachableCallerEdges.iterator();
+    while( reItr.hasNext() ) {
+      RefEdge    reCaller  = reItr.next();
+      RefSrcNode rsnCaller = reCaller.getSrc();
+      assert rsnCaller instanceof HeapRegionNode;
+      HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
+      HeapRegionNode hrnDstCaller = reCaller.getDst();
+
+      HeapRegionNode hrnSrcCallee = rg.id2hrn.get( hrnSrcCaller.getID() );
+      HeapRegionNode hrnDstCallee = rg.id2hrn.get( hrnDstCaller.getID() );
+      assert hrnSrcCallee != null;
+      assert hrnDstCallee != null;
+
+      ExistPred pred =
+        ExistPred.factory( null, 
+                           hrnSrcCallee.getID(), 
+                           hrnDstCallee.getID(),
+                           reCaller.getType(),
+                           reCaller.getField(),
+                           null,
+                           false ); // out-of-context
+      
+      ExistPredSet preds = 
+        ExistPredSet.factory( pred );
+      
+      RefEdge reCallee = 
+        new RefEdge( hrnSrcCallee,
+                     hrnDstCallee,
+                     reCaller.getType(),
+                     reCaller.getField(),
+                     toCalleeContext( oocTuples,
+                                      reCaller.getBeta(),   // in state
+                                      null,                 // node pred
+                                      null,                 // edge pred
+                                      hrnSrcCallee.getID(), // edge pred
+                                      hrnDstCallee.getID(), // edge pred
+                                      reCaller.getType(),   // edge pred
+                                      reCaller.getField(),  // edge pred
+                                      false ),              // ooc pred
+                     preds
+                     );
+      
+      rg.addRefEdge( hrnSrcCallee,
+                     hrnDstCallee,
+                     reCallee
+                     );        
+    }
+
+    // add out-of-context edges to callee graph
+    reItr = oocCallerEdges.iterator();
+    while( reItr.hasNext() ) {
+      RefEdge        reCaller     = reItr.next();
+      RefSrcNode     rsnCaller    = reCaller.getSrc();
+      HeapRegionNode hrnDstCaller = reCaller.getDst();
+      HeapRegionNode hrnDstCallee = rg.id2hrn.get( hrnDstCaller.getID() );
+      assert hrnDstCallee != null;
+
+      TypeDescriptor oocNodeType;
+      ReachSet       oocReach;
+      TempDescriptor oocPredSrcTemp = null;
+      Integer        oocPredSrcID   = null;
+
+      if( rsnCaller instanceof VariableNode ) {
+        VariableNode vnCaller = (VariableNode) rsnCaller;
+        oocNodeType    = null;
+        oocReach       = rsetEmpty;
+        oocPredSrcTemp = vnCaller.getTempDescriptor();
+
+      } else {
+        HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
+        assert !callerNodeIDsCopiedToCallee.contains( hrnSrcCaller.getID() );
+        oocNodeType  = hrnSrcCaller.getType();
+        oocReach     = hrnSrcCaller.getAlpha(); 
+        oocPredSrcID = hrnSrcCaller.getID();        
+      }
+
+      ExistPred pred =
+        ExistPred.factory( oocPredSrcTemp, 
+                           oocPredSrcID, 
+                           hrnDstCallee.getID(),
+                           reCaller.getType(),
+                           reCaller.getField(),
+                           null,
+                           true ); // out-of-context
+
+      ExistPredSet preds = 
+        ExistPredSet.factory( pred );
         
-        RefEdge oocEdgeExisting =
-          rg.getOutOfContextReferenceTo( hrnCalleeAndInContext,
-                                         oocNodeType,
-                                         edgeMightCross.getType(),
-                                         edgeMightCross.getField()
-                                         );
+      RefEdge oocEdgeExisting =
+        rg.getOutOfContextReferenceTo( hrnDstCallee,
+                                       oocNodeType,
+                                       reCaller.getType(),
+                                       reCaller.getField()
+                                       );
 
-        if( oocEdgeExisting == null ) {
-          // we found a reference that crosses from out-of-context
-          // to in-context, so build a special out-of-context node
-          // for the callee IHM and its reference edge
-          
+      if( oocEdgeExisting == null ) {          
           // for consistency, map one out-of-context "identifier"
           // to one heap region node id, otherwise no convergence
-          String oocid = "oocid"+
-            fmCallee+
-            hrnCalleeAndInContext.getIDString()+
-            oocNodeType+
-            edgeMightCross.getType()+
-            edgeMightCross.getField();
+        String oocid = "oocid"+
+          fmCallee+
+          hrnDstCallee.getIDString()+
+          oocNodeType+
+          reCaller.getType()+
+          reCaller.getField();
           
-          Integer oocHrnID = oocid2hrnid.get( oocid );
+        Integer oocHrnID = oocid2hrnid.get( oocid );
 
-          HeapRegionNode hrnCalleeAndOutContext;
+        HeapRegionNode hrnCalleeAndOutContext;
 
-          if( oocHrnID == null ) {
+        if( oocHrnID == null ) {
 
+          hrnCalleeAndOutContext =
+            rg.createNewHeapRegionNode( null,  // ID
+                                        false, // single object?
+                                        false, // new summary?
+                                        false, // flagged?
+                                        true,  // out-of-context?
+                                        oocNodeType,
+                                        null,  // alloc site, shouldn't be used
+                                        toCalleeContext( oocTuples, 
+                                                         oocReach,                     // in state
+                                                         null,                         // node pred
+                                                         null, null, null, null, null, // edge pred
+                                                         true                          // ooc pred
+                                                         ), // inherent
+                                        toCalleeContext( oocTuples,
+                                                         oocReach,                     // in state
+                                                         null,                         // node pred
+                                                         null, null, null, null, null, // edge pred
+                                                         true                          // ooc pred
+                                                         ), // alpha
+                                        preds,
+                                        "out-of-context"
+                                        );       
+          
+          oocid2hrnid.put( oocid, hrnCalleeAndOutContext.getID() );
+          
+        } else {
+
+          // the mapping already exists, so see if node is there
+          hrnCalleeAndOutContext = rg.id2hrn.get( oocHrnID );
+
+          if( hrnCalleeAndOutContext == null ) {
+            // nope, make it
             hrnCalleeAndOutContext =
-              rg.createNewHeapRegionNode( null,  // ID
+              rg.createNewHeapRegionNode( oocHrnID,  // ID
                                           false, // single object?
                                           false, // new summary?
                                           false, // flagged?
                                           true,  // out-of-context?
                                           oocNodeType,
                                           null,  // alloc site, shouldn't be used
-                                          toCalleeContext( oocReach,                     // in state
+                                          toCalleeContext( oocTuples,
+                                                           oocReach,                     // in state
                                                            null,                         // node pred
                                                            null, null, null, null, null, // edge pred
                                                            true                          // ooc pred
                                                            ), // inherent
-                                          toCalleeContext( oocReach,                     // in state
+                                          toCalleeContext( oocTuples,
+                                                           oocReach,                     // in state
                                                            null,                         // node pred
                                                            null, null, null, null, null, // edge pred
                                                            true                          // ooc pred
@@ -1723,82 +1784,53 @@ public class ReachGraph {
                                           preds,
                                           "out-of-context"
                                           );       
-
-            oocid2hrnid.put( oocid, hrnCalleeAndOutContext.getID() );
-
-          } else {
-
-            // the mapping already exists, so see if node is there
-            hrnCalleeAndOutContext = rg.id2hrn.get( oocHrnID );
-
-            if( hrnCalleeAndOutContext == null ) {
-              // nope, make it
-              hrnCalleeAndOutContext =
-                rg.createNewHeapRegionNode( oocHrnID,  // ID
-                                            false, // single object?
-                                            false, // new summary?
-                                            false, // flagged?
-                                            true,  // out-of-context?
-                                            oocNodeType,
-                                            null,  // alloc site, shouldn't be used
-                                            toCalleeContext( oocReach,                     // in state
-                                                             null,                         // node pred
-                                                             null, null, null, null, null, // edge pred
-                                                             true                          // ooc pred
-                                                             ), // inherent
-                                            toCalleeContext( oocReach,                     // in state
-                                                             null,                         // node pred
-                                                             null, null, null, null, null, // edge pred
-                                                             true                          // ooc pred
-                                                             ), // alpha
-                                            preds,
-                                            "out-of-context"
-                                            );       
-            }
           }
+        }
 
-          rg.addRefEdge( hrnCalleeAndOutContext,
-                         hrnCalleeAndInContext,
-                         new RefEdge( hrnCalleeAndOutContext,
-                                      hrnCalleeAndInContext,
-                                      edgeMightCross.getType(),
-                                      edgeMightCross.getField(),
-                                      toCalleeContext( edgeMightCross.getBeta(),      // in state
-                                                       null,                          // node pred
-                                                       oocPredSrcTemp,                // edge pred
-                                                       oocPredSrcID,                  // edge pred
-                                                       hrnCallerAndInContext.getID(), // edge pred
-                                                       edgeMightCross.getType(),      // edge pred
-                                                       edgeMightCross.getField(),     // edge pred
-                                                       false                          // ooc pred
-                                                       ),
-                                      preds
-                                      )
-                         );              
-
+        rg.addRefEdge( hrnCalleeAndOutContext,
+                       hrnDstCallee,
+                       new RefEdge( hrnCalleeAndOutContext,
+                                    hrnDstCallee,
+                                    reCaller.getType(),
+                                    reCaller.getField(),
+                                    toCalleeContext( oocTuples,
+                                                     reCaller.getBeta(),   // in state
+                                                     null,                 // node pred
+                                                     oocPredSrcTemp,       // edge pred
+                                                     oocPredSrcID,         // edge pred
+                                                     hrnDstCaller.getID(), // edge pred
+                                                     reCaller.getType(),   // edge pred
+                                                     reCaller.getField(),  // edge pred
+                                                     false                 // ooc pred
+                                                     ),
+                                    preds
+                                    )
+                       );              
+        
         } else {
-          // the out-of-context edge already exists
-          oocEdgeExisting.setBeta( Canonical.union( oocEdgeExisting.getBeta(),
-                                                    toCalleeContext( edgeMightCross.getBeta(),      // in state
-                                                                     null,                          // node pred
-                                                                     oocPredSrcTemp,                // edge pred
-                                                                     oocPredSrcID,                  // edge pred
-                                                                     hrnCallerAndInContext.getID(), // edge pred
-                                                                     edgeMightCross.getType(),      // edge pred
-                                                                     edgeMightCross.getField(),     // edge pred
-                                                                     false                          // ooc pred
-                                                                     )
-                                                    )
-                                   );         
+        // the out-of-context edge already exists
+        oocEdgeExisting.setBeta( Canonical.union( oocEdgeExisting.getBeta(),
+                                                  toCalleeContext( oocTuples,
+                                                                   reCaller.getBeta(),   // in state
+                                                                   null,                 // node pred
+                                                                   oocPredSrcTemp,       // edge pred
+                                                                   oocPredSrcID,         // edge pred
+                                                                   hrnDstCaller.getID(), // edge pred
+                                                                   reCaller.getType(),   // edge pred
+                                                                   reCaller.getField(),  // edge pred
+                                                                   false                 // ooc pred
+                                                                   )
+                                                  )
+                                 );         
           
-          oocEdgeExisting.setPreds( Canonical.join( oocEdgeExisting.getPreds(),
-                                                    edgeMightCross.getPreds()
-                                                    )
-                                    );          
-          
-        }                
-      }
-    }    
+        oocEdgeExisting.setPreds( Canonical.join( oocEdgeExisting.getPreds(),
+                                                  reCaller.getPreds()
+                                                  )
+                                  );          
+        
+      }                
+    }
+
 
     if( writeDebugDOTs ) {    
       try {
@@ -2848,14 +2880,6 @@ public class ReachGraph {
               assert id2hrn.containsKey( rtOld.getHrnID() );
               B = boldBic.get( rtOld.getHrnID() ); 
             }
-            /*
-            if( B == null ) {
-              try {
-                writeGraph( "glob", true, false, false, false, true, true );  
-              } catch( IOException e ) {}
-              System.out.println( " need B for "+rtOld );
-            }
-            */
 
             if( B != null ) {            
               ReachSet boldB_rtOld_incident = B.get( incidentEdge );

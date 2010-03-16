@@ -906,6 +906,7 @@ abstract public class Canonical {
   }
   */
 
+  /*
   public static ReachState toCalleeContext( ReachState state,
                                             AllocSite  as ) {
     assert state != null;
@@ -987,7 +988,7 @@ abstract public class Canonical {
     op2result.put( op, out );
     return out;
   }
-
+  */
 
 
   public static ReachSet toCallerContext( ReachSet  rs,
