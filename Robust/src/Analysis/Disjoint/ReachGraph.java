@@ -10,7 +10,7 @@ public class ReachGraph {
 
   // use to disable improvements for comparison
   protected static final boolean DISABLE_STRONG_UPDATES = false;
-  protected static final boolean DISABLE_GLOBAL_SWEEP   = true;
+  protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
 		   
   // a special out-of-scope temp
   protected static final TempDescriptor tdReturn = new TempDescriptor( "_Return___" );
@@ -2486,7 +2486,9 @@ public class ReachGraph {
 
 
     // 5.
-    globalSweep();
+    if( !DISABLE_GLOBAL_SWEEP ) {
+      globalSweep();
+    }
     
 
 
@@ -2622,10 +2624,25 @@ public class ReachGraph {
   public void globalSweep() {
 
     // boldB is part of the phase 1 sweep
-    Hashtable< Integer, Hashtable<RefEdge, ReachSet> > boldB =
+    // it has an in-context table and an out-of-context table
+    Hashtable< Integer, Hashtable<RefEdge, ReachSet> > boldBic =
       new Hashtable< Integer, Hashtable<RefEdge, ReachSet> >();    
 
-    // visit every heap region to initialize alphaNew and calculate boldB
+    Hashtable< Integer, Hashtable<RefEdge, ReachSet> > boldBooc =
+      new Hashtable< Integer, Hashtable<RefEdge, ReachSet> >();    
+
+    // visit every heap region to initialize alphaNew and betaNew,
+    // and make a map of every hrnID to the source nodes it should
+    // propagate forward from.  In-context flagged hrnID's propagate
+    // from only the in-context node they name, but out-of-context
+    // ID's may propagate from several out-of-context nodes
+    Hashtable< Integer, Set<HeapRegionNode> > icID2srcs = 
+      new Hashtable< Integer, Set<HeapRegionNode> >();
+
+    Hashtable< Integer, Set<HeapRegionNode> > oocID2srcs =
+      new Hashtable< Integer, Set<HeapRegionNode> >();
+
+
     Iterator itrHrns = id2hrn.entrySet().iterator();
     while( itrHrns.hasNext() ) {
       Map.Entry      me    = (Map.Entry)      itrHrns.next();
@@ -2642,64 +2659,129 @@ public class ReachGraph {
 	assert rsetEmpty.equals( edge.getBetaNew() );
       }      
 
-      // calculate boldB for this flagged node
+      // calculate boldB for this flagged node, or out-of-context node
       if( hrn.isFlagged() ) {
+        assert !hrn.isOutOfContext();
+        assert !icID2srcs.containsKey( hrn.getID() );
+        Set<HeapRegionNode> srcs = new HashSet<HeapRegionNode>();
+        srcs.add( hrn );
+        icID2srcs.put( hrn.getID(), srcs );
+      }
+
+      if( hrn.isOutOfContext() ) {
+	assert !hrn.isFlagged();
+
+        Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
+
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
+            assert rt.isOutOfContext();
+
+            Set<HeapRegionNode> srcs = oocID2srcs.get( rt.getHrnID() );
+            if( srcs == null ) {
+              srcs = new HashSet<HeapRegionNode>();
+            }
+            srcs.add( hrn );
+            oocID2srcs.put( rt.getHrnID(), srcs );
+          }
+        }
+      }
+    }
+
+    // calculate boldB for all hrnIDs identified by the above
+    // node traversal, propagating from every source
+    while( !icID2srcs.isEmpty() || !oocID2srcs.isEmpty() ) {
+
+      Integer             hrnID;
+      Set<HeapRegionNode> srcs;
+      boolean             inContext;
+
+      if( !icID2srcs.isEmpty() ) {
+        Map.Entry me = (Map.Entry) icID2srcs.entrySet().iterator().next();
+        hrnID = (Integer)             me.getKey();
+        srcs  = (Set<HeapRegionNode>) me.getValue();
+        inContext = true;
+        icID2srcs.remove( hrnID );
+
+      } else {
+        assert !oocID2srcs.isEmpty();
+
+        Map.Entry me = (Map.Entry) oocID2srcs.entrySet().iterator().next();
+        hrnID = (Integer)             me.getKey();
+        srcs  = (Set<HeapRegionNode>) me.getValue();
+        inContext = false;
+        oocID2srcs.remove( hrnID );
+      }
+
+
+      Hashtable<RefEdge, ReachSet> boldB_f =
+        new Hashtable<RefEdge, ReachSet>();
 	
-	Hashtable<RefEdge, ReachSet> boldB_f =
-	  new Hashtable<RefEdge, ReachSet>();
-	
-	Set<RefEdge> workSetEdges = new HashSet<RefEdge>();
+      Set<RefEdge> workSetEdges = new HashSet<RefEdge>();
 
-	// initial boldB_f constraints
-	Iterator<RefEdge> itrRees = hrn.iteratorToReferencees();
-	while( itrRees.hasNext() ) {
-	  RefEdge edge = itrRees.next();
+      Iterator<HeapRegionNode> hrnItr = srcs.iterator();
+      while( hrnItr.hasNext() ) {
+        HeapRegionNode hrn = hrnItr.next();
 
-	  assert !boldB.containsKey( edge );
-	  boldB_f.put( edge, edge.getBeta() );
-
-	  assert !workSetEdges.contains( edge );
-	  workSetEdges.add( edge );
-	}      	
-
-	// enforce the boldB_f constraint at edges until we reach a fixed point
-	while( !workSetEdges.isEmpty() ) {
-	  RefEdge edge = workSetEdges.iterator().next();
-	  workSetEdges.remove( edge );	 
-	  
-	  Iterator<RefEdge> itrPrime = edge.getDst().iteratorToReferencees();
-	  while( itrPrime.hasNext() ) {
-	    RefEdge edgePrime = itrPrime.next();	    
-
-	    ReachSet prevResult   = boldB_f.get( edgePrime );
-	    ReachSet intersection = Canonical.intersection( boldB_f.get( edge ),
+        assert workSetEdges.isEmpty();
+        
+        // initial boldB_f constraints
+        Iterator<RefEdge> itrRees = hrn.iteratorToReferencees();
+        while( itrRees.hasNext() ) {
+          RefEdge edge = itrRees.next();
+          
+          assert !boldB_f.containsKey( edge );
+          boldB_f.put( edge, edge.getBeta() );
+          
+          assert !workSetEdges.contains( edge );
+          workSetEdges.add( edge );
+        }      	
+      
+        // enforce the boldB_f constraint at edges until we reach a fixed point
+        while( !workSetEdges.isEmpty() ) {
+          RefEdge edge = workSetEdges.iterator().next();
+          workSetEdges.remove( edge );	 
+          
+          Iterator<RefEdge> itrPrime = edge.getDst().iteratorToReferencees();
+          while( itrPrime.hasNext() ) {
+            RefEdge edgePrime = itrPrime.next();	    
+          
+            ReachSet prevResult   = boldB_f.get( edgePrime );
+            ReachSet intersection = Canonical.intersection( boldB_f.get( edge ),
                                                             edgePrime.getBeta()
                                                             );
-	    	    
-	    if( prevResult == null || 
-		Canonical.union( prevResult,
+          
+            if( prevResult == null || 
+                Canonical.union( prevResult,
                                  intersection ).size() > prevResult.size() ) {
-	      
-	      if( prevResult == null ) {
-		boldB_f.put( edgePrime, 
+            
+              if( prevResult == null ) {
+                boldB_f.put( edgePrime, 
                              Canonical.union( edgePrime.getBeta(),
                                               intersection 
                                               )
                              );
-	      } else {
-		boldB_f.put( edgePrime, 
+              } else {
+                boldB_f.put( edgePrime, 
                              Canonical.union( prevResult,
                                               intersection 
                                               )
                              );
-	      }
-	      workSetEdges.add( edgePrime );	
-	    }
-	  }
-	}
-	
-       	boldB.put( hrnID, boldB_f );
-      }      
+              }
+              workSetEdges.add( edgePrime );	
+            }
+          }
+        }
+      }
+      
+      if( inContext ) {
+        boldBic.put( hrnID, boldB_f );
+      } else {
+        boldBooc.put( hrnID, boldB_f );
+      }
     }
 
 
@@ -2717,14 +2799,20 @@ public class ReachGraph {
       Integer        hrnID = (Integer)        me.getKey();
       HeapRegionNode hrn   = (HeapRegionNode) me.getValue();
       
-      // create the inherent hrnID from a flagged region
-      // as an exception to removal below
-      ReachTuple rtException = 
-        ReachTuple.factory( hrnID, 
-                            !hrn.isSingleObject(), 
-                            ReachTuple.ARITY_ONE,
-                            false // out-of-context
-                            );
+      // out-of-context nodes don't participate in the 
+      // global sweep, they serve as sources for the pass
+      // performed above
+      if( hrn.isOutOfContext() ) {
+        continue;
+      }
+
+      // the inherent states of a region are the exception
+      // to removal as the global sweep prunes
+      ReachTuple rtException = ReachTuple.factory( hrnID,
+                                                   !hrn.isSingleObject(),    
+                                                   ReachTuple.ARITY_ONE,
+                                                   false // out-of-context
+                                                   );
 
       ChangeSet cts = ChangeSet.factory();
 
@@ -2747,23 +2835,27 @@ public class ReachGraph {
 	    }
 	  }
 
-	  // does boldB_ttOld allow this hrnID?
+	  // does boldB allow this hrnID?
 	  boolean foundState = false;
 	  Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
 	  while( incidentEdgeItr.hasNext() ) {
 	    RefEdge incidentEdge = incidentEdgeItr.next();
 
-	    // if it isn't allowed, mark for removal
-	    Integer idOld = rtOld.getHrnID();
-	    assert id2hrn.containsKey( idOld );
-	    Hashtable<RefEdge, ReachSet> B = boldB.get( idOld );	    
-	    ReachSet boldB_ttOld_incident = B.get( incidentEdge );
-	    if( boldB_ttOld_incident != null &&
-		boldB_ttOld_incident.contains( stateOld ) ) {
+            Hashtable<RefEdge, ReachSet> B; 
+            if( rtOld.isOutOfContext() ) {
+              B = boldBooc.get( rtOld.getHrnID() ); 
+            } else {
+              assert id2hrn.containsKey( rtOld.getHrnID() );
+              B = boldBic.get( rtOld.getHrnID() ); 
+            }
+              
+	    ReachSet boldB_rtOld_incident = B.get( incidentEdge );
+	    if( boldB_rtOld_incident != null &&
+		boldB_rtOld_incident.contains( stateOld ) ) {
 	      foundState = true;
 	    }
 	  }
-
+          
 	  if( !foundState ) {
 	    markedHrnIDs = Canonical.add( markedHrnIDs, rtOld );	  
 	  }

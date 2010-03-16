@@ -121,6 +121,10 @@ public class ReachState extends Canonical {
 
 
   public String toString() {
+    return reachTuples.toString();
+  }
+
+  public String toStringPreds() {
     return reachTuples+":"+preds;
   }
 }
