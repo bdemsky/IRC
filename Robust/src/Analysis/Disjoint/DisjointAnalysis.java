@@ -1204,6 +1204,8 @@ private AllocSite createParameterAllocSite(ReachGraph rg, TempDescriptor tempDes
 	as.setIthOldest(i, id);
 	mapHrnIdToAllocSite.put(id, as);
     }
+    // the oldest node is a summary node
+    as.setSummary( generateUniqueHeapRegionNodeID() );
     
     rg.age(as);
     
@@ -1277,6 +1279,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    
 		    AllocSite allocSite;
 		    if(type.equals(paramTypeDesc)){
+		    //corresponding allocsite has already been created for a parameter variable.
 			allocSite=as;
 		    }else{
 			allocSite = createParameterAllocSite(rg, td);
@@ -1284,7 +1287,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    String strDesc = allocSite.toStringForDOT()
 			+ "\\nsummary";
 		    HeapRegionNode hrnSummary = 
-			rg.createNewHeapRegionNode(null, // id or null to generate a new one
+			rg.createNewHeapRegionNode(allocSite.getSummary(), // id or null to generate a new one
 						   false, // single object?
 						   true, // summary?
 						   false, // flagged?
@@ -1346,7 +1349,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	    }	    
 	}	    
     }	
-    //debugSnapshot(rg, fm, true);
+//    debugSnapshot(rg, fm, true);
     return rg;
 }
     
