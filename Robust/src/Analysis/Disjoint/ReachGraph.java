@@ -2848,12 +2848,22 @@ public class ReachGraph {
               assert id2hrn.containsKey( rtOld.getHrnID() );
               B = boldBic.get( rtOld.getHrnID() ); 
             }
-              
-	    ReachSet boldB_rtOld_incident = B.get( incidentEdge );
-	    if( boldB_rtOld_incident != null &&
-		boldB_rtOld_incident.contains( stateOld ) ) {
-	      foundState = true;
-	    }
+            /*
+            if( B == null ) {
+              try {
+                writeGraph( "glob", true, false, false, false, true, true );  
+              } catch( IOException e ) {}
+              System.out.println( " need B for "+rtOld );
+            }
+            */
+
+            if( B != null ) {            
+              ReachSet boldB_rtOld_incident = B.get( incidentEdge );
+              if( boldB_rtOld_incident != null &&
+                  boldB_rtOld_incident.contains( stateOld ) ) {
+                foundState = true;
+              }
+            }
 	  }
           
 	  if( !foundState ) {
