@@ -1900,7 +1900,7 @@ public class ReachGraph {
 
     if( writeDebugDOTs ) {    
       try {
-        rg.writeGraph( "calleeview", true, false, false, false, true, true );
+        rg.writeGraph( "calleeview", true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -1924,9 +1924,9 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         rgCallee.writeGraph( "callee", 
-                             true, false, false, false, true, true );
+                             true, false, false, true, true );
         writeGraph( "caller00In", 
-                    true, false, false, false, true, true, 
+                    true, false, false, true, true, 
                     callerNodeIDsCopiedToCallee );
       } catch( IOException e ) {}
     }
@@ -2148,7 +2148,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller20BeforeWipe", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -2170,7 +2170,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller30BeforeAddingNodes", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -2235,7 +2235,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller31BeforeAddingEdges", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -2431,7 +2431,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller35BeforeAssignReturnValue", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -2513,7 +2513,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller38propagateReach", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -2539,7 +2539,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller40BeforeShadowMerge", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
     
@@ -2636,7 +2636,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller45BeforeUnshadow", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
     
@@ -2660,7 +2660,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller50BeforeGlobalSweep", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
 
@@ -2675,7 +2675,7 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller90AfterTransfer", 
-                    true, false, false, false, true, true );
+                    true, false, false, true, true );
       } catch( IOException e ) {}
     }
   } 
@@ -3752,7 +3752,6 @@ public class ReachGraph {
                           boolean writeLabels,
                           boolean labelSelect,
                           boolean pruneGarbage,
-                          boolean writeReferencers,
                           boolean hideSubsetReachability,
                           boolean hideEdgeTaints
                           ) throws java.io.IOException {
@@ -3760,7 +3759,6 @@ public class ReachGraph {
                 writeLabels,
                 labelSelect,
                 pruneGarbage,
-                writeReferencers,
                 hideSubsetReachability,
                 hideEdgeTaints,
                 null );
@@ -3770,7 +3768,6 @@ public class ReachGraph {
                           boolean      writeLabels,
                           boolean      labelSelect,
                           boolean      pruneGarbage,
-                          boolean      writeReferencers,
                           boolean      hideSubsetReachability,
                           boolean      hideEdgeTaints,
                           Set<Integer> callerNodeIDsCopiedToCallee
@@ -3821,9 +3818,7 @@ public class ReachGraph {
       // only visit nodes worth writing out--for instance
       // not every node at an allocation is referenced
       // (think of it as garbage-collected), etc.
-      if( !pruneGarbage                              ||
-          (hrn.isFlagged() && hrn.getID() > 0)       ||
-          hrn.getDescription().startsWith( "param" ) ||
+      if( !pruneGarbage        ||
           hrn.isOutOfContext()
           ) {
 
@@ -3832,7 +3827,6 @@ public class ReachGraph {
                                    bw,
                                    null,
                                    visited,
-                                   writeReferencers,
                                    hideSubsetReachability,
                                    hideEdgeTaints,
                                    callerNodeIDsCopiedToCallee );
@@ -3852,10 +3846,10 @@ public class ReachGraph {
         
         if( labelSelect ) {
           String labelStr = vn.getTempDescriptorString();
-          if( labelStr.startsWith("___temp") ||
-              labelStr.startsWith("___dst") ||
-              labelStr.startsWith("___srctmp") ||
-              labelStr.startsWith("___neverused")
+          if( labelStr.startsWith( "___temp" )     ||
+              labelStr.startsWith( "___dst" )      ||
+              labelStr.startsWith( "___srctmp" )   ||
+              labelStr.startsWith( "___neverused" )
               ) {
             continue;
           }
@@ -3866,12 +3860,11 @@ public class ReachGraph {
           RefEdge        edge = heapRegionsItr.next();
           HeapRegionNode hrn  = edge.getDst();
           
-          if( pruneGarbage && !visited.contains( hrn ) ) {
+          if( !visited.contains( hrn ) ) {
             traverseHeapRegionNodes( hrn,
                                      bw,
                                      null,
                                      visited,
-                                     writeReferencers,
                                      hideSubsetReachability,
                                      hideEdgeTaints,
                                      callerNodeIDsCopiedToCallee );
@@ -3893,7 +3886,6 @@ public class ReachGraph {
                                           BufferedWriter      bw,
                                           TempDescriptor      td,
                                           Set<HeapRegionNode> visited,
-                                          boolean             writeReferencers,
                                           boolean             hideSubsetReachability,
                                           boolean             hideEdgeTaints,
                                           Set<Integer>        callerNodeIDsCopiedToCallee
@@ -3954,7 +3946,6 @@ public class ReachGraph {
                                bw,
                                td,
                                visited,
-                               writeReferencers,
                                hideSubsetReachability,
                                hideEdgeTaints,
                                callerNodeIDsCopiedToCallee );

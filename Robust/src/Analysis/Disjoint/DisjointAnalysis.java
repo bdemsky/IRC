@@ -717,8 +717,7 @@ public class DisjointAnalysis {
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
                        true,   // prune unreachable heap regions
-                       false,  // show back edges to confirm graph validity
-                       true,   // hide subset reachability states
+                       false,  // hide subset reachability states
                        true ); // hide edge taints
       } catch( IOException e ) {}    
     }
@@ -742,8 +741,7 @@ public class DisjointAnalysis {
                          true,   // write labels (variables)
                          false,  // selectively hide intermediate temp vars
                          false,  // prune unreachable heap regions
-                         false,  // show back edges to confirm graph validity
-                         true,   // hide subset reachability states
+                         false,  // hide subset reachability states
                          true ); // hide edge taints
         } catch( IOException e ) {}    
       }
@@ -1421,7 +1419,6 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
                        true,  // write labels (variables)
                        true,  // selectively hide intermediate temp vars
                        true,  // prune unreachable heap regions
-                       false, // show back edges to confirm graph validity
                        true,  // hide subset reachability states
                        true );// hide edge taints
       } catch( Exception e ) {
