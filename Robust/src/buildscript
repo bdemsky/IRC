@@ -22,6 +22,29 @@ echo -abortreaders abort readers immediately
 echo -trueprob double - probabiltiy of true branch
 echo -dsmcaching -enable caching in dsm runtime
 echo
+echo BAMBOO Multicore options
+echo -scheduling do task scheduling
+echo -multicore generate multi-core version binary
+echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
+echo "-cacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
+echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
+echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
+echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
+echo -printscheduling print out scheduling graphs
+echo -printschedulesim print out scheduling simulator result graphs
+echo -abcclose close the array boundary check
+echo "-tilera_bme generate tilera version binary for Bare Mental Environment (should be used together with -multicore"
+echo "-tilera_zlinux generate tilera version binary for Zero-Overhead Linux (should be used together with -multicore"
+echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
+echo "-raw generate raw version binary (should be used together with -multicore)"
+echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
+echo -threadsimulate generate multi-thread simulate version binary
+echo -multicoregc generate multi-core binary with garbage collection
+echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
+echo -gcprofile build with gcprofile options
+echo -accurateprofile build with accurate profile information including pre/post task processing info
+echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
+echo
 echo Other options
 echo -builddir setup different build directory
 echo -robustroot set up the ROBUSTROOT to directory other than default one
@@ -40,23 +63,6 @@ echo -selfloop task - this task cannot self loop forever
 echo "-excprefetch methoddescriptor - exclude prefetches for this method (specified as class.method)"
 echo -taskstate do task state analysis
 echo -tagstate do tag state analysis
-echo -scheduling do task scheduling
-echo -multicore generate multi-core version binary
-echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
-echo "-cacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
-echo "-interrupt generate raw version binary with interruption (should be used togethere with -raw)"
-echo "-rawpath print out execute path information for raw version (should be used together with -raw)"
-echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
-echo -printscheduling print out scheduling graphs
-echo -printschedulesim print out scheduling simulator result graphs
-echo -abcclose close the array boundary check
-echo "-tilera generate tilera version binary (should be used together with -multicore"
-echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
-echo "-raw generate raw version binary (should be used together with -multicore)"
-echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
-echo -threadsimulate generate multi-thread simulate version binary
-echo -multicoregc generate multi-core binary with garbage collection
-echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
@@ -72,9 +78,6 @@ echo -o binary
 echo -nojava do not run bristlecone compiler
 echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
-echo -gcprofile build with gcprofile options
-echo -accurateprofile build with accurate profile information including pre/post task processing info
-echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo "-enable-assertions execute assert statements during compilation"
 echo -justanalyze exit after compiler analyses complete
 echo "-distributioninfo  execute to collect distribution info for simulated annealing in multi-core version"
@@ -112,6 +115,8 @@ MLPDEBUG=false
 MULTICOREFLAG=false
 RAWFLAG=false
 TILERAFLAG=false
+TILERABMEFLAG=false
+TILERAZLINUXFLAG=false
 TILERACONFIG=''
 CACHEFLUSHFLAG=false
 RAWCONFIG=''
@@ -314,9 +319,14 @@ elif [[ $1 = '-raw' ]]
 then
 RAWFLAG=true
 JAVAOPTS="$JAVAOPTS -raw"
-elif [[ $1 = '-tilera' ]]
+elif [[ $1 = '-tilera_bme' ]]
 then
 TILERAFLAG=true
+TILERABMEFLAG=true
+elif [[ $1 = '-tilera_zlinux' ]]
+then
+TILERAFLAG=true
+TILERAZLINUXFLAG=true
 elif [[ $1 = '-tileraconfig' ]]
 then
 TILERACONFIG="$2"
@@ -644,15 +654,31 @@ make
 elif $TILERAFLAG
 then # TILERAFLAG
 TILERADIR="$CURDIR/tilera"
+if $TILERABMEFLAG
+then # TILERABMEFLAG
+TILERA_INDIR="BME"
 MAKEFILE="Makefile.tilera.$TILERACONFIG"
 SIMHVC="sim.hvc.$TILERACONFIG"
 PCIHVC="pci.hvc.$TILERACONFIG"
+elif $TILERAZLINUXFLAG
+then # TILERAZLINUXFLAG
+TILERA_INDIR="ZLINUX"
+MAKEFILE="Makefile.tilera.$TILERACONFIG"
+fi
 mkdir $TILERADIR
 cd $TILERADIR
 make clean
 rm ./*
 
 export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT -DTILERA"
+
+if $TILERABMEFLAG
+then # TILERABMEFLAG
+TILERACFLAGS="${TILERACFLAGS} -DTILERA_BME"
+elif $TILERAZLINUXFLAG
+then # TILERAZLINUXFLAG
+TILERACFLAGS="${TILERACFLAGS} -DTILERA_ZLINUX"
+fi
 
 if $CACHEFLUSHFLAG
 then # print path
@@ -699,10 +725,13 @@ then # GC_PROFILE version
 TILERACFLAGS="${TILERACFLAGS} -DGC_PROFILE"
 fi
 
-cp $ROBUSTROOT/Tilera/Runtime/$MAKEFILE ./Makefile
-cp $ROBUSTROOT/Tilera/Runtime/$SIMHVC ./sim.hvc
-cp $ROBUSTROOT/Tilera/Runtime/$PCIHVC ./pci.hvc
-cp $ROBUSTROOT/Tilera/Runtime/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
+cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile
+if $TILERABMEFLAG
+then # TILERABMEFLAG
+cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$SIMHVC ./sim.hvc
+cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$PCIHVC ./pci.hvc
+cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
+fi
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./
@@ -730,13 +759,16 @@ cp ../Runtime/multicorehelper.h ./
 cp ../Runtime/MGCHash.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
+cp ../Tilera/Runtime/$TILERA_INDIR/*.c ./
+cp ../Tilera/Runtime/$TILERA_INDIR/*.h ./
+cp ../Tilera/Runtime/$TILERA_INDIR/*.S ./
 cp ../Tilera/lib/* ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./
 
 make
 
-else #!RAWFLAG && !TILERAFLAG
+else #!RAWFLAG && !TILERABMEFLAG  && ! TILERAZLINUXFLAG
 cd $CURDIR 
 
 INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \

@@ -62,6 +62,8 @@ volatile bool isMsgSending;
 	outmsgdata[outmsglast] = (n); \
   OUTMSG_LASTINDEXINC(); 
 
+#define MAX_PACKET_WORDS 5
+
 /* Message format:
  *      type + Msgbody
  * type: 1 -- transfer object
@@ -401,38 +403,36 @@ INLINE void processlockrelease(int locktype,
 // msg related functions
 INLINE void send_hanging_msg();
 INLINE void send_msg_1(int targetcore, 
-		                   unsigned long n0,
-											 bool isinterrupton);
+		                   unsigned long n0);
 INLINE void send_msg_2(int targetcore, 
 		                   unsigned long n0, 
-											 unsigned long n1,
-											 bool isinterrupton);
+											 unsigned long n1);
 INLINE void send_msg_3(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
-											 unsigned long n2,
-											 bool isinterrupton);
+											 unsigned long n2);
 INLINE void send_msg_4(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
-											 unsigned long n3,
-											 bool isinterrupton);
+											 unsigned long n3);
 INLINE void send_msg_5(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
 											 unsigned long n3, 
-											 unsigned long n4,
-											 bool isinterrupton);
+											 unsigned long n4);
 INLINE void send_msg_6(int targetcore, 
 		                   unsigned long n0, 
 											 unsigned long n1, 
 											 unsigned long n2, 
 											 unsigned long n3, 
 											 unsigned long n4, 
-											 unsigned long n5,
-											 bool isinterrupton);
+											 unsigned long n5);
+INLINE void send_msg_3_I(int targetcore, 
+  		                   unsigned long n0, 
+	  										 unsigned long n1, 
+		  									 unsigned long n2);
 INLINE void cache_msg_1(int targetcore, 
 												unsigned long n0);
 INLINE void cache_msg_2(int targetcore, 
@@ -461,7 +461,7 @@ INLINE void cache_msg_6(int targetcore,
 												unsigned long n4, 
 												unsigned long n5);
 INLINE void transferObject(struct transObjInfo * transObj);
-INLINE int receiveMsg(void);
+INLINE int receiveMsg(uint32_t send_port_pending);
 
 #ifdef MULTICORE_GC
 INLINE void transferMarkResults();
@@ -477,53 +477,47 @@ void outputProfileData();
 /////////////////////////////////////////////////////////////////////////////
 // For each version of BAMBOO runtime, there should be a header file named //
 // runtim_arch.h defining following MARCOS:                                //
-// BAMBOO_TOTALCORE: the total # of cores in the processor                 //
 // BAMBOO_NUM_OF_CORE: the # of current residing core                      //
 // BAMBOO_GET_NUM_OF_CORE(): compute the # of current residing core        //
+// BAMBOO_COORDS(c, x, y): convert the cpu # to coords (*x, *y)            //
 // BAMBOO_DEBUGPRINT(x): print out integer x                               //
 // BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                 //
+// BAMBOO_EXIT(x): exit routine                                            //
+// BAMBOO_DIE(x): error exit routine                                       //
+// BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
+// BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
+// BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //
+// BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT(): change to runtime mode from    //
+//                                          client mode                    //
+// BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME(): change to client mode from     //
+//                                          runtime mode                   //
+// BAMBOO_ENTER_SEND_MODE_FROM_CLIENT(): change to send mode from          //
+//                                       client mode                       //
+// BAMBOO_ENTER_CLIENT_MODE_FROM_SEND(): change to client mode from        //
+//                                       send mode                         //
+// BAMBOO_ENTER_RUNTIME_MODE_FROM_SEND(): change to runtime mode from      //
+//                                        send mode                        //
+// BAMBOO_ENTER_SEND_MODE_FROM_RUNTIME(): change to send mode from         //
+//                                        runtime mode                     //
+// BAMBOO_WAITING_FOR_LOCK(): routine executed while waiting for lock      //
+//                            request response                             //
 // BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of  //
 //                                whose size in bytes is y on local memory //
 // BAMBOO_LOCAL_MEM_FREE(x): free space with ptr x on local memory         //
-// BAMBOO_SHARE_MEM_CALLOC(x, y): allocate an array of x elements each of  //
+// BAMBOO_LOCAL_MEM_CLOSE(): close the local heap                          //
+// BAMBOO_SHARE_MEM_CALLOC_I(x, y): allocate an array of x elements each of//
 //                                whose size in bytes is y on shared memory//
-// BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE()                               //
-// BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE(): locks for global data        //
-//                                            structures related to obj    //
-//                                            queue                        //
-// BAMBOO_START_CRITICAL_SECTION_STATUS()                                  //
-// BAMBOO_CLOSE_CRITICAL_SECTION_STATUS(): locks for global data structures//
-//                                         related to status data          //
-// BAMBOO_START_CRITICAL_SECTION_MSG()                                     //
-// BAMBOO_CLOSE_CRITICAL_SECTION_MSG(): locks for global data structures   //
-//                                      related to msg data                //
-// BAMBOO_START_CRITICAL_SECTION_LOCK()                                    //
-// BAMBOO_CLOSE_CRITICAL_SECTION_LOCK(): locks for global data structures  //
-//                                       related to lock table             //
-// BAMBOO_START_CRITICAL_SECTION_MEM()                                     //
-// BAMBOO_CLOSE_CRITICAL_SECTION_MEM(): locks for allocating memory        //
-// BAMBOO_START_CRITICAL_SECTION()                                         //
-// BAMBOO_CLOSE_CRITICAL_SECTION(): locks for all global data structures   //
-// BAMBOO_WAITING_FOR_LOCK(): routine executed while waiting for lock      //
-//                            request response                             //
+// BAMBOO_SHARE_MEM_CLOSE(): close the shared heap                        //
 // BAMBOO_CACHE_LINE_SIZE: the cache line size                             //
 // BAMBOO_CACHE_LINE_MASK: mask for a cache line                           //
 // BAMBOO_CACHE_FLUSH_RANGE(x, y): flush cache lines started at x with     //
 //                                 length y                                //
 // BAMBOO_CACHE_FLUSH_ALL(): flush the whole cache of a core if necessary  //
-// BAMBOO_EXIT(x): exit routine                                            //
-// BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
-// BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //
-// BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
 // BAMBOO_MEMSET_WH(x, y, z): memset the specified region of memory (start //
 //                            address x, size z) to value y with write     //
 //                            hint, the processor will not fetch the       //
 //                            current content of the memory and directly   //
 //                            write                                        //
-//                                                                         //
-// runtime_arch.h should also define following global parameters:          //
-// bamboo_cpu2coords: map the cpu # to (x,y) coordinates                   //
-// bamboo_coords2cpu: map the (x,y) coordinates to cpu #                   //
 /////////////////////////////////////////////////////////////////////////////
 
 #endif  // #ifdef MULTICORE

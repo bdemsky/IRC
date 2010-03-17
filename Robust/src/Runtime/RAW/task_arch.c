@@ -790,7 +790,7 @@ bool getreadlock(void * ptr) {
   } else {
 	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (lock2require >> 5) % NUMCORES;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
@@ -849,7 +849,7 @@ void releasereadlock(void * ptr) {
   } else {
 	reallock = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (reallock >> 5) % NUMCORES;
 
   if(targetcore == BAMBOO_NUM_OF_CORE) {
 	BAMBOO_START_CRITICAL_SECTION_LOCK();
@@ -892,7 +892,7 @@ bool getreadlock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 	  lockresult = 0;
   }  
-  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = ((int)redirectlock >> 5) % NUMCORES;
   
   if(targetcore == BAMBOO_NUM_OF_CORE) {
     // reside on this core
@@ -957,7 +957,7 @@ bool getwritelock(void * ptr) {
   } else {
 	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (lock2require >> 5) % NUMCORES;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
@@ -1024,7 +1024,7 @@ void releasewritelock(void * ptr) {
   } else {
 	reallock = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (reallock >> 5) % NUMCORES;
 
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe661);
@@ -1069,7 +1069,7 @@ bool getwritelock_I(void * ptr) {
   } else {
 	lock2require = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (lock2require >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (lock2require >> 5) % NUMCORES;
   lockflag = false;
 #ifndef INTERRUPT
   reside = false;
@@ -1134,7 +1134,7 @@ bool getwritelock_I_r(void * ptr, void * redirectlock, int core, bool cache) {
 #endif
 	  lockresult = 0;
   }
-  targetcore = ((int)redirectlock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = ((int)redirectlock >> 5) % NUMCORES;
 
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe571);
@@ -1204,7 +1204,7 @@ void releasewritelock_I(void * ptr) {
   } else {
 	reallock = (int)(((struct ___Object___ *)ptr)->lock);
   }
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (reallock >> 5) % NUMCORES;
 
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe681);
@@ -1236,7 +1236,7 @@ void releasewritelock_I(void * ptr) {
 void releasewritelock_I_r(void * lock, void * redirectlock) {
   int targetcore = 0;
   int reallock = (int)lock;
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (reallock >> 5) % NUMCORES;
 
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe691);
@@ -1282,7 +1282,7 @@ void releasewritelock_I_r(void * lock, void * redirectlock) {
 //            1: the lock request is denied
 __attribute__((always_inline)) int processlockrequest(int locktype, int lock, int obj, int requestcore, int rootrequestcore, bool cache) {
   int deny = 0;
-  if( ((lock >> 5) % BAMBOO_TOTALCORE) != BAMBOO_NUM_OF_CORE ) {
+  if( ((lock >> 5) % NUMCORES) != BAMBOO_NUM_OF_CORE ) {
 	  // the lock should not be on this core
 #ifndef TILERA
 	  BAMBOO_DEBUGPRINT_REG(requestcore);

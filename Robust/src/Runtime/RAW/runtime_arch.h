@@ -13,7 +13,6 @@
 #define BAMBOO_CACHE_LINE_SIZE (kCacheLineSize)
 #define BAMBOO_CACHE_LINE_MASK (kCacheLineMask)
 
-#define BAMBOO_TOTALCORE (raw_get_num_tiles())  // the total # of cores available in the processor
 #define BAMBOO_NUM_OF_CORE corenum   // the # of current residing core
 #define BAMBOO_GET_NUM_OF_CORE() (raw_get_abs_pos_x() + raw_get_array_size_x() * raw_get_abs_pos_y())  // compute the # of current residing core
 #define BAMBOO_DEBUGPRINT(x) (raw_test_pass((x)))

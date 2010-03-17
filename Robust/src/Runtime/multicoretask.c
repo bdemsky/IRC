@@ -195,6 +195,8 @@ void disruntimedata() {
 		RUNFREE(currtpd);
 		currtpd = NULL;
 	}
+	BAMBOO_LOCAL_MEM_CLOSE();
+	BAMBOO_SHARE_MEM_CLOSE();
 }
 
 inline __attribute__((always_inline))
@@ -215,7 +217,7 @@ bool checkObjQueue() {
 
 	while(!isEmpty(&objqueue)) {
 		void * obj = NULL;
-		BAMBOO_START_CRITICAL_SECTION_OBJ_QUEUE();
+		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xf001);
 #endif
@@ -235,7 +237,7 @@ bool checkObjQueue() {
 		grount = 0;
 		getwritelock_I(obj);
 		while(!lockflag) {
-			BAMBOO_WAITING_FOR_LOCK();
+			BAMBOO_WAITING_FOR_LOCK(0);
 		} // while(!lockflag)
 		grount = lockresult;
 #ifdef DEBUG
@@ -305,13 +307,13 @@ bool checkObjQueue() {
 			//isInterrupt = true;
 #endif
 objqueuebreak:
-			BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE();
+			BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xf000);
 #endif
 			break;
 		} // if(grount == 1)
-		BAMBOO_CLOSE_CRITICAL_SECTION_OBJ_QUEUE();
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xf000);
 #endif
@@ -342,7 +344,7 @@ void checkCoreStatus() {
 		BAMBOO_DEBUGPRINT(0xee04);
 		BAMBOO_DEBUGPRINT_REG(waitconfirm);
 #endif
-		BAMBOO_START_CRITICAL_SECTION_STATUS();
+		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xf001);
 #endif
@@ -391,7 +393,7 @@ void checkCoreStatus() {
 					for(i = 1; i < NUMCORESACTIVE; ++i) {	
 						corestatus[i] = 1;
 						// send status confirm msg to core i
-						send_msg_1(i, STATUSCONFIRM, false);
+						send_msg_1(i, STATUSCONFIRM);
 					} // for(i = 1; i < NUMCORESACTIVE; ++i)
 					waitconfirm = true;
 					numconfirm = NUMCORESACTIVE - 1;
@@ -414,18 +416,18 @@ void checkCoreStatus() {
 					// profile mode, send msgs to other cores to request pouring
 					// out progiling data
 #ifdef PROFILE
-					BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+					BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 					BAMBOO_DEBUGPRINT(0xf000);
 #endif
 					for(i = 1; i < NUMCORESACTIVE; ++i) {
 						// send profile request msg to core i
-						send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
+						send_msg_2(i, PROFILEOUTPUT, totalexetime);
 					} // for(i = 1; i < NUMCORESACTIVE; ++i)
 					// pour profiling data on startup core
 					outputProfileData();
 					while(true) {
-						BAMBOO_START_CRITICAL_SECTION_STATUS();
+						BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
 						BAMBOO_DEBUGPRINT(0xf001);
 #endif
@@ -446,7 +448,7 @@ void checkCoreStatus() {
 						}  // for(i = 0; i < NUMCORESACTIVE; ++i)
 						if(!allStall) {
 							int halt = 100;
-							BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+							BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 							BAMBOO_DEBUGPRINT(0xf000);
 #endif
@@ -484,7 +486,7 @@ void checkCoreStatus() {
 			waitconfirm = false;
 			numconfirm = 0;
 		} //  if(allStall)
-		BAMBOO_CLOSE_CRITICAL_SECTION_STATUS();
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xf000);
 #endif
@@ -608,7 +610,7 @@ inline void run(void * arg) {
 #endif
 							  // send stall msg
 								send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE, 
-										       self_numsendobjs, self_numreceiveobjs, false);
+										       self_numsendobjs, self_numreceiveobjs);
 							  sendStall = true;
 							  isfirst = true;
 							  busystatus = false;
@@ -1356,7 +1358,7 @@ void * globalmalloc_I(int coren,
 	if(foundsmem == 1) {
 		// find suitable block
 		mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC)?
-				(BAMBOO_SMEM_SIZE_L*tofindb):(BAMBOO_LARGE_SMEM_BOUND+
+				  (BAMBOO_SMEM_SIZE_L*tofindb):(BAMBOO_LARGE_SMEM_BOUND+
 					(tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
 		*allocsize = size;
 		// set bamboo_smemtbl
@@ -1522,6 +1524,7 @@ INLINE int checkMsgLength_I(int size) {
 		default: 
 		{
 			BAMBOO_DEBUGPRINT_REG(type);
+			BAMBOO_DEBUGPRINT_REG(msgdataindex);
 			int i = 6;
 			while(i-- > 0) {
 				BAMBOO_DEBUGPRINT(msgdata[msgdataindex+i]);
@@ -1649,13 +1652,13 @@ INLINE void processmsg_lockrequest_I() {
 		return;
 	} else {
 		// send response msg
-		// for 32 bit machine, the size is always 4 words
+		// for 32 bit machine, the size is always 4 words, cache the msg first
 		int tmp = deny==1?LOCKDENY:LOCKGROUNT;
-		if(isMsgSending) {
+		//if(isMsgSending) {
 			cache_msg_4(data4, tmp, locktype, data2, data3);
-		} else {
-			send_msg_4(data4, tmp, locktype, data2, data3, true);
-		}
+		/*} else {
+			send_msg_4(data4, tmp, locktype, data2, data3);
+		}*/
 	}
 }
 
@@ -1750,14 +1753,14 @@ INLINE void processmsg_redirectlock_I() {
 		return;
 	} else {
 		// send response msg
-		// for 32 bit machine, the size is always 4 words
-		if(isMsgSending) {
+		// for 32 bit machine, the size is always 4 words, cache the msg first
+		//if(isMsgSending) {
 			cache_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
 									data1, data2, data3);
-		} else {
+		/*} else {
 			send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT, 
-								 data1, data2, data3, true);
-		}
+								 data1, data2, data3);
+		}*/
 	}
 }
 
@@ -1850,11 +1853,12 @@ INLINE void processmsg_profileoutput_I() {
 	totalexetime = msgdata[msgdataindex]; //[1]
 	MSG_INDEXINC_I();
 	outputProfileData();
-	if(isMsgSending) {
+	// cache the msg first
+	//if(isMsgSending) {
 		cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
-	} else {
-		send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
-	}
+	/*} else {
+		send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+	}*/
 }
 
 INLINE void processmsg_profilefinish_I() {
@@ -1888,15 +1892,16 @@ INLINE void processmsg_statusconfirm_I() {
 		BAMBOO_DEBUGPRINT(0xe887);
 #endif
 #endif
-		if(isMsgSending) {
+		// cache the msg first
+		//if(isMsgSending) {
 			cache_msg_5(STARTUPCORE, STATUSREPORT, 
 									busystatus?1:0, BAMBOO_NUM_OF_CORE,
 									self_numsendobjs, self_numreceiveobjs);
-		} else {
+		/*} else {
 			send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0, 
 								 BAMBOO_NUM_OF_CORE, self_numsendobjs, 
-								 self_numreceiveobjs, true);
-		}
+								 self_numreceiveobjs);
+		}*/
 	}
 }
 
@@ -1965,23 +1970,24 @@ INLINE void processmsg_memrequest_I() {
 		if(gcprocessing) {
 			// is currently doing gc, dump this msg
 			if(INITPHASE == gcphase) {
-				// if still in the initphase of gc, send a startinit msg again
-				if(isMsgSending) {
+				// if still in the initphase of gc, send a startinit msg again, 
+				// cache the msg first
+				//if(isMsgSending) {
 					cache_msg_1(data2, GCSTARTINIT);
-				} else {
-					send_msg_1(data2, GCSTARTINIT, true);
-				}
+				/*} else {
+					send_msg_1(data2, GCSTARTINIT);
+				}*/
 			}
 		} else { 
 #endif
 		mem = smemalloc_I(data2, data1, &allocsize);
 		if(mem != NULL) {
-			// send the start_va to request core
-			if(isMsgSending) {
+			// send the start_va to request core, cache the msg first
+			//if(isMsgSending) {
 				cache_msg_3(data2, MEMRESPONSE, mem, allocsize);
-			} else {
-				send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
-			} 
+			/*} else {
+				send_msg_3(data2, MEMRESPONSE, mem, allocsize);
+			}*/ 
 		} // if mem == NULL, the gcflag of the startup core has been set
 			// and the gc should be started later, then a GCSTARTINIT msg
 			// will be sent to the requesting core to notice it to start gc
@@ -2134,11 +2140,12 @@ INLINE void processmsg_gcfinishcompact_I() {
 			int tomove = 0;
 			int dstcore = 0;
 			if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
-				if(isMsgSending) {
+				// cache the msg first
+				//if(isMsgSending) {
 					cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
-			  } else {
-					send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
-				}
+			  /*} else {
+					send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+				}*/
 			}
 		} else {
 			gccorestatus[cnum] = 0;
@@ -2170,16 +2177,16 @@ INLINE void processmsg_gcmarkconfirm_I() {
 		// wrong core to receive such msg
 		BAMBOO_EXIT(0xb005);
 	} else {
-		// send response msg
-		if(isMsgSending) {
+		// send response msg, cahce the msg first
+		//if(isMsgSending) {
 			cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
 									gcbusystatus, gcself_numsendobjs, 
 									gcself_numreceiveobjs);
-		} else {
+		/*} else {
 			send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE, 
 								 gcbusystatus, gcself_numsendobjs, 
-								 gcself_numreceiveobjs, true);
-		}
+								 gcself_numreceiveobjs);
+		}*/
 	}
 }
 
@@ -2265,15 +2272,15 @@ INLINE void processmsg_gcmaprequest_I() {
 		/*if(isMsgSending) {
 			cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
 		} else {
-			send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1], true);
+			send_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
 		}*/
 	} else {
-		// send back the mapping info
-		if(isMsgSending) {
+		// send back the mapping info, cache the msg first
+		//if(isMsgSending) {
 			cache_msg_3(data2, GCMAPINFO, data1, (int)dstptr);
-		} else {
-			send_msg_3(data2, GCMAPINFO, data1, (int)dstptr, true);
-		}
+		/*} else {
+			send_msg_3(data2, GCMAPINFO, data1, (int)dstptr);
+		}*/
 	}
 #ifdef GC_PROFILE
 	flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimei;
@@ -2366,17 +2373,17 @@ INLINE void processmsg_gclobjmapping_I() {
 //               3--received a lock Msg
 //               RAW version: -1 -- received nothing
 //                            otherwise -- received msg type
-int receiveObject() {
+int receiveObject(int send_port_pending) {
 msg:
 	// get the incoming msgs
-  if(receiveMsg() == -1) {
+  if(receiveMsg(send_port_pending) == -1) {
 	  return -1;
   }
 processmsg:
 	// processing received msgs
 	int size = 0;
 	MSG_REMAINSIZE_I(&size);
-  if(checkMsgLength_I(size) == -1) {
+  if((size == 0) || (checkMsgLength_I(size) == -1)) {
 		// not a whole msg
 		// have new coming msg
 		if(BAMBOO_MSG_AVAIL() != 0) {
@@ -2840,7 +2847,7 @@ int containstag(struct ___Object___ *ptr,
 void releasewritelock_r(void * lock, void * redirectlock) {
   int targetcore = 0;
   int reallock = (int)lock;
-  targetcore = (reallock >> 5) % BAMBOO_TOTALCORE;
+  targetcore = (reallock >> 5) % NUMCORES;
 
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe671);
@@ -2850,7 +2857,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
 #endif
 
   if(targetcore == BAMBOO_NUM_OF_CORE) {
-	BAMBOO_START_CRITICAL_SECTION_LOCK();
+		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xf001);
 #endif
@@ -2875,7 +2882,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
       BAMBOO_DEBUGPRINT_REG(lockvalue->value);
 #endif
     }
-	BAMBOO_CLOSE_CRITICAL_SECTION_LOCK();
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT(0xf000);
 #endif
@@ -2884,7 +2891,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
 	  // send lock release with redirect info msg
 	  // for 32 bit machine, the size is always 4 words
 		send_msg_4(targetcore, REDIRECTRELEASE, 1, (int)lock, 
-				       (int)redirectlock, false);
+				       (int)redirectlock);
   }
 }
 #endif
@@ -2992,7 +2999,7 @@ newtask:
 		  BAMBOO_DEBUGPRINT_REG((int)(runtime_locks[i].value));
 #endif
 		  getwritelock(lock);
-		  BAMBOO_START_CRITICAL_SECTION();
+			BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xf001);
 #endif
@@ -3000,7 +3007,7 @@ newtask:
 		  //isInterrupt = false;
 #endif 
 		  while(!lockflag) { 
-			  BAMBOO_WAITING_FOR_LOCK();
+			  BAMBOO_WAITING_FOR_LOCK(0);
 		  }
 #ifndef INTERRUPT
 		  if(reside) {
@@ -3020,7 +3027,7 @@ newtask:
 #ifdef PROFILE
 		  //isInterrupt = true;
 #endif
-		  BAMBOO_CLOSE_CRITICAL_SECTION();
+		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xf000);
 #endif

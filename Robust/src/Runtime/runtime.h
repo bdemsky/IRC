@@ -151,7 +151,7 @@ inline void run(void * arg);
 #ifdef MULTICORE_GC
 inline void setupsmemmode(void);
 #endif
-int receiveObject(void);
+int receiveObject(int send_port_pending);
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
 void enqueueObject(void * ptr, struct parameterwrapper ** queues,int length);
