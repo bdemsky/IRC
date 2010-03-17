@@ -677,7 +677,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);"); 
 	} else {
 		//output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
+		output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
 		//output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
 	}
 	//output.println("BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());");
@@ -688,7 +688,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		output.println("BAMBOO_DEBUGPRINT_REG(tmpsum);");
 	} else {
 		//output.println("BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();");
-		output.println("tprintf(\"Process %x(%d): task %s\\n\", corenum, corenum, \"" + task.getSymbol() + "\");");
+		output.println("printf(\"(%x,%x) Process %x(%d): task %s\\n\", udn_tile_coord_x(), udn_tile_coord_y(), corenum, corenum, \"" + task.getSymbol() + "\");");
 		//output.println("BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();");
 	}
     output.println("#endif");

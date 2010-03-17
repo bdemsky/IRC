@@ -662,7 +662,7 @@ SIMHVC="sim.hvc.$TILERACONFIG"
 PCIHVC="pci.hvc.$TILERACONFIG"
 elif $TILERAZLINUXFLAG
 then # TILERAZLINUXFLAG
-TILERA_INDIR="ZLINUX"
+TILERA_INDIR="ZLinux"
 MAKEFILE="Makefile.tilera.$TILERACONFIG"
 fi
 mkdir $TILERADIR
@@ -761,7 +761,10 @@ cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/Runtime/$TILERA_INDIR/*.c ./
 cp ../Tilera/Runtime/$TILERA_INDIR/*.h ./
+if $TILERAZLINUXFLAG
+then # TILERAZLINUXFLAG
 cp ../Tilera/Runtime/$TILERA_INDIR/*.S ./
+fi
 cp ../Tilera/lib/* ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./

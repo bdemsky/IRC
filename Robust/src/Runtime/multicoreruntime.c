@@ -212,7 +212,8 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *)FREEMALLOC((struct garbagelist *) ptr, classsize[type]);
 #ifdef DEBUG
-	tprintf("new object: %x \n", v);
+  printf("(%x,%x): new object: %x \n", udn_tile_coord_x(), 
+		  udn_tile_coord_y(), v);
 #endif
   v->type=type;
   v->version = 0;
@@ -227,7 +228,8 @@ void * allocate_new(void * ptr, int type) {
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=(struct ArrayObject *)FREEMALLOC((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
 #ifdef DEBUG
-	tprintf("new array object: %x \n", v);
+  printf("(%x,%x): new array object: %x \n", udn_tile_coord_x(), 
+		  udn_tile_coord_y(), v);
 #endif
   v->type=type;
   v->version = 0;
