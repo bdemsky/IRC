@@ -7,15 +7,16 @@ public class Test {
 
   static public void main( String[] args ) {
 
-    Foo top = disjoint inMain new Foo();
-    Foo bot = new Foo();    
+    Foo top = disjoint topMain new Foo();
+    Foo bot = disjoint botMain new Foo();    
 
     top.f = bot;
+
     addSomething( bot );   
   }   
 
   public static void addSomething( Foo x ) {
-    x.f = new Foo();
+    x.f = disjoint added new Foo();
   }
 
   public static Foo getAFoo() {
