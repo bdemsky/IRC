@@ -2174,6 +2174,16 @@ public class ReachGraph {
     }
 
 
+    // set these up during the next procedure so after
+    // the caller has all of its nodes and edges put
+    // back together we can propagate the callee's
+    // reach changes backwards into the caller graph
+    HashSet<RefEdge> edgesForPropagation = new HashSet<RefEdge>();
+
+    Hashtable<RefEdge, ChangeSet> edgePlannedChanges =
+      new Hashtable<RefEdge, ChangeSet>();
+
+
     // 3.b) callee -> callee edges AND out-of-context -> callee
     satisItr = calleeEdgesSatisfied.entrySet().iterator();
     while( satisItr.hasNext() ) {
@@ -2199,6 +2209,8 @@ public class ReachGraph {
       
       Set<RefSrcNode> oocCallers = 
         calleeEdges2oocCallerSrcMatches.get( reCallee );
+
+      boolean oocEdges = false;
       
       if( oocCallers == null ) {
         // there are no out-of-context matches, so it's
@@ -2215,9 +2227,9 @@ public class ReachGraph {
             // to the callee so we ignore it in call site transfer
             // shouldn't this NEVER HAPPEN?
             assert false;
-            //continue;
           }
           rsnCallers.add( this.getVariableNodeFromTemp( tdArg ) );
+          oocEdges = true;
 
         } else {
           // otherwise source is in context, one region
@@ -2259,6 +2271,7 @@ public class ReachGraph {
         // that should NOT be translated to shadow nodes
         assert !oocCallers.isEmpty();
         rsnCallers.addAll( oocCallers );
+        oocEdges = true;
       }
 
       // now make all caller edges we've identified from
@@ -2277,6 +2290,24 @@ public class ReachGraph {
                                                          calleeStatesSatisfied ),
                                         preds
                                         );
+
+        ChangeSet cs = ChangeSet.factory();
+        Iterator<ReachState> rsItr = reCaller.getBeta().iterator();
+        while( rsItr.hasNext() ) {
+          ReachState   state = rsItr.next();
+          ExistPredSet preds2 = state.getPreds();
+          assert preds2.preds.size() == 1;
+
+          ExistPred pred = preds2.preds.iterator().next();
+          ReachState old = pred.ne_state;
+          assert old != null;
+
+          cs = Canonical.union( cs,
+                                ChangeTuple.factory( old,
+                                                     state
+                                                     )
+                                );
+        }
         
         // look to see if an edge with same field exists
         // and merge with it, otherwise just add the edge
@@ -2295,9 +2326,22 @@ public class ReachGraph {
                                                 reCaller.getPreds()
                                                 )
                                 );
+
+          // for reach propagation
+          edgePlannedChanges.put( 
+                                 edgeExisting, 
+                                 Canonical.union( edgePlannedChanges.get( edgeExisting ),
+                                                  cs
+                                                  ) 
+                                  );
           
         } else {			  
           addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
+
+          // for reach propagation
+          edgesForPropagation.add( reCaller );
+          assert !edgePlannedChanges.containsKey( reCaller );
+          edgePlannedChanges.put( reCaller, cs );
         }
       }
     }
@@ -2385,6 +2429,56 @@ public class ReachGraph {
         addRefEdge( vnLhsCaller, hrnDstCaller, reCaller );
       }
     }
+
+
+
+    if( writeDebugDOTs ) {
+      try {
+        writeGraph( "caller38propagateReach", 
+                    true, false, false, false, true, true );
+      } catch( IOException e ) {}
+    }
+
+    // propagate callee reachability changes to the rest
+    // of the caller graph edges
+
+
+    /*
+    if( !cts.isEmpty() ) {
+      Iterator<RefEdge> incidentEdgeItr = hrn.iteratorToReferencers();
+      while( incidentEdgeItr.hasNext() ) {
+        RefEdge incidentEdge = incidentEdgeItr.next();
+	
+        edgesForPropagation.add( incidentEdge );
+        
+        if( edgePlannedChanges.get( incidentEdge ) == null ) {
+          edgePlannedChanges.put( incidentEdge, cts );
+        } else {	    
+          edgePlannedChanges.put( 
+                                 incidentEdge, 
+                                   Canonical.union( edgePlannedChanges.get( incidentEdge ),
+                                                    cts
+                                                    ) 
+                                  );
+        }
+      }
+    }
+    */
+  
+    HashSet<RefEdge> edgesUpdated = new HashSet<RefEdge>();
+  
+    propagateTokensOverEdges( edgesForPropagation, // source edges
+                              edgePlannedChanges,  // map src edge to change set
+                              edgesUpdated );      // list of updated edges
+    
+    // commit beta' (beta<-betaNew)
+    Iterator<RefEdge> edgeItr = edgesUpdated.iterator();
+    while( edgeItr.hasNext() ) {
+      edgeItr.next().applyBetaNew();
+    }
+
+
+
 
 
 
