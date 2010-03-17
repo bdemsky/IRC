@@ -16,7 +16,7 @@ public class Test {
   }   
 
   public static void addSomething( Foo x ) {
-    x.f = disjoint added new Foo();
+    //x.f = disjoint added new Foo();
   }
 
   public static Foo getAFoo() {

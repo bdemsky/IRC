@@ -714,11 +714,11 @@ public class DisjointAnalysis {
 
       try {        
 	rg.writeGraph( "COMPLETE"+d,
-                       true,   // write labels (variables)
-                       true,   // selectively hide intermediate temp vars
-                       true,   // prune unreachable heap regions
-                       false,  // hide subset reachability states
-                       true ); // hide edge taints
+                       true,   // write labels (variables)                
+                       true,   // selectively hide intermediate temp vars 
+                       true,   // prune unreachable heap regions          
+                       false,  // hide subset reachability states         
+                       true ); // hide edge taints                        
       } catch( IOException e ) {}    
     }
   }

@@ -1900,7 +1900,12 @@ public class ReachGraph {
 
     if( writeDebugDOTs ) {    
       try {
-        rg.writeGraph( "calleeview", true, false, false, true, true );
+        rg.writeGraph( "calleeview", 
+                       true,   // write labels (variables)                
+                       true,   // selectively hide intermediate temp vars 
+                       true,   // prune unreachable heap regions          
+                       true,   // hide subset reachability states         
+                       true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -1924,9 +1929,17 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         rgCallee.writeGraph( "callee", 
-                             true, false, false, true, true );
+                             true,   // write labels (variables)                  
+                             true,   // selectively hide intermediate temp vars   
+                             true,   // prune unreachable heap regions            
+                             true,   // hide subset reachability states           
+                             true ); // hide edge taints                        
         writeGraph( "caller00In", 
-                    true, false, false, true, true, 
+                    true,  // write labels (variables)                
+                    true,  // selectively hide intermediate temp vars 
+                    true,  // prune unreachable heap regions          
+                    true,  // hide subset reachability states         
+                    true,  // hide edge taints                        
                     callerNodeIDsCopiedToCallee );
       } catch( IOException e ) {}
     }
@@ -2148,7 +2161,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller20BeforeWipe", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -2170,7 +2187,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller30BeforeAddingNodes", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -2235,7 +2256,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller31BeforeAddingEdges", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -2431,7 +2456,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller35BeforeAssignReturnValue", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -2513,7 +2542,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller38propagateReach", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -2539,7 +2572,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller40BeforeShadowMerge", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
     
@@ -2636,7 +2673,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller45BeforeUnshadow", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
     
@@ -2660,7 +2701,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller50BeforeGlobalSweep", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
 
@@ -2675,7 +2720,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller90AfterTransfer", 
-                    true, false, false, true, true );
+                    true,   // write labels (variables)                
+                    true,   // selectively hide intermediate temp vars 
+                    true,   // prune unreachable heap regions          
+                    true,   // hide subset reachability states         
+                    true ); // hide edge taints                        
       } catch( IOException e ) {}
     }
   } 
