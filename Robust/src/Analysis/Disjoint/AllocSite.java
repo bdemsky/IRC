@@ -147,7 +147,7 @@ public class AllocSite extends Canonical {
   }
 
   public Integer getAge( Integer id ) {
-    for( int i = 0; i < allocationDepth - 1; ++i ) {
+    for( int i = 0; i < allocationDepth; ++i ) {
       if( id.equals( ithOldest.get( i ) ) ) {
 	return new Integer( i );
       }
