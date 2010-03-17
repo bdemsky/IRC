@@ -1251,7 +1251,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	for (Iterator it = classDesc.getFields(); it.hasNext();) {
 	    FieldDescriptor fd = (FieldDescriptor) it.next();
 	    TypeDescriptor fieldType = fd.getType();
-	    if (!fieldType.isImmutable()) {
+	    if (!fieldType.isImmutable() || fieldType.isArray()) {
 		HashMap<HeapRegionNode, FieldDescriptor> newMap = new HashMap<HeapRegionNode, FieldDescriptor>();
 		newMap.put(hrnNewest, fd);
 		workSet.add(newMap);
@@ -1316,7 +1316,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    mapTypeToExistingSummaryNode.put(type, hrnSummary);
 		    
 		    // set-up a work set for  fields of the class
-		    classDesc = type.getClassDesc();
+		    if(!type.isImmutable()){
+		    classDesc = type.getClassDesc();		    
 		    for (Iterator it = classDesc.getFields(); it.hasNext();) {
 			FieldDescriptor typeFieldDesc = (FieldDescriptor) it.next();
 			TypeDescriptor fieldType = typeFieldDesc.getType();
@@ -1330,6 +1331,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 				workSet.add(newMap);
 			    }
 			}
+		    }
 		    }
 		    
 		}else{
