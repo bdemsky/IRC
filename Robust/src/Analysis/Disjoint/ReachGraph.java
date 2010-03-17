@@ -2281,7 +2281,6 @@ public class ReachGraph {
       while( rsnItr.hasNext() ) {
         RefSrcNode rsnCaller = rsnItr.next();
         
-        // TODO: beta rewrites
         RefEdge reCaller = new RefEdge( rsnCaller,
                                         hrnDstCaller,
                                         reCallee.getType(),
@@ -2298,8 +2297,17 @@ public class ReachGraph {
           ExistPredSet preds2 = state.getPreds();
           assert preds2.preds.size() == 1;
 
+          if( state.isEmpty() ) {
+            continue;
+          }
+
           ExistPred pred = preds2.preds.iterator().next();
           ReachState old = pred.ne_state;
+
+          if( old == null ) {
+            old = rstateEmpty;
+          }
+
           assert old != null;
 
           cs = Canonical.union( cs,
@@ -2328,20 +2336,24 @@ public class ReachGraph {
                                 );
 
           // for reach propagation
-          edgePlannedChanges.put( 
-                                 edgeExisting, 
-                                 Canonical.union( edgePlannedChanges.get( edgeExisting ),
-                                                  cs
-                                                  ) 
-                                  );
+          if( !cs.isEmpty() ) {
+            edgePlannedChanges.put( 
+                                   edgeExisting, 
+                                   Canonical.union( edgePlannedChanges.get( edgeExisting ),
+                                                    cs
+                                                    ) 
+                                    );
+          }
           
         } else {			  
           addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
 
           // for reach propagation
-          edgesForPropagation.add( reCaller );
-          assert !edgePlannedChanges.containsKey( reCaller );
-          edgePlannedChanges.put( reCaller, cs );
+          if( !cs.isEmpty() ) {
+            edgesForPropagation.add( reCaller );
+            assert !edgePlannedChanges.containsKey( reCaller );
+            edgePlannedChanges.put( reCaller, cs );
+          }
         }
       }
     }
@@ -3195,13 +3207,10 @@ public class ReachGraph {
                                         )
                        );
 
-        // if hrnB is already dirty or hrnA is dirty,
-        // the hrnB should end up dirty: TODO
-        /*
-        if( !hrnA.isClean() ) {
-          hrnB.setIsClean( false );
-        }
-        */
+        hrnB.setPreds( Canonical.join( hrnB.getPreds(),
+                                       hrnA.getPreds()
+                                       )
+                       );
       }
     }
 
@@ -3279,12 +3288,11 @@ public class ReachGraph {
                                                edgeA.getBeta() 
                                                )
                               );
-          // TODO: what?
-          /*
-	  if( !edgeA.isClean() ) {
-	    edgeToMerge.setIsClean( false );
-	  }
-          */
+          edgeToMerge.setPreds(
+                               Canonical.join( edgeToMerge.getPreds(),
+                                               edgeA.getPreds()
+                                               )
+                               );
 	}
       }
     }
@@ -3344,12 +3352,10 @@ public class ReachGraph {
                                                 edgeA.getBeta()
                                                 )
                                );
-          // TODO: what?
-          /*
-	  if( !edgeA.isClean() ) {
-	    edgeToMerge.setIsClean( false );
-	  }
-          */
+          edgeToMerge.setPreds( Canonical.join( edgeToMerge.getPreds(),
+                                                edgeA.getPreds()
+                                                )
+                                );
 	}
       }
     }
