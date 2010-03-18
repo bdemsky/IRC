@@ -494,8 +494,9 @@ void outputProfileData();
 // BAMBOO_COORDS(c, x, y): convert the cpu # to coords (*x, *y)            //
 // BAMBOO_DEBUGPRINT(x): print out integer x                               //
 // BAMBOO_DEBUGPRINT_REG(x): print out value of variable x                 //
-// BAMBOO_EXIT(x): exit routine                                            //
-// BAMBOO_DIE(x): error exit routine                                       //
+// BAMBOO_EXIT_APP(x): exit the whole application                          //
+// BAMBOO_EXIT(x): error exit routine with error #                         //
+// BAMBOO_DIE(x): error exit routine with error msg                        //
 // BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
 // BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
 // BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //

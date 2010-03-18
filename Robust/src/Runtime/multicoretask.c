@@ -390,13 +390,15 @@ void checkCoreStatus() {
 					BAMBOO_DEBUGPRINT(0xee05);
 #endif
 					corestatus[BAMBOO_NUM_OF_CORE] = 1;
+					waitconfirm = true;
+					numconfirm = NUMCORESACTIVE - 1;
+					BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 					for(i = 1; i < NUMCORESACTIVE; ++i) {	
 						corestatus[i] = 1;
 						// send status confirm msg to core i
 						send_msg_1(i, STATUSCONFIRM);
 					} // for(i = 1; i < NUMCORESACTIVE; ++i)
-					waitconfirm = true;
-					numconfirm = NUMCORESACTIVE - 1;
+					return;
 				} else {
 					// all the core status info are the latest
 					// terminate; for profiling mode, send request to all
@@ -455,6 +457,7 @@ void checkCoreStatus() {
 							while(halt--) {
 							}
 						} else {
+							BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 							break;
 						} // if(!allStall)
 					} // while(true)
@@ -467,6 +470,7 @@ void checkCoreStatus() {
 #endif // #ifdef GC_PROFILE
 #endif // #ifdef MULTICORE_GC
 					disruntimedata();
+					BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 					terminate(); // All done.
 				} // if(!waitconfirm)
 			} else {
@@ -1895,8 +1899,8 @@ INLINE void processmsg_statusconfirm_I() {
 		// cache the msg first
 		//if(isMsgSending) {
 			cache_msg_5(STARTUPCORE, STATUSREPORT, 
-									busystatus?1:0, BAMBOO_NUM_OF_CORE,
-									self_numsendobjs, self_numreceiveobjs);
+						busystatus?1:0, BAMBOO_NUM_OF_CORE,
+						self_numsendobjs, self_numreceiveobjs);
 		/*} else {
 			send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0, 
 								 BAMBOO_NUM_OF_CORE, self_numsendobjs, 
@@ -1943,7 +1947,7 @@ INLINE void processmsg_terminate_I() {
 #endif
 #endif
 	disruntimedata();
-	BAMBOO_EXIT(0);
+	BAMBOO_EXIT_APP(0);
 }
 
 INLINE void processmsg_memrequest_I() {
