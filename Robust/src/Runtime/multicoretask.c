@@ -105,7 +105,7 @@ void initruntimedata() {
   smemflag = true;
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
-	totransobjqueue = createQueue();
+	totransobjqueue = createQueue_I();
 
 #ifdef MULTICORE_GC
 	gcflag = false;
@@ -116,9 +116,9 @@ void initruntimedata() {
 	gcself_numreceiveobjs = 0;
 	gcmarkedptrbound = 0;
 	//mgchashCreate(2000, 0.75);
-	gcpointertbl = allocateRuntimeHash(20);
+	gcpointertbl = allocateRuntimeHash_I(20);
 	//gcpointertbl = allocateMGCHash(20);
-	gcforwardobjtbl = allocateMGCHash(20, 3);
+	gcforwardobjtbl = allocateMGCHash_I(20, 3);
 	gcobj2map = 0;
 	gcmappedobj = 0;
 	gcismapped = false;
@@ -147,8 +147,8 @@ void initruntimedata() {
   lock2require = 0;
   lockresult = 0;
   lockflag = false;
-	lockRedirectTbl = allocateRuntimeHash(20);
-  objRedirectLockTbl = allocateRuntimeHash(20);
+	lockRedirectTbl = allocateRuntimeHash_I(20);
+  objRedirectLockTbl = allocateRuntimeHash_I(20);
 #endif
 #ifndef INTERRUPT
   reside = false;

@@ -21,6 +21,7 @@ void freeQueue(struct Queue * q);
 struct QueueItem * addNewItem(struct Queue * queue, void * ptr);
 struct QueueItem * addNewItemBack(struct Queue * queue, void * ptr);
 #ifdef MULTICORE
+struct Queue * createQueue_I();
 struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr);
 #endif
 

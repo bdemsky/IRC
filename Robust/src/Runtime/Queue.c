@@ -57,6 +57,13 @@ struct QueueItem * addNewItemBack(struct Queue * queue, void * ptr) {
 }
 
 #ifdef MULTICORE
+struct Queue * createQueue_I() {
+  struct Queue * queue = (struct Queue *)RUNMALLOC_I(sizeof(struct Queue));
+  queue->head = NULL;
+  queue->tail = NULL;
+  return queue;
+}
+
 struct QueueItem * addNewItem_I(struct Queue * queue, void * ptr) {
   struct QueueItem * item=RUNMALLOC_I(sizeof(struct QueueItem));
   item->objectptr=ptr;

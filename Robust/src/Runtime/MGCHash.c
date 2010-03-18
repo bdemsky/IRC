@@ -418,6 +418,28 @@ int MGCHashadd(struct MGCHash * thisvar, int data) {
 }
 
 #ifdef MULTICORE 
+struct MGCHash * allocateMGCHash_I(int size,
+		                         int conflicts) {
+  struct MGCHash *thisvar;  
+  if (size <= 0) {
+#ifdef MULTICORE
+    BAMBOO_EXIT(0xf101);
+#else
+    printf("Negative Hashtable size Exception\n");
+    exit(-1);
+#endif
+  }
+  thisvar=(struct MGCHash *)RUNMALLOC_I(sizeof(struct MGCHash));
+  thisvar->size = size;
+  thisvar->bucket = 
+		(struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
+	// zero out all the buckets
+	BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
+  //Set data counts
+  thisvar->num4conflicts = conflicts;
+  return thisvar;
+}
+
 int MGCHashadd_I(struct MGCHash * thisvar, int data) {
   // Rehash code 
   unsigned int hashkey;

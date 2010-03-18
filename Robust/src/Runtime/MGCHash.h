@@ -61,6 +61,7 @@ void freeMGCHash(struct MGCHash *);
 //void MGCHashrehash(struct MGCHash * thisvar);
 int MGCHashadd(struct MGCHash *, int data);
 #ifdef MULTICORE
+struct MGCHash * allocateMGCHash_I(int size, int conflicts);
 int MGCHashadd_I(struct MGCHash *, int data);
 #endif
 int MGCHashcontains(struct MGCHash *,int data);

@@ -265,7 +265,13 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
                                 // should be cleared whenever enter a task
 
 // data structures for shared memory allocation
+#ifdef TILERA_BME
 #define BAMBOO_BASE_VA 0xd000000
+#elif defined TILERA_ZLINUX
+#ifdef MULTICORE_GC
+#define BAMBOO_BASE_VA 0xd000000
+#endif // MULTICORE_GC
+#endif // TILERA_BME
 #ifdef GC_DEBUG
 #include "structdefs.h"
 #define BAMBOO_NUM_PAGES (NUMCORES4GC*(2+1)+3)

@@ -204,6 +204,27 @@ int RuntimeHashadd(struct RuntimeHash * thisvar,int key, int data) {
 }
 
 #ifdef MULTICORE 
+struct RuntimeHash * allocateRuntimeHash_I(int size) {
+  struct RuntimeHash *thisvar;  //=(struct RuntimeHash *)RUNMALLOC(sizeof(struct RuntimeHash));
+  if (size <= 0) {
+#ifdef MULTICORE
+    BAMBOO_EXIT(0xf101);
+#else
+    printf("Negative Hashtable size Exception\n");
+    exit(-1);
+#endif
+  }
+  thisvar=(struct RuntimeHash *)RUNMALLOC_I(sizeof(struct RuntimeHash));
+  thisvar->size = size;
+  thisvar->bucket = (struct RuntimeNode **) RUNMALLOC_I(sizeof(struct RuntimeNode *)*size);
+  /* Set allocation blocks*/
+  thisvar->listhead=NULL;
+  thisvar->listtail=NULL;
+  /*Set data counts*/
+  thisvar->numelements = 0;
+  return thisvar;
+}
+
 int RuntimeHashadd_I(struct RuntimeHash * thisvar,int key, int data) {
   /* Rehash code */
   unsigned int hashkey;
