@@ -1,5 +1,5 @@
 #include "gCollect.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 
 
 extern pthread_mutex_t prefetchcache_mutex; //Mutex to lock Prefetch Cache
@@ -62,7 +62,7 @@ void *prefetchobjstrAlloc(unsigned int size) {
   pNodeInfo.newptr->prev=tmp;
   pNodeInfo.newptr=tmp;
   pNodeInfo.os_count++;
-  
+
   if (pNodeInfo.os_count>PREFETCH_FLUSH_THRESHOLD) {
     //remove oldest from linked list
     objstr_t *tofree=pNodeInfo.oldptr;
@@ -96,14 +96,21 @@ void *prefetchobjstrAlloc(unsigned int size) {
 }
 
 void clearBlock(objstr_t *block) {
+
   unsigned long int tmpbegin=(unsigned int)block;
   unsigned long int tmpend=(unsigned int)block->top;
   int i, j;
   prehashlistnode_t *ptr;
-  pthread_mutex_lock(&pflookup.lock);
 
+  int lockindex=0;
   ptr = pflookup.table;
+  volatile unsigned int * lockptr_current=&pflookup.larray[lockindex].lock;
+  while(!write_trylock(lockptr_current)) {
+    sched_yield();
+  }
+
   for(i = 0; i<pflookup.size; i++) {
+
     prehashlistnode_t *orig=&ptr[i];
     prehashlistnode_t *curr = orig;
     prehashlistnode_t *next=curr->next;
@@ -112,10 +119,10 @@ void clearBlock(objstr_t *block) {
       if ((val>=tmpbegin)&(val<tmpend)) {
 	prehashlistnode_t *tmp=curr->next=next->next;
 	free(next);
-	next=tmp;
+	next=curr;
 	//loop condition is broken now...need to check before incrementing
-	if (next==NULL)
-	  break;
+	//	if (next==NULL)
+	// break;
       }
     }
     {
@@ -133,8 +140,21 @@ void clearBlock(objstr_t *block) {
 	}
       }
     }
-  }
-  pthread_mutex_unlock(&pflookup.lock);
+
+    if(((i+1)&(pflookup.mask>>4))==0 && (i+1)<pflookup.size){
+      // try to grab new lock
+      lockindex++;
+      volatile unsigned int * lockptr_new=&pflookup.larray[lockindex].lock;
+      while(!write_trylock(lockptr_new)){
+        sched_yield();
+      }
+      write_unlock(lockptr_current);
+      lockptr_current=lockptr_new;      
+    }
+    
+  }// end of for (pflokup)
+  
+  write_unlock(lockptr_current);
 }
 
 objstr_t *allocateNew(unsigned int size) {

@@ -87,6 +87,7 @@
 #define RETRYINTERVAL  75 //N  (For MatrixMultiply, 2DFFT benchmarks)
 #define SHUTDOWNINTERVAL  1  //M
 #define NUM_TRY_TO_COMMIT 2
+#define MEM_ALLOC_THRESHOLD 20485760//20MB
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -319,10 +320,12 @@ char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char 
 char decideCtrlMessage(fixed_data_t *, trans_commit_data_t *, int *, int *, int *, int *, int *, void *, unsigned int *, unsigned int *, int);
 int transCommitProcess(void *, unsigned int *, unsigned int *, int, int, int);
 void processReqNotify(unsigned int numoid, unsigned int *oid, unsigned short *version, unsigned int mid, unsigned int threadid);
-void getCommitCountForObjMod(unsigned int *, unsigned int *, unsigned int *, int *,
+char getCommitCountForObjMod(unsigned int *, unsigned int *, unsigned int *, int *,
                              int *, int *, int *, int *, int *, int *, char *, unsigned int, unsigned short);
-void getCommitCountForObjRead(unsigned int *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *,
+char getCommitCountForObjRead(unsigned int *, unsigned int *, unsigned int *, int *, int *, int *, int *, int *,
                               int *, int *, char *, unsigned int, unsigned short);
+void procRestObjs(char *, char *, int , int, int, unsigned int *, unsigned int *, int *, int *, int *, int *);
+void processVerNoMatch(unsigned int *, unsigned int *, int *, int *, int *, int *, unsigned int, unsigned short);
 /* end server portion */
 
 /* Prototypes for transactions */

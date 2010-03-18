@@ -281,7 +281,6 @@ void *dstmAccept(void *acceptfd) {
 	char control,ctrl, response;
 	char *ptr;
 	void *srcObj;
-
 #ifdef RECOVERY
 	void *dupeptr;
   unsigned int transIDreceived;
@@ -368,7 +367,6 @@ void *dstmAccept(void *acceptfd) {
 				transinfo.modptr = NULL;
 				transinfo.numlocked = 0;
 				transinfo.numnotfound = 0;
-				//if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
 				if((val = readClientReq(&transinfo, (int)acceptfd)) != 0) {
 					printf("Error: In readClientReq() %s, %d\n", __FILE__, __LINE__);
 					pthread_exit(NULL);
@@ -479,6 +477,7 @@ void *dstmAccept(void *acceptfd) {
 				threadNotify(oid,version,threadid);
 				free(buffer);
 				break;
+
 #ifdef RECOVERY
       case CLEAR_NOTIFY_LIST:
 #ifdef DEBUG
@@ -923,7 +922,6 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
     return 0;
 
   /* Read modified objects */
-  //printf("fixed.sum_bytes= %d\n", fixed.sum_bytes);
   if(fixed.nummod != 0) {
     if ((modptr = calloc(1, fixed.sum_bytes)) == NULL) {
       printf("calloc error for modified objects %s, %d\n", __FILE__, __LINE__);
@@ -947,15 +945,12 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
     return 1;
   }
   ptr = (char *) modptr;
-  //printf("fixed.nummod= %d\n", fixed.nummod);
-  //fflush(stdout);
-  for(i = 0 ; i < fixed.nummod; i++) {
+  for(i = 0 ; i < fixed.nummod; i++){
     int tmpsize=0;
     headaddr = (objheader_t *) ptr;
     oid = OID(headaddr);
     oidmod[i] = oid;
     GETSIZE(tmpsize, headaddr);
-    //printf("i= %d, tmpsize= %d, oid= %u\n", i, tmpsize, oid);
     ptr += sizeof(objheader_t) + tmpsize;
   }
 #ifdef DEBUG
@@ -1131,6 +1126,8 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
    * Object store holds the modified objects involved in the transaction request */
   ptr = (char *) modptr;
 
+  char retval;
+
   /* Process each oid in the machine pile/ group per thread */
   for (i = 0; i < fixed->numread + fixed->nummod; i++) {
     if (i < fixed->numread) { //Objs only read and not modified
@@ -1142,7 +1139,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 #ifdef DEBUG
       printf("%s -> oid : %u    version : %d\n",__func__,oid,version);
 #endif
-      getCommitCountForObjRead(oidnotfound, oidlocked, oidvernotmatch, &objnotfound, &objlocked, &objvernotmatch,
+      retval=getCommitCountForObjRead(oidnotfound, oidlocked, oidvernotmatch, &objnotfound, &objlocked, &objvernotmatch,
                                &v_matchnolock, &v_matchlock, &v_nomatch, &numBytes, &control, oid, version);
     } else {  //Objs modified
       if(i == fixed->numread) {
@@ -1155,13 +1152,45 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       GETSIZE(tmpsize, headptr);
       ptr += sizeof(objheader_t) + tmpsize;
 
-      getCommitCountForObjMod(oidnotfound, oidlocked, oidvernotmatch, &objnotfound,
+      retval=getCommitCountForObjMod(oidnotfound, oidlocked, oidvernotmatch, &objnotfound,
                               &objlocked, &objvernotmatch, &v_matchnolock, &v_matchlock, &v_nomatch,
                               &numBytes, &control, oid, version);
     }
+    if(retval==TRANS_DISAGREE || retval==TRANS_SOFT_ABORT) {
+      //unlock objects as soon versions mismatch or else 
+      //locks cannot be acquired elsewhere
+      if (objlocked > 0) {
+        int useWriteUnlock = 0; 
+        for(j = 0; j < objlocked; j++) {
+          if(oidlocked[j] == -1) {
+             useWriteUnlock = 1; 
+             continue;
+          } 
+          if((headptr = mhashSearch(oidlocked[j])) == NULL) {
+            printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);
+            return 0;
+          }
+          if(useWriteUnlock) {
+            write_unlock(STATUSPTR(headptr));
+          } else {
+            read_unlock(STATUSPTR(headptr));
+          }
+        }
+        if(v_nomatch > 0)
+          free(oidlocked);
+      }
+      objlocked=0;
+      break;
+    }
   }
 
-  /* send TRANS_DISAGREE and objs*/
+  //go through rest of the objects for version mismatches
+  if(retval==TRANS_DISAGREE || retval==TRANS_SOFT_ABORT) {
+    i++;
+    procRestObjs(objread, ptr, i, fixed->numread, fixed->nummod, oidnotfound, oidvernotmatch, &objnotfound, &objvernotmatch, &v_nomatch, &numBytes);
+  }
+
+  /* send TRANS_DISAGREE and objs that caused the ABORTS*/
 	if(v_nomatch > 0) {
 #ifdef CACHE
 		char *objs = calloc(1, numBytes);
@@ -1175,6 +1204,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			offset += size;
 		}
 #endif
+        /*
 		if (objlocked > 0) {
 			int useWriteUnlock = 0;
 			for(j = 0; j < objlocked; j++) {
@@ -1194,20 +1224,20 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			}
 			free(oidlocked);
 		}
+        */
     
-
 #ifdef DEBUG
 		printf("%s -> control = %d, file = %s, line = %d\n", __func__,(int)control, __FILE__, __LINE__);
 #endif
 
     if(control < 0)
       printf("control = %d\n",control);
+    control=TRANS_DISAGREE;
 
 		send_data(acceptfd, &control, sizeof(char));
 #ifdef CACHE
 		send_data(acceptfd, &numBytes, sizeof(int));
 		send_data(acceptfd, objs, numBytes);
-
 		transinfo->objvernotmatch = oidvernotmatch;
 		transinfo->numvernotmatch = objvernotmatch;
 		free(objs);
@@ -1226,7 +1256,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 }
 
 /* Update Commit info for objects that are modified */
-void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
+char getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
                              unsigned int *oidvernotmatch, int *objnotfound, int *objlocked, int *objvernotmatch,
                              int *v_matchnolock, int *v_matchlock, int *v_nomatch, int *numBytes,
                              char *control, unsigned int oid, unsigned short version) {
@@ -1251,6 +1281,7 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 		/* Save the oids not found and number of oids not found for later use */
 		oidnotfound[*objnotfound] = oid;
 		(*objnotfound)++;
+        *control = TRANS_DISAGREE;
 	} else {     /* If Obj found in machine (i.e. has not moved) */
 		/* Check if Obj is locked by any previous transaction */
 		if (write_trylock(STATUSPTR(mobj))) { // Can acquire write lock
@@ -1260,6 +1291,7 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 #endif
 			if (version == ((objheader_t *)mobj)->version) { /* match versions */
 				(*v_matchnolock)++;
+				*control = TRANS_AGREE;
 			} else { /* If versions don't match ...HARD ABORT */
 				(*v_nomatch)++;
 				oidvernotmatch[*objvernotmatch] = oid;
@@ -1277,6 +1309,7 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 		} else {  //we are locked
 			if (version == ((objheader_t *)mobj)->version) {     /* Check if versions match */
 				(*v_matchlock)++;
+				*control = TRANS_SOFT_ABORT;
 			} else { /* If versions don't match ...HARD ABORT */
 				(*v_nomatch)++;
 				oidvernotmatch[*objvernotmatch] = oid;
@@ -1293,10 +1326,11 @@ void getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 #ifdef DEBUG
 	printf("%s -> oid: %u, v_matchnolock: %d, v_matchlock: %d, v_nomatch: %d\n",__func__,oid, *v_matchnolock, *v_matchlock, *v_nomatch);
 #endif
+    return *control;
 }
 
 /* Update Commit info for objects that are read */
-void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked, unsigned int *oidvernotmatch,
+char getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked, unsigned int *oidvernotmatch,
                               int *objnotfound, int *objlocked, int * objvernotmatch, int *v_matchnolock, int *v_matchlock,
                               int *v_nomatch, int *numBytes, char *control, unsigned int oid, unsigned short version) {
   void *mobj;
@@ -1322,6 +1356,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
     /* Save the oids not found and number of oids not found for later use */
     oidnotfound[*objnotfound] = oid;
     (*objnotfound)++;
+	*control = TRANS_DISAGREE;
   } else {     /* If Obj found in machine (i.e. has not moved) */
 #ifdef DEBUG
     printf("%s -> Obj found!!\n",__func__);
@@ -1333,6 +1368,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
     if (read_trylock(STATUSPTR(mobj))) { //Can further acquire read locks
       if (version == ((objheader_t *)mobj)->version) { /* match versions */
       	(*v_matchnolock)++;
+        *control = TRANS_AGREE;
       } else { /* If versions don't match ...HARD ABORT */
       	(*v_nomatch)++;
       	oidvernotmatch[(*objvernotmatch)++] = oid;
@@ -1350,6 +1386,7 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
     } else { /* Some other transaction has aquired a write lock on this object */
       if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
       	(*v_matchlock)++;
+      	*control = TRANS_SOFT_ABORT;
       } else { /* If versions don't match ...HARD ABORT */
       	(*v_nomatch)++;
       	oidvernotmatch[*objvernotmatch] = oid;
@@ -1365,6 +1402,80 @@ void getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
 #ifdef DEBUG
 	printf("%s -> oid: %u, v_matchnolock: %d, v_matchlock: %d, v_nomatch: %d\n",__func__, oid, *v_matchnolock, *v_matchlock, *v_nomatch);
 #endif
+  return *control;
+}
+
+void procRestObjs(char *objread, 
+                  char *objmod, 
+                  int index, 
+                  int numread, 
+                  int nummod, 
+                  unsigned int *oidnotfound, 
+                  unsigned int *oidvernotmatch,
+                  int *objnotfound, 
+                  int *objvernotmatch, 
+                  int *v_nomatch, 
+                  int *numBytes) {
+  int i;
+  unsigned int oid;
+  unsigned short version;
+
+  /* Process each oid in the machine pile/ group per thread */
+  for (i = index; i < numread+nummod; i++) {
+    if (i < numread) { //Objs only read and not modified
+      int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
+      incr *= i;
+      oid = *((unsigned int *)(objread + incr));
+      incr += sizeof(unsigned int);
+      version = *((unsigned short *)(objread + incr));
+    } else {  //Objs modified
+      objheader_t *headptr;
+      headptr = (objheader_t *) objmod;
+      oid = OID(headptr);
+      version = headptr->version;
+      int tmpsize;
+      GETSIZE(tmpsize, headptr);
+      objmod += sizeof(objheader_t) + tmpsize;
+    }
+    processVerNoMatch(oidnotfound,
+        oidvernotmatch,
+        objnotfound,
+        objvernotmatch,
+        v_nomatch,
+        numBytes,
+        oid, 
+        version);
+  }
+  return;
+}
+
+void processVerNoMatch(unsigned int *oidnotfound, 
+                      unsigned int *oidvernotmatch, 
+                      int *objnotfound, 
+                      int *objvernotmatch, 
+                      int *v_nomatch, 
+                      int *numBytes,
+                      unsigned int oid, 
+                      unsigned short version) {
+  void *mobj;
+  /* Check if object is still present in the machine since the beginning of TRANS_REQUEST */
+
+  if ((mobj = mhashSearch(oid)) == NULL) {    /* Obj not found */
+    /* Save the oids not found and number of oids not found for later use */
+    oidnotfound[*objnotfound] = oid;
+    (*objnotfound)++;
+  } else {     /* If Obj found in machine (i.e. has not moved) */
+    /* Check if Obj is locked by any previous transaction */
+    if (version != ((objheader_t *)mobj)->version) { /* match versions */
+      (*v_nomatch)++;
+      oidvernotmatch[*objvernotmatch] = oid;
+	  (*objvernotmatch)++;
+	  int size;
+      GETSIZE(size, mobj);
+      size += sizeof(objheader_t);
+      *numBytes += size;
+    }
+  }
 }
 
 /* This function decides what control message such as TRANS_AGREE, TRANS_DISAGREE or TRANS_SOFT_ABORT

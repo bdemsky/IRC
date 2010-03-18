@@ -4,7 +4,7 @@
 #include "altmlookup.h"
 #include "llookup.h"
 #include "plookup.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 #include "threadnotify.h"
 #include "queue.h"
 #include "addUdpEnhance.h"
@@ -51,7 +51,6 @@ extern int numprefetchsites; //Global variable containing number of prefetch sit
 extern pthread_mutex_t mainobjstore_mutex; // Mutex to lock main Object store
 pthread_mutex_t prefetchcache_mutex; // Mutex to lock Prefetch Cache
 pthread_mutexattr_t prefetchcache_mutex_attr; /* Attribute for lock to make it a recursive lock */
-extern prehashtable_t pflookup; //Global Prefetch cache's lookup table
 pthread_t wthreads[NUM_THREADS]; //Worker threads for working on the prefetch queue
 pthread_t tPrefetch;            /* Primary Prefetch thread that processes the prefetch queue */
 extern objstr_t *mainobjstore;
@@ -317,6 +316,48 @@ GDBRECV1:
   printf("%s -> fd = %d Exiting\n",__func__,fd);
 #endif
   return 0; // got all the data
+}
+
+int recvw(int fd, void *buf, int len, int flags) {
+  return recv(fd, buf, len, flags);
+}
+
+void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buflen) {
+  char *buf=(char *)buffer;
+  int numbytes=readbuffer->head-readbuffer->tail;
+  if (numbytes>buflen)
+    numbytes=buflen;
+  if (numbytes>0) {
+    memcpy(buf, &readbuffer->buf[readbuffer->tail], numbytes);
+    readbuffer->tail+=numbytes;
+    buflen-=numbytes;
+    buf+=numbytes;
+  }
+  if (buflen==0) {
+    return;
+  }
+  if (buflen>=MAXBUF) {
+    recv_data(fd, buf, buflen);
+    return;
+  }
+  
+  int maxbuf=MAXBUF;
+  int obufflen=buflen;
+  readbuffer->head=0;
+  
+  while (buflen > 0) {
+    int numbytes = recvw(fd, &readbuffer->buf[readbuffer->head], maxbuf, 0);
+    if (numbytes == -1) {
+      perror("recv");
+      exit(0);
+    }
+    bytesRecv+=numbytes;
+    buflen-=numbytes;
+    readbuffer->head+=numbytes;
+    maxbuf-=numbytes;
+  }
+  memcpy(buf,readbuffer->buf,obufflen);
+  readbuffer->tail=obufflen;
 }
 
 int recv_data_errorcode(int fd, void *buf, int buflen) {
@@ -896,26 +937,12 @@ remoteread:
 #endif
 
     objcopy = getRemoteObj(machinenumber, oid);
-
-#ifdef RECOVERY
-    if(transRetryFlag) {
-      restoreDuplicationState(machinenumber);
-#ifdef DEBUG
-      printf("%s -> Recall transRead2\n",__func__);
-#endif
-      return transRead2(oid);
-    }
-#endif
-
-  if(objcopy == NULL) {
-	  printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
-		return NULL;
-	} else {
 #ifdef TRANSSTATS
     LOGEVENT('R');
     nRemoteSend++;
 #endif
-#ifdef COMPILER
+
+    if(objcopy!=NULL) {
 #ifdef CACHE
       //Copy object to prefetch cache
       pthread_mutex_lock(&prefetchcache_mutex);
@@ -932,8 +959,25 @@ remoteread:
       memcpy(headerObj, objcopy, size+sizeof(objheader_t));
       //make an entry in prefetch lookup hashtable
       prehashInsert(oid, headerObj);
+      LOGEVENT('B');
+#endif
+    }
+
+#ifdef RECOVERY
+    if(transRetryFlag) {
+      restoreDuplicationState(machinenumber);
+#ifdef DEBUG
+      printf("%s -> Recall transRead2\n",__func__);
+#endif
+      return transRead2(oid);
+    }
 #endif
 
+  if(objcopy == NULL) {
+	  printf("Error: Object not found in Remote location %s, %d\n", __FILE__, __LINE__);
+		return NULL;
+	} else {
+#ifdef COMPILER
 		return &objcopy[1];
 #else
 		return objcopy;
@@ -951,11 +995,9 @@ objheader_t *transCreateObj(unsigned int size) {
   OID(tmp) = getNewOID();
   tmp->notifylist = NULL;
   tmp->version = 1;
-  //tmp->rcount = 1;
   tmp->isBackup = 0;
   STATUS(tmp) = NEW;
   t_chashInsert(OID(tmp), tmp);
-
 #ifdef COMPILER
   return &tmp[1]; //want space after object header
 #else
@@ -981,7 +1023,6 @@ plistnode_t *createPiles() {
   chashlistnode_t * ptr = c_table;
   /* Represents number of bins in the chash table */
   unsigned int size = c_size;
-
 	for(i = 0; i < size ; i++) {
     chashlistnode_t * curr = &ptr[i];
 		/* Inner loop to traverse the linked list of the cache lookupTable */
@@ -1008,14 +1049,28 @@ plistnode_t *createPiles() {
             mid = myIpAddr;
         }
 
+        //if(mid == myIpAddr) {
         pile = pInsert(pile, headeraddr, getPrimaryMachine(mid), c_numelements);
+        //} else {
+        //  if(bit)
+        //   pile = pInsert(pile, headeraddr, getPrimaryMachine(mid), c_numelements);
+        //  else 
+        //    pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
+        //}
 
         if(numLiveHostsInSystem > 1) {
-			    if(makedirty) { 
-				    STATUS(headeraddr) = DIRTY;
-                    pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
-     			}
-	  		  //pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
+          if(makedirty) { 
+            STATUS(headeraddr) = DIRTY;
+            //if(mid == myIpAddr) {
+            //  pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
+            //} else {
+            //  if(bit)
+            pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
+            //  else 
+            //    pile = pInsert(pile, headeraddr, getPrimaryMachine(mid), c_numelements);
+            // }
+          }
+          //pile = pInsert(pile, headeraddr, getBackupMachine(mid), c_numelements);
         }
 #else
     		// Get machine location for object id (and whether local or not)
@@ -1113,7 +1168,7 @@ int transCommit() {
   int treplyretryCount = 0;
   /* Initialize timeout for exponential delay */
   exponential_backoff.tv_sec = 0;
-  exponential_backoff.tv_nsec = (long)(10000);//10 microsec
+  exponential_backoff.tv_nsec = (long)(12000);//12 microsec
   count_exponential_backoff = 0;
   do {
     treplyretry = 0;
@@ -1208,7 +1263,6 @@ int transCommit() {
 				}
 				int offset = 0;
 				int i;
-                //printf("tosend[sockindex].f.nummod = %d\n", tosend[sockindex].f.nummod);
 				for(i = 0; i < tosend[sockindex].f.nummod ; i++) {
 					int size;
 					objheader_t *headeraddr;
@@ -1220,15 +1274,12 @@ int transCommit() {
 						return 1;
 					}
 					GETSIZE(size,headeraddr);
-                    //printf("i= %d, tmpsize= %d, oid= %u\n", i, size, OID(headeraddr));
 					size+=sizeof(objheader_t);
 					memcpy(modptr+offset, headeraddr, size);
 					offset+=size;
 				}
-                //printf("tosend[sockindex].f.sum_bytes= %d\n", tosend[sockindex].f.sum_bytes);
-                //fflush(stdout);
 				send_data(sd, modptr, tosend[sockindex].f.sum_bytes);
-                //forcesend_buf(sd, &writebuffer, modptr, tosend[sockindex].f.sum_bytes);
+                //send_buf(sd, &writebuffer, modptr, tosend[sockindex].f.sum_bytes);
 
 #ifdef RECOVERY
         /* send transaction id, number of machine involved, machine ids */
@@ -1288,13 +1339,7 @@ int transCommit() {
 						GETSIZE(size, header);
 						size += sizeof(objheader_t);
 						//make an entry in prefetch hash table
-						void *oldptr;
-						if((oldptr = prehashSearch(oidToPrefetch)) != NULL) {
-							prehashRemove(oidToPrefetch);
-							prehashInsert(oidToPrefetch, header);
-						} else {
-							prehashInsert(oidToPrefetch, header);
-						}
+                        prehashInsert(oidToPrefetch, header);
 						length = length - size;
 						offset += size;
 					}
@@ -1415,7 +1460,7 @@ int transCommit() {
       pDelete(pile_ptr);
     /* wait a random amount of time before retrying to commit transaction*/
     if(treplyretry) {
-      treplyretryCount++;
+      //treplyretryCount++;
       //if(treplyretryCount >= NUM_TRY_TO_COMMIT)
       //  exponentialdelay();
       //else 
@@ -1592,7 +1637,7 @@ char decideResponse(char *getReplyCtrl, char *treplyretry, int pilecount) {
     return TRANS_ABORT;
 #ifdef CACHE
     /* clear objects from prefetch cache */
-    cleanPCache();
+    //cleanPCache();
 #endif
   } else if(transagree == pilecount) {
     /* Send Commit */
@@ -1810,7 +1855,6 @@ void commitCountForObjMod(char *getReplyCtrl, unsigned int *oidnotfound, unsigne
 	(*v_nomatch)++;
 	/* Send TRANS_DISAGREE to Coordinator */
 	*getReplyCtrl = TRANS_DISAGREE;
-	//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 	return;
       }
     }
@@ -2360,19 +2404,20 @@ int getPrefetchResponse(int sd) {
     /* Do a version comparison if the oid exists */
     if((oldptr = prehashSearch(oid)) != NULL) {
       /* If older version then update with new object ptr */
-      if(((objheader_t *)oldptr)->version <= ((objheader_t *)modptr)->version) {
-	prehashRemove(oid);
+      if(((objheader_t *)oldptr)->version < ((objheader_t *)modptr)->version) {
 	prehashInsert(oid, modptr);
       }
     } else { /* Else add the object ptr to hash table*/
       prehashInsert(oid, modptr);
     }
+#if 0
     /* Lock the Prefetch Cache look up table*/
     pthread_mutex_lock(&pflookup.lock);
     /* Broadcast signal on prefetch cache condition variable */
     pthread_cond_broadcast(&pflookup.cond);
     /* Unlock the Prefetch Cache look up table*/
     pthread_mutex_unlock(&pflookup.lock);
+#endif
   } else if(control == OBJECT_NOT_FOUND) {
     oid = *((unsigned int *)(recvbuffer + sizeof(char)));
     /* TODO: For each object not found query DHT for new location and retrieve the object */

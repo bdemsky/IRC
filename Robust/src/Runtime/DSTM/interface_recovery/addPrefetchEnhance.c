@@ -1,5 +1,5 @@
 #include "addPrefetchEnhance.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 
 extern int numprefetchsites; // Number of prefetch sites
 extern pfcstats_t *evalPrefetch; //Global array that keeps track of operation mode (ON/OFF) for each prefetch site
@@ -44,10 +44,11 @@ char getOperationMode(int siteid) {
  * we take action accordingly */
 void handleDynPrefetching(int numLocal, int ntuples, int siteid) {
   if(numLocal < ntuples) {
-    /* prefetch not found locally(miss in cache) */
+    /* prefetch not found locally(miss in cache); turn on prefetching*/
     evalPrefetch[siteid].operMode = 1;
     evalPrefetch[siteid].uselesscount = SHUTDOWNINTERVAL;
   } else {
+    //Turn off prefetch site
     if(getOperationMode(siteid) != 0) {
       evalPrefetch[siteid].uselesscount--;
       if(evalPrefetch[siteid].uselesscount <= 0) {
@@ -107,15 +108,15 @@ void cleanPCache() {
 int updatePrefetchCache(trans_req_data_t *tdata) {
   int retval;
   char oidType;
-  /* TODO commit it for now because objects read
-   * are already copied to cache during remote reading */
-  //oidType = 'R';
-  //if(tdata->f.numread > 0) {
-  //  if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
-  //    printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
-  //    return -1;
-  //  }
-  //}
+  /*//TODO comment it for now because remote objects read are already in the prefetch cache
+  oidType = 'R';
+  if(tdata->f.numread > 0) {
+    if((retval = copyToCache(tdata->f.numread, (unsigned int *)(tdata->objread), oidType)) != 0) {
+      printf("%s(): Error in copying objects read at %s, %d\n", __func__, __FILE__, __LINE__);
+      return -1;
+    }
+  }
+  */
   if(tdata->f.nummod > 0) {
     oidType = 'M';
     if((retval = copyToCache(tdata->f.nummod, tdata->oidmod, oidType)) != 0) {
@@ -130,13 +131,13 @@ int copyToCache(int numoid, unsigned int *oidarray, char oidType) {
   int i;
   for (i = 0; i < numoid; i++) {
     unsigned int oid;
-    if(oidType == 'R') {
-      char * objread = (char *) oidarray;
-      oid = *((unsigned int *)(objread+(sizeof(unsigned int)+
-                                        sizeof(unsigned short))*i));
-    } else {
+    //if(oidType == 'R') {
+    //  char * objread = (char *) oidarray;
+    //  oid = *((unsigned int *)(objread+(sizeof(unsigned int)+
+    //                                    sizeof(unsigned short))*i));
+    //} else {
       oid = oidarray[i];
-    }
+    //}
     pthread_mutex_lock(&prefetchcache_mutex);
     objheader_t * header;
     if((header = (objheader_t *) t_chashSearch(oid)) == NULL) {
@@ -161,14 +162,10 @@ int copyToCache(int numoid, unsigned int *oidarray, char oidType) {
       newAddr->version += 1;
       newAddr->notifylist = NULL;
     }
+    STATUS(newAddr)=0;
+
     //make an entry in prefetch lookup hashtable
-    void *oldptr;
-    if((oldptr = prehashSearch(oid)) != NULL) {
-      prehashRemove(oid);
-      prehashInsert(oid, newAddr);
-    } else {
-      prehashInsert(oid, newAddr);
-    }
+    prehashInsert(oid, newAddr);
   } //end of for
   return 0;
 }

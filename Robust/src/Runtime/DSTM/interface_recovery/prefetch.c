@@ -1,5 +1,5 @@
 #include "prefetch.h"
-#include "prelookup.h"
+#include "altprelookup.h"
 #include "sockpool.h"
 #include "gCollect.h"
 
