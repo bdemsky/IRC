@@ -4,14 +4,19 @@ public class Foo {
 }
 
 public class Test {
-  static public void main( String[] args ) {
-    Foo a = disjoint A new Foo();
-    f1(a);
-  }
-     
-  static public void f1( Foo c ) {
-    Foo d = new Foo();
-    c.f = d;
-  }
+
     
+    static public void main( String[] args ) {
+	Foo a=getAFoo();
+	f1(a);
+    }
+    
+    static public void f1( Foo c ) {
+	c.f = getAFoo();
+    }
+    
+    static public Foo getAFoo(){
+	return disjoint NEW new Foo();
+    } 
+  
 }

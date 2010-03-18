@@ -2,8 +2,11 @@ PROGRAM=test
 
 SOURCE_FILES=$(PROGRAM).java
 
-BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -mainclass Test -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -enable-assertions
+BUILDSCRIPT=../../../buildscript
+
+DEBUGFLAGS= -disjoint-debug-callsite f1 main 1
+
+BSFLAGS= -mainclass Test -justanalyze -disjoint -disjoint-k 2 -disjoint-write-dots all -disjoint-write-ihms -disjoint-alias-file aliases.txt normal -enable-assertions
 
 all: $(PROGRAM).bin
 
@@ -16,7 +19,7 @@ PNGs: DOTs
 DOTs: $(PROGRAM).bin
 
 $(PROGRAM).bin: $(SOURCE_FILES)
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
+	$(BUILDSCRIPT) $(BSFLAGS) $(DEBUGFLAGS) -o $(PROGRAM) $(SOURCE_FILES)
 
 clean:
 	rm -f  $(PROGRAM).bin
