@@ -1427,8 +1427,8 @@ public class ReachGraph {
         Iterator<AllocSite> asItr = allocSites.iterator();
         while( asItr.hasNext() ) {
           AllocSite as = asItr.next();
-          rsCaller = Canonical.toCallerContext( rs, as );
-        }
+          rsCaller = Canonical.toCallerContext( rsCaller, as );
+        }     
         
         // then before adding each derived, now caller-context
         // states to the output, attach the appropriate pred
@@ -1444,8 +1444,8 @@ public class ReachGraph {
                                  );
         }
       }
-    }
-    
+    }    
+
     assert out.isCanonical();
     return out;
   }

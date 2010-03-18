@@ -1114,20 +1114,34 @@ abstract public class Canonical {
                                        );
         }
 
-      } else {
-        // otherwise the ith symbol becomes shadowed
-	Integer I = as.getAge( rt.getHrnID() );
-	assert I != null;
-        
-        assert !rt.isMultiObject();
 
-        baseState = Canonical.union( baseState,
-                                     ReachTuple.factory( -rt.getHrnID(),
-                                                         false, // multi
-                                                         rt.getArity(),
-                                                         false  // out-of-context
-                                                         )
-                                     );        
+      } else {
+        // otherwise age is in range [0, k]
+        Integer I = as.getAge( rt.getHrnID() );
+        assert I != null;        
+        assert !rt.isMultiObject();
+        assert rt.getArity() == ReachTuple.ARITY_ONE;
+
+        if( rt.isOutOfContext() ) {
+          // becomes the in-context version
+          baseState = Canonical.union( baseState,
+                                       ReachTuple.factory( rt.getHrnID(),
+                                                           false, // multi
+                                                           ReachTuple.ARITY_ONE,
+                                                           false  // out-of-context
+                                                           )
+                                       );          
+
+        } else {
+          // otherwise the ith symbol becomes shadowed
+          baseState = Canonical.union( baseState,
+                                       ReachTuple.factory( -rt.getHrnID(),
+                                                           false, // multi
+                                                           ReachTuple.ARITY_ONE,
+                                                           false  // out-of-context
+                                                           )
+                                       );        
+        }
       }
     }
 
