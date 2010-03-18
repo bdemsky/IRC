@@ -2,7 +2,7 @@ public class DistributedHashMap {
   DistributedHashEntry[] table;
   float loadFactor;
   int secondcapacity;
-	int size;
+  //int size;
   int DEFAULT_INITIALCAPACITY;
   int DEFAULT_SECONDCAPACITY;
   float DEFAULT_LOADFACTOR;
@@ -14,12 +14,12 @@ public class DistributedHashMap {
     DEFAULT_LOADFACTOR = 0.75f;
 
     init(DEFAULT_INITIALCAPACITY,DEFAULT_SECONDCAPACITY,DEFAULT_LOADFACTOR);
-    size = 0;
+    //size = 0;
   }
 
   public DistributedHashMap(int initialCapacity, int secondcapacity, float loadFactor) {
     init(initialCapacity, secondcapacity, loadFactor);
-		size = 0;
+		//size = 0;
   }
 
   private void init(int initialCapacity, int secondcapacity, float loadFactor) {
@@ -29,6 +29,8 @@ public class DistributedHashMap {
   }
 
   private static int hash1(int hashcode, int length) {
+    //if(length==0)
+    //  System.out.println("length is null");
     int value=hashcode%length;
     if (value<0)
       return -value;
@@ -45,6 +47,7 @@ public class DistributedHashMap {
   }
 
   void resize(int index) {
+    //System.out.println("Calling resize size= "+size);
     DHashEntry[] oldtable=table[index].array;
     int newCapacity=oldtable.length*2+1;
     DHashEntry [] newtable=global new DHashEntry[newCapacity];
@@ -75,7 +78,7 @@ public class DistributedHashMap {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
 				dhe.array[index2]=ptr.next;
 				dhe.count--;
-				size--;
+				//size--;
 				return ptr.value;
       }
       while(ptr.next!=null) {
@@ -83,7 +86,7 @@ public class DistributedHashMap {
 					Object oldvalue=ptr.value;
 					ptr.next=ptr.next.next;
 					dhe.count--;
-					size--;
+					//size--;
 					return oldvalue;
 				}
 				ptr=ptr.next;
@@ -139,8 +142,10 @@ public class DistributedHashMap {
       dhe=global new DistributedHashEntry(secondcapacity);
       table[index1]=dhe;
     }
+    //System.out.println("dhe.array.length= " + dhe.array.length);
     int index2=hash2(hashcode, table.length, dhe.array.length);
     DHashEntry ptr=dhe.array[index2];
+    //System.out.println("index1= " + index1 + " index2= " + index2);
 
     while(ptr!=null) {
       if (ptr.hashval==hashcode&&ptr.key.equals(key)) {
@@ -163,12 +168,12 @@ public class DistributedHashMap {
       //Resize the table
       resize(index1);
     }
-		size++;
+    //size++;
     return null;
   }
 	
 	public int size() {
-		return size;
+	//	return size;
 	}
 }
 

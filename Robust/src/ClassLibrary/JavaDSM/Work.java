@@ -98,6 +98,7 @@ public class Work extends Thread {
       if(myID == i) {
         continue;
       }
+
 			status = Thread.getStatus(i);
 
       atomic {
@@ -113,7 +114,6 @@ public class Work extends Thread {
           chk = true;
         }
       }
-			
     }
 
     if(index == 0)  // grabbed dead machine's work
