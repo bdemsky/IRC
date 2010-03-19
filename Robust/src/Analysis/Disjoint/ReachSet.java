@@ -67,6 +67,21 @@ public class ReachSet extends Canonical {
     return reachStates.contains( state );
   }
 
+  // this should be a hash table so we can do this by key
+  public ReachState containsIgnorePreds( ReachState state ) {
+    assert state != null;
+
+    Iterator<ReachState> stateItr = this.reachStates.iterator();
+    while( stateItr.hasNext() ) {
+      ReachState stateThis = stateItr.next();
+      if( stateThis.equalsIgnorePreds( state ) ) {
+	return stateThis;
+      }
+    }
+    
+    return null;
+  }
+
   /*
   public boolean containsWithZeroes( ReachState state ) {
     assert state != null;
@@ -146,6 +161,23 @@ public class ReachSet extends Canonical {
     return false;
   }
 
+  // used to assert each state in the set is
+  // unique
+  public boolean containsNoDuplicates() {
+    Vector<ReachState> v = new Vector( reachStates );
+    for( int i = 0; i < v.size(); ++i ) {
+      ReachState s1 = v.get( i );
+      for( int j = i+1; j < v.size(); ++j ) {
+        ReachState s2 = v.get( j );
+        if( s1.equals( s2 ) ) {
+          assert s1.isCanonical();
+          assert s2.isCanonical();
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 
 
   public boolean equals( Object o ) {

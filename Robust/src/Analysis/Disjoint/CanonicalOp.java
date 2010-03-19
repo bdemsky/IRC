@@ -8,15 +8,13 @@ package Analysis.Disjoint;
 // first and do a result look-up
 public class CanonicalOp {
 
-  public static final int REACHTUPLE_UNIONARITY_REACHTUPLE     = 0x1a34;
   public static final int REACHSTATE_ATTACH_EXISTPREDSET       = 0x8358;
   public static final int REACHSTATE_UNION_REACHSTATE          = 0x5678;
-  public static final int REACHSTATE_UNION_REACHTUPLE          = 0x32b6;
+  public static final int REACHSTATE_ADD_REACHTUPLE            = 0x32b6;
   public static final int REACHSTATE_UNIONUPARITY_REACHSTATE   = 0x9152;
   public static final int REACHSTATE_REMOVE_REACHTUPLE         = 0x8173;
   public static final int REACHSTATE_AGETUPLESFROM_ALLOCSITE   = 0x4f65;
-  public static final int REACHSET_UNION_REACHSET              = 0x2131;
-  public static final int REACHSET_UNION_REACHSTATE            = 0xe3c8;
+  public static final int REACHSET_UNIONORPREDS_REACHSET       = 0x2131;
   public static final int REACHSET_INTERSECTION_REACHSET       = 0x3361;
   public static final int REACHSET_REMOVE_REACHSTATE           = 0x9391;
   public static final int REACHSET_APPLY_CHANGESET             = 0x1d55;

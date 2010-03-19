@@ -104,8 +104,8 @@ abstract public class Canonical {
 
   
   // not weighty, don't bother with caching
-  public static ReachTuple unionArity( ReachTuple rt1,
-                                       ReachTuple rt2 ) {
+  public static ReachTuple unionUpArity( ReachTuple rt1,
+                                         ReachTuple rt2 ) {
     assert rt1 != null;
     assert rt2 != null;
     assert rt1.isCanonical();
@@ -180,44 +180,18 @@ abstract public class Canonical {
   }
 
 
-  public static ReachState union( ReachState rs1,
-                                  ReachState rs2 ) {
-    assert rs1 != null;
-    assert rs2 != null;
-    assert rs1.isCanonical();
-    assert rs2.isCanonical();
-
-    CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSTATE_UNION_REACHSTATE,
-                              rs1, 
-                              rs2 );
-    
-    Canonical result = op2result.get( op );
-    if( result != null ) {
-      return (ReachState) result;
-    }
-
-    // otherwise, no cached result...
-    ReachState out = new ReachState();
-    out.reachTuples.addAll( rs1.reachTuples );
-    out.reachTuples.addAll( rs2.reachTuples );
-    out.preds = Canonical.join( rs1.getPreds(),
-                                rs2.getPreds()
-                                );
-
-    out = (ReachState) makeCanonical( out );
-    op2result.put( op, out );
-    return out;
-  }
-
-  // this is just a convenience version of above
-  public static ReachState union( ReachState rs,
-                                  ReachTuple rt ) {
+  public static ReachState add( ReachState rs,
+                                ReachTuple rt ) {
     assert rs != null;
     assert rt != null;
 
+    // this is only safe if we are certain the new tuple's
+    // ID doesn't already appear in the reach state
+    assert rs.containsHrnID( rt.getHrnID(),
+                             rt.isOutOfContext() ) == null;
+
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSTATE_UNION_REACHTUPLE,
+      new CanonicalOp( CanonicalOp.REACHSTATE_ADD_REACHTUPLE,
                        rs, 
                        rt );
     
@@ -258,6 +232,8 @@ abstract public class Canonical {
     // otherwise, no cached result...
     ReachState out = new ReachState();
 
+    // first add everything from 1, and if it is
+    // also in 2 take the union of the tuple arities
     Iterator<ReachTuple> rtItr = rs1.iterator();
     while( rtItr.hasNext() ) {
       ReachTuple rt1 = rtItr.next();
@@ -265,20 +241,21 @@ abstract public class Canonical {
                                           rt1.isOutOfContext() 
                                           );
       if( rt2 != null ) {
-	out.reachTuples.add( unionArity( rt1, rt2 ) );
+	out.reachTuples.add( unionUpArity( rt1, rt2 ) );
       } else {
 	out.reachTuples.add( rt1 );
       }
     }
 
+    // then add everything in 2 that wasn't in 1
     rtItr = rs2.iterator();
     while( rtItr.hasNext() ) {
       ReachTuple rt2 = rtItr.next();
-      ReachTuple rto = out.containsHrnID( rt2.getHrnID(),
+      ReachTuple rt1 = rs1.containsHrnID( rt2.getHrnID(),
                                           rt2.isOutOfContext()
                                           );
-      if( rto == null ) {
-	out.reachTuples.add( rto );
+      if( rt1 == null ) {
+	out.reachTuples.add( rt2 );
       }
     }
 
@@ -291,9 +268,6 @@ abstract public class Canonical {
     return out;
   }
 
-  public static ReachState add( ReachState rs, ReachTuple rt ) {   
-    return union( rs, rt );
-  }
   
   public static ReachState remove( ReachState rs, ReachTuple rt ) {
     assert rs != null;
@@ -403,13 +377,13 @@ abstract public class Canonical {
                            );
 
     } else if( rtSummary != null && rtOldest != null ) {     
-      out.reachTuples.add( Canonical.unionArity( rtSummary,
-                                                 ReachTuple.factory( as.getSummary(),
-                                                                     true, // muli
-                                                                     rtOldest.getArity(),
-                                                                     false // out-of-context
-                                                                     )
-                                                 )
+      out.reachTuples.add( Canonical.unionUpArity( rtSummary,
+                                                   ReachTuple.factory( as.getSummary(),
+                                                                       true, // muli
+                                                                       rtOldest.getArity(),
+                                                                       false // out-of-context
+                                                                       )
+                                                   )
                            );
     }
 
@@ -422,15 +396,15 @@ abstract public class Canonical {
 
 
 
-  public static ReachSet union( ReachSet rs1,
-                                ReachSet rs2 ) {
+  public static ReachSet unionORpreds( ReachSet rs1,
+                                       ReachSet rs2 ) {
     assert rs1 != null;
     assert rs2 != null;
     assert rs1.isCanonical();
     assert rs2.isCanonical();
 
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSET_UNION_REACHSET,
+      new CanonicalOp( CanonicalOp.REACHSET_UNIONORPREDS_REACHSET,
                        rs1, 
                        rs2 );
     
@@ -441,41 +415,41 @@ abstract public class Canonical {
 
     // otherwise, no cached result...
     ReachSet out = new ReachSet();
-    out.reachStates.addAll( rs1.reachStates );
-    out.reachStates.addAll( rs2.reachStates );
 
-    out = (ReachSet) makeCanonical( out );
-    op2result.put( op, out );
-    return out;
-  }
+    // first add everything from 1, and if it was also in 2
+    // take the OR of the predicates
+    Iterator<ReachState> stateItr = rs1.iterator();
+    while( stateItr.hasNext() ) {
+      ReachState state1 = stateItr.next();
+      ReachState state2 = rs2.containsIgnorePreds( state1 );
 
-  public static ReachSet union( ReachSet   rs,
-                                ReachState state ) {
-
-    assert rs    != null;
-    assert state != null;
-    assert rs.isCanonical();
-    assert state.isCanonical();
-
-    CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSET_UNION_REACHSTATE,
-                       rs, 
-                       state );
-    
-    Canonical result = op2result.get( op );
-    if( result != null ) {
-      return (ReachSet) result;
+      if( state2 != null ) {
+	out.reachStates.add( ReachState.factory( state1.reachTuples,
+                                                 Canonical.join( state1.preds,
+                                                                 state2.preds
+                                                                 )
+                                                 ) );
+      } else {
+	out.reachStates.add( state1 );
+      }
     }
 
-    // otherwise, no cached result...
-    ReachSet out = new ReachSet();
-    out.reachStates.addAll( rs.reachStates );
-    out.reachStates.add( state );
+    // then add everything in 2 that wasn't in 1
+    stateItr = rs2.iterator();
+    while( stateItr.hasNext() ) {
+      ReachState state2 = stateItr.next();
+      ReachState state1 = rs1.containsIgnorePreds( state2 );
+
+      if( state1 == null ) {
+	out.reachStates.add( state2 );
+      }
+    }
 
     out = (ReachSet) makeCanonical( out );
     op2result.put( op, out );
     return out;
   }
+
 
   public static ReachSet intersection( ReachSet rs1,
                                        ReachSet rs2 ) {
@@ -512,7 +486,9 @@ abstract public class Canonical {
 
   public static ReachSet add( ReachSet   rs, 
                               ReachState state ) {
-    return union( rs, state );
+    return unionORpreds( rs, 
+                         ReachSet.factory( state )
+                         );
   }
 
   public static ReachSet remove( ReachSet   rs,
@@ -638,15 +614,15 @@ abstract public class Canonical {
                                             rtR.isOutOfContext()
                                             );
 	  if( rtO != null ) {
-            theUnion = Canonical.union( theUnion,
-                                        Canonical.unionArity( rtR,
+            theUnion = Canonical.add( theUnion,
+                                      Canonical.unionUpArity( rtR,
                                                               rtO
                                                               )
-                                        );
+                                      );
 	  } else {
-            theUnion = Canonical.union( theUnion,
-                                        rtR
-                                        );
+            theUnion = Canonical.add( theUnion,
+                                      rtR
+                                      );
 	  }
 	}
 
@@ -657,9 +633,9 @@ abstract public class Canonical {
                                                    rtO.isOutOfContext()
                                                    );
 	  if( rtR == null ) {
-            theUnion = Canonical.union( theUnion,
-                                        rtO
-                                        );
+            theUnion = Canonical.add( theUnion,
+                                      rtO
+                                      );
 	  }
 	}
         
@@ -1013,9 +989,9 @@ abstract public class Canonical {
     Iterator<ReachState> itr = rs.iterator();
     while( itr.hasNext() ) {
       ReachState state = itr.next();
-      out = Canonical.union( out,
-                             Canonical.toCallerContext( state, as )
-                             );
+      out = Canonical.unionORpreds( out,
+                                    Canonical.toCallerContext( state, as )
+                                    );
     }
 
     assert out.isCanonical();
@@ -1075,7 +1051,7 @@ abstract public class Canonical {
 
       if( age == AllocSite.AGE_notInThisSite ) {
         // things not from the site just go back in
-	baseState = Canonical.union( baseState, rt );
+	baseState = Canonical.add( baseState, rt );
 
       } else if( age == AllocSite.AGE_summary ) {
 
@@ -1084,20 +1060,20 @@ abstract public class Canonical {
           // arity, if ARITY-ONE we'll branch the base state after the loop
           if( rt.getArity() == ReachTuple.ARITY_ZEROORMORE ) {
             // add two overly conservative symbols to reach state (PUNTING)
-            baseState = Canonical.union( baseState,
-                                         ReachTuple.factory( as.getSummary(),
-                                                             true, // multi
-                                                             ReachTuple.ARITY_ZEROORMORE,
-                                                             false // out-of-context
-                                                             )
+            baseState = Canonical.add( baseState,
+                                       ReachTuple.factory( as.getSummary(),
+                                                           true, // multi
+                                                           ReachTuple.ARITY_ZEROORMORE,
+                                                           false // out-of-context
+                                                           )
                                          );            
-            baseState = Canonical.union( baseState,
-                                         ReachTuple.factory( as.getSummary(),
-                                                             true, // multi
-                                                             ReachTuple.ARITY_ZEROORMORE,
-                                                             true  // out-of-context
-                                                             )
-                                         );            
+            baseState = Canonical.add( baseState,
+                                       ReachTuple.factory( as.getSummary(),
+                                                           true, // multi
+                                                           ReachTuple.ARITY_ZEROORMORE,
+                                                           true  // out-of-context
+                                                           )
+                                       );            
           } else {
             assert rt.getArity() == ReachTuple.ARITY_ONE;
             found2Sooc = true;
@@ -1105,13 +1081,13 @@ abstract public class Canonical {
 
         } else {
           // the in-context just becomes shadow
-          baseState = Canonical.union( baseState,
-                                       ReachTuple.factory( as.getSummaryShadow(),
-                                                           true, // multi
-                                                           rt.getArity(),
-                                                           false  // out-of-context
-                                                           )
-                                       );
+          baseState = Canonical.add( baseState,
+                                     ReachTuple.factory( as.getSummaryShadow(),
+                                                         true, // multi
+                                                         rt.getArity(),
+                                                         false  // out-of-context
+                                                         )
+                                     );
         }
 
 
@@ -1124,23 +1100,23 @@ abstract public class Canonical {
 
         if( rt.isOutOfContext() ) {
           // becomes the in-context version
-          baseState = Canonical.union( baseState,
-                                       ReachTuple.factory( rt.getHrnID(),
-                                                           false, // multi
-                                                           ReachTuple.ARITY_ONE,
-                                                           false  // out-of-context
-                                                           )
-                                       );          
+          baseState = Canonical.add( baseState,
+                                     ReachTuple.factory( rt.getHrnID(),
+                                                         false, // multi
+                                                         ReachTuple.ARITY_ONE,
+                                                         false  // out-of-context
+                                                         )
+                                     );          
 
         } else {
           // otherwise the ith symbol becomes shadowed
-          baseState = Canonical.union( baseState,
-                                       ReachTuple.factory( -rt.getHrnID(),
-                                                           false, // multi
-                                                           ReachTuple.ARITY_ONE,
-                                                           false  // out-of-context
-                                                           )
-                                       );        
+          baseState = Canonical.add( baseState,
+                                     ReachTuple.factory( -rt.getHrnID(),
+                                                         false, // multi
+                                                         ReachTuple.ARITY_ONE,
+                                                         false  // out-of-context
+                                                         )
+                                     );        
         }
       }
     }
@@ -1150,42 +1126,42 @@ abstract public class Canonical {
     if( found2Sooc ) {
       // make a branch with every possibility of the one-to-many
       // mapping for 2S? appended to the baseState
-      out = Canonical.union( out,
-                             Canonical.union( baseState,
-                                              ReachTuple.factory( as.getSummary(),
-                                                                  true, // multi
-                                                                  ReachTuple.ARITY_ONE,
-                                                                  false  // out-of-context
-                                                                  )
-                                              )
-                             );
+      out = Canonical.add( out,
+                           Canonical.add( baseState,
+                                          ReachTuple.factory( as.getSummary(),
+                                                              true, // multi
+                                                              ReachTuple.ARITY_ONE,
+                                                              false  // out-of-context
+                                                              )
+                                          )
+                           );
 
-      out = Canonical.union( out,
-                             Canonical.union( baseState,
-                                              ReachTuple.factory( as.getSummary(),
-                                                                  true, // multi
-                                                                  ReachTuple.ARITY_ONE,
-                                                                  true  // out-of-context
-                                                                  )
-                                              )
-                             );      
+      out = Canonical.add( out,
+                           Canonical.add( baseState,
+                                          ReachTuple.factory( as.getSummary(),
+                                                              true, // multi
+                                                              ReachTuple.ARITY_ONE,
+                                                              true  // out-of-context
+                                                              )
+                                          )
+                           );      
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
-        out = Canonical.union( out,
-                               Canonical.union( baseState,
-                                                ReachTuple.factory( as.getIthOldest( i ),
-                                                                    false, // multi
-                                                                    ReachTuple.ARITY_ONE,
-                                                                    true  // out-of-context
-                                                                    )
-                                                )
-                               );
+        out = Canonical.add( out,
+                             Canonical.add( baseState,
+                                            ReachTuple.factory( as.getIthOldest( i ),
+                                                                false, // multi
+                                                                ReachTuple.ARITY_ONE,
+                                                                true  // out-of-context
+                                                                )
+                                            )
+                             );
       }
 
     } else {
       // just use current baseState      
-      out = Canonical.union( out,
-                             baseState );
+      out = Canonical.add( out,
+                           baseState );
     }
 
 
@@ -1269,19 +1245,19 @@ abstract public class Canonical {
       
       if( age == AllocSite.SHADOWAGE_notInThisSite ) {
         // things not from the site just go back in
-	out = Canonical.union( out, rt );
+	out = Canonical.add( out, rt );
 
       } else {
         assert !rt.isOutOfContext();
 
         // otherwise unshadow it
-        out = Canonical.union( out,
-                               ReachTuple.factory( -rt.getHrnID(),
-                                                   rt.isMultiObject(),
-                                                   rt.getArity(),
-                                                   false
-                                                   )
-                               );
+        out = Canonical.add( out,
+                             ReachTuple.factory( -rt.getHrnID(),
+                                                 rt.isMultiObject(),
+                                                 rt.getArity(),
+                                                 false
+                                                 )
+                             );
       }
     }
 

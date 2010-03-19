@@ -52,6 +52,19 @@ public class ReachState extends Canonical {
     return out;
   }
 
+  public static ReachState factory( HashSet<ReachTuple> reachTuples,
+                                    ExistPredSet        preds
+                                    ) {
+    assert reachTuples != null;
+    assert preds != null;
+    assert preds.isCanonical();
+    ReachState out = new ReachState();
+    out.reachTuples.addAll( reachTuples );
+    out.preds = preds;
+    out = (ReachState) Canonical.makeCanonical( out );
+    return out;
+  }
+
   protected ReachState() {
     reachTuples = new HashSet<ReachTuple>();
     preds       = ExistPredSet.factory();
@@ -116,8 +129,26 @@ public class ReachState extends Canonical {
 
 
   public int hashCodeSpecific() {
-    return reachTuples.hashCode() ^ preds.hashCode();
+    return 
+      reachTuples.hashCode() ^ 
+      preds.hashCode();
   }
+
+
+  public boolean equalsIgnorePreds( Object o ) {
+    if( o == null ) {
+      return false;
+    }
+
+    if( !(o instanceof ReachState) ) {
+      return false;
+    }
+
+    ReachState rs = (ReachState) o;
+    return 
+      reachTuples.equals( rs.reachTuples );
+  }
+
 
 
   public String toString() {

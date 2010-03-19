@@ -575,7 +575,7 @@ public class ReachGraph {
 	
 	if( edgeExisting != null ) {
 	  edgeExisting.setBeta(
-                               Canonical.union( edgeExisting.getBeta(),
+                               Canonical.unionORpreds( edgeExisting.getBeta(),
                                                 edgeNew.getBeta()
                                                 )
                                );
@@ -881,7 +881,7 @@ public class ReachGraph {
 	// otherwise an edge from the referencer to hrnSummary exists already
 	// and the edge referencer->hrn should be merged with it
 	edgeSummary.setBeta( 
-                            Canonical.union( edgeMerged.getBeta(),
+                            Canonical.unionORpreds( edgeMerged.getBeta(),
                                              edgeSummary.getBeta() 
                                              ) 
                              );
@@ -915,7 +915,7 @@ public class ReachGraph {
 	// otherwise an edge from the referencer to alpha_S exists already
 	// and the edge referencer->alpha_K should be merged with it
 	edgeSummary.setBeta( 
-                            Canonical.union( edgeMerged.getBeta(),
+                            Canonical.unionORpreds( edgeMerged.getBeta(),
                                              edgeSummary.getBeta() 
                                              ) 
                              );
@@ -929,7 +929,7 @@ public class ReachGraph {
 
     // then merge hrn reachability into hrnSummary
     hrnSummary.setAlpha( 
-                        Canonical.union( hrnSummary.getAlpha(),
+                        Canonical.unionORpreds( hrnSummary.getAlpha(),
                                          hrn.getAlpha() 
                                          )
                          );
@@ -1123,7 +1123,7 @@ public class ReachGraph {
       // but this propagation may be only one of many concurrent
       // possible changes, so keep a running union with the node's
       // partially updated new alpha set
-      n.setAlphaNew( Canonical.union( n.getAlphaNew(),
+      n.setAlphaNew( Canonical.unionORpreds( n.getAlphaNew(),
                                       localDelta 
                                       )
                      );
@@ -1212,7 +1212,7 @@ public class ReachGraph {
       // but this propagation may be only one of many concurrent
       // possible changes, so keep a running union with the edge's
       // partially updated new beta set
-      e.setBetaNew( Canonical.union( e.getBetaNew(),
+      e.setBetaNew( Canonical.unionORpreds( e.getBetaNew(),
                                      localDelta  
                                      )
                     );
@@ -1309,7 +1309,7 @@ public class ReachGraph {
 
           // only translate this tuple if it is in the out-context bag
           if( !oocTuples.contains( rt ) ) {
-            stateNew = Canonical.union( stateNew, rt );
+            stateNew = Canonical.add( stateNew, rt );
             continue;
           }
 
@@ -1331,20 +1331,20 @@ public class ReachGraph {
       
           if( age == AllocSite.AGE_notInThisSite ) {
             // things not from the site just go back in
-            stateNew = Canonical.union( stateNew, rt );
+            stateNew = Canonical.add( stateNew, rt );
 
           } else if( age == AllocSite.AGE_summary ||
                      rt.isOutOfContext()
                      ) {
             // the in-context summary and all existing out-of-context
             // stuff all become
-            stateNew = Canonical.union( stateNew,
-                                        ReachTuple.factory( as.getSummary(),
-                                                            true, // multi
-                                                            rt.getArity(),
-                                                            true  // out-of-context
-                                                            )
-                                        );
+            stateNew = Canonical.add( stateNew,
+                                      ReachTuple.factory( as.getSummary(),
+                                                          true, // multi
+                                                          rt.getArity(),
+                                                          true  // out-of-context
+                                                          )
+                                      );
           } else {
             // otherwise everything else just goes to an out-of-context
             // version, everything else the same
@@ -1353,13 +1353,13 @@ public class ReachGraph {
 
             assert !rt.isMultiObject();
 
-            stateNew = Canonical.union( stateNew,
-                                        ReachTuple.factory( rt.getHrnID(),
-                                                            rt.isMultiObject(),
-                                                            rt.getArity(),
-                                                            true  // out-of-context
-                                                            )
-                                        );        
+            stateNew = Canonical.add( stateNew,
+                                      ReachTuple.factory( rt.getHrnID(),
+                                                          rt.isMultiObject(),
+                                                          rt.getArity(),
+                                                          true  // out-of-context
+                                                          )
+                                      );        
           }
         }
         
@@ -1439,7 +1439,7 @@ public class ReachGraph {
           stateCaller = Canonical.attach( stateCaller,
                                           calleeStatesSatisfied.get( stateCallee )
                                           );        
-          out = Canonical.union( out,
+          out = Canonical.add( out,
                                  stateCaller
                                  );
         }
@@ -1875,7 +1875,7 @@ public class ReachGraph {
         
         } else {
         // the out-of-context edge already exists
-        oocEdgeExisting.setBeta( Canonical.union( oocEdgeExisting.getBeta(),
+        oocEdgeExisting.setBeta( Canonical.unionORpreds( oocEdgeExisting.getBeta(),
                                                   toCalleeContext( oocTuples,
                                                                    reCaller.getBeta(),   // in state
                                                                    null,                 // node pred
@@ -2416,7 +2416,7 @@ public class ReachGraph {
                                                          );	
         if( edgeExisting != null ) {
           edgeExisting.setBeta(
-                               Canonical.union( edgeExisting.getBeta(),
+                               Canonical.unionORpreds( edgeExisting.getBeta(),
                                                 reCaller.getBeta()
                                                 )
                                );
@@ -2984,18 +2984,18 @@ public class ReachGraph {
                                                             );
           
             if( prevResult == null || 
-                Canonical.union( prevResult,
+                Canonical.unionORpreds( prevResult,
                                  intersection ).size() > prevResult.size() ) {
             
               if( prevResult == null ) {
                 boldB_f.put( edgePrime, 
-                             Canonical.union( edgePrime.getBeta(),
+                             Canonical.unionORpreds( edgePrime.getBeta(),
                                               intersection 
                                               )
                              );
               } else {
                 boldB_f.put( edgePrime, 
-                             Canonical.union( prevResult,
+                             Canonical.unionORpreds( prevResult,
                                               intersection 
                                               )
                              );
@@ -3094,7 +3094,7 @@ public class ReachGraph {
 
 	// if there is nothing marked, just move on
 	if( markedHrnIDs.isEmpty() ) {
-	  hrn.setAlphaNew( Canonical.union( hrn.getAlphaNew(),
+	  hrn.setAlphaNew( Canonical.add( hrn.getAlphaNew(),
                                             stateOld
                                             )
                            );
@@ -3109,12 +3109,12 @@ public class ReachGraph {
 	  ReachTuple rtOld = rtItr.next();
 
 	  if( !markedHrnIDs.containsTuple( rtOld ) ) {
-	    statePruned = Canonical.union( statePruned, rtOld );
+	    statePruned = Canonical.add( statePruned, rtOld );
 	  }
 	}
 	assert !stateOld.equals( statePruned );
 
-	hrn.setAlphaNew( Canonical.union( hrn.getAlphaNew(),
+	hrn.setAlphaNew( Canonical.add( hrn.getAlphaNew(),
                                           statePruned
                                           )
                          );
@@ -3214,13 +3214,13 @@ public class ReachGraph {
                                   edgePrime.getBetaNew() 
                                   );
 		    
-	if( Canonical.union( prevResult,
-                             intersection
-                             ).size() > prevResult.size() ) {
+	if( Canonical.unionORpreds( prevResult,
+                                    intersection
+                                    ).size() > prevResult.size() ) {
 	  edge.setBetaNew( 
-                          Canonical.union( prevResult,
-                                           intersection 
-                                           )
+                          Canonical.unionORpreds( prevResult,
+                                                  intersection 
+                                                  )
                            );
 	  edgeWorkSet.add( edge );
 	}	
@@ -3293,7 +3293,7 @@ public class ReachGraph {
 	// so make the new reachability set a union of the
 	// nodes' reachability sets
 	HeapRegionNode hrnB = id2hrn.get( idA );
-	hrnB.setAlpha( Canonical.union( hrnB.getAlpha(),
+	hrnB.setAlpha( Canonical.unionORpreds( hrnB.getAlpha(),
                                         hrnA.getAlpha() 
                                         )
                        );
@@ -3375,7 +3375,7 @@ public class ReachGraph {
 	  // just replace this beta set with the union
 	  assert edgeToMerge != null;
 	  edgeToMerge.setBeta(
-                              Canonical.union( edgeToMerge.getBeta(),
+                              Canonical.unionORpreds( edgeToMerge.getBeta(),
                                                edgeA.getBeta() 
                                                )
                               );
@@ -3439,7 +3439,7 @@ public class ReachGraph {
 	// so merge their reachability sets
 	else {
 	  // just replace this beta set with the union
-	  edgeToMerge.setBeta( Canonical.union( edgeToMerge.getBeta(),
+	  edgeToMerge.setBeta( Canonical.unionORpreds( edgeToMerge.getBeta(),
                                                 edgeA.getBeta()
                                                 )
                                );
@@ -4083,14 +4083,14 @@ public class ReachGraph {
 		Iterator<RefEdge> itrEdge = hrn1.iteratorToReferencees();
 		while (itrEdge.hasNext()) {
 			RefEdge edge = itrEdge.next();
-			beta1 = Canonical.union(beta1, edge.getBeta());
+			beta1 = Canonical.unionORpreds(beta1, edge.getBeta());
 		}
 
 		ReachSet beta2 = ReachSet.factory();
 		itrEdge = hrn2.iteratorToReferencees();
 		while (itrEdge.hasNext()) {
 			RefEdge edge = itrEdge.next();
-			beta2 = Canonical.union(beta2, edge.getBeta());
+			beta2 = Canonical.unionORpreds(beta2, edge.getBeta());
 		}
 
 		boolean aliasDetected = false;
