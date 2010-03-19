@@ -515,7 +515,7 @@ public class DisjointAnalysis {
     if( state.DISJOINTALIASFILE != null ) {
       if( state.TASK ) {
         // not supporting tasks yet...
-    	  writeAllAliases("allresult", treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
+    	  writeAllAliases(state.OWNERSHIPALIASFILE, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
       } else {
         /*
         writeAllAliasesJava( aliasFile, 
@@ -669,26 +669,14 @@ public class DisjointAnalysis {
 	FlatNode pn = fn.getPrev( i );
 	if( mapFlatNodeToReachGraph.containsKey( pn ) ) {
 	  ReachGraph rgParent = mapFlatNodeToReachGraph.get( pn );
+//	  System.out.println("parent="+pn+"->"+rgParent);
 	  rg.merge( rgParent );
 	}
-      }
-
-      if( takeDebugSnapshots && 
-	  d.getSymbol().equals( descSymbolDebug ) 
-          ) {
-	debugSnapshot( rg, fn, true );
       }
 
       // modify rg with appropriate transfer function
       rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
           
-      if( takeDebugSnapshots && 
-	  d.getSymbol().equals( descSymbolDebug ) 
-          ) {
-	debugSnapshot( rg, fn, false );
-      }
-
-
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
       // with the update and enqueue the children
@@ -1606,6 +1594,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 						   ExistPredSet.factory(), // predicates
 						   strDesc // description
 						   );
+		    rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
 		    
 		    // make a new reference to summary node
 		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source

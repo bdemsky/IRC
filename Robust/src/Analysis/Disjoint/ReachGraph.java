@@ -4069,7 +4069,7 @@ public class ReachGraph {
 
 		return intersection;
 	}
-
+	 
 	public Set<HeapRegionNode> mayReachSharedObjects(HeapRegionNode hrn1,
 			HeapRegionNode hrn2) {
 		assert hrn1 != null;
@@ -4079,20 +4079,26 @@ public class ReachGraph {
 		ReachTuple h1 = ReachTuple.factory(hrn1.getID(),
 				!hrn1.isSingleObject(), ReachTuple.ARITY_ONE, false);
 
-		ReachTuple h1plus = ReachTuple.factory(hrn1.getID(), !hrn1
-				.isSingleObject(), ReachTuple.ARITY_ONEORMORE, false);
-
+		int arity;
+		if(hrn1.isSingleObject){
+			arity=ReachTuple.ARITY_ONE;
+		}else{
+			arity=ReachTuple.ARITY_ZEROORMORE;
+		}
 		ReachTuple h1star = ReachTuple.factory(hrn1.getID(), !hrn1
-				.isSingleObject(), ReachTuple.ARITY_ZEROORMORE, false);
+				.isSingleObject(), arity, false);
 
 		ReachTuple h2 = ReachTuple.factory(hrn2.getID(),
 				!hrn2.isSingleObject(), ReachTuple.ARITY_ONE, false);
 
-		ReachTuple h2plus = ReachTuple.factory(hrn2.getID(), !hrn2
-				.isSingleObject(), ReachTuple.ARITY_ONEORMORE, false);
-
+		if(hrn2.isSingleObject){
+			arity=ReachTuple.ARITY_ONE;
+		}else{
+			arity=ReachTuple.ARITY_ZEROORMORE;
+		}
+		
 		ReachTuple h2star = ReachTuple.factory(hrn2.getID(), !hrn2
-				.isSingleObject(), ReachTuple.ARITY_ZEROORMORE, false);
+				.isSingleObject(), arity, false);
 
 		// then get the merged beta of all out-going edges from these heap
 		// regions
@@ -4117,27 +4123,27 @@ public class ReachGraph {
 		if (h1 != h2 && beta1.containsStateWithBoth(h1, h2)) {
 			aliasDetected = true;
 		}
-		if (beta1.containsStateWithBoth(h1plus, h2)) {
-			aliasDetected = true;
-		}
+//		if (beta1.containsStateWithBoth(h1plus, h2)) {
+//			aliasDetected = true;
+//		}
 		if (beta1.containsStateWithBoth(h1star, h2)) {
 			aliasDetected = true;
 		}
-		if (beta1.containsStateWithBoth(h1, h2plus)) {
-			aliasDetected = true;
-		}
-		if (beta1.containsStateWithBoth(h1plus, h2plus)) {
-			aliasDetected = true;
-		}
-		if (beta1.containsStateWithBoth(h1star, h2plus)) {
-			aliasDetected = true;
-		}
+//		if (beta1.containsStateWithBoth(h1, h2plus)) {
+//			aliasDetected = true;
+//		}
+//		if (beta1.containsStateWithBoth(h1plus, h2plus)) {
+//			aliasDetected = true;
+//		}
+//		if (beta1.containsStateWithBoth(h1star, h2plus)) {
+//			aliasDetected = true;
+//		}
 		if (beta1.containsStateWithBoth(h1, h2star)) {
 			aliasDetected = true;
 		}
-		if (beta1.containsStateWithBoth(h1plus, h2star)) {
-			aliasDetected = true;
-		}
+//		if (beta1.containsStateWithBoth(h1plus, h2star)) {
+//			aliasDetected = true;
+//		}
 		if (beta1.containsStateWithBoth(h1star, h2star)) {
 			aliasDetected = true;
 		}
@@ -4145,27 +4151,27 @@ public class ReachGraph {
 		if (h1 != h2 && beta2.containsStateWithBoth(h1, h2)) {
 			aliasDetected = true;
 		}
-		if (beta2.containsStateWithBoth(h1plus, h2)) {
-			aliasDetected = true;
-		}
+//		if (beta2.containsStateWithBoth(h1plus, h2)) {
+//			aliasDetected = true;
+//		}
 		if (beta2.containsStateWithBoth(h1star, h2)) {
 			aliasDetected = true;
 		}
-		if (beta2.containsStateWithBoth(h1, h2plus)) {
-			aliasDetected = true;
-		}
-		if (beta2.containsStateWithBoth(h1plus, h2plus)) {
-			aliasDetected = true;
-		}
-		if (beta2.containsStateWithBoth(h1star, h2plus)) {
-			aliasDetected = true;
-		}
+//		if (beta2.containsStateWithBoth(h1, h2plus)) {
+//			aliasDetected = true;
+//		}
+//		if (beta2.containsStateWithBoth(h1plus, h2plus)) {
+//			aliasDetected = true;
+//		}
+//		if (beta2.containsStateWithBoth(h1star, h2plus)) {
+//			aliasDetected = true;
+//		}
 		if (beta2.containsStateWithBoth(h1, h2star)) {
 			aliasDetected = true;
 		}
-		if (beta2.containsStateWithBoth(h1plus, h2star)) {
-			aliasDetected = true;
-		}
+//		if (beta2.containsStateWithBoth(h1plus, h2star)) {
+//			aliasDetected = true;
+//		}
 		if (beta2.containsStateWithBoth(h1star, h2star)) {
 			aliasDetected = true;
 		}
@@ -4211,11 +4217,17 @@ public class ReachGraph {
 		HeapRegionNode hrnParam = argEdge.getDst();
 
 		// get summary node
-		assert id2hrn.containsKey(as.getSummary());
-		HeapRegionNode hrnSummary = id2hrn.get(as.getSummary());
-		assert hrnSummary != null;
+		HeapRegionNode hrnSummary=null;
+		if(id2hrn.containsKey(as.getSummary())){
+			// if summary node doesn't exist, ignore this case
+			hrnSummary = id2hrn.get(as.getSummary());
+			assert hrnSummary != null;
+		}
 
-		Set<HeapRegionNode> common = mayReachSharedObjects(hrnParam, hrnSummary);
+		Set<HeapRegionNode> common  = new HashSet<HeapRegionNode>();
+		if(hrnSummary!=null){
+			common.addAll( mayReachSharedObjects(hrnParam, hrnSummary) );
+		}
 
 		// check for other nodes
 		for (int i = 0; i < as.getAllocationDepth(); ++i) {
@@ -4224,7 +4236,7 @@ public class ReachGraph {
 			HeapRegionNode hrnIthOldest = id2hrn.get(as.getIthOldest(i));
 			assert hrnIthOldest != null;
 
-			common = mayReachSharedObjects(hrnParam, hrnIthOldest);
+			common.addAll(mayReachSharedObjects(hrnParam, hrnIthOldest));
 
 		}
 
@@ -4236,26 +4248,32 @@ public class ReachGraph {
 
 		// get summary node 1's alpha
 		Integer idSum1 = as1.getSummary();
-		assert id2hrn.containsKey(idSum1);
-		HeapRegionNode hrnSum1 = id2hrn.get(idSum1);
-		assert hrnSum1 != null;
+		HeapRegionNode hrnSum1=null;
+		if(id2hrn.containsKey(idSum1)){
+			hrnSum1 = id2hrn.get(idSum1);
+		}
 
 		// get summary node 2's alpha
 		Integer idSum2 = as2.getSummary();
-		assert id2hrn.containsKey(idSum2);
-		HeapRegionNode hrnSum2 = id2hrn.get(idSum2);
-		assert hrnSum2 != null;
-
-		Set<HeapRegionNode> common = mayReachSharedObjects(hrnSum1, hrnSum2);
+		HeapRegionNode hrnSum2=null;
+		if(id2hrn.containsKey(idSum2)){
+			hrnSum2 = id2hrn.get(idSum2);
+		}
+		
+		Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+		if(hrnSum1!=null && hrnSum2!=null){
+			common.addAll(mayReachSharedObjects(hrnSum1, hrnSum2));
+		}
 
 		// check sum2 against alloc1 nodes
+		if(hrnSum2!=null){
 		for (int i = 0; i < as1.getAllocationDepth(); ++i) {
 			Integer idI1 = as1.getIthOldest(i);
 			assert id2hrn.containsKey(idI1);
 			HeapRegionNode hrnI1 = id2hrn.get(idI1);
 			assert hrnI1 != null;
-
 			common.addAll(mayReachSharedObjects(hrnI1, hrnSum2));
+		}
 		}
 
 		// check sum1 against alloc2 nodes
@@ -4265,7 +4283,9 @@ public class ReachGraph {
 			HeapRegionNode hrnI2 = id2hrn.get(idI2);
 			assert hrnI2 != null;
 
-			common.addAll(mayReachSharedObjects(hrnSum1, hrnI2));
+			if(hrnSum1!=null){
+				common.addAll(mayReachSharedObjects(hrnSum1, hrnI2));
+			}
 
 			// while we're at it, do an inner loop for alloc2 vs alloc1 nodes
 			for (int j = 0; j < as1.getAllocationDepth(); ++j) {
