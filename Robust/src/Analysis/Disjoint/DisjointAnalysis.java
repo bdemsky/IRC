@@ -11,6 +11,290 @@ import java.io.*;
 
 
 public class DisjointAnalysis {
+	
+	  ///////////////////////////////////////////
+	  //
+	  //  Public interface to discover possible
+	  //  aliases in the program under analysis
+	  //
+	  ///////////////////////////////////////////
+	
+	  public HashSet<AllocSite>
+	  getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
+	    checkAnalysisComplete();
+	    return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
+	  }
+	  
+	  public AllocSite getAllocationSiteFromFlatNew(FlatNew fn) {
+		    checkAnalysisComplete();
+		    return getAllocSiteFromFlatNewPRIVATE(fn);
+	   }	  
+	  
+	  public AllocSite getAllocationSiteFromHeapRegionNodeID(Integer id) {
+		    checkAnalysisComplete();
+		    return mapHrnIdToAllocSite.get(id);
+	  }
+	  
+	  public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+              int paramIndex1,
+              int paramIndex2) {
+		  checkAnalysisComplete();
+		  ReachGraph rg=mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+		  FlatMethod fm=state.getMethodFlat(taskOrMethod);
+		  assert(rg != null);
+		  return rg.mayReachSharedObjects(fm, paramIndex1, paramIndex2);
+	  }
+	  
+	public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+			int paramIndex, AllocSite alloc) {
+		checkAnalysisComplete();
+		ReachGraph rg = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+   	    FlatMethod fm=state.getMethodFlat(taskOrMethod);
+		assert (rg != null);
+		return rg.mayReachSharedObjects(fm, paramIndex, alloc);
+	}
+
+	public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+			AllocSite alloc, int paramIndex) {
+		checkAnalysisComplete();
+		ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+		FlatMethod fm=state.getMethodFlat(taskOrMethod);
+		assert (rg != null);
+		return rg.mayReachSharedObjects(fm, paramIndex, alloc);
+	}
+
+	public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+			AllocSite alloc1, AllocSite alloc2) {
+		checkAnalysisComplete();
+		ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+		assert (rg != null);
+		return rg.mayReachSharedObjects(alloc1, alloc2);
+	}
+	
+	public String prettyPrintNodeSet(Set<HeapRegionNode> s) {
+		checkAnalysisComplete();
+
+		String out = "{\n";
+
+		Iterator<HeapRegionNode> i = s.iterator();
+		while (i.hasNext()) {
+			HeapRegionNode n = i.next();
+
+			AllocSite as = n.getAllocSite();
+			if (as == null) {
+				out += "  " + n.toString() + ",\n";
+			} else {
+				out += "  " + n.toString() + ": " + as.toStringVerbose()
+						+ ",\n";
+			}
+		}
+
+		out += "}\n";
+		return out;
+	}
+	
+	// use the methods given above to check every possible alias
+	  // between task parameters and flagged allocation sites reachable
+	  // from the task
+	  public void writeAllAliases(String outputFile, 
+	                              String timeReport,
+	                              String justTime,
+	                              boolean tabularOutput,
+	                              int numLines
+)
+			throws java.io.IOException {
+		checkAnalysisComplete();
+
+		BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
+
+		if (!tabularOutput) {
+			bw.write("Conducting ownership analysis with allocation depth = "
+					+ allocationDepth + "\n");
+			bw.write(timeReport + "\n");
+		}
+
+		int numAlias = 0;
+
+		// look through every task for potential aliases
+		Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+		while (taskItr.hasNext()) {
+			TaskDescriptor td = (TaskDescriptor) taskItr.next();
+
+			if (!tabularOutput) {
+				bw.write("\n---------" + td + "--------\n");
+			}
+
+			HashSet<AllocSite> allocSites = getFlaggedAllocationSitesReachableFromTask(td);
+
+			Set<HeapRegionNode> common;
+
+			// for each task parameter, check for aliases with
+			// other task parameters and every allocation site
+			// reachable from this task
+			boolean foundSomeAlias = false;
+
+			FlatMethod fm = state.getMethodFlat(td);
+			for (int i = 0; i < fm.numParameters(); ++i) {
+
+				// for the ith parameter check for aliases to all
+				// higher numbered parameters
+				for (int j = i + 1; j < fm.numParameters(); ++j) {
+					common = createsPotentialAliases(td, i, j);
+					if (!common.isEmpty()) {
+						foundSomeAlias = true;
+						if (!tabularOutput) {
+							bw.write("Potential alias between parameters " + i
+									+ " and " + j + ".\n");
+							bw.write(prettyPrintNodeSet(common) + "\n");
+						} else {
+							++numAlias;
+						}
+					}
+				}
+
+				// for the ith parameter, check for aliases against
+				// the set of allocation sites reachable from this
+				// task context
+				Iterator allocItr = allocSites.iterator();
+				while (allocItr.hasNext()) {
+					AllocSite as = (AllocSite) allocItr.next();
+					common = createsPotentialAliases(td, i, as);
+					if (!common.isEmpty()) {
+						foundSomeAlias = true;
+						if (!tabularOutput) {
+							bw.write("Potential alias between parameter " + i
+									+ " and " + as.getFlatNew() + ".\n");
+							bw.write(prettyPrintNodeSet(common) + "\n");
+						} else {
+							++numAlias;
+						}
+					}
+				}
+			}
+
+			// for each allocation site check for aliases with
+			// other allocation sites in the context of execution
+			// of this task
+			HashSet<AllocSite> outerChecked = new HashSet<AllocSite>();
+			Iterator allocItr1 = allocSites.iterator();
+			while (allocItr1.hasNext()) {
+				AllocSite as1 = (AllocSite) allocItr1.next();
+
+				Iterator allocItr2 = allocSites.iterator();
+				while (allocItr2.hasNext()) {
+					AllocSite as2 = (AllocSite) allocItr2.next();
+
+					if (!outerChecked.contains(as2)) {
+						common = createsPotentialAliases(td, as1, as2);
+
+						if (!common.isEmpty()) {
+							foundSomeAlias = true;
+							if (!tabularOutput) {
+								bw.write("Potential alias between "
+										+ as1.getFlatNew() + " and "
+										+ as2.getFlatNew() + ".\n");
+								bw.write(prettyPrintNodeSet(common) + "\n");
+							} else {
+								++numAlias;
+							}
+						}
+					}
+				}
+
+				outerChecked.add(as1);
+			}
+
+			if (!foundSomeAlias) {
+				if (!tabularOutput) {
+					bw.write("No aliases between flagged objects in Task " + td
+							+ ".\n");
+				}
+			}
+		}
+
+		/*
+		if (!tabularOutput) {
+			bw.write("\n" + computeAliasContextHistogram());
+		} else {
+			bw.write(" & " + numAlias + " & " + justTime + " & " + numLines
+					+ " & " + numMethodsAnalyzed() + " \\\\\n");
+		}
+		*/
+
+		bw.close();
+	}
+	
+	// this version of writeAllAliases is for Java programs that have no tasks
+	  public void writeAllAliasesJava(String outputFile, 
+	                                  String timeReport,
+	                                  String justTime,
+	                                  boolean tabularOutput,
+	                                  int numLines
+)
+			throws java.io.IOException {
+		checkAnalysisComplete();
+
+		assert !state.TASK;
+
+		BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
+
+		bw.write("Conducting ownership analysis with allocation depth = "
+				+ allocationDepth + "\n");
+		bw.write(timeReport + "\n\n");
+
+		boolean foundSomeAlias = false;
+
+		Descriptor d = typeUtil.getMain();
+		HashSet<AllocSite> allocSites = getFlaggedAllocationSites(d);
+
+		// for each allocation site check for aliases with
+		// other allocation sites in the context of execution
+		// of this task
+		HashSet<AllocSite> outerChecked = new HashSet<AllocSite>();
+		Iterator allocItr1 = allocSites.iterator();
+		while (allocItr1.hasNext()) {
+			AllocSite as1 = (AllocSite) allocItr1.next();
+
+			Iterator allocItr2 = allocSites.iterator();
+			while (allocItr2.hasNext()) {
+				AllocSite as2 = (AllocSite) allocItr2.next();
+
+				if (!outerChecked.contains(as2)) {
+					Set<HeapRegionNode> common = createsPotentialAliases(d,
+							as1, as2);
+
+					if (!common.isEmpty()) {
+						foundSomeAlias = true;
+						bw.write("Potential alias between "
+								+ as1.getDisjointAnalysisId() + " and "
+								+ as2.getDisjointAnalysisId() + ".\n");
+						bw.write(prettyPrintNodeSet(common) + "\n");
+					}
+				}
+			}
+
+			outerChecked.add(as1);
+		}
+
+		if (!foundSomeAlias) {
+			bw.write("No aliases between flagged objects found.\n");
+		}
+
+//		bw.write("\n" + computeAliasContextHistogram());
+		bw.close();
+	}
+	  
+	  ///////////////////////////////////////////
+	  //
+	  // end public interface
+	  //
+	  ///////////////////////////////////////////
+
+	  protected void checkAnalysisComplete() {
+		    if( !analysisComplete ) {
+		      throw new Error("Warning: public interface method called while analysis is running.");
+		    }
+	  } 
 
 
   // data from the compiler
@@ -20,6 +304,14 @@ public class DisjointAnalysis {
   public ArrayReferencees arrayReferencees;
   public TypeUtil         typeUtil;
   public int              allocationDepth;
+  
+  // data structure for public interface
+  private Hashtable<Descriptor,    HashSet<AllocSite> > mapDescriptorToAllocationSiteSet;
+
+  
+  // for public interface methods to warn that they
+  // are grabbing results during analysis
+  private boolean analysisComplete;
 
 
   // used to identify HeapRegionNode objects
@@ -173,6 +465,8 @@ public class DisjointAnalysis {
                        Liveness         liveness,
                        ArrayReferencees arrayReferencees
                        ) throws java.io.IOException {
+	  
+	analysisComplete = false;
     
     this.state                   = state;
     this.typeUtil                = typeUtil;
@@ -193,6 +487,7 @@ public class DisjointAnalysis {
 
     // start interprocedural fixed-point computation
     analyzeMethods();
+    analysisComplete=true;
 
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
@@ -1352,8 +1647,143 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 //    debugSnapshot(rg, fm, true);
     return rg;
 }
-    
 
+// return all allocation sites in the method (there is one allocation
+// site per FlatNew node in a method)
+private HashSet<AllocSite> getAllocationSiteSet(Descriptor d) {
+  if( !mapDescriptorToAllocationSiteSet.containsKey(d) ) {
+    buildAllocationSiteSet(d);
+  }
+
+  return mapDescriptorToAllocationSiteSet.get(d);
+
+}
+
+private void buildAllocationSiteSet(Descriptor d) {
+    HashSet<AllocSite> s = new HashSet<AllocSite>();
+
+    FlatMethod fm;
+    if( d instanceof MethodDescriptor ) {
+      fm = state.getMethodFlat( (MethodDescriptor) d);
+    } else {
+      assert d instanceof TaskDescriptor;
+      fm = state.getMethodFlat( (TaskDescriptor) d);
+    }
+
+    // visit every node in this FlatMethod's IR graph
+    // and make a set of the allocation sites from the
+    // FlatNew node's visited
+    HashSet<FlatNode> visited = new HashSet<FlatNode>();
+    HashSet<FlatNode> toVisit = new HashSet<FlatNode>();
+    toVisit.add(fm);
+
+    while( !toVisit.isEmpty() ) {
+      FlatNode n = toVisit.iterator().next();
+
+      if( n instanceof FlatNew ) {
+	s.add(getAllocSiteFromFlatNewPRIVATE( (FlatNew) n) );
+      }
+
+      toVisit.remove(n);
+      visited.add(n);
+
+      for( int i = 0; i < n.numNext(); ++i ) {
+	FlatNode child = n.getNext(i);
+	if( !visited.contains(child) ) {
+	  toVisit.add(child);
+	}
+      }
+    }
+
+    mapDescriptorToAllocationSiteSet.put(d, s);
+  }
+
+	private HashSet<AllocSite> getFlaggedAllocationSites(Descriptor dIn) {
+
+		HashSet<AllocSite> out = new HashSet<AllocSite>();
+		HashSet<Descriptor> toVisit = new HashSet<Descriptor>();
+		HashSet<Descriptor> visited = new HashSet<Descriptor>();
+
+		toVisit.add(dIn);
+
+		while (!toVisit.isEmpty()) {
+			Descriptor d = toVisit.iterator().next();
+			toVisit.remove(d);
+			visited.add(d);
+
+			HashSet<AllocSite> asSet = getAllocationSiteSet(d);
+			Iterator asItr = asSet.iterator();
+			while (asItr.hasNext()) {
+				AllocSite as = (AllocSite) asItr.next();
+				if (as.getDisjointAnalysisId() != null) {
+					out.add(as);
+				}
+			}
+
+			// enqueue callees of this method to be searched for
+			// allocation sites also
+			Set callees = callGraph.getCalleeSet(d);
+			if (callees != null) {
+				Iterator methItr = callees.iterator();
+				while (methItr.hasNext()) {
+					MethodDescriptor md = (MethodDescriptor) methItr.next();
+
+					if (!visited.contains(md)) {
+						toVisit.add(md);
+					}
+				}
+			}
+		}
+
+		return out;
+	}
+ 
+    
+private HashSet<AllocSite>
+getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
+
+  HashSet<AllocSite> asSetTotal = new HashSet<AllocSite>();
+  HashSet<Descriptor>     toVisit    = new HashSet<Descriptor>();
+  HashSet<Descriptor>     visited    = new HashSet<Descriptor>();
+
+  toVisit.add(td);
+
+  // traverse this task and all methods reachable from this task
+  while( !toVisit.isEmpty() ) {
+    Descriptor d = toVisit.iterator().next();
+    toVisit.remove(d);
+    visited.add(d);
+
+    HashSet<AllocSite> asSet = getAllocationSiteSet(d);
+    Iterator asItr = asSet.iterator();
+    while( asItr.hasNext() ) {
+	AllocSite as = (AllocSite) asItr.next();
+	TypeDescriptor typed = as.getType();
+	if( typed != null ) {
+	  ClassDescriptor cd = typed.getClassDesc();
+	  if( cd != null && cd.hasFlags() ) {
+	    asSetTotal.add(as);
+	  }
+	}
+    }
+
+    // enqueue callees of this method to be searched for
+    // allocation sites also
+    Set callees = callGraph.getCalleeSet(d);
+    if( callees != null ) {
+	Iterator methItr = callees.iterator();
+	while( methItr.hasNext() ) {
+	  MethodDescriptor md = (MethodDescriptor) methItr.next();
+
+	  if( !visited.contains(md) ) {
+	    toVisit.add(md);
+	  }
+	}
+    }
+  }
+
+  return asSetTotal;
+}
 
 
   int zzz = 0;
