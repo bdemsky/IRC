@@ -34,8 +34,19 @@ public class ChangeTuple extends Canonical
 
   public static ChangeTuple factory( ReachState toMatch,
                                      ReachState toAdd ) {
-    ChangeTuple out = new ChangeTuple( toMatch,
-                                       toAdd );
+    // we don't care about the predicates hanging on
+    // change tuple states, so always set them to empty
+    // to ensure change tuple sets work out
+    ReachState toMatchNoPreds =
+      ReachState.factory( toMatch.reachTuples,
+                          ExistPredSet.factory()
+                          );
+    ReachState toAddNoPreds =
+      ReachState.factory( toAdd.reachTuples,
+                          ExistPredSet.factory()
+                          );
+    ChangeTuple out = new ChangeTuple( toMatchNoPreds,
+                                       toAddNoPreds );
     out = (ChangeTuple) Canonical.makeCanonical( out );
     return out;
   }
@@ -46,10 +57,10 @@ public class ChangeTuple extends Canonical
     this.toAdd   = toAdd;
   }
 
-  public ReachState getSetToMatch() {
+  public ReachState getStateToMatch() {
     return toMatch;
   }
-  public ReachState getSetToAdd() {
+  public ReachState getStateToAdd() {
     return toAdd;
   }
   

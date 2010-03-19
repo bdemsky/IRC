@@ -1080,8 +1080,10 @@ public class ReachGraph {
 	Iterator<ChangeTuple> itrCprime = C.iterator();
 	while( itrCprime.hasNext() ) {
 	  ChangeTuple c = itrCprime.next();
-	  if( edgeF.getBeta().contains( c.getSetToMatch() ) ) {
-	    changesToPass = Canonical.union( changesToPass, c );
+	  if( edgeF.getBeta().containsIgnorePreds( c.getStateToMatch() ) 
+              != null
+              ) {
+	    changesToPass = Canonical.add( changesToPass, c );
 	  }
 	}
 
@@ -1160,8 +1162,10 @@ public class ReachGraph {
       Iterator<ChangeTuple> itrC = C.iterator();
       while( itrC.hasNext() ) {
 	ChangeTuple c = itrC.next();
-	if( edgeE.getBeta().contains( c.getSetToMatch() ) ) {
-	  changesToPass = Canonical.union( changesToPass, c );
+	if( edgeE.getBeta().containsIgnorePreds( c.getStateToMatch() ) 
+            != null
+            ) {
+	  changesToPass = Canonical.add( changesToPass, c );
 	}
       }
 
@@ -2384,28 +2388,28 @@ public class ReachGraph {
         ChangeSet cs = ChangeSet.factory();
         Iterator<ReachState> rsItr = reCaller.getBeta().iterator();
         while( rsItr.hasNext() ) {
-          ReachState   state = rsItr.next();
-          ExistPredSet preds2 = state.getPreds();
-          assert preds2.preds.size() == 1;
+          ReachState   state          = rsItr.next();
+          ExistPredSet predsPreCallee = state.getPreds();
 
           if( state.isEmpty() ) {
             continue;
           }
 
-          ExistPred pred = preds2.preds.iterator().next();
-          ReachState old = pred.ne_state;
+          Iterator<ExistPred> predItr = predsPreCallee.iterator();
+          while( predItr.hasNext() ) {            
+            ExistPred pred = predItr.next();
+            ReachState old = pred.ne_state;
 
-          if( old == null ) {
-            old = rstateEmpty;
-          }
+            if( old == null ) {
+              old = rstateEmpty;
+            }
 
-          assert old != null;
-
-          cs = Canonical.union( cs,
+            cs = Canonical.add( cs,
                                 ChangeTuple.factory( old,
                                                      state
                                                      )
                                 );
+          }
         }
         
         // look to see if an edge with same field exists
@@ -2985,19 +2989,21 @@ public class ReachGraph {
           
             if( prevResult == null || 
                 Canonical.unionORpreds( prevResult,
-                                 intersection ).size() > prevResult.size() ) {
+                                        intersection ).size() 
+                > prevResult.size() 
+                ) {
             
               if( prevResult == null ) {
                 boldB_f.put( edgePrime, 
                              Canonical.unionORpreds( edgePrime.getBeta(),
-                                              intersection 
-                                              )
+                                                     intersection 
+                                                     )
                              );
               } else {
                 boldB_f.put( edgePrime, 
                              Canonical.unionORpreds( prevResult,
-                                              intersection 
-                                              )
+                                                     intersection 
+                                                     )
                              );
               }
               workSetEdges.add( edgePrime );	
@@ -3095,8 +3101,8 @@ public class ReachGraph {
 	// if there is nothing marked, just move on
 	if( markedHrnIDs.isEmpty() ) {
 	  hrn.setAlphaNew( Canonical.add( hrn.getAlphaNew(),
-                                            stateOld
-                                            )
+                                          stateOld
+                                          )
                            );
 	  continue;
 	}
@@ -3115,13 +3121,13 @@ public class ReachGraph {
 	assert !stateOld.equals( statePruned );
 
 	hrn.setAlphaNew( Canonical.add( hrn.getAlphaNew(),
-                                          statePruned
-                                          )
+                                        statePruned
+                                        )
                          );
 	ChangeTuple ct = ChangeTuple.factory( stateOld,
                                               statePruned
                                               );
-	cts = Canonical.union( cts, ct );
+	cts = Canonical.add( cts, ct );
       }
 
       // throw change tuple set on all incident edges
@@ -3216,7 +3222,10 @@ public class ReachGraph {
 		    
 	if( Canonical.unionORpreds( prevResult,
                                     intersection
-                                    ).size() > prevResult.size() ) {
+                                    ).size() 
+            > prevResult.size() 
+            ) {
+          
 	  edge.setBetaNew( 
                           Canonical.unionORpreds( prevResult,
                                                   intersection 
@@ -4044,10 +4053,10 @@ public class ReachGraph {
 			}
 		}
 
-		Set<HeapRegionNode> intersection = new HashSet<HeapRegionNode>(
-				reachableNodes1);
+		Set<HeapRegionNode> intersection =
+                  new HashSet<HeapRegionNode>( reachableNodes1 );
 
-		intersection.retainAll(reachableNodes2);
+		intersection.retainAll( reachableNodes2 );
 
 		return intersection;
 	}

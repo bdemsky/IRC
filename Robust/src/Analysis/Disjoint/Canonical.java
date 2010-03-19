@@ -173,7 +173,7 @@ abstract public class Canonical {
     out.reachTuples.addAll( rs.reachTuples );
     out.preds = Canonical.join( rs.preds,
                                 preds );
-
+    
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
     return out;
@@ -451,6 +451,13 @@ abstract public class Canonical {
   }
 
 
+  // NOTE: when taking the intersection of two reach sets it
+  // is possible for a reach state to be in both sets, but
+  // have different predicates.  Conceptully the best new
+  // predicate is an AND of the source predicates, but to
+  // avoid eploding states we'll take an overapproximation
+  // by preferring the predicates from the state in the FIRST
+  // set, so order of arguments matters
   public static ReachSet intersection( ReachSet rs1,
                                        ReachSet rs2 ) {
     assert rs1 != null;
@@ -472,9 +479,12 @@ abstract public class Canonical {
     ReachSet out = new ReachSet();
     Iterator<ReachState> itr = rs1.iterator();
     while( itr.hasNext() ) {
-      ReachState state = (ReachState) itr.next();
-      if( rs2.reachStates.contains( state ) ) {
-        out.reachStates.add( state );
+      ReachState state1 = (ReachState) itr.next();
+      ReachState state2 = rs2.containsIgnorePreds( state1 );
+      if( state2 != null ) {
+        // prefer the predicates on state1, an overapproximation
+        // of state1 preds AND state2 preds
+        out.reachStates.add( state1 );
       }
     }
 
@@ -552,7 +562,7 @@ abstract public class Canonical {
 
     Iterator<ReachState> stateItr = rs.iterator();
     while( stateItr.hasNext() ) {
-      ReachState state = stateItr.next();
+      ReachState stateOrig = stateItr.next();
 
       boolean changeFound = false;
 
@@ -560,14 +570,19 @@ abstract public class Canonical {
       while( ctItr.hasNext() ) {
 	ChangeTuple ct = ctItr.next();
 
-	if( state.equals( ct.getSetToMatch() ) ) {
-	  out.reachStates.add( ct.getSetToAdd() );
+	if( stateOrig.equalsIgnorePreds( ct.getStateToMatch() ) ) {
+          // use the new state, but the original predicates
+          ReachState stateNew = 
+            ReachState.factory( ct.getStateToAdd().reachTuples,
+                                stateOrig.preds
+                                );
+          out.reachStates.add( stateNew );
 	  changeFound = true;
 	}
       }
 
       if( keepSourceState || !changeFound ) {
-	out.reachStates.add( state );
+	out.reachStates.add( stateOrig );
       }
     }
 
@@ -761,8 +776,8 @@ abstract public class Canonical {
     return out;    
   }
 
-  public static ChangeSet union( ChangeSet   cs, 
-                                 ChangeTuple ct ) {
+  public static ChangeSet add( ChangeSet   cs, 
+                               ChangeTuple ct ) {
     assert cs != null;
     assert ct != null;
     assert cs.isCanonical();
@@ -1169,13 +1184,6 @@ abstract public class Canonical {
     op2result.put( op, out );
     return out;
   }
-
-
-
-
-
-
-
 
 
   public static ReachSet unshadow( ReachSet  rs,

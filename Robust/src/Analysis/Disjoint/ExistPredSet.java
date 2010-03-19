@@ -49,6 +49,11 @@ public class ExistPredSet extends Canonical {
     preds = new HashSet<ExistPred>();
   }
 
+  
+  public Iterator<ExistPred> iterator() {
+    return preds.iterator();
+  }
+  
 
   // only consider the subest of the caller elements that
   // are reachable by callee when testing predicates
