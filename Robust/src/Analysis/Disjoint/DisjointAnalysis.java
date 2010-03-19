@@ -306,7 +306,7 @@ public class DisjointAnalysis {
   public int              allocationDepth;
   
   // data structure for public interface
-  private Hashtable<Descriptor,    HashSet<AllocSite> > mapDescriptorToAllocationSiteSet;
+  private Hashtable<Descriptor,    HashSet<AllocSite> > mapDescriptorToAllocSiteSet;
 
   
   // for public interface methods to warn that they
@@ -407,7 +407,10 @@ public class DisjointAnalysis {
   // unique filenames
   protected Hashtable<Descriptor, Integer>
     mapDescriptorToNumUpdates;
-
+  
+  //map task descriptor to initial task parameter 
+  protected Hashtable<Descriptor, ReachGraph>
+  mapDescriptorToReachGraph;
 
 
   // allocate various structures that are not local
@@ -444,6 +447,12 @@ public class DisjointAnalysis {
 
     mapDescriptorToPriority =
       new Hashtable<Descriptor, Integer>();
+    
+    mapDescriptorToAllocSiteSet =
+    	new Hashtable<Descriptor,    HashSet<AllocSite> >();
+    
+    mapDescriptorToReachGraph = 
+    	new Hashtable<Descriptor, ReachGraph>();
   }
 
 
@@ -506,6 +515,7 @@ public class DisjointAnalysis {
     if( state.DISJOINTALIASFILE != null ) {
       if( state.TASK ) {
         // not supporting tasks yet...
+    	  writeAllAliases("allresult", treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
       } else {
         /*
         writeAllAliasesJava( aliasFile, 
@@ -592,7 +602,7 @@ public class DisjointAnalysis {
 
       ReachGraph rg     = analyzeMethod( d );
       ReachGraph rgPrev = getPartial( d );
-
+      
       if( !rg.equals( rgPrev ) ) {
         setPartial( d, rg );
 
@@ -641,10 +651,17 @@ public class DisjointAnalysis {
       // to see if anything was updated.
 
       ReachGraph rg = new ReachGraph();
-      
-      if(fn instanceof FlatMethod && ((FlatMethod)fn).getTask()!=null){
-	  // create initial reach graph for a task
-	  rg=createInitialTaskReachGraph((FlatMethod)fn);
+      TaskDescriptor taskDesc;
+      if(fn instanceof FlatMethod && (taskDesc=((FlatMethod)fn).getTask())!=null){
+    	  if(mapDescriptorToReachGraph.containsKey(taskDesc)){
+    		  // retrieve existing reach graph if it is not first time
+    		  rg=mapDescriptorToReachGraph.get(taskDesc);
+    	  }else{
+    		  // create initial reach graph for a task
+    		  rg=createInitialTaskReachGraph((FlatMethod)fn);
+    		  rg.globalSweep();
+    		  mapDescriptorToReachGraph.put(taskDesc, rg);
+    	  }
       }
 
       // start by merging all node's parents' graphs
@@ -701,7 +718,6 @@ public class DisjointAnalysis {
 
       completeGraph.merge( rgRet );
     }
-    
     return completeGraph;
   }
 
@@ -1521,12 +1537,10 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	    new Hashtable<TypeDescriptor, HeapRegionNode>();
 	Set<String> doneSet = new HashSet<String>();
 	
-	TempDescriptor tempDesc = new TempDescriptor(paramDesc.getSymbol(),
-						     paramTypeDesc);
+	TempDescriptor tempDesc = fm.getParameter(idx);
 	
 	AllocSite as = createParameterAllocSite(rg, tempDesc);
 	VariableNode lnX = rg.getVariableNodeFromTemp(tempDesc);
-	
 	Integer idNewest = as.getIthOldest(0);
 	HeapRegionNode hrnNewest = rg.id2hrn.get(idNewest);
 	// make a new reference to allocated node
@@ -1651,11 +1665,11 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 // return all allocation sites in the method (there is one allocation
 // site per FlatNew node in a method)
 private HashSet<AllocSite> getAllocationSiteSet(Descriptor d) {
-  if( !mapDescriptorToAllocationSiteSet.containsKey(d) ) {
+  if( !mapDescriptorToAllocSiteSet.containsKey(d) ) {
     buildAllocationSiteSet(d);
   }
 
-  return mapDescriptorToAllocationSiteSet.get(d);
+  return mapDescriptorToAllocSiteSet.get(d);
 
 }
 
@@ -1695,7 +1709,7 @@ private void buildAllocationSiteSet(Descriptor d) {
       }
     }
 
-    mapDescriptorToAllocationSiteSet.put(d, s);
+    mapDescriptorToAllocSiteSet.put(d, s);
   }
 
 	private HashSet<AllocSite> getFlaggedAllocationSites(Descriptor dIn) {
