@@ -1863,7 +1863,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
                        true,  // write labels (variables)
                        true,  // selectively hide intermediate temp vars
                        true,  // prune unreachable heap regions
-                       true,  // hide subset reachability states
+                       false, // hide subset reachability states
                        true );// hide edge taints
       } catch( Exception e ) {
 	System.out.println( "Error writing debug capture." );

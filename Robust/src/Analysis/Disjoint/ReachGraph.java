@@ -1905,11 +1905,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {    
       try {
         rg.writeGraph( "calleeview", 
-                       true,   // write labels (variables)                
-                       true,   // selectively hide intermediate temp vars 
-                       true,   // prune unreachable heap regions          
-                       true,   // hide subset reachability states         
-                       true ); // hide edge taints                        
+                       resolveMethodDebugDOTwriteLabels,    
+                       resolveMethodDebugDOTselectTemps,    
+                       resolveMethodDebugDOTpruneGarbage,   
+                       resolveMethodDebugDOThideSubsetReach,
+                       resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -1918,6 +1918,14 @@ public class ReachGraph {
 
   private static Hashtable<String, Integer> oocid2hrnid = 
     new Hashtable<String, Integer>();
+
+
+  // useful since many graphs writes in the method call debug code
+  private static boolean resolveMethodDebugDOTwriteLabels     = true;
+  private static boolean resolveMethodDebugDOTselectTemps     = true;
+  private static boolean resolveMethodDebugDOTpruneGarbage    = true;
+  private static boolean resolveMethodDebugDOThideSubsetReach = false;
+  private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
 
 
@@ -1933,17 +1941,18 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         rgCallee.writeGraph( "callee", 
-                             true,   // write labels (variables)                  
-                             true,   // selectively hide intermediate temp vars   
-                             true,   // prune unreachable heap regions            
-                             true,   // hide subset reachability states           
-                             true ); // hide edge taints                        
-        writeGraph( "caller00In", 
-                    true,  // write labels (variables)                
-                    true,  // selectively hide intermediate temp vars 
-                    true,  // prune unreachable heap regions          
-                    true,  // hide subset reachability states         
-                    true,  // hide edge taints                        
+                       resolveMethodDebugDOTwriteLabels,    
+                       resolveMethodDebugDOTselectTemps,    
+                       resolveMethodDebugDOTpruneGarbage,   
+                       resolveMethodDebugDOThideSubsetReach,
+                       resolveMethodDebugDOThideEdgeTaints );
+
+        writeGraph( "caller00In",  
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints,
                     callerNodeIDsCopiedToCallee );
       } catch( IOException e ) {}
     }
@@ -2165,11 +2174,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller20BeforeWipe", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -2191,11 +2200,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller30BeforeAddingNodes", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -2260,11 +2269,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller31BeforeAddingEdges", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -2460,11 +2469,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller35BeforeAssignReturnValue", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -2546,11 +2555,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller38propagateReach", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -2576,11 +2585,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller40BeforeShadowMerge", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
     
@@ -2677,11 +2686,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller45BeforeUnshadow", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
     
@@ -2705,11 +2714,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller50BeforeGlobalSweep", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
 
@@ -2724,11 +2733,11 @@ public class ReachGraph {
     if( writeDebugDOTs ) {
       try {
         writeGraph( "caller90AfterTransfer", 
-                    true,   // write labels (variables)                
-                    true,   // selectively hide intermediate temp vars 
-                    true,   // prune unreachable heap regions          
-                    true,   // hide subset reachability states         
-                    true ); // hide edge taints                        
+                    resolveMethodDebugDOTwriteLabels,    
+                    resolveMethodDebugDOTselectTemps,    
+                    resolveMethodDebugDOTpruneGarbage,   
+                    resolveMethodDebugDOThideSubsetReach,
+                    resolveMethodDebugDOThideEdgeTaints );
       } catch( IOException e ) {}
     }
   } 

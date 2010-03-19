@@ -6,12 +6,10 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 
 #DEBUGFLAGS= -disjoint-debug-callsite Bar addSomething 1
 #DEBUGFLAGS= -disjoint-debug-callsite Foo main 1
-
 #DEBUGFLAGS= -disjoint-debug-callsite main analysisEntryMethod 1
 DEBUGFLAGS= -disjoint-debug-callsite addSomething main 100
 #DEBUGFLAGS= -disjoint-debug-callsite addBar addSomething 1
 #DEBUGFLAGS= -disjoint-debug-callsite Bar addBar 1
-#DEBUGFLAGS=
 
 BSFLAGS= -mainclass Test -justanalyze -disjoint -disjoint-k 2 -disjoint-write-dots final -disjoint-write-ihms -disjoint-alias-file aliases.txt normal -enable-assertions
 
