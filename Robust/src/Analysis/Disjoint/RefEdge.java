@@ -238,4 +238,8 @@ public class RefEdge {
                        "->"+dst+")"
                        );
   }  
+
+  public String toStringAndBeta() {
+    return toString()+beta.toString();
+  }
 }

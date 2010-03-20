@@ -62,11 +62,6 @@ public class ReachSet extends Canonical {
     return reachStates.isEmpty();
   }
 
-  public boolean contains( ReachState state ) {
-    assert state != null;
-    return reachStates.contains( state );
-  }
-
   // this should be a hash table so we can do this by key
   public ReachState containsIgnorePreds( ReachState state ) {
     assert state != null;

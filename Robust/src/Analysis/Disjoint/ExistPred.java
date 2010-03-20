@@ -194,7 +194,8 @@ public class ExistPred extends Canonical {
 
       // otherwise look for state too
       // TODO: contains OR containsSuperSet OR containsWithZeroes??
-      if( hrn.getAlpha().contains( ne_state ) ) {
+      if( hrn.getAlpha().containsIgnorePreds( ne_state ) 
+          == null ) {
         return hrn.getPreds();
       }
 
@@ -213,6 +214,10 @@ public class ExistPred extends Canonical {
         hrnSrc = rg.id2hrn.get( e_hrnSrcID );
       }
       assert (vnSrc == null) || (hrnSrc == null);
+
+      
+      System.out.println( "      checking if src in graph" );
+
     
       // the source is not present in graph
       if( vnSrc == null && hrnSrc == null ) {
@@ -223,14 +228,27 @@ public class ExistPred extends Canonical {
       if( vnSrc != null ) {
         rsn = vnSrc;
       } else {
-        if( !calleeReachableNodes.contains( e_hrnSrcID ) && !e_srcOutContext ) {
-          return null;
+
+
+        System.out.println( "      doing this thing, reachable nodes: "+calleeReachableNodes );
+
+        if( e_srcOutContext ) {
+          if( !hrnSrc.isOutOfContext() ) {
+            return null;
+          }
+        } else {
+          if( hrnSrc.isOutOfContext() ) {
+            return null;
+          }
         }
-        if( calleeReachableNodes.contains( e_hrnSrcID ) && e_srcOutContext ) {
-          return null;
-        }
+
         rsn = hrnSrc;
       }
+
+
+
+      System.out.println( "      checking if dst in graph" );
+
 
       // is the destination present?
       HeapRegionNode hrnDst = rg.id2hrn.get( e_hrnDstID );
@@ -241,6 +259,11 @@ public class ExistPred extends Canonical {
       if( !calleeReachableNodes.contains( e_hrnDstID ) ) {
         return null;
       }
+
+
+
+      System.out.println( "      checking if edge/type/field matches" );
+
 
       // is there an edge between them with the given
       // type and field?
@@ -258,9 +281,14 @@ public class ExistPred extends Canonical {
         return edge.getPreds();
       }
       
+
+      System.out.println( "      state not null, checking for existence" );
+
+
       // otherwise look for state too
       // TODO: contains OR containsSuperSet OR containsWithZeroes??
-      if( hrnDst.getAlpha().contains( ne_state ) ) {
+      if( hrnDst.getAlpha().containsIgnorePreds( ne_state ) 
+          == null ) {
         return edge.getPreds();
       }
 

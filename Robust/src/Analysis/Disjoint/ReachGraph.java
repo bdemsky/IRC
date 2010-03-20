@@ -1444,10 +1444,10 @@ public class ReachGraph {
                                           calleeStatesSatisfied.get( stateCallee )
                                           );        
           out = Canonical.add( out,
-                                 stateCaller
-                                 );
+                               stateCaller
+                               );
         }
-      }
+      } 
     }    
 
     assert out.isCanonical();
@@ -1748,19 +1748,22 @@ public class ReachGraph {
       ReachSet       oocReach;
       TempDescriptor oocPredSrcTemp = null;
       Integer        oocPredSrcID   = null;
+      boolean        oocooc;
 
       if( rsnCaller instanceof VariableNode ) {
         VariableNode vnCaller = (VariableNode) rsnCaller;
         oocNodeType    = null;
         oocReach       = rsetEmpty;
         oocPredSrcTemp = vnCaller.getTempDescriptor();
+        oocooc         = false;
 
       } else {
         HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
         assert !callerNodeIDsCopiedToCallee.contains( hrnSrcCaller.getID() );
         oocNodeType  = hrnSrcCaller.getType();
         oocReach     = hrnSrcCaller.getAlpha(); 
-        oocPredSrcID = hrnSrcCaller.getID();        
+        oocPredSrcID = hrnSrcCaller.getID();
+        oocooc       = hrnSrcCaller.isOutOfContext();
       }
 
       ExistPred pred =
@@ -1770,7 +1773,7 @@ public class ReachGraph {
                            reCaller.getType(),
                            reCaller.getField(),
                            null,
-                           true ); // out-of-context
+                           oocooc ); // out-of-context
 
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
@@ -2038,6 +2041,12 @@ public class ReachGraph {
           continue;
         }        
 
+
+        
+        System.out.println( "  preds satisfied? for "+reCallee+" "+reCallee.getPreds() );
+        
+
+
         // first see if the source is out-of-context, and only
         // proceed with this edge if we find some caller-context
         // matches
@@ -2118,7 +2127,13 @@ public class ReachGraph {
             } 
           }
 
+          System.out.println( "    YES" );
         }        
+
+
+        else {
+          System.out.println( "    NO" );
+        }
 
       }
     }
@@ -2421,6 +2436,7 @@ public class ReachGraph {
           }
         }
         
+
         // look to see if an edge with same field exists
         // and merge with it, otherwise just add the edge
         RefEdge edgeExisting = rsnCaller.getReferenceTo( hrnDstCaller,
@@ -3096,7 +3112,8 @@ public class ReachGraph {
             if( B != null ) {            
               ReachSet boldB_rtOld_incident = B.get( incidentEdge );
               if( boldB_rtOld_incident != null &&
-                  boldB_rtOld_incident.contains( stateOld ) ) {
+                  boldB_rtOld_incident.containsIgnorePreds( stateOld ) != null
+                  ) {
                 foundState = true;
               }
             }
