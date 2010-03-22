@@ -674,9 +674,25 @@ public class DisjointAnalysis {
 	}
       }
 
+
+      if( takeDebugSnapshots && 
+ 	  d.getSymbol().equals( descSymbolDebug ) 
+          ) {
+ 	debugSnapshot( rg, fn, true );
+      }
+ 
+
       // modify rg with appropriate transfer function
       rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
+
+
+      if( takeDebugSnapshots && 
+ 	  d.getSymbol().equals( descSymbolDebug ) 
+          ) {
+ 	debugSnapshot( rg, fn, false );
+      }
           
+
       // if the results of the new graph are different from
       // the current graph at this node, replace the graph
       // with the update and enqueue the children
@@ -1789,14 +1805,11 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 }
 
 
-  int zzz = 0;
-
-
   
   
   // get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String descSymbolDebug = "main";
+  String descSymbolDebug = "addSomething";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1810,10 +1823,11 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
   int freqCountReport = 0;
 
   // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 0;
+  int iterStartCapture = 25;
 
   // the number of snapshots to take
   int numIterToCapture = 300;
+
 
   void debugSnapshot( ReachGraph rg, FlatNode fn, boolean in ) {
     if( debugCounter > iterStartCapture + numIterToCapture ) {

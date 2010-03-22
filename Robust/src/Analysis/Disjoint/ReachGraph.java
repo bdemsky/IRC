@@ -139,10 +139,7 @@ public class ReachGraph {
       alpha = inherent;
     }
 
-    if( preds == null ) {
-      // TODO: do this right?  For out-of-context nodes?
-      preds = ExistPredSet.factory();
-    }
+    assert preds != null;
     
     HeapRegionNode hrn = new HeapRegionNode( id,
 					     isSingleObject,
@@ -1820,6 +1817,15 @@ public class ReachGraph {
                                           preds,
                                           "out-of-context"
                                           );       
+          } else {
+            // otherwise it is there, so merge reachability
+            hrnCalleeAndOutContext.setAlpha( Canonical.unionORpreds( hrnCalleeAndOutContext.getAlpha(),
+                                                                     toCalleeContext( oocReach,
+                                                                                      preds,
+                                                                                      oocTuples
+                                                                                      )
+                                                                     )
+                                             );
           }
         }
 
@@ -1851,6 +1857,17 @@ public class ReachGraph {
                                                   reCaller.getPreds()
                                                   )
                                   );          
+
+        HeapRegionNode hrnCalleeAndOutContext =
+          (HeapRegionNode) oocEdgeExisting.getSrc();
+        hrnCalleeAndOutContext.setAlpha( Canonical.unionORpreds( hrnCalleeAndOutContext.getAlpha(),
+                                                                 toCalleeContext( oocReach,
+                                                                                  preds,
+                                                                                  oocTuples
+                                                                                  )
+                                                                 )
+                                         );
+        
         
       }                
     }
@@ -3133,7 +3150,16 @@ public class ReachGraph {
     Iterator<HeapRegionNode> nodeItr = id2hrn.values().iterator();
     while( nodeItr.hasNext() ) {
       HeapRegionNode hrn = nodeItr.next();
-      hrn.applyAlphaNew();
+
+      // as mentioned above, out-of-context nodes only serve
+      // as sources of reach states for the sweep, not part
+      // of the changes
+      if( hrn.isOutOfContext() ) {
+        assert hrn.getAlphaNew().equals( rsetEmpty );
+      } else {
+        hrn.applyAlphaNew();
+      }
+
       Iterator<RefEdge> itrRes = hrn.iteratorToReferencers();
       while( itrRes.hasNext() ) {
 	res.add( itrRes.next() );
