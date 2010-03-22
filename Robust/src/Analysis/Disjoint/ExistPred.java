@@ -56,10 +56,15 @@ public class ExistPred extends Canonical {
   // satisfied when the edge exists AND it has the state.
   // the source of an edge is *either* a variable
   // node or a heap region node
-  protected boolean        e_srcOutContext;
-
   protected TempDescriptor e_tdSrc;
   protected Integer        e_hrnSrcID;
+
+  // the source of an edge might be out of the callee
+  // context but in the caller graph, a normal caller
+  // heap region or variable, OR it might be out of the
+  // caller context ALSO: an ooc node in the caller
+  protected boolean        e_srcOutCalleeContext;
+  protected boolean        e_srcOutCallerContext;
 
   // dst is always a heap region
   protected Integer        e_hrnDstID;
@@ -87,7 +92,8 @@ public class ExistPred extends Canonical {
     e_hrnDstID = null;
     e_type     = null;
     e_field    = null;
-    e_srcOutContext = false;
+    e_srcOutCalleeContext = false;
+    e_srcOutCallerContext = false;
   }
 
   // node predicates
@@ -111,7 +117,8 @@ public class ExistPred extends Canonical {
     e_hrnDstID = null;
     e_type     = null;
     e_field    = null;
-    e_srcOutContext = false;
+    e_srcOutCalleeContext = false;
+    e_srcOutCallerContext = false;
   }
 
   // edge predicates
@@ -121,7 +128,8 @@ public class ExistPred extends Canonical {
                                    TypeDescriptor type,    
                                    String         field,   
                                    ReachState     state,
-                                   boolean        srcOutContext ) {
+                                   boolean        srcOutCalleeContext,
+                                   boolean        srcOutCallerContext ) {
 
     ExistPred out = new ExistPred( tdSrc,   
                                    hrnSrcID,
@@ -129,7 +137,8 @@ public class ExistPred extends Canonical {
                                    type,    
                                    field,   
                                    state,
-                                   srcOutContext );
+                                   srcOutCalleeContext,
+                                   srcOutCallerContext );
 
     out = (ExistPred) Canonical.makeCanonical( out );
     return out;
@@ -141,7 +150,8 @@ public class ExistPred extends Canonical {
                        TypeDescriptor type,
                        String         field,
                        ReachState     state,
-                       boolean        srcOutContext ) {
+                       boolean        srcOutCalleeContext,
+                       boolean        srcOutCallerContext ) {
     
     assert (tdSrc == null) || (hrnSrcID == null);
     assert hrnDstID != null;
@@ -150,7 +160,9 @@ public class ExistPred extends Canonical {
     // fields can be null when the edge is from
     // a variable node to a heap region!
     // assert field    != null;
-    this.e_srcOutContext = srcOutContext;
+
+    this.e_srcOutCalleeContext = srcOutCalleeContext;
+    this.e_srcOutCallerContext = srcOutCallerContext;
 
     this.e_tdSrc    = tdSrc;
     this.e_hrnSrcID = hrnSrcID;
@@ -214,10 +226,6 @@ public class ExistPred extends Canonical {
         hrnSrc = rg.id2hrn.get( e_hrnSrcID );
       }
       assert (vnSrc == null) || (hrnSrc == null);
-
-      
-      System.out.println( "      checking if src in graph" );
-
     
       // the source is not present in graph
       if( vnSrc == null && hrnSrc == null ) {
@@ -227,12 +235,24 @@ public class ExistPred extends Canonical {
       RefSrcNode rsn;
       if( vnSrc != null ) {
         rsn = vnSrc;
+        assert e_srcOutCalleeContext;
+        assert !e_srcOutCallerContext;
+
       } else {
 
+        if( e_srcOutCalleeContext ) {
+          assert !e_srcOutCallerContext;
+          if( calleeReachableNodes.contains( e_hrnSrcID ) ) {
+            return null;
+          }
+        } else {
+          if( !calleeReachableNodes.contains( e_hrnSrcID ) ) {
+            return null;
+          }
+        }
 
-        System.out.println( "      doing this thing, reachable nodes: "+calleeReachableNodes );
-
-        if( e_srcOutContext ) {
+        if( e_srcOutCallerContext ) {
+          assert !e_srcOutCalleeContext;
           if( !hrnSrc.isOutOfContext() ) {
             return null;
           }
@@ -245,11 +265,6 @@ public class ExistPred extends Canonical {
         rsn = hrnSrc;
       }
 
-
-
-      System.out.println( "      checking if dst in graph" );
-
-
       // is the destination present?
       HeapRegionNode hrnDst = rg.id2hrn.get( e_hrnDstID );
       if( hrnDst == null ) {
@@ -259,11 +274,6 @@ public class ExistPred extends Canonical {
       if( !calleeReachableNodes.contains( e_hrnDstID ) ) {
         return null;
       }
-
-
-
-      System.out.println( "      checking if edge/type/field matches" );
-
 
       // is there an edge between them with the given
       // type and field?
@@ -281,10 +291,6 @@ public class ExistPred extends Canonical {
         return edge.getPreds();
       }
       
-
-      System.out.println( "      state not null, checking for existence" );
-
-
       // otherwise look for state too
       // TODO: contains OR containsSuperSet OR containsWithZeroes??
       if( hrnDst.getAlpha().containsIgnorePreds( ne_state ) 
@@ -373,7 +379,8 @@ public class ExistPred extends Canonical {
 
     // if the identifiers match, this should
     // always match    
-    assert e_srcOutContext == pred.e_srcOutContext;
+    assert e_srcOutCalleeContext == pred.e_srcOutCalleeContext;
+    assert e_srcOutCallerContext == pred.e_srcOutCallerContext;
 
     return true;
   }
@@ -444,8 +451,12 @@ public class ExistPred extends Canonical {
         s += e_hrnSrcID.toString();
       }
 
-      if( e_srcOutContext ) {
-        s += "(ooc)";
+      if( e_srcOutCalleeContext ) {
+        s += "(ooCLEEc)";
+      }
+
+      if( e_srcOutCallerContext ) {
+        s += "(ooCLERc)";
       }
 
       s += "-->"+e_hrnDstID+")";

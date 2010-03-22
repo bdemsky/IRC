@@ -1284,15 +1284,9 @@ public class ReachGraph {
 
   // used below to convert a ReachSet to its callee-context
   // equivalent with respect to allocation sites in this graph
-  protected ReachSet toCalleeContext( Set<ReachTuple> oocTuples,
-                                      ReachSet        rs,
-                                      Integer         hrnID,
-                                      TempDescriptor  tdSrc,
-                                      Integer         hrnSrcID,
-                                      Integer         hrnDstID,
-                                      TypeDescriptor  type,
-                                      String          field,
-                                      boolean         outOfContext
+  protected ReachSet toCalleeContext( ReachSet        rs,
+                                      ExistPredSet    preds,
+                                      Set<ReachTuple> oocTuples
                                       ) {
     ReachSet out = ReachSet.factory();
    
@@ -1311,7 +1305,8 @@ public class ReachGraph {
         while( rtItr.hasNext() ) {
           ReachTuple rt = rtItr.next();
 
-          // only translate this tuple if it is in the out-context bag
+          // only translate this tuple if it is
+          // in the out-callee-context bag
           if( !oocTuples.contains( rt ) ) {
             stateNew = Canonical.add( stateNew, rt );
             continue;
@@ -1369,34 +1364,8 @@ public class ReachGraph {
         
         stateCallee = stateNew;
       }
-
-
-      ExistPredSet preds;
-
-      if( outOfContext ) {
-        preds = predsEmpty;
-      } else {
-        ExistPred pred;
-        if( hrnID != null ) {
-          assert tdSrc    == null;
-          assert hrnSrcID == null;
-          assert hrnDstID == null;
-          pred = ExistPred.factory( hrnID, 
-                                    stateCaller );
-        } else {
-          assert tdSrc != null || hrnSrcID != null;
-          assert hrnDstID != null;
-          pred = ExistPred.factory( tdSrc,
-                                    hrnSrcID,
-                                    hrnDstID,
-                                    type,
-                                    field,
-                                    stateCaller,
-                                    false );
-        }
-        preds = ExistPredSet.factory( pred );
-      }
       
+      // attach the passed in preds
       stateCallee = Canonical.attach( stateCallee,
                                       preds );
 
@@ -1619,16 +1588,14 @@ public class ReachGraph {
                                   false, // out-of-context?
                                   hrnCaller.getType(),
                                   hrnCaller.getAllocSite(),
-                                  toCalleeContext( oocTuples,
-                                                   hrnCaller.getInherent(),      // in state
-                                                   hrnCaller.getID(),            // node pred
-                                                   null, null, null, null, null, // edge pred
-                                                   false ),                      // ooc pred
-                                  toCalleeContext( oocTuples,
-                                                   hrnCaller.getAlpha(),         // in state
-                                                   hrnCaller.getID(),            // node pred
-                                                   null, null, null, null, null, // edge pred
-                                                   false ),                      // ooc pred
+                                  toCalleeContext( hrnCaller.getInherent(),
+                                                   preds,
+                                                   oocTuples 
+                                                   ),
+                                  toCalleeContext( hrnCaller.getAlpha(),
+                                                   preds,
+                                                   oocTuples 
+                                                   ),
                                   preds,
                                   hrnCaller.getDescription()
                                   );
@@ -1658,7 +1625,9 @@ public class ReachGraph {
                            reArg.getType(),
                            reArg.getField(),
                            null,
-                           false ); // out-of-context
+                           true,  // out-of-callee-context
+                           false  // out-of-caller-context
+                           );
       
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
@@ -1668,15 +1637,10 @@ public class ReachGraph {
                      hrnDstCallee,
                      reArg.getType(),
                      reArg.getField(),
-                     toCalleeContext( oocTuples,
-                                      reArg.getBeta(),      // in state
-                                      null,                 // node pred
-                                      arg,                  // edge pred
-                                      null,                 // edge pred
-                                      hrnDstCallee.getID(), // edge pred
-                                      reArg.getType(),      // edge pred
-                                      reArg.getField(),     // edge pred
-                                      false ),              // ooc pred
+                     toCalleeContext( reArg.getBeta(),
+                                      preds,
+                                      oocTuples
+                                      ),
                      preds
                      );
       
@@ -1707,7 +1671,9 @@ public class ReachGraph {
                            reCaller.getType(),
                            reCaller.getField(),
                            null,
-                           false ); // out-of-context
+                           false, // out-of-callee-context
+                           false  // out-of-caller-context
+                           );
       
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
@@ -1717,15 +1683,10 @@ public class ReachGraph {
                      hrnDstCallee,
                      reCaller.getType(),
                      reCaller.getField(),
-                     toCalleeContext( oocTuples,
-                                      reCaller.getBeta(),   // in state
-                                      null,                 // node pred
-                                      null,                 // edge pred
-                                      hrnSrcCallee.getID(), // edge pred
-                                      hrnDstCallee.getID(), // edge pred
-                                      reCaller.getType(),   // edge pred
-                                      reCaller.getField(),  // edge pred
-                                      false ),              // ooc pred
+                     toCalleeContext( reCaller.getBeta(),
+                                      preds,
+                                      oocTuples 
+                                      ),
                      preds
                      );
       
@@ -1748,14 +1709,16 @@ public class ReachGraph {
       ReachSet       oocReach;
       TempDescriptor oocPredSrcTemp = null;
       Integer        oocPredSrcID   = null;
-      boolean        oocooc;
+      boolean        outOfCalleeContext;
+      boolean        outOfCallerContext;
 
       if( rsnCaller instanceof VariableNode ) {
         VariableNode vnCaller = (VariableNode) rsnCaller;
         oocNodeType    = null;
         oocReach       = rsetEmpty;
         oocPredSrcTemp = vnCaller.getTempDescriptor();
-        oocooc         = false;
+        outOfCalleeContext = true;
+        outOfCallerContext = false;
 
       } else {
         HeapRegionNode hrnSrcCaller = (HeapRegionNode) rsnCaller;
@@ -1763,7 +1726,13 @@ public class ReachGraph {
         oocNodeType  = hrnSrcCaller.getType();
         oocReach     = hrnSrcCaller.getAlpha(); 
         oocPredSrcID = hrnSrcCaller.getID();
-        oocooc       = hrnSrcCaller.isOutOfContext();
+        if( hrnSrcCaller.isOutOfContext() ) {
+          outOfCalleeContext = false;
+          outOfCallerContext = true;
+        } else {
+          outOfCalleeContext = true;
+          outOfCallerContext = false;
+        }
       }
 
       ExistPred pred =
@@ -1773,7 +1742,9 @@ public class ReachGraph {
                            reCaller.getType(),
                            reCaller.getField(),
                            null,
-                           oocooc ); // out-of-context
+                           outOfCalleeContext,
+                           outOfCallerContext
+                           );
 
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
@@ -1809,18 +1780,14 @@ public class ReachGraph {
                                         true,  // out-of-context?
                                         oocNodeType,
                                         null,  // alloc site, shouldn't be used
-                                        toCalleeContext( oocTuples, 
-                                                         oocReach,                     // in state
-                                                         null,                         // node pred
-                                                         null, null, null, null, null, // edge pred
-                                                         true                          // ooc pred
-                                                         ), // inherent
-                                        toCalleeContext( oocTuples,
-                                                         oocReach,                     // in state
-                                                         null,                         // node pred
-                                                         null, null, null, null, null, // edge pred
-                                                         true                          // ooc pred
-                                                         ), // alpha
+                                        toCalleeContext( oocReach,               
+                                                         preds,
+                                                         oocTuples
+                                                         ),
+                                        toCalleeContext( oocReach,
+                                                         preds,
+                                                         oocTuples
+                                                         ),
                                         preds,
                                         "out-of-context"
                                         );       
@@ -1842,18 +1809,14 @@ public class ReachGraph {
                                           true,  // out-of-context?
                                           oocNodeType,
                                           null,  // alloc site, shouldn't be used
-                                          toCalleeContext( oocTuples,
-                                                           oocReach,                     // in state
-                                                           null,                         // node pred
-                                                           null, null, null, null, null, // edge pred
-                                                           true                          // ooc pred
-                                                           ), // inherent
-                                          toCalleeContext( oocTuples,
-                                                           oocReach,                     // in state
-                                                           null,                         // node pred
-                                                           null, null, null, null, null, // edge pred
-                                                           true                          // ooc pred
-                                                           ), // alpha
+                                          toCalleeContext( oocReach,
+                                                           preds,
+                                                           oocTuples
+                                                           ),
+                                          toCalleeContext( oocReach,
+                                                           preds,
+                                                           oocTuples
+                                                           ),
                                           preds,
                                           "out-of-context"
                                           );       
@@ -1866,15 +1829,9 @@ public class ReachGraph {
                                     hrnDstCallee,
                                     reCaller.getType(),
                                     reCaller.getField(),
-                                    toCalleeContext( oocTuples,
-                                                     reCaller.getBeta(),   // in state
-                                                     null,                 // node pred
-                                                     oocPredSrcTemp,       // edge pred
-                                                     oocPredSrcID,         // edge pred
-                                                     hrnDstCaller.getID(), // edge pred
-                                                     reCaller.getType(),   // edge pred
-                                                     reCaller.getField(),  // edge pred
-                                                     false                 // ooc pred
+                                    toCalleeContext( reCaller.getBeta(),
+                                                     preds,
+                                                     oocTuples
                                                      ),
                                     preds
                                     )
@@ -1883,16 +1840,10 @@ public class ReachGraph {
         } else {
         // the out-of-context edge already exists
         oocEdgeExisting.setBeta( Canonical.unionORpreds( oocEdgeExisting.getBeta(),
-                                                  toCalleeContext( oocTuples,
-                                                                   reCaller.getBeta(),   // in state
-                                                                   null,                 // node pred
-                                                                   oocPredSrcTemp,       // edge pred
-                                                                   oocPredSrcID,         // edge pred
-                                                                   hrnDstCaller.getID(), // edge pred
-                                                                   reCaller.getType(),   // edge pred
-                                                                   reCaller.getField(),  // edge pred
-                                                                   false                 // ooc pred
-                                                                   )
+                                                         toCalleeContext( reCaller.getBeta(),
+                                                                          preds,
+                                                                          oocTuples
+                                                                          )
                                                   )
                                  );         
           
@@ -2041,12 +1992,6 @@ public class ReachGraph {
           continue;
         }        
 
-
-        
-        System.out.println( "  preds satisfied? for "+reCallee+" "+reCallee.getPreds() );
-        
-
-
         // first see if the source is out-of-context, and only
         // proceed with this edge if we find some caller-context
         // matches
@@ -2126,15 +2071,7 @@ public class ReachGraph {
               calleeStatesSatisfied.put( stateCallee, predsIfSatis );
             } 
           }
-
-          System.out.println( "    YES" );
         }        
-
-
-        else {
-          System.out.println( "    NO" );
-        }
-
       }
     }
 
