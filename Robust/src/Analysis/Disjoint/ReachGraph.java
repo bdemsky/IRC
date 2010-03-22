@@ -792,9 +792,6 @@ public class ReachGraph {
       }
 
       String strDesc = as.toStringForDOT()+"\\nsummary";
-      if( shadow ) {
-        strDesc += " shadow";
-      }
 
       hrnSummary = 
         createNewHeapRegionNode( idSummary,    // id or null to generate a new one 
@@ -840,9 +837,6 @@ public class ReachGraph {
       }
 
       String strDesc = as.toStringForDOT()+"\\n"+i+" oldest";
-      if( shadow ) {
-        strDesc += " shadow";
-      }
 
       hrnIth = createNewHeapRegionNode( idIth,        // id or null to generate a new one 
                                         true,	      // single object?			 
@@ -2034,9 +2028,15 @@ public class ReachGraph {
         if( hrnSrcCallee.isOutOfContext() ) {          
 
           assert !calleeEdges2oocCallerSrcMatches.containsKey( reCallee );
+
           Set<RefSrcNode> rsnCallers = new HashSet<RefSrcNode>();            
 
+          // is the target node in the caller?
           HeapRegionNode hrnDstCaller = this.id2hrn.get( hrnCallee.getID() );
+          if( hrnDstCaller == null ) {
+            continue;
+          }
+
           Iterator<RefEdge> reDstItr = hrnDstCaller.iteratorToReferencers();
           while( reDstItr.hasNext() ) {
             // the edge and field (either possibly null) must match
@@ -3540,7 +3540,6 @@ public class ReachGraph {
     
     return true;
   }
-  
 
   protected boolean areVariableNodesEqual( ReachGraph rg ) {
 

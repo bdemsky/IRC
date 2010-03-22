@@ -3,6 +3,7 @@ package Analysis.Disjoint;
 import IR.*;
 import IR.Flat.*;
 import java.util.*;
+import java.io.*;
 
 public class HeapRegionNode extends RefSrcNode {
 
