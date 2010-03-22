@@ -290,6 +290,42 @@ public class ReachGraph {
     }
   }
 
+  // this is a common operation in many transfer functions: we want
+  // to add an edge, but if there is already such an edge we should
+  // merge the properties of the existing and the new edges
+  protected void addEdgeOrMergeWithExisting( RefEdge edgeNew ) {
+
+    RefSrcNode src = edgeNew.getSrc();
+    assert belongsToThis( src );
+
+    HeapRegionNode dst = edgeNew.getDst();
+    assert belongsToThis( dst );
+
+    // look to see if an edge with same field exists
+    // and merge with it, otherwise just add the edge
+    RefEdge edgeExisting = src.getReferenceTo( dst, 
+                                               edgeNew.getType(),
+                                               edgeNew.getField() 
+                                               );
+	
+    if( edgeExisting != null ) {
+      edgeExisting.setBeta(
+                           Canonical.unionORpreds( edgeExisting.getBeta(),
+                                                   edgeNew.getBeta()
+                                                   )
+                           );
+      edgeExisting.setPreds(
+                            Canonical.join( edgeExisting.getPreds(),
+                                            edgeNew.getPreds()
+                                            )
+                            );
+	
+    } else {			  
+      addRefEdge( src, dst, edgeNew );
+    }
+  }
+
+
 
   ////////////////////////////////////////////////////
   //
@@ -412,8 +448,8 @@ public class ReachGraph {
                                        Canonical.intersection( betaY, betaHrn ),
                                        predsTrue
                                        );
-	
-	addRefEdge( lnX, hrnHrn, edgeNew );
+
+        addEdgeOrMergeWithExisting( edgeNew );
       }
     }
 
@@ -564,27 +600,7 @@ public class ReachGraph {
                                        predsTrue
                                        );
 
-	// look to see if an edge with same field exists
-	// and merge with it, otherwise just add the edge
-	RefEdge edgeExisting = hrnX.getReferenceTo( hrnY, 
-                                                    tdNewEdge,
-                                                    f.getSymbol() );
-	
-	if( edgeExisting != null ) {
-	  edgeExisting.setBeta(
-                               Canonical.unionORpreds( edgeExisting.getBeta(),
-                                                edgeNew.getBeta()
-                                                )
-                               );
-          edgeExisting.setPreds(
-                                Canonical.join( edgeExisting.getPreds(),
-                                                edgeNew.getPreds()
-                                                )
-                                );
-	
-        } else {			  
-	  addRefEdge( hrnX, hrnY, edgeNew );
-	}
+        addEdgeOrMergeWithExisting( edgeNew );
       }
     }
 
@@ -2497,8 +2513,6 @@ public class ReachGraph {
                                      predsTrue,                     // predicates
                                      hrnDstCallee.getDescription()  // description
                                      );                                        
-        } else {
-          assert hrnDstCaller.isWiped();
         }
 
         TypeDescriptor tdNewEdge =
