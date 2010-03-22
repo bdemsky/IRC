@@ -349,8 +349,16 @@ public class ExistPred extends Canonical {
       if( pred.e_hrnSrcID != null ) {
         return false;
       }
-    } else if( !e_hrnSrcID.equals( pred.e_hrnSrcID ) ) {
-      return false;
+    } else {
+      if( !e_hrnSrcID.equals( pred.e_hrnSrcID ) ) {
+        return false;
+      }
+      if( e_srcOutCalleeContext != pred.e_srcOutCalleeContext ) {
+        return false;
+      }
+      if( e_srcOutCallerContext != pred.e_srcOutCallerContext ) {
+        return false;
+      }
     }
 
     if( e_hrnDstID == null ) {
@@ -377,11 +385,6 @@ public class ExistPred extends Canonical {
       return false;
     }
 
-    // if the identifiers match, this should
-    // always match    
-    assert e_srcOutCalleeContext == pred.e_srcOutCalleeContext;
-    assert e_srcOutCallerContext == pred.e_srcOutCallerContext;
-
     return true;
   }
 
@@ -395,9 +398,9 @@ public class ExistPred extends Canonical {
       int hash = n_hrnID.intValue()*17;
 
       if( ne_state != null ) {
-        hash += ne_state.hashCode();
+        hash ^= ne_state.hashCode();
       }
-      
+
       return hash;
     }
     
@@ -411,15 +414,21 @@ public class ExistPred extends Canonical {
       }
     
       if( e_tdSrc != null ) {
-        hash += e_tdSrc.hashCode()*11;
+        hash ^= e_tdSrc.hashCode()*11;
       } else {
-        hash += e_hrnSrcID.hashCode()*11;
+        hash ^= e_hrnSrcID.hashCode()*11;
+        if( e_srcOutCalleeContext ) {
+          hash ^= 0xf1aeb;
+        }
+        if( e_srcOutCallerContext ) {
+          hash ^= 0x875d;
+        }
       }
 
       hash += e_hrnDstID.hashCode();
 
       if( ne_state != null ) {
-        hash += ne_state.hashCode();
+        hash ^= ne_state.hashCode();
       }
 
       return hash;
