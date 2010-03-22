@@ -250,6 +250,30 @@ public class HeapRegionNode extends RefSrcNode {
   }
 
 
+  // use this method to assert that an out-of-context
+  // heap region node has only out-of-context symbols
+  // in its reachability
+  public boolean reachHasOnlyOOC() {
+    assert isOutOfContext;
+
+    Iterator<ReachState> stateItr = alpha.iterator();
+    while( stateItr.hasNext() ) {
+      ReachState state = stateItr.next();
+
+      Iterator<ReachTuple> rtItr = state.iterator();
+      while( rtItr.hasNext() ) {
+        ReachTuple rt = rtItr.next();
+
+        if( !rt.isOutOfContext() ) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+  
+
   public String getIDString() {
     String s;
 

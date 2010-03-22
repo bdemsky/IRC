@@ -1808,7 +1808,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
   
   // get successive captures of the analysis state
   boolean takeDebugSnapshots = false;
-  String descSymbolDebug = "addSomething";
+  String descSymbolDebug = "MDRunner";
   boolean stopAfterCapture = true;
 
   // increments every visit to debugSnapshot, don't fiddle with it
@@ -1819,13 +1819,13 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
   int numStartCountReport = 0;
 
   // the frequency of debugCounter values to print out, 0 no report
-  int freqCountReport = 0;
+  int freqCountReport = 50;
 
   // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 25;
+  int iterStartCapture = 350;
 
   // the number of snapshots to take
-  int numIterToCapture = 300;
+  int numIterToCapture = 400;
 
 
   void debugSnapshot( ReachGraph rg, FlatNode fn, boolean in ) {
@@ -1839,7 +1839,8 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 
     if( debugCounter    > numStartCountReport &&
 	freqCountReport > 0                   &&
-        debugCounter % freqCountReport == 0 
+        debugCounter % freqCountReport == 0   &&
+        in
         ) {
       System.out.println( "    @@@ debug counter = "+
                           debugCounter );
@@ -1847,15 +1848,15 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 
     if( debugCounter > iterStartCapture ) {
       System.out.println( "    @@@ capturing debug "+
-                          (debugCounter - iterStartCapture)+
+                          (debugCounter /*- iterStartCapture*/)+
                           " @@@" );
       String graphName;
       if( in ) {
         graphName = String.format( "snap%04din",
-                                   debugCounter - iterStartCapture );
+                                   debugCounter ); //- iterStartCapture );
       } else {
         graphName = String.format( "snap%04dout",
-                                   debugCounter - iterStartCapture );
+                                   debugCounter ); //- iterStartCapture );
       }
       if( fn != null ) {
 	graphName = graphName + fn;

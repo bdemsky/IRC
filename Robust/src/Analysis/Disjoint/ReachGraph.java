@@ -1291,9 +1291,9 @@ public class ReachGraph {
 
   // used below to convert a ReachSet to its callee-context
   // equivalent with respect to allocation sites in this graph
-  protected ReachSet toCalleeContext( ReachSet        rs,
-                                      ExistPredSet    preds,
-                                      Set<ReachTuple> oocTuples
+  protected ReachSet toCalleeContext( ReachSet      rs,
+                                      ExistPredSet  preds,
+                                      Set<HrnIdOoc> oocHrnIdOoc2callee
                                       ) {
     ReachSet out = ReachSet.factory();
    
@@ -1314,7 +1314,10 @@ public class ReachGraph {
 
           // only translate this tuple if it is
           // in the out-callee-context bag
-          if( !oocTuples.contains( rt ) ) {
+          HrnIdOoc hio = new HrnIdOoc( rt.getHrnID(),
+                                       rt.isOutOfContext()
+                                       );
+          if( !oocHrnIdOoc2callee.contains( hio ) ) {
             stateNew = Canonical.add( stateNew, rt );
             continue;
           }
@@ -1518,9 +1521,10 @@ public class ReachGraph {
     } // end iterating over parameters as starting points
 
 
-    // now collect out-of-context reach tuples and 
-    // more out-of-context edges
-    Set<ReachTuple> oocTuples = new HashSet<ReachTuple>();
+    // now collect out-of-callee-context IDs and 
+    // map them to whether the ID is out of the caller
+    // context as well
+    Set<HrnIdOoc> oocHrnIdOoc2callee = new HashSet<HrnIdOoc>();
 
     Iterator<Integer> itrInContext = 
       callerNodeIDsCopiedToCallee.iterator();
@@ -1567,12 +1571,14 @@ public class ReachGraph {
           while( rtItr.hasNext() ) {
             ReachTuple rt = rtItr.next();
 
-            oocTuples.add( rt );
+            oocHrnIdOoc2callee.add( new HrnIdOoc( rt.getHrnID(),
+                                                  rt.isOutOfContext()
+                                                  )
+                                    );
           }
         }
       }
     }
-
 
     // the callee view is a new graph: DON'T MODIFY *THIS* graph
     ReachGraph rg = new ReachGraph();
@@ -1597,11 +1603,11 @@ public class ReachGraph {
                                   hrnCaller.getAllocSite(),
                                   toCalleeContext( hrnCaller.getInherent(),
                                                    preds,
-                                                   oocTuples 
+                                                   oocHrnIdOoc2callee 
                                                    ),
                                   toCalleeContext( hrnCaller.getAlpha(),
                                                    preds,
-                                                   oocTuples 
+                                                   oocHrnIdOoc2callee 
                                                    ),
                                   preds,
                                   hrnCaller.getDescription()
@@ -1646,7 +1652,7 @@ public class ReachGraph {
                      reArg.getField(),
                      toCalleeContext( reArg.getBeta(),
                                       preds,
-                                      oocTuples
+                                      oocHrnIdOoc2callee
                                       ),
                      preds
                      );
@@ -1692,7 +1698,7 @@ public class ReachGraph {
                      reCaller.getField(),
                      toCalleeContext( reCaller.getBeta(),
                                       preds,
-                                      oocTuples 
+                                      oocHrnIdOoc2callee 
                                       ),
                      preds
                      );
@@ -1789,11 +1795,11 @@ public class ReachGraph {
                                         null,  // alloc site, shouldn't be used
                                         toCalleeContext( oocReach,               
                                                          preds,
-                                                         oocTuples
+                                                         oocHrnIdOoc2callee
                                                          ),
                                         toCalleeContext( oocReach,
                                                          preds,
-                                                         oocTuples
+                                                         oocHrnIdOoc2callee
                                                          ),
                                         preds,
                                         "out-of-context"
@@ -1818,26 +1824,29 @@ public class ReachGraph {
                                           null,  // alloc site, shouldn't be used
                                           toCalleeContext( oocReach,
                                                            preds,
-                                                           oocTuples
+                                                           oocHrnIdOoc2callee
                                                            ),
                                           toCalleeContext( oocReach,
                                                            preds,
-                                                           oocTuples
+                                                           oocHrnIdOoc2callee
                                                            ),
                                           preds,
                                           "out-of-context"
                                           );       
+
           } else {
             // otherwise it is there, so merge reachability
             hrnCalleeAndOutContext.setAlpha( Canonical.unionORpreds( hrnCalleeAndOutContext.getAlpha(),
                                                                      toCalleeContext( oocReach,
                                                                                       preds,
-                                                                                      oocTuples
+                                                                                      oocHrnIdOoc2callee
                                                                                       )
                                                                      )
                                              );
           }
         }
+
+        assert hrnCalleeAndOutContext.reachHasOnlyOOC();
 
         rg.addRefEdge( hrnCalleeAndOutContext,
                        hrnDstCallee,
@@ -1847,7 +1856,7 @@ public class ReachGraph {
                                     reCaller.getField(),
                                     toCalleeContext( reCaller.getBeta(),
                                                      preds,
-                                                     oocTuples
+                                                     oocHrnIdOoc2callee
                                                      ),
                                     preds
                                     )
@@ -1858,7 +1867,7 @@ public class ReachGraph {
         oocEdgeExisting.setBeta( Canonical.unionORpreds( oocEdgeExisting.getBeta(),
                                                          toCalleeContext( reCaller.getBeta(),
                                                                           preds,
-                                                                          oocTuples
+                                                                          oocHrnIdOoc2callee
                                                                           )
                                                   )
                                  );         
@@ -1873,12 +1882,12 @@ public class ReachGraph {
         hrnCalleeAndOutContext.setAlpha( Canonical.unionORpreds( hrnCalleeAndOutContext.getAlpha(),
                                                                  toCalleeContext( oocReach,
                                                                                   preds,
-                                                                                  oocTuples
+                                                                                  oocHrnIdOoc2callee
                                                                                   )
                                                                  )
                                          );
         
-        
+        assert hrnCalleeAndOutContext.reachHasOnlyOOC();
       }                
     }
 
@@ -2885,10 +2894,13 @@ public class ReachGraph {
 	assert rsetEmpty.equals( edge.getBetaNew() );
       }      
 
-      // calculate boldB for this flagged node, or out-of-context node
+      // make a mapping of IDs to heap regions they propagate from
       if( hrn.isFlagged() ) {
         assert !hrn.isOutOfContext();
         assert !icID2srcs.containsKey( hrn.getID() );
+
+        // in-context flagged node IDs simply propagate from the
+        // node they name
         Set<HeapRegionNode> srcs = new HashSet<HeapRegionNode>();
         srcs.add( hrn );
         icID2srcs.put( hrn.getID(), srcs );
@@ -2897,6 +2909,13 @@ public class ReachGraph {
       if( hrn.isOutOfContext() ) {
 	assert !hrn.isFlagged();
 
+        // the reachability states on an out-of-context
+        // node are not really important (combinations of
+        // IDs or arity)--what matters is that the states
+        // specify which nodes this out-of-context node
+        // stands in for.  For example, if the state [17?, 19*]
+        // appears on the ooc node, it may serve as a source
+        // for node 17? and a source for node 19.
         Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
         while( stateItr.hasNext() ) {
           ReachState state = stateItr.next();

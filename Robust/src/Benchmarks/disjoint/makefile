@@ -1,9 +1,11 @@
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
+#DEBUGFLAGS= -disjoint-debug-callsite MDRunner t3 100
+
 BSFLAGS= -recover -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -enable-assertions
 
 all:
-	$(BUILDSCRIPT) $(BSFLAGS) *.java
+	$(BUILDSCRIPT) $(BSFLAGS) $(DEBUGFLAGS) *.java
 
 clean:
 	rm -f  *.bin
