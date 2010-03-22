@@ -1,7 +1,6 @@
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -justanalyze -ownership -ownaliasfiletab aliases.txt -enable-assertions #-ownwritedots final #-flatirtasks
 
-BSFLAGS= -recover -justanalyze -disjoint -disjoint-k 2 -disjoint-write-dots final -disjoint-write-ihms -disjoint-alias-file aliases.txt normal -enable-assertions
+BSFLAGS= -recover -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -enable-assertions
 
 all:
 	$(BUILDSCRIPT) $(BSFLAGS) *.java

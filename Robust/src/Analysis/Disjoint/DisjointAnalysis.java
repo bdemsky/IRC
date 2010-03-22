@@ -238,7 +238,7 @@ public class DisjointAnalysis {
 
 		BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
 
-		bw.write("Conducting ownership analysis with allocation depth = "
+		bw.write("Conducting disjoint reachability analysis with allocation depth = "
 				+ allocationDepth + "\n");
 		bw.write(timeReport + "\n\n");
 
@@ -514,8 +514,7 @@ public class DisjointAnalysis {
 
     if( state.DISJOINTALIASFILE != null ) {
       if( state.TASK ) {
-        // not supporting tasks yet...
-    	  writeAllAliases(state.OWNERSHIPALIASFILE, treport, justtime, state.OWNERSHIPALIASTAB, state.lines);
+        writeAllAliases(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
       } else {
         /*
         writeAllAliasesJava( aliasFile, 
