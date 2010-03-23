@@ -606,6 +606,14 @@ public class DisjointAnalysis {
       if( !rg.equals( rgPrev ) ) {
         setPartial( d, rg );
 
+        /*
+        if( d.getSymbol().equals( "getInterpolatePatch" ) ) {
+          ReachGraph.dbgEquals = true;
+          rg.equals( rgPrev );
+          ReachGraph.dbgEquals = false;
+        }
+        */
+        
         // results for d changed, so enqueue dependents
         // of d for further analysis
 	Iterator<Descriptor> depsItr = getDependents( d ).iterator();
@@ -800,7 +808,7 @@ public class DisjointAnalysis {
       lhs = ffn.getDst();
       rhs = ffn.getSrc();
       fld = ffn.getField();
-      if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
+      if( shouldAnalysisTrack( fld.getType() ) ) {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
       }          
       break;
@@ -810,7 +818,7 @@ public class DisjointAnalysis {
       lhs = fsfn.getDst();
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
-      if( !fld.getType().isImmutable() || fld.getType().isArray() ) {
+      if( shouldAnalysisTrack( fld.getType() ) ) {
 	rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
       }           
       break;
@@ -819,7 +827,7 @@ public class DisjointAnalysis {
       FlatElementNode fen = (FlatElementNode) fn;
       lhs = fen.getDst();
       rhs = fen.getSrc();
-      if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
+      if( shouldAnalysisTrack( lhs.getType() ) ) {
 
 	assert rhs.getType() != null;
 	assert rhs.getType().isArray();
@@ -841,7 +849,7 @@ public class DisjointAnalysis {
 
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
-      if( !rhs.getType().isImmutable() || rhs.getType().isArray() ) {
+      if( shouldAnalysisTrack( rhs.getType() ) ) {
 
 	assert lhs.getType() != null;
 	assert lhs.getType().isArray();
@@ -856,7 +864,7 @@ public class DisjointAnalysis {
     case FKind.FlatNew:
       FlatNew fnn = (FlatNew) fn;
       lhs = fnn.getDst();
-      if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
+      if( shouldAnalysisTrack( lhs.getType() ) ) {
 	AllocSite as = getAllocSiteFromFlatNewPRIVATE( fnn );	
 	rg.assignTempEqualToNewAlloc( lhs, as );
       }
@@ -970,7 +978,7 @@ public class DisjointAnalysis {
     case FKind.FlatReturnNode:
       FlatReturnNode frn = (FlatReturnNode) fn;
       rhs = frn.getReturnTemp();
-      if( rhs != null && !rhs.getType().isImmutable() ) {
+      if( rhs != null && shouldAnalysisTrack( rhs.getType() ) ) {
 	rg.assignReturnEqualToTemp( rhs );
       }
       setRetNodes.add( frn );
@@ -1122,6 +1130,18 @@ public class DisjointAnalysis {
     }
 
     return mapFlatNewToAllocSite.get( fnew );
+  }
+
+
+  public static boolean shouldAnalysisTrack( TypeDescriptor type ) {
+    // don't track primitive types, but an array
+    // of primitives is heap memory
+    if( type.isImmutable() ) {
+      return type.isArray();
+    }
+
+    // everything else is an object
+    return true;
   }
 
 
@@ -1560,7 +1580,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	for (Iterator it = classDesc.getFields(); it.hasNext();) {
 	    FieldDescriptor fd = (FieldDescriptor) it.next();
 	    TypeDescriptor fieldType = fd.getType();
-	    if (!fieldType.isImmutable() || fieldType.isArray()) {
+	    if (shouldAnalysisTrack( fieldType )) {
 		HashMap<HeapRegionNode, FieldDescriptor> newMap = new HashMap<HeapRegionNode, FieldDescriptor>();
 		newMap.put(hrnNewest, fd);
 		workSet.add(newMap);

@@ -2121,8 +2121,14 @@ public class ReachGraph {
     for( int i = 0; i < fmCallee.numParameters(); ++i ) {
 
       // parameter defined here is the symbol in the callee
-      TempDescriptor tdParam  = fmCallee.getParameter( i );
-      VariableNode   vnCallee = rgCallee.getVariableNodeFromTemp( tdParam );
+      TempDescriptor tdParam = fmCallee.getParameter( i );
+
+      if( !DisjointAnalysis.shouldAnalysisTrack( tdParam.getType() ) ) {
+        // skip primitive/immutable parameters
+        continue;
+      }
+
+      VariableNode vnCallee = rgCallee.getVariableNodeFromTemp( tdParam );
 
       Iterator<RefEdge> reItr = vnCallee.iteratorToReferencees();
       while( reItr.hasNext() ) {
@@ -2483,7 +2489,9 @@ public class ReachGraph {
     
     // 3.d) handle return value assignment if needed
     TempDescriptor returnTemp = fc.getReturnTemp();
-    if( returnTemp != null && !returnTemp.getType().isImmutable() ) {
+    if( returnTemp != null && 
+        DisjointAnalysis.shouldAnalysisTrack( returnTemp.getType() ) 
+        ) {
 
       VariableNode vnLhsCaller = getVariableNodeFromTemp( returnTemp );
       clearRefEdgesFrom( vnLhsCaller, null, null, true );
@@ -3501,6 +3509,10 @@ public class ReachGraph {
   }
 
 
+
+  static boolean dbgEquals = false;
+
+
   // it is necessary in the equals() member functions
   // to "check both ways" when comparing the data
   // structures of two graphs.  For instance, if all
@@ -3514,18 +3526,30 @@ public class ReachGraph {
   public boolean equals( ReachGraph rg ) {
 
     if( rg == null ) {
+      if( dbgEquals ) {
+        System.out.println( "rg is null" );
+      }
       return false;
     }
     
     if( !areHeapRegionNodesEqual( rg ) ) {
+      if( dbgEquals ) {
+        System.out.println( "hrn not equal" );
+      }
       return false;
     }
 
     if( !areVariableNodesEqual( rg ) ) {
+      if( dbgEquals ) {
+        System.out.println( "vars not equal" );
+      }
       return false;
     }
 
     if( !areRefEdgesEqual( rg ) ) {
+      if( dbgEquals ) {
+        System.out.println( "edges not equal" );
+      }
       return false;
     }
 
