@@ -729,6 +729,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
   if (memorybase==NULL||size>(memorytop-memorybase)) {
     int toallocate=(size>MEMORYBLOCK)?size:MEMORYBLOCK;
     memorybase=helper(stackptr, toallocate);
+    bzero(memorybase, toallocate);
     memorytop=memorybase+toallocate;
   }
   char *retvalue=memorybase;
@@ -759,16 +760,20 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
 	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
 	exit(-1);
       }
+#if defined(STM)||defined(THREADS)||defined(MLP)
+#else
       bzero(curr_heapbase, INITIALHEAPSIZE);
+#endif
       curr_heaptop=curr_heapbase+INITIALHEAPSIZE;
       curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(INITIALHEAPSIZE);
       curr_heapptr=curr_heapbase+size;
-
+    
       to_heapbase=malloc(INITIALHEAPSIZE);
       if (to_heapbase==NULL) {
 	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
 	exit(-1);
       }
+      
       to_heaptop=to_heapbase+INITIALHEAPSIZE;
       to_heapptr=to_heapbase;
       ptr=curr_heapbase;
