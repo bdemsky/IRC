@@ -2436,11 +2436,14 @@ public class ReachGraph {
 
           // for reach propagation
           if( !cs.isEmpty() ) {
-            edgePlannedChanges.put( 
-                                   edgeExisting, 
-                                   Canonical.union( edgePlannedChanges.get( edgeExisting ),
-                                                    cs
-                                                    ) 
+            ChangeSet csExisting = edgePlannedChanges.get( edgeExisting );
+            if( csExisting == null ) {
+              csExisting = ChangeSet.factory();
+            }
+            edgePlannedChanges.put( edgeExisting, 
+                                    Canonical.union( csExisting,
+                                                     cs
+                                                     ) 
                                     );
           }
           
@@ -3092,6 +3095,16 @@ public class ReachGraph {
             if( rtOld.isOutOfContext() ) {
               B = boldBooc.get( rtOld.getHrnID() ); 
             } else {
+
+
+              if( !id2hrn.containsKey( rtOld.getHrnID() ) ) {
+                System.out.println( "\nLooking for "+rtOld );
+                try {
+                  writeGraph( "dbgz", true, true, true, true, true );
+                } catch( IOException e ) {}
+              }
+
+
               assert id2hrn.containsKey( rtOld.getHrnID() );
               B = boldBic.get( rtOld.getHrnID() ); 
             }
@@ -4031,292 +4044,263 @@ public class ReachGraph {
     }
   }  
   
-	public Set<HeapRegionNode> findCommonReachableNodes(HeapRegionNode hrn1,
-			HeapRegionNode hrn2) {
 
-		Set<HeapRegionNode> reachableNodes1 = new HashSet<HeapRegionNode>();
-		Set<HeapRegionNode> reachableNodes2 = new HashSet<HeapRegionNode>();
 
-		Set<HeapRegionNode> todoNodes1 = new HashSet<HeapRegionNode>();
-		todoNodes1.add(hrn1);
 
-		Set<HeapRegionNode> todoNodes2 = new HashSet<HeapRegionNode>();
-		todoNodes2.add(hrn2);
 
-		// follow links until all reachable nodes have been found
-		while (!todoNodes1.isEmpty()) {
-			HeapRegionNode hrn = todoNodes1.iterator().next();
-			todoNodes1.remove(hrn);
-			reachableNodes1.add(hrn);
+  public Set<HeapRegionNode> findCommonReachableNodes( ReachSet proofOfSharing ) {
 
-			Iterator<RefEdge> edgeItr = hrn.iteratorToReferencees();
-			while (edgeItr.hasNext()) {
-				RefEdge edge = edgeItr.next();
+    Set<HeapRegionNode> exhibitProofState =
+      new HashSet<HeapRegionNode>();
 
-				if (!reachableNodes1.contains(edge.getDst())) {
-					todoNodes1.add(edge.getDst());
-				}
-			}
-		}
+    Iterator hrnItr = id2hrn.entrySet().iterator();
+    while( hrnItr.hasNext() ) {
+      Map.Entry      me  = (Map.Entry) hrnItr.next();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+      
+      ReachSet intersection =
+        Canonical.intersection( proofOfSharing,
+                                hrn.getAlpha()
+                                );
+      if( !intersection.isEmpty() ) {
+        assert !hrn.isOutOfContext();
+        exhibitProofState.add( hrn );
+      }
+    }
+    
+    return exhibitProofState;
+  }
 
-		while (!todoNodes2.isEmpty()) {
-			HeapRegionNode hrn = todoNodes2.iterator().next();
-			todoNodes2.remove(hrn);
-			reachableNodes2.add(hrn);
-
-			Iterator<RefEdge> edgeItr = hrn.iteratorToReferencees();
-			while (edgeItr.hasNext()) {
-				RefEdge edge = edgeItr.next();
-
-				if (!reachableNodes2.contains(edge.getDst())) {
-					todoNodes2.add(edge.getDst());
-				}
-			}
-		}
-
-		Set<HeapRegionNode> intersection =
-                  new HashSet<HeapRegionNode>( reachableNodes1 );
-
-		intersection.retainAll( reachableNodes2 );
-
-		return intersection;
-	}
 	 
-	public Set<HeapRegionNode> mayReachSharedObjects(HeapRegionNode hrn1,
-			HeapRegionNode hrn2) {
-		assert hrn1 != null;
-		assert hrn2 != null;
+  public Set<HeapRegionNode> mayReachSharedObjects(HeapRegionNode hrn1,
+                                                   HeapRegionNode hrn2) {
+    assert hrn1 != null;
+    assert hrn2 != null;
 
-		// then get the various tokens for these heap regions
-		ReachTuple h1 = ReachTuple.factory(hrn1.getID(),
-				!hrn1.isSingleObject(), ReachTuple.ARITY_ONE, false);
+    assert !hrn1.isOutOfContext();
+    assert !hrn2.isOutOfContext();
 
-		int arity;
-		if(hrn1.isSingleObject){
-			arity=ReachTuple.ARITY_ONE;
-		}else{
-			arity=ReachTuple.ARITY_ZEROORMORE;
-		}
-		ReachTuple h1star = ReachTuple.factory(hrn1.getID(), !hrn1
-				.isSingleObject(), arity, false);
+    assert belongsToThis( hrn1 );
+    assert belongsToThis( hrn2 );
 
-		ReachTuple h2 = ReachTuple.factory(hrn2.getID(),
-				!hrn2.isSingleObject(), ReachTuple.ARITY_ONE, false);
+    assert !hrn1.getID().equals( hrn2.getID() );
 
-		if(hrn2.isSingleObject){
-			arity=ReachTuple.ARITY_ONE;
-		}else{
-			arity=ReachTuple.ARITY_ZEROORMORE;
-		}
+
+    // then get the various tokens for these heap regions
+    ReachTuple h1 = 
+      ReachTuple.factory( hrn1.getID(),
+                          !hrn1.isSingleObject(), // multi?
+                          ReachTuple.ARITY_ONE, 
+                          false );                // ooc?
+    
+    ReachTuple h1star = 
+      ReachTuple.factory( hrn1.getID(), 
+                          !hrn1.isSingleObject(), 
+                          ReachTuple.ARITY_ZEROORMORE,
+                          false );
+    
+    ReachTuple h2 = 
+      ReachTuple.factory( hrn2.getID(),
+                          !hrn2.isSingleObject(),
+                          ReachTuple.ARITY_ONE,
+                          false );
+    
+    ReachTuple h2star =
+      ReachTuple.factory( hrn2.getID(), 
+                          !hrn2.isSingleObject(),
+                          ReachTuple.ARITY_ZEROORMORE,
+                          false );
+
+    // then get the merged beta of all out-going edges from these heap
+    // regions
+
+    ReachSet beta1 = ReachSet.factory();
+    Iterator<RefEdge> itrEdge = hrn1.iteratorToReferencees();
+    while (itrEdge.hasNext()) {
+      RefEdge edge = itrEdge.next();
+      beta1 = Canonical.unionORpreds(beta1, edge.getBeta());
+    }
+
+    ReachSet beta2 = ReachSet.factory();
+    itrEdge = hrn2.iteratorToReferencees();
+    while (itrEdge.hasNext()) {
+      RefEdge edge = itrEdge.next();
+      beta2 = Canonical.unionORpreds(beta2, edge.getBeta());
+    }
+
+    ReachSet proofOfSharing = ReachSet.factory();
+
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta1.getStatesWithBoth( h1, h2 )
+                              );
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta1.getStatesWithBoth( h1star, h2 )
+                              );
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta1.getStatesWithBoth( h1, h2star )
+                              );
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta1.getStatesWithBoth( h1star, h2star )
+                              );
+
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta2.getStatesWithBoth( h1, h2 )
+                              );
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta2.getStatesWithBoth( h1star, h2 )
+                              );
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta2.getStatesWithBoth( h1, h2star )
+                              );
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta2.getStatesWithBoth( h1star, h2star )
+                              );
+    
+    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+    if( !proofOfSharing.isEmpty() ) {
+      common = findCommonReachableNodes( proofOfSharing );
+      if( !DISABLE_STRONG_UPDATES &&
+          !DISABLE_GLOBAL_SWEEP
+          ) {        
+        assert !common.isEmpty();
+      }
+    }
+
+    return common;
+  }
+
+
+  public Set<HeapRegionNode> mayReachSharedObjects(FlatMethod fm,
+                                                   Integer paramIndex1, 
+                                                   Integer paramIndex2) {
+
+    // get parameter's heap regions
+    TempDescriptor paramTemp1 = fm.getParameter(paramIndex1.intValue());
+    VariableNode paramVar1 = getVariableNodeFromTemp(paramTemp1);
+    assert paramVar1.getNumReferencees() == 1;
+    RefEdge paramEdge1 = paramVar1.iteratorToReferencees().next();
+    HeapRegionNode hrnParam1 = paramEdge1.getDst();
+
+    TempDescriptor paramTemp2 = fm.getParameter(paramIndex2.intValue());
+    VariableNode paramVar2 = getVariableNodeFromTemp(paramTemp2);
+    assert paramVar2.getNumReferencees() == 1;
+    RefEdge paramEdge2 = paramVar2.iteratorToReferencees().next();
+    HeapRegionNode hrnParam2 = paramEdge2.getDst();
+
+    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+    common.addAll(mayReachSharedObjects(hrnParam1, hrnParam2));
+
+    return common;
+  }
+
+  public Set<HeapRegionNode> mayReachSharedObjects(FlatMethod fm,
+                                                   Integer paramIndex, 
+                                                   AllocSite as) {
+
+    // get parameter's heap regions
+    TempDescriptor paramTemp = fm.getParameter(paramIndex.intValue());
+    VariableNode paramVar = getVariableNodeFromTemp(paramTemp);
+    assert paramVar.getNumReferencees() == 1;
+    RefEdge paramEdge = paramVar.iteratorToReferencees().next();
+    HeapRegionNode hrnParam = paramEdge.getDst();
+
+    // get summary node
+    HeapRegionNode hrnSummary=null;
+    if(id2hrn.containsKey(as.getSummary())){
+      // if summary node doesn't exist, ignore this case
+      hrnSummary = id2hrn.get(as.getSummary());
+      assert hrnSummary != null;
+    }
+
+    Set<HeapRegionNode> common  = new HashSet<HeapRegionNode>();
+    if(hrnSummary!=null){
+      common.addAll( mayReachSharedObjects(hrnParam, hrnSummary) );
+    }
+
+    // check for other nodes
+    for (int i = 0; i < as.getAllocationDepth(); ++i) {
+
+      assert id2hrn.containsKey(as.getIthOldest(i));
+      HeapRegionNode hrnIthOldest = id2hrn.get(as.getIthOldest(i));
+      assert hrnIthOldest != null;
+
+      common.addAll(mayReachSharedObjects(hrnParam, hrnIthOldest));
+
+    }
+
+    return common;
+  }
+
+  public Set<HeapRegionNode> mayReachSharedObjects(AllocSite as1,
+                                                   AllocSite as2) {
+
+    // get summary node 1's alpha
+    Integer idSum1 = as1.getSummary();
+    HeapRegionNode hrnSum1=null;
+    if(id2hrn.containsKey(idSum1)){
+      hrnSum1 = id2hrn.get(idSum1);
+    }
+
+    // get summary node 2's alpha
+    Integer idSum2 = as2.getSummary();
+    HeapRegionNode hrnSum2=null;
+    if(id2hrn.containsKey(idSum2)){
+      hrnSum2 = id2hrn.get(idSum2);
+    }
 		
-		ReachTuple h2star = ReachTuple.factory(hrn2.getID(), !hrn2
-				.isSingleObject(), arity, false);
+    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+    if(hrnSum1!=null && hrnSum2!=null){
+      common.addAll(mayReachSharedObjects(hrnSum1, hrnSum2));
+    }
 
-		// then get the merged beta of all out-going edges from these heap
-		// regions
+    // check sum2 against alloc1 nodes
+    if(hrnSum2!=null){
+      for (int i = 0; i < as1.getAllocationDepth(); ++i) {
+        Integer idI1 = as1.getIthOldest(i);
+        assert id2hrn.containsKey(idI1);
+        HeapRegionNode hrnI1 = id2hrn.get(idI1);
+        assert hrnI1 != null;
+        common.addAll(mayReachSharedObjects(hrnI1, hrnSum2));
+      }
+    }
 
-		ReachSet beta1 = ReachSet.factory();
-		Iterator<RefEdge> itrEdge = hrn1.iteratorToReferencees();
-		while (itrEdge.hasNext()) {
-			RefEdge edge = itrEdge.next();
-			beta1 = Canonical.unionORpreds(beta1, edge.getBeta());
-		}
+    // check sum1 against alloc2 nodes
+    for (int i = 0; i < as2.getAllocationDepth(); ++i) {
+      Integer idI2 = as2.getIthOldest(i);
+      assert id2hrn.containsKey(idI2);
+      HeapRegionNode hrnI2 = id2hrn.get(idI2);
+      assert hrnI2 != null;
 
-		ReachSet beta2 = ReachSet.factory();
-		itrEdge = hrn2.iteratorToReferencees();
-		while (itrEdge.hasNext()) {
-			RefEdge edge = itrEdge.next();
-			beta2 = Canonical.unionORpreds(beta2, edge.getBeta());
-		}
+      if(hrnSum1!=null){
+        common.addAll(mayReachSharedObjects(hrnSum1, hrnI2));
+      }
 
-		boolean aliasDetected = false;
+      // while we're at it, do an inner loop for alloc2 vs alloc1 nodes
+      for (int j = 0; j < as1.getAllocationDepth(); ++j) {
+        Integer idI1 = as1.getIthOldest(j);
 
-		// only do this one if they are different tokens
-		if (h1 != h2 && beta1.containsStateWithBoth(h1, h2)) {
-			aliasDetected = true;
-		}
-//		if (beta1.containsStateWithBoth(h1plus, h2)) {
-//			aliasDetected = true;
-//		}
-		if (beta1.containsStateWithBoth(h1star, h2)) {
-			aliasDetected = true;
-		}
-//		if (beta1.containsStateWithBoth(h1, h2plus)) {
-//			aliasDetected = true;
-//		}
-//		if (beta1.containsStateWithBoth(h1plus, h2plus)) {
-//			aliasDetected = true;
-//		}
-//		if (beta1.containsStateWithBoth(h1star, h2plus)) {
-//			aliasDetected = true;
-//		}
-		if (beta1.containsStateWithBoth(h1, h2star)) {
-			aliasDetected = true;
-		}
-//		if (beta1.containsStateWithBoth(h1plus, h2star)) {
-//			aliasDetected = true;
-//		}
-		if (beta1.containsStateWithBoth(h1star, h2star)) {
-			aliasDetected = true;
-		}
+        // if these are the same site, don't look for the same token, no
+        // alias.
+        // different tokens of the same site could alias together though
+        if (idI1.equals(idI2)) {
+          continue;
+        }
 
-		if (h1 != h2 && beta2.containsStateWithBoth(h1, h2)) {
-			aliasDetected = true;
-		}
-//		if (beta2.containsStateWithBoth(h1plus, h2)) {
-//			aliasDetected = true;
-//		}
-		if (beta2.containsStateWithBoth(h1star, h2)) {
-			aliasDetected = true;
-		}
-//		if (beta2.containsStateWithBoth(h1, h2plus)) {
-//			aliasDetected = true;
-//		}
-//		if (beta2.containsStateWithBoth(h1plus, h2plus)) {
-//			aliasDetected = true;
-//		}
-//		if (beta2.containsStateWithBoth(h1star, h2plus)) {
-//			aliasDetected = true;
-//		}
-		if (beta2.containsStateWithBoth(h1, h2star)) {
-			aliasDetected = true;
-		}
-//		if (beta2.containsStateWithBoth(h1plus, h2star)) {
-//			aliasDetected = true;
-//		}
-		if (beta2.containsStateWithBoth(h1star, h2star)) {
-			aliasDetected = true;
-		}
+        HeapRegionNode hrnI1 = id2hrn.get(idI1);
 
-		Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
-		if (aliasDetected) {
-			common = findCommonReachableNodes(hrn1, hrn2);
-			if (!(DISABLE_STRONG_UPDATES || DISABLE_GLOBAL_SWEEP)) {
-				assert !common.isEmpty();
-			}
-		}
+        common.addAll(mayReachSharedObjects(hrnI1, hrnI2));
+      }
+    }
 
-		return common;
-	}
-
-	public Set<HeapRegionNode> mayReachSharedObjects(FlatMethod fm,
-			Integer paramIndex1, Integer paramIndex2) {
-
-		// get parameter's heap regions
-		TempDescriptor paramTemp1 = fm.getParameter(paramIndex1.intValue());
-		VariableNode argVar1 = getVariableNodeFromTemp(paramTemp1);
-		RefEdge argEdge1 = argVar1.iteratorToReferencees().next();
-		HeapRegionNode hrnParam1 = argEdge1.getDst();
-
-		TempDescriptor paramTemp2 = fm.getParameter(paramIndex2.intValue());
-		VariableNode argVar2 = getVariableNodeFromTemp(paramTemp2);
-		RefEdge argEdge2 = argVar2.iteratorToReferencees().next();
-		HeapRegionNode hrnParam2 = argEdge2.getDst();
-
-		Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
-		common.addAll(mayReachSharedObjects(hrnParam1, hrnParam2));
-
-		return common;
-	}
-
-	public Set<HeapRegionNode> mayReachSharedObjects(FlatMethod fm,
-			Integer paramIndex, AllocSite as) {
-
-		// get parameter's heap regions
-		TempDescriptor paramTemp = fm.getParameter(paramIndex.intValue());
-		VariableNode argVar = getVariableNodeFromTemp(paramTemp);
-		RefEdge argEdge = argVar.iteratorToReferencees().next();
-		HeapRegionNode hrnParam = argEdge.getDst();
-
-		// get summary node
-		HeapRegionNode hrnSummary=null;
-		if(id2hrn.containsKey(as.getSummary())){
-			// if summary node doesn't exist, ignore this case
-			hrnSummary = id2hrn.get(as.getSummary());
-			assert hrnSummary != null;
-		}
-
-		Set<HeapRegionNode> common  = new HashSet<HeapRegionNode>();
-		if(hrnSummary!=null){
-			common.addAll( mayReachSharedObjects(hrnParam, hrnSummary) );
-		}
-
-		// check for other nodes
-		for (int i = 0; i < as.getAllocationDepth(); ++i) {
-
-			assert id2hrn.containsKey(as.getIthOldest(i));
-			HeapRegionNode hrnIthOldest = id2hrn.get(as.getIthOldest(i));
-			assert hrnIthOldest != null;
-
-			common.addAll(mayReachSharedObjects(hrnParam, hrnIthOldest));
-
-		}
-
-		return common;
-	}
-
-	public Set<HeapRegionNode> mayReachSharedObjects(AllocSite as1,
-			AllocSite as2) {
-
-		// get summary node 1's alpha
-		Integer idSum1 = as1.getSummary();
-		HeapRegionNode hrnSum1=null;
-		if(id2hrn.containsKey(idSum1)){
-			hrnSum1 = id2hrn.get(idSum1);
-		}
-
-		// get summary node 2's alpha
-		Integer idSum2 = as2.getSummary();
-		HeapRegionNode hrnSum2=null;
-		if(id2hrn.containsKey(idSum2)){
-			hrnSum2 = id2hrn.get(idSum2);
-		}
-		
-		Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
-		if(hrnSum1!=null && hrnSum2!=null){
-			common.addAll(mayReachSharedObjects(hrnSum1, hrnSum2));
-		}
-
-		// check sum2 against alloc1 nodes
-		if(hrnSum2!=null){
-		for (int i = 0; i < as1.getAllocationDepth(); ++i) {
-			Integer idI1 = as1.getIthOldest(i);
-			assert id2hrn.containsKey(idI1);
-			HeapRegionNode hrnI1 = id2hrn.get(idI1);
-			assert hrnI1 != null;
-			common.addAll(mayReachSharedObjects(hrnI1, hrnSum2));
-		}
-		}
-
-		// check sum1 against alloc2 nodes
-		for (int i = 0; i < as2.getAllocationDepth(); ++i) {
-			Integer idI2 = as2.getIthOldest(i);
-			assert id2hrn.containsKey(idI2);
-			HeapRegionNode hrnI2 = id2hrn.get(idI2);
-			assert hrnI2 != null;
-
-			if(hrnSum1!=null){
-				common.addAll(mayReachSharedObjects(hrnSum1, hrnI2));
-			}
-
-			// while we're at it, do an inner loop for alloc2 vs alloc1 nodes
-			for (int j = 0; j < as1.getAllocationDepth(); ++j) {
-				Integer idI1 = as1.getIthOldest(j);
-
-				// if these are the same site, don't look for the same token, no
-				// alias.
-				// different tokens of the same site could alias together though
-				if (idI1.equals(idI2)) {
-					continue;
-				}
-
-				HeapRegionNode hrnI1 = id2hrn.get(idI1);
-
-				common.addAll(mayReachSharedObjects(hrnI1, hrnI2));
-			}
-		}
-
-		return common;
-	}
+    return common;
+  }
   
 }

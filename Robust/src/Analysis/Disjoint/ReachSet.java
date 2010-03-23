@@ -143,17 +143,22 @@ public class ReachSet extends Canonical {
     return false;
   }
 
-  public boolean containsStateWithBoth( ReachTuple rt1, 
-                                        ReachTuple rt2 ) {
+  public ReachSet getStatesWithBoth( ReachTuple rt1, 
+                                     ReachTuple rt2 ) {
+
+    ReachSet out = new ReachSet();
+
     Iterator<ReachState> itr = iterator();
     while( itr.hasNext() ) {
       ReachState state = itr.next();
       if( state.containsTuple( rt1 ) &&
           state.containsTuple( rt2 ) ) {
-	return true;
+        out.reachStates.add( state );
       }
     }
-    return false;
+
+    out = (ReachSet) Canonical.makeCanonical( out );
+    return out;
   }
 
   // used to assert each state in the set is

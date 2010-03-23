@@ -567,6 +567,7 @@ public class DisjointAnalysis {
 
     // topologically sort according to the call graph so 
     // leaf calls are ordered first, smarter analysis order
+    // CHANGED: order leaf calls last!!
     LinkedList<Descriptor> sortedDescriptors = 
       topologicalSort( descriptorsToAnalyze );
 
@@ -1063,6 +1064,37 @@ public class DisjointAnalysis {
   }
    
 
+  protected ReachGraph getPartial( Descriptor d ) {
+    return mapDescriptorToCompleteReachGraph.get( d );
+  }
+
+  protected void setPartial( Descriptor d, ReachGraph rg ) {
+    mapDescriptorToCompleteReachGraph.put( d, rg );
+
+    // when the flag for writing out every partial
+    // result is set, we should spit out the graph,
+    // but in order to give it a unique name we need
+    // to track how many partial results for this
+    // descriptor we've already written out
+    if( writeAllIncrementalDOTs ) {
+      if( !mapDescriptorToNumUpdates.containsKey( d ) ) {
+	mapDescriptorToNumUpdates.put( d, new Integer( 0 ) );
+      }
+      Integer n = mapDescriptorToNumUpdates.get( d );
+      
+      try {
+	rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
+                       true,   // write labels (variables)
+                       true,   // selectively hide intermediate temp vars
+                       true,   // prune unreachable heap regions
+                       false,  // hide subset reachability states
+                       true ); // hide edge taints
+      } catch( IOException e ) {}
+      
+      mapDescriptorToNumUpdates.put( d, n + 1 );
+    }
+  }
+
 
 
   // return just the allocation site associated with one FlatNew node
@@ -1398,7 +1430,8 @@ public class DisjointAnalysis {
       }
     }
     
-    sorted.addFirst( d );
+    // for leaf-nodes last now!
+    sorted.addLast( d );
   }
 
 
@@ -1409,40 +1442,6 @@ public class DisjointAnalysis {
                                                        d ) 
                                );
       descriptorsToVisitSet.add( d );
-    }
-  }
-
-
-  protected ReachGraph getPartial( Descriptor d ) {
-    return mapDescriptorToCompleteReachGraph.get( d );
-  }
-
-  protected void setPartial( Descriptor d, ReachGraph rg ) {
-    mapDescriptorToCompleteReachGraph.put( d, rg );
-
-    // when the flag for writing out every partial
-    // result is set, we should spit out the graph,
-    // but in order to give it a unique name we need
-    // to track how many partial results for this
-    // descriptor we've already written out
-    if( writeAllIncrementalDOTs ) {
-      if( !mapDescriptorToNumUpdates.containsKey( d ) ) {
-	mapDescriptorToNumUpdates.put( d, new Integer( 0 ) );
-      }
-      Integer n = mapDescriptorToNumUpdates.get( d );
-      /*
-      try {
-	rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
-                       true,  // write labels (variables)
-                       true,  // selectively hide intermediate temp vars
-                       true,  // prune unreachable heap regions
-                       false, // show back edges to confirm graph validity
-                       false, // show parameter indices (unmaintained!)
-                       true,  // hide subset reachability states
-                       true); // hide edge taints
-      } catch( IOException e ) {}
-      */
-      mapDescriptorToNumUpdates.put( d, n + 1 );
     }
   }
 
