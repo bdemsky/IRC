@@ -1873,7 +1873,7 @@ public class ReachGraph {
                                  );         
           
         oocEdgeExisting.setPreds( Canonical.join( oocEdgeExisting.getPreds(),
-                                                  reCaller.getPreds()
+                                                  preds
                                                   )
                                   );          
 
@@ -1893,14 +1893,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {    
-      try {
-        rg.writeGraph( "calleeview", 
-                       resolveMethodDebugDOTwriteLabels,    
-                       resolveMethodDebugDOTselectTemps,    
-                       resolveMethodDebugDOTpruneGarbage,   
-                       resolveMethodDebugDOThideSubsetReach,
-                       resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      rg.writeGraph( "calleeview", 
+                     resolveMethodDebugDOTwriteLabels,    
+                     resolveMethodDebugDOTselectTemps,    
+                     resolveMethodDebugDOTpruneGarbage,   
+                     resolveMethodDebugDOThideSubsetReach,
+                     resolveMethodDebugDOThideEdgeTaints );      
     }
 
     return rg;
@@ -1927,24 +1925,21 @@ public class ReachGraph {
                        boolean      writeDebugDOTs
                        ) {
 
-
     if( writeDebugDOTs ) {
-      try {
-        rgCallee.writeGraph( "callee", 
-                       resolveMethodDebugDOTwriteLabels,    
-                       resolveMethodDebugDOTselectTemps,    
-                       resolveMethodDebugDOTpruneGarbage,   
-                       resolveMethodDebugDOThideSubsetReach,
-                       resolveMethodDebugDOThideEdgeTaints );
-
-        writeGraph( "caller00In",  
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints,
-                    callerNodeIDsCopiedToCallee );
-      } catch( IOException e ) {}
+      rgCallee.writeGraph( "callee", 
+                           resolveMethodDebugDOTwriteLabels,    
+                           resolveMethodDebugDOTselectTemps,    
+                           resolveMethodDebugDOTpruneGarbage,   
+                           resolveMethodDebugDOThideSubsetReach,
+                           resolveMethodDebugDOThideEdgeTaints );
+      
+      writeGraph( "caller00In",  
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints,
+                  callerNodeIDsCopiedToCallee );
     }
 
 
@@ -1959,7 +1954,6 @@ public class ReachGraph {
     //    d) assign return value
     // 4. Collapse shadow nodes down
     // 5. Global sweep it.
-
 
 
     // 1. mark what callee elements have satisfied predicates
@@ -1989,6 +1983,7 @@ public class ReachGraph {
         hrnCallee.getPreds().isSatisfiedBy( this,
                                             callerNodeIDsCopiedToCallee
                                             );
+
       if( predsIfSatis != null ) {
         calleeNodesSatisfied.put( hrnCallee, predsIfSatis );
       } else {
@@ -2044,7 +2039,7 @@ public class ReachGraph {
           HeapRegionNode hrnDstCaller = this.id2hrn.get( hrnCallee.getID() );
           if( hrnDstCaller == null ) {
             continue;
-          }
+          }          
 
           Iterator<RefEdge> reDstItr = hrnDstCaller.iteratorToReferencers();
           while( reDstItr.hasNext() ) {
@@ -2059,6 +2054,7 @@ public class ReachGraph {
             
             RefSrcNode rsnCaller = reCaller.getSrc();
             if( rsnCaller instanceof VariableNode ) {
+
               // a variable node matches an OOC region with null type
               if( hrnSrcCallee.getType() != null ) {
                 continue;
@@ -2096,6 +2092,7 @@ public class ReachGraph {
           reCallee.getPreds().isSatisfiedBy( this,
                                              callerNodeIDsCopiedToCallee
                                              );
+
         if( predsIfSatis != null ) {
           calleeEdgesSatisfied.put( reCallee, predsIfSatis );
 
@@ -2172,14 +2169,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller20BeforeWipe", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller20BeforeWipe", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
 
 
@@ -2198,14 +2193,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller30BeforeAddingNodes", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller30BeforeAddingNodes", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
 
 
@@ -2267,14 +2260,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller31BeforeAddingEdges", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller31BeforeAddingEdges", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
 
 
@@ -2314,7 +2305,6 @@ public class ReachGraph {
       Set<RefSrcNode> oocCallers = 
         calleeEdges2oocCallerSrcMatches.get( reCallee );
 
-      boolean oocEdges = false;
       
       if( oocCallers == null ) {
         // there are no out-of-context matches, so it's
@@ -2332,8 +2322,8 @@ public class ReachGraph {
             // shouldn't this NEVER HAPPEN?
             assert false;
           }
+
           rsnCallers.add( this.getVariableNodeFromTemp( tdArg ) );
-          oocEdges = true;
 
         } else {
           // otherwise source is in context, one region
@@ -2375,7 +2365,6 @@ public class ReachGraph {
         // that should NOT be translated to shadow nodes
         assert !oocCallers.isEmpty();
         rsnCallers.addAll( oocCallers );
-        oocEdges = true;
       }
 
       // now make all caller edges we've identified from
@@ -2471,14 +2460,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller35BeforeAssignReturnValue", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller35BeforeAssignReturnValue", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
 
 
@@ -2557,14 +2544,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller38propagateReach", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller38propagateReach", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
 
     // propagate callee reachability changes to the rest
@@ -2587,14 +2572,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller40BeforeShadowMerge", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller40BeforeShadowMerge", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
     
 
@@ -2688,14 +2671,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller45BeforeUnshadow", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller45BeforeUnshadow", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
     
     
@@ -2716,14 +2697,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller50BeforeGlobalSweep", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller50BeforeGlobalSweep", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
 
 
@@ -2735,14 +2714,12 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      try {
-        writeGraph( "caller90AfterTransfer", 
-                    resolveMethodDebugDOTwriteLabels,    
-                    resolveMethodDebugDOTselectTemps,    
-                    resolveMethodDebugDOTpruneGarbage,   
-                    resolveMethodDebugDOThideSubsetReach,
-                    resolveMethodDebugDOThideEdgeTaints );
-      } catch( IOException e ) {}
+      writeGraph( "caller90AfterTransfer", 
+                  resolveMethodDebugDOTwriteLabels,    
+                  resolveMethodDebugDOTselectTemps,    
+                  resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThideEdgeTaints );
     }
   } 
 
@@ -3107,9 +3084,7 @@ public class ReachGraph {
 
               if( !id2hrn.containsKey( rtOld.getHrnID() ) ) {
                 System.out.println( "\nLooking for "+rtOld );
-                try {
-                  writeGraph( "dbgz", true, true, true, true, true );
-                } catch( IOException e ) {}
+                writeGraph( "dbgz" );
               }
 
 
@@ -3864,13 +3839,25 @@ public class ReachGraph {
   
 
 
+  // the default signature for quick-and-dirty debugging
+  public void writeGraph( String graphName ) {
+    writeGraph( graphName,
+                true, // write labels
+                true, // label select
+                true, // prune garbage
+                true, // hide subset reachability
+                true, // hide edge taints
+                null  // in-context boundary
+                );
+  }
+
   public void writeGraph( String  graphName,
                           boolean writeLabels,
                           boolean labelSelect,
                           boolean pruneGarbage,
                           boolean hideSubsetReachability,
                           boolean hideEdgeTaints
-                          ) throws java.io.IOException {
+                          ) {
     writeGraph( graphName,
                 writeLabels,
                 labelSelect,
@@ -3887,94 +3874,57 @@ public class ReachGraph {
                           boolean      hideSubsetReachability,
                           boolean      hideEdgeTaints,
                           Set<Integer> callerNodeIDsCopiedToCallee
-                          ) throws java.io.IOException {
+                          ) {
     
-    // remove all non-word characters from the graph name so
-    // the filename and identifier in dot don't cause errors
-    graphName = graphName.replaceAll( "[\\W]", "" );
+    try {
+      // remove all non-word characters from the graph name so
+      // the filename and identifier in dot don't cause errors
+      graphName = graphName.replaceAll( "[\\W]", "" );
 
-    BufferedWriter bw = 
-      new BufferedWriter( new FileWriter( graphName+".dot" ) );
+      BufferedWriter bw = 
+        new BufferedWriter( new FileWriter( graphName+".dot" ) );
 
-    bw.write( "digraph "+graphName+" {\n" );
+      bw.write( "digraph "+graphName+" {\n" );
 
-
-    // this is an optional step to form the callee-reachable
-    // "cut-out" into a DOT cluster for visualization
-    if( callerNodeIDsCopiedToCallee != null ) {
-
-      bw.write( "  subgraph cluster0 {\n" );
-      bw.write( "    color=blue;\n" );
-
+      
+      // this is an optional step to form the callee-reachable
+      // "cut-out" into a DOT cluster for visualization
+      if( callerNodeIDsCopiedToCallee != null ) {
+        
+        bw.write( "  subgraph cluster0 {\n" );
+        bw.write( "    color=blue;\n" );
+      
+        Iterator i = id2hrn.entrySet().iterator();
+        while( i.hasNext() ) {
+          Map.Entry      me  = (Map.Entry)      i.next();
+          HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
+          
+          if( callerNodeIDsCopiedToCallee.contains( hrn.getID() ) ) {
+            bw.write( "    "+hrn.toString()+
+                      hrn.toStringDOT( hideSubsetReachability )+
+                      ";\n" );
+            
+          }
+        }
+        
+        bw.write( "  }\n" );
+      }
+      
+      
+      Set<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
+      
+      // then visit every heap region node    
       Iterator i = id2hrn.entrySet().iterator();
       while( i.hasNext() ) {
         Map.Entry      me  = (Map.Entry)      i.next();
         HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
         
-        if( callerNodeIDsCopiedToCallee.contains( hrn.getID() ) ) {
-          bw.write( "    "+hrn.toString()+
-                    hrn.toStringDOT( hideSubsetReachability )+
-                    ";\n" );
-          
-        }
-      }
-
-      bw.write( "  }\n" );
-    }
-
-
-    Set<HeapRegionNode> visited = new HashSet<HeapRegionNode>();
-
-    // then visit every heap region node    
-    Iterator i = id2hrn.entrySet().iterator();
-    while( i.hasNext() ) {
-      Map.Entry      me  = (Map.Entry)      i.next();
-      HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
-
-      // only visit nodes worth writing out--for instance
-      // not every node at an allocation is referenced
-      // (think of it as garbage-collected), etc.
-      if( !pruneGarbage        ||
-          hrn.isOutOfContext()
-          ) {
-
-	if( !visited.contains( hrn ) ) {
-	  traverseHeapRegionNodes( hrn,
-                                   bw,
-                                   null,
-                                   visited,
-                                   hideSubsetReachability,
-                                   hideEdgeTaints,
-                                   callerNodeIDsCopiedToCallee );
-	}
-      }
-    }
-
-    bw.write( "  graphTitle[label=\""+graphName+"\",shape=box];\n" );
-  
-
-    // then visit every label node, useful for debugging
-    if( writeLabels ) {
-      i = td2vn.entrySet().iterator();
-      while( i.hasNext() ) {
-        Map.Entry    me = (Map.Entry)    i.next();
-        VariableNode vn = (VariableNode) me.getValue();
-        
-        if( labelSelect ) {
-          String labelStr = vn.getTempDescriptorString();
-          if( labelStr.startsWith( "___temp" )     ||
-              labelStr.startsWith( "___dst" )      ||
-              labelStr.startsWith( "___srctmp" )   ||
-              labelStr.startsWith( "___neverused" )
-              ) {
-            continue;
-          }
-        }
-        
-        Iterator<RefEdge> heapRegionsItr = vn.iteratorToReferencees();
-        while( heapRegionsItr.hasNext() ) {
-          RefEdge        edge = heapRegionsItr.next();
-          HeapRegionNode hrn  = edge.getDst();
+        // only visit nodes worth writing out--for instance
+        // not every node at an allocation is referenced
+        // (think of it as garbage-collected), etc.
+        if( !pruneGarbage        ||
+            hrn.isOutOfContext()
+            ) {
           
           if( !visited.contains( hrn ) ) {
             traverseHeapRegionNodes( hrn,
@@ -3985,17 +3935,59 @@ public class ReachGraph {
                                      hideEdgeTaints,
                                      callerNodeIDsCopiedToCallee );
           }
-          
-          bw.write( "  "+vn.toString()+
-                    " -> "+hrn.toString()+
-                    edge.toStringDOT( hideSubsetReachability, "" )+
-                    ";\n" );
         }
       }
-    }
+      
+      bw.write( "  graphTitle[label=\""+graphName+"\",shape=box];\n" );
+      
+      
+      // then visit every label node, useful for debugging
+      if( writeLabels ) {
+        i = td2vn.entrySet().iterator();
+        while( i.hasNext() ) {
+          Map.Entry    me = (Map.Entry)    i.next();
+          VariableNode vn = (VariableNode) me.getValue();
+          
+          if( labelSelect ) {
+            String labelStr = vn.getTempDescriptorString();
+            if( labelStr.startsWith( "___temp" )     ||
+                labelStr.startsWith( "___dst" )      ||
+                labelStr.startsWith( "___srctmp" )   ||
+                labelStr.startsWith( "___neverused" )
+                ) {
+              continue;
+            }
+          }
+          
+          Iterator<RefEdge> heapRegionsItr = vn.iteratorToReferencees();
+          while( heapRegionsItr.hasNext() ) {
+            RefEdge        edge = heapRegionsItr.next();
+            HeapRegionNode hrn  = edge.getDst();
+          
+            if( !visited.contains( hrn ) ) {
+              traverseHeapRegionNodes( hrn,
+                                       bw,
+                                       null,
+                                       visited,
+                                       hideSubsetReachability,
+                                       hideEdgeTaints,
+                                       callerNodeIDsCopiedToCallee );
+            }
+          
+            bw.write( "  "+vn.toString()+
+                      " -> "+hrn.toString()+
+                      edge.toStringDOT( hideSubsetReachability, "" )+
+                      ";\n" );
+          }
+        }
+      }
     
-    bw.write( "}\n" );
-    bw.close();
+      bw.write( "}\n" );
+      bw.close();
+
+    } catch( IOException e ) {
+      throw new Error( "Error writing out DOT graph "+graphName );
+    }
   }
 
   protected void traverseHeapRegionNodes( HeapRegionNode      hrn,
@@ -4117,23 +4109,29 @@ public class ReachGraph {
                           ReachTuple.ARITY_ONE, 
                           false );                // ooc?
     
-    ReachTuple h1star = 
-      ReachTuple.factory( hrn1.getID(), 
-                          !hrn1.isSingleObject(), 
-                          ReachTuple.ARITY_ZEROORMORE,
-                          false );
+    ReachTuple h1star = null;
+    if( !hrn1.isSingleObject() ) {
+      h1star = 
+        ReachTuple.factory( hrn1.getID(), 
+                            !hrn1.isSingleObject(), 
+                            ReachTuple.ARITY_ZEROORMORE,
+                            false );
+    }
     
     ReachTuple h2 = 
       ReachTuple.factory( hrn2.getID(),
                           !hrn2.isSingleObject(),
                           ReachTuple.ARITY_ONE,
                           false );
-    
-    ReachTuple h2star =
-      ReachTuple.factory( hrn2.getID(), 
-                          !hrn2.isSingleObject(),
-                          ReachTuple.ARITY_ZEROORMORE,
-                          false );
+
+    ReachTuple h2star = null;
+    if( !hrn2.isSingleObject() ) {    
+      h2star =
+        ReachTuple.factory( hrn2.getID(), 
+                            !hrn2.isSingleObject(),
+                            ReachTuple.ARITY_ZEROORMORE,
+                            false );
+    }
 
     // then get the merged beta of all out-going edges from these heap
     // regions
@@ -4160,33 +4158,43 @@ public class ReachGraph {
                               );
     proofOfSharing = 
       Canonical.unionORpreds( proofOfSharing,
-                              beta1.getStatesWithBoth( h1star, h2 )
-                              );
-    proofOfSharing = 
-      Canonical.unionORpreds( proofOfSharing,
-                              beta1.getStatesWithBoth( h1, h2star )
-                              );
-    proofOfSharing = 
-      Canonical.unionORpreds( proofOfSharing,
-                              beta1.getStatesWithBoth( h1star, h2star )
-                              );
-
-    proofOfSharing = 
-      Canonical.unionORpreds( proofOfSharing,
                               beta2.getStatesWithBoth( h1, h2 )
                               );
-    proofOfSharing = 
-      Canonical.unionORpreds( proofOfSharing,
-                              beta2.getStatesWithBoth( h1star, h2 )
-                              );
-    proofOfSharing = 
-      Canonical.unionORpreds( proofOfSharing,
-                              beta2.getStatesWithBoth( h1, h2star )
-                              );
-    proofOfSharing = 
-      Canonical.unionORpreds( proofOfSharing,
-                              beta2.getStatesWithBoth( h1star, h2star )
-                              );
+    
+    if( !hrn1.isSingleObject() ) {    
+      proofOfSharing = 
+        Canonical.unionORpreds( proofOfSharing,
+                                beta1.getStatesWithBoth( h1star, h2 )
+                                );
+      proofOfSharing = 
+        Canonical.unionORpreds( proofOfSharing,
+                                beta2.getStatesWithBoth( h1star, h2 )
+                                );      
+    }
+
+    if( !hrn2.isSingleObject() ) {    
+      proofOfSharing = 
+        Canonical.unionORpreds( proofOfSharing,
+                                beta1.getStatesWithBoth( h1, h2star )
+                                );
+      proofOfSharing = 
+        Canonical.unionORpreds( proofOfSharing,
+                                beta2.getStatesWithBoth( h1, h2star )
+                                );
+    }
+
+    if( !hrn1.isSingleObject() &&
+        !hrn2.isSingleObject()
+        ) {    
+      proofOfSharing = 
+        Canonical.unionORpreds( proofOfSharing,
+                                beta1.getStatesWithBoth( h1star, h2star )
+                                );
+      proofOfSharing = 
+        Canonical.unionORpreds( proofOfSharing,
+                                beta2.getStatesWithBoth( h1star, h2star )
+                                );
+    }
     
     Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
     if( !proofOfSharing.isEmpty() ) {
@@ -4201,6 +4209,50 @@ public class ReachGraph {
     return common;
   }
 
+  // this version of the above method checks whether there is sharing
+  // among the objects in a summary node
+  public Set<HeapRegionNode> mayReachSharedObjects(HeapRegionNode hrn) {
+    assert hrn != null;
+    assert hrn.isNewSummary();
+    assert !hrn.isOutOfContext();
+    assert belongsToThis( hrn );
+
+    ReachTuple hstar =  
+      ReachTuple.factory( hrn.getID(), 
+                          true,    // multi
+                          ReachTuple.ARITY_ZEROORMORE,
+                          false ); // ooc    
+
+    // then get the merged beta of all out-going edges from 
+    // this heap region
+
+    ReachSet beta = ReachSet.factory();
+    Iterator<RefEdge> itrEdge = hrn.iteratorToReferencees();
+    while (itrEdge.hasNext()) {
+      RefEdge edge = itrEdge.next();
+      beta = Canonical.unionORpreds(beta, edge.getBeta());
+    }
+    
+    ReachSet proofOfSharing = ReachSet.factory();
+
+    proofOfSharing = 
+      Canonical.unionORpreds( proofOfSharing,
+                              beta.getStatesWithBoth( hstar, hstar )
+                              );
+    
+    Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
+    if( !proofOfSharing.isEmpty() ) {
+      common = findCommonReachableNodes( proofOfSharing );
+      if( !DISABLE_STRONG_UPDATES &&
+          !DISABLE_GLOBAL_SWEEP
+          ) {        
+        assert !common.isEmpty();
+      }
+    }
+    
+    return common;
+  }
+
 
   public Set<HeapRegionNode> mayReachSharedObjects(FlatMethod fm,
                                                    Integer paramIndex1, 
@@ -4208,13 +4260,29 @@ public class ReachGraph {
 
     // get parameter's heap regions
     TempDescriptor paramTemp1 = fm.getParameter(paramIndex1.intValue());
+    assert this.hasVariable( paramTemp1 );
     VariableNode paramVar1 = getVariableNodeFromTemp(paramTemp1);
+
+
+    if( !(paramVar1.getNumReferencees() == 1) ) {
+      System.out.println( "\n  fm="+fm+"\n  param="+paramTemp1 );
+      writeGraph( "whatup" );
+    }
+
+
     assert paramVar1.getNumReferencees() == 1;
     RefEdge paramEdge1 = paramVar1.iteratorToReferencees().next();
     HeapRegionNode hrnParam1 = paramEdge1.getDst();
 
     TempDescriptor paramTemp2 = fm.getParameter(paramIndex2.intValue());
+    assert this.hasVariable( paramTemp2 );
     VariableNode paramVar2 = getVariableNodeFromTemp(paramTemp2);
+
+    if( !(paramVar2.getNumReferencees() == 1) ) {
+      System.out.println( "\n  fm="+fm+"\n  param="+paramTemp2 );
+      writeGraph( "whatup" );
+    }
+
     assert paramVar2.getNumReferencees() == 1;
     RefEdge paramEdge2 = paramVar2.iteratorToReferencees().next();
     HeapRegionNode hrnParam2 = paramEdge2.getDst();
@@ -4231,6 +4299,7 @@ public class ReachGraph {
 
     // get parameter's heap regions
     TempDescriptor paramTemp = fm.getParameter(paramIndex.intValue());
+    assert this.hasVariable( paramTemp );
     VariableNode paramVar = getVariableNodeFromTemp(paramTemp);
     assert paramVar.getNumReferencees() == 1;
     RefEdge paramEdge = paramVar.iteratorToReferencees().next();
@@ -4281,8 +4350,13 @@ public class ReachGraph {
     }
 		
     Set<HeapRegionNode> common = new HashSet<HeapRegionNode>();
-    if(hrnSum1!=null && hrnSum2!=null){
+    if(hrnSum1!=null && hrnSum2!=null && hrnSum1!=hrnSum2){
       common.addAll(mayReachSharedObjects(hrnSum1, hrnSum2));
+    }
+
+    if(hrnSum1!=null){
+      // ask if objects from this summary share among each other
+      common.addAll(mayReachSharedObjects(hrnSum1));
     }
 
     // check sum2 against alloc1 nodes
@@ -4294,6 +4368,9 @@ public class ReachGraph {
         assert hrnI1 != null;
         common.addAll(mayReachSharedObjects(hrnI1, hrnSum2));
       }
+
+      // also ask if objects from this summary share among each other
+      common.addAll(mayReachSharedObjects(hrnSum2));
     }
 
     // check sum1 against alloc2 nodes
@@ -4325,6 +4402,5 @@ public class ReachGraph {
     }
 
     return common;
-  }
-  
+  }  
 }

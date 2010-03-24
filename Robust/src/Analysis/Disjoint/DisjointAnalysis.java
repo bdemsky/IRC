@@ -35,7 +35,7 @@ public class DisjointAnalysis {
 		    return mapHrnIdToAllocSite.get(id);
 	  }
 	  
-	  public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+	  public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
               int paramIndex1,
               int paramIndex2) {
 		  checkAnalysisComplete();
@@ -45,7 +45,7 @@ public class DisjointAnalysis {
 		  return rg.mayReachSharedObjects(fm, paramIndex1, paramIndex2);
 	  }
 	  
-	public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+	public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
 			int paramIndex, AllocSite alloc) {
 		checkAnalysisComplete();
 		ReachGraph rg = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
@@ -54,7 +54,7 @@ public class DisjointAnalysis {
 		return rg.mayReachSharedObjects(fm, paramIndex, alloc);
 	}
 
-	public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+	public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
 			AllocSite alloc, int paramIndex) {
 		checkAnalysisComplete();
 		ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
@@ -63,7 +63,7 @@ public class DisjointAnalysis {
 		return rg.mayReachSharedObjects(fm, paramIndex, alloc);
 	}
 
-	public Set<HeapRegionNode> createsPotentialAliases(Descriptor taskOrMethod,
+	public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
 			AllocSite alloc1, AllocSite alloc2) {
 		checkAnalysisComplete();
 		ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
@@ -136,10 +136,24 @@ public class DisjointAnalysis {
 			FlatMethod fm = state.getMethodFlat(td);
 			for (int i = 0; i < fm.numParameters(); ++i) {
 
+                          // skip parameters with types that cannot reference
+                          // into the heap
+                          if( !shouldAnalysisTrack( fm.getParameter( i ).getType() ) ) {
+                            continue;
+                          }
+                          
 				// for the ith parameter check for aliases to all
 				// higher numbered parameters
 				for (int j = i + 1; j < fm.numParameters(); ++j) {
-					common = createsPotentialAliases(td, i, j);
+
+                                  // skip parameters with types that cannot reference
+                                  // into the heap
+                                  if( !shouldAnalysisTrack( fm.getParameter( j ).getType() ) ) {
+                                    continue;
+                                  }
+
+
+                                  common = hasPotentialSharing(td, i, j);
 					if (!common.isEmpty()) {
 						foundSomeAlias = true;
 						if (!tabularOutput) {
@@ -158,7 +172,7 @@ public class DisjointAnalysis {
 				Iterator allocItr = allocSites.iterator();
 				while (allocItr.hasNext()) {
 					AllocSite as = (AllocSite) allocItr.next();
-					common = createsPotentialAliases(td, i, as);
+					common = hasPotentialSharing(td, i, as);
 					if (!common.isEmpty()) {
 						foundSomeAlias = true;
 						if (!tabularOutput) {
@@ -185,7 +199,7 @@ public class DisjointAnalysis {
 					AllocSite as2 = (AllocSite) allocItr2.next();
 
 					if (!outerChecked.contains(as2)) {
-						common = createsPotentialAliases(td, as1, as2);
+						common = hasPotentialSharing(td, as1, as2);
 
 						if (!common.isEmpty()) {
 							foundSomeAlias = true;
@@ -260,7 +274,7 @@ public class DisjointAnalysis {
 				AllocSite as2 = (AllocSite) allocItr2.next();
 
 				if (!outerChecked.contains(as2)) {
-					Set<HeapRegionNode> common = createsPotentialAliases(d,
+					Set<HeapRegionNode> common = hasPotentialSharing(d,
 							as1, as2);
 
 					if (!common.isEmpty()) {
@@ -1035,14 +1049,12 @@ public class DisjointAnalysis {
       Descriptor  d = (Descriptor) me.getKey();
       ReachGraph rg = (ReachGraph) me.getValue();
 
-      try {        
-	rg.writeGraph( "COMPLETE"+d,
-                       true,   // write labels (variables)                
-                       true,   // selectively hide intermediate temp vars 
-                       true,   // prune unreachable heap regions          
-                       false,  // hide subset reachability states         
-                       true ); // hide edge taints                        
-      } catch( IOException e ) {}    
+      rg.writeGraph( "COMPLETE"+d,
+                     true,   // write labels (variables)                
+                     true,   // selectively hide intermediate temp vars 
+                     true,   // prune unreachable heap regions          
+                     false,  // hide subset reachability states         
+                     true ); // hide edge taints                        
     }
   }
 
@@ -1059,14 +1071,12 @@ public class DisjointAnalysis {
         FlatCall   fc  = (FlatCall)   me2.getKey();
         ReachGraph rg  = (ReachGraph) me2.getValue();
                 
-        try {        
-          rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
-                         true,   // write labels (variables)
-                         false,  // selectively hide intermediate temp vars
-                         false,  // prune unreachable heap regions
-                         false,  // hide subset reachability states
-                         true ); // hide edge taints
-        } catch( IOException e ) {}    
+        rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
+                       true,   // write labels (variables)
+                       false,  // selectively hide intermediate temp vars
+                       false,  // prune unreachable heap regions
+                       false,  // hide subset reachability states
+                       true ); // hide edge taints
       }
     }
   }
@@ -1090,14 +1100,12 @@ public class DisjointAnalysis {
       }
       Integer n = mapDescriptorToNumUpdates.get( d );
       
-      try {
-	rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
-                       true,   // write labels (variables)
-                       true,   // selectively hide intermediate temp vars
-                       true,   // prune unreachable heap regions
-                       false,  // hide subset reachability states
-                       true ); // hide edge taints
-      } catch( IOException e ) {}
+      rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
+                     true,   // write labels (variables)
+                     true,   // selectively hide intermediate temp vars
+                     true,   // prune unreachable heap regions
+                     false,  // hide subset reachability states
+                     true ); // hide edge taints
       
       mapDescriptorToNumUpdates.put( d, n + 1 );
     }
@@ -1826,9 +1834,9 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
   
   
   // get successive captures of the analysis state
-  boolean takeDebugSnapshots = false;
-  String descSymbolDebug = "MDRunner";
-  boolean stopAfterCapture = true;
+  boolean takeDebugSnapshots = true;
+  String descSymbolDebug = "calcGoodFeature";
+  boolean stopAfterCapture = false;
 
   // increments every visit to debugSnapshot, don't fiddle with it
   int debugCounter = 0;
@@ -1838,13 +1846,13 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
   int numStartCountReport = 0;
 
   // the frequency of debugCounter values to print out, 0 no report
-  int freqCountReport = 50;
+  int freqCountReport = 0;
 
   // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 350;
+  int iterStartCapture = 0;
 
   // the number of snapshots to take
-  int numIterToCapture = 400;
+  int numIterToCapture = 4000;
 
 
   void debugSnapshot( ReachGraph rg, FlatNode fn, boolean in ) {
@@ -1880,17 +1888,12 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
       if( fn != null ) {
 	graphName = graphName + fn;
       }
-      try {
-	rg.writeGraph( graphName,
-                       true,  // write labels (variables)
-                       true,  // selectively hide intermediate temp vars
-                       true,  // prune unreachable heap regions
-                       false, // hide subset reachability states
-                       true );// hide edge taints
-      } catch( Exception e ) {
-	System.out.println( "Error writing debug capture." );
-	System.exit( 0 );
-      }
+      rg.writeGraph( graphName,
+                     true,  // write labels (variables)
+                     true,  // selectively hide intermediate temp vars
+                     true,  // prune unreachable heap regions
+                     false, // hide subset reachability states
+                     true );// hide edge taints
     }
 
     if( debugCounter == iterStartCapture + numIterToCapture && 

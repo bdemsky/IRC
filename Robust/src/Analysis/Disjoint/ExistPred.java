@@ -71,9 +71,14 @@ public class ExistPred extends Canonical {
 
   // a reference has a field name and type
   protected TypeDescriptor e_type;
-  protected String         e_field;
+  protected String         e_field;                    
 
   // edge uses same ReachState ne_state as node type above
+
+
+  // a static debug flag for higher abstraction code
+  // to enable debug info at this level
+  public static boolean debug = false;
   
 
   // to make the true predicate
@@ -182,12 +187,12 @@ public class ExistPred extends Canonical {
   public ExistPredSet isSatisfiedBy( ReachGraph   rg,
                                      Set<Integer> calleeReachableNodes
                                      ) {
-
     if( predType == TYPE_TRUE ) {
       return ExistPredSet.factory( ExistPred.factory() );
     }
 
     if( predType == TYPE_NODE ) {
+
       // first find node
       HeapRegionNode hrn = rg.id2hrn.get( n_hrnID );
       if( hrn == null ) {
@@ -215,6 +220,7 @@ public class ExistPred extends Canonical {
     }
     
     if( predType == TYPE_EDGE ) {
+
       // first establish whether the source of the
       // reference edge exists
       VariableNode vnSrc = null;
