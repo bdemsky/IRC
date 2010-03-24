@@ -201,6 +201,19 @@ public class Main {
 	state.DISJOINTDEBUGCALLEE=args[++i];
 	state.DISJOINTDEBUGCALLER=args[++i];
 	state.DISJOINTDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
+      
+      } else if (option.equals("-disjoint-debug-snap-method")) {
+	state.DISJOINTSNAPSYMBOL=args[++i];
+        state.DISJOINTSNAPVISITTOSTART=Integer.parseInt(args[++i]);
+	state.DISJOINTSNAPNUMVISITS=Integer.parseInt(args[++i]);
+        String arg = args[++i];
+	if( arg.equals("true") ) {
+	  state.DISJOINTSNAPSTOPAFTER = true;
+	} else if( arg.equals("false") ) {
+          state.DISJOINTSNAPSTOPAFTER = false;
+        } else {
+          throw new Error("disjoint-debug-snap-method requires arguments <method symbol> <# visit to start> <# visits to snap> <T/F stop after>");
+        }
       }
 
       else if (option.equals("-optional"))

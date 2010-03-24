@@ -1915,7 +1915,9 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOThideSubsetReach = false;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
-
+  static String debugGraphPrefix;
+  static int debugCallSiteVisitsUntilExit = 0;
+  
 
   public void 
     resolveMethodCall( FlatCall     fc,        
@@ -1926,14 +1928,16 @@ public class ReachGraph {
                        ) {
 
     if( writeDebugDOTs ) {
-      rgCallee.writeGraph( "callee", 
+      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisitsUntilExit );
+      
+      rgCallee.writeGraph( debugGraphPrefix+"callee", 
                            resolveMethodDebugDOTwriteLabels,    
                            resolveMethodDebugDOTselectTemps,    
                            resolveMethodDebugDOTpruneGarbage,   
                            resolveMethodDebugDOThideSubsetReach,
                            resolveMethodDebugDOThideEdgeTaints );
       
-      writeGraph( "caller00In",  
+      writeGraph( debugGraphPrefix+"caller00In",  
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2169,7 +2173,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller20BeforeWipe", 
+      writeGraph( debugGraphPrefix+"caller20BeforeWipe", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2193,7 +2197,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller30BeforeAddingNodes", 
+      writeGraph( debugGraphPrefix+"caller30BeforeAddingNodes", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2260,7 +2264,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller31BeforeAddingEdges", 
+      writeGraph( debugGraphPrefix+"caller31BeforeAddingEdges", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2460,7 +2464,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller35BeforeAssignReturnValue", 
+      writeGraph( debugGraphPrefix+"caller35BeforeAssignReturnValue", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2544,7 +2548,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller38propagateReach", 
+      writeGraph( debugGraphPrefix+"caller38propagateReach", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2572,7 +2576,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller40BeforeShadowMerge", 
+      writeGraph( debugGraphPrefix+"caller40BeforeShadowMerge", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2671,7 +2675,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller45BeforeUnshadow", 
+      writeGraph( debugGraphPrefix+"caller45BeforeUnshadow", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2697,7 +2701,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller50BeforeGlobalSweep", 
+      writeGraph( debugGraphPrefix+"caller50BeforeGlobalSweep", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
@@ -2714,12 +2718,18 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {
-      writeGraph( "caller90AfterTransfer", 
+      writeGraph( debugGraphPrefix+"caller90AfterTransfer", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
                   resolveMethodDebugDOThideSubsetReach,
                   resolveMethodDebugDOThideEdgeTaints );
+
+      --debugCallSiteVisitsUntilExit;
+      if( debugCallSiteVisitsUntilExit <= 0 ) {
+        System.out.println( "!!! Exiting after requested visits to call site. !!!" );
+        System.exit( 0 );
+      }
     }
   } 
 

@@ -497,12 +497,23 @@ public class DisjointAnalysis {
     this.liveness                = liveness;
     this.arrayReferencees        = arrayReferencees;
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
+
     this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL;
     this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL;
+
+    this.takeDebugSnapshots      = state.DISJOINTSNAPSYMBOL != null;
+    this.descSymbolDebug         = state.DISJOINTSNAPSYMBOL;
+    this.visitStartCapture       = state.DISJOINTSNAPVISITTOSTART;
+    this.numVisitsToCapture      = state.DISJOINTSNAPNUMVISITS;
+    this.stopAfterCapture        = state.DISJOINTSNAPSTOPAFTER;
+    this.snapVisitCounter        = 1; // count visits from 1 (user will write 1, means 1st visit)
+    this.snapNodeCounter         = 0; // count nodes from 0
 	    
     // set some static configuration for ReachGraphs
     ReachGraph.allocationDepth = allocationDepth;
     ReachGraph.typeUtil        = typeUtil;
+
+    ReachGraph.debugCallSiteVisitsUntilExit = state.DISJOINTDEBUGCALLCOUNT;
 
     allocateStructures();
 
@@ -619,14 +630,6 @@ public class DisjointAnalysis {
       
       if( !rg.equals( rgPrev ) ) {
         setPartial( d, rg );
-
-        /*
-        if( d.getSymbol().equals( "getInterpolatePatch" ) ) {
-          ReachGraph.dbgEquals = true;
-          rg.equals( rgPrev );
-          ReachGraph.dbgEquals = false;
-        }
-        */
         
         // results for d changed, so enqueue dependents
         // of d for further analysis
@@ -666,8 +669,6 @@ public class DisjointAnalysis {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );
 
-      //System.out.println( "  "+fn );
-
       // effect transfer function defined by this node,
       // then compare it to the old graph at this node
       // to see if anything was updated.
@@ -691,7 +692,6 @@ public class DisjointAnalysis {
 	FlatNode pn = fn.getPrev( i );
 	if( mapFlatNodeToReachGraph.containsKey( pn ) ) {
 	  ReachGraph rgParent = mapFlatNodeToReachGraph.get( pn );
-//	  System.out.println("parent="+pn+"->"+rgParent);
 	  rg.merge( rgParent );
 	}
       }
@@ -702,7 +702,7 @@ public class DisjointAnalysis {
           ) {
  	debugSnapshot( rg, fn, true );
       }
- 
+
 
       // modify rg with appropriate transfer function
       rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
@@ -712,6 +712,7 @@ public class DisjointAnalysis {
  	  d.getSymbol().equals( descSymbolDebug ) 
           ) {
  	debugSnapshot( rg, fn, false );
+        ++snapNodeCounter;
       }
           
 
@@ -744,6 +745,26 @@ public class DisjointAnalysis {
 
       completeGraph.merge( rgRet );
     }
+
+
+    if( takeDebugSnapshots && 
+        d.getSymbol().equals( descSymbolDebug ) 
+        ) {
+      // increment that we've visited the debug snap
+      // method, and reset the node counter
+      System.out.println( "    @@@ debug snap at visit "+snapVisitCounter );
+      ++snapVisitCounter;
+      snapNodeCounter = 0;
+
+      if( snapVisitCounter == visitStartCapture + numVisitsToCapture && 
+          stopAfterCapture 
+          ) {
+        System.out.println( "!!! Stopping analysis after debug snap captures. !!!" );
+        System.exit( 0 );
+      }
+    }
+
+
     return completeGraph;
   }
 
@@ -1833,57 +1854,39 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 
   
   
-  // get successive captures of the analysis state
-  boolean takeDebugSnapshots = true;
-  String descSymbolDebug = "calcGoodFeature";
-  boolean stopAfterCapture = false;
-
-  // increments every visit to debugSnapshot, don't fiddle with it
-  int debugCounter = 0;
-
-  // the value of debugCounter to start reporting the debugCounter
-  // to the screen to let user know what debug iteration we're at
-  int numStartCountReport = 0;
-
-  // the frequency of debugCounter values to print out, 0 no report
-  int freqCountReport = 0;
-
-  // the debugCounter value at which to start taking snapshots
-  int iterStartCapture = 0;
-
-  // the number of snapshots to take
-  int numIterToCapture = 4000;
+  // get successive captures of the analysis state, use compiler
+  // flags to control
+  boolean takeDebugSnapshots = false;
+  String  descSymbolDebug    = null;
+  boolean stopAfterCapture   = false;
+  int     snapVisitCounter   = 0;
+  int     snapNodeCounter    = 0;
+  int     visitStartCapture  = 0;
+  int     numVisitsToCapture = 0;
 
 
   void debugSnapshot( ReachGraph rg, FlatNode fn, boolean in ) {
-    if( debugCounter > iterStartCapture + numIterToCapture ) {
+    if( snapVisitCounter > visitStartCapture + numVisitsToCapture ) {
       return;
     }
 
     if( in ) {
-      ++debugCounter;
+
     }
 
-    if( debugCounter    > numStartCountReport &&
-	freqCountReport > 0                   &&
-        debugCounter % freqCountReport == 0   &&
-        in
-        ) {
-      System.out.println( "    @@@ debug counter = "+
-                          debugCounter );
-    }
-
-    if( debugCounter > iterStartCapture ) {
-      System.out.println( "    @@@ capturing debug "+
-                          (debugCounter /*- iterStartCapture*/)+
+    if( snapVisitCounter >= visitStartCapture ) {
+      System.out.println( "    @@@ snapping visit="+snapVisitCounter+
+                          ", node="+snapNodeCounter+
                           " @@@" );
       String graphName;
       if( in ) {
-        graphName = String.format( "snap%04din",
-                                   debugCounter ); //- iterStartCapture );
+        graphName = String.format( "snap%02d_%04din",
+                                   snapVisitCounter,
+                                   snapNodeCounter );
       } else {
-        graphName = String.format( "snap%04dout",
-                                   debugCounter ); //- iterStartCapture );
+        graphName = String.format( "snap%02d_%04dout",
+                                   snapVisitCounter,
+                                   snapNodeCounter );
       }
       if( fn != null ) {
 	graphName = graphName + fn;
@@ -1894,13 +1897,6 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
                      true,  // prune unreachable heap regions
                      false, // hide subset reachability states
                      true );// hide edge taints
-    }
-
-    if( debugCounter == iterStartCapture + numIterToCapture && 
-        stopAfterCapture 
-        ) {
-      System.out.println( "Stopping analysis after debug captures." );
-      System.exit( 0 );
     }
   }
 

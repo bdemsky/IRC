@@ -69,6 +69,7 @@ public class State {
   public int OWNERSHIPDEBUGCALLCOUNT=0;
   public String OWNERSHIPDEBUGCALLEE=null;
   public String OWNERSHIPDEBUGCALLER=null;
+  
   public boolean DISJOINT=false;
   public int DISJOINTALLOCDEPTH=3;
   public boolean DISJOINTWRITEDOTS=false;
@@ -79,6 +80,11 @@ public class State {
   public int DISJOINTDEBUGCALLCOUNT=0;
   public String DISJOINTDEBUGCALLEE=null;
   public String DISJOINTDEBUGCALLER=null;
+  public String DISJOINTSNAPSYMBOL=null;
+  public int DISJOINTSNAPVISITTOSTART=0;
+  public int DISJOINTSNAPNUMVISITS=0;
+  public boolean DISJOINTSNAPSTOPAFTER=false;
+
   public boolean OPTIONAL=false;
   public boolean ARRAYBOUNDARYCHECK=true;
   public boolean RAW=false;
