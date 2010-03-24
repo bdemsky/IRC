@@ -169,6 +169,8 @@ public class ExistPred extends Canonical {
     this.e_srcOutCalleeContext = srcOutCalleeContext;
     this.e_srcOutCallerContext = srcOutCallerContext;
 
+    assert !(e_srcOutCalleeContext && e_srcOutCallerContext);
+
     this.e_tdSrc    = tdSrc;
     this.e_hrnSrcID = hrnSrcID;
     this.e_hrnDstID = hrnDstID;
@@ -246,26 +248,27 @@ public class ExistPred extends Canonical {
 
       } else {
 
+        assert !(e_srcOutCalleeContext && e_srcOutCallerContext);
+
         if( e_srcOutCalleeContext ) {
-          assert !e_srcOutCallerContext;
           if( calleeReachableNodes.contains( e_hrnSrcID ) ) {
             return null;
           }
-        } else {
-          if( !calleeReachableNodes.contains( e_hrnSrcID ) ) {
-            return null;
-          }
-        }
 
-        if( e_srcOutCallerContext ) {
-          assert !e_srcOutCalleeContext;
+        } else if( e_srcOutCallerContext ) {
           if( !hrnSrc.isOutOfContext() ) {
             return null;
           }
+
         } else {
+
+          if( !calleeReachableNodes.contains( e_hrnSrcID ) ) {
+            return null;
+          }
           if( hrnSrc.isOutOfContext() ) {
             return null;
           }
+
         }
 
         rsn = hrnSrc;

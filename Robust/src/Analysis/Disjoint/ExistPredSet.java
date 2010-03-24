@@ -31,6 +31,8 @@ public class ExistPredSet extends Canonical {
 
   protected Set<ExistPred> preds;
 
+  public static boolean debug = false;
+
   
   public static ExistPredSet factory() {
     ExistPredSet out = new ExistPredSet();
