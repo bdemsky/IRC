@@ -145,9 +145,9 @@ task mergeY(ImageYM imym{tomergeY},
   }
 }
 
-task calcGoodFeature(Lambda lda{tocalcGF},
-                     ImageXM imxm{tocalcGF},
-                     ImageYM imym{tocalcGF}) {
+task calcGoodFeatureTask(Lambda lda{tocalcGF},
+                         ImageXM imxm{tocalcGF},
+                         ImageYM imym{tocalcGF}) {
 //System.printString("task calcGoodFeature\n");
   
   lda.calcGoodFeature(imxm, imym);
