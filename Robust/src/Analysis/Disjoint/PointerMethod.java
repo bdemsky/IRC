@@ -15,6 +15,8 @@ public class PointerMethod {
   Hashtable<FlatNode, Vector<FlatNode>> prevmap;
 
   public void analyzeMethod(FlatMethod fm) {
+    if (nextmap.containsKey(fm))
+      return;
     Hashtable<FlatNode, HashSet<FlatNode>> map=new Hashtable<FlatNode, HashSet<FlatNode>>();
     HashSet<FlatNode> toprocess=new HashSet<FlatNode>();
     toprocess.add(fm);
