@@ -227,7 +227,7 @@ public class AllocSite extends Canonical {
   }
 
   public String toStringWithIDs() {
-    String s = "allocSite ";
+    String s = "allocSite"+id+" ";
     for( int i = 0; i < ithOldest.size(); ++i ) {
       s += i+"("+ithOldest.get( i )+") ";
     }

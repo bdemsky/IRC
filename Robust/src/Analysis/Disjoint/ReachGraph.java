@@ -79,6 +79,8 @@ public class ReachGraph {
     return this.id2hrn.get( hrn.getID() ) == hrn;
   }
 
+  
+
 
 
   // the reason for this method is to have the option
@@ -140,7 +142,7 @@ public class ReachGraph {
     }
 
     assert preds != null;
-    
+
     HeapRegionNode hrn = new HeapRegionNode( id,
 					     isSingleObject,
 					     markForAnalysis,
@@ -1911,11 +1913,12 @@ public class ReachGraph {
   // useful since many graphs writes in the method call debug code
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
-  private static boolean resolveMethodDebugDOTpruneGarbage    = true;
+  private static boolean resolveMethodDebugDOTpruneGarbage    = false;
   private static boolean resolveMethodDebugDOThideSubsetReach = false;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
   static String debugGraphPrefix;
+  static int debugCallSiteVisits = 0;
   static int debugCallSiteVisitsUntilExit = 0;
   
 
@@ -1928,7 +1931,7 @@ public class ReachGraph {
                        ) {
 
     if( writeDebugDOTs ) {
-      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisitsUntilExit );
+      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisits );
       
       rgCallee.writeGraph( debugGraphPrefix+"callee", 
                            resolveMethodDebugDOTwriteLabels,    
@@ -1945,6 +1948,7 @@ public class ReachGraph {
                   resolveMethodDebugDOThideEdgeTaints,
                   callerNodeIDsCopiedToCallee );
     }
+
 
 
     // method call transfer function steps:
@@ -2033,7 +2037,21 @@ public class ReachGraph {
         HeapRegionNode hrnSrcCallee = (HeapRegionNode) rsnCallee;
         boolean matchedOutOfContext = false;
 
-        if( hrnSrcCallee.isOutOfContext() ) {          
+        if( !hrnSrcCallee.isOutOfContext() ) {          
+
+          predsIfSatis = 
+            hrnSrcCallee.getPreds().isSatisfiedBy( this,
+                                                   callerNodeIDsCopiedToCallee
+                                                   );          
+          if( predsIfSatis != null ) {
+            calleeNodesSatisfied.put( hrnSrcCallee, predsIfSatis );
+          } else {
+            // otherwise forget this edge
+            continue;
+          }          
+      
+        } else {
+          // hrnSrcCallee is out-of-context
 
           assert !calleeEdges2oocCallerSrcMatches.containsKey( reCallee );
 
@@ -2309,6 +2327,13 @@ public class ReachGraph {
       Set<RefSrcNode> oocCallers = 
         calleeEdges2oocCallerSrcMatches.get( reCallee );
 
+      if( rsnCallee instanceof HeapRegionNode ) {
+        HeapRegionNode hrnCalleeSrc = (HeapRegionNode) rsnCallee;
+        if( hrnCalleeSrc.isOutOfContext() ) {
+          assert oocCallers != null;
+        }
+      }
+
       
       if( oocCallers == null ) {
         // there are no out-of-context matches, so it's
@@ -2331,6 +2356,7 @@ public class ReachGraph {
 
         } else {
           // otherwise source is in context, one region
+          
           HeapRegionNode hrnSrcCallee = (HeapRegionNode) rsnCallee;
 
           // translate an in-context node to shadow
@@ -2343,23 +2369,7 @@ public class ReachGraph {
           HeapRegionNode hrnSrcCallerShadow =
             this.id2hrn.get( hrnIDSrcShadow );
           
-          if( hrnSrcCallerShadow == null ) {
-            hrnSrcCallerShadow =
-              createNewHeapRegionNode( hrnIDSrcShadow,                // id or null to generate a new one 
-                                       hrnSrcCallee.isSingleObject(), // single object?		 
-                                       hrnSrcCallee.isNewSummary(),   // summary?	 
-                                       hrnSrcCallee.isFlagged(),      // flagged?
-                                       false,                         // out-of-context?
-                                       hrnSrcCallee.getType(),        // type				 
-                                       hrnSrcCallee.getAllocSite(),   // allocation site			 
-                                       toCallerContext( hrnSrcCallee.getInherent(),
-                                                        calleeStatesSatisfied ),    // inherent reach
-                                       toCallerContext( hrnSrcCallee.getAlpha(),
-                                                        calleeStatesSatisfied ),       // current reach                 
-                                       predsEmpty,                    // predicates
-                                       hrnSrcCallee.getDescription()  // description
-                                       );                                        
-          }
+          assert hrnSrcCallerShadow != null;        
           
           rsnCallers.add( hrnSrcCallerShadow );
         }
@@ -2725,8 +2735,8 @@ public class ReachGraph {
                   resolveMethodDebugDOThideSubsetReach,
                   resolveMethodDebugDOThideEdgeTaints );
 
-      --debugCallSiteVisitsUntilExit;
-      if( debugCallSiteVisitsUntilExit <= 0 ) {
+      ++debugCallSiteVisits;
+      if( debugCallSiteVisits >= debugCallSiteVisitsUntilExit ) {
         System.out.println( "!!! Exiting after requested visits to call site. !!!" );
         System.exit( 0 );
       }
@@ -3091,14 +3101,11 @@ public class ReachGraph {
               B = boldBooc.get( rtOld.getHrnID() ); 
             } else {
 
-
               if( !id2hrn.containsKey( rtOld.getHrnID() ) ) {
-                System.out.println( "\nLooking for "+rtOld );
-                writeGraph( "dbgz" );
+                // let symbols not in the graph get pruned
+                break;
               }
 
-
-              assert id2hrn.containsKey( rtOld.getHrnID() );
               B = boldBic.get( rtOld.getHrnID() ); 
             }
 
@@ -3270,6 +3277,63 @@ public class ReachGraph {
       edgeItr.next().applyBetaNew();
     } 
   }  
+
+
+  // a useful assertion for debugging:
+  // every in-context tuple on any edge or
+  // any node should name a node that is
+  // part of the graph
+  public boolean inContextTuplesInGraph() {
+    Iterator hrnItr = id2hrn.entrySet().iterator();
+    while( hrnItr.hasNext() ) {
+      Map.Entry      me  = (Map.Entry)      hrnItr.next();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+
+      {
+        Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
+          
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
+            
+            if( !rt.isOutOfContext() ) {
+              if( !id2hrn.containsKey( rt.getHrnID() ) ) {
+                System.out.println( rt.getHrnID()+" is missing" );
+                return false;
+              }
+            }
+          }
+        }
+      }
+
+      Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
+      while( edgeItr.hasNext() ) {
+        RefEdge edge = edgeItr.next();
+
+        Iterator<ReachState> stateItr = edge.getBeta().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
+        
+          Iterator<ReachTuple> rtItr = state.iterator();
+          while( rtItr.hasNext() ) {
+            ReachTuple rt = rtItr.next();
+            
+            if( !rt.isOutOfContext() ) {
+              if( !id2hrn.containsKey( rt.getHrnID() ) ) {
+                System.out.println( rt.getHrnID()+" is missing" );
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
 
 
 

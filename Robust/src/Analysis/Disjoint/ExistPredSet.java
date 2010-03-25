@@ -84,6 +84,11 @@ public class ExistPredSet extends Canonical {
   }
 
 
+  public boolean isEmpty() {
+    return preds.isEmpty();
+  }
+
+
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;

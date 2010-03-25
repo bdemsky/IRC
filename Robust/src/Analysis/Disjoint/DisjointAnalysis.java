@@ -1124,7 +1124,7 @@ public class DisjointAnalysis {
       rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
                      true,   // write labels (variables)
                      true,   // selectively hide intermediate temp vars
-                     true,   // prune unreachable heap regions
+                     false,  // prune unreachable heap regions
                      false,  // hide subset reachability states
                      true ); // hide edge taints
       
@@ -1894,7 +1894,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
       rg.writeGraph( graphName,
                      true,  // write labels (variables)
                      true,  // selectively hide intermediate temp vars
-                     true,  // prune unreachable heap regions
+                     false, // prune unreachable heap regions
                      false, // hide subset reachability states
                      true );// hide edge taints
     }
