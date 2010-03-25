@@ -1233,11 +1233,11 @@ public class ScheduleAnalysis {
       int gid = 1;
       boolean isBig = Math.pow(this.coreNum, reduceNum) > 1000;
       Random rand = new Random();
-      if(false) {
+      if(isBig && state.BAMBOOCOMPILETIME) {
 	  CombinationUtil.RootsGenerator rGen = 
 	        CombinationUtil.allocateRootsGenerator(sNodeVecs, 
 	                                               this.coreNum);
-	  while((!isBig || (gid <= this.scheduleThreshold)) && (rGen.nextGen())) {
+	  while((gid <= this.scheduleThreshold) && (rGen.nextGen())) {
 	      // first get the chosen rootNodes
 	      Vector<Vector<ScheduleNode>> rootNodes = rGen.getRootNodes();
 	      Vector<Vector<ScheduleNode>> nodes2combine = rGen.getNode2Combine();
@@ -1245,7 +1245,7 @@ public class ScheduleAnalysis {
 	      CombinationUtil.CombineGenerator cGen = 
 		  CombinationUtil.allocateCombineGenerator(rootNodes, 
 			  nodes2combine);
-	      while((!isBig || (gid <= this.scheduleThreshold)) && (cGen.randomGenE())) {  
+	      while((gid <= this.scheduleThreshold) && (cGen.randomGenE())) {  
 		  boolean implement = true;
 		  /*if(isBig) {
 		      implement = Math.abs(rand.nextInt()) % 100 > generateThreshold;
@@ -1277,7 +1277,7 @@ public class ScheduleAnalysis {
 	        CombinationUtil.allocateRandomGenerator(sNodeVecs, 
 	                                                this.coreNum);
 	  // random genenration
-	  while((!isBig || (gid <= this.scheduleThreshold)) && (rGen.nextGen())) {
+	  while((gid <= this.scheduleThreshold) && (rGen.nextGen())) {
 	      Vector<Vector<ScheduleNode>> mapping = rGen.getMapping();
 	      boolean implement = true;
 	      if(isBig) {

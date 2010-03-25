@@ -101,9 +101,11 @@ public class MCImplSynthesis {
     // Create a new output stream for the stcriticalPathandard output.
     PrintStream stdout  = null;
     try {
+      if(!state.BAMBOOCOMPILETIME) {
       stdout = new PrintStream(
           new FileOutputStream(this.state.outputdir + "SimulatorResult_" 
               + this.coreNum + ".out"));
+      }
     } catch (Exception e) {
       // Sigh.  Couldn't open the file.
       System.out.println("Redirect:  Unable to open output file!");
@@ -118,7 +120,9 @@ public class MCImplSynthesis {
     //origOut.println ("Test output via 'origOut' reference.");
 
     // Set the System out and err streams to use our replacements.
-    System.setOut(stdout);
+    if(!state.BAMBOOCOMPILETIME) {
+      System.setOut(stdout);
+    }
 
     Vector<Schedule> scheduling = null;
     Vector<ScheduleNode> schedulinggraph = null;
@@ -164,8 +168,10 @@ public class MCImplSynthesis {
     int threshold = this.scheduleThreshold;
     // simulate the generated schedulings and try to optimize it
     do {
+	if(!state.BAMBOOCOMPILETIME) {
       System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
       System.out.print("Simulate and optimize round: #" + tryindex + ": \n");
+    }
       gid += newscheduleGraphs.size();
       if(scheduleGraphs != null) {
         for(int i = 0; i < scheduleGraphs.size(); i++) {
@@ -219,24 +225,31 @@ public class MCImplSynthesis {
             selectedSchedulings.elementAt(0));
         selectedSimExeGraph_bk = selectedSimExeGraphs.elementAt(0);
         
+        if(!state.BAMBOOCOMPILETIME) {
         System.out.print("end of: #" + tryindex + " (bestexetime: " 
             + bestexetime + ")\n");
         System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        }
         tryindex++;
         threshold = this.scheduleThreshold;
       } else if(tmpexetime == bestexetime) {
+        if(!state.BAMBOOCOMPILETIME) {
         System.out.print("end of: #" + tryindex + " (bestexetime: " 
             + bestexetime + ")\n");
         System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        }
         tryindex++;
-        threshold = this.scheduleThreshold;
-        if((Math.abs(rand.nextInt()) % 100) < this.probThreshold) {
+        threshold += 10;
+        if((threshold > 40) || 
+            ((Math.abs(rand.nextInt()) % 100) < this.probThreshold + 10)) {
           break;
         }
       } else {
+        if(!state.BAMBOOCOMPILETIME) {
         System.out.print("end of: #" + tryindex + " (bestexetime: " 
             + bestexetime + ")\n");
         System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+        }
         tryindex++;
         if(threshold == this.scheduleThreshold) {
           if(scheduleGraphs != null) {
@@ -253,13 +266,14 @@ public class MCImplSynthesis {
           selectedSimExeGraphs.addElement(selectedSimExeGraph_bk);
         }
         threshold += 10;
-        if((Math.abs(rand.nextInt()) % 100) < this.probThreshold + 1) {
+        if( (threshold > 40) || 
+            ((Math.abs(rand.nextInt()) % 100) < this.probThreshold + 1)) {
           break;
         }
-        //break;
+        break;
       }
 
-      //if(tooptimize) {
+      if(tooptimize) {
       // try to optimize the best one scheduling
       //do {
       newscheduleGraphs = optimizeScheduling(scheduleGraphs, 
@@ -286,9 +300,9 @@ public class MCImplSynthesis {
         scheduleGraphs.removeElementAt(selectedSchedulings.elementAt(0));
         selectedSimExeGraphs.removeElementAt(0);
       }
-      /*} else {
+      } else {
         break;
-      }*/
+      }
     }while(newscheduleGraphs != null); // TODO: could it possibly lead to endless loop?
 
     if(scheduleGraphs != null) {
@@ -308,16 +322,22 @@ public class MCImplSynthesis {
     td2maincd.clear();
     td2maincd = null;
 
+    if(!state.BAMBOOCOMPILETIME) {
     System.out.print("+++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+    }
     System.out.print("selected bestexetime: " + bestexetime + "\n");
+    if(!state.BAMBOOCOMPILETIME) {
     String path = this.state.outputdir + "scheduling_selected.dot";
     SchedulingUtil.printScheduleGraph(path, schedulinggraph);
+    }
 
     // Close the streams.
     try {
+      if(!state.BAMBOOCOMPILETIME) {
       stdout.close();
       stdout = null;
       System.setOut(origOut);
+      }
     } catch (Exception e) {
       origOut.println("Redirect:  Unable to close files!");
     }
@@ -955,6 +975,7 @@ public class MCImplSynthesis {
           }
 
           // flush the dependences and earliest start time
+          if(!state.BAMBOOCOMPILETIME) {
           it_cores = tooptimize.keySet().iterator();
           while(it_cores.hasNext()) {
             int corenum = it_cores.next();
@@ -1002,6 +1023,7 @@ public class MCImplSynthesis {
             left -= ops.size();
           }
           ops = null;
+          }
         } else {
           // there are spare cores, try to reorganize the tasks to the spare 
           // cores
@@ -1124,7 +1146,7 @@ public class MCImplSynthesis {
       CombinationUtil.allocateCombineGenerator(rootNodes, nodes2combine);
     Random rand = new Random();
     while ((left > 0) && (cGen.nextGen())) {
-    //while ((left > 0) && (cGen.randomGen())) {
+    //while ((left > 0) && (cGen.randomGenE())) {
       if(Math.abs(rand.nextInt()) % 100 > this.generateThreshold) {
         Vector<Vector<CombinationUtil.Combine>> combine = cGen.getCombine();
         Vector<ScheduleNode> sNodes = 

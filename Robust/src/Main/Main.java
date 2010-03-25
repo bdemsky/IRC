@@ -140,6 +140,8 @@ public class Main {
       } else if (option.equals("-flatirlibmethods")) {
 	state.FLATIRGRAPH=true;
 	state.FLATIRGRAPHLIBMETHODS=true;
+      } else if (option.equals("-bamboocompiletime")) {
+        state.BAMBOOCOMPILETIME = true;
       } else if (option.equals("-multicore"))
 	state.MULTICORE=true;
       else if (option.equals("-multicoregc"))
@@ -505,16 +507,18 @@ public class Main {
 	if(isDistributeInfo) {
 	    mcImplSynthesis.distribution(isDisAll, startnum);
 	} else {
-	    //double timeStartAnalysis = (double) System.nanoTime();
+	    double timeStartAnalysis = (double) System.nanoTime();
 	    mcImplSynthesis.setScheduleThreshold(20);
 	    mcImplSynthesis.setProbThreshold(0);
 	    mcImplSynthesis.setGenerateThreshold(30);
 	    Vector<Schedule> scheduling = mcImplSynthesis.synthesis();
 	    
-	    //double timeEndAnalysis = (double) System.nanoTime();
-	    //double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-	    //System.err.println("The analysis took" + dt +  "sec.");
-        //System.exit(0);
+	    double timeEndAnalysis = (double) System.nanoTime();
+        if(state.BAMBOOCOMPILETIME) {
+          double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+          System.err.println("The analysis took" + dt +  "sec.");
+          System.exit(0);
+        }
 
 	    // generate multicore codes
 	    if(state.MULTICORE) {

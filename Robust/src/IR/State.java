@@ -58,8 +58,6 @@ public class State {
   public boolean FLATIRGRAPHTASKS=false;
   public boolean FLATIRGRAPHUSERMETHODS=false;
   public boolean FLATIRGRAPHLIBMETHODS=false;
-  public boolean MULTICORE=false;
-  public boolean MULTICOREGC=false;
   public boolean OWNERSHIP=false;
   public int OWNERSHIPALLOCDEPTH=3;
   public boolean OWNERSHIPWRITEDOTS=false;
@@ -86,12 +84,7 @@ public class State {
   public boolean DISJOINTSNAPSTOPAFTER=false;
 
   public boolean OPTIONAL=false;
-  public boolean ARRAYBOUNDARYCHECK=true;
-  public boolean RAW=false;
   public boolean ARRAYPAD=false;
-  public boolean SCHEDULING=false;
-  public boolean USEPROFILE=false;
-  public String profilename = null;
   public boolean THREAD=false;
   public boolean CONSCHECK=false;
   public boolean INSTRUCTIONFAILURE=false;
@@ -102,9 +95,7 @@ public class State {
   public boolean METHODEFFECTS=false;
   public static double TRUEPROB=0.8;
   public static boolean PRINTFLAT=false;
-  public static boolean PRINTSCHEDULING=false;
-  public static boolean PRINTSCHEDULESIM=false;
-  public static boolean PRINTCRITICALPATH=false;
+  
   //DSM options
   public boolean DSM=false;
   public boolean DSMTASK=false;
@@ -122,12 +113,25 @@ public class State {
   public boolean DELAYCOMP=false;
   public boolean DUALVIEW=false;
   public boolean HYBRID=false;
-  //Other options
+  
+  // Bamboo options
+  public boolean MULTICORE=false;
+  public boolean MULTICOREGC=false;
+  public boolean BAMBOOCOMPILETIME = false;
+  public boolean ARRAYBOUNDARYCHECK=true;
+  public boolean RAW=false;
+  public boolean SCHEDULING=false;
+  public boolean USEPROFILE=false;
+  public static boolean PRINTSCHEDULING=false;
+  public static boolean PRINTSCHEDULESIM=false;
+  public static boolean PRINTCRITICALPATH=false;
   public int CORENUM = 1;
   public int CORENUM4GC = 0;
+  public String profilename = null;
+  public String outputdir = "/scratch/";
+  //Other options
   public String structfile;
   public String main;
-  public String outputdir = "/scratch/";
   public boolean INLINEATOMIC=false;
   public int inlineatomicdepth;
   public HashSet selfloops;

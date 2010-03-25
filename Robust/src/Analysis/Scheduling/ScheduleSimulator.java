@@ -130,7 +130,9 @@ public class ScheduleSimulator {
 	  while(it_scheduling.hasNext()) {
 	      Vector<Schedule> scheduling = 
 		  (Vector<Schedule>)it_scheduling.next();
+          if(!state.BAMBOOCOMPILETIME) {
 	      System.out.println("Scheduling index:" + scheduling.elementAt(0).getGid());
+          }
 	      this.setScheduling(scheduling);
 	      Vector<SimExecutionNode> simexegraph = new Vector<SimExecutionNode>();
 	      Vector<CheckPoint> checkpoints = new Vector<CheckPoint>();
@@ -156,12 +158,14 @@ public class ScheduleSimulator {
 	  it_scheduling = null;
       //}
       
+      if(!state.BAMBOOCOMPILETIME) {
       System.out.print("Selected schedulings with least exectution time " + processTime + ": \n\t");
       for(int i = 0; i < selectedScheduling.size(); i++) {
 	  int gid = schedulings.elementAt(selectedScheduling.elementAt(i)).elementAt(0).getGid();
 	  System.out.print(gid + ", ");
       }
       System.out.println();
+      }
       
       return processTime;
   }
@@ -479,11 +483,13 @@ public class ScheduleSimulator {
 		                             this.coreNum, 
 		                             checkpoints);
     }
+    if(!state.BAMBOOCOMPILETIME) {
     System.out.println("Simulate scheduling #" + gid + ": ");
     System.out.println("\tTotal execution time is: " + this.processTime);
     System.out.println("\tUtility of cores: ");
     for(int j = 0; j < this.cores.size(); j++) {
       System.out.println("\t\tcore" + j + ": " + getUtility(j) + "%");
+    }
     }
     
     return this.processTime;
