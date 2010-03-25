@@ -1573,36 +1573,60 @@ private AllocSite createParameterAllocSite(ReachGraph rg, TempDescriptor tempDes
     
 }
 
-private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite alloc, HeapRegionNode srcHRN, FieldDescriptor fd){
+private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
+	
+	Set<FieldDescriptor> fieldSet=new HashSet<FieldDescriptor>();
+    if(!typeDesc.isImmutable()){
+	    ClassDescriptor classDesc = typeDesc.getClassDesc();		    
+	    for (Iterator it = classDesc.getFields(); it.hasNext();) {
+		    FieldDescriptor field = (FieldDescriptor) it.next();
+		    TypeDescriptor fieldType = field.getType();
+		    if (shouldAnalysisTrack( fieldType )) {
+		    	fieldSet.add(field);		    	
+		    }
+	    }
+    }
+    return fieldSet;
+	
+}
+
+private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite alloc, HeapRegionNode srcHRN, FieldDescriptor fd, Hashtable<HeapRegionNode, HeapRegionNode> map, Hashtable<TypeDescriptor, HeapRegionNode> mapToExistingNode ){
 
 	int dimCount=fd.getType().getArrayCount();
 	HeapRegionNode prevNode=null;
+	HeapRegionNode arrayEntryNode=null;
 	for(int i=dimCount;i>0;i--){
-		TempDescriptor tempDesc=new TempDescriptor("temp_");
-		TypeDescriptor typeDesc=fd.getType().dereference();
+		TypeDescriptor typeDesc=fd.getType().dereference();//hack to get instance of type desc
 		typeDesc.setArrayCount(i);
-		tempDesc.setType(typeDesc);
-		AllocSite as;
-		if(i==dimCount){
-			as = alloc;
+		TempDescriptor tempDesc=new TempDescriptor(typeDesc.getSymbol(),typeDesc);
+		HeapRegionNode hrnSummary ;
+		if(!mapToExistingNode.containsKey(typeDesc)){
+			AllocSite as;
+			if(i==dimCount){
+				as = alloc;
+			}else{
+				as = createParameterAllocSite(rg, tempDesc);
+			}
+			// make a new reference to allocated node
+		    hrnSummary = 
+				rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
+							   false, // single object?
+							   true, // summary?
+							   false, // flagged?
+							   false, // out-of-context?
+							   as.getType(), // type
+							   as, // allocation site
+							   null, // inherent reach
+							   null, // current reach
+							   ExistPredSet.factory(), // predicates
+							   tempDesc.toString() // description
+							   );
+		    rg.id2hrn.put(as.getSummary(),hrnSummary);
+		    
+		    mapToExistingNode.put(typeDesc, hrnSummary);
 		}else{
-			as = createParameterAllocSite(rg, tempDesc);
+			hrnSummary=mapToExistingNode.get(typeDesc);
 		}
-		// make a new reference to allocated node
-	    HeapRegionNode hrnSummary = 
-			rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
-						   false, // single object?
-						   true, // summary?
-						   false, // flagged?
-						   false, // out-of-context?
-						   typeDesc, // type
-						   as, // allocation site
-						   null, // inherent reach
-						   null, // current reach
-						   ExistPredSet.factory(), // predicates
-						   tempDesc.toString() // description
-						   );
-	    rg.id2hrn.put(as.getSummary(),hrnSummary);
 	    
 	    if(prevNode==null){
 		    // make a new reference between new summary node and source
@@ -1616,12 +1640,13 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 		    
 		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
 		    prevNode=hrnSummary;
+		    arrayEntryNode=hrnSummary;
 	    }else{
 		    // make a new reference between summary nodes of array
 		    RefEdge edgeToSummary = new RefEdge(prevNode, // source
 							hrnSummary, // dest
 							typeDesc, // type
-							fd.getSymbol(), // field name
+							arrayElementFieldName, // field name
 							srcHRN.getAlpha(), // beta
 							ExistPredSet.factory(rg.predTrue) // predicates
 							);
@@ -1632,9 +1657,59 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 	    
 	}
 	
-	return prevNode;
+	// create a new obj node if obj has at least one non-primitive field
+	TypeDescriptor type=fd.getType();
+    if(getFieldSetTobeAnalyzed(type).size()>0){
+    	TypeDescriptor typeDesc=type.dereference();
+    	typeDesc.setArrayCount(0);
+    	if(!mapToExistingNode.containsKey(typeDesc)){
+    		TempDescriptor tempDesc=new TempDescriptor(type.getSymbol(),typeDesc);
+    		AllocSite as = createParameterAllocSite(rg, tempDesc);
+    		// make a new reference to allocated node
+		    HeapRegionNode hrnSummary = 
+				rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
+							   false, // single object?
+							   true, // summary?
+							   false, // flagged?
+							   false, // out-of-context?
+							   typeDesc, // type
+							   as, // allocation site
+							   null, // inherent reach
+							   null, // current reach
+							   ExistPredSet.factory(), // predicates
+							   tempDesc.toString() // description
+							   );
+		    rg.id2hrn.put(as.getSummary(),hrnSummary);
+		    mapToExistingNode.put(typeDesc, hrnSummary);
+		    RefEdge edgeToSummary = new RefEdge(prevNode, // source
+					hrnSummary, // dest
+					typeDesc, // type
+					arrayElementFieldName, // field name
+					null, // beta
+					ExistPredSet.factory(rg.predTrue) // predicates
+					);
+		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
+		    prevNode=hrnSummary;
+    	}else{
+    		HeapRegionNode hrnSummary=mapToExistingNode.get(typeDesc);
+    		if(prevNode.getReferenceTo(hrnSummary, typeDesc, arrayElementFieldName)==null){
+        		RefEdge edgeToSummary = new RefEdge(prevNode, // source
+    					hrnSummary, // dest
+    					typeDesc, // type
+    					arrayElementFieldName, // field name
+    					null, // beta
+    					ExistPredSet.factory(rg.predTrue) // predicates
+    					);
+    		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
+    		}
+    		 prevNode=hrnSummary;
+    	}
+    }
+	
+	map.put(arrayEntryNode, prevNode);
+	return arrayEntryNode;
 }
-    
+
 private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
     ReachGraph rg = new ReachGraph();
     TaskDescriptor taskDesc = fm.getTask();
@@ -1648,6 +1723,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	    new HashSet<HashMap<HeapRegionNode, FieldDescriptor>>();
 	Hashtable<TypeDescriptor, HeapRegionNode> mapTypeToExistingSummaryNode = 
 	    new Hashtable<TypeDescriptor, HeapRegionNode>();
+	Hashtable<HeapRegionNode, HeapRegionNode> mapToFirstDimensionArrayNode = 
+	    new Hashtable<HeapRegionNode, HeapRegionNode>();
 	Set<String> doneSet = new HashSet<String>();
 	
 	TempDescriptor tempDesc = fm.getParameter(idx);
@@ -1709,8 +1786,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    TypeDescriptor allocType=allocSite.getType();
 		    
 		    HeapRegionNode	hrnSummary;
-		    if(allocType.isArray() && allocType.getArrayCount()>1){
-		    	hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd);
+		    if(allocType.isArray() && allocType.getArrayCount()>0){
+		    	hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd,mapToFirstDimensionArrayNode,mapTypeToExistingSummaryNode);
 		    }else{		    
 		    	hrnSummary = 
 					rg.createNewHeapRegionNode(allocSite.getSummary(), // id or null to generate a new one
@@ -1726,7 +1803,6 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 								   strDesc // description
 								   );
 				    rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
-		    
 		    
 		    // make a new reference to summary node
 		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source
@@ -1744,24 +1820,27 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    mapTypeToExistingSummaryNode.put(type, hrnSummary);
 		    
 		    // set-up a work set for  fields of the class
-		    if(!type.isImmutable()){
-		    classDesc = type.getClassDesc();		    
-		    for (Iterator it = classDesc.getFields(); it.hasNext();) {
-			FieldDescriptor typeFieldDesc = (FieldDescriptor) it.next();
-			TypeDescriptor fieldType = typeFieldDesc.getType();
-//			if (!fieldType.isImmutable()) {
-			if (shouldAnalysisTrack( fieldType )) {
-			    doneSetIdentifier = hrnSummary.getIDString() + "_" + typeFieldDesc;								 
-			    if(!doneSet.contains(doneSetIdentifier)){
-				// add new work item
-				HashMap<HeapRegionNode, FieldDescriptor> newMap = 
-				    new HashMap<HeapRegionNode, FieldDescriptor>();
-				newMap.put(hrnSummary, typeFieldDesc);
-				workSet.add(newMap);
-			    }
+		    Set<FieldDescriptor> fieldTobeAnalyzed=getFieldSetTobeAnalyzed(type);
+		    for (Iterator iterator = fieldTobeAnalyzed.iterator(); iterator
+					.hasNext();) {
+				FieldDescriptor fieldDescriptor = (FieldDescriptor) iterator
+						.next();
+				HeapRegionNode newDstHRN;
+				if(mapToFirstDimensionArrayNode.containsKey(hrnSummary)){
+					//related heap region node is already exsited.
+					newDstHRN=mapToFirstDimensionArrayNode.get(hrnSummary);
+				}else{
+					newDstHRN=hrnSummary;
+				}
+				 doneSetIdentifier = newDstHRN.getIDString() + "_" + fieldDescriptor;								 
+				 if(!doneSet.contains(doneSetIdentifier)){
+				 // add new work item
+					 HashMap<HeapRegionNode, FieldDescriptor> newMap = 
+					    new HashMap<HeapRegionNode, FieldDescriptor>();
+					 newMap.put(newDstHRN, fieldDescriptor);
+					 workSet.add(newMap);
+				  }				
 			}
-		    }
-		    }
 		    
 		}else{
 		    // if there exists corresponding summary node
