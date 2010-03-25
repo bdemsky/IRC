@@ -226,7 +226,7 @@ public class RefEdge {
                        type.toPrettyString()+"\\n"+
                        field+"\\n"+
                        beta.toStringEscNewline( hideSubsetReach )+"\\n"+
-                       preds.toString()+"\",decorate"+
+                       preds.toStringEscNewline()+"\",decorate"+
                        otherAttributes+"]"
                        );
   }

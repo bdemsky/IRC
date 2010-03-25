@@ -108,6 +108,22 @@ public class ExistPredSet extends Canonical {
     return preds.hashCode();
   }
 
+
+  public String toStringEscNewline() {
+    String s = "P[";
+
+    Iterator<ExistPred> predItr = preds.iterator();
+    while( predItr.hasNext() ) {
+      ExistPred pred = predItr.next();
+      s += pred.toString();
+      if( predItr.hasNext() ) {
+        s += " ||\\n";
+      }
+    }
+    s += "]";
+    return s;
+  }
+
   
   public String toString() {
     String s = "P[";

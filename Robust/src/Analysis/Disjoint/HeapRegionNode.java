@@ -316,7 +316,7 @@ public class HeapRegionNode extends RefSrcNode {
                        typeStr+"\\n"+
                        description+"\\n"+
                        alpha.toStringEscNewline( hideSubsetReach )+"\\n"+
-                       preds+"\"]"
+                       preds.toStringEscNewline()+"\"]"
                        );
   }
 
