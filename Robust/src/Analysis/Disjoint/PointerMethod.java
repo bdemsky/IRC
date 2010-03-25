@@ -26,7 +26,8 @@ public class PointerMethod {
       HashSet<FlatNode> myset=new HashSet<FlatNode>();
       if (!analysisCares(fn)) {
 	for(int i=0;i<fn.numPrev();i++) {
-	  myset.addAll(map.get(fn.getPrev(i)));
+	  if (map.containsKey(fn.getPrev(i)))
+	    myset.addAll(map.get(fn.getPrev(i)));
 	}
       } else {
 	myset.add(fn);
@@ -59,7 +60,11 @@ public class PointerMethod {
   }
 
   public int numNext(FlatNode fn) {
-    return nextmap.get(fn).size();
+    Vector<FlatNode> vfn=nextmap.get(fn);
+    if (vfn==null)
+      return 0;
+    else 
+      return vfn.size();
   }
 
   public FlatNode getNext(FlatNode fn, int i) {

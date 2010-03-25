@@ -429,6 +429,8 @@ public class DisjointAnalysis {
   protected Hashtable<Descriptor, ReachGraph>
   mapDescriptorToReachGraph;
 
+  protected PointerMethod pm;
+
 
   // allocate various structures that are not local
   // to a single class method--should be done once
@@ -512,6 +514,8 @@ public class DisjointAnalysis {
     this.stopAfterCapture        = state.DISJOINTSNAPSTOPAFTER;
     this.snapVisitCounter        = 1; // count visits from 1 (user will write 1, means 1st visit)
     this.snapNodeCounter         = 0; // count nodes from 0
+    this.pm=new PointerMethod();
+
 	    
     // set some static configuration for ReachGraphs
     ReachGraph.allocationDepth = allocationDepth;
@@ -656,7 +660,7 @@ public class DisjointAnalysis {
     } else {
       fm = state.getMethodFlat( d );
     }
-      
+    pm.analyzeMethod(fm);
     // intraprocedural work set
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fm );
@@ -692,8 +696,8 @@ public class DisjointAnalysis {
       }
 
       // start by merging all node's parents' graphs
-      for( int i = 0; i < fn.numPrev(); ++i ) {
-	FlatNode pn = fn.getPrev( i );
+      for( int i = 0; i < pm.numPrev(fn); ++i ) {
+	FlatNode pn = pm.getPrev(fn,i);
 	if( mapFlatNodeToReachGraph.containsKey( pn ) ) {
 	  ReachGraph rgParent = mapFlatNodeToReachGraph.get( pn );
 	  rg.merge( rgParent );
@@ -727,8 +731,8 @@ public class DisjointAnalysis {
       if( !rg.equals( rgPrev ) ) {
 	mapFlatNodeToReachGraph.put( fn, rg );
 
-	for( int i = 0; i < fn.numNext(); i++ ) {
-	  FlatNode nn = fn.getNext( i );
+	for( int i = 0; i < pm.numNext(fn); i++ ) {
+	  FlatNode nn = pm.getNext(fn, i);
 	  flatNodesToVisit.add( nn );
 	}
       }
@@ -1888,6 +1892,7 @@ private void buildAllocationSiteSet(Descriptor d) {
       assert d instanceof TaskDescriptor;
       fm = state.getMethodFlat( (TaskDescriptor) d);
     }
+    pm.analyzeMethod(fm);
 
     // visit every node in this FlatMethod's IR graph
     // and make a set of the allocation sites from the
@@ -1906,8 +1911,8 @@ private void buildAllocationSiteSet(Descriptor d) {
       toVisit.remove(n);
       visited.add(n);
 
-      for( int i = 0; i < n.numNext(); ++i ) {
-	FlatNode child = n.getNext(i);
+      for( int i = 0; i < pm.numNext(n); ++i ) {
+	FlatNode child = pm.getNext(n, i);
 	if( !visited.contains(child) ) {
 	  toVisit.add(child);
 	}
