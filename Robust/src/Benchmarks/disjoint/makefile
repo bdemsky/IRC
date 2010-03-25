@@ -16,7 +16,8 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #SNAPFLAGS= -disjoint-debug-snap-method innerKMeansSetting 1 20 true
 
 
-BSFLAGS= -recover -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -enable-assertions
+#BSFLAGS= -recover -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -enable-assertions
+BSFLAGS= -recover -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-release-mode
 
 all:
 	$(BUILDSCRIPT) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java

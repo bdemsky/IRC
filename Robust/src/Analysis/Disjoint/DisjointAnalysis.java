@@ -311,6 +311,9 @@ public class DisjointAnalysis {
 	  } 
 
 
+  // run in faster mode, only when bugs wrung out!
+  public static boolean releaseMode;
+
   // data from the compiler
   public State            state;
   public CallGraph        callGraph;
@@ -489,7 +492,7 @@ public class DisjointAnalysis {
                        ArrayReferencees arrayReferencees
                        ) throws java.io.IOException {
 	  
-	analysisComplete = false;
+    analysisComplete = false;
     
     this.state                   = state;
     this.typeUtil                = typeUtil;
@@ -497,6 +500,7 @@ public class DisjointAnalysis {
     this.liveness                = liveness;
     this.arrayReferencees        = arrayReferencees;
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
+    this.releaseMode             = state.DISJOINTRELEASEMODE;
 
     this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL;
     this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL;

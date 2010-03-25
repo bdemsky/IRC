@@ -89,7 +89,7 @@ public class ExistPredSet extends Canonical {
   }
 
 
-  public boolean equals( Object o ) {
+  public boolean equalsSpecific( Object o ) {
     if( o == null ) {
       return false;
     }

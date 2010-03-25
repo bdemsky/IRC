@@ -216,7 +216,11 @@ public class Main {
         } else {
           throw new Error("disjoint-debug-snap-method requires arguments <method symbol> <# visit to start> <# visits to snap> <T/F stop after>");
         }
+
+      } else if( option.equals( "-disjoint-release-mode" ) ) {
+        state.DISJOINTRELEASEMODE = true;
       }
+      
 
       else if (option.equals("-optional"))
 	state.OPTIONAL=true;

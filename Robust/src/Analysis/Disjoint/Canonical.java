@@ -59,6 +59,30 @@ abstract public class Canonical {
     return canonicalValue;
   }
 
+
+
+  abstract public boolean equalsSpecific( Object o );
+
+  final public boolean equals( Object o ) {
+    if( o == null ) {
+      return false;
+    }
+
+    if( !(o instanceof Canonical) ) {
+      return false;
+    }
+
+    Canonical c = (Canonical) o;
+
+    if( this.canonicalValue == 0 ||
+           c.canonicalValue == 0
+        ) {
+      return equalsSpecific( o );
+    }
+
+    return this.canonicalValue == c.canonicalValue;
+  }
+
   
   // canonical objects should never be modified
   // and therefore have changing hash codes, so
@@ -70,6 +94,13 @@ abstract public class Canonical {
   private boolean hasHash = false;
   private int     oldHash;
   final public int hashCode() {
+    
+    // the quick mode
+    if( DisjointAnalysis.releaseMode && hasHash ) {
+      return oldHash;
+    }
+
+    // the safe mode
     int hash = hashCodeSpecific();
 
     if( hasHash ) {
@@ -83,8 +114,6 @@ abstract public class Canonical {
     
     return hash;
   }
-
-
 
 
   // mapping of a non-trivial operation to its result

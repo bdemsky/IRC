@@ -235,6 +235,19 @@ public class AllocSite extends Canonical {
     return s;
   }
 
+  public boolean equalsSpecific( Object o ) {
+    if( o == null ) {
+      return false;
+    }
+
+    if( !(o instanceof AllocSite) ) {
+      return false;
+    }
+
+    AllocSite as = (AllocSite) o;
+
+    return this.id == as.id;
+  }
 
   public int hashCodeSpecific() {
     return id;
