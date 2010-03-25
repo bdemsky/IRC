@@ -1,4 +1,5 @@
 BUILDSCRIPT=../../../buildscript
+MAINCLASS=test
 
 #DEBUGFLAGS= -disjoint-debug-callsite MDRunner t3 100
 #DEBUGFLAGS= -disjoint-debug-callsite calcGoodFeature calcGoodFeatureTask 100
@@ -10,7 +11,7 @@ BUILDSCRIPT=../../../buildscript
 
 #SNAPFLAGS= -disjoint-debug-snap-method t3 5 20 true
 
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots all -disjoint-alias-file aliases.txt normal -enable-assertions
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots all -disjoint-alias-file aliases.txt normal -enable-assertions -mainclass ${MAINCLASS}
 
 all:
 	$(BUILDSCRIPT) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
