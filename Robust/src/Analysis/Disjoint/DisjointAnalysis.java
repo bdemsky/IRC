@@ -1572,6 +1572,68 @@ private AllocSite createParameterAllocSite(ReachGraph rg, TempDescriptor tempDes
     return as;
     
 }
+
+private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite alloc, HeapRegionNode srcHRN, FieldDescriptor fd){
+
+	int dimCount=fd.getType().getArrayCount();
+	HeapRegionNode prevNode=null;
+	for(int i=dimCount;i>0;i--){
+		TempDescriptor tempDesc=new TempDescriptor("temp_");
+		TypeDescriptor typeDesc=fd.getType().dereference();
+		typeDesc.setArrayCount(i);
+		tempDesc.setType(typeDesc);
+		AllocSite as;
+		if(i==dimCount){
+			as = alloc;
+		}else{
+			as = createParameterAllocSite(rg, tempDesc);
+		}
+		// make a new reference to allocated node
+	    HeapRegionNode hrnSummary = 
+			rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
+						   false, // single object?
+						   true, // summary?
+						   false, // flagged?
+						   false, // out-of-context?
+						   typeDesc, // type
+						   as, // allocation site
+						   null, // inherent reach
+						   null, // current reach
+						   ExistPredSet.factory(), // predicates
+						   tempDesc.toString() // description
+						   );
+	    rg.id2hrn.put(as.getSummary(),hrnSummary);
+	    
+	    if(prevNode==null){
+		    // make a new reference between new summary node and source
+		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source
+							hrnSummary, // dest
+							typeDesc, // type
+							fd.getSymbol(), // field name
+							srcHRN.getAlpha(), // beta
+							ExistPredSet.factory(rg.predTrue) // predicates
+							);
+		    
+		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
+		    prevNode=hrnSummary;
+	    }else{
+		    // make a new reference between summary nodes of array
+		    RefEdge edgeToSummary = new RefEdge(prevNode, // source
+							hrnSummary, // dest
+							typeDesc, // type
+							fd.getSymbol(), // field name
+							srcHRN.getAlpha(), // beta
+							ExistPredSet.factory(rg.predTrue) // predicates
+							);
+		    
+		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
+		    prevNode=hrnSummary;
+	    }
+	    
+	}
+	
+	return prevNode;
+}
     
 private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
     ReachGraph rg = new ReachGraph();
@@ -1644,32 +1706,39 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    }
 		    String strDesc = allocSite.toStringForDOT()
 			+ "\\nsummary";
-		    HeapRegionNode hrnSummary = 
-			rg.createNewHeapRegionNode(allocSite.getSummary(), // id or null to generate a new one
-						   false, // single object?
-						   true, // summary?
-						   false, // flagged?
-						   false, // out-of-context?
-						   allocSite.getType(), // type
-						   allocSite, // allocation site
-						   null, // inherent reach
-						   srcHRN.getAlpha(), // current reach
-						   ExistPredSet.factory(), // predicates
-						   strDesc // description
-						   );
-		    rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
+		    TypeDescriptor allocType=allocSite.getType();
+		    
+		    HeapRegionNode	hrnSummary;
+		    if(allocType.isArray() && allocType.getArrayCount()>1){
+		    	hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd);
+		    }else{		    
+		    	hrnSummary = 
+					rg.createNewHeapRegionNode(allocSite.getSummary(), // id or null to generate a new one
+								   false, // single object?
+								   true, // summary?
+								   false, // flagged?
+								   false, // out-of-context?
+								   allocSite.getType(), // type
+								   allocSite, // allocation site
+								   null, // inherent reach
+								   srcHRN.getAlpha(), // current reach
+								   ExistPredSet.factory(), // predicates
+								   strDesc // description
+								   );
+				    rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
+		    
 		    
 		    // make a new reference to summary node
 		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source
 							hrnSummary, // dest
-							fd.getType(), // type
+							type, // type
 							fd.getSymbol(), // field name
 							srcHRN.getAlpha(), // beta
 							ExistPredSet.factory(rg.predTrue) // predicates
 							);
 		    
 		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
-		    
+		    }		    
 		    uniqueIdentifier++;
 		    
 		    mapTypeToExistingSummaryNode.put(type, hrnSummary);
@@ -1680,7 +1749,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    for (Iterator it = classDesc.getFields(); it.hasNext();) {
 			FieldDescriptor typeFieldDesc = (FieldDescriptor) it.next();
 			TypeDescriptor fieldType = typeFieldDesc.getType();
-			if (!fieldType.isImmutable()) {
+//			if (!fieldType.isImmutable()) {
+			if (shouldAnalysisTrack( fieldType )) {
 			    doneSetIdentifier = hrnSummary.getIDString() + "_" + typeFieldDesc;								 
 			    if(!doneSet.contains(doneSetIdentifier)){
 				// add new work item
