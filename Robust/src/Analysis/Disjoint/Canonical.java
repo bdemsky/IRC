@@ -1278,4 +1278,68 @@ abstract public class Canonical {
     return out;
   }
 
+
+
+  public static ReachState makePredsTrue( ReachState rs ) {
+    assert rs != null;
+    assert rs.isCanonical();
+
+    // ops require two canonicals, in this case always supply
+    // the empty reach state as the second, it's never used,
+    // but makes the hashing happy
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSTATE_MAKEPREDSTRUE,
+                       rs, 
+                       ReachState.factory() );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachState) result;
+    }
+    
+    // otherwise, no cached result...
+    ReachState out = new ReachState();
+
+    // just remake state with the true predicate attached
+    out.reachTuples.addAll( rs.reachTuples );
+    out.preds = ExistPredSet.factory( ExistPred.factory() );
+    
+    out = (ReachState) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
+
+
+  public static ReachSet makePredsTrue( ReachSet rs ) {
+    assert rs != null;
+    assert rs.isCanonical();
+
+    // ops require two canonicals, in this case always supply
+    // the empty reach set as the second, it's never used,
+    // but makes the hashing happy
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSET_MAKEPREDSTRUE,
+                       rs,
+                       ReachSet.factory() );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachSet) result;
+    }
+    
+    // otherwise, no cached result...
+    ReachSet out = ReachSet.factory();
+    Iterator<ReachState> itr = rs.iterator();
+    while( itr.hasNext() ) {
+      ReachState state = itr.next();
+      out = Canonical.add( out,
+                           Canonical.makePredsTrue( state )
+                           );
+    }
+    
+    out = (ReachSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
+
 }

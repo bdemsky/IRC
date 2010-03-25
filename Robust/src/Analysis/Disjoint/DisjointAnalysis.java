@@ -1094,8 +1094,8 @@ public class DisjointAnalysis {
                 
         rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
                        true,   // write labels (variables)
-                       false,  // selectively hide intermediate temp vars
-                       false,  // prune unreachable heap regions
+                       true,   // selectively hide intermediate temp vars
+                       true,   // prune unreachable heap regions
                        false,  // hide subset reachability states
                        true ); // hide edge taints
       }
@@ -1124,7 +1124,7 @@ public class DisjointAnalysis {
       rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
                      true,   // write labels (variables)
                      true,   // selectively hide intermediate temp vars
-                     false,  // prune unreachable heap regions
+                     true,   // prune unreachable heap regions
                      false,  // hide subset reachability states
                      true ); // hide edge taints
       
@@ -1590,7 +1590,7 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 	
 }
 
-private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite alloc, HeapRegionNode srcHRN, FieldDescriptor fd, Hashtable<HeapRegionNode, HeapRegionNode> map, Hashtable<TypeDescriptor, HeapRegionNode> mapToExistingNode ){
+  private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite alloc, HeapRegionNode srcHRN, FieldDescriptor fd, Hashtable<HeapRegionNode, HeapRegionNode> map, Hashtable<TypeDescriptor, HeapRegionNode> mapToExistingNode, ReachSet alpha ){
 
 	int dimCount=fd.getType().getArrayCount();
 	HeapRegionNode prevNode=null;
@@ -1617,8 +1617,8 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 							   as.getType(), // type
 							   as, // allocation site
 							   null, // inherent reach
-							   null, // current reach
-							   ExistPredSet.factory(), // predicates
+							   alpha, // current reach
+							   ExistPredSet.factory(rg.predTrue), // predicates
 							   tempDesc.toString() // description
 							   );
 		    rg.id2hrn.put(as.getSummary(),hrnSummary);
@@ -1634,7 +1634,7 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 							hrnSummary, // dest
 							typeDesc, // type
 							fd.getSymbol(), // field name
-							srcHRN.getAlpha(), // beta
+							alpha, // beta
 							ExistPredSet.factory(rg.predTrue) // predicates
 							);
 		    
@@ -1647,7 +1647,7 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 							hrnSummary, // dest
 							typeDesc, // type
 							arrayElementFieldName, // field name
-							srcHRN.getAlpha(), // beta
+							alpha, // beta
 							ExistPredSet.factory(rg.predTrue) // predicates
 							);
 		    
@@ -1675,8 +1675,8 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 							   typeDesc, // type
 							   as, // allocation site
 							   null, // inherent reach
-							   null, // current reach
-							   ExistPredSet.factory(), // predicates
+							   alpha, // current reach
+							   ExistPredSet.factory(rg.predTrue), // predicates
 							   tempDesc.toString() // description
 							   );
 		    rg.id2hrn.put(as.getSummary(),hrnSummary);
@@ -1685,7 +1685,7 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
 					hrnSummary, // dest
 					typeDesc, // type
 					arrayElementFieldName, // field name
-					null, // beta
+                                        alpha, // beta
 					ExistPredSet.factory(rg.predTrue) // predicates
 					);
 		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
@@ -1697,7 +1697,7 @@ private HeapRegionNode createMultiDeimensionalArrayHRN(ReachGraph rg, AllocSite 
     					hrnSummary, // dest
     					typeDesc, // type
     					arrayElementFieldName, // field name
-    					null, // beta
+    					alpha, // beta
     					ExistPredSet.factory(rg.predTrue) // predicates
     					);
     		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
@@ -1787,7 +1787,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    
 		    HeapRegionNode	hrnSummary;
 		    if(allocType.isArray() && allocType.getArrayCount()>0){
-		    	hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd,mapToFirstDimensionArrayNode,mapTypeToExistingSummaryNode);
+                      hrnSummary=createMultiDeimensionalArrayHRN(rg,allocSite,srcHRN,fd,mapToFirstDimensionArrayNode,mapTypeToExistingSummaryNode,hrnNewest.getAlpha());
 		    }else{		    
 		    	hrnSummary = 
 					rg.createNewHeapRegionNode(allocSite.getSummary(), // id or null to generate a new one
@@ -1798,8 +1798,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 								   allocSite.getType(), // type
 								   allocSite, // allocation site
 								   null, // inherent reach
-								   srcHRN.getAlpha(), // current reach
-								   ExistPredSet.factory(), // predicates
+								   hrnNewest.getAlpha(), // current reach
+								   ExistPredSet.factory(rg.predTrue), // predicates
 								   strDesc // description
 								   );
 				    rg.id2hrn.put(allocSite.getSummary(),hrnSummary);
@@ -1809,7 +1809,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 							hrnSummary, // dest
 							type, // type
 							fd.getSymbol(), // field name
-							srcHRN.getAlpha(), // beta
+							hrnNewest.getAlpha(), // beta
 							ExistPredSet.factory(rg.predTrue) // predicates
 							);
 		    
@@ -2043,7 +2043,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
       rg.writeGraph( graphName,
                      true,  // write labels (variables)
                      true,  // selectively hide intermediate temp vars
-                     false, // prune unreachable heap regions
+                     true,  // prune unreachable heap regions
                      false, // hide subset reachability states
                      true );// hide edge taints
     }

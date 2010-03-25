@@ -123,15 +123,17 @@ public class ReachGraph {
     if( inherent == null ) {
       if( markForAnalysis ) {
 	inherent = 
-          ReachSet.factory(
-                           ReachState.factory(
-                                              ReachTuple.factory( id,
-                                                                  !isSingleObject,
-                                                                  ReachTuple.ARITY_ONE,
-                                                                  false // out-of-context
-                                                                  )
-                                              )
-                           );
+          Canonical.makePredsTrue(
+                                  ReachSet.factory(
+                                                   ReachState.factory(
+                                                                      ReachTuple.factory( id,
+                                                                                          !isSingleObject,
+                                                                                          ReachTuple.ARITY_ONE,
+                                                                                          false // out-of-context
+                                                                                          )
+                                                                      )
+                                                   )
+                                  );
       } else {
 	inherent = rsetWithEmptyState;
       }
@@ -592,15 +594,18 @@ public class ReachGraph {
 			    hrnY.getType()
 			    );	
 
-	RefEdge edgeNew = new RefEdge( hrnX,
-                                       hrnY,
-                                       tdNewEdge,
-                                       f.getSymbol(),
-                                       Canonical.pruneBy( edgeY.getBeta(),
-                                                          hrnX.getAlpha() 
-                                                          ),
-                                       predsTrue
-                                       );
+	RefEdge edgeNew = 
+          new RefEdge( hrnX,
+                       hrnY,
+                       tdNewEdge,
+                       f.getSymbol(),
+                       Canonical.makePredsTrue(
+                                               Canonical.pruneBy( edgeY.getBeta(),
+                                                                  hrnX.getAlpha() 
+                                                                  )
+                                               ),
+                       predsTrue
+                       );
 
         addEdgeOrMergeWithExisting( edgeNew );
       }
@@ -1895,7 +1900,8 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {    
-      rg.writeGraph( "calleeview", 
+      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisits );
+      rg.writeGraph( debugGraphPrefix+"calleeview", 
                      resolveMethodDebugDOTwriteLabels,    
                      resolveMethodDebugDOTselectTemps,    
                      resolveMethodDebugDOTpruneGarbage,   
@@ -1913,7 +1919,7 @@ public class ReachGraph {
   // useful since many graphs writes in the method call debug code
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
-  private static boolean resolveMethodDebugDOTpruneGarbage    = false;
+  private static boolean resolveMethodDebugDOTpruneGarbage    = true;
   private static boolean resolveMethodDebugDOThideSubsetReach = false;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 

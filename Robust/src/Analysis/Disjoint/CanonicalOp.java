@@ -32,6 +32,9 @@ public class CanonicalOp {
   public static final int REACHSTATE_TOCALLERCONTEXT_ALLOCSITE = 0xb2b1;
   public static final int REACHSET_UNSHADOW_ALLOCSITE          = 0x1049;
   public static final int REACHSTATE_UNSHADOW_ALLOCSITE        = 0x08ef;
+  public static final int REACHSTATE_MAKEPREDSTRUE             = 0x0b9c;
+  public static final int REACHSET_MAKEPREDSTRUE               = 0xdead;
+
 
   protected int opCode;
   protected Canonical operand1;
