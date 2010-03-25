@@ -120,7 +120,7 @@ public class HeapRegionNode extends RefSrcNode {
     assert isFlagged      == hrn.isFlagged();
     assert isNewSummary   == hrn.isNewSummary();
     assert isOutOfContext == hrn.isOutOfContext();
-    assert description.equals( hrn.getDescription() );
+    //assert description.equals( hrn.getDescription() );
 
     return true;
   }
