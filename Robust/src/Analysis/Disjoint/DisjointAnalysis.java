@@ -362,7 +362,7 @@ public class DisjointAnalysis {
   // current descriptors to visit in fixed-point
   // interprocedural analysis, prioritized by
   // dependency in the call graph
-  protected PriorityQueue<DescriptorQWrapper> 
+  protected Stack<DescriptorQWrapper> 
     descriptorsToVisitQ;
   
   // a duplication of the above structure, but
@@ -461,7 +461,7 @@ public class DisjointAnalysis {
       new Hashtable <TypeDescriptor, FieldDescriptor>();
 
     descriptorsToVisitQ =
-      new PriorityQueue<DescriptorQWrapper>();
+      new Stack<DescriptorQWrapper>();
 
     descriptorsToVisitSet =
       new HashSet<Descriptor>();
@@ -623,7 +623,7 @@ public class DisjointAnalysis {
 
     // analyze methods from the priority queue until it is empty
     while( !descriptorsToVisitQ.isEmpty() ) {
-      Descriptor d = descriptorsToVisitQ.poll().getDescriptor();
+      Descriptor d = descriptorsToVisitQ.pop().getDescriptor();
       assert descriptorsToVisitSet.contains( d );
       descriptorsToVisitSet.remove( d );
 
