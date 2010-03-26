@@ -1433,7 +1433,7 @@ public class ReachGraph {
                                stateCaller
                                );
         }
-      } 
+      }
     }    
 
     assert out.isCanonical();
@@ -2141,60 +2141,6 @@ public class ReachGraph {
         }        
       }
     }
-    /*
-    // test param -> HRN edges, also
-    for( int i = 0; i < fmCallee.numParameters(); ++i ) {
-
-      // parameter defined here is the symbol in the callee
-      TempDescriptor tdParam = fmCallee.getParameter( i );
-
-      if( !DisjointAnalysis.shouldAnalysisTrack( tdParam.getType() ) ) {
-        // skip primitive/immutable parameters
-        continue;
-      }
-
-      VariableNode vnCallee = rgCallee.getVariableNodeFromTemp( tdParam );
-
-      Iterator<RefEdge> reItr = vnCallee.iteratorToReferencees();
-      while( reItr.hasNext() ) {
-        RefEdge reCallee = reItr.next();
-        
-        ExistPredSet ifDst = 
-          reCallee.getDst().getPreds().isSatisfiedBy( this,
-                                                      callerNodeIDsCopiedToCallee
-                                                      );
-        if( ifDst == null ) {
-          continue;
-        }
-        
-        ExistPredSet predsIfSatis = 
-          reCallee.getPreds().isSatisfiedBy( this,
-                                             callerNodeIDsCopiedToCallee
-                                             );
-        if( predsIfSatis != null ) {
-          calleeEdgesSatisfied.put( reCallee, predsIfSatis );
-
-          // since the edge is coming over, find out which reach
-          // states on it should come over, too
-          Iterator<ReachState> stateItr = reCallee.getBeta().iterator();
-          while( stateItr.hasNext() ) {
-            ReachState stateCallee = stateItr.next();
-            
-            predsIfSatis = 
-              stateCallee.getPreds().isSatisfiedBy( this,
-                                                    callerNodeIDsCopiedToCallee
-                                                    );
-            if( predsIfSatis != null ) {
-              calleeStatesSatisfied.put( stateCallee, predsIfSatis );
-            } 
-          }
-
-        }        
-      }
-      }*/
-
-
-
 
     if( writeDebugDOTs ) {
       writeGraph( debugGraphPrefix+"caller20BeforeWipe", 
@@ -2228,6 +2174,8 @@ public class ReachGraph {
                   resolveMethodDebugDOThideSubsetReach,
                   resolveMethodDebugDOThideEdgeTaints );
     }
+
+
 
 
     // 3. callee elements with satisfied preds come in, note that
@@ -2284,6 +2232,8 @@ public class ReachGraph {
 
       hrnCaller.setPreds( preds );
     }
+
+
 
 
 
@@ -2478,7 +2428,6 @@ public class ReachGraph {
 
 
 
-
     if( writeDebugDOTs ) {
       writeGraph( debugGraphPrefix+"caller35BeforeAssignReturnValue", 
                   resolveMethodDebugDOTwriteLabels,    
@@ -2591,6 +2540,7 @@ public class ReachGraph {
 
 
 
+
     if( writeDebugDOTs ) {
       writeGraph( debugGraphPrefix+"caller40BeforeShadowMerge", 
                   resolveMethodDebugDOTwriteLabels,    
@@ -2690,6 +2640,10 @@ public class ReachGraph {
     }
 
 
+
+
+
+
     if( writeDebugDOTs ) {
       writeGraph( debugGraphPrefix+"caller45BeforeUnshadow", 
                   resolveMethodDebugDOTwriteLabels,    
@@ -2716,6 +2670,7 @@ public class ReachGraph {
     
 
 
+
     if( writeDebugDOTs ) {
       writeGraph( debugGraphPrefix+"caller50BeforeGlobalSweep", 
                   resolveMethodDebugDOTwriteLabels,    
@@ -2731,6 +2686,8 @@ public class ReachGraph {
       globalSweep();
     }
     
+
+
 
 
     if( writeDebugDOTs ) {
@@ -3290,6 +3247,7 @@ public class ReachGraph {
   // any node should name a node that is
   // part of the graph
   public boolean inContextTuplesInGraph() {
+
     Iterator hrnItr = id2hrn.entrySet().iterator();
     while( hrnItr.hasNext() ) {
       Map.Entry      me  = (Map.Entry)      hrnItr.next();
@@ -3340,6 +3298,74 @@ public class ReachGraph {
     return true;
   }
 
+
+  // another useful assertion for debugging
+  public boolean noEmptyReachSetsInGraph() {
+    
+    Iterator hrnItr = id2hrn.entrySet().iterator();
+    while( hrnItr.hasNext() ) {
+      Map.Entry      me  = (Map.Entry)      hrnItr.next();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+
+      if( !hrn.isOutOfContext() && 
+          !hrn.isWiped()        &&
+          hrn.getAlpha().isEmpty() 
+          ) {
+        System.out.println( "!!! "+hrn+" has an empty ReachSet !!!" );
+        return false;
+      }
+
+      Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
+      while( edgeItr.hasNext() ) {
+        RefEdge edge = edgeItr.next();
+
+        if( edge.getBeta().isEmpty() ) {
+          System.out.println( "!!! "+edge+" has an empty ReachSet !!!" );
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  }
+
+
+  public boolean everyReachStateWTrue() {
+
+    Iterator hrnItr = id2hrn.entrySet().iterator();
+    while( hrnItr.hasNext() ) {
+      Map.Entry      me  = (Map.Entry)      hrnItr.next();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+
+      {
+        Iterator<ReachState> stateItr = hrn.getAlpha().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
+          
+          if( !state.getPreds().equals( predsTrue ) ) {
+            return false;
+          }
+        }
+      }
+
+      Iterator<RefEdge> edgeItr = hrn.iteratorToReferencers();
+      while( edgeItr.hasNext() ) {
+        RefEdge edge = edgeItr.next();
+
+        Iterator<ReachState> stateItr = edge.getBeta().iterator();
+        while( stateItr.hasNext() ) {
+          ReachState state = stateItr.next();
+
+          if( !state.getPreds().equals( predsTrue ) ) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+  
 
 
 

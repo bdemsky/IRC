@@ -1046,7 +1046,7 @@ public class DisjointAnalysis {
     //rg.abstractGarbageCollect();
     //rg.globalSweep();
 
-
+    
     // at this point rg should be the correct update
     // by an above transfer function, or untouched if
     // the flat node type doesn't affect the heap
@@ -1633,7 +1633,7 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 							   false, // out-of-context?
 							   as.getType(), // type
 							   as, // allocation site
-							   null, // inherent reach
+							   alpha, // inherent reach
 							   alpha, // current reach
 							   ExistPredSet.factory(rg.predTrue), // predicates
 							   tempDesc.toString() // description
@@ -1691,7 +1691,7 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 							   false, // out-of-context?
 							   typeDesc, // type
 							   as, // allocation site
-							   null, // inherent reach
+							   alpha, // inherent reach
 							   alpha, // current reach
 							   ExistPredSet.factory(rg.predTrue), // predicates
 							   tempDesc.toString() // description
@@ -1750,6 +1750,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	VariableNode lnX = rg.getVariableNodeFromTemp(tempDesc);
 	Integer idNewest = as.getIthOldest(0);
 	HeapRegionNode hrnNewest = rg.id2hrn.get(idNewest);
+
 	// make a new reference to allocated node
 	RefEdge edgeNew = new RefEdge(lnX, // source
 				      hrnNewest, // dest
@@ -1759,7 +1760,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 				      ExistPredSet.factory(rg.predTrue) // predicates
 				      );
 	rg.addRefEdge(lnX, hrnNewest, edgeNew);
-	
+
 	// set-up a work set for class field
 	ClassDescriptor classDesc = paramTypeDesc.getClassDesc();
 	for (Iterator it = classDesc.getFields(); it.hasNext();) {
@@ -1814,7 +1815,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 								   false, // out-of-context?
 								   allocSite.getType(), // type
 								   allocSite, // allocation site
-								   null, // inherent reach
+								   hrnNewest.getAlpha(), // inherent reach
 								   hrnNewest.getAlpha(), // current reach
 								   ExistPredSet.factory(rg.predTrue), // predicates
 								   strDesc // description
