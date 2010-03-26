@@ -18,7 +18,7 @@ public class ReachGraph {
   // some frequently used reachability constants
   protected static final ReachState rstateEmpty        = ReachState.factory();
   protected static final ReachSet   rsetEmpty          = ReachSet.factory();
-  protected static final ReachSet   rsetWithEmptyState = ReachSet.factory( rstateEmpty );
+  protected static final ReachSet   rsetWithEmptyState = Canonical.makePredsTrue(ReachSet.factory( rstateEmpty ));
 
   // predicate constants
   protected static final ExistPred    predTrue   = ExistPred.factory(); // if no args, true
