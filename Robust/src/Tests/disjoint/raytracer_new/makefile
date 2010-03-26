@@ -11,10 +11,20 @@ MAINCLASS=test
 
 #SNAPFLAGS= -disjoint-debug-snap-method t3 5 20 true
 
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots all -disjoint-alias-file aliases.txt normal -enable-assertions -mainclass ${MAINCLASS}
+JAVAFLAGS= -mainclass ${MAINCLASS}
 
-all:
-	$(BUILDSCRIPT) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
+RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt normal
+
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 
+
+java:
+	$(BUILDSCRIPT) $(JAVAFLAGS)   $(DEBUGMODE)   $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+
+java-release:
+	$(BUILDSCRIPT) $(JAVAFLAGS)   $(RELEASEMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+
+
 
 clean:
 	rm -f  *.bin

@@ -49,7 +49,7 @@ final class Lateral {
 				System.out.println("Lateral constructor with zero num");
 			next_lateral = null;
 		} else {
-			next_lateral = new Lateral(num - 1, nbranches, nleaves);
+			next_lateral = disjoint deeper new Lateral(num - 1, nbranches, nleaves);
 		}
 
 		// create the branch nodes

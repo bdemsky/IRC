@@ -192,12 +192,12 @@ final class Root {
 		PER_INDEX_I = 0.002;
 		MAX_THETA_I = 0.199;
 
-		D = new Demand(0.0,0.0);
-		last = new Demand(0.0,0.0);
+		D = disjoint D new Demand(0.0,0.0);
+		last = disjoint last new Demand(0.0,0.0);
 
 		feeders = new Lateral[nfeeders];
 		for (int i = 0; i < nfeeders; i++) {
-			feeders[i] = new Lateral(nlaterals, nbranches, nleaves);
+			feeders[i] = disjoint lateral new Lateral(nlaterals, nbranches, nleaves);
 		}
 	}
 

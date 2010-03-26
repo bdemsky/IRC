@@ -21,11 +21,10 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 BAMBOOFLAGS= -recover
 JAVAFLAGS= -mainclass test
 
-DEBUGMODE= -enable-assertions
-RELEASEMODE= -disjoint-release-mode
+DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
+RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 
-#BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt tabbed
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 
 
 all:
 	echo 'pass another arg: <bamboo/bamboo-release/java/java-release>'
