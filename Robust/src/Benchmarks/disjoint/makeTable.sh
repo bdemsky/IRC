@@ -80,13 +80,12 @@ num=$[$num+1]
 
 
 
-
 ###########################
 # No need to modify below!
 ###########################
 
 BENCHTOP=~/research/Robust/src/Benchmarks
-BENCHSUM=$BENCHTOP/Ownership
+BENCHSUM=$BENCHTOP/disjoint
 
 TABFILE=tabResults.tex
 rm -f $TABFILE
@@ -98,12 +97,10 @@ echo '\hline'                                              >> $TABFILE
 
 i="0"
 while [ $i -lt $num ]; do
-  echo ${NAME[$i]}
-
   cd $BENCHTOP/${BDIR[$i]}
   # unfortunately this echo adds an unwanted newline
   echo ${NAME[$i]} >> $BENCHSUM/$TABFILE 
-  make -f $BENCHSUM/makefile
+  make -f $BENCHSUM/makefile bamboo-release
   cat aliases.txt >> $BENCHSUM/$TABFILE
   make -f $BENCHSUM/makefile clean
   i=$[$i+1]

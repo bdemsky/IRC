@@ -24,22 +24,23 @@ JAVAFLAGS= -mainclass test
 DEBUGMODE= -enable-assertions
 RELEASEMODE= -disjoint-release-mode
 
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
+#BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -disjoint-write-dots final -disjoint-alias-file aliases.txt tabbed
 
 all:
 	echo 'pass another arg: <bamboo/bamboo-release/java/java-release>'
 
 bamboo:
-	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE)   $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
 
 bamboo-release:
 	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(RELEASEMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
 
 java:
-	$(BUILDSCRIPT) $(JAVAFLAGS) $(DEBUGMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+	$(BUILDSCRIPT) $(JAVAFLAGS)   $(DEBUGMODE)   $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
 
 java-release:
-	$(BUILDSCRIPT) $(JAVAFLAGS) $(RELEASEMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+	$(BUILDSCRIPT) $(JAVAFLAGS)   $(RELEASEMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
 
 clean:
 	rm -f  *.bin
