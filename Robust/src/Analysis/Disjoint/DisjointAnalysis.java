@@ -431,6 +431,8 @@ public class DisjointAnalysis {
 
   protected PointerMethod pm;
 
+  protected Hashtable<FlatMethod, ReachGraph> hackmap;
+
 
   // allocate various structures that are not local
   // to a single class method--should be done once
@@ -472,6 +474,8 @@ public class DisjointAnalysis {
     
     mapDescriptorToReachGraph = 
     	new Hashtable<Descriptor, ReachGraph>();
+
+    hackmap = new Hashtable<FlatMethod, ReachGraph>();
   }
 
 
@@ -823,7 +827,12 @@ public class DisjointAnalysis {
         // such as, do allocation sites need to be aged?
 
         rg.merge_diffMethodContext( rgContrib );
-      }      
+      }
+      FlatMethod hackfm=(FlatMethod)fn;
+      if (hackmap.containsKey(hackfm)) {
+	rg.merge(hackmap.get(hackfm));
+      }
+      hackmap.put(hackfm, rg);
     } break;
       
     case FKind.FlatOpNode:

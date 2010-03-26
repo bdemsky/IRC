@@ -2141,7 +2141,7 @@ public class ReachGraph {
         }        
       }
     }
-
+    /*
     // test param -> HRN edges, also
     for( int i = 0; i < fmCallee.numParameters(); ++i ) {
 
@@ -2191,7 +2191,7 @@ public class ReachGraph {
 
         }        
       }
-    }
+      }*/
 
 
 
