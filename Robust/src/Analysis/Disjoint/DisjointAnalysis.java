@@ -360,8 +360,9 @@ public class DisjointAnalysis {
   // current descriptors to visit in fixed-point
   // interprocedural analysis, prioritized by
   // dependency in the call graph
-  protected Stack<DescriptorQWrapper> 
-  //protected PriorityQueue<DescriptorQWrapper> 
+  protected Stack<DescriptorQWrapper>
+    descriptorsToVisitStack;
+  protected PriorityQueue<DescriptorQWrapper> 
     descriptorsToVisitQ;
   
   // a duplication of the above structure, but
@@ -409,7 +410,6 @@ public class DisjointAnalysis {
   protected Hashtable< Descriptor, Hashtable< FlatCall, ReachGraph > >
     mapDescriptorToIHMcontributions;
 
-  // TODO -- CHANGE EDGE/TYPE/FIELD storage!
   public static final String arrayElementFieldName = "___element_";
   static protected Hashtable<TypeDescriptor, FieldDescriptor>
     mapTypeToArrayField;
@@ -426,11 +426,12 @@ public class DisjointAnalysis {
   
   //map task descriptor to initial task parameter 
   protected Hashtable<Descriptor, ReachGraph>
-  mapDescriptorToReachGraph;
+    mapDescriptorToReachGraph;
 
   protected PointerMethod pm;
 
-  protected Hashtable<FlatMethod, ReachGraph> hackmap;
+  static protected Hashtable<FlatNode, ReachGraph> fn2rg =
+    new Hashtable<FlatNode, ReachGraph>();
 
 
   // allocate various structures that are not local
@@ -459,9 +460,15 @@ public class DisjointAnalysis {
     mapTypeToArrayField = 
       new Hashtable <TypeDescriptor, FieldDescriptor>();
 
-    descriptorsToVisitQ =
-      new Stack<DescriptorQWrapper>();
-    //new PriorityQueue<DescriptorQWrapper>();
+    if( state.DISJOINTDVISITSTACK ) {
+      descriptorsToVisitStack =
+        new Stack<DescriptorQWrapper>();
+    }
+
+    if( state.DISJOINTDVISITPQUE ) {
+      descriptorsToVisitQ =
+        new PriorityQueue<DescriptorQWrapper>();
+    }
 
     descriptorsToVisitSet =
       new HashSet<Descriptor>();
@@ -474,8 +481,6 @@ public class DisjointAnalysis {
     
     mapDescriptorToReachGraph = 
     	new Hashtable<Descriptor, ReachGraph>();
-
-    hackmap = new Hashtable<FlatMethod, ReachGraph>();
   }
 
 
@@ -520,6 +525,8 @@ public class DisjointAnalysis {
     this.snapNodeCounter         = 0; // count nodes from 0
     this.pm=new PointerMethod();
 
+    assert state.DISJOINTDVISITSTACK || state.DISJOINTDVISITPQUE;
+    assert !(state.DISJOINTDVISITSTACK && state.DISJOINTDVISITPQUE);
 	    
     // set some static configuration for ReachGraphs
     ReachGraph.allocationDepth = allocationDepth;
@@ -561,6 +568,18 @@ public class DisjointAnalysis {
                             );
       }
     }
+  }
+
+
+  protected boolean moreDescriptorsToVisit() {
+    if( state.DISJOINTDVISITSTACK ) {
+      return !descriptorsToVisitStack.isEmpty();
+
+    } else if( state.DISJOINTDVISITPQUE ) {
+      return !descriptorsToVisitQ.isEmpty();
+    }
+
+    throw new Error( "Neither descriptor visiting mode set" );
   }
 
 
@@ -614,16 +633,30 @@ public class DisjointAnalysis {
     Iterator<Descriptor> dItr = sortedDescriptors.iterator();
     while( dItr.hasNext() ) {
       Descriptor d = dItr.next();
+
       mapDescriptorToPriority.put( d, new Integer( p ) );
-      descriptorsToVisitQ.add( new DescriptorQWrapper( p, d ) );
+
+      if( state.DISJOINTDVISITSTACK ) {
+        descriptorsToVisitStack.add( new DescriptorQWrapper( p, d ) );
+
+      } else if( state.DISJOINTDVISITPQUE ) {
+        descriptorsToVisitQ.add( new DescriptorQWrapper( p, d ) );
+      }
+
       descriptorsToVisitSet.add( d );
       ++p;
     }
 
     // analyze methods from the priority queue until it is empty
-    while( !descriptorsToVisitQ.isEmpty() ) {
-      Descriptor d = descriptorsToVisitQ.pop().getDescriptor();
-      //Descriptor d = descriptorsToVisitQ.poll().getDescriptor();
+    while( moreDescriptorsToVisit() ) {
+      Descriptor d = null;
+
+      if( state.DISJOINTDVISITSTACK ) {
+        d = descriptorsToVisitStack.pop().getDescriptor();
+
+      } else if( state.DISJOINTDVISITPQUE ) {
+        d = descriptorsToVisitQ.poll().getDescriptor();
+      }
 
       assert descriptorsToVisitSet.contains( d );
       descriptorsToVisitSet.remove( d );
@@ -665,10 +698,13 @@ public class DisjointAnalysis {
     } else {
       fm = state.getMethodFlat( d );
     }
-    pm.analyzeMethod(fm);
+    pm.analyzeMethod( fm );
+
     // intraprocedural work set
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fm );
+
+    Set<FlatNode> debugVisited = new HashSet<FlatNode>();
     
     // mapping of current partial results
     Hashtable<FlatNode, ReachGraph> mapFlatNodeToReachGraph =
@@ -681,6 +717,8 @@ public class DisjointAnalysis {
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove( fn );
+
+      debugVisited.add( fn );
 
       // effect transfer function defined by this node,
       // then compare it to the old graph at this node
@@ -743,8 +781,37 @@ public class DisjointAnalysis {
       }
     }
 
+
+    // assert that the fixed-point results for each
+    // node in the method is no smaller than the last
+    // time this method was analyzed (monotonicity)
+    /*
+    Iterator<FlatNode> nItr = fm.getNodeSet().iterator();
+    while( nItr.hasNext() ) {
+      FlatNode   fn     = nItr.next();      
+      ReachGraph last   = fn2rg.get( fn );
+      ReachGraph newest = mapFlatNodeToReachGraph.get( fn );
+
+      if( newest == null ) {
+        System.out.println( "**********\nfn null result: "+fn+
+                            "\nnum visited="+debugVisited.size()+", num in set="+fm.getNodeSet().size()+
+                            "\nvisited:"+debugVisited );
+      }
+
+      assert newest != null;
+      if( last != null ) {
+        if( !ReachGraph.isNoSmallerThan( last, newest ) ) {
+          last.writeGraph( "last", true, false, false, true, true );
+          newest.writeGraph( "newest", true, false, false, true, true );
+          throw new Error( "transfer func for "+fn+" was not monotic" );
+        }
+      }
+      fn2rg.put( fn, newest );
+    }
+    */
+
     // end by merging all return nodes into a complete
-    // ownership graph that represents all possible heap
+    // reach graph that represents all possible heap
     // states after the flat method returns
     ReachGraph completeGraph = new ReachGraph();
 
@@ -829,11 +896,6 @@ public class DisjointAnalysis {
 
         rg.merge_diffMethodContext( rgContrib );
       }
-      FlatMethod hackfm=(FlatMethod)fn;
-      if (hackmap.containsKey(hackfm)) {
-	rg.merge(hackmap.get(hackfm));
-      }
-      hackmap.put(hackfm, rg);
     } break;
       
     case FKind.FlatOpNode:
@@ -1053,6 +1115,7 @@ public class DisjointAnalysis {
     // the flat node type doesn't affect the heap
     return rg;
   }
+
 
   
   // this method should generate integers strictly greater than zero!
@@ -1330,9 +1393,18 @@ public class DisjointAnalysis {
   protected void enqueue( Descriptor d ) {
     if( !descriptorsToVisitSet.contains( d ) ) {
       Integer priority = mapDescriptorToPriority.get( d );
-      descriptorsToVisitQ.add( new DescriptorQWrapper( priority, 
-                                                       d ) 
-                               );
+
+      if( state.DISJOINTDVISITSTACK ) {
+        descriptorsToVisitStack.add( new DescriptorQWrapper( priority, 
+                                                             d ) 
+                                     );
+
+      } else if( state.DISJOINTDVISITPQUE ) {
+        descriptorsToVisitQ.add( new DescriptorQWrapper( priority, 
+                                                         d ) 
+                                 );
+      }
+
       descriptorsToVisitSet.add( d );
     }
   }

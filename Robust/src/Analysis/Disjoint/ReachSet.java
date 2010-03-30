@@ -77,26 +77,6 @@ public class ReachSet extends Canonical {
     return null;
   }
 
-  /*
-  public boolean containsWithZeroes( ReachState state ) {
-    assert state != null;
-
-    if( reachStates.contains( state ) ) {
-      return true;
-    }
-
-    Iterator<ReachState> itr = iterator();
-    while( itr.hasNext() ) {
-      ReachState stateThis = itr.next();
-      if( stateThis.containsWithZeroes( state ) ) {
-	return true;
-      }
-    }
-    
-    return false;    
-  }
-  */
-
   public boolean containsSuperSet( ReachState state ) {
     return containsSuperSet( state, false );
   }

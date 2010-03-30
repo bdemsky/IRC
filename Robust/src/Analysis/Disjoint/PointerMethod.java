@@ -44,7 +44,8 @@ public class PointerMethod {
       if (analysisCares(fn)) {
 	HashSet<FlatNode> myset=new HashSet<FlatNode>();
 	for(int i=0;i<fn.numPrev();i++) {
-	  myset.addAll(map.get(fn.getPrev(i)));
+          if (map.containsKey(fn.getPrev(i)))
+            myset.addAll(map.get(fn.getPrev(i)));
 	}
 	if (!prevmap.containsKey(fn))
 	  prevmap.put(fn, new Vector());

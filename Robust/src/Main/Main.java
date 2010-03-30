@@ -218,7 +218,13 @@ public class Main {
         }
 
       } else if( option.equals( "-disjoint-release-mode" ) ) {
-        state.DISJOINTRELEASEMODE = true;
+        state.DISJOINTRELEASEMODE = true;        
+
+      } else if( option.equals( "-disjoint-dvisit-stack" ) ) {
+        state.DISJOINTDVISITSTACK = true;      
+
+      } else if( option.equals( "-disjoint-dvisit-pqueue" ) ) {
+        state.DISJOINTDVISITPQUE = true;
       }
       
 

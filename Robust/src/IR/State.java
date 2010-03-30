@@ -83,6 +83,8 @@ public class State {
   public int DISJOINTSNAPVISITTOSTART=0;
   public int DISJOINTSNAPNUMVISITS=0;
   public boolean DISJOINTSNAPSTOPAFTER=false;
+  public boolean DISJOINTDVISITSTACK=true;
+  public boolean DISJOINTDVISITPQUE=false;
 
   public boolean OPTIONAL=false;
   public boolean ARRAYPAD=false;

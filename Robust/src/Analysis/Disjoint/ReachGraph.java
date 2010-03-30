@@ -9,7 +9,7 @@ import java.io.*;
 public class ReachGraph {
 
   // use to disable improvements for comparison
-  protected static final boolean DISABLE_STRONG_UPDATES = false;
+  protected static final boolean DISABLE_STRONG_UPDATES = true;
   protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
 		   
   // a special out-of-scope temp
@@ -1937,7 +1937,12 @@ public class ReachGraph {
                        ) {
 
     if( writeDebugDOTs ) {
-      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisits );
+      System.out.println( "  Writing out visit "+
+                          debugCallSiteVisits+
+                          " to debug call site" );
+
+      debugGraphPrefix = String.format( "call%02d", 
+                                        debugCallSiteVisits );
       
       rgCallee.writeGraph( debugGraphPrefix+"callee", 
                            resolveMethodDebugDOTwriteLabels,    
@@ -3713,6 +3718,8 @@ public class ReachGraph {
       return false;
     }
 
+    
+
     return true;
   }
 
@@ -3824,6 +3831,94 @@ public class ReachGraph {
 
     return true;
   }
+
+
+  // can be used to assert monotonicity
+  static public boolean isNoSmallerThan( ReachGraph rgA, 
+                                         ReachGraph rgB ) {
+
+    //System.out.println( "*** Asking if A is no smaller than B ***" );
+
+
+    Iterator iA = rgA.id2hrn.entrySet().iterator();
+    while( iA.hasNext() ) {
+      Map.Entry      meA  = (Map.Entry)      iA.next();
+      Integer        idA  = (Integer)        meA.getKey();
+      HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
+
+      if( !rgB.id2hrn.containsKey( idA ) ) {
+        System.out.println( "  regions smaller" );
+	return false;
+      }
+
+      //HeapRegionNode hrnB = rgB.id2hrn.get( idA );
+      /* NOT EQUALS, NO SMALLER THAN!
+      if( !hrnA.equalsIncludingAlphaAndPreds( hrnB ) ) {
+        System.out.println( "  regions smaller" );
+	return false;
+      }
+      */
+    }
+    
+    // this works just fine, no smaller than
+    if( !areallVNinAalsoinBandequal( rgA, rgB ) ) {
+      System.out.println( "  vars smaller:" );
+      System.out.println( "    A:"+rgA.td2vn.keySet() );
+      System.out.println( "    B:"+rgB.td2vn.keySet() );
+      return false;
+    }
+
+
+    iA = rgA.id2hrn.entrySet().iterator();
+    while( iA.hasNext() ) {
+      Map.Entry      meA  = (Map.Entry)      iA.next();
+      Integer        idA  = (Integer)        meA.getKey();
+      HeapRegionNode hrnA = (HeapRegionNode) meA.getValue();
+
+      Iterator<RefEdge> reItr = hrnA.iteratorToReferencers();
+      while( reItr.hasNext() ) {
+        RefEdge    edgeA = reItr.next();
+        RefSrcNode rsnA  = edgeA.getSrc();
+
+        // we already checked that nodes were present
+        HeapRegionNode hrnB = rgB.id2hrn.get( hrnA.getID() );
+        assert hrnB != null;
+
+        RefSrcNode rsnB;
+        if( rsnA instanceof VariableNode ) {
+          VariableNode vnA = (VariableNode) rsnA;
+          rsnB = rgB.td2vn.get( vnA.getTempDescriptor() );
+
+        } else {
+          HeapRegionNode hrnSrcA = (HeapRegionNode) rsnA;
+          rsnB = rgB.id2hrn.get( hrnSrcA.getID() );
+        }
+        assert rsnB != null;
+
+        RefEdge edgeB = rsnB.getReferenceTo( hrnB,
+                                             edgeA.getType(),
+                                             edgeA.getField()
+                                             );
+        if( edgeB == null ) {
+          System.out.println( "  edges smaller:" );          
+          return false;
+        }        
+
+        // REMEMBER, IS NO SMALLER THAN
+        /*
+          System.out.println( "  edges smaller" );
+          return false;
+          }
+        */
+
+      }
+    }
+
+    
+    return true;
+  }
+
+
 
 
 
