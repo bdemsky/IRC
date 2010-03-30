@@ -3718,7 +3718,9 @@ public class ReachGraph {
       return false;
     }
 
-    
+    if( !areallREinAandBequal( rg, this ) ) {
+      return false;
+    }    
 
     return true;
   }
