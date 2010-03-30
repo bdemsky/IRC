@@ -9,7 +9,7 @@ import java.io.*;
 public class ReachGraph {
 
   // use to disable improvements for comparison
-  protected static final boolean DISABLE_STRONG_UPDATES = true;
+  protected static final boolean DISABLE_STRONG_UPDATES = false;
   protected static final boolean DISABLE_GLOBAL_SWEEP   = false;
 		   
   // a special out-of-scope temp
