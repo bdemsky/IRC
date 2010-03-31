@@ -12,13 +12,32 @@ public class SESEEffectsSet {
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> readTable;
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> writeTable;
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> strongUpdateTable;
+	private Hashtable<TempDescriptor, Integer> mapTempDescToInVarIdx;
 
 	public SESEEffectsSet() {
 		readTable = new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 		writeTable = new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 		strongUpdateTable =  new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
+		mapTempDescToInVarIdx = new Hashtable<TempDescriptor, Integer>();
 	}
 
+	public void setInVarIdx(int idx, TempDescriptor td){
+		mapTempDescToInVarIdx.put(td,new Integer(idx));
+	}
+	
+	public int getInVarIdx(TempDescriptor td){
+		Integer idx=mapTempDescToInVarIdx.get(td);
+		if(idx==null){
+			// if invar is from SESE placeholder, it is going to be ignored.
+			return -1;
+		}
+		return idx.intValue();
+	}
+	
+	public Hashtable<TempDescriptor, Integer> getMapTempDescToInVarIdx(){
+		return mapTempDescToInVarIdx;
+	}
+	
 	public void addReadingVar(TempDescriptor td, SESEEffectsKey access) {
 		HashSet<SESEEffectsKey> aSet = readTable.get(td);
 		if (aSet == null) {

@@ -41,8 +41,6 @@ public class MethodEffects {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
 							fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-//							effectsSet.addReadingVar(paramID, new EffectsKey(
-//									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
 						}
 					}
@@ -58,13 +56,137 @@ public class MethodEffects {
 							Integer paramID = paramIter.next();
 							effectsSet.addReadingVar(paramID, new EffectsKey(
 									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
-//							effectsSet.addReadingVar(paramID, new EffectsKey(
-//									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID()));
 
 						}
 					}
 
 				}
+			}
+		}
+
+	}
+	
+	public void analyzeFlatElementNode(OwnershipGraph og,
+			TempDescriptor srcDesc, FieldDescriptor fieldDesc){
+
+		LabelNode ln = getLabelNodeFromTemp(og, srcDesc);
+		if (ln != null) {
+			Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
+
+			while (heapRegionsItr.hasNext()) {
+				ReferenceEdge edge = heapRegionsItr.next();
+				HeapRegionNode hrn = edge.getDst();
+
+				if (hrn.isParameter()) {
+					Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+							.getID());
+
+					if (paramSet != null) {
+						Iterator<Integer> paramIter = paramSet.iterator();
+						while (paramIter.hasNext()) {
+							Integer paramID = paramIter.next();
+							effectsSet.addReadingVar(paramID, new EffectsKey(
+							fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+						}
+					}
+
+					// check weather this heap region is parameter
+					// reachable...
+
+					paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+					if (paramSet != null) {
+						Iterator<Integer> paramIter = paramSet.iterator();
+
+						while (paramIter.hasNext()) {
+							Integer paramID = paramIter.next();
+							effectsSet.addReadingVar(paramID, new EffectsKey(
+									fieldDesc.getSymbol(), srcDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
+						}
+					}
+
+				}
+			}
+		}
+
+	
+		
+		
+	}
+	
+	public void analyzeFlatSetElementNode(OwnershipGraph og,
+			TempDescriptor dstDesc, FieldDescriptor fieldDesc) {
+
+		LabelNode ln = getLabelNodeFromTemp(og, dstDesc);
+		if (ln != null) {
+
+			// / check possible strong updates
+			boolean strongUpdate = false;
+			if (!fieldDesc.getType().isImmutable()
+					|| fieldDesc.getType().isArray()) {
+				Iterator<ReferenceEdge> itrXhrn = ln.iteratorToReferencees();
+				while (itrXhrn.hasNext()) {
+					ReferenceEdge edgeX = itrXhrn.next();
+					HeapRegionNode hrnX = edgeX.getDst();
+
+					if (fieldDesc != null
+							&& fieldDesc != OwnershipAnalysis
+									.getArrayField(fieldDesc.getType())
+							&& ((hrnX.getNumReferencers() == 1) || // case 1
+							(hrnX.isSingleObject() && ln.getNumReferencees() == 1) // case
+																					// 2
+							)) {
+						strongUpdate = true;
+					}
+				}
+			}
+			// //
+
+			Iterator<ReferenceEdge> heapRegionsItr = ln.iteratorToReferencees();
+			while (heapRegionsItr.hasNext()) {
+				ReferenceEdge edge = heapRegionsItr.next();
+				HeapRegionNode hrn = edge.getDst();
+
+				if (hrn.isParameter()) {
+					Set<Integer> paramSet = og.idPrimary2paramIndexSet.get(hrn
+							.getID());
+
+					if (paramSet != null) {
+						Iterator<Integer> paramIter = paramSet.iterator();
+						while (paramIter.hasNext()) {
+							Integer paramID = paramIter.next();
+							effectsSet.addWritingVar(paramID, new EffectsKey(
+									fieldDesc.getSymbol(), dstDesc.getType(),
+									hrn.getID(), hrn
+											.getGloballyUniqueIdentifier(), 0));
+							if(strongUpdate){
+								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+							}
+						}
+					}
+
+					// check weather this heap region is parameter
+					// reachable...
+
+					paramSet = og.idSecondary2paramIndexSet.get(hrn.getID());
+					if (paramSet != null) {
+						Iterator<Integer> paramIter = paramSet.iterator();
+
+						while (paramIter.hasNext()) {
+							Integer paramID = paramIter.next();
+							effectsSet.addWritingVar(paramID, new EffectsKey(
+									fieldDesc.getSymbol(), dstDesc.getType(),
+									hrn.getID(), hrn
+											.getGloballyUniqueIdentifier(), 1));
+							if(strongUpdate){
+								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
+										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
+							}
+						}
+					}
+
+				}
+
 			}
 		}
 
@@ -112,13 +234,9 @@ public class MethodEffects {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
 									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-//							effectsSet.addWritingVar(paramID, new EffectsKey(
-//									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							if(strongUpdate){
 								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
 										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),0));
-//								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-//										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							}
 
 						}
@@ -135,13 +253,9 @@ public class MethodEffects {
 							Integer paramID = paramIter.next();
 							effectsSet.addWritingVar(paramID, new EffectsKey(
 									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
-//							effectsSet.addWritingVar(paramID, new EffectsKey(
-//									fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							if(strongUpdate){
 								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
 										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID(),hrn.getGloballyUniqueIdentifier(),1));
-//								effectsSet.addStrongUpdateVar(paramID, new EffectsKey(
-//										fieldDesc.getSymbol(), dstDesc.getType(),hrn.getID()));
 							}
 
 						}

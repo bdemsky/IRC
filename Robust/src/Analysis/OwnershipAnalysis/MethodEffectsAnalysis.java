@@ -9,7 +9,9 @@ import java.util.Set;
 
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.TypeDescriptor;
 import IR.Flat.FlatCall;
+import IR.Flat.FlatSetElementNode;
 import IR.Flat.TempDescriptor;
 
 public class MethodEffectsAnalysis {
@@ -59,12 +61,29 @@ public class MethodEffectsAnalysis {
 		me.analyzeFlatSetFieldNode(og, dstDesc, fieldDesc);
 		mapMethodContextToMethodEffects.put(mc, me);
 	}
+	
+	public void analyzeFlatSetElementNode(MethodContext mc, OwnershipGraph og,
+			TempDescriptor dstDesc, FieldDescriptor fieldDesc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+		me.analyzeFlatSetElementNode(og, dstDesc, fieldDesc);
+		mapMethodContextToMethodEffects.put(mc, me);
+	}
+	
+	public void analyzeFlatElementNode(MethodContext mc, OwnershipGraph og,
+			TempDescriptor dstDesc, FieldDescriptor fieldDesc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+		me.analyzeFlatElementNode(og, dstDesc, fieldDesc);
+		mapMethodContextToMethodEffects.put(mc, me);
+	}
+	
 
 	public void writeMethodEffectsResult() throws IOException {
 
 		try {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(
-					"MethodEffects_resport.txt"));
+					"MethodEffects_report.txt"));
 
 			Set<MethodContext> mcSet = mapMethodContextToMethodEffects.keySet();
 			Iterator<MethodContext> mcIter = mcSet.iterator();

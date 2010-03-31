@@ -939,6 +939,7 @@ public class OwnershipAnalysis {
 
     case FKind.FlatElementNode:
       FlatElementNode fen = (FlatElementNode) fn;
+
       lhs = fen.getDst();
       rhs = fen.getSrc();
       if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
@@ -948,13 +949,22 @@ public class OwnershipAnalysis {
 	
 	TypeDescriptor  tdElement = rhs.getType().dereference();
 	FieldDescriptor fdElement = getArrayField( tdElement );
-  
 	og.assignTempXEqualToTempYFieldF(lhs, rhs, fdElement);
+	meAnalysis.analyzeFlatElementNode(mc, og, lhs, fdElement);
+	
       }
       break;
 
     case FKind.FlatSetElementNode:
       FlatSetElementNode fsen = (FlatSetElementNode) fn;
+      
+      lhs = fsen.getDst();
+      rhs = fsen.getSrc();
+      if( !lhs.getType().isImmutable() || lhs.getType().isArray() ) {
+    	  TypeDescriptor  tdElement = lhs.getType().dereference();
+    	  FieldDescriptor fdElement = getArrayField( tdElement );
+    	  meAnalysis.analyzeFlatSetElementNode(mc, og, lhs, fdElement);
+      }  	
 
       if( arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
 	// skip this node if it cannot create new reachability paths
@@ -972,6 +982,8 @@ public class OwnershipAnalysis {
 	FieldDescriptor fdElement = getArrayField( tdElement );
 
 	og.assignTempXFieldFEqualToTempY(lhs, fdElement, rhs);
+	meAnalysis.analyzeFlatSetElementNode(mc, og, lhs, fdElement);
+	
       }
       break;
 
