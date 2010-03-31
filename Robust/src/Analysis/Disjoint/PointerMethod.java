@@ -80,6 +80,10 @@ public class PointerMethod {
     return prevmap.get(fn).get(i);
   }
 
+  public boolean isBackEdge(FlatNode fn) {
+    return fn.kind() == FKind.FlatBackEdge;
+  }
+
   public boolean analysisCares(FlatNode fn) {
     switch(fn.kind()) {
     case FKind.FlatMethod:
@@ -90,6 +94,7 @@ public class PointerMethod {
     case FKind.FlatNew:
     case FKind.FlatCall:
     case FKind.FlatReturnNode:
+    case FKind.FlatBackEdge:
       return true;
     case FKind.FlatCastNode:
       FlatCastNode fcn=(FlatCastNode)fn;

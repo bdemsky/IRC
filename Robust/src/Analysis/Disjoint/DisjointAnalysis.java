@@ -410,6 +410,20 @@ public class DisjointAnalysis {
   protected Hashtable< Descriptor, Hashtable< FlatCall, ReachGraph > >
     mapDescriptorToIHMcontributions;
 
+  // additionally, keep a mapping from descriptors to the
+  // merged in-coming initial context, because we want this
+  // initial context to be STRICTLY MONOTONIC
+  protected Hashtable<Descriptor, ReachGraph>
+    mapDescriptorToInitialContext;
+
+  // make the result for back edges analysis-wide STRICTLY
+  // MONOTONIC as well, but notice we use FlatNode as the
+  // key for this map: in case we want to consider other
+  // nodes as back edge's in future implementations
+  protected Hashtable<FlatNode, ReachGraph>
+    mapBackEdgeToMonotone;
+  
+
   public static final String arrayElementFieldName = "___element_";
   static protected Hashtable<TypeDescriptor, FieldDescriptor>
     mapTypeToArrayField;
@@ -453,6 +467,12 @@ public class DisjointAnalysis {
 
     mapDescriptorToIHMcontributions =
       new Hashtable< Descriptor, Hashtable< FlatCall, ReachGraph > >();
+
+    mapDescriptorToInitialContext =
+      new Hashtable<Descriptor, ReachGraph>();    
+
+    mapBackEdgeToMonotone =
+      new Hashtable<FlatNode, ReachGraph>();
 
     mapHrnIdToAllocSite =
       new Hashtable<Integer, AllocSite>();
@@ -888,14 +908,17 @@ public class DisjointAnalysis {
 
         assert fc.getMethod().equals( d );
 
-        // some call sites are in same method context though,
-        // and all of them should be merged together first,
-        // then heaps from different contexts should be merged
-        // THIS ASSUMES DIFFERENT CONTEXTS NEED SPECIAL CONSIDERATION!
-        // such as, do allocation sites need to be aged?
-
-        rg.merge_diffMethodContext( rgContrib );
+        rg.merge( rgContrib );
       }
+
+      // additionally, we are enforcing STRICT MONOTONICITY for the
+      // method's initial context, so grow the context by whatever
+      // the previously computed context was, and put the most
+      // up-to-date context back in the map
+      ReachGraph rgPrevContext = mapDescriptorToInitialContext.get( d );
+      rg.merge( rgPrevContext );      
+      mapDescriptorToInitialContext.put( d, rg );
+
     } break;
       
     case FKind.FlatOpNode:
@@ -1109,6 +1132,13 @@ public class DisjointAnalysis {
     //rg.abstractGarbageCollect();
     //rg.globalSweep();
 
+
+    // back edges are strictly monotonic
+    if( pm.isBackEdge( fn ) ) {
+      ReachGraph rgPrevResult = mapBackEdgeToMonotone.get( fn );
+      rg.merge( rgPrevResult );
+      mapBackEdgeToMonotone.put( fn, rg );
+    }
     
     // at this point rg should be the correct update
     // by an above transfer function, or untouched if

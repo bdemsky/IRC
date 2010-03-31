@@ -3375,23 +3375,6 @@ public class ReachGraph {
 
 
   ////////////////////////////////////////////////////
-  // high-level merge operations
-  ////////////////////////////////////////////////////
-  public void merge_sameMethodContext( ReachGraph rg ) {
-    // when merging two graphs that abstract the heap
-    // of the same method context, we just call the
-    // basic merge operation
-    merge( rg );
-  }
-
-  public void merge_diffMethodContext( ReachGraph rg ) {
-    // when merging graphs for abstract heaps in
-    // different method contexts we should:
-    // 1) age the allocation sites?
-    merge( rg );
-  }
-
-  ////////////////////////////////////////////////////
   // in merge() and equals() methods the suffix A
   // represents the passed in graph and the suffix
   // B refers to the graph in this object
