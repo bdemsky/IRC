@@ -1007,32 +1007,13 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 	int timeout = recv_data((int)acceptfd, &control, sizeof(char));
 
 #ifdef RECOVERY
-  tlist_node_t* tNode;
-  tNode = tlistSearch(transList,fixed->transid);
-
   if(timeout < 0) {  // timeout. failed to receiving data from coordinator
-    tNode->decision = DECISION_LOST;
-    printf("%s -> DECISON_LOST!  control = %d\n",__func__,control);
+    control = -1;
   }
-  else
-    tNode->decision = control;
-
   // check if it is allowed to commit
-  if(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) 
-  {
-    pthread_mutex_lock(&liveHosts_mutex);
-    tNode->status = TRANS_WAIT;
-    pthread_mutex_unlock(&liveHosts_mutex);
-
-    while(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) { 
-      printf("%s -> transID : %u decision : %d is waiting\n",__func__,tNode->transid,tNode->decision);
-      sleep(1);
-    }
-  }
-
-  control = tNode->decision;
-
+  control = inspectTransaction(control,fixed->transid);
   thashInsert(fixed->transid, control);
+
 #endif
 
   switch(control) {
@@ -1089,6 +1070,8 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
 #ifdef RECOVERY
 //  printf("%s -> transID : %u has been committed\n",__func__,transID);
+
+  tlist_node_t* tNode = tlistSearch(transList,fixed->transid);
   tNode->status = TRANS_OK;
 
   pthread_mutex_lock(&clearNotifyList_mutex);
@@ -2046,4 +2029,34 @@ int combineTransactionList(tlist_node_t* tArray,int size)
   return flag;
 }
 
+char inspectTransaction(char finalResponse,unsigned int transid)
+{
+  tlist_node_t* tNode;
+
+  tNode = tlistSearch(transList,transid);
+  
+  if(finalResponse < 0) {
+    tNode->decision = DECISION_LOST;
+  }
+  else {
+    tNode->decision = finalResponse;
+  }
+
+  if(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) 
+  {
+    pthread_mutex_lock(&liveHosts_mutex);
+    tNode->status = TRANS_WAIT;
+    pthread_mutex_unlock(&liveHosts_mutex);
+
+    while(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) { 
+      printf("%s -> transID : %u decision : %d is waiting\n",__func__,tNode->transid,tNode->decision);
+      sleep(3);
+    }
+
+    finalResponse = tNode->decision;
+  }
+
+  return finalResponse;
+}
+  
 #endif

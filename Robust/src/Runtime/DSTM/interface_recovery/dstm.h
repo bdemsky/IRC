@@ -304,6 +304,7 @@ void stopTransactions();
 void sendTransList(int acceptfd);
 void receiveTransList(int acceptfd);
 int combineTransactionList(tlist_node_t* tArray,int size);
+char inspectTransaction(char control,unsigned int transid);
 
 void respondToLeader();
 void setLocateObjHosts();

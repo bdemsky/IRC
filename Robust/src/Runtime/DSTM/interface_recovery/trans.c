@@ -1419,9 +1419,6 @@ int transCommit() {
 
       } else {
 		  		/* Complete local processing */
-#ifdef RECOVERY
-          thashInsert(transID,finalResponse);
-#endif
           doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
 
 #ifdef ABORTREADERS
@@ -1564,6 +1561,11 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
 }
 
 void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
+
+#ifdef RECOVERY
+  finalResponse = inspectTransaction(finalResponse,tdata->f.transid);
+  thashInsert(tdata->f.transid,finalResponse);
+#endif
 
   if(finalResponse == TRANS_ABORT) {
     if(transAbortProcess(transinfo) != 0) {
