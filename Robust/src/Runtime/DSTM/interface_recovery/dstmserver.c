@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include "tlookup.h"
+#include "translist.h"
 #endif
 
 #define BACKLOG 10 //max pending connections
@@ -37,6 +38,11 @@ extern int *liveHosts;
 extern int numLiveHostsInSystem;
 int clearNotifyListFlag;
 pthread_mutex_t clearNotifyList_mutex;
+
+tlist_t* transList;
+int okCommit; // machine flag
+extern numWaitMachine;
+
 #endif
 
 objstr_t *mainobjstore;
@@ -91,6 +97,10 @@ int dstmInit(void) {
 #ifdef RECOVERY
   if (thashCreate(THASH_SIZE, LOADFACTOR))
     return 1;
+  if ((transList = tlistCreate())== NULL) {
+    printf("well error\n");
+    return 1;
+  }
 #endif
 
   if (notifyhashCreate(N_HASH_SIZE, N_LOADFACTOR))
@@ -101,6 +111,8 @@ int dstmInit(void) {
     printf("Error in creating new socket pool at  %s line %d\n", __FILE__, __LINE__);
     return 0;
   }
+
+  okCommit = TRANS_OK;
 
   return 0;
 }
@@ -191,9 +203,6 @@ void* startAsking()
   int validHost;
   int *socklist;
   int sd;
-#ifdef DEBUG
-  printf("%s -> Entering\n",__func__);
-#endif
 
     socklist = (int*) calloc(numHostsInSystem,sizeof(int)); 
 
@@ -216,14 +225,11 @@ void* startAsking()
 #ifdef DEBUG
         printf("%s -> Dead Machine : %s\n",__func__, midtoIPString(hostIpAddrs[deadMachineIndex]));
 #endif
-        restoreDuplicationState(hostIpAddrs[deadMachineIndex]);
+        notifyLeaderDeadMachine(hostIpAddrs[deadMachineIndex]);
         freeSockWithLock(transPResponseSocketPool, hostIpAddrs[deadMachineIndex], socklist[deadMachineIndex]);
         socklist[deadMachineIndex] = -1;
       } // end of if 2
     } // end of while 1
-#ifdef DEBUG
-   printf("%s -> Exiting\n",__func__);
-#endif
 }
 
 
@@ -233,31 +239,19 @@ unsigned int checkIfAnyMachineDead(int* socklist)
   int i;
   char control = RESPOND_LIVE;
   char response;
-#ifdef DEBUG
-  printf("%s -> Entering\n",__func__);
-#endif
   
   while(1){
     for(i = 0; i< numHostsInSystem;i++) {
-#ifdef DEBUG
-      printf("%s -> socklist[%d] = %d\n",__func__,i,socklist[i]);
-#endif
       if(socklist[i] > 0) {
         send_data(socklist[i], &control,sizeof(char));
 
         if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
           // if machine is dead, returns index of socket
-#ifdef DEBUG
-          printf("%s -> Machine dead detecteed\n",__func__);
-#endif
           return i;
         }
         else {
           // machine responded
           if(response != LIVE) {
-#ifdef DEBUG
-            printf("%s -> Machine dead detected\n",__func__);
-#endif
             return i;
           }
         } // end else
@@ -513,14 +507,8 @@ void *dstmAccept(void *acceptfd) {
 
 #ifdef RECOVERY
 			case RESPOND_LIVE:
-#ifdef DEBUG
-        printf("control -> RESPOND_LIVE\n");
-#endif
 				ctrl = LIVE;
 				send_data((int)acceptfd, &ctrl, sizeof(ctrl));
-#ifdef DEBUG
-				printf("%s (RESPOND_LIVE)-> Sending LIVE!\n", __func__);
-#endif
 				break;
 #endif
 #ifdef RECOVERY
@@ -539,18 +527,12 @@ void *dstmAccept(void *acceptfd) {
 				if(!leaderFixing) {
 					leaderFixing = 1;
 					pthread_mutex_unlock(&leaderFixing_mutex);
-					// begin fixing
-					updateLiveHosts();
-					duplicateLostObjects(mid);
-				if(updateLiveHostsCommit() != 0) {
-					printf("error updateLiveHostsCommit()\n");
-					exit(1);
-				}
-
-        // finish fixing
-				pthread_mutex_lock(&leaderFixing_mutex);
-				leaderFixing = 0;
-				pthread_mutex_unlock(&leaderFixing_mutex);
+          
+          restoreDuplicationState(mid);
+          // finish fixing
+	  			pthread_mutex_lock(&leaderFixing_mutex);
+		  		leaderFixing = 0;
+			  	pthread_mutex_unlock(&leaderFixing_mutex);
 				}
 				else {
 					pthread_mutex_unlock(&leaderFixing_mutex);
@@ -562,27 +544,49 @@ void *dstmAccept(void *acceptfd) {
 				break;
 #endif
 #ifdef RECOVERY
+      case REQUEST_TRANS_WAIT:
+        receiveNewHostLists((int)acceptfd);        
+        stopTransactions();
+
+        response = RESPOND_TRANS_WAIT;
+        send_data((int)acceptfd,&response,sizeof(char));
+//        respondToLeader();
+        break;
+
+      case RESPOND_TRANS_WAIT:
+        printf("control -> RESPOND_TRANS_WAIT\n");
+        pthread_mutex_lock(&liveHosts_mutex);
+        numWaitMachine++;
+        pthread_mutex_unlock(&liveHosts_mutex);
+        printf("numWaitMachine = %d\n",numWaitMachine);
+        break;
+
+      case REQUEST_TRANS_LIST:
+        printf("control -> REQUEST_TRANS_LIST\n");
+        sendTransList((int)acceptfd);
+        receiveTransList((int)acceptfd);
+        break;
+
+      case REQUEST_TRANS_RESTART:
+        pthread_mutex_lock(&liveHosts_mutex);
+        okCommit = TRANS_OK;
+        pthread_mutex_unlock(&liveHosts_mutex);
+        break;
 			case UPDATE_LIVE_HOSTS:
 #ifdef DEBUG
         printf("control -> UPDATE_LIVE_HOSTS\n");
 #endif
-				// copy back
-				pthread_mutex_lock(&liveHosts_mutex);
-			  recv_data((int)acceptfd, liveHosts, sizeof(int)*numHostsInSystem);
-				recv_data((int)acceptfd, locateObjHosts, sizeof(unsigned int)*numHostsInSystem*2);
-				pthread_mutex_unlock(&liveHosts_mutex);
-				numLiveHostsInSystem = getNumLiveHostsInSystem();
+        receiveNewHostLists((int)acceptfd);
+
 #ifdef DEBUG
 				printHostsStatus();
 			  printf("%s (UPDATE_LIVE_HOSTS)-> Finished\n", __func__);	
 #endif
-				//exit(0);
 				break;
 #endif
 
 #ifdef RECOVERY
 			case DUPLICATE_ORIGINAL:
-       
        {
          struct sockaddr_in remoteAddr;
          int sd;
@@ -899,6 +903,10 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   fixed.control = TRANS_REQUEST;
   timeout = recv_data((int)acceptfd, ptr+1, size);
 
+#ifdef RECOVERY
+  transList = tlistInsertNode(transList,fixed.transid,TRYING_TO_COMMIT,TRANS_OK);
+#endif
+
   /* Read list of mids */
   int mcount = fixed.mcount;
   size = mcount * sizeof(unsigned int);
@@ -988,13 +996,6 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
   objheader_t *tmp_header;
   void *header;
   int i = 0, val;
-  unsigned int transID;
-#ifdef DEBUG
-	printf("%s-> Entering\n", __func__);
-#endif
-
-  /* receives transaction id */
-  recv_data((int)acceptfd, &transID, sizeof(unsigned int));
 
   /* Send reply to the Coordinator */
   if((retval = handleTransReq(fixed, transinfo, listmid, objread, modptr,acceptfd)) == 0 ) {
@@ -1004,23 +1005,34 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
   }
 
 	int timeout = recv_data((int)acceptfd, &control, sizeof(char));
-	/* Process the new control message */
-#ifdef DEBUG
-  printf("%s -> timeout = %d   control = %d\n",__func__,timeout,control); 
-#endif
-  
+
 #ifdef RECOVERY
+  tlist_node_t* tNode;
+  tNode = tlistSearch(transList,fixed->transid);
+
   if(timeout < 0) {  // timeout. failed to receiving data from coordinator
-#ifdef DEBUG
-    printf("%s -> timeout!! assumes coordinator is dead\n",__func__);
-#endif
-    control = receiveDecisionFromBackup(transID,fixed->mcount,listmid);
-#ifdef DEBUG
-    printf("%s -> received Decision %d\n",__func__,control);
-#endif
-  }    
-  /* insert received control into thash for another transaction*/
-  thashInsert(transID, control);
+    tNode->decision = DECISION_LOST;
+    printf("%s -> DECISON_LOST!  control = %d\n",__func__,control);
+  }
+  else
+    tNode->decision = control;
+
+  // check if it is allowed to commit
+  if(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) 
+  {
+    pthread_mutex_lock(&liveHosts_mutex);
+    tNode->status = TRANS_WAIT;
+    pthread_mutex_unlock(&liveHosts_mutex);
+
+    while(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) { 
+      printf("%s -> transID : %u decision : %d is waiting\n",__func__,tNode->transid,tNode->decision);
+      sleep(1);
+    }
+  }
+
+  control = tNode->decision;
+
+  thashInsert(fixed->transid, control);
 #endif
 
   switch(control) {
@@ -1048,6 +1060,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			break;
 
 		case TRANS_COMMIT:
+      /* insert received control into thash for another transaction*/
 			/* Invoke the transCommit process() */
 			if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
 				printf("Error: In transCommitProcess() %s, %d\n", __FILE__, __LINE__);
@@ -1073,6 +1086,16 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 			//TODO Use fixed.trans_id  TID since Client may have died
 			break;
 	}
+
+#ifdef RECOVERY
+//  printf("%s -> transID : %u has been committed\n",__func__,transID);
+  tNode->status = TRANS_OK;
+
+  pthread_mutex_lock(&clearNotifyList_mutex);
+  transList = tlistRemove(transList,fixed->transid);
+  pthread_mutex_unlock(&clearNotifyList_mutex);
+
+#endif
 
   /* Free memory */
   if (transinfo->objlocked != NULL) {
@@ -1870,4 +1893,157 @@ void clearNotifyList(unsigned int oid)
   printf("%s -> finished\n",__func__);
 #endif
 }
+
+void receiveNewHostLists(int acceptfd)
+{
+  // copy back
+	pthread_mutex_lock(&liveHosts_mutex);
+	recv_data((int)acceptfd, liveHosts, sizeof(int)*numHostsInSystem);
+	recv_data((int)acceptfd, locateObjHosts, sizeof(unsigned int)*numHostsInSystem*2);
+	pthread_mutex_unlock(&liveHosts_mutex);
+	
+  numLiveHostsInSystem = getNumLiveHostsInSystem();
+}
+
+/* wait until all transaction waits for leader's decision */
+void stopTransactions()
+{
+  printf("%s - > Enter\n",__func__);
+  int size = transList->size;
+  int i;
+  tlist_node_t* walker;
+  
+  pthread_mutex_lock(&liveHosts_mutex);
+  okCommit = TRANS_WAIT;
+  pthread_mutex_unlock(&liveHosts_mutex);
+  /* make sure that all transactions are stopped */
+
+  pthread_mutex_lock(&clearNotifyList_mutex);
+
+  do {
+    transList->flag = 0;
+    walker = transList->head;
+
+    while(walker)
+    {
+      // locking
+      while(!(walker->status == TRANS_WAIT || walker->status == TRANS_OK)) {
+        printf("%s -> Waiting for %u - Status : %d tHash : %d\n",__func__,walker->transid,walker->status,thashSearch(walker->transid));
+        sleep(2);
+      }
+
+      walker = walker->next;
+    }
+  }while(transList->flag == 1);
+
+  pthread_mutex_unlock(&clearNotifyList_mutex);
+  printf("%s - > Exit\n",__func__);
+}
+
+void sendTransList(int acceptfd)
+{
+  printf("%s -> Enter\n",__func__);
+  
+  int size;
+  char response;
+  int transid;
+
+  // send on-going transaction
+  tlist_node_t* transArray = tlistToArray(transList,&size);
+
+  if(transList->size != 0)
+    tlistPrint(transList);
+
+  printf("%s -> transList->size : %d  size = %d\n",__func__,transList->size,size);
+
+  send_data((int)acceptfd,&size,sizeof(int));
+  send_data((int)acceptfd,transArray, sizeof(tlist_node_t) * size);
+
+  // check if it already commit the decision for a transaction
+  recv_data((int)acceptfd,&response, sizeof(char));
+
+  while(response == REQUEST_TRANS_CHECK)
+  {  
+    int transid;
+    recv_data((int)acceptfd,&transid, sizeof(unsigned int));
+
+    response = checkDecision(transid);
+    send_data((int)acceptfd,&response, sizeof(char));
+
+    recv_data((int)acceptfd,&response,sizeof(char));
+  }
+
+  free(transArray);
+  printf("%s - > Exit\n",__func__);
+}
+
+void receiveTransList(int acceptfd)
+{
+  printf("%s -> Enter\n",__func__);
+  int size;
+  tlist_node_t* tArray;
+  tlist_node_t* walker;
+  int i;
+  int flag = 1;
+  char response;
+  
+  recv_data((int)acceptfd,&size,sizeof(int));
+
+  printf("%s -> size : %d\n",__func__,size);
+
+  if(size > 0) {
+    if((tArray = calloc(size,sizeof(tlist_node_t) * size)) == NULL)
+    {
+      printf("%s -> calloc error\n",__func__);
+      exit(0);
+    }
+
+    recv_data((int)acceptfd,tArray,sizeof(tlist_node_t) * size);
+
+    flag = combineTransactionList(tArray,size);
+
+    free(tArray);
+  }
+
+
+  if(flag == 1)
+  {
+    response = TRANS_OK;
+  }
+  else
+  {
+    response = -1;
+  }
+
+  printf("%s -> response : %d\n",__func__,response);
+  
+  send_data((int)acceptfd,&response,sizeof(char));
+
+  printf("%s -> End\n",__func__);
+}
+
+
+int combineTransactionList(tlist_node_t* tArray,int size)
+{
+  int flag = 1;
+  tlist_node_t* walker;
+  int i;
+
+  walker = transList->head;
+
+  while(walker){
+      for(i = 0; i < size; i++)
+      {
+        if(walker->transid == tArray[i].transid)
+        {
+          walker->decision = tArray[i].decision;
+          break;
+        }
+      }
+    walker = walker->next;
+  }
+
+  return flag;
+}
+
 #endif

@@ -82,7 +82,7 @@ int createNewSocket(unsigned int mid) {
 int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
   socknode_t **ptr;
   int key = mid&(sockhash->mask);
-  int sd;
+  int sd = -1;
 
   Lock(&sockhash->mylock);
   ptr=&(sockhash->table[key]);
@@ -105,6 +105,8 @@ int getSockWithLock(sockPoolHashTable_t *sockhash, unsigned int mid) {
     inusenode->sd = sd;
     inusenode->mid = mid;
     insToListWithLock(sockhash, inusenode);
+    if(sd < 0)
+    printf("%s -> sd : %d\n",__func__,sd);
     return sd;
   } else {
     return -1;

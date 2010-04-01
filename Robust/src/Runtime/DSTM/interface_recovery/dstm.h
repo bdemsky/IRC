@@ -50,8 +50,8 @@
 #define THREAD_NOTIFY_RESPONSE          25
 #define TRANS_UNSUCESSFUL               26
 #define CLOSE_CONNECTION  							27
-#define ASK_COMMIT                      28
-#define CLEAR_NOTIFY_LIST               29
+
+
 /*******************************
  * Duplication Messages
  *****************************/
@@ -63,6 +63,7 @@
 #define DUPLICATE_BACKUP			 34
 #define DUPLICATION_COMPLETE	 35
 #define RECEIVE_DUPES					 36
+
 /*********************************
  * Paxos Messages
  *******************************/
@@ -74,6 +75,19 @@
 #define PAXOS_ACCEPT_OK						45
 #define PAXOS_LEARN								46
 #define DELETE_LEADER							47
+
+/*********************************
+ * Transaction Clear Messages
+ *********************************/
+#define ASK_COMMIT                51
+#define CLEAR_NOTIFY_LIST         52
+#define REQUEST_TRANS_WAIT        53
+#define RESPOND_TRANS_WAIT        54
+#define REQUEST_TRANS_RESTART     55
+#define REQUEST_TRANS_LIST        56
+#define REQUEST_TRANS_RECOVERY    57
+#define REQUEST_TRANS_CHECK       58
+#define REQUEST_TRANS_COMPLETE    59
 
 //Max number of objects
 #define MAX_OBJECTS  20
@@ -115,6 +129,9 @@
 #include "readstruct.h"
 #ifdef ABORTREADERS
 #include <setjmp.h>
+#endif
+#ifdef RECOVERY
+#include "translist.h"
 #endif
 
 //bit designations for status field of objheader
@@ -171,7 +188,7 @@ typedef struct objheader {
   unsigned int oid;
   unsigned short type;
   unsigned short version;
-  unsigned short rcount;
+//  unsigned short rcount;
   char status;
 } objheader_t;
 
@@ -202,7 +219,7 @@ typedef struct thread_response {
 // Structure that holds  fixed data to be sent along with TRANS_REQUEST
 typedef struct fixed_data {
   char control;                 /* control message */
-  char trans_id[TID_LEN];       /* transaction id */
+  unsigned int transid;         /* transaction id */  
   int mcount;                   /* participant count */
   unsigned int numread;         /* no of objects read */
   unsigned int nummod;                  /* no of objects modified */
@@ -217,6 +234,11 @@ typedef struct trans_req_data {
   char *objread;                /* Pointer to array holding oid and version number of objects that are only read */
   unsigned int *oidmod;         /* Pointer to array holding oids of objects that are modified */
   unsigned int *oidcreated;     /* Pointer to array holding oids of objects that are newly created */
+
+#ifdef RECOVERY
+  unsigned int transid;
+#endif
+
 } trans_req_data_t;
 
 /* Structure that holds information of objects that are not found in the participant
@@ -235,6 +257,7 @@ typedef struct trans_commit_data {
   int leaderFixing;
   pthread_mutex_t leaderFixing_mutex;
   pthread_mutex_t liveHosts_mutex;
+
 #endif
 
 #ifdef RECOVERYSTATS
@@ -274,7 +297,15 @@ unsigned int getNewTransID(void);
 #ifdef RECOVERY
 /* Prototypes for duplications */
 unsigned int updateLiveHosts();
+void updateLiveHostsList(int mid);
 int updateLiveHostsCommit();
+void receiveNewHostLists(int accept);
+void stopTransactions();
+void sendTransList(int acceptfd);
+void receiveTransList(int acceptfd);
+int combineTransactionList(tlist_node_t* tArray,int size);
+
+void respondToLeader();
 void setLocateObjHosts();
 void setReLocateObjHosts();
 void printHostsStatus();
@@ -295,7 +326,14 @@ void clearNotifyList(unsigned int oid);
 void duplicateLostObjects(unsigned int mid);
 unsigned int duplicateLocalBackupObjects();
 unsigned int duplicateLocalOriginalObjects();
+void notifyLeaderDeadMachine(unsigned int deadHost);
 void restoreDuplicationState(unsigned int deadHost);
+void notifyRestoration();
+void clearTransaction();
+void makeTransactionLists(tlist_t**,int*);
+void releaseTransactionLists(tlist_t*,int*);
+void waitForAllMachine();
+void restartTransactions();
 int readDuplicateObjs(int);
 void printRecoveryStat();
 

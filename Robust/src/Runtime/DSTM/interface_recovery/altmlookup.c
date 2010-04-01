@@ -303,11 +303,6 @@ void* mhashGetDuplicate(unsigned int *dupeSize, int backup) { //how big?
 	}
 //  printf("%s -> size = %d\n",__func__,size);
 
-  for(i=0;i<NUMLOCKS; i++) {
-    volatile unsigned int * lockptr = &mlookup.larray[i].lock;
-    read_unlock(lockptr);
-  }
-
 	//i got sizes, oids, and num now
   //
 
@@ -360,6 +355,11 @@ void* mhashGetDuplicate(unsigned int *dupeSize, int backup) { //how big?
 #ifdef DEBUG
 	printf("%s-> End\n", __func__);
 #endif
+
+  for(i=0;i<NUMLOCKS; i++) {
+    volatile unsigned int * lockptr = &mlookup.larray[i].lock;
+    read_unlock(lockptr);
+  }
 
   free(oidsdupe);
 
