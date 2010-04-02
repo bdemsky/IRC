@@ -116,6 +116,15 @@ public class ReachGraph {
       markForAnalysis = true;
     }
 
+
+    if( allocSite == null ) {
+      assert !markForAnalysis;
+
+    } else if( markForAnalysis != allocSite.getFlag() ) {
+      assert false;
+    }
+
+
     if( id == null ) {
       id = DisjointAnalysis.generateUniqueHeapRegionNodeID();
     }
@@ -795,7 +804,7 @@ public class ReachGraph {
       }
       
       if( as.getFlag() ){
-        hasFlags = as.getFlag();
+        hasFlags = true;
       }
 
       String strDesc = as.toStringForDOT()+"\\nsummary";
@@ -840,7 +849,7 @@ public class ReachGraph {
       }
       
       if( as.getFlag() ){
-        hasFlags = as.getFlag();
+        hasFlags = true;
       }
 
       String strDesc = as.toStringForDOT()+"\\n"+i+" oldest";
@@ -3423,6 +3432,17 @@ public class ReachGraph {
                                        hrnA.getPreds()
                                        )
                        );
+
+
+
+        if( !hrnA.equals( hrnB ) ) {
+          rg.writeGraph( "graphA" );
+          this.writeGraph( "graphB" );
+          throw new Error( "flagged not matching" );
+        }
+
+
+
       }
     }
 

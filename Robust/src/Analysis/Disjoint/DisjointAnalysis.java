@@ -93,10 +93,10 @@ public class DisjointAnalysis {
 		return out;
 	}
 	
-  // use the methods given above to check every possible alias
+  // use the methods given above to check every possible sharing class
   // between task parameters and flagged allocation sites reachable
   // from the task
-  public void writeAllAliases(String outputFile, 
+  public void writeAllSharing(String outputFile, 
                               String timeReport,
                               String justTime,
                               boolean tabularOutput,
@@ -113,9 +113,9 @@ public class DisjointAnalysis {
       bw.write(timeReport + "\n");
     }
 
-    int numAlias = 0;
+    int numSharing = 0;
 
-    // look through every task for potential aliases
+    // look through every task for potential sharing
     Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
     while (taskItr.hasNext()) {
       TaskDescriptor td = (TaskDescriptor) taskItr.next();
@@ -128,10 +128,10 @@ public class DisjointAnalysis {
 
       Set<HeapRegionNode> common;
 
-      // for each task parameter, check for aliases with
+      // for each task parameter, check for sharing classes with
       // other task parameters and every allocation site
       // reachable from this task
-      boolean foundSomeAlias = false;
+      boolean foundSomeSharing = false;
 
       FlatMethod fm = state.getMethodFlat(td);
       for (int i = 0; i < fm.numParameters(); ++i) {
@@ -142,7 +142,7 @@ public class DisjointAnalysis {
           continue;
         }
                           
-        // for the ith parameter check for aliases to all
+        // for the ith parameter check for sharing classes to all
         // higher numbered parameters
         for (int j = i + 1; j < fm.numParameters(); ++j) {
 
@@ -155,18 +155,17 @@ public class DisjointAnalysis {
 
           common = hasPotentialSharing(td, i, j);
           if (!common.isEmpty()) {
-            foundSomeAlias = true;
+            foundSomeSharing = true;
+            ++numSharing;
             if (!tabularOutput) {
-              bw.write("Potential alias between parameters " + i
+              bw.write("Potential sharing between parameters " + i
                        + " and " + j + ".\n");
               bw.write(prettyPrintNodeSet(common) + "\n");
-            } else {
-              ++numAlias;
             }
           }
         }
 
-        // for the ith parameter, check for aliases against
+        // for the ith parameter, check for sharing classes against
         // the set of allocation sites reachable from this
         // task context
         Iterator allocItr = allocSites.iterator();
@@ -174,19 +173,18 @@ public class DisjointAnalysis {
           AllocSite as = (AllocSite) allocItr.next();
           common = hasPotentialSharing(td, i, as);
           if (!common.isEmpty()) {
-            foundSomeAlias = true;
+            foundSomeSharing = true;
+            ++numSharing;
             if (!tabularOutput) {
-              bw.write("Potential alias between parameter " + i
+              bw.write("Potential sharing between parameter " + i
                        + " and " + as.getFlatNew() + ".\n");
               bw.write(prettyPrintNodeSet(common) + "\n");
-            } else {
-              ++numAlias;
             }
           }
         }
       }
 
-      // for each allocation site check for aliases with
+      // for each allocation site check for sharing classes with
       // other allocation sites in the context of execution
       // of this task
       HashSet<AllocSite> outerChecked = new HashSet<AllocSite>();
@@ -202,14 +200,13 @@ public class DisjointAnalysis {
             common = hasPotentialSharing(td, as1, as2);
 
             if (!common.isEmpty()) {
-              foundSomeAlias = true;
+              foundSomeSharing = true;
+              ++numSharing;
               if (!tabularOutput) {
-                bw.write("Potential alias between "
+                bw.write("Potential sharing between "
                          + as1.getFlatNew() + " and "
                          + as2.getFlatNew() + ".\n");
                 bw.write(prettyPrintNodeSet(common) + "\n");
-              } else {
-                ++numAlias;
               }
             }
           }
@@ -218,9 +215,9 @@ public class DisjointAnalysis {
         outerChecked.add(as1);
       }
 
-      if (!foundSomeAlias) {
+      if (!foundSomeSharing) {
         if (!tabularOutput) {
-          bw.write("No aliases between flagged objects in Task " + td
+          bw.write("No sharing between flagged objects in Task " + td
                    + ".\n");
         }
       }
@@ -228,15 +225,17 @@ public class DisjointAnalysis {
 
 		
     if (tabularOutput) {
-      bw.write(" & " + numAlias + " & " + justTime + " & " + numLines
+      bw.write(" & " + numSharing + " & " + justTime + " & " + numLines
                + " & " + numMethodsAnalyzed() + " \\\\\n");
-    }		
+    } else {
+      bw.write("\nNumber sharing classes: "+numSharing);
+    }
 
     bw.close();
   }
 	
-  // this version of writeAllAliases is for Java programs that have no tasks
-  public void writeAllAliasesJava(String outputFile, 
+  // this version of writeAllSharing is for Java programs that have no tasks
+  public void writeAllSharingJava(String outputFile, 
                                   String timeReport,
                                   String justTime,
                                   boolean tabularOutput,
@@ -247,18 +246,20 @@ public class DisjointAnalysis {
 
     assert !state.TASK;
 
+    int numSharing = 0;
+
     BufferedWriter bw = new BufferedWriter(new FileWriter(outputFile));
     
     bw.write("Conducting disjoint reachability analysis with allocation depth = "
              + allocationDepth + "\n");
     bw.write(timeReport + "\n\n");
 
-    boolean foundSomeAlias = false;
+    boolean foundSomeSharing = false;
 
     Descriptor d = typeUtil.getMain();
     HashSet<AllocSite> allocSites = getFlaggedAllocationSites(d);
 
-    // for each allocation site check for aliases with
+    // for each allocation site check for sharing classes with
     // other allocation sites in the context of execution
     // of this task
     HashSet<AllocSite> outerChecked = new HashSet<AllocSite>();
@@ -275,11 +276,12 @@ public class DisjointAnalysis {
                                                            as1, as2);
 
           if (!common.isEmpty()) {
-            foundSomeAlias = true;
-            bw.write("Potential alias between "
+            foundSomeSharing = true;
+            bw.write("Potential sharing between "
                      + as1.getDisjointAnalysisId() + " and "
                      + as2.getDisjointAnalysisId() + ".\n");
             bw.write(prettyPrintNodeSet(common) + "\n");
+            ++numSharing;
           }
         }
       }
@@ -287,8 +289,10 @@ public class DisjointAnalysis {
       outerChecked.add(as1);
     }
 
-    if (!foundSomeAlias) {
-      bw.write("No aliases between flagged objects found.\n");
+    if (!foundSomeSharing) {
+      bw.write("No sharing classes between flagged objects found.\n");
+    } else {
+      bw.write("\nNumber sharing classes: "+numSharing);
     }
 
     bw.write("Number of methods analyzed: "+numMethodsAnalyzed()+"\n");
@@ -422,7 +426,7 @@ public class DisjointAnalysis {
   // nodes as back edge's in future implementations
   protected Hashtable<FlatNode, ReachGraph>
     mapBackEdgeToMonotone;
-  
+
 
   public static final String arrayElementFieldName = "___element_";
   static protected Hashtable<TypeDescriptor, FieldDescriptor>
@@ -578,9 +582,9 @@ public class DisjointAnalysis {
 
     if( state.DISJOINTALIASFILE != null ) {
       if( state.TASK ) {
-        writeAllAliases(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
+        writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
       } else {
-        writeAllAliasesJava(state.DISJOINTALIASFILE, 
+        writeAllSharingJava(state.DISJOINTALIASFILE, 
                             treport, 
                             justtime, 
                             state.DISJOINTALIASTAB, 
@@ -1498,10 +1502,15 @@ public class DisjointAnalysis {
     heapsFromCallers.put( fc, rg );
   }
 
-private AllocSite createParameterAllocSite(ReachGraph rg, TempDescriptor tempDesc) {
+  private AllocSite createParameterAllocSite( ReachGraph     rg, 
+                                              TempDescriptor tempDesc
+                                              ) {
     
-    // create temp descriptor for each parameter variable
-    FlatNew flatNew = new FlatNew(tempDesc.getType(), tempDesc, false);
+    FlatNew flatNew = new FlatNew( tempDesc.getType(), // type
+                                   tempDesc,           // param temp
+                                   false,              // global alloc?
+                                   "param"+tempDesc    // disjoint site ID string
+                                   );
     // create allocation site
     AllocSite as = (AllocSite) Canonical.makeCanonical(new AllocSite( allocationDepth, flatNew, flatNew.getDisjointId()));
     for (int i = 0; i < allocationDepth; ++i) {
@@ -1516,7 +1525,7 @@ private AllocSite createParameterAllocSite(ReachGraph rg, TempDescriptor tempDes
     
     return as;
     
-}
+  }
 
 private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 	

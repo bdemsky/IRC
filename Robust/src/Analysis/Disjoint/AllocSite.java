@@ -43,20 +43,32 @@ public class AllocSite extends Canonical {
   protected Integer         summary;
   protected FlatNew         flatNew;
   protected String          disjointId;
-  protected boolean         flag;
+  protected boolean         isFlagged;
 
 
-  public AllocSite( int     allocationDepth, 
-                    FlatNew flatNew, 
-                    String  disjointId
-                    ) {
+  public static AllocSite factory( int     allocationDepth, 
+                                   FlatNew flatNew, 
+                                   String  disjointId
+                                   ) {
+    AllocSite out = new AllocSite( allocationDepth,
+                                   flatNew,
+                                   disjointId );
+    out = (AllocSite) Canonical.makeCanonical( out );
+    return out;
+  }
+
+
+  protected AllocSite( int     allocationDepth, 
+                       FlatNew flatNew, 
+                       String  disjointId
+                       ) {
 
     assert allocationDepth >= 1;
 
     this.allocationDepth = allocationDepth;
     this.flatNew         = flatNew;
     this.disjointId      = disjointId;
-    this.flag            = false;
+    this.isFlagged       = disjointId != null;
 
     ithOldest = new Vector<Integer>( allocationDepth );
     id        = generateUniqueAllocSiteID();
@@ -254,10 +266,10 @@ public class AllocSite extends Canonical {
   }
   
   public void setFlag( boolean flag ) {
-    this.flag = flag;
+    this.isFlagged = flag;
   }
   
   public boolean getFlag() {
-    return flag;
+    return isFlagged;
   }
 }

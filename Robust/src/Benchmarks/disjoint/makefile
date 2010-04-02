@@ -8,7 +8,7 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 ##
 #################################################
 #DEBUGFLAGS= -disjoint-debug-callsite setClusters innerKMeansSetting 20
-DEBUGFLAGS= -disjoint-debug-callsite ensureCapacity addElement 100
+#DEBUGFLAGS= -disjoint-debug-callsite ensureCapacity addElement 100
 
 
 #################################################
@@ -45,6 +45,13 @@ all:
 
 bamboo:
 	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE)   $(VISITMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+
+bamboo-s:
+	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE) -disjoint-dvisit-stack  $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+
+bamboo-q:
+	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE) -disjoint-dvisit-pqueue $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+
 
 bamboo-release:
 	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(RELEASEMODE) $(VISITMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java

@@ -222,9 +222,11 @@ public class Main {
 
       } else if( option.equals( "-disjoint-dvisit-stack" ) ) {
         state.DISJOINTDVISITSTACK = true;      
+        state.DISJOINTDVISITPQUE  = false;
 
       } else if( option.equals( "-disjoint-dvisit-pqueue" ) ) {
-        state.DISJOINTDVISITPQUE = true;
+        state.DISJOINTDVISITPQUE  = true;
+        state.DISJOINTDVISITSTACK = false;      
       }
       
 

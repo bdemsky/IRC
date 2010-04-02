@@ -117,6 +117,12 @@ public class HeapRegionNode extends RefSrcNode {
     }
 
     assert isSingleObject == hrn.isSingleObject();
+
+    if( isFlagged != hrn.isFlagged ) {
+      System.out.println( this.toStringDOT(true)+"\ndoesn't match\n"+hrn.toStringDOT(true) );
+      //throw new Exception("flagged regions don't match");
+    }
+
     assert isFlagged      == hrn.isFlagged();
     assert isNewSummary   == hrn.isNewSummary();
     assert isOutOfContext == hrn.isOutOfContext();
