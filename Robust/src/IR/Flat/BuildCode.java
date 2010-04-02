@@ -1778,12 +1778,13 @@ public class BuildCode {
       // eom
 		ConflictGraph graph = null;
 		graph = mlpa.getConflictGraphResults().get(fm);
-		if (graph != null) {
+		if (graph != null && graph.hasConflictEdge()) {
 			output.println("   /* set up waiting queues */");
 			output.println("   int numMemoryQueue=0;");
 			output.println("   int memoryQueueItemID=0;");
 			HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
 					graph);
+			System.out.println("#lockSet="+lockSet.hashCode());
 			System.out.println("lockset="+lockSet);
 			for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
 				SESELock seseLock = (SESELock) iterator.next();
@@ -2084,12 +2085,13 @@ public class BuildCode {
 	output.println("   int memoryQueueItemID=0;");
 	ConflictGraph graph = null;
 	graph = mlpa.getConflictGraphResults().get(fsen);
-	if (graph != null) {
+	if (graph != null && graph.hasConflictEdge()) {
 		output.println("   {");
 		output
 				.println("   SESEcommon* parentCommon = &(___params___->common);");
 		HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
 				graph);
+		System.out.println("#lockSet="+lockSet);
 
 		if (lockSet.size() > 0) {
 			output.println("   numMemoryQueue=" + lockSet.size() + ";");
@@ -3369,7 +3371,7 @@ public class BuildCode {
 			graph = mlpa.getConflictGraphResults().get(parent);
 		}
 	}
-	if (graph != null) {
+	if (graph != null && graph.hasConflictEdge()) {
 		HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap().get(
 				graph);
 		output.println();

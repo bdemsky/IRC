@@ -23,29 +23,18 @@ public class ConflictGraph {
 	public ConflictGraph() {
 		id2cn = new Hashtable<String, ConflictNode>();
 	}
-
-	private boolean isReadOnly(ConflictNode node) {
-
-		if (node instanceof StallSiteNode) {
-			StallSiteNode stallSiteNode = (StallSiteNode) node;
-			HashSet<Effect> effectSet = stallSiteNode.getStallSite()
-					.getEffectSet();
-			for (Iterator iterator = effectSet.iterator(); iterator.hasNext();) {
-				Effect effect = (Effect) iterator.next();
-				if (effect.getEffectType().equals(StallSite.WRITE_EFFECT)) {
-					return false;
-				}
+	
+	public boolean hasConflictEdge(){
+		
+		Set<String> keySet=id2cn.keySet();
+		for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+			String key = (String) iterator.next();
+			ConflictNode node=id2cn.get(key);
+			if(node.getEdgeSet().size()>0){
+				return true;
 			}
-		} else {
-			LiveInNode liveInNode = (LiveInNode) node;
-			Set<SESEEffectsKey> writeEffectSet = liveInNode
-					.getWriteEffectsSet();
-			if (writeEffectSet != null && writeEffectSet.size() > 0) {
-				return false;
-			}
-		}
-
-		return true;
+		}		
+		return false;
 	}
 
 	public void analyzeConflicts() {
