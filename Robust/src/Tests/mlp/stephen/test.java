@@ -4,7 +4,7 @@ public class Test {
     
     public static void main(String args[]) {
 	
-	System.out.println("# it starts");	
+	System.out.println("# it starts!!");	
 	Test t = new Test();
 	t.doSomeWork();
 	
