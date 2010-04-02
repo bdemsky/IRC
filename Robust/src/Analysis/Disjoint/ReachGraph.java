@@ -92,7 +92,6 @@ public class ReachGraph {
     createNewHeapRegionNode( Integer        id,
 			     boolean        isSingleObject,
 			     boolean        isNewSummary,
-			     boolean        isFlagged,
                              boolean        isOutOfContext,
 			     TypeDescriptor type,
 			     AllocSite      allocSite,
@@ -102,8 +101,6 @@ public class ReachGraph {
 			     String         description
                              ) {
 
-    boolean markForAnalysis = isFlagged;
-
     TypeDescriptor typeToUse = null;
     if( allocSite != null ) {
       typeToUse = allocSite.getType();
@@ -112,15 +109,15 @@ public class ReachGraph {
       typeToUse = type;
     }
 
-    if( allocSite != null && allocSite.getDisjointAnalysisId() != null ) {
+    boolean markForAnalysis = false;
+    if( allocSite != null && allocSite.isFlagged() ) {
       markForAnalysis = true;
     }
-
-
+    
     if( allocSite == null ) {
       assert !markForAnalysis;
 
-    } else if( markForAnalysis != allocSite.getFlag() ) {
+    } else if( markForAnalysis != allocSite.isFlagged() ) {
       assert false;
     }
 
@@ -798,22 +795,12 @@ public class ReachGraph {
 
     if( hrnSummary == null ) {
 
-      boolean hasFlags = false;
-      if( as.getType().isClass() ) {
-	hasFlags = as.getType().getClassDesc().hasFlags();
-      }
-      
-      if( as.getFlag() ){
-        hasFlags = true;
-      }
-
       String strDesc = as.toStringForDOT()+"\\nsummary";
 
       hrnSummary = 
         createNewHeapRegionNode( idSummary,    // id or null to generate a new one 
                                  false,        // single object?		 
-                                 true,         // summary?	 
-                                 hasFlags,     // flagged?
+                                 true,         // summary?	                  
                                  false,        // out-of-context?
                                  as.getType(), // type				 
                                  as,           // allocation site			 
@@ -843,21 +830,11 @@ public class ReachGraph {
     
     if( hrnIth == null ) {
 
-      boolean hasFlags = false;
-      if( as.getType().isClass() ) {
-        hasFlags = as.getType().getClassDesc().hasFlags();
-      }
-      
-      if( as.getFlag() ){
-        hasFlags = true;
-      }
-
       String strDesc = as.toStringForDOT()+"\\n"+i+" oldest";
 
       hrnIth = createNewHeapRegionNode( idIth,        // id or null to generate a new one 
                                         true,	      // single object?			 
                                         false,	      // summary?			 
-                                        hasFlags,     // flagged?			 
                                         false,        // out-of-context?
                                         as.getType(), // type				 
                                         as,	      // allocation site			 
@@ -1613,7 +1590,6 @@ public class ReachGraph {
       rg.createNewHeapRegionNode( hrnCaller.getID(),
                                   hrnCaller.isSingleObject(),
                                   hrnCaller.isNewSummary(),
-                                  hrnCaller.isFlagged(),
                                   false, // out-of-context?
                                   hrnCaller.getType(),
                                   hrnCaller.getAllocSite(),
@@ -1805,7 +1781,6 @@ public class ReachGraph {
             rg.createNewHeapRegionNode( null,  // ID
                                         false, // single object?
                                         false, // new summary?
-                                        false, // flagged?
                                         true,  // out-of-context?
                                         oocNodeType,
                                         null,  // alloc site, shouldn't be used
@@ -1834,7 +1809,6 @@ public class ReachGraph {
               rg.createNewHeapRegionNode( oocHrnID,  // ID
                                           false, // single object?
                                           false, // new summary?
-                                          false, // flagged?
                                           true,  // out-of-context?
                                           oocNodeType,
                                           null,  // alloc site, shouldn't be used
@@ -2225,7 +2199,6 @@ public class ReachGraph {
           createNewHeapRegionNode( hrnIDshadow,                // id or null to generate a new one 
                                    hrnCallee.isSingleObject(), // single object?		 
                                    hrnCallee.isNewSummary(),   // summary?	 
-                                   hrnCallee.isFlagged(),      // flagged?
                                    false,                      // out-of-context?
                                    hrnCallee.getType(),        // type				 
                                    hrnCallee.getAllocSite(),   // allocation site			 
@@ -2492,7 +2465,6 @@ public class ReachGraph {
             createNewHeapRegionNode( hrnIDDstShadow,                // id or null to generate a new one 
                                      hrnDstCallee.isSingleObject(), // single object?		 
                                      hrnDstCallee.isNewSummary(),   // summary?	 
-                                     hrnDstCallee.isFlagged(),      // flagged?
                                      false,                         // out-of-context?
                                      hrnDstCallee.getType(),        // type				 
                                      hrnDstCallee.getAllocSite(),   // allocation site			 

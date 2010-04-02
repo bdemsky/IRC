@@ -1253,12 +1253,10 @@ public class DisjointAnalysis {
   protected AllocSite getAllocSiteFromFlatNewPRIVATE( FlatNew fnew ) {
 
     if( !mapFlatNewToAllocSite.containsKey( fnew ) ) {
-      AllocSite as = 
-        (AllocSite) Canonical.makeCanonical( new AllocSite( allocationDepth, 
-                                                            fnew, 
-                                                            fnew.getDisjointId() 
-                                                            )
-                                             );
+      AllocSite as = AllocSite.factory( allocationDepth, 
+                                        fnew, 
+                                        fnew.getDisjointId() 
+                                        );
 
       // the newest nodes are single objects
       for( int i = 0; i < allocationDepth; ++i ) {
@@ -1512,7 +1510,10 @@ public class DisjointAnalysis {
                                    "param"+tempDesc    // disjoint site ID string
                                    );
     // create allocation site
-    AllocSite as = (AllocSite) Canonical.makeCanonical(new AllocSite( allocationDepth, flatNew, flatNew.getDisjointId()));
+    AllocSite as = AllocSite.factory( allocationDepth, 
+                                      flatNew, 
+                                      flatNew.getDisjointId()
+                                      );
     for (int i = 0; i < allocationDepth; ++i) {
 	Integer id = generateUniqueHeapRegionNodeID();
 	as.setIthOldest(i, id);
@@ -1566,7 +1567,6 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 				rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
 							   false, // single object?
 							   true, // summary?
-							   false, // flagged?
 							   false, // out-of-context?
 							   as.getType(), // type
 							   as, // allocation site
@@ -1624,7 +1624,6 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 				rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
 							   false, // single object?
 							   true, // summary?
-							   false, // flagged?
 							   false, // out-of-context?
 							   typeDesc, // type
 							   as, // allocation site
@@ -1748,7 +1747,6 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 					rg.createNewHeapRegionNode(allocSite.getSummary(), // id or null to generate a new one
 								   false, // single object?
 								   true, // summary?
-								   false, // flagged?
 								   false, // out-of-context?
 								   allocSite.getType(), // type
 								   allocSite, // allocation site

@@ -139,6 +139,10 @@ public class AllocSite extends Canonical {
     return flatNew.getType();
   }
 
+  public boolean isFlagged() {
+    return isFlagged;
+  }
+
   public int getAgeCategory( Integer id ) {
 
     if( id.equals( summary ) ) {
@@ -263,13 +267,5 @@ public class AllocSite extends Canonical {
 
   public int hashCodeSpecific() {
     return id;
-  }
-  
-  public void setFlag( boolean flag ) {
-    this.isFlagged = flag;
-  }
-  
-  public boolean getFlag() {
-    return isFlagged;
-  }
+  }  
 }
