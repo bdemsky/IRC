@@ -65,18 +65,6 @@
 #define RECEIVE_DUPES					 36
 
 /*********************************
- * Paxos Messages
- *******************************/
-#define PAXOS_PREPARE							40	
-#define PAXOS_PREPARE_REJECT			41
-#define PAXOS_PREPARE_OK				  42
-#define PAXOS_ACCEPT							43
-#define PAXOS_ACCEPT_REJECT				44
-#define PAXOS_ACCEPT_OK						45
-#define PAXOS_LEARN								46
-#define DELETE_LEADER							47
-
-/*********************************
  * Transaction Clear Messages
  *********************************/
 #define ASK_COMMIT                51
@@ -132,6 +120,7 @@
 #endif
 #ifdef RECOVERY
 #include "translist.h"
+#include "paxos.h"
 #endif
 
 //bit designations for status field of objheader
@@ -338,12 +327,6 @@ void restartTransactions();
 int readDuplicateObjs(int);
 void printRecoveryStat();
 
-/* Paxo's algorithm */
-int paxos();
-int paxosPrepare();
-int paxosAccept();
-void paxosLearn();
-
 #endif
 
 /* Prototypes for server portion */
@@ -401,7 +384,7 @@ char decideResponse(char *, char *,  int); // Coordinator decides what response 
 void *getRemoteObj(unsigned int, unsigned int); // returns object header from main object store after object is copied into it from remote machine
 void handleLocalReq(trans_req_data_t *, trans_commit_data_t *, char *);
 int transComProcess(trans_req_data_t *, trans_commit_data_t *);
-void doLocalProcess(char, trans_req_data_t *tdata, trans_commit_data_t *);
+char doLocalProcess(char, trans_req_data_t *tdata, trans_commit_data_t *);
 int transAbortProcess(trans_commit_data_t *);
 void transAbort();
 void sendPrefetchResponse(int sd, char *control, char *sendbuffer, int *size);

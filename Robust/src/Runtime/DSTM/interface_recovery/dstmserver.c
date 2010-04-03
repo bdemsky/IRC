@@ -53,17 +53,7 @@ pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a 
 sockPoolHashTable_t *transPResponseSocketPool;
 
 #ifdef RECOVERY
-/******************************
- * Global variables for Paxos
- ******************************/
-extern int n_a;
-extern unsigned int v_a;
-extern int n_h;
-extern int my_n;
-extern int leader;
-extern int paxosRound;
-/* This function initializes the main objects store and creates the
- * global machine and location lookup table */
+extern unsigned int leader;
 
 long long myrdtsc(void)
 {
@@ -74,6 +64,8 @@ long long myrdtsc(void)
 
 #endif
 
+/* This function initializes the main objects store and creates the
+ * global machine and location lookup table */
 int dstmInit(void) {
   mainobjstore = objstrCreate(DEFAULT_OBJ_STORE_SIZE);
   /* Initialize attribute for mutex */
@@ -726,57 +718,21 @@ void *dstmAccept(void *acceptfd) {
 #ifdef DEBUG
         printf("control -> PAXOS_PREPARE\n");
 #endif
-				recv_data((int)acceptfd, &val, sizeof(int));
-				if (val <= n_h) {
-					control = PAXOS_PREPARE_REJECT;
-					send_data((int)acceptfd, &control, sizeof(char));
-				}
-				else {
-					n_h = val;
-					control = PAXOS_PREPARE_OK;
-                    
-					send_data((int)acceptfd, &control, sizeof(char));
-					send_data((int)acceptfd, &n_a, sizeof(int));
-					send_data((int)acceptfd, &v_a, sizeof(int));
-				}
+        paxosPrepare_receiver((int)acceptfd);
 				break;
 
 			case PAXOS_ACCEPT:
 #ifdef DEBUG
         printf("control -> PAXOS_ACCEPT\n");
 #endif
-				recv_data((int)acceptfd, &n, sizeof(int));
-				recv_data((int)acceptfd, &v, sizeof(int));
-				if (n < n_h) {
-					control = PAXOS_ACCEPT_REJECT;
-					send_data((int)acceptfd, &control, sizeof(char));
-				}
-				else {
-					n_a = n;
-					v_a = v;
-					n_h = n;
-					control = PAXOS_ACCEPT_OK;
-					send_data((int)acceptfd, &control, sizeof(char));
-				}
+        paxosAccept_receiver((int)acceptfd);
 				break;
 
 			case PAXOS_LEARN:
 #ifdef DEBUG
         printf("control -> PAXOS_LEARN\n");
 #endif
-				recv_data((int)acceptfd, &v, sizeof(int));
-				leader = v_a;
-				paxosRound++;
-#ifdef DEBUG
-				printf("%s (PAXOS_LEARN)-> This is my leader!: [%s]\n", __func__, midtoIPString(leader));
-#endif
-				break;
-
-			case DELETE_LEADER:
-#ifdef DEBUG
-        printf("control -> DELETE_LEADER\n");
-#endif
-				v_a = 0;
+        leader = paxosLearn_receiver((int)acceptfd);
 				break;
 #endif
 			default:

@@ -111,17 +111,7 @@ char ip[16];      // for debugging purpose
 extern tlist_t* transList;
 extern pthread_mutex_t clearNotifyList_mutex;
 
-/******************************
- * Global variables for Paxos
- ******************************/
-int n_a;
-unsigned int v_a;
-int n_h;
-int my_n;
-unsigned int leader;
-unsigned int origleader;
-unsigned int temp_v_a;
-int paxosRound;
+extern unsigned int leader;
 
 #ifdef RECOVERYSTATS
   int numRecovery = 0;
@@ -533,7 +523,7 @@ int dstmStartup(const char * option) {
 		updateLiveHosts();
 		setLocateObjHosts();
 		updateLiveHostsCommit();
-		paxos();
+		leader = paxos(hostIpAddrs,liveHosts,myIpAddr,numHostsInSystem,numLiveHostsInSystem);
 //    printHostsStatus();
 		if(!allHostsLive()) {
 			printf("Not all hosts live. Exiting.\n");
@@ -1162,6 +1152,15 @@ int transCommit() {
   }
 #endif
 
+#ifdef RECOVERY
+  while(okCommit != TRANS_OK) {
+    printf("%s -> new Transactin is waiting\n",__func__);
+    sleep(2);
+  }
+
+  transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRANS_OK);
+#endif
+
   int treplyretryCount = 0;
   /* Initialize timeout for exponential delay */
   exponential_backoff.tv_sec = 0;
@@ -1343,20 +1342,11 @@ int transCommit() {
         if(timeout < 0) {
           deadmid = listmid[i];
           deadsd = sd;
-#ifdef DEBUG
-          printf("%s -> Dead Machine ID : %s\n",__func__,midtoIPString(deadmid));  
-          printf("%s -> Dead SD         : %d\n",__func__,sd);
-#endif
           getReplyCtrl[i] = TRANS_DISAGREE;
         }
 #endif
 			}
 		}
-
-#ifdef DEBUG
-		printf("%s-> Decide final response now\n", __func__);
-#endif
-
 
 		/* Decide the final response */
 		if((finalResponse = decideResponse(getReplyCtrl, &treplyretry, pilecount)) == 0) {
@@ -1365,8 +1355,16 @@ int transCommit() {
 			free(listmid);
 			return 1;
 		}
-#ifdef DEBUG
-    printf("%s-> Final Response: %d\n", __func__, (int)finalResponse);
+
+#ifdef RECOVERY
+// wait until leader fix the system
+    if(okCommit != TRANS_OK) {
+      while(okCommit != TRANS_OK) {
+        printf("%s -> Coordinator is waiting finalResponse : %d\n",__func__,finalResponse);
+        sleep(1);
+      }
+      finalResponse = TRANS_ABORT;
+    }
 #endif
 
 #ifdef CACHE
@@ -1413,13 +1411,9 @@ int transCommit() {
 #endif
 #endif
           send_data(sd,&finalResponse,sizeof(char));
-#ifdef DEBUG
-          printf("%s -> Decision Sent to %s\n",__func__,midtoIPString(listmid[i]));
-#endif
-
       } else {
 		  		/* Complete local processing */
-          doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
+          finalResponse = doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
 
 #ifdef ABORTREADERS
 				  if(finalResponse == TRANS_COMMIT) {
@@ -1450,16 +1444,21 @@ int transCommit() {
       pDelete(pile_ptr);
     /* wait a random amount of time before retrying to commit transaction*/
     if(treplyretry) {
-      //treplyretryCount++;
-      //if(treplyretryCount >= NUM_TRY_TO_COMMIT)
-      //  exponentialdelay();
-      //else 
         randomdelay();
 #ifdef TRANSSTATS
 			nSoftAbort++;
 #endif
 		}
 	} while (treplyretry && deadmid != -1);
+
+#ifdef RECOVERY
+  tlist_node_t* tNode = tlistSearch(transList,transID);
+  tNode->status = TRANS_OK;
+
+  pthread_mutex_lock(&clearNotifyList_mutex);
+  transList = tlistRemove(transList,transID);
+  pthread_mutex_unlock(&clearNotifyList_mutex);
+#endif
 
 	if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
@@ -1471,9 +1470,6 @@ int transCommit() {
 #ifdef RECOVERY
     if(deadmid != -1) { /* if deadmid is greater than or equal to 0, 
                           then there is dead machine. */
-#ifdef DEBUG
-      printf("%s -> Dead machine Detected : %s\n",__func__,midtoIPString(deadmid));
-#endif
       notifyLeaderDeadMachine(deadmid);
     }
 #endif
@@ -1508,10 +1504,6 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
   unsigned int oid;
   unsigned short version;
 
-#ifdef RECOVERY
-  transList = tlistInsertNode(transList,tdata->f.transid,TRYING_TO_COMMIT,TRANS_OK);
-#endif
-  
   /* Counters and arrays to formulate decision on control message to be sent */
   oidnotfound = (unsigned int *) calloc((tdata->f.numread + tdata->f.nummod), sizeof(unsigned int));
 	oidlocked = (unsigned int *) calloc((tdata->f.numread + tdata->f.nummod +1), sizeof(unsigned int)); // calloc additional 1 byte for
@@ -1560,7 +1552,7 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
   }
 }
 
-void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
+char doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
 
 #ifdef RECOVERY
   finalResponse = inspectTransaction(finalResponse,tdata->f.transid);
@@ -1583,11 +1575,6 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
     printf("ERROR...No Decision\n");
   }
 
-#ifdef RECOVERY
-  pthread_mutex_lock(&clearNotifyList_mutex);
-  transList = tlistRemove(transList,tdata->f.transid);
-  pthread_mutex_unlock(&clearNotifyList_mutex);
-#endif
 
   /* Free memory */
   if (transinfo->objlocked != NULL) {
@@ -1596,6 +1583,8 @@ void doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
   if (transinfo->objnotfound != NULL) {
     free(transinfo->objnotfound);
   }
+
+  return finalResponse;
 }
 
 /* This function decides the reponse that needs to be sent to
@@ -1764,7 +1753,7 @@ void notifyLeaderDeadMachine(unsigned int deadHost) {
 	}
 
 	if(deadHost == leader)  // if leader is dead, then pick a new leader
-		paxos();
+		leader = paxos(hostIpAddrs,liveHosts,myIpAddr,numHostsInSystem,numLiveHostsInSystem);
 	
 #ifdef DEBUG
 	printf("%s-> leader?:%s, me?:%s\n", __func__, midtoIPString(leader), (myIpAddr == leader)?"LEADER":"NOT LEADER");
@@ -1819,6 +1808,17 @@ void restoreDuplicationState(unsigned int deadHost)
 {
   printf("%s -> Entering\n",__func__);
 
+#ifdef RECOVERYSTATS
+  printf("Recovery Start\n");
+  numRecovery++;
+  long long st;
+  long long fi;
+  unsigned int dupeSize = 0;  // to calculate the size of backed up data
+
+  st = myrdtsc(); // to get clock
+  recoverStat[numRecovery-1].deadMachine = deadHost;
+#endif
+
   // update leader's live host list and object locations
   updateLiveHostsList(deadHost);
   setReLocateObjHosts(deadHost);
@@ -1839,6 +1839,12 @@ void restoreDuplicationState(unsigned int deadHost)
   getchar();
   // restart transactions
   restartTransactions();
+
+#ifdef RECOVERYSTATS
+  fi = myrdtsc();
+  recoverStat[numRecovery-1].elapsedTime = (fi-st)/CPU_FREQ;
+  printRecoveryStat();
+#endif
 
   printf("%s -> Exiting\n",__func__);
 }
@@ -3226,12 +3232,9 @@ void updateLiveHostsList(int mid)
   int mIndex =  findHost(mid);
   int sd;
 
-  printf("%s -> Enter with %s\n",__func__,midtoIPString(mid));
-
   if((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[mIndex])) < 0) {
     liveHosts[mIndex] = 0;
     numLiveHostsInSystem--;
-    printf("%s -> 111End with %s\n",__func__,midtoIPString(mid));
     return;
   }
 
@@ -3248,7 +3251,6 @@ void updateLiveHostsList(int mid)
   }
 
   freeSockWithLock(transPrefetchSockPool,hostIpAddrs[mIndex],sd);
-  printf("%s -> 222End with %s\n",__func__,midtoIPString(mid));
   return;
 
 }
@@ -3316,27 +3318,14 @@ int allHostsLive() {
 void duplicateLostObjects(unsigned int mid){
 
 #ifdef RECOVERYSTATS
-  printf("Recovery Start\n");
-  numRecovery++;
-  long long st;
-  long long fi;
-  unsigned int dupeSize = 0;  // to calculate the size of backed up data
-
-  st = myrdtsc(); // to get clock
-  recoverStat[numRecovery-1].deadMachine = mid;
-#endif
-
-#ifdef DEBUG
-	printf("%s-> Start, mid: [%s]\n", __func__, midtoIPString(mid));  
+  unsigned int dupeSize = 0;
 #endif
 
 	//this needs to be changed.
 	unsigned int backupMid = getBackupMachine(mid); // get backup machine of dead machine
 	unsigned int originalMid = getPrimaryMachine(mid); // get primary machine that used deadmachine as backup machine.
 
-#ifndef DEBUG
-	printf("%s-> backupMid: %d\t[%s]", __func__, backupMid,midtoIPString(backupMid));
-	printf("originalMid: %d\t[%s]\n", originalMid,midtoIPString(originalMid));
+#ifdef DEBUG
 	printHostsStatus(); 
 #endif
 
@@ -3405,10 +3394,7 @@ void duplicateLostObjects(unsigned int mid){
   freeSockWithLock(transRequestSockPool, backupMid, bsd);
 
 #ifdef RECOVERYSTATS
-  fi = myrdtsc();
-  recoverStat[numRecovery-1].elapsedTime = (fi-st)/CPU_FREQ;
   recoverStat[numRecovery-1].recoveredData = dupeSize;
-  printRecoveryStat();
 #endif
 
 #ifndef DEBUG
@@ -3952,187 +3938,6 @@ plistnode_t *sortPiles(plistnode_t *pileptr) {
   /* get too this point iff myIpAddr pile is at tail */
   return pileptr;
 }
-
-#ifdef RECOVERY
-/* Paxo Algorithm: 
- * Executes when the known leader has failed.  
- * Guarantees consensus on next leader among all live hosts.  */
-int paxos()
-{
-	int origRound = paxosRound;
-	origleader = leader;
-	int ret = -1;
-#ifdef DEBUG
-	printf(">> Debug : Starting paxos..\n");
-#endif
-
-	do {
-		ret = paxosPrepare();		// phase 1
-		if (ret == 1) {
-			ret = paxosAccept();	// phase 2
-			if (ret == 1) {
-				paxosLearn();				// phase 3
-				break;
-			}
-		}
-		// Paxos not successful; wait and retry if new leader is not yet slected
-		sleep(WAIT_TIME);		
-		if(paxosRound != origRound)
-			break;
-	} while (ret == -1);
-
-#ifdef DEBUG
-	printf("\n>> Debug : Leader : [%s]\t[%u]\n", midtoIPString(leader),leader);
-#endif
-
-	return ret;
-}
-
-int paxosPrepare()
-{
-	char control;
-	//int origleader = leader;
-	int remote_n;
-	int remote_v;
-	int tmp_n = -1;
-	int cnt = 0;
-	int sd;
-	int i;
-	temp_v_a = v_a;
-	my_n = n_h + 1;
-
-#ifdef DEBUG
-	printf("[Prepare]...\n");
-#endif
-
-	temp_v_a = myIpAddr;	// if no other value is proposed, make this machine the new leader
-
-	for (i = 0; i < numHostsInSystem; ++i) {
-		control = PAXOS_PREPARE;
-		if(!liveHosts[i]) 
-			continue;
-
-		if ((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
-			printf("paxosPrepare(): socket create error\n");
-			continue;
-		}
-		send_data(sd, &control, sizeof(char)); 	
-		send_data(sd, &my_n, sizeof(int));
-		int timeout = recv_data(sd, &control, sizeof(char));
-		if ((sd == -1) || (timeout < 0)) {
-			continue;
-		}
-
-		switch (control) {
-			case PAXOS_PREPARE_OK:
-				cnt++;
-				recv_data(sd, &remote_n, sizeof(int));
-				recv_data(sd, &remote_v, sizeof(int));
-				if(remote_v != origleader) {
-					if (remote_n > tmp_n) {
-						tmp_n = remote_n;
-						temp_v_a = remote_v;
-					}
-				}
-				break;
-			case PAXOS_PREPARE_REJECT:
-			 	break;
-		}
-    
-    freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
-	}
-
-	if (cnt >= (numLiveHostsInSystem / 2)) {		// majority of OK replies
-		return 1;
-		}
-		else {
-			return -1;
-		}
-}
-
-int paxosAccept()
-{
-	char control;
-	int i;
-	int cnt = 0;
-	int sd;
-	int remote_v = temp_v_a;
-
-	for (i = 0; i < numHostsInSystem; ++i) {
-		control = PAXOS_ACCEPT;
-	  
-    if(!liveHosts[i]) 
-			continue;
-
-  	if ((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
-			printf("paxosAccept(): socket create error\n");
-			continue;
-		}
-
-		send_data(sd, &control, sizeof(char));
-		send_data(sd, &my_n, sizeof(int));
-		send_data(sd, &remote_v, sizeof(int));
-
-		int timeout = recv_data(sd, &control, sizeof(char));
-		if (timeout < 0) {
-      freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
-			continue;  
-		}
-
-		switch (control) {
-			case PAXOS_ACCEPT_OK:
-				cnt++;
-				break;
-			case PAXOS_ACCEPT_REJECT:
-				break;
-		}
-#ifdef DEBUG
-		printf(">> Debug : Accept - n_h [%d], n_a [%d], v_a [%s]\n", n_h, n_a, midtoIPString(v_a));
-#endif
-    freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
-	}
-
-	if (cnt >= (numLiveHostsInSystem / 2)) {
-		return 1;
-	}
-	else {
-		return -1;
-	}
-}
-
-void paxosLearn()
-{
-	char control;
-	int sd;
-	int i;
-
-#ifdef DEBUG
-	printf("[Learn]...\n");
-#endif
-
-	control = PAXOS_LEARN;
-
-	for (i = 0; i < numHostsInSystem; ++i) {
-		if(!liveHosts[i]) 
-			continue;
-		if(hostIpAddrs[i] == myIpAddr)
-		{
-			leader = v_a;
-			paxosRound++;
-			continue;
-		}
-		if ((sd = getSockWithLock(transPrefetchSockPool, hostIpAddrs[i])) < 0) {
-			continue;
-		}
-
-		send_data(sd, &control, sizeof(char));
-		send_data(sd, &v_a, sizeof(int));
-
-    freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
-
-	}
-}
-#endif
 
 #ifdef RECOVERY
 void clearDeadThreadsNotification() 
