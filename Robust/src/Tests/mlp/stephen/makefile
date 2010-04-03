@@ -1,6 +1,6 @@
 PROGRAM=test
 
-SOURCE_FILES=test.java
+SOURCE_FILES=Test.java
 
 BUILDSCRIPT=../../../buildscript
 
