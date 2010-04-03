@@ -1,7 +1,6 @@
 public class Test
 {
-    //Apparently global variables are not yet supported
-    //private int MAX = 100000;
+    private final int MAX = 100000;
 
     public Test(){}
 
@@ -15,7 +14,6 @@ public class Test
 
     public void doSomeWork()
     {
-        int MAX = 100000;
         long sum = 0;
         long time = System.currentTimeMillis();
         
@@ -23,22 +21,19 @@ public class Test
         //about the same time 
         for(int i = 0; i < MAX/2 + 1; i++)
         {
-		int innerSum = 0;
-		
-		rblock a {
-		
-		int oppositeNum = MAX - i;
+        	int innerSum = 0;
+        	
+        	{
+        		int oppositeNum = MAX - i;
         		
-	        if(isPrime(i))
-	        	innerSum += i;
+	        	if(isPrime(i))
+	        		innerSum += i;
 	        	
-	        if(i != oppositeNum && isPrime(oppositeNum))
-	        	innerSum += oppositeNum;
-	    }
-            
-	    rblock b {
+	        	if(i != oppositeNum && isPrime(oppositeNum))
+	        		innerSum += oppositeNum;
+        	}
+        	
         	sum += innerSum;
-	    }
         }
 
         System.out.println("The sum of primes from 1 to " + MAX + " is " + sum + ".");
