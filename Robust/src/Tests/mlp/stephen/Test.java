@@ -25,20 +25,22 @@ public class Test
         {
 		int innerSum = 0;
 		
-		rblock a {
+		sese a 
+		{
 		
-		int oppositeNum = MAX - i;
+			int oppositeNum = MAX - i;
         		
-	        if(isPrime(i))
-	        	innerSum += i;
+	        	if(isPrime(i))
+	        		innerSum += i;
 	        	
-	        if(i != oppositeNum && isPrime(oppositeNum))
-	        	innerSum += oppositeNum;
-	    }
+	        	if(i != oppositeNum && isPrime(oppositeNum))
+	        		innerSum += oppositeNum;
+	    	}
             
-	    rblock b {
-        	sum += innerSum;
-	    }
+	    	sese b 
+		{
+        		sum += innerSum;
+	    	}
         }
 
         System.out.println("The sum of primes from 1 to " + MAX + " is " + sum + ".");
