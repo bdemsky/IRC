@@ -68,7 +68,23 @@ public class AllocSite extends Canonical {
     this.allocationDepth = allocationDepth;
     this.flatNew         = flatNew;
     this.disjointId      = disjointId;
-    this.isFlagged       = disjointId != null;
+
+    // mark this allocation site as being flagged
+    // for the analysis if
+    // 1) we have a non-null disjointID (a named flagged site) 
+    // OR
+    // 2) the type is a class with Bamboo-parameter flags 
+    this.isFlagged = false;
+
+    if( disjointId != null ) {
+      this.isFlagged = true;
+
+    } else if( flatNew.getType().isClass() &&
+               flatNew.getType().getClassDesc().hasFlags()
+               ) {
+      this.isFlagged = true;
+    }
+
 
     ithOldest = new Vector<Integer>( allocationDepth );
     id        = generateUniqueAllocSiteID();

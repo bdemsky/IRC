@@ -1,25 +1,12 @@
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -recover -justanalyze -ownership -ownaliasfiletab aliases.txt -enable-assertions #-ownwritedots final #-flatirtasks
-#BSFLAGS= -recover -justanalyze -ownership -ownaliasfile aliases.txt -enable-assertions #-ownwritedots final #-flatirtasks
-AD1= -ownallocdepth 1
-AD3= -ownallocdepth 3
-AD5= -ownallocdepth 5
-AD9= -ownallocdepth 9
-
-all: ad1
+BSFLAGS= -recover -justanalyze -ownership -ownallocdepth 1 -enable-assertions #-ownwritedots final #-flatirtasks
 
 
-ad1:
-	$(BUILDSCRIPT) $(BSFLAGS) $(AD1) *.java
+tabbed:
+	$(BUILDSCRIPT) $(BSFLAGS) -ownaliasfiletab aliases.txt *.java
 
-ad3:
-	$(BUILDSCRIPT) $(BSFLAGS) $(AD3) *.java
-
-ad5:
-	$(BUILDSCRIPT) $(BSFLAGS) $(AD5) *.java
-
-ad9:
-	$(BUILDSCRIPT) $(BSFLAGS) $(AD9) *.java
+normal:
+	$(BUILDSCRIPT) $(BSFLAGS) -ownaliasfile aliases.txt *.java
 
 
 #view: PNGs
