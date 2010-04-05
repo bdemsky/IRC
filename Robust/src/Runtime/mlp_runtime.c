@@ -239,11 +239,11 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
   //at this point, have table
   Hashtable* table=(Hashtable*)q->tail;
   BinItem * val;
-  int key=generateKey((unsigned int)r->dynID);
+  int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
-    val=(BinItem*)LOCKXCHG((unsigned int*)&(bin->head), (unsigned int)val);//note...talk to me about optimizations here. 
+    val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(bin->head), (unsigned INTPTR)val);//note...talk to me about optimizations here. 
   } while(val==(BinItem*)0x1);
   //at this point have locked bin
   if (val==NULL) {
@@ -433,7 +433,7 @@ ADDVECTOR(MemoryQueue *Q, REntry *r) {
   r->vector=V;
   if (BARRIER() && V->item.status==READY) {
     void* flag=NULL;
-    flag=(void*)LOCKXCHG((unsigned int*)&(V->array[index]), (unsigned int)flag); 
+    flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag); 
     if (flag!=NULL) {
       if (isParent(r)) { //parent's retire immediately
         atomic_dec(&V->item.total);
@@ -466,7 +466,7 @@ ADDSCC(MemoryQueue *Q, REntry *r) {
       Q->head=(MemoryQueueItem*)S;
     }
     void* flag=NULL;
-    flag=(void*)LOCKXCHG((unsigned int*)&(S->val), (unsigned int)flag);
+    flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag);
     if (flag!=NULL) {
       return READY;
     } else {
@@ -507,7 +507,7 @@ RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
 }
 
 RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
-  int key=generateKey((unsigned int)r->dynID);
+  int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
   if(isFineRead(r)) {
     atomic_dec(&b->total);
   }
@@ -515,16 +515,15 @@ RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
       // CHECK FIRST IF next is nonnull to guarantee that b.total cannot change
     BinItem * val;
     do {  
-      val=(BinItem*)1;
-      val=(BinItem*)LOCKXCHG((unsigned int*)&(T->array[key]->head), (unsigned int)val);
-    } while(val==(BinItem*)1);
+      val=(BinItem*)0x1;
+      val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(T->array[key]->head), (unsigned INTPTR)val);
+    } while(val==(BinItem*)0x1);
     // at this point have locked bin
     BinItem *ptr=val;
     int haveread=FALSE;
-
-    int i;
+     int i;
     while (ptr!=NULL) {
-      if (isReadBinItem(ptr)) {
+       if (isReadBinItem(ptr)) {
 	ReadBinItem* rptr=(ReadBinItem*)ptr;
         if (rptr->item.status==NOTREADY) {
           for (i=0;i<rptr->index;i++) {	    
@@ -611,7 +610,7 @@ RESOLVECHAIN(MemoryQueue *Q) {
         break;
     }
     MemoryQueueItem* nextitem=head->next;
-    CAS32((unsigned int*)&(Q->head), (unsigned int)head, (unsigned int)nextitem);
+    CAS((unsigned INTPTR*)&(Q->head), (unsigned INTPTR)head, (unsigned INTPTR)nextitem);
     //oldvalue not needed...  if we fail we just repeat
   }
 }
@@ -624,7 +623,7 @@ RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {
     BinItem* val;
     do {
       val=(BinItem*)1;
-      val=(BinItem*)LOCKXCHG((unsigned int*)&(bin->head), (unsigned int)val);
+      val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(bin->head), (unsigned INTPTR)val);
     } while (val==(BinItem*)1);
     //at this point have locked bin    
     int haveread=FALSE; 
@@ -674,7 +673,7 @@ RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
     //enqueue everything
     for (i=0;i<NUMITEMS;i++) {
       REntry* val=NULL;
-      val=(REntry*)LOCKXCHG((unsigned int*)&(tmp->array[i]), (unsigned int)val); 
+      val=(REntry*)LOCKXCHG((unsigned INTPTR*)&(tmp->array[i]), (unsigned INTPTR)val); 
       if (val!=NULL) { 
 	resolveDependencies(val);
 	if (isParent(val)) {
@@ -693,7 +692,7 @@ RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
 RESOLVESCC(SCC *S) {
   //precondition: SCC's state is READY
   void* flag=NULL;
-  flag=(void*)LOCKXCHG((unsigned int*)&(S->val), (unsigned int)flag); 
+  flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag); 
   if (flag!=NULL) {
     resolveDependencies(flag);
   }
@@ -710,3 +709,4 @@ resolveDependencies(REntry* rentry){
      psem_give(&(rentry->parentStallSem));
   }
 }
+

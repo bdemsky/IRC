@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define __xg(x) ((volatile long *)(x))
+#define __xg(x) ((volatile INTPTR *)(x))
 
 #define CFENCE   asm volatile("":::"memory");
 
@@ -35,8 +35,19 @@ static inline int atomic_sub_and_test(int i, volatile int *v) {
   return c;
 }
 
+#ifdef BIT64
+static inline INTPTR LOCKXCHG(volatile INTPTR * ptr, INTPTR val){
+  INTPTR retval;
+  //note: xchgl always implies lock 
+  __asm__ __volatile__("xchgq %0,%1"
+		       : "=r"(retval)
+		       : "m"(*ptr), "0"(val)
+		       : "memory");
+  return retval;
+ 
+}
+#else
 static inline int LOCKXCHG(volatile int* ptr, int val){
-  
   int retval;
   //note: xchgl always implies lock 
   __asm__ __volatile__("xchgl %0,%1"
@@ -46,6 +57,7 @@ static inline int LOCKXCHG(volatile int* ptr, int val){
   return retval;
  
 }
+#endif
 
 /*
 static inline int write_trylock(volatile int *lock) {
@@ -58,16 +70,17 @@ static inline int write_trylock(volatile int *lock) {
 }
 */
 
-static inline int CAS(volatile int* mem, int cmp, int val){
-  int prev;
-  asm volatile ("lock; cmpxchgl %1, %2"             
-		: "=a" (prev)               
-		: "r" (val), "m" (*(mem)), "0"(cmp) 
-		: "memory", "cc");
+#ifdef BIT64
+static inline INTPTR CAS(volatile void *ptr, unsigned INTPTR old, unsigned INTPTR new){
+  unsigned INTPTR prev;
+  __asm__ __volatile__("lock; cmpxchgq %1,%2"
+		       : "=a"(prev)
+		       : "r"(new), "m"(*__xg(ptr)), "0"(old)
+		       : "memory");
   return prev;
 }
-
-static inline long CAS32(volatile void *ptr, unsigned long old, unsigned long new){
+#else
+static inline long CAS(volatile void *ptr, unsigned long old, unsigned long new){
   unsigned long prev;
   __asm__ __volatile__("lock; cmpxchgl %k1,%2"
 		       : "=a"(prev)
@@ -75,15 +88,7 @@ static inline long CAS32(volatile void *ptr, unsigned long old, unsigned long ne
 		       : "memory");
   return prev;
 }
-
-static inline long long CAS64(volatile void *ptr, unsigned long long old, unsigned long long new){
-  unsigned long long prev;
-  __asm__ __volatile__(LOCK_PREFIX "cmpxchgq %1,%2"
-		       : "=a"(prev)
-		       : "r"(new), "m"(*__xg(ptr)), "0"(old)
-		       : "memory");
-  return prev;
-}
+#endif
 
 static inline int BARRIER(){
   CFENCE;
