@@ -18,17 +18,17 @@ NAME[$num]=jHTTPp2
 BDIR[$num]=Jhttpp2/BR
 num=$[$num+1]
 
-#NAME[$num]=MapReduce
-#BDIR[$num]=MapReduce/Tag
-#num=$[$num+1]
+NAME[$num]=MapReduce1
+BDIR[$num]=MapReduce/Tag
+num=$[$num+1]
 
-#NAME[$num]=MultiGame
-#BDIR[$num]=MMG/Tag
-#num=$[$num+1]
+NAME[$num]=MultiGame
+BDIR[$num]=MMG/Tag
+num=$[$num+1]
 
-#NAME[$num]=PERT
-#BDIR[$num]=PERT/Tag
-#num=$[$num+1]
+NAME[$num]=PERT
+BDIR[$num]=PERT/Tag
+num=$[$num+1]
 
 NAME[$num]=FilterBank
 BDIR[$num]=Scheduling/FilterBank
@@ -54,24 +54,36 @@ NAME[$num]=KMeans-Bamboo
 BDIR[$num]=Scheduling/KMeans
 num=$[$num+1]
 
-#NAME[$num]=FluidAnimate
-#BDIR[$num]=Scheduling/PSFluidAnimate
-#num=$[$num+1]
+NAME[$num]=MapReduce2
+BDIR[$num]=Scheduling/MapReduce
+num=$[$num+1]
 
-NAME[$num]=Spider
+NAME[$num]=FluidAnimate
+BDIR[$num]=Scheduling/PSFluidAnimate
+num=$[$num+1]
+
+NAME[$num]=Spider1
 BDIR[$num]=Spider/BR
 num=$[$num+1]
 
-#NAME[$num]=TileSearch
-#BDIR[$num]=TileSearch/Tag
-#num=$[$num+1]
+NAME[$num]=Spider2
+BDIR[$num]=Spider/BRTag
+num=$[$num+1]
+
+NAME[$num]=TileSearch
+BDIR[$num]=TileSearch/Tag
+num=$[$num+1]
 
 NAME[$num]=TicTacToe
 BDIR[$num]=TTTTag
 num=$[$num+1]
 
-NAME[$num]=WebServer
+NAME[$num]=WebServer1
 BDIR[$num]=WebServer
+num=$[$num+1]
+
+NAME[$num]=WebServer2
+BDIR[$num]=WebServerTag
 num=$[$num+1]
 
 NAME[$num]=Tracking

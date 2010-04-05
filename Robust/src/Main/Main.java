@@ -221,12 +221,19 @@ public class Main {
         state.DISJOINTRELEASEMODE = true;        
 
       } else if( option.equals( "-disjoint-dvisit-stack" ) ) {
-        state.DISJOINTDVISITSTACK = true;      
-        state.DISJOINTDVISITPQUE  = false;
+        state.DISJOINTDVISITSTACK         = true;      
+        state.DISJOINTDVISITPQUE          = false;
+        state.DISJOINTDVISITSTACKEESONTOP = false;
 
       } else if( option.equals( "-disjoint-dvisit-pqueue" ) ) {
-        state.DISJOINTDVISITPQUE  = true;
-        state.DISJOINTDVISITSTACK = false;      
+        state.DISJOINTDVISITPQUE          = true;
+        state.DISJOINTDVISITSTACK         = false;
+        state.DISJOINTDVISITSTACKEESONTOP = false;
+
+      } else if( option.equals( "-disjoint-dvisit-stack-callees-on-top" ) ) {
+        state.DISJOINTDVISITSTACKEESONTOP = true;
+        state.DISJOINTDVISITPQUE          = false;
+        state.DISJOINTDVISITSTACK         = false;      
       }
       
 

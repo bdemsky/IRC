@@ -1,0 +1,76 @@
+\documentclass{amsart}[9pt]
+\usepackage{color}
+\begin{document}
+
+
+\section{Current Sharing}
+
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+Benchmark     & Ownership & Disjoint & Disjoint & Disjoint Stack \\
+              & Sharing   & Stack    & Queue    & Callees on top \\
+\hline
+Bank          & 0         & 0                 & 0             &         \\
+Chat          & 3         & 0                 & 3             &         \\
+WebPortal     & 0         & 0                 & 0             &         \\
+jHTTPp2       & 0         & 0                 & 0             &         \\
+MapReduce1    & 2         & \color{red}{1}    & \color{red}{1}&         \\
+MultiGame     & 10        & 10                & 10            &         \\
+PERT          & 0         & 0                 & 0             &         \\
+FilterBank    & 0         & 0                 & 0             &         \\
+Fractal       & 1         & 1                 & 1             &         \\
+MolDyn        & 2         & 2                 & 2             &         \\
+MonteCarlo    & 0         & 0                 & 0             &         \\
+Series        & 0         & 0                 & 0             &         \\
+KMeans-Bamboo & 2         & 2                 & 2             &         \\
+MapReduce2    & 3         & \color{red}{0}    & \color{red}{0}&         \\
+FluidAnimate  & 2         & \color{red}{error}& 2             &         \\
+Spider1       & 0         & 0                 & 0             &         \\
+Spider2       & 0         & \color{red}{error}& 0             &         \\
+TileSearch    & 0         & 0                 & 0             &         \\
+TicTacToe     & 0         & \color{red}{error}& 0             &         \\
+WebServer1    & 0         & 0                 & 0             &         \\
+WebServer2    & 0         & \color{red}{error}& 0             &         \\
+Tracking      & 0         & 0                 & 0             &         \\
+\hline
+\end{tabular}
+
+
+
+\section{Current Analysis Runtimes}
+These times were measured on DC-11.
+
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+Benchmark     & Ownership & Disjoint & Disjoint & Disjoint Stack \\
+              & Sharing   & Stack    & Queue    & Callees on top \\
+\hline
+Bank          &        &      &      &        \\
+Chat          &        &      &      &        \\
+WebPortal     &        &      &      &        \\
+jHTTPp2       &        &      &      &        \\
+MapReduce1    &        &      &      &        \\
+MultiGame     &        &      &      &        \\
+PERT          &        &      &      &        \\
+FilterBank    &        &      &      &        \\
+Fractal       &        &      &      &        \\
+MolDyn        &        &      &      &        \\
+MonteCarlo    &        &      &      &        \\
+Series        &        &      &      &        \\
+KMeans-Bamboo &        &      &      &        \\
+MapReduce2    &        &      &      &        \\
+FluidAnimate  &        &      &      &        \\
+Spider1       &        &      &      &        \\
+Spider2       &        &      &      &        \\
+TileSearch    &        &      &      &        \\
+TicTacToe     &        &      &      &        \\
+WebServer1    &        &      &      &        \\
+WebServer2    &        &      &      &        \\
+Tracking      &        &      &      &        \\
+\hline
+\end{tabular}
+
+
+
+
+\end{document}

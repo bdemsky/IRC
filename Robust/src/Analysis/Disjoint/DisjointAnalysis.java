@@ -380,6 +380,13 @@ public class DisjointAnalysis {
   protected Hashtable<Descriptor, Integer> 
     mapDescriptorToPriority;
 
+  // when analyzing a method and scheduling more:
+  // remember set of callee's enqueued for analysis
+  // so they can be put on top of the callers in
+  // the stack-visit mode
+  protected Set<Descriptor>
+    calleesToEnqueue;
+
 
   // maps a descriptor to its current partial result
   // from the intraprocedural fixed-point analysis--
@@ -484,7 +491,9 @@ public class DisjointAnalysis {
     mapTypeToArrayField = 
       new Hashtable <TypeDescriptor, FieldDescriptor>();
 
-    if( state.DISJOINTDVISITSTACK ) {
+    if( state.DISJOINTDVISITSTACK ||
+        state.DISJOINTDVISITSTACKEESONTOP 
+        ) {
       descriptorsToVisitStack =
         new Stack<DescriptorQWrapper>();
     }
@@ -500,6 +509,9 @@ public class DisjointAnalysis {
     mapDescriptorToPriority =
       new Hashtable<Descriptor, Integer>();
     
+    calleesToEnqueue = 
+      new HashSet<Descriptor>();    
+
     mapDescriptorToAllocSiteSet =
     	new Hashtable<Descriptor,    HashSet<AllocSite> >();
     
@@ -549,8 +561,13 @@ public class DisjointAnalysis {
     this.snapNodeCounter         = 0; // count nodes from 0
     this.pm=new PointerMethod();
 
-    assert state.DISJOINTDVISITSTACK || state.DISJOINTDVISITPQUE;
+    assert
+      state.DISJOINTDVISITSTACK ||
+      state.DISJOINTDVISITPQUE  ||
+      state.DISJOINTDVISITSTACKEESONTOP;
     assert !(state.DISJOINTDVISITSTACK && state.DISJOINTDVISITPQUE);
+    assert !(state.DISJOINTDVISITSTACK && state.DISJOINTDVISITSTACKEESONTOP);
+    assert !(state.DISJOINTDVISITPQUE  && state.DISJOINTDVISITSTACKEESONTOP);
 	    
     // set some static configuration for ReachGraphs
     ReachGraph.allocationDepth = allocationDepth;
@@ -596,7 +613,9 @@ public class DisjointAnalysis {
 
 
   protected boolean moreDescriptorsToVisit() {
-    if( state.DISJOINTDVISITSTACK ) {
+    if( state.DISJOINTDVISITSTACK ||
+        state.DISJOINTDVISITSTACKEESONTOP
+        ) {
       return !descriptorsToVisitStack.isEmpty();
 
     } else if( state.DISJOINTDVISITPQUE ) {
@@ -660,7 +679,9 @@ public class DisjointAnalysis {
 
       mapDescriptorToPriority.put( d, new Integer( p ) );
 
-      if( state.DISJOINTDVISITSTACK ) {
+      if( state.DISJOINTDVISITSTACK ||
+          state.DISJOINTDVISITSTACKEESONTOP
+          ) {
         descriptorsToVisitStack.add( new DescriptorQWrapper( p, d ) );
 
       } else if( state.DISJOINTDVISITPQUE ) {
@@ -675,7 +696,9 @@ public class DisjointAnalysis {
     while( moreDescriptorsToVisit() ) {
       Descriptor d = null;
 
-      if( state.DISJOINTDVISITSTACK ) {
+      if( state.DISJOINTDVISITSTACK ||
+          state.DISJOINTDVISITSTACKEESONTOP
+          ) {
         d = descriptorsToVisitStack.pop().getDescriptor();
 
       } else if( state.DISJOINTDVISITPQUE ) {
@@ -695,6 +718,10 @@ public class DisjointAnalysis {
 
       System.out.println( "Analyzing " + d );
 
+      if( state.DISJOINTDVISITSTACKEESONTOP ) {
+        assert calleesToEnqueue.isEmpty();
+      }
+
       ReachGraph rg     = analyzeMethod( d );
       ReachGraph rgPrev = getPartial( d );
       
@@ -708,7 +735,25 @@ public class DisjointAnalysis {
 	  Descriptor dNext = depsItr.next();
           enqueue( dNext );
 	}
-      }      
+
+        if( state.DISJOINTDVISITSTACKEESONTOP ) {
+          depsItr = calleesToEnqueue.iterator();
+          while( depsItr.hasNext() ) {
+            Descriptor dNext = depsItr.next();
+            enqueue( dNext );
+          }
+          calleesToEnqueue.clear();
+        }
+
+      } else {
+        // we got the result result as the last visit
+        // to this method, but we might need to clean
+        // something up
+        if( state.DISJOINTDVISITSTACKEESONTOP ) {
+          calleesToEnqueue.clear();
+        }
+      }
+     
     }
   }
 
@@ -1054,10 +1099,14 @@ public class DisjointAnalysis {
         // if heap at call site changed, update the contribution,
         // and reschedule the callee for analysis
         addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
-        enqueue( mdCallee );
+
+        if( state.DISJOINTDVISITSTACKEESONTOP ) {
+          calleesToEnqueue.add( mdCallee );
+        } else {
+          enqueue( mdCallee );
+        }
+
       }
-
-
 
 
       // the transformation for a call site should update the
@@ -1097,7 +1146,12 @@ public class DisjointAnalysis {
         if( rgEffect == null ) {
           // if this method has never been analyzed just schedule it 
           // for analysis and skip over this call site for now
-          enqueue( mdPossible );
+          if( state.DISJOINTDVISITSTACKEESONTOP ) {
+            calleesToEnqueue.add( mdPossible );
+          } else {
+            enqueue( mdPossible );
+          }
+
         } else {
           rgCopy.resolveMethodCall( fc, 
                                     fmPossible, 
@@ -1426,7 +1480,9 @@ public class DisjointAnalysis {
     if( !descriptorsToVisitSet.contains( d ) ) {
       Integer priority = mapDescriptorToPriority.get( d );
 
-      if( state.DISJOINTDVISITSTACK ) {
+      if( state.DISJOINTDVISITSTACK ||
+          state.DISJOINTDVISITSTACKEESONTOP
+          ) {
         descriptorsToVisitStack.add( new DescriptorQWrapper( priority, 
                                                              d ) 
                                      );

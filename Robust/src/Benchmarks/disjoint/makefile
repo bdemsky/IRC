@@ -34,6 +34,7 @@ JAVAFLAGS= -mainclass test
 
 VISITMODE= -disjoint-dvisit-stack
 #VISITMODE= -disjoint-dvisit-pqueue
+#VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
 DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
@@ -51,6 +52,9 @@ bamboo-s:
 
 bamboo-q:
 	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE) -disjoint-dvisit-pqueue $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
+
+bamboo-sees:
+	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE) -disjoint-dvisit-stack-callees-on-top $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java
 
 
 bamboo-release:
