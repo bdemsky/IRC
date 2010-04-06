@@ -32,9 +32,9 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 BAMBOOFLAGS= -recover
 JAVAFLAGS= -mainclass test
 
-VISITMODE= -disjoint-dvisit-stack
+#VISITMODE= -disjoint-dvisit-stack
 #VISITMODE= -disjoint-dvisit-pqueue
-#VISITMODE= -disjoint-dvisit-stack-callees-on-top
+VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
 DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
