@@ -240,7 +240,7 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
   //at this point, have table
   Hashtable* table=(Hashtable*)q->tail;
   r->hashtable=table;
-  if(*(r->pointer)==0 || (*(r->pointer)!=0 && table->unresolvedQueue!=NULL)){
+  if(r->pointer!=0 && (*(r->pointer)==0 || (*(r->pointer)!=0 && table->unresolvedQueue!=NULL))){
      struct Queue* val;
     // grab lock on the queue    
     do {  
@@ -272,8 +272,9 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
     }   
     return NOTREADY;
   }
-
-  r->dynID=(void*)*(r->pointer); // interim fix.
+  if(r->pointer!=0){
+    r->dynID=(void*)*(r->pointer); // interim fix.
+  }
   BinItem * val;
   int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
   do {  

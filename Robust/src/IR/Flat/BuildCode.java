@@ -3421,6 +3421,12 @@ public class BuildCode {
 									+ ", seseToIssue);");
 						} else {
 							TempDescriptor td = waitingElement.getTempDesc();
+								output
+										.println("     rentry=mlpCreateFineREntry("
+												+ waitingElement.getStatus()
+												+ ", seseToIssue,  seseToIssue->"
+												+ waitingElement.getDynID()
+												+ ");");
 							if (td != null) {
 								VariableSourceToken vst = fsen
 										.getStaticInVarSrc(td);
@@ -3428,12 +3434,6 @@ public class BuildCode {
 										+ vst.getSESE().getPrettyIdentifier()
 										+ vst.getSESE().getIdentifier() + "_"
 										+ vst.getAge();
-								output
-										.println("     rentry=mlpCreateFineREntry("
-												+ waitingElement.getStatus()
-												+ ", seseToIssue,  seseToIssue->"
-												+ waitingElement.getDynID()
-												+ ");");
 								output.println("     if(seseToIssue->"
 										+ waitingElement.getDynID()
 										+ " == NULL) {");
