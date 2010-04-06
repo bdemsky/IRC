@@ -18,17 +18,17 @@ NAME[$num]=jHTTPp2
 BDIR[$num]=Jhttpp2/BR
 num=$[$num+1]
 
-NAME[$num]=MapReduce
-BDIR[$num]=MapReduce/Tag
-num=$[$num+1]
+#NAME[$num]=MapReduce
+#BDIR[$num]=MapReduce/Tag
+#num=$[$num+1]
 
 NAME[$num]=MultiGame
 BDIR[$num]=MMG/Tag
 num=$[$num+1]
 
-NAME[$num]=PERT
-BDIR[$num]=PERT/Tag
-num=$[$num+1]
+#NAME[$num]=PERT
+#BDIR[$num]=PERT/Tag
+#num=$[$num+1]
 
 NAME[$num]=FilterBank
 BDIR[$num]=Scheduling/FilterBank
@@ -62,13 +62,13 @@ NAME[$num]=Spider
 BDIR[$num]=Spider/BR
 num=$[$num+1]
 
-NAME[$num]=TileSearch
-BDIR[$num]=TileSearch/Tag
-num=$[$num+1]
+#NAME[$num]=TileSearch
+#BDIR[$num]=TileSearch/Tag
+#num=$[$num+1]
 
-NAME[$num]=TicTacToe
-BDIR[$num]=TTTTag
-num=$[$num+1]
+#NAME[$num]=TicTacToe
+#BDIR[$num]=TTTTag
+#num=$[$num+1]
 
 NAME[$num]=WebServer
 BDIR[$num]=WebServer
@@ -77,7 +77,6 @@ num=$[$num+1]
 NAME[$num]=Tracking
 BDIR[$num]=Scheduling/Tracking
 num=$[$num+1]
-
 
 
 
@@ -98,12 +97,10 @@ echo '\hline'                                              >> $TABFILE
 
 i="0"
 while [ $i -lt $num ]; do
-  echo ${NAME[$i]}
-
   cd $BENCHTOP/${BDIR[$i]}
   # unfortunately this echo adds an unwanted newline
   echo ${NAME[$i]} >> $BENCHSUM/$TABFILE 
-  make -f $BENCHSUM/makefile
+  make -f $BENCHSUM/makefile tabbed
   cat aliases.txt >> $BENCHSUM/$TABFILE
   make -f $BENCHSUM/makefile clean
   i=$[$i+1]

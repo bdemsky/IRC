@@ -9,7 +9,7 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #################################################
 #DEBUGFLAGS= -disjoint-debug-callsite setClusters innerKMeansSetting 20
 #DEBUGFLAGS= -disjoint-debug-callsite ensureCapacity addElement 100
-
+#DEBUGFLAGS= -disjoint-debug-callsite setReduceFinish reduceOutput 100
 
 #################################################
 ##
@@ -25,7 +25,8 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeatureTask 5 10 true
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeature 5 1 true
 #SNAPFLAGS= -disjoint-debug-snap-method t3 1 1 true
-
+#SNAPFLAGS= -disjoint-debug-snap-method reduceOutput 5 50 true
+#SNAPFLAGS= -disjoint-debug-snap-method setReduceFinish 5 50 true
 
 
 

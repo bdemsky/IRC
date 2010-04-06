@@ -3,7 +3,119 @@
 \begin{document}
 
 
+
+
+\section{Current Sharing}
+
+
+% \color{red}{}
+
+
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+Benchmark     & Ownership & Disjoint & Disjoint & Disjoint Stack \\
+              & Sharing   & Stack    & Queue    & Callees on top \\
+\hline
+Bank          & 0         & 0  & 0  &  0          \\
+Chat          & 3         & 3  & 3  &  3          \\
+WebPortal     & 0         & 0  & 0  &  0          \\
+jHTTPp2       & 0         & 0  & 0  &  0          \\
+MapReduce1    & 2         & \color{red}{1}  & \color{red}{1}  &  \color{red}{1}          \\
+MultiGame     & 10        & 10 & 10 &  10         \\
+PERT          & 0         & 0  & 0  &  0          \\
+FilterBank    & 0         & 0  & 0  &  0          \\
+Fractal       & 1         & 1  & 1  &  1          \\
+MolDyn        & 2         & 2  & 2  &  2          \\
+MonteCarlo    & 0         & 0  & 0  &  0          \\
+Series        & 0         & 0  & 0  &  0          \\
+KMeans-Bamboo & 2         & 2  & 2  &  2          \\
+MapReduce2    & 3         & \color{red}{0}  & \color{red}{0}  &  \color{red}{0}          \\
+FluidAnimate  & 2         & 2  & 2  &  2          \\
+Spider1       & 0         & 0  & 0  &  0          \\
+Spider2       & 0         & 0  & 0  &  0          \\
+TileSearch    & 0         & 0  & 0  &  0          \\
+TicTacToe     & 0         & 0  & 0  &  0          \\
+WebServer1    & 0         & 0  & 0  &  0          \\
+WebServer2    & 0         & 0  & 0  &  0          \\
+Tracking      & 0         & 0  & 0  &  0          \\
+\hline
+\end{tabular}
+
+
+\newpage
+
+\section{Current Analysis Runtimes}
+These times were measured on DC-11.
+
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+Benchmark     & Ownership & Disjoint & Disjoint & Disjoint Stack \\
+              & Sharing   & Stack    & Queue    & Callees on top \\
+\hline
+Bank          &  1.71   & 4.66     & 4.70     &  5.02           \\
+Chat          &  1.66   & 3.71     & 3.66     &  3.68           \\
+WebPortal     &  1.17   & 2.95     & 3.15     &  3.17           \\
+jHTTPp2       &  1.99   & 3.95     & 4.44     &  3.96           \\
+MapReduce1    &  4.19   & 38.28    & 37.95    &  40.36          \\
+MultiGame     &  23.15  & 225.76   & 227.62   &  226.91         \\
+PERT          &  0.76   & 0.95     & 0.88     &  0.87           \\
+FilterBank    &  0.42   & 0.15     & 0.18     &  0.15           \\
+Fractal       &  0.42   & 0.11     & 0.11     &  0.11           \\
+MolDyn        &  2.97   & 2.04     & 2.19     &  2.87           \\
+MonteCarlo    &  0.82   & 1.73     & 1.72     &  1.72           \\
+Series        &  0.62   & 0.35     & 0.35     &  0.33           \\
+KMeans-Bamboo &  1.12   & 5.92     & 6.02     &  6.05           \\
+MapReduce2    &  10.43  & 54.28    & 52.59    &  52.83          \\
+FluidAnimate  &  122.39 & 12479.20 & 11416.19 &  12298.70       \\
+Spider1       &  1.63   & 8.28     & 8.30     &  6.70           \\
+Spider2       &  2.18   & 9.24     & 9.15     &  12.10          \\
+TileSearch    &  2.66   & 5.76     & 5.26     &  7.13           \\
+TicTacToe     &  1.05   & 1.76     & 1.84     &  2.08           \\
+WebServer1    &  2.04   & 14.69    & 14.62    &  13.91          \\
+WebServer2    &  2.48   & 14.15    & 14.02    &  14.46          \\
+Tracking      &  32.86  & 16.29    & 15.79    &  17.78          \\
+\hline
+\end{tabular}
+
+
+\newpage
+
 \section{Raw Results}
+
+
+\subsection{Ownership}
+
+\begin{tabular}{|l|l|r|r|r|}
+\hline
+Benchmark & Sharing & Time (s) & Lines & Methods \\
+\hline
+Bank          & 0  & 1.71   & 2059 & 67 \\
+Chat          & 3  & 1.66   & 1744 & 71 \\
+WebPortal     & 0  & 1.17   & 2213 & 93 \\
+jHTTPp2       & 0  & 1.99   & 2679 & 122 \\
+MapReduce1    & 2  & 4.19   & 2370 & 114 \\
+MultiGame     & 10 & 23.15  & 3099 & 46 \\
+PERT          & 0  & 0.76   & 2184 & 61 \\
+FilterBank    & 0  & 0.42   & 1555 & 9 \\
+Fractal       & 1  & 0.42   & 1568 & 8 \\
+MolDyn        & 2  & 2.97   & 2136 & 31 \\
+MonteCarlo    & 0  & 0.82   & 3638 & 49 \\
+Series        & 0  & 0.62   & 1639 & 10 \\
+KMeans-Bamboo & 2  & 1.12   & 2893 & 45 \\
+MapReduce2    & 3  & 10.43  & 2314 & 95 \\
+FluidAnimate  & 2  & 122.39 & 3821 & 82 \\
+Spider1       & 0  & 1.63   & 1827 & 80 \\
+Spider2       & 0  & 2.18   & 1831 & 83 \\
+TileSearch    & 0  & 2.66   & 2284 & 34 \\
+TicTacToe     & 0  & 1.05   & 1766 & 68 \\
+WebServer1    & 0  & 2.04   & 2090 & 97 \\
+WebServer2    & 0  & 2.48   & 2089 & 100 \\
+Tracking      & 0  & 32.86  & 5218 & 158 \\
+\hline
+\end{tabular}
+
+
+
 
 \subsection{Stack}
 
@@ -99,84 +211,6 @@ TicTacToe     & 0  & 2.08     & 1766 & 68 \\
 WebServer1    & 0  & 13.91    & 2090 & 97 \\
 WebServer2    & 0  & 14.46    & 2089 & 100 \\
 Tracking      & 0  & 17.78    & 5218 & 158 \\
-\hline
-\end{tabular}
-
-
-
-
-
-
-
-
-\section{Current Sharing}
-
-
-% \color{red}{}
-
-
-\begin{tabular}{|l|c|c|c|c|}
-\hline
-Benchmark     & Ownership & Disjoint & Disjoint & Disjoint Stack \\
-              & Sharing   & Stack    & Queue    & Callees on top \\
-\hline
-Bank          & 0         & 0  & 0  &  0          \\
-Chat          & 3         & 3  & 3  &  3          \\
-WebPortal     & 0         & 0  & 0  &  0          \\
-jHTTPp2       & 0         & 0  & 0  &  0          \\
-MapReduce1    & 2         & \color{red}{1}  & \color{red}{1}  &  \color{red}{1}          \\
-MultiGame     & 10        & 10 & 10 &  10         \\
-PERT          & 0         & 0  & 0  &  0          \\
-FilterBank    & 0         & 0  & 0  &  0          \\
-Fractal       & 1         & 1  & 1  &  1          \\
-MolDyn        & 2         & 2  & 2  &  2          \\
-MonteCarlo    & 0         & 0  & 0  &  0          \\
-Series        & 0         & 0  & 0  &  0          \\
-KMeans-Bamboo & 2         & 2  & 2  &  2          \\
-MapReduce2    & 3         & \color{red}{0}  & \color{red}{0}  &  \color{red}{0}          \\
-FluidAnimate  & 2         & 2  & 2  &  2          \\
-Spider1       & 0         & 0  & 0  &  0          \\
-Spider2       & 0         & 0  & 0  &  0          \\
-TileSearch    & 0         & 0  & 0  &  0          \\
-TicTacToe     & 0         & 0  & 0  &  0          \\
-WebServer1    & 0         & 0  & 0  &  0          \\
-WebServer2    & 0         & 0  & 0  &  0          \\
-Tracking      & 0         & 0  & 0  &  0          \\
-\hline
-\end{tabular}
-
-
-
-\section{Current Analysis Runtimes}
-These times were measured on DC-11.
-
-\begin{tabular}{|l|c|c|c|c|}
-\hline
-Benchmark     & Ownership & Disjoint & Disjoint & Disjoint Stack \\
-              & Sharing   & Stack    & Queue    & Callees on top \\
-\hline
-Bank          &  & 4.66     & 4.70     &  5.02           \\
-Chat          &  & 3.71     & 3.66     &  3.68           \\
-WebPortal     &  & 2.95     & 3.15     &  3.17           \\
-jHTTPp2       &  & 3.95     & 4.44     &  3.96           \\
-MapReduce1    &  & 38.28    & 37.95    &  40.36          \\
-MultiGame     &  & 225.76   & 227.62   &  226.91         \\
-PERT          &  & 0.95     & 0.88     &  0.87           \\
-FilterBank    &  & 0.15     & 0.18     &  0.15           \\
-Fractal       &  & 0.11     & 0.11     &  0.11           \\
-MolDyn        &  & 2.04     & 2.19     &  2.87           \\
-MonteCarlo    &  & 1.73     & 1.72     &  1.72           \\
-Series        &  & 0.35     & 0.35     &  0.33           \\
-KMeans-Bamboo &  & 5.92     & 6.02     &  6.05           \\
-MapReduce2    &  & 54.28    & 52.59    &  52.83          \\
-FluidAnimate  &  & 12479.20 & 11416.19 &  12298.70       \\
-Spider1       &  & 8.28     & 8.30     &  6.70           \\
-Spider2       &  & 9.24     & 9.15     &  12.10          \\
-TileSearch    &  & 5.76     & 5.26     &  7.13           \\
-TicTacToe     &  & 1.76     & 1.84     &  2.08           \\
-WebServer1    &  & 14.69    & 14.62    &  13.91          \\
-WebServer2    &  & 14.15    & 14.02    &  14.46          \\
-Tracking      &  & 16.29    & 15.79    &  17.78          \\
 \hline
 \end{tabular}
 
