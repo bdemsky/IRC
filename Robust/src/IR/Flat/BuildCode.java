@@ -3398,49 +3398,73 @@ public class BuildCode {
   			graph = mlpa.getConflictGraphResults().get(parent);
   		}
   	}
-  	if (graph != null && graph.hasConflictEdge()) {
-  		HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap().get(
-  				graph);
-  		output.println();
-  		output.println("     //add memory queue element");
-  		Set<WaitingElement> waitingQueueSet = graph
-  				.getWaitingElementSetBySESEID(fsen.getIdentifier(),
-  						seseLockSet);
-  		if (waitingQueueSet.size() > 0) {
-  			output.println("     {");
-  			output.println("     REntry* rentry=NULL;");
-  			output.println("     seseToIssue->common.rentryIdx=0;");
-  			for (Iterator iterator = waitingQueueSet.iterator(); iterator
-  					.hasNext();) {
-  				WaitingElement waitingElement = (WaitingElement) iterator
-  						.next();
-  				
-  				if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-  					output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseToIssue);");
-  				}else{
-  					TempDescriptor td=waitingElement.getTempDesc();
-  					VariableSourceToken vst=fsen.getStaticInVarSrc(td);
-  					String srcId="SESE_"+vst.getSESE().getPrettyIdentifier()+vst.getSESE().getIdentifier()+"_"+vst.getAge();
-  					output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseToIssue,  seseToIssue->"+ waitingElement.getDynID() + ");");
-  					output.println("     if(seseToIssue->"+ waitingElement.getDynID()+" == NULL) {");
-  					output.println("        rentry->pointer=(void*)&seseToIssue->"+srcId+"->"+waitingElement.getDynID()+";");
-  					output.println("        seseToIssue->common.unresolvedRentryArray[seseToIssue->common.unresolvedRentryIdx++]=rentry;");
-  					output.println("     }");
-  				}		
-  				output.println("     rentry->queue=parentCommon->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-  				output.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-  				output
-  						.println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
-  								+ waitingElement.getQueueID()
-  								+ "],rentry)==NOTREADY){");
-  				output.println("        ++(localCount);");
-  				output.println("     } ");
-  				output.println();
-  			}
-  			output.println("     }");
-  		}
-  		output.println();
-  	}    
+			if (graph != null && graph.hasConflictEdge()) {
+				HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap()
+						.get(graph);
+				output.println();
+				output.println("     //add memory queue element");
+				Set<WaitingElement> waitingQueueSet = graph
+						.getWaitingElementSetBySESEID(fsen.getIdentifier(),
+								seseLockSet);
+				if (waitingQueueSet.size() > 0) {
+					output.println("     {");
+					output.println("     REntry* rentry=NULL;");
+					output.println("     seseToIssue->common.rentryIdx=0;");
+					for (Iterator iterator = waitingQueueSet.iterator(); iterator
+							.hasNext();) {
+						WaitingElement waitingElement = (WaitingElement) iterator
+								.next();
+
+						if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+							output.println("     rentry=mlpCreateREntry("
+									+ waitingElement.getStatus()
+									+ ", seseToIssue);");
+						} else {
+							TempDescriptor td = waitingElement.getTempDesc();
+							if (td != null) {
+								VariableSourceToken vst = fsen
+										.getStaticInVarSrc(td);
+								String srcId = "SESE_"
+										+ vst.getSESE().getPrettyIdentifier()
+										+ vst.getSESE().getIdentifier() + "_"
+										+ vst.getAge();
+								output
+										.println("     rentry=mlpCreateFineREntry("
+												+ waitingElement.getStatus()
+												+ ", seseToIssue,  seseToIssue->"
+												+ waitingElement.getDynID()
+												+ ");");
+								output.println("     if(seseToIssue->"
+										+ waitingElement.getDynID()
+										+ " == NULL) {");
+								output
+										.println("        rentry->pointer=(void*)&seseToIssue->"
+												+ srcId
+												+ "->"
+												+ waitingElement.getDynID()
+												+ ";");
+								output
+										.println("        seseToIssue->common.unresolvedRentryArray[seseToIssue->common.unresolvedRentryIdx++]=rentry;");
+								output.println("     }");
+							}
+						}
+						output
+								.println("     rentry->queue=parentCommon->memoryQueueArray["
+										+ waitingElement.getQueueID() + "];");
+						output
+								.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+						output
+								.println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
+										+ waitingElement.getQueueID()
+										+ "],rentry)==NOTREADY){");
+						output.println("        ++(localCount);");
+						output.println("     } ");
+						output.println();
+					}
+					output.println("     }");
+				}
+				output.println();
+			}
       
       ////////////////
 
