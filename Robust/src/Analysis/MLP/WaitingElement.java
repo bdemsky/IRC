@@ -3,11 +3,22 @@ package Analysis.MLP;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import IR.Flat.TempDescriptor;
+
 public class WaitingElement {
 
 	private int waitingID;
 	private int status;
 	private String dynID="";
+	private TempDescriptor tempDesc;
+	
+	public void setTempDesc(TempDescriptor tempDesc){
+		this.tempDesc=tempDesc;
+	}
+	
+	public TempDescriptor getTempDesc(){
+		return tempDesc;
+	}
 
 	public void setWaitingID(int waitingID) {
 		this.waitingID = waitingID;

@@ -58,6 +58,7 @@ typedef struct REntry_t{
   psemaphore parentStallSem;
   void* seseRec;
   void* dynID;
+  INTPTR* pointer;
 } REntry;
 
 typedef struct MemoryQueueItem_t {
@@ -82,6 +83,7 @@ typedef struct BinItem_t {
 typedef struct Hashtable_t {
   MemoryQueueItem item;
   struct BinElement_t* array[NUMBINS];
+  struct Queue*   unresolvedQueue;
 } Hashtable;
 
 typedef struct BinElement_t {
@@ -153,8 +155,10 @@ typedef struct SESEcommon_t {
 
   int numMemoryQueue;
   int rentryIdx;
+  int unresolvedRentryIdx;
   struct MemoryQueue_t** memoryQueueArray;
   struct REntry_t* rentryArray[NUMRENTRY];
+  struct REntry_t* unresolvedRentryArray[NUMRENTRY];
 
 } SESEcommon;
 

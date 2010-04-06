@@ -163,6 +163,7 @@ Hashtable* createHashtable(){
     newTable->array[i]->head=NULL;
     newTable->array[i]->tail=NULL;
   }
+  newTable->unresolvedQueue=NULL;
   return newTable;
 }
 
@@ -238,6 +239,41 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
 
   //at this point, have table
   Hashtable* table=(Hashtable*)q->tail;
+  r->hashtable=table;
+  if(*(r->pointer)==0 || (*(r->pointer)!=0 && table->unresolvedQueue!=NULL)){
+     struct Queue* val;
+    // grab lock on the queue    
+    do {  
+      val=(struct Queue*)0x1;       
+      val=(struct Queue*)LOCKXCHG((unsigned INTPTR*)&(table->unresolvedQueue), (unsigned INTPTR)val);
+    } while(val==(struct Queue*)0x1);  
+
+    if(val==NULL){
+      //first case
+      if(*(r->pointer)!=0){
+	// pointer is already resolved.
+	table->unresolvedQueue=val; //released lock;
+	return ADDTABLE(q,r);
+      }
+      table->unresolvedQueue=(struct Queue*)0x1;
+      struct Queue* queue=createQueue();
+      addNewItem(queue,r);
+      atomic_inc(&table->item.total); 
+      table->unresolvedQueue=queue; // expose new queue     
+    }else{
+      if(val==NULL){
+	// someone else has already cleared all queue stuff
+	table->unresolvedQueue=val; // released lock
+	return ADDTABLE(q,r);
+      }
+      addNewItemBack(val,r);
+      atomic_inc(&table->item.total);    
+      table->unresolvedQueue=val; // released lock
+    }   
+    return NOTREADY;
+  }
+
+  r->dynID=(void*)*(r->pointer); // interim fix.
   BinItem * val;
   int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
   do {  
@@ -247,17 +283,37 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
   } while(val==(BinItem*)0x1);
   //at this point have locked bin
   if (val==NULL) {
-    return EMPTYBINCASE(table, table->array[key], r);
+    return EMPTYBINCASE(table, table->array[key], r, TRUE);
   } else {
     if (isFineWrite(r)) {
-      return WRITEBINCASE(table, r, val, key);
+      return WRITEBINCASE(table, r, val, key, TRUE);
     } else if (isFineRead(r)) {
-      return READBINCASE(table, r, val, key);
+      return READBINCASE(table, r, val, key, TRUE);
     }
   }
 }
 
-int EMPTYBINCASE(Hashtable *T, BinElement* be, REntry *r) {
+int ADDTABLEITEM(Hashtable* table, REntry* r){
+  BinItem * val;
+  int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
+  do {  
+    val=(BinItem*)0x1;       
+    BinElement* bin=table->array[key];
+    val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(bin->head), (unsigned INTPTR)val);//note...talk to me about optimizations here. 
+  } while(val==(BinItem*)0x1);
+  //at this point have locked bin
+  if (val==NULL) {
+    return EMPTYBINCASE(table, table->array[key], r, FALSE);
+  } else {
+    if (isFineWrite(r)) {
+      return WRITEBINCASE(table, r, val, key, FALSE);
+    } else if (isFineRead(r)) {
+      return READBINCASE(table, r, val, key, FALSE);
+    }
+  }
+}
+
+int EMPTYBINCASE(Hashtable *T, BinElement* be, REntry *r, int inc) {
   int retval;
   BinItem* b;
   if (isFineWrite(r)) {
@@ -283,7 +339,9 @@ int EMPTYBINCASE(Hashtable *T, BinElement* be, REntry *r) {
     retval=NOTREADY;
   }
 
-  atomic_inc(&T->item.total);
+  if(inc){
+    atomic_inc(&T->item.total);
+  }
   r->hashtable=T;
   r->binitem=b;
   be->tail=b;
@@ -291,7 +349,7 @@ int EMPTYBINCASE(Hashtable *T, BinElement* be, REntry *r) {
   return retval;
 }
 
-int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key) {
+int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
 
@@ -313,7 +371,9 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key) {
   b->item.status=retval;
   //  b->item.status=NOTREADY;
   
-  atomic_inc(&T->item.total);
+  if(inc){
+    atomic_inc(&T->item.total);
+  }
 
   r->hashtable=T;
   r->binitem=(BinItem*)b;
@@ -324,7 +384,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key) {
   return retval;
 }
 
-READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key) {
+READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   BinItem * bintail=T->array[key]->tail;
   if (isReadBinItem(bintail)) {
     return TAILREADCASE(T, r, val, bintail, key);
@@ -334,7 +394,7 @@ READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key) {
   }
 }
 
-int TAILREADCASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key) {
+int TAILREADCASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, int inc) {
   ReadBinItem * readbintail=(ReadBinItem*)T->array[key]->tail;
   int status, retval;
   if (readbintail->item.status=READY) { 
@@ -363,13 +423,15 @@ int TAILREADCASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int ke
     r->binitem=(BinItem*)readbintail;
     //printf("grouping with %d\n",readbintail->index);
   }
-  atomic_inc(&T->item.total);
+  if(inc){
+    atomic_inc(&T->item.total);
+  }
   r->hashtable=T;
   T->array[key]->head=val;//released lock
   return retval;
 }
 
-TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key) {
+TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, int inc) {
   //  WriteBinItem* wb=createWriteBinItem();
   //wb->val=r;
   //wb->item.total=1;//safe because item could not have started
@@ -378,7 +440,9 @@ TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key) 
   rb->array[rb->index++]=r;
   rb->item.total=1;//safe because item could not have started
   rb->item.status=NOTREADY;
-  atomic_inc(&T->item.total);
+  if(inc){
+    atomic_inc(&T->item.total);
+  }
   r->hashtable=T;
   r->binitem=(BinItem*)rb;
   T->array[key]->tail->next=(BinItem*)rb;
@@ -701,12 +765,47 @@ RESOLVESCC(SCC *S) {
 
 resolveDependencies(REntry* rentry){
   SESEcommon* seseCommon=(SESEcommon*)rentry->seseRec;
-  if(rentry->type==READ || rentry->type==WRITE || rentry->type==COARSE || rentry->type==SCCITEM){    
+  if(rentry->type==READ || rentry->type==WRITE || rentry->type==COARSE || rentry->type==SCCITEM){   
     if( atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies)) ){
       workScheduleSubmit(seseCommon);
     }   
   }else if(rentry->type==PARENTREAD || rentry->type==PARENTWRITE ||rentry->type==PARENTCOARSE){
      psem_give(&(rentry->parentStallSem));
   }
+}
+
+resolvePointer(REntry* rentry){  
+  rentry->dynID=(void*)*(rentry->pointer); // interim.
+  Hashtable* table=rentry->hashtable;
+  struct Queue* val;
+  do {  
+    val=(struct Queue*)0x1;       
+    val=(struct Queue*)LOCKXCHG((unsigned INTPTR*)&(table->unresolvedQueue), (unsigned INTPTR)val);
+  } while(val==(struct Queue*)0x1); 
+  if(val!=NULL && getHead(val)->objectptr==rentry){
+    // handling pointer is the first item of the queue
+    // start to resolve until it reaches unresolved pointer or end of queue
+    do{
+      struct QueueItem* head=getHead(val);
+      if(head!=NULL){
+	REntry* rentry=(REntry*)head->objectptr;  
+	if(*(rentry->pointer)==0){
+	  // encounters following unresolved pointer
+	  table->unresolvedQueue=val;//released lock
+	  break;
+	}
+	removeItem(val,head);
+	if(ADDTABLEITEM(table, rentry)==READY){
+	  SESEcommon* seseCommon=(SESEcommon*)rentry->seseRec;
+	  atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies));
+	}
+      }else{
+	table->unresolvedQueue=NULL; // set hashtable as normal-mode.
+	break;
+      }
+    }while(TRUE);
+  }else{
+    table->unresolvedQueue=val;//released lock;
+  }  
 }
 
