@@ -2449,7 +2449,10 @@ public class ReachGraph {
 	// see what type variable we are assigning it to
 	if( !isSuperiorType( returnTemp.getType(), reCallee.getType() ) ) {
 	  System.out.println( "*** NOT EXPECTING TO SEE THIS: Throwing out "+
-                              reCallee+" for return temp "+returnTemp );
+                              reCallee+
+                              " for return temp "+returnTemp+
+                              " of type "+returnTemp.getType() 
+                              );
 	  // prune
 	  continue;
 	}	
@@ -4101,7 +4104,8 @@ public class ReachGraph {
         // not every node at an allocation is referenced
         // (think of it as garbage-collected), etc.
         if( !pruneGarbage        ||
-            hrn.isOutOfContext()
+            hrn.isOutOfContext() ||
+            (hrn.isFlagged() && hrn.getID() > 0 && !hrn.isWiped()) // a non-shadow flagged node
             ) {
           
           if( !visited.contains( hrn ) ) {
