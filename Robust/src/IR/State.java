@@ -70,6 +70,7 @@ public class State {
   
   public boolean DISJOINT=false;
   public boolean DISJOINTRELEASEMODE=false;
+  public boolean DISJOINTDETERMINISM=false;
   public int DISJOINTALLOCDEPTH=3;
   public boolean DISJOINTWRITEDOTS=false;
   public boolean DISJOINTWRITEALL=false;

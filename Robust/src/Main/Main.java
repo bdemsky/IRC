@@ -220,6 +220,9 @@ public class Main {
       } else if( option.equals( "-disjoint-release-mode" ) ) {
         state.DISJOINTRELEASEMODE = true;        
 
+      } else if( option.equals( "-disjoint-desire-determinism" ) ) {
+        state.DISJOINTDETERMINISM = true;        
+
       } else if( option.equals( "-disjoint-dvisit-stack" ) ) {
         state.DISJOINTDVISITSTACK         = true;      
         state.DISJOINTDVISITPQUE          = false;

@@ -9,7 +9,7 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #################################################
 #DEBUGFLAGS= -disjoint-debug-callsite setClusters innerKMeansSetting 20
 #DEBUGFLAGS= -disjoint-debug-callsite ensureCapacity addElement 100
-#DEBUGFLAGS= -disjoint-debug-callsite setReduceFinish reduceOutput 100
+#DEBUGFLAGS= -disjoint-debug-callsite setPartial reduceOutput 100
 
 #################################################
 ##
@@ -24,20 +24,20 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #################################################
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeatureTask 5 10 true
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeature 5 1 true
-#SNAPFLAGS= -disjoint-debug-snap-method t3 1 1 true
+SNAPFLAGS= -disjoint-debug-snap-method t6 20 5 true
 #SNAPFLAGS= -disjoint-debug-snap-method reduceOutput 5 50 true
 #SNAPFLAGS= -disjoint-debug-snap-method setReduceFinish 5 50 true
-
+#SNAPFLAGS= -disjoint-debug-snap-method setPartial 1 50 true
 
 
 BAMBOOFLAGS= -recover
 JAVAFLAGS= -mainclass test
 
 #VISITMODE= -disjoint-dvisit-stack
-#VISITMODE= -disjoint-dvisit-pqueue
-VISITMODE= -disjoint-dvisit-stack-callees-on-top
+VISITMODE= -disjoint-dvisit-pqueue
+#VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
-DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal
+DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 
 BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -flatirusermethods

@@ -316,6 +316,10 @@ public class DisjointAnalysis {
   // run in faster mode, only when bugs wrung out!
   public static boolean releaseMode;
 
+  // use command line option to set this, analysis
+  // should attempt to be deterministic
+  public static boolean determinismDesired;
+
   // data from the compiler
   public State            state;
   public CallGraph        callGraph;
@@ -548,6 +552,7 @@ public class DisjointAnalysis {
     this.arrayReferencees        = arrayReferencees;
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
     this.releaseMode             = state.DISJOINTRELEASEMODE;
+    this.determinismDesired      = state.DISJOINTDETERMINISM;
 
     this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL;
     this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL;
@@ -773,7 +778,13 @@ public class DisjointAnalysis {
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add( fm );
 
-    Set<FlatNode> debugVisited = new HashSet<FlatNode>();
+    // if determinism is desired by client, shadow the
+    // set with a queue to make visit order deterministic
+    Queue<FlatNode> flatNodesToVisitQ = null;
+    if( determinismDesired ) {
+      flatNodesToVisitQ = new LinkedList<FlatNode>();
+      flatNodesToVisitQ.add( fm );
+    }
     
     // mapping of current partial results
     Hashtable<FlatNode, ReachGraph> mapFlatNodeToReachGraph =
@@ -784,10 +795,15 @@ public class DisjointAnalysis {
     HashSet<FlatReturnNode> setReturns = new HashSet<FlatReturnNode>();
 
     while( !flatNodesToVisit.isEmpty() ) {
-      FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
-      flatNodesToVisit.remove( fn );
 
-      debugVisited.add( fn );
+      FlatNode fn;      
+      if( determinismDesired ) {
+        assert !flatNodesToVisitQ.isEmpty();
+        fn = flatNodesToVisitQ.remove();
+      } else {
+        fn = flatNodesToVisit.iterator().next();
+      }
+      flatNodesToVisit.remove( fn );
 
       // effect transfer function defined by this node,
       // then compare it to the old graph at this node
@@ -843,41 +859,17 @@ public class DisjointAnalysis {
       if( !rg.equals( rgPrev ) ) {
 	mapFlatNodeToReachGraph.put( fn, rg );
 
-	for( int i = 0; i < pm.numNext(fn); i++ ) {
-	  FlatNode nn = pm.getNext(fn, i);
+	for( int i = 0; i < pm.numNext( fn ); i++ ) {
+	  FlatNode nn = pm.getNext( fn, i );
+
 	  flatNodesToVisit.add( nn );
+          if( determinismDesired ) {
+            flatNodesToVisitQ.add( nn );
+          }
 	}
       }
     }
 
-
-    // assert that the fixed-point results for each
-    // node in the method is no smaller than the last
-    // time this method was analyzed (monotonicity)
-    /*
-    Iterator<FlatNode> nItr = fm.getNodeSet().iterator();
-    while( nItr.hasNext() ) {
-      FlatNode   fn     = nItr.next();      
-      ReachGraph last   = fn2rg.get( fn );
-      ReachGraph newest = mapFlatNodeToReachGraph.get( fn );
-
-      if( newest == null ) {
-        System.out.println( "**********\nfn null result: "+fn+
-                            "\nnum visited="+debugVisited.size()+", num in set="+fm.getNodeSet().size()+
-                            "\nvisited:"+debugVisited );
-      }
-
-      assert newest != null;
-      if( last != null ) {
-        if( !ReachGraph.isNoSmallerThan( last, newest ) ) {
-          last.writeGraph( "last", true, false, false, true, true );
-          newest.writeGraph( "newest", true, false, false, true, true );
-          throw new Error( "transfer func for "+fn+" was not monotic" );
-        }
-      }
-      fn2rg.put( fn, newest );
-    }
-    */
 
     // end by merging all return nodes into a complete
     // reach graph that represents all possible heap
