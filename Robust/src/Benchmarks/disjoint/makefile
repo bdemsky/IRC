@@ -2,29 +2,36 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 
 #################################################
 ##
-##  To debug a call site, supply the symbols for
-##  the callee, then caller, then max number of
-##  analysis visits to the call site to write out
+##  To debug a call site supply:
+##    1. callee symbol
+##    2. caller symbol
+##    3. number of analysis call site visits to skip,
+##       before starting to capture (early visits
+##       are usually uninteresting)
+##    4. number of call site visits to capture
+##    5. whether to halt analysis immediately
+##       after capture (or let it run on normally)
 ##
 #################################################
-#DEBUGFLAGS= -disjoint-debug-callsite setClusters innerKMeansSetting 20
-#DEBUGFLAGS= -disjoint-debug-callsite ensureCapacity addElement 100
-#DEBUGFLAGS= -disjoint-debug-callsite setPartial reduceOutput 100
+#DEBUGFLAGS= -disjoint-debug-callsite addInterOutput t6 50 5 false
+
 
 #################################################
 ##
 ##  To get snapshots (graphs) for the exit of every
-##  node in a method, supply method symbol then the
-##  number of analysis visits to the method to skip
-##  (early visits usually uninteresting), then the
-##  number of visits to take snapshots for, finally
-##  a boolean value indicating if the analysis should
-##  immediately terminate after the last snapshot visit
+##  node in a method, supply:
+##    1. method symbol
+##    2. number of methods visits to skip,
+##       before starting to capture (early visits
+##       are usually uninteresting)
+##    3. number of analysis method visits to capture
+##    4. whether to halt analysis immediately
+##       after capture (or let it run on normally)
 ##
 #################################################
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeatureTask 5 10 true
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeature 5 1 true
-SNAPFLAGS= -disjoint-debug-snap-method t6 20 5 true
+SNAPFLAGS= -disjoint-debug-snap-method t6 30 1 false
 #SNAPFLAGS= -disjoint-debug-snap-method reduceOutput 5 50 true
 #SNAPFLAGS= -disjoint-debug-snap-method setReduceFinish 5 50 true
 #SNAPFLAGS= -disjoint-debug-snap-method setPartial 1 50 true
@@ -34,8 +41,8 @@ BAMBOOFLAGS= -recover
 JAVAFLAGS= -mainclass test
 
 #VISITMODE= -disjoint-dvisit-stack
-VISITMODE= -disjoint-dvisit-pqueue
-#VISITMODE= -disjoint-dvisit-stack-callees-on-top
+#VISITMODE= -disjoint-dvisit-pqueue
+VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
 DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed

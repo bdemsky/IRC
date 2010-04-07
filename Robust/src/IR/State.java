@@ -77,13 +77,18 @@ public class State {
   public boolean DISJOINTWRITEIHMS=false;
   public String DISJOINTALIASFILE=null;
   public boolean DISJOINTALIASTAB=false;
-  public int DISJOINTDEBUGCALLCOUNT=0;
+
   public String DISJOINTDEBUGCALLEE=null;
   public String DISJOINTDEBUGCALLER=null;
+  public int DISJOINTDEBUGCALLVISITTOSTART=0;
+  public int DISJOINTDEBUGCALLNUMVISITS=0;
+  public boolean DISJOINTDEBUGCALLSTOPAFTER=false;
+
   public String DISJOINTSNAPSYMBOL=null;
   public int DISJOINTSNAPVISITTOSTART=0;
   public int DISJOINTSNAPNUMVISITS=0;
   public boolean DISJOINTSNAPSTOPAFTER=false;
+
   public boolean DISJOINTDVISITSTACK=true;
   public boolean DISJOINTDVISITPQUE=false;
   public boolean DISJOINTDVISITSTACKEESONTOP=false;

@@ -465,8 +465,17 @@ public class DisjointAnalysis {
 
   // allocate various structures that are not local
   // to a single class method--should be done once
-  protected void allocateStructures() {    
-    descriptorsToAnalyze = new HashSet<Descriptor>();
+  protected void allocateStructures() {
+    
+    if( determinismDesired ) {
+      // use an ordered set
+      descriptorsToAnalyze 
+        = new TreeSet<Descriptor>( new DescriptorComparator() );
+      
+    } else {
+      // otherwise use a speedy hashset
+      descriptorsToAnalyze = new HashSet<Descriptor>();
+    }
 
     mapDescriptorToCompleteReachGraph =
       new Hashtable<Descriptor, ReachGraph>();
@@ -521,6 +530,8 @@ public class DisjointAnalysis {
     
     mapDescriptorToReachGraph = 
     	new Hashtable<Descriptor, ReachGraph>();
+
+    pm = new PointerMethod();
   }
 
 
@@ -564,7 +575,6 @@ public class DisjointAnalysis {
     this.stopAfterCapture        = state.DISJOINTSNAPSTOPAFTER;
     this.snapVisitCounter        = 1; // count visits from 1 (user will write 1, means 1st visit)
     this.snapNodeCounter         = 0; // count nodes from 0
-    this.pm=new PointerMethod();
 
     assert
       state.DISJOINTDVISITSTACK ||
@@ -578,7 +588,19 @@ public class DisjointAnalysis {
     ReachGraph.allocationDepth = allocationDepth;
     ReachGraph.typeUtil        = typeUtil;
 
-    ReachGraph.debugCallSiteVisitsUntilExit = state.DISJOINTDEBUGCALLCOUNT;
+    ReachGraph.debugCallSiteVisitStartCapture
+      = state.DISJOINTDEBUGCALLVISITTOSTART;
+
+    ReachGraph.debugCallSiteNumVisitsToCapture
+      = state.DISJOINTDEBUGCALLNUMVISITS;
+
+    ReachGraph.debugCallSiteStopAfter
+      = state.DISJOINTDEBUGCALLSTOPAFTER;
+
+    ReachGraph.debugCallSiteVisitCounter 
+      = 0; // count visits from 1, is incremented before first visit
+    
+    
 
     allocateStructures();
 
@@ -1050,21 +1072,48 @@ public class DisjointAnalysis {
       break;
 
     case FKind.FlatCall: {
-      //TODO: temporal fix for task descriptor case
-      //MethodDescriptor mdCaller = fmContaining.getMethod();
       Descriptor mdCaller;
-      if(fmContaining.getMethod()!=null){
-	  mdCaller  = fmContaining.getMethod();
-      }else{
-	  mdCaller = fmContaining.getTask();
+      if( fmContaining.getMethod() != null ){
+        mdCaller = fmContaining.getMethod();
+      } else {
+        mdCaller = fmContaining.getTask();
       }      
       FlatCall         fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
 
-      boolean writeDebugDOTs = 
+
+      boolean debugCallSite =
         mdCaller.getSymbol().equals( state.DISJOINTDEBUGCALLER ) &&
-        mdCallee.getSymbol().equals( state.DISJOINTDEBUGCALLEE );      
+        mdCallee.getSymbol().equals( state.DISJOINTDEBUGCALLEE );
+
+      boolean writeDebugDOTs = false;
+      boolean stopAfter      = false;
+      if( debugCallSite ) {
+        ++ReachGraph.debugCallSiteVisitCounter;
+        System.out.println( "    $$$ Debug call site visit "+
+                            ReachGraph.debugCallSiteVisitCounter+
+                            " $$$"
+                            );
+        if( 
+           (ReachGraph.debugCallSiteVisitCounter >= 
+            ReachGraph.debugCallSiteVisitStartCapture)  &&
+           
+           (ReachGraph.debugCallSiteVisitCounter < 
+            ReachGraph.debugCallSiteVisitStartCapture + 
+            ReachGraph.debugCallSiteNumVisitsToCapture)
+            ) {
+          writeDebugDOTs = true;
+          System.out.println( "      $$$ Capturing this call site visit $$$" );
+          if( ReachGraph.debugCallSiteStopAfter &&
+              (ReachGraph.debugCallSiteVisitCounter == 
+               ReachGraph.debugCallSiteVisitStartCapture + 
+               ReachGraph.debugCallSiteNumVisitsToCapture - 1)
+              ) {
+            stopAfter = true;
+          }
+        }
+      }
 
 
       // calculate the heap this call site can reach--note this is
@@ -1154,6 +1203,12 @@ public class DisjointAnalysis {
         }
         
         rgMergeOfEffects.merge( rgCopy );
+      }
+
+
+      if( stopAfter ) {
+        System.out.println( "$$$ Exiting after requested captures of call site. $$$" );
+        System.exit( 0 );
       }
 
 
@@ -1399,8 +1454,19 @@ public class DisjointAnalysis {
 
   protected LinkedList<Descriptor> topologicalSort( Set<Descriptor> toSort ) {
 
-    Set       <Descriptor> discovered = new HashSet   <Descriptor>();
-    LinkedList<Descriptor> sorted     = new LinkedList<Descriptor>();
+    Set<Descriptor> discovered;
+
+    if( determinismDesired ) {
+      // use an ordered set
+      discovered
+        = new TreeSet<Descriptor>( new DescriptorComparator() );
+      
+    } else {
+      // otherwise use a speedy hashset
+      discovered = new HashSet<Descriptor>();
+    }
+
+    LinkedList<Descriptor> sorted = new LinkedList<Descriptor>();
   
     Iterator<Descriptor> itr = toSort.iterator();
     while( itr.hasNext() ) {

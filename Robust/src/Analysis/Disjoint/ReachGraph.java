@@ -1883,7 +1883,7 @@ public class ReachGraph {
 
 
     if( writeDebugDOTs ) {    
-      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisits );
+      debugGraphPrefix = String.format( "call%02d", debugCallSiteVisitCounter );
       rg.writeGraph( debugGraphPrefix+"calleeview", 
                      resolveMethodDebugDOTwriteLabels,    
                      resolveMethodDebugDOTselectTemps,    
@@ -1907,8 +1907,10 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
   static String debugGraphPrefix;
-  static int debugCallSiteVisits = 0;
-  static int debugCallSiteVisitsUntilExit = 0;
+  static int debugCallSiteVisitCounter;
+  static int debugCallSiteVisitStartCapture;
+  static int debugCallSiteNumVisitsToCapture;
+  static boolean debugCallSiteStopAfter;
   
 
   public void 
@@ -1921,11 +1923,11 @@ public class ReachGraph {
 
     if( writeDebugDOTs ) {
       System.out.println( "  Writing out visit "+
-                          debugCallSiteVisits+
+                          debugCallSiteVisitCounter+
                           " to debug call site" );
 
       debugGraphPrefix = String.format( "call%02d", 
-                                        debugCallSiteVisits );
+                                        debugCallSiteVisitCounter );
       
       rgCallee.writeGraph( debugGraphPrefix+"callee", 
                            resolveMethodDebugDOTwriteLabels,    
@@ -2676,22 +2678,13 @@ public class ReachGraph {
     }
     
 
-
-
-
     if( writeDebugDOTs ) {
       writeGraph( debugGraphPrefix+"caller90AfterTransfer", 
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
                   resolveMethodDebugDOThideSubsetReach,
-                  resolveMethodDebugDOThideEdgeTaints );
-
-      ++debugCallSiteVisits;
-      if( debugCallSiteVisits >= debugCallSiteVisitsUntilExit ) {
-        System.out.println( "!!! Exiting after requested visits to call site. !!!" );
-        System.exit( 0 );
-      }
+                  resolveMethodDebugDOThideEdgeTaints );     
     }
   } 
 

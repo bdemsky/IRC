@@ -196,13 +196,23 @@ public class Main {
 	} else if( arg.equals("tabbed") ) {
           state.DISJOINTALIASTAB = true;
         } else {
-          throw new Error("disjoint-alias-file requires arguments <filename> <normal/tabbed>");
+          throw new Error("disjoint-alias-file requires arguments: <filename> <normal/tabbed>");
         }
 
       } else if (option.equals("-disjoint-debug-callsite")) {
 	state.DISJOINTDEBUGCALLEE=args[++i];
 	state.DISJOINTDEBUGCALLER=args[++i];
-	state.DISJOINTDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
+	state.DISJOINTDEBUGCALLVISITTOSTART=Integer.parseInt(args[++i]);
+	state.DISJOINTDEBUGCALLNUMVISITS=Integer.parseInt(args[++i]);
+        String arg = args[++i];
+	if( arg.equals("true") ) {
+	  state.DISJOINTDEBUGCALLSTOPAFTER = true;
+	} else if( arg.equals("false") ) {
+          state.DISJOINTDEBUGCALLSTOPAFTER = false;
+        } else {
+          throw new Error("disjoint-debug-callsite requires arguments:\n"+
+                          "  <callee symbol> <caller symbol> <# visit to start> <# visits to capture> <T/F stop after>");
+        }
       
       } else if (option.equals("-disjoint-debug-snap-method")) {
 	state.DISJOINTSNAPSYMBOL=args[++i];
@@ -214,14 +224,12 @@ public class Main {
 	} else if( arg.equals("false") ) {
           state.DISJOINTSNAPSTOPAFTER = false;
         } else {
-          throw new Error("disjoint-debug-snap-method requires arguments <method symbol> <# visit to start> <# visits to snap> <T/F stop after>");
+          throw new Error("disjoint-debug-snap-method requires arguments:\n"+
+                          "  <method symbol> <# visit to start> <# visits to snap> <T/F stop after>");
         }
 
       } else if( option.equals( "-disjoint-release-mode" ) ) {
         state.DISJOINTRELEASEMODE = true;        
-
-      } else if( option.equals( "-disjoint-desire-determinism" ) ) {
-        state.DISJOINTDETERMINISM = true;        
 
       } else if( option.equals( "-disjoint-dvisit-stack" ) ) {
         state.DISJOINTDVISITSTACK         = true;      
@@ -237,6 +245,16 @@ public class Main {
         state.DISJOINTDVISITSTACKEESONTOP = true;
         state.DISJOINTDVISITPQUE          = false;
         state.DISJOINTDVISITSTACK         = false;      
+
+      } else if( option.equals( "-disjoint-desire-determinism" ) ) {
+        state.DISJOINTDETERMINISM = true;
+
+        // when asking analysis for a deterministic result, force
+        // a stack-based visiting scheme, because the priority queue
+        // requires a non-deterministic topological sort
+        state.DISJOINTDVISITSTACKEESONTOP = true;
+        state.DISJOINTDVISITPQUE          = false;
+        state.DISJOINTDVISITSTACK         = false;
       }
       
 
