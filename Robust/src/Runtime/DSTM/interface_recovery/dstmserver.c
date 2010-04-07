@@ -538,7 +538,7 @@ void *dstmAccept(void *acceptfd) {
 #ifdef RECOVERY
       case REQUEST_TRANS_WAIT:
         receiveNewHostLists((int)acceptfd);        
-        stopTransactions();
+        stopTransactions(TRANS_BEFORE);
 
         response = RESPOND_TRANS_WAIT;
         send_data((int)acceptfd,&response,sizeof(char));
@@ -557,6 +557,10 @@ void *dstmAccept(void *acceptfd) {
         printf("control -> REQUEST_TRANS_LIST\n");
         sendTransList((int)acceptfd);
         receiveTransList((int)acceptfd);
+
+        pthread_mutex_lock(&liveHosts_mutex);
+        okCommit = TRANS_AFTER;
+        pthread_mutex_unlock(&liveHosts_mutex);
         break;
 
       case REQUEST_TRANS_RESTART:
@@ -960,6 +964,8 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     return 1;
   }
 
+//  printf("%s -> Waiting for transID : %u\n",__func__,fixed->transid);
+
 	int timeout = recv_data((int)acceptfd, &control, sizeof(char));
 
 #ifdef RECOVERY
@@ -967,7 +973,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     control = -1;
   }
   // check if it is allowed to commit
-  control = inspectTransaction(control,fixed->transid);
+  control = inspectTransaction(control,fixed->transid,"processClientReq",TRANS_BEFORE);
   thashInsert(fixed->transid, control);
 
 #endif
@@ -1029,10 +1035,13 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
   tlist_node_t* tNode = tlistSearch(transList,fixed->transid);
   tNode->status = TRANS_OK;
+  inspectTransaction(control,fixed->transid,"processClientReq",TRANS_AFTER);
 
   pthread_mutex_lock(&clearNotifyList_mutex);
   transList = tlistRemove(transList,fixed->transid);
   pthread_mutex_unlock(&clearNotifyList_mutex);
+
+  // ====================after transaction point
 
 #endif
 
@@ -1845,15 +1854,15 @@ void receiveNewHostLists(int acceptfd)
 }
 
 /* wait until all transaction waits for leader's decision */
-void stopTransactions()
+void stopTransactions(int TRANS_FLAG)
 {
-  printf("%s - > Enter\n",__func__);
+//  printf("%s - > Enter flag :%d\n",__func__,TRANS_FLAG);
   int size = transList->size;
   int i;
   tlist_node_t* walker;
   
   pthread_mutex_lock(&liveHosts_mutex);
-  okCommit = TRANS_WAIT;
+  okCommit = TRANS_FLAG;
   pthread_mutex_unlock(&liveHosts_mutex);
   /* make sure that all transactions are stopped */
 
@@ -1866,7 +1875,7 @@ void stopTransactions()
     while(walker)
     {
       // locking
-      while(!(walker->status == TRANS_WAIT || walker->status == TRANS_OK)) {
+      while(!(walker->status == TRANS_FLAG || walker->status == TRANS_OK)) {
         printf("%s -> Waiting for %u - Status : %d tHash : %d\n",__func__,walker->transid,walker->status,thashSearch(walker->transid));
         sleep(2);
       }
@@ -1876,7 +1885,7 @@ void stopTransactions()
   }while(transList->flag == 1);
 
   pthread_mutex_unlock(&clearNotifyList_mutex);
-  printf("%s - > Exit\n",__func__);
+//  printf("%s - > Exit\n",__func__);
 }
 
 void sendTransList(int acceptfd)
@@ -1913,12 +1922,10 @@ void sendTransList(int acceptfd)
   }
 
   free(transArray);
-  printf("%s - > Exit\n",__func__);
 }
 
 void receiveTransList(int acceptfd)
 {
-  printf("%s -> Enter\n",__func__);
   int size;
   tlist_node_t* tArray;
   tlist_node_t* walker;
@@ -1928,7 +1935,6 @@ void receiveTransList(int acceptfd)
   
   recv_data((int)acceptfd,&size,sizeof(int));
 
-  printf("%s -> size : %d\n",__func__,size);
 
   if(size > 0) {
     if((tArray = calloc(size,sizeof(tlist_node_t) * size)) == NULL)
@@ -1954,11 +1960,7 @@ void receiveTransList(int acceptfd)
     response = -1;
   }
 
-  printf("%s -> response : %d\n",__func__,response);
-  
   send_data((int)acceptfd,&response,sizeof(char));
-
-  printf("%s -> End\n",__func__);
 }
 
 
@@ -1976,6 +1978,7 @@ int combineTransactionList(tlist_node_t* tArray,int size)
         if(walker->transid == tArray[i].transid)
         {
           walker->decision = tArray[i].decision;
+          walker->status = tArray[i].status;
           break;
         }
       }
@@ -1985,13 +1988,13 @@ int combineTransactionList(tlist_node_t* tArray,int size)
   return flag;
 }
 
-char inspectTransaction(char finalResponse,unsigned int transid)
+char inspectTransaction(char finalResponse,unsigned int transid,char* debug,int TRANS_FLAG)
 {
   tlist_node_t* tNode;
 
   tNode = tlistSearch(transList,transid);
   
-  if(finalResponse < 0) {
+  if(finalResponse <= 0) {
     tNode->decision = DECISION_LOST;
   }
   else {
@@ -2001,11 +2004,12 @@ char inspectTransaction(char finalResponse,unsigned int transid)
   if(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) 
   {
     pthread_mutex_lock(&liveHosts_mutex);
-    tNode->status = TRANS_WAIT;
+    tNode->status = TRANS_FLAG;
     pthread_mutex_unlock(&liveHosts_mutex);
 
-    while(!((tNode->decision != DECISION_LOST) && (okCommit == TRANS_OK))) { 
-      printf("%s -> transID : %u decision : %d is waiting\n",__func__,tNode->transid,tNode->decision);
+    // if decision is not lost and okCommit is not TRANS_FLAG, get out of this loop
+    while(!((tNode->decision != DECISION_LOST) && (okCommit != TRANS_FLAG))) { 
+      printf("%s -> transID : %u decision : %d is waiting flag : %d\n",debug,tNode->transid,tNode->decision,TRANS_FLAG);
       sleep(3);
     }
 

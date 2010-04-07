@@ -289,11 +289,11 @@ unsigned int updateLiveHosts();
 void updateLiveHostsList(int mid);
 int updateLiveHostsCommit();
 void receiveNewHostLists(int accept);
-void stopTransactions();
+void stopTransactions(int TRANS_FLAG);
 void sendTransList(int acceptfd);
 void receiveTransList(int acceptfd);
 int combineTransactionList(tlist_node_t* tArray,int size);
-char inspectTransaction(char control,unsigned int transid);
+char inspectTransaction(char control,unsigned int transid,char* debug,int TRANS_FLAG);
 
 void respondToLeader();
 void setLocateObjHosts();

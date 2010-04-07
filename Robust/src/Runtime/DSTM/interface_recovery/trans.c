@@ -1154,7 +1154,7 @@ int transCommit() {
 
 #ifdef RECOVERY
   while(okCommit != TRANS_OK) {
-    printf("%s -> new Transactin is waiting\n",__func__);
+//    printf("%s -> new Transactin is waiting\n",__func__);
     sleep(2);
   }
 
@@ -1358,11 +1358,9 @@ int transCommit() {
 
 #ifdef RECOVERY
 // wait until leader fix the system
+
     if(okCommit != TRANS_OK) {
-      while(okCommit != TRANS_OK) {
-        printf("%s -> Coordinator is waiting finalResponse : %d\n",__func__,finalResponse);
-        sleep(1);
-      }
+      inspectTransaction(finalResponse,transID,"transCommit before response",TRANS_AFTER);
       finalResponse = TRANS_ABORT;
     }
 #endif
@@ -1452,8 +1450,13 @@ int transCommit() {
 	} while (treplyretry && deadmid != -1);
 
 #ifdef RECOVERY
+
+  //===========  after transaction point
   tlist_node_t* tNode = tlistSearch(transList,transID);
+  inspectTransaction(finalResponse,transID,"Coordinator",TRANS_AFTER);
+
   tNode->status = TRANS_OK;
+  finalResponse = tNode->decision;
 
   pthread_mutex_lock(&clearNotifyList_mutex);
   transList = tlistRemove(transList,transID);
@@ -1555,7 +1558,7 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
 char doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
 
 #ifdef RECOVERY
-  finalResponse = inspectTransaction(finalResponse,tdata->f.transid);
+  finalResponse = inspectTransaction(finalResponse,tdata->f.transid,"Local Commit",TRANS_BEFORE);
   thashInsert(tdata->f.transid,finalResponse);
 #endif
 
@@ -1833,10 +1836,10 @@ void restoreDuplicationState(unsigned int deadHost)
 
   // clear transaction
   clearTransaction();
+//  getchar();
 
   // transfer lost objects
   duplicateLostObjects(deadHost);
-  getchar();
   // restart transactions
   restartTransactions();
 
@@ -1860,8 +1863,6 @@ void notifyRestoration()
   int sd;
   int sdlist[numHostsInSystem];
 
-  printf("%s -> Enter\n",__func__);
-	
   printHostsStatus();
 
   pthread_mutex_lock(&liveHosts_mutex);
@@ -1909,8 +1910,7 @@ void notifyRestoration()
     }
   }
   /* stop all local transactions */
-  stopTransactions();
-  printf("%s -> End\n",__func__);
+  stopTransactions(TRANS_BEFORE);
 }
 
 /* acknowledge leader that all transactions are waiting */
@@ -1991,6 +1991,8 @@ void clearTransaction()
      returns an array of ongoing transactions  */
   makeTransactionLists(&tlist,sdlist);
 
+//  getchar();
+
   /* release the cleared decisions to all machines */
   releaseTransactionLists(tlist,sdlist);
 
@@ -2001,8 +2003,7 @@ void clearTransaction()
   }
 
   tlistDestroy(tlist);
-  
-  printf("%s -> End\n",__func__);
+   printf("%s -> End\n",__func__);
 }
 
 // after this fuction
@@ -2022,7 +2023,8 @@ void makeTransactionLists(tlist_t** tlist,int* sdlist)
   tlist_node_t* walker = transList->head;
   
   while(walker) {
-    tlistInsertNode2(currentTransactionList,walker);
+    walker->status = TRANS_OK;
+    currentTransactionList = tlistInsertNode2(currentTransactionList,walker);
     walker = walker->next;
   }
 
@@ -2056,24 +2058,30 @@ void makeTransactionLists(tlist_t** tlist,int* sdlist)
         tmp = tlistSearch(currentTransactionList,transArray[j].transid);
           
         if(tmp == NULL) {
+          tlist_node_t* tNode = &transArray[j];
+          tNode->status = TRANS_OK;
           currentTransactionList = tlistInsertNode2(currentTransactionList,&(transArray[j]));
         }
         else {
-          if(tmp->decision == DECISION_LOST)
+          if((tmp->decision != TRANS_COMMIT && tmp->decision != TRANS_ABORT) 
+                && (transArray[j].decision == TRANS_COMMIT || transArray[j].decision == TRANS_ABORT))
           {
            tmp->decision = transArray[j].decision;
-           }
+          }
         }
       }  // j loop
     }
   }  // i loop
+ 
+  printf("Before\n");
+  tlistPrint(currentTransactionList);
 
   // current transaction list is completed
   // now see if any transaction is still missing
   walker = currentTransactionList->head;
 
   while(walker) {
-    if(walker->decision == DECISION_LOST) {
+//    if(walker->decision == DECISION_LOST) {
       for(i = 0 ; i < numHostsInSystem; i++) {
         if(sdlist[i] != -1 && hostIpAddrs[i] != myIpAddr)
         {
@@ -2105,7 +2113,9 @@ void makeTransactionLists(tlist_t** tlist,int* sdlist)
         printf("%s -> No one knows decision for transID : %u\n",__func__,walker->transid);
         walker->decision = TRANS_ABORT;
       }
-    }
+      if(walker->decision == TRYING_TO_COMMIT) {
+        printf("%s -> no decision yet transID : %u\n",__func__,walker->transid);
+      }
     walker = walker->next;
   } // while loop
 
@@ -2120,6 +2130,7 @@ void makeTransactionLists(tlist_t** tlist,int* sdlist)
   }
 
   *tlist = currentTransactionList;
+  printf("\n\nAfter\n");
   tlistPrint(currentTransactionList);
 
   printf("%s -> End\n",__func__);
@@ -2141,8 +2152,6 @@ void releaseTransactionLists(tlist_t* tlist,int* sdlist)
   {
     if(sdlist[i] != -1 && hostIpAddrs[i] != myIpAddr)
     {
-//      printf("%s -> Sent to sd : %d\n",__func__,sdlist[i]);
-
       if(size == 0) {
         size = -1;
         send_data(sdlist[i],&size,sizeof(int));
@@ -2159,6 +2168,11 @@ void releaseTransactionLists(tlist_t* tlist,int* sdlist)
         printf("%s -> problem\n",__func__);
         exit(0);
       }
+
+      pthread_mutex_lock(&liveHosts_mutex);
+      okCommit = TRANS_AFTER;
+      pthread_mutex_unlock(&liveHosts_mutex);
+
     }
   }
   
@@ -2185,7 +2199,6 @@ void restartTransactions()
 {
   int i;
   int sd;
-  printf("%s -> Enter\n",__func__);
   for(i = 0; i < numHostsInSystem; i++) {
     if(hostIpAddrs[i] == myIpAddr) {
       pthread_mutex_lock(&liveHosts_mutex);
@@ -2209,7 +2222,6 @@ void restartTransactions()
       }
     }
   }
-  printf("%s -> End\n",__func__);
 }
 
 #endif
@@ -3316,6 +3328,7 @@ int allHostsLive() {
 
 #ifdef RECOVERY
 void duplicateLostObjects(unsigned int mid){
+  printf("%s -> Enter\n",__func__);
 
 #ifdef RECOVERYSTATS
   unsigned int dupeSize = 0;
@@ -3346,8 +3359,8 @@ void duplicateLostObjects(unsigned int mid){
    * Backup     26      21,24
    */
 
-  if(((psd = getSockWithLock(transRequestSockPool, originalMid)) < 0 ) || 
-      ((bsd = getSockWithLock(transRequestSockPool,backupMid)) <0)) {
+  if(((psd = getSockWithLock(transPrefetchSockPool, originalMid)) < 0 ) || 
+      ((bsd = getSockWithLock(transPrefetchSockPool,backupMid)) <0)) {
 
     printf("%s -> psd : %d bsd : %d\n",__func__,psd,bsd);
     printf("%s -> Socket create error\n",__func__);
@@ -3390,8 +3403,8 @@ void duplicateLostObjects(unsigned int mid){
     exit(0);
   }
 
-  freeSockWithLock(transRequestSockPool, originalMid, psd);
-  freeSockWithLock(transRequestSockPool, backupMid, bsd);
+  freeSockWithLock(transPrefetchSockPool, originalMid, psd);
+  freeSockWithLock(transPrefetchSockPool, backupMid, bsd);
 
 #ifdef RECOVERYSTATS
   recoverStat[numRecovery-1].recoveredData = dupeSize;
