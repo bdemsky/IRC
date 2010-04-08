@@ -7,7 +7,7 @@ FLAGS=-recoverystats -recovery -transstats -dsmcaching -dsm -dsmtask -debug -noo
 DSMFLAGS=-dsm -dsmtask -sandbox -transstats -debug -nooptimize -mainclass ${MAINCLASS}
 default:
 #	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC2} ${SRC3} ${SRC1}
-	../../../../buildscript ${DSMFLAGS} -o ${MAINCLASS}DSM ${SRC2} ${SRC3} ${SRC1}
+	../../../../buildscript ${DSMFLAGS} -o ${MAINCLASS}DSM *.java
 
 clean:
 	rm -rf tmpbuilddirectory
