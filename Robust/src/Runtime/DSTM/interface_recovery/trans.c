@@ -1155,7 +1155,7 @@ int transCommit() {
 #ifdef RECOVERY
   while(okCommit != TRANS_OK) {
 //    printf("%s -> new Transactin is waiting\n",__func__);
-    sleep(2);
+    randomdelay();
   }
 
   transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRANS_OK);
@@ -1358,10 +1358,10 @@ int transCommit() {
 
 #ifdef RECOVERY
 // wait until leader fix the system
-
     if(okCommit != TRANS_OK) {
-      inspectTransaction(finalResponse,transID,"transCommit before response",TRANS_AFTER);
+      inspectTransaction(finalResponse,transID,"transCommit before response",TRANS_BEFORE);
       finalResponse = TRANS_ABORT;
+      treplyretry = 0;
     }
 #endif
 
@@ -1836,10 +1836,10 @@ void restoreDuplicationState(unsigned int deadHost)
 
   // clear transaction
   clearTransaction();
-//  getchar();
 
   // transfer lost objects
   duplicateLostObjects(deadHost);
+
   // restart transactions
   restartTransactions();
 
@@ -1991,7 +1991,6 @@ void clearTransaction()
      returns an array of ongoing transactions  */
   makeTransactionLists(&tlist,sdlist);
 
-//  getchar();
 
   /* release the cleared decisions to all machines */
   releaseTransactionLists(tlist,sdlist);
@@ -2070,6 +2069,8 @@ void makeTransactionLists(tlist_t** tlist,int* sdlist)
           }
         }
       }  // j loop
+
+      free(transArray);
     }
   }  // i loop
  
@@ -2169,10 +2170,8 @@ void releaseTransactionLists(tlist_t* tlist,int* sdlist)
         exit(0);
       }
 
-      pthread_mutex_lock(&liveHosts_mutex);
-      okCommit = TRANS_AFTER;
-      pthread_mutex_unlock(&liveHosts_mutex);
-
+//      okCommit = TRANS_AFTER;
+      stopTransactions(TRANS_AFTER);
     }
   }
   

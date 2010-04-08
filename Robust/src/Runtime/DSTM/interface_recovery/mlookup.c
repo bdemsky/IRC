@@ -207,7 +207,7 @@ unsigned int *mhashGetKeys(unsigned int *numKeys) {
 }
 
 #ifdef RECOVERY
-void* mhashGetDuplicate(int *dupeSize, int backup) { //how big?
+void* mhashGetDuplicate(int *dupeSize, int backup) { 
 #ifdef DEBUG
 	printf("%s-> Start\n", __func__); 
 #endif
