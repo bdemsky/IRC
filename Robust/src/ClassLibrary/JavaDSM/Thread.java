@@ -40,6 +40,16 @@ public class Thread {
       return -1;
 
   }
+
+  public int getStatus() {
+    if(nativeGetStatus(mid)==1)
+      return 1;
+    //TODO:check if this is safe to add only for the DSM without the recovery version
+    if(nativeGetStatus(mid)==0)
+      return 1;
+    else
+      return -1;
+  }
 }
 
 
