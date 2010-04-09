@@ -2688,9 +2688,20 @@ public class BuildCode {
 	  } else {
 	    fmContext = currentSESE.getfmBogus();
 	  }
+	  
+	  TypeDescriptor type=dynVar.getType();
+      String typeStr;
+      if( type.isNull() ) {
+	     typeStr = "void*";
+      } else if( type.isClass() || type.isArray() ) {
+	     typeStr = "struct "+type.getSafeSymbol()+"*";
+      } else {
+	     typeStr = type.getSafeSymbol();
+      }
+      
 	  output.println("       "+generateTemp( fmContext, dynVar, null )+
-			 " = *(("+dynVar.getType()+"*) ("+
-			 dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
+		 " = *(("+typeStr+"*) ("+
+		 dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
 	  
 	  output.println("     }");
 	  output.println("   }");
