@@ -908,7 +908,9 @@ public class ConflictGraph {
 									newElement.setWaitingID(seseLock.getID());
 									newElement.setStatus(seseLock.getNodeType(liveInNode));
 									if(isFineElement(newElement.getStatus())){
-										newElement.setDynID(node.getTempDescriptor().toString());
+									    // for fine waiting element, set temp descriptor to handle unresolved pointer case.
+									        newElement.setDynID(node.getTempDescriptor().toString());
+										newElement.setTempDesc(node.getTempDescriptor());
 									}
 									if(!waitingElementSet.contains(newElement)){
 										waitingElementSet.add(newElement);
