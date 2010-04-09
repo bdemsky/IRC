@@ -51,7 +51,7 @@ REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID){
   REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
-  newREntry->dynID=dynID; 
+  newREntry->pointer=dynID;
   return newREntry;
 }
 
@@ -239,44 +239,35 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
 
   //at this point, have table
   Hashtable* table=(Hashtable*)q->tail;
-  r->hashtable=table;
-  if(r->pointer!=0 && (*(r->pointer)==0 || (*(r->pointer)!=0 && table->unresolvedQueue!=NULL))){
-     struct Queue* val;
+  r->hashtable=table; // set rentry's hashtable
+  if((*(r->pointer)==0 || (*(r->pointer)!=0 && BARRIER() && table->unresolvedQueue!=NULL))){
+    struct Queue* val;
     // grab lock on the queue    
     do {  
       val=(struct Queue*)0x1;       
       val=(struct Queue*)LOCKXCHG((unsigned INTPTR*)&(table->unresolvedQueue), (unsigned INTPTR)val);
-    } while(val==(struct Queue*)0x1);  
-
+    } while(val==(struct Queue*)0x1);     
     if(val==NULL){
-      //first case
+      //queue is null, first case
       if(*(r->pointer)!=0){
-	// pointer is already resolved.
-	table->unresolvedQueue=val; //released lock;
-	return ADDTABLE(q,r);
+	// check whether pointer is already resolved, or not.
+	table->unresolvedQueue=NULL; //released lock;
+	return ADDTABLEITEM(table,r,TRUE);
       }
-      table->unresolvedQueue=(struct Queue*)0x1;
       struct Queue* queue=createQueue();
-      addNewItem(queue,r);
+      addNewItemBack(queue,r);
       atomic_inc(&table->item.total); 
       table->unresolvedQueue=queue; // expose new queue     
-    }else{
-      if(val==NULL){
-	// someone else has already cleared all queue stuff
-	table->unresolvedQueue=val; // released lock
-	return ADDTABLE(q,r);
-      }
+    }else{ 
+      // add unresolved rentry at the end of the queue.
       addNewItemBack(val,r);
       atomic_inc(&table->item.total);    
       table->unresolvedQueue=val; // released lock
     }   
     return NOTREADY;
   }
-  if(r->pointer!=0){
-    r->dynID=(void*)*(r->pointer); // interim fix.
-  }
   BinItem * val;
-  int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
+  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
@@ -294,22 +285,23 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
   }
 }
 
-int ADDTABLEITEM(Hashtable* table, REntry* r){
+int ADDTABLEITEM(Hashtable* table, REntry* r, int inc){
+ 
   BinItem * val;
-  int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
+  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
-    val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(bin->head), (unsigned INTPTR)val);//note...talk to me about optimizations here. 
+    val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(bin->head), (unsigned INTPTR)val); 
   } while(val==(BinItem*)0x1);
   //at this point have locked bin
   if (val==NULL) {
-    return EMPTYBINCASE(table, table->array[key], r, FALSE);
+    return EMPTYBINCASE(table, table->array[key], r, inc);
   } else {
     if (isFineWrite(r)) {
-      return WRITEBINCASE(table, r, val, key, FALSE);
+      return WRITEBINCASE(table, r, val, key, inc);
     } else if (isFineRead(r)) {
-      return READBINCASE(table, r, val, key, FALSE);
+      return READBINCASE(table, r, val, key, inc);
     }
   }
 }
@@ -388,9 +380,9 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
 READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   BinItem * bintail=T->array[key]->tail;
   if (isReadBinItem(bintail)) {
-    return TAILREADCASE(T, r, val, bintail, key);
+    return TAILREADCASE(T, r, val, bintail, key, inc);
   } else if (!isReadBinItem(bintail)) {
-    TAILWRITECASE(T, r, val, bintail, key);
+    TAILWRITECASE(T, r, val, bintail, key, inc);
     return NOTREADY;
   }
 }
@@ -572,7 +564,7 @@ RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
 }
 
 RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
-  int key=generateKey((unsigned int)(unsigned INTPTR)r->dynID);
+  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
   if(isFineRead(r)) {
     atomic_dec(&b->total);
   }
@@ -776,8 +768,12 @@ resolveDependencies(REntry* rentry){
 }
 
 resolvePointer(REntry* rentry){  
-  rentry->dynID=(void*)*(rentry->pointer); // interim.
+ 
   Hashtable* table=rentry->hashtable;
+  if(table==NULL){
+    //resolved already before related rentry is enqueued to the waiting queue
+    return;
+  }
   struct Queue* val;
   do {  
     val=(struct Queue*)0x1;       
@@ -796,9 +792,8 @@ resolvePointer(REntry* rentry){
 	  break;
 	}
 	removeItem(val,head);
-	if(ADDTABLEITEM(table, rentry)==READY){
-	  SESEcommon* seseCommon=(SESEcommon*)rentry->seseRec;
-	  atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies));
+	if(ADDTABLEITEM(table, rentry, FALSE)==READY){
+	  resolveDependencies(rentry);
 	}
       }else{
 	table->unresolvedQueue=NULL; // set hashtable as normal-mode.
@@ -806,7 +801,7 @@ resolvePointer(REntry* rentry){
       }
     }while(TRUE);
   }else{
+    // resolved rentry is not head of queue
     table->unresolvedQueue=val;//released lock;
   }  
 }
-
