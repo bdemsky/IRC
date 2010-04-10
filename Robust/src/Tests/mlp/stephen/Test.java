@@ -6,11 +6,25 @@ public class Test
 
         System.out.println("# it starts");
         Test t = new Test();
-        t.doSomeWork();
+        t.doSomeWorkSolvingDynamicPuzzle(args[0]);
 
     }
 
-    public void doSomeWork()
+	public void doSomeWorkSolvingDynamicPuzzle(String filename)
+	{
+		Parser p = new Parser(filename);
+		int[][] data = p.go();
+
+		if(data != null)
+		{
+			Board b = new Board(data);
+			Board solved = Solver.go(b);
+			System.out.println(solved);
+		}
+		
+	}	
+
+    public void doSomeWorkSolvingStaticPuzzle()
     {
 
 	//hard-coded in board solution: http://www.websudoku.com/?level=4&set_id=1031120945
