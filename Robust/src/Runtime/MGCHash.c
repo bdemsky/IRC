@@ -38,7 +38,7 @@ void mgchashCreate(unsigned int size, double loadfactor) {
   mgc_loadfactor = loadfactor;
   mgc_size = size;
   mgc_threshold=size*loadfactor;
-	
+
 #ifdef BIT64
   mgc_mask = ((size << 6)-1)&~(15UL);
 #else
@@ -54,19 +54,19 @@ void mgchashreset() {
   int i;
 
   /*if (mgc_numelements<(mgc_size>>6)) {
-    mgchashlistnode_t *top=&ptr[mgc_size];
-    mgchashlistnode_t *tmpptr=mgc_list;
-    while(tmpptr!=NULL) {
+     mgchashlistnode_t *top=&ptr[mgc_size];
+     mgchashlistnode_t *tmpptr=mgc_list;
+     while(tmpptr!=NULL) {
       mgchashlistnode_t *next=tmpptr->lnext;
       if (tmpptr>=ptr&&tmpptr<top) {
-				//zero in list
-				tmpptr->key=NULL;
-				tmpptr->next=NULL;
+                                //zero in list
+                                tmpptr->key=NULL;
+                                tmpptr->next=NULL;
       }
       tmpptr=next;
-    }
-  } else {*/
-	  BAMBOO_MEMSET_WH(mgc_table, '\0', sizeof(mgchashlistnode_t)*mgc_size);
+     }
+     } else {*/
+  BAMBOO_MEMSET_WH(mgc_table, '\0', sizeof(mgchashlistnode_t)*mgc_size);
   //}
   while(mgc_structs->next!=NULL) {
     mgcliststruct_t *next=mgc_structs->next;
@@ -87,12 +87,12 @@ void mgchashInsert(void * key, void *val) {
     mgchashResize(newsize);
   }
 
-	//int hashkey = (unsigned int)key % mgc_size; 
-  ptr=&mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];//&mgc_table[hashkey];
+  //int hashkey = (unsigned int)key % mgc_size;
+  ptr=&mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6]; //&mgc_table[hashkey];
   mgc_numelements++;
 
   if(ptr->key==0) {
-		// the first time insert a value for the key
+    // the first time insert a value for the key
     ptr->key=key;
     ptr->val=val;
   } else { // Insert in the beginning of linked list
@@ -125,7 +125,7 @@ void mgchashInsert_I(void * key, void *val) {
     mgchashResize_I(newsize);
   }
 
-	//int hashkey = (unsigned int)key % mgc_size; 
+  //int hashkey = (unsigned int)key % mgc_size;
   //ptr=&mgc_table[hashkey];
   ptr = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];
   mgc_numelements++;
@@ -133,7 +133,7 @@ void mgchashInsert_I(void * key, void *val) {
   if(ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
-		return; 
+    return;
   } else { // Insert in the beginning of linked list
     mgchashlistnode_t * node;
     if (mgc_structs->num<NUMMGCLIST) {
@@ -158,9 +158,9 @@ void mgchashInsert_I(void * key, void *val) {
 // Search for an address for a given oid
 INLINE void * mgchashSearch(void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
-	//int hashkey = (unsigned int)key % mgc_size;
+  //int hashkey = (unsigned int)key % mgc_size;
   mgchashlistnode_t *node = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];
-		//&mgc_table[hashkey];
+  //&mgc_table[hashkey];
 
   do {
     if(node->key == key) {
@@ -202,27 +202,27 @@ unsigned int mgchashResize(unsigned int newsize) {
       if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
-			//index = (unsigned int)key % mgc_size; 
+      //index = (unsigned int)key % mgc_size;
       index = (((unsigned INTPTR)key) & mask) >>6;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-				tmp->key = key;
-				tmp->val = curr->val;
+	tmp->key = key;
+	tmp->val = curr->val;
       } /*
-          NOTE:  Add this case if you change this...
-          This case currently never happens because of the way things rehash....
-          else if (isfirst) {
-          chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
-          newnode->key = curr->key;
-          newnode->val = curr->val;
-          newnode->next = tmp->next;
-          tmp->next=newnode;
-          } */
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....
+	   else if (isfirst) {
+	   chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
+	   newnode->key = curr->key;
+	   newnode->val = curr->val;
+	   newnode->next = tmp->next;
+	   tmp->next=newnode;
+	   } */
       else {
-				curr->next=tmp->next;
-				tmp->next=curr;
+	curr->next=tmp->next;
+	tmp->next=curr;
       }
 
       isfirst = 0;
@@ -246,7 +246,7 @@ unsigned int mgchashResize_I(unsigned int newsize) {
   oldsize = mgc_size;
 
   if((node = RUNMALLOC_I(newsize*sizeof(mgchashlistnode_t))) == NULL) {
-		BAMBOO_EXIT(0xe001);
+    BAMBOO_EXIT(0xe001);
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
@@ -263,32 +263,31 @@ unsigned int mgchashResize_I(unsigned int newsize) {
       void * key;
       mgchashlistnode_t *tmp,*next;
 
-      if ((key=curr->key) == 0) {             
-				//Exit inner loop if there the first element is 0
-	      break;                  
-				//key = val =0 for element if not present within the hash table
+      if ((key=curr->key) == 0) {
+	//Exit inner loop if there the first element is 0
+	break;
+	//key = val =0 for element if not present within the hash table
       }
-			//index = (unsigned int)key % mgc_size; 
+      //index = (unsigned int)key % mgc_size;
       index = (((unsigned INTPTR)key) & mask) >>6;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-				tmp->key = key;
-				tmp->val = curr->val;
+	tmp->key = key;
+	tmp->val = curr->val;
       } /*
-          NOTE:  Add this case if you change this...
-          This case currently never happens because of the way things rehash....*/
-			else if (isfirst) {
-				mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t));
-				newnode->key = curr->key;
-				newnode->val = curr->val;
-				newnode->next = tmp->next;
-				tmp->next=newnode;
-			} 
-      else {
-				curr->next=tmp->next;
-				tmp->next=curr;
+	   NOTE:  Add this case if you change this...
+	   This case currently never happens because of the way things rehash....*/
+      else if (isfirst) {
+	mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t));
+	newnode->key = curr->key;
+	newnode->val = curr->val;
+	newnode->next = tmp->next;
+	tmp->next=newnode;
+      } else {
+	curr->next=tmp->next;
+	tmp->next=curr;
       }
 
       isfirst = 0;
@@ -315,8 +314,8 @@ void mgchashDelete() {
 }
 
 struct MGCHash * allocateMGCHash(int size,
-		                             int conflicts) {
-  struct MGCHash *thisvar;  
+                                 int conflicts) {
+  struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
     BAMBOO_EXIT(0xf101);
@@ -327,22 +326,22 @@ struct MGCHash * allocateMGCHash(int size,
   }
   thisvar=(struct MGCHash *)RUNMALLOC(sizeof(struct MGCHash));
   thisvar->size = size;
-  thisvar->bucket = 
-		(struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
-	// zero out all the buckets
-	BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
+  thisvar->bucket =
+    (struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
+  // zero out all the buckets
+  BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
 }
 
 void freeMGCHash(struct MGCHash *thisvar) {
-	int i = 0;
-	for(i=thisvar->size-1; i>=0; i--) {
+  int i = 0;
+  for(i=thisvar->size-1; i>=0; i--) {
     struct MGCNode *ptr;
-    for(ptr=thisvar->bucket[i].next; ptr!=NULL;) {
+    for(ptr=thisvar->bucket[i].next; ptr!=NULL; ) {
       struct MGCNode * nextptr=ptr->next;
-			RUNFREE(ptr);
+      RUNFREE(ptr);
       ptr=nextptr;
     }
   }
@@ -350,11 +349,11 @@ void freeMGCHash(struct MGCHash *thisvar) {
   RUNFREE(thisvar);
 }
 /*
-void MGCHashrehash(struct MGCHash * thisvar) {
-  int newsize=thisvar->size;
-  struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC(sizeof(struct MGCNode *)*newsize);
-  int i;
-  for(i=thisvar->size-1; i>=0; i--) {
+   void MGCHashrehash(struct MGCHash * thisvar) {
+   int newsize=thisvar->size;
+   struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC(sizeof(struct MGCNode *)*newsize);
+   int i;
+   for(i=thisvar->size-1; i>=0; i--) {
     struct MGCNode *ptr;
     for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
       struct MGCNode * nextptr=ptr->next;
@@ -363,64 +362,64 @@ void MGCHashrehash(struct MGCHash * thisvar) {
       newbucket[newhashkey]=ptr;
       ptr=nextptr;
     }
-  }
-  thisvar->size=newsize;
-  RUNFREE(thisvar->bucket);
-  thisvar->bucket=newbucket;
-}*/
+   }
+   thisvar->size=newsize;
+   RUNFREE(thisvar->bucket);
+   thisvar->bucket=newbucket;
+   }*/
 
 int MGCHashadd(struct MGCHash * thisvar, int data) {
-  // Rehash code 
+  // Rehash code
   unsigned int hashkey;
   struct MGCNode *ptr;
 
   /*if (thisvar->numelements>=thisvar->size) {
-    int newsize=2*thisvar->size+1;
-    struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC(sizeof(struct MGCNode *)*newsize);
-    int i;
-    for(i=thisvar->size-1; i>=0; i--) {
+     int newsize=2*thisvar->size+1;
+     struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC(sizeof(struct MGCNode *)*newsize);
+     int i;
+     for(i=thisvar->size-1; i>=0; i--) {
       struct MGCNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-	struct MGCNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct MGCNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
-    }
-    thisvar->size=newsize;
-    RUNFREE(thisvar->bucket);
-    thisvar->bucket=newbucket;
-  }*/
+     }
+     thisvar->size=newsize;
+     RUNFREE(thisvar->bucket);
+     thisvar->bucket=newbucket;
+     }*/
 
   hashkey = (unsigned int)data % thisvar->size;
   ptr = &thisvar->bucket[hashkey];
 
-	struct MGCNode * prev = NULL;
-	if(ptr->data < thisvar->num4conflicts) {
-		struct MGCNode *node=RUNMALLOC(sizeof(struct MGCNode));
+  struct MGCNode * prev = NULL;
+  if(ptr->data < thisvar->num4conflicts) {
+    struct MGCNode *node=RUNMALLOC(sizeof(struct MGCNode));
     node->data=data;
     node->next=(ptr->next);
     ptr->next=node;
-		ptr->data++;
-	} else {
-		while (ptr->next!=NULL) {
-			prev = ptr;
-			ptr = ptr->next;
-		}
-		ptr->data = data;
-		ptr->next = thisvar->bucket[hashkey].next;
-		thisvar->bucket[hashkey].next = ptr;
-		prev->next = NULL;
-	}
+    ptr->data++;
+  } else {
+    while (ptr->next!=NULL) {
+      prev = ptr;
+      ptr = ptr->next;
+    }
+    ptr->data = data;
+    ptr->next = thisvar->bucket[hashkey].next;
+    thisvar->bucket[hashkey].next = ptr;
+    prev->next = NULL;
+  }
 
   return 1;
 }
 
-#ifdef MULTICORE 
+#ifdef MULTICORE
 struct MGCHash * allocateMGCHash_I(int size,
-		                         int conflicts) {
-  struct MGCHash *thisvar;  
+                                   int conflicts) {
+  struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
     BAMBOO_EXIT(0xf101);
@@ -431,59 +430,59 @@ struct MGCHash * allocateMGCHash_I(int size,
   }
   thisvar=(struct MGCHash *)RUNMALLOC_I(sizeof(struct MGCHash));
   thisvar->size = size;
-  thisvar->bucket = 
-		(struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
-	// zero out all the buckets
-	BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
+  thisvar->bucket =
+    (struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
+  // zero out all the buckets
+  BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
 }
 
 int MGCHashadd_I(struct MGCHash * thisvar, int data) {
-  // Rehash code 
+  // Rehash code
   unsigned int hashkey;
   struct MGCNode *ptr;
 
   /*if (thisvar->numelements>=thisvar->size) {
-    int newsize=2*thisvar->size+1;
-    struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC_I(sizeof(struct MGCNode *)*newsize);
-    int i;
-    for(i=thisvar->size-1; i>=0; i--) {
+     int newsize=2*thisvar->size+1;
+     struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC_I(sizeof(struct MGCNode *)*newsize);
+     int i;
+     for(i=thisvar->size-1; i>=0; i--) {
       struct MGCNode *ptr;
       for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-	struct MGCNode * nextptr=ptr->next;
-	unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-	ptr->next=newbucket[newhashkey];
-	newbucket[newhashkey]=ptr;
-	ptr=nextptr;
+        struct MGCNode * nextptr=ptr->next;
+        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
+        ptr->next=newbucket[newhashkey];
+        newbucket[newhashkey]=ptr;
+        ptr=nextptr;
       }
-    }
-    thisvar->size=newsize;
-    RUNFREE(thisvar->bucket);
-    thisvar->bucket=newbucket;
-  }*/
+     }
+     thisvar->size=newsize;
+     RUNFREE(thisvar->bucket);
+     thisvar->bucket=newbucket;
+     }*/
 
   hashkey = (unsigned int)data % thisvar->size;
   ptr = &thisvar->bucket[hashkey];
 
-	struct MGCNode * prev = NULL;
-	if(ptr->data < thisvar->num4conflicts) {
-		struct MGCNode *node=RUNMALLOC_I(sizeof(struct MGCNode));
+  struct MGCNode * prev = NULL;
+  if(ptr->data < thisvar->num4conflicts) {
+    struct MGCNode *node=RUNMALLOC_I(sizeof(struct MGCNode));
     node->data=data;
     node->next=(ptr->next);
     ptr->next=node;
-		ptr->data++;
-	} else {
-		while (ptr->next!=NULL) {
-			prev = ptr;
-			ptr = ptr->next;
-		}
-		ptr->data = data;
-		ptr->next = thisvar->bucket[hashkey].next;
-		thisvar->bucket[hashkey].next = ptr;
-		prev->next = NULL;
-	}
+    ptr->data++;
+  } else {
+    while (ptr->next!=NULL) {
+      prev = ptr;
+      ptr = ptr->next;
+    }
+    ptr->data = data;
+    ptr->next = thisvar->bucket[hashkey].next;
+    thisvar->bucket[hashkey].next = ptr;
+    prev->next = NULL;
+  }
 
   return 1;
 }
@@ -493,21 +492,21 @@ int MGCHashcontains(struct MGCHash *thisvar, int data) {
   unsigned int hashkey = (unsigned int)data % thisvar->size;
 
   struct MGCNode *ptr = thisvar->bucket[hashkey].next;
-	struct MGCNode *prev = NULL;
+  struct MGCNode *prev = NULL;
   while (ptr!=NULL) {
     if (ptr->data == data) {
-			if(prev != NULL) {
-				prev->next = NULL;
-				ptr->next = thisvar->bucket[hashkey].next;
-				thisvar->bucket[hashkey].next = ptr;
-			}
+      if(prev != NULL) {
+	prev->next = NULL;
+	ptr->next = thisvar->bucket[hashkey].next;
+	thisvar->bucket[hashkey].next = ptr;
+      }
 
-      return 1;       // success 
+      return 1;       // success
     }
-		prev = ptr;
+    prev = ptr;
     ptr = ptr->next;
   }
 
-  return 0;   // failure 
+  return 0;   // failure
 }
 

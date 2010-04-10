@@ -34,11 +34,10 @@ echo -printscheduling print out scheduling graphs
 echo -printschedulesim print out scheduling simulator result graphs
 echo -abcclose close the array boundary check
 echo "-tilera_bme generate tilera version binary for Bare Mental Environment (should be used together with -multicore"
-echo "-tilera_zlinux generate tilera version binary for Zero-Overhead Linux (should be used together with -multicore"
+echo "-tilera_zlinux generate tilera version binary for Zero-Overhead Linux with multi-process mode (should be used together with -multicore"
 echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
 echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
-echo -threadsimulate generate multi-thread simulate version binary
 echo -multicoregc generate multi-core binary with garbage collection
 echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
 echo -gcprofile build with gcprofile options
@@ -341,9 +340,6 @@ shift
 elif [[ $1 = '-interrupt' ]]
 then
 INTERRUPTFLAG=true
-elif [[ $1 = '-threadsimulate' ]]
-then
-THREADSIMULATEFLAG=true
 elif [[ $1 = '-abcclose' ]]
 then
 JAVAOPTS="$JAVAOPTS -abcclose"

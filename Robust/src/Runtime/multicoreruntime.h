@@ -34,39 +34,39 @@ volatile bool isMsgHanging;
 volatile bool isMsgSending;
 
 #define MSG_INDEXINC_I() \
-	msgdataindex = (msgdataindex + 1) % (BAMBOO_MSG_BUF_LENGTH)
+  msgdataindex = (msgdataindex + 1) % (BAMBOO_MSG_BUF_LENGTH)
 
 #define MSG_LASTINDEXINC_I() \
-	msgdatalast = (msgdatalast + 1) % (BAMBOO_MSG_BUF_LENGTH)
+  msgdatalast = (msgdatalast + 1) % (BAMBOO_MSG_BUF_LENGTH)
 
 #define MSG_CACHE_I(n) \
-	msgdata[msgdatalast] = (n); \
-  MSG_LASTINDEXINC_I() 
+  msgdata[msgdatalast] = (n); \
+  MSG_LASTINDEXINC_I()
 
-// NOTE: if msgdataindex == msgdatalast, it always means that the buffer if 
+// NOTE: if msgdataindex == msgdatalast, it always means that the buffer if
 //       full. In the case that the buffer is empty, should never call this
 //       MACRO
 #define MSG_REMAINSIZE_I(s) \
-	if(msgdataindex < msgdatalast) { \
-		(*(int*)s) = msgdatalast - msgdataindex; \
-	} else if((msgdataindex == msgdatalast) && (!msgdatafull)) {\
-		(*(int*)s) = 0; \
-	}	else { \
-		(*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) - msgdataindex + msgdatalast; \
-	} 
+  if(msgdataindex < msgdatalast) { \
+    (*(int*)s) = msgdatalast - msgdataindex; \
+  } else if((msgdataindex == msgdatalast) && (!msgdatafull)) { \
+    (*(int*)s) = 0; \
+  }       else { \
+    (*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) -msgdataindex + msgdatalast; \
+  }
 
 #define OUTMSG_INDEXINC() \
-	outmsgindex = (outmsgindex + 1) % (BAMBOO_OUT_BUF_LENGTH)
+  outmsgindex = (outmsgindex + 1) % (BAMBOO_OUT_BUF_LENGTH)
 
 #define OUTMSG_LASTINDEXINC() \
-	outmsglast = (outmsglast + 1) % (BAMBOO_OUT_BUF_LENGTH); \
-	if(outmsglast == outmsgindex) { \
-		BAMBOO_EXIT(0xdd01); \
-	} 
+  outmsglast = (outmsglast + 1) % (BAMBOO_OUT_BUF_LENGTH); \
+  if(outmsglast == outmsgindex) { \
+    BAMBOO_EXIT(0xdd01); \
+  }
 
 #define OUTMSG_CACHE(n) \
-	outmsgdata[outmsglast] = (n); \
-  OUTMSG_LASTINDEXINC(); 
+  outmsgdata[outmsglast] = (n); \
+  OUTMSG_LASTINDEXINC();
 
 #define MAX_PACKET_WORDS 5
 
@@ -111,120 +111,120 @@ volatile bool isMsgSending;
  *      23 -- large objs mapping info
  *
  * ObjMsg: 1 + size of msg + obj's address + (task index + param index)+
- * StallMsg: 2 + corenum + sendobjs + receiveobjs 
+ * StallMsg: 2 + corenum + sendobjs + receiveobjs
  *             (size is always 4 * sizeof(int))
- * LockMsg: 3 + lock type + obj pointer + lock + request core 
+ * LockMsg: 3 + lock type + obj pointer + lock + request core
  *            (size is always 5 * sizeof(int))
- *          4/5/6 + lock type + obj pointer + lock 
+ *          4/5/6 + lock type + obj pointer + lock
  *            (size is always 4 * sizeof(int))
- *          9 + lock type + obj pointer +  redirect lock + root request core 
- *            + request core 
+ *          9 + lock type + obj pointer +  redirect lock + root request core
+ *            + request core
  *            (size is always 6 * sizeof(int))
- *          a/b + lock type + obj pointer + redirect lock 
+ *          a/b + lock type + obj pointer + redirect lock
  *              (size is always 4 * sizeof(int))
- *          c + lock type + lock + redirect lock 
+ *          c + lock type + lock + redirect lock
  *            (size is always 4 * sizeof(int))
  *          lock type: 0 -- read; 1 -- write
- * ProfileMsg: 7 + totalexetime 
+ * ProfileMsg: 7 + totalexetime
  *               (size is always 2 * sizeof(int))
- *             8 + corenum 
+ *             8 + corenum
  *               (size is always 2 * sizeof(int))
  * StatusMsg: d (size is always 1 * sizeof(int))
- *            e + status + corenum + sendobjs + receiveobjs 
+ *            e + status + corenum + sendobjs + receiveobjs
  *              (size is always 5 * sizeof(int))
  *            status: 0 -- stall; 1 -- busy
  * TerminateMsg: f (size is always 1 * sizeof(int)
- * MemoryMsg: 10 + size + corenum 
+ * MemoryMsg: 10 + size + corenum
  *              (size is always 3 * sizeof(int))
- *           11 + base_va + size 
+ *           11 + base_va + size
  *              (size is always 3 * sizeof(int))
  * GCMsg: 12/13 (size is always 1 * sizeof(int))
- *        14 + size of msg + (num of objs to move + (start address 
- *           + end address + dst core + start dst)+)? 
- *           + (num of incoming objs + (start dst + orig core)+)? 
- *           + (num of large obj lists + (start address + lenght 
+ *        14 + size of msg + (num of objs to move + (start address
+ *           + end address + dst core + start dst)+)?
+ *           + (num of incoming objs + (start dst + orig core)+)?
+ *           + (num of large obj lists + (start address + lenght
  *           + start dst)+)?
  *        15 (size is always 1 * sizeof(int))
- *        16 + corenum 
+ *        16 + corenum
  *           (size is always 2 * sizeof(int))
- *        17 + corenum + gcsendobjs + gcreceiveobjs 	
+ *        17 + corenum + gcsendobjs + gcreceiveobjs
  *           (size if always 4 * sizeof(int))
  *        18 + corenum + fulfilled blocks num + (finish compact(1) + current
- *           heap top)/(need mem(0) + mem need) 
+ *           heap top)/(need mem(0) + mem need)
  *           size is always 5 * sizeof(int))
- *        19 + corenum 
+ *        19 + corenum
  *              (size is always 2 * sizeof(int))
  *        1a (size is always 1 * sizeof(int))
  *        1b (size if always 1 * sizeof(int))
- *        1c + size of msg + corenum + gcsendobjs + gcreceiveobjs 
+ *        1c + size of msg + corenum + gcsendobjs + gcreceiveobjs
  *           (size is always 5 * sizeof(int))
- *        1d + obj's address 
+ *        1d + obj's address
  *           (size is always 2 * sizeof(int))
  *        1e + corenum + start addr + end addr
  *           (size if always 4 * sizeof(int))
- *        1f + obj's address + corenum 
+ *        1f + obj's address + corenum
  *           (size is always 3 * sizeof(int))
- *        20 + obj's address + dst address 
+ *        20 + obj's address + dst address
  *           (size if always 3 * sizeof(int))
  *        21 (size is always 1 * sizeof(int))
- *        22 + size of msg + corenum + current heap size 
+ *        22 + size of msg + corenum + current heap size
  *           + (num of large obj lists + (start address + length)+)?
- *        23 + orig large obj ptr + new large obj ptr 
+ *        23 + orig large obj ptr + new large obj ptr
  *            (size is always 3 * sizeof(int))
  */
 typedef enum {
-	MSGSTART = 0xD0, // 0xD0
-	TRANSOBJ,        // 0xD1
-	TRANSTALL,       // 0xD2
-	LOCKREQUEST,     // 0xD3
-	LOCKGROUNT,      // 0xD4
-	LOCKDENY,        // 0xD5
-	LOCKRELEASE,     // 0xD6
-	PROFILEOUTPUT,   // 0xD7
-	PROFILEFINISH,   // 0xD8
-	REDIRECTLOCK,    // 0xD9
-	REDIRECTGROUNT,  // 0xDa
-	REDIRECTDENY,    // 0xDb
-	REDIRECTRELEASE, // 0xDc
-	STATUSCONFIRM,   // 0xDd
-	STATUSREPORT,    // 0xDe
-	TERMINATE,       // 0xDf
-	MEMREQUEST,      // 0xE0
-	MEMRESPONSE,     // 0xE1
+  MSGSTART = 0xD0,       // 0xD0
+  TRANSOBJ,              // 0xD1
+  TRANSTALL,             // 0xD2
+  LOCKREQUEST,           // 0xD3
+  LOCKGROUNT,            // 0xD4
+  LOCKDENY,              // 0xD5
+  LOCKRELEASE,           // 0xD6
+  PROFILEOUTPUT,         // 0xD7
+  PROFILEFINISH,         // 0xD8
+  REDIRECTLOCK,          // 0xD9
+  REDIRECTGROUNT,        // 0xDa
+  REDIRECTDENY,          // 0xDb
+  REDIRECTRELEASE,       // 0xDc
+  STATUSCONFIRM,         // 0xDd
+  STATUSREPORT,          // 0xDe
+  TERMINATE,             // 0xDf
+  MEMREQUEST,            // 0xE0
+  MEMRESPONSE,           // 0xE1
 #ifdef MULTICORE_GC
-	GCSTARTINIT,     // 0xE2
-	GCSTART,         // 0xE3
-	GCSTARTCOMPACT,  // 0xE4
-	GCSTARTFLUSH,    // 0xE5
-	GCFINISHINIT,    // 0xE6
-	GCFINISHMARK,    // 0xE7
-	GCFINISHCOMPACT, // 0xE8
-	GCFINISHFLUSH,   // 0xE9
-	GCFINISH,        // 0xEa
-	GCMARKCONFIRM,   // 0xEb
-	GCMARKREPORT,    // 0xEc
-	GCMARKEDOBJ,     // 0xEd
-	GCMOVESTART,     // 0xEe
-	GCMAPREQUEST,    // 0xEf
-	GCMAPINFO,       // 0xF0
-	GCLOBJREQUEST,   // 0xF1
-	GCLOBJINFO,      // 0xF2
-	GCLOBJMAPPING,   // 0xF3
+  GCSTARTINIT,           // 0xE2
+  GCSTART,               // 0xE3
+  GCSTARTCOMPACT,        // 0xE4
+  GCSTARTFLUSH,          // 0xE5
+  GCFINISHINIT,          // 0xE6
+  GCFINISHMARK,          // 0xE7
+  GCFINISHCOMPACT,       // 0xE8
+  GCFINISHFLUSH,         // 0xE9
+  GCFINISH,              // 0xEa
+  GCMARKCONFIRM,         // 0xEb
+  GCMARKREPORT,          // 0xEc
+  GCMARKEDOBJ,           // 0xEd
+  GCMOVESTART,           // 0xEe
+  GCMAPREQUEST,          // 0xEf
+  GCMAPINFO,             // 0xF0
+  GCLOBJREQUEST,         // 0xF1
+  GCLOBJINFO,            // 0xF2
+  GCLOBJMAPPING,         // 0xF3
 #endif
-	MSGEND
+  MSGEND
 } MSGTYPE;
 
 /////////////////////////////////////////////////////////////////////////////////
-// NOTE: BAMBOO_TOTALCORE -- number of the available cores in the processor. 
-//                           No greater than the number of all the cores in 
+// NOTE: BAMBOO_TOTALCORE -- number of the available cores in the processor.
+//                           No greater than the number of all the cores in
 //                           the processor
-//       NUMCORES -- number of cores chosen to deploy the application. It can 
-//                   be greater than that required to fully parallelize the 
+//       NUMCORES -- number of cores chosen to deploy the application. It can
+//                   be greater than that required to fully parallelize the
 //                   application. The same as NUMCORES.
-//       NUMCORESACTIVE -- number of cores that really execute the 
+//       NUMCORESACTIVE -- number of cores that really execute the
 //                         application. No greater than NUMCORES
-//       NUMCORES4GC -- number of cores for gc. No greater than NUMCORES. 
-//                      NOTE: currently only support ontinuous cores as gc 
+//       NUMCORES4GC -- number of cores for gc. No greater than NUMCORES.
+//                      NOTE: currently only support ontinuous cores as gc
 //                            cores, i.e. 0~NUMCORES4GC-1
 ////////////////////////////////////////////////////////////////////////////////
 // data structures of status for termination
@@ -232,9 +232,9 @@ typedef enum {
 volatile int corestatus[NUMCORESACTIVE]; // records status of each core
                                          // 1: running tasks
                                          // 0: stall
-volatile int numsendobjs[NUMCORESACTIVE]; // records how many objects a core 
+volatile int numsendobjs[NUMCORESACTIVE]; // records how many objects a core
                                           // has sent out
-volatile int numreceiveobjs[NUMCORESACTIVE]; // records how many objects a 
+volatile int numreceiveobjs[NUMCORESACTIVE]; // records how many objects a
                                              // core has received
 volatile int numconfirm;
 volatile bool waitconfirm;
@@ -251,8 +251,8 @@ struct RuntimeHash * lockRedirectTbl;
 struct RuntimeHash * objRedirectLockTbl;
 #endif
 struct LockValue {
-	int redirectlock;
-	int value;
+  int redirectlock;
+  int value;
 };
 int lockobj;
 int lock2require;
@@ -277,42 +277,42 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_NUM_PAGES (NUMCORES4GC*(2+1)+3)
 #define BAMBOO_PAGE_SIZE (64 * 64)
 #define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
-#define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
+#define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) *(BAMBOO_NUM_PAGES))
 #else
 #define BAMBOO_NUM_PAGES (15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
-#define BAMBOO_PAGE_SIZE (16 * 1024)// * 1024)  // (4096)
+#define BAMBOO_PAGE_SIZE (16 * 1024) // * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (16 * 1024)
 #define BAMBOO_SHARED_MEM_SIZE (1024 * 1024 * 240) //(1024 * 1024 * 1024)
 //(3.0 * 1024 * 1024 * 1024) // 3G// ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES))
-#endif
+#endif // GC_DEBUG
 
 #ifdef MULTICORE_GC
 #include "multicoregarbage.h"
 
 typedef enum {
-	SMEMLOCAL = 0x0, // 0x0, using local mem only
-	SMEMFIXED,       // 0x1, use local mem in lower address space(1 block only)
-	                 //      and global mem in higher address space
-	SMEMMIXED,       // 0x2, like FIXED mode but use a threshold to control
-	SMEMGLOBAL,      // 0x3, using global mem only
-	SMEMEND
+  SMEMLOCAL = 0x0,       // 0x0, using local mem only
+  SMEMFIXED,             // 0x1, use local mem in lower address space(1 block only)
+                         //      and global mem in higher address space
+  SMEMMIXED,             // 0x2, like FIXED mode but use a threshold to control
+  SMEMGLOBAL,            // 0x3, using global mem only
+  SMEMEND
 } SMEMSTRATEGY;
 
-SMEMSTRATEGY bamboo_smem_mode; //-DSMEML: LOCAL; -DSMEMF: FIXED; 
-                              //-DSMEMM: MIXED; -DSMEMG: GLOBAL;
+SMEMSTRATEGY bamboo_smem_mode; //-DSMEML: LOCAL; -DSMEMF: FIXED;
+                               //-DSMEMM: MIXED; -DSMEMG: GLOBAL;
 
 struct freeMemItem {
-	INTPTR ptr;
-	int size;
-	int startblock;  
-	int endblock;
-	struct freeMemItem * next;
+  INTPTR ptr;
+  int size;
+  int startblock;
+  int endblock;
+  struct freeMemItem * next;
 };
 
 struct freeMemList {
-	struct freeMemItem * head;
-	struct freeMemItem * backuplist;  // hold removed freeMemItem for reuse; 
-	                                  // only maintain 1 fremmMemItem
+  struct freeMemItem * head;
+  struct freeMemItem * backuplist; // hold removed freeMemItem for reuse;
+                                   // only maintain 1 fremmMemItem
 };
 
 // table recording the number of allocated bytes on each block
@@ -324,9 +324,11 @@ volatile int bamboo_free_block;
 //struct freeMemList * bamboo_free_mem_list;
 int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
                           // e.g. 20% of the heap and should not be allocated
-													// otherwise gc is invoked
+// otherwise gc is invoked
 #else
-volatile mspace bamboo_free_msp;
+//volatile mspace bamboo_free_msp;
+INTPTR bamboo_free_smemp;
+int bamboo_free_smem_size;
 #endif
 volatile bool smemflag;
 volatile INTPTR bamboo_cur_msp;
@@ -339,31 +341,34 @@ int total_num_t6;
 #ifdef PROFILE
 
 #define TASKINFOLENGTH 30000
-//#define INTERRUPTINFOLENGTH 500
+#define INTERRUPTINFOLENGTH 500
 
 bool stall;
 //bool isInterrupt;
 int totalexetime;
+//unsigned long long interrupttime;
 
 typedef struct task_info {
   char* taskName;
   unsigned long long startTime;
   unsigned long long endTime;
   unsigned long long exitIndex;
-  struct Queue * newObjs; 
+  struct Queue * newObjs;
 } TaskInfo;
 
-/*typedef struct interrupt_info {
-   int startTime;
-   int endTime;
-   } InterruptInfo;*/
+// TODO
+typedef struct interrupt_info {
+  unsigned long long startTime;
+  unsigned long long endTime;
+} InterruptInfo;
 
 TaskInfo * taskInfoArray[TASKINFOLENGTH];
 int taskInfoIndex;
 bool taskInfoOverflow;
-/*InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
-   int interruptInfoIndex;
-   bool interruptInfoOverflow;*/
+// TODO
+InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
+int interruptInfoIndex;
+bool interruptInfoOverflow;
 volatile int profilestatus[NUMCORESACTIVE]; // records status of each core
                                             // 1: running tasks
                                             // 0: stall
@@ -396,82 +401,82 @@ void releasewritelock_I(void * ptr);
 #ifndef MULTICORE_GC
 void releasewritelock_r(void * lock, void * redirectlock);
 #endif
-/* this function is to process lock requests. 
+/* this function is to process lock requests.
  * can only be invoked in receiveObject() */
 // if return -1: the lock request is redirected
 //            0: the lock request is approved
 //            1: the lock request is denied
-INLINE int processlockrequest(int locktype, 
-		                          int lock, 
-															int obj, 
-															int requestcore, 
-															int rootrequestcore, 
-															bool cache);
-INLINE void processlockrelease(int locktype, 
-		                           int lock, 
-															 int redirectlock, 
-															 bool redirect);
+INLINE int processlockrequest(int locktype,
+                              int lock,
+                              int obj,
+                              int requestcore,
+                              int rootrequestcore,
+                              bool cache);
+INLINE void processlockrelease(int locktype,
+                               int lock,
+                               int redirectlock,
+                               bool redirect);
 
 // msg related functions
 INLINE void send_hanging_msg();
-INLINE void send_msg_1(int targetcore, 
-		                   unsigned long n0);
-INLINE void send_msg_2(int targetcore, 
-		                   unsigned long n0, 
-											 unsigned long n1);
-INLINE void send_msg_3(int targetcore, 
-		                   unsigned long n0, 
-											 unsigned long n1, 
-											 unsigned long n2);
-INLINE void send_msg_4(int targetcore, 
-		                   unsigned long n0, 
-											 unsigned long n1, 
-											 unsigned long n2, 
-											 unsigned long n3);
-INLINE void send_msg_5(int targetcore, 
-		                   unsigned long n0, 
-											 unsigned long n1, 
-											 unsigned long n2, 
-											 unsigned long n3, 
-											 unsigned long n4);
-INLINE void send_msg_6(int targetcore, 
-		                   unsigned long n0, 
-											 unsigned long n1, 
-											 unsigned long n2, 
-											 unsigned long n3, 
-											 unsigned long n4, 
-											 unsigned long n5);
-INLINE void send_msg_3_I(int targetcore, 
-  		                   unsigned long n0, 
-	  										 unsigned long n1, 
-		  									 unsigned long n2);
-INLINE void cache_msg_1(int targetcore, 
-												unsigned long n0);
-INLINE void cache_msg_2(int targetcore, 
-		                    unsigned long n0, 
-												unsigned long n1);
-INLINE void cache_msg_3(int targetcore, 
-		                    unsigned long n0, 
-												unsigned long n1, 
-												unsigned long n2);
-INLINE void cache_msg_4(int targetcore, 
-		                    unsigned long n0, 
-												unsigned long n1, 
-												unsigned long n2, 
-												unsigned long n3);
-INLINE void cache_msg_5(int targetcore, 
-		                    unsigned long n0, 
-												unsigned long n1, 
-												unsigned long n2, 
-												unsigned long n3, 
-												unsigned long n4);
-INLINE void cache_msg_6(int targetcore, 
-		                    unsigned long n0, 
-												unsigned long n1, 
-												unsigned long n2, 
-												unsigned long n3, 
-												unsigned long n4, 
-												unsigned long n5);
+INLINE void send_msg_1(int targetcore,
+                       unsigned long n0);
+INLINE void send_msg_2(int targetcore,
+                       unsigned long n0,
+                       unsigned long n1);
+INLINE void send_msg_3(int targetcore,
+                       unsigned long n0,
+                       unsigned long n1,
+                       unsigned long n2);
+INLINE void send_msg_4(int targetcore,
+                       unsigned long n0,
+                       unsigned long n1,
+                       unsigned long n2,
+                       unsigned long n3);
+INLINE void send_msg_5(int targetcore,
+                       unsigned long n0,
+                       unsigned long n1,
+                       unsigned long n2,
+                       unsigned long n3,
+                       unsigned long n4);
+INLINE void send_msg_6(int targetcore,
+                       unsigned long n0,
+                       unsigned long n1,
+                       unsigned long n2,
+                       unsigned long n3,
+                       unsigned long n4,
+                       unsigned long n5);
+INLINE void send_msg_3_I(int targetcore,
+                         unsigned long n0,
+                         unsigned long n1,
+                         unsigned long n2);
+INLINE void cache_msg_1(int targetcore,
+                        unsigned long n0);
+INLINE void cache_msg_2(int targetcore,
+                        unsigned long n0,
+                        unsigned long n1);
+INLINE void cache_msg_3(int targetcore,
+                        unsigned long n0,
+                        unsigned long n1,
+                        unsigned long n2);
+INLINE void cache_msg_4(int targetcore,
+                        unsigned long n0,
+                        unsigned long n1,
+                        unsigned long n2,
+                        unsigned long n3);
+INLINE void cache_msg_5(int targetcore,
+                        unsigned long n0,
+                        unsigned long n1,
+                        unsigned long n2,
+                        unsigned long n3,
+                        unsigned long n4);
+INLINE void cache_msg_6(int targetcore,
+                        unsigned long n0,
+                        unsigned long n1,
+                        unsigned long n2,
+                        unsigned long n3,
+                        unsigned long n4,
+                        unsigned long n5);
 INLINE void transferObject(struct transObjInfo * transObj);
 INLINE int receiveMsg(uint32_t send_port_pending);
 

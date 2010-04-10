@@ -116,7 +116,7 @@ void injectinstructionfailure() {
 #ifdef D___Double______nativeparsedouble____L___String___
 double CALL01(___Double______nativeparsedouble____L___String___,struct ___String___ * ___str___) {
   int length=VAR(___str___)->___count___;
-  int maxlength=(length>60)?60:length;
+  int maxlength=(length>60) ? 60 : length;
   char str[maxlength+1];
   struct ArrayObject * chararray=VAR(___str___)->___value___;
   int i;
@@ -145,7 +145,7 @@ int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, doub
 }
 #else
 int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, double ___val___, struct ArrayObject ___chararray___) {
-	return 0;
+  return 0;
 }
 #endif
 
@@ -212,14 +212,14 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *)FREEMALLOC((struct garbagelist *) ptr, classsize[type]);
 #ifdef DEBUG
-  printf("(%x,%x): new object: %x \n", udn_tile_coord_x(), 
-		  udn_tile_coord_y(), v);
+  printf("(%x,%x): new object: %x \n", udn_tile_coord_x(),
+         udn_tile_coord_y(), v);
 #endif
   v->type=type;
   v->version = 0;
   v->lock = NULL;
-	v->lockcount = 0;
-	initlock(v);
+  v->lockcount = 0;
+  initlock(v);
   return v;
 }
 
@@ -228,8 +228,8 @@ void * allocate_new(void * ptr, int type) {
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=(struct ArrayObject *)FREEMALLOC((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
 #ifdef DEBUG
-  printf("(%x,%x): new array object: %x \n", udn_tile_coord_x(), 
-		  udn_tile_coord_y(), v);
+  printf("(%x,%x): new array object: %x \n", udn_tile_coord_x(),
+         udn_tile_coord_y(), v);
 #endif
   v->type=type;
   v->version = 0;
@@ -238,7 +238,7 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
     return NULL;
   }
   v->___length___=length;
-	initlock(v);
+  initlock(v);
   return v;
 }
 
@@ -249,7 +249,7 @@ void * allocate_new(int type) {
   v->version = 0;
   //v->numlocks = 0;
   v->lock = NULL;
-	initlock(v);
+  initlock(v);
   return v;
 }
 
@@ -262,7 +262,7 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   //v->numlocks = 0;
   v->lock = NULL;
   v->___length___=length;
-	initlock(v);
+  initlock(v);
   return v;
 }
 #endif

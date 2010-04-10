@@ -22,8 +22,8 @@
 /* MGCHash *********************************************************/
 typedef struct mgchashlistnode {
   void * key;
-  void * val; //this can be cast to another type or used to point to a 
- 	            //larger structure 
+  void * val; //this can be cast to another type or used to point to a
+  //larger structure
   struct mgchashlistnode *next;
 } mgchashlistnode_t;
 

@@ -15,9 +15,9 @@
 #else
 #define BAMBOO_SMEM_SIZE_L (2 * BAMBOO_SMEM_SIZE)
 #endif
-#define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC) 
-         // let each gc core to have one big block, this is very important 
-				 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
+#define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)
+// let each gc core to have one big block, this is very important
+// for the computation of NUMBLOCKS(s, n), DO NOT change this!
 
 #define NUMPTRS 100
 
@@ -27,7 +27,7 @@
 
 typedef struct gc_info {
   unsigned long long time[7];
-	int index;
+  int index;
 } GCInfo;
 
 GCInfo * gc_infoArray[GCINFOLENGTH];
@@ -41,21 +41,21 @@ int num_mapinforequest_i;
 #endif
 
 typedef enum {
-	INIT = 0,     // 0
-	DISCOVERED,   // 1
-	MARKED,       // 2
-	COMPACTED,    // 3
-	FLUSHED,      // 4
-	END           // 5
+  INIT = 0,           // 0
+  DISCOVERED,         // 1
+  MARKED,             // 2
+  COMPACTED,          // 3
+  FLUSHED,            // 4
+  END                 // 5
 } GCOBJFLAG;
 
 typedef enum {
-	INITPHASE = 0x0,   // 0x0
-	MARKPHASE,         // 0x1
-	COMPACTPHASE,      // 0x2
-	SUBTLECOMPACTPHASE,// 0x3
-	FLUSHPHASE,        // 0x4
-	FINISHPHASE        // 0x5
+  INITPHASE = 0x0,         // 0x0
+  MARKPHASE,               // 0x1
+  COMPACTPHASE,            // 0x2
+  SUBTLECOMPACTPHASE,      // 0x3
+  FLUSHPHASE,              // 0x4
+  FINISHPHASE              // 0x5
 } GCPHASETYPE;
 
 volatile bool gcflag;
@@ -68,8 +68,8 @@ struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 volatile int gccorestatus[NUMCORESACTIVE]; // records status of each core
                                            // 1: running gc
                                            // 0: stall
-volatile int gcnumsendobjs[NUMCORESACTIVE];//records how many objects sent out
-volatile int gcnumreceiveobjs[NUMCORESACTIVE];//records how many objects 
+volatile int gcnumsendobjs[NUMCORESACTIVE]; //records how many objects sent out
+volatile int gcnumreceiveobjs[NUMCORESACTIVE]; //records how many objects
                                               //received
 volatile bool gcbusystatus;
 int gcself_numsendobjs;
@@ -87,7 +87,7 @@ int gcnumlobjs;
 INTPTR gcmarkedptrbound;
 int gcblock2fill;
 int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
-int gcfilledblocks[NUMCORES4GC];//indicate how many blocks have been fulfilled
+int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
 // move instruction;
 INTPTR gcmovestartaddr;
 int gcdstcore;
@@ -96,14 +96,14 @@ int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
 struct flushlist {
-	void * key;
-	struct flushnode * val;
-	struct flushlist * next;
+  void * key;
+  struct flushnode * val;
+  struct flushlist * next;
 };
 
 struct flushnode {
-	void ** ptr;
-	struct flushnode * next;
+  void ** ptr;
+  struct flushnode * next;
 };
 // mapping of old address to new address
 volatile struct RuntimeHash * gcpointertbl;
@@ -111,8 +111,8 @@ volatile struct RuntimeHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;
 volatile bool gcismapped;
-//volatile struct flushlist * gcflushlist; // list of (key, list of reference 
-                                         // to be flushed)
+//volatile struct flushlist * gcflushlist; // list of (key, list of reference
+// to be flushed)
 //volatile int gcnumflush;
 
 // table recording the starting address of each small block
@@ -126,83 +126,83 @@ int gcnumblock; // number of total blocks in the shared mem
 int gcbaseva; // base va for shared memory without reserved sblocks
 
 #define ISSHAREDOBJ(p) \
-	((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
+  ((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 #define ALIGNSIZE(s, as) \
-	(*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
+  (*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
 
-// mapping of pointer to block # (start from 0), here the block # is 
+// mapping of pointer to block # (start from 0), here the block # is
 // the global index
 #define BLOCKINDEX(p, b) \
   { \
-		int t = (p) - gcbaseva; \
-		if(t < (BAMBOO_LARGE_SMEM_BOUND)) { \
-			(*((int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
-		} else { \
-			(*((int*)b)) = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE));\
-		} \
-	}
+    int t = (p) - gcbaseva; \
+    if(t < (BAMBOO_LARGE_SMEM_BOUND)) { \
+      (*((int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
+    } else { \
+      (*((int*)b)) = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE)); \
+    } \
+  }
 
 // mapping of pointer to core #
 #define RESIDECORE(p, c) \
-{ \
-	if(1 == (NUMCORES4GC)) { \
-		(*((int*)c)) = 0; \
-	} else {\
-		int b; \
-		BLOCKINDEX((p), &b); \
-		(*((int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
-	}\
-}
+  { \
+    if(1 == (NUMCORES4GC)) { \
+      (*((int*)c)) = 0; \
+    } else { \
+      int b; \
+      BLOCKINDEX((p), &b); \
+      (*((int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
+    } \
+  }
 
 // NOTE: n starts from 0
-// mapping of heaptop (how many bytes there are in the local heap) to 
+// mapping of heaptop (how many bytes there are in the local heap) to
 // the number of the block
-// the number of the block indicates that the block is the xth block on 
+// the number of the block indicates that the block is the xth block on
 // the local heap
 #define NUMBLOCKS(s, n) \
-	if(s < (BAMBOO_SMEM_SIZE_L)) { \
-		(*((int*)(n))) = 0; \
-	} else { \
-		(*((int*)(n))) = 1 + ((s) - (BAMBOO_SMEM_SIZE_L)) / (BAMBOO_SMEM_SIZE); \
-	}
+  if(s < (BAMBOO_SMEM_SIZE_L)) { \
+    (*((int*)(n))) = 0; \
+  } else { \
+    (*((int*)(n))) = 1 + ((s) - (BAMBOO_SMEM_SIZE_L)) / (BAMBOO_SMEM_SIZE); \
+  }
 
 #define OFFSET(s, o) \
-	if(s < BAMBOO_SMEM_SIZE_L) { \
-		(*((int*)(o))) = (s); \
-	} else { \
-		(*((int*)(o))) = ((s) - (BAMBOO_SMEM_SIZE_L)) % (BAMBOO_SMEM_SIZE); \
-	}
+  if(s < BAMBOO_SMEM_SIZE_L) { \
+    (*((int*)(o))) = (s); \
+  } else { \
+    (*((int*)(o))) = ((s) - (BAMBOO_SMEM_SIZE_L)) % (BAMBOO_SMEM_SIZE); \
+  }
 
 // mapping of (core #, index of the block) to the global block index
-#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2))) 
+#define BLOCKINDEX2(c, n) (gc_core2block[(2*(c))+((n)%2)]+((NUMCORES4GC*2)*((n)/2)))
 
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
   { \
-		int b = BLOCKINDEX2((c), (n)); \
-		if(b < (NUMCORES4GC)) { \
-			(*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
-		} else { \
-			(*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
-			               (b-(NUMCORES4GC))*(BAMBOO_SMEM_SIZE); \
-		} \
-	}
+    int b = BLOCKINDEX2((c), (n)); \
+    if(b < (NUMCORES4GC)) { \
+      (*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
+    } else { \
+      (*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
+                     (b-(NUMCORES4GC))*(BAMBOO_SMEM_SIZE); \
+    } \
+  }
 
 // the next core in the top of the heap
 #define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES4GC*2)])
 
 inline void gc(struct garbagelist * stackptr); // core coordinator routine
-inline void gc_collect(struct garbagelist* stackptr);//core collector routine
-inline void gc_nocollect(struct garbagelist* stackptr);//non-gc core collector routine
+inline void gc_collect(struct garbagelist* stackptr); //core collector routine
+inline void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
 inline void transferMarkResults_I();
 inline void gc_enqueue_I(void *ptr);
 inline void gc_lobjenqueue_I(void *ptr, int length, int host);
-inline bool gcfindSpareMem_I(int * startaddr, 
-		                         int * tomove,
- 								  				   int * dstcore,
-									  			   int requiredmem,
-										  		   int requiredcore);
+inline bool gcfindSpareMem_I(int * startaddr,
+                             int * tomove,
+                             int * dstcore,
+                             int requiredmem,
+                             int requiredcore);
 
 inline void * gc_lobjdequeue4(int * length, int * host);
 inline int gc_lobjmoreItems4();
