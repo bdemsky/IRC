@@ -135,7 +135,6 @@ public class ArrayList
     	int oldCapacity = elementData.length;
     	if (minCapacity > oldCapacity) 
     	{
-    	    Object oldData[] = elementData;
     	    int newCapacity = (oldCapacity * 3)/2 + 1;
         	    if (newCapacity < minCapacity)
         	    	newCapacity = minCapacity;
@@ -194,6 +193,21 @@ public class ArrayList
     	}
     }
     
+    /**
+     * Returns a shallow copy of this <tt>ArrayList</tt> instance.  (The
+     * elements themselves are not copied.)
+     *
+     * @return a clone of this <tt>ArrayList</tt> instance
+     */
+    public ArrayList clone() 
+    {
+    	ArrayList clone = new ArrayList(this.size + 1);
+    	systemArrayCopy(this.elementData, 0, clone.elementData, 0, this.size);
+    	
+    	clone.size = this.size;
+    	
+    	return clone;
+    }
     
     /**
      * Removes the element at the specified position in this list.
