@@ -19,10 +19,22 @@ public class Test
 		{
 			Board b = new Board(data);
 			Board solved = Solver.go(b);
+			System.out.println("Here's the best I could do:");
 			System.out.println(solved);
+			writeResults(b.toString(), solved.toString());
 		}
 		
 	}	
+
+    public void writeResults(String org, String solved)
+    {
+	FileOutputStream out = new FileOutputStream("out.txt");
+	out.write("Input puzzle:\n".getBytes());
+	out.write(org.getBytes());
+	out.write("\nProcessed Puzzle:\n".getBytes());
+	out.write(solved.getBytes());
+	out.close();
+    }
 
     public void doSomeWorkSolvingStaticPuzzle()
     {

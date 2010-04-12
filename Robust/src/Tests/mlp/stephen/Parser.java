@@ -53,7 +53,7 @@ public class Parser
 			}
 		}
 		
-		System.out.println("Parsing complete, returning result");
+		System.out.println("Parsing complete.");
 		return preBoard;
 	}
 }
