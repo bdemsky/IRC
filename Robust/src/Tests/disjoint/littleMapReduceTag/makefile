@@ -9,9 +9,9 @@ BAMBOOFLAGS= -recover
 #VISITMODE= -disjoint-dvisit-pqueue
 VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
-DEBUGMODE= -enable-assertions -disjoint-write-dots all -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism
+DEBUGMODE= -enable-assertions -disjoint-write-dots all -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism -disjoint-debug-scheduling
 
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -flatirusermethods -flatirtasks
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 #-flatirusermethods #-flatirtasks
 
 bamboo:
 	$(BUILDSCRIPT) $(BAMBOOFLAGS) $(DEBUGMODE)   $(VISITMODE) $(BSFLAGS) $(DEBUGFLAGS) $(SNAPFLAGS) *.java

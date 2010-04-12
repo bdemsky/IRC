@@ -93,6 +93,8 @@ public class State {
   public boolean DISJOINTDVISITPQUE=false;
   public boolean DISJOINTDVISITSTACKEESONTOP=false;
 
+  public boolean DISJOINTDEBUGSCHEDULING=false;
+
   public boolean OPTIONAL=false;
   public boolean ARRAYPAD=false;
   public boolean THREAD=false;

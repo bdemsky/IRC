@@ -13,7 +13,10 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 ##       after capture (or let it run on normally)
 ##
 #################################################
-#DEBUGFLAGS= -disjoint-debug-callsite addInterOutput t6 50 5 false
+#DEBUGFLAGS= -disjoint-debug-callsite addInterOutput t6 44 2 false
+#DEBUGFLAGS= -disjoint-debug-callsite addElement addInterOutput 30 100 false
+
+#DEBUGFLAGS= -disjoint-debug-callsite setPartial reduceOutput 1 20 false
 
 
 #################################################
@@ -31,10 +34,15 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #################################################
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeatureTask 5 10 true
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeature 5 1 true
-SNAPFLAGS= -disjoint-debug-snap-method t6 30 1 false
-#SNAPFLAGS= -disjoint-debug-snap-method reduceOutput 5 50 true
+
+#SNAPFLAGS= -disjoint-debug-snap-method t6 20 1 false
+#SNAPFLAGS= -disjoint-debug-snap-method addInterOutput 10 50 false
+
+#SNAPFLAGS= -disjoint-debug-snap-method reduceOutput 1 20 true
 #SNAPFLAGS= -disjoint-debug-snap-method setReduceFinish 5 50 true
 #SNAPFLAGS= -disjoint-debug-snap-method setPartial 1 50 true
+
+
 
 
 BAMBOOFLAGS= -recover
@@ -47,7 +55,7 @@ VISITMODE= -disjoint-dvisit-stack-callees-on-top
 DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -flatirusermethods
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -flatirusermethods -flatirtasks
 
 all:
 	echo 'pass another arg: <bamboo/bamboo-release/java/java-release>'

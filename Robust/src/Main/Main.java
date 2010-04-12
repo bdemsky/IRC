@@ -255,6 +255,10 @@ public class Main {
         state.DISJOINTDVISITSTACKEESONTOP = true;
         state.DISJOINTDVISITPQUE          = false;
         state.DISJOINTDVISITSTACK         = false;
+
+
+      } else if( option.equals( "-disjoint-debug-scheduling" ) ) {
+        state.DISJOINTDEBUGSCHEDULING = true;
       }
       
 

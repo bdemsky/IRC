@@ -368,7 +368,7 @@ public class DisjointAnalysis {
   // current descriptors to visit in fixed-point
   // interprocedural analysis, prioritized by
   // dependency in the call graph
-  protected Stack<DescriptorQWrapper>
+  protected Stack<Descriptor>
     descriptorsToVisitStack;
   protected PriorityQueue<DescriptorQWrapper> 
     descriptorsToVisitQ;
@@ -390,7 +390,6 @@ public class DisjointAnalysis {
   // the stack-visit mode
   protected Set<Descriptor>
     calleesToEnqueue;
-
 
   // maps a descriptor to its current partial result
   // from the intraprocedural fixed-point analysis--
@@ -508,7 +507,7 @@ public class DisjointAnalysis {
         state.DISJOINTDVISITSTACKEESONTOP 
         ) {
       descriptorsToVisitStack =
-        new Stack<DescriptorQWrapper>();
+        new Stack<Descriptor>();
     }
 
     if( state.DISJOINTDVISITPQUE ) {
@@ -657,32 +656,33 @@ public class DisjointAnalysis {
   // method's callees are updated, it must be reanalyzed
   protected void analyzeMethods() throws java.io.IOException {  
 
+    // task or non-task (java) mode determines what the roots
+    // of the call chain are, and establishes the set of methods
+    // reachable from the roots that will be analyzed
+    
     if( state.TASK ) {
-      // This analysis does not support Bamboo at the moment,
-      // but if it does in the future we would initialize the
-      // set of descriptors to analyze as the program-reachable
-      // tasks and the methods callable by them.  For Java,
-      // just methods reachable from the main method.
-      System.out.println( "Bamboo..." );
-      Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();
+      System.out.println( "Bamboo mode..." );
       
-      while (taskItr.hasNext()) {
-	  TaskDescriptor td = (TaskDescriptor) taskItr.next();
-	  if (!descriptorsToAnalyze.contains(td)) {	      
-	      descriptorsToAnalyze.add(td);
-	      descriptorsToAnalyze.addAll(callGraph.getAllMethods(td));
-	  }	  
+      Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();      
+      while( taskItr.hasNext() ) {
+        TaskDescriptor td = (TaskDescriptor) taskItr.next();
+        if( !descriptorsToAnalyze.contains( td ) ) {
+          // add all methods transitively reachable from the
+          // tasks as well
+          descriptorsToAnalyze.add( td );
+          descriptorsToAnalyze.addAll( callGraph.getAllMethods( td ) );
+        }	  
       }
-
+      
     } else {
+      System.out.println( "Java mode..." );
+
       // add all methods transitively reachable from the
       // source's main to set for analysis
       mdSourceEntry = typeUtil.getMain();
       descriptorsToAnalyze.add( mdSourceEntry );
-      descriptorsToAnalyze.addAll( 
-        callGraph.getAllMethods( mdSourceEntry ) 
-                                   );
-
+      descriptorsToAnalyze.addAll( callGraph.getAllMethods( mdSourceEntry ) );
+      
       // fabricate an empty calling context that will call
       // the source's main, but call graph doesn't know
       // about it, so explicitly add it
@@ -690,43 +690,64 @@ public class DisjointAnalysis {
       descriptorsToAnalyze.add( mdAnalysisEntry );
     }
 
-    // topologically sort according to the call graph so 
-    // leaf calls are ordered first, smarter analysis order
-    // CHANGED: order leaf calls last!!
-    LinkedList<Descriptor> sortedDescriptors = 
-      topologicalSort( descriptorsToAnalyze );
 
-    // add sorted descriptors to priority queue, and duplicate
-    // the queue as a set for efficiently testing whether some
-    // method is marked for analysis
-    int p = 0;
-    Iterator<Descriptor> dItr = sortedDescriptors.iterator();
-    while( dItr.hasNext() ) {
-      Descriptor d = dItr.next();
+    // now, depending on the interprocedural mode for visiting 
+    // methods, set up the needed data structures
 
-      mapDescriptorToPriority.put( d, new Integer( p ) );
+    if( state.DISJOINTDVISITPQUE ) {
+    
+      // topologically sort according to the call graph so 
+      // leaf calls are last, helps build contexts up first
+      LinkedList<Descriptor> sortedDescriptors = 
+        topologicalSort( descriptorsToAnalyze );
 
-      if( state.DISJOINTDVISITSTACK ||
-          state.DISJOINTDVISITSTACKEESONTOP
-          ) {
-        descriptorsToVisitStack.add( new DescriptorQWrapper( p, d ) );
+      // add sorted descriptors to priority queue, and duplicate
+      // the queue as a set for efficiently testing whether some
+      // method is marked for analysis
+      int p = 0;
+      Iterator<Descriptor> dItr;
 
-      } else if( state.DISJOINTDVISITPQUE ) {
+      // for the priority queue, give items at the head
+      // of the sorted list a low number (highest priority)
+      while( !sortedDescriptors.isEmpty() ) {
+        Descriptor d = sortedDescriptors.removeFirst();
+        mapDescriptorToPriority.put( d, new Integer( p ) );
         descriptorsToVisitQ.add( new DescriptorQWrapper( p, d ) );
+        descriptorsToVisitSet.add( d );
+        ++p;
       }
 
-      descriptorsToVisitSet.add( d );
-      ++p;
+    } else if( state.DISJOINTDVISITSTACK ||
+               state.DISJOINTDVISITSTACKEESONTOP 
+               ) {
+      // if we're doing the stack scheme, just throw the root
+      // method or tasks on the stack
+      if( state.TASK ) {
+        Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();      
+        while( taskItr.hasNext() ) {
+	  TaskDescriptor td = (TaskDescriptor) taskItr.next();
+          descriptorsToVisitStack.add( td );
+          descriptorsToVisitSet.add( td );
+        }
+        
+      } else {
+        descriptorsToVisitStack.add( mdAnalysisEntry );
+        descriptorsToVisitSet.add( mdAnalysisEntry );
+      }
+
+    } else {
+      throw new Error( "Unknown method scheduling mode" );
     }
 
-    // analyze methods from the priority queue until it is empty
+
+    // analyze scheduled methods until there are no more to visit
     while( moreDescriptorsToVisit() ) {
       Descriptor d = null;
 
       if( state.DISJOINTDVISITSTACK ||
           state.DISJOINTDVISITSTACKEESONTOP
           ) {
-        d = descriptorsToVisitStack.pop().getDescriptor();
+        d = descriptorsToVisitStack.pop();
 
       } else if( state.DISJOINTDVISITPQUE ) {
         d = descriptorsToVisitQ.poll().getDescriptor();
@@ -755,19 +776,36 @@ public class DisjointAnalysis {
       if( !rg.equals( rgPrev ) ) {
         setPartial( d, rg );
         
+        if( state.DISJOINTDEBUGSCHEDULING ) {
+          System.out.println( "  complete graph changed, scheduling callers for analysis:" );
+        }
+
         // results for d changed, so enqueue dependents
         // of d for further analysis
 	Iterator<Descriptor> depsItr = getDependents( d ).iterator();
 	while( depsItr.hasNext() ) {
 	  Descriptor dNext = depsItr.next();
           enqueue( dNext );
+
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println( "    "+dNext );
+          }
 	}
 
         if( state.DISJOINTDVISITSTACKEESONTOP ) {
+
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println( "  contexts changed, scheduling callees for analysis:" );
+          }
+
           depsItr = calleesToEnqueue.iterator();
           while( depsItr.hasNext() ) {
             Descriptor dNext = depsItr.next();
             enqueue( dNext );
+
+            if( state.DISJOINTDEBUGSCHEDULING ) {
+              System.out.println( "    "+dNext );
+            }
           }
           calleesToEnqueue.clear();
         }
@@ -1145,6 +1183,11 @@ public class DisjointAnalysis {
           calleesToEnqueue.add( mdCallee );
         } else {
           enqueue( mdCallee );
+
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println( "  context changed, scheduling callee: "+mdCallee );
+          }
+
         }
 
       }
@@ -1191,6 +1234,10 @@ public class DisjointAnalysis {
             calleesToEnqueue.add( mdPossible );
           } else {
             enqueue( mdPossible );
+
+            if( state.DISJOINTDEBUGSCHEDULING ) {
+              System.out.println( "  callee hasn't been analyzed, scheduling: "+mdPossible );
+            }
           }
 
         } else {
@@ -1535,17 +1582,16 @@ public class DisjointAnalysis {
 
 
   protected void enqueue( Descriptor d ) {
+
     if( !descriptorsToVisitSet.contains( d ) ) {
-      Integer priority = mapDescriptorToPriority.get( d );
 
       if( state.DISJOINTDVISITSTACK ||
           state.DISJOINTDVISITSTACKEESONTOP
           ) {
-        descriptorsToVisitStack.add( new DescriptorQWrapper( priority, 
-                                                             d ) 
-                                     );
+        descriptorsToVisitStack.add( d );
 
       } else if( state.DISJOINTDVISITPQUE ) {
+        Integer priority = mapDescriptorToPriority.get( d );
         descriptorsToVisitQ.add( new DescriptorQWrapper( priority, 
                                                          d ) 
                                  );
@@ -1615,14 +1661,25 @@ public class DisjointAnalysis {
   }
 
   private AllocSite createParameterAllocSite( ReachGraph     rg, 
-                                              TempDescriptor tempDesc
+                                              TempDescriptor tempDesc,
+                                              boolean        flagRegions
                                               ) {
     
-    FlatNew flatNew = new FlatNew( tempDesc.getType(), // type
-                                   tempDesc,           // param temp
-                                   false,              // global alloc?
-                                   "param"+tempDesc    // disjoint site ID string
-                                   );
+    FlatNew flatNew;
+    if( flagRegions ) {
+      flatNew = new FlatNew( tempDesc.getType(), // type
+                             tempDesc,           // param temp
+                             false,              // global alloc?
+                             "param"+tempDesc    // disjoint site ID string
+                             );
+    } else {
+      flatNew = new FlatNew( tempDesc.getType(), // type
+                             tempDesc,           // param temp
+                             false,              // global alloc?
+                             null                // disjoint site ID string
+                             );
+    }
+
     // create allocation site
     AllocSite as = AllocSite.factory( allocationDepth, 
                                       flatNew, 
@@ -1674,7 +1731,7 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 			if(i==dimCount){
 				as = alloc;
 			}else{
-				as = createParameterAllocSite(rg, tempDesc);
+                          as = createParameterAllocSite(rg, tempDesc, false);
 			}
 			// make a new reference to allocated node
 		    hrnSummary = 
@@ -1732,7 +1789,7 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
     	typeDesc.setArrayCount(0);
     	if(!mapToExistingNode.containsKey(typeDesc)){
     		TempDescriptor tempDesc=new TempDescriptor(type.getSymbol(),typeDesc);
-    		AllocSite as = createParameterAllocSite(rg, tempDesc);
+    		AllocSite as = createParameterAllocSite(rg, tempDesc, false);
     		// make a new reference to allocated node
 		    HeapRegionNode hrnSummary = 
 				rg.createNewHeapRegionNode(as.getSummary(), // id or null to generate a new one
@@ -1796,7 +1853,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	
 	TempDescriptor tempDesc = fm.getParameter(idx);
 	
-	AllocSite as = createParameterAllocSite(rg, tempDesc);
+	AllocSite as = createParameterAllocSite(rg, tempDesc, true);
 	VariableNode lnX = rg.getVariableNodeFromTemp(tempDesc);
 	Integer idNewest = as.getIthOldest(0);
 	HeapRegionNode hrnNewest = rg.id2hrn.get(idNewest);
@@ -1847,7 +1904,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 		    //corresponding allocsite has already been created for a parameter variable.
 			allocSite=as;
 		    }else{
-			allocSite = createParameterAllocSite(rg, td);
+                      allocSite = createParameterAllocSite(rg, td, false);
 		    }
 		    String strDesc = allocSite.toStringForDOT()
 			+ "\\nsummary";
