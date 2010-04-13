@@ -10,7 +10,7 @@
 #ifdef DSTM
 #ifdef RECOVERY
 #include "DSTM/interface_recovery/dstm.h"
-#include "DSTM/interface_recovery/prelookup.h"
+#include "DSTM/interface_recovery/altprelookup.h"
 
 #ifdef RECOVERYSTATS
   extern int numRecovery;
@@ -412,7 +412,6 @@ void CALL01(___Task______execution____,struct ___Task___ * ___this___)
 
 #ifdef PRECISE_GC
   int p[] = {1,0 , oid};
-   
   ((void(*) (void *))virtualtable[type*MAXCOUNT + EXECUTEMETHOD])(p);
 #else
   // call the proper execute method
