@@ -85,7 +85,7 @@ public class RainForest extends Thread {
     //Do N rounds 
     //do one move per round and synchronise
     for(int i = 0; i<ROUNDS; i++) {
-//      System.out.println("iteration= " + i);
+      //System.out.println("iteration= " + i);
       atomic {
         doOneMove(land, gamer);
       }
@@ -99,7 +99,7 @@ public class RainForest extends Thread {
     }
 
     fi = System.currentTimeMillis();
-    System.out.println("\n\n\n I'm Done - Time Elapse : " + (double)((fi-st)/1000) +"\n\n\n");
+    System.printString("\n\n\n I'm Done - Time Elapse : " + (double)((fi-st)/1000) +"\n\n\n");
     
     RecoveryStat.printRecoveryStat();
     while(true) {

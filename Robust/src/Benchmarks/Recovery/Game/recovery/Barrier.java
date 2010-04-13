@@ -67,9 +67,9 @@ public class Barrier extends Thread {
           y=tinfo[i].counter;
         }
 
-        //System.out.println("i= " + i + " i's count= " + y + " threadid= " + threadid + " mycount= " + x);
+        //System.printString("i= " + i + " i's count= " + y + " threadid= " + threadid + " mycount= " + x);
 
-        while(y!=x && (Thread.getStatus(i) != -1)) {
+        while(y<x && (Thread.getStatus(i) != -1)) {
           //Wait for 100 microseconds
           sleep(100);
           atomic {
