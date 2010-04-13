@@ -194,6 +194,10 @@ void *dstmAccept(void *acceptfd) {
 	}
       }
       h = (objheader_t *) srcObj;
+      /* If object is write locked, just wait */
+      /* May want to remove at some point */
+      while((*(volatile int *)STATUSPTR(h))<=0)
+        sched_yield();
       GETSIZE(size, h);
       size += sizeof(objheader_t);
       sockid = (int) acceptfd;
@@ -385,10 +389,10 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd, struct readstruc
   }
   ptr = (char *) modptr;
   for(i = 0 ; i < fixed.nummod; i++) {
-    int tmpsize;
     headaddr = (objheader_t *) ptr;
     oid = OID(headaddr);
     oidmod[i] = oid;
+    int tmpsize=0;
     GETSIZE(tmpsize, headaddr);
     ptr += sizeof(objheader_t) + tmpsize;
   }
@@ -518,6 +522,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       int incr = sizeof(unsigned int) + sizeof(unsigned short); // Offset that points to next position in the objread array
       incr *= i;
       oid = *((unsigned int *)(objread + incr));
+
       incr += sizeof(unsigned int);
       version = *((unsigned short *)(objread + incr));
       retval=getCommitCountForObjRead(oidnotfound, oidlocked, oidvernotmatch, &objnotfound, &objlocked, &objvernotmatch,
@@ -865,6 +870,10 @@ void processVerNoMatch(unsigned int *oidnotfound,
         dst->___cachedHash___=src->___cachedHash___;
         memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
       }
+
+      //memory barrier
+      CFENCE;
+
       header->version += 1;
       /* If threads are waiting on this object to be updated, notify them */
       if(header->notifylist != NULL) {

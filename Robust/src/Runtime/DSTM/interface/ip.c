@@ -35,6 +35,17 @@ void midtoIP(unsigned int mid, char *ptr) {
   return;
 }
 
+/********** for DEBUGGING **************/
+char ip[16];      // for debugging purpose
+char* midtoIPString(unsigned int mid){
+  midtoIP(mid, ip);
+  return ip;
+}
+
+/******************************/
+
+
+
 int checkServer(int mid, char *machineip) {
   int tmpsd;
   struct sockaddr_in serv_addr;

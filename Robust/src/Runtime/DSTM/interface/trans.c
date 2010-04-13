@@ -876,7 +876,6 @@ plistnode_t *createPiles() {
       if(curr->key == 0)
 	break;
       headeraddr=(objheader_t *) curr->val;
-
       //Get machine location for object id (and whether local or not)
       if (STATUS(headeraddr) & NEW || (mhashSearch(curr->key) != NULL)) {
 	machinenum = myIpAddr;
@@ -1066,7 +1065,7 @@ int transCommit() {
 	    free(tosend);
 	    return 1;
 	  }
-	  GETSIZE(size,headeraddr);
+      GETSIZE(size,headeraddr);
 	  size+=sizeof(objheader_t);
 	  memcpy(modptr+offset, headeraddr, size);
 	  offset+=size;
@@ -1549,6 +1548,9 @@ int transComProcess(trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
 
       memcpy(&dst[1], &src[1], tmpsize-sizeof(struct ___Object___));
     }
+
+    //memory barrier
+    CFENCE;
 
     header->version += 1;
     if(header->notifylist != NULL) {
@@ -2272,6 +2274,7 @@ void transAbort() {
   t_chashDelete();
 }
 
+
 /* This function inserts necessary information into
  * a machine pile data structure */
 plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mid, int num_objs) {
@@ -2340,35 +2343,30 @@ plistnode_t *pInsert(plistnode_t *pile, objheader_t *headeraddr, unsigned int mi
   return pile;
 }
 
+// relocate the position of myIp pile to end of list
 plistnode_t *sortPiles(plistnode_t *pileptr) {
-  plistnode_t *head, *ptr, *tail;
-  head = pileptr;
-  ptr = pileptr;
-  /* Get tail pointer */
-  while(ptr!= NULL) {
-    tail = ptr;
-    ptr = ptr->next;
+	plistnode_t *ptr, *tail;
+	tail = pileptr;
+  ptr = NULL;
+	/* Get tail pointer and myIp pile ptr */
+  if(pileptr == NULL)
+    return pileptr;
+
+	while(tail->next != NULL) {
+    if(tail->mid == myIpAddr)
+      ptr = tail;
+		tail = tail->next;    
+	}
+
+  // if ptr is null, then myIp pile is already at tail
+  if(ptr != NULL) {
+  	/* Arrange local machine processing at the end of the pile list */
+    tail->next = pileptr;
+    pileptr = ptr->next;
+    ptr->next = NULL;
+    return pileptr;
   }
-  ptr = pileptr;
-  plistnode_t *prev = pileptr;
-  /* Arrange local machine processing at the end of the pile list */
-  while(ptr != NULL) {
-    if(ptr != tail) {
-      if(ptr->mid == myIpAddr && (prev != pileptr)) {
-	prev->next = ptr->next;
-	ptr->next = NULL;
-	tail->next = ptr;
-	return pileptr;
-      }
-      if((ptr->mid == myIpAddr) && (prev == pileptr)) {
-	prev = ptr->next;
-	ptr->next = NULL;
-	tail->next = ptr;
-	return prev;
-      }
-      prev = ptr;
-    }
-    ptr = ptr->next;
-  }
+
+  /* get too this point iff myIpAddr pile is at tail */
   return pileptr;
 }

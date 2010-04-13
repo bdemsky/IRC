@@ -53,6 +53,8 @@ int checktrans() {
       if (STATUS(headeraddr) & NEW) {
 	//new objects cannot be stale
       } else if ((tmp=mhashSearch(curr->key)) != NULL) {
+      //memory barrier
+      CFENCE;
 	if (tmp->version!=headeraddr->version) {
 	  //version mismatch
 	  deletehead(head);

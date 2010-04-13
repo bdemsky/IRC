@@ -5,6 +5,7 @@
 #define MSG_NOSIGNAL 0
 #endif
 
+#define CFENCE   asm volatile("":::"memory");
 /***********************************************************
  *       Macros
  **********************************************************/
@@ -267,7 +268,7 @@ void mapObjMethod(unsigned short);
 
 void randomdelay();
 void transStart();
-//#define TRANSREAD(x,y,z(tobe passed as a parameter to transRead2)) {
+//#define TRANSREAD(x,y,z) /* Use "z" which is program point at which TRANSREAD is generated, use this as transRead2(inputvalue,z) */
 #define TRANSREAD(x,y) { \
   unsigned int inputvalue;\
 if ((inputvalue=(unsigned int)y)==0) x=NULL;\

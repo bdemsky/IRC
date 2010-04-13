@@ -12,5 +12,6 @@ unsigned int iptoMid(char *);
 void midtoIP(unsigned int, char *);
 int checkServer(int, char *);
 unsigned int getMyIpAddr(const char *interfaceStr);
+char* midtoIPString(unsigned int mid);
 
 #endif

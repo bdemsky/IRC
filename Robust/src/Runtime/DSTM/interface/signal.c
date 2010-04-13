@@ -22,7 +22,6 @@ extern int sendRemoteReq;
 void handle();
 extern pfcstats_t *evalPrefetch;
 
-/*
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
   char filepath[200], exectime[10]; 
@@ -69,8 +68,9 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   exit(0);
 #endif
 }
-*/
 
+
+/*
 void transStatsHandler(int sig, siginfo_t* info, void *context) {
 #ifdef TRANSSTATS
   printf("******  Transaction Stats   ******\n");
@@ -92,6 +92,7 @@ void transStatsHandler(int sig, siginfo_t* info, void *context) {
   exit(0);
 #endif
 }
+*/
 
 void handle() {
 #ifdef TRANSSTATS

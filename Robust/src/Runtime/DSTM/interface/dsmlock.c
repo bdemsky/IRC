@@ -63,7 +63,7 @@ inline void write_unlock(volatile int *rw) {
 }
 
 inline int is_write_locked(volatile int *lock) {
-  return lock < 0;
+  return lock <= 0;
 }
 
 inline int is_read_locked(volatile int *lock) {
