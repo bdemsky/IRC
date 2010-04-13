@@ -29,13 +29,13 @@ public class Thread {
   public void run() {
   }
 
-  public static int getStatus(int mid)
+  public int getStatus(int mid)
   {
     if(nativeGetStatus(mid)==1)
       return 1;
     //TODO:check if this is safe to add only for the DSM without the recovery version
-    if(nativeGetStatus(mid)==0)
-      return 1;
+//    if(nativeGetStatus(mid)==0)
+//      return 1;
     else
       return -1;
 
