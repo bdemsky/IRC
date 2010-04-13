@@ -3081,7 +3081,8 @@ unsigned int getBackupMachine(unsigned int mid) {
 }
 
 int getStatus(int mid) {
-#ifdef DEBUG
+#ifndef DEBUG
+  printf("%s -> mid = %d\n",__func__,mid);
   printf("%s -> host %s : %s\n",__func__,midtoIPString(hostIpAddrs[mid]),(liveHosts[mid] == 1)?"LIVE":"DEAD");
 #endif
   return liveHosts[mid];
@@ -3749,22 +3750,22 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
     printf("threadnotify(): No such threadid is present %s, %d\n", __FILE__, __LINE__);
     return;
   } else  {
-    printf("%s -> Get to this point1\n",__func__);
-    printf("%s -> ndata : %d\n",__func__,ndata);
-    printf("%s -> ndata->numoid : %d\n",__func__,ndata->numoid);
+//    printf("%s -> Get to this point1\n",__func__);
+//    printf("%s -> ndata : %d\n",__func__,ndata);
+//    printf("%s -> ndata->numoid : %d\n",__func__,ndata->numoid);
     for(i = 0; i < (ndata->numoid); i++) {
       if(ndata->oidarry[i] == oid) {
         objIsFound = 1;
         index = i;
       }
     }
-    printf("%s -> Get to this point2\n",__func__);
+//    printf("%s -> Get to this point2\n",__func__);
     if(objIsFound == 0) {
       printf("threadNotify(): Oid not found %s, %d\n", __FILE__, __LINE__);
       return;
     } 
     else {
-    printf("%s -> Get to this point3\n",__func__);
+ //   printf("%s -> Get to this point3\n",__func__);
       if(version <= ndata->versionarry[index]) {
 	      printf("threadNotify(): New version %d has not changed since last version for oid = %d, %s, %d\n", version, oid, __FILE__, __LINE__);
     	return;
@@ -3776,7 +3777,7 @@ void threadNotify(unsigned int oid, unsigned short version, unsigned int tid) {
       	}
 #endif
 
-    printf("%s -> Get to this point4\n",__func__);
+//    printf("%s -> Get to this point4\n",__func__);
     	pthread_mutex_lock(&(ndata->threadnotify));
     	pthread_cond_signal(&(ndata->threadcond));
     	pthread_mutex_unlock(&(ndata->threadnotify));
@@ -3822,7 +3823,7 @@ int notifyAll(threadlist_t **head, unsigned int oid, unsigned int version) {
       status = -1;
     } else {
       bzero(msg, (1+sizeof(unsigned short) + 2*sizeof(unsigned int)));
-      printf("%s -> Calling THREAD_NOTIFY_RESPONSE\n",__func__);
+//      printf("%s -> Calling THREAD_NOTIFY_RESPONSE\n",__func__);
       msg[0] = THREAD_NOTIFY_RESPONSE;
       *((unsigned int *)&msg[1]) = oid;
       size = sizeof(unsigned int);
