@@ -1,6 +1,7 @@
 public class Task {
   //Current worker thread
   Worker w;
+  public Task() {}
   public void execute();
   public void setWorker(Worker w) {
     this.w = w;

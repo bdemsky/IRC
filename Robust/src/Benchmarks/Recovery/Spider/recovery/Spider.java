@@ -5,6 +5,7 @@ Usage :
 
 
 public class Spider {
+  public Spider() {}
   public static void main(String[] args) {
     int NUM_THREADS = 3;
     int maxDepth = 3;
@@ -62,6 +63,10 @@ public class Spider {
       }
       Thread.myStart(tmp, mid[i]);
     }
+
+    while(true)
+      Thread.sleep(100000);
+
     for (i = 0; i < NUM_THREADS; i++) {
       atomic {
 	tmp = ts.threads[i];

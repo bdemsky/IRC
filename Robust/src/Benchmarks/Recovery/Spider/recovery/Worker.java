@@ -18,7 +18,8 @@ public class Worker extends Thread {
         if (!tasks.todo.isEmpty()) {
           //grab segment from todo list
           t=workingtask=(Task) tasks.todo.pop();
-	  t.setWorker(this);
+          if(t!=null)
+            t.setWorker(this);
         } else {
           //steal work from dead threads
           Worker[] threads=tasks.threads;
@@ -27,7 +28,7 @@ public class Worker extends Thread {
             Worker w=(Worker)threads[i];
 	    if (w.workingtask!=null)
 	      shouldexit=false;
-            if (w.getStatus()==-1&&w.workingtask!=null) {
+            if (w.getStatus(i)==-1&&w.workingtask!=null) {
               //steal work from this thread
               t=workingtask=w.workingtask;
               w.workingtask=null;
@@ -42,8 +43,14 @@ public class Worker extends Thread {
       if (t!=null) {
         t.execution();
         continue;
-      } else if (notdone)
-	sleep(500000);
+      } else if (notdone) {
+        System.out.println("Not done");
+      	sleep(500000);
+      }
+    }
+    System.out.println("\n\nDone\n\n");
+    while(true) {
+      sleep(100000);
     }
   }
   public static native void printRecoveryStat();

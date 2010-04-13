@@ -3,12 +3,13 @@ SUBCLASS=Query
 SRC1=${MAINCLASS}.java
 SRC2=Global${SUBCLASS}.java
 SRC3=${SUBCLASS}Task.java
-FLAGS=-recoverystats -recovery -transstats -dsmcaching -dsm -dsmtask -debug -nooptimize -mainclass ${MAINCLASS}
-DSMFLAGS=-dsm -dsmtask -sandbox -transstats -debug -nooptimize -mainclass ${MAINCLASS}
+FLAGS=-recoverystats -recovery -transstats -dsmcaching -dsm -dsmtask -optimize -mainclass ${MAINCLASS}
+DSMFLAGS= -dsm -dsmtask -sandbox -transstats -optimize -mainclass ${MAINCLASS}
 default:
-#	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC2} ${SRC3} ${SRC1}
-	../../../../buildscript ${DSMFLAGS} -o ${MAINCLASS}DSM *.java
+	../../../../buildscript ${DSMFLAGS} -o ${MAINCLASS}DSM GlobalQuery.java LocalQuery.java QueryTask.java Spider.java Task.java GlobalQueue.java Worker.java TaskSet.java
+	../../../../buildscript ${FLAGS} -o ${MAINCLASS} GlobalQuery.java LocalQuery.java QueryTask.java Spider.java Task.java GlobalQueue.java Worker.java TaskSet.java
 
 clean:
 	rm -rf tmpbuilddirectory
 	rm *.bin
+

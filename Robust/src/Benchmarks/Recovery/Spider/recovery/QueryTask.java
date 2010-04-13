@@ -275,9 +275,7 @@ public class QueryTask extends Task {
     
     do {
       numchars = sock.read(buffer);
-      
       String curr = (new String(buffer)).subString(0, numchars);
-      
       lq.response.append(curr);
       buffer = new byte[1024];
     } while(numchars > 0);
