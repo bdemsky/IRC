@@ -42,12 +42,12 @@ public class QueryTask {
 			workingURL = sb.toString();
 			title = null;
 
-			System.printString("["+lq.getDepth()+"] ");
-			System.printString("Processing - Hostname : ");
-			System.printString(hostname);
-			System.printString(", Path : ");
-			System.printString(path);
-			System.printString("\n");
+			//System.printString("["+lq.getDepth()+"] ");
+			//System.printString("Processing - Hostname : ");
+			//System.printString(hostname);
+			//System.printString(", Path : ");
+			//System.printString(path);
+			//System.printString("\n");
 
 			if (isDocument(path)) {
 				lq = (LocalQuery)(todoList.pop());
@@ -134,7 +134,7 @@ public class QueryTask {
 
 		while (iter.hasNext() == true) {
 			str = ((String)(iter.next()));
-			System.printString(str + "\n");
+			//System.printString(str + "\n");
 		}
 	}
 

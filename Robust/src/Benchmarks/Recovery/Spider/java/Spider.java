@@ -1,24 +1,26 @@
 public class Spider {
 	public static void main(String[] args) {
+		int NUM_THREADS = 3;
 		int maxDepth = 3;
 		int maxSearchDepth = 10;
 		int i, j;
 		QueryTask qt;
+        String fm = "www.uci.edu";
 
 		String firstmachine;
 		String firstpage;
 
-		if ((args.length != 1) && (args.length != 2)) {
-			System.printString("usage: ./Spider <first site> [first page]\n");
-			System.exit(0);
-		}
+        if(args.length != 3) {
+          System.out.println("./Spider.java master <num_thread> <first machine> <maxDepth>");
+          System.exit(0);
+        } else {
+          NUM_THREADS = Integer.parseInt(args[0]);
+          fm = args[1];
+          maxDepth = Integer.parseInt(args[2]);
+        }
 
-		firstmachine = new String(args[0]);
-		if (args.length == 2) {
-			firstpage = new String(args[1]);
-		}
-		else 
-			firstpage = new String("");;
+		firstmachine = new String(fm);
+        firstpage = new String("");;
 
 		HashMap visitedList = new HashMap(500, 0.75f);
 		HashMap results = new HashMap(100, 0.75f);
