@@ -1,1 +1,5 @@
 testcase 8 MatrixMultiply:1600 80
+testcase 8 Spider:"www.uci.edu" 4
+testcase 8 FileSystem:newdata
+testcase 8 SpamFilter:-e 500 -n 10
+testcase 8 Game:
