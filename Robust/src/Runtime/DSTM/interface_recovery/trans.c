@@ -3081,7 +3081,7 @@ unsigned int getBackupMachine(unsigned int mid) {
 }
 
 int getStatus(int mid) {
-#ifndef DEBUG
+#ifdef DEBUG
   printf("%s -> mid = %d\n",__func__,mid);
   printf("%s -> host %s : %s\n",__func__,midtoIPString(hostIpAddrs[mid]),(liveHosts[mid] == 1)?"LIVE":"DEAD");
 #endif
