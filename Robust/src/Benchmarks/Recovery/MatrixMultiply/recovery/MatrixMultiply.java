@@ -9,37 +9,14 @@ public class MatrixMultiply extends Task {
   MMul mmul;
   int SIZE;
   int increment;
+  int x0;
+  int x1;
 
-  public MatrixMultiply(MMul mmul, int num_threads, int size,int increment) {
+  public MatrixMultiply(MMul mmul, int num_threads,int size,int x0,int x1) {
     this.mmul = mmul;
-
-    SIZE = size;
-    this.increment = increment;
-
-    init();
-  }
-
-  public void init() {
-    todoList = global new GlobalQueue();
-
-    fillTodoList();
-  }
-
-  // fill up the Work Pool
-  public void fillTodoList() {
-    Segment seg;
-    int i;
-
-    for(i = 0; i < SIZE; i +=increment) {
-
-      if(i+increment > SIZE) {
-        seg = global new Segment(i,SIZE);
-      }
-      else {
-        seg = global new Segment(i, i + increment);
-      }
-      todoList.push(seg);
-    }
+    this.SIZE = size;
+    this.x0 = x0;
+    this.x1 = x1;
   }
 
   public void execute() {
@@ -48,7 +25,6 @@ public class MatrixMultiply extends Task {
     double lb[][];
     double rowA[];
     double colB[];
-    Segment seg;
 
     double innerproduct;
     int i,j;
@@ -56,20 +32,17 @@ public class MatrixMultiply extends Task {
     int x1;
     int size;
 
-
     // get matrix 
     atomic {
-      seg = (Segment)myWork;
-      x0 = seg.x0;  // x start row
-      x1 = seg.x1;  // x end row
+      x0 = this.x0;
+      x1 = this.x1;
       la = mmul.a;          //  first mat
       lb = mmul.btranspose; // second mat
       size = SIZE;
-    }
+
 
     lc = new double[size][size];
 
-    atomic {
       for(i = x0; i < x1 ; i++) {
         rowA = la[i];   // grab first mat's row
         double c[] = lc[i];
@@ -79,13 +52,15 @@ public class MatrixMultiply extends Task {
           c[j] = innerproduct;  // store in dest mat
         } // end of for j
       } 
-    }
-    atomic {
       for (i = x0; i < x1; i++) {
         for (j = 0; j < size; j++) {
           mmul.c[i][j] = lc[i][j];
         }
       }
+    }
+
+    atomic {
+      dequeueTask();
     }
   }
 
@@ -111,10 +86,9 @@ public class MatrixMultiply extends Task {
     int SIZE = 1600;
     int increment = 80;
     int i,j;
-    Work[] works;
     MMul matrix;
     MatrixMultiply mm;
-    Segment[] currentWorkList;
+    TaskSet ts;
 
     if (args.length == 3) {
       NUM_THREADS = Integer.parseInt(args[0]);
@@ -127,55 +101,72 @@ public class MatrixMultiply extends Task {
     }
 
     int[] mid = new int[8];
-    /*		mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
-            mid[1] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7*/
-    mid[2] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
-    mid[0] = (128<<24)|(195<<16)|(180<<8)|20; //dw-1
-    mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
+    /*
+    mid[0] = (128<<24)|(195<<16)|(180<<8)|21; //dw-2
+    mid[1] = (128<<24)|(195<<16)|(180<<8)|26; //dw-7
+    mid[2] = (128<<24)|(195<<16)|(180<<8)|24; //dw-5
+*/
+    
+//    mid[0] = (128<<24)|(195<<16)|(180<<8)|20; //dw-1
+/*    mid[0] = (128<<24)|(195<<16)|(136<<8)|162; //dc1
     mid[1] = (128<<24)|(195<<16)|(136<<8)|163; //dc2
     mid[2] = (128<<24)|(195<<16)|(136<<8)|164; //dc3
-    mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4
-    mid[4] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
-    mid[5] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
-    mid[6] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
-    mid[7] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
+    mid[3] = (128<<24)|(195<<16)|(136<<8)|165; //dc4*/
+    mid[0] = (128<<24)|(195<<16)|(136<<8)|166; //dc5
+    mid[1] = (128<<24)|(195<<16)|(136<<8)|167; //dc6
+    mid[2] = (128<<24)|(195<<16)|(136<<8)|168; //dc7
+    mid[3] = (128<<24)|(195<<16)|(136<<8)|169; //dc8
+
+
+    atomic {
+      ts = global new TaskSet(NUM_THREADS);
+
+      for( i = 0; i< NUM_THREADS; i++) {
+        ts.threads[i] = global new Worker(ts,i);
+      }
+    }
 
     atomic {
       matrix = global new MMul(SIZE, SIZE, SIZE);
       matrix.setValues();
       matrix.transpose();
-      mm = global new MatrixMultiply(matrix, NUM_THREADS, SIZE,increment);
 
-      works = global new Work[NUM_THREADS];
-      currentWorkList = global new Segment[NUM_THREADS];
-
-      for(i = 0; i < NUM_THREADS; i++) {
-        works[i] = global new Work(mm, NUM_THREADS, i,currentWorkList);
+      for(i = 0; i < SIZE; i +=increment) {
+        if(i+increment > SIZE) {
+          mm = global new MatrixMultiply(matrix, NUM_THREADS,SIZE,i, SIZE);
+        }
+        else {
+          mm = global new MatrixMultiply(matrix, NUM_THREADS,SIZE, i, i + increment);
+        }
+        ts.todo.push(mm);
       }
+
     }
 
     //long st = System.currentTimeMillis();
     //long fi;
 
-    Work tmp;
+    Worker tmp;
     for (i = 0; i < NUM_THREADS; i++) {
       atomic {
-        tmp = works[i];
+        tmp = ts.threads[i];
       }
       Thread.myStart(tmp,mid[i]);
     }
 
-    fi = System.currentTimeMillis();
-    System.out.println("Time Elapse = " + (double)((fi-st)/1000));
+    while(true) {
+      Thread.sleep(200000);
+    }
 
     for (i = 0; i < NUM_THREADS; i++) {
       atomic {
-        tmp = works[i];
+        tmp = ts.threads[i];
       }
       tmp.join();
     }
     //fi = System.currentTimeMillis();
 
+//    System.out.println("Time Elapse = " + (double)((fi-st)/1000));
     double sum= 0;
     atomic {
       sum = matrix.getSum();
@@ -260,13 +251,4 @@ public class MMul{
   }
 }
 
-public class Segment {
-  int x0;
-  int x1;
-
-  Segment (int x0, int x1) {
-    this.x0 = x0;
-    this.x1 = x1;
-  }
-}
 
