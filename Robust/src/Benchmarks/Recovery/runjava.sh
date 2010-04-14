@@ -10,7 +10,7 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-WAITTIME=180
+WAITTIME=200
 KILLDELAY=20
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
 DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
@@ -27,23 +27,23 @@ ORDER=( 0 1 3 5 7 8 2
 
 # killClients <fileName> <# of machines>
 function killclients {
-  i=1;
+  k=1;
   fileName=$1
-  while [ $i -le $2 ]; do
-    echo "killing dc-$i ${fileName}"
-    ssh dc-${i} pkill -u ${USER} -f ${fileName} 
-    i=`expr $i + 1`
+  while [ $k -le $2 ]; do
+    echo "killing dc-$k ${fileName}"
+    ssh dc-${k} pkill -u ${USER} -f ${fileName} 
+    k=`expr $k + 1`
   done
 }
 
 # killClientsWith USR1 signal <fileName> <# of machines>
 function killclientswithSignal {
-  i=1;
+  k=1;
   fileName=$1
-  while [ $i -le $2 ]; do
-    echo "killing dc-$i ${fileName}"
-    ssh dc-${i} killall -USR1 ${fileName} 
-    i=`expr $i + 1`
+  while [ $k -le $2 ]; do
+    echo "killing dc-$k ${fileName}"
+    ssh dc-${k} killall -USR1 ${fileName} 
+    k=`expr $k + 1`
   done
 }
 
@@ -258,9 +258,9 @@ function runDSM {
       echo "SSH into dc-${k}"
       ssh dc-${k} 'cd '$DIR'; ./'$BM_DSM'.bin '>> log'-'$k 2>&1 &
       k=`expr $k - 1`
-      sleep 1
+      sleep 3
     done
-    sleep 2
+    sleep 6
     #Start master
     echo "Running master machine ..."
     ssh dc-1 'cd '$DIR'; ./'$BM_DSM'.bin master '$2 $BM_ARGS >> log'-1' 2>&1 &
@@ -299,36 +299,41 @@ function testcase {
 #  runFailureTest $NUM_MACHINES
 #  echo "================================================================================="
 
+  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
+  javasingle 1 ${BM_NAME}
+  cd $TOPDIR
+  echo "================================================================================="
+
+  echo "=============== Running recoverysingle for ${BM_NAME} on 1 machines ================="
+  recoverysingle 1 ${BM_NAME}
+  cd $TOPDIR
+  echo "================================================================================="
+
+#  echo "=============== Running dsmsingle for ${BM_NAME} on 1 machines ================="
+#  dsmsingle 1 ${BM_DSM}
+#  cd $TOPDIR
+#  echo "================================================================================="
+#
   echo "====================================== Recovery Execution Time ============================="
   for count in 2 4 6 8
   do
     echo "------- Running $count threads $BM_NAME recovery on $count machines -----"
-    runRecovery 1 $count ${BM_NAME}
+    runRecovery 2 $count ${BM_NAME}
   done
   echo "================================================================================="
 
-  echo "====================================== DSM Execution Time ============================="
-  for count in 2 4 6 8
-  do
-    echo "------- Running $count threads $BM_NAME dsm on $count machines -----"
-    runDSM 1 $count $BM_DSM
-  done
-  echo "================================================================================="
-
-#  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
-#  javasingle 1 ${BM_NAME}
-#  cd $TOPDIR
+#  echo "====================================== DSM Execution Time ============================="
+#  for count in 6 8
+#  do
+#    echo "------- Running $count threads $BM_NAME dsm on $count machines -----"
+#    runDSM 1 $count $BM_DSM
+#  done
 #  echo "================================================================================="
-
-#  echo "=============== Running recoverysingle for ${BM_NAME} on 1 machines ================="
-#  recoverysingle 1 ${BM_NAME}
-#  cd $TOPDIR
-#  echo "================================================================================="
-
 
 }
 
 function javasingle {
+
   DIR=`echo ${BASEDIR}\/${2}\/${JAVASINGLEDIR}`;
   cd $DIR
   echo ${BM_ARGS}
@@ -355,6 +360,27 @@ function recoverysingle {
     echo "Running master machine ... "
     echo "ssh dc-1 cd $DIR'; ./${2}.bin master 1 ${BM_ARGS}";
     ssh dc-1 'cd '$DIR'; ./'${2}'.bin master '1 ${BM_ARGS} >> ${LOGDIR}/${2}_recoverysingle.txt 2>&1 &
+    echo "Start waiting"
+    sleep $WAITTIME
+    echo "killing dc-1 ${fName}"
+    pkill -u ${USER} -f ${fName} 
+    i=`expr $i + 1`
+  done
+}
+
+function dsmsingle {
+  DIR=`echo ${BASEDIR}\/${BM_NAME}\/${RECOVERYDIR}`;
+  cd $DIR
+  echo ${BM_ARGS}
+  rm dstm.conf
+  ln -s ${DSTMDIR}/dstm_1.conf dstm.conf
+  cd `pwd`
+  i=0;
+  fName="${2}.bin";
+  while [ $i -lt $1 ]; do
+    echo "Running master machine ... "
+    echo "ssh dc-1 cd $DIR'; ./${2}.bin master 1 ${BM_ARGS}";
+    ssh dc-1 'cd '$DIR'; ./'${2}'.bin master '1 ${BM_ARGS} >> ${LOGDIR}/${BM_NAME}_dsmsingle.txt 2>&1 &
     echo "Start waiting"
     sleep $WAITTIME
     echo "killing dc-1 ${fName}"
