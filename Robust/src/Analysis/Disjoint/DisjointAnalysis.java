@@ -320,6 +320,13 @@ public class DisjointAnalysis {
   // should attempt to be deterministic
   public static boolean determinismDesired;
 
+  // when we want to enforce determinism in the 
+  // analysis we need to sort descriptors rather
+  // than toss them in efficient sets, use this
+  public static DescriptorComparator dComp =
+    new DescriptorComparator();
+
+
   // data from the compiler
   public State            state;
   public CallGraph        callGraph;
@@ -329,7 +336,8 @@ public class DisjointAnalysis {
   public int              allocationDepth;
   
   // data structure for public interface
-  private Hashtable<Descriptor,    HashSet<AllocSite> > mapDescriptorToAllocSiteSet;
+  private Hashtable< Descriptor, HashSet<AllocSite> > 
+    mapDescriptorToAllocSiteSet;
 
   
   // for public interface methods to warn that they
@@ -468,9 +476,7 @@ public class DisjointAnalysis {
     
     if( determinismDesired ) {
       // use an ordered set
-      descriptorsToAnalyze 
-        = new TreeSet<Descriptor>( new DescriptorComparator() );
-      
+      descriptorsToAnalyze = new TreeSet<Descriptor>( dComp );      
     } else {
       // otherwise use a speedy hashset
       descriptorsToAnalyze = new HashSet<Descriptor>();
@@ -621,6 +627,10 @@ public class DisjointAnalysis {
 
     if( state.DISJOINTWRITEIHMS ) {
       writeFinalIHMs();
+    }
+
+    if( state.DISJOINTWRITEINITCONTEXTS ) {
+      writeInitialContexts();
     }
 
     if( state.DISJOINTALIASFILE != null ) {
@@ -794,18 +804,10 @@ public class DisjointAnalysis {
 
         if( state.DISJOINTDVISITSTACKEESONTOP ) {
 
-          if( state.DISJOINTDEBUGSCHEDULING ) {
-            System.out.println( "  contexts changed, scheduling callees for analysis:" );
-          }
-
           depsItr = calleesToEnqueue.iterator();
           while( depsItr.hasNext() ) {
             Descriptor dNext = depsItr.next();
             enqueue( dNext );
-
-            if( state.DISJOINTDEBUGSCHEDULING ) {
-              System.out.println( "    "+dNext );
-            }
           }
           calleesToEnqueue.clear();
         }
@@ -1012,6 +1014,7 @@ public class DisjointAnalysis {
         rg.merge( rgContrib );
       }
 
+
       // additionally, we are enforcing STRICT MONOTONICITY for the
       // method's initial context, so grow the context by whatever
       // the previously computed context was, and put the most
@@ -1179,15 +1182,14 @@ public class DisjointAnalysis {
         // and reschedule the callee for analysis
         addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
 
+        if( state.DISJOINTDEBUGSCHEDULING ) {
+          System.out.println( "  context changed, scheduling callee: "+mdCallee );
+        }
+
         if( state.DISJOINTDVISITSTACKEESONTOP ) {
           calleesToEnqueue.add( mdCallee );
         } else {
           enqueue( mdCallee );
-
-          if( state.DISJOINTDEBUGSCHEDULING ) {
-            System.out.println( "  context changed, scheduling callee: "+mdCallee );
-          }
-
         }
 
       }
@@ -1197,8 +1199,14 @@ public class DisjointAnalysis {
       // current heap abstraction with any effects from the callee,
       // or if the method is virtual, the effects from any possible
       // callees, so find the set of callees...
-      Set<MethodDescriptor> setPossibleCallees =
-        new HashSet<MethodDescriptor>();
+      Set<MethodDescriptor> setPossibleCallees;
+      if( determinismDesired ) {
+        // use an ordered set
+        setPossibleCallees = new TreeSet<MethodDescriptor>( dComp );        
+      } else {
+        // otherwise use a speedy hashset
+        setPossibleCallees = new HashSet<MethodDescriptor>();
+      }
 
       if( mdCallee.isStatic() ) {        
         setPossibleCallees.add( mdCallee );
@@ -1234,11 +1242,12 @@ public class DisjointAnalysis {
             calleesToEnqueue.add( mdPossible );
           } else {
             enqueue( mdPossible );
-
-            if( state.DISJOINTDEBUGSCHEDULING ) {
-              System.out.println( "  callee hasn't been analyzed, scheduling: "+mdPossible );
-            }
           }
+          
+          if( state.DISJOINTDEBUGSCHEDULING ) {
+            System.out.println( "  callee hasn't been analyzed, scheduling: "+mdPossible );
+          }
+
 
         } else {
           rgCopy.resolveMethodCall( fc, 
@@ -1362,6 +1371,23 @@ public class DisjointAnalysis {
                        false,  // hide subset reachability states
                        true ); // hide edge taints
       }
+    }
+  }
+
+  private void writeInitialContexts() {
+    Set entrySet = mapDescriptorToInitialContext.entrySet();
+    Iterator itr = entrySet.iterator();
+    while( itr.hasNext() ) {
+      Map.Entry  me = (Map.Entry)  itr.next();
+      Descriptor  d = (Descriptor) me.getKey();
+      ReachGraph rg = (ReachGraph) me.getValue();
+
+      rg.writeGraph( "INITIAL"+d,
+                     true,   // write labels (variables)                
+                     true,   // selectively hide intermediate temp vars 
+                     true,   // prune unreachable heap regions          
+                     false,  // hide subset reachability states         
+                     true ); // hide edge taints                        
     }
   }
    
@@ -1505,9 +1531,7 @@ public class DisjointAnalysis {
 
     if( determinismDesired ) {
       // use an ordered set
-      discovered
-        = new TreeSet<Descriptor>( new DescriptorComparator() );
-      
+      discovered = new TreeSet<Descriptor>( dComp );      
     } else {
       // otherwise use a speedy hashset
       discovered = new HashSet<Descriptor>();
@@ -1644,7 +1668,7 @@ public class DisjointAnalysis {
       getIHMcontributions( d );
 
     if( !heapsFromCallers.containsKey( fc ) ) {
-      heapsFromCallers.put( fc, new ReachGraph() );
+      return null;
     }
 
     return heapsFromCallers.get( fc );

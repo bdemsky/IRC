@@ -67,14 +67,23 @@ public class State {
   public int OWNERSHIPDEBUGCALLCOUNT=0;
   public String OWNERSHIPDEBUGCALLEE=null;
   public String OWNERSHIPDEBUGCALLER=null;
+
   
   public boolean DISJOINT=false;
+
+  public int DISJOINTALLOCDEPTH=1;
   public boolean DISJOINTRELEASEMODE=false;
   public boolean DISJOINTDETERMINISM=false;
-  public int DISJOINTALLOCDEPTH=3;
+
+  public boolean DISJOINTDVISITSTACK=true;
+  public boolean DISJOINTDVISITPQUE=false;
+  public boolean DISJOINTDVISITSTACKEESONTOP=false;
+
   public boolean DISJOINTWRITEDOTS=false;
   public boolean DISJOINTWRITEALL=false;
   public boolean DISJOINTWRITEIHMS=false;
+  public boolean DISJOINTWRITEINITCONTEXTS=false;
+
   public String DISJOINTALIASFILE=null;
   public boolean DISJOINTALIASTAB=false;
 
@@ -89,11 +98,8 @@ public class State {
   public int DISJOINTSNAPNUMVISITS=0;
   public boolean DISJOINTSNAPSTOPAFTER=false;
 
-  public boolean DISJOINTDVISITSTACK=true;
-  public boolean DISJOINTDVISITPQUE=false;
-  public boolean DISJOINTDVISITSTACKEESONTOP=false;
-
   public boolean DISJOINTDEBUGSCHEDULING=false;
+
 
   public boolean OPTIONAL=false;
   public boolean ARRAYPAD=false;

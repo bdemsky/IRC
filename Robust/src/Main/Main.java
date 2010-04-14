@@ -185,6 +185,9 @@ public class Main {
           throw new Error("disjoint-write-dots requires argument <all/final>");
         }
 
+      } else if (option.equals("-disjoint-write-initial-contexts")) {
+	state.DISJOINTWRITEINITCONTEXTS = true;
+
       } else if (option.equals("-disjoint-write-ihms")) {
 	state.DISJOINTWRITEIHMS = true;
 

@@ -18,6 +18,8 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 
 #DEBUGFLAGS= -disjoint-debug-callsite setPartial reduceOutput 1 20 false
 
+#DEBUGFLAGS= -disjoint-debug-callsite close Transaction 1 20 false
+
 
 #################################################
 ##
@@ -42,6 +44,9 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #SNAPFLAGS= -disjoint-debug-snap-method setReduceFinish 5 50 true
 #SNAPFLAGS= -disjoint-debug-snap-method setPartial 1 50 true
 
+#SNAPFLAGS= -disjoint-debug-snap-method Transaction 1 20 true
+#SNAPFLAGS= -disjoint-debug-snap-method close 1 20 true
+
 
 
 
@@ -52,10 +57,10 @@ JAVAFLAGS= -mainclass test
 #VISITMODE= -disjoint-dvisit-pqueue
 VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
-DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism
+DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-write-ihms -disjoint-write-initial-contexts -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism #-disjoint-debug-scheduling
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 
-BSFLAGS= -justanalyze -disjoint -disjoint-k 1 -flatirusermethods -flatirtasks
+BSFLAGS= -justanalyze -disjoint -disjoint-k 1 #-flatirusermethods -flatirtasks
 
 all:
 	echo 'pass another arg: <bamboo/bamboo-release/java/java-release>'
