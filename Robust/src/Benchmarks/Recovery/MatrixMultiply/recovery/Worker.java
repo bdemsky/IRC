@@ -53,6 +53,7 @@ public class Worker extends Thread {
        	sleep(500000);
       }
     }
+    fi = System.currentTimeMillis();
     System.out.println("\n\nDone - Time Elapse : " + (double)((fi-st)/1000) +"\n\n");
   }
   public static native void printRecoveryStat();
