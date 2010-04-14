@@ -11,6 +11,8 @@ public class Worker extends Thread {
   }
   
   public void run() {
+    long st = System.currentTimeMillis();
+    long fi = 0;
     boolean notdone=true;
     while(notdone) {
       Task t=null;
@@ -44,11 +46,11 @@ public class Worker extends Thread {
         t.execution();
         continue;
       } else if (notdone) {
-        System.out.println("Not done");
+        //System.out.println("Not done");
       	sleep(500000);
       }
     }
-    System.out.println("\n\nDone\n\n");
+    System.out.println("\n\nDone - Time Elapse : " + (double)((fi-st)/1000) +"\n\n");
     while(true) {
       sleep(100000);
     }

@@ -6,7 +6,7 @@ SRC3=${SUBCLASS}Task.java
 FLAGS=-recoverystats -recovery -transstats -dsmcaching -dsm -dsmtask -optimize -mainclass ${MAINCLASS}
 DSMFLAGS= -dsm -dsmtask -sandbox -transstats -optimize -mainclass ${MAINCLASS}
 default:
-	../../../../buildscript ${DSMFLAGS} -o ${MAINCLASS}DSM GlobalQuery.java LocalQuery.java QueryTask.java Spider.java Task.java GlobalQueue.java Worker.java TaskSet.java
+#	../../../../buildscript ${DSMFLAGS} -o ${MAINCLASS}DSM GlobalQuery.java LocalQuery.java QueryTask.java Spider.java Task.java GlobalQueue.java Worker.java TaskSet.java
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} GlobalQuery.java LocalQuery.java QueryTask.java Spider.java Task.java GlobalQueue.java Worker.java TaskSet.java
 
 clean:
