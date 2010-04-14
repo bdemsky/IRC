@@ -1,16 +1,14 @@
 public class Worker extends Thread {
-  Object[] currentWorkList;
-  int mid;
   TaskSet tasks;
   Task workingtask;
 
-  Worker(TaskSet tasks, int mid) {
+  Worker(TaskSet tasks) {
     this.tasks = tasks;
-    this.currentWorkList = currentWorkList;
-    mid = mid;
   }
   
   public void run() {
+    long st = System.currentTimeMillis();
+    long fi = 0;
     boolean notdone=true;
 
     while(notdone) {
@@ -55,8 +53,7 @@ public class Worker extends Thread {
        	sleep(500000);
       }
     }
-
-    System.out.println("done");
+    System.out.println("\n\nDone - Time Elapse : " + (double)((fi-st)/1000) +"\n\n");
   }
   public static native void printRecoveryStat();
 }
