@@ -469,6 +469,9 @@ public class DisjointAnalysis {
   static protected Hashtable<FlatNode, ReachGraph> fn2rg =
     new Hashtable<FlatNode, ReachGraph>();
 
+  private Hashtable<FlatCall, Descriptor> fc2enclosing;
+  
+
 
   // allocate various structures that are not local
   // to a single class method--should be done once
@@ -537,6 +540,11 @@ public class DisjointAnalysis {
     	new Hashtable<Descriptor, ReachGraph>();
 
     pm = new PointerMethod();
+
+    if( state.DISJOINTDEBUGSCHEDULING ) {
+      fc2enclosing = new Hashtable<FlatCall, Descriptor>();
+    }
+
   }
 
 
@@ -801,27 +809,23 @@ public class DisjointAnalysis {
             System.out.println( "    "+dNext );
           }
 	}
-
-        if( state.DISJOINTDVISITSTACKEESONTOP ) {
-
-          depsItr = calleesToEnqueue.iterator();
-          while( depsItr.hasNext() ) {
-            Descriptor dNext = depsItr.next();
-            enqueue( dNext );
-          }
-          calleesToEnqueue.clear();
-        }
-
-      } else {
-        // we got the result result as the last visit
-        // to this method, but we might need to clean
-        // something up
-        if( state.DISJOINTDVISITSTACKEESONTOP ) {
-          calleesToEnqueue.clear();
-        }
       }
-     
-    }
+
+      // whether or not the method under analysis changed,
+      // we may have some callees that are scheduled for 
+      // more analysis, and they should go on the top of
+      // the stack now (in other method-visiting modes they
+      // are already enqueued at this point
+      if( state.DISJOINTDVISITSTACKEESONTOP ) {
+        Iterator<Descriptor> depsItr = calleesToEnqueue.iterator();
+        while( depsItr.hasNext() ) {
+          Descriptor dNext = depsItr.next();
+          enqueue( dNext );
+        }
+        calleesToEnqueue.clear();
+      }     
+
+    }   
   }
 
   protected ReachGraph analyzeMethod( Descriptor d ) 
@@ -1014,7 +1018,6 @@ public class DisjointAnalysis {
         rg.merge( rgContrib );
       }
 
-
       // additionally, we are enforcing STRICT MONOTONICITY for the
       // method's initial context, so grow the context by whatever
       // the previously computed context was, and put the most
@@ -1184,6 +1187,11 @@ public class DisjointAnalysis {
 
         if( state.DISJOINTDEBUGSCHEDULING ) {
           System.out.println( "  context changed, scheduling callee: "+mdCallee );
+
+          // if we're debugging the scheduling system, map a FlatCall
+          // to its enclosing method/task descriptor so we can write
+          // that info out later
+          fc2enclosing.put( fc, mdCaller );
         }
 
         if( state.DISJOINTDVISITSTACKEESONTOP ) {
@@ -1674,6 +1682,7 @@ public class DisjointAnalysis {
     return heapsFromCallers.get( fc );
   }
 
+
   public void addIHMcontribution( Descriptor d,
                                   FlatCall   fc,
                                   ReachGraph rg
@@ -1683,6 +1692,7 @@ public class DisjointAnalysis {
 
     heapsFromCallers.put( fc, rg );
   }
+
 
   private AllocSite createParameterAllocSite( ReachGraph     rg, 
                                               TempDescriptor tempDesc,

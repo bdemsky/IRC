@@ -17,7 +17,6 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #DEBUGFLAGS= -disjoint-debug-callsite addElement addInterOutput 30 100 false
 
 #DEBUGFLAGS= -disjoint-debug-callsite setPartial reduceOutput 1 20 false
-
 #DEBUGFLAGS= -disjoint-debug-callsite close Transaction 1 20 false
 
 
@@ -57,7 +56,7 @@ JAVAFLAGS= -mainclass test
 #VISITMODE= -disjoint-dvisit-pqueue
 VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
-DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-write-ihms -disjoint-write-initial-contexts -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism #-disjoint-debug-scheduling
+DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism #-disjoint-write-ihms -disjoint-debug-scheduling -disjoint-write-initial-contexts
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 
 BSFLAGS= -justanalyze -disjoint -disjoint-k 1 #-flatirusermethods -flatirtasks
