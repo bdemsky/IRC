@@ -10,8 +10,8 @@
 BASEDIR=`pwd`
 RECOVERYDIR='recovery'
 JAVASINGLEDIR='java'
-WAITTIME=200
-KILLDELAY=20
+WAITTIME=75
+KILLDELAY=2
 LOGDIR=~/research/Robust/src/Benchmarks/Recovery/runlog
 DSTMDIR=${HOME}/research/Robust/src/Benchmarks/Prefetch/config
 MACHINELIST='dc-1.calit2.uci.edu dc-2.calit2.uci.edu dc-3.calit2.uci.edu dc-4.calit2.uci.edu dc-5.calit2.uci.edu dc-6.calit2.uci.edu dc-7.calit2.uci.edu dc-8.calit2.uci.edu'
@@ -19,12 +19,16 @@ USER='adash'
 
 # 0 mean new test 
 # 1~8 machine id to be killed
+
 ORDER=( 0 1 3 5 7 8 2    
         0 1 2 3 4 5 6 
         0 1 8 4 6 3 7 
         0 8 7 3 6 5 4
         0 7 4 6 8 1 2 );
 
+#ORDER=( 0 1 3 5 7 8 2 );
+
+#
 # killClients <fileName> <# of machines>
 function killclients {
   k=1;
@@ -52,7 +56,8 @@ function killonemachine {
   fileName=$1
   let "machine= $2";
   echo "killing dc-$machine ${fileName}";
-  ssh dc-${machine} pkill -u ${USER} -f ${fileName}
+  #ssh dc-${machine} pkill -u ${USER} -f ${fileName}
+  ssh dc-${machine} killall -USR1 ${fileName} 
 }
 
 # runmachines <log filename>
@@ -69,20 +74,21 @@ function runMachines {
   # Run machines
   while [ $k -gt 1 ]; do
     echo "SSH into dc-${k}"
-    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin '>> $1'-'$k 2>&1 &
+    ssh dc-${k} 'cd '$DIR'; ./'$BM_NAME'.bin '>> log'-'$k 2>&1 &
     k=`expr $k - 1`
     sleep 1
   done
+  sleep 2
   echo "Running master machine ... "
   echo "ssh dc-1 cd $DIR'; ./$BM_NAME.bin master $NUM_MACHINE $BM_ARGS";
-  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS >> $1'-1' 2>&1 &
+  ssh dc-1 'cd '$DIR'; ./'$BM_NAME'.bin master '$NUM_MACHINE $BM_ARGS >> log'-1' 2>&1 &
 }
 
 ########### Normal execution
 #  runNormalTest $NUM_MACHINES 1 
 function runNormalTest {
 # Run java version
-  j=1;
+# j=1;
   BM_DIR=${BM_NAME}
   fName="$BM_NAME.bin";
   echo ${BM_DIR}
@@ -98,8 +104,8 @@ function runNormalTest {
   runMachines log
   
   sleep $WAITTIME
-
-  killclients $fName 8
+  killclientswithSignal $fName $2
+#killclients $fName 8
   sleep 10
   cd -
 }
@@ -107,7 +113,7 @@ function runNormalTest {
 ########### Failure case
 function runFailureTest {
 # Run java version
-  j=1;
+# j=1;
   BM_DIR=${BM_NAME}
   fName="$BM_NAME.bin";
   cd ${BM_DIR}
@@ -141,12 +147,13 @@ function runFailureTest {
       echo "------------------------ dc-$k is killed ------------------------"
       killonemachine $fName $k
       
-      let "delay= $RANDOM % $KILLDELAY + 3"
+      let "delay= $RANDOM % $KILLDELAY + 4"
       sleep $delay
     fi 
   done
 
-  killclients $fName 8   # kill alive machines
+#  killclients $fName 8   # kill alive machines
+  killclientswithSignal $fName 8
   sleep 10
  cd -
 }
@@ -290,40 +297,40 @@ function testcase {
 
   # terminate if it doesn't have parameter
   let "NUM_MACHINE= $nummachines + 0";
-#
-#  echo "====================================== Normal Test =============================="
-#  runNormalTest $NUM_MACHINES 1 
-#  echo "================================================================================"
-#
-#  echo "====================================== Failure Test ============================="
-#  runFailureTest $NUM_MACHINES
+
+  echo "====================================== Normal Test =============================="
+  runNormalTest $NUM_MACHINES 1 
+  echo "================================================================================"
+
+  echo "====================================== Failure Test ============================="
+  runFailureTest $NUM_MACHINES
+  echo "================================================================================="
+
+#  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
+#  javasingle 1 ${BM_NAME}
+#  cd $TOPDIR
 #  echo "================================================================================="
-
-  echo "=============== Running javasingle for ${BM_NAME} on 1 machines ================="
-  javasingle 1 ${BM_NAME}
-  cd $TOPDIR
-  echo "================================================================================="
-
-  echo "=============== Running recoverysingle for ${BM_NAME} on 1 machines ================="
-  recoverysingle 1 ${BM_NAME}
-  cd $TOPDIR
-  echo "================================================================================="
-
+#
+#  echo "=============== Running recoverysingle for ${BM_NAME} on 1 machines ================="
+#  recoverysingle 2 ${BM_NAME}
+#  cd $TOPDIR
+#  echo "================================================================================="
+#
 #  echo "=============== Running dsmsingle for ${BM_NAME} on 1 machines ================="
 #  dsmsingle 1 ${BM_DSM}
 #  cd $TOPDIR
 #  echo "================================================================================="
 #
-  echo "====================================== Recovery Execution Time ============================="
-  for count in 2 4 6 8
-  do
-    echo "------- Running $count threads $BM_NAME recovery on $count machines -----"
-    runRecovery 2 $count ${BM_NAME}
-  done
-  echo "================================================================================="
+#  echo "====================================== Recovery Execution Time ============================="
+#  for count in 2 4 6 8
+#  do
+#    echo "------- Running $count threads $BM_NAME recovery on $count machines -----"
+#    runRecovery 1 $count ${BM_NAME}
+#  done
+#  echo "================================================================================="
 
 #  echo "====================================== DSM Execution Time ============================="
-#  for count in 6 8
+#  for count in 2 4 6 8
 #  do
 #    echo "------- Running $count threads $BM_NAME dsm on $count machines -----"
 #    runDSM 1 $count $BM_DSM
