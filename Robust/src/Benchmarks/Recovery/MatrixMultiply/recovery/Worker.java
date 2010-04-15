@@ -2,14 +2,17 @@ public class Worker extends Thread {
   TaskSet tasks;
   Task workingtask;
 
-  Worker(TaskSet tasks) {
+  Worker(TaskSet tasks,int mid) {
     this.tasks = tasks;
+    this.mid = mid;
   }
   
   public void run() {
     long st = System.currentTimeMillis();
     long fi = 0;
     boolean notdone=true;
+
+    System.out.println("Starts");
 
     while(notdone) {
       Task t=null;

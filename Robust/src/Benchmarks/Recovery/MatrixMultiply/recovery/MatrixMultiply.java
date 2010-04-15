@@ -115,7 +115,8 @@ public class MatrixMultiply extends Task {
       ts = global new TaskSet(NUM_THREADS);
 
       for( i = 0; i< NUM_THREADS; i++) {
-        ts.threads[i] = global new Worker(ts);
+//        ts.threads[i] = global new Worker(ts);
+        ts.threads[i] = global new Worker(ts,i);
       }
     }
 
@@ -139,6 +140,7 @@ public class MatrixMultiply extends Task {
     //long st = System.currentTimeMillis();
     //long fi;
 
+    System.out.println("Starting threads...");
     Worker tmp;
     for (i = 0; i < NUM_THREADS; i++) {
       atomic {
