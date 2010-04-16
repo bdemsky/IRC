@@ -448,7 +448,7 @@ inline void checkMarkStatue() {
 	for(i = 1; i < NUMCORESACTIVE; ++i) {
 	  gccorestatus[i] = 1;
 	  // send mark phase finish confirm request msg to core i
-	  send_msg_1(i, GCMARKCONFIRM);
+	  send_msg_1(i, GCMARKCONFIRM, false);
 	}                         // for(i = 1; i < NUMCORESACTIVE; ++i)
       } else {
 	// check if the sum of send objs and receive obj are the same
@@ -478,7 +478,7 @@ inline void checkMarkStatue() {
 	  // restore the gcstatus for all cores
 	  for(i = 0; i < NUMCORESACTIVE; ++i) {
 	    gccorestatus[i] = 1;
-	  }                               // for(i = 0; i < NUMCORESACTIVE; ++i)
+	  }  // for(i = 0; i < NUMCORESACTIVE; ++i)
 	} else {
 	  // wait for a while and ask for confirm again
 	  int h = 100;
@@ -513,7 +513,7 @@ inline bool preGC() {
     for(i = 1; i < NUMCORESACTIVE; ++i) {
       corestatus[i] = 1;
       // send status confirm msg to core i
-      send_msg_1(i, STATUSCONFIRM);
+      send_msg_1(i, STATUSCONFIRM, false);
     }             // for(i = 1; i < NUMCORESACTIVE; ++i)
 
 #ifdef DEBUG
@@ -980,7 +980,7 @@ inline void moveLObjs() {
 #endif
 	if(host != BAMBOO_NUM_OF_CORE) {
 	  // send the original host core with the mapping info
-	  send_msg_3(host, GCLOBJMAPPING, ptr, tmpheaptop);
+	  send_msg_3(host, GCLOBJMAPPING, ptr, tmpheaptop, false);
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xcdcb);
 	  BAMBOO_DEBUGPRINT_REG(ptr);
@@ -1065,7 +1065,7 @@ inline void moveLObjs() {
 #endif
 	if(host != BAMBOO_NUM_OF_CORE) {
 	  // send the original host core with the mapping info
-	  send_msg_3(host, GCLOBJMAPPING, ptr, tmpheaptop);
+	  send_msg_3(host, GCLOBJMAPPING, ptr, tmpheaptop, false);
 #ifdef DEBUG
 	  BAMBOO_DEBUGPRINT(0xcdcd);
 	  BAMBOO_DEBUGPRINT_REG(ptr);
@@ -1141,7 +1141,7 @@ inline void markObj(void * objptr) {
 	unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 	// send a msg to host informing that objptr is active
-	send_msg_2(host, GCMARKEDOBJ, objptr);
+	send_msg_2(host, GCMARKEDOBJ, objptr, false);
 #ifdef GC_PROFILE
 	marktime += BAMBOO_GET_EXE_TIME() - ttime;
 	num_markrequest++;
@@ -1426,7 +1426,7 @@ inline void mark(bool isfirst,
 	BAMBOO_DEBUGPRINT(0xed09);
 #endif
 	send_msg_4(STARTUPCORE, GCFINISHMARK, BAMBOO_NUM_OF_CORE,
-	           gcself_numsendobjs, gcself_numreceiveobjs);
+	           gcself_numsendobjs, gcself_numreceiveobjs, false);
 	sendStall = true;
       }
     }             // if(STARTUPCORE == BAMBOO_NUM_OF_CORE) ...
@@ -1455,7 +1455,7 @@ inline void compact2Heaptophelper_I(int coren,
     gcdstcore = gctopcore;
     gcblock2fill = *numblocks + 1;
   } else {
-    send_msg_4(coren, GCMOVESTART, gctopcore, *p, (*numblocks) + 1);
+    send_msg_4(coren, GCMOVESTART, gctopcore, *p, (*numblocks) + 1, false);
   }
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT_REG(coren);
@@ -1637,7 +1637,7 @@ inline void resolvePendingMoveRequest() {
 	BAMBOO_DEBUGPRINT(0xeb04);
 #endif
 	send_msg_4(dstcore, GCMOVESTART, sourcecore,
-	           startaddr, tomove);
+	           startaddr, tomove, false);
       }
       gcmovepending--;
       nosparemem = true;
@@ -2099,7 +2099,7 @@ innercompact:
       // ask for more mem
       gctomove = false;
       send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-                 *filledblocks, *heaptopptr, gccurr_heaptop);
+                 *filledblocks, *heaptopptr, gccurr_heaptop, false);
     } else {
 #ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xe108);
@@ -2107,7 +2107,7 @@ innercompact:
 #endif
       // finish compacting
       send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-                 *filledblocks, *heaptopptr, 0);
+                 *filledblocks, *heaptopptr, 0, false);
     }
   }       // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
 
@@ -2172,7 +2172,7 @@ inline void compact() {
     BAMBOO_DEBUGPRINT_REG(to->base);
 #endif
     send_msg_5(STARTUPCORE, GCFINISHCOMPACT, BAMBOO_NUM_OF_CORE,
-               0, to->base, 0);
+               0, to->base, 0, false);
     RUNFREE(orig);
     RUNFREE(to);
     return;
@@ -2248,7 +2248,7 @@ inline void * flushObj(void * objptr) {
 	// the first time require the mapping, send msg to the hostcore
 	// for the mapping info
 	send_msg_3(hostcore(objptr), GCMAPREQUEST, (int)objptr,
-	           BAMBOO_NUM_OF_CORE);
+	           BAMBOO_NUM_OF_CORE, false);
 	while(true) {
 	  if(gcismapped) {
 	    break;
@@ -2587,7 +2587,7 @@ inline void flush(struct garbagelist * stackptr) {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
   } else {
-    send_msg_2(STARTUPCORE, GCFINISHFLUSH, BAMBOO_NUM_OF_CORE);
+    send_msg_2(STARTUPCORE, GCFINISHFLUSH, BAMBOO_NUM_OF_CORE, false);
   }
 #ifdef GC_PROFILE
   if(BAMBOO_NUM_OF_CORE == 0) {
@@ -2616,7 +2616,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
 #endif
   initGC();
   //send init finish msg to core coordinator
-  send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE);
+  send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
   while(true) {
     if(MARKPHASE == gcphase) {
       break;
@@ -2672,7 +2672,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 #endif
   initGC();
   //send init finish msg to core coordinator
-  send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE);
+  send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
   while(true) {
     if(MARKPHASE == gcphase) {
       break;
@@ -2750,7 +2750,7 @@ inline void gc(struct garbagelist * stackptr) {
     // Note: all cores need to init gc including non-gc cores
     for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; i++) {
       // send GC init messages to all cores
-      send_msg_1(i, GCSTARTINIT);
+      send_msg_1(i, GCSTARTINIT, false);
     }
     bool isfirst = true;
     bool allStall = false;
@@ -2783,7 +2783,7 @@ inline void gc(struct garbagelist * stackptr) {
     for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
       gccorestatus[i] = 1;
       // send GC start messages to all cores
-      send_msg_1(i, GCSTART);
+      send_msg_1(i, GCSTART, false);
     }
 
     gcphase = MARKPHASE;
@@ -2801,7 +2801,7 @@ inline void gc(struct garbagelist * stackptr) {
                    // Note: only need to ask gc cores, non-gc cores do not host any objs
     numconfirm = NUMCORES4GC - 1;
     for(i = 1; i < NUMCORES4GC; ++i) {
-      send_msg_1(i, GCLOBJREQUEST);
+      send_msg_1(i, GCLOBJREQUEST, false);
     }
     gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
     while(true) {
@@ -2859,14 +2859,14 @@ inline void gc(struct garbagelist * stackptr) {
       if (tmpcoreptr < tmpheaptop /*tmptopptr*/) {
 	gcstopblock[i] = numpbc + 1;
 	if(i != STARTUPCORE) {
-	  send_msg_2(i, GCSTARTCOMPACT, numpbc+1);
+	  send_msg_2(i, GCSTARTCOMPACT, numpbc+1, false);
 	} else {
 	  gcblock2fill = numpbc+1;
 	}                         // if(i != STARTUPCORE)
       } else {
 	gcstopblock[i] = numpbc;
 	if(i != STARTUPCORE) {
-	  send_msg_2(i, GCSTARTCOMPACT, numpbc);
+	  send_msg_2(i, GCSTARTCOMPACT, numpbc, false);
 	} else {
 	  gcblock2fill = numpbc;
 	}                         // if(i != STARTUPCORE)
@@ -3005,7 +3005,7 @@ inline void gc(struct garbagelist * stackptr) {
     for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
       // send start flush messages to all cores
       gccorestatus[i] = 1;
-      send_msg_1(i, GCSTARTFLUSH);
+      send_msg_1(i, GCSTARTFLUSH, false);
     }
 #ifdef GC_PROFILE
     gc_profileItem();
@@ -3043,7 +3043,7 @@ inline void gc(struct garbagelist * stackptr) {
     gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
     for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
       // send gc finish messages to all cores
-      send_msg_1(i, GCFINISH);
+      send_msg_1(i, GCFINISH, false);
       gccorestatus[i] = 1;
     }
 #ifdef RAWPATH // TODO GC_DEBUG

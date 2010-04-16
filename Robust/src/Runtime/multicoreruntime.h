@@ -22,8 +22,8 @@ unsigned long long bamboo_start_time;
 #define BAMBOO_OUT_BUF_LENGTH 3000
 #define BAMBOO_MSG_BUF_LENGTH 3000
 int msgdata[BAMBOO_MSG_BUF_LENGTH];
-int msgdataindex;
-int msgdatalast;
+volatile int msgdataindex;
+volatile int msgdatalast;
 int msglength;
 volatile bool msgdatafull;
 int outmsgdata[BAMBOO_OUT_BUF_LENGTH];
@@ -31,7 +31,7 @@ int outmsgindex;
 int outmsglast;
 int outmsgleft;
 volatile bool isMsgHanging;
-volatile bool isMsgSending;
+//volatile bool isMsgSending;
 
 #define MSG_INDEXINC_I() \
   msgdataindex = (msgdataindex + 1) % (BAMBOO_MSG_BUF_LENGTH)
@@ -418,38 +418,40 @@ INLINE void processlockrelease(int locktype,
                                bool redirect);
 
 // msg related functions
-INLINE void send_hanging_msg();
+INLINE void send_hanging_msg(bool isInterrupt);
 INLINE void send_msg_1(int targetcore,
-                       unsigned long n0);
+                       unsigned long n0,
+					   bool isInterrupt);
 INLINE void send_msg_2(int targetcore,
                        unsigned long n0,
-                       unsigned long n1);
+                       unsigned long n1,
+					   bool isInterrupt);
 INLINE void send_msg_3(int targetcore,
                        unsigned long n0,
                        unsigned long n1,
-                       unsigned long n2);
+                       unsigned long n2,
+					   bool isInterrupt);
 INLINE void send_msg_4(int targetcore,
                        unsigned long n0,
                        unsigned long n1,
                        unsigned long n2,
-                       unsigned long n3);
+                       unsigned long n3,
+					   bool isInterrupt);
 INLINE void send_msg_5(int targetcore,
                        unsigned long n0,
                        unsigned long n1,
                        unsigned long n2,
                        unsigned long n3,
-                       unsigned long n4);
+                       unsigned long n4,
+					   bool isInterrupt);
 INLINE void send_msg_6(int targetcore,
                        unsigned long n0,
                        unsigned long n1,
                        unsigned long n2,
                        unsigned long n3,
                        unsigned long n4,
-                       unsigned long n5);
-INLINE void send_msg_3_I(int targetcore,
-                         unsigned long n0,
-                         unsigned long n1,
-                         unsigned long n2);
+                       unsigned long n5,
+					   bool isInterrupt);
 INLINE void cache_msg_1(int targetcore,
                         unsigned long n0);
 INLINE void cache_msg_2(int targetcore,
