@@ -1626,7 +1626,11 @@ int prefetchReq(int acceptfd) {
 	freeSockWithLock(transPResponseSocketPool, mid, sd);
       }
       mid=oidmid.mid;
-      sd = getSockWithLock(transPResponseSocketPool, mid);
+      //sd = getSockWithLock(transPResponseSocketPool, mid);
+      if((sd = getSockWithLock(transPResponseSocketPool, mid)) < 0) {
+        printf("%s() Socket Create Error at %s, %d\n", __func__, __FILE__, __LINE__);
+        return -1;
+      }
     }
     short offsetarry[numoffset];
     recv_data((int) acceptfd, offsetarry, numoffset*sizeof(short));

@@ -463,8 +463,14 @@ void prefetch(int siteid, int ntuples, unsigned int *oids, unsigned short *endof
       /* Send  Prefetch Request */
       prefetchpile_t *ptr = pilehead;
       while(ptr != NULL) {
-        int sd = getSock2(transPrefetchSockPool, ptr->mid);
+        //int sd = getSock2(transPrefetchSockPool, ptr->mid);
+        int sd;
+        if((sd = getSockWithLock(transPrefetchSockPool, ptr->mid)) < 0) {
+          printf("%s() Socket Create Error at %s, %d\n", __func__, __FILE__, __LINE__);
+          return;
+        }
         sendPrefetchReq(ptr, sd);
+        freeSockWithLock(transPrefetchSockPool, ptr->mid, sd);
         ptr = ptr->next;
       }
       
@@ -1663,7 +1669,12 @@ void *getRemoteObj(unsigned int mnum, unsigned int oid) {
   objheader_t *h;
   void *objcopy = NULL;
 
-  int sd = getSock2(transReadSockPool, mnum);
+  //int sd = getSock2(transReadSockPool, mnum);
+  int sd;
+  if((sd = getSockWithLock(transReadSockPool, mnum)) < 0) {
+    printf("%s() Socket Create Error at %s, %d\n", __func__, __FILE__, __LINE__);
+    return NULL;
+  }
   char readrequest[sizeof(char)+sizeof(unsigned int)];
   readrequest[0] = READ_REQUEST;
   *((unsigned int *)(&readrequest[1])) = oid;
@@ -1700,6 +1711,7 @@ void *getRemoteObj(unsigned int mnum, unsigned int oid) {
   totalObjSize += size;
 #endif
 	}
+  freeSockWithLock(transReadSockPool, mnum, sd);
 	return objcopy;
 }
 
@@ -2840,6 +2852,7 @@ unsigned short getObjType(unsigned int oid) {
   objheader_t *objheader;
   unsigned short numoffset[] ={0};
   short fieldoffset[] ={};
+  int sd=0;
 
   if ((objheader = (objheader_t *) mhashSearch(oid)) == NULL) {
 #ifdef CACHE
@@ -2851,10 +2864,18 @@ unsigned short getObjType(unsigned int oid) {
     unsigned int machineID;
     static int flipBit = 0;
     machineID = (flipBit)?(getPrimaryMachine(mid)):(getBackupMachine(mid));
-    int sd = getSock2(transReadSockPool, machineID);
+    //int sd = getSock2(transReadSockPool, machineID);
+    if((sd = getSockWithLock(transReadSockPool, machineID)) < 0) {
+      printf("%s() Socket Create Error at %s, %d\n", __func__, __FILE__, __LINE__);
+      return 0;
+    }
 #else
     unsigned int mid = lhashSearch(oid);
-    int sd = getSock2(transReadSockPool, mid);
+    //int sd = getSock2(transReadSockPool, mid);
+    if((sd = getSockWithLock(transReadSockPool, mid)) < 0) {
+      printf("%s() Socket Create Error at %s, %d\n", __func__, __FILE__, __LINE__);
+      return 0;
+    }
 #endif
     char remotereadrequest[sizeof(char)+sizeof(unsigned int)];
     remotereadrequest[0] = READ_REQUEST;
@@ -2881,18 +2902,34 @@ unsigned short getObjType(unsigned int oid) {
       pthread_mutex_unlock(&prefetchcache_mutex);
       recv_data(sd, objheader, size);
       prehashInsert(oid, objheader);
+#ifdef RECOVERY
+      freeSockWithLock(transReadSockPool, machineID, sd);
+#else
+      freeSockWithLock(transReadSockPool, mid, sd);
       return TYPE(objheader);
+#endif
 #else
       char *buffer;
       if((buffer = calloc(1, size)) == NULL) {
 	printf("%s() Calloc Error %s at line %d\n", __func__, __FILE__, __LINE__);
 	fflush(stdout);
+#ifdef RECOVERY
+    freeSockWithLock(transReadSockPool, machineID, sd);
+#else
+	freeSockWithLock(transReadSockPool, mid, sd);
+#endif
 	return 0;
       }
       recv_data(sd, buffer, size);
       objheader = (objheader_t *)buffer;
       unsigned short type = TYPE(objheader);
       free(buffer);
+#ifdef RECOVERY
+    freeSockWithLock(transReadSockPool, machineID, sd);
+#else
+	freeSockWithLock(transReadSockPool, mid, sd);
+#endif
+
       return type;
 #endif
     }
@@ -4059,6 +4096,7 @@ void printRecoveryStat() {
     printf("Recovery Time(ms) = %ld\n",recoverStat[i].elapsedTime);
   }
   printf("**************************\n\n");
+  fflush(stdout);
   fflush(stdout);
 #else
   printf("No stat\n");
