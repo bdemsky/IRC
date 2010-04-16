@@ -17,7 +17,7 @@ default:
 	cpp ${MAINCLASS}.java > tmp1${MAINCLASS}.java
 	./extractLines
 	../../../../buildscript ${FLAGS1} -o Game ${SRC}
-	../../../../buildscript ${DSMFLAGS} -o GameDSM ${SRC}
+#	../../../../buildscript ${DSMFLAGS} -o GameDSM ${SRC}
 
 clean:
 	rm tmp1RainForest.java
