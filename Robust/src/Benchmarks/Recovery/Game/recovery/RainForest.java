@@ -51,11 +51,11 @@ public class RainForest extends Thread {
 
   public void run() {
     int id, nthreads;
-    threadinfo[] mytinfo;
+    Barrier mybarr;
     atomic {
       id = threadid;
-      mytinfo = barr.tinfo;
       nthreads = numThreads;
+      mybarr=barr;
     }
 
     Random rand = new Random(id);
@@ -89,13 +89,7 @@ public class RainForest extends Thread {
       atomic {
         doOneMove(land, gamer);
       }
-      if((i&15) == 0 && id == 0) { //same as i%AGEUPDATETHRESHOLD
-        /* Update age of all trees in a Map */
-        atomic {
-          barr.updateAge(land, MAXAGE, ROW, COLUMN);
-        }
-      }
-      Barrier.enterBarrier(id,mytinfo,nthreads);
+      Barrier.enterBarrier(mybarr,id);
     }
 
     fi = System.currentTimeMillis();
@@ -137,8 +131,8 @@ public class RainForest extends Thread {
     }
 
     atomic {
-      mybarr = global new Barrier(numThreads, tinfo);
       world = global new GameMap[ROW][COLUMN];
+      mybarr = global new Barrier(numThreads, tinfo, world, MAXAGE, ROW, COLUMN);
       int i, j;
       for (i = 0; i < ROW; i++) {
         for (j = 0; j < COLUMN; j++) {

@@ -1,10 +1,19 @@
 public class Barrier extends Thread {
   threadinfo[] tinfo;
   int numthreads;
+  GameMap[][] land;
+  int maxage;
+  int rows;
+  int cols;
 
-  public Barrier(int n, threadinfo[] tinfo) {
-    numthreads=n;
-    this.tinfo=tinfo;
+  public Barrier(int n, threadinfo[] tinfo, GameMap[][] land, int maxage, int rows, int cols) {
+    this.land=land;
+    this.maxage=maxage;
+    this.rows=rows;
+    this.cols=cols;
+    this.numthreads=n;
+
+    this.tinfo=global new threadinfo[n];
   }
 
   /**
@@ -14,7 +23,7 @@ public class Barrier extends Thread {
    ** @param rows The number of rows in the map
    ** @param cols The number of columns in the map
    **/
-  public void updateAge(GameMap[][] land, int maxage, int rows, int cols) {
+  public void updateAge() {
     int countTrees = 0;
     //System.out.println("updateAge -> maxAge : "+maxage + " rows : " + rows + " cols : "+ cols);
     for(int i = 0; i<rows; i++) {
@@ -32,53 +41,72 @@ public class Barrier extends Thread {
 //    System.println("Tree count=  "+countTrees);
   }
 
-  public static void enterBarrier(int threadid, threadinfo[] tinfo, int numthreads) {
+  public static void enterBarrier(Barrier b, int threadid) {
+    threadinfo tinfo[];
+    int numthreads;
     int x;
     atomic {
-      tinfo[threadid].counter++;
-      x = tinfo[threadid].counter;
+      /* This transaction updates the counter...we really want threadinfo objects to be local, so we allocate the first time through */
+      numthreads=b.numthreads;
+      tinfo=b.tinfo;
+      if (tinfo[threadid]==null)
+	tinfo[threadid]=global new threadinfo();
+      x = (++tinfo[threadid].counter);
+      tinfo[threadid].status=0;
     }
 
-    for(int i=0; i<numthreads; i++) {
-      if(threadid == i) {
-        continue;
-      }
-      boolean check = false;
-      atomic {
-        if(tinfo[i].status != -1) {
-          if(tinfo[i].counter >= tinfo[threadid].counter)  {
-            check = true;
-          }
-        } else {
-          check = true;
-        }
-      }
-      if(!check) {
-        int status = Thread.getStatus(i);
-        if(status==-1) {//Thread is dead
-          atomic {
-            tinfo[i].status = -1;
-          }
-          //System.out.println("DEBUG -> Dead\n");
-          continue;
-        }
-        int y;
-        atomic {
-          y=tinfo[i].counter;
-        }
+    boolean cont=true;
+    int count=0;
 
-        //System.printString("i= " + i + " i's count= " + y + " threadid= " + threadid + " mycount= " + x);
+    /* Here we see if we are the first non-failed machine...if so, we operate the barrier...if not we wait for our signal */
+    while(cont&&count!=threadid) {
+      if (Thread.getStatus(count)==-1) {
+	count++;
+      } else {
+	atomic {
+	  if (tinfo[threadid].status==1)
+	    cont=false;
+	}
+      }
+    }
 
-        while(y<x && (Thread.getStatus(i) != -1)) {
-          //Wait for 100 microseconds
+    if (count==threadid) {
+      /* We are the first non-failed machine...*/
+      int waitingon=numthreads-threadid-1;
+      boolean waiting[]=new boolean[waitingon];
+      
+      while(waitingon>0) {
+	//we are doing the barrier
+	for(int i=threadid+1; i<numthreads; i++) {
+	  if (!waiting[i-threadid-1]) {
+	    atomic {
+	      if(tinfo[i]!=null && tinfo[i].counter == tinfo[threadid].counter) {
+		//this one is done
+		waitingon--;
+		waiting[i-threadid-1]=true;
+	      } else if (Thread.getStatus(i)==-1) {
+		waitingon--;
+		waiting[i-threadid-1]=true;
+	      }
+	    }
+	  }
+	}
+	if (waitingon>0) //small sleep here
           sleep(100);
-          atomic {
-            y = tinfo[i].counter;
-          }
-        }
+      }
+      //everyone has reached barrier
+      atomic {
+	//update map
+	b.updateAge();
+	//      }
+	//think a single transaction is fine here....
+	//      atomic {
+	for(int i=threadid+1; i<numthreads; i++) {
+	  if (tinfo[i]!=null)
+	    tinfo[i].status=1;
+	}
       }
     }
-    return;
   }
 }
 
@@ -90,4 +118,3 @@ public class threadinfo {
     status = 0;
   }
 }
-
