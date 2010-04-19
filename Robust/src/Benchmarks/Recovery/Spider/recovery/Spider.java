@@ -39,7 +39,10 @@ public class Spider {
       //set up workers
       ts=global new TaskSet(NUM_THREADS);
       for (i = 0; i < NUM_THREADS; i++) {
-	ts.threads[i] = global new Worker(ts,i);
+        ts.threads[i] = global new Worker(ts,i,(NUM_THREADS/2));
+      }
+      for (i = 0; i < NUM_THREADS/2; i++) {
+        ts.todo[i] = global new GlobalQueue();
       }
     }
 
@@ -50,7 +53,7 @@ public class Spider {
       DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
       DistributedLinkedList results_list = global new DistributedLinkedList();
       QueryTask firstquery = global new QueryTask(visitedList, maxDepth, maxSearchDepth, results, results_list, firstmachine, firstpage, 0);
-      ts.todo.push(firstquery);
+      ts.todo[0].push(firstquery);
     }
 
     System.printString("Finished to create Objects\n");

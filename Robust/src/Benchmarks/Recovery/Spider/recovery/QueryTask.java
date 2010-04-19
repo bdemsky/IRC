@@ -27,6 +27,7 @@ public class QueryTask extends Task {
     int ldepth;
 
     atomic {
+      System.out.println("trans 2");
       max = this.maxDepth;
       maxSearch = this.maxSearchDepth;
       ldepth=this.depth;
@@ -39,6 +40,7 @@ public class QueryTask extends Task {
       String title;
       
       atomic {
+      System.out.println("trans 3");
 	hostname = new String(GlobalString.toLocalCharArray(getHostName()));
 	path = new String(GlobalString.toLocalCharArray(getPath()));
 	
@@ -65,6 +67,7 @@ public class QueryTask extends Task {
       
       if ((title = grabTitle(lq)) != null) {
 	atomic {
+      System.out.println("trans 4");
 	  //commits everything...either works or fails
 	  gTitle = global new GlobalString(title);
 	  processPage(lq);
@@ -74,6 +77,7 @@ public class QueryTask extends Task {
       s.close();
     } else {
       atomic {
+      System.out.println("trans 5");
 	dequeueTask();
       }
     }
