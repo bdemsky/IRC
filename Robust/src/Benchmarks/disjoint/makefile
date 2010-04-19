@@ -13,11 +13,11 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 ##       after capture (or let it run on normally)
 ##
 #################################################
-#DEBUGFLAGS= -disjoint-debug-callsite addInterOutput t6 44 2 false
-#DEBUGFLAGS= -disjoint-debug-callsite addElement addInterOutput 30 100 false
+#DEBUGFLAGS= -disjoint-debug-callsite addInterOutput t6 20 50 false
+#DEBUGFLAGS= -disjoint-debug-callsite addElement addInterOutput 1 100 false
+#DEBUGFLAGS= -disjoint-debug-callsite ensureCapacity addElement 1 100 false
+#DEBUGFLAGS= -disjoint-debug-callsite get sortgroup 200 200 false
 
-#DEBUGFLAGS= -disjoint-debug-callsite setPartial reduceOutput 1 20 false
-#DEBUGFLAGS= -disjoint-debug-callsite close Transaction 1 20 false
 
 
 #################################################
@@ -37,14 +37,13 @@ BUILDSCRIPT=~/research/Robust/src/buildscript
 #SNAPFLAGS= -disjoint-debug-snap-method calcGoodFeature 5 1 true
 
 #SNAPFLAGS= -disjoint-debug-snap-method t6 20 1 false
-#SNAPFLAGS= -disjoint-debug-snap-method addInterOutput 10 50 false
+#SNAPFLAGS= -disjoint-debug-snap-method addInterOutput 1 100 false
+#SNAPFLAGS= -disjoint-debug-snap-method addElement 1 100 false
+#SNAPFLAGS= -disjoint-debug-snap-method sortgroup 50 100 false
 
 #SNAPFLAGS= -disjoint-debug-snap-method reduceOutput 1 20 true
 #SNAPFLAGS= -disjoint-debug-snap-method setReduceFinish 5 50 true
 #SNAPFLAGS= -disjoint-debug-snap-method setPartial 1 50 true
-
-#SNAPFLAGS= -disjoint-debug-snap-method Transaction 1 20 true
-#SNAPFLAGS= -disjoint-debug-snap-method close 1 20 true
 
 
 
@@ -56,7 +55,7 @@ JAVAFLAGS= -mainclass test
 #VISITMODE= -disjoint-dvisit-pqueue
 VISITMODE= -disjoint-dvisit-stack-callees-on-top
 
-DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism #-disjoint-write-ihms -disjoint-debug-scheduling -disjoint-write-initial-contexts
+DEBUGMODE= -enable-assertions -disjoint-write-dots final -disjoint-alias-file aliases.txt normal -disjoint-desire-determinism #-disjoint-write-initial-contexts -disjoint-write-ihms #-disjoint-debug-scheduling
 RELEASEMODE= -disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 
 BSFLAGS= -justanalyze -disjoint -disjoint-k 1 #-flatirusermethods -flatirtasks

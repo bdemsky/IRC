@@ -29,7 +29,7 @@ MolDyn        & 2         & 2  & 2  &  2          \\
 MonteCarlo    & 0         & 0  & 0  &  0          \\
 Series        & 0         & 0  & 0  &  0          \\
 KMeans-Bamboo & 2         & 2  & 2  &  2          \\
-MapReduce2    & 3         & \color{red}{0}  & \color{red}{0}  &  \color{red}{0}          \\
+MapReduce2    & 3         & \color{green}{2}  & \color{green}{2}  &  \color{green}{2}          \\
 FluidAnimate  & 2         & 2  & 2  &  2          \\
 Spider1       & 0         & 0  & 0  &  0          \\
 Spider2       & 0         & 0  & 0  &  0          \\
@@ -42,7 +42,9 @@ Tracking      & 0         & 0  & 0  &  0          \\
 \end{tabular}
 
 I verified that for MapReduce1 the new analysis successfully rules out
-a false sharing class that the old analysis could not.
+a false sharing class that the old analysis could not.  And awesomely
+the new analysis rules out a false sharing class for MapReduce2 as
+well!
 
 
 \newpage
@@ -122,67 +124,8 @@ Tracking      & 0  & 32.86  & 5218 & 158 \\
 
 \subsection{Stack}
 
-\begin{tabular}{|l|l|r|r|r|}
-\hline
-Benchmark & Sharing & Time (s) & Lines & Methods \\
-\hline
-Bank          & 0  & 4.66     & 2059 & 67 \\
-Chat          & 3  & 3.71     & 1744 & 71 \\
-WebPortal     & 0  & 2.95     & 2213 & 93 \\
-jHTTPp2       & 0  & 3.95     & 2679 & 122 \\
-MapReduce1    & 1  & 38.28    & 2370 & 114 \\
-MultiGame     & 10 & 225.76   & 3099 & 46 \\
-PERT          & 0  & 0.95     & 2184 & 61 \\
-FilterBank    & 0  & 0.15     & 1555 & 9 \\
-Fractal       & 1  & 0.11     & 1568 & 8 \\
-MolDyn        & 2  & 2.04     & 2136 & 31 \\
-MonteCarlo    & 0  & 1.73     & 3638 & 49 \\
-Series        & 0  & 0.35     & 1639 & 10 \\
-KMeans-Bamboo & 2  & 5.92     & 2893 & 45 \\
-MapReduce2    & 0  & 54.28    & 2314 & 95 \\
-FluidAnimate  & 2  & 12479.20 & 3821 & 82 \\
-Spider1       & 0  & 8.28     & 1827 & 80 \\
-Spider2       & 0  & 9.24     & 1831 & 83 \\
-TileSearch    & 0  & 5.76     & 2284 & 34 \\
-TicTacToe     & 0  & 1.76     & 1766 & 68 \\
-WebServer1    & 0  & 14.69    & 2090 & 97 \\
-WebServer2    & 0  & 14.15    & 2089 & 100 \\
-Tracking      & 0  & 16.29    & 5218 & 158 \\
-\hline
-\end{tabular}
-
-
 
 \subsection{Queue}
-
-\begin{tabular}{|l|l|r|r|r|}
-\hline
-Benchmark & Sharing & Time (s) & Lines & Methods \\
-\hline
-Bank          & 0  & 4.70     & 2059 & 67 \\
-Chat          & 3  & 3.66     & 1744 & 71 \\
-WebPortal     & 0  & 3.15     & 2213 & 93 \\
-jHTTPp2       & 0  & 4.44     & 2679 & 122 \\
-MapReduce1    & 1  & 37.95    & 2370 & 114 \\
-MultiGame     & 10 & 227.62   & 3099 & 46 \\
-PERT          & 0  & 0.88     & 2184 & 61 \\
-FilterBank    & 0  & 0.18     & 1555 & 9 \\
-Fractal       & 1  & 0.11     & 1568 & 8 \\
-MolDyn        & 2  & 2.19     & 2136 & 31 \\
-MonteCarlo    & 0  & 1.72     & 3638 & 49 \\
-Series        & 0  & 0.35     & 1639 & 10 \\
-KMeans-Bamboo & 2  & 6.02     & 2893 & 45 \\
-MapReduce2    & 0  & 52.59    & 2314 & 95 \\
-FluidAnimate  & 2  & 11416.19 & 3821 & 82 \\
-Spider1       & 0  & 8.30     & 1827 & 80 \\
-Spider2       & 0  & 9.15     & 1831 & 83 \\
-TileSearch    & 0  & 5.26     & 2284 & 34 \\
-TicTacToe     & 0  & 1.84     & 1766 & 68 \\
-WebServer1    & 0  & 14.62    & 2090 & 97 \\
-WebServer2    & 0  & 14.02    & 2089 & 100 \\
-Tracking      & 0  & 15.79    & 5218 & 158 \\
-\hline
-\end{tabular}
 
 
 
@@ -192,31 +135,30 @@ Tracking      & 0  & 15.79    & 5218 & 158 \\
 \hline
 Benchmark & Sharing & Time (s) & Lines & Methods \\
 \hline
-Bank          & 0  & 5.02     & 2059 & 67 \\
-Chat          & 3  & 3.68     & 1744 & 71 \\
-WebPortal     & 0  & 3.17     & 2213 & 93 \\
-jHTTPp2       & 0  & 3.96     & 2679 & 122 \\
-MapReduce1    & 1  & 40.36    & 2370 & 114 \\
-MultiGame     & 10 & 226.91   & 3099 & 46 \\
-PERT          & 0  & 0.87     & 2184 & 61 \\
-FilterBank    & 0  & 0.15     & 1555 & 9 \\
-Fractal       & 1  & 0.11     & 1568 & 8 \\
-MolDyn        & 2  & 2.87     & 2136 & 31 \\
-MonteCarlo    & 0  & 1.72     & 3638 & 49 \\
-Series        & 0  & 0.33     & 1639 & 10 \\
-KMeans-Bamboo & 2  & 6.05     & 2893 & 45 \\
-MapReduce2    & 0  & 52.83    & 2314 & 95 \\
-FluidAnimate  & 2  & 12298.70 & 3821 & 82 \\
-Spider1       & 0  & 6.70     & 1827 & 80 \\
-Spider2       & 0  & 12.10    & 1831 & 83 \\
-TileSearch    & 0  & 7.13     & 2284 & 34 \\
-TicTacToe     & 0  & 2.08     & 1766 & 68 \\
-WebServer1    & 0  & 13.91    & 2090 & 97 \\
-WebServer2    & 0  & 14.46    & 2089 & 100 \\
-Tracking      & 0  & 17.78    & 5218 & 158 \\
+Bank          & 0  & 4.72    & 2059 & 67 \\
+Chat          & 3  & 2.76    & 1744 & 71 \\
+WebPortal     & 0  & 2.76    & 2213 & 93 \\
+jHTTPp2       & 0  & 3.46    & 2679 & 122 \\
+MapReduce1    & 1  & 22.54   & 2370 & 114 \\
+MultiGame     & 10 & 126.07  & 3099 & 46 \\
+PERT          & 0  & 1.14    & 2184 & 61 \\
+FilterBank    & 0  & 0.15    & 1555 & 9 \\
+Fractal       & 1  & 0.11    & 1568 & 8 \\
+MolDyn        & 2  & 2.20    & 2136 & 31 \\
+MonteCarlo    & 0  & 1.66    & 3638 & 49 \\
+Series        & 0  & 0.26    & 1639 & 10 \\
+KMeans-Bamboo & 2  & 3.76    & 2893 & 45 \\
+MapReduce2    & 0  & 28.09   & 2314 & 95 \\
+FluidAnimate  & 2  & 2489.36 & 3821 & 82 \\
+Spider1       & 0  & 5.85    & 1827 & 80 \\
+Spider2       & 0  & 5.28    & 1831 & 83 \\
+TileSearch    & 0  & 3.36    & 2284 & 34 \\
+TicTacToe     & 0  & 1.62    & 1766 & 68 \\
+WebServer1    & 0  & 10.87   & 2090 & 97 \\
+WebServer2    & 0  & 10.25   & 2089 & 100 \\
+Tracking      & 0  & 16.13   & 5218 & 158 \\
 \hline
 \end{tabular}
-
 
 
 
