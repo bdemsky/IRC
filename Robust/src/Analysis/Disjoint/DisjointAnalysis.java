@@ -541,10 +541,7 @@ public class DisjointAnalysis {
 
     pm = new PointerMethod();
 
-    if( state.DISJOINTDEBUGSCHEDULING ) {
-      fc2enclosing = new Hashtable<FlatCall, Descriptor>();
-    }
-
+    fc2enclosing = new Hashtable<FlatCall, Descriptor>();
   }
 
 
@@ -1185,13 +1182,12 @@ public class DisjointAnalysis {
         // and reschedule the callee for analysis
         addIHMcontribution( mdCallee, fc, heapForThisCall_cur );        
 
+        // map a FlatCall to its enclosing method/task descriptor 
+        // so we can write that info out later
+        fc2enclosing.put( fc, mdCaller );
+
         if( state.DISJOINTDEBUGSCHEDULING ) {
           System.out.println( "  context changed, scheduling callee: "+mdCallee );
-
-          // if we're debugging the scheduling system, map a FlatCall
-          // to its enclosing method/task descriptor so we can write
-          // that info out later
-          fc2enclosing.put( fc, mdCaller );
         }
 
         if( state.DISJOINTDVISITSTACKEESONTOP ) {
@@ -1354,7 +1350,7 @@ public class DisjointAnalysis {
                      true,   // write labels (variables)                
                      true,   // selectively hide intermediate temp vars 
                      true,   // prune unreachable heap regions          
-                     false,  // hide subset reachability states         
+                     true,  // hide subset reachability states         
                      true ); // hide edge taints                        
     }
   }
@@ -1372,11 +1368,11 @@ public class DisjointAnalysis {
         FlatCall   fc  = (FlatCall)   me2.getKey();
         ReachGraph rg  = (ReachGraph) me2.getValue();
                 
-        rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc,
+        rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc2enclosing.get( fc )+fc,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
                        true,   // prune unreachable heap regions
-                       false,  // hide subset reachability states
+                       true,  // hide subset reachability states
                        true ); // hide edge taints
       }
     }
@@ -1394,7 +1390,7 @@ public class DisjointAnalysis {
                      true,   // write labels (variables)                
                      true,   // selectively hide intermediate temp vars 
                      true,   // prune unreachable heap regions          
-                     false,  // hide subset reachability states         
+                     true,  // hide subset reachability states         
                      true ); // hide edge taints                        
     }
   }
@@ -1422,7 +1418,7 @@ public class DisjointAnalysis {
                      true,   // write labels (variables)
                      true,   // selectively hide intermediate temp vars
                      true,   // prune unreachable heap regions
-                     false,  // hide subset reachability states
+                     true,  // hide subset reachability states
                      true ); // hide edge taints
       
       mapDescriptorToNumUpdates.put( d, n + 1 );
@@ -2188,11 +2184,11 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
                           " @@@" );
       String graphName;
       if( in ) {
-        graphName = String.format( "snap%02d_%04din",
+        graphName = String.format( "snap%03d_%04din",
                                    snapVisitCounter,
                                    snapNodeCounter );
       } else {
-        graphName = String.format( "snap%02d_%04dout",
+        graphName = String.format( "snap%03d_%04dout",
                                    snapVisitCounter,
                                    snapNodeCounter );
       }
@@ -2203,7 +2199,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
                      true,  // write labels (variables)
                      true,  // selectively hide intermediate temp vars
                      true,  // prune unreachable heap regions
-                     false, // hide subset reachability states
+                     true, // hide subset reachability states
                      true );// hide edge taints
     }
   }
