@@ -12,13 +12,13 @@ public class GenerateWebFile {
 
   public static void main(String[] args) {
     int numFiles = 3000;
-    int numLinks = 10;
+    int numLinks = 6;
     GenerateWebFile gwf = new GenerateWebFile();
     gwf.wordList = gwf.fileToVector("wordList");
-    for(int i = 0; i < 3000; i++) {
+    for(int i = 0; i < numFiles; i++) {
       Random rword = new Random(i);
       String title = gwf.genTitle(gwf.wordList, rword);
-      String body = gwf.createBody(numLinks, rword);
+      String body = gwf.createBody(numLinks, rword, numFiles);
       //System.out.println("\n\nPassed create Body\n\n");
       gwf.createFile(title, i, body);
       //System.out.println("\n\nPassed create File\n\n");
@@ -37,33 +37,39 @@ public class GenerateWebFile {
     return title;
   }
 
-  public String createBody(int numlinkinBody, Random rword) {
+  public String createBody(int numlinkinBody, Random rword, int numFiles) {
     String body = "";
     String hostname = null;
     int nextRandomWord;
     for(int i = 0; i< numlinkinBody; i++) {
-      nextRandomWord = rword.nextInt(3000);
+      nextRandomWord = rword.nextInt(numFiles);
       hostname = "dc-11.calit2.uci.edu";
       body += "<a href=\"http://" + hostname + "/" + nextRandomWord + ".html\">XXXXX</a> <br>" + "\n";
+      StringBuffer s = new StringBuffer();
+      for(int j=0; j<10000; j++) {
+        s.append("Z");
+      }
+      s.append("\n");
+      body += s.toString();
     }
     return body;
   }
-
 
   public void createFile(String title, int index, String body) {
     try {
       String Filename = title+"/"+index+".html";
       BufferedWriter out = new BufferedWriter(new FileWriter(index+".html", true));
-      out.write("<html>");
-      out.write("<head>");
-      out.write("<title>"+title+"</title>");
+      out.write("<html xmlns=\"http://www.w3.org/1999/xhtml\">"+"\n");
+      out.write("<head>" + "\n");
+      out.write("<title>"+title+"</title>"+"\n");
       //out.write(title);
       //out.write("</title>");
-      out.write("</head>");
-      out.write("<body>");
-      out.write("Filling in body<br>");
+      out.write("</head>"+"\n");
+      out.write("\n");
+      out.write("<body>"+"\n");
+      out.write("Filling in body<br>"+"\n");
       out.write(body);
-      out.write("</body>");
+      out.write("</body><br>");
       out.write("</html>");
       out.newLine();
       out.flush();
