@@ -13,49 +13,38 @@ public class GenerateWebFile {
   public static void main(String[] args) {
     int numFiles = 3000;
     int numLinks = 10;
-    String filename = "sourceFile.txt";
     GenerateWebFile gwf = new GenerateWebFile();
     gwf.wordList = gwf.fileToVector("wordList");
     for(int i = 0; i < 3000; i++) {
-      Random rword = new Random();
-      String title = gwf.genTitle(gwf.wordList, rword, filename);
-      String body = gwf.createBody(numLinks);
+      Random rword = new Random(i);
+      String title = gwf.genTitle(gwf.wordList, rword);
+      String body = gwf.createBody(numLinks, rword);
       //System.out.println("\n\nPassed create Body\n\n");
       gwf.createFile(title, i, body);
       //System.out.println("\n\nPassed create File\n\n");
     }
   }
 
-  public String genTitle(Vector v, Random rword, String filename) {
+  public String genTitle(Vector v, Random rword) {
     String title = "";
     title = "";
     //Randomly pick  5 words to  generate Title
+    title += v.elementAt(rword.nextInt(8000));
     for(int i=0; i<5; i++) {
-      title += v.elementAt(rword.nextInt(8000));
       title += " ";
-    }
-    newfile = new File(filename);
-    try {
-      BufferedWriter out = new BufferedWriter(new FileWriter("sourceFile.txt", true));
-      out.write(title + ":" + rword.nextInt(3000));
-      out.newLine();
-      out.flush();
-      out.close();
-    } catch (IOException e) {
+      title += v.elementAt(rword.nextInt(8000));
     }
     return title;
   }
 
-  public String createBody(int numlinkinBody) {
+  public String createBody(int numlinkinBody, Random rword) {
     String body = "";
     String hostname = null;
-
-    Random rword = new Random(200);
     int nextRandomWord;
     for(int i = 0; i< numlinkinBody; i++) {
       nextRandomWord = rword.nextInt(3000);
       hostname = "dc-11.calit2.uci.edu";
-      body += "<a href= \"http://" + hostname + "/" + nextRandomWord + ".html\">XXXXX</a> <br>" + "\n";
+      body += "<a href=\"http://" + hostname + "/" + nextRandomWord + ".html\">XXXXX</a> <br>" + "\n";
     }
     return body;
   }
@@ -67,9 +56,9 @@ public class GenerateWebFile {
       BufferedWriter out = new BufferedWriter(new FileWriter(index+".html", true));
       out.write("<html>");
       out.write("<head>");
-      out.write("<title>");
-      out.write(title);
-      out.write("</title>");
+      out.write("<title>"+title+"</title>");
+      //out.write(title);
+      //out.write("</title>");
       out.write("</head>");
       out.write("<body>");
       out.write("Filling in body<br>");
