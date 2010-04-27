@@ -532,8 +532,6 @@ int dstmStartup(const char * option) {
 		updateLiveHosts();
 		setLocateObjHosts();
 		updateLiveHostsCommit();
-//		leader = paxos(hostIpAddrs,liveHosts,myIpAddr,numHostsInSystem,numLiveHostsInSystem);
-//    printHostsStatus();
 		if(!allHostsLive()) {
 			printf("Not all hosts live. Exiting.\n");
 			exit(-1);
@@ -1895,6 +1893,7 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
     request = REQUEST_TRANS_WAIT;
     send_data(sdlist[i],&request, sizeof(char));
     send_data(sdlist[i],&epoch_num,sizeof(unsigned int));
+    send_data(sdlist[i],&myIndexInHostArray,sizeof(unsigned int));
   }
 
   /* stop all local transactions */

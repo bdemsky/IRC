@@ -43,6 +43,7 @@ tlist_t* transList;
 int okCommit; // machine flag
 extern numWaitMachine;
 extern unsigned int currentEpoch;
+unsigned int leader_index;
 
 #endif
 
@@ -176,7 +177,7 @@ void *dstmListen(void *lfd) {
 #ifdef RECOVERY
     if(firsttime) {
       do {
-        retval = pthread_create(&thread_dstm_asking, NULL, startAsking, NULL);
+        retval = pthread_create(&thread_dstm_asking, NULL, startPolling, NULL);
       }while(retval!=0);
       firsttime=0;
       pthread_detach(thread_dstm_asking);
@@ -191,7 +192,7 @@ void *dstmListen(void *lfd) {
 }
 
 #ifdef RECOVERY
-void* startAsking()
+void* startPolling()
 {
   unsigned int deadMachineIndex = -1;
   int i;
@@ -236,24 +237,41 @@ unsigned int checkIfAnyMachineDead(int* socklist)
   char response;
   
   while(1){
-    for(i = 0; i< numHostsInSystem;i++) {
-      if(socklist[i] > 0) {
-        send_data(socklist[i], &control,sizeof(char));
 
-        if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
-          // if machine is dead, returns index of socket
-          return i;
-        }
-        else {
-          // machine responded
-          if(response != LIVE) {
+    if(okCommit == TRANS_OK) {
+      for(i = 0; i< numHostsInSystem;i++) {
+        if(socklist[i] > 0) {
+          send_data(socklist[i], &control,sizeof(char));
+  
+          if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
+            // if machine is dead, returns index of socket
             return i;
           }
-        } // end else
-      }// end if(socklist[i]
-    } // end for()
+          else {
+            // machine responded
+            if(response != LIVE) {
+              return i;
+            }
+          } // end else
+        }// end if(socklist[i]
+      } // end for()
 
-    clearDeadThreadsNotification();
+      clearDeadThreadsNotification();
+    }
+    else {
+      send_data(socklist[i],&control,sizeof(char));
+
+      if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
+        // if machine is dead, returns index of socket
+        return i;
+      }
+      else {
+        // machine responded
+        if(response != LIVE) {
+          return i;
+        }
+      } // end else
+    }
 
     sleep(numLiveHostsInSystem);  // wait for seconds for next checking
   } // end while(1)
@@ -498,7 +516,9 @@ void *dstmAccept(void *acceptfd) {
 #ifdef RECOVERY
       case REQUEST_TRANS_WAIT:
         { 
+          unsigned int new_leader_index;
           recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
+          recv_data((int)acceptfd,&new_leader_index,sizeof(unsigned int));
 
           if(inspectEpoch(epoch_num) < 0) {
             response = RESPOND_HIGHER_EPOCH;
@@ -506,8 +526,14 @@ void *dstmAccept(void *acceptfd) {
           }
           else {
             printf("Got new Leader! : %d\n",epoch_num);
-            currentEpoch = epoch_num;
+
             stopTransactions(TRANS_BEFORE);
+
+            pthread_mutex_lock(&recovery_mutex);
+            currentEpoch = epoch_num;
+            leader_index = new_leader_index;
+            pthread_mutex_unlock(&recovery_mutex);
+            
             response = RESPOND_TRANS_WAIT;
             send_data((int)acceptfd,&response,sizeof(char));
             sendMyList((int)acceptfd);

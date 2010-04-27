@@ -301,7 +301,7 @@ unsigned int getBackupMachine(unsigned int mid);
 unsigned int getDuplicatedPrimaryMachine(unsigned int mid);
 int getNumLiveHostsInSystem();
 int getMyStatus();
-void* startAsking();
+void* startPolling();
 unsigned int checkIfAnyMachineDead(int*);
 void clearDeadThreadsNotification();
 /* end duplication */
