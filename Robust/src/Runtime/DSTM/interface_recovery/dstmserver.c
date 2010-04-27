@@ -42,6 +42,7 @@ pthread_mutex_t clearNotifyList_mutex;
 tlist_t* transList;
 int okCommit; // machine flag
 extern numWaitMachine;
+extern unsigned int currentEpoch;
 
 #endif
 
@@ -53,7 +54,6 @@ pthread_mutexattr_t mainobjstore_mutex_attr; /* Attribute for lock to make it a 
 sockPoolHashTable_t *transPResponseSocketPool;
 
 #ifdef RECOVERY
-extern unsigned int leader;
 
 long long myrdtsc(void)
 {
@@ -76,7 +76,7 @@ int dstmInit(void) {
 
 #ifdef RECOVERY
 	pthread_mutex_init(&liveHosts_mutex, NULL);
-	pthread_mutex_init(&leaderFixing_mutex, NULL);
+	pthread_mutex_init(&recovery_mutex, NULL);
   pthread_mutex_init(&clearNotifyList_mutex,NULL);
 #endif
 
@@ -93,6 +93,10 @@ int dstmInit(void) {
     printf("well error\n");
     return 1;
   }
+  
+  okCommit = TRANS_OK;
+  currentEpoch = 1;
+
 #endif
 
   if (notifyhashCreate(N_HASH_SIZE, N_LOADFACTOR))
@@ -104,7 +108,6 @@ int dstmInit(void) {
     return 0;
   }
 
-  okCommit = TRANS_OK;
 
   return 0;
 }
@@ -271,6 +274,7 @@ void *dstmAccept(void *acceptfd) {
 	void *dupeptr;
   unsigned int transIDreceived;
   char decision;
+  unsigned int epoch_num;
   int timeout;
 #endif
 
@@ -294,7 +298,7 @@ void *dstmAccept(void *acceptfd) {
 		if (ret==0)
 			break;
 		if (ret==-1) {
-			printf("DEBUG -> RECV Error!.. retrying\n");
+//			printf("DEBUG -> RECV Error!.. retrying\n");
 	//		exit(0);
 			break;
 		}
@@ -358,18 +362,6 @@ void *dstmAccept(void *acceptfd) {
 					pthread_exit(NULL);
 				}
 				break;
-#ifdef RECOVERY
-      case ASK_COMMIT :
-
-        if(recv_data((int)acceptfd, &transIDreceived, sizeof(unsigned int)) < 0)
-          break;        
-
-        decision = checkDecision(transIDreceived);
-
-        send_data((int)acceptfd,&decision,sizeof(char));
-
-        break;
-#endif
 			case TRANS_PREFETCH:
 #ifdef DEBUG
         printf("control -> TRANS_PREFETCH\n");
@@ -500,70 +492,54 @@ void *dstmAccept(void *acceptfd) {
 #ifdef RECOVERY
 			case RESPOND_LIVE:
 				ctrl = LIVE;
-				send_data((int)acceptfd, &ctrl, sizeof(ctrl));
-				break;
-#endif
-#ifdef RECOVERY
-			case REMOTE_RESTORE_DUPLICATED_STATE:
-#ifdef DEBUG
-        printf("control -> REMOTE_RESTORE_DUPLICATED_STATE\n");
-#endif
-				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
-				if(!liveHosts[findHost(mid)]) {
-#ifdef DEBUG
-          printf("%s (REMOTE_RESTORE_DUPLICATED_STATE) -> already fixed\n",__func__);
-#endif
-					break;
-        }
-				pthread_mutex_lock(&leaderFixing_mutex);
-				if(!leaderFixing) {
-					leaderFixing = 1;
-					pthread_mutex_unlock(&leaderFixing_mutex);
-          
-          restoreDuplicationState(mid);
-          // finish fixing
-	  			pthread_mutex_lock(&leaderFixing_mutex);
-		  		leaderFixing = 0;
-			  	pthread_mutex_unlock(&leaderFixing_mutex);
-				}
-				else {
-					pthread_mutex_unlock(&leaderFixing_mutex);
-#ifdef DEBUG
-          printf("%s (REMOTE_RESTORE_DUPLICATED_STATE -> LEADER is already fixing\n",__func__);
-#endif
-          sleep(WAIT_TIME);
-				}
+				send_data((int)acceptfd, &ctrl, sizeof(char));
 				break;
 #endif
 #ifdef RECOVERY
       case REQUEST_TRANS_WAIT:
-        receiveNewHostLists((int)acceptfd);        
-        stopTransactions(TRANS_BEFORE);
+        { 
+          recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
 
-        response = RESPOND_TRANS_WAIT;
-        send_data((int)acceptfd,&response,sizeof(char));
-//        respondToLeader();
+          if(inspectEpoch(epoch_num) < 0) {
+            response = RESPOND_HIGHER_EPOCH;
+            send_data((int)acceptfd,&response,sizeof(char));
+          }
+          else {
+            printf("Got new Leader! : %d\n",epoch_num);
+            currentEpoch = epoch_num;
+            stopTransactions(TRANS_BEFORE);
+            response = RESPOND_TRANS_WAIT;
+            send_data((int)acceptfd,&response,sizeof(char));
+            sendMyList((int)acceptfd);
+          }
+        } 
         break;
 
-      case RESPOND_TRANS_WAIT:
-        printf("control -> RESPOND_TRANS_WAIT\n");
-        pthread_mutex_lock(&liveHosts_mutex);
-        numWaitMachine++;
-        pthread_mutex_unlock(&liveHosts_mutex);
-        printf("numWaitMachine = %d\n",numWaitMachine);
-        break;
+      case RELEASE_NEW_LIST:
+        printf("control -> RELEASE_NEW_LIST\n");
+        { 
+          recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
 
-      case REQUEST_TRANS_LIST:
-        printf("control -> REQUEST_TRANS_LIST\n");
-        sendTransList((int)acceptfd);
-        response =  receiveTransList((int)acceptfd);
-        stopTransactions(TRANS_AFTER);
-  
-        send_data((int)acceptfd,&response,sizeof(char));
-        break;
+          if(inspectEpoch(epoch_num) < 0) {
+            response = RESPOND_HIGHER_EPOCH;
+          }
+          else 
+          {
+            response =  receiveNewList((int)acceptfd);
+            stopTransactions(TRANS_AFTER);
+          }
+          send_data((int)acceptfd,&response,sizeof(char));
+        }
+      break;
 
       case REQUEST_TRANS_RESTART:
+
+        recv_data((int)acceptfd,&epoch_num,sizeof(char));
+
+        if(inspectEpoch(epoch_num) < 0) break;
+        
         pthread_mutex_lock(&liveHosts_mutex);
+        printf("RESTART!!!\n");
         okCommit = TRANS_OK;
         pthread_mutex_unlock(&liveHosts_mutex);
         break;
@@ -581,19 +557,22 @@ void *dstmAccept(void *acceptfd) {
 #endif
 
 #ifdef RECOVERY
-			case DUPLICATE_ORIGINAL:
+			case REQUEST_DUPLICATE:
        {
          struct sockaddr_in remoteAddr;
          int sd;
+         unsigned int epoch_num;
 
-#ifdef DEBUG
-          printf("control -> DUPLICATE_ORIGINAL\n");
-	  			printf("%s (DUPLICATE_ORIGINAL)-> Attempt to duplicate original objects\n", __func__);	
-#endif
-		  		//object store stuffffff
-  				recv_data((int)acceptfd, &mid, sizeof(unsigned int));
+         recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
 
-          dupeptr = (char*) mhashGetDuplicate(&tempsize, 0);
+         if(inspectEpoch(epoch_num) < 0) {
+           break;
+         }
+		  	  	
+         //object store stuffffff
+         mid = getBackupMachine(myIpAddr);
+
+         dupeptr = (char*) mhashGetDuplicate(&tempsize, 0);
 
 		  		//send control and dupes after
 			  	ctrl = RECEIVE_DUPES;
@@ -609,23 +588,28 @@ void *dstmAccept(void *acceptfd) {
           remoteAddr.sin_addr.s_addr = htonl(mid);
 
           if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {
-            printf("ORIGINAL ERROR : %s\n",strerror(errno));
-            exit(0);
+            printf("REQUEST_DUPE ERROR : %s\n",strerror(errno));
+//            exit(0);
+            break;
           }
           else {
   		  		send_data(sd, &ctrl, sizeof(char));
 	  		  	send_data(sd, dupeptr, tempsize);
 
+            if((readDuplicateObjs(sd) )!= 0) {
+              printf("Fail in readDuplicateObj()\n");
+              break;
+//              exit(0);
+            }
   				  recv_data(sd, &response, sizeof(char));
-#ifdef DEBUG
-            printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
-#endif
-	  	  		if(response != DUPLICATION_COMPLETE) {
+	  	  		
+            if(response != DUPLICATION_COMPLETE) {
 #ifndef DEBUG
-             printf("%s(DUPLICATION_ORIGINAL) -> DUPLICATION FAIL\n",__func__);
+             printf("%s(REQUEST_DUPE) -> DUPLICATION FAIL\n",__func__);
 #endif
 			  	  //fail message
-             exit(0);
+             break;
+//             exit(0);
   				  }
 
             close(sd);
@@ -634,71 +618,11 @@ void *dstmAccept(void *acceptfd) {
 
           ctrl = DUPLICATION_COMPLETE;
 				  send_data((int)acceptfd, &ctrl, sizeof(char));
-          send_data((int)acceptfd, &tempsize, sizeof(unsigned int));
 #ifdef DEBUG
-				  printf("%s (DUPLICATE_ORIGINAL)-> Finished\n", __func__);	
+				  printf("%s (REQUEST_DUPE)-> Finished\n", __func__);	
 #endif
        }
 				  break;
-
-			case DUPLICATE_BACKUP:
-        {
-          struct sockaddr_in remoteAddr;
-          int sd;
-#ifdef DEBUG
-          printf("control -> DUPLICATE_BACKUP\n");
-	  			printf("%s (DUPLICATE_BACKUP)-> Attempt to duplicate backup objects\n", __func__);
-#endif
-  				//object store stuffffff
-				  recv_data((int)acceptfd, &mid, sizeof(unsigned int));
-
-          dupeptr = (char*) mhashGetDuplicate(&tempsize, 1);
-
-			  	//send control and dupes after
-	  			ctrl = RECEIVE_DUPES;
-
-          if((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-            perror("BACKUP : ");
-            exit(0);
-          }
-
-           bzero(&remoteAddr, sizeof(remoteAddr));                                       
-           remoteAddr.sin_family = AF_INET;                                              
-           remoteAddr.sin_port = htons(LISTEN_PORT);                                     
-           remoteAddr.sin_addr.s_addr = htonl(mid);                                      
-                                                                                       
-           if(connect(sd, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr))<0) {       
-             printf("BACKUP ERROR : %s\n",strerror(errno));
-             exit(0);
-           }                                                                             
-           else {                                                                        
-            send_data(sd, &ctrl, sizeof(char));
-    				send_data(sd, dupeptr, tempsize);
-          
-            recv_data(sd, &response, sizeof(char));
-#ifdef DEBUG
-            printf("%s ->response : %d  -  %d\n",__func__,response,DUPLICATION_COMPLETE);
-#endif
-		  		  if(response != DUPLICATION_COMPLETE) {
-#ifndef DEBUG
-              printf("%s(DUPLICATION_BACKUP) -> DUPLICATION FAIL\n",__func__);
-#endif
-              exit(0);
-            }
-
-            close(sd);
-           }
-
-          free(dupeptr);
-
-				  ctrl = DUPLICATION_COMPLETE;
-				  send_data((int)acceptfd, &ctrl, sizeof(char));
-          send_data((int)acceptfd, &tempsize, sizeof(unsigned int));
-#ifdef DEBUG
-				  printf("%s (DUPLICATE_BACKUP)-> Finished\n", __func__);	
-#endif
-        }
-				break;
 
 			case RECEIVE_DUPES:
 #ifdef DEBUG
@@ -708,34 +632,17 @@ void *dstmAccept(void *acceptfd) {
 					printf("Error: In readDuplicateObjs() %s, %d\n", __FILE__, __LINE__);
 					pthread_exit(NULL);
 				}
+        
+        dupeptr = (char*) mhashGetDuplicate(&tempsize, 1);
+        
+        send_data((int)acceptfd,dupeptr,tempsize);
 
+        free(dupeptr);
 				ctrl = DUPLICATION_COMPLETE;
 				send_data((int)acceptfd, &ctrl, sizeof(char));
 #ifdef DEBUG
         printf("%s (RECEIVE_DUPES) -> Finished\n",__func__);
 #endif
-				break;
-#endif
-#ifdef RECOVERY
-			case PAXOS_PREPARE:
-#ifdef DEBUG
-        printf("control -> PAXOS_PREPARE\n");
-#endif
-        paxosPrepare_receiver((int)acceptfd);
-				break;
-
-			case PAXOS_ACCEPT:
-#ifdef DEBUG
-        printf("control -> PAXOS_ACCEPT\n");
-#endif
-        paxosAccept_receiver((int)acceptfd);
-				break;
-
-			case PAXOS_LEARN:
-#ifdef DEBUG
-        printf("control -> PAXOS_LEARN\n");
-#endif
-        leader = paxosLearn_receiver((int)acceptfd);
 				break;
 #endif
 			default:
@@ -1881,10 +1788,17 @@ void stopTransactions(int TRANS_FLAG)
   pthread_mutex_unlock(&clearNotifyList_mutex);
 }
 
+void sendMyList(int acceptfd)
+{
+  pthread_mutex_lock(&liveHosts_mutex);
+  send_data((int)acceptfd,liveHosts,sizeof(int) * numHostsInSystem);
+  pthread_mutex_unlock(&liveHosts_mutex);
+
+  sendTransList(acceptfd);
+}
+
 void sendTransList(int acceptfd)
 {
-  printf("%s -> Enter\n",__func__);
-  
   int size;
   char response;
   int transid;
@@ -1892,11 +1806,11 @@ void sendTransList(int acceptfd)
   // send on-going transaction
   tlist_node_t* transArray = tlistToArray(transList,&size);
 
-  if(transList->size != 0)
+/*  if(transList->size != 0)
     tlistPrint(transList);
 
   printf("%s -> transList->size : %d  size = %d\n",__func__,transList->size,size);
-
+*/
   send_data((int)acceptfd,&size,sizeof(int));
   send_data((int)acceptfd,transArray, sizeof(tlist_node_t) * size);
 
@@ -1917,7 +1831,7 @@ void sendTransList(int acceptfd)
   free(transArray);
 }
 
-int receiveTransList(int acceptfd)
+int receiveNewList(int acceptfd)
 {
   int size;
   tlist_node_t* tArray;
@@ -1925,7 +1839,15 @@ int receiveTransList(int acceptfd)
   int i;
   int flag = 1;
   char response;
-  
+
+  // new host lists
+  pthread_mutex_lock(&liveHosts_mutex);
+  recv_data((int)acceptfd,liveHosts,sizeof(int)*numHostsInSystem);
+  pthread_mutex_unlock(&liveHosts_mutex);
+
+  setLocateObjHosts();
+
+  // new transaction list
   recv_data((int)acceptfd,&size,sizeof(int));
 
 
@@ -1937,12 +1859,9 @@ int receiveTransList(int acceptfd)
     }
 
     recv_data((int)acceptfd,tArray,sizeof(tlist_node_t) * size);
-
     flag = combineTransactionList(tArray,size);
-
     free(tArray);
   }
-
 
   if(flag == 1)
   {
@@ -2005,6 +1924,7 @@ char inspectTransaction(char finalResponse,unsigned int transid,char* debug,int 
     // if decision is not lost and okCommit is not TRANS_FLAG, get out of this loop
     while(!((tNode->decision != DECISION_LOST) && (okCommit != TRANS_FLAG))) { 
 //      printf("%s -> transID : %u decision : %d is waiting flag : %d\n",debug,tNode->transid,tNode->decision,TRANS_FLAG);
+//      sleep(3);
       randomdelay();
     }
 

@@ -57,23 +57,20 @@
  *****************************/
 #define RESPOND_LIVE					 30
 #define LIVE									 31
-#define REMOTE_RESTORE_DUPLICATED_STATE 37  
-#define UPDATE_LIVE_HOSTS   	32
-#define DUPLICATE_ORIGINAL		 33
-#define DUPLICATE_BACKUP			 34
+#define UPDATE_LIVE_HOSTS      32
+#define REQUEST_DUPLICATE 		 33
 #define DUPLICATION_COMPLETE	 35
 #define RECEIVE_DUPES					 36
 
 /*********************************
  * Transaction Clear Messages
  *********************************/
-#define ASK_COMMIT                51
-#define CLEAR_NOTIFY_LIST         52
-#define REQUEST_TRANS_WAIT        53
-#define RESPOND_TRANS_WAIT        54
-#define REQUEST_TRANS_RESTART     55
-#define REQUEST_TRANS_LIST        56
-#define REQUEST_TRANS_RECOVERY    57
+#define CLEAR_NOTIFY_LIST         51
+#define REQUEST_TRANS_WAIT        52
+#define RESPOND_TRANS_WAIT        53
+#define RESPOND_HIGHER_EPOCH      54
+#define RELEASE_NEW_LIST          55
+#define REQUEST_TRANS_RESTART     56
 #define REQUEST_TRANS_CHECK       58
 #define REQUEST_TRANS_COMPLETE    59
 
@@ -214,6 +211,10 @@ typedef struct fixed_data {
   unsigned int nummod;                  /* no of objects modified */
   unsigned int numcreated;              /* no of objects created */
   int sum_bytes;                /* total bytes of modified objects in a transaction */
+
+#ifdef RECOVERY
+  unsigned int epoch_num;
+#endif
 } fixed_data_t;
 
 /* Structure that holds trans request information for each participant */
@@ -223,10 +224,6 @@ typedef struct trans_req_data {
   char *objread;                /* Pointer to array holding oid and version number of objects that are only read */
   unsigned int *oidmod;         /* Pointer to array holding oids of objects that are modified */
   unsigned int *oidcreated;     /* Pointer to array holding oids of objects that are newly created */
-
-#ifdef RECOVERY
-  unsigned int transid;
-#endif
 
 } trans_req_data_t;
 
@@ -243,10 +240,8 @@ typedef struct trans_commit_data {
 } trans_commit_data_t;
 
 #ifdef RECOVERY
-  int leaderFixing;
-  pthread_mutex_t leaderFixing_mutex;
+  pthread_mutex_t recovery_mutex;
   pthread_mutex_t liveHosts_mutex;
-
 #endif
 
 #ifdef RECOVERYSTATS
@@ -290,6 +285,7 @@ void updateLiveHostsList(int mid);
 int updateLiveHostsCommit();
 void receiveNewHostLists(int accept);
 void stopTransactions(int TRANS_FLAG);
+void sendMyList(int);
 void sendTransList(int acceptfd);
 int receiveTransList(int acceptfd);
 int combineTransactionList(tlist_node_t* tArray,int size);
@@ -313,17 +309,18 @@ void clearDeadThreadsNotification();
 /* for recovery */
 void reqClearNotifyList(unsigned int oid);
 void clearNotifyList(unsigned int oid);
-void duplicateLostObjects(unsigned int mid);
-unsigned int duplicateLocalBackupObjects();
-unsigned int duplicateLocalOriginalObjects();
 void notifyLeaderDeadMachine(unsigned int deadHost);
-void restoreDuplicationState(unsigned int deadHost);
-void notifyRestoration();
-void clearTransaction();
-void makeTransactionLists(tlist_t**,int*);
-void releaseTransactionLists(tlist_t*,int*);
+void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num);
+int* getSocketLists();
+void freeSocketLists(int*);
+int inspectEpoch(unsigned int);
+int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t**);
+int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t*);
+int duplicateLostObjects(unsigned int epoch_num,int* sdlist);
+void restartTransactions(unsigned int epoch_num,int* sdlist);
+void makeTransactionLists(tlist_t**,int);
+void computeLiveHosts(int);
 void waitForAllMachine();
-void restartTransactions();
 int readDuplicateObjs(int);
 void printRecoveryStat();
 

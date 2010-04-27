@@ -17,8 +17,6 @@ inline void UnLock(volatile unsigned int *addr) {
 			: "=r" (oldval), "=m" (*(addr))
 			: "0" (0), "m" (*(addr)));
 }
-#elif
-#   error need implementation of test_and_set
 #endif
 
 #define MAXSPINS 4
