@@ -1,8 +1,9 @@
 package Analysis.MLP;
 
+import Analysis.OwnershipAnalysis.Canonical;
 import Analysis.OwnershipAnalysis.TokenTuple;
 
-public class GloballyUniqueTokenTuple {
+public class GloballyUniqueTokenTuple extends Canonical{
 
 	private Integer token;
 	private boolean isMultiObject;

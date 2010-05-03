@@ -1,5 +1,6 @@
 package Analysis.MLP;
 
+import Analysis.OwnershipAnalysis.ReachabilitySet;
 import IR.TypeDescriptor;
 
 public class SESEEffectsKey {
@@ -8,6 +9,7 @@ public class SESEEffectsKey {
 	private TypeDescriptor td;
 	private Integer hrnId;
 	private String hrnUniqueId;
+	private ReachabilitySet rset;
 	private boolean wStrong=false;
 
 	public SESEEffectsKey(String fd, TypeDescriptor td, Integer hrnId, String hrnUniqueId) {
@@ -15,6 +17,14 @@ public class SESEEffectsKey {
 		this.td = td;
 		this.hrnId = hrnId;
 		this.hrnUniqueId=hrnUniqueId;
+	}
+	
+	public void setRSet(ReachabilitySet rset){
+		this.rset=rset;
+	}
+	
+	public ReachabilitySet getRSet(){
+		return rset;
 	}
 	
 	public void setStrong(boolean wStrong){

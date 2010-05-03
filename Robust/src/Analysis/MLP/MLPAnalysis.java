@@ -331,7 +331,9 @@ public class MLPAnalysis {
 			FlatNode key = (FlatNode) keyEnum.nextElement();
 			ConflictGraph cg=conflictGraphResults.get(key);
 			try {
-				cg.writeGraph("ConflictGraphFor"+key, false);
+				if(cg.hasConflictEdge()){
+					cg.writeGraph("ConflictGraphFor"+key, false);
+				}
 			} catch (IOException e) {
 				System.out.println("Error writing");
 				System.exit(0);
@@ -1212,9 +1214,14 @@ public class MLPAnalysis {
 				while (iter.hasNext()) {
 					TempDescriptor td = iter.next();
 					LabelNode ln = og.td2ln.get(td);
+					
+					if(currentSESE.getSeseEffectsSet().getMapTempDescToInVarIdx().containsKey(td)){
+						idx=currentSESE.getSeseEffectsSet().getInVarIdx(td);
+					}
+					
 					if (ln != null) {
 						int taint = (int) Math.pow(2, idx);
-						taintLabelNode(ln, taint);
+						taintLabelNode(ln, taint,currentSESE.getSeseEffectsSet());
 						currentSESE.getSeseEffectsSet().setInVarIdx(idx, td);
 
 						// collects related allocation sites
@@ -1365,20 +1372,22 @@ public class MLPAnalysis {
 		case FKind.FlatFieldNode: {
 
 			FlatFieldNode ffn = (FlatFieldNode) fn;
+			TempDescriptor dst = ffn.getDst();
 			TempDescriptor src = ffn.getSrc();
 			FieldDescriptor field = ffn.getField();
 			
 			LabelNode srcLN = og.td2ln.get(src);
 			if(srcLN!=null){
 				Iterator<ReferenceEdge> edgeIter=srcLN.iteratorToReferencees();
+				int taintIdentifier=0;
 				while (edgeIter.hasNext()) {
 					ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
 							.next();
 					HeapRegionNode refHRN=referenceEdge.getDst();
-					int edgeTaint=referenceEdge.getSESETaintIdentifier();
+					taintIdentifier=currentSESE.getSeseEffectsSet().getTaint(referenceEdge);
+//					taintIdentifier=referenceEdge.getSESETaintIdentifier();
 					
 					// figure out which invar has related effects
-					int taint=referenceEdge.getSESETaintIdentifier();
 					Hashtable<TempDescriptor, Integer> map=currentSESE.getSeseEffectsSet().getMapTempDescToInVarIdx();
 					Set<TempDescriptor> keySet=map.keySet();
 					for (Iterator iterator = keySet.iterator(); iterator
@@ -1386,13 +1395,26 @@ public class MLPAnalysis {
 						TempDescriptor inVarTD = (TempDescriptor) iterator
 								.next();
 						int inVarMask=(int) Math.pow(2, map.get(inVarTD).intValue());
-						if((inVarMask&edgeTaint)>0){
+						if((inVarMask&taintIdentifier)>0){
 							// found related invar, contribute effects
 							currentSESE.readEffects(inVarTD, field.getSymbol(),src.getType(), refHRN);
 						}
 					}
 				}
+				
+				// taint
+				if(!field.getType().isImmutable()){
+						LabelNode dstLN = og.td2ln.get(dst);
+						edgeIter=dstLN.iteratorToReferencees();
+						while (edgeIter.hasNext()) {
+							ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
+									.next();
+							currentSESE.getSeseEffectsSet().mapEdgeToTaint(referenceEdge, taintIdentifier);
+//							referenceEdge.unionSESETaintIdentifier(taintIdentifier);
+						}
+				}
 			}
+			
 
 		}
 			break;
@@ -1416,7 +1438,11 @@ public class MLPAnalysis {
 					while (refEdgeIter.hasNext()) {
 						ReferenceEdge edge = refEdgeIter.next();
 						int newTaint = (int) Math.pow(2, idx);
-						edge.unionSESETaintIdentifier(newTaint);
+//						System.out.println("fon="+fon);
+//						System.out.println(currentSESE+" src:"+src+"->"+"dest:"+dest+" with taint="+newTaint);
+//						System.out.println("referenceEdge="+edge);
+						currentSESE.getSeseEffectsSet().mapEdgeToTaint(edge, newTaint);
+//						System.out.println("after tainting="+edge.getSESETaintIdentifier());
 					}
 				}
 			}
@@ -1437,10 +1463,10 @@ public class MLPAnalysis {
 					ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
 							.next();
 					HeapRegionNode dstHRN=referenceEdge.getDst();
-					taintIdentifier=referenceEdge.getSESETaintIdentifier();					
+					taintIdentifier=currentSESE.getSeseEffectsSet().getTaint(referenceEdge);
+//					taintIdentifier=referenceEdge.getSESETaintIdentifier();					
 					
 					// figure out which invar has related effects
-					int taint=referenceEdge.getSESETaintIdentifier();
 					Hashtable<TempDescriptor, Integer> map=currentSESE.getSeseEffectsSet().getMapTempDescToInVarIdx();
 					Set<TempDescriptor> keySet=map.keySet();
 					for (Iterator iterator = keySet.iterator(); iterator
@@ -1464,7 +1490,8 @@ public class MLPAnalysis {
 				while (edgeIter.hasNext()) {
 					ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
 							.next();
-					referenceEdge.unionSESETaintIdentifier(taintIdentifier);
+					currentSESE.getSeseEffectsSet().mapEdgeToTaint(referenceEdge, taintIdentifier);
+//					referenceEdge.unionSESETaintIdentifier(taintIdentifier);
 				}
 			}
 			
@@ -1486,7 +1513,8 @@ public class MLPAnalysis {
 					ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
 							.next();
 					HeapRegionNode dstHRN=referenceEdge.getDst();
-					int edgeTaint=referenceEdge.getSESETaintIdentifier();
+					int edgeTaint=currentSESE.getSeseEffectsSet().getTaint(referenceEdge);
+//					int edgeTaint=referenceEdge.getSESETaintIdentifier();
 					
 					// we can do a strong update here if one of two cases
 					// holds
@@ -1535,7 +1563,8 @@ public class MLPAnalysis {
 					ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
 							.next();
 					HeapRegionNode dstHRN=referenceEdge.getDst();
-					int edgeTaint=referenceEdge.getSESETaintIdentifier();
+					int edgeTaint=currentSESE.getSeseEffectsSet().getTaint(referenceEdge);
+//					int edgeTaint=referenceEdge.getSESETaintIdentifier();
 					
 					// we can do a strong update here if one of two cases
 					// holds
@@ -1638,7 +1667,8 @@ public class MLPAnalysis {
 						ReferenceEdge referenceEdge = (ReferenceEdge) edgeIter
 								.next();
 						HeapRegionNode dstHRN=referenceEdge.getDst();
-						int edgeTaint=referenceEdge.getSESETaintIdentifier();
+						int edgeTaint=currentSESE.getSeseEffectsSet().getTaint(referenceEdge);
+//						int edgeTaint=referenceEdge.getSESETaintIdentifier();
 						
 						// figure out which invar has related effects
 						Hashtable<TempDescriptor, Integer> map = currentSESE
@@ -1798,12 +1828,12 @@ public class MLPAnalysis {
 		return new HashSet<Integer>();
 	}
 	
-	private void taintLabelNode(LabelNode ln, int identifier) {
+	private void taintLabelNode(LabelNode ln, int identifier, SESEEffectsSet effectSet) {
 
 		Iterator<ReferenceEdge> edgeIter = ln.iteratorToReferencees();
 		while (edgeIter.hasNext()) {
 			ReferenceEdge edge = edgeIter.next();
-			edge.setSESETaintIdentifier(identifier);
+			effectSet.mapEdgeToTaint(edge, identifier);
 		}
 
 	}
@@ -2174,6 +2204,7 @@ public class MLPAnalysis {
 
 			while (mcIter.hasNext()) {
 				MethodContext mc = mcIter.next();
+				OwnershipGraph og=ownAnalysisForSESEConflicts.getOwnvershipGraphByMethodContext(mc);
 
 				Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
 				flatNodesToVisit.add(fm);
@@ -2209,7 +2240,7 @@ public class MLPAnalysis {
 							.getCurrentSESE());
 
 					if (conflictGraph == null) {
-						conflictGraph = new ConflictGraph();
+						conflictGraph = new ConflictGraph(og);
 					}
 					for (Iterator<Entry<TempDescriptor, StallSite>> iterator2 = entrySet
 							.iterator(); iterator2.hasNext();) {
@@ -2219,7 +2250,7 @@ public class MLPAnalysis {
 						StallSite stallSite = entry.getValue();
 
 						// reachability set
-						OwnershipGraph og = ownAnalysisForSESEConflicts
+						og = ownAnalysisForSESEConflicts
 								.getOwnvershipGraphByMethodContext(mc);
 						Set<Set> reachabilitySet = calculateReachabilitySet(og,
 								td);
@@ -2295,6 +2326,62 @@ public class MLPAnalysis {
 		return reachabilitySet;
 	}
 	
+	private ReachabilitySet packupStates(OwnershipGraph og, HeapRegionNode hrn) {
+		
+		ReachabilitySet betaSet = new ReachabilitySet().makeCanonical();
+		
+		Iterator<ReferenceEdge> itrEdge = hrn.iteratorToReferencers();
+		while (itrEdge.hasNext()) {
+			ReferenceEdge edge = itrEdge.next();
+			betaSet = betaSet.union(edge.getBeta());
+		}
+		
+		return betaSet;
+		
+	}
+	
+	private ReachabilitySet packupStates(OwnershipGraph og, AllocationSite as) {
+
+		ReachabilitySet betaSet = new ReachabilitySet().makeCanonical();
+		assert as!=null;
+		HeapRegionNode hrnSummary = og.id2hrn.get(as.getSummary());
+		if(hrnSummary!=null){
+			Iterator<ReferenceEdge> itrEdge = hrnSummary.iteratorToReferencers();
+			while (itrEdge.hasNext()) {
+				ReferenceEdge edge = itrEdge.next();
+				betaSet = betaSet.union(edge.getBeta());
+			}
+		}
+
+		// check for other nodes
+		for (int i = 0; i < as.getAllocationDepth(); ++i) {
+
+			HeapRegionNode hrnIthOldest = og.id2hrn.get(as.getIthOldest(i));
+//			betaSet = new ReachabilitySet().makeCanonical();
+//			itrEdge = hrnIthOldest.iteratorToReferencees();
+			Iterator<ReferenceEdge> itrEdge = hrnIthOldest.iteratorToReferencers();
+			while (itrEdge.hasNext()) {
+				ReferenceEdge edge = itrEdge.next();
+				betaSet = betaSet.union(edge.getBeta());
+			}
+		}
+
+		Iterator<TokenTupleSet> ttSetIter = betaSet.iterator();
+		while (ttSetIter.hasNext()) {
+			TokenTupleSet tokenTupleSet = (TokenTupleSet) ttSetIter.next();
+			Iterator iter = tokenTupleSet.iterator();
+			while (iter.hasNext()) {
+				TokenTuple tt = (TokenTuple) iter.next();
+				int token = tt.getToken();
+				String uniqueID = og.id2hrn.get(new Integer(token))
+						.getGloballyUniqueIdentifier();
+				GloballyUniqueTokenTuple gtt = new GloballyUniqueTokenTuple(
+						uniqueID, tt);
+			}
+		}
+		return betaSet;
+	}
+	
 	private void conflictGraph_nodeAction(MethodContext mc, FlatMethod fm,
 			FlatNode fn,Hashtable<TempDescriptor, TempDescriptor> invarMap) {
 
@@ -2314,7 +2401,7 @@ public class MLPAnalysis {
 				conflictGraph=conflictGraphResults.get(seseSummary.getCurrentParent());
 				
 				if(conflictGraph==null){
-					conflictGraph = new ConflictGraph();
+					conflictGraph = new ConflictGraph(og);
 				}
 				
 
@@ -2327,23 +2414,60 @@ public class MLPAnalysis {
 						continue;
 					}
 					
-//					if(tempDescriptor.getType().isArray()){
-//						
-//					}
-					
 					// effects set
 					SESEEffectsSet seseEffectsSet = fsen.getSeseEffectsSet();
 					Set<SESEEffectsKey> readEffectsSet = seseEffectsSet
 							.getReadingSet(tempDescriptor);
+					
+					if (readEffectsSet != null) {
+						for (Iterator iterator2 = readEffectsSet.iterator(); iterator2
+								.hasNext();) {
+							SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator2
+									.next();
+							String uniqueID = seseEffectsKey.getHRNUniqueId();
+							HeapRegionNode node = og.gid2hrn.get(uniqueID);
+							if(node.isParameter()){
+								seseEffectsKey.setRSet(packupStates(og,node));
+							}else{
+								AllocationSite as = node.getAllocationSite();
+								seseEffectsKey.setRSet(packupStates(og,as));
+							}
+						}
+					}
+					
+					if (readEffectsSet != null) {
+						for (Iterator iterator2 = readEffectsSet.iterator(); iterator2
+								.hasNext();) {
+							SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator2
+							.next();
+						}
+					}
 					Set<SESEEffectsKey> writeEffectsSet = seseEffectsSet
 							.getWritingSet(tempDescriptor);
+										
+					if (writeEffectsSet != null) {
+						for (Iterator iterator2 = writeEffectsSet.iterator(); iterator2
+								.hasNext();) {
+							SESEEffectsKey seseEffectsKey = (SESEEffectsKey) iterator2
+									.next();
+							String uniqueID = seseEffectsKey.getHRNUniqueId();
+							HeapRegionNode node = og.gid2hrn.get(uniqueID);
+							
+							if(node.isParameter()){
+								seseEffectsKey.setRSet(packupStates(og,node));
+							}else{
+								AllocationSite as = node.getAllocationSite();
+								seseEffectsKey.setRSet(packupStates(og,as));
+							}
+						}
+					}
+					
 					Set<SESEEffectsKey> strongUpdateSet = seseEffectsSet.getStrongUpdateSet(tempDescriptor);		
 					
 					Set<Set> reachabilitySet = calculateReachabilitySet(og,
 							tempDescriptor);
 
 					// add new live-in node
-//					LabelNode ln = og.td2ln.get(tempDescriptor);
 					
 					OwnershipGraph lastOG = ownAnalysis
 					.getOwnvershipGraphByMethodContext(mc);
@@ -2356,7 +2480,16 @@ public class MLPAnalysis {
 					while (refIter.hasNext()) {
 						ReferenceEdge referenceEdge = (ReferenceEdge) refIter
 								.next();
-						hrnSet.add(referenceEdge.getDst());
+						//
+						SESEEffectsSet seseEffects=fsen.getSeseEffectsSet();
+						int taintIdentifier=fsen.getSeseEffectsSet().getTaint(referenceEdge);
+						int invarIdx=fsen.getSeseEffectsSet().getInVarIdx(tempDescriptor);
+						int inVarMask=(int) Math.pow(2,invarIdx);
+						if((inVarMask&taintIdentifier)>0){
+							// find tainted edge, add heap root to live-in node
+							hrnSet.add(referenceEdge.getDst());
+						}
+						//
 					}
 					
 					conflictGraph.addLiveInNode(tempDescriptor, hrnSet, fsen,

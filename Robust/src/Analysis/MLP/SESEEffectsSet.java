@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
+import Analysis.OwnershipAnalysis.ReferenceEdge;
 import IR.Flat.TempDescriptor;
 
 public class SESEEffectsSet {
@@ -13,12 +14,31 @@ public class SESEEffectsSet {
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> writeTable;
 	private Hashtable<TempDescriptor, HashSet<SESEEffectsKey>> strongUpdateTable;
 	private Hashtable<TempDescriptor, Integer> mapTempDescToInVarIdx;
+	private Hashtable<ReferenceEdge, Integer> mapEdgeToTaint;
 
 	public SESEEffectsSet() {
 		readTable = new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 		writeTable = new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 		strongUpdateTable =  new Hashtable<TempDescriptor, HashSet<SESEEffectsKey>>();
 		mapTempDescToInVarIdx = new Hashtable<TempDescriptor, Integer>();
+		mapEdgeToTaint = new  Hashtable<ReferenceEdge, Integer>();
+	}
+	
+	public int getTaint(ReferenceEdge edge){
+		int taint=0;
+		if(mapEdgeToTaint.containsKey(edge)){
+			taint=mapEdgeToTaint.get(edge).intValue();
+		}
+		return taint;
+	}
+	
+	public void mapEdgeToTaint(ReferenceEdge edge, int newTaint){
+		int taint=0;
+		if(mapEdgeToTaint.containsKey(edge)){
+			taint=mapEdgeToTaint.get(edge).intValue();
+		}
+		taint=taint | newTaint;
+		mapEdgeToTaint.put(edge, new Integer(taint));
 	}
 
 	public void setInVarIdx(int idx, TempDescriptor td){

@@ -158,7 +158,7 @@ typedef struct SESEcommon_t {
   struct MemoryQueue_t** memoryQueueArray;
   struct REntry_t* rentryArray[NUMRENTRY];
   struct REntry_t* unresolvedRentryArray[NUMRENTRY];
-
+  int offsetsize;
 } SESEcommon;
 
 // a thread-local stack of SESEs and function to
@@ -181,5 +181,6 @@ MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
 REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID);
 REntry* mlpCreateREntry(int type, void* seseToIssue);
 MemoryQueue* createMemoryQueue();
+void rehashMemoryQueue(SESEcommon_p seseParent);
 
 #endif /* __MLP_RUNTIME__ */

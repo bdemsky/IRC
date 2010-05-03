@@ -367,7 +367,7 @@ public class BuildCode {
 	outmethod.print("       struct "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
 	outmethod.print("       struct "+cd.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-      outmethod.println("1, NULL,"+"stringarray};");
+    outmethod.println("1, NULL,"+"stringarray};");
       if (state.DSM||state.SINGLETM)
 	outmethod.println("     "+cd.getSafeSymbol()+locality.getMain().getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
       else
@@ -1450,8 +1450,8 @@ public class BuildCode {
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       else
 	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
-      output.println("  INTPTR size;");
-      output.println("  void * next;");
+      output.println("  int size;");
+      output.println("  void * next;");      
       for(int i=0; i<objectparams.numPointers(); i++) {
 	TempDescriptor temp=objectparams.getPointer(i);
 	output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
@@ -1475,7 +1475,7 @@ public class BuildCode {
 	output.println("struct "+cn.getSafeSymbol()+lb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
       else
 	output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals {");
-      output.println("  INTPTR size;");
+      output.println("  int size;");
       output.println("  void * next;");
       for(int i=0; i<objecttemps.numPointers(); i++) {
 	TempDescriptor temp=objecttemps.getPointer(i);
@@ -1553,8 +1553,7 @@ public class BuildCode {
       /* Output parameter structure */
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println("struct "+task.getSafeSymbol()+"_params {");
-
-	output.println("  INTPTR size;");
+	output.println("  int size;");
 	output.println("  void * next;");
 	for(int i=0; i<objectparams.numPointers(); i++) {
 	  TempDescriptor temp=objectparams.getPointer(i);
@@ -1570,7 +1569,7 @@ public class BuildCode {
       /* Output temp structure */
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println("struct "+task.getSafeSymbol()+"_locals {");
-	output.println("  INTPTR size;");
+	output.println("  int size;");
 	output.println("  void * next;");
 	for(int i=0; i<objecttemps.numPointers(); i++) {
 	  TempDescriptor temp=objecttemps.getPointer(i);
@@ -1731,7 +1730,6 @@ public class BuildCode {
 	output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       else
 	output.print("   struct "+task.getSafeSymbol()+"_locals "+localsprefix+"={");
-
       output.print(objecttemp.numPointers()+",");
       output.print(paramsprefix);
       for(int j=0; j<objecttemp.numPointers(); j++)
@@ -1807,7 +1805,7 @@ public class BuildCode {
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
 
-    if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) 
+    if (((state.MLP||state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) 
         || this.state.MULTICOREGC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
@@ -1903,7 +1901,7 @@ public class BuildCode {
 			  fsen.getmdBogus().getSafeSymbol()+"_"+
 			  fsen.getmdBogus().getSafeMethodDescriptor()+
 			  "_locals {");
-    outputStructs.println("  INTPTR size;");
+    outputStructs.println("  int size;");
     outputStructs.println("  void * next;");
     for(int i=0; i<objecttemps.numPointers(); i++) {
       TempDescriptor temp=objecttemps.getPointer(i);
@@ -1927,25 +1925,12 @@ public class BuildCode {
     outputStructs.println("  SESEcommon common;");
 
     // then garbage list stuff
-    outputStructs.println("  INTPTR size;");
+    outputStructs.println("  int size;");
     outputStructs.println("  void * next;");
 
-    // in-set source tracking
-    // in-vars that are READY come from parent, don't need anything
-    // stuff STATIC needs a custom SESE pointer for each age pair
-    Iterator<SESEandAgePair> itrStaticInVarSrcs = fsen.getStaticInVarSrcs().iterator();
-    while( itrStaticInVarSrcs.hasNext() ) {
-      SESEandAgePair srcPair = itrStaticInVarSrcs.next();
-      outputStructs.println("  "+srcPair.getSESE().getSESErecordName()+"* "+srcPair+";");
-    }    
-
-    // DYNAMIC stuff needs a source SESE ptr and offset
-    Iterator<TempDescriptor> itrDynInVars = fsen.getDynamicInVarSet().iterator();
-    while( itrDynInVars.hasNext() ) {
-      TempDescriptor dynInVar = itrDynInVars.next();
-      outputStructs.println("  void* "+dynInVar+"_srcSESE;");
-      outputStructs.println("  int   "+dynInVar+"_srcOffset;");
-    }    
+    // DYNAMIC stuff was here
+    
+    // invar source taking was here
 
     // space for all in and out set primitives
     Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
@@ -1967,7 +1952,9 @@ public class BuildCode {
     while( itrPrims.hasNext() ) {
       TempDescriptor temp = itrPrims.next();
       TypeDescriptor type = temp.getType();
-      outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+";");
+      if(!type.isPrimitive()){
+    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+";");
+      }      
     }
 
     for(int i=0; i<objectparams.numPointers(); i++) {
@@ -1977,6 +1964,42 @@ public class BuildCode {
       else
         outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
     }
+    
+    // DYNAMIC stuff needs a source SESE ptr and offset
+    Iterator<TempDescriptor> itrDynInVars = fsen.getDynamicInVarSet().iterator();
+    while( itrDynInVars.hasNext() ) {
+      TempDescriptor dynInVar = itrDynInVars.next();
+//      outputStructs.println("  void* "+dynInVar+"_srcSESE;");
+      outputStructs.println("  int   "+dynInVar+"_srcOffset;");
+    }  
+    
+    itrPrims = inSetAndOutSetPrims.iterator();
+    while( itrPrims.hasNext() ) {
+      TempDescriptor temp = itrPrims.next();
+      TypeDescriptor type = temp.getType();
+      if(type.isPrimitive()){
+    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+";");
+      }      
+    }
+    
+    outputStructs.println("  int prevSESECount;");
+    
+    // DYNAMIC stuff needs a source SESE ptr and offset
+    itrDynInVars = fsen.getDynamicInVarSet().iterator();
+    while( itrDynInVars.hasNext() ) {
+      TempDescriptor dynInVar = itrDynInVars.next();
+      outputStructs.println("  void* "+dynInVar+"_srcSESE;");
+//      outputStructs.println("  int   "+dynInVar+"_srcOffset;");
+    }  
+    
+    // in-set source tracking
+    // in-vars that are READY come from parent, don't need anything
+    // stuff STATIC needs a custom SESE pointer for each age pair
+    Iterator<SESEandAgePair> itrStaticInVarSrcs = fsen.getStaticInVarSrcs().iterator();
+    while( itrStaticInVarSrcs.hasNext() ) {
+      SESEandAgePair srcPair = itrStaticInVarSrcs.next();
+      outputStructs.println("  "+srcPair.getSESE().getSESErecordName()+"* "+srcPair+";");
+    }    
     
     outputStructs.println("};\n");
 
@@ -2014,7 +2037,7 @@ public class BuildCode {
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
-      output.print("(void*) &("+paramsprefix+"->size)");
+      output.print("&(((SESEcommon*)(___params___))[1])");
       for(int j=0; j<objecttemp.numPointers(); j++)
 	output.print(", NULL");
       output.println("};");
@@ -2178,14 +2201,15 @@ public class BuildCode {
     // Check to see if we need to do a GC if this is a
     // multi-threaded program...    
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    	output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
       //Don't bother if we aren't in recursive methods...The loops case will catch it
-      if (callgraph.getAllMethods(md).contains(md)) {
-        if(this.state.MULTICOREGC) {
-          output.println("if(gcflag) gc("+localsprefixaddr+");");
-        } else {
-	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
-	}
-      }
+//      if (callgraph.getAllMethods(md).contains(md)) {
+//        if(this.state.MULTICOREGC) {
+//          output.println("if(gcflag) gc("+localsprefixaddr+");");
+//        } else {
+//	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+//	}
+//      }
     }    
 
     // initialize thread-local var to a non-zero, invalid address
@@ -2860,7 +2884,7 @@ public class BuildCode {
       if(state.DSM&&state.SANDBOX&&(locality.getAtomic(lb).get(fn).intValue()>0)) {
         output.println("if (unlikely((--transaction_check_counter)<=0)) checkObjects();");
       }
-      if (((state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
+      if (((state.MLP||state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
           || (this.state.MULTICOREGC)) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
@@ -3323,6 +3347,21 @@ public class BuildCode {
     output.println("     "+fsen.getSESErecordName()+"* seseToIssue = ("+
 		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
 		           fsen.getSESErecordName()+" ) );");
+    //eomgc need to set next, size
+//    output.println("       struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
+    output.println("     struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
+    // sizeof(int)*2 + sizeof(void*)*calculateSizeOfSESEParamList(fsen)
+    //output.println("       // sizeof(int)*2+sizeof(void*)*"+calculateSizeOfSESEParamList(fsen));
+    //output.println("       // blah="+calculateSizeOfSESEParamSize(fsen));
+    output.println("     (seseToIssue->common).offsetsize=sizeof(int)+sizeof(void*)+sizeof(void*)*"+calculateSizeOfSESEParamList(fsen)+calculateSizeOfSESEParamSize(fsen)+";");
+    output.println("     gl->size="+calculateSizeOfSESEParamList(fsen)+";");
+//    output.println("       gl->next = (struct garbagelist *)&___locals___;");
+    output.println("     seseToIssue->prevSESECount="+calculatePrevSESECount(fsen)+";");
+//    output.println("     seseToIssue->prevSESECount=50;");
+    output.println("     gl->next = NULL;");
+//    output.println("     seseToIssue->size = "+calculateSizeOfSESEParamList(fsen)+";");
+//    output.println("     seseToIssue->next = &___locals___;");
+    
 
     // and keep the thread-local sese stack up to date
     //output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
@@ -3378,7 +3417,14 @@ public class BuildCode {
 	SESEandAgePair srcPair = staticSrcsItr.next();
 	output.println("     {");
 	output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
+	//eomgc
+	if(GENERATEPRECISEGC){
+		output.println("       stopforgc((struct garbagelist *)&___locals___);");
+	}
 	output.println("       pthread_mutex_lock( &(src->lock) );");
+	if(GENERATEPRECISEGC){
+		output.println("       restartaftergc();");
+	}
 	output.println("       if( !isEmpty( src->forwardList ) &&");
 	output.println("           seseToIssue == peekItem( src->forwardList ) ) {");
 	output.println("         printf( \"This shouldnt already be here\\n\");");
@@ -3409,7 +3455,14 @@ public class BuildCode {
 	// the address off to the new child, because you're not done executing and
 	// might change the variable, so copy it right now
 	output.println("       if( src != NULL ) {");
+	//eomgc
+	if(GENERATEPRECISEGC){
+		output.println("         stopforgc((struct garbagelist *)&___locals___);");
+	}
 	output.println("         pthread_mutex_lock( &(src->lock) );");
+	if(GENERATEPRECISEGC){
+		output.println("         restartaftergc();");
+	}
 	output.println("         if( isEmpty( src->forwardList ) ||");
 	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
 	output.println("           if( !src->doneExecuting ) {");
@@ -3606,10 +3659,24 @@ public class BuildCode {
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
     // that the number of your running children is greater than zero    
+    if (GENERATEPRECISEGC){
+    	output.println("   stopforgc((struct garbagelist *)&___locals___);");
+    }
     output.println("   pthread_mutex_lock( &("+com+".lock) );");
+    if (GENERATEPRECISEGC){
+    	output.println("   restartaftergc();");
+    }
     output.println("   while( "+com+".numRunningChildren > 0 ) {");
+    if (GENERATEPRECISEGC){
+//    	output.println("   stopforgc((struct garbagelist *)&(((SESEcommon*)(___params___))[1]));");
+    	output.println("   stopforgc((struct garbagelist *)&___locals___);");
+    }
     output.println("     pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
+    if (GENERATEPRECISEGC){
+    	output.println("   restartaftergc();");
+    }
     output.println("   }");
+
 
     // copy out-set from local temps into the sese record
     Iterator<TempDescriptor> itr = fsen.getOutVarSet().iterator();
@@ -3699,7 +3766,13 @@ public class BuildCode {
     // last of all, decrement your parent's number of running children    
     output.println("   if( "+paramsprefix+"->common.parent != NULL ) {");
     output.println("     if (atomic_sub_and_test(1, &"+paramsprefix+"->common.parent->numRunningChildren)) {");
+    if (GENERATEPRECISEGC){
+    	output.println("   stopforgc((struct garbagelist *)&___locals___);");
+    }
     output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
+    if (GENERATEPRECISEGC){
+    	output.println("   restartaftergc();");
+    }
     output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
     output.println("       pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
     output.println("     }");
@@ -3798,7 +3871,6 @@ public class BuildCode {
 	output.print("       struct "+cn.getSafeSymbol()+fclb.getSignature()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
       } else
 	output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-
       output.print(objectparams.numPointers());
       output.print(", "+localsprefixaddr);
       if (md.getThis()!=null) {
@@ -4005,8 +4077,12 @@ public class BuildCode {
 	output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
       } else
 	throw new Error("Read from non-global/non-local in:"+lb.getExplanation());
-    } else
+    } else{
+// DEBUG 	if(!ffn.getDst().getType().isPrimitive()){
+// DEBUG  		output.println("within((void*)"+generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+");");
+// DEBUG   	}      
       output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
+    }
   }
 
 
@@ -4103,6 +4179,10 @@ public class BuildCode {
 	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
 	output.println("}");
       }
+      
+// DEBUG 	if(!fsfn.getField().getType().isPrimitive()){
+// DEBUG		output.println("within((void*)"+generateTemp(fm,fsfn.getSrc(),lb)+");");
+// DEBUG   }   
       output.println(generateTemp(fm, fsfn.getDst(),lb)+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
     }
   }
@@ -4164,7 +4244,8 @@ public class BuildCode {
       } else
 	throw new Error("Read from non-global/non-local in:"+lb.getExplanation());
     } else {
-      output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
+// DEBUG output.println("within((void*)"+generateTemp(fm,fen.getSrc(),lb)+");");
+        output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
     }
   }
 
@@ -4266,6 +4347,7 @@ public class BuildCode {
 	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
 	output.println("}");
       }
+// DEBUG      output.println("within((void*)"+generateTemp(fm,fsen.getDst(),lb)+");");
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
     }
   }
@@ -5055,6 +5137,93 @@ public class BuildCode {
 
   protected void outputTransCode(PrintWriter output) {
   }
+  
+  private int calculateSizeOfSESEParamList(FlatSESEEnterNode fsen){
+	  
+	  Set<TempDescriptor> tdSet=new HashSet<TempDescriptor>();
+	  
+	  for (Iterator iterator = fsen.getInVarSet().iterator(); iterator.hasNext();) {
+		TempDescriptor tempDescriptor = (TempDescriptor) iterator.next();
+		if(!tempDescriptor.getType().isPrimitive() || tempDescriptor.getType().isArray()){
+			tdSet.add(tempDescriptor);
+		}	
+	  }
+	  
+	  for (Iterator iterator = fsen.getOutVarSet().iterator(); iterator.hasNext();) {
+			TempDescriptor tempDescriptor = (TempDescriptor) iterator.next();
+			if(!tempDescriptor.getType().isPrimitive() || tempDescriptor.getType().isArray()){
+				tdSet.add(tempDescriptor);
+			}	
+	  }	  
+	  	  
+	  return tdSet.size();
+  }
+  
+private String calculateSizeOfSESEParamSize(FlatSESEEnterNode fsen){
+	  HashMap <String,Integer> map=new HashMap();
+	  HashSet <TempDescriptor> processed=new HashSet<TempDescriptor>();
+	  String rtr="";
+	  
+	  // space for all in and out set primitives
+	    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
+	    inSetAndOutSet.addAll( fsen.getInVarSet() );
+	    inSetAndOutSet.addAll( fsen.getOutVarSet() );
+	    
+	    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
+
+	    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
+	    while( itr.hasNext() ) {
+	      TempDescriptor temp = itr.next();
+	      TypeDescriptor type = temp.getType();
+	      if( !type.isPtr() ) {
+		inSetAndOutSetPrims.add( temp );
+	      }
+	    }
+	    
+	    Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
+	    while( itrPrims.hasNext() ) {
+	      TempDescriptor temp = itrPrims.next();
+	      TypeDescriptor type = temp.getType();
+	      if(type.isPrimitive()){
+				Integer count=map.get(type.getSymbol());
+				if(count==null){
+					count=new Integer(1);
+					map.put(type.getSymbol(), count);
+				}else{
+					map.put(type.getSymbol(), new Integer(count.intValue()+1));
+				}
+	      }      
+	    }
+	  
+	  Set<String> keySet=map.keySet();
+	  for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+		String key = (String) iterator.next();
+		rtr+="+sizeof("+key+")*"+map.get(key);
+	  }
+	  return  rtr;
+}
+
+private int calculatePrevSESECount(FlatSESEEnterNode fsen){
+	int count=0;
+	
+    // dynamic stuff
+    Iterator<TempDescriptor>itrDynInVars = fsen.getDynamicInVarSet().iterator();
+    while( itrDynInVars.hasNext() ) {
+      TempDescriptor dynInVar = itrDynInVars.next();
+      count++;
+    }  
+    
+    // in-set source tracking
+    Iterator<SESEandAgePair> itrStaticInVarSrcs = fsen.getStaticInVarSrcs().iterator();
+    while( itrStaticInVarSrcs.hasNext() ) {
+      SESEandAgePair srcPair = itrStaticInVarSrcs.next();
+      count++;
+    }   
+    
+	return count;
+}
+
+
 }
 
 

@@ -578,7 +578,7 @@ RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
     // at this point have locked bin
     BinItem *ptr=val;
     int haveread=FALSE;
-     int i;
+    int i;
     while (ptr!=NULL) {
        if (isReadBinItem(ptr)) {
 	ReadBinItem* rptr=(ReadBinItem*)ptr;
@@ -804,4 +804,62 @@ resolvePointer(REntry* rentry){
     // resolved rentry is not head of queue
     table->unresolvedQueue=val;//released lock;
   }  
+}
+
+void rehashMemoryQueue(SESEcommon_p seseParent){    
+  // update memory queue
+  int i,binidx;
+  for(i=0; i<seseParent->numMemoryQueue; i++){
+    MemoryQueue *memoryQueue=seseParent->memoryQueueArray[i];
+    MemoryQueueItem *memoryItem=memoryQueue->head;
+    MemoryQueueItem *prevItem=NULL;
+    while(memoryItem!=NULL){
+      if(memoryItem->type==HASHTABLE){
+	//do re-hash!
+	Hashtable* ht=(Hashtable*)memoryItem;
+	Hashtable* newht=createHashtable();	
+	int binidx;
+	for(binidx=0; binidx<NUMBINS; binidx++){
+	  BinElement *bin=ht->array[binidx];
+	  BinItem *binItem=bin->head;
+	  //traverse over the list of each bin
+	  while(binItem!=NULL){
+	    if(binItem->type==READBIN){
+	      ReadBinItem* readBinItem=(ReadBinItem*)binItem;
+	      int ridx;
+	      for(ridx=0; ridx<readBinItem->index; ridx++){
+		REntry *rentry=readBinItem->array[ridx];
+		int newkey=generateKey((unsigned int)(unsigned INTPTR)*(rentry->pointer));	
+		int status=rentry->binitem->status;	      
+		ADDTABLEITEM(newht,rentry,TRUE);
+		rentry->binitem->status=status; // update bin status as before rehash
+	      }
+	    }else{//write bin
+	      REntry *rentry=((WriteBinItem*)binItem)->val;
+	      int newkey=generateKey((unsigned int)(unsigned INTPTR)*(rentry->pointer));	
+	      int status=rentry->binitem->status;	      
+	      ADDTABLEITEM(newht,rentry,TRUE);    	      
+	      int newstatus=rentry->binitem->status;
+	      //printf("[%d]old status=%d new status=%d\n",i,status,newstatus);
+	      rentry->binitem->status=status; // update bin status as before rehash
+	    }
+	    binItem=binItem->next;
+	  }
+	}
+	newht->item.status=ht->item.status; // update hashtable status
+	if(prevItem!=NULL){
+	  prevItem->next=(MemoryQueueItem*)newht;
+	}else{
+	  if(memoryQueue->head==memoryQueue->tail){
+	    memoryQueue->tail=(MemoryQueueItem*)newht;
+	  }
+	  memoryQueue->head=(MemoryQueueItem*)newht;
+	}
+	newht->item.next=ht->item.next;	
+      }
+      prevItem=memoryItem;
+      memoryItem=memoryItem->next;
+    }
+  }
+
 }

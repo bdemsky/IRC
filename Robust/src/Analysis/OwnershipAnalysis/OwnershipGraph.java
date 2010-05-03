@@ -87,6 +87,8 @@ public class OwnershipGraph {
   // to know the access paths that allowed it, to prune edges when
   // mapping them back into the caller--an access path must appear
   public Hashtable< TempDescriptor, Set<AccessPath> > temp2accessPaths;
+  
+  public Hashtable< String, HeapRegionNode > gid2hrn;
 
 
   public OwnershipGraph() {
@@ -121,6 +123,8 @@ public class OwnershipGraph {
     outOfScopeLabels.add( getLabelNodeFromTemp( tdReturn ) );
 
     temp2accessPaths = new Hashtable< TempDescriptor, Set<AccessPath> >();
+    
+    gid2hrn =new  Hashtable< String, HeapRegionNode >(); 
   }
 
 
@@ -202,6 +206,7 @@ public class OwnershipGraph {
                                             description,
                                             globalIdentifier);
     id2hrn.put(id, hrn);
+    gid2hrn.put(globalIdentifier, hrn);
     return hrn;
   }
 
@@ -3938,6 +3943,7 @@ public class OwnershipGraph {
       if( !id2hrn.containsKey(idA) ) {
 	HeapRegionNode hrnB = hrnA.copy();
 	id2hrn.put(idA, hrnB);
+	gid2hrn.put(hrnA.getGloballyUniqueIdentifier(), hrnB);
 
       } else {
 	// otherwise this is a node present in both graphs

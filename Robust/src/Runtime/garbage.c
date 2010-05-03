@@ -11,6 +11,8 @@
 #endif
 #ifdef MLP
 #include "workschedule.h"
+extern struct QI * headqi;
+extern struct QI * tailqi;
 #endif
 
 #ifdef DMALLOC
@@ -64,6 +66,10 @@ __thread struct listitem litem;
 #endif
 #endif
 
+#ifdef MLP
+__thread SESEcommon* seseCommon;
+#endif
+
 //Need to check if pointers are transaction pointers
 //this also catches the special flag value of 1 for local copies
 #ifdef DSTM
@@ -100,11 +106,14 @@ __thread struct listitem litem;
     dst=copy; }
 #else
 #define ENQUEUE(orig, dst) \
-  void *copy; \
-  if (gc_createcopy(orig,&copy)) \
-    enqueue(copy);\
-  dst=copy
+  if (orig>=curr_heapbase&&orig<curr_heaptop) {	\
+     void *copy; \
+     if (gc_createcopy(orig,&copy)) \
+         enqueue(copy); \
+     dst=copy; \
+  }
 #endif
+
 
 struct pointerblock {
   void * ptrs[NUMPTRS];
@@ -121,6 +130,7 @@ void * to_heapptr=0;
 void * to_heaptop=0;
 long lastgcsize=0;
 
+
 struct pointerblock *head=NULL;
 int headindex=0;
 struct pointerblock *tail=NULL;
@@ -133,8 +143,7 @@ void enqueue(void *ptr) {
     if (spare!=NULL) {
       tmp=spare;
       spare=NULL;
-    } else
-      tmp=malloc(sizeof(struct pointerblock));
+    } else      tmp=malloc(sizeof(struct pointerblock));
     head->next=tmp;
     head=tmp;
     headindex=0;
@@ -362,14 +371,14 @@ void collect(struct garbagelist * stackptr) {
 #if defined(STM)||defined(THREADS)||defined(MLP)
   memorybase=NULL;
 #endif
-
+ 
   /* Check current stack */
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   {
     struct listitem *listptr=list;
     while(1) {
 #endif
-
+      
   while(stackptr!=NULL) {
     int i;
     for(i=0; i<stackptr->size; i++) {
@@ -383,6 +392,11 @@ void collect(struct garbagelist * stackptr) {
 #ifndef MAC
   //skip over us
   if (listptr==&litem) {
+#ifdef MLP
+    // update forward list & memory queue for the current SESE
+    updateForwardList(((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
+    updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
+#endif
     listptr=listptr->next;
   }
 #else
@@ -393,7 +407,7 @@ void collect(struct garbagelist * stackptr) {
   }
  }
 #endif
-
+ 
   if (listptr!=NULL) {
 #ifdef THREADS
     void * orig=listptr->locklist;
@@ -410,6 +424,11 @@ void collect(struct garbagelist * stackptr) {
 #endif
 #if defined(STM)||defined(THREADS)||defined(MLP)
     *(listptr->base)=NULL;
+#endif
+#ifdef MLP
+    // update forward list & memory queue for all running SESEs.
+    updateForwardList(((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
+    updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
 #endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;
@@ -516,6 +535,36 @@ void collect(struct garbagelist * stackptr) {
   }
 #endif
 
+#ifdef MLP
+  {
+    // goes over ready-to-run SESEs
+    struct QI * qitem = headqi;
+    while(qitem!=NULL){
+      SESEcommon* common=(SESEcommon*)qitem->value;
+      if(common==seseCommon){
+	// skip the current running SESE
+      	qitem=qitem->next;
+      	continue;
+      }
+      struct garbagelist * gl=(struct garbagelist *)&(((SESEcommon*)(qitem->value))[1]);
+      struct garbagelist * glroot=gl;
+      // update its ascendant SESEs 
+      updateAscendantSESE(gl);	
+  
+      while(gl!=NULL) {
+	int i;
+	for(i=0; i<gl->size; i++) {
+	  void * orig=gl->array[i];
+	  ENQUEUE(orig, gl->array[i]);
+	}
+	gl=gl->next;
+      } 
+      qitem=qitem->next;
+    }
+  }    
+#endif
+
+
   while(moreItems()) {
     void * ptr=dequeue();
     void *cpy=ptr;
@@ -573,6 +622,17 @@ void collect(struct garbagelist * stackptr) {
   }
 #ifdef TASK
   fixtags();
+#endif
+
+#ifdef MLP
+  {
+    //rehash memory queues of current running SESEs
+    struct listitem *listptr=list;
+    while(listptr!=NULL){
+      rehashMemoryQueue((SESEcommon*)(listptr->seseCommon));
+      listptr=listptr->next;
+    }
+  }
 #endif
 
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
@@ -757,7 +817,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       /* Need to allocate base heap */
       curr_heapbase=malloc(INITIALHEAPSIZE);
       if (curr_heapbase==NULL) {
-	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
+	printf("malloc failed.  Garbage colletcor couldn't get enough memory.  Try changing heap size.\n");
 	exit(-1);
       }
 #if defined(STM)||defined(THREADS)||defined(MLP)
@@ -767,7 +827,7 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
       curr_heaptop=curr_heapbase+INITIALHEAPSIZE;
       curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(INITIALHEAPSIZE);
       curr_heapptr=curr_heapbase+size;
-    
+          
       to_heapbase=malloc(INITIALHEAPSIZE);
       if (to_heapbase==NULL) {
 	printf("malloc failed.  Garbage collector couldn't get enough memory.  Try changing heap size.\n");
@@ -924,5 +984,140 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
       *copy_ptr=newobj;
       return 1;
     }
+  }
+}
+
+#ifdef MLP
+updateForwardList(struct Queue *forwardList, int prevUpdate){
+
+  struct QueueItem * fqItem=getHead(forwardList);
+  while(fqItem!=NULL){
+    struct garbagelist * gl=(struct garbagelist *)&(((SESEcommon*)(fqItem->objectptr))[1]);
+    if(prevUpdate==TRUE){
+      updateAscendantSESE(gl);	
+    }
+    // do something here
+    while(gl!=NULL) {
+      int i;
+	 for(i=0; i<gl->size; i++) {
+	   void * orig=gl->array[i];
+	   ENQUEUE(orig, gl->array[i]);
+	 }
+	 gl=gl->next;
+    }    
+    // iterate forwarding list of seseRec      
+    SESEcommon *common=(SESEcommon*)fqItem->objectptr;
+    struct Queue* fList=common->forwardList;
+    updateForwardList(fList,prevUpdate);   
+    fqItem=getNextQueueItem(fqItem);
+  }   
+
+}
+
+updateMemoryQueue(SESEcommon_p seseParent){
+  // update memory queue
+  int i,binidx;
+  for(i=0; i<seseParent->numMemoryQueue; i++){
+    MemoryQueue *memoryQueue=seseParent->memoryQueueArray[i];
+    MemoryQueueItem *memoryItem=memoryQueue->head;
+    while(memoryItem!=NULL){
+      if(memoryItem->type==HASHTABLE){
+	Hashtable *ht=(Hashtable*)memoryItem;
+	for(binidx=0; binidx<NUMBINS; binidx++){
+	  BinElement *bin=ht->array[binidx];
+	  BinItem *binItem=bin->head;
+	  while(binItem!=NULL){
+	    if(binItem->type==READBIN){
+	      ReadBinItem* readBinItem=(ReadBinItem*)binItem;
+	      int ridx;
+	      for(ridx=0; ridx<readBinItem->index; ridx++){
+		REntry *rentry=readBinItem->array[ridx];		  
+		struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
+		updateAscendantSESE(gl);
+		while(gl!=NULL) {
+		  int i;
+		  for(i=0; i<gl->size; i++) {
+		    void * orig=gl->array[i];
+		    ENQUEUE(orig, gl->array[i]);
+		  }
+		  gl=gl->next;
+		} 
+	      }	
+	    }else{ //writebin
+	      REntry *rentry=((WriteBinItem*)binItem)->val;
+	      struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
+	      updateAscendantSESE(gl);
+	      while(gl!=NULL) {
+		int i;
+		for(i=0; i<gl->size; i++) {
+		  void * orig=gl->array[i];
+		  ENQUEUE(orig, gl->array[i]);
+		}
+		gl=gl->next;
+	      } 
+	    }
+	    binItem=binItem->next;
+	  }
+	}
+      }else if(memoryItem->type==VECTOR){
+	Vector *vt=(Vector*)memoryItem;
+	int idx;
+	for(idx=0; idx<vt->index; idx++){
+	  REntry *rentry=vt->array[idx];
+	  struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
+	  updateAscendantSESE(gl);
+	  while(gl!=NULL) {
+	    int i;
+	    for(i=0; i<gl->size; i++) {
+	      void * orig=gl->array[i];
+	      ENQUEUE(orig, gl->array[i]);
+	    }
+	    gl=gl->next;
+	  } 
+	}
+      }else if(memoryItem->type==SINGLEITEM){
+	SCC *scc=(SCC*)memoryItem;
+	REntry *rentry=scc->val;
+	struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
+	updateAscendantSESE(gl);
+	while(gl!=NULL) {
+	  int i;
+	  for(i=0; i<gl->size; i++) {
+	    void * orig=gl->array[i];
+	    ENQUEUE(orig, gl->array[i]);
+	  }
+	  gl=gl->next;
+	} 
+      }
+      memoryItem=memoryItem->next;
+    }
+  }     
+ }
+ 
+updateAscendantSESE(struct garbagelist *gl){ 
+  int offsetsize=*((int*)((void*)gl-sizeof(int)));
+  int prevSESECount=*((int*)((void*)gl+offsetsize));
+  INTPTR tailaddr=(INTPTR)((void*)gl+offsetsize+sizeof(int));
+  int prevIdx;
+  for(prevIdx=0; prevIdx<prevSESECount; prevIdx++){
+    SESEcommon* prevSESE=(SESEcommon*)*((INTPTR*)(tailaddr+sizeof(void*)*prevIdx));
+    if(prevSESE!=NULL){
+      struct garbagelist * prevgl=(struct garbagelist *)&(((SESEcommon*)(prevSESE))[1]);
+      while(prevgl!=NULL) {
+	int i;
+	for(i=0; i<prevgl->size; i++) {
+	  void * orig=prevgl->array[i];
+	  ENQUEUE(orig, prevgl->array[i]);
+	}
+	prevgl=prevgl->next;
+      } 
+    }
+  }
+}
+#endif
+
+int within(void *ptr){ //debug function
+  if(ptr>curr_heapptr || ptr<curr_heapbase){
+    __asm__ __volatile__ ("int $3");  // breakpoint
   }
 }

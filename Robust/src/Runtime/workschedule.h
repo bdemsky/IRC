@@ -28,6 +28,13 @@ extern pthread_mutex_t gclock;
 extern pthread_mutex_t gclistlock;
 extern pthread_cond_t gccond;
 
+struct QI {
+  struct QI * next;
+  void * value;
+};
+
+struct QI * headqi;
+struct QI * tailqi;
 
 
 #endif /* __WORK_SCHEDULE__ */

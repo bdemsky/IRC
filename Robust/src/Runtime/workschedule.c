@@ -58,13 +58,19 @@ pthread_mutex_t gclock;
 pthread_mutex_t gclistlock;
 pthread_cond_t gccond;
 
+extern struct listitem * list;
+extern __thread struct listitem litem;
+extern __thread SESEcommon* seseCommon;
+
+/*
 struct QI {
   struct QI * next;
   void * value;
 };
 
-struct QI * head;
-struct QI * tail;
+struct QI * headqi;
+struct QI * tailqi;
+*/
 
 /*
 // helper func
@@ -189,22 +195,47 @@ void* workerMain( void* arg ) {
     
     pthread_mutex_lock( &systemLockOut );
     // wait for work
-    if (head->next==NULL) {
+    if (headqi->next==NULL) {
       pthread_mutex_unlock( &systemLockOut );
       sched_yield();
       continue;
     }
-    struct QI * tmp=head;
-    head = head->next;
-    workUnit = head->value;
+    struct QI * tmp=headqi;
+    headqi = headqi->next;
+    workUnit = headqi->value;
     pthread_mutex_unlock( &systemLockOut );
     free(tmp);
     // yield processor before moving on, just to exercise
     // system's out-of-order correctness
     //if( sched_yield() == -1 ) { printf( "Error thread trying to yield.\n" ); exit( -1 ); }
     //if( sched_yield() == -1 ) { printf( "Error thread trying to yield.\n" ); exit( -1 ); }
+
+    
+    pthread_mutex_lock(&gclistlock);
+    threadcount++;
+    litem.seseCommon=(void*)workUnit;
+    litem.prev=NULL;
+    litem.next=list;
+    if(list!=NULL)
+      list->prev=&litem;
+    list=&litem;
+    seseCommon=(SESEcommon*)workUnit;   
+    pthread_mutex_unlock(&gclistlock);
     
     workFunc( workUnit );
+    
+    pthread_mutex_lock(&gclistlock);
+    threadcount--;
+    if (litem.prev==NULL) {
+      list=litem.next;
+    } else {
+      litem.prev->next=litem.next;
+    }
+    if (litem.next!=NULL) {
+      litem.next->prev=litem.prev;
+    }
+    pthread_mutex_unlock(&gclistlock);
+    
   }
 
   return NULL;
@@ -273,8 +304,8 @@ void workScheduleInit( int numProcessors,
 
   workFunc   = func;
 
-  head=tail=RUNMALLOC(sizeof(struct QI));
-  head->next=NULL;
+  headqi=tailqi=RUNMALLOC(sizeof(struct QI));
+  headqi->next=NULL;
   
   status = pthread_mutex_init( &systemLockIn, NULL );
   status = pthread_mutex_init( &systemLockOut, NULL );
@@ -324,14 +355,13 @@ void workScheduleSubmit( void* workUnit ) {
     }
     pthread_mutex_unlock( &systemLock );
   */
-  
   struct QI* item=RUNMALLOC(sizeof(struct QI));
   item->value=workUnit;
   item->next=NULL;
   
   pthread_mutex_lock  ( &systemLockIn );
-  tail->next=item;
-  tail=item;
+  tailqi->next=item;
+  tailqi=item;
   pthread_mutex_unlock( &systemLockIn );
 }
 
@@ -339,7 +369,8 @@ void workScheduleSubmit( void* workUnit ) {
 // really should be named "wait until work is finished"
 void workScheduleBegin() {
   
-  int i;
+  int i;  
+  workerMain(NULL);
 
   // tell all workers to begin
   for( i = 0; i < numWorkers; ++i ) {

@@ -3,16 +3,16 @@
 #ifdef STM
 #include "stmlookup.h"
 #endif
-struct garbagelist {
+struct garbagelist {  
   int size;
-  struct garbagelist *next;
-  void * array[];
+  struct garbagelist *next;  
+  void * array[]; 
 };
 
 struct listitem {
   struct listitem * prev;
   struct listitem * next;
-  struct garbagelist * stackptr;
+  struct garbagelist * stackptr;  
 #ifdef THREADS
   struct ___Object___ * locklist;
 #endif
@@ -28,6 +28,9 @@ struct listitem {
 #endif
 #if defined(THREADS)||defined(STM)||defined(MLP)
   char **base;
+#endif
+#ifdef MLP
+  void *seseCommon;
 #endif
 };
 
@@ -49,3 +52,5 @@ void * mygcmalloc(struct garbagelist * ptr, int size);
 #ifdef STM
 void fixtable(chashlistnode_t **, chashlistnode_t **, cliststruct_t **, unsigned int);
 #endif
+
+int within(void *ptr);
