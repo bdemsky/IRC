@@ -65,6 +65,8 @@ public class FileSystem {
 		LinkedList todoList = new LinkedList();
 		fillTodoList(inputfile, todoList);
 
+        long st = System.currentTimeMillis();
+        long fi;
 		while (!todoList.isEmpty()) {
 			t = (Transaction)(todoList.removeFirst());
 
@@ -78,7 +80,7 @@ public class FileSystem {
 				isDir = false;
 		
 			if (command == 'r') {
-		  		System.out.println("["+command+"] ["+key+"]");
+		  		//System.out.println("["+command+"] ["+key+"]");
 			  	if (isDir == true) {
 				  		readDirectory(key);
   				}
@@ -87,7 +89,7 @@ public class FileSystem {
 				  }
       }
 			else if (command == 'c') {
-	  				System.out.println("["+command+"] ["+key+"]");
+	  				//System.out.println("["+command+"] ["+key+"]");
   				if (isDir == true) {
 		  				createDirectory(key);
     			}
@@ -98,8 +100,10 @@ public class FileSystem {
 				  }
 	  	}
     }
+    fi = System.currentTimeMillis();
+    System.out.println("\n\n\n I'm done - Time Elapse : "+ ((double)(fi-st)/1000) + "\n\n\n");
 
-		output();
+		//output();
 
 //    RecoveryStat.printRecoveryStat();
 	}
@@ -112,7 +116,7 @@ public class FileSystem {
 
 		while (iter.hasNext()) {
 			str = (String)(iter.next());
-			System.printString(str + "\n");
+			//System.printString(str + "\n");
 		}
 	}
 
@@ -198,12 +202,14 @@ public class FileSystem {
 	
 	public static void main(String[] args) {
 		String filename;
+		int NUM_THREADS = 1;
 
-		if (args.length == 1) {
-			filename = args[0];
+		if (args.length == 2) {
+            NUM_THREADS = Integer.parseInt(args[0]);
+			filename = args[1];
 		}
 		else {
-			System.out.println("usage: ./FileSystem.bin <data>");
+			System.out.println("usage: ./FileSystem.bin <numthreads> <data>");
 			System.exit(0);
 		}
 		

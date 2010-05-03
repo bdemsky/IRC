@@ -42,10 +42,9 @@ public class FileSystem extends Thread {
     DistributedLinkedList list; 
 
     atomic {
-      path = global new GlobalString("/tmp/");			// root is 'tmp'
+      path = global new GlobalString("/home/adash/");			// root is 'home'
       list = global new DistributedLinkedList();
       dir.put(path, list);
-      dir_list.add(path);
     }
   }
 
@@ -83,7 +82,7 @@ public class FileSystem extends Thread {
       System.out.println("todoList is Empty\n");
 
     while (!todoList.isEmpty()) {
-      int count = 5;
+      int count = 10;
       atomic {
         while(count>0 && !todoList.isEmpty()) { //commit 5 transactions
           t = (Transaction)(todoList.removeFirst());
@@ -150,20 +149,14 @@ public class FileSystem extends Thread {
       val = gval.toLocalString();
       //Add some useless extra work for now
       //to increase read time
-      int hashVal = gval.hashCode();
+      int hashVal = val.hashCode();
       int a=0;
       for(int t=0; t<hashVal; t++) {
-        for(int z=0; z<val.hashCode(); z++) {
-          a = a + t + z;
-        }
+          a = a + t;
       }
-      System.out.println("a= " + a);
     }
-    if (val != null) {
-      //System.out.println("<"+val+">");
-    }
-    else {
-      //System.out.println("No such file or directory");
+    if (val == null) {
+      System.out.println("No such file or directory");
     }
   }
 
@@ -178,18 +171,10 @@ public class FileSystem extends Thread {
       iter = list.iterator();
       while (iter.hasNext() == true) {
         gval = (GlobalString)(iter.next());
-        //System.out.print("["+gval.toLocalString()+"] ");
-        //Add some useless extra work for now
-        int hashVal = gval.hashCode();
-        int a=0;
-        for(int t=0; t<hashVal; t++) {
-          a = a + t;
-        }
-        System.out.println("a= " + a);
       }
     }
     else {
-      //System.out.println("No such file or directory");
+      System.out.println("No such file or directory");
     }
   }
 
@@ -204,12 +189,13 @@ public class FileSystem extends Thread {
     index = gkey.lastindexOf('/');
     gpath = gkey.subString(0, index+1);
     gtarget = gkey.subString(index+1);
-    FileOutputStream fos = new FileOutputStream(gpath.toLocalString()+gtarget.toLocalString());
-    fos.FileOutputStream(gpath.toLocalString()+gtarget.toLocalString());
+    String s = gpath.toLocalString()+gtarget.toLocalString();
+    FileOutputStream fos = new FileOutputStream(s);
+    fos.FileOutputStream(s);
+    byte[] b = new byte[1];
     for(int i=0; i<10; i++) {
-      byte[] b = new byte[1];
       b[0] = (byte) i;
-      fos.write(i);
+      fos.write(b);
       fos.flush();
     }
     fos.close();
@@ -232,7 +218,6 @@ public class FileSystem extends Thread {
     DistributedLinkedList list;
 
     index = gkey.lastindexOf('/', gkey.length()-2);
-    //System.out.println("index= " + index + " gkey= " + gkey.toLocalString());
 
     if (index != -1) {
       gpath = gkey.subString(0, index+1);
@@ -242,11 +227,11 @@ public class FileSystem extends Thread {
         dir.put(gkey, list);
       }
       else {
-        //System.out.println("Cannot create directory- HERE1");
+        System.out.println("Cannot create directory- HERE1");
       }
     }
     else {
-      //System.out.println("Cannot create directory-- HERE2");
+      System.out.println("Cannot create directory-- HERE2");
     }
   }
 
@@ -289,7 +274,6 @@ public class FileSystem extends Thread {
       //Create and populate the distributed hash map
       boolean isDir;
       while((comm = fis.readLine()) != null) {
-        System.out.println("comm= " + comm);
         char command = comm.charAt(0);
         String key = comm.subString(2);
         GlobalString gkey = global new GlobalString(key);
@@ -302,7 +286,8 @@ public class FileSystem extends Thread {
           if(isDir == true) {
             initLus.createDirectory(gkey);
           } else {
-            String val = new String();
+            GlobalString target = gkey.subString(index+1);
+            String val = new String(target.toLocalString());
             GlobalString gval = global new GlobalString(val);
             initLus.createFile(gkey, gval);
           }

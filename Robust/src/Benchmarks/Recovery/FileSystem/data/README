@@ -1,0 +1,12 @@
+
+Use gen1.c for file generation
+
+compile:
+gcc -g gen1.c
+
+run:
+./a.out 8 300 newdata
+
+num threads = 8
+num of commands in each file = 300
+name of file = newdata

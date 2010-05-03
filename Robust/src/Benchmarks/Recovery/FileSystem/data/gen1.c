@@ -13,15 +13,16 @@
 
 #define DIR_FILE "dirname"
 #define FILE_NAME "file"
-#define HOME_DIR "tmp"
+#define HOME_DIR "home/adash"
 #define STR_SIZE 256
 #define CREAT_FILE "creates.txt"
-#define FACTOR (0.20)
+#define FACTOR (0.05)
 
 unsigned int num_lines;
 
-void generateCrData(char fileName[],int numCmd,char** wordList,int numWord);
-void generateRdData(char *filename, int numRdCmd, int numCrCmd);
+//void generateCrData(char fileName[],int numCmd,char** wordList,int numWord);
+void generateCrData(int numCmd,char** wordList,int numWord);
+void generateRdData(char *filename, int numRdCmd, int numCrCmd, int numCmd);
 
 /* to read word tokens*/
 char** readList(char* fileName,int* num);
@@ -64,24 +65,22 @@ int main(int argn,char** argv)
   FILE *fp = fopen(CREAT_FILE, "w+");
   fclose(fp);
 
-  for(i = 0;i< numFile;i++) {
-    printf("Generating Creates %s%d...\n",prefix,i);
-    sprintf(fileName,"%s%d",prefix,i);
-    generateCrData(fileName,numCrCmd,wordList,numWord);
-  }
+  generateCrData(numCrCmd,wordList,numWord);
 
   freeList(wordList,numWord);
 
   for (i = 0; i < numFile; i++) {
     printf("Generating Reads %s%d...\n",prefix,i);
     sprintf(fileName,"%s%d",prefix,i);
-    generateRdData(fileName, numRdCmd, numCrCmd);
+    generateRdData(fileName, numRdCmd, numCrCmd, numCmd);
   }
 }
 
-void generateRdData(char *filename, int numRdCmd, int numCrCmd) 
+void generateRdData(char *filename, int numRdCmd, int numCrCmd, int numCmd) 
 {
-  FILE *fp = fopen(filename, "r+");
+  //FILE *fp = fopen(filename, "r+");
+  FILE *fp = fopen(filename, "w");
+  FILE *fp_creates = fopen(CREAT_FILE, "r+");
   char *rd_data[numCrCmd];
   int i;
   int num_lines = 0;
@@ -97,21 +96,35 @@ void generateRdData(char *filename, int numRdCmd, int numCrCmd)
     }
   }
   for (i = 0; i < numCrCmd; i++) {
-    fgets(rd_data[i], STR_SIZE, fp);
+    fgets(rd_data[i], STR_SIZE, fp_creates);
   }
+
+  for (i = 0; i < numCmd; i++) {
+    int idx = rand() % numCrCmd;
+    int test = rand() % 100;
+    if(test < 10 ) {
+      rd_data[idx][0] = 'c';
+      fprintf(fp, "%s", rd_data[idx]);
+    } else {
+      rd_data[idx][0] = 'r';
+      fprintf(fp, "%s", rd_data[idx]);
+    }
+  }
+  /*
   for (i = 0; i < numRdCmd; i++) {
     int idx = rand() % numCrCmd;
     rd_data[idx][0] = 'r';
     fprintf(fp, "%s", rd_data[idx]);
   }
+  */
   fclose(fp);
+  fclose(fp_creates);
 
   return;
 }
 
-void generateCrData(char fileName[],int numCmd,char** wordList,int numWord)
+void generateCrData(int numCmd,char** wordList,int numWord)
 {
-  FILE* file = fopen(fileName,"w");
   FILE* fp_creates = fopen(CREAT_FILE,"a+"); /* This is superset of all creates */
   char cmdString[STR_SIZE];
   char subCmdString[STR_SIZE];
@@ -121,8 +134,7 @@ void generateCrData(char fileName[],int numCmd,char** wordList,int numWord)
   int i;
  
   // create initial directory on home
-  sprintf(cmdString,"c /%s/%s/",HOME_DIR,fileName);
-  fprintf(file,"%s\n",cmdString);
+  sprintf(cmdString,"c /%s/%s/",HOME_DIR,"newdata");
   fprintf(fp_creates,"%s\n",cmdString);
   num_lines++;
   numCmd--;
@@ -132,7 +144,6 @@ void generateCrData(char fileName[],int numCmd,char** wordList,int numWord)
     // creating directory
     wordToken = wordList[rand() % numWord];
     sprintf(subCmdString,"%s%s/",cmdString,wordToken);
-    fprintf(file,"%s\n",subCmdString);
     fprintf(fp_creates,"%s\n",subCmdString);
     num_lines++;
     numCmd--;
@@ -146,13 +157,11 @@ void generateCrData(char fileName[],int numCmd,char** wordList,int numWord)
     // creating files in the directory
     for(i = 0;i <rand_index && numCmd > 0;i++) {
       sprintf(subCmdString,"%s%s/%s%d",cmdString,wordToken,FILE_NAME,i);
-      fprintf(file,"%s\n",subCmdString);
       fprintf(fp_creates,"%s\n",subCmdString);
       num_lines++;
       numCmd--;
     }  
   }
-  fclose(file);
   fclose(fp_creates);
 }
 
