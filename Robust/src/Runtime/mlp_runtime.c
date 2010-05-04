@@ -7,6 +7,8 @@
 #include "mem.h"
 #include "mlp_runtime.h"
 #include "workschedule.h"
+#include "methodheaders.h"
+
 
 
 /*
@@ -52,6 +54,10 @@ REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID){
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
   newREntry->pointer=dynID;
+  if((*newREntry->pointer)!=0){// make sure it is not unresolved address.
+    struct ___Object___ * obj=(struct ___Object___*)((unsigned INTPTR)*newREntry->pointer);
+    newREntry->oid=obj->oid;
+  }
   return newREntry;
 }
 
@@ -267,7 +273,8 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
     return NOTREADY;
   }
   BinItem * val;
-  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
+  //int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));  
+  int key=generateKey(r->oid);
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
@@ -288,7 +295,8 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
 int ADDTABLEITEM(Hashtable* table, REntry* r, int inc){
  
   BinItem * val;
-  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
+  //  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
+  int key=generateKey(r->oid);
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
@@ -564,7 +572,8 @@ RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
 }
 
 RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
-  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
+  //  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
+  int key=generateKey(r->oid);
   if(isFineRead(r)) {
     atomic_dec(&b->total);
   }
@@ -792,6 +801,9 @@ resolvePointer(REntry* rentry){
 	  break;
 	}
 	removeItem(val,head);
+	//now, address is resolved. update OID field.
+	struct ___Object___ * obj=(struct ___Object___*)((unsigned INTPTR)*rentry->pointer);
+	rentry->oid=obj->oid;
 	if(ADDTABLEITEM(table, rentry, FALSE)==READY){
 	  resolveDependencies(rentry);
 	}

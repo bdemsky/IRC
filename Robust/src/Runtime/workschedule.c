@@ -28,6 +28,11 @@ typedef struct workerData_t {
 } workerData;
 */
 
+typedef struct workerData_t{
+  pthread_t workerThread;
+  int id;
+} WorkerData;
+
 
 static pthread_mutex_t systemLockIn;
 static pthread_mutex_t systemLockOut;
@@ -38,8 +43,7 @@ static pthread_mutex_t systemLockOut;
 
 
 // implementation internal data
-static int             numWorkers;
-//static workerData*     workerDataArray;
+static WorkerData*     workerDataArray;
 static pthread_t*      workerArray;
 
 static int systemStarted = 0;
@@ -52,6 +56,7 @@ static void(*workFunc)(void*);
 
 static pthread_cond_t  workAvailCond  = PTHREAD_COND_INITIALIZER;
 
+int             numWorkers;
 
 int threadcount;
 pthread_mutex_t gclock;
@@ -61,6 +66,8 @@ pthread_cond_t gccond;
 extern struct listitem * list;
 extern __thread struct listitem litem;
 extern __thread SESEcommon* seseCommon;
+
+__thread int oid;
 
 /*
 struct QI {
@@ -170,6 +177,8 @@ void* workerMain( void* arg ) {
 void* workerMain( void* arg ) {
   
   void* workUnit;
+  WorkerData* myData = (WorkerData*) arg;
+  oid=myData->id;
 
   // make sure init mlp once-per-thread stuff
   //pthread_once( &mlpOnceObj, mlpInitOncePerThread );
@@ -178,7 +187,7 @@ void* workerMain( void* arg ) {
 
   // then continue to process work
   while( 1 ) {
-
+   
     /*
     while(1){
       if(pthread_mutex_trylock(&systemLock)==0){
@@ -221,7 +230,7 @@ void* workerMain( void* arg ) {
     list=&litem;
     seseCommon=(SESEcommon*)workUnit;   
     pthread_mutex_unlock(&gclistlock);
-    
+
     workFunc( workUnit );
     
     pthread_mutex_lock(&gclistlock);
@@ -310,10 +319,17 @@ void workScheduleInit( int numProcessors,
   status = pthread_mutex_init( &systemLockIn, NULL );
   status = pthread_mutex_init( &systemLockOut, NULL );
 
-  workerArray = RUNMALLOC( sizeof( pthread_t ) * numWorkers );
+  //workerArray = RUNMALLOC( sizeof( pthread_t ) * numWorkers );
+  workerDataArray = RUNMALLOC( sizeof( WorkerData ) * numWorkers );
 
-  for( i = 0; i < numWorkers; ++i ) {    
-    status = pthread_create( &(workerArray[i]), NULL, workerMain, NULL );
+  for( i = 0; i < numWorkers; ++i ) {   
+    workerDataArray[i].id=i+2;
+    status = pthread_create( &(workerDataArray[i].workerThread), 
+                             NULL,
+                             workerMain,
+                             (void*) &(workerDataArray[i])
+                           );
+    //status = pthread_create( &(workerArray[i]), NULL, workerMain, NULL );
     if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
 
     // yield and let all workers get to the beginx3
@@ -370,10 +386,14 @@ void workScheduleSubmit( void* workUnit ) {
 void workScheduleBegin() {
   
   int i;  
-  workerMain(NULL);
+  WorkerData *workerData = RUNMALLOC( sizeof( WorkerData ) );
+  workerData->id=1;
+  // workerMain(NULL);
+  workerMain(workerData);
 
   // tell all workers to begin
   for( i = 0; i < numWorkers; ++i ) {
-    pthread_join( workerArray[i], NULL );
+    //pthread_join( workerArray[i], NULL );
+    pthread_join( workerDataArray[i].workerThread, NULL );
   }
 }

@@ -58,6 +58,7 @@ typedef struct REntry_t{
   psemaphore parentStallSem;
   void* seseRec;
   INTPTR* pointer;
+  int oid;
 } REntry;
 
 typedef struct MemoryQueueItem_t {

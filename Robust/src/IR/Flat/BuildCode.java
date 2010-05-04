@@ -637,6 +637,7 @@ public class BuildCode {
     //Print out definition for array type
     outclassdefs.println("struct "+arraytype+" {");
     outclassdefs.println("  int type;");
+    outclassdefs.println("  int oid;");
     if (state.EVENTMONITOR) {
       outclassdefs.println("  int objuid;");
     }
@@ -979,6 +980,10 @@ public class BuildCode {
     outclassdefs.print("#endif\n");
 
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
+    if(this.state.MLP){
+    	outclassdefs.print("extern __thread int oid;\n");
+    	outclassdefs.print("extern int numWorkers;\n");
+    }
 
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     cdarray=new ClassDescriptor[state.numClasses()];
@@ -1375,6 +1380,9 @@ public class BuildCode {
     /* Output class structure */
     classdefout.println("struct "+cn.getSafeSymbol()+" {");
     classdefout.println("  int type;");
+    if(state.MLP){
+      classdefout.println("  int oid;");
+    }
     if (state.EVENTMONITOR) {
       classdefout.println("  int objuid;");
     }
@@ -2778,7 +2786,8 @@ public class BuildCode {
 					if( waitingElement.getStatus() >= ConflictNode.COARSE ){
 						output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
 					}else{
-						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + ");");	
+						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
+//						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");	
 					}					
 					output.println("     psem_init( &(rentry->parentStallSem) );");
 					output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
@@ -3557,11 +3566,16 @@ public class BuildCode {
 								output.println("     pointer=seseToIssue->"+ waitingElement.getDynID()+"_srcSESE+seseToIssue->"+ waitingElement.getDynID()+"_srcOffset;");
 								output.println("     rentry=mlpCreateFineREntry("
 										+ waitingElement.getStatus()
-										+ ", seseToIssue,  pointer );");								
+										+ ", seseToIssue,  pointer );");
+//								output.println("     rentry=mlpCreateFineREntry("
+//										+ waitingElement.getStatus()
+//										+ ", seseToIssue, seseToIssue->"
+//										+ waitingElement.getDynID() + "->oid);");
 							}else if(fsen.getStaticInVarSet().contains(td)){
 								// static in-var case
 								VariableSourceToken vst = fsen.getStaticInVarSrc(td);
 								if (vst != null) {
+									
 									String srcId = "SESE_"
 											+ vst.getSESE()
 													.getPrettyIdentifier()
@@ -3576,12 +3590,21 @@ public class BuildCode {
 									output.println("     rentry=mlpCreateFineREntry("
 											+ waitingElement.getStatus()
 											+ ", seseToIssue,  pointer );");		
+									
+//									output.println("     rentry=mlpCreateFineREntry("
+//											+ waitingElement.getStatus()
+//											+ ", seseToIssue, seseToIssue->"
+//											+ waitingElement.getDynID() + "->oid);");
 								}
 							}else{
 								output.println("     rentry=mlpCreateFineREntry("
 										+ waitingElement.getStatus()
 										+ ", seseToIssue,  (void*)&seseToIssue->"
 										+ waitingElement.getDynID() + ");");
+//								output.println("     rentry=mlpCreateFineREntry("
+//										+ waitingElement.getStatus()
+//										+ ", seseToIssue, seseToIssue->"
+//										+ waitingElement.getDynID() + "->oid);");
 							}
 						}
 						output
@@ -4382,7 +4405,12 @@ public class BuildCode {
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
+    	  if(this.state.MLP){
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray_oid("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+", oid);");
+	output.println("    oid += numWorkers;");
+    	  }else{
+    output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");    		  
+    	  }
       } else {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       }
@@ -4390,7 +4418,12 @@ public class BuildCode {
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");
+    	  if (this.state.MLP){
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new_oid("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+", oid);");
+	output.println("    oid += numWorkers;");
+    	  } else {
+    output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");    		  
+    	  }
       } else {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+fn.getType().getClassDesc().getId()+");");
       }

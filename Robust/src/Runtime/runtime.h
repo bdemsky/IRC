@@ -62,8 +62,15 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
 
 #ifdef PRECISE_GC
 #include "garbage.h"
+#ifdef MLP
+__attribute__((malloc)) void * allocate_new_oid(void *, int type, int oid);
+__attribute__((malloc)) void * allocate_new(void *, int type);
+__attribute__((malloc)) struct ArrayObject * allocate_newarray_oid(void *, int type, int length, int oid);
+__attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length);
+#else
 __attribute__((malloc)) void * allocate_new(void *, int type);
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void *, int type, int length);
+#endif
 __attribute__((malloc)) struct ___String___ * NewString(void *, const char *str,int length);
 __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(void *ptr, int index);
 #elif defined MULTICORE_GC

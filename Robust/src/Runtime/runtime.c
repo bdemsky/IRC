@@ -593,7 +593,14 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 
 #ifndef STM
 #if defined(PRECISE_GC)
+#ifdef MLP
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
+  return allocate_new_oid(ptr, type, 0);
+}
+__attribute__((malloc)) void * allocate_new_oid(void * ptr, int type, int oid) {
+#else
+__attribute__((malloc)) void * allocate_new(void * ptr, int type) {
+#endif
   struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
 #ifdef THREADS
@@ -604,12 +611,21 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 #ifdef OPTIONAL
   v->fses=0;
 #endif
+#ifdef MLP
+  v->oid=oid;
+#endif
   return v;
 }
 
 /* Array allocation function */
-
+#ifdef MLP
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
+  return allocate_newarray_oid(ptr, type, length, 0);
+}
+ __attribute__((malloc)) struct ArrayObject * allocate_newarray_oid(void * ptr, int type, int length, int oid) {
+#else
+__attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
+#endif
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   if (length<0) {
@@ -624,6 +640,9 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 #endif
 #ifdef OPTIONAL
   v->fses=0;
+#endif
+#ifdef MLP
+  v->oid=oid;
 #endif
   return v;
 }
