@@ -76,7 +76,7 @@ public class FileSystem extends Thread {
     fillTodoList(file, todoList);
     long st = System.currentTimeMillis();
     long fi;
-    long tot1;
+    long tot1, tot2;
 
     if(todoList.isEmpty())
       System.out.println("todoList is Empty\n");
@@ -84,7 +84,7 @@ public class FileSystem extends Thread {
     while (!todoList.isEmpty()) {
       int count = 10;
       atomic {
-        while(count>0 && !todoList.isEmpty()) { //commit 5 transactions
+        while(count>0 && !todoList.isEmpty()) { //commit 10 transactions
           t = (Transaction)(todoList.removeFirst());
           if(t==null) {
             count--;
@@ -101,30 +101,26 @@ public class FileSystem extends Thread {
           else 
             isDir = false;
 
-          long st1 = 0L;
-          long fi1 = 0L;
           if (command == 'r') {
-            st1 = System.currentTimeMillis();
+            long st1 = System.currentTimeMillis();
             //System.out.println("["+command+"] ["+key+"]");
-            if (isDir == true) {
-              readDirectory(gkey);
-            }
-            else {
+            if (isDir != true) {
               readFile(gkey);
             }
-            fi1 = System.currentTimeMillis();
+            long fi1 = System.currentTimeMillis();
+            tot1 += fi1 - st1;
           }
-          tot1 += fi1 - st1;
+
           if (command == 'c') {
+            long st2 = System.currentTimeMillis();
             //System.out.println("["+command+"] ["+key+"]");
-            if (isDir == true) {
-              createDirectory(gkey);
-            }
-            else {
-              String val = t.getValue();
+            if (isDir != true) {
+              String val = "Testrun";
               GlobalString gval = global new GlobalString(val);
-              createFile(gkey, gval);
+              writetoFile(gkey, gval);
             }
+            long fi2 = System.currentTimeMillis();
+            tot2 += fi2 - st2;
           }
           count--;
         }//end of inside loop
@@ -135,6 +131,7 @@ public class FileSystem extends Thread {
 
     System.out.println("\n\n\n I'm done - Time Elapse : "+ ((double)(fi-st)/1000) + "\n\n\n");
     System.out.println("\n Reading - Time Elapse : "+ ((double)tot1/1000) + "\n");
+    System.out.println("\n Creating - Time Elapse : "+ ((double)tot2/1000) + "\n");
     while(true) {
       sleep(100000);
     }
@@ -143,17 +140,31 @@ public class FileSystem extends Thread {
   public void readFile(GlobalString gkey) {
     GlobalString gval=null;
     String val=null;
+    int FILE_SIZE = 4096;
 
     gval = (GlobalString)(fs.get(gkey));
     if(gval!=null) {
       val = gval.toLocalString();
+      //System.out.println("readFile(): ["+gkey.toLocalString()+"] ");
       //Add some useless extra work for now
       //to increase read time
+      String filename = gkey.toLocalString();
+      FileInputStream inputFile = new FileInputStream(filename);
+      int n;
+      byte b[] = new byte[FILE_SIZE];
+      while ((n = inputFile.read(b)) != 0) {
+        for(int x=0; x<n; x++) {
+          byte buf = b[x];
+        }
+      }
+      inputFile.close();
+      /*
       int hashVal = val.hashCode();
       int a=0;
       for(int t=0; t<hashVal; t++) {
           a = a + t;
       }
+      */
     }
     if (val == null) {
       System.out.println("No such file or directory");
@@ -178,6 +189,27 @@ public class FileSystem extends Thread {
     }
   }
 
+  public void writetoFile(GlobalString gkey, GlobalString gval) {
+    int index = gkey.lastindexOf('/');
+    GlobalString gpath = gkey.subString(0, index+1);
+    GlobalString gtarget = gkey.subString(index+1);
+    /*
+    String s = gpath.toLocalString()+gtarget.toLocalString();
+    FileInputStream inputFile = new FileInputStream(s);
+    int n;
+    byte b[] = new byte[10];
+    while ((n = inputFile.read(b)) != 0) {
+      for(int x=0; x<10; x++) {
+        b[x] = (byte)(x+1);
+      }
+    }
+    inputFile.close();
+    */
+    if (dir.containsKey(gpath)) {
+      fs.put(gkey, gval);
+    }
+  }
+
   public void createFile(GlobalString gkey, GlobalString gval) {
     String path;
     String target;
@@ -190,15 +222,17 @@ public class FileSystem extends Thread {
     gpath = gkey.subString(0, index+1);
     gtarget = gkey.subString(index+1);
     String s = gpath.toLocalString()+gtarget.toLocalString();
+    /*
     FileOutputStream fos = new FileOutputStream(s);
     fos.FileOutputStream(s);
     byte[] b = new byte[1];
-    for(int i=0; i<10; i++) {
+    for(int i=0; i<4096; i++) {
       b[0] = (byte) i;
       fos.write(b);
       fos.flush();
     }
     fos.close();
+    */
 
     if(dir==null)
       System.out.println("dir is null");
@@ -289,6 +323,7 @@ public class FileSystem extends Thread {
             GlobalString target = gkey.subString(index+1);
             String val = new String(target.toLocalString());
             GlobalString gval = global new GlobalString(val);
+            //System.out.println("Creating file: " + key);
             initLus.createFile(gkey, gval);
           }
         }
