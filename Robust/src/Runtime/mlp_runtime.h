@@ -59,18 +59,22 @@ typedef struct REntry_t{
   void* seseRec;
   INTPTR* pointer;
   int oid;
+  int isBufMode;
 } REntry;
 
 typedef struct MemoryQueueItem_t {
   int type; // hashtable:0, vector:1, singleitem:2
   int total;        //total non-retired
   int status;       //NOTREADY, READY
-  struct MemoryQueueItem_t *next;
+  struct MemoryQueueItem_t *next; 
 } MemoryQueueItem;
 
 typedef struct MemoryQueue_t {
   MemoryQueueItem * head;
   MemoryQueueItem * tail;  
+  REntry * binbuf[NUMBINS];
+  REntry * buf[NUMRENTRY];
+  int bufcount;
 } MemoryQueue;
 
 typedef struct BinItem_t {

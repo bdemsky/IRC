@@ -3,6 +3,7 @@ package Analysis.MLP;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -56,11 +57,10 @@ public class ConflictGraph {
 
 	private boolean compareHRNSet(Set<HeapRegionNode> setA,
 			Set<HeapRegionNode> setB) {
-
+		boolean found = false;
 		for (Iterator iterator = setA.iterator(); iterator.hasNext();) {
 			HeapRegionNode heapRegionNode = (HeapRegionNode) iterator.next();
 			String gID = heapRegionNode.getGloballyUniqueIdentifier();
-			boolean found = false;
 			for (Iterator iterator2 = setB.iterator(); iterator2.hasNext();) {
 				HeapRegionNode heapRegionNode2 = (HeapRegionNode) iterator2
 						.next();
@@ -68,9 +68,9 @@ public class ConflictGraph {
 					found = true;
 				}
 			}
-			if (!found) {
-				return false;
-			}
+		}
+		if (!found) {
+			return false;
 		}
 		return true;
 	}
@@ -184,7 +184,7 @@ public class ConflictGraph {
 										&& seseLock
 												.containsConflictEdge(conflictEdge)) {
 									WaitingElement newElement = new WaitingElement();
-									newElement.setWaitingID(seseLock.getID());
+									newElement.setQueueID(seseLock.getID());
 									if (isFineElement(newElement.getStatus())) {
 										newElement
 												.setDynID(node
@@ -275,7 +275,7 @@ public class ConflictGraph {
 
 	}
 
-	public Set<WaitingElement> getWaitingElementSetBySESEID(int seseID,
+	public SESEWaitingQueue getWaitingElementSetBySESEID(int seseID,
 			HashSet<SESELock> seseLockSet) {
 		HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
 
@@ -304,7 +304,7 @@ public class ConflictGraph {
 									&& seseLock
 											.containsConflictEdge(conflictEdge)) {
 								WaitingElement newElement = new WaitingElement();
-								newElement.setWaitingID(seseLock.getID());
+								newElement.setQueueID(seseLock.getID());
 								newElement.setStatus(seseLock
 										.getNodeType(liveInNode));
 								if (isFineElement(newElement.getStatus())) {
@@ -324,8 +324,96 @@ public class ConflictGraph {
 			}
 
 		}
+		
+		//handle the case that multiple enqueues by an SESE for different live-in into the same queue
+		return refineQueue(waitingElementSet);
+//		return waitingElementSet;
+		
+	}
+	
+	public SESEWaitingQueue refineQueue(Set<WaitingElement> waitingElementSet) {
 
-		return waitingElementSet;
+		Set<WaitingElement> refinedSet=new HashSet<WaitingElement>();
+		HashMap<Integer, Set<WaitingElement>> map = new HashMap<Integer, Set<WaitingElement>>();
+		SESEWaitingQueue seseDS=new SESEWaitingQueue();
+
+		for (Iterator iterator = waitingElementSet.iterator(); iterator
+				.hasNext();) {
+			WaitingElement waitingElement = (WaitingElement) iterator.next();
+			Set<WaitingElement> set=map.get(new Integer(waitingElement.getQueueID()));
+			if(set==null){
+				set=new HashSet<WaitingElement>();
+			}
+			set.add(waitingElement);
+			map.put(new Integer(waitingElement.getQueueID()), set);
+		}
+		
+		Set<Integer> keySet=map.keySet();
+		for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+			Integer queueID = (Integer) iterator.next();
+			Set<WaitingElement> queueWEset=map.get(queueID);
+			refineQueue(queueID.intValue(),queueWEset,seseDS);			
+		}
+		
+		return seseDS;
+	}
+	
+	private void refineQueue(int queueID,
+			Set<WaitingElement> waitingElementSet, SESEWaitingQueue seseDS) {
+
+		if (waitingElementSet.size() > 1) {
+			//only consider there is more than one element submitted by same SESE
+			Set<WaitingElement> refinedSet = new HashSet<WaitingElement>();
+
+			int numCoarse = 0;
+			int numRead = 0;
+			int numWrite = 0;
+			int total=waitingElementSet.size();
+			WaitingElement SCCelement = null;
+			WaitingElement coarseElement = null;
+
+			for (Iterator iterator = waitingElementSet.iterator(); iterator
+					.hasNext();) {
+				WaitingElement waitingElement = (WaitingElement) iterator
+						.next();
+				if (waitingElement.getStatus() == ConflictNode.FINE_READ) {
+					numRead++;
+				} else if (waitingElement.getStatus() == ConflictNode.FINE_WRITE) {
+					numWrite++;
+				} else if (waitingElement.getStatus() == ConflictNode.COARSE) {
+					numCoarse++;
+					coarseElement = waitingElement;
+				} else if (waitingElement.getStatus() == ConflictNode.SCC) {
+					SCCelement = waitingElement;
+				} 
+			}
+
+			if (SCCelement != null) {
+				// if there is at lease one SCC element, just enqueue SCC and
+				// ignore others.
+				refinedSet.add(SCCelement);
+			} else if (numCoarse == 1 && (numRead + numWrite == total)) {
+				// if one is a coarse, the othere are reads/write, enqueue SCC.
+				WaitingElement we = new WaitingElement();
+				we.setQueueID(queueID);
+				we.setStatus(ConflictNode.SCC);
+				refinedSet.add(we);
+			} else if (numCoarse == total) {
+				// if there are multiple coarses, enqueue just one coarse.
+				refinedSet.add(coarseElement);
+			} else if(numWrite==total || (numRead+numWrite)==total){
+				// code generator is going to handle the case for multiple writes & read/writes.
+				seseDS.setType(queueID, SESEWaitingQueue.EXCEPTION);
+				refinedSet.addAll(waitingElementSet);
+			} else{
+				// otherwise, enqueue everything.
+				refinedSet.addAll(waitingElementSet);
+			}
+			seseDS.setWaitingElementSet(queueID, refinedSet);
+		} else {
+			seseDS.setWaitingElementSet(queueID, waitingElementSet);
+		}
+		
 	}
 
 	public boolean isFineElement(int type) {
@@ -662,7 +750,6 @@ public class ConflictGraph {
 				HeapRegionNode heapRegionNode = (HeapRegionNode) iterator
 						.next();
 				String gID = heapRegionNode.getGloballyUniqueIdentifier();
-				boolean found = false;
 				for (Iterator iterator2 = setB.iterator(); iterator2.hasNext();) {
 					HeapRegionNode heapRegionNode2 = (HeapRegionNode) iterator2
 							.next();
@@ -857,7 +944,10 @@ public class ConflictGraph {
 		
 		Set<HeapRegionNode> entryHRNSet = getSameHeapRoot(liveInHrnSetA,
 				liveInHrnSetB);
-		if (entryHRNSet.size() == 0) {
+		if (entryHRNSet.size() == 0 ) {
+			return ConflictEdge.COARSE_GRAIN_EDGE;
+		}
+		if(entryHRNSet.size()!=liveInHrnSetA.size() || entryHRNSet.size()!=liveInHrnSetB.size()){
 			return ConflictEdge.COARSE_GRAIN_EDGE;
 		}
 

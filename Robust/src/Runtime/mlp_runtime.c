@@ -398,7 +398,7 @@ READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
 int TAILREADCASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, int inc) {
   ReadBinItem * readbintail=(ReadBinItem*)T->array[key]->tail;
   int status, retval;
-  if (readbintail->item.status=READY) { 
+  if (readbintail->item.status==READY) { 
     status=READY;
     retval=READY;
     if (isParent(r)) {
@@ -776,9 +776,133 @@ resolveDependencies(REntry* rentry){
   }
 }
 
+void INITIALIZEBUF(MemoryQueue * q){  
+  int i=0;
+  for(i=0; i<NUMBINS; i++){
+    q->binbuf[i]=NULL;
+  }
+  q->bufcount=0;
+}
+
+void ADDRENTRYTOBUF(MemoryQueue * q, REntry * r){
+  q->buf[q->bufcount]=r;
+  q->bufcount++;
+}
+
+int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCommon){  
+  int i;
+ // first phase: only consider write rentry
+  for(i=0; i<q->bufcount;i++){
+    REntry *r=q->buf[i];
+    if(r->type==WRITE){
+      int key=generateKey(r->oid);
+      if(q->binbuf[key]==NULL){
+	// for multiple writes, add only the first write that hashes to the same bin
+	q->binbuf[key]=r;  
+      }else{
+	q->buf[i]=NULL;
+      }
+    }
+  }
+  // second phase: enqueue read items if it is eligible
+  for(i=0; i<q->bufcount;i++){
+    REntry *r=q->buf[i];    
+    if(r!=NULL && r->type==READ){
+      int key=generateKey(r->oid);
+      if(q->binbuf[key]==NULL){
+	// read item that hashes to the bin which doen't contain any write
+	seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
+	if(ADDTABLEITEM(table, r, FALSE)==READY){
+	  resolveDependencies(r);
+	}
+      }
+      q->buf[i]=NULL;
+    }
+  }
+  
+  // then, add only one of write items that hashes to the same bin
+  for(i=0; i<q->bufcount;i++){
+    REntry *r=q->buf[i];   
+    if(r!=NULL){
+      seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
+      if(ADDTABLEITEM(table, r, FALSE)==READY){
+	resolveDependencies(r);
+      }      
+    }
+  }
+}
+
+int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon){
+  int localCount=0;
+  int i;
+  // check if every waiting entry is resolved
+  // if not, defer every items for hashtable until it is resolved.
+  int unresolved=FALSE;
+  for(i=0; i<q->bufcount;i++){
+     REntry *r=q->buf[i];
+     if(*(r->pointer)==0){
+       unresolved=TRUE;
+     }
+  }
+  if(unresolved==TRUE){
+    for(i=0; i<q->bufcount;i++){
+      REntry *r=q->buf[i];
+      r->queue=q;
+      r->isBufMode=TRUE;
+      if(ADDRENTRY(q,r)==NOTREADY){
+	localCount++;
+      }
+    }
+    return localCount;
+  }
+
+  // first phase: only consider write rentry
+  for(i=0; i<q->bufcount;i++){
+    REntry *r=q->buf[i];
+    if(r->type==WRITE){
+      int key=generateKey(r->oid);
+      if(q->binbuf[key]==NULL){
+	// for multiple writes, add only the first write that hashes to the same bin
+	q->binbuf[key]=r;  
+      }else{
+	q->buf[i]=NULL;
+      }
+    }
+  }
+  // second phase: enqueue read items if it is eligible
+  for(i=0; i<q->bufcount;i++){
+    REntry *r=q->buf[i];    
+    if(r!=NULL && r->type==READ){
+      int key=generateKey(r->oid);
+      if(q->binbuf[key]==NULL){
+	// read item that hashes to the bin which doen't contain any write
+	seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
+	if(ADDRENTRY(q,r)==NOTREADY){
+	  localCount++;
+	}
+      }
+      q->buf[i]=NULL;
+    }
+  }
+  
+  // then, add only one of write items that hashes to the same bin
+  for(i=0; i<q->bufcount;i++){
+    REntry *r=q->buf[i];   
+    if(r!=NULL){
+      seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
+      if(ADDRENTRY(q,r)==NOTREADY){
+	localCount++;
+      }
+    }
+  }
+  return localCount;
+}
+
+
 resolvePointer(REntry* rentry){  
  
   Hashtable* table=rentry->hashtable;
+  MemoryQueue* queue;
   if(table==NULL){
     //resolved already before related rentry is enqueued to the waiting queue
     return;
@@ -791,6 +915,7 @@ resolvePointer(REntry* rentry){
   if(val!=NULL && getHead(val)->objectptr==rentry){
     // handling pointer is the first item of the queue
     // start to resolve until it reaches unresolved pointer or end of queue
+    INTPTR currentSESE=0;
     do{
       struct QueueItem* head=getHead(val);
       if(head!=NULL){
@@ -804,8 +929,32 @@ resolvePointer(REntry* rentry){
 	//now, address is resolved. update OID field.
 	struct ___Object___ * obj=(struct ___Object___*)((unsigned INTPTR)*rentry->pointer);
 	rentry->oid=obj->oid;
-	if(ADDTABLEITEM(table, rentry, FALSE)==READY){
-	  resolveDependencies(rentry);
+	
+	//check if rentry is buffer mode
+	if(rentry->isBufMode==TRUE){
+	  if(currentSESE==0){
+	    queue=rentry->queue;
+	    INITIALIZEBUF(queue);
+	    currentSESE=(INTPTR)rentry;
+	    ADDRENTRYTOBUF(queue,rentry);
+	  } else if(currentSESE==(INTPTR)rentry){
+	    ADDRENTRYTOBUF(queue,rentry);
+	  } else if(currentSESE!=(INTPTR)rentry){
+	    RESOLVEBUFFORHASHTABLE(queue,table,(SESEcommon*)rentry->seseRec);
+	    currentSESE=(INTPTR)rentry;
+	    INITIALIZEBUF(queue);
+	    ADDRENTRYTOBUF(rentry->queue,rentry);
+	  }
+	}else{
+	  if(currentSESE!=0){ 
+	    //previous SESE has buf mode, need to invoke resolve buffer
+	    RESOLVEBUFFORHASHTABLE(queue,table,(SESEcommon*)rentry->seseRec);
+	    currentSESE=0;
+	  }
+	  //normal mode
+	  if(ADDTABLEITEM(table, rentry, FALSE)==READY){
+	    resolveDependencies(rentry);
+	  }
 	}
       }else{
 	table->unresolvedQueue=NULL; // set hashtable as normal-mode.

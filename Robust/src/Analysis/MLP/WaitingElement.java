@@ -7,7 +7,7 @@ import IR.Flat.TempDescriptor;
 
 public class WaitingElement {
 
-	private int waitingID;
+	private int queueID;
 	private int status;
 	private String dynID="";
 	private TempDescriptor tempDesc;
@@ -20,8 +20,8 @@ public class WaitingElement {
 		return tempDesc;
 	}
 
-	public void setWaitingID(int waitingID) {
-		this.waitingID = waitingID;
+	public void setQueueID(int queueID) {
+		this.queueID = queueID;
 	}
 	
 	public String getDynID(){
@@ -33,7 +33,7 @@ public class WaitingElement {
 	}
 	
 	public int getQueueID() {
-		return waitingID;
+		return queueID;
 	}
 
 	public void setStatus(int status) {
@@ -56,7 +56,7 @@ public class WaitingElement {
 
 		WaitingElement in = (WaitingElement) o;
 
-		if (waitingID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID()) ) {
+		if (queueID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID()) ) {
 			return true;
 		} else {
 			return false;
@@ -65,7 +65,7 @@ public class WaitingElement {
 	}
 
 	public String toString() {
-		return "[waitingID=" + waitingID + " status=" + status + " dynID="
+		return "[waitingID=" + queueID + " status=" + status + " dynID="
 				+ dynID + "]";
 	}
 
@@ -73,7 +73,7 @@ public class WaitingElement {
 
 		int hash = 1;
 
-		hash = hash * 31 + waitingID;
+		hash = hash * 31 + queueID;
 
 		hash += status;
 		
