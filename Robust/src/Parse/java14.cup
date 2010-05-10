@@ -1019,8 +1019,12 @@ constructor_body ::=
 	|	LBRACE RBRACE {: RESULT=new ParseNode("empty"); :}
 	;
 explicit_constructor_invocation ::=
-//		THIS LPAREN argument_list_opt RPAREN SEMICOLON
-//	|	
+	THIS LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
+	     ParseNode pn=new ParseNode("explconstrinv");
+	     pn.addChild(alo);
+	     RESULT=pn;
+	:}
+	|	
 SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {: 
 	ParseNode pn=new ParseNode("superinvoke");
 	pn.addChild(alo);

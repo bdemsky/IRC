@@ -623,6 +623,17 @@ public class BuildIR {
       }
       BlockExpressionNode ben=new BlockExpressionNode(min);
       bn.addFirstBlockStatement(ben);
+
+    } else if (bodyn!=null&&bodyn.getChild("explconstrinv")!=null) {
+      ParseNode eci=bodyn.getChild("explconstrinv");
+      NameDescriptor nd=new NameDescriptor(cn.getSymbol());
+      Vector args=parseArgumentList(eci);
+      MethodInvokeNode min=new MethodInvokeNode(nd);
+      for(int i=0; i<args.size(); i++) {
+	min.addArgument((ExpressionNode)args.get(i));
+      }
+      BlockExpressionNode ben=new BlockExpressionNode(min);
+      bn.addFirstBlockStatement(ben);
     }
     state.addTreeCode(md,bn);
   }
