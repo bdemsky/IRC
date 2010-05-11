@@ -504,10 +504,10 @@ public class BuildIR {
       return new InstanceOfNode(exp,t);
     } else if (isNode(pn, "array_initializer")) {
       System.out.println( "Array initializers not implemented yet." );
-      System.exit( -1 );
-      TypeDescriptor td=parseTypeDescriptor(pn);      
-      Vector initializers=parseVariableInitializerList(pn);
-      return new ArrayInitializerNode(td, initializers);
+      throw new Error();
+      //TypeDescriptor td=parseTypeDescriptor(pn);      
+      //Vector initializers=parseVariableInitializerList(pn);
+      //return new ArrayInitializerNode(td, initializers);
     } else {
       System.out.println("---------------------");
       System.out.println(pn.PPrint(3,true));
