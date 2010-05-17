@@ -324,6 +324,10 @@ void waitForAllMachine();
 int readDuplicateObjs(int);
 void printRecoveryStat();
 
+
+/* small private functions */
+int checkIndex(int pindex, int *phostindex);
+int typeIndex(int *phostindex);
 #endif
 
 /* Prototypes for server portion */

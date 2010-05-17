@@ -335,7 +335,6 @@ void *dstmAccept(void *acceptfd) {
           break;
 				while((srcObj = mhashSearch(oid)) == NULL) {
 					int ret;
-//          printf("HERE!!\n");
 					if((ret = sched_yield()) != 0) {
 						printf("%s(): error no %d in thread yield\n", __func__, errno);
 					}
@@ -469,7 +468,6 @@ void *dstmAccept(void *acceptfd) {
 				version = *((unsigned short *)(buffer+size));
 				size += sizeof(unsigned short);
 				threadid = *((unsigned int *)(buffer+size));
-        printf("Calling threadNotify\n");
 				threadNotify(oid,version,threadid);
 				free(buffer);
 				break;
@@ -1100,6 +1098,8 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			int size = 0;
 			GETSIZE(size, header);
 			size += sizeof(objheader_t);
+            //printf("%s() DEBUG: oid= %u, type= %u\n", __func__, OID(header), TYPE(header));
+            //fflush(stdout);
 			memcpy(objs+offset, header, size);
 			offset += size;
 		}
@@ -1202,7 +1202,7 @@ char getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 				*numBytes += size;
 				/* Send TRANS_DISAGREE to Coordinator */
 				*control = TRANS_DISAGREE;
-				//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
+				//printf("%s() DEBUG: acquire lock, modified, oid = %d, type = %d\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 			}
 			//Keep track of oid locked
 			oidlocked[(*objlocked)++] = OID(((objheader_t *)mobj));
@@ -1210,6 +1210,7 @@ char getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 			if (version == ((objheader_t *)mobj)->version) {     /* Check if versions match */
 				(*v_matchlock)++;
 				*control = TRANS_SOFT_ABORT;
+				//printf("%s() DEBUG: soft abort, oid = %d, type = %d\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 			} else { /* If versions don't match ...HARD ABORT */
 				(*v_nomatch)++;
 				oidvernotmatch[*objvernotmatch] = oid;
@@ -1219,7 +1220,7 @@ char getCommitCountForObjMod(unsigned int *oidnotfound, unsigned int *oidlocked,
 				size += sizeof(objheader_t);
 				*numBytes += size;
 				*control = TRANS_DISAGREE;
-				//printf("%s() oid = %d, type = %d\t", __func__, OID(mobj), TYPE((objheader_t *)mobj));
+				//printf("%s() DEBUG: modified, couldn't get lock oid = %d, type = %d\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
 			}
 		}
   }
@@ -1273,6 +1274,7 @@ char getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
       
         /* Send TRANS_DISAGREE to Coordinator */
       	*control = TRANS_DISAGREE;
+        //printf("%s() DEBUG: read, lock aquired, oid = %d, type = %d\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
 
       //Keep track of oid locked
@@ -1281,6 +1283,7 @@ char getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
       if (version == ((objheader_t *)mobj)->version) { /* Check if versions match */
       	(*v_matchlock)++;
       	*control = TRANS_SOFT_ABORT;
+        //printf("%s() DEBUG: soft abort, read oid = %d, type = %d\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       } else { /* If versions don't match ...HARD ABORT */
       	(*v_nomatch)++;
       	oidvernotmatch[*objvernotmatch] = oid;
@@ -1290,6 +1293,7 @@ char getCommitCountForObjRead(unsigned int *oidnotfound, unsigned int *oidlocked
       	size += sizeof(objheader_t);
       	*numBytes += size;
       	*control = TRANS_DISAGREE;
+        //printf("%s() DEBUG: read, couldn't aquire lock, oid = %d, type = %d\n", __func__, OID(mobj), TYPE((objheader_t *)mobj));
       }
     }
   }
