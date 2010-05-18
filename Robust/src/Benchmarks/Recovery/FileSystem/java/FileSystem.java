@@ -1,261 +1,95 @@
 /*
+   System.out.println(key);
 Usage :
   ./FileSystem.bin <num thread> <datafile prefix>
 */
 
+public class FileSystem extends Thread {
+  Directory root;
+  Directory current;
+  int mid;
 
+  public FileSystem(Directory root, int mid) {
+    this.root=root;
+    this.mid = mid;
+  }
 
-public class FileSystem {
-	HashMap dir;		// Directory 
-	HashMap fs;		// File system
-	LinkedList dir_list;
-	String inputfile;
-	int mid;
-	
-	public FileSystem(HashMap dir, HashMap fs, LinkedList dir_list, String filename) {
-		this.dir = dir;
-		this.fs = fs;
-		this.dir_list = dir_list;
-		this.inputfile = new String("../data/"+filename + "0");
-	}
-	
-	public void init() {
-		fillHashTable();
-	}
-	
-	public void fillHashTable() {
-		String path;
-		LinkedList list; 
+  public void getRoot() {
+    current=root;
+  }
 
-		path = new String("/home/");			// root is 'home'
-		list = new LinkedList();
+  public DFile getFile(GlobalString name) {
+    return current.getFile(name);
+  }
 
-		dir.put(path, list);
-		dir_list.add(path);
-	}
-	
-	public static void fillTodoList(String file, LinkedList todoList) {
-		FileInputStream fis;
-		String comm;
-		char c;
-		String key;
-		String val;
-		Transaction t;
+  public DFile createFile(GlobalString name) {
+    return current.createFile(name);
+  }
 
-		fis = new FileInputStream(file);
-
-		while ((comm = fis.readLine()) != null) {			// 'command' 'path'
-			c = comm.charAt(0);													// ex) w /home/abc.c 
-			key = comm.subString(2);
-			t = new Transaction(c, key);
-			todoList.add(t);
-		}
-	}
-
-	public void execute() {
-		Transaction t;
-
-		char command;
-		String key;
-		String val;
-		boolean isDir;
-
-		int index;
-
-		LinkedList todoList = new LinkedList();
-		fillTodoList(inputfile, todoList);
-
-        long st = System.currentTimeMillis();
-        long fi;
-		while (!todoList.isEmpty()) {
-			t = (Transaction)(todoList.removeFirst());
-
-			command = t.getCommand();
-			key = t.getKey();
-
-			index = key.lastindexOf('/');
-			if (index+1 == key.length()) 
-				isDir = true;
-			else 
-				isDir = false;
-		
-			if (command == 'r') {
-		  		//System.out.println("["+command+"] ["+key+"]");
-			  	if (isDir == true) {
-				  		readDirectory(key);
-  				}
-	  			else {
-						readFile(key);
-				  }
+  public void run() {
+    long st = System.currentTimeMillis();
+    long fi;
+     {
+      current=root.makeDirectory( new GlobalString(String.valueOf(mid)));
+    }
+    Random r=new Random();
+    char ptr[]=new char[1024];
+    for(int i=0;i<40000;i++) {
+       {
+	for(int count=0;count<10;count++) {
+	  int value=r.nextInt(100);
+	  GlobalString filename= new GlobalString(String.valueOf(r.nextInt(200)));
+	  if (value<10) {//10% writes
+        //System.out.println("Write: ");
+	    //Do write
+	    DFile f=getFile(filename);
+	    if (f==null) {
+	      f=createFile(filename);
+	    }
+	    f.write(10,ptr);
+	  } else {
+        //System.out.println("Read: ");
+	    //Do read
+	    DFile f=getFile(filename);
+        if(f!=null)
+          f.read();
+	  }
+        }
       }
-			else if (command == 'c') {
-	  				//System.out.println("["+command+"] ["+key+"]");
-  				if (isDir == true) {
-		  				createDirectory(key);
-    			}
-		  		else {
-			  		val = t.getValue();
-						val = new String(val);
-						createFile(key, val);
-				  }
-	  	}
     }
     fi = System.currentTimeMillis();
     System.out.println("\n\n\n I'm done - Time Elapse : "+ ((double)(fi-st)/1000) + "\n\n\n");
+  }
 
-		//output();
+  public static void main(String[] args) {
+    int NUM_THREADS = 3;
 
-//    RecoveryStat.printRecoveryStat();
-	}
+    if (args.length == 1) {
+      NUM_THREADS = Integer.parseInt(args[0]);
+    }
+    else {
+      System.out.println("./FileSystem.bin master <num_thread>");
+      System.exit(0);
+    }
 
-	public void output() { 
-		Iterator iter;
-		String str;
+    FileSystem[] lus;
+     {
+      Directory root= new Directory(null);
+      lus =  new FileSystem[NUM_THREADS];
+      for(int i = 0; i < NUM_THREADS; i++) {
+        lus[i] =  new FileSystem(root, i);
+      }
+    }
 
-		iter = dir_list.iterator();
+    FileSystem tmp;
+    /* Start threads */
+    for(int i = 0; i < NUM_THREADS; i++) {
+      {
+        tmp = lus[i];
+      }
+      tmp.run();
+    }
 
-		while (iter.hasNext()) {
-			str = (String)(iter.next());
-			//System.printString(str + "\n");
-		}
-	}
-
-	public void readFile(String key) {
-		String val;
-
-		val = (String)(fs.get(key));
-		if (val != null) {
-//			System.out.println("<"+val+">");
-		}
-		else {
-			System.out.println("No such file or directory");
-		}
-	}
-
-	public void readDirectory(String key) {
-		LinkedList list;
-		Iterator iter;
-		String val;
-
-		list = (LinkedList)(dir.get(key));
-
-		if (list != null) {
-			iter = list.iterator();
-			while (iter.hasNext() == true) {
-				val = (String)(iter.next());
-//				System.out.print("["+val+"] ");
-			}
-//			System.out.println("");
-		}
-		else {
-			System.out.println("No such file or directory");
-		}
-	}
-
-	public void createFile(String key, String val) {
-		String path;
-		String target;
-		int index;
-		LinkedList list;
-
-		index = key.lastindexOf('/');
-		path = key.subString(0, index+1);
-		target = key.subString(index+1);
-
-		if (dir.containsKey(path)) {
-			list = (LinkedList)(dir.get(path));
-			list.push(target);
-			dir.put(path, list);
-			fs.put(key, val);
-		}
-		else {
-			System.out.println("Cannot create file");
-		}
-	}
-
-	public void createDirectory(String key) {
-		int index;
-		String path;
-		String target;
-		LinkedList list;
-
-		index = key.lastindexOf('/', key.length()-2);
-
-		if (index != -1) {
-			path = key.subString(0, index+1);
-			target = key.subString(index+1);
-
-			if (dir.containsKey(path)) {
-				list = (LinkedList)(dir.get(path));
-				list.push(target);
-				dir.put(path, list);
-
-				list = new LinkedList();
-				dir.put(key, list);
-				dir_list.add(key);
-			}
-			else {
-				System.out.println("Cannot create directory");
-			}
-		}
-	}
-	
-	public static void main(String[] args) {
-		String filename;
-		int NUM_THREADS = 1;
-
-		if (args.length == 2) {
-            NUM_THREADS = Integer.parseInt(args[0]);
-			filename = args[1];
-		}
-		else {
-			System.out.println("usage: ./FileSystem.bin <numthreads> <data>");
-			System.exit(0);
-		}
-		
-		FileSystem file;
-
-		HashMap fs = new HashMap(500, 0.75f);			// file system
-		HashMap dir = new HashMap(500, 0.75f);			// directory
-		LinkedList dir_list = new LinkedList();
-		
-		file = new FileSystem(dir, fs, dir_list, filename);
-		file.init();
-
-		file.execute();
-		
-		System.printString("Finished\n");
-	}
-}
-
-public class Transaction {			// object for todoList
-	char command;				// r: read, w: write
-	String key;
-	String val;
-	
-	Transaction (char c, String key) {
-		command = c;
-		
-		this.key = new String(key);
-		this.val = new String();
-	}
-	
-	Transaction (char c, String key, String val) {
-		command = c;
-		
-		this.key = new String(key);
-		this.val = new String(val);
-	}
-	
-	public char getCommand() {
-		return command;
-	}
-	
-	public String getKey() {
-		return key;
-	}
-	
-	public String getValue() {
-		return val;
-	}
+    System.printString("Finished\n");
+  }
 }

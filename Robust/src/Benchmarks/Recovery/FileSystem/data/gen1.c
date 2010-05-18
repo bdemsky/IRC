@@ -16,7 +16,7 @@
 #define HOME_DIR "home/adash"
 #define STR_SIZE 256
 #define CREAT_FILE "creates.txt"
-#define FACTOR (0.05)
+#define FACTOR (0.10)
 
 unsigned int num_lines;
 
@@ -102,7 +102,7 @@ void generateRdData(char *filename, int numRdCmd, int numCrCmd, int numCmd)
   for (i = 0; i < numCmd; i++) {
     int idx = rand() % numCrCmd;
     int test = rand() % 100;
-    if(test < 10 ) {
+    if(test < (FACTOR * 100)) {
       rd_data[idx][0] = 'c';
       fprintf(fp, "%s", rd_data[idx]);
     } else {

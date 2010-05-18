@@ -76,7 +76,7 @@ public class FileSystem extends Thread {
     fillTodoList(file, todoList);
     long st = System.currentTimeMillis();
     long fi;
-    long tot1, tot2;
+    long tot1=0, tot2=0;
 
     if(todoList.isEmpty())
       System.out.println("todoList is Empty\n");
@@ -84,6 +84,7 @@ public class FileSystem extends Thread {
     while (!todoList.isEmpty()) {
       int count = 10;
       atomic {
+        System.out.println("trans1, count= "+ count);
         while(count>0 && !todoList.isEmpty()) { //commit 10 transactions
           t = (Transaction)(todoList.removeFirst());
           if(t==null) {
@@ -103,7 +104,7 @@ public class FileSystem extends Thread {
 
           if (command == 'r') {
             long st1 = System.currentTimeMillis();
-            //System.out.println("["+command+"] ["+key+"]");
+            System.out.println("["+command+"] ["+key+"]");
             if (isDir != true) {
               readFile(gkey);
             }
@@ -113,7 +114,7 @@ public class FileSystem extends Thread {
 
           if (command == 'c') {
             long st2 = System.currentTimeMillis();
-            //System.out.println("["+command+"] ["+key+"]");
+            System.out.println("["+command+"] ["+key+"]");
             if (isDir != true) {
               String val = "Testrun";
               GlobalString gval = global new GlobalString(val);
@@ -148,6 +149,11 @@ public class FileSystem extends Thread {
       //System.out.println("readFile(): ["+gkey.toLocalString()+"] ");
       //Add some useless extra work for now
       //to increase read time
+      int[] b = new int[4096];
+      for(int i = 0; i< 4096; i++) {
+        b[i] = 0;
+      }
+      /*
       String filename = gkey.toLocalString();
       FileInputStream inputFile = new FileInputStream(filename);
       int n;
@@ -158,6 +164,7 @@ public class FileSystem extends Thread {
         }
       }
       inputFile.close();
+      */
       /*
       int hashVal = val.hashCode();
       int a=0;
