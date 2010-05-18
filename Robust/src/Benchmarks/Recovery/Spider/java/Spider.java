@@ -2,10 +2,11 @@ public class Spider {
 	public static void main(String[] args) {
 		int NUM_THREADS = 3;
 		int maxDepth = 3;
-		int maxSearchDepth = 10;
+		int maxSearchDepth = 20;
 		int i, j;
 		QueryTask qt;
-        String fm = "www.uci.edu";
+        //String fm = "www.uci.edu";
+        String fm = "dc-11.calit2.uci.edu";
 
 		String firstmachine;
 		String firstpage;
@@ -20,7 +21,8 @@ public class Spider {
         }
 
 		firstmachine = new String(fm);
-        firstpage = new String("");;
+        //firstpage = new String("");;
+        firstpage =  new String("1.html");
 
 		HashMap visitedList = new HashMap(500, 0.75f);
 		HashMap results = new HashMap(100, 0.75f);

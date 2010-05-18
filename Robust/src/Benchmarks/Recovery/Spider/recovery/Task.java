@@ -12,7 +12,6 @@ public class Task {
     w.workingtask=null;
   }
   public void enqueueTask(Task t) {
-    //System.out.println("queueid= " + queueid);
     w.tasks.todo[queueid].push(t);
   }
   public native void execution();

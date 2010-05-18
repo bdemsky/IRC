@@ -11,7 +11,7 @@ public class Spider {
     int maxDepth = 3;
     int maxSearchDepth = 10;
     int i, j;
-    String fm = "www.uci.edu";
+    String fm = "";
     String fp = "";
     
     if(args.length != 3) {
@@ -19,10 +19,11 @@ public class Spider {
       System.exit(0);
     } else {
       NUM_THREADS = Integer.parseInt(args[0]);
-      fm = args[1];
+      fm = "dc-11.calit2.uci.edu";
       maxDepth = Integer.parseInt(args[2]);
     }
     
+    int nQueue = 3;
     int mid[] = new int[8];
 
     mid[0] = (128<<24)|(195<<16)|(136<<8)|162;
@@ -38,17 +39,17 @@ public class Spider {
     atomic {
       //set up workers
       ts=global new TaskSet(NUM_THREADS);
-      for (i = 0; i < NUM_THREADS; i++) {
-        ts.threads[i] = global new Worker(ts,i,(NUM_THREADS/2));
-      }
-      for (i = 0; i < NUM_THREADS/2; i++) {
+      for (i = 0; i < nQueue; i++) {
         ts.todo[i] = global new GlobalQueue();
+      }
+      for (i = 0; i < NUM_THREADS; i++) {
+        ts.threads[i] = global new Worker(ts,i,nQueue);
       }
     }
 
     atomic {
       GlobalString firstmachine = global new GlobalString(fm);
-      GlobalString firstpage = global new GlobalString("");
+      GlobalString firstpage = global new GlobalString("1.html");
       DistributedHashMap visitedList = global new DistributedHashMap(500, 500, 0.75f);
       DistributedHashMap results = global new DistributedHashMap(100, 100, 0.75f);
       DistributedLinkedList results_list = global new DistributedLinkedList();

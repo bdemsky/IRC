@@ -7,7 +7,7 @@ public class Worker extends Thread {
   Worker(TaskSet tasks, int id, int numQueue) {
     this.tasks = tasks;
     this.id = id;
-    this.numQueue = 3; // Correct this 3 should be hash defined
+    this.numQueue = numQueue;
   }
   
   public void run() {
@@ -17,9 +17,7 @@ public class Worker extends Thread {
     while(notdone) {
       Task t=null;
       atomic {
-        System.out.println("Transacion 1");
         int qindex = (id%numQueue);
-        //System.out.println("id= " + id + " numQueue= " + numQueue);
         if (!tasks.todo[qindex].isEmpty()) {
           //grab segment from todo list
           t=workingtask=(Task) tasks.todo[qindex].pop();

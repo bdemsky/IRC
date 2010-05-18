@@ -49,31 +49,23 @@ public class QueryTask {
 			//System.printString(path);
 			//System.printString("\n");
 
-			if (isDocument(path)) {
-				lq = (LocalQuery)(todoList.pop());
-				depth = lq.getDepth();
-				continue;
-			}
-
 			Socket s = new Socket();
 
 			if(s.connect(hostname, 80) == -1) {
-				lq = (LocalQuery)(todoList.pop());
-				depth = lq.getDepth();
-				continue;
+				//lq = (LocalQuery)(todoList.pop());
+				//depth = lq.getDepth();
+				//continue;
+                return;
 			}
 
-//			System.out.println("AAA");
-			requestQuery(hostname, path, s);
-//			System.out.println("BBB");
-			readResponse(lq, s);
-
-//			System.out.println("CCC");
-			if ((title = grabTitle(lq)) != null) {
-				toprocess = processPage(lq);
-			}
-//			System.out.println("DDD");
-
+			if(requestQuery(hostname, path, s) == 0) {
+              readResponse(lq, s);
+              if ((title = grabTitle(lq)) != null) {
+                toprocess = processPage(lq);
+              }
+            } else {
+              ;
+            }
 			s.close();
 			done(toprocess);
 			lq = (LocalQuery)(todoList.pop());
@@ -102,10 +94,11 @@ public class QueryTask {
 	}
 
 	public void done(Queue toprocess) {
+        /*
 		if ((title != null) && (title.length() > 0)) {
 			processedList();
 		}
-
+        */
 		int searchCnt = 0;
 		while(!toprocess.isEmpty()) {
 			LocalQuery q = (LocalQuery)toprocess.pop();
@@ -134,7 +127,6 @@ public class QueryTask {
 
 		while (iter.hasNext() == true) {
 			str = ((String)(iter.next()));
-			//System.printString(str + "\n");
 		}
 	}
 
@@ -212,16 +204,20 @@ public class QueryTask {
 		else
 			return false;
 	}
-	
-	public static void requestQuery(String hostname, String path, Socket sock) {
-    StringBuffer req = new StringBuffer("GET "); 
-    req.append("/");
-		req.append(path);
-	  req.append(" HTTP/1.0\r\nHost: ");
-    req.append(hostname);
-    req.append("\r\n\r\n");
-    sock.write(req.toString().getBytes());
-  }
+
+    public static int requestQuery(String hostname, String path, Socket sock) {
+      StringBuffer req = new StringBuffer("GET "); 
+      req.append("/");
+      req.append(path);
+      req.append(" HTTP/1.0\r\nHost: ");
+      req.append(hostname);
+      req.append("\r\n\r\n");
+      if(sock.write(req.toString().getBytes()) == -1) {
+        return -1;
+      } else {
+        return 0;
+      }
+    }
 
 	public static void readResponse(LocalQuery lq, Socket sock) {
 	//    state 0 - nothing
@@ -344,39 +340,38 @@ public class QueryTask {
 		return str;
 	}
 
-  public static Queue processPage(LocalQuery lq) {
-    int index = 0;
-  	String href = new String("href=\"");
-  	String searchstr = lq.response.toString();
-		int depth;
-  	boolean cont = true;
-		Queue toprocess;
+    public static Queue processPage(LocalQuery lq) {
+      int index = 0;
+      String href = new String("href=\"");
+      String searchstr = lq.response.toString();
+      int depth;
+      Queue toprocess;
 
-		depth = lq.getDepth() + 1;
+      depth = lq.getDepth() + 1;
 
-		toprocess = new Queue();
-		while(cont) {
-			int mindex = searchstr.indexOf(href,index);
-			if (mindex != -1) {	
-				int endquote = searchstr.indexOf('"', mindex+href.length());
-     		if (endquote != -1) {
-		      String match = searchstr.subString(mindex+href.length(), endquote);
-					String match2 = lq.makewebcanonical(match);
-	
-					String hostname;
-					String path;
+      toprocess = new Queue();
+      while(true) {
+        int mindex = searchstr.indexOf(href,index);
+        if (mindex != -1) {	
+          int endquote = searchstr.indexOf('"', mindex+href.length());
+          if (endquote != -1) {
+            String match = searchstr.subString(mindex+href.length(), endquote);
+            String match2 = lq.makewebcanonical(match);
 
-					hostname = new String(lq.getHostName(match));
-					path = new String(lq.getPathName(match));
+            String hostname;
+            String path;
 
-		      if (match2 != null) {
-							LocalQuery gq = new LocalQuery(hostname, path, depth);
-							toprocess.push(gq);
-					}
-					index = endquote;
-        } else cont = false;
-      } else cont = false;
+            hostname = new String(lq.getHostName(match));
+            path = new String(lq.getPathName(match));
+
+            if (match2 != null) {
+              LocalQuery gq = new LocalQuery(hostname, path, depth);
+              toprocess.push(gq);
+            }
+            index = endquote;
+          } else break;
+        } else break;
+      }
+      return toprocess;
     }
-		return toprocess;
-  }
 }

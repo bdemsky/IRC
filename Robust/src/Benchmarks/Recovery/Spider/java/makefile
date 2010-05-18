@@ -3,7 +3,7 @@ SUBCLASS=Query
 SRC1=${MAINCLASS}.java
 SRC2=Local${SUBCLASS}.java
 SRC3=${SUBCLASS}Task.java
-FLAGS= -optimize -thread -mainclass ${MAINCLASS}
+FLAGS=-debug -optimize -thread -mainclass ${MAINCLASS}
 default:
 	../../../../buildscript ${FLAGS} -o ${MAINCLASS} ${SRC2} ${SRC3} ${SRC1}
 

@@ -2,7 +2,7 @@ public class TaskSet {
   public TaskSet(int nt) {
     numthreads=nt;
     threads=global new Worker[nt];
-    todo=global new GlobalQueue[(nt/2)];
+    todo=global new GlobalQueue[3];
   }
 
   //Tasks to be executed
