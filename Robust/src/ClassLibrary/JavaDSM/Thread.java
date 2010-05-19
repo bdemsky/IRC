@@ -29,7 +29,7 @@ public class Thread {
   public void run() {
   }
 
-  public int getStatus(int mid)
+  public static int getStatus(int mid)
   {
     if(nativeGetStatus(mid)==1)
       return 1;

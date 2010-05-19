@@ -55,12 +55,22 @@ public class Socket {
   public int read(byte[] b) {
     return nativeRead(b);
   }
-  public void write(byte[] b) {
+  public int write(byte[] b) {
     nativeWrite(b, 0, b.length);
+    if(fd==-1) {
+      System.out.println("here: " + "fd= " + fd);
+      return -1;
+    } else { 
+      return 0;
+    }
   }
 
-  public void write(byte[] b, int offset, int len) {
+  public int write(byte[] b, int offset, int len) {
     nativeWrite(b, offset, len);
+    if(fd==-1)
+      return -1;
+    else 
+      return 0;
   }
 
   private native int nativeRead(byte[] b);
