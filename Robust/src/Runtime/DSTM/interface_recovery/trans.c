@@ -160,10 +160,6 @@ GDBSEND1:
     else if( numbytes < 0) {    
       // Receive returned an error.
       // Analyze underlying cause
-#ifdef DEBUG
-      printf("%s -> fd : %d errno = %d %s\n",__func__, fd, errno,strerror(errno));
-      fflush(stdout);
-#endif
       if(errno == ECONNRESET || errno == EAGAIN || errno == EWOULDBLOCK) {
         // machine has failed
         //
@@ -171,9 +167,6 @@ GDBSEND1:
         // when we start send and finish send see if it is longer
         // than our threshold
         //
-#ifdef DEBUG
-        printf("%s -> EAGAIN : %s\n",__func__,(errno == EAGAIN)?"TRUE":"FALSE");
-#endif
         return -1;
       } else {
 #ifdef GDBDEBUG
@@ -181,9 +174,6 @@ GDBSEND1:
           goto GDBSEND1;    
 #endif
 
-#ifdef DEBUG
-        printf("%s -> Unexpected ERROR!\n",__func__);
-#endif
         return -2;
       }
     }
@@ -202,9 +192,6 @@ GDBSEND1:
     }
 #endif
   } // close while loop
-#ifdef DEBUG
-  printf("%s-> Exiting\n", __func__);
-#endif
   return 0; // completed sending data
 }
 
@@ -348,17 +335,11 @@ void recv_data_buf(int fd, struct readstruct * readbuffer, void *buffer, int buf
 }
 
 int recv_data_errorcode(int fd, void *buf, int buflen) {
-#ifdef DEBUG
-  printf("%s-> Start; fd:%d, buflen:%d\n", __func__, fd, buflen);
-#endif
   char *buffer = (char *)(buf);
   int size = buflen;
   int numbytes;
   while (size > 0) {
     numbytes = recv(fd, buffer, size, 0);
-#ifdef DEBUG
-    printf("%s-> numbytes: %d\n", __func__, numbytes);
-#endif
     if (numbytes==0)
       return 0;
     else if (numbytes == -1) {
@@ -370,9 +351,6 @@ int recv_data_errorcode(int fd, void *buf, int buflen) {
     buffer += numbytes;
     size -= numbytes;
   }
-#ifdef DEBUG
-  printf("%s-> Exiting\n", __func__);
-#endif
   return 1;
 }
 
@@ -1832,12 +1810,12 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
   printf("%s -> Entering\n",__func__);
   int* sdlist;
   tlist_t* tList;
+  int flag = 0;
 
 #ifdef RECOVERYSTATS
   printf("Recovery Start\n");
   long long st;
   long long fi;
-  int flag = 0;
   unsigned int dupeSize = 0;  // to calculate the size of backed up data
 
   st = myrdtsc(); // to get clock
@@ -3832,8 +3810,8 @@ void reqClearNotifyList(unsigned int oid)
       return;
   }
   else {
-    printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
-    printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
+//    printf("%s -> Pmid = %s\n",__func__,midtoIPString(pmid));
+//    printf("%s -> Bmid = %s\n",__func__,midtoIPString(bmid));
     
     msg[0] = CLEAR_NOTIFY_LIST;
     *((unsigned int *)(&msg[1])) = oid;
@@ -3861,11 +3839,9 @@ void printRecoveryStat() {
   int i;
   for(i=0; i < numRecovery;i++) {
     printf("Dead Machine = %s\n",midtoIPString(recoverStat[i].deadMachine));
-    printf("Recoveryed data(byte) = %u\n",recoverStat[i].recoveredData);
     printf("Recovery Time(ms) = %ld\n",recoverStat[i].elapsedTime);
   }
   printf("**************************\n\n");
-  fflush(stdout);
   fflush(stdout);
 #else
   printf("No stat\n");

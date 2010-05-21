@@ -97,6 +97,7 @@ int dstmInit(void) {
   
   okCommit = TRANS_OK;
   currentEpoch = 1;
+  leader_index = -1;
 
 #endif
 
@@ -259,18 +260,20 @@ unsigned int checkIfAnyMachineDead(int* socklist)
       clearDeadThreadsNotification();
     }
     else {
-      send_data(socklist[i],&control,sizeof(char));
-
-      if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
-        // if machine is dead, returns index of socket
-        return i;
-      }
-      else {
-        // machine responded
-        if(response != LIVE) {
+      if(leader_index >= 0 ) {
+        send_data(socklist[i],&control,sizeof(char));
+  
+        if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
+          // if machine is dead, returns index of socket
           return i;
         }
-      } // end else
+        else {
+          // machine responded
+          if(response != LIVE) {
+            return i;
+          }
+        } // end else
+      }
     }
 
     sleep(numLiveHostsInSystem);  // wait for seconds for next checking
@@ -304,9 +307,6 @@ void *dstmAccept(void *acceptfd) {
 	unsigned int *oidarry, numoid, mid, threadid;
     int n, v;
 
-#ifdef DEBUG
-	printf("%s-> Entering dstmAccept\n", __func__);	fflush(stdout);
-#endif
 	/* Receive control messages from other machines */
 	while(1) {
 		int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
@@ -320,9 +320,6 @@ void *dstmAccept(void *acceptfd) {
 	//		exit(0);
 			break;
 		}
-#ifdef DEBUG
-		printf("%s-> dstmAccept control = %d\n", __func__, (int)control);
-#endif
 		switch(control) {
 			case READ_REQUEST:
 #ifdef DEBUG
@@ -566,6 +563,11 @@ void *dstmAccept(void *acceptfd) {
         printf("RESTART!!!\n");
         okCommit = TRANS_OK;
         pthread_mutex_unlock(&liveHosts_mutex);
+
+        pthread_mutex_lock(&recovery_mutex);
+        leader_index = -1;
+        pthread_mutex_unlock(&recovery_mutex);
+
         break;
 			case UPDATE_LIVE_HOSTS:
 #ifdef DEBUG
@@ -1954,7 +1956,6 @@ char inspectTransaction(char finalResponse,unsigned int transid,char* debug,int 
     // if decision is not lost and okCommit is not TRANS_FLAG, get out of this loop
     while(!((tNode->decision != DECISION_LOST) && (okCommit != TRANS_FLAG))) { 
 //      printf("%s -> transID : %u decision : %d is waiting flag : %d\n",debug,tNode->transid,tNode->decision,TRANS_FLAG);
-//      sleep(3);
       randomdelay();
     }
 
