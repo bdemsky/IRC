@@ -638,7 +638,9 @@ public class BuildCode {
     //Print out definition for array type
     outclassdefs.println("struct "+arraytype+" {");
     outclassdefs.println("  int type;");
-    outclassdefs.println("  int oid;");
+    if(state.MLP){
+      outclassdefs.println("  int oid;");
+    }
     if (state.EVENTMONITOR) {
       outclassdefs.println("  int objuid;");
     }
