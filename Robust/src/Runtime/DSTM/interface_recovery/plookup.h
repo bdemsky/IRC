@@ -23,6 +23,6 @@ plistnode_t  *pCreate(int);
 int pCount(plistnode_t *pile);
 int pListMid(plistnode_t *pile, unsigned int *list);
 void pDelete(plistnode_t *pile);
-
+void pPrint(plistnode_t *pile);
 #endif
 

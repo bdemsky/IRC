@@ -227,6 +227,8 @@ void* startPolling()
         socklist[deadMachineIndex] = -1;
       } // end of if 2
     } // end of while 1
+
+    free(socklist);
 }
 
 
@@ -239,7 +241,7 @@ unsigned int checkIfAnyMachineDead(int* socklist)
   
   while(1){
 
-    if(okCommit == TRANS_OK) {
+//    if(okCommit == TRANS_OK) {
       for(i = 0; i< numHostsInSystem;i++) {
         if(socklist[i] > 0) {
           send_data(socklist[i], &control,sizeof(char));
@@ -258,12 +260,13 @@ unsigned int checkIfAnyMachineDead(int* socklist)
       } // end for()
 
       clearDeadThreadsNotification();
-    }
+//    }
+    /*
     else {
       if(leader_index >= 0 ) {
-        send_data(socklist[i],&control,sizeof(char));
+        send_data(socklist[leader_index],&control,sizeof(char));
   
-        if(recv_data(socklist[i], &response, sizeof(char)) < 0) {
+        if(recv_data(socklist[leader_index], &response, sizeof(char)) < 0) {
           // if machine is dead, returns index of socket
           return i;
         }
@@ -275,7 +278,7 @@ unsigned int checkIfAnyMachineDead(int* socklist)
         } // end else
       }
     }
-
+*/
     sleep(numLiveHostsInSystem);  // wait for seconds for next checking
   } // end while(1)
 }

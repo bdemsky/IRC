@@ -79,3 +79,30 @@ void pDelete(plistnode_t *pile) {
   }
   return;
 }
+
+void pPrint(plistnode_t *pile)
+{
+  int i;
+  plistnode_t* walker = pile;
+
+  printf("===========pPrint===========\n");
+
+  while(walker) {
+    printf("\nMid = %s\n",midtoIPString(walker->mid));
+    printf("== oidread ==\n");
+    for(i = 0 ; i < walker->numread; i++)
+      printf("%d\n",walker->objread[i]);
+    printf("\n== oidmood ==\n");
+    
+    for(i = 0 ; i < walker->nummod; i++)
+      printf("%d\n",walker->oidmod[i]);
+  
+    printf("\n== oidcreate ==\n");
+    for(i = 0 ; i < walker->numcreated; i++)
+      printf("%d\n",walker->oidcreated[i]);
+
+    walker = walker->next;
+  }
+
+  printf("============= End ========\n");
+}

@@ -46,9 +46,6 @@ unsigned int thashInsert(unsigned int transid, char decision) {
   ptr = tlookup.table;
   tlookup.numelements++;
 
-#ifdef DEBUG
-  printf("DEBUG(insert) transid = %d, decision  = %d, index = %d\n",transid, decision, index);
-#endif
   if(ptr[index].next == NULL && ptr[index].transid == 0) {          // Insert at the first position in the hashtable
     ptr[index].transid = transid;
     ptr[index].decision = decision;

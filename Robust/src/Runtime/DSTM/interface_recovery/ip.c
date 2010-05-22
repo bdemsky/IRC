@@ -29,9 +29,6 @@ void midtoIP(unsigned int mid, char *ptr) {
   i.c = (mid & 0x0000ff00) >> 8;
   i.d = mid & 0x000000ff;
   sprintf(ptr, "%d.%d.%d.%d", i.a, i.b, i.c, i.d);
-#ifdef DEBUG
-  printf("DEBUG-> midtoIP() mid = %d.%d.%d.%d\n", i.a, i.b, i.c, i.d);
-#endif
   return;
 }
 
