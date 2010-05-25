@@ -1209,6 +1209,7 @@ public class LocalityAnalysis {
   private void computeTempstoSave(LocalityBinding lb) {
     if (lb.isAtomic())
       return;
+    System.out.println(lb);
     Hashtable<FlatNode, Integer> atomictab=getAtomic(lb);
     Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=getNodeTempInfo(lb);
     MethodDescriptor md=lb.getMethod();
@@ -1227,7 +1228,7 @@ public class LocalityAnalysis {
       boolean isatomic=atomictab.get(fn).intValue()>0;
       if (isatomic&&
           atomictab.get(fn.getPrev(0)).intValue()==0) {
-	assert(fn.getPrev(0).kind()==FKind.FlatAtomicEnterNode);
+	assert(fn.kind()==FKind.FlatAtomicEnterNode);
 	nodemap.put(fn, (FlatAtomicEnterNode)fn);
 	nodetosavetemps.put((FlatAtomicEnterNode)fn, new HashSet<TempDescriptor>());
       } else if (isatomic) {

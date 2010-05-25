@@ -145,9 +145,15 @@ public class GenerateConversions {
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
 	  TempDescriptor tmpd=tempit.next();
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tmpd, lb, false, nodetoconvs.get(fn).contains(tmpd));
+
+	  //This loop makes sure that we have accurate atomic information for the new node
+	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator();lbit.hasNext();) {
+	    LocalityBinding fixlb=lbit.next();
+	    locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn.getPrev(0)));
+	    locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
+	  }
+	  
 	  fgcn.setAtomicEnter(((FlatAtomicExitNode)fn).getAtomicEnter());
-	  atomictab.put(fgcn, new Integer(1));
-	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
 
 	  FlatNode[] prevarray=new FlatNode[fn.numPrev()];
 	  for(int i=0; i<fn.numPrev(); i++) {
@@ -234,8 +240,12 @@ public class GenerateConversions {
 	for(Iterator<TempDescriptor> tempit=tempset.iterator(); tempit.hasNext();) {
 	  FlatGlobalConvNode fgcn=new FlatGlobalConvNode(tempit.next(), lb, true);
 	  fgcn.setAtomicEnter((FlatAtomicEnterNode)fn);
-	  atomictab.put(fgcn, atomictab.get(fn));
-	  temptab.put(fgcn, (Hashtable<TempDescriptor, Integer>)temptab.get(fn).clone());
+	  //This loop makes sure that we have accurate atomic information for the new node
+	  for(Iterator<LocalityBinding> lbit=locality.getMethodBindings(lb.getMethod()).iterator();lbit.hasNext();) {
+	    LocalityBinding fixlb=lbit.next();
+	    locality.getAtomic(fixlb).put(fgcn, locality.getAtomic(fixlb).get(fn));
+	    locality.getNodeTempInfo(fixlb).put(fgcn, (Hashtable<TempDescriptor, Integer>)locality.getNodeTempInfo(fixlb).get(fn).clone());
+	  }
 	  fgcn.addNext(fn.getNext(0));
 	  fn.setNext(0, fgcn);
 	}
