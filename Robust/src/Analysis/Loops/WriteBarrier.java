@@ -111,6 +111,9 @@ public class WriteBarrier {
 	  nb.add(fnew.getDst());
 	  break;
 	}
+      case FKind.FlatGlobalConvNode:
+	//These nodes don't have atomic information for all localities...just skip them
+	break;
       default:
 	//If we enter a transaction toss everything
 	if (atomic.get(fn).intValue()>0&&
