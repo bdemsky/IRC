@@ -249,10 +249,8 @@ typedef struct trans_commit_data {
  * Structure for Recovery stats
  **************************************/
 typedef struct recoverystat {
-  unsigned int deadMachine;
   long long elapsedTime;
   unsigned int recoveredData;
-  unsigned int recvData;
 } recovery_stat_t;
 #endif
 

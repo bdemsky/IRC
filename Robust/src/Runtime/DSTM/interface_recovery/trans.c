@@ -114,6 +114,7 @@ extern tlist_t* transList;
 extern pthread_mutex_t clearNotifyList_mutex;
 
 unsigned int currentEpoch;
+unsigned int currentBackupMachine;
 
 #ifdef RECOVERYSTATS
   int numRecovery = 0;
@@ -1828,7 +1829,6 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
   unsigned int dupeSize = 0;  // to calculate the size of backed up data
 
   st = myrdtsc(); // to get clock
-  recoverStat[numRecovery].deadMachine = deadHost;
 #endif
   // update leader's live host list and object locations
   
@@ -1872,6 +1872,7 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
 #ifdef RECOVERYSTATS
   fi = myrdtsc();
   recoverStat[numRecovery].elapsedTime = (fi-st)/CPU_FREQ;
+  recoverStat[numRecovery].recoveredData = flag;
   numRecovery++;
   printRecoveryStat();
 #endif
@@ -3230,6 +3231,11 @@ int updateLiveHostsCommit() {
       freeSockWithLock(transPrefetchSockPool,hostIpAddrs[i],sd);
 		}
 	}
+
+  pthread_mutex_lock(&recovery_mutex);
+  currentBackupMachine = getBackupMachine(myIpAddr);
+  pthread_mutex_unlock(&recovery_mutex);
+
 #ifdef DEBUG
 	printHostsStatus();
   printf("%s -> Finish\n",__func__);
@@ -3290,6 +3296,8 @@ int allHostsLive() {
 int duplicateLostObjects(unsigned int epoch_num,int *sdlist){
   int i;
   char response;
+  unsigned int dupeSize = 0;
+  unsigned int tempSize;
   printf("%s -> Enter\n",__func__);
 
   /* duplicateLostObject example
@@ -3317,18 +3325,21 @@ int duplicateLostObjects(unsigned int epoch_num,int *sdlist){
   for(i = 0 ; i < numHostsInSystem; i ++) {
     if(sdlist[i] == -1)
       continue;
-    if(recv_data(sdlist[i],&response,sizeof(char)))
-      return -2;
 
-    if(response != DUPLICATION_COMPLETE) {
-      return -2;
-    } 
+    if(recv_data(sdlist[i],&response,sizeof(char)))    return -2;
+
+    if(response != DUPLICATION_COMPLETE) return -2; 
+
+    if(recv_data(sdlist[i],&tempSize,sizeof(unsigned int)) < 0) return -2;
+
+    dupeSize += tempSize;
+    
   }
 
 #ifndef DEBUG
 	printf("%s-> End\n", __func__);  
 #endif
-  return 0;
+  return dupeSize; 
 }
 #endif
 void addHost(unsigned int hostIp) {
@@ -3868,8 +3879,9 @@ void printRecoveryStat() {
   printf("numRecovery = %d\n",numRecovery);
   int i;
   for(i=0; i < numRecovery;i++) {
-    printf("Dead Machine = %s\n",midtoIPString(recoverStat[i].deadMachine));
+//    printf("Dead Machine = %s\n",midtoIPString(recoverStat[i].deadMachine));
     printf("Recovery Time(ms) = %ld\n",recoverStat[i].elapsedTime);
+    printf("Recovery Byte     = %u\n",recoverStat[i].recoveredData);
   }
   printf("**************************\n\n");
   fflush(stdout);
