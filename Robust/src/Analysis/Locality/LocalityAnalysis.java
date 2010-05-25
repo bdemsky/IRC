@@ -1209,7 +1209,6 @@ public class LocalityAnalysis {
   private void computeTempstoSave(LocalityBinding lb) {
     if (lb.isAtomic())
       return;
-    System.out.println(lb);
     Hashtable<FlatNode, Integer> atomictab=getAtomic(lb);
     Hashtable<FlatNode, Hashtable<TempDescriptor, Integer>> temptab=getNodeTempInfo(lb);
     MethodDescriptor md=lb.getMethod();
