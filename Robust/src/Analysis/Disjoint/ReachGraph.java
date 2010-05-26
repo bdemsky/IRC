@@ -456,7 +456,9 @@ public class ReachGraph {
                                        tdNewEdge,
                                        null,
                                        Canonical.intersection( betaY, betaHrn ),
-                                       predsTrue
+                                       predsTrue,
+                                       null,
+                                       null
                                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -610,7 +612,9 @@ public class ReachGraph {
                                                                   hrnX.getAlpha() 
                                                                   )
                                                ),
-                       predsTrue
+                       predsTrue,
+                       null,
+                       null
                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -679,7 +683,8 @@ public class ReachGraph {
                    type,                 // type
                    null,                 // field name
                    hrnNewest.getAlpha(), // beta
-                   predsTrue             // predicates
+                   predsTrue,            // predicates
+                   null, null
                    );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
@@ -1647,7 +1652,8 @@ public class ReachGraph {
                                       preds,
                                       oocHrnIdOoc2callee
                                       ),
-                     preds
+                     preds,
+                     null, null
                      );
       
       rg.addRefEdge( vnCallee,
@@ -1693,7 +1699,8 @@ public class ReachGraph {
                                       preds,
                                       oocHrnIdOoc2callee 
                                       ),
-                     preds
+                     preds,
+                     null, null
                      );
       
       rg.addRefEdge( hrnSrcCallee,
@@ -1849,7 +1856,8 @@ public class ReachGraph {
                                                      preds,
                                                      oocHrnIdOoc2callee
                                                      ),
-                                    preds
+                                    preds,
+                                    null, null
                                     )
                        );              
         
@@ -1888,8 +1896,10 @@ public class ReachGraph {
       rg.writeGraph( debugGraphPrefix+"calleeview", 
                      resolveMethodDebugDOTwriteLabels,    
                      resolveMethodDebugDOTselectTemps,    
-                     resolveMethodDebugDOTpruneGarbage,   
+                     resolveMethodDebugDOTpruneGarbage,
+                     resolveMethodDebugDOThideReach,
                      resolveMethodDebugDOThideSubsetReach,
+                     resolveMethodDebugDOThidePreds,
                      resolveMethodDebugDOThideEdgeTaints );      
     }
 
@@ -1904,7 +1914,9 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
+  private static boolean resolveMethodDebugDOThideReach       = true;
   private static boolean resolveMethodDebugDOThideSubsetReach = true;
+  private static boolean resolveMethodDebugDOThidePreds       = true;
   private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
   static String debugGraphPrefix;
@@ -1934,14 +1946,18 @@ public class ReachGraph {
                            resolveMethodDebugDOTwriteLabels,    
                            resolveMethodDebugDOTselectTemps,    
                            resolveMethodDebugDOTpruneGarbage,   
+                           resolveMethodDebugDOThideReach,
                            resolveMethodDebugDOThideSubsetReach,
+                           resolveMethodDebugDOThidePreds,
                            resolveMethodDebugDOThideEdgeTaints );
       
       writeGraph( debugGraphPrefix+"caller00In",  
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints,
                   callerNodeIDsCopiedToCallee );
     }
@@ -2183,7 +2199,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
 
@@ -2219,7 +2237,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
 
@@ -2289,7 +2309,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
 
@@ -2398,7 +2420,8 @@ public class ReachGraph {
                                         reCallee.getField(),
                                         toCallerContext( reCallee.getBeta(),
                                                          calleeStatesSatisfied ),
-                                        preds
+                                        preds,
+                                        null, null
                                         );
 
         ChangeSet cs = ChangeSet.factory();
@@ -2482,7 +2505,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
 
@@ -2511,7 +2536,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
     
@@ -2614,7 +2641,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
     
@@ -2641,7 +2670,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );
     }
 
@@ -2657,7 +2688,9 @@ public class ReachGraph {
                   resolveMethodDebugDOTwriteLabels,    
                   resolveMethodDebugDOTselectTemps,    
                   resolveMethodDebugDOTpruneGarbage,   
+                  resolveMethodDebugDOThideReach,
                   resolveMethodDebugDOThideSubsetReach,
+                  resolveMethodDebugDOThidePreds,
                   resolveMethodDebugDOThideEdgeTaints );     
     }
   } 
@@ -3990,12 +4023,14 @@ public class ReachGraph {
   // the default signature for quick-and-dirty debugging
   public void writeGraph( String graphName ) {
     writeGraph( graphName,
-                true, // write labels
-                true, // label select
-                true, // prune garbage
-                true, // hide subset reachability
-                true, // hide edge taints
-                null  // in-context boundary
+                true,  // write labels
+                true,  // label select
+                true,  // prune garbage
+                false, // hide reachability
+                true,  // hide subset reachability
+                true,  // hide predicates
+                true,  // hide edge taints                
+                null   // in-context boundary
                 );
   }
 
@@ -4003,14 +4038,18 @@ public class ReachGraph {
                           boolean writeLabels,
                           boolean labelSelect,
                           boolean pruneGarbage,
+                          boolean hideReachability,
                           boolean hideSubsetReachability,
+                          boolean hidePredicates,
                           boolean hideEdgeTaints
                           ) {
     writeGraph( graphName,
                 writeLabels,
                 labelSelect,
                 pruneGarbage,
+                hideReachability,
                 hideSubsetReachability,
+                hidePredicates,
                 hideEdgeTaints,
                 null );
   }
@@ -4019,7 +4058,9 @@ public class ReachGraph {
                           boolean      writeLabels,
                           boolean      labelSelect,
                           boolean      pruneGarbage,
+                          boolean      hideReachability,
                           boolean      hideSubsetReachability,
+                          boolean      hidePredicates,
                           boolean      hideEdgeTaints,
                           Set<Integer> callerNodeIDsCopiedToCallee
                           ) {
@@ -4048,10 +4089,12 @@ public class ReachGraph {
           HeapRegionNode hrn = (HeapRegionNode) me.getValue();      
           
           if( callerNodeIDsCopiedToCallee.contains( hrn.getID() ) ) {
-            bw.write( "    "+hrn.toString()+
-                      hrn.toStringDOT( hideSubsetReachability )+
-                      ";\n" );
-            
+            bw.write( "    "+
+                      hrn.toString()+
+                      hrn.toStringDOT( hideReachability,
+                                       hideSubsetReachability,
+                                       hidePredicates )+
+                      ";\n" );            
           }
         }
         
@@ -4080,7 +4123,9 @@ public class ReachGraph {
                                      bw,
                                      null,
                                      visited,
+                                     hideReachability,
                                      hideSubsetReachability,
+                                     hidePredicates,
                                      hideEdgeTaints,
                                      callerNodeIDsCopiedToCallee );
           }
@@ -4118,14 +4163,20 @@ public class ReachGraph {
                                        bw,
                                        null,
                                        visited,
+                                       hideReachability,
                                        hideSubsetReachability,
+                                       hidePredicates,
                                        hideEdgeTaints,
                                        callerNodeIDsCopiedToCallee );
             }
           
             bw.write( "  "+vn.toString()+
                       " -> "+hrn.toString()+
-                      edge.toStringDOT( hideSubsetReachability, "" )+
+                      edge.toStringDOT( hideReachability,
+                                        hideSubsetReachability,
+                                        hidePredicates,
+                                        hideEdgeTaints,
+                                        "" )+
                       ";\n" );
           }
         }
@@ -4139,14 +4190,17 @@ public class ReachGraph {
     }
   }
 
-  protected void traverseHeapRegionNodes( HeapRegionNode      hrn,
-                                          BufferedWriter      bw,
-                                          TempDescriptor      td,
-                                          Set<HeapRegionNode> visited,
-                                          boolean             hideSubsetReachability,
-                                          boolean             hideEdgeTaints,
-                                          Set<Integer>        callerNodeIDsCopiedToCallee
-                                          ) throws java.io.IOException {
+  protected void 
+    traverseHeapRegionNodes( HeapRegionNode      hrn,
+                             BufferedWriter      bw,
+                             TempDescriptor      td,
+                             Set<HeapRegionNode> visited,
+                             boolean             hideReachability,
+                             boolean             hideSubsetReachability,
+                             boolean             hidePredicates,
+                             boolean             hideEdgeTaints,
+                             Set<Integer>        callerNodeIDsCopiedToCallee
+                             ) throws java.io.IOException {
 
     if( visited.contains( hrn ) ) {
       return;
@@ -4159,8 +4213,11 @@ public class ReachGraph {
     if( callerNodeIDsCopiedToCallee == null ||
         !callerNodeIDsCopiedToCallee.contains( hrn.getID() ) 
         ) {
-      bw.write( "  "+hrn.toString()+
-                hrn.toStringDOT( hideSubsetReachability )+
+      bw.write( "  "+
+                hrn.toString()+
+                hrn.toStringDOT( hideReachability,
+                                 hideSubsetReachability,
+                                 hidePredicates )+
                 ";\n" );
     }
 
@@ -4177,25 +4234,41 @@ public class ReachGraph {
             ) {
           bw.write( "  "+hrn.toString()+
                     " -> "+hrnChild.toString()+
-                    edge.toStringDOT( hideSubsetReachability, ",color=blue" )+
+                    edge.toStringDOT( hideReachability,
+                                      hideSubsetReachability,
+                                      hidePredicates,
+                                      hideEdgeTaints,
+                                      ",color=blue" )+
                     ";\n");
         } else if( !callerNodeIDsCopiedToCallee.contains( hrnSrc.getID()       ) &&
                    callerNodeIDsCopiedToCallee.contains( edge.getDst().getID() )
                    ) {
           bw.write( "  "+hrn.toString()+
                     " -> "+hrnChild.toString()+
-                    edge.toStringDOT( hideSubsetReachability, ",color=blue,style=dashed" )+
+                    edge.toStringDOT( hideReachability,
+                                      hideSubsetReachability,
+                                      hidePredicates,
+                                      hideEdgeTaints,
+                                      ",color=blue,style=dashed" )+
                     ";\n");
         } else {
           bw.write( "  "+hrn.toString()+
                     " -> "+hrnChild.toString()+
-                    edge.toStringDOT( hideSubsetReachability, "" )+
+                    edge.toStringDOT( hideReachability,
+                                      hideSubsetReachability,
+                                      hidePredicates,
+                                      hideEdgeTaints,
+                                      "" )+
                     ";\n");
         }
       } else {
         bw.write( "  "+hrn.toString()+
                   " -> "+hrnChild.toString()+
-                  edge.toStringDOT( hideSubsetReachability, "" )+
+                  edge.toStringDOT( hideReachability,
+                                    hideSubsetReachability,
+                                    hidePredicates,
+                                    hideEdgeTaints,
+                                    "" )+
                   ";\n");
       }
       
@@ -4203,7 +4276,9 @@ public class ReachGraph {
                                bw,
                                td,
                                visited,
+                               hideReachability,
                                hideSubsetReachability,
+                               hidePredicates,
                                hideEdgeTaints,
                                callerNodeIDsCopiedToCallee );
     }

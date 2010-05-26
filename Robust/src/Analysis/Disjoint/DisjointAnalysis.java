@@ -1347,11 +1347,13 @@ public class DisjointAnalysis {
       ReachGraph rg = (ReachGraph) me.getValue();
 
       rg.writeGraph( "COMPLETE"+d,
-                     true,   // write labels (variables)                
-                     true,   // selectively hide intermediate temp vars 
-                     true,   // prune unreachable heap regions          
-                     true,  // hide subset reachability states         
-                     true ); // hide edge taints                        
+                     true,    // write labels (variables)                
+                     true,    // selectively hide intermediate temp vars 
+                     true,    // prune unreachable heap regions          
+                     false,   // hide reachability altogether
+                     true,    // hide subset reachability states         
+                     true,    // hide predicates
+                     false ); // hide edge taints                        
     }
   }
 
@@ -1371,8 +1373,10 @@ public class DisjointAnalysis {
         rg.writeGraph( "IHMPARTFOR"+d+"FROM"+fc2enclosing.get( fc )+fc,
                        true,   // write labels (variables)
                        true,   // selectively hide intermediate temp vars
+                       true,   // hide reachability altogether
                        true,   // prune unreachable heap regions
-                       true,  // hide subset reachability states
+                       true,   // hide subset reachability states
+                       false,  // hide predicates
                        true ); // hide edge taints
       }
     }
@@ -1390,8 +1394,10 @@ public class DisjointAnalysis {
                      true,   // write labels (variables)                
                      true,   // selectively hide intermediate temp vars 
                      true,   // prune unreachable heap regions          
-                     true,  // hide subset reachability states         
-                     true ); // hide edge taints                        
+                     false,  // hide all reachability
+                     true,   // hide subset reachability states         
+                     true,   // hide predicates
+                     false );// hide edge taints                        
     }
   }
    
@@ -1418,8 +1424,10 @@ public class DisjointAnalysis {
                      true,   // write labels (variables)
                      true,   // selectively hide intermediate temp vars
                      true,   // prune unreachable heap regions
-                     true,  // hide subset reachability states
-                     true ); // hide edge taints
+                     false,  // hide all reachability
+                     true,   // hide subset reachability states
+                     false,  // hide predicates
+                     false); // hide edge taints
       
       mapDescriptorToNumUpdates.put( d, n + 1 );
     }
@@ -1433,7 +1441,8 @@ public class DisjointAnalysis {
     if( !mapFlatNewToAllocSite.containsKey( fnew ) ) {
       AllocSite as = AllocSite.factory( allocationDepth, 
                                         fnew, 
-                                        fnew.getDisjointId() 
+                                        fnew.getDisjointId(),
+                                        false
                                         );
 
       // the newest nodes are single objects
@@ -1713,7 +1722,8 @@ public class DisjointAnalysis {
     // create allocation site
     AllocSite as = AllocSite.factory( allocationDepth, 
                                       flatNew, 
-                                      flatNew.getDisjointId()
+                                      flatNew.getDisjointId(),
+                                      false
                                       );
     for (int i = 0; i < allocationDepth; ++i) {
 	Integer id = generateUniqueHeapRegionNodeID();
@@ -1785,12 +1795,14 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 	    
 	    if(prevNode==null){
 		    // make a new reference between new summary node and source
-		    RefEdge edgeToSummary = new RefEdge(srcHRN, // source
+              RefEdge edgeToSummary = new RefEdge(srcHRN, // source
 							hrnSummary, // dest
 							typeDesc, // type
 							fd.getSymbol(), // field name
 							alpha, // beta
-							ExistPredSet.factory(rg.predTrue) // predicates
+                                                  ExistPredSet.factory(rg.predTrue), // predicates
+                                                  null,
+                                                  null
 							);
 		    
 		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
@@ -1803,7 +1815,9 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 							typeDesc, // type
 							arrayElementFieldName, // field name
 							alpha, // beta
-							ExistPredSet.factory(rg.predTrue) // predicates
+							ExistPredSet.factory(rg.predTrue), // predicates
+                                                        null,
+                                                        null
 							);
 		    
 		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
@@ -1840,19 +1854,23 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 					typeDesc, // type
 					arrayElementFieldName, // field name
                                         alpha, // beta
-					ExistPredSet.factory(rg.predTrue) // predicates
+                                                        ExistPredSet.factory(rg.predTrue), // predicates
+                                                        null,
+                                                        null
 					);
 		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
 		    prevNode=hrnSummary;
     	}else{
-    		HeapRegionNode hrnSummary=mapToExistingNode.get(typeDesc);
+          HeapRegionNode hrnSummary=mapToExistingNode.get(typeDesc);
     		if(prevNode.getReferenceTo(hrnSummary, typeDesc, arrayElementFieldName)==null){
         		RefEdge edgeToSummary = new RefEdge(prevNode, // source
     					hrnSummary, // dest
     					typeDesc, // type
     					arrayElementFieldName, // field name
     					alpha, // beta
-    					ExistPredSet.factory(rg.predTrue) // predicates
+                                                            ExistPredSet.factory(rg.predTrue), // predicates
+                                                            null,
+                                                            null
     					);
     		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
     		}
@@ -1894,7 +1912,9 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 				      taskDesc.getParamType(idx), // type
 				      null, // field name
 				      hrnNewest.getAlpha(), // beta
-				      ExistPredSet.factory(rg.predTrue) // predicates
+				      ExistPredSet.factory(rg.predTrue), // predicates
+                                      null,
+                                      null
 				      );
 	rg.addRefEdge(lnX, hrnNewest, edgeNew);
 
@@ -1964,7 +1984,8 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 							type, // type
 							fd.getSymbol(), // field name
 							hrnNewest.getAlpha(), // beta
-							ExistPredSet.factory(rg.predTrue) // predicates
+							ExistPredSet.factory(rg.predTrue), // predicates
+                                                        null, null
 							);
 		    
 		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
@@ -2005,7 +2026,9 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 							fd.getType(), // type
 							fd.getSymbol(), // field name
 							srcHRN.getAlpha(), // beta
-							ExistPredSet.factory(rg.predTrue) // predicates
+							ExistPredSet.factory(rg.predTrue), // predicates
+                                                        null,
+                                                        null
 							);
 		    rg.addRefEdge(srcHRN, hrnDst, edgeToSummary);
 		    
@@ -2196,11 +2219,13 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
 	graphName = graphName + fn;
       }
       rg.writeGraph( graphName,
-                     true,  // write labels (variables)
-                     true,  // selectively hide intermediate temp vars
-                     true,  // prune unreachable heap regions
-                     true, // hide subset reachability states
-                     true );// hide edge taints
+                     true,   // write labels (variables)
+                     true,   // selectively hide intermediate temp vars
+                     true,   // prune unreachable heap regions
+                     false,  // hide reachability
+                     true,   // hide subset reachability states
+                     true,   // hide predicates
+                     false );// hide edge taints
     }
   }
 

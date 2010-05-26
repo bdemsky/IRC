@@ -25,13 +25,25 @@ public class RefEdge {
   // do not factor into edge comparisons
   protected ExistPredSet preds;
 
+  // taint sets indicate which heap roots have
+  // tainted this edge-->meaning which heap roots
+  // code must have had access to in order to
+  // read or write through this edge
+  protected TaintSet paramTaints;
+  protected TaintSet rblockTaints;
+
   
   public RefEdge( RefSrcNode     src,
                   HeapRegionNode dst,
                   TypeDescriptor type,
                   String         field,
                   ReachSet       beta,
-                  ExistPredSet   preds ) {
+                  ExistPredSet   preds,
+                  TaintSet       paramTaints,
+                  TaintSet       rblockTaints ) {
+
+    assert src  != null;
+    assert dst  != null;
     assert type != null;
 
     this.src     = src;
@@ -42,7 +54,6 @@ public class RefEdge {
     if( preds != null ) {
       this.preds = preds;
     } else {
-      // TODO: do this right?
       this.preds = ExistPredSet.factory();
     }
 
@@ -55,6 +66,18 @@ public class RefEdge {
     // when edges are not undergoing an operation that
     // is changing beta info, betaNew is always empty
     betaNew = ReachSet.factory();
+
+    if( paramTaints != null ) {
+      this.paramTaints = paramTaints;
+    } else {
+      this.paramTaints = TaintSet.factory();
+    }
+
+    if( rblockTaints != null ) {
+      this.rblockTaints = rblockTaints;
+    } else {
+      this.rblockTaints = TaintSet.factory();
+    }
   }
 
 
@@ -64,7 +87,9 @@ public class RefEdge {
                                 type,
                                 field,
                                 beta,
-                                preds );
+                                preds,
+                                paramTaints,
+                                rblockTaints );
     return copy;
   }
 
@@ -102,10 +127,13 @@ public class RefEdge {
   // beta and preds contribute towards reaching the
   // fixed point, so use this method to determine if
   // an edge is "equal" to some previous visit, basically
-  public boolean equalsIncludingBetaAndPreds( RefEdge edge ) {
+  // AND EDGE TAINTS!
+  public boolean equalsIncludingBetaPredsTaints( RefEdge edge ) {
     return equals( edge ) && 
       beta.equals( edge.beta ) &&
-      preds.equals( edge.preds );
+      preds.equals( edge.preds ) &&
+      paramTaints.equals( edge.paramTaints ) &&
+      rblockTaints.equals( edge.rblockTaints );
   }
 
   public boolean equalsPreds( RefEdge edge ) {
@@ -113,6 +141,15 @@ public class RefEdge {
   }
 
 
+  // this method SPECIFICALLY does not use the
+  // beta/preds/taints in the hash code--it uses
+  // the same fields as normal equals.  Again,
+  // there are two meanings of equality for edges,
+  // one is "this edge is the same edge object" like when
+  // deciding if an edge is already in a set, which
+  // is represented by this hashcode.  The other
+  // meaning is "this edge equals an edge from another
+  // graph that is abstractly the same edge"
   public int hashCode() {
     int hash = 0;
 
@@ -220,15 +257,44 @@ public class RefEdge {
   }
 
 
-  public String toStringDOT( boolean hideSubsetReach, 
+  public TaintSet getParamTaints() {
+    return paramTaints;
+  }
+
+  public TaintSet getRblockTaints() {
+    return rblockTaints;
+  }
+
+ 
+
+  public String toStringDOT( boolean hideReach,
+                             boolean hideSubsetReach,
+                             boolean hidePreds,
+                             boolean hideEdgeTaints,
                              String  otherAttributes ) {
-    return new String( "[label=\""+
-                       type.toPrettyString()+"\\n"+
-                       field+"\\n"+
-                       beta.toStringEscNewline( hideSubsetReach )+"\\n"+
-                       preds.toStringEscNewline()+"\",decorate"+
-                       otherAttributes+"]"
-                       );
+    String s = 
+      "[label=\""+
+      type.toPrettyString()+"\\n"+
+      field;
+    if( !hideReach ) {
+      s += "\\n"+beta.toStringEscNewline( hideSubsetReach );
+    }
+
+    if( !hidePreds ) {
+      s += "\\n"+preds.toStringEscNewline();
+    }
+
+    if( !hideEdgeTaints ) {      
+      if( !paramTaints.isEmpty() ) {
+        s += "\\npt: "+paramTaints.toString();
+      }
+
+      if( !rblockTaints.isEmpty() ) {
+        s += "\\nrt: "+rblockTaints.toString();
+      }
+    }
+
+    return s+"\",decorate"+otherAttributes+"]";
   }
 
   public String toString() {

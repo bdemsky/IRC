@@ -117,12 +117,6 @@ public class HeapRegionNode extends RefSrcNode {
     }
 
     assert isSingleObject == hrn.isSingleObject();
-
-    if( isFlagged != hrn.isFlagged ) {
-      System.out.println( this.toStringDOT(true)+"\ndoesn't match\n"+hrn.toStringDOT(true) );
-      //throw new Exception("flagged regions don't match");
-    }
-
     assert isFlagged      == hrn.isFlagged();
     assert isNewSummary   == hrn.isNewSummary();
     assert isOutOfContext == hrn.isOutOfContext();
@@ -296,8 +290,9 @@ public class HeapRegionNode extends RefSrcNode {
     return description;
   }  
 
-  public String toStringDOT( boolean hideSubsetReach ) {
-    
+  public String toStringDOT( boolean hideReach,
+                             boolean hideSubsetReach,
+                             boolean hidePreds ) {
     String attributes = "";
     
     if( isSingleObject ) {
@@ -317,13 +312,21 @@ public class HeapRegionNode extends RefSrcNode {
       typeStr = type.toPrettyString();
     }
 
-    return new String( "["+attributes+
-                       ",label=\"ID"+getIDString()+"\\n"+
-                       typeStr+"\\n"+
-                       description+"\\n"+
-                       alpha.toStringEscNewline( hideSubsetReach )+"\\n"+
-                       preds.toStringEscNewline()+"\"]"
-                       );
+    String s =
+      "["+attributes+
+      ",label=\"ID"+getIDString()+"\\n"+
+      typeStr+"\\n"+
+      description;
+      
+    if( !hideReach ) {
+      s += "\\n"+alpha.toStringEscNewline( hideSubsetReach );
+    }
+
+    if( !hidePreds ) {
+      s += "\\n"+preds.toStringEscNewline();
+    }
+    
+    return s+"\"]";
   }
 
   public String toString() {

@@ -208,17 +208,30 @@ public class ReachSet extends Canonical {
   }
 
   public String toString( boolean hideSubsetReachability ) {
+
+    ReachSet toPrint = this;
+    
+    if( hideSubsetReachability ) {
+      // make a new reach set with subset states removed
+      toPrint = ReachSet.factory();
+
+      Iterator<ReachState> i = this.iterator();
+      while( i.hasNext() ) {
+        ReachState state = i.next();
+
+        if( containsStrictSuperSet( state ) ) {
+          continue;
+        }
+
+        toPrint = Canonical.add( toPrint, state );
+      }
+    }
+
     String s = "[";
 
-    Iterator<ReachState> i = this.iterator();
+    Iterator<ReachState> i = toPrint.iterator();
     while( i.hasNext() ) {
       ReachState state = i.next();
-
-      // skip this if there is a superset already
-      if( hideSubsetReachability &&
-          containsStrictSuperSet( state ) ) {
-        continue;
-      }
 
       s += state;
       if( i.hasNext() ) {

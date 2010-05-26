@@ -48,11 +48,13 @@ public class AllocSite extends Canonical {
 
   public static AllocSite factory( int     allocationDepth, 
                                    FlatNew flatNew, 
-                                   String  disjointId
+                                   String  disjointId,
+                                   boolean markAsFlagged
                                    ) {
     AllocSite out = new AllocSite( allocationDepth,
                                    flatNew,
-                                   disjointId );
+                                   disjointId,
+                                   markAsFlagged );
     out = (AllocSite) Canonical.makeCanonical( out );
     return out;
   }
@@ -60,7 +62,8 @@ public class AllocSite extends Canonical {
 
   protected AllocSite( int     allocationDepth, 
                        FlatNew flatNew, 
-                       String  disjointId
+                       String  disjointId,
+                       boolean markAsFlagged
                        ) {
 
     assert allocationDepth >= 1;
@@ -74,6 +77,9 @@ public class AllocSite extends Canonical {
     // 1) we have a non-null disjointID (a named flagged site) 
     // OR
     // 2) the type is a class with Bamboo-parameter flags 
+    // OR
+    // 3) a client wants to programmatically flag this site,
+    // such as the OoOJava method effects analysis
     this.isFlagged = false;
 
     if( disjointId != null ) {
@@ -82,6 +88,9 @@ public class AllocSite extends Canonical {
     } else if( flatNew.getType().isClass() &&
                flatNew.getType().getClassDesc().hasFlags()
                ) {
+      this.isFlagged = true;
+
+    } else if( markAsFlagged ) {
       this.isFlagged = true;
     }
 
