@@ -86,5 +86,6 @@ class Keyword extends Token {
     key_table.put("disjoint", new Integer(Sym.DISJOINT));
     //Keywords for coarse-grain parallelization
     key_table.put("sese", new Integer(Sym.SESE));
+    key_table.put("rblock", new Integer(Sym.RBLOCK));
   }
 }

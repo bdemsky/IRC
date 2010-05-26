@@ -267,6 +267,7 @@ terminal DISJOINT;
 
 //coarse-grain parallelization
 terminal SESE;
+terminal RBLOCK;
 non terminal ParseNode sese_statement;
 
 
@@ -1387,6 +1388,17 @@ sese_statement ::=
 	       RESULT=pn;
 	:}
 	|      SESE variable_declarator_id:id block:blk {: 
+	       ParseNode pn = new ParseNode("sese");
+	       pn.addChild("body").addChild(blk);
+	       pn.addChild("identifier").addChild(id);
+	       RESULT=pn;
+	:}
+	|      RBLOCK block:blk {: 
+	       ParseNode pn = new ParseNode("sese");
+	       pn.addChild("body").addChild(blk);
+	       RESULT=pn;
+	:}
+	|      RBLOCK variable_declarator_id:id block:blk {: 
 	       ParseNode pn = new ParseNode("sese");
 	       pn.addChild("body").addChild(blk);
 	       pn.addChild("identifier").addChild(id);
