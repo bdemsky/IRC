@@ -34,6 +34,8 @@ public class CanonicalOp {
   public static final int REACHSTATE_UNSHADOW_ALLOCSITE        = 0x08ef;
   public static final int REACHSTATE_MAKEPREDSTRUE             = 0x0b9c;
   public static final int REACHSET_MAKEPREDSTRUE               = 0xdead;
+  public static final int TAINTSET_ADD_TAINT                   = 0xcd17;
+  public static final int TAINTSET_UNION_TAINTSET              = 0xa835;
 
 
   protected int opCode;

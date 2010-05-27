@@ -261,8 +261,16 @@ public class RefEdge {
     return paramTaints;
   }
 
+  public void setParamTaints( TaintSet taints ) {
+    this.paramTaints = taints;
+  }
+
   public TaintSet getRblockTaints() {
     return rblockTaints;
+  }
+
+  public void setRblockTaints( TaintSet taints ) {
+    this.rblockTaints = taints;
   }
 
  

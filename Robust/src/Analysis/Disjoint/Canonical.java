@@ -1371,4 +1371,59 @@ abstract public class Canonical {
     return out;
   }
 
+
+  public static TaintSet add( TaintSet ts,
+                              Taint    t ) {
+    assert ts != null;
+    assert t  != null;
+    assert ts.isCanonical();
+    assert t.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINTSET_ADD_TAINT,
+                       ts, 
+                       t );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (TaintSet) result;
+    }
+    
+    // otherwise, no cached result...    
+    TaintSet out = new TaintSet();
+    out.taints.addAll( ts.taints );
+    out.taints.add( t );
+    
+    out = (TaintSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;    
+  }
+
+  public static TaintSet union( TaintSet ts1,
+                                TaintSet ts2 ) {
+    assert ts1 != null;
+    assert ts2 != null;
+    assert ts1.isCanonical();
+    assert ts2.isCanonical();
+    
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINTSET_UNION_TAINTSET,
+                       ts1, 
+                       ts2 );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (TaintSet) result;
+    }
+    
+    // otherwise, no cached result...    
+    TaintSet out = new TaintSet();
+    out.taints.addAll( ts1.taints );
+    out.taints.addAll( ts2.taints );
+
+    out = (TaintSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;    
+  }
+
 }

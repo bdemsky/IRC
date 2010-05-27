@@ -225,6 +225,15 @@ public class ReachGraph {
        
     referencer.removeReferencee( edge );
     referencee.removeReferencer( edge );
+
+    // TODO
+
+//    int oldTaint=edge.getTaintIdentifier();
+//    if(referencer instanceof HeapRegionNode){
+//    	depropagateTaintIdentifier((HeapRegionNode)referencer,oldTaint,new HashSet<HeapRegionNode>());
+//    }
+
+
   }
 
   protected void clearRefEdgesFrom( RefSrcNode     referencer,
@@ -1643,6 +1652,12 @@ public class ReachGraph {
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
       
+      Taint paramTaint = 
+        Taint.factory( index, paramCallee.toString() );
+
+      TaintSet paramTaints =
+        TaintSet.factory( paramTaint );
+
       RefEdge reCallee = 
         new RefEdge( vnCallee,
                      hrnDstCallee,
@@ -1653,7 +1668,8 @@ public class ReachGraph {
                                       oocHrnIdOoc2callee
                                       ),
                      preds,
-                     null, null
+                     paramTaints, 
+                     null
                      );
       
       rg.addRefEdge( vnCallee,
@@ -3492,14 +3508,24 @@ public class ReachGraph {
 	  assert edgeToMerge != null;
 	  edgeToMerge.setBeta(
                               Canonical.unionORpreds( edgeToMerge.getBeta(),
-                                               edgeA.getBeta() 
-                                               )
+                                                      edgeA.getBeta() 
+                                                      )
                               );
           edgeToMerge.setPreds(
                                Canonical.join( edgeToMerge.getPreds(),
                                                edgeA.getPreds()
                                                )
                                );
+          edgeToMerge.setParamTaints(
+                                     Canonical.union( edgeToMerge.getParamTaints(),
+                                                      edgeA.getParamTaints()
+                                                      )
+                                     );
+          edgeToMerge.setRblockTaints(
+                                      Canonical.union( edgeToMerge.getRblockTaints(),
+                                                       edgeA.getRblockTaints()
+                                                       )
+                                      );
 	}
       }
     }
@@ -3563,6 +3589,16 @@ public class ReachGraph {
                                                 edgeA.getPreds()
                                                 )
                                 );
+          edgeToMerge.setParamTaints(
+                                     Canonical.union( edgeToMerge.getParamTaints(),
+                                                      edgeA.getParamTaints()
+                                                      )
+                                     );
+          edgeToMerge.setRblockTaints(
+                                      Canonical.union( edgeToMerge.getRblockTaints(),
+                                                       edgeA.getRblockTaints()
+                                                       )
+                                      );
 	}
       }
     }

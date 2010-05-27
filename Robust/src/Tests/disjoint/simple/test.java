@@ -12,7 +12,7 @@ public class Test {
 
   static public void f0( Foo a, Foo b ) {
     a.f = b;
-    f1( b );    
+    //f1( b );    
   }
    
   static public void f1( Foo c ) {
