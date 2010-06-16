@@ -1,0 +1,13 @@
+This is what needs to be changed so that the program can compile with OoOJava
+
+
+============================================
+Router.Java
+============================================
+*** Remove comments around rblocks
+
+============================================
+Maze.Java
+============================================
+*** Remove Imports at the top
+*** Change Back the FileStream comment in readMaze (from Scanner)
