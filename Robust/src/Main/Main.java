@@ -41,7 +41,7 @@ import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
-import Analysis.Disjoint.DisjointAnalysis;
+//import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.MLP.MLPAnalysis;
 import Analysis.Loops.*;
 import Analysis.Liveness;
@@ -495,12 +495,12 @@ public class Main {
                              oa);
     }    
 
-    if (state.DISJOINT) {
+    /*    if (state.DISJOINT) {
       CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
       DisjointAnalysis oa = new DisjointAnalysis(state, tu, cg, l, ar);
-    }
+      }*/
 
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);
