@@ -1801,7 +1801,6 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 							fd.getSymbol(), // field name
 							alpha, // beta
                                                   ExistPredSet.factory(rg.predTrue), // predicates
-                                                  null,
                                                   null
 							);
 		    
@@ -1816,7 +1815,6 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 							arrayElementFieldName, // field name
 							alpha, // beta
 							ExistPredSet.factory(rg.predTrue), // predicates
-                                                        null,
                                                         null
 							);
 		    
@@ -1855,7 +1853,6 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
 					arrayElementFieldName, // field name
                                         alpha, // beta
                                                         ExistPredSet.factory(rg.predTrue), // predicates
-                                                        null,
                                                         null
 					);
 		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
@@ -1869,7 +1866,6 @@ private Set<FieldDescriptor> getFieldSetTobeAnalyzed(TypeDescriptor typeDesc){
     					arrayElementFieldName, // field name
     					alpha, // beta
                                                             ExistPredSet.factory(rg.predTrue), // predicates
-                                                            null,
                                                             null
     					);
     		    rg.addRefEdge(prevNode, hrnSummary, edgeToSummary);
@@ -1913,7 +1909,6 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 				      null, // field name
 				      hrnNewest.getAlpha(), // beta
 				      ExistPredSet.factory(rg.predTrue), // predicates
-                                      null,
                                       null
 				      );
 	rg.addRefEdge(lnX, hrnNewest, edgeNew);
@@ -1985,7 +1980,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 							fd.getSymbol(), // field name
 							hrnNewest.getAlpha(), // beta
 							ExistPredSet.factory(rg.predTrue), // predicates
-                                                        null, null
+                                                        null
 							);
 		    
 		    rg.addRefEdge(srcHRN, hrnSummary, edgeToSummary);
@@ -2026,8 +2021,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 							fd.getType(), // type
 							fd.getSymbol(), // field name
 							srcHRN.getAlpha(), // beta
-							ExistPredSet.factory(rg.predTrue), // predicates
-                                                        null,
+							ExistPredSet.factory(rg.predTrue), // predicates  
                                                         null
 							);
 		    rg.addRefEdge(srcHRN, hrnDst, edgeToSummary);

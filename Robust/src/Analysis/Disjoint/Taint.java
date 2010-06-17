@@ -142,6 +142,14 @@ public class Taint extends Canonical {
   }
 
   public String toString() {
-    return "";
+    String s = "(";
+
+    if( paramIndex != null ) {
+      s += "param"+paramIndex;
+    } else {
+      s += sese.toPrettyString()+"-"+insetVar;
+    }
+
+    return s+", "+allocSite.toStringBrief()+")";
   }
 }

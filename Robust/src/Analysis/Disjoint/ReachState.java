@@ -32,7 +32,7 @@ public class ReachState extends Canonical {
   protected HashSet<ReachTuple> reachTuples;
 
   // existance predicates must be true in a caller
-  // context for this node to transfer from this
+  // context for this state to transfer from this
   // callee to that context
   protected ExistPredSet preds;
 

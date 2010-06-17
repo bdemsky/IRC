@@ -248,6 +248,10 @@ public class AllocSite extends Canonical {
     return "allocSite "+disjointId+" ("+id+")";
   }
 
+  public String toStringBrief() {
+    return id.toString();
+  }
+
   public String toStringVerbose() {
     if( disjointId == null ) {
       return "allocSite"+id+" "+

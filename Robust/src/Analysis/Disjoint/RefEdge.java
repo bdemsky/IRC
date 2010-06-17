@@ -29,8 +29,7 @@ public class RefEdge {
   // tainted this edge-->meaning which heap roots
   // code must have had access to in order to
   // read or write through this edge
-  protected TaintSet paramTaints;
-  protected TaintSet rblockTaints;
+  protected TaintSet taints;
 
   
   public RefEdge( RefSrcNode     src,
@@ -39,8 +38,7 @@ public class RefEdge {
                   String         field,
                   ReachSet       beta,
                   ExistPredSet   preds,
-                  TaintSet       paramTaints,
-                  TaintSet       rblockTaints ) {
+                  TaintSet       taints ) {
 
     assert src  != null;
     assert dst  != null;
@@ -67,16 +65,10 @@ public class RefEdge {
     // is changing beta info, betaNew is always empty
     betaNew = ReachSet.factory();
 
-    if( paramTaints != null ) {
-      this.paramTaints = paramTaints;
+    if( taints != null ) {
+      this.taints = taints;
     } else {
-      this.paramTaints = TaintSet.factory();
-    }
-
-    if( rblockTaints != null ) {
-      this.rblockTaints = rblockTaints;
-    } else {
-      this.rblockTaints = TaintSet.factory();
+      this.taints = TaintSet.factory();
     }
   }
 
@@ -88,8 +80,7 @@ public class RefEdge {
                                 field,
                                 beta,
                                 preds,
-                                paramTaints,
-                                rblockTaints );
+                                taints );
     return copy;
   }
 
@@ -127,13 +118,12 @@ public class RefEdge {
   // beta and preds contribute towards reaching the
   // fixed point, so use this method to determine if
   // an edge is "equal" to some previous visit, basically
-  // AND EDGE TAINTS!
+  // and taints!
   public boolean equalsIncludingBetaPredsTaints( RefEdge edge ) {
     return equals( edge ) && 
       beta.equals( edge.beta ) &&
       preds.equals( edge.preds ) &&
-      paramTaints.equals( edge.paramTaints ) &&
-      rblockTaints.equals( edge.rblockTaints );
+      taints.equals( edge.taints );
   }
 
   public boolean equalsPreds( RefEdge edge ) {
@@ -257,22 +247,13 @@ public class RefEdge {
   }
 
 
-  public TaintSet getParamTaints() {
-    return paramTaints;
+  public TaintSet getTaints() {
+    return taints;
   }
 
-  public void setParamTaints( TaintSet taints ) {
-    this.paramTaints = taints;
+  public void setTaints( TaintSet taints ) {
+    this.taints = taints;
   }
-
-  public TaintSet getRblockTaints() {
-    return rblockTaints;
-  }
-
-  public void setRblockTaints( TaintSet taints ) {
-    this.rblockTaints = taints;
-  }
-
  
 
   public String toStringDOT( boolean hideReach,
@@ -293,12 +274,8 @@ public class RefEdge {
     }
 
     if( !hideEdgeTaints ) {      
-      if( !paramTaints.isEmpty() ) {
-        s += "\\npt: "+paramTaints.toString();
-      }
-
-      if( !rblockTaints.isEmpty() ) {
-        s += "\\nrt: "+rblockTaints.toString();
+      if( !taints.isEmpty() ) {
+        s += "\\nt: "+taints.toString();
       }
     }
 

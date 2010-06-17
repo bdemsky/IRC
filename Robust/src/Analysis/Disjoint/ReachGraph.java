@@ -466,7 +466,6 @@ public class ReachGraph {
                                        null,
                                        Canonical.intersection( betaY, betaHrn ),
                                        predsTrue,
-                                       null,
                                        null
                                        );
 
@@ -622,7 +621,6 @@ public class ReachGraph {
                                                                   )
                                                ),
                        predsTrue,
-                       null,
                        null
                        );
 
@@ -693,7 +691,7 @@ public class ReachGraph {
                    null,                 // field name
                    hrnNewest.getAlpha(), // beta
                    predsTrue,            // predicates
-                   null, null
+                   null
                    );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
@@ -1652,12 +1650,15 @@ public class ReachGraph {
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
       
-      //Taint paramTaint = 
-      //  Taint.factory( 0, null, null,  );
+      Taint paramTaint = 
+        Taint.factory( index, 
+                       null, 
+                       null, 
+                       hrnDstCallee.getAllocSite()
+                       );
 
-      TaintSet paramTaints =
-        //TaintSet.factory( paramTaint );
-        TaintSet.factory();
+      TaintSet taints =
+        TaintSet.factory( paramTaint );
 
       RefEdge reCallee = 
         new RefEdge( vnCallee,
@@ -1669,8 +1670,7 @@ public class ReachGraph {
                                       oocHrnIdOoc2callee
                                       ),
                      preds,
-                     paramTaints, 
-                     null
+                     taints
                      );
       
       rg.addRefEdge( vnCallee,
@@ -1717,7 +1717,7 @@ public class ReachGraph {
                                       oocHrnIdOoc2callee 
                                       ),
                      preds,
-                     null, null
+                     null
                      );
       
       rg.addRefEdge( hrnSrcCallee,
@@ -1874,7 +1874,7 @@ public class ReachGraph {
                                                      oocHrnIdOoc2callee
                                                      ),
                                     preds,
-                                    null, null
+                                    null
                                     )
                        );              
         
@@ -2438,7 +2438,7 @@ public class ReachGraph {
                                         toCallerContext( reCallee.getBeta(),
                                                          calleeStatesSatisfied ),
                                         preds,
-                                        null, null
+                                        null
                                         );
 
         ChangeSet cs = ChangeSet.factory();
@@ -3517,16 +3517,11 @@ public class ReachGraph {
                                                edgeA.getPreds()
                                                )
                                );
-          edgeToMerge.setParamTaints(
-                                     Canonical.union( edgeToMerge.getParamTaints(),
-                                                      edgeA.getParamTaints()
-                                                      )
-                                     );
-          edgeToMerge.setRblockTaints(
-                                      Canonical.union( edgeToMerge.getRblockTaints(),
-                                                       edgeA.getRblockTaints()
-                                                       )
-                                      );
+          edgeToMerge.setTaints(
+                                Canonical.union( edgeToMerge.getTaints(),
+                                                 edgeA.getTaints()
+                                                 )
+                                );
 	}
       }
     }
@@ -3590,16 +3585,11 @@ public class ReachGraph {
                                                 edgeA.getPreds()
                                                 )
                                 );
-          edgeToMerge.setParamTaints(
-                                     Canonical.union( edgeToMerge.getParamTaints(),
-                                                      edgeA.getParamTaints()
-                                                      )
-                                     );
-          edgeToMerge.setRblockTaints(
-                                      Canonical.union( edgeToMerge.getRblockTaints(),
-                                                       edgeA.getRblockTaints()
-                                                       )
-                                      );
+          edgeToMerge.setTaints(
+                                Canonical.union( edgeToMerge.getTaints(),
+                                                 edgeA.getTaints()
+                                                 )
+                                );
 	}
       }
     }
