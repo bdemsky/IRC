@@ -70,6 +70,14 @@ public class Taint extends Canonical {
     allocSite  = as;
   }
 
+  public boolean isParamTaint() {
+    return paramIndex != null;
+  }
+
+  public boolean isSESETaint() {
+    return sese != null;
+  }
+
   public Integer getParamIndex() {
     return paramIndex;
   }

@@ -466,7 +466,7 @@ public class ReachGraph {
                                        null,
                                        Canonical.intersection( betaY, betaHrn ),
                                        predsTrue,
-                                       null
+                                       edgeY.getTaints()
                                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -621,7 +621,7 @@ public class ReachGraph {
                                                                   )
                                                ),
                        predsTrue,
-                       null
+                       edgeY.getTaints()
                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -691,7 +691,7 @@ public class ReachGraph {
                    null,                 // field name
                    hrnNewest.getAlpha(), // beta
                    predsTrue,            // predicates
-                   null
+                   TaintSet.factory()    // taints
                    );
 
     addRefEdge( lnX, hrnNewest, edgeNew );
@@ -1438,6 +1438,56 @@ public class ReachGraph {
     return out;
   }
 
+
+  // used below to convert a TaintSet's parameter index taints to
+  // a TaintSet of caller taints
+  protected TaintSet 
+    toCallerContext( TaintSet   ts,
+                     FlatCall   fc,
+                     FlatMethod fmCallee
+                     ) {
+
+    TaintSet out = TaintSet.factory();
+
+    Iterator<Taint> itr = ts.iterator();
+    while( itr.hasNext() ) {
+      Taint t = itr.next();
+
+      if( !t.isParamTaint() ) {
+        // throw out non-parameter taints from callee
+        continue;
+      }
+
+      // what argument does this taint map to?
+      TempDescriptor tdArg = 
+        fc.getArgMatchingParamIndex( fmCallee,
+                                     t.getParamIndex() );
+      VariableNode vnArg = td2vn.get( tdArg );
+
+      // what allocation site does this taint refer to?
+      AllocSite as = t.getAllocSite();
+      
+      // look at the allocation sites that the
+      // arg references in the caller context--if
+      // the parameter taint matches, use the taints
+      // of the argument reference to grow the output set
+      Iterator<RefEdge> reItr = vnArg.iteratorToReferencees();
+      while( reItr.hasNext() ) {
+        RefEdge re = reItr.next();
+        
+        if( as.equals( re.getDst().getAllocSite() ) ) {
+          out = Canonical.union( out,
+                                 re.getTaints()
+                                 );
+        }
+      }      
+    }    
+
+    assert out.isCanonical();
+    return out;
+  }
+
+
   // used below to convert a ReachSet to an equivalent
   // version with shadow IDs merged into unshadowed IDs
   protected ReachSet unshadow( ReachSet rs ) {
@@ -1717,7 +1767,7 @@ public class ReachGraph {
                                       oocHrnIdOoc2callee 
                                       ),
                      preds,
-                     null
+                     TaintSet.factory() // no taints for in-context edges
                      );
       
       rg.addRefEdge( hrnSrcCallee,
@@ -1874,7 +1924,7 @@ public class ReachGraph {
                                                      oocHrnIdOoc2callee
                                                      ),
                                     preds,
-                                    null
+                                    TaintSet.factory() // no taints
                                     )
                        );              
         
@@ -2438,7 +2488,9 @@ public class ReachGraph {
                                         toCallerContext( reCallee.getBeta(),
                                                          calleeStatesSatisfied ),
                                         preds,
-                                        null
+                                        toCallerContext( reCallee.getTaints(),
+                                                         fc,
+                                                         fmCallee )
                                         );
 
         ChangeSet cs = ChangeSet.factory();
