@@ -1,0 +1,87 @@
+package Analysis.Disjoint;
+
+import IR.*;
+import IR.Flat.*;
+import java.util.*;
+import java.io.*;
+
+///////////////////////////////////////////
+//  IMPORTANT
+//  This class is an immutable Canonical, so
+//
+//  0) construct them with a factory pattern
+//  to ensure only canonical versions escape
+//
+//  1) any operation that modifies a Canonical
+//  is a static method in the Canonical class
+//
+//  2) operations that just read this object
+//  should be defined here
+//
+//  3) every Canonical subclass hashCode should
+//  throw an error if the hash ever changes
+//
+///////////////////////////////////////////
+
+// a taint set is simply the union of possible
+// taints for an abstract reference edge--in a
+// concrete heap each reference would have
+// exactly one taint
+
+public class TaintSet extends Canonical {
+
+  protected HashSet<Taint> taints;
+
+  public static TaintSet factory() {
+    TaintSet out = new TaintSet();
+    out = (TaintSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  public static TaintSet factory( Taint t ) {
+    assert t != null;
+    assert t.isCanonical();
+    TaintSet out = new TaintSet();    
+    out.taints.add( t );
+    out = (TaintSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  protected TaintSet() {
+    taints = new HashSet<Taint>();
+  }
+
+  public Iterator iterator() {
+    return taints.iterator();
+  }
+
+  public boolean isEmpty() {
+    return taints.isEmpty();
+  }
+
+  public boolean containsTaint( Taint t ) {
+    assert t != null;
+    return taints.contains( t );
+  }
+
+  public boolean equalsSpecific( Object o ) {
+    if( o == null ) {
+      return false;
+    }
+
+    if( !(o instanceof TaintSet) ) {
+      return false;
+    }
+
+    TaintSet ts = (TaintSet) o;
+    return taints.equals( ts.taints );
+  }
+  
+  public int hashCodeSpecific() {
+    return taints.hashCode();
+  }
+  
+  public String toString() {
+    return taints.toString();
+  }
+}

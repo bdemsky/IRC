@@ -100,6 +100,8 @@ public class State {
 
   public boolean DISJOINTDEBUGSCHEDULING=false;
 
+  public boolean OOOJAVA=false;
+
 
   public boolean OPTIONAL=false;
   public boolean ARRAYPAD=false;

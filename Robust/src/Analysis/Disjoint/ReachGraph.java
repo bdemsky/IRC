@@ -1652,11 +1652,12 @@ public class ReachGraph {
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
       
-      Taint paramTaint = 
-        Taint.factory( index, paramCallee.toString() );
+      //Taint paramTaint = 
+      //  Taint.factory( 0, null, null,  );
 
       TaintSet paramTaints =
-        TaintSet.factory( paramTaint );
+        //TaintSet.factory( paramTaint );
+        TaintSet.factory();
 
       RefEdge reCallee = 
         new RefEdge( vnCallee,

@@ -1,0 +1,167 @@
+package Analysis.Disjoint;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Set;
+
+import IR.FieldDescriptor;
+import IR.MethodDescriptor;
+import IR.TypeDescriptor;
+import IR.Flat.FlatCall;
+import IR.Flat.FlatSetElementNode;
+import IR.Flat.TempDescriptor;
+
+/////////////////////////////////////////////
+// 
+//  Effects analysis computes read/write/strong
+//  update and other sorts of effects for the
+//  scope of a method or rblock.  The effects
+//  are associated with the heap roots through
+//  which a reference to the effect target was
+//  obtained.
+//
+//  The effects analysis piggy-backs
+//  on the disjoint reachability analysis,
+//  if requested, to support OoOJava and
+//  potentially other analysis clients.
+//
+/////////////////////////////////////////////
+
+public class EffectsAnalysis {
+
+  //private Hashtable<MethodContext, MethodEffects> mapMethodContextToMethodEffects;
+  //	boolean methodeffects = false;
+
+  public EffectsAnalysis( boolean methodeffects ) {
+    //this.methodeffects = methodeffects;
+    //mapMethodContextToMethodEffects = new Hashtable<MethodContext, MethodEffects>();
+  }
+
+  /*
+  public MethodEffects getMethodEffectsByMethodContext(MethodContext mc){
+		return mapMethodContextToMethodEffects.get(mc);
+	}
+
+	public void createNewMapping(MethodContext mcNew) {
+		if(!methodeffects) return;
+		if (!mapMethodContextToMethodEffects.containsKey(mcNew)) {
+			MethodEffects meNew = new MethodEffects();
+			mapMethodContextToMethodEffects.put(mcNew, meNew);
+		}
+	}
+  */
+
+  /*
+	public void analyzeFlatCall(OwnershipGraph calleeOG,
+			MethodContext calleeMC, MethodContext callerMC, FlatCall fc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(callerMC);
+		MethodEffects meFlatCall = mapMethodContextToMethodEffects
+				.get(calleeMC);
+		me.analyzeFlatCall(calleeOG, fc, callerMC, meFlatCall);
+		mapMethodContextToMethodEffects.put(callerMC, me);
+	}
+  */
+
+  /*
+	public void analyzeFlatFieldNode(MethodContext mc, OwnershipGraph og,
+			TempDescriptor srcDesc, FieldDescriptor fieldDesc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+		me.analyzeFlatFieldNode(og, srcDesc, fieldDesc);
+		mapMethodContextToMethodEffects.put(mc, me);
+	}
+
+	public void analyzeFlatSetFieldNode(MethodContext mc, OwnershipGraph og,
+			TempDescriptor dstDesc, FieldDescriptor fieldDesc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+		me.analyzeFlatSetFieldNode(og, dstDesc, fieldDesc);
+		mapMethodContextToMethodEffects.put(mc, me);
+	}
+	
+	public void analyzeFlatSetElementNode(MethodContext mc, OwnershipGraph og,
+			TempDescriptor dstDesc, FieldDescriptor fieldDesc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+		me.analyzeFlatSetElementNode(og, dstDesc, fieldDesc);
+		mapMethodContextToMethodEffects.put(mc, me);
+	}
+	
+	public void analyzeFlatElementNode(MethodContext mc, OwnershipGraph og,
+			TempDescriptor dstDesc, FieldDescriptor fieldDesc) {
+		if(!methodeffects) return;
+		MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+		me.analyzeFlatElementNode(og, dstDesc, fieldDesc);
+		mapMethodContextToMethodEffects.put(mc, me);
+	}
+	
+
+	public void writeMethodEffectsResult() throws IOException {
+
+		try {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(
+					"MethodEffects_report.txt"));
+
+			Set<MethodContext> mcSet = mapMethodContextToMethodEffects.keySet();
+			Iterator<MethodContext> mcIter = mcSet.iterator();
+			while (mcIter.hasNext()) {
+				MethodContext mc = mcIter.next();
+				MethodDescriptor md = (MethodDescriptor) mc.getDescriptor();
+
+				int startIdx = 0;
+				if (!md.isStatic()) {
+					startIdx = 1;
+				}
+
+				MethodEffects me = mapMethodContextToMethodEffects.get(mc);
+				EffectsSet effectsSet = me.getEffects();
+
+				bw.write("Method " + mc + " :\n");
+				for (int i = startIdx; i < md.numParameters() + startIdx; i++) {
+
+					String paramName = md.getParamName(i - startIdx);
+
+					Set<EffectsKey> effectSet = effectsSet.getReadingSet(i);
+					String keyStr = "{";
+					if (effectSet != null) {
+						Iterator<EffectsKey> effectIter = effectSet.iterator();
+						while (effectIter.hasNext()) {
+							EffectsKey key = effectIter.next();
+							keyStr += " " + key;
+						}
+					}
+					keyStr += " }";
+					bw.write("  Paramter " + paramName + " ReadingSet="
+							+ keyStr + "\n");
+
+					effectSet = effectsSet.getWritingSet(new Integer(i));
+					keyStr = "{";
+					if (effectSet != null) {
+						Iterator<EffectsKey> effectIter = effectSet.iterator();
+						while (effectIter.hasNext()) {
+							EffectsKey key = effectIter.next();
+							keyStr += " " + key;
+						}
+					}
+
+					keyStr += " }";
+					bw.write("  Paramter " + paramName + " WritingngSet="
+							+ keyStr + "\n");
+
+				}
+				bw.write("\n");
+
+			}
+
+			bw.close();
+		} catch (IOException e) {
+			System.err.println(e);
+		}
+
+	}
+  */
+}

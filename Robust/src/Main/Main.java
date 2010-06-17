@@ -41,8 +41,9 @@ import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
-//import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.MLP.MLPAnalysis;
+import Analysis.Disjoint.DisjointAnalysis;
+import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Loops.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
@@ -319,6 +320,11 @@ public class Main {
 
       } else if (option.equals("-methodeffects")) {
 	state.METHODEFFECTS=true;
+
+      } else if (option.equals("-ooojava")) {
+	state.OOOJAVA  = true;
+	state.DISJOINT = true;
+
       }else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
@@ -495,12 +501,20 @@ public class Main {
                              oa);
     }    
 
-    /*    if (state.DISJOINT) {
+    if (state.DISJOINT && !state.OOOJAVA) {
       CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
-      DisjointAnalysis oa = new DisjointAnalysis(state, tu, cg, l, ar);
-      }*/
+      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar);
+    }
+
+    if (state.OOOJAVA) {
+      CallGraph        cg = new CallGraph(state);
+      Liveness         l  = new Liveness();
+      ArrayReferencees ar = new ArrayReferencees(state);
+      OoOJavaAnalysis  oa = new OoOJavaAnalysis(state, tu, cg, l, ar);
+    }
+
 
     if (state.TAGSTATE) {
       CallGraph callgraph=new CallGraph(state);

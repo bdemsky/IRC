@@ -97,6 +97,7 @@ Analysis/MLP/VSTWrapper.class						\
 Analysis/MLP/SVKey.class 						\
 Analysis/MLP/VarSrcTokTable.class					\
 Analysis/MLP/CodePlan.class						\
+Analysis/OoOJava/OoOJavaAnalysis.class					\
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Util/UtilAlgorithms.class                                               \
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\
