@@ -582,7 +582,7 @@ inline void initGC() {
       gcrequiredmems[i] = 0;
       gcfilledblocks[i] = 0;
       gcstopblock[i] = 0;
-    }             // for(i = 0; i < NUMCORES4GC; ++i)
+    } // for(i = 0; i < NUMCORES4GC; ++i)
     for(i = NUMCORES4GC; i < NUMCORESACTIVE; ++i) {
       gccorestatus[i] = 1;
       gcnumsendobjs[i] = 0;
@@ -591,13 +591,13 @@ inline void initGC() {
     gcheaptop = 0;
     gctopcore = 0;
     gctopblock = 0;
-  }       // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
+  } // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
   gcobj2map = 0;
   gcmappedobj = 0;
-  gcismapped = false;
+  //gcismapped = false;
   gcnumlobjs = 0;
   gcmovestartaddr = 0;
   gctomove = false;
@@ -636,6 +636,11 @@ inline void initGC() {
   freeMGCHash(gcforwardobjtbl);
   gcforwardobjtbl = allocateMGCHash(20, 3);
 
+  // initialize the mapping info related structures
+  freeRuntimeHash(gcrcoretbl);
+  gcrcoretbl = allocateRuntimeHash(20);
+  BAMBOO_MEMSET_WH(gcmappingtbl, 0, 
+	  sizeof(void *)*NUMCORESACTIVE*NUM_MAPPING);
 #ifdef GC_PROFILE
   // TODO
   num_mapinforequest = 0;
@@ -880,8 +885,8 @@ inline void moveLObjs() {
     tmpheaptop = gcbaseva;
   } else {
     tmpheaptop = gcbaseva+bamboo_smemtbl[i]+((i<NUMCORES4GC) ?
-                                             (BAMBOO_SMEM_SIZE_L*i) :
-                                             (BAMBOO_SMEM_SIZE*(i-NUMCORES4GC)+BAMBOO_LARGE_SMEM_BOUND));
+		(BAMBOO_SMEM_SIZE_L*i) :
+        (BAMBOO_SMEM_SIZE*(i-NUMCORES4GC)+BAMBOO_LARGE_SMEM_BOUND));
   }
 
   // move large objs from gcheaptop to tmpheaptop
@@ -970,6 +975,9 @@ inline void moveLObjs() {
 	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 	//mgchashInsert_I(ptr, tmpheaptop);
 	RuntimeHashadd_I(gcpointertbl, ptr, tmpheaptop);
+	//struct nodemappinginfo * nodeinfo = NULL;
+	//RuntimeHashget(gcpointertbl, ptr, &nodeinfo);
+	//nodeinfo->ptr = tmpheaptop;
 	//MGCHashadd_I(gcpointertbl, ptr, tmpheaptop);
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	//}
@@ -1054,6 +1062,9 @@ inline void moveLObjs() {
 	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 	//mgchashInsert_I(ptr, tmpheaptop);
 	RuntimeHashadd_I(gcpointertbl, ptr, tmpheaptop);
+	//struct nodemappinginfo * nodeinfo = NULL;
+	//RuntimeHashget(gcpointertbl, ptr, &nodeinfo);
+	//nodeinfo->ptr = tmpheaptop;
 	//MGCHashadd_I(gcpointertbl, ptr, tmpheaptop);
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	//}
@@ -1127,7 +1138,13 @@ inline void markObj(void * objptr) {
 	// set the flag as DISCOVERED
 	((int *)objptr)[6] = DISCOVERED;
 	gc_enqueue_I(objptr);
-      }
+	// insert the obj and request core info into mapping hashtable 
+	/*struct nodemappinginfo * nodeinfo = 
+	 (struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
+	nodeinfo->ptr = NULL;
+	nodeinfo->cores = NULL;
+	RuntimeHashadd_I(gcpointertbl, (int)objptr, (int)nodeinfo);*/
+	  }
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     } else {
 #ifdef DEBUG
@@ -1138,13 +1155,15 @@ inline void markObj(void * objptr) {
       // check if this obj has been forwarded
       if(!MGCHashcontains(gcforwardobjtbl, (int)objptr)) {
 #ifdef GC_PROFILE
-	unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+	// TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 	// send a msg to host informing that objptr is active
-	send_msg_2(host, GCMARKEDOBJ, objptr, false);
+	send_msg_3(host, GCMARKEDOBJ, objptr, BAMBOO_NUM_OF_CORE, false);
 #ifdef GC_PROFILE
+	// TODO
+	/*
 	marktime += BAMBOO_GET_EXE_TIME() - ttime;
-	num_markrequest++;
+	num_markrequest++;*/
 #endif
 	gcself_numsendobjs++;
 	MGCHashadd(gcforwardobjtbl, (int)objptr);
@@ -1356,24 +1375,24 @@ inline void mark(bool isfirst,
 	    // ptr is not an active obj or has been marked
 	    checkfield = false;
 	  }                              // if(isLarge(ptr, &type, &size)) else ...
-	}                         /* can never reach here
-				                 else {
-				   #ifdef DEBUG
-				        if(BAMBOO_NUM_OF_CORE == 0) {
-				        BAMBOO_DEBUGPRINT(0xbbbb);
-				        BAMBOO_DEBUGPRINT_REG(host);
-				        BAMBOO_DEBUGPRINT_REG(ptr);
-				        }
-				   #endif
-				        // check if this obj has been forwarded
-				        if(!MGCHashcontains(gcforwardobjtbl, (int)ptr)) {
-				                // send a msg to host informing that ptr is active
-				                send_msg_2(host, GCMARKEDOBJ, ptr);
-				                gcself_numsendobjs++;
-				                MGCHashadd(gcforwardobjtbl, (int)ptr);
-				        }
-				        checkfield = false;
-				     }// if(isLocal(ptr)) else ...*/
+	}  /* can never reach here
+    else {
+#ifdef DEBUG
+	  if(BAMBOO_NUM_OF_CORE == 0) {
+        BAMBOO_DEBUGPRINT(0xbbbb);
+        BAMBOO_DEBUGPRINT_REG(host);
+        BAMBOO_DEBUGPRINT_REG(ptr);
+      }
+#endif
+      // check if this obj has been forwarded
+      if(!MGCHashcontains(gcforwardobjtbl, (int)ptr)) {
+        // send a msg to host informing that ptr is active
+		send_msg_3(host, GCMARKEDOBJ, ptr, BAMBOO_NUM_OF_CORE, false);
+		gcself_numsendobjs++;
+		MGCHashadd(gcforwardobjtbl, (int)ptr);
+	  }
+	    checkfield = false;
+	}// if(isLocal(ptr)) else ...*/
       }                   // if(ISSHAREDOBJ(ptr))
 #ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xed06);
@@ -1904,8 +1923,8 @@ innermoveobj:
 	return true;
       }                   // if(stopblock == to->numblocks)
     }             // if(to->top + isize > to->bound)
-                  // set the mark field to 2, indicating that this obj has been moved
-                  // and need to be flushed
+    // set the mark field to 2, indicating that this obj has been moved
+    // and need to be flushed
     ((int *)(orig->ptr))[6] = COMPACTED;
     if(to->ptr != orig->ptr) {
       if((int)(orig->ptr) < (int)(to->ptr)+size) {
@@ -1921,6 +1940,9 @@ innermoveobj:
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     //mgchashInsert_I(orig->ptr, to->ptr);
     RuntimeHashadd_I(gcpointertbl, orig->ptr, to->ptr);
+	/*struct nodemappinginfo * nodeinfo = NULL;
+	RuntimeHashget(gcpointertbl, orig->ptr, &nodeinfo);
+	nodeinfo->ptr = to->ptr;*/
     //MGCHashadd_I(gcpointertbl, orig->ptr, to->ptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     //}
@@ -2207,18 +2229,33 @@ inline void * flushObj(void * objptr) {
     // a shared obj ptr, change to new address
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef GC_PROFILE
-    unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+    // TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
     //dstptr = mgchashSearch(objptr);
     RuntimeHashget(gcpointertbl, objptr, &dstptr);
+	/*struct nodemappinginfo * nodeinfo = NULL;
+	RuntimeHashget(gcpointertbl, objptr, &nodeinfo);
+	if(nodeinfo == NULL) {
+	  // currenly the mapping info is not ready TODO
+	  // busy waiting until we get the mapping info
+	  while(true) {
+		BAMBOO_WAITING_FOR_LOCK(0);
+		RuntimeHashget(gcpointertbl, objptr, &nodeinfo);
+		if(nodeinfo != NULL) {
+		  break;
+		}
+	  }
+	}
+	dstptr = nodeinfo->ptr;*/
 #ifdef GC_PROFILE
-    flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
+    // TODO flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
 #endif
     //MGCHashget(gcpointertbl, objptr, &dstptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(dstptr);
 #endif
+
     if(NULL == dstptr) {
       // no mapping info
 #ifdef DEBUG
@@ -2239,11 +2276,11 @@ inline void * flushObj(void * objptr) {
 	gcmappedobj = NULL;
 #ifdef GC_PROFILE
 	// TODO
-	num_mapinforequest++;
+	//num_mapinforequest++;
 	//unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 #ifdef GC_PROFILE
-	unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
+	// TODO unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
 #endif
 	// the first time require the mapping, send msg to the hostcore
 	// for the mapping info
@@ -2255,7 +2292,7 @@ inline void * flushObj(void * objptr) {
 	  }
 	}
 #ifdef GC_PROFILE
-	flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
+	// TODO flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
 #endif
 #ifdef GC_PROFILE
 	// TODO
@@ -2264,13 +2301,16 @@ inline void * flushObj(void * objptr) {
 	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 	//dstptr = mgchashSearch(objptr);
 	RuntimeHashget(gcpointertbl, objptr, &dstptr);
+	/*struct nodemappinginfo * nodeinfo = NULL;
+	RuntimeHashget(gcpointertbl, objptr, &nodeinfo);
+	dstptr = nodeinfo->ptr;*/
 	//MGCHashget(gcpointertbl, objptr, &dstptr);
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      }                   // if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) else ...
+      }    // if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) else ...
 #ifdef DEBUG
       BAMBOO_DEBUGPRINT_REG(dstptr);
 #endif
-    }             // if(NULL == dstptr)
+    }     // if(NULL == dstptr)
   }      // if(ISSHAREDOBJ(objptr))
          // if not a shared obj, return NULL to indicate no need to flush
 #ifdef DEBUG
@@ -2383,16 +2423,59 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 
 } // void flushRuntimeObj(struct garbagelist * stackptr)
 
+inline void transmappinginfo() {
+  // inform the other cores the mapping info they need 
+  /*struct RuntimeIterator* it_pointertbl = 
+	RuntimeHashcreateiterator(gcpointertbl);
+  while(RunhasNext(it_pointertbl)) {
+	int obj = Runkey(it_pointertbl);
+	struct nodemappinginfo * info = 
+	  (struct nodemappinginfo *)Runnext(it_pointertbl);
+	int newptr = (int)info->ptr;
+	struct requestcoreinfo * coreinfo = info->cores;
+	info->cores = NULL;
+	// send the mapping info to all requested cores
+	while(coreinfo != NULL) {
+	  struct requestcoreinfo * tmp = coreinfo;
+	  coreinfo = coreinfo->next;
+	  send_msg_3(tmp->core, GCMAPINFO, obj, newptr, false);
+	  RUNFREE(tmp); // release the node
+	}
+  }*/
+  int core = (BAMBOO_NUM_OF_CORE + 1) % NUMCORESACTIVE;
+  for(int i = 0; i < NUMCORESACTIVE - 1; i++) {
+	for(int j = 1; j < gcmappingtbl[core][0]+1; j++) {
+	  int obj = gcmappingtbl[core][j];
+	  int newptr = 0;
+	  RuntimeHashget(gcpointertbl, obj, &newptr);
+	  send_msg_3(core, GCMAPINFO, obj, newptr, false);
+	  // TODO
+	  //tprintf("send mapping %x -> %x, %x \n", (int)obj, (int)newptr, i);
+	}
+	// TODO
+	//tprintf("send mapping to core %d \n", core);
+	core = (core + 1) % NUMCORESACTIVE;
+  }
+
+  // TODO
+  //BAMBOO_DEBUGPRINT(0xeeee);
+
+  if(STARTUPCORE != BAMBOO_NUM_OF_CORE) {
+	send_msg_2(STARTUPCORE, GCFINISHMAPINFO, BAMBOO_NUM_OF_CORE, false);
+  }
+}
+
 inline void flush(struct garbagelist * stackptr) {
 #ifdef GC_PROFILE
-  if(BAMBOO_NUM_OF_CORE == 0) {
+  /* TODO if(BAMBOO_NUM_OF_CORE == 0) {
     BAMBOO_DEBUGPRINT(0xcccc);
     BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
-  }
+  }*/
 #endif
+
   flushRuntimeObj(stackptr);
 #ifdef GC_PROFILE
-  if(BAMBOO_NUM_OF_CORE == 0) BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
+  // TODO if(BAMBOO_NUM_OF_CORE == 0) BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
 #endif
 
   while(true) {
@@ -2491,7 +2574,7 @@ inline void flush(struct garbagelist * stackptr) {
   BAMBOO_DEBUGPRINT(0xe308);
 #endif
 #ifdef GC_PROFILE
-  if(BAMBOO_NUM_OF_CORE == 0) BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
+  // TODO if(BAMBOO_NUM_OF_CORE == 0) BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
 #endif
 
   // TODO bug here: the startup core contains all lobjs' info, thus all the
@@ -2580,7 +2663,7 @@ inline void flush(struct garbagelist * stackptr) {
   BAMBOO_DEBUGPRINT(0xe310);
 #endif
 #ifdef GC_PROFILE
-  if(BAMBOO_NUM_OF_CORE == 0) BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
+  // TODO if(BAMBOO_NUM_OF_CORE == 0) BAMBOO_DEBUGPRINT_REG(BAMBOO_GET_EXE_TIME());
 #endif
 
   // send flush finish message to core coordinator
@@ -2590,13 +2673,14 @@ inline void flush(struct garbagelist * stackptr) {
     send_msg_2(STARTUPCORE, GCFINISHFLUSH, BAMBOO_NUM_OF_CORE, false);
   }
 #ifdef GC_PROFILE
-  if(BAMBOO_NUM_OF_CORE == 0) {
+  // TODO 
+  /*if(BAMBOO_NUM_OF_CORE == 0) {
     BAMBOO_DEBUGPRINT(0xffff);
     //BAMBOO_DEBUGPRINT_REG(num_mapinforequest);
-    BAMBOO_DEBUGPRINT_REG(flushstalltime);
+    //BAMBOO_DEBUGPRINT_REG(flushstalltime);
     //BAMBOO_DEBUGPRINT_REG(num_mapinforequest_i);
-    BAMBOO_DEBUGPRINT_REG(flushstalltime_i);
-  }
+    //BAMBOO_DEBUGPRINT_REG(flushstalltime_i);
+  }*/
   //BAMBOO_DEBUGPRINT_REG(flushstalltime);
 #endif
 #ifdef DEBUG
@@ -2634,6 +2718,20 @@ inline void gc_collect(struct garbagelist * stackptr) {
   compact();
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish compact phase\n", udn_tile_coord_x(),
+	     udn_tile_coord_y());
+#endif
+  while(true) {
+	if(MAPPHASE == gcphase) {
+	  break;
+	}
+  }
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start map phase\n", udn_tile_coord_x(), 
+	     udn_tile_coord_y());
+#endif
+  transmappinginfo();
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Finish map phase\n", udn_tile_coord_x(),
 	     udn_tile_coord_y());
 #endif
   while(true) {
@@ -2816,11 +2914,11 @@ inline void gc(struct garbagelist * stackptr) {
 #ifdef GC_PROFILE
     gc_profileItem();
     // TODO
-    if(BAMBOO_NUM_OF_CORE == 0) {
+    /*if(BAMBOO_NUM_OF_CORE == 0) {
       BAMBOO_DEBUGPRINT(0xeeee);
       BAMBOO_DEBUGPRINT_REG(num_markrequest);
       BAMBOO_DEBUGPRINT_REG(marktime);
-    }
+    }*/
 #endif
 #ifdef RAWPATH // TODO GC_DEBUG
     printf("(%x,%x) prepare to cache large objs \n", udn_tile_coord_x(),
@@ -2997,6 +3095,40 @@ inline void gc(struct garbagelist * stackptr) {
     RUNFREE(orig);
     RUNFREE(to);
     orig = to = NULL;
+
+	gcphase = MAPPHASE;
+	gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
+    // Note: all cores should flush their runtime data including non-gc
+    //       cores
+    for(i = 1; i < NUMCORES4GC; ++i) {
+      // send start flush messages to all cores
+      gccorestatus[i] = 1;
+      send_msg_1(i, GCSTARTMAPINFO, false);
+    }
+#ifdef GC_PROFILE
+	gc_profileItem();
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+    printf("(%x,%x) Start map phase \n", udn_tile_coord_x(), 
+		   udn_tile_coord_y());
+#endif
+    // mapinto phase
+    transmappinginfo();
+#ifdef RAWPATH // TODO GC_DEBUG
+    printf("(%x,%x) Finish map phase \n", udn_tile_coord_x(), 
+		   udn_tile_coord_y());
+#endif
+    gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+    while(MAPPHASE == gcphase) {
+      // check the status of all cores
+      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+      if(gc_checkCoreStatus_I()) {
+		// all cores have finished sending mapping info 
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	break;
+      }
+      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    }  // while(MAPPHASE == gcphase)
 
     gcphase = FLUSHPHASE;
     gccorestatus[BAMBOO_NUM_OF_CORE] = 1;

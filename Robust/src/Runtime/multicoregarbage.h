@@ -26,7 +26,7 @@
 #define GCINFOLENGTH 100
 
 typedef struct gc_info {
-  unsigned long long time[7];
+  unsigned long long time[8];
   int index;
 } GCInfo;
 
@@ -54,8 +54,9 @@ typedef enum {
   MARKPHASE,               // 0x1
   COMPACTPHASE,            // 0x2
   SUBTLECOMPACTPHASE,      // 0x3
-  FLUSHPHASE,              // 0x4
-  FINISHPHASE              // 0x5
+  MAPPHASE,                // 0x4
+  FLUSHPHASE,              // 0x5
+  FINISHPHASE              // 0x6
 } GCPHASETYPE;
 
 volatile bool gcflag;
@@ -95,7 +96,7 @@ volatile bool gctomove;
 int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
-struct flushlist {
+/*struct flushlist {
   void * key;
   struct flushnode * val;
   struct flushlist * next;
@@ -104,16 +105,36 @@ struct flushlist {
 struct flushnode {
   void ** ptr;
   struct flushnode * next;
-};
+};*/
+//volatile struct flushlist * gcflushlist; // list of (key, list of reference
+// to be flushed)
+//volatile int gcnumflush;
+
 // mapping of old address to new address
+/*struct requestcoreinfo {
+  int core;
+  struct requestcoreinfo * next;
+};
+
+struct nodemappinginfo {
+  void * ptr;
+  struct requestcoreinfo * cores;
+};*/
+// data structures to record remote cores that transferred the marked 
+// objs in the mark phase
+struct rcoreinfo{
+  int high;
+  int low;
+};
+struct RuntimeHash * gcrcoretbl;
+#define NUM_MAPPING 40
+void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];
+
 volatile struct RuntimeHash * gcpointertbl;
 //struct MGCHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;
 volatile bool gcismapped;
-//volatile struct flushlist * gcflushlist; // list of (key, list of reference
-// to be flushed)
-//volatile int gcnumflush;
 
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)

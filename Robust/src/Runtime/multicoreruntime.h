@@ -158,8 +158,8 @@ volatile bool isMsgHanging;
  *        1b (size if always 1 * sizeof(int))
  *        1c + size of msg + corenum + gcsendobjs + gcreceiveobjs
  *           (size is always 5 * sizeof(int))
- *        1d + obj's address
- *           (size is always 2 * sizeof(int))
+ *        1d + obj's address + request core
+ *           (size is always 3 * sizeof(int))
  *        1e + corenum + start addr + end addr
  *           (size if always 4 * sizeof(int))
  *        1f + obj's address + corenum
@@ -195,21 +195,23 @@ typedef enum {
   GCSTARTINIT,           // 0xE2
   GCSTART,               // 0xE3
   GCSTARTCOMPACT,        // 0xE4
-  GCSTARTFLUSH,          // 0xE5
-  GCFINISHINIT,          // 0xE6
-  GCFINISHMARK,          // 0xE7
-  GCFINISHCOMPACT,       // 0xE8
-  GCFINISHFLUSH,         // 0xE9
-  GCFINISH,              // 0xEa
-  GCMARKCONFIRM,         // 0xEb
-  GCMARKREPORT,          // 0xEc
-  GCMARKEDOBJ,           // 0xEd
-  GCMOVESTART,           // 0xEe
-  GCMAPREQUEST,          // 0xEf
-  GCMAPINFO,             // 0xF0
-  GCLOBJREQUEST,         // 0xF1
-  GCLOBJINFO,            // 0xF2
-  GCLOBJMAPPING,         // 0xF3
+  GCSTARTMAPINFO,        // 0xE5
+  GCSTARTFLUSH,          // 0xE6
+  GCFINISHINIT,          // 0xE7
+  GCFINISHMARK,          // 0xE8
+  GCFINISHCOMPACT,       // 0xE9
+  GCFINISHMAPINFO,       // 0xEa
+  GCFINISHFLUSH,         // 0xEb
+  GCFINISH,              // 0xEc
+  GCMARKCONFIRM,         // 0xEd
+  GCMARKREPORT,          // 0xEe
+  GCMARKEDOBJ,           // 0xEf
+  GCMOVESTART,           // 0xF0
+  GCMAPREQUEST,          // 0xF1
+  GCMAPINFO,             // 0xF2
+  GCLOBJREQUEST,         // 0xF3
+  GCLOBJINFO,            // 0xF4
+  GCLOBJMAPPING,         // 0xF5
 #endif
   MSGEND
 } MSGTYPE;

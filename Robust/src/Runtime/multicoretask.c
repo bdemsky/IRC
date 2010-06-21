@@ -121,7 +121,7 @@ void initruntimedata() {
   gcforwardobjtbl = allocateMGCHash_I(20, 3);
   gcobj2map = 0;
   gcmappedobj = 0;
-  gcismapped = false;
+  //gcismapped = false;
   gcnumlobjs = 0;
   gcheaptop = 0;
   gctopcore = 0;
@@ -132,7 +132,11 @@ void initruntimedata() {
   gcblock2fill = 0;
   gcsbstarttbl = BAMBOO_BASE_VA;
   bamboo_smemtbl = (void *)gcsbstarttbl
-                   + (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(INTPTR);
+               + (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(INTPTR);
+  // for mapping info structures
+  gcrcoretbl = allocateRuntimeHash_I(20);
+  BAMBOO_MEMSET_WH(gcmappingtbl, 0, 
+	  sizeof(void *)*NUMCORESACTIVE*NUM_MAPPING);
 #else
   // create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -184,6 +188,8 @@ void disruntimedata() {
   freeRuntimeHash(gcpointertbl);
   //freeMGCHash(gcpointertbl);
   freeMGCHash(gcforwardobjtbl);
+  // for mapping info structures
+  freeRuntimeHash(gcrcoretbl);
 #else
   freeRuntimeHash(lockRedirectTbl);
   freeRuntimeHash(objRedirectLockTbl);
@@ -1488,6 +1494,7 @@ INLINE int checkMsgLength_I(int size) {
 #ifdef MULTICORE_GC
   case GCSTARTINIT:
   case GCSTART:
+  case GCSTARTMAPINFO:
   case GCSTARTFLUSH:
   case GCFINISH:
   case GCMARKCONFIRM:
@@ -1503,8 +1510,8 @@ INLINE int checkMsgLength_I(int size) {
 #ifdef MULTICORE_GC
   case GCSTARTCOMPACT:
   case GCFINISHINIT:
+  case GCFINISHMAPINFO:
   case GCFINISHFLUSH:
-  case GCMARKEDOBJ:
 #endif
     {
       msglength = 2;
@@ -1514,6 +1521,7 @@ INLINE int checkMsgLength_I(int size) {
   case MEMREQUEST:
   case MEMRESPONSE:
 #ifdef MULTICORE_GC
+  case GCMARKEDOBJ:
   case GCMAPREQUEST:
   case GCMAPINFO:
   case GCLOBJMAPPING:
@@ -2131,6 +2139,10 @@ INLINE void processmsg_gcstartcompact_I() {
   gcphase = COMPACTPHASE;
 }
 
+INLINE void processmsg_gcstartmapinfo_I() {
+  gcphase = MAPPHASE;
+}
+
 INLINE void processmsg_gcstartflush_I() {
   gcphase = FLUSHPHASE;
 }
@@ -2221,6 +2233,25 @@ INLINE void processmsg_gcfinishcompact_I() {
   }       // if(cnum < NUMCORES4GC)
 }
 
+INLINE void processmsg_gcfinishmapinfo_I() {
+  int data1 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  // received a map phase finish msg
+  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+    // non startup core can not receive this msg
+    // return -1
+#ifndef CLOSE_PRINT
+    BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+    BAMBOO_EXIT(0xb004);
+  }
+  // all cores should do flush
+  if(data1 < NUMCORES4GC) {
+    gccorestatus[data1] = 0;
+  }
+}
+
+
 INLINE void processmsg_gcfinishflush_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -2231,7 +2262,7 @@ INLINE void processmsg_gcfinishflush_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb004);
+    BAMBOO_EXIT(0xb005);
   }
   // all cores should do flush
   if(data1 < NUMCORESACTIVE) {
@@ -2243,7 +2274,7 @@ INLINE void processmsg_gcmarkconfirm_I() {
   if((BAMBOO_NUM_OF_CORE == STARTUPCORE)
      || (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
     // wrong core to receive such msg
-    BAMBOO_EXIT(0xb005);
+    BAMBOO_EXIT(0xb006);
   } else {
     // send response msg, cahce the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
@@ -2273,7 +2304,7 @@ INLINE void processmsg_gcmarkreport_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb006);
+    BAMBOO_EXIT(0xb007);
   } else {
     if(waitconfirm) {
       numconfirm--;
@@ -2287,12 +2318,112 @@ INLINE void processmsg_gcmarkreport_I() {
 INLINE void processmsg_gcmarkedobj_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
+  int data2 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
   // received a markedObj msg
   if(((int *)data1)[6] == INIT) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
     ((int *)data1)[6] = DISCOVERED;
     gc_enqueue_I(data1);
+	// insert the obj and request core info into mapping hashtable 
+	/*struct requestcoreinfo * coreinfo = 
+	 (struct requestcoreinfo *)RUNMALLOC_I(sizeof(struct requestcoreinfo));
+	coreinfo->core = data2;
+	coreinfo->next = NULL;
+	struct nodemappinginfo * nodeinfo = 
+     (struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
+	nodeinfo->ptr = NULL;
+	nodeinfo->cores = coreinfo;
+	RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
+	struct rcoreinfo * coreinfo = 
+	  (struct rcoreinfo *)RUNMALLOC_I(sizeof(struct rcoreinfo));
+	coreinfo->high = coreinfo->low = 0;
+	if(data2 > 31) {
+	  coreinfo->high |= 1<<(data2-32);
+	} else {
+	  coreinfo->low |= 1<<data2;
+	}
+	RuntimeHashadd_I(gcrcoretbl, data1, (int)coreinfo);
+	if(gcmappingtbl[data2][0] < NUM_MAPPING-1) {
+	  int pos = ++gcmappingtbl[data2][0];
+	  gcmappingtbl[data2][pos] = data1;
+	}
+  } else {
+	// record the request core 
+	/*struct nodemappinginfo * nodeinfo = NULL;
+	RuntimeHashget(gcpointertbl, data1, &nodeinfo);
+	if(nodeinfo == NULL) {
+	  // did not mark the obj, error!
+	  BAMBOO_DEBUGPRINT_REG(((int *)data1)[6]);
+	  BAMBOO_EXIT(0xb008);
+	} else {
+	  struct requestcoreinfo * coreinfo = nodeinfo->cores;
+	  if(coreinfo == NULL) {
+		nodeinfo->cores = 
+		  (struct requestcoreinfo *)RUNMALLOC_I(
+			  sizeof(struct requestcoreinfo));
+		nodeinfo->cores->core = data2;
+		nodeinfo->cores->next = NULL;
+	  } else {
+		while(true) {
+		  if(coreinfo->core == data2) {
+			break;
+		  } else if ((coreinfo->core > data2) || 
+			  (coreinfo->next == NULL)) {
+			// insert here
+			struct requestcoreinfo * toinsert = 
+			  (struct requestcoreinfo *)RUNMALLOC_I(
+				  sizeof(struct requestcoreinfo));
+			if(coreinfo->core > data2) {
+			  toinsert->next = coreinfo->next;
+			  toinsert->core = coreinfo->core;
+			  coreinfo->core = data2;
+			} else {
+			  toinsert->core = data2;
+			}
+			coreinfo->next = toinsert;
+			break;
+		  } else {
+			coreinfo = coreinfo->next;
+		  }
+		}
+	  }
+	}*/
+	struct rcoreinfo * coreinfo = NULL;
+	RuntimeHashget(gcrcoretbl, data1, &coreinfo);
+	if(coreinfo == NULL) {
+	  coreinfo = 
+		(struct rcoreinfo *)RUNMALLOC_I(sizeof(struct rcoreinfo));
+	  coreinfo->high = coreinfo->low = 0;
+	  if(data2 > 31) {
+		coreinfo->high |= 1<<(data2-32);
+	  } else {
+		coreinfo->low |= 1<<data2;
+	  }
+	  RuntimeHashadd_I(gcrcoretbl, data1, (int)coreinfo);
+	  if(gcmappingtbl[data2][0] < NUM_MAPPING-1) {
+		int pos = ++gcmappingtbl[data2][0];
+		gcmappingtbl[data2][pos] = data1;
+	  }
+	} else {
+	  bool toadd = false;
+	  if(data2 > 31) {
+		if((coreinfo->high)&(1<<(data2-32))==0) {
+		  toadd = true;
+		  coreinfo->high |= 1<<(data2-32);
+		}
+	  } else {
+		if((coreinfo->low)&(1<<data2)==0) {
+		  toadd = true;
+		  coreinfo->low |= 1<<data2;
+		}
+	  }
+	  if((toadd) && (gcmappingtbl[data2][0] < NUM_MAPPING-1)) {
+		int pos = ++gcmappingtbl[data2][0];
+		gcmappingtbl[data2][pos] = data1;
+	  } 
+	}
   }
   gcself_numreceiveobjs++;
   gcbusystatus = true;
@@ -2309,6 +2440,8 @@ INLINE void processmsg_gcmovestart_I() {
 }
 
 INLINE void processmsg_gcmaprequest_I() {
+  // should not have such msg any more
+  //BAMBOO_EXIT(0xb009);
 #ifdef GC_PROFILE
   //unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
@@ -2317,17 +2450,17 @@ INLINE void processmsg_gcmaprequest_I() {
   MSG_INDEXINC_I();
   //dstptr = mgchashSearch(msgdata[1]);
 #ifdef GC_PROFILE
-  unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+  // TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
   RuntimeHashget(gcpointertbl, data1, &dstptr);
 #ifdef GC_PROFILE
-  flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
+  // TODO flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
 #endif
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   //MGCHashget(gcpointertbl, msgdata[1], &dstptr);
 #ifdef GC_PROFILE
-  unsigned long long ttimei = BAMBOO_GET_EXE_TIME();
+  // TODO unsigned long long ttimei = BAMBOO_GET_EXE_TIME();
 #endif
   if(NULL == dstptr) {
     // no such pointer in this core, something is wrong
@@ -2335,7 +2468,7 @@ INLINE void processmsg_gcmaprequest_I() {
     BAMBOO_DEBUGPRINT_REG(data1);
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb007);
+    BAMBOO_EXIT(0xb009);
     //assume that the object was not moved, use the original address
     /*if(isMsgSending) {
             cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
@@ -2351,7 +2484,7 @@ INLINE void processmsg_gcmaprequest_I() {
     }
   }
 #ifdef GC_PROFILE
-  flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimei;
+  // TODO flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimei;
   //num_mapinforequest_i++;
 #endif
 }
@@ -2362,22 +2495,31 @@ INLINE void processmsg_gcmapinfo_I() {
 #endif
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
+#if 0
   if(data1 != gcobj2map) {
     // obj not matched, something is wrong
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(gcobj2map);
     BAMBOO_DEBUGPRINT_REG(msgdata[1]);
 #endif
-    BAMBOO_EXIT(0xb008);
+    BAMBOO_EXIT(0xb00a);
   } else {
+#endif
     gcmappedobj = msgdata[msgdataindex];  // [2]
     MSG_INDEXINC_I();
     //mgchashReplace_I(msgdata[1], msgdata[2]);
     //mgchashInsert_I(gcobj2map, gcmappedobj);
     RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
+	/*struct nodemappinginfo * nodeinfo = 
+	 (struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
+	nodeinfo->ptr = (void *)gcmappedobj;
+	nodeinfo->cores = NULL;
+	RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
     //MGCHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
+//  }
+  if(data1 == gcobj2map) {
+	gcismapped = true;
   }
-  gcismapped = true;
 #ifdef GC_PROFILE
   //flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
 #endif
@@ -2394,7 +2536,7 @@ INLINE void processmsg_gclobjinfo_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb009);
+    BAMBOO_EXIT(0xb00b);
   }
   // store the mark result info
   int cnum = data2;
@@ -2423,6 +2565,11 @@ INLINE void processmsg_gclobjmapping_I() {
   MSG_INDEXINC_I();
   //mgchashInsert_I(msgdata[1], msgdata[2]);
   RuntimeHashadd_I(gcpointertbl, data1, data2);
+  /*struct nodemappinginfo * nodeinfo = 
+	(struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
+  nodeinfo->ptr = (void *)data2;
+  nodeinfo->cores = NULL;
+  RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
   //MGCHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
 }
 #endif // #ifdef MULTICORE_GC
@@ -2597,6 +2744,12 @@ processmsg:
       break;
     }                     // case GCSTARTCOMPACT
 
+	case GCSTARTMAPINFO: {
+      // received a flush phase start msg
+      processmsg_gcstartmapinfo_I();
+      break;
+    }                     // case GCSTARTFLUSH
+
     case GCSTARTFLUSH: {
       // received a flush phase start msg
       processmsg_gcstartflush_I();
@@ -2618,6 +2771,11 @@ processmsg:
       processmsg_gcfinishcompact_I();
       break;
     }                     // case GCFINISHCOMPACT
+
+	case GCFINISHMAPINFO: {
+      processmsg_gcfinishmapinfo_I();
+      break;
+    }                     // case GCFINISHMAPINFO
 
     case GCFINISHFLUSH: {
       processmsg_gcfinishflush_I();
@@ -2933,7 +3091,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa011);
+      BAMBOO_EXIT(0xa00b);
     } else {
       int rwlock_obj = 0;
       struct LockValue * lockvalue = NULL;
