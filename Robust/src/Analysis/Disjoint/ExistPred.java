@@ -76,6 +76,7 @@ public class ExistPred extends Canonical {
   // edge uses same ReachState ne_state as node type above
 
 
+
   // a static debug flag for higher abstraction code
   // to enable debug info at this level
   public static boolean debug = false;
@@ -294,20 +295,17 @@ public class ExistPred extends Canonical {
         return null;
       }
 
-      // when state is null it is not part of the predicate
-      // so we've satisfied the edge existence
-      if( ne_state == null ) {
-        return edge.getPreds();
+      // only check state as part of the predicate if it
+      // is non-null
+      if( ne_state != null &&
+          // TODO: contains OR containsSuperSet OR containsWithZeroes??
+          hrnDst.getAlpha().containsIgnorePreds( ne_state ) != null
+          ) {
+        return null;        
       }
-      
-      // otherwise look for state too
-      // TODO: contains OR containsSuperSet OR containsWithZeroes??
-      if( hrnDst.getAlpha().containsIgnorePreds( ne_state ) 
-          == null ) {
-        return edge.getPreds();
-      }
-
-      return null;
+            
+      // predicate satisfied
+      return edge.getPreds();
     }
 
     throw new Error( "Unknown predicate type" );
@@ -439,7 +437,7 @@ public class ExistPred extends Canonical {
       if( ne_state != null ) {
         hash ^= ne_state.hashCode();
       }
-
+      
       return hash;
     }
 

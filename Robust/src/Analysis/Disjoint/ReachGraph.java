@@ -1701,10 +1701,12 @@ public class ReachGraph {
         ExistPredSet.factory( pred );
       
       Taint paramTaint = 
-        Taint.factory( index, 
+        Taint.factory( fc,
+                       index, 
                        null, 
                        null, 
-                       hrnDstCallee.getAllocSite()
+                       hrnDstCallee.getAllocSite(),
+                       preds
                        );
 
       TaintSet taints =
@@ -2056,6 +2058,10 @@ public class ReachGraph {
 
     Hashtable< RefEdge, Set<RefSrcNode> > calleeEdges2oocCallerSrcMatches =
       new Hashtable< RefEdge, Set<RefSrcNode> >();
+
+    //Hashtable<Taint, ExistPredSet> taintsSatisfied = 
+    // new Hashtable<Taint, ExistPredSet>();
+
 
     Iterator meItr = rgCallee.id2hrn.entrySet().iterator();
     while( meItr.hasNext() ) {

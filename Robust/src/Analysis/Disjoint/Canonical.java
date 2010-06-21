@@ -1418,8 +1418,39 @@ abstract public class Canonical {
     
     // otherwise, no cached result...    
     TaintSet out = new TaintSet();
-    out.taints.addAll( ts1.taints );
-    out.taints.addAll( ts2.taints );
+
+    // first add everything from 1, and if it was also in 2
+    // take the OR of the predicates
+    Iterator<Taint> tItr = ts1.iterator();
+    while( tItr.hasNext() ) {
+      Taint t1 = tItr.next();
+      Taint t2 = ts2.containsIgnorePreds( t1 );
+
+      if( t2 != null ) {
+	out.taints.add( Taint.factory( t1.callSite,
+                                       t1.paramIndex,
+                                       t1.sese,
+                                       t1.insetVar,
+                                       t1.allocSite,
+                                       Canonical.join( t1.preds,
+                                                       t2.preds
+                                                       )
+                                       ) );
+      } else {
+	out.taints.add( t1 );
+      }
+    }
+    
+    // then add everything in 2 that wasn't in 1
+    tItr = ts2.iterator();
+    while( tItr.hasNext() ) {
+      Taint t2 = tItr.next();
+      Taint t1 = ts1.containsIgnorePreds( t2 );
+
+      if( t1 == null ) {
+	out.taints.add( t2 );
+      }
+    }
 
     out = (TaintSet) makeCanonical( out );
     op2result.put( op, out );

@@ -59,9 +59,18 @@ public class TaintSet extends Canonical {
     return taints.isEmpty();
   }
 
-  public boolean containsTaint( Taint t ) {
+  public Taint containsIgnorePreds( Taint t ) {
     assert t != null;
-    return taints.contains( t );
+
+    Iterator<Taint> tItr = taints.iterator();
+    while( tItr.hasNext() ) {
+      Taint tThis = tItr.next();
+      if( tThis.equalsIgnorePreds( t ) ) {
+        return tThis;
+      }
+    }
+
+    return null;
   }
 
   public boolean equalsSpecific( Object o ) {

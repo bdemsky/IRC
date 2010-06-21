@@ -24,17 +24,20 @@ import java.io.*;
 ///////////////////////////////////////////
 
 // a taint is applied to a reference edge, and
-// is used to associate an effect with a heap root
+// is used to associate an effect with an
+// sese (rblock) and in-
 
 public class Taint extends Canonical {
 
   // taints can either be associated with
-  // parameters or seses (rblocks),
+  // a callsite and parameter index or
+  // an sese (rblock) and an in-set var
   // only one set of identifying objects
   // will be non-null
 
   // identify a parameter index
-  protected Integer paramIndex;
+  protected FlatCall callSite;
+  protected Integer  paramIndex;
   
   // identify an sese (rblock) + inset var
   protected FlatSESEEnterNode sese;
@@ -44,26 +47,49 @@ public class Taint extends Canonical {
   // an allocation site
   protected AllocSite allocSite;
 
+  // existance predicates must be true in a caller
+  // context for this taint's effects to transfer from this
+  // callee to that context
+  protected ExistPredSet preds;
 
-  public static Taint factory( Integer           pi,
+
+  public static Taint factory( FlatCall          fc,
+                               Integer           pi,
                                FlatSESEEnterNode s,
                                TempDescriptor    iv,
                                AllocSite         as ) {
-    Taint out = new Taint( pi, s, iv, as );
+    Taint out = new Taint( fc, pi, s, iv, as );
+    out.preds = ExistPredSet.factory();
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
 
-  protected Taint( Integer           pi,
+  public static Taint factory( FlatCall          fc,
+                               Integer           pi,
+                               FlatSESEEnterNode s,
+                               TempDescriptor    iv,
+                               AllocSite         as,
+                               ExistPredSet      eps ) {
+    Taint out = new Taint( fc, pi, s, iv, as );
+    out.preds = eps;
+    out = (Taint) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  protected Taint( FlatCall          fc,
+                   Integer           pi,
                    FlatSESEEnterNode s,
                    TempDescriptor    iv,
                    AllocSite         as ) {    
+
+    // either fc and pi are non-null, OR s and iv are non-null
     assert 
-      (pi != null && s == null && iv == null) ||
-      (pi == null && s != null && iv != null);
+      (fc != null && pi != null && s == null && iv == null) ||
+      (fc == null && pi == null && s != null && iv != null);
 
     assert as != null;
-
+    
+    callSite   = fc;
     paramIndex = pi;
     sese       = s;
     insetVar   = iv;
@@ -71,11 +97,15 @@ public class Taint extends Canonical {
   }
 
   public boolean isParamTaint() {
-    return paramIndex != null;
+    return callSite != null;
   }
 
   public boolean isSESETaint() {
     return sese != null;
+  }
+
+  public FlatCall getCallSite() {
+    return callSite;
   }
 
   public Integer getParamIndex() {
@@ -94,8 +124,20 @@ public class Taint extends Canonical {
     return allocSite;
   }
 
+  public ExistPredSet getPreds() {
+    return preds;
+  }
 
   public boolean equalsSpecific( Object o ) {
+    if( !equalsIgnorePreds( o ) ) {
+      return false;
+    }
+        
+    Taint t = (Taint) o;
+    return preds.equals( t.preds );
+  }
+
+  public boolean equalsIgnorePreds( Object o ) {
     if( o == null ) {
       return false;
     }
@@ -105,6 +147,13 @@ public class Taint extends Canonical {
     }
 
     Taint t = (Taint) o;
+
+    boolean fcMatches = true;
+    if( callSite == null ) {
+      fcMatches = t.callSite == null;
+    } else {
+      fcMatches = callSite.equals( t.callSite );
+    }
 
     boolean piMatches = true;
     if( paramIndex == null ) {
@@ -134,6 +183,10 @@ public class Taint extends Canonical {
   public int hashCodeSpecific() {
     int hash = allocSite.hashCode();
 
+    if( callSite != null ) {
+      hash = hash ^ callSite.hashCode();
+    }
+
     if( paramIndex != null ) {
       hash = hash ^ paramIndex.hashCode();
     }
@@ -152,12 +205,12 @@ public class Taint extends Canonical {
   public String toString() {
     String s = "(";
 
-    if( paramIndex != null ) {
-      s += "param"+paramIndex;
+    if( isParamTaint() ) {
+      s += "cs"+callSite.nodeid+"-"+paramIndex;
     } else {
       s += sese.toPrettyString()+"-"+insetVar;
     }
 
-    return s+", "+allocSite.toStringBrief()+")";
+    return s+", "+allocSite.toStringBrief()+"):"+preds;
   }
 }

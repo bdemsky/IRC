@@ -10,11 +10,14 @@ public class Test {
 
     Foo a = new Foo();
     Foo b = new Foo();
-    giveParamNames( a, b );
+    Foo c = new Foo();
+    Foo d = new Foo();
+    giveParamNames( a, b, c );
   }
 
-  static void giveParamNames( Foo a, Foo b ) {
-    Foo c = doStuff( a, b );
+  static void giveParamNames( Foo a, Foo b, Foo c ) {
+    Foo e = doStuff( a, b );
+    Foo f = doStuff( a, c );
   }   
 
   static Foo doStuff( Foo m, Foo n ) {
