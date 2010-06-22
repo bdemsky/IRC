@@ -1866,7 +1866,7 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
         // locking
         while(walker->status == TRANS_INPROGRESS) {
           printf("%s ->transid : %u - decision %d Status : %d Waitflag = %d\n",__func__,walker->transid,walker->decision,walker->status,TRANS_FLAG);
-          if(inspectEpoch(epoch_num,"stopTrans_Before") < 0)
+          if(inspectEpoch(walker->epoch_num,"stopTrans_Before") < 0)
             return -1;                                                
           sleep(3);
         }

@@ -1250,6 +1250,11 @@ int transCommit() {
     epoch_num = currentEpoch;
     pthread_mutex_unlock(&recovery_mutex);
 
+    pthread_mutex_lock(&translist_mutex);
+    transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRYING_TO_COMMIT,epoch_num);
+    tNode = tlistSearch(transList,transID);
+    pthread_mutex_unlock(&translist_mutex);
+
     /* Look through all the objects in the transaction record and make piles
      * for each machine involved in the transaction*/
     if (firsttime) {
@@ -1468,11 +1473,6 @@ int transCommit() {
 #endif
 
   if(finalResponse == TRANS_COMMIT) {
-    pthread_mutex_lock(&translist_mutex);
-    transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRYING_TO_COMMIT,epoch_num);
-    tNode = tlistSearch(transList,transID);
-    pthread_mutex_unlock(&translist_mutex);
-    
     tNode->decision = finalResponse;
     tNode->status = TRANS_INPROGRESS;
     if(okCommit == TRANS_OK && inspectEpoch(epoch_num,"TRANS_COMMIT") > 0)
@@ -1485,20 +1485,20 @@ int transCommit() {
     else { 
       tNode->status = TRYING_TO_COMMIT;
       if(inspectEpoch(epoch_num,"TRANS_COMMIT2") > 0) {
-//        treplyretry = 1; 
+        treplyretry = 1; 
       }
       finalResponse = TRANS_ABORT;
       commitMessages(epoch_num,socklist,deadsd,pilecount,tosend,finalResponse,treplyretry,transinfo);
     }
-
-    //===========  after transaction point
-    pthread_mutex_lock(&translist_mutex);
-    transList = tlistRemove(transList,transID);
-    pthread_mutex_unlock(&translist_mutex);
   }
   else {
     commitMessages(epoch_num,socklist,deadsd,pilecount,tosend,finalResponse,treplyretry,transinfo);
   }
+ 
+  //===========  after transaction point
+  pthread_mutex_lock(&translist_mutex);
+  transList = tlistRemove(transList,transID);
+  pthread_mutex_unlock(&translist_mutex);
 
   for(i = 0; i< pilecount; i++) {
      if(socklist[i] > 0) {
@@ -1887,10 +1887,10 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
       pthread_mutex_lock(&translist_mutex);
       tlistPrint(tList);
       pthread_mutex_unlock(&translist_mutex);
-      getchar();
+//      getchar();
       printf("%s -> I'm currently leader num : %d releaseing new lists\n\n",__func__,epoch_num);
       if((flag = releaseNewLists(epoch_num,sdlist,tList)) < 0) break;
-      getchar();
+  //    getchar();
       printf("%s -> I'm currently leader num : %d duplicate objects\n\n",__func__,epoch_num);
       // transfer lost objects
       if((flag= duplicateLostObjects(epoch_num,sdlist)) < 0) break;
