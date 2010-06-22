@@ -282,12 +282,11 @@ unsigned int updateLiveHosts();
 void updateLiveHostsList(int mid);
 int updateLiveHostsCommit();
 void receiveNewHostLists(int accept);
-void stopTransactions(int TRANS_FLAG);
+int stopTransactions(int TRANS_FLAG,unsigned int epoch_num);
 void sendMyList(int);
 void sendTransList(int acceptfd);
 int receiveTransList(int acceptfd);
 int combineTransactionList(tlist_node_t* tArray,int size);
-char inspectTransaction(char control,unsigned int transid,char* debug,int TRANS_FLAG);
 
 void respondToLeader();
 void setLocateObjHosts();
@@ -311,12 +310,12 @@ void notifyLeaderDeadMachine(unsigned int deadHost);
 void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num);
 int* getSocketLists();
 void freeSocketLists(int*);
-int inspectEpoch(unsigned int);
+int inspectEpoch(unsigned int,const char*);
 int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t**);
 int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t*);
 int duplicateLostObjects(unsigned int epoch_num,int* sdlist);
 void restartTransactions(unsigned int epoch_num,int* sdlist);
-int makeTransactionLists(tlist_t**,int);
+int makeTransactionLists(tlist_t**,int sd,unsigned int epoch_num);
 int computeLiveHosts(int);
 void waitForAllMachine();
 int readDuplicateObjs(int);
@@ -335,6 +334,7 @@ void *dstmAccept(void *);
 
 int readClientReq(trans_commit_data_t *, int);
 int processClientReq(fixed_data_t *, trans_commit_data_t *,unsigned int *, char *, void *, unsigned int *, int);
+void commitObjects(char control,fixed_data_t* fixed,trans_commit_data_t* transinfo,void* modptr,unsigned int* oidmod,int acceptfd);
 char checkDecision(unsigned int);
 char receiveDecisionFromBackup(unsigned int,int,unsigned int*);
 char handleTransReq(fixed_data_t *, trans_commit_data_t *, unsigned int *, char *, void *, int);
@@ -378,6 +378,7 @@ __attribute__((pure)) objheader_t *transRead2(unsigned int);
 objheader_t *transCreateObj(unsigned int); //returns oid header
 unsigned int locateBackupMachine(unsigned int oid);
 int transCommit(); //return 0 if successful
+void commitMessages(unsigned int epoch_num,int* sdlist,unsigned int deadsd,int pilecount,trans_req_data_t* tosend,char finalResponse,char treplyretry,trans_commit_data_t transinfo);
 void *transRequest(void *);     //the C routine that the thread will execute when TRANS_REQUEST begins
 char decideResponse(char *, char *,  int); // Coordinator decides what response to send to the participant
 void *getRemoteObj(unsigned int, unsigned int); // returns object header from main object store after object is copied into it from remote machine

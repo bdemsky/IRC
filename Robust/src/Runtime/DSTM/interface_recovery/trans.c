@@ -111,6 +111,7 @@ unsigned int transIDMax;
 char ip[16];      // for debugging purpose
 
 extern tlist_t* transList;
+extern pthread_mutex_t translist_mutex;
 extern pthread_mutex_t clearNotifyList_mutex;
 
 unsigned int currentEpoch;
@@ -240,6 +241,7 @@ GDBRECV1:
     numbytes = recv(fd, buffer, size, 0);
     bytesRecv += numbytes;
     
+    
     if (numbytes>0) {
       buffer += numbytes;
       size -= numbytes;
@@ -275,6 +277,8 @@ GDBRECV1:
       	return -2;
       }
     } else {
+//      printf("%s -> Here?\n",__func__);
+//      printf("%s-> errno = %d %s\n", __func__, errno, strerror(errno));
       //Case: numbytes==0
       //machine has failed -- this case probably doesn't occur in reality
       //
@@ -1202,6 +1206,8 @@ int transCommit() {
   int deadsd = -1;
   int deadmid = -1;
   unsigned int transID = getNewTransID();
+  unsigned int epoch_num;
+  tlist_node_t* tNode;
 #endif
 
 #ifdef DEBUG
@@ -1217,7 +1223,7 @@ int transCommit() {
     removetransactionhash();
     objstrDelete(t_cache);
     t_chashDelete();
-#ifdef DEBUG
+#ifndef DEBUG
 	  printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
     return 1;
@@ -1230,10 +1236,8 @@ int transCommit() {
  //   sleep(1);
     randomdelay();
   }
-
-  transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRANS_OK);
 #endif
-
+    
   int treplyretryCount = 0;
   /* Initialize timeout for exponential delay */
   exponential_backoff.tv_sec = 0;
@@ -1241,6 +1245,10 @@ int transCommit() {
   count_exponential_backoff = 0;
   do {
     treplyretry = 0;
+
+    pthread_mutex_lock(&recovery_mutex);
+    epoch_num = currentEpoch;
+    pthread_mutex_unlock(&recovery_mutex);
 
     /* Look through all the objects in the transaction record and make piles
      * for each machine involved in the transaction*/
@@ -1263,6 +1271,7 @@ int transCommit() {
 
     /* Create a socket and getReplyCtrl array, initialize */
     int socklist[pilecount];
+    unsigned int midlist[pilecount];
     char getReplyCtrl[pilecount];
     int loopcount;
     for(loopcount = 0 ; loopcount < pilecount; loopcount++) {
@@ -1276,6 +1285,8 @@ int transCommit() {
     trans_req_data_t *tosend;
     tosend = calloc(pilecount, sizeof(trans_req_data_t));
 
+//    printf("%s -> transID : %u Start!\n",__func__,transID);
+
     while(pile != NULL) {
 #ifdef DEBUG
 			printf("%s-> New pile:[%s],", __func__, midtoIPString(pile->mid));
@@ -1288,20 +1299,22 @@ int transCommit() {
 			tosend[sockindex].f.nummod = pile->nummod;
 			tosend[sockindex].f.numcreated = pile->numcreated;
 			tosend[sockindex].f.sum_bytes = pile->sum_bytes;
-      tosend[sockindex].f.epoch_num = currentEpoch;
+      tosend[sockindex].f.epoch_num = epoch_num;
 			tosend[sockindex].listmid = listmid;
 			tosend[sockindex].objread = pile->objread;
 			tosend[sockindex].oidmod = pile->oidmod;
 			tosend[sockindex].oidcreated = pile->oidcreated;
 
 
-            int sd = 0;
+      midlist[sockindex] = pile->mid; // debugging purpose
+
+      int sd = 0;
 			if(pile->mid != myIpAddr) {
 				if((sd = getSockWithLock(transRequestSockPool, pile->mid)) < 0) {
 					printf("\ntransRequest(): socket create error\n");
 					free(listmid);
 					free(tosend);
-#ifdef DEBUG
+#ifndef DEBUG
 					printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
 					return 1;
@@ -1353,6 +1366,7 @@ int transCommit() {
 				send_data(sd, modptr, tosend[sockindex].f.sum_bytes);
                 //forcesend_buf(sd, &writebuffer, modptr, tosend[sockindex].f.sum_bytes);
 
+
 				free(modptr);
 			} else { //handle request locally
         handleLocalReq(&tosend[sockindex], &transinfo, &getReplyCtrl[sockindex]);
@@ -1363,7 +1377,7 @@ int transCommit() {
    
 		/* Recv Ctrl msgs from all machines */
 #ifdef DEBUG
-		printf("%s-> Finished sending transaction read/mod objects\n",__func__);
+		printf("%s-> Finished sending transaction read/mod objects transID = %u\n",__func__,transID);
 #endif
 		int i;
 
@@ -1372,11 +1386,10 @@ int transCommit() {
 			if(sd != 0) {
 				char control;
         int timeout;            // a variable to check if the connection is still alive. if it is -1, then need to transcommit again
+//        printf("%s -> Waiting for mid : %s transID = %u\n",__func__,midtoIPString(midlist[i]),transID);
         timeout = recv_data(sd, &control, sizeof(char));
 
-//        printf("i = %d control = %d\n",i,control);
-        
-
+//        printf("%s -> Received mid : %s control %d timeout = %d\n",__func__,midtoIPString(midlist[i]),control,timeout);
 				//Update common data structure with new ctrl msg
 				getReplyCtrl[i] = control;
 				/* Recv Objects if participant sends TRANS_DISAGREE */
@@ -1406,13 +1419,14 @@ int transCommit() {
 						GETSIZE(size, header);
 						size += sizeof(objheader_t);
 						//make an entry in prefetch hash table
-                        prehashInsert(oidToPrefetch, header);
+            prehashInsert(oidToPrefetch, header);
 						length = length - size;
 						offset += size;
 					}
 				} //end of receiving objs
 #endif
-
+        
+//        printf("%s -> Pass this point2\n",__func__);
 #ifdef RECOVERY
         if(timeout < 0) {
           deadmid = listmid[i];
@@ -1432,12 +1446,13 @@ int transCommit() {
 
 #ifdef RECOVERY
 // wait until leader fix the system
-    if(okCommit != TRANS_OK) {
-      inspectTransaction(finalResponse,transID,"transCommit before response",TRANS_BEFORE);
+    if(finalResponse == RESPOND_HIGHER_EPOCH) {
+      printf("%s -> Received Higher epoch\n",__func__);
       finalResponse = TRANS_ABORT;
       treplyretry = 0;
     }
 #endif
+//    printf("%s -> transID = %u Passed this point\n",__func__,transID);
 
 #ifdef CACHE
     if (finalResponse == TRANS_COMMIT) {
@@ -1452,73 +1467,51 @@ int transCommit() {
     }
 #endif
 
-		/* Send responses to all machines */
-		for(i = 0; i < pilecount; i++) {
-			int sd = socklist[i];
-#ifdef RECOVERY
-      if(sd != deadsd) {
-#endif
-  			if(sd != 0) {
-#ifdef CACHE
-	  			if(finalResponse == TRANS_COMMIT) {
-		  			int retval;
-			  		/* Update prefetch cache */
-				  	if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
-					  	printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
-						  free(tosend);
-  						free(listmid);
-		  				return 1;
-			  		}
-                    
-#ifdef ABORTREADERS
-		  			removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-			  		removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
-#endif
-				  }
-#ifdef ABORTREADERS
-  				else if (!treplyretry) {
-	  				removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
-		  			removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-			  	}
-#endif
-#endif
-          send_data(sd,&finalResponse,sizeof(char));
-      } else {
-		  		/* Complete local processing */
-          finalResponse = doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
-
-#ifdef ABORTREADERS
-				  if(finalResponse == TRANS_COMMIT) {
-					  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
-  					removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-	  			} else if (!treplyretry) {
-		  			removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
-			  		removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
-				  }
-#endif
-  			}
-#ifdef RECOVERY
-      } 
-#endif
+  if(finalResponse == TRANS_COMMIT) {
+    pthread_mutex_lock(&translist_mutex);
+    transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRYING_TO_COMMIT,epoch_num);
+    tNode = tlistSearch(transList,transID);
+    pthread_mutex_unlock(&translist_mutex);
+    
+    tNode->decision = finalResponse;
+    tNode->status = TRANS_INPROGRESS;
+    if(okCommit == TRANS_OK && inspectEpoch(epoch_num,"TRANS_COMMIT") > 0)
+    {
+      finalResponse = tNode->decision;
+      thashInsert(transID,tNode->decision);
+      commitMessages(epoch_num,socklist,deadsd,pilecount,tosend,tNode->decision,treplyretry,transinfo);
+      tNode->status = TRANS_AFTER;
     }
-       
-   for(i = 0; i< pilecount; i++) {
+    else { 
+      tNode->status = TRYING_TO_COMMIT;
+      if(inspectEpoch(epoch_num,"TRANS_COMMIT2") > 0) {
+//        treplyretry = 1; 
+      }
+      finalResponse = TRANS_ABORT;
+      commitMessages(epoch_num,socklist,deadsd,pilecount,tosend,finalResponse,treplyretry,transinfo);
+    }
+
+    //===========  after transaction point
+    pthread_mutex_lock(&translist_mutex);
+    transList = tlistRemove(transList,transID);
+    pthread_mutex_unlock(&translist_mutex);
+  }
+  else {
+    commitMessages(epoch_num,socklist,deadsd,pilecount,tosend,finalResponse,treplyretry,transinfo);
+  }
+
+  for(i = 0; i< pilecount; i++) {
      if(socklist[i] > 0) {
        freeSockWithLock(transRequestSockPool,listmid[i], socklist[i]);
      }
    }
-
-			/* Free resources */
-    free(tosend);
-    free(listmid);
-    if (!treplyretry)
-      pDelete(pile_ptr);
-    /* wait a random amount of time before retrying to commit transaction*/
-    if(treplyretry) {
-      //treplyretryCount++;
-      //if(treplyretryCount >= NUM_TRY_TO_COMMIT)
-      //  exponentialdelay();
-      //else
+		/* Free resources */
+  free(tosend);
+  free(listmid);
+  if (!treplyretry)
+    pDelete(pile_ptr);
+  /* wait a random amount of time before retrying to commit transaction*/
+  if(treplyretry) {
       randomdelay();
 #ifdef TRANSSTATS
 			nSoftAbort++;
@@ -1527,16 +1520,10 @@ int transCommit() {
 	} while (treplyretry && deadmid != -1);
 
 #ifdef RECOVERY
-  //===========  after transaction point
-  tlist_node_t* tNode = tlistSearch(transList,transID);
-  inspectTransaction(finalResponse,transID,"Coordinator",TRANS_AFTER);
 
-  tNode->status = TRANS_OK;
-  finalResponse = tNode->decision;
 
-  pthread_mutex_lock(&clearNotifyList_mutex);
-  transList = tlistRemove(transList,transID);
-  pthread_mutex_unlock(&clearNotifyList_mutex);
+
+
 #endif
 
 	if(finalResponse == TRANS_ABORT) {
@@ -1547,8 +1534,7 @@ int transCommit() {
     objstrDelete(t_cache);
     t_chashDelete();
 #ifdef RECOVERY
-    if(deadmid != -1) { /* if deadmid is greater than or equal to 0, 
-                          then there is dead machine. */
+    if(deadmid != -1) { /* if deadmid is greater than or equal to 0,                           then there is dead machine. */
       notifyLeaderDeadMachine(deadmid);
     }
 #endif
@@ -1570,6 +1556,59 @@ int transCommit() {
 	printf("%s-> End, line:%d\n\n", __func__, __LINE__);
 #endif
   return 0;
+}
+
+void commitMessages(unsigned int epoch_num,int* socklist,unsigned int deadsd,int pilecount,trans_req_data_t* tosend,char finalResponse,char treplyretry,trans_commit_data_t transinfo ) {
+  int i;
+  /* Send responses to all machines */
+	for(i = 0; i < pilecount; i++) {
+	  int sd = socklist[i];
+#ifdef RECOVERY
+    if(sd != deadsd) {
+#endif
+    if(sd != 0) {
+#ifdef CACHE
+	    if(finalResponse == TRANS_COMMIT) {
+		    int retval;
+			  /* Update prefetch cache */
+			  if((retval = updatePrefetchCache(&(tosend[i]))) != 0) {
+			    printf("Error: %s() in updating prefetch cache %s, %d\n", __func__, __FILE__, __LINE__);
+//				  free(tosend);
+  //			  free(listmid);
+          exit(0);
+//		  	  return 1;
+			  }
+#ifdef ABORTREADERS
+		  	removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+			  removethisreadtransaction(tosend[i].objread, tosend[i].f.numread);
+#endif
+      }
+#ifdef ABORTREADERS
+      else if (!treplyretry) {
+	      removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+	      removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+	    }
+#endif
+#endif
+      send_data(sd,&finalResponse,sizeof(char));
+      send_data(sd,&epoch_num,sizeof(unsigned int));
+     } else {
+     /* Complete local processing */
+     finalResponse = doLocalProcess(finalResponse, &(tosend[i]), &transinfo);
+#ifdef ABORTREADERS
+      if(finalResponse == TRANS_COMMIT) {
+			  removetransaction(tosend[i].oidmod,tosend[i].f.nummod);
+  		  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+	  	} else if (!treplyretry) {
+		    removethistransaction(tosend[i].oidmod,tosend[i].f.nummod);
+			  removethisreadtransaction(tosend[i].objread,tosend[i].f.numread);
+			}
+#endif
+  	}
+#ifdef RECOVERY
+    } 
+#endif    
+  }
 }
 
 /* This function handles the local objects involved in a transaction
@@ -1632,12 +1671,6 @@ void handleLocalReq(trans_req_data_t *tdata, trans_commit_data_t *transinfo, cha
 }
 
 char doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_data_t *transinfo) {
-
-#ifdef RECOVERY
-  finalResponse = inspectTransaction(finalResponse,tdata->f.transid,"Local Commit",TRANS_BEFORE);
-  thashInsert(tdata->f.transid,finalResponse);
-#endif
-
   if(finalResponse == TRANS_ABORT) {
     if(transAbortProcess(transinfo) != 0) {
       printf("Error in transAbortProcess() %s,%d\n", __FILE__, __LINE__);
@@ -1651,7 +1684,7 @@ char doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
       return;
     }
   } else {
-    printf("ERROR...No Decision\n");
+    printf("%s -> ERROR...No Decision transID = %u finalResponse = %d\a\n",__func__,tdata->f.transid,finalResponse);
   }
 
 
@@ -1671,6 +1704,8 @@ char doLocalProcess(char finalResponse, trans_req_data_t *tdata, trans_commit_da
 char decideResponse(char *getReplyCtrl, char *treplyretry, int pilecount) {
   int i, transagree = 0, transdisagree = 0, transsoftabort = 0; /* Counters to formulate decision of what
 								   message to send */
+
+  int higher_epoch_num=0;
   for (i = 0 ; i < pilecount; i++) {
     char control;
     control = getReplyCtrl[i];
@@ -1701,8 +1736,18 @@ char decideResponse(char *getReplyCtrl, char *treplyretry, int pilecount) {
       printf("%s-> Participant sent TRANS_SOFT_ABORT, i:%d, Control: %d\n", __func__, i, (int)control);
 #endif
       break;
+    case RESPOND_HIGHER_EPOCH:
+      higher_epoch_num++;
+#ifdef DEBUG                                                                                              
+      printf("%s-> Participant sent TRANS_DISAGREE, i:%d, Control: %d\n", __func__, i, (int)control);     
+#endif 
+      break;
     }
   }
+
+  if(higher_epoch_num > 0)
+    return RESPOND_HIGHER_EPOCH;
+
 
   if(transdisagree > 0) {
     /* Send Abort */
@@ -1791,7 +1836,7 @@ void notifyLeaderDeadMachine(unsigned int deadHost) {
   unsigned int epoch_num;
 
 	if(!liveHosts[findHost(deadHost)]) {  // if it is already fixed
-    printf("%s -> already fixed\n",__func__);
+//    printf("%s -> already fixed\n",__func__);
 		sleep(WAIT_TIME);
 		return;
 	}
@@ -1807,6 +1852,7 @@ void notifyLeaderDeadMachine(unsigned int deadHost) {
   // increase epoch number by number machines in the system
   pthread_mutex_lock(&recovery_mutex);
   epoch_num = currentEpoch = INCREASE_EPOCH(currentEpoch,numHostsInSystem,myIndexInHostArray);
+  okCommit = TRANS_BEFORE;
   pthread_mutex_unlock(&recovery_mutex);
 
   // notify all machines that this machien will act as leader.
@@ -1817,13 +1863,12 @@ void notifyLeaderDeadMachine(unsigned int deadHost) {
 /* Leader's role */ 
 void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
 {
-  printf("%s -> Entering\n",__func__);
   int* sdlist;
   tlist_t* tList;
   int flag = 0;
 
 #ifdef RECOVERYSTATS
-  printf("Recovery Start\n");
+//  printf("Recovery Start\n");
   long long st;
   long long fi;
   unsigned int dupeSize = 0;  // to calculate the size of backed up data
@@ -1836,12 +1881,17 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
     do {
       sdlist = getSocketLists();
   
-      printf("%s -> I'm currently leader num : %d\n\n",__func__,epoch_num);
+      printf("%s -> I'm currently leader num : %d ping machines\n\n",__func__,epoch_num);
       if((flag = pingMachines(epoch_num,sdlist,&tList)) < 0) break;
 
-      printf("%s -> I'm currently leader num : %d\n\n",__func__,epoch_num);
+      pthread_mutex_lock(&translist_mutex);
+      tlistPrint(tList);
+      pthread_mutex_unlock(&translist_mutex);
+      getchar();
+      printf("%s -> I'm currently leader num : %d releaseing new lists\n\n",__func__,epoch_num);
       if((flag = releaseNewLists(epoch_num,sdlist,tList)) < 0) break;
-    
+      getchar();
+      printf("%s -> I'm currently leader num : %d duplicate objects\n\n",__func__,epoch_num);
       // transfer lost objects
       if((flag= duplicateLostObjects(epoch_num,sdlist)) < 0) break;
 
@@ -1877,7 +1927,6 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
   printRecoveryStat();
 #endif
   }
-  printf("%s -> Exiting\n",__func__);
 }
 
 int* getSocketLists()
@@ -1957,7 +2006,7 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
   char response;
   tlist_t* currentTransactionList;
    
-  if(inspectEpoch(epoch_num) < 0) {
+  if(inspectEpoch(epoch_num,__func__) < 0) {
     printf("%s -> Higher Epoch\n",__func__);
     return -1;
   }
@@ -1970,47 +2019,72 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
     if(sdlist[i] == -1 || hostIpAddrs[i] == myIpAddr)
       continue;
   
+    printf("%s -> sending request_trans_wait to %s\n",__func__,midtoIPString(hostIpAddrs[i]));
     request = REQUEST_TRANS_WAIT;
     send_data(sdlist[i],&request, sizeof(char));
     send_data(sdlist[i],&epoch_num,sizeof(unsigned int));
     send_data(sdlist[i],&myIndexInHostArray,sizeof(unsigned int));
   }
 
+  printf("%s -> Stop transaction\n",__func__);
   /* stop all local transactions */
-  stopTransactions(TRANS_BEFORE);
+  if(stopTransactions(TRANS_BEFORE,epoch_num) < 0)
+    return -1;
 
+  printf("After Stop transaction\n");
 
   // grab leader's transaction list first
   tlist_node_t* walker = transList->head;
-  
+ 
   while(walker) {
-    walker->status = TRANS_OK;
-    currentTransactionList = tlistInsertNode2(currentTransactionList,walker);
+    pthread_mutex_lock(&translist_mutex);
+    currentTransactionList = tlistInsertNode2(currentTransactionList,walker,epoch_num);
+    pthread_mutex_unlock(&translist_mutex);
     walker = walker->next;
   }
+
+//  printf("%s -> Local Transactions\n",__func__);
+//  tlistPrint(currentTransactionList);
 
   for(i = 0; i < numHostsInSystem; i++)
   {
     if(sdlist[i] == -1 || hostIpAddrs[i] == myIpAddr)
       continue;
 
+    printf("%s -> receving from %s\n",__func__,midtoIPString(hostIpAddrs[i]));
     if(recv_data(sdlist[i],&response,sizeof(char)) < 0)
     {
+      printf("Here\n");
+      pthread_mutex_lock(&translist_mutex);
       tlistDestroy(currentTransactionList);
+      pthread_mutex_unlock(&translist_mutex);
       return -2;
     }
 
+    printf("recevied response = %d\n",response);
     if(response == RESPOND_TRANS_WAIT) 
     {
+      printf("%s -> RESPOND_TRANS_WAIT\n",__func__);
+      int timeout1 = computeLiveHosts(sdlist[i]);
+      printf("%s -> received host list\n",__func__);
+      int timeout2 = makeTransactionLists(&currentTransactionList,sdlist[i],epoch_num);
+      printf("%s -> received transaction list\n",__func__);
       // receive live host list       // receive transaction list
-      if(computeLiveHosts(sdlist[i]) < 0 || makeTransactionLists(&currentTransactionList,sdlist[i]) < 0) {
+      if(timeout1 < 0 || timeout2 < 0) {
+        pthread_mutex_lock(&translist_mutex);
         tlistDestroy(currentTransactionList);
+        pthread_mutex_unlock(&translist_mutex);
         return -2;
       }
+      printf("\n\n\nAfter mid : %s \n",midtoIPString(hostIpAddrs[i]));
+      tlistPrint(currentTransactionList);
     }
     else if(response == RESPOND_HIGHER_EPOCH)
     {
+      printf("%s -> RESPOND_HIGHER_EPOCH\n",__func__);
+      pthread_mutex_lock(&translist_mutex);
       tlistDestroy(currentTransactionList);
+      pthread_mutex_unlock(&translist_mutex);
       return -1;
     }
     else {
@@ -2029,8 +2103,6 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
     }
     walker = walker->next;
   }
-
-  tlistPrint(currentTransactionList);
   *tList = currentTransactionList;
 
   printf("%s -> Exit\n",__func__);
@@ -2060,6 +2132,7 @@ int computeLiveHosts(int sd)
 
 int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
 {
+  printf("%s -> Enter\n",__func__);
   int i;
   char response = RELEASE_NEW_LIST;
   int size;
@@ -2067,7 +2140,7 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
   tlist_node_t* tArray;
   
   
-  if(inspectEpoch(epoch_num) < 0) return -1;  
+  if(inspectEpoch(epoch_num,__func__) < 0) return -1;  
   
   tArray = tlistToArray(tlist,&size);
 
@@ -2101,7 +2174,8 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
         printf("%s -> problem\n",__func__);
         exit(0);
       }
-      stopTransactions(TRANS_AFTER);
+      if(stopTransactions(TRANS_AFTER,epoch_num) < 0)
+        return -1;
     }
   }
 
@@ -2135,12 +2209,13 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
 
 // after this fuction
 // leader knows all the on-going transaction list and their decisions
-int makeTransactionLists(tlist_t** tlist,int sd)
+int makeTransactionLists(tlist_t** tlist,int sd,unsigned int epoch_num)
 {
   tlist_node_t* transArray;
   tlist_node_t* tmp;
   tlist_node_t* walker;
   int j;
+  int i;
   int size;
 
   // receive all on-going transaction list
@@ -2157,6 +2232,12 @@ int makeTransactionLists(tlist_t** tlist,int sd)
     return -2;
   }
 
+  printf("%s -> Received TransArray\n",__func__);
+  for(i = 0; i< size; i++) {
+    printf("ID : %u  Decision : %d  status : %d\n",transArray[i].transid,transArray[i].decision,transArray[i].status);
+  }
+  printf("%s -> End transArray\n",__func__);
+
   // add into currentTransactionList
   for(j = 0 ; j < size; j ++) {
     tmp = tlistSearch(*tlist,transArray[j].transid);
@@ -2164,7 +2245,9 @@ int makeTransactionLists(tlist_t** tlist,int sd)
     if(tmp == NULL) {
       tlist_node_t* tNode = &transArray[j];
       tNode->status = TRANS_OK;
-      *tlist = tlistInsertNode2(*tlist,&(transArray[j]));
+
+      printf("%s -> transid = %u decision = %d\n",__func__,transArray[j].transid,transArray[j].decision);
+      *tlist = tlistInsertNode2(*tlist,&(transArray[j]),epoch_num);
     }
     else {
       if(tmp->decision == DECISION_LOST && transArray[j].decision != DECISION_LOST)
@@ -2222,13 +2305,19 @@ void restartTransactions(unsigned int epoch_num,int* sdlist)
   }
 }
 
-int inspectEpoch(unsigned int epoch_num)
+int inspectEpoch(unsigned int epoch_num,const char* f)
 {
   int flag = 1;
+
+//  printf("%s -> current epoch %u epoch num = %u\n",__func__,currentEpoch,epoch_num);
   pthread_mutex_lock(&recovery_mutex);
   if(epoch_num < currentEpoch) {
     flag = -1;
-  }
+  }/*
+  else if(epoch_num > currentEpoch) {
+//    printf("%s -> current epoch %u is changed to epoch num = %u\n",f,currentEpoch,epoch_num);
+//    currentEpoch = epoch_num;
+  }*/
   pthread_mutex_unlock(&recovery_mutex);
 
   return flag;
@@ -3199,8 +3288,6 @@ int getNumLiveHostsInSystem() {
 	return count;
 }
 
-// if flag = TRANS_OK, allow transactions
-//    flag = TRANS_WAIT, stop transactins
 int updateLiveHostsCommit() {
 #ifdef DEBUG      
   printf("%s -> Enter\n",__func__);
@@ -3311,7 +3398,7 @@ int duplicateLostObjects(unsigned int epoch_num,int *sdlist){
    * Backup     26      21,24
    */
 
-  if(inspectEpoch(epoch_num) < 0) return -1;
+  if(inspectEpoch(epoch_num,__func__) < 0) return -1;
 
   response = REQUEST_DUPLICATE;
 

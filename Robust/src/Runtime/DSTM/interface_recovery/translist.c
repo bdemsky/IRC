@@ -11,8 +11,6 @@ tlist_t* tlistCreate()
   transList->head = NULL;
   transList->size = 0;
 
-  pthread_mutex_init(&(transList->mutex),NULL);
-
   return transList;
 }
 
@@ -34,17 +32,16 @@ tlist_t* tlistDestroy(tlist_t* transList)
 }
 
 // tlistInsertNode extension
-tlist_t* tlistInsertNode2(tlist_t* transList,tlist_node_t* tNode) 
+tlist_t* tlistInsertNode2(tlist_t* transList,tlist_node_t* tNode,unsigned int epoch_num) 
 {
-  transList = tlistInsertNode(transList,tNode->transid,tNode->decision,tNode->status);
+  transList = tlistInsertNode(transList,tNode->transid,tNode->decision,tNode->status,epoch_num);
   return transList;
 }
 
 // return 0 if success, return -1 if fail
-tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,char status) {
+tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,char status,unsigned int epoch_num) {
 
 //  printf("%s -> ADD transID : %u decision %d  status  %d\n",__func__,transid,decision,status);
-  pthread_mutex_lock(&(transList->mutex));
   tlist_node_t* head = transList->head;
 
   if(head == NULL) {
@@ -56,13 +53,12 @@ tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,c
     head->transid = transid;
     head->decision = decision;
     head->status = status;
+    head->epoch_num = epoch_num;
     head->next = NULL;
 
-    //pthread_mutex_lock(&(transList->mutex));
     transList->head = head;
     (transList->size)++;
     transList->flag = 1;
-    pthread_mutex_unlock(&(transList->mutex));
     return transList;
   }
   else {
@@ -77,12 +73,12 @@ tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,c
     tmp->transid = transid;
     tmp->decision = decision;
     tmp->status = status;
+    tmp->epoch_num = epoch_num;
 
     tmp->next = transList->head;
     transList->head = tmp;
     (transList->size)++;
     transList->flag = 1;
-    pthread_mutex_unlock(&(transList->mutex));
     return transList;
   }
 }
@@ -90,7 +86,6 @@ tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,c
 // return tlist_t if success, return null if cannot find
 tlist_node_t* tlistSearch(tlist_t* transList,unsigned int transid)
 {
-  pthread_mutex_lock(&(transList->mutex));
   tlist_node_t* ptr = transList->head;
 
   while(ptr != NULL)
@@ -100,19 +95,20 @@ tlist_node_t* tlistSearch(tlist_t* transList,unsigned int transid)
 
     ptr = ptr->next;
   }
-  pthread_mutex_unlock(&(transList->mutex));
   return ptr;
 }
 
 tlist_t* tlistRemove(tlist_t* transList,unsigned int transid)
 {
 //  printf("%s -> REMOVE transID : %u \n",__func__,transid);
-  pthread_mutex_lock(&(transList->mutex));
 
   int flag = -1;
   tlist_node_t* tmp;
   tlist_node_t* ptr = transList->head;
   tlist_node_t* prev = NULL;
+
+  if(transList->head == NULL)
+    return transList;
 
   /* if it is head */
   if(transList->head->transid == transid)
@@ -123,7 +119,6 @@ tlist_t* tlistRemove(tlist_t* transList,unsigned int transid)
     (transList->size)--;
     transList->flag = 1;
 
-    pthread_mutex_unlock(&(transList->mutex));
     return transList;
   }
 
@@ -140,16 +135,12 @@ tlist_t* tlistRemove(tlist_t* transList,unsigned int transid)
       (transList->size)--;
       flag = 0;
       transList->flag = 1;
-      pthread_mutex_unlock(&(transList->mutex));
       return transList;
     }
     prev = ptr;
     ptr = ptr->next;
   }
     
-  pthread_mutex_unlock(&(transList->mutex));
-  printf("%s -> remove Fail!\n",__func__);
-
   return transList;
 }
 
@@ -171,7 +162,12 @@ tlist_node_t* tlistToArray(tlist_t* transList,int* size)
 
   while(walker)
   {
-    array[i++] = *walker;
+    array[i].transid = walker->transid;
+    array[i].decision = walker->decision;
+    array[i].status = walker->status;
+    array[i].epoch_num = walker->epoch_num;
+
+    i++;
     walker = walker->next;
   }
 

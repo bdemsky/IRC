@@ -12,7 +12,8 @@
 /* for machine flag */
 #define TRANS_OK     3
 #define TRANS_BEFORE 4
-#define TRANS_AFTER  5
+#define TRANS_INPROGRESS   5
+#define TRANS_AFTER  6
 
 /*
    Status
@@ -26,6 +27,7 @@ typedef struct trans_list_node {
   unsigned int transid;
   char decision;
   char status;
+  unsigned int epoch_num;
   struct trans_list_node *next;
 } tlist_node_t;
 
@@ -34,7 +36,6 @@ typedef struct trans_list
   tlist_node_t *head;
   int size;
   int flag;
-  pthread_mutex_t mutex;
 } tlist_t;
 
 // allocate tlist_t, return -1 if memory overflow
@@ -42,8 +43,8 @@ tlist_t* tlistCreate();
 tlist_t* tlistDestroy(tlist_t*);
 
 // return 0 if success, return -1 if fail
-tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,char status);
-tlist_t* tlistInsertNode2(tlist_t* transList,tlist_node_t* tNode) ;
+tlist_t* tlistInsertNode(tlist_t* transList,unsigned int transid,char decision,char status,unsigned int epoch_num);
+tlist_t* tlistInsertNode2(tlist_t* transList,tlist_node_t* tNode,unsigned int epoch_num) ;
 
 // remove node.
 // return 0 if success, return -1 if fail

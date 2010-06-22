@@ -38,6 +38,7 @@ extern int *liveHosts;
 extern int numLiveHostsInSystem;
 int clearNotifyListFlag;
 pthread_mutex_t clearNotifyList_mutex;
+pthread_mutex_t translist_mutex;
 
 tlist_t* transList;
 int okCommit; // machine flag
@@ -80,6 +81,7 @@ int dstmInit(void) {
 	pthread_mutex_init(&liveHosts_mutex, NULL);
 	pthread_mutex_init(&recovery_mutex, NULL);
   pthread_mutex_init(&clearNotifyList_mutex,NULL);
+  pthread_mutex_init(&translist_mutex,NULL);
 #endif
 
   if (mhashCreate(MHASH_SIZE, MLOADFACTOR))
@@ -315,6 +317,7 @@ void *dstmAccept(void *acceptfd) {
 	while(1) {
 		int ret=recv_data_errorcode((int)acceptfd, &control, sizeof(char));
 		//int ret=recv_data_errorcode_buf((int)acceptfd, &readbuffer, &control, sizeof(char));
+//    printf("%s -> Received control = %d\n",__func__,control);
     dupeptr = NULL;
 
 		if (ret==0)
@@ -514,28 +517,31 @@ void *dstmAccept(void *acceptfd) {
 #endif
 #ifdef RECOVERY
       case REQUEST_TRANS_WAIT:
-        { 
+        {
           unsigned int new_leader_index;
           recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
           recv_data((int)acceptfd,&new_leader_index,sizeof(unsigned int));
 
-          if(inspectEpoch(epoch_num) < 0) {
+          if(inspectEpoch(epoch_num,"REQUEST_TRANS_WAIT") < 0) {
             response = RESPOND_HIGHER_EPOCH;
             send_data((int)acceptfd,&response,sizeof(char));
           }
           else {
             printf("Got new Leader! : %d\n",epoch_num);
-
-            stopTransactions(TRANS_BEFORE);
-
             pthread_mutex_lock(&recovery_mutex);
             currentEpoch = epoch_num;
+            okCommit = TRANS_BEFORE;
             leader_index = new_leader_index;
             pthread_mutex_unlock(&recovery_mutex);
-            
-            response = RESPOND_TRANS_WAIT;
-            send_data((int)acceptfd,&response,sizeof(char));
-            sendMyList((int)acceptfd);
+            if(stopTransactions(TRANS_BEFORE,epoch_num) < 0) {
+              response = RESPOND_HIGHER_EPOCH;
+              send_data((int)acceptfd,&response,sizeof(char));
+            }
+            else {
+              response = RESPOND_TRANS_WAIT;
+              send_data((int)acceptfd,&response,sizeof(char));
+              sendMyList((int)acceptfd);
+            }
           }
         } 
         break;
@@ -545,14 +551,16 @@ void *dstmAccept(void *acceptfd) {
         { 
           recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
 
-          if(inspectEpoch(epoch_num) < 0) {
+          if(inspectEpoch(epoch_num,"RELEASE_NEW_LIST") < 0) {
             response = RESPOND_HIGHER_EPOCH;
           }
           else 
           {
             response =  receiveNewList((int)acceptfd);
-            stopTransactions(TRANS_AFTER);
+            if(stopTransactions(TRANS_AFTER,epoch_num) < -1)
+              response = RESPOND_HIGHER_EPOCH;
           }
+          printf("After stop transaction\n");
           send_data((int)acceptfd,&response,sizeof(char));
         }
       break;
@@ -561,7 +569,7 @@ void *dstmAccept(void *acceptfd) {
 
         recv_data((int)acceptfd,&epoch_num,sizeof(char));
 
-        if(inspectEpoch(epoch_num) < 0) break;
+        if(inspectEpoch(epoch_num,"REQUEST_TRANS_RESTART") < 0) break;
         
         pthread_mutex_lock(&liveHosts_mutex);
         printf("RESTART!!!\n");
@@ -598,7 +606,7 @@ void *dstmAccept(void *acceptfd) {
 
          recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
 
-         if(inspectEpoch(epoch_num) < 0) {
+         if(inspectEpoch(epoch_num,"REQUEST_DUPLICATE") < 0) {
            break;
          }
 		  	  	
@@ -731,10 +739,8 @@ int readDuplicateObjs(int acceptfd) {
       return -1;
     }
   
-    printf("%s -> PAss this point\n",__func__);
 
 		ptr = dupeptr;
-    printf("%s -> numoid = %u\n",__func__,numoid);
 		for(i = 0; i < numoid; i++) {
 			header = (objheader_t *)ptr;
 			oid = OID(header);
@@ -824,10 +830,6 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
   fixed.control = TRANS_REQUEST;
   timeout = recv_data((int)acceptfd, ptr+1, size);
 
-#ifdef RECOVERY
-  transList = tlistInsertNode(transList,fixed.transid,TRYING_TO_COMMIT,TRANS_OK);
-#endif
-
   /* Read list of mids */
   int mcount = fixed.mcount;
   size = mcount * sizeof(unsigned int);
@@ -915,93 +917,80 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
   char control, sendctrl, retval;
   
   objheader_t *tmp_header;
-  void *header;
-  int i = 0, val;
+  int i = 0;
+  unsigned int epoch_num;
+  tlist_node_t* tNode;
+#ifdef DEBUG
+  printf("%s -> Enter\n",__func__);
+#endif
 
+//  printf("%s -> transID : %u\n",__func__,fixed->transid);
+  if(inspectEpoch(fixed->epoch_num,"procesClient1") < 0) {
+    printf("%s-> Higher Epoch current epoch = %u epoch %u\n",__func__,currentEpoch,fixed->epoch_num);
+    control = RESPOND_HIGHER_EPOCH;
+    send_data((int)acceptfd,&control,sizeof(char));
+  }
   /* Send reply to the Coordinator */
-  if((retval = handleTransReq(fixed, transinfo, listmid, objread, modptr,acceptfd)) == 0 ) {
+  else if((retval = handleTransReq(fixed, transinfo, listmid, objread, modptr,acceptfd)) == 0 ) {
     printf("Error: In handleTransReq() %s, %d\n", __FILE__, __LINE__);
 	  printf("DEBUG-> Exiting processClientReq, line = %d\n", __LINE__);
     return 1;
   }
 
 //  printf("%s -> Waiting for transID : %u\n",__func__,fixed->transid);
+	int timeout1 = recv_data((int)acceptfd, &control, sizeof(char));
+  int timeout2 = recv_data((int)acceptfd, &epoch_num, sizeof(unsigned int));
 
-	int timeout = recv_data((int)acceptfd, &control, sizeof(char));
-
-#ifdef RECOVERY
-  if(timeout < 0) {  // timeout. failed to receiving data from coordinator
-    control = -1;
+  if(timeout1 < 0 || timeout2 < 0) {  // timeout. failed to receiving data from coordinator
+    control = DECISION_LOST;
   }
+  
+  pthread_mutex_lock(&translist_mutex);
+  transList = tlistInsertNode(transList,fixed->transid,control,TRYING_TO_COMMIT,epoch_num);
+  pthread_mutex_unlock(&translist_mutex);
+
+  pthread_mutex_lock(&translist_mutex);
+  tNode = tlistSearch(transList,fixed->transid);  
+  pthread_mutex_unlock(&translist_mutex);         
+  
   // check if it is allowed to commit
-  control = inspectTransaction(control,fixed->transid,"processClientReq",TRANS_BEFORE);
-  thashInsert(fixed->transid, control);
+  do {
+    tNode->status = TRANS_INPROGRESS; 
+    if(okCommit != TRANS_BEFORE) {
+      if(inspectEpoch(tNode->epoch_num,"processCleint2") > 0) {
+        tNode->status = TRANS_INPROGRESS;
+        thashInsert(fixed->transid,tNode->decision);
+        commitObjects(tNode->decision,fixed,transinfo,modptr,oidmod,acceptfd);
+        tNode->status = TRANS_AFTER;
+      }
+      if(okCommit == TRANS_AFTER) {
+      printf("%s -> 11 \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+      sleep(3);     
+      }
+    }
+    else {
+      tNode->status = TRYING_TO_COMMIT;
+      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+      sleep(3);
+      randomdelay();
+    }
+    
+  }while(tNode->status != TRANS_AFTER);
 
-#endif
-
-  switch(control) {
-		case TRANS_ABORT:
-			if (fixed->nummod > 0)
-				free(modptr);
-			/* Unlock objects that was locked due to this transaction */
-			int useWriteUnlock = 0;
-			for(i = 0; i< transinfo->numlocked; i++) {
-				if(transinfo->objlocked[i] == -1) {
-					useWriteUnlock = 1;
-					continue;
-				}
-				if((header = mhashSearch(transinfo->objlocked[i])) == NULL) {
-					printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__); // find the header address
-					printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
-					return 1;
-				}
-				if(useWriteUnlock) {
-					write_unlock(STATUSPTR(header));
-				} else {
-					read_unlock(STATUSPTR(header));
-				}
-			}
-			break;
-
-		case TRANS_COMMIT:
-      /* insert received control into thash for another transaction*/
-			/* Invoke the transCommit process() */
-			if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
-				printf("Error: In transCommitProcess() %s, %d\n", __FILE__, __LINE__);
-				/* Free memory */
-				if (transinfo->objlocked != NULL) {
-					free(transinfo->objlocked);
-				}
-				if (transinfo->objnotfound != NULL) {
-					free(transinfo->objnotfound);
-				}
-				printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
-				return 1;
-			}
+  if(okCommit == TRANS_AFTER)
+  {
+    printf("%s -> TRANS_AFTER!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+    printf("%s -> Before removing\n",__func__);
+  }
 
 
-			break;
-
-		case TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING:
-			break;
-
-		default:
-			printf("Error: No response to TRANS_AGREE OR DISAGREE protocol %s, %d\n", __FILE__, __LINE__);
-			//TODO Use fixed.trans_id  TID since Client may have died
-			break;
-	}
-
-#ifdef RECOVERY
-  inspectTransaction(control,fixed->transid,"processClientReq",TRANS_AFTER);
-
-  tlist_node_t* tNode = tlistSearch(transList,fixed->transid);
-  tNode->status = TRANS_OK;
-
-  pthread_mutex_lock(&clearNotifyList_mutex);
+  pthread_mutex_lock(&translist_mutex);
   transList = tlistRemove(transList,fixed->transid);
-  pthread_mutex_unlock(&clearNotifyList_mutex);
+  pthread_mutex_unlock(&translist_mutex);
 
-#endif
+  if(okCommit == TRANS_AFTER)
+    printf("%s -> After removing\n",__func__);
+
 
   /* Free memory */
   if (transinfo->objlocked != NULL) {
@@ -1011,13 +1000,72 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     free(transinfo->objnotfound);
   }
 #ifdef DEBUG
-	printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
+	printf("%s-> Exit\n", __func__);
 #endif
 
   return 0;
 }
 
-#ifdef RECOVERY
+void commitObjects(char control,fixed_data_t* fixed,trans_commit_data_t* transinfo,void* modptr,unsigned int* oidmod,int acceptfd)
+{
+  void *header;
+  int val;
+  int i;
+
+  switch(control) {
+    case TRANS_ABORT:
+      if (fixed->nummod > 0)	    
+        free(modptr);
+      /* Unlock objects that was locked due to this transaction */
+      int useWriteUnlock = 0;
+			for(i = 0; i< transinfo->numlocked; i++) {
+			  if(transinfo->objlocked[i] == -1) {
+				  useWriteUnlock = 1;
+				  continue;
+				}
+				if((header = mhashSearch(transinfo->objlocked[i])) == NULL) {
+			    printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__); // find the header address
+				  printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
+			    exit(0);
+          return ;
+				}
+				if(useWriteUnlock) {
+				  write_unlock(STATUSPTR(header));
+				} else {
+				  read_unlock(STATUSPTR(header));
+			  }
+			}
+			break;
+      case TRANS_COMMIT:
+      /* insert received control into thash for another transaction*/
+			/* Invoke the transCommit process() */
+		  if((val = transCommitProcess(modptr, oidmod, transinfo->objlocked, fixed->nummod, transinfo->numlocked, (int)acceptfd)) != 0) {
+			  printf("Error: In transCommitProcess() %s, %d\n", __FILE__, __LINE__);
+				/* Free memory */
+				if (transinfo->objlocked != NULL) {
+				  free(transinfo->objlocked);
+				}
+				if (transinfo->objnotfound != NULL) {
+				  free(transinfo->objnotfound);
+	      }
+			  printf("%s-> Exiting, line:%d\n", __func__, __LINE__);
+        exit(0);
+        return;
+			}
+      break;
+    case TRANS_ABORT_BUT_RETRY_COMMIT_WITH_RELOCATING:
+      break;
+    default:
+      printf("%s : No response to TRANS_AGREE OR DISAGREE protocol - transID = %u, control =  %d\a\n",__func__,fixed->transid);
+      //TODO Use fixed.trans_id  TID since Client may have died
+      			break;                                                                                                                        
+  }
+  
+  return;
+} 
+            
+            
+           
 char checkDecision(unsigned int transID) 
 {
 #ifdef DEBUG
@@ -1031,7 +1079,6 @@ char checkDecision(unsigned int transID)
   else
     return response;
 }
-#endif
 
 /* This function increments counters while running a voting decision on all objects involved
  * in TRANS_REQUEST and If a TRANS_DISAGREE sends the response immediately back to the coordinator */
@@ -1042,6 +1089,9 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
   unsigned int oid;
   unsigned int *oidnotfound, *oidlocked, *oidvernotmatch;
   objheader_t *headptr;
+#ifdef DEBUG
+  printf("%s -> Enter\n",__func__);
+#endif
 
   /* Counters and arrays to formulate decision on control message to be sent */
   oidnotfound = (unsigned int *) calloc(fixed->numread + fixed->nummod, sizeof(unsigned int));
@@ -1135,27 +1185,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
 			offset += size;
 		}
 #endif
-        /*
-		if (objlocked > 0) {
-			int useWriteUnlock = 0;
-			for(j = 0; j < objlocked; j++) {
-				if(oidlocked[j] == -1) {
-					useWriteUnlock = 1;
-					continue;
-				}
-				if((headptr = mhashSearch(oidlocked[j])) == NULL) {
-					printf("mhashSearch returns NULL at %s, %d\n", __FILE__, __LINE__);
-					return 0;
-				}
-				if(useWriteUnlock) {
-					write_unlock(STATUSPTR(headptr));
-				} else {
-					read_unlock(STATUSPTR(headptr));
-				}
-			}
-			free(oidlocked);
-		}
-        */
     
 #ifdef DEBUG
 		printf("%s -> control = %d, file = %s, line = %d\n", __func__,(int)control, __FILE__, __LINE__);
@@ -1165,6 +1194,7 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       printf("control = %d\n",control);
     control=TRANS_DISAGREE;
 
+    printf("%s -> Sent message!\n",__func__);
 		send_data(acceptfd, &control, sizeof(char));
 #ifdef CACHE
 		send_data(acceptfd, &numBytes, sizeof(int));
@@ -1183,6 +1213,9 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
     printf("Error: In decideCtrlMessage() %s, %d\n", __FILE__, __LINE__);
     return 0;
   }
+#ifdef DEBUG
+  printf("%s -> Exit\n",__func__);
+#endif
   return control;
 }
 
@@ -1414,6 +1447,9 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
                        unsigned int *oidnotfound, unsigned int *oidlocked, int acceptfd) {
   int val;
   char control = 0;
+#ifdef DEBUG
+  printf("%s -> Enter\n",__func__);
+#endif
 
   /* Condition to send TRANS_AGREE */
   if(*(v_matchnolock) == fixed->numread + fixed->nummod) {
@@ -1436,16 +1472,6 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
 #endif
     /* Send control message */
     send_data(acceptfd, &control, sizeof(char));
-
-    
-    /*  FIXME how to send objs Send number of oids not found and the missing oids if objects are missing in the machine */
-    /*if(*(objnotfound) != 0) {
-      int msg[1];
-      msg[0] = *(objnotfound);
-      send_data(acceptfd, &msg, sizeof(int));
-      int size = sizeof(unsigned int)* *(objnotfound);
-      send_data(acceptfd, oidnotfound, size);
-    }*/
   }
 
   /* Fill out the trans_commit_data_t data structure. This is required for a trans commit process
@@ -1455,6 +1481,10 @@ char decideCtrlMessage(fixed_data_t *fixed, trans_commit_data_t *transinfo, int 
   transinfo->modptr = modptr;
   transinfo->numlocked = *(objlocked);
   transinfo->numnotfound = *(objnotfound);
+
+#ifdef DEBUG
+  printf("%s -> Exit\n",__func__);
+#endif
   return control;
 }
 
@@ -1816,37 +1846,62 @@ void receiveNewHostLists(int acceptfd)
 }
 
 /* wait until all transaction waits for leader's decision */
-void stopTransactions(int TRANS_FLAG)
+int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
 {
 //  printf("%s - > Enter flag :%d\n",__func__,TRANS_FLAG);
   int size = transList->size;
   int i;
+  int flag;
   tlist_node_t* walker;
-  
-  pthread_mutex_lock(&liveHosts_mutex);
-  okCommit = TRANS_FLAG;
-  pthread_mutex_unlock(&liveHosts_mutex);
 
-  /* make sure that all transactions are stopped */
-  pthread_mutex_lock(&clearNotifyList_mutex);
+  if(TRANS_FLAG == TRANS_BEFORE) {
+    okCommit = TRANS_BEFORE;
+    /* make sure that all transactions are stopped */
+    do {
+      transList->flag = 0;
+      walker = transList->head;
 
-  do {
-    transList->flag = 0;
-    walker = transList->head;
-
-    while(walker)
-    {
-      // locking
-      while(!(walker->status == TRANS_FLAG || walker->status == TRANS_OK)) {
-//        printf("%s -> Waiting for %u - Status : %d tHash : %d\n",__func__,walker->transid,walker->status,thashSearch(walker->transid));
-        randomdelay();
+      while(walker)
+      {
+        // locking
+        while(walker->status == TRANS_INPROGRESS) {
+          printf("%s ->transid : %u - decision %d Status : %d Waitflag = %d\n",__func__,walker->transid,walker->decision,walker->status,TRANS_FLAG);
+          if(inspectEpoch(epoch_num,"stopTrans_Before") < 0)
+            return -1;                                                
+          sleep(3);
+        }
+      walker = walker->next;
       }
 
-      walker = walker->next;
-    }
-  }while(transList->flag == 1);
+      pthread_mutex_lock(&translist_mutex);
+      flag = transList->flag;
+      pthread_mutex_unlock(&translist_mutex);
+    }while(flag == 1);
+  }
+  else if(TRANS_FLAG == TRANS_AFTER)
+  {
+    printf("%s -> TRANS_AFTER\n",__func__);
+    okCommit = TRANS_AFTER;
+    do {
+      pthread_mutex_lock(&translist_mutex);
+      size = transList->size;
+      printf("%s -> size = %d\n",__func__,size);
+      printf("%s -> okCommit = %d\n",__func__,okCommit);
+      walker = transList->head;
+      while(walker){
+        printf("%s ->transid : %u - decision %d Status : %d epoch = %u  current epoch : %u\n",__func__,walker->transid,walker->decision,walker->status,walker->epoch_num,currentEpoch);
+        walker = walker->next;
+      }
+      pthread_mutex_unlock(&translist_mutex);
 
-  pthread_mutex_unlock(&clearNotifyList_mutex);
+      if(inspectEpoch(epoch_num,"stopTrans_Before") < 0)
+        return -1;
+
+      sleep(3);
+    }while(size != 0);
+  }
+
+  return 0;
 }
 
 void sendMyList(int acceptfd)
@@ -1860,18 +1915,28 @@ void sendMyList(int acceptfd)
 
 void sendTransList(int acceptfd)
 {
+  printf("%s -> Enter\n",__func__);
   int size;
   char response;
   int transid;
+  int i;
+  tlist_node_t* walker = transList->head;
 
   // send on-going transaction
+  pthread_mutex_lock(&translist_mutex);
   tlist_node_t* transArray = tlistToArray(transList,&size);
+  pthread_mutex_unlock(&translist_mutex);
 
-/*  if(transList->size != 0)
+  if(transList->size != 0)
     tlistPrint(transList);
 
   printf("%s -> transList->size : %d  size = %d\n",__func__,transList->size,size);
-*/
+
+  for(i = 0; i< size; i++) {
+    printf("ID : %u  Decision : %d  status : %d\n",transArray[i].transid,transArray[i].decision,transArray[i].status);
+  }
+  printf("%s -> End transArray\n",__func__);
+
   send_data((int)acceptfd,&size,sizeof(int));
   send_data((int)acceptfd,transArray, sizeof(tlist_node_t) * size);
 
@@ -1894,6 +1959,7 @@ void sendTransList(int acceptfd)
 
 int receiveNewList(int acceptfd)
 {
+  printf("%s -> Enter\n",__func__);
   int size;
   tlist_node_t* tArray;
   tlist_node_t* walker;
@@ -1933,6 +1999,7 @@ int receiveNewList(int acceptfd)
     response = -1;
   }
 
+  printf("%s -> Exit\n",__func__);
   return response;
 }
 
@@ -1951,7 +2018,7 @@ int combineTransactionList(tlist_node_t* tArray,int size)
         if(walker->transid == tArray[i].transid)
         {
           walker->decision = tArray[i].decision;
-//          walker->status = tArray[i].status;
+          walker->epoch_num = tArray[i].epoch_num;
           break;
         }
       }
@@ -1961,37 +2028,4 @@ int combineTransactionList(tlist_node_t* tArray,int size)
   return flag;
 }
 
-char inspectTransaction(char finalResponse,unsigned int transid,char* debug,int TRANS_FLAG)
-{
-  tlist_node_t* tNode;
-
-  tNode = tlistSearch(transList,transid);
-  
-  if(finalResponse <= 0) {
-    tNode->decision = DECISION_LOST;
-  }
-  else {
-    tNode->decision = finalResponse;
-  }
-
-//  printf("%s -> decision = %d okCommit = %d\n",__func__,tNode->decision,okCommit);
-
-  if((tNode->decision == DECISION_LOST) || (okCommit != TRANS_OK))
-  {
-    pthread_mutex_lock(&liveHosts_mutex);
-    tNode->status = TRANS_FLAG;
-    pthread_mutex_unlock(&liveHosts_mutex);
-
-    // if decision is not lost and okCommit is not TRANS_FLAG, get out of this loop
-    while(!((tNode->decision != DECISION_LOST) && (okCommit != TRANS_FLAG))) { 
-//      printf("%s -> transID : %u decision : %d is waiting flag : %d\n",debug,tNode->transid,tNode->decision,TRANS_FLAG);
-      randomdelay();
-    }
-
-    finalResponse = tNode->decision;
-  }
-
-  return finalResponse;
-}
-  
 #endif
