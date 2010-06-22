@@ -512,7 +512,8 @@ public class Main {
       CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
-      OoOJavaAnalysis  oa = new OoOJavaAnalysis(state, tu, cg, l, ar);
+      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar);
+      OoOJavaAnalysis  oa = new OoOJavaAnalysis(state, tu, cg, da, l, ar);
     }
 
 

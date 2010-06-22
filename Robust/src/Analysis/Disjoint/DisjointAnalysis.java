@@ -2172,6 +2172,9 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
   return asSetTotal;
 }
 
+  public Set<Descriptor> getDescriptorsToAnalyze() {
+    return descriptorsToAnalyze;
+  }
 
   
   
