@@ -130,7 +130,7 @@ public class Taint extends Canonical {
 
   public String toString() {
     return 
-      "("+sese.toPrettyString()+
+      "("+sese.getPrettyIdentifier()+
       "-"+insetVar+
       ", "+allocSite.toStringBrief()+
       "):"+preds;

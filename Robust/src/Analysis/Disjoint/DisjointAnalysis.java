@@ -1112,6 +1112,18 @@ public class DisjointAnalysis {
       }
       break;
 
+    case FKind.FlatSESEEnterNode:
+      FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
+      rg.taintLiveTemps( sese,
+                         liveness.getLiveInTemps( fmContaining, fn ) 
+                         );
+      break;
+
+    case FKind.FlatSESEExitNode:
+      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
+      rg.removeInContextTaints( fsexn.getFlatEnter() );
+      break;
+      
     case FKind.FlatCall: {
       Descriptor mdCaller;
       if( fmContaining.getMethod() != null ){

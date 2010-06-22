@@ -95,6 +95,8 @@ public class PointerMethod {
     case FKind.FlatCall:
     case FKind.FlatReturnNode:
     case FKind.FlatBackEdge:
+    case FKind.FlatSESEEnterNode:
+    case FKind.FlatSESEExitNode:
       return true;
     case FKind.FlatCastNode:
       FlatCastNode fcn=(FlatCastNode)fn;
