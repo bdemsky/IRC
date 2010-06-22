@@ -112,7 +112,7 @@ public class FlatSESEEnterNode extends FlatNode {
     return id;
   }
 
-  public String getPrettyIdentifier() {    
+  public String getPrettyIdentifier() {
     if( treeNode.getID() != null ) {
       return treeNode.getID();
     }     

@@ -9,25 +9,25 @@ public class Test {
   static public void main( String[] args ) {
 
     Foo a = new Foo();
-
-    rblock DU {
-      Foo b = new Foo();
-      Foo z = a.f;
-    }
-
-    Foo c = new Foo();
-    Foo d = new Foo();
-    
-    //doSomething( a, b, c );
+    doSomething( a );
   }
 
-  static void doSomething( Foo a, Foo b, Foo c ) {
+  static void doSomething( Foo a ) {
 
-    rblock YO {
-      Foo e = doStuff( a, b );
+    a.f = new Foo();
+    
+    rblock r1 {
+      Foo b = a.f;
+      b.f = new Foo();
     }
 
-    Foo f = doStuff( a, c );
+    rblock r2 {
+      Foo c = a.f.f;
+      c.f = new Foo();
+    }
+
+
+    //Foo f = doStuff( a, c );
   }   
 
   static Foo doStuff( Foo m, Foo n ) {

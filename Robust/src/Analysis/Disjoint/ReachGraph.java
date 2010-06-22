@@ -1243,38 +1243,32 @@ public class ReachGraph {
   }
 
 
-  public void taintLiveTemps( FlatSESEEnterNode sese, 
-                              Set<TempDescriptor> liveTemps
-                              ) {
-
-    System.out.println( "At "+sese+" with: "+liveTemps );
-
-    Iterator<TempDescriptor> tdItr = liveTemps.iterator();
-    while( tdItr.hasNext() ) {
-      TempDescriptor td = tdItr.next();
-      VariableNode   vn = td2vn.get( td );
-
-      Iterator<RefEdge> reItr = vn.iteratorToReferencees();
-      while( reItr.hasNext() ) {
-        RefEdge re = reItr.next();
-
-        // these new sese (rblock) taints should
-        // have empty predicates so they never propagate
-        // out to callers
-        Taint t = Taint.factory( sese,
-                                 td,
-                                 re.getDst().getAllocSite(),
-                                 ExistPredSet.factory()
-                                 );
-
-        re.setTaints( Canonical.add( re.getTaints(),
-                                     t 
-                                     )
-                      );
-      }
+  public void taintTemp( FlatSESEEnterNode sese, 
+                         TempDescriptor    td
+                         ) {
+    
+    VariableNode   vn = td2vn.get( td );
+    
+    Iterator<RefEdge> reItr = vn.iteratorToReferencees();
+    while( reItr.hasNext() ) {
+      RefEdge re = reItr.next();
+      
+      // these new sese (rblock) taints should
+      // have empty predicates so they never propagate
+      // out to callers
+      Taint t = Taint.factory( sese,
+                               td,
+                               re.getDst().getAllocSite(),
+                               ExistPredSet.factory()
+                               );
+      
+      re.setTaints( Canonical.add( re.getTaints(),
+                                   t 
+                                   )
+                    );
     }
   }
-
+  
   public void removeInContextTaints( FlatSESEEnterNode sese ) {
     
   }

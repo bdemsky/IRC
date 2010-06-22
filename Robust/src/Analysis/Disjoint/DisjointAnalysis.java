@@ -469,8 +469,9 @@ public class DisjointAnalysis {
   static protected Hashtable<FlatNode, ReachGraph> fn2rg =
     new Hashtable<FlatNode, ReachGraph>();
 
-  private Hashtable<FlatCall, Descriptor> fc2enclosing;
-  
+  private Hashtable<FlatCall, Descriptor> fc2enclosing;  
+
+  //protected RBlockRelationAnalysis rra;
 
 
   // allocate various structures that are not local
@@ -505,7 +506,7 @@ public class DisjointAnalysis {
 
     mapBackEdgeToMonotone =
       new Hashtable<FlatNode, ReachGraph>();
-
+    
     mapHrnIdToAllocSite =
       new Hashtable<Integer, AllocSite>();
 
@@ -553,6 +554,7 @@ public class DisjointAnalysis {
 			   CallGraph        cg,
 			   Liveness         l,
 			   ArrayReferencees ar
+                           //RBlockRelationAnalysis rra
                            ) throws java.io.IOException {
     init( s, tu, cg, l, ar );
   }
@@ -562,6 +564,7 @@ public class DisjointAnalysis {
                        CallGraph        callGraph,
                        Liveness         liveness,
                        ArrayReferencees arrayReferencees
+                       //RBlockRelationAnalysis rra
                        ) throws java.io.IOException {
 	  
     analysisComplete = false;
@@ -1112,6 +1115,7 @@ public class DisjointAnalysis {
       }
       break;
 
+      /*
     case FKind.FlatSESEEnterNode:
       FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
       rg.taintLiveTemps( sese,
@@ -1123,7 +1127,8 @@ public class DisjointAnalysis {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
       rg.removeInContextTaints( fsexn.getFlatEnter() );
       break;
-      
+      */
+
     case FKind.FlatCall: {
       Descriptor mdCaller;
       if( fmContaining.getMethod() != null ){

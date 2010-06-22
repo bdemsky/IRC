@@ -129,8 +129,16 @@ public class Taint extends Canonical {
   }
 
   public String toString() {
+
+    String s;
+    if( sese.getIsCallerSESEplaceholder() ) {
+      s = "placeh";
+    } else {
+      s = sese.getPrettyIdentifier();
+    }
+
     return 
-      "("+sese.getPrettyIdentifier()+
+      "("+s+
       "-"+insetVar+
       ", "+allocSite.toStringBrief()+
       "):"+preds;
