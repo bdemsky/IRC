@@ -892,125 +892,6 @@ abstract public class Canonical {
   }
 
 
-  /*
-  public static ReachSet toCalleeContext( ReachSet  rs,
-                                          AllocSite as ) {
-    assert rs != null;
-    assert as != null;
-    assert rs.isCanonical();
-    assert as.isCanonical();
-
-    CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSET_TOCALLEECONTEXT_ALLOCSITE,
-                       rs, 
-                       as );
-    
-    Canonical result = op2result.get( op );
-    if( result != null ) {
-      return (ReachSet) result;
-    }
-
-    // otherwise, no cached result...
-    ReachSet out = ReachSet.factory();
-    Iterator<ReachState> itr = rs.iterator();
-    while( itr.hasNext() ) {
-      ReachState state = itr.next();
-      out = Canonical.add( out,
-                           Canonical.toCalleeContext( state, as )
-                           );
-    }
-
-    assert out.isCanonical();
-    op2result.put( op, out );
-    return out;
-  }
-  */
-
-  /*
-  public static ReachState toCalleeContext( ReachState state,
-                                            AllocSite  as ) {
-    assert state != null;
-    assert as    != null;
-    assert state.isCanonical();
-    assert as.isCanonical();
-
-    CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSTATE_TOCALLEECONTEXT_ALLOCSITE,
-                       state, 
-                       as );
-    
-    Canonical result = op2result.get( op );
-    if( result != null ) {
-      return (ReachState) result;
-    }
-
-    // otherwise, no cached result...
-    ReachState out = ReachState.factory();
-    Iterator<ReachTuple> itr = state.iterator();
-    while( itr.hasNext() ) {
-      ReachTuple rt = itr.next();
-
-      int age = as.getAgeCategory( rt.getHrnID() );
-
-      // this is the current mapping, where 0, 1, 2S were allocated
-      // in the current context, 0?, 1? and 2S? were allocated in a
-      // previous context, and we're translating to a future context
-      //
-      // 0    -> 0?
-      // 1    -> 1?
-      // 2S   -> 2S?
-      // 2S*  -> 2S?*
-      //
-      // 0?   -> 2S?
-      // 1?   -> 2S?
-      // 2S?  -> 2S?
-      // 2S?* -> 2S?*
-      
-      if( age == AllocSite.AGE_notInThisSite ) {
-        // things not from the site just go back in
-	out = Canonical.union( out, rt );
-
-      } else if( age == AllocSite.AGE_summary ||
-                 rt.isOutOfContext()
-                 ) {
-        // the in-context summary and all existing out-of-context
-        // stuff all become
-        out = Canonical.union( out,
-                               ReachTuple.factory( as.getSummary(),
-                                                   true, // multi
-                                                   rt.getArity(),
-                                                   true  // out-of-context
-                                                   )
-                               );
-      } else {
-        // otherwise everything else just goes to an out-of-context
-        // version, everything else the same
-	Integer I = as.getAge( rt.getHrnID() );
-	assert I != null;
-
-        assert !rt.isMultiObject();
-
-        out = Canonical.union( out,
-                               ReachTuple.factory( rt.getHrnID(),
-                                                   rt.isMultiObject(),
-                                                   rt.getArity(),
-                                                   true  // out-of-context
-                                                   )
-                               );        
-      }
-    }
-
-    out = Canonical.attach( out,
-                            state.getPreds()
-                            );
-
-    assert out.isCanonical();
-    op2result.put( op, out );
-    return out;
-  }
-  */
-
-
   public static ReachSet toCallerContext( ReachSet  rs,
                                           AllocSite as ) {
     assert rs != null;
@@ -1372,6 +1253,35 @@ abstract public class Canonical {
   }
 
 
+  public static Taint attach( Taint        t,
+                              ExistPredSet preds ) {
+    assert t     != null;
+    assert preds != null;
+    assert t.isCanonical();
+    assert preds.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINT_ATTACH_EXISTPREDSET,
+                       t, 
+                       preds );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (Taint) result;
+    }
+    
+    // otherwise, no cached result...
+    Taint out = new Taint( t.sese,
+                           t.insetVar,
+                           t.allocSite );
+    out.preds = Canonical.join( t.preds,
+                                preds );
+    
+    out = (Taint) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
+
   public static TaintSet add( TaintSet ts,
                               Taint    t ) {
     assert ts != null;
@@ -1427,9 +1337,7 @@ abstract public class Canonical {
       Taint t2 = ts2.containsIgnorePreds( t1 );
 
       if( t2 != null ) {
-	out.taints.add( Taint.factory( t1.callSite,
-                                       t1.paramIndex,
-                                       t1.sese,
+	out.taints.add( Taint.factory( t1.sese,
                                        t1.insetVar,
                                        t1.allocSite,
                                        Canonical.join( t1.preds,
@@ -1455,6 +1363,62 @@ abstract public class Canonical {
     out = (TaintSet) makeCanonical( out );
     op2result.put( op, out );
     return out;    
+  }
+
+  public static TaintSet unionORpreds( TaintSet ts1,
+                                       TaintSet ts2 ) {
+    assert ts1 != null;
+    assert ts2 != null;
+    assert ts1.isCanonical();
+    assert ts2.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINTSET_UNIONORPREDS_TAINTSET,
+                       ts1, 
+                       ts2 );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (TaintSet) result;
+    }
+
+    // otherwise, no cached result...
+    TaintSet out = new TaintSet();
+
+    // first add everything from 1, and if it was also in 2
+    // take the OR of the predicates
+    Iterator<Taint> tItr = ts1.iterator();
+    while( tItr.hasNext() ) {
+      Taint t1 = tItr.next();
+      Taint t2 = ts2.containsIgnorePreds( t1 );
+      
+      if( t2 != null ) {
+	out.taints.add( Taint.factory( t1.sese,
+                                       t1.insetVar,
+                                       t1.allocSite,
+                                       Canonical.join( t1.preds,
+                                                       t2.preds
+                                                       )
+                                       ) );
+      } else {
+	out.taints.add( t1 );
+      }
+    }
+
+    // then add everything in 2 that wasn't in 1
+    tItr = ts2.iterator();
+    while( tItr.hasNext() ) {
+      Taint t2 = tItr.next();
+      Taint t1 = ts1.containsIgnorePreds( t2 );
+      
+      if( t1 == null ) {
+	out.taints.add( t2 );
+      }
+    }
+    
+    out = (TaintSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
   }
 
 }

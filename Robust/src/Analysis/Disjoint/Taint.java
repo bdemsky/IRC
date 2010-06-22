@@ -25,7 +25,7 @@ import java.io.*;
 
 // a taint is applied to a reference edge, and
 // is used to associate an effect with an
-// sese (rblock) and in-
+// sese (rblock) and live variable
 
 public class Taint extends Canonical {
 
@@ -34,10 +34,6 @@ public class Taint extends Canonical {
   // an sese (rblock) and an in-set var
   // only one set of identifying objects
   // will be non-null
-
-  // identify a parameter index
-  protected FlatCall callSite;
-  protected Integer  paramIndex;
   
   // identify an sese (rblock) + inset var
   protected FlatSESEEnterNode sese;
@@ -53,63 +49,34 @@ public class Taint extends Canonical {
   protected ExistPredSet preds;
 
 
-  public static Taint factory( FlatCall          fc,
-                               Integer           pi,
-                               FlatSESEEnterNode s,
+  public static Taint factory( FlatSESEEnterNode s,
                                TempDescriptor    iv,
                                AllocSite         as ) {
-    Taint out = new Taint( fc, pi, s, iv, as );
+    Taint out = new Taint( s, iv, as );
     out.preds = ExistPredSet.factory();
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
 
-  public static Taint factory( FlatCall          fc,
-                               Integer           pi,
-                               FlatSESEEnterNode s,
+  public static Taint factory( FlatSESEEnterNode s,
                                TempDescriptor    iv,
                                AllocSite         as,
                                ExistPredSet      eps ) {
-    Taint out = new Taint( fc, pi, s, iv, as );
+    Taint out = new Taint( s, iv, as );
     out.preds = eps;
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
 
-  protected Taint( FlatCall          fc,
-                   Integer           pi,
-                   FlatSESEEnterNode s,
+  protected Taint( FlatSESEEnterNode s,
                    TempDescriptor    iv,
-                   AllocSite         as ) {    
-
-    // either fc and pi are non-null, OR s and iv are non-null
-    assert 
-      (fc != null && pi != null && s == null && iv == null) ||
-      (fc == null && pi == null && s != null && iv != null);
-
+                   AllocSite         as ) {
+    assert s  != null;
+    assert iv != null;
     assert as != null;
-    
-    callSite   = fc;
-    paramIndex = pi;
     sese       = s;
     insetVar   = iv;
     allocSite  = as;
-  }
-
-  public boolean isParamTaint() {
-    return callSite != null;
-  }
-
-  public boolean isSESETaint() {
-    return sese != null;
-  }
-
-  public FlatCall getCallSite() {
-    return callSite;
-  }
-
-  public Integer getParamIndex() {
-    return paramIndex;
   }
 
   public FlatSESEEnterNode getSESE() {
@@ -148,69 +115,24 @@ public class Taint extends Canonical {
 
     Taint t = (Taint) o;
 
-    boolean fcMatches = true;
-    if( callSite == null ) {
-      fcMatches = t.callSite == null;
-    } else {
-      fcMatches = callSite.equals( t.callSite );
-    }
-
-    boolean piMatches = true;
-    if( paramIndex == null ) {
-      piMatches = t.paramIndex == null;
-    } else {
-      piMatches = paramIndex.equals( t.paramIndex );
-    }
-
-    boolean sMatches = true;
-    if( sese == null ) {
-      sMatches = t.sese == null;
-    } else {
-      sMatches = sese.equals( t.sese );
-    }
-
-    boolean ivMatches = true;
-    if( insetVar == null ) {
-      ivMatches = t.insetVar == null;
-    } else {
-      ivMatches = insetVar.equals( t.insetVar );
-    }
-
-    return allocSite.equals( t.allocSite ) &&
-      piMatches && sMatches && ivMatches;
+    return 
+      sese     .equals( t.sese      ) &&
+      insetVar .equals( t.insetVar  ) &&
+      allocSite.equals( t.allocSite );
   }
 
   public int hashCodeSpecific() {
     int hash = allocSite.hashCode();
-
-    if( callSite != null ) {
-      hash = hash ^ callSite.hashCode();
-    }
-
-    if( paramIndex != null ) {
-      hash = hash ^ paramIndex.hashCode();
-    }
-
-    if( sese != null ) {
-      hash = hash ^ sese.hashCode();
-    }
-
-    if( insetVar != null ) {
-      hash = hash ^ insetVar.hashCode();
-    }
-
+    hash = hash ^ sese.hashCode();
+    hash = hash ^ insetVar.hashCode();
     return hash;
   }
 
   public String toString() {
-    String s = "(";
-
-    if( isParamTaint() ) {
-      s += "cs"+callSite.nodeid+"-"+paramIndex;
-    } else {
-      s += sese.toPrettyString()+"-"+insetVar;
-    }
-
-    return s+", "+allocSite.toStringBrief()+"):"+preds;
+    return 
+      "("+sese.toPrettyString()+
+      "-"+insetVar+
+      ", "+allocSite.toStringBrief()+
+      "):"+preds;
   }
 }

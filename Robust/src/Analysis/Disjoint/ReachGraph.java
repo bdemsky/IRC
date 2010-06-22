@@ -338,7 +338,12 @@ public class ReachGraph {
                                             edgeNew.getPreds()
                                             )
                             );
-	
+      edgeExisting.setTaints(
+                             Canonical.unionORpreds( edgeExisting.getTaints(),
+                                                     edgeNew.getTaints()
+                                                     )
+                             );
+      
     } else {			  
       addRefEdge( src, dst, edgeNew );
     }
@@ -1401,6 +1406,12 @@ public class ReachGraph {
                      ) {
     ReachSet out = ReachSet.factory();
 
+    // when the mapping is null it means there were no
+    // predicates satisfied
+    if( calleeStatesSatisfied == null ) {
+      return out;
+    }
+
     Iterator<ReachState> itr = rs.iterator();
     while( itr.hasNext() ) {
       ReachState stateCallee = itr.next();
@@ -1439,55 +1450,6 @@ public class ReachGraph {
   }
 
 
-  // used below to convert a TaintSet's parameter index taints to
-  // a TaintSet of caller taints
-  protected TaintSet 
-    toCallerContext( TaintSet   ts,
-                     FlatCall   fc,
-                     FlatMethod fmCallee
-                     ) {
-
-    TaintSet out = TaintSet.factory();
-
-    Iterator<Taint> itr = ts.iterator();
-    while( itr.hasNext() ) {
-      Taint t = itr.next();
-
-      if( !t.isParamTaint() ) {
-        // throw out non-parameter taints from callee
-        continue;
-      }
-
-      // what argument does this taint map to?
-      TempDescriptor tdArg = 
-        fc.getArgMatchingParamIndex( fmCallee,
-                                     t.getParamIndex() );
-      VariableNode vnArg = td2vn.get( tdArg );
-
-      // what allocation site does this taint refer to?
-      AllocSite as = t.getAllocSite();
-      
-      // look at the allocation sites that the
-      // arg references in the caller context--if
-      // the parameter taint matches, use the taints
-      // of the argument reference to grow the output set
-      Iterator<RefEdge> reItr = vnArg.iteratorToReferencees();
-      while( reItr.hasNext() ) {
-        RefEdge re = reItr.next();
-        
-        if( as.equals( re.getDst().getAllocSite() ) ) {
-          out = Canonical.union( out,
-                                 re.getTaints()
-                                 );
-        }
-      }      
-    }    
-
-    assert out.isCanonical();
-    return out;
-  }
-
-
   // used below to convert a ReachSet to an equivalent
   // version with shadow IDs merged into unshadowed IDs
   protected ReachSet unshadow( ReachSet rs ) {
@@ -1500,6 +1462,45 @@ public class ReachGraph {
     assert out.isCanonical();
     return out;
   }
+
+
+  // used below to convert a TaintSet to its caller-context
+  // equivalent, just eliminate Taints with bad preds
+  protected TaintSet 
+    toCallerContext( TaintSet                       ts,
+                     Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied 
+                     ) {
+    TaintSet out = TaintSet.factory();
+
+    // when the mapping is null it means there were no
+    // predicates satisfied
+    if( calleeTaintsSatisfied == null ) {
+      return out;
+    }
+
+    Iterator<Taint> itr = ts.iterator();
+    while( itr.hasNext() ) {
+      Taint tCallee = itr.next();
+
+      if( calleeTaintsSatisfied.containsKey( tCallee ) ) {
+        
+        Taint tCaller = 
+          Canonical.attach( Taint.factory( tCallee.sese,
+                                           tCallee.insetVar,
+                                           tCallee.allocSite ),
+                            calleeTaintsSatisfied.get( tCallee )
+                            );
+        out = Canonical.add( out,
+                             tCaller
+                             );
+      }     
+    }    
+    
+    assert out.isCanonical();
+    return out;
+  }
+
+
 
 
   // use this method to make a new reach graph that is
@@ -1700,17 +1701,8 @@ public class ReachGraph {
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
       
-      Taint paramTaint = 
-        Taint.factory( fc,
-                       index, 
-                       null, 
-                       null, 
-                       hrnDstCallee.getAllocSite(),
-                       preds
-                       );
-
       TaintSet taints =
-        TaintSet.factory( paramTaint );
+        TaintSet.factory();
 
       RefEdge reCallee = 
         new RefEdge( vnCallee,
@@ -2053,14 +2045,20 @@ public class ReachGraph {
     Hashtable<RefEdge, ExistPredSet> calleeEdgesSatisfied =
       new Hashtable<RefEdge, ExistPredSet>();
 
-    Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
-      new Hashtable<ReachState, ExistPredSet>();
+    Hashtable< HeapRegionNode, Hashtable<ReachState, ExistPredSet> >
+      calleeNode2calleeStatesSatisfied =
+      new Hashtable< HeapRegionNode, Hashtable<ReachState, ExistPredSet> >();
+
+    Hashtable< RefEdge, Hashtable<ReachState, ExistPredSet> >
+      calleeEdge2calleeStatesSatisfied =
+      new Hashtable< RefEdge, Hashtable<ReachState, ExistPredSet> >();
+
+    Hashtable< RefEdge, Hashtable<Taint, ExistPredSet> >
+      calleeEdge2calleeTaintsSatisfied =
+      new Hashtable< RefEdge, Hashtable<Taint, ExistPredSet> >();
 
     Hashtable< RefEdge, Set<RefSrcNode> > calleeEdges2oocCallerSrcMatches =
       new Hashtable< RefEdge, Set<RefSrcNode> >();
-
-    //Hashtable<Taint, ExistPredSet> taintsSatisfied = 
-    // new Hashtable<Taint, ExistPredSet>();
 
 
     Iterator meItr = rgCallee.id2hrn.entrySet().iterator();
@@ -2095,17 +2093,14 @@ public class ReachGraph {
           stateCallee.getPreds().isSatisfiedBy( this,
                                                 callerNodeIDsCopiedToCallee
                                                 );
-        if( predsIfSatis != null ) {
-          ExistPredSet predsAlready = calleeStatesSatisfied.get( stateCallee );
-          if( predsAlready == null ) {
-            calleeStatesSatisfied.put( stateCallee, predsIfSatis );
-          } else {
-            calleeStatesSatisfied.put( stateCallee, 
-                                       Canonical.join( predsIfSatis,
-                                                       predsAlready 
-                                                       )
-                                       );
-          }
+        if( predsIfSatis != null ) {          
+          assert calleeNode2calleeStatesSatisfied.get( hrnCallee ) == null;
+          
+          Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
+            new Hashtable<ReachState, ExistPredSet>();
+          calleeStatesSatisfied.put( stateCallee, predsIfSatis );
+
+          calleeNode2calleeStatesSatisfied.put( hrnCallee, calleeStatesSatisfied );            
         } 
       }
 
@@ -2251,16 +2246,34 @@ public class ReachGraph {
                                                     callerNodeIDsCopiedToCallee
                                                     );
             if( predsIfSatis != null ) {
-              ExistPredSet predsAlready = calleeStatesSatisfied.get( stateCallee );
-              if( predsAlready == null ) {
-                calleeStatesSatisfied.put( stateCallee, predsIfSatis );
-              } else {
-                calleeStatesSatisfied.put( stateCallee, 
-                                           Canonical.join( predsIfSatis,
-                                                           predsAlready 
-                                                           )
-                                           );
-              }
+              assert calleeEdge2calleeStatesSatisfied.get( reCallee ) == null;
+              
+              Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
+                new Hashtable<ReachState, ExistPredSet>();
+              calleeStatesSatisfied.put( stateCallee, predsIfSatis );
+              
+              calleeEdge2calleeStatesSatisfied.put( reCallee, calleeStatesSatisfied );
+            } 
+          }
+
+          // since the edge is coming over, find out which taints
+          // on it should come over, too          
+          Iterator<Taint> tItr = reCallee.getTaints().iterator();
+          while( tItr.hasNext() ) {
+            Taint tCallee = tItr.next();
+
+            predsIfSatis = 
+              tCallee.getPreds().isSatisfiedBy( this,
+                                                callerNodeIDsCopiedToCallee
+                                                );
+            if( predsIfSatis != null ) {
+              assert calleeEdge2calleeTaintsSatisfied.get( reCallee ) == null;
+              
+              Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied =
+                new Hashtable<Taint, ExistPredSet>();
+              calleeTaintsSatisfied.put( tCallee, predsIfSatis );
+              
+              calleeEdge2calleeTaintsSatisfied.put( reCallee, calleeTaintsSatisfied );
             } 
           }
         }        
@@ -2356,7 +2369,7 @@ public class ReachGraph {
                                    hrnCallee.getType(),        // type				 
                                    hrnCallee.getAllocSite(),   // allocation site			 
                                    toCallerContext( hrnCallee.getInherent(),
-                                                    calleeStatesSatisfied  ),    // inherent reach
+                                                    calleeNode2calleeStatesSatisfied.get( hrnCallee ) ), // inherent reach
                                    null,                       // current reach                 
                                    predsEmpty,                 // predicates
                                    hrnCallee.getDescription()  // description
@@ -2366,7 +2379,7 @@ public class ReachGraph {
       }
 
       hrnCaller.setAlpha( toCallerContext( hrnCallee.getAlpha(),
-                                           calleeStatesSatisfied 
+                                           calleeNode2calleeStatesSatisfied.get( hrnCallee )
                                            )
                           );
 
@@ -2492,11 +2505,10 @@ public class ReachGraph {
                                         reCallee.getType(),
                                         reCallee.getField(),
                                         toCallerContext( reCallee.getBeta(),
-                                                         calleeStatesSatisfied ),
+                                                         calleeEdge2calleeStatesSatisfied.get( reCallee ) ),
                                         preds,
                                         toCallerContext( reCallee.getTaints(),
-                                                         fc,
-                                                         fmCallee )
+                                                         calleeEdge2calleeTaintsSatisfied.get( reCallee ) )
                                         );
 
         ChangeSet cs = ChangeSet.factory();
@@ -2525,28 +2537,16 @@ public class ReachGraph {
                                 );
           }
         }
-        
 
-        // look to see if an edge with same field exists
-        // and merge with it, otherwise just add the edge
-        RefEdge edgeExisting = rsnCaller.getReferenceTo( hrnDstCaller,
-                                                         reCallee.getType(),
-                                                         reCallee.getField()
-                                                         );	
-        if( edgeExisting != null ) {
-          edgeExisting.setBeta(
-                               Canonical.unionORpreds( edgeExisting.getBeta(),
-                                                reCaller.getBeta()
-                                                )
-                               );
-          edgeExisting.setPreds(
-                                Canonical.join( edgeExisting.getPreds(),
-                                                reCaller.getPreds()
-                                                )
-                                );
-
-          // for reach propagation
-          if( !cs.isEmpty() ) {
+        // we're just going to use the convenient "merge-if-exists"
+        // edge call below, but still take a separate look if there
+        // is an existing caller edge to build change sets properly
+        if( !cs.isEmpty() ) {
+          RefEdge edgeExisting = rsnCaller.getReferenceTo( hrnDstCaller,
+                                                           reCallee.getType(),
+                                                           reCallee.getField()
+                                                           );	
+          if( edgeExisting != null ) {
             ChangeSet csExisting = edgePlannedChanges.get( edgeExisting );
             if( csExisting == null ) {
               csExisting = ChangeSet.factory();
@@ -2555,19 +2555,16 @@ public class ReachGraph {
                                     Canonical.union( csExisting,
                                                      cs
                                                      ) 
-                                    );
-          }
-          
-        } else {			  
-          addRefEdge( rsnCaller, hrnDstCaller, reCaller );	
-
-          // for reach propagation
-          if( !cs.isEmpty() ) {
+                                    );                    
+          } else {			  
             edgesForPropagation.add( reCaller );
             assert !edgePlannedChanges.containsKey( reCaller );
-            edgePlannedChanges.put( reCaller, cs );
+            edgePlannedChanges.put( reCaller, cs );        
           }
         }
+
+        // then add new caller edge or merge
+        addEdgeOrMergeWithExisting( reCaller );
       }
     }
 
