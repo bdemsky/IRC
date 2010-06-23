@@ -897,7 +897,11 @@ public class DisjointAnalysis {
 	  rg.merge( rgParent );
 	}
       }
-
+      
+      //if(rra.isEndOfRegion(fn)){
+      //  rg.clearAccessibleVarSet();
+      //  also need to clear stall mapping
+      //}
 
       if( takeDebugSnapshots && 
  	  d.getSymbol().equals( descSymbolDebug ) 
