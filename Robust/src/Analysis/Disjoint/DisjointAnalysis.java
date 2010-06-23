@@ -3,6 +3,7 @@ package Analysis.Disjoint;
 import Analysis.CallGraph.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
+import Analysis.RBlockRelationAnalysis;
 import IR.*;
 import IR.Flat.*;
 import IR.Tree.Modifiers;
@@ -332,6 +333,7 @@ public class DisjointAnalysis {
   public CallGraph        callGraph;
   public Liveness         liveness;
   public ArrayReferencees arrayReferencees;
+  public RBlockRelationAnalysis rblockRel;
   public TypeUtil         typeUtil;
   public int              allocationDepth;
   
@@ -553,19 +555,19 @@ public class DisjointAnalysis {
 			   TypeUtil         tu,
 			   CallGraph        cg,
 			   Liveness         l,
-			   ArrayReferencees ar
-                           //RBlockRelationAnalysis rra
-                           ) throws java.io.IOException {
-    init( s, tu, cg, l, ar );
+			   ArrayReferencees ar,
+                           RBlockRelationAnalysis rra
+                           ) {
+    init( s, tu, cg, l, ar, rra );
   }
   
   protected void init( State            state,
                        TypeUtil         typeUtil,
                        CallGraph        callGraph,
                        Liveness         liveness,
-                       ArrayReferencees arrayReferencees
-                       //RBlockRelationAnalysis rra
-                       ) throws java.io.IOException {
+                       ArrayReferencees arrayReferencees,
+                       RBlockRelationAnalysis rra
+                       ) {
 	  
     analysisComplete = false;
     
@@ -574,6 +576,7 @@ public class DisjointAnalysis {
     this.callGraph               = callGraph;
     this.liveness                = liveness;
     this.arrayReferencees        = arrayReferencees;
+    this.rblockRel               = rra;
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
     this.releaseMode             = state.DISJOINTRELEASEMODE;
     this.determinismDesired      = state.DISJOINTDETERMINISM;
@@ -620,7 +623,12 @@ public class DisjointAnalysis {
     double timeStartAnalysis = (double) System.nanoTime();
 
     // start interprocedural fixed-point computation
-    analyzeMethods();
+    try {
+      analyzeMethods();
+    } catch( IOException e ) {
+      throw new Error( "IO Exception while writing disjointness analysis output." );
+    }
+
     analysisComplete=true;
 
     double timeEndAnalysis = (double) System.nanoTime();
@@ -629,29 +637,33 @@ public class DisjointAnalysis {
     String justtime = String.format( "%.2f", dt );
     System.out.println( treport );
 
-    if( writeFinalDOTs && !writeAllIncrementalDOTs ) {
-      writeFinalGraphs();      
-    }
-
-    if( state.DISJOINTWRITEIHMS ) {
-      writeFinalIHMs();
-    }
-
-    if( state.DISJOINTWRITEINITCONTEXTS ) {
-      writeInitialContexts();
-    }
-
-    if( state.DISJOINTALIASFILE != null ) {
-      if( state.TASK ) {
-        writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
-      } else {
-        writeAllSharingJava(state.DISJOINTALIASFILE, 
-                            treport, 
-                            justtime, 
-                            state.DISJOINTALIASTAB, 
-                            state.lines
-                            );
+    try {
+      if( writeFinalDOTs && !writeAllIncrementalDOTs ) {
+        writeFinalGraphs();      
       }
+
+      if( state.DISJOINTWRITEIHMS ) {
+        writeFinalIHMs();
+      }
+
+      if( state.DISJOINTWRITEINITCONTEXTS ) {
+        writeInitialContexts();
+      }
+
+      if( state.DISJOINTALIASFILE != null ) {
+        if( state.TASK ) {
+          writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
+        } else {
+          writeAllSharingJava(state.DISJOINTALIASFILE, 
+                              treport, 
+                              justtime, 
+                              state.DISJOINTALIASTAB, 
+                              state.lines
+                              );
+        }
+      }
+    } catch( IOException e ) {
+      throw new Error( "IO Exception while writing disjointness analysis output." );
     }
   }
 

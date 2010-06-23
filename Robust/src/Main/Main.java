@@ -42,6 +42,7 @@ import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
 import Analysis.MLP.MLPAnalysis;
+import Analysis.RBlockRelationAnalysis;
 import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Loops.*;
@@ -505,15 +506,14 @@ public class Main {
       CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
-      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar);
+      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar, null);
     }
 
     if (state.OOOJAVA) {
-      CallGraph        cg = new CallGraph(state);
-      Liveness         l  = new Liveness();
-      ArrayReferencees ar = new ArrayReferencees(state);
-      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar);
-      OoOJavaAnalysis  oa = new OoOJavaAnalysis(state, tu, cg, da, l, ar);
+      CallGraph        cg  = new CallGraph(state);
+      Liveness         l   = new Liveness();
+      ArrayReferencees ar  = new ArrayReferencees(state);
+      OoOJavaAnalysis  oa  = new OoOJavaAnalysis(state, tu, cg, l, ar);
     }
 
 

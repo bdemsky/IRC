@@ -6,13 +6,13 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Stack;
 
+import Analysis.CallGraph.CallGraph;
 import Analysis.ArrayReferencees;
 import Analysis.Liveness;
-import Analysis.CallGraph.CallGraph;
+import Analysis.RBlockRelationAnalysis;
 import Analysis.Disjoint.DisjointAnalysis;
-import Analysis.OwnershipAnalysis.AllocationSite;
-import Analysis.OwnershipAnalysis.MethodContext;
 import IR.Descriptor;
+import IR.MethodDescriptor;
 import IR.Operation;
 import IR.State;
 import IR.TypeUtil;
@@ -33,29 +33,9 @@ public class OoOJavaAnalysis {
   private State state;
   private TypeUtil typeUtil;
   private CallGraph callGraph;
-  private DisjointAnalysis disjointAnalysis;
-
-  // an implicit SESE is automatically spliced into
-  // the IR graph around the C main before this analysis--it
-  // is nothing special except that we can make assumptions
-  // about it, such as the whole program ends when it ends
-  private FlatSESEEnterNode mainSESE;
-
-  // SESEs that are the root of an SESE tree belong to this
-  // set--the main SESE is always a root, statically SESEs
-  // inside methods are a root because we don't know how they
-  // will fit into the runtime tree of SESEs
-  private Set<FlatSESEEnterNode> rootSESEs;
-
-  // simply a set of every reachable SESE in the program, not
-  // including caller placeholder SESEs
-  private Set<FlatSESEEnterNode> allSESEs;
-
-  // A mapping of flat nodes to the stack of SESEs for that node, where
-  // an SESE is the child of the SESE directly below it on the stack.
-  // These stacks do not reflect the heirarchy over methods calls--whenever
-  // there is an empty stack it means all variables are available.
-  private Hashtable<FlatNode, Stack<FlatSESEEnterNode>> seseStacks;
+  private RBlockRelationAnalysis rblockRel;
+  private DisjointAnalysis disjointAnalysisTaints;
+  private DisjointAnalysis disjointAnalysisReach;
 
   private Hashtable<FlatNode, Set<TempDescriptor>> livenessRootView;
   private Hashtable<FlatNode, Set<TempDescriptor>> livenessVirtualReads;
@@ -67,30 +47,14 @@ public class OoOJavaAnalysis {
 
   private Hashtable<FlatEdge, FlatWriteDynamicVarNode> wdvNodesToSpliceIn;
 
-  private Hashtable<MethodContext, HashSet<AllocationSite>> mapMethodContextToLiveInAllocationSiteSet;
-
 //  private Hashtable<FlatNode, ParentChildConflictsMap> conflictsResults;
 //  private Hashtable<FlatMethod, MethodSummary> methodSummaryResults;
 //  private OwnershipAnalysis ownAnalysisForSESEConflicts;
 //  private Hashtable<FlatNode, ConflictGraph> conflictGraphResults;
 
-  // temporal data structures to track analysis progress.
-  static private int uniqueLockSetId = 0;
+//  static private int uniqueLockSetId = 0;
 
   public static int maxSESEage = -1;
-
-  // use these methods in BuildCode to have access to analysis results
-  public FlatSESEEnterNode getMainSESE() {
-    return mainSESE;
-  }
-
-  public Set<FlatSESEEnterNode> getRootSESEs() {
-    return rootSESEs;
-  }
-
-  public Set<FlatSESEEnterNode> getAllSESEs() {
-    return allSESEs;
-  }
 
   public int getMaxSESEage() {
     return maxSESEage;
@@ -102,21 +66,19 @@ public class OoOJavaAnalysis {
     return cp;
   }
 
-  public OoOJavaAnalysis(State state, TypeUtil tu, CallGraph callGraph,
-      DisjointAnalysis disjointAnalysis, Liveness liveness, ArrayReferencees arrayReferencees) {
+  public OoOJavaAnalysis(State state, 
+                         TypeUtil typeUtil, 
+                         CallGraph callGraph,
+                         Liveness liveness, 
+                         ArrayReferencees arrayReferencees) {
 
     double timeStartAnalysis = (double) System.nanoTime();
 
     this.state = state;
-    this.typeUtil = tu;
+    this.typeUtil = typeUtil;
     this.callGraph = callGraph;
-    this.disjointAnalysis = disjointAnalysis;
     this.maxSESEage = state.MLP_MAXSESEAGE;
 
-    rootSESEs = new HashSet<FlatSESEEnterNode>();
-    allSESEs = new HashSet<FlatSESEEnterNode>();
-
-    seseStacks = new Hashtable<FlatNode, Stack<FlatSESEEnterNode>>();
     livenessRootView = new Hashtable<FlatNode, Set<TempDescriptor>>();
     livenessVirtualReads = new Hashtable<FlatNode, Set<TempDescriptor>>();
     variableResults = new Hashtable<FlatNode, VarSrcTokTable>();
@@ -126,7 +88,16 @@ public class OoOJavaAnalysis {
 
     notAvailableIntoSESE = new Hashtable<FlatSESEEnterNode, Set<TempDescriptor>>();
 
-    mapMethodContextToLiveInAllocationSiteSet = new Hashtable<MethodContext, HashSet<AllocationSite>>();
+    // add all methods transitively reachable from the
+    // source's main to set for analysis    
+    MethodDescriptor mdSourceEntry = typeUtil.getMain();
+    FlatMethod       fmMain        = state.getMethodFlat( mdSourceEntry );
+    
+    Set<MethodDescriptor> descriptorsToAnalyze = 
+      callGraph.getAllMethods( mdSourceEntry );
+    
+    descriptorsToAnalyze.add( mdSourceEntry );
+    
 
 //    conflictsResults = new Hashtable<FlatNode, ParentChildConflictsMap>();
 //    methodSummaryResults = new Hashtable<FlatMethod, MethodSummary>();
@@ -136,36 +107,20 @@ public class OoOJavaAnalysis {
     // isAfterChildSESEIndicatorMap = new Hashtable<FlatNode, Boolean>();
     // conflictGraphLockMap = new Hashtable<ConflictGraph, HashSet<SESELock>>();
 
-    FlatMethod fmMain = state.getMethodFlat(typeUtil.getMain());
-
-    mainSESE = (FlatSESEEnterNode) fmMain.getNext(0);
-    mainSESE.setfmEnclosing(fmMain);
-    mainSESE.setmdEnclosing(fmMain.getMethod());
-    mainSESE.setcdEnclosing(fmMain.getMethod().getClassDesc());
-
-    // 1st pass
-    // run analysis on each method that is actually called
-    // reachability analysis already computed this so reuse
-    Iterator<Descriptor> methItr = disjointAnalysis.getDescriptorsToAnalyze().iterator();
-    while (methItr.hasNext()) {
-      Descriptor d = methItr.next();
-      FlatMethod fm = state.getMethodFlat(d);
-
-      // find every SESE from methods that may be called
-      // and organize them into roots and children
-      buildForestForward(fm);
-    }
-
-    // 2nd pass, results are saved in FlatSESEEnterNode, so
-    // intermediate results, for safety, are discarded
-    Iterator<FlatSESEEnterNode> rootItr = rootSESEs.iterator();
+    // 1st pass, find basic rblock relations
+    RBlockRelationAnalysis rblockRel = 
+      new RBlockRelationAnalysis(state, typeUtil, callGraph);
+    
+    // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
+    Iterator<FlatSESEEnterNode> rootItr = 
+      rblockRel.getRootSESEs().iterator();
     while (rootItr.hasNext()) {
       FlatSESEEnterNode root = rootItr.next();
       livenessAnalysisBackward(root, true, null);
     }
 
-    // 3rd pass
-    methItr = disjointAnalysis.getDescriptorsToAnalyze().iterator();
+    // 3rd pass, variable analysis    
+    Iterator<MethodDescriptor> methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
@@ -177,25 +132,24 @@ public class OoOJavaAnalysis {
 
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
-    rootItr = rootSESEs.iterator();
+    rootItr = rblockRel.getRootSESEs().iterator();
     while (rootItr.hasNext()) {
       FlatSESEEnterNode root = rootItr.next();
       livenessAnalysisBackward(root, true, null);
     }
-
-    /*
-     * SOMETHING IS WRONG WITH THIS, DON'T USE IT UNTIL IT CAN BE FIXED
-     * 
-     * // 5th pass methItr = ownAnalysis.descriptorsToAnalyze.iterator(); while(
-     * methItr.hasNext() ) { Descriptor d = methItr.next(); FlatMethod fm =
-     * state.getMethodFlat( d );
-     * 
-     * // prune variable results in one traversal // by removing reference
-     * variables that are not live pruneVariableResultsWithLiveness( fm ); }
-     */
-
-    // 6th pass
-    methItr = disjointAnalysis.getDescriptorsToAnalyze().iterator();
+    
+    // 5th pass, use disjointness with NO FLAGGED REGIONS
+    // to compute taints and effects
+    disjointAnalysisTaints = 
+      new DisjointAnalysis(state, 
+                           typeUtil, 
+                           callGraph,
+                           liveness, 
+                           arrayReferencees,
+                           rblockRel);
+    
+    // 6th pass, not available analysis FOR VARIABLES!
+    methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
@@ -205,91 +159,10 @@ public class OoOJavaAnalysis {
       notAvailableForward(fm);
     }
 
+    // MORE PASSES?
+
   }
 
-  private void buildForestForward(FlatMethod fm) {
-
-    // start from flat method top, visit every node in
-    // method exactly once, find SESEs and remember
-    // roots and child relationships
-    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add(fm);
-
-    Set<FlatNode> visited = new HashSet<FlatNode>();
-
-    Stack<FlatSESEEnterNode> seseStackFirst = new Stack<FlatSESEEnterNode>();
-    seseStacks.put(fm, seseStackFirst);
-
-    while (!flatNodesToVisit.isEmpty()) {
-      Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
-      FlatNode fn = fnItr.next();
-
-      Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
-      assert seseStack != null;
-
-      flatNodesToVisit.remove(fn);
-      visited.add(fn);
-
-      buildForest_nodeActions(fn, seseStack, fm);
-
-      for (int i = 0; i < fn.numNext(); i++) {
-        FlatNode nn = fn.getNext(i);
-
-        if (!visited.contains(nn)) {
-          flatNodesToVisit.add(nn);
-
-          // clone stack and send along each analysis path
-          seseStacks.put(nn, (Stack<FlatSESEEnterNode>) seseStack.clone());
-        }
-      }
-    }
-  }
-
-  private void buildForest_nodeActions(FlatNode fn, Stack<FlatSESEEnterNode> seseStack,
-      FlatMethod fm) {
-    switch (fn.kind()) {
-
-    case FKind.FlatSESEEnterNode: {
-      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-
-      if (!fsen.getIsCallerSESEplaceholder()) {
-        allSESEs.add(fsen);
-      }
-
-      fsen.setfmEnclosing(fm);
-      fsen.setmdEnclosing(fm.getMethod());
-      fsen.setcdEnclosing(fm.getMethod().getClassDesc());
-
-      if (seseStack.empty()) {
-        rootSESEs.add(fsen);
-        fsen.setParent(null);
-      } else {
-        seseStack.peek().addChild(fsen);
-        fsen.setParent(seseStack.peek());
-      }
-
-      seseStack.push(fsen);
-    }
-      break;
-
-    case FKind.FlatSESEExitNode: {
-      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-      assert !seseStack.empty();
-      FlatSESEEnterNode fsen = seseStack.pop();
-    }
-      break;
-
-    case FKind.FlatReturnNode: {
-      FlatReturnNode frn = (FlatReturnNode) fn;
-      if (!seseStack.empty() && !seseStack.peek().getIsCallerSESEplaceholder()) {
-        throw new Error("Error: return statement enclosed within SESE "
-            + seseStack.peek().getPrettyIdentifier());
-      }
-    }
-      break;
-
-    }
-  }
 
   private void livenessAnalysisBackward(FlatSESEEnterNode fsen, boolean toplevel,
       Hashtable<FlatSESEExitNode, Set<TempDescriptor>> liveout) {
@@ -422,9 +295,9 @@ public class OoOJavaAnalysis {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
 
-      Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
+      Stack<FlatSESEEnterNode> seseStack = rblockRel.getRBlockStacks(fm, fn);
       assert seseStack != null;
-
+      
       VarSrcTokTable prev = variableResults.get(fn);
 
       // merge sets from control flow joins
@@ -579,7 +452,7 @@ public class OoOJavaAnalysis {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
 
-      Stack<FlatSESEEnterNode> seseStack = seseStacks.get(fn);
+      Stack<FlatSESEEnterNode> seseStack = rblockRel.getRBlockStacks(fm, fn);
       assert seseStack != null;
 
       Set<TempDescriptor> prev = notAvailableResults.get(fn);
