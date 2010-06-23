@@ -1251,7 +1251,7 @@ int transCommit() {
     pthread_mutex_unlock(&recovery_mutex);
 
     pthread_mutex_lock(&translist_mutex);
-    transList = tlistInsertNode(transList,transID,TRYING_TO_COMMIT,TRYING_TO_COMMIT,epoch_num);
+    transList = tlistInsertNode(transList,transID,-3,TRYING_TO_COMMIT,epoch_num);
     tNode = tlistSearch(transList,transID);
     pthread_mutex_unlock(&translist_mutex);
 

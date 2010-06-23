@@ -14,6 +14,7 @@
 #define TRANS_BEFORE 4
 #define TRANS_INPROGRESS   5
 #define TRANS_AFTER  6
+#define TRANS_WAIT   7
 
 /*
    Status
