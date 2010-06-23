@@ -1237,6 +1237,10 @@ int transCommit() {
     randomdelay();
   }
 #endif
+
+  pthread_mutex_lock(&recovery_mutex);
+  epoch_num = currentEpoch;
+  pthread_mutex_unlock(&recovery_mutex);
     
   int treplyretryCount = 0;
   /* Initialize timeout for exponential delay */
@@ -1245,10 +1249,6 @@ int transCommit() {
   count_exponential_backoff = 0;
   do {
     treplyretry = 0;
-
-    pthread_mutex_lock(&recovery_mutex);
-    epoch_num = currentEpoch;
-    pthread_mutex_unlock(&recovery_mutex);
 
     pthread_mutex_lock(&translist_mutex);
     transList = tlistInsertNode(transList,transID,-3,TRYING_TO_COMMIT,epoch_num);
@@ -1391,10 +1391,10 @@ int transCommit() {
 			if(sd != 0) {
 				char control;
         int timeout;            // a variable to check if the connection is still alive. if it is -1, then need to transcommit again
-//        printf("%s -> Waiting for mid : %s transID = %u\n",__func__,midtoIPString(midlist[i]),transID);
+        printf("%s -> Waiting for mid : %s transID = %u\n",__func__,midtoIPString(midlist[i]),transID);
         timeout = recv_data(sd, &control, sizeof(char));
 
-//        printf("%s -> Received mid : %s control %d timeout = %d\n",__func__,midtoIPString(midlist[i]),control,timeout);
+        printf("%s -> Received mid : %s control %d timeout = %d\n",__func__,midtoIPString(midlist[i]),control,timeout);
 				//Update common data structure with new ctrl msg
 				getReplyCtrl[i] = control;
 				/* Recv Objects if participant sends TRANS_DISAGREE */
@@ -1881,7 +1881,7 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
     do {
       sdlist = getSocketLists();
   
-      printf("%s -> I'm currently leader num : %d ping machines\n\n",__func__,epoch_num);
+//      printf("%s -> I'm currently leader num : %d ping machines\n\n",__func__,epoch_num);
       if((flag = pingMachines(epoch_num,sdlist,&tList)) < 0) break;
 
       pthread_mutex_lock(&translist_mutex);
@@ -1907,11 +1907,11 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
     if(flag > -2)
       break;
 
-    printf("%s -> Retry \n",__func__);
+//    printf("%s -> Retry \n",__func__);
   }while(0);
 
   if(flag < 0) {
-    printf("%s -> higher epoch\n",__func__);
+//    printf("%s -> higher epoch\n",__func__);
     while(okCommit != TRANS_OK) {
 //      printf("%s -> Waiting\n",__func__);
       randomdelay();
@@ -2000,7 +2000,7 @@ void freeSocketLists(int* sdlist)
 int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
 {
 
-  printf("%s -> Enter\n",__func__);
+//  printf("%s -> Enter\n",__func__);
   int i;
   char request;
   char response;
@@ -2019,19 +2019,19 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
     if(sdlist[i] == -1 || hostIpAddrs[i] == myIpAddr)
       continue;
   
-    printf("%s -> sending request_trans_wait to %s\n",__func__,midtoIPString(hostIpAddrs[i]));
+//    printf("%s -> sending request_trans_wait to %s\n",__func__,midtoIPString(hostIpAddrs[i]));
     request = REQUEST_TRANS_WAIT;
     send_data(sdlist[i],&request, sizeof(char));
     send_data(sdlist[i],&epoch_num,sizeof(unsigned int));
     send_data(sdlist[i],&myIndexInHostArray,sizeof(unsigned int));
   }
 
-  printf("%s -> Stop transaction\n",__func__);
+//  printf("%s -> Stop transaction\n",__func__);
   /* stop all local transactions */
   if(stopTransactions(TRANS_BEFORE,epoch_num) < 0)
     return -1;
 
-  printf("After Stop transaction\n");
+//  printf("After Stop transaction\n");
 
   // grab leader's transaction list first
   tlist_node_t* walker = transList->head;
@@ -2051,7 +2051,7 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
     if(sdlist[i] == -1 || hostIpAddrs[i] == myIpAddr)
       continue;
 
-    printf("%s -> receving from %s\n",__func__,midtoIPString(hostIpAddrs[i]));
+//    printf("%s -> receving from %s\n",__func__,midtoIPString(hostIpAddrs[i]));
     if(recv_data(sdlist[i],&response,sizeof(char)) < 0)
     {
       printf("Here\n");
@@ -2064,11 +2064,11 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
     printf("recevied response = %d\n",response);
     if(response == RESPOND_TRANS_WAIT) 
     {
-      printf("%s -> RESPOND_TRANS_WAIT\n",__func__);
+//      printf("%s -> RESPOND_TRANS_WAIT\n",__func__);
       int timeout1 = computeLiveHosts(sdlist[i]);
-      printf("%s -> received host list\n",__func__);
+//      printf("%s -> received host list\n",__func__);
       int timeout2 = makeTransactionLists(&currentTransactionList,sdlist[i],epoch_num);
-      printf("%s -> received transaction list\n",__func__);
+//      printf("%s -> received transaction list\n",__func__);
       // receive live host list       // receive transaction list
       if(timeout1 < 0 || timeout2 < 0) {
         pthread_mutex_lock(&translist_mutex);
@@ -2076,8 +2076,7 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
         pthread_mutex_unlock(&translist_mutex);
         return -2;
       }
-      printf("\n\n\nAfter mid : %s \n",midtoIPString(hostIpAddrs[i]));
-      tlistPrint(currentTransactionList);
+ //     tlistPrint(currentTransactionList);
     }
     else if(response == RESPOND_HIGHER_EPOCH)
     {
@@ -2114,7 +2113,7 @@ int computeLiveHosts(int sd)
   int receivedHost[numHostsInSystem];
   int i;
   
-  if(recv_data(sd,receivedHost,sizeof(int)*numHostsInSystem))
+  if(recv_data(sd,receivedHost,sizeof(int)*numHostsInSystem) < 0)
     return -2;
 
   for(i = 0 ; i < numHostsInSystem;i ++)
@@ -2165,7 +2164,7 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
         send_data(sdlist[i],tArray,sizeof(tlist_node_t) * size);
       }
     }
-    else {
+    else if(hostIpAddrs[i] == myIpAddr) {
       setLocateObjHosts();
 //      printHostsStatus();
       flag = combineTransactionList(tArray,size);
@@ -2191,7 +2190,7 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
         tlistDestroy(tlist);  
         return -2;
       }
-      if(response != TRANS_OK)
+      if(response != TRANS_OK && response != RESPOND_HIGHER_EPOCH)
       {
         printf("%s -> response : %d Need to fix\n",__func__,response);
       }
@@ -2250,11 +2249,10 @@ int makeTransactionLists(tlist_t** tlist,int sd,unsigned int epoch_num)
       *tlist = tlistInsertNode2(*tlist,&(transArray[j]),epoch_num);
     }
     else {
-      if(tmp->decision == DECISION_LOST && transArray[j].decision != DECISION_LOST)
+      if((tmp->decision != TRANS_ABORT && tmp->decision != TRANS_COMMIT) && (transArray[j].decision == TRANS_COMMIT || transArray[j].decision == TRANS_ABORT))
       {
         tmp->decision = transArray[j].decision;
       }
-
     }
   }  // j loop
   

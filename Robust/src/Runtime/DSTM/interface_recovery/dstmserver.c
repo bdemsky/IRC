@@ -527,7 +527,7 @@ void *dstmAccept(void *acceptfd) {
             send_data((int)acceptfd,&response,sizeof(char));
           }
           else {
-            printf("Got new Leader! : %d\n",epoch_num);
+//            printf("Got new Leader! : %d\n",epoch_num);
             pthread_mutex_lock(&recovery_mutex);
             currentEpoch = epoch_num;
             okCommit = TRANS_BEFORE;
@@ -547,7 +547,7 @@ void *dstmAccept(void *acceptfd) {
         break;
 
       case RELEASE_NEW_LIST:
-        printf("control -> RELEASE_NEW_LIST\n");
+//        printf("control -> RELEASE_NEW_LIST\n");
         { 
           recv_data((int)acceptfd,&epoch_num,sizeof(unsigned int));
 
@@ -965,14 +965,14 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
         tNode->status = TRANS_AFTER;
       }
       if(okCommit == TRANS_AFTER) {
-      printf("%s -> 11 \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-      sleep(3);     
+//      printf("%s -> 11 \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+//      sleep(3);
       }
     }
     else {
       tNode->status = TRANS_WAIT;
-      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-      sleep(3);
+//      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+//      sleep(3);
       randomdelay();
     }
     
@@ -980,18 +980,13 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
 
   if(okCommit == TRANS_AFTER)
   {
-    printf("%s -> TRANS_AFTER!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-    printf("%s -> Before removing\n",__func__);
+//    printf("%s -> TRANS_AFTER!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
   }
 
 
   pthread_mutex_lock(&translist_mutex);
   transList = tlistRemove(transList,fixed->transid);
   pthread_mutex_unlock(&translist_mutex);
-
-  if(okCommit == TRANS_AFTER)
-    printf("%s -> After removing\n",__func__);
-
 
   /* Free memory */
   if (transinfo->objlocked != NULL) {
@@ -1866,9 +1861,9 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
       {
         // locking
         while(walker->status != TRANS_WAIT && tlistSearch(transList,walker->transid) != NULL) {
-          printf("%s -> BEFORE transid : %u - decision %d Status : %d \n",__func__,walker->transid,walker->decision,walker->status);
+//          printf("%s -> BEFORE transid : %u - decision %d Status : %d \n",__func__,walker->transid,walker->decision,walker->status);
           if(inspectEpoch(epoch_num,"stopTrans_Before") < 0) {
-            printf("%s -> Higher Epoch is seen, walker->epoch = %u currentEpoch = %u\n",__func__,epoch_num,currentEpoch);
+//            printf("%s -> Higher Epoch is seen, walker->epoch = %u currentEpoch = %u\n",__func__,epoch_num,currentEpoch);
             return -1;                                     
          }
           sleep(3);
@@ -1883,22 +1878,22 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
   }
   else if(TRANS_FLAG == TRANS_AFTER)
   {
-    printf("%s -> TRANS_AFTER\n",__func__);
+//    printf("%s -> TRANS_AFTER\n",__func__);
     okCommit = TRANS_AFTER;
     do {
       pthread_mutex_lock(&translist_mutex);
       size = transList->size;
-      printf("%s -> size = %d\n",__func__,size);
-      printf("%s -> okCommit = %d\n",__func__,okCommit);
+//      printf("%s -> size = %d\n",__func__,size);
+//      printf("%s -> okCommit = %d\n",__func__,okCommit);
       walker = transList->head;
       while(walker){
-        printf("%s -> AFTER transid : %u - decision %d Status : %d epoch = %u  current epoch : %u\n",__func__,walker->transid,walker->decision,walker->status,walker->epoch_num,currentEpoch);
+//        printf("%s -> AFTER transid : %u - decision %d Status : %d epoch = %u  current epoch : %u\n",__func__,walker->transid,walker->decision,walker->status,walker->epoch_num,currentEpoch);
         walker = walker->next;
       }
       pthread_mutex_unlock(&translist_mutex);
 
       if(inspectEpoch(epoch_num,"stopTrans_Before") < 0) {
-        printf("%s -> 222Higher Epoch is seen, walker->epoch = %u currentEpoch = %u\n",__func__,epoch_num,currentEpoch);
+//        printf("%s -> 222Higher Epoch is seen, walker->epoch = %u currentEpoch = %u\n",__func__,epoch_num,currentEpoch);
         return -1;
       }
 
@@ -1920,7 +1915,7 @@ void sendMyList(int acceptfd)
 
 void sendTransList(int acceptfd)
 {
-  printf("%s -> Enter\n",__func__);
+//  printf("%s -> Enter\n",__func__);
   int size;
   char response;
   int transid;
@@ -1935,12 +1930,12 @@ void sendTransList(int acceptfd)
   if(transList->size != 0)
     tlistPrint(transList);
 
-  printf("%s -> transList->size : %d  size = %d\n",__func__,transList->size,size);
+//  printf("%s -> transList->size : %d  size = %d\n",__func__,transList->size,size);
 
   for(i = 0; i< size; i++) {
-    printf("ID : %u  Decision : %d  status : %d\n",transArray[i].transid,transArray[i].decision,transArray[i].status);
+//    printf("ID : %u  Decision : %d  status : %d\n",transArray[i].transid,transArray[i].decision,transArray[i].status);
   }
-  printf("%s -> End transArray\n",__func__);
+//  printf("%s -> End transArray\n",__func__);
 
   send_data((int)acceptfd,&size,sizeof(int));
   send_data((int)acceptfd,transArray, sizeof(tlist_node_t) * size);
@@ -1964,7 +1959,7 @@ void sendTransList(int acceptfd)
 
 int receiveNewList(int acceptfd)
 {
-  printf("%s -> Enter\n",__func__);
+//  printf("%s -> Enter\n",__func__);
   int size;
   tlist_node_t* tArray;
   tlist_node_t* walker;
@@ -2004,7 +1999,7 @@ int receiveNewList(int acceptfd)
     response = -1;
   }
 
-  printf("%s -> Exit\n",__func__);
+//  printf("%s -> Exit\n",__func__);
   return response;
 }
 
