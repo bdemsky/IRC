@@ -557,7 +557,7 @@ void *dstmAccept(void *acceptfd) {
           else 
           {
             response =  receiveNewList((int)acceptfd);
-            if(stopTransactions(TRANS_AFTER,epoch_num) < -1)
+            if(stopTransactions(TRANS_AFTER,epoch_num) < 0)
               response = RESPOND_HIGHER_EPOCH;
           }
           printf("After stop transaction\n");
