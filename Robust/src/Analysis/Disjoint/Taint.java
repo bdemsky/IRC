@@ -24,67 +24,105 @@ import java.io.*;
 ///////////////////////////////////////////
 
 // a taint is applied to a reference edge, and
-// is used to associate an effect with an
-// sese (rblock) and live variable
+// is used to associate an effect with a heap root
 
 public class Taint extends Canonical {
 
   // taints can either be associated with
-  // a callsite and parameter index or
+  // a stall site and live variable or
   // an sese (rblock) and an in-set var
-  // only one set of identifying objects
-  // will be non-null
+  // only one identifer will be non-null
   
   // identify an sese (rblock) + inset var
   protected FlatSESEEnterNode sese;
-  protected TempDescriptor    insetVar;
 
-  // either type of taint also includes
-  // an allocation site
-  protected AllocSite allocSite;
+  // identify a stall site + live variable
+  protected FlatNode stallSite;
+
+  // either type of taint includes a var
+  // and allocation site
+  protected TempDescriptor var;
+  protected AllocSite      allocSite;
 
   // existance predicates must be true in a caller
   // context for this taint's effects to transfer from this
   // callee to that context
   protected ExistPredSet preds;
 
-
-  public static Taint factory( FlatSESEEnterNode s,
-                               TempDescriptor    iv,
-                               AllocSite         as ) {
-    Taint out = new Taint( s, iv, as );
-    out.preds = ExistPredSet.factory();
-    out = (Taint) Canonical.makeCanonical( out );
-    return out;
-  }
-
-  public static Taint factory( FlatSESEEnterNode s,
-                               TempDescriptor    iv,
+  public static Taint factory( FlatSESEEnterNode sese,
+                               TempDescriptor    insetVar,
                                AllocSite         as,
                                ExistPredSet      eps ) {
-    Taint out = new Taint( s, iv, as );
-    out.preds = eps;
+    Taint out = new Taint( sese, null, insetVar, as, eps );
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
 
-  protected Taint( FlatSESEEnterNode s,
-                   TempDescriptor    iv,
-                   AllocSite         as ) {
-    assert s  != null;
-    assert iv != null;
-    assert as != null;
-    sese       = s;
-    insetVar   = iv;
-    allocSite  = as;
+  public static Taint factory( FlatNode       stallSite,
+                               TempDescriptor liveVar,
+                               AllocSite      as,
+                               ExistPredSet   eps ) {
+    Taint out = new Taint( null, stallSite, liveVar, as, eps );
+    out = (Taint) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  public static Taint factory( FlatSESEEnterNode sese,
+                               FlatNode          stallSite,
+                               TempDescriptor    liveVar,
+                               AllocSite         as,
+                               ExistPredSet      eps ) {
+    Taint out = new Taint( sese, stallSite, liveVar, as, eps );
+    out = (Taint) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  protected Taint( FlatSESEEnterNode sese,
+                   FlatNode          stallSite,
+                   TempDescriptor    v,
+                   AllocSite         as,
+                   ExistPredSet      eps ) {
+    assert 
+      (sese == null && stallSite != null) ||
+      (sese != null && stallSite == null);
+      
+    assert v   != null;
+    assert as  != null;
+    assert eps != null;
+    
+    this.sese      = sese;
+    this.stallSite = stallSite;
+    this.var       = v;
+    this.allocSite = as;
+    this.preds     = eps;
+  }
+
+  protected Taint( Taint t ) {
+    this( t.sese, 
+          t.stallSite, 
+          t.var, 
+          t.allocSite, 
+          t.preds );
+  }
+
+  public boolean isRBlockTaint() {
+    return sese != null;
+  }
+
+  public boolean isStallSiteTaint() {
+    return stallSite != null;
   }
 
   public FlatSESEEnterNode getSESE() {
     return sese;
   }
 
-  public TempDescriptor getInSetVar() {
-    return insetVar;
+  public FlatNode getStallSite() {
+    return stallSite;
+  }
+
+  public TempDescriptor getVar() {
+    return var;
   }
 
   public AllocSite getAllocSite() {
@@ -115,31 +153,60 @@ public class Taint extends Canonical {
 
     Taint t = (Taint) o;
 
+    boolean seseEqual;
+    if( sese == null ) {
+      seseEqual = (t.sese == null);      
+    } else {
+      seseEqual = sese.equals( t.sese );
+    }
+
+    boolean stallSiteEqual;
+    if( stallSite == null ) {
+      stallSiteEqual = (t.stallSite == null);
+    } else {
+      stallSiteEqual = stallSite.equals( t.stallSite );
+    }
+
     return 
-      sese     .equals( t.sese      ) &&
-      insetVar .equals( t.insetVar  ) &&
+      seseEqual                      && 
+      stallSiteEqual                 &&
+      var      .equals( t.var  )     &&
       allocSite.equals( t.allocSite );
   }
 
   public int hashCodeSpecific() {
     int hash = allocSite.hashCode();
-    hash = hash ^ sese.hashCode();
-    hash = hash ^ insetVar.hashCode();
+    hash = hash ^ var.hashCode();
+  
+    if( sese != null ) {
+      hash = hash ^ sese.hashCode();
+    }
+
+    if( stallSite != null ) {
+      hash = hash ^ stallSite.hashCode();
+    }
+
     return hash;
   }
 
   public String toString() {
 
     String s;
-    if( sese.getIsCallerSESEplaceholder() ) {
-      s = "placeh";
+
+    if( isRBlockTaint() ) {
+      if( sese.getIsCallerSESEplaceholder() ) {
+        s = "placeh";
+      } else {
+        s = sese.getPrettyIdentifier();
+      }
+
     } else {
-      s = sese.getPrettyIdentifier();
+      s = stallSite.toString();
     }
 
     return 
       "("+s+
-      "-"+insetVar+
+      "-"+var+
       ", "+allocSite.toStringBrief()+
       "):"+preds;
   }

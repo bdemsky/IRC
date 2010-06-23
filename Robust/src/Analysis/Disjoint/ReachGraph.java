@@ -1243,20 +1243,23 @@ public class ReachGraph {
   }
 
 
-  public void taintTemp( FlatSESEEnterNode sese, 
+  // either the sese or the callsite should be null!
+  public void taintTemp( FlatSESEEnterNode sese,
+                         FlatNode          stallSite,
                          TempDescriptor    td
                          ) {
     
-    VariableNode   vn = td2vn.get( td );
+    VariableNode vn = td2vn.get( td );
     
     Iterator<RefEdge> reItr = vn.iteratorToReferencees();
     while( reItr.hasNext() ) {
       RefEdge re = reItr.next();
       
-      // these new sese (rblock) taints should
-      // have empty predicates so they never propagate
+      // these new taints should have empty 
+      // predicates so they never propagate
       // out to callers
       Taint t = Taint.factory( sese,
+                               stallSite,
                                td,
                                re.getDst().getAllocSite(),
                                ExistPredSet.factory()
@@ -1517,8 +1520,10 @@ public class ReachGraph {
         
         Taint tCaller = 
           Canonical.attach( Taint.factory( tCallee.sese,
-                                           tCallee.insetVar,
-                                           tCallee.allocSite ),
+                                           tCallee.stallSite,
+                                           tCallee.var,
+                                           tCallee.allocSite,
+                                           ExistPredSet.factory() ),
                             calleeTaintsSatisfied.get( tCallee )
                             );
         out = Canonical.add( out,

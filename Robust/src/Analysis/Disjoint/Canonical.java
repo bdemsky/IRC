@@ -1271,9 +1271,7 @@ abstract public class Canonical {
     }
     
     // otherwise, no cached result...
-    Taint out = new Taint( t.sese,
-                           t.insetVar,
-                           t.allocSite );
+    Taint out = new Taint( t );
     out.preds = Canonical.join( t.preds,
                                 preds );
     
@@ -1337,13 +1335,12 @@ abstract public class Canonical {
       Taint t2 = ts2.containsIgnorePreds( t1 );
 
       if( t2 != null ) {
-	out.taints.add( Taint.factory( t1.sese,
-                                       t1.insetVar,
-                                       t1.allocSite,
-                                       Canonical.join( t1.preds,
-                                                       t2.preds
-                                                       )
-                                       ) );
+        Taint tNew = new Taint( t1 );
+        tNew.preds = Canonical.join( t1.preds,
+                                     t2.preds
+                                     );
+        tNew = (Taint) makeCanonical( tNew );
+	out.taints.add( tNew );
       } else {
 	out.taints.add( t1 );
       }
@@ -1393,13 +1390,12 @@ abstract public class Canonical {
       Taint t2 = ts2.containsIgnorePreds( t1 );
       
       if( t2 != null ) {
-	out.taints.add( Taint.factory( t1.sese,
-                                       t1.insetVar,
-                                       t1.allocSite,
-                                       Canonical.join( t1.preds,
-                                                       t2.preds
-                                                       )
-                                       ) );
+        Taint tNew = new Taint( t1 );
+        tNew.preds = Canonical.join( t1.preds,
+                                     t2.preds
+                                     );
+        tNew = (Taint) makeCanonical( tNew );
+	out.taints.add( tNew );
       } else {
 	out.taints.add( t1 );
       }
