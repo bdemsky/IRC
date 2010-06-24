@@ -59,20 +59,20 @@ public class Taint extends Canonical {
   }
 
   public static Taint factory( FlatNode       stallSite,
-                               TempDescriptor liveVar,
+                               TempDescriptor var,
                                AllocSite      as,
                                ExistPredSet   eps ) {
-    Taint out = new Taint( null, stallSite, liveVar, as, eps );
+    Taint out = new Taint( null, stallSite, var, as, eps );
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
 
   public static Taint factory( FlatSESEEnterNode sese,
                                FlatNode          stallSite,
-                               TempDescriptor    liveVar,
+                               TempDescriptor    var,
                                AllocSite         as,
                                ExistPredSet      eps ) {
-    Taint out = new Taint( sese, stallSite, liveVar, as, eps );
+    Taint out = new Taint( sese, stallSite, var, as, eps );
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }

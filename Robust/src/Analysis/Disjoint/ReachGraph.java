@@ -1799,8 +1799,9 @@ public class ReachGraph {
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
       
-      TaintSet taints =
-        TaintSet.factory();
+      TaintSet taints = TaintSet.factory( reArg.getTaints(),
+                                          preds
+                                          );
 
       RefEdge reCallee = 
         new RefEdge( vnCallee,
@@ -2183,6 +2184,8 @@ public class ReachGraph {
       
       // since the node is coming over, find out which reach
       // states on it should come over, too
+      assert calleeNode2calleeStatesSatisfied.get( hrnCallee ) == null;
+
       Iterator<ReachState> stateItr = hrnCallee.getAlpha().iterator();
       while( stateItr.hasNext() ) {
         ReachState stateCallee = stateItr.next();
@@ -2192,13 +2195,18 @@ public class ReachGraph {
                                                 callerNodeIDsCopiedToCallee
                                                 );
         if( predsIfSatis != null ) {          
-          assert calleeNode2calleeStatesSatisfied.get( hrnCallee ) == null;
-          
+      
           Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
-            new Hashtable<ReachState, ExistPredSet>();
-          calleeStatesSatisfied.put( stateCallee, predsIfSatis );
+            calleeNode2calleeStatesSatisfied.get( hrnCallee ); 
 
-          calleeNode2calleeStatesSatisfied.put( hrnCallee, calleeStatesSatisfied );            
+          if( calleeStatesSatisfied == null ) {
+            calleeStatesSatisfied = 
+              new Hashtable<ReachState, ExistPredSet>();
+
+            calleeNode2calleeStatesSatisfied.put( hrnCallee, calleeStatesSatisfied );
+          }
+
+          calleeStatesSatisfied.put( stateCallee, predsIfSatis );
         } 
       }
 
@@ -2335,6 +2343,8 @@ public class ReachGraph {
 
           // since the edge is coming over, find out which reach
           // states on it should come over, too
+          assert calleeEdge2calleeStatesSatisfied.get( reCallee ) == null;
+
           stateItr = reCallee.getBeta().iterator();
           while( stateItr.hasNext() ) {
             ReachState stateCallee = stateItr.next();
@@ -2344,18 +2354,25 @@ public class ReachGraph {
                                                     callerNodeIDsCopiedToCallee
                                                     );
             if( predsIfSatis != null ) {
-              assert calleeEdge2calleeStatesSatisfied.get( reCallee ) == null;
               
               Hashtable<ReachState, ExistPredSet> calleeStatesSatisfied =
-                new Hashtable<ReachState, ExistPredSet>();
-              calleeStatesSatisfied.put( stateCallee, predsIfSatis );
-              
-              calleeEdge2calleeStatesSatisfied.put( reCallee, calleeStatesSatisfied );
+                calleeEdge2calleeStatesSatisfied.get( reCallee );
+
+              if( calleeStatesSatisfied == null ) {
+                calleeStatesSatisfied = 
+                  new Hashtable<ReachState, ExistPredSet>();
+
+                calleeEdge2calleeStatesSatisfied.put( reCallee, calleeStatesSatisfied );
+              }
+
+              calleeStatesSatisfied.put( stateCallee, predsIfSatis );             
             } 
           }
 
           // since the edge is coming over, find out which taints
           // on it should come over, too          
+          assert calleeEdge2calleeTaintsSatisfied.get( reCallee ) == null;
+
           Iterator<Taint> tItr = reCallee.getTaints().iterator();
           while( tItr.hasNext() ) {
             Taint tCallee = tItr.next();
@@ -2365,13 +2382,18 @@ public class ReachGraph {
                                                 callerNodeIDsCopiedToCallee
                                                 );
             if( predsIfSatis != null ) {
-              assert calleeEdge2calleeTaintsSatisfied.get( reCallee ) == null;
               
               Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied =
-                new Hashtable<Taint, ExistPredSet>();
-              calleeTaintsSatisfied.put( tCallee, predsIfSatis );
-              
-              calleeEdge2calleeTaintsSatisfied.put( reCallee, calleeTaintsSatisfied );
+                calleeEdge2calleeTaintsSatisfied.get( reCallee );
+
+              if( calleeTaintsSatisfied == null ) {
+                calleeTaintsSatisfied = 
+                  new Hashtable<Taint, ExistPredSet>();
+
+                calleeEdge2calleeTaintsSatisfied.put( reCallee, calleeTaintsSatisfied );
+              }
+
+              calleeTaintsSatisfied.put( tCallee, predsIfSatis );              
             } 
           }
         }        

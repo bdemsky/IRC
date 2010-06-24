@@ -47,6 +47,28 @@ public class TaintSet extends Canonical {
     return out;
   }
 
+  public static TaintSet factory( TaintSet     ts,
+                                  ExistPredSet preds ) {
+    assert ts != null;
+    assert ts.isCanonical();
+
+    TaintSet out = new TaintSet();
+
+    Iterator<Taint> tItr = ts.iterator();
+    while( tItr.hasNext() ) {
+      Taint t    = tItr.next();
+      Taint tOut = Taint.factory( t.sese,
+                                  t.stallSite,
+                                  t.var,
+                                  t.allocSite,
+                                  preds );
+      out.taints.add( tOut );
+    }
+
+    out = (TaintSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
   protected TaintSet() {
     taints = new HashSet<Taint>();
   }
