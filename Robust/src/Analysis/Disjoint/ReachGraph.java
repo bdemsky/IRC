@@ -642,7 +642,7 @@ public class ReachGraph {
                                                                   )
                                                ),
                        predsTrue,
-                       edgeY.getTaints()
+                       Canonical.makePredsTrue( edgeY.getTaints() )
                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -686,6 +686,7 @@ public class ReachGraph {
       HeapRegionNode referencee = edgeX.getDst();
       RefEdge        edgeNew    = edgeX.copy();
       edgeNew.setSrc( lnR );
+      edgeNew.setTaints( Canonical.makePredsTrue( edgeNew.getTaints() ) );
 
       addRefEdge( lnR, referencee, edgeNew );
     }

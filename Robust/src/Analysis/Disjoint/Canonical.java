@@ -1443,4 +1443,68 @@ abstract public class Canonical {
     //op2result.put( op, out ); CRY CRY
     return out;
   }
+
+
+  public static Taint makePredsTrue( Taint t ) {
+    assert t != null;
+    assert t.isCanonical();
+
+    // ops require two canonicals, in this case always supply
+    // the empty reach state as the second, it's never used,
+    // but makes the hashing happy
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINT_MAKEPREDSTRUE,
+                       t, 
+                       t );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (Taint) result;
+    }
+    
+    // otherwise, no cached result...
+    Taint out = new Taint( t.sese,
+                           t.stallSite,
+                           t.var,
+                           t.allocSite,
+                           ExistPredSet.factory( ExistPred.factory() ) 
+                           );
+    
+    out = (Taint) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
+
+
+  public static TaintSet makePredsTrue( TaintSet ts ) {
+    assert ts != null;
+    assert ts.isCanonical();
+
+    // ops require two canonicals, in this case always supply
+    // the empty reach set as the second, it's never used,
+    // but makes the hashing happy
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINTSET_MAKEPREDSTRUE,
+                       ts,
+                       TaintSet.factory() );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (TaintSet) result;
+    }
+    
+    // otherwise, no cached result...
+    TaintSet out = TaintSet.factory();
+    Iterator<Taint> itr = ts.iterator();
+    while( itr.hasNext() ) {
+      Taint t = itr.next();
+      out = Canonical.add( out,
+                           Canonical.makePredsTrue( t )
+                           );
+    }
+    
+    out = (TaintSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
 }

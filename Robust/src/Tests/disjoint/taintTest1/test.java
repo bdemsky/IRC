@@ -9,33 +9,36 @@ public class Test {
   static public void main( String[] args ) {
 
     Foo a = new Foo();
+    Foo b = new Foo();
 
+    /*
     if( false ) {
       a = new Foo();
     }
+    */
 
     rblock r1 {
       a.f = new Foo();
-      doSomething( a );
+
+      b.f = new Foo();
+
+      doSomething( a, b );
     }
    
   }
 
-  static void doSomething( Foo a ) {
+  static void doSomething( Foo a, Foo b ) {
 
     a.g = new Foo();
 
     a.f.f = a.g;
 
-    //Foo x = a.g;
-
-    //    Foo y = new Foo();
-    //    y.f = x;
-
-    //Foo f = doStuff( a, c );
+    Foo f = doStuff( a, b );
   }   
 
   static Foo doStuff( Foo m, Foo n ) {
+
+    m.f.g = n.f;
 
     return new Foo();
   }
