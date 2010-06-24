@@ -108,8 +108,7 @@ public class OoOJavaAnalysis {
     // conflictGraphLockMap = new Hashtable<ConflictGraph, HashSet<SESELock>>();
 
     // 1st pass, find basic rblock relations
-    RBlockRelationAnalysis rblockRel = 
-      new RBlockRelationAnalysis(state, typeUtil, callGraph);
+    rblockRel = new RBlockRelationAnalysis(state, typeUtil, callGraph);
     
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
     Iterator<FlatSESEEnterNode> rootItr = 
@@ -160,7 +159,8 @@ public class OoOJavaAnalysis {
     }
 
     // MORE PASSES?
-
+    
+    
   }
 
 

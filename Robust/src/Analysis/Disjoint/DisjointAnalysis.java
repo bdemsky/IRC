@@ -336,6 +336,9 @@ public class DisjointAnalysis {
   public RBlockRelationAnalysis rblockRel;
   public TypeUtil         typeUtil;
   public int              allocationDepth;
+
+  protected boolean doEffectsAnalysis = false;
+
   
   // data structure for public interface
   private Hashtable< Descriptor, HashSet<AllocSite> > 
@@ -473,8 +476,6 @@ public class DisjointAnalysis {
 
   private Hashtable<FlatCall, Descriptor> fc2enclosing;  
 
-  //protected RBlockRelationAnalysis rra;
-
 
   // allocate various structures that are not local
   // to a single class method--should be done once
@@ -577,6 +578,11 @@ public class DisjointAnalysis {
     this.liveness                = liveness;
     this.arrayReferencees        = arrayReferencees;
     this.rblockRel               = rra;
+
+    if( rblockRel != null ) {
+      doEffectsAnalysis = true;
+    }
+
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
     this.releaseMode             = state.DISJOINTRELEASEMODE;
     this.determinismDesired      = state.DISJOINTDETERMINISM;
@@ -910,10 +916,6 @@ public class DisjointAnalysis {
 	}
       }
       
-      //if(rra.isEndOfRegion(fn)){
-      //  rg.clearAccessibleVarSet();
-      //  also need to clear stall mapping
-      //}
 
       if( takeDebugSnapshots && 
  	  d.getSymbol().equals( descSymbolDebug ) 
@@ -1005,6 +1007,13 @@ public class DisjointAnalysis {
     // nullified in the graph to reduce edges
     //rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
+    /*
+      if( doEffectsAnalysis &&
+        rra.isEndOfRegion(fn)){
+      rg.clearAccessibleVarSet();
+      also need to clear stall mapping
+    }
+    */
 	  
     TempDescriptor  lhs;
     TempDescriptor  rhs;
@@ -1050,6 +1059,24 @@ public class DisjointAnalysis {
 	lhs = fon.getDest();
 	rhs = fon.getLeft();
 	rg.assignTempXEqualToTempY( lhs, rhs );
+
+        /*
+        if( doEffectsAnalysis ) {         
+          // current sese is top of stack at this program point
+          FlatSESEEnterNode sese = 
+            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
+
+          // if we are assigning to an out-set var, the taint
+          // on the out-set var edges should be TRUE (and propagate
+          // back to callers
+
+          rg.taintTemp( sese, 
+                        null, 
+                        lhs,
+                        ReachGraph.predsTrue 
+                        );
+        }
+        */
       }
       break;
 
@@ -1131,19 +1158,20 @@ public class DisjointAnalysis {
       }
       break;
 
-      /*
     case FKind.FlatSESEEnterNode:
-      FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
-      rg.taintLiveTemps( sese,
-                         liveness.getLiveInTemps( fmContaining, fn ) 
-                         );
+      if( doEffectsAnalysis ) {
+        FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
+        rg.taintInSetVars( sese );                         
+      }
       break;
 
     case FKind.FlatSESEExitNode:
-      FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-      rg.removeInContextTaints( fsexn.getFlatEnter() );
+      if( doEffectsAnalysis ) {
+        FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
+        rg.removeInContextTaints( fsexn.getFlatEnter() );
+      }
       break;
-      */
+
 
     case FKind.FlatCall: {
       Descriptor mdCaller;

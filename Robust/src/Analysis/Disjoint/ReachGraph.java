@@ -21,9 +21,9 @@ public class ReachGraph {
   protected static final ReachSet   rsetWithEmptyState = Canonical.makePredsTrue(ReachSet.factory( rstateEmpty ));
 
   // predicate constants
-  protected static final ExistPred    predTrue   = ExistPred.factory(); // if no args, true
-  protected static final ExistPredSet predsEmpty = ExistPredSet.factory();
-  protected static final ExistPredSet predsTrue  = ExistPredSet.factory( predTrue );
+  public static final ExistPred    predTrue   = ExistPred.factory(); // if no args, true
+  public static final ExistPredSet predsEmpty = ExistPredSet.factory();
+  public static final ExistPredSet predsTrue  = ExistPredSet.factory( predTrue );
 
 
   // from DisjointAnalysis for convenience
@@ -1271,10 +1271,39 @@ public class ReachGraph {
   }
 
 
-  // either the sese or the callsite should be null!
-  public void taintTemp( FlatSESEEnterNode sese,
-                         FlatNode          stallSite,
-                         TempDescriptor    td
+  public void taintInSetVars( FlatSESEEnterNode sese ) {
+    Iterator<TempDescriptor> isvItr = sese.getInVarSet().iterator()
+;
+    while( isvItr.hasNext() ) {
+      TempDescriptor isv = isvItr.next();
+      VariableNode   vn  = td2vn.get( isv );
+    
+      Iterator<RefEdge> reItr = vn.iteratorToReferencees();
+      while( reItr.hasNext() ) {
+        RefEdge re = reItr.next();
+
+        // these in-set taints should have empty 
+        // predicates so they never propagate
+        // out to callers
+        Taint t = Taint.factory( sese,
+                                 null,
+                                 isv,
+                                 re.getDst().getAllocSite(),
+                                 ExistPredSet.factory()
+                                 );
+      
+        re.setTaints( Canonical.add( re.getTaints(),
+                                     t 
+                                     )
+                      );
+      }
+    }
+  }
+
+  // this is useful for more general tainting
+  public void taintTemp( Taint          taint,
+                         TempDescriptor td,
+                         ExistPredSet   preds
                          ) {
     
     VariableNode vn = td2vn.get( td );
@@ -1282,26 +1311,31 @@ public class ReachGraph {
     Iterator<RefEdge> reItr = vn.iteratorToReferencees();
     while( reItr.hasNext() ) {
       RefEdge re = reItr.next();
-      
-      // these new taints should have empty 
-      // predicates so they never propagate
-      // out to callers
-      Taint t = Taint.factory( sese,
-                               stallSite,
-                               td,
-                               re.getDst().getAllocSite(),
-                               ExistPredSet.factory()
-                               );
-      
+            
       re.setTaints( Canonical.add( re.getTaints(),
-                                   t 
+                                   taint 
                                    )
                     );
     }
   }
   
   public void removeInContextTaints( FlatSESEEnterNode sese ) {
-    
+    Iterator meItr = id2hrn.entrySet().iterator();
+    while( meItr.hasNext() ) {
+      Map.Entry      me  = (Map.Entry)      meItr.next();
+      Integer        id  = (Integer)        me.getKey();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+
+      Iterator<RefEdge> reItr = hrn.iteratorToReferencers();
+      while( reItr.hasNext() ) {
+        RefEdge re = reItr.next();
+
+        re.setTaints( Canonical.removeTaintsBy( re.getTaints(),
+                                                sese
+                                                )
+                      );
+      }
+    }
   }
 
 

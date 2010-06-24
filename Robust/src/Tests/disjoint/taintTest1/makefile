@@ -4,8 +4,8 @@ SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
 
-
-BSFLAGS= -mainclass Test -justanalyze -ooojava -disjoint -disjoint-k 2 -disjoint-write-dots final -enable-assertions
+BSFLAGS= -mainclass Test -justanalyze -ooojava -disjoint -disjoint-k 1 -enable-assertions
+DEBUGFLAGS= -disjoint-write-dots final -disjoint-debug-snap-method main 0 10 true
 
 all: $(PROGRAM).bin
 

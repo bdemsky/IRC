@@ -1417,4 +1417,30 @@ abstract public class Canonical {
     return out;
   }
 
+
+  // BOO, HISS! SESE (rblock) operand does NOT extend
+  // Canonical, so we can't cache this op by its
+  // canonical arguments--THINK ABOUT A BETTER WAY!
+  public static TaintSet removeTaintsBy( TaintSet          ts,
+                                         FlatSESEEnterNode sese ) {
+    assert ts != null;
+    assert ts.isCanonical();
+    assert sese != null;
+
+    // NEVER a cached result... (cry)
+    TaintSet out = new TaintSet();
+
+    Iterator<Taint> tItr = ts.iterator();
+    while( tItr.hasNext() ) {
+      Taint t = tItr.next();
+
+      if( !t.getSESE().equals( sese ) ) {
+        out.taints.add( t );
+      }
+    }
+    
+    out = (TaintSet) makeCanonical( out );
+    //op2result.put( op, out ); CRY CRY
+    return out;
+  }
 }
