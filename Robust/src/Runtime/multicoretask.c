@@ -133,10 +133,15 @@ void initruntimedata() {
   gcsbstarttbl = BAMBOO_BASE_VA;
   bamboo_smemtbl = (void *)gcsbstarttbl
                + (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(INTPTR);
-  // for mapping info structures
-  gcrcoretbl = allocateRuntimeHash_I(20);
-  BAMBOO_MEMSET_WH(gcmappingtbl, 0, 
-	  sizeof(void *)*NUMCORESACTIVE*NUM_MAPPING);
+  if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
+	int t_size = ((BAMBOO_RMSP_SIZE)-sizeof(mgcsharedhashtbl_t)*2
+		-128*sizeof(size_t))/sizeof(mgcsharedhashlistnode_t)-2;
+	gcsharedptbl = mgcsharedhashCreate(t_size,0.30);//allocateGCSharedHash_I(20);
+  } else {
+	gcsharedptbl = NULL;
+  }
+  BAMBOO_MEMSET_WH(gcrpointertbls,0,sizeof(mgcsharedhashtbl_t *)*NUMCORES4GC);
+	  //sizeof(struct RuntimeHash *)*NUMCORES4GC);
 #else
   // create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -189,7 +194,7 @@ void disruntimedata() {
   //freeMGCHash(gcpointertbl);
   freeMGCHash(gcforwardobjtbl);
   // for mapping info structures
-  freeRuntimeHash(gcrcoretbl);
+  //freeRuntimeHash(gcrcoretbl);
 #else
   freeRuntimeHash(lockRedirectTbl);
   freeRuntimeHash(objRedirectLockTbl);
@@ -1509,6 +1514,7 @@ INLINE int checkMsgLength_I(int size) {
   case PROFILEFINISH:
 #ifdef MULTICORE_GC
   case GCSTARTCOMPACT:
+  case GCMARKEDOBJ:
   case GCFINISHINIT:
   case GCFINISHMAPINFO:
   case GCFINISHFLUSH:
@@ -1521,9 +1527,9 @@ INLINE int checkMsgLength_I(int size) {
   case MEMREQUEST:
   case MEMRESPONSE:
 #ifdef MULTICORE_GC
-  case GCMARKEDOBJ:
   case GCMAPREQUEST:
   case GCMAPINFO:
+  case GCMAPTBL:
   case GCLOBJMAPPING:
 #endif
     {
@@ -2318,113 +2324,15 @@ INLINE void processmsg_gcmarkreport_I() {
 INLINE void processmsg_gcmarkedobj_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
   // received a markedObj msg
   if(((int *)data1)[6] == INIT) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
-    ((int *)data1)[6] = DISCOVERED;
+    ((int *)data1)[6] |= DISCOVERED;
     gc_enqueue_I(data1);
-	// insert the obj and request core info into mapping hashtable 
-	/*struct requestcoreinfo * coreinfo = 
-	 (struct requestcoreinfo *)RUNMALLOC_I(sizeof(struct requestcoreinfo));
-	coreinfo->core = data2;
-	coreinfo->next = NULL;
-	struct nodemappinginfo * nodeinfo = 
-     (struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
-	nodeinfo->ptr = NULL;
-	nodeinfo->cores = coreinfo;
-	RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
-	struct rcoreinfo * coreinfo = 
-	  (struct rcoreinfo *)RUNMALLOC_I(sizeof(struct rcoreinfo));
-	coreinfo->high = coreinfo->low = 0;
-	if(data2 > 31) {
-	  coreinfo->high |= 1<<(data2-32);
-	} else {
-	  coreinfo->low |= 1<<data2;
-	}
-	RuntimeHashadd_I(gcrcoretbl, data1, (int)coreinfo);
-	if(gcmappingtbl[data2][0] < NUM_MAPPING-1) {
-	  int pos = ++gcmappingtbl[data2][0];
-	  gcmappingtbl[data2][pos] = data1;
-	}
-  } else {
-	// record the request core 
-	/*struct nodemappinginfo * nodeinfo = NULL;
-	RuntimeHashget(gcpointertbl, data1, &nodeinfo);
-	if(nodeinfo == NULL) {
-	  // did not mark the obj, error!
-	  BAMBOO_DEBUGPRINT_REG(((int *)data1)[6]);
-	  BAMBOO_EXIT(0xb008);
-	} else {
-	  struct requestcoreinfo * coreinfo = nodeinfo->cores;
-	  if(coreinfo == NULL) {
-		nodeinfo->cores = 
-		  (struct requestcoreinfo *)RUNMALLOC_I(
-			  sizeof(struct requestcoreinfo));
-		nodeinfo->cores->core = data2;
-		nodeinfo->cores->next = NULL;
-	  } else {
-		while(true) {
-		  if(coreinfo->core == data2) {
-			break;
-		  } else if ((coreinfo->core > data2) || 
-			  (coreinfo->next == NULL)) {
-			// insert here
-			struct requestcoreinfo * toinsert = 
-			  (struct requestcoreinfo *)RUNMALLOC_I(
-				  sizeof(struct requestcoreinfo));
-			if(coreinfo->core > data2) {
-			  toinsert->next = coreinfo->next;
-			  toinsert->core = coreinfo->core;
-			  coreinfo->core = data2;
-			} else {
-			  toinsert->core = data2;
-			}
-			coreinfo->next = toinsert;
-			break;
-		  } else {
-			coreinfo = coreinfo->next;
-		  }
-		}
-	  }
-	}*/
-	struct rcoreinfo * coreinfo = NULL;
-	RuntimeHashget(gcrcoretbl, data1, &coreinfo);
-	if(coreinfo == NULL) {
-	  coreinfo = 
-		(struct rcoreinfo *)RUNMALLOC_I(sizeof(struct rcoreinfo));
-	  coreinfo->high = coreinfo->low = 0;
-	  if(data2 > 31) {
-		coreinfo->high |= 1<<(data2-32);
-	  } else {
-		coreinfo->low |= 1<<data2;
-	  }
-	  RuntimeHashadd_I(gcrcoretbl, data1, (int)coreinfo);
-	  if(gcmappingtbl[data2][0] < NUM_MAPPING-1) {
-		int pos = ++gcmappingtbl[data2][0];
-		gcmappingtbl[data2][pos] = data1;
-	  }
-	} else {
-	  bool toadd = false;
-	  if(data2 > 31) {
-		if((coreinfo->high)&(1<<(data2-32))==0) {
-		  toadd = true;
-		  coreinfo->high |= 1<<(data2-32);
-		}
-	  } else {
-		if((coreinfo->low)&(1<<data2)==0) {
-		  toadd = true;
-		  coreinfo->low |= 1<<data2;
-		}
-	  }
-	  if((toadd) && (gcmappingtbl[data2][0] < NUM_MAPPING-1)) {
-		int pos = ++gcmappingtbl[data2][0];
-		gcmappingtbl[data2][pos] = data1;
-	  } 
-	}
-  }
+  } 
+  // set the remote flag
+  ((int *)data1)[6] |= REMOTEM;
   gcself_numreceiveobjs++;
   gcbusystatus = true;
 }
@@ -2440,8 +2348,6 @@ INLINE void processmsg_gcmovestart_I() {
 }
 
 INLINE void processmsg_gcmaprequest_I() {
-  // should not have such msg any more
-  //BAMBOO_EXIT(0xb009);
 #ifdef GC_PROFILE
   //unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
@@ -2525,6 +2431,14 @@ INLINE void processmsg_gcmapinfo_I() {
 #endif
 }
 
+INLINE void processmsg_gcmaptbl_I() {
+  int data1 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  int data2 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  gcrpointertbls[data2] = (mgcsharedhashtbl_t *)data1; //(struct GCSharedHash *)data1;
+}
+
 INLINE void processmsg_gclobjinfo_I() {
   numconfirm--;
 
@@ -2565,11 +2479,8 @@ INLINE void processmsg_gclobjmapping_I() {
   MSG_INDEXINC_I();
   //mgchashInsert_I(msgdata[1], msgdata[2]);
   RuntimeHashadd_I(gcpointertbl, data1, data2);
-  /*struct nodemappinginfo * nodeinfo = 
-	(struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
-  nodeinfo->ptr = (void *)data2;
-  nodeinfo->cores = NULL;
-  RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
+  mgcsharedhashInsert_I(gcsharedptbl, data1, data2);
+  //GCSharedHashadd_I(gcsharedptbl, data1, data2);
   //MGCHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
 }
 #endif // #ifdef MULTICORE_GC
@@ -2823,7 +2734,13 @@ processmsg:
       break;
     }                     // case GCMAPINFO
 
-    case GCLOBJREQUEST: {
+    case GCMAPTBL: {
+      // received a mapping tbl response msg
+      processmsg_gcmaptbl_I();
+      break;
+    }                     // case GCMAPTBL
+	
+	case GCLOBJREQUEST: {
       // received a large objs info request msg
       transferMarkResults_I();
       break;

@@ -736,6 +736,7 @@ cp ../Runtime/math.c ./
 cp ../Runtime/object.c ./
 cp ../Runtime/GenericHashtable.c ./
 cp ../Runtime/SimpleHash.c ./
+cp ../Runtime/GCSharedHash.c ./
 cp ../Runtime/ObjectHash.c ./
 cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
@@ -749,6 +750,7 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
+cp ../Runtime/GCSharedHash.h ./
 cp ../Runtime/multicoregc.h ./
 cp ../Runtime/multicoregarbage.h ./
 cp ../Runtime/multicorehelper.h ./

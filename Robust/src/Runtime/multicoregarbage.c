@@ -6,6 +6,7 @@
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
 #include "ObjectHash.h"
+#include "GCSharedHash.h"
 
 // TODO for profiling the flush phase
 #ifdef GC_PROFILE
@@ -637,10 +638,14 @@ inline void initGC() {
   gcforwardobjtbl = allocateMGCHash(20, 3);
 
   // initialize the mapping info related structures
-  freeRuntimeHash(gcrcoretbl);
-  gcrcoretbl = allocateRuntimeHash(20);
-  BAMBOO_MEMSET_WH(gcmappingtbl, 0, 
-	  sizeof(void *)*NUMCORESACTIVE*NUM_MAPPING);
+  if((BAMBOO_NUM_OF_CORE < NUMCORES4GC) && (gcsharedptbl != NULL)) {
+	// Never free the shared hash table, just reset it
+	/*freeGCSharedHash(gcsharedptbl);
+	gcsharedptbl = allocateGCSharedHash(20);*/
+	mgcsharedhashReset(gcsharedptbl);
+  }
+  // the shared hash tables are never changed 
+  //BAMBOO_MEMSET_WH(gcrpointertbls,0,sizeof(struct RuntimeHash *)*NUMCORES4GC);
 #ifdef GC_PROFILE
   // TODO
   num_mapinforequest = 0;
@@ -760,7 +765,7 @@ inline bool cacheLObjs() {
   BAMBOO_DEBUGPRINT_REG(gcheaptop);
 #endif
 
-  gcheaptop = dst;       // Note: record the start of cached lobjs with gcheaptop
+  gcheaptop = dst; // Note: record the start of cached lobjs with gcheaptop
   // cache the largeObjs to the top of the shared heap
   //gclobjtail2 = gclobjtail;
   //gclobjtailindex2 = gclobjtailindex;
@@ -1136,14 +1141,8 @@ inline void markObj(void * objptr) {
       if(((int *)objptr)[6] == INIT) {
 	// this is the first time that this object is discovered,
 	// set the flag as DISCOVERED
-	((int *)objptr)[6] = DISCOVERED;
+	((int *)objptr)[6] |= DISCOVERED;
 	gc_enqueue_I(objptr);
-	// insert the obj and request core info into mapping hashtable 
-	/*struct nodemappinginfo * nodeinfo = 
-	 (struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
-	nodeinfo->ptr = NULL;
-	nodeinfo->cores = NULL;
-	RuntimeHashadd_I(gcpointertbl, (int)objptr, (int)nodeinfo);*/
 	  }
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     } else {
@@ -1158,7 +1157,7 @@ inline void markObj(void * objptr) {
 	// TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 	// send a msg to host informing that objptr is active
-	send_msg_3(host, GCMARKEDOBJ, objptr, BAMBOO_NUM_OF_CORE, false);
+	send_msg_2(host, GCMARKEDOBJ, objptr, /*BAMBOO_NUM_OF_CORE,*/ false);
 #ifdef GC_PROFILE
 	// TODO
 	/*
@@ -1299,8 +1298,8 @@ inline void mark(bool isfirst,
 #endif
     // enqueue root objs
     tomark(stackptr);
-    gccurr_heaptop = 0;             // record the size of all active objs in this core
-                                    // aligned but does not consider block boundaries
+    gccurr_heaptop = 0; // record the size of all active objs in this core
+                        // aligned but does not consider block boundaries
     gcmarkedptrbound = 0;
   }
 #ifdef DEBUG
@@ -1341,7 +1340,7 @@ inline void mark(bool isfirst,
 	int host = hostcore(ptr);
 	bool islocal = (host == BAMBOO_NUM_OF_CORE);
 	if(islocal) {
-	  bool isnotmarked = (((int *)ptr)[6] == DISCOVERED);
+	  bool isnotmarked = ((((int *)ptr)[6] & DISCOVERED) != 0);
 	  if(isLarge(ptr, &type, &size) && isnotmarked) {
 	    // ptr is a large object and not marked or enqueued
 #ifdef DEBUG
@@ -1354,7 +1353,7 @@ inline void mark(bool isfirst,
 	    gcnumlobjs++;
 	    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	    // mark this obj
-	    ((int *)ptr)[6] = MARKED;
+	    ((int *)ptr)[6] = ((int *)ptr)[6] & (~DISCOVERED) | MARKED;
 	  } else if(isnotmarked) {
 	    // ptr is an unmarked active object on this core
 	    ALIGNSIZE(size, &isize);
@@ -1366,15 +1365,15 @@ inline void mark(bool isfirst,
 	    BAMBOO_DEBUGPRINT(((int *)(ptr))[0]);
 #endif
 	    // mark this obj
-	    ((int *)ptr)[6] = MARKED;
-
-	    if(ptr + size > gcmarkedptrbound) {
+	    ((int *)ptr)[6] = ((int *)ptr)[6] & (~DISCOVERED) | MARKED;
+	  
+		if(ptr + size > gcmarkedptrbound) {
 	      gcmarkedptrbound = ptr + size;
-	    }                                     // if(ptr + size > gcmarkedptrbound)
+	    } // if(ptr + size > gcmarkedptrbound)
 	  } else {
 	    // ptr is not an active obj or has been marked
 	    checkfield = false;
-	  }                              // if(isLarge(ptr, &type, &size)) else ...
+	  } // if(isLarge(ptr, &type, &size)) else ...
 	}  /* can never reach here
     else {
 #ifdef DEBUG
@@ -1387,7 +1386,7 @@ inline void mark(bool isfirst,
       // check if this obj has been forwarded
       if(!MGCHashcontains(gcforwardobjtbl, (int)ptr)) {
         // send a msg to host informing that ptr is active
-		send_msg_3(host, GCMARKEDOBJ, ptr, BAMBOO_NUM_OF_CORE, false);
+		send_msg_2(host, GCMARKEDOBJ, ptr, false);
 		gcself_numsendobjs++;
 		MGCHashadd(gcforwardobjtbl, (int)ptr);
 	  }
@@ -1423,9 +1422,9 @@ inline void mark(bool isfirst,
 	    void * objptr=*((void **)(((char *)ptr)+offset));
 	    markObj(objptr);
 	  }
-	}                         // if (pointer==0) else if ... else ...
-      }                   // if(checkfield)
-    }             // while(gc_moreItems2())
+	}     // if (pointer==0) else if ... else ...
+      }   // if(checkfield)
+    }     // while(gc_moreItems2())
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xed07);
 #endif
@@ -1897,6 +1896,7 @@ innermoveobj:
     size=sizeof(struct ArrayObject)+length*elementsize;
   }
   mark = ((int *)(orig->ptr))[6];
+  bool isremote = ((((int *)(orig->ptr))[6] & REMOTEM) != 0);
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe203);
   BAMBOO_DEBUGPRINT_REG(orig->ptr);
@@ -1904,7 +1904,7 @@ innermoveobj:
 #endif
   ALIGNSIZE(size, &isize);       // no matter is the obj marked or not
                                  // should be able to across it
-  if(mark == MARKED) {
+  if((mark & MARKED) != 0) {
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe204);
 #endif
@@ -1940,9 +1940,13 @@ innermoveobj:
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     //mgchashInsert_I(orig->ptr, to->ptr);
     RuntimeHashadd_I(gcpointertbl, orig->ptr, to->ptr);
-	/*struct nodemappinginfo * nodeinfo = NULL;
-	RuntimeHashget(gcpointertbl, orig->ptr, &nodeinfo);
-	nodeinfo->ptr = to->ptr;*/
+	if(isremote) {
+	  // add to the sharedptbl
+	  if(gcsharedptbl != NULL) {
+		//GCSharedHashadd_I(gcsharedptbl, orig->ptr, to->ptr);
+		mgcsharedhashInsert_I(gcsharedptbl, orig->ptr, to->ptr);
+	  }
+	}
     //MGCHashadd_I(gcpointertbl, orig->ptr, to->ptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     //}
@@ -2233,20 +2237,6 @@ inline void * flushObj(void * objptr) {
 #endif
     //dstptr = mgchashSearch(objptr);
     RuntimeHashget(gcpointertbl, objptr, &dstptr);
-	/*struct nodemappinginfo * nodeinfo = NULL;
-	RuntimeHashget(gcpointertbl, objptr, &nodeinfo);
-	if(nodeinfo == NULL) {
-	  // currenly the mapping info is not ready TODO
-	  // busy waiting until we get the mapping info
-	  while(true) {
-		BAMBOO_WAITING_FOR_LOCK(0);
-		RuntimeHashget(gcpointertbl, objptr, &nodeinfo);
-		if(nodeinfo != NULL) {
-		  break;
-		}
-	  }
-	}
-	dstptr = nodeinfo->ptr;*/
 #ifdef GC_PROFILE
     // TODO flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
 #endif
@@ -2270,43 +2260,57 @@ inline void * flushObj(void * objptr) {
 	// assume that the obj has not been moved, use the original address
 	//dstptr = objptr;
       } else {
-	// send msg to host core for the mapping info
-	gcobj2map = (int)objptr;
-	gcismapped = false;
-	gcmappedobj = NULL;
+		int hostc = hostcore(objptr);
+		// check the corresponsing sharedptbl
+		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+		//struct GCSharedHash * sptbl = gcrpointertbls[hostcore(objptr)];
+		mgcsharedhashtbl_t * sptbl = gcrpointertbls[hostc];
+		if(sptbl != NULL) {
+		  //GCSharedHashget(sptbl, (int)objptr, &dstptr);
+		  dstptr = mgcsharedhashSearch(sptbl, (int)objptr);
+		  if(dstptr != NULL) {
+			RuntimeHashadd_I(gcpointertbl, (int)objptr, (int)dstptr);
+		  }
+		}
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+
+		if(dstptr == NULL) {
+		  // still can not get the mapping info,
+		  // send msg to host core for the mapping info
+		  gcobj2map = (int)objptr;
+		  gcismapped = false;
+		  gcmappedobj = NULL;
 #ifdef GC_PROFILE
 	// TODO
-	//num_mapinforequest++;
+	num_mapinforequest++;
 	//unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 #ifdef GC_PROFILE
-	// TODO unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
+	unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
 #endif
-	// the first time require the mapping, send msg to the hostcore
-	// for the mapping info
-	send_msg_3(hostcore(objptr), GCMAPREQUEST, (int)objptr,
-	           BAMBOO_NUM_OF_CORE, false);
-	while(true) {
-	  if(gcismapped) {
-	    break;
-	  }
-	}
+		  // the first time require the mapping, send msg to the hostcore
+		  // for the mapping info
+		  send_msg_3(hostc, GCMAPREQUEST, (int)objptr,
+			  BAMBOO_NUM_OF_CORE, false);
+		  while(true) {
+			if(gcismapped) {
+			  break;
+			}
+		  }
 #ifdef GC_PROFILE
-	// TODO flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
+	flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
 #endif
 #ifdef GC_PROFILE
 	// TODO
 	//flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
 #endif
-	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-	//dstptr = mgchashSearch(objptr);
-	RuntimeHashget(gcpointertbl, objptr, &dstptr);
-	/*struct nodemappinginfo * nodeinfo = NULL;
-	RuntimeHashget(gcpointertbl, objptr, &nodeinfo);
-	dstptr = nodeinfo->ptr;*/
-	//MGCHashget(gcpointertbl, objptr, &dstptr);
-	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      }    // if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) else ...
+		  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+		  //dstptr = mgchashSearch(objptr);
+		  RuntimeHashget(gcpointertbl, objptr, &dstptr);
+		  //MGCHashget(gcpointertbl, objptr, &dstptr);
+		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		} // if(dstptr == NULL)
+	  }    // if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) else ...
 #ifdef DEBUG
       BAMBOO_DEBUGPRINT_REG(dstptr);
 #endif
@@ -2442,7 +2446,7 @@ inline void transmappinginfo() {
 	  RUNFREE(tmp); // release the node
 	}
   }*/
-  int core = (BAMBOO_NUM_OF_CORE + 1) % NUMCORESACTIVE;
+/*  int core = (BAMBOO_NUM_OF_CORE + 1) % NUMCORESACTIVE;
   for(int i = 0; i < NUMCORESACTIVE - 1; i++) {
 	for(int j = 1; j < gcmappingtbl[core][0]+1; j++) {
 	  int obj = gcmappingtbl[core][j];
@@ -2455,6 +2459,14 @@ inline void transmappinginfo() {
 	// TODO
 	//tprintf("send mapping to core %d \n", core);
 	core = (core + 1) % NUMCORESACTIVE;
+  }
+*/
+
+  // broadcast the sharedptbl pointer
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+	if(i != BAMBOO_NUM_OF_CORE) {
+	  send_msg_3(i, GCMAPTBL, gcsharedptbl, BAMBOO_NUM_OF_CORE, false);
+	}
   }
 
   // TODO
@@ -2504,7 +2516,7 @@ inline void flush(struct garbagelist * stackptr) {
       if(ptr == NULL) {
 	BAMBOO_EXIT(0xb105);
       }
-    }             // if(ISSHAREDOBJ(ptr))
+    } // if(ISSHAREDOBJ(ptr))
     if((!ISSHAREDOBJ(ptr)) || (((int *)(ptr))[6] == COMPACTED)) {
       int type = ((int *)(ptr))[0];
       // scan all pointers in ptr
@@ -2568,7 +2580,7 @@ inline void flush(struct garbagelist * stackptr) {
       if(ISSHAREDOBJ(ptr)) {
 	((int *)(ptr))[6] = INIT;
       }
-    }             // if((!ISSHAREDOBJ(ptr)) || (((int *)(ptr))[6] == COMPACTED))
+    }  // if((!ISSHAREDOBJ(ptr)) || (((int *)(ptr))[6] == COMPACTED))
   }       // while(gc_moreItems())
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe308);
@@ -2654,8 +2666,8 @@ inline void flush(struct garbagelist * stackptr) {
 	    }
 	  }
 	}                         // for(i=1; i<=size; i++)
-      }                   // if (pointer==0) else if (((INTPTR)pointer)==1) else ()
-                          // restore the mark field, indicating that this obj has been flushed
+      }  // if (pointer==0) else if (((INTPTR)pointer)==1) else ()
+         // restore the mark field, indicating that this obj has been flushed
       ((int *)(ptr))[6] = INIT;
     }             // if(((int *)(ptr))[6] == COMPACTED)
   }       // while(gc_lobjmoreItems())
@@ -2674,13 +2686,13 @@ inline void flush(struct garbagelist * stackptr) {
   }
 #ifdef GC_PROFILE
   // TODO 
-  /*if(BAMBOO_NUM_OF_CORE == 0) {
+  if(BAMBOO_NUM_OF_CORE == 0) {
     BAMBOO_DEBUGPRINT(0xffff);
-    //BAMBOO_DEBUGPRINT_REG(num_mapinforequest);
+    BAMBOO_DEBUGPRINT_REG(num_mapinforequest);
     //BAMBOO_DEBUGPRINT_REG(flushstalltime);
     //BAMBOO_DEBUGPRINT_REG(num_mapinforequest_i);
-    //BAMBOO_DEBUGPRINT_REG(flushstalltime_i);
-  }*/
+    BAMBOO_DEBUGPRINT_REG(flushstalltime_i);
+  }
   //BAMBOO_DEBUGPRINT_REG(flushstalltime);
 #endif
 #ifdef DEBUG

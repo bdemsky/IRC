@@ -209,9 +209,10 @@ typedef enum {
   GCMOVESTART,           // 0xF0
   GCMAPREQUEST,          // 0xF1
   GCMAPINFO,             // 0xF2
-  GCLOBJREQUEST,         // 0xF3
-  GCLOBJINFO,            // 0xF4
-  GCLOBJMAPPING,         // 0xF5
+  GCMAPTBL,              // 0xF3
+  GCLOBJREQUEST,         // 0xF4
+  GCLOBJINFO,            // 0xF5
+  GCLOBJMAPPING,         // 0xF6
 #endif
   MSGEND
 } MSGTYPE;
@@ -292,11 +293,11 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #include "multicoregarbage.h"
 
 typedef enum {
-  SMEMLOCAL = 0x0,       // 0x0, using local mem only
-  SMEMFIXED,             // 0x1, use local mem in lower address space(1 block only)
-                         //      and global mem in higher address space
-  SMEMMIXED,             // 0x2, like FIXED mode but use a threshold to control
-  SMEMGLOBAL,            // 0x3, using global mem only
+  SMEMLOCAL = 0x0,// 0x0, using local mem only
+  SMEMFIXED,      // 0x1, use local mem in lower address space(1 block only)
+                  //      and global mem in higher address space
+  SMEMMIXED,      // 0x2, like FIXED mode but use a threshold to control
+  SMEMGLOBAL,     // 0x3, using global mem only
   SMEMEND
 } SMEMSTRATEGY;
 
@@ -314,7 +315,7 @@ struct freeMemItem {
 struct freeMemList {
   struct freeMemItem * head;
   struct freeMemItem * backuplist; // hold removed freeMemItem for reuse;
-                                   // only maintain 1 fremmMemItem
+                                   // only maintain 1 freemMemItem
 };
 
 // table recording the number of allocated bytes on each block

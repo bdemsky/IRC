@@ -4,6 +4,7 @@
 #include "multicorehelper.h"  // for mappins between core # and block #
 #include "structdefs.h"
 #include "MGCHash.h"
+#include "GCSharedHash.h"
 
 #ifndef bool
 #define bool int
@@ -42,11 +43,12 @@ int num_mapinforequest_i;
 
 typedef enum {
   INIT = 0,           // 0
-  DISCOVERED,         // 1
-  MARKED,             // 2
-  COMPACTED,          // 3
-  FLUSHED,            // 4
-  END                 // 5
+  DISCOVERED = 2,     // 2
+  REMOTEM = 4,        // 4
+  MARKED = 8,         // 8
+  COMPACTED = 16,     // 16
+  FLUSHED = 32,       // 32
+  END = 33            // 33
 } GCOBJFLAG;
 
 typedef enum {
@@ -96,39 +98,31 @@ volatile bool gctomove;
 int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
-/*struct flushlist {
-  void * key;
-  struct flushnode * val;
-  struct flushlist * next;
-};
-
-struct flushnode {
-  void ** ptr;
-  struct flushnode * next;
-};*/
-//volatile struct flushlist * gcflushlist; // list of (key, list of reference
-// to be flushed)
-//volatile int gcnumflush;
-
-// mapping of old address to new address
-/*struct requestcoreinfo {
-  int core;
-  struct requestcoreinfo * next;
-};
-
-struct nodemappinginfo {
-  void * ptr;
-  struct requestcoreinfo * cores;
-};*/
 // data structures to record remote cores that transferred the marked 
 // objs in the mark phase
-struct rcoreinfo{
+/*struct rcoreinfo{
   int high;
   int low;
 };
 struct RuntimeHash * gcrcoretbl;
 #define NUM_MAPPING 40
-void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];
+void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
+
+// shared memory pointer for shared pointer mapping tbls
+// In GC version, this block of memory is located at the bottom of the 
+// shared memory, right on the top of the smem tbl.
+// The bottom of the shared memory = sbstart tbl + smemtbl 
+//                                  + NUMCORES4GC bamboo_rmsp
+// These three types of table are always reside at the bottom of the shared 
+// memory and will never be moved or garbage collected
+#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE * 64)
+mspace bamboo_rmsp;
+// shared pointer mapping tbl
+//volatile struct GCSharedHash * gcsharedptbl;
+mgcsharedhashtbl_t * gcsharedptbl;
+// remote shared pointer tbls
+//struct GCSharedHash * gcrpointertbls[NUMCORES4GC];
+mgcsharedhashtbl_t * gcrpointertbls[NUMCORES4GC];
 
 volatile struct RuntimeHash * gcpointertbl;
 //struct MGCHash * gcpointertbl;
