@@ -14,7 +14,7 @@ public class FlexScheduler extends Thread {
     this.abortRatio=abortRatio;
     this.checkdepth=checkdepth;
   }
-  
+
   public void run() {
     dosim();
   }
@@ -79,6 +79,8 @@ public class FlexScheduler extends Thread {
   public static final int POLITE=9;
   public static final int ERUPTION=10;
   public static final int THREAD=11;
+  public static final int ATTACKTIME=12;
+  public static final int ATTACKTHREAD=13;
 
   PriorityQueue eq;
   int policy;
@@ -89,6 +91,9 @@ public class FlexScheduler extends Thread {
   Hashtable wrobjmap;
   int abortcount;
   int commitcount;
+  long backoffcycles;
+  long stallcycles;
+  long abortedcycles;
   Event[] currentevents;
   Random r;
   int[] backoff;
@@ -100,7 +105,7 @@ public class FlexScheduler extends Thread {
   boolean[] blocked;
 
   public boolean isEager() {
-    return policy==ATTACK||policy==SUICIDE||policy==TIMESTAMP||policy==RANDOM||policy==KARMA||policy==POLITE||policy==ERUPTION||policy==THREAD;
+    return policy==ATTACK||policy==SUICIDE||policy==TIMESTAMP||policy==RANDOM||policy==KARMA||policy==POLITE||policy==ERUPTION||policy==THREAD||policy==ATTACKTIME||policy==ATTACKTHREAD;
   }
 
   public boolean countObjects() {
@@ -123,8 +128,18 @@ public class FlexScheduler extends Thread {
     return shorttesttime-starttime;
   }
 
+  public long getStallTime() {
+    return stallcycles;
+  }
+
+  public long getBackoffTime() {
+    return backoffcycles;
+  }
+
   //Aborts another thread...
-  public void reschedule(int currthread, long time) {
+  public void reschedule(int currthread, long currtime, long backofftime) {
+    long time=currtime+backofftime;
+    backoffcycles+=backofftime;
     currentevents[currthread].makeInvalid();
     if (threadinfo[currthread].isStalled()) {
       //remove from waiter list
@@ -143,11 +158,11 @@ public class FlexScheduler extends Thread {
   }
 
   //Aborts another thread...
-  public void stall(Event ev, long time) {
-    ev.setTime(time);
+  public void stall(Event ev, long time, long delay) {
+    stallcycles+=delay;
+    ev.setTime(time+delay);
     eq.add(ev);
   }
-
 
   private void releaseObjects(Transaction trans, int currthread, long time) {
     //remove all events
@@ -255,6 +270,7 @@ public class FlexScheduler extends Thread {
       }
       //Reset our backoff counter
       threadinfo[ev.getThread()].priority=0;
+      threadinfo[ev.getThread()].aborted=false;
       backoff[ev.getThread()]=BACKOFFSTART;
       retrycount[ev.getThread()]=0;
       transferred[ev.getThread()]=0;
@@ -304,7 +320,7 @@ public class FlexScheduler extends Thread {
 		serAbort.addPoint(currtime, threadid);
 	    } else if (policy==COMMIT||policy==LOCKCOMMIT) {
 	      //abort it immediately
-	      reschedule(threadid, currtime);
+	      reschedule(threadid, currtime, 0);
 	      abortcount++;
 	    }
 	  }
@@ -368,8 +384,6 @@ public class FlexScheduler extends Thread {
   //Takes as parameter -- current transaction read event ev, conflicting
   //set of threads, and the current time
   //Returning false causes current transaction not continue to be scheduled
-  long stalltime=0;
-  long aborttime=0;
 
 
   public boolean handleConflicts(Event ev, Set threadstokill, long time) {
@@ -381,13 +395,13 @@ public class FlexScheduler extends Thread {
 	int dback=backoff[thread]*2;
 	if (dback>0)
 	  backoff[thread]=dback;
-	stall(ev, time+r.nextInt(backoff[thread]));
+	stall(ev, time, r.nextInt(backoff[thread]));
 	return false;
       } else {
 	//abort other transactions
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
-	  reschedule(thread, time);
+	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
 	return true;
@@ -404,8 +418,7 @@ public class FlexScheduler extends Thread {
 	threadinfo[ev.getThread()].priority--;
 	retrycount[ev.getThread()]++;
 	int rtime=r.nextInt(3000);
-	stall(ev, time+rtime);
-	stalltime+=rtime;
+	stall(ev, time, rtime);
 	return false;
       } else {
 	//we win
@@ -415,8 +428,7 @@ public class FlexScheduler extends Thread {
 	  if (dback>0)
 	    backoff[thread]=dback;
 	  int atime=r.nextInt(backoff[thread]);
-	  reschedule(thread, time+atime);
-	  aborttime+=atime;
+	  reschedule(thread, time, atime);
 	  abortcount++;
 	}
 	return true;
@@ -434,8 +446,7 @@ public class FlexScheduler extends Thread {
 	threadinfo[ev.getThread()].priority--;
 	//stall for a little while
 	int rtime=r.nextInt(3000);
-	stall(ev, time+rtime);
-	stalltime+=rtime;
+	stall(ev, time, rtime);
 	int ourpriority=threadinfo[ev.getThread()].priority;
 	ourpriority-=transferred[ev.getThread()];
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
@@ -454,8 +465,7 @@ public class FlexScheduler extends Thread {
 	  if (dback>0)
 	    backoff[thread]=dback;
 	  int atime=r.nextInt(backoff[thread]);
-	  reschedule(thread, time+atime);
-	  aborttime+=atime;
+	  reschedule(thread, time, atime);
 	  abortcount++;
 	}
 	return true;
@@ -466,7 +476,7 @@ public class FlexScheduler extends Thread {
 	retrycount[ev.getThread()]=0;
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
-	  reschedule(thread, time);
+	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
 	return true;
@@ -475,13 +485,13 @@ public class FlexScheduler extends Thread {
 	int stalltime=(1<<(retry-1))*12;
 	if (stalltime<0)
 	  stalltime=1<<30;
-	stall(ev, time+r.nextInt(stalltime));
+	stall(ev, time, r.nextInt(stalltime));
 	return false;
       }
     } else if (policy==ATTACK) {
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	Integer thread=(Integer)thit.next();
-	reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
+	reschedule(thread, time, r.nextInt(backoff[thread.intValue()]));
 	int dback=backoff[thread.intValue()]*2;
 	if (dback>0)
 	  backoff[thread.intValue()]=dback;
@@ -489,7 +499,7 @@ public class FlexScheduler extends Thread {
       }
       return true;
     } else if (policy==SUICIDE) {
-      reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
+      reschedule(ev.getThread(), time, r.nextInt(backoff[ev.getThread()]));
       int dback=backoff[ev.getThread()]*2;
       if (dback>0)
 	backoff[ev.getThread()]=dback;
@@ -508,39 +518,14 @@ public class FlexScheduler extends Thread {
       }
       if (opponenttime>ev.getTransaction().getTime(ev.getEvent())) {
 	//kill ourself
-	reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
+	reschedule(ev.getThread(), time, 0);
 	abortcount++;
 	return false;
       } else {
 	//kill the opponents
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
-	  reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
-	  abortcount++;
-	}
-	return true;	
-      }
-    } else if (policy==TIMESTAMP) {
-      long opponenttime=0;
-
-      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
-	Integer thread=(Integer)thit.next();
-	Event other=currentevents[thread.intValue()];
-	int eventnum=other.getEvent();
-	long otime=other.getTransaction().getTime(other.getEvent());
-	if (otime>opponenttime)
-	  opponenttime=otime;
-      }
-      if (opponenttime>ev.getTransaction().getTime(ev.getEvent())) {
-	//kill ourself
-	reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
-	abortcount++;
-	return false;
-      } else {
-	//kill the opponents
-	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
-	  Integer thread=(Integer)thit.next();
-	  reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
+	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
 	return true;	
@@ -558,20 +543,107 @@ public class FlexScheduler extends Thread {
       }
       if (ev.getThread()>tid) {
 	//kill ourself
-	reschedule(ev.getThread(), time+r.nextInt(backoff[ev.getThread()]));
+	reschedule(ev.getThread(), time, 0);
 	abortcount++;
 	return false;
       } else {
 	//kill the opponents
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
-	  reschedule(thread, time+r.nextInt(backoff[thread.intValue()]));
+	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
 	return true;	
       }
+    } else if (policy==ATTACKTIME) {
+      boolean timebased=false;
+      int tev=ev.getThread();
+      timebased|=threadinfo[tev].aborted;
+      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	Integer thread=(Integer)thit.next();
+	timebased|=threadinfo[thread.intValue()].aborted;
+      }
+      if (timebased) {
+	long opponenttime=0;
+	
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  Event other=currentevents[thread.intValue()];
+	  int eventnum=other.getEvent();
+	  long otime=other.getTransaction().getTime(other.getEvent());
+	  if (otime>opponenttime)
+	    opponenttime=otime;
+	}
+	if (opponenttime>ev.getTransaction().getTime(ev.getEvent())) {
+	  //kill ourself
+	  reschedule(ev.getThread(), time, 0);
+	  threadinfo[ev.getThread()].aborted=true;
+	  abortcount++;
+	  return false;
+	} else {
+	  //kill the opponents
+	  for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	    Integer thread=(Integer)thit.next();
+	    reschedule(thread, time, 0);
+	    threadinfo[thread.intValue()].aborted=true;
+	    abortcount++;
+	  }
+	  return true;	
+	}
+      } else {
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time, 0);
+	  threadinfo[thread.intValue()].aborted=true;
+	  abortcount++;
+	}
+	return true;
+      }
+    } else if (policy==ATTACKTHREAD) {
+      boolean threadbased=false;
+      int tev=ev.getThread();
+      threadbased|=threadinfo[tev].aborted;
+      for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	Integer thread=(Integer)thit.next();
+	threadbased|=threadinfo[thread.intValue()].aborted;
+      }
+      if (threadbased) {
+	long opponentthr=1000;
+	
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  Event other=currentevents[thread.intValue()];
+	  int eventnum=other.getEvent();
+	  long othr=thread.intValue();
+	  if (othr<opponentthr)
+	    opponentthr=othr;
+	}
+	if (opponentthr<tev) {
+	  //kill ourself
+	  reschedule(ev.getThread(), time, 0);
+	  threadinfo[ev.getThread()].aborted=true;
+	  abortcount++;
+	  return false;
+	} else {
+	  //kill the opponents
+	  for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	    Integer thread=(Integer)thit.next();
+	    reschedule(thread, time, 0);
+	    threadinfo[thread.intValue()].aborted=true;
+	    abortcount++;
+	  }
+	  return true;	
+	}
+      } else {
+	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
+	  Integer thread=(Integer)thit.next();
+	  reschedule(thread, time, 0);
+	  threadinfo[thread.intValue()].aborted=true;
+	  abortcount++;
+	}
+	return true;
+      }
     }
-
 
     //Not eager
     return true;

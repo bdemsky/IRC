@@ -10,6 +10,10 @@ public class Series {
     addPoint(Long.toString(x), Integer.toString(y));
   }
 
+  public void addPoint(int x, double y) {
+    addPoint(Integer.toString(x), Double.toString(y));
+  }
+
   public void addPoint(int x, long y) {
     addPoint(Integer.toString(x), Long.toString(y));
   }

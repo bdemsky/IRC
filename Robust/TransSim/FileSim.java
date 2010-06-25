@@ -69,7 +69,6 @@ public class FileSim {
     ls9.join();
     System.out.println("Karma Abort="+ls9.getTime());
     System.out.println("Aborts="+ls9.getAborts()+" Commit="+ls9.getCommits());
-    System.out.println("atime="+ls9.aborttime+" stalltime="+ls9.stalltime);
     ls9=null;
 
     ls10.join();
@@ -79,7 +78,6 @@ public class FileSim {
 
     ls11.join();
     System.out.println("Eruption Abort="+ls11.getTime());
-    System.out.println("atime="+ls11.aborttime+" stalltime="+ls11.stalltime);
     System.out.println("Aborts="+ls11.getAborts()+" Commit="+ls11.getCommits());
   }
 
@@ -90,7 +88,6 @@ public class FileSim {
     ls9.join();
     System.out.println("Karma Abort="+ls9.getTime());
     System.out.println("Aborts="+ls9.getAborts()+" Commit="+ls9.getCommits());
-    System.out.println("atime="+ls9.aborttime+" stalltime="+ls9.stalltime);
     ls9=null;
   }
 
