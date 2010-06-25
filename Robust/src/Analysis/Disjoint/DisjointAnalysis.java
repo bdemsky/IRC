@@ -674,7 +674,7 @@ public class DisjointAnalysis {
     }
 
     if( doEffectsAnalysis ) {
-      effectsAnalysis.writeEffectsPerMethod( "effects-per-method.txt" );
+      effectsAnalysis.writeEffectsPerMethodAndRBlock( "effects.txt" );
     }
   }
 
@@ -1013,7 +1013,7 @@ public class DisjointAnalysis {
     //rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
     /*
-      if( doEffectsAnalysis &&
+      if( doEffectsAnalysis &&  && fmContaining != fmAnalysisEntry
         rra.isEndOfRegion(fn)){
       rg.clearAccessibleVarSet();
       also need to clear stall mapping
@@ -1064,24 +1064,6 @@ public class DisjointAnalysis {
 	lhs = fon.getDest();
 	rhs = fon.getLeft();
 	rg.assignTempXEqualToTempY( lhs, rhs );
-
-        /*
-        if( doEffectsAnalysis ) {         
-          // current sese is top of stack at this program point
-          FlatSESEEnterNode sese = 
-            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-
-          // if we are assigning to an out-set var, the taint
-          // on the out-set var edges should be TRUE (and propagate
-          // back to callers
-
-          rg.taintTemp( sese, 
-                        null, 
-                        lhs,
-                        ReachGraph.predsTrue 
-                        );
-        }
-        */
       }
       break;
 
@@ -1104,8 +1086,13 @@ public class DisjointAnalysis {
       if( shouldAnalysisTrack( fld.getType() ) ) {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
 
-        if( doEffectsAnalysis ) {
-          effectsAnalysis.analyzeFlatFieldNode( fmContaining, rg, rhs, fld );          
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          FlatSESEEnterNode seseContaining = 
+            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
+
+          effectsAnalysis.analyzeFlatFieldNode( fmContaining,
+                                                seseContaining,
+                                                rg, rhs, fld );          
         }
       }          
       break;
@@ -1119,8 +1106,13 @@ public class DisjointAnalysis {
       if( shouldAnalysisTrack( fld.getType() ) ) {
         boolean strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
 
-        if( doEffectsAnalysis ) {
-          effectsAnalysis.analyzeFlatSetFieldNode( fmContaining, rg, lhs, fld, strongUpdate );
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          FlatSESEEnterNode seseContaining = 
+            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
+
+          effectsAnalysis.analyzeFlatSetFieldNode( fmContaining, 
+                                                   seseContaining,
+                                                   rg, lhs, fld, strongUpdate );
         }
       }           
       break;
@@ -1138,6 +1130,15 @@ public class DisjointAnalysis {
 	FieldDescriptor fdElement = getArrayField( tdElement );
   
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
+        
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          FlatSESEEnterNode seseContaining = 
+            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
+          
+          effectsAnalysis.analyzeFlatFieldNode( fmContaining,
+                                                seseContaining,
+                                                rg, rhs, fdElement );          
+        }
       }
       break;
 
@@ -1160,6 +1161,16 @@ public class DisjointAnalysis {
 	FieldDescriptor fdElement = getArrayField( tdElement );
 
 	rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
+
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          FlatSESEEnterNode seseContaining = 
+            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
+          
+          effectsAnalysis.analyzeFlatSetFieldNode( fmContaining, 
+                                                   seseContaining,
+                                                   rg, lhs, fdElement,
+                                                   false );
+        }
       }
       break;
       
@@ -1173,14 +1184,14 @@ public class DisjointAnalysis {
       break;
 
     case FKind.FlatSESEEnterNode:
-      if( doEffectsAnalysis ) {
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
         rg.taintInSetVars( sese );                         
       }
       break;
 
     case FKind.FlatSESEExitNode:
-      if( doEffectsAnalysis ) {
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
         rg.removeInContextTaints( fsexn.getFlatEnter() );
       }
@@ -1332,7 +1343,7 @@ public class DisjointAnalysis {
           
           Hashtable<Taint, TaintSet> tCallee2tsCaller = null;
 
-          if( doEffectsAnalysis ) {
+          if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
             tCallee2tsCaller = new Hashtable<Taint, TaintSet>();
           }        
 
@@ -1344,8 +1355,13 @@ public class DisjointAnalysis {
                                     writeDebugDOTs
                                     );
 
-          if( doEffectsAnalysis ) {
+          if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+
+            FlatSESEEnterNode seseContaining = 
+              rblockRel.getRBlockStacks( fmContaining, fn ).peek();
+            
             effectsAnalysis.analyzeFlatCall( fmContaining,
+                                             seseContaining,
                                              fmPossible, 
                                              tCallee2tsCaller );
           }        

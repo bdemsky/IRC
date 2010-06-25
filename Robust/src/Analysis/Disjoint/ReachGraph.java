@@ -1292,8 +1292,11 @@ public class ReachGraph {
 
 
   public void taintInSetVars( FlatSESEEnterNode sese ) {
-    Iterator<TempDescriptor> isvItr = sese.getInVarSet().iterator()
-;
+    if( sese.getIsCallerSESEplaceholder() ) {
+      return;
+    }
+
+    Iterator<TempDescriptor> isvItr = sese.getInVarSet().iterator();
     while( isvItr.hasNext() ) {
       TempDescriptor isv = isvItr.next();
       VariableNode   vn  = td2vn.get( isv );
@@ -1340,6 +1343,10 @@ public class ReachGraph {
   }
   
   public void removeInContextTaints( FlatSESEEnterNode sese ) {
+    if( sese.getIsCallerSESEplaceholder() ) {
+      return;
+    }
+
     Iterator meItr = id2hrn.entrySet().iterator();
     while( meItr.hasNext() ) {
       Map.Entry      me  = (Map.Entry)      meItr.next();
