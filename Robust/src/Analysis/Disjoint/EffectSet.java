@@ -2,33 +2,36 @@ package Analysis.Disjoint;
 
 import java.util.HashSet;
 import java.util.Hashtable;
-
+import java.util.Set;
+import java.util.Iterator;
 import IR.Flat.TempDescriptor;
 
 public class EffectSet {
 
-  private Hashtable<Integer, HashSet<Effect>> methodEffectSet;
-  private Hashtable<TempDescriptor, HashSet<Effect>> rblockEffectSet;
+  private Hashtable<Taint, HashSet<Effect>> taint2effects;
 
   public EffectSet() {
-    methodEffectSet = new Hashtable<Integer, HashSet<Effect>>();
+    taint2effects = new Hashtable<Taint, HashSet<Effect>>();
   }
 
-  public void addMethodEffect(Integer paramIdx, Effect e) {
-    HashSet<Effect> effectSet = methodEffectSet.get(paramIdx);
+  public void addEffect(Taint t, Effect e) {
+    HashSet<Effect> effectSet = taint2effects.get(t);
     if (effectSet == null) {
       effectSet = new HashSet<Effect>();
     }
     effectSet.add(e);
-    methodEffectSet.put(paramIdx, effectSet);
+    taint2effects.put(t, effectSet);
+  }
+
+  public Set<Effect> getEffects(Taint t) {
+    return taint2effects.get(t);
+  }
+
+  public Iterator getAllEffectPairs() {
+    return taint2effects.entrySet().iterator();
   }
 
   public String toString() {
-    if (methodEffectSet != null) {
-      return methodEffectSet.toString();
-    } else {
-      return rblockEffectSet.toString();
-    }
+    return taint2effects.toString();    
   }
-
 }

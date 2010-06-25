@@ -12,19 +12,17 @@ public class Test {
     Foo b = new Foo();
 
     /*
-    if( false ) {
-      a = new Foo();
-    }
-    */
-
     rblock r1 {
       a.f = new Foo();
-
+    }
+    */
+    
+    rblock r1 {
+      a.f = new Foo();
       b.f = new Foo();
 
       doSomething( a, b );
     }
-   
   }
 
   static void doSomething( Foo a, Foo b ) {

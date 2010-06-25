@@ -1,12 +1,13 @@
 package Analysis.Disjoint;
 
-import java.util.Hashtable;
-import java.util.Iterator;
+import java.util.*;
+import java.io.*;
 
 import IR.FieldDescriptor;
 import IR.Flat.FlatCall;
 import IR.Flat.FlatMethod;
 import IR.Flat.TempDescriptor;
+import IR.Flat.FlatSESEEnterNode;
 
 /////////////////////////////////////////////
 // 
@@ -26,25 +27,16 @@ import IR.Flat.TempDescriptor;
 
 public class EffectsAnalysis {
 
-  private Hashtable<FlatMethod, EffectSet> mapFlatmethodToEffectset;
+  private Hashtable<FlatMethod, EffectSet> fm2effectSet;
 
-  // private Hashtable<MethodContext, MethodEffects>
-  // mapMethodContextToMethodEffects;
-  // boolean methodeffects = false;
-
-  public EffectsAnalysis(boolean methodeffects) {
-    mapFlatmethodToEffectset = new Hashtable<FlatMethod, EffectSet>();
+  public EffectsAnalysis() {
+    fm2effectSet = new Hashtable<FlatMethod, EffectSet>();
   }
 
   public void analyzeFlatFieldNode(FlatMethod fmContaining, ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld) {
 
     VariableNode vn = rg.td2vn.get(rhs);
 
-    EffectSet effectSet = mapFlatmethodToEffectset.get(fmContaining);
-    if (effectSet == null) {
-      effectSet = new EffectSet();
-    }
-
     for (Iterator<RefEdge> iterator = vn.iteratorToReferencees(); iterator.hasNext();) {
       RefEdge edge = iterator.next();
       TaintSet taintSet = edge.getTaints();
@@ -52,25 +44,23 @@ public class EffectsAnalysis {
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
         Taint taint = taintSetIter.next();
 
-//        Effect effect = new Effect(taint.getParamIndex(), taint.getAllocSite(), affectedAlloc, Effect.read, fld);
-//        effectSet.addMethodEffect(taint.getParamIndex(), effect);
+        EffectSet effectSet = fm2effectSet.get(fmContaining);
+        if (effectSet == null) {
+          effectSet = new EffectSet();
+        }
+        
+        Effect effect = new Effect(affectedAlloc, Effect.read, fld);
+        effectSet.addEffect(taint, effect);
 
+        fm2effectSet.put(fmContaining, effectSet);
       }
     }
-
-    mapFlatmethodToEffectset.put(fmContaining, effectSet);
-
   }
 
-  public void analyzeFlatSetFieldNode(FlatMethod fmContaining, ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld) {
+  public void analyzeFlatSetFieldNode(FlatMethod fmContaining, ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, boolean strongUpdate) {
 
     VariableNode vn = rg.td2vn.get(lhs);
 
-    EffectSet effectSet = mapFlatmethodToEffectset.get(fmContaining);
-    if (effectSet == null) {
-      effectSet = new EffectSet();
-    }
-
     for (Iterator<RefEdge> iterator = vn.iteratorToReferencees(); iterator.hasNext();) {
       RefEdge edge = iterator.next();
       TaintSet taintSet = edge.getTaints();
@@ -78,18 +68,99 @@ public class EffectsAnalysis {
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
         Taint taint = taintSetIter.next();
 
-//        Effect effect = new Effect(taint.getParamIndex(), taint.getAllocSite(), affectedAlloc, Effect.write, fld);
-//        effectSet.addMethodEffect(taint.getParamIndex(), effect);
+        EffectSet effectSet = fm2effectSet.get(fmContaining);
+        if (effectSet == null) {
+          effectSet = new EffectSet();
+        }
+        
+        Effect effect = new Effect(affectedAlloc, Effect.write, fld);
+        effectSet.addEffect(taint, effect);
 
+        if (strongUpdate) {
+          effectSet.addEffect(taint, 
+                              new Effect(affectedAlloc,
+                                         Effect.strongupdate,
+                                         fld)
+                              );
+        }
+
+        fm2effectSet.put(fmContaining, effectSet);
+      }
+    }
+  }
+
+  public void analyzeFlatCall(FlatMethod fmContaining, FlatMethod fmCallee, Hashtable<Taint, TaintSet> tCallee2tsCaller) {
+    
+    EffectSet esCaller = getEffectSet(fmContaining);
+    if( esCaller == null ) {
+      esCaller = new EffectSet();
+    }
+    
+    EffectSet esCallee = getEffectSet(fmCallee);
+    if( esCallee == null ) {
+      esCallee = new EffectSet();
+    }
+
+    Iterator meItr = esCallee.getAllEffectPairs();
+    while( meItr.hasNext() ) {
+      Map.Entry       me      = (Map.Entry)       meItr.next();
+      Taint           tCallee = (Taint)           me.getKey();
+      HashSet<Effect> effects = (HashSet<Effect>) me.getValue();
+
+      if( tCallee2tsCaller.containsKey( tCallee ) ) {
+
+        Iterator<Taint> tItr = tCallee2tsCaller.get( tCallee ).iterator();
+        while( tItr.hasNext() ) {
+          Taint tCaller = tItr.next();
+
+          Iterator<Effect> eItr = effects.iterator();
+          while( eItr.hasNext() ) {
+            Effect e = eItr.next();
+            
+            esCaller.addEffect( tCaller, e );
+          }
+        }
       }
     }
 
-    mapFlatmethodToEffectset.put(fmContaining, effectSet);
-    
+    fm2effectSet.put(fmContaining, esCaller);    
   }
 
   public EffectSet getEffectSet(FlatMethod fm) {
-    return mapFlatmethodToEffectset.get(fm);
+    return fm2effectSet.get(fm);
+  }
+
+  public void writeEffectsPerMethod( String outfile ) {
+    try {
+      BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
+      
+      bw.write( "Effects\n\n" );
+
+      Iterator meItr1 = fm2effectSet.entrySet().iterator();
+      while( meItr1.hasNext() ) {
+        Map.Entry  me1 = (Map.Entry)  meItr1.next();
+        FlatMethod fm  = (FlatMethod) me1.getKey();
+        EffectSet  es  = (EffectSet)  me1.getValue();
+
+        bw.write( "\n"+fm+"\n--------------\n" );
+
+        Iterator meItr2 = es.getAllEffectPairs();
+        while( meItr2.hasNext() ) {
+          Map.Entry       me2     = (Map.Entry)       meItr2.next();
+          Taint           taint   = (Taint)           me2.getKey();
+          HashSet<Effect> effects = (HashSet<Effect>) me2.getValue();
+
+          Iterator<Effect> eItr = effects.iterator();
+          while( eItr.hasNext() ) {
+            Effect e = eItr.next();
+            
+            bw.write( "  "+taint+"-->"+e+"\n" );
+          }
+        }
+      }
+
+      bw.close();
+    } catch( IOException e ) {}
   }
 
   /*

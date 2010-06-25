@@ -338,7 +338,7 @@ public class DisjointAnalysis {
   public int              allocationDepth;
 
   protected boolean doEffectsAnalysis = false;
-
+  protected EffectsAnalysis effectsAnalysis;
   
   // data structure for public interface
   private Hashtable< Descriptor, HashSet<AllocSite> > 
@@ -581,6 +581,7 @@ public class DisjointAnalysis {
 
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
+      effectsAnalysis   = new EffectsAnalysis();
     }
 
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
@@ -670,6 +671,10 @@ public class DisjointAnalysis {
       }
     } catch( IOException e ) {
       throw new Error( "IO Exception while writing disjointness analysis output." );
+    }
+
+    if( doEffectsAnalysis ) {
+      effectsAnalysis.writeEffectsPerMethod( "effects-per-method.txt" );
     }
   }
 
@@ -1098,6 +1103,10 @@ public class DisjointAnalysis {
       fld = ffn.getField();
       if( shouldAnalysisTrack( fld.getType() ) ) {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
+
+        if( doEffectsAnalysis ) {
+          effectsAnalysis.analyzeFlatFieldNode( fmContaining, rg, rhs, fld );          
+        }
       }          
       break;
 
@@ -1106,8 +1115,13 @@ public class DisjointAnalysis {
       lhs = fsfn.getDst();
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
+
       if( shouldAnalysisTrack( fld.getType() ) ) {
-	rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
+        boolean strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
+
+        if( doEffectsAnalysis ) {
+          effectsAnalysis.analyzeFlatSetFieldNode( fmContaining, rg, lhs, fld, strongUpdate );
+        }
       }           
       break;
 
@@ -1259,7 +1273,6 @@ public class DisjointAnalysis {
 
       }
 
-
       // the transformation for a call site should update the
       // current heap abstraction with any effects from the callee,
       // or if the method is virtual, the effects from any possible
@@ -1315,15 +1328,30 @@ public class DisjointAnalysis {
 
 
         } else {
+          // calculate the method call transform
+          
+          Hashtable<Taint, TaintSet> tCallee2tsCaller = null;
+
+          if( doEffectsAnalysis ) {
+            tCallee2tsCaller = new Hashtable<Taint, TaintSet>();
+          }        
+
           rgCopy.resolveMethodCall( fc, 
                                     fmPossible, 
                                     rgEffect,
                                     callerNodeIDsCopiedToCallee,
+                                    tCallee2tsCaller,
                                     writeDebugDOTs
                                     );
+
+          if( doEffectsAnalysis ) {
+            effectsAnalysis.analyzeFlatCall( fmContaining,
+                                             fmPossible, 
+                                             tCallee2tsCaller );
+          }        
         }
         
-        rgMergeOfEffects.merge( rgCopy );
+        rgMergeOfEffects.merge( rgCopy );        
       }
 
 

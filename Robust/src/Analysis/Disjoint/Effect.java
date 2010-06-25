@@ -1,6 +1,5 @@
 package Analysis.Disjoint;
 
-import Analysis.OwnershipAnalysis.EffectsKey;
 import IR.FieldDescriptor;
 import IR.Flat.TempDescriptor;
 
@@ -11,15 +10,6 @@ public class Effect {
   public static final int write = 2;
   public static final int strongupdate = 3;
 
-  // identify a parameter index
-  protected Integer paramIndex;
-
-  // identify an inset var
-  protected TempDescriptor insetVar;
-
-  // identify an allocation site of inset var
-  protected AllocSite insetAllocSite;
-
   // identify an allocation site of affected object
   protected AllocSite affectedAllocSite;
 
@@ -29,36 +19,10 @@ public class Effect {
   // identify a field
   protected FieldDescriptor field;
 
-  public Effect(Integer pi, AllocSite insetAS, AllocSite affectedAS, int type, FieldDescriptor field) {
-    this.paramIndex = pi;
-    this.insetAllocSite = insetAS;
+  public Effect(AllocSite affectedAS, int type, FieldDescriptor field) {
     this.affectedAllocSite = affectedAS;
     this.type = type;
     this.field = field;
-  }
-
-  public Integer getParamIndex() {
-    return paramIndex;
-  }
-
-  public void setParamIndex(Integer paramIndex) {
-    this.paramIndex = paramIndex;
-  }
-
-  public TempDescriptor getInsetVar() {
-    return insetVar;
-  }
-
-  public void setInsetVar(TempDescriptor insetVar) {
-    this.insetVar = insetVar;
-  }
-
-  public AllocSite getInsetAllocSite() {
-    return insetAllocSite;
-  }
-
-  public void setInsetAllocSite(AllocSite insetAllocSite) {
-    this.insetAllocSite = insetAllocSite;
   }
 
   public AllocSite getAffectedAllocSite() {
@@ -96,18 +60,7 @@ public class Effect {
     }
 
     Effect in = (Effect) o;
-
-    if (paramIndex != null) {
-      if (!paramIndex.equals(in.getParamIndex())) {
-        return false;
-      }
-    } else {
-      if (!insetVar.equals(in.getInsetVar()) 
-          && !insetAllocSite.equals(in.getInsetAllocSite())) {
-        return false;
-      }
-    }
-
+    
     if (affectedAllocSite.equals(in.getAffectedAllocSite()) 
         && type == in.getType() 
         && field.equals(in.getField())) {
@@ -120,12 +73,6 @@ public class Effect {
   public int hashCode() {
 
     int hash = affectedAllocSite.hashCode();
-
-    if (paramIndex != null) {
-      hash = hash ^ paramIndex.hashCode();
-    } else if (insetAllocSite != null) {
-      hash = hash ^ insetAllocSite.hashCode();
-    }
 
     hash = hash + type;
 
@@ -140,14 +87,7 @@ public class Effect {
   public String toString() {
     String s = "(";
 
-    if (paramIndex != null) {
-      s += "param" + paramIndex;
-    } else {
-      s += insetVar;
-      s += ", " + insetAllocSite.toStringBrief();
-    }
-
-    s += ", " + affectedAllocSite.toStringBrief();
+    s += affectedAllocSite.toStringBrief();
     s += ", ";
     if (type == read) {
       s += "read";

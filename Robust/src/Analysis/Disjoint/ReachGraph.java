@@ -241,11 +241,14 @@ public class ReachGraph {
 
   }
 
-  protected void clearRefEdgesFrom( RefSrcNode     referencer,
-                                    TypeDescriptor type,
-                                    String         field,
-                                    boolean        removeAll ) {
+  // return whether at least one edge was removed
+  protected boolean clearRefEdgesFrom( RefSrcNode     referencer,
+                                       TypeDescriptor type,
+                                       String         field,
+                                       boolean        removeAll ) {
     assert referencer != null;
+
+    boolean atLeastOneEdgeRemoved = false;
 
     // get a copy of the set to iterate over, otherwise
     // we will be trying to take apart the set as we
@@ -264,8 +267,12 @@ public class ReachGraph {
                        referencee,
                        edge.getType(),
                        edge.getField() );
+
+        atLeastOneEdgeRemoved = true;
       }
     }
+
+    return atLeastOneEdgeRemoved;
   }
 
   protected void clearRefEdgesTo( HeapRegionNode referencee,
@@ -510,9 +517,10 @@ public class ReachGraph {
   }
 
 
-  public void assignTempXFieldFEqualToTempY( TempDescriptor  x,
-					     FieldDescriptor f,
-					     TempDescriptor  y ) {
+  // return whether a strong update was actually effected
+  public boolean assignTempXFieldFEqualToTempY( TempDescriptor  x,
+                                                FieldDescriptor f,
+                                                TempDescriptor  y ) {
 
     VariableNode lnX = getVariableNodeFromTemp( x );
     VariableNode lnY = getVariableNodeFromTemp( y );
@@ -526,7 +534,8 @@ public class ReachGraph {
     Set<RefEdge> impossibleEdges = new HashSet<RefEdge>();
 
     // first look for possible strong updates and remove those edges
-    boolean strongUpdate = false;
+    boolean strongUpdateCond          = false;
+    boolean edgeRemovedByStrongUpdate = false;
 
     Iterator<RefEdge> itrXhrn = lnX.iteratorToReferencees();
     while( itrXhrn.hasNext() ) {
@@ -541,8 +550,16 @@ public class ReachGraph {
 	      )
 	  ) {
         if( !DISABLE_STRONG_UPDATES ) {
-          strongUpdate = true;
-          clearRefEdgesFrom( hrnX, f.getType(), f.getSymbol(), false );
+          strongUpdateCond = true;
+
+          boolean atLeastOne = 
+            clearRefEdgesFrom( hrnX, 
+                               f.getType(), 
+                               f.getSymbol(), 
+                               false );
+          if( atLeastOne ) {
+            edgeRemovedByStrongUpdate = true;
+          }
         }
       }
     }
@@ -657,19 +674,21 @@ public class ReachGraph {
 
     // if there was a strong update, make sure to improve
     // reachability with a global sweep    
-    if( strongUpdate || !impossibleEdges.isEmpty() ) {    
+    if( edgeRemovedByStrongUpdate || !impossibleEdges.isEmpty() ) {    
       if( !DISABLE_GLOBAL_SWEEP ) {
         globalSweep();
       }
     }    
     
+
     // after x.y=f , stall x and y if they are not accessible
     // also contribute write effects on stall site of x
     // accessible status update
     // if it is in region
     //accessibleVars.add(x);
     //accessibleVars.add(y);
-    
+
+    return edgeRemovedByStrongUpdate;
   }
 
 
@@ -1565,8 +1584,10 @@ public class ReachGraph {
   // equivalent, just eliminate Taints with bad preds
   protected TaintSet 
     toCallerContext( TaintSet                       ts,
-                     Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied 
+                     Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied,
+                     Hashtable<Taint, TaintSet>     tCallee2tsCaller
                      ) {
+
     TaintSet out = TaintSet.factory();
 
     // when the mapping is null it means there were no
@@ -1592,6 +1613,17 @@ public class ReachGraph {
         out = Canonical.add( out,
                              tCaller
                              );
+
+        // this mapping aids the effects analysis--
+        // ONLY DO IF MASTER MAP IS NOT NULL
+        if( tCallee2tsCaller != null ) {
+          TaintSet tsCaller = tCallee2tsCaller.get( tCallee );
+          if( tsCaller == null ) {
+            tsCaller = TaintSet.factory();
+          }
+          tsCaller = Canonical.add( tsCaller, tCaller );
+          tCallee2tsCaller.put( tCallee, tsCaller );
+        }
       }     
     }    
     
@@ -2092,6 +2124,7 @@ public class ReachGraph {
                        FlatMethod   fmCallee,        
                        ReachGraph   rgCallee,
                        Set<Integer> callerNodeIDsCopiedToCallee,
+                       Hashtable<Taint, TaintSet> tCallee2tsCaller,
                        boolean      writeDebugDOTs
                        ) {
 
@@ -2629,7 +2662,8 @@ public class ReachGraph {
                                                          calleeEdge2calleeStatesSatisfied.get( reCallee ) ),
                                         preds,
                                         toCallerContext( reCallee.getTaints(),
-                                                         calleeEdge2calleeTaintsSatisfied.get( reCallee ) )
+                                                         calleeEdge2calleeTaintsSatisfied.get( reCallee ),
+                                                         tCallee2tsCaller )
                                         );
 
         ChangeSet cs = ChangeSet.factory();
