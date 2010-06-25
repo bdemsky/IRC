@@ -15,18 +15,21 @@ public class FileSim {
     System.out.println("Lazy Time="+ls.getTime());
     System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
     System.out.println("Stalltime="+ls.getStallTime()+" Backofftime="+ls.getBackoffTime());
+    System.out.println("Abortedtime="+ls.getAbortedTime());
     ls=null;
 
     ls4.join();
     System.out.println("Fast Abort="+ls4.getTime());
     System.out.println("Aborts="+ls4.getAborts()+" Commit="+ls4.getCommits());
     System.out.println("Stalltime="+ls4.getStallTime()+" Backofftime="+ls4.getBackoffTime());
+    System.out.println("Abortedtime="+ls4.getAbortedTime());
     ls4=null;
 
     ls5.join();
     System.out.println("Attack Abort="+ls5.getTime());
     System.out.println("Aborts="+ls5.getAborts()+" Commit="+ls5.getCommits());
     System.out.println("Stalltime="+ls5.getStallTime()+" Backofftime="+ls5.getBackoffTime());
+    System.out.println("Abortedtime="+ls5.getAbortedTime());
     ls5=null;
   }
 
@@ -45,18 +48,21 @@ public class FileSim {
     System.out.println("Suicide Abort="+ls6.getTime());
     System.out.println("Aborts="+ls6.getAborts()+" Commit="+ls6.getCommits());
     System.out.println("Stalltime="+ls6.getStallTime()+" Backofftime="+ls6.getBackoffTime());
+    System.out.println("Abortedtime="+ls6.getAbortedTime());
     ls6=null;
 
     ls7.join();
     System.out.println("Timestamp Abort="+ls7.getTime());
     System.out.println("Aborts="+ls7.getAborts()+" Commit="+ls7.getCommits());
     System.out.println("Stalltime="+ls7.getStallTime()+" Backofftime="+ls7.getBackoffTime());
+    System.out.println("Abortedtime="+ls7.getAbortedTime());
     ls7=null;
 
     ls8.join();
     System.out.println("Random Abort="+ls8.getTime());
     System.out.println("Aborts="+ls8.getAborts()+" Commit="+ls8.getCommits());
     System.out.println("Stalltime="+ls8.getStallTime()+" Backofftime="+ls8.getBackoffTime());
+    System.out.println("Abortedtime="+ls8.getAbortedTime());
     ls8=null;
   }
 
@@ -76,18 +82,21 @@ public class FileSim {
     System.out.println("Karma Abort="+ls9.getTime());
     System.out.println("Aborts="+ls9.getAborts()+" Commit="+ls9.getCommits());
     System.out.println("Stalltime="+ls9.getStallTime()+" Backofftime="+ls9.getBackoffTime());
+    System.out.println("Abortedtime="+ls9.getAbortedTime());
     ls9=null;
 
     ls10.join();
     System.out.println("Polite Abort="+ls10.getTime());
     System.out.println("Aborts="+ls10.getAborts()+" Commit="+ls10.getCommits());
     System.out.println("Stalltime="+ls10.getStallTime()+" Backofftime="+ls10.getBackoffTime());
+    System.out.println("Abortedtime="+ls10.getAbortedTime());
     ls10=null;
 
     ls11.join();
     System.out.println("Eruption Abort="+ls11.getTime());
     System.out.println("Aborts="+ls11.getAborts()+" Commit="+ls11.getCommits());
     System.out.println("Stalltime="+ls11.getStallTime()+" Backofftime="+ls11.getBackoffTime());
+    System.out.println("Abortedtime="+ls11.getAbortedTime());
   }
 
   public static void p4(Executor e) throws Exception {
@@ -102,18 +111,21 @@ public class FileSim {
     System.out.println("ThreadPriority Abort="+ls12.getTime());
     System.out.println("Aborts="+ls12.getAborts()+" Commit="+ls12.getCommits());
     System.out.println("Stalltime="+ls12.getStallTime()+" Backofftime="+ls12.getBackoffTime());
+    System.out.println("Abortedtime="+ls12.getAbortedTime());
     ls12=null;
 
     ls13.join();
     System.out.println("AttackTime Abort="+ls13.getTime());
     System.out.println("Aborts="+ls13.getAborts()+" Commit="+ls13.getCommits());
     System.out.println("Stalltime="+ls13.getStallTime()+" Backofftime="+ls13.getBackoffTime());
+    System.out.println("Abortedtime="+ls13.getAbortedTime());
     ls13=null;
 
     ls14.join();
     System.out.println("AttackThread Abort="+ls14.getTime());
     System.out.println("Aborts="+ls14.getAborts()+" Commit="+ls14.getCommits());
     System.out.println("Stalltime="+ls14.getStallTime()+" Backofftime="+ls14.getBackoffTime());
+    System.out.println("Abortedtime="+ls14.getAbortedTime());
     ls14=null;
   }
 

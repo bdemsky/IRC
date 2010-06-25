@@ -136,6 +136,24 @@ public class FlexScheduler extends Thread {
     return backoffcycles;
   }
 
+  public long getAbortedTime() {
+    return abortedcycles;
+  }
+
+  //Computes wasted time
+  public void timewasted(int currthread, long currtime) {
+    Event e=currentevents[currthread];
+    Transaction trans=e.getTransaction();
+    int eIndex=e.getEvent();
+    long eTime=e.getTime();
+    long timeleft=eTime-currtime;
+    long totaltime=0;
+    for(int i=0;i<=eIndex;i++)
+      totaltime+=trans.getTime(i);
+    totaltime-=timeleft;//subtract off time to the next event
+    abortedcycles+=totaltime;
+  }
+
   //Aborts another thread...
   public void reschedule(int currthread, long currtime, long backofftime) {
     long time=currtime+backofftime;
@@ -320,6 +338,7 @@ public class FlexScheduler extends Thread {
 		serAbort.addPoint(currtime, threadid);
 	    } else if (policy==COMMIT||policy==LOCKCOMMIT) {
 	      //abort it immediately
+	      timewasted(threadid, currtime);
 	      reschedule(threadid, currtime, 0);
 	      abortcount++;
 	    }
@@ -328,6 +347,7 @@ public class FlexScheduler extends Thread {
       }
     } else {
       abortcount++;
+      timewasted(ev.getThread(), currtime);
     }
     
     //add next transaction event...could be us if we aborted
@@ -401,6 +421,7 @@ public class FlexScheduler extends Thread {
 	//abort other transactions
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
+	  timewasted(thread, time);
 	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
@@ -428,6 +449,7 @@ public class FlexScheduler extends Thread {
 	  if (dback>0)
 	    backoff[thread]=dback;
 	  int atime=r.nextInt(backoff[thread]);
+	  timewasted(thread, time);
 	  reschedule(thread, time, atime);
 	  abortcount++;
 	}
@@ -465,6 +487,7 @@ public class FlexScheduler extends Thread {
 	  if (dback>0)
 	    backoff[thread]=dback;
 	  int atime=r.nextInt(backoff[thread]);
+	  timewasted(thread, time);
 	  reschedule(thread, time, atime);
 	  abortcount++;
 	}
@@ -476,6 +499,7 @@ public class FlexScheduler extends Thread {
 	retrycount[ev.getThread()]=0;
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
+	  timewasted(thread, time);
 	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
@@ -491,6 +515,7 @@ public class FlexScheduler extends Thread {
     } else if (policy==ATTACK) {
       for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	Integer thread=(Integer)thit.next();
+	timewasted(thread, time);
 	reschedule(thread, time, r.nextInt(backoff[thread.intValue()]));
 	int dback=backoff[thread.intValue()]*2;
 	if (dback>0)
@@ -499,6 +524,7 @@ public class FlexScheduler extends Thread {
       }
       return true;
     } else if (policy==SUICIDE) {
+      timewasted(ev.getThread(), time);
       reschedule(ev.getThread(), time, r.nextInt(backoff[ev.getThread()]));
       int dback=backoff[ev.getThread()]*2;
       if (dback>0)
@@ -518,6 +544,7 @@ public class FlexScheduler extends Thread {
       }
       if (opponenttime>ev.getTransaction().getTime(ev.getEvent())) {
 	//kill ourself
+	timewasted(ev.getThread(), time);
 	reschedule(ev.getThread(), time, 0);
 	abortcount++;
 	return false;
@@ -525,6 +552,7 @@ public class FlexScheduler extends Thread {
 	//kill the opponents
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
+	  timewasted(thread, time);
 	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
@@ -543,6 +571,7 @@ public class FlexScheduler extends Thread {
       }
       if (ev.getThread()>tid) {
 	//kill ourself
+	timewasted(ev.getThread(), time);
 	reschedule(ev.getThread(), time, 0);
 	abortcount++;
 	return false;
@@ -550,6 +579,7 @@ public class FlexScheduler extends Thread {
 	//kill the opponents
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
+	  timewasted(thread, time);
 	  reschedule(thread, time, 0);
 	  abortcount++;
 	}
@@ -576,6 +606,7 @@ public class FlexScheduler extends Thread {
 	}
 	if (opponenttime>ev.getTransaction().getTime(ev.getEvent())) {
 	  //kill ourself
+	  timewasted(ev.getThread(), time);
 	  reschedule(ev.getThread(), time, 0);
 	  threadinfo[ev.getThread()].aborted=true;
 	  abortcount++;
@@ -584,6 +615,7 @@ public class FlexScheduler extends Thread {
 	  //kill the opponents
 	  for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	    Integer thread=(Integer)thit.next();
+	    timewasted(thread, time);
 	    reschedule(thread, time, 0);
 	    threadinfo[thread.intValue()].aborted=true;
 	    abortcount++;
@@ -593,6 +625,7 @@ public class FlexScheduler extends Thread {
       } else {
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
+	  timewasted(thread, time);
 	  reschedule(thread, time, 0);
 	  threadinfo[thread.intValue()].aborted=true;
 	  abortcount++;
@@ -620,6 +653,7 @@ public class FlexScheduler extends Thread {
 	}
 	if (opponentthr<tev) {
 	  //kill ourself
+	  timewasted(ev.getThread(), time);
 	  reschedule(ev.getThread(), time, 0);
 	  threadinfo[ev.getThread()].aborted=true;
 	  abortcount++;
@@ -628,6 +662,7 @@ public class FlexScheduler extends Thread {
 	  //kill the opponents
 	  for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	    Integer thread=(Integer)thit.next();
+	    timewasted(thread, time);
 	    reschedule(thread, time, 0);
 	    threadinfo[thread.intValue()].aborted=true;
 	    abortcount++;
@@ -637,6 +672,7 @@ public class FlexScheduler extends Thread {
       } else {
 	for(Iterator thit=threadstokill.iterator();thit.hasNext();) {
 	  Integer thread=(Integer)thit.next();
+	  timewasted(thread, time);
 	  reschedule(thread, time, 0);
 	  threadinfo[thread.intValue()].aborted=true;
 	  abortcount++;
