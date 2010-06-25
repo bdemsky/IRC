@@ -1089,7 +1089,7 @@ public class DisjointAnalysis {
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           FlatSESEEnterNode seseContaining = 
             rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-
+          
           effectsAnalysis.analyzeFlatFieldNode( fmContaining,
                                                 seseContaining,
                                                 rg, rhs, fld );          
@@ -1356,7 +1356,7 @@ public class DisjointAnalysis {
                                     );
 
           if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-
+            
             FlatSESEEnterNode seseContaining = 
               rblockRel.getRBlockStacks( fmContaining, fn ).peek();
             

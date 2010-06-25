@@ -1445,7 +1445,7 @@ abstract public class Canonical {
   }
 
 
-  public static Taint makePredsTrue( Taint t ) {
+  public static Taint changePredsTo( Taint t, ExistPredSet preds ) {
     assert t != null;
     assert t.isCanonical();
 
@@ -1453,7 +1453,7 @@ abstract public class Canonical {
     // the empty reach state as the second, it's never used,
     // but makes the hashing happy
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.TAINT_MAKEPREDSTRUE,
+      new CanonicalOp( CanonicalOp.TAINT_CHANGEPREDSTO,
                        t, 
                        t );
     
@@ -1467,7 +1467,7 @@ abstract public class Canonical {
                            t.stallSite,
                            t.var,
                            t.allocSite,
-                           ExistPredSet.factory( ExistPred.factory() ) 
+                           preds
                            );
     
     out = (Taint) makeCanonical( out );
@@ -1476,7 +1476,7 @@ abstract public class Canonical {
   }
 
 
-  public static TaintSet makePredsTrue( TaintSet ts ) {
+  public static TaintSet changePredsTo( TaintSet ts, ExistPredSet preds ) {
     assert ts != null;
     assert ts.isCanonical();
 
@@ -1484,9 +1484,9 @@ abstract public class Canonical {
     // the empty reach set as the second, it's never used,
     // but makes the hashing happy
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.TAINTSET_MAKEPREDSTRUE,
+      new CanonicalOp( CanonicalOp.TAINTSET_CHANGEPREDSTO,
                        ts,
-                       TaintSet.factory() );
+                       ts );
     
     Canonical result = op2result.get( op );
     if( result != null ) {
@@ -1499,7 +1499,7 @@ abstract public class Canonical {
     while( itr.hasNext() ) {
       Taint t = itr.next();
       out = Canonical.add( out,
-                           Canonical.makePredsTrue( t )
+                           Canonical.changePredsTo( t, preds )
                            );
     }
     

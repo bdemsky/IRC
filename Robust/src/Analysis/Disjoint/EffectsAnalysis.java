@@ -40,7 +40,10 @@ public class EffectsAnalysis {
                                    ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld) {
 
     VariableNode vn = rg.td2vn.get(rhs);
-    
+    if( vn == null ) {
+      return;
+    }
+
     for (Iterator<RefEdge> iterator = vn.iteratorToReferencees(); iterator.hasNext();) {
       RefEdge edge = iterator.next();
       TaintSet taintSet = edge.getTaints();
@@ -66,6 +69,9 @@ public class EffectsAnalysis {
                                       ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, boolean strongUpdate) {
 
     VariableNode vn = rg.td2vn.get(lhs);
+    if( vn == null ) {
+      return;
+    }
 
     for (Iterator<RefEdge> iterator = vn.iteratorToReferencees(); iterator.hasNext();) {
       RefEdge edge = iterator.next();
@@ -89,12 +95,7 @@ public class EffectsAnalysis {
 
   public void analyzeFlatCall(FlatMethod fmContaining, FlatSESEEnterNode seseContaining, 
                               FlatMethod fmCallee, Hashtable<Taint, TaintSet> tCallee2tsCaller) {
-    
-    EffectSet esCaller = getEffectSet(fmContaining);
-    if( esCaller == null ) {
-      esCaller = new EffectSet();
-    }
-    
+        
     EffectSet esCallee = getEffectSet(fmCallee);
     if( esCallee == null ) {
       esCallee = new EffectSet();
@@ -111,6 +112,8 @@ public class EffectsAnalysis {
         Iterator<Taint> tItr = tCallee2tsCaller.get( tCallee ).iterator();
         while( tItr.hasNext() ) {
           Taint tCaller = tItr.next();
+          
+          EffectSet esCaller = new EffectSet();
 
           Iterator<Effect> eItr = effects.iterator();
           while( eItr.hasNext() ) {
@@ -120,7 +123,7 @@ public class EffectsAnalysis {
           }
 
           add( fmContaining,   tCaller, esCaller );
-          add( seseContaining, tCaller, esCaller );
+          add( seseContaining, tCaller, esCaller );    
         }
       }
     }

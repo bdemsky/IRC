@@ -38,8 +38,8 @@ public class CanonicalOp {
   public static final int TAINTSET_ADD_TAINT                   = 0xcd17;
   public static final int TAINTSET_UNION_TAINTSET              = 0xa835;
   public static final int TAINTSET_UNIONORPREDS_TAINTSET       = 0x204f;
-  public static final int TAINT_MAKEPREDSTRUE                  = 0x3ab4;
-  public static final int TAINTSET_MAKEPREDSTRUE               = 0x2ff1;
+  public static final int TAINT_CHANGEPREDSTO                  = 0x3ab4;
+  public static final int TAINTSET_CHANGEPREDSTO               = 0x2ff1;
 
   protected int opCode;
   protected Canonical operand1;

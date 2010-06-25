@@ -73,7 +73,7 @@ public class ExistPred extends Canonical {
   protected TypeDescriptor e_type;
   protected String         e_field;                    
 
-  // edge uses same ReachState ne_state as node type above
+  
 
 
 

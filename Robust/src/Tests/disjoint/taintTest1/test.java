@@ -18,25 +18,24 @@ public class Test {
     */
     
     rblock r1 {
-      a.f = new Foo();
-      b.f = new Foo();
-
       doSomething( a, b );
     }
   }
 
   static void doSomething( Foo a, Foo b ) {
+    
+    Foo x = b;
+    a.g = x; 
 
-    a.g = new Foo();
+    a.f = new Foo();
+    b.f = new Foo();
 
-    a.f.f = a.g;
-
-    Foo f = doStuff( a, b );
+    Foo f = doStuff( a.f, b.f );
   }   
 
   static Foo doStuff( Foo m, Foo n ) {
 
-    m.f.g = n.f;
+    m.g = n;
 
     return new Foo();
   }

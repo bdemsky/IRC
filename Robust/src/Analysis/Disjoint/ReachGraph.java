@@ -659,7 +659,8 @@ public class ReachGraph {
                                                                   )
                                                ),
                        predsTrue,
-                       Canonical.makePredsTrue( edgeY.getTaints() )
+                       Canonical.changePredsTo( edgeY.getTaints(),
+                                                predsTrue )
                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -705,7 +706,10 @@ public class ReachGraph {
       HeapRegionNode referencee = edgeX.getDst();
       RefEdge        edgeNew    = edgeX.copy();
       edgeNew.setSrc( lnR );
-      edgeNew.setTaints( Canonical.makePredsTrue( edgeNew.getTaints() ) );
+      edgeNew.setTaints( Canonical.changePredsTo( edgeNew.getTaints(),
+                                                  predsTrue 
+                                                  )
+                         );
 
       addRefEdge( lnR, referencee, edgeNew );
     }
@@ -1299,8 +1303,8 @@ public class ReachGraph {
     Iterator<TempDescriptor> isvItr = sese.getInVarSet().iterator();
     while( isvItr.hasNext() ) {
       TempDescriptor isv = isvItr.next();
-      VariableNode   vn  = td2vn.get( isv );
-    
+      VariableNode   vn  = getVariableNodeFromTemp( isv );
+
       Iterator<RefEdge> reItr = vn.iteratorToReferencees();
       while( reItr.hasNext() ) {
         RefEdge re = reItr.next();
@@ -1329,7 +1333,7 @@ public class ReachGraph {
                          ExistPredSet   preds
                          ) {
     
-    VariableNode vn = td2vn.get( td );
+    VariableNode vn = getVariableNodeFromTemp( td );
     
     Iterator<RefEdge> reItr = vn.iteratorToReferencees();
     while( reItr.hasNext() ) {
@@ -2057,7 +2061,8 @@ public class ReachGraph {
                                                      oocHrnIdOoc2callee
                                                      ),
                                     preds,
-                                    TaintSet.factory() // no taints
+                                    Canonical.changePredsTo( reCaller.getTaints(),
+                                                             preds )
                                     )
                        );              
         
@@ -2434,7 +2439,7 @@ public class ReachGraph {
                 calleeEdge2calleeTaintsSatisfied.put( reCallee, calleeTaintsSatisfied );
               }
 
-              calleeTaintsSatisfied.put( tCallee, predsIfSatis );              
+              calleeTaintsSatisfied.put( tCallee, predsIfSatis );
             } 
           }
         }        
