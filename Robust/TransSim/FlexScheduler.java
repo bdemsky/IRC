@@ -82,6 +82,40 @@ public class FlexScheduler extends Thread {
   public static final int ATTACKTIME=12;
   public static final int ATTACKTHREAD=13;
 
+  public static String getName(int policy) {
+    switch (policy) {
+    case LAZY:
+      return new String("LAZY");
+    case COMMIT:
+      return new String("COMMIT");
+    case ATTACK:
+      return new String("ATTACK");
+    case SUICIDE:
+      return new String("SUICIDE");
+    case TIMESTAMP:
+      return new String("TIMESTAMP");
+    case LOCK:
+      return new String("LOCK");
+    case LOCKCOMMIT:
+      return new String("LOCKCOMMIT");
+    case RANDOM:
+      return new String("RANDOM");
+    case KARMA:
+      return new String("KARMA");
+    case POLITE:
+      return new String("POLITE");
+    case ERUPTION:
+      return new String("ERUPTION");
+    case THREAD:
+      return new String("THREAD");
+    case ATTACKTIME:
+      return new String("ATTACKTIME");
+    case ATTACKTHREAD:
+      return new String("ATTACKTHREAD");
+    }
+    return null;
+  }
+
   PriorityQueue eq;
   int policy;
   boolean[] aborted;
