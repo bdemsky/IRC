@@ -70,11 +70,12 @@ public class Executor {
   }
 
   public Executor(String filename) {
-    BufferedInputStream bir;
+    BufferedInputStream bir=null;
     try {
       bir=new BufferedInputStream(new FileInputStream(filename));
     } catch (Exception e) {
-      throw new Error();
+      e.printStackTrace();
+      System.exit(-1);
     }
     numThreads=readInt(bir);
     threads=new ThreadClass[numThreads];
