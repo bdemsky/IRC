@@ -1,16 +1,22 @@
 package Analysis.OoOJava;
 
+import java.io.IOException;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Stack;
+import java.util.Map.Entry;
 
-import Analysis.CallGraph.CallGraph;
 import Analysis.ArrayReferencees;
 import Analysis.Liveness;
 import Analysis.RBlockRelationAnalysis;
+import Analysis.CallGraph.CallGraph;
 import Analysis.Disjoint.DisjointAnalysis;
+import Analysis.Disjoint.Effect;
+import Analysis.Disjoint.EffectsAnalysis;
+import Analysis.Disjoint.Taint;
 import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.Operation;
@@ -21,7 +27,6 @@ import IR.Flat.FlatEdge;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatOpNode;
-import IR.Flat.FlatReturnNode;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.FlatSESEExitNode;
 import IR.Flat.FlatWriteDynamicVarNode;
@@ -47,12 +52,21 @@ public class OoOJavaAnalysis {
 
   private Hashtable<FlatEdge, FlatWriteDynamicVarNode> wdvNodesToSpliceIn;
 
-//  private Hashtable<FlatNode, ParentChildConflictsMap> conflictsResults;
-//  private Hashtable<FlatMethod, MethodSummary> methodSummaryResults;
-//  private OwnershipAnalysis ownAnalysisForSESEConflicts;
-//  private Hashtable<FlatNode, ConflictGraph> conflictGraphResults;
+  // temporal data structures to track analysis progress. 
+  static private int uniqueLockSetId = 0;  
+  // mapping of a conflict graph to its compiled lock
+  private Hashtable<ConflictGraph, HashSet<SESELock>> conflictGraph2SESELock;
+  // mapping of a sese block to its conflict graph
+  private Hashtable<FlatNode, ConflictGraph> sese2conflictGraph;
 
-//  static private int uniqueLockSetId = 0;
+
+  
+
+  // private Hashtable<FlatNode, ParentChildConflictsMap> conflictsResults;
+  // private Hashtable<FlatMethod, MethodSummary> methodSummaryResults;
+  // private OwnershipAnalysis ownAnalysisForSESEConflicts;
+
+  // static private int uniqueLockSetId = 0;
 
   public static int maxSESEage = -1;
 
@@ -66,11 +80,8 @@ public class OoOJavaAnalysis {
     return cp;
   }
 
-  public OoOJavaAnalysis(State state, 
-                         TypeUtil typeUtil, 
-                         CallGraph callGraph,
-                         Liveness liveness, 
-                         ArrayReferencees arrayReferencees) {
+  public OoOJavaAnalysis(State state, TypeUtil typeUtil, CallGraph callGraph, Liveness liveness,
+      ArrayReferencees arrayReferencees) {
 
     double timeStartAnalysis = (double) System.nanoTime();
 
@@ -88,20 +99,21 @@ public class OoOJavaAnalysis {
 
     notAvailableIntoSESE = new Hashtable<FlatSESEEnterNode, Set<TempDescriptor>>();
 
-    // add all methods transitively reachable from the
-    // source's main to set for analysis    
-    MethodDescriptor mdSourceEntry = typeUtil.getMain();
-    FlatMethod       fmMain        = state.getMethodFlat( mdSourceEntry );
-    
-    Set<MethodDescriptor> descriptorsToAnalyze = 
-      callGraph.getAllMethods( mdSourceEntry );
-    
-    descriptorsToAnalyze.add( mdSourceEntry );
-    
+    sese2conflictGraph = new Hashtable<FlatNode, ConflictGraph>();
+    conflictGraph2SESELock = new Hashtable<ConflictGraph, HashSet<SESELock>>();
 
-//    conflictsResults = new Hashtable<FlatNode, ParentChildConflictsMap>();
-//    methodSummaryResults = new Hashtable<FlatMethod, MethodSummary>();
-//    conflictGraphResults = new Hashtable<FlatNode, ConflictGraph>();
+    // add all methods transitively reachable from the
+    // source's main to set for analysis
+    MethodDescriptor mdSourceEntry = typeUtil.getMain();
+    FlatMethod fmMain = state.getMethodFlat(mdSourceEntry);
+
+    Set<MethodDescriptor> descriptorsToAnalyze = callGraph.getAllMethods(mdSourceEntry);
+
+    descriptorsToAnalyze.add(mdSourceEntry);
+
+    // conflictsResults = new Hashtable<FlatNode, ParentChildConflictsMap>();
+    // methodSummaryResults = new Hashtable<FlatMethod, MethodSummary>();
+    // conflictGraphResults = new Hashtable<FlatNode, ConflictGraph>();
 
     // seseSummaryMap = new Hashtable<FlatNode, SESESummary>();
     // isAfterChildSESEIndicatorMap = new Hashtable<FlatNode, Boolean>();
@@ -109,16 +121,15 @@ public class OoOJavaAnalysis {
 
     // 1st pass, find basic rblock relations
     rblockRel = new RBlockRelationAnalysis(state, typeUtil, callGraph);
-    
+
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
-    Iterator<FlatSESEEnterNode> rootItr = 
-      rblockRel.getRootSESEs().iterator();
+    Iterator<FlatSESEEnterNode> rootItr = rblockRel.getRootSESEs().iterator();
     while (rootItr.hasNext()) {
       FlatSESEEnterNode root = rootItr.next();
       livenessAnalysisBackward(root, true, null);
     }
 
-    // 3rd pass, variable analysis    
+    // 3rd pass, variable analysis
     Iterator<MethodDescriptor> methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
@@ -136,17 +147,12 @@ public class OoOJavaAnalysis {
       FlatSESEEnterNode root = rootItr.next();
       livenessAnalysisBackward(root, true, null);
     }
-    
+
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
-    disjointAnalysisTaints = 
-      new DisjointAnalysis(state, 
-                           typeUtil, 
-                           callGraph,
-                           liveness, 
-                           arrayReferencees,
-                           rblockRel);
-    
+    disjointAnalysisTaints = new DisjointAnalysis(state, typeUtil, callGraph, liveness,
+        arrayReferencees, rblockRel);
+
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -158,11 +164,42 @@ public class OoOJavaAnalysis {
       notAvailableForward(fm);
     }
 
-    // MORE PASSES?
+    /*
+    // #th pass,  make conflict graph
+    // conflict graph is maintained by each parent sese
+    methItr = descriptorsToAnalyze.iterator();
+    while (methItr.hasNext()) {
+      Descriptor d = methItr.next();
+      FlatMethod fm = state.getMethodFlat(d);
+      makeConflictGraph(fm);
+    }
+
+    // debug routine 
+    Iterator iter = sese2conflictGraph.entrySet().iterator();
+    while (iter.hasNext()) {
+      Entry e = (Entry) iter.next();
+      FlatNode fn = (FlatNode) e.getKey();
+      ConflictGraph conflictGraph = (ConflictGraph) e.getValue();
+      System.out.println("CONFLICT GRAPH for " + fn);
+      Set<String> keySet = conflictGraph.id2cn.keySet();
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+        String key = (String) iterator.next();
+        ConflictNode node = conflictGraph.id2cn.get(key);
+        System.out.println("key=" + key + " --\n" + node.toString());
+      }
+    }
     
+    // #th pass, calculate conflicts
+    calculateConflicts();
+    
+    // #th pass, compiling locks
+    synthesizeLocks();
+
+    // #th pass, writing conflict graph
+    writeConflictGraph();
+    */
     
   }
-
 
   private void livenessAnalysisBackward(FlatSESEEnterNode fsen, boolean toplevel,
       Hashtable<FlatSESEExitNode, Set<TempDescriptor>> liveout) {
@@ -297,7 +334,7 @@ public class OoOJavaAnalysis {
 
       Stack<FlatSESEEnterNode> seseStack = rblockRel.getRBlockStacks(fm, fn);
       assert seseStack != null;
-      
+
       VarSrcTokTable prev = variableResults.get(fn);
 
       // merge sets from control flow joins
@@ -597,6 +634,372 @@ public class OoOJavaAnalysis {
       break;
 
     } // end switch
+  }
+
+  private void makeConflictGraph(FlatMethod fm) {
+
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add(fm);
+
+    Set<FlatNode> visited = new HashSet<FlatNode>();
+
+    while (!flatNodesToVisit.isEmpty()) {
+      FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+      flatNodesToVisit.remove(fn);
+      visited.add(fn);
+
+      Stack<FlatSESEEnterNode> seseStack = rblockRel.getRBlockStacks(fm, fn);
+      assert seseStack != null;
+
+      if (!seseStack.isEmpty()) {
+
+        // Add Stall Node of current program statement
+
+        ConflictGraph conflictGraph = sese2conflictGraph.get(seseStack.peek());
+        if (conflictGraph == null) {
+          conflictGraph = new ConflictGraph();
+        }
+
+        conflictGraph_nodeAction(fn, seseStack.peek());
+
+      }
+
+      // schedule forward nodes for analysis
+      for (int i = 0; i < fn.numNext(); i++) {
+        FlatNode nn = fn.getNext(i);
+        if (!visited.contains(nn)) {
+          flatNodesToVisit.add(nn);
+        }
+      }
+
+    }
+
+  }
+ 
+
+  private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE) {
+
+    switch (fn.kind()) {
+
+    case FKind.FlatSESEEnterNode: {
+
+      FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
+
+      if (!fsen.getIsCallerSESEplaceholder() && currentSESE.getParent() != null) {
+        Set<TempDescriptor> invar_set = fsen.getInVarSet();
+        ConflictGraph conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
+        if (conflictGraph == null) {
+          conflictGraph = new ConflictGraph();
+        }
+
+        // collects effects set
+        EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
+        Iterator iter=effectsAnalysis.iteratorTaintEffectPairs();
+        while(iter.hasNext()){
+          Entry entry=(Entry)iter.next();
+          Taint taint=(Taint)entry.getKey();
+          Set<Effect> effects=(Set<Effect>)entry.getValue();
+          if(taint.getSESE().equals(currentSESE)){
+            Iterator<Effect> eIter=effects.iterator();
+            while (eIter.hasNext()) {
+              Effect effect = eIter.next();
+              if (taint.getSESE().equals(currentSESE)) {
+                conflictGraph.addLiveInNodeEffect(taint, effect);
+              }
+            }
+          }
+
+        }
+
+        if (conflictGraph.id2cn.size() > 0) {
+          sese2conflictGraph.put(currentSESE.getParent(), conflictGraph);
+        }
+      }
+    }
+      break;
+    }
+
+  }
+  
+  private void calculateConflicts() {
+    // decide fine-grain edge or coarse-grain edge among all vertexes by
+    // pair-wise comparison
+
+    Iterator<FlatNode> seseIter = sese2conflictGraph.keySet().iterator();
+    while (seseIter.hasNext()) {
+      FlatNode sese = seseIter.next();
+      ConflictGraph conflictGraph = sese2conflictGraph.get(sese);
+      conflictGraph.analyzeConflicts();
+      sese2conflictGraph.put(sese, conflictGraph);
+    }
+  }
+  
+  private void writeConflictGraph() {
+    Enumeration<FlatNode> keyEnum = sese2conflictGraph.keys();
+    while (keyEnum.hasMoreElements()) {
+      FlatNode key = (FlatNode) keyEnum.nextElement();
+      ConflictGraph cg = sese2conflictGraph.get(key);
+      try {
+        if (cg.hasConflictEdge()) {
+          cg.writeGraph("ConflictGraphFor" + key, false);
+        }
+      } catch (IOException e) {
+        System.out.println("Error writing");
+        System.exit(0);
+      }
+    }
+  }
+  
+  private void synthesizeLocks() {
+    Set<Entry<FlatNode, ConflictGraph>> graphEntrySet = sese2conflictGraph.entrySet();
+    for (Iterator iterator = graphEntrySet.iterator(); iterator.hasNext();) {
+      Entry<FlatNode, ConflictGraph> graphEntry = (Entry<FlatNode, ConflictGraph>) iterator.next();
+      FlatNode sese = graphEntry.getKey();
+      ConflictGraph conflictGraph = graphEntry.getValue();
+      calculateCovering(conflictGraph);
+    }
+  }
+  
+  private void calculateCovering(ConflictGraph conflictGraph) {
+    uniqueLockSetId = 0; // reset lock counter for every new conflict graph
+    HashSet<ConflictEdge> fineToCover = new HashSet<ConflictEdge>();
+    HashSet<ConflictEdge> coarseToCover = new HashSet<ConflictEdge>();
+    HashSet<SESELock> lockSet = new HashSet<SESELock>();
+
+    Set<ConflictEdge> tempCover = conflictGraph.getEdgeSet();
+    for (Iterator iterator = tempCover.iterator(); iterator.hasNext();) {
+      ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+      if (conflictEdge.isCoarseEdge()) {
+        coarseToCover.add(conflictEdge);
+      } else {
+        fineToCover.add(conflictEdge);
+      }
+    }
+
+    HashSet<ConflictEdge> toCover = new HashSet<ConflictEdge>();
+    toCover.addAll(fineToCover);
+    toCover.addAll(coarseToCover);
+
+    while (!toCover.isEmpty()) {
+
+      SESELock seseLock = new SESELock();
+      seseLock.setID(uniqueLockSetId++);
+
+      boolean changed;
+
+      do { // fine-grained edge
+
+        changed = false;
+
+        for (Iterator iterator = fineToCover.iterator(); iterator.hasNext();) {
+
+          int type;
+          ConflictEdge edge = (ConflictEdge) iterator.next();
+          if (seseLock.getConflictNodeSet().size() == 0) {
+            // initial setup
+            if (seseLock.isWriteNode(edge.getVertexU())) {
+              // mark as fine_write
+              if (edge.getVertexU().isStallSiteNode()) {
+                type = ConflictNode.PARENT_WRITE;
+              } else {
+                type = ConflictNode.FINE_WRITE;
+              }
+              seseLock.addConflictNode(edge.getVertexU(), type);
+            } else {
+              // mark as fine_read
+              if (edge.getVertexU().isStallSiteNode()) {
+                type = ConflictNode.PARENT_READ;
+              } else {
+                type = ConflictNode.FINE_READ;
+              }
+              seseLock.addConflictNode(edge.getVertexU(), type);
+            }
+            if (edge.getVertexV() != edge.getVertexU()) {
+              if (seseLock.isWriteNode(edge.getVertexV())) {
+                // mark as fine_write
+                if (edge.getVertexV().isStallSiteNode()) {
+                  type = ConflictNode.PARENT_WRITE;
+                } else {
+                  type = ConflictNode.FINE_WRITE;
+                }
+                seseLock.addConflictNode(edge.getVertexV(), type);
+              } else {
+                // mark as fine_read
+                if (edge.getVertexV().isStallSiteNode()) {
+                  type = ConflictNode.PARENT_READ;
+                } else {
+                  type = ConflictNode.FINE_READ;
+                }
+                seseLock.addConflictNode(edge.getVertexV(), type);
+              }
+            }
+            changed = true;
+            seseLock.addConflictEdge(edge);
+            fineToCover.remove(edge);
+            break;// exit iterator loop
+          }// end of initial setup
+
+          ConflictNode newNode;
+          if ((newNode = seseLock.getNewNodeConnectedWithGroup(edge)) != null) {
+            // new node has a fine-grained edge to all current node
+            // If there is a coarse grained edge where need a fine edge, it's
+            // okay to add the node
+            // but the edge must remain uncovered.
+
+            changed = true;
+
+            if (seseLock.isWriteNode(newNode)) {
+              if (newNode.isStallSiteNode()) {
+                type = ConflictNode.PARENT_WRITE;
+              } else {
+                type = ConflictNode.FINE_WRITE;
+              }
+              seseLock.setNodeType(newNode, type);
+            } else {
+              if (newNode.isStallSiteNode()) {
+                type = ConflictNode.PARENT_READ;
+              } else {
+                type = ConflictNode.FINE_READ;
+              }
+              seseLock.setNodeType(newNode, type);
+            }
+
+            seseLock.addEdge(edge);
+            Set<ConflictEdge> edgeSet = newNode.getEdgeSet();
+            for (Iterator iterator2 = edgeSet.iterator(); iterator2.hasNext();) {
+              ConflictEdge conflictEdge = (ConflictEdge) iterator2.next();
+
+              // mark all fine edges between new node and nodes in the group as
+              // covered
+              if (!conflictEdge.getVertexU().equals(newNode)) {
+                if (seseLock.containsConflictNode(conflictEdge.getVertexU())) {
+                  changed = true;
+                  seseLock.addConflictEdge(conflictEdge);
+                  fineToCover.remove(conflictEdge);
+                }
+              } else if (!conflictEdge.getVertexV().equals(newNode)) {
+                if (seseLock.containsConflictNode(conflictEdge.getVertexV())) {
+                  changed = true;
+                  seseLock.addConflictEdge(conflictEdge);
+                  fineToCover.remove(conflictEdge);
+                }
+              }
+
+            }
+
+            break;// exit iterator loop
+          }
+        }
+
+      } while (changed);
+      do { // coarse
+        changed = false;
+        int type;
+        for (Iterator iterator = coarseToCover.iterator(); iterator.hasNext();) {
+
+          ConflictEdge edge = (ConflictEdge) iterator.next();
+
+          if (seseLock.getConflictNodeSet().size() == 0) {
+            // initial setup
+            if (seseLock.hasSelfCoarseEdge(edge.getVertexU())) {
+              // node has a coarse-grained edge with itself
+              if (!(edge.getVertexU().isStallSiteNode())) {
+                // and it is not parent
+                type = ConflictNode.SCC;
+              } else {
+                type = ConflictNode.PARENT_COARSE;
+              }
+              seseLock.addConflictNode(edge.getVertexU(), type);
+            } else {
+              if (edge.getVertexU().isStallSiteNode()) {
+                type = ConflictNode.PARENT_COARSE;
+              } else {
+                type = ConflictNode.COARSE;
+              }
+              seseLock.addConflictNode(edge.getVertexU(), type);
+            }
+            if (seseLock.hasSelfCoarseEdge(edge.getVertexV())) {
+              // node has a coarse-grained edge with itself
+              if (!(edge.getVertexV().isStallSiteNode())) {
+                // and it is not parent
+                type = ConflictNode.SCC;
+              } else {
+                type = ConflictNode.PARENT_COARSE;
+              }
+              seseLock.addConflictNode(edge.getVertexV(), type);
+            } else {
+              if (edge.getVertexV().isStallSiteNode()) {
+                type = ConflictNode.PARENT_COARSE;
+              } else {
+                type = ConflictNode.COARSE;
+              }
+              seseLock.addConflictNode(edge.getVertexV(), type);
+            }
+            changed = true;
+            coarseToCover.remove(edge);
+            seseLock.addConflictEdge(edge);
+            break;// exit iterator loop
+          }// end of initial setup
+
+          ConflictNode newNode;
+          if ((newNode = seseLock.getNewNodeConnectedWithGroup(edge)) != null) {
+            // new node has a coarse-grained edge to all fine-read, fine-write,
+            // parent
+            changed = true;
+
+            if (seseLock.hasSelfCoarseEdge(newNode)) {
+              // SCC
+              if (newNode.isStallSiteNode()) {
+                type = ConflictNode.PARENT_COARSE;
+              } else {
+                type = ConflictNode.SCC;
+              }
+              seseLock.setNodeType(newNode, type);
+            } else {
+              if (newNode.isStallSiteNode()) {
+                type = ConflictNode.PARENT_COARSE;
+              } else {
+                type = ConflictNode.COARSE;
+              }
+              seseLock.setNodeType(newNode, type);
+            }
+
+            seseLock.addEdge(edge);
+            Set<ConflictEdge> edgeSet = newNode.getEdgeSet();
+            for (Iterator iterator2 = edgeSet.iterator(); iterator2.hasNext();) {
+              ConflictEdge conflictEdge = (ConflictEdge) iterator2.next();
+              // mark all coarse edges between new node and nodes in the group
+              // as covered
+              if (!conflictEdge.getVertexU().equals(newNode)) {
+                if (seseLock.containsConflictNode(conflictEdge.getVertexU())) {
+                  changed = true;
+                  seseLock.addConflictEdge(conflictEdge);
+                  coarseToCover.remove(conflictEdge);
+                }
+              } else if (!conflictEdge.getVertexV().equals(newNode)) {
+                if (seseLock.containsConflictNode(conflictEdge.getVertexV())) {
+                  changed = true;
+                  seseLock.addConflictEdge(conflictEdge);
+                  coarseToCover.remove(conflictEdge);
+                }
+              }
+
+            }
+            break;// exit iterator loop
+          }
+
+        }
+
+      } while (changed);
+      lockSet.add(seseLock);
+
+      toCover.clear();
+      toCover.addAll(fineToCover);
+      toCover.addAll(coarseToCover);
+
+    }
+
+    conflictGraph2SESELock.put(conflictGraph, lockSet);
   }
 
 }

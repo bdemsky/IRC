@@ -2242,6 +2242,9 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
     return descriptorsToAnalyze;
   }
 
+  public EffectsAnalysis getEffectsAnalysis(){
+    return effectsAnalysis;
+  }
   
   
   // get successive captures of the analysis state, use compiler
