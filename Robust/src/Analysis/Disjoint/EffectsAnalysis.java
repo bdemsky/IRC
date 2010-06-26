@@ -27,17 +27,47 @@ import IR.Flat.FlatSESEEnterNode;
 
 public class EffectsAnalysis {
 
-  private Hashtable<FlatMethod,        EffectSet> fm2effectSet;
-  private Hashtable<FlatSESEEnterNode, EffectSet> sese2effectSet;
+  // the effects analysis should combine taints
+  // that match except for predicates--preds just
+  // support interprocedural analysis
+  private Hashtable<Taint, Set<Effect>> taint2effects;
 
   public EffectsAnalysis() {
-    fm2effectSet   = new Hashtable<FlatMethod,        EffectSet>();
-    sese2effectSet = new Hashtable<FlatSESEEnterNode, EffectSet>();
+    taint2effects = new Hashtable<Taint, Set<Effect>>();
   }
 
-  public void analyzeFlatFieldNode(FlatMethod fmContaining, 
-                                   FlatSESEEnterNode seseContaining,
-                                   ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld) {
+
+  public Set<Effect> getEffects(Taint t) {
+    Taint tNoPreds = Canonical.changePredsTo( t,
+                                              ReachGraph.predsEmpty
+                                              );
+    return taint2effects.get(tNoPreds);
+  }
+
+  public Iterator iteratorTaintEffectPairs() {
+    return taint2effects.entrySet().iterator();
+  }
+
+
+  protected void add(Taint t, Effect e) {
+    if( t.getSESE().getIsCallerSESEplaceholder() ) {
+      return;
+    }
+
+    Taint tNoPreds = Canonical.changePredsTo( t,
+                                              ReachGraph.predsEmpty
+                                              );
+
+    Set<Effect> effectSet = taint2effects.get(tNoPreds);
+    if (effectSet == null) {
+      effectSet = new HashSet<Effect>();
+    }
+    effectSet.add(e);
+    taint2effects.put(tNoPreds, effectSet);
+  }
+
+
+  public void analyzeFlatFieldNode(ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld) {
 
     VariableNode vn = rg.td2vn.get(rhs);
     if( vn == null ) {
@@ -45,28 +75,19 @@ public class EffectsAnalysis {
     }
 
     for (Iterator<RefEdge> iterator = vn.iteratorToReferencees(); iterator.hasNext();) {
-      RefEdge edge = iterator.next();
-      TaintSet taintSet = edge.getTaints();
+      RefEdge   edge          = iterator.next();
+      TaintSet  taintSet      = edge.getTaints();
       AllocSite affectedAlloc = edge.getDst().getAllocSite();
+      Effect    effect        = new Effect(affectedAlloc, Effect.read, fld);
+
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
-        Taint taint = taintSetIter.next();
-
-        EffectSet effectSet = fm2effectSet.get(fmContaining);
-        if (effectSet == null) {
-          effectSet = new EffectSet();
-        }
-        
-        Effect effect = new Effect(affectedAlloc, Effect.read, fld);
-
-        add( fmContaining,   taint, effect );
-        add( seseContaining, taint, effect );        
+        Taint taint = taintSetIter.next();        
+        add(taint, effect);
       }
     }
   }
 
-  public void analyzeFlatSetFieldNode(FlatMethod fmContaining,
-                                      FlatSESEEnterNode seseContaining,
-                                      ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, boolean strongUpdate) {
+  public void analyzeFlatSetFieldNode(ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, boolean strongUpdate) {
 
     VariableNode vn = rg.td2vn.get(lhs);
     if( vn == null ) {
@@ -74,201 +95,55 @@ public class EffectsAnalysis {
     }
 
     for (Iterator<RefEdge> iterator = vn.iteratorToReferencees(); iterator.hasNext();) {
-      RefEdge edge = iterator.next();
-      TaintSet taintSet = edge.getTaints();
+      RefEdge   edge          = iterator.next();
+      TaintSet  taintSet      = edge.getTaints();
       AllocSite affectedAlloc = edge.getDst().getAllocSite();
+      Effect    effect        = new Effect(affectedAlloc, Effect.write, fld);       
+      Effect    effectSU      = null;
+
+      if (strongUpdate) {
+        effectSU = new Effect(affectedAlloc, Effect.strongupdate, fld);
+      }
+
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
         Taint taint = taintSetIter.next();
-        
-        Effect effect = new Effect(affectedAlloc, Effect.write, fld);       
-        add( fmContaining,   taint, effect );       
-        add( seseContaining, taint, effect );
-        
+        add( taint, effect );
+
         if (strongUpdate) {
-          Effect effectSU = new Effect(affectedAlloc, Effect.strongupdate, fld);          
-          add( fmContaining,   taint, effect );          
-          add( seseContaining, taint, effect );
+          add( taint, effectSU );
         }
       }
     }
   }
 
-  public void analyzeFlatCall(FlatMethod fmContaining, FlatSESEEnterNode seseContaining, 
-                              FlatMethod fmCallee, Hashtable<Taint, TaintSet> tCallee2tsCaller) {
-        
-    EffectSet esCallee = getEffectSet(fmCallee);
-    if( esCallee == null ) {
-      esCallee = new EffectSet();
-    }
 
-    Iterator meItr = esCallee.getAllEffectPairs();
-    while( meItr.hasNext() ) {
-      Map.Entry       me      = (Map.Entry)       meItr.next();
-      Taint           tCallee = (Taint)           me.getKey();
-      HashSet<Effect> effects = (HashSet<Effect>) me.getValue();
-
-      if( tCallee2tsCaller.containsKey( tCallee ) ) {
-
-        Iterator<Taint> tItr = tCallee2tsCaller.get( tCallee ).iterator();
-        while( tItr.hasNext() ) {
-          Taint tCaller = tItr.next();
-          
-          EffectSet esCaller = new EffectSet();
-
-          Iterator<Effect> eItr = effects.iterator();
-          while( eItr.hasNext() ) {
-            Effect e = eItr.next();
-            
-            esCaller.addEffect( tCaller, e );
-          }
-
-          add( fmContaining,   tCaller, esCaller );
-          add( seseContaining, tCaller, esCaller );    
-        }
-      }
-    }
+  public String toString() {
+    return taint2effects.toString();    
   }
 
-  public EffectSet getEffectSet(FlatMethod fm) {
-    return fm2effectSet.get(fm);
-  }
-
-  public void writeEffectsPerMethodAndRBlock( String outfile ) {
+  public void writeEffects( String outfile ) {
     try {
       BufferedWriter bw = new BufferedWriter(new FileWriter(outfile));
       
-      bw.write( "Effects Per Method\n\n" );
+      bw.write( "Effects\n---------------\n\n" );
 
-      Iterator meItr1 = fm2effectSet.entrySet().iterator();
-      while( meItr1.hasNext() ) {
-        Map.Entry  me1 = (Map.Entry)  meItr1.next();
-        FlatMethod fm  = (FlatMethod) me1.getKey();
-        EffectSet  es  = (EffectSet)  me1.getValue();
+      Iterator meItr = taint2effects.entrySet().iterator();
+      while( meItr.hasNext() ) {
+        Map.Entry   me      = (Map.Entry)   meItr.next();
+        Taint       taint   = (Taint)       me.getKey();
+        Set<Effect> effects = (Set<Effect>) me.getValue();
 
-        bw.write( "\n"+fm+"\n--------------\n" );
-
-        Iterator meItr2 = es.getAllEffectPairs();
-        while( meItr2.hasNext() ) {
-          Map.Entry       me2     = (Map.Entry)       meItr2.next();
-          Taint           taint   = (Taint)           me2.getKey();
-          HashSet<Effect> effects = (HashSet<Effect>) me2.getValue();
-
-          Iterator<Effect> eItr = effects.iterator();
-          while( eItr.hasNext() ) {
-            Effect e = eItr.next();
+        Iterator<Effect> eItr = effects.iterator();
+        while( eItr.hasNext() ) {
+          Effect e = eItr.next();
             
-            bw.write( "  "+taint+"-->"+e+"\n" );
-          }
-        }
-      }
-
-      
-      bw.write( "\n\nEffects Per RBlock\n\n" );
-
-      meItr1 = sese2effectSet.entrySet().iterator();
-      while( meItr1.hasNext() ) {
-        Map.Entry         me1  = (Map.Entry)         meItr1.next();
-        FlatSESEEnterNode sese = (FlatSESEEnterNode) me1.getKey();
-        EffectSet         es   = (EffectSet)         me1.getValue();
-
-        bw.write( "\n"+sese.toPrettyString()+"\n--------------\n" );
-
-        Iterator meItr2 = es.getAllEffectPairs();
-        while( meItr2.hasNext() ) {
-          Map.Entry       me2     = (Map.Entry)       meItr2.next();
-          Taint           taint   = (Taint)           me2.getKey();
-          HashSet<Effect> effects = (HashSet<Effect>) me2.getValue();
-
-          Iterator<Effect> eItr = effects.iterator();
-          while( eItr.hasNext() ) {
-            Effect e = eItr.next();
-            
-            bw.write( "  "+taint+"-->"+e+"\n" );
-          }
+          bw.write( taint+"-->"+e+"\n" );          
         }
       }
 
       bw.close();
     } catch( IOException e ) {}
   }
-
-  protected void add( FlatMethod fm, Taint t, Effect e ) {
-    EffectSet es = fm2effectSet.get( fm );    
-    if( es == null ) {
-      es = new EffectSet();
-    }
-    es.addEffect( t, e );
-    
-    fm2effectSet.put( fm, es );
-  }
-
-  protected void add( FlatSESEEnterNode sese, Taint t, Effect e ) {
-
-    if( sese.getIsCallerSESEplaceholder() ) {
-      return;
-    }
-
-    EffectSet es = sese2effectSet.get( sese );    
-    if( es == null ) {
-      es = new EffectSet();
-    }
-    es.addEffect( t, e );
-    
-    sese2effectSet.put( sese, es );
-  }
-
-  protected void add( FlatMethod fm, Taint t, EffectSet es ) {
-    EffectSet esExisting = fm2effectSet.get( fm );    
-    if( esExisting == null ) {
-      esExisting = new EffectSet();
-    }
-
-    Iterator meItr = es.getAllEffectPairs();
-    while( meItr.hasNext() ) {
-      Map.Entry       me      = (Map.Entry)       meItr.next();
-      Taint           taint   = (Taint)           me.getKey();
-      HashSet<Effect> effects = (HashSet<Effect>) me.getValue();
-      
-      Iterator<Effect> eItr = effects.iterator();
-      while( eItr.hasNext() ) {
-        Effect e = eItr.next();
-
-        esExisting.addEffect( taint, e );
-      }      
-    }
-    
-    fm2effectSet.put( fm, esExisting );
-  }
-
-  protected void add( FlatSESEEnterNode sese, Taint t, EffectSet es ) {
-
-    if( sese.getIsCallerSESEplaceholder() ) {
-      return;
-    }
-
-    EffectSet esExisting = sese2effectSet.get( sese );    
-
-    if( esExisting == null ) {
-      esExisting = new EffectSet();
-    }
-
-    Iterator meItr = es.getAllEffectPairs();
-    while( meItr.hasNext() ) {
-      Map.Entry       me      = (Map.Entry)       meItr.next();
-      Taint           taint   = (Taint)           me.getKey();
-      HashSet<Effect> effects = (HashSet<Effect>) me.getValue();
-      
-      Iterator<Effect> eItr = effects.iterator();
-      while( eItr.hasNext() ) {
-        Effect e = eItr.next();
-
-        esExisting.addEffect( taint, e );
-      }      
-    }
-
-    sese2effectSet.put( sese, esExisting );
-  }
-
 
   /*
    * public MethodEffects getMethodEffectsByMethodContext(MethodContext mc){

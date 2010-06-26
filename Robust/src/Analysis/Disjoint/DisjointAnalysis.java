@@ -674,7 +674,7 @@ public class DisjointAnalysis {
     }
 
     if( doEffectsAnalysis ) {
-      effectsAnalysis.writeEffectsPerMethodAndRBlock( "effects.txt" );
+      effectsAnalysis.writeEffects( "effects.txt" );
     }
   }
 
@@ -1087,12 +1087,7 @@ public class DisjointAnalysis {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
 
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          FlatSESEEnterNode seseContaining = 
-            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-          
-          effectsAnalysis.analyzeFlatFieldNode( fmContaining,
-                                                seseContaining,
-                                                rg, rhs, fld );          
+          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );          
         }
       }          
       break;
@@ -1107,12 +1102,7 @@ public class DisjointAnalysis {
         boolean strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
 
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          FlatSESEEnterNode seseContaining = 
-            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-
-          effectsAnalysis.analyzeFlatSetFieldNode( fmContaining, 
-                                                   seseContaining,
-                                                   rg, lhs, fld, strongUpdate );
+          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );
         }
       }           
       break;
@@ -1132,12 +1122,7 @@ public class DisjointAnalysis {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
         
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          FlatSESEEnterNode seseContaining = 
-            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-          
-          effectsAnalysis.analyzeFlatFieldNode( fmContaining,
-                                                seseContaining,
-                                                rg, rhs, fdElement );          
+          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );          
         }
       }
       break;
@@ -1163,12 +1148,7 @@ public class DisjointAnalysis {
 	rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
 
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          FlatSESEEnterNode seseContaining = 
-            rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-          
-          effectsAnalysis.analyzeFlatSetFieldNode( fmContaining, 
-                                                   seseContaining,
-                                                   rg, lhs, fdElement,
+          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
                                                    false );
         }
       }
@@ -1339,32 +1319,13 @@ public class DisjointAnalysis {
 
 
         } else {
-          // calculate the method call transform
-          
-          Hashtable<Taint, TaintSet> tCallee2tsCaller = null;
-
-          if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-            tCallee2tsCaller = new Hashtable<Taint, TaintSet>();
-          }        
-
+          // calculate the method call transform         
           rgCopy.resolveMethodCall( fc, 
                                     fmPossible, 
                                     rgEffect,
                                     callerNodeIDsCopiedToCallee,
-                                    tCallee2tsCaller,
                                     writeDebugDOTs
                                     );
-
-          if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-            
-            FlatSESEEnterNode seseContaining = 
-              rblockRel.getRBlockStacks( fmContaining, fn ).peek();
-            
-            effectsAnalysis.analyzeFlatCall( fmContaining,
-                                             seseContaining,
-                                             fmPossible, 
-                                             tCallee2tsCaller );
-          }        
         }
         
         rgMergeOfEffects.merge( rgCopy );        

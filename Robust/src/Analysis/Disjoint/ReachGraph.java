@@ -1670,8 +1670,7 @@ public class ReachGraph {
   // equivalent, just eliminate Taints with bad preds
   protected TaintSet 
     toCallerContext( TaintSet                       ts,
-                     Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied,
-                     Hashtable<Taint, TaintSet>     tCallee2tsCaller
+                     Hashtable<Taint, ExistPredSet> calleeTaintsSatisfied
                      ) {
 
     TaintSet out = TaintSet.factory();
@@ -1699,17 +1698,6 @@ public class ReachGraph {
         out = Canonical.add( out,
                              tCaller
                              );
-
-        // this mapping aids the effects analysis--
-        // ONLY DO IF MASTER MAP IS NOT NULL
-        if( tCallee2tsCaller != null ) {
-          TaintSet tsCaller = tCallee2tsCaller.get( tCallee );
-          if( tsCaller == null ) {
-            tsCaller = TaintSet.factory();
-          }
-          tsCaller = Canonical.add( tsCaller, tCaller );
-          tCallee2tsCaller.put( tCallee, tsCaller );
-        }
       }     
     }    
     
@@ -2218,7 +2206,6 @@ public class ReachGraph {
                        FlatMethod   fmCallee,        
                        ReachGraph   rgCallee,
                        Set<Integer> callerNodeIDsCopiedToCallee,
-                       Hashtable<Taint, TaintSet> tCallee2tsCaller,
                        boolean      writeDebugDOTs
                        ) {
 
@@ -2756,8 +2743,7 @@ public class ReachGraph {
                                                          calleeEdge2calleeStatesSatisfied.get( reCallee ) ),
                                         preds,
                                         toCallerContext( reCallee.getTaints(),
-                                                         calleeEdge2calleeTaintsSatisfied.get( reCallee ),
-                                                         tCallee2tsCaller )
+                                                         calleeEdge2calleeTaintsSatisfied.get( reCallee ) )
                                         );
 
         ChangeSet cs = ChangeSet.factory();
