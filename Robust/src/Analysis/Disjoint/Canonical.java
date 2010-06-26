@@ -1190,17 +1190,15 @@ abstract public class Canonical {
 
 
 
-  public static ReachState makePredsTrue( ReachState rs ) {
+  public static ReachState changePredsTo( ReachState   rs,
+                                          ExistPredSet preds ) {
     assert rs != null;
     assert rs.isCanonical();
 
-    // ops require two canonicals, in this case always supply
-    // the empty reach state as the second, it's never used,
-    // but makes the hashing happy
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSTATE_MAKEPREDSTRUE,
+      new CanonicalOp( CanonicalOp.REACHSTATE_CHANGEPREDSTO_EXISTPREDSET,
                        rs, 
-                       ReachState.factory() );
+                       preds );
     
     Canonical result = op2result.get( op );
     if( result != null ) {
@@ -1212,7 +1210,7 @@ abstract public class Canonical {
 
     // just remake state with the true predicate attached
     out.reachTuples.addAll( rs.reachTuples );
-    out.preds = ExistPredSet.factory( ExistPred.factory() );
+    out.preds = preds;
     
     out = (ReachState) makeCanonical( out );
     op2result.put( op, out );
@@ -1220,17 +1218,15 @@ abstract public class Canonical {
   }
 
 
-  public static ReachSet makePredsTrue( ReachSet rs ) {
+  public static ReachSet changePredsTo( ReachSet     rs,
+                                        ExistPredSet preds ) {
     assert rs != null;
     assert rs.isCanonical();
 
-    // ops require two canonicals, in this case always supply
-    // the empty reach set as the second, it's never used,
-    // but makes the hashing happy
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.REACHSET_MAKEPREDSTRUE,
+      new CanonicalOp( CanonicalOp.REACHSET_CHANGEPREDSTO_EXISTPREDSET,
                        rs,
-                       ReachSet.factory() );
+                       preds );
     
     Canonical result = op2result.get( op );
     if( result != null ) {
@@ -1243,7 +1239,9 @@ abstract public class Canonical {
     while( itr.hasNext() ) {
       ReachState state = itr.next();
       out = Canonical.add( out,
-                           Canonical.makePredsTrue( state )
+                           Canonical.changePredsTo( state,
+                                                    preds 
+                                                    )
                            );
     }
     
@@ -1445,17 +1443,15 @@ abstract public class Canonical {
   }
 
 
-  public static Taint changePredsTo( Taint t, ExistPredSet preds ) {
+  public static Taint changePredsTo( Taint        t, 
+                                     ExistPredSet preds ) {
     assert t != null;
     assert t.isCanonical();
 
-    // ops require two canonicals, in this case always supply
-    // the empty reach state as the second, it's never used,
-    // but makes the hashing happy
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.TAINT_CHANGEPREDSTO,
+      new CanonicalOp( CanonicalOp.TAINT_CHANGEPREDSTO_EXISTPREDSET,
                        t, 
-                       t );
+                       preds );
     
     Canonical result = op2result.get( op );
     if( result != null ) {
@@ -1476,17 +1472,15 @@ abstract public class Canonical {
   }
 
 
-  public static TaintSet changePredsTo( TaintSet ts, ExistPredSet preds ) {
+  public static TaintSet changePredsTo( TaintSet     ts,
+                                        ExistPredSet preds ) {
     assert ts != null;
     assert ts.isCanonical();
 
-    // ops require two canonicals, in this case always supply
-    // the empty reach set as the second, it's never used,
-    // but makes the hashing happy
     CanonicalOp op = 
-      new CanonicalOp( CanonicalOp.TAINTSET_CHANGEPREDSTO,
+      new CanonicalOp( CanonicalOp.TAINTSET_CHANGEPREDSTO_EXISTPREDSET,
                        ts,
-                       ts );
+                       preds );
     
     Canonical result = op2result.get( op );
     if( result != null ) {

@@ -32,14 +32,14 @@ public class CanonicalOp {
   public static final int REACHSTATE_TOCALLERCONTEXT_ALLOCSITE = 0xb2b1;
   public static final int REACHSET_UNSHADOW_ALLOCSITE          = 0x1049;
   public static final int REACHSTATE_UNSHADOW_ALLOCSITE        = 0x08ef;
-  public static final int REACHSTATE_MAKEPREDSTRUE             = 0x0b9c;
-  public static final int REACHSET_MAKEPREDSTRUE               = 0xdead;
+  public static final int REACHSTATE_CHANGEPREDSTO_EXISTPREDSET= 0x0b9c;
+  public static final int REACHSET_CHANGEPREDSTO_EXISTPREDSET  = 0xdead;
   public static final int TAINT_ATTACH_EXISTPREDSET            = 0xcce2;
   public static final int TAINTSET_ADD_TAINT                   = 0xcd17;
   public static final int TAINTSET_UNION_TAINTSET              = 0xa835;
   public static final int TAINTSET_UNIONORPREDS_TAINTSET       = 0x204f;
-  public static final int TAINT_CHANGEPREDSTO                  = 0x3ab4;
-  public static final int TAINTSET_CHANGEPREDSTO               = 0x2ff1;
+  public static final int TAINT_CHANGEPREDSTO_EXISTPREDSET     = 0x3ab4;
+  public static final int TAINTSET_CHANGEPREDSTO_EXISTPREDSET  = 0x2ff1;
 
   protected int opCode;
   protected Canonical operand1;

@@ -14,17 +14,17 @@ public class ReachGraph {
 		   
   // a special out-of-scope temp
   protected static final TempDescriptor tdReturn = new TempDescriptor( "_Return___" );
-		   
-  // some frequently used reachability constants
-  protected static final ReachState rstateEmpty        = ReachState.factory();
-  protected static final ReachSet   rsetEmpty          = ReachSet.factory();
-  protected static final ReachSet   rsetWithEmptyState = Canonical.makePredsTrue(ReachSet.factory( rstateEmpty ));
 
   // predicate constants
   public static final ExistPred    predTrue   = ExistPred.factory(); // if no args, true
   public static final ExistPredSet predsEmpty = ExistPredSet.factory();
   public static final ExistPredSet predsTrue  = ExistPredSet.factory( predTrue );
-
+		   
+  // some frequently used reachability constants
+  protected static final ReachState rstateEmpty        = ReachState.factory();
+  protected static final ReachSet   rsetEmpty          = ReachSet.factory();
+  protected static final ReachSet   rsetWithEmptyState = Canonical.changePredsTo( ReachSet.factory( rstateEmpty ),
+                                                                                  predsTrue );
 
   // from DisjointAnalysis for convenience
   protected static int      allocationDepth   = -1;
@@ -134,7 +134,7 @@ public class ReachGraph {
     if( inherent == null ) {
       if( markForAnalysis ) {
 	inherent = 
-          Canonical.makePredsTrue(
+          Canonical.changePredsTo(
                                   ReachSet.factory(
                                                    ReachState.factory(
                                                                       ReachTuple.factory( id,
@@ -143,7 +143,8 @@ public class ReachGraph {
                                                                                           false // out-of-context
                                                                                           )
                                                                       )
-                                                   )
+                                                   ),
+                                  predsTrue
                                   );
       } else {
 	inherent = rsetWithEmptyState;
@@ -653,10 +654,11 @@ public class ReachGraph {
                        hrnY,
                        tdNewEdge,
                        f.getSymbol(),
-                       Canonical.makePredsTrue(
+                       Canonical.changePredsTo(
                                                Canonical.pruneBy( edgeY.getBeta(),
                                                                   hrnX.getAlpha() 
-                                                                  )
+                                                                  ),
+                                               predsTrue
                                                ),
                        predsTrue,
                        Canonical.changePredsTo( edgeY.getTaints(),
@@ -1429,7 +1431,7 @@ public class ReachGraph {
   // used below to convert a ReachSet to its callee-context
   // equivalent with respect to allocation sites in this graph
   protected ReachSet toCalleeContext( ReachSet      rs,
-                                      ExistPredSet  preds,
+                                      ExistPredSet  predsNodeOrEdge,
                                       Set<HrnIdOoc> oocHrnIdOoc2callee
                                       ) {
     ReachSet out = ReachSet.factory();
@@ -1512,14 +1514,36 @@ public class ReachGraph {
         stateCallee = stateNew;
       }
       
-      // attach the passed in preds
-      stateCallee = Canonical.attach( stateCallee,
-                                      preds );
+      // make a predicate of the caller graph element
+      // and the caller state we just converted
+      ExistPredSet predsWithState = ExistPredSet.factory();
 
+      Iterator<ExistPred> predItr = predsNodeOrEdge.iterator();
+      while( predItr.hasNext() ) {
+        ExistPred predNodeOrEdge = predItr.next();
+
+        predsWithState = 
+          Canonical.add( predsWithState,
+                         ExistPred.factory( predNodeOrEdge.n_hrnID, 
+                                            predNodeOrEdge.e_tdSrc,
+                                            predNodeOrEdge.e_hrnSrcID,
+                                            predNodeOrEdge.e_hrnDstID,
+                                            predNodeOrEdge.e_type,
+                                            predNodeOrEdge.e_field,
+                                            stateCallee,
+                                            null,
+                                            predNodeOrEdge.e_srcOutCalleeContext,
+                                            predNodeOrEdge.e_srcOutCallerContext                                           
+                                            )
+                         );
+      }
+
+      stateCallee = Canonical.changePredsTo( stateCallee,
+                                             predsWithState );
+      
       out = Canonical.add( out,
                            stateCallee
-                           );
-
+                           );      
     }
     assert out.isCanonical();
     return out;
@@ -1586,6 +1610,57 @@ public class ReachGraph {
       AllocSite as = asItr.next();
       out = Canonical.unshadow( out, as );
     }
+    assert out.isCanonical();
+    return out;
+  }
+
+
+  // convert a caller taint set into a callee taint set
+  protected TaintSet
+    toCalleeContext( TaintSet     ts,
+                     ExistPredSet predsEdge ) {
+    
+    TaintSet out = TaintSet.factory();
+
+    // the idea is easy, the taint identifier itself doesn't
+    // change at all, but the predicates should be tautology:
+    // start with the preds passed in from the caller edge
+    // that host the taints, and alter them to have the taint
+    // added, just becoming more specific than edge predicate alone
+
+    Iterator<Taint> itr = ts.iterator();
+    while( itr.hasNext() ) {
+      Taint tCaller = itr.next();
+
+      ExistPredSet predsWithTaint = ExistPredSet.factory();
+
+      Iterator<ExistPred> predItr = predsEdge.iterator();
+      while( predItr.hasNext() ) {
+        ExistPred predEdge = predItr.next();
+
+        predsWithTaint = 
+          Canonical.add( predsWithTaint,
+                         ExistPred.factory( predEdge.e_tdSrc,
+                                            predEdge.e_hrnSrcID,
+                                            predEdge.e_hrnDstID,
+                                            predEdge.e_type,
+                                            predEdge.e_field,
+                                            null,
+                                            tCaller,
+                                            predEdge.e_srcOutCalleeContext,
+                                            predEdge.e_srcOutCallerContext                                           
+                                            )
+                         );
+      }
+
+      Taint tCallee = Canonical.changePredsTo( tCaller,
+                                               predsWithTaint );
+
+      out = Canonical.add( out,
+                           tCallee
+                           );
+    }
+
     assert out.isCanonical();
     return out;
   }
@@ -1804,7 +1879,7 @@ public class ReachGraph {
                                                    ),
                                   toCalleeContext( hrnCaller.getAlpha(),
                                                    preds,
-                                                   oocHrnIdOoc2callee 
+                                                   oocHrnIdOoc2callee
                                                    ),
                                   preds,
                                   hrnCaller.getDescription()
@@ -1835,17 +1910,14 @@ public class ReachGraph {
                            hrnDstCallee.getID(),
                            reArg.getType(),
                            reArg.getField(),
-                           null,
+                           null,  // state
+                           null,  // taint
                            true,  // out-of-callee-context
                            false  // out-of-caller-context
                            );
       
       ExistPredSet preds = 
         ExistPredSet.factory( pred );
-      
-      TaintSet taints = TaintSet.factory( reArg.getTaints(),
-                                          preds
-                                          );
 
       RefEdge reCallee = 
         new RefEdge( vnCallee,
@@ -1857,7 +1929,8 @@ public class ReachGraph {
                                       oocHrnIdOoc2callee
                                       ),
                      preds,
-                     taints
+                     toCalleeContext( reArg.getTaints(),
+                                      preds )
                      );
       
       rg.addRefEdge( vnCallee,
@@ -1886,7 +1959,8 @@ public class ReachGraph {
                            hrnDstCallee.getID(),
                            reCaller.getType(),
                            reCaller.getField(),
-                           null,
+                           null,  // state
+                           null,  // taint
                            false, // out-of-callee-context
                            false  // out-of-caller-context
                            );
@@ -1958,6 +2032,7 @@ public class ReachGraph {
                            hrnDstCallee.getID(),
                            reCaller.getType(),
                            reCaller.getField(),
+                           null,
                            null,
                            outOfCalleeContext,
                            outOfCallerContext
@@ -2061,8 +2136,8 @@ public class ReachGraph {
                                                      oocHrnIdOoc2callee
                                                      ),
                                     preds,
-                                    Canonical.changePredsTo( reCaller.getTaints(),
-                                                             preds )
+                                    toCalleeContext( reCaller.getTaints(),
+                                                     preds )
                                     )
                        );              
         
@@ -2080,6 +2155,13 @@ public class ReachGraph {
                                                   preds
                                                   )
                                   );          
+
+        oocEdgeExisting.setTaints( Canonical.unionORpreds( oocEdgeExisting.getTaints(),
+                                                           toCalleeContext( reCaller.getTaints(),
+                                                                            preds
+                                                                            )
+                                                           )
+                                   );
 
         HeapRegionNode hrnCalleeAndOutContext =
           (HeapRegionNode) oocEdgeExisting.getSrc();

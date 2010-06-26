@@ -73,7 +73,11 @@ public class ExistPred extends Canonical {
   protected TypeDescriptor e_type;
   protected String         e_field;                    
 
-  
+  // if the taint is non-null then the predicate
+  // is true only if the edge exists AND has the
+  // taint--ONLY ONE of the ne_state or e_taint
+  // may be non-null for an edge predicate
+  protected Taint          e_taint;
 
 
 
@@ -98,6 +102,7 @@ public class ExistPred extends Canonical {
     e_hrnDstID = null;
     e_type     = null;
     e_field    = null;
+    e_taint    = null;
     e_srcOutCalleeContext = false;
     e_srcOutCallerContext = false;
   }
@@ -123,6 +128,7 @@ public class ExistPred extends Canonical {
     e_hrnDstID = null;
     e_type     = null;
     e_field    = null;
+    e_taint    = null;
     e_srcOutCalleeContext = false;
     e_srcOutCallerContext = false;
   }
@@ -134,6 +140,7 @@ public class ExistPred extends Canonical {
                                    TypeDescriptor type,    
                                    String         field,   
                                    ReachState     state,
+                                   Taint          taint,
                                    boolean        srcOutCalleeContext,
                                    boolean        srcOutCallerContext ) {
 
@@ -143,6 +150,7 @@ public class ExistPred extends Canonical {
                                    type,    
                                    field,   
                                    state,
+                                   taint,
                                    srcOutCalleeContext,
                                    srcOutCallerContext );
 
@@ -156,16 +164,17 @@ public class ExistPred extends Canonical {
                        TypeDescriptor type,
                        String         field,
                        ReachState     state,
+                       Taint          taint,
                        boolean        srcOutCalleeContext,
                        boolean        srcOutCallerContext ) {
     
     assert (tdSrc == null) || (hrnSrcID == null);
     assert hrnDstID != null;
     assert type     != null;
+    assert (state == null) || (taint == null);
     
     // fields can be null when the edge is from
     // a variable node to a heap region!
-    // assert field    != null;
 
     this.e_srcOutCalleeContext = srcOutCalleeContext;
     this.e_srcOutCallerContext = srcOutCallerContext;
@@ -176,11 +185,46 @@ public class ExistPred extends Canonical {
     this.e_hrnSrcID = hrnSrcID;
     this.e_hrnDstID = hrnDstID;
     this.e_type     = type;
-    this.e_field    = field;
+    this.e_field    = field;    
     this.ne_state   = state;
+    this.e_taint    = taint;
     this.predType   = TYPE_EDGE;
     n_hrnID = null;
   }
+
+  // for node or edge, check inputs
+  public static ExistPred factory( Integer        hrnID,
+                                   TempDescriptor tdSrc,   
+                                   Integer        hrnSrcID, 
+                                   Integer        hrnDstID,
+                                   TypeDescriptor type,    
+                                   String         field,   
+                                   ReachState     state,
+                                   Taint          taint,
+                                   boolean        srcOutCalleeContext,
+                                   boolean        srcOutCallerContext ) {
+    ExistPred out;
+
+    if( hrnID != null ) {
+      out = new ExistPred( hrnID, state );
+
+    } else {
+      out = new ExistPred( tdSrc,   
+                           hrnSrcID,
+                           hrnDstID,
+                           type,    
+                           field,   
+                           state,
+                           taint,
+                           srcOutCalleeContext,
+                           srcOutCallerContext );
+    }
+    
+    out = (ExistPred) Canonical.makeCanonical( out );
+    return out;
+  }
+
+
 
 
   // only consider the subest of the caller elements that
@@ -206,20 +250,26 @@ public class ExistPred extends Canonical {
         return null;
       }
 
-      // when the state is null it is not part of the
-      // predicate, so we've already satisfied
+      // when the state is null we're done!
       if( ne_state == null ) {
         return hrn.getPreds();
+
+      } else {
+        // otherwise look for state too
+
+        // TODO: contains OR containsSuperSet OR containsWithZeroes??
+        ReachState stateCaller = hrn.getAlpha().containsIgnorePreds( ne_state );
+        
+        if( stateCaller == null ) {
+          return null;
+
+        } else {
+          // it was here, return the predicates on the state!!
+          return stateCaller.getPreds();
+        }
       }
 
-      // otherwise look for state too
-      // TODO: contains OR containsSuperSet OR containsWithZeroes??
-      if( hrn.getAlpha().containsIgnorePreds( ne_state ) 
-          == null ) {
-        return hrn.getPreds();
-      }
-
-      return null;
+      // unreachable program point!
     }
     
     if( predType == TYPE_EDGE ) {
@@ -295,17 +345,40 @@ public class ExistPred extends Canonical {
         return null;
       }
 
-      // only check state as part of the predicate if it
-      // is non-null
-      if( ne_state != null &&
-          // TODO: contains OR containsSuperSet OR containsWithZeroes??
-          hrnDst.getAlpha().containsIgnorePreds( ne_state ) != null
-          ) {
-        return null;        
+      // when the state and taint are null we're done!
+      if( ne_state == null && 
+          e_taint  == null ) {
+        return edge.getPreds();
+
+      } else if( ne_state != null ) {
+        // otherwise look for state too
+
+        // TODO: contains OR containsSuperSet OR containsWithZeroes??
+        ReachState stateCaller = edge.getBeta().containsIgnorePreds( ne_state );
+        
+        if( stateCaller == null ) {
+          return null;
+
+        } else {
+          // it was here, return the predicates on the state!!
+          return stateCaller.getPreds();
+        }
+
+      } else {
+        // otherwise look for taint
+
+        Taint tCaller = edge.getTaints().containsIgnorePreds( e_taint );
+        
+        if( tCaller == null ) {
+          return null;
+
+        } else {
+          // it was here, return the predicates on the taint!!
+          return tCaller.getPreds();
+        }
       }
-            
-      // predicate satisfied
-      return edge.getPreds();
+
+      // unreachable program point!
     }
 
     throw new Error( "Unknown predicate type" );
@@ -392,6 +465,14 @@ public class ExistPred extends Canonical {
       return false;
     }
 
+    if( e_taint == null ) {
+      if( pred.e_taint != null ) {
+        return false;
+      }
+    } else if( !e_taint.equals( pred.e_taint ) ) {
+      return false;
+    }
+
     return true;
   }
 
@@ -437,7 +518,11 @@ public class ExistPred extends Canonical {
       if( ne_state != null ) {
         hash ^= ne_state.hashCode();
       }
-      
+
+      if( e_taint != null ) {
+        hash ^= e_taint.hashCode();
+      }
+ 
       return hash;
     }
 
@@ -479,6 +564,10 @@ public class ExistPred extends Canonical {
 
       if( ne_state != null ) {
         s += "w"+ne_state;
+      }
+
+      if( e_taint != null ) {
+        s += "w"+e_taint;
       }
 
       return s;
