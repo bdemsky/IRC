@@ -4,6 +4,7 @@ import Analysis.CallGraph.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
 import Analysis.RBlockRelationAnalysis;
+import Analysis.RBlockStatusAnalysis;
 import IR.*;
 import IR.Flat.*;
 import IR.Tree.Modifiers;
@@ -334,6 +335,7 @@ public class DisjointAnalysis {
   public Liveness         liveness;
   public ArrayReferencees arrayReferencees;
   public RBlockRelationAnalysis rblockRel;
+  public RBlockStatusAnalysis rblockStatus;
   public TypeUtil         typeUtil;
   public int              allocationDepth;
 
@@ -557,9 +559,10 @@ public class DisjointAnalysis {
 			   CallGraph        cg,
 			   Liveness         l,
 			   ArrayReferencees ar,
-                           RBlockRelationAnalysis rra
+                           RBlockRelationAnalysis rra,
+                           RBlockStatusAnalysis rsa
                            ) {
-    init( s, tu, cg, l, ar, rra );
+    init( s, tu, cg, l, ar, rra, rsa );
   }
   
   protected void init( State            state,
@@ -567,7 +570,8 @@ public class DisjointAnalysis {
                        CallGraph        callGraph,
                        Liveness         liveness,
                        ArrayReferencees arrayReferencees,
-                       RBlockRelationAnalysis rra
+                       RBlockRelationAnalysis rra,
+                       RBlockStatusAnalysis rsa
                        ) {
 	  
     analysisComplete = false;
@@ -578,6 +582,7 @@ public class DisjointAnalysis {
     this.liveness                = liveness;
     this.arrayReferencees        = arrayReferencees;
     this.rblockRel               = rra;
+    this.rblockStatus         = rsa;
 
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
@@ -1064,6 +1069,16 @@ public class DisjointAnalysis {
 	lhs = fon.getDest();
 	rhs = fon.getLeft();
 	rg.assignTempXEqualToTempY( lhs, rhs );
+	
+  if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+    if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+      // x gets status of y
+      if(rg.getAccessibleVar().contains(rhs)){
+        rg.addAccessibleVar(lhs);
+      }
+    }    
+  }
+	
       }
       break;
 
@@ -1087,7 +1102,16 @@ public class DisjointAnalysis {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
 
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );          
+          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );
+          
+          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+            // x=y.f, stall y if not accessible
+            // contributes read effects on stall site of y
+            // after this, x and y are accessbile. 
+            
+            rg.addAccessibleVar(lhs);
+            rg.addAccessibleVar(rhs);            
+          }
         }
       }          
       break;
@@ -1103,6 +1127,16 @@ public class DisjointAnalysis {
 
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );
+          
+          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+            // x.y=f , stall x and y if they are not accessible
+            // also contribute write effects on stall site of x
+            
+            // accessible status update
+            rg.addAccessibleVar(lhs);
+            rg.addAccessibleVar(rhs);            
+          }
+          
         }
       }           
       break;
@@ -1122,7 +1156,17 @@ public class DisjointAnalysis {
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
         
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );          
+          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );       
+          
+          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+            // x=y.f, stall y if not accessible
+            // contributes read effects on stall site of y
+            // after this, x and y are accessbile. 
+            
+            rg.addAccessibleVar(lhs);
+            rg.addAccessibleVar(rhs);            
+          }
+          
         }
       }
       break;
@@ -1150,6 +1194,16 @@ public class DisjointAnalysis {
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
                                                    false );
+          
+          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+            // x.y=f , stall x and y if they are not accessible
+            // also contribute write effects on stall site of x
+            
+            // accessible status update
+            rg.addAccessibleVar(lhs);
+            rg.addAccessibleVar(rhs);            
+          }
+          
         }
       }
       break;
@@ -1160,6 +1214,14 @@ public class DisjointAnalysis {
       if( shouldAnalysisTrack( lhs.getType() ) ) {
 	AllocSite as = getAllocSiteFromFlatNewPRIVATE( fnn );	
 	rg.assignTempEqualToNewAlloc( lhs, as );
+	
+        if (doEffectsAnalysis && fmContaining != fmAnalysisEntry) {
+          if (rblockStatus.isInCriticalRegion(fmContaining, fn)) {
+            // after creating new object, lhs is accessible
+            rg.addAccessibleVar(lhs);
+          }
+        } 
+        
       }
       break;
 
@@ -1174,6 +1236,9 @@ public class DisjointAnalysis {
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
         rg.removeInContextTaints( fsexn.getFlatEnter() );
+        // sese exit clears all mappings of accessible vars and stall sites
+        // need to wipe out stall site taints
+        rg.clearAccessibleVarSet();        
       }
       break;
 

@@ -378,12 +378,7 @@ public class ReachGraph {
   public void assignTempXEqualToTempY( TempDescriptor x,
 				       TempDescriptor y ) {
     assignTempXEqualToCastedTempY( x, y, null );
-    
-    // x gets status of y
-    // if it is in region, 
-    //if(accessibleVars.contains(y)){
-    //  accessibleVars.add(x);
-    //}
+
   }
 
   public void assignTempXEqualToCastedTempY( TempDescriptor x,
@@ -510,11 +505,7 @@ public class ReachGraph {
 	globalSweep();
       }
     }
-    
-    // accessible status update
-    // if it is in region,
-    //accessibleVars.add(x);
-    //accessibleVars.add(y);
+
   }
 
 
@@ -682,14 +673,6 @@ public class ReachGraph {
         globalSweep();
       }
     }    
-    
-
-    // after x.y=f , stall x and y if they are not accessible
-    // also contribute write effects on stall site of x
-    // accessible status update
-    // if it is in region
-    //accessibleVars.add(x);
-    //accessibleVars.add(y);
 
     return edgeRemovedByStrongUpdate;
   }

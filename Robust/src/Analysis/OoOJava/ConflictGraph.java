@@ -144,12 +144,12 @@ public class ConflictGraph {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
-    // if node A has write effects on reading/writing regions of node B
     Hashtable<AllocSite, Set<Effect>> alloc2readEffectsA = nodeA.getReadEffectSet();
     Hashtable<AllocSite, Set<Effect>> alloc2writeEffectsA = nodeA.getWriteEffectSet();
     Hashtable<AllocSite, Set<Effect>> alloc2readEffectsB = nodeB.getReadEffectSet();
     Hashtable<AllocSite, Set<Effect>> alloc2writeEffectsB = nodeB.getWriteEffectSet();
 
+    // if node A has write effects on reading/writing regions of node B
     conflictType = updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
         alloc2readEffectsB));
     conflictType = updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
@@ -184,7 +184,7 @@ public class ConflictGraph {
             Effect effectB = (Effect) iterator2.next();
 
             if (effectA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
-                && effectA.getField().equals(effectB.getField())) {
+                && effectA.getField().equals(effectB.getField())) {             
               // possible conflict
               /*
                * if(og.isReachable(asA, asB, effectA.getAffectedAllocSite())){
