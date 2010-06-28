@@ -971,8 +971,7 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
     }
     else {
       tNode->status = TRANS_WAIT;
-//      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-//      sleep(3);
+      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
       randomdelay();
     }
     

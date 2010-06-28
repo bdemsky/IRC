@@ -33,8 +33,11 @@ public class FileSystem extends Thread {
       current=root.makeDirectory(global new GlobalString(String.valueOf(mid)));
     }
     Random r=new Random();
+    System.out.println("Starting FileSystem");
     char ptr[]=new char[1024];
-    for(int i=0;i<40000;i++) {
+    //for(int i=0;i<40000;i++) {
+    for(int i=0;i<15000;i++) {
+      System.out.println("i= " + i + "\n");
       atomic {
 	for(int count=0;count<10;count++) {
 	  int value=r.nextInt(100);

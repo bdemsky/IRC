@@ -102,7 +102,7 @@ tlist_t* tlistRemove(tlist_t* transList,unsigned int transid)
 {
 //  printf("%s -> REMOVE transID : %u \n",__func__,transid);
 
-  int flag = -1;
+  //int flag = -1;
   tlist_node_t* tmp;
   tlist_node_t* ptr = transList->head;
   tlist_node_t* prev = NULL;
@@ -133,7 +133,7 @@ tlist_t* tlistRemove(tlist_t* transList,unsigned int transid)
       prev->next = ptr->next;
       free(ptr);
       (transList->size)--;
-      flag = 0;
+      //flag = 0;
       transList->flag = 1;
       return transList;
     }

@@ -1534,7 +1534,7 @@ int transCommit() {
     objstrDelete(t_cache);
     t_chashDelete();
 #ifdef RECOVERY
-    if(deadmid != -1) { /* if deadmid is greater than or equal to 0,                           then there is dead machine. */
+    if(deadmid != -1) { /* if deadmid is greater than or equal to 0, then there is dead machine. */
       notifyLeaderDeadMachine(deadmid);
     }
 #endif
@@ -1881,7 +1881,7 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
     do {
       sdlist = getSocketLists();
   
-//      printf("%s -> I'm currently leader num : %d ping machines\n\n",__func__,epoch_num);
+      printf("%s -> I'm currently leader num : %d ping machines\n\n",__func__,epoch_num);
       if((flag = pingMachines(epoch_num,sdlist,&tList)) < 0) break;
 
       pthread_mutex_lock(&translist_mutex);
@@ -1911,9 +1911,9 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
   }while(0);
 
   if(flag < 0) {
-//    printf("%s -> higher epoch\n",__func__);
+    printf("%s -> higher epoch\n",__func__);
     while(okCommit != TRANS_OK) {
-//      printf("%s -> Waiting\n",__func__);
+      //printf("%s -> Waiting\n",__func__);
       randomdelay();
     }
     
