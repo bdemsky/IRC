@@ -1062,17 +1062,19 @@ public class DisjointAnalysis {
       if( fon.getOp().getOp() == Operation.ASSIGN ) {
 	lhs = fon.getDest();
 	rhs = fon.getLeft();
-	rg.assignTempXEqualToTempY( lhs, rhs );
-	
+
+        // before transfer, do effects analysis support
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
             // x gets status of y
-            if(rg.getAccessibleVar().contains(rhs)){
+            if(rg.isAccessible(rhs)){
               rg.addAccessibleVar(lhs);
             }
           }    
         }
-	
+
+        // transfer func
+	rg.assignTempXEqualToTempY( lhs, rhs );	
       }
       break;
 
@@ -1094,25 +1096,24 @@ public class DisjointAnalysis {
       rhs = ffn.getSrc();
       fld = ffn.getField();
 
-      if( shouldAnalysisTrack( fld.getType() ) ) {
-        
-        // before graph transform, possible inject
-        // a stall-site taint
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+      // before graph transform, possible inject
+      // a stall-site taint
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
-            // x=y.f, stall y if not accessible
-            // contributes read effects on stall site of y
-            if(!rg.isAccessible(rhs)) {
-              rg.taintStallSite(fn, rhs);
-            }
-
-            // after this, x and y are accessbile. 
-            rg.addAccessibleVar(lhs);
-            rg.addAccessibleVar(rhs);            
+        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+          // x=y.f, stall y if not accessible
+          // contributes read effects on stall site of y
+          if(!rg.isAccessible(rhs)) {
+            rg.taintStallSite(fn, rhs);
           }
-        }
 
+          // after this, x and y are accessbile. 
+          rg.addAccessibleVar(lhs);
+          rg.addAccessibleVar(rhs);            
+        }
+      }
+
+      if( shouldAnalysisTrack( fld.getType() ) ) {       
         // transfer func
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
       }          
@@ -1133,29 +1134,28 @@ public class DisjointAnalysis {
 
       boolean strongUpdate = false;
 
-      if( shouldAnalysisTrack( fld.getType() ) ) {
+      // before transfer func, possibly inject
+      // stall-site taints
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-        // before transfer func, possibly inject
-        // stall-site taints
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-
-          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
-            // x.y=f , stall x and y if they are not accessible
-            // also contribute write effects on stall site of x
-            if(!rg.isAccessible(lhs)) {
-              rg.taintStallSite(fn, lhs);
-            }
-
-            if(!rg.isAccessible(rhs)) {
-              rg.taintStallSite(fn, rhs);
-            }
-
-            // accessible status update
-            rg.addAccessibleVar(lhs);
-            rg.addAccessibleVar(rhs);            
+        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+          // x.y=f , stall x and y if they are not accessible
+          // also contribute write effects on stall site of x
+          if(!rg.isAccessible(lhs)) {
+            rg.taintStallSite(fn, lhs);
           }
-        }
 
+          if(!rg.isAccessible(rhs)) {
+            rg.taintStallSite(fn, rhs);
+          }
+
+          // accessible status update
+          rg.addAccessibleVar(lhs);
+          rg.addAccessibleVar(rhs);            
+        }
+      }
+
+      if( shouldAnalysisTrack( fld.getType() ) ) {
         // transfer func
         strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
       }           
@@ -1178,25 +1178,24 @@ public class DisjointAnalysis {
       tdElement = rhs.getType().dereference();
       fdElement = getArrayField( tdElement );
 
-      if( shouldAnalysisTrack( lhs.getType() ) ) {
-	
-        // before transfer func, possibly inject
-        // stall-site taint
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+      // before transfer func, possibly inject
+      // stall-site taint
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           
-          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
-            // x=y.f, stall y if not accessible
-            // contributes read effects on stall site of y
-            // after this, x and y are accessbile. 
-            if(!rg.isAccessible(rhs)) {
-              rg.taintStallSite(fn, rhs);
-            }
-
-            rg.addAccessibleVar(lhs);
-            rg.addAccessibleVar(rhs);            
+        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+          // x=y.f, stall y if not accessible
+          // contributes read effects on stall site of y
+          // after this, x and y are accessbile. 
+          if(!rg.isAccessible(rhs)) {
+            rg.taintStallSite(fn, rhs);
           }
-        }
 
+          rg.addAccessibleVar(lhs);
+          rg.addAccessibleVar(rhs);            
+        }
+      }
+
+      if( shouldAnalysisTrack( lhs.getType() ) ) {
         // transfer func
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
       }
@@ -1219,29 +1218,28 @@ public class DisjointAnalysis {
       tdElement = lhs.getType().dereference();
       fdElement = getArrayField( tdElement );
 
-      if( shouldAnalysisTrack( rhs.getType() ) ) {
-
-        // before transfer func, possibly inject
-        // stall-site taints
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+      // before transfer func, possibly inject
+      // stall-site taints
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           
-          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
-            // x.y=f , stall x and y if they are not accessible
-            // also contribute write effects on stall site of x
-            if(!rg.isAccessible(lhs)) {
-              rg.taintStallSite(fn, lhs);
-            }
-
-            if(!rg.isAccessible(rhs)) {
-              rg.taintStallSite(fn, rhs);
-            }
-            
-            // accessible status update
-            rg.addAccessibleVar(lhs);
-            rg.addAccessibleVar(rhs);            
+        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+          // x.y=f , stall x and y if they are not accessible
+          // also contribute write effects on stall site of x
+          if(!rg.isAccessible(lhs)) {
+            rg.taintStallSite(fn, lhs);
           }
-        }
 
+          if(!rg.isAccessible(rhs)) {
+            rg.taintStallSite(fn, rhs);
+          }
+            
+          // accessible status update
+          rg.addAccessibleVar(lhs);
+          rg.addAccessibleVar(rhs);            
+        }
+      }
+
+      if( shouldAnalysisTrack( rhs.getType() ) ) {
         // transfer func, BUT
         // skip this node if it cannot create new reachability paths
         if( !arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
@@ -1261,15 +1259,17 @@ public class DisjointAnalysis {
       lhs = fnn.getDst();
       if( shouldAnalysisTrack( lhs.getType() ) ) {
 	AllocSite as = getAllocSiteFromFlatNewPRIVATE( fnn );	
-	rg.assignTempEqualToNewAlloc( lhs, as );
-	
+
+        // before transform, support effects analysis
         if (doEffectsAnalysis && fmContaining != fmAnalysisEntry) {
           if (rblockStatus.isInCriticalRegion(fmContaining, fn)) {
             // after creating new object, lhs is accessible
             rg.addAccessibleVar(lhs);
           }
         } 
-        
+
+        // transfer func
+	rg.assignTempEqualToNewAlloc( lhs, as );        
       }
       break;
 
@@ -1288,16 +1288,16 @@ public class DisjointAnalysis {
     case FKind.FlatSESEExitNode:
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
+        // sese exit clears all mappings of accessible vars and stall sites
+        // need to wipe out stall site taints
+        rg.clearAccessibleVarSet();        
+
         // always remove ALL stall site taints at exit
         rg.removeAllStallSiteTaints();
         
         // remove in-set vars for the exiting rblock
         FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
         rg.removeInContextTaints( fsexn.getFlatEnter() );
-
-        // sese exit clears all mappings of accessible vars and stall sites
-        // need to wipe out stall site taints
-        rg.clearAccessibleVarSet();        
       }
       break;
 
