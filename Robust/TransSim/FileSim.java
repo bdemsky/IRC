@@ -129,6 +129,8 @@ public class FileSim {
     ls14=null;
   }
 
+  int[] policies=new int[]{FlexScheduler.LAZY, FlexScheduler.COMMIT, FlexScheduler.ATTACK, FlexScheduler.SUICIDE, FlexScheduler.TIMESTAMP, FlexScheduler.LOCK, FlexScheduler.LOCKCOMMIT, FlexScheduler.RANDOM, FlexScheduler.KARMA, FlexScheduler.POLITE, FlexScheduler.ERUPTION, FlexScheduler.THREAD, FlexScheduler.ATTACKTIME, FlexScheduler.ATTACKTHREAD};
+
   public static void main(String[] args) throws Exception {
     //time between transactions
     //split objects
@@ -141,13 +143,23 @@ public class FileSim {
     String filename=args[0];
     Executor e=new Executor(filename);
     System.out.println(e.maxTime());
-    if (args.length==1||args[1].equals("1"))
-      p1(e);
-    if (args.length==1||args[1].equals("2"))
-      p2(e);
-    if (args.length==1||args[1].equals("3"))
-      p3(e);
-    if (args.length==1||args[1].equals("4"))
-      p4(e);
+
+    FlexScheduler fsarray[]=new FlexScheduler[args.length-1];
+
+    for(int i=1;i<args.length;i++) {
+      fsarray[i-1]=new FlexScheduler(e, Integer.parseInt(args[i]), null);
+      fsarray[i-1].start();
+    }
+
+    for(int i=0;i<fsarray.length;i++) {
+      fsarray[i].join();
+      FlexScheduler ls=fsarray[i];
+      System.out.println(FlexScheduler.getName(ls.policy)+" Abort="+ls.getTime());
+      System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
+      System.out.println("Stalltime="+ls.getStallTime()+" Backofftime="+ls.getBackoffTime());
+      System.out.println("Abortedtime="+ls.getAbortedTime());      
+      //free the memory
+      fsarray[i]=null;
+    }
   }
 }
