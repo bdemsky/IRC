@@ -11,8 +11,6 @@ import java.util.Map.Entry;
 
 import Analysis.ArrayReferencees;
 import Analysis.Liveness;
-import Analysis.RBlockRelationAnalysis;
-import Analysis.RBlockStatusAnalysis;
 import Analysis.CallGraph.CallGraph;
 import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.Disjoint.Effect;

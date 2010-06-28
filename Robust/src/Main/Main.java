@@ -42,7 +42,6 @@ import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
 import Analysis.MLP.MLPAnalysis;
-import Analysis.RBlockRelationAnalysis;
 import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Loops.*;
