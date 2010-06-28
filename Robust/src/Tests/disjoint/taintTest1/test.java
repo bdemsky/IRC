@@ -11,15 +11,18 @@ public class Test {
     Foo a = new Foo();
     Foo b = new Foo();
 
-    /*
     rblock r1 {
-      a.f = new Foo();
+
+      rblock c1 {
+        a.f = new Foo();
+      }
+
+      Foo x = a.f;
+
+      x.g = new Foo();
     }
-    */
-    
-    rblock r1 {
-      doSomething( a, b );
-    }
+
+
   }
 
   static void doSomething( Foo a, Foo b ) {

@@ -1070,14 +1070,14 @@ public class DisjointAnalysis {
 	rhs = fon.getLeft();
 	rg.assignTempXEqualToTempY( lhs, rhs );
 	
-  if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-    if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
-      // x gets status of y
-      if(rg.getAccessibleVar().contains(rhs)){
-        rg.addAccessibleVar(lhs);
-      }
-    }    
-  }
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+            // x gets status of y
+            if(rg.getAccessibleVar().contains(rhs)){
+              rg.addAccessibleVar(lhs);
+            }
+          }    
+        }
 	
       }
       break;
@@ -1098,20 +1098,33 @@ public class DisjointAnalysis {
       lhs = ffn.getDst();
       rhs = ffn.getSrc();
       fld = ffn.getField();
-      if( shouldAnalysisTrack( fld.getType() ) ) {
-	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
 
+      if( shouldAnalysisTrack( fld.getType() ) ) {
+        
+        // before graph transform, possible inject
+        // a stall-site taint
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );
-          
+
           if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
             // x=y.f, stall y if not accessible
             // contributes read effects on stall site of y
+            if(!rg.isAccessible(rhs)) {
+              rg.taintStallSite(fn, rhs);
+            }
+
             // after this, x and y are accessbile. 
-            
             rg.addAccessibleVar(lhs);
             rg.addAccessibleVar(rhs);            
           }
+        }
+
+        // transfer func
+	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
+
+        // after transfer, use updated graph to
+        // do effects analysis
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );          
         }
       }          
       break;
@@ -1123,20 +1136,34 @@ public class DisjointAnalysis {
       rhs = fsfn.getSrc();
 
       if( shouldAnalysisTrack( fld.getType() ) ) {
-        boolean strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
 
+        // before transfer func, possibly inject
+        // stall-site taints
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );
-          
+
           if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
             // x.y=f , stall x and y if they are not accessible
             // also contribute write effects on stall site of x
-            
+            if(!rg.isAccessible(lhs)) {
+              rg.taintStallSite(fn, lhs);
+            }
+
+            if(!rg.isAccessible(rhs)) {
+              rg.taintStallSite(fn, rhs);
+            }
+
             // accessible status update
             rg.addAccessibleVar(lhs);
             rg.addAccessibleVar(rhs);            
           }
-          
+        }
+
+        // transfer func
+        boolean strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
+
+        // use transformed graph to do effects analysis
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );          
         }
       }           
       break;
@@ -1153,20 +1180,29 @@ public class DisjointAnalysis {
 	TypeDescriptor  tdElement = rhs.getType().dereference();
 	FieldDescriptor fdElement = getArrayField( tdElement );
   
-	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
-        
+        // before transfer func, possibly inject
+        // stall-site taint
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );       
           
           if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
             // x=y.f, stall y if not accessible
             // contributes read effects on stall site of y
             // after this, x and y are accessbile. 
-            
+            if(!rg.isAccessible(rhs)) {
+              rg.taintStallSite(fn, rhs);
+            }
+
             rg.addAccessibleVar(lhs);
             rg.addAccessibleVar(rhs);            
           }
-          
+        }
+
+        // transfer func
+	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
+        
+        // use transformed graph to do effects analysis
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );                    
         }
       }
       break;
@@ -1189,21 +1225,34 @@ public class DisjointAnalysis {
 	TypeDescriptor  tdElement = lhs.getType().dereference();
 	FieldDescriptor fdElement = getArrayField( tdElement );
 
-	rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
-
+        // before transfer func, possibly inject
+        // stall-site taints
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
-                                                   false );
           
           if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
             // x.y=f , stall x and y if they are not accessible
             // also contribute write effects on stall site of x
+            if(!rg.isAccessible(lhs)) {
+              rg.taintStallSite(fn, lhs);
+            }
+
+            if(!rg.isAccessible(rhs)) {
+              rg.taintStallSite(fn, rhs);
+            }
             
             // accessible status update
             rg.addAccessibleVar(lhs);
             rg.addAccessibleVar(rhs);            
           }
-          
+        }
+
+        // transfer func
+	rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
+
+        // use transformed graph to do effects analysis
+        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
+                                                   false );          
         }
       }
       break;

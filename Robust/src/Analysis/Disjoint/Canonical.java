@@ -1432,7 +1432,7 @@ abstract public class Canonical {
     while( tItr.hasNext() ) {
       Taint t = tItr.next();
 
-      if( !t.getSESE().equals( sese ) ) {
+      if( t.getSESE() == null || !t.getSESE().equals( sese ) ) {
         out.taints.add( t );
       }
     }

@@ -50,7 +50,8 @@ public class EffectsAnalysis {
 
 
   protected void add(Taint t, Effect e) {
-    if( t.getSESE().getIsCallerSESEplaceholder() ) {
+    if( t.getSESE() != null &&
+        t.getSESE().getIsCallerSESEplaceholder() ) {
       return;
     }
 

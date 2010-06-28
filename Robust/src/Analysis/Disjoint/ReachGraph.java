@@ -1288,41 +1288,49 @@ public class ReachGraph {
     Iterator<TempDescriptor> isvItr = sese.getInVarSet().iterator();
     while( isvItr.hasNext() ) {
       TempDescriptor isv = isvItr.next();
-      VariableNode   vn  = getVariableNodeFromTemp( isv );
-
-      Iterator<RefEdge> reItr = vn.iteratorToReferencees();
-      while( reItr.hasNext() ) {
-        RefEdge re = reItr.next();
-
-        // these in-set taints should have empty 
-        // predicates so they never propagate
-        // out to callers
-        Taint t = Taint.factory( sese,
-                                 null,
-                                 isv,
-                                 re.getDst().getAllocSite(),
-                                 ExistPredSet.factory()
-                                 );
       
-        re.setTaints( Canonical.add( re.getTaints(),
-                                     t 
-                                     )
-                      );
-      }
+      // in-set var taints should NOT propagate back into callers
+      // so give it FALSE(EMPTY) predicates
+      taintTemp( sese,
+                 null,
+                 isv,
+                 predsEmpty
+                 );
     }
   }
 
-  // this is useful for more general tainting
-  public void taintTemp( Taint          taint,
-                         TempDescriptor td,
-                         ExistPredSet   preds
-                         ) {
+  public void taintStallSite( FlatNode stallSite,
+                              TempDescriptor var ) {
     
-    VariableNode vn = getVariableNodeFromTemp( td );
+    System.out.println( "Tainting stall site: "+stallSite+" and "+var );
+
+    // stall site taint should propagate back into callers
+    // so give it TRUE predicates
+    taintTemp( null,
+               stallSite,
+               var,
+               predsTrue 
+               );
+  }
+
+  protected void taintTemp( FlatSESEEnterNode sese,
+                            FlatNode          stallSite,
+                            TempDescriptor    var,
+                            ExistPredSet      preds
+                            ) {
+    
+    VariableNode vn = getVariableNodeFromTemp( var );
     
     Iterator<RefEdge> reItr = vn.iteratorToReferencees();
     while( reItr.hasNext() ) {
       RefEdge re = reItr.next();
+      
+      Taint taint = Taint.factory( sese,
+                                   stallSite,
+                                   var,
+                                   re.getDst().getAllocSite(),
+                                   preds
+                                   );
             
       re.setTaints( Canonical.add( re.getTaints(),
                                    taint 
@@ -4958,6 +4966,10 @@ public class ReachGraph {
     return accessibleVars;
   }
   
+  public boolean isAccessible(TempDescriptor td) {
+    return accessibleVars.contains(td);
+  }
+
   public void clearAccessibleVarSet(){
     accessibleVars.clear();
   }  
