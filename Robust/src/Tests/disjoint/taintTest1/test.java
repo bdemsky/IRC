@@ -19,7 +19,13 @@ public class Test {
 
       Foo x = a.f;
 
-      x.g = new Foo();
+      doSomething( a, b );
+
+      //rblock c2 {
+      //  b.f = new Foo();
+      //}
+
+      //x.g = new Foo();
     }
 
 
@@ -30,10 +36,12 @@ public class Test {
     Foo x = b;
     a.g = x; 
 
-    a.f = new Foo();
-    b.f = new Foo();
+    rblock j {
+      a.f = new Foo();
+      b.f = new Foo();
+    }
 
-    Foo f = doStuff( a.f, b.f );
+    //Foo f = doStuff( a.f, b.f );
   }   
 
   static Foo doStuff( Foo m, Foo n ) {

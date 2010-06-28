@@ -1276,6 +1276,11 @@ public class DisjointAnalysis {
 
     case FKind.FlatSESEEnterNode:
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        
+        // always remove ALL stall site taints at enter
+        rg.removeAllStallSiteTaints();
+
+        // inject taints for in-set vars
         FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
         rg.taintInSetVars( sese );                         
       }
@@ -1283,8 +1288,14 @@ public class DisjointAnalysis {
 
     case FKind.FlatSESEExitNode:
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+
+        // always remove ALL stall site taints at exit
+        rg.removeAllStallSiteTaints();
+        
+        // remove in-set vars for the exiting rblock
         FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
         rg.removeInContextTaints( fsexn.getFlatEnter() );
+
         // sese exit clears all mappings of accessible vars and stall sites
         // need to wipe out stall site taints
         rg.clearAccessibleVarSet();        

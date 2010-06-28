@@ -1302,8 +1302,6 @@ public class ReachGraph {
   public void taintStallSite( FlatNode stallSite,
                               TempDescriptor var ) {
     
-    System.out.println( "Tainting stall site: "+stallSite+" and "+var );
-
     // stall site taint should propagate back into callers
     // so give it TRUE predicates
     taintTemp( null,
@@ -1357,6 +1355,25 @@ public class ReachGraph {
         re.setTaints( Canonical.removeTaintsBy( re.getTaints(),
                                                 sese
                                                 )
+                      );
+      }
+    }
+  }
+
+  public void removeAllStallSiteTaints() {
+
+    Iterator meItr = id2hrn.entrySet().iterator();
+    while( meItr.hasNext() ) {
+      Map.Entry      me  = (Map.Entry)      meItr.next();
+      Integer        id  = (Integer)        me.getKey();
+      HeapRegionNode hrn = (HeapRegionNode) me.getValue();
+
+      Iterator<RefEdge> reItr = hrn.iteratorToReferencers();
+      while( reItr.hasNext() ) {
+        RefEdge re = reItr.next();
+        
+        re.setTaints( Canonical.removeStallSiteTaints( re.getTaints() 
+                                                       )
                       );
       }
     }

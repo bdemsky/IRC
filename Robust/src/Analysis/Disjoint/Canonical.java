@@ -1442,6 +1442,38 @@ abstract public class Canonical {
     return out;
   }
 
+  public static TaintSet removeStallSiteTaints( TaintSet ts ) {
+    assert ts != null;
+    assert ts.isCanonical();
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINTSET_REMOVESTALLSITETAINTS,
+                       ts, 
+                       ts );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (TaintSet) result;
+    }
+    
+    // otherwise, no cached result...
+    TaintSet out = new TaintSet();
+
+    Iterator<Taint> tItr = ts.iterator();
+    while( tItr.hasNext() ) {
+      Taint t = tItr.next();
+
+      // only take non-stall site taints onward
+      if( t.getStallSite() == null ) {
+        out.taints.add( t );
+      }
+    }
+    
+    out = (TaintSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;
+  }
+
 
   public static Taint changePredsTo( Taint        t, 
                                      ExistPredSet preds ) {

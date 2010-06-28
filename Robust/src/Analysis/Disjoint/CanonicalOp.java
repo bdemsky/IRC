@@ -40,6 +40,7 @@ public class CanonicalOp {
   public static final int TAINTSET_UNIONORPREDS_TAINTSET       = 0x204f;
   public static final int TAINT_CHANGEPREDSTO_EXISTPREDSET     = 0x3ab4;
   public static final int TAINTSET_CHANGEPREDSTO_EXISTPREDSET  = 0x2ff1;
+  public static final int TAINTSET_REMOVESTALLSITETAINTS       = 0xb69c;
 
   protected int opCode;
   protected Canonical operand1;
