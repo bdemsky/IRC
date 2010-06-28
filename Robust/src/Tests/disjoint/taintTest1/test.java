@@ -2,6 +2,7 @@ public class Foo {
   public Foo() {}
   public Foo f;
   public Foo g;
+    public int a;
 }
 
 public class Test {
@@ -10,44 +11,48 @@ public class Test {
 
     Foo a = new Foo();
     Foo b = new Foo();
-
+    Foo bbb = new Foo();
+    
+    bbb.f=new Foo();
     rblock r1 {
-
-      rblock c1 {
-        a.f = new Foo();
-      }
-
-      Foo x = a.f;
-
-      doSomething( a, b );
-
-      //rblock c2 {
-      //  b.f = new Foo();
-      //}
-
-      //x.g = new Foo();
+	
+	a.f=new Foo();
+	a.a=2;
+	/*
+	while(1==1){	
+	    Foo yyy = b.f; 
+	    rblock rr1{
+		b.f=new Foo();
+	    }
+	    
+	    rblock rr2{
+		b.f=new Foo();
+	    }
+	    
+	}    
+	*/
     }
-
+    Foo xxx = a.f;
+    //xxx.a=100;
+    xxx.f=new Foo();
+    Foo zzz=xxx.f;
+    zzz.a=100;
 
   }
-
+   
   static void doSomething( Foo a, Foo b ) {
+
+    a.g = new Foo();
     
-    Foo x = b;
-    a.g = x; 
+    a.f.f = a.g;
 
-    rblock j {
-      a.f = new Foo();
-      b.f = new Foo();
-    }
-
-    //Foo f = doStuff( a.f, b.f );
+    Foo f = doStuff( a, b );
   }   
 
   static Foo doStuff( Foo m, Foo n ) {
+      
+      m.f.g = n.f;
+      return new Foo();
 
-    m.g = n;
-
-    return new Foo();
   }
 }
