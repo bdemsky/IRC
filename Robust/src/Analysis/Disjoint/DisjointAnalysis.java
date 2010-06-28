@@ -1017,17 +1017,11 @@ public class DisjointAnalysis {
     // nullified in the graph to reduce edges
     //rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
-    /*
-      if( doEffectsAnalysis &&  && fmContaining != fmAnalysisEntry
-        rra.isEndOfRegion(fn)){
-      rg.clearAccessibleVarSet();
-      also need to clear stall mapping
-    }
-    */
-	  
     TempDescriptor  lhs;
     TempDescriptor  rhs;
     FieldDescriptor fld;
+    TypeDescriptor  tdElement;
+    FieldDescriptor fdElement;
 
     // use node type to decide what transfer function
     // to apply to the reachability graph
@@ -1095,6 +1089,7 @@ public class DisjointAnalysis {
 
     case FKind.FlatFieldNode:
       FlatFieldNode ffn = (FlatFieldNode) fn;
+
       lhs = ffn.getDst();
       rhs = ffn.getSrc();
       fld = ffn.getField();
@@ -1120,20 +1115,23 @@ public class DisjointAnalysis {
 
         // transfer func
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
-
-        // after transfer, use updated graph to
-        // do effects analysis
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );          
-        }
       }          
+
+      // after transfer, use updated graph to
+      // do effects analysis
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );          
+      }
       break;
 
     case FKind.FlatSetFieldNode:
       FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+
       lhs = fsfn.getDst();
       fld = fsfn.getField();
       rhs = fsfn.getSrc();
+
+      boolean strongUpdate = false;
 
       if( shouldAnalysisTrack( fld.getType() ) ) {
 
@@ -1159,27 +1157,29 @@ public class DisjointAnalysis {
         }
 
         // transfer func
-        boolean strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
-
-        // use transformed graph to do effects analysis
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );          
-        }
+        strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
       }           
+
+      // use transformed graph to do effects analysis
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );          
+      }
       break;
 
     case FKind.FlatElementNode:
       FlatElementNode fen = (FlatElementNode) fn;
+
       lhs = fen.getDst();
       rhs = fen.getSrc();
-      if( shouldAnalysisTrack( lhs.getType() ) ) {
 
-	assert rhs.getType() != null;
-	assert rhs.getType().isArray();
+      assert rhs.getType() != null;
+      assert rhs.getType().isArray();
+
+      tdElement = rhs.getType().dereference();
+      fdElement = getArrayField( tdElement );
+
+      if( shouldAnalysisTrack( lhs.getType() ) ) {
 	
-	TypeDescriptor  tdElement = rhs.getType().dereference();
-	FieldDescriptor fdElement = getArrayField( tdElement );
-  
         // before transfer func, possibly inject
         // stall-site taint
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
@@ -1199,31 +1199,27 @@ public class DisjointAnalysis {
 
         // transfer func
 	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
-        
-        // use transformed graph to do effects analysis
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );                    
-        }
       }
+
+      // use transformed graph to do effects analysis
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );                    
+      }        
       break;
 
     case FKind.FlatSetElementNode:
       FlatSetElementNode fsen = (FlatSetElementNode) fn;
 
-      if( arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
-	// skip this node if it cannot create new reachability paths
-        break;
-      }
-
       lhs = fsen.getDst();
       rhs = fsen.getSrc();
-      if( shouldAnalysisTrack( rhs.getType() ) ) {
 
-	assert lhs.getType() != null;
-	assert lhs.getType().isArray();
-	
-	TypeDescriptor  tdElement = lhs.getType().dereference();
-	FieldDescriptor fdElement = getArrayField( tdElement );
+      assert lhs.getType() != null;
+      assert lhs.getType().isArray();	
+
+      tdElement = lhs.getType().dereference();
+      fdElement = getArrayField( tdElement );
+
+      if( shouldAnalysisTrack( rhs.getType() ) ) {
 
         // before transfer func, possibly inject
         // stall-site taints
@@ -1246,14 +1242,17 @@ public class DisjointAnalysis {
           }
         }
 
-        // transfer func
-	rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
-
-        // use transformed graph to do effects analysis
-        if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
-                                                   false );          
+        // transfer func, BUT
+        // skip this node if it cannot create new reachability paths
+        if( !arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
+          rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
         }
+      }
+
+      // use transformed graph to do effects analysis
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
+                                                 false );          
       }
       break;
       
