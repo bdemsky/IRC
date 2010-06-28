@@ -140,7 +140,7 @@ public class RBlockStatusAnalysis {
     Hashtable<FlatSESEEnterNode, Boolean> status = statusMap.get(fn);
     
     if(status.get(seseContaining).booleanValue()==true){
-      System.out.println(fn+" is in the critical region in according to "+seseContaining);
+      //System.out.println(fn+" is in the critical region in according to "+seseContaining);
     }
     
     return status.get(seseContaining).booleanValue();

@@ -1017,11 +1017,13 @@ public class DisjointAnalysis {
     // nullified in the graph to reduce edges
     //rg.nullifyDeadVars( liveness.getLiveInTemps( fmContaining, fn ) );
 
-    TempDescriptor  lhs;
-    TempDescriptor  rhs;
-    FieldDescriptor fld;
-    TypeDescriptor  tdElement;
-    FieldDescriptor fdElement;
+    TempDescriptor    lhs;
+    TempDescriptor    rhs;
+    FieldDescriptor   fld;
+    TypeDescriptor    tdElement;
+    FieldDescriptor   fdElement;
+    FlatSESEEnterNode sese;
+    FlatSESEExitNode  fsexn;
 
     // use node type to decide what transfer function
     // to apply to the reachability graph
@@ -1067,8 +1069,8 @@ public class DisjointAnalysis {
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
             // x gets status of y
-            if(rg.isAccessible(rhs)){
-              rg.addAccessibleVar(lhs);
+            if(!rg.isAccessible(rhs)){
+              rg.makeInaccessible(lhs);
             }
           }    
         }
@@ -1085,7 +1087,18 @@ public class DisjointAnalysis {
 
       TypeDescriptor td = fcn.getType();
       assert td != null;
+
+      // before transfer, do effects analysis support
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+          // x gets status of y
+          if(!rg.isAccessible(rhs)){
+            rg.makeInaccessible(lhs);
+          }
+        }    
+      }
       
+      // transfer func
       rg.assignTempXEqualToCastedTempY( lhs, rhs, td );
       break;
 
@@ -1108,8 +1121,8 @@ public class DisjointAnalysis {
           }
 
           // after this, x and y are accessbile. 
-          rg.addAccessibleVar(lhs);
-          rg.addAccessibleVar(rhs);            
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);            
         }
       }
 
@@ -1150,8 +1163,8 @@ public class DisjointAnalysis {
           }
 
           // accessible status update
-          rg.addAccessibleVar(lhs);
-          rg.addAccessibleVar(rhs);            
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);            
         }
       }
 
@@ -1190,8 +1203,8 @@ public class DisjointAnalysis {
             rg.taintStallSite(fn, rhs);
           }
 
-          rg.addAccessibleVar(lhs);
-          rg.addAccessibleVar(rhs);            
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);            
         }
       }
 
@@ -1234,8 +1247,8 @@ public class DisjointAnalysis {
           }
             
           // accessible status update
-          rg.addAccessibleVar(lhs);
-          rg.addAccessibleVar(rhs);            
+          rg.makeAccessible(lhs);
+          rg.makeAccessible(rhs);            
         }
       }
 
@@ -1264,7 +1277,7 @@ public class DisjointAnalysis {
         if (doEffectsAnalysis && fmContaining != fmAnalysisEntry) {
           if (rblockStatus.isInCriticalRegion(fmContaining, fn)) {
             // after creating new object, lhs is accessible
-            rg.addAccessibleVar(lhs);
+            rg.makeAccessible(lhs);
           }
         } 
 
@@ -1274,30 +1287,33 @@ public class DisjointAnalysis {
       break;
 
     case FKind.FlatSESEEnterNode:
+      sese = (FlatSESEEnterNode) fn;
+
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         
         // always remove ALL stall site taints at enter
         rg.removeAllStallSiteTaints();
 
-        // inject taints for in-set vars
-        FlatSESEEnterNode sese = (FlatSESEEnterNode) fn;
+        // inject taints for in-set vars      
         rg.taintInSetVars( sese );                         
       }
       break;
 
     case FKind.FlatSESEExitNode:
+      fsexn = (FlatSESEExitNode) fn;
+      sese  = fsexn.getFlatEnter();
+
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-        // sese exit clears all mappings of accessible vars and stall sites
-        // need to wipe out stall site taints
-        rg.clearAccessibleVarSet();        
-
+        // @ sese exit make all live variables
+        // inaccessible to later parent statements
+        rg.makeInaccessible( liveness.getLiveInTemps( fmContaining, fn ) );
+        
         // always remove ALL stall site taints at exit
         rg.removeAllStallSiteTaints();
         
-        // remove in-set vars for the exiting rblock
-        FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-        rg.removeInContextTaints( fsexn.getFlatEnter() );
+        // remove in-set var taints for the exiting rblock
+        rg.removeInContextTaints( sese );
       }
       break;
 

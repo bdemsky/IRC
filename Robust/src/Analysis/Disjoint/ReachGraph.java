@@ -37,17 +37,17 @@ public class ReachGraph {
 
   // convenient set of alloc sites for all heap regions
   // present in the graph without having to search
-  public HashSet<AllocSite> allocSites;  
+  public Set<AllocSite> allocSites;  
   
-  // set of accessible variables for current program statement
-  // if not contains, it is an inaccessible variable
-  public HashSet<TempDescriptor> accessibleVars;
+  // set of inaccessible variables for current program statement
+  // with respect to stall-site analysis
+  public Set<TempDescriptor> inaccessibleVars;
 
   public ReachGraph() {
-    id2hrn     = new Hashtable<Integer,        HeapRegionNode>();
-    td2vn      = new Hashtable<TempDescriptor, VariableNode  >();
-    allocSites = new HashSet<AllocSite>();
-    accessibleVars = new HashSet<TempDescriptor>();
+    id2hrn           = new Hashtable<Integer,        HeapRegionNode>();
+    td2vn            = new Hashtable<TempDescriptor, VariableNode  >();
+    allocSites       = new HashSet<AllocSite>();
+    inaccessibleVars = new HashSet<TempDescriptor>();
   }
 
   
@@ -732,11 +732,7 @@ public class ReachGraph {
                    TaintSet.factory()    // taints
                    );
 
-    addRefEdge( lnX, hrnNewest, edgeNew );
-    
-    // after x=new , x is accessible
-    // if (isInRegion()) {
-    //accessibleVars.add(x);
+    addRefEdge( lnX, hrnNewest, edgeNew );    
   }
 
 
@@ -3687,10 +3683,10 @@ public class ReachGraph {
       return;
     }
 
-    mergeNodes     ( rg );
-    mergeRefEdges  ( rg );
-    mergeAllocSites( rg );
-    mergeAccessibleSet( rg );
+    mergeNodes           ( rg );
+    mergeRefEdges        ( rg );
+    mergeAllocSites      ( rg );
+    mergeInaccessibleVars( rg );
   }
   
   protected void mergeNodes( ReachGraph rg ) {
@@ -3898,21 +3894,8 @@ public class ReachGraph {
     allocSites.addAll( rg.allocSites );
   }
   
-  protected void mergeAccessibleSet( ReachGraph rg ){
-    // inaccesible status is prior to accessible status
-    
-    Set<TempDescriptor> varsToMerge=rg.getAccessibleVar();    
-    Set<TempDescriptor> varsRemoved=new HashSet<TempDescriptor>();
-    
-    for (Iterator iterator = accessibleVars.iterator(); iterator.hasNext();) {
-      TempDescriptor accessibleVar = (TempDescriptor) iterator.next();
-      if(!varsToMerge.contains(accessibleVar)){
-        varsRemoved.add(accessibleVar);
-      }
-    }
-    
-    accessibleVars.removeAll(varsRemoved);
-        
+  protected void mergeInaccessibleVars( ReachGraph rg ){
+    inaccessibleVars.addAll(rg.inaccessibleVars);
   }
 
 
@@ -3960,7 +3943,7 @@ public class ReachGraph {
       return false;
     }
     
-    if( !accessibleVars.equals( rg.accessibleVars) ){
+    if( !inaccessibleVars.equals(rg.inaccessibleVars) ){
       return false;
     }
 
@@ -4975,20 +4958,23 @@ public class ReachGraph {
     return common;
   }
   
-  public void addAccessibleVar(TempDescriptor td){
-    accessibleVars.add(td);
+  public void makeInaccessible( Set<TempDescriptor> vars ) {
+    inaccessibleVars.addAll( vars );
   }
-  
-  public Set<TempDescriptor> getAccessibleVar(){
-    return accessibleVars;
+
+  public void makeInaccessible( TempDescriptor td ) {
+    inaccessibleVars.add( td );
+  }
+
+  public void makeAccessible( TempDescriptor td ) {
+    inaccessibleVars.remove( td );
   }
   
   public boolean isAccessible(TempDescriptor td) {
-    return accessibleVars.contains(td);
+    return !inaccessibleVars.contains(td);
   }
 
-  public void clearAccessibleVarSet(){
-    accessibleVars.clear();
-  }  
-  
+  public Set<TempDescriptor> getInaccessibleVars() {
+    return inaccessibleVars;
+  }
 }
