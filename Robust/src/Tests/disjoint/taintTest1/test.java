@@ -11,42 +11,29 @@ public class Test {
 
     Foo a = new Foo();
     Foo b = new Foo();
-    Foo bbb = new Foo();
-    
-    bbb.f=new Foo();
-    rblock r1 {
-	
-	a.f=new Foo();
-	a.a=2;
-	/*
-	while(1==1){	
-	    Foo yyy = b.f; 
-	    rblock rr1{
-		b.f=new Foo();
-	    }
-	    
-	    rblock rr2{
-		b.f=new Foo();
-	    }
-	    
-	}    
-	*/
-    }
-    Foo xxx = a.f;
-    //xxx.a=100;
-    xxx.f=new Foo();
-    Foo zzz=xxx.f;
-    zzz.a=100;
 
+    rblock r1 {
+      Foo x = doSomething( a, b );
+
+      // 1 - STALL
+      // 2 - NO STALL
+      b.f = x.g;
+    }
   }
    
-  static void doSomething( Foo a, Foo b ) {
+  static Foo doSomething( Foo a, Foo b ) {
 
-    a.g = new Foo();
-    
-    a.f.f = a.g;
+    Foo z = new Foo();
 
-    Foo f = doStuff( a, b );
+    rblock c1 {
+      z.g = new Foo();
+    }
+
+    // 1 (this line commented)
+    // 2 (STALL HERE!)
+    //z.g = b;
+
+    return z;
   }   
 
   static Foo doStuff( Foo m, Foo n ) {

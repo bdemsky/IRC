@@ -934,8 +934,16 @@ public class DisjointAnalysis {
       }
 
 
+      //System.out.println( "At "+fn );
+      //System.out.println( "  inacc-in:  "+rg.getInaccessibleVars() );
+
+
       // modify rg with appropriate transfer function
       rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
+
+
+      //System.out.println( "  inacc-out: "+rg.getInaccessibleVars() );
+      //System.out.println( "\n" );
 
 
       if( takeDebugSnapshots && 
@@ -1426,7 +1434,7 @@ public class DisjointAnalysis {
                                    );
       }
 
-      ReachGraph rgMergeOfEffects = new ReachGraph();
+      ReachGraph rgMergeOfPossibleCallers = new ReachGraph();
 
       Iterator<MethodDescriptor> mdItr = setPossibleCallees.iterator();
       while( mdItr.hasNext() ) {
@@ -1439,12 +1447,12 @@ public class DisjointAnalysis {
         // don't alter the working graph (rg) until we compute a 
         // result for every possible callee, merge them all together,
         // then set rg to that
-        ReachGraph rgCopy = new ReachGraph();
-        rgCopy.merge( rg );		
+        ReachGraph rgPossibleCaller = new ReachGraph();
+        rgPossibleCaller.merge( rg );		
                 
-        ReachGraph rgEffect = getPartial( mdPossible );
+        ReachGraph rgPossibleCallee = getPartial( mdPossible );
 
-        if( rgEffect == null ) {
+        if( rgPossibleCallee == null ) {
           // if this method has never been analyzed just schedule it 
           // for analysis and skip over this call site for now
           if( state.DISJOINTDVISITSTACKEESONTOP ) {
@@ -1460,15 +1468,22 @@ public class DisjointAnalysis {
 
         } else {
           // calculate the method call transform         
-          rgCopy.resolveMethodCall( fc, 
-                                    fmPossible, 
-                                    rgEffect,
-                                    callerNodeIDsCopiedToCallee,
-                                    writeDebugDOTs
-                                    );
+          rgPossibleCaller.resolveMethodCall( fc, 
+                                              fmPossible, 
+                                              rgPossibleCallee,
+                                              callerNodeIDsCopiedToCallee,
+                                              writeDebugDOTs
+                                              );
+
+          if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+            if( !rgPossibleCallee.isAccessible( ReachGraph.tdReturn ) ) {
+              rgPossibleCaller.makeInaccessible( fc.getReturnTemp() );
+            }
+          }
+
         }
         
-        rgMergeOfEffects.merge( rgCopy );        
+        rgMergeOfPossibleCallers.merge( rgPossibleCaller );        
       }
 
 
@@ -1480,16 +1495,25 @@ public class DisjointAnalysis {
 
       // now that we've taken care of building heap models for
       // callee analysis, finish this transformation
-      rg = rgMergeOfEffects;
+      rg = rgMergeOfPossibleCallers;
     } break;
       
 
     case FKind.FlatReturnNode:
       FlatReturnNode frn = (FlatReturnNode) fn;
       rhs = frn.getReturnTemp();
+
+      // before transfer, do effects analysis support
+      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
+        if(!rg.isAccessible(rhs)){
+          rg.makeInaccessible(ReachGraph.tdReturn);
+        }
+      }
+
       if( rhs != null && shouldAnalysisTrack( rhs.getType() ) ) {
 	rg.assignReturnEqualToTemp( rhs );
       }
+
       setRetNodes.add( frn );
       break;
 

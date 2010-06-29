@@ -43,6 +43,7 @@ public class ReachGraph {
   // with respect to stall-site analysis
   public Set<TempDescriptor> inaccessibleVars;
 
+
   public ReachGraph() {
     id2hrn           = new Hashtable<Integer,        HeapRegionNode>();
     td2vn            = new Hashtable<TempDescriptor, VariableNode  >();
