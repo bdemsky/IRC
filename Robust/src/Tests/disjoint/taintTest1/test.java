@@ -13,6 +13,13 @@ public class Test {
     Foo b = new Foo();
 
     rblock r1 {
+
+      rblock c2 {
+        Foo k = a.g;
+      }
+      
+      a.f = new Foo();
+
       Foo x = doSomething( a, b );
 
       // 1 - STALL
@@ -24,6 +31,7 @@ public class Test {
   static Foo doSomething( Foo a, Foo b ) {
 
     Foo z = new Foo();
+    a.g = z;
 
     rblock c1 {
       z.g = new Foo();
@@ -31,7 +39,7 @@ public class Test {
 
     // 1 (this line commented)
     // 2 (STALL HERE!)
-    //z.g = b;
+    z.g = b;
 
     return z;
   }   

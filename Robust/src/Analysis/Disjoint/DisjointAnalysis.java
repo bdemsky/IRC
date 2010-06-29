@@ -1297,6 +1297,11 @@ public class DisjointAnalysis {
     case FKind.FlatSESEEnterNode:
       sese = (FlatSESEEnterNode) fn;
 
+      if( sese.getIsCallerSESEplaceholder() ) {
+        // ignore these dummy rblocks!
+        break;
+      }
+
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         
         // always remove ALL stall site taints at enter
