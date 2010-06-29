@@ -14,86 +14,122 @@ import java.io.*;
 
 public class DisjointAnalysis {
 	
-	  ///////////////////////////////////////////
-	  //
-	  //  Public interface to discover possible
-	  //  aliases in the program under analysis
-	  //
-	  ///////////////////////////////////////////
+  ///////////////////////////////////////////
+  //
+  //  Public interface to discover possible
+  //  sharing in the program under analysis
+  //
+  ///////////////////////////////////////////
+
+  // if an object allocated at the target site may be
+  // reachable from both an object from root1 and an
+  // object allocated at root2, return TRUE
+  public boolean mayBothReachTarget( FlatNew fnRoot1,
+                                     FlatNew fnRoot2,
+                                     FlatNew fnTarget ) {
+    
+    AllocSite asr1 = getAllocationSiteFromFlatNew( fnRoot1 );
+    AllocSite asr2 = getAllocationSiteFromFlatNew( fnRoot2 );
+    assert asr1.isFlagged();
+    assert asr2.isFlagged();
+
+    AllocSite ast = getAllocationSiteFromFlatNew( fnTarget );
+    ReachGraph rg = getPartial( typeUtil.getMain() );
+
+    return rg.mayBothReachTarget( asr1, asr2, ast );
+  }
+
+  // similar to the method above, return TRUE if ever
+  // more than one object from the root allocation site
+  // may reach an object from the target site
+  public boolean mayManyReachTarget( FlatNew fnRoot,
+                                     FlatNew fnTarget ) {
+    
+    AllocSite asr = getAllocationSiteFromFlatNew( fnRoot );
+    assert asr.isFlagged();
+
+    AllocSite ast = getAllocationSiteFromFlatNew( fnTarget );    
+    ReachGraph rg = getPartial( typeUtil.getMain() );
+    
+    return rg.mayManyReachTarget( asr, ast );
+  }
+
+
+
+  
+  public HashSet<AllocSite>
+    getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
+    checkAnalysisComplete();
+    return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
+  }
+	  
+  public AllocSite getAllocationSiteFromFlatNew(FlatNew fn) {
+    checkAnalysisComplete();
+    return getAllocSiteFromFlatNewPRIVATE(fn);
+  }	  
+	  
+  public AllocSite getAllocationSiteFromHeapRegionNodeID(Integer id) {
+    checkAnalysisComplete();
+    return mapHrnIdToAllocSite.get(id);
+  }
+	  
+  public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
+                                                 int paramIndex1,
+                                                 int paramIndex2) {
+    checkAnalysisComplete();
+    ReachGraph rg=mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+    FlatMethod fm=state.getMethodFlat(taskOrMethod);
+    assert(rg != null);
+    return rg.mayReachSharedObjects(fm, paramIndex1, paramIndex2);
+  }
+	  
+  public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
+                                                 int paramIndex, AllocSite alloc) {
+    checkAnalysisComplete();
+    ReachGraph rg = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+    FlatMethod fm=state.getMethodFlat(taskOrMethod);
+    assert (rg != null);
+    return rg.mayReachSharedObjects(fm, paramIndex, alloc);
+  }
+
+  public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
+                                                 AllocSite alloc, int paramIndex) {
+    checkAnalysisComplete();
+    ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+    FlatMethod fm=state.getMethodFlat(taskOrMethod);
+    assert (rg != null);
+    return rg.mayReachSharedObjects(fm, paramIndex, alloc);
+  }
+
+  public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
+                                                 AllocSite alloc1, AllocSite alloc2) {
+    checkAnalysisComplete();
+    ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
+    assert (rg != null);
+    return rg.mayReachSharedObjects(alloc1, alloc2);
+  }
 	
-	  public HashSet<AllocSite>
-	  getFlaggedAllocationSitesReachableFromTask(TaskDescriptor td) {
-	    checkAnalysisComplete();
-	    return getFlaggedAllocationSitesReachableFromTaskPRIVATE(td);
-	  }
-	  
-	  public AllocSite getAllocationSiteFromFlatNew(FlatNew fn) {
-		    checkAnalysisComplete();
-		    return getAllocSiteFromFlatNewPRIVATE(fn);
-	   }	  
-	  
-	  public AllocSite getAllocationSiteFromHeapRegionNodeID(Integer id) {
-		    checkAnalysisComplete();
-		    return mapHrnIdToAllocSite.get(id);
-	  }
-	  
-	  public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
-              int paramIndex1,
-              int paramIndex2) {
-		  checkAnalysisComplete();
-		  ReachGraph rg=mapDescriptorToCompleteReachGraph.get(taskOrMethod);
-		  FlatMethod fm=state.getMethodFlat(taskOrMethod);
-		  assert(rg != null);
-		  return rg.mayReachSharedObjects(fm, paramIndex1, paramIndex2);
-	  }
-	  
-	public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
-			int paramIndex, AllocSite alloc) {
-		checkAnalysisComplete();
-		ReachGraph rg = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
-   	    FlatMethod fm=state.getMethodFlat(taskOrMethod);
-		assert (rg != null);
-		return rg.mayReachSharedObjects(fm, paramIndex, alloc);
-	}
+  public String prettyPrintNodeSet(Set<HeapRegionNode> s) {
+    checkAnalysisComplete();
 
-	public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
-			AllocSite alloc, int paramIndex) {
-		checkAnalysisComplete();
-		ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
-		FlatMethod fm=state.getMethodFlat(taskOrMethod);
-		assert (rg != null);
-		return rg.mayReachSharedObjects(fm, paramIndex, alloc);
-	}
+    String out = "{\n";
 
-	public Set<HeapRegionNode> hasPotentialSharing(Descriptor taskOrMethod,
-			AllocSite alloc1, AllocSite alloc2) {
-		checkAnalysisComplete();
-		ReachGraph rg  = mapDescriptorToCompleteReachGraph.get(taskOrMethod);
-		assert (rg != null);
-		return rg.mayReachSharedObjects(alloc1, alloc2);
-	}
-	
-	public String prettyPrintNodeSet(Set<HeapRegionNode> s) {
-		checkAnalysisComplete();
+    Iterator<HeapRegionNode> i = s.iterator();
+    while (i.hasNext()) {
+      HeapRegionNode n = i.next();
 
-		String out = "{\n";
+      AllocSite as = n.getAllocSite();
+      if (as == null) {
+        out += "  " + n.toString() + ",\n";
+      } else {
+        out += "  " + n.toString() + ": " + as.toStringVerbose()
+          + ",\n";
+      }
+    }
 
-		Iterator<HeapRegionNode> i = s.iterator();
-		while (i.hasNext()) {
-			HeapRegionNode n = i.next();
-
-			AllocSite as = n.getAllocSite();
-			if (as == null) {
-				out += "  " + n.toString() + ",\n";
-			} else {
-				out += "  " + n.toString() + ": " + as.toStringVerbose()
-						+ ",\n";
-			}
-		}
-
-		out += "}\n";
-		return out;
-	}
+    out += "}\n";
+    return out;
+  }
 	
   // use the methods given above to check every possible sharing class
   // between task parameters and flagged allocation sites reachable
@@ -308,11 +344,17 @@ public class DisjointAnalysis {
   //
   ///////////////////////////////////////////
 
+
+
   protected void checkAnalysisComplete() {
     if( !analysisComplete ) {
       throw new Error("Warning: public interface method called while analysis is running.");
     }
   } 
+
+
+
+
 
 
   // run in faster mode, only when bugs wrung out!

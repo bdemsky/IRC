@@ -4619,6 +4619,24 @@ public class ReachGraph {
 
 
 
+  public boolean mayBothReachTarget( AllocSite asRoot1,
+                                     AllocSite asRoot2,
+                                     AllocSite asTarget ) {
+
+    return false;
+  }
+
+
+  public boolean mayManyReachTarget( AllocSite asRoot,
+                                     AllocSite asTarget ) {
+    
+    return false;
+  }
+
+
+
+
+
   public Set<HeapRegionNode> findCommonReachableNodes( ReachSet proofOfSharing ) {
 
     Set<HeapRegionNode> exhibitProofState =
