@@ -6,7 +6,6 @@ import java.util.Set;
 
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
-import Analysis.MLP.LiveInNode;
 
 public class ConflictNode {
 
@@ -85,11 +84,11 @@ public class ConflictNode {
   public Hashtable<AllocSite, Set<Effect>> getReadEffectSet() {
     return alloc2readEffectSet;
   }
-  
+
   public Hashtable<AllocSite, Set<Effect>> getWriteEffectSet() {
     return alloc2writeEffectSet;
   }
-  
+
   public Hashtable<AllocSite, Set<Effect>> getStrongUpdateEffectSet() {
     return alloc2strongUpdateEffectSet;
   }
@@ -104,26 +103,14 @@ public class ConflictNode {
   public boolean isStallSiteNode() {
     return !isInVarNode();
   }
-  
-  public Set<ConflictEdge> getEdgeSet(){
+
+  public Set<ConflictEdge> getEdgeSet() {
     return edgeSet;
   }
 
   public void addEdge(ConflictEdge edge) {
     edgeSet.add(edge);
   }
-
-  // public Set<Effect> getReadEffectSet() {
-  // return readEffectSet;
-  // }
-  //
-  // public Set<Effect> getWriteEffectSet() {
-  // return writeEffectSet;
-  // }
-  //
-  // public Set<Effect> getStrongUpdateEffectSet() {
-  // return strongUpdateEffectSet;
-  // }
 
   public int getType() {
     return type;
@@ -132,7 +119,7 @@ public class ConflictNode {
   public String getID() {
     return id;
   }
-  
+
   public boolean equals(Object o) {
 
     if (o == null) {
@@ -152,7 +139,6 @@ public class ConflictNode {
     }
 
   }
-  
 
   public String toString() {
 

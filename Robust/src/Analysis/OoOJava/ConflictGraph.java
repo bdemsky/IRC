@@ -13,6 +13,7 @@ import java.util.Map.Entry;
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.Taint;
+import IR.Flat.FlatNode;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.TempDescriptor;
 
@@ -26,6 +27,60 @@ public class ConflictGraph {
 
   public ConflictGraph() {
     id2cn = new Hashtable<String, ConflictNode>();
+  }
+  
+  public void addLiveIn(Hashtable<Taint, Set<Effect>> taint2Effects) {
+    Iterator entryIter = taint2Effects.entrySet().iterator();
+    while (entryIter.hasNext()) {
+      Entry entry = (Entry) entryIter.next();
+      Taint taint = (Taint) entry.getKey();
+      Set<Effect> effectSet = (Set<Effect>) entry.getValue();
+      if (!effectSet.isEmpty()) {
+        Iterator<Effect> effectIter = effectSet.iterator();
+        while (effectIter.hasNext()) {
+          Effect effect = (Effect) effectIter.next();
+          addLiveInNodeEffect(taint, effect);
+        }
+      }
+    }
+  }
+
+  public void addStallSite(Hashtable<Taint, Set<Effect>> taint2Effects) {
+    Iterator entryIter = taint2Effects.entrySet().iterator();
+    while (entryIter.hasNext()) {
+      Entry entry = (Entry) entryIter.next();
+      Taint taint = (Taint) entry.getKey();
+      Set<Effect> effectSet = (Set<Effect>) entry.getValue();
+      if (!effectSet.isEmpty()) {
+        Iterator<Effect> effectIter = effectSet.iterator();
+        while (effectIter.hasNext()) {
+          Effect effect = (Effect) effectIter.next();
+          addStallSiteEffect(taint, effect);
+        }
+      }
+    }
+  }
+
+  public void addStallSiteEffect(Taint t, Effect e) {
+    FlatNode fn = t.getStallSite();
+    TempDescriptor var = t.getVar();
+    AllocSite as = t.getAllocSite();
+
+    String id = var + "_" + fn;
+    ConflictNode node = id2cn.get(id);
+    if (node == null) {
+      node = new ConflictNode(id, ConflictNode.INVAR);
+    }
+
+    if (!id2cn.containsKey(id)) {
+
+    } else {
+      node = id2cn.get(id);
+    }
+    node.addEffect(as, e);
+
+    id2cn.put(id, node);
+
   }
 
   public void addLiveInNodeEffect(Taint t, Effect e) {
@@ -100,13 +155,13 @@ public class ConflictGraph {
   private void analyzePossibleConflicts(Set<String> analyzedIDSet, ConflictNode currentNode) {
     // compare with all nodes
     // examine the case where self-edge exists
+
+    int conflictType;
     if (currentNode.isInVarNode()) {
-      // LiveInNode liveInNode = (LiveInNode) currentNode;
-      // int conflictType=calculateSelfConflictType(liveInNode);
-      // if(conflictType>0){
-      // addConflictEdge(conflictType, currentNode,
-      // currentNode);
-      // }
+      conflictType = calculateConflictType(currentNode);
+      if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
+        addConflictEdge(conflictType, currentNode, currentNode);
+      }
     }
 
     Set<Entry<String, ConflictNode>> set = id2cn.entrySet();
@@ -129,7 +184,7 @@ public class ConflictGraph {
            * analyzedIDSet.add(currentNode.getID() + entryNodeID);
            */
         } else if (currentNode.isInVarNode() && entryNode.isInVarNode()) {
-          int conflictType = calculateConflictType(currentNode, entryNode);
+          conflictType = calculateConflictType(currentNode, entryNode);
           if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
             addConflictEdge(conflictType, currentNode, entryNode);
           }
@@ -140,25 +195,132 @@ public class ConflictGraph {
 
   }
 
+  private int calculateConflictType(ConflictNode node) {
+
+    int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
+    Hashtable<AllocSite, Set<Effect>> alloc2readEffects = node.getReadEffectSet();
+    Hashtable<AllocSite, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();
+    Hashtable<AllocSite, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet();
+
+    conflictType =
+        updateConflictType(conflictType, determineConflictType(alloc2writeEffects,
+            alloc2writeEffects));
+
+    conflictType =
+        updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffects,
+            alloc2readEffects, alloc2writeEffects));
+
+    return conflictType;
+  }
+
   private int calculateConflictType(ConflictNode nodeA, ConflictNode nodeB) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
     Hashtable<AllocSite, Set<Effect>> alloc2readEffectsA = nodeA.getReadEffectSet();
     Hashtable<AllocSite, Set<Effect>> alloc2writeEffectsA = nodeA.getWriteEffectSet();
+    Hashtable<AllocSite, Set<Effect>> alloc2SUEffectsA = nodeA.getStrongUpdateEffectSet();
     Hashtable<AllocSite, Set<Effect>> alloc2readEffectsB = nodeB.getReadEffectSet();
     Hashtable<AllocSite, Set<Effect>> alloc2writeEffectsB = nodeB.getWriteEffectSet();
+    Hashtable<AllocSite, Set<Effect>> alloc2SUEffectsB = nodeB.getStrongUpdateEffectSet();
 
     // if node A has write effects on reading/writing regions of node B
-    conflictType = updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
-        alloc2readEffectsB));
-    conflictType = updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
-        alloc2writeEffectsB));
+    conflictType =
+        updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
+            alloc2readEffectsB));
+    conflictType =
+        updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
+            alloc2writeEffectsB));
 
     // if node B has write effects on reading regions of node A
     determineConflictType(alloc2writeEffectsB, alloc2readEffectsA);
 
+    // strong udpate effects conflict with all effects
+    // on objects that are reachable from the same heap roots
+    // if node A has SU on regions of node B
+    if (!alloc2SUEffectsA.isEmpty()) {
+      conflictType =
+          updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffectsA,
+              alloc2readEffectsB, alloc2writeEffectsB));
+    }
+
+    // if node B has SU on regions of node A
+    if (!alloc2SUEffectsB.isEmpty()) {
+      conflictType =
+          updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffectsB,
+              alloc2readEffectsA, alloc2writeEffectsA));
+    }
+
     return conflictType;
+  }
+
+  private int hasStrongUpdateConflicts(Hashtable<AllocSite, Set<Effect>> SUEffectsTableA,
+      Hashtable<AllocSite, Set<Effect>> readTableB, Hashtable<AllocSite, Set<Effect>> writeTableB) {
+
+    int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
+
+    Iterator effectItrA = SUEffectsTableA.entrySet().iterator();
+    while (effectItrA.hasNext()) {
+      Map.Entry meA = (Map.Entry) effectItrA.next();
+      AllocSite asA = (AllocSite) meA.getKey();
+      Set<Effect> strongUpdateSetA = (Set<Effect>) meA.getValue();
+
+      Iterator effectItrB = readTableB.entrySet().iterator();
+      while (effectItrB.hasNext()) {
+        Map.Entry meB = (Map.Entry) effectItrB.next();
+        AllocSite asB = (AllocSite) meA.getKey();
+        Set<Effect> esB = (Set<Effect>) meA.getValue();
+
+        for (Iterator iterator = strongUpdateSetA.iterator(); iterator.hasNext();) {
+          Effect strongUpdateA = (Effect) iterator.next();
+          for (Iterator iterator2 = esB.iterator(); iterator2.hasNext();) {
+            Effect effectB = (Effect) iterator2.next();
+
+            if (strongUpdateA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
+                && strongUpdateA.getField().equals(effectB.getField())) {
+              // possible conflict
+              // check affected allocation site can be reached from both heap
+              // roots
+              // if(og.isReachable(asA, asB,
+              // strongUpdateA.getAffectedAllocSite()){
+              // return ConflictGraph.COARSE_GRAIN_EDGE;
+              // }
+            }
+
+          }
+        }
+      }
+
+      effectItrB = writeTableB.entrySet().iterator();
+      while (effectItrB.hasNext()) {
+        Map.Entry meB = (Map.Entry) effectItrB.next();
+        AllocSite asB = (AllocSite) meA.getKey();
+        Set<Effect> esB = (Set<Effect>) meA.getValue();
+
+        for (Iterator iterator = strongUpdateSetA.iterator(); iterator.hasNext();) {
+          Effect strongUpdateA = (Effect) iterator.next();
+          for (Iterator iterator2 = esB.iterator(); iterator2.hasNext();) {
+            Effect effectB = (Effect) iterator2.next();
+
+            if (strongUpdateA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
+                && strongUpdateA.getField().equals(effectB.getField())) {
+              // possible conflict
+              // check affected allocation site can be reached from both heap
+              // roots
+              // if(og.isReachable(asA, asB,
+              // strongUpdateA.getAffectedAllocSite()){
+              // return ConflictGraph.COARSE_GRAIN_EDGE;
+              // }
+            }
+
+          }
+        }
+      }
+
+    }
+
+    return conflictType;
+
   }
 
   private int determineConflictType(Hashtable<AllocSite, Set<Effect>> nodeAtable,
@@ -184,7 +346,7 @@ public class ConflictGraph {
             Effect effectB = (Effect) iterator2.next();
 
             if (effectA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
-                && effectA.getField().equals(effectB.getField())) {             
+                && effectA.getField().equals(effectB.getField())) {
               // possible conflict
               /*
                * if(og.isReachable(asA, asB, effectA.getAffectedAllocSite())){
@@ -201,8 +363,7 @@ public class ConflictGraph {
       }
     }
 
-    return ConflictGraph.FINE_GRAIN_EDGE;
-    // return conflictType;
+    return conflictType;
   }
 
   private int updateConflictType(int current, int newType) {

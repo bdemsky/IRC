@@ -23,11 +23,13 @@ import IR.State;
 import IR.TypeUtil;
 import IR.Flat.FKind;
 import IR.Flat.FlatEdge;
+import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatOpNode;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.FlatSESEExitNode;
+import IR.Flat.FlatSetFieldNode;
 import IR.Flat.FlatWriteDynamicVarNode;
 import IR.Flat.TempDescriptor;
 
@@ -657,6 +659,7 @@ public class OoOJavaAnalysis {
       if (!seseStack.isEmpty()) {
 
         // Add Stall Node of current program statement
+        // disjointAnalysisTaints.getEffectsAnalysis().getEffects(t);        
 
         ConflictGraph conflictGraph = sese2conflictGraph.get(seseStack.peek());
         if (conflictGraph == null) {
@@ -682,6 +685,12 @@ public class OoOJavaAnalysis {
 
   private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE) {
 
+    EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
+    ConflictGraph conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
+    if (conflictGraph == null) {
+      conflictGraph = new ConflictGraph();
+    }
+    
     switch (fn.kind()) {
 
     case FKind.FlatSESEEnterNode: {
@@ -689,39 +698,48 @@ public class OoOJavaAnalysis {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
       if (!fsen.getIsCallerSESEplaceholder() && currentSESE.getParent() != null) {
-        Set<TempDescriptor> invar_set = fsen.getInVarSet();
-        ConflictGraph conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
-        if (conflictGraph == null) {
-          conflictGraph = new ConflictGraph();
-        }
-
-        // collects effects set
-        EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
-        Iterator iter=effectsAnalysis.iteratorTaintEffectPairs();
-        while(iter.hasNext()){
-          Entry entry=(Entry)iter.next();
-          Taint taint=(Taint)entry.getKey();
-          Set<Effect> effects=(Set<Effect>)entry.getValue();
-          if(taint.getSESE().equals(currentSESE)){
-            Iterator<Effect> eIter=effects.iterator();
-            while (eIter.hasNext()) {
-              Effect effect = eIter.next();
-              if (taint.getSESE().equals(currentSESE)) {
-                conflictGraph.addLiveInNodeEffect(taint, effect);
-              }
-            }
-          }
-
-        }
-
-        if (conflictGraph.id2cn.size() > 0) {
-          sese2conflictGraph.put(currentSESE.getParent(), conflictGraph);
-        }
+        // collects effects set of invar set and generates invar node
+        Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.getSESEEffects(currentSESE);
+        conflictGraph.addLiveIn(taint2Effects);
       }
     }
       break;
+      
+    case FKind.FlatFieldNode:  
+    case FKind.FlatElementNode: {
+      
+      FlatFieldNode ffn = (FlatFieldNode) fn;
+      TempDescriptor rhs = ffn.getSrc();
+      
+      // add stall site      
+      Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.getStallSiteEffects(fn, rhs);
+      conflictGraph.addStallSite(taint2Effects);
+      
+    }    
+      break;
+      
+    case FKind.FlatSetFieldNode: 
+    case FKind.FlatSetElementNode: {
+      
+      FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+      TempDescriptor lhs = fsfn.getDst();
+      TempDescriptor rhs = fsfn.getSrc();
+      
+      // collects effects of stall site and generates stall site node
+      Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.getStallSiteEffects(fn, rhs);
+      conflictGraph.addStallSite(taint2Effects);
+      
+      taint2Effects=effectsAnalysis.getStallSiteEffects(fn, lhs);
+      conflictGraph.addStallSite(taint2Effects);
+      
+    }    
+      break;
     }
 
+    if (conflictGraph.id2cn.size() > 0) {
+      sese2conflictGraph.put(currentSESE.getParent(), conflictGraph);
+    }
+    
   }
   
   private void calculateConflicts() {

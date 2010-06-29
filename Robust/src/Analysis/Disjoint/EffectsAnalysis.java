@@ -1,11 +1,13 @@
 package Analysis.Disjoint;
 
 import java.util.*;
+import java.util.Map.Entry;
 import java.io.*;
 
 import IR.FieldDescriptor;
 import IR.Flat.FlatCall;
 import IR.Flat.FlatMethod;
+import IR.Flat.FlatNode;
 import IR.Flat.TempDescriptor;
 import IR.Flat.FlatSESEEnterNode;
 
@@ -46,6 +48,60 @@ public class EffectsAnalysis {
 
   public Iterator iteratorTaintEffectPairs() {
     return taint2effects.entrySet().iterator();
+  }
+  
+  public Hashtable<Taint, Set<Effect>> getSESEEffects(FlatSESEEnterNode sese){
+    
+    Hashtable<Taint, Set<Effect>> taint2Effects = new Hashtable<Taint, Set<Effect>>();
+    Iterator iter=iteratorTaintEffectPairs();
+    while (iter.hasNext()) {
+      Entry entry = (Entry) iter.next();
+      Taint taint = (Taint) entry.getKey();
+      Set<Effect> effects = (Set<Effect>) entry.getValue();
+      if (taint.getSESE().equals(sese)) {
+        Iterator<Effect> eIter = effects.iterator();
+        while (eIter.hasNext()) {
+          Effect effect = eIter.next();
+          if (taint.getSESE().equals(sese)) {
+            Set<Effect> effectSet = taint2Effects.get(taint);
+            if (effectSet == null) {
+              effectSet = new HashSet<Effect>();
+            }
+            effectSet.add(effect);
+            taint2Effects.put(taint, effectSet);
+          }
+        }
+      }
+    }
+    
+    return taint2Effects;
+    
+  }
+  
+  public Hashtable<Taint, Set<Effect>> getStallSiteEffects(FlatNode fn, TempDescriptor td){
+    
+    Hashtable<Taint, Set<Effect>> taint2Effects = new Hashtable<Taint, Set<Effect>>();
+    Iterator iter=iteratorTaintEffectPairs();
+    while(iter.hasNext()){
+      Entry entry=(Entry)iter.next();
+      Taint taint=(Taint)entry.getKey();
+      Set<Effect> effects=(Set<Effect>)entry.getValue();
+      if(taint.getStallSite().equals(fn)){
+        Iterator<Effect> eIter=effects.iterator();        
+        while (eIter.hasNext()) {
+          Effect effect = eIter.next();
+          if( taint.getStallSite().equals(fn) && taint.getVar().equals(td) ){
+            Set<Effect> effectSet=taint2Effects.get(taint);
+            if(effectSet==null){
+              effectSet=new HashSet<Effect>();
+            }
+            effectSet.add(effect);
+            taint2Effects.put(taint, effectSet);
+          }
+        }
+      }
+    }
+    return taint2Effects; 
   }
 
 
