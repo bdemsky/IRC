@@ -24,7 +24,8 @@ public class DisjointAnalysis {
   // if an object allocated at the target site may be
   // reachable from both an object from root1 and an
   // object allocated at root2, return TRUE
-  public boolean mayBothReachTarget( FlatNew fnRoot1,
+  public boolean mayBothReachTarget( FlatMethod fm,
+                                     FlatNew fnRoot1,
                                      FlatNew fnRoot2,
                                      FlatNew fnTarget ) {
     
@@ -34,7 +35,7 @@ public class DisjointAnalysis {
     assert asr2.isFlagged();
 
     AllocSite ast = getAllocationSiteFromFlatNew( fnTarget );
-    ReachGraph rg = getPartial( typeUtil.getMain() );
+    ReachGraph rg = getPartial( fm.getMethod() );
 
     return rg.mayBothReachTarget( asr1, asr2, ast );
   }
@@ -42,14 +43,15 @@ public class DisjointAnalysis {
   // similar to the method above, return TRUE if ever
   // more than one object from the root allocation site
   // may reach an object from the target site
-  public boolean mayManyReachTarget( FlatNew fnRoot,
+  public boolean mayManyReachTarget( FlatMethod fm,
+                                     FlatNew fnRoot,
                                      FlatNew fnTarget ) {
     
     AllocSite asr = getAllocationSiteFromFlatNew( fnRoot );
     assert asr.isFlagged();
-
+    
     AllocSite ast = getAllocationSiteFromFlatNew( fnTarget );    
-    ReachGraph rg = getPartial( typeUtil.getMain() );
+    ReachGraph rg = getPartial( fm.getMethod() );
     
     return rg.mayManyReachTarget( asr, ast );
   }
