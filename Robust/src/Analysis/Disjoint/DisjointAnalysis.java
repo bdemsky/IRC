@@ -420,6 +420,11 @@ public class DisjointAnalysis {
   protected Hashtable< Descriptor, Set<Descriptor> >
     mapDescriptorToSetDependents;
 
+  // if the analysis client wants to flag allocation sites
+  // programmatically, it should provide a set of FlatNew
+  // statements--this may be null if unneeded
+  protected Set<FlatNew> sitesToFlag;
+
   // maps each flat new to one analysis abstraction
   // allocate site object, these exist outside reach graphs
   protected Hashtable<FlatNew, AllocSite>
@@ -559,10 +564,11 @@ public class DisjointAnalysis {
 			   CallGraph        cg,
 			   Liveness         l,
 			   ArrayReferencees ar,
+                           Set<FlatNew> sitesToFlag,
                            RBlockRelationAnalysis rra,
                            RBlockStatusAnalysis rsa
                            ) {
-    init( s, tu, cg, l, ar, rra, rsa );
+    init( s, tu, cg, l, ar, sitesToFlag, rra, rsa );
   }
   
   protected void init( State            state,
@@ -570,19 +576,21 @@ public class DisjointAnalysis {
                        CallGraph        callGraph,
                        Liveness         liveness,
                        ArrayReferencees arrayReferencees,
+                       Set<FlatNew> sitesToFlag,
                        RBlockRelationAnalysis rra,
                        RBlockStatusAnalysis rsa
                        ) {
 	  
     analysisComplete = false;
     
-    this.state                   = state;
-    this.typeUtil                = typeUtil;
-    this.callGraph               = callGraph;
-    this.liveness                = liveness;
-    this.arrayReferencees        = arrayReferencees;
-    this.rblockRel               = rra;
-    this.rblockStatus         = rsa;
+    this.state            = state;
+    this.typeUtil         = typeUtil;
+    this.callGraph        = callGraph;
+    this.liveness         = liveness;
+    this.arrayReferencees = arrayReferencees;
+    this.sitesToFlag      = sitesToFlag;
+    this.rblockRel        = rra;
+    this.rblockStatus     = rsa;
 
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
@@ -934,16 +942,8 @@ public class DisjointAnalysis {
       }
 
 
-      //System.out.println( "At "+fn );
-      //System.out.println( "  inacc-in:  "+rg.getInaccessibleVars() );
-
-
       // modify rg with appropriate transfer function
       rg = analyzeFlatNode( d, fm, fn, setReturns, rg );
-
-
-      //System.out.println( "  inacc-out: "+rg.getInaccessibleVars() );
-      //System.out.println( "\n" );
 
 
       if( takeDebugSnapshots && 
@@ -1673,11 +1673,16 @@ public class DisjointAnalysis {
   // return just the allocation site associated with one FlatNew node
   protected AllocSite getAllocSiteFromFlatNewPRIVATE( FlatNew fnew ) {
 
+    boolean flagProgrammatically = false;
+    if( sitesToFlag != null && sitesToFlag.contains( fnew ) ) {
+      flagProgrammatically = true;
+    }
+
     if( !mapFlatNewToAllocSite.containsKey( fnew ) ) {
       AllocSite as = AllocSite.factory( allocationDepth, 
                                         fnew, 
                                         fnew.getDisjointId(),
-                                        false
+                                        flagProgrammatically
                                         );
 
       // the newest nodes are single objects

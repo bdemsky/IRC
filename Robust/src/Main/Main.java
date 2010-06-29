@@ -505,7 +505,7 @@ public class Main {
       CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
-      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar, null, null);
+      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar, null, null, null);
     }
 
     if (state.OOOJAVA) {

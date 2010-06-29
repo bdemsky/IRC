@@ -34,8 +34,17 @@ public class EffectsAnalysis {
   // support interprocedural analysis
   private Hashtable<Taint, Set<Effect>> taint2effects;
 
+  // redundant views of the effect set for
+  // efficient retrieval
+  private Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>> > sese2te;
+  private Hashtable<FlatNode,          Hashtable<Taint, Set<Effect>> > stallSite2te;
+
+
   public EffectsAnalysis() {
     taint2effects = new Hashtable<Taint, Set<Effect>>();
+
+    sese2te      = new Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>> >();
+    stallSite2te = new Hashtable<FlatNode,          Hashtable<Taint, Set<Effect>> >();
   }
 
 
@@ -49,7 +58,8 @@ public class EffectsAnalysis {
   public Iterator iteratorTaintEffectPairs() {
     return taint2effects.entrySet().iterator();
   }
-  
+
+  /*
   public Hashtable<Taint, Set<Effect>> getSESEEffects(FlatSESEEnterNode sese){
     
     Hashtable<Taint, Set<Effect>> taint2Effects = new Hashtable<Taint, Set<Effect>>();
@@ -77,7 +87,8 @@ public class EffectsAnalysis {
     return taint2Effects;
     
   }
-  
+  */
+
   public Hashtable<Taint, Set<Effect>> getStallSiteEffects(FlatNode fn, TempDescriptor td){
     
     Hashtable<Taint, Set<Effect>> taint2Effects = new Hashtable<Taint, Set<Effect>>();
@@ -115,13 +126,61 @@ public class EffectsAnalysis {
                                               ReachGraph.predsEmpty
                                               );
 
+    // add to the global bag
     Set<Effect> effectSet = taint2effects.get(tNoPreds);
     if (effectSet == null) {
       effectSet = new HashSet<Effect>();
     }
     effectSet.add(e);
     taint2effects.put(tNoPreds, effectSet);
+
+    // add to the alternate retrieval bags
+    if( t.getSESE() != null ) {
+      FlatSESEEnterNode sese = t.getSESE();
+
+      Hashtable<Taint, Set<Effect>> te = sese2te.get( sese );
+      if( te == null ) {
+        te = new Hashtable<Taint, Set<Effect>>();
+      }
+
+      Set<Effect> effects = te.get(tNoPreds);
+      if (effects == null) {
+        effects = new HashSet<Effect>();
+      }
+      effects.add(e);
+      te.put(tNoPreds, effects);
+
+      sese2te.put(sese, te);
+
+    } else {
+      assert t.getStallSite() != null;
+      FlatNode stallSite = t.getStallSite();
+
+      Hashtable<Taint, Set<Effect>> te = stallSite2te.get( stallSite );
+      if( te == null ) {
+        te = new Hashtable<Taint, Set<Effect>>();
+      }
+
+      Set<Effect> effects = te.get(tNoPreds);
+      if (effects == null) {
+        effects = new HashSet<Effect>();
+      }
+      effects.add(e);
+      te.put(tNoPreds, effects);
+
+      stallSite2te.put(stallSite, te);
+    }    
   }
+
+
+  public Hashtable<Taint, Set<Effect>> get( FlatSESEEnterNode sese ) {
+    return sese2te.get(sese);
+  }
+
+  public Hashtable<Taint, Set<Effect>> get( FlatNode stallSite ) {
+    return stallSite2te.get(stallSite);
+  }
+
 
 
   public void analyzeFlatFieldNode(ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld) {

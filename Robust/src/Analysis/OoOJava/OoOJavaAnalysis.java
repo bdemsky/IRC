@@ -27,6 +27,7 @@ import IR.Flat.FlatFieldNode;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatOpNode;
+import IR.Flat.FlatNew;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.FlatSESEExitNode;
 import IR.Flat.FlatSetFieldNode;
@@ -155,8 +156,16 @@ public class OoOJavaAnalysis {
 
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
-    disjointAnalysisTaints = new DisjointAnalysis(state, typeUtil, callGraph, liveness,
-        arrayReferencees, rblockRel, rblockStatus);
+    disjointAnalysisTaints = 
+      new DisjointAnalysis(state, 
+                           typeUtil, 
+                           callGraph, 
+                           liveness,
+                           arrayReferencees, 
+                           null, // no FlatNew set to flag
+                           rblockRel, 
+                           rblockStatus
+                           );
 
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
@@ -169,14 +178,17 @@ public class OoOJavaAnalysis {
       notAvailableForward(fm);
     }
 
-    /*
-    // #th pass,  make conflict graph
-    // conflict graph is maintained by each parent sese
+    // 7th pass,  make conflict graph
+    // conflict graph is maintained by each parent sese,
+    // and while making the graph identify set of FlatNew
+    // that next disjoint reach. analysis should flag
+    Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
+    
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-      makeConflictGraph(fm);
+      makeConflictGraph(fm, sitesToFlag);
     }
 
     // debug routine 
@@ -194,9 +206,25 @@ public class OoOJavaAnalysis {
       }
     }
     
-    // #th pass, calculate conflicts
-    calculateConflicts();
+    // 8th pass, ask disjoint analysis to compute reachability
+    // for objects that may cause heap conflicts so the most
+    // efficient method to deal with conflict can be computed
+    // later
+    disjointAnalysisReach = 
+      new DisjointAnalysis(state, 
+                           typeUtil, 
+                           callGraph, 
+                           liveness,
+                           arrayReferencees, 
+                           sitesToFlag,
+                           null, // don't do effects analysis again!
+                           null  // don't do effects analysis again!
+                           );
+
+    // 9th pass, calculate conflicts
+    //calculateConflicts();
     
+    /*
     // #th pass, compiling locks
     synthesizeLocks();
 
@@ -641,7 +669,7 @@ public class OoOJavaAnalysis {
     } // end switch
   }
 
-  private void makeConflictGraph(FlatMethod fm) {
+  private void makeConflictGraph(FlatMethod fm, Set<FlatNew> sitesToFlag) {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
@@ -658,16 +686,12 @@ public class OoOJavaAnalysis {
 
       if (!seseStack.isEmpty()) {
 
-        // Add Stall Node of current program statement
-        // disjointAnalysisTaints.getEffectsAnalysis().getEffects(t);        
-
         ConflictGraph conflictGraph = sese2conflictGraph.get(seseStack.peek());
         if (conflictGraph == null) {
           conflictGraph = new ConflictGraph();
         }
 
-        conflictGraph_nodeAction(fn, seseStack.peek());
-
+        conflictGraph_nodeAction(fn, seseStack.peek(), sitesToFlag);
       }
 
       // schedule forward nodes for analysis
@@ -683,7 +707,7 @@ public class OoOJavaAnalysis {
   }
  
 
-  private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE) {
+  private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE, Set<FlatNew> sitesToFlag) {
 
     EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
     ConflictGraph conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
@@ -699,7 +723,7 @@ public class OoOJavaAnalysis {
 
       if (!fsen.getIsCallerSESEplaceholder() && currentSESE.getParent() != null) {
         // collects effects set of invar set and generates invar node
-        Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.getSESEEffects(currentSESE);
+        Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.get(currentSESE);
         conflictGraph.addLiveIn(taint2Effects);
       }
     }
@@ -712,8 +736,8 @@ public class OoOJavaAnalysis {
       TempDescriptor rhs = ffn.getSrc();
       
       // add stall site      
-      Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.getStallSiteEffects(fn, rhs);
-      conflictGraph.addStallSite(taint2Effects);
+      //Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.get(fn, rhs);
+      //conflictGraph.addStallSite(taint2Effects);
       
     }    
       break;
@@ -726,11 +750,11 @@ public class OoOJavaAnalysis {
       TempDescriptor rhs = fsfn.getSrc();
       
       // collects effects of stall site and generates stall site node
-      Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.getStallSiteEffects(fn, rhs);
-      conflictGraph.addStallSite(taint2Effects);
+      //Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.get(fn, rhs);
+      //conflictGraph.addStallSite(taint2Effects);
       
-      taint2Effects=effectsAnalysis.getStallSiteEffects(fn, lhs);
-      conflictGraph.addStallSite(taint2Effects);
+      //taint2Effects=effectsAnalysis.get(fn, lhs);
+      //conflictGraph.addStallSite(taint2Effects);
       
     }    
       break;
