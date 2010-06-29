@@ -180,15 +180,12 @@ public class OoOJavaAnalysis {
 
     // 7th pass,  make conflict graph
     // conflict graph is maintained by each parent sese,
-    // and while making the graph identify set of FlatNew
-    // that next disjoint reach. analysis should flag
-    Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
-    
-    methItr = descriptorsToAnalyze.iterator();
-    while (methItr.hasNext()) {
-      Descriptor d = methItr.next();
+    Iterator descItr=disjointAnalysisTaints.getDescriptorsToAnalyze().iterator();
+    while (descItr.hasNext()) {
+      Descriptor d = (Descriptor)descItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-      makeConflictGraph(fm, sitesToFlag);
+      if(fm != null)
+        makeConflictGraph(fm);
     }
 
     // debug routine 
@@ -197,16 +194,22 @@ public class OoOJavaAnalysis {
       Entry e = (Entry) iter.next();
       FlatNode fn = (FlatNode) e.getKey();
       ConflictGraph conflictGraph = (ConflictGraph) e.getValue();
+      System.out.println("---------------------------------------");
       System.out.println("CONFLICT GRAPH for " + fn);
       Set<String> keySet = conflictGraph.id2cn.keySet();
       for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
         String key = (String) iterator.next();
         ConflictNode node = conflictGraph.id2cn.get(key);
-        System.out.println("key=" + key + " --\n" + node.toString());
+        System.out.println("key=" + key + " \n" + node.toStringAllEffects());
       }
     }
     
-    // 8th pass, ask disjoint analysis to compute reachability
+    // 8th pass, calculate all possible conflicts without using reachability info
+    // and identify set of FlatNew that next disjoint reach. analysis should flag
+    Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
+    calculateConflicts(sitesToFlag,false);    
+    
+    // 9th pass, ask disjoint analysis to compute reachability
     // for objects that may cause heap conflicts so the most
     // efficient method to deal with conflict can be computed
     // later
@@ -221,11 +224,11 @@ public class OoOJavaAnalysis {
                            null  // don't do effects analysis again!
                            );
 
-    // 9th pass, calculate conflicts
-    //calculateConflicts();
+    // 10th pass, calculate conflicts with reachability info
+    calculateConflicts(null, true);
     
     /*
-    // #th pass, compiling locks
+    // 11th pass, compiling locks
     synthesizeLocks();
 
     // #th pass, writing conflict graph
@@ -669,7 +672,7 @@ public class OoOJavaAnalysis {
     } // end switch
   }
 
-  private void makeConflictGraph(FlatMethod fm, Set<FlatNew> sitesToFlag) {
+  private void makeConflictGraph(FlatMethod fm) {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
@@ -691,7 +694,7 @@ public class OoOJavaAnalysis {
           conflictGraph = new ConflictGraph();
         }
 
-        conflictGraph_nodeAction(fn, seseStack.peek(), sitesToFlag);
+        conflictGraph_nodeAction(fn, seseStack.peek());
       }
 
       // schedule forward nodes for analysis
@@ -707,74 +710,99 @@ public class OoOJavaAnalysis {
   }
  
 
-  private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE, Set<FlatNew> sitesToFlag) {
+  private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE) {
 
+    ConflictGraph conflictGraph;
     EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
-    ConflictGraph conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
-    if (conflictGraph == null) {
-      conflictGraph = new ConflictGraph();
-    }
-    
+
     switch (fn.kind()) {
 
     case FKind.FlatSESEEnterNode: {
+
+      if (currentSESE.getParent() == null) {
+        return;
+      }
+      conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
+      if (conflictGraph == null) {
+        conflictGraph = new ConflictGraph();
+      }
 
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
 
       if (!fsen.getIsCallerSESEplaceholder() && currentSESE.getParent() != null) {
         // collects effects set of invar set and generates invar node
-        Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.get(currentSESE);
+        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(currentSESE);
         conflictGraph.addLiveIn(taint2Effects);
+      }
+
+      if (conflictGraph.id2cn.size() > 0) {
+        sese2conflictGraph.put(currentSESE.getParent(), conflictGraph);
+      }
+
+    }
+      break;
+
+    case FKind.FlatFieldNode:
+    case FKind.FlatElementNode: {
+
+      conflictGraph = sese2conflictGraph.get(currentSESE);
+      if (conflictGraph == null) {
+        conflictGraph = new ConflictGraph();
+      }
+
+      FlatFieldNode ffn = (FlatFieldNode) fn;
+      TempDescriptor rhs = ffn.getSrc();
+
+      // add stall site
+      Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+      conflictGraph.addStallSite(taint2Effects, rhs);
+
+      if (conflictGraph.id2cn.size() > 0) {
+        sese2conflictGraph.put(currentSESE, conflictGraph);
       }
     }
       break;
-      
-    case FKind.FlatFieldNode:  
-    case FKind.FlatElementNode: {
-      
-      FlatFieldNode ffn = (FlatFieldNode) fn;
-      TempDescriptor rhs = ffn.getSrc();
-      
-      // add stall site      
-      //Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.get(fn, rhs);
-      //conflictGraph.addStallSite(taint2Effects);
-      
-    }    
-      break;
-      
-    case FKind.FlatSetFieldNode: 
+
+    case FKind.FlatSetFieldNode:
     case FKind.FlatSetElementNode: {
-      
+
+      conflictGraph = sese2conflictGraph.get(currentSESE);
+      if (conflictGraph == null) {
+        conflictGraph = new ConflictGraph();
+      }
+
       FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
       TempDescriptor lhs = fsfn.getDst();
       TempDescriptor rhs = fsfn.getSrc();
-      
+
       // collects effects of stall site and generates stall site node
-      //Hashtable<Taint, Set<Effect>> taint2Effects=effectsAnalysis.get(fn, rhs);
-      //conflictGraph.addStallSite(taint2Effects);
-      
-      //taint2Effects=effectsAnalysis.get(fn, lhs);
-      //conflictGraph.addStallSite(taint2Effects);
-      
-    }    
+      Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+      conflictGraph.addStallSite(taint2Effects, rhs);
+      conflictGraph.addStallSite(taint2Effects, lhs);
+
+      if (conflictGraph.id2cn.size() > 0) {
+        sese2conflictGraph.put(currentSESE, conflictGraph);
+      }
+    }
       break;
     }
 
-    if (conflictGraph.id2cn.size() > 0) {
-      sese2conflictGraph.put(currentSESE.getParent(), conflictGraph);
-    }
-    
   }
-  
-  private void calculateConflicts() {
+
+  private void calculateConflicts(Set<FlatNew> sitesToFlag, boolean useReachInfo) {
     // decide fine-grain edge or coarse-grain edge among all vertexes by
     // pair-wise comparison
-
     Iterator<FlatNode> seseIter = sese2conflictGraph.keySet().iterator();
     while (seseIter.hasNext()) {
-      FlatNode sese = seseIter.next();
+      FlatSESEEnterNode sese = (FlatSESEEnterNode) seseIter.next();
       ConflictGraph conflictGraph = sese2conflictGraph.get(sese);
-      conflictGraph.analyzeConflicts();
+      if (useReachInfo) {
+        // clear current conflict before recalculating with reachability info
+        conflictGraph.clearAllConflictEdge(); 
+        conflictGraph.setDisJointAnalysis(disjointAnalysisReach);
+        conflictGraph.setFMEnclosing(sese.getfmEnclosing());
+      }
+      conflictGraph.analyzeConflicts(sitesToFlag, useReachInfo);
       sese2conflictGraph.put(sese, conflictGraph);
     }
   }

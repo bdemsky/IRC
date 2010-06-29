@@ -11,25 +11,43 @@ import java.util.Set;
 import java.util.Map.Entry;
 
 import Analysis.Disjoint.AllocSite;
+import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.Taint;
+import IR.Flat.FlatMethod;
+import IR.Flat.FlatNew;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatSESEEnterNode;
 import IR.Flat.TempDescriptor;
 
 public class ConflictGraph {
 
-  public Hashtable<String, ConflictNode> id2cn;
+  protected Hashtable<String, ConflictNode> id2cn;
+
+  protected DisjointAnalysis da;
+  protected FlatMethod fmEnclosing;
 
   public static final int NON_WRITE_CONFLICT = 0;
   public static final int FINE_GRAIN_EDGE = 1;
   public static final int COARSE_GRAIN_EDGE = 2;
+  public static final int CONFLICT = 3;
 
   public ConflictGraph() {
     id2cn = new Hashtable<String, ConflictNode>();
   }
-  
+
+  public void setDisJointAnalysis(DisjointAnalysis da) {
+    this.da = da;
+  }
+
+  public void setFMEnclosing(FlatMethod fmEnclosing) {
+    this.fmEnclosing = fmEnclosing;
+  }
+
   public void addLiveIn(Hashtable<Taint, Set<Effect>> taint2Effects) {
+    if (taint2Effects == null) {
+      return;
+    }
     Iterator entryIter = taint2Effects.entrySet().iterator();
     while (entryIter.hasNext()) {
       Entry entry = (Entry) entryIter.next();
@@ -45,7 +63,10 @@ public class ConflictGraph {
     }
   }
 
-  public void addStallSite(Hashtable<Taint, Set<Effect>> taint2Effects) {
+  public void addStallSite(Hashtable<Taint, Set<Effect>> taint2Effects, TempDescriptor var) {
+    if (taint2Effects == null) {
+      return;
+    }
     Iterator entryIter = taint2Effects.entrySet().iterator();
     while (entryIter.hasNext()) {
       Entry entry = (Entry) entryIter.next();
@@ -55,7 +76,9 @@ public class ConflictGraph {
         Iterator<Effect> effectIter = effectSet.iterator();
         while (effectIter.hasNext()) {
           Effect effect = (Effect) effectIter.next();
-          addStallSiteEffect(taint, effect);
+          if (taint.getVar().equals(var)) {
+            addStallSiteEffect(taint, effect);
+          }
         }
       }
     }
@@ -66,21 +89,14 @@ public class ConflictGraph {
     TempDescriptor var = t.getVar();
     AllocSite as = t.getAllocSite();
 
-    String id = var + "_" + fn;
+    String id = var + "_fn" + fn.hashCode();
     ConflictNode node = id2cn.get(id);
     if (node == null) {
-      node = new ConflictNode(id, ConflictNode.INVAR);
-    }
-
-    if (!id2cn.containsKey(id)) {
-
-    } else {
-      node = id2cn.get(id);
+      node = new ConflictNode(id, ConflictNode.STALLSITE);
     }
     node.addEffect(as, e);
 
     id2cn.put(id, node);
-
   }
 
   public void addLiveInNodeEffect(Taint t, Effect e) {
@@ -88,17 +104,10 @@ public class ConflictGraph {
     TempDescriptor invar = t.getVar();
     AllocSite as = t.getAllocSite();
 
-    String id = invar + "_" + sese.getIdentifier();
-
+    String id = invar + "_sese" + sese.getIdentifier();
     ConflictNode node = id2cn.get(id);
     if (node == null) {
       node = new ConflictNode(id, ConflictNode.INVAR);
-    }
-
-    if (!id2cn.containsKey(id)) {
-
-    } else {
-      node = id2cn.get(id);
     }
     node.addEffect(as, e);
 
@@ -139,7 +148,7 @@ public class ConflictGraph {
 
   }
 
-  public void analyzeConflicts() {
+  public void analyzeConflicts(Set<FlatNew> sitesToFlag, boolean useReachInfo) {
 
     Set<String> keySet = id2cn.keySet();
     Set<String> analyzedIDSet = new HashSet<String>();
@@ -147,20 +156,24 @@ public class ConflictGraph {
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       String nodeID = (String) iterator.next();
       ConflictNode node = id2cn.get(nodeID);
-      analyzePossibleConflicts(analyzedIDSet, node);
+      analyzePossibleConflicts(analyzedIDSet, node, sitesToFlag, useReachInfo);
     }
 
   }
 
-  private void analyzePossibleConflicts(Set<String> analyzedIDSet, ConflictNode currentNode) {
+  private void analyzePossibleConflicts(Set<String> analyzedIDSet, ConflictNode currentNode,
+      Set<FlatNew> sitesToFlag, boolean useReachInfo) {
     // compare with all nodes
     // examine the case where self-edge exists
 
     int conflictType;
     if (currentNode.isInVarNode()) {
-      conflictType = calculateConflictType(currentNode);
+      conflictType = calculateConflictType(currentNode, useReachInfo);
       if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
         addConflictEdge(conflictType, currentNode, currentNode);
+        if (sitesToFlag != null) {
+          sitesToFlag.addAll(currentNode.getFlatNewSet());
+        }
       }
     }
 
@@ -175,27 +188,22 @@ public class ConflictGraph {
           && !(analyzedIDSet.contains(currentNode.getID() + entryNodeID) || analyzedIDSet
               .contains(entryNodeID + currentNode.getID()))) {
 
-        if (currentNode.isStallSiteNode() && entryNode.isInVarNode()) {
-          /*
-           * int conflictType = calculateConflictType((StallSiteNode)
-           * currentNode, (LiveInNode) entryNode); if (conflictType > 0) {
-           * addConflictEdge(conflictType, currentNode, entryNode); }
-           * 
-           * analyzedIDSet.add(currentNode.getID() + entryNodeID);
-           */
-        } else if (currentNode.isInVarNode() && entryNode.isInVarNode()) {
-          conflictType = calculateConflictType(currentNode, entryNode);
-          if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
-            addConflictEdge(conflictType, currentNode, entryNode);
+        conflictType = calculateConflictType(currentNode, entryNode, useReachInfo);
+        if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
+          addConflictEdge(conflictType, currentNode, entryNode);
+          if (sitesToFlag != null) {
+            sitesToFlag.addAll(currentNode.getFlatNewSet());
+            sitesToFlag.addAll(entryNode.getFlatNewSet());
           }
-          analyzedIDSet.add(currentNode.getID() + entryNodeID);
         }
+        analyzedIDSet.add(currentNode.getID() + entryNodeID);
+
       }
     }
 
   }
 
-  private int calculateConflictType(ConflictNode node) {
+  private int calculateConflictType(ConflictNode node, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
     Hashtable<AllocSite, Set<Effect>> alloc2readEffects = node.getReadEffectSet();
@@ -204,16 +212,16 @@ public class ConflictGraph {
 
     conflictType =
         updateConflictType(conflictType, determineConflictType(alloc2writeEffects,
-            alloc2writeEffects));
+            alloc2writeEffects, useReachInfo));
 
     conflictType =
         updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffects,
-            alloc2readEffects, alloc2writeEffects));
+            alloc2readEffects, alloc2writeEffects, useReachInfo));
 
     return conflictType;
   }
 
-  private int calculateConflictType(ConflictNode nodeA, ConflictNode nodeB) {
+  private int calculateConflictType(ConflictNode nodeA, ConflictNode nodeB, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
@@ -227,13 +235,15 @@ public class ConflictGraph {
     // if node A has write effects on reading/writing regions of node B
     conflictType =
         updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
-            alloc2readEffectsB));
+            alloc2readEffectsB, useReachInfo));
     conflictType =
         updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
-            alloc2writeEffectsB));
+            alloc2writeEffectsB, useReachInfo));
 
     // if node B has write effects on reading regions of node A
-    determineConflictType(alloc2writeEffectsB, alloc2readEffectsA);
+    conflictType =
+        updateConflictType(conflictType, determineConflictType(alloc2writeEffectsB,
+            alloc2readEffectsA, useReachInfo));
 
     // strong udpate effects conflict with all effects
     // on objects that are reachable from the same heap roots
@@ -241,21 +251,22 @@ public class ConflictGraph {
     if (!alloc2SUEffectsA.isEmpty()) {
       conflictType =
           updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffectsA,
-              alloc2readEffectsB, alloc2writeEffectsB));
+              alloc2readEffectsB, alloc2writeEffectsB, useReachInfo));
     }
 
     // if node B has SU on regions of node A
     if (!alloc2SUEffectsB.isEmpty()) {
       conflictType =
           updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffectsB,
-              alloc2readEffectsA, alloc2writeEffectsA));
+              alloc2readEffectsA, alloc2writeEffectsA, useReachInfo));
     }
 
     return conflictType;
   }
 
   private int hasStrongUpdateConflicts(Hashtable<AllocSite, Set<Effect>> SUEffectsTableA,
-      Hashtable<AllocSite, Set<Effect>> readTableB, Hashtable<AllocSite, Set<Effect>> writeTableB) {
+      Hashtable<AllocSite, Set<Effect>> readTableB, Hashtable<AllocSite, Set<Effect>> writeTableB,
+      boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
@@ -278,13 +289,17 @@ public class ConflictGraph {
 
             if (strongUpdateA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
                 && strongUpdateA.getField().equals(effectB.getField())) {
-              // possible conflict
-              // check affected allocation site can be reached from both heap
-              // roots
-              // if(og.isReachable(asA, asB,
-              // strongUpdateA.getAffectedAllocSite()){
-              // return ConflictGraph.COARSE_GRAIN_EDGE;
-              // }
+              if (useReachInfo) {
+                FlatNew fnRoot1 = asA.getFlatNew();
+                FlatNew fnRoot2 = asB.getFlatNew();
+                FlatNew fnTarget = strongUpdateA.getAffectedAllocSite().getFlatNew();
+                if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                  conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                }
+              } else {
+                return ConflictGraph.CONFLICT;
+              }
+
             }
 
           }
@@ -304,13 +319,13 @@ public class ConflictGraph {
 
             if (strongUpdateA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
                 && strongUpdateA.getField().equals(effectB.getField())) {
-              // possible conflict
-              // check affected allocation site can be reached from both heap
-              // roots
-              // if(og.isReachable(asA, asB,
-              // strongUpdateA.getAffectedAllocSite()){
-              // return ConflictGraph.COARSE_GRAIN_EDGE;
-              // }
+
+              FlatNew fnRoot1 = asA.getFlatNew();
+              FlatNew fnRoot2 = asB.getFlatNew();
+              FlatNew fnTarget = strongUpdateA.getAffectedAllocSite().getFlatNew();
+              if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+              }
             }
 
           }
@@ -324,7 +339,7 @@ public class ConflictGraph {
   }
 
   private int determineConflictType(Hashtable<AllocSite, Set<Effect>> nodeAtable,
-      Hashtable<AllocSite, Set<Effect>> nodeBtable) {
+      Hashtable<AllocSite, Set<Effect>> nodeBtable, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
@@ -337,8 +352,8 @@ public class ConflictGraph {
       Iterator effectItrB = nodeBtable.entrySet().iterator();
       while (effectItrB.hasNext()) {
         Map.Entry meB = (Map.Entry) effectItrB.next();
-        AllocSite asB = (AllocSite) meA.getKey();
-        Set<Effect> esB = (Set<Effect>) meA.getValue();
+        AllocSite asB = (AllocSite) meB.getKey();
+        Set<Effect> esB = (Set<Effect>) meB.getValue();
 
         for (Iterator iterator = esA.iterator(); iterator.hasNext();) {
           Effect effectA = (Effect) iterator.next();
@@ -347,16 +362,29 @@ public class ConflictGraph {
 
             if (effectA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
                 && effectA.getField().equals(effectB.getField())) {
-              // possible conflict
-              /*
-               * if(og.isReachable(asA, asB, effectA.getAffectedAllocSite())){
-               * //affected allocation site can be reached from both heap roots
-               * if(isFineGrainConflict()){
-               * conflictType=updateConflictType(conflictType
-               * ,ConflictGraph.FINE_GRAIN_EDGE); }else{
-               * conflictType=updateConflictType
-               * (conflictType,ConflictGraph.COARSE_GRAIN_EDGE); } }
-               */
+
+              if (useReachInfo) {
+                FlatNew fnRoot1 = asA.getFlatNew();
+                FlatNew fnRoot2 = asB.getFlatNew();
+                FlatNew fnTarget = effectA.getAffectedAllocSite().getFlatNew();
+                if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                  if (fnRoot1.equals(fnRoot2)) {
+                    if (!da.mayManyReachTarget(fmEnclosing, fnRoot1, fnTarget)) {
+                      // fine-grained conflict case
+                      conflictType =
+                          updateConflictType(conflictType, ConflictGraph.FINE_GRAIN_EDGE);
+                    } else {
+                      conflictType =
+                          updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                    }
+                  } else {
+                    conflictType =
+                        updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                  }
+                }
+              } else {
+                return ConflictGraph.CONFLICT;
+              }
             }
           }
         }
@@ -371,6 +399,14 @@ public class ConflictGraph {
       return newType;
     } else {
       return current;
+    }
+  }
+
+  public void clearAllConflictEdge() {
+    Collection<ConflictNode> nodes = id2cn.values();
+    for (Iterator iterator = nodes.iterator(); iterator.hasNext();) {
+      ConflictNode conflictNode = (ConflictNode) iterator.next();
+      conflictNode.getEdgeSet().clear();
     }
   }
 

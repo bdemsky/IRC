@@ -2,14 +2,17 @@ package Analysis.OoOJava;
 
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.Set;
 
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
+import IR.Flat.FlatNew;
 
 public class ConflictNode {
 
   protected HashSet<ConflictEdge> edgeSet;
+  protected HashSet<AllocSite> allocSet;
 
   protected Hashtable<AllocSite, Set<Effect>> alloc2readEffectSet;
   protected Hashtable<AllocSite, Set<Effect>> alloc2writeEffectSet;
@@ -32,6 +35,9 @@ public class ConflictNode {
 
   public ConflictNode(String id, int nodeType) {
     edgeSet = new HashSet<ConflictEdge>();
+    // redundant views of access root's 
+    // allocation sites for efficient retrieval
+    allocSet = new HashSet<AllocSite>();
 
     alloc2readEffectSet = new Hashtable<AllocSite, Set<Effect>>();
     alloc2writeEffectSet = new Hashtable<AllocSite, Set<Effect>>();
@@ -52,6 +58,7 @@ public class ConflictNode {
   }
 
   public void addReadEffect(AllocSite as, Effect e) {
+    allocSet.add(as);    
     Set<Effect> effectSet = alloc2readEffectSet.get(as);
     if (effectSet == null) {
       effectSet = new HashSet<Effect>();
@@ -62,6 +69,7 @@ public class ConflictNode {
   }
 
   public void addWriteEffect(AllocSite as, Effect e) {
+    allocSet.add(as);    
     Set<Effect> effectSet = alloc2writeEffectSet.get(as);
     if (effectSet == null) {
       effectSet = new HashSet<Effect>();
@@ -72,6 +80,7 @@ public class ConflictNode {
   }
 
   public void addStrongUpdateEffect(AllocSite as, Effect e) {
+    allocSet.add(as);    
     Set<Effect> effectSet = alloc2strongUpdateEffectSet.get(as);
     if (effectSet == null) {
       effectSet = new HashSet<Effect>();
@@ -102,6 +111,16 @@ public class ConflictNode {
 
   public boolean isStallSiteNode() {
     return !isInVarNode();
+  }
+  
+  public Set<FlatNew> getFlatNewSet(){
+    Set<FlatNew> fnSet=new HashSet<FlatNew>();
+    for (Iterator iterator = allocSet.iterator(); iterator.hasNext();) {
+      AllocSite as = (AllocSite) iterator.next();
+      FlatNew fn=as.getFlatNew();
+      fnSet.add(fn);
+    }
+    return fnSet;
   }
 
   public Set<ConflictEdge> getEdgeSet() {
@@ -140,7 +159,7 @@ public class ConflictNode {
 
   }
 
-  public String toString() {
+  public String toStringAllEffects() {
 
     String str = "";
 
@@ -158,5 +177,5 @@ public class ConflictNode {
 
     return str;
   }
-
+  
 }

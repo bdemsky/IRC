@@ -59,63 +59,6 @@ public class EffectsAnalysis {
     return taint2effects.entrySet().iterator();
   }
 
-  /*
-  public Hashtable<Taint, Set<Effect>> getSESEEffects(FlatSESEEnterNode sese){
-    
-    Hashtable<Taint, Set<Effect>> taint2Effects = new Hashtable<Taint, Set<Effect>>();
-    Iterator iter=iteratorTaintEffectPairs();
-    while (iter.hasNext()) {
-      Entry entry = (Entry) iter.next();
-      Taint taint = (Taint) entry.getKey();
-      Set<Effect> effects = (Set<Effect>) entry.getValue();
-      if (taint.getSESE().equals(sese)) {
-        Iterator<Effect> eIter = effects.iterator();
-        while (eIter.hasNext()) {
-          Effect effect = eIter.next();
-          if (taint.getSESE().equals(sese)) {
-            Set<Effect> effectSet = taint2Effects.get(taint);
-            if (effectSet == null) {
-              effectSet = new HashSet<Effect>();
-            }
-            effectSet.add(effect);
-            taint2Effects.put(taint, effectSet);
-          }
-        }
-      }
-    }
-    
-    return taint2Effects;
-    
-  }
-  */
-
-  public Hashtable<Taint, Set<Effect>> getStallSiteEffects(FlatNode fn, TempDescriptor td){
-    
-    Hashtable<Taint, Set<Effect>> taint2Effects = new Hashtable<Taint, Set<Effect>>();
-    Iterator iter=iteratorTaintEffectPairs();
-    while(iter.hasNext()){
-      Entry entry=(Entry)iter.next();
-      Taint taint=(Taint)entry.getKey();
-      Set<Effect> effects=(Set<Effect>)entry.getValue();
-      if(taint.getStallSite().equals(fn)){
-        Iterator<Effect> eIter=effects.iterator();        
-        while (eIter.hasNext()) {
-          Effect effect = eIter.next();
-          if( taint.getStallSite().equals(fn) && taint.getVar().equals(td) ){
-            Set<Effect> effectSet=taint2Effects.get(taint);
-            if(effectSet==null){
-              effectSet=new HashSet<Effect>();
-            }
-            effectSet.add(effect);
-            taint2Effects.put(taint, effectSet);
-          }
-        }
-      }
-    }
-    return taint2Effects; 
-  }
-
-
   protected void add(Taint t, Effect e) {
     if( t.getSESE() != null &&
         t.getSESE().getIsCallerSESEplaceholder() ) {
@@ -167,7 +110,6 @@ public class EffectsAnalysis {
       }
       effects.add(e);
       te.put(tNoPreds, effects);
-
       stallSite2te.put(stallSite, te);
     }    
   }
