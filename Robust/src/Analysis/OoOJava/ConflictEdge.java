@@ -18,7 +18,7 @@ public class ConflictEdge {
     } else if (type == ConflictGraph.COARSE_GRAIN_EDGE) {
       return "\"C_CONFLICT\"";
     } else {
-      return "CONFLICT\"";
+      return "\"CONFLICT\"";
     }
   }
 

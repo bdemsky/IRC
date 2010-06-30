@@ -3,6 +3,7 @@ package Analysis.OoOJava;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -92,7 +93,7 @@ public class ConflictGraph {
     String id = var + "_fn" + fn.hashCode();
     ConflictNode node = id2cn.get(id);
     if (node == null) {
-      node = new ConflictNode(id, ConflictNode.STALLSITE);
+      node = new ConflictNode(id, ConflictNode.STALLSITE, t.getVar(), t.getStallSite());
     }
     node.addEffect(as, e);
 
@@ -107,7 +108,7 @@ public class ConflictGraph {
     String id = invar + "_sese" + sese.getIdentifier();
     ConflictNode node = id2cn.get(id);
     if (node == null) {
-      node = new ConflictNode(id, ConflictNode.INVAR);
+      node = new ConflictNode(id, ConflictNode.INVAR, t.getVar(), t.getSESE());
     }
     node.addEffect(as, e);
 
@@ -436,6 +437,187 @@ public class ConflictGraph {
     return false;
   }
 
+  public boolean isFineElement(int type) {
+    if (type == ConflictNode.FINE_READ || type == ConflictNode.FINE_WRITE
+        || type == ConflictNode.PARENT_READ || type == ConflictNode.PARENT_WRITE) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  public SESEWaitingQueue getWaitingElementSetBySESEID(int seseID,
+ HashSet<SESELock> seseLockSet) {
+    
+    HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
+
+    Iterator iter = id2cn.entrySet().iterator();
+    while (iter.hasNext()) {
+      Entry entry = (Entry) iter.next();
+      String conflictNodeID = (String) entry.getKey();
+      ConflictNode node = (ConflictNode) entry.getValue();
+
+      if (node.isInVarNode()) {
+        if (node.getSESEIdentifier() == seseID) {
+
+          Set<ConflictEdge> edgeSet = node.getEdgeSet();
+          for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+            ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+
+            for (Iterator<SESELock> seseLockIter = seseLockSet.iterator(); seseLockIter.hasNext();) {
+              SESELock seseLock = seseLockIter.next();
+              if (seseLock.containsConflictNode(node)
+                  && seseLock.containsConflictEdge(conflictEdge)) {
+                WaitingElement newElement = new WaitingElement();
+                newElement.setQueueID(seseLock.getID());
+                newElement.setStatus(seseLock.getNodeType(node));
+                if (isFineElement(newElement.getStatus())) {
+                  newElement.setDynID(node.getVar().toString());
+                  newElement.setTempDesc(node.getVar());
+                }
+                if (!waitingElementSet.contains(newElement)) {
+                  waitingElementSet.add(newElement);
+                }
+
+              }
+            }
+          }
+
+        }
+      }
+
+    }
+
+    // handle the case that multiple enqueues by an SESE for different live-in
+    // into the same queue
+    return refineQueue(waitingElementSet);
+//    return waitingElementSet;
+
+  }
+  
+  public SESEWaitingQueue refineQueue(Set<WaitingElement> waitingElementSet) {
+
+    Set<WaitingElement> refinedSet=new HashSet<WaitingElement>();
+    HashMap<Integer, Set<WaitingElement>> map = new HashMap<Integer, Set<WaitingElement>>();
+    SESEWaitingQueue seseDS=new SESEWaitingQueue();
+
+    for (Iterator iterator = waitingElementSet.iterator(); iterator
+        .hasNext();) {
+      WaitingElement waitingElement = (WaitingElement) iterator.next();
+      Set<WaitingElement> set=map.get(new Integer(waitingElement.getQueueID()));
+      if(set==null){
+        set=new HashSet<WaitingElement>();
+      }
+      set.add(waitingElement);
+      map.put(new Integer(waitingElement.getQueueID()), set);
+    }
+    
+    Set<Integer> keySet=map.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      Integer queueID = (Integer) iterator.next();
+      Set<WaitingElement> queueWEset=map.get(queueID);
+      refineQueue(queueID.intValue(),queueWEset,seseDS);      
+    }
+    
+    return seseDS;
+  }
+  
+  
+  private void refineQueue(int queueID,
+      Set<WaitingElement> waitingElementSet, SESEWaitingQueue seseDS) {
+
+    if (waitingElementSet.size() > 1) {
+      //only consider there is more than one element submitted by same SESE
+      Set<WaitingElement> refinedSet = new HashSet<WaitingElement>();
+
+      int numCoarse = 0;
+      int numRead = 0;
+      int numWrite = 0;
+      int total=waitingElementSet.size();
+      WaitingElement SCCelement = null;
+      WaitingElement coarseElement = null;
+
+      for (Iterator iterator = waitingElementSet.iterator(); iterator
+          .hasNext();) {
+        WaitingElement waitingElement = (WaitingElement) iterator
+            .next();
+        if (waitingElement.getStatus() == ConflictNode.FINE_READ) {
+          numRead++;
+        } else if (waitingElement.getStatus() == ConflictNode.FINE_WRITE) {
+          numWrite++;
+        } else if (waitingElement.getStatus() == ConflictNode.COARSE) {
+          numCoarse++;
+          coarseElement = waitingElement;
+        } else if (waitingElement.getStatus() == ConflictNode.SCC) {
+          SCCelement = waitingElement;
+        } 
+      }
+
+      if (SCCelement != null) {
+        // if there is at lease one SCC element, just enqueue SCC and
+        // ignore others.
+        refinedSet.add(SCCelement);
+      } else if (numCoarse == 1 && (numRead + numWrite == total)) {
+        // if one is a coarse, the othere are reads/write, enqueue SCC.
+        WaitingElement we = new WaitingElement();
+        we.setQueueID(queueID);
+        we.setStatus(ConflictNode.SCC);
+        refinedSet.add(we);
+      } else if (numCoarse == total) {
+        // if there are multiple coarses, enqueue just one coarse.
+        refinedSet.add(coarseElement);
+      } else if(numWrite==total || (numRead+numWrite)==total){
+        // code generator is going to handle the case for multiple writes & read/writes.
+        seseDS.setType(queueID, SESEWaitingQueue.EXCEPTION);
+        refinedSet.addAll(waitingElementSet);
+      } else{
+        // otherwise, enqueue everything.
+        refinedSet.addAll(waitingElementSet);
+      }
+      seseDS.setWaitingElementSet(queueID, refinedSet);
+    } else {
+      seseDS.setWaitingElementSet(queueID, waitingElementSet);
+    }
+    
+  }
+  
+  public Set<WaitingElement> getStallSiteWaitingElementSet(FlatNode stallSite,
+      HashSet<SESELock> seseLockSet) {
+
+    HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
+    Iterator iter = id2cn.entrySet().iterator();
+    while (iter.hasNext()) {
+      Entry entry = (Entry) iter.next();
+      String conflictNodeID = (String) entry.getKey();
+      ConflictNode node = (ConflictNode) entry.getValue();
+
+      if (node.isStallSiteNode() && node.getStallSiteFlatNode().equals(stallSite)) {
+        Set<ConflictEdge> edgeSet = node.getEdgeSet();
+        for (Iterator iter2 = edgeSet.iterator(); iter2.hasNext();) {
+          ConflictEdge conflictEdge = (ConflictEdge) iter2.next();
+
+          for (Iterator<SESELock> seseLockIter = seseLockSet.iterator(); seseLockIter.hasNext();) {
+            SESELock seseLock = seseLockIter.next();
+            if (seseLock.containsConflictNode(node) && seseLock.containsConflictEdge(conflictEdge)) {
+              WaitingElement newElement = new WaitingElement();
+              newElement.setQueueID(seseLock.getID());
+              newElement.setStatus(seseLock.getNodeType(node));
+              if (isFineElement(newElement.getStatus())) {
+                newElement.setDynID(node.getVar().toString());
+              }
+              waitingElementSet.add(newElement);
+            }
+          }
+
+        }
+
+      }
+
+    }
+
+    return waitingElementSet;
+  }
+
   public void writeGraph(String graphName, boolean filter) throws java.io.IOException {
 
     graphName = graphName.replaceAll("[\\W]", "");
@@ -463,7 +645,7 @@ public class ConflictGraph {
 
       String attributes = "[";
 
-      attributes += "label=\"ID" + node.getID() + "\\n";
+      attributes += "label=\"" + node.getID() + "\\n";
 
       if (node.isStallSiteNode()) {
         attributes += "STALL SITE" + "\\n" + "\"]";
@@ -491,8 +673,8 @@ public class ConflictGraph {
         }
 
         if (!addedSet.contains(conflictEdge)) {
-          bw.write(" " + u.getID() + "--" + v.getID() + "[label="
-              + conflictEdge.toGraphEdgeString() + ",decorate];\n");
+          bw.write("" + u.getID() + "--" + v.getID() + "[label=" + conflictEdge.toGraphEdgeString()
+              + ",decorate];\n");
           addedSet.add(conflictEdge);
         }
 

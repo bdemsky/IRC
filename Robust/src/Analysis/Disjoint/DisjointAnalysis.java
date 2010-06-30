@@ -730,9 +730,6 @@ public class DisjointAnalysis {
       throw new Error( "IO Exception while writing disjointness analysis output." );
     }
 
-    if( doEffectsAnalysis ) {
-      effectsAnalysis.writeEffects( "effects.txt" );
-    }
   }
 
 

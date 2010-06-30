@@ -64,54 +64,6 @@ public class SESELock {
     return false;
   }
 
-  private boolean isFineNode(ConflictNode node) {
-
-    if (node.getType() < 4) {
-      return true;
-    }
-
-    return false;
-
-  }
-
-  public ConflictNode getNewNodeCoarseConnectedWithGroup(ConflictEdge newEdge) {
-
-    // check whether or not the new node has a fine-grained edges to all
-    // current nodes.
-
-    ConflictNode newNode;
-    if (conflictNodeSet.contains(newEdge.getVertexU())) {
-      newNode = newEdge.getVertexV();
-    } else if (conflictNodeSet.contains(newEdge.getVertexV())) {
-      newNode = newEdge.getVertexU();
-    } else {
-      return null;
-    }
-
-    int count = 0;
-    Set<ConflictEdge> edgeSet = newNode.getEdgeSet();
-    for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
-      ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
-      if (!conflictEdge.getVertexU().equals(newNode)
-          && conflictNodeSet.contains(conflictEdge.getVertexU())
-          && isFineNode(conflictEdge.getVertexU())) {
-        count++;
-      } else if (!conflictEdge.getVertexV().equals(newNode)
-          && conflictNodeSet.contains(conflictEdge.getVertexV())
-          && isFineNode(conflictEdge.getVertexU())) {
-        count++;
-      }
-    }
-
-    if (count == conflictNodeSet.size()) {
-      // connected to all current nodes in group
-      return newNode;
-    }
-
-    return null;
-
-  }
-
   public ConflictNode getNewNodeConnectedWithGroup(ConflictEdge newEdge) {
 
     // check whether or not the new node has a fine-grained edges to all

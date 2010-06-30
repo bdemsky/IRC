@@ -1,5 +1,7 @@
 package Analysis.OoOJava;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -223,7 +225,7 @@ public class OoOJavaAnalysis {
                            null, // don't do effects analysis again!
                            null  // don't do effects analysis again!
                            );
-
+writeConflictGraph();
     // 10th pass, calculate conflicts with reachability info
     calculateConflicts(null, true);
     
@@ -234,6 +236,14 @@ public class OoOJavaAnalysis {
     // #th pass, writing conflict graph
     writeConflictGraph();
     */
+    
+    if( state.OOODEBUG ) {      
+      try {
+        writeReports( "" );
+        disjointAnalysisTaints.getEffectsAnalysis().writeEffects( "effects.txt" );
+        writeConflictGraph();
+      } catch( IOException e ) {}
+    }
     
   }
 
@@ -1073,6 +1083,126 @@ public class OoOJavaAnalysis {
     }
 
     conflictGraph2SESELock.put(conflictGraph, lockSet);
+  }
+  
+  public void writeReports( String timeReport ) throws java.io.IOException {
+
+    BufferedWriter bw = new BufferedWriter( new FileWriter( "mlpReport_summary.txt" ) );
+    bw.write( "MLP Analysis Results\n\n" );
+    bw.write( timeReport+"\n\n" );
+    printSESEHierarchy( bw );
+    bw.write( "\n" );
+    printSESEInfo( bw );
+    bw.close();
+
+    Iterator<Descriptor> methItr = disjointAnalysisTaints.getDescriptorsToAnalyze().iterator();
+    while( methItr.hasNext() ) {
+      MethodDescriptor md = (MethodDescriptor) methItr.next();      
+      FlatMethod       fm = state.getMethodFlat( md );
+      if (fm!=null) {
+        bw =
+            new BufferedWriter(new FileWriter("mlpReport_" + md.getClassMethodName()
+                + md.getSafeMethodDescriptor() + ".txt"));
+        bw.write("MLP Results for " + md + "\n-------------------\n");
+
+        FlatSESEEnterNode implicitSESE = (FlatSESEEnterNode) fm.getNext(0);
+        if (!implicitSESE.getIsCallerSESEplaceholder() && implicitSESE != rblockRel.getMainSESE()) {
+          System.out.println(implicitSESE + " is not implicit?!");
+          System.exit(-1);
+        }
+        bw.write("Dynamic vars to manage:\n  " + implicitSESE.getDynamicVarSet());
+
+        bw.write("\n\nLive-In, Root View\n------------------\n" + fm.printMethod(livenessRootView));
+        bw.write("\n\nVariable Results-Out\n----------------\n" + fm.printMethod(variableResults));
+        bw.write("\n\nNot Available Results-Out\n---------------------\n"
+            + fm.printMethod(notAvailableResults));
+        bw.write("\n\nCode Plans\n----------\n" + fm.printMethod(codePlans));
+        bw.close();
+      }
+    }
+  }
+  
+  private void printSESEHierarchy( BufferedWriter bw ) throws java.io.IOException {
+    bw.write( "SESE Hierarchy\n--------------\n" ); 
+    Iterator<FlatSESEEnterNode> rootItr = rblockRel.getRootSESEs().iterator();
+    while( rootItr.hasNext() ) {
+      FlatSESEEnterNode root = rootItr.next();
+      if( root.getIsCallerSESEplaceholder() ) {
+  if( !root.getChildren().isEmpty() ) {
+    printSESEHierarchyTree( bw, root, 0 );
+  }
+      } else {
+  printSESEHierarchyTree( bw, root, 0 );
+      }
+    }
+  }
+
+  private void printSESEHierarchyTree( BufferedWriter bw,
+               FlatSESEEnterNode fsen,
+               int depth 
+             ) throws java.io.IOException {
+    for( int i = 0; i < depth; ++i ) {
+      bw.write( "  " );
+    }
+    bw.write( "- "+fsen.getPrettyIdentifier()+"\n" );
+
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      printSESEHierarchyTree( bw, fsenChild, depth + 1 );
+    }
+  }
+
+  
+  private void printSESEInfo( BufferedWriter bw ) throws java.io.IOException {
+    bw.write("\nSESE info\n-------------\n" ); 
+    Iterator<FlatSESEEnterNode> rootItr = rblockRel.getRootSESEs().iterator();
+    while( rootItr.hasNext() ) {
+      FlatSESEEnterNode root = rootItr.next();
+      if( root.getIsCallerSESEplaceholder() ) {
+  if( !root.getChildren().isEmpty() ) {
+    printSESEInfoTree( bw, root );
+  }
+      } else {
+  printSESEInfoTree( bw, root );
+      }
+    }
+  }
+
+  private void printSESEInfoTree( BufferedWriter bw,
+          FlatSESEEnterNode fsen 
+        ) throws java.io.IOException {
+
+    if( !fsen.getIsCallerSESEplaceholder() ) {
+      bw.write( "SESE "+fsen.getPrettyIdentifier()+" {\n" );
+
+      bw.write( "  in-set: "+fsen.getInVarSet()+"\n" );
+      Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
+      while( tItr.hasNext() ) {
+  TempDescriptor inVar = tItr.next();
+  if( fsen.getReadyInVarSet().contains( inVar ) ) {
+    bw.write( "    (ready)  "+inVar+"\n" );
+  }
+  if( fsen.getStaticInVarSet().contains( inVar ) ) {
+    bw.write( "    (static) "+inVar+" from "+
+                    fsen.getStaticInVarSrc( inVar )+"\n" );
+  } 
+  if( fsen.getDynamicInVarSet().contains( inVar ) ) {
+    bw.write( "    (dynamic)"+inVar+"\n" );
+  }
+      }
+      
+      bw.write( "   Dynamic vars to manage: "+fsen.getDynamicVarSet()+"\n");
+      
+      bw.write( "  out-set: "+fsen.getOutVarSet()+"\n" );
+      bw.write( "}\n" );
+    }
+
+    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    while( childItr.hasNext() ) {
+      FlatSESEEnterNode fsenChild = childItr.next();
+      printSESEInfoTree( bw, fsenChild );
+    }
   }
 
 }

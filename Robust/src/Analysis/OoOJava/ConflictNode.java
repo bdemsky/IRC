@@ -8,6 +8,9 @@ import java.util.Set;
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
 import IR.Flat.FlatNew;
+import IR.Flat.FlatNode;
+import IR.Flat.FlatSESEEnterNode;
+import IR.Flat.TempDescriptor;
 
 public class ConflictNode {
 
@@ -19,8 +22,10 @@ public class ConflictNode {
   protected Hashtable<AllocSite, Set<Effect>> alloc2strongUpdateEffectSet;
 
   protected int nodeType;
-  protected int type;
   protected String id;
+  protected FlatNode stallSite;
+  protected TempDescriptor var;
+  protected FlatSESEEnterNode fsen;
 
   public static final int FINE_READ = 0;
   public static final int FINE_WRITE = 1;
@@ -32,8 +37,19 @@ public class ConflictNode {
 
   public static final int INVAR = 0;
   public static final int STALLSITE = 1;
+  
+  public ConflictNode(String id, int nodeType, TempDescriptor var, FlatNode stallSite){
+    this(id, var, nodeType);
+    this.stallSite=stallSite;    
+  }
+  
+  public ConflictNode(String id, int nodeType, TempDescriptor var, FlatSESEEnterNode fsen){
+    this(id, var, nodeType);
+    this.fsen=fsen;    
+  }
 
-  public ConflictNode(String id, int nodeType) {
+
+  public ConflictNode(String id, TempDescriptor var, int nodeType) {
     edgeSet = new HashSet<ConflictEdge>();
     // redundant views of access root's 
     // allocation sites for efficient retrieval
@@ -45,6 +61,7 @@ public class ConflictNode {
 
     this.id = id;
     this.nodeType = nodeType;
+    this.var=var;
   }
 
   public void addEffect(AllocSite as, Effect e) {
@@ -122,6 +139,10 @@ public class ConflictNode {
     }
     return fnSet;
   }
+  
+  public TempDescriptor getVar(){
+    return var;
+  }
 
   public Set<ConflictEdge> getEdgeSet() {
     return edgeSet;
@@ -131,14 +152,18 @@ public class ConflictNode {
     edgeSet.add(edge);
   }
 
-  public int getType() {
-    return type;
-  }
-
   public String getID() {
     return id;
   }
-
+  
+  public FlatNode getStallSiteFlatNode(){
+    return stallSite;
+  }
+  
+  public int getSESEIdentifier(){
+    return fsen.getIdentifier();
+  }
+  
   public boolean equals(Object o) {
 
     if (o == null) {
