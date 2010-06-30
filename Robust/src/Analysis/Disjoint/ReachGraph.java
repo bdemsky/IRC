@@ -4727,7 +4727,7 @@ public class ReachGraph {
         while( rtItr2.hasNext() ) {
           ReachTuple rt2 = rtItr2.next();
 
-          if( hrn.getAlpha().getStatesWithBoth( rt1, rt2 ) != null ) {
+          if( !hrn.getAlpha().getStatesWithBoth( rt1, rt2 ).isEmpty() ) {
             return true;
           }          
         }
@@ -4779,7 +4779,7 @@ public class ReachGraph {
             continue;
           }
 
-          if( hrn.getAlpha().getStatesWithBoth( rt1, rt2 ) != null ) {
+          if( !hrn.getAlpha().getStatesWithBoth( rt1, rt2 ).isEmpty() ) {
             return true;
           }          
         }

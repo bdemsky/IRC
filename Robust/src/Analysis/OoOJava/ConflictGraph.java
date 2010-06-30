@@ -368,19 +368,20 @@ public class ConflictGraph {
                 FlatNew fnRoot1 = asA.getFlatNew();
                 FlatNew fnRoot2 = asB.getFlatNew();
                 FlatNew fnTarget = effectA.getAffectedAllocSite().getFlatNew();
-                if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
-                  if (fnRoot1.equals(fnRoot2)) {
-                    if (!da.mayManyReachTarget(fmEnclosing, fnRoot1, fnTarget)) {
-                      // fine-grained conflict case
-                      conflictType =
-                          updateConflictType(conflictType, ConflictGraph.FINE_GRAIN_EDGE);
-                    } else {
-                      conflictType =
-                          updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
-                    }
+                if (fnRoot1.equals(fnRoot2)) {
+                  if (!da.mayManyReachTarget(fmEnclosing, fnRoot1, fnTarget)) {
+                    // fine-grained conflict case
+                    conflictType =
+                      updateConflictType(conflictType, ConflictGraph.FINE_GRAIN_EDGE);
                   } else {
                     conflictType =
-                        updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                      updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                  }
+                } else {
+                  if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                    conflictType =
+                      updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                  } else {
                   }
                 }
               } else {

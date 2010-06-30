@@ -225,7 +225,7 @@ public class OoOJavaAnalysis {
                            null, // don't do effects analysis again!
                            null  // don't do effects analysis again!
                            );
-writeConflictGraph();
+    //writeConflictGraph();
     // 10th pass, calculate conflicts with reachability info
     calculateConflicts(null, true);
     
