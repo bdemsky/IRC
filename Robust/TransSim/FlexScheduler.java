@@ -181,9 +181,7 @@ public class FlexScheduler extends Thread {
     int eIndex=e.getEvent();
     long eTime=e.getTime();
     long timeleft=eTime-currtime;
-    long totaltime=0;
-    for(int i=0;i<=eIndex;i++)
-      totaltime+=trans.getTime(i);
+    long totaltime=trans.getTime(eIndex);
     totaltime-=timeleft;//subtract off time to the next event
     abortedcycles+=totaltime;
   }
