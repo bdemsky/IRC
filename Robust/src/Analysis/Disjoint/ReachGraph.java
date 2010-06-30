@@ -4614,21 +4614,177 @@ public class ReachGraph {
                                callerNodeIDsCopiedToCallee );
     }
   }  
+
+
+
+
   
 
+  // return the set of heap regions from the given allocation
+  // site, if any, that exist in this graph
+  protected Set<HeapRegionNode> getAnyExisting( AllocSite as ) {
+    
+    Set<HeapRegionNode> out = new HashSet<HeapRegionNode>();
+
+    Integer idSum = as.getSummary();
+    if( id2hrn.containsKey( idSum ) ) {
+      out.add( id2hrn.get( idSum ) );
+    }
+
+    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+      Integer idI = as.getIthOldest( i );
+      if( id2hrn.containsKey( idI ) ) {
+        out.add( id2hrn.get( idI ) );
+      }
+    }
+
+    return out;
+  }
+
+  // return the set of reach tuples (NOT A REACH STATE! JUST A SET!)
+  // from the given allocation site, if any, from regions for that
+  // site that exist in this graph
+  protected Set<ReachTuple> getAnyExisting( AllocSite as, 
+                                            boolean   includeARITY_ZEROORMORE,
+                                            boolean   includeARITY_ONE ) {
+    
+    Set<ReachTuple> out = new HashSet<ReachTuple>();
+
+    Integer idSum = as.getSummary();
+    if( id2hrn.containsKey( idSum ) ) {
+
+      HeapRegionNode hrn = id2hrn.get( idSum );
+      assert !hrn.isOutOfContext();
+
+      if( !includeARITY_ZEROORMORE ) {
+        out.add( ReachTuple.factory( hrn.getID(), 
+                                     true,   // multi-obj region
+                                     ReachTuple.ARITY_ZEROORMORE,
+                                     false ) // ooc?
+                 );
+      }
+
+      if( includeARITY_ONE ) {
+        out.add( ReachTuple.factory( hrn.getID(),
+                                     true,   // multi-object region
+                                     ReachTuple.ARITY_ONE, 
+                                     false ) // ooc?
+                 );
+      }
+    }
+    
+    if( !includeARITY_ONE ) {
+      // no need to do the single-object regions that
+      // only have an ARITY ONE possible
+      return out;
+    }
+
+    for( int i = 0; i < as.getAllocationDepth(); ++i ) {
+      
+      Integer idI = as.getIthOldest( i );
+      if( id2hrn.containsKey( idI ) ) {
+
+        HeapRegionNode hrn = id2hrn.get( idI );
+        assert !hrn.isOutOfContext();
+        
+        out.add( ReachTuple.factory( hrn.getID(),
+                                     false,  // multi-object region
+                                     ReachTuple.ARITY_ONE, 
+                                     false ) // ooc?
+                 );
+      }
+    }
+
+    return out;
+  }
 
 
-
+  // if an object allocated at the target site may be
+  // reachable from both an object from root1 and an
+  // object allocated at root2, return TRUE
   public boolean mayBothReachTarget( AllocSite asRoot1,
                                      AllocSite asRoot2,
                                      AllocSite asTarget ) {
 
+    // consider all heap regions of the target and look
+    // for a reach state that indicates regions of root1
+    // and root2 might be able to reach same object
+    Set<HeapRegionNode> hrnSetTarget = getAnyExisting( asTarget );
+
+    // get relevant reach tuples, include ARITY_ZEROORMORE and ARITY_ONE
+    Set<ReachTuple> rtSet1 = getAnyExisting( asRoot1, true, true );
+    Set<ReachTuple> rtSet2 = getAnyExisting( asRoot2, true, true );
+
+    Iterator<HeapRegionNode> hrnItr = hrnSetTarget.iterator();
+    while( hrnItr.hasNext() ) {
+      HeapRegionNode hrn = hrnItr.next();
+      
+      Iterator<ReachTuple> rtItr1 = rtSet1.iterator();
+      while( rtItr1.hasNext() ) {
+        ReachTuple rt1 = rtItr1.next();
+
+        Iterator<ReachTuple> rtItr2 = rtSet2.iterator();
+        while( rtItr2.hasNext() ) {
+          ReachTuple rt2 = rtItr2.next();
+
+          if( hrn.getAlpha().getStatesWithBoth( rt1, rt2 ) != null ) {
+            return true;
+          }          
+        }
+      }
+    }
+
     return false;
   }
 
-
+  // similar to the method above, return TRUE if ever
+  // more than one object from the root allocation site
+  // may reach an object from the target site
   public boolean mayManyReachTarget( AllocSite asRoot,
                                      AllocSite asTarget ) {
+
+    // consider all heap regions of the target and look
+    // for a reach state that multiple objects of root
+    // might be able to reach the same object
+    Set<HeapRegionNode> hrnSetTarget = getAnyExisting( asTarget );
+
+    // get relevant reach tuples
+    Set<ReachTuple> rtSetZOM = getAnyExisting( asRoot, true,  false );
+    Set<ReachTuple> rtSetONE = getAnyExisting( asRoot, false, true  );
+
+    Iterator<HeapRegionNode> hrnItr = hrnSetTarget.iterator();
+    while( hrnItr.hasNext() ) {
+      HeapRegionNode hrn = hrnItr.next();
+
+      // if any ZERORMORE tuples are here, TRUE
+      Iterator<ReachTuple> rtItr = rtSetZOM.iterator();
+      while( rtItr.hasNext() ) {
+        ReachTuple rtZOM = rtItr.next();
+
+        if( hrn.getAlpha().containsTuple( rtZOM ) ) {
+          return true;
+        }          
+      }
+
+      // otherwise, look for any pair of ONE tuples      
+      Iterator<ReachTuple> rtItr1 = rtSetONE.iterator();
+      while( rtItr1.hasNext() ) {
+        ReachTuple rt1 = rtItr1.next();
+
+        Iterator<ReachTuple> rtItr2 = rtSetONE.iterator();
+        while( rtItr2.hasNext() ) {
+          ReachTuple rt2 = rtItr2.next();
+
+          if( rt1 == rt2 ) {
+            continue;
+          }
+
+          if( hrn.getAlpha().getStatesWithBoth( rt1, rt2 ) != null ) {
+            return true;
+          }          
+        }
+      }
+    }
     
     return false;
   }
