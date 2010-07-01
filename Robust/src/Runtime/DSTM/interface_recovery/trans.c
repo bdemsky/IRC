@@ -89,6 +89,7 @@ int getResponse = 0;
 
 #ifdef RECOVERY
 
+
 #define INCREASE_EPOCH(x,y,z) ((x/y+1)*y + z)
 /***********************************
  * Global variables for Duplication
@@ -1250,11 +1251,6 @@ int transCommit() {
   do {
     treplyretry = 0;
 
-    pthread_mutex_lock(&translist_mutex);
-    transList = tlistInsertNode(transList,transID,-3,TRYING_TO_COMMIT,epoch_num);
-    tNode = tlistSearch(transList,transID);
-    pthread_mutex_unlock(&translist_mutex);
-
     /* Look through all the objects in the transaction record and make piles
      * for each machine involved in the transaction*/
     if (firsttime) {
@@ -1391,10 +1387,10 @@ int transCommit() {
 			if(sd != 0) {
 				char control;
         int timeout;            // a variable to check if the connection is still alive. if it is -1, then need to transcommit again
-        printf("%s -> Waiting for mid : %s transID = %u\n",__func__,midtoIPString(midlist[i]),transID);
+//        printf("%s -> Waiting for mid : %s transID = %u\n",__func__,midtoIPString(midlist[i]),transID);
         timeout = recv_data(sd, &control, sizeof(char));
 
-        printf("%s -> Received mid : %s control %d timeout = %d\n",__func__,midtoIPString(midlist[i]),control,timeout);
+//        printf("%s -> Received mid : %s control %d timeout = %d\n",__func__,midtoIPString(midlist[i]),control,timeout);
 				//Update common data structure with new ctrl msg
 				getReplyCtrl[i] = control;
 				/* Recv Objects if participant sends TRANS_DISAGREE */
@@ -1458,6 +1454,10 @@ int transCommit() {
     }
 #endif
 //    printf("%s -> transID = %u Passed this point\n",__func__,transID);
+    pthread_mutex_lock(&translist_mutex);
+    transList = tlistInsertNode(transList,transID,-3,TRYING_TO_COMMIT,epoch_num);
+    tNode = tlistSearch(transList,transID);
+    pthread_mutex_unlock(&translist_mutex);
 
 #ifdef CACHE
     if (finalResponse == TRANS_COMMIT) {
@@ -1518,13 +1518,6 @@ int transCommit() {
 #endif
 		}
 	} while (treplyretry && deadmid != -1);
-
-#ifdef RECOVERY
-
-
-
-
-#endif
 
 	if(finalResponse == TRANS_ABORT) {
 #ifdef TRANSSTATS
@@ -1885,7 +1878,7 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
       if((flag = pingMachines(epoch_num,sdlist,&tList)) < 0) break;
 
       pthread_mutex_lock(&translist_mutex);
-      tlistPrint(tList);
+//      tlistPrint(tList);
       pthread_mutex_unlock(&translist_mutex);
 //      getchar();
       printf("%s -> I'm currently leader num : %d releaseing new lists\n\n",__func__,epoch_num);
@@ -1913,7 +1906,7 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
   if(flag < 0) {
     printf("%s -> higher epoch\n",__func__);
     while(okCommit != TRANS_OK) {
-      //printf("%s -> Waiting\n",__func__);
+//      sleep(3);
       randomdelay();
     }
     

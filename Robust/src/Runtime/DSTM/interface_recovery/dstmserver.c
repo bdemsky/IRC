@@ -527,7 +527,7 @@ void *dstmAccept(void *acceptfd) {
             send_data((int)acceptfd,&response,sizeof(char));
           }
           else {
-//            printf("Got new Leader! : %d\n",epoch_num);
+            printf("Got new Leader! : %d\n",epoch_num);
             pthread_mutex_lock(&recovery_mutex);
             currentEpoch = epoch_num;
             okCommit = TRANS_BEFORE;
@@ -825,10 +825,12 @@ int readClientReq(trans_commit_data_t *transinfo, int acceptfd) {
 #endif
 
   /* Read fixed_data_t data structure */
-  size = sizeof(fixed) - 1;
+  size = sizeof(fixed_data_t) - 1;
   ptr = (char *)&fixed;
   fixed.control = TRANS_REQUEST;
   timeout = recv_data((int)acceptfd, ptr+1, size);
+
+//  printf("%s -> Received transid = %u\n",__func__,fixed.transid);
 
   /* Read list of mids */
   int mcount = fixed.mcount;
@@ -964,24 +966,24 @@ int processClientReq(fixed_data_t *fixed, trans_commit_data_t *transinfo,
         commitObjects(tNode->decision,fixed,transinfo,modptr,oidmod,acceptfd);
         tNode->status = TRANS_AFTER;
       }
-      if(okCommit == TRANS_AFTER) {
-//      printf("%s -> 11 \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-//      sleep(3);
+      else {
+        tNode->decision = TRANS_ABORT;
+        tNode->status = TRANS_INPROGRESS;
+        thashInsert(fixed->transid,tNode->decision);
+        commitObjects(tNode->decision,fixed,transinfo,modptr,oidmod,acceptfd);
+        tNode->status = TRANS_AFTER;
       }
     }
     else {
       tNode->status = TRANS_WAIT;
-      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+//      printf("%s -> Waiting!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
+//      sleep(3);
       randomdelay();
     }
     
   }while(tNode->status != TRANS_AFTER);
 
-  if(okCommit == TRANS_AFTER)
-  {
-//    printf("%s -> TRANS_AFTER!! \ttransID : %u decision : %d status : %d \n",__func__,tNode->transid,tNode->decision,tNode->status);
-  }
-
+//  printf("%s -> trans ID : %u is cleared\n",__func__,tNode->transid);
 
   pthread_mutex_lock(&translist_mutex);
   transList = tlistRemove(transList,fixed->transid);
@@ -1865,7 +1867,7 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
 //            printf("%s -> Higher Epoch is seen, walker->epoch = %u currentEpoch = %u\n",__func__,epoch_num,currentEpoch);
             return -1;                                     
          }
-          sleep(3);
+//          sleep(5);
         }
       walker = walker->next;
       }
@@ -1883,7 +1885,7 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
       pthread_mutex_lock(&translist_mutex);
       size = transList->size;
 //      printf("%s -> size = %d\n",__func__,size);
-//      printf("%s -> okCommit = %d\n",__func__,okCommit);
+//    printf("%s -> okCommit = %d\n",__func__,okCommit);
       walker = transList->head;
       while(walker){
 //        printf("%s -> AFTER transid : %u - decision %d Status : %d epoch = %u  current epoch : %u\n",__func__,walker->transid,walker->decision,walker->status,walker->epoch_num,currentEpoch);
@@ -1896,7 +1898,8 @@ int stopTransactions(int TRANS_FLAG,unsigned int epoch_num)
         return -1;
       }
 
-      sleep(3);
+//      sleep(5);
+      randomdelay();
     }while(size != 0);
   }
 
@@ -1926,8 +1929,8 @@ void sendTransList(int acceptfd)
   tlist_node_t* transArray = tlistToArray(transList,&size);
   pthread_mutex_unlock(&translist_mutex);
 
-  if(transList->size != 0)
-    tlistPrint(transList);
+//  if(transList->size != 0)
+//    tlistPrint(transList);
 
 //  printf("%s -> transList->size : %d  size = %d\n",__func__,transList->size,size);
 
