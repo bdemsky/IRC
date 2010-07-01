@@ -181,6 +181,10 @@ public class FlexScheduler extends Thread {
     int eIndex=e.getEvent();
     long eTime=e.getTime();
     long timeleft=eTime-currtime;
+    if (e.isStalled()) {
+      stallcycles-=timeleft; //this time is no longer stalled...back it out
+      timeleft=0;//if the event is stalled, we already waited this time...
+    }
     long totaltime=trans.getTime(eIndex);
     totaltime-=timeleft;//subtract off time to the next event
     abortedcycles+=totaltime;
@@ -211,6 +215,7 @@ public class FlexScheduler extends Thread {
   public void stall(Event ev, long time, long delay) {
     stallcycles+=delay;
     ev.setTime(time+delay);
+    ev.setStall();
     eq.add(ev);
   }
 
@@ -845,6 +850,15 @@ public class FlexScheduler extends Thread {
     Transaction t;
     int threadid;
     int transnum;
+    boolean stalled;
+
+    public boolean isStalled() {
+      return stalled;
+    }
+
+    public void setStall() {
+      stalled=true;
+    }
 
     public void makeInvalid() {
       valid=false;
