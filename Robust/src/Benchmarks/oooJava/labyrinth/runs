@@ -1,0 +1,3 @@
+./Labyrinths.bin -i ./inputs/random-x32-y32-z3-n64.txt
+#./Labyrinth.bin -i ./inputs/random-x128-y128-z3-n64.txt
+#./Labyrinth.bin -i ./inputs/random-x256-y256-z3-n256.txt
