@@ -23,6 +23,7 @@ import Analysis.Locality.DCWrapper;
 import Analysis.Locality.DelayComputation;
 import Analysis.Locality.BranchAnalysis;
 import Analysis.CallGraph.CallGraph;
+import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
 import Analysis.Loops.GlobalFieldType;
@@ -71,6 +72,7 @@ public class BuildCode {
   SafetyAnalysis sa;
   PrefetchAnalysis pa;
   MLPAnalysis mlpa;
+  OoOJavaAnalysis oooa;
   String mlperrstr = "if(status != 0) { "+
     "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
     "perror(errmsg); exit(-1); }";
@@ -83,21 +85,22 @@ public class BuildCode {
 
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
-    this(st, temptovar, typeutil, null, sa, pa, null);
+    this(st, temptovar, typeutil, null, sa, pa, null, null);
   }
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa, MLPAnalysis mlpa) {
-    this(st, temptovar, typeutil, null, sa, pa, mlpa);
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa, MLPAnalysis mlpa, OoOJavaAnalysis oooa) {
+    this(st, temptovar, typeutil, null, sa, pa, mlpa, oooa);
   }
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa, MLPAnalysis mlpa) {
-    this(st, temptovar, typeutil, locality, null, pa, mlpa);
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa, MLPAnalysis mlpa, OoOJavaAnalysis oooa) {
+    this(st, temptovar, typeutil, locality, null, pa, mlpa, oooa);
   }
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa, MLPAnalysis mlpa) {
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa, MLPAnalysis mlpa, OoOJavaAnalysis oooa) {
     this.sa=sa;
     this.pa=pa;
     this.mlpa=mlpa;
+    this.oooa=oooa;
     state=st;
     callgraph=new CallGraph(state);
     if (state.SINGLETM)
@@ -199,7 +202,7 @@ public class BuildCode {
       outmethodheader.println("#include \"abortreaders.h\"");
       outmethodheader.println("#include <setjmp.h>");
     }
-    if (state.MLP) {
+    if (state.MLP || state.OOOJAVA) {
       outmethodheader.println("#include <stdlib.h>");
       outmethodheader.println("#include <stdio.h>");
       outmethodheader.println("#include <string.h>");
@@ -238,28 +241,43 @@ public class BuildCode {
       outputTaskTypes(outtask);
     }
 
-    if( state.MLP ) {
+    if( state.MLP || state.OOOJAVA) {
       // have to initialize some SESE compiler data before
       // analyzing normal methods, which must happen before
       // generating SESE internal code
-      for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
-	FlatSESEEnterNode fsen = seseit.next();
-	initializeSESE( fsen );
+      
+      Iterator<FlatSESEEnterNode> seseit;
+      if(state.MLP){
+        seseit=mlpa.getAllSESEs().iterator();
+      }else{
+        seseit=oooa.getAllSESEs().iterator();
       }
+      while(seseit.hasNext()){
+        FlatSESEEnterNode fsen = seseit.next();
+        initializeSESE( fsen );
+      }
+      
     }
 
     /* Build the actual methods */
     outputMethods(outmethod);
 
     // Output function prototypes and structures for SESE's and code
-    if( state.MLP ) {
+    if( state.MLP || state.OOOJAVA ) {
 
       // used to differentiate, during code generation, whether we are
       // passing over SESE body code, or non-SESE code
       nonSESEpass = false;
 
-      // first generate code for each sese's internals
-      for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
+      // first generate code for each sese's internals     
+      Iterator<FlatSESEEnterNode> seseit;
+      if(state.MLP){
+        seseit=mlpa.getAllSESEs().iterator();
+      }else{
+        seseit=oooa.getAllSESEs().iterator();
+      }
+      
+      while(seseit.hasNext()) {
 	FlatSESEEnterNode fsen = seseit.next();
 	generateMethodSESE(fsen, null, outstructs, outmethodheader, outmethod);
       }
@@ -309,7 +327,7 @@ public class BuildCode {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
 
-    if (state.MLP) {
+    if (state.MLP || state.OOOJAVA) {
       //outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
     }
@@ -430,7 +448,7 @@ public class BuildCode {
     if (state.THREAD||state.SINGLETM)
       outmethod.println("pthread_exit(NULL);");
 
-    if (state.MLP) {
+    if (state.MLP || state.OOOJAVA ) {
       outmethod.println("  workScheduleBegin();");
     }
 
@@ -500,7 +518,7 @@ public class BuildCode {
     if (state.CONSCHECK) {
       outmethod.println("#include \"checkers.h\"");
     }
-    if (state.MLP) {
+    if (state.MLP || state.OOOJAVA ) {
       outmethod.println("#include <stdlib.h>");
       outmethod.println("#include <stdio.h>");
       outmethod.println("#include \"mlp_runtime.h\"");
@@ -557,7 +575,7 @@ public class BuildCode {
     outstructs.println("#define INTPTR int");
     outstructs.println("#endif");
     outstructs.println("#endif");
-    if( state.MLP ) {
+    if( state.MLP || state.OOOJAVA ) {
       outstructs.println("#include \"mlp_runtime.h\"");
       outstructs.println("#include \"psemaphore.h\"");
     }
@@ -638,7 +656,7 @@ public class BuildCode {
     //Print out definition for array type
     outclassdefs.println("struct "+arraytype+" {");
     outclassdefs.println("  int type;");
-    if(state.MLP){
+    if(state.MLP || state.OOOJAVA ){
       outclassdefs.println("  int oid;");
     }
     if (state.EVENTMONITOR) {
@@ -983,7 +1001,7 @@ public class BuildCode {
     outclassdefs.print("#endif\n");
 
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
-    if(this.state.MLP){
+    if(this.state.MLP || state.OOOJAVA ){
     	outclassdefs.print("extern __thread int oid;\n");
     	outclassdefs.print("extern int numWorkers;\n");
     }
@@ -1383,7 +1401,7 @@ public class BuildCode {
     /* Output class structure */
     classdefout.println("struct "+cn.getSafeSymbol()+" {");
     classdefout.println("  int type;");
-    if(state.MLP){
+    if(state.MLP || state.OOOJAVA){
       classdefout.println("  int oid;");
     }
     if (state.EVENTMONITOR) {
@@ -1760,10 +1778,12 @@ public class BuildCode {
     }
 
 
-    if( state.MLP ) {      
+    if( state.MLP || state.OOOJAVA ) {      
       if( fm.getNext(0) instanceof FlatSESEEnterNode ) {
 	FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-	if( callerSESEplaceholder != mlpa.getMainSESE() ) {
+	if( (state.MLP && callerSESEplaceholder != mlpa.getMainSESE()) ||  
+	    (state.OOOJAVA && callerSESEplaceholder != oooa.getMainSESE())
+	) {
 	  // declare variables for naming static SESE's
 	  output.println("   /* static SESE names */");
 	  Iterator<SESEandAgePair> pItr = callerSESEplaceholder.getNeededStaticNames().iterator();
@@ -1785,38 +1805,67 @@ public class BuildCode {
       
       // set up related allocation sites's waiting queues
       // eom
-		ConflictGraph graph = null;
-		graph = mlpa.getConflictGraphResults().get(fm);
-		if (graph != null && graph.hasConflictEdge()) {
-			output.println("   /* set up waiting queues */");
-			output.println("   int numMemoryQueue=0;");
-			output.println("   int memoryQueueItemID=0;");
-			HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
-					graph);
-			System.out.println("#lockSet="+lockSet.hashCode());
-			System.out.println("lockset="+lockSet);
-			for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-				SESELock seseLock = (SESELock) iterator.next();
-				System.out.println("id="+seseLock.getID());
-				System.out.println("#="+seseLock);
-			}
-			System.out.println("size="+lockSet.size());
-			if (lockSet.size() > 0) {
-				output.println("   numMemoryQueue=" + lockSet.size() + ";");
-				output
-						.println("   seseCaller->numMemoryQueue=numMemoryQueue;");
-				output
-						.println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-				output.println();
-			}
-		}
+      if(state.MLP){
+        ConflictGraph graph = null;
+        graph = mlpa.getConflictGraphResults().get(fm);
+        if (graph != null && graph.hasConflictEdge()) {
+          output.println("   /* set up waiting queues */");
+          output.println("   int numMemoryQueue=0;");
+          output.println("   int memoryQueueItemID=0;");
+          HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
+              graph);
+          System.out.println("#lockSet="+lockSet.hashCode());
+          System.out.println("lockset="+lockSet);
+          for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
+            SESELock seseLock = (SESELock) iterator.next();
+            System.out.println("id="+seseLock.getID());
+            System.out.println("#="+seseLock);
+          }
+          System.out.println("size="+lockSet.size());
+          if (lockSet.size() > 0) {
+            output.println("   numMemoryQueue=" + lockSet.size() + ";");
+            output
+                .println("   seseCaller->numMemoryQueue=numMemoryQueue;");
+            output
+                .println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+            output.println();
+          }
+        }
+      }else{
+        FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
+        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);
+        if (graph != null && graph.hasConflictEdge()) {
+          output.println("   /* set up waiting queues */");
+          output.println("   int numMemoryQueue=0;");
+          output.println("   int memoryQueueItemID=0;");
+          Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
+          System.out.println("#lockSet="+lockSet.hashCode());
+          System.out.println("lockset="+lockSet);
+          for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
+            Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
+            System.out.println("id="+seseLock.getID());
+            System.out.println("#="+seseLock);
+          }
+          System.out.println("size="+lockSet.size());
+          if (lockSet.size() > 0) {
+            output.println("   numMemoryQueue=" + lockSet.size() + ";");
+            output
+                .println("   seseCaller->numMemoryQueue=numMemoryQueue;");
+            output
+                .println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+            output.println();
+          }
+        }
+      
+      }
+        
     }
 
 
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
 
-    if (((state.MLP||state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) 
+    if (((state.MLP||state.OOOJAVA||state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC) 
         || this.state.MULTICOREGC) {
       //Don't bother if we aren't in recursive methods...The loops case will catch it
       if (callgraph.getAllMethods(md).contains(md)) {
@@ -2114,19 +2163,17 @@ public class BuildCode {
     
     // setup memory queue
     // eom
+    if(state.OOOJAVA){
     output.println("   // set up memory queues ");
 	output.println("   int numMemoryQueue=0;");
 	output.println("   int memoryQueueItemID=0;");
-	ConflictGraph graph = null;
-	graph = mlpa.getConflictGraphResults().get(fsen);
+	Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(fsen);
 	if (graph != null && graph.hasConflictEdge()) {
 		output.println("   {");
 		output
 				.println("   SESEcommon* parentCommon = &(___params___->common);");
-		HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
-				graph);
+		Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
 		System.out.println("#lockSet="+lockSet);
-
 		if (lockSet.size() > 0) {
 			output.println("   numMemoryQueue=" + lockSet.size() + ";");
 			output
@@ -2137,6 +2184,32 @@ public class BuildCode {
 		}
 		output.println("   }");
 	}
+    }else{
+      output.println("   // set up memory queues ");
+      output.println("   int numMemoryQueue=0;");
+      output.println("   int memoryQueueItemID=0;");
+      ConflictGraph graph = null;
+      graph = mlpa.getConflictGraphResults().get(fsen);
+      if (graph != null && graph.hasConflictEdge()) {
+        output.println("   {");
+        output
+            .println("   SESEcommon* parentCommon = &(___params___->common);");
+        HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
+            graph);
+        System.out.println("#lockSet="+lockSet);
+
+        if (lockSet.size() > 0) {
+          output.println("   numMemoryQueue=" + lockSet.size() + ";");
+          output
+              .println("   parentCommon->numMemoryQueue=numMemoryQueue;");
+          output
+              .println("   parentCommon->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+          output.println();
+        }
+        output.println("   }");
+      }
+       
+    }
 
 
     // copy in-set into place, ready vars were already 
@@ -2251,14 +2324,22 @@ public class BuildCode {
     // generate a case for each SESE class that can be invoked
     outmethod.println(      "  switch( *((int*)seseRecord) ) {");
     outmethod.println(      "    ");
-    for(Iterator<FlatSESEEnterNode> seseit=mlpa.getAllSESEs().iterator();seseit.hasNext();) {
+    Iterator<FlatSESEEnterNode> seseit;
+    if(state.MLP){
+      seseit=mlpa.getAllSESEs().iterator();
+    }else{
+      seseit=oooa.getAllSESEs().iterator();
+    }
+    while(seseit.hasNext()){
       FlatSESEEnterNode fsen = seseit.next();
 
       outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
       outmethod.println(    "    case "+fsen.getIdentifier()+":");
       outmethod.println(    "      "+fsen.getSESEmethodName()+"( seseRecord );");  
       
-      if( fsen.equals( mlpa.getMainSESE() ) ) {
+      if( (state.MLP && fsen.equals( mlpa.getMainSESE() )) || 
+          (state.OOOJAVA && fsen.equals( oooa.getMainSESE() ))
+      ) {
 	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
 	outmethod.println(  "      exit( 0 );");
       }
@@ -2361,7 +2442,7 @@ public class BuildCode {
 	    output.println("primitives->"+tmp.getSafeSymbol()+"="+tmp.getSafeSymbol()+";");
 	  }
 	}
-	if (state.MLP && stopset!=null) {
+	if ((state.MLP || state.OOOJAVA) && stopset!=null) {
 	  assert first.getPrev( 0 ) instanceof FlatSESEEnterNode;
 	  assert current_node       instanceof FlatSESEExitNode;
 	  FlatSESEEnterNode fsen = (FlatSESEEnterNode) first.getPrev( 0 );
@@ -2375,7 +2456,7 @@ public class BuildCode {
 	current_node=null;
       } else if(current_node.numNext()==1) {
 	FlatNode nextnode;
-	if (state.MLP && 
+	if ((state.MLP|| state.OOOJAVA) && 
 	    current_node.kind()==FKind.FlatSESEEnterNode && 
 	    !((FlatSESEEnterNode)current_node).getIsCallerSESEplaceholder()
 	   ) {
@@ -2660,9 +2741,15 @@ public class BuildCode {
   protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
 
     // insert pre-node actions from the code plan
-    if( state.MLP ) {
+    if( state.MLP|| state.OOOJAVA ) {
       
-      CodePlan cp = mlpa.getCodePlan( fn );
+      CodePlan cp;
+      if(state.MLP){
+        cp = mlpa.getCodePlan( fn );
+      }else{
+        cp = oooa.getCodePlan(fn);
+      }
+
       if( cp != null ) {     		
 	
 	FlatSESEEnterNode currentSESE = cp.getCurrentSESE();
@@ -2762,49 +2849,84 @@ public class BuildCode {
           output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
 	
-	// eom
+	  // eom
     // handling stall site
-	ParentChildConflictsMap conflictsMap = mlpa.getConflictsResults().get(fn);
-	if (conflictsMap != null) {
-		Set<Long> allocSet = conflictsMap.getAllocationSiteIDSetofStallSite();
-		if (allocSet.size() > 0) {
-			FlatNode enclosingFlatNode=null;
-			if( currentSESE.getIsCallerSESEplaceholder() && currentSESE.getParent()==null){
-				enclosingFlatNode=currentSESE.getfmEnclosing();
-			}else{
-				enclosingFlatNode=currentSESE;
-			}						
-			ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
-			HashSet<SESELock> seseLockSet=mlpa.getConflictGraphLockMap().get(graph);
-			Set<WaitingElement> waitingElementSet=graph.getStallSiteWaitingElementSet(conflictsMap, seseLockSet);
-			
-			if(waitingElementSet.size()>0){
-				output.println("// stall on parent's stall sites ");
-				output.println("   {");
-				output.println("     REntry* rentry;");
-				
-				for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-					WaitingElement waitingElement = (WaitingElement) iterator.next();
-					
-					if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-						output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
-					}else{
-						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
-//						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");	
-					}					
-					output.println("     psem_init( &(rentry->parentStallSem) );");
-					output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-					output
-							.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
-									+ "],rentry)==NOTREADY){");
-					output.println("        psem_take( &(rentry->parentStallSem) );");
-					output.println("     }  ");
-				}
-				output.println("   }");
-			}
-		}
-	}	
+    if (state.OOOJAVA) {
+      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
+      if(graph!=null){
+        Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
+        Set<Analysis.OoOJava.WaitingElement> waitingElementSet =
+            graph.getStallSiteWaitingElementSet(fn, seseLockSet);
+        
+        if(waitingElementSet.size()>0){
+          output.println("// stall on parent's stall sites ");
+          output.println("   {");
+          output.println("     REntry* rentry;");
+          
+          for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+            Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
+            
+            if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+              output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+            }else{
+              output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
+  //            output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");  
+            }         
+            output.println("     psem_init( &(rentry->parentStallSem) );");
+            output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+            output
+                .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+                    + "],rentry)==NOTREADY){");
+            output.println("        psem_take( &(rentry->parentStallSem) );");
+            output.println("     }  ");
+          }
+          output.println("   }");
+        }
+      }
+    }else{
+  	ParentChildConflictsMap conflictsMap = mlpa.getConflictsResults().get(fn);
+  	if (conflictsMap != null) {
+  		Set<Long> allocSet = conflictsMap.getAllocationSiteIDSetofStallSite();
+  		if (allocSet.size() > 0) {
+  			FlatNode enclosingFlatNode=null;
+  			if( currentSESE.getIsCallerSESEplaceholder() && currentSESE.getParent()==null){
+  				enclosingFlatNode=currentSESE.getfmEnclosing();
+  			}else{
+  				enclosingFlatNode=currentSESE;
+  			}						
+  			ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
+  			HashSet<SESELock> seseLockSet=mlpa.getConflictGraphLockMap().get(graph);
+  			Set<WaitingElement> waitingElementSet=graph.getStallSiteWaitingElementSet(conflictsMap, seseLockSet);
+  			
+  			if(waitingElementSet.size()>0){
+  				output.println("// stall on parent's stall sites ");
+  				output.println("   {");
+  				output.println("     REntry* rentry;");
+  				
+  				for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+  					WaitingElement waitingElement = (WaitingElement) iterator.next();
+  					
+  					if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+  						output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+  					}else{
+  						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
+  //						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");	
+  					}					
+  					output.println("     psem_init( &(rentry->parentStallSem) );");
+  					output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+  					output
+  							.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+  									+ "],rentry)==NOTREADY){");
+  					output.println("        psem_take( &(rentry->parentStallSem) );");
+  					output.println("     }  ");
+  				}
+  				output.println("   }");
+  			}
+  		}
+  	}	
+	}
 
+	
       }     
     }
 
@@ -2896,7 +3018,7 @@ public class BuildCode {
       if(state.DSM&&state.SANDBOX&&(locality.getAtomic(lb).get(fn).intValue()>0)) {
         output.println("if (unlikely((--transaction_check_counter)<=0)) checkObjects();");
       }
-      if (((state.MLP||state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
+      if (((state.MLP|| state.OOOJAVA||state.THREAD||state.DSM||state.SINGLETM)&&GENERATEPRECISEGC)
           || (this.state.MULTICOREGC)) {
 	if(state.DSM&&locality.getAtomic(lb).get(fn).intValue()>0) {
 	  output.println("if (needtocollect) checkcollect2("+localsprefixaddr+");");
@@ -2929,13 +3051,15 @@ public class BuildCode {
       throw new Error();
     }
 
-    // insert post-node actions from the code-plan    
-    if( state.MLP ) {
+    // insert post-node actions from the code-plan
+    /*
+    if( state.MLP) {
       CodePlan cp = mlpa.getCodePlan( fn );
 
       if( cp != null ) {     
       }
-    }    
+    }
+    */
   }
 
   public void generateFlatOffsetNode(FlatMethod fm, LocalityBinding lb, FlatOffsetNode fofn, PrintWriter output) {
@@ -3315,15 +3439,15 @@ public class BuildCode {
 					 FlatSESEEnterNode fsen, 
 					 PrintWriter output 
 				       ) {
-
     // if MLP flag is off, okay that SESE nodes are in IR graph, 
     // just skip over them and code generates exactly the same
-    if( !state.MLP ) {
+    if( !(state.MLP || state.OOOJAVA) ) {
       return;
     }    
-
     // there may be an SESE in an unreachable method, skip over
-    if( !mlpa.getAllSESEs().contains( fsen ) ) {
+    if( (state.MLP && !mlpa.getAllSESEs().contains( fsen )) ||
+        (state.OOOJAVA && !oooa.getAllSESEs().contains(fsen))
+    ) {
       return;
     }
 
@@ -3335,7 +3459,9 @@ public class BuildCode {
     output.println("   {");
 
     // set up the parent
-    if( fsen == mlpa.getMainSESE() ) {
+    if( (state.MLP && fsen == mlpa.getMainSESE()) || 
+         (state.OOOJAVA && fsen == oooa.getMainSESE()) 
+    ) {
       output.println("     SESEcommon* parentCommon = NULL;");
     } else {
       if( fsen.getParent() == null ) {
@@ -3351,7 +3477,9 @@ public class BuildCode {
     }
     
     // before doing anything, lock your own record and increment the running children
-    if( fsen != mlpa.getMainSESE() ) {      
+    if( (state.MLP && fsen != mlpa.getMainSESE()) || 
+         (state.OOOJAVA && fsen != oooa.getMainSESE())
+    ) {      
       output.println("     atomic_inc(&parentCommon->numRunningChildren);");
     }
 
@@ -3401,7 +3529,9 @@ public class BuildCode {
       // otherwise use the parent's enclosing method as the context
       boolean useParentContext = false;
 
-      if( fsen != mlpa.getMainSESE() ) {
+      if( (state.MLP && fsen != mlpa.getMainSESE()) || 
+          (state.OOOJAVA && fsen != oooa.getMainSESE())     
+      ) {
 	assert fsen.getParent() != null;
 	if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
 	  useParentContext = true;
@@ -3422,7 +3552,9 @@ public class BuildCode {
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
 //    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
   
-    if( fsen != mlpa.getMainSESE() ) {
+    if( (state.MLP && fsen != mlpa.getMainSESE()) ||
+        (state.OOOJAVA && fsen != oooa.getMainSESE())    
+    ) {
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
       while( staticSrcsItr.hasNext() ) {
@@ -3488,7 +3620,9 @@ public class BuildCode {
 	output.println("       } else {");
 
 	boolean useParentContext = false;
-	if( fsen != mlpa.getMainSESE() ) {
+	if( (state.MLP && fsen != mlpa.getMainSESE()) || 
+	    (state.OOOJAVA && fsen != oooa.getMainSESE()) 	
+	) {
 	  assert fsen.getParent() != null;
 	  if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
 	    useParentContext = true;
@@ -3529,130 +3663,251 @@ public class BuildCode {
       ////////////////
       // count up memory conflict dependencies,
       // eom
-  	ConflictGraph graph = null;
-  	FlatSESEEnterNode parent = fsen.getParent();
-  	if (parent != null) {
-  		if (parent.isCallerSESEplaceholder) {
-  			graph = mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
-  		} else {
-  			graph = mlpa.getConflictGraphResults().get(parent);
-  		}
-  	}
-			if (graph != null && graph.hasConflictEdge()) {
-				HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap()
-						.get(graph);
-				output.println();
-				output.println("     //add memory queue element");
-				SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(),
-						seseLockSet);
-				if(seseWaitingQueue.getWaitingElementSize()>0){
-					output.println("     {");
-					output.println("     REntry* rentry=NULL;");
-					output.println("     INTPTR* pointer=NULL;");
-					output.println("     seseToIssue->common.rentryIdx=0;");
-					
-					Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
-					for (Iterator iterator = queueIDSet.iterator(); iterator
-							.hasNext();) {
-						Integer key = (Integer) iterator.next();
-						int queueID=key.intValue();
-						Set<WaitingElement> waitingQueueSet =  seseWaitingQueue.getWaitingElementSet(queueID);
-						int enqueueType=seseWaitingQueue.getType(queueID);
-						if(enqueueType==SESEWaitingQueue.EXCEPTION){
-							output.println("     INITIALIZEBUF(parentCommon->memoryQueueArray["
-										+ queueID+ "]);");
-						}
-						for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
-								.hasNext();) {
-							WaitingElement waitingElement = (WaitingElement) iterator2
-									.next();
-							if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-								output.println("     rentry=mlpCreateREntry("
-										+ waitingElement.getStatus()
-										+ ", seseToIssue);");
-							} else {
-								TempDescriptor td = waitingElement
-										.getTempDesc();
-								// decide whether waiting element is dynamic or
-								// static
-								if (fsen.getDynamicInVarSet().contains(td)) {
-									// dynamic in-var case
-									output.println("     pointer=seseToIssue->"
-											+ waitingElement.getDynID()
-											+ "_srcSESE+seseToIssue->"
-											+ waitingElement.getDynID()
-											+ "_srcOffset;");
-									output
-											.println("     rentry=mlpCreateFineREntry("
-													+ waitingElement
-															.getStatus()
-													+ ", seseToIssue,  pointer );");
-								} else if (fsen.getStaticInVarSet()
-										.contains(td)) {
-									// static in-var case
-									VariableSourceToken vst = fsen
-											.getStaticInVarSrc(td);
-									if (vst != null) {
+      if(state.OOOJAVA){
 
-										String srcId = "SESE_"
-												+ vst.getSESE()
-														.getPrettyIdentifier()
-												+ vst.getSESE().getIdentifier()
-												+ "_" + vst.getAge();
-										output
-												.println("     pointer=(void*)&seseToIssue->"
-														+ srcId
-														+ "->"
-														+ waitingElement
-																.getDynID()
-														+ ";");
-										output
-												.println("     rentry=mlpCreateFineREntry("
-														+ waitingElement
-																.getStatus()
-														+ ", seseToIssue,  pointer );");
-
-									}
-								} else {
-									output
-											.println("     rentry=mlpCreateFineREntry("
-													+ waitingElement
-															.getStatus()
-													+ ", seseToIssue,  (void*)&seseToIssue->"
-													+ waitingElement.getDynID()
-													+ ");");
-								}
-							}
-							output
-									.println("     rentry->queue=parentCommon->memoryQueueArray["
-											+ waitingElement.getQueueID()
-											+ "];");
-							
-							if(enqueueType==SESEWaitingQueue.NORMAL){
-								output
-								.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-								output
-										.println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
-												+ waitingElement.getQueueID()
-												+ "],rentry)==NOTREADY){");
-								output.println("        ++(localCount);");
-								output.println("     } ");
-							}else{
-								output
-								.println("     ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
-										+ waitingElement.getQueueID()
-										+ "],rentry);");
-							}
-						}
-						if(enqueueType!=SESEWaitingQueue.NORMAL){
-							output.println("     localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
-										+ queueID+ "],&seseToIssue->common);");
-						}				
-					}
-					output.println("     }");
-				}
-				output.println();
-			}
+        FlatSESEEnterNode parent = fsen.getParent();
+        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
+        if (graph != null && graph.hasConflictEdge()) {
+          Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
+          output.println();
+          output.println("     //add memory queue element");
+          Analysis.OoOJava.SESEWaitingQueue seseWaitingQueue=
+            graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
+          if(seseWaitingQueue.getWaitingElementSize()>0){
+            output.println("     {");
+            output.println("       REntry* rentry=NULL;");
+            output.println("       INTPTR* pointer=NULL;");
+            output.println("       seseToIssue->common.rentryIdx=0;");
+            
+            Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
+            for (Iterator iterator = queueIDSet.iterator(); iterator
+                .hasNext();) {
+              Integer key = (Integer) iterator.next();
+              int queueID=key.intValue();
+              Set<Analysis.OoOJava.WaitingElement> waitingQueueSet =  
+                seseWaitingQueue.getWaitingElementSet(queueID);
+              int enqueueType=seseWaitingQueue.getType(queueID);
+              if(enqueueType==SESEWaitingQueue.EXCEPTION){
+                output.println("       INITIALIZEBUF(parentCommon->memoryQueueArray["
+                      + queueID+ "]);");
+              }
+              for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
+                  .hasNext();) {
+                Analysis.OoOJava.WaitingElement waitingElement 
+                  = (Analysis.OoOJava.WaitingElement) iterator2.next();
+                if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+                  output.println("       rentry=mlpCreateREntry("
+                      + waitingElement.getStatus()
+                      + ", seseToIssue);");
+                } else {
+                  TempDescriptor td = waitingElement
+                      .getTempDesc();
+                  // decide whether waiting element is dynamic or static
+                  if (fsen.getDynamicInVarSet().contains(td)) {
+                    // dynamic in-var case
+                    output.println("       pointer=seseToIssue->"
+                        + waitingElement.getDynID()
+                        + "_srcSESE+seseToIssue->"
+                        + waitingElement.getDynID()
+                        + "_srcOffset;");
+                    output
+                        .println("       rentry=mlpCreateFineREntry("
+                            + waitingElement
+                                .getStatus()
+                            + ", seseToIssue,  pointer );");
+                  } else if (fsen.getStaticInVarSet()
+                      .contains(td)) {
+                    // static in-var case
+                    VariableSourceToken vst = fsen
+                        .getStaticInVarSrc(td);
+                    if (vst != null) {
+  
+                      String srcId = "SESE_"
+                          + vst.getSESE()
+                              .getPrettyIdentifier()
+                          + vst.getSESE().getIdentifier()
+                          + "_" + vst.getAge();
+                      output
+                          .println("       pointer=(void*)&seseToIssue->"
+                              + srcId
+                              + "->"
+                              + waitingElement
+                                  .getDynID()
+                              + ";");
+                      output
+                          .println("       rentry=mlpCreateFineREntry("
+                              + waitingElement
+                                  .getStatus()
+                              + ", seseToIssue,  pointer );");
+  
+                    }
+                  } else {
+                    output
+                        .println("       rentry=mlpCreateFineREntry("
+                            + waitingElement
+                                .getStatus()
+                            + ", seseToIssue,  (void*)&seseToIssue->"
+                            + waitingElement.getDynID()
+                            + ");");
+                  }
+                }
+                output
+                    .println("       rentry->queue=parentCommon->memoryQueueArray["
+                        + waitingElement.getQueueID()
+                        + "];");
+                
+                if(enqueueType==SESEWaitingQueue.NORMAL){
+                  output
+                  .println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+                  output
+                      .println("       if(ADDRENTRY(parentCommon->memoryQueueArray["
+                          + waitingElement.getQueueID()
+                          + "],rentry)==NOTREADY){");
+                  output.println("          ++(localCount);");
+                  output.println("       }");
+                }else{
+                  output
+                  .println("       ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
+                      + waitingElement.getQueueID()
+                      + "],rentry);");
+                }
+              }
+              if(enqueueType!=SESEWaitingQueue.NORMAL){
+                output.println("       localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
+                      + queueID+ "],&seseToIssue->common);");
+              }       
+            }
+            output.println("     }");
+          }
+          output.println();
+        }
+        
+      }else{
+    	ConflictGraph graph = null;
+    	FlatSESEEnterNode parent = fsen.getParent();
+    	if (parent != null) {
+    		if (parent.isCallerSESEplaceholder) {
+    			graph = mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
+    		} else {
+    			graph = mlpa.getConflictGraphResults().get(parent);
+    		}
+    	}
+  			if (graph != null && graph.hasConflictEdge()) {
+  				HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap()
+  						.get(graph);
+  				output.println();
+  				output.println("     //add memory queue element");
+  				SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(),
+  						seseLockSet);
+  				if(seseWaitingQueue.getWaitingElementSize()>0){
+  					output.println("     {");
+  					output.println("     REntry* rentry=NULL;");
+  					output.println("     INTPTR* pointer=NULL;");
+  					output.println("     seseToIssue->common.rentryIdx=0;");
+  					
+  					Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
+  					for (Iterator iterator = queueIDSet.iterator(); iterator
+  							.hasNext();) {
+  						Integer key = (Integer) iterator.next();
+  						int queueID=key.intValue();
+  						Set<WaitingElement> waitingQueueSet =  seseWaitingQueue.getWaitingElementSet(queueID);
+  						int enqueueType=seseWaitingQueue.getType(queueID);
+  						if(enqueueType==SESEWaitingQueue.EXCEPTION){
+  							output.println("     INITIALIZEBUF(parentCommon->memoryQueueArray["
+  										+ queueID+ "]);");
+  						}
+  						for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
+  								.hasNext();) {
+  							WaitingElement waitingElement = (WaitingElement) iterator2
+  									.next();
+  							if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+  								output.println("     rentry=mlpCreateREntry("
+  										+ waitingElement.getStatus()
+  										+ ", seseToIssue);");
+  							} else {
+  								TempDescriptor td = waitingElement
+  										.getTempDesc();
+  								// decide whether waiting element is dynamic or
+  								// static
+  								if (fsen.getDynamicInVarSet().contains(td)) {
+  									// dynamic in-var case
+  									output.println("     pointer=seseToIssue->"
+  											+ waitingElement.getDynID()
+  											+ "_srcSESE+seseToIssue->"
+  											+ waitingElement.getDynID()
+  											+ "_srcOffset;");
+  									output
+  											.println("     rentry=mlpCreateFineREntry("
+  													+ waitingElement
+  															.getStatus()
+  													+ ", seseToIssue,  pointer );");
+  								} else if (fsen.getStaticInVarSet()
+  										.contains(td)) {
+  									// static in-var case
+  									VariableSourceToken vst = fsen
+  											.getStaticInVarSrc(td);
+  									if (vst != null) {
+  
+  										String srcId = "SESE_"
+  												+ vst.getSESE()
+  														.getPrettyIdentifier()
+  												+ vst.getSESE().getIdentifier()
+  												+ "_" + vst.getAge();
+  										output
+  												.println("     pointer=(void*)&seseToIssue->"
+  														+ srcId
+  														+ "->"
+  														+ waitingElement
+  																.getDynID()
+  														+ ";");
+  										output
+  												.println("     rentry=mlpCreateFineREntry("
+  														+ waitingElement
+  																.getStatus()
+  														+ ", seseToIssue,  pointer );");
+  
+  									}
+  								} else {
+  									output
+  											.println("     rentry=mlpCreateFineREntry("
+  													+ waitingElement
+  															.getStatus()
+  													+ ", seseToIssue,  (void*)&seseToIssue->"
+  													+ waitingElement.getDynID()
+  													+ ");");
+  								}
+  							}
+  							output
+  									.println("     rentry->queue=parentCommon->memoryQueueArray["
+  											+ waitingElement.getQueueID()
+  											+ "];");
+  							
+  							if(enqueueType==SESEWaitingQueue.NORMAL){
+  								output
+  								.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+  								output
+  										.println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
+  												+ waitingElement.getQueueID()
+  												+ "],rentry)==NOTREADY){");
+  								output.println("        ++(localCount);");
+  								output.println("     } ");
+  							}else{
+  								output
+  								.println("     ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
+  										+ waitingElement.getQueueID()
+  										+ "],rentry);");
+  							}
+  						}
+  						if(enqueueType!=SESEWaitingQueue.NORMAL){
+  							output.println("     localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
+  										+ queueID+ "],&seseToIssue->common);");
+  						}				
+  					}
+  					output.println("     }");
+  				}
+  				output.println();
+  			}
+      }
       ////////////////
     }
     
@@ -3684,7 +3939,7 @@ public class BuildCode {
 
     // if MLP flag is off, okay that SESE nodes are in IR graph, 
     // just skip over them and code generates exactly the same 
-    if( !state.MLP ) {
+    if( ! (state.MLP || state.OOOJAVA) ) {
       return;
     }
 
@@ -3692,7 +3947,9 @@ public class BuildCode {
     FlatSESEEnterNode fsen = fsexn.getFlatEnter();
 
     // there may be an SESE in an unreachable method, skip over
-    if( !mlpa.getAllSESEs().contains( fsen ) ) {
+    if( (state.MLP && !mlpa.getAllSESEs().contains( fsen ))  ||
+        (state.OOOJAVA && !oooa.getAllSESEs().contains( fsen ))
+    ) {
       return;
     }
 
@@ -3743,7 +4000,9 @@ public class BuildCode {
       // have to determine the context enclosing this sese
       boolean useParentContext = false;
 
-      if( fsen != mlpa.getMainSESE() ) {
+      if( (state.MLP &&fsen != mlpa.getMainSESE()) || 
+          (state.OOOJAVA &&fsen != oooa.getMainSESE())
+      ) {
 	assert fsen.getParent() != null;
 	if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
 	  useParentContext = true;
@@ -3793,7 +4052,9 @@ public class BuildCode {
     
     // eom
     // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
-    if( fsen != mlpa.getMainSESE() ) {
+    if( (state.MLP && fsen != mlpa.getMainSESE()) ||
+        (state.OOOJAVA && fsen != oooa.getMainSESE())
+    ) {
     	
 		output.println();
 		output.println("   /* check memory dependency*/");
@@ -3808,7 +4069,9 @@ public class BuildCode {
     }
     
     // if parent is stalling on you, let them know you're done
-    if( fsexn.getFlatEnter() != mlpa.getMainSESE() ) {
+    if( (state.MLP && fsexn.getFlatEnter() != mlpa.getMainSESE()) || 
+        (state.OOOJAVA &&  fsexn.getFlatEnter() != oooa.getMainSESE())    
+    ) {
       output.println("   psem_give( &("+paramsprefix+"->common.stallSem) );");
     }
 
@@ -3839,7 +4102,7 @@ public class BuildCode {
 					       FlatWriteDynamicVarNode fwdvn,
 					       PrintWriter output
 					     ) {
-    if( !state.MLP ) {
+    if( !(state.MLP || state.OOOJAVA) ) {
       // should node should not be in an IR graph if the
       // MLP flag is not set
       throw new Error("Unexpected presence of FlatWriteDynamicVarNode");
@@ -3906,7 +4169,9 @@ public class BuildCode {
 
   private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
 
-    if( state.MLP && !nonSESEpass ) {
+    if( (state.MLP && !nonSESEpass) || 
+        (state.OOOJAVA && !nonSESEpass)
+    ) {
       output.println("     seseCaller = (SESEcommon*)"+paramsprefix+";");
     }
 
@@ -4431,7 +4696,7 @@ public class BuildCode {
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-    	  if(this.state.MLP){
+    	  if(this.state.MLP || state.OOOJAVA){
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray_oid("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+", oid);");
 	output.println("    oid += numWorkers;");
     	  }else{
@@ -4444,7 +4709,7 @@ public class BuildCode {
       if (fn.isGlobal()&&(state.DSM||state.SINGLETM)) {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-    	  if (this.state.MLP){
+    	  if (this.state.MLP || state.OOOJAVA){
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new_oid("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+", oid);");
 	output.println("    oid += numWorkers;");
     	  } else {

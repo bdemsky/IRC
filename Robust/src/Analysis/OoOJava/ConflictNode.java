@@ -203,4 +203,8 @@ public class ConflictNode {
     return str;
   }
   
+  public String toString(){
+    return id;
+  }
+  
 }

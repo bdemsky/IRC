@@ -324,6 +324,8 @@ public class Main {
       } else if (option.equals("-ooojava")) {
 	state.OOOJAVA  = true;
 	state.DISJOINT = true;
+	state.MLP_NUMCORES   = Integer.parseInt( args[++i] );
+	state.MLP_MAXSESEAGE = Integer.parseInt( args[++i] );
 
       } else if (option.equals("-ooodebug") ){ 
   state.OOODEBUG  = true;
@@ -414,6 +416,7 @@ public class Main {
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
     MLPAnalysis mlpa=null;
+    OoOJavaAnalysis  oooa=null;
     if (state.INLINEATOMIC) {
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
@@ -514,7 +517,7 @@ public class Main {
       CallGraph        cg  = new CallGraph(state);
       Liveness         l   = new Liveness();
       ArrayReferencees ar  = new ArrayReferencees(state);
-      OoOJavaAnalysis  oa  = new OoOJavaAnalysis(state, tu, cg, l, ar);
+      oooa  = new OoOJavaAnalysis(state, tu, cg, l, ar);
     }
 
 
@@ -611,10 +614,10 @@ public class Main {
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa, mlpa);
+	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa, mlpa,oooa);
 	bc.buildCode();
       } else {
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa, mlpa);
+	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa, mlpa,oooa);
 	bc.buildCode();
       }
     }

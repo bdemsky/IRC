@@ -184,11 +184,15 @@ public class ConflictGraph {
 
       String entryNodeID = entry.getKey();
       ConflictNode entryNode = entry.getValue();
+      
+      if(currentNode.isStallSiteNode() && entryNode.isStallSiteNode()){
+        continue;
+      }
 
       if ((!currentNode.getID().equals(entryNodeID))
           && !(analyzedIDSet.contains(currentNode.getID() + entryNodeID) || analyzedIDSet
               .contains(entryNodeID + currentNode.getID()))) {
-
+        
         conflictType = calculateConflictType(currentNode, entryNode, useReachInfo);
         if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
           addConflictEdge(conflictType, currentNode, entryNode);
@@ -448,7 +452,7 @@ public class ConflictGraph {
   }
 
   public SESEWaitingQueue getWaitingElementSetBySESEID(int seseID,
- HashSet<SESELock> seseLockSet) {
+ Set<SESELock> seseLockSet) {
     
     HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
 
@@ -583,7 +587,7 @@ public class ConflictGraph {
   }
   
   public Set<WaitingElement> getStallSiteWaitingElementSet(FlatNode stallSite,
-      HashSet<SESELock> seseLockSet) {
+      Set<SESELock> seseLockSet) {
 
     HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
     Iterator iter = id2cn.entrySet().iterator();
