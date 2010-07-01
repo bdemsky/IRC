@@ -1,0 +1,11 @@
+for i in KMeans Labyrinth3D Genome Vacation Yada Intruder Bayes SSCA2
+do
+java analyze combined log${i}_2filter2 log${i}_4filter2 log${i}_8filter2
+gnuplot plotcombined.txt
+mv filecombined.eps ${i}combined.eps
+
+java analyze abortpercent log${i}_2filter2 log${i}_4filter2 log${i}_8filter2 > fileabortpercent.dat
+gnuplot plotabortpercent.txt
+mv fileabortpercent.eps ${i}abortpercent.eps
+java analyze aborttime log${i}_2filter2 log${i}_4filter2 log${i}_8filter2 > fileaborttime.dat
+done
