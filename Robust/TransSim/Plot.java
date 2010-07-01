@@ -9,6 +9,12 @@ public class Plot {
   String cmdstr="plot ";
   Hashtable series;
   boolean first=true;
+  boolean percent;
+  public Plot(String filename, boolean percent) {
+    this(filename);
+    this.percent=percent;
+  }
+
   public Plot(String filename) {
     try {
       command=new PrintWriter(new FileOutputStream(filename+".cmd"), true);
@@ -48,7 +54,16 @@ public class Plot {
       Series s=(Series)it.next();
       s.close();
     }
+    command.println("set style data linespoints");
+    command.println("set terminal postscript enhanced eps \"Times-Roman\" 18");
+    command.println("set key left");
+    command.println("set output \""+filename+"linear.eps\"");
     command.println(cmdstr);
+    if (!percent) {
+      command.println("set log y");
+      command.println("set output \""+filename+"log.eps\"");
+      command.println(cmdstr);
+    }
     command.close();
   }
 }

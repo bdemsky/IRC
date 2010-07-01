@@ -22,7 +22,8 @@ public class TransSim {
     int deadlockdepth=10;
 
     Plot p=new Plot("plot");
-    Plot pa=new Plot("plotabort");
+    Plot pe=new Plot("plotearliest");
+    Plot pa=new Plot("plotabort",true);
     Plot ps=new Plot("plotstall");
     Plot pb=new Plot("plotbackoff");
     Plot pat=new Plot("plotaborttime");
@@ -37,6 +38,9 @@ public class TransSim {
 
       for(int j=0;j<policies.length;j++) {
 	int policy=policies[j];
+	if(policy==FlexScheduler.LOCK||policy==FlexScheduler.LOCKCOMMIT)
+	  continue;
+
 	String policyname=FlexScheduler.getName(policy);
 	FlexScheduler ls=new FlexScheduler(e, policy, null);
 	ls.dosim();
@@ -45,15 +49,22 @@ public class TransSim {
 	System.out.println("Aborts="+ls.getAborts()+" Commit="+ls.getCommits());
 	System.out.println("Stalltime="+ls.getStallTime()+" Backofftime="+ls.getBackoffTime());
 	System.out.println("Aborttime="+ls.getAbortedTime());
+	System.out.println("Earliest="+ls.getEarliestTime());
+	
 	
 	p.getSeries(policyname).addPoint(i, ls.getTime());
+	pe.getSeries(policyname).addPoint(i, ls.getEarliestTime());
 	pa.getSeries(policyname).addPoint(i, 100.0*((double)ls.getAborts())/((double)(ls.getAborts()+ls.getCommits())));
-	ps.getSeries(policyname).addPoint(i, ls.getStallTime());
-	pb.getSeries(policyname).addPoint(i, ls.getBackoffTime());
-	pat.getSeries(policyname).addPoint(i, ls.getAbortedTime());
+	ps.getSeries(policyname).addPoint(i, ls.getStallTime()/i);
+	pb.getSeries(policyname).addPoint(i, ls.getBackoffTime()/i);
+	pat.getSeries(policyname).addPoint(i, ls.getAbortedTime()/i);
       }
     }
     p.close();
     pa.close();
+    pe.close();
+    ps.close();
+    pb.close();
+    pat.close();
   }
 }

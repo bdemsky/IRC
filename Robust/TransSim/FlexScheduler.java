@@ -120,6 +120,7 @@ public class FlexScheduler extends Thread {
   int policy;
   boolean[] aborted;
   long shorttesttime;
+  long earliesttime=-1;
   long starttime=-1;
   Hashtable rdobjmap;
   Hashtable wrobjmap;
@@ -156,6 +157,10 @@ public class FlexScheduler extends Thread {
 
   public int getCommits() {
     return commitcount;
+  }
+
+  public long getEarliestTime() {
+    return earliesttime-starttime;
   }
 
   public long getTime() {
@@ -400,6 +405,9 @@ public class FlexScheduler extends Thread {
       Event nev=new Event(currtime+nexttrans.getTime(0), nexttrans, 0, ev.getThread(), nexttransnum);
       currentevents[ev.getThread()]=nev;
       eq.add(nev);
+    } else {
+      if (earliesttime==-1)
+	earliesttime=currtime;
     }
   }
 
