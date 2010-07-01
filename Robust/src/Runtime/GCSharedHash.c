@@ -21,6 +21,10 @@
 #define INLINE    inline __attribute__((always_inline))
 #endif // #ifndef INLINE
 
+// TODO check the average collision times
+//int gc_num_search = 0;
+//int gc_num_collision = 0;
+
 /* GCSHARED HASH ********************************************************/
 
 // params: startaddr -- the start addr of the shared memory
@@ -301,7 +305,39 @@ mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size,
   ctable->loadfactor = loadfactor;
   ctable->threshold = size*loadfactor;
 
-  ctable->mask = (size << 7)-1;
+  ctable->mask = (size << 6)-1;
+
+  ctable->structs = NULL ; //FREEMALLOC_NGC(1*sizeof(mgcliststruct_t));
+  ctable->numelements = 0; // Initial number of elements in the hash
+  ctable->list = NULL;
+
+  return ctable;
+}
+
+mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size, 
+                                           double loadfactor) {
+  mgcsharedhashtbl_t * ctable;
+  mgcsharedhashlistnode_t * nodes;
+  int i;
+
+  ctable = (mgcsharedhashtbl_t *)FREEMALLOC_NGC_I(sizeof(mgcsharedhashtbl_t));
+  if(ctable == NULL) {
+	// TODO
+	BAMBOO_EXIT(0xeeef);
+	return NULL;
+  }
+  // Allocate space for the hash table
+  ctable->table = (mgcsharedhashlistnode_t *)FREEMALLOC_NGC_I(
+	  size*sizeof(mgcsharedhashlistnode_t));
+  if(ctable->table == NULL) {
+	BAMBOO_EXIT(0xfffe); // TODO
+	return NULL;
+  }
+  ctable->size = size;
+  ctable->loadfactor = loadfactor;
+  ctable->threshold = size*loadfactor;
+
+  ctable->mask = (size << 6)-1;
 
   ctable->structs = NULL ; //FREEMALLOC_NGC(1*sizeof(mgcliststruct_t));
   ctable->numelements = 0; // Initial number of elements in the hash
@@ -351,8 +387,10 @@ int mgcsharedhashInsert(mgcsharedhashtbl_t * tbl, void * key, void * val) {
     return -1;
   }
 
-  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>7];
-  //printf("%x \n", (((unsigned INTPTR)key)&tbl->mask)>>7); // TODO
+  //int keyto = ((unsigned INTPTR)key) % (tbl->size);
+  //ptr=&tbl->table[keyto];
+  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
+  //printf("%x \n", (((unsigned INTPTR)key)&tbl->mask)>>6); // TODO
 
   if(ptr->key==0) {
     // the first time insert a value for the key
@@ -370,6 +408,8 @@ int mgcsharedhashInsert(mgcsharedhashtbl_t * tbl, void * key, void * val) {
 	  ptr->val = val;
 	}
   }
+  ptr->next = tbl->list;
+  tbl->list = ptr;
   tbl->numelements++;
   return 1;
 }
@@ -382,8 +422,10 @@ int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val) {
     return -1;
   }
 
-  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>7];
-  //printf("%x \n", (((unsigned INTPTR)key)&tbl->mask)>>7); // TODO
+  //int keyto = ((unsigned INTPTR)key) % (tbl->size);
+  //ptr=&tbl->table[keyto];
+  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
+  //printf("%x \n", (((unsigned INTPTR)key)&tbl->mask)>>6); // TODO
 
   if(ptr->key==0) {
     // the first time insert a value for the key
@@ -405,6 +447,8 @@ int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val) {
 	  ptr->val = val;
 	}
   }
+  ptr->next = tbl->list;
+  tbl->list = ptr;
   tbl->numelements++;
   return 1;
 }
@@ -412,16 +456,20 @@ int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val) {
 // Search for an address for a given oid
 INLINE void * mgcsharedhashSearch(mgcsharedhashtbl_t * tbl, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
+  //int keyto = ((unsigned INTPTR)key) % (tbl->size);
+  //mgcsharedhashlistnode_t * node=&tbl->table[keyto];
   mgcsharedhashlistnode_t * node = 
 	&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
   mgcsharedhashlistnode_t *top = &tbl->table[tbl->size];
 
-  int i = 0;
+  //int i = 0;
+  //gc_num_search++;
   do {
-	i++;
+	//i++;
     if(node->key == key) {
 	  // TODO
-	 printf("%x \n", 0xe000+i);
+	 //printf("%x \n", 0xe000+i);
+	 //gc_num_collision += i;
       return node->val;
     }
     node++;

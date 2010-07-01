@@ -1941,11 +1941,18 @@ innermoveobj:
     //mgchashInsert_I(orig->ptr, to->ptr);
     RuntimeHashadd_I(gcpointertbl, orig->ptr, to->ptr);
 	if(isremote) {
+#ifdef GC_PROFILE
+	//unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
+#endif
 	  // add to the sharedptbl
 	  if(gcsharedptbl != NULL) {
 		//GCSharedHashadd_I(gcsharedptbl, orig->ptr, to->ptr);
 		mgcsharedhashInsert_I(gcsharedptbl, orig->ptr, to->ptr);
+		//num_mapinforequest++; // TODO
 	  }
+#ifdef GC_PROFILE
+	//flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
+#endif
 	}
     //MGCHashadd_I(gcpointertbl, orig->ptr, to->ptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -2233,12 +2240,12 @@ inline void * flushObj(void * objptr) {
     // a shared obj ptr, change to new address
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef GC_PROFILE
-    // TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+    unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
     //dstptr = mgchashSearch(objptr);
     RuntimeHashget(gcpointertbl, objptr, &dstptr);
 #ifdef GC_PROFILE
-    // TODO flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
+    flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
 #endif
     //MGCHashget(gcpointertbl, objptr, &dstptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -2254,13 +2261,16 @@ inline void * flushObj(void * objptr) {
       BAMBOO_DEBUGPRINT_REG(hostcore(objptr));
 #endif
       if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) {
-	// error! the obj is right on this core, but cannot find it
-	BAMBOO_DEBUGPRINT_REG(objptr);
-	BAMBOO_EXIT(0xb103);
-	// assume that the obj has not been moved, use the original address
-	//dstptr = objptr;
+		// error! the obj is right on this core, but cannot find it
+		BAMBOO_DEBUGPRINT_REG(objptr);
+		BAMBOO_EXIT(0xb103);
+		// assume that the obj has not been moved, use the original address
+		//dstptr = objptr;
       } else {
 		int hostc = hostcore(objptr);
+#ifdef GC_PROFILE
+		unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
+#endif
 		// check the corresponsing sharedptbl
 		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 		//struct GCSharedHash * sptbl = gcrpointertbls[hostcore(objptr)];
@@ -2273,6 +2283,9 @@ inline void * flushObj(void * objptr) {
 		  }
 		}
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+#ifdef GC_PROFILE
+		flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
+#endif
 
 		if(dstptr == NULL) {
 		  // still can not get the mapping info,
@@ -2282,11 +2295,11 @@ inline void * flushObj(void * objptr) {
 		  gcmappedobj = NULL;
 #ifdef GC_PROFILE
 	// TODO
-	num_mapinforequest++;
+	//num_mapinforequest++;
 	//unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 #ifdef GC_PROFILE
-	unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
+	//unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
 #endif
 		  // the first time require the mapping, send msg to the hostcore
 		  // for the mapping info
@@ -2298,7 +2311,7 @@ inline void * flushObj(void * objptr) {
 			}
 		  }
 #ifdef GC_PROFILE
-	flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
+	//flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
 #endif
 #ifdef GC_PROFILE
 	// TODO
@@ -2686,13 +2699,13 @@ inline void flush(struct garbagelist * stackptr) {
   }
 #ifdef GC_PROFILE
   // TODO 
-  if(BAMBOO_NUM_OF_CORE == 0) {
-    BAMBOO_DEBUGPRINT(0xffff);
-    BAMBOO_DEBUGPRINT_REG(num_mapinforequest);
+  //if(BAMBOO_NUM_OF_CORE == 0) {
+    //BAMBOO_DEBUGPRINT(0xffff);
+    //BAMBOO_DEBUGPRINT_REG(num_mapinforequest);
     //BAMBOO_DEBUGPRINT_REG(flushstalltime);
     //BAMBOO_DEBUGPRINT_REG(num_mapinforequest_i);
-    BAMBOO_DEBUGPRINT_REG(flushstalltime_i);
-  }
+    //BAMBOO_DEBUGPRINT_REG(flushstalltime_i);
+  //}
   //BAMBOO_DEBUGPRINT_REG(flushstalltime);
 #endif
 #ifdef DEBUG
@@ -3195,6 +3208,10 @@ inline void gc(struct garbagelist * stackptr) {
 		   udn_tile_coord_y());
     //dumpSMem();
 #endif
+	// TODO
+	/*extern int gc_num_search;
+	extern int gc_num_collision;
+	tprintf("Average collision: %d \n", gc_num_collision/gc_num_search);*/
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     gcprocessing = true;
     gc_collect(stackptr);

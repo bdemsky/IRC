@@ -115,7 +115,7 @@ void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
 //                                  + NUMCORES4GC bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
-#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE * 64)
+#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE * 45)
 mspace bamboo_rmsp;
 // shared pointer mapping tbl
 //volatile struct GCSharedHash * gcsharedptbl;

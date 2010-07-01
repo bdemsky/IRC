@@ -80,6 +80,7 @@ typedef struct mgcsharedhashtbl {
 } mgcsharedhashtbl_t;
 
 mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size, double loadfactor);
+mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size,double loadfactor);
 int mgcsharedhashInsert(mgcsharedhashtbl_t * tbl, void * key, void * val);
 void * mgcsharedhashSearch(mgcsharedhashtbl_t * tbl, void * key);
 //unsigned int mgchashResize(unsigned int newsize);

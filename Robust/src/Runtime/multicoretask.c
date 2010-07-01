@@ -136,7 +136,14 @@ void initruntimedata() {
   if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
 	int t_size = ((BAMBOO_RMSP_SIZE)-sizeof(mgcsharedhashtbl_t)*2
 		-128*sizeof(size_t))/sizeof(mgcsharedhashlistnode_t)-2;
-	gcsharedptbl = mgcsharedhashCreate(t_size,0.30);//allocateGCSharedHash_I(20);
+	int kk = 0;
+	unsigned int tmp_k = 1 << (sizeof(int)*8 -1);
+	while(((t_size & tmp_k) == 0) && (kk < sizeof(int)*8)) {
+	  t_size = t_size << 1;
+	  kk++;
+	}
+	t_size = tmp_k >> kk;
+	gcsharedptbl = mgcsharedhashCreate_I(t_size,0.30);//allocateGCSharedHash_I(20);
   } else {
 	gcsharedptbl = NULL;
   }
@@ -1311,12 +1318,12 @@ void * localmalloc_I(int coren,
   if(foundsmem == 1) {
     // find suitable block
     mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
-                                            (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
-                                                                            (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
+          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
+          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
     *allocsize = size;
     // set bamboo_smemtbl
     for(i = tofindb; i <= totest; i++) {
-      bamboo_smemtbl[i]=(i<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
     }
   } else if(foundsmem == 2) {
     // no suitable block
@@ -1347,24 +1354,24 @@ void * globalmalloc_I(int coren,
       bool tocheck = true;
       // have some space in the block
       if(totest == tofindb) {
-	// the first partition
-	size = bound - nsize;
+		// the first partition
+		size = bound - nsize;
       } else if(nsize == 0) {
-	// an empty partition, can be appended
-	size += bound;
+		// an empty partition, can be appended
+		size += bound;
       } else {
-	// not an empty partition, can not be appended
-	// the last continuous block is not big enough, start another block
-	isnext = true;
-	tocheck = false;
-      }                   // if(totest == tofindb) else if(nsize == 0) else ...
+		// not an empty partition, can not be appended
+		// the last continuous block is not big enough, start another block
+		isnext = true;
+		tocheck = false;
+      }  // if(totest == tofindb) else if(nsize == 0) else ...
       if(tocheck) {
-	if(size >= isize) {
-	  // have enough space in the block, malloc
-	  foundsmem = 1;
-	  break;
-	}                         // if(size > isize)
-      }                   // if(tocheck)
+		if(size >= isize) {
+		  // have enough space in the block, malloc
+		  foundsmem = 1;
+		  break;
+		}  // if(size > isize)
+      }   // if(tocheck)
     } else {
       isnext = true;
     }            // if(nsize < bound) else ...
@@ -1377,18 +1384,18 @@ void * globalmalloc_I(int coren,
     if(isnext) {
       // start another block
       tofindb = totest;
-    }             // if(islocal)
+    } // if(islocal)
   } while(true);
 
   if(foundsmem == 1) {
     // find suitable block
     mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
-                                            (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
-                                                                            (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
+          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
+          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
     *allocsize = size;
     // set bamboo_smemtbl
     for(int i = tofindb; i <= totest; i++) {
-      bamboo_smemtbl[i]=(i<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
     }
     if(tofindb == bamboo_free_block) {
       bamboo_free_block = totest+1;
@@ -2101,7 +2108,8 @@ INLINE void processmsg_memresponse_I() {
   } else {
 #ifdef MULTICORE_GC
     // fill header to store the size of this mem block
-    memset(data1, 0, BAMBOO_CACHE_LINE_SIZE);
+    BAMBOO_MEMSET_WH(data1, '\0', BAMBOO_CACHE_LINE_SIZE); 
+	//memset(data1, 0, BAMBOO_CACHE_LINE_SIZE);
     (*((int*)data1)) = data2;
     bamboo_smem_size = data2 - BAMBOO_CACHE_LINE_SIZE;
     bamboo_cur_msp = data1 + BAMBOO_CACHE_LINE_SIZE;
@@ -2328,7 +2336,7 @@ INLINE void processmsg_gcmarkedobj_I() {
   if(((int *)data1)[6] == INIT) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
-    ((int *)data1)[6] |= DISCOVERED;
+    ((int *)data1)[6] = DISCOVERED;
     gc_enqueue_I(data1);
   } 
   // set the remote flag
