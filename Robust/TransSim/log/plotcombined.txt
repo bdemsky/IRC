@@ -1,0 +1,19 @@
+set bar 1.000000
+set xlabel "Number of Threads"
+set ylabel "Clock Cycles"
+set terminal postscript enhanced eps "Times-Roman" 15
+set style fill pattern 4 border -1
+set key off
+set style histogram rows
+set datafile missing '-'
+set style data histograms
+set xtics nomirror rotate by -45 scale 0
+set y2label offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set grid ytics
+set yrange [ 0 : * ] noreverse nowriteback
+set cblabel offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set locale "C"
+set output "filecombined.eps"
+plot newhistogram "2", 'file2.dat' using 2:xtic(1) ti col with histogram fs pattern 0 ls 0, '' u 3 ti col with histogram fs pattern 1 ls 0, '' u 4 ti col with histogram fs pattern 2 ls 0, '' u 5 ti col with histogram fill pattern 4 ls 0, \
+newhistogram "4", 'file4.dat' using 2:xtic(1) ti col with histogram fs pattern 0 ls 0, '' u 3 ti col with histogram fs pattern 1 ls 0, '' u 4 ti col with histogram fs pattern 2 ls 0, '' u 5 ti col with histogram fs pattern 4 ls 0, \
+newhistogram "8", 'file8.dat' using 2:xtic(1) ti col with histogram fs pattern 0 ls 0, '' u 3 ti col with histogram fs pattern 1 ls 0, '' u 4 ti col with histogram fs pattern 2 ls 0, '' u 5 ti col with histogram fs pattern 4 ls 0

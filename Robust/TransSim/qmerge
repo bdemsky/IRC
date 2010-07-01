@@ -1,0 +1,9 @@
+#!/bin/bash
+for i in KMeans Labyrinth3D Genome Vacation Yada Intruder Bayes SSCA2
+#for i in Vacation Yada Intruder Bayes SSCA2
+do
+for t in 2 4 8
+do
+cat log${i}_${t}_p1 log${i}_${t}_p2 log${i}_${t}_p3 log${i}_${t}_p4 log${i}_${t}_p5 > log${i}_${t}
+done
+done

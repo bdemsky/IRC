@@ -1,0 +1,23 @@
+set bar 1.000000
+set xlabel "Number of Threads"
+set ylabel "Abort Percentage"
+set terminal postscript enhanced eps "Times-Roman" 25
+set boxwidth 0.9 absolute
+set style fill pattern 0.00 border -1
+set style rectangle back fc lt -3 fillstyle solid 1.00 border -1
+set key inside right top vertical Left reverse enhanced autotitles columnhead nobox
+set style histogram clustered gap 2 title offset character 0, 0, 0
+set datafile missing '-'
+#set style data linespoints
+set style histogram clustered gap 2 title offset character 0, 0, 0
+set style data histograms
+set xtics border in scale 1,0.5 nomirror offset character 0, 0, 0
+set xtics norangelimit
+set xrange [-.7:3.7]
+set y2label offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set grid ytics
+set yrange [ 0 : * ] noreverse nowriteback
+set cblabel offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set locale "C"
+set output "fileabortpercent.eps"
+plot 'fileabortpercent.dat' using 2:xticlabels(1) ti col, '' u 3 ti col, '' u 4 ti col, '' u 5 ti col, '' u 6 ti col, '' u 7 ti col, '' u 8 ti col, '' u 9 ti col, '' u 10 ti col, '' u 11 ti col, '' u 12 ti col, '' u 13 ti col

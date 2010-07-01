@@ -1,0 +1,9 @@
+#!/bin/bash
+for i in KMeans Labyrinth3D Genome Vacation Yada Intruder Bayes SSCA2
+#for i in Vacation Yada Intruder Bayes SSCA2
+do
+for t in 2 4 8
+do
+grep -e Abort -e Stall log${i}_${t} > log${i}_${t}filter2
+done
+done
