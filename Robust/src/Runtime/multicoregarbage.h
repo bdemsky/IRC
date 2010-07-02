@@ -12,9 +12,9 @@
 
 // data structures for GC
 #ifdef GC_DEBUG
-#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
+#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE) // * 2)
 #else
-#define BAMBOO_SMEM_SIZE_L (2 * BAMBOO_SMEM_SIZE)
+#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE) // * 2)
 #endif
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)
 // let each gc core to have one big block, this is very important
@@ -115,7 +115,7 @@ void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
 //                                  + NUMCORES4GC bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
-#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE * 45)
+#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
 mspace bamboo_rmsp;
 // shared pointer mapping tbl
 //volatile struct GCSharedHash * gcsharedptbl;
