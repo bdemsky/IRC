@@ -12,6 +12,7 @@ public class CanonicalOp {
   public static final int REACHSTATE_UNION_REACHSTATE          = 0x5678;
   public static final int REACHSTATE_ADD_REACHTUPLE            = 0x32b6;
   public static final int REACHSTATE_UNIONUPARITY_REACHSTATE   = 0x9152;
+  public static final int REACHSTATE_ADDUPARITY_REACHTUPLE     = 0x0a34;
   public static final int REACHSTATE_REMOVE_REACHTUPLE         = 0x8173;
   public static final int REACHSTATE_AGETUPLESFROM_ALLOCSITE   = 0x4f65;
   public static final int REACHSET_UNIONORPREDS_REACHSET       = 0x2131;

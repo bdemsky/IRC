@@ -1268,8 +1268,8 @@ public class ReachGraph {
       // possible changes, so keep a running union with the edge's
       // partially updated new beta set
       e.setBetaNew( Canonical.unionORpreds( e.getBetaNew(),
-                                     localDelta  
-                                     )
+                                            localDelta  
+                                            )
                     );
       
       edgesWithNewBeta.add( e );
@@ -1462,7 +1462,7 @@ public class ReachGraph {
                                        rt.isOutOfContext()
                                        );
           if( !oocHrnIdOoc2callee.contains( hio ) ) {
-            stateNew = Canonical.add( stateNew, rt );
+            stateNew = Canonical.addUpArity( stateNew, rt );
             continue;
           }
 
@@ -1484,20 +1484,20 @@ public class ReachGraph {
       
           if( age == AllocSite.AGE_notInThisSite ) {
             // things not from the site just go back in
-            stateNew = Canonical.add( stateNew, rt );
+            stateNew = Canonical.addUpArity( stateNew, rt );
 
           } else if( age == AllocSite.AGE_summary ||
                      rt.isOutOfContext()
                      ) {
-            // the in-context summary and all existing out-of-context
-            // stuff all become
-            stateNew = Canonical.add( stateNew,
-                                      ReachTuple.factory( as.getSummary(),
-                                                          true, // multi
-                                                          rt.getArity(),
-                                                          true  // out-of-context
-                                                          )
-                                      );
+            
+            stateNew = Canonical.addUpArity( stateNew,
+                                             ReachTuple.factory( as.getSummary(),
+                                                                 true, // multi
+                                                                 rt.getArity(),
+                                                                 true  // out-of-context
+                                                                 )
+                                             );
+            
           } else {
             // otherwise everything else just goes to an out-of-context
             // version, everything else the same
@@ -1506,13 +1506,13 @@ public class ReachGraph {
 
             assert !rt.isMultiObject();
 
-            stateNew = Canonical.add( stateNew,
-                                      ReachTuple.factory( rt.getHrnID(),
-                                                          rt.isMultiObject(),
-                                                          rt.getArity(),
-                                                          true  // out-of-context
-                                                          )
-                                      );        
+            stateNew = Canonical.addUpArity( stateNew,
+                                             ReachTuple.factory( rt.getHrnID(),
+                                                                 rt.isMultiObject(), // multi
+                                                                 rt.getArity(),
+                                                                 true  // out-of-context
+                                                                 )
+                                             );
           }
         }
         
@@ -3384,7 +3384,7 @@ public class ReachGraph {
 	  }
           
 	  if( !foundState ) {
-	    markedHrnIDs = Canonical.add( markedHrnIDs, rtOld );	  
+	    markedHrnIDs = Canonical.addUpArity( markedHrnIDs, rtOld );	  
 	  }
 	}
 
@@ -3405,7 +3405,7 @@ public class ReachGraph {
 	  ReachTuple rtOld = rtItr.next();
 
 	  if( !markedHrnIDs.containsTuple( rtOld ) ) {
-	    statePruned = Canonical.add( statePruned, rtOld );
+	    statePruned = Canonical.addUpArity( statePruned, rtOld );
 	  }
 	}
 	assert !stateOld.equals( statePruned );

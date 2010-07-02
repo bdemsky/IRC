@@ -297,6 +297,35 @@ abstract public class Canonical {
     return out;
   }
 
+
+  public static ReachState addUpArity( ReachState rs,
+                                       ReachTuple rt ) {
+    assert rs != null;
+    assert rt != null;
+
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.REACHSTATE_ADDUPARITY_REACHTUPLE,
+                       rs, 
+                       rt );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (ReachState) result;
+    }
+
+    // otherwise, no cached result...
+    ReachState out;
+
+    // the reason for this add is that we are aware a tuple
+    // with the same hrnID might already be in the state, so
+    // if it is we should combine properly
+    ReachState rtOnly = ReachState.factory( rt );
+    out = Canonical.unionUpArity( rs, rtOnly );
+    
+    op2result.put( op, out );
+    return out;
+  }
+
   
   public static ReachState remove( ReachState rs, ReachTuple rt ) {
     assert rs != null;
@@ -976,7 +1005,7 @@ abstract public class Canonical {
 
       if( age == AllocSite.AGE_notInThisSite ) {
         // things not from the site just go back in
-	baseState = Canonical.add( baseState, rt );
+	baseState = Canonical.addUpArity( baseState, rt );
 
       } else if( age == AllocSite.AGE_summary ) {
 
@@ -985,20 +1014,22 @@ abstract public class Canonical {
           // arity, if ARITY-ONE we'll branch the base state after the loop
           if( rt.getArity() == ReachTuple.ARITY_ZEROORMORE ) {
             // add two overly conservative symbols to reach state (PUNTING)
-            baseState = Canonical.add( baseState,
-                                       ReachTuple.factory( as.getSummary(),
-                                                           true, // multi
-                                                           ReachTuple.ARITY_ZEROORMORE,
-                                                           false // out-of-context
-                                                           )
-                                         );            
-            baseState = Canonical.add( baseState,
-                                       ReachTuple.factory( as.getSummary(),
-                                                           true, // multi
-                                                           ReachTuple.ARITY_ZEROORMORE,
-                                                           true  // out-of-context
-                                                           )
-                                       );            
+
+            baseState = Canonical.addUpArity( baseState,
+                                              ReachTuple.factory( as.getSummary(),
+                                                                  true, // multi
+                                                                  ReachTuple.ARITY_ZEROORMORE,
+                                                                  false // out-of-context
+                                                                  )
+                                              );            
+
+            baseState = Canonical.addUpArity( baseState,
+                                              ReachTuple.factory( as.getSummary(),
+                                                                  true, // multi
+                                                                  ReachTuple.ARITY_ZEROORMORE,
+                                                                  true  // out-of-context
+                                                                  )
+                                              );            
           } else {
             assert rt.getArity() == ReachTuple.ARITY_ONE;
             found2Sooc = true;
@@ -1006,13 +1037,13 @@ abstract public class Canonical {
 
         } else {
           // the in-context just becomes shadow
-          baseState = Canonical.add( baseState,
-                                     ReachTuple.factory( as.getSummaryShadow(),
-                                                         true, // multi
-                                                         rt.getArity(),
-                                                         false  // out-of-context
-                                                         )
-                                     );
+          baseState = Canonical.addUpArity( baseState,
+                                            ReachTuple.factory( as.getSummaryShadow(),
+                                                                true, // multi
+                                                                rt.getArity(),
+                                                                false  // out-of-context
+                                                                )
+                                            );
         }
 
 
@@ -1025,23 +1056,23 @@ abstract public class Canonical {
 
         if( rt.isOutOfContext() ) {
           // becomes the in-context version
-          baseState = Canonical.add( baseState,
-                                     ReachTuple.factory( rt.getHrnID(),
-                                                         false, // multi
-                                                         ReachTuple.ARITY_ONE,
-                                                         false  // out-of-context
-                                                         )
-                                     );          
+          baseState = Canonical.addUpArity( baseState,
+                                            ReachTuple.factory( rt.getHrnID(),
+                                                                false, // multi
+                                                                ReachTuple.ARITY_ONE,
+                                                                false  // out-of-context
+                                                                )
+                                            );          
 
         } else {
           // otherwise the ith symbol becomes shadowed
-          baseState = Canonical.add( baseState,
-                                     ReachTuple.factory( -rt.getHrnID(),
-                                                         false, // multi
-                                                         ReachTuple.ARITY_ONE,
-                                                         false  // out-of-context
-                                                         )
-                                     );        
+          baseState = Canonical.addUpArity( baseState,
+                                            ReachTuple.factory( -rt.getHrnID(),
+                                                                false, // multi
+                                                                ReachTuple.ARITY_ONE,
+                                                                false  // out-of-context
+                                                                )
+                                            );        
         }
       }
     }
@@ -1052,34 +1083,34 @@ abstract public class Canonical {
       // make a branch with every possibility of the one-to-many
       // mapping for 2S? appended to the baseState
       out = Canonical.add( out,
-                           Canonical.add( baseState,
-                                          ReachTuple.factory( as.getSummary(),
-                                                              true, // multi
-                                                              ReachTuple.ARITY_ONE,
-                                                              false  // out-of-context
-                                                              )
-                                          )
+                           Canonical.addUpArity( baseState,
+                                                 ReachTuple.factory( as.getSummary(),
+                                                                     true, // multi
+                                                                     ReachTuple.ARITY_ONE,
+                                                                     false  // out-of-context
+                                                                     )
+                                                 )
                            );
 
       out = Canonical.add( out,
-                           Canonical.add( baseState,
-                                          ReachTuple.factory( as.getSummary(),
-                                                              true, // multi
-                                                              ReachTuple.ARITY_ONE,
-                                                              true  // out-of-context
-                                                              )
-                                          )
+                           Canonical.addUpArity( baseState,
+                                                 ReachTuple.factory( as.getSummary(),
+                                                                     true, // multi
+                                                                     ReachTuple.ARITY_ONE,
+                                                                     true  // out-of-context
+                                                                     )
+                                                 )
                            );      
 
       for( int i = 0; i < as.getAllocationDepth(); ++i ) {
         out = Canonical.add( out,
-                             Canonical.add( baseState,
-                                            ReachTuple.factory( as.getIthOldest( i ),
-                                                                false, // multi
-                                                                ReachTuple.ARITY_ONE,
-                                                                true  // out-of-context
-                                                                )
-                                            )
+                             Canonical.addUpArity( baseState,
+                                                   ReachTuple.factory( as.getIthOldest( i ),
+                                                                       false, // multi
+                                                                       ReachTuple.ARITY_ONE,
+                                                                       true  // out-of-context
+                                                                       )
+                                                   )
                              );
       }
 
@@ -1163,19 +1194,19 @@ abstract public class Canonical {
       
       if( age == AllocSite.SHADOWAGE_notInThisSite ) {
         // things not from the site just go back in
-	out = Canonical.add( out, rt );
+	out = Canonical.addUpArity( out, rt );
 
       } else {
         assert !rt.isOutOfContext();
 
         // otherwise unshadow it
-        out = Canonical.add( out,
-                             ReachTuple.factory( -rt.getHrnID(),
-                                                 rt.isMultiObject(),
-                                                 rt.getArity(),
-                                                 false
-                                                 )
-                             );
+        out = Canonical.addUpArity( out,
+                                    ReachTuple.factory( -rt.getHrnID(),
+                                                        rt.isMultiObject(),
+                                                        rt.getArity(),
+                                                        false
+                                                        )
+                                    );
       }
     }
 
