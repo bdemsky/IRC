@@ -1032,6 +1032,12 @@ plistnode_t *createPiles() {
 			  int makedirty = 0;
         unsigned int mid;
 
+        if(numLiveHostsInSystem == 1) {
+          pile = pInsert(pile, headeraddr, myIpAddr, c_numelements);
+          curr = curr->next;
+          continue;
+        }
+
         // if the obj is dirty or new
    			if(STATUS(headeraddr) & DIRTY || STATUS(headeraddr) & NEW) {
           // set flag for backup machine
