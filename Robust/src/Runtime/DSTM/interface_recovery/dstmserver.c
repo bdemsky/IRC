@@ -717,7 +717,7 @@ int readDuplicateObjs(int acceptfd) {
   int timeout1;
   int timeout2;
 
-#ifndef DEBUG
+#ifdef DEBUG
 	printf("%s-> Start\n", __func__);
 #endif
 	timeout1 = recv_data((int)acceptfd, &numoid, sizeof(unsigned int));
@@ -794,14 +794,14 @@ int readDuplicateObjs(int acceptfd) {
       }
   		ptr += tmpsize;
 		}
-#ifndef DEBUG
+#ifdef DEBUG
 		printf("%s-> End\n", __func__);
 #endif
     free(dupeptr);
 		return size;
 	}
 	else {
-#ifndef DEBUG
+#ifdef DEBUG
 		printf("%s-> No objects duplicated\n", __func__);
 #endif
 		return 0;
@@ -1191,7 +1191,6 @@ char handleTransReq(fixed_data_t *fixed, trans_commit_data_t *transinfo, unsigne
       printf("control = %d\n",control);
     control=TRANS_DISAGREE;
 
-    printf("%s -> Sent message!\n",__func__);
 		send_data(acceptfd, &control, sizeof(char));
 #ifdef CACHE
 		send_data(acceptfd, &numBytes, sizeof(int));

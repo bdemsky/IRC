@@ -1881,10 +1881,10 @@ void restoreDuplicationState(unsigned int deadHost,unsigned int epoch_num)
 //      tlistPrint(tList);
       pthread_mutex_unlock(&translist_mutex);
 //      getchar();
-      printf("%s -> I'm currently leader num : %d releaseing new lists\n\n",__func__,epoch_num);
+//      printf("%s -> I'm currently leader num : %d releaseing new lists\n\n",__func__,epoch_num);
       if((flag = releaseNewLists(epoch_num,sdlist,tList)) < 0) break;
   //    getchar();
-      printf("%s -> I'm currently leader num : %d duplicate objects\n\n",__func__,epoch_num);
+//      printf("%s -> I'm currently leader num : %d duplicate objects\n\n",__func__,epoch_num);
       // transfer lost objects
       if((flag= duplicateLostObjects(epoch_num,sdlist)) < 0) break;
 
@@ -2054,7 +2054,6 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
       return -2;
     }
 
-    printf("recevied response = %d\n",response);
     if(response == RESPOND_TRANS_WAIT) 
     {
 //      printf("%s -> RESPOND_TRANS_WAIT\n",__func__);
@@ -2097,7 +2096,7 @@ int pingMachines(unsigned int epoch_num,int* sdlist,tlist_t** tList)
   }
   *tList = currentTransactionList;
 
-  printf("%s -> Exit\n",__func__);
+//  printf("%s -> Exit\n",__func__);
   return 0;
 }
 
@@ -2171,7 +2170,6 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
     }
   }
 
-  printf("%s -> After sending msg\n",__func__);
   if(size > 0)
     free(tArray);
 
@@ -2195,7 +2193,7 @@ int releaseNewLists(unsigned int epoch_num,int* sdlist,tlist_t* tlist)
     }
   }
   tlistDestroy(tlist);  
-  printf("%s -> End\n",__func__);
+//  printf("%s -> End\n",__func__);
   return 0;
 }
 
@@ -2224,12 +2222,12 @@ int makeTransactionLists(tlist_t** tlist,int sd,unsigned int epoch_num)
     return -2;
   }
 
-  printf("%s -> Received TransArray\n",__func__);
+/*  printf("%s -> Received TransArray\n",__func__);
   for(i = 0; i< size; i++) {
     printf("ID : %u  Decision : %d  status : %d\n",transArray[i].transid,transArray[i].decision,transArray[i].status);
   }
   printf("%s -> End transArray\n",__func__);
-
+*/
   // add into currentTransactionList
   for(j = 0 ; j < size; j ++) {
     tmp = tlistSearch(*tlist,transArray[j].transid);
@@ -2238,7 +2236,7 @@ int makeTransactionLists(tlist_t** tlist,int sd,unsigned int epoch_num)
       tlist_node_t* tNode = &transArray[j];
       tNode->status = TRANS_OK;
 
-      printf("%s -> transid = %u decision = %d\n",__func__,transArray[j].transid,transArray[j].decision);
+//      printf("%s -> transid = %u decision = %d\n",__func__,transArray[j].transid,transArray[j].decision);
       *tlist = tlistInsertNode2(*tlist,&(transArray[j]),epoch_num);
     }
     else {
@@ -2289,7 +2287,7 @@ void restartTransactions(unsigned int epoch_num,int* sdlist)
     if(sdlist[i] == -1) 
       continue;
 
-    printf("%s -> request to %s\n",__func__,midtoIPString(hostIpAddrs[i]));
+//    printf("%s -> request to %s\n",__func__,midtoIPString(hostIpAddrs[i]));
     request = REQUEST_TRANS_RESTART;
     send_data(sdlist[i], &request, sizeof(char));
     send_data(sdlist[i], &epoch_num,sizeof(char));
