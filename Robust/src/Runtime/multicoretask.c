@@ -25,20 +25,88 @@ int enqueuetasks_I(struct parameterwrapper *parameter,
                    int numenterflags);
 
 #ifdef MULTICORE_GC
+#ifdef SMEMF
+#ifdef GC_1
+int core2test[1][5] = {
+  {0, -1, -1, -1, -1}
+};
+#elif defined GC_56
+int core2test[56][5] = {
+  { 0, -1,  7, -1,  1}, { 1, -1,  8,  0,  2}, { 2, -1,  9,  1,  3},
+  { 3, -1, 10,  2,  4}, { 4, -1, 11,  3,  5}, { 5, -1, 12,  4,  6},
+  { 6, -1, 13,  5, -1}, { 7,  0, 14, -1,  8}, { 8,  1, 15,  7,  9},
+  { 9,  2, 16,  8, 10}, {10,  3, 17,  9, 11}, {11,  4, 18, 10, 12},
+  {12,  5, 19, 11, 13}, {13,  6, 20, 12, -1}, {14,  7, 21, -1, 15},
+  {15,  8, 22, 14, 16}, {16,  9, 23, 15, 17}, {17, 10, 24, 16, 18},
+  {18, 11, 25, 17, 19}, {19, 12, 26, 18, 20}, {20, 13, 27, 19, -1},
+  {21, 14, 28, -1, 22}, {22, 15, 29, 21, 23}, {23, 16, 30, 22, 24},
+  {24, 17, 31, 23, 25}, {25, 18, 32, 24, 26}, {26, 19, 33, 25, 27},
+  {27, 20, 34, 26, -1}, {28, 21, 35, -1, 29}, {29, 22, 36, 28, 30},
+  {30, 23, 37, 29, 31}, {31, 24, 38, 30, 32}, {32, 25, 39, 31, 33},
+  {33, 26, 40, 32, 34}, {34, 27, 41, 33, -1}, {35, 28, 42, -1, 36},
+  {36, 29, 43, 35, 37}, {37, 30, 44, 36, 38}, {38, 31, 45, 37, 39},
+  {39, 32, 46, 38, 40}, {40, 33, 47, 39, 41}, {41, 34, 48, 40, -1},
+  {42, 35, 49, -1, 43}, {43, 36, 50, 42, 44}, {44, 37, 51, 43, 45},
+  {45, 38, 52, 44, 46}, {46, 39, 53, 45, 47}, {47, 40, 54, 46, 48},
+  {48, 41, 55, 47, -1}, {49, 42, -1, -1, 50}, {50, 43, -1, 49, 51},
+  {51, 44, -1, 50, 52}, {52, 45, -1, 51, 53}, {53, 46, -1, 52, 54},
+  {54, 47, -1, 53, 55}, {55, 48, -1, 54, -1}
+};
+#elif defined GC_62
+int core2test[62][5] = {
+  { 0, -1,  6, -1,  1}, { 1, -1,  7,  0,  2}, { 2, -1,  8,  1,  3},
+  { 3, -1,  9,  2,  4}, { 4, -1, 10,  3,  5}, { 5, -1, 11,  4, -1},
+  { 6,  0, 14, -1,  7}, { 7,  1, 15,  6,  8}, { 8,  2, 16,  7,  9},
+  { 9,  3, 17,  8, 10}, {10,  4, 18,  9, 11}, {11,  5, 19, 10, 12},
+  {12, -1, 20, 11, 13}, {13, -1, 21, 12, -1}, {14,  6, 22, -1, 15},
+  {15,  7, 23, 14, 16}, {16,  8, 24, 15, 17}, {17,  9, 25, 16, 18},
+  {18, 10, 26, 17, 19}, {19, 11, 27, 18, 20}, {20, 12, 28, 19, 21},
+  {21, 13, 29, 28, -1}, {22, 14, 30, -1, 23}, {23, 15, 31, 22, 24},
+  {24, 16, 32, 23, 25}, {25, 17, 33, 24, 26}, {26, 18, 34, 25, 27},
+  {27, 19, 35, 26, 28}, {28, 20, 36, 27, 29}, {29, 21, 37, 28, -1},
+  {30, 22, 38, -1, 31}, {31, 23, 39, 30, 32}, {32, 24, 40, 31, 33},
+  {33, 25, 41, 32, 34}, {34, 26, 42, 33, 35}, {35, 27, 43, 34, 36},
+  {36, 28, 44, 35, 37}, {37, 29, 45, 36, -1}, {38, 30, 46, -1, 39},
+  {39, 31, 47, 38, 40}, {40, 32, 48, 39, 41}, {41, 33, 49, 40, 42},
+  {42, 34, 50, 41, 43}, {43, 35, 51, 42, 44}, {44, 36, 52, 43, 45},
+  {45, 37, 53, 44, -1}, {46, 38, 54, -1, 47}, {47, 39, 55, 46, 48},
+  {48, 40, 56, 47, 49}, {49, 41, 57, 48, 50}, {50, 42, 58, 49, 51},
+  {51, 43, 59, 50, 52}, {52, 44, 60, 51, 53}, {53, 45, 61, 52, -1},
+  {54, 46, -1, -1, 55}, {55, 47, -1, 54, 56}, {56, 48, -1, 55, 57},
+  {57, 49, -1, 56, 59}, {58, 50, -1, 57, 59}, {59, 51, -1, 58, 60},
+  {60, 52, -1, 59, 61}, {61, 53, -1, 60, -1}
+};
+#endif // GC_1
+#elif defined SMEMM
+#endif
+
 inline __attribute__((always_inline))
 void setupsmemmode(void) {
 #ifdef SMEML
+  // Only allocate local mem chunks to each core.
+  // If a core has used up its local shared memory, start gc.
   bamboo_smem_mode = SMEMLOCAL;
 #elif defined SMEMF
+  // Allocate the local shared memory to each core with the highest priority,
+  // if a core has used up its local shared memory, try to allocate the 
+  // shared memory that belong to its neighbours, if also failed, start gc.
   bamboo_smem_mode = SMEMFIXED;
 #elif defined SMEMM
+  // Allocate the local shared memory to each core with the highest priority,
+  // if a core has used up its local shared memory, try to allocate the 
+  // shared memory that belong to its neighbours first, if failed, allocate 
+  // the shared memory globally.  If all the shared memory has been used up,
+  // start gc.
   bamboo_smem_mode = SMEMMIXED;
 #elif defined SMEMG
+  // Allocate all the memory chunks globally, do not consider the host cores
+  // When all the shared memory are used up, start gc.
   bamboo_smem_mode = SMEMGLOBAL;
 #else
   // defaultly using local mode
   //bamboo_smem_mode = SMEMLOCAL;
-  bamboo_smem_mode = SMEMGLOBAL;
+  //bamboo_smem_mode = SMEMGLOBAL;
+  //bamboo_smem_mode = SMEMFIXED;
 #endif
 } // void setupsmemmode(void)
 #endif
@@ -1255,6 +1323,8 @@ inline void addNewObjInfo(void * nobj) {
 #endif
 
 #ifdef MULTICORE_GC
+// Only allocate local mem chunks to each core.
+// If a core has used up its local shared memory, start gc.
 void * localmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
@@ -1274,45 +1344,45 @@ void * localmalloc_I(int coren,
       bool tocheck = true;
       // have some space in the block
       if(totest == tofindb) {
-	// the first partition
-	size = bound - nsize;
+		// the first partition
+		size = bound - nsize;
       } else if(nsize == 0) {
-	// an empty partition, can be appended
-	size += bound;
+		// an empty partition, can be appended
+		size += bound;
       } else {
-	// not an empty partition, can not be appended
-	// the last continuous block is not big enough, go to check the next
-	// local block
-	islocal = true;
-	tocheck = false;
-      }                   // if(totest == tofindb) else if(nsize == 0) else ...
+		// not an empty partition, can not be appended
+		// the last continuous block is not big enough, go to check the next
+		// local block
+		islocal = true;
+		tocheck = false;
+      } // if(totest == tofindb) else if(nsize == 0) else ...
       if(tocheck) {
-	if(size >= isize) {
-	  // have enough space in the block, malloc
-	  foundsmem = 1;
-	  break;
-	} else {
-	  // no enough space yet, try to append next continuous block
-	  islocal = false;
-	}                         // if(size > isize) else ...
-      }                   // if(tocheck)
-    }             // if(nsize < bound)
+		if(size >= isize) {
+		  // have enough space in the block, malloc
+		  foundsmem = 1;
+		  break;
+		} else {
+		  // no enough space yet, try to append next continuous block
+		  islocal = false;
+		}  // if(size > isize) else ...
+      }  // if(tocheck)
+    } // if(nsize < bound)
     if(islocal) {
       // no space in the block, go to check the next block
       i++;
       if(2==i) {
-	i = 0;
-	j++;
+		i = 0;
+		j++;
       }
       tofindb = totest = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
     } else {
       totest += 1;
-    }             // if(islocal) else ...
+    }  // if(islocal) else ...
     if(totest > gcnumblock-1-bamboo_reserved_smem) {
       // no more local mem, do not find suitable block
       foundsmem = 2;
       break;
-    }             // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
+    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
   } while(true);
 
   if(foundsmem == 1) {
@@ -1333,6 +1403,118 @@ void * localmalloc_I(int coren,
   return mem;
 } // void * localmalloc_I(int, int, int *)
 
+// Allocate the local shared memory to each core with the highest priority,
+// if a core has used up its local shared memory, try to allocate the 
+// shared memory that belong to its neighbours, if also failed, start gc.
+void * fixedmalloc_I(int coren,
+                     int isize,
+                     int * allocsize) {
+  void * mem = NULL;
+  int i = 0;
+  int j = 0;
+  int k = 0;
+  //int core2test[5]={coren,-1,-1,-1,-1};//(x,y),(x-1,y),(x+1,y),(x,y-1),(x,y+1)
+  int coords_x = bamboo_cpu2coords[coren*2];
+  int coords_y = bamboo_cpu2coords[coren*2+1];
+  int ii = 1;
+  /*if(coords_x != 0) {
+	core2test[ii++] = bamboo_coords2cpu[coords_x-1][coords_y]; 
+  }
+  if(coords_x != 7) {
+	core2test[ii++] = bamboo_coords2cpu[coords_x+1][coords_y];
+  }
+  if(coords_y != 0) {
+	core2test[ii++] = bamboo_coords2cpu[coords_x][coords_y-1];
+  }
+  if(coords_y != 7) {
+	core2test[ii++] = bamboo_coords2cpu[coords_x][coords_y+1];
+  }*/
+  int tofindb = gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+  int totest = tofindb;
+  int bound = BAMBOO_SMEM_SIZE_L;
+  int foundsmem = 0;
+  int size = 0;
+  do {
+    bound = (totest < NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+    int nsize = bamboo_smemtbl[totest];
+    bool islocal = true;
+    if(nsize < bound) {
+      bool tocheck = true;
+      // have some space in the block
+      if(totest == tofindb) {
+		// the first partition
+		size = bound - nsize;
+      } else if(nsize == 0) {
+		// an empty partition, can be appended
+		size += bound;
+      } else {
+		// not an empty partition, can not be appended
+		// the last continuous block is not big enough, go to check the next
+		// local block
+		islocal = true;
+		tocheck = false;
+      } // if(totest == tofindb) else if(nsize == 0) else ...
+      if(tocheck) {
+		if(size >= isize) {
+		  // have enough space in the block, malloc
+		  foundsmem = 1;
+		  break;
+		} else {
+		  // no enough space yet, try to append next continuous block
+		  // TODO may consider to go to next local block?
+		  islocal = false;
+		}  // if(size > isize) else ...
+      }  // if(tocheck)
+    } // if(nsize < bound)
+    if(islocal) {
+      // no space in the block, go to check the next block
+      i++;
+      if(2==i) {
+		i = 0;
+		j++;
+      }
+      tofindb=totest=gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+    } else {
+      totest += 1;
+    }  // if(islocal) else ...
+    if(totest > gcnumblock-1-bamboo_reserved_smem) {
+      // no more local mem, do not find suitable block on local mem
+	  // try to malloc shared memory assigned to the neighbour cores
+	  do{
+		k++;
+		if(k > 4) {
+		  // no more memory available on either coren or its neighbour cores
+		  foundsmem = 2;
+		  goto memsearchresult;
+		}
+	  } while(core2test[coren][k] == -1);
+	  i = 0;
+	  j = 0;
+	  tofindb=totest=gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
+  } while(true);
+
+memsearchresult:
+  if(foundsmem == 1) {
+    // find suitable block
+    mem = gcbaseva+bamboo_smemtbl[tofindb]+((tofindb<NUMCORES4GC) ?
+          (BAMBOO_SMEM_SIZE_L*tofindb) : (BAMBOO_LARGE_SMEM_BOUND+
+          (tofindb-NUMCORES4GC)*BAMBOO_SMEM_SIZE));
+    *allocsize = size;
+    // set bamboo_smemtbl
+    for(i = tofindb; i <= totest; i++) {
+      bamboo_smemtbl[i]=(i<NUMCORES4GC)?BAMBOO_SMEM_SIZE_L:BAMBOO_SMEM_SIZE;
+    }
+  } else if(foundsmem == 2) {
+    // no suitable block
+    *allocsize = 0;
+  }
+
+  return mem;
+} // void * fixedmalloc_I(int, int, int *)
+
+// Allocate all the memory chunks globally, do not consider the host cores
+// When all the shared memory are used up, start gc.
 void * globalmalloc_I(int coren,
                       int isize,
                       int * allocsize) {
@@ -1343,6 +1525,7 @@ void * globalmalloc_I(int coren,
   int foundsmem = 0;
   int size = 0;
   if(tofindb > gcnumblock-1-bamboo_reserved_smem) {
+	// Out of shared memory
     *allocsize = 0;
     return NULL;
   }
@@ -1427,7 +1610,8 @@ void * smemalloc_I(int coren,
 
   case SMEMFIXED: {
     // TODO not supported yet
-    BAMBOO_EXIT(0xe001);
+    //BAMBOO_EXIT(0xe001);
+	mem = fixedmalloc_I(coren, isize, allocsize);
     break;
   }
 

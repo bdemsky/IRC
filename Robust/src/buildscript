@@ -40,6 +40,10 @@ echo "-raw generate raw version binary (should be used together with -multicore)
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
 echo -multicoregc generate multi-core binary with garbage collection
 echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
+echo "-gcmem_local set the gc shared memory allocation strategy as local (should be used together with -multicoregc)"
+echo "-gcmem_fixed set the gc shared memory allocation strategy as fixed (should be used together with -multicoregc)"
+echo "-gcmem_mixed set the gc shared memory allocation strategy as mixed (should be used together with -multicoregc)"
+echo "-gcmem_global set the gc shared memory allocation strategy as global (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
 echo -accurateprofile build with accurate profile information including pre/post task processing info
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
@@ -128,6 +132,10 @@ USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
 MULTICOREGCFLAG=false;
+GCMEMLOCALFLAG=false;
+GCMEMFIXEDFLAG=false;
+GCMEMMIXEDFLAG=false;
+GCMEMGLOBALFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -351,6 +359,18 @@ elif [[ $1 = '-multicoregc' ]]
 then
 MULTICOREGCFLAG=true
 JAVAOPTS="$JAVAOPTS -multicoregc"
+elif [[ $1 = '-gcmem_local' ]]
+then
+GCMEMLOCALFLAG=true
+elif [[ $1 = '-gcmem_fixed' ]]
+then
+GCMEMFIXEDFLAG=true
+elif [[ $1 = '-gcmem_mixed' ]]
+then
+GCMEMMIXEDFLAG=true
+elif [[ $1 = '-gcmem_global' ]]
+then
+GCMEMGLOBALFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -727,6 +747,26 @@ fi
 if $GCPROFILEFLAG
 then # GC_PROFILE version
 TILERACFLAGS="${TILERACFLAGS} -DGC_PROFILE"
+fi
+
+if $GCMEMLOCALFLAG
+then # SMEMLOCAL version
+TILERACFLAGS="${TILERACFLAGS} -DSMEML"
+fi
+
+if $GCMEMFIXEDFLAG
+then # SMEMFIXED version
+TILERACFLAGS="${TILERACFLAGS} -DSMEMF"
+fi
+
+if $GCMEMMIXEDFLAG
+then # SMEMMIXED version
+TILERACFLAGS="${TILERACFLAGS} -DSMEMM"
+fi
+
+if $GCMEMGLOBALFLAG
+then # SMEMGLOBAL version
+TILERACFLAGS="${TILERACFLAGS} -DSMEMG"
 fi
 
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile
