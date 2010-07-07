@@ -26,6 +26,11 @@ extern struct taskparamdescriptor *currtpd;
 extern struct LockValue runtime_locks[MAXTASKPARAMS];
 extern int runtime_locklen;
 
+#ifdef SMEMM
+extern unsigned int gcmem_mixed_threshold;
+extern unsigned int gcmem_mixed_usedmem;
+#endif
+
 struct pointerblock {
   void * ptrs[NUMPTRS];
   struct pointerblock *next;
@@ -795,9 +800,6 @@ inline bool cacheLObjs() {
   return true;
 } // void cacheLObjs()
 
-// NOTE: the free mem chunks should be maintained in an ordered linklist
-// the listtop param always specify current list tail
-
 // update the bmmboo_smemtbl to record current shared mem usage
 void updateSmemTbl(int coren,
                    int localtop) {
@@ -816,8 +818,14 @@ void updateSmemTbl(int coren,
     if(toset < ltopcore) {
       bamboo_smemtbl[toset]=
         (toset<NUMCORES4GC) ? BAMBOO_SMEM_SIZE_L : BAMBOO_SMEM_SIZE;
+#ifdef SMEMM
+	  gcmem_mixed_usedmem += bamboo_smemtbl[toset];
+#endif
     } else if(toset == ltopcore) {
       bamboo_smemtbl[toset] = load;
+#ifdef SMEMM
+	  gcmem_mixed_usedmem += bamboo_smemtbl[toset];
+#endif
       break;
     } else {
       break;
@@ -833,6 +841,10 @@ void updateSmemTbl(int coren,
 inline void moveLObjs() {
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xea01);
+#endif
+#ifdef SMEMM
+  // update the gcmem_mixed_usedmem
+  gcmem_mixed_usedmem = 0;
 #endif
   // zero out the smemtbl
   BAMBOO_MEMSET_WH(bamboo_smemtbl, 0, sizeof(int)*gcnumblock);
@@ -896,7 +908,10 @@ inline void moveLObjs() {
 
   // move large objs from gcheaptop to tmpheaptop
   // write the header first
-  int tomove = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE) -gcheaptop;
+  unsigned int tomove = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE) -gcheaptop;
+#ifdef SMEMM
+  gcmem_mixed_usedmem += tomove;
+#endif
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xea03);
   BAMBOO_DEBUGPRINT_REG(tomove);
@@ -905,14 +920,14 @@ inline void moveLObjs() {
 #endif
   // flush the sbstartbl
   BAMBOO_MEMSET_WH(&(gcsbstarttbl[gcreservedsb]), '\0',
-                   (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE-gcreservedsb)*sizeof(INTPTR));
+	  (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE-gcreservedsb)*sizeof(INTPTR));
   if(tomove == 0) {
     gcheaptop = tmpheaptop;
   } else {
     // check how many blocks it acrosses
     int remain = tmpheaptop-gcbaseva;
-    int sb = remain/(BAMBOO_SMEM_SIZE) + gcreservedsb;             //number of the sblock
-    int b = 0;             // number of the block
+    int sb = remain/(BAMBOO_SMEM_SIZE) + gcreservedsb;//number of the sblock
+    int b = 0;  // number of the block
     BLOCKINDEX(tmpheaptop, &b);
     // check the remaining space in this block
     bound = (BAMBOO_SMEM_SIZE);
@@ -942,7 +957,7 @@ inline void moveLObjs() {
 	  // close current block, fill its header
 	  BAMBOO_MEMSET_WH(base, '\0', BAMBOO_CACHE_LINE_SIZE);
 	  *((int*)base) = cpysize + BAMBOO_CACHE_LINE_SIZE;
-	  bamboo_smemtbl[b]+=BAMBOO_CACHE_LINE_SIZE;                               // add the size of the header
+	  bamboo_smemtbl[b]+=BAMBOO_CACHE_LINE_SIZE;// add the size of the header
 	  cpysize = 0;
 	  base = tmpheaptop;
 	  if(remain == 0) {
@@ -999,7 +1014,7 @@ inline void moveLObjs() {
 	  BAMBOO_DEBUGPRINT_REG(ptr);
 	  BAMBOO_DEBUGPRINT_REG(tmpheaptop);
 #endif
-	}                         // if(host != BAMBOO_NUM_OF_CORE)
+	} // if(host != BAMBOO_NUM_OF_CORE)
 	tmpheaptop += isize;
 
 	// set the gcsbstarttbl and bamboo_smemtbl
@@ -1026,7 +1041,7 @@ inline void moveLObjs() {
 	  remain = tmpheaptop-gcbaseva;
 	  bamboo_smemtbl[b] = remain%bound;
 	  remain = bound - bamboo_smemtbl[b];
-	}                         // if(((isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) else ...
+	} // if(((isize-remain)%(BAMBOO_SMEM_SIZE)) == 0) else ...
 
 	// close current block and fill the header
 	BAMBOO_MEMSET_WH(base, '\0', BAMBOO_CACHE_LINE_SIZE);
@@ -1104,7 +1119,7 @@ inline void moveLObjs() {
     }
     gcheaptop = tmpheaptop;
 
-  }       // if(tomove == 0)
+  } // if(tomove == 0)
 
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xea07);
