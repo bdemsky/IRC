@@ -64,6 +64,18 @@ public class ReachGraph {
     return td2vn.get( td );
   }
 
+  //This method is created for client modules to access the Reachgraph 
+  //after the analysis is done and no modifications are to be made.
+  public VariableNode getVariableNodeNoMutation( TempDescriptor td ) {
+    assert td != null;
+
+    if( !td2vn.containsKey( td ) ) {
+      return null;
+    }
+
+    return td2vn.get( td );
+  }
+  
   public boolean hasVariable( TempDescriptor td ) {
     return td2vn.containsKey( td );
   }
