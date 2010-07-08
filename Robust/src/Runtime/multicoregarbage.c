@@ -634,10 +634,13 @@ inline void initGC() {
   }
   gclobjhead->next = gclobjhead->prev = NULL;
 
+#ifdef LOCALHASHTBL_TEST
   freeRuntimeHash(gcpointertbl);
   gcpointertbl = allocateRuntimeHash(20);
+#else
+  mgchashreset(gcpointertbl);
+#endif
   //gcpointertbl = allocateMGCHash(20);
-  //mgchashreset();
 
   freeMGCHash(gcforwardobjtbl);
   gcforwardobjtbl = allocateMGCHash(20, 3);
@@ -982,8 +985,6 @@ inline void moveLObjs() {
 		}
 		// fill the remaining space with -2 padding
 		BAMBOO_MEMSET_WH(tmpheaptop+size, -2, isize-size);
-		// zero out original mem caching the lobj
-		//BAMBOO_MEMSET_WH(gcheaptop, '\0', size); // TODO ??
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xea05);
 		BAMBOO_DEBUGPRINT_REG(gcheaptop);
@@ -996,11 +997,11 @@ inline void moveLObjs() {
 		// cache the mapping info anyway
 		//if(ptr != tmpheaptop) {
 		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-		//mgchashInsert_I(ptr, tmpheaptop);
+#ifdef LOCALHASHTBL_TEST
 		RuntimeHashadd_I(gcpointertbl, ptr, tmpheaptop);
-		//struct nodemappinginfo * nodeinfo = NULL;
-		//RuntimeHashget(gcpointertbl, ptr, &nodeinfo);
-		//nodeinfo->ptr = tmpheaptop;
+#else
+		mgchashInsert_I(gcpointertbl, ptr, tmpheaptop);
+#endif
 		//MGCHashadd_I(gcpointertbl, ptr, tmpheaptop);
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 		//}
@@ -1083,11 +1084,11 @@ inline void moveLObjs() {
 		// cache the mapping info anyway
 		//if(ptr != tmpheaptop) {
 		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-		//mgchashInsert_I(ptr, tmpheaptop);
+#ifdef LOCALHASHTBL_TEST
 		RuntimeHashadd_I(gcpointertbl, ptr, tmpheaptop);
-		//struct nodemappinginfo * nodeinfo = NULL;
-		//RuntimeHashget(gcpointertbl, ptr, &nodeinfo);
-		//nodeinfo->ptr = tmpheaptop;
+#else
+		mgchashInsert_I(gcpointertbl, ptr, tmpheaptop);
+#endif
 		//MGCHashadd_I(gcpointertbl, ptr, tmpheaptop);
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 		//}
@@ -1963,8 +1964,12 @@ innermoveobj:
     }
     // store mapping info
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    //mgchashInsert_I(orig->ptr, to->ptr);
+#ifdef LOCALHASHTBL_TEST
     RuntimeHashadd_I(gcpointertbl, orig->ptr, to->ptr);
+#else
+	mgchashInsert_I(gcpointertbl, orig->ptr, to->ptr);
+#endif
+	//MGCHashadd_I(gcpointertbl, orig->ptr, to->ptr);
 	if(isremote) {
 #ifdef GC_PROFILE
 	//unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
@@ -1979,7 +1984,6 @@ innermoveobj:
 	//flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
 #endif
 	}
-    //MGCHashadd_I(gcpointertbl, orig->ptr, to->ptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     //}
 #ifdef DEBUG
@@ -2267,12 +2271,15 @@ inline void * flushObj(void * objptr) {
 #ifdef GC_PROFILE
     unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
-    //dstptr = mgchashSearch(objptr);
+#ifdef LOCALHASHTBL_TEST
     RuntimeHashget(gcpointertbl, objptr, &dstptr);
+#else
+	dstptr = mgchashSearch(gcpointertbl, objptr);
+#endif
+	//MGCHashget(gcpointertbl, objptr, &dstptr);
 #ifdef GC_PROFILE
     flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
 #endif
-    //MGCHashget(gcpointertbl, objptr, &dstptr);
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(dstptr);
@@ -2304,7 +2311,11 @@ inline void * flushObj(void * objptr) {
 		  //GCSharedHashget(sptbl, (int)objptr, &dstptr);
 		  dstptr = mgcsharedhashSearch(sptbl, (int)objptr);
 		  if(dstptr != NULL) {
+#ifdef LOCALHASHTBL_TEST
 			RuntimeHashadd_I(gcpointertbl, (int)objptr, (int)dstptr);
+#else
+			mgchashInsert_I(gcpointertbl, (int)objptr, (int)dstptr);
+#endif
 		  }
 		}
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -2343,8 +2354,11 @@ inline void * flushObj(void * objptr) {
 		  //flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
 #endif
 		  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-		  //dstptr = mgchashSearch(objptr);
+#ifdef LOCALHASHTBL_TEST
 		  RuntimeHashget(gcpointertbl, objptr, &dstptr);
+#else
+		  dstptr = mgchashSearch(gcpointertbl, objptr);
+#endif
 		  //MGCHashget(gcpointertbl, objptr, &dstptr);
 		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 		} // if(dstptr == NULL)

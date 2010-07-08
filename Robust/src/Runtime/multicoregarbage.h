@@ -124,7 +124,11 @@ mgcsharedhashtbl_t * gcsharedptbl;
 //struct GCSharedHash * gcrpointertbls[NUMCORES4GC];
 mgcsharedhashtbl_t * gcrpointertbls[NUMCORES4GC];
 
-volatile struct RuntimeHash * gcpointertbl;
+#ifdef LOCALHASHTBL_TEST
+struct RuntimeHash * gcpointertbl;
+#else
+mgchashtable_t * gcpointertbl;
+#endif
 //struct MGCHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;

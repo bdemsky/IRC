@@ -170,7 +170,7 @@ struct GCSharedHash * allocateGCSharedHash_I(int size) {
   struct GCSharedHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf203);
+    BAMBOO_EXIT(0xf202);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -291,14 +291,14 @@ mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size,
   ctable = (mgcsharedhashtbl_t *)FREEMALLOC_NGC(sizeof(mgcsharedhashtbl_t));
   if(ctable == NULL) {
 	// TODO
-	BAMBOO_EXIT(0xeeee);
+	BAMBOO_EXIT(0xf203);
 	return NULL;
   }
   // Allocate space for the hash table
   ctable->table = (mgcsharedhashlistnode_t *)FREEMALLOC_NGC(
 	  size*sizeof(mgcsharedhashlistnode_t));
   if(ctable->table == NULL) {
-	BAMBOO_EXIT(0xffff); // TODO
+	BAMBOO_EXIT(0xf204); // TODO
 	return NULL;
   }
   ctable->size = size;
@@ -323,14 +323,14 @@ mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size,
   ctable = (mgcsharedhashtbl_t *)FREEMALLOC_NGC_I(sizeof(mgcsharedhashtbl_t));
   if(ctable == NULL) {
 	// TODO
-	BAMBOO_EXIT(0xeeef);
+	BAMBOO_EXIT(0xf205);
 	return NULL;
   }
   // Allocate space for the hash table
   ctable->table = (mgcsharedhashlistnode_t *)FREEMALLOC_NGC_I(
 	  size*sizeof(mgcsharedhashlistnode_t));
   if(ctable->table == NULL) {
-	BAMBOO_EXIT(0xfffe); // TODO
+	BAMBOO_EXIT(0xf206); // TODO
 	return NULL;
   }
   ctable->size = size;
@@ -350,9 +350,9 @@ void mgcsharedhashReset(mgcsharedhashtbl_t * tbl) {
   mgcsharedhashlistnode_t * ptr = tbl->table;
 
   if ((tbl->numelements) < (tbl->size>>6)) {
+	mgcsharedhashlistnode_t *top = &ptr[tbl->size];
 	mgcsharedhashlistnode_t * list = tbl->list;
-	while(list != NULL) {
-	  mgcsharedhashlistnode_t *top = &ptr[tbl->size];
+	while(list != NULL) {  
       mgcsharedhashlistnode_t * next = list->next;
       if ((list >= ptr) && (list < top)) {
 		//zero in list

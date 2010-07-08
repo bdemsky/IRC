@@ -19,22 +19,13 @@
 
 #include "mem.h"
 
-/* MGCHash *********************************************************/
+/* mgchash *********************************************************/
 typedef struct mgchashlistnode {
   void * key;
   void * val; //this can be cast to another type or used to point to a
               //larger structure
   struct mgchashlistnode *next;
 } mgchashlistnode_t;
-
-typedef struct mgchashtable {
-  mgchashlistnode_t *table;       // points to beginning of hash table
-  unsigned int size;
-  unsigned int mask;
-  unsigned int numelements;
-  unsigned int threshold;
-  double loadfactor;
-} mgchashtable_t;
 
 #define NUMMGCLIST 250
 typedef struct mgclist {
@@ -43,18 +34,31 @@ typedef struct mgclist {
   struct mgclist *next;
 } mgcliststruct_t;
 
-void mgchashCreate(unsigned int size, double loadfactor);
-void mgchashInsert(void * key, void *val);
-void * mgchashSearch(void * key);
-unsigned int mgchashResize(unsigned int newsize);
+typedef struct mgchashtable {
+  mgchashlistnode_t * table;       // points to beginning of hash table
+  mgchashlistnode_t * list;
+  mgcliststruct_t * structs;
+  unsigned int size;
+  unsigned int mask;
+  unsigned int numelements;
+  unsigned int threshold;
+  double loadfactor;
+} mgchashtable_t;
+
+mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor);
+void mgchashInsert(mgchashtable_t * tbl, void * key, void *val);
+void * mgchashSearch(mgchashtable_t * tbl, void * key);
+unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize);
 #ifdef MULTICORE_GC
-void mgchashInsert_I(void * key, void *val);
-unsigned int mgchashResize_I(unsigned int newsize);
+mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor);
+void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val);
+unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize);
 #endif
-void mgchashDelete();
-void mgchashreset();
+void mgchashDelete(mgchashtable_t * tbl);
+void mgchashreset(mgchashtable_t * tbl);
 
 
+/** MGCHash *******************************************************************/
 struct MGCHash * allocateMGCHash(int size, int conflicts);
 void freeMGCHash(struct MGCHash *);
 

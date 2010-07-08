@@ -19,77 +19,88 @@
 #endif
 
 
-/* MGCHASH ********************************************************/
-mgchashlistnode_t *mgc_table;
-unsigned int mgc_size;
-unsigned INTPTR mgc_mask;
-unsigned int mgc_numelements;
-unsigned int mgc_threshold;
-double mgc_loadfactor;
-mgcliststruct_t *mgc_structs;
-
-void mgchashCreate(unsigned int size, double loadfactor) {
+/* mgchash ********************************************************/
+mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
   mgchashtable_t *ctable;
   mgchashlistnode_t *nodes;
   int i;
 
-  // Allocate space for the hash table
-  mgc_table = RUNMALLOC(size*sizeof(mgchashlistnode_t));
-  mgc_loadfactor = loadfactor;
-  mgc_size = size;
-  mgc_threshold=size*loadfactor;
-
-#ifdef BIT64
-  mgc_mask = ((size << 6)-1)&~(15UL);
+  if (size <= 0) {
+#ifdef MULTICORE
+    BAMBOO_EXIT(0xf101);
 #else
-  mgc_mask = ((size << 6)-1)&~15;
+    printf("Negative Hashtable size Exception\n");
+    exit(-1);
 #endif
+  }
 
-  mgc_structs=RUNMALLOC(1*sizeof(mgcliststruct_t));
-  mgc_numelements = 0; // Initial number of elements in the hash
+  // Allocate space for the hash table
+  ctable = (mgchashtable_t *)RUNMALLOC(sizeof(mgchashtable_t));
+  if(ctable == NULL) {
+	// Run out of local memory
+	BAMBOO_EXIT(0xf102);
+  }
+  ctable->table = (mgchashlistnode_t*)RUNMALLOC(size*sizeof(mgchashlistnode_t));
+  if(ctable->table == NULL) {
+	// Run out of local memory
+	BAMBOO_EXIT(0xf103);
+  }
+  ctable->loadfactor = loadfactor;
+  ctable->size = size;
+  ctable->threshold=size*loadfactor;
+
+  ctable->mask = (size << 6)-1;
+  ctable->list = NULL;
+  ctable->structs = (mgcliststruct_t*)RUNMALLOC(1*sizeof(mgcliststruct_t));
+  ctable->numelements = 0; // Initial number of elements in the hash
+
+  return ctable;
 }
 
-void mgchashreset() {
-  mgchashlistnode_t *ptr = mgc_table;
+void mgchashreset(mgchashtable_t * tbl) {
+  mgchashlistnode_t *ptr = tbl->table;
   int i;
 
-  /*if (mgc_numelements<(mgc_size>>6)) {
-     mgchashlistnode_t *top=&ptr[mgc_size];
-     mgchashlistnode_t *tmpptr=mgc_list;
-     while(tmpptr!=NULL) {
-      mgchashlistnode_t *next=tmpptr->lnext;
-      if (tmpptr>=ptr&&tmpptr<top) {
-                                //zero in list
-                                tmpptr->key=NULL;
-                                tmpptr->next=NULL;
+  if (tbl->numelements<(tbl->size>>6)) {
+	mgchashlistnode_t *top=&ptr[tbl->size];
+	mgchashlistnode_t * list = tbl->list;
+	while(list != NULL) {
+      mgchashlistnode_t * next = list->next;
+      if ((list >= ptr) && (list < top)) {
+		//zero in list
+        list->key=NULL;
+        list->next=NULL;
       }
-      tmpptr=next;
-     }
-     } else {*/
-  BAMBOO_MEMSET_WH(mgc_table, '\0', sizeof(mgchashlistnode_t)*mgc_size);
-  //}
-  while(mgc_structs->next!=NULL) {
-    mgcliststruct_t *next=mgc_structs->next;
-    RUNFREE(mgc_structs);
-    mgc_structs=next;
+      list = next;
+	}
+  } else {
+	BAMBOO_MEMSET_WH(tbl->table, '\0', sizeof(mgchashlistnode_t)*tbl->size);
   }
-  mgc_structs->num = 0;
-  mgc_numelements = 0;
+  // TODO now never release any allocated memory, may need to be changed
+  mgcliststruct_t * next = tbl->structs;
+  while(/*tbl->structs->*/next!=NULL) {
+    /*mgcliststruct_t * next = tbl->structs->next;
+    RUNFREE(tbl->structs);
+    tbl->structs=next;*/
+	next->num = 0;
+	next = next->next;
+  }
+  //tbl->structs->num = 0;
+  tbl->numelements = 0;
 }
 
 //Store objects and their pointers into hash
-void mgchashInsert(void * key, void *val) {
+void mgchashInsert(mgchashtable_t * tbl, void * key, void *val) {
   mgchashlistnode_t *ptr;
 
-  if(mgc_numelements > (mgc_threshold)) {
+  if(tbl->numelements > (tbl->threshold)) {
     //Resize
-    unsigned int newsize = mgc_size << 1 + 1;
-    mgchashResize(newsize);
+    unsigned int newsize = tbl->size << 1 + 1;
+    mgchashResize(tbl, newsize);
   }
 
-  //int hashkey = (unsigned int)key % mgc_size;
-  ptr=&mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6]; //&mgc_table[hashkey];
-  mgc_numelements++;
+  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6]; 
+  tbl->numelements++;
 
   if(ptr->key==0) {
     // the first time insert a value for the key
@@ -97,14 +108,14 @@ void mgchashInsert(void * key, void *val) {
     ptr->val=val;
   } else { // Insert in the beginning of linked list
     mgchashlistnode_t * node;
-    if (mgc_structs->num<NUMMGCLIST) {
-      node=&mgc_structs->array[mgc_structs->num];
-      mgc_structs->num++;
+    if (tbl->structs->num<NUMMGCLIST) {
+      node=&tbl->structs->array[tbl->structs->num];
+      tbl->structs->num++;
     } else {
       //get new list
       mgcliststruct_t *tcl=RUNMALLOC(1*sizeof(mgcliststruct_t));
-      tcl->next=mgc_structs;
-      mgc_structs=tcl;
+      tcl->next=tbl->structs;
+      tbl->structs=tcl;
       node=&tcl->array[0];
       tcl->num=1;
     }
@@ -116,19 +127,54 @@ void mgchashInsert(void * key, void *val) {
 }
 
 #ifdef MULTICORE_GC
-void mgchashInsert_I(void * key, void *val) {
-  mgchashlistnode_t *ptr;
+mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
+  mgchashtable_t *ctable;
+  mgchashlistnode_t *nodes;
+  int i;
 
-  if(mgc_numelements > (mgc_threshold)) {
-    //Resize
-    unsigned int newsize = mgc_size << 1 + 1;
-    mgchashResize_I(newsize);
+  if (size <= 0) {
+#ifdef MULTICORE
+    BAMBOO_EXIT(0xf101);
+#else
+    printf("Negative Hashtable size Exception\n");
+    exit(-1);
+#endif
   }
 
-  //int hashkey = (unsigned int)key % mgc_size;
-  //ptr=&mgc_table[hashkey];
-  ptr = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];
-  mgc_numelements++;
+  // Allocate space for the hash table
+  ctable = (mgchashtable_t*)RUNMALLOC_I(sizeof(mgchashtable_t));
+  if(ctable == NULL) {
+	// Run out of local memory
+	BAMBOO_EXIT(0xf102);
+  }
+  ctable->table=(mgchashlistnode_t*)RUNMALLOC_I(size*sizeof(mgchashlistnode_t));
+  if(ctable->table == NULL) {
+	// Run out of local memory
+	BAMBOO_EXIT(0xf103);
+  }
+  ctable->loadfactor = loadfactor;
+  ctable->size = size;
+  ctable->threshold=size*loadfactor;
+
+  ctable->mask = (size << 6)-1;
+  ctable->list = NULL;
+  ctable->structs = (mgcliststruct_t*)RUNMALLOC_I(1*sizeof(mgcliststruct_t));
+  ctable->numelements = 0; // Initial number of elements in the hash
+
+  return ctable;
+}
+
+void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val) {
+  mgchashlistnode_t *ptr;
+
+  if(tbl->numelements > (tbl->threshold)) {
+    //Resize
+    unsigned int newsize = tbl->size << 1 + 1;
+    mgchashResize_I(tbl, newsize);
+  }
+
+  ptr = &tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
+  tbl->numelements++;
 
   if(ptr->key==0) {
     ptr->key=key;
@@ -136,14 +182,14 @@ void mgchashInsert_I(void * key, void *val) {
     return;
   } else { // Insert in the beginning of linked list
     mgchashlistnode_t * node;
-    if (mgc_structs->num<NUMMGCLIST) {
-      node=&mgc_structs->array[mgc_structs->num];
-      mgc_structs->num++;
+    if (tbl->structs->num<NUMMGCLIST) {
+      node=&tbl->structs->array[tbl->structs->num];
+      tbl->structs->num++;
     } else {
       //get new list
       mgcliststruct_t *tcl=RUNMALLOC_I(1*sizeof(mgcliststruct_t));
-      tcl->next=mgc_structs;
-      mgc_structs=tcl;
+      tcl->next=tbl->structs;
+      tbl->structs=tcl;
       node=&tcl->array[0];
       tcl->num=1;
     }
@@ -156,11 +202,9 @@ void mgchashInsert_I(void * key, void *val) {
 #endif
 
 // Search for an address for a given oid
-INLINE void * mgchashSearch(void * key) {
+INLINE void * mgchashSearch(mgchashtable_t * tbl, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
-  //int hashkey = (unsigned int)key % mgc_size;
-  mgchashlistnode_t *node = &mgc_table[(((unsigned INTPTR)key)&mgc_mask)>>6];
-  //&mgc_table[hashkey];
+  mgchashlistnode_t *node = &tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
 
   do {
     if(node->key == key) {
@@ -172,57 +216,61 @@ INLINE void * mgchashSearch(void * key) {
   return NULL;
 }
 
-unsigned int mgchashResize(unsigned int newsize) {
-  mgchashlistnode_t *node, *ptr, *curr;    // curr and next keep track of the current and the next mgchashlistnodes in a linked list
+unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
+  mgchashlistnode_t *node, *ptr, *curr;  // curr and next keep track of the 
+                                         // current and the next 
+										 // mgchashlistnodes in a linked list
   unsigned int oldsize;
-  int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
+  int isfirst;    // Keeps track of the first element in the 
+                  // chashlistnode_t for each bin in hashtable
   unsigned int i,index;
   unsigned int mask;
 
-  ptr = mgc_table;
-  oldsize = mgc_size;
+  ptr = tbl->table;
+  oldsize = tbl->size;
 
   if((node = RUNMALLOC(newsize*sizeof(mgchashlistnode_t))) == NULL) {
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
 
-  mgc_table = node;          //Update the global hashtable upon resize()
-  mgc_size = newsize;
-  mgc_threshold = newsize * mgc_loadfactor;
-  mask=mgc_mask = (newsize << 6)-1;
+  tbl->table = node; //Update the global hashtable upon resize()
+  tbl->size = newsize;
+  tbl->threshold = newsize * tbl->loadfactor;
+  mask = tbl->mask = (newsize << 6) - 1;
 
-  for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
+  for(i = 0; i < oldsize; i++) {   //Outer loop for each bin in hash table
     curr = &ptr[i];
     isfirst = 1;
-    do {                      //Inner loop to go through linked lists
+    do {  //Inner loop to go through linked lists
       void * key;
       mgchashlistnode_t *tmp,*next;
 
-      if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
-	break;                  //key = val =0 for element if not present within the hash table
-      }
-      //index = (unsigned int)key % mgc_size;
-      index = (((unsigned INTPTR)key) & mask) >>6;
+      if ((key=curr->key) == 0) { 
+		//Exit inner loop if there the first element is 0
+		break;
+		//key = val =0 for element if not present within the hash table
+	  }
+      index = (((unsigned INTPTR)key) & mask) >> 6;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-	tmp->key = key;
-	tmp->val = curr->val;
+		tmp->key = key;
+		tmp->val = curr->val;
       } /*
 	   NOTE:  Add this case if you change this...
-	   This case currently never happens because of the way things rehash....
+	   This case currently never happens because of the way things rehash....*/
 	   else if (isfirst) {
-	   chashlistnode_t *newnode= calloc(1, sizeof(chashlistnode_t));
-	   newnode->key = curr->key;
-	   newnode->val = curr->val;
-	   newnode->next = tmp->next;
-	   tmp->next=newnode;
-	   } */
+		 mgchashlistnode_t *newnode= RUNMALLOC(1*sizeof(mgchashlistnode_t));
+		 newnode->key = curr->key;
+		 newnode->val = curr->val;
+		 newnode->next = tmp->next;
+		 tmp->next=newnode;
+	   } 
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+		curr->next=tmp->next;
+		tmp->next=curr;
       }
 
       isfirst = 0;
@@ -235,90 +283,94 @@ unsigned int mgchashResize(unsigned int newsize) {
 }
 
 #ifdef MULTICORE_GC
-unsigned int mgchashResize_I(unsigned int newsize) {
-  mgchashlistnode_t *node, *ptr, *curr;    // curr and next keep track of the current and the next mgchashlistnodes in a linked list
+unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
+  mgchashlistnode_t *node, *ptr, *curr; // curr and next keep track of the 
+                                        // current and the next 
+										// mgchashlistnodes in a linked list
   unsigned int oldsize;
-  int isfirst;    // Keeps track of the first element in the chashlistnode_t for each bin in hashtable
+  int isfirst; // Keeps track of the first element in the chashlistnode_t 
+               // for each bin in hashtable
   unsigned int i,index;
   unsigned int mask;
 
-  ptr = mgc_table;
-  oldsize = mgc_size;
+  ptr = tbl->table;
+  oldsize = tbl->size;
 
   if((node = RUNMALLOC_I(newsize*sizeof(mgchashlistnode_t))) == NULL) {
-    BAMBOO_EXIT(0xe001);
+    BAMBOO_EXIT(0xf104);
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
 
-  mgc_table = node;          //Update the global hashtable upon resize()
-  mgc_size = newsize;
-  mgc_threshold = newsize * mgc_loadfactor;
-  mask=mgc_mask = (newsize << 6)-1;
+  tbl->table = node;  //Update the global hashtable upon resize()
+  tbl->size = newsize;
+  tbl->threshold = newsize * tbl->loadfactor;
+  mask = tbl->mask = (newsize << 6)-1;
 
-  for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
+  for(i = 0; i < oldsize; i++) {  //Outer loop for each bin in hash table
     curr = &ptr[i];
     isfirst = 1;
-    do {                      //Inner loop to go through linked lists
+    do { //Inner loop to go through linked lists
       void * key;
       mgchashlistnode_t *tmp,*next;
 
       if ((key=curr->key) == 0) {
-	//Exit inner loop if there the first element is 0
-	break;
-	//key = val =0 for element if not present within the hash table
+		//Exit inner loop if there the first element is 0
+		break;
+		//key = val =0 for element if not present within the hash table
       }
-      //index = (unsigned int)key % mgc_size;
       index = (((unsigned INTPTR)key) & mask) >>6;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
       if(tmp->key == 0) {
-	tmp->key = key;
-	tmp->val = curr->val;
+		tmp->key = key;
+		tmp->val = curr->val;
       } /*
 	   NOTE:  Add this case if you change this...
 	   This case currently never happens because of the way things rehash....*/
       else if (isfirst) {
-	mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t));
-	newnode->key = curr->key;
-	newnode->val = curr->val;
-	newnode->next = tmp->next;
-	tmp->next=newnode;
+		mgchashlistnode_t *newnode=RUNMALLOC_I(1*sizeof(mgchashlistnode_t)); 
+		newnode->key = curr->key;
+		newnode->val = curr->val;
+		newnode->next = tmp->next;
+		tmp->next=newnode;
       } else {
-	curr->next=tmp->next;
-	tmp->next=curr;
+		curr->next=tmp->next;
+		tmp->next=curr;
       }
 
       isfirst = 0;
       curr = next;
     } while(curr!=NULL);
   }
-  RUNFREE(ptr);            //Free the memory of the old hash table
+  RUNFREE(ptr); //Free the memory of the old hash table
   return 0;
 }
 #endif
 
 //Delete the entire hash table
-void mgchashDelete() {
+void mgchashDelete(mgchashtable_t * tbl) {
   int i;
-  mgcliststruct_t *ptr=mgc_structs;
+  mgcliststruct_t *ptr=tbl->structs;
   while(ptr!=NULL) {
     mgcliststruct_t *next=ptr->next;
     RUNFREE(ptr);
     ptr=next;
   }
-  RUNFREE(mgc_table);
-  mgc_table=NULL;
-  mgc_structs=NULL;
+  RUNFREE(tbl->table);
+  tbl->table=NULL;
+  tbl->structs=NULL;
 }
+
+/* MGCHASH ********************************************************/
 
 struct MGCHash * allocateMGCHash(int size,
                                  int conflicts) {
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf101);
+    BAMBOO_EXIT(0xf105);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -382,7 +434,7 @@ struct MGCHash * allocateMGCHash_I(int size,
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf101);
+    BAMBOO_EXIT(0xf106);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);

@@ -259,9 +259,12 @@ void initruntimedata() {
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
-  //mgchashCreate(2000, 0.75);
+#ifdef LOCALHASHTBL_TEST
   gcpointertbl = allocateRuntimeHash_I(20);
-  //gcpointertbl = allocateMGCHash(20);
+#else
+  gcpointertbl = mgchashCreate_I(2000, 0.75);
+#endif
+  //gcpointertbl = allocateMGCHash_I(20);
   gcforwardobjtbl = allocateMGCHash_I(20, 3);
   gcobj2map = 0;
   gcmappedobj = 0;
@@ -345,8 +348,11 @@ void initruntimedata() {
 inline __attribute__((always_inline))
 void disruntimedata() {
 #ifdef MULTICORE_GC
-  //mgchashDelete();
+#ifdef LOCALHASHTBL_TEST
   freeRuntimeHash(gcpointertbl);
+#else
+  mgchashDelete(gcpointertbl);
+#endif
   //freeMGCHash(gcpointertbl);
   freeMGCHash(gcforwardobjtbl);
   // for mapping info structures
@@ -2740,17 +2746,20 @@ INLINE void processmsg_gcmaprequest_I() {
   void * dstptr = NULL;
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  //dstptr = mgchashSearch(msgdata[1]);
 #ifdef GC_PROFILE
   // TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
+#ifdef LOCALHASHTBL_TEST
   RuntimeHashget(gcpointertbl, data1, &dstptr);
+#else
+  dstptr = mgchashSearch(gcpointertbl, data1);
+#endif
+  //MGCHashget(gcpointertbl, data1, &dstptr);
 #ifdef GC_PROFILE
   // TODO flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
 #endif
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  //MGCHashget(gcpointertbl, msgdata[1], &dstptr);
 #ifdef GC_PROFILE
   // TODO unsigned long long ttimei = BAMBOO_GET_EXE_TIME();
 #endif
@@ -2787,17 +2796,14 @@ INLINE void processmsg_gcmapinfo_I() {
 #endif
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-    gcmappedobj = msgdata[msgdataindex];  // [2]
-    MSG_INDEXINC_I();
-    //mgchashReplace_I(msgdata[1], msgdata[2]);
-    //mgchashInsert_I(gcobj2map, gcmappedobj);
-    RuntimeHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
-	/*struct nodemappinginfo * nodeinfo = 
-	 (struct nodemappinginfo *)RUNMALLOC_I(sizeof(struct nodemappinginfo));
-	nodeinfo->ptr = (void *)gcmappedobj;
-	nodeinfo->cores = NULL;
-	RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
-    //MGCHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
+  gcmappedobj = msgdata[msgdataindex];  // [2]
+  MSG_INDEXINC_I();
+#ifdef LOCALHASHTBL_TEST
+  RuntimeHashadd_I(gcpointertbl, data1, gcmappedobj);
+#else
+  mgchashInsert_I(gcpointertbl, data1, gcmappedobj);
+#endif
+  //MGCHashadd_I(gcpointertbl, data1, gcmappedobj);
   if(data1 == gcobj2map) {
 	gcismapped = true;
   }
@@ -2852,11 +2858,13 @@ INLINE void processmsg_gclobjmapping_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-  //mgchashInsert_I(msgdata[1], msgdata[2]);
+#ifdef LOCALHASHTBL_TEST
   RuntimeHashadd_I(gcpointertbl, data1, data2);
+#else
+  mgchashInsert_I(gcpointertbl, data1, data2);
+#endif
+  //MGCHashadd_I(gcpointertbl, data1, data2);
   mgcsharedhashInsert_I(gcsharedptbl, data1, data2);
-  //GCSharedHashadd_I(gcsharedptbl, data1, data2);
-  //MGCHashadd_I(gcpointertbl, msgdata[1], msgdata[2]);
 }
 #endif // #ifdef MULTICORE_GC
 
