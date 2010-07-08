@@ -328,8 +328,6 @@ struct MGCHash * allocateMGCHash(int size,
   thisvar->size = size;
   thisvar->bucket =
     (struct MGCNode *) RUNMALLOC(sizeof(struct MGCNode)*size);
-  // zero out all the buckets
-  BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
@@ -348,49 +346,11 @@ void freeMGCHash(struct MGCHash *thisvar) {
   RUNFREE(thisvar->bucket);
   RUNFREE(thisvar);
 }
-/*
-   void MGCHashrehash(struct MGCHash * thisvar) {
-   int newsize=thisvar->size;
-   struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC(sizeof(struct MGCNode *)*newsize);
-   int i;
-   for(i=thisvar->size-1; i>=0; i--) {
-    struct MGCNode *ptr;
-    for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-      struct MGCNode * nextptr=ptr->next;
-      unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-      ptr->next=newbucket[newhashkey];
-      newbucket[newhashkey]=ptr;
-      ptr=nextptr;
-    }
-   }
-   thisvar->size=newsize;
-   RUNFREE(thisvar->bucket);
-   thisvar->bucket=newbucket;
-   }*/
 
 int MGCHashadd(struct MGCHash * thisvar, int data) {
   // Rehash code
   unsigned int hashkey;
   struct MGCNode *ptr;
-
-  /*if (thisvar->numelements>=thisvar->size) {
-     int newsize=2*thisvar->size+1;
-     struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC(sizeof(struct MGCNode *)*newsize);
-     int i;
-     for(i=thisvar->size-1; i>=0; i--) {
-      struct MGCNode *ptr;
-      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-        struct MGCNode * nextptr=ptr->next;
-        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-        ptr->next=newbucket[newhashkey];
-        newbucket[newhashkey]=ptr;
-        ptr=nextptr;
-      }
-     }
-     thisvar->size=newsize;
-     RUNFREE(thisvar->bucket);
-     thisvar->bucket=newbucket;
-     }*/
 
   hashkey = (unsigned int)data % thisvar->size;
   ptr = &thisvar->bucket[hashkey];
@@ -432,8 +392,6 @@ struct MGCHash * allocateMGCHash_I(int size,
   thisvar->size = size;
   thisvar->bucket =
     (struct MGCNode *) RUNMALLOC_I(sizeof(struct MGCNode)*size);
-  // zero out all the buckets
-  BAMBOO_MEMSET_WH(thisvar->bucket, '\0', sizeof(struct MGCNode)*size);
   //Set data counts
   thisvar->num4conflicts = conflicts;
   return thisvar;
@@ -443,25 +401,6 @@ int MGCHashadd_I(struct MGCHash * thisvar, int data) {
   // Rehash code
   unsigned int hashkey;
   struct MGCNode *ptr;
-
-  /*if (thisvar->numelements>=thisvar->size) {
-     int newsize=2*thisvar->size+1;
-     struct MGCNode ** newbucket = (struct MGCNode **) RUNMALLOC_I(sizeof(struct MGCNode *)*newsize);
-     int i;
-     for(i=thisvar->size-1; i>=0; i--) {
-      struct MGCNode *ptr;
-      for(ptr=thisvar->bucket[i]; ptr!=NULL;) {
-        struct MGCNode * nextptr=ptr->next;
-        unsigned int newhashkey=(unsigned int)ptr->key % newsize;
-        ptr->next=newbucket[newhashkey];
-        newbucket[newhashkey]=ptr;
-        ptr=nextptr;
-      }
-     }
-     thisvar->size=newsize;
-     RUNFREE(thisvar->bucket);
-     thisvar->bucket=newbucket;
-     }*/
 
   hashkey = (unsigned int)data % thisvar->size;
   ptr = &thisvar->bucket[hashkey];

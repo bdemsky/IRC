@@ -251,6 +251,7 @@ void initruntimedata() {
   totransobjqueue = createQueue_I();
 
 #ifdef MULTICORE_GC
+  bamboo_smem_zero_top = NULL;
   gcflag = false;
   gcprocessing = false;
   gcphase = FINISHPHASE;
@@ -406,11 +407,6 @@ bool checkObjQueue() {
     getwritelock_I(obj);
     while(!lockflag) {
       BAMBOO_WAITING_FOR_LOCK(0);
-	  // check for outgoing sends
-	  /*if (isMsgHanging) {
-		extern inline void send_hanging_msg(bool);
-		send_hanging_msg(true);
-	  } */
     }             // while(!lockflag)
     grount = lockresult;
 #ifdef DEBUG
@@ -1207,7 +1203,7 @@ void enqueueObject(void * vptr,
 	    //slotid is parameter->tagarray[2*i];
 	    int tagid=parameter->tagarray[2*i+1];
 	    if (tagid!=tagptr->flag)
-	      goto nextloop;                                           /*We don't have this tag */
+	      goto nextloop;           /*We don't have this tag */
 	  }
 	} else {                         //multiple tags
 	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
@@ -1272,7 +1268,7 @@ void enqueueObject_I(void * vptr,
       /* Check tags */
       if (parameter->numbertags>0) {
 	if (tagptr==NULL)
-	  goto nextloop;                               //that means the object has no tag
+	  goto nextloop;      //that means the object has no tag
 	//but that param needs tag
 	else if(tagptr->type==TAGTYPE) {                         //one tag
 	  //struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
@@ -1280,7 +1276,7 @@ void enqueueObject_I(void * vptr,
 	    //slotid is parameter->tagarray[2*i];
 	    int tagid=parameter->tagarray[2*i+1];
 	    if (tagid!=tagptr->flag)
-	      goto nextloop;                                           /*We don't have this tag */
+	      goto nextloop;            /*We don't have this tag */
 	  }
 	} else {                         //multiple tags
 	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
@@ -1494,10 +1490,11 @@ void * fixedmalloc_I(int coren,
   int i = 0;
   int j = 0;
   int k = 0;
-  int coords_x = bamboo_cpu2coords[coren*2];
-  int coords_y = bamboo_cpu2coords[coren*2+1];
+  int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
+  int coords_x = bamboo_cpu2coords[gccorenum*2];
+  int coords_y = bamboo_cpu2coords[gccorenum*2+1];
   int ii = 1;
-  int tofindb = gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+  int tofindb = gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
   int totest = tofindb;
   int bound = BAMBOO_SMEM_SIZE_L;
   int foundsmem = 0;
@@ -1541,7 +1538,8 @@ void * fixedmalloc_I(int coren,
 		i = 0;
 		j++;
       }
-      tofindb=totest=gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+      tofindb=totest=
+		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
     } else {
       totest += 1;
     }  // if(islocal) else ...
@@ -1555,10 +1553,10 @@ void * fixedmalloc_I(int coren,
 		  foundsmem = 2;
 		  goto memsearchresult;
 		}
-	  } while(core2test[coren][k] == -1);
+	  } while(core2test[gccorenum][k] == -1);
 	  i = 0;
 	  j = 0;
-	  tofindb=totest=gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+	  tofindb=totest=gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
     }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
   } while(true);
 
@@ -1596,10 +1594,11 @@ void * mixedmalloc_I(int coren,
   int i = 0;
   int j = 0;
   int k = 0;
-  int coords_x = bamboo_cpu2coords[coren*2];
-  int coords_y = bamboo_cpu2coords[coren*2+1];
+  int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
+  int coords_x = bamboo_cpu2coords[gccorenum*2];
+  int coords_y = bamboo_cpu2coords[gccorenum*2+1];
   int ii = 1;
-  int tofindb = gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+  int tofindb = gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
   int totest = tofindb;
   int bound = BAMBOO_SMEM_SIZE_L;
   int foundsmem = 0;
@@ -1643,7 +1642,8 @@ void * mixedmalloc_I(int coren,
 		i = 0;
 		j++;
       }
-      tofindb=totest=gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+      tofindb=totest=
+		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
     } else {
       totest += 1;
     }  // if(islocal) else ...
@@ -1663,10 +1663,11 @@ void * mixedmalloc_I(int coren,
 			return mem;
 		  }
 		}
-	  } while(core2test[coren][k] == -1);
+	  } while(core2test[gccorenum][k] == -1);
 	  i = 0;
 	  j = 0;
-	  tofindb=totest=gc_core2block[2*core2test[coren][k]+i]+(NUMCORES4GC*2)*j;
+	  tofindb=totest=
+		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
     }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
   } while(true);
 
@@ -2477,6 +2478,9 @@ INLINE void processmsg_memresponse_I() {
   if(data2 == 0) {
     bamboo_smem_size = 0;
     bamboo_cur_msp = 0;
+#ifdef MULTICORE_GC
+	bamboo_smem_zero_top = 0;
+#endif
   } else {
 #ifdef MULTICORE_GC
     // fill header to store the size of this mem block
@@ -2485,6 +2489,7 @@ INLINE void processmsg_memresponse_I() {
     (*((int*)data1)) = data2;
     bamboo_smem_size = data2 - BAMBOO_CACHE_LINE_SIZE;
     bamboo_cur_msp = data1 + BAMBOO_CACHE_LINE_SIZE;
+	bamboo_smem_zero_top = bamboo_cur_msp;
 #else
     bamboo_smem_size = data2;
     bamboo_cur_msp =(void*)(data1);
@@ -2506,6 +2511,7 @@ INLINE void processmsg_gcstartinit_I() {
     bamboo_smem_size = 0;
     bamboo_cur_msp = NULL;
     smemflag = true;
+	bamboo_smem_zero_top = NULL;
   }
 }
 
@@ -2781,16 +2787,6 @@ INLINE void processmsg_gcmapinfo_I() {
 #endif
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
-#if 0
-  if(data1 != gcobj2map) {
-    // obj not matched, something is wrong
-#ifdef DEBUG
-    BAMBOO_DEBUGPRINT_REG(gcobj2map);
-    BAMBOO_DEBUGPRINT_REG(msgdata[1]);
-#endif
-    BAMBOO_EXIT(0xb00a);
-  } else {
-#endif
     gcmappedobj = msgdata[msgdataindex];  // [2]
     MSG_INDEXINC_I();
     //mgchashReplace_I(msgdata[1], msgdata[2]);
@@ -2802,7 +2798,6 @@ INLINE void processmsg_gcmapinfo_I() {
 	nodeinfo->cores = NULL;
 	RuntimeHashadd_I(gcpointertbl, data1, (int)nodeinfo);*/
     //MGCHashadd_I(gcpointertbl, gcobj2map, gcmappedobj);
-//  }
   if(data1 == gcobj2map) {
 	gcismapped = true;
   }
@@ -3532,20 +3527,10 @@ newtask:
 #endif
       while(!lockflag) {
 	BAMBOO_WAITING_FOR_LOCK(0);
-	// check for outgoing sends
-    /*if (isMsgHanging) {
-      extern inline void send_hanging_msg(bool);
-      send_hanging_msg(true);
-    } */
 	  }
 #ifndef INTERRUPT
       if(reside) {
 	while(BAMBOO_WAITING_FOR_LOCK(0) != -1) {
-	  // check for outgoing sends
-	  /*if (isMsgHanging) {
-		extern inline void send_hanging_msg(bool);
-		send_hanging_msg(true);
-	  } */
 	}
       }
 #endif

@@ -327,7 +327,9 @@ volatile int bamboo_free_block;
 //struct freeMemList * bamboo_free_mem_list;
 int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
                           // e.g. 20% of the heap and should not be allocated
-// otherwise gc is invoked
+                          // otherwise gc is invoked
+volatile INTPTR bamboo_smem_zero_top;
+#define BAMBOO_SMEM_ZERO_UNIT_SIZE (4 * 1024) // 4KB
 #else
 //volatile mspace bamboo_free_msp;
 INTPTR bamboo_free_smemp;
