@@ -71,9 +71,13 @@ struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 volatile int gccorestatus[NUMCORESACTIVE]; // records status of each core
                                            // 1: running gc
                                            // 0: stall
-volatile int gcnumsendobjs[NUMCORESACTIVE]; //records how many objects sent out
-volatile int gcnumreceiveobjs[NUMCORESACTIVE]; //records how many objects
-                                              //received
+volatile int gcnumsendobjs[2][NUMCORESACTIVE]; // the # of objects sent out
+volatile int gcnumreceiveobjs[2][NUMCORESACTIVE]; // the # of objects received
+volatile int gcnumsrobjs_index;  // indicates which entry to record the info 
+		                         // received before phase 1 of the mark finish 
+						         // checking process
+								 // the info received in phase 2 must be 
+								 // recorded in the other entry
 volatile bool gcbusystatus;
 int gcself_numsendobjs;
 int gcself_numreceiveobjs;

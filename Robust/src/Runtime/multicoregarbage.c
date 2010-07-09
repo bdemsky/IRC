@@ -426,10 +426,18 @@ inline void checkMarkStatue() {
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xee02);
 #endif
+	int entry_index = 0;
+	if(waitconfirm) {
+	  // phase 2
+	  entry_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+	} else {
+	  // phase 1
+	  entry_index = gcnumsrobjs_index;
+	}
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    gcnumsendobjs[BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
-    gcnumreceiveobjs[BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
+    gcnumsendobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
+    gcnumreceiveobjs[entry_index][BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
     // check the status of all cores
     bool allStall = gc_checkAllCoreStatus_I();
 #ifdef DEBUG
@@ -455,49 +463,69 @@ inline void checkMarkStatue() {
 		  gccorestatus[i] = 1;
 		  // send mark phase finish confirm request msg to core i
 		  send_msg_1(i, GCMARKCONFIRM, false);
-		}                         // for(i = 1; i < NUMCORESACTIVE; ++i)
+		}  // for(i = 1; i < NUMCORESACTIVE; ++i)
       } else {
+		// Phase 2
 		// check if the sum of send objs and receive obj are the same
 		// yes->check if the info is the latest; no->go on executing
 		int sumsendobj = 0;
 		for(i = 0; i < NUMCORESACTIVE; ++i) {
-		  sumsendobj += gcnumsendobjs[i];
-		}                         // for(i = 0; i < NUMCORESACTIVE; ++i)
+		  sumsendobj += gcnumsendobjs[gcnumsrobjs_index][i];
+		}  // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xee06);
 		BAMBOO_DEBUGPRINT_REG(sumsendobj);
 #endif
 		for(i = 0; i < NUMCORESACTIVE; ++i) {
-		  sumsendobj -= gcnumreceiveobjs[i];
-		}                         // for(i = 0; i < NUMCORESACTIVE; ++i)
+		  sumsendobj -= gcnumreceiveobjs[gcnumsrobjs_index][i];
+		}  // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xee07);
 		BAMBOO_DEBUGPRINT_REG(sumsendobj);
 #endif
 		if(0 == sumsendobj) {
+		  // Check if there are changes of the numsendobjs or numreceiveobjs on
+		  // each core
+		  bool ischanged = false;
+		  for(i = 0; i < NUMCORESACTIVE; ++i) {
+			if((gcnumsendobjs[0][i] != gcnumsendobjs[1][i]) || 
+				(gcnumreceiveobjs[0][i] != gcnumreceiveobjs[1][i]) ) {
+			  ischanged = true;
+			  break;
+			}
+		  }  // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xee08);
+		  BAMBOO_DEBUGPRINT_REG(ischanged);
 #endif
-		  // all the core status info are the latest
-		  // stop mark phase
-		  gcphase = COMPACTPHASE;
-		  // restore the gcstatus for all cores
-		  for(i = 0; i < NUMCORESACTIVE; ++i) {
-			gccorestatus[i] = 1;
-		  }  // for(i = 0; i < NUMCORESACTIVE; ++i)
+		  if(!ischanged) {
+#ifdef DEBUG
+			BAMBOO_DEBUGPRINT(0xee09);
+#endif
+			// all the core status info are the latest
+			// stop mark phase
+			gcphase = COMPACTPHASE;
+			// restore the gcstatus for all cores
+			for(i = 0; i < NUMCORESACTIVE; ++i) {
+			  gccorestatus[i] = 1;
+			}  // for(i = 0; i < NUMCORESACTIVE; ++i)
+		  } else {
+			waitconfirm = false;
+			gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+		  } // if(!ischanged)
 		} else {
-		  // wait for a while and ask for confirm again
-		  int h = 100;
-		  while(h--) {
-		  }
+		  // There were changes between phase 1 and phase 2, can not decide 
+		  // whether the mark phase has been finished
 		  waitconfirm = false;
-		}                        // if(0 == sumsendobj) else ...
+		  // As it fails in phase 2, flip the entries
+		  gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+		} // if(0 == sumsendobj) else ...
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-      }                   // if(!gcwaitconfirm) else()
+      } // if(!gcwaitconfirm) else()
     } else {
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    }              // if(allStall)
-  }       // if((!waitconfirm)...
+    } // if(allStall)
+  }  // if((!waitconfirm)...
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xee0a);
 #endif
@@ -582,8 +610,8 @@ inline void initGC() {
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
     for(i = 0; i < NUMCORES4GC; ++i) {
       gccorestatus[i] = 1;
-      gcnumsendobjs[i] = 0;
-      gcnumreceiveobjs[i] = 0;
+      gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
+      gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
       gcloads[i] = 0;
       gcrequiredmems[i] = 0;
       gcfilledblocks[i] = 0;
@@ -591,8 +619,8 @@ inline void initGC() {
     } // for(i = 0; i < NUMCORES4GC; ++i)
     for(i = NUMCORES4GC; i < NUMCORESACTIVE; ++i) {
       gccorestatus[i] = 1;
-      gcnumsendobjs[i] = 0;
-      gcnumreceiveobjs[i] = 0;
+      gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
+      gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
     }
     gcheaptop = 0;
     gctopcore = 0;
@@ -1454,8 +1482,9 @@ inline void mark(bool isfirst,
       BAMBOO_DEBUGPRINT(0xed08);
 #endif
       gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-      gcnumsendobjs[BAMBOO_NUM_OF_CORE] = gcself_numsendobjs;
-      gcnumreceiveobjs[BAMBOO_NUM_OF_CORE] = gcself_numreceiveobjs;
+      gcnumsendobjs[gcnumsrobjs_index][BAMBOO_NUM_OF_CORE]=gcself_numsendobjs;
+      gcnumreceiveobjs[gcnumsrobjs_index][BAMBOO_NUM_OF_CORE]=
+		gcself_numreceiveobjs;
       gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
     } else {
       if(!sendStall) {

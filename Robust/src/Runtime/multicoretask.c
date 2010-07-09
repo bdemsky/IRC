@@ -87,7 +87,7 @@ int core2test[1][NUM_CORES2TEST] = {
   {0, -1, -1, -1, -1, -1, -1, -1, -1}
 };
 #elif defined GC_56
-int core2test[56][5] = {
+int core2test[56][NUM_CORES2TEST] = {
   { 0, -1,  7, -1,  1, -1, 14, -1,  2}, { 1, -1,  8,  0,  2, -1, 15, -1,  3}, 
   { 2, -1,  9,  1,  3, -1, 16,  0,  4}, { 3, -1, 10,  2,  4, -1, 17,  1,  5}, 
   { 4, -1, 11,  3,  5, -1, 18,  2,  6}, { 5, -1, 12,  4,  6, -1, 19,  3, -1},
@@ -118,7 +118,7 @@ int core2test[56][5] = {
   {54, 47, -1, 53, 55, 40, -1, 52, -1}, {55, 48, -1, 54, -1, 41, -1, 53, -1}
 };
 #elif defined GC_62
-int core2test[62][5] = {
+int core2test[62][NUM_CORES2TEST] = {
   { 0, -1,  6, -1,  1, -1, 14, -1,  2}, { 1, -1,  7,  0,  2, -1, 15, -1,  3}, 
   { 2, -1,  8,  1,  3, -1, 16,  0,  4}, { 3, -1,  9,  2,  4, -1, 17,  1,  5}, 
   { 4, -1, 10,  3,  5, -1, 18,  2, -1}, { 5, -1, 11,  4, -1, -1, 19,  3, -1},
@@ -202,8 +202,8 @@ void initruntimedata() {
 #endif
 #ifdef MULTICORE_GC
       gccorestatus[i] = 1;
-      gcnumsendobjs[i] = 0;
-      gcnumreceiveobjs[i] = 0;
+      gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
+      gcnumreceiveobjs[0][i] = gcnumreceiveobjs[1][i] = 0;
 #endif
     } // for(i = 0; i < NUMCORESACTIVE; ++i)
 #ifdef MULTICORE_GC
@@ -2584,8 +2584,16 @@ INLINE void processmsg_gcfinishmark_I() {
   // all cores should do mark
   if(data1 < NUMCORESACTIVE) {
     gccorestatus[data1] = 0;
-    gcnumsendobjs[data1] = data2;
-    gcnumreceiveobjs[data1] = data3;
+	int entry_index = 0;
+	if(waitconfirm)  {
+	  // phase 2
+	  entry_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+	} else {
+	  // phase 1
+	  entry_index = gcnumsrobjs_index;
+	}
+    gcnumsendobjs[entry_index][data1] = data2;
+    gcnumreceiveobjs[entry_index][data1] = data3;
   }
 }
 
@@ -2704,12 +2712,19 @@ INLINE void processmsg_gcmarkreport_I() {
 #endif
     BAMBOO_EXIT(0xb007);
   } else {
+	int entry_index = 0;
     if(waitconfirm) {
+	  // phse 2
       numconfirm--;
-    }
+	  entry_index = (gcnumsrobjs_index == 0) ? 1 : 0;
+    } else {
+	  // can never reach here
+	  // phase 1
+	  entry_index = gcnumsrobjs_index;
+	}
     gccorestatus[data1] = data2;
-    gcnumsendobjs[data1] = data3;
-    gcnumreceiveobjs[data1] = data4;
+    gcnumsendobjs[entry_index][data1] = data3;
+    gcnumreceiveobjs[entry_index][data1] = data4;
   }
 }
 
