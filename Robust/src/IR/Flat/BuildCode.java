@@ -1833,30 +1833,31 @@ public class BuildCode {
         }
       }else{
         FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);
-        if (graph != null && graph.hasConflictEdge()) {
-          output.println("   /* set up waiting queues */");
-          output.println("   int numMemoryQueue=0;");
-          output.println("   int memoryQueueItemID=0;");
-          Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
-          System.out.println("#lockSet="+lockSet.hashCode());
-          System.out.println("lockset="+lockSet);
-          for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-            Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
-            System.out.println("id="+seseLock.getID());
-            System.out.println("#="+seseLock);
-          }
-          System.out.println("size="+lockSet.size());
-          if (lockSet.size() > 0) {
-            output.println("   numMemoryQueue=" + lockSet.size() + ";");
-            output
-                .println("   seseCaller->numMemoryQueue=numMemoryQueue;");
-            output
-                .println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-            output.println();
+        if(callerSESEplaceholder!= oooa.getMainSESE()){
+          Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);       
+          if (graph != null && graph.hasConflictEdge()) {          
+            output.println("   // set up waiting queues ");
+            output.println("   int numMemoryQueue=0;");
+            output.println("   int memoryQueueItemID=0;");
+            Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
+            System.out.println("#lockSet="+lockSet.hashCode());
+            System.out.println("lockset="+lockSet);
+            for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
+              Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
+              System.out.println("id="+seseLock.getID());
+              System.out.println("#="+seseLock);
+            }
+            System.out.println("size="+lockSet.size());
+            if (lockSet.size() > 0) {
+              output.println("   numMemoryQueue=" + lockSet.size() + ";");
+              output
+                  .println("   seseCaller->numMemoryQueue=numMemoryQueue;");
+              output
+                  .println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+              output.println();
+            }
           }
         }
-      
       }
         
     }
@@ -2199,7 +2200,7 @@ public class BuildCode {
         System.out.println("#lockSet="+lockSet);
 
         if (lockSet.size() > 0) {
-          output.println("   numMemoryQueue=" + lockSet.size() + ";");
+          output.println("   numMemoryQueue=" + lockSet.size() + "; ");
           output
               .println("   parentCommon->numMemoryQueue=numMemoryQueue;");
           output
