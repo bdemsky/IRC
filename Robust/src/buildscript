@@ -149,6 +149,8 @@ OPTIONALFLAG=false
 EXITAFTERANALYSIS=false
 ASSEMBLY=false
 GCCORES=''
+GC1COREFLAG=false
+TILERAN1COREFLAG=false
 
 if [[ -z $1 ]]
 then
@@ -316,11 +318,19 @@ JAVAOPTS="$JAVAOPTS -multicore"
 elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
+if [[ "$2" -gt "1" ]]
+then
+TILERAN1COREFLAG=true
+fi
 shift
 elif [[ $1 = '-numcore4gc' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore4gc $2"
 GCCORES="GC_$2"
+if [[ "$2" -eq "1" ]]
+then
+GC1COREFLAG=true
+fi
 shift
 elif [[ $1 = '-raw' ]]
 then
@@ -684,6 +694,13 @@ TILERA_INDIR="BME"
 MAKEFILE="Makefile.tilera.$TILERACONFIG"
 SIMHVC="sim.hvc.$TILERACONFIG"
 PCIHVC="pci.hvc.$TILERACONFIG"
+if $GC1COREFLAG 
+then # 1-core gc
+  if $TILERAN1COREFLAG
+  then # not only with 1 core
+	PCIHVC="$PCIHVC.1gc"
+  fi
+fi
 elif $TILERAZLINUXFLAG
 then # TILERAZLINUXFLAG
 TILERA_INDIR="ZLinux"
