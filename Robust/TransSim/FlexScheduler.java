@@ -51,6 +51,9 @@ public class FlexScheduler extends Thread {
     }
   }
 
+  int lowid=0;
+  int countlow=0;
+
   Plot p;
   Series serCommit;
   Series serStart;
@@ -91,7 +94,7 @@ public class FlexScheduler extends Thread {
     case ATTACK:
       return new String("ATTACK");
     case SUICIDE:
-      return new String("SUICIDE");
+      return new String("TIMID");
     case TIMESTAMP:
       return new String("TIMESTAMP");
     case LOCK:
@@ -316,6 +319,16 @@ public class FlexScheduler extends Thread {
     //ready to commit this one
     long currtime=ev.getTime();
     releaseObjects(trans, ev.getThread(), currtime);
+
+    if (ev.getThread()==lowid) {
+      countlow++;
+      if (countlow==4) {
+	countlow=0;
+	lowid++;
+	if (lowid==e.numThreads())
+	  lowid=0;
+      }
+    }
     
     //See if we have been flagged as aborted for the lazy case
     boolean abort=aborted[ev.getThread()];
@@ -424,6 +437,14 @@ public class FlexScheduler extends Thread {
       return null;
     else
       return conflictset;
+  }
+
+
+  int normalize(int tid) {
+    int newtid=tid-lowid;
+    if (newtid<0)
+      newtid+=e.numThreads();
+    return newtid;
   }
 
   public Set wrConflictSet(int thread, ObjIndex obj) {
@@ -610,11 +631,11 @@ public class FlexScheduler extends Thread {
 	Integer thread=(Integer)thit.next();
 	Event other=currentevents[thread.intValue()];
 	int eventnum=other.getEvent();
-	long otid=thread.intValue();
+	long otid=normalize(thread.intValue());
 	if (tid>otid)
 	  tid=otid;
       }
-      if (ev.getThread()>tid) {
+      if (normalize(ev.getThread())>tid) {
 	//kill ourself
 	timewasted(ev.getThread(), time);
 	reschedule(ev.getThread(), time, 0);
