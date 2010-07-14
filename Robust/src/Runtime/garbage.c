@@ -1064,6 +1064,23 @@ updateMemoryQueue(SESEcommon_p seseParent){
 	int idx;
 	for(idx=0; idx<vt->index; idx++){
 	  REntry *rentry=vt->array[idx];
+	  if(rentry!=NULL){
+	    struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
+	    updateAscendantSESE(gl);
+	    while(gl!=NULL) {
+	      int i;
+	      for(i=0; i<gl->size; i++) {
+		void * orig=gl->array[i];
+		ENQUEUE(orig, gl->array[i]);
+	      }
+	      gl=gl->next;
+	    } 
+	  }
+	}
+      }else if(memoryItem->type==SINGLEITEM){
+	SCC *scc=(SCC*)memoryItem;
+	REntry *rentry=scc->val;
+	if(rentry!=NULL){
 	  struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
 	  updateAscendantSESE(gl);
 	  while(gl!=NULL) {
@@ -1075,19 +1092,6 @@ updateMemoryQueue(SESEcommon_p seseParent){
 	    gl=gl->next;
 	  } 
 	}
-      }else if(memoryItem->type==SINGLEITEM){
-	SCC *scc=(SCC*)memoryItem;
-	REntry *rentry=scc->val;
-	struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
-	updateAscendantSESE(gl);
-	while(gl!=NULL) {
-	  int i;
-	  for(i=0; i<gl->size; i++) {
-	    void * orig=gl->array[i];
-	    ENQUEUE(orig, gl->array[i]);
-	  }
-	  gl=gl->next;
-	} 
       }
       memoryItem=memoryItem->next;
     }
