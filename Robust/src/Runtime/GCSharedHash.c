@@ -21,9 +21,6 @@
 #define INLINE    inline __attribute__((always_inline))
 #endif // #ifndef INLINE
 
-// TODO check the average collision times
-//int gc_num_search = 0;
-//int gc_num_collision = 0;
 
 /* GCSHARED HASH ********************************************************/
 
@@ -462,14 +459,9 @@ INLINE void * mgcsharedhashSearch(mgcsharedhashtbl_t * tbl, void * key) {
 	&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
   mgcsharedhashlistnode_t *top = &tbl->table[tbl->size];
 
-  //int i = 0;
-  //gc_num_search++;
   do {
 	//i++;
     if(node->key == key) {
-	  // TODO
-	 //printf("%x \n", 0xe000+i);
-	 //gc_num_collision += i;
       return node->val;
     }
     node++;

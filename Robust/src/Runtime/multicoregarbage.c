@@ -10,9 +10,9 @@
 
 // TODO for profiling the flush phase
 #ifdef GC_PROFILE
-int num_mapinforequest;
+/*int num_mapinforequest;
 int num_markrequest;
-unsigned long long marktime;
+unsigned long long marktime;*/
 #endif
 
 extern int corenum;
@@ -687,12 +687,12 @@ inline void initGC() {
   }
 #ifdef GC_PROFILE
 	// TODO
-	num_mapinforequest = 0;
+	/*num_mapinforequest = 0;
 	num_mapinforequest_i = 0;
 	flushstalltime = 0;
 	flushstalltime_i = 0;
 	num_markrequest = 0;
-	marktime = 0;
+	marktime = 0;*/
 #endif
 } // void initGC()
 
@@ -1210,7 +1210,10 @@ inline void markObj(void * objptr) {
 		/*
 		marktime += BAMBOO_GET_EXE_TIME() - ttime;
 		num_markrequest++;*/
-#endif
+#ifdef GC_PROFILE_S
+		gc_num_forwardobj++;
+#endif // GC_PROFILE_S
+#endif // GC_PROFILE
 		gcself_numsendobjs++;
 		MGCHashadd(gcforwardobjtbl, (int)objptr);
       }
@@ -1963,6 +1966,9 @@ innermoveobj:
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe204);
 #endif
+#ifdef GC_PROFILE_S
+	gc_num_liveobj++;
+#endif
     // marked obj, copy it to current heap top
     // check to see if remaining space is enough
     if(to->top + isize > to->bound) {
@@ -2298,7 +2304,7 @@ inline void * flushObj(void * objptr) {
     // a shared obj ptr, change to new address
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef GC_PROFILE
-    unsigned long long ttime = BAMBOO_GET_EXE_TIME();
+    //unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
 #ifdef LOCALHASHTBL_TEST
     RuntimeHashget(gcpointertbl, objptr, &dstptr);
@@ -2307,7 +2313,7 @@ inline void * flushObj(void * objptr) {
 #endif
 	//MGCHashget(gcpointertbl, objptr, &dstptr);
 #ifdef GC_PROFILE
-    flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
+    //flushstalltime += BAMBOO_GET_EXE_TIME()-ttime;
 #endif
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
@@ -2330,7 +2336,7 @@ inline void * flushObj(void * objptr) {
       } else {
 		int hostc = hostcore(objptr);
 #ifdef GC_PROFILE
-		unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
+		//unsigned long long ttimet = BAMBOO_GET_EXE_TIME();
 #endif
 		// check the corresponsing sharedptbl
 		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
@@ -2349,7 +2355,7 @@ inline void * flushObj(void * objptr) {
 		}
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef GC_PROFILE
-		flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
+		//flushstalltime_i += BAMBOO_GET_EXE_TIME()-ttimet;
 #endif
 
 		if(dstptr == NULL) {
@@ -2813,6 +2819,13 @@ inline void gc_collect(struct garbagelist * stackptr) {
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
+#ifdef GC_PROFILE_S
+  BAMBOO_DEBUGPRINT(0xaaaa);
+  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT(0xaaab);
+#endif // GC_PROFLIE_S
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc_nocollect(struct garbagelist * stackptr) {
@@ -2865,6 +2878,13 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
+#ifdef GC_PROFILE_S
+  BAMBOO_DEBUGPRINT(0xaaaa);
+  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT(0xaaab);
+#endif // GC_PROFLIE_S
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc(struct garbagelist * stackptr) {
@@ -3239,10 +3259,13 @@ inline void gc(struct garbagelist * stackptr) {
 		   udn_tile_coord_y());
     //dumpSMem();
 #endif
-	// TODO
-	/*extern int gc_num_search;
-	extern int gc_num_collision;
-	tprintf("Average collision: %d \n", gc_num_collision/gc_num_search);*/
+#ifdef GC_PROFILE_S
+  BAMBOO_DEBUGPRINT(0xaaaa);
+  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT(0xaaab);
+#endif // GC_PROFLIE_S
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     gcprocessing = true;
     gc_collect(stackptr);

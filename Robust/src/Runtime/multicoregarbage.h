@@ -12,9 +12,9 @@
 
 // data structures for GC
 #ifdef GC_DEBUG
-#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE) // * 2)
+#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
 #else
-#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE) // * 2)
+#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
 #endif
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)
 // let each gc core to have one big block, this is very important
@@ -36,10 +36,16 @@ int gc_infoIndex;
 bool gc_infoOverflow;
 
 // TODO
-unsigned long long flushstalltime;
+/*unsigned long long flushstalltime;
 unsigned long long flushstalltime_i;
-int num_mapinforequest_i;
-#endif
+int num_mapinforequest_i;*/
+#ifdef GC_PROFILE_S
+unsigned int gc_num_liveobj;
+unsigned int gc_num_obj;
+unsigned int gc_num_forwardobj;
+#endif // GC_PROFILE_S
+
+#endif // GC_PROFILE
 
 typedef enum {
   INIT = 0,           // 0

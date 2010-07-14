@@ -220,6 +220,10 @@ void * allocate_new(void * ptr, int type) {
   v->lock = NULL;
   v->lockcount = 0;
   initlock(v);
+#ifdef GC_PROFILE_S
+  extern unsigned int gc_num_obj;
+  gc_num_obj++;
+#endif
   return v;
 }
 
@@ -239,6 +243,10 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   }
   v->___length___=length;
   initlock(v);
+#ifdef GC_PROFILE_S
+  extern unsigned int gc_num_obj;
+  gc_num_obj++;
+#endif
   return v;
 }
 

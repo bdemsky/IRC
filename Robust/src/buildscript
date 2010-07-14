@@ -44,7 +44,12 @@ echo "-gcmem_local set the gc shared memory allocation strategy as local (should
 echo "-gcmem_fixed set the gc shared memory allocation strategy as fixed (should be used together with -multicoregc)"
 echo "-gcmem_mixed set the gc shared memory allocation strategy as mixed (should be used together with -multicoregc)"
 echo "-gcmem_global set the gc shared memory allocation strategy as global (should be used together with -multicoregc)"
+echo "-gccache_local set the gc shared memory cache strategy as local (should be used together with -multicoregc)"
+echo "-gccache_ran set the gc shared memory cache strategy as random (should be used together with -multicoregc)"
+echo "-gccontroller_near set the gc shared memory to use the nearest controller for each core (should be used together with -multicoregc)"
+echo "-gccontroller_remote set the gc shared memory to use a remote controller for each core (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
+echo -gcprofile_s build with gcprofile_s options
 echo -accurateprofile build with accurate profile information including pre/post task processing info
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo
@@ -127,6 +132,7 @@ DEBUGFLAG=false
 RAWPATHFLAG=false
 PROFILEFLAG=false
 GCPROFILEFLAG=false
+GCPROFILESFLAG=false
 ACCURATEPROFILEFLAG=false
 USEIOFLAG=false
 INTERRUPTFLAG=false
@@ -136,6 +142,10 @@ GCMEMLOCALFLAG=false;
 GCMEMFIXEDFLAG=false;
 GCMEMMIXEDFLAG=false;
 GCMEMGLOBALFLAG=false;
+GCCACHELOCALFLAG=false;
+GCCACHERANFLAG=false;
+GCCONTROLLERNEARFLAG=false;
+GCCONTROLLERREMOTEFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -296,6 +306,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -pg"
 elif [[ $1 = '-gcprofile' ]]
 then
 GCPROFILEFLAG=true
+elif [[ $1 = '-gcprofile_s' ]]
+then
+GCPROFILESFLAG=true
 elif [[ $1 = '-accurateprofile' ]]
 then
 ACCURATEPROFILEFLAG=true
@@ -381,6 +394,18 @@ GCMEMMIXEDFLAG=true
 elif [[ $1 = '-gcmem_global' ]]
 then
 GCMEMGLOBALFLAG=true
+elif [[ $1 = '-gccache_local' ]]
+then
+GCCACHELOCALFLAG=true
+elif [[ $1 = '-gccache_ran' ]]
+then
+GCCACHERANFLAG=true
+elif [[ $1 = '-gccontroller_near' ]]
+then
+GCCONTROLLERNEARFLAG=true
+elif [[ $1 = '-gccontroller_remote' ]]
+then
+GCCONTROLLERREMOTEFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -766,6 +791,11 @@ then # GC_PROFILE version
 TILERACFLAGS="${TILERACFLAGS} -DGC_PROFILE"
 fi
 
+if $GCPROFILESFLAG
+then # GC_PROFILE_S version
+TILERACFLAGS="${TILERACFLAGS} -DGC_PROFILE_S"
+fi
+
 if $GCMEMLOCALFLAG
 then # SMEMLOCAL version
 TILERACFLAGS="${TILERACFLAGS} -DSMEML"
@@ -784,6 +814,26 @@ fi
 if $GCMEMGLOBALFLAG
 then # SMEMGLOBAL version
 TILERACFLAGS="${TILERACFLAGS} -DSMEMG"
+fi
+
+if $GCCACHELOCALFLAG
+then # CACHE_LOCAL version
+TILERACFLAGS="${TILERACFLAGS} -DCACHE_LOCAL"
+fi
+
+if $GCCACHERANFLAG
+then # CACHE_RAN version
+TILERACFLAGS="${TILERACFLAGS} -DCACHE_RAN"
+fi
+
+if $GCCONTROLLERNEARFLAG
+then # CONTROLLER_NEAR version
+TILERACFLAGS="${TILERACFLAGS} -DCONTROLLER_NEAR"
+fi
+
+if $GCCONTROLLERREMOTEFLAG
+then # CONTROLLER_REMOTE version
+TILERACFLAGS="${TILERACFLAGS} -DCONTROLLER_REMOTE"
 fi
 
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile

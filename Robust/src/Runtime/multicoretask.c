@@ -301,6 +301,11 @@ void initruntimedata() {
 	(unsigned int)((BAMBOO_SHARED_MEM_SIZE-(gcbaseva-BAMBOO_BASE_VA))*0.8);
   gcmem_mixed_usedmem = 0;
 #endif
+#ifdef GC_PROFILE_S
+  gc_num_obj = 0;
+  gc_num_liveobj = 0;
+  gc_num_forwardobj = 0;
+#endif
 #else
   // create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -622,8 +627,8 @@ void checkCoreStatus() {
 	      BAMBOO_DEBUGPRINT(0xe000 + profilestatus[i]);
 #endif
 	      if(profilestatus[i] != 0) {
-		allStall = false;
-		break;
+			allStall = false;
+			break;
 	      }
 	    }  // for(i = 0; i < NUMCORESACTIVE; ++i)
 	    if(!allStall) {
@@ -637,8 +642,8 @@ void checkCoreStatus() {
 	    } else {
 	      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	      break;
-	    }                                     // if(!allStall)
-	  }                               // while(true)
+	    }  // if(!allStall)
+	  }  // while(true)
 #endif
 
 	  // gc_profile mode, ourput gc prfiling data
@@ -1411,9 +1416,10 @@ void * localmalloc_I(int coren,
                      int isize,
                      int * allocsize) {
   void * mem = NULL;
+  int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
   int i = 0;
   int j = 0;
-  int tofindb = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
+  int tofindb = gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
   int totest = tofindb;
   int bound = BAMBOO_SMEM_SIZE_L;
   int foundsmem = 0;
@@ -1456,7 +1462,7 @@ void * localmalloc_I(int coren,
 		i = 0;
 		j++;
       }
-      tofindb = totest = gc_core2block[2*coren+i]+(NUMCORES4GC*2)*j;
+      tofindb = totest = gc_core2block[2*gccorenum+i]+(NUMCORES4GC*2)*j;
     } else {
       totest += 1;
     }  // if(islocal) else ...
@@ -1601,8 +1607,6 @@ void * mixedmalloc_I(int coren,
   int j = 0;
   int k = 0;
   int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
-  int coords_x = bamboo_cpu2coords[gccorenum*2];
-  int coords_y = bamboo_cpu2coords[gccorenum*2+1];
   int ii = 1;
   int tofindb = gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
   int totest = tofindb;
