@@ -326,69 +326,52 @@ public class Router {
    * ==============================================================
    * =============== void router_solve (void* argPtr);
    */
-  public void solve(Object argPtr) 
-    {
-    	
-        Solve_Arg routerArgPtr = (Solve_Arg) argPtr;
-        Router routerPtr = routerArgPtr.routerPtr;
-        Maze mazePtr = routerArgPtr.mazePtr;
-        int workload = routerArgPtr.rblock_workload;
-        List_t pathVectorListPtr = routerArgPtr.pathVectorListPtr; 
-
-        Queue_t masterWorkQueuePtr = mazePtr.workQueuePtr;
-        Grid masterGridPtr = mazePtr.gridPtr; 
-        int bendCost = routerPtr.bendCost;
-
-        int id = 0;
-
-        while(!masterWorkQueuePtr.queue_isEmpty() )
-//        System.out.println("HAHAHA");
-//        while(!isEmpty(masterWorkQueuePtr) )
-        {
-        	Queue_t redoQueue = masterWorkQueuePtr.Pqueue_alloc(masterWorkQueuePtr.capacity);
-        	while(!masterWorkQueuePtr.queue_isEmpty())
-//          while(!isEmpty(masterWorkQueuePtr) )
-        	{
-        		//moved to outside rBlock due to potential r/w conflicts 
-        		Queue_t localWorkQueue = masterWorkQueuePtr.queue_getUpTo(workload);
-        		System.out.println("Got work!");
-        		
-        		sese P
-        		{
-        			//Clone needed since new paths are added to local Grid. Cannot add to master Grid because of rBlock p conflicts
-        		  Grid MGClone  = masterGridPtr.alloc(masterGridPtr.width, masterGridPtr.height, masterGridPtr.depth);
-		        	masterGridPtr.copy(MGClone, masterGridPtr);
-		        	
-		        	Vector_t computedPaths = solveLogic(localWorkQueue, MGClone, routerPtr, bendCost, workload);
-        		}
+  public void solve(Object argPtr) {
+    Solve_Arg routerArgPtr = (Solve_Arg) argPtr;
+    Router routerPtr = routerArgPtr.routerPtr;
+    Maze mazePtr = routerArgPtr.mazePtr;
+    int workload = routerArgPtr.rblock_workload;
+    List_t pathVectorListPtr = routerArgPtr.pathVectorListPtr; 
+    
+    Queue_t masterWorkQueuePtr = mazePtr.workQueuePtr;
+    Grid masterGridPtr = mazePtr.gridPtr; 
+    int bendCost = routerPtr.bendCost;
+    
+    int id = 0;
+    
+    while(!masterWorkQueuePtr.queue_isEmpty() ) {
+      Queue_t redoQueue = masterWorkQueuePtr.Pqueue_alloc(masterWorkQueuePtr.capacity);
+      while(!masterWorkQueuePtr.queue_isEmpty()) {
+	Queue_t localWorkQueue = masterWorkQueuePtr.queue_getUpTo(workload);
+        
+	sese P {
+	  //Clone needed since new paths are added to local Grid. Cannot add to master Grid because of rBlock p conflicts
+	  Grid MGClone  = masterGridPtr.alloc(masterGridPtr.width, masterGridPtr.height, masterGridPtr.depth);
+	  masterGridPtr.copy(MGClone, masterGridPtr);
+	  
+	  Vector_t computedPaths = solveLogic(localWorkQueue, MGClone, routerPtr, bendCost, workload);
+	}
             	
-           	sese S
-           	{
-           	  Vector_t sucessfulPaths = computedPaths.vector_alloc(workload);
-           	  
-           	  CoordPathWrapper singlePathSolution = (CoordPathWrapper) computedPaths.vector_popBack();
-           	  while(singlePathSolution != null)	{
-           	    if(masterGridPtr.TM_addPath(singlePathSolution.pathVector))
-           	    //fail
-           	      redoQueue.queue_push(singlePathSolution.coordinatePair);
-            		else //success           		  
-            		{
-            		  sucessfulPaths.vector_pushBack(singlePathSolution.pathVector);
-            		  System.out.println("Path # " + ++id + " added sucessfully!");
-            		}
-           	    
-           	    singlePathSolution = (CoordPathWrapper)computedPaths.vector_popBack(); 
-            	}
-            		
-           	  pathVectorListPtr.insert(sucessfulPaths);
-            }//end of sese S
-           	
-        	}//end of inner while
-        	
-        	masterWorkQueuePtr = redoQueue;
-        	
-        }//end of outer while
-    }
+	sese S {
+	  Vector_t sucessfulPaths = computedPaths.vector_alloc(workload);
+	  CoordPathWrapper singlePathSolution = (CoordPathWrapper) computedPaths.vector_popBack();
+	  while(singlePathSolution != null)	{
+	    if(masterGridPtr.TM_addPath(singlePathSolution.pathVector)) {
+	      //fail
+	      redoQueue.queue_push(singlePathSolution.coordinatePair);
+	    } else {
+	      //success           		  
+	      sucessfulPaths.vector_pushBack(singlePathSolution.pathVector);
+	      System.out.println("Path # " + ++id + " added sucessfully!");
+	    }
+	    singlePathSolution = (CoordPathWrapper)computedPaths.vector_popBack(); 
+	  }
+	  pathVectorListPtr.insert(sucessfulPaths);
+	}//end of sese S
+      }//end of inner while
+      masterWorkQueuePtr = redoQueue;
+    }//end of outer while
+  }
 
   private Vector_t solveLogic(Queue_t localWorkQueue, Grid MGCopyPtr, Router routerPtr, int bendCost, int workload) {
     /*
