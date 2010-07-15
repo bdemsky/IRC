@@ -1,0 +1,669 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls   s/call   s/call  name    
+ 81.22     13.58    13.58   175000     0.00     0.00  ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D
+  7.63     14.86     1.28 64749538     0.00     0.00  ___Math______sqrt____D
+  2.87     15.34     0.48 30368422     0.00     0.00  instanceof
+  2.33     15.73     0.39   529418     0.00     0.00  ___String______concat____L___String___
+  0.84     15.87     0.14   175000     0.00     0.00  ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D
+  0.72     15.99     0.12  2015622     0.00     0.00  ___ArrayIndexedGraph______getNeighbor____L___ArrayIndexedNode__(int0_t)
+  0.54     16.08     0.09  3061506     0.00     0.00  ___String______charAt__(int0_t)
+  0.48     16.16     0.08     7000     0.00     0.00  ___OctTreeLeafNodeData______setVelocity____D_D_D
+  0.24     16.20     0.04     1400     0.00     0.00  ___HashMap______resize____
+  0.24     16.24     0.04        7     0.01     2.38  ___Barneshut______run_____AR_L___String___
+  0.24     16.28     0.04                             main
+  0.21     16.31     0.04  2480743     0.00     0.00  allocate_newarray
+  0.21     16.35     0.04                             ___Math______exp____D
+  0.18     16.38     0.03   566251     0.00     0.00  ___String______indexOf____I_I
+  0.18     16.41     0.03   524387     0.00     0.00  ___String______String_____AR_C
+  0.18     16.44     0.03   524377     0.00     0.00  ___String______valueOf__(void) const
+  0.18     16.47     0.03   349447     0.00     0.00  ___ArrayIndexedNode______ArrayIndexedNode____L___OctTreeNodeData__(int0_t)
+  0.12     16.49     0.02  4404374     0.00     0.00  mygcmalloc
+  0.12     16.51     0.02   531412     0.00     0.00  ___FileInputStream______read____
+  0.12     16.53     0.02   349447     0.00     0.00  ___ArrayIndexedGraph______getNodeData____L___ArrayIndexedNode___
+  0.12     16.55     0.02   349447     0.00     0.00  ___HashMap______put____L___Object____L___Object___
+  0.12     16.57     0.02      175     0.00     0.00  ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___
+  0.09     16.58     0.02  1923631     0.00     0.00  allocate_new
+  0.09     16.60     0.02   524377     0.00     0.00  ___String______concat2____L___String____L___String___
+  0.06     16.61     0.01   566251     0.00     0.00  ___String______indexOf__(int0_t)
+  0.06     16.62     0.01   536221     0.00     0.00  ___ArrayIndexedGraph______setNeighbor____L___ArrayIndexedNode____I_L___ArrayIndexedNode___
+  0.06     16.63     0.01   531412     0.00     0.00  ___FileInputStream______nativeRead____I__AR_B_I
+  0.06     16.64     0.01   531412     0.00     0.00  ___FileInputStream______read_____AR_B
+  0.06     16.65     0.01   349447     0.00     0.00  ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___
+  0.06     16.66     0.01   349447     0.00     0.00  ___HashEntry______HashEntry____
+  0.06     16.67     0.01   186949     0.00     0.00  ___ArrayIndexedGraph______removeNeighbor____L___ArrayIndexedNode__(int0_t)
+  0.06     16.68     0.01    94311     0.00     0.00  ___OctTreeNodeData______OctTreeNodeData____D_D_D
+  0.06     16.69     0.01    49000     0.00     0.00  ___StringTokenizer______nextToken____
+  0.06     16.70     0.01      175     0.00     0.00  ___Barneshut______ComputeCenterAndDiameter____
+  0.06     16.71     0.01        5     0.00     0.00  ___Barneshut______min____J_J
+  0.03     16.71     0.01   581418     0.00     0.00  ___String______String____
+  0.03     16.72     0.01                             ___String______regionMatches____I_L___String____I_I
+  0.03     16.72     0.01                             ___String______toUpperCase____
+  0.00     16.72     0.00   916972     0.00     0.00  ___HashMap______hash____L___Object__(int0_t)
+  0.00     16.72     0.00   916972     0.00     0.00  ___Object______hashCode____
+  0.00     16.72     0.00   349447     0.00     0.00  ___ArrayIndexedGraph______addNode____L___ArrayIndexedNode___
+  0.00     16.72     0.00   349447     0.00     0.00  ___HashSet______add____L___Object___
+  0.00     16.72     0.00   349447     0.00     0.00  ___Object______nativehashCode____
+  0.00     16.72     0.00   175000     0.00     0.00  ___OctTreeLeafNodeData______Advance____D_D
+  0.00     16.72     0.00   175000     0.00     0.00  ___OctTreeLeafNodeData______ComputeForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D_I_D_D
+  0.00     16.72     0.00   143605     0.00     0.00  ___Object______equals____L___Object___
+  0.00     16.72     0.00    49021     0.00     0.00  ___Double______nativeparsedouble____L___String___
+  0.00     16.72     0.00    49021     0.00     0.00  ___Double______parseDouble____L___String___
+  0.00     16.72     0.00    49000     0.00     0.00  ___String______substring____I_I
+  0.00     16.72     0.00    17088     0.00     0.00  NewString
+  0.00     16.72     0.00     7056     0.00     0.00  ___String______length____
+  0.00     16.72     0.00     7035     0.00     0.00  ___FileInputStream______nativePeek__(int0_t)
+  0.00     16.72     0.00     7035     0.00     0.00  ___FileInputStream______peek____
+  0.00     16.72     0.00     7035     0.00     0.00  ___FileInputStream______readLine____
+  0.00     16.72     0.00     7000     0.00     0.00  ___OctTreeLeafNodeData______OctTreeLeafNodeData____
+  0.00     16.72     0.00     7000     0.00     0.00  ___StringTokenizer______StringTokenizer____L___String___
+  0.00     16.72     0.00     7000     0.00     0.00  ___StringTokenizer______StringTokenizer____L___String____L___String____Z
+  0.00     16.72     0.00     4061     0.00     0.00  ___String______toString____
+  0.00     16.72     0.00     4061     0.00     0.00  ___String______valueOf____L___Object___
+  0.00     16.72     0.00     3000     0.00     0.00  ___String______convertdoubletochar____D__AR_C
+  0.00     16.72     0.00     3000     0.00     0.00  ___String______valueOf____D
+  0.00     16.72     0.00     1021     0.00     0.00  ___System______printString____L___String___
+  0.00     16.72     0.00     1021     0.00     0.00  ___System______println____L___String___
+  0.00     16.72     0.00      350     0.00     0.00  ___System______currentTimeMillis____
+  0.00     16.72     0.00      175     0.00     0.00  ___ArrayIndexedGraph______ArrayIndexedGraph__(int0_t)
+  0.00     16.72     0.00      175     0.00     0.00  ___HashMap______HashMap____
+  0.00     16.72     0.00      175     0.00     0.00  ___HashMap______init____I_F
+  0.00     16.72     0.00      175     0.00     0.00  ___HashSet______HashSet____
+  0.00     16.72     0.00       21     0.00     0.00  ___String______getBytes____
+  0.00     16.72     0.00       14     0.00     0.00  ___Integer______parseInt____L___String___
+  0.00     16.72     0.00       14     0.00     0.00  ___Integer______parseInt____L___String__(int0_t)
+  0.00     16.72     0.00        8     0.00     0.00  ___String______valueOf__(__complex)
+  0.00     16.72     0.00        7     0.00     0.11  ___Barneshut______ReadInput____L___String___
+  0.00     16.72     0.00        7     0.00     0.00  ___FileInputStream______FileInputStream____L___String___
+  0.00     16.72     0.00        7     0.00     0.00  ___FileInputStream______nativeOpen_____AR_B
+  0.00     16.72     0.00        5     0.00     0.00  ___Math______abs__(void)
+  0.00     16.72     0.00        2     0.00     0.00  ___String______valueOf__(int0_t)
+  0.00     16.72     0.00        1     0.00     0.00  ___Barneshut______Barneshut____
+  0.00     16.72     0.00        1     0.00    16.64  ___Barneshut______main_____AR_L___String___
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+ 
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this 
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 0.06% of 16.72 seconds
+
+index % time    self  children    called     name
+                                                 <spontaneous>
+[1]     99.7    0.04   16.64                 main [1]
+                0.00   16.64       1/1           ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       1/17088       NewString [48]
+                0.00    0.00       1/2480743     allocate_newarray [26]
+-----------------------------------------------
+                0.00   16.64       1/1           main [1]
+[2]     99.5    0.00   16.64       1         ___Barneshut______main_____AR_L___String___ [2]
+                0.04   16.59       7/7           ___Barneshut______run_____AR_L___String___ [3]
+                0.01    0.00       5/5           ___Barneshut______min____J_J [41]
+                0.00    0.00       2/1021        ___System______println____L___String___ [46]
+                0.00    0.00       2/529418      ___String______concat____L___String___ [11]
+                0.00    0.00       1/8           ___String______valueOf__(__complex) [55]
+                0.00    0.00       3/17088       NewString [48]
+                0.00    0.00       1/1923631     allocate_new [31]
+                0.00    0.00       5/5           ___Math______abs__(void) [172]
+                0.00    0.00       2/4061        ___String______valueOf____L___Object___ [167]
+                0.00    0.00       1/1           ___Barneshut______Barneshut____ [173]
+-----------------------------------------------
+                0.04   16.59       7/7           ___Barneshut______main_____AR_L___String___ [2]
+[3]     99.4    0.04   16.59       7         ___Barneshut______run_____AR_L___String___ [3]
+                0.00   15.31  175000/175000      ___OctTreeLeafNodeData______ComputeForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D_I_D_D [4]
+                0.00    0.78       7/7           ___Barneshut______ReadInput____L___String___ [7]
+                0.14    0.24  175000/175000      ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+                0.02    0.08     175/175         ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+                0.01    0.00     175/175         ___Barneshut______ComputeCenterAndDiameter____ [40]
+                0.00    0.00    4014/529418      ___String______concat____L___String___ [11]
+                0.00    0.00    1017/1021        ___System______println____L___String___ [46]
+                0.00    0.00    3000/3000        ___String______valueOf____D [50]
+                0.00    0.00    2024/17088       NewString [48]
+                0.00    0.00     175/349447      ___ArrayIndexedGraph______addNode____L___ArrayIndexedNode___ [21]
+                0.00    0.00     175/349447      ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___ [24]
+                0.00    0.00     175/94311       ___OctTreeNodeData______OctTreeNodeData____D_D_D [39]
+                0.00    0.00     175/175         ___ArrayIndexedGraph______ArrayIndexedGraph__(int0_t) [51]
+                0.00    0.00     350/1923631     allocate_new [31]
+                0.00    0.00       7/8           ___String______valueOf__(__complex) [55]
+                0.00    0.00  175000/175000      ___OctTreeLeafNodeData______Advance____D_D [158]
+                0.00    0.00    2014/4061        ___String______valueOf____L___Object___ [167]
+                0.00    0.00     350/350         ___System______currentTimeMillis____ [170]
+-----------------------------------------------
+                0.00   15.31  175000/175000      ___Barneshut______run_____AR_L___String___ [3]
+[4]     91.6    0.00   15.31  175000         ___OctTreeLeafNodeData______ComputeForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D_I_D_D [4]
+               13.58    1.73  175000/175000      ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [5]
+-----------------------------------------------
+                             85610196             ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [5]
+               13.58    1.73  175000/175000      ___OctTreeLeafNodeData______ComputeForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D_I_D_D [4]
+[5]     91.6   13.58    1.73  175000+85610196 ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [5]
+                1.28    0.00 64749538/64749538     ___Math______sqrt____D [6]
+                0.46    0.00 29051288/30368422     instanceof [9]
+                             85610196             ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [5]
+-----------------------------------------------
+                1.28    0.00 64749538/64749538     ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [5]
+[6]      7.6    1.28    0.00 64749538         ___Math______sqrt____D [6]
+-----------------------------------------------
+                0.00    0.78       7/7           ___Barneshut______run_____AR_L___String___ [3]
+[7]      4.7    0.00    0.78       7         ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.56    7035/7035        ___FileInputStream______readLine____ [8]
+                0.01    0.13   49000/49000       ___StringTokenizer______nextToken____ [13]
+                0.08    0.00    7000/7000        ___OctTreeLeafNodeData______setVelocity____D_D_D [20]
+                0.00    0.00    7000/7000        ___OctTreeLeafNodeData______OctTreeLeafNodeData____ [47]
+                0.00    0.00    7000/7000        ___StringTokenizer______StringTokenizer____L___String___ [49]
+                0.00    0.00   14007/1923631     allocate_new [31]
+                0.00    0.00       4/529418      ___String______concat____L___String___ [11]
+                0.00    0.00       2/1021        ___System______println____L___String___ [46]
+                0.00    0.00      14/14          ___Integer______parseInt____L___String___ [57]
+                0.00    0.00       2/2           ___String______valueOf__(int0_t) [59]
+                0.00    0.00       7/2480743     allocate_newarray [26]
+                0.00    0.00       7/7           ___FileInputStream______FileInputStream____L___String___ [60]
+                0.00    0.00       4/17088       NewString [48]
+                0.00    0.00   49021/49021       ___Double______parseDouble____L___String___ [161]
+                0.00    0.00       3/4061        ___String______valueOf____L___Object___ [167]
+-----------------------------------------------
+                0.00    0.56    7035/7035        ___Barneshut______ReadInput____L___String___ [7]
+[8]      3.3    0.00    0.56    7035         ___FileInputStream______readLine____ [8]
+                0.02    0.41  524377/524377      ___String______concat2____L___String____L___String___ [10]
+                0.03    0.06  524377/524377      ___String______valueOf__(void) const [19]
+                0.02    0.03  531412/531412      ___FileInputStream______read____ [25]
+                0.00    0.00    7035/17088       NewString [48]
+                0.00    0.00    7035/7035        ___FileInputStream______peek____ [164]
+-----------------------------------------------
+                0.00    0.00  262136/30368422     ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+                0.02    0.00 1054998/30368422     ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+                0.46    0.00 29051288/30368422     ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [5]
+[9]      2.9    0.48    0.00 30368422         instanceof [9]
+-----------------------------------------------
+                0.02    0.41  524377/524377      ___FileInputStream______readLine____ [8]
+[10]     2.5    0.02    0.41  524377         ___String______concat2____L___String____L___String___ [10]
+                0.39    0.02  524377/529418      ___String______concat____L___String___ [11]
+-----------------------------------------------
+                0.00    0.00       2/529418      ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       4/529418      ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.00    1021/529418      ___System______println____L___String___ [46]
+                0.00    0.00    4014/529418      ___Barneshut______run_____AR_L___String___ [3]
+                0.39    0.02  524377/529418      ___String______concat2____L___String____L___String___ [10]
+[11]     2.5    0.39    0.02  529418         ___String______concat____L___String___ [11]
+                0.01    0.00  529418/2480743     allocate_newarray [26]
+                0.00    0.00  529418/1923631     allocate_new [31]
+                0.00    0.00  529418/581418      ___String______String____ [44]
+-----------------------------------------------
+                             1142134             ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+                0.14    0.24  175000/175000      ___Barneshut______run_____AR_L___String___ [3]
+[12]     2.3    0.14    0.24  175000+1142134 ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+                0.08    0.00 1317134/2015622     ___ArrayIndexedGraph______getNeighbor____L___ArrayIndexedNode__(int0_t) [14]
+                0.00    0.07  349272/349447      ___ArrayIndexedGraph______addNode____L___ArrayIndexedNode___ [21]
+                0.01    0.04  349272/349447      ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___ [24]
+                0.02    0.00 1054998/30368422     instanceof [9]
+                0.01    0.00   87136/94311       ___OctTreeNodeData______OctTreeNodeData____D_D_D [39]
+                0.01    0.00  349272/536221      ___ArrayIndexedGraph______setNeighbor____L___ArrayIndexedNode____I_L___ArrayIndexedNode___ [35]
+                0.00    0.00   87136/1923631     allocate_new [31]
+                             1142134             ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+-----------------------------------------------
+                0.01    0.13   49000/49000       ___Barneshut______ReadInput____L___String___ [7]
+[13]     0.8    0.01    0.13   49000         ___StringTokenizer______nextToken____ [13]
+                0.01    0.10  566251/566251      ___String______indexOf__(int0_t) [15]
+                0.02    0.00  566251/3061506     ___String______charAt__(int0_t) [18]
+                0.00    0.00   49000/49000       ___String______substring____I_I [45]
+-----------------------------------------------
+                0.04    0.00  698488/2015622     ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+                0.08    0.00 1317134/2015622     ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+[14]     0.7    0.12    0.00 2015622         ___ArrayIndexedGraph______getNeighbor____L___ArrayIndexedNode__(int0_t) [14]
+-----------------------------------------------
+                0.01    0.10  566251/566251      ___StringTokenizer______nextToken____ [13]
+[15]     0.7    0.01    0.10  566251         ___String______indexOf__(int0_t) [15]
+                0.03    0.07  566251/566251      ___String______indexOf____I_I [16]
+-----------------------------------------------
+                0.03    0.07  566251/566251      ___String______indexOf__(int0_t) [15]
+[16]     0.6    0.03    0.07  566251         ___String______indexOf____I_I [16]
+                0.07    0.00 2495255/3061506     ___String______charAt__(int0_t) [18]
+-----------------------------------------------
+                               87136             ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+                0.02    0.08     175/175         ___Barneshut______run_____AR_L___String___ [3]
+[17]     0.6    0.02    0.08     175+87136   ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+                0.04    0.00  698488/2015622     ___ArrayIndexedGraph______getNeighbor____L___ArrayIndexedNode__(int0_t) [14]
+                0.02    0.00  349447/349447      ___ArrayIndexedGraph______getNodeData____L___ArrayIndexedNode___ [33]
+                0.01    0.00  186949/186949      ___ArrayIndexedGraph______removeNeighbor____L___ArrayIndexedNode__(int0_t) [38]
+                0.00    0.00  262136/30368422     instanceof [9]
+                0.00    0.00  186949/536221      ___ArrayIndexedGraph______setNeighbor____L___ArrayIndexedNode____I_L___ArrayIndexedNode___ [35]
+                               87136             ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+-----------------------------------------------
+                0.02    0.00  566251/3061506     ___StringTokenizer______nextToken____ [13]
+                0.07    0.00 2495255/3061506     ___String______indexOf____I_I [16]
+[18]     0.5    0.09    0.00 3061506         ___String______charAt__(int0_t) [18]
+-----------------------------------------------
+                0.03    0.06  524377/524377      ___FileInputStream______readLine____ [8]
+[19]     0.5    0.03    0.06  524377         ___String______valueOf__(void) const [19]
+                0.03    0.01  524377/524387      ___String______String_____AR_C [28]
+                0.01    0.00  524377/2480743     allocate_newarray [26]
+                0.00    0.00  524377/1923631     allocate_new [31]
+-----------------------------------------------
+                0.08    0.00    7000/7000        ___Barneshut______ReadInput____L___String___ [7]
+[20]     0.5    0.08    0.00    7000         ___OctTreeLeafNodeData______setVelocity____D_D_D [20]
+-----------------------------------------------
+                0.00    0.00     175/349447      ___Barneshut______run_____AR_L___String___ [3]
+                0.00    0.07  349272/349447      ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+[21]     0.4    0.00    0.07  349447         ___ArrayIndexedGraph______addNode____L___ArrayIndexedNode___ [21]
+                0.00    0.07  349447/349447      ___HashSet______add____L___Object___ [23]
+-----------------------------------------------
+                0.02    0.05  349447/349447      ___HashSet______add____L___Object___ [23]
+[22]     0.4    0.02    0.05  349447         ___HashMap______put____L___Object____L___Object___ [22]
+                0.04    0.00    1400/1400        ___HashMap______resize____ [27]
+                0.01    0.00  349447/349447      ___HashEntry______HashEntry____ [37]
+                0.00    0.00  349447/1923631     allocate_new [31]
+                0.00    0.00  349447/916972      ___HashMap______hash____L___Object__(int0_t) [155]
+                0.00    0.00  143605/143605      ___Object______equals____L___Object___ [159]
+-----------------------------------------------
+                0.00    0.07  349447/349447      ___ArrayIndexedGraph______addNode____L___ArrayIndexedNode___ [21]
+[23]     0.4    0.00    0.07  349447         ___HashSet______add____L___Object___ [23]
+                0.02    0.05  349447/349447      ___HashMap______put____L___Object____L___Object___ [22]
+-----------------------------------------------
+                0.00    0.00     175/349447      ___Barneshut______run_____AR_L___String___ [3]
+                0.01    0.04  349272/349447      ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+[24]     0.3    0.01    0.04  349447         ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___ [24]
+                0.03    0.01  349447/349447      ___ArrayIndexedNode______ArrayIndexedNode____L___OctTreeNodeData__(int0_t) [29]
+                0.00    0.00  349447/1923631     allocate_new [31]
+-----------------------------------------------
+                0.02    0.03  531412/531412      ___FileInputStream______readLine____ [8]
+[25]     0.3    0.02    0.03  531412         ___FileInputStream______read____ [25]
+                0.01    0.01  531412/531412      ___FileInputStream______read_____AR_B [32]
+                0.01    0.00  531412/2480743     allocate_newarray [26]
+-----------------------------------------------
+                0.00    0.00       1/2480743     main [1]
+                0.00    0.00       2/2480743     ___String______valueOf__(int0_t) [59]
+                0.00    0.00       7/2480743     ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.00       8/2480743     ___String______valueOf__(__complex) [55]
+                0.00    0.00      21/2480743     ___String______getBytes____ [56]
+                0.00    0.00     175/2480743     ___HashMap______init____I_F [54]
+                0.00    0.00    1400/2480743     ___HashMap______resize____ [27]
+                0.00    0.00    3000/2480743     ___String______valueOf____D [50]
+                0.00    0.00   17088/2480743     NewString [48]
+                0.00    0.00  349447/2480743     ___ArrayIndexedNode______ArrayIndexedNode____L___OctTreeNodeData__(int0_t) [29]
+                0.01    0.00  524377/2480743     ___String______valueOf__(void) const [19]
+                0.01    0.00  524387/2480743     ___String______String_____AR_C [28]
+                0.01    0.00  529418/2480743     ___String______concat____L___String___ [11]
+                0.01    0.00  531412/2480743     ___FileInputStream______read____ [25]
+[26]     0.3    0.04    0.01 2480743         allocate_newarray [26]
+                0.01    0.00 2480743/4404374     mygcmalloc [34]
+-----------------------------------------------
+                0.04    0.00    1400/1400        ___HashMap______put____L___Object____L___Object___ [22]
+[27]     0.2    0.04    0.00    1400         ___HashMap______resize____ [27]
+                0.00    0.00    1400/2480743     allocate_newarray [26]
+                0.00    0.00  567525/916972      ___HashMap______hash____L___Object__(int0_t) [155]
+-----------------------------------------------
+                0.00    0.00       2/524387      ___String______valueOf__(int0_t) [59]
+                0.00    0.00       8/524387      ___String______valueOf__(__complex) [55]
+                0.03    0.01  524377/524387      ___String______valueOf__(void) const [19]
+[28]     0.2    0.03    0.01  524387         ___String______String_____AR_C [28]
+                0.01    0.00  524387/2480743     allocate_newarray [26]
+-----------------------------------------------
+                0.03    0.01  349447/349447      ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___ [24]
+[29]     0.2    0.03    0.01  349447         ___ArrayIndexedNode______ArrayIndexedNode____L___OctTreeNodeData__(int0_t) [29]
+                0.00    0.00  349447/2480743     allocate_newarray [26]
+-----------------------------------------------
+                                                 <spontaneous>
+[30]     0.2    0.04    0.00                 ___Math______exp____D [30]
+-----------------------------------------------
+                0.00    0.00       1/1923631     ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       2/1923631     ___String______valueOf__(int0_t) [59]
+                0.00    0.00       8/1923631     ___String______valueOf__(__complex) [55]
+                0.00    0.00     175/1923631     ___HashSet______HashSet____ [52]
+                0.00    0.00     175/1923631     ___ArrayIndexedGraph______ArrayIndexedGraph__(int0_t) [51]
+                0.00    0.00     350/1923631     ___Barneshut______run_____AR_L___String___ [3]
+                0.00    0.00    3000/1923631     ___String______valueOf____D [50]
+                0.00    0.00   14007/1923631     ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.00   17088/1923631     NewString [48]
+                0.00    0.00   49000/1923631     ___String______substring____I_I [45]
+                0.00    0.00   87136/1923631     ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+                0.00    0.00  349447/1923631     ___HashMap______put____L___Object____L___Object___ [22]
+                0.00    0.00  349447/1923631     ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___ [24]
+                0.00    0.00  524377/1923631     ___String______valueOf__(void) const [19]
+                0.00    0.00  529418/1923631     ___String______concat____L___String___ [11]
+[31]     0.1    0.02    0.01 1923631         allocate_new [31]
+                0.01    0.00 1923631/4404374     mygcmalloc [34]
+-----------------------------------------------
+                0.01    0.01  531412/531412      ___FileInputStream______read____ [25]
+[32]     0.1    0.01    0.01  531412         ___FileInputStream______read_____AR_B [32]
+                0.01    0.00  531412/531412      ___FileInputStream______nativeRead____I__AR_B_I [36]
+-----------------------------------------------
+                0.02    0.00  349447/349447      ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+[33]     0.1    0.02    0.00  349447         ___ArrayIndexedGraph______getNodeData____L___ArrayIndexedNode___ [33]
+-----------------------------------------------
+                0.01    0.00 1923631/4404374     allocate_new [31]
+                0.01    0.00 2480743/4404374     allocate_newarray [26]
+[34]     0.1    0.02    0.00 4404374         mygcmalloc [34]
+-----------------------------------------------
+                0.00    0.00  186949/536221      ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+                0.01    0.00  349272/536221      ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+[35]     0.1    0.01    0.00  536221         ___ArrayIndexedGraph______setNeighbor____L___ArrayIndexedNode____I_L___ArrayIndexedNode___ [35]
+-----------------------------------------------
+                0.01    0.00  531412/531412      ___FileInputStream______read_____AR_B [32]
+[36]     0.1    0.01    0.00  531412         ___FileInputStream______nativeRead____I__AR_B_I [36]
+-----------------------------------------------
+                0.01    0.00  349447/349447      ___HashMap______put____L___Object____L___Object___ [22]
+[37]     0.1    0.01    0.00  349447         ___HashEntry______HashEntry____ [37]
+-----------------------------------------------
+                0.01    0.00  186949/186949      ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [17]
+[38]     0.1    0.01    0.00  186949         ___ArrayIndexedGraph______removeNeighbor____L___ArrayIndexedNode__(int0_t) [38]
+-----------------------------------------------
+                0.00    0.00     175/94311       ___Barneshut______run_____AR_L___String___ [3]
+                0.00    0.00    7000/94311       ___OctTreeLeafNodeData______OctTreeLeafNodeData____ [47]
+                0.01    0.00   87136/94311       ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [12]
+[39]     0.1    0.01    0.00   94311         ___OctTreeNodeData______OctTreeNodeData____D_D_D [39]
+-----------------------------------------------
+                0.01    0.00     175/175         ___Barneshut______run_____AR_L___String___ [3]
+[40]     0.1    0.01    0.00     175         ___Barneshut______ComputeCenterAndDiameter____ [40]
+-----------------------------------------------
+                0.01    0.00       5/5           ___Barneshut______main_____AR_L___String___ [2]
+[41]     0.1    0.01    0.00       5         ___Barneshut______min____J_J [41]
+-----------------------------------------------
+                                                 <spontaneous>
+[42]     0.0    0.01    0.00                 ___String______regionMatches____I_L___String____I_I [42]
+-----------------------------------------------
+                                                 <spontaneous>
+[43]     0.0    0.01    0.00                 ___String______toUpperCase____ [43]
+-----------------------------------------------
+                0.00    0.00    3000/581418      ___String______valueOf____D [50]
+                0.00    0.00   49000/581418      ___String______substring____I_I [45]
+                0.00    0.00  529418/581418      ___String______concat____L___String___ [11]
+[44]     0.0    0.01    0.00  581418         ___String______String____ [44]
+-----------------------------------------------
+                0.00    0.00   49000/49000       ___StringTokenizer______nextToken____ [13]
+[45]     0.0    0.00    0.00   49000         ___String______substring____I_I [45]
+                0.00    0.00   49000/1923631     allocate_new [31]
+                0.00    0.00   49000/581418      ___String______String____ [44]
+-----------------------------------------------
+                0.00    0.00       2/1021        ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       2/1021        ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.00    1017/1021        ___Barneshut______run_____AR_L___String___ [3]
+[46]     0.0    0.00    0.00    1021         ___System______println____L___String___ [46]
+                0.00    0.00    1021/529418      ___String______concat____L___String___ [11]
+                0.00    0.00    1021/17088       NewString [48]
+                0.00    0.00    2042/4061        ___String______valueOf____L___Object___ [167]
+                0.00    0.00    1021/1021        ___System______printString____L___String___ [169]
+-----------------------------------------------
+                0.00    0.00    7000/7000        ___Barneshut______ReadInput____L___String___ [7]
+[47]     0.0    0.00    0.00    7000         ___OctTreeLeafNodeData______OctTreeLeafNodeData____ [47]
+                0.00    0.00    7000/94311       ___OctTreeNodeData______OctTreeNodeData____D_D_D [39]
+-----------------------------------------------
+                0.00    0.00       1/17088       main [1]
+                0.00    0.00       3/17088       ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       4/17088       ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.00    1021/17088       ___System______println____L___String___ [46]
+                0.00    0.00    2024/17088       ___Barneshut______run_____AR_L___String___ [3]
+                0.00    0.00    7000/17088       ___StringTokenizer______StringTokenizer____L___String___ [49]
+                0.00    0.00    7035/17088       ___FileInputStream______readLine____ [8]
+[48]     0.0    0.00    0.00   17088         NewString [48]
+                0.00    0.00   17088/2480743     allocate_newarray [26]
+                0.00    0.00   17088/1923631     allocate_new [31]
+-----------------------------------------------
+                0.00    0.00    7000/7000        ___Barneshut______ReadInput____L___String___ [7]
+[49]     0.0    0.00    0.00    7000         ___StringTokenizer______StringTokenizer____L___String___ [49]
+                0.00    0.00    7000/17088       NewString [48]
+                0.00    0.00    7000/7000        ___StringTokenizer______StringTokenizer____L___String____L___String____Z [165]
+-----------------------------------------------
+                0.00    0.00    3000/3000        ___Barneshut______run_____AR_L___String___ [3]
+[50]     0.0    0.00    0.00    3000         ___String______valueOf____D [50]
+                0.00    0.00    3000/2480743     allocate_newarray [26]
+                0.00    0.00    3000/1923631     allocate_new [31]
+                0.00    0.00    3000/581418      ___String______String____ [44]
+                0.00    0.00    3000/3000        ___String______convertdoubletochar____D__AR_C [168]
+-----------------------------------------------
+                0.00    0.00     175/175         ___Barneshut______run_____AR_L___String___ [3]
+[51]     0.0    0.00    0.00     175         ___ArrayIndexedGraph______ArrayIndexedGraph__(int0_t) [51]
+                0.00    0.00     175/175         ___HashSet______HashSet____ [52]
+                0.00    0.00     175/1923631     allocate_new [31]
+-----------------------------------------------
+                0.00    0.00     175/175         ___ArrayIndexedGraph______ArrayIndexedGraph__(int0_t) [51]
+[52]     0.0    0.00    0.00     175         ___HashSet______HashSet____ [52]
+                0.00    0.00     175/175         ___HashMap______HashMap____ [53]
+                0.00    0.00     175/1923631     allocate_new [31]
+-----------------------------------------------
+                0.00    0.00     175/175         ___HashSet______HashSet____ [52]
+[53]     0.0    0.00    0.00     175         ___HashMap______HashMap____ [53]
+                0.00    0.00     175/175         ___HashMap______init____I_F [54]
+-----------------------------------------------
+                0.00    0.00     175/175         ___HashMap______HashMap____ [53]
+[54]     0.0    0.00    0.00     175         ___HashMap______init____I_F [54]
+                0.00    0.00     175/2480743     allocate_newarray [26]
+-----------------------------------------------
+                0.00    0.00       1/8           ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       7/8           ___Barneshut______run_____AR_L___String___ [3]
+[55]     0.0    0.00    0.00       8         ___String______valueOf__(__complex) [55]
+                0.00    0.00       8/524387      ___String______String_____AR_C [28]
+                0.00    0.00       8/2480743     allocate_newarray [26]
+                0.00    0.00       8/1923631     allocate_new [31]
+-----------------------------------------------
+                0.00    0.00       7/21          ___FileInputStream______FileInputStream____L___String___ [60]
+                0.00    0.00      14/21          ___Integer______parseInt____L___String__(int0_t) [58]
+[56]     0.0    0.00    0.00      21         ___String______getBytes____ [56]
+                0.00    0.00      21/2480743     allocate_newarray [26]
+-----------------------------------------------
+                0.00    0.00      14/14          ___Barneshut______ReadInput____L___String___ [7]
+[57]     0.0    0.00    0.00      14         ___Integer______parseInt____L___String___ [57]
+                0.00    0.00      14/14          ___Integer______parseInt____L___String__(int0_t) [58]
+-----------------------------------------------
+                0.00    0.00      14/14          ___Integer______parseInt____L___String___ [57]
+[58]     0.0    0.00    0.00      14         ___Integer______parseInt____L___String__(int0_t) [58]
+                0.00    0.00      14/21          ___String______getBytes____ [56]
+                0.00    0.00      56/7056        ___String______length____ [162]
+-----------------------------------------------
+                0.00    0.00       2/2           ___Barneshut______ReadInput____L___String___ [7]
+[59]     0.0    0.00    0.00       2         ___String______valueOf__(int0_t) [59]
+                0.00    0.00       2/524387      ___String______String_____AR_C [28]
+                0.00    0.00       2/2480743     allocate_newarray [26]
+                0.00    0.00       2/1923631     allocate_new [31]
+-----------------------------------------------
+                0.00    0.00       7/7           ___Barneshut______ReadInput____L___String___ [7]
+[60]     0.0    0.00    0.00       7         ___FileInputStream______FileInputStream____L___String___ [60]
+                0.00    0.00       7/21          ___String______getBytes____ [56]
+                0.00    0.00       7/7           ___FileInputStream______nativeOpen_____AR_B [171]
+-----------------------------------------------
+                0.00    0.00  349447/916972      ___HashMap______put____L___Object____L___Object___ [22]
+                0.00    0.00  567525/916972      ___HashMap______resize____ [27]
+[155]    0.0    0.00    0.00  916972         ___HashMap______hash____L___Object__(int0_t) [155]
+                0.00    0.00  916972/916972      ___Object______hashCode____ [156]
+-----------------------------------------------
+                0.00    0.00  916972/916972      ___HashMap______hash____L___Object__(int0_t) [155]
+[156]    0.0    0.00    0.00  916972         ___Object______hashCode____ [156]
+                0.00    0.00  349447/349447      ___Object______nativehashCode____ [157]
+-----------------------------------------------
+                0.00    0.00  349447/349447      ___Object______hashCode____ [156]
+[157]    0.0    0.00    0.00  349447         ___Object______nativehashCode____ [157]
+-----------------------------------------------
+                0.00    0.00  175000/175000      ___Barneshut______run_____AR_L___String___ [3]
+[158]    0.0    0.00    0.00  175000         ___OctTreeLeafNodeData______Advance____D_D [158]
+-----------------------------------------------
+                0.00    0.00  143605/143605      ___HashMap______put____L___Object____L___Object___ [22]
+[159]    0.0    0.00    0.00  143605         ___Object______equals____L___Object___ [159]
+-----------------------------------------------
+                0.00    0.00   49021/49021       ___Double______parseDouble____L___String___ [161]
+[160]    0.0    0.00    0.00   49021         ___Double______nativeparsedouble____L___String___ [160]
+-----------------------------------------------
+                0.00    0.00   49021/49021       ___Barneshut______ReadInput____L___String___ [7]
+[161]    0.0    0.00    0.00   49021         ___Double______parseDouble____L___String___ [161]
+                0.00    0.00   49021/49021       ___Double______nativeparsedouble____L___String___ [160]
+-----------------------------------------------
+                0.00    0.00      56/7056        ___Integer______parseInt____L___String__(int0_t) [58]
+                0.00    0.00    7000/7056        ___StringTokenizer______StringTokenizer____L___String____L___String____Z [165]
+[162]    0.0    0.00    0.00    7056         ___String______length____ [162]
+-----------------------------------------------
+                0.00    0.00    7035/7035        ___FileInputStream______peek____ [164]
+[163]    0.0    0.00    0.00    7035         ___FileInputStream______nativePeek__(int0_t) [163]
+-----------------------------------------------
+                0.00    0.00    7035/7035        ___FileInputStream______readLine____ [8]
+[164]    0.0    0.00    0.00    7035         ___FileInputStream______peek____ [164]
+                0.00    0.00    7035/7035        ___FileInputStream______nativePeek__(int0_t) [163]
+-----------------------------------------------
+                0.00    0.00    7000/7000        ___StringTokenizer______StringTokenizer____L___String___ [49]
+[165]    0.0    0.00    0.00    7000         ___StringTokenizer______StringTokenizer____L___String____L___String____Z [165]
+                0.00    0.00    7000/7056        ___String______length____ [162]
+-----------------------------------------------
+                0.00    0.00    4061/4061        ___String______valueOf____L___Object___ [167]
+[166]    0.0    0.00    0.00    4061         ___String______toString____ [166]
+-----------------------------------------------
+                0.00    0.00       2/4061        ___Barneshut______main_____AR_L___String___ [2]
+                0.00    0.00       3/4061        ___Barneshut______ReadInput____L___String___ [7]
+                0.00    0.00    2014/4061        ___Barneshut______run_____AR_L___String___ [3]
+                0.00    0.00    2042/4061        ___System______println____L___String___ [46]
+[167]    0.0    0.00    0.00    4061         ___String______valueOf____L___Object___ [167]
+                0.00    0.00    4061/4061        ___String______toString____ [166]
+-----------------------------------------------
+                0.00    0.00    3000/3000        ___String______valueOf____D [50]
+[168]    0.0    0.00    0.00    3000         ___String______convertdoubletochar____D__AR_C [168]
+-----------------------------------------------
+                0.00    0.00    1021/1021        ___System______println____L___String___ [46]
+[169]    0.0    0.00    0.00    1021         ___System______printString____L___String___ [169]
+-----------------------------------------------
+                0.00    0.00     350/350         ___Barneshut______run_____AR_L___String___ [3]
+[170]    0.0    0.00    0.00     350         ___System______currentTimeMillis____ [170]
+-----------------------------------------------
+                0.00    0.00       7/7           ___FileInputStream______FileInputStream____L___String___ [60]
+[171]    0.0    0.00    0.00       7         ___FileInputStream______nativeOpen_____AR_B [171]
+-----------------------------------------------
+                0.00    0.00       5/5           ___Barneshut______main_____AR_L___String___ [2]
+[172]    0.0    0.00    0.00       5         ___Math______abs__(void) [172]
+-----------------------------------------------
+                0.00    0.00       1/1           ___Barneshut______main_____AR_L___String___ [2]
+[173]    0.0    0.00    0.00       1         ___Barneshut______Barneshut____ [173]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+
+Index by function name
+
+  [48] NewString              [37] ___HashEntry______HashEntry____ [18] ___String______charAt__(int0_t)
+  [51] ___ArrayIndexedGraph______ArrayIndexedGraph__(int0_t) [53] ___HashMap______HashMap____ [10] ___String______concat2____L___String____L___String___
+  [21] ___ArrayIndexedGraph______addNode____L___ArrayIndexedNode___ [155] ___HashMap______hash____L___Object__(int0_t) [11] ___String______concat____L___String___
+  [24] ___ArrayIndexedGraph______createNode____L___OctTreeNodeData___ [54] ___HashMap______init____I_F [168] ___String______convertdoubletochar____D__AR_C
+  [14] ___ArrayIndexedGraph______getNeighbor____L___ArrayIndexedNode__(int0_t) [22] ___HashMap______put____L___Object____L___Object___ [56] ___String______getBytes____
+  [33] ___ArrayIndexedGraph______getNodeData____L___ArrayIndexedNode___ [27] ___HashMap______resize____ [15] ___String______indexOf__(int0_t)
+  [38] ___ArrayIndexedGraph______removeNeighbor____L___ArrayIndexedNode__(int0_t) [52] ___HashSet______HashSet____ [16] ___String______indexOf____I_I
+  [35] ___ArrayIndexedGraph______setNeighbor____L___ArrayIndexedNode____I_L___ArrayIndexedNode___ [23] ___HashSet______add____L___Object___ [162] ___String______length____
+  [29] ___ArrayIndexedNode______ArrayIndexedNode____L___OctTreeNodeData__(int0_t) [57] ___Integer______parseInt____L___String___ [42] ___String______regionMatches____I_L___String____I_I
+ [173] ___Barneshut______Barneshut____ [58] ___Integer______parseInt____L___String__(int0_t) [45] ___String______substring____I_I
+  [40] ___Barneshut______ComputeCenterAndDiameter____ [172] ___Math______abs__(void) [166] ___String______toString____
+  [17] ___Barneshut______ComputeCenterOfMass____L___ArrayIndexedGraph____L___ArrayIndexedNode___ [30] ___Math______exp____D [43] ___String______toUpperCase____
+  [12] ___Barneshut______Insert____L___ArrayIndexedGraph____L___ArrayIndexedNode____L___OctTreeLeafNodeData____D [6] ___Math______sqrt____D [19] ___String______valueOf__(void) const
+   [7] ___Barneshut______ReadInput____L___String___ [159] ___Object______equals____L___Object___ [50] ___String______valueOf____D
+   [2] ___Barneshut______main_____AR_L___String___ [156] ___Object______hashCode____ [59] ___String______valueOf__(int0_t)
+  [41] ___Barneshut______min____J_J [157] ___Object______nativehashCode____ [55] ___String______valueOf__(__complex)
+   [3] ___Barneshut______run_____AR_L___String___ [158] ___OctTreeLeafNodeData______Advance____D_D [167] ___String______valueOf____L___Object___
+ [160] ___Double______nativeparsedouble____L___String___ [4] ___OctTreeLeafNodeData______ComputeForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D_I_D_D [170] ___System______currentTimeMillis____
+ [161] ___Double______parseDouble____L___String___ [47] ___OctTreeLeafNodeData______OctTreeLeafNodeData____ [169] ___System______printString____L___String___
+  [60] ___FileInputStream______FileInputStream____L___String___ [5] ___OctTreeLeafNodeData______RecurseForce____L___ArrayIndexedGraph____L___ArrayIndexedNode____D_D [46] ___System______println____L___String___
+ [171] ___FileInputStream______nativeOpen_____AR_B [20] ___OctTreeLeafNodeData______setVelocity____D_D_D [31] allocate_new
+ [163] ___FileInputStream______nativePeek__(int0_t) [39] ___OctTreeNodeData______OctTreeNodeData____D_D_D [26] allocate_newarray
+  [36] ___FileInputStream______nativeRead____I__AR_B_I [49] ___StringTokenizer______StringTokenizer____L___String___ [9] instanceof
+ [164] ___FileInputStream______peek____ [165] ___StringTokenizer______StringTokenizer____L___String____L___String____Z [1] main
+   [8] ___FileInputStream______readLine____ [13] ___StringTokenizer______nextToken____ [34] mygcmalloc
+  [25] ___FileInputStream______read____ [44] ___String______String____
+  [32] ___FileInputStream______read_____AR_B [28] ___String______String_____AR_C
