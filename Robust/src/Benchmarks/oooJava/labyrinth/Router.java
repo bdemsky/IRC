@@ -165,7 +165,8 @@ public class Router {
    * ================================================================
    * ============
    */
-  public boolean PdoExpansion(Router routerPtr, Grid myGridPtr, Queue_Int queuePtr, Coordinate srcPtr, Coordinate dstPtr) {
+  public boolean PdoExpansion(Router routerPtr, Grid myGridPtr, Queue_Int queuePtr,
+      Coordinate srcPtr, Coordinate dstPtr) {
     int xCost = routerPtr.xCost;
     int yCost = routerPtr.yCost;
     int zCost = routerPtr.zCost;
@@ -225,13 +226,14 @@ public class Router {
    * ============================================================
    * ================
    */
-  private void traceToNeighbor(Grid myGridPtr, Point currPtr, Point movePtr, boolean useMomentum, int bendCost,
-      Point nextPtr) {
+  private void traceToNeighbor(Grid myGridPtr, Point currPtr, Point movePtr, boolean useMomentum,
+      int bendCost, Point nextPtr) {
     int x = currPtr.x + movePtr.x;
     int y = currPtr.y + movePtr.y;
     int z = currPtr.z + movePtr.z;
 
-    if (myGridPtr.isPointValid(x, y, z) && !myGridPtr.isPointEmpty(x, y, z) && !myGridPtr.isPointFull(x, y, z)) {
+    if (myGridPtr.isPointValid(x, y, z) && !myGridPtr.isPointEmpty(x, y, z)
+        && !myGridPtr.isPointFull(x, y, z)) {
       int value = myGridPtr.getPoint(x, y, z);
       int b = 0;
 
@@ -315,10 +317,6 @@ public class Router {
 
     return pointVectorPtr;
   }
-  
-  public boolean isEmpty(Queue_t q){
-    return (((q.pop + 1) % q.capacity == q.push) ? true : false);
-  }
 
   /*
    * ============================================================================
@@ -326,103 +324,87 @@ public class Router {
    * ==============================================================
    * =============== void router_solve (void* argPtr);
    */
-  public void solve(Object argPtr) {
-    Solve_Arg routerArgPtr = (Solve_Arg) argPtr;
-    Router routerPtr = routerArgPtr.routerPtr;
-    Maze mazePtr = routerArgPtr.mazePtr;
-    int workload = routerArgPtr.rblock_workload;
-    List_t pathVectorListPtr = routerArgPtr.pathVectorListPtr; 
-    
-    Queue_t masterWorkQueuePtr = mazePtr.workQueuePtr;
-    Grid masterGridPtr = mazePtr.gridPtr; 
-    int bendCost = routerPtr.bendCost;
-    
-    int id = 0;
-    
-    while(!masterWorkQueuePtr.queue_isEmpty() ) {
-      Queue_t redoQueue = masterWorkQueuePtr.Pqueue_alloc(masterWorkQueuePtr.capacity);
-      while(!masterWorkQueuePtr.queue_isEmpty()) {
-	Queue_t localWorkQueue = masterWorkQueuePtr.queue_getUpTo(workload);
+  public void solve(Object argPtr) 
+    {
+    	
+        // initialization
+        Solve_Arg routerArgPtr = (Solve_Arg) argPtr;
+        Router routerPtr = routerArgPtr.routerPtr;
+        Maze mazePtr = routerArgPtr.mazePtr;
+        int workload = routerArgPtr.rblock_workload;
+        int bendCost = routerPtr.bendCost;
+        List_t pathVectorListPtr = routerArgPtr.pathVectorListPtr;
+        Queue_t masterWorkQueue = mazePtr.workQueuePtr;
+        Grid masterGrid=mazePtr.gridPtr;
+        Queue_Int queue_int=new Queue_Int();
+        Vector_t vt=new Vector_t();
         
-	sese P {
-	  //Clone needed since new paths are added to local Grid. Cannot add to master Grid because of rBlock p conflicts
-	  Grid MGClone  = masterGridPtr.alloc(masterGridPtr.width, masterGridPtr.height, masterGridPtr.depth);
-	  masterGridPtr.copy(MGClone, masterGridPtr);
-	  
-	  Vector_t computedPaths = solveLogic(localWorkQueue, MGClone, routerPtr, bendCost, workload);
-	}
-            	
-	sese S {
-	  Vector_t sucessfulPaths = computedPaths.vector_alloc(workload);
-	  CoordPathWrapper singlePathSolution = (CoordPathWrapper) computedPaths.vector_popBack();
-	  while(singlePathSolution != null)	{
-	    if(masterGridPtr.TM_addPath(singlePathSolution.pathVector)) {
-	      //fail
-	      redoQueue.queue_push(singlePathSolution.coordinatePair);
-	    } else {
-	      //success           		  
-	      sucessfulPaths.vector_pushBack(singlePathSolution.pathVector);
-	      System.out.println("Path # " + ++id + " added sucessfully!");
-	    }
-	    singlePathSolution = (CoordPathWrapper)computedPaths.vector_popBack(); 
-	  }
-	  pathVectorListPtr.insert(sucessfulPaths);
-	}//end of sese S
-      }//end of inner while
-      masterWorkQueuePtr = redoQueue;
-    }//end of outer while
-  }
-
-  private Vector_t solveLogic(Queue_t localWorkQueue, Grid MGCopyPtr, Router routerPtr, int bendCost, int workload) {
-    /*
-     * Iterate over work list to route each path. This involves an 'expansion'
-     * and 'traceback' phase for each source/destination pair.
-     */
-
-    Vector_t vector_t = new Vector_t();
-    Queue_Int queue_int = new Queue_Int();
-    Vector_t computedPathsPtr = vector_t.vector_alloc(workload + 2);
-    while (true) {
-      Pair coordinatePairPtr;
-      Queue_Int myExpansionQueuePtr = queue_int.queue_alloc(-1);
-
-      if (localWorkQueue.queue_isEmpty()) {
-        coordinatePairPtr = null;
-      } else {
-        coordinatePairPtr = (Pair) localWorkQueue.queue_pop();
-      }
-
-      if (coordinatePairPtr == null)
-        break;
-
-      Coordinate srcPtr = (Coordinate) coordinatePairPtr.first;
-      Coordinate dstPtr = (Coordinate) coordinatePairPtr.second;
-
-      // System.out.println("SRC x = " + srcPtr.x + "  y = " + srcPtr.y +
-      // " z = " +srcPtr.z);
-      Vector_t pointVectorPtr = null;
-
-      // Copy needed here since PdoExpansion fills grid with misc data
-      Grid tempGrid = MGCopyPtr.alloc(MGCopyPtr.width, MGCopyPtr.height, MGCopyPtr.depth);
-      MGCopyPtr.copy(tempGrid, MGCopyPtr); /* ok if not most up-to-date */
-
-      if (routerPtr.PdoExpansion(routerPtr, tempGrid, myExpansionQueuePtr, srcPtr, dstPtr)) {
-        pointVectorPtr = routerPtr.PdoTraceback(tempGrid, dstPtr, bendCost);
-        if (pointVectorPtr != null) {
-          // Cannot add to master grid as original due to rBlocks conflicting
-          if (MGCopyPtr.TM_addPath(pointVectorPtr)) {
-            pointVectorPtr = null;
-          } else {
-            // Success!
-            CoordPathWrapper currPath = new CoordPathWrapper(coordinatePairPtr, pointVectorPtr);
-            computedPathsPtr.vector_pushBack(currPath);
-          }
+        Vector_t pathArray[]=new Vector_t[workload];
+        Grid gridArray[]=new Grid[workload];
+        Pair workItemArray[]=new Pair[workload];
+        
+        for(int i=0;i<gridArray.length;i++){
+          gridArray[i]=masterGrid.scratchalloc(masterGrid.width, masterGrid.height, masterGrid.depth);
         }
-      }
-    }
+        
+        while(!masterWorkQueue.queue_isEmpty()){
+          Vector_t myPathVectorPtr=vt.vector_alloc(workload);
+          //System.out.println("\nnew round");
+          for(int i=0;i<workload;i++){
+            pathArray[i]=null;
+          }
+          
+          //gets work item
+          for(int i=0;i<workload;i++){
+            Pair coordinatePairPtr=null;
+            if(!masterWorkQueue.queue_isEmpty()){
+              coordinatePairPtr=(Pair)masterWorkQueue.queue_pop();
+            }
+            workItemArray[i]=coordinatePairPtr;
+          }
+          
+          //parallel loop
+          for(int i=0;i<workload;i++){
+            
+            Pair coordinatePairPtr=workItemArray[i];
+            if(coordinatePairPtr==null){
+              break;
+            }
+            Coordinate srcPtr = (Coordinate) coordinatePairPtr.first;
+            Coordinate dstPtr = (Coordinate) coordinatePairPtr.second;
+            
+            Grid myGrid=gridArray[i];
+            Vector_t path=null;
+            sese parallel{
+              myGrid.copy(myGrid, masterGrid);
+              Queue_Int myExpansionQueuePtr=queue_int.queue_alloc(-1);
+              if(routerPtr.PdoExpansion(routerPtr, myGrid, myExpansionQueuePtr, srcPtr, dstPtr)){
+                path=routerPtr.PdoTraceback(myGrid, dstPtr, bendCost);
+              }
+            }
+            sese serial{
+              pathArray[i]=path;
+            }
+          }
+          
+          //check path
+          for(int i=0;i<workload;i++){
+            if(pathArray[i]!=null){
+              if(masterGrid.TM_addPath(pathArray[i])){
+                //fail
+                //System.out.print("F ");
+                masterWorkQueue.queue_push(workItemArray[i]); 
+              }else{
+                //success
+                //System.out.print("S ");
+                myPathVectorPtr.vector_pushBack(pathArray[i]);
+              }
+            }
+          }
+          pathVectorListPtr.insert(myPathVectorPtr);
+        }
 
-    return computedPathsPtr;
-  }
+    }
 }
 /*
  * =============================================================================

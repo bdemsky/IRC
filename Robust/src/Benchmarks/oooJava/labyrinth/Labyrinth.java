@@ -97,7 +97,7 @@ public class Labyrinth
         zCost = 2;
         numThread = 1;
         
-        global_workload = 100;
+        global_workload = 20;
     }
 
     private void parseArg(String[] argv) {
