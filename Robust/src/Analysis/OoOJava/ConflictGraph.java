@@ -188,6 +188,11 @@ public class ConflictGraph {
       if(currentNode.isStallSiteNode() && entryNode.isStallSiteNode()){
         continue;
       }
+      
+      if( (currentNode.isInVarNode() && entryNode.isInVarNode()) && 
+          (currentNode.getSESEIdentifier()==entryNode.getSESEIdentifier()) ){
+        continue;
+      }
 
       if ((!currentNode.getID().equals(entryNodeID))
           && !(analyzedIDSet.contains(currentNode.getID() + entryNodeID) || analyzedIDSet
@@ -325,11 +330,15 @@ public class ConflictGraph {
             if (strongUpdateA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
                 && strongUpdateA.getField().equals(effectB.getField())) {
 
-              FlatNew fnRoot1 = asA.getFlatNew();
-              FlatNew fnRoot2 = asB.getFlatNew();
-              FlatNew fnTarget = strongUpdateA.getAffectedAllocSite().getFlatNew();
-              if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
-                conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+              if (useReachInfo) {
+                FlatNew fnRoot1 = asA.getFlatNew();
+                FlatNew fnRoot2 = asB.getFlatNew();
+                FlatNew fnTarget = strongUpdateA.getAffectedAllocSite().getFlatNew();
+                if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                  conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                }
+              }else{
+                return ConflictGraph.CONFLICT;
               }
             }
 
@@ -646,6 +655,11 @@ public class ConflictGraph {
 
           continue;
         }
+        
+        if(node.getEdgeSet().isEmpty()){
+          continue;
+        }
+        
       }
 
       String attributes = "[";
