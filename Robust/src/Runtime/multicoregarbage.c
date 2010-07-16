@@ -2655,7 +2655,7 @@ inline void flush(struct garbagelist * stackptr) {
     BAMBOO_DEBUGPRINT_REG(((int *)(tptr))[0]);
 #endif
     if(ptr == NULL) {
-      BAMBOO_EXIT(0x106);
+      BAMBOO_EXIT(0xb106);
     }
     if(((int *)(ptr))[6] == COMPACTED) {
       int type = ((int *)(ptr))[0];
