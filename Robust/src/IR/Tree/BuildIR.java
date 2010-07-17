@@ -40,7 +40,7 @@ public class BuildIR {
     }
     ParseNode ppn=pn.getChild("packages").getChild("package");
     if (ppn!=null) {
-      packages=parseName(pn.getChild("name"));
+      packages=parseName(ppn.getChild("name"));
     }
     ParseNode tpn=pn.getChild("type_declaration_list");
     if (tpn!=null) {
