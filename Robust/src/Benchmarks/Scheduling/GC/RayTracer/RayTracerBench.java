@@ -2,7 +2,7 @@ task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
   int threadnum = 62;
-  int size = threadnum * 20;
+  int size = threadnum * 25;
   Composer comp = new Composer(threadnum, size){compose};
   for(int i = 0; i < threadnum; ++i) {
     TestRunner tr = new TestRunner(i, threadnum, size){run};

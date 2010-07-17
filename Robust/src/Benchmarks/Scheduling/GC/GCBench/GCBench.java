@@ -83,9 +83,9 @@ public class TestRunner {
   public static final int kMaxTreeDepth;// = 16;
   
   public TestRunner() {
-    kStretchTreeDepth    = 12;// 1/2Mb 18;  // about 16Mb
-    kLongLivedTreeDepth  = 10; // 1/8Mb 16;  // about 4Mb
-    kArraySize  = 125000/16; // 1/8Mb 500000;  // about 4Mb
+    kStretchTreeDepth    = 13;// 1Mb 18;  // about 16Mb
+    kLongLivedTreeDepth  = 11; // 1/4Mb 16;  // about 4Mb
+    kArraySize  = 125000/8; // 1/4Mb 500000;  // about 4Mb
     kMinTreeDepth = 4;
     kMaxTreeDepth = 16;
   }
