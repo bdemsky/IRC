@@ -297,8 +297,8 @@ void initruntimedata() {
   BAMBOO_MEMSET_WH(gcrpointertbls,0,sizeof(mgcsharedhashtbl_t *)*NUMCORES4GC);
 	  //sizeof(struct RuntimeHash *)*NUMCORES4GC);
 #ifdef SMEMM
-  gcmem_mixed_threshold = 
-	(unsigned int)((BAMBOO_SHARED_MEM_SIZE-(gcbaseva-BAMBOO_BASE_VA))*0.8);
+  gcmem_mixed_threshold = (unsigned int)((BAMBOO_SHARED_MEM_SIZE
+		-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
   gcmem_mixed_usedmem = 0;
 #endif
 #ifdef GC_PROFILE_S

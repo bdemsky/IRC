@@ -94,7 +94,7 @@ inline void dumpSMem() {
   sblock = gcreservedsb;
   bool advanceblock = false;
   // remaining memory
-  for(i=gcbaseva; i<BAMBOO_BASE_VA+BAMBOO_SHARED_MEM_SIZE; i+=4*16) {
+  for(i=gcbaseva; i<gcbaseva+BAMBOO_SHARED_MEM_SIZE; i+=4*16) {
     advanceblock = false;
     // computing sblock # and block #, core coordinate (x,y) also
     if(j%((BAMBOO_SMEM_SIZE)/(4*16)) == 0) {
@@ -119,7 +119,7 @@ inline void dumpSMem() {
       printf("(%x,%x) ==== %d, %d : core (%d,%d), saddr %x====\n",
 		     udn_tile_coord_x(), udn_tile_coord_y(),
              block, sblock++, x, y,
-             (sblock-1)*(BAMBOO_SMEM_SIZE)+BAMBOO_BASE_VA);
+             (sblock-1)*(BAMBOO_SMEM_SIZE)+gcbaseva);
     }
     j++;
     printf("(%x,%x) 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x 0x%08x \n",
@@ -788,7 +788,7 @@ inline bool cacheLObjs() {
   }  // while(gc_lobjmoreItems2())
 
   // check if there are enough space to cache these large objs
-  INTPTR dst = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE) -sumsize;
+  INTPTR dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE) -sumsize;
   if(gcheaptop > dst) {
     // do not have enough room to cache large objs
 #ifdef DEBUG
@@ -808,7 +808,7 @@ inline bool cacheLObjs() {
   // cache the largeObjs to the top of the shared heap
   //gclobjtail2 = gclobjtail;
   //gclobjtailindex2 = gclobjtailindex;
-  dst = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE);
+  dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
   while(gc_lobjmoreItems3_I()) {
     gc_lobjdequeue3_I();
     size = gclobjtail2->lengths[gclobjtailindex2];
@@ -942,7 +942,7 @@ inline void moveLObjs() {
 
   // move large objs from gcheaptop to tmpheaptop
   // write the header first
-  unsigned int tomove = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE) -gcheaptop;
+  unsigned int tomove = gcbaseva + (BAMBOO_SHARED_MEM_SIZE) -gcheaptop;
 #ifdef SMEMM
   gcmem_mixed_usedmem += tomove;
 #endif
@@ -1769,14 +1769,14 @@ innernextSBlock:
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(orig->base);
 #endif
-    if(orig->base >= BAMBOO_BASE_VA + BAMBOO_SHARED_MEM_SIZE) {
+    if(orig->base >= gcbaseva + BAMBOO_SHARED_MEM_SIZE) {
       // out of boundary
       orig->ptr = orig->base; // set current ptr to out of boundary too
       return false;
     }
     //orig->bound = orig->base + BAMBOO_SMEM_SIZE;
     orig->blockbase = orig->base;
-    orig->sblockindex = (orig->blockbase-BAMBOO_BASE_VA)/BAMBOO_SMEM_SIZE;
+    orig->sblockindex = (orig->blockbase-gcbaseva)/BAMBOO_SMEM_SIZE;
     sbchanged = true;
     int blocknum = 0;
     BLOCKINDEX(orig->base, &blocknum);
@@ -1854,7 +1854,7 @@ inline bool initOrig_Dst(struct moveHelper * orig,
   // check the bamboo_smemtbl to decide the real bound
   orig->bound = orig->base + bamboo_smemtbl[blocknum];
   orig->blockbase = orig->base;
-  orig->sblockindex = (orig->base - BAMBOO_BASE_VA) / BAMBOO_SMEM_SIZE;
+  orig->sblockindex = (orig->base - gcbaseva) / BAMBOO_SMEM_SIZE;
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xef02);
   BAMBOO_DEBUGPRINT_REG(orig->base);
@@ -1869,7 +1869,7 @@ inline bool initOrig_Dst(struct moveHelper * orig,
 #endif
     // goto next sblock
     orig->blockbound =
-      BAMBOO_BASE_VA+BAMBOO_SMEM_SIZE*(orig->sblockindex+1);
+      gcbaseva+BAMBOO_SMEM_SIZE*(orig->sblockindex+1);
     return nextSBlock(orig);
   } else if(gcsbstarttbl[orig->sblockindex] != 0) {
 #ifdef DEBUG
@@ -3019,8 +3019,8 @@ inline void gc(struct garbagelist * stackptr) {
     //int tmptopptr = 0;
     //BASEPTR(gctopcore, 0, &tmptopptr);
     // TODO
-    //tmptopptr = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE);
-    tmpheaptop = (BAMBOO_BASE_VA) + (BAMBOO_SHARED_MEM_SIZE);
+    //tmptopptr = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
+    tmpheaptop = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xabab);
     BAMBOO_DEBUGPRINT_REG(tmptopptr);
