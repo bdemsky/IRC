@@ -387,7 +387,6 @@ int mgcsharedhashInsert(mgcsharedhashtbl_t * tbl, void * key, void * val) {
   //int keyto = ((unsigned INTPTR)key) % (tbl->size);
   //ptr=&tbl->table[keyto];
   ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
-  //printf("%x \n", (((unsigned INTPTR)key)&tbl->mask)>>6); // TODO
 
   if(ptr->key==0) {
     // the first time insert a value for the key
@@ -422,7 +421,6 @@ int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val) {
   //int keyto = ((unsigned INTPTR)key) % (tbl->size);
   //ptr=&tbl->table[keyto];
   ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
-  //printf("%x \n", (((unsigned INTPTR)key)&tbl->mask)>>6); // TODO
 
   if(ptr->key==0) {
     // the first time insert a value for the key

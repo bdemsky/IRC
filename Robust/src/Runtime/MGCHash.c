@@ -50,7 +50,7 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
   ctable->threshold=size*loadfactor;
 
   ctable->mask = (size << 6)-1;
-  ctable->list = NULL;
+  //ctable->list = NULL;
   ctable->structs = (mgcliststruct_t*)RUNMALLOC(1*sizeof(mgcliststruct_t));
   ctable->numelements = 0; // Initial number of elements in the hash
 
@@ -61,11 +61,11 @@ void mgchashreset(mgchashtable_t * tbl) {
   mgchashlistnode_t *ptr = tbl->table;
   int i;
 
-  if (tbl->numelements<(tbl->size>>6)) {
+  /*if (tbl->numelements<(tbl->size>>6)) {
 	mgchashlistnode_t *top=&ptr[tbl->size];
 	mgchashlistnode_t * list = tbl->list;
 	while(list != NULL) {
-      mgchashlistnode_t * next = list->next;
+      mgchashlistnode_t * next = list->lnext;
       if ((list >= ptr) && (list < top)) {
 		//zero in list
         list->key=NULL;
@@ -73,9 +73,9 @@ void mgchashreset(mgchashtable_t * tbl) {
       }
       list = next;
 	}
-  } else {
+  } else {*/
 	BAMBOO_MEMSET_WH(tbl->table, '\0', sizeof(mgchashlistnode_t)*tbl->size);
-  }
+  //}
   // TODO now never release any allocated memory, may need to be changed
   mgcliststruct_t * next = tbl->structs;
   while(/*tbl->structs->*/next!=NULL) {
@@ -106,6 +106,8 @@ void mgchashInsert(mgchashtable_t * tbl, void * key, void *val) {
     // the first time insert a value for the key
     ptr->key=key;
     ptr->val=val;
+	/*ptr->lnext = tbl->list;
+	tbl->list = ptr;*/
   } else { // Insert in the beginning of linked list
     mgchashlistnode_t * node;
     if (tbl->structs->num<NUMMGCLIST) {
@@ -123,6 +125,8 @@ void mgchashInsert(mgchashtable_t * tbl, void * key, void *val) {
     node->val = val;
     node->next = ptr->next;
     ptr->next = node;
+	/*node->lnext = tbl->list;
+	tbl->list = node;*/
   }
 }
 
@@ -157,7 +161,7 @@ mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
   ctable->threshold=size*loadfactor;
 
   ctable->mask = (size << 6)-1;
-  ctable->list = NULL;
+  //ctable->list = NULL;
   ctable->structs = (mgcliststruct_t*)RUNMALLOC_I(1*sizeof(mgcliststruct_t));
   ctable->numelements = 0; // Initial number of elements in the hash
 
@@ -179,6 +183,8 @@ void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val) {
   if(ptr->key==0) {
     ptr->key=key;
     ptr->val=val;
+	/*ptr->lnext = tbl->list;
+	tbl->list = ptr;*/
     return;
   } else { // Insert in the beginning of linked list
     mgchashlistnode_t * node;
@@ -197,6 +203,8 @@ void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val) {
     node->val = val;
     node->next = ptr->next;
     ptr->next = node;
+	/*node->lnext = tbl->list;
+	tbl->list = node;*/
   }
 }
 #endif
@@ -238,6 +246,7 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
   tbl->size = newsize;
   tbl->threshold = newsize * tbl->loadfactor;
   mask = tbl->mask = (newsize << 6) - 1;
+  //tbl->list = NULL;
 
   for(i = 0; i < oldsize; i++) {   //Outer loop for each bin in hash table
     curr = &ptr[i];
@@ -258,6 +267,8 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
       if(tmp->key == 0) {
 		tmp->key = key;
 		tmp->val = curr->val;
+		/*tmp->lnext = tbl->list;
+		tbl->list = tmp;*/
       } /*
 	   NOTE:  Add this case if you change this...
 	   This case currently never happens because of the way things rehash....*/
@@ -267,10 +278,14 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
 		 newnode->val = curr->val;
 		 newnode->next = tmp->next;
 		 tmp->next=newnode;
+		 /*newnode->lnext = tbl->list;
+		 tbl->list = newnode;*/
 	   } 
       else {
 		curr->next=tmp->next;
 		tmp->next=curr;
+		/*curr->lnext = tbl->list;
+		tbl->list = curr;*/
       }
 
       isfirst = 0;
@@ -306,6 +321,7 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
   tbl->size = newsize;
   tbl->threshold = newsize * tbl->loadfactor;
   mask = tbl->mask = (newsize << 6)-1;
+  //tbl->list = NULL;
 
   for(i = 0; i < oldsize; i++) {  //Outer loop for each bin in hash table
     curr = &ptr[i];
@@ -326,6 +342,8 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
       if(tmp->key == 0) {
 		tmp->key = key;
 		tmp->val = curr->val;
+		/*tmp->lnext = tbl->list;
+		tbl->list = tmp;*/
       } /*
 	   NOTE:  Add this case if you change this...
 	   This case currently never happens because of the way things rehash....*/
@@ -335,9 +353,13 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
 		newnode->val = curr->val;
 		newnode->next = tmp->next;
 		tmp->next=newnode;
+		/*newnode->lnext = tbl->list;
+		tbl->list = newnode;*/
       } else {
 		curr->next=tmp->next;
 		tmp->next=curr;
+		/*curr->lnext = tbl->list;
+		tbl->list = curr;*/
       }
 
       isfirst = 0;
