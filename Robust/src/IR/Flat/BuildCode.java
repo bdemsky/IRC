@@ -2870,8 +2870,7 @@ public class BuildCode {
             if( waitingElement.getStatus() >= ConflictNode.COARSE ){
               output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
             }else{
-              output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
-  //            output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");  
+              output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
             }         
             output.println("     psem_init( &(rentry->parentStallSem) );");
             output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
