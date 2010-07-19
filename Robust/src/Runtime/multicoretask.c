@@ -216,6 +216,8 @@ void initruntimedata() {
 #ifdef GC_PROFILE
     gc_infoIndex = 0;
     gc_infoOverflow = false;
+	gc_num_livespace = 0;
+	gc_num_freespace = 0;
 #endif
 #endif
     numconfirm = 0;
@@ -305,6 +307,7 @@ void initruntimedata() {
   gc_num_obj = 0;
   gc_num_liveobj = 0;
   gc_num_forwardobj = 0;
+  gc_num_profiles = NUMCORESACTIVE - 1;
 #endif
 #else
   // create the lock table, lockresult table and obj queue
@@ -1937,6 +1940,9 @@ INLINE int checkMsgLength_I(int size) {
 #ifdef MULTICORE_GC
   case GCFINISHMARK:
   case GCMOVESTART:
+#ifdef GC_PROFILE_S
+  case GCPROFILES:
+#endif
 #endif
     {
       msglength = 4;
@@ -2885,6 +2891,21 @@ INLINE void processmsg_gclobjmapping_I() {
   //MGCHashadd_I(gcpointertbl, data1, data2);
   mgcsharedhashInsert_I(gcsharedptbl, data1, data2);
 }
+
+#ifdef GC_PROFILE_S
+INLINE void processmsg_gcprofiles_I() {
+  int data1 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  int data2 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  int data3 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  gc_num_obj += data1;
+  gc_num_liveobj += data2;
+  gc_num_forwardobj += data3;
+  gc_num_profiles--;
+}
+#endif
 #endif // #ifdef MULTICORE_GC
 
 // receive object transferred from other cores
@@ -3160,6 +3181,13 @@ processmsg:
       break;
     }                     // case GCLOBJMAPPING
 
+#ifdef GC_PROFILE_S
+	case GCPROFILES: {
+      // received a gcprofiles msg
+      processmsg_gcprofiles_I();
+      break;
+    }
+#endif
 #endif // #ifdef MULTICORE_GC
 
     default:

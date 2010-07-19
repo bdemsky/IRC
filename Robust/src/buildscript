@@ -48,6 +48,9 @@ echo "-gccache_local set the gc shared memory cache strategy as local (should be
 echo "-gccache_ran set the gc shared memory cache strategy as random (should be used together with -multicoregc)"
 echo "-gccontroller_near set the gc shared memory to use the nearest controller for each core (should be used together with -multicoregc)"
 echo "-gccontroller_remote set the gc shared memory to use a remote controller for each core (should be used together with -multicoregc)"
+echo "-gcsmallpagesize set the gc shared memory to use small page size (should be used together with -multicoregc)"
+echo "-gclargepagesize set the gc shared memory to use large page size (should be used together with -multicoregc)"
+echo "-gclargesharedheap set the gc shared memory as large (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
 echo -gcprofile_s build with gcprofile_s options
 echo -accurateprofile build with accurate profile information including pre/post task processing info
@@ -146,6 +149,9 @@ GCCACHELOCALFLAG=false;
 GCCACHERANFLAG=false;
 GCCONTROLLERNEARFLAG=false;
 GCCONTROLLERREMOTEFLAG=false;
+GCSMALLPAGESIZEFLAG=false;
+GCLARGEPAGESIZEFLAG=false;
+GCLARGESHAREDHEAPFLAG=false;
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -406,6 +412,15 @@ GCCONTROLLERNEARFLAG=true
 elif [[ $1 = '-gccontroller_remote' ]]
 then
 GCCONTROLLERREMOTEFLAG=true
+elif [[ $1 = '-gcsmallpagesize' ]]
+then
+GCSMALLPAGESIZEFLAG=true
+elif [[ $1 = '-gclargepagesize' ]]
+then
+GCLARGEPAGESIZEFLAG=true
+elif [[ $1 = '-gclargesharedheap' ]]
+then
+GCLARGESHAREDHEAPFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -835,6 +850,22 @@ if $GCCONTROLLERREMOTEFLAG
 then # CONTROLLER_REMOTE version
 TILERACFLAGS="${TILERACFLAGS} -DCONTROLLER_REMOTE"
 fi
+
+if $GCSMALLPAGESIZEFLAG
+then # GC_SMALLPAGESIZE version
+TILERACFLAGS="${TILERACFLAGS} -DGC_SMALLPAGESIZE"
+fi
+
+if $GCLARGEPAGESIZEFLAG
+then # GC_LARGEPAGESIZE version
+TILERACFLAGS="${TILERACFLAGS} -DGC_LARGEPAGESIZE"
+fi
+
+if $GCLARGESHAREDHEAPFLAG
+then # GC_LARGESHAREDHEAP version
+TILERACFLAGS="${TILERACFLAGS} -DGC_LARGESHAREDHEAP"
+fi
+
 
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile
 if $TILERABMEFLAG

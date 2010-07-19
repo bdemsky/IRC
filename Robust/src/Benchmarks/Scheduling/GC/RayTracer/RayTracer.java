@@ -99,7 +99,7 @@ public class RayTracer {
    * @return The scene just created
    */
 
-  Scene createScene() {
+  public Scene createScene() {
     int x = 0;
     int y = 0;
 

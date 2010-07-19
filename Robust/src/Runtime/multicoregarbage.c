@@ -686,13 +686,20 @@ inline void initGC() {
 	*((int *)bamboo_cur_msp) = 0;
   }
 #ifdef GC_PROFILE
-	// TODO
-	/*num_mapinforequest = 0;
-	num_mapinforequest_i = 0;
-	flushstalltime = 0;
-	flushstalltime_i = 0;
-	num_markrequest = 0;
-	marktime = 0;*/
+  // TODO
+  /*num_mapinforequest = 0;
+  num_mapinforequest_i = 0;
+  flushstalltime = 0;
+  flushstalltime_i = 0;
+  num_markrequest = 0;
+  marktime = 0;*/
+  gc_num_livespace = 0;
+  gc_num_freespace = 0;
+  gc_num_lobj = 0;
+  gc_num_lobjspace = 0;
+#endif
+#ifdef GC_PROFILE_S
+  gc_num_profiles = NUMCORESACTIVE - 1;
 #endif
 } // void initGC()
 
@@ -729,7 +736,7 @@ inline int loadbalance(int * heaptop) {
 
 inline bool cacheLObjs() {
   // check the total mem size need for large objs
-  int sumsize = 0;
+  unsigned long long sumsize = 0;
   int size = 0;
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe801);
@@ -746,6 +753,9 @@ inline bool cacheLObjs() {
     tmp_host = gclobjtail2->hosts[gclobjtailindex2-1];
     tmp_len = gclobjtail2->lengths[gclobjtailindex2 - 1];
     sumsize += tmp_len;
+#ifdef GC_PROFILE
+	gc_num_lobj++;
+#endif
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(gclobjtail2->lobjs[gclobjtailindex2-1]);
     BAMBOO_DEBUGPRINT_REG(tmp_len);
@@ -787,6 +797,9 @@ inline bool cacheLObjs() {
     }
   }  // while(gc_lobjmoreItems2())
 
+#ifdef GC_PROFILE
+  gc_num_lobjspace = sumsize;
+#endif
   // check if there are enough space to cache these large objs
   INTPTR dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE) -sumsize;
   if(gcheaptop > dst) {
@@ -1170,6 +1183,15 @@ inline void moveLObjs() {
       break;
     }
   } while(true);
+
+#ifdef GC_PROFILE
+  // check how many live space there are
+  gc_num_livespace = 0;
+  for(int tmpi = 0; tmpi < gcnumblock; tmpi++) {
+	gc_num_livespace += bamboo_smemtbl[tmpi];
+  }
+  gc_num_freespace = (BAMBOO_SHARED_MEM_SIZE) - gc_num_livespace;
+#endif
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xea08);
   BAMBOO_DEBUGPRINT_REG(gcheaptop);
@@ -2805,6 +2827,18 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%x,%x) Start flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
+#ifdef GC_PROFILE_S
+  /*BAMBOO_DEBUGPRINT(0xaaaa);
+  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT(0xaaab);*/
+  // send the num of obj/liveobj/forwardobj to the startupcore
+  if(STARTUPCORE != BAMBOO_NUM_OF_CORE) {
+	send_msg_4(STARTUPCORE, GCPROFILES, gc_num_obj, 
+		gc_num_liveobj, gc_num_forwardobj, false);
+  }
+#endif // GC_PROFLIE_S
   flush(stackptr);
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish flush phase\n", udn_tile_coord_x(),
@@ -2819,13 +2853,6 @@ inline void gc_collect(struct garbagelist * stackptr) {
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
-#ifdef GC_PROFILE_S
-  BAMBOO_DEBUGPRINT(0xaaaa);
-  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
-  BAMBOO_DEBUGPRINT(0xaaab);
-#endif // GC_PROFLIE_S
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc_nocollect(struct garbagelist * stackptr) {
@@ -2864,6 +2891,17 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Start flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
+#ifdef GC_PROFILE_S
+  /*BAMBOO_DEBUGPRINT(0xaaaa);
+  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT(0xaaab);*/
+  if(STARTUPCORE != BAMBOO_NUM_OF_CORE) {
+	send_msg_4(STARTUPCORE, GCPROFILES, gc_num_obj, 
+		gc_num_liveobj, gc_num_forwardobj, false);
+  }
+#endif // GC_PROFLIE_S
   flush(stackptr);
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish flush phase\n", udn_tile_coord_x(), 
@@ -2878,13 +2916,6 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
-#ifdef GC_PROFILE_S
-  BAMBOO_DEBUGPRINT(0xaaaa);
-  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
-  BAMBOO_DEBUGPRINT(0xaaab);
-#endif // GC_PROFLIE_S
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc(struct garbagelist * stackptr) {
@@ -3264,7 +3295,14 @@ inline void gc(struct garbagelist * stackptr) {
   BAMBOO_DEBUGPRINT_REG(gc_num_obj);
   BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
   BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_profiles);
   BAMBOO_DEBUGPRINT(0xaaab);
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_DEBUGPRINT(0xaaac);
+	BAMBOO_DEBUGPRINT_REG(gc_num_livespace);
+	BAMBOO_DEBUGPRINT_REG(gc_num_freespace);
+	BAMBOO_DEBUGPRINT(0xaaad);
+  }
 #endif // GC_PROFLIE_S
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     gcprocessing = true;
@@ -3311,6 +3349,10 @@ inline void gc_profileEnd(void) {
   if(!gc_infoOverflow) {
     GCInfo* gcInfo = gc_infoArray[gc_infoIndex];
     gcInfo->time[gcInfo->index++] = BAMBOO_GET_EXE_TIME();
+	gcInfo->time[gcInfo->index++] = gc_num_livespace;
+	gcInfo->time[gcInfo->index++] = gc_num_freespace;
+	gcInfo->time[gcInfo->index++] = gc_num_lobj;
+	gcInfo->time[gcInfo->index++] = gc_num_lobjspace;
     gc_infoIndex++;
     if(gc_infoIndex == GCINFOLENGTH) {
       gc_infoOverflow = true;
@@ -3355,7 +3397,7 @@ void gc_outputProfileData() {
     GCInfo * gcInfo = gc_infoArray[i];
     unsigned long long tmp = 0;
     BAMBOO_DEBUGPRINT(0xddda);
-    for(j = 0; j < gcInfo->index; j++) {
+    for(j = 0; j < gcInfo->index - 4; j++) {
       BAMBOO_DEBUGPRINT(gcInfo->time[j]);
       BAMBOO_DEBUGPRINT(gcInfo->time[j]-tmp);
       BAMBOO_DEBUGPRINT(0xdddb);
@@ -3363,10 +3405,15 @@ void gc_outputProfileData() {
     }
     tmp = (tmp-gcInfo->time[0]);
     BAMBOO_DEBUGPRINT_REG(tmp);
-    BAMBOO_DEBUGPRINT(0xdddc);
+	BAMBOO_DEBUGPRINT(0xdddc);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 4]);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 3]);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 2]);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 1]);
+    BAMBOO_DEBUGPRINT(0xddde);
     totalgc += tmp;
   }
-  BAMBOO_DEBUGPRINT(0xdddd);
+  BAMBOO_DEBUGPRINT(0xdddf);
   BAMBOO_DEBUGPRINT_REG(totalgc);
 
   if(gc_infoOverflow) {

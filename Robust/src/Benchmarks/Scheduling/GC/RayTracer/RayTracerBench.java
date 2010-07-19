@@ -2,10 +2,12 @@ task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
   int threadnum = 62;
-  int size = threadnum * 25;
+  int size = threadnum * 30;
   Composer comp = new Composer(threadnum, size){compose};
+  RayTracer rt = new RayTracer();
+  Scene scene = rt.createScene();
   for(int i = 0; i < threadnum; ++i) {
-    TestRunner tr = new TestRunner(i, threadnum, size){run};
+    TestRunner tr = new TestRunner(i, threadnum, size, scene){run};
   }
 
   taskexit(s{!initialstate});

@@ -15,26 +15,35 @@ public class TestRunner extends RayTracer {
 
   public TestRunner(int id, 
                     int numCore,
-                    int size) {
+                    int size,
+                    Scene scene) {
     super();
     this.id = id;
     this.numCore = numCore;
     this.size = size;
 
+    // create the objects to be rendered
+    this.scene = scene; //createScene();
+    
     // set image size
     width=size;
     height=size;
-    this.image=new int[size][];
+    // get lights, objects etc. from scene.
+    setScene(this.scene);
 
-    // create the objects to be rendered
-    scene = createScene();
+    numobjects = this.scene.getObjects();
+    /*this.image=new int[size][];
 
     // get lights, objects etc. from scene.
     setScene(scene);
 
-    numobjects = scene.getObjects();
+    numobjects = scene.getObjects();*/
   }
 
+  public void init() {
+    this.image=new int[this.size][];
+  }
+  
   public void JGFvalidate() {
     // long refval[] = {2676692,29827635};
 //  long refval[] = new long[2];
@@ -58,6 +67,7 @@ public class TestRunner extends RayTracer {
   }
 
   public void run() {
+    this.init();
 
     int heightPerCore=height/numCore;
     int startidx=heightPerCore * this.id;

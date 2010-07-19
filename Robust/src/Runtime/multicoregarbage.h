@@ -27,13 +27,17 @@
 #define GCINFOLENGTH 100
 
 typedef struct gc_info {
-  unsigned long long time[8];
+  unsigned long long time[12];
   int index;
 } GCInfo;
 
 GCInfo * gc_infoArray[GCINFOLENGTH];
 int gc_infoIndex;
 bool gc_infoOverflow;
+unsigned long long gc_num_livespace;
+unsigned long long gc_num_freespace;
+unsigned long long gc_num_lobjspace;
+unsigned int gc_num_lobj;
 
 // TODO
 /*unsigned long long flushstalltime;
@@ -43,6 +47,7 @@ int num_mapinforequest_i;*/
 unsigned int gc_num_liveobj;
 unsigned int gc_num_obj;
 unsigned int gc_num_forwardobj;
+int gc_num_profiles;
 #endif // GC_PROFILE_S
 
 #endif // GC_PROFILE
@@ -125,7 +130,11 @@ void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
 //                                  + NUMCORES4GC bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
+#ifdef GC_SMALLPAGESIZE
+#define BAMBOO_RMSP_SIZE (1024 * 1024)
+#else
 #define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
+#endif
 mspace bamboo_rmsp;
 // shared pointer mapping tbl
 //volatile struct GCSharedHash * gcsharedptbl;

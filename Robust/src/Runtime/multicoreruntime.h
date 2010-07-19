@@ -213,6 +213,9 @@ typedef enum {
   GCLOBJREQUEST,         // 0xF4
   GCLOBJINFO,            // 0xF5
   GCLOBJMAPPING,         // 0xF6
+#ifdef GC_PROFILE_S
+  GCPROFILES,            // 0xF7
+#endif
 #endif
   MSGEND
 } MSGTYPE;
@@ -282,9 +285,21 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_SMEM_SIZE (64 * 64) // (BAMBOO_PAGE_SIZE)
 #define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) *(BAMBOO_NUM_PAGES))
 #else
+#ifdef GC_LARGESHAREDHEAP
+#define BAMBOO_NUM_PAGES (62*(2+7))
+#else
 #define BAMBOO_NUM_PAGES (62*(2+3)) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#endif
+#ifdef GC_LARGEPAGESIZE
 #define BAMBOO_PAGE_SIZE (4 * 1024 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (4 * 1024 * 1024)
+#elif defined GC_SMALLPAGESIZE
+#define BAMBOO_PAGE_SIZE (256 * 1024)  // (4096)
+#define BAMBOO_SMEM_SIZE (256 * 1024)
+#else
+#define BAMBOO_PAGE_SIZE (1024 * 1024)  // (4096)
+#define BAMBOO_SMEM_SIZE (1024 * 1024)
+#endif // GC_LARGEPAGESIZE
 #define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) * (BAMBOO_NUM_PAGES)) //(1024 * 1024 * 240)
 //((unsigned long long int)(3.0 * 1024 * 1024 * 1024)) // 3G 
 #endif // GC_DEBUG

@@ -7,7 +7,7 @@ public class TestRunner {
   
   public void run() {
     // generate test data
-    int iter = 1000; //200;
+    int iter = 1200; //200;
     int seed = 1967;
     //Vector testdata = new Vector(iter);
     FibHeap fh = new FibHeap();
