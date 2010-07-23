@@ -30,6 +30,7 @@ import IR.Operation;
 import IR.State;
 import IR.TypeUtil;
 import IR.Flat.FKind;
+import IR.Flat.FlatCall;
 import IR.Flat.FlatEdge;
 import IR.Flat.FlatElementNode;
 import IR.Flat.FlatFieldNode;
@@ -1080,11 +1081,11 @@ private void codePlansForward( FlatMethod fm ) {
         conflictGraph = new ConflictGraph();
       }
 
-      if( fn instanceof FlatFieldNode){
-        FlatFieldNode ffn = (FlatFieldNode)fn;
+      if (fn instanceof FlatFieldNode) {
+        FlatFieldNode ffn = (FlatFieldNode) fn;
         rhs = ffn.getSrc();
-      }else{
-        FlatElementNode fen = (FlatElementNode)fn;
+      } else {
+        FlatElementNode fen = (FlatElementNode) fn;
         rhs = fen.getSrc();
       }
 
@@ -1106,16 +1107,16 @@ private void codePlansForward( FlatMethod fm ) {
         conflictGraph = new ConflictGraph();
       }
 
-      if( fn instanceof FlatSetFieldNode){
+      if (fn instanceof FlatSetFieldNode) {
         FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
         lhs = fsfn.getDst();
         rhs = fsfn.getSrc();
-      }else{
+      } else {
         FlatSetElementNode fsen = (FlatSetElementNode) fn;
         lhs = fsen.getDst();
         rhs = fsen.getSrc();
       }
-      
+
       // collects effects of stall site and generates stall site node
       Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
       conflictGraph.addStallSite(taint2Effects, rhs);
@@ -1126,6 +1127,26 @@ private void codePlansForward( FlatMethod fm ) {
       }
     }
       break;
+
+    case FKind.FlatCall: {
+      conflictGraph = sese2conflictGraph.get(currentSESE);
+      if (conflictGraph == null) {
+        conflictGraph = new ConflictGraph();
+      }
+
+      FlatCall fc = (FlatCall) fn;
+      lhs = fc.getThis();
+
+      // collects effects of stall site and generates stall site node
+      Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+      conflictGraph.addStallSite(taint2Effects, lhs);
+      if (conflictGraph.id2cn.size() > 0) {
+        sese2conflictGraph.put(currentSESE, conflictGraph);
+      }
+    }
+
+      break;
+
     }
 
   }
@@ -1312,7 +1333,6 @@ private void codePlansForward( FlatMethod fm ) {
         for (Iterator iterator = coarseToCover.iterator(); iterator.hasNext();) {
 
           ConflictEdge edge = (ConflictEdge) iterator.next();
-
           if (seseLock.getConflictNodeSet().size() == 0) {
             // initial setup
             if (seseLock.hasSelfCoarseEdge(edge.getVertexU())) {
@@ -1321,14 +1341,18 @@ private void codePlansForward( FlatMethod fm ) {
                 // and it is not parent
                 type = ConflictNode.SCC;
               } else {
-                type = ConflictNode.PARENT_COARSE;
+                type = ConflictNode.PARENT_WRITE;
               }
               seseLock.addConflictNode(edge.getVertexU(), type);
             } else {
               if (edge.getVertexU().isStallSiteNode()) {
-                type = ConflictNode.PARENT_COARSE;
+                if(edge.getVertexU().getWriteEffectSet().isEmpty()){
+                  type = ConflictNode.PARENT_READ;
+                }else{
+                  type = ConflictNode.PARENT_WRITE;
+                }
               } else {
-                type = ConflictNode.COARSE;
+                  type = ConflictNode.COARSE;
               }
               seseLock.addConflictNode(edge.getVertexU(), type);
             }
@@ -1338,12 +1362,16 @@ private void codePlansForward( FlatMethod fm ) {
                 // and it is not parent
                 type = ConflictNode.SCC;
               } else {
-                type = ConflictNode.PARENT_COARSE;
+                type = ConflictNode.PARENT_WRITE;
               }
               seseLock.addConflictNode(edge.getVertexV(), type);
             } else {
-              if (edge.getVertexV().isStallSiteNode()) {
-                type = ConflictNode.PARENT_COARSE;
+              if (edge.getVertexV().isStallSiteNode()) {                
+                if(edge.getVertexV().getWriteEffectSet().isEmpty()){
+                  type = ConflictNode.PARENT_READ;
+                }else{
+                  type = ConflictNode.PARENT_WRITE;
+                }                
               } else {
                 type = ConflictNode.COARSE;
               }
@@ -1360,6 +1388,14 @@ private void codePlansForward( FlatMethod fm ) {
             // new node has a coarse-grained edge to all fine-read, fine-write,
             // parent
             changed = true;
+            
+            if(newNode.isInVarNode() &&
+                (!seseLock.hasSelfCoarseEdge(newNode)) &&
+                seseLock.hasCoarseEdgeWithParentCoarse(newNode)){
+              // this case can't be covered by this queue
+              coarseToCover.remove(edge);
+              break;
+            }
 
             if (seseLock.hasSelfCoarseEdge(newNode)) {
               // SCC

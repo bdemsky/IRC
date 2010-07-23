@@ -32,7 +32,7 @@ public class SESELock {
   }
 
   public void addConflictEdge(ConflictEdge e) {
-    conflictEdgeSet.add(e);
+      conflictEdgeSet.add(e);
   }
 
   public boolean containsConflictEdge(ConflictEdge e) {
@@ -58,6 +58,39 @@ public class SESELock {
       ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
 
       if (conflictEdge.isCoarseEdge() && conflictEdge.getVertexU() == conflictEdge.getVertexV()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public boolean hasSelfEdge(ConflictNode node) {
+
+    Set<ConflictEdge> set = node.getEdgeSet();
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+      ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+
+      if ((!conflictEdge.isCoarseEdge()) && conflictEdge.getVertexU() == conflictEdge.getVertexV()) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  public boolean hasCoarseEdgeWithParentCoarse(ConflictNode node) {
+
+    Set<ConflictEdge> set = node.getEdgeSet();
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+      ConflictEdge conflictEdge = (ConflictEdge) iterator.next();
+
+      ConflictNode cNode;
+      if (conflictEdge.getVertexU() == node) {
+        cNode = conflictEdge.getVertexV();
+      } else {
+        cNode = conflictEdge.getVertexU();
+      }
+      Integer cNodeTypeIn = nodeTypeMap.get(cNode);
+      if (cNodeTypeIn != null && cNodeTypeIn.intValue() == ConflictNode.PARENT_COARSE) {
         return true;
       }
     }

@@ -289,8 +289,8 @@ public class ConflictGraph {
       Iterator effectItrB = readTableB.entrySet().iterator();
       while (effectItrB.hasNext()) {
         Map.Entry meB = (Map.Entry) effectItrB.next();
-        AllocSite asB = (AllocSite) meA.getKey();
-        Set<Effect> esB = (Set<Effect>) meA.getValue();
+        AllocSite asB = (AllocSite) meB.getKey();
+        Set<Effect> esB = (Set<Effect>) meB.getValue();
 
         for (Iterator iterator = strongUpdateSetA.iterator(); iterator.hasNext();) {
           Effect strongUpdateA = (Effect) iterator.next();
@@ -319,8 +319,8 @@ public class ConflictGraph {
       effectItrB = writeTableB.entrySet().iterator();
       while (effectItrB.hasNext()) {
         Map.Entry meB = (Map.Entry) effectItrB.next();
-        AllocSite asB = (AllocSite) meA.getKey();
-        Set<Effect> esB = (Set<Effect>) meA.getValue();
+        AllocSite asB = (AllocSite) meB.getKey();
+        Set<Effect> esB = (Set<Effect>) meB.getValue();
 
         for (Iterator iterator = strongUpdateSetA.iterator(); iterator.hasNext();) {
           Effect strongUpdateA = (Effect) iterator.next();
@@ -618,6 +618,7 @@ public class ConflictGraph {
               newElement.setStatus(seseLock.getNodeType(node));
               if (isFineElement(newElement.getStatus())) {
                 newElement.setDynID(node.getVar().toString());
+                newElement.setTempDesc(node.getVar());
               }
               waitingElementSet.add(newElement);
             }
