@@ -41,7 +41,7 @@ public class TestRunner extends RayTracer {
   }
 
   public void init() {
-    this.image=new int[this.size][];
+    this.image=new int[this.size/this.numCore][];
   }
   
   public void JGFvalidate() {

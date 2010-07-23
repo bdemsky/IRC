@@ -18,6 +18,7 @@
 #endif
 #endif
 
+#define GC_SHIFT_BITS 4
 
 /* mgchash ********************************************************/
 mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
@@ -49,7 +50,7 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
   ctable->size = size;
   ctable->threshold=size*loadfactor;
 
-  ctable->mask = (size << 6)-1;
+  ctable->mask = (size << (GC_SHIFT_BITS))-1;
   //ctable->list = NULL;
   ctable->structs = (mgcliststruct_t*)RUNMALLOC(1*sizeof(mgcliststruct_t));
   ctable->numelements = 0; // Initial number of elements in the hash
@@ -77,13 +78,13 @@ void mgchashreset(mgchashtable_t * tbl) {
 	BAMBOO_MEMSET_WH(tbl->table, '\0', sizeof(mgchashlistnode_t)*tbl->size);
   //}
   // TODO now never release any allocated memory, may need to be changed
-  mgcliststruct_t * next = tbl->structs;
-  while(/*tbl->structs->*/next!=NULL) {
-    /*mgcliststruct_t * next = tbl->structs->next;
+  //mgcliststruct_t * next = tbl->structs;
+  while(tbl->structs->next!=NULL) {
+    mgcliststruct_t * next = tbl->structs->next;
     RUNFREE(tbl->structs);
-    tbl->structs=next;*/
-	next->num = 0;
-	next = next->next;
+    tbl->structs=next;
+	/*next->num = 0;
+	next = next->next;*/
   }
   //tbl->structs->num = 0;
   tbl->numelements = 0;
@@ -99,7 +100,7 @@ void mgchashInsert(mgchashtable_t * tbl, void * key, void *val) {
     mgchashResize(tbl, newsize);
   }
 
-  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6]; 
+  ptr=&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>(GC_SHIFT_BITS)]; 
   tbl->numelements++;
 
   if(ptr->key==0) {
@@ -160,7 +161,7 @@ mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
   ctable->size = size;
   ctable->threshold=size*loadfactor;
 
-  ctable->mask = (size << 6)-1;
+  ctable->mask = (size << (GC_SHIFT_BITS))-1;
   //ctable->list = NULL;
   ctable->structs = (mgcliststruct_t*)RUNMALLOC_I(1*sizeof(mgcliststruct_t));
   ctable->numelements = 0; // Initial number of elements in the hash
@@ -177,7 +178,7 @@ void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val) {
     mgchashResize_I(tbl, newsize);
   }
 
-  ptr = &tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
+  ptr = &tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>(GC_SHIFT_BITS)];
   tbl->numelements++;
 
   if(ptr->key==0) {
@@ -212,7 +213,8 @@ void mgchashInsert_I(mgchashtable_t * tbl, void * key, void *val) {
 // Search for an address for a given oid
 INLINE void * mgchashSearch(mgchashtable_t * tbl, void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE]
-  mgchashlistnode_t *node = &tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>6];
+  mgchashlistnode_t *node = 
+	&tbl->table[(((unsigned INTPTR)key)&tbl->mask)>>(GC_SHIFT_BITS)];
 
   do {
     if(node->key == key) {
@@ -245,7 +247,7 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
   tbl->table = node; //Update the global hashtable upon resize()
   tbl->size = newsize;
   tbl->threshold = newsize * tbl->loadfactor;
-  mask = tbl->mask = (newsize << 6) - 1;
+  mask = tbl->mask = (newsize << (GC_SHIFT_BITS)) - 1;
   //tbl->list = NULL;
 
   for(i = 0; i < oldsize; i++) {   //Outer loop for each bin in hash table
@@ -260,7 +262,7 @@ unsigned int mgchashResize(mgchashtable_t * tbl, unsigned int newsize) {
 		break;
 		//key = val =0 for element if not present within the hash table
 	  }
-      index = (((unsigned INTPTR)key) & mask) >> 6;
+      index = (((unsigned INTPTR)key) & mask) >> (GC_SHIFT_BITS);
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
@@ -320,7 +322,7 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
   tbl->table = node;  //Update the global hashtable upon resize()
   tbl->size = newsize;
   tbl->threshold = newsize * tbl->loadfactor;
-  mask = tbl->mask = (newsize << 6)-1;
+  mask = tbl->mask = (newsize << (GC_SHIFT_BITS))-1;
   //tbl->list = NULL;
 
   for(i = 0; i < oldsize; i++) {  //Outer loop for each bin in hash table
@@ -335,7 +337,7 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
 		break;
 		//key = val =0 for element if not present within the hash table
       }
-      index = (((unsigned INTPTR)key) & mask) >>6;
+      index = (((unsigned INTPTR)key) & mask) >> (GC_SHIFT_BITS);
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
@@ -426,7 +428,9 @@ int MGCHashadd(struct MGCHash * thisvar, int data) {
   unsigned int hashkey;
   struct MGCNode *ptr;
 
-  hashkey = (unsigned int)data % thisvar->size;
+  int mask = (thisvar->size << (GC_SHIFT_BITS))-1;
+  hashkey = (((unsigned INTPTR)data)&mask)>>(GC_SHIFT_BITS); 
+  //hashkey = (unsigned int)data % thisvar->size;
   ptr = &thisvar->bucket[hashkey];
 
   struct MGCNode * prev = NULL;
@@ -476,7 +480,9 @@ int MGCHashadd_I(struct MGCHash * thisvar, int data) {
   unsigned int hashkey;
   struct MGCNode *ptr;
 
-  hashkey = (unsigned int)data % thisvar->size;
+  int mask = (thisvar->size << (GC_SHIFT_BITS))-1;
+  hashkey = (((unsigned INTPTR)data)&mask)>>(GC_SHIFT_BITS);
+  //hashkey = (unsigned int)data % thisvar->size;
   ptr = &thisvar->bucket[hashkey];
 
   struct MGCNode * prev = NULL;
@@ -502,7 +508,9 @@ int MGCHashadd_I(struct MGCHash * thisvar, int data) {
 #endif
 
 int MGCHashcontains(struct MGCHash *thisvar, int data) {
-  unsigned int hashkey = (unsigned int)data % thisvar->size;
+  int mask = (thisvar->size << (GC_SHIFT_BITS))-1;
+  unsigned int hashkey = (((unsigned INTPTR)data)&mask)>>(GC_SHIFT_BITS);
+  //unsigned int hashkey = (unsigned int)data % thisvar->size;
 
   struct MGCNode *ptr = thisvar->bucket[hashkey].next;
   struct MGCNode *prev = NULL;

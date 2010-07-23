@@ -71,7 +71,7 @@ public class RayTracer {
   // int datasizes[] = { 150, 500 };
   int datasizes[];
 
-  long checksum;
+  public long checksum;
 
   int size;
 
@@ -232,7 +232,7 @@ public class RayTracer {
         row[x]= alpha | (red << 16) | (green << 8) | (blue);
       } // end for (x)
 
-      image[y]=row;
+      image[y-interval.yfrom]=row;
     } // end for (y)
 
 

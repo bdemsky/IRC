@@ -61,7 +61,7 @@ public class Sphere extends Primitive
     if (disc < 0.0) {
       return null;
     }
-    disc = (float) Math.sqrt(disc);
+    disc = (float) Math.sqrtf((float)disc);
     t = (b - disc < 1e-6) ? b + disc : b - disc;
     if (t < 1e-6) {
       return null;

@@ -213,7 +213,7 @@ typedef enum {
   GCLOBJREQUEST,         // 0xF4
   GCLOBJINFO,            // 0xF5
   GCLOBJMAPPING,         // 0xF6
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
   GCPROFILES,            // 0xF7
 #endif
 #endif
@@ -278,6 +278,13 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_BASE_VA 0xd000000
 #endif // MULTICORE_GC
 #endif // TILERA_BME
+
+#ifdef BAMBOO_MEMPROF
+#define GC_BAMBOO_NUMCORES 56
+#else
+#define GC_BAMBOO_NUMCORES 62
+#endif
+
 #ifdef GC_DEBUG
 #include "structdefs.h"
 #define BAMBOO_NUM_PAGES (NUMCORES4GC*(2+1)+3)
@@ -286,9 +293,9 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_PAGE_SIZE) *(BAMBOO_NUM_PAGES))
 #else
 #ifdef GC_LARGESHAREDHEAP
-#define BAMBOO_NUM_PAGES (62*(2+7))
+#define BAMBOO_NUM_PAGES ((GC_BAMBOO_NUMCORES)*(2+2))
 #else
-#define BAMBOO_NUM_PAGES (62*(2+3)) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_NUM_PAGES ((GC_BAMBOO_NUMCORES)*(2+3)) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
 #ifdef GC_LARGEPAGESIZE
 #define BAMBOO_PAGE_SIZE (4 * 1024 * 1024)  // (4096)
@@ -410,6 +417,9 @@ INLINE void initCommunication(void);
 INLINE void fakeExecution(void);
 INLINE void terminate(void);
 INLINE void initlock(struct ___Object___ * v);
+#ifdef BAMBOO_MEMPROF
+INLINE void terminatememprof(void);
+#endif
 
 // lock related functions
 bool getreadlock(void* ptr);

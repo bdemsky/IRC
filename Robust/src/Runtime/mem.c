@@ -22,12 +22,13 @@ void * mycalloc_share(struct garbagelist * stackptr,
 		              int m, 
 					  int size) {
 	void * p = NULL;
-  int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
+  //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
+  int isize = (size & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE);
 	bool hasgc = false;
 memalloc:
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
-	tprintf("ask for shared mem: %x \n", isize);
+	tprintf("ask for shared mem: %x, %x, %x \n", isize, size, BAMBOO_CACHE_LINE_MASK);
 #endif
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
 #ifdef DEBUG
@@ -97,7 +98,8 @@ void mycalloc_free_ngc_I(void * ptr) {
 void * mycalloc_share(int m, 
 		                  int size) {
   void * p = NULL;
-  int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
+  //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
+  int isize = (size & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE);
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {

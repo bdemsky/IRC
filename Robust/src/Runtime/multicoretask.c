@@ -303,7 +303,7 @@ void initruntimedata() {
 		-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
   gcmem_mixed_usedmem = 0;
 #endif
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
   gc_num_obj = 0;
   gc_num_liveobj = 0;
   gc_num_forwardobj = 0;
@@ -599,7 +599,9 @@ void checkCoreStatus() {
 
 	  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
 	  //BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
+#ifndef BAMBOO_MEMPROF
 	  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
+#endif
 #endif
 	  // profile mode, send msgs to other cores to request pouring
 	  // out progiling data
@@ -650,6 +652,9 @@ void checkCoreStatus() {
 #endif
 
 	  // gc_profile mode, ourput gc prfiling data
+#ifdef BAMBOO_MEMPROF
+	  //terminatememprof();
+#endif // #ifndef BAMBOO_MEMPROF
 #ifdef MULTICORE_GC
 #ifdef GC_PROFILE
 	  gc_outputProfileData();
@@ -698,6 +703,7 @@ inline void run(void * arg) {
   BAMBOO_DEBUGPRINT_REG(corenum);
   BAMBOO_DEBUGPRINT(STARTUPCORE);
 #endif
+ //BAMBOO_DEBUGPRINT(0xeeee); // TODO
 
   // initialize runtime data structures
   initruntimedata();
@@ -1940,7 +1946,7 @@ INLINE int checkMsgLength_I(int size) {
 #ifdef MULTICORE_GC
   case GCFINISHMARK:
   case GCMOVESTART:
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
   case GCPROFILES:
 #endif
 #endif
@@ -2892,7 +2898,7 @@ INLINE void processmsg_gclobjmapping_I() {
   mgcsharedhashInsert_I(gcsharedptbl, data1, data2);
 }
 
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
 INLINE void processmsg_gcprofiles_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -3181,7 +3187,7 @@ processmsg:
       break;
     }                     // case GCLOBJMAPPING
 
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
 	case GCPROFILES: {
       // received a gcprofiles msg
       processmsg_gcprofiles_I();

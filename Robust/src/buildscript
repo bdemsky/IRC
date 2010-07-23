@@ -52,7 +52,7 @@ echo "-gcsmallpagesize set the gc shared memory to use small page size (should b
 echo "-gclargepagesize set the gc shared memory to use large page size (should be used together with -multicoregc)"
 echo "-gclargesharedheap set the gc shared memory as large (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
-echo -gcprofile_s build with gcprofile_s options
+echo "-tilera_memprof build the memprof version (should be used together with -tilera_xx) "
 echo -accurateprofile build with accurate profile information including pre/post task processing info
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo
@@ -128,6 +128,7 @@ RAWFLAG=false
 TILERAFLAG=false
 TILERABMEFLAG=false
 TILERAZLINUXFLAG=false
+TILERAMEMPROF=false
 TILERACONFIG=''
 CACHEFLUSHFLAG=false
 RAWCONFIG=''
@@ -363,6 +364,9 @@ elif [[ $1 = '-tilera_zlinux' ]]
 then
 TILERAFLAG=true
 TILERAZLINUXFLAG=true
+elif [[ $1 = '-tilera_memprof' ]]
+then
+TILERAMEMPROFFLAG=true
 elif [[ $1 = '-tileraconfig' ]]
 then
 TILERACONFIG="$2"
@@ -746,12 +750,19 @@ then # TILERAZLINUXFLAG
 TILERA_INDIR="ZLinux"
 MAKEFILE="Makefile.tilera.$TILERACONFIG"
 fi
+
 mkdir $TILERADIR
 cd $TILERADIR
 make clean
 rm ./*
 
 export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT -DTILERA"
+
+if $TILERAMEMPROFFLAG
+then # not only with 1 core
+  PCIHVC="$PCIHVC.memprof"
+  TILERACFLAGS="${TILERACFLAGS} -DBAMBOO_MEMPROF"
+fi
 
 if $TILERABMEFLAG
 then # TILERABMEFLAG
@@ -909,6 +920,10 @@ if $TILERAZLINUXFLAG
 then # TILERAZLINUXFLAG
 cp ../Tilera/Runtime/$TILERA_INDIR/*.S ./
 fi
+#if $TILERAMEMPROFFLAG
+#then # TILERAMEMPROFFLAG
+cp ../Tilera/Runtime/$TILERA_INDIR/linux_client.c ./
+#fi
 cp ../Tilera/lib/* ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./

@@ -50,7 +50,7 @@
 task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
-  int threadnum = 62;
+  int threadnum = 56; //62;
   for(int i = 0; i < threadnum; ++i) {
     TestRunner gcb = new TestRunner(){run};
   }
@@ -83,11 +83,11 @@ public class TestRunner {
   public static final int kMaxTreeDepth;// = 16;
   
   public TestRunner() {
-    kStretchTreeDepth    = 15;// 1Mb 18;  // about 16Mb
-    kLongLivedTreeDepth  = 14; // 1/4Mb 16;  // about 4Mb
-    kArraySize  = 125000; // 1/4Mb 500000;  // about 4Mb
+    kStretchTreeDepth    = 16;// 4Mb 18;  // about 16Mb
+    kLongLivedTreeDepth  = 14; // 1Mb 16;  // about 4Mb
+    kArraySize  = 250000; // 1Mb 500000;  // about 4Mb
     kMinTreeDepth = 4;
-    kMaxTreeDepth = 16;
+    kMaxTreeDepth = 14;
   }
 
   // Nodes used by a tree of a given size
@@ -131,6 +131,17 @@ public class TestRunner {
         + lTotalMemory + " bytes");
     System.out.println("  Free memory=" + lFreeMemory + " bytes");
   }*/
+  
+  void tc1(int depth) {
+    Node tempTree = new Node();
+    Populate(depth, tempTree);
+    tempTree = null;
+  }
+  
+  void tc2(int depth) {
+    Node tempTree = MakeTree(depth);
+    tempTree = null;
+  }
 
   void TimeConstruction(int depth) {
     Node    root;
@@ -142,17 +153,19 @@ public class TestRunner {
         " trees of depth " + depth);
     tStart = System.currentTimeMillis();*/
     for (int i = 0; i < iNumIters; ++i) {
-      tempTree = new Node();
+      /*tempTree = new Node();
       Populate(depth, tempTree);
-      tempTree = null;
+      tempTree = null;*/
+      tc1(depth);
     }
     /*tFinish = System.currentTimeMillis();
     System.out.println("\tTop down construction took "
         + (tFinish - tStart) + "msecs");
     tStart = System.currentTimeMillis();*/
     for (int i = 0; i < iNumIters; ++i) {
-      tempTree = MakeTree(depth);
-      tempTree = null;
+      /*tempTree = MakeTree(depth);
+      tempTree = null;*/
+      tc2(depth);
     }
     /*tFinish = System.currentTimeMillis();
     System.out.println("\tBottom up construction took "

@@ -666,7 +666,11 @@ inline void initGC() {
   freeRuntimeHash(gcpointertbl);
   gcpointertbl = allocateRuntimeHash(20);
 #else
+  // TODO
+  //tprintf("++local hash table element: %x \n", gcpointertbl->numelements);
   mgchashreset(gcpointertbl);
+  // TODO
+  //tprintf("==local hash table element: %x \n", gcpointertbl->numelements);
 #endif
   //gcpointertbl = allocateMGCHash(20);
 
@@ -682,7 +686,9 @@ inline void initGC() {
   }
   // Zero out the remaining bamboo_cur_msp 
   // Only zero out the first 4 bytes of the remaining memory
-  if((bamboo_cur_msp != 0) && (bamboo_smem_zero_top == bamboo_cur_msp)) {
+  if((bamboo_cur_msp != 0) 
+	  && (bamboo_smem_zero_top == bamboo_cur_msp) 
+	  && (bamboo_smem_size > 0)) {
 	*((int *)bamboo_cur_msp) = 0;
   }
 #ifdef GC_PROFILE
@@ -697,8 +703,10 @@ inline void initGC() {
   gc_num_freespace = 0;
   gc_num_lobj = 0;
   gc_num_lobjspace = 0;
-#endif
-#ifdef GC_PROFILE_S
+//#endif
+//#ifdef GC_PROFILE_S
+  gc_num_liveobj = 0;
+  gc_num_forwardobj = 0;
   gc_num_profiles = NUMCORESACTIVE - 1;
 #endif
 } // void initGC()
@@ -714,6 +722,7 @@ inline int loadbalance(int * heaptop) {
     tloads += gcloads[i];
   }
   *heaptop = gcbaseva + tloads;
+
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xdddd);
   BAMBOO_DEBUGPRINT_REG(tloads);
@@ -802,12 +811,13 @@ inline bool cacheLObjs() {
 #endif
   // check if there are enough space to cache these large objs
   INTPTR dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE) -sumsize;
-  if(gcheaptop > dst) {
+  if((unsigned long long)gcheaptop > (unsigned long long)dst) {
     // do not have enough room to cache large objs
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe802);
     BAMBOO_DEBUGPRINT_REG(dst);
     BAMBOO_DEBUGPRINT_REG(gcheaptop);
+	BAMBOO_DEBUGPRINT_REG(sumsize);
 #endif
     return false;
   }
@@ -1232,9 +1242,9 @@ inline void markObj(void * objptr) {
 		/*
 		marktime += BAMBOO_GET_EXE_TIME() - ttime;
 		num_markrequest++;*/
-#ifdef GC_PROFILE_S
+//#ifdef GC_PROFILE_S
 		gc_num_forwardobj++;
-#endif // GC_PROFILE_S
+//#endif // GC_PROFILE_S
 #endif // GC_PROFILE
 		gcself_numsendobjs++;
 		MGCHashadd(gcforwardobjtbl, (int)objptr);
@@ -1988,7 +1998,7 @@ innermoveobj:
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe204);
 #endif
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
 	gc_num_liveobj++;
 #endif
     // marked obj, copy it to current heap top
@@ -2827,7 +2837,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%x,%x) Start flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
   /*BAMBOO_DEBUGPRINT(0xaaaa);
   BAMBOO_DEBUGPRINT_REG(gc_num_obj);
   BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
@@ -2838,6 +2848,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
 	send_msg_4(STARTUPCORE, GCPROFILES, gc_num_obj, 
 		gc_num_liveobj, gc_num_forwardobj, false);
   }
+  gc_num_obj = 0;
 #endif // GC_PROFLIE_S
   flush(stackptr);
 #ifdef RAWPATH // TODO GC_DEBUG
@@ -2891,7 +2902,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Start flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
-#ifdef GC_PROFILE_S
+#ifdef GC_PROFILE//_S
   /*BAMBOO_DEBUGPRINT(0xaaaa);
   BAMBOO_DEBUGPRINT_REG(gc_num_obj);
   BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
@@ -2901,6 +2912,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 	send_msg_4(STARTUPCORE, GCPROFILES, gc_num_obj, 
 		gc_num_liveobj, gc_num_forwardobj, false);
   }
+  gc_num_obj = 0;
 #endif // GC_PROFLIE_S
   flush(stackptr);
 #ifdef RAWPATH // TODO GC_DEBUG
@@ -3290,7 +3302,8 @@ inline void gc(struct garbagelist * stackptr) {
 		   udn_tile_coord_y());
     //dumpSMem();
 #endif
-#ifdef GC_PROFILE_S
+	//BAMBOO_DEBUGPRINT(0x1111); // TODO
+/*#ifdef GC_PROFILE_S
   BAMBOO_DEBUGPRINT(0xaaaa);
   BAMBOO_DEBUGPRINT_REG(gc_num_obj);
   BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
@@ -3303,7 +3316,10 @@ inline void gc(struct garbagelist * stackptr) {
 	BAMBOO_DEBUGPRINT_REG(gc_num_freespace);
 	BAMBOO_DEBUGPRINT(0xaaad);
   }
-#endif // GC_PROFLIE_S
+  gc_num_obj = gc_num_liveobj;
+  gc_num_liveobj = 0;
+  gc_num_forwardobj = 0;
+#endif // GC_PROFLIE_S*/
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
     gcprocessing = true;
     gc_collect(stackptr);
@@ -3353,6 +3369,9 @@ inline void gc_profileEnd(void) {
 	gcInfo->time[gcInfo->index++] = gc_num_freespace;
 	gcInfo->time[gcInfo->index++] = gc_num_lobj;
 	gcInfo->time[gcInfo->index++] = gc_num_lobjspace;
+	gcInfo->time[gcInfo->index++] = gc_num_obj;
+	gcInfo->time[gcInfo->index++] = gc_num_liveobj;
+	gcInfo->time[gcInfo->index++] = gc_num_forwardobj;
     gc_infoIndex++;
     if(gc_infoIndex == GCINFOLENGTH) {
       gc_infoOverflow = true;
@@ -3363,7 +3382,7 @@ inline void gc_profileEnd(void) {
 
 // output the profiling data
 void gc_outputProfileData() {
-#ifdef USEIO
+/*#ifdef USEIO
   int i,j;
   unsigned long long totalgc = 0;
 
@@ -3386,18 +3405,23 @@ void gc_outputProfileData() {
   }
 
   printf("\n\n total gc time: %lld \n", totalgc);
-#else
+#else*/
   int i = 0;
   int j = 0;
   unsigned long long totalgc = 0;
 
+#ifndef BAMBOO_MEMPROF
   BAMBOO_DEBUGPRINT(0xdddd);
+#endif
   // output task related info
   for(i= 0; i < gc_infoIndex; i++) {
     GCInfo * gcInfo = gc_infoArray[i];
-    unsigned long long tmp = 0;
+#ifdef BAMBOO_MEMPROF
+    unsigned long long tmp=gcInfo->time[gcInfo->index-8]-gcInfo->time[0]; //0;
+#else
+	unsigned long long tmp = 0;
     BAMBOO_DEBUGPRINT(0xddda);
-    for(j = 0; j < gcInfo->index - 4; j++) {
+    for(j = 0; j < gcInfo->index - 7; j++) {
       BAMBOO_DEBUGPRINT(gcInfo->time[j]);
       BAMBOO_DEBUGPRINT(gcInfo->time[j]-tmp);
       BAMBOO_DEBUGPRINT(0xdddb);
@@ -3406,22 +3430,30 @@ void gc_outputProfileData() {
     tmp = (tmp-gcInfo->time[0]);
     BAMBOO_DEBUGPRINT_REG(tmp);
 	BAMBOO_DEBUGPRINT(0xdddc);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 7]);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 6]);
+	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 5]);
 	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 4]);
 	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 3]);
 	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 2]);
 	BAMBOO_DEBUGPRINT(gcInfo->time[gcInfo->index - 1]);
     BAMBOO_DEBUGPRINT(0xddde);
+#endif
     totalgc += tmp;
   }
+#ifndef BAMBOO_MEMPROF
   BAMBOO_DEBUGPRINT(0xdddf);
+#endif
   BAMBOO_DEBUGPRINT_REG(totalgc);
 
   if(gc_infoOverflow) {
     BAMBOO_DEBUGPRINT(0xefee);
   }
 
+#ifndef BAMBOO_MEMPROF
   BAMBOO_DEBUGPRINT(0xeeee);
 #endif
+//#endif
 }
 #endif  // #ifdef GC_PROFILE
 

@@ -27,7 +27,7 @@
 #define GCINFOLENGTH 100
 
 typedef struct gc_info {
-  unsigned long long time[12];
+  unsigned long long time[15];
   int index;
 } GCInfo;
 
@@ -43,12 +43,12 @@ unsigned int gc_num_lobj;
 /*unsigned long long flushstalltime;
 unsigned long long flushstalltime_i;
 int num_mapinforequest_i;*/
-#ifdef GC_PROFILE_S
+//#ifdef GC_PROFILE_S
 unsigned int gc_num_liveobj;
 unsigned int gc_num_obj;
 unsigned int gc_num_forwardobj;
 int gc_num_profiles;
-#endif // GC_PROFILE_S
+//#endif // GC_PROFILE_S
 
 #endif // GC_PROFILE
 
