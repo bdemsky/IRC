@@ -69,7 +69,7 @@ REntry* mlpCreateREntry(int type, void* seseToIssue){
 }
 
 int isParent(REntry *r) {
-  if (r->type==PARENTREAD || r->type==PARENTWRITE) {
+  if (r->type==PARENTREAD || r->type==PARENTWRITE || r->type==PARENTCOARSE) {
     return TRUE;
   } else {
     return FALSE;
@@ -500,8 +500,8 @@ ADDVECTOR(MemoryQueue *Q, REntry *r) {
     void* flag=NULL;
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag); 
     if (flag!=NULL) {
-      if (isParent(r)) { //parent's retire immediately
-        atomic_dec(&V->item.total);
+      if (isParentCoarse(r)) { //parent's retire immediately
+        atomic_dec(&V->item.total);   
       }
       return READY;
     } else {
@@ -723,8 +723,9 @@ RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {
           }
           rptr->item.status=READY; { 
 	  }
-	  ptr=ptr->next;
+
 	} 
+	ptr=ptr->next;
       }while(ptr!=NULL);   
     }
     bin->head=val; // released lock;
