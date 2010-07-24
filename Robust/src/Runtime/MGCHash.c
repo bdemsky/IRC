@@ -86,7 +86,7 @@ void mgchashreset(mgchashtable_t * tbl) {
 	/*next->num = 0;
 	next = next->next;*/
   }
-  //tbl->structs->num = 0;
+  tbl->structs->num = 0;
   tbl->numelements = 0;
 }
 

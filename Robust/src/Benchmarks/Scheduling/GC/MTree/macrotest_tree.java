@@ -1,7 +1,7 @@
 task t1(StartupObject s{initialstate}) {
 	//System.printString("task t1\n");
 	
-	int threadnum = 56; //62;
+	int threadnum = 62; // 56;
     int size = 40000;
     int nodenum = size*10;
 	for(int i = 0; i < threadnum; ++i) {

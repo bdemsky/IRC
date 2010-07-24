@@ -1,7 +1,7 @@
 task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
-  int threadnum = 56; //62;
+  int threadnum = 62; // 56;
   int size = threadnum * 25;
   Composer comp = new Composer(threadnum, size){compose};
   RayTracer rt = new RayTracer();

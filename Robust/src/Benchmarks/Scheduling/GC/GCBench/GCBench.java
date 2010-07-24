@@ -50,7 +50,7 @@
 task t1(StartupObject s{initialstate}) {
   //System.printString("task t1\n");
 
-  int threadnum = 56; //62;
+  int threadnum = 62; // 56;
   for(int i = 0; i < threadnum; ++i) {
     TestRunner gcb = new TestRunner(){run};
   }
