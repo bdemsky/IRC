@@ -17,10 +17,10 @@ public class MergeSort4 extends MergeSort {
     super();
   }
   
-  public void serializedSort(int A[], int B[]){
+  public void serializedSort(int A[]) {
 
     if (A.length <= QUICK_SIZE) {
-      quickSort(A,0,A.length-1);
+      quickSort(A, 0, A.length - 1);
     } else {
 
       int q = A.length / 4;
@@ -53,45 +53,28 @@ public class MergeSort4 extends MergeSort {
         A_quarters3[i - idxs[2]] = A[i];
       }
 
-      int[] B_quarters0 = new int[size0];
-      int[] B_quarters1 = new int[size1];
-      int[] B_quarters2 = new int[size2];
-      int[] B_quarters3 = new int[size3];
+      int h1 = A_quarters0.length + A_quarters1.length;
+      int h2 = A_quarters2.length + A_quarters3.length;
+      int[] B_halves0 = new int[h1];
+      int[] B_halves1 = new int[h2];
 
-      for (int i = 0; i < idxs[0]; i++) {
-        B_quarters0[i] = B[i];
-      }
-      for (int i = idxs[0]; i < idxs[1]; i++) {
-        B_quarters1[i - idxs[0]] = B[i];
-      }
-      for (int i = idxs[1]; i < idxs[2]; i++) {
-        B_quarters2[i - idxs[1]] = B[i];
-      }
-      for (int i = idxs[2]; i < B.length; i++) {
-        B_quarters3[i - idxs[2]] = B[i];
-      }
+      serializedSort(A_quarters0);
+      serializedSort(A_quarters1);
+      serializedSort(A_quarters2);
+      serializedSort(A_quarters3);
 
-      int halfSize = B.length - (2 * q);
-      int[] B_halves0 = new int[halfSize];
-      int[] B_halves1 = new int[halfSize];
+      sequentialMerge(A_quarters0, A_quarters1, B_halves0);
+      sequentialMerge(A_quarters2, A_quarters3, B_halves1);
+      sequentialMerge(B_halves0, B_halves1, A);
 
-      sort(A_quarters0, B_quarters0);
-      sort(A_quarters1, B_quarters1);
-      sort(A_quarters2, B_quarters2);
-      sort(A_quarters3, B_quarters3);
-
-      merge(A_quarters0, A_quarters1, B_halves0);
-      merge(A_quarters2, A_quarters3, B_halves1);
-      merge(B_halves0, B_halves1, A);
-      
     }
-  
+
   }
 
-  public void sort(int A[], int B[]) {
+  public void sort(int A[]) {
     
     if(A.length<=SERIALIZED_CUT_OFF){
-      serializedSort(A, B);
+      serializedSort(A);
     }else{
       if (A.length <= QUICK_SIZE) {
         quickSort(A,0,A.length-1);
@@ -126,40 +109,23 @@ public class MergeSort4 extends MergeSort {
         for (int i = idxs[2]; i < A.length; i++) {
           A_quarters3[i - idxs[2]] = A[i];
         }
-  
-        int[] B_quarters0 = new int[size0];
-        int[] B_quarters1 = new int[size1];
-        int[] B_quarters2 = new int[size2];
-        int[] B_quarters3 = new int[size3];
-  
-        for (int i = 0; i < idxs[0]; i++) {
-          B_quarters0[i] = B[i];
-        }
-        for (int i = idxs[0]; i < idxs[1]; i++) {
-          B_quarters1[i - idxs[0]] = B[i];
-        }
-        for (int i = idxs[1]; i < idxs[2]; i++) {
-          B_quarters2[i - idxs[1]] = B[i];
-        }
-        for (int i = idxs[2]; i < B.length; i++) {
-          B_quarters3[i - idxs[2]] = B[i];
-        }
-  
-        int halfSize = B.length - (2 * q);
-        int[] B_halves0 = new int[halfSize];
-        int[] B_halves1 = new int[halfSize];
+
+        int h1 = A_quarters0.length+A_quarters1.length;
+        int h2 = A_quarters2.length+A_quarters3.length;
+        int[] B_halves0 = new int[h1];
+        int[] B_halves1 = new int[h2];
   
         sese p1{
-          sort(A_quarters0, B_quarters0);
+          sort(A_quarters0);
         }
         sese p2{
-          sort(A_quarters1, B_quarters1);
+          sort(A_quarters1);
         }
         sese p3{
-          sort(A_quarters2, B_quarters2);
+          sort(A_quarters2);
         }
         sese p4{
-          sort(A_quarters3, B_quarters3);
+          sort(A_quarters3);
         }
   
         sese m1{
@@ -173,7 +139,6 @@ public class MergeSort4 extends MergeSort {
         sese m3{
          merge(B_halves0, B_halves1, A);
         }
-        
       }
     }
   }

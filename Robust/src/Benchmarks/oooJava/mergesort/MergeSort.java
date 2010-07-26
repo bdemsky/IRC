@@ -63,14 +63,14 @@ public class MergeSort {
 
   public void runWorkAndTest() {
     sese run{
-      sort(input, result);
+      sort(input);
     }
-//    sese test{
-//      checkSorted(input);
-//    }
+    sese test{
+      checkSorted(input);
+    }
   }
   
-  public void sort(int A[], int B[]){
+  public void sort(int A[]){
   }
 
   protected void checkSorted(int[] array) {
