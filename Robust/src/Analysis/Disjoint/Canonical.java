@@ -1450,8 +1450,8 @@ abstract public class Canonical {
   // BOO, HISS! SESE (rblock) operand does NOT extend
   // Canonical, so we can't cache this op by its
   // canonical arguments--THINK ABOUT A BETTER WAY!
-  public static TaintSet removeTaintsBy( TaintSet          ts,
-                                         FlatSESEEnterNode sese ) {
+  public static TaintSet removeInContextTaints( TaintSet          ts,
+                                                FlatSESEEnterNode sese ) {
     assert ts != null;
     assert ts.isCanonical();
     assert sese != null;
@@ -1463,7 +1463,14 @@ abstract public class Canonical {
     while( tItr.hasNext() ) {
       Taint t = tItr.next();
 
-      if( t.getSESE() == null || !t.getSESE().equals( sese ) ) {
+      // what is allowed through?  stall site taints always
+      // go through, anything where rblock doesn't match is
+      // unaffected, and if the taint has a non-empty predicate
+      // it is out of context so it should go through, too
+      if( t.getSESE() == null ||
+          !t.getSESE().equals( sese ) ||
+          !t.getPreds().isEmpty()
+          ) {
         out.taints.add( t );
       }
     }

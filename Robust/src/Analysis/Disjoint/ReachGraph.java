@@ -244,15 +244,6 @@ public class ReachGraph {
        
     referencer.removeReferencee( edge );
     referencee.removeReferencer( edge );
-
-    // TODO
-
-//    int oldTaint=edge.getTaintIdentifier();
-//    if(referencer instanceof HeapRegionNode){
-//    	depropagateTaintIdentifier((HeapRegionNode)referencer,oldTaint,new HashSet<HeapRegionNode>());
-//    }
-
-
   }
 
   // return whether at least one edge was removed
@@ -1361,9 +1352,9 @@ public class ReachGraph {
       while( reItr.hasNext() ) {
         RefEdge re = reItr.next();
 
-        re.setTaints( Canonical.removeTaintsBy( re.getTaints(),
-                                                sese
-                                                )
+        re.setTaints( Canonical.removeInContextTaints( re.getTaints(),
+                                                       sese
+                                                       )
                       );
       }
     }
