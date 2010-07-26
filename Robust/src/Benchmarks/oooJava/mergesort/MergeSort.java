@@ -14,26 +14,25 @@ public class MergeSort {
   /* Threshold values */
 
   // Cutoff for when to do sequential versus parallel merges
-  public static  int MERGE_SIZE;
+  public static int MERGE_SIZE;
 
   // Cutoff for when to do sequential quicksort versus parallel mergesort
-  public static  int QUICK_SIZE;
+  public static int QUICK_SIZE;
 
   // Cutoff for when to use insertion-sort instead of quicksort
-  public static  int INSERTION_SIZE;
-  
-  public static  int SERIALIZED_CUT_OFF;
+  public static int INSERTION_SIZE;
 
+  public static int SERIALIZED_CUT_OFF;
 
   protected int[] input;
   protected int[] result;
   protected int size;
 
   public void run(int size) {
-    this.size=size;
-    long startT=System.currentTimeMillis();
+    this.size = size;
+    long startT = System.currentTimeMillis();
     initialize();
-    System.out.println("init time="+(System.currentTimeMillis()-startT));
+    System.out.println("init time=" + (System.currentTimeMillis() - startT));
     runWorkAndTest();
   }
 
@@ -44,9 +43,9 @@ public class MergeSort {
   }
 
   public void initialize() {
-    
-    SERIALIZED_CUT_OFF=size/16;
-      
+
+    SERIALIZED_CUT_OFF = size / 32;
+
     input = new int[size];
     result = new int[size];
 
@@ -65,12 +64,12 @@ public class MergeSort {
     sese run{
       sort(input);
     }
-    sese test{
-      checkSorted(input);
-    }
+//    sese test{
+//      checkSorted(input);
+//    }
   }
-  
-  public void sort(int A[]){
+
+  public void sort(int A[]) {
   }
 
   protected void checkSorted(int[] array) {
@@ -86,46 +85,50 @@ public class MergeSort {
 
   protected void merge(int A[], int B[], int out[]) {
 
-    if (A.length <= MERGE_SIZE) {
+    if (A.length <= SERIALIZED_CUT_OFF) {
       sequentialMerge(A, B, out);
     } else {
-      int aHalf = A.length >>> 1; /* l33t shifting h4x!!! */
-      int bSplit = findSplit(A[aHalf], B);
+      if (A.length <= MERGE_SIZE) {
+        sequentialMerge(A, B, out);
+      } else {
+        int aHalf = A.length >>> 1; /* l33t shifting h4x!!! */
+        int bSplit = findSplit(A[aHalf], B);
 
-      int[] A_split0 = new int[aHalf];
-      int[] A_split1 = new int[A.length - aHalf];
-      for (int i = 0; i < aHalf; i++) {
-        A_split0[i] = A[i];
-      }
-      for (int i = aHalf; i < A.length; i++) {
-        A_split1[i - aHalf] = A[i];
-      }
+        int[] A_split0 = new int[aHalf];
+        int[] A_split1 = new int[A.length - aHalf];
+        for (int i = 0; i < aHalf; i++) {
+          A_split0[i] = A[i];
+        }
+        for (int i = aHalf; i < A.length; i++) {
+          A_split1[i - aHalf] = A[i];
+        }
 
-      int[] B_split0 = new int[bSplit];
-      int[] B_split1 = new int[B.length - bSplit];
-      for (int i = 0; i < bSplit; i++) {
-        B_split0[i] = B[i];
-      }
-      for (int i = bSplit; i < B.length; i++) {
-        B_split1[i - bSplit] = B[i];
-      }
+        int[] B_split0 = new int[bSplit];
+        int[] B_split1 = new int[B.length - bSplit];
+        for (int i = 0; i < bSplit; i++) {
+          B_split0[i] = B[i];
+        }
+        for (int i = bSplit; i < B.length; i++) {
+          B_split1[i - bSplit] = B[i];
+        }
 
-      int outSplit = aHalf + bSplit;
-      int[] out_split0 = new int[outSplit];
-      int[] out_split1 = new int[out.length - outSplit];
+        int outSplit = aHalf + bSplit;
+        int[] out_split0 = new int[outSplit];
+        int[] out_split1 = new int[out.length - outSplit];
 
-      merge(A_split0, B_split0, out_split0);
-      merge(A_split1, B_split1, out_split1);
-      
-      for (int i = 0; i < outSplit; i++) {
-        out[i]=out_split0[i]; 
+        merge(A_split0, B_split0, out_split0);
+        merge(A_split1, B_split1, out_split1);
+
+        for (int i = 0; i < outSplit; i++) {
+          out[i] = out_split0[i];
+        }
+        for (int i = outSplit; i < out.length; i++) {
+          out[i] = out_split1[i - outSplit];
+        }
+
       }
-      for (int i = outSplit; i < out.length; i++) {
-        out[i]=out_split1[i - outSplit];
-      }
-      
     }
-    
+
   }
 
   /** A standard sequential merge **/
@@ -164,8 +167,8 @@ public class MergeSort {
 
   /** A standard sequential quicksort **/
   protected void quickSort(int array[], int lo, int hi) {
-//    int lo = 0;
-//    int hi = array.length - 1;
+    // int lo = 0;
+    // int hi = array.length - 1;
     // If under threshold, use insertion sort
     int[] arr = array;
     if (hi - lo + 1l <= INSERTION_SIZE) {
@@ -210,7 +213,7 @@ public class MergeSort {
 
     int partition = arr[mid];
 
-    while(true){
+    while (true) {
 
       while (arr[right] > partition)
         --right;
@@ -228,8 +231,8 @@ public class MergeSort {
 
     }
 
-    quickSort(arr,lo,left+1);
-    quickSort(arr,left+1,hi);
+    quickSort(arr, lo, left + 1);
+    quickSort(arr, left + 1, hi);
 
   }
 
