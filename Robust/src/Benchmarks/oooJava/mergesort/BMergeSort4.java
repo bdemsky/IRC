@@ -17,115 +17,85 @@ public class MergeSort4 extends MergeSort {
     super();
   }
   
-  public void serializedSort(int A[]) {
-
-    if (A.length <= QUICK_SIZE) {
-      quickSort(A, 0, A.length - 1);
-    } else {
-
-      int q = A.length / 4;
-
-      int idxs0 = q;
-      int idxs1 = 2 * q;
-      int idxs2 = 3 * q;
-
-      int size0 = idxs0;
-      int size1 = idxs1 - idxs0;
-      int size2 = idxs2 - idxs1;
-      int size3 = A.length - idxs2;
-
-      int[] A_quarters0 = new int[size0];
-      int[] A_quarters1 = new int[size1];
-      int[] A_quarters2 = new int[size2];
-      int[] A_quarters3 = new int[size3];
-
-      for (int i = 0; i < idxs0; i++) {
-        A_quarters0[i] = A[i];
-      }
-      for (int i = idxs0; i < idxs1; i++) {
-        A_quarters1[i - idxs0] = A[i];
-      }
-      for (int i = idxs1; i < idxs2; i++) {
-        A_quarters2[i - idxs1] = A[i];
-      }
-      int amax=A.length;
-      for (int i = idxs2; i < amax; i++) {
-        A_quarters3[i - idxs2] = A[i];
-      }
-
-      int h1 = A_quarters0.length + A_quarters1.length;
-      int h2 = A_quarters2.length + A_quarters3.length;
-      int[] B_halves0 = new int[h1];
-      int[] B_halves1 = new int[h2];
-
-      serializedSort(A_quarters0);
-      serializedSort(A_quarters1);
-      serializedSort(A_quarters2);
-      serializedSort(A_quarters3);
-
-      sequentialMerge(A_quarters0, A_quarters1, B_halves0);
-      sequentialMerge(A_quarters2, A_quarters3, B_halves1);
-      sequentialMerge(B_halves0, B_halves1, A);
-
+  public void runWorkAndTest() {
+    sese run{
+      int output[]=sort(input, 0, input.length);
     }
-
+    sese test{
+      checkSorted(output);
+    }
   }
 
-  public void sort(int A[]) {
-    
+
+  public int[] serializedSort(int A[], int low, int high) {
     if(A.length<=SERIALIZED_CUT_OFF){
-      serializedSort(A);
+      return serializedSort(A, low, high);
     }else{
       if (A.length <= QUICK_SIZE) {
-        quickSort(A,0,A.length-1);
+	int[] R=new int[high-low];
+	int max=R.length;
+	int j=low;
+	for(int i=0;i<max;i++) {
+	  R[i]=A[j++];
+	}
+	quickSort(R, 0, R.length);
+	return R;
       } else {
-  
-        int q = A.length / 4;
+	int q = A.length / 4;
   
         int idxs0 = q;
         int idxs1 = 2 * q;
         int idxs2 = 3 * q;
-  
-        int size0 = idxs0;
-        int size1 = idxs1 - idxs0;
-        int size2 = idxs2 - idxs1;
-        int size3 = A.length - idxs2;
-  
-        int[] A_quarters0 = new int[size0];
-        int[] A_quarters1 = new int[size1];
-        int[] A_quarters2 = new int[size2];
-        int[] A_quarters3 = new int[size3];
-  
-        for (int i = 0; i < idxs0; i++) {
-          A_quarters0[i] = A[i];
-        }
-        for (int i = idxs0; i < idxs1; i++) {
-          A_quarters1[i - idxs0] = A[i];
-        }
-        for (int i = idxs1; i < idxs2; i++) {
-          A_quarters2[i - idxs1] = A[i];
-        }
-	int amax=A.length;
-        for (int i = idxs2; i < amax; i++) {
-          A_quarters3[i - idxs2] = A[i];
-        }
+	
+	int[] A_quarters0 = serializedSort(A, 0, idxs0);
+	int[] A_quarters1 = serializedSort(A, idxs0, idxs1);
+	int[] A_quarters2 = serializedSort(A, idxs1, idxs2);
+        int[] A_quarters3 = serializedSort(A, idxs2, A.length);
 
-        int h1 = A_quarters0.length+A_quarters1.length;
-        int h2 = A_quarters2.length+A_quarters3.length;
+	int[] R=new int[high-low];
+
+	merge(A_quarters0, A_quarters1, A_quarters2, A_quartes3, R);
+	return R;
+      }
+    }
+  }
+
+  public int[] sort(int A[], int low, int high) {
+    if(A.length<=SERIALIZED_CUT_OFF){
+      return serializedSort(A, low, high);
+    }else{
+      if (A.length <= QUICK_SIZE) {
+	int[] R=new int[high-low];
+	int max=R.length;
+	int j=low;
+	for(int i=0;i<max;i++) {
+	  R[i]=A[j++];
+	}
+	quickSort(R, 0, R.length);
+	return R;
+      } else {
+	int q = A.length / 4;
   
+        int idxs0 = q;
+        int idxs1 = 2 * q;
+        int idxs2 = 3 * q;
+	
         sese p1{
-          sort(A_quarters0);
+	  int[] A_quarters0 = sort(A, 0, idxs0);
         }
         sese p2{
-          sort(A_quarters1);
+	  int[] A_quarters1 = sort(A, idxs0, idxs1);
         }
         sese p3{
-          sort(A_quarters2);
+	  int[] A_quarters2 = sort(A, idxs1, idxs2);
         }
 	//don't spawn off sese for last one...
-	sort(A_quarters3);
-  
-	merge(A_quarters0, A_quarters1, A_quarters2, A_quartes3, A);
+        int[] A_quarters3 = sort(A, idxs2, A.length);
+
+	int[] R=new int[high-low];
+
+	merge(A_quarters0, A_quarters1, A_quarters2, A_quartes3, R);
+	return R;
       }
     }
   }
