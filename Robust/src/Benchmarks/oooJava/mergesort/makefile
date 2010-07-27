@@ -5,7 +5,7 @@ SOURCE_FILES=BMergeSort4.java
 
 BUILDSCRIPT=../../../buildscript
 
-USEOOO= -ooojava 31 2  -ooodebug  
+USEOOO= -ooojava 64 2  -ooodebug  
 BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize #-debug
 #USEOOO= -ooojava 8 2  -ooodebug  
 #BSFLAGS= -64bit -nooptimize -mainclass $(PROGRAM) -debug -garbagestats -joptimize
