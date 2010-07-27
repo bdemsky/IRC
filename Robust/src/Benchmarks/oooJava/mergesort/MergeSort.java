@@ -28,10 +28,9 @@ public class MergeSort {
   protected int[] result;
   protected int size;
 
-  public void run(int size) {
-    this.size = size;
+  public void run(int size, int branchSize) {
     long startT = System.currentTimeMillis();
-    initialize();
+    initialize(size, branchSize);
     System.out.println("init time=" + (System.currentTimeMillis() - startT));
     runWorkAndTest();
   }
@@ -42,9 +41,9 @@ public class MergeSort {
     INSERTION_SIZE = 2000;
   }
 
-  public void initialize() {
-
-    SERIALIZED_CUT_OFF = size / 32;
+  public void initialize(int size, int branchSize) {
+    this.size = size;
+    SERIALIZED_CUT_OFF = size / branchSize;
 
     input = new int[size];
     result = new int[size];
@@ -231,7 +230,7 @@ public class MergeSort {
 
     }
 
-    quickSort(arr, lo, left + 1);
+    quickSort(arr, lo, left);
     quickSort(arr, left + 1, hi);
 
   }

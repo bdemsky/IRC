@@ -6,11 +6,15 @@ public class MergeSort4 extends MergeSort {
 
   public static void main(String[] args) {
     int problemSize = 4194304;
+    int parallelBranch=32;
     if (args.length > 0) {
       problemSize = Integer.parseInt(args[0]);
     }
+    if (args.length > 1) {
+      parallelBranch = Integer.parseInt(args[1]);
+    }
     MergeSort4 sort = new MergeSort4();
-    sort.run(problemSize);
+    sort.run(problemSize,parallelBranch);
   }
 
   public MergeSort4() {
@@ -19,11 +23,14 @@ public class MergeSort4 extends MergeSort {
 
   public void runWorkAndTest() {
     sese run{
+      long startT=System.currentTimeMillis();
       int output[]=sort(input, 0, input.length);
+      long endT=System.currentTimeMillis();
+      System.out.println("running time="+(endT-startT));
     }
-    sese test{
-      checkSorted(output);
-    }
+//    sese test{
+//      checkSorted(output);
+//    }
   }
 
   public int[] serializedSort(int A[], int low, int high) {

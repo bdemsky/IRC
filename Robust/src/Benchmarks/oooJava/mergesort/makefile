@@ -1,7 +1,7 @@
 #raytracer
 PROGRAM=MergeSort4
 
-SOURCE_FILES=MergeSort4.java
+SOURCE_FILES=BMergeSort4.java
 
 BUILDSCRIPT=../../../buildscript
 
@@ -15,7 +15,7 @@ default:
 	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par
 
 single:
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BSFLAGS) -thread -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo:
 	$(BUILDSCRIPT) $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p -builddir par $(SOURCE_FILES) 
