@@ -294,6 +294,8 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #else
 #ifdef GC_LARGESHAREDHEAP
 #define BAMBOO_NUM_PAGES ((GC_BAMBOO_NUMCORES)*(2+2))
+#elif defined GC_LARGESHAREDHEAP2
+#define BAMBOO_NUM_PAGES ((GC_BAMBOO_NUMCORES)*(2+2))
 #else
 #define BAMBOO_NUM_PAGES ((GC_BAMBOO_NUMCORES)*(2+3)) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
@@ -301,6 +303,9 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_PAGE_SIZE (4 * 1024 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (4 * 1024 * 1024)
 #elif defined GC_SMALLPAGESIZE
+#define BAMBOO_PAGE_SIZE (256 * 1024)  // (4096)
+#define BAMBOO_SMEM_SIZE (256 * 1024)
+#elif defined GC_SMALLPAGESIZE2
 #define BAMBOO_PAGE_SIZE (256 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (256 * 1024)
 #else
