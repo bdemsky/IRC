@@ -1349,7 +1349,8 @@ public class DisjointAnalysis {
         rg.removeAllStallSiteTaints();
 
         // inject taints for in-set vars      
-        rg.taintInSetVars( sese );                         
+        rg.taintInSetVars( sese );
+
       }
       break;
 
@@ -1382,24 +1383,7 @@ public class DisjointAnalysis {
       FlatCall         fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
-      
-      // before transfer func, possibly inject
-      // stall-site taints
-      if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          
-        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
-          // x.y=f , stall x and y if they are not accessible
-          // also contribute write effects on stall site of x
-          if(!rg.isAccessible(fc.getThis())) {
-            rg.taintStallSite(fn, fc.getThis());
-          }
-            
-          // accessible status update
-          rg.makeAccessible(fc.getThis());
-        }
-      }
-      
-
+  
       boolean debugCallSite =
         mdCaller.getSymbol().equals( state.DISJOINTDEBUGCALLER ) &&
         mdCallee.getSymbol().equals( state.DISJOINTDEBUGCALLEE );

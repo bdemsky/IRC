@@ -460,6 +460,7 @@ public class ReachGraph {
       ReachSet       betaY = edgeY.getBeta();
 
       Iterator<RefEdge> itrHrnFhrn = hrnY.iteratorToReferencees();
+
       while( itrHrnFhrn.hasNext() ) {
 	RefEdge        edgeHrn = itrHrnFhrn.next();
 	HeapRegionNode hrnHrn  = edgeHrn.getDst();
@@ -489,7 +490,7 @@ public class ReachGraph {
                                        null,
                                        Canonical.intersection( betaY, betaHrn ),
                                        predsTrue,
-                                       edgeY.getTaints()
+                                       edgeHrn.getTaints()
                                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -656,8 +657,7 @@ public class ReachGraph {
                                                predsTrue
                                                ),
                        predsTrue,
-                       Canonical.changePredsTo( edgeY.getTaints(),
-                                                predsTrue )
+                       edgeY.getTaints()
                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -1296,6 +1296,9 @@ public class ReachGraph {
                  isv,
                  predsEmpty
                  );
+      
+      System.out.println("taint "+isv+" for "+sese);
+      writeGraph("taint");
     }
   }
 
@@ -1974,7 +1977,8 @@ public class ReachGraph {
                                       oocHrnIdOoc2callee 
                                       ),
                      preds,
-                     TaintSet.factory() // no taints for in-context edges
+                     toCalleeContext( reCaller.getTaints(),
+                         preds )
                      );
       
       rg.addRefEdge( hrnSrcCallee,
@@ -2200,7 +2204,7 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOThideReach       = true;
   private static boolean resolveMethodDebugDOThideSubsetReach = true;
   private static boolean resolveMethodDebugDOThidePreds       = true;
-  private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
+  private static boolean resolveMethodDebugDOThideEdgeTaints  = false;
 
   static String debugGraphPrefix;
   static int debugCallSiteVisitCounter;
@@ -4363,7 +4367,7 @@ public class ReachGraph {
                 false, // hide reachability
                 true,  // hide subset reachability
                 true,  // hide predicates
-                true,  // hide edge taints                
+                false,  // hide edge taints                
                 null   // in-context boundary
                 );
   }
