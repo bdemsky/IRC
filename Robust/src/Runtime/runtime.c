@@ -230,6 +230,50 @@ void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct 
 }
 #endif
 
+#ifdef D___System______arraycopy____L___Object____I_L___Object____I_I
+void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, int destPos, int length) {
+  int dsttype=((int *)dst)[0];
+  int srctype=((int *)src)[0];
+
+  //not an array or type mismatch
+  if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
+    return;
+
+  struct ArrayObject *aodst=(struct ArrayObject *)dst;
+  struct ArrayObject *aosrc=(struct ArrayObject *)src;
+  int dstlength=aodst->___length___;
+  int srclength=aosrc->___length___;
+
+  if (length<=0)
+    return;
+  if (srcPos+length>=srclength)
+    return;
+  if (dstPos+length>=dstlength)
+    return;
+
+  unsigned INTPTR *pointer=pointerarray[srctype];
+  if (pointer==0) {
+    int elementsize=classsize[srctype];
+    int size=length*elementsize;
+    //primitives
+    memcpy(((char *)&aodst->___length___)+sizeof(int)+dstPos*elementsize, ((char *)&aosrc->___length___)+sizeof(int)+srcPos*elementsize, size);
+  } else {
+    //objects
+    int i;
+    for(i=0;i<length;i++) {
+      struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i+srcPos];
+      int ptrtype=((int *)ptr)[0];
+      //hit an object
+      ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i+dstPos]=ptr;
+    }
+  }
+}
+
+void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int ___srcPos___, int ___destPos___, int ___length___, struct ___Object___ * ___src___, int ___srcPos___, struct ___Object___ * ___dst___, int  ___destPos___, int ___length___) {
+  arraycopy(VAR(___src___), int ___srcPos___, VAR(___dst___), int ___destPos___, int ___length___);
+}
+#endif
+
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef TRANSSTATS
 #ifndef RECOVERY

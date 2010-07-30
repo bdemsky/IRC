@@ -77,4 +77,6 @@ public class System {
 
   public static native void flushToFile(int threadid);
   /* Only used for microbenchmark testing of SingleTM version */
+
+  public static native void arraycopy(Object src, int srcPos, Object dst, int destPos, int length);
 }
