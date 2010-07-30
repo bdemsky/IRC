@@ -105,6 +105,7 @@ void createstartupobject();
 #define CALL23(name, rest, rest2, alt1, alt2, alt3) name(struct name ## _params * ___params___, rest, rest2)
 #define CALL24(name, rest, rest2, alt1, alt2, alt3, alt4) name(struct name ## _params * ___params___, rest, rest2)
 #define CALL34(name, rest, rest2, rest3, alt1, alt2, alt3, alt4) name(struct name ## _params * ___params___, rest, rest2, rest3)
+#define CALL35(name, rest, rest2, rest3, alt1, alt2, alt3, alt4, alt5) name(struct name ## _params * ___params___, rest, rest2, rest3)
 #else
 #define VAR(name) name
 #define CALL00(name) name()
@@ -116,6 +117,7 @@ void createstartupobject();
 #define CALL23(name, rest, rest2, alt1, alt2, alt3) name(alt1, alt2, alt3)
 #define CALL24(name, rest, rest2, alt1, alt2, alt3, alt4) name(alt1, alt2, alt3, alt4)
 #define CALL34(name, rest, rest2, rest3, alt1, alt2, alt3, alt4) name(alt1, alt2, alt3, alt4)
+#define CALL35(name, rest, rest2, rest3, alt1, alt2, alt3, alt4, alt5) name(alt1, alt2, alt3, alt4, alt5)
 #endif
 
 #ifdef TASK

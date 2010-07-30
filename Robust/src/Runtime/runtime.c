@@ -246,9 +246,9 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
 
   if (length<=0)
     return;
-  if (srcPos+length>=srclength)
+  if (srcPos+length>srclength)
     return;
-  if (dstPos+length>=dstlength)
+  if (destPos+length>dstlength)
     return;
 
   unsigned INTPTR *pointer=pointerarray[srctype];
@@ -256,7 +256,7 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
     int elementsize=classsize[srctype];
     int size=length*elementsize;
     //primitives
-    memcpy(((char *)&aodst->___length___)+sizeof(int)+dstPos*elementsize, ((char *)&aosrc->___length___)+sizeof(int)+srcPos*elementsize, size);
+    memcpy(((char *)&aodst->___length___)+sizeof(int)+destPos*elementsize, ((char *)&aosrc->___length___)+sizeof(int)+srcPos*elementsize, size);
   } else {
     //objects
     int i;
@@ -264,13 +264,13 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
       struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i+srcPos];
       int ptrtype=((int *)ptr)[0];
       //hit an object
-      ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i+dstPos]=ptr;
+      ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i+destPos]=ptr;
     }
   }
 }
 
 void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int ___srcPos___, int ___destPos___, int ___length___, struct ___Object___ * ___src___, int ___srcPos___, struct ___Object___ * ___dst___, int  ___destPos___, int ___length___) {
-  arraycopy(VAR(___src___), int ___srcPos___, VAR(___dst___), int ___destPos___, int ___length___);
+  arraycopy(VAR(___src___), ___srcPos___, VAR(___dst___), ___destPos___, ___length___);
 }
 #endif
 
