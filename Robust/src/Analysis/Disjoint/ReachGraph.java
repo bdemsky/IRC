@@ -1297,8 +1297,6 @@ public class ReachGraph {
                  predsEmpty
                  );
       
-      System.out.println("taint "+isv+" for "+sese);
-      writeGraph("taint");
     }
   }
 
