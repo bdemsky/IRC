@@ -2,9 +2,6 @@
 #include "stdlib.h"
 #include "stdio.h"
 
-//2^14 =16384 = 0X4000
-#define SIZE 16384
-
 __thread struct RCRQueue myRCRQueue;
 
 void resetRCRQueue()
@@ -23,7 +20,7 @@ int enqueueRCRQueue(void * ptr)
 {
   myRCRQueue.elements[myRCRQueue.head++] =  ptr;
 
-  if(myRCRQueue.head & 0x4000)
+  if(myRCRQueue.head & SIZE)
     myRCRQueue.head = 0;
 
   return myRCRQueue.size++ == SIZE;
@@ -34,7 +31,7 @@ void * dequeueRCRQueue()
   if(myRCRQueue.size) {
     void * ptr = myRCRQueue.elements[myRCRQueue.tail++];
 
-    if(myRCRQueue.tail & 0x4000)
+    if(myRCRQueue.tail & SIZE)
       myRCRQueue.tail =  0;
     
 
