@@ -292,33 +292,35 @@ public class JGFCryptBench {
   }
 
   public void JGFkernel(){
-     
     byte [] crypt1 =  new byte [array_rows];
     byte [] plain2 =  new byte [array_rows];
 
     int nW=nWorker;
     // Encrypt plain1.    
-    int  ilow, iupper, slice, tslice, ttslice; 
+    int  slice, tslice, ttslice; 
     tslice = plain1.length / 8;
     ttslice = (tslice + nWorker-1) / nWorker;
     slice = ttslice*8;
  
     for(int i=0;i<nW;i++) {
       // setup worker
-      ilow = i*slice;
-      iupper = (i+1)*slice;
-      if(iupper > plain1.length) iupper = plain1.length;
-      int localSize=iupper-ilow;
-      byte local_crypt1[] =  new byte [localSize];     
-      
       sese parallel_e{
+        int ilow = i*slice;
+        int iupper = (i+1)*slice;
+        if(iupper > plain1.length) iupper = plain1.length;
+        int localSize=iupper-ilow;
+        byte local_crypt1[] =  new byte [localSize]; 
         IDEARunner runner=new IDEARunner(i,plain1,local_crypt1,localSize,Z,nWorker);
         runner.run();
       }
       
       sese serial_e{
-        for(int idx=0;idx<runner.local_size;idx++){
+        if(true){
+          System.arraycopy(runner.text2, 0, crypt1, ilow, runner.local_size);
+        }else{
+          for(int idx=0;idx<runner.local_size;idx++){
           crypt1[ilow+idx]=runner.text2[idx];
+          }
         }
       }      
       
@@ -326,25 +328,29 @@ public class JGFCryptBench {
     
     // Decrypt.
     for(int i=0;i<nW;i++) {
-      ilow = i*slice;
-      iupper = (i+1)*slice;
-      if(iupper > crypt1.length) iupper = crypt1.length;
-      int localSize=iupper-ilow;
-      byte local_plain2[] =  new byte [localSize];     
-
-      IDEARunner runner=new IDEARunner(i,crypt1,local_plain2,localSize,DK,nWorker);       
 
       sese parallel_d{
+        int ilow = i*slice;
+        int iupper = (i+1)*slice;
+        if(iupper > crypt1.length) iupper = crypt1.length;
+        int localSize=iupper-ilow;
+        byte local_plain2[] =  new byte [localSize];     
+        IDEARunner runner=new IDEARunner(i,crypt1,local_plain2,localSize,DK,nWorker);       
         runner.run();
       }
+      
       sese serial_d{
-        for(int idx=0;idx<runner.local_size;idx++){
-          plain2[ilow+idx]=runner.text2[idx];
-        }
+        if(true){
+          System.arraycopy(runner.text2, 0, plain2, ilow, runner.local_size);
+        }else{
+          for(int idx=0;idx<runner.local_size;idx++){
+            plain2[ilow+idx]=runner.text2[idx];
+          }
+        }        
       }
+      
     }   
-    
-    
+
     boolean error = false; 
     for (int i = 0; i < array_rows; i++){
       error = (plain1 [i] != plain2 [i]); 
@@ -357,18 +363,21 @@ public class JGFCryptBench {
       }
     }
     System.out.println("Validation Success");
-
   }
 
   public void JGFrun(int size, int nWorker) {
 
     JGFsetsize(size, nWorker);
+    long startT=System.currentTimeMillis();
     JGFinitialise();
+    long endT=System.currentTimeMillis();
     JGFkernel();
-
+    
+    System.out.println("init="+(endT-startT));
   }
 
   public static void main(String argv[]) {
+    
 
     JGFCryptBench cb = new JGFCryptBench();
 

@@ -6,7 +6,7 @@ SOURCE_FILES=JGFCryptBench.java
 BUILDSCRIPT=../../../buildscript
 
 #USEOOO= -ooojava 8 2  -ooodebug  
-#BSFLAGS= -32bit -nooptimize -mainclass test -garbagestats -joptimize #-debug
+#BSFLAGS= -64bit -nooptimize -mainclass $(PROGRAM) -garbagestats #-joptimize -debug
 USEOOO= -ooojava 24 2  -ooodebug  
 BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions 
@@ -15,7 +15,7 @@ default:
 	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par
 
 single:
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BSFLAGS) -thread -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo:
 	$(BUILDSCRIPT) $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p -builddir par $(SOURCE_FILES) 
