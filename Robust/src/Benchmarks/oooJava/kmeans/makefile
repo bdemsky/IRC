@@ -8,15 +8,15 @@ SOURCE_FILES=${MAINCLASS}.java \
     Common.java \
     GlobalArgs.java 
 
-USEOOO= -ooojava 8 2  -ooodebug #-joptimize
-BSFLAGS= -debug -garbagestats -32bit -nooptimize -mainclass $(MAINCLASS) 
+USEOOO= -ooojava 24 2 -ooodebug 
+BSFLAGS= -garbagestats -64bit -mainclass $(MAINCLASS) -joptimize -noloop -optimize
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions
 
 default:
 	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par
 
 single:
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BSFLAGS) -thread -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo:
 	$(BUILDSCRIPT) $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p -builddir par $(SOURCE_FILES) 

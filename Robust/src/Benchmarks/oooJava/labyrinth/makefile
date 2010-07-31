@@ -7,8 +7,7 @@ SOURCE_FILES2=Coordinate.java CoordPathWrapper.java Grid.java Labyrinth.java Lis
 BUILDSCRIPT=../../../buildscript
 
 USEOOO= -ooojava 24 2  -ooodebug -joptimize
-#BSFLAGS= -debug -garbagestats -32bit -nooptimize -mainclass $(PROGRAM) 
-BSFLAGS= -garbagestats -64bit -mainclass $(PROGRAM) 
+BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize -noloop -optimize
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions
 
 default:
@@ -18,7 +17,7 @@ singler:
 	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM)s -builddir sing2 $(SOURCE_FILES2)
 
 single:
-	$(BUILDSCRIPT) $(BSFLAGS) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BSFLAGS) -thread -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo:
 	$(BUILDSCRIPT) $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p -builddir par $(SOURCE_FILES) 

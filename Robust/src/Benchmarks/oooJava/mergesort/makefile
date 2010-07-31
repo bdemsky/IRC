@@ -1,4 +1,3 @@
-#raytracer
 PROGRAM=MergeSort4
 
 SOURCE_FILES=BMergeSort4.java
@@ -6,9 +5,7 @@ SOURCE_FILES=BMergeSort4.java
 BUILDSCRIPT=../../../buildscript
 
 USEOOO= -ooojava 64 2  -ooodebug  
-BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize #-debug
-#USEOOO= -ooojava 8 2  -ooodebug  
-#BSFLAGS= -64bit -nooptimize -mainclass $(PROGRAM) -debug -garbagestats -joptimize
+BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize -noloop -optimize
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions 
 
 default:
