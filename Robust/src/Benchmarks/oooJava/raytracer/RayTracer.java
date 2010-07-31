@@ -272,14 +272,19 @@ public class RayTracer {
 			}		// end of sese line		
 			
 			sese serial{
-				for (int x = 0; x < interval.width; x++) {
-				    int pixCounter_t=y*(interval.width)+x;
-					row[pixCounter_t] = tempArray[x];
-			    }
-				checksum+=line_checksum;
-				if(y== (interval.yto-1)){
-					System.out.println("CHECKSUM="+checksum);
-				}
+			  if(true){
+  			  int  pixCounter_t=y*(interval.width);
+  			  System.arraycopy(tempArray, 0, row, pixCounter_t, interval.width);			  
+			  }else{
+			     for (int x = 0; x < interval.width; x++) {
+	            int pixCounter_t=y*(interval.width)+x;
+	          row[pixCounter_t] = tempArray[x];
+	          }
+	      }
+		    checksum+=line_checksum;
+        if(y== (interval.yto-1)){
+          System.out.println("CHECKSUM="+checksum);
+        }
 			}
 			
 		} // end for (y)
