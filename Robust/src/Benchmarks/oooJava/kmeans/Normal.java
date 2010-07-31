@@ -143,19 +143,22 @@ public class Normal {
       		  
       		   int sidx=0;
       		   for (int i = start; i < stop; i++) {
-      			   
+      		     
       			    int newIndex=indexArray[sidx];
      		        if (membership[i] != newIndex) {
   		                delta += 1.0f;
      		        }
 	
-	      	        membership[i] = newIndex;
-	
+	      	          membership[i] = newIndex;
 	      	          new_centers_len[newIndex] = new_centers_len[newIndex] + 1;
-	      	          for (int j = 0; j < nfeatures; j++) {
-	      	            new_centers[newIndex][j] = new_centers[newIndex][j] + feature[i][j];
-	      	          }
 	      	          
+	                  float[] tmpnew_centers=new_centers[newIndex];
+	                  float[] tmpfeature=feature[i];
+	                  
+	                  for (int j = 0; j < nfeatures; j++) {
+	                    tmpnew_centers[j] = tmpnew_centers[j] + tmpfeature[j];
+                    }
+      	          
 	      	        sidx++;
       		   }
 
