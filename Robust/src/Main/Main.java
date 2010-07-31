@@ -270,6 +270,8 @@ public class Main {
 	state.OPTIONAL=true;
       else if (option.equals("-optimize"))
 	state.OPTIMIZE=true;
+      else if (option.equals("-noloop"))
+	state.NOLOOP=true;
       else if (option.equals("-dcopts"))
 	state.DCOPTS=true;
       else if (option.equals("-arraypad"))
@@ -356,6 +358,7 @@ public class Main {
 	System.out.println("-ownwritedots <all/final> -- write ownership graphs; can be all results or just final results");
 	System.out.println("-ownaliasfile <filename> -- write a text file showing all detected aliases in program tasks");
 	System.out.println("-optimize -- enable optimizations");
+	System.out.println("-noloop -- disable loop optimizations");
 	System.out.println("-optional -- enable optional arguments");
 	System.out.println("-abcclose close the array boundary check");
 	System.out.println("-scheduling do task scheduling");
@@ -392,6 +395,7 @@ public class Main {
     for(int i=0;i<sourcefiles.size();i++)
       loadClass(state, bir,(String)sourcefiles.get(i));
 
+
     //Stuff the runtime wants to see
     sc.getClass("String");
     sc.getClass("Math");
@@ -406,6 +410,7 @@ public class Main {
     if (state.THREAD||state.DSM||state.SINGLETM) {
       sc.getClass("Thread");
     }
+
 
     sc.semanticCheck();
 
@@ -439,7 +444,9 @@ public class Main {
       GlobalFieldType gft=new GlobalFieldType(callgraph, state, tu.getMain());
       CSE cse=new CSE(gft, tu);
       localCSE lcse=new localCSE(gft, tu);
-      LoopOptimize lo=new LoopOptimize(gft, tu);
+      LoopOptimize lo=null;
+      if (!state.NOLOOP)
+	  lo=new LoopOptimize(gft, tu);
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
       while(classit.hasNext()) {
         ClassDescriptor cn=(ClassDescriptor)classit.next();
@@ -450,7 +457,8 @@ public class Main {
           FlatMethod fm=state.getMethodFlat(md);
 	  cp.optimize(fm);
 	  dc.optimize(fm);
-	  lo.optimize(fm);
+	  if (!state.NOLOOP)
+	      lo.optimize(fm);
 	  cp.optimize(fm);
 	  dc.optimize(fm);
 	  lcse.doAnalysis(fm);

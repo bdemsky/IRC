@@ -66,6 +66,7 @@ echo -dmalloc link in dmalloc
 echo -64bit compile for 64 bit machine
 echo -32bit compile for 32 bit machine
 echo -joptimize java compiler optimizations
+echo -noloop turnoff loop optimizations
 echo -recover compile task code
 echo -fastcheck fast checkpointing for Bristlecone
 echo -specdir directory
@@ -453,6 +454,9 @@ JAVAOPTS="$JAVAOPTS -instructionfailures"
 elif [[ $1 = '-joptimize' ]]
 then
 JAVAOPTS="$JAVAOPTS -optimize"
+elif [[ $1 = '-noloop' ]]
+then
+JAVAOPTS="$JAVAOPTS -noloop"
 elif [[ $1 = '-dcopts' ]]
 then
 JAVAOPTS="$JAVAOPTS -dcopts"

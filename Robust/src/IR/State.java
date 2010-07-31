@@ -105,6 +105,7 @@ public class State {
 
 
   public boolean OPTIONAL=false;
+  public boolean NOLOOP=false;
   public boolean ARRAYPAD=false;
   public boolean THREAD=false;
   public boolean CONSCHECK=false;
