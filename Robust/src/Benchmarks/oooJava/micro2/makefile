@@ -6,7 +6,7 @@ SOURCE_FILES=test.java
 BUILDSCRIPT=../../../buildscript
 
 USEOOO= -ooojava 1 2  -ooodebug  
-BSFLAGS= -64bit -mainclass test -debug -garbagestats -joptimize -optimize
+BSFLAGS= -64bit -optimize -mainclass test -debug -garbagestats -joptimize
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions 
 
 default:

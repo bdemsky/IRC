@@ -8,16 +8,13 @@ public class test {
 	    if(argv.length>0){
 		count=count * Integer.parseInt(argv[0]);
 	    }
-            
+
             long s=System.currentTimeMillis();
 
 	    for(long i=0;i<count;i++){
 		rblock rchild{
-		    x++;
-                    for(int j=0;j<1000;j++) {
-                      x++;x--;
-                    }
 		}
+                x++;
 	    }
 
             long e1=System.currentTimeMillis();
