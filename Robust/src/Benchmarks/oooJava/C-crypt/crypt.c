@@ -55,7 +55,7 @@ void main( int argc, char** argv ) {
   
   startT=currentTimeMillis();
 
-  array_rows = datasizes[size];
+  array_rows = datasizes[problem_size];
   buildTestData();
   
   endT=currentTimeMillis();
