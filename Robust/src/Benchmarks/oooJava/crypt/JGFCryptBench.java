@@ -278,7 +278,7 @@ public class JGFCryptBench {
     datasizes = new int[3];
     datasizes[0] = 3000000;
     datasizes[1] = 20000000;
-    datasizes[2] = 50000000;
+    datasizes[2] = 1000000000;
   }
 
   public void JGFsetsize(int size, int nWorker) {
@@ -292,6 +292,7 @@ public class JGFCryptBench {
   }
 
   public void JGFkernel(){
+    long startT=System.currentTimeMillis();
     byte [] crypt1 =  new byte [array_rows];
     byte [] plain2 =  new byte [array_rows];
 
@@ -350,19 +351,22 @@ public class JGFCryptBench {
       }
       
     }   
+    int p=plain2[0];
+    long endT=System.currentTimeMillis();
+    System.out.println(p+"runningtime="+(endT-startT));
 
-    boolean error = false; 
-    for (int i = 0; i < array_rows; i++){
-      error = (plain1 [i] != plain2 [i]); 
-      if (error){
-        System.out.println("Validation failed");
-        System.out.println("Original Byte " + i + " = " + plain1[i]); 
-        System.out.println("Encrypted Byte " + i + " = " + crypt1[i]); 
-        System.out.println("Decrypted Byte " + i + " = " + plain2[i]); 
-        return;
-      }
-    }
-    System.out.println("Validation Success");
+//    boolean error = false; 
+//    for (int i = 0; i < array_rows; i++){
+//      error = (plain1 [i] != plain2 [i]); 
+//      if (error){
+//        System.out.println("Validation failed");
+//        System.out.println("Original Byte " + i + " = " + plain1[i]); 
+//        System.out.println("Encrypted Byte " + i + " = " + crypt1[i]); 
+//        System.out.println("Decrypted Byte " + i + " = " + plain2[i]); 
+//        return;
+//      }
+//    }
+//    System.out.println("Validation Success");
   }
 
   public void JGFrun(int size, int nWorker) {
