@@ -1,5 +1,6 @@
 package IR.Flat;
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -8,13 +9,21 @@ import java.util.Set;
 import Analysis.Disjoint.*;
 
 public class RuntimeConflictResolver {
+	private static final String outputFile = "RuntimeConflictResolver.c";
 	
-	private static final String getAllocSiteInC = "->AllocSite";
-	private static final String queryHashTableInC = "hashtable.contains(";
-	private static final String addToHashTableInC = "hashtable.put(";
-	private static final String addToQueueInC = "queue.enqueue(";
-	private static final String dequeueFromQueueInC = "queue.dequeue()";
+	private static final String getAllocSiteInC = "->allocsite";
+	private static final String queryAndQueryHashTableInC = "t_chashInsert(";
+	private static final String addToQueueInC = "enqueueRCRQueue(";
+	private static final String dequeueFromQueueInC = "dequeueRCRQueue()";
 	
+	/*
+	 * Basic steps:
+	 * 1) Create pruned data structures from givens
+	 * 		1a) Use effects sets to verify if we can access something (reads)
+	 * 		1b) Mark all conflicts with a special flag (perhaps create wrapper)
+	 * 2) Traverse again and build code output structure (as Objects)
+	 * 3) printout 
+	 */
 	public void traverse(FlatSESEEnterNode rblock, 
 			Hashtable<Taint, Set<Effect>> effects,
 			Hashtable<Taint, Set<Effect>> conflicts,
@@ -28,33 +37,25 @@ public class RuntimeConflictResolver {
 		if(inVars.size() == 0)
 			return;
 		
-		/*
-		 * Basic steps:
-		 * 1) Create pruned data structures from givens
-		 * 		1a) Use effects sets to verify if we can access something (reads)
-		 * 		1b) Mark all conflicts with a special flag (perhaps create wrapper)
-		 * 2) Traverse again and build code output structure (as Objects)
-		 * 3) printout 
-		 */
-		
 		createTree(rblock, inVars, conflicts, rg, created);
-		generateCPrintoutStructure(created);
-		printCCode();
+		if(!created.isEmpty())
+			printCCode(created);
 	}
 
 	//I'll assume that I'll get a pointer to the first data element named ptr
 	private void printHeader(StringBuilder out)
 	{
-		//TODO find out more about Hashset and stuff on the C-side
 		//TODO includes
 		//TODO initialize hashset/hashtable
 		//TODO initialize Queue
-		System.out.println();
+	  //TODO start do/while loop
+	  System.out.println("PrintHeader not yet implemented.");
 	}
 	private void printFooter(StringBuilder out)
 	{
 		//TODO End the while loops and such 
 		//TODO free stuff we've used???
+	  System.out.println("PrintFooter not yet implemented.");
 	}
 
 	private StringBuilder generateCPrintoutStructure(Hashtable<NodeKey, Node> created) 
@@ -62,12 +63,14 @@ public class RuntimeConflictResolver {
 		HashSet<Integer> done = new HashSet<Integer>();
 		StringBuilder out = new StringBuilder();
 		
+		
+		//TODO add the first item to hashtable in header before start 
 		printHeader(out);
 		for(Node node: created.values())
 		{
 			//If we haven't seen it and it's a node with more than 1 parent
 			//Note: a node with 0 parents is a root node (i.e. inset variable)
-			if(!done.contains(new Integer(node.getAllocationSite())) && node.numOfParents != 1)
+			if(!done.contains(new Integer(node.getAllocationSite())) && node.numOfParents != 1 && node.decendentsConflict)
 				addChecker(node, done, out, "ptr");
 		}
 		printFooter(out);
@@ -80,42 +83,65 @@ public class RuntimeConflictResolver {
 							StringBuilder out,
 							String prefix)
 	{
-		if(node.numOfParents != 1) {
+	  //We don't need a case statement for things with either 1 incoming or 0 out going edges.
+		if(node.numOfParents != 1 && node.decendentsConflict) {
 			assert prefix.equals("ptr");
 			out.append("case " + node.getAllocationSite() + ":\n");
 		}
 		
-		//adds self to hashtable
-		out.append(addToHashTableInC + prefix + ");");
-		
 		for(Reference ref: node.references)
 		{
-			String childPtr = prefix + "->" + ref.field;
-			
-			//Checks if the child exists and is correct
-			out.append("if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + 
-					"==" + ref.allocSite + ") { ");
-			
-			//Checks if we have visited the child before
-			out.append("if(!" + queryHashTableInC + childPtr + ") {");
-			
-			if(ref.reference.numOfParents == 1) 
-				addChecker(ref.reference, done, out, childPtr);
-			else
-				out.append(addToQueueInC + childPtr+ "); } ");
-			
-			out.append(" }} ");
+		  //Will only process it if there is some sort of conflict with Child
+		  if(ref.child.decendentsConflict || ref.child.myConflict){
+  			String childPtr = prefix + "->" + ref.field;
+  			
+  			//Checks if the child exists and is correct
+  			out.append("if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + 
+  					"==" + ref.allocSite + ") { ");
+  			
+  			//Prints out Conflict of child
+  			if(ref.child.myConflict)
+  				handleConflict(out, childPtr);
+  			
+  			//Checks if we have visited the child before
+  			out.append("if(!" + queryAndQueryHashTableInC + childPtr + ") {");
+  			
+  			//If there are out going edges then add to queue 
+  			if(ref.child.decendentsConflict) {
+    			if(ref.child.numOfParents == 1) 
+    				addChecker(ref.child, done, out, childPtr);
+    			else
+    				out.append(addToQueueInC + childPtr+ ");");
+  			}
+  			//TODO check # of } on output
+  			out.append(" }} ");
+		  }
 		}
 		
-		if(node.numOfParents != 1) 
+		if(node.numOfParents != 1 && node.decendentsConflict) 
 			out.append("break;\n");
 		
 		done.add(new Integer(node.getAllocationSite()));
 	}
 	
+	private void handleConflict(StringBuilder out, String childPtr)
+	{
+		out.append("printf(\"Conflict detected at %p with allocation site %u\n\"," + childPtr +
+				"," + childPtr + getAllocSiteInC + ");");
+	}
+	
 	//I'll assume that I'll be just given a pointer named ptr in my function. 
-	private void printCCode() {
-		// TODO Auto-generated method stub
+	private void printCCode(Hashtable<NodeKey, Node> created) {
+		try {
+			PrintWriter p = new PrintWriter(outputFile);
+			String outputString = generateCPrintoutStructure(created).toString();
+			p.append(outputString);
+			p.close();
+		}
+		catch (java.io.FileNotFoundException e)
+		{
+			System.out.println("Output file for RuntimeConflictResolver is nonexistant.");
+		}
 		
 	}
 	
@@ -124,17 +150,15 @@ public class RuntimeConflictResolver {
 							Hashtable<Taint, Set<Effect>> conflicts, 
 							ReachGraph rg,
 							Hashtable<NodeKey, Node> created) {
-		for(TempDescriptor invar: inVars)
-		{
+		for(TempDescriptor invar: inVars) {
 			VariableNode varNode = rg.getVariableNodeNoMutation(invar);
 			Hashtable<EffectsKey, EffectsHashPair> table = generateHashtable(rblock, varNode ,conflicts, conflicts);
+			
 			//if table is null that means there's no conflicts, therefore we need not create a traversal
-			if(table != null)
-			{
+			if(table != null) {
 				Iterator<RefEdge> possibleRootNodes = varNode.iteratorToReferencees();
 				
-				while(possibleRootNodes.hasNext())
-				{
+				while(possibleRootNodes.hasNext()) {
 					RefEdge edge = possibleRootNodes.next();
 					assert edge != null;
 
@@ -189,12 +213,10 @@ public class RuntimeConflictResolver {
 
 
 	//This will propagate the conflict up the tree. 
-	private void propogateConflictFlag(Node node)
-	{
+	private void propogateConflictFlag(Node node) {
 		Node curr = node;
 		
-		while(curr != null && curr.decendentsConflict != true)
-		{
+		while(curr != null && curr.decendentsConflict != true) {
 			curr.decendentsConflict = true;
 			curr = curr.lastParent;
 		}
@@ -206,8 +228,7 @@ public class RuntimeConflictResolver {
 	private Hashtable<EffectsKey, EffectsHashPair>  generateHashtable(FlatSESEEnterNode rblock, 
 														VariableNode var, 
 														Hashtable<Taint, Set<Effect>> effects,
-														Hashtable<Taint, Set<Effect>> conflicts)
-	{
+														Hashtable<Taint, Set<Effect>> conflicts) {
 		//we search effects since conflicts is only a subset of effects
 		Taint taint = getProperTaint(rblock, var, effects);
 		assert taint !=null;
@@ -220,8 +241,7 @@ public class RuntimeConflictResolver {
 		
 		Hashtable<EffectsKey, EffectsHashPair> table = new Hashtable<EffectsKey, EffectsHashPair>();
 		
-		for(Effect e: localEffects)
-		{
+		for(Effect e: localEffects) {
 			EffectsKey key = new EffectsKey(e);
 			EffectsHashPair element = new EffectsHashPair(e, localConflicts.contains(e));
 			table.put(key, element);
@@ -314,24 +334,19 @@ public class RuntimeConflictResolver {
 		    return (other.originalEffect.getAffectedAllocSite().equals(originalEffect.getAffectedAllocSite()) &&
 		    		other.originalEffect.getField().equals(originalEffect.getField()));
 		}
-		
-		public boolean isConflict()
-		{
-			return conflict;
-		}
 	}
 
 	private class Reference
 	{
 		String field;
 		int allocSite;
-		Node reference;
+		Node child;
 		
 		public Reference(String fieldname, Node ref)
 		{
 			field = fieldname;
 			allocSite = ref.getAllocationSite();
-			reference = ref;
+			child = ref;
 		}
 	}
 	
@@ -375,14 +390,14 @@ private class Node
 	@Override
 	public int hashCode() 
 	{
-	  //I assume this gets the allocsite number number
+	  //This gets allocsite number
 	  return allocSite.hashCodeSpecific();
 	}
   
 	@Override
 	public boolean equals(Object obj) 
 	{
-       return original.equals(obj);
+	  return original.equals(obj);
 	}
 	
 	public int getAllocationSite()
