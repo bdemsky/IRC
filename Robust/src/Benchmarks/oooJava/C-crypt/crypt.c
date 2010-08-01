@@ -3,12 +3,14 @@
 #include <sys/time.h>
 
 
-long currentTimeMillis() {
-  struct timeval* t;
-  gettimeofday( t, NULL );
-  double micros = (double)t->tv_usec;
-  double millis = micros / 1000.0;
-  return (long) millis;
+long long currentTimeMillis() {
+  struct timeval t;
+  long long retval;
+  gettimeofday( &t, NULL );
+  retval=t.tv_sec;
+  retval*=1000;
+  retval+=(t.tv_usec/1000);
+  return retval;
 }
 
 
@@ -40,29 +42,29 @@ int problem_size = 2;
 
 void main( int argc, char** argv ) {
     
-  long startT;
-  long endT;
+  long long startT;
+  long long endT;
   
   datasizes = malloc( 4*sizeof(int) );
   datasizes[0] = 3000000;
   datasizes[1] = 20000000;
-  datasizes[2] = 50000000;
-  datasizes[3] = 1000000000;
+  datasizes[2] = 1000000000;
 
   if( argc > 1 ) {
     problem_size = atoi( argv[1] );
   }
   
-  startT=currentTimeMillis();
+
 
   array_rows = datasizes[problem_size];
   buildTestData();
   
+
+  startT=currentTimeMillis();  
+  kernel();
   endT=currentTimeMillis();
   
-  kernel();
-  
-  printf( "init=%d\n", endT-startT );
+  printf( "runningtime=%d\n", endT-startT );
 }
 
 
@@ -250,11 +252,11 @@ int mul( int a, int b ) {
   //
 
   int ret;
-  long p; // Large enough to catch 16-bit multiply
+  long long p; // Large enough to catch 16-bit multiply
   // without hitting sign bit.
   if (a != 0) {
     if (b != 0) {
-      p = (long) a * b;
+      p = (long long) a * b;
       b = (int) p & 0xFFFF; // Lower 16 bits.
       a = (int) p >> 16; // Upper 16 bits.
       if (b < a)
@@ -319,7 +321,7 @@ void kernel() {
   cipher_idea(plain1, crypt1, Z);     // Encrypt plain1.
   cipher_idea(crypt1, plain2, DK);    // Decrypt.
 
-  error = 0; 
+  /*  error = 0; 
   for( i = 0; i < array_rows; i++ ){
     error = (plain1 [i] != plain2 [i]); 
     if (error){
@@ -330,7 +332,7 @@ void kernel() {
       return;
     }
   }
-  printf("Validation Success\n");
+  printf("Validation Success\n");*/
 }
 
 
@@ -376,7 +378,7 @@ void cipher_idea( char* text1, char* text2, int* key ) {
         // 1) Multiply (modulo 0x10001), 1st text sub-block
         // with 1st key sub-block.
 
-        x1 = (int) ((long) x1 * key[ik++] % 0x10001L & 0xffff);
+        x1 = (int) ((long long) x1 * key[ik++] % 0x10001L & 0xffff);
 
         // 2) Add (modulo 0x10000), 2nd text sub-block
         // with 2nd key sub-block.
@@ -391,7 +393,7 @@ void cipher_idea( char* text1, char* text2, int* key ) {
         // 4) Multiply (modulo 0x10001), 4th text sub-block
         // with 4th key sub-block.
 
-        x4 = (int) ((long) x4 * key[ik++] % 0x10001L & 0xffff);
+        x4 = (int) ((long long) x4 * key[ik++] % 0x10001L & 0xffff);
 
         // 5) XOR results from steps 1 and 3.
 
@@ -403,7 +405,7 @@ void cipher_idea( char* text1, char* text2, int* key ) {
         // 7) Multiply (modulo 0x10001), result of step 5
         // with 5th key sub-block.
 
-        t2 = (int) ((long) t2 * key[ik++] % 0x10001L & 0xffff);
+        t2 = (int) ((long long) t2 * key[ik++] % 0x10001L & 0xffff);
 
         // 8) Add (modulo 0x10000), results of steps 6 and 7.
 
@@ -412,7 +414,7 @@ void cipher_idea( char* text1, char* text2, int* key ) {
         // 9) Multiply (modulo 0x10001), result of step 8
         // with 6th key sub-block.
 
-        t1 = (int) ((long) t1 * key[ik++] % 0x10001L & 0xffff);
+        t1 = (int) ((long long) t1 * key[ik++] % 0x10001L & 0xffff);
 
         // 10) Add (modulo 0x10000), results of steps 7 and 9.
 
@@ -443,7 +445,7 @@ void cipher_idea( char* text1, char* text2, int* key ) {
       // 1) Multiply (modulo 0x10001), 1st text-block
       // with 1st key sub-block.
 
-      x1 = (int) ((long) x1 * key[ik++] % 0x10001L & 0xffff);
+      x1 = (int) ((long long) x1 * key[ik++] % 0x10001L & 0xffff);
 
       // 2) Add (modulo 0x10000), 2nd text sub-block
       // with 2nd key sub-block. It says x3, but that is to undo swap
@@ -460,7 +462,7 @@ void cipher_idea( char* text1, char* text2, int* key ) {
       // 4) Multiply (modulo 0x10001), 4th text-block
       // with 4th key sub-block.
 
-      x4 = (int) ((long) x4 * key[ik++] % 0x10001L & 0xffff);
+      x4 = (int) ((long long) x4 * key[ik++] % 0x10001L & 0xffff);
 
       // Repackage from 16-bit sub-blocks to 8-bit byte array text2.
 

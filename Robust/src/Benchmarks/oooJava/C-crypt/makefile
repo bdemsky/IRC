@@ -1,7 +1,7 @@
 all: crypt
 
-crypt: crypt.c makefile
-	gcc -g crypt.c -o crypt
+crypt: crypt.cpp makefile
+	g++ -m64 -O3 crypt.cpp -o crypt
 
 clean:
 	rm -f crypt
