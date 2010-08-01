@@ -14,7 +14,7 @@
 /*
 __thread struct Queue* seseCallStack;
 __thread pthread_once_t mlpOnceObj = PTHREAD_ONCE_INIT;
-void mlpInitOncePerThread() {
+void mlpInitOncePerThread() { 
   seseCallStack = createQueue();
 }
 */
@@ -354,7 +354,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
 
-  int retval;
+  int retval=NOTREADY;
   BinElement* be=T->array[key];
 
   BinItem *bintail=be->tail;
@@ -364,13 +364,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   b->item.total=1;
 
   // note: If current table clears all dependencies, then write bin is ready
-  if (T->item.total==0){
-    retval=READY;    
-  }else{
-    retval=NOTREADY;
-  }
-  b->item.status=retval;
-  //  b->item.status=NOTREADY;
+  
   
   if(inc){
     atomic_inc(&T->item.total);
@@ -380,6 +374,26 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   r->binitem=(BinItem*)b;
 
   be->tail->next=(BinItem*)b;
+  //need to check if we can go...
+  BARRIER();
+  if (T->item.status==READY) {
+    for(;val!=NULL;val=val->next) {
+      if (val==((BinItem *)b)) {
+	//ready to retire
+	retval=READY;
+	if (isParent(r)) {
+	  b->item.status=retval;//unsure if really needed at this point..
+	  be->head=NULL; // released lock
+	  return retval;
+	}
+	break;
+      } else if (val->total!=0) {
+	break;
+      }
+    }
+  }
+  
+  b->item.status=retval;
   be->tail=(BinItem*)b;
   be->head=val;
   return retval;
@@ -721,11 +735,9 @@ RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {
           } else if((BinItem*)rptr==val) {
             val=val->next;
           }
-          rptr->item.status=READY; { 
-	  }
-
+          rptr->item.status=READY; 
 	} 
-	ptr=ptr->next;
+	ptr=ptr->next;	
       }while(ptr!=NULL);   
     }
     bin->head=val; // released lock;
@@ -969,6 +981,7 @@ resolvePointer(REntry* rentry){
 }
 
 void rehashMemoryQueue(SESEcommon_p seseParent){    
+#if 0
   // update memory queue
   int i,binidx;
   for(i=0; i<seseParent->numMemoryQueue; i++){
@@ -1023,5 +1036,5 @@ void rehashMemoryQueue(SESEcommon_p seseParent){
       memoryItem=memoryItem->next;
     }
   }
-
+#endif
 }
