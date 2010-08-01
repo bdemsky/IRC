@@ -50,7 +50,7 @@ public class JGFSORBench {
 
     numthreads = sor.nthreads;
     datasize = sor.datasizes[sor.size];
-    G =  new double[datasize][];
+    G =  new double[datasize][datasize];
     num_iterations = sor.JACOBI_NUM_ITER;
     RANDOM_SEED = sor.RANDOM_SEED;
 

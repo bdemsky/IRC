@@ -57,10 +57,6 @@ class SORRunner extends Thread {
     iupper = ((tmpid+1)*slice)+1;
     if (iupper > Mm1) iupper =  Mm1+1;
     if (tmpid == (numthreads-1)) iupper = Mm1+1;
-    G[0]=new double[N];
-    for(int i=ilow;i<iupper;i++) {
-      G[i]=new double[N];
-    }
 
     //barrier
 
