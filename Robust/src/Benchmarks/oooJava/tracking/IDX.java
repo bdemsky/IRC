@@ -118,7 +118,7 @@ public class IDX {
       System.printI(44444444);
       for(int i=0; i<this.m_rows_re-this.m_rows_rs; i++) {
           for(int j=0; j<this.m_cols_r; j++) {
-              System.printI((int)(this.m_ind[i * this.m_cols_r + j]*10));
+              System.out.println(this.m_ind[i * this.m_cols_r + j] + " " + this.m_image[i * this.m_cols_r  + j]);
           }
       }
     }

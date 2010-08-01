@@ -68,7 +68,7 @@ public class TrackDemo {
      */
     this.m_3f = new float[3][this.N_FEA];
     this.m_rows_3f = this.N_FEA;
-    this.m_cols_3f = this.N_FEA;
+//    this.m_cols_3f = this.N_FEA;
     this.m_cols_3f = 1;
 //    this.m_counter_3f = 3;
     this.m_num_p = nump;
@@ -408,6 +408,7 @@ public class TrackDemo {
     int r = idx.getR();
     int nfea = this.N_FEA;
     int length = this.m_rows * this.m_cols;
+    System.out.println("length: "+length);
     int[] h_ind = new int[this.N_FEA];
     boolean[] f_ind = new boolean[this.N_FEA];
     for (int i = 0; i < this.N_FEA; i++) {
@@ -473,6 +474,7 @@ public class TrackDemo {
     }
 
     this.m_num_p--;
+    print3f();
 
     return (0 == this.m_num_p);
   }
@@ -661,6 +663,10 @@ public class TrackDemo {
     rows_p = rows_f3;
     cols_p = cols_f1 + cols_f2 + cols_f3;
     n = rows_f3;
+    // TODO
+    for(i = 0; i < rows_p*cols_p; i++) {
+      System.out.println("++ " + points[i]);
+    }
 
     /** sort() arg 2 is for descend = 1, arg3 = indices. Returns sorted values **/
 
@@ -764,6 +770,7 @@ public class TrackDemo {
       for (i = 0; i < rows_sp; i++) {
         t = (float) 0;
         t1 = (float) 0;
+        System.out.println("HERE? length="+srtdPnts.length+" idx="+(supId[i] * cols_sp + 2));
         if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) >= srtdPnts[supId[i] * cols_sp + 2]) {
           t = srtdPnts[supId[i] * cols_sp + 0] - interestPnts[rows1 * cols1 + 0];
           t1 = srtdPnts[supId[i] * cols_sp + 1] - interestPnts[rows1 * cols1 + 1];
@@ -782,10 +789,12 @@ public class TrackDemo {
 
       validCount = 0;
       for (i = 0; i < rows_sr; i++) {
+        System.out.println(suppressR[i]+"<->"+r_sq);
         if (suppressR[i] > r_sq) {
           validCount++;
         }
       }
+      System.out.println("validCount="+validCount);
 
       k = 0;
       rows_si = validCount;
@@ -1124,17 +1133,17 @@ public class TrackDemo {
 
   public void print3f() {
     // result validation
-    System.out.println(11111111);
+    /*System.out.println(11111111);
     for (int j = 0; j < this.N_FEA; j++) {
       System.out.println((int) (this.m_3f[0][j] * 10));
     }
     System.printI(22222222);
     for (int j = 0; j < this.N_FEA; j++) {
       System.out.println((int) (this.m_3f[1][j] * 10));
-    }
+    }*/
     System.printI(33333333);
     for (int j = 0; j < this.N_FEA; j++) {
-      System.out.println((int) (this.m_3f[2][j] * 10));
+      System.out.println("-- " + this.m_3f[0][j] + " " + this.m_3f[1][j] + " "+ this.m_3f[2][j]);
     }
   }
 
@@ -1170,6 +1179,10 @@ public class TrackDemo {
     
 
     float[] Icur = getImage();
+    // TODO
+    for(int tmpi = 0; tmpi < Icur.length; tmpi++) {
+      System.out.println(Icur[tmpi]);
+    }
 
     pnum = 16; // 30;
     range = getRows() / pnum;
@@ -1219,7 +1232,7 @@ public class TrackDemo {
       IDX idx = new IDX(lda.N_FEA, i, c_range, data, c_rows, c_cols, r);
       idx.fSortIndices();
       // validation
-      // idx.printInd();
+     idx.printInd();
       IDXarray[i]=idx;
     }
     
