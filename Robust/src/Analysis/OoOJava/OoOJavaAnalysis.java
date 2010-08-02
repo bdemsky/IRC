@@ -160,7 +160,7 @@ public class OoOJavaAnalysis {
                            rblockRel, 
                            rblockStatus
                            );
-
+    
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -209,6 +209,7 @@ public class OoOJavaAnalysis {
     // for objects that may cause heap conflicts so the most
     // efficient method to deal with conflict can be computed
     // later
+   
     disjointAnalysisReach = 
       new DisjointAnalysis(state, 
                            typeUtil, 
@@ -252,6 +253,22 @@ public class OoOJavaAnalysis {
       } catch( IOException e ) {}
     }
     
+  }
+  
+  private void writeFile(Set<FlatNew> sitesToFlag){
+    
+    try{
+    BufferedWriter bw = new BufferedWriter( new FileWriter( "sitesToFlag.txt" ) );
+    
+    for (Iterator iterator = sitesToFlag.iterator(); iterator.hasNext();) {
+      FlatNew fn = (FlatNew) iterator.next();
+      bw.write( fn+"\n" );
+    }
+    bw.close();
+    }catch(IOException e){
+      
+    }
+   
   }
 
   private void livenessAnalysisBackward(FlatSESEEnterNode fsen, boolean toplevel,
@@ -1282,6 +1299,12 @@ private void codePlansForward( FlatMethod fm ) {
             // but the edge must remain uncovered.
 
             changed = true;
+            
+            if(seseLock.containsConflictNode(newNode)){
+              seseLock.addEdge(edge);
+              fineToCover.remove(edge);
+              break;
+            }
 
             if (seseLock.isWriteNode(newNode)) {
               if (newNode.isStallSiteNode()) {

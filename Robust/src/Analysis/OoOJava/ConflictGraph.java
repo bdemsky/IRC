@@ -190,7 +190,8 @@ public class ConflictGraph {
       }
       
       if( (currentNode.isInVarNode() && entryNode.isInVarNode()) && 
-          (currentNode.getSESEIdentifier()==entryNode.getSESEIdentifier()) ){
+          (currentNode.getSESEIdentifier()==entryNode.getSESEIdentifier()) &&
+          (currentNode.getVar().equals(entryNode.getVar())) ){
         continue;
       }
 

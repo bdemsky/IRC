@@ -110,7 +110,8 @@ public class SESELock {
     } else {
       return null;
     }
-
+    
+    
     int count = 0;
     Set<ConflictEdge> edgeSet = newNode.getEdgeSet();
     for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
@@ -123,10 +124,29 @@ public class SESELock {
         count++;
       }
     }
+    
+    if(conflictNodeSet.contains(newNode)){
+      count++;
+    }
 
-    if (count == conflictNodeSet.size()) {
-      // connected to all current nodes in group
-      return newNode;
+    if(isWriteNode(newNode)){
+      if (count == conflictNodeSet.size()) {
+        // connected to all current nodes in group
+        return newNode;
+      }
+    }else{
+      // it is read node
+      int writeNodeCount=0;
+      for (Iterator iterator = conflictNodeSet.iterator(); iterator.hasNext();) {
+        ConflictNode node = (ConflictNode) iterator.next();
+        if(isWriteNode(node)){
+          writeNodeCount++;
+        }
+      }
+      if (count == writeNodeCount) {
+        // connected to all current write nodes in group
+        return newNode;
+      }
     }
 
     return null;

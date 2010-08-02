@@ -490,7 +490,7 @@ public class ReachGraph {
                                        null,
                                        Canonical.intersection( betaY, betaHrn ),
                                        predsTrue,
-                                       edgeHrn.getTaints()
+                                       Canonical.unionORpreds(edgeHrn.getTaints(),edgeY.getTaints())
                                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
