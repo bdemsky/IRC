@@ -14,16 +14,19 @@ public class BlurPieceL {
     /* id indicating the piece # */
     int m_id;  
     int m_range;
+    int m_pnum;
 
     /* constructor */
     public BlurPieceL(int id,
                       int range,
-                      int[] data) {
+                      int[] data,
+                      int pnum) {
       this.m_id = id;
       this.m_range = range;
       this.m_image = data;
       this.m_rows = data[0];
       this.m_cols = data[1];
+      this.m_pnum = pnum;
     }
     
     public int getId() {
@@ -72,6 +75,9 @@ public class BlurPieceL {
       if(rows < this.m_rows_re) {
         this.m_rows_re = rows;
       }
+      if(this.m_id == this.m_pnum - 1) {
+        this.m_rows_re = rows;
+      }
       this.m_cols_r = this.m_cols;
       image = this.m_result = new float[(this.m_rows_re-this.m_rows_rs)*cols];
 
@@ -104,7 +110,7 @@ public class BlurPieceL {
           temp = 0;
           for(k=-halfKernel; k<=halfKernel; k++) {
             temp += (float)((inputs[4 + i * cols + (j+k)] 
-                                    * (float)(kernel[k+halfKernel])));
+                                    * (kernel[k+halfKernel])));
           }
 
           image[ii * cols + j] = (float)(temp/kernelSum);

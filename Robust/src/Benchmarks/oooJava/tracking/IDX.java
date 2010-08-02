@@ -17,6 +17,7 @@ public class IDX {
     /* id indicating the piece # */
     int m_id;  
     int m_range;
+    int m_pnum;
 
     /* constructor */
     public IDX(int nfea,
@@ -25,7 +26,8 @@ public class IDX {
                float[] data,
                int rows,
                int cols,
-               int r) {
+               int r,
+               int pnum) {
       this.N_FEA = nfea;
       
       this.m_id = id;
@@ -38,6 +40,10 @@ public class IDX {
 
       this.m_rows_rs = this.m_id * this.m_range;
       this.m_rows_re = (this.m_id + 1) * this.m_range;
+      if(this.m_id == this.m_pnum - 1) {
+        this.m_rows_re = rows;
+      }
+      
       this.m_cols_r = cols;
       
       this.m_ind = new int[(this.m_rows_re - this.m_rows_rs) * this.m_cols_r];

@@ -41,7 +41,7 @@ public class ImageReader {
     int nplanes = (((int) bi[13] & 0xff) << 8) | (int) bi[12] & 0xff;
 //    System.out.println("Planes is :" + nplanes);
     int nbitcount = (((int) bi[15] & 0xff) << 8) | (int) bi[14] & 0xff;
-//    System.out.println("BitCount is :" + nbitcount);
+    //System.out.println("BitCount is :" + nbitcount);
     // Look for non-zero values to indicate compression
     int ncompression =
         (((int) bi[19]) << 24) | (((int) bi[18]) << 16) | (((int) bi[17]) << 8) | (int) bi[16];
@@ -88,7 +88,7 @@ public class ImageReader {
 //           +((int)brgb[nindex + 1]&0xff)+"," +((int)brgb[nindex]&0xff)+")");
           int ta=((3*((int)(brgb[nindex + 2]) & 0xff)+6*((int)brgb[nindex + 1]&0xff)+((int)brgb[nindex]&0xff))) /10 ;
           ndata[nwidth * (nheight - j - 1) + i+4] =ta;
-//           System.out.println(ta);
+          //System.out.println((nwidth * (nheight - j - 1) + i+4)+" "+nwidth+" "+nheight);
           nindex += 3;
         }
         nindex += npad;
@@ -130,6 +130,7 @@ public class ImageReader {
         // 0xff)+"," +((int)(bpalette[nindex8+2]) & 0xff)+","
         // +((int)bpalette[nindex8+1]&0xff)+","
         // +((int)bpalette[nindex8]&0xff)+")");
+        
         nindex8 += 4;
       }
       // Read the image data (actually indices into the palette)
@@ -162,6 +163,10 @@ public class ImageReader {
     ndata[1] = nwidth;
     ndata[2] = nheight * nwidth;
     ndata[3] = 2;
+    
+//    for(int i=4;i<5;i++){
+//      System.out.println(ndata[i]);
+//    }
     
     return ndata;
 

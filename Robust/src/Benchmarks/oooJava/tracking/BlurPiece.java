@@ -14,16 +14,19 @@ public class BlurPiece {
     /* id indicating the piece # */
     int m_id;  
     int m_range;
+    int m_pnum;
 
     /* constructor */
     public BlurPiece(int id,
                      int range,
-                     int[] data) {
+                     int[] data,
+                     int pnum) {
       this.m_id = id;
       this.m_range = range;
       this.m_image = data;
       this.m_rows = data[0];
       this.m_cols = data[1];
+      this.m_pnum = pnum;
     }
     
     public int getId() {
@@ -69,6 +72,9 @@ public class BlurPiece {
       cols = this.m_cols;
       this.m_rows_rs = this.m_id * this.m_range;
       this.m_rows_re = (this.m_id + 1) * this.m_range;
+      if(this.m_id == this.m_pnum - 1) {
+        this.m_rows_re = rows;
+      }
       if(rows < this.m_rows_re) {
         this.m_rows_re = rows;
       }
@@ -98,13 +104,15 @@ public class BlurPiece {
       startRow = (2>this.m_rows_rs)?2:(this.m_rows_rs);       //(kernelSize)/2;
       endRow = ((rows-2)<this.m_rows_re)?(rows-2):(this.m_rows_re);  //(rows - (kernelSize)/2);
       
+      // TODO
+     //System.out.println(rows + "[" + startRow+ ", " + endRow + ")");
+      
       int ii = startRow - this.m_rows_rs;
       for(i=startRow; i<endRow; i++){
         for(j=startCol; j<endCol; j++) {
-          temp = 0;
+          temp = 0.0f;
           for(k=-halfKernel; k<=halfKernel; k++) {
-            temp += (float)((inputs[4 + i * cols + (j+k)] 
-                                    * (float)(kernel[k+halfKernel])));
+            temp += (float)(inputs[4 + i * cols + (j+k)]  * (kernel[k+halfKernel]));
           }
 
           image[ii * cols + j] = (float)(temp/kernelSum);

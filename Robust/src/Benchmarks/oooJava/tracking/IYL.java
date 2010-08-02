@@ -15,18 +15,21 @@ public class IYL {
     /* id indicating the piece # */
     int m_id;  
     int m_range;
+    int m_pnum ;
     
     /* constructor */
     public IYL(int id,
                int range,
                float[] image,
                int rows,
-               int cols) {
+               int cols,
+               int pnum) {
       this.m_id = id;
       this.m_range = range;
       this.m_image = image;
       this.m_rows = rows;
       this.m_cols = cols;
+      this.m_pnum = pnum;
     }
     
     public int getId() {
@@ -77,6 +80,9 @@ public class IYL {
       
       this.m_rows_rs = this.m_id * this.m_range;
       this.m_rows_re = (this.m_id + 1) * this.m_range;
+      if(this.m_id == this.m_pnum - 1) {
+        this.m_rows_re = rows;
+      }
       this.m_cols_r = cols;
       result=this.m_result=new float[(this.m_rows_re-this.m_rows_rs)*this.m_cols_r];
       

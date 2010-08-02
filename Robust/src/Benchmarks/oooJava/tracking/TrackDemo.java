@@ -52,7 +52,7 @@ public class TrackDemo {
     this.m_num_bpl = 0;
 
     this.WINSZ = 8;
-    this.N_FEA = 16; // 00;
+    this.N_FEA = 1600; // 00;
     this.SUPPRESION_RADIUS = 10;
     this.LK_ITER = 20;
     this.accuracy = (float) 0.03;
@@ -243,10 +243,11 @@ public class TrackDemo {
 
     for (i = startRow; i < endRow; i++) {
       for (j = startCol; j < endCol; j++) {
-        temp = 0;
+        temp = 0.0f;
         for (k = -halfKernel; k <= halfKernel; k++) {
-          temp += (float) ((image[(i + k) * cols + j] * (float) (kernel[k + halfKernel])));
+          temp +=  image[(i + k) * cols + j] *  kernel[k + halfKernel];
         }
+        //System.out.println(temp*10000 + " " + i + " " + j); // TODO
         image[i * cols + j] = (float) (temp / kernelSum);
       }
     }
@@ -304,7 +305,7 @@ public class TrackDemo {
       for (j = startCol; j < endCol; j += 2) {
         tempVal = 0;
         for (k = -halfKernel; k <= halfKernel; k++) {
-          tempVal += (float) (image[i * cols + (j + k)] * (float) (kernel[k + halfKernel]));
+          tempVal += (float) (image[i * cols + (j + k)] *  (kernel[k + halfKernel]));
         }
         temp[i * outputCols + m] = (float) (tempVal / kernelSum);
         m = m + 1;
@@ -316,7 +317,7 @@ public class TrackDemo {
       for (j = 0; j < outputCols; j++) {
         tempVal = 0;
         for (k = -halfKernel; k <= halfKernel; k++) {
-          tempVal += (float) (temp[(i + k) * outputCols + j] * (float) (kernel[k + halfKernel]));
+          tempVal += (float) (temp[(i + k) * outputCols + j] *  (kernel[k + halfKernel]));
         }
         resized[m * outputCols + j] = (float) (tempVal / kernelSum);
       }
@@ -378,7 +379,7 @@ public class TrackDemo {
       for (j = startCol; j < endCol; j += 2) {
         tempVal = 0;
         for (k = -halfKernel; k <= halfKernel; k++) {
-          tempVal += (float) (image[i * cols + (j + k)] * (float) (kernel[k + halfKernel]));
+          tempVal += (float) (image[i * cols + (j + k)] *  (kernel[k + halfKernel]));
         }
         temp[i * outputCols + m] = (float) (tempVal / kernelSum);
         m = m + 1;
@@ -390,7 +391,7 @@ public class TrackDemo {
       for (j = 0; j < outputCols; j++) {
         tempVal = 0;
         for (k = -halfKernel; k <= halfKernel; k++) {
-          tempVal += (float) (temp[(i + k) * outputCols + j] * (float) (kernel[k + halfKernel]));
+          tempVal += (float) (temp[(i + k) * outputCols + j] *  (kernel[k + halfKernel]));
         }
         resized[m * outputCols + j] = (float) (tempVal / kernelSum);
       }
@@ -408,7 +409,6 @@ public class TrackDemo {
     int r = idx.getR();
     int nfea = this.N_FEA;
     int length = this.m_rows * this.m_cols;
-    System.out.println("length: "+length);
     int[] h_ind = new int[this.N_FEA];
     boolean[] f_ind = new boolean[this.N_FEA];
     for (int i = 0; i < this.N_FEA; i++) {
@@ -427,8 +427,8 @@ public class TrackDemo {
           m3f[2][rindex] = image[localindex];
           h_ind[rindex] = localindex;
           localindex++;
-          m3f[0][rindex] = Math.ceilf((float) (localindex / (float) r));
-          m3f[1][rindex] = (float) localindex - (m3f[0][rindex] - 1) * (float) r * (float) 1.0;
+          m3f[0][rindex] = (float)Math.ceil((float) (localindex / (float) r));
+          m3f[1][rindex] = (float) (localindex - (m3f[0][rindex] - 1) *  r *  1.0);
           f_ind[rindex] = true;
         } else {
           // previously held by some others with the same value
@@ -465,8 +465,8 @@ public class TrackDemo {
           m3f[2][p] = image[localindex];
           h_ind[p] = localindex;
           localindex++;
-          m3f[0][p] = Math.ceilf((float) (localindex / (float) r));
-          m3f[1][p] = (float) localindex - (m3f[0][p] - 1) * (float) r * (float) 1.0;
+          m3f[0][p] = (float)Math.ceil((float) (localindex / (float) r));
+          m3f[1][p] = (float) (localindex - (m3f[0][p] - 1) *  r *  1.0);
           f_ind[p] = true;
         }
       }
@@ -474,7 +474,7 @@ public class TrackDemo {
     }
 
     this.m_num_p--;
-    print3f();
+    //print3f();
 
     return (0 == this.m_num_p);
   }
@@ -504,6 +504,13 @@ public class TrackDemo {
     rows_ipt = rows_ip[0];
     cols_ipt = cols_ip[0];
     rows_ip = cols_ip = null;
+    
+    // TODO
+//    for(int i = 0; i < interestPnts.length; i++) {
+//      if(interestPnts[i] > 0.0) {
+//        System.out.println("index: " + i + " " + interestPnts[i]);
+//      }
+//    }
 
     // fTranspose(interestPnts)
     float[] trans;
@@ -658,15 +665,21 @@ public class TrackDemo {
     int n, i, j, k, validCount, cnt, end, iter, rows, cols;
     int supIdPtr = 0;
 
+    // TODO
+//    for(i = 0; i < rows_f1; i++) {
+//      System.out.println("++ " + f1[i] + " " + f2[i] + " " + f3[i]);
+//    }
+    
     r_sq = (float) (this.SUPPRESION_RADIUS ^ 2);
     points = this.horzcat(f1, rows_f1, cols_f1, f2, rows_f2, cols_f2, f3, rows_f3, cols_f3);
     rows_p = rows_f3;
     cols_p = cols_f1 + cols_f2 + cols_f3;
     n = rows_f3;
+    
     // TODO
-    for(i = 0; i < rows_p*cols_p; i++) {
-      System.out.println("++ " + points[i]);
-    }
+//    for(i = 0; i < points.length; i++) {
+//      System.out.println(points[i]);
+//    }
 
     /** sort() arg 2 is for descend = 1, arg3 = indices. Returns sorted values **/
 
@@ -712,8 +725,7 @@ public class TrackDemo {
       if (suppressR[i] > r_sq) {
         supId[k++] = i;
       }
-    }
-   
+    }   
 
     while (validCount > 0) {
       float[] tempp, temps;
@@ -732,6 +744,7 @@ public class TrackDemo {
         rows_ip[0] = rows_ip[0] + rows_tmp;
         cols_ip[0] = cols_ip[0];
       }
+      
 
       iter++;
 
@@ -770,31 +783,28 @@ public class TrackDemo {
       for (i = 0; i < rows_sp; i++) {
         t = (float) 0;
         t1 = (float) 0;
-        System.out.println("HERE? length="+srtdPnts.length+" idx="+(supId[i] * cols_sp + 2));
-        if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) >= srtdPnts[supId[i] * cols_sp + 2]) {
-          t = srtdPnts[supId[i] * cols_sp + 0] - interestPnts[rows1 * cols1 + 0];
-          t1 = srtdPnts[supId[i] * cols_sp + 1] - interestPnts[rows1 * cols1 + 1];
+        if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) >= srtdPnts[i * cols_sp + 2]) {
+          t = srtdPnts[i * cols_sp + 0] - interestPnts[rows1 * cols1 + 0];
+          t1 = srtdPnts[i * cols_sp + 1] - interestPnts[rows1 * cols1 + 1];
           t = t * t + t1 * t1;
           t1 = (float) 0;
         }
 
-        if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) < srtdPnts[supId[i] * cols_sp + 2]) {
-          t1 = (float) 1 * (float) MAX_LIMIT;
+        if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) < srtdPnts[i * cols_sp + 2]) {
+          t1 =/* (float) 1 **/ (float) MAX_LIMIT;
         }
 
-        if (suppressR[supId[i]] > (t + t1)) {
-          suppressR[supId[i]] = t + t1;
+        if (suppressR[i] > (t + t1)) {
+          suppressR[i] = t + t1;
         }
       }
 
       validCount = 0;
       for (i = 0; i < rows_sr; i++) {
-        System.out.println(suppressR[i]+"<->"+r_sq);
         if (suppressR[i] > r_sq) {
           validCount++;
         }
       }
-      System.out.println("validCount="+validCount);
 
       k = 0;
       rows_si = validCount;
@@ -822,8 +832,8 @@ public class TrackDemo {
     float a, b, a11, a12, a21, a22;
     int i, j, srcIdxX, dstIdxX, srcIdy, dstIdy, dstIndex;
 
-    a = centerX - (float) (Math.floor(centerX));
-    b = centerY - (float) (Math.floor(centerY));
+    a = (float) (centerX - Math.floor(centerX));
+    b = (float) (centerY - Math.floor(centerY));
 
     a11 = (1 - a) * (1 - b);
     a12 = a * (1 - b);
@@ -972,7 +982,8 @@ public class TrackDemo {
           break;
         }
 
-        if ((float) (c_det / (tr + (float) 0.00001)) < (float) this.accuracy) {
+        //System.out.println((float) (c_det / (tr + (float) 0.00001)) );
+        if ((float) (c_det / (tr + 0.00001)) < (float) this.accuracy) {
           valid[i] = 0;
           break;
         }
@@ -1008,8 +1019,8 @@ public class TrackDemo {
 
           mX = c_det * (eX * c_yy - eY * c_xy);
           mY = c_det * (-eX * c_xy + eY * c_xx);
-          // printf("mx = %d\t%d\t%f\t%f\t%f\t%f\t%f\n", i, level, mX, mY,
-          // c_det, eX, eY);
+//        printf("mx = %d\t%d\t%f\t%f\t%f\t%f\t%f\n", i, level, mX, mY, c_det, eX, eY);
+//          System.out.println(i+" "+level+" "+mX+" "+mY+" "+c_det+" "+eX+" "+eY);
           dX = dX + mX;
           dY = dY + mY;
 
@@ -1027,7 +1038,7 @@ public class TrackDemo {
     return valid;
   }
 
-  public void calcTrack(IXLM ixlm, IYLM iylm, IXLMR ixlmr, IYLMR iylmr) {
+  public void calcTrack(float[] prevImage, float[] prevImageR,IXLM ixlm, IYLM iylm, IXLMR ixlmr, IYLMR iylmr) {
     float[][] Ipyrs = new float[6][];
     int[] rows = new int[6];
     int[] cols = new int[6];
@@ -1036,7 +1047,8 @@ public class TrackDemo {
     int[] status;
     int rows_s, cols_s;
 
-    Ipyrs[0] = ixlm.getImage();
+//    Ipyrs[0] = ixlm.getImage();
+    Ipyrs[0] = prevImage;
     rows[0] = ixlm.getRows();
     cols[0] = ixlm.getCols();
     Ipyrs[2] = ixlm.getResult();
@@ -1046,7 +1058,8 @@ public class TrackDemo {
     rows[3] = iylm.getRowsR();
     cols[3] = iylm.getColsR();
 
-    Ipyrs[1] = ixlmr.getImage();
+//    Ipyrs[1] = ixlmr.getImage();
+    Ipyrs[1]=prevImageR;
     rows[1] = ixlmr.getRows();
     cols[1] = ixlmr.getCols();
     Ipyrs[4] = ixlmr.getResult();
@@ -1065,6 +1078,12 @@ public class TrackDemo {
     status = this.calcPyrLKTrack(Ipyrs, rows, cols, newpoints);
     rows_s = 1;
     cols_s = this.m_cols_f;
+    
+//    //TODO
+//    System.out.println("###########");
+//    for(i=0;i<status.length;i++){
+//      System.out.println(status[i]);
+//    }
 
     // fDeepCopy
     np_temp = new float[newpoints.length];
@@ -1143,7 +1162,7 @@ public class TrackDemo {
     }*/
     System.printI(33333333);
     for (int j = 0; j < this.N_FEA; j++) {
-      System.out.println("-- " + this.m_3f[0][j] + " " + this.m_3f[1][j] + " "+ this.m_3f[2][j]);
+      System.out.println("-- " + this.m_3f[0][j] + ",  " + this.m_3f[1][j] + ",  "+ this.m_3f[2][j]);
     }
   }
 
@@ -1154,7 +1173,7 @@ public class TrackDemo {
     System.out.println("m_features.length="+this.m_features.length);
     for (int i = 0; i < this.m_rows_f; i++) {
       for (int j = 0; j < this.m_cols_f; j++) {
-        System.out.println((int) (this.m_features[i * this.m_cols_f + j] * 10));
+        System.out.println( this.m_features[i * this.m_cols_f + j] );
       }
     }
   }
@@ -1166,23 +1185,31 @@ public class TrackDemo {
     
 //    int[] input = getInput(false);
     int[]  input=imageReader.readImage("1.bmp");
+//    for(int i = 0; i <input.length; i++) {
+ //     System.out.println(input[i]);
+ //   }
     
     int pnum = 32; // 60;
     setBPNum(pnum);
     int range = (input[0]) / pnum;
+    //System.out.println(range + " " + input[0]);
     for (int i = 0; i < pnum; i++) {
-      BlurPiece bp = new BlurPiece(i, range, input);
+      BlurPiece bp = new BlurPiece(i, range, input, pnum);
       bp.blur();
       addBP(bp);
     }
-    postBlur();
-    
+ // TODO
+    /*for(int i = 0; i < this.m_image.length; i++) {
+      System.out.println( this.m_image[i]);
+    }*/
+    postBlur();    
 
     float[] Icur = getImage();
+    
     // TODO
-    for(int tmpi = 0; tmpi < Icur.length; tmpi++) {
-      System.out.println(Icur[tmpi]);
-    }
+    /*for(int i = 0; i < Icur.length; i++) {
+      System.out.println(Icur[i]);
+    }*/
 
     pnum = 16; // 30;
     range = getRows() / pnum;
@@ -1192,7 +1219,7 @@ public class TrackDemo {
     // create ImageX to calc Sobel_dX
     ImageXM imageXM = new ImageXM(pnum, rows, cols);
     for (int i = 0; i < pnum; i++) {
-      ImageX imageX = new ImageX(i, range, Icur, rows, cols);
+      ImageX imageX = new ImageX(i, range, Icur, rows, cols, pnum);
       imageX.calcSobel_dX();
       imageXM.addCalcSobelResult(imageX);
     }
@@ -1202,7 +1229,7 @@ public class TrackDemo {
     // create ImageY to calc Sobel_dY
     ImageYM imageYM = new ImageYM(pnum, rows, cols);
     for (int i = 0; i < pnum; i++) {
-      ImageY imageY = new ImageY(i, range, Icur, rows, cols);
+      ImageY imageY = new ImageY(i, range, Icur, rows, cols, pnum);
       imageY.calcSobel_dY();
       imageYM.addCalcSobelResult(imageY);
     }
@@ -1214,7 +1241,7 @@ public class TrackDemo {
     lda.calcGoodFeature(imageXM, imageYM);
 //    lda.calcGoodFeature(eom_imageXM, eom_imageYM);
     // validation
-    // lda.printImage();
+    //lda.printImage();
     lda.reshape();
     // validation
     // lda.printImage();
@@ -1229,10 +1256,10 @@ public class TrackDemo {
 
     IDX IDXarray[]=new IDX[c_pnum];
     for (int i = 0; i < c_pnum; i++) {
-      IDX idx = new IDX(lda.N_FEA, i, c_range, data, c_rows, c_cols, r);
+      IDX idx = new IDX(lda.N_FEA, i, c_range, data, c_rows, c_cols, r, c_pnum);
       idx.fSortIndices();
       // validation
-     idx.printInd();
+     //idx.printInd();
       IDXarray[i]=idx;
     }
     
@@ -1241,12 +1268,23 @@ public class TrackDemo {
     for (int i = 0; i < c_pnum; i++) {
       addIDX(IDXarray[i]);
     }
+    
+    //print3f();
 
     // TASK:calcFeatures
     calcFeatures();
 
     // TASK:startTrackingLoop
-    do{
+//    do{
+     for(int count=1;count<=m_counter; count++){
+       
+       int prevSize=getRows()*getCols();
+       float[] prevImage=new float[prevSize];
+       System.arraycopy(getImage(), 0, prevImage, 0, prevSize);
+       
+       prevSize=getRowsR()*getColsR();
+       float[] prevImageR=new float[prevSize];
+       System.arraycopy(getImageR(), 0, prevImageR, 0, prevSize);
       
       int pnum1 = 8; // 15; // * 2;
       data = getImage();
@@ -1257,10 +1295,10 @@ public class TrackDemo {
       IXLM ixlm = new IXLM(pnum1, data, rows, cols);
       IYLM iylm = new IYLM(pnum1, data, rows, cols);
       for (int i = 0; i < pnum1; i++) {
-        IXL ixl = new IXL(i, range, data, rows, cols);
+        IXL ixl = new IXL(i, range, data, rows, cols, pnum1);
         ixl.calcSobel_dX();
         ixlm.addCalcSobelResult(ixl);
-        IYL iyl = new IYL(i, range, data, rows, cols);
+        IYL iyl = new IYL(i, range, data, rows, cols, pnum1);
         iyl.calcSobel_dY();
         iylm.addCalcSobelResult(iyl);
       }
@@ -1275,10 +1313,10 @@ public class TrackDemo {
       IYLMR iylmr = new IYLMR(pnum1, data, rows, cols);
   
       for (int i = 0; i < pnum1; i++) {
-        IXLR ixl = new IXLR(i, range, data, rows, cols);
+        IXLR ixl = new IXLR(i, range, data, rows, cols, pnum1);
         ixl.calcSobel_dX();
         ixlmr.addCalcSobelResult(ixl);
-        IYLR imy = new IYLR(i, range, data, rows, cols);
+        IYLR imy = new IYLR(i, range, data, rows, cols, pnum1);
         imy.calcSobel_dY();
         iylmr.addCalcSobelResult(imy);
       }
@@ -1286,9 +1324,12 @@ public class TrackDemo {
       iylmr.calcSobel_dY();
   
       int pnum2 = 32; // 60; // * 2;
-//      input = getInput(true);
-      input = imageReader.readImage("1.bmp");
+      System.out.println("read image: "+count+".bmp");
+      input = imageReader.readImage(count+".bmp");
       this.m_count++;
+//      input = getInput(true);
+//      input = imageReader.readImage((m_count+1)+".bmp");
+//      this.m_count++;
       
       
 //      float ip1[]=new float[getRows()*getCols()];
@@ -1301,7 +1342,7 @@ public class TrackDemo {
       range = (input[0]) / pnum2;
       BlurPieceL bplArray[]=new BlurPieceL[pnum2];
       for (int i = 0; i < pnum2; i++) {
-        BlurPieceL bpl = new BlurPieceL(i, range, input);
+        BlurPieceL bpl = new BlurPieceL(i, range, input, pnum2);
         bpl.blur();
         bplArray[i]=bpl;
       }
@@ -1318,9 +1359,10 @@ public class TrackDemo {
       
       //task calcTrack
    
-      calcTrack(ixlm, iylm, ixlmr, iylmr);
+      calcTrack(prevImage, prevImageR, ixlm, iylm, ixlmr, iylmr);
     
-    }while(!isFinish());
+     }
+//    }while(!isFinish());
     
     printFeatures();
   }

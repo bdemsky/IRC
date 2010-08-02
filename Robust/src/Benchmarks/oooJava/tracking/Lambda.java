@@ -192,7 +192,7 @@ public class Lambda {
       //    result validation
       for(int i=0; i<this.m_rows; i++) {
           for(int j=0; j<this.m_cols; j++) {
-              System.printI((int)(this.m_image[i * this.m_cols + j]*10));
+              System.out.println(this.m_image[i * this.m_cols + j]);
           }
       }
     }
