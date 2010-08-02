@@ -4,10 +4,10 @@ SOURCE_FILES=TrackingBench.java
 
 BUILDSCRIPT=../../../buildscript
 
-#USEOOO= -ooojava 24 2  -ooodebug  
-#BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats #-joptimize -noloop -optimize
-USEOOO= -ooojava 8 2  -ooodebug 
-BSFLAGS= -64bit -nooptimize -mainclass $(PROGRAM) -debug -garbagestats -joptimize
+USEOOO= -ooojava 24 2  -ooodebug  
+BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize -noloop -optimize
+#USEOOO= -ooojava 8 2  -ooodebug 
+#BSFLAGS= -64bit -nooptimize -mainclass $(PROGRAM) -debug -garbagestats -joptimize -noloop
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions 
 
 default:

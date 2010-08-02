@@ -1256,11 +1256,13 @@ public class TrackDemo {
 
     IDX IDXarray[]=new IDX[c_pnum];
     for (int i = 0; i < c_pnum; i++) {
-      IDX idx = new IDX(lda.N_FEA, i, c_range, data, c_rows, c_cols, r, c_pnum);
-      idx.fSortIndices();
-      // validation
-     //idx.printInd();
-      IDXarray[i]=idx;
+      sese parallel_IDX{
+        IDX idx = new IDX(lda.N_FEA, i, c_range, data, c_rows, c_cols, r, c_pnum);
+        idx.fSortIndices();
+      }
+      sese serial_IDX{
+        IDXarray[i]=idx;
+      }
     }
     
     resize();
