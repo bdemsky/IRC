@@ -16,6 +16,12 @@ echo "-hybrid use fission only when it looks like a good choice"
 echo "-numa numa aware"
 echo "-eventmonitor turn on transaction event trace recording"
 echo
+echo OOOJava options
+echo -coreprof turn on profiling API
+echo -ooojava numberofcores maxseseage
+echo -mlp <num cores> <max sese age> build mlp code
+echo -mlpdebug if mlp, report progress and interim results
+echo
 echo DSM options
 echo -dsm distributed shared memory
 echo -abortreaders abort readers immediately
@@ -32,7 +38,6 @@ echo "-rawpath print out execute path information for raw version (should be use
 echo "-useprofile use profiling data for scheduling (should be used together with -raw)"
 echo -printscheduling print out scheduling graphs
 echo -printschedulesim print out scheduling simulator result graphs
-echo -abcclose close the array boundary check
 echo "-tilera_bme generate tilera version binary for Bare Mental Environment (should be used together with -multicore"
 echo "-tilera_zlinux generate tilera version binary for Zero-Overhead Linux with multi-process mode (should be used together with -multicore"
 echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
@@ -57,6 +62,7 @@ echo -accurateprofile build with accurate profile information including pre/post
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo
 echo Other options
+echo -abcclose turnoff array boundary checks
 echo -builddir setup different build directory
 echo -robustroot set up the ROBUSTROOT to directory other than default one
 echo -readset turn on readset
@@ -103,6 +109,7 @@ echo -help help
 }
 
 tmpbuilddirectory="tmpbuilddirectory"
+COREPROF=false;
 NUMA=false;
 SANDBOX=false;
 ABORTREADERS=false;
@@ -477,6 +484,14 @@ then
 MLP_ON=true
 JAVAOPTS="$JAVAOPTS -ooojava $2 $3"
 EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread -DMLP"
+shift
+shift
+
+elif [[ $1 = '-coreprof' ]]
+then
+COREPROF=true
+JAVAOPTS="$JAVAOPTS -coreprof"
+EXTRAOPTIONS="$EXTRAOPTIONS -DCOREPROF"
 shift
 shift
 
@@ -1024,6 +1039,11 @@ fi
 if $FASTCHECK
 then
 FILES="$FILES $ROBUSTROOT/Runtime/localobjects.c"
+fi
+
+if $COREPROF
+then
+FILES="$FILES $ROBUSTROOT/Runtime/coreprof/coreprof.c"
 fi
 
 if $MLP_ON

@@ -1,36 +1,36 @@
 #!/bin/bash
 cd KMeans
-make &
+make
 cd ..
 
 cd SSCA2
-make &
+make
 cd ..
 
 cd Labyrinth3D
-make &
+make
 cd ..
 
 cd Genome
-make &
+make
 cd ..
 
 cd Intruder
-make &
+make
 cd ..
 
 cd Bayes
-make &
+make
 cd ..
 
 cd Vacation
-make &
+make
 cd ..
 
 cd Yada
-make &
+make
 cd ..
 
 cd LeeRouting
-make &
+make
 cd ..

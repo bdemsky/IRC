@@ -322,6 +322,9 @@ public class Main {
 
       } else if (option.equals("-methodeffects")) {
 	state.METHODEFFECTS=true;
+	
+      } else if (option.equals("-coreprof")) {
+	state.COREPROF=true;
 
       } else if (option.equals("-ooojava")) {
 	state.OOOJAVA  = true;
