@@ -23,13 +23,18 @@ public class JGFSORBenchSizeD{
   public static void main(String argv[]){
 
     int nthreads;
+    nthreads = 1;
+    int size = 3;
     if(argv.length != 0 ) {
-      nthreads = Integer.parseInt(argv[0]);
-    } else {
-      System.printString("The no of threads has not been specified, defaulting to 1\n");
-      System.printString("  \n");
-      nthreads = 1;
-    }
+      size = Integer.parseInt(argv[0]);
+    } 
+//    if(argv.length != 0 ) {
+//      nthreads = Integer.parseInt(argv[0]);
+//    } else {
+//      System.printString("The no of threads has not been specified, defaulting to 1\n");
+//      System.printString("  \n");
+//      nthreads = 1;
+//    }
 
     JGFInstrumentor instr = new JGFInstrumentor();
     //JGFInstrumentor.printHeader(2,0,nthreads);
@@ -37,7 +42,7 @@ public class JGFSORBenchSizeD{
     JGFSORBench sor;
     sor = new JGFSORBench(nthreads); 
 
-    int size = 3;
+   
     JGFInstrumentor.addTimer("Section2:SOR:Kernel", "Iterations",size, instr.timers);
 
     sor.JGFsetsize(size); 

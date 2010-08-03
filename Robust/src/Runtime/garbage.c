@@ -35,7 +35,7 @@ extern struct QI * tailqi;
 
 #define NUMPTRS 100
 
-#define INITIALHEAPSIZE 256*1024*1024L
+#define INITIALHEAPSIZE 8*1024*1024*1024L
 #define GCPOINT(x) ((INTPTR)((x)*0.99))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) ((INTPTR)(x+y))*2

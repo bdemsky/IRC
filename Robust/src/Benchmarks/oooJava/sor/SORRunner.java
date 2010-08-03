@@ -19,7 +19,7 @@
  *                                                                         *
  **************************************************************************/
 
-class SORRunner extends Thread {
+class SORRunner  {
 
   int id, num_iterations;
   double G[][],omega;
@@ -147,5 +147,6 @@ class SORRunner extends Thread {
       }
       //barrier
     }//end of for
+
   } //end of run()
 }

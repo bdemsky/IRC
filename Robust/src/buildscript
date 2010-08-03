@@ -492,8 +492,6 @@ then
 COREPROF=true
 JAVAOPTS="$JAVAOPTS -coreprof"
 EXTRAOPTIONS="$EXTRAOPTIONS -DCOREPROF -I$ROBUSTROOT/Runtime/coreprof"
-shift
-shift
 
 elif [[ $1 = '-mlp' ]]
 then
