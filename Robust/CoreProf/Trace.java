@@ -11,8 +11,16 @@ public class Trace {
   int[] eventCounts;
   Event[][] eventstack;
   Hashtable<Integer, Counter> getcounter[];
+  Hashtable<Integer, String> eventnames=new Hashtable<Integer, String>();
 
   public static final int STACKMAX=512;
+
+
+  void initNames() {
+    eventnames.put(CP_MAIN,     "MAIN     ");
+    eventnames.put(CP_RUNMALLOC,"RUNMALLOC");
+    eventnames.put(CP_RUNFREE,  "RUNFREE  ");
+  }
 
   public void printStats() {
     for(int i=0;i<numThreads;i++) {
@@ -20,7 +28,8 @@ public class Trace {
       for(Iterator<Integer> evit=getcounter[i].keySet().iterator();evit.hasNext();) {
 	Integer event=evit.next();
 	Counter c=getcounter[i].get(event);
-	System.out.println("Event: "+event+" self time="+c.selftime+"  total time"+c.totaltime);
+	String eventname=eventnames.containsKey(event)?eventnames.get(event):Integer.toString(event);
+	System.out.println("Event: "+eventname+" self time="+c.selftime+"  total time="+c.totaltime+" count="+c.count);
       }
       System.out.println("-------------------------------------------------------------");
     }
@@ -85,6 +94,7 @@ public class Trace {
   BufferedInputStream threads[];
 
   public Trace(String filename) {
+    initNames();
     BufferedInputStream bir=null;
     int offset=0;
     try {
@@ -113,18 +123,23 @@ public class Trace {
       }
     }
   }
+
+  public void readThreads() {
+    for(int i=0;i<numThreads;i++)
+      readThread(i);
+  }
   
   public void readThread(int t) {
     BufferedInputStream bis=threads[t];
     int numevents=eventCounts[t];
-    int i=0;
     Event[] stack=eventstack[t];
-    int depth=0;
     Hashtable<Integer, Counter> countertab=getcounter[t];
-
+    int i=0;
+    int depth=0;
+    long time=0;
     while(i<numevents) {
       int event=readInt(bis);
-      long time=readLong(bis);
+      time=readLong(bis);
       int baseevent=event>>CP_BASE_SHIFT;
       i+=3; //time and event
 
@@ -134,21 +149,42 @@ public class Trace {
 	depth++;
 	break;
       case CP_END: {
+	depth--;
 	Event e=stack[depth];
 	long elapsedtime=time-e.time;
 	Counter c=e.counter;
 	c.totaltime+=elapsedtime;
 	c.selftime+=elapsedtime;
-	depth--;
-	for(int j=depth;j>=0;j--) {
-	  Counter cn=e.counter;
-	  cn.totaltime-=elapsedtime;
+	if(depth-1>0) {
+	  Counter cn=stack[depth-1].counter;
+	  cn.selftime-=elapsedtime;
 	}
 	break;
       }
-      case CP_EVENT:
+      case CP_EVENT: {
+	Counter counter=countertab.get(event);
+	if (counter==null) {
+	  Counter c=new Counter();
+	  countertab.put(event, c);
+	  counter=c;
+	}
+	counter.count++;
 	break;
       }
+      }
+    }
+    if (depth!=0) {
+      //get rid of last item also
+	depth--;
+	Event e=stack[depth];
+	long elapsedtime=time-e.time;
+	Counter c=e.counter;
+	c.totaltime+=elapsedtime;
+	c.selftime+=elapsedtime;
+	if(depth-1>0) {
+	  Counter cn=stack[depth-1].counter;
+	  cn.selftime-=elapsedtime;
+	}
     }
   }
 
@@ -157,7 +193,9 @@ public class Trace {
     if (counter==null) {
       Counter c=new Counter();
       getcounter.put(event, c);
+      counter=c;
     }
+    counter.count++;
     if (stack[depth]==null) {
       stack[depth]=new Event(time,event);
       stack[depth].counter=counter;
@@ -179,6 +217,7 @@ public class Trace {
   public static final int CP_RUNFREE=2;
   public static void main(String x[]) {
     Trace t=new Trace(x[0]);
+    t.readThreads();
     t.printStats();
   }
 }

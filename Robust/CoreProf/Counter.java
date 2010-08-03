@@ -2,6 +2,7 @@ public class Counter {
   public Counter() {
   }
 
-  public int totaltime;
-  public int selftime;
+  public long count;
+  public long totaltime;
+  public long selftime;
 }
