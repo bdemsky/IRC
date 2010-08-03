@@ -155,7 +155,7 @@ public class Trace {
 	Counter c=e.counter;
 	c.totaltime+=elapsedtime;
 	c.selftime+=elapsedtime;
-	if(depth-1>0) {
+	if(depth-1>=0) {
 	  Counter cn=stack[depth-1].counter;
 	  cn.selftime-=elapsedtime;
 	}
@@ -181,7 +181,7 @@ public class Trace {
 	Counter c=e.counter;
 	c.totaltime+=elapsedtime;
 	c.selftime+=elapsedtime;
-	if(depth-1>0) {
+	if(depth-1>=0) {
 	  Counter cn=stack[depth-1].counter;
 	  cn.selftime-=elapsedtime;
 	}
