@@ -1,12 +1,16 @@
 #ifndef COREPROF_H
 #define COREPROF_H
 #ifndef COREPROF
+
 //Core Prof turned off
 #define CREATEPROFILER() ;
 #define EXITPROFILER() ;
 #define DUMPPROFILER() ;
 #define CPLOGEVENT(x,y) ;
 #else
+#include <stdlib.h>
+#include "runtime.h"
+
 //Core Prof defined
 #ifndef CPMAXEVENTS
 #define CPMAXEVENTS (1024*1024*128)
@@ -15,7 +19,7 @@
 #define EXITPROFILER() exitprofiler();
 #define DUMPPROFILER() dumpprofiler();
 
-#define CPLOGEVENT(x,y) { CP_events->value[cp_events->index++]=((x<<CP_BASE_SHIFT)|y); \
+#define CPLOGEVENT(x,y) { cp_events->value[cp_events->index++]=((x<<CP_BASE_SHIFT)|y); \
     CPLOGTIME								\
       }
 
@@ -36,7 +40,7 @@
 struct coreprofmonitor {
   int index;
   struct coreprofmonitor * next;
-  unsigned int value[MAXEVENTS];
+  unsigned int value[CPMAXEVENTS];
 };
 
 extern __thread int cp_threadnum;
@@ -47,16 +51,16 @@ void exitprofiler();
 void dumpprofiler();
 
 static inline void *cp_calloc(int size) {
-  CP_LOGEVENT(CP_RUNMALLOC, CP_BEGIN);
+  CPLOGEVENT(CP_RUNMALLOC, CP_BEGIN);
   void *mem=calloc(1,size);
-  CP_LOGEVENT(CP_RUNMALLOC, CP_END);
+  CPLOGEVENT(CP_RUNMALLOC, CP_END);
   return mem;
 }
 
 static inline void cp_free(void *ptr) {
-  CP_LOGEVENT(CP_RUNFREE, CP_BEGIN);
+  CPLOGEVENT(CP_RUNFREE, CP_BEGIN);
   free(ptr);
-  CP_LOGEVENT(CP_RUNFREE, CP_END);
+  CPLOGEVENT(CP_RUNFREE, CP_END);
 }
 #endif
 #endif

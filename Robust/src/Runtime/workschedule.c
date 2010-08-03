@@ -109,7 +109,7 @@ void* workerMain( void* arg ) {
 void workScheduleInit( int numProcessors,
                        void(*func)(void*) ) {
   int i, status;
-
+  CREATEPROFILER();
   pthread_mutex_init(&gclock, NULL);
   pthread_mutex_init(&gclistlock, NULL);
   pthread_cond_init(&gccond, NULL);
@@ -165,5 +165,4 @@ void workScheduleBegin() {
   for( i = 0; i < numWorkers; ++i ) {
     pthread_join( workerDataArray[i].workerThread, NULL );
   }
-  DUMPPROFILER();
 }

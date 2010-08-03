@@ -329,6 +329,7 @@ public class BuildCode {
 
     if (state.MLP || state.OOOJAVA) {
       //outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
+
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
     }
 
@@ -524,7 +525,9 @@ public class BuildCode {
       outmethod.println("#include \"mlp_runtime.h\"");
       outmethod.println("#include \"psemaphore.h\"");
     }
-
+    if (state.COREPROF) {
+      outmethod.println("#include \"coreprof.h\"");
+    }
 
     //Store the sizes of classes & array elements
     generateSizeArray(outmethod);
@@ -2342,6 +2345,10 @@ public class BuildCode {
           (state.OOOJAVA && fsen.equals( oooa.getMainSESE() ))
       ) {
 	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
+	if (state.COREPROF) {
+	  outmethod.println("EXITPROFILER();");
+	  outmethod.println("DUMPPROFILER();");
+	}
 	outmethod.println(  "      exit( 0 );");
       }
 
