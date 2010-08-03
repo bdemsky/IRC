@@ -1180,37 +1180,23 @@ public class TrackDemo {
 
   public void run() {
     
-    
     ImageReader imageReader=new ImageReader();
     
-//    int[] input = getInput(false);
     int[]  input=imageReader.readImage("1.bmp");
-//    for(int i = 0; i <input.length; i++) {
- //     System.out.println(input[i]);
- //   }
     
+    // TASK: blur & mergeBP
     int pnum = 32; // 60;
     setBPNum(pnum);
     int range = (input[0]) / pnum;
-    //System.out.println(range + " " + input[0]);
     for (int i = 0; i < pnum; i++) {
       BlurPiece bp = new BlurPiece(i, range, input, pnum);
       bp.blur();
       addBP(bp);
     }
- // TODO
-    /*for(int i = 0; i < this.m_image.length; i++) {
-      System.out.println( this.m_image[i]);
-    }*/
     postBlur();    
 
     float[] Icur = getImage();
     
-    // TODO
-    /*for(int i = 0; i < Icur.length; i++) {
-      System.out.println(Icur[i]);
-    }*/
-
     pnum = 16; // 30;
     range = getRows() / pnum;
     int rows = getRows();
@@ -1225,7 +1211,6 @@ public class TrackDemo {
     }
     imageXM.calcSobel_dX();
 
-
     // create ImageY to calc Sobel_dY
     ImageYM imageYM = new ImageYM(pnum, rows, cols);
     for (int i = 0; i < pnum; i++) {
@@ -1239,14 +1224,13 @@ public class TrackDemo {
     // create a Lambda to aggregate results from the ImageXs
     Lambda lda = new Lambda(WINSZ, N_FEA, pnum, getNumP());
     lda.calcGoodFeature(imageXM, imageYM);
-//    lda.calcGoodFeature(eom_imageXM, eom_imageYM);
     // validation
     //lda.printImage();
     lda.reshape();
     // validation
     // lda.printImage();
     
-    // TASK: calcInd
+    // TASK: calculates indicies
     int r = lda.getR();
     float[] data = lda.getImage();
     int c_rows = lda.getRows();
@@ -1254,6 +1238,7 @@ public class TrackDemo {
     int c_pnum = lda.getNumP();
     int c_range = c_rows / c_pnum;
 
+    // TASK: processIDX
     IDX IDXarray[]=new IDX[c_pnum];
     for (int i = 0; i < c_pnum; i++) {
       sese parallel_IDX{
@@ -1267,17 +1252,15 @@ public class TrackDemo {
     
     resize();
     
+    // TASK: merge IDX 
     for (int i = 0; i < c_pnum; i++) {
       addIDX(IDXarray[i]);
     }
     
-    //print3f();
-
-    // TASK:calcFeatures
+    // TASK: calcFeatures
     calcFeatures();
 
-    // TASK:startTrackingLoop
-//    do{
+    // TASK: startTrackingLoop
      for(int count=1;count<=m_counter; count++){
        
        int prevSize=getRows()*getCols();
@@ -1287,13 +1270,14 @@ public class TrackDemo {
        prevSize=getRowsR()*getColsR();
        float[] prevImageR=new float[prevSize];
        System.arraycopy(getImageR(), 0, prevImageR, 0, prevSize);
-      
+
+      //TASK: processIXL, mergeIXL , processIYL, mergeIYL
       int pnum1 = 8; // 15; // * 2;
       data = getImage();
       rows = getRows();
       cols = getCols();
       range = rows / pnum1;
-      
+     
       IXLM ixlm = new IXLM(pnum1, data, rows, cols);
       IYLM iylm = new IYLM(pnum1, data, rows, cols);
       for (int i = 0; i < pnum1; i++) {
@@ -1304,9 +1288,11 @@ public class TrackDemo {
         iyl.calcSobel_dY();
         iylm.addCalcSobelResult(iyl);
       }
+      
       ixlm.calcSobel_dX();
       iylm.calcSobel_dY();
   
+      //TASK: processIXLR, mergeIXLR , processIYLR, mergeIYLR
       data = getImageR();
       rows = getRowsR();
       cols = getColsR();
@@ -1329,17 +1315,6 @@ public class TrackDemo {
       System.out.println("read image: "+count+".bmp");
       input = imageReader.readImage(count+".bmp");
       this.m_count++;
-//      input = getInput(true);
-//      input = imageReader.readImage((m_count+1)+".bmp");
-//      this.m_count++;
-      
-      
-//      float ip1[]=new float[getRows()*getCols()];
-//      for(int ip1idx=0;ip1idx<getRows()*getCols();ip1idx++){
-//        ip1[ip1idx]=(float)input[ip1idx+4];
-//      }
-//      float[] ip2=resize(ip1);
-//      
       
       range = (input[0]) / pnum2;
       BlurPieceL bplArray[]=new BlurPieceL[pnum2];
@@ -1351,7 +1326,7 @@ public class TrackDemo {
       setBPLNum(pnum2);
       startTrackingLoop();
       
-      //task addBPL
+      //TASK: blurL, addBPL
       for(int i=0;i<pnum2;i++){
         addBPL( bplArray[i]);
       }
@@ -1359,12 +1334,10 @@ public class TrackDemo {
       
       resize();
       
-      //task calcTrack
-   
+      //TASK: calcTrack
       calcTrack(prevImage, prevImageR, ixlm, iylm, ixlmr, iylmr);
     
      }
-//    }while(!isFinish());
     
     printFeatures();
   }
