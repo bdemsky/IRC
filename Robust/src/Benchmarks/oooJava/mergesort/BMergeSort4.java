@@ -42,7 +42,7 @@ public class MergeSort4 extends MergeSort {
       int max = R.length;
       int j = low;
       for (int i = 0; i < max; i++) {
-        R[i] = A[j++];
+          R[i] = A[j++];
       }
       quickSort(R, 0, R.length - 1);
       return R;
@@ -77,7 +77,7 @@ public class MergeSort4 extends MergeSort {
         int max = R.length;
         int j = low;
         for (int i = 0; i < max; i++) {
-          R[i] = A[j++];
+            R[i] = A[j++];
         }
         quickSort(R, 0, R.length-1);
         return R;

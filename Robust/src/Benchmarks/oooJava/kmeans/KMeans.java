@@ -229,7 +229,7 @@ public class KMeans /*extends Thread*/ {
     attributes = new float[numObjects][numAttributes];
     KMeans.readFromFile(inputFile, kms.filename, buf, MAX_LINE_LENGTH);
     System.out.println("Finished Reading from file ......");
-
+    long startT=System.currentTimeMillis();
     /*
      * The core of the clustering
      */
@@ -271,12 +271,15 @@ public class KMeans /*extends Thread*/ {
           g_args);                // Global arguments common to all threads
     }
 
-    System.out.println("TIME="+g_args.global_time);
+    long endT=System.currentTimeMillis();
+    System.out.println("running time="+(endT-startT));
+//    System.out.println("TIME="+g_args.global_time);
 
     System.out.println("Printing output......");
     System.out.println("Best_nclusters= " + kms.best_nclusters);
 
     /* Output: the coordinates of the cluster centres */
+    /*
     {
       for (int i = 0; i < kms.best_nclusters; i++) {
         System.out.print(i + " ");
@@ -286,6 +289,7 @@ public class KMeans /*extends Thread*/ {
         System.out.println("\n");
       }
     }
+    */
 
     System.out.println("Finished......");
     System.exit(0);

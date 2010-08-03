@@ -1,5 +1,3 @@
-import System;
-
 /*
 Lonestar Benchmark Suite for irregular applications that exhibit 
 amorphous data-parallelism.
@@ -164,8 +162,7 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
 
  public static void Insert(ArrayIndexedGraph octree, ArrayIndexedNode root, OctTreeLeafNodeData b, double r) { // builds the tree
     double x = 0.0, y = 0.0, z = 0.0;
-//    OctTreeNodeData n = octree.getNodeData(root);
-    OctTreeNodeData n = root.data;
+    OctTreeNodeData n = octree.getNodeData(root);
     int i = 0;
     if (n.posx < b.posx) {
       i = 1;
@@ -186,8 +183,7 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
       octree.setNeighbor(root, i, newnode);
     } else {
       double rh = 0.5 * r;
-//      OctTreeNodeData ch = octree.getNodeData(child);
-      OctTreeNodeData ch = child.data;
+      OctTreeNodeData ch = octree.getNodeData(child);
       if (!(ch instanceof OctTreeLeafNodeData)) {
         Insert(octree, child, b, rh);
       } else {
@@ -211,11 +207,11 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     mintime =9223372036854775807L;
     run = 0;
     
-    while (((run < 3) || (Math.abs(lasttime-runtime)*64 > min(lasttime, runtime))) && (run < 7)) {
+//    while (((run < 3) || (Math.abs(lasttime-runtime)*64 > min(lasttime, runtime))) && (run < 7)) {
       runtime = bh.run(args);
       if (runtime < mintime) mintime = runtime;
       run++;
-    }
+//    }
     System.out.println("minimum runtime: " + mintime + " ms");
     System.out.println("");
   }
@@ -244,6 +240,7 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     int local_nbodies=nbodies;
     int local_ntimesteps=ntimesteps;
 
+    long start_time = System.currentTimeMillis();
     for (int step = 0; step < local_ntimesteps; step++) { // time-step the system
       ComputeCenterAndDiameter();
       ArrayIndexedGraph octree = new ArrayIndexedGraph(8);
@@ -259,44 +256,36 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
       // summarize subtree info in each internal node (plus restructure tree and sort bodies for performance reasons)
       ComputeCenterOfMass(octree, root);
 
-//      long id = Time.getNewTimeId();
-      long start_time = System.currentTimeMillis();
       for(int i=0; i < local_nbodies; i++){
-//      for (OctTreeLeafNodeData n : body) {
         // compute the acceleration of each body (consumes most of the total runtime)
-//        n.ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
+        // n.ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
         OctTreeLeafNodeData eachbody=body[i];
         double di=diameter;
         double it=itolsq;
         double dt=dthf;
         double ep=epssq;   
         sese parallel{
-//          body[i].ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
-//          eachbody.ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
-            eachbody.ComputeForce(octree, root, di, it, step, dt, ep);
+            eachbody.ComputeForce(octree, di, it, step, dt, ep);
         }
       }
-      long end_time=System.currentTimeMillis();
-      runtime += (end_time-start_time);
-//      runtime += Time.elapsedTime(id);
-      for (int i = 0; i < local_nbodies; i++) {
+
+      for (int i = 0; i < local_nbodies; i++) {        
         body[i].Advance(dthf, dtime); // advance the position and velocity of each body
       }
+
     } // end of time step
 
+    long end_time=System.currentTimeMillis();
+    
     if (isFirstRun) {
-      // DecimalFormat df = new DecimalFormat("0.0000E00");
-      // for (int i = 0; i < nbodies; i++) {
-      // System.out.println(df.format(body[i].posx) + " " +
-      // df.format(body[i].posy) + " " + df.format(body[i].posz)); // print
-      // result
-      // }
-      for (int i = 0; i < local_nbodies; i++) {
-//        System.out.println(body[i].posx + " " + body[i].posy + " " + body[i].posz); // print
-                                                                                    // result
-      }
+      /*
+        for (int i = 0; i < local_nbodies; i++) {
+          System.out.println(body[i].posx + " " + body[i].posy + " " + body[i].posz); // print result
+        }
+     */
       System.out.println("");
     }
+    runtime += (end_time-start_time);
     System.out.println("runtime: " + runtime + " ms");
 
     isFirstRun = false;

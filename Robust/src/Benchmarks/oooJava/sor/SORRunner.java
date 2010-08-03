@@ -19,7 +19,7 @@
  *                                                                         *
  **************************************************************************/
 
-class SORRunner {
+class SORRunner  {
 
   int id, num_iterations;
   double G[][],omega;

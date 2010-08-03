@@ -63,9 +63,9 @@ public class MergeSort {
     sese run{
       sort(input);
     }
-//    sese test{
-//      checkSorted(input);
-//    }
+    sese test{
+      checkSorted(input);
+    }
   }
 
   public void sort(int A[]) {

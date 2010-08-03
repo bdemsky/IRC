@@ -67,7 +67,7 @@ public class OctTreeLeafNodeData extends OctTreeNodeData { // the tree leaves ar
     velz = velhz + dvelz;
   }
 
-  void ComputeForce(ArrayIndexedGraph octree, ArrayIndexedNode root, double size, double itolsq,
+  void ComputeForce(ArrayIndexedGraph octree,  double size, double itolsq,
       int step, double dthf, double epssq) { // computes the acceleration and velocity of a body
     double ax, ay, az;
     ax = accx;
@@ -87,7 +87,6 @@ public class OctTreeLeafNodeData extends OctTreeNodeData { // the tree leaves ar
   private void RecurseForce(ArrayIndexedGraph octree, ArrayIndexedNode nn, double dsq,
       double epssq) { // recursively walks the tree to compute the force on a body
     double drx, dry, drz, drsq, nphi, scale, idr;
-//    OctTreeNodeData n = octree.getNodeData(nn);
     OctTreeNodeData n = nn.data;
     drx = n.posx - posx;
     dry = n.posy - posy;
@@ -96,35 +95,27 @@ public class OctTreeLeafNodeData extends OctTreeNodeData { // the tree leaves ar
     if (drsq < dsq) {
       if (!(n instanceof OctTreeLeafNodeData)) { // n is a cell
         dsq *= 0.25;
-//        ArrayIndexedNode child = octree.getNeighbor(nn, 0);
         ArrayIndexedNode child =nn.neighbors[0];
         if (child != null) {
           RecurseForce(octree, child, dsq, epssq);
-//          child = octree.getNeighbor(nn, 1);
           child =nn.neighbors[1];
           if (child != null) {
             RecurseForce(octree, child, dsq, epssq);
-//            child = octree.getNeighbor(nn, 2);
             child =nn.neighbors[2];
             if (child != null) {
               RecurseForce(octree, child, dsq, epssq);
-//              child = octree.getNeighbor(nn, 3);
               child =nn.neighbors[3];
               if (child != null) {
                 RecurseForce(octree, child, dsq, epssq);
-//                child = octree.getNeighbor(nn, 4);
                 child =nn.neighbors[4];
                 if (child != null) {
                   RecurseForce(octree, child, dsq, epssq);
-//                  child = octree.getNeighbor(nn, 5);
                   child =nn.neighbors[5];
                   if (child != null) {
                     RecurseForce(octree, child, dsq, epssq);
-//                    child = octree.getNeighbor(nn, 6);
                     child =nn.neighbors[6];
                     if (child != null) {
                       RecurseForce(octree, child, dsq, epssq);
-//                      child = octree.getNeighbor(nn, 7);
                       child =nn.neighbors[7];
                       if (child != null) {
                         RecurseForce(octree, child, dsq, epssq);
