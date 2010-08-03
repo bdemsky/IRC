@@ -13,8 +13,14 @@
 #else
 #ifdef PRECISE_GC
 #include "garbage.h"
+#ifdef COREPROF
+#include "coreprof.h"
+#define RUNMALLOC(x) cp_calloc(x)
+#define RUNFREE(x) cp_free(x)
+#else
 #define RUNMALLOC(x) calloc(1,x)
 #define RUNFREE(x) free(x)
+#endif
 #else
 #ifdef MULTICORE
 void * mycalloc(int m, int size);

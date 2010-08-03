@@ -28,7 +28,12 @@ void createprofiler() {
 
   //point thread lock variable to eventmonitor
   cp_events=event;
-  CPLOGEVENT((CP_START<<CP_BASE_SHIFT)|CP_BEGIN);
+  CPLOGEVENT(CP_START, CP_BEGIN);
+}
+
+//Place to do shutdown stuff
+void exitprofiler() {
+  CPLOGEVENT(CP_START, CP_END);
 }
 
 void cpwritedata(int fd, char * buffer, int count) {
