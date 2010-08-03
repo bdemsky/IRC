@@ -19,7 +19,7 @@ echo
 echo OOOJava options
 echo -coreprof turn on profiling API
 echo -ooojava numberofcores maxseseage
-echo -mlp <num cores> <max sese age> build mlp code
+echo "-mlp <num cores> <max sese age> build mlp code"
 echo -mlpdebug if mlp, report progress and interim results
 echo
 echo DSM options
