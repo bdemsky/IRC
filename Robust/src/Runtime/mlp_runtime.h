@@ -15,8 +15,8 @@
 #define TRUE 1
 #endif
 
-#define NUMBINS 512
-#define NUMREAD 16
+#define NUMBINS 64
+#define NUMREAD 64
 #define NUMITEMS 64
 #define NUMRENTRY 256
 
@@ -49,15 +49,15 @@
 #endif
 
 typedef struct REntry_t{
+  int type; // fine read:0, fine write:1, parent read:2, parent write:3 coarse: 4, parent coarse:5, scc: 6
   struct Hashtable_t* hashtable;
   struct BinItem_t* binitem;
   struct Vector_t* vector;
   struct SCC_t* scc;
   struct MemoryQueue_t* queue;
+  psemaphore parentStallSem;
   void* seseRec;
   INTPTR* pointer;
-  psemaphore parentStallSem;
-  int type; // fine read:0, fine write:1, parent read:2, parent write:3 coarse: 4, parent coarse:5, scc: 6
   int oid;
   int isBufMode;
 } REntry;

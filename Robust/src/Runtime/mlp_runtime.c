@@ -20,33 +20,9 @@ void mlpInitOncePerThread() {
 */
 __thread SESEcommon_p seseCaller;
 
-__thread void * baseptr=NULL;
-
-__thread int spaceleft=0;
-
-#define MBLOCK 65536
-#define MLOW 1000
-
-void * MLPMALLOC(int size) {
-  //  printf("%d\n",size);
-  if (spaceleft<MLOW) {
-    baseptr=malloc(MBLOCK);
-    spaceleft=MBLOCK;
-  }
-  if (size>spaceleft) {
-    return malloc(size);
-  } else {
-    //rount size up
-    size=(size+7)&~7;
-    char *charbase=(char *)baseptr;
-    baseptr=(void *)(charbase+size);
-    spaceleft-=size;
-    return charbase;
-  }
-}
 
 void* mlpAllocSESErecord( int size ) {
-  void* newrec = MLPMALLOC( size );  
+  void* newrec = RUNMALLOC( size );  
   if( newrec == 0 ) {
     printf( "mlpAllocSESErecord did not obtain memory!\n" );
     exit( -1 );
@@ -56,12 +32,12 @@ void* mlpAllocSESErecord( int size ) {
 
 
 void mlpFreeSESErecord( void* seseRecord ) {
-  //  MLPFREE( seseRecord );
+  RUNFREE( seseRecord );
 }
 
 MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue){
   int i;
-  MemoryQueue** newMemoryQueue=(MemoryQueue**)MLPMALLOC( sizeof( MemoryQueue* ) * numMemoryQueue );
+  MemoryQueue** newMemoryQueue=(MemoryQueue**)RUNMALLOC( sizeof( MemoryQueue* ) * numMemoryQueue );
   for(i=0; i<numMemoryQueue; i++){
     newMemoryQueue[i]=createMemoryQueue();
   }
@@ -69,24 +45,24 @@ MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue){
 }
 
 REntry* mlpCreateREntryArray(){
-  REntry* newREntryArray=(REntry*)MLPMALLOC(sizeof(REntry)*NUMRENTRY);
+  REntry* newREntryArray=(REntry*)RUNMALLOC(sizeof(REntry)*NUMRENTRY);
   return newREntryArray;
 }
 
 REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID){
-  struct ___Object___ * obj=(struct ___Object___*)*((unsigned INTPTR *)dynID);
-  REntry* newREntry=(REntry*)MLPMALLOC(sizeof(REntry));
+  REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
   newREntry->pointer=dynID;
-  if (obj!=NULL)
+  if((*newREntry->pointer)!=0){// make sure it is not unresolved address.
+    struct ___Object___ * obj=(struct ___Object___*)((unsigned INTPTR)*newREntry->pointer);
     newREntry->oid=obj->oid;
-  
+  }
   return newREntry;
 }
 
 REntry* mlpCreateREntry(int type, void* seseToIssue){
-  REntry* newREntry=(REntry*)MLPMALLOC(sizeof(REntry));
+  REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
   return newREntry;
@@ -186,10 +162,10 @@ int generateKey(unsigned int data){
 
 Hashtable* createHashtable(){
   int i=0;
-  Hashtable* newTable=(Hashtable*)MLPMALLOC(sizeof(Hashtable));
+  Hashtable* newTable=(Hashtable*)RUNMALLOC(sizeof(Hashtable));
   newTable->item.type=HASHTABLE;
   for(i=0;i<NUMBINS;i++){
-    newTable->array[i]=(BinElement*)MLPMALLOC(sizeof(BinElement));
+    newTable->array[i]=(BinElement*)RUNMALLOC(sizeof(BinElement));
     newTable->array[i]->head=NULL;
     newTable->array[i]->tail=NULL;
   }
@@ -198,34 +174,34 @@ Hashtable* createHashtable(){
 }
 
 WriteBinItem* createWriteBinItem(){
-  WriteBinItem* binitem=(WriteBinItem*)MLPMALLOC(sizeof(WriteBinItem));
+  WriteBinItem* binitem=(WriteBinItem*)RUNMALLOC(sizeof(WriteBinItem));
   binitem->item.type=WRITEBIN;
   return binitem;
 }
 
 ReadBinItem* createReadBinItem(){
-  ReadBinItem* binitem=(ReadBinItem*)MLPMALLOC(sizeof(ReadBinItem));
+  ReadBinItem* binitem=(ReadBinItem*)RUNMALLOC(sizeof(ReadBinItem));
   binitem->index=0;
   binitem->item.type=READBIN;
   return binitem;
 }
 
 Vector* createVector(){
-  Vector* vector=(Vector*)MLPMALLOC(sizeof(Vector));
+  Vector* vector=(Vector*)RUNMALLOC(sizeof(Vector));
   vector->index=0;
   vector->item.type=VECTOR;
   return vector;
 }
 
 SCC* createSCC(){
-  SCC* scc=(SCC*)MLPMALLOC(sizeof(SCC));
+  SCC* scc=(SCC*)RUNMALLOC(sizeof(SCC));
   scc->item.type=SINGLEITEM;
   return scc;
 }
 
 MemoryQueue* createMemoryQueue(){
-  MemoryQueue* queue = (MemoryQueue*)MLPMALLOC(sizeof(MemoryQueue));
-  MemoryQueueItem* dummy=(MemoryQueueItem*)MLPMALLOC(sizeof(MemoryQueueItem));
+  MemoryQueue* queue = (MemoryQueue*)RUNMALLOC(sizeof(MemoryQueue));
+  MemoryQueueItem* dummy=(MemoryQueueItem*)RUNMALLOC(sizeof(MemoryQueueItem));
   dummy->type=3; // dummy type
   dummy->total=0;
   dummy->status=READY;
