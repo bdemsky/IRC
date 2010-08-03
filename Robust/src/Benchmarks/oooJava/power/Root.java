@@ -221,19 +221,22 @@ final class Root {
 		
 		double pp=0.0;
 		double qq=0.0;
-		
-		for (int i = 0; i < feeders.length; i++) {
+		int l=feeders.length;
+				
+		for (int i = 0; i < l ; i++) {
 			Lateral lateral=feeders[i];
 			sese parallel{
-			    DemandResult result=compute(lateral);	    
+			  lateral.compute(theta_R, theta_I, theta_R, theta_I);
 			}
-			sese serial{
-			    pp+=result.P;
-			    qq+=result.Q;
-			}
-		} // end of for
-		D.P=pp;
-		D.Q=qq;
+
+		} 
+		
+		for(int i=0;i<l;i++){
+		    D.P+= feeders[i].D.P;
+		    D.Q+= feeders[i].D.Q;
+		}
+		
+
 	}
 	
 	DemandResult compute(Lateral lateral){
@@ -264,16 +267,20 @@ final class Root {
 		int i = (int) ((theta_R - MIN_THETA_R) / PER_INDEX_R);
 		if (i < 0)
 			i = 0;
-		if (i > 35)
-			i = 35;
+//		if (i > 35)
+//			i = 35;
+		if (i > 34)
+      i = 34;
 		double d_theta_R = -(theta_R - D.P / 10000.0)
 				/ (1 - (map_P[i + 1] - map_P[i]) / (PER_INDEX_R * 10000.0));
 
 		i = (int) ((theta_I - MIN_THETA_I) / PER_INDEX_I);
 		if (i < 0)
 			i = 0;
-		if (i > 35)
-			i = 35;
+//		  if (i > 35)
+//  			i = 35;
+		if (i > 34)
+      i = 34;
 		double d_theta_I = -(theta_I - D.Q / 10000.0)
 				/ (1 - (map_Q[i + 1] - map_Q[i]) / (PER_INDEX_I * 10000.0));
 
