@@ -18,7 +18,26 @@ echo "-eventmonitor turn on transaction event trace recording"
 echo
 echo OOOJava options
 echo -coreprof turn on profiling API
-echo -ooojava numberofcores maxseseage
+echo "-ooojava <numberofcores> <maxseseage>"
+echo -ooodebug general OOOJava debugging messages
+echo
+echo Disjoint Reachability Analysis options
+echo -disjoint enable analysis
+echo -disjoint-k set k-limit for heap nodes per allocation site
+echo "-disjoint-write-dots <all/final> write reach graphs for all method sols. or only final sols."
+echo -disjoint-write-initial-contexts write reach graphs for callee initial contexts from all call sites
+echo -disjoint-write-ihms write reach graphs for each call site\'s Initial Heap Model
+echo "-disjoint-alias-file <filename> <normal/tabbed> write sharing for normal human reading or LaTeX tabbed"
+echo "-disjoint-debug-callsite <callee> <caller> <visit to start> <num caps> <T/F stop after>"
+echo "  To debug call site, give callee caller symbols (ie foo) the analysis visit to start capturing, num captures to take, and whether to halt analysis after capturing"
+echo "-disjoint-debug-snap-method <method> <visit to start> <num caps> <T/F stop after>"
+echo "  To take snapshots at statements, give method symbol, the analysis visit to start capturing, num captures to take, and whether to halt analsyis after capturing"
+echo "-disjoint-dvisit-stack use stack strat to visit descriptors (tasks or methods)"
+echo -disjoint-dvisit-stack-callees-on-top alternate stack strat
+echo -disjoint-dvisit-pqueue use prio. q strat to visit descriptors
+echo -disjoint-desire-determinism set above interproc for determinism
+echo -disjoint-debug-scheduling debug when methods are scheduled for analysis
+echo 
 echo "-mlp <num cores> <max sese age> build mlp code"
 echo -mlpdebug if mlp, report progress and interim results
 echo
