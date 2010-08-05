@@ -37,7 +37,8 @@ public class IDX {
       this.m_rows = rows;
       this.m_cols = cols;
       this.m_r = r;
-
+      this.m_pnum = pnum;
+      
       this.m_rows_rs = this.m_id * this.m_range;
       this.m_rows_re = (this.m_id + 1) * this.m_range;
       if(this.m_id == this.m_pnum - 1) {
