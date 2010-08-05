@@ -60,7 +60,7 @@ public class TrackDemo {
       this.m_count = 0;
       
       this.m_num_bp = 0;
-			this.m_num_bpl = 0;
+      this.m_num_bpl = 0;
       
       this.WINSZ = 8;
       this.N_FEA = 16; //00;
@@ -89,20 +89,20 @@ public class TrackDemo {
       */
       this.m_3f = new float[3][this.N_FEA];
       this.m_rows_3f = this.N_FEA;
-      this.m_cols_3f = this.N_FEA;
+      this.m_cols_3f = 1; //this.N_FEA;
       this.m_counter_3f = 3;
       this.m_num_p = nump;
 
-			this.m_rows = 0;
-			this.m_cols = 0;
-			this.m_image = null;
-			this.m_image_resized = null;
-			this.m_rows_r = 0;
-			this.m_cols_r = 0;
+      this.m_rows = 0;
+      this.m_cols = 0;
+      this.m_image = null;
+      this.m_image_resized = null;
+      this.m_rows_r = 0;
+      this.m_cols_r = 0;
 
-			this.m_features = null;
-			this.m_rows_f = 0;
-			this.m_cols_f = 0;
+      this.m_features = null;
+      this.m_rows_f = 0;
+      this.m_cols_f = 0;
     }
     
     public int getNumP() {
@@ -265,7 +265,7 @@ public class TrackDemo {
       
       for(i=startRow; i<endRow; i++) {
         for(j=startCol; j<endCol; j++) {
-          temp = 0;
+          temp = 0.0f;
           for(k=-halfKernel; k<=halfKernel; k++)  {
             temp += (float)((image[(i+k) * cols + j] 
                                    * (float)(kernel[k+halfKernel])));
@@ -341,8 +341,7 @@ public class TrackDemo {
         for(j=0; j<outputCols; j++) {
           tempVal = 0;
           for(k=-halfKernel; k<=halfKernel; k++) {
-            tempVal += (float)(temp[(i+k) * outputCols + j] 
-                                    * (float)(kernel[k+halfKernel]));
+            tempVal += (float)(temp[(i+k) * outputCols + j]*kernel[k+halfKernel]);
           }
           resized[m * outputCols + j] = (float)(tempVal/kernelSum);
         }    
@@ -760,20 +759,20 @@ public class TrackDemo {
           t1 = (float)0;
 
           if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) 
-              >= srtdPnts[supId[i] * cols_sp + 2]) {
-            t = srtdPnts[supId[i] * cols_sp + 0] - interestPnts[rows1 * cols1 + 0];
-            t1 = srtdPnts[supId[i] * cols_sp + 1] - interestPnts[rows1 * cols1 + 1];
+              >= srtdPnts[i * cols_sp + 2]) {
+            t = srtdPnts[i * cols_sp + 0] - interestPnts[rows1 * cols1 + 0];
+            t1 = srtdPnts[i * cols_sp + 1] - interestPnts[rows1 * cols1 + 1];
             t = t * t + t1 * t1;
             t1 = (float)0;
           }
 
           if ((C_ROBUST * interestPnts[rows1 * cols1 + 2]) 
-              < srtdPnts[supId[i] * cols_sp + 2]) {
+              < srtdPnts[i * cols_sp + 2]) {
             t1 = (float)1 * (float)MAX_LIMIT;
           }
 
-          if (suppressR[supId[i]] > (t + t1)) {
-            suppressR[supId[i]] = t + t1;
+          if (suppressR[i] > (t + t1)) {
+            suppressR[i] = t + t1;
           }  
         }
 
@@ -911,6 +910,9 @@ public class TrackDemo {
       rows_v = 1;
       cols_v = nFeatures;
       valid = new int[rows_v * cols_v];
+      for(int valid_idx=0;valid_idx<valid.length;valid_idx++){
+        valid[valid_idx]=1;
+      }
 
       for(i=0; i<nFeatures; i++) {
         dX = (float)0;
