@@ -30,11 +30,28 @@ public class FlatWriteDynamicVarNode extends FlatNode {
   }
 
   public void spliceIntoIR() {
-    tailNode.removeNext( headNode );
-    headNode.removePrev( tailNode );
     
-    tailNode.addNext( this );
-    this.addNext( headNode );
+    if(tailNode instanceof FlatCondBranch){
+
+      headNode.removePrev( tailNode );
+      
+      if(tailNode.next.elementAt(0).equals(headNode)){
+        tailNode.removeNext( headNode );
+        ((FlatCondBranch)tailNode).addTrueNext(this);
+      }else{
+        tailNode.removeNext( headNode );
+        ((FlatCondBranch)tailNode).addFalseNext(this);
+      }
+      
+      this.addNext( headNode );
+    }else{
+      tailNode.removeNext( headNode );
+      headNode.removePrev( tailNode );
+      
+      tailNode.addNext( this );
+      this.addNext( headNode );
+    }
+
   }
 
   public void addMoreVar2Src( Hashtable<TempDescriptor, VSTWrapper> more ) {
