@@ -530,7 +530,7 @@ inline void checkMarkStatue() {
   BAMBOO_DEBUGPRINT(0xee0a);
 #endif
 } // void checkMarkStatue()
-
+/*
 inline bool preGC() {
   // preparation for gc
   // make sure to clear all incoming msgs espacially transfer obj msgs
@@ -548,7 +548,7 @@ inline bool preGC() {
       corestatus[i] = 1;
       // send status confirm msg to core i
       send_msg_1(i, STATUSCONFIRM, false);
-    }             // for(i = 1; i < NUMCORESACTIVE; ++i)
+    }   // for(i = 1; i < NUMCORESACTIVE; ++i)
 
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xec02);
@@ -557,7 +557,7 @@ inline bool preGC() {
       if(numconfirm == 0) {
 		break;
       }
-    }             // wait for confirmations
+    }   // wait for confirmations
     waitconfirm = false;
     numconfirm = 0;
 #ifdef DEBUG
@@ -594,7 +594,7 @@ inline bool preGC() {
     } else {
       // still have some transfer obj msgs on-the-fly, can not start gc
       return false;
-    }             // if(0 == sumsendobj)
+    }  // if(0 == sumsendobj)
   } else {
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xec07);
@@ -603,7 +603,7 @@ inline bool preGC() {
     // confirmations yet, can not start gc
     return false;
   }       // if((!waitconfirm) ||
-} // bool preGC()
+} // bool preGC()*/
 
 inline void initGC() {
   int i;
@@ -1193,6 +1193,14 @@ inline void moveLObjs() {
       break;
     }
   } while(true);
+
+  // TODO
+  /*unsigned long long gc_num_livespace = 0;
+  for(int tmpi = 0; tmpi < gcnumblock; tmpi++) {
+	gc_num_livespace += bamboo_smemtbl[tmpi];
+  }
+  BAMBOO_DEBUGPRINT_REG(gc_num_livespace);
+  BAMBOO_DEBUGPRINT_REG(bamboo_free_block);*/
 
 #ifdef GC_PROFILE
   // check how many live space there are
@@ -2783,6 +2791,12 @@ inline void flush(struct garbagelist * stackptr) {
 } // flush()
 
 inline void gc_collect(struct garbagelist * stackptr) {
+  //BAMBOO_DEBUGPRINT(0xcccc); // TODO 
+  // inform the master that this core is at a gc safe point and is ready to 
+  // do gc
+  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
+	  self_numreceiveobjs, false);
+
   // core collector routine
   while(true) {
     if(INITPHASE == gcphase) {
@@ -2867,6 +2881,12 @@ inline void gc_collect(struct garbagelist * stackptr) {
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc_nocollect(struct garbagelist * stackptr) {
+  //BAMBOO_DEBUGPRINT(0xcccc); // TODO
+  // inform the master that this core is at a gc safe point and is ready to 
+  // do gc
+  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, self_numsendobjs, 
+	  self_numreceiveobjs, false);
+  
   while(true) {
     if(INITPHASE == gcphase) {
       break;
@@ -2930,11 +2950,11 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 #endif
 } // void gc_collect(struct garbagelist * stackptr)
 
-inline void gc(struct garbagelist * stackptr) {
+inline bool gc(struct garbagelist * stackptr) {
   // check if do gc
   if(!gcflag) {
     gcprocessing = false;
-    return;
+    return false;
   }
 
   // core coordinator routine
@@ -2943,16 +2963,81 @@ inline void gc(struct garbagelist * stackptr) {
     printf("(%x,%X) Check if can do gc or not\n", udn_tile_coord_x(),
 		   udn_tile_coord_y());
 #endif
-    if(!preGC()) {
-      // not ready to do gc
-      gcflag = true;
-      return;
-    }
-
+	//if(gcnumpre != 0) {
+	bool isallstall = true;
+	gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	int ti = 0;
+	for(ti = 0; ti < NUMCORESACTIVE; ++ti) {
+	  if(gccorestatus[ti] != 0) {
+		isallstall = false;
+		break;
+	  }
+	}
+	if(!isallstall) {
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  // some of the cores are still executing the mutator and did not reach
+	  // some gc safe point, therefore it is not ready to do gc
+	  // in case that there are some pregc information msg lost, send a confirm
+	  // msg to the 'busy' core
+	  send_msg_1(ti, GCSTARTPRE, false);
+	  gcflag = true;
+	  return false;
+	} else {
+	  // TODO
 #ifdef GC_PROFILE
     gc_profileStart();
 #endif
-
+	  //BAMBOO_DEBUGPRINT(0x1111); // TODO
+pregccheck:
+	  //BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	  gcnumsendobjs[0][BAMBOO_NUM_OF_CORE] = self_numsendobjs;
+	  gcnumreceiveobjs[0][BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
+	  int sumsendobj = 0;
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xec04);
+#endif
+	  for(int i = 0; i < NUMCORESACTIVE; ++i) {
+		sumsendobj += gcnumsendobjs[0][i];
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xf000 + gcnumsendobjs[0][i]);
+#endif
+	  }  // for(i = 1; i < NUMCORESACTIVE; ++i)
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xec05);
+	  BAMBOO_DEBUGPRINT_REG(sumsendobj);
+#endif
+	  for(int i = 0; i < NUMCORESACTIVE; ++i) {
+		sumsendobj -= gcnumreceiveobjs[0][i];
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xf000 + gcnumreceiveobjs[i]);
+#endif
+	  }  // for(i = 1; i < NUMCORESACTIVE; ++i)
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xec06);
+	  BAMBOO_DEBUGPRINT_REG(sumsendobj);
+#endif
+	  if(0 != sumsendobj) {
+		// there were still some msgs on the fly, wait until there 
+		// are some update pregc information coming and check it again
+		gcprecheck = false;
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		//BAMBOO_DEBUGPRINT(0x2222); // TODO
+		while(true) {
+		  if(gcprecheck) {
+			break;
+		  }
+		}
+		goto pregccheck;
+	  } else {
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  }
+	}
+/*
+#ifdef GC_PROFILE
+    gc_profileStart();
+#endif
+*/
 #ifdef RAWPATH // TODO GC_DEBUG
     printf("(%x,%x) start gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
     //dumpSMem();
@@ -3342,6 +3427,8 @@ inline void gc(struct garbagelist * stackptr) {
 	gcflag = false;
     gcprocessing = false;
   }
+  //if(STARTUPCORE == BAMBOO_NUM_OF_CORE) BAMBOO_DEBUGPRINT(0xeeee); // TODO 
+  return true;
 } // void gc(struct garbagelist * stackptr)
 
 #ifdef GC_PROFILE

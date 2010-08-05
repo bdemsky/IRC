@@ -192,29 +192,31 @@ typedef enum {
   MEMREQUEST,            // 0xE0
   MEMRESPONSE,           // 0xE1
 #ifdef MULTICORE_GC
-  GCSTARTINIT,           // 0xE2
-  GCSTART,               // 0xE3
-  GCSTARTCOMPACT,        // 0xE4
-  GCSTARTMAPINFO,        // 0xE5
-  GCSTARTFLUSH,          // 0xE6
-  GCFINISHINIT,          // 0xE7
-  GCFINISHMARK,          // 0xE8
-  GCFINISHCOMPACT,       // 0xE9
-  GCFINISHMAPINFO,       // 0xEa
-  GCFINISHFLUSH,         // 0xEb
-  GCFINISH,              // 0xEc
-  GCMARKCONFIRM,         // 0xEd
-  GCMARKREPORT,          // 0xEe
-  GCMARKEDOBJ,           // 0xEf
-  GCMOVESTART,           // 0xF0
-  GCMAPREQUEST,          // 0xF1
-  GCMAPINFO,             // 0xF2
-  GCMAPTBL,              // 0xF3
-  GCLOBJREQUEST,         // 0xF4
-  GCLOBJINFO,            // 0xF5
-  GCLOBJMAPPING,         // 0xF6
-#ifdef GC_PROFILE//_S
-  GCPROFILES,            // 0xF7
+  GCSTARTPRE,            // 0xE2
+  GCSTARTINIT,           // 0xE3
+  GCSTART,               // 0xE4
+  GCSTARTCOMPACT,        // 0xE5
+  GCSTARTMAPINFO,        // 0xE6
+  GCSTARTFLUSH,          // 0xE7
+  GCFINISHPRE,           // 0xE8
+  GCFINISHINIT,          // 0xE9
+  GCFINISHMARK,          // 0xEa
+  GCFINISHCOMPACT,       // 0xEb
+  GCFINISHMAPINFO,       // 0xEc
+  GCFINISHFLUSH,         // 0xEd
+  GCFINISH,              // 0xEe
+  GCMARKCONFIRM,         // 0xEf
+  GCMARKREPORT,          // 0xF0
+  GCMARKEDOBJ,           // 0xF1
+  GCMOVESTART,           // 0xF2
+  GCMAPREQUEST,          // 0xF3
+  GCMAPINFO,             // 0xF4
+  GCMAPTBL,              // 0xF5
+  GCLOBJREQUEST,         // 0xF6
+  GCLOBJINFO,            // 0xF7
+  GCLOBJMAPPING,         // 0xF8
+#ifdef GC_PROFILE
+  GCPROFILES,            // 0xF9
 #endif
 #endif
   MSGEND

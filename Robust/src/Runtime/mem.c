@@ -24,7 +24,7 @@ void * mycalloc_share(struct garbagelist * stackptr,
 	void * p = NULL;
   //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
   int isize = (size & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE);
-	bool hasgc = false;
+	int hasgc = 0;
 memalloc:
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
@@ -37,12 +37,14 @@ memalloc:
   if(p == NULL) {
 		// no more global shared memory
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		if(!hasgc) {
-			// start gc
-			gc(stackptr);
-			hasgc = true;
+		if(hasgc < 5) {
+		    // start gc
+			if(gc(stackptr)) {
+			  hasgc++;
+			}
 		} else {
 			// no more global shared memory
+			//BAMBOO_DEBUGPRINT_REG(isize);
 			BAMBOO_EXIT(0xc002);
 		}
 

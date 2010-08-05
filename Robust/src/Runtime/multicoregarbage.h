@@ -76,6 +76,9 @@ volatile bool gcflag;
 volatile bool gcprocessing;
 volatile GCPHASETYPE gcphase; // indicating GC phase
 
+volatile bool gcpreinform; // counter for stopped cores
+volatile bool gcprecheck; // indicates if there are updated pregc information
+
 int gccurr_heaptop;
 struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
@@ -230,7 +233,7 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 // the next core in the top of the heap
 #define NEXTTOPCORE(b) (gc_block2core[((b)+1)%(NUMCORES4GC*2)])
 
-inline void gc(struct garbagelist * stackptr); // core coordinator routine
+inline bool gc(struct garbagelist * stackptr); // core coordinator routine
 inline void gc_collect(struct garbagelist* stackptr); //core collector routine
 inline void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
 inline void transferMarkResults_I();

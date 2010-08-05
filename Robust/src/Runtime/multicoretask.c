@@ -257,6 +257,8 @@ void initruntimedata() {
   gcflag = false;
   gcprocessing = false;
   gcphase = FINISHPHASE;
+  //gcnumpre = 0;
+  gcprecheck = true;
   gccurr_heaptop = 0;
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
@@ -750,7 +752,9 @@ inline void run(void * arg) {
     while(true) {
 #ifdef MULTICORE_GC
       // check if need to do GC
-      gc(NULL);
+      if(gcflag) {
+		gc(NULL);
+	  }
 #endif
 
       // check if there are new active tasks can be executed
@@ -1875,7 +1879,27 @@ void * smemalloc_I(int coren,
     // no enough shared global memory
     *allocsize = 0;
 #ifdef MULTICORE_GC
-    gcflag = true;
+    //gcflag = true;
+	if(!gcflag) {
+	  gcflag = true;
+	// inform other cores to stop and wait for gc
+	gcprecheck = true;
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  // reuse the gcnumsendobjs & gcnumreceiveobjs
+	  gccorestatus[i] = 1;
+	  gcnumsendobjs[0][i] = 0;
+	  gcnumreceiveobjs[0][i] = 0;
+	}
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  if(i != BAMBOO_NUM_OF_CORE) {
+		if(BAMBOO_CHECK_SEND_MODE()) {
+		  cache_msg_1(i, GCSTARTPRE);
+		} else {
+		  send_msg_1(i, GCSTARTPRE, true);
+		}
+	  }
+	}
+	}
     return NULL;
 #else
     BAMBOO_DEBUGPRINT(0xa001);
@@ -1896,6 +1920,7 @@ INLINE int checkMsgLength_I(int size) {
   case STATUSCONFIRM:
   case TERMINATE:
 #ifdef MULTICORE_GC
+  case GCSTARTPRE:
   case GCSTARTINIT:
   case GCSTART:
   case GCSTARTMAPINFO:
@@ -1944,6 +1969,7 @@ INLINE int checkMsgLength_I(int size) {
   case REDIRECTDENY:
   case REDIRECTRELEASE:
 #ifdef MULTICORE_GC
+  case GCFINISHPRE:
   case GCFINISHMARK:
   case GCMOVESTART:
 #ifdef GC_PROFILE//_S
@@ -2074,6 +2100,23 @@ INLINE void processmsg_transobj_I() {
     addNewItem_I(&objqueue, (void *)transObj);
   }
   ++(self_numreceiveobjs);
+#ifdef MULTICORE_GC
+  if(gcprocessing) {
+	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	  // set the gcprecheck to enable checking again
+	  gcprecheck = true;
+	} else {
+	  // send a update pregc information msg to the master core
+	  if(BAMBOO_CHECK_SEND_MODE()) {
+		cache_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
+			self_numsendobjs, self_numreceiveobjs);
+	  } else {
+		send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
+			self_numsendobjs, self_numreceiveobjs, true);
+	  }
+	}
+  }
+#endif 
 }
 
 INLINE void processmsg_transtall_I() {
@@ -2359,6 +2402,7 @@ INLINE void processmsg_statusconfirm_I() {
     BAMBOO_DEBUGPRINT(0xe887);
 #endif
 #endif
+	//BAMBOO_DEBUGPRINT(0xffff); // TODO
     // cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
     cache_msg_5(STARTUPCORE, STATUSREPORT,
@@ -2463,10 +2507,28 @@ INLINE void processmsg_memrequest_I() {
       } else {
       send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
       }
-    } // if mem == NULL, the gcflag of the startup core has been set
-    // and the gc should be started later, then a GCSTARTINIT msg
-    // will be sent to the requesting core to notice it to start gc
-    // and try malloc again
+    } else {
+	  // if mem == NULL, the gcflag of the startup core has been set
+	  // and all the other cores have been informed to start gc
+	  // TODO 
+	  // inform other cores to stop and wait for gc
+	  /*gcprecheck = true;
+	  for(int i = 0; i < NUMCORESACTIVE; i++) {
+		// reuse the gcnumsendobjs & gcnumreceiveobjs
+		gccorestatus[i] = 1;
+		gcnumsendobjs[0][i] = 0;
+		gcnumreceiveobjs[0][i] = 0;
+	  }
+	  for(int i = 0; i < NUMCORESACTIVE; i++) {
+		if(i != BAMBOO_NUM_OF_CORE) {
+		  if(BAMBOO_CHECK_SEND_MODE()) {
+			cache_msg_1(i, GCSTARTPRE);
+		  } else {
+			send_msg_1(i, GCSTARTPRE, true);
+		  }
+		}
+	  }*/
+	}
 #ifdef MULTICORE_GC
   }
 #endif
@@ -2524,17 +2586,43 @@ INLINE void processmsg_memresponse_I() {
 }
 
 #ifdef MULTICORE_GC
+INLINE void processmsg_gcstartpre_I() {
+  //BAMBOO_DEBUGPRINT(0xc000); // TODO
+  if(gcprocessing) {
+	// already stall for gc
+	// send a update pregc information msg to the master core
+	if(BAMBOO_CHECK_SEND_MODE()) {
+	  cache_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
+		  self_numsendobjs, self_numreceiveobjs);
+	} else {
+	  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
+		  self_numsendobjs, self_numreceiveobjs, true);
+	}
+  } else {
+	// the first time to be informed to start gc
+	gcflag = true;
+	if(!smemflag) {
+	  // is waiting for response of mem request
+	  // let it return NULL and start gc
+	  bamboo_smem_size = 0;
+	  bamboo_cur_msp = NULL;
+	  smemflag = true;
+	  bamboo_smem_zero_top = NULL;
+	}
+  }
+}
+
 INLINE void processmsg_gcstartinit_I() {
-  gcflag = true;
+  //gcflag = true;
   gcphase = INITPHASE;
-  if(!smemflag) {
+  /*if(!smemflag) {
     // is waiting for response of mem request
     // let it return NULL and start gc
     bamboo_smem_size = 0;
     bamboo_cur_msp = NULL;
     smemflag = true;
 	bamboo_smem_zero_top = NULL;
-  }
+  }*/
 }
 
 INLINE void processmsg_gcstart_I() {
@@ -2559,6 +2647,33 @@ INLINE void processmsg_gcstartmapinfo_I() {
 
 INLINE void processmsg_gcstartflush_I() {
   gcphase = FLUSHPHASE;
+}
+
+INLINE void processmsg_gcfinishpre_I() {
+  int data1 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  int data2 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  int data3 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  // received a init phase finish msg
+  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+    // non startup core can not receive this msg
+#ifndef CLOSE_PRINT
+    BAMBOO_DEBUGPRINT_REG(data1);
+#endif
+    BAMBOO_EXIT(0xb000);
+  }
+  // All cores should do init GC
+  /*if(gcprecheck && (gcnumpre > 0)) {
+	gcnumpre--;
+  } else {*/
+  if(!gcprecheck) {
+	gcprecheck = true;
+  }
+  gccorestatus[data1] = 0;
+  gcnumsendobjs[0][data1] = data2;
+  gcnumreceiveobjs[0][data1] = data3;
 }
 
 INLINE void processmsg_gcfinishinit_I() {
@@ -3067,7 +3182,12 @@ processmsg:
 
 #ifdef MULTICORE_GC
     // GC msgs
-    case GCSTARTINIT: {
+    case GCSTARTPRE: {
+      processmsg_gcstartpre_I();
+      break;
+    }                     // case GCSTARTPRE
+	
+	case GCSTARTINIT: {
       processmsg_gcstartinit_I();
       break;
     }                     // case GCSTARTINIT
@@ -3096,7 +3216,12 @@ processmsg:
       break;
     }                     // case GCSTARTFLUSH
 
-    case GCFINISHINIT: {
+    case GCFINISHPRE: {
+      processmsg_gcfinishpre_I();
+      break;
+    }                     // case GCFINISHPRE
+	
+	case GCFINISHINIT: {
       processmsg_gcfinishinit_I();
       break;
     }                     // case GCFINISHINIT
@@ -3494,7 +3619,7 @@ void executetasks() {
 newtask:
   while(hashsize(activetasks)>0) {
 #ifdef MULTICORE_GC
-    gc(NULL);
+    if(gcflag) gc(NULL);
 #endif
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe990);
