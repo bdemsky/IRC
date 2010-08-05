@@ -18,45 +18,31 @@
 
 #define INLINE    inline __attribute__((always_inline))
 
-typedef struct chashlistnode {
-  void * keyAndVal;     //this can be cast to another type or used to point to a larger structure
-  struct chashlistnode *next;
-  struct chashlistnode *lnext;
-} chashlistnode_t;
+//TODO consider changing names to avoid conflicts
+extern __thread unsigned int dc_c_size;
+extern __thread unsigned INTPTR dc_c_mask;
+extern __thread unsigned int dc_c_numelements;
+extern __thread unsigned int dc_c_threshold;
+extern __thread double dc_c_loadfactor;
 
-typedef struct chashtable {
-  chashlistnode_t *table;       // points to beginning of hash table
-  unsigned int size;
-  unsigned int mask;
-  unsigned int numelements;
-  unsigned int threshold;
-  double loadfactor;
-} chashtable_t;
+typedef struct dchashlistnode {
+  void * key;
+  struct dchashlistnode *next;
+  struct dchashlistnode *lnext;
+} dchashlistnode_t;
 
-#define NUMCLIST 250
-typedef struct clist {
-  struct chashlistnode array[NUMCLIST];
+#define NUMDCLIST 250
+typedef struct dclist {
+  struct dchashlistnode array[NUMDCLIST];
   int num;
-  struct clist *next;
-} cliststruct_t;
+  struct dclist *next;
+} dcliststruct_t;
 
 
 void hashRCRCreate(unsigned int size, double loadfactor);
-void hashRCRInsert(void * addrIn);
-void * hashRCRSearch(void * key);
+int hashRCRInsert(void * key);
+int hashRCRSearch(void * key);
 unsigned int hashRCRResize(unsigned int newsize);
 void hashRCRDelete();
 void hashRCRreset();
-
-//TODO add __thread after extern for all of these
-//TODO consider changing names to avoid conflicts
-extern chashlistnode_t *c_table;
-extern chashlistnode_t *c_list;
-extern unsigned int c_size;
-extern unsigned INTPTR c_mask;
-extern unsigned int c_numelements;
-extern unsigned int c_threshold;
-extern double c_loadfactor;
-extern cliststruct_t *c_structs;
-
 #endif
