@@ -534,7 +534,7 @@ public class BuildCode {
       outmethod.println("#include \"psemaphore.h\"");
     }
     if (state.COREPROF) {
-      outmethod.println("#include \"coreprof.h\"");
+      outmethod.println("#include \"coreprof\\coreprof.h\"");
     }
 
     //Store the sizes of classes & array elements

@@ -5,7 +5,7 @@
 #include "mem.h"
 #include "workschedule.h"
 #include "mlp_runtime.h"
-#include "coreprof.h"
+#include "coreprof/coreprof.h"
 
 // NOTE: Converting this from a work-stealing strategy
 // to a single-queue thread pool protected by a single
