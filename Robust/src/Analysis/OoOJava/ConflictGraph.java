@@ -24,6 +24,7 @@ import IR.Flat.TempDescriptor;
 public class ConflictGraph {
 
   protected Hashtable<String, ConflictNode> id2cn;
+  protected Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>>> sese2te;
 
   protected DisjointAnalysis da;
   protected FlatMethod fmEnclosing;
@@ -35,6 +36,7 @@ public class ConflictGraph {
 
   public ConflictGraph() {
     id2cn = new Hashtable<String, ConflictNode>();
+    sese2te = new Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>>>();
   }
 
   public void setDisJointAnalysis(DisjointAnalysis da) {
@@ -101,6 +103,7 @@ public class ConflictGraph {
   }
 
   public void addLiveInNodeEffect(Taint t, Effect e) {
+
     FlatSESEEnterNode sese = t.getSESE();
     TempDescriptor invar = t.getVar();
     AllocSite as = t.getAllocSite();
@@ -111,6 +114,7 @@ public class ConflictGraph {
       node = new ConflictNode(id, ConflictNode.INVAR, t.getVar(), t.getSESE());
     }
     node.addEffect(as, e);
+    node.addTaint(t);
 
     id2cn.put(id, node);
   }
@@ -184,21 +188,21 @@ public class ConflictGraph {
 
       String entryNodeID = entry.getKey();
       ConflictNode entryNode = entry.getValue();
-      
-      if(currentNode.isStallSiteNode() && entryNode.isStallSiteNode()){
+
+      if (currentNode.isStallSiteNode() && entryNode.isStallSiteNode()) {
         continue;
       }
-      
-      if( (currentNode.isInVarNode() && entryNode.isInVarNode()) && 
-          (currentNode.getSESEIdentifier()==entryNode.getSESEIdentifier()) &&
-          (currentNode.getVar().equals(entryNode.getVar())) ){
+
+      if ((currentNode.isInVarNode() && entryNode.isInVarNode())
+          && (currentNode.getSESEIdentifier() == entryNode.getSESEIdentifier())
+          && (currentNode.getVar().equals(entryNode.getVar()))) {
         continue;
       }
 
       if ((!currentNode.getID().equals(entryNodeID))
           && !(analyzedIDSet.contains(currentNode.getID() + entryNodeID) || analyzedIDSet
               .contains(entryNodeID + currentNode.getID()))) {
-        
+
         conflictType = calculateConflictType(currentNode, entryNode, useReachInfo);
         if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
           addConflictEdge(conflictType, currentNode, entryNode);
@@ -222,11 +226,11 @@ public class ConflictGraph {
     Hashtable<AllocSite, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet();
 
     conflictType =
-        updateConflictType(conflictType, determineConflictType(alloc2writeEffects,
+        updateConflictType(conflictType, determineConflictType(node, alloc2writeEffects, node,
             alloc2writeEffects, useReachInfo));
 
     conflictType =
-        updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffects,
+        updateConflictType(conflictType, hasStrongUpdateConflicts(node, alloc2SUEffects, node,
             alloc2readEffects, alloc2writeEffects, useReachInfo));
 
     return conflictType;
@@ -245,15 +249,15 @@ public class ConflictGraph {
 
     // if node A has write effects on reading/writing regions of node B
     conflictType =
-        updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
+        updateConflictType(conflictType, determineConflictType(nodeA, alloc2writeEffectsA, nodeB,
             alloc2readEffectsB, useReachInfo));
     conflictType =
-        updateConflictType(conflictType, determineConflictType(alloc2writeEffectsA,
+        updateConflictType(conflictType, determineConflictType(nodeA, alloc2writeEffectsA, nodeB,
             alloc2writeEffectsB, useReachInfo));
 
     // if node B has write effects on reading regions of node A
     conflictType =
-        updateConflictType(conflictType, determineConflictType(alloc2writeEffectsB,
+        updateConflictType(conflictType, determineConflictType(nodeB, alloc2writeEffectsB, nodeA,
             alloc2readEffectsA, useReachInfo));
 
     // strong udpate effects conflict with all effects
@@ -261,21 +265,22 @@ public class ConflictGraph {
     // if node A has SU on regions of node B
     if (!alloc2SUEffectsA.isEmpty()) {
       conflictType =
-          updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffectsA,
+          updateConflictType(conflictType, hasStrongUpdateConflicts(nodeA, alloc2SUEffectsA, nodeB,
               alloc2readEffectsB, alloc2writeEffectsB, useReachInfo));
     }
 
     // if node B has SU on regions of node A
     if (!alloc2SUEffectsB.isEmpty()) {
       conflictType =
-          updateConflictType(conflictType, hasStrongUpdateConflicts(alloc2SUEffectsB,
+          updateConflictType(conflictType, hasStrongUpdateConflicts(nodeB, alloc2SUEffectsB, nodeA,
               alloc2readEffectsA, alloc2writeEffectsA, useReachInfo));
     }
 
     return conflictType;
   }
 
-  private int hasStrongUpdateConflicts(Hashtable<AllocSite, Set<Effect>> SUEffectsTableA,
+  private int hasStrongUpdateConflicts(ConflictNode nodeA,
+      Hashtable<AllocSite, Set<Effect>> SUEffectsTableA, ConflictNode nodeB,
       Hashtable<AllocSite, Set<Effect>> readTableB, Hashtable<AllocSite, Set<Effect>> writeTableB,
       boolean useReachInfo) {
 
@@ -305,6 +310,10 @@ public class ConflictGraph {
                 FlatNew fnRoot2 = asB.getFlatNew();
                 FlatNew fnTarget = strongUpdateA.getAffectedAllocSite().getFlatNew();
                 if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                  addCoarseEffect(nodeA, asA, strongUpdateA);
+                  if (!nodeA.equals(nodeB)) {
+                    addCoarseEffect(nodeB, asB, effectB);
+                  }
                   conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                 }
               } else {
@@ -336,9 +345,13 @@ public class ConflictGraph {
                 FlatNew fnRoot2 = asB.getFlatNew();
                 FlatNew fnTarget = strongUpdateA.getAffectedAllocSite().getFlatNew();
                 if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                  addCoarseEffect(nodeA, asA, strongUpdateA);
+                  if (!nodeA.equals(nodeB)) {
+                    addCoarseEffect(nodeB, asB, effectB);
+                  }
                   conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                 }
-              }else{
+              } else {
                 return ConflictGraph.CONFLICT;
               }
             }
@@ -353,7 +366,8 @@ public class ConflictGraph {
 
   }
 
-  private int determineConflictType(Hashtable<AllocSite, Set<Effect>> nodeAtable,
+  private int determineConflictType(ConflictNode nodeA,
+      Hashtable<AllocSite, Set<Effect>> nodeAtable, ConflictNode nodeB,
       Hashtable<AllocSite, Set<Effect>> nodeBtable, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
@@ -385,16 +399,24 @@ public class ConflictGraph {
                 if (fnRoot1.equals(fnRoot2)) {
                   if (!da.mayManyReachTarget(fmEnclosing, fnRoot1, fnTarget)) {
                     // fine-grained conflict case
-                    conflictType =
-                      updateConflictType(conflictType, ConflictGraph.FINE_GRAIN_EDGE);
+                    conflictType = updateConflictType(conflictType, ConflictGraph.FINE_GRAIN_EDGE);
                   } else {
+                    // coarse-grained conflict case
+                    addCoarseEffect(nodeA, asA, effectA);
+                    if (!nodeA.equals(nodeB)) {
+                      addCoarseEffect(nodeB, asB, effectB);
+                    }
                     conflictType =
-                      updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                        updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                   }
                 } else {
                   if (da.mayBothReachTarget(fmEnclosing, fnRoot1, fnRoot2, fnTarget)) {
+                    addCoarseEffect(nodeA, asA, effectA);
+                    if (!nodeA.equals(nodeB)) {
+                      addCoarseEffect(nodeB, asB, effectB);
+                    }
                     conflictType =
-                      updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
+                        updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                   } else {
                   }
                 }
@@ -408,6 +430,29 @@ public class ConflictGraph {
     }
 
     return conflictType;
+  }
+
+  private void addCoarseEffect(ConflictNode node, AllocSite as, Effect e) {
+    Taint t = node.getTaint(as);
+    addEffectSetByTaint(t, e);
+  }
+
+  private void addEffectSetByTaint(Taint t, Effect e) {
+
+    Hashtable<Taint, Set<Effect>> taint2Conflicts = sese2te.get(t.getSESE());
+    if (taint2Conflicts == null) {
+      taint2Conflicts = new Hashtable<Taint, Set<Effect>>();
+    }
+
+    Set<Effect> effectSet = taint2Conflicts.get(t);
+    if (effectSet == null) {
+      effectSet = new HashSet<Effect>();
+    }
+    effectSet.add(e);
+    taint2Conflicts.put(t, effectSet);
+
+    sese2te.put(t.getSESE(), taint2Conflicts);
+
   }
 
   private int updateConflictType(int current, int newType) {
@@ -461,9 +506,8 @@ public class ConflictGraph {
     }
   }
 
-  public SESEWaitingQueue getWaitingElementSetBySESEID(int seseID,
- Set<SESELock> seseLockSet) {
-    
+  public SESEWaitingQueue getWaitingElementSetBySESEID(int seseID, Set<SESELock> seseLockSet) {
+
     HashSet<WaitingElement> waitingElementSet = new HashSet<WaitingElement>();
 
     Iterator iter = id2cn.entrySet().iterator();
@@ -506,56 +550,52 @@ public class ConflictGraph {
     // handle the case that multiple enqueues by an SESE for different live-in
     // into the same queue
     return refineQueue(waitingElementSet);
-//    return waitingElementSet;
+    // return waitingElementSet;
 
   }
-  
+
   public SESEWaitingQueue refineQueue(Set<WaitingElement> waitingElementSet) {
 
-    Set<WaitingElement> refinedSet=new HashSet<WaitingElement>();
+    Set<WaitingElement> refinedSet = new HashSet<WaitingElement>();
     HashMap<Integer, Set<WaitingElement>> map = new HashMap<Integer, Set<WaitingElement>>();
-    SESEWaitingQueue seseDS=new SESEWaitingQueue();
+    SESEWaitingQueue seseDS = new SESEWaitingQueue();
 
-    for (Iterator iterator = waitingElementSet.iterator(); iterator
-        .hasNext();) {
+    for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
       WaitingElement waitingElement = (WaitingElement) iterator.next();
-      Set<WaitingElement> set=map.get(new Integer(waitingElement.getQueueID()));
-      if(set==null){
-        set=new HashSet<WaitingElement>();
+      Set<WaitingElement> set = map.get(new Integer(waitingElement.getQueueID()));
+      if (set == null) {
+        set = new HashSet<WaitingElement>();
       }
       set.add(waitingElement);
       map.put(new Integer(waitingElement.getQueueID()), set);
     }
-    
-    Set<Integer> keySet=map.keySet();
+
+    Set<Integer> keySet = map.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Integer queueID = (Integer) iterator.next();
-      Set<WaitingElement> queueWEset=map.get(queueID);
-      refineQueue(queueID.intValue(),queueWEset,seseDS);      
+      Set<WaitingElement> queueWEset = map.get(queueID);
+      refineQueue(queueID.intValue(), queueWEset, seseDS);
     }
-    
+
     return seseDS;
   }
-  
-  
-  private void refineQueue(int queueID,
-      Set<WaitingElement> waitingElementSet, SESEWaitingQueue seseDS) {
+
+  private void refineQueue(int queueID, Set<WaitingElement> waitingElementSet,
+      SESEWaitingQueue seseDS) {
 
     if (waitingElementSet.size() > 1) {
-      //only consider there is more than one element submitted by same SESE
+      // only consider there is more than one element submitted by same SESE
       Set<WaitingElement> refinedSet = new HashSet<WaitingElement>();
 
       int numCoarse = 0;
       int numRead = 0;
       int numWrite = 0;
-      int total=waitingElementSet.size();
+      int total = waitingElementSet.size();
       WaitingElement SCCelement = null;
       WaitingElement coarseElement = null;
 
-      for (Iterator iterator = waitingElementSet.iterator(); iterator
-          .hasNext();) {
-        WaitingElement waitingElement = (WaitingElement) iterator
-            .next();
+      for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+        WaitingElement waitingElement = (WaitingElement) iterator.next();
         if (waitingElement.getStatus() == ConflictNode.FINE_READ) {
           numRead++;
         } else if (waitingElement.getStatus() == ConflictNode.FINE_WRITE) {
@@ -565,7 +605,7 @@ public class ConflictGraph {
           coarseElement = waitingElement;
         } else if (waitingElement.getStatus() == ConflictNode.SCC) {
           SCCelement = waitingElement;
-        } 
+        }
       }
 
       if (SCCelement != null) {
@@ -581,11 +621,12 @@ public class ConflictGraph {
       } else if (numCoarse == total) {
         // if there are multiple coarses, enqueue just one coarse.
         refinedSet.add(coarseElement);
-      } else if(numWrite==total || (numRead+numWrite)==total){
-        // code generator is going to handle the case for multiple writes & read/writes.
+      } else if (numWrite == total || (numRead + numWrite) == total) {
+        // code generator is going to handle the case for multiple writes &
+        // read/writes.
         seseDS.setType(queueID, SESEWaitingQueue.EXCEPTION);
         refinedSet.addAll(waitingElementSet);
-      } else{
+      } else {
         // otherwise, enqueue everything.
         refinedSet.addAll(waitingElementSet);
       }
@@ -593,9 +634,9 @@ public class ConflictGraph {
     } else {
       seseDS.setWaitingElementSet(queueID, waitingElementSet);
     }
-    
+
   }
-  
+
   public Set<WaitingElement> getStallSiteWaitingElementSet(FlatNode stallSite,
       Set<SESELock> seseLockSet) {
 
@@ -634,6 +675,10 @@ public class ConflictGraph {
     return waitingElementSet;
   }
 
+  public Hashtable<Taint, Set<Effect>> getConflictEffectSet(FlatSESEEnterNode fsen) {
+    return sese2te.get(fsen);
+  }
+
   public void writeGraph(String graphName, boolean filter) throws java.io.IOException {
 
     graphName = graphName.replaceAll("[\\W]", "");
@@ -657,11 +702,11 @@ public class ConflictGraph {
 
           continue;
         }
-        
-        if(node.getEdgeSet().isEmpty()){
+
+        if (node.getEdgeSet().isEmpty()) {
           continue;
         }
-        
+
       }
 
       String attributes = "[";

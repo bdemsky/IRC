@@ -23,7 +23,9 @@ import Analysis.Locality.DCWrapper;
 import Analysis.Locality.DelayComputation;
 import Analysis.Locality.BranchAnalysis;
 import Analysis.CallGraph.CallGraph;
+import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.ReachGraph;
+import Analysis.Disjoint.Taint;
 import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
@@ -257,12 +259,24 @@ public class BuildCode {
         FlatSESEEnterNode fsen = seseit.next();
         initializeSESE( fsen );
         
-        // invoke rcr
+        /*
         if(state.RCR){
-//          FlatMethod fm=fsen.getfmEnclosing();        
-//          ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
+          if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null){
+            
+            FlatMethod fm=fsen.getfmEnclosing();
+            
+            //reach graph
+            ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
+            
+            //get effect set
+            Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fsen);
+            
+            //get conflict set
+            Analysis.OoOJava.ConflictGraph conflictGraph=oooa.getConflictGraph(fsen.getParent());
+            Hashtable<Taint, Set<Effect>>  conflicts=conflictGraph.getConflictEffectSet(fsen);
+          }
         }
-        
+        */
       }
       
     }

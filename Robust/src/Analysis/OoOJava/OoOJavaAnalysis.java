@@ -66,8 +66,8 @@ public class OoOJavaAnalysis {
 
   private Hashtable<FlatEdge, FlatWriteDynamicVarNode> wdvNodesToSpliceIn;
 
-  // temporal data structures to track analysis progress. 
-  static private int uniqueLockSetId = 0;  
+  // temporal data structures to track analysis progress.
+  static private int uniqueLockSetId = 0;
   // mapping of a conflict graph to its compiled lock
   private Hashtable<ConflictGraph, HashSet<SESELock>> conflictGraph2SESELock;
   // mapping of a sese block to its conflict graph
@@ -116,11 +116,9 @@ public class OoOJavaAnalysis {
 
     descriptorsToAnalyze.add(mdSourceEntry);
 
-    
     // 1st pass, find basic rblock relations & status
     rblockRel = new RBlockRelationAnalysis(state, typeUtil, callGraph);
     rblockStatus = new RBlockStatusAnalysis(state, typeUtil, callGraph, rblockRel);
-
 
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
     Iterator<FlatSESEEnterNode> rootItr = rblockRel.getRootSESEs().iterator();
@@ -150,17 +148,14 @@ public class OoOJavaAnalysis {
 
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
-    disjointAnalysisTaints = 
-      new DisjointAnalysis(state, 
-                           typeUtil, 
-                           callGraph, 
-                           liveness,
-                           arrayReferencees, 
-                           null, // no FlatNew set to flag
-                           rblockRel, 
-                           rblockStatus
-                           );
-    
+    disjointAnalysisTaints =
+        new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, null, // no
+                                                                                           // FlatNew
+                                                                                           // set
+                                                                                           // to
+                                                                                           // flag
+            rblockRel, rblockStatus);
+
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -171,104 +166,97 @@ public class OoOJavaAnalysis {
       // point, in a forward fixed-point pass
       notAvailableForward(fm);
     }
-    
-    // 7th pass,  make conflict graph
+
+    // 7th pass, make conflict graph
     // conflict graph is maintained by each parent sese,
-    Iterator descItr=disjointAnalysisTaints.getDescriptorsToAnalyze().iterator();
+    Iterator descItr = disjointAnalysisTaints.getDescriptorsToAnalyze().iterator();
     while (descItr.hasNext()) {
-      Descriptor d = (Descriptor)descItr.next();
+      Descriptor d = (Descriptor) descItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-      if(fm != null)
+      if (fm != null)
         makeConflictGraph(fm);
     }
 
-    // debug routine 
+    // debug routine
     /*
-    Iterator iter = sese2conflictGraph.entrySet().iterator();
-    while (iter.hasNext()) {
-      Entry e = (Entry) iter.next();
-      FlatNode fn = (FlatNode) e.getKey();
-      ConflictGraph conflictGraph = (ConflictGraph) e.getValue();
-      System.out.println("---------------------------------------");
-      System.out.println("CONFLICT GRAPH for " + fn);
-      Set<String> keySet = conflictGraph.id2cn.keySet();
-      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-        String key = (String) iterator.next();
-        ConflictNode node = conflictGraph.id2cn.get(key);
-        System.out.println("key=" + key + " \n" + node.toStringAllEffects());
-      }
-    }
-    */
-    
-    // 8th pass, calculate all possible conflicts without using reachability info
-    // and identify set of FlatNew that next disjoint reach. analysis should flag
+     * Iterator iter = sese2conflictGraph.entrySet().iterator(); while
+     * (iter.hasNext()) { Entry e = (Entry) iter.next(); FlatNode fn =
+     * (FlatNode) e.getKey(); ConflictGraph conflictGraph = (ConflictGraph)
+     * e.getValue();
+     * System.out.println("---------------------------------------");
+     * System.out.println("CONFLICT GRAPH for " + fn); Set<String> keySet =
+     * conflictGraph.id2cn.keySet(); for (Iterator iterator = keySet.iterator();
+     * iterator.hasNext();) { String key = (String) iterator.next();
+     * ConflictNode node = conflictGraph.id2cn.get(key);
+     * System.out.println("key=" + key + " \n" + node.toStringAllEffects()); } }
+     */
+
+    // 8th pass, calculate all possible conflicts without using reachability
+    // info
+    // and identify set of FlatNew that next disjoint reach. analysis should
+    // flag
     Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
-    calculateConflicts(sitesToFlag,false);    
-    
+    calculateConflicts(sitesToFlag, false);
+
     // 9th pass, ask disjoint analysis to compute reachability
     // for objects that may cause heap conflicts so the most
     // efficient method to deal with conflict can be computed
     // later
-   
-    disjointAnalysisReach = 
-      new DisjointAnalysis(state, 
-                           typeUtil, 
-                           callGraph, 
-                           liveness,
-                           arrayReferencees, 
-                           sitesToFlag,
-                           null, // don't do effects analysis again!
-                           null  // don't do effects analysis again!
-                           );
+
+    disjointAnalysisReach =
+        new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, sitesToFlag,
+            null, // don't do effects analysis again!
+            null // don't do effects analysis again!
+        );
     // 10th pass, calculate conflicts with reachability info
-    calculateConflicts(null, true);    
-   
+    calculateConflicts(null, true);
+
     // 11th pass, compiling locks
     synthesizeLocks();
-    
+
     // 12th pass, compute a plan for code injections
-    methItr =descriptorsToAnalyze.iterator();
-    while( methItr.hasNext() ) {
-      Descriptor d  = methItr.next();      
-      FlatMethod fm = state.getMethodFlat( d );
-      codePlansForward( fm );
+    methItr = descriptorsToAnalyze.iterator();
+    while (methItr.hasNext()) {
+      Descriptor d = methItr.next();
+      FlatMethod fm = state.getMethodFlat(d);
+      codePlansForward(fm);
     }
-    
+
     // 13th pass,
     // splice new IR nodes into graph after all
     // analysis passes are complete
     Iterator spliceItr = wdvNodesToSpliceIn.entrySet().iterator();
-    while( spliceItr.hasNext() ) {
-      Map.Entry               me    = (Map.Entry)               spliceItr.next();
+    while (spliceItr.hasNext()) {
+      Map.Entry me = (Map.Entry) spliceItr.next();
       FlatWriteDynamicVarNode fwdvn = (FlatWriteDynamicVarNode) me.getValue();
       fwdvn.spliceIntoIR();
     }
-    
-    
-    if( state.OOODEBUG ) {      
+
+    if (state.OOODEBUG) {
       try {
-        writeReports( "" );
-        disjointAnalysisTaints.getEffectsAnalysis().writeEffects( "effects.txt" );
+        writeReports("");
+        disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
         writeConflictGraph();
-      } catch( IOException e ) {}
+      } catch (IOException e) {
+      }
     }
-    
+
   }
-  
-  private void writeFile(Set<FlatNew> sitesToFlag){
-    
-    try{
-    BufferedWriter bw = new BufferedWriter( new FileWriter( "sitesToFlag.txt" ) );
-    
-    for (Iterator iterator = sitesToFlag.iterator(); iterator.hasNext();) {
-      FlatNew fn = (FlatNew) iterator.next();
-      bw.write( fn+"\n" );
+
+  private void writeFile(Set<FlatNew> sitesToFlag) {
+
+    try {
+      BufferedWriter bw = new BufferedWriter(new FileWriter("sitesToFlag.txt"));
+
+      for (Iterator iterator = sitesToFlag.iterator(); iterator.hasNext();) {
+        FlatNew fn = (FlatNew) iterator.next();
+        bw.write(fn + "\n");
+      }
+      bw.close();
+    } catch (IOException e) {
+
     }
-    bw.close();
-    }catch(IOException e){
-      
-    }
-   
+
   }
 
   private void livenessAnalysisBackward(FlatSESEEnterNode fsen, boolean toplevel,
@@ -286,7 +274,8 @@ public class OoOJavaAnalysis {
       flatNodesToVisit.add(fsen.getFlatExit());
     }
 
-    Hashtable<FlatNode, Set<TempDescriptor>> livenessResults = new Hashtable<FlatNode, Set<TempDescriptor>>();
+    Hashtable<FlatNode, Set<TempDescriptor>> livenessResults =
+        new Hashtable<FlatNode, Set<TempDescriptor>>();
 
     if (toplevel) {
       liveout = new Hashtable<FlatSESEExitNode, Set<TempDescriptor>>();
@@ -458,8 +447,8 @@ public class OoOJavaAnalysis {
       // anything virtually read by this SESE should be pruned
       // of parent or sibling sources
       Set<TempDescriptor> liveVars = livenessRootView.get(fn);
-      Set<TempDescriptor> fsenVirtReads = vstTable.calcVirtReadsAndPruneParentAndSiblingTokens(
-          fsen, liveVars);
+      Set<TempDescriptor> fsenVirtReads =
+          vstTable.calcVirtReadsAndPruneParentAndSiblingTokens(fsen, liveVars);
       Set<TempDescriptor> fsenVirtReadsOld = livenessVirtualReads.get(fn);
       if (fsenVirtReadsOld != null) {
         fsenVirtReads.addAll(fsenVirtReadsOld);
@@ -677,8 +666,8 @@ public class OoOJavaAnalysis {
 
           VariableSourceToken vst = vstIfStatic.vst;
 
-          Iterator<VariableSourceToken> availItr = vstTable.get(vst.getSESE(), vst.getAge())
-              .iterator();
+          Iterator<VariableSourceToken> availItr =
+              vstTable.get(vst.getSESE(), vst.getAge()).iterator();
 
           // look through things that are also available from same source
           while (availItr.hasNext()) {
@@ -691,8 +680,8 @@ public class OoOJavaAnalysis {
               // if a variable is available from the same source, AND it ALSO
               // only comes from one statically known source, mark it available
               VSTWrapper vstIfStaticNotUsed = new VSTWrapper();
-              Integer srcTypeAlso = vstTable.getRefVarSrcType(refVarAlso, currentSESE,
-                  vstIfStaticNotUsed);
+              Integer srcTypeAlso =
+                  vstTable.getRefVarSrcType(refVarAlso, currentSESE, vstIfStaticNotUsed);
               if (srcTypeAlso.equals(VarSrcTokTable.SrcType_STATIC)) {
                 notAvailSet.remove(refVarAlso);
               }
@@ -706,85 +695,76 @@ public class OoOJavaAnalysis {
     } // end switch
   }
 
-  
-private void codePlansForward( FlatMethod fm ) {
-    
+  private void codePlansForward(FlatMethod fm) {
+
     // start from flat method top, visit every node in
     // method exactly once
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fm );
+    flatNodesToVisit.add(fm);
 
-    Set<FlatNode> visited = new HashSet<FlatNode>();    
+    Set<FlatNode> visited = new HashSet<FlatNode>();
 
-    while( !flatNodesToVisit.isEmpty() ) {
+    while (!flatNodesToVisit.isEmpty()) {
       Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
       FlatNode fn = fnItr.next();
 
-      flatNodesToVisit.remove( fn );
-      visited.add( fn );      
+      flatNodesToVisit.remove(fn);
+      visited.add(fn);
 
       Stack<FlatSESEEnterNode> seseStack = rblockRel.getRBlockStacks(fm, fn);
-      assert seseStack != null;      
+      assert seseStack != null;
 
       // use incoming results as "dot statement" or just
       // before the current statement
       VarSrcTokTable dotSTtable = new VarSrcTokTable();
-      for( int i = 0; i < fn.numPrev(); i++ ) {
-  FlatNode nn = fn.getPrev( i );
-  dotSTtable.merge( variableResults.get( nn ) );
+      for (int i = 0; i < fn.numPrev(); i++) {
+        FlatNode nn = fn.getPrev(i);
+        dotSTtable.merge(variableResults.get(nn));
       }
 
       // find dt-st notAvailableSet also
-      Set<TempDescriptor> dotSTnotAvailSet = new HashSet<TempDescriptor>();      
-      for( int i = 0; i < fn.numPrev(); i++ ) {
-  FlatNode nn = fn.getPrev( i );       
-  Set<TempDescriptor> notAvailIn = notAvailableResults.get( nn );
-        if( notAvailIn != null ) {
-    dotSTnotAvailSet.addAll( notAvailIn );
+      Set<TempDescriptor> dotSTnotAvailSet = new HashSet<TempDescriptor>();
+      for (int i = 0; i < fn.numPrev(); i++) {
+        FlatNode nn = fn.getPrev(i);
+        Set<TempDescriptor> notAvailIn = notAvailableResults.get(nn);
+        if (notAvailIn != null) {
+          dotSTnotAvailSet.addAll(notAvailIn);
         }
       }
 
-      Set<TempDescriptor> dotSTlive = livenessRootView.get( fn );
+      Set<TempDescriptor> dotSTlive = livenessRootView.get(fn);
 
-      if( !seseStack.empty() ) {
-  codePlans_nodeActions( fn, 
-             dotSTlive,
-             dotSTtable,
-             dotSTnotAvailSet,
-             seseStack.peek()
-             );
+      if (!seseStack.empty()) {
+        codePlans_nodeActions(fn, dotSTlive, dotSTtable, dotSTnotAvailSet, seseStack.peek());
       }
 
-      for( int i = 0; i < fn.numNext(); i++ ) {
-  FlatNode nn = fn.getNext( i );
+      for (int i = 0; i < fn.numNext(); i++) {
+        FlatNode nn = fn.getNext(i);
 
-  if( !visited.contains( nn ) ) {
-    flatNodesToVisit.add( nn );
-  }
+        if (!visited.contains(nn)) {
+          flatNodesToVisit.add(nn);
+        }
       }
     }
   }
 
-  private void codePlans_nodeActions( FlatNode fn,
-              Set<TempDescriptor> liveSetIn,
-              VarSrcTokTable vstTableIn,
-              Set<TempDescriptor> notAvailSetIn,
-              FlatSESEEnterNode currentSESE ) {
-    
-    CodePlan plan = new CodePlan( currentSESE);
+  private void codePlans_nodeActions(FlatNode fn, Set<TempDescriptor> liveSetIn,
+      VarSrcTokTable vstTableIn, Set<TempDescriptor> notAvailSetIn, FlatSESEEnterNode currentSESE) {
 
-    switch( fn.kind() ) {
+    CodePlan plan = new CodePlan(currentSESE);
+
+    switch (fn.kind()) {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      assert fsen.equals( currentSESE );
+      assert fsen.equals(currentSESE);
 
       // track the source types of the in-var set so generated
       // code at this SESE issue can compute the number of
       // dependencies properly
       Iterator<TempDescriptor> inVarItr = fsen.getInVarSet().iterator();
-      while( inVarItr.hasNext() ) {
-  TempDescriptor inVar = inVarItr.next();
+      while (inVarItr.hasNext()) {
+        TempDescriptor inVar = inVarItr.next();
 
         // when we get to an SESE enter node we change the
         // currentSESE variable of this analysis to the
@@ -793,158 +773,141 @@ private void codePlansForward( FlatMethod fm ) {
         // the parent SESE in--at other FlatNode types just
         // use the currentSESE
         VSTWrapper vstIfStatic = new VSTWrapper();
-  Integer srcType = 
-    vstTableIn.getRefVarSrcType( inVar,
-               fsen.getParent(),
-                                       vstIfStatic
-                                       );
+        Integer srcType = vstTableIn.getRefVarSrcType(inVar, fsen.getParent(), vstIfStatic);
 
-  // the current SESE needs a local space to track the dynamic
-  // variable and the child needs space in its SESE record
-  if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
-    fsen.addDynamicInVar( inVar );
-    fsen.getParent().addDynamicVar( inVar );
+        // the current SESE needs a local space to track the dynamic
+        // variable and the child needs space in its SESE record
+        if (srcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
+          fsen.addDynamicInVar(inVar);
+          fsen.getParent().addDynamicVar(inVar);
 
-  } else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
-    fsen.addStaticInVar( inVar );
-    VariableSourceToken vst = vstIfStatic.vst;
-    fsen.putStaticInVar2src( inVar, vst );
-    fsen.addStaticInVarSrc( new SESEandAgePair( vst.getSESE(), 
-                  vst.getAge() 
-                ) 
-        );
-  } else {
-    assert srcType.equals( VarSrcTokTable.SrcType_READY );
-    fsen.addReadyInVar( inVar );
-  } 
+        } else if (srcType.equals(VarSrcTokTable.SrcType_STATIC)) {
+          fsen.addStaticInVar(inVar);
+          VariableSourceToken vst = vstIfStatic.vst;
+          fsen.putStaticInVar2src(inVar, vst);
+          fsen.addStaticInVarSrc(new SESEandAgePair(vst.getSESE(), vst.getAge()));
+        } else {
+          assert srcType.equals(VarSrcTokTable.SrcType_READY);
+          fsen.addReadyInVar(inVar);
+        }
       }
 
-    } break;
+    }
+      break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-    } break;
+    }
+      break;
 
     case FKind.FlatOpNode: {
       FlatOpNode fon = (FlatOpNode) fn;
 
-      if( fon.getOp().getOp() == Operation.ASSIGN ) {
-  TempDescriptor lhs = fon.getDest();
-  TempDescriptor rhs = fon.getLeft();        
+      if (fon.getOp().getOp() == Operation.ASSIGN) {
+        TempDescriptor lhs = fon.getDest();
+        TempDescriptor rhs = fon.getLeft();
 
-  // if this is an op node, don't stall, copy
-  // source and delay until we need to use value
+        // if this is an op node, don't stall, copy
+        // source and delay until we need to use value
 
-  // ask whether lhs and rhs sources are dynamic, static, etc.
+        // ask whether lhs and rhs sources are dynamic, static, etc.
         VSTWrapper vstIfStatic = new VSTWrapper();
-  Integer lhsSrcType
-    = vstTableIn.getRefVarSrcType( lhs,
-           currentSESE,
-                                         vstIfStatic
-                                         );
-  Integer rhsSrcType
-    = vstTableIn.getRefVarSrcType( rhs,
-           currentSESE,
-                                         vstIfStatic
-                                         );
+        Integer lhsSrcType = vstTableIn.getRefVarSrcType(lhs, currentSESE, vstIfStatic);
+        Integer rhsSrcType = vstTableIn.getRefVarSrcType(rhs, currentSESE, vstIfStatic);
 
-  if( rhsSrcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
-    // if rhs is dynamic going in, lhs will definitely be dynamic
-    // going out of this node, so track that here   
-    plan.addDynAssign( lhs, rhs );
-    currentSESE.addDynamicVar( lhs );
-    currentSESE.addDynamicVar( rhs );
+        if (rhsSrcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
+          // if rhs is dynamic going in, lhs will definitely be dynamic
+          // going out of this node, so track that here
+          plan.addDynAssign(lhs, rhs);
+          currentSESE.addDynamicVar(lhs);
+          currentSESE.addDynamicVar(rhs);
 
-  } else if( lhsSrcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
-    // otherwise, if the lhs is dynamic, but the rhs is not, we
-    // need to update the variable's dynamic source as "current SESE"
-    plan.addDynAssign( lhs );
-  }       
+        } else if (lhsSrcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
+          // otherwise, if the lhs is dynamic, but the rhs is not, we
+          // need to update the variable's dynamic source as "current SESE"
+          plan.addDynAssign(lhs);
+        }
 
-  // only break if this is an ASSIGN op node,
-  // otherwise fall through to default case
-  break;
+        // only break if this is an ASSIGN op node,
+        // otherwise fall through to default case
+        break;
       }
     }
 
-    // note that FlatOpNode's that aren't ASSIGN
-    // fall through to this default case
-    default: {          
+      // note that FlatOpNode's that aren't ASSIGN
+      // fall through to this default case
+    default: {
 
       // a node with no live set has nothing to stall for
-      if( liveSetIn == null ) {
-  break;
+      if (liveSetIn == null) {
+        break;
       }
 
       TempDescriptor[] readarray = fn.readsTemps();
-      for( int i = 0; i < readarray.length; i++ ) {
+      for (int i = 0; i < readarray.length; i++) {
         TempDescriptor readtmp = readarray[i];
 
-  // ignore temps that are definitely available 
-  // when considering to stall on it
-  if( !notAvailSetIn.contains( readtmp ) ) {
-    continue;
-  }
-
-  // check the source type of this variable
-        VSTWrapper vstIfStatic = new VSTWrapper();
-  Integer srcType 
-    = vstTableIn.getRefVarSrcType( readtmp,
-           currentSESE,
-                                         vstIfStatic
-                                         );
-
-  if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
-    // 1) It is not clear statically where this variable will
-    // come from, so dynamically we must keep track
-    // along various control paths, and therefore when we stall,
-    // just stall for the exact thing we need and move on
-    plan.addDynamicStall( readtmp );
-    currentSESE.addDynamicVar( readtmp );  
-
-  } else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {    
-    // 2) Single token/age pair: Stall for token/age pair, and copy
-    // all live variables with same token/age pair at the same
-    // time.  This is the same stuff that the notavaialable analysis 
-    // marks as now available.    
-    VariableSourceToken vst = vstIfStatic.vst;
-
-    Iterator<VariableSourceToken> availItr = 
-      vstTableIn.get( vst.getSESE(), vst.getAge() ).iterator();
-
-    while( availItr.hasNext() ) {
-      VariableSourceToken vstAlsoAvail = availItr.next();
-
-      // only grab additional stuff that is live
-      Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
-
-      Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
-      while( refVarItr.hasNext() ) {
-        TempDescriptor refVar = refVarItr.next();
-        if( liveSetIn.contains( refVar ) ) {
-    copySet.add( refVar );
+        // ignore temps that are definitely available
+        // when considering to stall on it
+        if (!notAvailSetIn.contains(readtmp)) {
+          continue;
         }
+
+        // check the source type of this variable
+        VSTWrapper vstIfStatic = new VSTWrapper();
+        Integer srcType = vstTableIn.getRefVarSrcType(readtmp, currentSESE, vstIfStatic);
+
+        if (srcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
+          // 1) It is not clear statically where this variable will
+          // come from, so dynamically we must keep track
+          // along various control paths, and therefore when we stall,
+          // just stall for the exact thing we need and move on
+          plan.addDynamicStall(readtmp);
+          currentSESE.addDynamicVar(readtmp);
+
+        } else if (srcType.equals(VarSrcTokTable.SrcType_STATIC)) {
+          // 2) Single token/age pair: Stall for token/age pair, and copy
+          // all live variables with same token/age pair at the same
+          // time. This is the same stuff that the notavaialable analysis
+          // marks as now available.
+          VariableSourceToken vst = vstIfStatic.vst;
+
+          Iterator<VariableSourceToken> availItr =
+              vstTableIn.get(vst.getSESE(), vst.getAge()).iterator();
+
+          while (availItr.hasNext()) {
+            VariableSourceToken vstAlsoAvail = availItr.next();
+
+            // only grab additional stuff that is live
+            Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
+
+            Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
+            while (refVarItr.hasNext()) {
+              TempDescriptor refVar = refVarItr.next();
+              if (liveSetIn.contains(refVar)) {
+                copySet.add(refVar);
+              }
+            }
+
+            if (!copySet.isEmpty()) {
+              plan.addStall2CopySet(vstAlsoAvail, copySet);
+            }
+          }
+
+        } else {
+          // the other case for srcs is READY, so do nothing
+        }
+
+        // assert that everything being stalled for is in the
+        // "not available" set coming into this flat node and
+        // that every VST identified is in the possible "stall set"
+        // that represents VST's from children SESE's
+
       }
+    }
+      break;
 
-      if( !copySet.isEmpty() ) {
-        plan.addStall2CopySet( vstAlsoAvail, copySet );
-      }
-    }          
-
-  } else {
-    // the other case for srcs is READY, so do nothing
-  }
-
-  // assert that everything being stalled for is in the
-  // "not available" set coming into this flat node and
-  // that every VST identified is in the possible "stall set"
-  // that represents VST's from children SESE's
-
-      }      
-    } break;
-      
     } // end switch
-
 
     // identify sese-age pairs that are statically useful
     // and should have an associated SESE variable in code
@@ -952,71 +915,61 @@ private void codePlansForward( FlatMethod fm ) {
     // AND ALWAYS GIVE NAMES TO PARENTS
     Set<VariableSourceToken> staticSet = vstTableIn.get();
     Iterator<VariableSourceToken> vstItr = staticSet.iterator();
-    while( vstItr.hasNext() ) {
+    while (vstItr.hasNext()) {
       VariableSourceToken vst = vstItr.next();
 
       // placeholder source tokens are useful results, but
       // the placeholder static name is never needed
-      if( vst.getSESE().getIsCallerSESEplaceholder() ) {
-  continue;
+      if (vst.getSESE().getIsCallerSESEplaceholder()) {
+        continue;
       }
 
       FlatSESEEnterNode sese = currentSESE;
-      while( sese != null ) {
-  sese.addNeededStaticName( 
-         new SESEandAgePair( vst.getSESE(), vst.getAge() ) 
-          );
-  sese.mustTrackAtLeastAge( vst.getAge() );
-        
-  sese = sese.getParent();
+      while (sese != null) {
+        sese.addNeededStaticName(new SESEandAgePair(vst.getSESE(), vst.getAge()));
+        sese.mustTrackAtLeastAge(vst.getAge());
+
+        sese = sese.getParent();
       }
     }
 
+    codePlans.put(fn, plan);
 
-    codePlans.put( fn, plan );
-
-
-    // if any variables at this-node-*dot* have a static source (exactly one vst)
+    // if any variables at this-node-*dot* have a static source (exactly one
+    // vst)
     // but go to a dynamic source at next-node-*dot*, create a new IR graph
     // node on that edge to track the sources dynamically
-    VarSrcTokTable thisVstTable = variableResults.get( fn );
-    for( int i = 0; i < fn.numNext(); i++ ) {
-      FlatNode            nn           = fn.getNext( i );
-      VarSrcTokTable      nextVstTable = variableResults.get( nn );
-      Set<TempDescriptor> nextLiveIn   = livenessRootView.get( nn );
+    VarSrcTokTable thisVstTable = variableResults.get(fn);
+    for (int i = 0; i < fn.numNext(); i++) {
+      FlatNode nn = fn.getNext(i);
+      VarSrcTokTable nextVstTable = variableResults.get(nn);
+      Set<TempDescriptor> nextLiveIn = livenessRootView.get(nn);
 
       // the table can be null if it is one of the few IR nodes
       // completely outside of the root SESE scope
-      if( nextVstTable != null && nextLiveIn != null ) {
+      if (nextVstTable != null && nextLiveIn != null) {
 
-  Hashtable<TempDescriptor, VSTWrapper> readyOrStatic2dynamicSet = 
-    thisVstTable.getReadyOrStatic2DynamicSet( nextVstTable, 
-                                                    nextLiveIn,
-                                                    currentSESE
-                                                    );
-  
-  if( !readyOrStatic2dynamicSet.isEmpty() ) {
+        Hashtable<TempDescriptor, VSTWrapper> readyOrStatic2dynamicSet =
+            thisVstTable.getReadyOrStatic2DynamicSet(nextVstTable, nextLiveIn, currentSESE);
 
-    // either add these results to partial fixed-point result
-    // or make a new one if we haven't made any here yet
-    FlatEdge fe = new FlatEdge( fn, nn );
-    FlatWriteDynamicVarNode fwdvn = wdvNodesToSpliceIn.get( fe );
+        if (!readyOrStatic2dynamicSet.isEmpty()) {
 
-    if( fwdvn == null ) {
-      fwdvn = new FlatWriteDynamicVarNode( fn, 
-             nn,
-             readyOrStatic2dynamicSet,
-             currentSESE
-             );
-      wdvNodesToSpliceIn.put( fe, fwdvn );
-    } else {
-      fwdvn.addMoreVar2Src( readyOrStatic2dynamicSet );
-    }
-  }
+          // either add these results to partial fixed-point result
+          // or make a new one if we haven't made any here yet
+          FlatEdge fe = new FlatEdge(fn, nn);
+          FlatWriteDynamicVarNode fwdvn = wdvNodesToSpliceIn.get(fe);
+
+          if (fwdvn == null) {
+            fwdvn = new FlatWriteDynamicVarNode(fn, nn, readyOrStatic2dynamicSet, currentSESE);
+            wdvNodesToSpliceIn.put(fe, fwdvn);
+          } else {
+            fwdvn.addMoreVar2Src(readyOrStatic2dynamicSet);
+          }
+        }
       }
     }
   }
-  
+
   private void makeConflictGraph(FlatMethod fm) {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
@@ -1053,7 +1006,6 @@ private void codePlansForward( FlatMethod fm ) {
     }
 
   }
- 
 
   private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE) {
 
@@ -1177,7 +1129,7 @@ private void codePlansForward( FlatMethod fm ) {
       ConflictGraph conflictGraph = sese2conflictGraph.get(sese);
       if (useReachInfo) {
         // clear current conflict before recalculating with reachability info
-        conflictGraph.clearAllConflictEdge(); 
+        conflictGraph.clearAllConflictEdge();
         conflictGraph.setDisJointAnalysis(disjointAnalysisReach);
         conflictGraph.setFMEnclosing(sese.getfmEnclosing());
       }
@@ -1185,7 +1137,7 @@ private void codePlansForward( FlatMethod fm ) {
       sese2conflictGraph.put(sese, conflictGraph);
     }
   }
-  
+
   private void writeConflictGraph() {
     Enumeration<FlatNode> keyEnum = sese2conflictGraph.keys();
     while (keyEnum.hasMoreElements()) {
@@ -1201,7 +1153,7 @@ private void codePlansForward( FlatMethod fm ) {
       }
     }
   }
-  
+
   private void synthesizeLocks() {
     Set<Entry<FlatNode, ConflictGraph>> graphEntrySet = sese2conflictGraph.entrySet();
     for (Iterator iterator = graphEntrySet.iterator(); iterator.hasNext();) {
@@ -1211,7 +1163,7 @@ private void codePlansForward( FlatMethod fm ) {
       calculateCovering(conflictGraph);
     }
   }
-  
+
   private void calculateCovering(ConflictGraph conflictGraph) {
     uniqueLockSetId = 0; // reset lock counter for every new conflict graph
     HashSet<ConflictEdge> fineToCover = new HashSet<ConflictEdge>();
@@ -1299,8 +1251,8 @@ private void codePlansForward( FlatMethod fm ) {
             // but the edge must remain uncovered.
 
             changed = true;
-            
-            if(seseLock.containsConflictNode(newNode)){
+
+            if (seseLock.containsConflictNode(newNode)) {
               seseLock.addEdge(edge);
               fineToCover.remove(edge);
               break;
@@ -1369,13 +1321,13 @@ private void codePlansForward( FlatMethod fm ) {
               seseLock.addConflictNode(edge.getVertexU(), type);
             } else {
               if (edge.getVertexU().isStallSiteNode()) {
-                if(edge.getVertexU().getWriteEffectSet().isEmpty()){
+                if (edge.getVertexU().getWriteEffectSet().isEmpty()) {
                   type = ConflictNode.PARENT_READ;
-                }else{
+                } else {
                   type = ConflictNode.PARENT_WRITE;
                 }
               } else {
-                  type = ConflictNode.COARSE;
+                type = ConflictNode.COARSE;
               }
               seseLock.addConflictNode(edge.getVertexU(), type);
             }
@@ -1389,12 +1341,12 @@ private void codePlansForward( FlatMethod fm ) {
               }
               seseLock.addConflictNode(edge.getVertexV(), type);
             } else {
-              if (edge.getVertexV().isStallSiteNode()) {                
-                if(edge.getVertexV().getWriteEffectSet().isEmpty()){
+              if (edge.getVertexV().isStallSiteNode()) {
+                if (edge.getVertexV().getWriteEffectSet().isEmpty()) {
                   type = ConflictNode.PARENT_READ;
-                }else{
+                } else {
                   type = ConflictNode.PARENT_WRITE;
-                }                
+                }
               } else {
                 type = ConflictNode.COARSE;
               }
@@ -1411,10 +1363,9 @@ private void codePlansForward( FlatMethod fm ) {
             // new node has a coarse-grained edge to all fine-read, fine-write,
             // parent
             changed = true;
-            
-            if(newNode.isInVarNode() &&
-                (!seseLock.hasSelfCoarseEdge(newNode)) &&
-                seseLock.hasCoarseEdgeWithParentCoarse(newNode)){
+
+            if (newNode.isInVarNode() && (!seseLock.hasSelfCoarseEdge(newNode))
+                && seseLock.hasCoarseEdgeWithParentCoarse(newNode)) {
               // this case can't be covered by this queue
               coarseToCover.remove(edge);
               break;
@@ -1474,38 +1425,38 @@ private void codePlansForward( FlatMethod fm ) {
 
     conflictGraph2SESELock.put(conflictGraph, lockSet);
   }
-  
-  public ConflictGraph getConflictGraph(FlatNode sese){
-    return sese2conflictGraph.get(sese);    
+
+  public ConflictGraph getConflictGraph(FlatNode sese) {
+    return sese2conflictGraph.get(sese);
   }
-  
-  public Set<SESELock> getLockMappings(ConflictGraph graph){
+
+  public Set<SESELock> getLockMappings(ConflictGraph graph) {
     return conflictGraph2SESELock.get(graph);
   }
-  
+
   public Set<FlatSESEEnterNode> getAllSESEs() {
     return rblockRel.getAllSESEs();
   }
-  
+
   public FlatSESEEnterNode getMainSESE() {
     return rblockRel.getMainSESE();
   }
-  
-  public void writeReports( String timeReport ) throws java.io.IOException {
 
-    BufferedWriter bw = new BufferedWriter( new FileWriter( "mlpReport_summary.txt" ) );
-    bw.write( "MLP Analysis Results\n\n" );
-    bw.write( timeReport+"\n\n" );
-    printSESEHierarchy( bw );
-    bw.write( "\n" );
-    printSESEInfo( bw );
+  public void writeReports(String timeReport) throws java.io.IOException {
+
+    BufferedWriter bw = new BufferedWriter(new FileWriter("mlpReport_summary.txt"));
+    bw.write("MLP Analysis Results\n\n");
+    bw.write(timeReport + "\n\n");
+    printSESEHierarchy(bw);
+    bw.write("\n");
+    printSESEInfo(bw);
     bw.close();
 
     Iterator<Descriptor> methItr = disjointAnalysisTaints.getDescriptorsToAnalyze().iterator();
-    while( methItr.hasNext() ) {
-      MethodDescriptor md = (MethodDescriptor) methItr.next();      
-      FlatMethod       fm = state.getMethodFlat( md );
-      if (fm!=null) {
+    while (methItr.hasNext()) {
+      MethodDescriptor md = (MethodDescriptor) methItr.next();
+      FlatMethod fm = state.getMethodFlat(md);
+      if (fm != null) {
         bw =
             new BufferedWriter(new FileWriter("mlpReport_" + md.getClassMethodName()
                 + md.getSafeMethodDescriptor() + ".txt"));
@@ -1527,91 +1478,86 @@ private void codePlansForward( FlatMethod fm ) {
       }
     }
   }
-  
-  private void printSESEHierarchy( BufferedWriter bw ) throws java.io.IOException {
-    bw.write( "SESE Hierarchy\n--------------\n" ); 
+
+  private void printSESEHierarchy(BufferedWriter bw) throws java.io.IOException {
+    bw.write("SESE Hierarchy\n--------------\n");
     Iterator<FlatSESEEnterNode> rootItr = rblockRel.getRootSESEs().iterator();
-    while( rootItr.hasNext() ) {
+    while (rootItr.hasNext()) {
       FlatSESEEnterNode root = rootItr.next();
-      if( root.getIsCallerSESEplaceholder() ) {
-  if( !root.getChildren().isEmpty() ) {
-    printSESEHierarchyTree( bw, root, 0 );
-  }
+      if (root.getIsCallerSESEplaceholder()) {
+        if (!root.getChildren().isEmpty()) {
+          printSESEHierarchyTree(bw, root, 0);
+        }
       } else {
-  printSESEHierarchyTree( bw, root, 0 );
+        printSESEHierarchyTree(bw, root, 0);
       }
     }
   }
 
-  private void printSESEHierarchyTree( BufferedWriter bw,
-               FlatSESEEnterNode fsen,
-               int depth 
-             ) throws java.io.IOException {
-    for( int i = 0; i < depth; ++i ) {
-      bw.write( "  " );
+  private void printSESEHierarchyTree(BufferedWriter bw, FlatSESEEnterNode fsen, int depth)
+      throws java.io.IOException {
+    for (int i = 0; i < depth; ++i) {
+      bw.write("  ");
     }
-    bw.write( "- "+fsen.getPrettyIdentifier()+"\n" );
+    bw.write("- " + fsen.getPrettyIdentifier() + "\n");
 
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
+    while (childItr.hasNext()) {
       FlatSESEEnterNode fsenChild = childItr.next();
-      printSESEHierarchyTree( bw, fsenChild, depth + 1 );
+      printSESEHierarchyTree(bw, fsenChild, depth + 1);
     }
   }
 
-  
-  private void printSESEInfo( BufferedWriter bw ) throws java.io.IOException {
-    bw.write("\nSESE info\n-------------\n" ); 
+  private void printSESEInfo(BufferedWriter bw) throws java.io.IOException {
+    bw.write("\nSESE info\n-------------\n");
     Iterator<FlatSESEEnterNode> rootItr = rblockRel.getRootSESEs().iterator();
-    while( rootItr.hasNext() ) {
+    while (rootItr.hasNext()) {
       FlatSESEEnterNode root = rootItr.next();
-      if( root.getIsCallerSESEplaceholder() ) {
-  if( !root.getChildren().isEmpty() ) {
-    printSESEInfoTree( bw, root );
-  }
+      if (root.getIsCallerSESEplaceholder()) {
+        if (!root.getChildren().isEmpty()) {
+          printSESEInfoTree(bw, root);
+        }
       } else {
-  printSESEInfoTree( bw, root );
+        printSESEInfoTree(bw, root);
       }
     }
   }
-  
-  public DisjointAnalysis getDisjointAnalysis(){
-    return disjointAnalysisReach;
+
+  public DisjointAnalysis getDisjointAnalysis() {
+    return disjointAnalysisTaints;
   }
 
-  private void printSESEInfoTree( BufferedWriter bw,
-          FlatSESEEnterNode fsen 
-        ) throws java.io.IOException {
+  private void printSESEInfoTree(BufferedWriter bw, FlatSESEEnterNode fsen)
+      throws java.io.IOException {
 
-    if( !fsen.getIsCallerSESEplaceholder() ) {
-      bw.write( "SESE "+fsen.getPrettyIdentifier()+" {\n" );
+    if (!fsen.getIsCallerSESEplaceholder()) {
+      bw.write("SESE " + fsen.getPrettyIdentifier() + " {\n");
 
-      bw.write( "  in-set: "+fsen.getInVarSet()+"\n" );
+      bw.write("  in-set: " + fsen.getInVarSet() + "\n");
       Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
-      while( tItr.hasNext() ) {
-  TempDescriptor inVar = tItr.next();
-  if( fsen.getReadyInVarSet().contains( inVar ) ) {
-    bw.write( "    (ready)  "+inVar+"\n" );
-  }
-  if( fsen.getStaticInVarSet().contains( inVar ) ) {
-    bw.write( "    (static) "+inVar+" from "+
-                    fsen.getStaticInVarSrc( inVar )+"\n" );
-  } 
-  if( fsen.getDynamicInVarSet().contains( inVar ) ) {
-    bw.write( "    (dynamic)"+inVar+"\n" );
-  }
+      while (tItr.hasNext()) {
+        TempDescriptor inVar = tItr.next();
+        if (fsen.getReadyInVarSet().contains(inVar)) {
+          bw.write("    (ready)  " + inVar + "\n");
+        }
+        if (fsen.getStaticInVarSet().contains(inVar)) {
+          bw.write("    (static) " + inVar + " from " + fsen.getStaticInVarSrc(inVar) + "\n");
+        }
+        if (fsen.getDynamicInVarSet().contains(inVar)) {
+          bw.write("    (dynamic)" + inVar + "\n");
+        }
       }
-      
-      bw.write( "   Dynamic vars to manage: "+fsen.getDynamicVarSet()+"\n");
-      
-      bw.write( "  out-set: "+fsen.getOutVarSet()+"\n" );
-      bw.write( "}\n" );
+
+      bw.write("   Dynamic vars to manage: " + fsen.getDynamicVarSet() + "\n");
+
+      bw.write("  out-set: " + fsen.getOutVarSet() + "\n");
+      bw.write("}\n");
     }
 
     Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while( childItr.hasNext() ) {
+    while (childItr.hasNext()) {
       FlatSESEEnterNode fsenChild = childItr.next();
-      printSESEInfoTree( bw, fsenChild );
+      printSESEInfoTree(bw, fsenChild);
     }
   }
 
