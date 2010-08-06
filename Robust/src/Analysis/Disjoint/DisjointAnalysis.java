@@ -2461,6 +2461,10 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
     return effectsAnalysis;
   }
   
+  public ReachGraph getReachGraph(Descriptor d){
+    return mapDescriptorToCompleteReachGraph.get(d);
+  }
+  
   
   // get successive captures of the analysis state, use compiler
   // flags to control

@@ -1574,6 +1574,10 @@ private void codePlansForward( FlatMethod fm ) {
       }
     }
   }
+  
+  public DisjointAnalysis getDisjointAnalysis(){
+    return disjointAnalysisReach;
+  }
 
   private void printSESEInfoTree( BufferedWriter bw,
           FlatSESEEnterNode fsen 

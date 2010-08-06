@@ -23,6 +23,7 @@ import Analysis.Locality.DCWrapper;
 import Analysis.Locality.DelayComputation;
 import Analysis.Locality.BranchAnalysis;
 import Analysis.CallGraph.CallGraph;
+import Analysis.Disjoint.ReachGraph;
 import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Prefetch.*;
 import Analysis.Loops.WriteBarrier;
@@ -255,6 +256,13 @@ public class BuildCode {
       while(seseit.hasNext()){
         FlatSESEEnterNode fsen = seseit.next();
         initializeSESE( fsen );
+        
+        // invoke rcr
+        if(state.RCR){
+//          FlatMethod fm=fsen.getfmEnclosing();        
+//          ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
+        }
+        
       }
       
     }

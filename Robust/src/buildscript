@@ -20,6 +20,7 @@ echo OOOJava options
 echo -coreprof turn on profiling API
 echo "-ooojava <numberofcores> <maxseseage>"
 echo -ooodebug general OOOJava debugging messages
+echo -rcr turn on runtime conflict resolver
 echo
 echo Disjoint Reachability Analysis options
 echo -disjoint enable analysis
@@ -505,6 +506,10 @@ JAVAOPTS="$JAVAOPTS -ooojava $2 $3"
 EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread -DMLP"
 shift
 shift
+
+elif [[ $1 = '-rcr' ]]
+then
+JAVAOPTS="$JAVAOPTS -rcr"
 
 elif [[ $1 = '-coreprof' ]]
 then

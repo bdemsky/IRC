@@ -334,6 +334,8 @@ public class Main {
 
       } else if (option.equals("-ooodebug") ){ 
   state.OOODEBUG  = true;
+      } else if (option.equals("-rcr")){
+   state.RCR = true;
       } else if (option.equals("-help")) {
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
