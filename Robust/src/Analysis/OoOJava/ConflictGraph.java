@@ -24,7 +24,7 @@ import IR.Flat.TempDescriptor;
 public class ConflictGraph {
 
   protected Hashtable<String, ConflictNode> id2cn;
-  protected Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>>> sese2te;
+  protected Hashtable<FlatNode, Hashtable<Taint, Set<Effect>>> sese2te;
 
   protected DisjointAnalysis da;
   protected FlatMethod fmEnclosing;
@@ -36,7 +36,7 @@ public class ConflictGraph {
 
   public ConflictGraph() {
     id2cn = new Hashtable<String, ConflictNode>();
-    sese2te = new Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>>>();
+    sese2te = new Hashtable<FlatNode, Hashtable<Taint, Set<Effect>>>();
   }
 
   public void setDisJointAnalysis(DisjointAnalysis da) {
@@ -98,7 +98,8 @@ public class ConflictGraph {
       node = new ConflictNode(id, ConflictNode.STALLSITE, t.getVar(), t.getStallSite());
     }
     node.addEffect(as, e);
-
+    node.addTaint(t);
+    
     id2cn.put(id, node);
   }
 
@@ -439,7 +440,13 @@ public class ConflictGraph {
 
   private void addEffectSetByTaint(Taint t, Effect e) {
 
-    Hashtable<Taint, Set<Effect>> taint2Conflicts = sese2te.get(t.getSESE());
+    FlatNode node=t.getSESE();
+    if(node==null){
+      // stall site case
+      node=t.getStallSite();
+    }
+    
+    Hashtable<Taint, Set<Effect>> taint2Conflicts = sese2te.get(node);
     if (taint2Conflicts == null) {
       taint2Conflicts = new Hashtable<Taint, Set<Effect>>();
     }
@@ -451,7 +458,7 @@ public class ConflictGraph {
     effectSet.add(e);
     taint2Conflicts.put(t, effectSet);
 
-    sese2te.put(t.getSESE(), taint2Conflicts);
+    sese2te.put(node, taint2Conflicts);
 
   }
 
