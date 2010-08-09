@@ -18,6 +18,7 @@ echo "-eventmonitor turn on transaction event trace recording"
 echo
 echo OOOJava options
 echo -coreprof turn on profiling API
+echo -coreprof-checkoverflow ONLY use for debugging event overflow
 echo "-ooojava <numberofcores> <maxseseage>"
 echo -ooodebug general OOOJava debugging messages
 echo -rcr turn on runtime conflict resolver
@@ -516,6 +517,10 @@ then
 COREPROF=true
 JAVAOPTS="$JAVAOPTS -coreprof"
 EXTRAOPTIONS="$EXTRAOPTIONS -DCOREPROF -I$ROBUSTROOT/Runtime/coreprof"
+
+elif [[ $1 = '-coreprof-checkoverflow' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DCOREPROF_CHECKOVERFLOW"
 
 elif [[ $1 = '-mlp' ]]
 then

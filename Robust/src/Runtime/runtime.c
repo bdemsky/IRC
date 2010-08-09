@@ -639,9 +639,9 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 #if defined(PRECISE_GC)
 #ifdef MLP
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
-  return allocate_new_oid(ptr, type, 0);
+  return allocate_new_mlp(ptr, type, 0, 0);
 }
-__attribute__((malloc)) void * allocate_new_oid(void * ptr, int type, int oid) {
+__attribute__((malloc)) void * allocate_new_mlp(void * ptr, int type, int oid, int allocsite) {
 #else
 __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 #endif
@@ -657,6 +657,7 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 #endif
 #ifdef MLP
   v->oid=oid;
+  v->allocsite=allocsite;
 #endif
   return v;
 }
@@ -664,9 +665,9 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 /* Array allocation function */
 #ifdef MLP
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
-  return allocate_newarray_oid(ptr, type, length, 0);
+  return allocate_newarray_mlp(ptr, type, length, 0, 0);
 }
- __attribute__((malloc)) struct ArrayObject * allocate_newarray_oid(void * ptr, int type, int length, int oid) {
+ __attribute__((malloc)) struct ArrayObject * allocate_newarray_mlp(void * ptr, int type, int length, int oid, int allocsite) {
 #else
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 #endif
@@ -687,6 +688,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 #endif
 #ifdef MLP
   v->oid=oid;
+  v->allocsite=allocsite;
 #endif
   return v;
 }

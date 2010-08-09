@@ -54,7 +54,7 @@ void* workerMain( void* arg ) {
   void* workUnit;
   WorkerData* myData = (WorkerData*) arg;
   //Start profiler
-  CREATEPROFILER();
+  CP_CREATE();
   
   oid=myData->id;
   // make sure init mlp once-per-thread stuff
@@ -102,14 +102,18 @@ void* workerMain( void* arg ) {
     }
     pthread_mutex_unlock(&gclistlock);
   }
-  EXITPROFILER();
+
+  CP_EXIT();
+
   return NULL;
 }
 
 void workScheduleInit( int numProcessors,
                        void(*func)(void*) ) {
   int i, status;
-  CREATEPROFILER();
+
+  CP_CREATE();
+
   pthread_mutex_init(&gclock, NULL);
   pthread_mutex_init(&gclistlock, NULL);
   pthread_cond_init(&gccond, NULL);

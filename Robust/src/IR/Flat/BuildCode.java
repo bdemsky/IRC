@@ -683,6 +683,7 @@ public class BuildCode {
     outclassdefs.println("  int type;");
     if(state.MLP || state.OOOJAVA ){
       outclassdefs.println("  int oid;");
+      outclassdefs.println("  int allocsite;");
     }
     if (state.EVENTMONITOR) {
       outclassdefs.println("  int objuid;");
@@ -1428,6 +1429,7 @@ public class BuildCode {
     classdefout.println("  int type;");
     if(state.MLP || state.OOOJAVA){
       classdefout.println("  int oid;");
+      classdefout.println("  int allocsite;");
     }
     if (state.EVENTMONITOR) {
       classdefout.println("  int objuid;");
@@ -2368,8 +2370,8 @@ public class BuildCode {
       ) {
 	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
 	if (state.COREPROF) {
-	  outmethod.println("EXITPROFILER();");
-	  outmethod.println("DUMPPROFILER();");
+	  outmethod.println("CP_EXIT();");
+	  outmethod.println("CP_DUMP();");
 	}
 	outmethod.println(  "      exit( 0 );");
       }
@@ -2780,7 +2782,7 @@ public class BuildCode {
         cp = oooa.getCodePlan(fn);
       }
 
-      if( cp != null ) {     		
+      if( cp != null ) {
 	
 	FlatSESEEnterNode currentSESE = cp.getCurrentSESE();
 	
@@ -2795,7 +2797,7 @@ public class BuildCode {
 
 	  output.println("   {");
 	  output.println("     SESEcommon* common = (SESEcommon*) "+pair+";");
-
+          //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
 	  output.println("     pthread_mutex_lock( &(common->lock) );");
 	  output.println("     while( common->doneExecuting == FALSE ) {");
 	  output.println("       pthread_cond_wait( &(common->doneCond), &(common->lock) );");
@@ -2804,7 +2806,7 @@ public class BuildCode {
 
 	  // copy things we might have stalled for	  
 	  output.println("     "+pair.getSESE().getSESErecordName()+"* child = ("+
- 			         pair.getSESE().getSESErecordName()+"*) "+pair+";");
+                         pair.getSESE().getSESErecordName()+"*) "+pair+";");
 	  
 	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
 	  while( tdItr.hasNext() ) {
@@ -2819,6 +2821,7 @@ public class BuildCode {
 			   " = child->"+vst.getAddrVar().getSafeSymbol()+";");
 	  }
 
+          //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
 	  output.println("   }");
 	}
 	
@@ -2831,6 +2834,7 @@ public class BuildCode {
 	  // otherwise the dynamic write nodes will have the local var up-to-date
 	  output.println("   {");
 	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
+          //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
 	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
 	  output.println("       psem_take( &(common->stallSem) );");
 
@@ -2842,19 +2846,19 @@ public class BuildCode {
 	  }
 	  
 	  TypeDescriptor type=dynVar.getType();
-      String typeStr;
-      if( type.isNull() ) {
-	     typeStr = "void*";
-      } else if( type.isClass() || type.isArray() ) {
-	     typeStr = "struct "+type.getSafeSymbol()+"*";
-      } else {
-	     typeStr = type.getSafeSymbol();
-      }
+          String typeStr;
+          if( type.isNull() ) {
+            typeStr = "void*";
+          } else if( type.isClass() || type.isArray() ) {
+            typeStr = "struct "+type.getSafeSymbol()+"*";
+          } else {
+            typeStr = type.getSafeSymbol();
+          }
       
 	  output.println("       "+generateTemp( fmContext, dynVar, null )+
-		 " = *(("+typeStr+"*) ("+
-		 dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
-	  
+                         " = *(("+typeStr+"*) ("+
+                         dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
+          //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
 	  output.println("     }");
 	  output.println("   }");
 	}
@@ -2879,84 +2883,86 @@ public class BuildCode {
           output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
 	
-	  // eom
-    // handling stall site
-    if (state.OOOJAVA) {
-      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
-      if(graph!=null){
-        Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
-        Set<Analysis.OoOJava.WaitingElement> waitingElementSet =
-            graph.getStallSiteWaitingElementSet(fn, seseLockSet);
+        // eom
+        // handling stall site
+        if (state.OOOJAVA) {
+          Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
+          if(graph!=null){
+            Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
+            Set<Analysis.OoOJava.WaitingElement> waitingElementSet =
+              graph.getStallSiteWaitingElementSet(fn, seseLockSet);
         
-        if(waitingElementSet.size()>0){
-          output.println("// stall on parent's stall sites ");
-          output.println("   {");
-          output.println("     REntry* rentry;");
+            if(waitingElementSet.size()>0){
+              output.println("// stall on parent's stall sites ");
+              output.println("   {");
+              output.println("     REntry* rentry;");
           
-          for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-            Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
+              for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+                Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
             
-            if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-              output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
-            }else{
-              output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
-            }         
-            output.println("     psem_init( &(rentry->parentStallSem) );");
-            output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-            output
-                .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
-                    + "],rentry)==NOTREADY){");
-            output.println("        psem_take( &(rentry->parentStallSem) );");
-            output.println("     }  ");
+                if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+                  output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+                }else{
+                  output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
+                }         
+                output.println("     psem_init( &(rentry->parentStallSem) );");
+                output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+                output
+                  .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+                           + "],rentry)==NOTREADY){");
+                //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                output.println("        psem_take( &(rentry->parentStallSem) );");
+                //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                output.println("     }  ");
+              }
+              output.println("   }");
+            }
           }
-          output.println("   }");
-        }
-      }
-    }else{
-  	ParentChildConflictsMap conflictsMap = mlpa.getConflictsResults().get(fn);
-  	if (conflictsMap != null) {
-  		Set<Long> allocSet = conflictsMap.getAllocationSiteIDSetofStallSite();
-  		if (allocSet.size() > 0) {
-  			FlatNode enclosingFlatNode=null;
-  			if( currentSESE.getIsCallerSESEplaceholder() && currentSESE.getParent()==null){
-  				enclosingFlatNode=currentSESE.getfmEnclosing();
-  			}else{
-  				enclosingFlatNode=currentSESE;
-  			}						
-  			ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
-  			HashSet<SESELock> seseLockSet=mlpa.getConflictGraphLockMap().get(graph);
-  			Set<WaitingElement> waitingElementSet=graph.getStallSiteWaitingElementSet(conflictsMap, seseLockSet);
+        }else{
+          ParentChildConflictsMap conflictsMap = mlpa.getConflictsResults().get(fn);
+          if (conflictsMap != null) {
+            Set<Long> allocSet = conflictsMap.getAllocationSiteIDSetofStallSite();
+            if (allocSet.size() > 0) {
+              FlatNode enclosingFlatNode=null;
+              if( currentSESE.getIsCallerSESEplaceholder() && currentSESE.getParent()==null){
+                enclosingFlatNode=currentSESE.getfmEnclosing();
+              }else{
+                enclosingFlatNode=currentSESE;
+              }						
+              ConflictGraph graph=mlpa.getConflictGraphResults().get(enclosingFlatNode);
+              HashSet<SESELock> seseLockSet=mlpa.getConflictGraphLockMap().get(graph);
+              Set<WaitingElement> waitingElementSet=graph.getStallSiteWaitingElementSet(conflictsMap, seseLockSet);
   			
-  			if(waitingElementSet.size()>0){
-  				output.println("// stall on parent's stall sites ");
-  				output.println("   {");
-  				output.println("     REntry* rentry;");
+              if(waitingElementSet.size()>0){
+                output.println("// stall on parent's stall sites ");
+                output.println("   {");
+                output.println("     REntry* rentry;");
   				
-  				for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-  					WaitingElement waitingElement = (WaitingElement) iterator.next();
+                for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+                  WaitingElement waitingElement = (WaitingElement) iterator.next();
   					
-  					if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-  						output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
-  					}else{
-  						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
-  //						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");	
-  					}					
-  					output.println("     psem_init( &(rentry->parentStallSem) );");
-  					output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-  					output
-  							.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
-  									+ "],rentry)==NOTREADY){");
-  					output.println("        psem_take( &(rentry->parentStallSem) );");
-  					output.println("     }  ");
-  				}
-  				output.println("   }");
-  			}
-  		}
-  	}	
+                  if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+                    output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+                  }else{
+                    output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
+                    //						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");	
+                  }					
+                  output.println("     psem_init( &(rentry->parentStallSem) );");
+                  output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+                  output
+                    .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+                             + "],rentry)==NOTREADY){");
+                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                  output.println("        psem_take( &(rentry->parentStallSem) );");
+                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                  output.println("     }  ");
+                }
+                output.println("   }");
+              }
+            }
+          }	
 	}
-
-	
-      }     
+      }
     }
 
     switch(fn.kind()) {
@@ -3487,6 +3493,9 @@ public class BuildCode {
 
     output.println("   {");
 
+
+    //output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
+
     // set up the parent
     if( (state.MLP && fsen == mlpa.getMainSESE()) || 
          (state.OOOJAVA && fsen == oooa.getMainSESE()) 
@@ -3956,6 +3965,10 @@ public class BuildCode {
     // release this SESE for siblings to update its dependencies or,
     // eventually, for it to mark itself finished
 //    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
+
+
+    //output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
+
     output.println("   }");
     
   }
@@ -3971,6 +3984,8 @@ public class BuildCode {
     if( ! (state.MLP || state.OOOJAVA) ) {
       return;
     }
+
+    //output.println("CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_BEGIN );");
 
     // get the enter node for this exit that has meta data embedded
     FlatSESEEnterNode fsen = fsexn.getFlatEnter();
@@ -4123,7 +4138,9 @@ public class BuildCode {
     // data has been taken care of--set sese pointer to remember self over method
     // calls to a non-zero, invalid address
     output.println("   seseCaller = (SESEcommon*) 0x1;");    
-    
+
+
+    //output.println("CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
   }
  
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
@@ -4726,7 +4743,7 @@ public class BuildCode {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarrayglobal("+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
     	  if(this.state.MLP || state.OOOJAVA){
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray_oid("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+", oid);");
+            output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray_mlp("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+", oid, "+oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+");");
 	output.println("    oid += numWorkers;");
     	  }else{
     output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");    		  
@@ -4739,7 +4756,7 @@ public class BuildCode {
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newglobal("+fn.getType().getClassDesc().getId()+");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
     	  if (this.state.MLP || state.OOOJAVA){
-	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new_oid("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+", oid);");
+	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new_mlp("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+", oid, "+oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+");");
 	output.println("    oid += numWorkers;");
     	  } else {
     output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");    		  

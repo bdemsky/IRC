@@ -8,10 +8,11 @@
 #include <stdlib.h>
 #include "mlp_lock.h"
 
-__thread struct coreprofmonitor * cp_events=NULL;
-struct coreprofmonitor * cp_eventlist=NULL;
-static volatile int cp_threadcount=0;
-__thread int cp_threadnum;
+__thread int                     cp_threadnum;
+__thread struct coreprofmonitor* cp_monitor     = NULL;
+         struct coreprofmonitor* cp_monitorList = NULL;
+static volatile int              cp_threadCount = 0;
+
 
 static inline int atomicinc(volatile int *lock) {
   int retval=1;
@@ -23,72 +24,118 @@ static inline int atomicinc(volatile int *lock) {
 }
 
 
-//Need to have global lock before calling this method
-void createprofiler() {
-  if (cp_events!=NULL)
+// Need to have global lock before calling this method
+void cp_create() {
+  if( cp_monitor != NULL )
     return;
-  struct coreprofmonitor *event=calloc(1, sizeof(struct coreprofmonitor));
-  //add new eventmonitor to list
-  struct coreprofmonitor *tmp;
 
-  //add ourself to the list
+  struct coreprofmonitor* monitor = 
+    calloc( 1, sizeof( struct coreprofmonitor ) );
+
+  struct coreprofmonitor* tmp;
+
+  // add ourself to the list
   do {
-    tmp=cp_eventlist;
-    event->next=tmp;
-  } while(CAS(&cp_eventlist, (INTPTR) tmp, (INTPTR) event)!=((INTPTR)tmp));
+    tmp           = cp_monitorList;
+    monitor->next = tmp;
+  } while( CAS( &cp_monitorList, 
+                (INTPTR) tmp, 
+                (INTPTR) monitor 
+                ) != ((INTPTR)tmp)
+           );
 
-  int ourcount=atomicinc(&cp_threadcount);
-  cp_threadnum=ourcount;
+  int ourcount = atomicinc( &cp_threadCount );
+  cp_threadnum = ourcount;
 
-  //point thread lock variable to eventmonitor
-  cp_events=event;
-  CPLOGEVENT(CP_MAIN, CP_BEGIN);
+  // point thread lock variable to event monitor
+  cp_monitor = monitor;
+  CP_LOGEVENT( CP_EVENTID_MAIN, CP_EVENTTYPE_BEGIN );
 }
 
-//Place to do shutdown stuff
-void exitprofiler() {
-  CPLOGEVENT(CP_MAIN, CP_END);
+// Place to do shutdown stuff
+void cp_exit() {
+  CP_LOGEVENT( CP_EVENTID_MAIN, CP_EVENTTYPE_END );
 }
 
-void cpwritedata(int fd, char * buffer, int count) {
-  int offset=0;
-  while(count>0) {
-    int size=write(fd, &buffer[offset], count);
-    offset+=size;
-    count-=size;
+void cp_writedata( int fd, char* buffer, int count ) {
+  int offset = 0;
+  while( count > 0 ) {
+    int size = write( fd, &buffer[offset], count );
+    offset += size;
+    count  -= size;
   }
 }
 
-void dumpprofiler() {
-  int fd=open("logdata",O_RDWR|O_CREAT,S_IRWXU);
-  int count=0;
-  struct coreprofmonitor * ptr=cp_eventlist;
-  int version=0;
-  //Write version number
-  cpwritedata(fd, (char *)&version, sizeof(int));
-  while(ptr!=NULL) {
+
+void cp_dump() {
+  
+  //int fdh   = open( "coreprof-head.dat", O_RDWR | O_CREAT, S_IRWXU );
+  //int fde   = open( "coreprof-evnt.dat", O_RDWR | O_CREAT, S_IRWXU );
+  //int fdt   = open( "coreprof-time.dat", O_RDWR | O_CREAT, S_IRWXU );
+  int fd    = open( "coreprof.dat", O_RDWR | O_CREAT, S_IRWXU );
+  int count = 0;
+  int i;
+
+  struct coreprofmonitor* monitor;
+
+  // WRITING HEADER
+
+  // Write version number
+  int version = 0;
+  cp_writedata( fd, 
+                (char*)&version, 
+                sizeof( int ) );
+
+  // check for overflow
+  monitor = cp_monitorList;
+  while( monitor != NULL ) {
     count++;
-    if (ptr->index>CPMAXEVENTS) {
-      printf("ERROR: EVENT COUNT EXCEEDED\n");
+    if( monitor->numEvents > CP_MAXEVENTS ) {
+      printf( "ERROR: EVENT COUNT EXCEEDED\n" );
     }
-    ptr=ptr->next;
+    monitor = monitor->next;
   }
 
-  //Write the number of threads
-  cpwritedata(fd, (char *)&count, sizeof(int));
+  // Write the number of threads
+  cp_writedata( fd, 
+                (char*)&count, 
+                sizeof( int ) );
 
-  //Write the number of events for each thread
-  ptr=cp_eventlist;
-  while(ptr!=NULL) {
-    cpwritedata(fd, (char *)&ptr->index, sizeof(int));
-    ptr=ptr->next;
+  monitor = cp_monitorList;
+  while( monitor != NULL ) {
+
+    // Write the number of events for each thread
+    cp_writedata( fd, 
+                  (char*)&monitor->numEvents, 
+                  sizeof( int ) );
+
+    monitor = monitor->next;
   }
 
-  //Dump the data
-  ptr=cp_eventlist;
-  while(ptr!=NULL) {
-    cpwritedata(fd, (char *) ptr->value, sizeof(int)*ptr->index);
-    ptr=ptr->next;
-  }  
-  close(fd);
+  // END HEADER, BEGIN DATA
+
+  monitor = cp_monitorList;
+  while( monitor != NULL ) {
+
+    // Write the event IDs (index matches time below)
+    cp_writedata( fd, 
+                  (char*)monitor->events, 
+                  sizeof( unsigned int )*monitor->numEvents );
+
+    // Write the event timestamps (index matches above)
+    cp_writedata( fd, 
+                  (char*)monitor->logTimes_ms, 
+                  sizeof( long long )*monitor->numEvents );
+    monitor = monitor->next;
+  }
+
+  close( fd );
+  //close( fde );
+  //close( fdt );
+}
+
+
+void cp_reportOverflow() {
+  printf( "ERROR: coreprof event overflow\n" ); 
+  exit( -1 );
 }

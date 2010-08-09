@@ -104,6 +104,10 @@ public class AllocSite extends Canonical {
     return new Integer( uniqueIDcount );
   }
 
+  public int getUniqueAllocSiteID() {
+    return id;
+  }
+
   public String getDisjointAnalysisId() {
     return disjointId;
   }
