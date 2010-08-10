@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Set;
 import Analysis.Disjoint.*;
 
+//TODO make it so that methods with no conflicts get no output. 
 /*
  * How to Use:
  * 1) Instantiate object
@@ -18,7 +19,7 @@ import Analysis.Disjoint.*;
  * 3) Call void close()
  */
 public class RuntimeConflictResolver {
-  private static final String outputFile = "RuntimeConflictResolver.c";
+  public static final String outputFile = "RuntimeConflictResolver.c";
   private PrintWriter out;
   private static final String hashAndQueueCFileDir = "";
 
@@ -39,6 +40,10 @@ public class RuntimeConflictResolver {
     out = new PrintWriter(new File(outputFile));
     out.append("#include \"" + hashAndQueueCFileDir + "hashRCR.h\"\n#include \""
         + hashAndQueueCFileDir + "Queue_RCR.h\"\n");
+    //TODO Make compromise with defining buildDir
+    out.append("#include \"par/classdefs.h\"\n");
+    //generic cast struct
+    out.append("struct genericObjectStruct {int type; int oid; int allocsite;};\n");
   }
 
   /*
@@ -55,14 +60,28 @@ public class RuntimeConflictResolver {
     if (inVars.size() == 0)
       return;
 
+//    System.out.println("\n##Effects Set");
+//    for(Taint key: effects.keySet())
+//    {
+//      System.out.println(key);
+//      System.out.println(effects.get(key));
+//    }
+//    
+//    System.out.println("##Conflicts Set:");
+//    for(Taint key: conflicts.keySet())
+//    {
+//      System.out.println(key);
+//      System.out.println(conflicts.get(key));
+//    }
+    
     // For every inVariable, generate unique method
     for (TempDescriptor invar : inVars) {
       Hashtable<NodeKey, Node> created = new Hashtable<NodeKey, Node>();
 
-      createTree(rblock, invar, conflicts, rg, created);
-      if (!created.isEmpty())
-        // TODO check if this returns the correct name for rblock
+      createTree(rblock, invar, effects, conflicts, rg, created);
+      if (!created.isEmpty()) {
         printCMethod(created, invar.getSymbol(), rblock.getSESErecordName());
+      }
     }
   }
 
@@ -74,22 +93,26 @@ public class RuntimeConflictResolver {
     out.close();
   }
 
-  private void createTree(FlatSESEEnterNode rblock, TempDescriptor invar,
-      Hashtable<Taint, Set<Effect>> conflicts, ReachGraph rg, Hashtable<NodeKey, Node> created) {
+  private void createTree(FlatSESEEnterNode rblock, 
+      TempDescriptor invar,
+      Hashtable<Taint, Set<Effect>> effects,
+      Hashtable<Taint, Set<Effect>> conflicts, 
+      ReachGraph rg, 
+      Hashtable<NodeKey, Node> created) {
 
     VariableNode varNode = rg.getVariableNodeNoMutation(invar);
     Hashtable<EffectsKey, EffectsHashPair> table =
-        generateHashtable(rblock, varNode, conflicts, conflicts);
-
+        generateHashtable(rblock, varNode, effects, conflicts);
+    
     // if table is null that means there's no conflicts, therefore we need not
     // create a traversal
     if (table == null)
       return;
 
-    Iterator<RefEdge> possibleHRN = varNode.iteratorToReferencees();
+    Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();
 
-    while (possibleHRN.hasNext()) {
-      RefEdge edge = possibleHRN.next();
+    while (possibleEdges.hasNext()) {
+      RefEdge edge = possibleEdges.next();
       assert edge != null;
 
       // always assumed to be a conflict on the root variables.
@@ -101,22 +124,25 @@ public class RuntimeConflictResolver {
         createHelper(singleRoot, edge.getDst().iteratorToReferencees(), created, table);
       }
     }
-
   }
 
   private void addChecker(Node node, HashSet<Integer> done, String prefix) {
     // We don't need a case statement for things with either 1 incoming or 0 out
     // going edges.
-    if (node.numOfConflictParents != 1 && node.decendentsConflict) {
+    if (node.getNumOfReachableParents() != 1 && node.decendentsConflict) {
       assert prefix.equals("ptr");
-      out.append("case " + node.getAllocationSite() + ":\n");
+      out.append("case " + node.getAllocationSite() + ":\n { ");
     }
-
+    
+    //Casts pointer
+    String structType = node.original.getType().getSafeSymbol();
+    out.append("struct " + structType + " * myPtr = (struct "+ structType + " * ) " + prefix + "; ");
+    
     for (Reference ref : node.references) {
       // Will only process edge if there is some sort of conflict with the Child
       if (ref.child.decendentsConflict || ref.child.myConflict) {
-        String childPtr = prefix + "->" + ref.field;
-
+        String childPtr = "myPtr->___" + ref.field + "___";
+        
         // Checks if the child exists and is correct
         out.append("if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "=="
             + ref.allocSite + ") { ");
@@ -125,28 +151,28 @@ public class RuntimeConflictResolver {
         if (ref.child.myConflict)
           handleConflict(childPtr);
 
-        // Checks if we have visited the child before
-        out.append("if(!" + queryAndAddHashTableInC + childPtr + ") { ");
-
-        // If there are out going edges then add to queue
         if (ref.child.decendentsConflict) {
+          // Checks if we have visited the child before
+          out.append("if(!" + queryAndAddHashTableInC + childPtr + ") { ");
           if (ref.child.getNumOfReachableParents() == 1)
             addChecker(ref.child, done, childPtr);
           else
             out.append(addToQueueInC + childPtr + ");");
+          
+          out.append(" } ");
         }
-        out.append(" }} ");
+        out.append(" } ");
       }
     }
 
-    if (node.numOfConflictParents != 1 && node.decendentsConflict)
-      out.println("break; ");
+    if (node.getNumOfReachableParents() != 1 && node.decendentsConflict)
+      out.println(" } break; ");
 
     done.add(new Integer(node.getAllocationSite()));
   }
 
   private void handleConflict(String childPtr) {
-    out.append("printf(\"Conflict detected at %p with allocation site %u\n\"," + childPtr + ","
+    out.append("printf(\"Conflict detected at %p with allocation site %u\\n\"," + childPtr + ","
         + childPtr + getAllocSiteInC + ");");
   }
 
@@ -154,9 +180,12 @@ public class RuntimeConflictResolver {
   private void printCMethod(Hashtable<NodeKey, Node> created, String inVar, String rBlock) {
     HashSet<Integer> done = new HashSet<Integer>();
 
-    out.append("void traverse___" + inVar + rBlock + "___(void * InVar) {\n");
-    out.append("void * ptr = InVar;  if(InVar != NULL) { " + queryAndAddHashTableInC
+    out.append("void traverse___" + inVar.replaceAll(" ", "") + rBlock.replaceAll(" ", "") + 
+        "___(void * InVar) {\n");
+    out.append("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;  if(InVar != NULL) { " + queryAndAddHashTableInC
         + "ptr); do { ");
+    //Add double cast to here 
+    out.append("switch(ptr->allocsite) { ");
     for (Node node : created.values()) {
       // If we haven't seen it and it's a node with more than 1 parent
       // Note: a node with 0 parents is a root node (i.e. inset variable)
@@ -164,7 +193,8 @@ public class RuntimeConflictResolver {
           && node.decendentsConflict)
         addChecker(node, done, "ptr");
     }
-    out.append("} while( (ptr = " + dequeueFromQueueInC + ") != NULL); ");
+    out.append(" default : return; ");
+    out.append("}} while( (ptr = " + dequeueFromQueueInC + ") != NULL); ");
     out.append(clearQueue + "; " + resetHashTable + "; }}\n");
   }
 
@@ -172,23 +202,25 @@ public class RuntimeConflictResolver {
   // propagate up conflicts
   private void createHelper(Node parent, Iterator<RefEdge> edges, Hashtable<NodeKey, Node> created,
       Hashtable<EffectsKey, EffectsHashPair> table) {
+    
     assert table != null;
     while (edges.hasNext()) {
       RefEdge edge = edges.next();
       String field = edge.getField();
       HeapRegionNode childHRN = edge.getDst();
-
-      EffectsKey lookup = new EffectsKey(childHRN.getAllocSite(), field);
+      EffectsKey lookup = new EffectsKey(parent.allocSite, field);
       EffectsHashPair effect = table.get(lookup);
-
+      
       // if there's no effect, we don't traverse this edge.
       if (effect != null) {
         NodeKey key = new NodeKey(childHRN.getAllocSite());
         boolean isNewChild = !created.contains(key);
         Node child;
 
-        if (isNewChild)
+        if (isNewChild) {
           child = new Node(childHRN, effect.conflict);
+          created.put(key, child);
+        }
         else {
           child = created.get(key);
           child.myConflict = effect.conflict || child.myConflict;
@@ -234,7 +266,7 @@ public class RuntimeConflictResolver {
       EffectsHashPair element = new EffectsHashPair(e, localConflicts.contains(e));
       table.put(key, element);
     }
-
+    
     return table;
   }
 
@@ -292,12 +324,10 @@ public class RuntimeConflictResolver {
       this.conflict = conflict;
     }
 
-    // Hashcode only hashes the object based on AllocationSite and Field
     public int hashCode() {
       return originalEffect.hashCode();
     }
 
-    // Equals ONLY compares object based on AllocationSite and Field
     public boolean equals(Object o) {
       if (o == null)
         return false;
@@ -310,6 +340,11 @@ public class RuntimeConflictResolver {
       return (other.originalEffect.getAffectedAllocSite().equals(
           originalEffect.getAffectedAllocSite()) && other.originalEffect.getField().equals(
           originalEffect.getField()));
+    }
+    
+    public String toString()
+    {
+      return originalEffect.toString();
     }
   }
 
@@ -368,7 +403,7 @@ public class RuntimeConflictResolver {
       numOfConflictParents = -1;
       allocSite = me.getAllocSite();
       original = me;
-      this.myConflict = conflict;
+      myConflict = conflict;
       decendentsConflict = false;
     }
 
@@ -403,6 +438,12 @@ public class RuntimeConflictResolver {
       Reference ref = new Reference(field, child);
       references.add(ref);
     }
+    
+    public String toString()
+    {
+      return "AllocSite=" + getAllocationSite() + " myConflict=" + myConflict + 
+              " decCon="+decendentsConflict+ " NumOfParents=" + parents.size()+ 
+              " NumOfConParents=" + getNumOfReachableParents() + " children=" + references.size();
+    }
   }
-
 }
