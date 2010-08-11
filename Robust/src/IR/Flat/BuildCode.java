@@ -548,7 +548,7 @@ public class BuildCode {
       outmethod.println("#include \"psemaphore.h\"");
     }
     if (state.COREPROF) {
-      outmethod.println("#include \"coreprof\\coreprof.h\"");
+      outmethod.println("#include \"coreprof.h\"");
     }
 
     //Store the sizes of classes & array elements
@@ -1824,8 +1824,8 @@ public class BuildCode {
 	  Iterator<TempDescriptor> dynSrcItr = callerSESEplaceholder.getDynamicVarSet().iterator();
 	  while( dynSrcItr.hasNext() ) {
 	    TempDescriptor dynSrcVar = dynSrcItr.next();
-	    output.println("   void* "+dynSrcVar+"_srcSESE;");
-	    output.println("   int   "+dynSrcVar+"_srcOffset;");
+	    output.println("   void*  "+dynSrcVar+"_srcSESE;");
+	    output.println("   INTPTR "+dynSrcVar+"_srcOffset;");
 	  }    
 	}
       }
@@ -1973,6 +1973,18 @@ public class BuildCode {
     }
   }
 
+  // used when generating the specific SESE record struct
+  // to remember the FIRST field name of sese records 
+  // that the current SESE depends on--we need to know the
+  // offset to the first one for garbage collection
+  protected void addingDepRecField( FlatSESEEnterNode fsen,
+                                    String            field ) {
+    if( fsen.getFirstDepRecField() == null ) {
+      fsen.setFirstDepRecField( field );
+    }
+    fsen.incNumDepRecs();
+  }
+
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
                                     LocalityBinding lb,
                                     PrintWriter outputStructs,
@@ -2004,6 +2016,27 @@ public class BuildCode {
     outputStructs.println("};\n");
 
     
+    // divide in-set and out-set into objects and primitives to prep
+    // for the record generation just below
+    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
+    inSetAndOutSet.addAll( fsen.getInVarSet() );
+    inSetAndOutSet.addAll( fsen.getOutVarSet() );
+
+    Set<TempDescriptor> inSetAndOutSetObjs  = new HashSet<TempDescriptor>();
+    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
+
+    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor temp = itr.next();
+      TypeDescriptor type = temp.getType();
+      if( type.isPtr() ) {
+        inSetAndOutSetObjs.add( temp );
+      } else {
+	inSetAndOutSetPrims.add( temp );
+      }
+    }
+
+
     // generate the SESE record structure
     outputStructs.println(fsen.getSESErecordName()+" {");
     
@@ -2013,82 +2046,67 @@ public class BuildCode {
     outputStructs.println("  SESEcommon common;");
 
     // then garbage list stuff
+    outputStructs.println("  /* next is in-set and out-set objects that look like a garbage list */");
     outputStructs.println("  int size;");
     outputStructs.println("  void * next;");
 
-    // DYNAMIC stuff was here
-    
-    // invar source taking was here
-
-    // space for all in and out set primitives
-    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
-    inSetAndOutSet.addAll( fsen.getInVarSet() );
-    inSetAndOutSet.addAll( fsen.getOutVarSet() );
-
-    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
-
-    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor temp = itr.next();
-      TypeDescriptor type = temp.getType();
-      if( !type.isPtr() ) {
-	inSetAndOutSetPrims.add( temp );
-      }
+    // I think that the set of TempDescriptors inSetAndOutSetObjs
+    // calculated above should match the pointer object params
+    // used in the following code, but let's just leave the working
+    // implementation unless there is actually a problem...
+    for(int i=0; i<objectparams.numPointers(); i++) {
+      TempDescriptor temp=objectparams.getPointer(i);
+      if (temp.getType().isNull())
+        outputStructs.println("  void * "+temp.getSafeSymbol()+
+                              ";  /* in-or-out-set obj in gl */");
+      else
+        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
+                              temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
     }
+    
+    outputStructs.println("  /* next is primitives for in-set and out-set and dynamic tracking */");
 
     Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
     while( itrPrims.hasNext() ) {
       TempDescriptor temp = itrPrims.next();
       TypeDescriptor type = temp.getType();
-      if(!type.isPrimitive()){
-    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+";");
+      if(type.isPrimitive()){
+    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+"; /* in-set or out-set primitive */");
       }      
     }
-
-    for(int i=0; i<objectparams.numPointers(); i++) {
-      TempDescriptor temp=objectparams.getPointer(i);
-      if (temp.getType().isNull())
-        outputStructs.println("  void * "+temp.getSafeSymbol()+";");
-      else
-        outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
-    }
     
-    // DYNAMIC stuff needs a source SESE ptr and offset
+    // note that the sese record pointer will be added below, just primitive part of tracking here
     Iterator<TempDescriptor> itrDynInVars = fsen.getDynamicInVarSet().iterator();
     while( itrDynInVars.hasNext() ) {
       TempDescriptor dynInVar = itrDynInVars.next();
-//      outputStructs.println("  void* "+dynInVar+"_srcSESE;");
-      outputStructs.println("  int   "+dynInVar+"_srcOffset;");
+      outputStructs.println("  INTPTR "+dynInVar+"_srcOffset; /* dynamic tracking primitive */");
     }  
     
-    itrPrims = inSetAndOutSetPrims.iterator();
-    while( itrPrims.hasNext() ) {
-      TempDescriptor temp = itrPrims.next();
-      TypeDescriptor type = temp.getType();
-      if(type.isPrimitive()){
-    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+";");
-      }      
-    }
     
-    outputStructs.println("  int prevSESECount;");
-    
-    // DYNAMIC stuff needs a source SESE ptr and offset
+    outputStructs.println("  /* everything after this should be pointers to an SESE record */" );
+
+    // other half of info for dynamic tracking, the SESE record pointer
     itrDynInVars = fsen.getDynamicInVarSet().iterator();
     while( itrDynInVars.hasNext() ) {
       TempDescriptor dynInVar = itrDynInVars.next();
-      outputStructs.println("  void* "+dynInVar+"_srcSESE;");
-//      outputStructs.println("  int   "+dynInVar+"_srcOffset;");
+      String depRecField = dynInVar+"_srcSESE";
+      outputStructs.println("  void* "+depRecField+";");
+      addingDepRecField( fsen, depRecField );
     }  
     
-    // in-set source tracking
-    // in-vars that are READY come from parent, don't need anything
-    // stuff STATIC needs a custom SESE pointer for each age pair
+    // statically known sese sources are record pointers, too
     Iterator<SESEandAgePair> itrStaticInVarSrcs = fsen.getStaticInVarSrcs().iterator();
     while( itrStaticInVarSrcs.hasNext() ) {
       SESEandAgePair srcPair = itrStaticInVarSrcs.next();
       outputStructs.println("  "+srcPair.getSESE().getSESErecordName()+"* "+srcPair+";");
+      addingDepRecField( fsen, srcPair.toString() );
     }    
     
+    if( fsen.getFirstDepRecField() != null ) {
+      outputStructs.println("  /* compiler believes first dependent SESE record field above is: "+
+                            fsen.getFirstDepRecField()+" */" );
+    }
+
     outputStructs.println("};\n");
 
     
@@ -2157,8 +2175,8 @@ public class BuildCode {
     Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
     while( dynSrcItr.hasNext() ) {
       TempDescriptor dynSrcVar = dynSrcItr.next();
-      output.println("   void* "+dynSrcVar+"_srcSESE;");
-      output.println("   int   "+dynSrcVar+"_srcOffset;");
+      output.println("   void*  "+dynSrcVar+"_srcSESE;");
+      output.println("   INTPTR "+dynSrcVar+"_srcOffset;");
     }    
 
     // declare local temps for in-set primitives, and if it is
@@ -3521,27 +3539,36 @@ public class BuildCode {
       output.println("     atomic_inc(&parentCommon->numRunningChildren);");
     }
 
-    // just allocate the space for this record
-    output.println("     "+fsen.getSESErecordName()+"* seseToIssue = ("+
-		           fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
-		           fsen.getSESErecordName()+" ) );");
-    //eomgc need to set next, size
-//    output.println("       struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
+    // allocate the space for this record
+    output.println("     "+
+                   fsen.getSESErecordName()+"* seseToIssue = ("+
+                   fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
+                   fsen.getSESErecordName()+" ) );");
+   
+    // set up the SESE in-set and out-set objects, which look
+    // like a garbage list
     output.println("     struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
-    // sizeof(int)*2 + sizeof(void*)*calculateSizeOfSESEParamList(fsen)
-    //output.println("       // sizeof(int)*2+sizeof(void*)*"+calculateSizeOfSESEParamList(fsen));
-    //output.println("       // blah="+calculateSizeOfSESEParamSize(fsen));
-    output.println("     (seseToIssue->common).offsetsize=sizeof(int)+sizeof(void*)+sizeof(void*)*"+calculateSizeOfSESEParamList(fsen)+calculateSizeOfSESEParamSize(fsen)+";");
     output.println("     gl->size="+calculateSizeOfSESEParamList(fsen)+";");
-//    output.println("       gl->next = (struct garbagelist *)&___locals___;");
-    output.println("     seseToIssue->prevSESECount="+calculatePrevSESECount(fsen)+";");
-//    output.println("     seseToIssue->prevSESECount=50;");
     output.println("     gl->next = NULL;");
-//    output.println("     seseToIssue->size = "+calculateSizeOfSESEParamList(fsen)+";");
-//    output.println("     seseToIssue->next = &___locals___;");
+
+    // there are pointers to SESE records the newly-issued SESE
+    // will use to get values it depends on them for--how many
+    // are there, and what is the offset from the total SESE
+    // record to the first dependent record pointer?
+    output.println("     seseToIssue->common.numDependentSESErecords="+
+                   fsen.getNumDepRecs()+";");
+    
+    // we only need this (and it will only compile) when the number of dependent
+    // SESE records is non-zero
+    if( fsen.getFirstDepRecField() != null ) {
+      output.println("     seseToIssue->common.offsetToDepSESErecords=(INTPTR)sizeof("+
+                     fsen.getSESErecordName()+") - (INTPTR)&((("+
+                     fsen.getSESErecordName()+"*)0)->"+fsen.getFirstDepRecField()+");"
+                     );
+    }
     
 
-    // and keep the thread-local sese stack up to date
+    // and keep the thread-local sese stack up to date (jjenista--this still relevant??)
     //output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
 
     // fill in common data
@@ -4183,7 +4210,7 @@ public class BuildCode {
       // otherwise we track where it will come from
       SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
       output.println("     "+refVar+"_srcSESE = "+instance+";");    
-      output.println("     "+refVar+"_srcOffset = (int) &((("+
+      output.println("     "+refVar+"_srcOffset = (INTPTR) &((("+
                      vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
     }	
   }
@@ -5529,70 +5556,49 @@ public class BuildCode {
 	  return tdSet.size();
   }
   
-private String calculateSizeOfSESEParamSize(FlatSESEEnterNode fsen){
-	  HashMap <String,Integer> map=new HashMap();
-	  HashSet <TempDescriptor> processed=new HashSet<TempDescriptor>();
-	  String rtr="";
+  private String calculateSizeOfSESEParamSize(FlatSESEEnterNode fsen){
+    HashMap <String,Integer> map=new HashMap();
+    HashSet <TempDescriptor> processed=new HashSet<TempDescriptor>();
+    String rtr="";
 	  
-	  // space for all in and out set primitives
-	    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
-	    inSetAndOutSet.addAll( fsen.getInVarSet() );
-	    inSetAndOutSet.addAll( fsen.getOutVarSet() );
+    // space for all in and out set primitives
+    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
+    inSetAndOutSet.addAll( fsen.getInVarSet() );
+    inSetAndOutSet.addAll( fsen.getOutVarSet() );
 	    
-	    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
+    Set<TempDescriptor> inSetAndOutSetPrims = new HashSet<TempDescriptor>();
 
-	    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
-	    while( itr.hasNext() ) {
-	      TempDescriptor temp = itr.next();
-	      TypeDescriptor type = temp.getType();
-	      if( !type.isPtr() ) {
-		inSetAndOutSetPrims.add( temp );
-	      }
-	    }
+    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor temp = itr.next();
+      TypeDescriptor type = temp.getType();
+      if( !type.isPtr() ) {
+        inSetAndOutSetPrims.add( temp );
+      }
+    }
 	    
-	    Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
-	    while( itrPrims.hasNext() ) {
-	      TempDescriptor temp = itrPrims.next();
-	      TypeDescriptor type = temp.getType();
-	      if(type.isPrimitive()){
-				Integer count=map.get(type.getSymbol());
-				if(count==null){
-					count=new Integer(1);
-					map.put(type.getSymbol(), count);
-				}else{
-					map.put(type.getSymbol(), new Integer(count.intValue()+1));
-				}
-	      }      
-	    }
+    Iterator<TempDescriptor> itrPrims = inSetAndOutSetPrims.iterator();
+    while( itrPrims.hasNext() ) {
+      TempDescriptor temp = itrPrims.next();
+      TypeDescriptor type = temp.getType();
+      if(type.isPrimitive()){
+        Integer count=map.get(type.getSymbol());
+        if(count==null){
+          count=new Integer(1);
+          map.put(type.getSymbol(), count);
+        }else{
+          map.put(type.getSymbol(), new Integer(count.intValue()+1));
+        }
+      }      
+    }
 	  
-	  Set<String> keySet=map.keySet();
-	  for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-		String key = (String) iterator.next();
-		rtr+="+sizeof("+key+")*"+map.get(key);
-	  }
-	  return  rtr;
-}
-
-private int calculatePrevSESECount(FlatSESEEnterNode fsen){
-	int count=0;
-	
-    // dynamic stuff
-    Iterator<TempDescriptor>itrDynInVars = fsen.getDynamicInVarSet().iterator();
-    while( itrDynInVars.hasNext() ) {
-      TempDescriptor dynInVar = itrDynInVars.next();
-      count++;
-    }  
-    
-    // in-set source tracking
-    Iterator<SESEandAgePair> itrStaticInVarSrcs = fsen.getStaticInVarSrcs().iterator();
-    while( itrStaticInVarSrcs.hasNext() ) {
-      SESEandAgePair srcPair = itrStaticInVarSrcs.next();
-      count++;
-    }   
-    
-	return count;
-}
-
+    Set<String> keySet=map.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      String key = (String) iterator.next();
+      rtr+="+sizeof("+key+")*"+map.get(key);
+    }
+    return  rtr;
+  }
 
 }
 

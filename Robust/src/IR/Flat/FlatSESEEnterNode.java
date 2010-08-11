@@ -46,7 +46,7 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
   
   private SESEEffectsSet seseEffectsSet;
-  
+
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -57,7 +57,14 @@ public class FlatSESEEnterNode extends FlatNode {
   // a normal method to code generation
   protected FlatMethod       fmBogus;
   protected MethodDescriptor mdBogus;
-  
+
+  // used during code generation to calculate an offset
+  // into the SESE-specific record, specifically to the
+  // first field in a sequence of pointers to other SESE
+  // records which is relevant to garbage collection
+  protected String firstDepRecField;
+  protected int    numDepRecs;
+
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id              = identifier++;
@@ -84,6 +91,9 @@ public class FlatSESEEnterNode extends FlatNode {
     cdEnclosing = null;
 
     isCallerSESEplaceholder = false;
+
+    firstDepRecField = null;
+    numDepRecs       = 0;
   }
 
   public void rewriteUse() {
@@ -356,5 +366,21 @@ public class FlatSESEEnterNode extends FlatNode {
   public SESEEffectsSet getSeseEffectsSet(){
 	  return seseEffectsSet;
   }
-  
+
+
+  public void setFirstDepRecField( String field ) {
+    firstDepRecField = field;
+  }
+
+  public String getFirstDepRecField() {
+    return firstDepRecField;
+  }
+
+  public void incNumDepRecs() {
+    ++numDepRecs;
+  }
+
+  public int getNumDepRecs() {
+    return numDepRecs;
+  }
 }

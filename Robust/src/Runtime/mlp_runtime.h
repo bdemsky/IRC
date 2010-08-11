@@ -163,7 +163,10 @@ typedef struct SESEcommon_t {
   struct MemoryQueue_t** memoryQueueArray;
   struct REntry_t* rentryArray[NUMRENTRY];
   struct REntry_t* unresolvedRentryArray[NUMRENTRY];
-  int offsetsize;
+
+  int numDependentSESErecords;
+  int offsetToDepSESErecords;
+
 } SESEcommon;
 
 // a thread-local stack of SESEs and function to

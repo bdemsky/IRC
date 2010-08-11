@@ -546,10 +546,11 @@ void collect(struct garbagelist * stackptr) {
       	qitem=qitem->next;
       	continue;
       }
-      struct garbagelist * gl=(struct garbagelist *)&(((SESEcommon*)(qitem->value))[1]);
+      SESEcommon* seseRec = (SESEcommon*)(qitem->value);
+      struct garbagelist * gl=(struct garbagelist *)&(seseRec[1]);
       struct garbagelist * glroot=gl;
       // update its ascendant SESEs 
-      updateAscendantSESE(gl);	
+      updateAscendantSESE(seseRec);	
   
       while(gl!=NULL) {
 	int i;
@@ -992,22 +993,22 @@ updateForwardList(struct Queue *forwardList, int prevUpdate){
 
   struct QueueItem * fqItem=getHead(forwardList);
   while(fqItem!=NULL){
-    struct garbagelist * gl=(struct garbagelist *)&(((SESEcommon*)(fqItem->objectptr))[1]);
+    SESEcommon* seseRec = (SESEcommon*)(fqItem->objectptr);
+    struct garbagelist * gl=(struct garbagelist *)&(seseRec[1]);
     if(prevUpdate==TRUE){
-      updateAscendantSESE(gl);	
+      updateAscendantSESE(seseRec);	
     }
     // do something here
     while(gl!=NULL) {
       int i;
-	 for(i=0; i<gl->size; i++) {
-	   void * orig=gl->array[i];
-	   ENQUEUE(orig, gl->array[i]);
-	 }
-	 gl=gl->next;
+      for(i=0; i<gl->size; i++) {
+        void * orig=gl->array[i];
+        ENQUEUE(orig, gl->array[i]);
+      }
+      gl=gl->next;
     }    
-    // iterate forwarding list of seseRec      
-    SESEcommon *common=(SESEcommon*)fqItem->objectptr;
-    struct Queue* fList=common->forwardList;
+    // iterate forwarding list of seseRec
+    struct Queue* fList=seseRec->forwardList;
     updateForwardList(fList,prevUpdate);   
     fqItem=getNextQueueItem(fqItem);
   }   
@@ -1031,9 +1032,10 @@ updateMemoryQueue(SESEcommon_p seseParent){
 	      ReadBinItem* readBinItem=(ReadBinItem*)binItem;
 	      int ridx;
 	      for(ridx=0; ridx<readBinItem->index; ridx++){
-		REntry *rentry=readBinItem->array[ridx];		  
-		struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
-		updateAscendantSESE(gl);
+		REntry *rentry=readBinItem->array[ridx];
+                SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+		struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+		updateAscendantSESE(seseRec);
 		while(gl!=NULL) {
 		  int i;
 		  for(i=0; i<gl->size; i++) {
@@ -1045,8 +1047,9 @@ updateMemoryQueue(SESEcommon_p seseParent){
 	      }	
 	    }else{ //writebin
 	      REntry *rentry=((WriteBinItem*)binItem)->val;
-	      struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
-	      updateAscendantSESE(gl);
+              SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+              struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+	      updateAscendantSESE(seseRec);
 	      while(gl!=NULL) {
 		int i;
 		for(i=0; i<gl->size; i++) {
@@ -1065,8 +1068,9 @@ updateMemoryQueue(SESEcommon_p seseParent){
 	for(idx=0; idx<vt->index; idx++){
 	  REntry *rentry=vt->array[idx];
 	  if(rentry!=NULL){
-	    struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
-	    updateAscendantSESE(gl);
+            SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+	    struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+	    updateAscendantSESE(seseRec);
 	    while(gl!=NULL) {
 	      int i;
 	      for(i=0; i<gl->size; i++) {
@@ -1081,8 +1085,9 @@ updateMemoryQueue(SESEcommon_p seseParent){
 	SCC *scc=(SCC*)memoryItem;
 	REntry *rentry=scc->val;
 	if(rentry!=NULL){
-	  struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(rentry->seseRec))[1]);
-	  updateAscendantSESE(gl);
+          SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
+	  struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
+	  updateAscendantSESE(seseRec);
 	  while(gl!=NULL) {
 	    int i;
 	    for(i=0; i<gl->size; i++) {
@@ -1098,13 +1103,16 @@ updateMemoryQueue(SESEcommon_p seseParent){
   }     
  }
  
-updateAscendantSESE(struct garbagelist *gl){ 
-  int offsetsize=*((int*)((void*)gl-sizeof(int)));
-  int prevSESECount=*((int*)((void*)gl+offsetsize));
-  INTPTR tailaddr=(INTPTR)((void*)gl+offsetsize+sizeof(int));
+ updateAscendantSESE(SESEcommon* seseRec){   
   int prevIdx;
-  for(prevIdx=0; prevIdx<prevSESECount; prevIdx++){
-    SESEcommon* prevSESE=(SESEcommon*)*((INTPTR*)(tailaddr+sizeof(void*)*prevIdx));
+  for(prevIdx=0; prevIdx<(seseRec->numDependentSESErecords); prevIdx++){
+    SESEcommon* prevSESE = (SESEcommon*) 
+      (
+       ((INTPTR)seseRec) + 
+       seseRec->offsetToDepSESErecords +
+       (sizeof(INTPTR)*prevIdx)
+      );
+       
     if(prevSESE!=NULL){
       struct garbagelist * prevgl=(struct garbagelist *)&(((SESEcommon*)(prevSESE))[1]);
       while(prevgl!=NULL) {
@@ -1117,7 +1125,8 @@ updateAscendantSESE(struct garbagelist *gl){
       } 
     }
   }
-}
+  
+ }
 #endif
 
 int within(void *ptr){ //debug function
