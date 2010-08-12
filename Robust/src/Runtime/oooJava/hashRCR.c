@@ -1,6 +1,7 @@
-#include "HashRCR.h"
-#include "strings.h"
-#include "tm.h"
+#include "hashRCR.h"
+#include <strings.h>
+#define likely(x) __builtin_expect((x),1)
+#define unlikely(x) __builtin_expect((x),0)
 
 //Smallest Object Size with 1 ptr is 32bytes on on 64-bit machine and 24bytes on 32-bit machine
 #ifdef BIT64
