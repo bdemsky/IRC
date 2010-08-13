@@ -1056,7 +1056,7 @@ public class OoOJavaAnalysis {
       } else {
         FlatElementNode fen = (FlatElementNode) fn;
         rhs = fen.getSrc();
-      }
+      } 
 
       // add stall site
       Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
@@ -1302,6 +1302,7 @@ public class OoOJavaAnalysis {
         }
 
       } while (changed);
+      HashSet<ConflictEdge> notCovered=new HashSet<ConflictEdge>();
       do { // coarse
         changed = false;
         int type;
@@ -1363,14 +1364,21 @@ public class OoOJavaAnalysis {
             // new node has a coarse-grained edge to all fine-read, fine-write,
             // parent
             changed = true;
-
+            
             if (newNode.isInVarNode() && (!seseLock.hasSelfCoarseEdge(newNode))
                 && seseLock.hasCoarseEdgeWithParentCoarse(newNode)) {
               // this case can't be covered by this queue
               coarseToCover.remove(edge);
+              notCovered.add(edge);
               break;
             }
 
+            if (seseLock.containsConflictNode(newNode)) {
+              seseLock.addEdge(edge);
+              coarseToCover.remove(edge);
+              break;
+            }
+            
             if (seseLock.hasSelfCoarseEdge(newNode)) {
               // SCC
               if (newNode.isStallSiteNode()) {
@@ -1418,6 +1426,7 @@ public class OoOJavaAnalysis {
       lockSet.add(seseLock);
 
       toCover.clear();
+      coarseToCover.addAll(notCovered);
       toCover.addAll(fineToCover);
       toCover.addAll(coarseToCover);
 
