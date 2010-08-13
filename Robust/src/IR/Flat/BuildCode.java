@@ -6,6 +6,7 @@ import IR.Tree.DNFFlagAtom;
 import IR.Tree.TagExpressionList;
 import IR.Tree.OffsetNode;
 import IR.*;
+
 import java.util.*;
 import java.io.*;
 
@@ -23,6 +24,7 @@ import Analysis.Locality.DCWrapper;
 import Analysis.Locality.DelayComputation;
 import Analysis.Locality.BranchAnalysis;
 import Analysis.CallGraph.CallGraph;
+import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.ReachGraph;
 import Analysis.Disjoint.Taint;
@@ -80,6 +82,7 @@ public class BuildCode {
     "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
     "perror(errmsg); exit(-1); }";
   boolean nonSESEpass=true;
+  RuntimeConflictResolver rcr = null;
   WriteBarrier wb;
   DiscoverConflicts dc;
   DiscoverConflicts recorddc;
@@ -218,6 +221,10 @@ public class BuildCode {
 
     // Output the C class declarations
     // These could mutually reference each other
+    
+    
+    outclassdefs.println("#ifndef __CLASSDEF_H_");
+    outclassdefs.println("#define __CLASSDEF_H_");
     outputClassDeclarations(outclassdefs);
 
     // Output function prototypes and structures for parameters
@@ -226,6 +233,7 @@ public class BuildCode {
       ClassDescriptor cn=(ClassDescriptor)it.next();
       generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
     }
+    outclassdefs.println("#endif");
     outclassdefs.close();
 
     if (state.TASK) {
@@ -255,30 +263,48 @@ public class BuildCode {
       }else{
         seseit=oooa.getAllSESEs().iterator();
       }
+      
+      //TODO signal the object that will report errors
+      if(state.RCR) {
+        try {
+          rcr = new RuntimeConflictResolver(PREFIX);
+        } 
+        catch (FileNotFoundException e) {
+          System.out.println("Runtime Conflict Resolver could not create output file.");
+        }
+      }
+      
       while(seseit.hasNext()){
         FlatSESEEnterNode fsen = seseit.next();
         initializeSESE( fsen );
         
-        /*
-        if(state.RCR){
-          if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null){
-            
-            FlatMethod fm=fsen.getfmEnclosing();
-            
-            //reach graph
-            ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
-            
-            //get effect set
-            Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fsen);
-            
-            //get conflict set
-            Analysis.OoOJava.ConflictGraph conflictGraph=oooa.getConflictGraph(fsen.getParent());
-            Hashtable<Taint, Set<Effect>>  conflicts=conflictGraph.getConflictEffectSet(fsen);
+        if(state.RCR && rcr != null){
+          Analysis.OoOJava.ConflictGraph conflictGraph;
+          Hashtable<Taint, Set<Effect>> conflicts;
+          if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null && 
+             (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null && 
+             (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null){
+                    
+              FlatMethod fm=fsen.getfmEnclosing();
+              
+              //reach graph
+              ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
+              
+              //TODO remove this later
+              rg.writeGraph("RCRDEBUG");
+                    
+              //get effect set
+              Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fsen);
+                    
+              rcr.traverse(fsen, effects, conflicts, rg);
+              }
           }
         }
-        */
-      }
       
+      if(rcr != null) {
+        rcr.close();
+        System.out.println("Runtime Conflict Resolver Done.");
+      }  
     }
 
     /* Build the actual methods */
@@ -546,6 +572,10 @@ public class BuildCode {
       outmethod.println("#include <stdio.h>");
       outmethod.println("#include \"mlp_runtime.h\"");
       outmethod.println("#include \"psemaphore.h\"");
+      
+      if( state.RCR) {
+        outmethod.println("#include \"RuntimeConflictResolver.h\"");
+      }
     }
     if (state.COREPROF) {
       outmethod.println("#include \"coreprof.h\"");
@@ -2960,6 +2990,7 @@ public class BuildCode {
                   WaitingElement waitingElement = (WaitingElement) iterator.next();
   					
                   if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+                    // HERE! a parent might conflict with a child
                     output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
                   }else{
                     output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
@@ -3830,6 +3861,32 @@ public class BuildCode {
                           + "],rentry)==NOTREADY){");
                   output.println("          ++(localCount);");
                   output.println("       }");
+                  
+                  // Trying to execute the dynamic coarse grain conflict strategy...
+                  if(state.RCR && rcr != null) {
+                    boolean useParentContext = false;
+
+                    if( (state.MLP &&fsen != mlpa.getMainSESE()) || 
+                        (state.OOOJAVA &&fsen != oooa.getMainSESE())) {
+                      assert fsen.getParent() != null;
+                      if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
+                        useParentContext = true;
+                      }
+                    }
+                    
+                    //TODO fix this workaround later by invoking it only once in the lifetime of the program
+                    output.println("       initializeStructsRCR();");
+                    
+                    for (TempDescriptor invar : fsen.getInVarsForDynamicCoarseConflictResolution()) {                      
+                      String varString;
+                      if( useParentContext ) {
+                        varString = generateTemp( fsen.getParent().getfmBogus(), invar, null );
+                      } else {
+                        varString = generateTemp( fsen.getfmEnclosing(),         invar, null );
+                      }
+                      output.println("       "+rcr.getTraverserInvocation(invar, varString, fsen));
+                    }
+                  }
                 }else{
                   output
                   .println("       ADDRENTRYTOBUF(parentCommon->memoryQueueArray["

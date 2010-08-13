@@ -47,6 +47,10 @@ public class FlatSESEEnterNode extends FlatNode {
   
   private SESEEffectsSet seseEffectsSet;
 
+  // a subset of the in-set variables that shouuld be traversed during
+  // the dynamic coarse grained conflict strategy, remember them here so
+  // buildcode can be dumb and just gen the traversals
+  protected Set<TempDescriptor> inVarsForDynamicCoarseConflictResolution;
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -82,6 +86,8 @@ public class FlatSESEEnterNode extends FlatNode {
     dynamicInVars        = new HashSet<TempDescriptor>();
     dynamicVars          = new HashSet<TempDescriptor>();
 
+    inVarsForDynamicCoarseConflictResolution = new HashSet<TempDescriptor>();
+    
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
     
     seseEffectsSet = new SESEEffectsSet();
@@ -382,5 +388,13 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public int getNumDepRecs() {
     return numDepRecs;
+  }
+  
+  public Set<TempDescriptor> getInVarsForDynamicCoarseConflictResolution() {
+    return inVarsForDynamicCoarseConflictResolution;
+  }
+  
+  public void addInVarForDynamicCoarseConflictResolution(TempDescriptor inVar) {
+    inVarsForDynamicCoarseConflictResolution.add(inVar);
   }
 }

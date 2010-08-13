@@ -151,6 +151,7 @@ NOJAVA=false
 CHECKFLAG=false
 RECOVERFLAG=false
 MLP_ON=false
+RCR=false
 MLPDEBUG=false
 MULTICOREFLAG=false
 RAWFLAG=false
@@ -511,6 +512,9 @@ shift
 elif [[ $1 = '-rcr' ]]
 then
 JAVAOPTS="$JAVAOPTS -rcr"
+RCR=true
+EXTRAOPTIONS="$EXTRAOPTIONS -I$ROBUSTROOT/Runtime/oooJava"
+
 
 elif [[ $1 = '-coreprof' ]]
 then
@@ -1071,6 +1075,11 @@ fi
 if $COREPROF
 then
 FILES="$FILES $ROBUSTROOT/Runtime/coreprof/coreprof.c"
+fi
+
+if $RCR
+then
+FILES="$FILES $tmpbuilddirectory/RuntimeConflictResolver.c $ROBUSTROOT/Runtime/oooJava/hashRCR.c $ROBUSTROOT/Runtime/oooJava/Queue_RCR.c" 
 fi
 
 if $MLP_ON
