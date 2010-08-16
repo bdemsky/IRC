@@ -105,6 +105,7 @@ echo -tagstate do tag state analysis
 echo -optional enable optional
 echo -debug generate debug symbols
 echo -prefetch do prefetch analysis
+echo -heapsize-mb NUM  set initial heap size in MB, default is 256
 echo -garbagestats Print garbage collection statistics
 echo -webinterface enable web interface
 echo -runtimedebug printout runtime debug messages
@@ -507,6 +508,11 @@ MLP_ON=true
 JAVAOPTS="$JAVAOPTS -ooojava $2 $3"
 EXTRAOPTIONS="$EXTRAOPTIONS -DPRECISE_GC -lpthread -DMLP"
 shift
+shift
+
+elif [[ $1 = '-heapsize-mb' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DINITIALHEAPSIZE_MB=($2)"
 shift
 
 elif [[ $1 = '-rcr' ]]
