@@ -32,6 +32,11 @@ void cp_create() {
   struct coreprofmonitor* monitor = 
     calloc( 1, sizeof( struct coreprofmonitor ) );
 
+  if( monitor == NULL ) {
+    printf( "ERROR: calloc returned NULL\n" );
+    exit( -1 );
+  }
+
   struct coreprofmonitor* tmp;
 
   // add ourself to the list
@@ -69,11 +74,8 @@ void cp_writedata( int fd, char* buffer, int count ) {
 
 void cp_dump() {
   
-  //int fdh   = open( "coreprof-head.dat", O_RDWR | O_CREAT, S_IRWXU );
-  //int fde   = open( "coreprof-evnt.dat", O_RDWR | O_CREAT, S_IRWXU );
-  //int fdt   = open( "coreprof-time.dat", O_RDWR | O_CREAT, S_IRWXU );
-  int fd    = open( "coreprof.dat", O_RDWR | O_CREAT, S_IRWXU );
-  int count = 0;
+  int fd = open( "coreprof.dat", O_RDWR | O_CREAT, S_IRWXU );
+  int numThreads = 0;
   int i;
 
   struct coreprofmonitor* monitor;
@@ -86,52 +88,36 @@ void cp_dump() {
                 (char*)&version, 
                 sizeof( int ) );
 
-  // check for overflow
+  // Write the number of threads
   monitor = cp_monitorList;
   while( monitor != NULL ) {
-    count++;
-    if( monitor->numEvents > CP_MAXEVENTS ) {
-      printf( "ERROR: EVENT COUNT EXCEEDED\n" );
-    }
+    numThreads++;
     monitor = monitor->next;
   }
-
-  // Write the number of threads
   cp_writedata( fd, 
-                (char*)&count, 
+                (char*)&numThreads, 
                 sizeof( int ) );
 
+  // Write the number of words used to log
+  // events for each thread
   monitor = cp_monitorList;
   while( monitor != NULL ) {
-
-    // Write the number of events for each thread
     cp_writedata( fd, 
-                  (char*)&monitor->numEvents, 
+                  (char*)&monitor->numWords, 
                   sizeof( int ) );
-
     monitor = monitor->next;
   }
 
   // END HEADER, BEGIN DATA
-
   monitor = cp_monitorList;
   while( monitor != NULL ) {
-
-    // Write the event IDs (index matches time below)
     cp_writedata( fd, 
-                  (char*)monitor->events, 
-                  sizeof( unsigned int )*monitor->numEvents );
-
-    // Write the event timestamps (index matches above)
-    cp_writedata( fd, 
-                  (char*)monitor->logTimes_ms, 
-                  sizeof( long long )*monitor->numEvents );
+                  (char*)monitor->data, 
+                  sizeof( unsigned int )*monitor->numWords );
     monitor = monitor->next;
   }
 
   close( fd );
-  //close( fde );
-  //close( fdt );
 }
 
 

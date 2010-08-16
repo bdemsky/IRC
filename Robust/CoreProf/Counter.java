@@ -3,6 +3,6 @@ public class Counter {
   }
 
   public long count;
-  public long totaltime;
-  public long selftime;
+  public long totalTime;
+  public long selfTime;
 }

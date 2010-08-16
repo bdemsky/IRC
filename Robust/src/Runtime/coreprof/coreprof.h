@@ -18,8 +18,9 @@
 #include "runtime.h"
 
 
-#ifndef CP_MAXEVENTS
-#define CP_MAXEVENTS (1024*1024*128)
+#ifndef CP_MAXEVENTWORDS
+//#define CP_MAXEVENTWORDS (1024*1024*128)
+#define CP_MAXEVENTWORDS (1024*128)
 #endif
 
 
@@ -44,41 +45,44 @@
 #define CP_EVENTID_TASKSTALLMEM 6
 
 
-struct coreprofmonitor {
-  struct coreprofmonitor* next;
-  
-  // index for next empty slot in the following arrays
-  int          numEvents; 
-  unsigned int events     [CP_MAXEVENTS];
-  long long    logTimes_ms[CP_MAXEVENTS];
-};
-
-
 extern __thread int                     cp_threadnum;
 extern __thread struct coreprofmonitor* cp_monitor;
 extern          struct coreprofmonitor* cp_monitorList;
 
 
+struct coreprofmonitor {
+  struct coreprofmonitor* next;
+  
+  // index for next unused word in the following array;
+  // individual events may use a variable number of
+  // words to store information
+  int          numWords;
+  unsigned int data[CP_MAXEVENTWORDS];
+};
+
+
 #ifndef COREPROF_CHECKOVERFLOW
-// normal, no overflow check version
-#define CP_LOGEVENT( eventID, eventType ) { \
-  cp_monitor->events[cp_monitor->numEvents] = \
-    ((eventID<<CP_EVENT_BASESHIFT)|eventType); \
-  cp_monitor->logTimes_ms[cp_monitor->numEvents] = rdtsc(); \
-  cp_monitor->numEvents++; \
-}
+#define CP_CHECKOVERFLOW ;
 #else
-// check for event overflow, DEBUG ONLY!
-void cp_reportOverflow();
-#define CP_LOGEVENT( eventID, eventType ) { \
-  if( cp_monitor->numEvents == CP_MAXEVENTS ) \
-    { cp_reportOverflow(); }                  \
-  cp_monitor->events[cp_monitor->numEvents] = \
-    ((eventID<<CP_EVENT_BASESHIFT)|eventType); \
-  cp_monitor->logTimes_ms[cp_monitor->numEvents] = rdtsc(); \
-  cp_monitor->numEvents++; \
-}
+#define CP_CHECKOVERFLOW if \
+  ( cp_monitor->numWords == CP_MAXEVENTWORDS ) \
+  { cp_reportOverflow(); }
 #endif
+
+
+#define CP_LOGEVENT( eventID, eventType ) { \
+  CP_CHECKOVERFLOW; \
+  cp_monitor->data[cp_monitor->numWords] = \
+    ((eventID << CP_EVENT_BASESHIFT) | eventType); \
+  cp_monitor->numWords += 1; \
+  CP_LOGTIME; \
+}
+
+
+#define CP_LOGTIME CP_CHECKOVERFLOW; \
+  *((long long *)&cp_monitor->data[cp_monitor->numWords]) = rdtsc(); \
+  cp_monitor->numWords += 2;
+
 
 
 #define CP_CREATE() cp_create();
@@ -88,7 +92,7 @@ void cp_reportOverflow();
 void cp_create();
 void cp_exit();
 void cp_dump();
-
+void cp_reportOverflow();
 
 
 static inline void* cp_calloc( int size ) {
