@@ -179,7 +179,7 @@ void setupsmemmode(void) {
   bamboo_smem_mode = SMEMGLOBAL;
 #else
   // defaultly using local mode
-  //bamboo_smem_mode = SMEMLOCAL;
+  bamboo_smem_mode = SMEMLOCAL;
   //bamboo_smem_mode = SMEMGLOBAL;
   //bamboo_smem_mode = SMEMFIXED;
 #endif
@@ -305,7 +305,7 @@ void initruntimedata() {
 		-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
   gcmem_mixed_usedmem = 0;
 #endif
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
   gc_num_obj = 0;
   gc_num_liveobj = 0;
   gc_num_forwardobj = 0;
@@ -343,10 +343,11 @@ void initruntimedata() {
   //interrupttime = 0;
   taskInfoIndex = 0;
   taskInfoOverflow = false;
-  // TODO
+#ifdef PROFILE_INTERRUPT
   interruptInfoIndex = 0;
   interruptInfoOverflow = false;
-#endif
+#endif // PROFILE_INTERRUPT
+#endif // PROFILE
 
   for(i = 0; i < MAXTASKPARAMS; i++) {
     runtime_locks[i].redirectlock = 0;
@@ -423,7 +424,7 @@ bool checkObjQueue() {
     getwritelock_I(obj);
     while(!lockflag) {
       BAMBOO_WAITING_FOR_LOCK(0);
-    }             // while(!lockflag)
+    }   // while(!lockflag)
     grount = lockresult;
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(grount);
@@ -463,7 +464,7 @@ bool checkObjQueue() {
 #ifdef DEBUG
 	BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
 #endif
-      }                   // for(k = 0; k < objInfo->length; ++k)
+      }  // for(k = 0; k < objInfo->length; ++k)
       releasewritelock_I(obj);
       RUNFREE(objInfo->queues);
       RUNFREE(objInfo);
@@ -483,10 +484,10 @@ bool checkObjQueue() {
 			  goto objqueuebreak;
 		  } else {
 			  prev = qitem;
-		  }                         // if(tmpinfo->objptr == obj)
+		  }  // if(tmpinfo->objptr == obj)
 		  qitem = getNextQueueItem(prev);
-	  }                   // while(qitem != NULL)
-                          // try to execute active tasks already enqueued first
+	  }  // while(qitem != NULL)
+      // try to execute active tasks already enqueued first
       addNewItem_I(&objqueue, objInfo);
 #ifdef PROFILE
       //isInterrupt = true;
@@ -497,18 +498,18 @@ objqueuebreak:
       BAMBOO_DEBUGPRINT(0xf000);
 #endif
       break;
-    }             // if(grount == 1)
+    }  // if(grount == 1)
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf000);
 #endif
-  }       // while(!isEmpty(&objqueue))
+  }  // while(!isEmpty(&objqueue))
 
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
   if(isChecking) {
     profileTaskEnd();
-  }       // if(isChecking)
+  }  // if(isChecking)
 #endif
 #endif
 
@@ -549,7 +550,7 @@ void checkCoreStatus() {
 		  allStall = false;
 		  break;
       }
-    }             // for(i = 0; i < NUMCORESACTIVE; ++i)
+    }  // for(i = 0; i < NUMCORESACTIVE; ++i)
     if(allStall) {
       // check if the sum of send objs and receive obj are the same
       // yes->check if the info is the latest; no->go on executing
@@ -559,13 +560,13 @@ void checkCoreStatus() {
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xf000 + numsendobjs[i]);
 #endif
-      }                   // for(i = 0; i < NUMCORESACTIVE; ++i)
+      }  // for(i = 0; i < NUMCORESACTIVE; ++i)
       for(i = 0; i < NUMCORESACTIVE; ++i) {
 		  sumsendobj -= numreceiveobjs[i];
 #ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xf000 + numreceiveobjs[i]);
 #endif
-      }                   // for(i = 0; i < NUMCORESACTIVE; ++i)
+      }  // for(i = 0; i < NUMCORESACTIVE; ++i)
       if(0 == sumsendobj) {
 	if(!waitconfirm) {
 	  // the first time found all cores stall
@@ -616,8 +617,10 @@ void checkCoreStatus() {
 	    // send profile request msg to core i
 	    send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
 	  } // for(i = 1; i < NUMCORESACTIVE; ++i)
+#ifndef RT_TEST
 	  // pour profiling data on startup core
 	  outputProfileData();
+#endif
 	  while(true) {
 	    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
@@ -653,10 +656,7 @@ void checkCoreStatus() {
 	  }  // while(true)
 #endif
 
-	  // gc_profile mode, ourput gc prfiling data
-#ifdef BAMBOO_MEMPROF
-	  //terminatememprof();
-#endif // #ifndef BAMBOO_MEMPROF
+	  // gc_profile mode, output gc prfiling data
 #ifdef MULTICORE_GC
 #ifdef GC_PROFILE
 	  gc_outputProfileData();
@@ -664,8 +664,8 @@ void checkCoreStatus() {
 #endif // #ifdef MULTICORE_GC
 	  disruntimedata();
 	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-	  terminate();                               // All done.
-	}                         // if(!waitconfirm)
+	  terminate();  // All done.
+	}  // if(!waitconfirm)
       } else {
 	// still some objects on the fly on the network
 	// reset the waitconfirm and numconfirm
@@ -674,7 +674,7 @@ void checkCoreStatus() {
 #endif
 	waitconfirm = false;
 	numconfirm = 0;
-      }                   //  if(0 == sumsendobj)
+      }  //  if(0 == sumsendobj)
     } else {
       // not all cores are stall, keep on waiting
 #ifdef DEBUG
@@ -682,12 +682,12 @@ void checkCoreStatus() {
 #endif
       waitconfirm = false;
       numconfirm = 0;
-    }             //  if(allStall)
+    }  //  if(allStall)
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf000);
 #endif
-  }       // if((!waitconfirm) ||
+  }  // if((!waitconfirm) ||
 }
 
 // main function for each core
@@ -705,7 +705,7 @@ inline void run(void * arg) {
   BAMBOO_DEBUGPRINT_REG(corenum);
   BAMBOO_DEBUGPRINT(STARTUPCORE);
 #endif
- //BAMBOO_DEBUGPRINT(0xeeee); // TODO
+  //BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME()); // TODO
 
   // initialize runtime data structures
   initruntimedata();
@@ -720,13 +720,6 @@ inline void run(void * arg) {
   if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
     // non-executing cores, only processing communications
     activetasks = NULL;
-/*#ifdef PROFILE
-        BAMBOO_DEBUGPRINT(0xee01);
-        BAMBOO_DEBUGPRINT_REG(taskInfoIndex);
-        BAMBOO_DEBUGPRINT_REG(taskInfoOverflow);
-                profileTaskStart("msg handling");
-        }
- #endif*/
 #ifdef PROFILE
     //isInterrupt = false;
 #endif
@@ -750,6 +743,7 @@ inline void run(void * arg) {
 #endif
 
     while(true) {
+
 #ifdef MULTICORE_GC
       // check if need to do GC
       if(gcflag) {
@@ -824,10 +818,10 @@ inline void run(void * arg) {
 #ifdef DEBUG
 	    BAMBOO_DEBUGPRINT(0xee0c);
 #endif
-	  }                         // if(!sendStall)
-	}                   // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
-      }             // if(!tocontinue)
-    }       // while(true)
+	  }   // if(!sendStall)
+	}   // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
+      }  // if(!tocontinue)
+    }  // while(true)
   } // if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)
 
 } // run()
@@ -1218,16 +1212,16 @@ void enqueueObject(void * vptr,
       /* Check tags */
       if (parameter->numbertags>0) {
 	if (tagptr==NULL)
-	  goto nextloop;                               //that means the object has no tag
+	  goto nextloop;  //that means the object has no tag
 	//but that param needs tag
-	else if(tagptr->type==TAGTYPE) {                         //one tag
+	else if(tagptr->type==TAGTYPE) {     //one tag
 	  //struct ___TagDescriptor___ * tag=
 	  //(struct ___TagDescriptor___*) tagptr;
 	  for(i=0; i<parameter->numbertags; i++) {
 	    //slotid is parameter->tagarray[2*i];
 	    int tagid=parameter->tagarray[2*i+1];
 	    if (tagid!=tagptr->flag)
-	      goto nextloop;           /*We don't have this tag */
+	      goto nextloop;   /*We don't have this tag */
 	  }
 	} else {                         //multiple tags
 	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
@@ -1294,7 +1288,7 @@ void enqueueObject_I(void * vptr,
 	if (tagptr==NULL)
 	  goto nextloop;      //that means the object has no tag
 	//but that param needs tag
-	else if(tagptr->type==TAGTYPE) {                         //one tag
+	else if(tagptr->type==TAGTYPE) {   //one tag
 	  //struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
 	  for(i=0; i<parameter->numbertags; i++) {
 	    //slotid is parameter->tagarray[2*i];
@@ -1302,7 +1296,7 @@ void enqueueObject_I(void * vptr,
 	    if (tagid!=tagptr->flag)
 	      goto nextloop;            /*We don't have this tag */
 	  }
-	} else {                         //multiple tags
+	} else {    //multiple tags
 	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
 	  for(i=0; i<parameter->numbertags; i++) {
 	    //slotid is parameter->tagarray[2*i];
@@ -1581,7 +1575,8 @@ void * fixedmalloc_I(int coren,
 	  } while(core2test[gccorenum][k] == -1);
 	  i = 0;
 	  j = 0;
-	  tofindb=totest=gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
+	  tofindb=totest=
+		gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
     }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
   } while(true);
 
@@ -1762,13 +1757,13 @@ void * globalmalloc_I(int coren,
       }   // if(tocheck)
     } else {
       isnext = true;
-    }            // if(nsize < bound) else ...
+    }  // if(nsize < bound) else ...
     totest += 1;
     if(totest > gcnumblock-1-bamboo_reserved_smem) {
       // no more local mem, do not find suitable block
       foundsmem = 2;
       break;
-    }             // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
+    }  // if(totest > gcnumblock-1-bamboo_reserved_smem) ...
     if(isnext) {
       // start another block
       tofindb = totest;
@@ -1843,18 +1838,8 @@ void * smemalloc_I(int coren,
   }
 
   if(mem == NULL) {
-#else
-  // TODO
-#ifdef PROFILE
-  /*if(!interruptInfoOverflow) {
-    InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
-    interruptInfoArray[interruptInfoIndex] = intInfo;
-    intInfo->startTime = BAMBOO_GET_EXE_TIME();
-    intInfo->endTime = -1;
-  }*/
-#endif  
+#else 
   int toallocate = (size>(BAMBOO_SMEM_SIZE)) ? (size) : (BAMBOO_SMEM_SIZE);
-  //mem = mspace_calloc(bamboo_free_msp, 1, toallocate);
   if(toallocate > bamboo_free_smem_size) {
 	// no enough mem
 	mem = NULL;
@@ -1862,24 +1847,13 @@ void * smemalloc_I(int coren,
 	mem = (void *)bamboo_free_smemp;
 	bamboo_free_smemp = ((void*)bamboo_free_smemp) + toallocate;
 	bamboo_free_smem_size -= toallocate;
-	//BAMBOO_MEMSET_WH(mem, '\0', toallocate);
   }
   *allocsize = toallocate;
-#ifdef PROFILE
-  /*if(!interruptInfoOverflow) {
-    interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
-    interruptInfoIndex++;
-    if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
-      interruptInfoOverflow = true;
-    }
-  }*/
-#endif
   if(mem == NULL) {
 #endif // MULTICORE_GC
     // no enough shared global memory
     *allocsize = 0;
 #ifdef MULTICORE_GC
-    //gcflag = true;
 	if(!gcflag) {
 	  gcflag = true;
 	// inform other cores to stop and wait for gc
@@ -1900,7 +1874,7 @@ void * smemalloc_I(int coren,
 	  }
 	}
 	}
-    return NULL;
+	return NULL;
 #else
     BAMBOO_DEBUGPRINT(0xa001);
     BAMBOO_EXIT(0xa001);
@@ -1972,7 +1946,7 @@ INLINE int checkMsgLength_I(int size) {
   case GCFINISHPRE:
   case GCFINISHMARK:
   case GCMOVESTART:
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
   case GCPROFILES:
 #endif
 #endif
@@ -1998,7 +1972,7 @@ INLINE int checkMsgLength_I(int size) {
     break;
   }
 
-  case TRANSOBJ:                // nonfixed size
+  case TRANSOBJ:   // nonfixed size
 #ifdef MULTICORE_GC
   case GCLOBJINFO:
 #endif
@@ -2040,6 +2014,14 @@ INLINE int checkMsgLength_I(int size) {
 }
 
 INLINE void processmsg_transobj_I() {
+#ifdef PROFILE_INTERRUPT
+  /*if(!interruptInfoOverflow) {
+    InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
+    interruptInfoArray[interruptInfoIndex] = intInfo;
+    intInfo->startTime = BAMBOO_GET_EXE_TIME();
+    intInfo->endTime = -1;
+  }*/
+#endif
   MSG_INDEXINC_I();
   struct transObjInfo * transObj=RUNMALLOC_I(sizeof(struct transObjInfo));
   int k = 0;
@@ -2055,19 +2037,19 @@ INLINE void processmsg_transobj_I() {
     BAMBOO_EXIT(0xa002);
   }
   // store the object and its corresponding queue info, enqueue it later
-  transObj->objptr = (void *)msgdata[msgdataindex];       //[2]
+  transObj->objptr = (void *)msgdata[msgdataindex];  //[2]
   MSG_INDEXINC_I();
   transObj->length = (msglength - 3) / 2;
   transObj->queues = RUNMALLOC_I(sizeof(int)*(msglength - 3));
   for(k = 0; k < transObj->length; ++k) {
-    transObj->queues[2*k] = msgdata[msgdataindex];             //[3+2*k];
+    transObj->queues[2*k] = msgdata[msgdataindex];   //[3+2*k];
     MSG_INDEXINC_I();
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
     //BAMBOO_DEBUGPRINT_REG(transObj->queues[2*k]);
 #endif
 #endif
-    transObj->queues[2*k+1] = msgdata[msgdataindex];        //[3+2*k+1];
+    transObj->queues[2*k+1] = msgdata[msgdataindex]; //[3+2*k+1];
     MSG_INDEXINC_I();
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2117,6 +2099,15 @@ INLINE void processmsg_transobj_I() {
 	}
   }
 #endif 
+#ifdef PROFILE_INTERRUPT
+  /*if(!interruptInfoOverflow) {
+    interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
+    interruptInfoIndex++;
+    if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
+      interruptInfoOverflow = true;
+    }
+  }*/
+#endif
 }
 
 INLINE void processmsg_transtall_I() {
@@ -2127,7 +2118,7 @@ INLINE void processmsg_transtall_I() {
 #endif
     BAMBOO_EXIT(0xa003);
   }
-  int num_core = msgdata[msgdataindex];       //[1]
+  int num_core = msgdata[msgdataindex]; //[1]
   MSG_INDEXINC_I();
   if(num_core < NUMCORESACTIVE) {
 #ifdef DEBUG
@@ -2136,9 +2127,9 @@ INLINE void processmsg_transtall_I() {
 #endif
 #endif
     corestatus[num_core] = 0;
-    numsendobjs[num_core] = msgdata[msgdataindex];             //[2];
+    numsendobjs[num_core] = msgdata[msgdataindex]; //[2];
     MSG_INDEXINC_I();
-    numreceiveobjs[num_core] = msgdata[msgdataindex];             //[3];
+    numreceiveobjs[num_core] = msgdata[msgdataindex]; //[3];
     MSG_INDEXINC_I();
   }
 }
@@ -2147,13 +2138,13 @@ INLINE void processmsg_transtall_I() {
 INLINE void processmsg_lockrequest_I() {
   // check to see if there is a lock exist for the required obj
   // msgdata[1] -> lock type
-  int locktype = msgdata[msgdataindex];       //[1];
+  int locktype = msgdata[msgdataindex]; //[1];
   MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];       // obj pointer
+  int data2 = msgdata[msgdataindex];  // obj pointer
   MSG_INDEXINC_I();
-  int data3 = msgdata[msgdataindex];       // lock
+  int data3 = msgdata[msgdataindex];  // lock
   MSG_INDEXINC_I();
-  int data4 = msgdata[msgdataindex];       // request core
+  int data4 = msgdata[msgdataindex];  // request core
   MSG_INDEXINC_I();
   // -1: redirected, 0: approved, 1: denied
   int deny=processlockrequest(locktype, data3, data2, data4, data4, true);
@@ -2248,15 +2239,15 @@ INLINE void processmsg_lockrelease_I() {
 INLINE void processmsg_redirectlock_I() {
   // check to see if there is a lock exist for the required obj
   int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();       //msgdata[1]; // lock type
+  MSG_INDEXINC_I();    //msgdata[1]; // lock type
   int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();      //msgdata[2]; // obj pointer
+  MSG_INDEXINC_I();    //msgdata[2]; // obj pointer
   int data3 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();       //msgdata[3]; // redirect lock
+  MSG_INDEXINC_I();    //msgdata[3]; // redirect lock
   int data4 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();       //msgdata[4]; // root request core
+  MSG_INDEXINC_I();    //msgdata[4]; // root request core
   int data5 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();       //msgdata[5]; // request core
+  MSG_INDEXINC_I();    //msgdata[5]; // request core
   int deny = processlockrequest(data1, data3, data2, data5, data4, true);
   if(deny == -1) {
     // this lock request is redirected
@@ -2360,9 +2351,13 @@ INLINE void processmsg_profileoutput_I() {
 #endif
 #endif
   stall = true;
-  totalexetime = msgdata[msgdataindex];       //[1]
+  totalexetime = msgdata[msgdataindex];  //[1]
   MSG_INDEXINC_I();
+#ifdef RT_TEST
+  BAMBOO_DEBUGPRINT_REG(dot_num);
+#else
   outputProfileData();
+#endif
   // cache the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
   cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
@@ -2402,7 +2397,6 @@ INLINE void processmsg_statusconfirm_I() {
     BAMBOO_DEBUGPRINT(0xe887);
 #endif
 #endif
-	//BAMBOO_DEBUGPRINT(0xffff); // TODO
     // cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
     cache_msg_5(STARTUPCORE, STATUSREPORT,
@@ -2458,13 +2452,13 @@ INLINE void processmsg_terminate_I() {
 }
 
 INLINE void processmsg_memrequest_I() {
-#ifdef PROFILE
-  if(!interruptInfoOverflow) {
+#ifdef PROFILE_INTERRUPT
+  /*if(!interruptInfoOverflow) {
     InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
     interruptInfoArray[interruptInfoIndex] = intInfo;
     intInfo->startTime = BAMBOO_GET_EXE_TIME();
     intInfo->endTime = -1;
-  }
+  }*/
 #endif
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -2507,40 +2501,21 @@ INLINE void processmsg_memrequest_I() {
       } else {
       send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
       }
-    } else {
+    } //else 
 	  // if mem == NULL, the gcflag of the startup core has been set
 	  // and all the other cores have been informed to start gc
-	  // TODO 
-	  // inform other cores to stop and wait for gc
-	  /*gcprecheck = true;
-	  for(int i = 0; i < NUMCORESACTIVE; i++) {
-		// reuse the gcnumsendobjs & gcnumreceiveobjs
-		gccorestatus[i] = 1;
-		gcnumsendobjs[0][i] = 0;
-		gcnumreceiveobjs[0][i] = 0;
-	  }
-	  for(int i = 0; i < NUMCORESACTIVE; i++) {
-		if(i != BAMBOO_NUM_OF_CORE) {
-		  if(BAMBOO_CHECK_SEND_MODE()) {
-			cache_msg_1(i, GCSTARTPRE);
-		  } else {
-			send_msg_1(i, GCSTARTPRE, true);
-		  }
-		}
-	  }*/
-	}
 #ifdef MULTICORE_GC
   }
 #endif
   }
-#ifdef PROFILE
-  if(!interruptInfoOverflow) {
+#ifdef PROFILE_INTERRUPT
+  /*if(!interruptInfoOverflow) {
     interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
     interruptInfoIndex++;
     if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
       interruptInfoOverflow = true;
     }
-  }
+  }*/
 #endif
 }
 
@@ -2587,7 +2562,6 @@ INLINE void processmsg_memresponse_I() {
 
 #ifdef MULTICORE_GC
 INLINE void processmsg_gcstartpre_I() {
-  //BAMBOO_DEBUGPRINT(0xc000); // TODO
   if(gcprocessing) {
 	// already stall for gc
 	// send a update pregc information msg to the master core
@@ -2613,16 +2587,7 @@ INLINE void processmsg_gcstartpre_I() {
 }
 
 INLINE void processmsg_gcstartinit_I() {
-  //gcflag = true;
   gcphase = INITPHASE;
-  /*if(!smemflag) {
-    // is waiting for response of mem request
-    // let it return NULL and start gc
-    bamboo_smem_size = 0;
-    bamboo_cur_msp = NULL;
-    smemflag = true;
-	bamboo_smem_zero_top = NULL;
-  }*/
 }
 
 INLINE void processmsg_gcstart_I() {
@@ -2637,7 +2602,7 @@ INLINE void processmsg_gcstart_I() {
 
 INLINE void processmsg_gcstartcompact_I() {
   gcblock2fill = msgdata[msgdataindex];
-  MSG_INDEXINC_I();       //msgdata[1];
+  MSG_INDEXINC_I();  //msgdata[1];
   gcphase = COMPACTPHASE;
 }
 
@@ -2665,9 +2630,6 @@ INLINE void processmsg_gcfinishpre_I() {
     BAMBOO_EXIT(0xb000);
   }
   // All cores should do init GC
-  /*if(gcprecheck && (gcnumpre > 0)) {
-	gcnumpre--;
-  } else {*/
   if(!gcprecheck) {
 	gcprecheck = true;
   }
@@ -2766,8 +2728,8 @@ INLINE void processmsg_gcfinishcompact_I() {
       }
     } else {
       gccorestatus[cnum] = 0;
-    }             // if(data4>0)
-  }       // if(cnum < NUMCORES4GC)
+    }  // if(data4>0)
+  }  // if(cnum < NUMCORES4GC)
 }
 
 INLINE void processmsg_gcfinishmapinfo_I() {
@@ -2776,7 +2738,6 @@ INLINE void processmsg_gcfinishmapinfo_I() {
   // received a map phase finish msg
   if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
     // non startup core can not receive this msg
-    // return -1
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
@@ -2795,7 +2756,6 @@ INLINE void processmsg_gcfinishflush_I() {
   // received a flush phase finish msg
   if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
     // non startup core can not receive this msg
-    // return -1
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
@@ -2991,12 +2951,12 @@ INLINE void processmsg_gclobjinfo_I() {
   // large obj info here
   for(int k = 5; k < data1; ) {
     int lobj = msgdata[msgdataindex];
-    MSG_INDEXINC_I();             //msgdata[k++];
+    MSG_INDEXINC_I();   //msgdata[k++];
     int length = msgdata[msgdataindex];
-    MSG_INDEXINC_I();             //msgdata[k++];
+    MSG_INDEXINC_I();   //msgdata[k++];
     gc_lobjenqueue_I(lobj, length, cnum);
     gcnumlobjs++;
-  }       // for(int k = 5; k < msgdata[1];)
+  }  // for(int k = 5; k < msgdata[1];)
 }
 
 INLINE void processmsg_gclobjmapping_I() {
@@ -3013,7 +2973,7 @@ INLINE void processmsg_gclobjmapping_I() {
   mgcsharedhashInsert_I(gcsharedptbl, data1, data2);
 }
 
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
 INLINE void processmsg_gcprofiles_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -3044,6 +3004,14 @@ INLINE void processmsg_gcprofiles_I() {
 //               RAW version: -1 -- received nothing
 //                            otherwise -- received msg type
 int receiveObject(int send_port_pending) {
+#ifdef PROFILE_INTERRUPT
+  if(!interruptInfoOverflow) {
+    InterruptInfo* intInfo = RUNMALLOC_I(sizeof(struct interrupt_info));
+    interruptInfoArray[interruptInfoIndex] = intInfo;
+    intInfo->startTime = BAMBOO_GET_EXE_TIME();
+    intInfo->endTime = -1;
+  }
+#endif
 msg:
   // get the incoming msgs
   if(receiveMsg(send_port_pending) == -1) {
@@ -3065,8 +3033,6 @@ processmsg:
 
   if(msglength <= size) {
     // have some whole msg
-    //if(msgdataindex == msglength) {
-    // received a whole msg
     MSGTYPE type;
     type = msgdata[msgdataindex]; //[0]
     MSG_INDEXINC_I();
@@ -3078,13 +3044,13 @@ processmsg:
       // receive a object transfer msg
       processmsg_transobj_I();
       break;
-    }                     // case TRANSOBJ
+    }   // case TRANSOBJ
 
     case TRANSTALL: {
       // receive a stall msg
       processmsg_transtall_I();
       break;
-    }                     // case TRANSTALL
+    }   // case TRANSTALL
 
 // GC version have no lock msgs
 #ifndef MULTICORE_GC
@@ -3092,24 +3058,24 @@ processmsg:
       // receive lock request msg, handle it right now
       processmsg_lockrequest_I();
       break;
-    }                     // case LOCKREQUEST
+    }   // case LOCKREQUEST
 
     case LOCKGROUNT: {
       // receive lock grount msg
       processmsg_lockgrount_I();
       break;
-    }                     // case LOCKGROUNT
+    }   // case LOCKGROUNT
 
     case LOCKDENY: {
       // receive lock deny msg
       processmsg_lockdeny_I();
       break;
-    }                     // case LOCKDENY
+    }   // case LOCKDENY
 
     case LOCKRELEASE: {
       processmsg_lockrelease_I();
       break;
-    }                     // case LOCKRELEASE
+    }   // case LOCKRELEASE
 #endif // #ifndef MULTICORE_GC
 
 #ifdef PROFILE
@@ -3117,13 +3083,13 @@ processmsg:
       // receive an output profile data request msg
       processmsg_profileoutput_I();
       break;
-    }                     // case PROFILEOUTPUT
+    }   // case PROFILEOUTPUT
 
     case PROFILEFINISH: {
       // receive a profile output finish msg
       processmsg_profilefinish_I();
       break;
-    }                     // case PROFILEFINISH
+    }   // case PROFILEFINISH
 #endif // #ifdef PROFILE
 
 // GC version has no lock msgs
@@ -3132,185 +3098,185 @@ processmsg:
       // receive a redirect lock request msg, handle it right now
       processmsg_redirectlock_I();
       break;
-    }                     // case REDIRECTLOCK
+    }   // case REDIRECTLOCK
 
     case REDIRECTGROUNT: {
       // receive a lock grant msg with redirect info
       processmsg_redirectgrount_I();
       break;
-    }                     // case REDIRECTGROUNT
+    }   // case REDIRECTGROUNT
 
     case REDIRECTDENY: {
       // receive a lock deny msg with redirect info
       processmsg_redirectdeny_I();
       break;
-    }                     // case REDIRECTDENY
+    }   // case REDIRECTDENY
 
     case REDIRECTRELEASE: {
       // receive a lock release msg with redirect info
       processmsg_redirectrelease_I();
       break;
-    }                     // case REDIRECTRELEASE
+    }   // case REDIRECTRELEASE
 #endif // #ifndef MULTICORE_GC
 
     case STATUSCONFIRM: {
       // receive a status confirm info
       processmsg_statusconfirm_I();
       break;
-    }                     // case STATUSCONFIRM
+    }   // case STATUSCONFIRM
 
     case STATUSREPORT: {
       processmsg_statusreport_I();
       break;
-    }                     // case STATUSREPORT
+    }   // case STATUSREPORT
 
     case TERMINATE: {
       // receive a terminate msg
       processmsg_terminate_I();
       break;
-    }                     // case TERMINATE
+    }   // case TERMINATE
 
     case MEMREQUEST: {
       processmsg_memrequest_I();
       break;
-    }                     // case MEMREQUEST
+    }   // case MEMREQUEST
 
     case MEMRESPONSE: {
       processmsg_memresponse_I();
       break;
-    }                     // case MEMRESPONSE
+    }   // case MEMRESPONSE
 
 #ifdef MULTICORE_GC
     // GC msgs
     case GCSTARTPRE: {
       processmsg_gcstartpre_I();
       break;
-    }                     // case GCSTARTPRE
+    }   // case GCSTARTPRE
 	
 	case GCSTARTINIT: {
       processmsg_gcstartinit_I();
       break;
-    }                     // case GCSTARTINIT
+    }   // case GCSTARTINIT
 
     case GCSTART: {
       // receive a start GC msg
       processmsg_gcstart_I();
       break;
-    }                     // case GCSTART
+    }   // case GCSTART
 
     case GCSTARTCOMPACT: {
       // a compact phase start msg
       processmsg_gcstartcompact_I();
       break;
-    }                     // case GCSTARTCOMPACT
+    }   // case GCSTARTCOMPACT
 
 	case GCSTARTMAPINFO: {
       // received a flush phase start msg
       processmsg_gcstartmapinfo_I();
       break;
-    }                     // case GCSTARTFLUSH
+    }   // case GCSTARTFLUSH
 
     case GCSTARTFLUSH: {
       // received a flush phase start msg
       processmsg_gcstartflush_I();
       break;
-    }                     // case GCSTARTFLUSH
+    }   // case GCSTARTFLUSH
 
     case GCFINISHPRE: {
       processmsg_gcfinishpre_I();
       break;
-    }                     // case GCFINISHPRE
+    }   // case GCFINISHPRE
 	
 	case GCFINISHINIT: {
       processmsg_gcfinishinit_I();
       break;
-    }                     // case GCFINISHINIT
+    }   // case GCFINISHINIT
 
     case GCFINISHMARK: {
       processmsg_gcfinishmark_I();
       break;
-    }                     // case GCFINISHMARK
+    }   // case GCFINISHMARK
 
     case GCFINISHCOMPACT: {
       // received a compact phase finish msg
       processmsg_gcfinishcompact_I();
       break;
-    }                     // case GCFINISHCOMPACT
+    }   // case GCFINISHCOMPACT
 
 	case GCFINISHMAPINFO: {
       processmsg_gcfinishmapinfo_I();
       break;
-    }                     // case GCFINISHMAPINFO
+    }   // case GCFINISHMAPINFO
 
     case GCFINISHFLUSH: {
       processmsg_gcfinishflush_I();
       break;
-    }                     // case GCFINISHFLUSH
+    }   // case GCFINISHFLUSH
 
     case GCFINISH: {
       // received a GC finish msg
       gcphase = FINISHPHASE;
       break;
-    }                     // case GCFINISH
+    }   // case GCFINISH
 
     case GCMARKCONFIRM: {
       // received a marked phase finish confirm request msg
       // all cores should do mark
       processmsg_gcmarkconfirm_I();
       break;
-    }                     // case GCMARKCONFIRM
+    }   // case GCMARKCONFIRM
 
     case GCMARKREPORT: {
       processmsg_gcmarkreport_I();
       break;
-    }                     // case GCMARKREPORT
+    }   // case GCMARKREPORT
 
     case GCMARKEDOBJ: {
       processmsg_gcmarkedobj_I();
       break;
-    }                     // case GCMARKEDOBJ
+    }   // case GCMARKEDOBJ
 
     case GCMOVESTART: {
       // received a start moving objs msg
       processmsg_gcmovestart_I();
       break;
-    }                     // case GCMOVESTART
+    }   // case GCMOVESTART
 
     case GCMAPREQUEST: {
       // received a mapping info request msg
       processmsg_gcmaprequest_I();
       break;
-    }                     // case GCMAPREQUEST
+    }   // case GCMAPREQUEST
 
     case GCMAPINFO: {
       // received a mapping info response msg
       processmsg_gcmapinfo_I();
       break;
-    }                     // case GCMAPINFO
+    }   // case GCMAPINFO
 
     case GCMAPTBL: {
       // received a mapping tbl response msg
       processmsg_gcmaptbl_I();
       break;
-    }                     // case GCMAPTBL
+    }   // case GCMAPTBL
 	
 	case GCLOBJREQUEST: {
       // received a large objs info request msg
       transferMarkResults_I();
       break;
-    }                     // case GCLOBJREQUEST
+    }   // case GCLOBJREQUEST
 
     case GCLOBJINFO: {
       // received a large objs info response msg
       processmsg_gclobjinfo_I();
       break;
-    }                     // case GCLOBJINFO
+    }   // case GCLOBJINFO
 
     case GCLOBJMAPPING: {
       // received a large obj mapping info msg
       processmsg_gclobjmapping_I();
       break;
-    }                     // case GCLOBJMAPPING
+    }  // case GCLOBJMAPPING
 
 #ifdef GC_PROFILE//_S
 	case GCPROFILES: {
@@ -3323,9 +3289,7 @@ processmsg:
 
     default:
       break;
-    }             // switch(type)
-    //memset(msgdata, '\0', sizeof(int) * msgdataindex);
-    //msgdataindex = 0;
+    }  // switch(type)
     msglength = BAMBOO_MSG_BUF_LENGTH;
     // TODO
     //printf("++ msg: %x \n", type);
@@ -3345,10 +3309,14 @@ processmsg:
       goto msg;
     } // TODO
 
-#ifdef PROFILE
-/*if(isInterrupt) {
-                profileTaskEnd();
-        }*/
+#ifdef PROFILE_INTERRUPT
+  if(!interruptInfoOverflow) {
+    interruptInfoArray[interruptInfoIndex]->endTime=BAMBOO_GET_EXE_TIME();
+    interruptInfoIndex++;
+    if(interruptInfoIndex == INTERRUPTINFOLENGTH) {
+      interruptInfoOverflow = true;
+    }
+  }
 #endif
     return (int)type;
   } else {
@@ -3357,11 +3325,6 @@ processmsg:
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe88e);
 #endif
-#endif
-#ifdef PROFILE
-    /*  if(isInterrupt) {
-                            profileTaskEnd();
-                    }*/
 #endif
     return -2;
   }
@@ -3687,8 +3650,8 @@ newtask:
 	runtime_locks[j].redirectlock = (int)param;
 	runtime_locklen++;
       }
-    }       // line 2713: for(i = 0; i < numparams; i++)
-            // grab these required locks
+    }  // line 2713: for(i = 0; i < numparams; i++)
+       // grab these required locks
 #ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe991);
 #endif
@@ -3765,7 +3728,7 @@ newtask:
 	goto newtask;
 	//}
       }
-    }       // line 2752:  for(i = 0; i < runtime_locklen; i++)
+    }   // line 2752:  for(i = 0; i < runtime_locklen; i++)
 
     /*long clock3;
        clock3 = BAMBOO_GET_EXE_TIME();
@@ -4476,6 +4439,7 @@ void outputProfileData() {
     BAMBOO_DEBUGPRINT(0xefee);
   }
 
+#ifdef PROFILE_INTERRUPT
   // output interrupt related info
   for(i = 0; i < interruptInfoIndex; i++) {
     InterruptInfo* tmpIInfo = interruptInfoArray[i];
@@ -4488,6 +4452,7 @@ void outputProfileData() {
   if(interruptInfoOverflow) {
     BAMBOO_DEBUGPRINT(0xefef);
   }
+#endif // PROFILE_INTERRUPT
 
   BAMBOO_DEBUGPRINT(0xeeee);
 #endif

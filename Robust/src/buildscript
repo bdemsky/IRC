@@ -80,6 +80,7 @@ echo "-gclargesharedheap(2) set the gc shared memory as large (should be used to
 echo -gcprofile build with gcprofile options
 echo "-tilera_memprof build the memprof version (should be used together with -tilera_xx) "
 echo -accurateprofile build with accurate profile information including pre/post task processing info
+echo -profile_interrupt build with profile information of interrupts
 echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
 echo
 echo Other options
@@ -169,6 +170,7 @@ PROFILEFLAG=false
 GCPROFILEFLAG=false
 GCPROFILESFLAG=false
 ACCURATEPROFILEFLAG=false
+PROFILEINTERRUPTFLAG=false
 USEIOFLAG=false
 INTERRUPTFLAG=false
 THREADSIMULATEFLAG=false;
@@ -201,6 +203,7 @@ ASSEMBLY=false
 GCCORES=''
 GC1COREFLAG=false
 TILERAN1COREFLAG=false
+TILERA56COREFLAG=false
 
 if [[ -z $1 ]]
 then
@@ -352,6 +355,9 @@ GCPROFILESFLAG=true
 elif [[ $1 = '-accurateprofile' ]]
 then
 ACCURATEPROFILEFLAG=true
+elif [[ $1 = '-profile_interrupt' ]]
+then
+PROFILEINTERRUPTFLAG=true
 elif [[ $1 = '-useio' ]]
 then
 USEIOFLAG=true
@@ -374,6 +380,10 @@ JAVAOPTS="$JAVAOPTS -numcore $2"
 if [[ "$2" -gt "1" ]]
 then
 TILERAN1COREFLAG=true
+if [[ "$2" -eq "56" ]]
+then
+TILERA56COREFLAG=true
+fi
 fi
 shift
 elif [[ $1 = '-numcore4gc' ]]
@@ -809,6 +819,10 @@ then # 1-core gc
 	PCIHVC="$PCIHVC.1gc"
   fi
 fi
+if $TILERA56COREFLAG
+then
+  PCIHVC="$PCIHVC.56"
+fi
 elif $TILERAZLINUXFLAG
 then # TILERAZLINUXFLAG
 TILERA_INDIR="ZLinux"
@@ -859,6 +873,11 @@ fi
 if $ACCURATEPROFILEFLAG
 then # accurateprofile version
 TILERACFLAGS="${TILERACFLAGS} -DACCURATEPROFILE"
+fi
+
+if $PROFILEINTERRUPTFLAG
+then # profile_interrupt version
+TILERACFLAGS="${TILERACFLAGS} -DPROFILE_INTERRUPT"
 fi
 
 if $USEIOFLAG
@@ -957,7 +976,12 @@ if $TILERABMEFLAG
 then # TILERABMEFLAG
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$SIMHVC ./sim.hvc
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$PCIHVC ./pci.hvc
+if $TILERA56COREFLAG
+then
+cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/bamboo-vmlinux-pci.hvc.56 ./bamboo-vmlinux-pci.hvc.56
+else
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
+fi
 fi
 cp ../Runtime/multicoretask.c ./
 cp ../Runtime/multicoreruntime.c ./

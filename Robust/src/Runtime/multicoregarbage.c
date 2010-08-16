@@ -2963,7 +2963,6 @@ inline bool gc(struct garbagelist * stackptr) {
     printf("(%x,%X) Check if can do gc or not\n", udn_tile_coord_x(),
 		   udn_tile_coord_y());
 #endif
-	//if(gcnumpre != 0) {
 	bool isallstall = true;
 	gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
 	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();

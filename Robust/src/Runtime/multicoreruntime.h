@@ -308,8 +308,8 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_PAGE_SIZE (256 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (256 * 1024)
 #elif defined GC_SMALLPAGESIZE2
-#define BAMBOO_PAGE_SIZE (256 * 1024)  // (4096)
-#define BAMBOO_SMEM_SIZE (256 * 1024)
+#define BAMBOO_PAGE_SIZE (64 * 1024)  // (4096)
+#define BAMBOO_SMEM_SIZE (64 * 1024)
 #else
 #define BAMBOO_PAGE_SIZE (1024 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (1024 * 1024)
@@ -374,8 +374,10 @@ int total_num_t6;
 // data structures for profile mode
 #ifdef PROFILE
 
-#define TASKINFOLENGTH 30000
-#define INTERRUPTINFOLENGTH 500
+#define TASKINFOLENGTH 3000 // 0
+#ifdef PROFILE_INTERRUPT
+#define INTERRUPTINFOLENGTH 50 //0
+#endif // PROFILE_INTERRUPT
 
 bool stall;
 //bool isInterrupt;
@@ -390,19 +392,19 @@ typedef struct task_info {
   struct Queue * newObjs;
 } TaskInfo;
 
-// TODO
+TaskInfo * taskInfoArray[TASKINFOLENGTH];
+int taskInfoIndex;
+bool taskInfoOverflow;
+#ifdef PROFILE_INTERRUPT
 typedef struct interrupt_info {
   unsigned long long startTime;
   unsigned long long endTime;
 } InterruptInfo;
 
-TaskInfo * taskInfoArray[TASKINFOLENGTH];
-int taskInfoIndex;
-bool taskInfoOverflow;
-// TODO
 InterruptInfo * interruptInfoArray[INTERRUPTINFOLENGTH];
 int interruptInfoIndex;
 bool interruptInfoOverflow;
+#endif // PROFILE_INTERUPT
 volatile int profilestatus[NUMCORESACTIVE]; // records status of each core
                                             // 1: running tasks
                                             // 0: stall
