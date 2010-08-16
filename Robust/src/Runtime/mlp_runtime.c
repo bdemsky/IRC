@@ -515,7 +515,8 @@ ADDVECTOR(MemoryQueue *Q, REntry *r) {
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag); 
     if (flag!=NULL) {
       if (isParentCoarse(r)) { //parent's retire immediately
-        atomic_dec(&V->item.total);   
+        atomic_dec(&V->item.total);
+        V->index--;
       }
       return READY;
     } else {
