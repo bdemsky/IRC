@@ -25,7 +25,7 @@ import IR.TypeDescriptor;
  * 3) Call void close()
  */
 public class RuntimeConflictResolver {
-  private static final boolean debug = true;
+  private static final boolean debug = false;
   
   private PrintWriter cFile;
   private PrintWriter headerFile;
@@ -110,6 +110,36 @@ public class RuntimeConflictResolver {
     return "traverse___" + invar.getSafeSymbol().replaceAll(" ", "") + 
     sese.getPrettyIdentifier().replaceAll(" ", "") + "___("+varString+");";
   }
+  
+  public void traverseStallSite(
+      FlatSESEEnterNode rblock,
+      TempDescriptor invar,
+      Hashtable<Taint, Set<Effect>> effects,
+      Hashtable<Taint, Set<Effect>> conflicts, 
+      ReachGraph rg) {
+    
+    
+    TypeDescriptor type = invar.getType();
+    if(type == null || type.isPrimitive()) {
+      return;
+    }
+
+    //created stores nodes with specific alloc sites that have been traversed while building
+    //internal data structure. It is later traversed sequentially to find inset variables and
+    //build output code.
+    Hashtable<AllocSite, ConcreteRuntimeObjNode> created = new Hashtable<AllocSite, ConcreteRuntimeObjNode>();
+    VariableNode varNode = rg.getVariableNodeNoMutation(invar);
+    Hashtable<AllocSite, EffectsGroup> effectsLookupTable;
+    
+    effectsLookupTable = generateEffectsLookupTable(rblock, varNode, effects, conflicts);
+    createConcreteGraph(effectsLookupTable, created, varNode);
+    
+    if (!created.isEmpty()) {
+      rblock.addInVarForDynamicCoarseConflictResolution(invar);
+      printCMethods(created, invar.getSafeSymbol(), rblock.getPrettyIdentifier());
+    }
+    
+  }
 
   public void close() {
     // Adds Extra supporting methods
@@ -123,7 +153,6 @@ public class RuntimeConflictResolver {
     headerFile.close();
   }
 
-  //TODO it appears that using the optimize flags screws with the invar naming. 
   private void createConcreteGraph(
       Hashtable<AllocSite, EffectsGroup> table,
       Hashtable<AllocSite, ConcreteRuntimeObjNode> created, 
@@ -252,7 +281,7 @@ public class RuntimeConflictResolver {
     if (currEffects == null || currEffects.isEmpty()) 
       return;
     
-    //Handle Objects
+    //Handle Objects (and primitive conflict flag propagation)
     if(currEffects.hasObjectEffects()) {
       while(edges.hasNext()) {
         RefEdge edge = edges.next();
@@ -279,14 +308,21 @@ public class RuntimeConflictResolver {
             propogateObjConflictFlag(child);
           }
           
+          //If isNewChild, flag propagation will be handled at recursive call
           if (effectsForGivenField.hasReadEffect && isNewChild) {
+            child.addReachableParent(curr);
             createHelper(child, childHRN.iteratorToReferencees(), created, table);
+          }
+          else {
+            if(child.decendantsPrimConflict || child.hasPrimativeConflicts()) {
+              propogatePrimConflictFlag(curr);
+            }
           }
         }
       }
     }
     
-    //Handle primitives
+    //Handles primitives
     if(currEffects.hasPrimativeConflicts()) {
       curr.conflictingPrimitiveFields = currEffects.primativeConflictingFields; 
       propogatePrimConflictFlag(curr);
@@ -294,25 +330,21 @@ public class RuntimeConflictResolver {
   }
 
   // This will propagate the conflict up the data structure.
-  private void propogateObjConflictFlag(ConcreteRuntimeObjNode in) {
-    ConcreteRuntimeObjNode node = in;
-    while(node.lastReferencer != null) {
-      node.lastReferencer.decendantsObjConflict = true;
-      if(!node.parentsThatWillLeadToConflicts.add(node.lastReferencer) && 
-          node.lastReferencer.isInsetVar)
-        break;
-      node = node.lastReferencer;
+  private void propogateObjConflictFlag(ConcreteRuntimeObjNode curr) {
+    for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
+      if(curr.parentsThatWillLeadToConflicts.add(referencer)) {
+        referencer.decendantsObjConflict = true;
+        propogateObjConflictFlag(referencer);
+      }
     }
   }
   
-  private void propogatePrimConflictFlag(ConcreteRuntimeObjNode in) {
-    ConcreteRuntimeObjNode node = in;
-    while(node.lastReferencer != null) {
-      node.lastReferencer.decendantsPrimConflict = true;
-      if(!node.parentsThatWillLeadToConflicts.add(node.lastReferencer) && 
-          node.lastReferencer.isInsetVar)
-        break;
-      node = node.lastReferencer;
+  private void propogatePrimConflictFlag(ConcreteRuntimeObjNode curr) {
+    for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
+      if(curr.parentsThatWillLeadToConflicts.add(referencer)) {
+        referencer.decendantsPrimConflict = true;
+        propogatePrimConflictFlag(referencer);
+      }
     }
   }
 
@@ -340,8 +372,6 @@ public class RuntimeConflictResolver {
       if (!cases.containsKey(node.allocSite) && 
           (node.getNumOfReachableParents() != 1 || node.isInsetVar) && 
           (node.decendantsConflict() || node.hasPrimativeConflicts())) {
-        //resets the lastReferncer if we're dealing with an insetVar
-        node.lastReferencer = null;
         addChecker(node, cases, null, "ptr", 0);
       }
     }
@@ -571,41 +601,6 @@ public class RuntimeConflictResolver {
       return hasReadConflict || hasWriteConflict || hasStrongUpdateConflict;
     }
   }
-  
-//  private class EffectPair {
-//    Effect originalEffect;
-//    int type;
-//    boolean conflict;
-//
-//    public EffectPair(Effect e, boolean conflict) {
-//      originalEffect = e;
-//      type = e.getType();
-//      this.conflict = conflict;
-//    }
-//
-//    public int hashCode() {
-//      return originalEffect.hashCode();
-//    }
-//
-//    public boolean equals(Object o) {
-//      if (o == null)
-//        return false;
-//
-//      if (!(o instanceof EffectPair))
-//        return false;
-//
-//      EffectPair other = (EffectPair) o;
-//
-//      return (other.originalEffect.getAffectedAllocSite().equals(
-//          originalEffect.getAffectedAllocSite()) && other.originalEffect.getField().equals(
-//          originalEffect.getField()));
-//    }
-//    
-//    public String toString()
-//    {
-//      return originalEffect.toString();
-//    }
-//  }
 
   //This will keep track of a reference
   private class ObjRef {
@@ -639,8 +634,8 @@ public class RuntimeConflictResolver {
   private class ConcreteRuntimeObjNode {
     ArrayList<ObjRef> objectRefs;
     ArrayList<String> conflictingPrimitiveFields;
+    HashSet<ConcreteRuntimeObjNode> parentsWithReadToNode;
     HashSet<ConcreteRuntimeObjNode> parentsThatWillLeadToConflicts;
-    ConcreteRuntimeObjNode lastReferencer;
     boolean decendantsPrimConflict;
     boolean decendantsObjConflict;
     boolean isInsetVar;
@@ -649,14 +644,18 @@ public class RuntimeConflictResolver {
 
     public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar) {
       objectRefs = new ArrayList<ObjRef>();
+      conflictingPrimitiveFields = null;
       parentsThatWillLeadToConflicts = new HashSet<ConcreteRuntimeObjNode>();
-      lastReferencer = null;
+      parentsWithReadToNode = new HashSet<ConcreteRuntimeObjNode>();
       allocSite = me.getAllocSite();
       original = me;
       isInsetVar = isInVar;
       decendantsPrimConflict = false;
       decendantsObjConflict = false;
-      conflictingPrimitiveFields = null;
+    }
+
+    public void addReachableParent(ConcreteRuntimeObjNode curr) {
+      parentsWithReadToNode.add(curr);
     }
 
     @Override
@@ -687,7 +686,6 @@ public class RuntimeConflictResolver {
     }
 
     public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
-      child.lastReferencer = this;
       ObjRef ref = new ObjRef(field, child, ce);
       objectRefs.add(ref);
     }
