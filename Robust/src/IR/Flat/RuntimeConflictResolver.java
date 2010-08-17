@@ -12,9 +12,6 @@ import Analysis.Disjoint.*;
 import IR.TypeDescriptor;
 
 //TODO Make more efficient by only using ONE hashtable. 
-
-//TODO make threads be aware of each other and add another check for other rblocks or something
-//to fix issue of sometimes one thread marking conflict and not the other.
 //TODO it appears that using the optimize flags screws with the invar naming. 
 
 /* An instance of this class manages all OoOJava coarse-grained runtime conflicts
@@ -28,9 +25,8 @@ import IR.TypeDescriptor;
  * 3) Call void close()
  */
 public class RuntimeConflictResolver {
-  private static boolean debug = false;
+  private static final boolean debug = true;
   
-  public static String outputFile;
   private PrintWriter cFile;
   private PrintWriter headerFile;
   private static final String hashAndQueueCFileDir = "oooJava/";
@@ -48,7 +44,7 @@ public class RuntimeConflictResolver {
   private static final String resetHashTable = "hashRCRreset()";
 
   public RuntimeConflictResolver(String buildir) throws FileNotFoundException {
-    outputFile = buildir + "RuntimeConflictResolver";
+    String outputFile = buildir + "RuntimeConflictResolver";
     
     cFile = new PrintWriter(new File(outputFile + ".c"));
     headerFile = new PrintWriter(new File(outputFile + ".h"));
@@ -67,11 +63,12 @@ public class RuntimeConflictResolver {
 
   /*
    * Basic steps: 
-   * 1) Create pruned data structures from givens 
-   *     1a) Use effects sets to verify if we can access something (reads) 
-   *     1b) Mark conflicts with 2 flags (one for self, one for references down the line) 
-   * 2) build code output structure 
-   * 3) printout
+   * 1) Create a hashed Effects Lookup Table (hashed by allocsite then fieldname)
+   *     1a) Use effects sets to verify if we can access something (reads)
+   *     1b) Use conflicts list to mark conflicts 
+   * 2) Build runtime representation of data structure
+   *     2a) Mark conflicts with 2 flags (one for self, one for references down the line) 
+   * 3) Printout via traversing data structure created in previous step.
    */
   public void traverse(FlatSESEEnterNode rblock, 
       Hashtable<Taint, Set<Effect>> effects,
@@ -92,12 +89,19 @@ public class RuntimeConflictResolver {
         continue;
       }
 
+      //created stores nodes with specific alloc sites that have been traversed while building
+      //internal data structure. It is later traversed sequentially to find inset variables and
+      //build output code.
       Hashtable<AllocSite, ConcreteRuntimeObjNode> created = new Hashtable<AllocSite, ConcreteRuntimeObjNode>();
-
-      createTree(rblock, invar, effects, conflicts, rg, created);
+      VariableNode varNode = rg.getVariableNodeNoMutation(invar);
+      Hashtable<AllocSite, EffectsGroup> effectsLookupTable;
+      
+      effectsLookupTable = generateEffectsLookupTable(rblock, varNode, effects, conflicts);
+      createConcreteGraph(effectsLookupTable, created, varNode);
+      
       if (!created.isEmpty()) {
         rblock.addInVarForDynamicCoarseConflictResolution(invar);
-        printCMethod(created, invar.getSafeSymbol(), rblock.getPrettyIdentifier());
+        printCMethods(created, invar.getSafeSymbol(), rblock.getPrettyIdentifier());
       }
     }
   }
@@ -120,33 +124,41 @@ public class RuntimeConflictResolver {
   }
 
   //TODO it appears that using the optimize flags screws with the invar naming. 
-  private void createTree(FlatSESEEnterNode rblock, 
-      TempDescriptor invar,
-      Hashtable<Taint, Set<Effect>> effects,
-      Hashtable<Taint, Set<Effect>> conflicts, 
-      ReachGraph rg, 
-      Hashtable<AllocSite, ConcreteRuntimeObjNode> created) {
-
-    VariableNode varNode = rg.getVariableNodeNoMutation(invar);
-   
-    //TODO Fix bug where it recognizes multiple effects for the same string ><
-    Hashtable<AllocSite, EffectsGroup> table =
-        generateEffectsLookupTable(rblock, varNode, effects, conflicts);
+  private void createConcreteGraph(
+      Hashtable<AllocSite, EffectsGroup> table,
+      Hashtable<AllocSite, ConcreteRuntimeObjNode> created, 
+      VariableNode varNode) {
     
     // if table is null that means there's no conflicts, therefore we need not
     // create a traversal
     if (table == null)
-      return;
-   
+      return;    
+    
+    
     if(debug) {
-      System.out.println("==========Table print out============");
-      for(AllocSite key: table.keySet()) {
-        EffectsGroup eg= table.get(key);
-        for(String innerKey: eg.myEffects.keySet()) {
-          EffectPair ef = eg.myEffects.get(innerKey);
-          System.out.println(key.hashCode() + "." + innerKey + "    conflict="+ ef.conflict );
+    System.out.println("==========Table print out============");
+      System.out.print("    Key is effect Exists/Conflict\n");
+      for(AllocSite allockey: table.keySet()) {
+        EffectsGroup eg= table.get(allockey);
+        if(eg.hasPrimativeConflicts()) {
+          System.out.print("Primitive Conflicts at alloc " + allockey.hashCode() +" : ");
+          for(String field: eg.primativeConflictingFields) {
+            System.out.print(field + " ");
+          }
+          System.out.println();
+        }
+        for(String fieldKey: eg.myEffects.keySet()) {
+          CombinedObjEffects ce = eg.myEffects.get(fieldKey);
+          System.out.println("\nFor allocSite " + allockey.hashCode() + " && field " + fieldKey);
+          System.out.println("\tread " + ce.hasReadEffect + "/"+ce.hasReadConflict + 
+              " write " + ce.hasWriteEffect + "/" + ce.hasWriteConflict + 
+              " SU " + ce.hasStrongUpdateEffect + "/" + ce.hasStrongUpdateConflict);
+          for(Effect ef: ce.originalEffects) {
+            System.out.println("\t" + ef);
+          }
         }
       }
+      System.out.println("===========End print out=============");
     }
 
     Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();    
@@ -180,25 +192,26 @@ public class RuntimeConflictResolver {
       Set<Effect> localEffects = effects.get(taint);
       Set<Effect> localConflicts = conflicts.get(taint);
       
-      if (localEffects == null || localEffects.isEmpty() || localConflicts == null || localConflicts.isEmpty())
-        return null;
-      
-  //    Debug Code for manually checking effects
+      //    Debug Code for manually checking effects
       if(debug) {
         System.out.println("#### List of Effects/Conflicts ####");
         System.out.println("For Taint " + taint);
         System.out.println("Effects");
-        for(Effect e: localEffects)
-        {
-         System.out.println(e); 
+        if(localEffects != null) {
+          for(Effect e: localEffects) {
+           System.out.println(e); 
+          }
         }
-        
         System.out.println("Conflicts");
-        for(Effect e: localConflicts)
-        {
-          System.out.println(e); 
+        if(localConflicts != null) {
+          for(Effect e: localConflicts) {
+            System.out.println(e); 
+          }
         }
       }
+      
+      if (localEffects == null || localEffects.isEmpty() || localConflicts == null || localConflicts.isEmpty())
+        return null;
       
       Hashtable<AllocSite, EffectsGroup> lookupTable = new Hashtable<AllocSite, EffectsGroup>();
       
@@ -218,7 +231,7 @@ public class RuntimeConflictResolver {
           }
         }
         else {
-          myEffects.addObj(e, conflict);
+          myEffects.addObjEffect(e, conflict);
         }      
       }
       
@@ -240,14 +253,13 @@ public class RuntimeConflictResolver {
       return;
     
     //Handle Objects
-    if(currEffects.hasObjectConflicts()) {
+    if(currEffects.hasObjectEffects()) {
       while(edges.hasNext()) {
         RefEdge edge = edges.next();
         String field = edge.getField();
-        EffectPair effect = currEffects.getObjEffect(field); // TODO are you certain there is only one effect to get here?
-        //If there is no effect, then there's not point in traversing this edge
-        if(effect != null)
-        {
+        CombinedObjEffects effectsForGivenField = currEffects.getObjEffect(field);
+        //If there are no effects, then there's no point in traversing this edge
+        if(effectsForGivenField != null) {
           HeapRegionNode childHRN = edge.getDst();
           AllocSite childKey = childHRN.getAllocSite();
           boolean isNewChild = !created.containsKey(childKey);
@@ -261,13 +273,13 @@ public class RuntimeConflictResolver {
             child = created.get(childKey);
           }
     
-          curr.addObjChild(field, child, effect.conflict);
+          curr.addObjChild(field, child, effectsForGivenField);
           
-          if (effect.conflict) {
+          if (effectsForGivenField.hasConflict() || child.decendantsObjConflict) {
             propogateObjConflictFlag(child);
           }
           
-          if (effect.type == Effect.read && isNewChild) {
+          if (effectsForGivenField.hasReadEffect && isNewChild) {
             createHelper(child, childHRN.iteratorToReferencees(), created, table);
           }
         }
@@ -276,18 +288,18 @@ public class RuntimeConflictResolver {
     
     //Handle primitives
     if(currEffects.hasPrimativeConflicts()) {
-      curr.primativeFields = currEffects.primativeConflictingFields; 
+      curr.conflictingPrimitiveFields = currEffects.primativeConflictingFields; 
       propogatePrimConflictFlag(curr);
-    } 
+    }
   }
 
   // This will propagate the conflict up the data structure.
   private void propogateObjConflictFlag(ConcreteRuntimeObjNode in) {
     ConcreteRuntimeObjNode node = in;
-    
     while(node.lastReferencer != null) {
       node.lastReferencer.decendantsObjConflict = true;
-      if(!node.conflictingParents.add(node.lastReferencer))
+      if(!node.parentsThatWillLeadToConflicts.add(node.lastReferencer) && 
+          node.lastReferencer.isInsetVar)
         break;
       node = node.lastReferencer;
     }
@@ -295,10 +307,10 @@ public class RuntimeConflictResolver {
   
   private void propogatePrimConflictFlag(ConcreteRuntimeObjNode in) {
     ConcreteRuntimeObjNode node = in;
-    
     while(node.lastReferencer != null) {
       node.lastReferencer.decendantsPrimConflict = true;
-      if(!node.conflictingParents.add(node.lastReferencer))
+      if(!node.parentsThatWillLeadToConflicts.add(node.lastReferencer) && 
+          node.lastReferencer.isInsetVar)
         break;
       node = node.lastReferencer;
     }
@@ -315,7 +327,7 @@ public class RuntimeConflictResolver {
    *  conflicts will be signaled by the referencer; the only exception is the inset variable which can 
    *  signal a conflict within itself. 
    */
-  private void printCMethod(Hashtable<AllocSite, ConcreteRuntimeObjNode> created, String inVar, String rBlock) {
+  private void printCMethods(Hashtable<AllocSite, ConcreteRuntimeObjNode> created, String inVar, String rBlock) {
     //This hash table keeps track of all the case statements generated. Although it may seem a bit much
     //for its purpose, I think it may come in handy later down the road to do it this way. 
     //(i.e. what if we want to eliminate some cases? Or build filter for 1 case)
@@ -325,8 +337,9 @@ public class RuntimeConflictResolver {
     for (ConcreteRuntimeObjNode node : created.values()) {
       // If we haven't seen it and it's a node with more than 1 parent
       // Note: a node with 0 parents is a root node (i.e. inset variable)
-      if (!cases.containsKey(node.allocSite) && (node.getNumOfReachableParents() != 1 || node.isInsetVar)
-          && node.decendantsConflict()) {
+      if (!cases.containsKey(node.allocSite) && 
+          (node.getNumOfReachableParents() != 1 || node.isInsetVar) && 
+          (node.decendantsConflict() || node.hasPrimativeConflicts())) {
         //resets the lastReferncer if we're dealing with an insetVar
         node.lastReferencer = null;
         addChecker(node, cases, null, "ptr", 0);
@@ -340,7 +353,9 @@ public class RuntimeConflictResolver {
     cFile.append(methodName + " {\n");
     headerFile.append(methodName + ";\n");
     
-    cFile.append("printf(\"The traverser ran for " + methodName + "\\n\");\n");
+    if(debug) {
+      cFile.append("printf(\"The traverser ran for " + methodName + "\\n\");\n");
+    }
     
     if(cases.size() == 0) {
       cFile.append(" return; }");
@@ -378,7 +393,9 @@ public class RuntimeConflictResolver {
     StringBuilder currCase = possibleContinuingCase;
     // We don't need a case statement for things with either 1 incoming or 0 out
     // going edges, because they can be processed when checking the parent. 
-    if ((node.getNumOfReachableParents() != 1 || node.isInsetVar)  && node.decendantsConflict()) {
+    if ((node.getNumOfReachableParents() != 1 || node.isInsetVar)  && 
+        (node.decendantsConflict() || node.hasPrimativeConflicts())) {
+      
       assert prefix.equals("ptr") && !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
       cases.put(node.allocSite, currCase);
@@ -389,7 +406,7 @@ public class RuntimeConflictResolver {
     
     //Specific Primitives test for invars
     if(node.isInsetVar && node.hasPrimativeConflicts()) {
-      handlePrimitiveConflict(currCase, prefix, node.primativeFields, node.allocSite);
+      handlePrimitiveConflict(currCase, prefix, node.conflictingPrimitiveFields, node.allocSite);
     }
     
     //Casts C pointer; depth is used to create unique "myPtr" name for when things are inlined
@@ -400,23 +417,25 @@ public class RuntimeConflictResolver {
     //Handles Objects
     for (ObjRef ref : node.objectRefs) {
       // Will only process edge if there is some sort of conflict with the Child
-      if (ref.hasConflictsDownThisPath(node)) {
+      if (ref.hasConflictsDownThisPath()) {
         String childPtr = currPtr +"->___" + ref.field + "___";
-        
+
         // Checks if the child exists and has allocsite matching the conflict
         currCase.append("if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "=="
             + ref.allocSite + ") { ");
 
         // Prints out conflicts of child
-        if (ref.child.hasConflicts())
-          handleObjConflict(currCase, childPtr, node.allocSite);
+        if (ref.hasDirectObjConflict()) {
+          handleObjConflict(currCase, childPtr, node.allocSite, ref);
+        }
        
-        if(ref.child.hasPrimativeConflicts())
-          handlePrimitiveConflict(currCase, childPtr, ref.child.primativeFields, ref.child.allocSite);
-
+        if(ref.child.hasPrimativeConflicts()) {
+          handlePrimitiveConflict(currCase, childPtr, ref.child.conflictingPrimitiveFields, ref.child.allocSite);
+        }
+          
         if (ref.child.decendantsConflict()) {
           // Checks if we have visited the child before
-          currCase.append("if(!" + queryAndAddHashTableInC + childPtr + ")) { ");
+          currCase.append("if(" + queryAndAddHashTableInC + childPtr + ")) { ");
           if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
             addChecker(ref.child, cases, currCase, childPtr, depth + 1);
           }
@@ -430,11 +449,12 @@ public class RuntimeConflictResolver {
       }
     }
 
-    if ((node.getNumOfReachableParents() != 1 || node.isInsetVar) && node.decendantsConflict())
+    if ((node.getNumOfReachableParents() != 1 || node.isInsetVar) && 
+        (node.decendantsConflict() || node.hasPrimativeConflicts()))
       currCase.append(" } break; \n");
   }
 
-  private void handleObjConflict(StringBuilder currCase, String childPtr, AllocSite allocSite) {
+  private void handleObjConflict(StringBuilder currCase, String childPtr, AllocSite allocSite, ObjRef ref) {
     currCase.append("printf(\"Conflict detected with %p from parent with allocation site %u\\n\"," + childPtr + "," + allocSite.hashCodeSpecific() + ");");
   }
   
@@ -461,11 +481,11 @@ public class RuntimeConflictResolver {
 
   private class EffectsGroup
   {
-    Hashtable<String, EffectPair> myEffects;
+    Hashtable<String, CombinedObjEffects> myEffects;
     ArrayList<String> primativeConflictingFields;
     
     public EffectsGroup() {
-      myEffects = new Hashtable<String, EffectPair>();
+      myEffects = new Hashtable<String, CombinedObjEffects>();
       primativeConflictingFields = new ArrayList<String>();
     }
 
@@ -473,9 +493,13 @@ public class RuntimeConflictResolver {
       primativeConflictingFields.add(e.getField().toPrettyStringBrief());
     }
     
-    public void addObj(Effect e, boolean conflict) {
-      EffectPair effect = new EffectPair(e, conflict);
-      myEffects.put(e.getField().getSymbol(), effect);
+    public void addObjEffect(Effect e, boolean conflict) {
+      CombinedObjEffects effects;
+      if((effects = myEffects.get(e.getField().getSymbol())) == null) {
+        effects = new CombinedObjEffects();
+        myEffects.put(e.getField().getSymbol(), effects);
+      }
+      effects.add(e, conflict);
     }
     
     public boolean isEmpty() {
@@ -486,89 +510,136 @@ public class RuntimeConflictResolver {
       return !primativeConflictingFields.isEmpty();
     }
     
-    public boolean hasObjectConflicts() {
+    public boolean hasObjectEffects() {
       return !myEffects.isEmpty();
     }
     
-    public EffectPair getObjEffect(String field) {
+    public CombinedObjEffects getObjEffect(String field) {
       return myEffects.get(field);
     }
   }
   
-  private class EffectPair {
-    Effect originalEffect;
-    int type;
-    boolean conflict;
-
-    public EffectPair(Effect e, boolean conflict) {
-      originalEffect = e;
-      type = e.getType();
-      this.conflict = conflict;
-    }
-
-    public int hashCode() {
-      return originalEffect.hashCode();
-    }
-
-    public boolean equals(Object o) {
-      if (o == null)
-        return false;
-
-      if (!(o instanceof EffectPair))
-        return false;
-
-      EffectPair other = (EffectPair) o;
-
-      return (other.originalEffect.getAffectedAllocSite().equals(
-          originalEffect.getAffectedAllocSite()) && other.originalEffect.getField().equals(
-          originalEffect.getField()));
+  //Is the combined effects for all effects with the same affectedAllocSite and field
+  private class CombinedObjEffects {
+    ArrayList<Effect> originalEffects;
+    
+    public boolean hasReadEffect;
+    public boolean hasWriteEffect;
+    public boolean hasStrongUpdateEffect;
+    
+    public boolean hasReadConflict;
+    public boolean hasWriteConflict;
+    public boolean hasStrongUpdateConflict;
+    
+    
+    public CombinedObjEffects() {
+      originalEffects = new ArrayList<Effect>();
+      
+      hasReadEffect = false;
+      hasWriteEffect = false;
+      hasStrongUpdateEffect = false;
+      
+      hasReadConflict = false;
+      hasWriteConflict = false;
+      hasStrongUpdateConflict = false;
     }
     
-    public String toString()
-    {
-      return originalEffect.toString();
+    public boolean add(Effect e, boolean conflict) {
+      if(!originalEffects.add(e))
+        return false;
+      
+      switch(e.getType()) {
+      case Effect.read:
+        hasReadEffect = true;
+        hasReadConflict = conflict;
+        break;
+      case Effect.write:
+        hasWriteEffect = true;
+        hasWriteConflict = conflict;
+        break;
+      case Effect.strongupdate:
+        hasStrongUpdateEffect = true;
+        hasStrongUpdateConflict = conflict;
+        break;
+      default:
+        System.out.println("RCR ERROR: An Effect Type never seen before has been encountered");
+      }
+      return true;
+    }
+    
+    public boolean hasConflict() {
+      return hasReadConflict || hasWriteConflict || hasStrongUpdateConflict;
     }
   }
+  
+//  private class EffectPair {
+//    Effect originalEffect;
+//    int type;
+//    boolean conflict;
+//
+//    public EffectPair(Effect e, boolean conflict) {
+//      originalEffect = e;
+//      type = e.getType();
+//      this.conflict = conflict;
+//    }
+//
+//    public int hashCode() {
+//      return originalEffect.hashCode();
+//    }
+//
+//    public boolean equals(Object o) {
+//      if (o == null)
+//        return false;
+//
+//      if (!(o instanceof EffectPair))
+//        return false;
+//
+//      EffectPair other = (EffectPair) o;
+//
+//      return (other.originalEffect.getAffectedAllocSite().equals(
+//          originalEffect.getAffectedAllocSite()) && other.originalEffect.getField().equals(
+//          originalEffect.getField()));
+//    }
+//    
+//    public String toString()
+//    {
+//      return originalEffect.toString();
+//    }
+//  }
 
+  //This will keep track of a reference
   private class ObjRef {
     String field;
     int allocSite;
+    CombinedObjEffects myEffects;
+    
     //This keeps track of the parent that we need to pass by inorder to get
     //to the conflicting child (if there is one). 
-    ConcreteRuntimeObjNode parentPathToMe;
     ConcreteRuntimeObjNode child;
 
     public ObjRef(String fieldname, 
                   ConcreteRuntimeObjNode ref, 
-                  boolean con, 
-                  ConcreteRuntimeObjNode grandParent) {
+                  CombinedObjEffects myEffects) {
       field = fieldname;
       allocSite = ref.getAllocationSite();
       child = ref;
-      parentPathToMe = con ? grandParent : null;
+      
+      this.myEffects = myEffects;
     }
     
-    public boolean hasConflictsDownThisPath(ConcreteRuntimeObjNode curr) {
-      if(!child.hasConflicts())
-        return false;
-      
-      if(curr.conflictingParents.isEmpty() && curr.isInsetVar)
-        return true;
-      
-      for(ConcreteRuntimeObjNode parent: curr.conflictingParents)
-        // we can do a == since it will LITTERALLY be the same object. 
-        if(parent == parentPathToMe)
-          return true;
-      
-      return false;
+    public boolean hasConflictsDownThisPath() {
+      return child.decendantsObjConflict || child.decendantsPrimConflict || child.hasPrimativeConflicts() || myEffects.hasConflict(); 
+    }
+    
+    public boolean hasDirectObjConflict() {
+      return myEffects.hasConflict();
     }
   }
 
   private class ConcreteRuntimeObjNode {
     ArrayList<ObjRef> objectRefs;
-    ArrayList<String> primativeFields;
-    ArrayList<ConcreteRuntimeObjNode> parents;
-    HashSet<ConcreteRuntimeObjNode> conflictingParents;
+    ArrayList<String> conflictingPrimitiveFields;
+    HashSet<ConcreteRuntimeObjNode> parentsThatWillLeadToConflicts;
     ConcreteRuntimeObjNode lastReferencer;
     boolean decendantsPrimConflict;
     boolean decendantsObjConflict;
@@ -578,15 +649,14 @@ public class RuntimeConflictResolver {
 
     public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar) {
       objectRefs = new ArrayList<ObjRef>();
-      parents = new ArrayList<ConcreteRuntimeObjNode>();
-      conflictingParents = new HashSet<ConcreteRuntimeObjNode>();
+      parentsThatWillLeadToConflicts = new HashSet<ConcreteRuntimeObjNode>();
       lastReferencer = null;
       allocSite = me.getAllocSite();
       original = me;
       isInsetVar = isInVar;
       decendantsPrimConflict = false;
       decendantsObjConflict = false;
-      primativeFields = null;
+      conflictingPrimitiveFields = null;
     }
 
     @Override
@@ -605,32 +675,27 @@ public class RuntimeConflictResolver {
     }
 
     public int getNumOfReachableParents() {
-      return conflictingParents.size();
+      return parentsThatWillLeadToConflicts.size();
     }
     
     public boolean hasPrimativeConflicts() {
-      return primativeFields != null;
-    }
-    
-    public boolean hasConflicts() {
-      return (primativeFields != null) || !conflictingParents.isEmpty();
+      return conflictingPrimitiveFields != null;
     }
     
     public boolean decendantsConflict() {
       return decendantsPrimConflict || decendantsObjConflict;
     }
 
-    public void addObjChild(String field, ConcreteRuntimeObjNode child, boolean conflict) {
+    public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
       child.lastReferencer = this;
-      ObjRef ref = new ObjRef(field, child, conflict, this.lastReferencer);
+      ObjRef ref = new ObjRef(field, child, ce);
       objectRefs.add(ref);
-      child.parents.add(this);
     }
     
     public String toString()
     {
-      return "AllocSite=" + getAllocationSite() + " myConflict=" + !conflictingParents.isEmpty() + 
-              " decCon="+decendantsObjConflict+ " NumOfParents=" + parents.size()+ 
+      return "AllocSite=" + getAllocationSite() + " myConflict=" + !parentsThatWillLeadToConflicts.isEmpty() + 
+              " decCon="+decendantsObjConflict+ 
               " NumOfConParents=" + getNumOfReachableParents() + " ObjectChildren=" + objectRefs.size();
     }
   }
