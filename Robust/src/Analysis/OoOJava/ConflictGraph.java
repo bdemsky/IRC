@@ -619,7 +619,7 @@ public class ConflictGraph {
         // if there is at lease one SCC element, just enqueue SCC and
         // ignore others.
         refinedSet.add(SCCelement);
-      } else if (numCoarse == 1 && (numRead + numWrite == total)) {
+      } else if (numCoarse == 1 && (numRead + numWrite + numCoarse == total)) {
         // if one is a coarse, the othere are reads/write, enqueue SCC.
         WaitingElement we = new WaitingElement();
         we.setQueueID(queueID);
