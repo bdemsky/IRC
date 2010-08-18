@@ -667,8 +667,8 @@ public class ConflictGraph {
               newElement.setStatus(seseLock.getNodeType(node));
               if (isFineElement(newElement.getStatus())) {
                 newElement.setDynID(node.getVar().toString());
-                newElement.setTempDesc(node.getVar());
               }
+              newElement.setTempDesc(node.getVar());
               waitingElementSet.add(newElement);
             }
           }
@@ -682,8 +682,8 @@ public class ConflictGraph {
     return waitingElementSet;
   }
 
-  public Hashtable<Taint, Set<Effect>> getConflictEffectSet(FlatSESEEnterNode fsen) {
-    return sese2te.get(fsen);
+  public Hashtable<Taint, Set<Effect>> getConflictEffectSet(FlatNode fn) {
+    return sese2te.get(fn);
   }
 
   public void writeGraph(String graphName, boolean filter) throws java.io.IOException {
