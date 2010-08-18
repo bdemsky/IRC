@@ -290,21 +290,17 @@ public class BuildCode {
               //reach graph
               ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
               
-              //TODO remove this later
-              rg.writeGraph("RCRDEBUG");
+              if(rcr.cSideDebug) {
+                rg.writeGraph("RCR_RG_SESE_DEBUG");
+                }
                     
               //get effect set
               Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fsen);
                     
-              rcr.traverse(fsen, effects, conflicts, rg);
+              rcr.traverseSESEBlock(fsen, effects, conflicts, rg);
               }
           }
         }
-      
-      if(rcr != null) {
-        rcr.close();
-        System.out.println("Runtime Conflict Resolver Done.");
-      }  
     }
 
     /* Build the actual methods */
@@ -364,6 +360,10 @@ public class BuildCode {
     outmethod.close();
     outstructs.println("#endif");
     outstructs.close();
+    if(rcr != null) {
+      rcr.close();
+      System.out.println("Runtime Conflict Resolver Done.");
+    }  
   }
   
 
@@ -379,6 +379,11 @@ public class BuildCode {
       //outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
 
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
+      
+      //initializes data structures needed for the RCR traverser
+      if(state.RCR) {
+        outmethod.println("  initializeStructsRCR();");
+      }
     }
 
     if (state.DSM) {
@@ -2872,7 +2877,7 @@ public class BuildCode {
           //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
 	  output.println("   }");
 	}
-	
+  
 	// for each variable with a dynamic source, stall just for that variable
 	Iterator<TempDescriptor> dynItr = cp.getDynamicStallSet().iterator();
 	while( dynItr.hasNext() ) {
@@ -2939,7 +2944,7 @@ public class BuildCode {
             Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
             Set<Analysis.OoOJava.WaitingElement> waitingElementSet =
               graph.getStallSiteWaitingElementSet(fn, seseLockSet);
-        
+            
             if(waitingElementSet.size()>0){
               output.println("// stall on parent's stall sites ");
               output.println("   {");
@@ -2947,7 +2952,24 @@ public class BuildCode {
           
               for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
                 Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
-            
+                
+                if(state.RCR && rcr != null){
+                  Analysis.OoOJava.ConflictGraph conflictGraph = graph;
+                  Hashtable<Taint, Set<Effect>> conflicts;
+                  ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(currentSESE.getmdEnclosing());
+                  if(rcr.cSideDebug) {
+                    rg.writeGraph("RCR_RG_STALLSITE_DEBUG");
+                  }
+                  if((conflictGraph != null) && 
+                      (conflicts = graph.getConflictEffectSet(fn)) != null &&
+                      (rg != null)){
+                    
+                    //get effect set
+                    Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fn);
+                    rcr.traverseStallSite(fn, waitingElement.getTempDesc(), effects, conflicts, rg);
+                   }
+                }
+               
                 if( waitingElement.getStatus() >= ConflictNode.COARSE ){
                   output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
                 }else{
@@ -2955,13 +2977,17 @@ public class BuildCode {
                 }         
                 output.println("     psem_init( &(rentry->parentStallSem) );");
                 output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-                output
-                  .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+                output.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
                            + "],rentry)==NOTREADY){");
                 //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
                 output.println("        psem_take( &(rentry->parentStallSem) );");
                 //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
                 output.println("     }  ");
+                
+                if(state.RCR && rcr != null) {
+                  output.println("   "+rcr.getTraverserInvocation(waitingElement.getTempDesc(), 
+                      generateTemp(fm, waitingElement.getTempDesc(), null), fn));
+                }
               }
               output.println("   }");
             }
@@ -3873,9 +3899,6 @@ public class BuildCode {
                         useParentContext = true;
                       }
                     }
-                    
-                    //TODO fix this workaround later by invoking it only once in the lifetime of the program
-                    output.println("       initializeStructsRCR();");
                     
                     for (TempDescriptor invar : fsen.getInVarsForDynamicCoarseConflictResolution()) {                      
                       String varString;
