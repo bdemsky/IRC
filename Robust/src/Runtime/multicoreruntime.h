@@ -319,6 +319,10 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #endif // GC_DEBUG
 
 #ifdef MULTICORE_GC
+volatile bool gc_localheap_s;
+#endif
+
+#ifdef MULTICORE_GC
 #include "multicoregarbage.h"
 
 typedef enum {
@@ -562,11 +566,19 @@ void outputProfileData();
 //                            request response                             //
 // BAMBOO_LOCAL_MEM_CALLOC(x, y): allocate an array of x elements each of  //
 //                                whose size in bytes is y on local memory //
+//                                which is given by the hypervisor         //
 // BAMBOO_LOCAL_MEM_FREE(x): free space with ptr x on local memory         //
 // BAMBOO_LOCAL_MEM_CLOSE(): close the local heap                          //
+// BAMBOO_LOCAL_MEM_CALLOC_S(x, y): allocate an array of x elements each of//
+//                                  whose size in bytes is y on local      //
+//                                  memory which is not from the hypervisor//
+//                                  but is allocated from the free memory  //
+// BAMBOO_LOCAL_MEM_FREE_S(x): free space with ptr x on self-allocated     //
+//                             local memory                                //
+// BAMBOO_LOCAL_MEM_CLOSE_S(): close the self-allocated local heap        //
 // BAMBOO_SHARE_MEM_CALLOC_I(x, y): allocate an array of x elements each of//
 //                                whose size in bytes is y on shared memory//
-// BAMBOO_SHARE_MEM_CLOSE(): close the shared heap                        //
+// BAMBOO_SHARE_MEM_CLOSE(): close the shared heap                         //
 // BAMBOO_CACHE_LINE_SIZE: the cache line size                             //
 // BAMBOO_CACHE_LINE_MASK: mask for a cache line                           //
 // BAMBOO_CACHE_FLUSH_RANGE(x, y): flush cache lines started at x with     //
@@ -577,6 +589,7 @@ void outputProfileData();
 //                            hint, the processor will not fetch the       //
 //                            current content of the memory and directly   //
 //                            write                                        //
+// BAMBOO_CLEAN_DTLB(): zero-out all the dtlb entries                      //
 /////////////////////////////////////////////////////////////////////////////
 
 #endif  // #ifdef MULTICORE

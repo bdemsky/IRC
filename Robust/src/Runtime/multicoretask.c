@@ -311,6 +311,10 @@ void initruntimedata() {
   gc_num_forwardobj = 0;
   gc_num_profiles = NUMCORESACTIVE - 1;
 #endif
+#ifdef GC_FLUSH_DTLB
+  gc_num_flush_dtlb = 0;
+#endif
+  gc_localheap_s = false;
 #else
   // create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -602,6 +606,9 @@ void checkCoreStatus() {
 
 	  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
 	  //BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
+#ifdef GC_FLUSH_DTLB
+	  BAMBOO_DEBUGPRINT_REG(gc_num_flush_dtlb);
+#endif
 #ifndef BAMBOO_MEMPROF
 	  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
 #endif

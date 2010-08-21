@@ -3041,6 +3041,12 @@ pregccheck:
     printf("(%x,%x) start gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
     //dumpSMem();
 #endif
+#ifdef GC_FLUSH_DTLB
+	if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
+	  BAMBOO_CLEAN_DTLB();
+	  gc_num_flush_dtlb++;
+	}
+#endif
     gcprocessing = true;
     gcphase = INITPHASE;
     int i = 0;
@@ -3405,6 +3411,12 @@ pregccheck:
   gc_num_forwardobj = 0;
 #endif // GC_PROFLIE_S*/
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
+#ifdef GC_FLUSH_DTLB
+	if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
+	  BAMBOO_CLEAN_DTLB();
+	  gc_num_flush_dtlb++;
+	}
+#endif
     gcprocessing = true;
     gc_collect(stackptr);
 
@@ -3415,6 +3427,12 @@ pregccheck:
     gcflag = false;
     gcprocessing = false;
   } else {
+#ifdef GC_FLUSH_DTLB
+	if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
+	  BAMBOO_CLEAN_DTLB();
+	  gc_num_flush_dtlb++;
+	}
+#endif
     // not a gc core, should wait for gcfinish msg
     gcprocessing = true;
     gc_nocollect(stackptr);

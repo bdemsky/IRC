@@ -20,6 +20,11 @@
 // let each gc core to have one big block, this is very important
 // for the computation of NUMBLOCKS(s, n), DO NOT change this!
 
+#ifdef GC_FLUSH_DTLB
+#define GC_NUM_FLUSH_DTLB 1
+int gc_num_flush_dtlb;
+#endif
+
 #define NUMPTRS 100
 
 // for GC profile
