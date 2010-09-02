@@ -666,11 +666,7 @@ inline void initGC() {
   freeRuntimeHash(gcpointertbl);
   gcpointertbl = allocateRuntimeHash(20);
 #else
-  // TODO
-  //tprintf("++local hash table element: %x \n", gcpointertbl->numelements);
   mgchashreset(gcpointertbl);
-  // TODO
-  //tprintf("==local hash table element: %x \n", gcpointertbl->numelements);
 #endif
   //gcpointertbl = allocateMGCHash(20);
 
@@ -686,11 +682,11 @@ inline void initGC() {
   }
   // Zero out the remaining bamboo_cur_msp 
   // Only zero out the first 4 bytes of the remaining memory
-  if((bamboo_cur_msp != 0) 
+  /*if((bamboo_cur_msp != 0) 
 	  && (bamboo_smem_zero_top == bamboo_cur_msp) 
 	  && (bamboo_smem_size > 0)) {
 	*((int *)bamboo_cur_msp) = 0;
-  }
+  }*/
 #ifdef GC_PROFILE
   // TODO
   /*num_mapinforequest = 0;
@@ -703,8 +699,6 @@ inline void initGC() {
   gc_num_freespace = 0;
   gc_num_lobj = 0;
   gc_num_lobjspace = 0;
-//#endif
-//#ifdef GC_PROFILE_S
   gc_num_liveobj = 0;
   gc_num_forwardobj = 0;
   gc_num_profiles = NUMCORESACTIVE - 1;
@@ -1250,9 +1244,7 @@ inline void markObj(void * objptr) {
 		/*
 		marktime += BAMBOO_GET_EXE_TIME() - ttime;
 		num_markrequest++;*/
-//#ifdef GC_PROFILE_S
 		gc_num_forwardobj++;
-//#endif // GC_PROFILE_S
 #endif // GC_PROFILE
 		gcself_numsendobjs++;
 		MGCHashadd(gcforwardobjtbl, (int)objptr);
@@ -1948,9 +1940,11 @@ inline bool moveobj(struct moveHelper * orig,
   }
 
 #ifdef DEBUG
+  //if((int)orig->ptr > 0x10767a00) {
   BAMBOO_DEBUGPRINT(0xe201);
   BAMBOO_DEBUGPRINT_REG(orig->ptr);
   BAMBOO_DEBUGPRINT_REG(to->ptr);
+  //}
 #endif
 
   int type = 0;
@@ -2004,9 +1998,11 @@ innermoveobj:
                                  // should be able to across it
   if((mark & MARKED) != 0) {
 #ifdef DEBUG
+//if((int)orig->ptr > 0x10760f00) {
     BAMBOO_DEBUGPRINT(0xe204);
+//}
 #endif
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
 	gc_num_liveobj++;
 #endif
     // marked obj, copy it to current heap top
@@ -2065,6 +2061,7 @@ innermoveobj:
     BAMBOO_DEBUGPRINT(0xcdce);
     BAMBOO_DEBUGPRINT_REG(orig->ptr);
     BAMBOO_DEBUGPRINT_REG(to->ptr);
+	BAMBOO_DEBUGPRINT_REG(isize);
 #endif
     gccurr_heaptop -= isize;
     to->ptr += isize;
@@ -2369,6 +2366,7 @@ inline void * flushObj(void * objptr) {
 #endif
       if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) {
 		// error! the obj is right on this core, but cannot find it
+		//BAMBOO_DEBUGPRINT(0xecec);
 		BAMBOO_DEBUGPRINT_REG(objptr);
 		BAMBOO_EXIT(0xb103);
 		// assume that the obj has not been moved, use the original address
@@ -2790,6 +2788,23 @@ inline void flush(struct garbagelist * stackptr) {
 #endif
 } // flush()
 
+#ifdef GC_CACHE_ADAPT
+// prepare for cache adaption:
+//   -- flush the shared heap
+//   -- clean dtlb entries
+//   -- change cache strategy
+void cacheAdapt(bool isgccachestage) {
+  // flush the shared heap
+  BAMBOO_CACHE_FLUSH_L2();
+
+  // clean the dtlb entries
+  BAMBOO_CLEAN_DTLB();
+
+  // change the cache strategy
+  gccachestage = isgccachestage;
+}
+#endif // GC_CACHE_ADAPT
+
 inline void gc_collect(struct garbagelist * stackptr) {
   //BAMBOO_DEBUGPRINT(0xcccc); // TODO 
   // inform the master that this core is at a gc safe point and is ready to 
@@ -2807,8 +2822,13 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%X,%X) Do initGC\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
   initGC();
+#ifdef GC_CACHE_ADAPT
+  // prepare for cache adaption:
+  cacheAdapt(true);
+#endif // GC_CACHE_ADAPT
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
+
   while(true) {
     if(MARKPHASE == gcphase) {
       break;
@@ -2828,6 +2848,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%x,%x) Finish compact phase\n", udn_tile_coord_x(),
 	     udn_tile_coord_y());
 #endif
+
   while(true) {
 	if(MAPPHASE == gcphase) {
 	  break;
@@ -2842,6 +2863,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%x,%x) Finish map phase\n", udn_tile_coord_x(),
 	     udn_tile_coord_y());
 #endif
+
   while(true) {
     if(FLUSHPHASE == gcphase) {
       break;
@@ -2851,7 +2873,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%x,%x) Start flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
   /*BAMBOO_DEBUGPRINT(0xaaaa);
   BAMBOO_DEBUGPRINT_REG(gc_num_obj);
   BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
@@ -2863,12 +2885,31 @@ inline void gc_collect(struct garbagelist * stackptr) {
 		gc_num_liveobj, gc_num_forwardobj, false);
   }
   gc_num_obj = 0;
-#endif // GC_PROFLIE_S
+#endif // GC_PROFLIE
   flush(stackptr);
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish flush phase\n", udn_tile_coord_x(),
 	     udn_tile_coord_y());
 #endif
+
+#ifdef GC_CACHE_ADAPT
+  while(true) {
+    if(PREFINISHPHASE == gcphase) {
+      break;
+    }
+  }
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start prefinish phase\n", udn_tile_coord_x(), 
+	     udn_tile_coord_y());
+#endif
+  cacheAdapt(false);
+  //send init finish msg to core coordinator
+  send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE, false);
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Finish prefinish phase\n", udn_tile_coord_x(),
+	     udn_tile_coord_y());
+#endif
+#endif // GC_CACHE_ADAPT
 
   while(true) {
     if(FINISHPHASE == gcphase) {
@@ -2896,8 +2937,13 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Do initGC\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
   initGC();
+#ifdef GC_CACHE_ADAPT
+  // prepare for cache adaption:
+  cacheAdapt(true);
+#endif // GC_CACHE_ADAPT
   //send init finish msg to core coordinator
   send_msg_2(STARTUPCORE, GCFINISHINIT, BAMBOO_NUM_OF_CORE, false);
+
   while(true) {
     if(MARKPHASE == gcphase) {
       break;
@@ -2912,6 +2958,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Finish mark phase, wait for flush\n", 
 	     udn_tile_coord_x(), udn_tile_coord_y());
 #endif
+
   // non-gc core collector routine
   while(true) {
     if(FLUSHPHASE == gcphase) {
@@ -2922,7 +2969,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Start flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
   /*BAMBOO_DEBUGPRINT(0xaaaa);
   BAMBOO_DEBUGPRINT_REG(gc_num_obj);
   BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
@@ -2933,12 +2980,31 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 		gc_num_liveobj, gc_num_forwardobj, false);
   }
   gc_num_obj = 0;
-#endif // GC_PROFLIE_S
+#endif // GC_PROFLIE
   flush(stackptr);
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish flush phase\n", udn_tile_coord_x(), 
 	     udn_tile_coord_y());
 #endif
+
+#ifdef GC_CACHE_ADAPT
+  while(true) {
+    if(PREFINISHPHASE == gcphase) {
+      break;
+    }
+  }
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start prefinish phase\n", udn_tile_coord_x(), 
+	     udn_tile_coord_y());
+#endif
+  cacheAdapt(false);
+  //send init finish msg to core coordinator
+  send_msg_2(STARTUPCORE, GCFINISHPREF, BAMBOO_NUM_OF_CORE, false);
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Finish prefinish phase\n", udn_tile_coord_x(),
+	     udn_tile_coord_y());
+#endif
+#endif // GC_CACHE_ADAPT
 
   while(true) {
     if(FINISHPHASE == gcphase) {
@@ -2949,6 +3015,413 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
 } // void gc_collect(struct garbagelist * stackptr)
+
+inline void gc_master(struct garbagelist * stackptr) {
+
+  gcphase = INITPHASE;
+  int i = 0;
+  waitconfirm = false;
+  numconfirm = 0;
+  initGC();
+
+  // Note: all cores need to init gc including non-gc cores
+  for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; i++) {
+	// send GC init messages to all cores
+	send_msg_1(i, GCSTARTINIT, false);
+  }
+  bool isfirst = true;
+  bool allStall = false;
+
+#ifdef GC_CACHE_ADAPT
+  // prepare for cache adaption:
+  cacheAdapt(true);
+#endif // GC_CACHE_ADAPT
+
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Check core status \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+  while(true) {
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	if(gc_checkAllCoreStatus_I()) {
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  break;
+	}
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  }
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start mark phase \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+  // all cores have finished compacting
+  // restore the gcstatus of all cores
+  // Note: all cores have to do mark including non-gc cores
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
+  for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
+	gccorestatus[i] = 1;
+	// send GC start messages to all cores
+	send_msg_1(i, GCSTART, false);
+  }
+
+  gcphase = MARKPHASE;
+  // mark phase
+  while(MARKPHASE == gcphase) {
+	mark(isfirst, stackptr);
+	if(isfirst) {
+	  isfirst = false;
+	}
+
+	// check gcstatus
+	checkMarkStatue();
+  }   // while(MARKPHASE == gcphase)
+  // send msgs to all cores requiring large objs info
+  // Note: only need to ask gc cores, non-gc cores do not host any objs
+  numconfirm = NUMCORES4GC - 1;
+  for(i = 1; i < NUMCORES4GC; ++i) {
+	send_msg_1(i, GCLOBJREQUEST, false);
+  }
+  gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
+  while(true) {
+	if(numconfirm==0) {
+	  break;
+	}
+  }   // wait for responses
+  // check the heaptop
+  if(gcheaptop < gcmarkedptrbound) {
+	gcheaptop = gcmarkedptrbound;
+  }
+#ifdef GC_PROFILE
+  gc_profileItem();
+  // TODO
+  /*if(BAMBOO_NUM_OF_CORE == 0) {
+	BAMBOO_DEBUGPRINT(0xeeee);
+	BAMBOO_DEBUGPRINT_REG(num_markrequest);
+	BAMBOO_DEBUGPRINT_REG(marktime);
+  }*/
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) prepare to cache large objs \n", udn_tile_coord_x(),
+		 udn_tile_coord_y());
+  //dumpSMem();
+#endif
+  // cache all large objs
+  if(!cacheLObjs()) {
+	// no enough space to cache large objs
+	BAMBOO_EXIT(0xb107);
+  }
+  // predict number of blocks to fill for each core
+  int tmpheaptop = 0;
+  int numpbc = loadbalance(&tmpheaptop);
+  // TODO
+  numpbc = (BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_SMEM_SIZE);
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) mark phase finished \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+  //dumpSMem();
+#endif
+  //int tmptopptr = 0;
+  //BASEPTR(gctopcore, 0, &tmptopptr);
+  // TODO
+  //tmptopptr = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
+  tmpheaptop = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
+#ifdef DEBUG
+  BAMBOO_DEBUGPRINT(0xabab);
+  BAMBOO_DEBUGPRINT_REG(tmptopptr);
+#endif
+  for(i = 0; i < NUMCORES4GC; ++i) {
+	int tmpcoreptr = 0;
+	BASEPTR(i, numpbc, &tmpcoreptr);
+	//send start compact messages to all cores
+	//TODO bug here, do not know if the direction is positive or negtive?
+	if (tmpcoreptr < tmpheaptop /*tmptopptr*/) {
+	  gcstopblock[i] = numpbc + 1;
+	  if(i != STARTUPCORE) {
+		send_msg_2(i, GCSTARTCOMPACT, numpbc+1, false);
+	  } else {
+		gcblock2fill = numpbc+1;
+	  }                         // if(i != STARTUPCORE)
+	} else {
+	  gcstopblock[i] = numpbc;
+	  if(i != STARTUPCORE) {
+		send_msg_2(i, GCSTARTCOMPACT, numpbc, false);
+	  } else {
+		gcblock2fill = numpbc;
+	  }    // if(i != STARTUPCORE)
+	}
+#ifdef DEBUG
+	BAMBOO_DEBUGPRINT(0xf000+i);
+	BAMBOO_DEBUGPRINT_REG(tmpcoreptr);
+	BAMBOO_DEBUGPRINT_REG(gcstopblock[i]);
+#endif
+	// init some data strutures for compact phase
+	gcloads[i] = 0;
+	gcfilledblocks[i] = 0;
+	gcrequiredmems[i] = 0;
+  }
+
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
+
+  // compact phase
+  bool finalcompact = false;
+  // initialize pointers for comapcting
+  struct moveHelper * orig =
+	(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+  struct moveHelper * to =
+	(struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
+  initOrig_Dst(orig, to);
+  int filledblocks = 0;
+  INTPTR heaptopptr = 0;
+  bool finishcompact = false;
+  bool iscontinue = true;
+  bool localcompact = true;
+  while((COMPACTPHASE == gcphase) || (SUBTLECOMPACTPHASE == gcphase)) {
+	if((!finishcompact) && iscontinue) {
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe001);
+	  BAMBOO_DEBUGPRINT_REG(numpbc);
+	  BAMBOO_DEBUGPRINT_REG(gcblock2fill);
+#endif
+	  finishcompact = compacthelper(orig, to, &filledblocks,
+									&heaptopptr, &localcompact);
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe002);
+	  BAMBOO_DEBUGPRINT_REG(finishcompact);
+	  BAMBOO_DEBUGPRINT_REG(gctomove);
+	  BAMBOO_DEBUGPRINT_REG(gcrequiredmems[0]);
+	  BAMBOO_DEBUGPRINT_REG(gcfilledblocks[0]);
+	  BAMBOO_DEBUGPRINT_REG(gcstopblock[0]);
+#endif
+	}
+
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	if(gc_checkCoreStatus_I()) {
+	  // all cores have finished compacting
+	  // restore the gcstatus of all cores
+	  for(i = 0; i < NUMCORES4GC; ++i) {
+		gccorestatus[i] = 1;
+	  }
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  break;
+	} else {
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  // check if there are spare mem for pending move requires
+	  if(COMPACTPHASE == gcphase) {
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xe003);
+#endif
+		resolvePendingMoveRequest();
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT_REG(gctomove);
+#endif
+	  } else {
+#ifdef DEBUG
+		BAMBOO_DEBUGPRINT(0xe004);
+#endif
+		compact2Heaptop();
+	  }
+	}   // if(gc_checkCoreStatus_I()) else ...
+
+	if(gctomove) {
+#ifdef DEBUG
+	  BAMBOO_DEBUGPRINT(0xe005);
+	  BAMBOO_DEBUGPRINT_REG(gcmovestartaddr);
+	  BAMBOO_DEBUGPRINT_REG(gcblock2fill);
+	  BAMBOO_DEBUGPRINT_REG(gctomove);
+#endif
+	  to->ptr = gcmovestartaddr;
+	  to->numblocks = gcblock2fill - 1;
+	  to->bound = (to->numblocks==0) ?
+				  BAMBOO_SMEM_SIZE_L :
+				  BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*to->numblocks;
+	  BASEPTR(gcdstcore, to->numblocks, &(to->base));
+	  to->offset = to->ptr - to->base;
+	  to->top = (to->numblocks==0) ?
+				(to->offset) : (to->bound-BAMBOO_SMEM_SIZE+to->offset);
+	  to->base = to->ptr;
+	  to->offset = BAMBOO_CACHE_LINE_SIZE;
+	  to->ptr += to->offset;                         // for header
+	  to->top += to->offset;
+	  if(gcdstcore == BAMBOO_NUM_OF_CORE) {
+		localcompact = true;
+	  } else {
+		localcompact = false;
+	  }
+	  gctomove = false;
+	  iscontinue = true;
+	} else if(!finishcompact) {
+	  // still pending
+	  iscontinue = false;
+	}  // if(gctomove)
+  }  // while(COMPACTPHASE == gcphase)
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) prepare to move large objs \n", udn_tile_coord_x(),
+		 udn_tile_coord_y());
+  //dumpSMem();
+#endif
+  // move largeObjs
+  moveLObjs();
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) compact phase finished \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+  //dumpSMem();
+#endif
+  RUNFREE(orig);
+  RUNFREE(to);
+  orig = to = NULL;
+
+  gcphase = MAPPHASE;
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
+  // Note: all cores should flush their runtime data including non-gc
+  //       cores
+  for(i = 1; i < NUMCORES4GC; ++i) {
+	// send start flush messages to all cores
+	gccorestatus[i] = 1;
+	send_msg_1(i, GCSTARTMAPINFO, false);
+  }
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start map phase \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+  // mapinto phase
+  transmappinginfo();
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Finish map phase \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+  while(MAPPHASE == gcphase) {
+	// check the status of all cores
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	if(gc_checkCoreStatus_I()) {
+	  // all cores have finished sending mapping info 
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  break;
+	}
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  }  // while(MAPPHASE == gcphase)
+
+  gcphase = FLUSHPHASE;
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
+  // Note: all cores should flush their runtime data including non-gc
+  //       cores
+  for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
+	// send start flush messages to all cores
+	gccorestatus[i] = 1;
+	send_msg_1(i, GCSTARTFLUSH, false);
+  }
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start flush phase \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+  // flush phase
+  flush(stackptr);
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+  while(FLUSHPHASE == gcphase) {
+	// check the status of all cores
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	if(gc_checkAllCoreStatus_I()) {
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  break;
+	}
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  }  // while(FLUSHPHASE == gcphase)
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Finish flush phase \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+
+#ifdef GC_CACHE_ADAPT
+  gcphase = PREFINISHPHASE;
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
+  // Note: all cores should flush their runtime data including non-gc
+  //       cores
+  for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
+	// send start flush messages to all cores
+	gccorestatus[i] = 1;
+	send_msg_1(i, GCSTARTPREF, false);
+  }
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) Start prefinish phase \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+#endif
+  // flush phase
+  cacheAdapt(false);
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
+  while(PREFINISHPHASE == gcphase) {
+	// check the status of all cores
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+	if(gc_checkAllCoreStatus_I()) {
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  break;
+	}
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+  }  // while(PREFINISHPHASE == gcphase)
+#endif // GC_CACHE_ADAPT
+
+  gcphase = FINISHPHASE;
+
+  // invalidate all shared mem pointers
+  // put it here as it takes time to inform all the other cores to
+  // finish gc and it might cause problem when some core resumes
+  // mutator earlier than the other cores
+  bamboo_cur_msp = NULL;
+  bamboo_smem_size = 0;
+  bamboo_smem_zero_top = NULL;
+  gcflag = false;
+  gcprocessing = false;
+
+#ifdef GC_PROFILE
+  gc_profileEnd();
+#endif
+  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
+  for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
+	// send gc finish messages to all cores
+	send_msg_1(i, GCFINISH, false);
+	gccorestatus[i] = 1;
+  }
+#ifdef RAWPATH // TODO GC_DEBUG
+  printf("(%x,%x) gc finished \n", udn_tile_coord_x(), 
+		 udn_tile_coord_y());
+  //dumpSMem();
+#endif
+  //BAMBOO_DEBUGPRINT(0x1111); // TODO
+/*#ifdef GC_PROFILE_S
+  BAMBOO_DEBUGPRINT(0xaaaa);
+  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
+  BAMBOO_DEBUGPRINT_REG(gc_num_profiles);
+  BAMBOO_DEBUGPRINT(0xaaab);
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_DEBUGPRINT(0xaaac);
+	BAMBOO_DEBUGPRINT_REG(gc_num_livespace);
+	BAMBOO_DEBUGPRINT_REG(gc_num_freespace);
+	BAMBOO_DEBUGPRINT(0xaaad);
+  }
+  gc_num_obj = gc_num_liveobj;
+  gc_num_liveobj = 0;
+  gc_num_forwardobj = 0;
+#endif // GC_PROFLIE_S*/
+} // void gc_master(struct garbagelist * stackptr)
 
 inline bool gc(struct garbagelist * stackptr) {
   // check if do gc
@@ -3041,382 +3514,56 @@ pregccheck:
     printf("(%x,%x) start gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
     //dumpSMem();
 #endif
+	// Zero out the remaining bamboo_cur_msp 
+	// Only zero out the first 4 bytes of the remaining memory
+	// Move the operation here because for the GC_CACHE_ADAPT version,
+	// we need to make sure during the gcinit phase the shared heap is not 
+	// touched. Otherwise, there would be problem when adapt the cache 
+	// strategy.
+	if((bamboo_cur_msp != 0) 
+		&& (bamboo_smem_zero_top == bamboo_cur_msp) 
+		&& (bamboo_smem_size > 0)) {
+	  *((int *)bamboo_cur_msp) = 0;
+	}
 #ifdef GC_FLUSH_DTLB
 	if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
 	  BAMBOO_CLEAN_DTLB();
 	  gc_num_flush_dtlb++;
 	}
 #endif
-    gcprocessing = true;
-    gcphase = INITPHASE;
-    int i = 0;
-    waitconfirm = false;
-    numconfirm = 0;
-    initGC();
-
-    // Note: all cores need to init gc including non-gc cores
-    for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; i++) {
-      // send GC init messages to all cores
-      send_msg_1(i, GCSTARTINIT, false);
-    }
-    bool isfirst = true;
-    bool allStall = false;
-
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) Check core status \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-#endif
-
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    while(true) {
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      if(gc_checkAllCoreStatus_I()) {
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		break;
-      }
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    }
-#ifdef GC_PROFILE
-    gc_profileItem();
-#endif
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) Start mark phase \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-#endif
-    // all cores have finished compacting
-    // restore the gcstatus of all cores
-    // Note: all cores have to do mark including non-gc cores
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
-    for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
-      gccorestatus[i] = 1;
-      // send GC start messages to all cores
-      send_msg_1(i, GCSTART, false);
-    }
-
-    gcphase = MARKPHASE;
-    // mark phase
-    while(MARKPHASE == gcphase) {
-      mark(isfirst, stackptr);
-      if(isfirst) {
-		isfirst = false;
-      }
-
-      // check gcstatus
-      checkMarkStatue();
-    }   // while(MARKPHASE == gcphase)
-        // send msgs to all cores requiring large objs info
-        // Note: only need to ask gc cores, non-gc cores do not host any objs
-    numconfirm = NUMCORES4GC - 1;
-    for(i = 1; i < NUMCORES4GC; ++i) {
-      send_msg_1(i, GCLOBJREQUEST, false);
-    }
-    gcloads[BAMBOO_NUM_OF_CORE] = gccurr_heaptop;
-    while(true) {
-      if(numconfirm==0) {
-		break;
-      }
-    }   // wait for responses
-    // check the heaptop
-    if(gcheaptop < gcmarkedptrbound) {
-      gcheaptop = gcmarkedptrbound;
-    }
-#ifdef GC_PROFILE
-    gc_profileItem();
-    // TODO
-    /*if(BAMBOO_NUM_OF_CORE == 0) {
-      BAMBOO_DEBUGPRINT(0xeeee);
-      BAMBOO_DEBUGPRINT_REG(num_markrequest);
-      BAMBOO_DEBUGPRINT_REG(marktime);
-    }*/
-#endif
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) prepare to cache large objs \n", udn_tile_coord_x(),
-		   udn_tile_coord_y());
-    //dumpSMem();
-#endif
-    // cache all large objs
-    if(!cacheLObjs()) {
-      // no enough space to cache large objs
-      BAMBOO_EXIT(0xb107);
-    }
-    // predict number of blocks to fill for each core
-    int tmpheaptop = 0;
-    int numpbc = loadbalance(&tmpheaptop);
-    // TODO
-    numpbc = (BAMBOO_SHARED_MEM_SIZE)/(BAMBOO_SMEM_SIZE);
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) mark phase finished \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-    //dumpSMem();
-#endif
-    //int tmptopptr = 0;
-    //BASEPTR(gctopcore, 0, &tmptopptr);
-    // TODO
-    //tmptopptr = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
-    tmpheaptop = gcbaseva + (BAMBOO_SHARED_MEM_SIZE);
-#ifdef DEBUG
-    BAMBOO_DEBUGPRINT(0xabab);
-    BAMBOO_DEBUGPRINT_REG(tmptopptr);
-#endif
-    for(i = 0; i < NUMCORES4GC; ++i) {
-      int tmpcoreptr = 0;
-      BASEPTR(i, numpbc, &tmpcoreptr);
-      //send start compact messages to all cores
-      //TODO bug here, do not know if the direction is positive or negtive?
-      if (tmpcoreptr < tmpheaptop /*tmptopptr*/) {
-		gcstopblock[i] = numpbc + 1;
-		if(i != STARTUPCORE) {
-		  send_msg_2(i, GCSTARTCOMPACT, numpbc+1, false);
-		} else {
-		  gcblock2fill = numpbc+1;
-		}                         // if(i != STARTUPCORE)
-      } else {
-		gcstopblock[i] = numpbc;
-		if(i != STARTUPCORE) {
-		  send_msg_2(i, GCSTARTCOMPACT, numpbc, false);
-		} else {
-		  gcblock2fill = numpbc;
-		}    // if(i != STARTUPCORE)
-	  }
-#ifdef DEBUG
-      BAMBOO_DEBUGPRINT(0xf000+i);
-      BAMBOO_DEBUGPRINT_REG(tmpcoreptr);
-      BAMBOO_DEBUGPRINT_REG(gcstopblock[i]);
-#endif
-      // init some data strutures for compact phase
-      gcloads[i] = 0;
-      gcfilledblocks[i] = 0;
-      gcrequiredmems[i] = 0;
-    }
-
-#ifdef GC_PROFILE
-    gc_profileItem();
-#endif
-
-    // compact phase
-    bool finalcompact = false;
-    // initialize pointers for comapcting
-    struct moveHelper * orig =
-      (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-    struct moveHelper * to =
-      (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-    initOrig_Dst(orig, to);
-    int filledblocks = 0;
-    INTPTR heaptopptr = 0;
-    bool finishcompact = false;
-    bool iscontinue = true;
-    bool localcompact = true;
-    while((COMPACTPHASE == gcphase) || (SUBTLECOMPACTPHASE == gcphase)) {
-      if((!finishcompact) && iscontinue) {
-#ifdef DEBUG
-		BAMBOO_DEBUGPRINT(0xe001);
-		BAMBOO_DEBUGPRINT_REG(numpbc);
-		BAMBOO_DEBUGPRINT_REG(gcblock2fill);
-#endif
-		finishcompact = compacthelper(orig, to, &filledblocks,
-									  &heaptopptr, &localcompact);
-#ifdef DEBUG
-		BAMBOO_DEBUGPRINT(0xe002);
-		BAMBOO_DEBUGPRINT_REG(finishcompact);
-		BAMBOO_DEBUGPRINT_REG(gctomove);
-		BAMBOO_DEBUGPRINT_REG(gcrequiredmems[0]);
-		BAMBOO_DEBUGPRINT_REG(gcfilledblocks[0]);
-		BAMBOO_DEBUGPRINT_REG(gcstopblock[0]);
-#endif
-	  }
-
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      if(gc_checkCoreStatus_I()) {
-		// all cores have finished compacting
-		// restore the gcstatus of all cores
-		for(i = 0; i < NUMCORES4GC; ++i) {
-		  gccorestatus[i] = 1;
-		}
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		break;
-      } else {
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		// check if there are spare mem for pending move requires
-		if(COMPACTPHASE == gcphase) {
-#ifdef DEBUG
-		  BAMBOO_DEBUGPRINT(0xe003);
-#endif
-		  resolvePendingMoveRequest();
-#ifdef DEBUG
-		  BAMBOO_DEBUGPRINT_REG(gctomove);
-#endif
-		} else {
-#ifdef DEBUG
-		  BAMBOO_DEBUGPRINT(0xe004);
-#endif
-		  compact2Heaptop();
-		}
-      }   // if(gc_checkCoreStatus_I()) else ...
-
-      if(gctomove) {
-#ifdef DEBUG
-		BAMBOO_DEBUGPRINT(0xe005);
-		BAMBOO_DEBUGPRINT_REG(gcmovestartaddr);
-		BAMBOO_DEBUGPRINT_REG(gcblock2fill);
-		BAMBOO_DEBUGPRINT_REG(gctomove);
-#endif
-		to->ptr = gcmovestartaddr;
-		to->numblocks = gcblock2fill - 1;
-		to->bound = (to->numblocks==0) ?
-					BAMBOO_SMEM_SIZE_L :
-					BAMBOO_SMEM_SIZE_L+BAMBOO_SMEM_SIZE*to->numblocks;
-		BASEPTR(gcdstcore, to->numblocks, &(to->base));
-		to->offset = to->ptr - to->base;
-		to->top = (to->numblocks==0) ?
-				  (to->offset) : (to->bound-BAMBOO_SMEM_SIZE+to->offset);
-		to->base = to->ptr;
-		to->offset = BAMBOO_CACHE_LINE_SIZE;
-		to->ptr += to->offset;                         // for header
-		to->top += to->offset;
-		if(gcdstcore == BAMBOO_NUM_OF_CORE) {
-		  localcompact = true;
-		} else {
-		  localcompact = false;
-		}
-		gctomove = false;
-		iscontinue = true;
-      } else if(!finishcompact) {
-		// still pending
-		iscontinue = false;
-      }  // if(gctomove)
-    }  // while(COMPACTPHASE == gcphase)
-#ifdef GC_PROFILE
-    gc_profileItem();
-#endif
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) prepare to move large objs \n", udn_tile_coord_x(),
-	       udn_tile_coord_y());
-    //dumpSMem();
-#endif
-    // move largeObjs
-    moveLObjs();
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) compact phase finished \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-    //dumpSMem();
-#endif
-    RUNFREE(orig);
-    RUNFREE(to);
-    orig = to = NULL;
-
-	gcphase = MAPPHASE;
-	gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
-    // Note: all cores should flush their runtime data including non-gc
-    //       cores
-    for(i = 1; i < NUMCORES4GC; ++i) {
-      // send start flush messages to all cores
-      gccorestatus[i] = 1;
-      send_msg_1(i, GCSTARTMAPINFO, false);
-    }
-#ifdef GC_PROFILE
-	gc_profileItem();
-#endif
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) Start map phase \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-#endif
-    // mapinto phase
-    transmappinginfo();
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) Finish map phase \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-#endif
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    while(MAPPHASE == gcphase) {
-      // check the status of all cores
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      if(gc_checkCoreStatus_I()) {
-		// all cores have finished sending mapping info 
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		break;
-      }
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    }  // while(MAPPHASE == gcphase)
-
-    gcphase = FLUSHPHASE;
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
-    // Note: all cores should flush their runtime data including non-gc
-    //       cores
-    for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
-      // send start flush messages to all cores
-      gccorestatus[i] = 1;
-      send_msg_1(i, GCSTARTFLUSH, false);
-    }
-#ifdef GC_PROFILE
-    gc_profileItem();
-#endif
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) Start flush phase \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-#endif
-    // flush phase
-    flush(stackptr);
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-    while(FLUSHPHASE == gcphase) {
-      // check the status of all cores
-      BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-      if(gc_checkAllCoreStatus_I()) {
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		break;
-      }
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    }             // while(FLUSHPHASE == gcphase)
-    gcphase = FINISHPHASE;
-
-    // invalidate all shared mem pointers
-    // put it here as it takes time to inform all the other cores to
-    // finish gc and it might cause problem when some core resumes
-    // mutator earlier than the other cores
-    bamboo_cur_msp = NULL;
-    bamboo_smem_size = 0;
-	bamboo_smem_zero_top = NULL;
-    gcflag = false;
-    gcprocessing = false;
-
-#ifdef GC_PROFILE
-    gc_profileEnd();
-#endif
-    gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
-    for(i = 1; i < NUMCORESACTIVE /*NUMCORES4GC*/; ++i) {
-      // send gc finish messages to all cores
-      send_msg_1(i, GCFINISH, false);
-      gccorestatus[i] = 1;
-    }
-#ifdef RAWPATH // TODO GC_DEBUG
-    printf("(%x,%x) gc finished \n", udn_tile_coord_x(), 
-		   udn_tile_coord_y());
-    //dumpSMem();
-#endif
-	//BAMBOO_DEBUGPRINT(0x1111); // TODO
-/*#ifdef GC_PROFILE_S
-  BAMBOO_DEBUGPRINT(0xaaaa);
-  BAMBOO_DEBUGPRINT_REG(gc_num_obj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_liveobj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_forwardobj);
-  BAMBOO_DEBUGPRINT_REG(gc_num_profiles);
-  BAMBOO_DEBUGPRINT(0xaaab);
-  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-	BAMBOO_DEBUGPRINT(0xaaac);
-	BAMBOO_DEBUGPRINT_REG(gc_num_livespace);
-	BAMBOO_DEBUGPRINT_REG(gc_num_freespace);
-	BAMBOO_DEBUGPRINT(0xaaad);
-  }
-  gc_num_obj = gc_num_liveobj;
-  gc_num_liveobj = 0;
-  gc_num_forwardobj = 0;
-#endif // GC_PROFLIE_S*/
+#ifdef GC_CACHE_ADAPT
+    //BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
+    // disable the timer interrupt
+    bamboo_mask_timer_intr();
+    // get the sampling data TODO
+    bamboo_output_dtlb_sampling();
+#endif // GC_CACHE_ADAPT
+	gcprocessing = true;
+	gc_master(stackptr);
   } else if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
+	// Zero out the remaining bamboo_cur_msp 
+	// Only zero out the first 4 bytes of the remaining memory
+	// Move the operation here because for the GC_CACHE_ADAPT version,
+	// we need to make sure during the gcinit phase the shared heap is not 
+	// touched. Otherwise, there would be problem when adapt the cache 
+	// strategy.
+	if((bamboo_cur_msp != 0) 
+		&& (bamboo_smem_zero_top == bamboo_cur_msp) 
+		&& (bamboo_smem_size > 0)) {
+	  *((int *)bamboo_cur_msp) = 0;
+	}
 #ifdef GC_FLUSH_DTLB
 	if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
 	  BAMBOO_CLEAN_DTLB();
 	  gc_num_flush_dtlb++;
 	}
 #endif
+#ifdef GC_CACHE_ADAPT
+	// disable the timer interrupt
+	bamboo_mask_timer_intr();
+	// get the sampling data TODO
+	bamboo_output_dtlb_sampling();
+#endif // GC_CACHE_ADAPT
     gcprocessing = true;
     gc_collect(stackptr);
 
@@ -3427,12 +3574,29 @@ pregccheck:
     gcflag = false;
     gcprocessing = false;
   } else {
+	// Zero out the remaining bamboo_cur_msp 
+	// Only zero out the first 4 bytes of the remaining memory
+	// Move the operation here because for the GC_CACHE_ADAPT version,
+	// we need to make sure during the gcinit phase the shared heap is not 
+	// touched. Otherwise, there would be problem when adapt the cache 
+	// strategy.
+	if((bamboo_cur_msp != 0) 
+		&& (bamboo_smem_zero_top == bamboo_cur_msp) 
+		&& (bamboo_smem_size > 0)) {
+	  *((int *)bamboo_cur_msp) = 0;
+	}
 #ifdef GC_FLUSH_DTLB
 	if(gc_num_flush_dtlb < GC_NUM_FLUSH_DTLB) {
 	  BAMBOO_CLEAN_DTLB();
 	  gc_num_flush_dtlb++;
 	}
 #endif
+#ifdef GC_CACHE_ADAPT
+	// disable the timer interrupt
+	bamboo_mask_timer_intr();
+	// get the sampling data TODO
+	bamboo_output_dtlb_sampling();
+#endif // GC_CACHE_ADAPT
     // not a gc core, should wait for gcfinish msg
     gcprocessing = true;
     gc_nocollect(stackptr);
@@ -3444,6 +3608,13 @@ pregccheck:
 	gcflag = false;
     gcprocessing = false;
   }
+#ifdef GC_CACHE_ADAPT
+  // reset the sampling arrays
+  bamboo_dtlb_sampling_reset();
+  // enable the timer interrupt
+  bamboo_tile_timer_set_next_event(500000000); // TODO
+  bamboo_unmask_timer_intr();
+#endif // GC_CACHE_ADAPT
   //if(STARTUPCORE == BAMBOO_NUM_OF_CORE) BAMBOO_DEBUGPRINT(0xeeee); // TODO 
   return true;
 } // void gc(struct garbagelist * stackptr)

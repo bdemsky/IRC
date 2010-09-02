@@ -218,6 +218,12 @@ typedef enum {
 #ifdef GC_PROFILE
   GCPROFILES,            // 0xF9
 #endif
+#ifdef GC_CACHE_ADAPT
+  GCSTARTPOSTINIT,       // 0xFa
+  GCSTARTPREF,           // 0xFb
+  GCFINISHPOSTINIT,      // 0xFc
+  GCFINISHPREF,          // 0xFd
+#endif // GC_CACHE_ADAPT
 #endif
   MSGEND
 } MSGTYPE;
@@ -590,6 +596,8 @@ void outputProfileData();
 //                            current content of the memory and directly   //
 //                            write                                        //
 // BAMBOO_CLEAN_DTLB(): zero-out all the dtlb entries                      //
+// BAMBOO_CACHE_FLUSH_L2(): Flush the contents of this tile's L2 back to   //
+//                          main memory                                    //
 /////////////////////////////////////////////////////////////////////////////
 
 #endif  // #ifdef MULTICORE

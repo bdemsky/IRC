@@ -77,6 +77,7 @@ echo "-gccontroller_remote set the gc shared memory to use a remote controller f
 echo "-gcsmallpagesize(2) set the gc shared memory to use small page size (should be used together with -multicoregc)"
 echo "-gclargepagesize set the gc shared memory to use large page size (should be used together with -multicoregc)"
 echo "-gclargesharedheap(2) set the gc shared memory as large (should be used together with -multicoregc)"
+echo "-gccacheadapt setup as cacheadaptable mode (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
 echo "-tilera_memprof build the memprof version (should be used together with -tilera_xx) "
 echo -accurateprofile build with accurate profile information including pre/post task processing info
@@ -188,6 +189,7 @@ GCLARGEPAGESIZEFLAG=false;
 GCLARGESHAREDHEAPFLAG=false;
 GCSMALLPAGESIZEFLAG2=false;
 GCLARGESHAREDHEAPFLAG2=false;
+GCCACHEADAPTFLAG=false
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -469,6 +471,9 @@ GCLARGESHAREDHEAPFLAG=true
 elif [[ $1 = '-gclargesharedheap2' ]]
 then
 GCLARGESHAREDHEAPFLAG2=true
+elif [[ $1 = '-gccacheadapt' ]]
+then
+GCCACHEADAPTFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -958,6 +963,10 @@ then # GC_LARGESHAREDHEAP2 version
 TILERACFLAGS="${TILERACFLAGS} -DGC_LARGESHAREDHEAP2"
 fi
 
+if $GCCACHEADAPTFLAG
+then # GC_CACHE_ADAPT version
+TILERACFLAGS="${TILERACFLAGS} -DGC_CACHE_ADAPT"
+fi
 
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile
 if $TILERABMEFLAG

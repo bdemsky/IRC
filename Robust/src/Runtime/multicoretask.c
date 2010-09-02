@@ -88,68 +88,127 @@ int core2test[1][NUM_CORES2TEST] = {
 };
 #elif defined GC_56
 int core2test[56][NUM_CORES2TEST] = {
-  { 0, -1,  7, -1,  1, -1, 14, -1,  2}, { 1, -1,  8,  0,  2, -1, 15, -1,  3}, 
-  { 2, -1,  9,  1,  3, -1, 16,  0,  4}, { 3, -1, 10,  2,  4, -1, 17,  1,  5}, 
-  { 4, -1, 11,  3,  5, -1, 18,  2,  6}, { 5, -1, 12,  4,  6, -1, 19,  3, -1},
-  { 6, -1, 13,  5, -1, -1, 20,  4, -1}, { 7,  0, 14, -1,  8, -1, 21, -1,  9}, 
-  { 8,  1, 15,  7,  9, -1, 22, -1, 10}, { 9,  2, 16,  8, 10, -1, 23,  7, 11}, 
-  {10,  3, 17,  9, 11, -1, 24,  8, 12}, {11,  4, 18, 10, 12, -1, 25,  9, 13},
-  {12,  5, 19, 11, 13, -1, 26, 10, -1}, {13,  6, 20, 12, -1, -1, 27, 11, -1}, 
-  {14,  7, 21, -1, 15,  0, 28, -1, 16}, {15,  8, 22, 14, 16,  1, 29, -1, 17}, 
-  {16,  9, 23, 15, 17,  2, 30, 14, 18}, {17, 10, 24, 16, 18,  3, 31, 15, 19},
-  {18, 11, 25, 17, 19,  4, 32, 16, 20}, {19, 12, 26, 18, 20,  5, 33, 17, -1}, 
-  {20, 13, 27, 19, -1,  6, 34, 18, -1}, {21, 14, 28, -1, 22,  7, 35, -1, 23}, 
-  {22, 15, 29, 21, 23,  8, 36, -1, 24}, {23, 16, 30, 22, 24,  9, 37, 21, 25},
-  {24, 17, 31, 23, 25, 10, 38, 22, 26}, {25, 18, 32, 24, 26, 11, 39, 23, 27}, 
-  {26, 19, 33, 25, 27, 12, 40, 24, -1}, {27, 20, 34, 26, -1, 13, 41, 25, -1}, 
-  {28, 21, 35, -1, 29, 14, 42, -1, 30}, {29, 22, 36, 28, 30, 15, 43, -1, 31},
-  {30, 23, 37, 29, 31, 16, 44, 28, 32}, {31, 24, 38, 30, 32, 17, 45, 29, 33}, 
-  {32, 25, 39, 31, 33, 18, 46, 30, 34}, {33, 26, 40, 32, 34, 19, 47, 31, -1}, 
-  {34, 27, 41, 33, -1, 20, 48, 32, -1}, {35, 28, 42, -1, 36, 21, 49, -1, 37},
-  {36, 29, 43, 35, 37, 22, 50, -1, 38}, {37, 30, 44, 36, 38, 23, 51, 35, 39}, 
-  {38, 31, 45, 37, 39, 24, 52, 36, 40}, {39, 32, 46, 38, 40, 25, 53, 37, 41}, 
-  {40, 33, 47, 39, 41, 26, 54, 38, -1}, {41, 34, 48, 40, -1, 27, 55, 39, -1},
-  {42, 35, 49, -1, 43, 28, -1, -1, 44}, {43, 36, 50, 42, 44, 29, -1, -1, 45}, 
-  {44, 37, 51, 43, 45, 30, -1, 42, 46}, {45, 38, 52, 44, 46, 31, -1, 43, 47}, 
-  {46, 39, 53, 45, 47, 32, -1, 44, 48}, {47, 40, 54, 46, 48, 33, -1, 45, -1},
-  {48, 41, 55, 47, -1, 34, -1, 46, -1}, {49, 42, -1, -1, 50, 35, -1, -1, 51}, 
-  {50, 43, -1, 49, 51, 36, -1, -1, 52}, {51, 44, -1, 50, 52, 37, -1, 49, 53}, 
-  {52, 45, -1, 51, 53, 38, -1, 50, 54}, {53, 46, -1, 52, 54, 39, -1, 51, 55},
-  {54, 47, -1, 53, 55, 40, -1, 52, -1}, {55, 48, -1, 54, -1, 41, -1, 53, -1}
+  { 0, -1,  7, -1,  1, -1, 14, -1,  2}, 
+  { 1, -1,  8,  0,  2, -1, 15, -1,  3}, 
+  { 2, -1,  9,  1,  3, -1, 16,  0,  4}, 
+  { 3, -1, 10,  2,  4, -1, 17,  1,  5}, 
+  { 4, -1, 11,  3,  5, -1, 18,  2,  6}, 
+  { 5, -1, 12,  4,  6, -1, 19,  3, -1},
+  { 6, -1, 13,  5, -1, -1, 20,  4, -1}, 
+  { 7,  0, 14, -1,  8, -1, 21, -1,  9}, 
+  { 8,  1, 15,  7,  9, -1, 22, -1, 10}, 
+  { 9,  2, 16,  8, 10, -1, 23,  7, 11}, 
+  {10,  3, 17,  9, 11, -1, 24,  8, 12}, 
+  {11,  4, 18, 10, 12, -1, 25,  9, 13},
+  {12,  5, 19, 11, 13, -1, 26, 10, -1}, 
+  {13,  6, 20, 12, -1, -1, 27, 11, -1}, 
+  {14,  7, 21, -1, 15,  0, 28, -1, 16}, 
+  {15,  8, 22, 14, 16,  1, 29, -1, 17}, 
+  {16,  9, 23, 15, 17,  2, 30, 14, 18}, 
+  {17, 10, 24, 16, 18,  3, 31, 15, 19},
+  {18, 11, 25, 17, 19,  4, 32, 16, 20}, 
+  {19, 12, 26, 18, 20,  5, 33, 17, -1}, 
+  {20, 13, 27, 19, -1,  6, 34, 18, -1}, 
+  {21, 14, 28, -1, 22,  7, 35, -1, 23}, 
+  {22, 15, 29, 21, 23,  8, 36, -1, 24}, 
+  {23, 16, 30, 22, 24,  9, 37, 21, 25},
+  {24, 17, 31, 23, 25, 10, 38, 22, 26}, 
+  {25, 18, 32, 24, 26, 11, 39, 23, 27}, 
+  {26, 19, 33, 25, 27, 12, 40, 24, -1}, 
+  {27, 20, 34, 26, -1, 13, 41, 25, -1}, 
+  {28, 21, 35, -1, 29, 14, 42, -1, 30}, 
+  {29, 22, 36, 28, 30, 15, 43, -1, 31},
+  {30, 23, 37, 29, 31, 16, 44, 28, 32}, 
+  {31, 24, 38, 30, 32, 17, 45, 29, 33}, 
+  {32, 25, 39, 31, 33, 18, 46, 30, 34}, 
+  {33, 26, 40, 32, 34, 19, 47, 31, -1}, 
+  {34, 27, 41, 33, -1, 20, 48, 32, -1}, 
+  {35, 28, 42, -1, 36, 21, 49, -1, 37},
+  {36, 29, 43, 35, 37, 22, 50, -1, 38}, 
+  {37, 30, 44, 36, 38, 23, 51, 35, 39}, 
+  {38, 31, 45, 37, 39, 24, 52, 36, 40}, 
+  {39, 32, 46, 38, 40, 25, 53, 37, 41}, 
+  {40, 33, 47, 39, 41, 26, 54, 38, -1}, 
+  {41, 34, 48, 40, -1, 27, 55, 39, -1},
+  {42, 35, 49, -1, 43, 28, -1, -1, 44}, 
+  {43, 36, 50, 42, 44, 29, -1, -1, 45}, 
+  {44, 37, 51, 43, 45, 30, -1, 42, 46}, 
+  {45, 38, 52, 44, 46, 31, -1, 43, 47}, 
+  {46, 39, 53, 45, 47, 32, -1, 44, 48}, 
+  {47, 40, 54, 46, 48, 33, -1, 45, -1},
+  {48, 41, 55, 47, -1, 34, -1, 46, -1}, 
+  {49, 42, -1, -1, 50, 35, -1, -1, 51}, 
+  {50, 43, -1, 49, 51, 36, -1, -1, 52}, 
+  {51, 44, -1, 50, 52, 37, -1, 49, 53}, 
+  {52, 45, -1, 51, 53, 38, -1, 50, 54}, 
+  {53, 46, -1, 52, 54, 39, -1, 51, 55},
+  {54, 47, -1, 53, 55, 40, -1, 52, -1}, 
+  {55, 48, -1, 54, -1, 41, -1, 53, -1}
 };
 #elif defined GC_62
 int core2test[62][NUM_CORES2TEST] = {
-  { 0, -1,  6, -1,  1, -1, 14, -1,  2}, { 1, -1,  7,  0,  2, -1, 15, -1,  3}, 
-  { 2, -1,  8,  1,  3, -1, 16,  0,  4}, { 3, -1,  9,  2,  4, -1, 17,  1,  5}, 
-  { 4, -1, 10,  3,  5, -1, 18,  2, -1}, { 5, -1, 11,  4, -1, -1, 19,  3, -1},
-  { 6,  0, 14, -1,  7, -1, 22, -1,  8}, { 7,  1, 15,  6,  8, -1, 23, -1,  9}, 
-  { 8,  2, 16,  7,  9, -1, 24,  6, 10}, { 9,  3, 17,  8, 10, -1, 25,  7, 11}, 
-  {10,  4, 18,  9, 11, -1, 26,  8, 12}, {11,  5, 19, 10, 12, -1, 27,  9, 13},
-  {12, -1, 20, 11, 13, -1, 28, 10, -1}, {13, -1, 21, 12, -1, -1, 29, 11, -1}, 
-  {14,  6, 22, -1, 15,  0, 30, -1, 16}, {15,  7, 23, 14, 16,  1, 31, -1, 17}, 
-  {16,  8, 24, 15, 17,  2, 32, 14, 18}, {17,  9, 25, 16, 18,  3, 33, 15, 19},
-  {18, 10, 26, 17, 19,  4, 34, 16, 20}, {19, 11, 27, 18, 20,  5, 35, 17, 21}, 
-  {20, 12, 28, 19, 21, -1, 36, 18, -1}, {21, 13, 29, 28, -1, -1, 37, 19, -1}, 
-  {22, 14, 30, -1, 23,  6, 38, -1, 24}, {23, 15, 31, 22, 24,  7, 39, -1, 25},
-  {24, 16, 32, 23, 25,  8, 40, 22, 26}, {25, 17, 33, 24, 26,  9, 41, 23, 27}, 
-  {26, 18, 34, 25, 27, 10, 42, 24, 28}, {27, 19, 35, 26, 28, 11, 43, 25, 29}, 
-  {28, 20, 36, 27, 29, 12, 44, 26, -1}, {29, 21, 37, 28, -1, 13, 45, 27, -1},
-  {30, 22, 38, -1, 31, 22, 46, -1, 32}, {31, 23, 39, 30, 32, 15, 47, -1, 33}, 
-  {32, 24, 40, 31, 33, 16, 48, 30, 34}, {33, 25, 41, 32, 34, 17, 49, 31, 35}, 
-  {34, 26, 42, 33, 35, 18, 50, 32, 36}, {35, 27, 43, 34, 36, 19, 51, 33, 37},
-  {36, 28, 44, 35, 37, 20, 52, 34, -1}, {37, 29, 45, 36, -1, 21, 53, 35, -1}, 
-  {38, 30, 46, -1, 39, 22, 54, -1, 40}, {39, 31, 47, 38, 40, 23, 55, -1, 41}, 
-  {40, 32, 48, 39, 41, 24, 56, 38, 42}, {41, 33, 49, 40, 42, 25, 57, 39, 43},
-  {42, 34, 50, 41, 43, 26, 58, 40, 44}, {43, 35, 51, 42, 44, 27, 59, 41, 45}, 
-  {44, 36, 52, 43, 45, 28, 60, 42, -1}, {45, 37, 53, 44, -1, 29, 61, 43, -1}, 
-  {46, 38, 54, -1, 47, 30, -1, -1, 48}, {47, 39, 55, 46, 48, 31, -1, -1, 49},
-  {48, 40, 56, 47, 49, 32, -1, 46, 50}, {49, 41, 57, 48, 50, 33, -1, 47, 51}, 
-  {50, 42, 58, 49, 51, 34, -1, 48, 52}, {51, 43, 59, 50, 52, 35, -1, 49, 53}, 
-  {52, 44, 60, 51, 53, 36, -1, 50, -1}, {53, 45, 61, 52, -1, 37, -1, 51, -1},
-  {54, 46, -1, -1, 55, 38, -1, -1, 56}, {55, 47, -1, 54, 56, 39, -1, -1, 57}, 
-  {56, 48, -1, 55, 57, 40, -1, 54, 58}, {57, 49, -1, 56, 59, 41, -1, 55, 59}, 
-  {58, 50, -1, 57, 59, 42, -1, 56, 60}, {59, 51, -1, 58, 60, 43, -1, 57, 61},
-  {60, 52, -1, 59, 61, 44, -1, 58, -1}, {61, 53, -1, 60, -1, 45, -1, 59, -1}
+  { 0, -1,  6, -1,  1, -1, 14, -1,  2}, 
+  { 1, -1,  7,  0,  2, -1, 15, -1,  3}, 
+  { 2, -1,  8,  1,  3, -1, 16,  0,  4}, 
+  { 3, -1,  9,  2,  4, -1, 17,  1,  5}, 
+  { 4, -1, 10,  3,  5, -1, 18,  2, -1}, 
+  { 5, -1, 11,  4, -1, -1, 19,  3, -1},
+  { 6,  0, 14, -1,  7, -1, 22, -1,  8}, 
+  { 7,  1, 15,  6,  8, -1, 23, -1,  9}, 
+  { 8,  2, 16,  7,  9, -1, 24,  6, 10}, 
+  { 9,  3, 17,  8, 10, -1, 25,  7, 11}, 
+  {10,  4, 18,  9, 11, -1, 26,  8, 12}, 
+  {11,  5, 19, 10, 12, -1, 27,  9, 13},
+  {12, -1, 20, 11, 13, -1, 28, 10, -1}, 
+  {13, -1, 21, 12, -1, -1, 29, 11, -1}, 
+  {14,  6, 22, -1, 15,  0, 30, -1, 16}, 
+  {15,  7, 23, 14, 16,  1, 31, -1, 17}, 
+  {16,  8, 24, 15, 17,  2, 32, 14, 18}, 
+  {17,  9, 25, 16, 18,  3, 33, 15, 19},
+  {18, 10, 26, 17, 19,  4, 34, 16, 20}, 
+  {19, 11, 27, 18, 20,  5, 35, 17, 21}, 
+  {20, 12, 28, 19, 21, -1, 36, 18, -1}, 
+  {21, 13, 29, 28, -1, -1, 37, 19, -1}, 
+  {22, 14, 30, -1, 23,  6, 38, -1, 24}, 
+  {23, 15, 31, 22, 24,  7, 39, -1, 25},
+  {24, 16, 32, 23, 25,  8, 40, 22, 26}, 
+  {25, 17, 33, 24, 26,  9, 41, 23, 27}, 
+  {26, 18, 34, 25, 27, 10, 42, 24, 28}, 
+  {27, 19, 35, 26, 28, 11, 43, 25, 29}, 
+  {28, 20, 36, 27, 29, 12, 44, 26, -1}, 
+  {29, 21, 37, 28, -1, 13, 45, 27, -1},
+  {30, 22, 38, -1, 31, 22, 46, -1, 32}, 
+  {31, 23, 39, 30, 32, 15, 47, -1, 33}, 
+  {32, 24, 40, 31, 33, 16, 48, 30, 34}, 
+  {33, 25, 41, 32, 34, 17, 49, 31, 35}, 
+  {34, 26, 42, 33, 35, 18, 50, 32, 36}, 
+  {35, 27, 43, 34, 36, 19, 51, 33, 37},
+  {36, 28, 44, 35, 37, 20, 52, 34, -1}, 
+  {37, 29, 45, 36, -1, 21, 53, 35, -1}, 
+  {38, 30, 46, -1, 39, 22, 54, -1, 40}, 
+  {39, 31, 47, 38, 40, 23, 55, -1, 41}, 
+  {40, 32, 48, 39, 41, 24, 56, 38, 42}, 
+  {41, 33, 49, 40, 42, 25, 57, 39, 43},
+  {42, 34, 50, 41, 43, 26, 58, 40, 44}, 
+  {43, 35, 51, 42, 44, 27, 59, 41, 45}, 
+  {44, 36, 52, 43, 45, 28, 60, 42, -1}, 
+  {45, 37, 53, 44, -1, 29, 61, 43, -1}, 
+  {46, 38, 54, -1, 47, 30, -1, -1, 48}, 
+  {47, 39, 55, 46, 48, 31, -1, -1, 49},
+  {48, 40, 56, 47, 49, 32, -1, 46, 50}, 
+  {49, 41, 57, 48, 50, 33, -1, 47, 51}, 
+  {50, 42, 58, 49, 51, 34, -1, 48, 52}, 
+  {51, 43, 59, 50, 52, 35, -1, 49, 53}, 
+  {52, 44, 60, 51, 53, 36, -1, 50, -1}, 
+  {53, 45, 61, 52, -1, 37, -1, 51, -1},
+  {54, 46, -1, -1, 55, 38, -1, -1, 56}, 
+  {55, 47, -1, 54, 56, 39, -1, -1, 57}, 
+  {56, 48, -1, 55, 57, 40, -1, 54, 58}, 
+  {57, 49, -1, 56, 59, 41, -1, 55, 59}, 
+  {58, 50, -1, 57, 59, 42, -1, 56, 60}, 
+  {59, 51, -1, 58, 60, 43, -1, 57, 61},
+  {60, 52, -1, 59, 61, 44, -1, 58, -1}, 
+  {61, 53, -1, 60, -1, 45, -1, 59, -1}
 };
 #endif // GC_1
 #endif
@@ -298,7 +357,8 @@ void initruntimedata() {
   } else {
 	gcsharedptbl = NULL;
   }
-  BAMBOO_MEMSET_WH(gcrpointertbls,0,sizeof(mgcsharedhashtbl_t *)*NUMCORES4GC);
+  BAMBOO_MEMSET_WH(gcrpointertbls, 0, 
+	  sizeof(mgcsharedhashtbl_t *)*NUMCORES4GC);
 	  //sizeof(struct RuntimeHash *)*NUMCORES4GC);
 #ifdef SMEMM
   gcmem_mixed_threshold = (unsigned int)((BAMBOO_SHARED_MEM_SIZE
@@ -315,6 +375,14 @@ void initruntimedata() {
   gc_num_flush_dtlb = 0;
 #endif
   gc_localheap_s = false;
+#ifdef GC_CACHE_ADAPT
+  gccachestage = false;
+  // enable the timer interrupt
+  bamboo_tile_timer_set_next_event(500000000); // TODO
+  bamboo_unmask_timer_intr();
+  //BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
+  bamboo_dtlb_sampling_process();
+#endif // GC_CACHE_ADAPT
 #else
   // create the lock table, lockresult table and obj queue
   locktable.size = 20;
@@ -448,25 +516,25 @@ bool checkObjQueue() {
 #ifdef CACHEFLUSH
       BAMBOO_CACHE_FLUSH_RANGE((int)obj,sizeof(int));
       BAMBOO_CACHE_FLUSH_RANGE((int)obj,
-                               classsize[((struct ___Object___ *)obj)->type]);
+		  classsize[((struct ___Object___ *)obj)->type]);
 #endif
       // enqueue the object
       for(k = 0; k < objInfo->length; ++k) {
-	int taskindex = objInfo->queues[2 * k];
-	int paramindex = objInfo->queues[2 * k + 1];
-	struct parameterwrapper ** queues =
-	  &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
+		int taskindex = objInfo->queues[2 * k];
+		int paramindex = objInfo->queues[2 * k + 1];
+		struct parameterwrapper ** queues =
+		  &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
 #ifdef DEBUG
-	BAMBOO_DEBUGPRINT_REG(taskindex);
-	BAMBOO_DEBUGPRINT_REG(paramindex);
-	struct ___Object___ * tmpptr = (struct ___Object___ *)obj;
-	tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n",
-	        BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, (int)obj,
-	        (long)obj, tmpptr->flag);
+		BAMBOO_DEBUGPRINT_REG(taskindex);
+		BAMBOO_DEBUGPRINT_REG(paramindex);
+		struct ___Object___ * tmpptr = (struct ___Object___ *)obj;
+		tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n",
+				BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, (int)obj,
+				(long)obj, tmpptr->flag);
 #endif
-	enqueueObject_I(obj, queues, 1);
+		enqueueObject_I(obj, queues, 1);
 #ifdef DEBUG
-	BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
+		BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
 #endif
       }  // for(k = 0; k < objInfo->length; ++k)
       releasewritelock_I(obj);
@@ -478,18 +546,18 @@ bool checkObjQueue() {
       struct QueueItem * qitem = getHead(&objqueue);
       struct QueueItem * prev = NULL;
       while(qitem != NULL) {
-		  struct transObjInfo * tmpinfo =
-			  (struct transObjInfo *)(qitem->objectptr);
-		  if(tmpinfo->objptr == obj) {
-			  // the same object in the queue, which should be enqueued
-			  // recently. Current one is outdate, do not re-enqueue it
-			  RUNFREE(objInfo->queues);
-			  RUNFREE(objInfo);
-			  goto objqueuebreak;
-		  } else {
-			  prev = qitem;
-		  }  // if(tmpinfo->objptr == obj)
-		  qitem = getNextQueueItem(prev);
+		struct transObjInfo * tmpinfo =
+			(struct transObjInfo *)(qitem->objectptr);
+		if(tmpinfo->objptr == obj) {
+		  // the same object in the queue, which should be enqueued
+		  // recently. Current one is outdate, do not re-enqueue it
+		  RUNFREE(objInfo->queues);
+		  RUNFREE(objInfo);
+		  goto objqueuebreak;
+		} else {
+		  prev = qitem;
+		}  // if(tmpinfo->objptr == obj)
+		qitem = getNextQueueItem(prev);
 	  }  // while(qitem != NULL)
       // try to execute active tasks already enqueued first
       addNewItem_I(&objqueue, objInfo);
@@ -551,8 +619,8 @@ void checkCoreStatus() {
       BAMBOO_DEBUGPRINT(0xe000 + corestatus[i]);
 #endif
       if(corestatus[i] != 0) {
-		  allStall = false;
-		  break;
+		allStall = false;
+		break;
       }
     }  // for(i = 0; i < NUMCORESACTIVE; ++i)
     if(allStall) {
@@ -560,128 +628,131 @@ void checkCoreStatus() {
       // yes->check if the info is the latest; no->go on executing
       sumsendobj = 0;
       for(i = 0; i < NUMCORESACTIVE; ++i) {
-		  sumsendobj += numsendobjs[i];
+		sumsendobj += numsendobjs[i];
 #ifdef DEBUG
-		  BAMBOO_DEBUGPRINT(0xf000 + numsendobjs[i]);
+		BAMBOO_DEBUGPRINT(0xf000 + numsendobjs[i]);
 #endif
       }  // for(i = 0; i < NUMCORESACTIVE; ++i)
       for(i = 0; i < NUMCORESACTIVE; ++i) {
-		  sumsendobj -= numreceiveobjs[i];
+		sumsendobj -= numreceiveobjs[i];
 #ifdef DEBUG
-		  BAMBOO_DEBUGPRINT(0xf000 + numreceiveobjs[i]);
+		BAMBOO_DEBUGPRINT(0xf000 + numreceiveobjs[i]);
 #endif
       }  // for(i = 0; i < NUMCORESACTIVE; ++i)
       if(0 == sumsendobj) {
-	if(!waitconfirm) {
-	  // the first time found all cores stall
-	  // send out status confirm msg to all other cores
-	  // reset the corestatus array too
+		if(!waitconfirm) {
+		  // the first time found all cores stall
+		  // send out status confirm msg to all other cores
+		  // reset the corestatus array too
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT(0xee05);
+		  BAMBOO_DEBUGPRINT(0xee05);
 #endif
-	  corestatus[BAMBOO_NUM_OF_CORE] = 1;
-	  waitconfirm = true;
-	  numconfirm = NUMCORESACTIVE - 1;
-	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-	  for(i = 1; i < NUMCORESACTIVE; ++i) {
-	    corestatus[i] = 1;
-	    // send status confirm msg to core i
-	    send_msg_1(i, STATUSCONFIRM, false);
-	  }   // for(i = 1; i < NUMCORESACTIVE; ++i)
-	  return;
-	} else {
-	  // all the core status info are the latest
-	  // terminate; for profiling mode, send request to all
-	  // other cores to pour out profiling data
+		  corestatus[BAMBOO_NUM_OF_CORE] = 1;
+		  waitconfirm = true;
+		  numconfirm = NUMCORESACTIVE - 1;
+		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		  for(i = 1; i < NUMCORESACTIVE; ++i) {
+			corestatus[i] = 1;
+			// send status confirm msg to core i
+			send_msg_1(i, STATUSCONFIRM, false);
+		  }   // for(i = 1; i < NUMCORESACTIVE; ++i)
+		  return;
+		} else {
+		  // all the core status info are the latest
+		  // terminate; for profiling mode, send request to all
+		  // other cores to pour out profiling data
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT(0xee06);
+		  BAMBOO_DEBUGPRINT(0xee06);
 #endif
 
 #ifdef USEIO
-	  totalexetime = BAMBOO_GET_EXE_TIME() - bamboo_start_time;
+		  totalexetime = BAMBOO_GET_EXE_TIME() - bamboo_start_time;
 #else
 #ifdef PROFILE
-	  //BAMBOO_DEBUGPRINT_REG(interrupttime);
+		  //BAMBOO_DEBUGPRINT_REG(interrupttime);
 #endif
 
-	  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
-	  //BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
+		  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
+		  //BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
 #ifdef GC_FLUSH_DTLB
-	  BAMBOO_DEBUGPRINT_REG(gc_num_flush_dtlb);
+		  BAMBOO_DEBUGPRINT_REG(gc_num_flush_dtlb);
 #endif
 #ifndef BAMBOO_MEMPROF
-	  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
+		  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
 #endif
 #endif
-	  // profile mode, send msgs to other cores to request pouring
-	  // out progiling data
+		  // profile mode, send msgs to other cores to request pouring
+		  // out progiling data
 #ifdef PROFILE
-	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT(0xf000);
+		  BAMBOO_DEBUGPRINT(0xf000);
 #endif
-	  for(i = 1; i < NUMCORESACTIVE; ++i) {
-	    // send profile request msg to core i
-	    send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
-	  } // for(i = 1; i < NUMCORESACTIVE; ++i)
+		  for(i = 1; i < NUMCORESACTIVE; ++i) {
+			// send profile request msg to core i
+			send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
+		  } // for(i = 1; i < NUMCORESACTIVE; ++i)
 #ifndef RT_TEST
-	  // pour profiling data on startup core
-	  outputProfileData();
+		  // pour profiling data on startup core
+		  outputProfileData();
 #endif
-	  while(true) {
-	    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+		  while(true) {
+			BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef DEBUG
-	    BAMBOO_DEBUGPRINT(0xf001);
+			BAMBOO_DEBUGPRINT(0xf001);
 #endif
-	    profilestatus[BAMBOO_NUM_OF_CORE] = 0;
-	    // check the status of all cores
-	    allStall = true;
+			profilestatus[BAMBOO_NUM_OF_CORE] = 0;
+			// check the status of all cores
+			allStall = true;
 #ifdef DEBUG
-	    BAMBOO_DEBUGPRINT_REG(NUMCORESACTIVE);
+			BAMBOO_DEBUGPRINT_REG(NUMCORESACTIVE);
 #endif
-	    for(i = 0; i < NUMCORESACTIVE; ++i) {
+			for(i = 0; i < NUMCORESACTIVE; ++i) {
 #ifdef DEBUG
-	      BAMBOO_DEBUGPRINT(0xe000 + profilestatus[i]);
+			  BAMBOO_DEBUGPRINT(0xe000 + profilestatus[i]);
 #endif
-	      if(profilestatus[i] != 0) {
-			allStall = false;
-			break;
-	      }
-	    }  // for(i = 0; i < NUMCORESACTIVE; ++i)
-	    if(!allStall) {
-	      int halt = 100;
-	      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+			  if(profilestatus[i] != 0) {
+				allStall = false;
+				break;
+			  }
+			}  // for(i = 0; i < NUMCORESACTIVE; ++i)
+			if(!allStall) {
+			  int halt = 100;
+			  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 #ifdef DEBUG
-	      BAMBOO_DEBUGPRINT(0xf000);
+			  BAMBOO_DEBUGPRINT(0xf000);
 #endif
-	      while(halt--) {
-	      }
-	    } else {
-	      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-	      break;
-	    }  // if(!allStall)
-	  }  // while(true)
+			  while(halt--) {
+			  }
+			} else {
+			  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+			  break;
+			}  // if(!allStall)
+		  }  // while(true)
 #endif
 
-	  // gc_profile mode, output gc prfiling data
+		  // gc_profile mode, output gc prfiling data
 #ifdef MULTICORE_GC
+#ifdef GC_CACHE_ADAPT
+		  bamboo_mask_timer_intr(); // disable the TILE_TIMER interrupt
+#endif // GC_CACHE_ADAPT
 #ifdef GC_PROFILE
-	  gc_outputProfileData();
+		  gc_outputProfileData();
 #endif // #ifdef GC_PROFILE
 #endif // #ifdef MULTICORE_GC
-	  disruntimedata();
-	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-	  terminate();  // All done.
-	}  // if(!waitconfirm)
+		  disruntimedata();
+		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		  terminate();  // All done.
+		}  // if(!waitconfirm)
       } else {
-	// still some objects on the fly on the network
-	// reset the waitconfirm and numconfirm
+		// still some objects on the fly on the network
+		// reset the waitconfirm and numconfirm
 #ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xee07);
+		BAMBOO_DEBUGPRINT(0xee07);
 #endif
-	waitconfirm = false;
-	numconfirm = 0;
-      }  //  if(0 == sumsendobj)
+		waitconfirm = false;
+		numconfirm = 0;
+	  }  //  if(0 == sumsendobj)
     } else {
       // not all cores are stall, keep on waiting
 #ifdef DEBUG
@@ -752,16 +823,20 @@ inline void run(void * arg) {
     while(true) {
 
 #ifdef MULTICORE_GC
+//#ifdef GC_CACHE_ADAPT
+	  // do dtlb sampling if necessary
+//	  bamboo_dtlb_sampling_process();
+//#endif // GC_CACHE_ADAPT
       // check if need to do GC
       if(gcflag) {
 		gc(NULL);
 	  }
-#endif
+#endif // MULTICORE_GC
 
       // check if there are new active tasks can be executed
       executetasks();
       if(busystatus) {
-	sendStall = false;
+		sendStall = false;
       }
 
 #ifndef INTERRUPT
@@ -778,55 +853,55 @@ inline void run(void * arg) {
       tocontinue = checkObjQueue();
 
       if(!tocontinue) {
-	// check if stop
-	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-	  if(isfirst) {
+		// check if stop
+		if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+		  if(isfirst) {
 #ifdef DEBUG
-	    BAMBOO_DEBUGPRINT(0xee03);
+			BAMBOO_DEBUGPRINT(0xee03);
 #endif
-	    isfirst = false;
-	  }
-	  checkCoreStatus();
-	} else {
-	  if(!sendStall) {
+			isfirst = false;
+		  }
+		  checkCoreStatus();
+		} else {
+		  if(!sendStall) {
 #ifdef DEBUG
-	    BAMBOO_DEBUGPRINT(0xee09);
+			BAMBOO_DEBUGPRINT(0xee09);
 #endif
 #ifdef PROFILE
-	    if(!stall) {
+			if(!stall) {
 #endif
-	    if(isfirst) {
-	      // wait for some time
-	      int halt = 10000;
+			if(isfirst) {
+			  // wait for some time
+			  int halt = 10000;
 #ifdef DEBUG
-	      BAMBOO_DEBUGPRINT(0xee0a);
+			  BAMBOO_DEBUGPRINT(0xee0a);
 #endif
-	      while(halt--) {
-	      }
-	      isfirst = false;
-	    } else {
-	      // send StallMsg to startup core
+			  while(halt--) {
+			  }
+			  isfirst = false;
+			} else {
+			  // send StallMsg to startup core
 #ifdef DEBUG
-	      BAMBOO_DEBUGPRINT(0xee0b);
+			  BAMBOO_DEBUGPRINT(0xee0b);
 #endif
-	      // send stall msg
-	      send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE,
-	                 self_numsendobjs, self_numreceiveobjs, false);
-	      sendStall = true;
-	      isfirst = true;
-	      busystatus = false;
-	    }
+			  // send stall msg
+			  send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE,
+						 self_numsendobjs, self_numreceiveobjs, false);
+			  sendStall = true;
+			  isfirst = true;
+			  busystatus = false;
+			}
 #ifdef PROFILE
-	  }
+		  }
 #endif
-	  } else {
-	    isfirst = true;
-	    busystatus = false;
+		  } else {
+			isfirst = true;
+			busystatus = false;
 #ifdef DEBUG
-	    BAMBOO_DEBUGPRINT(0xee0c);
+			BAMBOO_DEBUGPRINT(0xee0c);
 #endif
-	  }   // if(!sendStall)
-	}   // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
+		  }   // if(!sendStall)
+		}   // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
       }  // if(!tocontinue)
     }  // while(true)
   } // if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)
@@ -846,7 +921,8 @@ void createstartupobject(int argc,
 
   /* Allocate startup object     */
 #ifdef MULTICORE_GC
-  struct ___createstartupobject____I_locals ___locals___={2, NULL, NULL, NULL};
+  struct ___createstartupobject____I_locals ___locals___ = 
+  {2, NULL, NULL, NULL};
   struct ___StartupObject___ *startupobject=
     (struct ___StartupObject___*) allocate_new(&___locals___, STARTUPTYPE);
   ___locals___.___startupobject___ = startupobject;
@@ -921,7 +997,7 @@ void tagset(struct ___Object___ * obj,
     if (tagptr->type==TAGTYPE) {
       struct ___TagDescriptor___ * td=(struct ___TagDescriptor___ *) tagptr;
       if (td==tagd) {
-	return;
+		return;
       }
 #ifdef MULTICORE_GC
       int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
@@ -943,35 +1019,35 @@ void tagset(struct ___Object___ * obj,
       int i;
       struct ArrayObject *ao=(struct ArrayObject *) tagptr;
       for(i=0; i<ao->___cachedCode___; i++) {
-	struct ___TagDescriptor___ * td=
-	  ARRAYGET(ao, struct ___TagDescriptor___*, i);
-	if (td==tagd) {
-	  return;
-	}
+		struct ___TagDescriptor___ * td=
+		  ARRAYGET(ao, struct ___TagDescriptor___*, i);
+		if (td==tagd) {
+		  return;
+		}
       }
       if (ao->___cachedCode___<ao->___length___) {
-	ARRAYSET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___, tagd);
-	ao->___cachedCode___++;
+		ARRAYSET(ao, struct ___TagDescriptor___ *,ao->___cachedCode___,tagd);
+		ao->___cachedCode___++;
       } else {
 #ifdef MULTICORE_GC
-	int ptrarray[]={2,(int) ptr, (int) obj, (int) tagd};
-	struct ArrayObject * aonew=
-	  allocate_newarray(&ptrarray,TAGARRAYTYPE,
-	                    TAGARRAYINTERVAL+ao->___length___);
-	obj=(struct ___Object___ *)ptrarray[2];
-	tagd=(struct ___TagDescriptor___ *) ptrarray[3];
-	ao=(struct ArrayObject *)obj->___tags___;
+		int ptrarray[]={2,(int) ptr, (int) obj, (int) tagd};
+		struct ArrayObject * aonew=
+		  allocate_newarray(&ptrarray,TAGARRAYTYPE,
+							TAGARRAYINTERVAL+ao->___length___);
+		obj=(struct ___Object___ *)ptrarray[2];
+		tagd=(struct ___TagDescriptor___ *) ptrarray[3];
+		ao=(struct ArrayObject *)obj->___tags___;
 #else
-	struct ArrayObject * aonew=
-	  allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
+		struct ArrayObject * aonew=
+		  allocate_newarray(TAGARRAYTYPE,TAGARRAYINTERVAL+ao->___length___);
 #endif
 
-	aonew->___cachedCode___=ao->___length___+1;
-	for(i=0; i<ao->___length___; i++) {
-	  ARRAYSET(aonew, struct ___TagDescriptor___*, i,
-	           ARRAYGET(ao, struct ___TagDescriptor___*, i));
-	}
-	ARRAYSET(aonew, struct ___TagDescriptor___ *, ao->___length___, tagd);
+		aonew->___cachedCode___=ao->___length___+1;
+		for(i=0; i<ao->___length___; i++) {
+		  ARRAYSET(aonew, struct ___TagDescriptor___*, i,
+				   ARRAYGET(ao, struct ___TagDescriptor___*, i));
+		}
+		ARRAYSET(aonew, struct ___TagDescriptor___ *, ao->___length___,tagd);
       }
     }
   }
@@ -998,28 +1074,28 @@ void tagset(struct ___Object___ * obj,
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       if (ao->___cachedCode___<ao->___length___) {
-	ARRAYSET(ao, struct ___Object___*, ao->___cachedCode___++, obj);
+		ARRAYSET(ao, struct ___Object___*, ao->___cachedCode___++, obj);
       } else {
-	int i;
+		int i;
 #ifdef MULTICORE_GC
-	int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
-	struct ArrayObject * aonew=
-	  allocate_newarray(&ptrarray,OBJECTARRAYTYPE,
-	                    OBJECTARRAYINTERVAL+ao->___length___);
-	obj=(struct ___Object___ *)ptrarray[2];
-	tagd=(struct ___TagDescriptor___ *)ptrarray[3];
-	ao=(struct ArrayObject *)tagd->flagptr;
+		int ptrarray[]={2, (int) ptr, (int) obj, (int)tagd};
+		struct ArrayObject * aonew=
+		  allocate_newarray(&ptrarray,OBJECTARRAYTYPE,
+							OBJECTARRAYINTERVAL+ao->___length___);
+		obj=(struct ___Object___ *)ptrarray[2];
+		tagd=(struct ___TagDescriptor___ *)ptrarray[3];
+		ao=(struct ArrayObject *)tagd->flagptr;
 #else
-	struct ArrayObject * aonew=
-	  allocate_newarray(OBJECTARRAYTYPE,OBJECTARRAYINTERVAL+ao->___length___);
+		struct ArrayObject * aonew=allocate_newarray(OBJECTARRAYTYPE,
+			OBJECTARRAYINTERVAL+ao->___length___);
 #endif
-	aonew->___cachedCode___=ao->___cachedCode___+1;
-	for(i=0; i<ao->___length___; i++) {
-	  ARRAYSET(aonew, struct ___Object___*, i,
-	           ARRAYGET(ao, struct ___Object___*, i));
-	}
-	ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
-	tagd->flagptr=(struct ___Object___ *) aonew;
+		aonew->___cachedCode___=ao->___cachedCode___+1;
+		for(i=0; i<ao->___length___; i++) {
+		  ARRAYSET(aonew, struct ___Object___*, i,
+				   ARRAYGET(ao, struct ___Object___*, i));
+		}
+		ARRAYSET(aonew, struct ___Object___ *, ao->___cachedCode___, obj);
+		tagd->flagptr=(struct ___Object___ *) aonew;
       }
     }
   }
@@ -1048,14 +1124,14 @@ void tagclear(struct ___Object___ * obj,
       struct ___TagDescriptor___ * td=
         ARRAYGET(ao, struct ___TagDescriptor___ *, i);
       if (td==tagd) {
-	ao->___cachedCode___--;
-	if (i<ao->___cachedCode___)
-	  ARRAYSET(ao, struct ___TagDescriptor___ *, i,
-	           ARRAYGET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___));
-	ARRAYSET(ao, struct ___TagDescriptor___ *, ao->___cachedCode___, NULL);
-	if (ao->___cachedCode___==0)
-	  obj->___tags___=NULL;
-	goto PROCESSCLEAR;
+		ao->___cachedCode___--;
+		if (i<ao->___cachedCode___)
+		  ARRAYSET(ao, struct ___TagDescriptor___ *, i,
+			  ARRAYGET(ao,struct ___TagDescriptor___*,ao->___cachedCode___));
+		ARRAYSET(ao,struct ___TagDescriptor___ *,ao->___cachedCode___, NULL);
+		if (ao->___cachedCode___==0)
+		  obj->___tags___=NULL;
+		goto PROCESSCLEAR;
       }
     }
   }
@@ -1064,22 +1140,22 @@ PROCESSCLEAR:
     struct ___Object___ *tagset=tagd->flagptr;
     if (tagset->type!=OBJECTARRAYTYPE) {
       if (tagset==obj)
-	tagd->flagptr=NULL;
+		tagd->flagptr=NULL;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagset;
       int i;
       for(i=0; i<ao->___cachedCode___; i++) {
-	struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, i);
-	if (tobj==obj) {
-	  ao->___cachedCode___--;
-	  if (i<ao->___cachedCode___)
-	    ARRAYSET(ao, struct ___Object___ *, i,
-	             ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
-	  ARRAYSET(ao, struct ___Object___ *, ao->___cachedCode___, NULL);
-	  if (ao->___cachedCode___==0)
-	    tagd->flagptr=NULL;
-	  goto ENDCLEAR;
-	}
+		struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, i);
+		if (tobj==obj) {
+		  ao->___cachedCode___--;
+		  if (i<ao->___cachedCode___)
+			ARRAYSET(ao, struct ___Object___ *, i,
+				ARRAYGET(ao, struct ___Object___ *, ao->___cachedCode___));
+		  ARRAYSET(ao, struct ___Object___ *, ao->___cachedCode___, NULL);
+		  if (ao->___cachedCode___==0)
+			tagd->flagptr=NULL;
+		  goto ENDCLEAR;
+		}
       }
     }
   }
@@ -1218,44 +1294,44 @@ void enqueueObject(void * vptr,
       parameter = queues[j];
       /* Check tags */
       if (parameter->numbertags>0) {
-	if (tagptr==NULL)
-	  goto nextloop;  //that means the object has no tag
-	//but that param needs tag
-	else if(tagptr->type==TAGTYPE) {     //one tag
-	  //struct ___TagDescriptor___ * tag=
-	  //(struct ___TagDescriptor___*) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    if (tagid!=tagptr->flag)
-	      goto nextloop;   /*We don't have this tag */
-	  }
-	} else {                         //multiple tags
-	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    int j;
-	    for(j=0; j<ao->___cachedCode___; j++) {
-	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
-		goto foundtag;
-	    }
-	    goto nextloop;
+		if (tagptr==NULL)
+		  goto nextloop;  //that means the object has no tag
+		//but that param needs tag
+		else if(tagptr->type==TAGTYPE) {     //one tag
+		  //struct ___TagDescriptor___ * tag=
+		  //(struct ___TagDescriptor___*) tagptr;
+		  for(i=0; i<parameter->numbertags; i++) {
+			//slotid is parameter->tagarray[2*i];
+			int tagid=parameter->tagarray[2*i+1];
+			if (tagid!=tagptr->flag)
+			  goto nextloop;   /*We don't have this tag */
+		  }
+		} else {                         //multiple tags
+		  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+		  for(i=0; i<parameter->numbertags; i++) {
+			//slotid is parameter->tagarray[2*i];
+			int tagid=parameter->tagarray[2*i+1];
+			int j;
+			for(j=0; j<ao->___cachedCode___; j++) {
+			  if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
+				goto foundtag;
+			}
+			goto nextloop;
 foundtag:
-	    ;
-	  }
-	}
+			;
+		  }
+		}
       }
 
       /* Check flags */
       for(i=0; i<parameter->numberofterms; i++) {
-	int andmask=parameter->intarray[i*2];
-	int checkmask=parameter->intarray[i*2+1];
-	if ((ptr->flag&andmask)==checkmask) {
-	  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
-	  prevptr=parameter;
-	  break;
-	}
+		int andmask=parameter->intarray[i*2];
+		int checkmask=parameter->intarray[i*2+1];
+		if ((ptr->flag&andmask)==checkmask) {
+		  enqueuetasks(parameter, prevptr, ptr, NULL, 0);
+		  prevptr=parameter;
+		  break;
+		}
       }
 nextloop:
       ;
@@ -1292,43 +1368,43 @@ void enqueueObject_I(void * vptr,
       parameter = queues[j];
       /* Check tags */
       if (parameter->numbertags>0) {
-	if (tagptr==NULL)
-	  goto nextloop;      //that means the object has no tag
-	//but that param needs tag
-	else if(tagptr->type==TAGTYPE) {   //one tag
-	  //struct ___TagDescriptor___ * tag=(struct ___TagDescriptor___*) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    if (tagid!=tagptr->flag)
-	      goto nextloop;            /*We don't have this tag */
-	  }
-	} else {    //multiple tags
-	  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
-	  for(i=0; i<parameter->numbertags; i++) {
-	    //slotid is parameter->tagarray[2*i];
-	    int tagid=parameter->tagarray[2*i+1];
-	    int j;
-	    for(j=0; j<ao->___cachedCode___; j++) {
-	      if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
-		goto foundtag;
-	    }
-	    goto nextloop;
+		if (tagptr==NULL)
+		  goto nextloop;      //that means the object has no tag
+		//but that param needs tag
+		else if(tagptr->type==TAGTYPE) {   //one tag
+		//struct ___TagDescriptor___*tag=(struct ___TagDescriptor___*)tagptr;
+		  for(i=0; i<parameter->numbertags; i++) {
+			//slotid is parameter->tagarray[2*i];
+			int tagid=parameter->tagarray[2*i+1];
+			if (tagid!=tagptr->flag)
+			  goto nextloop;            /*We don't have this tag */
+		  }
+		} else {    //multiple tags
+		  struct ArrayObject * ao=(struct ArrayObject *) tagptr;
+		  for(i=0; i<parameter->numbertags; i++) {
+			//slotid is parameter->tagarray[2*i];
+			int tagid=parameter->tagarray[2*i+1];
+			int j;
+			for(j=0; j<ao->___cachedCode___; j++) {
+			  if (tagid==ARRAYGET(ao, struct ___TagDescriptor___*, j)->flag)
+				goto foundtag;
+			}
+			goto nextloop;
 foundtag:
-	    ;
-	  }
-	}
+			;
+		  }
+		}
       }
 
       /* Check flags */
       for(i=0; i<parameter->numberofterms; i++) {
-	int andmask=parameter->intarray[i*2];
-	int checkmask=parameter->intarray[i*2+1];
-	if ((ptr->flag&andmask)==checkmask) {
-	  enqueuetasks_I(parameter, prevptr, ptr, NULL, 0);
-	  prevptr=parameter;
-	  break;
-	}
+		int andmask=parameter->intarray[i*2];
+		int checkmask=parameter->intarray[i*2+1];
+		if ((ptr->flag&andmask)==checkmask) {
+		  enqueuetasks_I(parameter, prevptr, ptr, NULL, 0);
+		  prevptr=parameter;
+		  break;
+		}
       }
 nextloop:
       ;
@@ -1353,43 +1429,43 @@ int * getAliasLock(void ** ptrs,
       int lock = 0;
       int j = 0;
       if(ptr->lock == NULL) {
-	lock = (int)(ptr);
+		lock = (int)(ptr);
       } else {
-	lock = (int)(ptr->lock);
+		lock = (int)(ptr->lock);
       }
       if(redirect) {
-	if(lock != redirectlock) {
-	  RuntimeHashadd(tbl, lock, redirectlock);
-	}
+		if(lock != redirectlock) {
+		  RuntimeHashadd(tbl, lock, redirectlock);
+		}
       } else {
-	if(RuntimeHashcontainskey(tbl, lock)) {
-	  // already redirected
-	  redirect = true;
-	  RuntimeHashget(tbl, lock, &redirectlock);
-	  for(; j < locklen; j++) {
-	    if(locks[j] != redirectlock) {
-	      RuntimeHashadd(tbl, locks[j], redirectlock);
-	    }
-	  }
-	} else {
-	  bool insert = true;
-	  for(j = 0; j < locklen; j++) {
-	    if(locks[j] == lock) {
-	      insert = false;
-	      break;
-	    } else if(locks[j] > lock) {
-	      break;
-	    }
-	  }
-	  if(insert) {
-	    int h = locklen;
-	    for(; h > j; h--) {
-	      locks[h] = locks[h-1];
-	    }
-	    locks[j] = lock;
-	    locklen++;
-	  }
-	}
+		if(RuntimeHashcontainskey(tbl, lock)) {
+		  // already redirected
+		  redirect = true;
+		  RuntimeHashget(tbl, lock, &redirectlock);
+		  for(; j < locklen; j++) {
+			if(locks[j] != redirectlock) {
+			  RuntimeHashadd(tbl, locks[j], redirectlock);
+			}
+		  }
+		} else {
+		  bool insert = true;
+		  for(j = 0; j < locklen; j++) {
+			if(locks[j] == lock) {
+			  insert = false;
+			  break;
+			} else if(locks[j] > lock) {
+			  break;
+			}
+		  }
+		  if(insert) {
+			int h = locklen;
+			for(; h > j; h--) {
+			  locks[h] = locks[h-1];
+			}
+			locks[j] = lock;
+			locklen++;
+		  }
+		}
       }
     }
     if(redirect) {
@@ -1863,23 +1939,23 @@ void * smemalloc_I(int coren,
 #ifdef MULTICORE_GC
 	if(!gcflag) {
 	  gcflag = true;
-	// inform other cores to stop and wait for gc
-	gcprecheck = true;
-	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  // reuse the gcnumsendobjs & gcnumreceiveobjs
-	  gccorestatus[i] = 1;
-	  gcnumsendobjs[0][i] = 0;
-	  gcnumreceiveobjs[0][i] = 0;
-	}
-	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  if(i != BAMBOO_NUM_OF_CORE) {
-		if(BAMBOO_CHECK_SEND_MODE()) {
-		  cache_msg_1(i, GCSTARTPRE);
-		} else {
-		  send_msg_1(i, GCSTARTPRE, true);
+	  // inform other cores to stop and wait for gc
+	  gcprecheck = true;
+	  for(int i = 0; i < NUMCORESACTIVE; i++) {
+		// reuse the gcnumsendobjs & gcnumreceiveobjs
+		gccorestatus[i] = 1;
+		gcnumsendobjs[0][i] = 0;
+		gcnumreceiveobjs[0][i] = 0;
+	  }
+	  for(int i = 0; i < NUMCORESACTIVE; i++) {
+		if(i != BAMBOO_NUM_OF_CORE) {
+		  if(BAMBOO_CHECK_SEND_MODE()) {
+			cache_msg_1(i, GCSTARTPRE);
+		  } else {
+			send_msg_1(i, GCSTARTPRE, true);
+		  }
 		}
 	  }
-	}
 	}
 	return NULL;
 #else
@@ -1909,11 +1985,14 @@ INLINE int checkMsgLength_I(int size) {
   case GCFINISH:
   case GCMARKCONFIRM:
   case GCLOBJREQUEST:
-#endif
-    {
-      msglength = 1;
-      break;
-    }
+#ifdef GC_CACHE_ADAPT
+  case GCSTARTPREF:
+#endif // GC_CACHE_ADAPT
+#endif // MULTICORE_GC
+  {
+	msglength = 1;
+	break;
+  }
 
   case PROFILEOUTPUT:
   case PROFILEFINISH:
@@ -1923,11 +2002,14 @@ INLINE int checkMsgLength_I(int size) {
   case GCFINISHINIT:
   case GCFINISHMAPINFO:
   case GCFINISHFLUSH:
-#endif
-    {
-      msglength = 2;
-      break;
-    }
+#ifdef GC_CACHE_ADAPT
+  case GCFINISHPREF:
+#endif // GC_CACHE_ADAPT
+#endif // MULTICORE_GC
+  {
+	msglength = 2;
+	break;
+  }
 
   case MEMREQUEST:
   case MEMRESPONSE:
@@ -1937,10 +2019,10 @@ INLINE int checkMsgLength_I(int size) {
   case GCMAPTBL:
   case GCLOBJMAPPING:
 #endif
-    {
-      msglength = 3;
-      break;
-    }
+  {
+	msglength = 3;
+	break;
+  }
 
   case TRANSTALL:
   case LOCKGROUNT:
@@ -1957,10 +2039,10 @@ INLINE int checkMsgLength_I(int size) {
   case GCPROFILES:
 #endif
 #endif
-    {
-      msglength = 4;
-      break;
-    }
+  {
+	msglength = 4;
+	break;
+  }
 
   case LOCKREQUEST:
   case STATUSREPORT:
@@ -1968,10 +2050,10 @@ INLINE int checkMsgLength_I(int size) {
   case GCFINISHCOMPACT:
   case GCMARKREPORT:
 #endif
-    {
-      msglength = 5;
-      break;
-    }
+  {
+	msglength = 5;
+	break;
+  }
 
   case REDIRECTLOCK:
   {
@@ -1983,14 +2065,14 @@ INLINE int checkMsgLength_I(int size) {
 #ifdef MULTICORE_GC
   case GCLOBJINFO:
 #endif
-    {             // nonfixed size
-      if(size > 1) {
-	msglength = msgdata[msgdataindex+1];
-      } else {
-	return -1;
-      }
-      break;
-    }
+  {             // nonfixed size
+	if(size > 1) {
+	  msglength = msgdata[msgdataindex+1];
+	} else {
+	  return -1;
+	}
+	break;
+  }
 
   default:
   {
@@ -2072,18 +2154,18 @@ INLINE void processmsg_transobj_I() {
       struct transObjInfo * tmpinfo =
         (struct transObjInfo *)(qitem->objectptr);
       if(tmpinfo->objptr == transObj->objptr) {
-	// the same object, remove outdate one
-	RUNFREE(tmpinfo->queues);
-	RUNFREE(tmpinfo);
-	removeItem(&objqueue, qitem);
-	//break;
+		// the same object, remove outdate one
+		RUNFREE(tmpinfo->queues);
+		RUNFREE(tmpinfo);
+		removeItem(&objqueue, qitem);
+		//break;
       } else {
-	prev = qitem;
+		prev = qitem;
       }
       if(prev == NULL) {
-	qitem = getHead(&objqueue);
+		qitem = getHead(&objqueue);
       } else {
-	qitem = getNextQueueItem(prev);
+		qitem = getNextQueueItem(prev);
       }
     }
     addNewItem_I(&objqueue, (void *)transObj);
@@ -2163,9 +2245,9 @@ INLINE void processmsg_lockrequest_I() {
     // for 32 bit machine, the size is always 4 words, cache the msg first
     int tmp = deny==1 ? LOCKDENY : LOCKGROUNT;
     if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_4(data4, tmp, locktype, data2, data3);
+	  cache_msg_4(data4, tmp, locktype, data2, data3);
     } else {
-    send_msg_4(data4, tmp, locktype, data2, data3, true);
+	  send_msg_4(data4, tmp, locktype, data2, data3, true);
     }
   }
 }
@@ -2263,11 +2345,11 @@ INLINE void processmsg_redirectlock_I() {
     // send response msg
     // for 32 bit machine, the size is always 4 words, cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_4(data4, deny==1 ? REDIRECTDENY : REDIRECTGROUNT,
-                data1, data2, data3);
+	  cache_msg_4(data4, deny==1 ? REDIRECTDENY : REDIRECTGROUNT,
+				  data1, data2, data3);
     } else {
-    send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT,
-               data1, data2, data3, true);
+	  send_msg_4(data4, deny==1?REDIRECTDENY:REDIRECTGROUNT,
+				 data1, data2, data3, true);
     }
   }
 }
@@ -2367,9 +2449,9 @@ INLINE void processmsg_profileoutput_I() {
 #endif
   // cache the msg first
   if(BAMBOO_CHECK_SEND_MODE()) {
-  cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
+	cache_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE);
   } else {
-  send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
+	send_msg_2(STARTUPCORE, PROFILEFINISH, BAMBOO_NUM_OF_CORE, true);
   }
 }
 
@@ -2406,13 +2488,13 @@ INLINE void processmsg_statusconfirm_I() {
 #endif
     // cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_5(STARTUPCORE, STATUSREPORT,
-                busystatus ? 1 : 0, BAMBOO_NUM_OF_CORE,
-                self_numsendobjs, self_numreceiveobjs);
+	  cache_msg_5(STARTUPCORE, STATUSREPORT,
+				  busystatus ? 1 : 0, BAMBOO_NUM_OF_CORE,
+				  self_numsendobjs, self_numreceiveobjs);
     } else {
-    send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0,
-               BAMBOO_NUM_OF_CORE, self_numsendobjs,
-               self_numreceiveobjs, true);
+	  send_msg_5(STARTUPCORE, STATUSREPORT, busystatus?1:0,
+				 BAMBOO_NUM_OF_CORE, self_numsendobjs,
+				 self_numreceiveobjs, true);
     }
   }
 }
@@ -2455,6 +2537,11 @@ INLINE void processmsg_terminate_I() {
 #endif
 #endif
   disruntimedata();
+#ifdef MULTICORE_GC
+#ifdef GC_CACHE_ADAPT
+  bamboo_mask_timer_intr(); // disable the TILE_TIMER interrupt
+#endif // GC_CACHE_ADAPT
+#endif // MULTICORE_GC
   BAMBOO_EXIT_APP(0);
 }
 
@@ -2490,13 +2577,13 @@ INLINE void processmsg_memrequest_I() {
     if(gcprocessing) {
       // is currently doing gc, dump this msg
       if(INITPHASE == gcphase) {
-	// if still in the initphase of gc, send a startinit msg again,
-	// cache the msg first
-	if(BAMBOO_CHECK_SEND_MODE()) {
-	cache_msg_1(data2, GCSTARTINIT);
-	} else {
-	send_msg_1(data2, GCSTARTINIT, true);
-	}
+		// if still in the initphase of gc, send a startinit msg again,
+		// cache the msg first
+		if(BAMBOO_CHECK_SEND_MODE()) {
+		  cache_msg_1(data2, GCSTARTINIT);
+		} else {
+		  send_msg_1(data2, GCSTARTINIT, true);
+		}
       }
     } else {
 #endif
@@ -2504,10 +2591,10 @@ INLINE void processmsg_memrequest_I() {
     if(mem != NULL) {
       // send the start_va to request core, cache the msg first
       if(BAMBOO_CHECK_SEND_MODE()) {
-      cache_msg_3(data2, MEMRESPONSE, mem, allocsize);
+		cache_msg_3(data2, MEMRESPONSE, mem, allocsize);
       } else {
-      send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
-      }
+		send_msg_3(data2, MEMRESPONSE, mem, allocsize, true);
+	  }
     } //else 
 	  // if mem == NULL, the gcflag of the startup core has been set
 	  // and all the other cores have been informed to start gc
@@ -2726,12 +2813,12 @@ INLINE void processmsg_gcfinishcompact_I() {
       int tomove = 0;
       int dstcore = 0;
       if(gcfindSpareMem_I(&startaddr, &tomove, &dstcore, data4, cnum)) {
-	// cache the msg first
-	if(BAMBOO_CHECK_SEND_MODE()) {
-	cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
-	} else {
-	send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
-	}
+		// cache the msg first
+		if(BAMBOO_CHECK_SEND_MODE()) {
+		  cache_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove);
+		} else {
+		  send_msg_4(cnum, GCMOVESTART, dstcore, startaddr, tomove, true);
+		}
       }
     } else {
       gccorestatus[cnum] = 0;
@@ -2782,13 +2869,13 @@ INLINE void processmsg_gcmarkconfirm_I() {
   } else {
     // send response msg, cahce the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE,
-                gcbusystatus, gcself_numsendobjs,
-                gcself_numreceiveobjs);
+	  cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE,
+				  gcbusystatus, gcself_numsendobjs,
+				  gcself_numreceiveobjs);
     } else {
-    send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE,
-               gcbusystatus, gcself_numsendobjs,
-               gcself_numreceiveobjs, true);
+	  send_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE,
+				 gcbusystatus, gcself_numsendobjs,
+				 gcself_numreceiveobjs, true);
     }
   }
 }
@@ -2882,7 +2969,7 @@ INLINE void processmsg_gcmaprequest_I() {
     BAMBOO_DEBUGPRINT_REG(data1);
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb009);
+    BAMBOO_EXIT(0xb008);
     //assume that the object was not moved, use the original address
     /*if(isMsgSending) {
             cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
@@ -2892,9 +2979,9 @@ INLINE void processmsg_gcmaprequest_I() {
   } else {
     // send back the mapping info, cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
-    cache_msg_3(data2, GCMAPINFO, data1, (int)dstptr);
+	  cache_msg_3(data2, GCMAPINFO, data1, (int)dstptr);
     } else {
-    send_msg_3(data2, GCMAPINFO, data1, (int)dstptr, true);
+	  send_msg_3(data2, GCMAPINFO, data1, (int)dstptr, true);
     }
   }
 #ifdef GC_PROFILE
@@ -2944,7 +3031,7 @@ INLINE void processmsg_gclobjinfo_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb00b);
+    BAMBOO_EXIT(0xb009);
   }
   // store the mark result info
   int cnum = data2;
@@ -2993,7 +3080,30 @@ INLINE void processmsg_gcprofiles_I() {
   gc_num_forwardobj += data3;
   gc_num_profiles--;
 }
+#endif // GC_PROFILE
+
+#ifdef GC_CACHE_ADAPT
+INLINE void processmsg_gcstartpref_I() {
+  gcphase = PREFINISHPHASE;
+}
+
+INLINE void processmsg_gcfinishpref_I() {
+  int data1 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  // received a flush phase finish msg
+  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
+    // non startup core can not receive this msg
+#ifndef CLOSE_PRINT
+    BAMBOO_DEBUGPRINT_REG(data1);
 #endif
+    BAMBOO_EXIT(0xb00a);
+  }
+  // all cores should do flush
+  if(data1 < NUMCORESACTIVE) {
+    gccorestatus[data1] = 0;
+  }
+}
+#endif // GC_CACHE_ADAPT
 #endif // #ifdef MULTICORE_GC
 
 // receive object transferred from other cores
@@ -3285,13 +3395,27 @@ processmsg:
       break;
     }  // case GCLOBJMAPPING
 
-#ifdef GC_PROFILE//_S
+#ifdef GC_PROFILE
 	case GCPROFILES: {
       // received a gcprofiles msg
       processmsg_gcprofiles_I();
       break;
     }
-#endif
+#endif // GC_PROFILE
+
+#ifdef GC_CACHE_ADAPT
+	case GCSTARTPREF: {
+      // received a gcstartpref msg
+      processmsg_gcstartpref_I();
+      break;
+    }
+
+	case GCFINISHPREF: {
+      // received a gcfinishpref msg
+      processmsg_gcfinishpref_I();
+      break;
+    }
+#endif // GC_CACHE_ADAPT
 #endif // #ifdef MULTICORE_GC
 
     default:
@@ -3406,16 +3530,17 @@ backtrackinit:
 
     for(j=numiterators-1; j<numiterators; j++) {
 backtrackinc:
-      if(toiHasNext(&parameter->iterators[j],taskpointerarray OPTARG(failed)))
-	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
+      if(toiHasNext(
+			&parameter->iterators[j],taskpointerarray OPTARG(failed)))
+		toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       else if (j>0) {
-	/* Need to backtrack */
-	toiReset(&parameter->iterators[j]);
-	j--;
-	goto backtrackinc;
+		/* Need to backtrack */
+		toiReset(&parameter->iterators[j]);
+		j--;
+		goto backtrackinc;
       } else {
-	/* Nothing more to enqueue */
-	return retval;
+		/* Nothing more to enqueue */
+		return retval;
       }
     }
   }
@@ -3493,16 +3618,17 @@ backtrackinit:
 
     for(j=numiterators-1; j<numiterators; j++) {
 backtrackinc:
-      if(toiHasNext(&parameter->iterators[j], taskpointerarray OPTARG(failed)))
-	toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
+      if(toiHasNext(
+			&parameter->iterators[j], taskpointerarray OPTARG(failed)))
+		toiNext(&parameter->iterators[j], taskpointerarray OPTARG(failed));
       else if (j>0) {
-	/* Need to backtrack */
-	toiReset(&parameter->iterators[j]);
-	j--;
-	goto backtrackinc;
+		/* Need to backtrack */
+		toiReset(&parameter->iterators[j]);
+		j--;
+		goto backtrackinc;
       } else {
-	/* Nothing more to enqueue */
-	return retval;
+		/* Nothing more to enqueue */
+		return retval;
       }
     }
   }
@@ -3589,6 +3715,10 @@ void executetasks() {
 newtask:
   while(hashsize(activetasks)>0) {
 #ifdef MULTICORE_GC
+//#ifdef GC_CACHE_ADAPT
+	  // do dtlb sampling if necessary
+//	  bamboo_dtlb_sampling_process();
+//#endif // GC_CACHE_ADAPT
     if(gcflag) gc(NULL);
 #endif
 #ifdef DEBUG
@@ -3629,33 +3759,33 @@ newtask:
       int j = 0;
       bool insert = true;
       if(((struct ___Object___ *)param)->type == STARTUPTYPE) {
-	islock = false;
-	taskpointerarray[i+OFFSET]=param;
-	goto execute;
+		islock = false;
+		taskpointerarray[i+OFFSET]=param;
+		goto execute;
       }
       if(((struct ___Object___ *)param)->lock == NULL) {
-	tmplock = (int)param;
+		tmplock = (int)param;
       } else {
-	tmplock = (int)(((struct ___Object___ *)param)->lock);
+		tmplock = (int)(((struct ___Object___ *)param)->lock);
       }
       // insert into the locks array
       for(j = 0; j < runtime_locklen; j++) {
-	if(runtime_locks[j].value == tmplock) {
-	  insert = false;
-	  break;
-	} else if(runtime_locks[j].value > tmplock) {
-	  break;
-	}
+		if(runtime_locks[j].value == tmplock) {
+		  insert = false;
+		  break;
+		} else if(runtime_locks[j].value > tmplock) {
+		  break;
+		}
       }
       if(insert) {
-	int h = runtime_locklen;
-	for(; h > j; h--) {
-	  runtime_locks[h].redirectlock = runtime_locks[h-1].redirectlock;
-	  runtime_locks[h].value = runtime_locks[h-1].value;
-	}
-	runtime_locks[j].value = tmplock;
-	runtime_locks[j].redirectlock = (int)param;
-	runtime_locklen++;
+		int h = runtime_locklen;
+		for(; h > j; h--) {
+		  runtime_locks[h].redirectlock = runtime_locks[h-1].redirectlock;
+		  runtime_locks[h].value = runtime_locks[h-1].value;
+		}
+		runtime_locks[j].value = tmplock;
+		runtime_locks[j].redirectlock = (int)param;
+		runtime_locklen++;
       }
     }  // line 2713: for(i = 0; i < numparams; i++)
        // grab these required locks
@@ -3682,12 +3812,12 @@ newtask:
       //isInterrupt = false;
 #endif
       while(!lockflag) {
-	BAMBOO_WAITING_FOR_LOCK(0);
+		BAMBOO_WAITING_FOR_LOCK(0);
 	  }
 #ifndef INTERRUPT
       if(reside) {
-	while(BAMBOO_WAITING_FOR_LOCK(0) != -1) {
-	}
+		while(BAMBOO_WAITING_FOR_LOCK(0) != -1) {
+		}
       }
 #endif
       grount = lockresult;
@@ -3709,30 +3839,30 @@ newtask:
 
       if(grount == 0) {
 #ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xe992);
-	BAMBOO_DEBUGPRINT_REG(lock);
+		BAMBOO_DEBUGPRINT(0xe992);
+		BAMBOO_DEBUGPRINT_REG(lock);
 #endif
-	// check if has the lock already
-	// can not get the lock, try later
-	// release all grabbed locks for previous parameters
-	for(j = 0; j < i; ++j) {
-	  lock = (int*)(runtime_locks[j].redirectlock);
-	  releasewritelock(lock);
-	}
-	genputtable(activetasks, currtpd, currtpd);
-	if(hashsize(activetasks) == 1) {
-	  // only one task right now, wait a little while before next try
-	  int halt = 10000;
-	  while(halt--) {
-	  }
-	}
+		// check if has the lock already
+		// can not get the lock, try later
+		// release all grabbed locks for previous parameters
+		for(j = 0; j < i; ++j) {
+		  lock = (int*)(runtime_locks[j].redirectlock);
+		  releasewritelock(lock);
+		}
+		genputtable(activetasks, currtpd, currtpd);
+		if(hashsize(activetasks) == 1) {
+		  // only one task right now, wait a little while before next try
+		  int halt = 10000;
+		  while(halt--) {
+		  }
+		}
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
-	// fail, set the end of the checkTaskInfo
-	profileTaskEnd();
+		// fail, set the end of the checkTaskInfo
+		profileTaskEnd();
 #endif
 #endif
-	goto newtask;
+		goto newtask;
 	//}
       }
     }   // line 2752:  for(i = 0; i < runtime_locklen; i++)
@@ -3751,96 +3881,96 @@ newtask:
       // flush the object
 #ifdef CACHEFLUSH
       BAMBOO_CACHE_FLUSH_RANGE((int)parameter,
-                               classsize[((struct ___Object___ *)parameter)->type]);
+		  classsize[((struct ___Object___ *)parameter)->type]);
 #endif
       tmpparam = (struct ___Object___ *)parameter;
       pd=currtpd->task->descriptorarray[i];
       pw=(struct parameterwrapper *) pd->queue;
       /* Check that object is still in queue */
       {
-	if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
+		if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT(0xe994);
-	  BAMBOO_DEBUGPRINT_REG(parameter);
+		  BAMBOO_DEBUGPRINT(0xe994);
+		  BAMBOO_DEBUGPRINT_REG(parameter);
 #endif
-	  // release grabbed locks
-	  for(j = 0; j < runtime_locklen; ++j) {
-	    int * lock = (int *)(runtime_locks[j].redirectlock);
-	    releasewritelock(lock);
-	  }
-	  RUNFREE(currtpd->parameterArray);
-	  RUNFREE(currtpd);
-	  currtpd = NULL;
-	  goto newtask;
-	}
+		  // release grabbed locks
+		  for(j = 0; j < runtime_locklen; ++j) {
+			int * lock = (int *)(runtime_locks[j].redirectlock);
+			releasewritelock(lock);
+		  }
+		  RUNFREE(currtpd->parameterArray);
+		  RUNFREE(currtpd);
+		  currtpd = NULL;
+		  goto newtask;
+		}
       }   // line2865
           /* Check if the object's flags still meets requirements */
       {
-	int tmpi = 0;
-	bool ismet = false;
-	for(tmpi = 0; tmpi < pw->numberofterms; ++tmpi) {
-	  andmask=pw->intarray[tmpi*2];
-	  checkmask=pw->intarray[tmpi*2+1];
-	  if((((struct ___Object___ *)parameter)->flag&andmask)==checkmask) {
-	    ismet = true;
-	    break;
-	  }
-	}
-	if (!ismet) {
-	  // flags are never suitable
-	  // remove this obj from the queue
-	  int next;
-	  int UNUSED, UNUSED2;
-	  int * enterflags;
+		int tmpi = 0;
+		bool ismet = false;
+		for(tmpi = 0; tmpi < pw->numberofterms; ++tmpi) {
+		  andmask=pw->intarray[tmpi*2];
+		  checkmask=pw->intarray[tmpi*2+1];
+		  if((((struct ___Object___ *)parameter)->flag&andmask)==checkmask) {
+			ismet = true;
+			break;
+		  }
+		}
+		if (!ismet) {
+		  // flags are never suitable
+		  // remove this obj from the queue
+		  int next;
+		  int UNUSED, UNUSED2;
+		  int * enterflags;
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT(0xe995);
-	  BAMBOO_DEBUGPRINT_REG(parameter);
+		  BAMBOO_DEBUGPRINT(0xe995);
+		  BAMBOO_DEBUGPRINT_REG(parameter);
 #endif
-	  ObjectHashget(pw->objectset, (int) parameter, (int *) &next,
-	                (int *) &enterflags, &UNUSED, &UNUSED2);
-	  ObjectHashremove(pw->objectset, (int)parameter);
-	  if (enterflags!=NULL)
-	    RUNFREE(enterflags);
-	  // release grabbed locks
-	  for(j = 0; j < runtime_locklen; ++j) {
-	    int * lock = (int *)(runtime_locks[j].redirectlock);
-	    releasewritelock(lock);
-	  }
-	  RUNFREE(currtpd->parameterArray);
-	  RUNFREE(currtpd);
-	  currtpd = NULL;
+		  ObjectHashget(pw->objectset, (int) parameter, (int *) &next,
+						(int *) &enterflags, &UNUSED, &UNUSED2);
+		  ObjectHashremove(pw->objectset, (int)parameter);
+		  if (enterflags!=NULL)
+			RUNFREE(enterflags);
+		  // release grabbed locks
+		  for(j = 0; j < runtime_locklen; ++j) {
+			int * lock = (int *)(runtime_locks[j].redirectlock);
+			releasewritelock(lock);
+		  }
+		  RUNFREE(currtpd->parameterArray);
+		  RUNFREE(currtpd);
+		  currtpd = NULL;
 #ifdef PROFILE
 #ifdef ACCURATEPROFILE
-	  // fail, set the end of the checkTaskInfo
-	  profileTaskEnd();
+		  // fail, set the end of the checkTaskInfo
+		  profileTaskEnd();
 #endif
 #endif
-	  goto newtask;
-	}   // line 2878: if (!ismet)
+		  goto newtask;
+		}   // line 2878: if (!ismet)
       }   // line 2867
 parameterpresent:
       ;
       /* Check that object still has necessary tags */
       for(j=0; j<pd->numbertags; j++) {
-	int slotid=pd->tagarray[2*j]+numparams;
-	struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
-	if (!containstag(parameter, tagd)) {
+		int slotid=pd->tagarray[2*j]+numparams;
+		struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
+		if (!containstag(parameter, tagd)) {
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT(0xe996);
+		  BAMBOO_DEBUGPRINT(0xe996);
 #endif
-	  {
-	    // release grabbed locks
-	    int tmpj = 0;
-	    for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
-	      int * lock = (int *)(runtime_locks[tmpj].redirectlock);
-	      releasewritelock(lock);
-	    }
-	  }
-	  RUNFREE(currtpd->parameterArray);
-	  RUNFREE(currtpd);
-	  currtpd = NULL;
-	  goto newtask;
-	}   // line2911: if (!containstag(parameter, tagd))
+		  {
+			// release grabbed locks
+			int tmpj = 0;
+			for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
+			  int * lock = (int *)(runtime_locks[tmpj].redirectlock);
+			  releasewritelock(lock);
+			}
+		  }
+		  RUNFREE(currtpd->parameterArray);
+		  RUNFREE(currtpd);
+		  currtpd = NULL;
+		  goto newtask;
+		}   // line2911: if (!containstag(parameter, tagd))
       }   // line 2808: for(j=0; j<pd->numbertags; j++)
 
       taskpointerarray[i+OFFSET]=parameter;
@@ -3893,29 +4023,29 @@ execute:
 
       if(islock) {
 #ifdef DEBUG
-	BAMBOO_DEBUGPRINT(0xe999);
+		BAMBOO_DEBUGPRINT(0xe999);
 #endif
-	for(i = 0; i < runtime_locklen; ++i) {
-	  void * ptr = (void *)(runtime_locks[i].redirectlock);
-	  int * lock = (int *)(runtime_locks[i].value);
+		for(i = 0; i < runtime_locklen; ++i) {
+		  void * ptr = (void *)(runtime_locks[i].redirectlock);
+		  int * lock = (int *)(runtime_locks[i].value);
 #ifdef DEBUG
-	  BAMBOO_DEBUGPRINT_REG((int)ptr);
-	  BAMBOO_DEBUGPRINT_REG((int)lock);
-	  BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
+		  BAMBOO_DEBUGPRINT_REG((int)ptr);
+		  BAMBOO_DEBUGPRINT_REG((int)lock);
+		  BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
 #endif
 #ifndef MULTICORE_GC
-	  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
-	    int redirectlock;
-	    RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
-	    RuntimeHashremovekey(lockRedirectTbl, (int)lock);
-	    releasewritelock_r(lock, (int *)redirectlock);
-	  } else {
+		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
+			int redirectlock;
+			RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
+			RuntimeHashremovekey(lockRedirectTbl, (int)lock);
+			releasewritelock_r(lock, (int *)redirectlock);
+		  } else {
 #else
-	  {
+		  {
 #endif
-	    releasewritelock(ptr);
-	  }
-	}
+			releasewritelock(ptr);
+		  }
+		}
       }     // line 3015: if(islock)
 
       //long clock6;
@@ -4024,17 +4154,17 @@ loopstart:
     /* Check for objects with existing tags */
     for(i=0; i<numparams; i++) {
       if (statusarray[i]==0) {
-	struct parameterdescriptor *pd=task->descriptorarray[i];
-	int j;
-	for(j=0; j<pd->numbertags; j++) {
-	  int slotid=pd->tagarray[2*j];
-	  if(statusarray[slotid+numparams]!=0) {
-	    processobject(parameter, i, pd, &iteratorcount, statusarray,
-	                  numparams);
-	    processtags(pd, i, parameter, &iteratorcount, statusarray, numparams);
-	    goto loopstart;
-	  }
-	}
+		struct parameterdescriptor *pd=task->descriptorarray[i];
+		int j;
+		for(j=0; j<pd->numbertags; j++) {
+		  int slotid=pd->tagarray[2*j];
+		  if(statusarray[slotid+numparams]!=0) {
+			processobject(parameter,i,pd,&iteratorcount,
+				statusarray,numparams);
+			processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
+			goto loopstart;
+		  }
+		}
       }
     }
 
@@ -4042,12 +4172,12 @@ loopstart:
 
     for(i=0; i<numparams; i++) {
       if (statusarray[i]==0) {
-	struct parameterdescriptor *pd=task->descriptorarray[i];
-	if (pd->numbertags>0) {
-	  processobject(parameter, i, pd, &iteratorcount, statusarray, numparams);
-	  processtags(pd, i, parameter, &iteratorcount, statusarray, numparams);
-	  goto loopstart;
-	}
+		struct parameterdescriptor *pd=task->descriptorarray[i];
+		if (pd->numbertags>0) {
+		  processobject(parameter,i,pd,&iteratorcount,statusarray,numparams);
+		  processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
+		  goto loopstart;
+		}
       }
     }
 
@@ -4055,10 +4185,10 @@ loopstart:
 
     for(i=0; i<numparams; i++) {
       if (statusarray[i]==0) {
-	struct parameterdescriptor *pd=task->descriptorarray[i];
-	processobject(parameter, i, pd, &iteratorcount, statusarray, numparams);
-	processtags(pd, i, parameter, &iteratorcount, statusarray, numparams);
-	goto loopstart;
+		struct parameterdescriptor *pd=task->descriptorarray[i];
+		processobject(parameter,i,pd,&iteratorcount,statusarray,numparams);
+		processtags(pd,i,parameter,&iteratorcount,statusarray,numparams);
+		goto loopstart;
       }
     }
 
@@ -4088,35 +4218,35 @@ void printdebug() {
 #endif
       ObjectHashiterator(set, &objit);
       while(ObjhasNext(&objit)) {
-	struct ___Object___ * obj=(struct ___Object___ *)Objkey(&objit);
-	struct ___Object___ * tagptr=obj->___tags___;
-	int nonfailed=Objdata4(&objit);
-	int numflags=Objdata3(&objit);
-	int flags=Objdata2(&objit);
-	Objnext(&objit);
+		struct ___Object___ * obj=(struct ___Object___ *)Objkey(&objit);
+		struct ___Object___ * tagptr=obj->___tags___;
+		int nonfailed=Objdata4(&objit);
+		int numflags=Objdata3(&objit);
+		int flags=Objdata2(&objit);
+		Objnext(&objit);
 #ifndef RAW
-	printf("    Contains %lx\n", obj);
-	printf("      flag=%d\n", obj->flag);
+		printf("    Contains %lx\n", obj);
+		printf("      flag=%d\n", obj->flag);
 #endif
-	if (tagptr==NULL) {
-	} else if (tagptr->type==TAGTYPE) {
+		if (tagptr==NULL) {
+		} else if (tagptr->type==TAGTYPE) {
 #ifndef RAW
-	  printf("      tag=%lx\n",tagptr);
+		  printf("      tag=%lx\n",tagptr);
 #else
-	  ;
+		  ;
 #endif
-	} else {
-	  int tagindex=0;
-	  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
-	  for(; tagindex<ao->___cachedCode___; tagindex++) {
+		} else {
+		  int tagindex=0;
+		  struct ArrayObject *ao=(struct ArrayObject *)tagptr;
+		  for(; tagindex<ao->___cachedCode___; tagindex++) {
 #ifndef RAW
-	    printf("      tag=%lx\n",ARRAYGET(ao, struct ___TagDescriptor___*,
-	                                      tagindex));
+			printf("      tag=%lx\n",ARRAYGET(ao,struct ___TagDescriptor___*,
+											  tagindex));
 #else
-	    ;
+			;
 #endif
-	  }
-	}
+		  }
+		}
       }
     }
   }
@@ -4171,20 +4301,20 @@ int toiHasNext(struct tagobjectiterator *it,
     struct ___Object___ *tagptr=obj->___tags___;
     if (tagptr->type==TAGTYPE) {
       if ((it->tagobjindex==0)&& /* First object */
-          (it->tagid==((struct ___TagDescriptor___ *)tagptr)->flag)) /* Right tag type */
-	return 1;
-      else
-	return 0;
+		  (it->tagid==((struct ___TagDescriptor___ *)tagptr)->flag)) /* Right tag type */
+		return 1;
+	  else
+		return 0;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) tagptr;
       int tagindex=it->tagobjindex;
       for(; tagindex<ao->___cachedCode___; tagindex++) {
-	struct ___TagDescriptor___ *td=
-	  ARRAYGET(ao, struct ___TagDescriptor___ *, tagindex);
-	if (td->flag==it->tagid) {
-	  it->tagobjindex=tagindex; /* Found right type of tag */
-	  return 1;
-	}
+		struct ___TagDescriptor___ *td=
+		  ARRAYGET(ao, struct ___TagDescriptor___ *, tagindex);
+		if (td->flag==it->tagid) {
+		  it->tagobjindex=tagindex; /* Found right type of tag */
+		  return 1;
+		}
       }
       return 0;
     }
@@ -4195,33 +4325,34 @@ int toiHasNext(struct tagobjectiterator *it,
     int i;
     if (objptr->type!=OBJECTARRAYTYPE) {
       if (it->tagobjindex>0)
-	return 0;
+		return 0;
       if (!ObjectHashcontainskey(it->objectset, (int) objptr))
-	return 0;
+		return 0;
       for(i=1; i<it->numtags; i++) {
-	struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
-	if (!containstag(objptr,tag2))
-	  return 0;
+		struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
+		if (!containstag(objptr,tag2))
+		  return 0;
       }
       return 1;
     } else {
       struct ArrayObject *ao=(struct ArrayObject *) objptr;
       int tagindex;
       int i;
-      for(tagindex=it->tagobjindex; tagindex<ao->___cachedCode___; tagindex++) {
-	struct ___Object___ *objptr=ARRAYGET(ao, struct ___Object___*, tagindex);
-	if (!ObjectHashcontainskey(it->objectset, (int) objptr))
-	  continue;
-	for(i=1; i<it->numtags; i++) {
-	  struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
-	  if (!containstag(objptr,tag2))
-	    goto nexttag;
-	}
-	it->tagobjindex=tagindex;
-	return 1;
+      for(tagindex=it->tagobjindex;tagindex<ao->___cachedCode___;tagindex++){
+		struct ___Object___ *objptr=
+		  ARRAYGET(ao,struct ___Object___*,tagindex);
+		if (!ObjectHashcontainskey(it->objectset, (int) objptr))
+		  continue;
+		for(i=1; i<it->numtags; i++) {
+		  struct ___TagDescriptor___ *tag2=objectarray[it->tagbindings[i]];
+		  if (!containstag(objptr,tag2))
+			goto nexttag;
+		}
+		it->tagobjindex=tagindex;
+		return 1;
 nexttag:
-	;
-      }
+		;
+	  }
       it->tagobjindex=tagindex;
       return 0;
     }
@@ -4238,7 +4369,7 @@ int containstag(struct ___Object___ *ptr,
     struct ArrayObject *ao=(struct ArrayObject *)objptr;
     for(j=0; j<ao->___cachedCode___; j++) {
       if (ptr==ARRAYGET(ao, struct ___Object___*, j)) {
-	return 1;
+		return 1;
       }
     }
     return 0;
@@ -4332,25 +4463,25 @@ void outputProfileData() {
       struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
       struct RuntimeIterator * iter = NULL;
       while(0 == isEmpty(tmpTInfo->newObjs)) {
-	char * objtype = (char *)(getItem(tmpTInfo->newObjs));
-	if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
-	  int num = 0;
-	  RuntimeHashget(nobjtbl, (int)objtype, &num);
-	  RuntimeHashremovekey(nobjtbl, (int)objtype);
-	  num++;
-	  RuntimeHashadd(nobjtbl, (int)objtype, num);
-	} else {
-	  RuntimeHashadd(nobjtbl, (int)objtype, 1);
-	}
-	//printf(stderr, "new obj!\n");
+		char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+		if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+		  int num = 0;
+		  RuntimeHashget(nobjtbl, (int)objtype, &num);
+		  RuntimeHashremovekey(nobjtbl, (int)objtype);
+		  num++;
+		  RuntimeHashadd(nobjtbl, (int)objtype, num);
+		} else {
+		  RuntimeHashadd(nobjtbl, (int)objtype, 1);
+		}
+		//printf(stderr, "new obj!\n");
       }
 
       // output all new obj info
       iter = RuntimeHashcreateiterator(nobjtbl);
       while(RunhasNext(iter)) {
-	char * objtype = (char *)Runkey(iter);
-	int num = Runnext(iter);
-	printf(", %s, %d", objtype, num);
+		char * objtype = (char *)Runkey(iter);
+		int num = Runnext(iter);
+		printf(", %s, %d", objtype, num);
       }
     }
     printf("\n");
@@ -4413,51 +4544,51 @@ void outputProfileData() {
       struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
       struct RuntimeIterator * iter = NULL;
       while(0 == isEmpty(tmpTInfo->newObjs)) {
-	char * objtype = (char *)(getItem(tmpTInfo->newObjs));
-	if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
-	  int num = 0;
-	  RuntimeHashget(nobjtbl, (int)objtype, &num);
-	  RuntimeHashremovekey(nobjtbl, (int)objtype);
-	  num++;
-	  RuntimeHashadd(nobjtbl, (int)objtype, num);
-	} else {
-	  RuntimeHashadd(nobjtbl, (int)objtype, 1);
-	}
+		char * objtype = (char *)(getItem(tmpTInfo->newObjs));
+		if(RuntimeHashcontainskey(nobjtbl, (int)(objtype))) {
+		  int num = 0;
+		  RuntimeHashget(nobjtbl, (int)objtype, &num);
+		  RuntimeHashremovekey(nobjtbl, (int)objtype);
+		  num++;
+		  RuntimeHashadd(nobjtbl, (int)objtype, num);
+		} else {
+		  RuntimeHashadd(nobjtbl, (int)objtype, 1);
+		}
       }
 
       // ouput all new obj info
       iter = RuntimeHashcreateiterator(nobjtbl);
       while(RunhasNext(iter)) {
-	char * objtype = (char *)Runkey(iter);
-	int num = Runnext(iter);
-	int nameLen = strlen(objtype);
-	BAMBOO_DEBUGPRINT(0xddda);
-	for(j = 0; j < nameLen; j++) {
-	  BAMBOO_DEBUGPRINT_REG(objtype[j]);
+		char * objtype = (char *)Runkey(iter);
+		int num = Runnext(iter);
+		int nameLen = strlen(objtype);
+		BAMBOO_DEBUGPRINT(0xddda);
+		for(j = 0; j < nameLen; j++) {
+		  BAMBOO_DEBUGPRINT_REG(objtype[j]);
+		}
+		BAMBOO_DEBUGPRINT(0xdddb);
+		BAMBOO_DEBUGPRINT_REG(num);
+	  }
 	}
-	BAMBOO_DEBUGPRINT(0xdddb);
-	BAMBOO_DEBUGPRINT_REG(num);
-      }
-    }
-    BAMBOO_DEBUGPRINT(0xdddc);
+	BAMBOO_DEBUGPRINT(0xdddc);
   }
 
   if(taskInfoOverflow) {
-    BAMBOO_DEBUGPRINT(0xefee);
+	BAMBOO_DEBUGPRINT(0xefee);
   }
 
 #ifdef PROFILE_INTERRUPT
   // output interrupt related info
   for(i = 0; i < interruptInfoIndex; i++) {
-    InterruptInfo* tmpIInfo = interruptInfoArray[i];
-    BAMBOO_DEBUGPRINT(0xddde);
-    BAMBOO_DEBUGPRINT_REG(tmpIInfo->startTime);
-    BAMBOO_DEBUGPRINT_REG(tmpIInfo->endTime);
-    BAMBOO_DEBUGPRINT(0xdddf);
+	InterruptInfo* tmpIInfo = interruptInfoArray[i];
+	BAMBOO_DEBUGPRINT(0xddde);
+	BAMBOO_DEBUGPRINT_REG(tmpIInfo->startTime);
+	BAMBOO_DEBUGPRINT_REG(tmpIInfo->endTime);
+	BAMBOO_DEBUGPRINT(0xdddf);
   }
 
   if(interruptInfoOverflow) {
-    BAMBOO_DEBUGPRINT(0xefef);
+	BAMBOO_DEBUGPRINT(0xefef);
   }
 #endif // PROFILE_INTERRUPT
 

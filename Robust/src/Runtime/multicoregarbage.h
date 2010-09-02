@@ -31,8 +31,14 @@ int gc_num_flush_dtlb;
 #ifdef GC_PROFILE
 #define GCINFOLENGTH 100
 
+#ifdef GC_CACHE_ADAPT
+#define GC_PROFILE_NUM_FIELD 16
+#else
+#define GC_PROFILE_NUM_FIELD 15
+#endif
+
 typedef struct gc_info {
-  unsigned long long time[15];
+  unsigned long long time[GC_PROFILE_NUM_FIELD];
   int index;
 } GCInfo;
 
@@ -48,12 +54,10 @@ unsigned int gc_num_lobj;
 /*unsigned long long flushstalltime;
 unsigned long long flushstalltime_i;
 int num_mapinforequest_i;*/
-//#ifdef GC_PROFILE_S
 unsigned int gc_num_liveobj;
 unsigned int gc_num_obj;
 unsigned int gc_num_forwardobj;
 int gc_num_profiles;
-//#endif // GC_PROFILE_S
 
 #endif // GC_PROFILE
 
@@ -74,7 +78,10 @@ typedef enum {
   SUBTLECOMPACTPHASE,      // 0x3
   MAPPHASE,                // 0x4
   FLUSHPHASE,              // 0x5
-  FINISHPHASE              // 0x6
+#ifdef GC_CACHE_ADAPT
+  PREFINISHPHASE,          // 0x6
+#endif // GC_CACHE_ADAPT
+  FINISHPHASE              // 0x6/0x7
 } GCPHASETYPE;
 
 volatile bool gcflag;
@@ -170,6 +177,10 @@ INTPTR * gcsbstarttbl;
 int gcreservedsb;  // number of reserved sblock for sbstarttbl
 int gcnumblock; // number of total blocks in the shared mem
 int gcbaseva; // base va for shared memory without reserved sblocks
+#ifdef GC_CACHE_ADAPT
+int gctopva; // top va for shared memory without reserved sblocks
+volatile bool gccachestage;
+#endif // GC_CACHE_ADAPT
 
 #define ISSHAREDOBJ(p) \
   ((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
