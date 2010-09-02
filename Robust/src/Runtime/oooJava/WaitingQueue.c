@@ -7,7 +7,9 @@
 struct BinVector * freeBinVectors = NULL;
 
 //TODO perhaps print a map of allocsites to arrayIndex?
-//Unique queue for each hashtable
+
+
+//NOTE: Only the HashTable calls this function
 struct WaitingQueue * mallocWaitingQueue(int size) {
   //TODO perhaps in the future get rid of the WaitingQueue object all together to improve performance (but reduce clarity)
   struct WaitingQueue * q = (struct WaitingQueue *) malloc(sizeof(struct WaitingQueue));
@@ -59,7 +61,7 @@ int check(struct WaitingQueue * queue, int allocSiteID) {
   return ((queue->array)[allocSiteID]).size == 0;
 }
 
-//NOTE: Only the HashTable calls this function
+//NOTE: Only the traverser should be able to call this function and it clears the entire chain.
 void resolveChain(struct WaitingQueue * queue, int allocSiteID) {
   struct BinVector * head;
   struct BinVector * next;
@@ -97,7 +99,6 @@ void resolveChain(struct WaitingQueue * queue, int allocSiteID) {
   }
 }
 
-//NOTE: Only the traverser should be able to call this function and it clears the entire chain.
 void returnVectorToFreePool(struct BinVector *ptr) {
   struct BinVector * freeHead;
   do {
