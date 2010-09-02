@@ -598,6 +598,10 @@ void outputProfileData();
 // BAMBOO_CLEAN_DTLB(): zero-out all the dtlb entries                      //
 // BAMBOO_CACHE_FLUSH_L2(): Flush the contents of this tile's L2 back to   //
 //                          main memory                                    //
+// BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(x, y): flush a range of mem without   //
+//                                          mem fence                      //
+// BAMBOO_CACHE_MEM_FENCE_INCOHERENT(): fence to guarantee visibility of   //
+//                                      stores to incoherent memory        //
 /////////////////////////////////////////////////////////////////////////////
 
 #endif  // #ifdef MULTICORE

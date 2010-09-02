@@ -243,7 +243,7 @@ inline void * gc_lobjdequeue_I(int * length,
       gclobjspare=tmp;
       tmp->next = NULL;
       tmp->prev = NULL;
-    }             // if (gclobjspare!=NULL)
+    }  // if (gclobjspare!=NULL)
   } // if (gclobjtailindex==NUMLOBJPTRS)
   if(length != NULL) {
     *length = gclobjtail->lengths[gclobjtailindex];
@@ -1223,6 +1223,7 @@ inline void markObj(void * objptr) {
 		// this is the first time that this object is discovered,
 		// set the flag as DISCOVERED
 		((int *)objptr)[6] |= DISCOVERED;
+		BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(objptr, (7*sizeof(int)));
 		gc_enqueue_I(objptr);
 	  }
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -1436,6 +1437,7 @@ inline void mark(bool isfirst,
 			BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 			// mark this obj
 			((int *)ptr)[6] = ((int *)ptr)[6] & (~DISCOVERED) | MARKED;
+			BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(ptr, (7*sizeof(int)));
 		  } else if(isnotmarked) {
 			// ptr is an unmarked active object on this core
 			ALIGNSIZE(size, &isize);
@@ -1448,6 +1450,7 @@ inline void mark(bool isfirst,
 #endif
 			// mark this obj
 			((int *)ptr)[6] = ((int *)ptr)[6] & (~DISCOVERED) | MARKED;
+			BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(ptr, (7*sizeof(int)));
 		  
 			if(ptr + size > gcmarkedptrbound) {
 			  gcmarkedptrbound = ptr + size;
@@ -1541,7 +1544,10 @@ inline void mark(bool isfirst,
 #endif
       return;
     }
-  }       // while(MARKPHASE == gcphase)
+  } // while(MARKPHASE == gcphase)
+
+  BAMBOO_CLEAN_DTLB();
+  BAMBOO_CACHE_MEM_FENCE_INCOHERENT();
 } // mark()
 
 inline void compact2Heaptophelper_I(int coren,
@@ -3163,6 +3169,9 @@ inline void gc_master(struct garbagelist * stackptr) {
 	gcfilledblocks[i] = 0;
 	gcrequiredmems[i] = 0;
   }
+
+  BAMBOO_CLEAN_DTLB();
+  BAMBOO_CACHE_MEM_FENCE_INCOHERENT();
 
 #ifdef GC_PROFILE
   gc_profileItem();
