@@ -631,6 +631,8 @@ done
 
 BUILDDIR="$CURDIR/$tmpbuilddirectory"
 
+BAMBOORUNTIME=$ROBUSTROOT/Runtime/bamboo
+
 cd $1
 cd $CURDIR
 shift
@@ -789,15 +791,15 @@ else
 MAKEFILE="$MAKEFILE.$RAWCONFIG"
 fi #useio version
 
-cp $ROBUSTROOT/Runtime/RAW/$MAKEFILE ./Makefile
+cp $BAMBOORUNTIME/RAW/$MAKEFILE ./Makefile
 cp ../Runtime/*.c ./
 cp ../Runtime/*.h ./
 cp ../Runtime/*.S ./
 cp ../Runtime/*.s ./
-cp ../Runtime/RAW/*.c ./
-cp ../Runtime/RAW/*.h ./
-cp ../Runtime/RAW/*.S ./
-cp ../Runtime/RAW/*.s ./
+cp $BAMBOORUNTIME/RAW/*.c ./
+cp $BAMBOORUNTIME/RAW/*.h ./
+cp $BAMBOORUNTIME/RAW/*.S ./
+cp $BAMBOORUNTIME/RAW/*.s ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./
 
@@ -980,33 +982,33 @@ else
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/bamboo-vmlinux-pci.hvc ./bamboo-vmlinux-pci.hvc
 fi
 fi
-cp ../Runtime/multicoretask.c ./
-cp ../Runtime/multicoreruntime.c ./
 cp ../Runtime/Queue.c ./
 cp ../Runtime/file.c ./
 cp ../Runtime/math.c ./
 cp ../Runtime/object.c ./
 cp ../Runtime/GenericHashtable.c ./
 cp ../Runtime/SimpleHash.c ./
-cp ../Runtime/GCSharedHash.c ./
 cp ../Runtime/ObjectHash.c ./
 cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
-cp ../Runtime/multicoregarbage.c ./
-cp ../Runtime/MGCHash.c ./
 cp ../Runtime/GenericHashtable.h ./
 cp ../Runtime/mem.h ./
-cp ../Runtime/multicoreruntime.h ./
 cp ../Runtime/object.h ./
 cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
-cp ../Runtime/GCSharedHash.h ./
-cp ../Runtime/multicoregc.h ./
-cp ../Runtime/multicoregarbage.h ./
-cp ../Runtime/multicorehelper.h ./
-cp ../Runtime/MGCHash.h ./
+cp $BAMBOORUNTIME/multicoretask.c ./
+cp $BAMBOORUNTIME/multicoreruntime.c ./
+cp $BAMBOORUNTIME/GCSharedHash.c ./
+cp $BAMBOORUNTIME/multicoregarbage.c ./
+cp $BAMBOORUNTIME/MGCHash.c ./
+cp $BAMBOORUNTIME/multicoreruntime.h ./
+cp $BAMBOORUNTIME/GCSharedHash.h ./
+cp $BAMBOORUNTIME/multicoregc.h ./
+cp $BAMBOORUNTIME/multicoregarbage.h ./
+cp $BAMBOORUNTIME/multicorehelper.h ./
+cp $BAMBOORUNTIME/MGCHash.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/Runtime/$TILERA_INDIR/*.c ./
@@ -1033,7 +1035,8 @@ INCLUDES="$INCLUDES -I$ROBUSTROOT/Runtime -I. -IRuntime/include \
 
 if $MULTICOREFLAG
 then
-RUNTIMEFILE="$ROBUSTROOT/Runtime/multicoreruntime.c $ROBUSTROOT/Runtime/multicoretask.c"
+RUNTIMEFILE="$BAMBOORUNTIME/multicoreruntime.c $BAMBOORUNTIME/multicoretask.c"
+INCLUDES="$INCLUDES -I$BAMBOORUNTIME"
 else
 RUNTIMEFILE="$ROBUSTROOT/Runtime/runtime.c $ROBUSTROOT/Runtime/task.c"
 fi
