@@ -1223,7 +1223,7 @@ inline void markObj(void * objptr) {
 		// this is the first time that this object is discovered,
 		// set the flag as DISCOVERED
 		((int *)objptr)[6] |= DISCOVERED;
-		BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(objptr, (7*sizeof(int)));
+		BAMBOO_CACHE_FLUSH_LINE(objptr);
 		gc_enqueue_I(objptr);
 	  }
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -1437,7 +1437,7 @@ inline void mark(bool isfirst,
 			BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 			// mark this obj
 			((int *)ptr)[6] = ((int *)ptr)[6] & (~DISCOVERED) | MARKED;
-			BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(ptr, (7*sizeof(int)));
+			BAMBOO_CACHE_FLUSH_LINE(ptr);
 		  } else if(isnotmarked) {
 			// ptr is an unmarked active object on this core
 			ALIGNSIZE(size, &isize);
@@ -1450,7 +1450,7 @@ inline void mark(bool isfirst,
 #endif
 			// mark this obj
 			((int *)ptr)[6] = ((int *)ptr)[6] & (~DISCOVERED) | MARKED;
-			BAMBOO_CACHE_FLUSH_RANGE_NO_FENCE(ptr, (7*sizeof(int)));
+			BAMBOO_CACHE_FLUSH_LINE(ptr);
 		  
 			if(ptr + size > gcmarkedptrbound) {
 			  gcmarkedptrbound = ptr + size;
@@ -1546,8 +1546,7 @@ inline void mark(bool isfirst,
     }
   } // while(MARKPHASE == gcphase)
 
-  BAMBOO_CLEAN_DTLB();
-  BAMBOO_CACHE_MEM_FENCE_INCOHERENT();
+  BAMBOO_CACHE_MF();
 } // mark()
 
 inline void compact2Heaptophelper_I(int coren,
@@ -3170,8 +3169,7 @@ inline void gc_master(struct garbagelist * stackptr) {
 	gcrequiredmems[i] = 0;
   }
 
-  BAMBOO_CLEAN_DTLB();
-  BAMBOO_CACHE_MEM_FENCE_INCOHERENT();
+  BAMBOO_CACHE_MF();
 
 #ifdef GC_PROFILE
   gc_profileItem();
