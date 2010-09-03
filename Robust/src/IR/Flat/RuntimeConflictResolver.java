@@ -25,7 +25,7 @@ import IR.TypeDescriptor;
  * 3) Call void close()
  */
 public class RuntimeConflictResolver {
-  private static final boolean javaDebug = false;
+  public static final boolean javaDebug = true;
   public static final boolean cSideDebug = true;
   
   private PrintWriter cFile;
@@ -759,6 +759,75 @@ public class RuntimeConflictResolver {
       return "AllocSite=" + getAllocationSite() + " myConflict=" + !parentsThatWillLeadToConflicts.isEmpty() + 
               " decCon="+decendantsObjConflict+ 
               " NumOfConParents=" + getNumOfReachableParents() + " ObjectChildren=" + objectRefs.size();
+    }
+  }
+  
+  //TODO integrate this code into the generateEffectsLookupTable method and 
+  //others that may use this table. 
+  private class EffectsTable {
+    private Hashtable<AllocSite, BucketOfEffects> table;
+    // hashtable provides fast access to heaproot # lookups
+    private Hashtable<Taint, Integer> WeaklyConnetedHeapRootNums;
+    private boolean analysisComplete;
+
+    public EffectsTable(Hashtable<Taint, Set<Effect>> effects,
+        Hashtable<Taint, Set<Effect>> conflicts) {
+      table = new Hashtable<AllocSite, BucketOfEffects>();
+      analysisComplete = false;
+
+      // rehash all effects (as a 5-tuple) by their affected allocation site
+      for (Taint t : effects.keySet()) {
+        Set<Effect> localConflicts = conflicts.get(t);
+
+        for (Effect e : effects.get(t)) {
+          BucketOfEffects bucket;
+          if ((bucket = table.get(e.getAffectedAllocSite())) == null) {
+            bucket = new BucketOfEffects();
+            table.put(e.getAffectedAllocSite(), bucket);
+          }
+          bucket.add(t, e, localConflicts.contains(e));
+        }
+      }
+    }
+
+    // Run Analysis will walk the data structure and figure out the weakly
+    // connected heap roots #'s
+    public void runAnaylsis() {
+      if (analysisComplete) {
+        if (RuntimeConflictResolver.javaDebug) {
+          System.out.println("Err: runAnaylsis was called twice in EffectsTable");
+        }
+        return;
+      }
+
+      // TODO finish this.
+    }
+  }
+
+  private class BucketOfEffects {
+    // This table is used for lookup while creating the traversal.
+    Hashtable<Taint, EffectsGroup> effects;
+
+    public BucketOfEffects() {
+      effects = new Hashtable<Taint, EffectsGroup>();
+    }
+
+    public void add(Taint t, Effect e, boolean conflict) {
+      EffectsGroup effectsForGivenTaint;
+
+      if ((effectsForGivenTaint = effects.get(t)) == null) {
+        effectsForGivenTaint = new EffectsGroup();
+        effects.put(t, effectsForGivenTaint);
+      }
+
+      if (e.getField().getType().isPrimitive()) {
+        if (conflict) {
+          effectsForGivenTaint.addPrimative(e);
+        }
+      } else {
+        effectsForGivenTaint.addObjEffect(e, conflict);
+      }
+
     }
   }
 }
