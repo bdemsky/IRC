@@ -11,19 +11,19 @@ public class Trace {
   // everything defined here should match coreprof.h
   // definitions exactly
   public static final int CP_EVENT_MASK           = 3;
-  public static final int CP_EVENT_BASESHIFT      = 2;
+  public static final int CP_EVENT_BASESHIFT      = 8;
                                                   
-  public static final int CP_EVENTTYPE_BEGIN      = 0;
-  public static final int CP_EVENTTYPE_END        = 1;
-  public static final int CP_EVENTTYPE_ONEOFF     = 2;
+  public static final int CP_EVENTTYPE_BEGIN      = 1;
+  public static final int CP_EVENTTYPE_END        = 2;
+  public static final int CP_EVENTTYPE_ONEOFF     = 3;
 
-  public static final int CP_EVENTID_MAIN         = 0;
-  public static final int CP_EVENTID_RUNMALLOC    = 1;
-  public static final int CP_EVENTID_RUNFREE      = 2;
-  public static final int CP_EVENTID_TASKDISPATCH = 3;
-  public static final int CP_EVENTID_TASKRETIRE   = 4;
-  public static final int CP_EVENTID_TASKSTALLVAR = 5;
-  public static final int CP_EVENTID_TASKSTALLMEM = 6;
+  public static final int CP_EVENTID_MAIN         = 0x04;
+  public static final int CP_EVENTID_RUNMALLOC    = 0x05;
+  public static final int CP_EVENTID_RUNFREE      = 0x06;
+  public static final int CP_EVENTID_TASKDISPATCH = 0x07;
+  public static final int CP_EVENTID_TASKRETIRE   = 0x08;
+  public static final int CP_EVENTID_TASKSTALLVAR = 0x09;
+  public static final int CP_EVENTID_TASKSTALLMEM = 0x0a;
 
 
   void initNames() {
@@ -61,8 +61,13 @@ public class Trace {
   Hashtable<Integer, Counter>[] threadNum2eid2c;
   Hashtable<Integer, String>    eid2name;
 
+  // calculate this as the single-longest running event
+  // and use it as the parent of all other events
+  long programDuration;
+
 
   public Trace( String filename ) {  
+    programDuration = 0;
     openInputStreams( filename );
     initNames();
     readThreads();
@@ -121,7 +126,7 @@ public class Trace {
     numThreads = readInt( bis );
     offset += WORD_SIZE;
 
-    // read number of words used for event, per thread
+    // read number of words used for all events, per thread
     threadNum2numWords   = new int[numThreads];
     threadNum2eventStack = new Event[numThreads][STACKMAX];
     for( int i = 0; i < numThreads; ++i ) {
@@ -167,61 +172,82 @@ public class Trace {
       switch( eventType ) {
 
         case CP_EVENTTYPE_BEGIN: {
-          Counter counter = eid2c.get( eventID );
-          if( counter == null ) {
-            counter = new Counter();
-            eid2c.put( eventID, counter );
-          }
-          counter.count++;
-          if( stack[depth] == null ) {
-            stack[depth] = new Event( timeStamp, eventID, counter );
-          } else {
-            stack[depth].timeStamp = timeStamp;
-            stack[depth].eventID   = eventID;
-            stack[depth].counter   = counter;
-          }
-          depth++;
-          if( depth == STACKMAX ) {
-            throw new Error( "Event stack overflow\n" );
-          }
+          depth = pushEvent( stack, depth, eid2c, eventID, timeStamp );
         } break;
 
         case CP_EVENTTYPE_END: {
-          depth--;
-          if( depth < 0 ) {
-            throw new Error( "Event stack underflow\n" );
-          }
-          Event   e           = stack[depth];
-          long    elapsedTime = timeStamp - e.timeStamp;
-          Counter c           = e.counter;
-          c.totalTime += elapsedTime;
-          c.selfTime  += elapsedTime;
-          if( depth - 1 >= 0 ) {
-            Counter cParent = stack[depth-1].counter;
-            cParent.selfTime -= elapsedTime;
-          }
-        } break;        
+          depth = popEvent( stack, depth, eventID, timeStamp );
+        } break;    
+    
       }
     }
 
-    
     if( depth != 0 ) {
-      System.out.println( "Warning: unmatched event begin/end\n" );
-      /*
-      //get rid of last item also
-	depth--;
-	Event e=stack[depth];
-	long elapsedtime=time-e.time;
-	Counter c=e.counter;
-	c.totaltime+=elapsedtime;
-	c.selftime+=elapsedtime;
-	if(depth-1>=0) {
-	  Counter cn=stack[depth-1].counter;
-	  cn.selftime-=elapsedtime;
-          }
-      */
+      // worker threads currently do not exit gracefully, and therefore
+      // never register their MAIN END event, so if the mismatch is with
+      // MAIN BEGIN then treat it as fine, otherwise warn.
+      if( depth == 1 ) {
+        // the value of timestamp will be equal to whatever the last
+        // properly registered event for this thread was
+        depth = popEvent( stack, depth, CP_EVENTID_MAIN, timeStamp );
+      } else {
+        System.out.println( "Warning: unmatched event begin/end\n" );
+      }
     }
   }
+
+
+  protected int pushEvent( Event[] stack,
+                           int d,
+                           Hashtable<Integer, Counter> eid2c,
+                           int eventID,
+                           long timeStamp ) {
+    int depth = d;
+    Counter counter = eid2c.get( eventID );
+    if( counter == null ) {
+      counter = new Counter();
+      eid2c.put( eventID, counter );
+    }
+    counter.count++;
+    if( stack[depth] == null ) {
+      stack[depth] = new Event( timeStamp, eventID, counter );
+    } else {
+      stack[depth].timeStamp = timeStamp;
+      stack[depth].eventID   = eventID;
+      stack[depth].counter   = counter;
+    }
+    depth++;
+    if( depth == STACKMAX ) {
+      throw new Error( "Event stack overflow\n" );
+    }
+    return depth;
+  }
+
+
+  protected int popEvent( Event[] stack,
+                          int d,
+                          int eventID,
+                          long timeStamp ) {
+    int depth = d;
+    depth--;
+    if( depth < 0 ) {
+      throw new Error( "Event stack underflow\n" );
+    }
+    Event   e           = stack[depth];
+    long    elapsedTime = timeStamp - e.timeStamp;
+    Counter c           = e.counter;
+    c.totalTime += elapsedTime;
+    c.selfTime  += elapsedTime;    
+    if( depth - 1 >= 0 ) {
+      Counter cParent = stack[depth-1].counter;
+      cParent.selfTime -= elapsedTime;
+    }
+    if( elapsedTime > programDuration ) {
+      programDuration = elapsedTime;
+    }
+    return depth;
+  }
+
 
 
   public static int readInt( InputStream is ) {
@@ -285,12 +311,18 @@ public class Trace {
                             eid2name.get( event )         :
                             Integer.toString( event );
 
-        float   tSelf_s   = new Long( c.selfTime  ).floatValue() / 1000000.0f;
-        float   tTotal_s  = new Long( c.totalTime ).floatValue() / 1000000.0f;
+        // time stamps are measured in processor ticks, so don't bother converting
+        // to time in secs, just figure out how much time events take in terms of
+        // other events, or the total program time
+
+        float tSelf_perc = 
+          100.0f *
+          new Long( c.selfTime  ).floatValue() /
+          new Long( c.totalTime ).floatValue();
 
 	System.out.println( "Event: "+eventname+
-                            " self time=" +tSelf_s+
-                            " total time="+tTotal_s+
+                            " total time(ticks)="+c.totalTime+
+                            " self time(%)=" +tSelf_perc+
                             " count="+c.count
                             );
       }
