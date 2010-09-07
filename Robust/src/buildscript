@@ -18,6 +18,7 @@ echo "-eventmonitor turn on transaction event trace recording"
 echo
 echo OOOJava options
 echo -coreprof turn on profiling API
+echo -coreprof-eventwords NUM  space in words/thread for coreprof events
 echo -coreprof-checkoverflow ONLY use for debugging event overflow
 echo "-ooojava <numberofcores> <maxseseage>"
 echo -ooodebug general OOOJava debugging messages
@@ -537,6 +538,11 @@ then
 COREPROF=true
 JAVAOPTS="$JAVAOPTS -coreprof"
 EXTRAOPTIONS="$EXTRAOPTIONS -DCOREPROF -I$ROBUSTROOT/Runtime/coreprof"
+
+elif [[ $1 = '-coreprof-eventwords' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DCP_MAXEVENTWORDS=($2)"
+shift
 
 elif [[ $1 = '-coreprof-checkoverflow' ]]
 then

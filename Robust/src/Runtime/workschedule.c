@@ -50,19 +50,33 @@ extern __thread SESEcommon* seseCommon;
 
 __thread int oid;
 
-void* workerMain( void* arg ) {
-  void* workUnit;
-  WorkerData* myData = (WorkerData*) arg;
-  //Start profiler
-  CP_CREATE();
-  
-  oid=myData->id;
-  // make sure init mlp once-per-thread stuff
 
-  // all workers wait until system is ready
+
+void workerExit( void* arg ) {
+  //printf( "Thread %d canceled.\n", pthread_self() );
+  CP_EXIT();
+}
+
+
+
+void* workerMain( void* arg ) {
+  void*       workUnit;
+  WorkerData* myData = (WorkerData*) arg;
+  int         oldState;
+
+  // once-per-thread stuff
+  CP_CREATE();
+
+  //pthread_cleanup_push( workerExit, NULL );  
+  
+  oid = myData->id;
+
+  //pthread_setcanceltype ( PTHREAD_CANCEL_ASYNCHRONOUS, &oldState );
+  //pthread_setcancelstate( PTHREAD_CANCEL_ENABLE,       &oldState );
 
   // then continue to process work
   while( 1 ) {
+
     pthread_mutex_lock( &systemLockOut );
     // wait for work
     if (headqi->next==NULL) {
@@ -75,7 +89,6 @@ void* workerMain( void* arg ) {
     workUnit = headqi->value;
     pthread_mutex_unlock( &systemLockOut );
     free(tmp);
-
     
     pthread_mutex_lock(&gclistlock);
     threadcount++;
@@ -103,7 +116,7 @@ void* workerMain( void* arg ) {
     pthread_mutex_unlock(&gclistlock);
   }
 
-  CP_EXIT();
+  //pthread_cleanup_pop( 0 );
 
   return NULL;
 }
@@ -112,6 +125,11 @@ void workScheduleInit( int numProcessors,
                        void(*func)(void*) ) {
   int i, status;
 
+  // the original thread must call this now to
+  // protect memory allocation events coming, but it
+  // will also add itself to the worker pool and therefore
+  // try to call it again, CP_CREATE should just ignore
+  // duplicate calls
   CP_CREATE();
 
   pthread_mutex_init(&gclock, NULL);
@@ -128,18 +146,24 @@ void workScheduleInit( int numProcessors,
   status = pthread_mutex_init( &systemLockIn, NULL );
   status = pthread_mutex_init( &systemLockOut, NULL );
 
-  workerDataArray = RUNMALLOC( sizeof( WorkerData ) * numWorkers );
+  // allocate space for one more--the original thread (running
+  // this code) will become a worker thread after setup
+  workerDataArray = RUNMALLOC( sizeof( WorkerData ) * (numWorkers+1) );
 
-  for( i = 0; i < numWorkers; ++i ) {   
-    workerDataArray[i].id=i+2;
+  for( i = 0; i < numWorkers; ++i ) {
+
+    // the original thread is ID 1, start counting from there
+    workerDataArray[i].id = 2 + i;
+
     status = pthread_create( &(workerDataArray[i].workerThread), 
                              NULL,
                              workerMain,
                              (void*) &(workerDataArray[i])
                            );
+
     if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
 
-    // yield and let all workers get to the beginx3
+    // yield and let all workers get to the begin
     // condition variable, waiting--we have to hold them
     // so they don't all see empty work queues right away
     if( sched_yield() == -1 ) { printf( "Error thread trying to yield.\n" ); exit( -1 ); }
@@ -158,15 +182,41 @@ void workScheduleSubmit( void* workUnit ) {
 }
 
 
-// really should be named "wait until work is finished"
+// really should be named "add original thread as a worker"
 void workScheduleBegin() {
-  int i;  
-  WorkerData *workerData = RUNMALLOC( sizeof( WorkerData ) );
-  workerData->id=1;
-  workerMain(workerData);
+  int i;
 
-  // tell all workers to begin
-  for( i = 0; i < numWorkers; ++i ) {
-    pthread_join( workerDataArray[i].workerThread, NULL );
-  }
+  // space was saved for the original thread to become a
+  // worker after setup is complete
+  workerDataArray[numWorkers].id           = 1;
+  workerDataArray[numWorkers].workerThread = pthread_self();
+  ++numWorkers;
+
+  workerMain( &(workerDataArray[numWorkers-1]) );
+}
+
+
+// the above function does NOT naturally join all the worker
+// threads at exit, once the main SESE/Rblock/Task completes
+// we know all worker threads are finished executing other
+// tasks so we can explicitly kill the workers, and therefore
+// trigger any worker-specific cleanup (like coreprof!)
+void workScheduleExit() {
+  int i;
+
+  // This is not working well--canceled threads don't run their
+  // thread-level exit routines?  Anyway, its not critical for
+  // coreprof but if we ever need a per-worker exit routine to
+  // run we'll have to look back into this.
+
+  //printf( "Thread %d performing schedule exit.\n", pthread_self() );
+  //
+  //for( i = 0; i < numWorkers; ++i ) {   
+  //  if( pthread_self() != workerDataArray[i].workerThread ) {
+  //    pthread_cancel( workerDataArray[i].workerThread );      
+  //  }
+  //}
+  //
+  //// how to let all the threads actually get canceled?  
+  //sleep( 2 );
 }

@@ -17,9 +17,7 @@
 #include <stdlib.h>
 #include "runtime.h"
 
-
 #ifndef CP_MAXEVENTWORDS
-//#define CP_MAXEVENTWORDS (1024*1024*128)
 #define CP_MAXEVENTWORDS (1024*128)
 #endif
 
@@ -29,20 +27,23 @@
 // and BASESHIFT is for shifting IDs
 // past the type bits
 #define CP_EVENT_MASK       3
-#define CP_EVENT_BASESHIFT  2
+#define CP_EVENT_BASESHIFT  8
 
-#define CP_EVENTTYPE_BEGIN  0
-#define CP_EVENTTYPE_END    1
-#define CP_EVENTTYPE_ONEOFF 2
+#define CP_EVENTTYPE_BEGIN  1
+#define CP_EVENTTYPE_END    2
+#define CP_EVENTTYPE_ONEOFF 3
 
 // Event IDs
-#define CP_EVENTID_MAIN         0
-#define CP_EVENTID_RUNMALLOC    1
-#define CP_EVENTID_RUNFREE      2
-#define CP_EVENTID_TASKDISPATCH 3
-#define CP_EVENTID_TASKRETIRE   4
-#define CP_EVENTID_TASKSTALLVAR 5
-#define CP_EVENTID_TASKSTALLMEM 6
+#define CP_EVENTID_MAIN         0x04
+#define CP_EVENTID_RUNMALLOC    0x05
+#define CP_EVENTID_RUNFREE      0x06
+#define CP_EVENTID_TASKDISPATCH 0x07
+#define CP_EVENTID_TASKRETIRE   0x08
+#define CP_EVENTID_TASKSTALLVAR 0x09
+#define CP_EVENTID_TASKSTALLMEM 0x0a
+// Note: application-specific events (assigned
+// during code gen) start at 0x100
+
 
 
 extern __thread int                     cp_threadnum;
@@ -65,7 +66,7 @@ struct coreprofmonitor {
 #define CP_CHECKOVERFLOW ;
 #else
 #define CP_CHECKOVERFLOW if \
-  ( cp_monitor->numWords == CP_MAXEVENTWORDS ) \
+  ( cp_monitor->numWords >= CP_MAXEVENTWORDS ) \
   { cp_reportOverflow(); }
 #endif
 
@@ -96,16 +97,16 @@ void cp_reportOverflow();
 
 
 static inline void* cp_calloc( int size ) {
-  //CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_BEGIN );
+  CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_BEGIN );
   void* mem = calloc( 1, size );
-  //CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_END );
+  CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_END );
   return mem;
 }
 
 static inline void cp_free( void* ptr ) {
-  //CP_LOGEVENT( CP_EVENTID_RUNFREE, CP_EVENTTYPE_BEGIN );
+  CP_LOGEVENT( CP_EVENTID_RUNFREE, CP_EVENTTYPE_BEGIN );
   free( ptr );
-  //CP_LOGEVENT( CP_EVENTID_RUNFREE, CP_EVENTTYPE_END );
+  CP_LOGEVENT( CP_EVENTID_RUNFREE, CP_EVENTTYPE_END );
 }
 
 

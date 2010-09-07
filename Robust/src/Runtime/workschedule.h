@@ -10,6 +10,11 @@
 void workScheduleInit( int numProcessors,
                        void(*workFunc)(void*) );
 
+// as the scheduler evolves, looks like this is
+// a better way to shut down the system
+void workScheduleExit();
+
+
 // your main program, before beginning this
 // system, or the execution of worker threads
 // themselves use this submit function to

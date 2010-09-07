@@ -2423,9 +2423,10 @@ public class BuildCode {
       ) {
 	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
 	if (state.COREPROF) {
-	  outmethod.println("CP_EXIT();");
-	  outmethod.println("CP_DUMP();");
+	  outmethod.println("      CP_EXIT();");
+	  outmethod.println("      CP_DUMP();");
 	}
+        outmethod.println(  "      workScheduleExit();");
 	outmethod.println(  "      exit( 0 );");
       }
 
