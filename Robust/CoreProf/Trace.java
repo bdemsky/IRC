@@ -1,10 +1,5 @@
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.BufferedInputStream;
-import java.util.Vector;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Set;
+import java.io.*;
+import java.util.*;
 
 public class Trace {
 
@@ -36,218 +31,43 @@ public class Trace {
     eid2name.put( CP_EVENTID_TASKSTALLVAR, "TASKSTALLVAR" );
     eid2name.put( CP_EVENTID_TASKSTALLMEM, "TASKSTALLMEM" );
   }
+
+  Hashtable<Integer, String> eid2name;
   
 
+
   public static void main( String args[] ) {
-    if( args.length != 1 ) {
-      System.out.println( "usage: <coreprof.dat file>" );
+    if( args.length != 2 ) {
+      System.out.println( "usage: <coreprof.dat file> <trace out file>" );
       System.exit( 0 );
     }
-    Trace t = new Trace( args[0] );    
-    t.printStats();
+    Trace t = new Trace( args[0], args[1] );
   }
+
 
 
   // event IDs are a word, timestamps are long ints
   public static final int WORD_SIZE      = 4;
   public static final int EVENT_SIZE     = WORD_SIZE;
   public static final int TIMESTAMP_SIZE = WORD_SIZE*2;
-  public static final int STACKMAX       = 512;
 
-  int                           numThreads;
-  BufferedInputStream[]         threadNum2stream;
-  int[]                         threadNum2numWords;
-  Event[][]                     threadNum2eventStack;
-  Hashtable<Integer, Counter>[] threadNum2eid2c;
-  Hashtable<Integer, String>    eid2name;
-
-  // calculate this as the single-longest running event
-  // and use it as the parent of all other events
-  long programDuration;
+  int          numThreads;
+  ThreadData[] threadData;
 
 
-  public Trace( String filename ) {  
-    programDuration = 0;
-    openInputStreams( filename );
+
+  public Trace( String inFile, String outFile ) {
+
+    openInputStreams( inFile );
+
     initNames();
-    readThreads();
-  }
-
-
-  protected void openInputStreams( String filename ) {
-
-    BufferedInputStream bis    = null;
-    int                 offset = 0;
-
-    try {
-      bis    = new BufferedInputStream( new FileInputStream( filename ) );
-      offset = readHeader( bis );
-      bis.close();
-    } catch( Exception e ) {
-      e.printStackTrace();
-      System.exit( -1 );
-    }
-
-    threadNum2stream = new BufferedInputStream[numThreads];
-    
-    for( int i = 0; i < numThreads; ++i ) {
-      try {
-
-        // point a thread's event stream to the
-        // beginning of its data within the input file
-	threadNum2stream[i] = 
-          new BufferedInputStream( new FileInputStream( filename ) );
-
-	int skip = offset;
-	while( skip > 0 ) {
-	  skip -= threadNum2stream[i].skip( skip );
-	}
-
-	offset += WORD_SIZE*threadNum2numWords[i];
-
-      } catch( Exception e ) {
-	e.printStackTrace();
-	System.exit( -1 );
-      }
-    }
-  }
-
-
-  int readHeader( BufferedInputStream bis ) {
-
-    // check version
-    int version = readInt( bis );
-    if( version != 0 ) {
-      throw new Error( "Unsupported Version" );
-    }
-    int offset = WORD_SIZE;
-    
-    // read number of threads
-    numThreads = readInt( bis );
-    offset += WORD_SIZE;
-
-    // read number of words used for all events, per thread
-    threadNum2numWords   = new int[numThreads];
-    threadNum2eventStack = new Event[numThreads][STACKMAX];
-    for( int i = 0; i < numThreads; ++i ) {
-      threadNum2numWords[i] = readInt( bis );
-      offset += WORD_SIZE;
-    }
-    return offset;
-  }
-
-
-  public void readThreads() {
-    // cannot have array of generics, so this line generates
-    // a compiler warning, just grimace and move on  :oP
-    threadNum2eid2c = new Hashtable[numThreads];
 
     for( int i = 0; i < numThreads; i++ ) {
-      threadNum2eid2c[i] = new Hashtable<Integer, Counter>();
       readThread( i );
     }
+
+    printStats( outFile );
   }
-
-  
-  public void readThread( int tNum ) {
-
-    BufferedInputStream         stream   = threadNum2stream    [tNum];
-    int                         numWords = threadNum2numWords  [tNum];
-    Event[]                     stack    = threadNum2eventStack[tNum];
-    Hashtable<Integer, Counter> eid2c    = threadNum2eid2c     [tNum];
-
-    int  depth     = 0;
-    long timeStamp = 0;
-    int  i         = 0;
-
-    while( i < numWords ) {
-      
-      int event = readInt ( stream );
-      timeStamp = readLong( stream );
-      i += 3;
-
-      int eventType = event &  CP_EVENT_MASK;
-      int eventID   = event >> CP_EVENT_BASESHIFT;
-
-      switch( eventType ) {
-
-        case CP_EVENTTYPE_BEGIN: {
-          depth = pushEvent( stack, depth, eid2c, eventID, timeStamp );
-        } break;
-
-        case CP_EVENTTYPE_END: {
-          depth = popEvent( stack, depth, eventID, timeStamp );
-        } break;    
-    
-      }
-    }
-
-    if( depth != 0 ) {
-      // worker threads currently do not exit gracefully, and therefore
-      // never register their MAIN END event, so if the mismatch is with
-      // MAIN BEGIN then treat it as fine, otherwise warn.
-      if( depth == 1 ) {
-        // the value of timestamp will be equal to whatever the last
-        // properly registered event for this thread was
-        depth = popEvent( stack, depth, CP_EVENTID_MAIN, timeStamp );
-      } else {
-        System.out.println( "Warning: unmatched event begin/end\n" );
-      }
-    }
-  }
-
-
-  protected int pushEvent( Event[] stack,
-                           int d,
-                           Hashtable<Integer, Counter> eid2c,
-                           int eventID,
-                           long timeStamp ) {
-    int depth = d;
-    Counter counter = eid2c.get( eventID );
-    if( counter == null ) {
-      counter = new Counter();
-      eid2c.put( eventID, counter );
-    }
-    counter.count++;
-    if( stack[depth] == null ) {
-      stack[depth] = new Event( timeStamp, eventID, counter );
-    } else {
-      stack[depth].timeStamp = timeStamp;
-      stack[depth].eventID   = eventID;
-      stack[depth].counter   = counter;
-    }
-    depth++;
-    if( depth == STACKMAX ) {
-      throw new Error( "Event stack overflow\n" );
-    }
-    return depth;
-  }
-
-
-  protected int popEvent( Event[] stack,
-                          int d,
-                          int eventID,
-                          long timeStamp ) {
-    int depth = d;
-    depth--;
-    if( depth < 0 ) {
-      throw new Error( "Event stack underflow\n" );
-    }
-    Event   e           = stack[depth];
-    long    elapsedTime = timeStamp - e.timeStamp;
-    Counter c           = e.counter;
-    c.totalTime += elapsedTime;
-    c.selfTime  += elapsedTime;    
-    if( depth - 1 >= 0 ) {
-      Counter cParent = stack[depth-1].counter;
-      cParent.selfTime -= elapsedTime;
-    }
-    if( elapsedTime > programDuration ) {
-      programDuration = elapsedTime;
-    }
-    return depth;
-  }
-
 
 
   public static int readInt( InputStream is ) {
@@ -296,38 +116,297 @@ public class Trace {
   }
 
 
-  public void printStats() {
-    
+  protected void openInputStreams( String filename ) {
+
+    BufferedInputStream bis    = null;
+    int                 offset = 0;
+
+    try {
+      bis    = new BufferedInputStream( new FileInputStream( filename ) );
+      offset = readHeader( bis );
+      bis.close();
+    } catch( Exception e ) {
+      e.printStackTrace();
+      System.exit( -1 );
+    }
+
     for( int i = 0; i < numThreads; ++i ) {
+      try {
+        // point a thread's event stream to the
+        // beginning of its data within the input file
+	threadData[i].dataStream = 
+          new BufferedInputStream( new FileInputStream( filename ) );
 
-      System.out.println( "Thread "+i );
-      
-      for( Iterator<Integer> evit = threadNum2eid2c[i].keySet().iterator();
-           evit.hasNext();
-           ) {
-	Integer event     = evit.next();
-	Counter c         = threadNum2eid2c[i].get( event );
-	String  eventname = eid2name.containsKey( event ) ?
-                            eid2name.get( event )         :
-                            Integer.toString( event );
+	int skip = offset;
+	while( skip > 0 ) {
+	  skip -= threadData[i].dataStream.skip( skip );
+	}
 
-        // time stamps are measured in processor ticks, so don't bother converting
-        // to time in secs, just figure out how much time events take in terms of
-        // other events, or the total program time
+	offset += WORD_SIZE*threadData[i].numDataWords;
 
-        float tSelf_perc = 
-          100.0f *
-          new Long( c.selfTime  ).floatValue() /
-          new Long( c.totalTime ).floatValue();
-
-	System.out.println( "Event: "+eventname+
-                            " total time(ticks)="+c.totalTime+
-                            " self time(%)=" +tSelf_perc+
-                            " count="+c.count
-                            );
+      } catch( Exception e ) {
+	e.printStackTrace();
+	System.exit( -1 );
       }
-      System.out.println("----------------------------------------------------");
     }
   }
 
+
+  int readHeader( BufferedInputStream bis ) {
+
+    // check version
+    int version = readInt( bis );
+    if( version != 0 ) {
+      throw new Error( "Unsupported Version" );
+    }
+    int offset = WORD_SIZE;
+    
+    // read number of threads
+    numThreads = readInt( bis );
+    offset += WORD_SIZE;
+
+    threadData = new ThreadData[numThreads];
+
+    // read number of words used for all events, per thread
+    for( int i = 0; i < numThreads; ++i ) {
+      threadData[i] = new ThreadData();
+      threadData[i].numDataWords = readInt( bis );
+      offset += WORD_SIZE;
+    }
+    return offset;
+  }
+
+  
+  public void readThread( int tNum ) {
+
+    System.out.print( "Reading thread "+tNum );
+
+    ThreadData tdata = threadData[tNum];
+    tdata.stackDepth = 0;
+    long timeStamp   = 0;
+    int  i           = 0;
+    int numProgress  = 10;
+
+    int progressChunk = tdata.numDataWords / numProgress;
+    int j;
+    boolean[] progress = new boolean[numProgress];
+    for( j = 0; j < numProgress; ++j ) {
+      progress[j] = false;
+    }
+    j = 0;
+    
+    while( i < tdata.numDataWords ) {
+      
+      if( !progress[j] && i > j*progressChunk ) {
+        System.out.print( "." );
+        progress[j] = true;
+        if( j < numProgress - 1 ) {
+          ++j;
+        }
+      }
+
+      int eventRaw = readInt ( tdata.dataStream );
+      timeStamp    = readLong( tdata.dataStream );
+      i += 3;
+
+      int eventType = eventRaw &  CP_EVENT_MASK;
+      int eventID   = eventRaw >> CP_EVENT_BASESHIFT;
+
+      switch( eventType ) {
+
+        case CP_EVENTTYPE_BEGIN: {
+          pushEvent( tdata, eventID, timeStamp );
+        } break;
+
+        case CP_EVENTTYPE_END: {
+          popEvent( tdata, eventID, timeStamp );
+        } break;    
+    
+      }
+    }
+
+    System.out.println( "" );
+
+    if( tdata.stackDepth != 0 ) {
+      // worker threads currently do not exit gracefully, and therefore
+      // never register their MAIN END event, so if the mismatch is with
+      // MAIN BEGIN then treat it as fine, otherwise warn.
+      if( tdata.stackDepth == 1 ) {
+        // the value of timestamp will be equal to whatever the last
+        // properly registered event for this thread was
+        popEvent( tdata, CP_EVENTID_MAIN, timeStamp );
+      } else {
+        System.out.println( "Warning: unmatched event begin/end\n" );
+      }
+    }
+  }
+
+
+  protected void pushEvent( ThreadData tdata,
+                            int        eventID,
+                            long       timeStamp ) {
+
+    EventSummary eventSummary = null;
+
+    if( tdata.stackDepth == 0 ) {
+      // there are no parents, so look in the rootEvents
+      // for an existing EventSummary of this type
+      for( Iterator<EventSummary> itr = tdata.rootEvents.iterator();
+           itr.hasNext();
+           ) {
+        EventSummary es = itr.next();
+        if( es.eventID == eventID ) {
+          eventSummary = es;
+          break;
+        }
+      }
+      if( eventSummary == null ) {
+        // there is no summary for this event type yet,
+        // so add it
+        eventSummary = new EventSummary( eventID );
+        tdata.rootEvents.add( eventSummary );
+      }
+
+    } else {
+      // look through the parent's children for an existing
+      // EventSummary of this type
+      EventSummary esParent = tdata.eventStack.get( tdata.stackDepth - 1 );
+      for( Iterator<EventSummary> itr = esParent.children.iterator();
+           itr.hasNext();
+           ) {
+        EventSummary es = itr.next();
+        if( es.eventID == eventID ) {
+          eventSummary = es;
+          break;
+        }
+      }
+      if( eventSummary == null ) {
+        // there is no summary for this event type yet,
+        // under this parent, so add it
+        eventSummary = new EventSummary( eventID );
+        esParent.children.add( eventSummary );
+        eventSummary.parent = esParent;
+      }
+    }
+
+    eventSummary.timeStampBeginLatestInstance = timeStamp;
+    
+    eventSummary.instanceCount++;
+
+    if( tdata.eventStack.size() <= tdata.stackDepth ) {
+      tdata.eventStack.setSize( 2*tdata.stackDepth + 20 );
+    }
+    tdata.eventStack.set( tdata.stackDepth, eventSummary );
+
+    tdata.stackDepth++;
+  }
+
+
+  protected void popEvent( ThreadData tdata,
+                           int        eventID,
+                           long       timeStamp ) {
+    tdata.stackDepth--;
+    if( tdata.stackDepth < 0 ) {
+      throw new Error( "Event stack underflow\n" );
+    }
+
+    EventSummary eventSummary = tdata.eventStack.get( tdata.stackDepth );
+    assert eventSummary != null;
+
+    long elapsedTime = 
+      timeStamp - eventSummary.timeStampBeginLatestInstance;
+
+    eventSummary.totalTime_ticks += elapsedTime;
+    eventSummary.selfTime_ticks  += elapsedTime;
+    
+    if( tdata.stackDepth - 1 >= 0 ) {
+      EventSummary esParent = tdata.eventStack.get( tdata.stackDepth-1 );
+      esParent.selfTime_ticks -= elapsedTime;
+    }
+  }
+
+
+
+  public void printStats( String filename ) {
+
+    System.out.println( "Printing..." );
+
+    try {
+      BufferedWriter bw = 
+        new BufferedWriter( new FileWriter( filename ) );
+      
+      for( int i = 0; i < numThreads; ++i ) {
+
+        ThreadData tdata = threadData[i];
+
+        bw.write( "----------------------------------\n" );
+        bw.write( "Thread "+i+"\n" );
+      
+        for( Iterator<EventSummary> itr = tdata.rootEvents.iterator();
+             itr.hasNext();
+             ) {
+          EventSummary es = itr.next();
+          printEventSummary( bw, es, 0 );
+        }
+
+        bw.write( "\n" );
+      }
+
+      bw.close();
+
+    } catch( IOException e ) {}
+  }
+  
+
+  public void printEventSummary( BufferedWriter bw,
+                                 EventSummary   es, 
+                                 int            depth ) 
+    throws IOException {
+
+    String strIndent = "";
+    for( int i = 0; i < depth; ++i ) {
+      strIndent += "--";
+    }
+
+    String strEventName = 
+      eid2name.containsKey( es.eventID ) ?
+      eid2name.get( es.eventID )         :
+      Integer.toString( es.eventID );
+        
+    float tOfParent_perc;
+    String strPercParent = "";
+    if( es.parent != null ) {
+      tOfParent_perc =
+        100.0f *
+        new Long( es.totalTime_ticks        ).floatValue() /
+        new Long( es.parent.totalTime_ticks ).floatValue();
+      
+      strPercParent = String.format( " %%ofParent=%5.1f",
+                                     tOfParent_perc );
+    }
+    
+    float tSelf_perc = 
+      100.0f *
+      new Long( es.selfTime_ticks  ).floatValue() /
+      new Long( es.totalTime_ticks ).floatValue();      
+
+    String strSelfStats =
+      String.format( " total(ticks)=%12dK, %%self=%5.1f, count=%d",
+                     es.totalTime_ticks/1000,
+                     tSelf_perc,
+                     es.instanceCount );
+
+    bw.write( strIndent+
+              strEventName+
+              strPercParent+
+              strSelfStats+
+              "\n" );
+
+    for( Iterator<EventSummary> itr = es.children.iterator();
+         itr.hasNext();
+         ) {
+      EventSummary esChild = itr.next();
+      printEventSummary( bw, esChild, depth + 1 );
+    }    
+  }
 }

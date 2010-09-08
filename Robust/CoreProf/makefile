@@ -1,11 +1,12 @@
 all:
-	javac -Xlint Trace.java
+	javac -Xlint Trace.java 
 
 
 run:
-	java Trace coreprof.dat
+	java -ea Trace coreprof.dat trace.out
 
 
 clean:
 	rm -f *.class
 	rm -f *~
+	rm -f trace.out
