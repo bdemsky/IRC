@@ -299,6 +299,6 @@ public class AllocSite extends Canonical {
   }
 
   public int hashCodeSpecific() {
-    return id;
+    return id.hashCode();
   }  
 }
