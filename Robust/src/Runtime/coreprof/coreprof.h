@@ -34,15 +34,17 @@
 #define CP_EVENTTYPE_ONEOFF 3
 
 // Event IDs
-#define CP_EVENTID_MAIN         0x04
-#define CP_EVENTID_RUNMALLOC    0x05
-#define CP_EVENTID_RUNFREE      0x06
-#define CP_EVENTID_TASKDISPATCH 0x07
-#define CP_EVENTID_TASKRETIRE   0x08
-#define CP_EVENTID_TASKSTALLVAR 0x09
-#define CP_EVENTID_TASKSTALLMEM 0x0a
+#define CP_EVENTID_MAIN          0x04
+#define CP_EVENTID_RUNMALLOC     0x10
+#define CP_EVENTID_RUNFREE       0x11
+#define CP_EVENTID_WORKSCHEDGRAB 0x20
+#define CP_EVENTID_TASKDISPATCH  0x30
+#define CP_EVENTID_TASKEXECUTE   0x31
+#define CP_EVENTID_TASKRETIRE    0x32
+#define CP_EVENTID_TASKSTALLVAR  0x40
+#define CP_EVENTID_TASKSTALLMEM  0x41
 // Note: application-specific events (assigned
-// during code gen) start at 0x100
+// during code gen) start at 0x200
 
 
 

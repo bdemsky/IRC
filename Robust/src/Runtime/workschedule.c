@@ -63,6 +63,7 @@ void* workerMain( void* arg ) {
   void*       workUnit;
   WorkerData* myData = (WorkerData*) arg;
   int         oldState;
+  int         haveWork;
 
   // once-per-thread stuff
   CP_CREATE();
@@ -77,18 +78,25 @@ void* workerMain( void* arg ) {
   // then continue to process work
   while( 1 ) {
 
-    pthread_mutex_lock( &systemLockOut );
     // wait for work
-    if (headqi->next==NULL) {
-      pthread_mutex_unlock( &systemLockOut );
-      sched_yield();
-      continue;
+    CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
+    haveWork = FALSE;
+    while( !haveWork ) {
+      pthread_mutex_lock( &systemLockOut );
+      if( headqi->next == NULL ) {
+        pthread_mutex_unlock( &systemLockOut );
+        sched_yield();
+        continue;
+      } else {
+        haveWork = TRUE;
+      }
     }
     struct QI * tmp=headqi;
     headqi = headqi->next;
     workUnit = headqi->value;
     pthread_mutex_unlock( &systemLockOut );
-    free(tmp);
+    free( tmp );
+    CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
     
     pthread_mutex_lock(&gclistlock);
     threadcount++;

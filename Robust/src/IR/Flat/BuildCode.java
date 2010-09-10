@@ -2379,6 +2379,10 @@ public class BuildCode {
 
     // initialize thread-local var to a non-zero, invalid address
     output.println("   seseCaller = (SESEcommon*) 0x2;");
+
+
+    output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_BEGIN );");
+
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);    
     generateCode(fsen.getNext(0), fm, null, exitset, output, true);
@@ -3570,7 +3574,7 @@ public class BuildCode {
     output.println("   {");
 
 
-    //output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
+    output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
 
     // set up the parent
     if( (state.MLP && fsen == mlpa.getMainSESE()) || 
@@ -4075,7 +4079,7 @@ public class BuildCode {
 //    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
 
 
-    //output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
+    output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
 
     output.println("   }");
     
@@ -4093,8 +4097,6 @@ public class BuildCode {
       return;
     }
 
-    //output.println("CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_BEGIN );");
-
     // get the enter node for this exit that has meta data embedded
     FlatSESEEnterNode fsen = fsexn.getFlatEnter();
 
@@ -4110,7 +4112,10 @@ public class BuildCode {
       return;
     }
 
+    output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_END );");
+
     output.println("   /* SESE exiting */");
+    output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_BEGIN );");
     
     String com = paramsprefix+"->common";
 
@@ -4248,7 +4253,7 @@ public class BuildCode {
     output.println("   seseCaller = (SESEcommon*) 0x1;");    
 
 
-    //output.println("CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
+    output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
   }
  
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  
