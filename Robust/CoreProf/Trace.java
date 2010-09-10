@@ -12,24 +12,28 @@ public class Trace {
   public static final int CP_EVENTTYPE_END        = 2;
   public static final int CP_EVENTTYPE_ONEOFF     = 3;
 
-  public static final int CP_EVENTID_MAIN         = 0x04;
-  public static final int CP_EVENTID_RUNMALLOC    = 0x05;
-  public static final int CP_EVENTID_RUNFREE      = 0x06;
-  public static final int CP_EVENTID_TASKDISPATCH = 0x07;
-  public static final int CP_EVENTID_TASKRETIRE   = 0x08;
-  public static final int CP_EVENTID_TASKSTALLVAR = 0x09;
-  public static final int CP_EVENTID_TASKSTALLMEM = 0x0a;
+  public static final int CP_EVENTID_MAIN          = 0x04;
+  public static final int CP_EVENTID_RUNMALLOC     = 0x10;
+  public static final int CP_EVENTID_RUNFREE       = 0x11;
+  public static final int CP_EVENTID_WORKSCHEDGRAB = 0x20;
+  public static final int CP_EVENTID_TASKDISPATCH  = 0x30;
+  public static final int CP_EVENTID_TASKEXECUTE   = 0x31;
+  public static final int CP_EVENTID_TASKRETIRE    = 0x32;
+  public static final int CP_EVENTID_TASKSTALLVAR  = 0x40;
+  public static final int CP_EVENTID_TASKSTALLMEM  = 0x41;
 
 
   void initNames() {
     eid2name = new Hashtable<Integer, String>();
-    eid2name.put( CP_EVENTID_MAIN,         "MAIN        " );
-    eid2name.put( CP_EVENTID_RUNMALLOC,    "RUNMALLOC   " );
-    eid2name.put( CP_EVENTID_RUNFREE,      "RUNFREE     " );
-    eid2name.put( CP_EVENTID_TASKDISPATCH, "TASKDISPATCH" );
-    eid2name.put( CP_EVENTID_TASKRETIRE,   "TASKRETIRE  " );
-    eid2name.put( CP_EVENTID_TASKSTALLVAR, "TASKSTALLVAR" );
-    eid2name.put( CP_EVENTID_TASKSTALLMEM, "TASKSTALLMEM" );
+    eid2name.put( CP_EVENTID_MAIN,          "MAIN         " );
+    eid2name.put( CP_EVENTID_RUNMALLOC,     "RUNMALLOC    " );
+    eid2name.put( CP_EVENTID_RUNFREE,       "RUNFREE      " );
+    eid2name.put( CP_EVENTID_WORKSCHEDGRAB, "WORKSCHEDGRAB" );
+    eid2name.put( CP_EVENTID_TASKDISPATCH,  "TASKDISPATCH " );
+    eid2name.put( CP_EVENTID_TASKEXECUTE,   "TASKEXECUTE  " );
+    eid2name.put( CP_EVENTID_TASKRETIRE,    "TASKRETIRE   " );
+    eid2name.put( CP_EVENTID_TASKSTALLVAR,  "TASKSTALLVAR " );
+    eid2name.put( CP_EVENTID_TASKSTALLMEM,  "TASKSTALLMEM " );
   }
 
   Hashtable<Integer, String> eid2name;
@@ -376,10 +380,15 @@ public class Trace {
     float tOfParent_perc;
     String strPercParent = "";
     if( es.parent != null ) {
+      float divisor = new Long( es.parent.totalTime_ticks ).floatValue();
+      if( divisor <= 0.00001f ) {
+        divisor = 0.00001f;
+      }
+
       tOfParent_perc =
         100.0f *
         new Long( es.totalTime_ticks        ).floatValue() /
-        new Long( es.parent.totalTime_ticks ).floatValue();
+        divisor;
       
       strPercParent = String.format( " %%ofParent=%5.1f",
                                      tOfParent_perc );
