@@ -2,99 +2,97 @@
 #include <stdio.h>
 
 #include <pthread.h>
+#include "memPool.h"
+
+#define numThreads          24
+#define numCyclesPerThread  500000
+#define extraBytesInRecords 1000
 
 
 struct bar {
   int x;
-  char takeSpace[1000];
+  char takeSpace[extraBytesInRecords];
 };
 
 struct baz {
   int y;
-  char takeSpace[1000];
+  char takeSpace[extraBytesInRecords];
 };
 
 struct foo {
   struct bar* br;
   struct baz* bz;
   int z;
-  char takeSpace[1000];
+  char takeSpace[extraBytesInRecords];
 };
 
 
 void* workerMain( void* arg ) {
 
-  struct foo* f = (struct foo*)arg;
+  INTPTR i = (INTPTR)arg;
+  int j;
+  struct bar* br;
+  struct baz* bz;
+  struct foo* foos = malloc( numCyclesPerThread*sizeof( struct foo ) );
 
-  f->z = f->br->x + f->bz->y;
+  for( j = 0; j < numCyclesPerThread; ++j ) {
+    br = malloc( sizeof( struct bar ) );
+    bz = malloc( sizeof( struct baz ) );
 
-  free( f->br );
-  free( f->bz );
+    br->x = i + j;
+    bz->y = -4321;
+    
+    foos[j].br = br;
+    foos[j].bz = bz;
+    foos[j].z = foos[j].br->x + foos[j].bz->y;
+
+    free( foos[j].br );
+    free( foos[j].bz );
+  }
   
-  pthread_exit( arg );
+  pthread_exit( foos );
 }
 
 
 int main() {
 
-  int i;
+  INTPTR i;
+  int j;
 
-  struct bar* br;
-  struct baz* bz;
-  struct foo* f;
+  struct foo* foos;
 
-  int            numThreads = 10000;
   pthread_t      threads[numThreads];
   pthread_attr_t attr;
-
+  
   int total = 0;
-
 
   pthread_attr_init( &attr );
   pthread_attr_setdetachstate( &attr, 
                                PTHREAD_CREATE_JOINABLE );
 
-
   for( i = 0; i < numThreads; ++i ) {
-
-    br = malloc( sizeof( struct bar ) );
-    bz = malloc( sizeof( struct baz ) );
-    f  = malloc( sizeof( struct foo ) );
-
-    br->x = i;
-    bz->y = -4321;
-    
-    f->br = br;
-    f->bz = bz;
 
     pthread_create( &(threads[i]),
                     &attr,
                     workerMain,
-                    (void*)f );
-
-    if( i % 1000 == 0 ) {
-      printf( "." );
-    }
-
-    if( i % 100 == 0 ) {
-      sched_yield();
-    }
+                    (void*)i );
+    printf( "." );
   }
   
   printf( "\n" );
 
   for( i = 0; i < numThreads; ++i ) {
 
-    f = NULL;
+    foos = NULL;
     pthread_join( threads[i],
-                  (void**)&f );
+                  (void**)&foos );
 
-    total += f->z;
-    free( f );
-
-    if( i % 1000 == 0 ) {
-      printf( "+" );
+    for( j = 0; j < numCyclesPerThread; ++j ) {
+      total += foos[j].z;
     }
+    free( foos );
+    
+    printf( "+" );
   }
   
   printf( "\nTotal=%d\n", total );

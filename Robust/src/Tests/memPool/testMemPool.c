@@ -3,10 +3,17 @@
 
 #include <pthread.h>
 #include "memPool.h"
+#include "config-test.h"
+
 
 #define numThreads          24
 #define numCyclesPerThread  500000
 #define extraBytesInRecords 1000
+
+
+#ifdef CONFIG_POOLALLOC
+__thread static MemPool* pool;
+#endif
 
 
 struct bar {
@@ -36,8 +43,8 @@ void* workerMain( void* arg ) {
   struct foo* foos = malloc( numCyclesPerThread*sizeof( struct foo ) );
 
   for( j = 0; j < numCyclesPerThread; ++j ) {
-    br = calloc( 1, sizeof( struct bar ) );
-    bz = calloc( 1, sizeof( struct baz ) );
+    br = poolalloc( barPool );
+    bz = poolalloc( bazPool );
 
     br->x = i + j;
     bz->y = -4321;
@@ -46,8 +53,8 @@ void* workerMain( void* arg ) {
     foos[j].bz = bz;
     foos[j].z = foos[j].br->x + foos[j].bz->y;
 
-    free( foos[j].br );
-    free( foos[j].bz );
+    poolfree( barPool, foos[j].br );
+    poolfree( bazPool, foos[j].bz );
   }
   
   pthread_exit( foos );
@@ -63,8 +70,14 @@ int main() {
 
   pthread_t      threads[numThreads];
   pthread_attr_t attr;
-  
+
   int total = 0;
+
+
+#ifdef CONFIG_POOLALLOC
+  pool = poolcreate( sizeof( struct bar ) );
+#endif
+
 
   pthread_attr_init( &attr );
   pthread_attr_setdetachstate( &attr, 
@@ -83,7 +96,7 @@ int main() {
   printf( "\n" );
 
   for( i = 0; i < numThreads; ++i ) {
-
+    
     foos = NULL;
     pthread_join( threads[i],
                   (void**)&foos );
@@ -95,7 +108,7 @@ int main() {
 
     printf( "+" );
   }
-  
+
   printf( "\nTotal=%d\n", total );
 
   return 0;
