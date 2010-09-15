@@ -5,6 +5,9 @@
 #include "structdefs.h"
 #include "MGCHash.h"
 #include "GCSharedHash.h"
+#ifdef GC_CACHE_ADAPT
+#include "multicorecache.h"
+#endif // GC_CACHE_ADAPT
 
 #ifndef bool
 #define bool int
@@ -35,7 +38,7 @@ int gc_num_flush_dtlb;
 #define GC_PROFILE_NUM_FIELD 16
 #else
 #define GC_PROFILE_NUM_FIELD 15
-#endif
+#endif // GC_CACHE_ADAPT
 
 typedef struct gc_info {
   unsigned long long time[GC_PROFILE_NUM_FIELD];
@@ -171,8 +174,8 @@ volatile bool gcismapped;
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
 // Note: 1. this table always resides on the very bottom of the shared memory
-//       2. the first two blocks are reserved for this table, would never be
-//          moved or garbage collected.
+//       2. it is not counted in the shared heap, would never be garbage 
+//          collected
 INTPTR * gcsbstarttbl;
 int gcreservedsb;  // number of reserved sblock for sbstarttbl
 int gcnumblock; // number of total blocks in the shared mem
@@ -180,6 +183,15 @@ int gcbaseva; // base va for shared memory without reserved sblocks
 #ifdef GC_CACHE_ADAPT
 int gctopva; // top va for shared memory without reserved sblocks
 volatile bool gccachestage;
+// table recording the sampling data collected for cache adaption 
+int * gccachesamplingtbl;
+int * gccachesamplingtbl_local;
+unsigned int size_cachesamplingtbl_local;
+int * gccachesamplingtbl_r;
+int * gccachesamplingtbl_local_r;
+unsigned int size_cachesamplingtbl_local_r;
+int * gccachepolicytbl;
+unsigned int size_cachepolicytbl;
 #endif // GC_CACHE_ADAPT
 
 #define ISSHAREDOBJ(p) \

@@ -369,6 +369,28 @@ int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
                           // otherwise gc is invoked
 volatile INTPTR bamboo_smem_zero_top;
 #define BAMBOO_SMEM_ZERO_UNIT_SIZE (4 * 1024) // 4KB
+
+#ifdef GC_CACHE_ADAPT
+typedef union
+{
+  unsigned int word;
+  struct
+  {
+    // policy type
+    unsigned int cache_mode   : 2;
+	// Reserved.
+    unsigned int __reserved_0 : 6;
+	// Location Override Target Y
+    unsigned int lotar_y      : 4;
+    // Reserved.
+    unsigned int __reserved_1 : 4;
+    // Location Override Target X
+    unsigned int lotar_x      : 4;
+    // Reserved.
+    unsigned int __reserved_2 : 12;
+  };
+} bamboo_cache_policy_t;
+#endif // GC_CACHE_ADAPT
 #else
 //volatile mspace bamboo_free_msp;
 INTPTR bamboo_free_smemp;

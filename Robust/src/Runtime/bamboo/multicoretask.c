@@ -380,7 +380,6 @@ void initruntimedata() {
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(500000000); // TODO
   bamboo_unmask_timer_intr();
-  //BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME());
   bamboo_dtlb_sampling_process();
 #endif // GC_CACHE_ADAPT
 #else
@@ -823,10 +822,6 @@ inline void run(void * arg) {
     while(true) {
 
 #ifdef MULTICORE_GC
-//#ifdef GC_CACHE_ADAPT
-	  // do dtlb sampling if necessary
-//	  bamboo_dtlb_sampling_process();
-//#endif // GC_CACHE_ADAPT
       // check if need to do GC
       if(gcflag) {
 		gc(NULL);
@@ -3715,10 +3710,6 @@ void executetasks() {
 newtask:
   while(hashsize(activetasks)>0) {
 #ifdef MULTICORE_GC
-//#ifdef GC_CACHE_ADAPT
-	  // do dtlb sampling if necessary
-//	  bamboo_dtlb_sampling_process();
-//#endif // GC_CACHE_ADAPT
     if(gcflag) gc(NULL);
 #endif
 #ifdef DEBUG

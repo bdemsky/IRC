@@ -1015,6 +1015,7 @@ cp $BAMBOORUNTIME/multicoregc.h ./
 cp $BAMBOORUNTIME/multicoregarbage.h ./
 cp $BAMBOORUNTIME/multicorehelper.h ./
 cp $BAMBOORUNTIME/MGCHash.h ./
+cp $BAMBOORUNTIME/multicorecache.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/Runtime/$TILERA_INDIR/*.c ./
