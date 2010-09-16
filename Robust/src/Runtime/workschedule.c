@@ -79,7 +79,7 @@ void* workerMain( void* arg ) {
   while( 1 ) {
 
     // wait for work
-    CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
+    //CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
     haveWork = FALSE;
     while( !haveWork ) {
       pthread_mutex_lock( &systemLockOut );
@@ -96,7 +96,7 @@ void* workerMain( void* arg ) {
     workUnit = headqi->value;
     pthread_mutex_unlock( &systemLockOut );
     free( tmp );
-    CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
+    //CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
     
     pthread_mutex_lock(&gclistlock);
     threadcount++;
