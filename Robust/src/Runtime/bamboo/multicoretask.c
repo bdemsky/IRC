@@ -1954,8 +1954,8 @@ void * smemalloc_I(int coren,
 	}
 	return NULL;
 #else
-    BAMBOO_DEBUGPRINT(0xa001);
-    BAMBOO_EXIT(0xa001);
+    BAMBOO_DEBUGPRINT(0xe003);
+    BAMBOO_EXIT(0xe003);
 #endif
   }
   return mem;
@@ -2080,7 +2080,7 @@ INLINE int checkMsgLength_I(int size) {
     while(i-- > 0) {
       BAMBOO_DEBUGPRINT(msgdata[msgdataindex+i]);
     }
-    BAMBOO_EXIT(0xd005);
+    BAMBOO_EXIT(0xe004);
     break;
   }
   }
@@ -2118,7 +2118,7 @@ INLINE void processmsg_transobj_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[2]*/);
 #endif
-    BAMBOO_EXIT(0xa002);
+    BAMBOO_EXIT(0xe005);
   }
   // store the object and its corresponding queue info, enqueue it later
   transObj->objptr = (void *)msgdata[msgdataindex];  //[2]
@@ -2200,7 +2200,7 @@ INLINE void processmsg_transtall_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[1]*/);
 #endif
-    BAMBOO_EXIT(0xa003);
+    BAMBOO_EXIT(0xe006);
   }
   int num_core = msgdata[msgdataindex]; //[1]
   MSG_INDEXINC_I();
@@ -2253,7 +2253,7 @@ INLINE void processmsg_lockgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[2]*/);
 #endif
-    BAMBOO_EXIT(0xa004);
+    BAMBOO_EXIT(0xe007);
   }
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -2275,7 +2275,7 @@ INLINE void processmsg_lockgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa005);
+    BAMBOO_EXIT(0xe008);
   }
 }
 
@@ -2289,7 +2289,7 @@ INLINE void processmsg_lockdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa006);
+    BAMBOO_EXIT(0xe009);
   }
   if((lockobj == data2) && (lock2require == data3)) {
 #ifdef DEBUG
@@ -2307,7 +2307,7 @@ INLINE void processmsg_lockdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa007);
+    BAMBOO_EXIT(0xe00a);
   }
 }
 
@@ -2357,7 +2357,7 @@ INLINE void processmsg_redirectgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa00a);
+    BAMBOO_EXIT(0xe00b);
   }
   if(lockobj == data2) {
 #ifdef DEBUG
@@ -2378,7 +2378,7 @@ INLINE void processmsg_redirectgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa00b);
+    BAMBOO_EXIT(0xe00c);
   }
 }
 
@@ -2390,7 +2390,7 @@ INLINE void processmsg_redirectdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa00c);
+    BAMBOO_EXIT(0xe00d);
   }
   if(lockobj == data2) {
 #ifdef DEBUG
@@ -2408,7 +2408,7 @@ INLINE void processmsg_redirectdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa00d);
+    BAMBOO_EXIT(0xe00e);
   }
 }
 
@@ -2427,7 +2427,7 @@ INLINE void processmsg_redirectrelease_I() {
 INLINE void processmsg_profileoutput_I() {
   if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
     // startup core can not receive profile output finish msg
-    BAMBOO_EXIT(0xa008);
+    BAMBOO_EXIT(0xe00f);
   }
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2456,7 +2456,7 @@ INLINE void processmsg_profilefinish_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex /*1*/]);
 #endif
-    BAMBOO_EXIT(0xa009);
+    BAMBOO_EXIT(0xe010);
   }
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2473,7 +2473,7 @@ INLINE void processmsg_statusconfirm_I() {
   if((BAMBOO_NUM_OF_CORE == STARTUPCORE)
      || (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
     // wrong core to receive such msg
-    BAMBOO_EXIT(0xa00e);
+    BAMBOO_EXIT(0xe011);
   } else {
     // send response msg
 #ifdef DEBUG
@@ -2509,7 +2509,7 @@ INLINE void processmsg_statusreport_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa00f);
+    BAMBOO_EXIT(0xe012);
   } else {
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2559,7 +2559,7 @@ INLINE void processmsg_memrequest_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xa010);
+    BAMBOO_EXIT(0xe013);
   } else {
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2716,7 +2716,7 @@ INLINE void processmsg_gcfinishpre_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb000);
+    BAMBOO_EXIT(0xe014);
   }
   // All cores should do init GC
   if(!gcprecheck) {
@@ -2736,7 +2736,7 @@ INLINE void processmsg_gcfinishinit_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb001);
+    BAMBOO_EXIT(0xe015);
   }
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe88c);
@@ -2761,7 +2761,7 @@ INLINE void processmsg_gcfinishmark_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb002);
+    BAMBOO_EXIT(0xe016);
   }
   // all cores should do mark
   if(data1 < NUMCORESACTIVE) {
@@ -2786,7 +2786,7 @@ INLINE void processmsg_gcfinishcompact_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[1]*/);
 #endif
-    BAMBOO_EXIT(0xb003);
+    BAMBOO_EXIT(0xe017);
   }
   int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();       //msgdata[1];
@@ -2830,7 +2830,7 @@ INLINE void processmsg_gcfinishmapinfo_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb004);
+    BAMBOO_EXIT(0xe018);
   }
   // all cores should do flush
   if(data1 < NUMCORES4GC) {
@@ -2848,7 +2848,7 @@ INLINE void processmsg_gcfinishflush_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb005);
+    BAMBOO_EXIT(0xe019);
   }
   // all cores should do flush
   if(data1 < NUMCORESACTIVE) {
@@ -2860,7 +2860,7 @@ INLINE void processmsg_gcmarkconfirm_I() {
   if((BAMBOO_NUM_OF_CORE == STARTUPCORE)
      || (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
     // wrong core to receive such msg
-    BAMBOO_EXIT(0xb006);
+    BAMBOO_EXIT(0xe01a);
   } else {
     // send response msg, cahce the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
@@ -2890,7 +2890,7 @@ INLINE void processmsg_gcmarkreport_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb007);
+    BAMBOO_EXIT(0xe01b);
   } else {
 	int entry_index = 0;
     if(waitconfirm) {
@@ -2964,7 +2964,7 @@ INLINE void processmsg_gcmaprequest_I() {
     BAMBOO_DEBUGPRINT_REG(data1);
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb008);
+    BAMBOO_EXIT(0xe01c);
     //assume that the object was not moved, use the original address
     /*if(isMsgSending) {
             cache_msg_3(msgdata[2], GCMAPINFO, msgdata[1], msgdata[1]);
@@ -3026,7 +3026,7 @@ INLINE void processmsg_gclobjinfo_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xb009);
+    BAMBOO_EXIT(0xe01d);
   }
   // store the mark result info
   int cnum = data2;
@@ -3091,7 +3091,7 @@ INLINE void processmsg_gcfinishpref_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xb00a);
+    BAMBOO_EXIT(0xe01e);
   }
   // all cores should do flush
   if(data1 < NUMCORESACTIVE) {
@@ -3660,7 +3660,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xa00b);
+      BAMBOO_EXIT(0xe01f);
     } else {
       int rwlock_obj = 0;
       struct LockValue * lockvalue = NULL;
