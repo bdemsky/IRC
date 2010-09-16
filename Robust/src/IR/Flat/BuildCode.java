@@ -78,6 +78,7 @@ public class BuildCode {
   PrefetchAnalysis pa;
   MLPAnalysis mlpa;
   OoOJavaAnalysis oooa;
+  String maxTaskRecSizeStr="__maxTaskRecSize___";
   String mlperrstr = "if(status != 0) { "+
     "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
     "perror(errmsg); exit(-1); }";
@@ -214,6 +215,11 @@ public class BuildCode {
       outmethodheader.println("#include <string.h>");
       outmethodheader.println("#include \"mlp_runtime.h\"");
       outmethodheader.println("#include \"psemaphore.h\"");
+      outmethodheader.println("#include \"memPool.h\"");
+
+      // spit out a global to inform all worker threads with
+      // the maximum size is for any task record
+      outmethodheader.println("extern int "+maxTaskRecSizeStr+";");
     }
 
     /* Output Structures */
@@ -252,7 +258,7 @@ public class BuildCode {
       outputTaskTypes(outtask);
     }
 
-    if( state.MLP || state.OOOJAVA) {
+    if( state.MLP || state.OOOJAVA) {      
       // have to initialize some SESE compiler data before
       // analyzing normal methods, which must happen before
       // generating SESE internal code
@@ -297,7 +303,7 @@ public class BuildCode {
               //get effect set
               Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fsen);
                     
-              rcr.traverseSESEBlock(fsen, effects, conflicts, rg);
+              //rcr.traverseSESEBlock(fsen, effects, conflicts, rg);
               }
           }
         }
@@ -308,6 +314,10 @@ public class BuildCode {
 
     // Output function prototypes and structures for SESE's and code
     if( state.MLP || state.OOOJAVA ) {
+
+      // spit out a global to inform all worker threads with
+      // the maximum size is for any task record
+      outmethod.println("int "+maxTaskRecSizeStr+" = 0;");
 
       // used to differentiate, during code generation, whether we are
       // passing over SESE body code, or non-SESE code
@@ -376,7 +386,25 @@ public class BuildCode {
     outmethod.println("  int i;");
 
     if (state.MLP || state.OOOJAVA) {
-      //outmethod.println("  pthread_once( &mlpOnceObj, mlpInitOncePerThread );");
+
+      // do a calculation to determine which task record
+      // is the largest, store that as a global value for
+      // allocating records
+      Iterator<FlatSESEEnterNode> seseit;
+      if(state.MLP){
+        seseit=mlpa.getAllSESEs().iterator();
+      }else{
+        seseit=oooa.getAllSESEs().iterator();
+      }      
+      while(seseit.hasNext()){
+        FlatSESEEnterNode fsen = seseit.next();
+        outmethod.println("if( sizeof( "+fsen.getSESErecordName()+
+                          " ) > "+maxTaskRecSizeStr+
+                          " ) { "+maxTaskRecSizeStr+
+                          " = sizeof( "+fsen.getSESErecordName()+
+                          " ); }" );
+      }
+      
 
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
       
@@ -549,6 +577,11 @@ public class BuildCode {
     outmethod.println("#include \"methodheaders.h\"");
     outmethod.println("#include \"virtualtable.h\"");
     outmethod.println("#include \"runtime.h\"");
+
+    // always include: compiler directives will leave out
+    // instrumentation when option is not set
+    outmethod.println("#include \"coreprof/coreprof.h\"");
+
     if (state.SANDBOX) {
       outmethod.println("#include \"sandboxdefs.c\"");
     }
@@ -581,9 +614,6 @@ public class BuildCode {
       if( state.RCR) {
         outmethod.println("#include \"RuntimeConflictResolver.h\"");
       }
-    }
-    if (state.COREPROF) {
-      outmethod.println("#include \"coreprof.h\"");
     }
 
     //Store the sizes of classes & array elements
@@ -2380,8 +2410,9 @@ public class BuildCode {
     // initialize thread-local var to a non-zero, invalid address
     output.println("   seseCaller = (SESEcommon*) 0x2;");
 
-
-    output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_BEGIN );");
+    if( state.COREPROF ) {
+      output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_BEGIN );");
+    }
 
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);    
@@ -2426,10 +2457,8 @@ public class BuildCode {
           (state.OOOJAVA && fsen.equals( oooa.getMainSESE() ))
       ) {
 	outmethod.println(  "      /* work scheduler works forever, explicitly exit */");
-	if (state.COREPROF) {
-	  outmethod.println("      CP_EXIT();");
-	  outmethod.println("      CP_DUMP();");
-	}
+        outmethod.println(  "      CP_EXIT();");
+        outmethod.println(  "      CP_DUMP();");	
         outmethod.println(  "      workScheduleExit();");
 	outmethod.println(  "      exit( 0 );");
       }
@@ -2855,7 +2884,9 @@ public class BuildCode {
 
 	  output.println("   {");
 	  output.println("     SESEcommon* common = (SESEcommon*) "+pair+";");
-          //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+          if( state.COREPROF ) {
+            //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+          }
 	  output.println("     pthread_mutex_lock( &(common->lock) );");
 	  output.println("     while( common->doneExecuting == FALSE ) {");
 	  output.println("       pthread_cond_wait( &(common->doneCond), &(common->lock) );");
@@ -2878,8 +2909,9 @@ public class BuildCode {
 	    output.println("       "+generateTemp( fmContext, td, null )+
 			   " = child->"+vst.getAddrVar().getSafeSymbol()+";");
 	  }
-
-          //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+          if( state.COREPROF ) {
+            //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+          }
 	  output.println("   }");
 	}
   
@@ -2892,7 +2924,9 @@ public class BuildCode {
 	  // otherwise the dynamic write nodes will have the local var up-to-date
 	  output.println("   {");
 	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
-          //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+          if( state.COREPROF ) {
+            //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+          }
 	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
 	  output.println("       psem_take( &(common->stallSem) );");
 
@@ -2916,7 +2950,9 @@ public class BuildCode {
 	  output.println("       "+generateTemp( fmContext, dynVar, null )+
                          " = *(("+typeStr+"*) ("+
                          dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
-          //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+          if( state.COREPROF ) {
+            //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+          }
 	  output.println("     }");
 	  output.println("   }");
 	}
@@ -2984,9 +3020,13 @@ public class BuildCode {
                 output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
                 output.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
                            + "],rentry)==NOTREADY){");
-                //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                if( state.COREPROF ) {
+                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                }
                 output.println("        psem_take( &(rentry->parentStallSem) );");
-                //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                if( state.COREPROF ) {
+                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                }
                 output.println("     }  ");
                 
                 if(state.RCR && rcr != null) {
@@ -3032,9 +3072,13 @@ public class BuildCode {
                   output
                     .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
                              + "],rentry)==NOTREADY){");
-                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                  if( state.COREPROF ) {
+                    //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                  }
                   output.println("        psem_take( &(rentry->parentStallSem) );");
-                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                  if( state.COREPROF ) {
+                    //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                  }
                   output.println("     }  ");
                 }
                 output.println("   }");
@@ -3573,8 +3617,9 @@ public class BuildCode {
 
     output.println("   {");
 
-
-    output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
+    if( state.COREPROF ) {
+      output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
+    }
 
     // set up the parent
     if( (state.MLP && fsen == mlpa.getMainSESE()) || 
@@ -4078,8 +4123,9 @@ public class BuildCode {
     // eventually, for it to mark itself finished
 //    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
 
-
-    output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
+    if( state.COREPROF ) {
+      output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
+    }
 
     output.println("   }");
     
@@ -4111,11 +4157,16 @@ public class BuildCode {
     if( fsen.getIsCallerSESEplaceholder() ) {
       return;
     }
-
-    output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_END );");
+    
+    if( state.COREPROF ) {
+      output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_END );");
+    }
 
     output.println("   /* SESE exiting */");
-    output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_BEGIN );");
+
+    if( state.COREPROF ) {
+      output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_BEGIN );");
+    }
     
     String com = paramsprefix+"->common";
 
@@ -4252,8 +4303,9 @@ public class BuildCode {
     // calls to a non-zero, invalid address
     output.println("   seseCaller = (SESEcommon*) 0x1;");    
 
-
-    output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
+    if( state.COREPROF ) {
+      output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
+    }
   }
  
   public void generateFlatWriteDynamicVarNode( FlatMethod fm,  

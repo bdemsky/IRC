@@ -1,3 +1,7 @@
+#ifndef ____MLP_LOCK_H__
+#define ____MLP_LOCK_H__
+
+
 #include "runtime.h"
 
 #include <stdlib.h>
@@ -94,3 +98,6 @@ static inline int BARRIER(){
   CFENCE;
   return 1;
 }
+
+
+#endif // ____MLP_LOCK_H__
