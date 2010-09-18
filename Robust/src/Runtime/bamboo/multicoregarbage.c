@@ -2878,71 +2878,93 @@ void cacheAdapt_gc(bool isgccachestage) {
 // according to collected statistic data
 extern int gc_num_sampling;
 
-bool cacheAdapt_policy_d(VA page_sva,
-	                     bamboo_cache_policy_t* policy,
-						 int page_num,
-						 int page_index){
-  int hottestcore = 0;
-  int num_hotcore = 0;
-  int hotfreq = 0;
-	
-  for(int i = 0; i < NUMCORESACTIVE; i++) {
-	int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		+page_num*sizeof(float)*i);
-	int freq = local_tbl[page_index];
-	// TODO
-/*	if(page_sva == 0xd180000) {
-      tprintf("%x %d %d\n", (int)page_sva, i, (int)(freq*100000));
-	}*/
-	// TODO
-    // check the freqency, decide if this page is hot for the core
-	if(hotfreq < freq) {
-	  hotfreq = freq;
-	  hottestcore = i;
-	}
-	if(freq > GC_CACHE_ADAPT_HOTPAGE_THRESHOLD) {
-	  num_hotcore++;
-	}
-  }
-  // TODO
-  // Decide the cache strategy for this page
-  // If decide to adapt a new cache strategy, write into the shared block of
-  // the gcsharedsamplingtbl. The mem recording information that has been 
-  // written is enough to hold the information.
-  // Format: page start va + cache strategy(hfh/(host core+[x,y]))
-  if(hotfreq == 0) {
-	// this page has not been accessed, do not change its cache policy
-	return false;
-  }
-  if(num_hotcore > GC_CACHE_ADAPT_ACCESS_THRESHOLD) {
-	// use hfh
-	policy->cache_mode = BAMBOO_CACHE_MODE_HASH;
-  } else {
-	// locally cache the page in the hottest core
-	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
-	policy->cache_mode = BAMBOO_CACHE_MODE_COORDS;
-	policy->lotar_x = bamboo_cpu2coords[2*hottestcore]+1;
-	policy->lotar_y = bamboo_cpu2coords[2*hottestcore+1]+1;
-  }
-  return true;
-}
-
-void cacheAdapt_master() {
-  // check the statistic data
-  // for each page, decide the new cache strategy
+// make all pages hfh
+int cacheAdapt_policy_h4h(){
   unsigned int page_index = 0;
   VA page_sva = 0;
   unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
   int numchanged = 0;
   int * tmp_p = gccachepolicytbl+1;
-  int hottestcore = 0;
-  int num_hotcore = 0;
-  int hotfreq = 0;
   for(page_index = 0; page_index < page_num; page_index++) {
 	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
 	bamboo_cache_policy_t policy = {0};
-	bool ischange=cacheAdapt_policy_d(page_sva, &policy, page_num, page_index);
-	if(ischange) {
+	policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+	*tmp_p = page_index;
+	tmp_p++;
+	*tmp_p = policy.word;
+	tmp_p++;
+	numchanged++;
+  }
+
+  return numchanged;
+} // int cacheAdapt_policy_hfh()
+
+// make all pages local as non-cache-adaptable gc local mode
+int cacheAdapt_policy_local(){
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  int numchanged = 0;
+  int * tmp_p = gccachepolicytbl+1;
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	bamboo_cache_policy_t policy = {0};
+	int block = 0;
+	BLOCKINDEX(page_sva, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];
+	// locally cache the page in the hotest core
+	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
+	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
+	policy.lotar_x = bamboo_cpu2coords[2*coren]+1;
+	policy.lotar_y = bamboo_cpu2coords[2*coren+1]+1;
+	*tmp_p = page_index;
+	tmp_p++;
+	*tmp_p = policy.word;
+	tmp_p++;
+	numchanged++;
+  }
+
+  return numchanged;
+} // int cacheAdapt_policy_local()
+
+int cacheAdapt_policy_hotest(){
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  int numchanged = 0;
+  int * tmp_p = gccachepolicytbl+1;
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	bamboo_cache_policy_t policy = {0};
+	int hotestcore = 0;
+	int hotfreq = 0;
+
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
+		  +page_num*sizeof(float)*i);
+	  int freq = local_tbl[page_index];
+	  // TODO
+	  // check the freqency, decide if this page is hot for the core
+	  if(hotfreq < freq) {
+		hotfreq = freq;
+		hotestcore = i;
+	  }
+	}
+	// TODO
+	// Decide the cache strategy for this page
+	// If decide to adapt a new cache strategy, write into the shared block of
+	// the gcsharedsamplingtbl. The mem recording information that has been 
+	// written is enough to hold the information.
+	// Format: page start va + cache strategy(hfh/(host core+[x,y]))
+	if(hotfreq == 0) {
+	  // this page has not been accessed, do not change its cache policy
+	  continue;
+	} else {
+	  // locally cache the page in the hotest core
+	  // NOTE: (x,y) should be changed to (x+1, y+1)!!!
+	  policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
+	  policy.lotar_x = bamboo_cpu2coords[2*hotestcore]+1;
+	  policy.lotar_y = bamboo_cpu2coords[2*hotestcore+1]+1;
 	  *tmp_p = page_index;
 	  tmp_p++;
 	  *tmp_p = policy.word;
@@ -2950,7 +2972,338 @@ void cacheAdapt_master() {
 	  numchanged++;
 	}
   }
+
+  return numchanged;
+} // int cacheAdapt_policy_hotest()
+
+#define GC_CACHE_ADAPT_DOMINATE_THRESHOLD  50
+// cache the page on the core that accesses it the most if that core accesses 
+// it more than (GC_CACHE_ADAPT_DOMINATE_THRESHOLD)% of the total.  Otherwise,
+// h4h the page.
+int cacheAdapt_policy_dominate(){
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  int numchanged = 0;
+  int * tmp_p = gccachepolicytbl+1;
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	bamboo_cache_policy_t policy = {0};
+	int hotestcore = 0;
+	int totalfreq = 0;
+	int hotfreq = 0;
+	
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
+		  +page_num*sizeof(float)*i);
+	  int freq = local_tbl[page_index];
+	  totalfreq += freq;
+	  // TODO
+	  // check the freqency, decide if this page is hot for the core
+	  if(hotfreq < freq) {
+		hotfreq = freq;
+		hotestcore = i;
+	  }
+	}
+	// Decide the cache strategy for this page
+	// If decide to adapt a new cache strategy, write into the shared block of
+	// the gcpolicytbl 
+	// Format: page start va + cache policy
+	if(hotfreq == 0) {
+	  // this page has not been accessed, do not change its cache policy
+	  continue;
+	}
+	totalfreq = (totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)/100;
+	if(hotfreq < totalfreq) {
+	  // use hfh
+	  policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+	} else {
+	  // locally cache the page in the hotest core
+	  // NOTE: (x,y) should be changed to (x+1, y+1)!!!
+	  policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
+	  policy.lotar_x = bamboo_cpu2coords[2*hotestcore]+1;
+	  policy.lotar_y = bamboo_cpu2coords[2*hotestcore+1]+1;
+	}
+	*tmp_p = page_index;
+	tmp_p++;
+	*tmp_p = policy.word;
+	tmp_p++;
+	numchanged++;
+  }
+
+  return numchanged;
+} // int cacheAdapt_policy_dominate()
+
+#define GC_CACHE_ADAPT_OVERLOAD_THRESHOLD 1000
+
+void gc_quicksort(int *array, 
+	              int left,
+				  int right,
+				  int offset) {
+  int pivot = 0;;
+  int leftIdx = left;
+  int rightIdx = right;
+  if((right-left+1) >= 1) {
+	pivot = (left+right)/2;
+	while((leftIdx <= pivot) && (rightIdx >= pivot)) {
+	  int pivotValue = array[pivot*3-offset];
+	  while((array[leftIdx*3-offset] < pivotValue) && (leftIdx <= pivot)) {
+		leftIdx++;
+	  }
+	  while((array[rightIdx*3-offset] > pivotValue) && (rightIdx >= pivot)) {
+		rightIdx--;
+	  }
+	  // swap [leftIdx] & [rightIdx]
+	  for(int k = 0; k < 3; k++) {
+		int tmp = array[3*rightIdx-k];
+		array[3*rightIdx-k] = array[3*leftIdx-k];
+		array[3*leftIdx-k] = tmp;
+	  }
+	  leftIdx++;
+	  rightIdx--;
+	  if((leftIdx-1) == pivot) {
+		pivot = rightIdx = rightIdx + 1;
+	  } else if((leftIdx+1) == pivot) {
+		pivot = leftIdx = leftIdx-1;
+	  }
+	}
+	gc_quicksort(array, left, pivot-1, offset);
+	gc_quicksort(array, pivot+1, right, offset);
+  }
+  return;
+} // void gc_quicksort(...)
+
+// Every page cached on the core that accesses it the most. 
+// Check to see if any core's pages total more accesses than threshold 
+// GC_CACHE_ADAPT_OVERLOAD_THRESHOLD.  If so, find the pages with the 
+// most remote accesses and hash for home them until we get below 
+// GC_CACHE_ADAPT_OVERLOAD_THRESHOLD
+int cacheAdapt_policy_overload(){
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  int numchanged = 0;
+  int * tmp_p = gccachepolicytbl+1;
+  int workload[NUMCORESACTIVE];
+  memset(workload, 0, NUMCORESACTIVE*sizeof(int));
+  int core2heavypages[NUMCORESACTIVE][page_num*3+1];
+  memset(core2heavypages, 0, sizeof(int)*(page_num*3+1)*NUMCORESACTIVE);
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	bamboo_cache_policy_t policy = {0};
+	int hotestcore = 0;
+	int totalfreq = 0;
+	int hotfreq = 0;
+	
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
+		  +page_num*sizeof(float)*i);
+	  int freq = local_tbl[page_index];
+	  totalfreq += freq;
+	  // TODO
+	  // check the freqency, decide if this page is hot for the core
+	  if(hotfreq < freq) {
+		hotfreq = freq;
+		hotestcore = i;
+	  }
+	}
+	// TODO
+	// Decide the cache strategy for this page
+	// If decide to adapt a new cache strategy, write into the shared block of
+	// the gcsharedsamplingtbl. The mem recording information that has been 
+	// written is enough to hold the information.
+	// Format: page start va + cache strategy(hfh/(host core+[x,y]))
+	if(hotfreq == 0) {
+	  // this page has not been accessed, do not change its cache policy
+	  continue;
+	}
+	// locally cache the page in the hotest core
+	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
+	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
+	policy.lotar_x = bamboo_cpu2coords[2*hotestcore]+1;
+	policy.lotar_y = bamboo_cpu2coords[2*hotestcore+1]+1;
+	*tmp_p = page_index;
+	tmp_p++;
+	*tmp_p = policy.word;
+	tmp_p++;
+	numchanged++;
+	workload[hotestcore] += totalfreq;
+	// insert into core2heavypages using quicksort
+	int remoteaccess = totalfreq - hotfreq;
+	int index = core2heavypages[hotestcore][0];
+	core2heavypages[hotestcore][3*index+3] = remoteaccess;
+	core2heavypages[hotestcore][3*index+2] = totalfreq;
+	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
+	core2heavypages[hotestcore][0]++;
+  }
+
+  // Check the workload of each core
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+	int j = 1;
+	int index = core2heavypages[i][0];
+	if(workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) {
+	  // sort according to the remoteaccess
+	  gc_quicksort(&core2heavypages[i][0], 1, index, 0);
+	  while((workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) && (j<index*3)) {
+		// hfh those pages with more remote accesses 
+		bamboo_cache_policy_t policy = {0};
+		policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+		*((int*)core2heavypages[i][j]) = policy.word;
+		workload[i] -= core2heavypages[i][j+1];
+		j += 3;
+	  }
+	}
+  }
+
+  return numchanged;
+} // int cacheAdapt_policy_overload()
+
+#define GC_CACHE_ADAPT_ACCESS_THRESHOLD 70
+#define GC_CACHE_ADAPT_CROWD_THRESHOLD  10
+// Every page cached on the core that accesses it the most. 
+// Check to see if any core's pages total more accesses than threshold 
+// GC_CACHE_ADAPT_OVERLOAD_THRESHOLD.  If so, find the pages with the 
+// most remote accesses and hash for home them until we get below 
+// GC_CACHE_ADAPT_OVERLOAD_THRESHOLD.  
+// Sort pages based on activity.... 
+// If more then GC_CACHE_ADAPT_ACCESS_THRESHOLD% of the accesses for a
+// core's pages are from more than GC_CACHE_ADAPT_CROWD_THRESHOLD pages, 
+// then start hfh these pages(selecting the ones with the most remote 
+// accesses first or fewest local accesses) until we get below 
+// GC_CACHE_ADAPT_CROWD_THRESHOLD pages.
+int cacheAdapt_policy_crowd(){
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  int numchanged = 0;
+  int * tmp_p = gccachepolicytbl+1;
+  int workload[NUMCORESACTIVE];
+  memset(workload, 0, NUMCORESACTIVE*sizeof(int));
+  int core2heavypages[NUMCORESACTIVE][page_num*3+1];
+  memset(core2heavypages, 0, sizeof(int)*(page_num*3+1)*NUMCORESACTIVE);
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	bamboo_cache_policy_t policy = {0};
+	int hotestcore = 0;
+	int totalfreq = 0;
+	int hotfreq = 0;
+	
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
+		  +page_num*sizeof(float)*i);
+	  int freq = local_tbl[page_index];
+	  totalfreq += freq;
+	  // TODO
+	  // check the freqency, decide if this page is hot for the core
+	  if(hotfreq < freq) {
+		hotfreq = freq;
+		hotestcore = i;
+	  }
+	}
+	// TODO
+	// Decide the cache strategy for this page
+	// If decide to adapt a new cache strategy, write into the shared block of
+	// the gcsharedsamplingtbl. The mem recording information that has been 
+	// written is enough to hold the information.
+	// Format: page start va + cache strategy(hfh/(host core+[x,y]))
+	if(hotfreq == 0) {
+	  // this page has not been accessed, do not change its cache policy
+	  continue;
+	}
+	// locally cache the page in the hotest core
+	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
+	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
+	policy.lotar_x = bamboo_cpu2coords[2*hotestcore]+1;
+	policy.lotar_y = bamboo_cpu2coords[2*hotestcore+1]+1;
+	*tmp_p = page_index;
+	tmp_p++;
+	*tmp_p = policy.word;
+	tmp_p++;
+	numchanged++;
+	workload[hotestcore] += totalfreq;
+	// insert into core2heavypages using quicksort
+	int remoteaccess = totalfreq - hotfreq;
+	int index = core2heavypages[hotestcore][0];
+	core2heavypages[hotestcore][3*index+3] = remoteaccess;
+	core2heavypages[hotestcore][3*index+2] = totalfreq;
+	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
+	core2heavypages[hotestcore][0]++;
+  }
+
+  // Check the workload of each core
+  for(int i = 0; i < NUMCORESACTIVE; i++) {
+	int j = 1;
+	int index = core2heavypages[i][0];
+	if(workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) {
+	  // sort according to the remote access
+	  gc_quicksort(&core2heavypages[i][0], 1, index, 0);
+	  while((workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) && (j<index*3)) {
+		// hfh those pages with more remote accesses 
+		bamboo_cache_policy_t policy = {0};
+		policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+		*((int*)core2heavypages[i][j]) = policy.word;
+		workload[i] -= core2heavypages[i][j+1];
+		j += 3;
+	  }
+	}
+	
+	// Check if the accesses are crowded on few pages
+	// sort according to the total access
+	gc_quicksort(&core2heavypages[i][0], j/3+1, index, 1);
+	int threshold = GC_CACHE_ADAPT_ACCESS_THRESHOLD*workload[i]/100;
+	int num_crowded = 0;
+	int t_workload = 0;
+	for(;(num_crowded<GC_CACHE_ADAPT_CROWD_THRESHOLD)
+		&&(num_crowded<(index-j/3)); num_crowded++) {
+	  t_workload += core2heavypages[i][j+num_crowded*3+1];
+	}
+	// num_crowded <= GC_CACHE_ADAPT_CROWD_THRESHOLD and if there are enough 
+	// items, it is always == GC_CACHE_ADAPT_CROWD_THRESHOLD
+	if(t_workload > threshold) {
+inner_crowd:
+	  // need to hfh these pages
+	  // sort the pages according to remote access
+	  gc_quicksort(&core2heavypages[i][0], j/3+1, j/3+num_crowded, 0);
+	  while((num_crowded--) && (j < index*3)) {
+		// h4h those pages with more remote accesses 
+		bamboo_cache_policy_t policy = {0};
+		policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
+		*((int*)core2heavypages[i][j]) = policy.word;
+		workload[i] -= core2heavypages[i][j+1];
+		t_workload -= core2heavypages[i][j+1];
+		if((j/3+GC_CACHE_ADAPT_CROWD_THRESHOLD) < index) {
+		  t_workload += 
+			core2heavypages[i][j+GC_CACHE_ADAPT_CROWD_THRESHOLD*3+1];
+		}
+		j += 3;
+		threshold = GC_CACHE_ADAPT_ACCESS_THRESHOLD*workload[i]/100;
+		if(t_workload <= threshold) {
+		  break;
+		}
+	  }
+	  if((j < index*3) && (t_workload > threshold)) {
+		num_crowded = ((index-j/3) > GC_CACHE_ADAPT_CROWD_THRESHOLD) ?
+		  (GC_CACHE_ADAPT_CROWD_THRESHOLD) : (index-j/3);
+		goto inner_crowd;
+	  }
+	}
+  }
+
+  return numchanged;
+} // int cacheAdapt_policy_overload()
+
+void cacheAdapt_master() {
+  // check the statistic data
+  // for each page, decide the new cache strategy
+  //int numchanged = cacheAdapt_policy_h4h();
+  //int numchanged = cacheAdapt_policy_local();
+  //int numchanged = cacheAdapt_policy_hotest();
+  //int numchanged = cacheAdapt_policy_dominate();
+  int numchanged = cacheAdapt_policy_overload();
+  //int numchanged = cacheAdapt_policy_crowd();
   *gccachepolicytbl = numchanged;
+  // TODO
+  //if(numchanged > 0) tprintf("=================\n");
 }
 
 // adapt the cache strategy for the mutator
@@ -2962,12 +3315,19 @@ void cacheAdapt_mutator() {
 	// read out the policy
 	int page_index = *tmp_p;
 	bamboo_cache_policy_t policy = (bamboo_cache_policy_t)(*(tmp_p+1));
+	// TODO
+	/*if(BAMBOO_NUM_OF_CORE == 0) {
+	  tprintf("va: %x, policy: %d (%d,%d) \n", 
+		  (int)(page_index*(BAMBOO_PAGE_SIZE)+gcbaseva), policy.cache_mode,
+		  policy.lotar_x, policy.lotar_y);
+	}*/
 	// adapt the policy
 	bamboo_adapt_cache_policy(page_index*(BAMBOO_PAGE_SIZE)+gcbaseva, 
 		policy, BAMBOO_PAGE_SIZE);
 
 	tmp_p += 2;
   }
+  //if(BAMBOO_NUM_OF_CORE == 0) tprintf("=================\n"); // TODO
 }
 #endif // GC_CACHE_ADAPT
 
