@@ -378,9 +378,11 @@ void initruntimedata() {
 #ifdef GC_CACHE_ADAPT
   gccachestage = false;
   // enable the timer interrupt
-  bamboo_tile_timer_set_next_event(500000000); // TODO
+#ifdef GC_CACHE_SAMPLING
+  bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); // TODO
   bamboo_unmask_timer_intr();
   bamboo_dtlb_sampling_process();
+#endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
 #else
   // create the lock table, lockresult table and obj queue

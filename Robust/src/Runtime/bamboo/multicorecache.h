@@ -5,7 +5,6 @@
 #ifdef GC_CACHE_ADAPT
 #define GC_CACHE_SAMPLING_UNIT 100000000
 #define GC_TILE_TIMER_EVENT_SETTING 100000000  
-#define GC_NUM_SAMPLING 24
 
 // should be consistent with multicoreruntime.h
 typedef union

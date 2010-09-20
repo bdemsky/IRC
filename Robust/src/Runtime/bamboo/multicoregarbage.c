@@ -395,6 +395,13 @@ inline int hostcore(void * ptr) {
   return host;
 } // int hostcore(void * ptr)
 
+inline void cpu2coords(int coren,
+	                   int * x,
+					   int * y) {
+  *x = bamboo_cpu2coords[2*coren];
+  *y = bamboo_cpu2coords[2*coren+1];
+} // void cpu2coords(...)
+
 inline bool isLocal(void * ptr) {
   // check if a pointer is in shared heap on this core
   return hostcore(ptr) == BAMBOO_NUM_OF_CORE;
@@ -1958,8 +1965,8 @@ innermoveobj:
 	  ((float)(to->ptr-gc_cache_revise_infomation.to_page_start_va))/
 	  ((float)(BAMBOO_PAGE_SIZE));
 	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-	  ((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r)
-		 )[gc_cache_revise_infomation.to_page_index] += (int)(
+	  ((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
+		gc_cache_revise_infomation.to_page_index] += (int)(
 		   ((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
 		gc_cache_revise_infomation.orig_page_index]*tmp_factor);
 	  // TODO
@@ -2044,13 +2051,13 @@ innermoveobj:
 		((float)(tmp_ptr-gc_cache_revise_infomation.to_page_start_va))/
 		((float)(BAMBOO_PAGE_SIZE));
 	  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-		((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r)
-		 )[gc_cache_revise_infomation.to_page_index] += (int)(
+		((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
+		  gc_cache_revise_infomation.to_page_index] += (int)(
 		  ((int*)((void*)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
 		  gc_cache_revise_infomation.orig_page_index]*tmp_factor);
 		// TODO
-/*	  if(((gc_cache_revise_infomation.orig_page_start_va-gcbaseva)/(BAMBOO_PAGE_SIZE))*(BAMBOO_PAGE_SIZE)+gcbaseva == 0xd180000) {
-		tprintf("0xd180000 -> %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	  /*if((gc_cache_revise_infomation.to_page_index*(BAMBOO_PAGE_SIZE)+gcbaseva) == 0x10f10000) {
+		tprintf("0x10f10000 <- %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.orig_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
 	  }*/
 	  }
 	  // prepare for an new to page
@@ -2127,13 +2134,13 @@ innermoveobj:
 		((float)(tmp_ptr-gc_cache_revise_infomation.to_page_start_va))/
 		((float)(BAMBOO_PAGE_SIZE));
 	  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-		((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r)
-		 )[gc_cache_revise_infomation.to_page_index] += (int)(
+		((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
+		  gc_cache_revise_infomation.to_page_index] += (int)(
 		  ((int*)((void*)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
 		  gc_cache_revise_infomation.orig_page_index]*tmp_factor);
       // TODO
-/*	  if(((gc_cache_revise_infomation.orig_page_start_va-gcbaseva)/(BAMBOO_PAGE_SIZE))*(BAMBOO_PAGE_SIZE)+gcbaseva == 0xd180000) {
-		tprintf("0xd180000 -> %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	  /*if((gc_cache_revise_infomation.to_page_index*(BAMBOO_PAGE_SIZE)+gcbaseva) == 0x10f10000) {
+		tprintf("0x10f10000 <- %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.orig_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
 	  }*/
 	  }
 	  // prepare for an new to page
@@ -2250,10 +2257,14 @@ innercompact:
 	  ((float)(to->ptr-gc_cache_revise_infomation.to_page_start_va))/
 	  ((float)(BAMBOO_PAGE_SIZE));
 	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-	  ((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r)
-	   )[gc_cache_revise_infomation.to_page_index] += (int)(
+	  ((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
+		gc_cache_revise_infomation.to_page_index] += (int)(
 		((int*)((void*)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
 		gc_cache_revise_infomation.orig_page_index]*tmp_factor);
+	  // TODO
+	  /*if((gc_cache_revise_infomation.to_page_index*(BAMBOO_PAGE_SIZE)+gcbaseva) == 0x10f10000) {
+		tprintf("0x10f10000 <- %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.orig_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	  }*/
 	}
 #endif // GC_CACHE_ADAPT
   // if no objs have been compact, do nothing,
@@ -2418,7 +2429,7 @@ inline void compact() {
 	(BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
   gc_cache_revise_infomation.orig_page_index = 
 	orig->blockbase/(BAMBOO_PAGE_SIZE);
-#endif
+#endif // GC_CACHE_ADAPT
 
   int filledblocks = 0;
   INTPTR heaptopptr = 0;
@@ -2876,7 +2887,6 @@ void cacheAdapt_gc(bool isgccachestage) {
 
 // the master core decides how to adapt cache strategy for the mutator 
 // according to collected statistic data
-extern int gc_num_sampling;
 
 // make all pages hfh
 int cacheAdapt_policy_h4h(){
@@ -2941,7 +2951,7 @@ int cacheAdapt_policy_hotest(){
 
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(float)*i);
+		  +page_num*sizeof(int)*i);
 	  int freq = local_tbl[page_index];
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -2995,7 +3005,7 @@ int cacheAdapt_policy_dominate(){
 	
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(float)*i);
+		  +page_num*sizeof(int)*i);
 	  int freq = local_tbl[page_index];
 	  totalfreq += freq;
 	  // TODO
@@ -3097,7 +3107,7 @@ int cacheAdapt_policy_overload(){
 	
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(float)*i);
+		  +page_num*sizeof(int)*i);
 	  int freq = local_tbl[page_index];
 	  totalfreq += freq;
 	  // TODO
@@ -3106,6 +3116,10 @@ int cacheAdapt_policy_overload(){
 		hotfreq = freq;
 		hotestcore = i;
 	  }
+	  // TODO
+	  /*if(page_sva == 0x10f10000) {
+		if(freq != 0) tprintf("0x10f10000 core %d, %d\n", i, freq);
+	  }*/
 	}
 	// TODO
 	// Decide the cache strategy for this page
@@ -3135,6 +3149,10 @@ int cacheAdapt_policy_overload(){
 	core2heavypages[hotestcore][3*index+2] = totalfreq;
 	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
 	core2heavypages[hotestcore][0]++;
+	// TODO
+	//if(page_sva == 0x10f10000) {
+	  //tprintf("+++ %x(%d-%d,%d) hotcore %d, total %d, hot %d, remote %d, index %d p %x\n", (int)page_sva, coren, coord_x, coord_y, hotestcore, totalfreq, hotfreq, remoteaccess, index, (int)(tmp_p-1));
+	//}
   }
 
   // Check the workload of each core
@@ -3190,7 +3208,7 @@ int cacheAdapt_policy_crowd(){
 	
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(float)*i);
+		  +page_num*sizeof(int)*i);
 	  int freq = local_tbl[page_index];
 	  totalfreq += freq;
 	  // TODO
@@ -3293,14 +3311,15 @@ inner_crowd:
 } // int cacheAdapt_policy_overload()
 
 void cacheAdapt_master() {
+  int numchanged = 0;
   // check the statistic data
   // for each page, decide the new cache strategy
-  //int numchanged = cacheAdapt_policy_h4h();
-  //int numchanged = cacheAdapt_policy_local();
-  //int numchanged = cacheAdapt_policy_hotest();
-  //int numchanged = cacheAdapt_policy_dominate();
-  int numchanged = cacheAdapt_policy_overload();
-  //int numchanged = cacheAdapt_policy_crowd();
+  numchanged = cacheAdapt_policy_h4h();
+  //numchanged = cacheAdapt_policy_local();
+  //numchanged = cacheAdapt_policy_hotest();
+  //numchanged = cacheAdapt_policy_dominate();
+  //numchanged = cacheAdapt_policy_overload();
+  //numchanged = cacheAdapt_policy_crowd();
   *gccachepolicytbl = numchanged;
   // TODO
   //if(numchanged > 0) tprintf("=================\n");
@@ -3882,6 +3901,9 @@ inline void gc_master(struct garbagelist * stackptr) {
 #endif
   // cache adapt phase
   cacheAdapt_mutator();
+#ifdef GC_CACHE_ADAPT_OUTPUT
+  bamboo_output_cache_policy();
+#endif
   cacheAdapt_gc(false);
   gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
   while(PREFINISHPHASE == gcphase) {
@@ -4024,10 +4046,12 @@ pregccheck:
 	}
 #endif
 #ifdef GC_CACHE_ADAPT
+#ifdef GC_CACHE_SAMPLING
     // disable the timer interrupt
     bamboo_mask_timer_intr();
     // get the sampling data 
     bamboo_output_dtlb_sampling();
+#endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
 	gcprocessing = true;
 	gc_master(stackptr);
@@ -4050,12 +4074,14 @@ pregccheck:
 	}
 #endif
 #ifdef GC_CACHE_ADAPT
+#ifdef GC_CACHE_SAMPLING
 	// disable the timer interrupt
 	bamboo_mask_timer_intr();
 	if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
 	  // get the sampling data 
 	  bamboo_output_dtlb_sampling();
 	}
+#endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
     gcprocessing = true;
     gc_collect(stackptr);
@@ -4085,12 +4111,14 @@ pregccheck:
 	}
 #endif
 #ifdef GC_CACHE_ADAPT
+#ifdef GC_CACHE_SAMPLING
 	// disable the timer interrupt
 	bamboo_mask_timer_intr();
 	if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
 	  // get the sampling data 
 	  bamboo_output_dtlb_sampling();
 	}
+#endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
     // not a gc core, should wait for gcfinish msg
     gcprocessing = true;
@@ -4104,6 +4132,7 @@ pregccheck:
     gcprocessing = false;
   }
 #ifdef GC_CACHE_ADAPT
+#ifdef GC_CACHE_SAMPLING
   // reset the sampling arrays
   bamboo_dtlb_sampling_reset();
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
@@ -4118,6 +4147,7 @@ pregccheck:
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();
+#endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
   return true;
 } // void gc(struct garbagelist * stackptr)
