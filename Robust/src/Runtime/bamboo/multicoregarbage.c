@@ -1878,7 +1878,7 @@ inline bool initOrig_Dst(struct moveHelper * orig,
 	((to->base-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
   gc_cache_revise_infomation.to_page_index = 
 	(to->base-gcbaseva)/(BAMBOO_PAGE_SIZE);
-  gc_cache_revise_infomation.orig_page_start_va = -1; 
+  gc_cache_revise_infomation.orig_page_start_va = -1;
 #endif // GC_CACHE_ADAPT
 
   // init the orig ptr
@@ -1961,22 +1961,23 @@ innermoveobj:
   if(orig->ptr >= gc_cache_revise_infomation.orig_page_end_va) {
 	// end of an orig page
 	// compute the impact of this page for the new page
-	int  tmp_factor = to->ptr-gc_cache_revise_infomation.to_page_start_va; 
-	int topage=gc_cache_revise_information.to_page_index;
+	int tmp_factor = to->ptr-gc_cache_revise_infomation.to_page_start_va; 
+	int topage=gc_cache_revise_infomation.to_page_index;
+	int oldpage = gc_cache_revise_infomation.orig_page_index;
 	int * newtable=&gccachesamplingtbl_r[topage];
-	int * oldtable=&gccachesamplingtbl[gc_cache_revise_infomation.orig_page_index];
+	int * oldtable=&gccachesamplingtbl[oldpage];
 	
 	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 	  (*newtable) += (*oldtable)*tmp_factor;
-	  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-	  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+	  newtable=(int*)(((char *)newtable)+size_cachesamplingtbl_local_r);
+	  oldtable=(int*)(((char *)oldtable)+size_cachesamplingtbl_local);
 	}
 	// prepare for an new orig page
+	int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
 	gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
 	gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-	  (BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-	gc_cache_revise_infomation.orig_page_index = 
-	  (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+	  (BAMBOO_PAGE_SIZE)*(tmp_index+1);
+	gc_cache_revise_infomation.orig_page_index = tmp_index;
 	gc_cache_revise_infomation.to_page_start_va = to->ptr;
   }
 #endif
@@ -2042,31 +2043,30 @@ innermoveobj:
 #endif // GC_CACHE_ADAPT
       nextBlock(to);
 #ifdef GC_CACHE_ADAPT
-      if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
-	// end of an to page, wrap up its information
-	int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
-	
-	int topage=gc_cache_revise_information.to_page_index;
-	int * newtable=&gccachesamplingtbl_r[topage];
-	int * oldtable=&gccachesamplingtbl[gc_cache_revise_infomation.orig_page_index];
-	
-	
-	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-	  (*newtable)=((*newtable)+(*oldtable)*tmp_factor)/BAMBOO_PAGE_SIZE;
-	  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-	  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
-	}
-	// prepare for an new to page
-	gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
-	gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-	  (BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-	gc_cache_revise_infomation.orig_page_index = 
-	  (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-	gc_cache_revise_infomation.to_page_start_va = to->ptr;
-	gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
-	  (BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-	gc_cache_revise_infomation.to_page_index = 
-	  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+	  if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
+		// end of an to page, wrap up its information
+		int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
+		int topage=gc_cache_revise_infomation.to_page_index;
+		int oldpage = gc_cache_revise_infomation.orig_page_index;
+		int * newtable=&gccachesamplingtbl_r[topage];
+		int * oldtable=&gccachesamplingtbl[oldpage];
+	  
+		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
+		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
+		  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
+		  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+		}
+		// prepare for an new to page
+		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+		gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
+		gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
+		  (BAMBOO_PAGE_SIZE)*(tmp_index+1);
+		gc_cache_revise_infomation.orig_page_index = tmp_index;
+		gc_cache_revise_infomation.to_page_start_va = to->ptr;
+		gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
+		  (BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
+		gc_cache_revise_infomation.to_page_index = 
+		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
       }
 #endif // GC_CACHE_ADAPT
       if(stopblock == to->numblocks) {
@@ -2127,18 +2127,18 @@ innermoveobj:
 	if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
 	  // end of an to page, wrap up its information
 	  int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
-	  int topage=gc_cache_revise_information.to_page_index;
+	  int topage=gc_cache_revise_infomation.to_page_index;
+	  int oldpage = gc_cache_revise_infomation.orig_page_index;
 	  int * newtable=&gccachesamplingtbl_r[topage];
-	  int * oldtable=&gccachesamplingtbl[gc_cache_revise_infomation.orig_page_index];
+	  int * oldtable=&gccachesamplingtbl[oldpage];
 	
-
 	  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-	    (*newtable)=((*newtable)+(*oldtable)*tmp_factor)/BAMBOO_PAGE_SIZE;
-	    newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-	    oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+		(*newtable)=((*newtable)+(*oldtable)*tmp_factor);
+		newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
+		oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
 	  }
-
 	  // prepare for an new to page
+	  int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
 	  gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
 	  gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
 		(BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
@@ -2148,7 +2148,7 @@ innermoveobj:
 	  gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
 		(BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
 	  gc_cache_revise_infomation.to_page_index = 
-		(to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
 	}
 #endif // GC_CACHE_ADAPT
   } // if(mark == 1)
@@ -2249,12 +2249,13 @@ innercompact:
 #ifdef GC_CACHE_ADAPT
   // end of an to page, wrap up its information
   int tmp_factor = to->ptr-gc_cache_revise_infomation.to_page_start_va;
-  int topage=gc_cache_revise_information.to_page_index;
+  int topage=gc_cache_revise_infomation.to_page_index;
+  int oldpage = gc_cache_revise_infomation.orig_page_index;
   int * newtable=&gccachesamplingtbl_r[topage];
-  int * oldtable=&gccachesamplingtbl[gc_cache_revise_infomation.orig_page_index];
+  int * oldtable=&gccachesamplingtbl[oldpage];
   
   for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-    (*newtable) += (*oldtable)*tmp_factor;
+    (*newtable) = ((*newtable)+(*oldtable)*tmp_factor);
     newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
     oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
   }
@@ -2944,7 +2945,7 @@ int cacheAdapt_policy_hotest(){
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
 		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index];
+	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
 	  if(hotfreq < freq) {
@@ -2998,7 +2999,7 @@ int cacheAdapt_policy_dominate(){
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
 		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index];
+	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3101,7 +3102,7 @@ int cacheAdapt_policy_overload(){
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
 		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index];
+	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3210,7 +3211,7 @@ int cacheAdapt_policy_crowd(){
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
 		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index];
+	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3383,7 +3384,7 @@ void gc_output_cache_sampling() {
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl
 		  +size_cachesamplingtbl_local*i);
-	  int freq = local_tbl[page_index];
+	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  printf("%8d ",freq);
 	}
 	printf("\n");
@@ -3405,7 +3406,7 @@ void gc_output_cache_sampling_r() {
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
 		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index];
+	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  printf("%8d ",freq);
 	}
 	printf("\n");

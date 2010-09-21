@@ -19,8 +19,10 @@
 unsigned long long bamboo_start_time;
 
 // data structures for msgs
-#define BAMBOO_OUT_BUF_LENGTH 3000
-#define BAMBOO_MSG_BUF_LENGTH 3000
+#define BAMBOO_OUT_BUF_LENGTH 2048
+#define BAMBOO_OUT_BUF_MASK (0x7FF)
+#define BAMBOO_MSG_BUF_LENGTH 2048
+#define BAMBOO_MSG_BUF_MASK (0x7FF)
 int msgdata[BAMBOO_MSG_BUF_LENGTH];
 volatile int msgdataindex;
 volatile int msgdatalast;
@@ -34,10 +36,10 @@ volatile bool isMsgHanging;
 //volatile bool isMsgSending;
 
 #define MSG_INDEXINC_I() \
-  msgdataindex = (msgdataindex + 1) % (BAMBOO_MSG_BUF_LENGTH)
+  msgdataindex = (msgdataindex + 1) & (BAMBOO_MSG_BUF_MASK) //% (BAMBOO_MSG_BUF_LENGTH)
 
 #define MSG_LASTINDEXINC_I() \
-  msgdatalast = (msgdatalast + 1) % (BAMBOO_MSG_BUF_LENGTH)
+  msgdatalast = (msgdatalast + 1) & (BAMBOO_MSG_BUF_MASK) // % (BAMBOO_MSG_BUF_LENGTH)
 
 #define MSG_CACHE_I(n) \
   msgdata[msgdatalast] = (n); \
@@ -56,10 +58,10 @@ volatile bool isMsgHanging;
   }
 
 #define OUTMSG_INDEXINC() \
-  outmsgindex = (outmsgindex + 1) % (BAMBOO_OUT_BUF_LENGTH)
+  outmsgindex = (outmsgindex + 1) & (BAMBOO_OUT_BUF_MASK) //% (BAMBOO_OUT_BUF_LENGTH)
 
 #define OUTMSG_LASTINDEXINC() \
-  outmsglast = (outmsglast + 1) % (BAMBOO_OUT_BUF_LENGTH); \
+  outmsglast = (outmsglast + 1) & (BAMBOO_OUT_BUF_MASK) //% (BAMBOO_OUT_BUF_LENGTH); \
   if(outmsglast == outmsgindex) { \
     BAMBOO_EXIT(0xdd01); \
   }

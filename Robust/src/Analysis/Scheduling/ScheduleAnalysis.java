@@ -419,6 +419,7 @@ public class ScheduleAnalysis {
                       (cdname.equals("KMeans")) || 
                       (cdname.equals("ZTransform")) ||
                       (cdname.equals("TestRunner")) || 
+					  (cdname.equals("TestRunner2")) ||
                       (cdname.equals("LinkList")) ||
                       (cdname.equals("BHRunner"))) {
                     newRate = this.coreNum;

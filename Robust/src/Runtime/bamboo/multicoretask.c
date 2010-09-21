@@ -2062,9 +2062,9 @@ INLINE int checkMsgLength_I(int size) {
 #ifdef MULTICORE_GC
   case GCLOBJINFO:
 #endif
-  {             // nonfixed size
+  {  // nonfixed size
 	if(size > 1) {
-	  msglength = msgdata[msgdataindex+1];
+	  msglength = msgdata[(msgdataindex+1)%(BAMBOO_MSG_BUF_LENGTH)];
 	} else {
 	  return -1;
 	}
