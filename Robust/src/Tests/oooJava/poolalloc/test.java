@@ -12,12 +12,19 @@ public class Test {
     for( int i = 0; i < 200000; ++i ) {
       rblock a {
         Foo f = new Foo();
-        f.z = 1;
-        x += f.z;
+        f.z = 0;
+        ++f.z;
       }
       rblock b {
-        x -= f.z;
+        --f.z;
       }
+      int y = -1;
+      if( i % 2 == 0 ) {
+        rblock c {
+          y = 1;
+        }
+      }
+      x += f.z + y;
     }
 
     System.out.println( x );
