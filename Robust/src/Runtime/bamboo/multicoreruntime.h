@@ -51,8 +51,8 @@ volatile bool isMsgHanging;
     (*(int*)s) = msgdatalast - msgdataindex; \
   } else if((msgdataindex == msgdatalast) && (!msgdatafull)) { \
     (*(int*)s) = 0; \
-  }       else { \
-    (*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) -msgdataindex + msgdatalast; \
+  } else { \
+    (*(int*)s) = (BAMBOO_MSG_BUF_LENGTH) - msgdataindex + msgdatalast; \
   }
 
 #define OUTMSG_INDEXINC() \

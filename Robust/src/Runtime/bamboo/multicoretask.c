@@ -2206,6 +2206,10 @@ INLINE void processmsg_transtall_I() {
   }
   int num_core = msgdata[msgdataindex]; //[1]
   MSG_INDEXINC_I();
+  int data2 = msgdata[msgdataindex]; //[2];
+  MSG_INDEXINC_I();
+  int data3 = msgdata[msgdataindex]; //[3];
+  MSG_INDEXINC_I();
   if(num_core < NUMCORESACTIVE) {
 #ifdef DEBUG
 #ifndef CLOSE_PRINT
@@ -2213,10 +2217,8 @@ INLINE void processmsg_transtall_I() {
 #endif
 #endif
     corestatus[num_core] = 0;
-    numsendobjs[num_core] = msgdata[msgdataindex]; //[2];
-    MSG_INDEXINC_I();
-    numreceiveobjs[num_core] = msgdata[msgdataindex]; //[3];
-    MSG_INDEXINC_I();
+    numsendobjs[num_core] = data2; //[2];
+    numreceiveobjs[num_core] = data3; //[3];
   }
 }
 
@@ -2318,6 +2320,8 @@ INLINE void processmsg_lockrelease_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
+  int data3 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
   // receive lock release msg
   processlockrelease(data1, data2, 0, false);
 }
@@ -2387,6 +2391,8 @@ INLINE void processmsg_redirectgrount_I() {
 INLINE void processmsg_redirectdeny_I() {
   MSG_INDEXINC_I();
   int data2 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
+  int data3 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
@@ -2943,6 +2949,8 @@ INLINE void processmsg_gcmaprequest_I() {
   void * dstptr = NULL;
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
+  int data2 = msgdata[msgdataindex];
+  MSG_INDEXINC_I();
 #ifdef GC_PROFILE
   // TODO unsigned long long ttime = BAMBOO_GET_EXE_TIME();
 #endif
@@ -2955,8 +2963,6 @@ INLINE void processmsg_gcmaprequest_I() {
 #ifdef GC_PROFILE
   // TODO flushstalltime += BAMBOO_GET_EXE_TIME() - ttime;
 #endif
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
 #ifdef GC_PROFILE
   // TODO unsigned long long ttimei = BAMBOO_GET_EXE_TIME();
 #endif
@@ -3422,7 +3428,7 @@ processmsg:
     // TODO
     //printf("++ msg: %x \n", type);
 
-    if(msgdataindex != msgdatalast) {
+    if((msgdataindex != msgdatalast) || (msgdatafull)) {
       // still have available msg
       goto processmsg;
     }

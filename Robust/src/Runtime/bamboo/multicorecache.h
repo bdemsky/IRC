@@ -4,7 +4,7 @@
 #ifdef MULTICORE_GC
 #ifdef GC_CACHE_ADAPT
 #define GC_CACHE_SAMPLING_UNIT 100000000
-#define GC_TILE_TIMER_EVENT_SETTING 100000000  
+#define GC_TILE_TIMER_EVENT_SETTING 10000000 //0  
 
 // should be consistent with multicoreruntime.h
 typedef union

@@ -1962,16 +1962,22 @@ innermoveobj:
 	// end of an orig page
 	// compute the impact of this page for the new page
 	float tmp_factor = 
-	  ((float)(to->ptr-gc_cache_revise_infomation.to_page_start_va))/
-	  ((float)(BAMBOO_PAGE_SIZE));
+	  ((float)(to->ptr-gc_cache_revise_infomation.to_page_start_va)); 
+	// /((float)(BAMBOO_PAGE_SIZE));
 	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 	  ((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
 		gc_cache_revise_infomation.to_page_index] += (int)(
 		   ((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
-		gc_cache_revise_infomation.orig_page_index]*tmp_factor);
+		gc_cache_revise_infomation.orig_page_index]*tmp_factor/((float)(BAMBOO_PAGE_SIZE)));
 	  // TODO
-/*	  if(((gc_cache_revise_infomation.orig_page_start_va-gcbaseva)/(BAMBOO_PAGE_SIZE))*(BAMBOO_PAGE_SIZE)+gcbaseva == 0xd180000) {
-		tprintf("0xd180000 -> %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	  /*VA tmp_va = (int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index);
+	  int block = 0;
+	BLOCKINDEX(tmp_va, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];	  
+	  if((((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
+		gc_cache_revise_infomation.orig_page_index] != 0) 
+		  && (coren != tt))  {
+		tprintf("++ %x(%d) %d %d(%x, %x, %x, %x)\n", tmp_va, gc_cache_revise_infomation.orig_page_index, tt, ((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)gccachesamplingtbl, (int)gccachesamplingtbl_r, (int)&((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)&((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[gc_cache_revise_infomation.to_page_index]);
 	  }*/
 	}
 	// prepare for an new orig page
@@ -2048,16 +2054,22 @@ innermoveobj:
 	  if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
 	  // end of an to page, wrap up its information
 	  float tmp_factor = 
-		((float)(tmp_ptr-gc_cache_revise_infomation.to_page_start_va))/
-		((float)(BAMBOO_PAGE_SIZE));
+		((float)(tmp_ptr-gc_cache_revise_infomation.to_page_start_va));
+	  // /((float)(BAMBOO_PAGE_SIZE));
 	  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 		((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
 		  gc_cache_revise_infomation.to_page_index] += (int)(
 		  ((int*)((void*)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
-		  gc_cache_revise_infomation.orig_page_index]*tmp_factor);
+		  gc_cache_revise_infomation.orig_page_index]*tmp_factor/((float)(BAMBOO_PAGE_SIZE)));
 		// TODO
-	  /*if((gc_cache_revise_infomation.to_page_index*(BAMBOO_PAGE_SIZE)+gcbaseva) == 0x10f10000) {
-		tprintf("0x10f10000 <- %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.orig_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+		/*VA tmp_va = (int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index);
+	  int block = 0;
+	BLOCKINDEX(tmp_va, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];	  
+	  if((((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
+		gc_cache_revise_infomation.orig_page_index] != 0) 
+		  && (coren != tt))  {
+		tprintf("-- %x(%d) %d %d(%x, %x, %x, %x)\n", tmp_va, gc_cache_revise_infomation.orig_page_index, tt, ((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)gccachesamplingtbl, (int)gccachesamplingtbl_r, (int)&((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)&((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[gc_cache_revise_infomation.to_page_index]);
 	  }*/
 	  }
 	  // prepare for an new to page
@@ -2131,16 +2143,22 @@ innermoveobj:
 	if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
 	  // end of an to page, wrap up its information
 	  float tmp_factor = 
-		((float)(tmp_ptr-gc_cache_revise_infomation.to_page_start_va))/
-		((float)(BAMBOO_PAGE_SIZE));
+		((float)(tmp_ptr-gc_cache_revise_infomation.to_page_start_va));
+	  // /((float)(BAMBOO_PAGE_SIZE));
 	  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 		((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
 		  gc_cache_revise_infomation.to_page_index] += (int)(
 		  ((int*)((void*)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
-		  gc_cache_revise_infomation.orig_page_index]*tmp_factor);
+		  gc_cache_revise_infomation.orig_page_index]*tmp_factor/((float)(BAMBOO_PAGE_SIZE)));
       // TODO
-	  /*if((gc_cache_revise_infomation.to_page_index*(BAMBOO_PAGE_SIZE)+gcbaseva) == 0x10f10000) {
-		tprintf("0x10f10000 <- %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.orig_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	  /*VA tmp_va = (int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index);
+	  int block = 0;
+	BLOCKINDEX(tmp_va, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];	  
+	  if((((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
+		gc_cache_revise_infomation.orig_page_index] != 0) 
+		  && (coren != tt))  {
+		tprintf("== %x(%d) %d %d(%x, %x, %x, %x)\n", tmp_va, gc_cache_revise_infomation.orig_page_index, tt, ((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)gccachesamplingtbl, (int)gccachesamplingtbl_r, (int)&((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)&((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[gc_cache_revise_infomation.to_page_index]);
 	  }*/
 	  }
 	  // prepare for an new to page
@@ -2254,16 +2272,22 @@ innercompact:
 #ifdef GC_CACHE_ADAPT
 	// end of an to page, wrap up its information
 	float tmp_factor = 
-	  ((float)(to->ptr-gc_cache_revise_infomation.to_page_start_va))/
-	  ((float)(BAMBOO_PAGE_SIZE));
+	  ((float)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	// /((float)(BAMBOO_PAGE_SIZE));
 	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 	  ((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[
 		gc_cache_revise_infomation.to_page_index] += (int)(
 		((int*)((void*)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
-		gc_cache_revise_infomation.orig_page_index]*tmp_factor);
+		gc_cache_revise_infomation.orig_page_index]*tmp_factor/((float)(BAMBOO_PAGE_SIZE)));
 	  // TODO
-	  /*if((gc_cache_revise_infomation.to_page_index*(BAMBOO_PAGE_SIZE)+gcbaseva) == 0x10f10000) {
-		tprintf("0x10f10000 <- %x %d, %d, %d\n",(int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.orig_page_index), (int)(((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index]*tmp_factor), (int)(tmp_factor*100000), (int)(to->ptr-gc_cache_revise_infomation.to_page_start_va));
+	  /*VA tmp_va = (int)(gcbaseva+(BAMBOO_PAGE_SIZE)*gc_cache_revise_infomation.to_page_index);
+	  int block = 0;
+	BLOCKINDEX(tmp_va, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];	  
+	  if((((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[
+		gc_cache_revise_infomation.orig_page_index] != 0) 
+		  && (coren != tt))  {
+		tprintf("** %x(%d) %d %d(%x, %x, %x, %x)\n", tmp_va, gc_cache_revise_infomation.orig_page_index, tt, ((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)gccachesamplingtbl, (int)gccachesamplingtbl_r, (int)&((int*)((void *)gccachesamplingtbl+tt*size_cachesamplingtbl_local))[gc_cache_revise_infomation.orig_page_index], (int)&((int*)((void*)gccachesamplingtbl_r+tt*size_cachesamplingtbl_local_r))[gc_cache_revise_infomation.to_page_index]);
 	  }*/
 	}
 #endif // GC_CACHE_ADAPT
@@ -2389,7 +2413,7 @@ innercompact:
 	gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
 	  (BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
 	gc_cache_revise_infomation.orig_page_index = 
-	  orig->blockbase/(BAMBOO_PAGE_SIZE);
+	  (orig->blockbase-gcbaseva)/(BAMBOO_PAGE_SIZE);
 #endif // GC_CACHE_ADAPT
     goto innercompact;
   }
@@ -2428,7 +2452,7 @@ inline void compact() {
   gc_cache_revise_infomation.orig_page_end_va = gcbaseva +  
 	(BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
   gc_cache_revise_infomation.orig_page_index = 
-	orig->blockbase/(BAMBOO_PAGE_SIZE);
+	(orig->blockbase-gcbaseva)/(BAMBOO_PAGE_SIZE);
 #endif // GC_CACHE_ADAPT
 
   int filledblocks = 0;
@@ -2951,7 +2975,7 @@ int cacheAdapt_policy_hotest(){
 
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(int)*i);
+		  +size_cachesamplingtbl_local_r*i);
 	  int freq = local_tbl[page_index];
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3005,7 +3029,7 @@ int cacheAdapt_policy_dominate(){
 	
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(int)*i);
+		  +size_cachesamplingtbl_local_r*i);
 	  int freq = local_tbl[page_index];
 	  totalfreq += freq;
 	  // TODO
@@ -3044,7 +3068,7 @@ int cacheAdapt_policy_dominate(){
   return numchanged;
 } // int cacheAdapt_policy_dominate()
 
-#define GC_CACHE_ADAPT_OVERLOAD_THRESHOLD 1000
+#define GC_CACHE_ADAPT_OVERLOAD_THRESHOLD 20000
 
 void gc_quicksort(int *array, 
 	              int left,
@@ -3057,10 +3081,10 @@ void gc_quicksort(int *array,
 	pivot = (left+right)/2;
 	while((leftIdx <= pivot) && (rightIdx >= pivot)) {
 	  int pivotValue = array[pivot*3-offset];
-	  while((array[leftIdx*3-offset] < pivotValue) && (leftIdx <= pivot)) {
+	  while((array[leftIdx*3-offset] > pivotValue) && (leftIdx <= pivot)) {
 		leftIdx++;
 	  }
-	  while((array[rightIdx*3-offset] > pivotValue) && (rightIdx >= pivot)) {
+	  while((array[rightIdx*3-offset] < pivotValue) && (rightIdx >= pivot)) {
 		rightIdx--;
 	  }
 	  // swap [leftIdx] & [rightIdx]
@@ -3094,8 +3118,9 @@ int cacheAdapt_policy_overload(){
   unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
   int numchanged = 0;
   int * tmp_p = gccachepolicytbl+1;
-  int workload[NUMCORESACTIVE];
-  memset(workload, 0, NUMCORESACTIVE*sizeof(int));
+  unsigned long long workload[NUMCORESACTIVE];
+  memset(workload, 0, NUMCORESACTIVE*sizeof(unsigned long long));
+  unsigned long long total_workload = 0;
   int core2heavypages[NUMCORESACTIVE][page_num*3+1];
   memset(core2heavypages, 0, sizeof(int)*(page_num*3+1)*NUMCORESACTIVE);
   for(page_index = 0; page_index < page_num; page_index++) {
@@ -3107,7 +3132,7 @@ int cacheAdapt_policy_overload(){
 	
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(int)*i);
+		  +size_cachesamplingtbl_local_r*i);
 	  int freq = local_tbl[page_index];
 	  totalfreq += freq;
 	  // TODO
@@ -3117,8 +3142,8 @@ int cacheAdapt_policy_overload(){
 		hotestcore = i;
 	  }
 	  // TODO
-	  /*if(page_sva == 0x10f10000) {
-		if(freq != 0) tprintf("0x10f10000 core %d, %d\n", i, freq);
+	  /*if(page_sva == 0x10e90000) {
+		if(freq != 0) tprintf("0x10e90000 core %d, %d\n", i, freq);
 	  }*/
 	}
 	// TODO
@@ -3142,6 +3167,7 @@ int cacheAdapt_policy_overload(){
 	tmp_p++;
 	numchanged++;
 	workload[hotestcore] += totalfreq;
+	total_workload += totalfreq;
 	// insert into core2heavypages using quicksort
 	int remoteaccess = totalfreq - hotfreq;
 	int index = core2heavypages[hotestcore][0];
@@ -3150,19 +3176,25 @@ int cacheAdapt_policy_overload(){
 	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
 	core2heavypages[hotestcore][0]++;
 	// TODO
-	//if(page_sva == 0x10f10000) {
-	  //tprintf("+++ %x(%d-%d,%d) hotcore %d, total %d, hot %d, remote %d, index %d p %x\n", (int)page_sva, coren, coord_x, coord_y, hotestcore, totalfreq, hotfreq, remoteaccess, index, (int)(tmp_p-1));
-	//}
+	/*if(page_sva == 0x10f10000) {
+	int block = 0;
+	BLOCKINDEX(page_sva, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];
+	int coord_x =  bamboo_cpu2coords[2*coren]+1;
+	int coord_y = bamboo_cpu2coords[2*coren+1]+1;
+	  tprintf("+++ %x(%d-%d,%d) hotcore %d, total %d, hot %d, remote %d, index %d p %x\n", (int)page_sva, coren, coord_x, coord_y, hotestcore, totalfreq, hotfreq, remoteaccess, index, (int)(tmp_p-1));
+	}*/
   }
 
+  int workload_threshold = total_workload / 10;
   // Check the workload of each core
   for(int i = 0; i < NUMCORESACTIVE; i++) {
 	int j = 1;
 	int index = core2heavypages[i][0];
-	if(workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) {
+	if(workload[i] > workload_threshold/*GC_CACHE_ADAPT_OVERLOAD_THRESHOLD*/) {
 	  // sort according to the remoteaccess
 	  gc_quicksort(&core2heavypages[i][0], 1, index, 0);
-	  while((workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) && (j<index*3)) {
+	  while((workload[i] > workload_threshold/*GC_CACHE_ADAPT_OVERLOAD_THRESHOLD*/) && (j<index*3)) {
 		// hfh those pages with more remote accesses 
 		bamboo_cache_policy_t policy = {0};
 		policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
@@ -3177,7 +3209,7 @@ int cacheAdapt_policy_overload(){
 } // int cacheAdapt_policy_overload()
 
 #define GC_CACHE_ADAPT_ACCESS_THRESHOLD 70
-#define GC_CACHE_ADAPT_CROWD_THRESHOLD  10
+#define GC_CACHE_ADAPT_CROWD_THRESHOLD  20
 // Every page cached on the core that accesses it the most. 
 // Check to see if any core's pages total more accesses than threshold 
 // GC_CACHE_ADAPT_OVERLOAD_THRESHOLD.  If so, find the pages with the 
@@ -3195,8 +3227,9 @@ int cacheAdapt_policy_crowd(){
   unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
   int numchanged = 0;
   int * tmp_p = gccachepolicytbl+1;
-  int workload[NUMCORESACTIVE];
-  memset(workload, 0, NUMCORESACTIVE*sizeof(int));
+  unsigned long long workload[NUMCORESACTIVE];
+  memset(workload, 0, NUMCORESACTIVE*sizeof(unsigned long long));
+  unsigned long long total_workload = 0;
   int core2heavypages[NUMCORESACTIVE][page_num*3+1];
   memset(core2heavypages, 0, sizeof(int)*(page_num*3+1)*NUMCORESACTIVE);
   for(page_index = 0; page_index < page_num; page_index++) {
@@ -3208,7 +3241,7 @@ int cacheAdapt_policy_crowd(){
 	
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
 	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +page_num*sizeof(int)*i);
+		  +size_cachesamplingtbl_local_r*i);
 	  int freq = local_tbl[page_index];
 	  totalfreq += freq;
 	  // TODO
@@ -3217,6 +3250,10 @@ int cacheAdapt_policy_crowd(){
 		hotfreq = freq;
 		hotestcore = i;
 	  }
+	  // TODO
+	  /*if(page_sva == 0x10e90000) {
+		if(freq != 0) tprintf("0x10e90000 core %d, %d\n", i, freq);
+	  }*/
 	}
 	// TODO
 	// Decide the cache strategy for this page
@@ -3239,6 +3276,7 @@ int cacheAdapt_policy_crowd(){
 	tmp_p++;
 	numchanged++;
 	workload[hotestcore] += totalfreq;
+	total_workload += totalfreq;
 	// insert into core2heavypages using quicksort
 	int remoteaccess = totalfreq - hotfreq;
 	int index = core2heavypages[hotestcore][0];
@@ -3246,16 +3284,26 @@ int cacheAdapt_policy_crowd(){
 	core2heavypages[hotestcore][3*index+2] = totalfreq;
 	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
 	core2heavypages[hotestcore][0]++;
+	// TODO
+	/*if(page_sva == 0x10f10000) {
+	int block = 0;
+	BLOCKINDEX(page_sva, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];
+	int coord_x =  bamboo_cpu2coords[2*coren]+1;
+	int coord_y = bamboo_cpu2coords[2*coren+1]+1;
+	  tprintf("+++ %x(%d-%d,%d) hotcore %d, total %d, hot %d, remote %d, index %d p %x\n", (int)page_sva, coren, coord_x, coord_y, hotestcore, totalfreq, hotfreq, remoteaccess, index, (int)(tmp_p-1));
+	}*/
   }
 
+  int workload_threshold = total_workload / 10;
   // Check the workload of each core
   for(int i = 0; i < NUMCORESACTIVE; i++) {
 	int j = 1;
 	int index = core2heavypages[i][0];
-	if(workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) {
-	  // sort according to the remote access
+	if(workload[i] > workload_threshold/*GC_CACHE_ADAPT_OVERLOAD_THRESHOLD*/) {
+	  // sort according to the remoteaccess
 	  gc_quicksort(&core2heavypages[i][0], 1, index, 0);
-	  while((workload[i] > GC_CACHE_ADAPT_OVERLOAD_THRESHOLD) && (j<index*3)) {
+	  while((workload[i] > workload_threshold/*GC_CACHE_ADAPT_OVERLOAD_THRESHOLD*/) && (j<index*3)) {
 		// hfh those pages with more remote accesses 
 		bamboo_cache_policy_t policy = {0};
 		policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
@@ -3264,46 +3312,47 @@ int cacheAdapt_policy_crowd(){
 		j += 3;
 	  }
 	}
-	
+
 	// Check if the accesses are crowded on few pages
 	// sort according to the total access
+inner_crowd:
 	gc_quicksort(&core2heavypages[i][0], j/3+1, index, 1);
 	int threshold = GC_CACHE_ADAPT_ACCESS_THRESHOLD*workload[i]/100;
 	int num_crowded = 0;
 	int t_workload = 0;
-	for(;(num_crowded<GC_CACHE_ADAPT_CROWD_THRESHOLD)
-		&&(num_crowded<(index-j/3)); num_crowded++) {
+	do {
 	  t_workload += core2heavypages[i][j+num_crowded*3+1];
-	}
+	  num_crowded++;
+	} while(t_workload < threshold);
 	// num_crowded <= GC_CACHE_ADAPT_CROWD_THRESHOLD and if there are enough 
 	// items, it is always == GC_CACHE_ADAPT_CROWD_THRESHOLD
-	if(t_workload > threshold) {
-inner_crowd:
+	if(num_crowded > GC_CACHE_ADAPT_CROWD_THRESHOLD) {
+//inner_crowd:
 	  // need to hfh these pages
 	  // sort the pages according to remote access
 	  gc_quicksort(&core2heavypages[i][0], j/3+1, j/3+num_crowded, 0);
-	  while((num_crowded--) && (j < index*3)) {
+	  //while((num_crowded--) && (j < index*3)) {
 		// h4h those pages with more remote accesses 
 		bamboo_cache_policy_t policy = {0};
 		policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
 		*((int*)core2heavypages[i][j]) = policy.word;
 		workload[i] -= core2heavypages[i][j+1];
 		t_workload -= core2heavypages[i][j+1];
-		if((j/3+GC_CACHE_ADAPT_CROWD_THRESHOLD) < index) {
+		/*if((j/3+GC_CACHE_ADAPT_CROWD_THRESHOLD) < index) {
 		  t_workload += 
 			core2heavypages[i][j+GC_CACHE_ADAPT_CROWD_THRESHOLD*3+1];
-		}
+		}*/
 		j += 3;
 		threshold = GC_CACHE_ADAPT_ACCESS_THRESHOLD*workload[i]/100;
-		if(t_workload <= threshold) {
+		/*if(t_workload <= threshold) {
 		  break;
 		}
 	  }
 	  if((j < index*3) && (t_workload > threshold)) {
 		num_crowded = ((index-j/3) > GC_CACHE_ADAPT_CROWD_THRESHOLD) ?
-		  (GC_CACHE_ADAPT_CROWD_THRESHOLD) : (index-j/3);
+		  (GC_CACHE_ADAPT_CROWD_THRESHOLD) : (index-j/3);*/
 		goto inner_crowd;
-	  }
+//	  }
 	}
   }
 
@@ -3311,12 +3360,15 @@ inner_crowd:
 } // int cacheAdapt_policy_overload()
 
 void cacheAdapt_master() {
+#ifdef GC_CACHE_ADAPT
+  //gc_output_cache_sampling_r();
+#endif // GC_CACHE_ADAPT
   int numchanged = 0;
   // check the statistic data
   // for each page, decide the new cache strategy
-  numchanged = cacheAdapt_policy_h4h();
+  //numchanged = cacheAdapt_policy_h4h();
   //numchanged = cacheAdapt_policy_local();
-  //numchanged = cacheAdapt_policy_hotest();
+  numchanged = cacheAdapt_policy_hotest();
   //numchanged = cacheAdapt_policy_dominate();
   //numchanged = cacheAdapt_policy_overload();
   //numchanged = cacheAdapt_policy_crowd();
@@ -3348,6 +3400,50 @@ void cacheAdapt_mutator() {
   }
   //if(BAMBOO_NUM_OF_CORE == 0) tprintf("=================\n"); // TODO
 }
+
+void gc_output_cache_sampling() {
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	int block = 0;
+	BLOCKINDEX(page_sva, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];
+	tprintf("va: %x page_index: %d host: %d\n", 
+		(int)page_sva, page_index, coren);
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  int * local_tbl = (int *)((void *)gccachesamplingtbl
+		  +size_cachesamplingtbl_local*i);
+	  int freq = local_tbl[page_index];
+	  printf("%8d ",freq);
+	}
+	printf("\n");
+  }
+  printf("=================\n");
+} // gc_output_cache_sampling
+
+void gc_output_cache_sampling_r() {
+  unsigned int page_index = 0;
+  VA page_sva = 0;
+  unsigned int page_num = (BAMBOO_SHARED_MEM_SIZE) / (BAMBOO_PAGE_SIZE);
+  for(page_index = 0; page_index < page_num; page_index++) {
+	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
+	int block = 0;
+	BLOCKINDEX(page_sva, &block);
+	int coren = gc_block2core[block%(NUMCORES4GC*2)];
+	tprintf("va: %x page_index: %d host: %d\n", 
+		(int)page_sva, page_index, coren);
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
+		  +size_cachesamplingtbl_local_r*i);
+	  int freq = local_tbl[page_index];
+	  printf("%8d ",freq);
+	}
+	printf("\n");
+  }
+  printf("=================\n");
+} // gc_output_cache_sampling
 #endif // GC_CACHE_ADAPT
 
 inline void gc_collect(struct garbagelist * stackptr) {
@@ -3591,6 +3687,9 @@ inline void gc_master(struct garbagelist * stackptr) {
 #ifdef GC_PROFILE
   gc_profileItem();
 #endif
+#ifdef GC_CACHE_ADAPT
+  //gc_output_cache_sampling();
+#endif // GC_CACHE_ADAPT
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Start mark phase \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());
@@ -4135,6 +4234,7 @@ pregccheck:
 #ifdef GC_CACHE_SAMPLING
   // reset the sampling arrays
   bamboo_dtlb_sampling_reset();
+#endif // GC_CACHE_SAMPLING
   if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
 	// zero out the gccachesamplingtbl
 	BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);
@@ -4144,6 +4244,7 @@ pregccheck:
 	  BAMBOO_MEMSET_WH(gccachepolicytbl,0,size_cachepolicytbl);
 	}
   }
+#ifdef GC_CACHE_SAMPLING
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();
