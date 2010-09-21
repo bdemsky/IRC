@@ -109,7 +109,7 @@ public class ConflictGraph {
     TempDescriptor invar = t.getVar();
     AllocSite as = t.getAllocSite();
 
-    String id = invar + "_sese" + sese.getIdentifier();
+    String id = invar + "_sese" + sese.getPrettyIdentifier();
     ConflictNode node = id2cn.get(id);
     if (node == null) {
       node = new ConflictNode(id, ConflictNode.INVAR, t.getVar(), t.getSESE());
