@@ -377,12 +377,6 @@ void initruntimedata() {
   gc_localheap_s = false;
 #ifdef GC_CACHE_ADAPT
   gccachestage = false;
-  // enable the timer interrupt
-#ifdef GC_CACHE_SAMPLING
-  bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); // TODO
-  bamboo_unmask_timer_intr();
-  bamboo_dtlb_sampling_process();
-#endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
 #else
   // create the lock table, lockresult table and obj queue
@@ -792,6 +786,15 @@ inline void run(void * arg) {
   // other architecture related initialization
   initialization();
   initCommunication();
+
+#ifdef GC_CACHE_ADAPT
+// enable the timer interrupt
+#ifdef GC_CACHE_SAMPLING
+  bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); // TODO
+  bamboo_unmask_timer_intr();
+  bamboo_dtlb_sampling_process();
+#endif // GC_CACHE_SAMPLING
+#endif // GC_CACHE_ADAPT
 
   initializeexithandler();
 
@@ -2064,7 +2067,7 @@ INLINE int checkMsgLength_I(int size) {
 #endif
   {  // nonfixed size
 	if(size > 1) {
-	  msglength = msgdata[(msgdataindex+1)%(BAMBOO_MSG_BUF_LENGTH)];
+	  msglength = msgdata[(msgdataindex+1)&(BAMBOO_MSG_BUF_MASK)/*%(BAMBOO_MSG_BUF_LENGTH)*/];
 	} else {
 	  return -1;
 	}

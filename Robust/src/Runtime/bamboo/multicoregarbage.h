@@ -151,7 +151,7 @@ void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
 #ifdef GC_SMALLPAGESIZE
 #define BAMBOO_RMSP_SIZE (1024 * 1024)
 #else
-#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
+#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE*2) // (45 * 16 * 1024)
 #endif
 mspace bamboo_rmsp;
 // shared pointer mapping tbl

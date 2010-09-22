@@ -2043,7 +2043,7 @@ innermoveobj:
 #endif // GC_CACHE_ADAPT
       nextBlock(to);
 #ifdef GC_CACHE_ADAPT
-	  if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
+	  if((to->ptr) >= gc_cache_revise_infomation.to_page_end_va) {
 		// end of an to page, wrap up its information
 		int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
 		int topage=gc_cache_revise_infomation.to_page_index;
@@ -2114,7 +2114,6 @@ innermoveobj:
     to->ptr += isize;
     to->offset += isize;
     to->top += isize;
-#if 0
 #ifdef GC_CACHE_ADAPT
 	int tmp_ptr = to->ptr;
 #endif // GC_CACHE_ADAPT
@@ -2123,6 +2122,7 @@ innermoveobj:
       BAMBOO_MEMSET_WH(to->base, '\0', BAMBOO_CACHE_LINE_SIZE);
       (*((int*)(to->base))) = to->offset;
       nextBlock(to);
+#if 0
 #ifdef GC_CACHE_ADAPT
 	  if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
 		// end of an to page, wrap up its information
@@ -2151,8 +2151,36 @@ innermoveobj:
 		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
 	  }
 #endif // GC_CACHE_ADAPT
-    }
 #endif
+    }
+#ifdef GC_CACHE_ADAPT
+	  if((to->ptr) >= gc_cache_revise_infomation.to_page_end_va) {
+		// end of an to page, wrap up its information
+		int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
+		int topage=gc_cache_revise_infomation.to_page_index;
+		int oldpage = gc_cache_revise_infomation.orig_page_index;
+		int * newtable=&gccachesamplingtbl_r[topage];
+		int * oldtable=&gccachesamplingtbl[oldpage];
+	  
+		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
+		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
+		  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
+		  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+		}
+		// prepare for an new to page
+		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+		gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
+		gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
+		  (BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
+		gc_cache_revise_infomation.orig_page_index = 
+		  (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+		gc_cache_revise_infomation.to_page_start_va = to->ptr;
+		gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
+		  (BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
+		gc_cache_revise_infomation.to_page_index = 
+		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+	  }
+#endif // GC_CACHE_ADAPT
   } // if(mark == 1)
 #ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe205);
@@ -3344,12 +3372,19 @@ void cacheAdapt_master() {
   int numchanged = 0;
   // check the statistic data
   // for each page, decide the new cache strategy
+#ifdef GC_CACHE_ADAPT_POLICY1
   numchanged = cacheAdapt_policy_h4h();
-  //numchanged = cacheAdapt_policy_local();
-  //numchanged = cacheAdapt_policy_hotest();
-  //numchanged = cacheAdapt_policy_dominate();
-  //numchanged = cacheAdapt_policy_overload();
-  //numchanged = cacheAdapt_policy_crowd();
+#elif defined GC_CACHE_ADAPT_POLICY2
+  numchanged = cacheAdapt_policy_local();
+#elif defined GC_CACHE_ADAPT_POLICY3
+  numchanged = cacheAdapt_policy_hotest();
+#elif defined GC_CACHE_ADAPT_POLICY4
+  numchanged = cacheAdapt_policy_dominate();
+#elif defined GC_CACHE_ADAPT_POLICY5
+  numchanged = cacheAdapt_policy_overload();
+#elif defined GC_CACHE_ADAPT_POLICY6
+  numchanged = cacheAdapt_policy_crowd();
+#endif
   *gccachepolicytbl = numchanged;
   // TODO
   //if(numchanged > 0) tprintf("=================\n");
@@ -3941,6 +3976,11 @@ inline void gc_master(struct garbagelist * stackptr) {
 #endif
   // flush phase
   flush(stackptr);
+#ifdef GC_CACHE_ADAPT
+  // now the master core need to decide the new cache strategy
+  cacheAdapt_master();
+#endif // GC_CACHE_ADAPT
+
   gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
   while(FLUSHPHASE == gcphase) {
 	// check the status of all cores
@@ -3957,9 +3997,9 @@ inline void gc_master(struct garbagelist * stackptr) {
 #endif
 
 #ifdef GC_CACHE_ADAPT
-  // now the master core need to decide the new cache strategy
-  cacheAdapt_master();
-
+#ifdef GC_PROFILE
+  gc_profileItem();
+#endif
   gcphase = PREFINISHPHASE;
   gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
   // Note: all cores should flush their runtime data including non-gc
@@ -3969,9 +4009,6 @@ inline void gc_master(struct garbagelist * stackptr) {
 	gccorestatus[i] = 1;
 	send_msg_1(i, GCSTARTPREF, false);
   }
-#ifdef GC_PROFILE
-  gc_profileItem();
-#endif
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Start prefinish phase \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());
