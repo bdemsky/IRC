@@ -290,4 +290,8 @@ public class EffectsAnalysis {
    * 
    * }
    */
+  
+  public Hashtable<Taint, Set<Effect>> getAllEffects() {
+    return taint2effects;
+  }
 }
