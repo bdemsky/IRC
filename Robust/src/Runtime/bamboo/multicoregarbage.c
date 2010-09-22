@@ -2108,7 +2108,7 @@ innermoveobj:
     BAMBOO_DEBUGPRINT(0xcdce);
     BAMBOO_DEBUGPRINT_REG(orig->ptr);
     BAMBOO_DEBUGPRINT_REG(to->ptr);
-	BAMBOO_DEBUGPRINT_REG(isize);
+    BAMBOO_DEBUGPRINT_REG(isize);
 #endif
     gccurr_heaptop -= isize;
     to->ptr += isize;
@@ -2944,11 +2944,11 @@ int cacheAdapt_policy_hotest(){
 	int hotestcore = 0;
 	int hotfreq = 0;
 
+	int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
-	  // TODO
+	  int freq = *local_tbl;
+	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
+
 	  // check the freqency, decide if this page is hot for the core
 	  if(hotfreq < freq) {
 		hotfreq = freq;
@@ -2998,10 +2998,10 @@ int cacheAdapt_policy_dominate(){
 	int totalfreq = 0;
 	int hotfreq = 0;
 	
+	int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
+	  int freq = *local_tbl;
+	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3010,6 +3010,7 @@ int cacheAdapt_policy_dominate(){
 		hotestcore = i;
 	  }
 	}
+
 	// Decide the cache strategy for this page
 	// If decide to adapt a new cache strategy, write into the shared block of
 	// the gcpolicytbl 
@@ -3018,7 +3019,7 @@ int cacheAdapt_policy_dominate(){
 	  // this page has not been accessed, do not change its cache policy
 	  continue;
 	}
-	totalfreq = (totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)/100;
+	totalfreq = (totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)/100/BAMBOO_PAGE_SIZE;
 	if(hotfreq < totalfreq) {
 	  // use hfh
 	  policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
@@ -3101,10 +3102,10 @@ int cacheAdapt_policy_overload(){
 	int totalfreq = 0;
 	int hotfreq = 0;
 	
+	int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
+	  int freq = *local_tbl;
+	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3127,6 +3128,8 @@ int cacheAdapt_policy_overload(){
 	  // this page has not been accessed, do not change its cache policy
 	  continue;
 	}
+
+	totalfreq/=BAMBOO_PAGE_SIZE;
 	// locally cache the page in the hotest core
 	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
 	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
@@ -3210,10 +3213,10 @@ int cacheAdapt_policy_crowd(){
 	int totalfreq = 0;
 	int hotfreq = 0;
 	
+	int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
-		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
+	  int freq = *local_tbl;
+	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3236,6 +3239,7 @@ int cacheAdapt_policy_crowd(){
 	  // this page has not been accessed, do not change its cache policy
 	  continue;
 	}
+	totalfreq/=BAMBOO_PAGE_SIZE;
 	// locally cache the page in the hotest core
 	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
 	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
