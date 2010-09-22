@@ -3020,6 +3020,7 @@ int cacheAdapt_policy_dominate(){
 	  continue;
 	}
 	totalfreq = (totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)/100/BAMBOO_PAGE_SIZE;
+	hotfreq/=BAMBOO_PAGE_SIZE;
 	if(hotfreq < totalfreq) {
 	  // use hfh
 	  policy.cache_mode = BAMBOO_CACHE_MODE_HASH;
@@ -3130,6 +3131,7 @@ int cacheAdapt_policy_overload(){
 	}
 
 	totalfreq/=BAMBOO_PAGE_SIZE;
+	hotfreq/=BAMBOO_PAGE_SIZE;
 	// locally cache the page in the hotest core
 	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
 	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
@@ -3240,6 +3242,7 @@ int cacheAdapt_policy_crowd(){
 	  continue;
 	}
 	totalfreq/=BAMBOO_PAGE_SIZE;
+	hotfreq/=BAMBOO_PAGE_SIZE;
 	// locally cache the page in the hotest core
 	// NOTE: (x,y) should be changed to (x+1, y+1)!!!
 	policy.cache_mode = BAMBOO_CACHE_MODE_COORDS;
