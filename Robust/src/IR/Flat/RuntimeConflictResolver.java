@@ -1,5 +1,4 @@
 package IR.Flat;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -11,16 +10,17 @@ import java.util.Set;
 import Analysis.Disjoint.*;
 import IR.TypeDescriptor;
 
-//TODO: the below may be outdated. 
 /* An instance of this class manages all OoOJava coarse-grained runtime conflicts
  * by generating C-code to either rule out the conflict at runtime or resolve one.
  * 
  * How to Use:
- * 1) Instantiate singleton object
- * 2a) Call void traverse(FlatSESEEnterNode rblock, Hashtable<Taint, Set<Effect>> effects, Hashtable<Taint, Set<Effect>> conflicts, ReachGraph rg)
- *    as many times as needed
- * 2b) call String getTraverserInvocation(TempDescriptor invar, String varString, FlatSESEEnterNode sese) to get the name of the traverse method in C
- * 3) Call void close()
+ * 1) Instantiate singleton object (String input is to specify output dir)
+ * 2) Call setGlobalEffects setGlobalEffects(Hashtable<Taint, Set<Effect>> ) ONCE
+ * 3) Input SESE blocks, for each block:
+ *    3a) call addToTraverseToDoList(FlatSESEEnterNode , ReachGraph , Hashtable<Taint, Set<Effect>>) for the seseBlock
+ *    3b) call String getTraverserInvocation(TempDescriptor, String, FlatSESEEnterNode) to get the name of the traverse method in C
+ * 4) Call void close() 
+ * Note: All computation is done upon closing the object. Steps 1-3 only input data
  */
 public class RuntimeConflictResolver {
   public static final boolean javaDebug = true;
@@ -32,41 +32,40 @@ public class RuntimeConflictResolver {
   //This keeps track of taints we've traversed to prevent printing duplicate traverse functions
   //The Integer keeps track of the weakly connected group it's in (used in enumerateHeapRoots)
   private Hashtable<Taint, Integer> doneTaints;
+  private Hashtable<Taint, Set<Effect>> globalEffects;
+  private Hashtable<Taint, Set<Effect>> globalConflicts;
+  private ArrayList<FlatNodeReachGraphTuple> toTraverse;
 
   // initializing variables can be found in printHeader()
   private static final String getAllocSiteInC = "->allocsite";
-  private static final String queryAndAddHashTableInC = "hashRCRInsert(";
+  private static final String queryVistedHashtable = "hashRCRInsert(";
   private static final String addToQueueInC = "enqueueRCRQueue(";
   private static final String dequeueFromQueueInC = "dequeueRCRQueue()";
-
   private static final String clearQueue = "resetRCRQueue()";
   // Make hashtable; hashRCRCreate(unsigned int size, double loadfactor)
-  private static final String mallocHashTable = "hashRCRCreate(128, 0.75)";
-  private static final String deallocHashTable = "hashRCRDelete()";
-  private static final String resetHashTable = "hashRCRreset()";
+  private static final String mallocVisitedHashtable = "hashRCRCreate(128, 0.75)";
+  private static final String deallocVisitedHashTable = "hashRCRDelete()";
+  private static final String resetVisitedHashTable = "hashRCRreset()";
   
   //TODO find correct strings for these
-  private static final String addCheckFromHashStructure = "";
-  private static final String putWaitingQueueBlock = "";  //lifting of blocks will be done by hashtable.
-  private static final String putIntoAllocQueue = "";
-  
-  //NOTE: make sure these returned are synced with hashtable
+  private static final String addCheckFromHashStructure = "checkFromHashStructure(";
+  private static final String putWaitingQueueBlock = "putWaitingQueueBlock(";  //lifting of blocks will be done by hashtable.
+  private static final String putIntoAllocQueue = "putIntoWaitingQ(";
   private static final int noConflict = 0;
   private static final int conflictButTraverserCanContinue = 1;
   private static final int conflictButTraverserCannotContinue = 2;
-
   private static final int allocQueueIsNotEmpty = 0;
   
-  // hashtable provides fast access to heaproot # lookups
+  // Hashtable provides fast access to heaproot # lookups
   private Hashtable<Taint, WeaklyConectedHRGroup> connectedHRHash;
   private ArrayList<WeaklyConectedHRGroup> num2WeaklyConnectedHRGroup;
   private int traverserIDCounter;
   private int weaklyConnectedHRCounter;
-  
   private ArrayList<TaintAndInternalHeapStructure> pendingPrintout;
   private EffectsTable effectsLookupTable;
 
-  public RuntimeConflictResolver(String buildir) throws FileNotFoundException {
+  public RuntimeConflictResolver(String buildir) 
+  throws FileNotFoundException {
     String outputFile = buildir + "RuntimeConflictResolver";
     
     cFile = new PrintWriter(new File(outputFile + ".c"));
@@ -90,43 +89,54 @@ public class RuntimeConflictResolver {
     traverserIDCounter = 1;
     weaklyConnectedHRCounter = 0;
     pendingPrintout = new ArrayList<TaintAndInternalHeapStructure>();
+    toTraverse = new ArrayList<FlatNodeReachGraphTuple>();
+    globalConflicts = new Hashtable<Taint, Set<Effect>>(); 
+    //Note: globalEffects is not instantiated since it'll be passed in whole while conflicts comes in chunks
   }
 
-  //TODO: This is only temporary, remove when thread local variables are functional. 
-  private void createMasterHashTableArray() {
-    headerFile.append("void createMasterHashStructureArray();");
-    cFile.append("void createMasterHashStructureArray() { " +
-    		"allHashStructures = (HashStructure**) malloc(sizeof(hashStructure *) * " + weaklyConnectedHRCounter + ");");
+  public void setGlobalEffects(Hashtable<Taint, Set<Effect>> effects) {
+    globalEffects = effects;
     
-    for(int i = 0; i < weaklyConnectedHRCounter; i++) {
-      cFile.append("allHashStructures["+i+"] = (HashStructure *) createhashTable("+num2WeaklyConnectedHRGroup.get(i)+");}");
+    if(javaDebug) {
+      System.out.println("============EFFECTS LIST AS PASSED IN============");
+      for(Taint t: globalEffects.keySet()) {
+        System.out.println("For Taint " + t);
+        for(Effect e: globalEffects.get(t)) {
+          System.out.println("\t" + e);
+        }
+      }
+      System.out.println("====================END  LIST====================");
     }
   }
   
-  //TODO update basic steps.
   /*
-   * Basic steps:  
-   * 1) Create a hashed Effects Lookup Table (hashed by affected allocsite and then taint). 
-   *     1a) Use effects sets to verify if we can access something (reads)
-   *     1b) Use conflicts list to mark conflicts 
-   * 2) Build runtime representation of data structure
-   *     2a) Mark conflicts with 2 flags (one for self, one for references down the line) 
-   * 3) Printout via traversing data structure created in previous step.
-   * 
+   * Basic Strategy:
+   * 1) Get global effects and conflicts 
+   * 2) Create a hash structure (EffectsTable) to manage effects (hashed by affected Allocsite, then taint, then field)
+   *     2a) Use Effects to verify we can access something (reads)
+   *     2b) Use conflicts to mark conflicts (read/write/strongupdate)
+   *     2c) At second level of hash, store Heaproots that can cause conflicts at the field
+   * 3) Walk hash structure to identify and enumerate weakly connected groups and generate waiting queue slots. 
+   * 4) Build internal representation of the rgs (pruned)
+   * 5) Print c methods by walking internal representation
    */
   
-  //Builds Effects Table and runs the analysis on them to get weakly connected HRs
-  //SPECIAL NOTE: expects effects and conflicts to be global to the program. 
-  public void buildEffectsLookupStructure(Hashtable<Taint, Set<Effect>> effects,
-      Hashtable<Taint, Set<Effect>> conflicts){
-    effectsLookupTable = new EffectsTable(effects, conflicts);
-    effectsLookupTable.runAnaylsis();
-    enumerateHeaproots();
+  public void addToTraverseToDoList(FlatSESEEnterNode rblock, ReachGraph rg, Hashtable<Taint, Set<Effect>> conflicts) {
+    //Add to todo list
+    toTraverse.add(new FlatNodeReachGraphTuple(rblock, rg));
+    
+    //Add to Global conflicts
+    for(Taint t: conflicts.keySet()) {
+      if(globalConflicts.contains(t)) {
+        globalConflicts.get(t).addAll(conflicts.get(t));
+      }
+      else {
+        globalConflicts.put(t, conflicts.get(t));
+      }
+    }
   }
 
-  public void traverseSESEBlock(FlatSESEEnterNode rblock,  
-      //TODO somehow get this from outside methods?
-      Hashtable<Taint, Set<Effect>> effects, //this is needed inorder to find proper taint
+  public void traverseSESEBlock(FlatSESEEnterNode rblock,
       ReachGraph rg) {
     Set<TempDescriptor> inVars = rblock.getInVarSet();
     
@@ -148,7 +158,7 @@ public class RuntimeConflictResolver {
       Hashtable<AllocSite, ConcreteRuntimeObjNode> created = new Hashtable<AllocSite, ConcreteRuntimeObjNode>();
       VariableNode varNode = rg.getVariableNodeNoMutation(invar);
       
-      Taint taint = getProperTaintForFlatSESEEnterNode(rblock, varNode, effects);
+      Taint taint = getProperTaintForFlatSESEEnterNode(rblock, varNode, globalEffects);
       if (taint == null) {
         printDebug(javaDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + rblock.toPrettyString());
         return;
@@ -201,10 +211,8 @@ public class RuntimeConflictResolver {
     if (!created.isEmpty()) {
       pendingPrintout.add(new TaintAndInternalHeapStructure(taint, created));
     }
-    
   }
-
-  //TODO replace this with new format of passing in a starting variable and a traverser ID
+  
   public String getTraverserInvocation(TempDescriptor invar, String varString, FlatNode fn) {
     String flatname;
     if(fn instanceof FlatSESEEnterNode) {
@@ -230,6 +238,9 @@ public class RuntimeConflictResolver {
   }
 
   public void close() {
+    buildEffectsLookupStructure();
+    runAllTraverserals();
+    
     //prints out all generated code
     for(TaintAndInternalHeapStructure ths: pendingPrintout) {
       printCMethod(ths.nodesInHeap, ths.t);
@@ -243,14 +254,74 @@ public class RuntimeConflictResolver {
     createMasterHashTableArray();
     
     // Adds Extra supporting methods
-    cFile.append("void initializeStructsRCR() { " + mallocHashTable + "; " + clearQueue + "; }");
-    cFile.append("void destroyRCR() { " + deallocHashTable + "; }\n");
+    cFile.append("void initializeStructsRCR() { " + mallocVisitedHashtable + "; " + clearQueue + "; }");
+    cFile.append("void destroyRCR() { " + deallocVisitedHashTable + "; }\n");
     
     headerFile.append("void initializeStructsRCR(); \nvoid destroyRCR(); \n");
     headerFile.append("#endif\n");
 
     cFile.close();
     headerFile.close();
+  }
+
+  //Builds Effects Table and runs the analysis on them to get weakly connected HRs
+  //SPECIAL NOTE: Only runs after we've taken all the conflicts 
+  private void buildEffectsLookupStructure(){
+    effectsLookupTable = new EffectsTable(globalEffects, globalConflicts);
+    effectsLookupTable.runAnaylsis();
+    enumerateHeaproots();
+  }
+
+  private void runAllTraverserals() {
+    for(FlatNodeReachGraphTuple t: toTraverse) {
+      printDebug(javaDebug, "Running Traversal a traversal on " + t.f);
+      
+      if(t.f instanceof FlatSESEEnterNode) {
+        traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
+      }
+      else
+        //TODO finish stall sites after we get rBlocks up and running. 
+        System.out.println("Unimplemented traversal");
+    }
+  }
+
+  //TODO: This is only temporary, remove when thread local variables are functional. 
+  private void createMasterHashTableArray() {
+    headerFile.append("void createMasterHashStructureArray();");
+    cFile.append("void createMasterHashStructureArray() { " +
+    		"allHashStructures = (HashStructure**) malloc(sizeof(hashStructure *) * " + weaklyConnectedHRCounter + ");");
+    
+    for(int i = 0; i < weaklyConnectedHRCounter; i++) {
+      cFile.append("allHashStructures["+i+"] = (HashStructure *) createhashTable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");}");
+    }
+  }
+
+  //This will print the traverser invocation that takes in a traverserID and 
+  //starting ptr
+  private void printMasterTraverserInvocation() {
+    headerFile.println("\nint traverse(void * startingPtr, int traverserID);");
+    cFile.println("\nint traverse(void * startingPtr, int traverserID) {" +
+    		"switch(traverserID) { ");
+    
+    for(Taint t: doneTaints.keySet()) {
+      cFile.println("  case " + doneTaints.get(t)+ ": ");
+      if(t.isRBlockTaint()) {
+        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getSESE()));
+      }
+      else if (t.isStallSiteTaint()){
+        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getStallSite()));
+      } else {
+        System.out.println("RuntimeConflictResolver encountered a taint that is neither SESE nor stallsite: " + t);
+      }
+    }
+    
+    if(RuntimeConflictResolver.cSideDebug) {
+      cFile.println(" default: printf(\"invalid traverser ID %u was passed in.\\n\", traverserID);\n break; ");
+    } else {
+      cFile.println(" default: break; ");
+    }
+    
+    cFile.println("}}");
   }
 
   private void createConcreteGraph(
@@ -262,12 +333,7 @@ public class RuntimeConflictResolver {
     // if table is null that means there's no conflicts, therefore we need not
     // create a traversal
     if (table == null)
-      return;    
-    
-    //TODO restore debug functionality
-//    if(javaDebug) {
-//      printLookupTableDebug(table);
-//    }
+      return;
 
     Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();    
     while (possibleEdges.hasNext()) {
@@ -461,7 +527,6 @@ public class RuntimeConflictResolver {
    *  conflicts will be signaled by the referencer; the only exception is the inset variable which can 
    *  signal a conflict within itself. 
    */
-  //TODO still use "original" RCRhash to track where we've been. 
   
   private void printCMethod(Hashtable<AllocSite, ConcreteRuntimeObjNode> created, Taint taint) {
     //This hash table keeps track of all the case statements generated. Although it may seem a bit much
@@ -491,7 +556,7 @@ public class RuntimeConflictResolver {
           //non-inline-able code cases
           (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) ||
           //Cases where resumes are possible
-          (node.hasPotentialToBeIncorrectDueToConflict))) {
+          (node.hasPotentialToBeIncorrectDueToConflict) && node.decendantsObjConflict)) {
 
         printDebug(javaDebug, node.allocSite + " qualified for case statement");
         addChecker(taint, node, cases, null, "ptr", 0);
@@ -513,10 +578,10 @@ public class RuntimeConflictResolver {
     } 
     else {
       //clears queue and hashtable that keeps track of where we've been. 
-      cFile.append(clearQueue + "; " + resetHashTable + "; }}\n"); 
+      cFile.append(clearQueue + "; " + resetVisitedHashTable + "; \n"); 
       
       //Casts the ptr to a genericObjectStruct so we can get to the ptr->allocsite field. 
-      cFile.append("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;  if(InVar != NULL) { " + queryAndAddHashTableInC
+      cFile.append("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;  if(InVar != NULL) { " + queryVistedHashtable
           + "ptr); do { ");
       
       cFile.append("switch(ptr->allocsite) { ");
@@ -525,7 +590,7 @@ public class RuntimeConflictResolver {
         cFile.append(cases.get(singleCase));
       
       cFile.append(" default : break; ");
-      cFile.append("}} while( (ptr = " + dequeueFromQueueInC + ") != NULL); ");
+      cFile.append("}} while( (ptr = " + dequeueFromQueueInC + ") != NULL); }}");
     }
     cFile.flush();
   }
@@ -544,10 +609,9 @@ public class RuntimeConflictResolver {
     StringBuilder currCase = possibleContinuingCase;
     // We don't need a case statement for things with either 1 incoming or 0 out
     // going edges, because they can be processed when checking the parent. 
-    
     if((node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
        (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
-        node.hasPotentialToBeIncorrectDueToConflict) {
+        node.hasPotentialToBeIncorrectDueToConflict && node.decendantsObjConflict) {
       assert prefix.equals("ptr") && !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
       cases.put(node.allocSite, currCase);
@@ -559,16 +623,16 @@ public class RuntimeConflictResolver {
     //Casts C pointer; depth is used to create unique "myPtr" name for when things are inlined
     String currPtr = "myPtr" + depth;
     
-    //Specific Primitives test for invars
-    if(node.isInsetVar && node.hasPrimitiveConflicts()) {
+    //Primitives Test
+    if(node.hasPrimitiveConflicts()) {
       //This will check hashstructure, if cannot continue, add all to waiting queue and break; s
-      addCheckHashtableAndWaintingQ(currCase, taint, node, currPtr, depth);
-      currCase.append("break; }");
+      addCheckHashtableAndWaitingQ(currCase, taint, node, currPtr, depth);
+      currCase.append(" break; } ");
     }
     
     
     String structType = node.original.getType().getSafeSymbol();
-    currCase.append("struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + prefix + "; ");
+    currCase.append(" struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + prefix + "; ");
   
     //Conflicts
     for (ObjRef ref : node.objectRefs) {
@@ -577,34 +641,33 @@ public class RuntimeConflictResolver {
         String childPtr = currPtr +"->___" + ref.field + "___";
 
         // Checks if the child exists and has allocsite matching the conflict
-        currCase.append("if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "=="
+        currCase.append(" if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "=="
             + ref.allocSite + ") { ");
 
         
-        //Handles Direct Conflicts and primitive conflicts on child.
-        //If there is any conflict on child, check hash
-        if(ref.child.hasPrimitiveConflicts() || ref.hasDirectObjConflict()) { 
+        //Handles Direct Conflicts on child.
+        if(ref.hasDirectObjConflict()) { 
         //This method will touch the waiting queues if necessary.
-          addCheckHashtableAndWaintingQ(currCase, taint, ref.child, childPtr, depth);
+          addCheckHashtableAndWaitingQ(currCase, taint, ref.child, childPtr, depth);
           //Else if we can continue continue. 
-          currCase.append(" } else  {");
+          currCase.append(" } else  { ");
         }
         
         //If there are no direct conflicts (determined by static + dynamic), finish check
-        if (ref.child.decendantsConflict()) {
+        if (ref.child.decendantsConflict() || ref.child.hasPrimitiveConflicts()) {
           // Checks if we have visited the child before
-          currCase.append("if(" + queryAndAddHashTableInC + childPtr + ")) { ");
+          currCase.append(" if(" + queryVistedHashtable + childPtr + ")) { ");
           if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
             addChecker(taint, ref.child, cases, currCase, childPtr, depth + 1);
           }
           else {
-            currCase.append(addToQueueInC + childPtr + ");");
+            currCase.append(" " + addToQueueInC + childPtr + "); ");
           }
           
           currCase.append(" } ");
         }
         //one more brace for the opening if
-        if(ref.child.hasPrimitiveConflicts() || ref.hasDirectObjConflict()) {
+        if(ref.hasDirectObjConflict()) {
           currCase.append(" } ");
         }
         
@@ -613,15 +676,15 @@ public class RuntimeConflictResolver {
     }
 
     if((node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
-        (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
-        node.hasPotentialToBeIncorrectDueToConflict) {
+       (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
+       (node.hasPotentialToBeIncorrectDueToConflict && node.decendantsObjConflict)) {
       currCase.append(" } break; \n");
     }
   }
 
   //This method will touch the waiting queues if necessary.
   //IMPORTANT NOTE: This needs a closing } from the caller and the if is cannot continue
-  private void addCheckHashtableAndWaintingQ(StringBuilder currCase, Taint t, ConcreteRuntimeObjNode node, String ptr, int depth) {
+  private void addCheckHashtableAndWaitingQ(StringBuilder currCase, Taint t, ConcreteRuntimeObjNode node, String ptr, int depth) {
     Iterator<ConcreteRuntimeObjNode> it = node.enqueueToWaitingQueueUponConflict.iterator();
     
     currCase.append("int retval"+depth+" = "+ addCheckFromHashStructure + ptr + ");");
@@ -692,63 +755,9 @@ public class RuntimeConflictResolver {
     }
   }
 
-  private void printLookupTableDebug(Hashtable<AllocSite, EffectsGroup> table) {
-    System.out.println("==========Table print out============");
-      System.out.print("    Key is effect Exists/Conflict\n");
-      for(AllocSite allockey: table.keySet()) {
-        EffectsGroup eg= table.get(allockey);
-        if(eg.hasPrimativeConflicts()) {
-          System.out.print("Primitive Conflicts at alloc " + allockey.getUniqueAllocSiteID() +" : ");
-          for(String field: eg.primativeConflictingFields) {
-            System.out.print(field + " ");
-          }
-          System.out.println();
-        }
-        for(String fieldKey: eg.myEffects.keySet()) {
-          CombinedObjEffects ce = eg.myEffects.get(fieldKey);
-          System.out.println("\nFor allocSite " + allockey.getUniqueAllocSiteID() + " && field " + fieldKey);
-          System.out.println("\tread " + ce.hasReadEffect + "/"+ce.hasReadConflict + 
-              " write " + ce.hasWriteEffect + "/" + ce.hasWriteConflict + 
-              " SU " + ce.hasStrongUpdateEffect + "/" + ce.hasStrongUpdateConflict);
-          for(Effect ef: ce.originalEffects) {
-            System.out.println("\t" + ef);
-          }
-        }
-      }
-      System.out.println("===========End print out=============");
-  }
-
   private void printDebug(boolean guard, String debugStatements) {
     if(guard)
       System.out.println(debugStatements);
-  }
-  
-  //This will print the traverser invocation that takes in a traverserID and 
-  //starting ptr
-  public void printMasterTraverserInvocation() {
-    headerFile.println("\nint traverse(void * startingPtr, int traverserID);");
-    cFile.println("\nint traverse(void * startingPtr, int traverserID) {" +
-    		"switch(traverserID) { ");
-    
-    for(Taint t: doneTaints.keySet()) {
-      cFile.println("  case " + doneTaints.get(t)+ ":\n");
-      if(t.isRBlockTaint()) {
-        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getSESE()));
-      }
-      else if (t.isStallSiteTaint()){
-        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getStallSite()));
-      } else {
-        System.out.println("RuntimeConflictResolver encountered a taint that is neither SESE nor stallsite: " + t);
-      }
-    }
-    
-    if(RuntimeConflictResolver.cSideDebug) {
-      cFile.println("default: printf(\" invalid traverser ID %u was passed in.\n\", traverserID); break;");
-    } else {
-      cFile.println("default: break;");
-    }
-    
-    cFile.println("}}");
   }
   
   //TODO finish this once waitingQueue side is figured out
@@ -763,7 +772,7 @@ public class RuntimeConflictResolver {
     int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
     int traverserID = doneTaints.get(taint);
     
-    //NOTE if the C-side is changed, ths will have to be changd accordingly
+    //NOTE if the C-side is changed, this will have to be changed accordingly
     //TODO make sure this matches c-side
     sb.append("put("+allocSiteID+", " +
     		"hashStructures["+ heaprootNum +"]->waitingQueue, " +
@@ -779,6 +788,13 @@ public class RuntimeConflictResolver {
    */
   private void checkWaitingQueue(StringBuilder sb, Taint taint, ConcreteRuntimeObjNode node) {
     //Method looks like int check(struct WaitingQueue * queue, int allocSiteID)
+    assert sb != null && taint !=null;    
+    
+    
+    System.out.println("We need: " + taint);
+    for(Taint t: connectedHRHash.keySet()) {
+      System.out.println("In hash: " + t);
+    }
     int heaprootNum = connectedHRHash.get(taint).id;
     assert heaprootNum != -1;
     int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
@@ -799,6 +815,48 @@ public class RuntimeConflictResolver {
         weaklyConnectedHRCounter++;
       }
     }
+  }
+  
+  private void printoutTable(EffectsTable table) {
+    
+    System.out.println("==============EFFECTS TABLE PRINTOUT==============");
+    for(AllocSite as: table.table.keySet()) {
+      System.out.println("\tFor AllocSite " + as.getUniqueAllocSiteID());
+      
+      BucketOfEffects boe = table.table.get(as);
+      
+      if(boe.potentiallyConflictingRoots != null && !boe.potentiallyConflictingRoots.isEmpty()) {
+        System.out.println("\t\tPotentially conflicting roots: ");
+        for(String key: boe.potentiallyConflictingRoots.keySet()) {
+          System.out.println("\t\t-Field: " + key);
+          System.out.println("\t\t\t" + boe.potentiallyConflictingRoots.get(key));
+        }
+      }
+      for(Taint t: boe.taint2EffectsGroup.keySet()) {
+        System.out.println("\t\t For Taint " + t);
+        EffectsGroup eg = boe.taint2EffectsGroup.get(t);
+          
+        if(eg.hasPrimativeConflicts()) {
+          System.out.print("\t\t\tPrimitive Conflicts at alloc " + as.getUniqueAllocSiteID() +" : ");
+          for(String field: eg.primativeConflictingFields) {
+            System.out.print(field + " ");
+          }
+          System.out.println();
+        }
+        for(String fieldKey: eg.myEffects.keySet()) {
+          CombinedObjEffects ce = eg.myEffects.get(fieldKey);
+          System.out.println("\n\t\t\tFor allocSite " + as.getUniqueAllocSiteID() + " && field " + fieldKey);
+          System.out.println("\t\t\t\tread " + ce.hasReadEffect + "/"+ce.hasReadConflict + 
+              " write " + ce.hasWriteEffect + "/" + ce.hasWriteConflict + 
+              " SU " + ce.hasStrongUpdateEffect + "/" + ce.hasStrongUpdateConflict);
+          for(Effect ef: ce.originalEffects) {
+            System.out.println("\t" + ef);
+          }
+        }
+      }
+        
+    }
+    
   }
   
   private class EffectsGroup
@@ -956,13 +1014,6 @@ public class RuntimeConflictResolver {
     public void addReachableParent(ConcreteRuntimeObjNode curr) {
       parentsWithReadToNode.add(curr);
     }
-    
-    //TODO figure out if getting rid of this hashcode results in correct operation
-//    @Override
-//    public int hashCode() {
-//      // This gets allocsite number
-//      return allocSite.hashCodeSpecific();
-//    }
 
     @Override
     public boolean equals(Object obj) {
@@ -1036,6 +1087,7 @@ public class RuntimeConflictResolver {
             bucket = new BucketOfEffects();
             table.put(e.getAffectedAllocSite(), bucket);
           }
+          printDebug(javaDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + localConflicts.contains(e));
           bucket.add(t, e, localConflicts.contains(e));
         }
       }
@@ -1050,6 +1102,10 @@ public class RuntimeConflictResolver {
     // Run Analysis will walk the data structure and figure out the weakly
     // connected heap roots. 
     public void runAnaylsis() {
+      if(javaDebug) {
+        printoutTable(this); 
+      }
+      
       //TODO is there a higher performance way to do this? 
       for(AllocSite key: table.keySet()) {
         BucketOfEffects effects = table.get(key);
@@ -1125,6 +1181,7 @@ public class RuntimeConflictResolver {
     
     //This table is used to help identify weakly connected groups: Contains ONLY 
     //conflicting effects AND is only initialized when needed
+    //String stores the field
     Hashtable<String, ArrayList<Taint>> potentiallyConflictingRoots;
 
     public BucketOfEffects() {
@@ -1152,7 +1209,7 @@ public class RuntimeConflictResolver {
           potentiallyConflictingRoots = new Hashtable<String, ArrayList<Taint>>();
         }
         
-        ArrayList<Taint> taintsForField = potentiallyConflictingRoots.get(e.getField());
+        ArrayList<Taint> taintsForField = potentiallyConflictingRoots.get(e.getField().getSafeSymbol());
         if(taintsForField == null) {
           taintsForField = new ArrayList<Taint>();
           potentiallyConflictingRoots.put(e.getField().getSafeSymbol(), taintsForField);
@@ -1172,6 +1229,16 @@ public class RuntimeConflictResolver {
     public TaintAndInternalHeapStructure(Taint taint, Hashtable<AllocSite, ConcreteRuntimeObjNode> nodesInHeap) {
       t = taint;
       this.nodesInHeap = nodesInHeap;
+    }
+  }
+  
+  private class FlatNodeReachGraphTuple {
+    public FlatNode f;
+    public ReachGraph rg;
+    
+    public FlatNodeReachGraphTuple(FlatNode fn, ReachGraph g) {
+      f = fn;
+      rg =g;
     }
   }
 }
