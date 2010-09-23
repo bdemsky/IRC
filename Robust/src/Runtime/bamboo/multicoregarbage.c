@@ -65,7 +65,7 @@ typedef struct gc_cache_revise_info {
   int to_page_start_va;
   int to_page_end_va;
   int to_page_index;
-  int revised_sampling[NUMCORESACTIVE];
+  unsigned int revised_sampling[NUMCORESACTIVE];
 } gc_cache_revise_info_t;
 gc_cache_revise_info_t gc_cache_revise_infomation;
 #endif// GC_CACHE_ADAPT
@@ -1961,16 +1961,18 @@ innermoveobj:
   if(orig->ptr >= gc_cache_revise_infomation.orig_page_end_va) {
 	// end of an orig page
 	// compute the impact of this page for the new page
-	int tmp_factor = to->ptr-gc_cache_revise_infomation.to_page_start_va; 
+	unsigned int tmp_factor=
+	  to->ptr-gc_cache_revise_infomation.to_page_start_va; 
 	int topage=gc_cache_revise_infomation.to_page_index;
 	int oldpage = gc_cache_revise_infomation.orig_page_index;
-	int * newtable=&gccachesamplingtbl_r[topage];
-	int * oldtable=&gccachesamplingtbl[oldpage];
+	unsigned int * newtable=&gccachesamplingtbl_r[topage];
+	unsigned int * oldtable=&gccachesamplingtbl[oldpage];
 	
 	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 	  (*newtable) += (*oldtable)*tmp_factor;
-	  newtable=(int*)(((char *)newtable)+size_cachesamplingtbl_local_r);
-	  oldtable=(int*)(((char *)oldtable)+size_cachesamplingtbl_local);
+	  newtable=(unsigned int*)(
+		  ((char *)newtable)+size_cachesamplingtbl_local_r);
+	  oldtable=(unsigned int*)(((char *)oldtable)+size_cachesamplingtbl_local);
 	}
 	// prepare for an new orig page
 	int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
@@ -2045,16 +2047,19 @@ innermoveobj:
 #ifdef GC_CACHE_ADAPT
 	  if((to->ptr) >= gc_cache_revise_infomation.to_page_end_va) {
 		// end of an to page, wrap up its information
-		int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
+		unsigned int tmp_factor = 
+		  tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
 		int topage=gc_cache_revise_infomation.to_page_index;
 		int oldpage = gc_cache_revise_infomation.orig_page_index;
-		int * newtable=&gccachesamplingtbl_r[topage];
-		int * oldtable=&gccachesamplingtbl[oldpage];
+		unsigned int * newtable=&gccachesamplingtbl_r[topage];
+		unsigned int * oldtable=&gccachesamplingtbl[oldpage];
 	  
 		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
-		  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-		  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+		  newtable=(unsigned int*) (
+			  ((char *)newtable)+size_cachesamplingtbl_local_r);
+		  oldtable=(unsigned int*) (
+			  ((char *)oldtable)+size_cachesamplingtbl_local);
 		}
 		// prepare for an new to page
 		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
@@ -2122,50 +2127,23 @@ innermoveobj:
       BAMBOO_MEMSET_WH(to->base, '\0', BAMBOO_CACHE_LINE_SIZE);
       (*((int*)(to->base))) = to->offset;
       nextBlock(to);
-#if 0
-#ifdef GC_CACHE_ADAPT
-	  if((to->base+to->bound) >= gc_cache_revise_infomation.to_page_end_va) {
-		// end of an to page, wrap up its information
-		int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
-		int topage=gc_cache_revise_infomation.to_page_index;
-		int oldpage = gc_cache_revise_infomation.orig_page_index;
-		int * newtable=&gccachesamplingtbl_r[topage];
-		int * oldtable=&gccachesamplingtbl[oldpage];
-	  
-		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
-		  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-		  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
-		}
-		// prepare for an new to page
-		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-		gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
-		gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-		  (BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-		gc_cache_revise_infomation.orig_page_index = 
-		  (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-		gc_cache_revise_infomation.to_page_start_va = to->ptr;
-		gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
-		  (BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-		gc_cache_revise_infomation.to_page_index = 
-		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-	  }
-#endif // GC_CACHE_ADAPT
-#endif
     }
 #ifdef GC_CACHE_ADAPT
 	  if((to->ptr) >= gc_cache_revise_infomation.to_page_end_va) {
 		// end of an to page, wrap up its information
-		int tmp_factor = tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
+		unsigned int tmp_factor = 
+		  tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
 		int topage=gc_cache_revise_infomation.to_page_index;
 		int oldpage = gc_cache_revise_infomation.orig_page_index;
-		int * newtable=&gccachesamplingtbl_r[topage];
-		int * oldtable=&gccachesamplingtbl[oldpage];
+		unsigned int * newtable=&gccachesamplingtbl_r[topage];
+		unsigned int * oldtable=&gccachesamplingtbl[oldpage];
 	  
 		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
 		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
-		  newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-		  oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+		  newtable=(unsigned int*) (
+			  ((char *)newtable)+size_cachesamplingtbl_local_r);
+		  oldtable=(unsigned int*) (
+			  ((char *)oldtable)+size_cachesamplingtbl_local);
 		}
 		// prepare for an new to page
 		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
@@ -2278,16 +2256,17 @@ innercompact:
   }
 #ifdef GC_CACHE_ADAPT
   // end of an to page, wrap up its information
-  int tmp_factor = to->ptr-gc_cache_revise_infomation.to_page_start_va;
+  unsigned int tmp_factor = 
+	to->ptr-gc_cache_revise_infomation.to_page_start_va;
   int topage=gc_cache_revise_infomation.to_page_index;
   int oldpage = gc_cache_revise_infomation.orig_page_index;
-  int * newtable=&gccachesamplingtbl_r[topage];
-  int * oldtable=&gccachesamplingtbl[oldpage];
+  unsigned int * newtable=&gccachesamplingtbl_r[topage];
+  unsigned int * oldtable=&gccachesamplingtbl[oldpage];
   
   for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
     (*newtable) = ((*newtable)+(*oldtable)*tmp_factor);
-    newtable=(int*) (((char *)newtable)+size_cachesamplingtbl_local_r);
-    oldtable=(int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+    newtable=(unsigned int*)(((char *)newtable)+size_cachesamplingtbl_local_r);
+    oldtable=(unsigned int*) (((char *)oldtable)+size_cachesamplingtbl_local);
   }
 #endif // GC_CACHE_ADAPT
   // if no objs have been compact, do nothing,
@@ -2970,12 +2949,13 @@ int cacheAdapt_policy_hotest(){
 	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
 	bamboo_cache_policy_t policy = {0};
 	int hotestcore = 0;
-	int hotfreq = 0;
+	unsigned int hotfreq = 0;
 
-	int *local_tbl=&gccachesamplingtbl_r[page_index];
+	unsigned int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int freq = *local_tbl;
-	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
+	  unsigned int freq = *local_tbl;
+	  local_tbl=(unsigned int *)(
+		  ((char *)local_tbl)+size_cachesamplingtbl_local_r);
 
 	  // check the freqency, decide if this page is hot for the core
 	  if(hotfreq < freq) {
@@ -3023,13 +3003,14 @@ int cacheAdapt_policy_dominate(){
 	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
 	bamboo_cache_policy_t policy = {0};
 	int hotestcore = 0;
-	int totalfreq = 0;
-	int hotfreq = 0;
+	unsigned long long totalfreq = 0;
+	unsigned int hotfreq = 0;
 	
-	int *local_tbl=&gccachesamplingtbl_r[page_index];
+	unsigned int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int freq = *local_tbl;
-	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
+	  unsigned int freq = *local_tbl;
+	  local_tbl=(unsigned int *)(
+		  ((char *)local_tbl)+size_cachesamplingtbl_local_r);
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3047,7 +3028,8 @@ int cacheAdapt_policy_dominate(){
 	  // this page has not been accessed, do not change its cache policy
 	  continue;
 	}
-	totalfreq = (totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)/100/BAMBOO_PAGE_SIZE;
+	totalfreq = 
+	  (totalfreq*GC_CACHE_ADAPT_DOMINATE_THRESHOLD)/100/BAMBOO_PAGE_SIZE;
 	hotfreq/=BAMBOO_PAGE_SIZE;
 	if(hotfreq < totalfreq) {
 	  // use hfh
@@ -3069,9 +3051,9 @@ int cacheAdapt_policy_dominate(){
   return numchanged;
 } // int cacheAdapt_policy_dominate()
 
-#define GC_CACHE_ADAPT_OVERLOAD_THRESHOLD 20000
+#define GC_CACHE_ADAPT_OVERLOAD_THRESHOLD 10
 
-void gc_quicksort(int *array, 
+void gc_quicksort(unsigned long long *array, 
 	              int left,
 				  int right,
 				  int offset) {
@@ -3090,7 +3072,7 @@ void gc_quicksort(int *array,
 	  }
 	  // swap [leftIdx] & [rightIdx]
 	  for(int k = 0; k < 3; k++) {
-		int tmp = array[3*rightIdx-k];
+		unsigned long long tmp = array[3*rightIdx-k];
 		array[3*rightIdx-k] = array[3*leftIdx-k];
 		array[3*leftIdx-k] = tmp;
 	  }
@@ -3122,19 +3104,21 @@ int cacheAdapt_policy_overload(){
   unsigned long long workload[NUMCORESACTIVE];
   memset(workload, 0, NUMCORESACTIVE*sizeof(unsigned long long));
   unsigned long long total_workload = 0;
-  int core2heavypages[NUMCORESACTIVE][page_num*3+1];
-  memset(core2heavypages, 0, sizeof(int)*(page_num*3+1)*NUMCORESACTIVE);
+  unsigned long long core2heavypages[NUMCORESACTIVE][page_num*3+1];
+  memset(core2heavypages,0,
+	  sizeof(unsigned long long)*(page_num*3+1)*NUMCORESACTIVE);
   for(page_index = 0; page_index < page_num; page_index++) {
 	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
 	bamboo_cache_policy_t policy = {0};
 	int hotestcore = 0;
-	int totalfreq = 0;
-	int hotfreq = 0;
+	unsigned long long totalfreq = 0;
+	unsigned int hotfreq = 0;
 	
-	int *local_tbl=&gccachesamplingtbl_r[page_index];
+	unsigned int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int freq = *local_tbl;
-	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
+	  unsigned int freq = *local_tbl;
+	  local_tbl=(unsigned int *)(
+		  ((char *)local_tbl)+size_cachesamplingtbl_local_r);
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3173,11 +3157,11 @@ int cacheAdapt_policy_overload(){
 	workload[hotestcore] += totalfreq;
 	total_workload += totalfreq;
 	// insert into core2heavypages using quicksort
-	int remoteaccess = totalfreq - hotfreq;
-	int index = core2heavypages[hotestcore][0];
+	unsigned long long remoteaccess = totalfreq - hotfreq;
+	int index = (int)core2heavypages[hotestcore][0];
 	core2heavypages[hotestcore][3*index+3] = remoteaccess;
 	core2heavypages[hotestcore][3*index+2] = totalfreq;
-	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
+	core2heavypages[hotestcore][3*index+1] = (unsigned long long)(tmp_p-1);
 	core2heavypages[hotestcore][0]++;
 	// TODO
 	/*if(page_sva == 0x10f10000) {
@@ -3190,11 +3174,12 @@ int cacheAdapt_policy_overload(){
 	}*/
   }
 
-  int workload_threshold = total_workload / 10;
+  unsigned long long workload_threshold = 
+	total_workload/GC_CACHE_ADAPT_OVERLOAD_THRESHOLD;
   // Check the workload of each core
   for(int i = 0; i < NUMCORESACTIVE; i++) {
 	int j = 1;
-	int index = core2heavypages[i][0];
+	int index = (int)core2heavypages[i][0];
 	if(workload[i] > workload_threshold/*GC_CACHE_ADAPT_OVERLOAD_THRESHOLD*/) {
 	  // sort according to the remoteaccess
 	  gc_quicksort(&core2heavypages[i][0], 1, index, 0);
@@ -3234,19 +3219,21 @@ int cacheAdapt_policy_crowd(){
   unsigned long long workload[NUMCORESACTIVE];
   memset(workload, 0, NUMCORESACTIVE*sizeof(unsigned long long));
   unsigned long long total_workload = 0;
-  int core2heavypages[NUMCORESACTIVE][page_num*3+1];
-  memset(core2heavypages, 0, sizeof(int)*(page_num*3+1)*NUMCORESACTIVE);
+  unsigned long long core2heavypages[NUMCORESACTIVE][page_num*3+1];
+  memset(core2heavypages,0,
+	  sizeof(unsigned long long)*(page_num*3+1)*NUMCORESACTIVE);
   for(page_index = 0; page_index < page_num; page_index++) {
 	page_sva = gcbaseva + (BAMBOO_PAGE_SIZE) * page_index;
 	bamboo_cache_policy_t policy = {0};
 	int hotestcore = 0;
-	int totalfreq = 0;
-	int hotfreq = 0;
+	unsigned long long totalfreq = 0;
+	unsigned int hotfreq = 0;
 	
-	int *local_tbl=&gccachesamplingtbl_r[page_index];
+	unsigned int *local_tbl=&gccachesamplingtbl_r[page_index];
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int freq = *local_tbl;
-	  local_tbl=(int *)(((char *)local_tbl)+size_cachesamplingtbl_local_r);
+	  unsigned int freq = *local_tbl;
+	  local_tbl=(unsigned int *)(
+		  ((char *)local_tbl)+size_cachesamplingtbl_local_r);
 	  totalfreq += freq;
 	  // TODO
 	  // check the freqency, decide if this page is hot for the core
@@ -3284,11 +3271,11 @@ int cacheAdapt_policy_crowd(){
 	workload[hotestcore] += totalfreq;
 	total_workload += totalfreq;
 	// insert into core2heavypages using quicksort
-	int remoteaccess = totalfreq - hotfreq;
-	int index = core2heavypages[hotestcore][0];
+	unsigned long long remoteaccess = totalfreq - hotfreq;
+	int index = (int)core2heavypages[hotestcore][0];
 	core2heavypages[hotestcore][3*index+3] = remoteaccess;
 	core2heavypages[hotestcore][3*index+2] = totalfreq;
-	core2heavypages[hotestcore][3*index+1] = tmp_p-1;
+	core2heavypages[hotestcore][3*index+1] = (unsigned long long)(tmp_p-1);
 	core2heavypages[hotestcore][0]++;
 	// TODO
 	/*if(page_sva == 0x10f10000) {
@@ -3301,11 +3288,12 @@ int cacheAdapt_policy_crowd(){
 	}*/
   }
 
-  int workload_threshold = total_workload / 10;
+  unsigned long long workload_threshold = 
+	total_workload / GC_CACHE_ADAPT_OVERLOAD_THRESHOLD;
   // Check the workload of each core
   for(int i = 0; i < NUMCORESACTIVE; i++) {
 	int j = 1;
-	int index = core2heavypages[i][0];
+	int index = (int)core2heavypages[i][0];
 	if(workload[i] > workload_threshold/*GC_CACHE_ADAPT_OVERLOAD_THRESHOLD*/) {
 	  // sort according to the remoteaccess
 	  gc_quicksort(&core2heavypages[i][0], 1, index, 0);
@@ -3323,9 +3311,10 @@ int cacheAdapt_policy_crowd(){
 	// sort according to the total access
 inner_crowd:
 	gc_quicksort(&core2heavypages[i][0], j/3+1, index, 1);
-	int threshold = GC_CACHE_ADAPT_ACCESS_THRESHOLD*workload[i]/100;
+	unsigned long long threshold = 
+	  GC_CACHE_ADAPT_ACCESS_THRESHOLD*workload[i]/100;
 	int num_crowded = 0;
-	int t_workload = 0;
+	unsigned long long t_workload = 0;
 	do {
 	  t_workload += core2heavypages[i][j+num_crowded*3+1];
 	  num_crowded++;
@@ -3426,9 +3415,9 @@ void gc_output_cache_sampling() {
 	tprintf("va: %x page_index: %d host: %d\n", 
 		(int)page_sva, page_index, coren);
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int * local_tbl = (int *)((void *)gccachesamplingtbl
+	  unsigned int * local_tbl = (unsigned int *)((void *)gccachesamplingtbl
 		  +size_cachesamplingtbl_local*i);
-	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
+	  unsigned int freq = local_tbl[page_index];
 	  printf("%8d ",freq);
 	}
 	printf("\n");
@@ -3448,9 +3437,9 @@ void gc_output_cache_sampling_r() {
 	tprintf("va: %x page_index: %d host: %d\n", 
 		(int)page_sva, page_index, coren);
 	for(int i = 0; i < NUMCORESACTIVE; i++) {
-	  int * local_tbl = (int *)((void *)gccachesamplingtbl_r
+	  unsigned int * local_tbl = (unsigned int *)((void *)gccachesamplingtbl_r
 		  +size_cachesamplingtbl_local_r*i);
-	  int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
+	  unsigned int freq = local_tbl[page_index]/BAMBOO_PAGE_SIZE;
 	  printf("%8d ",freq);
 	}
 	printf("\n");
@@ -4066,6 +4055,12 @@ inline bool gc(struct garbagelist * stackptr) {
     return false;
   }
 
+#ifdef GC_CACHE_ADAPT
+#ifdef GC_CACHE_SAMPLING
+    // disable the timer interrupt
+    bamboo_mask_timer_intr();
+#endif 
+#endif 
   // core coordinator routine
   if(0 == BAMBOO_NUM_OF_CORE) {
 #ifdef GC_DEBUG
@@ -4162,7 +4157,7 @@ pregccheck:
 #ifdef GC_CACHE_ADAPT
 #ifdef GC_CACHE_SAMPLING
     // disable the timer interrupt
-    bamboo_mask_timer_intr();
+    //bamboo_mask_timer_intr();
     // get the sampling data 
     bamboo_output_dtlb_sampling();
 #endif // GC_CACHE_SAMPLING
@@ -4190,7 +4185,7 @@ pregccheck:
 #ifdef GC_CACHE_ADAPT
 #ifdef GC_CACHE_SAMPLING
 	// disable the timer interrupt
-	bamboo_mask_timer_intr();
+	//bamboo_mask_timer_intr();
 	if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
 	  // get the sampling data 
 	  bamboo_output_dtlb_sampling();
@@ -4227,7 +4222,7 @@ pregccheck:
 #ifdef GC_CACHE_ADAPT
 #ifdef GC_CACHE_SAMPLING
 	// disable the timer interrupt
-	bamboo_mask_timer_intr();
+	//bamboo_mask_timer_intr();
 	if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
 	  // get the sampling data 
 	  bamboo_output_dtlb_sampling();
