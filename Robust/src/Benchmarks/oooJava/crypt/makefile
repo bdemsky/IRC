@@ -5,7 +5,7 @@ SOURCE_FILES=JGFCryptBench.java
 BUILDSCRIPT=../../../buildscript
 
 USEOOO= -ooojava 24 2  -ooodebug  
-BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize -noloop -optimize
+BSFLAGS= -64bit -mainclass $(PROGRAM) -heapsize-mb 1024 -garbagestats -joptimize -noloop -optimize
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions 
 
 default:

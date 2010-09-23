@@ -5,7 +5,7 @@ SOURCE_FILES=JGFSORBenchSizeD.java
 BUILDSCRIPT=../../../buildscript
 
 USEOOO= -ooojava 24 2  -ooodebug  
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 1024 -garbagestats -debug -joptimize -noloop -optimize #-coreprof -coreprof-eventwords 1024*1024*128 #-coreprof-checkoverflow 
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 6*1024 -garbagestats -debug -joptimize -noloop -optimize #-coreprof -coreprof-eventwords 1024*1024*128 #-coreprof-checkoverflow 
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions #-disjoint-desire-determinism
 
 default:
