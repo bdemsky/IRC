@@ -28,6 +28,11 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Integer           oldestAgeToTrack;
   protected boolean           isCallerSESEplaceholder;
 
+  protected static final int ISLEAF_UNINIT = 1;
+  protected static final int ISLEAF_FALSE  = 2;
+  protected static final int ISLEAF_TRUE   = 3;
+  protected int isLeafSESE;
+
   protected Set<FlatSESEEnterNode> children;
 
   protected Set<TempDescriptor> inVars;
@@ -97,6 +102,8 @@ public class FlatSESEEnterNode extends FlatNode {
     cdEnclosing = null;
 
     isCallerSESEplaceholder = false;
+
+    isLeafSESE = ISLEAF_UNINIT;
 
     firstDepRecField = null;
     numDepRecs       = 0;
@@ -396,5 +403,23 @@ public class FlatSESEEnterNode extends FlatNode {
   
   public void addInVarForDynamicCoarseConflictResolution(TempDescriptor inVar) {
     inVarsForDynamicCoarseConflictResolution.add(inVar);
+  }
+
+  
+  public void setIsLeafSESE( boolean isLeaf ) {
+    //protected static final int ISLEAF_UNINIT = 1;
+    if( isLeaf ) {
+      isLeafSESE = ISLEAF_TRUE;
+    } else {
+      isLeafSESE = ISLEAF_FALSE;
+    }
+  }
+
+  public boolean getIsLeafSESE() {
+    if( isLeafSESE == ISLEAF_UNINIT ) {
+      throw new Error( "isLeafSESE uninitialized" );
+    }
+
+    return isLeafSESE == ISLEAF_TRUE;
   }
 }

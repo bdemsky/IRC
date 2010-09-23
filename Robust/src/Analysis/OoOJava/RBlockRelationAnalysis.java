@@ -40,6 +40,10 @@ public class RBlockRelationAnalysis {
                                 >
                      > fm2relmap;
 
+  // to support calculation of leaf SESEs (no children even
+  // through method calls) for optimization during code gen
+  protected Set<MethodDescriptor> methodsContainingSESEs;
+
 
   public RBlockRelationAnalysis( State     state,
                                  TypeUtil  typeUtil,
@@ -50,6 +54,8 @@ public class RBlockRelationAnalysis {
 
     rootSESEs = new HashSet<FlatSESEEnterNode>();
     allSESEs  = new HashSet<FlatSESEEnterNode>();
+
+    methodsContainingSESEs = new HashSet<MethodDescriptor>();
 
     fm2relmap = 
       new Hashtable< FlatMethod, Hashtable< FlatNode, Stack<FlatSESEEnterNode> > >();
@@ -71,6 +77,8 @@ public class RBlockRelationAnalysis {
     descriptorsToAnalyze.add( mdSourceEntry );
 
     analyzeMethods( descriptorsToAnalyze );
+
+    computeLeafSESEs();
   }
 
 
@@ -162,6 +170,7 @@ public class RBlockRelationAnalysis {
 
       if( !fsen.getIsCallerSESEplaceholder() ) {
         allSESEs.add( fsen );
+        methodsContainingSESEs.add( fm.getMethod() );
       }
 
       fsen.setfmEnclosing( fm );
@@ -197,4 +206,67 @@ public class RBlockRelationAnalysis {
       
     }
   }
+
+
+  protected void computeLeafSESEs() {
+    for( Iterator<FlatSESEEnterNode> itr = allSESEs.iterator();
+         itr.hasNext();
+         ) {
+      FlatSESEEnterNode fsen = itr.next();
+      
+      boolean hasNoNestedChildren = !fsen.getChildren().isEmpty();
+      boolean hasNoChildrenByCall = !hasChildrenByCall( fsen );
+
+      fsen.setIsLeafSESE( hasNoNestedChildren &&
+                          hasNoChildrenByCall );
+    }
+  }
+
+
+  protected boolean hasChildrenByCall( FlatSESEEnterNode fsen ) {
+
+    // visit every flat node in SESE body, find method calls that
+    // may transitively call methods with SESEs enclosed
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fsen );
+    
+    Set<FlatNode> visited = new HashSet<FlatNode>();    
+
+    while( !flatNodesToVisit.isEmpty() ) {
+      Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
+      FlatNode fn = fnItr.next();
+
+      flatNodesToVisit.remove( fn );
+      visited.add( fn );      
+
+      if( fn.kind() == FKind.FlatCall ) {
+        FlatCall         fc        = (FlatCall) fn;
+        MethodDescriptor mdCallee  = fc.getMethod();
+        Set              reachable = new HashSet();
+
+        reachable.addAll( callGraph.getAllMethods( mdCallee ) );
+        reachable.retainAll( methodsContainingSESEs );
+        
+        if( !reachable.isEmpty() ) {
+          return true;
+        }
+      }
+
+      if( fn == fsen.getFlatExit() ) {
+        // don't enqueue any futher nodes
+        continue;
+      }
+      
+      for( int i = 0; i < fn.numNext(); i++ ) {
+	FlatNode nn = fn.getNext( i );
+        
+	if( !visited.contains( nn ) ) {
+	  flatNodesToVisit.add( nn );
+	}
+      }
+    }      
+
+    return false;
+  }
+
 }
