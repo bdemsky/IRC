@@ -10,15 +10,7 @@
 #include "methodheaders.h"
 
 
-
-/*
-__thread struct Queue* seseCallStack;
-__thread pthread_once_t mlpOnceObj = PTHREAD_ONCE_INIT;
-void mlpInitOncePerThread() { 
-  seseCallStack = createQueue();
-}
-*/
-__thread SESEcommon_p seseCaller;
+__thread SESEcommon* runningSESE;
 
 
 void* mlpAllocSESErecord( int size ) {
@@ -54,10 +46,6 @@ REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID){
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
   newREntry->pointer=dynID;
-  if((*newREntry->pointer)!=0){// make sure it is not unresolved address.
-    struct ___Object___ * obj=(struct ___Object___*)((unsigned INTPTR)*newREntry->pointer);
-    newREntry->oid=obj->oid;
-  }
   return newREntry;
 }
 
@@ -246,7 +234,12 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
   //at this point, have table
   Hashtable* table=(Hashtable*)q->tail;
   r->hashtable=table; // set rentry's hashtable
-  if((*(r->pointer)==0 || (*(r->pointer)!=0 && BARRIER() && table->unresolvedQueue!=NULL))){
+  if( *(r->pointer)==0 || 
+      ( *(r->pointer)!=0 && 
+        BARRIER() && 
+        table->unresolvedQueue!=NULL
+        )        
+   ){
     struct Queue* val;
     // grab lock on the queue    
     do {  
@@ -273,8 +266,16 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
     return NOTREADY;
   }
   BinItem * val;
-  //int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));  
-  int key=generateKey(r->oid);
+
+  // leave this--its a helpful test when things are going bonkers
+  //if( OBJPTRPTR_2_OBJOID( r->pointer ) == 0 ) {
+  //  // we started numbering object ID's at 1, if we try to
+  //  // hash a zero oid, something BAD is about to happen!
+  //  printf( "Tried to insert invalid object type=%d into mem Q hashtable!\n",
+  //          OBJPTRPTR_2_OBJTYPE( r->pointer ) );
+  //  exit( -1 );
+  //}
+  int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
@@ -295,8 +296,7 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
 int ADDTABLEITEM(Hashtable* table, REntry* r, int inc){
  
   BinItem * val;
-  //  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
-  int key=generateKey(r->oid);
+  int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
   do {  
     val=(BinItem*)0x1;       
     BinElement* bin=table->array[key];
@@ -436,7 +436,6 @@ int TAILREADCASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int ke
     readbintail->array[readbintail->index++]=r;
     atomic_inc(&readbintail->item.total);
     r->binitem=(BinItem*)readbintail;
-    //printf("grouping with %d\n",readbintail->index);
   }
   if(inc){
     atomic_inc(&T->item.total);
@@ -587,8 +586,7 @@ RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
 }
 
 RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
-  //  int key=generateKey((unsigned int)(unsigned INTPTR)*(r->pointer));
-  int key=generateKey(r->oid);
+  int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
   if(isFineRead(r)) {
     atomic_dec(&b->total);
   }
@@ -809,7 +807,7 @@ int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCo
   for(i=0; i<q->bufcount;i++){
     REntry *r=q->buf[i];
     if(r->type==WRITE){
-      int key=generateKey(r->oid);
+      int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
       if(q->binbuf[key]==NULL){
 	// for multiple writes, add only the first write that hashes to the same bin
 	q->binbuf[key]=r;  
@@ -822,7 +820,7 @@ int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCo
   for(i=0; i<q->bufcount;i++){
     REntry *r=q->buf[i];    
     if(r!=NULL && r->type==READ){
-      int key=generateKey(r->oid);
+      int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
       if(q->binbuf[key]==NULL){
 	// read item that hashes to the bin which doen't contain any write
 	seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
@@ -874,7 +872,7 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon){
   for(i=0; i<q->bufcount;i++){
     REntry *r=q->buf[i];
     if(r->type==WRITE){
-      int key=generateKey(r->oid);
+      int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
       if(q->binbuf[key]==NULL){
 	// for multiple writes, add only the first write that hashes to the same bin
 	q->binbuf[key]=r;  
@@ -887,7 +885,7 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon){
   for(i=0; i<q->bufcount;i++){
     REntry *r=q->buf[i];    
     if(r!=NULL && r->type==READ){
-      int key=generateKey(r->oid);
+      int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
       if(q->binbuf[key]==NULL){
 	// read item that hashes to the bin which doen't contain any write
 	seseCommon->rentryArray[seseCommon->rentryIdx++]=r;
@@ -940,9 +938,8 @@ resolvePointer(REntry* rentry){
 	  break;
 	}
 	removeItem(val,head);
-	//now, address is resolved. update OID field.
-	struct ___Object___ * obj=(struct ___Object___*)((unsigned INTPTR)*rentry->pointer);
-	rentry->oid=obj->oid;
+
+	//now, address is resolved
 	
 	//check if rentry is buffer mode
 	if(rentry->isBufMode==TRUE){
@@ -981,7 +978,7 @@ resolvePointer(REntry* rentry){
   }  
 }
 
-void rehashMemoryQueue(SESEcommon_p seseParent){    
+void rehashMemoryQueue(SESEcommon* seseParent){    
 #if 0
   // update memory queue
   int i,binidx;

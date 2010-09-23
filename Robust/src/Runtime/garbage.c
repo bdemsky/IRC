@@ -1019,7 +1019,7 @@ updateForwardList(struct Queue *forwardList, int prevUpdate){
 
 }
 
-updateMemoryQueue(SESEcommon_p seseParent){
+updateMemoryQueue(SESEcommon* seseParent){
   // update memory queue
   int i,binidx;
   for(i=0; i<seseParent->numMemoryQueue; i++){

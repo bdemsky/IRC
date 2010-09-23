@@ -1916,10 +1916,8 @@ public class BuildCode {
           System.out.println("size="+lockSet.size());
           if (lockSet.size() > 0) {
             output.println("   numMemoryQueue=" + lockSet.size() + ";");
-            output
-                .println("   seseCaller->numMemoryQueue=numMemoryQueue;");
-            output
-                .println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+            output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+            output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
             output.println();
           }
         }
@@ -1942,10 +1940,8 @@ public class BuildCode {
             System.out.println("size="+lockSet.size());
             if (lockSet.size() > 0) {
               output.println("   numMemoryQueue=" + lockSet.size() + ";");
-              output
-                  .println("   seseCaller->numMemoryQueue=numMemoryQueue;");
-              output
-                  .println("   seseCaller->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+              output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+              output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
               output.println();
             }
           }
@@ -2203,6 +2199,7 @@ public class BuildCode {
     output.print(fsen.getSESErecordName()+"* "+paramsprefix);
     output.println("){\n");
 
+
     TempObject objecttemp=(TempObject) tempstable.get(md);
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
@@ -2271,6 +2268,14 @@ public class BuildCode {
 	output.println("   "+type+" "+temp+";");       
       }
     }    
+
+
+    // initialize thread-local var to a the task's record, which is fused
+    // with the param list
+    output.println("   ");
+    output.println("   /* code of this task's body should use this to access the running task record */");
+    output.println("   runningSESE = &(___params___->common);");
+    output.println("   ");
     
     // setup memory queue
     // eom
@@ -2281,16 +2286,12 @@ public class BuildCode {
 	Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(fsen);
 	if (graph != null && graph.hasConflictEdge()) {
 		output.println("   {");
-		output
-				.println("   SESEcommon* parentCommon = &(___params___->common);");
 		Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
 		System.out.println("#lockSet="+lockSet);
 		if (lockSet.size() > 0) {
 			output.println("   numMemoryQueue=" + lockSet.size() + ";");
-			output
-					.println("   parentCommon->numMemoryQueue=numMemoryQueue;");
-			output
-					.println("   parentCommon->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+			output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+			output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
 			output.println();
 		}
 		output.println("   }");
@@ -2303,24 +2304,30 @@ public class BuildCode {
       graph = mlpa.getConflictGraphResults().get(fsen);
       if (graph != null && graph.hasConflictEdge()) {
         output.println("   {");
-        output
-            .println("   SESEcommon* parentCommon = &(___params___->common);");
         HashSet<SESELock> lockSet = mlpa.getConflictGraphLockMap().get(
             graph);
         System.out.println("#lockSet="+lockSet);
 
         if (lockSet.size() > 0) {
           output.println("   numMemoryQueue=" + lockSet.size() + "; ");
-          output
-              .println("   parentCommon->numMemoryQueue=numMemoryQueue;");
-          output
-              .println("   parentCommon->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+          output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+          output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
           output.println();
         }
         output.println("   }");
       }
        
     }
+
+
+    // set up a task's mem pool to recycle the allocation of children tasks
+    // TODO: optimize by skipping this initialization when the current task
+    // is known to have no children (non-trivial, no children in body and
+    // no possibilty of issuing child within method calls)
+    output.println("   {");
+    output.println("     runningSESE->taskRecordMemPool = poolcreate( "+
+                   maxTaskRecSizeStr+" );");
+    output.println("   }");
 
 
     // copy in-set into place, ready vars were already 
@@ -2334,22 +2341,11 @@ public class BuildCode {
       VariableSourceToken vst = fsen.getStaticInVarSrc( temp );
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
       
-      // can't grab something from this source until it is done
-      output.println("   {");
-      /*
-	If we are running, everything is done.  This check is redundant.
-
-	output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+srcPair+";" );
-	output.println("     pthread_mutex_lock( &(com->lock) );");
-	output.println("     while( com->doneExecuting == FALSE ) {");
-	output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
-	output.println("     }");
-	output.println("     pthread_mutex_unlock( &(com->lock) );");
-      */
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
 		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
-
-      output.println("   }");
+      //output.println("     if( atomic_sub_and_test( 1, &src->refCount ) ) {");
+      //output.println("       poolfree( src->parent->taskRecordMemPool, src );");
+      //output.println("     }");
     }
 
     // dynamic vars come from an SESE and src
@@ -2360,17 +2356,6 @@ public class BuildCode {
       
       // go grab it from the SESE source
       output.println("   if( "+paramsprefix+"->"+temp+"_srcSESE != NULL ) {");
-
-      // gotta wait until the source is done
-      output.println("     SESEcommon* com = (SESEcommon*)"+paramsprefix+"->"+temp+"_srcSESE;" );
-      /*
-	If we are running, everything is done!
-	output.println("     pthread_mutex_lock( &(com->lock) );");
-	output.println("     while( com->doneExecuting == FALSE ) {");
-	output.println("       pthread_cond_wait( &(com->doneCond), &(com->lock) );");
-	output.println("     }");
-	output.println("     pthread_mutex_unlock( &(com->lock) );");
-      */
 
       String typeStr;
       if( type.isNull() ) {
@@ -2385,8 +2370,13 @@ public class BuildCode {
 		     " = *(("+typeStr+"*) ("+
 		     paramsprefix+"->"+temp+"_srcSESE + "+
 		     paramsprefix+"->"+temp+"_srcOffset));");
+      
+      //output.println("     if( atomic_sub_and_test( 1, &src->refCount ) ) {");
+      //output.println("       poolfree( src->parent->taskRecordMemPool, src );");
+      //output.println("     }");
 
-      // or if the source was our parent, its in the record to grab
+
+      // or if the source was our parent, its in our record to grab
       output.println("   } else {");
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
 		           " = "+paramsprefix+"->"+temp+";");
@@ -2406,9 +2396,6 @@ public class BuildCode {
 //	}
 //      }
     }    
-
-    // initialize thread-local var to a non-zero, invalid address
-    output.println("   seseCaller = (SESEcommon*) 0x2;");
 
     if( state.COREPROF ) {
       output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_BEGIN );");
@@ -3012,13 +2999,13 @@ public class BuildCode {
                 }
                
                 if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-                  output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+                  output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", runningSESE);");
                 }else{
-                  output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
+                  output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
                 }         
                 output.println("     psem_init( &(rentry->parentStallSem) );");
-                output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-                output.println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+                output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()
                            + "],rentry)==NOTREADY){");
                 if( state.COREPROF ) {
                   //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
@@ -3062,15 +3049,14 @@ public class BuildCode {
   					
                   if( waitingElement.getStatus() >= ConflictNode.COARSE ){
                     // HERE! a parent might conflict with a child
-                    output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", seseCaller);");
+                    output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", runningSESE);");
                   }else{
-                    output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
-                    //						output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", seseCaller,  ___locals___."+ waitingElement.getDynID() + "->oid);");	
+                    output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
                   }					
                   output.println("     psem_init( &(rentry->parentStallSem) );");
-                  output.println("     rentry->queue=seseCaller->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
+                  output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
                   output
-                    .println("     if(ADDRENTRY(seseCaller->memoryQueueArray["+ waitingElement.getQueueID()
+                    .println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()
                              + "],rentry)==NOTREADY){");
                   if( state.COREPROF ) {
                     //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
@@ -3635,7 +3621,7 @@ public class BuildCode {
 	output.println("     SESEcommon* parentCommon = &("+paramsprefix+"->common);");
       } else {
 	//output.println("     SESEcommon* parentCommon = (SESEcommon*) peekItem( seseCallStack );");
-	output.println("     SESEcommon* parentCommon = seseCaller;");
+	output.println("     SESEcommon* parentCommon = runningSESE;");
       }
     }
     
@@ -3652,6 +3638,21 @@ public class BuildCode {
                    fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                    fsen.getSESErecordName()+" ) );");
    
+    /*
+    if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
+        (state.OOOJAVA && fsen != oooa.getMainSESE())
+        ) {
+      output.println("     "+
+                     fsen.getSESErecordName()+"* seseToIssue = ("+
+                     fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
+    } else {
+      output.println("     "+
+                     fsen.getSESErecordName()+"* seseToIssue = ("+
+                     fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
+                     fsen.getSESErecordName()+" ) );");
+    }
+    */
+
     // set up the SESE in-set and out-set objects, which look
     // like a garbage list
     output.println("     struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
@@ -3674,10 +3675,6 @@ public class BuildCode {
                      );
     }
     
-
-    // and keep the thread-local sese stack up to date (jjenista--this still relevant??)
-    //output.println("     addNewItem( seseCallStack, (void*) seseToIssue);");
-
     // fill in common data
     output.println("     int localCount=0;");
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
@@ -3690,6 +3687,7 @@ public class BuildCode {
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
     output.println("     seseToIssue->common.parent = parentCommon;");
+    output.println("     seseToIssue->common.refCount = 1;");
 
     // all READY in-vars should be copied now and be done with it
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
@@ -3748,7 +3746,7 @@ public class BuildCode {
 	output.println("       }");
 	output.println("       if( !src->doneExecuting ) {");
 	output.println("         addNewItem( src->forwardList, seseToIssue );");
-//	output.println("         ++(seseToIssue->common.unresolvedDependencies);");
+        output.println("         src->refCount++;");
 	output.println("         ++(localCount);");
 	output.println("       }");
 	output.println("       pthread_mutex_unlock( &(src->lock) );");
@@ -3783,7 +3781,7 @@ public class BuildCode {
 	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
 	output.println("           if( !src->doneExecuting ) {");
 	output.println("             addNewItem( src->forwardList, seseToIssue );");
-//	output.println("             ++(seseToIssue->common.unresolvedDependencies);");
+        output.println("             src->refCount++;");
 	output.println("             ++(localCount);");
 	output.println("           }");
 	output.println("         }");
@@ -4298,10 +4296,19 @@ public class BuildCode {
     output.println("     }");
     output.println("   }");
 
-    // this is a thread-only variable that can be handled when critical sese-to-sese
-    // data has been taken care of--set sese pointer to remember self over method
-    // calls to a non-zero, invalid address
-    output.println("   seseCaller = (SESEcommon*) 0x1;");    
+    // only do this pool free if this is not the Main sese (which has no parent
+    // and therefore no pool to free into)
+    if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
+        (state.OOOJAVA && fsen != oooa.getMainSESE())
+        ) {
+      //output.println("   if( atomic_sub_and_test( 1, &runningSESE->refCount ) ) {");
+      //output.println("     poolfree( runningSESE->parent->taskRecordMemPool, runningSESE );");
+      //output.println("   }");
+    }
+
+    // as this thread is wrapping up the task, make sure the thread-local var
+    // for the currently running task record references an invalid task
+    output.println("   runningSESE = (SESEcommon*) 0x1;");
 
     if( state.COREPROF ) {
       output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
@@ -4380,11 +4387,13 @@ public class BuildCode {
 
   private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
 
+    /*
     if( (state.MLP && !nonSESEpass) || 
         (state.OOOJAVA && !nonSESEpass)
     ) {
-      output.println("     seseCaller = (SESEcommon*)"+paramsprefix+";");
+      output.println("     runningSESE = (SESEcommon*)"+paramsprefix+";");
     }
+    */
 
     MethodDescriptor md=fc.getMethod();
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);

@@ -70,7 +70,9 @@ void* workerMain( void* arg ) {
 
   //pthread_cleanup_push( workerExit, NULL );  
   
-  oid = myData->id;
+  // ensure that object ID's start at 1 so that using
+  // oid with value 0 indicates an invalid object
+  oid = myData->id + 1;
 
   //pthread_setcanceltype ( PTHREAD_CANCEL_ASYNCHRONOUS, &oldState );
   //pthread_setcancelstate( PTHREAD_CANCEL_ENABLE,       &oldState );

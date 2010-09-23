@@ -6,6 +6,7 @@
 #include "Queue.h"
 #include "psemaphore.h"
 #include "mlp_lock.h"
+#include "memPool.h"
 
 #ifndef FALSE
 #define FALSE 0
@@ -48,6 +49,11 @@
 #define TRUE 1
 #endif
 
+
+#define OBJPTRPTR_2_OBJTYPE( opp ) ((int*)(*(opp)))[0]
+#define OBJPTRPTR_2_OBJOID(  opp ) ((int*)(*(opp)))[1]
+
+
 typedef struct REntry_t{
   int type; // fine read:0, fine write:1, parent read:2, parent write:3 coarse: 4, parent coarse:5, scc: 6
   struct Hashtable_t* hashtable;
@@ -58,7 +64,6 @@ typedef struct REntry_t{
   psemaphore parentStallSem;
   void* seseRec;
   INTPTR* pointer;
-  int oid;
   int isBufMode;
 } REntry;
 
@@ -121,8 +126,6 @@ int ADDRENTRY(MemoryQueue* q, REntry * r);
 void RETIRERENTRY(MemoryQueue* Q, REntry * r);
 
 
-// forward declaration of pointer type
-typedef struct SESEcommon_t* SESEcommon_p;
 
 // these fields are common to any SESE, and casting the
 // generated SESE record to this can be used, because
@@ -132,6 +135,8 @@ typedef struct SESEcommon_t {
 
   // the identifier for the class of sese's that
   // are instances of one particular static code block
+  // IMPORTANT: the class ID must be the first field of
+  // the task record so task dispatch works correctly!
   int classID;
 
   // a parent waits on this semaphore when stalling on
@@ -144,7 +149,7 @@ typedef struct SESEcommon_t {
   pthread_mutex_t lock;
 
   struct Queue*   forwardList;
-  volatile int             unresolvedDependencies;
+  volatile int    unresolvedDependencies;
 
   pthread_cond_t  doneCond;
   int             doneExecuting;
@@ -152,7 +157,7 @@ typedef struct SESEcommon_t {
   pthread_cond_t  runningChildrenCond;
   int             numRunningChildren;
 
-  SESEcommon_p    parent;
+  struct SESEcommon_t*   parent;
 
   psemaphore parentStallSem;
   pthread_cond_t stallDone;
@@ -167,16 +172,17 @@ typedef struct SESEcommon_t {
   int numDependentSESErecords;
   int offsetToDepSESErecords;
 
+  // for determining when task records can be returned
+  // to the parent record's memory pool
+  MemPool*     taskRecordMemPool;
+  volatile int refCount;
+
 } SESEcommon;
 
-// a thread-local stack of SESEs and function to
-// ensure it is initialized once per thread
-/*
-extern __thread struct Queue* seseCallStack;
-extern __thread pthread_once_t mlpOnceObj;
-void mlpInitOncePerThread();
-*/
-extern __thread SESEcommon_p seseCaller;
+
+// a thread-local var refers to the currently
+// running task
+extern __thread SESEcommon* runningSESE;
 
 
 // simple mechanical allocation and 
@@ -189,6 +195,6 @@ MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
 REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID);
 REntry* mlpCreateREntry(int type, void* seseToIssue);
 MemoryQueue* createMemoryQueue();
-void rehashMemoryQueue(SESEcommon_p seseParent);
+void rehashMemoryQueue(SESEcommon* seseParent);
 
 #endif /* __MLP_RUNTIME__ */

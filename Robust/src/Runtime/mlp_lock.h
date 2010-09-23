@@ -30,6 +30,10 @@ static inline void atomic_inc(volatile int *v) {
                         : "+m" (*v));
 }
 
+// this returns TRUE if the atomic subtraction results in
+// a zero value--this way two threads cannot dec a value
+// atomically, but then go ahead and both read zero,
+// thinking they both are the last decrementer
 static inline int atomic_sub_and_test(int i, volatile int *v) {
   unsigned char c;
 
