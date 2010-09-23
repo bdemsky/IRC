@@ -54,6 +54,66 @@
 #define OBJPTRPTR_2_OBJOID(  opp ) ((int*)(*(opp)))[1]
 
 
+
+// these fields are common to any SESE, and casting the
+// generated SESE record to this can be used, because
+// the common structure is always the first item in a
+// customized SESE record
+typedef struct SESEcommon_t {  
+
+  // the identifier for the class of sese's that
+  // are instances of one particular static code block
+  // IMPORTANT: the class ID must be the first field of
+  // the task record so task dispatch works correctly!
+  int classID;
+
+  // a parent waits on this semaphore when stalling on
+  // this child, the child gives it at its SESE exit
+  psemaphore stallSem;
+
+  
+  // the lock guards the following data SESE's
+  // use to coordinate with one another
+  pthread_mutex_t lock;
+
+  struct Queue*   forwardList;
+  volatile int    unresolvedDependencies;
+
+  pthread_cond_t  doneCond;
+  int             doneExecuting;
+
+  pthread_cond_t  runningChildrenCond;
+  int             numRunningChildren;
+
+  struct SESEcommon_t*   parent;
+
+  psemaphore parentStallSem;
+  pthread_cond_t stallDone;
+
+  int numMemoryQueue;
+  int rentryIdx;
+  int unresolvedRentryIdx;
+  struct MemoryQueue_t** memoryQueueArray;
+  struct REntry_t* rentryArray[NUMRENTRY];
+  struct REntry_t* unresolvedRentryArray[NUMRENTRY];
+
+  int numDependentSESErecords;
+  int offsetToDepSESErecords;
+
+  // for determining when task records can be returned
+  // to the parent record's memory pool
+  MemPool*     taskRecordMemPool;
+  volatile int refCount;
+
+} SESEcommon;
+
+
+// a thread-local var refers to the currently
+// running task
+extern __thread SESEcommon* runningSESE;
+
+
+
 typedef struct REntry_t{
   int type; // fine read:0, fine write:1, parent read:2, parent write:3 coarse: 4, parent coarse:5, scc: 6
   struct Hashtable_t* hashtable;
@@ -62,7 +122,7 @@ typedef struct REntry_t{
   struct SCC_t* scc;
   struct MemoryQueue_t* queue;
   psemaphore parentStallSem;
-  void* seseRec;
+  SESEcommon* seseRec;
   INTPTR* pointer;
   int isBufMode;
 } REntry;
@@ -127,74 +187,31 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r);
 
 
 
-// these fields are common to any SESE, and casting the
-// generated SESE record to this can be used, because
-// the common structure is always the first item in a
-// customized SESE record
-typedef struct SESEcommon_t {  
-
-  // the identifier for the class of sese's that
-  // are instances of one particular static code block
-  // IMPORTANT: the class ID must be the first field of
-  // the task record so task dispatch works correctly!
-  int classID;
-
-  // a parent waits on this semaphore when stalling on
-  // this child, the child gives it at its SESE exit
-  psemaphore stallSem;
-
-  
-  // the lock guards the following data SESE's
-  // use to coordinate with one another
-  pthread_mutex_t lock;
-
-  struct Queue*   forwardList;
-  volatile int    unresolvedDependencies;
-
-  pthread_cond_t  doneCond;
-  int             doneExecuting;
-
-  pthread_cond_t  runningChildrenCond;
-  int             numRunningChildren;
-
-  struct SESEcommon_t*   parent;
-
-  psemaphore parentStallSem;
-  pthread_cond_t stallDone;
-
-  int numMemoryQueue;
-  int rentryIdx;
-  int unresolvedRentryIdx;
-  struct MemoryQueue_t** memoryQueueArray;
-  struct REntry_t* rentryArray[NUMRENTRY];
-  struct REntry_t* unresolvedRentryArray[NUMRENTRY];
-
-  int numDependentSESErecords;
-  int offsetToDepSESErecords;
-
-  // for determining when task records can be returned
-  // to the parent record's memory pool
-  MemPool*     taskRecordMemPool;
-  volatile int refCount;
-
-} SESEcommon;
-
-
-// a thread-local var refers to the currently
-// running task
-extern __thread SESEcommon* runningSESE;
-
-
 // simple mechanical allocation and 
 // deallocation of SESE records
-void* mlpCreateSESErecord( int size );
-void  mlpDestroySESErecord( void* seseRecord );
 void* mlpAllocSESErecord( int size );
+void  mlpFreeSESErecord( SESEcommon* seseRecord );
 
 MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
-REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID);
-REntry* mlpCreateREntry(int type, void* seseToIssue);
+REntry* mlpCreateFineREntry(int type, SESEcommon* seseToIssue, void* dynID);
+REntry* mlpCreateREntry    (int type, SESEcommon* seseToIssue);
 MemoryQueue* createMemoryQueue();
 void rehashMemoryQueue(SESEcommon* seseParent);
+
+
+static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
+#ifndef OOO_DISABLE_TASKMEMPOOL
+  atomic_inc( &(seseRec->refCount) );
+#endif
+}
+
+static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
+#ifndef OOO_DISABLE_TASKMEMPOOL
+  if( atomic_sub_and_test( 1, &(seseRec->refCount) ) ) {
+    poolfreeinto( seseRec->parent->taskRecordMemPool, seseRec );
+  }
+#endif
+}
+
 
 #endif /* __MLP_RUNTIME__ */

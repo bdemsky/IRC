@@ -22,8 +22,7 @@ void* mlpAllocSESErecord( int size ) {
   return newrec;
 }
 
-
-void mlpFreeSESErecord( void* seseRecord ) {
+void mlpFreeSESErecord( SESEcommon* seseRecord ) {
   RUNFREE( seseRecord );
 }
 
@@ -41,7 +40,7 @@ REntry* mlpCreateREntryArray(){
   return newREntryArray;
 }
 
-REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID){
+REntry* mlpCreateFineREntry(int type, SESEcommon* seseToIssue, void* dynID){
   REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
@@ -49,7 +48,7 @@ REntry* mlpCreateFineREntry(int type, void* seseToIssue, void* dynID){
   return newREntry;
 }
 
-REntry* mlpCreateREntry(int type, void* seseToIssue){
+REntry* mlpCreateREntry(int type, SESEcommon* seseToIssue){
   REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;

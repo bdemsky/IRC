@@ -1889,8 +1889,8 @@ public class BuildCode {
 	  Iterator<TempDescriptor> dynSrcItr = callerSESEplaceholder.getDynamicVarSet().iterator();
 	  while( dynSrcItr.hasNext() ) {
 	    TempDescriptor dynSrcVar = dynSrcItr.next();
-	    output.println("   void*  "+dynSrcVar+"_srcSESE;");
-	    output.println("   INTPTR "+dynSrcVar+"_srcOffset;");
+	    output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
+	    output.println("   INTPTR       "+dynSrcVar+"_srcOffset;");
 	  }    
 	}
       }
@@ -2151,7 +2151,7 @@ public class BuildCode {
     while( itrDynInVars.hasNext() ) {
       TempDescriptor dynInVar = itrDynInVars.next();
       String depRecField = dynInVar+"_srcSESE";
-      outputStructs.println("  void* "+depRecField+";");
+      outputStructs.println("  SESEcommon* "+depRecField+";");
       addingDepRecField( fsen, depRecField );
     }  
     
@@ -2229,7 +2229,7 @@ public class BuildCode {
     Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
       SESEandAgePair pair = pItr.next();
-      output.println("   void* "+pair+";");
+      output.println("   SESEcommon* "+pair+" = NULL;");
     }
 
     // declare variables for tracking dynamic sources
@@ -2237,8 +2237,8 @@ public class BuildCode {
     Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
     while( dynSrcItr.hasNext() ) {
       TempDescriptor dynSrcVar = dynSrcItr.next();
-      output.println("   void*  "+dynSrcVar+"_srcSESE;");
-      output.println("   INTPTR "+dynSrcVar+"_srcOffset;");
+      output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
+      output.println("   INTPTR       "+dynSrcVar+"_srcOffset;");
     }    
 
     // declare local temps for in-set primitives, and if it is
@@ -2321,13 +2321,16 @@ public class BuildCode {
 
 
     // set up a task's mem pool to recycle the allocation of children tasks
-    // TODO: optimize by skipping this initialization when the current task
-    // is known to have no children (non-trivial, no children in body and
-    // no possibilty of issuing child within method calls)
-    output.println("   {");
-    output.println("     runningSESE->taskRecordMemPool = poolcreate( "+
-                   maxTaskRecSizeStr+" );");
-    output.println("   }");
+    // don't bother if the task never has children (a leaf task)
+    output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
+    if( !fsen.getIsLeafSESE() ) {
+      output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
+                     maxTaskRecSizeStr+" );");
+    } else {
+      // make it clear we purposefully did not initialize this
+      output.println("   runningSESE->taskRecordMemPool = (MemPool*)0x1;");
+    }
+    output.println( "#endif" );
 
 
     // copy in-set into place, ready vars were already 
@@ -2335,20 +2338,30 @@ public class BuildCode {
     Iterator<TempDescriptor> tempItr;
 
     // static vars are from a known SESE
+    output.println("   // copy variables from static sources");
     tempItr = fsen.getStaticInVarSet().iterator();
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
       VariableSourceToken vst = fsen.getStaticInVarSrc( temp );
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      
-      output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
+      output.println("   "+generateTemp( fsen.getfmBogus(), temp, null )+
 		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
-      //output.println("     if( atomic_sub_and_test( 1, &src->refCount ) ) {");
-      //output.println("       poolfree( src->parent->taskRecordMemPool, src );");
-      //output.println("     }");
+    }
+    
+    output.println("   // decrement references to static sources");
+    for( Iterator<SESEandAgePair> pairItr = fsen.getStaticInVarSrcs().iterator();
+         pairItr.hasNext();
+         ) {
+      SESEandAgePair srcPair = pairItr.next();
+      output.println("   {");
+      output.println("     SESEcommon* src = &("+paramsprefix+"->"+srcPair+"->common);");
+      output.println("     RELEASE_REFERENCE_TO( src );");
+      output.println("   }");
     }
 
+
     // dynamic vars come from an SESE and src
+    output.println("     // copy variables from dynamic sources");
     tempItr = fsen.getDynamicInVarSet().iterator();
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
@@ -2370,13 +2383,11 @@ public class BuildCode {
 		     " = *(("+typeStr+"*) ("+
 		     paramsprefix+"->"+temp+"_srcSESE + "+
 		     paramsprefix+"->"+temp+"_srcOffset));");
-      
-      //output.println("     if( atomic_sub_and_test( 1, &src->refCount ) ) {");
-      //output.println("       poolfree( src->parent->taskRecordMemPool, src );");
-      //output.println("     }");
 
+      output.println("     SESEcommon* src = "+paramsprefix+"->"+temp+"_srcSESE;");
+      output.println("     RELEASE_REFERENCE_TO( src );");
 
-      // or if the source was our parent, its in our record to grab
+      // or if the source was our parent, its already in our record to grab
       output.println("   } else {");
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
 		           " = "+paramsprefix+"->"+temp+";");
@@ -2870,6 +2881,9 @@ public class BuildCode {
 	  SESEandAgePair pair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
 
 	  output.println("   {");
+	  output.println("     "+pair.getSESE().getSESErecordName()+"* child = ("+
+                         pair.getSESE().getSESErecordName()+"*) "+pair+";");
+
 	  output.println("     SESEcommon* common = (SESEcommon*) "+pair+";");
           if( state.COREPROF ) {
             //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
@@ -2880,10 +2894,7 @@ public class BuildCode {
 	  output.println("     }");
 	  output.println("     pthread_mutex_unlock( &(common->lock) );");
 
-	  // copy things we might have stalled for	  
-	  output.println("     "+pair.getSESE().getSESErecordName()+"* child = ("+
-                         pair.getSESE().getSESErecordName()+"*) "+pair+";");
-	  
+	  // copy things we might have stalled for	  	  
 	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
 	  while( tdItr.hasNext() ) {
 	    TempDescriptor td = tdItr.next();
@@ -2911,10 +2922,10 @@ public class BuildCode {
 	  // otherwise the dynamic write nodes will have the local var up-to-date
 	  output.println("   {");
 	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
+	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
           if( state.COREPROF ) {
             //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
           }
-	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
 	  output.println("       psem_take( &(common->stallSem) );");
 
 	  FlatMethod fmContext;
@@ -2951,8 +2962,24 @@ public class BuildCode {
 	  Map.Entry      me  = (Map.Entry)      dynAssignItr.next();
 	  TempDescriptor lhs = (TempDescriptor) me.getKey();
 	  TempDescriptor rhs = (TempDescriptor) me.getValue();
+
+          output.println("   {");
+          output.println("   SESEcommon* oldSrc = "+lhs+"_srcSESE;");
+          
 	  output.println("   "+lhs+"_srcSESE   = "+rhs+"_srcSESE;");
 	  output.println("   "+lhs+"_srcOffset = "+rhs+"_srcOffset;");
+
+          // no matter what we did above, track reference count of whatever
+          // this variable pointed to, do release last in case we're just
+          // copying the same value in because 1->2->1 is safe but ref count
+          // 1->0->1 has a window where it looks like it should be free'd
+          output.println("     if( "+rhs+"_srcSESE != NULL ) {");
+          output.println("       ADD_REFERENCE_TO( "+rhs+"_srcSESE );");
+          output.println("     }");
+          output.println("     if( oldSrc != NULL ) {");
+          output.println("       RELEASE_REFERENCE_TO( oldSrc );");
+          output.println("     }");
+          output.println("   }");
 	}
 
 	// for each lhs that is dynamic from a non-dynamic source, set the
@@ -2961,6 +2988,12 @@ public class BuildCode {
 	while( dynItr.hasNext() ) {
 	  TempDescriptor dynVar = dynItr.next();	  
           assert currentSESE.getDynamicVarSet().contains( dynVar );
+
+          // first release a reference to current record
+          output.println("   if( "+dynVar+"_srcSESE != NULL ) {");
+          output.println("     RELEASE_REFERENCE_TO( oldSrc );");
+          output.println("   }");
+
           output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
 	
@@ -3633,12 +3666,7 @@ public class BuildCode {
     }
 
     // allocate the space for this record
-    output.println("     "+
-                   fsen.getSESErecordName()+"* seseToIssue = ("+
-                   fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
-                   fsen.getSESErecordName()+" ) );");
-   
-    /*
+    output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
         ) {
@@ -3651,7 +3679,13 @@ public class BuildCode {
                      fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                      fsen.getSESErecordName()+" ) );");
     }
-    */
+    output.println( "#else" );
+      output.println("     "+
+                     fsen.getSESErecordName()+"* seseToIssue = ("+
+                     fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
+                     fsen.getSESErecordName()+" ) );");
+    output.println( "#endif" );
+
 
     // set up the SESE in-set and out-set objects, which look
     // like a garbage list
@@ -3718,9 +3752,8 @@ public class BuildCode {
     }
     
     // before potentially adding this SESE to other forwarding lists,
-    //  create it's lock and take it immediately
+    // create it's lock
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
-//    output.println("     pthread_mutex_lock( &(seseToIssue->common.lock) );");
   
     if( (state.MLP && fsen != mlpa.getMainSESE()) ||
         (state.OOOJAVA && fsen != oooa.getMainSESE())    
@@ -3746,15 +3779,17 @@ public class BuildCode {
 	output.println("       }");
 	output.println("       if( !src->doneExecuting ) {");
 	output.println("         addNewItem( src->forwardList, seseToIssue );");
-        output.println("         src->refCount++;");
 	output.println("         ++(localCount);");
 	output.println("       }");
+        output.println("       ADD_REFERENCE_TO( src );");
 	output.println("       pthread_mutex_unlock( &(src->lock) );");
 	output.println("     }");
 
 	// whether or not it is an outstanding dependency, make sure
 	// to pass the static name to the child's record
-	output.println("     seseToIssue->"+srcPair+" = "+srcPair+";");
+	output.println("     seseToIssue->"+srcPair+" = "+
+                       "("+srcPair.getSESE().getSESErecordName()+"*)"+
+                       srcPair+";");
       }
       
       // dynamic sources might already be accounted for in the static list,
@@ -3781,10 +3816,10 @@ public class BuildCode {
 	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
 	output.println("           if( !src->doneExecuting ) {");
 	output.println("             addNewItem( src->forwardList, seseToIssue );");
-        output.println("             src->refCount++;");
 	output.println("             ++(localCount);");
 	output.println("           }");
 	output.println("         }");
+        output.println("         ADD_REFERENCE_TO( src );");
 	output.println("         pthread_mutex_unlock( &(src->lock) );");	
 	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
 	output.println("       } else {");
@@ -3813,13 +3848,14 @@ public class BuildCode {
 	// gets passed so child knows it already has the dynamic value
 	output.println("     seseToIssue->"+dynInVar+"_srcSESE = "+dynInVar+"_srcSESE;");
       }
+
       
       // maintain pointers for finding dynamic SESE 
       // instances from static names      
-      SESEandAgePair pair = new SESEandAgePair( fsen, 0 );
+      SESEandAgePair pairNewest = new SESEandAgePair( fsen, 0 );
+      SESEandAgePair pairOldest = new SESEandAgePair( fsen, fsen.getOldestAgeToTrack() );
       if(  fsen.getParent() != null && 
-	   //!fsen.getParent().getIsCallerSESEplaceholder() &&
-	   fsen.getParent().getNeededStaticNames().contains( pair ) 
+	   fsen.getParent().getNeededStaticNames().contains( pairNewest ) 
 	) {       
 
 	for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
@@ -3827,8 +3863,15 @@ public class BuildCode {
 	  SESEandAgePair pair2 = new SESEandAgePair( fsen, i-1 );
 	  output.println("     "+pair1+" = "+pair2+";");
 	}      
-	output.println("     "+pair+" = seseToIssue;");
+	output.println("     "+pairNewest+" = &(seseToIssue->common);");
       }
+      // add a reference to whatever is the newest record after the shift
+      // and release a reference to whatever was the oldest BEFORE the shift
+      output.println("     ADD_REFERENCE_TO( "+pairNewest+" );");
+      output.println("     if( "+pairOldest+" != NULL ) {");
+      output.println("       RELEASE_REFERENCE_TO( "+pairOldest+" );");
+      output.println("     }");
+
       
       ////////////////
       // count up memory conflict dependencies,
@@ -3851,7 +3894,7 @@ public class BuildCode {
             
             Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
             for (Iterator iterator = queueIDSet.iterator(); iterator
-                .hasNext();) {
+                   .hasNext();) {
               Integer key = (Integer) iterator.next();
               int queueID=key.intValue();
               Set<Analysis.OoOJava.WaitingElement> waitingQueueSet =  
@@ -3859,80 +3902,65 @@ public class BuildCode {
               int enqueueType=seseWaitingQueue.getType(queueID);
               if(enqueueType==SESEWaitingQueue.EXCEPTION){
                 output.println("       INITIALIZEBUF(parentCommon->memoryQueueArray["
-                      + queueID+ "]);");
+                               + queueID+ "]);");
               }
-              for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
-                  .hasNext();) {
+              for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2.hasNext();) {
                 Analysis.OoOJava.WaitingElement waitingElement 
                   = (Analysis.OoOJava.WaitingElement) iterator2.next();
                 if (waitingElement.getStatus() >= ConflictNode.COARSE) {
                   output.println("       rentry=mlpCreateREntry("
-                      + waitingElement.getStatus()
-                      + ", seseToIssue);");
+                                 + waitingElement.getStatus()
+                                 + ", &(seseToIssue->common));");
                 } else {
-                  TempDescriptor td = waitingElement
-                      .getTempDesc();
+                  TempDescriptor td = waitingElement.getTempDesc();
                   // decide whether waiting element is dynamic or static
                   if (fsen.getDynamicInVarSet().contains(td)) {
                     // dynamic in-var case
                     output.println("       pointer=seseToIssue->"
-                        + waitingElement.getDynID()
-                        + "_srcSESE+seseToIssue->"
-                        + waitingElement.getDynID()
-                        + "_srcOffset;");
-                    output
-                        .println("       rentry=mlpCreateFineREntry("
-                            + waitingElement
-                                .getStatus()
-                            + ", seseToIssue,  pointer );");
-                  } else if (fsen.getStaticInVarSet()
-                      .contains(td)) {
+                                   + waitingElement.getDynID()
+                                   + "_srcSESE+seseToIssue->"
+                                   + waitingElement.getDynID()
+                                   + "_srcOffset;");
+                    output.println("       rentry=mlpCreateFineREntry("
+                                   + waitingElement.getStatus()
+                                   + ", &(seseToIssue->common),  pointer );");
+                  } else if (fsen.getStaticInVarSet().contains(td)) {
                     // static in-var case
-                    VariableSourceToken vst = fsen
-                        .getStaticInVarSrc(td);
+                    VariableSourceToken vst = fsen.getStaticInVarSrc(td);
                     if (vst != null) {
   
                       String srcId = "SESE_"
-                          + vst.getSESE()
-                              .getPrettyIdentifier()
-                          + vst.getSESE().getIdentifier()
-                          + "_" + vst.getAge();
-                      output
-                          .println("       pointer=(void*)&seseToIssue->"
-                              + srcId
-                              + "->"
-                              + waitingElement
-                                  .getDynID()
-                              + ";");
-                      output
-                          .println("       rentry=mlpCreateFineREntry("
-                              + waitingElement
-                                  .getStatus()
-                              + ", seseToIssue,  pointer );");
-  
+                        + vst.getSESE()
+                        .getPrettyIdentifier()
+                        + vst.getSESE().getIdentifier()
+                        + "_" + vst.getAge();
+                      output.println("       pointer=(void*)&seseToIssue->"
+                                     + srcId
+                                     + "->"
+                                     + waitingElement
+                                     .getDynID()
+                                     + ";");
+                      output.println("       rentry=mlpCreateFineREntry("
+                                     + waitingElement.getStatus()
+                                     + ", &(seseToIssue->common),  pointer );");
                     }
                   } else {
-                    output
-                        .println("       rentry=mlpCreateFineREntry("
-                            + waitingElement
-                                .getStatus()
-                            + ", seseToIssue,  (void*)&seseToIssue->"
-                            + waitingElement.getDynID()
-                            + ");");
+                    output.println("       rentry=mlpCreateFineREntry("
+                                   + waitingElement.getStatus()
+                                   + ", &(seseToIssue->common),  (void*)&seseToIssue->"
+                                   + waitingElement.getDynID()
+                                   + ");");
                   }
                 }
-                output
-                    .println("       rentry->queue=parentCommon->memoryQueueArray["
-                        + waitingElement.getQueueID()
-                        + "];");
+                output.println("       rentry->queue=parentCommon->memoryQueueArray["
+                               + waitingElement.getQueueID()
+                               + "];");
                 
                 if(enqueueType==SESEWaitingQueue.NORMAL){
-                  output
-                  .println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-                  output
-                      .println("       if(ADDRENTRY(parentCommon->memoryQueueArray["
-                          + waitingElement.getQueueID()
-                          + "],rentry)==NOTREADY){");
+                  output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+                  output.println("       if(ADDRENTRY(parentCommon->memoryQueueArray["
+                                 + waitingElement.getQueueID()
+                                 + "],rentry)==NOTREADY){");
                   output.println("          ++(localCount);");
                   output.println("       }");
                   
@@ -3960,14 +3988,14 @@ public class BuildCode {
                   }
                 }else{
                   output
-                  .println("       ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
-                      + waitingElement.getQueueID()
-                      + "],rentry);");
+                    .println("       ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
+                             + waitingElement.getQueueID()
+                             + "],rentry);");
                 }
               }
               if(enqueueType!=SESEWaitingQueue.NORMAL){
                 output.println("       localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
-                      + queueID+ "],&seseToIssue->common);");
+                               + queueID+ "],&seseToIssue->common);");
               }       
             }
             output.println("     }");
@@ -3979,127 +4007,127 @@ public class BuildCode {
     	ConflictGraph graph = null;
     	FlatSESEEnterNode parent = fsen.getParent();
     	if (parent != null) {
-    		if (parent.isCallerSESEplaceholder) {
-    			graph = mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
-    		} else {
-    			graph = mlpa.getConflictGraphResults().get(parent);
-    		}
+          if (parent.isCallerSESEplaceholder) {
+            graph = mlpa.getConflictGraphResults().get(parent.getfmEnclosing());
+          } else {
+            graph = mlpa.getConflictGraphResults().get(parent);
+          }
     	}
-  			if (graph != null && graph.hasConflictEdge()) {
-  				HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap()
-  						.get(graph);
-  				output.println();
-  				output.println("     //add memory queue element");
-  				SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(),
-  						seseLockSet);
-  				if(seseWaitingQueue.getWaitingElementSize()>0){
-  					output.println("     {");
-  					output.println("     REntry* rentry=NULL;");
-  					output.println("     INTPTR* pointer=NULL;");
-  					output.println("     seseToIssue->common.rentryIdx=0;");
+        if (graph != null && graph.hasConflictEdge()) {
+          HashSet<SESELock> seseLockSet = mlpa.getConflictGraphLockMap()
+            .get(graph);
+          output.println();
+          output.println("     //add memory queue element");
+          SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(),
+                                                                               seseLockSet);
+          if(seseWaitingQueue.getWaitingElementSize()>0){
+            output.println("     {");
+            output.println("     REntry* rentry=NULL;");
+            output.println("     INTPTR* pointer=NULL;");
+            output.println("     seseToIssue->common.rentryIdx=0;");
   					
-  					Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
-  					for (Iterator iterator = queueIDSet.iterator(); iterator
-  							.hasNext();) {
-  						Integer key = (Integer) iterator.next();
-  						int queueID=key.intValue();
-  						Set<WaitingElement> waitingQueueSet =  seseWaitingQueue.getWaitingElementSet(queueID);
-  						int enqueueType=seseWaitingQueue.getType(queueID);
-  						if(enqueueType==SESEWaitingQueue.EXCEPTION){
-  							output.println("     INITIALIZEBUF(parentCommon->memoryQueueArray["
-  										+ queueID+ "]);");
-  						}
-  						for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
-  								.hasNext();) {
-  							WaitingElement waitingElement = (WaitingElement) iterator2
-  									.next();
-  							if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-  								output.println("     rentry=mlpCreateREntry("
-  										+ waitingElement.getStatus()
-  										+ ", seseToIssue);");
-  							} else {
-  								TempDescriptor td = waitingElement
-  										.getTempDesc();
-  								// decide whether waiting element is dynamic or
-  								// static
-  								if (fsen.getDynamicInVarSet().contains(td)) {
-  									// dynamic in-var case
-  									output.println("     pointer=seseToIssue->"
-  											+ waitingElement.getDynID()
-  											+ "_srcSESE+seseToIssue->"
-  											+ waitingElement.getDynID()
-  											+ "_srcOffset;");
-  									output
-  											.println("     rentry=mlpCreateFineREntry("
-  													+ waitingElement
-  															.getStatus()
-  													+ ", seseToIssue,  pointer );");
-  								} else if (fsen.getStaticInVarSet()
-  										.contains(td)) {
-  									// static in-var case
-  									VariableSourceToken vst = fsen
-  											.getStaticInVarSrc(td);
-  									if (vst != null) {
+            Set<Integer> queueIDSet=seseWaitingQueue.getQueueIDSet();
+            for (Iterator iterator = queueIDSet.iterator(); iterator
+                   .hasNext();) {
+              Integer key = (Integer) iterator.next();
+              int queueID=key.intValue();
+              Set<WaitingElement> waitingQueueSet =  seseWaitingQueue.getWaitingElementSet(queueID);
+              int enqueueType=seseWaitingQueue.getType(queueID);
+              if(enqueueType==SESEWaitingQueue.EXCEPTION){
+                output.println("     INITIALIZEBUF(parentCommon->memoryQueueArray["
+                               + queueID+ "]);");
+              }
+              for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
+                     .hasNext();) {
+                WaitingElement waitingElement = (WaitingElement) iterator2
+                  .next();
+                if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+                  output.println("     rentry=mlpCreateREntry("
+                                 + waitingElement.getStatus()
+                                 + ", &(seseToIssue->common));");
+                } else {
+                  TempDescriptor td = waitingElement
+                    .getTempDesc();
+                  // decide whether waiting element is dynamic or
+                  // static
+                  if (fsen.getDynamicInVarSet().contains(td)) {
+                    // dynamic in-var case
+                    output.println("     pointer=seseToIssue->"
+                                   + waitingElement.getDynID()
+                                   + "_srcSESE+seseToIssue->"
+                                   + waitingElement.getDynID()
+                                   + "_srcOffset;");
+                    output
+                      .println("     rentry=mlpCreateFineREntry("
+                               + waitingElement
+                               .getStatus()
+                               + ", &(seseToIssue->common),  pointer );");
+                  } else if (fsen.getStaticInVarSet()
+                             .contains(td)) {
+                    // static in-var case
+                    VariableSourceToken vst = fsen
+                      .getStaticInVarSrc(td);
+                    if (vst != null) {
   
-  										String srcId = "SESE_"
-  												+ vst.getSESE()
-  														.getPrettyIdentifier()
-  												+ vst.getSESE().getIdentifier()
-  												+ "_" + vst.getAge();
-  										output
-  												.println("     pointer=(void*)&seseToIssue->"
-  														+ srcId
-  														+ "->"
-  														+ waitingElement
-  																.getDynID()
-  														+ ";");
-  										output
-  												.println("     rentry=mlpCreateFineREntry("
-  														+ waitingElement
-  																.getStatus()
-  														+ ", seseToIssue,  pointer );");
+                      String srcId = "SESE_"
+                        + vst.getSESE()
+                        .getPrettyIdentifier()
+                        + vst.getSESE().getIdentifier()
+                        + "_" + vst.getAge();
+                      output
+                        .println("     pointer=(void*)&seseToIssue->"
+                                 + srcId
+                                 + "->"
+                                 + waitingElement
+                                 .getDynID()
+                                 + ";");
+                      output
+                        .println("     rentry=mlpCreateFineREntry("
+                                 + waitingElement
+                                 .getStatus()
+                                 + ", &(seseToIssue->common),  pointer );");
   
-  									}
-  								} else {
-  									output
-  											.println("     rentry=mlpCreateFineREntry("
-  													+ waitingElement
-  															.getStatus()
-  													+ ", seseToIssue,  (void*)&seseToIssue->"
-  													+ waitingElement.getDynID()
-  													+ ");");
-  								}
-  							}
-  							output
-  									.println("     rentry->queue=parentCommon->memoryQueueArray["
-  											+ waitingElement.getQueueID()
-  											+ "];");
+                    }
+                  } else {
+                    output
+                      .println("     rentry=mlpCreateFineREntry("
+                               + waitingElement
+                               .getStatus()
+                               + ", &(seseToIssue->common),  (void*)&seseToIssue->"
+                               + waitingElement.getDynID()
+                               + ");");
+                  }
+                }
+                output
+                  .println("     rentry->queue=parentCommon->memoryQueueArray["
+                           + waitingElement.getQueueID()
+                           + "];");
   							
-  							if(enqueueType==SESEWaitingQueue.NORMAL){
-  								output
-  								.println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-  								output
-  										.println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
-  												+ waitingElement.getQueueID()
-  												+ "],rentry)==NOTREADY){");
-  								output.println("        ++(localCount);");
-  								output.println("     } ");
-  							}else{
-  								output
-  								.println("     ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
-  										+ waitingElement.getQueueID()
-  										+ "],rentry);");
-  							}
-  						}
-  						if(enqueueType!=SESEWaitingQueue.NORMAL){
-  							output.println("     localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
-  										+ queueID+ "],&seseToIssue->common);");
-  						}				
-  					}
-  					output.println("     }");
-  				}
-  				output.println();
-  			}
+                if(enqueueType==SESEWaitingQueue.NORMAL){
+                  output
+                    .println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+                  output
+                    .println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
+                             + waitingElement.getQueueID()
+                             + "],rentry)==NOTREADY){");
+                  output.println("        ++(localCount);");
+                  output.println("     } ");
+                }else{
+                  output
+                    .println("     ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
+                             + waitingElement.getQueueID()
+                             + "],rentry);");
+                }
+              }
+              if(enqueueType!=SESEWaitingQueue.NORMAL){
+                output.println("     localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
+                               + queueID+ "],&seseToIssue->common);");
+              }				
+            }
+            output.println("     }");
+          }
+          output.println();
+        }
       }
       ////////////////
     }
@@ -4296,14 +4324,46 @@ public class BuildCode {
     output.println("     }");
     output.println("   }");
 
-    // only do this pool free if this is not the Main sese (which has no parent
-    // and therefore no pool to free into)
+    // a task has variables to track static/dynamic instances
+    // that serve as sources, release the parent's ref of each
+    // non-null var of these types
+
+    output.println("   // releasing static SESEs");
+    Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
+    while( pItr.hasNext() ) {
+      SESEandAgePair pair = pItr.next();
+      output.println("   if( "+pair+" != NULL ) {");
+      output.println("     RELEASE_REFERENCE_TO( "+pair+" );");
+      output.println("   }");
+    }
+    output.println("   // releasing dynamic variable sources");
+    Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
+    while( dynSrcItr.hasNext() ) {
+      TempDescriptor dynSrcVar = dynSrcItr.next();
+      output.println("   if( "+dynSrcVar+"_srcSESE != NULL ) {");
+      output.println("     RELEASE_REFERENCE_TO( "+dynSrcVar+"_srcSESE );");
+      output.println("   }");
+    }    
+
+
+    // destroy this task's mempool if it is not a leaf task
+    output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
+    if( !fsen.getIsLeafSESE() ) {
+      output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
+    }
+    output.println( "#endif" );
+
+
+    // if this is not the Main sese (which has no parent) then return
+    // THIS task's record to the PARENT'S task record pool, and only if
+    // the reference count is now zero
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
         ) {
-      //output.println("   if( atomic_sub_and_test( 1, &runningSESE->refCount ) ) {");
-      //output.println("     poolfree( runningSESE->parent->taskRecordMemPool, runningSESE );");
-      //output.println("   }");
+      output.println("   RELEASE_REFERENCE_TO( runningSESE );");
+    } else {
+      // the main task has no parent, just free its record
+      output.println("   mlpFreeSESErecord( runningSESE );");
     }
 
     // as this thread is wrapping up the task, make sure the thread-local var
@@ -4337,26 +4397,32 @@ public class BuildCode {
       VSTWrapper          vstW   = (VSTWrapper)     me.getValue();
       VariableSourceToken vst    =                  vstW.vst;
 
-      /*
-      // only do this if the variable in question should be tracked,
-      // meaning that it was explicitly added to the dynamic var set
-      if( !current.getDynamicVarSet().contains( vst.getAddrVar() ) ) {
-	continue;
-      }
-      */
+      output.println("     {");
+      output.println("       SESEcommon* oldSrc = "+refVar+"_srcSESE;");
 
       if( vst == null ) {
 	// if there is no given source, this variable is ready so
 	// mark src pointer NULL to signify that the var is up-to-date
-	output.println("     "+refVar+"_srcSESE = NULL;");
-        continue;
+	output.println("       "+refVar+"_srcSESE = NULL;");
+      } else {
+        // otherwise we track where it will come from
+        SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+        output.println("       "+refVar+"_srcSESE = "+instance+";");    
+        output.println("       "+refVar+"_srcOffset = (INTPTR) &((("+
+                       vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
       }
 
-      // otherwise we track where it will come from
-      SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      output.println("     "+refVar+"_srcSESE = "+instance+";");    
-      output.println("     "+refVar+"_srcOffset = (INTPTR) &((("+
-                     vst.getSESE().getSESErecordName()+"*)0)->"+vst.getAddrVar()+");");
+      // no matter what we did above, track reference count of whatever
+      // this variable pointed to, do release last in case we're just
+      // copying the same value in because 1->2->1 is safe but ref count
+      // 1->0->1 has a window where it looks like it should be free'd
+      output.println("       if( "+refVar+"_srcSESE != NULL ) {");
+      output.println("         ADD_REFERENCE_TO( "+refVar+"_srcSESE );");
+      output.println("       }");
+      output.println("       if( oldSrc != NULL ) {");
+      output.println("         RELEASE_REFERENCE_TO( oldSrc );");
+      output.println("       }");
+      output.println("     }");
     }	
   }
 

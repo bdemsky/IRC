@@ -66,7 +66,7 @@ static MemPool* poolcreate( int itemSize ) {
 // otherwise someone did CAS before you, so try again (the return
 // value is the old value you will pass next time.)
 
-static inline void poolfree( MemPool* p, void* ptr ) {
+static inline void poolfreeinto( MemPool* p, void* ptr ) {
 
   MemPoolItem* tailCurrent;
   MemPoolItem* tailActual;
@@ -114,6 +114,20 @@ static inline void* poolalloc( MemPool* p ) {
  
   p->head = headCurrent->next;
   return headCurrent;
+}
+
+
+static void pooldestroy( MemPool* p ) {
+  MemPoolItem* i = p->head;
+  MemPoolItem* n;
+
+  while( i != NULL ) {
+    n = i->next;
+    free( i );
+    i = n;
+  }
+
+  free( p );
 }
 
 

@@ -407,7 +407,6 @@ public class FlatSESEEnterNode extends FlatNode {
 
   
   public void setIsLeafSESE( boolean isLeaf ) {
-    //protected static final int ISLEAF_UNINIT = 1;
     if( isLeaf ) {
       isLeafSESE = ISLEAF_TRUE;
     } else {

@@ -214,7 +214,7 @@ public class RBlockRelationAnalysis {
          ) {
       FlatSESEEnterNode fsen = itr.next();
       
-      boolean hasNoNestedChildren = !fsen.getChildren().isEmpty();
+      boolean hasNoNestedChildren = fsen.getChildren().isEmpty();
       boolean hasNoChildrenByCall = !hasChildrenByCall( fsen );
 
       fsen.setIsLeafSESE( hasNoNestedChildren &&
