@@ -25,7 +25,6 @@ typedef struct mgchashlistnode {
   void * val; //this can be cast to another type or used to point to a
               //larger structure
   struct mgchashlistnode *next;
-  //struct mgchashlistnode *lnext;
 } mgchashlistnode_t;
 
 #define NUMMGCLIST 250
@@ -37,7 +36,6 @@ typedef struct mgclist {
 
 typedef struct mgchashtable {
   mgchashlistnode_t * table;       // points to beginning of hash table
-  //mgchashlistnode_t * list;
   mgcliststruct_t * structs;
   unsigned int size;
   unsigned int mask;
@@ -63,7 +61,6 @@ void mgchashreset(mgchashtable_t * tbl);
 struct MGCHash * allocateMGCHash(int size, int conflicts);
 void freeMGCHash(struct MGCHash *);
 
-//void MGCHashrehash(struct MGCHash * thisvar);
 int MGCHashadd(struct MGCHash *, int data);
 #ifdef MULTICORE
 struct MGCHash * allocateMGCHash_I(int size, int conflicts);

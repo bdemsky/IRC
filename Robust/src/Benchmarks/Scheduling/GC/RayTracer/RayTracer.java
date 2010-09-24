@@ -108,9 +108,9 @@ public class RayTracer {
     /* create spheres */
 
     Primitive p;
-    int nx = 4;
-    int ny = 4;
-    int nz = 4;
+    int nx = 4; // 6
+    int ny = 4; // 6
+    int nz = 4; // 6
     for (int i = 0; i < nx; i++) {
       for (int j = 0; j < ny; j++) {
         for (int k = 0; k < nz; k++) {

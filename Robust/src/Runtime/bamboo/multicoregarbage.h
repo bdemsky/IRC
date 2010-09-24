@@ -53,10 +53,6 @@ unsigned long long gc_num_freespace;
 unsigned long long gc_num_lobjspace;
 unsigned int gc_num_lobj;
 
-// TODO
-/*unsigned long long flushstalltime;
-unsigned long long flushstalltime_i;
-int num_mapinforequest_i;*/
 unsigned int gc_num_liveobj;
 unsigned int gc_num_obj;
 unsigned int gc_num_forwardobj;
@@ -131,16 +127,6 @@ volatile bool gctomove;
 int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
-// data structures to record remote cores that transferred the marked 
-// objs in the mark phase
-/*struct rcoreinfo{
-  int high;
-  int low;
-};
-struct RuntimeHash * gcrcoretbl;
-#define NUM_MAPPING 40
-void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
-
 // shared memory pointer for shared pointer mapping tbls
 // In GC version, this block of memory is located at the bottom of the 
 // shared memory, right on the top of the smem tbl.
@@ -151,14 +137,12 @@ void * gcmappingtbl[NUMCORESACTIVE][NUM_MAPPING];*/
 #ifdef GC_SMALLPAGESIZE
 #define BAMBOO_RMSP_SIZE (1024 * 1024)
 #else
-#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE*2) // (45 * 16 * 1024)
+#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
 #endif
 mspace bamboo_rmsp;
 // shared pointer mapping tbl
-//volatile struct GCSharedHash * gcsharedptbl;
 mgcsharedhashtbl_t * gcsharedptbl;
 // remote shared pointer tbls
-//struct GCSharedHash * gcrpointertbls[NUMCORES4GC];
 mgcsharedhashtbl_t * gcrpointertbls[NUMCORES4GC];
 
 #ifdef LOCALHASHTBL_TEST
@@ -166,7 +150,6 @@ struct RuntimeHash * gcpointertbl;
 #else
 mgchashtable_t * gcpointertbl;
 #endif
-//struct MGCHash * gcpointertbl;
 int gcobj2map;
 int gcmappedobj;
 volatile bool gcismapped;

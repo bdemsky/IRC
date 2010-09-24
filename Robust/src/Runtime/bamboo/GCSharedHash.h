@@ -83,10 +83,7 @@ mgcsharedhashtbl_t * mgcsharedhashCreate(unsigned int size, double loadfactor);
 mgcsharedhashtbl_t * mgcsharedhashCreate_I(unsigned int size,double loadfactor);
 int mgcsharedhashInsert(mgcsharedhashtbl_t * tbl, void * key, void * val);
 void * mgcsharedhashSearch(mgcsharedhashtbl_t * tbl, void * key);
-//unsigned int mgchashResize(unsigned int newsize);
 int mgcsharedhashInsert_I(mgcsharedhashtbl_t * tbl, void * key, void * val);
-//unsigned int mgchashResize_I(unsigned int newsize);
-//void mgcsharedhashDelete(mgcsharedhashtbl_t * tbl);
 void mgcsharedhashReset(mgcsharedhashtbl_t * tbl);
 
 #endif

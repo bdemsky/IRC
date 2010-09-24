@@ -12,7 +12,6 @@
 #ifdef MULTICORE
 #include "runtime_arch.h"
 #endif
-//#include "option.h"
 
 extern int classsize[];
 extern int typearray[];
@@ -160,12 +159,10 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #endif
 }
 
-//#ifdef D___Vector______removeElement_____AR_L___Object____I_I
 void CALL23(___Vector______removeElement_____AR_L___Object____I_I, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
   char* offset=((char *)(&VAR(___array___)->___length___))+sizeof(unsigned int)+sizeof(void *)*___index___;
   memmove(offset, offset+sizeof(void *),(___size___-___index___-1)*sizeof(void *));
 }
-//#endif
 
 void CALL11(___System______printI____I,int ___status___, int ___status___) {
 #ifdef MULTICORE
@@ -256,7 +253,6 @@ void * allocate_new(int type) {
   struct ___Object___ * v=FREEMALLOC(classsize[type]);
   v->type=type;
   v->version = 0;
-  //v->numlocks = 0;
   v->lock = NULL;
   initlock(v);
   return v;
@@ -268,7 +264,6 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
   v->version = 0;
-  //v->numlocks = 0;
   v->lock = NULL;
   v->___length___=length;
   initlock(v);

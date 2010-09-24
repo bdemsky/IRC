@@ -33,13 +33,12 @@ int outmsgindex;
 int outmsglast;
 int outmsgleft;
 volatile bool isMsgHanging;
-//volatile bool isMsgSending;
 
 #define MSG_INDEXINC_I() \
-  msgdataindex = (msgdataindex + 1) & (BAMBOO_MSG_BUF_MASK) //% (BAMBOO_MSG_BUF_LENGTH)
+  msgdataindex = (msgdataindex + 1) & (BAMBOO_MSG_BUF_MASK) 
 
 #define MSG_LASTINDEXINC_I() \
-  msgdatalast = (msgdatalast + 1) & (BAMBOO_MSG_BUF_MASK) // % (BAMBOO_MSG_BUF_LENGTH)
+  msgdatalast = (msgdatalast + 1) & (BAMBOO_MSG_BUF_MASK)
 
 #define MSG_CACHE_I(n) \
   msgdata[msgdatalast] = (n); \
@@ -58,10 +57,10 @@ volatile bool isMsgHanging;
   }
 
 #define OUTMSG_INDEXINC() \
-  outmsgindex = (outmsgindex + 1) & (BAMBOO_OUT_BUF_MASK) //% (BAMBOO_OUT_BUF_LENGTH)
+  outmsgindex = (outmsgindex + 1) & (BAMBOO_OUT_BUF_MASK)
 
 #define OUTMSG_LASTINDEXINC() \
-  outmsglast = (outmsglast + 1) & (BAMBOO_OUT_BUF_MASK) //% (BAMBOO_OUT_BUF_LENGTH); \
+  outmsglast = (outmsglast + 1) & (BAMBOO_OUT_BUF_MASK); \
   if(outmsglast == outmsgindex) { \
     BAMBOO_EXIT(0xdd01); \
   }
@@ -342,8 +341,7 @@ struct Queue * totransobjqueue; // queue to hold objs to be transferred
 #define BAMBOO_PAGE_SIZE (1024 * 1024)  // (4096)
 #define BAMBOO_SMEM_SIZE (BAMBOO_PAGE_SIZE)
 #endif // GC_LARGEPAGESIZE
-#define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_SMEM_SIZE) * (BAMBOO_NUM_BLOCKS)) //(1024 * 1024 * 240)
-//((unsigned long long int)(3.0 * 1024 * 1024 * 1024)) // 3G 
+#define BAMBOO_SHARED_MEM_SIZE ((BAMBOO_SMEM_SIZE) * (BAMBOO_NUM_BLOCKS)) //(1024 * 1024 * 240) //((unsigned long long int)(3.0 * 1024 * 1024 * 1024)) // 3G 
 #endif // GC_DEBUG
 
 #ifdef MULTICORE_GC
@@ -384,35 +382,11 @@ struct freeMemList {
 //       to access
 volatile int * bamboo_smemtbl;
 volatile int bamboo_free_block;
-//bool bamboo_smem_flushed;
-//struct freeMemList * bamboo_free_mem_list;
 int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
                           // e.g. 20% of the heap and should not be allocated
                           // otherwise gc is invoked
 volatile INTPTR bamboo_smem_zero_top;
 #define BAMBOO_SMEM_ZERO_UNIT_SIZE (4 * 1024) // 4KB
-
-#ifdef GC_CACHE_ADAPT
-typedef union
-{
-  unsigned int word;
-  struct
-  {
-    // policy type
-    unsigned int cache_mode   : 2;
-	// Reserved.
-    unsigned int __reserved_0 : 6;
-	// Location Override Target Y
-    unsigned int lotar_y      : 4;
-    // Reserved.
-    unsigned int __reserved_1 : 4;
-    // Location Override Target X
-    unsigned int lotar_x      : 4;
-    // Reserved.
-    unsigned int __reserved_2 : 12;
-  };
-} bamboo_cache_policy_t;
-#endif // GC_CACHE_ADAPT
 #else
 //volatile mspace bamboo_free_msp;
 INTPTR bamboo_free_smemp;
@@ -434,9 +408,7 @@ int total_num_t6;
 #endif // PROFILE_INTERRUPT
 
 bool stall;
-//bool isInterrupt;
 int totalexetime;
-//unsigned long long interrupttime;
 
 typedef struct task_info {
   char* taskName;
