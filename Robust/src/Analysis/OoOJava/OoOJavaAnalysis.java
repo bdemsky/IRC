@@ -1540,7 +1540,11 @@ public class OoOJavaAnalysis {
       throws java.io.IOException {
 
     if (!fsen.getIsCallerSESEplaceholder()) {
-      bw.write("SESE " + fsen.getPrettyIdentifier() + " {\n");
+      bw.write("SESE " + fsen.getPrettyIdentifier());
+      if( fsen.getIsLeafSESE() ) {
+        bw.write(" (leaf)");
+      }
+      bw.write(" {\n");
 
       bw.write("  in-set: " + fsen.getInVarSet() + "\n");
       Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();

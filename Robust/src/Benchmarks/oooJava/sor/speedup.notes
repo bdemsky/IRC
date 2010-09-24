@@ -1,0 +1,93 @@
+Without using memory pool allocation for task records:
+Single: Avg. execution time over 3 runs is
+742.761s / 3 = 247.587s
+
+Par: Avg. execution time over 3 runs is
+165.59s / 3 = 55.197s
+
+NO POOL: speedup 4.49x
+
+
+
+
+With memory pool allocation:
+Single: 697.984 / 3 = 232.661s
+Par: 184.572 / 3 = 61.524s
+
+POOL: speedup 3.78x
+
+
+
+
+RAW DATA BELOW:
+
+
+
+WITHOUT MEM POOL:
+jjenista@dc-10:~/research/Robust/src/Benchmarks/oooJava/sor$ ./runs; ./runs; ./runs; ./runp; ./runp; ./runp
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	4m35.011s
+user	4m34.672s
+sys	0m0.273s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.994s
+user	3m53.689s
+sys	0m0.263s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.756s
+user	3m53.470s
+sys	0m0.244s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m55.299s
+user	9m11.543s
+sys	12m28.633s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m55.240s
+user	9m10.687s
+sys	12m27.857s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m55.051s
+user	9m9.511s
+sys	12m24.147s
+
+
+
+WITH MEM POOL
+
+jjenista@dc-10:~/research/Robust/src/Benchmarks/oooJava/sor$ ./runs; ./runs; ./runs; ./runp; ./runp; ./runp
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m52.918s
+user	3m52.633s
+sys	0m0.244s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m52.731s
+user	3m52.449s
+sys	0m0.240s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m52.335s
+user	3m52.054s
+sys	0m0.240s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m53.868s
+user	9m2.613s
+sys	12m8.709s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	1m17.154s
+user	13m28.935s
+sys	16m45.794s
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m53.550s
+user	9m2.889s
+sys	12m0.588s

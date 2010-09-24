@@ -3642,8 +3642,8 @@ public class BuildCode {
     }
     
     // before doing anything, lock your own record and increment the running children
-    if( (state.MLP && fsen != mlpa.getMainSESE()) || 
-         (state.OOOJAVA && fsen != oooa.getMainSESE())
+    if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
+        (state.OOOJAVA && fsen != oooa.getMainSESE())
     ) {      
       output.println("     atomic_inc(&(runningSESE->numRunningChildren));");
     }
