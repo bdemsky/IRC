@@ -231,17 +231,14 @@ public class Trace {
 
     System.out.println( "" );
 
-    if( tdata.stackDepth != 0 ) {
+    while( tdata.stackDepth > 0 ) {
       // worker threads currently do not exit gracefully, and therefore
-      // never register their MAIN END event, so if the mismatch is with
-      // MAIN BEGIN then treat it as fine, otherwise warn.
-      if( tdata.stackDepth == 1 ) {
-        // the value of timestamp will be equal to whatever the last
-        // properly registered event for this thread was
-        popEvent( tdata, CP_EVENTID_MAIN, timeStamp );
-      } else {
-        System.out.println( "Warning: unmatched event begin/end\n" );
-      }
+      // may not register END events, so supply them with whatever the
+      // latest known timestamp is
+      EventSummary eventSummary = tdata.eventStack.get( tdata.stackDepth );
+      popEvent( tdata, eventSummary.eventID, timeStamp );
+
+      --tdata.stackDepth;
     }
   }
 
@@ -317,6 +314,14 @@ public class Trace {
     EventSummary eventSummary = tdata.eventStack.get( tdata.stackDepth );
     assert eventSummary != null;
 
+    if( eventSummary.eventID != eventID ) {
+      System.out.println( "Warning: event begin("+
+                          getEventName( eventSummary.eventID )+
+                          ") end("+
+                          getEventName( eventID )+
+                          ") mismatch!\n" );
+    }
+
     long elapsedTime = 
       timeStamp - eventSummary.timeStampBeginLatestInstance;
 
@@ -360,6 +365,14 @@ public class Trace {
 
     } catch( IOException e ) {}
   }
+
+
+  public String getEventName( int eventID ) {
+    return
+      eid2name.containsKey( eventID ) ?
+      eid2name.get        ( eventID ) :
+      Integer.toString    ( eventID );
+  }
   
 
   public void printEventSummary( BufferedWriter bw,
@@ -372,10 +385,7 @@ public class Trace {
       strIndent += "--";
     }
 
-    String strEventName = 
-      eid2name.containsKey( es.eventID ) ?
-      eid2name.get( es.eventID )         :
-      Integer.toString( es.eventID );
+    String strEventName = getEventName( es.eventID );
         
     float tOfParent_perc;
     String strPercParent = "";
