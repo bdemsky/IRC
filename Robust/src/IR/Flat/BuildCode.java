@@ -405,6 +405,7 @@ public class BuildCode {
                           " ); }" );
       }
       
+      outmethod.println("  runningSESE = NULL;");
 
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
       
@@ -3639,30 +3640,12 @@ public class BuildCode {
     if( state.COREPROF ) {
       output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
     }
-
-    // set up the parent
-    if( (state.MLP && fsen == mlpa.getMainSESE()) || 
-         (state.OOOJAVA && fsen == oooa.getMainSESE()) 
-    ) {
-      output.println("     SESEcommon* parentCommon = NULL;");
-    } else {
-      if( fsen.getParent() == null ) {
-	System.out.println( "in "+fm+", "+fsen+" has null parent" );
-      }
-      assert fsen.getParent() != null;
-      if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
-	output.println("     SESEcommon* parentCommon = &("+paramsprefix+"->common);");
-      } else {
-	//output.println("     SESEcommon* parentCommon = (SESEcommon*) peekItem( seseCallStack );");
-	output.println("     SESEcommon* parentCommon = runningSESE;");
-      }
-    }
     
     // before doing anything, lock your own record and increment the running children
     if( (state.MLP && fsen != mlpa.getMainSESE()) || 
          (state.OOOJAVA && fsen != oooa.getMainSESE())
     ) {      
-      output.println("     atomic_inc(&parentCommon->numRunningChildren);");
+      output.println("     atomic_inc(&(runningSESE->numRunningChildren));");
     }
 
     // allocate the space for this record
@@ -3720,8 +3703,12 @@ public class BuildCode {
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
-    output.println("     seseToIssue->common.parent = parentCommon;");
-    output.println("     seseToIssue->common.refCount = 1;");
+    output.println("     seseToIssue->common.parent = runningSESE;");
+    // start with refCount = 2, one being the count that the child itself
+    // will decrement when it retires, to say it is done using its own
+    // record, and the other count is for the parent that will remember
+    // the static name of this new child below
+    output.println("     seseToIssue->common.refCount = 2;");
 
     // all READY in-vars should be copied now and be done with it
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
@@ -3865,18 +3852,25 @@ public class BuildCode {
 	}      
 	output.println("     "+pairNewest+" = &(seseToIssue->common);");
       }
-      // add a reference to whatever is the newest record after the shift
-      // and release a reference to whatever was the oldest BEFORE the shift
-      output.println("     ADD_REFERENCE_TO( "+pairNewest+" );");
+      // no need to add a reference to whatever is the newest record, because
+      // we initialized seseToIssue->refCount to *2*
+      // but release a reference to whatever was the oldest BEFORE the shift
       output.println("     if( "+pairOldest+" != NULL ) {");
       output.println("       RELEASE_REFERENCE_TO( "+pairOldest+" );");
       output.println("     }");
 
       
+
+
       ////////////////
       // count up memory conflict dependencies,
       // eom
       if(state.OOOJAVA){
+
+        //output.println("       seseToIssue->common.numMemoryQueue=0;");
+        //output.println("       seseToIssue->common.rentryIdx=0;");
+        //output.println("       seseToIssue->common.unresolvedRentryIdx=0;");
+        //output.println("       seseToIssue->common.memoryQueueArray=NULL;");
 
         FlatSESEEnterNode parent = fsen.getParent();
         Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
@@ -3901,7 +3895,7 @@ public class BuildCode {
                 seseWaitingQueue.getWaitingElementSet(queueID);
               int enqueueType=seseWaitingQueue.getType(queueID);
               if(enqueueType==SESEWaitingQueue.EXCEPTION){
-                output.println("       INITIALIZEBUF(parentCommon->memoryQueueArray["
+                output.println("       INITIALIZEBUF(runningSESE->memoryQueueArray["
                                + queueID+ "]);");
               }
               for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2.hasNext();) {
@@ -3952,13 +3946,13 @@ public class BuildCode {
                                    + ");");
                   }
                 }
-                output.println("       rentry->queue=parentCommon->memoryQueueArray["
+                output.println("       rentry->queue=runningSESE->memoryQueueArray["
                                + waitingElement.getQueueID()
                                + "];");
                 
                 if(enqueueType==SESEWaitingQueue.NORMAL){
                   output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-                  output.println("       if(ADDRENTRY(parentCommon->memoryQueueArray["
+                  output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["
                                  + waitingElement.getQueueID()
                                  + "],rentry)==NOTREADY){");
                   output.println("          ++(localCount);");
@@ -3988,13 +3982,13 @@ public class BuildCode {
                   }
                 }else{
                   output
-                    .println("       ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
+                    .println("       ADDRENTRYTOBUF(runningSESE->memoryQueueArray["
                              + waitingElement.getQueueID()
                              + "],rentry);");
                 }
               }
               if(enqueueType!=SESEWaitingQueue.NORMAL){
-                output.println("       localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
+                output.println("       localCount+=RESOLVEBUF(runningSESE->memoryQueueArray["
                                + queueID+ "],&seseToIssue->common);");
               }       
             }
@@ -4034,7 +4028,7 @@ public class BuildCode {
               Set<WaitingElement> waitingQueueSet =  seseWaitingQueue.getWaitingElementSet(queueID);
               int enqueueType=seseWaitingQueue.getType(queueID);
               if(enqueueType==SESEWaitingQueue.EXCEPTION){
-                output.println("     INITIALIZEBUF(parentCommon->memoryQueueArray["
+                output.println("     INITIALIZEBUF(runningSESE->memoryQueueArray["
                                + queueID+ "]);");
               }
               for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2
@@ -4099,7 +4093,7 @@ public class BuildCode {
                   }
                 }
                 output
-                  .println("     rentry->queue=parentCommon->memoryQueueArray["
+                  .println("     rentry->queue=runningSESE->memoryQueueArray["
                            + waitingElement.getQueueID()
                            + "];");
   							
@@ -4107,20 +4101,20 @@ public class BuildCode {
                   output
                     .println("     seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
                   output
-                    .println("     if(ADDRENTRY(parentCommon->memoryQueueArray["
+                    .println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
                              + waitingElement.getQueueID()
                              + "],rentry)==NOTREADY){");
                   output.println("        ++(localCount);");
                   output.println("     } ");
                 }else{
                   output
-                    .println("     ADDRENTRYTOBUF(parentCommon->memoryQueueArray["
+                    .println("     ADDRENTRYTOBUF(runningSESE->memoryQueueArray["
                              + waitingElement.getQueueID()
                              + "],rentry);");
                 }
               }
               if(enqueueType!=SESEWaitingQueue.NORMAL){
-                output.println("     localCount+=RESOLVEBUF(parentCommon->memoryQueueArray["
+                output.println("     localCount+=RESOLVEBUF(runningSESE->memoryQueueArray["
                                + queueID+ "],&seseToIssue->common);");
               }				
             }
@@ -4452,14 +4446,6 @@ public class BuildCode {
   }
 
   private void generateFlatCall(FlatMethod fm, LocalityBinding lb, FlatCall fc, PrintWriter output) {
-
-    /*
-    if( (state.MLP && !nonSESEpass) || 
-        (state.OOOJAVA && !nonSESEpass)
-    ) {
-      output.println("     runningSESE = (SESEcommon*)"+paramsprefix+";");
-    }
-    */
 
     MethodDescriptor md=fc.getMethod();
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);

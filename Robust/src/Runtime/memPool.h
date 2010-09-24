@@ -19,6 +19,10 @@
 //////////////////////////////////////////////////////////
 
 #include <stdlib.h>
+
+// just until uninitialized mem bug found
+#include <string.h>
+
 #include "mlp_lock.h"
 
 
@@ -109,10 +113,17 @@ static inline void* poolalloc( MemPool* p ) {
 
   if( headCurrent->next == NULL ) {
     // only one item, so don't take from pool
+    //return malloc( p->itemSize );
+
+    // just until uninitialized mem bug found
     return calloc( 1, p->itemSize );
   }
  
   p->head = headCurrent->next;
+
+  // just until uninitialized mem bug found
+  memset( headCurrent, 0, p->itemSize );
+
   return headCurrent;
 }
 

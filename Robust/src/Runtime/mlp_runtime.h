@@ -87,8 +87,8 @@ typedef struct SESEcommon_t {
 
   struct SESEcommon_t*   parent;
 
-  psemaphore parentStallSem;
-  pthread_cond_t stallDone;
+  //psemaphore parentStallSem;
+  //pthread_cond_t stallDone;
 
   int numMemoryQueue;
   int rentryIdx;
