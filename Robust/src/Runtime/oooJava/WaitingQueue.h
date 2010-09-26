@@ -7,40 +7,33 @@
 #ifndef WAITINGQUEUE_H_
 #define WAITINGQUEUE_H_
 
-#define NUMITEMS 20
+#define NUMITEMS_WQ 20
 
 /* print header */
-struct TraverserData {
+typedef struct TraverserData_WQ {
   void * resumePtr;
-  int traverserID;
   int effectType;
-};
+  int traverserID;
+} TraverserResumeDataFromWaitingQ;
 
-struct BinVector {
-  struct TraverserData array[NUMITEMS];
-  struct BinVector * next;
-  int index;
-};
+typedef struct BinVector_wq {
+  struct TraverserData_WQ array[NUMITEMS_WQ];
+  struct BinVector_wq * next;
+  int headIndex;
+  int tailIndex;
+} WaitingQueueBinVector;
 
-struct BinElement {
-  struct BinVector * head;
-  struct BinVector * tail;
+
+typedef struct BinElement_wq {
+  struct BinVector_wq * head;
+  struct BinVector_wq * tail;
   int size;
-};
+} WaitingQueueBin;
 
-
-//TODO in the future, remove this struct all together
-struct WaitingQueue {
-  struct BinElement * array;
-};
-
-void put(int allocSiteID, struct WaitingQueue * queue, int effectType, void * resumePtr, int traverserID);
-int check(struct WaitingQueue * queue, int allocSiteID);
-struct WaitingQueue * mallocWaitingQueue(int size);
-void returnVectorToFreePool(struct BinVector *ptr);
-void resolveChain(struct WaitingQueue * queue, int allocSiteID);
-struct BinVector * mallocNewVector();
-struct BinVector * getUsableVector();
-struct BinVector * getUsableVector();
-
-#endif /* WAITINGQUEUE_H_ */
+void putIntoWaitingQueue(int allocSiteID, WaitingQueueBin * queue, int effectType, void * resumePtr, int traverserID);
+int isEmptyForWaitingQ(WaitingQueueBin * queue, int allocSiteID);
+WaitingQueueBin * mallocWaitingQueue(int size);
+WaitingQueueBinVector * returnWaitingQueueBinVectorToFreePool(struct BinVector_wq *ptr);
+int removeFromWaitingQueue(WaitingQueueBin * queue, int allocSiteID, int TraverserID);
+WaitingQueueBinVector * mallocNewWaitingQueueBinVector();
+WaitingQueueBinVector * getUsableWaitingQueueBinVector();
