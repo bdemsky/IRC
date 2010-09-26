@@ -1,6 +1,8 @@
 #ifndef __3_RCR_H_
 #define __3_RCR_H_
 
+#define TRAVERSER_FINISHED 2
+
 //NOTE these files are the fake locks so I can test without compiling entire compiler
 void traverse______b1745___sesea71___(void * InVar);
 void traverse______b2746___seseb72___(void * InVar);

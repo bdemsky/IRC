@@ -33,7 +33,7 @@ void testMalloc(int maxTests) {
 
 //P.S. make sure this is the FIRST and ONLY thing to run if you want to test this.
 void testWaitingQueueFreeBinsSingleTest() {
-  WaitingQueueBinVector * ptr = getUsableVector();
+  WaitingQueueBinVector * ptr = getUsableWaitingQueueBinVector();
 
   if(ptr == NULL) {
     printf("waitingQueueBinVector didn't work ><\n");
@@ -43,7 +43,7 @@ void testWaitingQueueFreeBinsSingleTest() {
     printf("either testWaitingQueueFreeBins wasn't called first or somehow it's not null....");
   }
 
-  if(returnVectorToFreePool(ptr) != NULL) {
+  if(returnWaitingQueueBinVectorToFreePool(ptr) != NULL) {
     printf("Returning the .next in the waiting queue didn't quite work...");
   }
 
@@ -67,7 +67,7 @@ void waitingQueuePutAndRemoveTestSingle() {
   }
 
   //void putWaintingQueue(int allocSiteID, WaitingQueueBin * queue, int effectType, void * resumePtr, int traverserID);
-  putWaitingQueue(100, waitingQueue, 1, 2, 3);
+  putIntoWaitingQueue(100, waitingQueue, 1, 2, 3);
 
   if(isEmptyForWaitingQ(waitingQueue, 100)) {
     printf("The one item added at location %u did not actually get put there according to isEmpty\n", 100);
@@ -96,7 +96,7 @@ void waitingQueuePutAndRemoveTestSingle() {
   }
 
   //int removeFromQueue(WaitingQueueBin * wQueue, int allocSiteID, int TraverserID)
-  if(removeFromQueue(waitingQueue, 100, 3) != 1) {
+  if(removeFromWaitingQueue(waitingQueue, 100, 3) != 1) {
     printf("it appears that removing doens't remove the correct # of items\n");
   }
 
@@ -114,9 +114,9 @@ void waitingQueuePutAndRemoveTestMulti() {
 
   //add 2 more
   //void putWaintingQueue(int allocSiteID, WaitingQueueBin * queue, int effectType, void * resumePtr, int traverserID);
-  putWaitingQueue(100, waitingQueue, 1, 2, 4);
-  putWaitingQueue(100, waitingQueue, 1, 2, 4);
-  putWaitingQueue(100, waitingQueue, 1, 2, 5);
+  putIntoWaitingQueue(100, waitingQueue, 1, 2, 4);
+  putIntoWaitingQueue(100, waitingQueue, 1, 2, 4);
+  putIntoWaitingQueue(100, waitingQueue, 1, 2, 5);
 
   for(i = 0; i < 200; i++) {
     if(i != 100) {
@@ -137,34 +137,34 @@ void waitingQueuePutAndRemoveTestMulti() {
 //  //Return is how many things are removed. -1 would indicate error
 //  int removeFromQueue(WaitingQueueBin * wQueue, int allocSiteID, int TraverserID)
 
-  if(removeFromQueue(waitingQueue, 101,0) != -1) {
+  if(removeFromWaitingQueue(waitingQueue, 101,0) != -1) {
     printf("failsafe does not work in removeFromQueue\n");
   }
 
-  if(removeFromQueue(waitingQueue, 100, 29038) != 0 || removeFromQueue(waitingQueue, 100, 5) != 0) {
+  if(removeFromWaitingQueue(waitingQueue, 100, 29038) != 0 || removeFromWaitingQueue(waitingQueue, 100, 5) != 0) {
     printf("removeFromQueue does not check element's traverserID before removing");
   }
 
-  if(removeFromQueue(waitingQueue, 100, 4) != 1 || waitingQueue[100].size != 1) {
+  if(removeFromWaitingQueue(waitingQueue, 100, 4) != 1 || waitingQueue[100].size != 1) {
     printf("removeFromQueue didn't remove items and/or didn't decrement counter correctly 1\n");
   }
 
-  if(removeFromQueue(waitingQueue, 100, 4) != 0 || waitingQueue[100].size != 1) {
+  if(removeFromWaitingQueue(waitingQueue, 100, 4) != 0 || waitingQueue[100].size != 1) {
     printf("removeFromQueue didn't remove items and/or didn't decrement counter correctly 2\n");
   }
 
-  if(removeFromQueue(waitingQueue, 99, 5) != -1 || waitingQueue[99].size != 0) {
+  if(removeFromWaitingQueue(waitingQueue, 99, 5) != -1 || waitingQueue[99].size != 0) {
     printf("failsafe in remove does not work correctly\n");
   }
 
-  if(removeFromQueue(waitingQueue, 100, 5) != 1 || waitingQueue[100].size != 0 || !isEmptyForWaitingQ(waitingQueue, 100)) {
+  if(removeFromWaitingQueue(waitingQueue, 100, 5) != 1 || waitingQueue[100].size != 0 || !isEmptyForWaitingQ(waitingQueue, 100)) {
       printf("removeFromQueue didn't remove items and/or didn't decrement counter correctly 3\n");
   }
 
   //next try adding 10,000 items
 
   for(i = 0; i < 10000; i++) {
-    putWaitingQueue(100, waitingQueue, 1, 2, i);
+    putIntoWaitingQueue(100, waitingQueue, 1, 2, i);
   }
 
   if(isEmptyForWaitingQ(waitingQueue, 100)) {
@@ -180,7 +180,7 @@ void waitingQueuePutAndRemoveTestMulti() {
   }
 
   for(i = 0; i <10000; i++) {
-    if(removeFromQueue(waitingQueue, 100, i) != 1) {
+    if(removeFromWaitingQueue(waitingQueue, 100, i) != 1) {
       printf("remove from 10000 didn't properly just remove ONE item");
     }
 
@@ -209,7 +209,7 @@ void testWaitingQueueFreeBinsMultipleTest(int size) {
   int i;
 
   for(i = 0; i < size; i++) {
-    ptrs[i] = getUsableVector();
+    ptrs[i] = getUsableWaitingQueueBinVector();
     ptrs[i]->tailIndex = 293847; //this is to make sure we don't get a segmentation fault
 
     if(ptrs[i]->next != NULL || ptrs[i]->tailIndex != 293847) {
@@ -222,14 +222,14 @@ void testWaitingQueueFreeBinsMultipleTest(int size) {
   }
 
   for(i = 0; i < size; i++) {
-    returnVectorToFreePool(ptrs[i]);
+    returnWaitingQueueBinVectorToFreePool(ptrs[i]);
     if(debug_GetTheFreeBinsPtr() != ptrs[i]) {
       printf("it appears that the returnVectorToFreePool didn't put the vector at the front at index %u\n", i);
     }
   }
 
   for(i = size-1; i>= 0; i--) {
-    if(getUsableVector() != ptrs[i]) {
+    if(getUsableWaitingQueueBinVector() != ptrs[i]) {
       printf("getUsableVector does not get the correct one at index %u\n", i);
     }
   }
@@ -260,6 +260,6 @@ void testLOCKXCHG() {
 }
 
 int main() {
-  waitingQueuePutAndRemoveTestMulti();
+  testWaitingQueueFreeBinsMultipleTest(1000);
   return 1;
 }

@@ -7,8 +7,6 @@
 #ifndef WAITINGQUEUE_H_
 #define WAITINGQUEUE_H_
 
-#define NOT_AT_FRONT = 3;
-#define TRAVERSER_FINISHED = 2;
 #define NUMITEMS_WQ 20
 
 /* print header */
@@ -32,20 +30,13 @@ typedef struct BinElement_wq {
   int size;
 } WaitingQueueBin;
 
-
-//TODO in the future, remove this struct all together
-//struct WaitingQueue {
-//  struct BinElement_wq * array;
-//};
-
-void putWaitingQueue(int allocSiteID, WaitingQueueBin * queue, int effectType, void * resumePtr, int traverserID);
+void putIntoWaitingQueue(int allocSiteID, WaitingQueueBin * queue, int effectType, void * resumePtr, int traverserID);
 int isEmptyForWaitingQ(WaitingQueueBin * queue, int allocSiteID);
 WaitingQueueBin * mallocWaitingQueue(int size);
-WaitingQueueBinVector * returnVectorToFreePool(struct BinVector_wq *ptr);
-int removeFromQueue(WaitingQueueBin * queue, int allocSiteID, int TraverserID);
-//int resolveWaitingQueueChain(struct WaitingQueue * queue, int allocSiteID, int traverserID);
-WaitingQueueBinVector * mallocNewVector();
-WaitingQueueBinVector * getUsableVector();
+WaitingQueueBinVector * returnWaitingQueueBinVectorToFreePool(struct BinVector_wq *ptr);
+int removeFromWaitingQueue(WaitingQueueBin * queue, int allocSiteID, int TraverserID);
+WaitingQueueBinVector * mallocNewWaitingQueueBinVector();
+WaitingQueueBinVector * getUsableWaitingQueueBinVector();
 
 //TODO this only a debug method GET RID OF IT WHEN DONE!!
 WaitingQueueBinVector * debug_GetTheFreeBinsPtr();
