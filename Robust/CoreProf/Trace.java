@@ -12,15 +12,17 @@ public class Trace {
   public static final int CP_EVENTTYPE_END        = 2;
   public static final int CP_EVENTTYPE_ONEOFF     = 3;
 
-  public static final int CP_EVENTID_MAIN          = 0x04;
-  public static final int CP_EVENTID_RUNMALLOC     = 0x10;
-  public static final int CP_EVENTID_RUNFREE       = 0x11;
-  public static final int CP_EVENTID_WORKSCHEDGRAB = 0x20;
-  public static final int CP_EVENTID_TASKDISPATCH  = 0x30;
-  public static final int CP_EVENTID_TASKEXECUTE   = 0x31;
-  public static final int CP_EVENTID_TASKRETIRE    = 0x32;
-  public static final int CP_EVENTID_TASKSTALLVAR  = 0x40;
-  public static final int CP_EVENTID_TASKSTALLMEM  = 0x41;
+  public static final int CP_EVENTID_MAIN             = 0x04;
+  public static final int CP_EVENTID_RUNMALLOC        = 0x10;
+  public static final int CP_EVENTID_RUNFREE          = 0x11;
+  public static final int CP_EVENTID_COUNT_POOLALLOC  = 0x15;
+  public static final int CP_EVENTID_COUNT_POOLREUSE  = 0x16;
+  public static final int CP_EVENTID_WORKSCHEDGRAB    = 0x20;
+  public static final int CP_EVENTID_TASKDISPATCH     = 0x30;
+  public static final int CP_EVENTID_TASKEXECUTE      = 0x31;
+  public static final int CP_EVENTID_TASKRETIRE       = 0x32;
+  public static final int CP_EVENTID_TASKSTALLVAR     = 0x40;
+  public static final int CP_EVENTID_TASKSTALLMEM     = 0x41;
 
 
   void initNames() {
@@ -236,6 +238,13 @@ public class Trace {
       // may not register END events, so supply them with whatever the
       // latest known timestamp is
       EventSummary eventSummary = tdata.eventStack.get( tdata.stackDepth );
+
+      if( eventSummary == null ) {
+        // if there is no previous event it means there are no children
+        // events with a timestamp for the workaround, so just punt
+        break;
+      }
+
       popEvent( tdata, eventSummary.eventID, timeStamp );
 
       --tdata.stackDepth;
@@ -297,6 +306,7 @@ public class Trace {
     if( tdata.eventStack.size() <= tdata.stackDepth ) {
       tdata.eventStack.setSize( 2*tdata.stackDepth + 20 );
     }
+
     tdata.eventStack.set( tdata.stackDepth, eventSummary );
 
     tdata.stackDepth++;
