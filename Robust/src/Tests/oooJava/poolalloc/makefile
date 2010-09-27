@@ -4,20 +4,39 @@ SOURCE_FILES=test.java
 
 BUILDSCRIPT=../../../buildscript
 
-USEOOO= -ooojava 24 2  -ooodebug  
-BSFLAGS= -64bit -mainclass $(PROGRAM) -heapsize-mb 1024 -garbagestats -noloop -nooptimize -coreprof -coreprof-checkoverflow -coreprof -coreprof-eventwords 1024*1024*128 -debug #-ooodebug-disable-task-mem-pool
+COREPROFOVERFLOW= -coreprof-checkoverflow
+USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
+	-coreprof-eventwords 1024*1024*128 \
+	-coreprof-enable cpe_main \
+	-coreprof-enable cpe_runmalloc \
+	-coreprof-enable cpe_runfree \
+	-coreprof-enable cpe_count_poolalloc \
+	-coreprof-enable cpe_count_poolreuse \
+	-coreprof-enable cpe_workschedgrab \
+	-coreprof-enable cpe_taskdispatch \
+	-coreprof-enable cpe_taskexecute \
+	-coreprof-enable cpe_taskretire
+#	-coreprof-enable cpe_taskstallvar \
+#	-coreprof-enable cpe_taskstallmem
+
+
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions #-disjoint-desire-determinism
+
+USEOOO= $(DISJOINT) -ooojava 24 2 -ooodebug $(USECOREPROF)
+
+BSFLAGS= -64bit -mainclass $(PROGRAM) -heapsize-mb 1024 -garbagestats -noloop -nooptimize -debug #-ooodebug-disable-task-mem-pool
+
 
 all: ooo
 
 remakec:
-	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par
+	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par
 
 single:
 	$(BUILDSCRIPT) $(BSFLAGS) -thread -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo:
-	$(BUILDSCRIPT) $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p -builddir par $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(USEOOO) $(BSFLAGS) -o $(PROGRAM)p -builddir par $(SOURCE_FILES) 
 
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin

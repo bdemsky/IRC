@@ -2410,7 +2410,9 @@ public class BuildCode {
     }    
 
     if( state.COREPROF ) {
+      output.println("#ifdef CP_EVENTID_TASKEXECUTE");
       output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_BEGIN );");
+      output.println("#endif");
     }
 
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
@@ -2887,7 +2889,9 @@ public class BuildCode {
 
 	  output.println("     SESEcommon* common = (SESEcommon*) "+pair+";");
           if( state.COREPROF ) {
-            //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+            output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+            output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+            output.println("#endif");
           }
 	  output.println("     pthread_mutex_lock( &(common->lock) );");
 	  output.println("     while( common->doneExecuting == FALSE ) {");
@@ -2909,7 +2913,9 @@ public class BuildCode {
 			   " = child->"+vst.getAddrVar().getSafeSymbol()+";");
 	  }
           if( state.COREPROF ) {
-            //output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+            output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+            output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+            output.println("#endif");
           }
 	  output.println("   }");
 	}
@@ -2925,7 +2931,9 @@ public class BuildCode {
 	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
 	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
           if( state.COREPROF ) {
-            //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+            output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+            output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
+            output.println("#endif");
           }
 	  output.println("       psem_take( &(common->stallSem) );");
 
@@ -2950,7 +2958,9 @@ public class BuildCode {
                          " = *(("+typeStr+"*) ("+
                          dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
           if( state.COREPROF ) {
-            //output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+            output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
+            output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
+            output.println("#endif");
           }
 	  output.println("     }");
 	  output.println("   }");
@@ -3042,11 +3052,15 @@ public class BuildCode {
                 output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()
                            + "],rentry)==NOTREADY){");
                 if( state.COREPROF ) {
-                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                  output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+                  output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                  output.println("#endif");
                 }
                 output.println("        psem_take( &(rentry->parentStallSem) );");
                 if( state.COREPROF ) {
-                  //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                  output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+                  output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                  output.println("#endif");
                 }
                 output.println("     }  ");
                 
@@ -3093,11 +3107,15 @@ public class BuildCode {
                     .println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()
                              + "],rentry)==NOTREADY){");
                   if( state.COREPROF ) {
-                    //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                    output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+                    output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                    output.println("#endif");
                   }
                   output.println("        psem_take( &(rentry->parentStallSem) );");
                   if( state.COREPROF ) {
-                    //output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                    output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+                    output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                    output.println("#endif");
                   }
                   output.println("     }  ");
                 }
@@ -3638,7 +3656,9 @@ public class BuildCode {
     output.println("   {");
 
     if( state.COREPROF ) {
-      output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
+      output.println("#ifdef CP_EVENTID_TASKDISPATCH");
+      output.println("     CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
+      output.println("#endif");
     }
     
     // before doing anything, lock your own record and increment the running children
@@ -4144,7 +4164,9 @@ public class BuildCode {
 //    output.println("     pthread_mutex_unlock( &(seseToIssue->common.lock) );");
 
     if( state.COREPROF ) {
-      output.println("CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
+      output.println("#ifdef CP_EVENTID_TASKDISPATCH");
+      output.println("     CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_END );");
+      output.println("#endif");
     }
 
     output.println("   }");
@@ -4179,13 +4201,17 @@ public class BuildCode {
     }
     
     if( state.COREPROF ) {
+      output.println("#ifdef CP_EVENTID_TASKEXECUTE");
       output.println("   CP_LOGEVENT( CP_EVENTID_TASKEXECUTE, CP_EVENTTYPE_END );");
+      output.println("#endif");
     }
 
     output.println("   /* SESE exiting */");
 
     if( state.COREPROF ) {
+      output.println("#ifdef CP_EVENTID_TASKRETIRE");
       output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_BEGIN );");
+      output.println("#endif");
     }
     
     String com = paramsprefix+"->common";
@@ -4341,11 +4367,11 @@ public class BuildCode {
 
 
     // destroy this task's mempool if it is not a leaf task
-    output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
     if( !fsen.getIsLeafSESE() ) {
+      output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
+      output.println( "#endif" );
     }
-    output.println( "#endif" );
 
 
     // if this is not the Main sese (which has no parent) then return
@@ -4365,7 +4391,9 @@ public class BuildCode {
     output.println("   runningSESE = (SESEcommon*) 0x1;");
 
     if( state.COREPROF ) {
+      output.println("#ifdef CP_EVENTID_TASKRETIRE");
       output.println("   CP_LOGEVENT( CP_EVENTID_TASKRETIRE, CP_EVENTTYPE_END );");
+      output.println("#endif");
     }
   }
  

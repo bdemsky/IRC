@@ -26,23 +26,61 @@
 // the values of the following event types
 // and BASESHIFT is for shifting IDs
 // past the type bits
+#define CP_EVENTTYPE_BEGIN  0x1
+#define CP_EVENTTYPE_END    0x2
+#define CP_EVENTTYPE_ONEOFF 0x3
+
 #define CP_EVENT_MASK       3
 #define CP_EVENT_BASESHIFT  8
 
-#define CP_EVENTTYPE_BEGIN  1
-#define CP_EVENTTYPE_END    2
-#define CP_EVENTTYPE_ONEOFF 3
 
-// Event IDs
-#define CP_EVENTID_MAIN          0x04
-#define CP_EVENTID_RUNMALLOC     0x10
-#define CP_EVENTID_RUNFREE       0x11
-#define CP_EVENTID_WORKSCHEDGRAB 0x20
-#define CP_EVENTID_TASKDISPATCH  0x30
-#define CP_EVENTID_TASKEXECUTE   0x31
-#define CP_EVENTID_TASKRETIRE    0x32
-#define CP_EVENTID_TASKSTALLVAR  0x40
-#define CP_EVENTID_TASKSTALLMEM  0x41
+// Event IDs, only those enabled explicitly as a build option
+// will be defined and included in the compilation
+#ifdef cpe_main
+#define CP_EVENTID_MAIN               0x04
+#endif
+
+#ifdef cpe_runmalloc
+#define CP_EVENTID_RUNMALLOC          0x10
+#endif
+
+#ifdef cpe_runfree
+#define CP_EVENTID_RUNFREE            0x11
+#endif
+
+#ifdef cpe_count_poolalloc
+#define CP_EVENTID_COUNT_POOLALLOC    0x15
+#endif
+
+#ifdef cpe_count_poolreuse
+#define CP_EVENTID_COUNT_POOLREUSE    0x16
+#endif
+
+#ifdef cpe_workschedgrab
+#define CP_EVENTID_WORKSCHEDGRAB      0x20
+#endif
+
+#ifdef cpe_taskdispatch
+#define CP_EVENTID_TASKDISPATCH       0x30
+#endif
+
+#ifdef cpe_taskexecute
+#define CP_EVENTID_TASKEXECUTE        0x31
+#endif
+
+#ifdef cpe_taskretire
+#define CP_EVENTID_TASKRETIRE         0x32
+#endif
+
+#ifdef cpe_taskstallvar
+#define CP_EVENTID_TASKSTALLVAR       0x40
+#endif
+
+#ifdef cpe_taskstallmem
+#define CP_EVENTID_TASKSTALLMEM       0x41
+#endif
+
+
 // Note: application-specific events (assigned
 // during code gen) start at 0x200
 
@@ -99,16 +137,24 @@ void cp_reportOverflow();
 
 
 static inline void* cp_calloc( int size ) {
-  CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_BEGIN );
+#ifdef CP_EVENTID_RUNMALLOC
+    CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_BEGIN );
+#endif
   void* mem = calloc( 1, size );
+#ifdef CP_EVENTID_RUNMALLOC
   CP_LOGEVENT( CP_EVENTID_RUNMALLOC, CP_EVENTTYPE_END );
+#endif
   return mem;
 }
 
 static inline void cp_free( void* ptr ) {
+#ifdef CP_EVENTID_RUNFREE
   CP_LOGEVENT( CP_EVENTID_RUNFREE, CP_EVENTTYPE_BEGIN );
+#endif
   free( ptr );
+#ifdef CP_EVENTID_RUNFREE
   CP_LOGEVENT( CP_EVENTID_RUNFREE, CP_EVENTTYPE_END );
+#endif
 }
 
 

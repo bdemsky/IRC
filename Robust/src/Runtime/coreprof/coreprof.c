@@ -54,12 +54,16 @@ void cp_create() {
 
   // point thread lock variable to event monitor
   cp_monitor = monitor;
+#ifdef CP_EVENTID_MAIN
   CP_LOGEVENT( CP_EVENTID_MAIN, CP_EVENTTYPE_BEGIN );
+#endif
 }
 
 // Place to do shutdown stuff
 void cp_exit() {
+#ifdef CP_EVENTID_MAIN
   CP_LOGEVENT( CP_EVENTID_MAIN, CP_EVENTTYPE_END );
+#endif
 }
 
 void cp_writedata( int fd, char* buffer, int count ) {
