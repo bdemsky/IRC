@@ -30,6 +30,8 @@ public class Trace {
     eid2name.put( CP_EVENTID_MAIN,          "MAIN         " );
     eid2name.put( CP_EVENTID_RUNMALLOC,     "RUNMALLOC    " );
     eid2name.put( CP_EVENTID_RUNFREE,       "RUNFREE      " );
+    eid2name.put( CP_EVENTID_RUNFREE,       "POOLALLOC    " );
+    eid2name.put( CP_EVENTID_RUNFREE,       "POOLREUSE    " );
     eid2name.put( CP_EVENTID_WORKSCHEDGRAB, "WORKSCHEDGRAB" );
     eid2name.put( CP_EVENTID_TASKDISPATCH,  "TASKDISPATCH " );
     eid2name.put( CP_EVENTID_TASKEXECUTE,   "TASKEXECUTE  " );
