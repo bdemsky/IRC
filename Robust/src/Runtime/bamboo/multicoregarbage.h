@@ -14,11 +14,7 @@
 #endif
 
 // data structures for GC
-#ifdef GC_DEBUG
 #define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
-#else
-#define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
-#endif
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)
 // let each gc core to have one big block, this is very important
 // for the computation of NUMBLOCKS(s, n), DO NOT change this!

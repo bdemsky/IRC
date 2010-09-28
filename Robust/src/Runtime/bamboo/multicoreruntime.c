@@ -59,9 +59,7 @@ void initializeexithandler() {
 }
 #else
 void exithandler(int sig, siginfo_t *info, void * uap) {
-#ifdef DEBUG
-  printf("exit in exithandler\n");
-#endif
+  BAMBOO_DEBUGPRINT(0xa001);
   exit(0);
 }
 
@@ -208,10 +206,6 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #ifdef MULTICORE_GC
 void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=(struct ___Object___ *)FREEMALLOC((struct garbagelist *) ptr, classsize[type]);
-#ifdef DEBUG
-  printf("(%x,%x): new object: %x (%d, %x) \n", udn_tile_coord_x(),
-         udn_tile_coord_y(), (int)v, type, classsize[type]);
-#endif
   v->type=type;
   v->version = 0;
   v->lock = NULL;
@@ -228,11 +222,6 @@ void * allocate_new(void * ptr, int type) {
 
 struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
   struct ArrayObject * v=(struct ArrayObject *)FREEMALLOC((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
-#ifdef DEBUG
-  printf("(%x,%x): new array object: %x (%d, %x)\n", udn_tile_coord_x(),
-         udn_tile_coord_y(), (int)v, type, 
-		 sizeof(struct ArrayObject)+length*classsize[type]);
-#endif
   v->type=type;
   v->version = 0;
   v->lock = NULL;
@@ -313,7 +302,7 @@ void failedboundschk() {
   printf("Array out of bounds\n");
   longjmp(error_handler,2);
 #else
-  BAMBOO_EXIT(0xa001);
+  BAMBOO_EXIT(0xa002);
 #endif
 #endif
 }

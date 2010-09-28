@@ -28,7 +28,7 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
 
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf101);
+    BAMBOO_EXIT(0xf401);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -39,12 +39,12 @@ mgchashtable_t * mgchashCreate(unsigned int size, double loadfactor) {
   ctable = (mgchashtable_t *)RUNMALLOC(sizeof(mgchashtable_t));
   if(ctable == NULL) {
 	// Run out of local memory
-	BAMBOO_EXIT(0xf102);
+	BAMBOO_EXIT(0xf402);
   }
   ctable->table = (mgchashlistnode_t*)RUNMALLOC(size*sizeof(mgchashlistnode_t));
   if(ctable->table == NULL) {
 	// Run out of local memory
-	BAMBOO_EXIT(0xf103);
+	BAMBOO_EXIT(0xf403);
   }
   ctable->loadfactor = loadfactor;
   ctable->size = size;
@@ -131,7 +131,7 @@ mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
 
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf101);
+    BAMBOO_EXIT(0xf404);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -142,12 +142,12 @@ mgchashtable_t * mgchashCreate_I(unsigned int size, double loadfactor) {
   ctable = (mgchashtable_t*)RUNMALLOC_I(sizeof(mgchashtable_t));
   if(ctable == NULL) {
 	// Run out of local memory
-	BAMBOO_EXIT(0xf102);
+	BAMBOO_EXIT(0xf405);
   }
   ctable->table=(mgchashlistnode_t*)RUNMALLOC_I(size*sizeof(mgchashlistnode_t));
   if(ctable->table == NULL) {
 	// Run out of local memory
-	BAMBOO_EXIT(0xf103);
+	BAMBOO_EXIT(0xf406);
   }
   ctable->loadfactor = loadfactor;
   ctable->size = size;
@@ -294,7 +294,7 @@ unsigned int mgchashResize_I(mgchashtable_t * tbl, unsigned int newsize) {
   oldsize = tbl->size;
 
   if((node = RUNMALLOC_I(newsize*sizeof(mgchashlistnode_t))) == NULL) {
-    BAMBOO_EXIT(0xf104);
+    BAMBOO_EXIT(0xf407);
     printf("Calloc error %s %d\n", __FILE__, __LINE__);
     return 1;
   }
@@ -367,7 +367,7 @@ struct MGCHash * allocateMGCHash(int size,
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf105);
+    BAMBOO_EXIT(0xf408);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);
@@ -432,7 +432,7 @@ struct MGCHash * allocateMGCHash_I(int size,
   struct MGCHash *thisvar;
   if (size <= 0) {
 #ifdef MULTICORE
-    BAMBOO_EXIT(0xf106);
+    BAMBOO_EXIT(0xf409);
 #else
     printf("Negative Hashtable size Exception\n");
     exit(-1);

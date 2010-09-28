@@ -62,7 +62,7 @@ volatile bool isMsgHanging;
 #define OUTMSG_LASTINDEXINC() \
   outmsglast = (outmsglast + 1) & (BAMBOO_OUT_BUF_MASK); \
   if(outmsglast == outmsgindex) { \
-    BAMBOO_EXIT(0xdd01); \
+    BAMBOO_EXIT(0xd101); \
   }
 
 #define OUTMSG_CACHE(n) \

@@ -459,18 +459,12 @@ bool checkObjQueue() {
   while(!isEmpty(&objqueue)) {
     void * obj = NULL;
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf001);
-#endif
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xeee1);
-#endif
     rflag = true;
     objInfo = (struct transObjInfo *)getItem(&objqueue);
     obj = objInfo->objptr;
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG((int)obj);
-#endif
     // grab lock and flush the obj
     grount = 0;
     getwritelock_I(obj);
@@ -478,9 +472,7 @@ bool checkObjQueue() {
       BAMBOO_WAITING_FOR_LOCK(0);
     }   // while(!lockflag)
     grount = lockresult;
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(grount);
-#endif
 
     lockresult = 0;
     lockobj = 0;
@@ -504,18 +496,10 @@ bool checkObjQueue() {
 		int paramindex = objInfo->queues[2 * k + 1];
 		struct parameterwrapper ** queues =
 		  &(paramqueues[BAMBOO_NUM_OF_CORE][taskindex][paramindex]);
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT_REG(taskindex);
 		BAMBOO_DEBUGPRINT_REG(paramindex);
-		struct ___Object___ * tmpptr = (struct ___Object___ *)obj;
-		tprintf("Process %x(%d): receive obj %x(%lld), ptrflag %x\n",
-				BAMBOO_NUM_OF_CORE, BAMBOO_NUM_OF_CORE, (int)obj,
-				(long)obj, tmpptr->flag);
-#endif
 		enqueueObject_I(obj, queues, 1);
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
-#endif
       }  // for(k = 0; k < objInfo->length; ++k)
       releasewritelock_I(obj);
       RUNFREE(objInfo->queues);
@@ -543,15 +527,11 @@ bool checkObjQueue() {
       addNewItem_I(&objqueue, objInfo);
 objqueuebreak:
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xf000);
-#endif
       break;
     }  // if(grount == 1)
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf000);
-#endif
   }  // while(!isEmpty(&objqueue))
 
 #ifdef PROFILE
@@ -562,9 +542,7 @@ objqueuebreak:
 #endif
 #endif
 
-#ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xee02);
-#endif
   return rflag;
 }
 
@@ -575,26 +553,18 @@ void checkCoreStatus() {
   int sumsendobj = 0;
   if((!waitconfirm) ||
      (waitconfirm && (numconfirm == 0))) {
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xee04);
     BAMBOO_DEBUGPRINT_REG(waitconfirm);
-#endif
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf001);
-#endif
     corestatus[BAMBOO_NUM_OF_CORE] = 0;
     numsendobjs[BAMBOO_NUM_OF_CORE] = self_numsendobjs;
     numreceiveobjs[BAMBOO_NUM_OF_CORE] = self_numreceiveobjs;
     // check the status of all cores
     allStall = true;
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT_REG(NUMCORESACTIVE);
-#endif
     for(i = 0; i < NUMCORESACTIVE; ++i) {
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xe000 + corestatus[i]);
-#endif
       if(corestatus[i] != 0) {
 		allStall = false;
 		break;
@@ -606,24 +576,18 @@ void checkCoreStatus() {
       sumsendobj = 0;
       for(i = 0; i < NUMCORESACTIVE; ++i) {
 		sumsendobj += numsendobjs[i];
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xf000 + numsendobjs[i]);
-#endif
       }  // for(i = 0; i < NUMCORESACTIVE; ++i)
       for(i = 0; i < NUMCORESACTIVE; ++i) {
 		sumsendobj -= numreceiveobjs[i];
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xf000 + numreceiveobjs[i]);
-#endif
       }  // for(i = 0; i < NUMCORESACTIVE; ++i)
       if(0 == sumsendobj) {
 		if(!waitconfirm) {
 		  // the first time found all cores stall
 		  // send out status confirm msg to all other cores
 		  // reset the corestatus array too
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xee05);
-#endif
 		  corestatus[BAMBOO_NUM_OF_CORE] = 1;
 		  waitconfirm = true;
 		  numconfirm = NUMCORESACTIVE - 1;
@@ -638,9 +602,7 @@ void checkCoreStatus() {
 		  // all the core status info are the latest
 		  // terminate; for profiling mode, send request to all
 		  // other cores to pour out profiling data
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xee06);
-#endif
 
 #ifdef USEIO
 		  totalexetime = BAMBOO_GET_EXE_TIME() - bamboo_start_time;
@@ -659,9 +621,7 @@ void checkCoreStatus() {
 		  // out progiling data
 #ifdef PROFILE
 		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xf000);
-#endif
 		  for(i = 1; i < NUMCORESACTIVE; ++i) {
 			// send profile request msg to core i
 			send_msg_2(i, PROFILEOUTPUT, totalexetime, false);
@@ -672,19 +632,13 @@ void checkCoreStatus() {
 #endif
 		  while(true) {
 			BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xf001);
-#endif
 			profilestatus[BAMBOO_NUM_OF_CORE] = 0;
 			// check the status of all cores
 			allStall = true;
-#ifdef DEBUG
 			BAMBOO_DEBUGPRINT_REG(NUMCORESACTIVE);
-#endif
 			for(i = 0; i < NUMCORESACTIVE; ++i) {
-#ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xe000 + profilestatus[i]);
-#endif
 			  if(profilestatus[i] != 0) {
 				allStall = false;
 				break;
@@ -693,9 +647,7 @@ void checkCoreStatus() {
 			if(!allStall) {
 			  int halt = 100;
 			  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xf000);
-#endif
 			  while(halt--) {
 			  }
 			} else {
@@ -721,24 +673,18 @@ void checkCoreStatus() {
       } else {
 		// still some objects on the fly on the network
 		// reset the waitconfirm and numconfirm
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xee07);
-#endif
 		waitconfirm = false;
 		numconfirm = 0;
 	  }  //  if(0 == sumsendobj)
     } else {
       // not all cores are stall, keep on waiting
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xee08);
-#endif
       waitconfirm = false;
       numconfirm = 0;
     }  //  if(allStall)
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf000);
-#endif
   }  // if((!waitconfirm) ||
 }
 
@@ -752,11 +698,9 @@ inline void run(void * arg) {
   bool tocontinue = false;
 
   corenum = BAMBOO_GET_NUM_OF_CORE();
-#ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xeeee);
   BAMBOO_DEBUGPRINT_REG(corenum);
   BAMBOO_DEBUGPRINT(STARTUPCORE);
-#endif
 
   // initialize runtime data structures
   initruntimedata();
@@ -795,9 +739,7 @@ inline void run(void * arg) {
       createstartupobject(argc, argv);
     }
 
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xee00);
-#endif
 
     while(true) {
 
@@ -819,9 +761,7 @@ inline void run(void * arg) {
       }
 #endif
 
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xee01);
-#endif
 
       // check if there are some pending objects,
       // if yes, enqueue them and executetasks again
@@ -831,34 +771,26 @@ inline void run(void * arg) {
 		// check if stop
 		if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 		  if(isfirst) {
-#ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xee03);
-#endif
 			isfirst = false;
 		  }
 		  checkCoreStatus();
 		} else {
 		  if(!sendStall) {
-#ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xee09);
-#endif
 #ifdef PROFILE
 			if(!stall) {
 #endif
 			if(isfirst) {
 			  // wait for some time
 			  int halt = 10000;
-#ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xee0a);
-#endif
 			  while(halt--) {
 			  }
 			  isfirst = false;
 			} else {
 			  // send StallMsg to startup core
-#ifdef DEBUG
 			  BAMBOO_DEBUGPRINT(0xee0b);
-#endif
 			  // send stall msg
 			  send_msg_4(STARTUPCORE, TRANSTALL, BAMBOO_NUM_OF_CORE,
 						 self_numsendobjs, self_numreceiveobjs, false);
@@ -872,9 +804,7 @@ inline void run(void * arg) {
 		  } else {
 			isfirst = true;
 			busystatus = false;
-#ifdef DEBUG
 			BAMBOO_DEBUGPRINT(0xee0c);
-#endif
 		  }   // if(!sendStall)
 		}   // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
       }  // if(!tocontinue)
@@ -1935,10 +1865,8 @@ void * smemalloc_I(int coren,
 }  // void * smemalloc_I(int, int, int)
 
 INLINE int checkMsgLength_I(int size) {
-#ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xcccc);
-#endif
 #endif
   int type = msgdata[msgdataindex];
   switch(type) {
@@ -2057,15 +1985,9 @@ INLINE int checkMsgLength_I(int size) {
     break;
   }
   }
-#ifdef DEBUG
-#ifndef TILERA
+#ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex]);
-#endif
-#endif
-#ifdef DEBUG
-#ifndef TILERA
   BAMBOO_DEBUGPRINT(0xffff);
-#endif
 #endif
   return msglength;
 }
@@ -2074,10 +1996,8 @@ INLINE void processmsg_transobj_I() {
   MSG_INDEXINC_I();
   struct transObjInfo * transObj=RUNMALLOC_I(sizeof(struct transObjInfo));
   int k = 0;
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe880);
-#endif
 #endif
   if(BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1) {
 #ifndef CLOSE_PRINT
@@ -2155,10 +2075,8 @@ INLINE void processmsg_transtall_I() {
   int data3 = msgdata[msgdataindex]; //[3];
   MSG_INDEXINC_I();
   if(num_core < NUMCORESACTIVE) {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe881);
-#endif
 #endif
     corestatus[num_core] = 0;
     numsendobjs[num_core] = data2; //[2];
@@ -2208,10 +2126,8 @@ INLINE void processmsg_lockgrount_I() {
   int data3 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   if((lockobj == data2) && (lock2require == data3)) {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe882);
-#endif
 #endif
     lockresult = 1;
     lockflag = true;
@@ -2240,10 +2156,8 @@ INLINE void processmsg_lockdeny_I() {
     BAMBOO_EXIT(0xe009);
   }
   if((lockobj == data2) && (lock2require == data3)) {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe883);
-#endif
 #endif
     lockresult = 0;
     lockflag = true;
@@ -2310,10 +2224,8 @@ INLINE void processmsg_redirectgrount_I() {
     BAMBOO_EXIT(0xe00b);
   }
   if(lockobj == data2) {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe891);
-#endif
 #endif
     int data3 = msgdata[msgdataindex];
     MSG_INDEXINC_I();
@@ -2345,10 +2257,8 @@ INLINE void processmsg_redirectdeny_I() {
     BAMBOO_EXIT(0xe00d);
   }
   if(lockobj == data2) {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe892);
-#endif
 #endif
     lockresult = 0;
     lockflag = true;
@@ -2381,10 +2291,8 @@ INLINE void processmsg_profileoutput_I() {
     // startup core can not receive profile output finish msg
     BAMBOO_EXIT(0xe00f);
   }
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe885);
-#endif
 #endif
   stall = true;
   totalexetime = msgdata[msgdataindex];  //[1]
@@ -2410,10 +2318,8 @@ INLINE void processmsg_profilefinish_I() {
 #endif
     BAMBOO_EXIT(0xe010);
   }
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe886);
-#endif
 #endif
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -2428,10 +2334,8 @@ INLINE void processmsg_statusconfirm_I() {
     BAMBOO_EXIT(0xe011);
   } else {
     // send response msg
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe887);
-#endif
 #endif
     // cache the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
@@ -2463,10 +2367,8 @@ INLINE void processmsg_statusreport_I() {
 #endif
     BAMBOO_EXIT(0xe012);
   } else {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe888);
-#endif
 #endif
     if(waitconfirm) {
       numconfirm--;
@@ -2478,10 +2380,8 @@ INLINE void processmsg_statusreport_I() {
 }
 
 INLINE void processmsg_terminate_I() {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe889);
-#endif
 #endif
   disruntimedata();
 #ifdef MULTICORE_GC
@@ -2505,10 +2405,8 @@ INLINE void processmsg_memrequest_I() {
 #endif
     BAMBOO_EXIT(0xe013);
   } else {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe88a);
-#endif
 #endif
     int allocsize = 0;
     void * mem = NULL;
@@ -2549,10 +2447,8 @@ INLINE void processmsg_memresponse_I() {
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // receive a shared memory response msg
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe88b);
-#endif
 #endif
 #ifdef MULTICORE_GC
   // if is currently doing gc, dump this msg
@@ -2614,10 +2510,8 @@ INLINE void processmsg_gcstartinit_I() {
 }
 
 INLINE void processmsg_gcstart_I() {
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe88c);
-#endif
 #endif
   // set the GC flag
   gcphase = MARKPHASE;
@@ -2672,7 +2566,7 @@ INLINE void processmsg_gcfinishinit_I() {
 #endif
     BAMBOO_EXIT(0xe015);
   }
-#ifdef DEBUG
+#ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe88c);
   BAMBOO_DEBUGPRINT_REG(data1);
 #endif
@@ -2881,7 +2775,7 @@ INLINE void processmsg_gcmaprequest_I() {
 #endif
   if(NULL == dstptr) {
     // no such pointer in this core, something is wrong
-#ifdef DEBUG
+#ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
@@ -3323,10 +3217,8 @@ processmsg:
       // still have available msg
       goto processmsg;
     }
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe88d);
-#endif
 #endif
 
     // have new coming msg
@@ -3346,10 +3238,8 @@ processmsg:
     return (int)type;
   } else {
     // not a whole msg
-#ifdef DEBUG
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe88e);
-#endif
 #endif
     return -2;
   }
@@ -3538,18 +3428,14 @@ void releasewritelock_r(void * lock, void * redirectlock) {
   int reallock = (int)lock;
   targetcore = (reallock >> 5) % NUMCORES;
 
-#ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe671);
   BAMBOO_DEBUGPRINT_REG((int)lock);
   BAMBOO_DEBUGPRINT_REG(reallock);
   BAMBOO_DEBUGPRINT_REG(targetcore);
-#endif
 
   if(targetcore == BAMBOO_NUM_OF_CORE) {
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf001);
-#endif
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
@@ -3557,24 +3443,16 @@ void releasewritelock_r(void * lock, void * redirectlock) {
     } else {
       int rwlock_obj = 0;
       struct LockValue * lockvalue = NULL;
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xe672);
-#endif
       RuntimeHashget(locktbl, reallock, &rwlock_obj);
       lockvalue = (struct LockValue *)rwlock_obj;
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
       lockvalue->value++;
       lockvalue->redirectlock = (int)redirectlock;
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT_REG(lockvalue->value);
-#endif
     }
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xf000);
-#endif
     return;
   } else {
     // send lock release with redirect info msg
@@ -3605,9 +3483,7 @@ newtask:
 #ifdef MULTICORE_GC
     if(gcflag) gc(NULL);
 #endif
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe990);
-#endif
 
     /* See if there are any active tasks */
     int i;
@@ -3665,23 +3541,17 @@ newtask:
       }
     }  // line 2713: for(i = 0; i < numparams; i++)
     // grab these required locks
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe991);
-#endif
 
     for(i = 0; i < runtime_locklen; i++) {
       int * lock = (int *)(runtime_locks[i].redirectlock);
       islock = true;
       // require locks for this parameter if it is not a startup object
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT_REG((int)lock);
       BAMBOO_DEBUGPRINT_REG((int)(runtime_locks[i].value));
-#endif
       getwritelock(lock);
       BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xf001);
-#endif
       while(!lockflag) {
 		BAMBOO_WAITING_FOR_LOCK(0);
 	  }
@@ -3701,15 +3571,11 @@ newtask:
       reside = false;
 #endif
       BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xf000);
-#endif
 
       if(grount == 0) {
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xe992);
 		BAMBOO_DEBUGPRINT_REG(lock);
-#endif
 		// check if has the lock already
 		// can not get the lock, try later
 		// release all grabbed locks for previous parameters
@@ -3734,9 +3600,7 @@ newtask:
       }
     }   // line 2752:  for(i = 0; i < runtime_locklen; i++)
 
-#ifdef DEBUG
     BAMBOO_DEBUGPRINT(0xe993);
-#endif
     /* Make sure that the parameters are still in the queues */
     for(i=0; i<numparams; i++) {
       void * parameter=currtpd->parameterArray[i];
@@ -3752,10 +3616,8 @@ newtask:
       /* Check that object is still in queue */
       {
 		if (!ObjectHashcontainskey(pw->objectset, (int) parameter)) {
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xe994);
 		  BAMBOO_DEBUGPRINT_REG(parameter);
-#endif
 		  // release grabbed locks
 		  for(j = 0; j < runtime_locklen; ++j) {
 			int * lock = (int *)(runtime_locks[j].redirectlock);
@@ -3785,10 +3647,8 @@ newtask:
 		  int next;
 		  int UNUSED, UNUSED2;
 		  int * enterflags;
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xe995);
 		  BAMBOO_DEBUGPRINT_REG(parameter);
-#endif
 		  ObjectHashget(pw->objectset, (int) parameter, (int *) &next,
 						(int *) &enterflags, &UNUSED, &UNUSED2);
 		  ObjectHashremove(pw->objectset, (int)parameter);
@@ -3818,9 +3678,7 @@ parameterpresent:
 		int slotid=pd->tagarray[2*j]+numparams;
 		struct ___TagDescriptor___ *tagd=currtpd->parameterArray[slotid];
 		if (!containstag(parameter, tagd)) {
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT(0xe996);
-#endif
 		  {
 			// release grabbed locks
 			int tmpj = 0;
@@ -3858,9 +3716,7 @@ execute:
       profileTaskStart(currtpd->task->name);
 #endif
 
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xe997);
-#endif
       ((void (*)(void **))currtpd->task->taskptr)(taskpointerarray);
 
 #ifdef PROFILE
@@ -3871,23 +3727,17 @@ execute:
       profileTaskStart("post task execution");
 #endif
 #endif
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xe998);
       BAMBOO_DEBUGPRINT_REG(islock);
-#endif
 
       if(islock) {
-#ifdef DEBUG
 		BAMBOO_DEBUGPRINT(0xe999);
-#endif
 		for(i = 0; i < runtime_locklen; ++i) {
 		  void * ptr = (void *)(runtime_locks[i].redirectlock);
 		  int * lock = (int *)(runtime_locks[i].value);
-#ifdef DEBUG
 		  BAMBOO_DEBUGPRINT_REG((int)ptr);
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
 		  BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
-#endif
 #ifndef MULTICORE_GC
 		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
 			int redirectlock;
@@ -3912,15 +3762,11 @@ execute:
       RUNFREE(currtpd->parameterArray);
       RUNFREE(currtpd);
       currtpd = NULL;
-#ifdef DEBUG
       BAMBOO_DEBUGPRINT(0xe99a);
-#endif
     }   //
     //} //  if (hashsize(activetasks)>0)
   } //  while(hashsize(activetasks)>0)
-#ifdef DEBUG
   BAMBOO_DEBUGPRINT(0xe99b);
-#endif
 }
 
 /* This function processes an objects tags */
@@ -4369,20 +4215,20 @@ void outputProfileData() {
   int i = 0;
   int j = 0;
 
-  BAMBOO_DEBUGPRINT(0xdddd);
+  BAMBOO_PRINT(0xdddd);
   // output task related info
   for(i= 0; i < taskInfoIndex; i++) {
     TaskInfo* tmpTInfo = taskInfoArray[i];
     char* tmpName = tmpTInfo->taskName;
     int nameLen = strlen(tmpName);
-    BAMBOO_DEBUGPRINT(0xddda);
+    BAMBOO_PRINT(0xddda);
     for(j = 0; j < nameLen; j++) {
-      BAMBOO_DEBUGPRINT_REG(tmpName[j]);
+      BAMBOO_PRINT_REG(tmpName[j]);
     }
-    BAMBOO_DEBUGPRINT(0xdddb);
-    BAMBOO_DEBUGPRINT_REG(tmpTInfo->startTime);
-    BAMBOO_DEBUGPRINT_REG(tmpTInfo->endTime);
-    BAMBOO_DEBUGPRINT_REG(tmpTInfo->exitIndex);
+    BAMBOO_PRINT(0xdddb);
+    BAMBOO_PRINT_REG(tmpTInfo->startTime);
+    BAMBOO_PRINT_REG(tmpTInfo->endTime);
+    BAMBOO_PRINT_REG(tmpTInfo->exitIndex);
     if(tmpTInfo->newObjs != NULL) {
       struct RuntimeHash * nobjtbl = allocateRuntimeHash(5);
       struct RuntimeIterator * iter = NULL;
@@ -4405,37 +4251,37 @@ void outputProfileData() {
 		char * objtype = (char *)Runkey(iter);
 		int num = Runnext(iter);
 		int nameLen = strlen(objtype);
-		BAMBOO_DEBUGPRINT(0xddda);
+		BAMBOO_PRINT(0xddda);
 		for(j = 0; j < nameLen; j++) {
-		  BAMBOO_DEBUGPRINT_REG(objtype[j]);
+		  BAMBOO_PRINT_REG(objtype[j]);
 		}
-		BAMBOO_DEBUGPRINT(0xdddb);
-		BAMBOO_DEBUGPRINT_REG(num);
+		BAMBOO_PRINT(0xdddb);
+		BAMBOO_PRINT_REG(num);
 	  }
 	}
-	BAMBOO_DEBUGPRINT(0xdddc);
+	BAMBOO_PRINT(0xdddc);
   }
 
   if(taskInfoOverflow) {
-	BAMBOO_DEBUGPRINT(0xefee);
+	BAMBOO_PRINT(0xefee);
   }
 
 #ifdef PROFILE_INTERRUPT
   // output interrupt related info
   for(i = 0; i < interruptInfoIndex; i++) {
 	InterruptInfo* tmpIInfo = interruptInfoArray[i];
-	BAMBOO_DEBUGPRINT(0xddde);
-	BAMBOO_DEBUGPRINT_REG(tmpIInfo->startTime);
-	BAMBOO_DEBUGPRINT_REG(tmpIInfo->endTime);
-	BAMBOO_DEBUGPRINT(0xdddf);
+	BAMBOO_PRINT(0xddde);
+	BAMBOO_PRINT_REG(tmpIInfo->startTime);
+	BAMBOO_PRINT_REG(tmpIInfo->endTime);
+	BAMBOO_PRINT(0xdddf);
   }
 
   if(interruptInfoOverflow) {
-	BAMBOO_DEBUGPRINT(0xefef);
+	BAMBOO_PRINT(0xefef);
   }
 #endif // PROFILE_INTERRUPT
 
-  BAMBOO_DEBUGPRINT(0xeeee);
+  BAMBOO_PRINT(0xeeee);
 #endif
 }
 #endif  // #ifdef PROFILE

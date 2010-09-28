@@ -40,13 +40,7 @@ void * mycalloc_share(struct garbagelist * stackptr,
 	int hasgc = 0;
 memalloc:
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
-	tprintf("ask for shared mem: %x, %x, %x \n", isize, size, BAMBOO_CACHE_LINE_MASK);
-#endif
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
-#ifdef DEBUG
-	tprintf("new obj in shared mem: %x, %x \n", p, isize);
-#endif
   if(p == NULL) {
 		// no more global shared memory
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
@@ -57,7 +51,6 @@ memalloc:
 			}
 		} else {
 			// no more global shared memory
-			//BAMBOO_DEBUGPRINT_REG(isize);
 			BAMBOO_EXIT(0xc002);
 		}
 
@@ -76,13 +69,7 @@ void * mycalloc_share_ngc(int m,
 					      int size) {
   void * p = NULL;
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef DEBUG
-	tprintf("ask for shared mem: %x \n", size);
-#endif
   p = BAMBOO_SHARED_MEM_CALLOC_NGC_I(m, size); // calloc(m, isize);
-#ifdef DEBUG
-  printf("new obj in shared mem: %x, %x \n", p, size);
-#endif
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return p;
 }
@@ -90,13 +77,7 @@ void * mycalloc_share_ngc(int m,
 void * mycalloc_share_ngc_I(int m, 
 					        int size) {
   void * p = NULL;
-#ifdef DEBUG
-	tprintf("ask for shared mem: %x \n", size);
-#endif
   p = BAMBOO_SHARED_MEM_CALLOC_NGC_I(m, size); // calloc(m, isize);
-#ifdef DEBUG
-  printf("new obj in shared mem: %x, %x \n", p, size);
-#endif
   return p;
 }
 
@@ -131,9 +112,6 @@ void * mycalloc_i(int m,
 		          int size) {
   void * p = NULL;
   int isize = size; 
-#ifdef DEBUG
-  tprintf("ask for local mem: %x \n", isize);
-#endif
 #ifdef MULTICORE_GC
   extern bool gc_localheap_s;
 inermycalloc_i:
@@ -141,9 +119,6 @@ inermycalloc_i:
 	BAMBOO_LOCAL_MEM_CALLOC(m, isize);
 #else
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
-#endif
-#ifdef DEBUG
-  tprintf("new obj in local mem: %x, %x \n", p, isize);
 #endif
   if(p == NULL) {
 #ifdef MULTICORE_GC
