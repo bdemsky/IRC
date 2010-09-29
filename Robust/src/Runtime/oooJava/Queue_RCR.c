@@ -37,8 +37,7 @@ void * dequeueRCRQueue()
 
     myRCRQueue.size--;
     return ptr;
-  }
-  else
+  } else
     return NULL;
 }
 
