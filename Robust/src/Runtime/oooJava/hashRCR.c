@@ -5,11 +5,10 @@
 
 //Smallest Object Size with 1 ptr is 32bytes on on 64-bit machine and 24bytes on 32-bit machine
 #ifdef BIT64
-#define _truncate_ >>5
+#define SHIFTBITS 5
 #else
-#define _truncate_ /24
+#define SHIFTBITS 4
 #endif
-
 
 __thread dchashlistnode_t *dc_c_table;
 __thread dchashlistnode_t *dc_c_list;
@@ -27,7 +26,7 @@ void hashRCRCreate(unsigned int size, double loadfactor) {
   dc_c_loadfactor = loadfactor;
   dc_c_size = size;
   dc_c_threshold=size*loadfactor;
-  dc_c_mask = (size << 4)-1;
+  dc_c_mask = (size << SHIFTBITS)-1;
   dc_c_structs=calloc(1, sizeof(dcliststruct_t));
   dc_c_numelements = 0; // Initial number of elements in the hash
   dc_c_list=NULL;
@@ -36,7 +35,7 @@ void hashRCRCreate(unsigned int size, double loadfactor) {
 void hashRCRreset() {
   dchashlistnode_t *ptr = dc_c_table;
 
-  if (dc_c_numelements<(dc_c_size>>4)) {
+  if (dc_c_numelements<(dc_c_size>>SHIFTBITS)) {
     dchashlistnode_t *top=&ptr[dc_c_size];
     dchashlistnode_t *tmpptr=dc_c_list;
     while(tmpptr!=NULL) {
@@ -76,7 +75,7 @@ int hashRCRInsert(void * key) {
     unsigned int newsize = dc_c_size << 1;
     hashRCRResize(newsize);
   }
-  ptr = &dc_c_table[(((unsigned INTPTR)key _truncate_ )&dc_c_mask)>>4];
+  ptr = &dc_c_table[(((unsigned INTPTR)key)&dc_c_mask)>>SHIFTBITS];
   if(likely(ptr->key==0)) {
     ptr->key=key;
     ptr->lnext=dc_c_list;
@@ -136,7 +135,7 @@ unsigned int hashRCRResize(unsigned int newsize) {
   dc_c_table = node;          //Update the global hashtable upon resize()
   dc_c_size = newsize;
   dc_c_threshold = newsize * dc_c_loadfactor;
-  mask=dc_c_mask = (newsize << 4)-1;
+  mask=dc_c_mask = (newsize << SHIFTBITS)-1;
 
   for(i = 0; i < oldsize; i++) {                        //Outer loop for each bin in hash table
     curr = &ptr[i];
@@ -149,7 +148,7 @@ unsigned int hashRCRResize(unsigned int newsize) {
 	break;                  //key = val =0 for element if not present within the hash table
       }
 
-      index = (((unsigned INTPTR)key _truncate_ ) & mask) >>4;
+      index = (((unsigned INTPTR)key) & mask) >>SHIFTBITS;
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
@@ -200,7 +199,7 @@ void hashRCRDelete() {
 // Search for an address for a given Address
 INLINE int hashRCRSearch(void * key) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key _truncate_) & dc_c_mask)>>4];
+  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>SHIFTBITS];
   
   do {
     if(node->key == key) {
