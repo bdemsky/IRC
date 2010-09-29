@@ -621,6 +621,7 @@ inline bool cacheLObjs() {
   int tmp_len = 0;
   int tmp_host = 0;
   // compute total mem size required and sort the lobjs in ascending order
+  // TODO USE QUICK SORT INSTEAD?
   while(gc_lobjmoreItems2_I()) {
     gc_lobjdequeue2_I();
     tmp_lobj = gclobjtail2->lobjs[gclobjtailindex2-1];
@@ -1504,19 +1505,23 @@ struct moveHelper {
 // If out of boundary of valid shared memory, return false, else return true
 inline bool nextSBlock(struct moveHelper * orig) {
   orig->blockbase = orig->blockbound;
+
   bool sbchanged = false;
+  INTPTR origptr = orig->ptr;
+  int blockbase = orig->blockbase;
+  int blockbound = orig->blockbound;
+  int bound = orig->bound;
   GC_BAMBOO_DEBUGPRINT(0xecc0);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->blockbase);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->blockbound);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->bound);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->ptr);
+  GC_BAMBOO_DEBUGPRINT_REG(blockbase);
+  GC_BAMBOO_DEBUGPRINT_REG(blockbound);
+  GC_BAMBOO_DEBUGPRINT_REG(bound);
+  GC_BAMBOO_DEBUGPRINT_REG(origptr);
 outernextSBlock:
   // check if across a big block
   // TODO now do not zero out the whole memory, maybe the last two conditions
   // are useless now
-  if((orig->blockbase >= orig->bound) || (orig->ptr >= orig->bound)
-     || ((orig->ptr != NULL) && (*((int*)orig->ptr))==0)
-     || ((*((int*)orig->blockbase))==0)) {
+  if((blockbase>=bound)||(origptr>=bound)
+	  ||((origptr!=NULL)&&(*((int*)origptr))==0)||((*((int*)blockbase))==0)) {
 innernextSBlock:
     // end of current heap block, jump to next one
     orig->numblocks++;
@@ -1546,18 +1551,18 @@ innernextSBlock:
   }  // if((orig->blockbase >= orig->bound) || (orig->ptr >= orig->bound)...
 
   // check if this sblock should be skipped or have special start point
-  if(gcsbstarttbl[orig->sblockindex] == -1) {
+  int sbstart = gcsbstarttbl[orig->sblockindex];
+  if(sbstart == -1) {
     // goto next sblock
     GC_BAMBOO_DEBUGPRINT(0xecc2);
     orig->sblockindex += 1;
     orig->blockbase += BAMBOO_SMEM_SIZE;
     goto outernextSBlock;
-  } else if((gcsbstarttbl[orig->sblockindex] != 0)
-            && (sbchanged)) {
+  } else if((sbstart != 0) && (sbchanged)) {
     // the first time to access this SBlock
     GC_BAMBOO_DEBUGPRINT(0xecc3);
     // not start from the very beginning
-    orig->blockbase = gcsbstarttbl[orig->sblockindex];
+    orig->blockbase = sbstart;
   }  // if(gcsbstarttbl[orig->sblockindex] == -1) else ...
 
   // setup information for this sblock
@@ -1590,41 +1595,44 @@ inline bool initOrig_Dst(struct moveHelper * orig,
 
   GC_BAMBOO_DEBUGPRINT(0xef01);
   GC_BAMBOO_DEBUGPRINT_REG(to->base);
-  to->ptr = to->base + to->offset;
+  INTPTR tobase = to->base;
+  to->ptr = tobase + to->offset;
 #ifdef GC_CACHE_ADAPT
   // initialize the gc_cache_revise_information
   gc_cache_revise_infomation.to_page_start_va = to->ptr;
+  int toindex = (tobase-gcbaseva)/(BAMBOO_PAGE_SIZE);
   gc_cache_revise_infomation.to_page_end_va = (BAMBOO_PAGE_SIZE)*
-	((to->base-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-  gc_cache_revise_infomation.to_page_index = 
-	(to->base-gcbaseva)/(BAMBOO_PAGE_SIZE);
+	(toindex+1);
+  gc_cache_revise_infomation.to_page_index = toindex;
   gc_cache_revise_infomation.orig_page_start_va = -1;
 #endif // GC_CACHE_ADAPT
 
   // init the orig ptr
   orig->numblocks = 0;
-  orig->base = to->base;
+  orig->base = tobase;
   int blocknum = 0;
   BLOCKINDEX(orig->base, &blocknum);
+  INTPTR origbase = orig->base;
   // check the bamboo_smemtbl to decide the real bound
-  orig->bound = orig->base + bamboo_smemtbl[blocknum];
-  orig->blockbase = orig->base;
-  orig->sblockindex = (orig->base - gcbaseva) / BAMBOO_SMEM_SIZE;
+  orig->bound = origbase + bamboo_smemtbl[blocknum];
+  orig->blockbase = origbase;
+  orig->sblockindex = (origbase - gcbaseva) / BAMBOO_SMEM_SIZE;
   GC_BAMBOO_DEBUGPRINT(0xef02);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->base);
+  GC_BAMBOO_DEBUGPRINT_REG(origbase);
   GC_BAMBOO_DEBUGPRINT_REG(orig->sblockindex);
   GC_BAMBOO_DEBUGPRINT_REG(gcsbstarttbl);
   GC_BAMBOO_DEBUGPRINT_REG(gcsbstarttbl[orig->sblockindex]);
 
-  if(gcsbstarttbl[orig->sblockindex] == -1) {
+  int sbstart = gcsbstarttbl[orig->sblockindex];
+  if(sbstart == -1) {
     GC_BAMBOO_DEBUGPRINT(0xef03);
     // goto next sblock
     orig->blockbound =
       gcbaseva+BAMBOO_SMEM_SIZE*(orig->sblockindex+1);
     return nextSBlock(orig);
-  } else if(gcsbstarttbl[orig->sblockindex] != 0) {
+  } else if(sbstart != 0) {
     GC_BAMBOO_DEBUGPRINT(0xef04);
-    orig->blockbase = gcsbstarttbl[orig->sblockindex];
+    orig->blockbase = sbstart;
   }
   GC_BAMBOO_DEBUGPRINT(0xef05);
   orig->blockbound = orig->blockbase + *((int*)(orig->blockbase));
@@ -1644,6 +1652,56 @@ inline void nextBlock(struct moveHelper * to) {
   to->offset = BAMBOO_CACHE_LINE_SIZE;
   to->ptr = to->base + to->offset;
 } // void nextBlock(struct moveHelper * to)
+
+#ifdef GC_CACHE_ADAPT
+inline void samplingDataConvert(int current_ptr) {
+  unsigned int tmp_factor = 
+	current_ptr-gc_cache_revise_infomation.to_page_start_va;
+  int topage=gc_cache_revise_infomation.to_page_index;
+  int oldpage = gc_cache_revise_infomation.orig_page_index;
+  unsigned int * newtable=&gccachesamplingtbl_r[topage];
+  unsigned int * oldtable=&gccachesamplingtbl[oldpage];
+  
+  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
+    (*newtable) = ((*newtable)+(*oldtable)*tmp_factor);
+    newtable=(unsigned int*)(((char *)newtable)+size_cachesamplingtbl_local_r);
+    oldtable=(unsigned int*) (((char *)oldtable)+size_cachesamplingtbl_local);
+  }
+} // inline void samplingDataConvert(int)
+
+inline void completePageConvert(struct moveHelper * orig,
+	                            struct moveHelper * to,
+								int current_ptr,
+								bool closeToPage) {
+  INTPTR ptr = 0;
+  int tocompare = 0;
+  if(closeToPage) {
+	ptr = to->ptr;
+	tocompare = gc_cache_revise_infomation.to_page_end_va;
+  } else {
+	 ptr = orig->ptr;
+	 tocompare = gc_cache_revise_infomation.orig_page_end_va;
+  }
+  if(ptr >= tocompare) {
+	// end of an orig/to page
+	// compute the impact of this page for the new page
+	samplingDataConvert(current_ptr);
+	// prepare for an new orig page
+	int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+	gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
+	gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
+	  (BAMBOO_PAGE_SIZE)*(tmp_index+1);
+	gc_cache_revise_infomation.orig_page_index = tmp_index;
+	gc_cache_revise_infomation.to_page_start_va = to->ptr;
+	if(closeToPage) {
+	  gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
+		(BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
+	  gc_cache_revise_infomation.to_page_index = 
+		(to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
+	}
+  }
+} // inline void completePageConvert(...)
+#endif // GC_CACHE_ADAPT
 
 // endaddr does not contain spaces for headers
 inline bool moveobj(struct moveHelper * orig,
@@ -1666,32 +1724,12 @@ innermoveobj:
     orig->ptr = (int*)(orig->ptr) + 1;
   }
 #ifdef GC_CACHE_ADAPT
-  if(orig->ptr >= gc_cache_revise_infomation.orig_page_end_va) {
-	// end of an orig page
-	// compute the impact of this page for the new page
-	unsigned int tmp_factor=
-	  to->ptr-gc_cache_revise_infomation.to_page_start_va; 
-	int topage=gc_cache_revise_infomation.to_page_index;
-	int oldpage = gc_cache_revise_infomation.orig_page_index;
-	unsigned int * newtable=&gccachesamplingtbl_r[topage];
-	unsigned int * oldtable=&gccachesamplingtbl[oldpage];
-	
-	for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-	  (*newtable) += (*oldtable)*tmp_factor;
-	  newtable=(unsigned int*)(
-		  ((char *)newtable)+size_cachesamplingtbl_local_r);
-	  oldtable=(unsigned int*)(((char *)oldtable)+size_cachesamplingtbl_local);
-	}
-	// prepare for an new orig page
-	int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-	gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
-	gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-	  (BAMBOO_PAGE_SIZE)*(tmp_index+1);
-	gc_cache_revise_infomation.orig_page_index = tmp_index;
-	gc_cache_revise_infomation.to_page_start_va = to->ptr;
-  }
+  completePageConvert(orig, to, to->ptr, false);
 #endif
-  if((orig->ptr >= orig->bound) || (orig->ptr == orig->blockbound)) {
+  INTPTR origptr = orig->ptr;
+  int origbound = orig->bound;
+  int origblockbound = orig->blockbound;
+  if((origptr >= origbound) || (origptr == origblockbound)) {
     if(!nextSBlock(orig)) {
       // finished, no more data
       return true;
@@ -1699,10 +1737,10 @@ innermoveobj:
     goto innermoveobj;
   }
   GC_BAMBOO_DEBUGPRINT(0xe202);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->ptr);
-  GC_BAMBOO_DEBUGPRINT(((int *)(orig->ptr))[0]);
+  GC_BAMBOO_DEBUGPRINT_REG(origptr);
+  GC_BAMBOO_DEBUGPRINT(((int *)(origptr))[0]);
   // check the obj's type, size and mark flag
-  type = ((int *)(orig->ptr))[0];
+  type = ((int *)(origptr))[0];
   size = 0;
   if(type == 0) {
     // end of this block, go to next one
@@ -1716,30 +1754,32 @@ innermoveobj:
     size = classsize[type];
   } else {
     // an array
-    struct ArrayObject *ao=(struct ArrayObject *)(orig->ptr);
+    struct ArrayObject *ao=(struct ArrayObject *)(origptr);
     int elementsize=classsize[type];
     int length=ao->___length___;
     size=sizeof(struct ArrayObject)+length*elementsize;
   }
-  mark = ((int *)(orig->ptr))[6];
-  bool isremote = ((((int *)(orig->ptr))[6] & REMOTEM) != 0);
+  mark = ((int *)(origptr))[6];
+  bool isremote = ((((int *)(origptr))[6] & REMOTEM) != 0);
   GC_BAMBOO_DEBUGPRINT(0xe203);
-  GC_BAMBOO_DEBUGPRINT_REG(orig->ptr);
+  GC_BAMBOO_DEBUGPRINT_REG(origptr);
   GC_BAMBOO_DEBUGPRINT_REG(size);
   ALIGNSIZE(size, &isize);       // no matter is the obj marked or not
                                  // should be able to across it
   if((mark & MARKED) != 0) {
+	int totop = to->top;
+	int tobound = to->bound;
     GC_BAMBOO_DEBUGPRINT(0xe204);
 #ifdef GC_PROFILE
 	gc_num_liveobj++;
 #endif
     // marked obj, copy it to current heap top
     // check to see if remaining space is enough
-    if(to->top + isize > to->bound) {
+    if(totop + isize > tobound) {
       // fill 0 indicating the end of this block
-      BAMBOO_MEMSET_WH(to->ptr,  '\0', to->bound - to->top);
+      BAMBOO_MEMSET_WH(to->ptr,  '\0', tobound - totop);
       // fill the header of this block and then go to next block
-      to->offset += to->bound - to->top;
+      to->offset += tobound - totop;
       BAMBOO_MEMSET_WH(to->base, '\0', BAMBOO_CACHE_LINE_SIZE);
       (*((int*)(to->base))) = to->offset;
 #ifdef GC_CACHE_ADAPT
@@ -1747,34 +1787,7 @@ innermoveobj:
 #endif // GC_CACHE_ADAPT
       nextBlock(to);
 #ifdef GC_CACHE_ADAPT
-	  if((to->ptr) >= gc_cache_revise_infomation.to_page_end_va) {
-		// end of an to page, wrap up its information
-		unsigned int tmp_factor = 
-		  tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
-		int topage=gc_cache_revise_infomation.to_page_index;
-		int oldpage = gc_cache_revise_infomation.orig_page_index;
-		unsigned int * newtable=&gccachesamplingtbl_r[topage];
-		unsigned int * oldtable=&gccachesamplingtbl[oldpage];
-	  
-		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
-		  newtable=(unsigned int*) (
-			  ((char *)newtable)+size_cachesamplingtbl_local_r);
-		  oldtable=(unsigned int*) (
-			  ((char *)oldtable)+size_cachesamplingtbl_local);
-		}
-		// prepare for an new to page
-		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-		gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
-		gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-		  (BAMBOO_PAGE_SIZE)*(tmp_index+1);
-		gc_cache_revise_infomation.orig_page_index = tmp_index;
-		gc_cache_revise_infomation.to_page_start_va = to->ptr;
-		gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
-		  (BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-		gc_cache_revise_infomation.to_page_index = 
-		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-      }
+	  completePageConvert(orig, to, tmp_ptr, true);
 #endif // GC_CACHE_ADAPT
       if(stopblock == to->numblocks) {
 		// already fulfilled the block
@@ -1783,33 +1796,34 @@ innermoveobj:
     }   // if(to->top + isize > to->bound)
     // set the mark field to 2, indicating that this obj has been moved
     // and need to be flushed
-    ((int *)(orig->ptr))[6] = COMPACTED;
-    if(to->ptr != orig->ptr) {
-      if((int)(orig->ptr) < (int)(to->ptr)+size) {
-		memmove(to->ptr, orig->ptr, size);
+    ((int *)(origptr))[6] = COMPACTED;
+	INTPTR toptr = to->ptr;
+    if(toptr != origptr) {
+      if((int)(origptr) < (int)(toptr)+size) {
+		memmove(toptr, origptr, size);
       } else {
-		memcpy(to->ptr, orig->ptr, size);
+		memcpy(toptr, origptr, size);
       }
       // fill the remaining space with -2
-      BAMBOO_MEMSET_WH(to->ptr+size, -2, isize-size);
+      BAMBOO_MEMSET_WH(toptr+size, -2, isize-size);
     }
     // store mapping info
     BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
 #ifdef LOCALHASHTBL_TEST
-    RuntimeHashadd_I(gcpointertbl, orig->ptr, to->ptr);
+    RuntimeHashadd_I(gcpointertbl, origptr, toptr);
 #else
-	mgchashInsert_I(gcpointertbl, orig->ptr, to->ptr);
+	mgchashInsert_I(gcpointertbl, origptr, toptr);
 #endif
 	if(isremote) {
 	  // add to the sharedptbl
 	  if(gcsharedptbl != NULL) {
-		mgcsharedhashInsert_I(gcsharedptbl, orig->ptr, to->ptr);
+		mgcsharedhashInsert_I(gcsharedptbl, origptr, toptr);
 	  }
 	}
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     GC_BAMBOO_DEBUGPRINT(0xcdce);
-    GC_BAMBOO_DEBUGPRINT_REG(orig->ptr);
-    GC_BAMBOO_DEBUGPRINT_REG(to->ptr);
+    GC_BAMBOO_DEBUGPRINT_REG(origptr);
+    GC_BAMBOO_DEBUGPRINT_REG(toptr);
     GC_BAMBOO_DEBUGPRINT_REG(isize);
     gccurr_heaptop -= isize;
     to->ptr += isize;
@@ -1825,35 +1839,7 @@ innermoveobj:
       nextBlock(to);
     }
 #ifdef GC_CACHE_ADAPT
-	  if((to->ptr) >= gc_cache_revise_infomation.to_page_end_va) {
-		// end of an to page, wrap up its information
-		unsigned int tmp_factor = 
-		  tmp_ptr-gc_cache_revise_infomation.to_page_start_va;
-		int topage=gc_cache_revise_infomation.to_page_index;
-		int oldpage = gc_cache_revise_infomation.orig_page_index;
-		unsigned int * newtable=&gccachesamplingtbl_r[topage];
-		unsigned int * oldtable=&gccachesamplingtbl[oldpage];
-	  
-		for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-		  (*newtable)=((*newtable)+(*oldtable)*tmp_factor);
-		  newtable=(unsigned int*) (
-			  ((char *)newtable)+size_cachesamplingtbl_local_r);
-		  oldtable=(unsigned int*) (
-			  ((char *)oldtable)+size_cachesamplingtbl_local);
-		}
-		// prepare for an new to page
-		int tmp_index = (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-		gc_cache_revise_infomation.orig_page_start_va = orig->ptr;
-		gc_cache_revise_infomation.orig_page_end_va = gcbaseva + 
-		  (BAMBOO_PAGE_SIZE)*((orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-		gc_cache_revise_infomation.orig_page_index = 
-		  (orig->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-		gc_cache_revise_infomation.to_page_start_va = to->ptr;
-		gc_cache_revise_infomation.to_page_end_va = gcbaseva + 
-		  (BAMBOO_PAGE_SIZE)*((to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE)+1);
-		gc_cache_revise_infomation.to_page_index = 
-		  (to->ptr-gcbaseva)/(BAMBOO_PAGE_SIZE);
-	  }
+	completePageConvert(orig, to, tmp_ptr, true);
 #endif // GC_CACHE_ADAPT
   } // if(mark == 1)
   GC_BAMBOO_DEBUGPRINT(0xe205);
@@ -1942,18 +1928,7 @@ innercompact:
   }
 #ifdef GC_CACHE_ADAPT
   // end of an to page, wrap up its information
-  unsigned int tmp_factor = 
-	to->ptr-gc_cache_revise_infomation.to_page_start_va;
-  int topage=gc_cache_revise_infomation.to_page_index;
-  int oldpage = gc_cache_revise_infomation.orig_page_index;
-  unsigned int * newtable=&gccachesamplingtbl_r[topage];
-  unsigned int * oldtable=&gccachesamplingtbl[oldpage];
-  
-  for(int tt = 0; tt < NUMCORESACTIVE; tt++) {
-    (*newtable) = ((*newtable)+(*oldtable)*tmp_factor);
-    newtable=(unsigned int*)(((char *)newtable)+size_cachesamplingtbl_local_r);
-    oldtable=(unsigned int*) (((char *)oldtable)+size_cachesamplingtbl_local);
-  }
+  samplingDataConvert(to->ptr);
 #endif // GC_CACHE_ADAPT
   // if no objs have been compact, do nothing,
   // otherwise, fill the header of this block
