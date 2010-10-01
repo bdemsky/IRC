@@ -37,3 +37,5 @@ WaitingQueueBinVector * returnWaitingQueueBinVectorToFreePool(struct BinVector_w
 int removeFromWaitingQueue(WaitingQueueBin * queue, int allocSiteID, int TraverserID);
 WaitingQueueBinVector * mallocNewWaitingQueueBinVector();
 WaitingQueueBinVector * getUsableWaitingQueueBinVector();
+
+#endif
