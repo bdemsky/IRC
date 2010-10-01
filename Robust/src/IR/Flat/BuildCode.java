@@ -274,6 +274,7 @@ public class BuildCode {
       if(state.RCR) {
         try {
           rcr = new RuntimeConflictResolver(PREFIX);
+          rcr.setGlobalEffects(oooa.getDisjointAnalysis().getEffectsAnalysis().getAllEffects());
         } 
         catch (FileNotFoundException e) {
           System.out.println("Runtime Conflict Resolver could not create output file.");
@@ -284,29 +285,24 @@ public class BuildCode {
         FlatSESEEnterNode fsen = seseit.next();
         initializeSESE( fsen );
         
-        if(state.RCR && rcr != null){
+        //this code will culminate all conflicts into one master hashtable. 
+        if(state.RCR && rcr != null) {
           Analysis.OoOJava.ConflictGraph conflictGraph;
           Hashtable<Taint, Set<Effect>> conflicts;
+          
           if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null && 
-             (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null && 
-             (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null){
-                    
-              FlatMethod fm=fsen.getfmEnclosing();
-              
-              //reach graph
-              ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
-              
-              if(rcr.cSideDebug) {
-                rg.writeGraph("RCR_RG_SESE_DEBUG");
-                }
-                    
-              //get effect set
-              Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fsen);
-                    
-              //rcr.traverseSESEBlock(fsen, effects, conflicts, rg);
-              }
+            (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null && 
+            (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null){
+            
+            FlatMethod fm=fsen.getfmEnclosing();
+            ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
+            if(rcr.cSideDebug)
+              rg.writeGraph("RCR_RG_SESE_DEBUG");
+            
+            rcr.addToTraverseToDoList(fsen, rg, conflicts);
           }
         }
+      }
     }
 
     /* Build the actual methods */
@@ -410,7 +406,7 @@ public class BuildCode {
       outmethod.println("  workScheduleInit( "+state.MLP_NUMCORES+", invokeSESEmethod );");
       
       //initializes data structures needed for the RCR traverser
-      if(state.RCR) {
+      if(state.RCR && rcr != null) {
         outmethod.println("  initializeStructsRCR();");
       }
     }
@@ -612,7 +608,7 @@ public class BuildCode {
       outmethod.println("#include \"mlp_runtime.h\"");
       outmethod.println("#include \"psemaphore.h\"");
       
-      if( state.RCR) {
+      if( state.RCR && rcr != null) {
         outmethod.println("#include \"RuntimeConflictResolver.h\"");
       }
     }
@@ -3036,9 +3032,7 @@ public class BuildCode {
                       (conflicts = graph.getConflictEffectSet(fn)) != null &&
                       (rg != null)){
                     
-                    //get effect set
-                    Hashtable<Taint, Set<Effect>>  effects=oooa.getDisjointAnalysis().getEffectsAnalysis().get(fn);
-                    rcr.traverseStallSite(fn, waitingElement.getTempDesc(), effects, conflicts, rg);
+                    rcr.addToTraverseToDoList(fn, waitingElement.getTempDesc(), rg, conflicts);
                    }
                 }
                
@@ -4365,7 +4359,6 @@ public class BuildCode {
       output.println("   }");
     }    
 
-
     // destroy this task's mempool if it is not a leaf task
     if( !fsen.getIsLeafSESE() ) {
       output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
@@ -4385,7 +4378,7 @@ public class BuildCode {
       // the main task has no parent, just free its record
       output.println("   mlpFreeSESErecord( runningSESE );");
     }
-
+    
     // as this thread is wrapping up the task, make sure the thread-local var
     // for the currently running task record references an invalid task
     output.println("   runningSESE = (SESEcommon*) 0x1;");
