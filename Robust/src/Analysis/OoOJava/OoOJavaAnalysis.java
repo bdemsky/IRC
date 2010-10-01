@@ -149,12 +149,9 @@ public class OoOJavaAnalysis {
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
     disjointAnalysisTaints =
-        new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, null, // no
-                                                                                           // FlatNew
-                                                                                           // set
-                                                                                           // to
-                                                                                           // flag
-            rblockRel, rblockStatus);
+        new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, null, 
+                             rblockRel, rblockStatus,
+                             true ); // suppress output--this is an intermediate pass
 
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();

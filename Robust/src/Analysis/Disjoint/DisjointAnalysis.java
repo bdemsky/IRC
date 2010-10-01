@@ -612,7 +612,20 @@ public class DisjointAnalysis {
                            RBlockRelationAnalysis rra,
                            RBlockStatusAnalysis rsa
                            ) {
-    init( s, tu, cg, l, ar, sitesToFlag, rra, rsa );
+    init( s, tu, cg, l, ar, sitesToFlag, rra, rsa, false );
+  }
+
+  public DisjointAnalysis( State            s,
+			   TypeUtil         tu,
+			   CallGraph        cg,
+			   Liveness         l,
+			   ArrayReferencees ar,
+                           Set<FlatNew> sitesToFlag,
+                           RBlockRelationAnalysis rra,
+                           RBlockStatusAnalysis rsa,
+                           boolean suppressOutput
+                           ) {
+    init( s, tu, cg, l, ar, sitesToFlag, rra, rsa, suppressOutput );
   }
   
   protected void init( State            state,
@@ -622,7 +635,8 @@ public class DisjointAnalysis {
                        ArrayReferencees arrayReferencees,
                        Set<FlatNew> sitesToFlag,
                        RBlockRelationAnalysis rra,
-                       RBlockStatusAnalysis rsa
+                       RBlockStatusAnalysis rsa,
+                       boolean suppressOutput
                        ) {
 	  
     analysisComplete = false;
@@ -645,8 +659,8 @@ public class DisjointAnalysis {
     this.releaseMode             = state.DISJOINTRELEASEMODE;
     this.determinismDesired      = state.DISJOINTDETERMINISM;
 
-    this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL;
-    this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL;
+    this.writeFinalDOTs          = state.DISJOINTWRITEDOTS && !state.DISJOINTWRITEALL && !suppressOutput;
+    this.writeAllIncrementalDOTs = state.DISJOINTWRITEDOTS &&  state.DISJOINTWRITEALL && !suppressOutput;
 
     this.takeDebugSnapshots      = state.DISJOINTSNAPSYMBOL != null;
     this.descSymbolDebug         = state.DISJOINTSNAPSYMBOL;
@@ -706,15 +720,15 @@ public class DisjointAnalysis {
         writeFinalGraphs();      
       }
 
-      if( state.DISJOINTWRITEIHMS ) {
+      if( state.DISJOINTWRITEIHMS && !suppressOutput ) {
         writeFinalIHMs();
       }
 
-      if( state.DISJOINTWRITEINITCONTEXTS ) {
+      if( state.DISJOINTWRITEINITCONTEXTS && !suppressOutput ) {
         writeInitialContexts();
       }
 
-      if( state.DISJOINTALIASFILE != null ) {
+      if( state.DISJOINTALIASFILE != null && !suppressOutput ) {
         if( state.TASK ) {
           writeAllSharing(state.DISJOINTALIASFILE, treport, justtime, state.DISJOINTALIASTAB, state.lines);
         } else {
