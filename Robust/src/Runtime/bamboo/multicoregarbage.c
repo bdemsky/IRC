@@ -3057,15 +3057,33 @@ inline void gc_collect(struct garbagelist * stackptr) {
   printf("(%x,%x) Finish prefinish phase\n", udn_tile_coord_x(),
 	     udn_tile_coord_y());
 #endif
+#ifdef GC_CACHE_SAMPLING
+  // reset the sampling arrays
+  bamboo_dtlb_sampling_reset();
+#endif // GC_CACHE_SAMPLING
+  if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
+	// zero out the gccachesamplingtbl
+	BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);
+	BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,
+		size_cachesamplingtbl_local_r);
+  }
 #endif // GC_CACHE_ADAPT
+
+  // invalidate all shared mem pointers
+  bamboo_cur_msp = NULL;
+  bamboo_smem_size = 0;
+  bamboo_smem_zero_top = NULL;
 
   while(true) {
     if(FINISHPHASE == gcphase) {
       break;
     }
   }
+
+  gcflag = false;
+  gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
+  printf("(%x,%x) Finish gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
 } // void gc_collect(struct garbagelist * stackptr)
 
@@ -3148,15 +3166,32 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   printf("(%x,%x) Finish prefinish phase\n", udn_tile_coord_x(),
 	     udn_tile_coord_y());
 #endif
+#ifdef GC_CACHE_SAMPLING
+  // reset the sampling arrays
+  bamboo_dtlb_sampling_reset();
+#endif // GC_CACHE_SAMPLING
+  if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
+	// zero out the gccachesamplingtbl
+	BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);
+	BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,
+		size_cachesamplingtbl_local_r);
+  }
 #endif // GC_CACHE_ADAPT
+
+  // invalidate all shared mem pointers
+  bamboo_cur_msp = NULL;
+  bamboo_smem_size = 0;
+  bamboo_smem_zero_top = NULL;
 
   while(true) {
     if(FINISHPHASE == gcphase) {
       break;
     }
   }
+  gcflag = false;
+  gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) Finish gc!\n", udn_tile_coord_x(), udn_tile_coord_y());
+  printf("(%x,%x) Finish gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
 } // void gc_collect(struct garbagelist * stackptr)
 
@@ -3498,6 +3533,7 @@ inline void gc_master(struct garbagelist * stackptr) {
   bamboo_output_cache_policy();
 #endif
   cacheAdapt_gc(false);
+
   gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
   while(PREFINISHPHASE == gcphase) {
 	// check the status of all cores
@@ -3508,6 +3544,18 @@ inline void gc_master(struct garbagelist * stackptr) {
 	}
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   }  // while(PREFINISHPHASE == gcphase)
+
+#ifdef GC_CACHE_SAMPLING
+  // reset the sampling arrays
+  bamboo_dtlb_sampling_reset();
+#endif // GC_CACHE_SAMPLING
+  if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
+	// zero out the gccachesamplingtbl
+	BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);
+	BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,
+		size_cachesamplingtbl_local_r);
+	BAMBOO_MEMSET_WH(gccachepolicytbl,0,size_cachepolicytbl);
+  }
 #endif // GC_CACHE_ADAPT
 
   gcphase = FINISHPHASE;
@@ -3519,8 +3567,6 @@ inline void gc_master(struct garbagelist * stackptr) {
   bamboo_cur_msp = NULL;
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
-  gcflag = false;
-  gcprocessing = false;
 
 #ifdef GC_PROFILE
   gc_profileEnd();
@@ -3531,8 +3577,11 @@ inline void gc_master(struct garbagelist * stackptr) {
 	send_msg_1(i, GCFINISH, false);
 	gccorestatus[i] = 1;
   }
+
+  gcflag = false;
+  gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) gc finished \n", udn_tile_coord_x(), 
+  printf("(%x,%x) gc finished   \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());
 #endif
 } // void gc_master(struct garbagelist * stackptr)
@@ -3667,13 +3716,6 @@ pregccheck:
 #endif // GC_CACHE_ADAPT
     gcprocessing = true;
     gc_collect(stackptr);
-
-    // invalidate all shared mem pointers
-    bamboo_cur_msp = NULL;
-    bamboo_smem_size = 0;
-	bamboo_smem_zero_top = NULL;
-    gcflag = false;
-    gcprocessing = false;
   } else {
 	// Zero out the remaining bamboo_cur_msp 
 	// Only zero out the first 4 bytes of the remaining memory
@@ -3703,34 +3745,15 @@ pregccheck:
     // not a gc core, should wait for gcfinish msg
     gcprocessing = true;
     gc_nocollect(stackptr);
-
-    // invalidate all shared mem pointers
-    bamboo_cur_msp = NULL;
-    bamboo_smem_size = 0;
-    bamboo_smem_zero_top = NULL;
-	gcflag = false;
-    gcprocessing = false;
   }
 #ifdef GC_CACHE_ADAPT
-#ifdef GC_CACHE_SAMPLING
-  // reset the sampling arrays
-  bamboo_dtlb_sampling_reset();
-#endif // GC_CACHE_SAMPLING
-  if(BAMBOO_NUM_OF_CORE < NUMCORESACTIVE) {
-	// zero out the gccachesamplingtbl
-	BAMBOO_MEMSET_WH(gccachesamplingtbl_local,0,size_cachesamplingtbl_local);
-	BAMBOO_MEMSET_WH(gccachesamplingtbl_local_r,0,
-		size_cachesamplingtbl_local_r);
-	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-	  BAMBOO_MEMSET_WH(gccachepolicytbl,0,size_cachepolicytbl);
-	}
-  }
 #ifdef GC_CACHE_SAMPLING
   // enable the timer interrupt
   bamboo_tile_timer_set_next_event(GC_TILE_TIMER_EVENT_SETTING); 
   bamboo_unmask_timer_intr();
 #endif // GC_CACHE_SAMPLING
 #endif // GC_CACHE_ADAPT
+
   return true;
 } // void gc(struct garbagelist * stackptr)
 

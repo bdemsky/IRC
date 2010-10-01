@@ -2836,7 +2836,7 @@ INLINE void processmsg_gclobjinfo_I() {
     gcheaptop = data4;
   }
   // large obj info here
-  for(int k = 5; k < data1; ) {
+  for(int k = 5; k < data1; k+=2) {
     int lobj = msgdata[msgdataindex];
     MSG_INDEXINC_I();   //msgdata[k++];
     int length = msgdata[msgdataindex];
