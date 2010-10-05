@@ -22,7 +22,7 @@ USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
 
 
 USEOOO= -ooojava 24 2  -ooodebug -ooodebug-disable-task-mem-pool 
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 1024 -garbagestats -debug -joptimize -noloop -optimize 
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 10000 -garbagestats -debug -joptimize -noloop -optimize 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
