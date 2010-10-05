@@ -273,8 +273,15 @@ public class DisjointAnalysis {
 
     bw.close();
   }
+
+
 	
   // this version of writeAllSharing is for Java programs that have no tasks
+  // ***********************************
+  // WARNING: THIS DOES NOT DO THE RIGHT THING, REPORTS 0 ALWAYS!
+  // It should use mayBothReachTarget and mayManyReachTarget like
+  // OoOJava does to query analysis results
+  // ***********************************
   public void writeAllSharingJava(String outputFile, 
                                   String timeReport,
                                   String justTime,
@@ -709,11 +716,19 @@ public class DisjointAnalysis {
 
     analysisComplete=true;
 
+
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-    String treport = String.format( "The reachability analysis took %.3f sec.", dt );
+
+    String treport;
+    if( sitesToFlag != null ) {
+      treport = String.format( "Disjoint reachability analysis flagged %d sites and took %.3f sec.", sitesToFlag.size(), dt );
+    } else {
+      treport = String.format( "Disjoint reachability analysis took %.3f sec.", dt );
+    }
     String justtime = String.format( "%.2f", dt );
     System.out.println( treport );
+
 
     try {
       if( writeFinalDOTs && !writeAllIncrementalDOTs ) {

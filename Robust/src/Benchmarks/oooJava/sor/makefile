@@ -9,7 +9,9 @@ USEOOO= -ooojava 24 2  -ooodebug
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 6*1024 -garbagestats -debug -joptimize -noloop -optimize #-ooodebug-disable-task-mem-pool
 #-coreprof -coreprof-eventwords 1024*1024*128 #-coreprof-checkoverflow 
 
-DISJOINT= -disjoint -disjoint-k 1 -enable-assertions #-disjoint-desire-determinism
+DRELEASEMODE=-disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
+DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
+
 
 default:
 	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par

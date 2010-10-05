@@ -6,7 +6,10 @@ BUILDSCRIPT=../../../buildscript
 
 USEOOO= -ooojava 24 2  -ooodebug  
 BSFLAGS= -64bit -mainclass $(PROGRAM) -garbagestats -joptimize -noloop -optimize
-DISJOINT= -disjoint -disjoint-k 1 -enable-assertions 
+
+DRELEASEMODE=-disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
+DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
+
 
 default:
 	$(BUILDSCRIPT) -nojava $(USEOOO) $(BSFLAGS) $(DISJOINT) -o $(PROGRAM)p $(SOURCE_FILES) -builddir par
