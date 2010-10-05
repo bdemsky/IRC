@@ -723,6 +723,9 @@ public class DisjointAnalysis {
     String treport;
     if( sitesToFlag != null ) {
       treport = String.format( "Disjoint reachability analysis flagged %d sites and took %.3f sec.", sitesToFlag.size(), dt );
+      if(sitesToFlag.size()>0){
+        treport+="\nFlagged sites:"+"\n"+sitesToFlag.toString();
+      }
     } else {
       treport = String.format( "Disjoint reachability analysis took %.3f sec.", dt );
     }
