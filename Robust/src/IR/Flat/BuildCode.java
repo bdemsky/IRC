@@ -2327,7 +2327,7 @@ public class BuildCode {
       // make it clear we purposefully did not initialize this
       output.println("   runningSESE->taskRecordMemPool = (MemPool*)0x1;");
     }
-    output.println( "#endif" );
+    output.println( "#endif // OOO_DISABLE_TASKMEMPOOL" );
 
 
     // copy in-set into place, ready vars were already 
@@ -2350,10 +2350,12 @@ public class BuildCode {
          pairItr.hasNext();
          ) {
       SESEandAgePair srcPair = pairItr.next();
+      output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("   {");
       output.println("     SESEcommon* src = &("+paramsprefix+"->"+srcPair+"->common);");
       output.println("     RELEASE_REFERENCE_TO( src );");
       output.println("   }");
+      output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
     }
 
 
@@ -2381,8 +2383,10 @@ public class BuildCode {
 		     paramsprefix+"->"+temp+"_srcSESE + "+
 		     paramsprefix+"->"+temp+"_srcOffset));");
 
+      output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("     SESEcommon* src = "+paramsprefix+"->"+temp+"_srcSESE;");
       output.println("     RELEASE_REFERENCE_TO( src );");
+      output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
       // or if the source was our parent, its already in our record to grab
       output.println("   } else {");
@@ -2980,6 +2984,7 @@ public class BuildCode {
           // this variable pointed to, do release last in case we're just
           // copying the same value in because 1->2->1 is safe but ref count
           // 1->0->1 has a window where it looks like it should be free'd
+          output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
           output.println("     if( "+rhs+"_srcSESE != NULL ) {");
           output.println("       ADD_REFERENCE_TO( "+rhs+"_srcSESE );");
           output.println("     }");
@@ -2987,6 +2992,7 @@ public class BuildCode {
           output.println("       RELEASE_REFERENCE_TO( oldSrc );");
           output.println("     }");
           output.println("   }");
+          output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 	}
 
 	// for each lhs that is dynamic from a non-dynamic source, set the
@@ -2997,9 +3003,11 @@ public class BuildCode {
           assert currentSESE.getDynamicVarSet().contains( dynVar );
 
           // first release a reference to current record
+          output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
           output.println("   if( "+dynVar+"_srcSESE != NULL ) {");
           output.println("     RELEASE_REFERENCE_TO( oldSrc );");
           output.println("   }");
+          output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
           output.println("   "+dynVar+"_srcSESE = NULL;");
 	}
@@ -3676,12 +3684,12 @@ public class BuildCode {
                      fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                      fsen.getSESErecordName()+" ) );");
     }
-    output.println( "#else" );
+    output.println( "#else // OOO_DISABLE_TASKMEMPOOL" );
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                      fsen.getSESErecordName()+" ) );");
-    output.println( "#endif" );
+    output.println( "#endif // OOO_DISABLE_TASKMEMPOOL" );
 
 
     // set up the SESE in-set and out-set objects, which look
@@ -3869,9 +3877,11 @@ public class BuildCode {
       // no need to add a reference to whatever is the newest record, because
       // we initialized seseToIssue->refCount to *2*
       // but release a reference to whatever was the oldest BEFORE the shift
+      output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("     if( "+pairOldest+" != NULL ) {");
       output.println("       RELEASE_REFERENCE_TO( "+pairOldest+" );");
       output.println("     }");
+      output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
       
 
@@ -4341,8 +4351,8 @@ public class BuildCode {
     // a task has variables to track static/dynamic instances
     // that serve as sources, release the parent's ref of each
     // non-null var of these types
-
     output.println("   // releasing static SESEs");
+    output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
     Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {
       SESEandAgePair pair = pItr.next();
@@ -4358,13 +4368,11 @@ public class BuildCode {
       output.println("     RELEASE_REFERENCE_TO( "+dynSrcVar+"_srcSESE );");
       output.println("   }");
     }    
-
     // destroy this task's mempool if it is not a leaf task
     if( !fsen.getIsLeafSESE() ) {
-      output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
-      output.println( "#endif" );
     }
+    output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
 
     // if this is not the Main sese (which has no parent) then return
@@ -4373,7 +4381,9 @@ public class BuildCode {
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
         ) {
+      output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("   RELEASE_REFERENCE_TO( runningSESE );");
+      output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
     } else {
       // the main task has no parent, just free its record
       output.println("   mlpFreeSESErecord( runningSESE );");
@@ -4431,12 +4441,15 @@ public class BuildCode {
       // this variable pointed to, do release last in case we're just
       // copying the same value in because 1->2->1 is safe but ref count
       // 1->0->1 has a window where it looks like it should be free'd
+      output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("       if( "+refVar+"_srcSESE != NULL ) {");
       output.println("         ADD_REFERENCE_TO( "+refVar+"_srcSESE );");
       output.println("       }");
       output.println("       if( oldSrc != NULL ) {");
       output.println("         RELEASE_REFERENCE_TO( oldSrc );");
       output.println("       }");
+      output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
+
       output.println("     }");
     }	
   }
