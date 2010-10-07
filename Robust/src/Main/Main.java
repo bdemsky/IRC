@@ -569,15 +569,15 @@ public class Main {
 	CallGraph callGraph = new CallGraph(state);
 	Liveness liveness = new Liveness();
         ArrayReferencees ar = new ArrayReferencees(state);
-	OwnershipAnalysis oa = null; /*new OwnershipAnalysis(state,
+	OwnershipAnalysis oa = new OwnershipAnalysis(state,
 	                                             tu,
 	                                             callGraph,
-						     liveness,
-                                                     ar,
+                                                 liveness,
+                                                 ar,
 	                                             state.OWNERSHIPALLOCDEPTH,
 	                                             state.OWNERSHIPWRITEDOTS,
 	                                             state.OWNERSHIPWRITEALL,
-	                                             state.OWNERSHIPALIASFILE);*/
+	                                             state.OWNERSHIPALIASFILE);
 	
 	// synthesis a layout according to target multicore processor
 	MCImplSynthesis mcImplSynthesis = new MCImplSynthesis(state,

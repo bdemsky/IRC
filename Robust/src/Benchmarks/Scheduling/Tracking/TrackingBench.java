@@ -17,7 +17,8 @@ task startup(StartupObject s{initialstate}) {
   for(int i = 0; i < pnum; i++) {
     BlurPiece bp = new BlurPiece(i,
                                  range,
-                                 input){toblur};
+                                 input,
+                                 pnum){toblur};
   }
   tdmo.setBPNum(pnum);
   
@@ -64,7 +65,8 @@ task preresize(TrackDemo tdmo{topreresize}) {
                                range,
                                Icur, 
                                rows, 
-                               cols){toprocess};
+                               cols,
+                               pnum){toprocess};
   }
   ImageXM imageXM = new ImageXM(pnum,
                                 rows,
@@ -75,7 +77,8 @@ task preresize(TrackDemo tdmo{topreresize}) {
                                range,
                                Icur, 
                                rows, 
-                               cols){toprocess};
+                               cols,
+                               pnum){toprocess};
   }
   ImageYM imageYM = new ImageYM(pnum,
                                 rows,
@@ -178,7 +181,8 @@ task calcInd(Lambda lda{tocalcInd}) {
                       data,
                       rows,
                       cols,
-                      r){toprocess};
+                      r,
+                      pnum){toprocess};
   }
                     
   taskexit(lda{!tocalcInd, finish});
@@ -233,12 +237,14 @@ task startTrackingLoop(TrackDemo tdmo{tostartL}) {
                       range,
                       data,
                       rows,
-                      cols){toprocess};
+                      cols,
+                      pnum1){toprocess};
     IYL iyl = new IYL(i,
                       range,
                       data,
                       rows,
-                      cols){toprocess};
+                      cols,
+                      pnum1){toprocess};
   }
   IXLM ixlm1 = new IXLM(pnum1,
                         data,
@@ -258,12 +264,14 @@ task startTrackingLoop(TrackDemo tdmo{tostartL}) {
                         range,
                         data,
                         rows,
-                        cols){toprocess};
+                        cols,
+                        pnum1){toprocess};
     IYLR imy = new IYLR(i,
                         range,
                         data,
                         rows,
-                        cols){toprocess};
+                        cols,
+                        pnum1){toprocess};
   }
   IXLMR ixlm2 = new IXLMR(pnum1,
                           data,
@@ -280,7 +288,8 @@ task startTrackingLoop(TrackDemo tdmo{tostartL}) {
   for(int i = 0; i < pnum2; i++) {
     BlurPieceL bpl = new BlurPieceL(i,
                                     range,
-                                    input){toblur};
+                                    input,
+                                    pnum2){toblur};
   }
   tdmo.setBPLNum(pnum2);  
   tdmo.startTrackingLoop();
