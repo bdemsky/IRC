@@ -1356,6 +1356,7 @@ public class BuildCodeMultiCore extends BuildCode {
       for( int j = i + 1; j < fm.numParameters(); ++j ) {
 	common = this.m_oa.createsPotentialAliases(td, i, j);
 	if(!common.isEmpty()) {
+      System.out.println("Alias between " + i + " and " + j);
 	  // ith parameter and jth parameter has alias, create lock to protect them
 	  if(aliasSets.elementAt(i) == null) {
 	    aliasSets.setElementAt(new Vector<Integer>(), i);
@@ -1372,7 +1373,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	AllocationSite as = (AllocationSite)allocSites[j];
 	common = this.m_oa.createsPotentialAliases(td, i, as);
 	if( !common.isEmpty() ) {
-	  // ith parameter and allocationsite as has alias
+      // ith parameter and allocationsite as has alias
 	  if(aliasFNSets.elementAt(i) == null) {
 	    aliasFNSets.setElementAt(new Vector<FlatNew>(), i);
 	  }
@@ -1391,7 +1392,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
 	common = this.m_oa.createsPotentialAliases(td, as1, as2);
 	if( !common.isEmpty() ) {
-	  // as1 and as2 has alias
+      // as1 and as2 has alias
 	  if(!aliasFNTbl.containsKey(as1.getFlatNew())) {
 	    aliasFNTbl.put(as1.getFlatNew(), new Vector<FlatNew>());
 	  }
@@ -1506,8 +1507,6 @@ public class BuildCodeMultiCore extends BuildCode {
     aliasSets.clear();
     aliasSets = null;
     this.m_aliasSets = tmpaliasSets;
-    tmpaliasSets.clear();
-    tmpaliasSets = null;
     aliasFNSets.clear();
     aliasFNSets = null;
     this.m_aliasFNTbl4Para = aliasFNTbl4Para;
