@@ -386,9 +386,9 @@ struct freeMemList {
 //       to access
 volatile int * bamboo_smemtbl;
 volatile int bamboo_free_block;
-int bamboo_reserved_smem; // reserved blocks on the top of the shared heap
-                          // e.g. 20% of the heap and should not be allocated
-                          // otherwise gc is invoked
+unsigned int bamboo_reserved_smem; // reserved blocks on the top of the shared 
+                                   // heap e.g. 20% of the heap and should not 
+								   // be allocated otherwise gc is invoked
 volatile INTPTR bamboo_smem_zero_top;
 #define BAMBOO_SMEM_ZERO_UNIT_SIZE (4 * 1024) // 4KB
 #else

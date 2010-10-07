@@ -608,13 +608,13 @@ void checkCoreStatus() {
 		  totalexetime = BAMBOO_GET_EXE_TIME() - bamboo_start_time;
 #else
 
-		  BAMBOO_DEBUGPRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
+		  BAMBOO_PRINT(BAMBOO_GET_EXE_TIME() - bamboo_start_time);
 		  //BAMBOO_DEBUGPRINT_REG(total_num_t6); // TODO for test
 #ifdef GC_FLUSH_DTLB
-		  BAMBOO_DEBUGPRINT_REG(gc_num_flush_dtlb);
+		  BAMBOO_PRINT_REG(gc_num_flush_dtlb);
 #endif
 #ifndef BAMBOO_MEMPROF
-		  BAMBOO_DEBUGPRINT(0xbbbbbbbb);
+		  BAMBOO_PRINT(0xbbbbbbbb);
 #endif
 #endif
 		  // profile mode, send msgs to other cores to request pouring
