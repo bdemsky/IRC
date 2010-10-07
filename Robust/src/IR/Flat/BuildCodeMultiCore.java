@@ -1356,8 +1356,7 @@ public class BuildCodeMultiCore extends BuildCode {
       for( int j = i + 1; j < fm.numParameters(); ++j ) {
 	common = this.m_oa.createsPotentialAliases(td, i, j);
 	if(!common.isEmpty()) {
-      System.out.println("Alias between " + i + " and " + j);
-	  // ith parameter and jth parameter has alias, create lock to protect them
+      // ith parameter and jth parameter has alias, create lock to protect them
 	  if(aliasSets.elementAt(i) == null) {
 	    aliasSets.setElementAt(new Vector<Integer>(), i);
 	  }
