@@ -1519,41 +1519,41 @@ public class BuildCodeMultiCore extends BuildCode {
       // associate locks with parameters
       int lockindex = 0;
       for(int i = 0; i < this.m_aliasSets.size(); i++) {
-	Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
-	
-	output.print("int tmplen_" + lockindex + " = 0;");
-	output.println("void * tmpptrs_" + lockindex + "[] = {");
-	for(int j = 0; j < toadd.size(); j++) {
-	    int para = toadd.elementAt(j).intValue();
-	    output.print(super.generateTemp(fm, fm.getParameter(para), lb));
-	    if(j < toadd.size() - 1) {
-		output.print(", ");
-	    } else {
-		output.println("};");
-	    }
-	}
-	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
-	
-	for(int j = 0; j < toadd.size(); j++) {
-	  int para = toadd.elementAt(j).intValue();
-	  output.println("addAliasLock("  + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + i + "]);");
-	}
-	// check if this lock is also associated with any FlatNew nodes
-	if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
-	  if(this.m_aliaslocksTbl4FN == null) {
-	    this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
-	  }
-	  Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
-	  for(int j = 0; j < tmpv.size(); j++) {
-	    FlatNew fn = tmpv.elementAt(j);
-	    if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
-	      this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
-	    }
-	    this.m_aliaslocksTbl4FN.get(fn).add(i);
-	  }
-	  this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
-	}
-	lockindex++;
+        Vector<Integer> toadd = this.m_aliasSets.elementAt(i);
+
+        output.println("int tmplen_" + lockindex + " = " + toadd.size());
+        output.println("void * tmpptrs_" + lockindex + "[] = {");
+        for(int j = 0; j < toadd.size(); j++) {
+          int para = toadd.elementAt(j).intValue();
+          output.print(super.generateTemp(fm, fm.getParameter(para), lb));
+          if(j < toadd.size() - 1) {
+            output.print(", ");
+          } else {
+            output.println("};");
+          }
+        }
+        output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", tmplen_" + lockindex + ", lockRedirectTbl);");
+
+        for(int j = 0; j < toadd.size(); j++) {
+          int para = toadd.elementAt(j).intValue();
+          output.println("addAliasLock("  + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + i + "]);");
+        }
+        // check if this lock is also associated with any FlatNew nodes
+        if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
+          if(this.m_aliaslocksTbl4FN == null) {
+            this.m_aliaslocksTbl4FN = new Hashtable<FlatNew, Vector<Integer>>();
+          }
+          Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(toadd.elementAt(0));
+          for(int j = 0; j < tmpv.size(); j++) {
+            FlatNew fn = tmpv.elementAt(j);
+            if(!this.m_aliaslocksTbl4FN.containsKey(fn)) {
+              this.m_aliaslocksTbl4FN.put(fn, new Vector<Integer>());
+            }
+            this.m_aliaslocksTbl4FN.get(fn).add(i);
+          }
+          this.m_aliasFNTbl4Para.remove(toadd.elementAt(0));
+        }
+        lockindex++;
       }
       
       Object[] key = this.m_aliasFNTbl4Para.keySet().toArray();

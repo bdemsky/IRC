@@ -467,7 +467,11 @@ bool checkObjQueue() {
     BAMBOO_DEBUGPRINT_REG((int)obj);
     // grab lock and flush the obj
     grount = 0;
-    getwritelock_I(obj);
+	struct ___Object___ * tmpobj = (struct ___Object___ *)obj;
+	while(tmpobj->lock != NULL) {
+	  tmpobj = (struct ___Object___ *)(tmpobj->lock);
+	}
+    getwritelock_I(tmpobj);
     while(!lockflag) {
       BAMBOO_WAITING_FOR_LOCK(0);
     }   // while(!lockflag)
@@ -501,7 +505,7 @@ bool checkObjQueue() {
 		enqueueObject_I(obj, queues, 1);
 		BAMBOO_DEBUGPRINT_REG(hashsize(activetasks));
       }  // for(k = 0; k < objInfo->length; ++k)
-      releasewritelock_I(obj);
+      releasewritelock_I(tmpobj);
       RUNFREE(objInfo->queues);
       RUNFREE(objInfo);
     } else {
@@ -1314,6 +1318,42 @@ nextloop:
 int * getAliasLock(void ** ptrs,
                    int length,
                    struct RuntimeHash * tbl) {
+#ifdef TILERA_BME
+  int i = 0;
+  int locks[length];
+  int locklen = 0;
+  // sort all the locks required by the objs in the aliased set
+  for(; i < length; i++) {
+	struct ___Object___ * ptr = (struct ___Object___ *)(ptrs[i]);
+	int lock = 0;
+	int j = 0;
+	if(ptr->lock == NULL) {
+	  lock = (int)(ptr);
+	} else {
+	  lock = (int)(ptr->lock);
+	}
+	bool insert = true;
+	for(j = 0; j < locklen; j++) {
+	  if(locks[j] == lock) {
+		insert = false;
+		break;
+	  } else if(locks[j] > lock) {
+		break;
+	  }
+	}
+	if(insert) {
+	  int h = locklen;
+	  for(; h > j; h--) {
+		locks[h] = locks[h-1];
+	  }
+	  locks[j] = lock;
+	  locklen++;
+	}
+  }
+  // use the smallest lock as the shared lock for the whole set
+  return (int *)(locks[0]);
+#else // TILERA_BME
+  // TODO possible bug here!!!
   if(length == 0) {
     return (int*)(RUNMALLOC(sizeof(int)));
   } else {
@@ -1369,9 +1409,16 @@ int * getAliasLock(void ** ptrs,
     if(redirect) {
       return (int *)redirectlock;
     } else {
+	  // use the first lock as the shared lock
+	  for(j = 1; j < locklen; j++) {
+		if(locks[j] != locks[0]) {
+		  RuntimeHashadd(tbl, locks[j], locks[0]);
+		}
+	  }
       return (int *)(locks[0]);
     }
   }
+#endif // TILERA_BME
 }
 
 void addAliasLock(void * ptr,
@@ -1380,6 +1427,12 @@ void addAliasLock(void * ptr,
   if(((int)ptr != lock) && (obj->lock != (int*)lock)) {
     // originally no alias lock associated or have a different alias lock
     // flush it as the new one
+#ifdef TILERA_BME
+	while(obj->lock != NULL) {
+	  // previously have alias lock, trace the 'root' obj and redirect it
+	  obj = (struct ___Object___ *)(obj->lock);
+	} 
+#endif // TILERA_BME
     obj->lock = (int *)lock;
   }
 }
@@ -3515,11 +3568,20 @@ newtask:
 		taskpointerarray[i+OFFSET]=param;
 		goto execute;
       }
-      if(((struct ___Object___ *)param)->lock == NULL) {
+      /*if(((struct ___Object___ *)param)->lock == NULL) {
 		tmplock = (int)param;
       } else {
-		tmplock = (int)(((struct ___Object___ *)param)->lock);
-      }
+		struct ___Object___ * obj = (struct ___Object___ *)param;
+		while(obj->lock != NULL) {
+		  obj = (struct ___Object___ *)(obj->lock);
+		}
+		tmplock = (int)(obj);
+      }*/
+	  struct ___Object___ * obj = (struct ___Object___ *)param;
+	  while(obj->lock != NULL) {
+		obj = (struct ___Object___ *)(obj->lock);
+	  }
+	  tmplock = (int)(obj);
       // insert into the locks array
       for(j = 0; j < runtime_locklen; j++) {
 		if(runtime_locks[j].value == tmplock) {
@@ -3544,7 +3606,7 @@ newtask:
     BAMBOO_DEBUGPRINT(0xe991);
 
     for(i = 0; i < runtime_locklen; i++) {
-      int * lock = (int *)(runtime_locks[i].redirectlock);
+      int * lock = (int *)(runtime_locks[i].value);//(runtime_locks[i].redirectlock);
       islock = true;
       // require locks for this parameter if it is not a startup object
       BAMBOO_DEBUGPRINT_REG((int)lock);
@@ -3580,7 +3642,7 @@ newtask:
 		// can not get the lock, try later
 		// release all grabbed locks for previous parameters
 		for(j = 0; j < i; ++j) {
-		  lock = (int*)(runtime_locks[j].redirectlock);
+		  lock = (int*)(runtime_locks[j].value/*redirectlock*/);
 		  releasewritelock(lock);
 		}
 		genputtable(activetasks, currtpd, currtpd);
@@ -3620,7 +3682,7 @@ newtask:
 		  BAMBOO_DEBUGPRINT_REG(parameter);
 		  // release grabbed locks
 		  for(j = 0; j < runtime_locklen; ++j) {
-			int * lock = (int *)(runtime_locks[j].redirectlock);
+			int * lock = (int *)(runtime_locks[j].value/*redirectlock*/);
 			releasewritelock(lock);
 		  }
 		  RUNFREE(currtpd->parameterArray);
@@ -3656,7 +3718,7 @@ newtask:
 			RUNFREE(enterflags);
 		  // release grabbed locks
 		  for(j = 0; j < runtime_locklen; ++j) {
-			int * lock = (int *)(runtime_locks[j].redirectlock);
+			int * lock = (int *)(runtime_locks[j].value/*redirectlock*/);
 			releasewritelock(lock);
 		  }
 		  RUNFREE(currtpd->parameterArray);
@@ -3683,7 +3745,7 @@ parameterpresent:
 			// release grabbed locks
 			int tmpj = 0;
 			for(tmpj = 0; tmpj < runtime_locklen; ++tmpj) {
-			  int * lock = (int *)(runtime_locks[tmpj].redirectlock);
+			  int * lock = (int *)(runtime_locks[tmpj].value/*redirectlock*/);
 			  releasewritelock(lock);
 			}
 		  }
@@ -3732,23 +3794,27 @@ execute:
 
       if(islock) {
 		BAMBOO_DEBUGPRINT(0xe999);
-		for(i = 0; i < runtime_locklen; ++i) {
-		  void * ptr = (void *)(runtime_locks[i].redirectlock);
-		  int * lock = (int *)(runtime_locks[i].value);
+		for(i = runtime_locklen; i>0; i--) {
+		  void * ptr = (void *)(runtime_locks[i-1].redirectlock);
+		  int * lock = (int *)(runtime_locks[i-1].value);
 		  BAMBOO_DEBUGPRINT_REG((int)ptr);
 		  BAMBOO_DEBUGPRINT_REG((int)lock);
 		  BAMBOO_DEBUGPRINT_REG(*((int*)lock+5));
 #ifndef MULTICORE_GC
+#ifndef TILERA_BME
 		  if(RuntimeHashcontainskey(lockRedirectTbl, (int)lock)) {
 			int redirectlock;
 			RuntimeHashget(lockRedirectTbl, (int)lock, &redirectlock);
 			RuntimeHashremovekey(lockRedirectTbl, (int)lock);
 			releasewritelock_r(lock, (int *)redirectlock);
-		  } else {
+		  } else -1{
 #else
 		  {
 #endif
-			releasewritelock(ptr);
+#else
+		  {
+#endif
+			releasewritelock(lock); // ptr
 		  }
 		}
       }     // line 3015: if(islock)
