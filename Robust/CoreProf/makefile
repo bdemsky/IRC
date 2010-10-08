@@ -1,5 +1,5 @@
 all:
-	javac -Xlint Trace.java 
+	javac -cp . -Xlint Trace.java 
 
 
 run:
