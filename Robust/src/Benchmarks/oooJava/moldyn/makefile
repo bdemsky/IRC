@@ -6,7 +6,7 @@ BUILDSCRIPT=../../../buildscript
 
 
 COREPROFOVERFLOW= #-coreprof-checkoverflow
-USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
+USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*128 \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_taskdispatch
@@ -22,7 +22,7 @@ USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
 
 
 USEOOO= -ooojava 24 2  -ooodebug -ooodebug-disable-task-mem-pool 
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 5024 -garbagestats -joptimize -noloop -optimize #-debug 
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 5024 -garbagestats -joptimize -noloop -optimize -debug 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-alias-file aliases.txt tabbed
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism

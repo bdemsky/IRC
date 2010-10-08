@@ -86,11 +86,13 @@ public class JGFMolDynBench {
      * boolean waitfordone=true; while(waitfordone) { if (mybarr.done)
      * waitfordone=false; }
      */
-
+    long start=System.currentTimeMillis();
     for (int i = 0; i < numthreads; i++) {
       // thobjects[i].md.start(mid[i]);
       thobjects[i].md.run();
     }
+    long end=System.currentTimeMillis();
+//    System.out.println("Total="+(end-start));
   }
 
   public void JGFvalidate() {
@@ -344,10 +346,14 @@ class mdRunner {
 
     /* MD simulation */
     
+    JGFMolDynBench l_mymd=mymd;
+    
     int numP= (mdsize / workload)+1;
 
     double scratchpad[][][];
     scratchpad=new double[numP][3][mdsize];
+    
+    long par_time=0;
 
     for (int move = 0; move < movemx; move++) {
       /* move the particles and update velocities */
@@ -368,6 +374,11 @@ class mdRunner {
       int lworkload = workload;
       // for (int i=0+id;i<mdsize;i+=numThread) {
       int scratch_idx=0;
+      
+      double l_epot=0.0;
+      double l_vir=0.0;
+      int l_interacts=0;
+      
       for (int i = 0 ; i < mdsize; i += lworkload) {
 
         int ilow = i;
@@ -378,6 +389,7 @@ class mdRunner {
         int l_size = iupper - ilow;
 
         double workingpad[][]=scratchpad[scratch_idx++];
+        long par_start=System.currentTimeMillis();
         sese parallel{
           for(int j=0;j<3;j++){
             for(int l=0;l<mdsize;l++){
@@ -390,6 +402,8 @@ class mdRunner {
             one[idx].force(side, rcoff, mdsize, idx, xx, yy, zz, mymd, store,workingpad);
           }
         }
+        long par_end=System.currentTimeMillis();
+        par_time+=(par_end-par_start);
 
         sese serial{
           for (int k = 0; k < 3; k++) {
@@ -398,12 +412,19 @@ class mdRunner {
               sh_force[k][j] += workingpad[k][j];
             }
           }
-          mymd.epot[0] += store.epot;
-          mymd.vir[0] += store.vir;
-          mymd.interactions += store.interacts;
+          l_epot+=store.epot;
+          l_vir+=store.vir;
+          l_interacts+=store.interacts;
+//          mymd.epot[0] += store.epot;
+//          mymd.vir[0] += store.vir;
+//          mymd.interactions += store.interacts;
         }
 
       }
+      
+      mymd.epot[0] =l_epot;
+      mymd.vir[0] = l_vir;
+      mymd.interactions = l_interacts;
       
       for (int k = 0; k < 3; k++) {
         for (int j = 0; j < mdsize; j++) {
@@ -464,6 +485,7 @@ class mdRunner {
       // if (id == 0) JGFInstrumentor.stopTimer("Section3:MolDyn:Run",
       // instr.timers);
     }
+//    System.out.println("par time="+par_time);
   }
 }
 
