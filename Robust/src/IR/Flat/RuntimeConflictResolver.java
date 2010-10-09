@@ -124,10 +124,9 @@ public class RuntimeConflictResolver {
     
     //Add to Global conflicts
     for(Taint t: conflicts.keySet()) {
-      if(globalConflicts.contains(t)) {
+      if(globalConflicts.containsKey(t)) {
         globalConflicts.get(t).addAll(conflicts.get(t));
-      }
-      else {
+      } else {
         globalConflicts.put(t, conflicts.get(t));
       }
     }
@@ -139,10 +138,9 @@ public class RuntimeConflictResolver {
     toTraverse.add(new TraversalInfo(fn, rg, tempDesc));
     
     for(Taint t: conflicts.keySet()) {
-      if(globalConflicts.contains(t)) {
+      if(globalConflicts.containsKey(t)) {
         globalConflicts.get(t).addAll(conflicts.get(t));
-      }
-      else {
+      } else {
         globalConflicts.put(t, conflicts.get(t));
       }
     }
@@ -1088,15 +1086,14 @@ public class RuntimeConflictResolver {
       // rehash all effects (as a 5-tuple) by their affected allocation site
       for (Taint t : effects.keySet()) {
         Set<Effect> localConflicts = conflicts.get(t);
-
         for (Effect e : effects.get(t)) {
           BucketOfEffects bucket;
           if ((bucket = table.get(e.getAffectedAllocSite())) == null) {
             bucket = new BucketOfEffects();
             table.put(e.getAffectedAllocSite(), bucket);
           }
-          printDebug(javaDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + localConflicts.contains(e));
-          bucket.add(t, e, localConflicts.contains(e));
+          printDebug(javaDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false));
+          bucket.add(t, e, localConflicts!=null?localConflicts.contains(e):false);
         }
       }
     }
