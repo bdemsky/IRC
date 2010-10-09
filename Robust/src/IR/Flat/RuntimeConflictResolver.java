@@ -71,14 +71,14 @@ public class RuntimeConflictResolver {
     cFile = new PrintWriter(new File(outputFile + ".c"));
     headerFile = new PrintWriter(new File(outputFile + ".h"));
     
-    cFile.append("#include \"" + hashAndQueueCFileDir + "hashRCR.h\"\n#include \""
-        + hashAndQueueCFileDir + "Queue_RCR.h\"\n#include <stdlib.h>\n");
-    cFile.append("#include \"classdefs.h\"\n");
-    cFile.append("#include \"RuntimeConflictResolver.h\"\n");
-    cFile.append("#include \"hashStructure.h\"\n");
+    cFile.println("#include \"" + hashAndQueueCFileDir + "hashRCR.h\"\n#include \""
+        + hashAndQueueCFileDir + "Queue_RCR.h\"\n#include <stdlib.h>");
+    cFile.println("#include \"classdefs.h\"");
+    cFile.println("#include \"RuntimeConflictResolver.h\"");
+    cFile.println("#include \"hashStructure.h\"");
     
-    headerFile.append("#ifndef __3_RCR_H_\n");
-    headerFile.append("#define __3_RCR_H_\n");
+    headerFile.println("#ifndef __3_RCR_H_");
+    headerFile.println("#define __3_RCR_H_");
     
     doneTaints = new Hashtable<Taint, Integer>();
     connectedHRHash = new Hashtable<Taint, WeaklyConectedHRGroup>();
@@ -260,11 +260,11 @@ public class RuntimeConflictResolver {
     createMasterHashTableArray();
     
     // Adds Extra supporting methods
-    cFile.append("void initializeStructsRCR() { " + mallocVisitedHashtable + "; " + clearQueue + "; }");
-    cFile.append("void destroyRCR() { " + deallocVisitedHashTable + "; }\n");
+    cFile.println("void initializeStructsRCR() {\n  " + mallocVisitedHashtable + ";\n  " + clearQueue + ";\n}");
+    cFile.println("void destroyRCR() {\n  " + deallocVisitedHashTable + ";\n}");
     
-    headerFile.append("void initializeStructsRCR(); \nvoid destroyRCR(); \n");
-    headerFile.append("#endif\n");
+    headerFile.println("void initializeStructsRCR();\nvoid destroyRCR();");
+    headerFile.println("#endif\n");
 
     cFile.close();
     headerFile.close();
@@ -299,24 +299,25 @@ public class RuntimeConflictResolver {
 
   //TODO: This is only temporary, remove when thread local variables are functional. 
   private void createMasterHashTableArray() {
-    headerFile.append("void createAndFillMasterHashStructureArray();");
-    cFile.append("void createAndFillMasterHashStructureArray() { " +
-    		"createMasterHashTableArray("+weaklyConnectedHRCounter + ");");
+    headerFile.println("void createAndFillMasterHashStructureArray();");
+    cFile.println("void createAndFillMasterHashStructureArray() {\n" +
+    		"  createMasterHashTableArray("+weaklyConnectedHRCounter + ");");
     
     for(int i = 0; i < weaklyConnectedHRCounter; i++) {
-      cFile.append("allHashStructures["+i+"] = (HashStructure *) createhashTable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");}");
+      cFile.println("  allHashStructures["+i+"] = (HashStructure *) createhashTable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");}");
     }
+    cFile.println("}");
   }
 
   //This will print the traverser invocation that takes in a traverserID and 
   //starting ptr
   private void printMasterTraverserInvocation() {
     headerFile.println("\nint traverse(void * startingPtr, int traverserID);");
-    cFile.println("\nint traverse(void * startingPtr, int traverserID) {" +
-    		"switch(traverserID) { ");
+    cFile.println("\nint traverse(void * startingPtr, int traverserID) {");
+    cFile.println(" switch(traverserID) {");
     
     for(Taint t: doneTaints.keySet()) {
-      cFile.println("  case " + doneTaints.get(t)+ ": ");
+      cFile.println("  case " + doneTaints.get(t)+ ":");
       if(t.isRBlockTaint()) {
         cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getSESE()));
       }
@@ -328,12 +329,13 @@ public class RuntimeConflictResolver {
     }
     
     if(RuntimeConflictResolver.cSideDebug) {
-      cFile.println(" default: printf(\"invalid traverser ID %u was passed in.\\n\", traverserID);\n break; ");
+      cFile.println("  default:\n    printf(\"Invalid traverser ID %u was passed in.\\n\", traverserID);\n    break;");
     } else {
-      cFile.println(" default: break; ");
+      cFile.println("  default:\n    break;");
     }
     
-    cFile.println("}}");
+    cFile.println(" }");
+    cFile.println("}");
   }
 
   private void createConcreteGraph(
@@ -578,31 +580,31 @@ public class RuntimeConflictResolver {
     String methodName = "void traverse___" + removeInvalidChars(inVar) + 
                         removeInvalidChars(rBlock) + "___(void * InVar)";
     
-    cFile.append(methodName + " {\n");
-    headerFile.append(methodName + ";\n");
+    cFile.println(methodName + " {");
+    headerFile.println(methodName + ";");
     
     if(cSideDebug) {
-      cFile.append("printf(\"The traverser ran for " + methodName + "\\n\");\n");
+      cFile.println("printf(\"The traverser ran for " + methodName + "\\n\");");
     }
     
     if(cases.size() == 0) {
-      cFile.append(" return; }");
+      cFile.println(" return; }");
     } 
     else {
       //clears queue and hashtable that keeps track of where we've been. 
-      cFile.append(clearQueue + "; " + resetVisitedHashTable + "; \n"); 
+      cFile.println(clearQueue + "; " + resetVisitedHashTable + ";"); 
       
       //Casts the ptr to a genericObjectStruct so we can get to the ptr->allocsite field. 
-      cFile.append("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;  if(InVar != NULL) { " + queryVistedHashtable
+      cFile.println("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;  if(InVar != NULL) { " + queryVistedHashtable
           + "ptr); do { ");
       
-      cFile.append("switch(ptr->allocsite) { ");
+      cFile.println("switch(ptr->allocsite) { ");
       
       for(AllocSite singleCase: cases.keySet())
         cFile.append(cases.get(singleCase));
       
-      cFile.append(" default : break; ");
-      cFile.append("}} while( (ptr = " + dequeueFromQueueInC + ") != NULL); }}");
+      cFile.println(" default : break; ");
+      cFile.println("}} while( (ptr = " + dequeueFromQueueInC + ") != NULL); }}");
     }
     cFile.flush();
   }
@@ -627,7 +629,7 @@ public class RuntimeConflictResolver {
       assert prefix.equals("ptr") && !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
       cases.put(node.allocSite, currCase);
-      currCase.append("case " + node.getAllocationSite() + ":\n { ");
+      currCase.append("case " + node.getAllocationSite() + ":\n {\n");
     }
     //either currCase is continuing off a parent case or is its own. 
     assert currCase !=null;
@@ -636,13 +638,13 @@ public class RuntimeConflictResolver {
     String currPtr = "myPtr" + depth;
     
     String structType = node.original.getType().getSafeSymbol();
-    currCase.append(" struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + prefix + "; ");
+    currCase.append(" struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + prefix + ";\n");
     
     //Primitives Test
     if(node.hasPrimitiveConflicts()) {
       //This will check hashstructure, if cannot continue, add all to waiting queue and break; s
       addCheckHashtableAndWaitingQ(currCase, taint, node, currPtr, depth);
-      currCase.append(" break; } ");
+      currCase.append(" break; } \n");
     }
   
     //Conflicts
@@ -652,8 +654,7 @@ public class RuntimeConflictResolver {
         String childPtr = currPtr +"->___" + ref.field + "___";
 
         // Checks if the child exists and has allocsite matching the conflict
-        currCase.append(" if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "=="
-            + ref.allocSite + ") { ");
+        currCase.append(" if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "==" + ref.allocSite + ") { \n");
 
         
         //Handles Direct Conflicts on child.
@@ -661,35 +662,35 @@ public class RuntimeConflictResolver {
         //This method will touch the waiting queues if necessary.
           addCheckHashtableAndWaitingQ(currCase, taint, ref.child, childPtr, depth);
           //Else if we can continue continue. 
-          currCase.append(" } else  { ");
+          currCase.append(" } else {\n");
         }
         
         //If there are no direct conflicts (determined by static + dynamic), finish check
         if (ref.child.decendantsConflict() || ref.child.hasPrimitiveConflicts()) {
           // Checks if we have visited the child before
-          currCase.append(" if(" + queryVistedHashtable + childPtr + ")) { ");
+          currCase.append(" if(" + queryVistedHashtable + childPtr + ")) {\n");
           if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
             addChecker(taint, ref.child, cases, currCase, childPtr, depth + 1);
           }
           else {
-            currCase.append(" " + addToQueueInC + childPtr + "); ");
+            currCase.append(" " + addToQueueInC + childPtr + ");\n ");
           }
           
-          currCase.append(" } ");
+          currCase.append(" }\n");
         }
         //one more brace for the opening if
         if(ref.hasDirectObjConflict()) {
-          currCase.append(" } ");
+          currCase.append(" }\n");
         }
         
-        currCase.append(" } ");
+        currCase.append(" }\n ");
       }
     }
 
     if((node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
        (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
        (node.hasPotentialToBeIncorrectDueToConflict && node.decendantsObjConflict)) {
-      currCase.append(" } break; \n");
+      currCase.append(" } break;\n");
     }
   }
 
@@ -698,10 +699,10 @@ public class RuntimeConflictResolver {
   private void addCheckHashtableAndWaitingQ(StringBuilder currCase, Taint t, ConcreteRuntimeObjNode node, String ptr, int depth) {
     Iterator<ConcreteRuntimeObjNode> it = node.enqueueToWaitingQueueUponConflict.iterator();
     
-    currCase.append("int retval"+depth+" = "+ addCheckFromHashStructure + ptr + ");");
+    currCase.append("int retval"+depth+" = "+ addCheckFromHashStructure + ptr + ");\n");
     currCase.append("if(retval"+depth+" == " + conflictButTraverserCannotContinue + " || ");
     checkWaitingQueue(currCase, t,  node);
-    currCase.append(") { \n");
+    currCase.append(") {\n");
     //If cannot continue, then add all the undetermined references that lead from this child, including self.
     //TODO need waitingQueue Side to automatically check the thing infront of it to prevent double adds. 
     putIntoWaitingQueue(currCase, t, node, ptr);  
@@ -789,7 +790,7 @@ public class RuntimeConflictResolver {
     sb.append("put("+allocSiteID+", " +
     		"allHashStructures["+ heaprootNum +"]->waitingQueue, " +
     		resumePtr + ", " +
-    		traverserID+");");
+    		traverserID+");\n");
   }
   
   //TODO finish waitingQueue side
@@ -805,7 +806,7 @@ public class RuntimeConflictResolver {
     assert heaprootNum != -1;
     int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
     
-    sb.append(" (check(" + "allHashStructures["+ heaprootNum +"]->waitingQueue, " + allocSiteID + ") == "+ allocQueueIsNotEmpty+") ");
+    sb.append(" (check(" + "allHashStructures["+ heaprootNum +"]->waitingQueue, " + allocSiteID + ") == "+ allocQueueIsNotEmpty+")");
   }
   
   private void enumerateHeaproots() {
