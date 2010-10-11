@@ -8,7 +8,7 @@
 HashStructure ** allHashStructures;
 
 //NOTE: only temporary
-void createMasterHashTableArray(int maxSize) {
+void createMasterHashTableArray(int maxSize){
   int i;
   allHashTables = (HashTable**) malloc(sizeof(Hashtable) * maxSize);
 
@@ -38,7 +38,8 @@ WriteBinItem_rcr* createWriteBinItem(){
 
 ReadBinItem_rcr* createReadBinItem(){
   ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)RUNMALLOC(sizeof(ReadBinItem_rcr));
-  binitem->index=0;
+  binitem->tail_Index=0;
+  binitem->head_Index=0;
   binitem->item.type=READBIN;
   return binitem;
 }
@@ -82,7 +83,7 @@ int ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SE
   }
 }
 
-int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot) {
+int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot){
   BinItem_rcr* b;
   TraverserData * td;
   if (type == WRITEEFFECT) {
@@ -92,7 +93,7 @@ int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int 
   else if (type == READEFFECT) {
     b=(BinItem_rcr*)createReadBinItem();
     ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
-    td = &(readbin->array[readbin->index++]);
+    td = &(readbin->array[readbin->tail_Index++]);
   }
   b->total=1;
   b->type= type;
@@ -113,7 +114,7 @@ int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int 
 }
 
 
-int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot) {
+int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot){
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
   int status=NOTREADY;
@@ -126,10 +127,10 @@ int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcomm
       return be->tail->status;
     }
   } else if(be->tail->type == READBIN) {
-    TraverserData * td = &((ReadBinItem_rcr *)be->tail)->array[((ReadBinItem_rcr *)be->tail)->index - 1];
+    TraverserData * td = &((ReadBinItem_rcr *)be->tail)->array[((ReadBinItem_rcr *)be->tail)->tail_Index - 1];
     if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
       //if it matches, then we remove it and the code below will upgrade it to a write.
-      ((ReadBinItem_rcr *)be->tail)->index--;
+      ((ReadBinItem_rcr *)be->tail)->tail_Index--;
       be->tail->total--;
     }
   }
@@ -153,7 +154,7 @@ int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcomm
   return status;
 }
 
-int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot) {
+int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot){
   BinElement_rcr * be = &(T->array[key]);
   BinItem_rcr * bintail=be->tail;
   //check if already added item or not.
@@ -164,7 +165,7 @@ int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommo
     }
   }
   else if(bintail->type == READEFFECT) {
-    TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
+    TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->tail_Index - 1];
     if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
       return bintail->status;
     }
@@ -178,7 +179,7 @@ int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommo
   }
 }
 
-int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot) {
+int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot){
   ReadBinItem_rcr * readbintail=(ReadBinItem_rcr*)T->array[key].tail;
   int status, retval;
   TraverserData *td;
@@ -190,16 +191,16 @@ int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, in
     retval=NOTREADY;
   }
 
-  if (readbintail->index==NUMREAD) { // create new read group
+  if (readbintail->tail_Index==NUMREAD) { // create new read group
     ReadBinItem_rcr* rb=createReadBinItem();
-    td = &rb->array[rb->index++];
+    td = &rb->array[rb->tail_Index++];
 
     rb->item.total=1;
     rb->item.status=status;
     T->array[key].tail->next=(BinItem_rcr*)rb;
     T->array[key].tail=(BinItem_rcr*)rb;
   } else { // group into old tail
-    td = &readbintail->array[readbintail->index++];
+    td = &readbintail->array[readbintail->tail_Index++];
     atomic_inc(&readbintail->item.total);
     //printf("grouping with %d\n",readbintail->index);
   }
@@ -214,13 +215,13 @@ int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, in
   return retval;
 }
 
-void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot) {
+void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot){
   //  WriteBinItem* wb=createWriteBinItem();
   //wb->val=r;
   //wb->item.total=1;//safe because item could not have started
   //wb->item.status=NOTREADY;
   ReadBinItem_rcr* rb=createReadBinItem();
-  TraverserData * td = &(rb->array[rb->index++]);
+  TraverserData * td = &(rb->array[rb->tail_Index++]);
   rb->item.total=1;
   rb->item.status=NOTREADY;
 
@@ -235,4 +236,74 @@ void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, i
   T->array[key].tail=(BinItem_rcr*)rb;
 }
 
-//TODO write deletion/removal methods
+//Int will return success/fail. -1 indicates error (i.e. there's nothing there).
+//0 = nothing removed, >0 something was removed
+int REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommon *task, void * heaproot) {
+  int key = generateKey(ptr);
+  BinElement_rcr * bucket = table->array[key];
+
+  if(bucket->head == NULL) {
+    return -1;
+    //This can occur if we try to remove something that's in the waitingQueue directly from the hashtable.
+  }
+
+  if(bucket->head->type == WRITEBIN) {
+    TraverserData * td = &(((WriteBinItem_rcr *) head)->val);
+    if(td->resumePtr == ptr && td->traverserID == traverserID && td->heaproot == heaproot) {
+      BinItem_rcr * temp = bucket->head;
+      bucket->head = bucket->head->next;
+      free(temp); //TODO perhaps implement a linked list of free BinElements as was done in WaitingQueue
+
+      //Handle items behind write item
+      if(bucket->head == NULL) {
+        bucket->tail == NULL;
+        return 1;
+      }
+
+      int type = bucket->head->type;
+      switch(bucket->head->type) {
+        case WRITEBIN:
+          bucket->head->status = READY;
+          //TODO Decrement dependency count
+          return 1;
+        case WAITINGQUEUENOTE:
+          int retval = removeFromWaitingQueue(table->waitingQueue, ((WaitingQueueNote *) bucket->head)->allocSiteID, traverserID);
+          if(retval >0) {
+            //we set both to NULL because the note should ALWAYS be the last item in the hashStructure.
+             bucket->head = NULL;
+             bucket->tail = NULL;
+          }
+          return retval;
+        default:
+          BinItem_rcr * temp = bucket->head;
+          while(temp != NULL && temp->type == READBIN) {
+            temp->status = READY;
+            temp = temp->next;
+            //TODO decrement dependency count
+          }
+          return 1;
+      }
+    } else {
+      return 0;
+    }
+  }
+
+  if(bucket->head->type == READBIN) {
+    //TODO There's an issue here; bins are groups of items that may be enqueued by different ids.
+    //I may have to search through them to find which one to remove but then there'd be a blank spot in an
+    //otherwise clean array. It wouldn't make sense to just check the first one since reads are reorderable.
+    //Nor does it make sense to lop off the reads since that may signal the next write to be ready even before it
+    //really is ready.
+  }
+
+  if(bucket->head->type == WAITINGQUEUENOTE) {
+    int retval = removeFromWaitingQueue(table->waitingQueue, ((WaitingQueueNote *) bucket->head)->allocSiteID, traverserID);
+    if(retval >0) {
+       bucket->head = NULL;
+       bucket->tail = NULL;
+    }
+    return retval;
+  }
+
+  return -1;
+}

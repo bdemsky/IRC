@@ -6,10 +6,13 @@
 
 #define ITEM_NOT_AT_FRONT_OF_WAITINGQ = 3;
 #define TRAVERSER_FINISHED = 2;
-#define NUM_WAITING_Q_ITEMS 20
 
+
+//Note READEFFECT = READBIN and WRITEEFFECT=WRITEBIN. They mean the same thing
+//but are named differently for clarity in code.
 #define READEFFECT 0
 #define WRITEEFFECT 1
+#define WAITINGQUEUENOTE 2;
 
 #define READBIN 0
 #define WRITEBIN 1
@@ -22,7 +25,6 @@
 
 #define NUMBINS 64
 #define NUMREAD 64
-#define NUMITEMS 64
 #define NUMRENTRY 256
 #define H_MASK (NUMBINS<<4)-1
 
@@ -88,7 +90,32 @@ typedef struct WriteBinItem_rcr {
 typedef struct ReadBinItem_rcr {
   BinItem_rcr item;
   TraverserData array[NUMREAD];
-  int index;
+  //We don't need a head index since if the item before it was freed, then all these would be considered ready as well.
+  int tail_Index;
+  int head_Index;
 } ReadBinItem_rcr;
+
+typedef struct WQNote_rcr {
+  BinItem_rcr item;
+  int allocSiteID;
+} WaitingQueueNote;
+
+void createMasterHashTableArray(int maxSize); //temporary
+HashStructure* createHashtable(int sizeofWaitingQueue);
+WriteBinItem_rcr* createWriteBinItem();
+ReadBinItem_rcr* createReadBinItem();
+int isReadBinItem(BinItem_rcr* b);
+int isWriteBinItem(BinItem_rcr* b);
+inline int generateKey(void * ptr);
+
+//Method signatures are not in their final form since I have still not decided what is the optimum amount of data
+//to store in each entry.
+int ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SESEcommon *task, void * heaproot);
+int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot);
+int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot);
+int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot);
+int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
+void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
+int REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommon *task, void * heaproot);
 
 #endif
