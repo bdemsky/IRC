@@ -261,7 +261,7 @@ public class Lexer {
     "else", "enum",
     "extends", "external", "final", "finally",
     "flag", //keyword for failure aware computation
-    "float", "for","getoffset", "global", "goto", "if",
+    "float", "for", "genreach", "getoffset", "global", "goto", "if",
     //"implements",
     "import", "instanceof", "int",
     //"interface",

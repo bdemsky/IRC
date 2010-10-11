@@ -79,4 +79,7 @@ public class System {
   /* Only used for microbenchmark testing of SingleTM version */
 
   public static native void arraycopy(Object src, int srcPos, Object dst, int destPos, int length);
+
+  // for disjoint reachability analysis
+  public static void genReach();
 }

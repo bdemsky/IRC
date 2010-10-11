@@ -1897,7 +1897,7 @@ public class BuildCode {
 	  while( dynSrcItr.hasNext() ) {
 	    TempDescriptor dynSrcVar = dynSrcItr.next();
 	    output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
-	    output.println("   INTPTR       "+dynSrcVar+"_srcOffset;");
+	    output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
 	  }    
 	}
       }
@@ -2245,7 +2245,7 @@ public class BuildCode {
     while( dynSrcItr.hasNext() ) {
       TempDescriptor dynSrcVar = dynSrcItr.next();
       output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
-      output.println("   INTPTR       "+dynSrcVar+"_srcOffset;");
+      output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
     }    
 
     // declare local temps for in-set primitives, and if it is
@@ -2389,7 +2389,7 @@ public class BuildCode {
       }
       
       output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
-		     " = *(("+typeStr+"*) ("+
+		     " = *(("+typeStr+"*) ((void*)"+
 		     paramsprefix+"->"+temp+"_srcSESE + "+
 		     paramsprefix+"->"+temp+"_srcOffset));");
 
@@ -2965,7 +2965,7 @@ public class BuildCode {
           }
       
 	  output.println("       "+generateTemp( fmContext, dynVar, null )+
-                         " = *(("+typeStr+"*) ("+
+                         " = *(("+typeStr+"*) ((void*)"+
                          dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
           if( state.COREPROF ) {
             output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
@@ -3213,6 +3213,11 @@ public class BuildCode {
 
     case FKind.FlatNop:
       output.println("/* nop */");
+      break;
+
+    case FKind.FlatGenReachNode:
+      // this node is just for generating a reach graph
+      // in disjointness analysis at a particular program point
       break;
 
     case FKind.FlatExit:

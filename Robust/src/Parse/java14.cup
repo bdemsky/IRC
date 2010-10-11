@@ -103,6 +103,9 @@ terminal ASSERT; // assert_statement
 terminal ELLIPSIS;
 terminal ENUM;
 
+// added for disjoint reachability analysis
+terminal GENREACH;
+
 
 // 19.2) The Syntactic Grammar
 non terminal ParseNode goal;
@@ -194,6 +197,7 @@ non terminal ParseNode synchronized_statement;
 //non terminal ParseNode catches, catch_clause;
 //non terminal ParseNode finally;
 //non terminal ParseNode assert_statement;
+non terminal ParseNode genreach_statement;
 // 19.12) Expressions
 non terminal ParseNode primary, primary_no_new_array;
 non terminal ParseNode class_instance_creation_expression;
@@ -1195,6 +1199,7 @@ statement_without_trailing_substatement ::=
 	|	atomic_statement:st {: RESULT=st; :}
 	|	sese_statement:st {: RESULT=st; :}
 	|	synchronized_statement:st {: RESULT=st; :}
+	|       genreach_statement:st {: RESULT=st; :}
 //	|	throw_statement
 //	|	try_statement
 //	|	assert_statement
@@ -1990,3 +1995,11 @@ expression ::=	assignment_expression:exp {:
 //constant_expression ::=
 //		expression
 //	;
+
+
+genreach_statement ::=
+		GENREACH IDENTIFIER:graphName SEMICOLON {: 
+		ParseNode pn=new ParseNode("genreach");
+		pn.addChild("graphName").addChild(graphName);
+		RESULT=pn; :}
+	;

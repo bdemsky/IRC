@@ -28,4 +28,5 @@ public class FKind {
   public static final int FlatWriteDynamicVarNode=25;
   public static final int FlatInstanceOfNode=26;
   public static final int FlatExit=27;
+  public static final int FlatGenReachNode=28;
 }

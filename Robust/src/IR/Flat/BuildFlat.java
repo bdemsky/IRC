@@ -1227,6 +1227,11 @@ public class BuildFlat {
     return new NodePair(faen, faexn);
   }
 
+  private NodePair flattenGenReachNode( GenReachNode grn ) {
+    FlatGenReachNode fgrn = new FlatGenReachNode( grn.getGraphName() );
+    return new NodePair( fgrn, fgrn );
+  }
+
   private NodePair flattenSESENode(SESENode sn) {
     if( sn.isStart() ) {
       FlatSESEEnterNode fsen=new FlatSESEEnterNode(sn);
@@ -1364,6 +1369,9 @@ public class BuildFlat {
 
     case Kind.SESENode:
       return flattenSESENode((SESENode)bsn);
+
+    case Kind.GenReachNode:
+      return flattenGenReachNode((GenReachNode)bsn);
 
     case Kind.ContinueBreakNode:
       return flattenContinueBreakNode((ContinueBreakNode)bsn);

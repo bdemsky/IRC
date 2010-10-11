@@ -41,6 +41,7 @@ class Keyword extends Token {
     key_table.put("finally", new Integer(Sym.FINALLY));
     key_table.put("float", new Integer(Sym.FLOAT));
     key_table.put("for", new Integer(Sym.FOR));
+    key_table.put("genreach", new Integer(Sym.GENREACH));
     key_table.put("goto", new Integer(Sym.GOTO));
     key_table.put("if", new Integer(Sym.IF));
     key_table.put("import", new Integer(Sym.IMPORT));

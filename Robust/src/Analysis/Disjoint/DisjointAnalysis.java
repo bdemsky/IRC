@@ -1110,6 +1110,19 @@ public class DisjointAnalysis {
     // to apply to the reachability graph
     switch( fn.kind() ) {
 
+    case FKind.FlatGenReachNode: {
+      System.out.println( "Generating a reach graph!" );
+      rg.writeGraph( "genReach"+d,
+                     true,    // write labels (variables)                
+                     true,    // selectively hide intermediate temp vars 
+                     true,    // prune unreachable heap regions          
+                     false,   // hide reachability altogether
+                     true,    // hide subset reachability states         
+                     true,    // hide predicates
+                     true );  // hide edge taints      
+    } break;
+
+
     case FKind.FlatMethod: {
       // construct this method's initial heap model (IHM)
       // since we're working on the FlatMethod, we know
@@ -1415,6 +1428,21 @@ public class DisjointAnalysis {
       FlatCall         fc       = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
       FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
+
+
+      if( mdCallee.getSymbol().equals( "genReach" ) ) {
+        rg.writeGraph( "genReach"+d,
+                       true,    // write labels (variables)                
+                       true,    // selectively hide intermediate temp vars 
+                       true,    // prune unreachable heap regions          
+                       false,   // hide reachability altogether
+                       true,    // hide subset reachability states         
+                       true,    // hide predicates
+                       true );  // hide edge taints      
+        break;
+      }
+
+
   
       boolean debugCallSite =
         mdCaller.getSymbol().equals( state.DISJOINTDEBUGCALLER ) &&
@@ -1654,7 +1682,14 @@ public class DisjointAnalysis {
       Descriptor  d = (Descriptor) me.getKey();
       ReachGraph rg = (ReachGraph) me.getValue();
 
-      rg.writeGraph( "COMPLETE"+d,
+      String graphName;
+      if( d instanceof TaskDescriptor ) {
+        graphName = "COMPLETEtask"+d;
+      } else {
+        graphName = "COMPLETE"+d;
+      }
+
+      rg.writeGraph( graphName,
                      true,    // write labels (variables)                
                      true,    // selectively hide intermediate temp vars 
                      true,    // prune unreachable heap regions          
@@ -1728,7 +1763,14 @@ public class DisjointAnalysis {
       }
       Integer n = mapDescriptorToNumUpdates.get( d );
       
-      rg.writeGraph( d+"COMPLETE"+String.format( "%05d", n ),
+      String graphName;
+      if( d instanceof TaskDescriptor ) {
+        graphName = d+"COMPLETEtask"+String.format( "%05d", n );
+      } else {
+        graphName = d+"COMPLETE"+String.format( "%05d", n );
+      }
+
+      rg.writeGraph( graphName,
                      true,   // write labels (variables)
                      true,   // selectively hide intermediate temp vars
                      true,   // prune unreachable heap regions
@@ -2540,7 +2582,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
                      true,   // selectively hide intermediate temp vars
                      true,   // prune unreachable heap regions
                      false,  // hide reachability
-                     true,   // hide subset reachability states
+                     false,  // hide subset reachability states
                      true,   // hide predicates
                      false );// hide edge taints
     }
