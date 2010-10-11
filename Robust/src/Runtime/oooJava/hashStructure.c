@@ -29,7 +29,6 @@ HashStructure* createHashtable(int sizeofWaitingQueue){
   return newTable;
 }
 
-
 WriteBinItem_rcr* createWriteBinItem(){
   WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)RUNMALLOC(sizeof(WriteBinItem_rcr));
   binitem->item.type=WRITEBIN;
@@ -45,19 +44,11 @@ ReadBinItem_rcr* createReadBinItem(){
 }
 
 int isReadBinItem(BinItem_rcr* b){
-  if(b->type==READBIN){
-    return TRUE;
-  }else{
-    return FALSE;
-  }
+  return b->type==READBIN;
 }
 
 int isWriteBinItem(BinItem_rcr* b){
-  if(b->type==WRITEBIN){
-    return TRUE;
-  }else{
-    return FALSE;
-  }
+  return b->type==WRITEBIN;
 }
 
 inline int generateKey(void * ptr){
@@ -67,9 +58,14 @@ inline int generateKey(void * ptr){
 //TODO handle logic for waiting Queues separately
 //TODO pass in task to traverser
 int ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SESEcommon *task, void * heaproot){
-  //Removed lock since it's not needed if only 1 thread hits the hashtable.
-  BinItem_rcr * val = table->array[key]->bin->head;
+  BinItem_rcr * val;
   int key=generateKey(ptr);
+
+  //LOCK is still needed as different threads will remove items...
+  do {  
+    val=(BinItem_rcr *)0x1;       
+    val=(BinItem_rcr *)LOCKXCHG((unsigned INTPTR*)&(table->array[key]->bin->head), (unsigned INTPTR)val);
+  } while(val==(BinItem_rcr*)0x1);     
 
   if (val==NULL) {
     return EMPTYBINCASE(table, table->array[key], ptr, type, traverserID, task, heaproot);
@@ -86,11 +82,13 @@ int ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SE
 int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot){
   BinItem_rcr* b;
   TraverserData * td;
+  //TODO: NEED PARENT CHECK HERE!!!!!!!!!
+
+
   if (type == WRITEEFFECT) {
     b=(BinItem_rcr*)createWriteBinItem();
     td = &((WriteBinItem_rcr*)b)->val;
-  }
-  else if (type == READEFFECT) {
+  } else if (type == READEFFECT) {
     b=(BinItem_rcr*)createReadBinItem();
     ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
     td = &(readbin->array[readbin->tail_Index++]);
@@ -106,32 +104,34 @@ int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int 
   td->task= task;
   td->traverserID = traverserId;
   td->heaproot = heaproot;
-
   be->tail=b;
+
+  //release lock
   be->head=b;
 
   return READY;
 }
 
 
-int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot){
+int WRITEBINCASE(HashStructure *T, void *ptr, BinItem * val, int key, int traverserID, SESEcommon *task, void *heaproot) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
   int status=NOTREADY;
   BinElement_rcr* be= &(T->array[key]); //do not grab head from here since it's locked (i.e. = 0x1)
+  BinItem *bintail=be->tail;
 
-  if(be->tail->type == WRITEBIN) {
-    TraverserData * td = &(((WriteBinItem_rcr *)be->tail)->val);
+  if (bintail->type == WRITEBIN) {
+    TraverserData * td = &(((WriteBinItem_rcr *)bintail)->val);
     //last one is to check for SESE blocks in a while loop.
     if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID && td->task == task) {
-      return be->tail->status;
+      return bintail->status;
     }
-  } else if(be->tail->type == READBIN) {
-    TraverserData * td = &((ReadBinItem_rcr *)be->tail)->array[((ReadBinItem_rcr *)be->tail)->tail_Index - 1];
+  } else if (bintail->type == READBIN) {
+    TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
     if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
       //if it matches, then we remove it and the code below will upgrade it to a write.
-      ((ReadBinItem_rcr *)be->tail)->tail_Index--;
-      be->tail->total--;
+      ((ReadBinItem_rcr *)bintail)->index--;
+      bintail->total--;
     }
   }
 
@@ -149,37 +149,43 @@ int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcomm
   td->heaproot = heaproot;
 
   b->item.status=status;
-  be->tail->next=(BinItem_rcr*)b;
+  bintail->next=(BinItem_rcr*)b;
   be->tail=(BinItem_rcr*)b;
+  //RELEASE LOCK
+  be->head=val;
   return status;
 }
 
-int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot){
+int READBINCASE(HashStructure *T, void *ptr, BinItem *val, int key, int traverserID, SESEcommon * task, void *heaproot) {
   BinElement_rcr * be = &(T->array[key]);
   BinItem_rcr * bintail=be->tail;
   //check if already added item or not.
-  if(bintail->type == WRITEBIN) {
+  if (bintail->type == WRITEBIN) {
     TraverserData * td = &(((WriteBinItem_rcr *)bintail)->val);
     if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
+      //RELEASE LOCK
+      be->head=val;
       return bintail->status;
     }
-  }
-  else if(bintail->type == READEFFECT) {
-    TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->tail_Index - 1];
-    if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
+  } else if (bintail->type == READEFFECT) {
+    TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
+    if (unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
+      //RELEASE LOCK
+      be->head=val;
       return bintail->status;
     }
   }
 
   if (isReadBinItem(bintail)) {
-    return TAILREADCASE(T, ptr, bintail, key, traverserID, task, heaproot);
+    return TAILREADCASE(T, ptr, val, bintail, key, traverserID, task, heaproot);
   } else if (!isReadBinItem(bintail)) {
-    TAILWRITECASE(T, ptr, bintail, key, traverserID, task, heaproot);
+    TAILWRITECASE(T, ptr, val, bintail, key, traverserID, task, heaproot);
     return NOTREADY;
   }
 }
 
-int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot){
+
+int TAILREADCASE(HashStructure *T, void * ptr, BinItem *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot) {
   ReadBinItem_rcr * readbintail=(ReadBinItem_rcr*)T->array[key].tail;
   int status, retval;
   TraverserData *td;
@@ -212,14 +218,11 @@ int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, in
   td->traverserID = traverserID;
   td->heaproot = heaproot;
 
+  T->array[key]->head=val;//released lock
   return retval;
 }
 
-void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot){
-  //  WriteBinItem* wb=createWriteBinItem();
-  //wb->val=r;
-  //wb->item.total=1;//safe because item could not have started
-  //wb->item.status=NOTREADY;
+void TAILWRITECASE(HashStructure *T, void *ptr, BinItem *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot) {
   ReadBinItem_rcr* rb=createReadBinItem();
   TraverserData * td = &(rb->array[rb->tail_Index++]);
   rb->item.total=1;
@@ -234,6 +237,74 @@ void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, i
 
   T->array[key].tail->next=(BinItem_rcr*)rb;
   T->array[key].tail=(BinItem_rcr*)rb;
+  T->array[key]->head=val;//released lock
+}
+
+//TODO write deletion/removal methods
+
+RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
+  Hashtable *T=r->hashtable;
+  BinItem *b=r->binitem;
+  RETIREBIN(T,r,b);
+}
+
+RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
+  int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
+  if(isFineRead(r)) {
+    atomic_dec(&b->total);
+  }
+  if (isFineWrite(r) || (isFineRead(r) && b->next!=NULL && b->total==0)) {
+    // CHECK FIRST IF next is nonnull to guarantee that b.total cannot change
+    BinItem * val;
+    do {  
+      val=(BinItem*)0x1;
+      val=(BinItem*)LOCKXCHG((unsigned INTPTR*)&(T->array[key]->head), (unsigned INTPTR)val);
+    } while(val==(BinItem*)0x1);
+    // at this point have locked bin
+    BinItem *ptr=val;
+    int haveread=FALSE;
+    int i;
+    while (ptr!=NULL) {
+       if (isReadBinItem(ptr)) {
+	ReadBinItem* rptr=(ReadBinItem*)ptr;
+        if (rptr->item.status==NOTREADY) {
+          for (i=0;i<rptr->index;i++) {	    
+	    resolveDependencies(rptr->array[i]);
+            if (isParent(rptr->array[i])) {
+              //parents go immediately
+              atomic_dec(&rptr->item.total);
+              atomic_dec(&T->item.total);
+            }
+          }
+        }
+        rptr->item.status=READY; 
+        if (rptr->item.next==NULL) {
+          break;
+        }
+        if (rptr->item.total!=0) {
+          haveread=TRUE; 
+        } else if ((BinItem*)rptr==val) {
+          val=val->next;
+        }
+      } else if(isWriteBinItem(ptr)) {
+        if (haveread)  
+          break;
+	if(ptr->status==NOTREADY){
+	  resolveDependencies(((WriteBinItem*)ptr)->val);
+	  ptr->status=READY;
+	  if(isParent(((WriteBinItem*)ptr)->val)){
+	    atomic_dec(&T->item.total);
+	    val=val->next;	  
+	  }else
+	    break;
+	}else{ // write bin is already resolved
+	  val=val->next;
+	}
+      } 
+      ptr=ptr->next;
+    }
+    T->array[key]->head=val; // release lock
+  }
 }
 
 //Int will return success/fail. -1 indicates error (i.e. there's nothing there).
@@ -307,3 +378,4 @@ int REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommo
 
   return -1;
 }
+
