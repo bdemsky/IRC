@@ -592,16 +592,16 @@ public class RuntimeConflictResolver {
       cFile.println(clearQueue + "; " + resetVisitedHashTable + ";"); 
       
       //Casts the ptr to a genericObjectStruct so we can get to the ptr->allocsite field. 
-      cFile.println("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;  if(InVar != NULL) { " + queryVistedHashtable
-          + "ptr); do { ");
+      cFile.println("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;\nif(InVar != NULL) {\n " + queryVistedHashtable
+          + "ptr);\n do { ");
       
-      cFile.println("switch(ptr->allocsite) { ");
+      cFile.println("  switch(ptr->allocsite) { ");
       
       for(AllocSite singleCase: cases.keySet())
         cFile.append(cases.get(singleCase));
       
-      cFile.println(" default : break; ");
-      cFile.println("}} while( (ptr = " + dequeueFromQueueInC + ") != NULL); }}");
+      cFile.println("  default:\n    break; ");
+      cFile.println("  }\n } while((ptr = " + dequeueFromQueueInC + ") != NULL);\n}\n}");
     }
     cFile.flush();
   }
@@ -626,7 +626,7 @@ public class RuntimeConflictResolver {
       assert prefix.equals("ptr") && !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
       cases.put(node.allocSite, currCase);
-      currCase.append("case " + node.getAllocationSite() + ":\n {\n");
+      currCase.append("  case " + node.getAllocationSite() + ": {\n");
     }
     //either currCase is continuing off a parent case or is its own. 
     assert currCase !=null;
@@ -635,13 +635,13 @@ public class RuntimeConflictResolver {
     String currPtr = "myPtr" + depth;
     
     String structType = node.original.getType().getSafeSymbol();
-    currCase.append(" struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + prefix + ";\n");
+    currCase.append("    struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + prefix + ";\n");
     
     //Primitives Test
     if(node.hasPrimitiveConflicts()) {
       //This will check hashstructure, if cannot continue, add all to waiting queue and break; s
       addCheckHashtableAndWaitingQ(currCase, taint, node, currPtr, depth);
-      currCase.append(" break; } \n");
+      currCase.append("      break;\n    } \n");
     }
   
     //Conflicts
@@ -651,7 +651,7 @@ public class RuntimeConflictResolver {
         String childPtr = currPtr +"->___" + ref.field + "___";
 
         // Checks if the child exists and has allocsite matching the conflict
-        currCase.append(" if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "==" + ref.allocSite + ") { \n");
+        currCase.append("    if(" + childPtr + " != NULL && " + childPtr + getAllocSiteInC + "==" + ref.allocSite + ") { \n");
 
         
         //Handles Direct Conflicts on child.
@@ -659,35 +659,35 @@ public class RuntimeConflictResolver {
         //This method will touch the waiting queues if necessary.
           addCheckHashtableAndWaitingQ(currCase, taint, ref.child, childPtr, depth);
           //Else if we can continue continue. 
-          currCase.append(" } else {\n");
+          currCase.append("    } else {\n");
         }
         
         //If there are no direct conflicts (determined by static + dynamic), finish check
         if (ref.child.decendantsConflict() || ref.child.hasPrimitiveConflicts()) {
           // Checks if we have visited the child before
-          currCase.append(" if(" + queryVistedHashtable + childPtr + ")) {\n");
+          currCase.append("    if(" + queryVistedHashtable + childPtr + ")) {\n");
           if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
             addChecker(taint, ref.child, cases, currCase, childPtr, depth + 1);
           }
           else {
-            currCase.append(" " + addToQueueInC + childPtr + ");\n ");
+            currCase.append("      " + addToQueueInC + childPtr + ");\n ");
           }
           
-          currCase.append(" }\n");
+          currCase.append("    }\n");
         }
         //one more brace for the opening if
         if(ref.hasDirectObjConflict()) {
-          currCase.append(" }\n");
+          currCase.append("   }\n");
         }
         
-        currCase.append(" }\n ");
+        currCase.append("  }\n ");
       }
     }
 
     if((node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
        (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
        (node.hasPotentialToBeIncorrectDueToConflict && node.decendantsObjConflict)) {
-      currCase.append(" } break;\n");
+      currCase.append("  }\n  break;\n");
     }
   }
 
@@ -696,8 +696,8 @@ public class RuntimeConflictResolver {
   private void addCheckHashtableAndWaitingQ(StringBuilder currCase, Taint t, ConcreteRuntimeObjNode node, String ptr, int depth) {
     Iterator<ConcreteRuntimeObjNode> it = node.enqueueToWaitingQueueUponConflict.iterator();
     
-    currCase.append("int retval"+depth+" = "+ addCheckFromHashStructure + ptr + ");\n");
-    currCase.append("if(retval"+depth+" == " + conflictButTraverserCannotContinue + " || ");
+    currCase.append("    int retval"+depth+" = "+ addCheckFromHashStructure + ptr + ");\n");
+    currCase.append("    if(retval"+depth+" == " + conflictButTraverserCannotContinue + " || ");
     checkWaitingQueue(currCase, t,  node);
     currCase.append(") {\n");
     //If cannot continue, then add all the undetermined references that lead from this child, including self.
@@ -784,7 +784,7 @@ public class RuntimeConflictResolver {
     
     //NOTE if the C-side is changed, this will have to be changed accordingly
     //TODO make sure this matches c-side
-    sb.append("put("+allocSiteID+", " +
+    sb.append("      put("+allocSiteID+", " +
     		"allHashStructures["+ heaprootNum +"]->waitingQueue, " +
     		resumePtr + ", " +
     		traverserID+");\n");
