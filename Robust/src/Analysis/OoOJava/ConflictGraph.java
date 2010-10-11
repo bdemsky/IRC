@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import IR.State;
 
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.DisjointAnalysis;
@@ -33,8 +34,10 @@ public class ConflictGraph {
   public static final int FINE_GRAIN_EDGE = 1;
   public static final int COARSE_GRAIN_EDGE = 2;
   public static final int CONFLICT = 3;
+  State state;
 
-  public ConflictGraph() {
+  public ConflictGraph(State state) {
+    this.state=state;
     id2cn = new Hashtable<String, ConflictNode>();
     sese2te = new Hashtable<FlatNode, Hashtable<Taint, Set<Effect>>>();
   }
@@ -422,6 +425,13 @@ public class ConflictGraph {
                   }
                 }
               } else {
+		if (state.RCR) {
+		  //need coarse effects for RCR from just one pass
+		  addCoarseEffect(nodeA, asA, effectA);
+		  if (!nodeA.equals(nodeB)) {
+		    addCoarseEffect(nodeB, asB, effectB);
+		  }
+		}
                 return ConflictGraph.CONFLICT;
               }
             }

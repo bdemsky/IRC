@@ -195,19 +195,21 @@ public class OoOJavaAnalysis {
     Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
     calculateConflicts(sitesToFlag, false);
 
-    // 9th pass, ask disjoint analysis to compute reachability
-    // for objects that may cause heap conflicts so the most
-    // efficient method to deal with conflict can be computed
-    // later
 
-    disjointAnalysisReach =
+    if (!state.RCR) {
+      // 9th pass, ask disjoint analysis to compute reachability
+      // for objects that may cause heap conflicts so the most
+      // efficient method to deal with conflict can be computed
+      // later
+      
+      disjointAnalysisReach =
         new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, sitesToFlag,
-            null, // don't do effects analysis again!
-            null // don't do effects analysis again!
-        );
-    // 10th pass, calculate conflicts with reachability info
-    calculateConflicts(null, true);
-
+			     null, // don't do effects analysis again!
+			     null // don't do effects analysis again!
+			     );
+      // 10th pass, calculate conflicts with reachability info
+      calculateConflicts(null, true);
+    }
     // 11th pass, compiling locks
     synthesizeLocks();
 
@@ -986,7 +988,7 @@ public class OoOJavaAnalysis {
 
         ConflictGraph conflictGraph = sese2conflictGraph.get(seseStack.peek());
         if (conflictGraph == null) {
-          conflictGraph = new ConflictGraph();
+          conflictGraph = new ConflictGraph(state);
         }
 
         conflictGraph_nodeAction(fn, seseStack.peek());
@@ -1021,7 +1023,7 @@ public class OoOJavaAnalysis {
       }
       conflictGraph = sese2conflictGraph.get(currentSESE.getParent());
       if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph();
+        conflictGraph = new ConflictGraph(state);
       }
 
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
@@ -1044,7 +1046,7 @@ public class OoOJavaAnalysis {
 
       conflictGraph = sese2conflictGraph.get(currentSESE);
       if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph();
+        conflictGraph = new ConflictGraph(state);
       }
 
       if (fn instanceof FlatFieldNode) {
@@ -1070,7 +1072,7 @@ public class OoOJavaAnalysis {
 
       conflictGraph = sese2conflictGraph.get(currentSESE);
       if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph();
+        conflictGraph = new ConflictGraph(state);
       }
 
       if (fn instanceof FlatSetFieldNode) {
@@ -1097,7 +1099,7 @@ public class OoOJavaAnalysis {
     case FKind.FlatCall: {
       conflictGraph = sese2conflictGraph.get(currentSESE);
       if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph();
+        conflictGraph = new ConflictGraph(state);
       }
 
       FlatCall fc = (FlatCall) fn;

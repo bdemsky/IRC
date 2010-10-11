@@ -275,8 +275,7 @@ public class BuildCode {
         try {
           rcr = new RuntimeConflictResolver(PREFIX);
           rcr.setGlobalEffects(oooa.getDisjointAnalysis().getEffectsAnalysis().getAllEffects());
-        } 
-        catch (FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
           System.out.println("Runtime Conflict Resolver could not create output file.");
         }
       }
@@ -289,11 +288,22 @@ public class BuildCode {
         if(state.RCR && rcr != null) {
           Analysis.OoOJava.ConflictGraph conflictGraph;
           Hashtable<Taint, Set<Effect>> conflicts;
+
+	  System.out.println("-------");
+	  System.out.println(fsen);
+	  System.out.println(fsen.getIsCallerSESEplaceholder());
+	  System.out.println(fsen.getParent());
+	  
+	  if (fsen.getParent()!=null) {
+	    conflictGraph = oooa.getConflictGraph(fsen.getParent());
+	    System.out.println("CG="+conflictGraph);
+	    if (conflictGraph!=null)
+	      System.out.println("Conflicts="+conflictGraph.getConflictEffectSet(fsen));
+	  }
           
           if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null && 
             (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null && 
-            (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null){
-            
+            (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null) {
             FlatMethod fm=fsen.getfmEnclosing();
             ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
             if(rcr.cSideDebug)
@@ -3039,7 +3049,6 @@ public class BuildCode {
                   if((conflictGraph != null) && 
                       (conflicts = graph.getConflictEffectSet(fn)) != null &&
                       (rg != null)){
-                    
                     rcr.addToTraverseToDoList(fn, waitingElement.getTempDesc(), rg, conflicts);
                    }
                 }

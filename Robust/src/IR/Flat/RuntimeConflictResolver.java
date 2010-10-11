@@ -23,7 +23,7 @@ import IR.TypeDescriptor;
  * Note: All computation is done upon closing the object. Steps 1-3 only input data
  */
 public class RuntimeConflictResolver {
-  public static final boolean javaDebug = false;
+  public static final boolean javaDebug = true;
   public static final boolean cSideDebug = false;
   
   private PrintWriter cFile;
@@ -121,7 +121,7 @@ public class RuntimeConflictResolver {
   public void addToTraverseToDoList(FlatSESEEnterNode rblock, ReachGraph rg, Hashtable<Taint, Set<Effect>> conflicts) {
     //Add to todo list
     toTraverse.add(new TraversalInfo(rblock, rg));
-    
+
     //Add to Global conflicts
     for(Taint t: conflicts.keySet()) {
       if(globalConflicts.containsKey(t)) {
@@ -174,7 +174,7 @@ public class RuntimeConflictResolver {
       }
       
       //This is to prevent duplicate traversals from being generated 
-      if(doneTaints.containsKey(taint) && doneTaints.get(taint) != null)
+      if(doneTaints.containsKey(taint))
         return;
       
       doneTaints.put(taint, traverserIDCounter++);
@@ -208,7 +208,7 @@ public class RuntimeConflictResolver {
       return;
     }        
     
-    if(doneTaints.containsKey(taint) && doneTaints.get(taint) != null)
+    if(doneTaints.containsKey(taint))
       return;
     
     doneTaints.put(taint, traverserIDCounter++);
@@ -284,12 +284,10 @@ public class RuntimeConflictResolver {
       
       if(t.f instanceof FlatSESEEnterNode) {
         traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
-      }
-      else {
+      } else {
         if(t.invar == null) {
           System.out.println("RCR ERROR: Attempted to run a stall site traversal with NO INVAR");
-        }
-        else {
+        } else {
           traverseStallSite(t.f, t.invar, t.rg);
         }
       }
@@ -320,8 +318,7 @@ public class RuntimeConflictResolver {
       cFile.println("  case " + doneTaints.get(t)+ ":");
       if(t.isRBlockTaint()) {
         cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getSESE()));
-      }
-      else if (t.isStallSiteTaint()){
+      } else if (t.isStallSiteTaint()){
         cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getStallSite()));
       } else {
         System.out.println("RuntimeConflictResolver encountered a taint that is neither SESE nor stallsite: " + t);
@@ -349,7 +346,7 @@ public class RuntimeConflictResolver {
     if (table == null)
       return;
 
-    Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();    
+    Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();
     while (possibleEdges.hasNext()) {
       RefEdge edge = possibleEdges.next();
       assert edge != null;
@@ -1093,7 +1090,7 @@ public class RuntimeConflictResolver {
             bucket = new BucketOfEffects();
             table.put(e.getAffectedAllocSite(), bucket);
           }
-          printDebug(javaDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false));
+          printDebug(javaDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false)+" localConflicts = "+localConflicts);
           bucket.add(t, e, localConflicts!=null?localConflicts.contains(e):false);
         }
       }
