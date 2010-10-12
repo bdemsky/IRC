@@ -299,10 +299,10 @@ public class RuntimeConflictResolver {
   private void createMasterHashTableArray() {
     headerFile.println("void createAndFillMasterHashStructureArray();");
     cFile.println("void createAndFillMasterHashStructureArray() {\n" +
-    		"  createMasterHashTableArray("+weaklyConnectedHRCounter + ");");
+    		"  rcr_createMasterHashTableArray("+weaklyConnectedHRCounter + ");");
     
     for(int i = 0; i < weaklyConnectedHRCounter; i++) {
-      cFile.println("  allHashStructures["+i+"] = (HashStructure *) createhashTable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");}");
+      cFile.println("  allHashStructures["+i+"] = (HashStructure *) rcr_createHashtable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");");
     }
     cFile.println("}");
   }

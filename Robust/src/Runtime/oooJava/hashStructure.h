@@ -4,15 +4,15 @@
 #include "mlp_runtime.h"
 #include "WaitingQueue.h"
 
-#define ITEM_NOT_AT_FRONT_OF_WAITINGQ = 3;
-#define TRAVERSER_FINISHED = 2;
+#define ITEM_NOT_AT_FRONT_OF_WAITINGQ 3
+#define TRAVERSER_FINISHED 2
 
 
 //Note READEFFECT = READBIN and WRITEEFFECT=WRITEBIN. They mean the same thing
 //but are named differently for clarity in code.
 #define READEFFECT 0
 #define WRITEEFFECT 1
-#define WAITINGQUEUENOTE 2;
+#define WAITINGQUEUENOTE 2
 
 #define READBIN 0
 #define WRITEBIN 1
@@ -91,8 +91,7 @@ typedef struct ReadBinItem_rcr {
   BinItem_rcr item;
   TraverserData array[NUMREAD];
   //We don't need a head index since if the item before it was freed, then all these would be considered ready as well.
-  int tail_Index;
-  int head_Index;
+  int index;
 } ReadBinItem_rcr;
 
 typedef struct WQNote_rcr {
@@ -100,22 +99,24 @@ typedef struct WQNote_rcr {
   int allocSiteID;
 } WaitingQueueNote;
 
-void createMasterHashTableArray(int maxSize); //temporary
-HashStructure* createHashtable(int sizeofWaitingQueue);
-WriteBinItem_rcr* createWriteBinItem();
-ReadBinItem_rcr* createReadBinItem();
-int isReadBinItem(BinItem_rcr* b);
-int isWriteBinItem(BinItem_rcr* b);
-inline int generateKey(void * ptr);
+extern HashStructure ** allHashStructures;
+
+void rcr_createMasterHashTableArray(int maxSize); //temporary
+HashStructure* rcr_createHashtable(int sizeofWaitingQueue);
+WriteBinItem_rcr* rcr_createWriteBinItem();
+ReadBinItem_rcr* rcr_createReadBinItem();
+int rcr_isReadBinItem(BinItem_rcr* b);
+int rcr_isWriteBinItem(BinItem_rcr* b);
+inline int rcr_generateKey(void * ptr);
 
 //Method signatures are not in their final form since I have still not decided what is the optimum amount of data
 //to store in each entry.
-int ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SESEcommon *task, void * heaproot);
-int EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot);
-int WRITEBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot);
-int READBINCASE(HashStructure *T, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot);
-int TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
-void TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
-int REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommon *task, void * heaproot);
+int rcr_ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SESEcommon *task, void * heaproot);
+int rcr_EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot);
+int rcr_WRITEBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot);
+int rcr_READBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot);
+int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
+void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
+int rcr_REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommon *task, void * heaproot);
 
 #endif

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "WaitingQueue.h"
+#include "hashStructure.h"
 //TODO check that the right path is pointed to by the below #include
 #include "RuntimeConflictResolver.h"
 
@@ -113,7 +114,7 @@ WaitingQueueBinVector * returnWaitingQueueBinVectorToFreePool(WaitingQueueBinVec
   WaitingQueueBinVector * ptrNext;
   do {
     freeHead = (WaitingQueueBinVector *) 0x1;
-    freeHead = LOCKXCHG(&freeBinVectors, freeHead);
+    freeHead = (WaitingQueueBinVector *) LOCKXCHG((unsigned INTPTR *)&freeBinVectors, (unsigned INTPTR) freeHead);
   } while (freeHead == (WaitingQueueBinVector *) 0x1);
   //free bins locked
 
@@ -134,7 +135,7 @@ WaitingQueueBinVector * getUsableWaitingQueueBinVector() {
   WaitingQueueBinVector * ptr;
   do {
     ptr = (WaitingQueueBinVector *) 0x1;
-    ptr = LOCKXCHG(&freeBinVectors, ptr);
+    ptr = (WaitingQueueBinVector *) LOCKXCHG((unsigned INTPTR *) &freeBinVectors, (unsigned INTPTR) ptr);
   } while (ptr == (WaitingQueueBinVector *) 0x1);
   //free bins locked
 
