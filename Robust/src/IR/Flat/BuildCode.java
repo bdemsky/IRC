@@ -3887,16 +3887,16 @@ public class BuildCode {
 	  output.println("     "+pair1+" = "+pair2+";");
 	}      
 	output.println("     "+pairNewest+" = &(seseToIssue->common);");
-      }
-      // no need to add a reference to whatever is the newest record, because
-      // we initialized seseToIssue->refCount to *2*
-      // but release a reference to whatever was the oldest BEFORE the shift
-      output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
-      output.println("     if( "+pairOldest+" != NULL ) {");
-      output.println("       RELEASE_REFERENCE_TO( "+pairOldest+" );");
-      output.println("     }");
-      output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
+        // no need to add a reference to whatever is the newest record, because
+        // we initialized seseToIssue->refCount to *2*
+        // but release a reference to whatever was the oldest BEFORE the shift
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
+        output.println("     if( "+pairOldest+" != NULL ) {");
+        output.println("       RELEASE_REFERENCE_TO( "+pairOldest+" );");
+        output.println("     }");
+        output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
+      }
       
 
 
