@@ -1,0 +1,17 @@
+rm parallel.log
+echo ============================================================
+echo Running Parallel Raytracer
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+echo Trial $i
+(time ./testp.bin 1) 2>> parallel.log
+done
+rm serial.log
+echo ============================================================
+echo Running Serial Raytracer
+for i in 1 2 3 4 5 6 7 8 9 10
+do
+echo Trial $i
+(time ./tests.bin 1) 2>> serial.log
+done
+

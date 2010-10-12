@@ -5,7 +5,7 @@ public class test {
 		instr.printHeader(3, 0);
 
 		JGFRayTracerBench rtb = new JGFRayTracerBench(instr);
-		int size=0;
+		int size=1;
 		if( argv.length>0 ){
 		    size=Integer.parseInt(argv[0]);
 		}
