@@ -3734,6 +3734,9 @@ public class BuildCode {
     output.println("     psem_init( &(seseToIssue->common.stallSem) );");
 
     output.println("     seseToIssue->common.forwardList = createQueue();");
+    //output.println("     seseToIssue->common.forwardList.numItems    = 0;");
+    //output.println("     seseToIssue->common.forwardList.nextElement = NULL;");
+
     output.println("     seseToIssue->common.unresolvedDependencies = 10000;");
     output.println("     pthread_cond_init( &(seseToIssue->common.doneCond), NULL );");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
@@ -3787,24 +3790,27 @@ public class BuildCode {
 	SESEandAgePair srcPair = staticSrcsItr.next();
 	output.println("     {");
 	output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
-	//eomgc
+
+
 	if(GENERATEPRECISEGC){
-		output.println("       stopforgc((struct garbagelist *)&___locals___);");
+          output.println("       stopforgc((struct garbagelist *)&___locals___);");
 	}
+
 	output.println("       pthread_mutex_lock( &(src->lock) );");
-	if(GENERATEPRECISEGC){
-		output.println("       restartaftergc();");
+	
+        if(GENERATEPRECISEGC){
+          output.println("       restartaftergc();");
 	}
-	output.println("       if( !isEmpty( src->forwardList ) &&");
-	output.println("           seseToIssue == peekItem( src->forwardList ) ) {");
-	output.println("         printf( \"This shouldnt already be here\\n\");");
-	output.println("         exit( -1 );");
-	output.println("       }");
+
+        // FORWARD TODO
 	output.println("       if( !src->doneExecuting ) {");
-	output.println("         addNewItem( src->forwardList, seseToIssue );");
+        output.println("         addNewItem( src->forwardList, seseToIssue );");	
+        //output.println("         ADD_FORWARD_ITEM( src->forwardList, seseToIssue );");
 	output.println("         ++(localCount);");
 	output.println("       }");
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
         output.println("       ADD_REFERENCE_TO( src );");
+        output.println("#endif" );
 	output.println("       pthread_mutex_unlock( &(src->lock) );");
 	output.println("     }");
 
@@ -3835,6 +3841,9 @@ public class BuildCode {
 	if(GENERATEPRECISEGC){
 		output.println("         restartaftergc();");
 	}
+
+        // FORWARD TODO
+
 	output.println("         if( isEmpty( src->forwardList ) ||");
 	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
 	output.println("           if( !src->doneExecuting ) {");
@@ -3842,7 +3851,9 @@ public class BuildCode {
 	output.println("             ++(localCount);");
 	output.println("           }");
 	output.println("         }");
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
         output.println("         ADD_REFERENCE_TO( src );");
+        output.println("#endif" );
 	output.println("         pthread_mutex_unlock( &(src->lock) );");	
 	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
 	output.println("       } else {");
@@ -4299,6 +4310,8 @@ public class BuildCode {
     output.println("   pthread_mutex_unlock( &("+com+".lock) );");
 
     // decrement dependency count for all SESE's on your forwarding list
+
+    // FORWARD TODO
     output.println("   while( !isEmpty( "+com+".forwardList ) ) {");
     output.println("     SESEcommon* consumer = (SESEcommon*) getItem( "+com+".forwardList );");
     

@@ -3,7 +3,7 @@ PROGRAM=test
 SOURCE_FILES=$(PROGRAM).java
 
 BUILDSCRIPT=~/research/Robust/src/buildscript
-BSFLAGS= -mainclass Test -disjoint -disjoint-k 1 -disjoint-alias-file aliases.txt normal -enable-assertions -justanalyze #-joptimize #-disjoint-write-dots final
+BSFLAGS= -mainclass Test #-disjoint -disjoint-k 1 -disjoint-alias-file aliases.txt normal -enable-assertions -justanalyze -flatirusermethods #-joptimize #-disjoint-write-dots final
 
 all: $(PROGRAM).bin
 

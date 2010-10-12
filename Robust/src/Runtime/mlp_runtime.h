@@ -50,8 +50,26 @@
 #endif
 
 
+// these are useful for interpreting an INTPTR to an
+// Object at runtime to retrieve the object's type
+// or object id (OID), 64-bit safe
 #define OBJPTRPTR_2_OBJTYPE( opp ) ((int*)(*(opp)))[0]
 #define OBJPTRPTR_2_OBJOID(  opp ) ((int*)(*(opp)))[1]
+
+
+
+// forwarding list elements is a linked
+// structure of arrays, should help task
+// dispatch because the first element is
+// an embedded member of the task record,
+// only have to do memory allocation if
+// a lot of items are on the list
+#define FLIST_ITEMS_PER_ELEMENT 30
+typedef struct ForwardingListElement_t {
+  int                             numItems;
+  struct ForwardingListElement_t* nextElement;
+  INTPTR                          items[FLIST_ITEMS_PER_ELEMENT];
+} ForwardingListElement;
 
 
 
@@ -76,7 +94,12 @@ typedef struct SESEcommon_t {
   // use to coordinate with one another
   pthread_mutex_t lock;
 
-  struct Queue*   forwardList;
+  // NOTE: first element is embedded in the task
+  // record, so don't free it!
+  //ForwardingListElement forwardList;
+  struct Queue* forwardList;
+
+
   volatile int    unresolvedDependencies;
 
   pthread_cond_t  doneCond;
@@ -115,7 +138,9 @@ extern __thread SESEcommon* runningSESE;
 
 
 typedef struct REntry_t{
-  int type; // fine read:0, fine write:1, parent read:2, parent write:3 coarse: 4, parent coarse:5, scc: 6
+  // fine read:0, fine write:1, parent read:2, 
+  // parent write:3 coarse: 4, parent coarse:5, scc: 6
+  int type;
   struct Hashtable_t* hashtable;
   struct BinItem_t* binitem;
   struct Vector_t* vector;
@@ -187,6 +212,15 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r);
 
 
 
+
+static inline void ADD_FORWARD_ITEM( ForwardingListElement* e,
+                                     SESEcommon*            s ) {
+  //atomic_inc( &(s->refCount) );
+}
+
+
+
+
 // simple mechanical allocation and 
 // deallocation of SESE records
 void* mlpAllocSESErecord( int size );
@@ -200,17 +234,13 @@ void rehashMemoryQueue(SESEcommon* seseParent);
 
 
 static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
-#ifndef OOO_DISABLE_TASKMEMPOOL
   atomic_inc( &(seseRec->refCount) );
-#endif
 }
 
 static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
-#ifndef OOO_DISABLE_TASKMEMPOOL
   if( atomic_sub_and_test( 1, &(seseRec->refCount) ) ) {
     poolfreeinto( seseRec->parent->taskRecordMemPool, seseRec );
   }
-#endif
 }
 
 
