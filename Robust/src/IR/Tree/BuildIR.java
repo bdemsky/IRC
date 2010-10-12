@@ -585,6 +585,17 @@ public class BuildIR {
       BlockNode bn=parseBlock(bodyn);
       cn.addMethod(md);
       state.addTreeCode(md,bn);
+
+      // this is a hack for investigating new language features
+      // at the AST level, someday should evolve into a nice compiler
+      // option *wink*
+      //if( cn.getSymbol().equals( ***put a class in here like:     "Test" ) &&
+      //    md.getSymbol().equals( ***put your method in here like: "main" ) 
+      //) {
+      //  bn.setStyle( BlockNode.NORMAL );
+      //  System.out.println( bn.printNode( 0 ) );
+      //}
+
     } catch (Exception e) {
       System.out.println("Error with method:"+md.getSymbol());
       e.printStackTrace();
