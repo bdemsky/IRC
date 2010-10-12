@@ -92,6 +92,7 @@ typedef struct ReadBinItem_rcr {
   TraverserData array[NUMREAD];
   //We don't need a head index since if the item before it was freed, then all these would be considered ready as well.
   int index;
+  
 } ReadBinItem_rcr;
 
 typedef struct WQNote_rcr {
@@ -111,10 +112,9 @@ inline int rcr_generateKey(void * ptr);
 
 //Method signatures are not in their final form since I have still not decided what is the optimum amount of data
 //to store in each entry.
-int rcr_ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SESEcommon *task, void * heaproot);
-int rcr_EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot);
-int rcr_WRITEBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot);
-int rcr_READBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot);
+
+int rcr_WRITEBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon *task, void *heaproot);
+int rcr_READBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon * task, void *heaproot);
 int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
 void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
 int rcr_REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommon *task, void * heaproot);

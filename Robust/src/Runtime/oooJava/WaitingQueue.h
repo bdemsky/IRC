@@ -30,7 +30,7 @@ typedef struct BinElement_wq {
   int size;
 } WaitingQueueBin;
 
-void putIntoWaitingQueue(int allocSiteID, WaitingQueueBin * queue, int effectType, void * resumePtr, int traverserID);
+void putIntoWaitingQueue(int allocSiteID, WaitingQueueBin * queue, void * resumePtr, int traverserID);
 int isEmptyForWaitingQ(WaitingQueueBin * queue, int allocSiteID);
 WaitingQueueBin * mallocWaitingQueue(int size);
 WaitingQueueBinVector * returnWaitingQueueBinVectorToFreePool(struct BinVector_wq *ptr);

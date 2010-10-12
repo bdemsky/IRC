@@ -48,69 +48,40 @@ inline int rcr_generateKey(void * ptr){
   return (((struct genericObjectStruct *) ptr)->oid)&H_MASK;
 }
 
-//TODO handle logic for waiting Queues separately
-//TODO pass in task to traverser
-int rcr_ADDTABLEITEM(HashStructure* table, void * ptr, int type, int traverserID, SESEcommon *task, void * heaproot){
+int rcr_WRITEBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon *task, void *heaproot) {
+  //chain of bins exists => tail is valid
+  //if there is something in front of us, then we are not ready
   BinItem_rcr * val;
   int key=rcr_generateKey(ptr);
+  BinElement_rcr* be= &(T->array[key]); //do not grab head from here since it's locked (i.e. = 0x1)
 
   //LOCK is still needed as different threads will remove items...
   do {  
     val=(BinItem_rcr *)0x1;       
-    val=(BinItem_rcr *)LOCKXCHG((unsigned INTPTR*)&(table->array[key].head), (unsigned INTPTR)val);
+    val=(BinItem_rcr *)LOCKXCHG((unsigned INTPTR*)&(be->head), (unsigned INTPTR)val);
   } while(val==(BinItem_rcr*)0x1);     
 
   if (val==NULL) {
-    return rcr_EMPTYBINCASE(table, &table->array[key], ptr, type, traverserID, task, heaproot);
-  } else {
-    //else create item
-    if (type == WRITEEFFECT) {
-      return rcr_WRITEBINCASE(table, val, ptr, key, traverserID, task, heaproot);
-    } else if (type == READEFFECT) {
-      return rcr_READBINCASE(table, val, ptr, key, traverserID, task, heaproot);
-    }
+    BinItem_rcr * b=(BinItem_rcr*)rcr_createWriteBinItem();
+    TraverserData * td = &((WriteBinItem_rcr*)b)->val;
+    b->total=1;
+    b->status=READY;
+    
+    //common to both types
+    td->binitem = b;
+    td->hashtable=T;
+    td->resumePtr = ptr;
+    td->task= task;
+    td->traverserID = traverserID;
+    td->heaproot = heaproot;
+    be->tail=b;
+    
+    //release lock
+    be->head=b;
+    return READY;
   }
-}
 
-int rcr_EMPTYBINCASE(HashStructure *T, BinElement_rcr* be, void *ptr, int type, int traverserId, SESEcommon * task, void *heaproot){
-  BinItem_rcr* b;
-  TraverserData * td;
-  //TODO: NEED PARENT CHECK HERE!!!!!!!!!
-
-
-  if (type == WRITEEFFECT) {
-    b=(BinItem_rcr*)rcr_createWriteBinItem();
-    td = &((WriteBinItem_rcr*)b)->val;
-  } else if (type == READEFFECT) {
-    b=(BinItem_rcr*)rcr_createReadBinItem();
-    ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
-    td = &(readbin->array[readbin->index++]);
-  }
-  b->total=1;
-  b->type= type;
-  b->status = READY;
-
-  //common to both types
-  td->binitem = b;
-  td->hashtable=T;
-  td->resumePtr = ptr;
-  td->task= task;
-  td->traverserID = traverserId;
-  td->heaproot = heaproot;
-  be->tail=b;
-
-  //release lock
-  be->head=b;
-
-  return READY;
-}
-
-
-int rcr_WRITEBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int traverserID, SESEcommon *task, void *heaproot) {
-  //chain of bins exists => tail is valid
-  //if there is something in front of us, then we are not ready
   int status=NOTREADY;
-  BinElement_rcr* be= &(T->array[key]); //do not grab head from here since it's locked (i.e. = 0x1)
   BinItem_rcr *bintail=be->tail;
 
   if (bintail->type == WRITEBIN) {
@@ -149,9 +120,42 @@ int rcr_WRITEBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int
   return status;
 }
 
-int rcr_READBINCASE(HashStructure *T, BinItem_rcr *val, void *ptr, int key, int traverserID, SESEcommon * task, void *heaproot) {
+int rcr_READBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon * task, void *heaproot) {
+  BinItem_rcr * val;
+  int key=rcr_generateKey(ptr);
   BinElement_rcr * be = &(T->array[key]);
+
+  //LOCK is still needed as different threads will remove items...
+  do {  
+    val=(BinItem_rcr *)0x1;       
+    val=(BinItem_rcr *)LOCKXCHG((unsigned INTPTR*)&(be->head), (unsigned INTPTR)val);
+  } while(val==(BinItem_rcr*)0x1);     
+
+  if (val==NULL) {
+    BinItem_rcr * b=(BinItem_rcr*)rcr_createReadBinItem();
+    ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
+    TraverserData * td = &(readbin->array[readbin->index++]);
+    b->total=1;
+    b->status = READY;
+    
+    //common to both types
+    td->binitem = b;
+    td->hashtable=T;
+    td->resumePtr = ptr;
+    td->task= task;
+    td->traverserID = traverserID;
+    td->heaproot = heaproot;
+    be->tail=b;
+    
+    //release lock
+    be->head=b;
+    
+    return READY;
+  }
+
+
   BinItem_rcr * bintail=be->tail;
+
   //check if already added item or not.
   if (bintail->type == WRITEBIN) {
     TraverserData * td = &(((WriteBinItem_rcr *)bintail)->val);
