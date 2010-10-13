@@ -1888,7 +1888,7 @@ public class BuildCode {
 	  Iterator<SESEandAgePair> pItr = callerSESEplaceholder.getNeededStaticNames().iterator();
 	  while( pItr.hasNext() ) {
 	    SESEandAgePair pair = pItr.next();
-	    output.println("   void* "+pair+";");
+	    output.println("   void* "+pair+" = NULL;");
 	  }
 
 	  // declare variables for tracking dynamic sources
@@ -3700,7 +3700,8 @@ public class BuildCode {
       output.println("     CP_LOGEVENT( CP_EVENTID_TASKDISPATCH, CP_EVENTTYPE_BEGIN );");
       output.println("#endif");
     }
-    
+
+
     // before doing anything, lock your own record and increment the running children
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
@@ -3708,14 +3709,21 @@ public class BuildCode {
       output.println("     atomic_inc(&(runningSESE->numRunningChildren));");
     }
 
+
+
+
     // allocate the space for this record
     output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
         ) {
+
+      //output.println("     CP_LOGEVENT( CP_EVENTID_DEBUG_B, CP_EVENTTYPE_BEGIN );");    
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
+      //output.println("     CP_LOGEVENT( CP_EVENTID_DEBUG_B, CP_EVENTTYPE_END );");
+
     } else {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
@@ -3728,6 +3736,10 @@ public class BuildCode {
                      fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                      fsen.getSESErecordName()+" ) );");
     output.println( "#endif // OOO_DISABLE_TASKMEMPOOL" );
+
+
+
+
 
 
     // set up the SESE in-set and out-set objects, which look
@@ -3804,6 +3816,7 @@ public class BuildCode {
     // before potentially adding this SESE to other forwarding lists,
     // create it's lock
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
+
   
     if( (state.MLP && fsen != mlpa.getMainSESE()) ||
         (state.OOOJAVA && fsen != oooa.getMainSESE())    
@@ -3889,6 +3902,8 @@ public class BuildCode {
       }
 
       
+
+
       // maintain pointers for finding dynamic SESE 
       // instances from static names      
       SESEandAgePair pairNewest = new SESEandAgePair( fsen, 0 );
@@ -3896,22 +3911,27 @@ public class BuildCode {
       if(  fsen.getParent() != null && 
 	   fsen.getParent().getNeededStaticNames().contains( pairNewest ) 
 	) {       
+        output.println("     {");
+        output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
+        output.println("       SESEcommon* oldest = "+pairOldest+";");
+        output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
 	for( int i = fsen.getOldestAgeToTrack(); i > 0; --i ) {
 	  SESEandAgePair pair1 = new SESEandAgePair( fsen, i   );
 	  SESEandAgePair pair2 = new SESEandAgePair( fsen, i-1 );
-	  output.println("     "+pair1+" = "+pair2+";");
+	  output.println("       "+pair1+" = "+pair2+";");
 	}      
-	output.println("     "+pairNewest+" = &(seseToIssue->common);");
+	output.println("       "+pairNewest+" = &(seseToIssue->common);");
 
         // no need to add a reference to whatever is the newest record, because
         // we initialized seseToIssue->refCount to *2*
         // but release a reference to whatever was the oldest BEFORE the shift
         output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
-        output.println("     if( "+pairOldest+" != NULL ) {");
-        output.println("       RELEASE_REFERENCE_TO( "+pairOldest+" );");
-        output.println("     }");
+        output.println("       if( oldest != NULL ) {");
+        output.println("         RELEASE_REFERENCE_TO( oldest );");
+        output.println("       }");
         output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
+        output.println("     }");
       }
 
       if (state.RCR) {
@@ -3923,6 +3943,13 @@ public class BuildCode {
 	//TODO BCD
 	//clear out the parameter records
 
+      }
+
+
+      if( state.COREPROF ) {
+        output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
+        output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_BEGIN );");
+        output.println("#endif");
       }
 
 
@@ -4175,6 +4202,12 @@ public class BuildCode {
       }
     }
 
+    if( state.COREPROF ) {
+      output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
+      output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_END );");
+      output.println("#endif");
+    }
+    
     // Enqueue Task Record
     if (state.RCR) {
       output.println("    enqueueTR((void *)seseToIssue);");
@@ -4184,6 +4217,8 @@ public class BuildCode {
     output.println("     if(  atomic_sub_and_test(10000-localCount,&(seseToIssue->common.unresolvedDependencies) ) ) {");
     output.println("       workScheduleSubmit( (void*)seseToIssue );");
     output.println("     }");
+
+    
 
     if( state.COREPROF ) {
       output.println("#ifdef CP_EVENTID_TASKDISPATCH");

@@ -13,12 +13,13 @@ BUILDSCRIPT=../../../buildscript
 
 
 COREPROFOVERFLOW= #-coreprof-checkoverflow
-USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
-#	-coreprof-eventwords 1024*1024*128 \
-#	-coreprof-enable cpe_main \
-#	-coreprof-enable cpe_taskdispatch \
-#	-coreprof-enable cpe_runmalloc
-#	-coreprof-enable cpe_taskexecute \
+USECOREPROF= #coreprof $(COREPROFOVERFLOW) \
+	-coreprof-eventwords 1024*1024*128 \
+	-coreprof-enable cpe_main \
+	-coreprof-enable cpe_runmalloc \
+	-coreprof-enable cpe_taskexecute \
+	-coreprof-enable cpe_taskdispatch
+#	-coreprof-enable cpe_preparememq
 #	-coreprof-enable cpe_runfree \
 #	-coreprof-enable cpe_count_poolalloc \
 #	-coreprof-enable cpe_count_poolreuse \
@@ -28,8 +29,8 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 #	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava 24 2 -ooodebug-disable-task-mem-pool -ooodebug 
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 1024 -garbagestats -joptimize -noloop -optimize #-debug
+USEOOO= -ooojava 24 2 #-ooodebug-disable-task-mem-pool #-ooodebug 
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize #src-after-pp #-debug
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
@@ -46,6 +47,7 @@ ooo:
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin
 	rm -fr par sing
+	rm -f tmp.c
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png

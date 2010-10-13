@@ -64,21 +64,41 @@
 #define CP_EVENTID_TASKDISPATCH       0x30
 #endif
 
+#ifdef cpe_preparememq
+#define CP_EVENTID_PREPAREMEMQ        0x31
+#endif
+
 #ifdef cpe_taskexecute
-#define CP_EVENTID_TASKEXECUTE        0x31
+#define CP_EVENTID_TASKEXECUTE        0x40
 #endif
 
 #ifdef cpe_taskretire
-#define CP_EVENTID_TASKRETIRE         0x32
+#define CP_EVENTID_TASKRETIRE         0x50
 #endif
 
 #ifdef cpe_taskstallvar
-#define CP_EVENTID_TASKSTALLVAR       0x40
+#define CP_EVENTID_TASKSTALLVAR       0x60
 #endif
 
 #ifdef cpe_taskstallmem
-#define CP_EVENTID_TASKSTALLMEM       0x41
+#define CP_EVENTID_TASKSTALLMEM       0x61
 #endif
+
+// debug events don't require a preprocessor
+// guard because normally they are not in the code
+// base--its helpful to define them in case you
+// want to debug events that aren't worth keeping
+// forever
+#define CP_EVENTID_DEBUG_A 0x180
+#define CP_EVENTID_DEBUG_B 0x181
+#define CP_EVENTID_DEBUG_C 0x182
+#define CP_EVENTID_DEBUG_D 0x183
+#define CP_EVENTID_DEBUG_E 0x184
+#define CP_EVENTID_DEBUG_F 0x185
+#define CP_EVENTID_DEBUG_G 0x186
+#define CP_EVENTID_DEBUG_H 0x187
+#define CP_EVENTID_DEBUG_I 0x188
+#define CP_EVENTID_DEBUG_J 0x189
 
 
 // Note: application-specific events (assigned
