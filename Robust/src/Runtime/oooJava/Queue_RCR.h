@@ -9,7 +9,6 @@ struct RCRQueue {
   void * elements[SIZE];
   unsigned int head;
   unsigned int tail;
-  unsigned int size;
 };
 
 int enqueueRCRQueue(void * ptr);
@@ -17,5 +16,4 @@ void * dequeueRCRQueue();
 void resetRCRQueue();
 int isEmptyRCRQueue();
 int getSizeRCRQueue();
-
 #endif
