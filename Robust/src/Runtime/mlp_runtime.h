@@ -122,6 +122,9 @@ typedef struct SESEcommon_t {
 
   int numDependentSESErecords;
   int offsetToDepSESErecords;
+#ifdef RCR
+  int offsetToParamRecords;
+#endif
 
   // for determining when task records can be returned
   // to the parent record's memory pool

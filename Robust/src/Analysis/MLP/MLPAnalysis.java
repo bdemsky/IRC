@@ -10,6 +10,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Collection;
 import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
@@ -1208,7 +1209,7 @@ public class MLPAnalysis {
 			
 			if (!fsen.getIsCallerSESEplaceholder()) {
 				// uniquely taint each live-in variable
-				Set<TempDescriptor> set = fsen.getInVarSet();
+				Collection<TempDescriptor> set = fsen.getInVarSet();
 				Iterator<TempDescriptor> iter = set.iterator();
 				int idx = 0;
 				while (iter.hasNext()) {
@@ -2394,7 +2395,7 @@ public class MLPAnalysis {
 					.getOwnvershipGraphByMethodContext(mc);
 
 			if (!fsen.getIsCallerSESEplaceholder()) {
-				Set<TempDescriptor> invar_set = fsen.getInVarSet();
+			  Collection<TempDescriptor> invar_set = fsen.getInVarSet();
 				
 				SESESummary seseSummary=seseSummaryMap.get(fsen);
 				ConflictGraph conflictGraph=null;

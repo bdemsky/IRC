@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -148,7 +149,7 @@ public class RuntimeConflictResolver {
 
   private void traverseSESEBlock(FlatSESEEnterNode rblock,
       ReachGraph rg) {
-    Set<TempDescriptor> inVars = rblock.getInVarSet();
+    Collection<TempDescriptor> inVars = rblock.getInVarSet();
     
     if (inVars.size() == 0)
       return;
@@ -190,11 +191,7 @@ public class RuntimeConflictResolver {
     }
   }
   
-
-  private void traverseStallSite(
-      FlatNode enterNode,
-      TempDescriptor invar,
-      ReachGraph rg) {
+  private void traverseStallSite(FlatNode enterNode, TempDescriptor invar, ReachGraph rg) {
     TypeDescriptor type = invar.getType();
     if(type == null || type.isPrimitive()) {
       return;

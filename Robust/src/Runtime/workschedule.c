@@ -6,6 +6,9 @@
 #include "workschedule.h"
 #include "mlp_runtime.h"
 #include "coreprof/coreprof.h"
+#ifdef RCR
+#include "rcr_runtime.h"
+#endif
 
 // NOTE: Converting this from a work-stealing strategy
 // to a single-queue thread pool protected by a single
@@ -50,14 +53,16 @@ extern __thread SESEcommon* seseCommon;
 
 __thread int oid;
 
+#ifdef RCR
+#include "trqueue.h"
+__thread struct trqueue * TRqueue;
+#endif
 
 
 void workerExit( void* arg ) {
   //printf( "Thread %d canceled.\n", pthread_self() );
   CP_EXIT();
 }
-
-
 
 void* workerMain( void* arg ) {
   void*       workUnit;
@@ -73,6 +78,21 @@ void* workerMain( void* arg ) {
   // ensure that object ID's start at 1 so that using
   // oid with value 0 indicates an invalid object
   oid = myData->id + 1;
+
+#ifdef RCR
+  //allocate task record queue
+  pthread_t thread;
+  pthread_attr_t nattr;  
+  pthread_attr_init(&nattr);
+  pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
+  TRqueue=allocTR();
+  int status = pthread_create( &(workerDataArray[i].workerThread), 
+			       NULL,
+			       workerTR,
+			       (void*) TRqueue);
+  pthread_attr_destroy(&nattr);
+  if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
+#endif
 
   //pthread_setcanceltype ( PTHREAD_CANCEL_ASYNCHRONOUS, &oldState );
   //pthread_setcancelstate( PTHREAD_CANCEL_ENABLE,       &oldState );

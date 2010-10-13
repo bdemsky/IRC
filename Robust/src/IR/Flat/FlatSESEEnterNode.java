@@ -3,6 +3,8 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 import java.util.Vector;
+import java.util.Iterator;
+import java.util.Collection;
 
 import Analysis.MLP.SESEEffectsKey;
 import Analysis.MLP.SESEEffectsSet;
@@ -35,7 +37,7 @@ public class FlatSESEEnterNode extends FlatNode {
 
   protected Set<FlatSESEEnterNode> children;
 
-  protected Set<TempDescriptor> inVars;
+  protected Vector<TempDescriptor> inVars;
   protected Set<TempDescriptor> outVars;
 
   protected Set<SESEandAgePair> needStaticNameInCode;
@@ -82,7 +84,7 @@ public class FlatSESEEnterNode extends FlatNode {
     oldestAgeToTrack     = new Integer( 0 );
 
     children             = new HashSet<FlatSESEEnterNode>();
-    inVars               = new HashSet<TempDescriptor>();
+    inVars               = new Vector<TempDescriptor>();
     outVars              = new HashSet<TempDescriptor>();
     needStaticNameInCode = new HashSet<SESEandAgePair>();
     staticInVarSrcs      = new HashSet<SESEandAgePair>();
@@ -167,7 +169,8 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public void addInVar( TempDescriptor td ) {
-    inVars.add( td );
+    if (!inVars.contains(td))
+      inVars.add( td );
   }
 
   public void addOutVar( TempDescriptor td ) {
@@ -175,14 +178,22 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public void addInVarSet( Set<TempDescriptor> s ) {
-    inVars.addAll( s );
+    for(Iterator<TempDescriptor> sit=s.iterator();sit.hasNext();) {
+      TempDescriptor tmp=sit.next();
+      if (!inVars.contains(tmp))
+	inVars.add(tmp);
+    }
   }
 
   public void addOutVarSet( Set<TempDescriptor> s ) {
     outVars.addAll( s );
   }
 
-  public Set<TempDescriptor> getInVarSet() {
+  public Collection<TempDescriptor> getInVarSet() {
+    return inVars;
+  }
+
+  public Vector<TempDescriptor> getInVarVector() {
     return inVars;
   }
 
