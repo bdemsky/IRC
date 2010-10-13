@@ -19,6 +19,7 @@
 //////////////////////////////////////////////////////////
 
 #include <stdlib.h>
+#include "mem.h"
 #include "mlp_lock.h"
 
 
@@ -99,6 +100,7 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
 }
 
 
+
 static inline void* poolalloc( MemPool* p ) {
 
   // to protect CAS in poolfree from dereferencing
@@ -110,13 +112,27 @@ static inline void* poolalloc( MemPool* p ) {
 
   if( headCurrent->next == NULL ) {
     // only one item, so don't take from pool
-    return malloc( p->itemSize );
+    return RUNMALLOC( p->itemSize );
   }
  
   p->head = headCurrent->next;
 
-  // just until uninitialized mem bug found
-  //memset( headCurrent, 0, p->itemSize );
+
+  //////////////////////////////////////////////////////////
+  //
+  //   a prefetch statement from the Linux kernel,
+  //   which the little "m" depends on architecture:
+  //
+  //  static inline void prefetch(void *x) 
+  //  { 
+  //    asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
+  //  } 
+  //
+  //
+  //  but this built-in gcc one seems the most portable:
+  //////////////////////////////////////////////////////////
+  __builtin_prefetch( &(p->head->next) );
+
 
   return headCurrent;
 }
