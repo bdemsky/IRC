@@ -21,7 +21,7 @@ echo -coreprof, turn on profiling API
 echo -coreprof-eventwords NUM, space in words/thread for coreprof events
 echo -coreprof-checkoverflow, ONLY use for debugging event overflow
 echo -coreprof-enable EVENTNAME, only enable desired events to reduce overhead
-echo   EVENTNAME can be: cpe_main, cpe_runmalloc, cpe_runfree, cpe_count_poolalloc, cpe_count_poolreuse, cpe_workschedgrab, cpe_taskdispatch, cpe_taskexecute, cpe_taskretire, cpe_taskstallvar, cpe_taskstallmem 
+echo   EVENTNAME can be: cpe_main, cpe_runmalloc, cpe_runfree, cpe_count_poolalloc, cpe_count_poolreuse, cpe_workschedgrab, cpe_taskdispatch, cpe_preparememq, cpe_taskexecute, cpe_taskretire, cpe_taskstallvar, cpe_taskstallmem 
 echo "-ooojava <numberofcores> <maxseseage>"
 echo -ooodebug general OOOJava debugging messages
 echo -ooodebug-disable-task-mem-pool this is a tricky module, disable for simpler runtime
@@ -136,10 +136,12 @@ echo -assembly generate assembly
 echo -recovery compile recovery code
 echo -dsmtask support work and task class library
 echo -recoverystats print out recovery record 
+echo -src-after-pp prints source code after preprocessor to tmp.c
 echo -help help
 }
 
 tmpbuilddirectory="tmpbuilddirectory"
+SRCAFTERPP=false;
 COREPROF=false;
 NUMA=false;
 SANDBOX=false;
@@ -230,9 +232,15 @@ if [[ $1 = '-help' ]]
 then
 printhelp
 exit
+
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true
+
+elif [[ $1 = '-src-after-pp' ]]
+then
+SRCAFTERPP=true
+
 elif [[ $1 = '-assembly' ]]
 then
 ASSEMBLY=true
@@ -1242,12 +1250,20 @@ fi
 
 if $MULTICOREFLAG
 then
-gcc $INCLUDES $EXTRAOPTIONS \
-$tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+NONMULTICOREOPTS=
 else
-gcc $INCLUDES $EXTRAOPTIONS -DPRECISE_GC \
-$tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+NONMULTICOREOPTS=-DPRECISE_GC
 fi
+
+if $SRCAFTERPP
+then
+gcc -E $INCLUDES $EXTRAOPTIONS $NONMULTICOREOPTS \
+$tmpbuilddirectory/methods.c $FILES > tmp.c
+fi
+
+gcc $INCLUDES $EXTRAOPTIONS $NONMULTICOREOPTS \
+$tmpbuilddirectory/methods.c $FILES -lm -o $MAINFILE.bin
+
 
 fi #!RAWFLAG
 
