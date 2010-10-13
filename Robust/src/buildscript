@@ -55,6 +55,9 @@ echo -dsmcaching -enable caching in dsm runtime
 echo
 echo BAMBOO Multicore options
 echo -scheduling do task scheduling
+echo "-distributioninfo  execute to collect distribution info for simulated annealing in multi-core version"
+echo "-disall  execute to collect whole distribution"
+echo "-disstart specify the start number of distribution information collection"
 echo -multicore generate multi-core version binary
 echo "-numcore set the number of cores (should be used together with -multicore), defaultly set as 1"
 echo "-cacheflush enable cache flush in raw version binary (should be used togethere with -raw)"
@@ -68,6 +71,12 @@ echo "-tilera_zlinux generate tilera version binary for Zero-Overhead Linux with
 echo "-tileraconfig config tilera simulator/pci as nxm (should be used together with -tilera)"
 echo "-raw generate raw version binary (should be used together with -multicore)"
 echo "-rawconfig config raw simulator as 4xn (should be used together with -raw)"
+echo "-tilera_memprof build the memprof version (should be used together with -tilera_xx) "
+echo -accurateprofile build with accurate profile information including pre/post task processing info
+echo -profile_interrupt build with profile information of interrupts
+echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
+echo
+echo Multicore GC options
 echo -multicoregc generate multi-core binary with garbage collection
 echo "-numcore4gc set the number of cores for gc (should be used together with -multicoregc), defaultly set as 0"
 echo "-gcmem_local set the gc shared memory allocation strategy as local (should be used together with -multicoregc)"
@@ -83,10 +92,7 @@ echo "-gclargepagesize set the gc shared memory to use large page size (should b
 echo "-gclargesharedheap(2) set the gc shared memory as large (should be used together with -multicoregc)"
 echo "-gccacheadapt setup as cacheadaptable mode (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
-echo "-tilera_memprof build the memprof version (should be used together with -tilera_xx) "
-echo -accurateprofile build with accurate profile information including pre/post task processing info
-echo -profile_interrupt build with profile information of interrupts
-echo "-useio use standard io to output profiling data (should be used together with -raw and -profile), it only works with single core version"
+echo -mgc generate Multicore GC binary without task stuff
 echo
 echo Other options
 echo -abcclose turnoff array boundary checks
@@ -126,9 +132,6 @@ echo -instructionfailures inject code for instructionfailures
 echo -profile build with profile options
 echo "-enable-assertions execute assert statements during compilation"
 echo -justanalyze exit after compiler analyses complete
-echo "-distributioninfo  execute to collect distribution info for simulated annealing in multi-core version"
-echo "-disall  execute to collect whole distribution"
-echo "-disstart specify the start number of distribution information collection"
 echo -assembly generate assembly
 echo -recovery compile recovery code
 echo -dsmtask support work and task class library
@@ -198,6 +201,7 @@ GCCACHEADAPTFLAG=false
 GCCACHEADAPTPOLICYFLAG=false
 GCCACHEADAPTPOLICY=''
 GCCACHESAMPLINGFLAG=false
+MGCFLAG=false
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -493,6 +497,9 @@ shift
 elif [[ $1 = '-gccachesampling' ]]
 then
 GCCACHESAMPLINGFLAG=true
+elif [[ $1 = '-mgc' ]]
+then
+MGCFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -832,6 +839,8 @@ cp ../Runtime/*.s ./
 mkdir ./coreprof
 cp ../Runtime/coreprof/*.c ./coreprof/
 cp ../Runtime/coreprof/*.h ./coreprof/
+cp $BAMBOORUNTIME/*.c ./
+cp $BAMBOORUNTIME/*.h ./
 cp $BAMBOORUNTIME/RAW/*.c ./
 cp $BAMBOORUNTIME/RAW/*.h ./
 cp $BAMBOORUNTIME/RAW/*.S ./
@@ -920,6 +929,11 @@ if $INTERRUPTFLAG
 then #INTERRUPT version
 TILERACFLAGS="${TILERACFLAGS} -DINTERRUPT"
 fi #INTERRUPT version
+
+if $MGCFLAG
+then #MGCFLAG
+TILERACFLAGS="${TILERACFLAGS} -DMGC"
+fi
 
 if $MULTICOREGCFLAG
 then #MULTICOREGC version
@@ -1054,16 +1068,18 @@ cp ../Runtime/coreprof/coreprof.c ./coreprof/
 cp ../Runtime/coreprof/coreprof.h ./coreprof/
 cp $BAMBOORUNTIME/multicoretask.c ./
 cp $BAMBOORUNTIME/multicoreruntime.c ./
-cp $BAMBOORUNTIME/GCSharedHash.c ./
+cp $BAMBOORUNTIME/multicoremem.c ./
 cp $BAMBOORUNTIME/multicoregarbage.c ./
+cp $BAMBOORUNTIME/GCSharedHash.c ./
 cp $BAMBOORUNTIME/MGCHash.c ./
 cp $BAMBOORUNTIME/multicoreruntime.h ./
-cp $BAMBOORUNTIME/GCSharedHash.h ./
-cp $BAMBOORUNTIME/multicoregc.h ./
+cp $BAMBOORUNTIME/multicoremem.h ./
 cp $BAMBOORUNTIME/multicoregarbage.h ./
-cp $BAMBOORUNTIME/multicorehelper.h ./
-cp $BAMBOORUNTIME/MGCHash.h ./
 cp $BAMBOORUNTIME/multicorecache.h ./
+cp $BAMBOORUNTIME/multicoregc.h ./
+cp $BAMBOORUNTIME/multicorehelper.h ./
+cp $BAMBOORUNTIME/GCSharedHash.h ./
+cp $BAMBOORUNTIME/MGCHash.h ./
 cp ../Tilera/Runtime/*.c ./
 cp ../Tilera/Runtime/*.h ./
 cp ../Tilera/Runtime/$TILERA_INDIR/*.c ./

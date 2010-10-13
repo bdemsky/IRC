@@ -1,7 +1,7 @@
 #ifndef MULTICORE_GARBAGE_H
 #define MULTICORE_GARBAGE_H
 #include "multicoregc.h"
-#include "multicorehelper.h"  // for mappins between core # and block #
+#include "multicorehelper.h"  // for mappings between core # and block #
 #include "structdefs.h"
 #include "MGCHash.h"
 #include "GCSharedHash.h"
