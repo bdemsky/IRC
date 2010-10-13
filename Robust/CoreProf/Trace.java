@@ -19,25 +19,47 @@ public class Trace {
   public static final int CP_EVENTID_COUNT_POOLREUSE  = 0x16;
   public static final int CP_EVENTID_WORKSCHEDGRAB    = 0x20;
   public static final int CP_EVENTID_TASKDISPATCH     = 0x30;
-  public static final int CP_EVENTID_TASKEXECUTE      = 0x31;
-  public static final int CP_EVENTID_TASKRETIRE       = 0x32;
-  public static final int CP_EVENTID_TASKSTALLVAR     = 0x40;
-  public static final int CP_EVENTID_TASKSTALLMEM     = 0x41;
+  public static final int CP_EVENTID_PREPAREMEMQ      = 0x31;
+  public static final int CP_EVENTID_TASKEXECUTE      = 0x40;
+  public static final int CP_EVENTID_TASKRETIRE       = 0x50;
+  public static final int CP_EVENTID_TASKSTALLVAR     = 0x60;
+  public static final int CP_EVENTID_TASKSTALLMEM     = 0x61;
+  public static final int CP_EVENTID_DEBUG_A          = 0x180;
+  public static final int CP_EVENTID_DEBUG_B          = 0x181;
+  public static final int CP_EVENTID_DEBUG_C          = 0x182;
+  public static final int CP_EVENTID_DEBUG_D          = 0x183;
+  public static final int CP_EVENTID_DEBUG_E          = 0x184;
+  public static final int CP_EVENTID_DEBUG_F          = 0x185;
+  public static final int CP_EVENTID_DEBUG_G          = 0x186;
+  public static final int CP_EVENTID_DEBUG_H          = 0x187;
+  public static final int CP_EVENTID_DEBUG_I          = 0x188;
+  public static final int CP_EVENTID_DEBUG_J          = 0x189;
 
 
   void initNames() {
     eid2name = new Hashtable<Integer, String>();
-    eid2name.put( CP_EVENTID_MAIN,          "MAIN         " );
-    eid2name.put( CP_EVENTID_RUNMALLOC,     "RUNMALLOC    " );
-    eid2name.put( CP_EVENTID_RUNFREE,       "RUNFREE      " );
-    eid2name.put( CP_EVENTID_RUNFREE,       "POOLALLOC    " );
-    eid2name.put( CP_EVENTID_RUNFREE,       "POOLREUSE    " );
-    eid2name.put( CP_EVENTID_WORKSCHEDGRAB, "WORKSCHEDGRAB" );
-    eid2name.put( CP_EVENTID_TASKDISPATCH,  "TASKDISPATCH " );
-    eid2name.put( CP_EVENTID_TASKEXECUTE,   "TASKEXECUTE  " );
-    eid2name.put( CP_EVENTID_TASKRETIRE,    "TASKRETIRE   " );
-    eid2name.put( CP_EVENTID_TASKSTALLVAR,  "TASKSTALLVAR " );
-    eid2name.put( CP_EVENTID_TASKSTALLMEM,  "TASKSTALLMEM " );
+    eid2name.put( CP_EVENTID_MAIN,              "MAIN         " );
+    eid2name.put( CP_EVENTID_RUNMALLOC,         "RUNMALLOC    " );
+    eid2name.put( CP_EVENTID_RUNFREE,           "RUNFREE      " );
+    eid2name.put( CP_EVENTID_RUNFREE,           "POOLALLOC    " );
+    eid2name.put( CP_EVENTID_RUNFREE,           "POOLREUSE    " );
+    eid2name.put( CP_EVENTID_WORKSCHEDGRAB,     "WORKSCHEDGRAB" );
+    eid2name.put( CP_EVENTID_TASKDISPATCH,      "TASKDISPATCH " );
+    eid2name.put( CP_EVENTID_PREPAREMEMQ,       "PREPAREMEMQ  " );
+    eid2name.put( CP_EVENTID_TASKEXECUTE,       "TASKEXECUTE  " );
+    eid2name.put( CP_EVENTID_TASKRETIRE,        "TASKRETIRE   " );
+    eid2name.put( CP_EVENTID_TASKSTALLVAR,      "TASKSTALLVAR " );
+    eid2name.put( CP_EVENTID_TASKSTALLMEM,      "TASKSTALLMEM " );
+    eid2name.put( CP_EVENTID_DEBUG_A,           "DEBUG A      " );
+    eid2name.put( CP_EVENTID_DEBUG_B,           "DEBUG B      " );
+    eid2name.put( CP_EVENTID_DEBUG_C,           "DEBUG C      " );
+    eid2name.put( CP_EVENTID_DEBUG_D,           "DEBUG D      " );
+    eid2name.put( CP_EVENTID_DEBUG_E,           "DEBUG E      " );
+    eid2name.put( CP_EVENTID_DEBUG_F,           "DEBUG F      " );
+    eid2name.put( CP_EVENTID_DEBUG_G,           "DEBUG G      " );
+    eid2name.put( CP_EVENTID_DEBUG_H,           "DEBUG H      " );
+    eid2name.put( CP_EVENTID_DEBUG_I,           "DEBUG I      " );
+    eid2name.put( CP_EVENTID_DEBUG_J,           "DEBUG J      " );
   }
 
   Hashtable<Integer, String> eid2name;
@@ -45,11 +67,21 @@ public class Trace {
 
 
   public static void main( String args[] ) {
-    if( args.length != 2 ) {
-      System.out.println( "usage: <coreprof.dat file> <trace out file>" );
+    if( args.length < 2 ||
+        args.length > 3 ) {
+      System.out.println( "usage: [-2txt] <coreprof.dat file> <trace out file>" );
+      System.out.println( "The -2txt option will take the raw binary events and spit\n"+
+                          "out every event as text in events.txt, useful for debugging\n"+
+                          "event mis-matches." );
       System.exit( 0 );
     }
-    Trace t = new Trace( args[0], args[1] );
+
+    Trace t;
+    if( args[0].equals( "-2txt" ) ) {
+      t = new Trace( true,  args[1], args[2] );
+    } else {
+      t = new Trace( false, args[0], args[1] );
+    }
   }
 
 
@@ -62,9 +94,14 @@ public class Trace {
   int          numThreads;
   ThreadData[] threadData;
 
+  boolean        convert2txt;
+  BufferedWriter txtStream;
 
 
-  public Trace( String inFile, String outFile ) {
+
+  public Trace( boolean c2txt, String inFile, String outFile ) {
+
+    convert2txt = c2txt;
 
     openInputStreams( inFile );
 
@@ -133,6 +170,11 @@ public class Trace {
       bis    = new BufferedInputStream( new FileInputStream( filename ) );
       offset = readHeader( bis );
       bis.close();
+
+      if( convert2txt ) {
+        txtStream = new BufferedWriter( new FileWriter( "events.txt" ) );
+      }
+
     } catch( Exception e ) {
       e.printStackTrace();
       System.exit( -1 );
@@ -188,6 +230,18 @@ public class Trace {
   public void readThread( int tNum ) {
 
     System.out.print( "Reading thread "+tNum );
+
+    if( convert2txt ) {
+      try {
+        txtStream.write( "\n\n\n\n" );
+        txtStream.write( "*************************************************\n" );
+        txtStream.write( "**  Thread "+tNum+"\n" );
+        txtStream.write( "*************************************************\n" );
+      } catch( IOException e ) {
+        e.printStackTrace();
+        System.exit( -1 );
+      }
+    }
 
     ThreadData tdata = threadData[tNum];
     tdata.stackDepth = 0;
@@ -311,6 +365,22 @@ public class Trace {
 
     tdata.eventStack.set( tdata.stackDepth, eventSummary );
 
+
+    // print to the event text file (if needed) before
+    // updating the stack depth to get tabs right
+    if( convert2txt ) {
+      try {
+        for( int tabs = 0; tabs < tdata.stackDepth; ++tabs ) {
+          txtStream.write( "  " );
+        }
+        txtStream.write( "begin "+getEventName( eventID )+"@"+timeStamp+"\n" );
+      } catch( IOException e ) {
+        e.printStackTrace();
+        System.exit( -1 );
+      }
+    }
+
+
     tdata.stackDepth++;
   }
 
@@ -319,6 +389,23 @@ public class Trace {
                            int        eventID,
                            long       timeStamp ) {
     tdata.stackDepth--;
+
+
+    // print to the event text file (if needed) after
+    // updating the stack depth to get tabs right
+    if( convert2txt ) {
+      try {
+        for( int tabs = 0; tabs < tdata.stackDepth; ++tabs ) {
+          txtStream.write( "  " );
+        }
+        txtStream.write( "end   "+getEventName( eventID )+"@"+timeStamp+"\n" );
+      } catch( IOException e ) {
+        e.printStackTrace();
+        System.exit( -1 );
+      }
+    }
+
+
     if( tdata.stackDepth < 0 ) {
       throw new Error( "Event stack underflow\n" );
     }
@@ -374,8 +461,10 @@ public class Trace {
       }
 
       bw.close();
-
-    } catch( IOException e ) {}
+    } catch( IOException e ) {
+      e.printStackTrace();
+      System.exit( -1 );
+    }
   }
 
 

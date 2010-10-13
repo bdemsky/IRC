@@ -7,11 +7,11 @@ import java.util.*;
 
 public class ThreadData {
 
-  public BufferedInputStream  dataStream;
-  public int                  numDataWords;
-  public Vector<EventSummary> rootEvents;
-  public Vector<EventSummary> eventStack;
-  public int                  stackDepth;
+  public BufferedInputStream   dataStream;
+  public int                   numDataWords;
+  public Vector<EventSummary>  rootEvents;
+  public Vector<EventSummary>  eventStack;
+  public int                   stackDepth;
 
   public ThreadData() {
     dataStream   = null;
