@@ -153,6 +153,9 @@ public class State {
   public int CORENUM4GC = 0;
   public String profilename = null;
   public String outputdir = "/scratch/";
+  // MGC options
+  public boolean MGC=false;
+  
   //Other options
   public String structfile;
   public String main;

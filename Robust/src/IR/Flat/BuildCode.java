@@ -387,7 +387,7 @@ public class BuildCode {
    * The main C method packs up the arguments into a string array
    * and passes it to the java main method. */
 
-  private void outputMainMethod(PrintWriter outmethod) {
+  protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
 
@@ -600,7 +600,9 @@ public class BuildCode {
       outmethod.println("#include \"localobjects.h\"");
     }
     if(state.MULTICORE) {
-      outmethod.println("#include \"task.h\"");
+      if(state.TASK) {
+        outmethod.println("#include \"task.h\"");
+      }
 	  outmethod.println("#include \"multicoreruntime.h\"");
 	  outmethod.println("#include \"runtime_arch.h\"");
     }
@@ -765,6 +767,13 @@ public class BuildCode {
       outclassdefs.println("  void * lockentry;");
       outclassdefs.println("  int lockcount;");
     }
+    if(state.MGC) {
+      outclassdefs.println("  int mutex;");  
+      outclassdefs.println("  int objlock;");
+      if(state.MULTICOREGC) {
+        outclassdefs.println("  int marked;");
+      }
+    } 
     if (state.TASK) {
       outclassdefs.println("  int flag;");
       if(!state.MULTICORE) {
@@ -1511,7 +1520,13 @@ public class BuildCode {
       classdefout.println("  void * lockentry;");
       classdefout.println("  int lockcount;");
     }
-
+    if(state.MGC) {
+      classdefout.println("  int mutex;");  
+      classdefout.println("  int objlock;");
+      if(state.MULTICOREGC) {
+        classdefout.println("  int marked;");
+      }
+    } 
     if (state.TASK) {
       classdefout.println("  int flag;");
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {

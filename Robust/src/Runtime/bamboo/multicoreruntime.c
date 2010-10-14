@@ -9,9 +9,6 @@
 #ifndef RAW
 #include <stdio.h>
 #endif
-#ifdef MGC
-#include "thread.h"
-#endif
 
 #ifndef INLINE
 #define INLINE    inline __attribute__((always_inline))
@@ -32,6 +29,9 @@ extern unsigned int gcmem_mixed_usedmem;
 #endif // MULTICORE_GC
 
 int debugtask=0;
+#ifdef MGC
+int corenum = 0;
+#endif
 
 int instanceof(struct ___Object___ *ptr, int type) {
   int i=ptr->type;
@@ -117,6 +117,20 @@ long CALL00(___System______currentTimeMillis____) {
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
+#ifdef MGC
+#ifdef TILERA_BME
+  struct ArrayObject * chararray=VAR(___s___)->___value___;
+  int i;
+  int offset=VAR(___s___)->___offset___;
+  tprintf("");
+  for(i=0; i<VAR(___s___)->___count___; i++) {
+	short sc=
+	  ((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
+    printf("%c", sc);
+  }
+  printf("\n");
+#endif // TILERA_BME
+#endif // MGC
 }
 
 /* Object allocation function */
@@ -126,9 +140,11 @@ void * allocate_new(void * ptr, int type) {
   struct ___Object___ * v=
 	(struct ___Object___*)FREEMALLOC((struct garbagelist*) ptr,classsize[type]);
   v->type=type;
+#ifdef TASK
   v->version = 0;
   v->lock = NULL;
   v->lockcount = 0;
+#endif
   initlock(v);
 #ifdef GC_PROFILE
   extern unsigned int gc_num_obj;
@@ -144,8 +160,10 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 	FREEMALLOC((struct garbagelist*)ptr,
 		sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+#ifdef TASK
   v->version = 0;
   v->lock = NULL;
+#endif
   if (length<0) {
     return NULL;
   }
@@ -162,8 +180,10 @@ struct ArrayObject * allocate_newarray(void * ptr, int type, int length) {
 void * allocate_new(int type) {
   struct ___Object___ * v=FREEMALLOC(classsize[type]);
   v->type=type;
+#ifdef TASK
   v->version = 0;
   v->lock = NULL;
+#endif
   initlock(v);
   return v;
 }
@@ -174,8 +194,10 @@ struct ArrayObject * allocate_newarray(int type, int length) {
   struct ArrayObject * v=
 	FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+#ifdef TASK
   v->version = 0;
   v->lock = NULL;
+#endif
   v->___length___=length;
   initlock(v);
   return v;
@@ -369,9 +391,9 @@ INLINE void initruntimedata() {
 #endif
 
 #ifdef MGC
-  // TODO
-  threadlocks = 0;
-#endif
+  initializethreads();
+  bamboo_current_thread = NULL;
+#endif // MGC
 
 #ifdef TASK
   inittaskdata();
@@ -536,10 +558,8 @@ INLINE void checkCoreStatus() {
 }
 
 // main function for each core
-inline void run(void * arg) {
+inline void run(int argc, char** argv) {
   int i = 0;
-  int argc = 1;
-  char ** argv = NULL;
   bool sendStall = false;
   bool isfirst = true;
   bool tocontinue = false;
@@ -592,6 +612,13 @@ inline void run(void * arg) {
     BAMBOO_DEBUGPRINT(0xee00);
 #endif
 
+#ifdef MGC
+	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	  // run the main method in the specified mainclass
+	  mgc_main(argc, argv);
+	}
+#endif
+
     while(true) {
 
 #ifdef MULTICORE_GC
@@ -619,7 +646,8 @@ inline void run(void * arg) {
       // if yes, enqueue them and executetasks again
       tocontinue = checkObjQueue();
 #elif defined MGC
-	  // TODO
+	  trystartthread();
+	  tocontinue = false;
 #endif
 
       if(!tocontinue) {

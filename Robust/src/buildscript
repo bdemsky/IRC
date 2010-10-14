@@ -508,6 +508,7 @@ GCCACHESAMPLINGFLAG=true
 elif [[ $1 = '-mgc' ]]
 then
 MGCFLAG=true
+JAVAOPTS="$JAVAOPTS -mgc"
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -716,6 +717,10 @@ elif $THREADFLAG
 then
 #threading java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
+elif $MGCFLAG
+then
+#base multicore gc files
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC"
 fi
 #base java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
@@ -882,7 +887,12 @@ cd $TILERADIR
 make clean
 rm ./*
 
+if $MGCFLAG
+then
+export TILERACFLAGS="-DMULTICORE -DCLOSE_PRINT -DTILERA"
+else
 export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT -DTILERA"
+fi
 
 if $TILERAMEMPROFFLAG
 then # not only with 1 core
@@ -1043,7 +1053,12 @@ then # GC_CACHE_ADAPT version
 TILERACFLAGS="${TILERACFLAGS} -DGC_CACHE_SAMPLING"
 fi
 
+if $MGCFLAG
+then
+cp $ROBUSTROOT/Tilera/Runtime/MGC/$MAKEFILE ./Makefile
+else
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile
+fi
 if $TILERABMEFLAG
 then # TILERABMEFLAG
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$SIMHVC ./sim.hvc
@@ -1058,7 +1073,10 @@ fi
 cp ../Runtime/Queue.c ./
 cp ../Runtime/file.c ./
 cp ../Runtime/math.c ./
+if [ !$MGCFLAG ]
+then
 cp ../Runtime/object.c ./
+fi
 cp ../Runtime/GenericHashtable.c ./
 cp ../Runtime/SimpleHash.c ./
 cp ../Runtime/ObjectHash.c ./
@@ -1066,7 +1084,10 @@ cp ../Runtime/socket.c ./
 cp ../Runtime/mem.c ./
 cp ../Runtime/GenericHashtable.h ./
 cp ../Runtime/mem.h ./
+if [ !$MGCFLAG ]
+then
 cp ../Runtime/object.h ./
+fi
 cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
@@ -1100,6 +1121,11 @@ fi
 #then # TILERAMEMPROFFLAG
 cp ../Tilera/Runtime/$TILERA_INDIR/linux_client.c ./
 #fi
+if $MGCFLAG
+then
+cp ../Tilera/Runtime/MGC/*.c ./
+cp ../Tilera/Runtime/MGC/*.h ./
+fi
 cp ../Tilera/lib/* ./
 cp ../$tmpbuilddirectory/*.c ./
 cp ../$tmpbuilddirectory/*.h ./

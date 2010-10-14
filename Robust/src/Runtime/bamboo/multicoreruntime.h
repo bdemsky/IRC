@@ -1,7 +1,6 @@
 #ifndef MULTICORE_RUNTIME
 #define MULTICORE_RUNTIME
 #include "structdefs.h"
-#include "Queue.h"
 
 #ifndef INLINE
 #define INLINE    inline __attribute__((always_inline))
@@ -24,6 +23,31 @@ int totalexetime;
 #ifndef INTERRUPT
 bool reside;
 #endif
+
+#ifdef MGC
+// shared memory pointer for global thread queue
+// In MGC version, this block of memory is located at the very bottom of the 
+// shared memory with the base address as BAMBOO_BASE_VA.
+// The bottom of the shared memory = global thread queue + sbstart tbl 
+//                                  + smemtbl + NUMCORES4GC bamboo_rmsp
+// This queue is always reside at the bottom of the shared memory.  It is 
+// considered as runtime structure, during gc, it is scanned for mark and flush 
+// phase but never been compacted.
+//
+// This is a loop array and the first 4 int fields of the queue are:
+//     mutex + thread counter + start pointer + end pointer
+#ifdef GC_SMALLPAGESIZE
+#define BAMBOO_THREAD_QUEUE_SIZE (1024 * 1024)
+#else
+#define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
+#endif
+// data structures for threads
+INTPTR * bamboo_thread_queue;
+unsigned int bamboo_max_thread_num_mask;
+INTPTR bamboo_current_thread;
+
+extern int corenum;
+#endif // MGC
 
 // data structures for msgs
 #define BAMBOO_OUT_BUF_LENGTH 2048
@@ -405,7 +429,7 @@ INLINE void cache_msg_6(int targetcore,
                         unsigned long n3,
                         unsigned long n4,
                         unsigned long n5);
-INLINE int receiveMsg(uint32_t send_port_pending);
+INLINE int receiveMsg(unsigned int send_port_pending);
 
 #ifdef MULTICORE_GC
 INLINE void transferMarkResults();
@@ -461,7 +485,6 @@ void outputProfileData();
 // BAMBOO_DIE(x): error exit routine with error msg                        //
 // BAMBOO_GET_EXE_TIME(): rountine to get current clock cycle number       //
 // BAMBOO_MSG_AVAIL(): checking if there are msgs coming in                //
-// BAMBOO_GCMSG_AVAIL(): checking if there are gcmsgs coming in            //
 // BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT(): change to runtime mode from    //
 //                                          client mode                    //
 // BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME(): change to client mode from     //

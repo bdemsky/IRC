@@ -15,6 +15,7 @@ import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
 import IR.Tree.SemanticCheck;
 import IR.Flat.BuildCodeMultiCore;
+import IR.Flat.BuildCodeMGC;
 import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
 import IR.Flat.Inliner;
@@ -147,6 +148,8 @@ public class Main {
 	state.MULTICORE=true;
       else if (option.equals("-multicoregc"))
         state.MULTICOREGC=true;
+      else if (option.equals("-mgc"))
+        state.MGC = true;
       else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
       else if (option.equals("-ownallocdepth")) {
@@ -569,7 +572,7 @@ public class Main {
 	CallGraph callGraph = new CallGraph(state);
 	Liveness liveness = new Liveness();
         ArrayReferencees ar = new ArrayReferencees(state);
-	OwnershipAnalysis oa = new OwnershipAnalysis(state,
+	OwnershipAnalysis oa = null;/*new OwnershipAnalysis(state,
 	                                             tu,
 	                                             callGraph,
                                                  liveness,
@@ -577,7 +580,7 @@ public class Main {
 	                                             state.OWNERSHIPALLOCDEPTH,
 	                                             state.OWNERSHIPWRITEDOTS,
 	                                             state.OWNERSHIPWRITEALL,
-	                                             state.OWNERSHIPALIASFILE);
+	                                             state.OWNERSHIPALIASFILE);*/
 	
 	// synthesis a layout according to target multicore processor
 	MCImplSynthesis mcImplSynthesis = new MCImplSynthesis(state,
@@ -617,6 +620,22 @@ public class Main {
 	}
       }
     }
+    
+    if (state.MGC) {
+      // generate multicore codes
+      if(state.MULTICORE) {
+        BuildCodeMGC bcmgc=new BuildCodeMGC(state,
+                                            bf.getMap(),
+                                            tu,
+                                            sa,
+                                            state.CORENUM,
+                                            state.CORENUM,
+                                            state.CORENUM4GC,
+                                            pa);
+        bcmgc.buildCode();
+      }
+    }
+  
     if(!state.MULTICORE) {
       if (state.DSM||state.SINGLETM) {
 	CallGraph callgraph=new CallGraph(state);

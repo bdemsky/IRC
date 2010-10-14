@@ -1,5 +1,7 @@
 #ifndef MULTICORE_MEM_H
 #define MULTICORE_MEM_H
+#include "Queue.h"
+#include "SimpleHash.h"
 
 #ifndef INTPTR
 #ifdef BIT64
@@ -88,9 +90,6 @@
 
 #ifdef MULTICORE_GC
 volatile bool gc_localheap_s;
-#endif
-
-#ifdef MULTICORE_GC
 #include "multicoregarbage.h"
 
 typedef enum {
@@ -133,7 +132,7 @@ volatile INTPTR bamboo_smem_zero_top;
 //volatile mspace bamboo_free_msp;
 INTPTR bamboo_free_smemp;
 int bamboo_free_smem_size;
-#endif
+#endif // MULTICORE_GC
 volatile bool smemflag;
 volatile INTPTR bamboo_cur_msp;
 volatile int bamboo_smem_size;

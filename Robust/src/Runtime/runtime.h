@@ -120,8 +120,17 @@ void createstartupobject();
 #define CALL35(name, rest, rest2, rest3, alt1, alt2, alt3, alt4, alt5) name(alt1, alt2, alt3, alt4, alt5)
 #endif
 
-#ifdef TASK
+#ifdef MULTICORE
 #include "SimpleHash.h"
+inline void run(int argc, char** argv);
+int receiveObject(int send_port_pending);
+void * smemalloc_I(int coren, int size, int * allocsize);
+#ifdef MULTICORE_GC
+inline void setupsmemmode(void);
+#endif
+#endif
+
+#ifdef TASK
 #ifndef MULTICORE
 #include "chash.h"
 #include "ObjectHash.h"
@@ -156,11 +165,6 @@ extern struct ___Object___ * ___fcrevert___;
 #endif
 
 #ifdef MULTICORE
-inline void run(void * arg);
-#ifdef MULTICORE_GC
-inline void setupsmemmode(void);
-#endif
-int receiveObject(int send_port_pending);
 void flagorand(void * ptr, int ormask, int andmask, struct parameterwrapper ** queues, int length);
 void flagorandinit(void * ptr, int ormask, int andmask);
 void enqueueObject(void * ptr, struct parameterwrapper ** queues,int length);
@@ -170,7 +174,6 @@ inline void addNewObjInfo(void * nobj);
 #endif
 int * getAliasLock(void ** ptrs, int length, struct RuntimeHash * tbl);
 void addAliasLock(void * ptr, int lock);
-void * smemalloc_I(int coren, int size, int * allocsize);
 #else
 void flagorand(void * ptr, int ormask, int andmask);
 void flagorandinit(void * ptr, int ormask, int andmask);

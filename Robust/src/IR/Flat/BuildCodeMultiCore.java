@@ -301,9 +301,9 @@ public class BuildCodeMultiCore extends BuildCode {
       outstructs.println("#define NUMCORESACTIVE "+this.coreNum); // this.coreNum 
                                       // can be reset by the scheduling analysis
       /* Record number of garbage collection cores */
-      outtask.println("#ifdef MULTICORE_GC");
+      outstructs.println("#ifdef MULTICORE_GC");
       outstructs.println("#define NUMCORES4GC "+this.gcoreNum);
-      outtask.println("#endif");
+      outstructs.println("#endif");
       /* Record number of core containing startup task */
       outstructs.println("#define STARTUPCORE "+this.startupcorenum);
     }     //else if (state.main!=null) {
