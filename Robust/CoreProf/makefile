@@ -9,4 +9,4 @@ run:
 clean:
 	rm -f *.class
 	rm -f *~
-	rm -f trace.out
+	rm -f trace.out*

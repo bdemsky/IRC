@@ -15,6 +15,7 @@ public class Trace {
   public static final int CP_EVENTID_MAIN             = 0x04;
   public static final int CP_EVENTID_RUNMALLOC        = 0x10;
   public static final int CP_EVENTID_RUNFREE          = 0x11;
+  public static final int CP_EVENTID_POOLALLOC        = 0x14;
   public static final int CP_EVENTID_COUNT_POOLALLOC  = 0x15;
   public static final int CP_EVENTID_COUNT_POOLREUSE  = 0x16;
   public static final int CP_EVENTID_WORKSCHEDGRAB    = 0x20;
@@ -41,8 +42,9 @@ public class Trace {
     eid2name.put( CP_EVENTID_MAIN,              "MAIN         " );
     eid2name.put( CP_EVENTID_RUNMALLOC,         "RUNMALLOC    " );
     eid2name.put( CP_EVENTID_RUNFREE,           "RUNFREE      " );
-    eid2name.put( CP_EVENTID_RUNFREE,           "POOLALLOC    " );
-    eid2name.put( CP_EVENTID_RUNFREE,           "POOLREUSE    " );
+    eid2name.put( CP_EVENTID_POOLALLOC,         "POOLALLOC    " );
+    eid2name.put( CP_EVENTID_COUNT_POOLALLOC,   "POOLALLOC CNT" );
+    eid2name.put( CP_EVENTID_COUNT_POOLREUSE,   "POOLREUSE CNT" );
     eid2name.put( CP_EVENTID_WORKSCHEDGRAB,     "WORKSCHEDGRAB" );
     eid2name.put( CP_EVENTID_TASKDISPATCH,      "TASKDISPATCH " );
     eid2name.put( CP_EVENTID_PREPAREMEMQ,       "PREPAREMEMQ  " );
