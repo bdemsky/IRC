@@ -3725,34 +3725,34 @@ public class BuildCode {
     }
 
 
-
-
     // allocate the space for this record
     output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
+
+    output.println( "#ifdef CP_EVENTID_POOLALLOC");
+    output.println( "     CP_LOGEVENT( CP_EVENTID_POOLALLOC, CP_EVENTTYPE_BEGIN );");
+    output.println( "#endif");
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
         ) {
-
-      //output.println("     CP_LOGEVENT( CP_EVENTID_DEBUG_B, CP_EVENTTYPE_BEGIN );");    
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
-      //output.println("     CP_LOGEVENT( CP_EVENTID_DEBUG_B, CP_EVENTTYPE_END );");
-
     } else {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                      fsen.getSESErecordName()+" ) );");
     }
+    output.println( "#ifdef CP_EVENTID_POOLALLOC");
+    output.println( "     CP_LOGEVENT( CP_EVENTID_POOLALLOC, CP_EVENTTYPE_END );");
+    output.println( "#endif");
+
     output.println( "#else // OOO_DISABLE_TASKMEMPOOL" );
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) mlpAllocSESErecord( sizeof( "+
                      fsen.getSESErecordName()+" ) );");
     output.println( "#endif // OOO_DISABLE_TASKMEMPOOL" );
-
-
 
 
 

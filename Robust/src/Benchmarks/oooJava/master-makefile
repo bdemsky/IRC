@@ -13,12 +13,13 @@ BUILDSCRIPT=../../../buildscript
 
 
 COREPROFOVERFLOW= #-coreprof-checkoverflow
-USECOREPROF= #coreprof $(COREPROFOVERFLOW) \
+USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*128 \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_runmalloc \
 	-coreprof-enable cpe_taskexecute \
-	-coreprof-enable cpe_taskdispatch
+	-coreprof-enable cpe_taskdispatch \
+	-coreprof-enable cpe_poolalloc
 #	-coreprof-enable cpe_preparememq
 #	-coreprof-enable cpe_runfree \
 #	-coreprof-enable cpe_count_poolalloc \

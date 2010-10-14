@@ -48,6 +48,10 @@
 #define CP_EVENTID_RUNFREE            0x11
 #endif
 
+#ifdef cpe_poolalloc
+#define CP_EVENTID_POOLALLOC          0x14
+#endif
+
 #ifdef cpe_count_poolalloc
 #define CP_EVENTID_COUNT_POOLALLOC    0x15
 #endif

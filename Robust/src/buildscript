@@ -21,7 +21,7 @@ echo -coreprof, turn on profiling API
 echo -coreprof-eventwords NUM, space in words/thread for coreprof events
 echo -coreprof-checkoverflow, ONLY use for debugging event overflow
 echo -coreprof-enable EVENTNAME, only enable desired events to reduce overhead
-echo   EVENTNAME can be: cpe_main, cpe_runmalloc, cpe_runfree, cpe_count_poolalloc, cpe_count_poolreuse, cpe_workschedgrab, cpe_taskdispatch, cpe_preparememq, cpe_taskexecute, cpe_taskretire, cpe_taskstallvar, cpe_taskstallmem 
+echo   EVENTNAME can be: cpe_main, cpe_runmalloc, cpe_runfree, cpe_poolalloc, cpe_count_poolalloc, cpe_count_poolreuse, cpe_workschedgrab, cpe_taskdispatch, cpe_preparememq, cpe_taskexecute, cpe_taskretire, cpe_taskstallvar, cpe_taskstallmem 
 echo "-ooojava <numberofcores> <maxseseage>"
 echo -ooodebug general OOOJava debugging messages
 echo -ooodebug-disable-task-mem-pool this is a tricky module, disable for simpler runtime
