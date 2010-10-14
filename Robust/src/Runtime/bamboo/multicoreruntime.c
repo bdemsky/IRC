@@ -645,8 +645,10 @@ inline void run(int argc, char** argv) {
       // if yes, enqueue them and executetasks again
       tocontinue = checkObjQueue();
 #elif defined MGC
-	  trystartthread();
-	  tocontinue = false;
+	  tocontinue = trystartthread();
+	  if(tocontinue) {
+		sendStall = false;
+	  }
 #endif
 
       if(!tocontinue) {
