@@ -8,7 +8,6 @@ public class Counter{
 
   public synchronized void add(long value){
     this.count += value;
-    System.printString(" " + this.count + "\n");
   }
   
   public synchronized long getCounter() {
@@ -30,6 +29,7 @@ public class CounterThread extends Thread{
     for(int i=0; i<10; i++){
       System.printString(this.name);
       counter.add(i);
+      System.printString(" " + counter.getCounter() + "\n");
     }
   }
 }
@@ -46,4 +46,14 @@ public class SynchonizedTest {
     threadA.start();
     threadB.start(); 
   }
+  
+  /*public static void main(String[] args){
+    Counter counterA = new Counter();
+    Counter counterB = new Counter();
+    Thread  threadA = new CounterThread("A\n",counterA);
+    Thread  threadB = new CounterThread("B\n",counterB);
+
+    threadA.start();
+    threadB.start(); 
+  }*/
 }
