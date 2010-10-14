@@ -128,7 +128,6 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 	  ((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
     printf("%c", sc);
   }
-  printf("\n");
 #endif // TILERA_BME
 #endif // MGC
 }
