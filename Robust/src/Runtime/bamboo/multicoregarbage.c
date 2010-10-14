@@ -1159,6 +1159,21 @@ inline void tomark(struct garbagelist * stackptr) {
     }
   }
 
+  GC_BAMBOO_DEBUGPRINT(0xe509);
+#ifdef MGC
+  // enqueue global thread queue
+  lockthreadqueue();
+  unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
+  if(thread_counter > 0) {
+	unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
+	for(i = thread_counter; i > 0; i--) {
+	  markObj((void *)bamboo_thread_queue[4+start]);
+	  start = (start+1)&bamboo_max_thread_num_mask;
+	}
+  }
+
+  GC_BAMBOO_DEBUGPRINT(0xe50a);
+#endif
 } // void tomark(struct garbagelist * stackptr)
 
 inline void mark(bool isfirst,
@@ -2264,6 +2279,20 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
     }
   }
 
+#ifdef MGC
+  // flush global thread queue
+  unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
+  if(thread_counter > 0) {
+	unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
+	for(i = thread_counter; i > 0; i--) {
+	  bamboo_thread_queue[4+start] = 
+		(INTPTR)(flushObj((void *)bamboo_thread_queue[4+start]));
+	  start = (start+1)&bamboo_max_thread_num_mask;
+	}
+  }
+
+  unlockthreadqueue();
+#endif
 } // void flushRuntimeObj(struct garbagelist * stackptr)
 
 inline void transmappinginfo() {
