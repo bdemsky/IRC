@@ -144,7 +144,7 @@ int isWriteBinItem(BinItem* b){
 }
 
 int generateKey(unsigned int data){
-  return (data&H_MASK)>> 4;
+  return (data&H_MASK);
 }
 
 Hashtable* createHashtable(){

@@ -16,7 +16,7 @@
 #define TRUE 1
 #endif
 
-#define NUMBINS 64
+#define NUMBINS 128
 #define NUMREAD 64
 #define NUMITEMS 64
 #define NUMRENTRY 256
@@ -39,7 +39,7 @@
 #define READBIN 0
 #define WRITEBIN 1
 
-#define H_MASK (NUMBINS<<4)-1
+#define H_MASK (NUMBINS)-1
 
 #ifndef FALSE
 #define FALSE 0
