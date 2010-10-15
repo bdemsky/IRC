@@ -13,7 +13,7 @@ public class test {
     long e2;
 
     rblock parent {
-      long y = 0;
+      //long y = 0;
       
       for( long i = 0; i < count; i++ ) {
 
@@ -23,16 +23,22 @@ public class test {
           long x = 3;
         }
 
-        rblock child1 {
+        rblock child2 {
           if( x + 4 == -9 ) {
-            ++y;
+            //++y;
           }
         }
 
       }
       e1 = System.currentTimeMillis();
+      long z = 1;
     }
+    // just read vars so compile doesn't throw them out
+    // and force parent of parent to depend on z, for
+    // timing
+    System.out.println( "ignore: "+z );
     e2 = System.currentTimeMillis();
+
 
     double dt1 = ((double)e1-s)/(Math.pow( 10.0, 3.0 ) );
     double dt2 = ((double)e2-s)/(Math.pow( 10.0, 3.0 ) );

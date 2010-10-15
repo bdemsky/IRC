@@ -24,13 +24,18 @@ public class test {
         // child needs the value read-only
         rblock child {
           if( x + 4 == -9 ) {
-            ++y;
           }
         }
       }
       e1 = System.currentTimeMillis();
-    }
+      long z = 1;
+    }    
+    // just read vars so compile doesn't throw them out
+    // and force parent of parent to depend on z, for
+    // timing
+    System.out.println( "ignore: "+x+y+z );
     e2 = System.currentTimeMillis();
+
 
     double dt1 = ((double)e1-s)/(Math.pow( 10.0, 3.0 ) );
     double dt2 = ((double)e2-s)/(Math.pow( 10.0, 3.0 ) );

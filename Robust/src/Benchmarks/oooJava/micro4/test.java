@@ -35,9 +35,16 @@ public class test {
       for( long j = 0; j < count; j++ ) {
         for( int i = 0; i < numFoo; i++ ) {
 
+          rblock child1 {
+            int x = 2;
+          }
+
           Foo foo = array[i];
-          rblock child {
-            foo.f++;
+
+          // a variable fro sib
+          // AND memory dependence
+          rblock child2 {
+            foo.f += x;
           }
         }
       }
