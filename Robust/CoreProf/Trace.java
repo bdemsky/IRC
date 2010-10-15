@@ -513,10 +513,11 @@ public class Trace {
       new Long( es.totalTime_ticks ).floatValue();      
 
     String strSelfStats =
-      String.format( " total(ticks)=%12dK, %%self=%5.1f, count=%d",
+      String.format( " total(ticks)=%12dK, %%self=%5.1f, count=%d, avgTicks=%d",
                      es.totalTime_ticks/1000,
                      tSelf_perc,
-                     es.instanceCount );
+                     es.instanceCount,
+                     (int)((float)es.totalTime_ticks/(float)es.instanceCount) );
 
     bw.write( strIndent+
               strEventName+
