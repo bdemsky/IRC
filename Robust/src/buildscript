@@ -1214,7 +1214,7 @@ fi
 
 if $RCR
 then
-FILES="$FILES $tmpbuilddirectory/RuntimeConflictResolver.c $ROBUSTROOT/Runtime/oooJava/hashRCR.c $ROBUSTROOT/Runtime/oooJava/Queue_RCR.c" 
+FILES="$FILES $tmpbuilddirectory/RuntimeConflictResolver.c $ROBUSTROOT/Runtime/oooJava/hashRCR.c $ROBUSTROOT/Runtime/oooJava/Queue_RCR.c $ROBUSTROOT/Runtime/oooJava/hashStructure.c $ROBUSTROOT/Runtime/oooJava/WaitingQueue.c $ROBUSTROOT/Runtime/oooJava/trqueue.c $ROBUSTROOT/Runtime/oooJava/rcr_runtime.c"
 fi
 
 if $MLP_ON
