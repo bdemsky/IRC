@@ -568,7 +568,7 @@ elif [[ $1 = '-rcr' ]]
 then
 JAVAOPTS="$JAVAOPTS -rcr"
 RCR=true
-EXTRAOPTIONS="$EXTRAOPTIONS -I$ROBUSTROOT/Runtime/oooJava"
+EXTRAOPTIONS="$EXTRAOPTIONS -DRCR -I$ROBUSTROOT/Runtime/oooJava"
 
 
 elif [[ $1 = '-coreprof' ]]

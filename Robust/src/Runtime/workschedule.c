@@ -8,6 +8,7 @@
 #include "coreprof/coreprof.h"
 #ifdef RCR
 #include "rcr_runtime.h"
+#include "trqueue.h"
 #endif
 
 // NOTE: Converting this from a work-stealing strategy
@@ -55,7 +56,7 @@ __thread int oid;
 
 #ifdef RCR
 #include "trqueue.h"
-__thread struct trqueue * TRqueue;
+__thread struct trQueue * TRqueue=NULL;
 #endif
 
 
@@ -85,8 +86,9 @@ void* workerMain( void* arg ) {
   pthread_attr_t nattr;  
   pthread_attr_init(&nattr);
   pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
-  TRqueue=allocTR();
-  int status = pthread_create( &(workerDataArray[i].workerThread), 
+  if (TRqueue==NULL)
+    TRqueue=allocTR();
+  int status = pthread_create( &thread,
 			       NULL,
 			       workerTR,
 			       (void*) TRqueue);
@@ -183,6 +185,12 @@ void workScheduleInit( int numProcessors,
   // allocate space for one more--the original thread (running
   // this code) will become a worker thread after setup
   workerDataArray = RUNMALLOC( sizeof( WorkerData ) * (numWorkers+1) );
+
+#ifdef RCR
+  //make sure the queue is initialized
+  if (TRqueue==NULL)
+    TRqueue=allocTR();
+#endif
 
   for( i = 0; i < numWorkers; ++i ) {
 

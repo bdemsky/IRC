@@ -3,7 +3,7 @@
 
 extern __thread struct trQueue * TRqueue;
 
-void workerTR(void *);
+void * workerTR(void *);
 
 #define RCRSIZE 32
 

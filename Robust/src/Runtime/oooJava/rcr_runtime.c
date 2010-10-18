@@ -2,9 +2,7 @@
 #include "rcr_runtime.h"
 #include "mlp_runtime.h"
 
-__thread struct trQueue * TRqueue;
-
-void workerTR(void *x) {
+void * workerTR(void *x) {
   struct trQueue * queue=(struct trQueue *)x;
   while(1) {
     SESEcommon * tmp;
@@ -17,4 +15,5 @@ void workerTR(void *x) {
     
     
   }
+  return NULL;
 }
