@@ -377,7 +377,7 @@ public class RuntimeConflictResolver {
       RefEdge edge = possibleEdges.next();
       assert edge != null;
 
-      ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true);
+      ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true, false);
       AllocSite rootKey = singleRoot.allocSite;
 
       if (!created.containsKey(rootKey)) {
@@ -461,7 +461,7 @@ public class RuntimeConflictResolver {
           ConcreteRuntimeObjNode child; 
           
           if(isNewChild) {
-            child = new ConcreteRuntimeObjNode(childHRN, false);
+            child = new ConcreteRuntimeObjNode(childHRN, false, curr.isArray());
             created.put(childKey, child);
           } else {
             child = created.get(childKey);
@@ -582,15 +582,10 @@ public class RuntimeConflictResolver {
     
     //Generate C cases 
     for (ConcreteRuntimeObjNode node : created.values()) {
-      if (!cases.containsKey(node.allocSite) && (          
-          //insetVariable case
-          (node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
-          //non-inline-able code cases
-          (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) ||
-          //Cases where resumes are possible
-          (node.hasPotentialToBeIncorrectDueToConflict) && node.decendantsObjConflict)) {
+      printDebug(javaDebug, "Considering " + node.allocSite + " for traversal");
+      if (!cases.containsKey(node.allocSite) && qualifiesForCaseStatement(node)) {
 
-        printDebug(javaDebug, node.allocSite + " qualified for case statement");
+        printDebug(javaDebug, "+\t" + node.allocSite + " qualified for case statement");
         addChecker(taint, node, cases, null, "ptr", 0);
       }
     }
@@ -641,9 +636,7 @@ public class RuntimeConflictResolver {
     StringBuilder currCase = possibleContinuingCase;
     // We don't need a case statement for things with either 1 incoming or 0 out
     // going edges, because they can be processed when checking the parent. 
-    if((node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
-       (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
-        node.hasPotentialToBeIncorrectDueToConflict && node.decendantsObjConflict) {
+    if(qualifiesForCaseStatement(node)) {
       assert prefix.equals("ptr") && !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
       cases.put(node.allocSite, currCase);
@@ -705,10 +698,10 @@ public class RuntimeConflictResolver {
       // Will only process edge if there is some sort of conflict with the Child
       if (ref.hasConflictsDownThisPath()) {
         String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + ref.field + "___";
-	int pdepth=depth+1;
-	String currPtr = "myPtr" + pdepth;
-	String structType = ref.child.original.getType().getSafeSymbol();
-	currCase.append("    struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + childPtr + ";\n");
+        int pdepth=depth+1;
+        String currPtr = "myPtr" + pdepth;
+        String structType = ref.child.original.getType().getSafeSymbol();
+        currCase.append("    struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + childPtr + ";\n");
 
 
         // Checks if the child exists and has allocsite matching the conflict
@@ -736,11 +729,21 @@ public class RuntimeConflictResolver {
       }
     }
 
-    if((node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
-       (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) || 
-       (node.hasPotentialToBeIncorrectDueToConflict && node.decendantsObjConflict)) {
+    if(qualifiesForCaseStatement(node)) {
       currCase.append("  }\n  break;\n");
     }
+  }
+  
+  private boolean qualifiesForCaseStatement(ConcreteRuntimeObjNode node) {
+    return (          
+        //insetVariable case
+        (node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
+        //non-inline-able code cases
+        (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) ||
+        //Cases where resumes are possible
+        (node.hasPotentialToBeIncorrectDueToConflict) && node.decendantsObjConflict) ||
+        //Array elements since we have to enqueue them all, we can't in line their checks
+        (node.canBeArrayElement() && (node.decendantsConflict() || node.hasPrimitiveConflicts()));
   }
 
   //This method will touch the waiting queues if necessary.
@@ -1058,10 +1061,11 @@ public class RuntimeConflictResolver {
     boolean decendantsObjConflict;
     boolean hasPotentialToBeIncorrectDueToConflict;
     boolean isInsetVar;
+    boolean isArrayElement;
     AllocSite allocSite;
     HeapRegionNode original;
 
-    public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar) {
+    public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar, boolean isArrayElement) {
       objectRefs = new ArrayList<ObjRef>();
       primitiveConflictingFields = null;
       parentsThatWillLeadToConflicts = new HashSet<ConcreteRuntimeObjNode>();
@@ -1073,6 +1077,7 @@ public class RuntimeConflictResolver {
       decendantsPrimConflict = false;
       decendantsObjConflict = false;
       hasPotentialToBeIncorrectDueToConflict = false;
+      this.isArrayElement = isArrayElement;
     }
 
     public void addReachableParent(ConcreteRuntimeObjNode curr) {
@@ -1126,6 +1131,14 @@ public class RuntimeConflictResolver {
       objectRefs.add(ref);
     }
     
+    public boolean isArray() {
+      return original.getType().isArray();
+    }
+    
+    public boolean canBeArrayElement() {
+      return isArrayElement;
+    }
+    
     public String toString() {
       return "AllocSite=" + getAllocationSite() + " myConflict=" + !parentsThatWillLeadToConflicts.isEmpty() + 
               " decCon="+decendantsObjConflict+ 
@@ -1158,7 +1171,12 @@ public class RuntimeConflictResolver {
     public EffectsGroup getEffects(AllocSite parentKey, Taint taint) {
       //This would get the proper bucket of effects and then get all the effects
       //for a parent for a specific taint
-      return table.get(parentKey).taint2EffectsGroup.get(taint);
+      try {
+        return table.get(parentKey).taint2EffectsGroup.get(taint);
+      }
+      catch (NullPointerException e) {
+        return null;
+      }
     }
 
     // Run Analysis will walk the data structure and figure out the weakly
