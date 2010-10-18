@@ -37,7 +37,7 @@ public class FlatSESEEnterNode extends FlatNode {
 
   protected Set<FlatSESEEnterNode> children;
 
-  protected Vector<TempDescriptor> inVars;
+  protected Set<TempDescriptor> inVars;
   protected Set<TempDescriptor> outVars;
 
   protected Set<SESEandAgePair> needStaticNameInCode;
@@ -57,7 +57,7 @@ public class FlatSESEEnterNode extends FlatNode {
   // a subset of the in-set variables that shouuld be traversed during
   // the dynamic coarse grained conflict strategy, remember them here so
   // buildcode can be dumb and just gen the traversals
-  protected Set<TempDescriptor> inVarsForDynamicCoarseConflictResolution;
+  protected Vector<TempDescriptor> inVarsForDynamicCoarseConflictResolution;
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -84,7 +84,7 @@ public class FlatSESEEnterNode extends FlatNode {
     oldestAgeToTrack     = new Integer( 0 );
 
     children             = new HashSet<FlatSESEEnterNode>();
-    inVars               = new Vector<TempDescriptor>();
+    inVars               = new HashSet<TempDescriptor>();
     outVars              = new HashSet<TempDescriptor>();
     needStaticNameInCode = new HashSet<SESEandAgePair>();
     staticInVarSrcs      = new HashSet<SESEandAgePair>();
@@ -93,7 +93,7 @@ public class FlatSESEEnterNode extends FlatNode {
     dynamicInVars        = new HashSet<TempDescriptor>();
     dynamicVars          = new HashSet<TempDescriptor>();
 
-    inVarsForDynamicCoarseConflictResolution = new HashSet<TempDescriptor>();
+    inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
     
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
     
@@ -178,22 +178,14 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public void addInVarSet( Set<TempDescriptor> s ) {
-    for(Iterator<TempDescriptor> sit=s.iterator();sit.hasNext();) {
-      TempDescriptor tmp=sit.next();
-      if (!inVars.contains(tmp))
-	inVars.add(tmp);
-    }
+    inVars.addAll(s);
   }
 
   public void addOutVarSet( Set<TempDescriptor> s ) {
     outVars.addAll( s );
   }
 
-  public Collection<TempDescriptor> getInVarSet() {
-    return inVars;
-  }
-
-  public Vector<TempDescriptor> getInVarVector() {
+  public Set<TempDescriptor> getInVarSet() {
     return inVars;
   }
 
@@ -408,14 +400,14 @@ public class FlatSESEEnterNode extends FlatNode {
     return numDepRecs;
   }
   
-  public Set<TempDescriptor> getInVarsForDynamicCoarseConflictResolution() {
+  public Vector<TempDescriptor> getInVarsForDynamicCoarseConflictResolution() {
     return inVarsForDynamicCoarseConflictResolution;
   }
   
   public void addInVarForDynamicCoarseConflictResolution(TempDescriptor inVar) {
-    inVarsForDynamicCoarseConflictResolution.add(inVar);
+    if (!inVarsForDynamicCoarseConflictResolution.contains(inVar))
+      inVarsForDynamicCoarseConflictResolution.add(inVar);
   }
-
   
   public void setIsLeafSESE( boolean isLeaf ) {
     if( isLeaf ) {

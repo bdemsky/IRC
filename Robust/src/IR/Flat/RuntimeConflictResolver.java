@@ -8,8 +8,10 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Vector;
 import Analysis.Disjoint.*;
 import IR.TypeDescriptor;
+import Analysis.OoOJava.OoOJavaAnalysis;
 
 /* An instance of this class manages all OoOJava coarse-grained runtime conflicts
  * by generating C-code to either rule out the conflict at runtime or resolve one.
@@ -64,11 +66,12 @@ public class RuntimeConflictResolver {
   private int weaklyConnectedHRCounter;
   private ArrayList<TaintAndInternalHeapStructure> pendingPrintout;
   private EffectsTable effectsLookupTable;
+  private OoOJavaAnalysis oooa;
 
-  public RuntimeConflictResolver(String buildir) 
-  throws FileNotFoundException {
+  public RuntimeConflictResolver(String buildir, OoOJavaAnalysis oooa) throws FileNotFoundException {
     String outputFile = buildir + "RuntimeConflictResolver";
-    
+    this.oooa=oooa;
+
     cFile = new PrintWriter(new File(outputFile + ".c"));
     headerFile = new PrintWriter(new File(outputFile + ".h"));
     
@@ -147,8 +150,7 @@ public class RuntimeConflictResolver {
     }
   }
 
-  private void traverseSESEBlock(FlatSESEEnterNode rblock,
-      ReachGraph rg) {
+  private void traverseSESEBlock(FlatSESEEnterNode rblock, ReachGraph rg) {
     Collection<TempDescriptor> inVars = rblock.getInVarSet();
     
     if (inVars.size() == 0)
@@ -184,8 +186,7 @@ public class RuntimeConflictResolver {
       
       //This will add the taint to the printout, there will be NO duplicates (checked above)
       if(!created.isEmpty()) {
-        //TODO change invocation to new format
-        //rblock.addInVarForDynamicCoarseConflictResolution(invar);
+        rblock.addInVarForDynamicCoarseConflictResolution(invar);
         pendingPrintout.add(new TaintAndInternalHeapStructure(taint, created));
       }
     }
@@ -303,9 +304,35 @@ public class RuntimeConflictResolver {
     cFile.println("}");
   }
 
+  private void printMasterTraverserInvocation() {
+    headerFile.println("\nint traverse(SESECommon * record);");
+    cFile.println("\nint traverse(SESECommon * record) {");
+    cFile.println("  switch(record->classID) {");
+    
+    for(Iterator<FlatSESEEnterNode> seseit=oooa.getAllSESEs().iterator();seseit.hasNext();) {
+      FlatSESEEnterNode fsen=seseit.next();
+      cFile.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
+      cFile.println(    "    case "+fsen.getIdentifier()+": {");
+      cFile.println(    "      "+fsen.getSESErecordName()+" * rec=("+fsen.getSESErecordName()+" *) record;");
+      Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
+      for(int i=0;i<invars.size();i++) {
+	TempDescriptor tmp=invars.get(i);
+	cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp, fsen));
+      }
+      cFile.println(    "    }");
+      cFile.println(    "    break;");
+    }
+
+    cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in.\\n\");\n    break;");
+    
+    cFile.println("  }");
+    cFile.println("}");
+  }
+
+
   //This will print the traverser invocation that takes in a traverserID and 
   //starting ptr
-  private void printMasterTraverserInvocation() {
+  private void printAltMasterTraverserInvocation() {
     headerFile.println("\nint traverse(void * startingPtr, int traverserID);");
     cFile.println("\nint traverse(void * startingPtr, int traverserID) {");
     cFile.println(" switch(traverserID) {");
@@ -652,13 +679,13 @@ public class RuntimeConflictResolver {
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+","+traverserID+",NULL,NULL)");
+      currCase.append("    rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+","+traverserID+",NULL,NULL)");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+","+traverserID+",NULL,NULL)");
+      currCase.append("    rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+","+traverserID+",NULL,NULL)");
     }
 
     if(objConfRead) {

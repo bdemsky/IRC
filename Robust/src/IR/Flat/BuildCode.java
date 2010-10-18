@@ -273,7 +273,7 @@ public class BuildCode {
       //TODO signal the object that will report errors
       if(state.RCR) {
         try {
-          rcr = new RuntimeConflictResolver(PREFIX);
+          rcr = new RuntimeConflictResolver(PREFIX, oooa);
           rcr.setGlobalEffects(oooa.getDisjointAnalysis().getEffectsAnalysis().getAllEffects());
         } catch (FileNotFoundException e) {
           System.out.println("Runtime Conflict Resolver could not create output file.");
@@ -2138,21 +2138,15 @@ public class BuildCode {
     // used in the following code, but let's just leave the working
     // implementation unless there is actually a problem...
 
-    Vector<TempDescriptor> inset=fsen.getInVarVector();
-    int incount=0;
-
+    Vector<TempDescriptor> inset=fsen.getInVarsForDynamicCoarseConflictResolution();
     for(int i=0; i<inset.size();i++) {
       TempDescriptor temp=inset.get(i);
-      TypeDescriptor type=temp.getType();
-      if(type.isPtr()) {
-	incount++;
-	if (temp.getType().isNull())
-	  outputStructs.println("  void * "+temp.getSafeSymbol()+
-				";  /* in-or-out-set obj in gl */");
-	else
-	  outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
-				temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
-      }
+      if (temp.getType().isNull())
+	outputStructs.println("  void * "+temp.getSafeSymbol()+
+			      ";  /* in-or-out-set obj in gl */");
+      else
+	outputStructs.println("  struct "+temp.getType().getSafeSymbol()+" * "+
+			      temp.getSafeSymbol()+"; /* in-or-out-set obj in gl */");
     }
 
     for(int i=0; i<objectparams.numPointers(); i++) {
@@ -2206,7 +2200,7 @@ public class BuildCode {
     }
 
     if (state.RCR) {
-      outputStructs.println("struct rcrRecord rcrRecords["+incount+"]");
+      outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
     }
     
     if( fsen.getFirstDepRecField() != null ) {
@@ -3689,8 +3683,7 @@ public class BuildCode {
   public void generateFlatSESEEnterNode( FlatMethod fm,  
 					 LocalityBinding lb, 
 					 FlatSESEEnterNode fsen, 
-					 PrintWriter output 
-				       ) {
+					 PrintWriter output) {
     // if MLP flag is off, okay that SESE nodes are in IR graph, 
     // just skip over them and code generates exactly the same
     if( !(state.MLP || state.OOOJAVA) ) {
@@ -3724,7 +3717,6 @@ public class BuildCode {
       output.println("     atomic_inc(&(runningSESE->numRunningChildren));");
     }
 
-
     // allocate the space for this record
     output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
 
@@ -3755,8 +3747,6 @@ public class BuildCode {
     output.println( "#endif // OOO_DISABLE_TASKMEMPOOL" );
 
 
-
-
     // set up the SESE in-set and out-set objects, which look
     // like a garbage list
     output.println("     struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
@@ -3780,7 +3770,7 @@ public class BuildCode {
     }
     
     if (state.RCR) {
-      output.println("    seseToIssumer->common.offsetToParamRecords=(INTPTR)sizeof("+fsen.getSESErecordName()+") - (INTPTR) & ((("+fsen.getSESErecordName()+"*)0)->rcrRecords);");
+      output.println("    seseToIssue->common.offsetToParamRecords=(INTPTR)sizeof("+fsen.getSESErecordName()+") - (INTPTR) & ((("+fsen.getSESErecordName()+"*)0)->rcrRecords);");
     }
 
     // fill in common data
@@ -3949,16 +3939,6 @@ public class BuildCode {
         output.println("     }");
       }
 
-      if (state.RCR) {
-
-	
-      }
-
-      if(state.RCR) {
-	//TODO BCD
-	//clear out the parameter records
-
-      }
 
 
       if( state.COREPROF ) {
@@ -3970,8 +3950,9 @@ public class BuildCode {
 
       ////////////////
       // count up memory conflict dependencies,
-      // eom
-      if(state.OOOJAVA){
+      if(state.RCR) {
+	dispatchMEMRC(fm, lb, fsen, output);
+      } else if(state.OOOJAVA){
         FlatSESEEnterNode parent = fsen.getParent();
         Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
         if (graph != null && graph.hasConflictEdge()) {
@@ -4053,30 +4034,7 @@ public class BuildCode {
                                  + "],rentry)==NOTREADY) {");
                   output.println("          localCount++;");
                   output.println("       }");
-                  
-                  // Trying to execute the dynamic coarse grain conflict strategy...
-                  if(state.RCR && rcr != null) {
-                    boolean useParentContext = false;
-
-                    if( (state.MLP &&fsen != mlpa.getMainSESE()) || 
-                        (state.OOOJAVA &&fsen != oooa.getMainSESE())) {
-                      assert fsen.getParent() != null;
-                      if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
-                        useParentContext = true;
-                      }
-                    }
-                    
-                    for (TempDescriptor invar : fsen.getInVarsForDynamicCoarseConflictResolution()) {                      
-                      String varString;
-                      if( useParentContext ) {
-                        varString = generateTemp( fsen.getParent().getfmBogus(), invar, null );
-                      } else {
-                        varString = generateTemp( fsen.getfmEnclosing(),         invar, null );
-                      }
-                      output.println("       "+rcr.getTraverserInvocation(invar, varString, fsen));
-                    }
-                  }
-                }else{
+		} else {
                   output.println("       ADDRENTRYTOBUF(runningSESE->memoryQueueArray[" + waitingElement.getQueueID() + "],rentry);");
                 }
               }
@@ -4243,6 +4201,48 @@ public class BuildCode {
 
     output.println("   }");
     
+  }
+
+  void dispatchMEMRC(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode fsen, PrintWriter output) {
+    FlatSESEEnterNode parent = fsen.getParent();
+    Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
+    if (graph != null && graph.hasConflictEdge()) {
+      Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
+      Analysis.OoOJava.SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
+      if(seseWaitingQueue.getWaitingElementSize()>0) {
+	output.println("     {");
+	output.println("       REntry* rentry=NULL;");
+	output.println("       INTPTR* pointer=NULL;");
+	output.println("       seseToIssue->common.rentryIdx=0;");
+	output.println("       int dispCount;");
+	Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
+	for(int i=0;i<invars.size();i++) {
+	  TempDescriptor td=invars.get(i);
+	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+	  int numqueues=weset.size();
+	  output.println("      seseToIssue->rcrRecords["+i+"]="+numqueues+";");
+	  output.println("      dispCount=0;");
+	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
+	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
+	    int queueID=waitingElement.getQueueID();
+	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
+	    output.println("       rentry=mlpCreateREntry(" + waitingElement.getStatus() + ", &(seseToIssue->common));");
+	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
+	    output.println("          dispCount++;");
+	    output.println("       }");
+	  }
+	  output.println("     if(!dispCount || !atomic_sub_and_test(dispCount,&(seseToIssue->rcrRecords["+i+"])))");
+	  output.println("       localCount++;");
+	  if (fsen.getDynamicInVarSet().contains(td)) {
+	    // dynamic in-var case
+	    //output.println("       pointer=seseToIssue->" + waitingElement.getDynID()+ "_srcSESE+seseToIssue->"+ waitingElement.getDynID()+ "_srcOffset;");
+	    //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", &(seseToIssue->common),  pointer );");
+	  }
+	}
+	output.println("    }");
+      }
+    }
   }
 
   public void generateFlatSESEExitNode( FlatMethod fm,  
