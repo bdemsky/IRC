@@ -34,7 +34,7 @@ void * dequeueRCRQueue() {
   tail++;
   if(tail & SIZE)
     tail =  0;
-  myRXRQueue.tail=tail;
+  myRCRQueue.tail=tail;
   return ptr;
 }
 

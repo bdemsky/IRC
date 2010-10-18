@@ -78,6 +78,8 @@ public class RuntimeConflictResolver {
     cFile.println("#include \"" + hashAndQueueCFileDir + "hashRCR.h\"\n#include \""
         + hashAndQueueCFileDir + "Queue_RCR.h\"\n#include <stdlib.h>");
     cFile.println("#include \"classdefs.h\"");
+    cFile.println("#include \"structdefs.h\"");
+    cFile.println("#include \"mlp_runtime.h\"");
     cFile.println("#include \"RuntimeConflictResolver.h\"");
     cFile.println("#include \"hashStructure.h\"");
     
@@ -252,6 +254,7 @@ public class RuntimeConflictResolver {
     //Prints out the master traverser Invocation that'll call all other traverser
     //based on traverserID
     printMasterTraverserInvocation();
+    printResumeTraverserInvocation();
     
     //TODO this is only temporary, remove when thread local vars implemented. 
     createMasterHashTableArray();
@@ -305,8 +308,8 @@ public class RuntimeConflictResolver {
   }
 
   private void printMasterTraverserInvocation() {
-    headerFile.println("\nint traverse(SESECommon * record);");
-    cFile.println("\nint traverse(SESECommon * record) {");
+    headerFile.println("\nint tasktraverse(SESEcommon * record);");
+    cFile.println("\nint tasktraverse(SESEcommon * record) {");
     cFile.println("  switch(record->classID) {");
     
     for(Iterator<FlatSESEEnterNode> seseit=oooa.getAllSESEs().iterator();seseit.hasNext();) {
@@ -332,7 +335,7 @@ public class RuntimeConflictResolver {
 
   //This will print the traverser invocation that takes in a traverserID and 
   //starting ptr
-  private void printAltMasterTraverserInvocation() {
+  private void printResumeTraverserInvocation() {
     headerFile.println("\nint traverse(void * startingPtr, int traverserID);");
     cFile.println("\nint traverse(void * startingPtr, int traverserID) {");
     cFile.println(" switch(traverserID) {");

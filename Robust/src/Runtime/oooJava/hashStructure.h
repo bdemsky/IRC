@@ -23,10 +23,10 @@
 #define TRUE 1
 #define FALSE 0
 
-#define NUMBINS 64
-#define NUMREAD 64
-#define NUMRENTRY 256
-#define H_MASK (NUMBINS<<4)-1
+#define RNUMBINS 64
+#define RNUMREAD 64
+#define RNUMRENTRY 256
+#define RH_MASK (RNUMBINS<<4)-1
 
 //Note: put resolved things at the end and unresolved at the front.
 typedef struct BinItem_rcr {
@@ -64,7 +64,7 @@ typedef struct BinElement_rcr {
 
 
 typedef struct Hashtable_rcr {
-  BinElement_rcr array[NUMBINS];
+  BinElement_rcr array[RNUMBINS];
   WaitingQueueBin * waitingQueue;
 } HashStructure;
 
@@ -89,7 +89,7 @@ typedef struct WriteBinItem_rcr {
 
 typedef struct ReadBinItem_rcr {
   BinItem_rcr item;
-  TraverserData array[NUMREAD];
+  TraverserData array[RNUMREAD];
   //We don't need a head index since if the item before it was freed, then all these would be considered ready as well.
   int index;
   

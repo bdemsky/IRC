@@ -3,10 +3,10 @@
 
 //NOTE: SIZE MUST BE A POWER OF TWO;
 //SIZE is used as mask to check overflow
-#define SIZE 16384
+#define TRSIZE 16384
 
 struct trQueue {
-  void * elements[SIZE];
+  void * elements[TRSIZE];
   volatile unsigned int head;
   char buffer[60];//buffer us to the next cache line
   volatile unsigned int tail;

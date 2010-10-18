@@ -620,8 +620,10 @@ public class BuildCode {
       outmethod.println("#include \"mlp_runtime.h\"");
       outmethod.println("#include \"psemaphore.h\"");
       
-      if( state.RCR && rcr != null) {
+      if( state.RCR ) {
+        outmethod.println("#include \"trqueue.h\"");
         outmethod.println("#include \"RuntimeConflictResolver.h\"");
+        outmethod.println("#include \"rcr_runtime.h\"");
       }
     }
 
@@ -2200,7 +2202,8 @@ public class BuildCode {
     }
 
     if (state.RCR) {
-      outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
+      if (inset.size()!=0)
+	outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
     }
     
     if( fsen.getFirstDepRecField() != null ) {
@@ -3072,7 +3075,7 @@ public class BuildCode {
               for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
                 Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
                 
-                if(state.RCR && rcr != null){
+                if(state.RCR) {
                   Analysis.OoOJava.ConflictGraph conflictGraph = graph;
                   Hashtable<Taint, Set<Effect>> conflicts;
                   ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(currentSESE.getmdEnclosing());
@@ -3108,7 +3111,7 @@ public class BuildCode {
                 }
                 output.println("     }  ");
                 
-                if(state.RCR && rcr != null) {
+                if(state.RCR) {
                   output.println("   "+rcr.getTraverserInvocation(waitingElement.getTempDesc(), 
                       generateTemp(fm, waitingElement.getTempDesc(), null), fn));
                 }
@@ -3769,7 +3772,7 @@ public class BuildCode {
                      );
     }
     
-    if (state.RCR) {
+    if (state.RCR&&fsen.getInVarsForDynamicCoarseConflictResolution().size()>0) {
       output.println("    seseToIssue->common.offsetToParamRecords=(INTPTR)sizeof("+fsen.getSESErecordName()+") - (INTPTR) & ((("+fsen.getSESErecordName()+"*)0)->rcrRecords);");
     }
 
@@ -4180,10 +4183,10 @@ public class BuildCode {
       output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_END );");
       output.println("#endif");
     }
-    
+
     // Enqueue Task Record
     if (state.RCR) {
-      output.println("    enqueueTR((void *)seseToIssue);");
+      output.println("    enqueueTR(TRqueue, (void *)seseToIssue);");
     }
 
     // if there were no outstanding dependencies, issue here

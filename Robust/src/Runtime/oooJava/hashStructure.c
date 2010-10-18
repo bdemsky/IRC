@@ -14,7 +14,7 @@ void rcr_createMasterHashTableArray(int maxSize){
 HashStructure* rcr_createHashtable(int sizeofWaitingQueue){
   int i=0;
   HashStructure* newTable=(HashStructure*)RUNMALLOC(sizeof(HashStructure));
-  for(i=0;i<NUMBINS;i++){
+  for(i=0;i<RNUMBINS;i++){
     newTable->array[i].head=NULL;
     newTable->array[i].tail=NULL;
   }
@@ -45,7 +45,7 @@ int rcr_isWriteBinItem(BinItem_rcr* b){
 }
 
 inline int rcr_generateKey(void * ptr){
-  return (((struct genericObjectStruct *) ptr)->oid)&H_MASK;
+  return (((struct genericObjectStruct *) ptr)->oid)&RH_MASK;
 }
 
 int rcr_WRITEBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon *task, void *heaproot) {
@@ -194,7 +194,7 @@ int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr
     retval=NOTREADY;
   }
 
-  if (readbintail->index==NUMREAD) { // create new read group
+  if (readbintail->index==RNUMREAD) { // create new read group
     ReadBinItem_rcr* rb=rcr_createReadBinItem();
     td = &rb->array[rb->index++];
 
