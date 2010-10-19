@@ -461,7 +461,7 @@ public class RuntimeConflictResolver {
           ConcreteRuntimeObjNode child; 
           
           if(isNewChild) {
-            child = new ConcreteRuntimeObjNode(childHRN, false, curr.isArray());
+            child = new ConcreteRuntimeObjNode(childHRN, false, curr.isObjectArray());
             created.put(childKey, child);
           } else {
             child = created.get(childKey);
@@ -693,39 +693,56 @@ public class RuntimeConflictResolver {
       currCase.append(";\n");
     }
 
+    
     //Conflicts
-    for(ObjRef ref: node.objectRefs) {
-      // Will only process edge if there is some sort of conflict with the Child
-      if (ref.hasConflictsDownThisPath()) {
-        String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + ref.field + "___";
-        int pdepth=depth+1;
-        String currPtr = "myPtr" + pdepth;
-        String structType = ref.child.original.getType().getSafeSymbol();
-        currCase.append("    struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + childPtr + ";\n");
-
-
-        // Checks if the child exists and has allocsite matching the conflict
-        currCase.append("    if (" + currPtr + " != NULL && " + currPtr + getAllocSiteInC + "==" + ref.allocSite + ") {\n");
-
-        if (ref.child.decendantsConflict() || ref.child.hasPrimitiveConflicts()) {
-          // Checks if we have visited the child before
-
-          currCase.append("    if (" + queryVistedHashtable +"("+ currPtr + ")) {\n");
-          if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
-            addChecker(taint, ref.child, cases, currCase, currPtr, depth + 1);
+    
+    //Array Case
+    if(node.isObjectArray() && node.decendantsConflict()) {
+      //since each array element will get its own case statement, we just need to enqueue each item into the queue
+      //note that the ref would be the actual object and node would be of struct ArrayObject
+      
+      //This is done with the assumption that an array of object stores pointers. 
+      currCase.append("{\n  int i;\n");
+      currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
+      currCase.append("    void * arrayElement = ((INTPTR *)(&(((struct ArrayObject *) " + prefix + " )->___length___) + sizeof(int)))[i];\n");
+      currCase.append("    if( arrayElement != NULL && "+ queryVistedHashtable +"(arrayElement)) {\n");
+      currCase.append("      " + addToQueueInC + "arrayElement); }}}\n");
+      
+    } else {
+    //All other cases
+      for(ObjRef ref: node.objectRefs) {     
+        // Will only process edge if there is some sort of conflict with the Child
+        if (ref.hasConflictsDownThisPath()) {  
+          String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + ref.field + "___";
+          int pdepth=depth+1;
+          String currPtr = "myPtr" + pdepth;
+          String structType = ref.child.original.getType().getSafeSymbol();
+          currCase.append("    struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + childPtr + ";\n");
+  
+  
+          // Checks if the child exists and has allocsite matching the conflict
+          currCase.append("    if (" + currPtr + " != NULL && " + currPtr + getAllocSiteInC + "==" + ref.allocSite + ") {\n");
+  
+          if (ref.child.decendantsConflict() || ref.child.hasPrimitiveConflicts()) {
+            // Checks if we have visited the child before
+  
+            currCase.append("    if (" + queryVistedHashtable +"("+ currPtr + ")) {\n");
+            if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
+              addChecker(taint, ref.child, cases, currCase, currPtr, depth + 1);
+            }
+            else {
+              currCase.append("      " + addToQueueInC + childPtr + ");\n ");
+            }
+            
+            currCase.append("    }\n");
           }
-          else {
-            currCase.append("      " + addToQueueInC + childPtr + ");\n ");
+          //one more brace for the opening if
+          if(ref.hasDirectObjConflict()) {
+            currCase.append("   }\n");
           }
           
-          currCase.append("    }\n");
+          currCase.append("  }\n ");
         }
-        //one more brace for the opening if
-        if(ref.hasDirectObjConflict()) {
-          currCase.append("   }\n");
-        }
-        
-        currCase.append("  }\n ");
       }
     }
 
@@ -1098,7 +1115,7 @@ public class RuntimeConflictResolver {
     }
     
     public boolean hasPrimitiveConflicts() {
-      return !primitiveConflictingFields.isEmpty();
+      return primitiveConflictingFields != null && !primitiveConflictingFields.isEmpty();
     }
     
     public boolean decendantsConflict() {
@@ -1131,8 +1148,8 @@ public class RuntimeConflictResolver {
       objectRefs.add(ref);
     }
     
-    public boolean isArray() {
-      return original.getType().isArray();
+    public boolean isObjectArray() {
+      return original.getType().isArray() && !original.getType().isPrimitive() && !original.getType().isImmutable();
     }
     
     public boolean canBeArrayElement() {
