@@ -2,7 +2,7 @@
 #define HASHSTRUCTURE_H_
 
 #include "mlp_runtime.h"
-#include "WaitingQueue.h"
+//#include "WaitingQueue.h"
 
 #define ITEM_NOT_AT_FRONT_OF_WAITINGQ 3
 #define TRAVERSER_FINISHED 2
@@ -26,7 +26,7 @@
 #define RNUMBINS 64
 #define RNUMREAD 64
 #define RNUMRENTRY 256
-#define RH_MASK (RNUMBINS<<4)-1
+#define RH_MASK (RNUMBINS)-1
 
 //Note: put resolved things at the end and unresolved at the front.
 typedef struct BinItem_rcr {
@@ -65,7 +65,7 @@ typedef struct BinElement_rcr {
 
 typedef struct Hashtable_rcr {
   BinElement_rcr array[RNUMBINS];
-  WaitingQueueBin * waitingQueue;
+  //  WaitingQueueBin * waitingQueue;
 } HashStructure;
 
 //Todo this is a clone of REntry, remove data fields as necessary

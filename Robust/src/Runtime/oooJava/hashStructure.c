@@ -1,5 +1,5 @@
 #include "hashStructure.h"
-#include "WaitingQueue.h"
+//#include "WaitingQueue.h"
 #include "mlp_lock.h"
 #include "mem.h"
 
@@ -19,7 +19,7 @@ HashStructure* rcr_createHashtable(int sizeofWaitingQueue){
     newTable->array[i].tail=NULL;
   }
 
-  newTable->waitingQueue=mallocWaitingQueue(sizeofWaitingQueue);
+  //  newTable->waitingQueue=mallocWaitingQueue(sizeofWaitingQueue);
   return newTable;
 }
 
@@ -87,12 +87,14 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon *t
   if (bintail->type == WRITEBIN) {
     TraverserData * td = &(((WriteBinItem_rcr *)bintail)->val);
     //last one is to check for SESE blocks in a while loop.
-    if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID && td->task == task) {
-      return bintail->status;
+    if(unlikely(td->task == task)) {
+      be->head=val;
+      //return ready...this constraint is already handled
+      return READY;
     }
   } else if (bintail->type == READBIN) {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
-    if(unlikely(td->resumePtr == ptr) && td->traverserID == traverserID) {
+    if(unlikely(td->task == task)) {
       //if it matches, then we remove it and the code below will upgrade it to a write.
       ((ReadBinItem_rcr *)bintail)->index--;
       bintail->total--;
@@ -239,15 +241,8 @@ void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rc
 
 //TODO write deletion/removal methods
 
-/*
-RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
-  Hashtable *T=r->hashtable;
-  BinItem_rcr *b=r->binitem;
-  RETIREBIN(T,r,b);
-}
-
-RETIREBIN(Hashtable *T, REntry *r, BinItem_rcr *b) {
-  int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
+RETIREHASHTABLE(HashStructure *T, SESECommon *task, int key) {
+  BinItem_rcr *b=T->array[key].head;
   if(isFineRead(r)) {
     atomic_dec(&b->total);
   }
@@ -258,6 +253,7 @@ RETIREBIN(Hashtable *T, REntry *r, BinItem_rcr *b) {
       val=(BinItem_rcr*)0x1;
       val=(BinItem_rcr*)LOCKXCHG((unsigned INTPTR*)&(T->array[key]->head), (unsigned INTPTR)val);
     } while(val==(BinItem_rcr*)0x1);
+
     // at this point have locked bin
     BinItem_rcr *ptr=val;
     int haveread=FALSE;
@@ -304,7 +300,7 @@ RETIREBIN(Hashtable *T, REntry *r, BinItem_rcr *b) {
     T->array[key]->head=val; // release lock
   }
 }
-*/
+
 
 /*
 //Int will return success/fail. -1 indicates error (i.e. there's nothing there).
