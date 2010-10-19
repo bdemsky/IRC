@@ -6,7 +6,7 @@
 
 #define ITEM_NOT_AT_FRONT_OF_WAITINGQ 3
 #define TRAVERSER_FINISHED 2
-
+#define bitvt unsigned long long
 
 //Note READEFFECT = READBIN and WRITEEFFECT=WRITEBIN. They mean the same thing
 //but are named differently for clarity in code.
@@ -16,7 +16,10 @@
 
 #define READBIN 0
 #define WRITEBIN 1
+#define BINMASK 1
+#define PARENTBIN 1
 
+#define SPECNOTREADY 2
 #define READY 1
 #define NOTREADY 0
 
@@ -37,31 +40,10 @@ typedef struct BinItem_rcr {
   struct BinItem_rcr * next;
 } BinItem_rcr;
 
-typedef struct trackerElement {
-  BinItem_rcr * item;
-  struct trackerElement * next;
-} TrackerElement;
-
-typedef struct tracker {
-  TrackerElement * head;
-  TrackerElement * tail;
-} VariableTracker;
-
-//TODO more closely tie this in with Jim's stuff
-struct genericObjectStruct {
-        int type;
-        int oid;
-        int allocsite;
-        int ___cachedCode___;
-        int ___cachedHash___;
-};
-
-
 typedef struct BinElement_rcr {
   BinItem_rcr * head;
   BinItem_rcr * tail;
 } BinElement_rcr;
-
 
 typedef struct Hashtable_rcr {
   BinElement_rcr array[RNUMBINS];
@@ -69,22 +51,16 @@ typedef struct Hashtable_rcr {
 } HashStructure;
 
 //Todo this is a clone of REntry, remove data fields as necessary
-typedef struct entry_rcr{
-  //fields to handle next item.
-  struct Hashtable_rcr* hashtable;
-  BinItem_rcr* binitem; //stores binItem so we can get access to the next ptr in the queue
-
-  //fields to help resume traverser
-  struct genericObjectStruct * resumePtr;
-//  int allocsite; //not needed since we can get it form ptr later
-  int traverserID;
+typedef struct Entry_rcr {
   SESEcommon * task;
-  struct genericObjectStruct * heaproot;
+  bitv bitindex;
 } TraverserData;
 
 typedef struct WriteBinItem_rcr {
   BinItem_rcr item;
-  TraverserData val;
+  SESEcommon * task;
+  bitv bitindexwr;
+  bitv bitindexrd;
 } WriteBinItem_rcr;
 
 typedef struct ReadBinItem_rcr {
@@ -92,13 +68,7 @@ typedef struct ReadBinItem_rcr {
   TraverserData array[RNUMREAD];
   //We don't need a head index since if the item before it was freed, then all these would be considered ready as well.
   int index;
-  
 } ReadBinItem_rcr;
-
-typedef struct WQNote_rcr {
-  BinItem_rcr item;
-  int allocSiteID;
-} WaitingQueueNote;
 
 extern HashStructure ** allHashStructures;
 
@@ -113,10 +83,9 @@ inline int rcr_generateKey(void * ptr);
 //Method signatures are not in their final form since I have still not decided what is the optimum amount of data
 //to store in each entry.
 
-int rcr_WRITEBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon *task, void *heaproot);
-int rcr_READBINCASE(HashStructure *T, void *ptr, int traverserID, SESEcommon * task, void *heaproot);
-int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
-void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, int traverserID, SESEcommon * task, void *heaproot);
-int rcr_REMOVETABLEITEM(HashStructure* table, void * ptr, int traverserID, SESEcommon *task, void * heaproot);
+int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, void *heaproot);
+int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, void *heaproot);
+int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, void *heaproot);
+void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, void *heaproot);
 
 #endif
