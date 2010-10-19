@@ -415,7 +415,7 @@ public class Main {
     if (state.TASK) {
       sc.getClass("TagDescriptor");
     }
-    if (state.THREAD||state.DSM||state.SINGLETM) {
+    if (state.THREAD||state.DSM||state.SINGLETM||state.MGC) {
       sc.getClass("Thread");
     }
 

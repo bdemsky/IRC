@@ -11,6 +11,7 @@ public class State {
   public State() {
     this.classes=new SymbolTable();
     this.tasks=new SymbolTable();
+    this.staticblocks=new SymbolTable();
     this.treemethodmap=new Hashtable();
     this.flatmethodmap=new Hashtable();
     this.parsetrees=new HashSet();
@@ -166,6 +167,7 @@ public class State {
   public Vector classpath;
   public SymbolTable classes;
   public SymbolTable tasks;
+  public SymbolTable staticblocks;
   public Set parsetrees;
   public Hashtable treemethodmap;
   public Hashtable flatmethodmap;
@@ -173,6 +175,7 @@ public class State {
   public Hashtable arraytonumber;
   private int numclasses=1; // start from 1 instead of 0 for multicore gc
   private int numtasks=0;
+  private int numstaticblocks=0;
   private int arraycount=0;
   public boolean OPTIMIZE=false;
 
@@ -229,8 +232,17 @@ public class State {
     numclasses++;
   }
 
+  public void addStaticBlock(MethodDescriptor sbn) {
+    staticblocks.add(sbn);
+    numstaticblocks++;
+  }
+  
   public int numClasses() {
     return numclasses;
+  }
+  
+  public int numStaticBlocks() {
+    return numstaticblocks;
   }
 
   public BlockNode getMethodBody(MethodDescriptor md) {
@@ -247,6 +259,10 @@ public class State {
 
   public SymbolTable getTaskSymbolTable() {
     return tasks;
+  }
+  
+  public SymbolTable getStaticBlockSymbolTable() {
+    return staticblocks;
   }
 
   /** Returns Flat IR representation of MethodDescriptor md. */

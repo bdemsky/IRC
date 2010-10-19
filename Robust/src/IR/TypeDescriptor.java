@@ -25,6 +25,7 @@ public class TypeDescriptor extends Descriptor {
   int arraycount;
   private int type;
   ClassDescriptor class_desc;
+  boolean isStatic = false;
 
   public boolean equals(Object o) {
     if (o instanceof TypeDescriptor) {
@@ -33,6 +34,8 @@ public class TypeDescriptor extends Descriptor {
 	return false;
       if ((type==CLASS)&&(!t.getSymbol().equals(getSymbol())))
 	return false;
+      if (isStatic != t.isStatic)
+        return false;
       if (t.arraycount!=arraycount)
 	return false;
       return true;
@@ -48,6 +51,14 @@ public class TypeDescriptor extends Descriptor {
     if (!getSymbol().equals(TypeUtil.StringClass))
       return false;
     return true;
+  }
+  
+  public boolean isStatic() {
+    return this.isStatic;
+  }
+  
+  public void setStatic() {
+    this.isStatic = true;
   }
 
   public int hashCode() {
@@ -258,6 +269,7 @@ public class TypeDescriptor extends Descriptor {
     this.type=CLASS;
     this.class_desc=null;
     this.arraycount=0;
+    this.isStatic =false;
   }
 
   public TypeDescriptor(String st) {
@@ -265,6 +277,7 @@ public class TypeDescriptor extends Descriptor {
     this.type=CLASS;
     this.class_desc=null;
     this.arraycount=0;
+    this.isStatic =false;
   }
 
   public ClassDescriptor getClassDesc() {
@@ -276,12 +289,14 @@ public class TypeDescriptor extends Descriptor {
     this.type=CLASS;
     this.class_desc=cd;
     this.arraycount=0;
+    this.isStatic =false;
   }
 
   public TypeDescriptor(int t) {
     super(decodeInt(t));
     this.type=t;
     this.arraycount=0;
+    this.isStatic =false;
   }
 
   public String toString() {

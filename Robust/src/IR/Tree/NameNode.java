@@ -5,21 +5,32 @@ import IR.VarDescriptor;
 import IR.TagVarDescriptor;
 import IR.TypeDescriptor;
 import IR.FieldDescriptor;
+import IR.ClassDescriptor;
 
 public class NameNode extends ExpressionNode {
   NameDescriptor name;
   Descriptor vd;
   FieldDescriptor fd;
   ExpressionNode en;
+  ClassDescriptor cd;
 
   public NameNode(NameDescriptor nd) {
     this.name=nd;
     this.vd=null;
     this.fd=null;
+    this.cd = null;
   }
 
   public ExpressionNode getExpression() {
     return en;
+  }
+  
+  public ClassDescriptor getClassDesc() {
+    return this.cd;
+  }
+  
+  public void setClassDesc(ClassDescriptor cd) {
+    this.cd = cd;
   }
 
   /* Gross hack */
@@ -58,8 +69,21 @@ public class NameNode extends ExpressionNode {
       return fd.getType();
     } else if (isTag())
       return new TypeDescriptor(TypeDescriptor.TAG);
-    else
+    else if(cd != null) {
+      TypeDescriptor tp = new TypeDescriptor(cd);
+      tp.setStatic();
+      return tp;
+    } else
       return ((VarDescriptor)vd).getType();
+  }
+  
+  public TypeDescriptor getClassType() {
+    if(cd != null) {
+      TypeDescriptor tp = new TypeDescriptor(cd);
+      tp.setStatic();
+      return tp;
+    } else
+      return null;
   }
 
   NameDescriptor getName() {

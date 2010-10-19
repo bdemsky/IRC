@@ -19,6 +19,7 @@ public class MethodDescriptor extends Descriptor {
   protected ClassDescriptor cd;
   protected VarDescriptor thisvd;
   protected boolean isglobal;
+  protected boolean isstaticblock;
 
   public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
     super(identifier);
@@ -30,6 +31,7 @@ public class MethodDescriptor extends Descriptor {
     params=new Vector();
     paramtable=new SymbolTable();
     thisvd=null;
+    isstaticblock = false;
   }
 
   public Modifiers getModifiers() {
@@ -68,11 +70,20 @@ public class MethodDescriptor extends Descriptor {
     params=new Vector();
     paramtable=new SymbolTable();
     thisvd=null;
+    isstaticblock = false;
   }
 
 
   public boolean isGlobal() {
     return isglobal;
+  }
+  
+  public boolean isStaticBlock() {
+    return isstaticblock;
+  }
+  
+  public void setAsStaticBlock() {
+    isstaticblock = true;
   }
 
   public void setThis(VarDescriptor vd) {

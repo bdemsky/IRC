@@ -1,6 +1,7 @@
 package IR.Tree;
 
 import java.util.*;
+
 import IR.*;
 
 public class SemanticCheck {
@@ -492,8 +493,14 @@ public class SemanticCheck {
     FieldDescriptor fd=null;
     if (ltd.isArray()&&fieldname.equals("length"))
       fd=FieldDescriptor.arrayLength;
-    else
+    else 
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
+    if(ltd.isStatic()) {
+      // check if this field is a static field
+      if(!fd.isStatic()) {
+        throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
+      }
+    } 
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
 
@@ -572,7 +579,31 @@ public class SemanticCheck {
       String varname=nd.toString();
       Descriptor d=(Descriptor)nametable.get(varname);
       if (d==null) {
-	throw new Error("Name "+varname+" undefined in: "+md);
+        ClassDescriptor cd = null;
+        if(((MethodDescriptor)md).isStaticBlock()) {
+          // this is a static block, all the accessed fields should be static field
+          cd = ((MethodDescriptor)md).getClassDesc();
+          SymbolTable fieldtbl = cd.getFieldTable();
+          FieldDescriptor fd=(FieldDescriptor)fieldtbl.get(varname);
+          if((fd == null) || (!fd.isStatic())){
+            // no such field in the class or it is not a static field
+            throw new Error("Name "+varname+" should not be used in static block: "+md);
+          } else {
+            // this is a static field
+            nn.setField(fd);
+            nn.setClassDesc(cd);
+            return;
+          }
+        } else {
+          cd=getClass(varname);
+          if(cd != null) {
+            // this is a class name
+            nn.setClassDesc(cd);
+            return;
+          } else {
+            throw new Error("Name "+varname+" undefined in: "+md);
+          }
+        }
       }
       if (d instanceof VarDescriptor) {
 	nn.setVar(d);

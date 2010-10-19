@@ -16,6 +16,8 @@ public class ClassDescriptor extends Descriptor {
   Vector fieldvec;
   SymbolTable flags;
   SymbolTable methods;
+  
+  int numstaticblocks=0;
 
   public ClassDescriptor(String classname) {
     this("", classname);
@@ -145,5 +147,13 @@ public class ClassDescriptor extends Descriptor {
 
   public String getSuper() {
     return superclass;
+  }
+  
+  public void incStaticBlocks() {
+    this.numstaticblocks++;
+  }
+  
+  public int getNumStaticBlocks() {
+    return this.numstaticblocks;
   }
 }

@@ -2,28 +2,17 @@ package IR.Flat;
 
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
-import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
-import java.util.Vector;
 
-import Analysis.Locality.LocalityBinding;
-import Analysis.Scheduling.Schedule;
-import Analysis.TaskStateAnalysis.FEdge;
-import Analysis.TaskStateAnalysis.FlagState;
-import Analysis.TaskStateAnalysis.SafetyAnalysis;
-import Analysis.OwnershipAnalysis.AllocationSite;
-import Analysis.OwnershipAnalysis.OwnershipAnalysis;
-import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.Prefetch.*;
+import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FlagDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
+import IR.SymbolTable;
 import IR.TagVarDescriptor;
 import IR.TaskDescriptor;
 import IR.TypeDescriptor;
@@ -59,6 +48,7 @@ public class BuildCodeMGC extends BuildCode {
   public void buildCode() {
     /* Create output streams to write to */
     PrintWriter outclassdefs=null;
+    PrintWriter outglobaldefs=null;
     PrintWriter outstructs=null;
     PrintWriter outmethodheader=null;
     PrintWriter outmethod=null;
@@ -68,6 +58,7 @@ public class BuildCodeMGC extends BuildCode {
       outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
+      outglobaldefs=new PrintWriter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
       outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
     } catch (Exception e) {
@@ -86,18 +77,32 @@ public class BuildCodeMGC extends BuildCode {
     /* Output Structures */
     super.outputStructs(outstructs);
 
+    outglobaldefs.println("#ifndef __GLOBALDEF_H_");
+    outglobaldefs.println("#define __GLOBALDEF_H_");
+    outglobaldefs.println("");
+    outglobaldefs.println("struct global_defs_t {");
+    
     // Output the C class declarations
-    // These could mutually reference each other
-    super.outputClassDeclarations(outclassdefs);
+    // These could mutually reference each other    
+    outclassdefs.println("#ifndef __CLASSDEF_H_");
+    outclassdefs.println("#define __CLASSDEF_H_");
+    super.outputClassDeclarations(outclassdefs, outglobaldefs);
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     int numclasses = this.state.numClasses();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
-      super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
+      super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
     }
+    outclassdefs.println("#endif");
     outclassdefs.close();
+    outglobaldefs.println("};");
+    outglobaldefs.println("");
+    outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
+    outglobaldefs.println("#endif");
+    outglobaldefs.flush();
+    outglobaldefs.close();
 
     /* Build the actual methods */
     super.outputMethods(outmethod);
@@ -135,6 +140,24 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("int mgc_main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
     
+    // execute all the static blocks in random order 
+    // TODO may need more careful about the execution order
+    SymbolTable sbt = this.state.getStaticBlockSymbolTable();
+    Iterator it_staticblocks = state.getStaticBlockSymbolTable().getDescriptorsIterator();
+    while(it_staticblocks.hasNext()) {
+      MethodDescriptor t_md = (MethodDescriptor) it_staticblocks.next();
+      ClassDescriptor t_cd = t_md.getClassDesc();
+      outmethod.println("   {");
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+        outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+        outmethod.println("1, NULL};");
+        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+      } else {
+        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+      }
+      outmethod.println("   }");
+    }
+    
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
     } else {
@@ -148,7 +171,7 @@ public class BuildCodeMGC extends BuildCode {
       outmethod.println("    struct ___String___ *newstring=NewString(argv[i], length);");
     }
     outmethod.println("    ((void **)(((char *)& stringarray->___length___)+sizeof(int)))[i-1]=newstring;");
-    outmethod.println("  }");
+    outmethod.println("  }");    
 
     MethodDescriptor md=typeutil.getMain();
     ClassDescriptor cd=typeutil.getMainClass();

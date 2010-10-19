@@ -480,11 +480,19 @@ public class BuildFlat {
   }
 
   private NodePair flattenFieldAccessNode(FieldAccessNode fan,TempDescriptor out_temp) {
-    TempDescriptor tmp=TempDescriptor.tempFactory("temp",fan.getExpression().getType());
-    NodePair npe=flattenExpressionNode(fan.getExpression(),tmp);
-    FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
-    npe.getEnd().addNext(fn);
-    return new NodePair(npe.getBegin(),fn);
+    TempDescriptor tmp=null;
+    if(fan.getExpression().getType().isStatic()) {
+      // static field dereference with class name
+      tmp = new TempDescriptor(fan.getExpression().getType().getClassDesc().getSymbol(), fan.getExpression().getType());
+      FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
+      return new NodePair(fn,fn);
+    } else {
+      tmp=TempDescriptor.tempFactory("temp",fan.getExpression().getType());
+      NodePair npe=flattenExpressionNode(fan.getExpression(),tmp);
+      FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
+      npe.getEnd().addNext(fn);
+      return new NodePair(npe.getBegin(),fn);
+    }
   }
 
   private NodePair flattenArrayAccessNode(ArrayAccessNode aan,TempDescriptor out_temp) {
@@ -541,8 +549,17 @@ public class BuildFlat {
 
       FieldAccessNode fan=(FieldAccessNode)an.getDest();
       ExpressionNode en=fan.getExpression();
-      TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
-      NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
+      TempDescriptor dst_tmp=null;
+      NodePair np_baseexp=null;
+      if(en.getType().isStatic()) {
+        // static field dereference with class name
+        dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
+        FlatNop nop=new FlatNop();
+        np_baseexp = new NodePair(nop,nop);
+      } else {
+        dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
+        np_baseexp=flattenExpressionNode(en, dst_tmp);
+      }
       if (first==null)
 	first=np_baseexp.getBegin();
       else
@@ -661,8 +678,17 @@ public class BuildFlat {
 	//It is a field
 	FieldAccessNode fan=(FieldAccessNode)nn.getExpression();
 	ExpressionNode en=fan.getExpression();
-	TempDescriptor dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
-	NodePair np_baseexp=flattenExpressionNode(en, dst_tmp);
+    TempDescriptor dst_tmp=null;
+    NodePair np_baseexp=null;
+    if(en.getType().isStatic()) {
+      // static field dereference with class name
+      dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
+      FlatNop nop=new FlatNop();
+      np_baseexp = new NodePair(nop,nop);
+    } else {
+      dst_tmp=TempDescriptor.tempFactory("dst",en.getType());
+      np_baseexp=flattenExpressionNode(en, dst_tmp);
+    }
 	if (first==null)
 	  first=np_baseexp.getBegin();
 	else
@@ -740,7 +766,13 @@ public class BuildFlat {
 	    }
 	  }
 
-	  FlatSetFieldNode fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
+      FlatSetFieldNode fsfn=null;
+      if(nn.getClassDesc()!=null) {
+        // this is a static field access inside of a static block
+        fsfn=new FlatSetFieldNode(new TempDescriptor("sfsb", nn.getClassType()), nn.getField(), src_tmp);
+      } else {
+        fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
+      }
 	  if (first==null) {
 	    first=fsfn;
 	  } else {

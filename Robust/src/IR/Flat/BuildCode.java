@@ -159,6 +159,7 @@ public class BuildCode {
     PrintWriter outtaskdefs=null;
     PrintWriter outoptionalarrays=null;
     PrintWriter optionalheaders=null;
+    PrintWriter outglobaldefs=null;
 
     try {
       if (state.SANDBOX) {
@@ -167,6 +168,7 @@ public class BuildCode {
       outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
+      outglobaldefs=new PrintWriter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
       outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
       outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       if (state.TASK) {
@@ -228,19 +230,29 @@ public class BuildCode {
     // Output the C class declarations
     // These could mutually reference each other
     
+    outglobaldefs.println("#ifndef __GLOBALDEF_H_");
+    outglobaldefs.println("#define __GLOBALDEF_H_");
+    outglobaldefs.println("");
+    outglobaldefs.println("struct global_defs_t {");
     
     outclassdefs.println("#ifndef __CLASSDEF_H_");
     outclassdefs.println("#define __CLASSDEF_H_");
-    outputClassDeclarations(outclassdefs);
+    outputClassDeclarations(outclassdefs, outglobaldefs);
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
-      generateCallStructs(cn, outclassdefs, outstructs, outmethodheader);
+      generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
     }
     outclassdefs.println("#endif");
     outclassdefs.close();
+    outglobaldefs.println("};");
+    outglobaldefs.println("");
+    outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
+    outglobaldefs.println("#endif");
+    outglobaldefs.flush();
+    outglobaldefs.close();
 
     if (state.TASK) {
       /* Map flags to integers */
@@ -627,6 +639,7 @@ public class BuildCode {
       }
     }
 
+    outmethod.println("struct global_defs_t * global_defs_p;");
     //Store the sizes of classes & array elements
     generateSizeArray(outmethod);
 
@@ -734,7 +747,7 @@ public class BuildCode {
     }
   }
 
-  protected void outputClassDeclarations(PrintWriter outclassdefs) {
+  protected void outputClassDeclarations(PrintWriter outclassdefs, PrintWriter outglobaldefs) {
     if (state.THREAD||state.DSM||state.SINGLETM)
       outclassdefs.println("#include <pthread.h>");
     outclassdefs.println("#ifndef INTPTR");
@@ -794,7 +807,7 @@ public class BuildCode {
 	outclassdefs.println("  int * fses;");
       }
     }
-    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs);
+    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs, outglobaldefs);
 
     if (state.STMARRAY) {
       outclassdefs.println("  int lowindex;");
@@ -812,6 +825,8 @@ public class BuildCode {
     outclassdefs.println("extern int hasflags[];");
     outclassdefs.println("extern unsigned INTPTR * pointerarray[];");
     outclassdefs.println("extern int supertypes[];");
+    outclassdefs.println("#include \"globaldefs.h\"");
+    outclassdefs.println("");
   }
 
   /** Prints out definitions for generic task structures */
@@ -1441,11 +1456,11 @@ public class BuildCode {
 
   /** Force consistent field ordering between inherited classes. */
 
-  private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout) {
+  private void printClassStruct(ClassDescriptor cn, PrintWriter classdefout, PrintWriter globaldefout) {
 
     ClassDescriptor sp=cn.getSuperDesc();
     if (sp!=null)
-      printClassStruct(sp, classdefout);
+      printClassStruct(sp, classdefout, globaldefout);
 
     if (!fieldorder.containsKey(cn)) {
       Vector fields=new Vector();
@@ -1463,7 +1478,11 @@ public class BuildCode {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
       if (fd.getType().isClass()||fd.getType().isArray())
 	classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
-      else
+      else if(fd.isStatic()) {
+        // static field
+        globaldefout.println("  "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+        classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
+      } else
 	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
     }
   }
@@ -1506,7 +1525,7 @@ public class BuildCode {
    * passed in (when PRECISE GC is enabled) and (2) function
    * prototypes for the methods */
 
-  protected void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout) {
+  protected void generateCallStructs(ClassDescriptor cn, PrintWriter classdefout, PrintWriter output, PrintWriter headersout, PrintWriter globaldefout) {
     /* Output class structure */
     classdefout.println("struct "+cn.getSafeSymbol()+" {");
     classdefout.println("  int type;");
@@ -1547,7 +1566,7 @@ public class BuildCode {
 	classdefout.println("  int * fses;");
       }
     }
-    printClassStruct(cn, classdefout);
+    printClassStruct(cn, classdefout, globaldefout);
     classdefout.println("};\n");
 
     if (state.DSM||state.SINGLETM) {
@@ -1989,6 +2008,21 @@ public class BuildCode {
 	} else {
 	  output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
 	}
+      }
+    }
+    
+    if(fm.getMethod().isStaticBlock()) {
+      // a static block
+    } else if((fm.getMethod().getReturnType() == null) && (cn != null)){
+      // is a constructor, check and output initialization of the static fields
+      Vector fields=(Vector)fieldorder.get(cn);
+
+      for(int i=0; i<fields.size(); i++) {
+        FieldDescriptor fd=(FieldDescriptor)fields.get(i);
+        if(fd.isStatic()) {
+          // static field
+          output.println(generateTemp(fm,fm.getParameter(0),lb)+"->"+fd.getSafeSymbol()+"=&(global_defs_p->"+cn.getSafeSymbol()+fd.getSafeSymbol()+");");
+        }
       }
     }
 
@@ -4634,7 +4668,12 @@ public class BuildCode {
 
     if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       if (fc.getThis()!=null) {
-	TypeDescriptor ptd=md.getThis().getType();
+	TypeDescriptor ptd=null;
+    if(md.getThis() != null) {
+      ptd = md.getThis().getType();
+    } else {
+      ptd = fc.getThis().getType();
+    }
 	if (needcomma)
 	  output.print(",");
 	if (ptd.isClass()&&!ptd.isArray())
@@ -4754,8 +4793,19 @@ public class BuildCode {
     } else{
 // DEBUG 	if(!ffn.getDst().getType().isPrimitive()){
 // DEBUG  		output.println("within((void*)"+generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+");");
-// DEBUG   	}      
-      output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
+// DEBUG   	} 
+      if(ffn.getField().isStatic()) {
+        // static field, redirect to the global_defs_p structure
+        if(ffn.getSrc().getType().isStatic()) {
+          // reference to the static field with Class name
+          output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ ffn.getSrc().getType().getClassDesc().getSafeSymbol()+ffn.getField().getSafeSymbol()+";");
+        } else {
+          output.println(generateTemp(fm, ffn.getDst(),lb)+"=*"+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
+        }
+        //output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ffn.getSrc().getType().getClassDesc().getSafeSymbol()+"->"+ ffn.getField().getSafeSymbol()+";");
+      } else {
+        output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
+      }
     }
   }
 
@@ -4856,8 +4906,18 @@ public class BuildCode {
       
 // DEBUG 	if(!fsfn.getField().getType().isPrimitive()){
 // DEBUG		output.println("within((void*)"+generateTemp(fm,fsfn.getSrc(),lb)+");");
-// DEBUG   }   
-      output.println(generateTemp(fm, fsfn.getDst(),lb)+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+// DEBUG   }  
+      if(fsfn.getField().isStatic()) {
+        // static field, redirect to the global_defs_p structure
+        if(fsfn.getDst().getType().isStatic()) {
+          // reference to the static field with Class name
+          output.println("global_defs_p->" + fsfn.getDst().getType().getClassDesc().getSafeSymbol() + fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+        } else {
+          output.println("*"+generateTemp(fm, fsfn.getDst(),lb)+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+        }
+      } else {
+        output.println(generateTemp(fm, fsfn.getDst(),lb)+"->"+ fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+      }
     }
   }
 

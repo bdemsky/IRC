@@ -250,12 +250,14 @@ public class BuildIR {
 	  parseClassMember(cn,decl);
 	} else if (isNode(decl,"constructor")) {
 	  parseConstructorDecl(cn,decl.getChild("constructor_declaration"));
-	} else if (isNode(decl,"block")) {
+	} else if (isNode(decl, "static_block")) {
+      parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
+    } else if (isNode(decl,"block")) {
 	} else throw new Error();
       }
     }
   }
-
+  
   private void parseClassMember(ClassDescriptor cn, ParseNode pn) {
     ParseNode fieldnode=pn.getChild("field");
 
@@ -648,6 +650,25 @@ public class BuildIR {
     }
     state.addTreeCode(md,bn);
   }
+  
+  private void parseStaticBlockDecl(ClassDescriptor cn, ParseNode pn) {
+    Modifiers m=new Modifiers();
+    m.addModifier(Modifiers.STATIC);
+    MethodDescriptor md=new MethodDescriptor(m, "staticblock"+cn.getNumStaticBlocks(), false);
+    //md.setClassDesc(cn);
+    md.setAsStaticBlock();
+    ParseNode bodyn=pn.getChild("body");;
+    cn.addMethod(md);
+    cn.incStaticBlocks();
+    BlockNode bn=null;
+    if (bodyn!=null&&bodyn.getChild("block_statement_list")!=null)
+      bn=parseBlock(bodyn);
+    else
+      bn=new BlockNode();
+    state.addTreeCode(md,bn);
+    state.addStaticBlock(md);
+  }
+
 
   public BlockNode parseBlock(ParseNode pn) {
     this.m_taskexitnum = 0;

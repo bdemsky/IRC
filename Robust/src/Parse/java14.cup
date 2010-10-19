@@ -151,7 +151,7 @@ non terminal ParseNode formal_parameter;
 //non terminal ParseNode class_type_list;
 non terminal ParseNode method_body;
 // 19.8.4) Static Initializers
-//non terminal ParseNode static_initializer;
+non terminal ParseNode static_initializer;
 // 19.8.5) Constructor Declarations
 non terminal ParseNode constructor_declaration, constructor_declarator;
 non terminal ParseNode constructor_body;
@@ -785,7 +785,9 @@ class_body_declaration ::=
 		class_member_declaration:member {: 
 		RESULT=(new ParseNode("member")).addChild(member).getRoot();
 	:}
-//	|	static_initializer
+	|	static_initializer:block{:
+		RESULT=(new ParseNode("static_block")).addChild(block).getRoot();
+	:}
 	|	constructor_declaration:constructor {: 
 		RESULT=(new ParseNode("constructor")).addChild(constructor).getRoot();
 	:}
@@ -969,9 +971,13 @@ method_body ::=	block:block {:
 	;
 
 // 19.8.4) Static Initializers
-//static_initializer ::=
-//		STATIC block
-//	;
+static_initializer ::=
+		STATIC block:body {:
+		ParseNode pn=new ParseNode("static_block_declaration");
+		pn.addChild("body").addChild(body);
+		RESULT=pn;
+	:}
+	;
 
 // 19.8.5) Constructor Declarations
 constructor_declaration ::=

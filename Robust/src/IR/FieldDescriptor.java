@@ -29,6 +29,10 @@ public class FieldDescriptor extends Descriptor {
     if (en!=null) throw new Error("Field initializers not implemented");
   }
 
+  public boolean isStatic() {
+    return modifier.isStatic();
+  }
+  
   public boolean isGlobal() {
     return isglobal;
   }

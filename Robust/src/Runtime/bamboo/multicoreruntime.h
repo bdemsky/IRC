@@ -38,8 +38,10 @@ bool reside;
 //     mutex + thread counter + start pointer + end pointer
 #ifdef GC_SMALLPAGESIZE
 #define BAMBOO_THREAD_QUEUE_SIZE (1024 * 1024)
+#define BAMBOO_GLOBAL_DEFS_SIZE (1024 * 1024)
 #else
 #define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
+#define BAMBOO_GLOBAL_DEFS_SIZE (BAMBOO_SMEM_SIZE)
 #endif
 // data structures for threads
 INTPTR * bamboo_thread_queue;
