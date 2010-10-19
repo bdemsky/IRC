@@ -1991,7 +1991,7 @@ public class BuildCode {
         }
       }
         
-    }
+    }    
 
 
     /* Check to see if we need to do a GC if this is a
@@ -2349,7 +2349,7 @@ public class BuildCode {
     // initialize thread-local var to a the task's record, which is fused
     // with the param list
     output.println("   ");
-    output.println("   /* code of this task's body should use this to access the running task record */");
+    output.println("   // code of this task's body should use this to access the running task record");
     output.println("   runningSESE = &(___params___->common);");
     output.println("   ");
     
@@ -2963,21 +2963,23 @@ public class BuildCode {
 	  output.println("     "+pair.getSESE().getSESErecordName()+"* child = ("+
                          pair.getSESE().getSESErecordName()+"*) "+pair+";");
 
-	  output.println("     SESEcommon* common = (SESEcommon*) "+pair+";");
+	  output.println("     SESEcommon* childCom = (SESEcommon*) "+pair+";");
+
           if( state.COREPROF ) {
             output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
             output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
             output.println("#endif");
           }
-	  output.println("     pthread_mutex_lock( &(common->lock) );");
-	  output.println("     if( common->doneExecuting == FALSE ) {");
-          output.println("       stopforgc((struct garbagelist *)&___locals___);");
-	  output.println("       do {");
-	  output.println("         pthread_cond_wait( &(common->doneCond), &(common->lock) );");
-	  output.println("       } while( common->doneExecuting == FALSE );");
-	  output.println("       restartaftergc();");
-	  output.println("    }");
-	  output.println("     pthread_mutex_unlock( &(common->lock) );");
+
+	  output.println("     pthread_mutex_lock( &(childCom->lock) );");
+	  output.println("     if( childCom->doneExecuting == FALSE ) {");
+          output.println("       psem_reset( &runningSESEstallSem );");
+	  output.println("       childCom->parentsStallSem = &runningSESEstallSem;");
+	  output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+	  output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+	  output.println("     } else {");
+	  output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+	  output.println("     }");
 
 	  // copy things we might have stalled for	  	  
 	  Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
@@ -2992,11 +2994,13 @@ public class BuildCode {
 	    output.println("       "+generateTemp( fmContext, td, null )+
 			   " = child->"+vst.getAddrVar().getSafeSymbol()+";");
 	  }
+
           if( state.COREPROF ) {
             output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
             output.println("     CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
             output.println("#endif");
           }
+
 	  output.println("   }");
 	}
   
@@ -3009,13 +3013,24 @@ public class BuildCode {
 	  // otherwise the dynamic write nodes will have the local var up-to-date
 	  output.println("   {");
 	  output.println("     if( "+dynVar+"_srcSESE != NULL ) {");
-	  output.println("       SESEcommon* common = (SESEcommon*) "+dynVar+"_srcSESE;");
+
+	  output.println("       SESEcommon* childCom = (SESEcommon*) "+dynVar+"_srcSESE;");
+
           if( state.COREPROF ) {
             output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
             output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_BEGIN );");
             output.println("#endif");
           }
-	  output.println("       psem_take( &(common->stallSem) );");
+
+	  output.println("     pthread_mutex_lock( &(childCom->lock) );");
+	  output.println("     if( childCom->doneExecuting == FALSE ) {");
+          output.println("       psem_reset( &runningSESEstallSem );");
+	  output.println("       childCom->parentsStallSem = &runningSESEstallSem;");
+	  output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+	  output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+	  output.println("     } else {");
+	  output.println("       pthread_mutex_unlock( &(childCom->lock) );");
+	  output.println("     }");
 
 	  FlatMethod fmContext;
 	  if( currentSESE.getIsCallerSESEplaceholder() ) {
@@ -3024,7 +3039,7 @@ public class BuildCode {
 	    fmContext = currentSESE.getfmBogus();
 	  }
 	  
-	  TypeDescriptor type=dynVar.getType();
+	  TypeDescriptor type = dynVar.getType();
           String typeStr;
           if( type.isNull() ) {
             typeStr = "void*";
@@ -3037,11 +3052,13 @@ public class BuildCode {
 	  output.println("       "+generateTemp( fmContext, dynVar, null )+
                          " = *(("+typeStr+"*) ((void*)"+
                          dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
+
           if( state.COREPROF ) {
             output.println("#ifdef CP_EVENTID_TASKSTALLVAR");
             output.println("       CP_LOGEVENT( CP_EVENTID_TASKSTALLVAR, CP_EVENTTYPE_END );");
             output.println("#endif");
           }
+
 	  output.println("     }");
 	  output.println("   }");
 	}
@@ -3137,7 +3154,7 @@ public class BuildCode {
                   output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
                   output.println("#endif");
                 }
-                output.println("        psem_take( &(rentry->parentStallSem) );");
+                output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
                 if( state.COREPROF ) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                   output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
@@ -3192,7 +3209,7 @@ public class BuildCode {
                     output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
                     output.println("#endif");
                   }
-                  output.println("        psem_take( &(rentry->parentStallSem) );");
+                  output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
                   if( state.COREPROF ) {
                     output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                     output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
@@ -3813,10 +3830,9 @@ public class BuildCode {
     // fill in common data
     output.println("     int localCount=0;");
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
-    output.println("     psem_init( &(seseToIssue->common.stallSem) );");
+    output.println("     seseToIssue->common.parentsStallSem = NULL;");
     output.println("     seseToIssue->common.forwardList = createQueue();");
     output.println("     seseToIssue->common.unresolvedDependencies = 10000;");
-    output.println("     pthread_cond_init( &(seseToIssue->common.doneCond), NULL );");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
     output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
@@ -4323,17 +4339,16 @@ public class BuildCode {
       output.println("#endif");
     }
     
-    String com = paramsprefix+"->common";
 
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
     // that the number of your running children is greater than zero    
-    output.println("   pthread_mutex_lock( &("+com+".lock) );");
-    output.println("   if ( "+com+".numRunningChildren > 0 ) {");
-    output.println("     stopforgc((struct garbagelist *)&___locals___);");
+    output.println("   pthread_mutex_lock( &(runningSESE->lock) );");
+    output.println("   if( runningSESE->numRunningChildren > 0 ) {");
+    output.println("     stopforgc( (struct garbagelist *)&___locals___ );");
     output.println("     do {");
-    output.println("       pthread_cond_wait( &("+com+".runningChildrenCond), &("+com+".lock) );");
-    output.println("     } while( "+com+".numRunningChildren > 0 );");
+    output.println("       pthread_cond_wait( &(runningSESE->runningChildrenCond), &(runningSESE->lock) );");
+    output.println("     } while( runningSESE->numRunningChildren > 0 );");
     output.println("     restartaftergc();");
     output.println("   }");
 
@@ -4375,16 +4390,25 @@ public class BuildCode {
 		     " = "+from+";");
     }    
     
-    // mark yourself done, your SESE data is now read-only
-    output.println("   "+com+".doneExecuting = TRUE;");
-    output.println("   pthread_cond_signal( &("+com+".doneCond) );");
-    output.println("   pthread_mutex_unlock( &("+com+".lock) );");
+    // mark yourself done, your task data is now read-only
+    output.println("   runningSESE->doneExecuting = TRUE;");
+
+    // if parent is stalling on you, let them know you're done
+    if( (state.MLP && fsexn.getFlatEnter() != mlpa.getMainSESE()) || 
+        (state.OOOJAVA &&  fsexn.getFlatEnter() != oooa.getMainSESE())    
+    ) {
+      output.println("   if( runningSESE->parentsStallSem != NULL ) {");
+      output.println("     psem_give( runningSESE->parentsStallSem );");
+      output.println("   }");
+    }
+
+    output.println("   pthread_mutex_unlock( &(runningSESE->lock) );");
 
     // decrement dependency count for all SESE's on your forwarding list
 
     // FORWARD TODO
-    output.println("   while( !isEmpty( "+com+".forwardList ) ) {");
-    output.println("     SESEcommon* consumer = (SESEcommon*) getItem( "+com+".forwardList );");
+    output.println("   while( !isEmpty( runningSESE->forwardList ) ) {");
+    output.println("     SESEcommon* consumer = (SESEcommon*) getItem( runningSESE->forwardList );");
     
    
     output.println("     if(consumer->rentryIdx>0){");
@@ -4396,7 +4420,7 @@ public class BuildCode {
     output.println("     }");
     
     
-    output.println("     if( atomic_sub_and_test(1, &(consumer->unresolvedDependencies)) ){");
+    output.println("     if( atomic_sub_and_test( 1, &(consumer->unresolvedDependencies) ) ){");
     output.println("       workScheduleSubmit( (void*)consumer );");
     output.println("     }");
     output.println("   }");
@@ -4420,19 +4444,13 @@ public class BuildCode {
 		
     }
     
-    // if parent is stalling on you, let them know you're done
-    if( (state.MLP && fsexn.getFlatEnter() != mlpa.getMainSESE()) || 
-        (state.OOOJAVA &&  fsexn.getFlatEnter() != oooa.getMainSESE())    
-    ) {
-      output.println("   psem_give( &("+paramsprefix+"->common.stallSem) );");
-    }
 
     // last of all, decrement your parent's number of running children    
-    output.println("   if( "+paramsprefix+"->common.parent != NULL ) {");
-    output.println("     if (atomic_sub_and_test(1, &"+paramsprefix+"->common.parent->numRunningChildren)) {");
-    output.println("       pthread_mutex_lock( &("+paramsprefix+"->common.parent->lock) );");
-    output.println("       pthread_cond_signal( &("+paramsprefix+"->common.parent->runningChildrenCond) );");
-    output.println("       pthread_mutex_unlock( &("+paramsprefix+"->common.parent->lock) );");
+    output.println("   if( runningSESE->parent != NULL ) {");
+    output.println("     if( atomic_sub_and_test( 1, &(runningSESE->parent->numRunningChildren) ) ) {");
+    output.println("       pthread_mutex_lock  ( &(runningSESE->parent->lock) );");
+    output.println("       pthread_cond_signal ( &(runningSESE->parent->runningChildrenCond) );");
+    output.println("       pthread_mutex_unlock( &(runningSESE->parent->lock) );");
     output.println("     }");
     output.println("   }");
 

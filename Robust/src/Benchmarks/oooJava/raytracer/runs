@@ -1,0 +1,2 @@
+#!/bin/bash
+time ./tests.bin 1

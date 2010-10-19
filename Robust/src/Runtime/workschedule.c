@@ -5,6 +5,7 @@
 #include "mem.h"
 #include "workschedule.h"
 #include "mlp_runtime.h"
+#include "psemaphore.h"
 #include "coreprof/coreprof.h"
 #ifdef RCR
 #include "rcr_runtime.h"
@@ -70,6 +71,7 @@ void* workerMain( void* arg ) {
   WorkerData* myData = (WorkerData*) arg;
   int         oldState;
   int         haveWork;
+  struct garbagelist emptygarbagelist={0,NULL};
 
   // once-per-thread stuff
   CP_CREATE();
@@ -79,6 +81,12 @@ void* workerMain( void* arg ) {
   // ensure that object ID's start at 1 so that using
   // oid with value 0 indicates an invalid object
   oid = myData->id + 1;
+
+  // each thread has a single semaphore that a running
+  // task should hand off to children threads it is
+  // going to stall on
+  psem_init( &runningSESEstallSem );
+  
 
 #ifdef RCR
   //allocate task record queue
@@ -100,6 +108,20 @@ void* workerMain( void* arg ) {
   //pthread_setcancelstate( PTHREAD_CANCEL_ENABLE,       &oldState );
 
   // then continue to process work
+  //NOTE: ADD US TO THE GC LIST
+  
+  pthread_mutex_lock(&gclistlock);
+  threadcount++;
+  litem.prev=NULL;
+  litem.next=list;
+  if(list!=NULL)
+    list->prev=&litem;
+  list=&litem;
+  pthread_mutex_unlock(&gclistlock);
+
+
+  //ALSO CREATE EMPTY GARBAGELIST TO PASS TO COLLECTOR
+
   while( 1 ) {
 
     // wait for work
@@ -108,9 +130,12 @@ void* workerMain( void* arg ) {
 #endif
     haveWork = FALSE;
     while( !haveWork ) {
+      //NOTE...Fix these things...
       pthread_mutex_lock( &systemLockOut );
       if( headqi->next == NULL ) {
         pthread_mutex_unlock( &systemLockOut );
+        //NOTE: Do a check to see if we need to collect..
+        if (unlikely(needtocollect)) checkcollect(&emptygarbagelist);
         sched_yield();
         continue;
       } else {
@@ -126,31 +151,28 @@ void* workerMain( void* arg ) {
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
 #endif
     
-    pthread_mutex_lock(&gclistlock);
-    threadcount++;
+    //let GC see current work
     litem.seseCommon=(void*)workUnit;
-    litem.prev=NULL;
-    litem.next=list;
-    if(list!=NULL)
-      list->prev=&litem;
-    list=&litem;
-    seseCommon=(SESEcommon*)workUnit;   
-    pthread_mutex_unlock(&gclistlock);
+
+    //unclear how useful this is
+    if (unlikely(needtocollect)) checkcollect(&emptygarbagelist);
 
     workFunc( workUnit );
-    
-    pthread_mutex_lock(&gclistlock);
-    threadcount--;
-    if (litem.prev==NULL) {
-      list=litem.next;
-    } else {
-      litem.prev->next=litem.next;
-    }
-    if (litem.next!=NULL) {
-      litem.next->prev=litem.prev;
-    }
-    pthread_mutex_unlock(&gclistlock);
   }
+
+  //NOTE: Remove from GC LIST DOWN HERE....
+  pthread_mutex_lock(&gclistlock);
+  threadcount--;
+  if (litem.prev==NULL) {
+    list=litem.next;
+  } else {
+    litem.prev->next=litem.next;
+  }
+  if (litem.next!=NULL) {
+    litem.next->prev=litem.prev;
+  }
+  pthread_mutex_unlock(&gclistlock);
+
 
   //pthread_cleanup_pop( 0 );
 

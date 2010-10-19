@@ -109,14 +109,14 @@ static inline void* poolalloc( MemPool* p ) {
   // executed by the thread that owns the pool, so
   // it doesn't require an atomic op
   MemPoolItem* headCurrent = p->head;
+  MemPoolItem* next=headCurrent->next;
 
-  if( headCurrent->next == NULL ) {
+  if(next == NULL) {
     // only one item, so don't take from pool
     return RUNMALLOC( p->itemSize );
   }
  
-  p->head = headCurrent->next;
-
+  p->head = next;
 
   //////////////////////////////////////////////////////////
   //
@@ -131,8 +131,8 @@ static inline void* poolalloc( MemPool* p ) {
   //
   //  but this built-in gcc one seems the most portable:
   //////////////////////////////////////////////////////////
-  __builtin_prefetch( &(p->head->next) );
-
+  //__builtin_prefetch( &(p->head->next) );
+  asm volatile( "prefetcht0 %0" :: "m" (next));
 
   return headCurrent;
 }

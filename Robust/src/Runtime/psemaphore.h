@@ -2,6 +2,7 @@
 #define ___PSEMAPHORE_H__
 
 #include <pthread.h>
+#include "garbage.h"
 
 
 typedef struct psemaphore_t {
@@ -11,9 +12,10 @@ typedef struct psemaphore_t {
 } psemaphore;
 
 
-int psem_init( psemaphore* sem );
-int psem_take( psemaphore* sem );
-int psem_give( psemaphore* sem );
+void psem_init ( psemaphore* sem );
+void psem_take ( psemaphore* sem, struct garbagelist* gl );
+void psem_give ( psemaphore* sem );
+void psem_reset( psemaphore* sem );
 
 
 #endif // ___PSEMAPHORE_H__

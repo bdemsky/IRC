@@ -12,6 +12,9 @@
 
 __thread SESEcommon* runningSESE;
 
+__thread psemaphore runningSESEstallSem;
+
+
 
 void* mlpAllocSESErecord( int size ) {
   void* newrec = RUNMALLOC( size );  

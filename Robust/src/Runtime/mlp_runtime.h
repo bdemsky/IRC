@@ -85,9 +85,10 @@ typedef struct SESEcommon_t {
   // the task record so task dispatch works correctly!
   int classID;
 
+
   // a parent waits on this semaphore when stalling on
   // this child, the child gives it at its SESE exit
-  psemaphore stallSem;
+  psemaphore* parentsStallSem;
 
   
   // the lock guards the following data SESE's
@@ -109,9 +110,6 @@ typedef struct SESEcommon_t {
   int             numRunningChildren;
 
   struct SESEcommon_t*   parent;
-
-  //psemaphore parentStallSem;
-  //pthread_cond_t stallDone;
 
   int numMemoryQueue;
   int rentryIdx;
@@ -137,6 +135,11 @@ typedef struct SESEcommon_t {
 // a thread-local var refers to the currently
 // running task
 extern __thread SESEcommon* runningSESE;
+
+// there only needs to be one stall semaphore
+// per thread, just give a reference to it to
+// the task you are about to block on
+extern __thread psemaphore runningSESEstallSem;
 
 
 
