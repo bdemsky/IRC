@@ -120,8 +120,6 @@ static inline void* poolalloc( MemPool* p ) {
 
   //////////////////////////////////////////////////////////
   //
-  //   a prefetch statement from the Linux kernel,
-  //   which the little "m" depends on architecture:
   //
   //  static inline void prefetch(void *x) 
   //  { 
@@ -132,7 +130,7 @@ static inline void* poolalloc( MemPool* p ) {
   //  but this built-in gcc one seems the most portable:
   //////////////////////////////////////////////////////////
   //__builtin_prefetch( &(p->head->next) );
-  asm volatile( "prefetcht0 %0" :: "m" (next));
+  asm volatile( "prefetcht0 (%0)" :: "r" (next));
 
   return headCurrent;
 }
