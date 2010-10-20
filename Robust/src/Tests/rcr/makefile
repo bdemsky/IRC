@@ -10,7 +10,7 @@ BSFLAGS= -64bit -mainclass test -nooptimize -debug
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions #-disjoint-desire-determinism
 
 
-all: $(PROGRAM1).bin $(PROGRAM2).bin
+all: $(PROGRAM2).bin
 
 $(PROGRAM1).bin: $(SOURCE_FILES)
 	$(BUILDSCRIPT)           $(BSFLAGS) -o $(PROGRAM1) $(SOURCE_FILES)
