@@ -547,9 +547,9 @@ public class ConflictGraph {
                 WaitingElement newElement = new WaitingElement();
                 newElement.setQueueID(seseLock.getID());
                 newElement.setStatus(seseLock.getNodeType(node));
+                newElement.setTempDesc(node.getVar());
                 if (isFineElement(newElement.getStatus())) {
-                  newElement.setDynID(node.getVar().toString());
-                  newElement.setTempDesc(node.getVar());
+                  newElement.setDynID(node.getVar().toString());                  
                 }
                 if (!waitingElementSet.contains(newElement)) {
                   waitingElementSet.add(newElement);
@@ -586,13 +586,11 @@ public class ConflictGraph {
       map.put(new Integer(waitingElement.getQueueID()), set);
     }
 
-    if(!state.RCR){
-      Set<Integer> keySet = map.keySet();
-      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-        Integer queueID = (Integer) iterator.next();
-        Set<WaitingElement> queueWEset = map.get(queueID);
-        refineQueue(queueID.intValue(), queueWEset, seseDS);
-      }
+    Set<Integer> keySet = map.keySet();
+    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+      Integer queueID = (Integer) iterator.next();
+      Set<WaitingElement> queueWEset = map.get(queueID);
+      refineQueue(queueID.intValue(), queueWEset, seseDS);
     }
     return seseDS;
   }
