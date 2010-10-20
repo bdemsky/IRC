@@ -85,6 +85,10 @@ public class OoOJavaAnalysis {
     return cp;
   }
 
+  public Set<FlatNode> getNodesWithPlans() {
+    return codePlans.keySet();
+  }
+
   public OoOJavaAnalysis(State state, TypeUtil typeUtil, CallGraph callGraph, Liveness liveness,
       ArrayReferencees arrayReferencees) {
 

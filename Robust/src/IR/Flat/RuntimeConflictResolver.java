@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
 import Analysis.Disjoint.*;
+import Analysis.MLP.CodePlan;
+import IR.Flat.*;
 import IR.TypeDescriptor;
 import Analysis.OoOJava.OoOJavaAnalysis;
 
@@ -110,6 +112,71 @@ public class RuntimeConflictResolver {
       }
       System.out.println("====================END  LIST====================");
     }
+  }
+
+  public void init() {
+    //Go through the SESE's
+    for(Iterator<FlatSESEEnterNode> seseit=oooa.getAllSESEs().iterator();seseit.hasNext();) {
+      FlatSESEEnterNode fsen=seseit.next();
+      Analysis.OoOJava.ConflictGraph conflictGraph;
+      Hashtable<Taint, Set<Effect>> conflicts;
+      System.out.println("-------");
+      System.out.println(fsen);
+      System.out.println(fsen.getIsCallerSESEplaceholder());
+      System.out.println(fsen.getParent());
+      
+      if (fsen.getParent()!=null) {
+	conflictGraph = oooa.getConflictGraph(fsen.getParent());
+	System.out.println("CG="+conflictGraph);
+	if (conflictGraph!=null)
+	  System.out.println("Conflicts="+conflictGraph.getConflictEffectSet(fsen));
+      }
+      
+      if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null && 
+	 (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null && 
+	 (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null) {
+	FlatMethod fm=fsen.getfmEnclosing();
+	ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
+	if(cSideDebug)
+	  rg.writeGraph("RCR_RG_SESE_DEBUG");
+	
+	addToTraverseToDoList(fsen, rg, conflicts);
+      }
+    }
+    //Go through the stall sites
+    for(Iterator<FlatNode> codeit=oooa.getNodesWithPlans().iterator();codeit.hasNext();) {
+      FlatNode fn=codeit.next();
+      CodePlan cp=oooa.getCodePlan(fn);
+      FlatSESEEnterNode currentSESE=cp.getCurrentSESE();
+      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
+
+      if(graph!=null){
+	Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
+	Set<Analysis.OoOJava.WaitingElement> waitingElementSet =
+	  graph.getStallSiteWaitingElementSet(fn, seseLockSet);
+	
+	if(waitingElementSet.size()>0){
+	  for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+	    Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
+            
+	    Analysis.OoOJava.ConflictGraph conflictGraph = graph;
+	    Hashtable<Taint, Set<Effect>> conflicts;
+	    ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(currentSESE.getmdEnclosing());
+	    if(cSideDebug) {
+	      rg.writeGraph("RCR_RG_STALLSITE_DEBUG");
+	    }
+	    if((conflictGraph != null) && 
+	       (conflicts = graph.getConflictEffectSet(fn)) != null &&
+	       (rg != null)){
+	      addToTraverseToDoList(fn, waitingElement.getTempDesc(), rg, conflicts);
+	    }
+	  }
+	}
+      }
+    }
+
+    buildEffectsLookupStructure();
+    runAllTraversals();
   }
   
   /*
@@ -243,9 +310,6 @@ public class RuntimeConflictResolver {
   }
 
   public void close() {
-    buildEffectsLookupStructure();
-    runAllTraverserals();
-    
     //prints out all generated code
     for(TaintAndInternalHeapStructure ths: pendingPrintout) {
       printCMethod(ths.nodesInHeap, ths.t);
@@ -278,7 +342,7 @@ public class RuntimeConflictResolver {
     enumerateHeaproots();
   }
 
-  private void runAllTraverserals() {
+  private void runAllTraversals() {
     for(TraversalInfo t: toTraverse) {
       printDebug(javaDebug, "Running Traversal a traversal on " + t.f);
       
@@ -320,12 +384,12 @@ public class RuntimeConflictResolver {
       Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
       for(int i=0;i<invars.size();i++) {
 	TempDescriptor tmp=invars.get(i);
-	cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", record", fsen));
+	cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
       }
       cFile.println(    "    }");
       cFile.println(    "    break;");
     }
-
+    
     cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in.\\n\");\n    break;");
     
     cFile.println("  }");
@@ -343,7 +407,7 @@ public class RuntimeConflictResolver {
     for(Taint t: doneTaints.keySet()) {
       cFile.println("  case " + doneTaints.get(t)+ ":");
       if(t.isRBlockTaint()) {
-        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getSESE()));
+        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, ("+t.getSESE().getSESErecordName()+" *)record", t.getSESE()));
       } else if (t.isStallSiteTaint()){
         cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getStallSite()));
       } else {
@@ -563,8 +627,8 @@ public class RuntimeConflictResolver {
    */
   
   private void printCMethod(Hashtable<AllocSite, ConcreteRuntimeObjNode> created, Taint taint) {
-    //This hash table keeps track of all the case statements generated. Although it may seem a bit much
-    //for its purpose, I think it may come in handy later down the road to do it this way. 
+    //This hash table keeps track of all the case statements generated. Although it may seem a bit much 
+   //for its purpose, I think it may come in handy later down the road to do it this way. 
     //(i.e. what if we want to eliminate some cases? Or build filter for 1 case)
     String inVar = taint.getVar().getSafeSymbol();
     String rBlock;
@@ -584,15 +648,20 @@ public class RuntimeConflictResolver {
     for (ConcreteRuntimeObjNode node : created.values()) {
       printDebug(javaDebug, "Considering " + node.allocSite + " for traversal");
       if (!cases.containsKey(node.allocSite) && qualifiesForCaseStatement(node)) {
-
         printDebug(javaDebug, "+\t" + node.allocSite + " qualified for case statement");
         addChecker(taint, node, cases, null, "ptr", 0);
       }
     }
     //IMPORTANT: remember to change getTraverserInvocation if you change the line below
-    String methodName = "void traverse___" + removeInvalidChars(inVar) + 
-                        removeInvalidChars(rBlock) + "___(void * InVar, SESEcommon *record)";
-    
+    String methodName;
+    if (taint.isStallSiteTaint()) {
+      methodName= "void traverse___" + removeInvalidChars(inVar) + 
+	removeInvalidChars(rBlock) + "___(void * InVar, SESEcommon *record)";
+    } else {
+      methodName= "void traverse___" + removeInvalidChars(inVar) + 
+	removeInvalidChars(rBlock) + "___(void * InVar, "+taint.getSESE().getSESErecordName() +" *record)";
+    }
+
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
     
@@ -602,14 +671,12 @@ public class RuntimeConflictResolver {
     
     if(cases.size() == 0) {
       cFile.println(" return; }");
-    } 
-    else {
+    } else {
       //clears queue and hashtable that keeps track of where we've been. 
       cFile.println(clearQueue + ";\n" + resetVisitedHashTable + ";"); 
       
       //Casts the ptr to a genericObjectStruct so we can get to the ptr->allocsite field. 
-      cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable
-          + "(ptr);\n do {");
+      cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable + "(ptr);\n do {");
       
       cFile.println("  switch(ptr->allocsite) {");
       
@@ -682,13 +749,13 @@ public class RuntimeConflictResolver {
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", record, "+index+")");
+      currCase.append("    rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+")");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", record, "+index+")");
+      currCase.append("    rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+")");
     }
 
     if(objConfRead) {

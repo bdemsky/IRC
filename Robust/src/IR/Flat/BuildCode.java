@@ -219,6 +219,9 @@ public class BuildCode {
       outmethodheader.println("#include \"psemaphore.h\"");
       outmethodheader.println("#include \"memPool.h\"");
 
+      if (state.RCR) 
+	outmethodheader.println("#include \"rcr_runtime.h\"");
+
       // spit out a global to inform all worker threads with
       // the maximum size is for any task record
       outmethodheader.println("extern int "+maxTaskRecSizeStr+";");
@@ -290,40 +293,12 @@ public class BuildCode {
         } catch (FileNotFoundException e) {
           System.out.println("Runtime Conflict Resolver could not create output file.");
         }
+	rcr.init();
       }
       
       while(seseit.hasNext()){
         FlatSESEEnterNode fsen = seseit.next();
         initializeSESE( fsen );
-        
-        //this code will culminate all conflicts into one master hashtable. 
-        if(state.RCR && rcr != null) {
-          Analysis.OoOJava.ConflictGraph conflictGraph;
-          Hashtable<Taint, Set<Effect>> conflicts;
-
-	  System.out.println("-------");
-	  System.out.println(fsen);
-	  System.out.println(fsen.getIsCallerSESEplaceholder());
-	  System.out.println(fsen.getParent());
-	  
-	  if (fsen.getParent()!=null) {
-	    conflictGraph = oooa.getConflictGraph(fsen.getParent());
-	    System.out.println("CG="+conflictGraph);
-	    if (conflictGraph!=null)
-	      System.out.println("Conflicts="+conflictGraph.getConflictEffectSet(fsen));
-	  }
-          
-          if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()!=null && 
-            (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null && 
-            (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null) {
-            FlatMethod fm=fsen.getfmEnclosing();
-            ReachGraph rg=oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
-            if(rcr.cSideDebug)
-              rg.writeGraph("RCR_RG_SESE_DEBUG");
-            
-            rcr.addToTraverseToDoList(fsen, rg, conflicts);
-          }
-        }
       }
     }
 
@@ -693,6 +668,10 @@ public class BuildCode {
       outstructs.println("#include \"mlp_runtime.h\"");
       outstructs.println("#include \"psemaphore.h\"");
     }
+    if (state.RCR) {
+      outstructs.println("#include \"rcr_runtime.h\"");
+    }
+
 
     /* Output #defines that the runtime uses to determine type
      * numbers for various objects it needs */
@@ -3125,22 +3104,7 @@ public class BuildCode {
           
               for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
                 Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
-                
-                if(state.RCR) {
-                  Analysis.OoOJava.ConflictGraph conflictGraph = graph;
-                  Hashtable<Taint, Set<Effect>> conflicts;
-                  ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(currentSESE.getmdEnclosing());
-                  if(rcr.cSideDebug) {
-                    rg.writeGraph("RCR_RG_STALLSITE_DEBUG");
-                  }
-                  if((conflictGraph != null) && 
-                      (conflicts = graph.getConflictEffectSet(fn)) != null &&
-                      (rg != null)){
-                    rcr.addToTraverseToDoList(fn, waitingElement.getTempDesc(), rg, conflicts);
-                   }
-                }
-               
-                if( waitingElement.getStatus() >= ConflictNode.COARSE ){
+		if( waitingElement.getStatus() >= ConflictNode.COARSE ){
                   output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", runningSESE);");
                 }else{
                   output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
@@ -4273,7 +4237,7 @@ public class BuildCode {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
 	  int numqueues=weset.size();
-	  output.println("      seseToIssue->rcrRecords["+i+"]="+numqueues+";");
+	  output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
 	  output.println("      dispCount=0;");
 	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
 	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
@@ -4285,7 +4249,7 @@ public class BuildCode {
 	    output.println("          dispCount++;");
 	    output.println("       }");
 	  }
-	  output.println("     if(!dispCount || !atomic_sub_and_test(dispCount,&(seseToIssue->rcrRecords["+i+"])))");
+	  output.println("     if(!dispCount || !atomic_sub_and_test(dispCount,&(seseToIssue->rcrRecords["+i+"].flag)))");
 	  output.println("       localCount++;");
 	  if (fsen.getDynamicInVarSet().contains(td)) {
 	    // dynamic in-var case
