@@ -566,8 +566,7 @@ public class ConflictGraph {
 
     // handle the case that multiple enqueues by an SESE for different live-in
     // into the same queue
-    return refineQueue(waitingElementSet);
-    // return waitingElementSet;
+     return refineQueue(waitingElementSet);  
 
   }
 
@@ -587,13 +586,14 @@ public class ConflictGraph {
       map.put(new Integer(waitingElement.getQueueID()), set);
     }
 
-    Set<Integer> keySet = map.keySet();
-    for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
-      Integer queueID = (Integer) iterator.next();
-      Set<WaitingElement> queueWEset = map.get(queueID);
-      refineQueue(queueID.intValue(), queueWEset, seseDS);
+    if(!state.RCR){
+      Set<Integer> keySet = map.keySet();
+      for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
+        Integer queueID = (Integer) iterator.next();
+        Set<WaitingElement> queueWEset = map.get(queueID);
+        refineQueue(queueID.intValue(), queueWEset, seseDS);
+      }
     }
-
     return seseDS;
   }
 
