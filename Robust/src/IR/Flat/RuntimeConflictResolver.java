@@ -675,7 +675,7 @@ public class RuntimeConflictResolver {
       //clears queue and hashtable that keeps track of where we've been. 
       cFile.println(clearQueue + ";\n" + resetVisitedHashTable + ";"); 
       
-      //Casts the ptr to a genericObjectStruct so we can get to the ptr->allocsite field. 
+      //Casts the ptr to a generic object struct so we can get to the ptr->allocsite field. 
       cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable + "(ptr);\n do {");
       
       cFile.println("  switch(ptr->allocsite) {");
@@ -775,13 +775,23 @@ public class RuntimeConflictResolver {
       //since each array element will get its own case statement, we just need to enqueue each item into the queue
       //note that the ref would be the actual object and node would be of struct ArrayObject
       
-      //This is done with the assumption that an array of object stores pointers. 
-      currCase.append("{\n  int i;\n");
-      currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
-      currCase.append("    void * arrayElement = ((INTPTR *)(&(((struct ArrayObject *) " + prefix + " )->___length___) + sizeof(int)))[i];\n");
-      currCase.append("    if( arrayElement != NULL && "+ queryVistedHashtable +"(arrayElement)) {\n");
-      currCase.append("      " + addToQueueInC + "arrayElement); }}}\n");
-      
+      ArrayList<Integer> allocSitesWithProblems = node.getReferencedAllocSites();
+      if(!allocSitesWithProblems.isEmpty()) {
+        //This is done with the assumption that an array of object stores pointers. 
+        currCase.append("{\n  int i;\n");
+        currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
+        currCase.append("    struct ___Object___ * arrayElement = ((INTPTR *)(&(((struct ArrayObject *) " + prefix + " )->___length___) + sizeof(int)))[i];\n");
+        currCase.append("    if( arrayElement != NULL && (");
+        
+        for(Integer i: allocSitesWithProblems) {
+          currCase.append("( arrayElement->allocsite == " + i.toString() +") ||");
+        }
+        //gets rid of the last ||
+        currCase.delete(currCase.length()-3, currCase.length());
+        
+        currCase.append(") && "+queryVistedHashtable +"(arrayElement)) {\n");
+        currCase.append("      " + addToQueueInC + "arrayElement); }}}\n");
+      }
     } else {
     //All other cases
       for(ObjRef ref: node.objectRefs) {     
@@ -1228,6 +1238,18 @@ public class RuntimeConflictResolver {
     
     public boolean canBeArrayElement() {
       return isArrayElement;
+    }
+    
+    public ArrayList<Integer> getReferencedAllocSites() {
+      ArrayList<Integer> list = new ArrayList<Integer>();
+      
+      for(ObjRef r: objectRefs) {
+        if(r.hasDirectObjConflict() || (r.child.parentsWithReadToNode.contains(this) && r.hasConflictsDownThisPath())) {
+          list.add(r.allocSite);
+        }
+      }
+      
+      return list;
     }
     
     public String toString() {
