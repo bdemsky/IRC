@@ -33,7 +33,7 @@ public class ConflictGraph {
   public static final int NON_WRITE_CONFLICT = 0;
   public static final int FINE_GRAIN_EDGE = 1;
   public static final int COARSE_GRAIN_EDGE = 2;
-  public static final int CONFLICT = 3;
+ 
   State state;
 
   public ConflictGraph(State state) {
@@ -321,7 +321,7 @@ public class ConflictGraph {
                   conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                 }
               } else {
-                return ConflictGraph.CONFLICT;
+                return ConflictGraph.COARSE_GRAIN_EDGE;
               }
 
             }
@@ -356,7 +356,7 @@ public class ConflictGraph {
                   conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                 }
               } else {
-                return ConflictGraph.CONFLICT;
+                return ConflictGraph.COARSE_GRAIN_EDGE;
               }
             }
 
@@ -432,7 +432,7 @@ public class ConflictGraph {
 		    addCoarseEffect(nodeB, asB, effectB);
 		  }
 		}
-                return ConflictGraph.CONFLICT;
+                return ConflictGraph.COARSE_GRAIN_EDGE;
               }
             }
           }
