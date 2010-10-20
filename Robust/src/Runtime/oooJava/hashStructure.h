@@ -19,9 +19,11 @@
 #define BINMASK 1
 #define PARENTBIN 1
 
+#define SPECREADY 3
 #define SPECNOTREADY 2
 #define READY 1
 #define NOTREADY 0
+#define READYMASK 1
 
 #define TRUE 1
 #define FALSE 0

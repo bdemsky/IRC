@@ -12,5 +12,6 @@ struct rcrRecord {
   int index;
   int flag;
   int array[RCRSIZE];
+  struct rcrRecord *next;
 };
 #endif

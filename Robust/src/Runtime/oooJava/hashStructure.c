@@ -46,6 +46,8 @@ inline int rcr_generateKey(void * ptr){
   return (((struct ___Object___ *) ptr)->oid)&RH_MASK;
 }
 
+//consider SPEC flag
+
 int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
@@ -88,9 +90,9 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
       if (!(bit & td->bitindexwr)) {
 	td->bitindexwr|=bit;
 	td->bitindexrd|=bit;
-	return (bintail->status==READY)?READY:SPECNOTREADY;
+	return (bintail->status==READY)?SPECREADY:SPECNOTREADY;
       } else
-	return READY;
+	return SPECREADY;
     }
   } else {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];

@@ -729,11 +729,12 @@ public class RuntimeConflictResolver {
       objConfRead|=effect.hasReadConflict;
       objConfWrite|=effect.hasWriteConflict;
     }
-  
+    currCase.append("     int tmpvar;");
+
     if (objConfRead) {
       currCase.append("    if(");
       checkWaitingQueue(currCase, taint,  node);
-      currCase.append("||");
+      currCase.append("||!");
     }
 
     int index=-1;
@@ -749,17 +750,17 @@ public class RuntimeConflictResolver {
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+")");
+      currCase.append("    (tmpvar=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+"))");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+")");
+      currCase.append("    (tmpvar=rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+"))");
     }
 
     if(objConfRead) {
-      currCase.append(") {\n");
+      currCase.append("&READYMASK) {\n");
       putIntoWaitingQueue(currCase, taint, node, prefix);        
       currCase.append("    break;\n");
       currCase.append("    }\n");
