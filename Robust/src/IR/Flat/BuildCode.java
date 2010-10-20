@@ -4262,11 +4262,10 @@ public class BuildCode {
     }
   }
 
-  public void generateFlatSESEExitNode( FlatMethod fm,  
-					LocalityBinding lb, 
-					FlatSESEExitNode fsexn, 
-					PrintWriter output
-				      ) {
+  public void generateFlatSESEExitNode( FlatMethod fm,
+					LocalityBinding lb,
+					FlatSESEExitNode fsexn,
+					PrintWriter output) {
 
     // if MLP flag is off, okay that SESE nodes are in IR graph, 
     // just skip over them and code generates exactly the same 

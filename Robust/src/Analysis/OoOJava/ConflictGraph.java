@@ -585,13 +585,14 @@ public class ConflictGraph {
       set.add(waitingElement);
       map.put(new Integer(waitingElement.getQueueID()), set);
     }
-
+    
     Set<Integer> keySet = map.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Integer queueID = (Integer) iterator.next();
       Set<WaitingElement> queueWEset = map.get(queueID);
       refineQueue(queueID.intValue(), queueWEset, seseDS);
     }
+
     return seseDS;
   }
 

@@ -114,7 +114,7 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
   bitvt bit=1<<index;
   if (wrmask&bit) {
     //count already includes this
-    status=READY;
+    status=SPECREADY;
   }
   b->bitindexwr=bit|wrmask;
   b->bitindexrd=bit|rdmask;
@@ -128,7 +128,10 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
       if (val==((BinItem_rcr *)b)) {
 	b->item.status=READY;
 	be->head=val;
-	return READY;
+	if (status&SPEC)
+	  return SPECREADY;
+	else
+	  return READY;
       }
       val=val->next;
     }
@@ -181,10 +184,9 @@ int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index) {
       if (!(td->bitindexrd & bit)) {
 	td->bitindexrd|=bit;
 	td->bitindexwr|=bit;
-	if (status==NOTREADY)
-	  status=SPECNOTREADY;
+	status=status|SPEC;
       } else 
-	status=READY;
+	status=SPECREADY;
       be->head=val;
       return status;
     }
@@ -196,10 +198,9 @@ int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index) {
       int status=bintail->status;
       if (!(td->bitindex & bit)) {
 	td->bitindex|=bit;
-	if (status==NOTREADY)
-	  status=SPECNOTREADY;
+	status=status|SPEC;
       } else 
-	status=READY;
+	status=SPECREADY;
       be->head=val;
       return status;
     }

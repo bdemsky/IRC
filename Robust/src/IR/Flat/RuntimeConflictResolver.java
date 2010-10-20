@@ -804,13 +804,12 @@ public class RuntimeConflictResolver {
           String structType = ref.child.original.getType().getSafeSymbol();
           currCase.append("    struct " + structType + " * "+currPtr+"= (struct "+ structType + " * ) " + childPtr + ";\n");
   
-  
           // Checks if the child exists and has allocsite matching the conflict
           currCase.append("    if (" + currPtr + " != NULL && " + currPtr + getAllocSiteInC + "==" + ref.allocSite + ") {\n");
   
           if (ref.child.decendantsConflict() || ref.child.hasPrimitiveConflicts()) {
             // Checks if we have visited the child before
-  
+
             currCase.append("    if (" + queryVistedHashtable +"("+ currPtr + ")) {\n");
             if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
               addChecker(taint, ref.child, cases, currCase, currPtr, depth + 1);
@@ -818,14 +817,12 @@ public class RuntimeConflictResolver {
             else {
               currCase.append("      " + addToQueueInC + childPtr + ");\n ");
             }
-            
             currCase.append("    }\n");
           }
           //one more brace for the opening if
           if(ref.hasDirectObjConflict()) {
             currCase.append("   }\n");
           }
-          
           currCase.append("  }\n ");
         }
       }

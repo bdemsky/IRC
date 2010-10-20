@@ -19,11 +19,13 @@
 #define BINMASK 1
 #define PARENTBIN 1
 
-#define SPECREADY 3
-#define SPECNOTREADY 2
-#define READY 1
-#define NOTREADY 0
+#define SPEC 2
+#define READY 1          //Item is ready and we haven't seen this bin before
+#define NOTREADY 0       //Item is not ready and we haven't seen this bin before
+#define SPECREADY (SPEC|READY)      //Item is ready and we've seen this bin before
+#define SPECNOTREADY (SPEC|NOTREADY)   //Item is not ready and we've seen this bin before
 #define READYMASK 1
+
 
 #define TRUE 1
 #define FALSE 0
