@@ -320,7 +320,7 @@ public class RuntimeConflictResolver {
       Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
       for(int i=0;i<invars.size();i++) {
 	TempDescriptor tmp=invars.get(i);
-	cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp, fsen));
+	cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", record", fsen));
       }
       cFile.println(    "    }");
       cFile.println(    "    break;");
@@ -336,16 +336,16 @@ public class RuntimeConflictResolver {
   //This will print the traverser invocation that takes in a traverserID and 
   //starting ptr
   private void printResumeTraverserInvocation() {
-    headerFile.println("\nint traverse(void * startingPtr, int traverserID);");
-    cFile.println("\nint traverse(void * startingPtr, int traverserID) {");
+    headerFile.println("\nint traverse(void * startingPtr, SESEcommon * record, int traverserID);");
+    cFile.println("\nint traverse(void * startingPtr, SESEcommon *record, int traverserID) {");
     cFile.println(" switch(traverserID) {");
     
     for(Taint t: doneTaints.keySet()) {
       cFile.println("  case " + doneTaints.get(t)+ ":");
       if(t.isRBlockTaint()) {
-        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getSESE()));
+        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getSESE()));
       } else if (t.isStallSiteTaint()){
-        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr", t.getStallSite()));
+        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getStallSite()));
       } else {
         System.out.println("RuntimeConflictResolver encountered a taint that is neither SESE nor stallsite: " + t);
       }
@@ -591,7 +591,7 @@ public class RuntimeConflictResolver {
     }
     //IMPORTANT: remember to change getTraverserInvocation if you change the line below
     String methodName = "void traverse___" + removeInvalidChars(inVar) + 
-                        removeInvalidChars(rBlock) + "___(void * InVar)";
+                        removeInvalidChars(rBlock) + "___(void * InVar, SESEcommon *record)";
     
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
@@ -608,7 +608,7 @@ public class RuntimeConflictResolver {
       cFile.println(clearQueue + ";\n" + resetVisitedHashTable + ";"); 
       
       //Casts the ptr to a genericObjectStruct so we can get to the ptr->allocsite field. 
-      cFile.println("struct genericObjectStruct * ptr = (struct genericObjectStruct *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable
+      cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable
           + "(ptr);\n do {");
       
       cFile.println("  switch(ptr->allocsite) {");
@@ -675,13 +675,13 @@ public class RuntimeConflictResolver {
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+","+traverserID+",NULL,NULL)");
+      currCase.append("    rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", record, -1"+")");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+","+traverserID+",NULL,NULL)");
+      currCase.append("    rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", record, -1"+")");
     }
 
     if(objConfRead) {

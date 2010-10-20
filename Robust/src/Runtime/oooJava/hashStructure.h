@@ -53,14 +53,14 @@ typedef struct Hashtable_rcr {
 //Todo this is a clone of REntry, remove data fields as necessary
 typedef struct Entry_rcr {
   SESEcommon * task;
-  bitv bitindex;
+  bitvt bitindex;
 } TraverserData;
 
 typedef struct WriteBinItem_rcr {
   BinItem_rcr item;
   SESEcommon * task;
-  bitv bitindexwr;
-  bitv bitindexrd;
+  bitvt bitindexwr;
+  bitvt bitindexrd;
 } WriteBinItem_rcr;
 
 typedef struct ReadBinItem_rcr {
@@ -83,9 +83,9 @@ inline int rcr_generateKey(void * ptr);
 //Method signatures are not in their final form since I have still not decided what is the optimum amount of data
 //to store in each entry.
 
-int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, void *heaproot);
-int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, void *heaproot);
-int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, void *heaproot);
-void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, void *heaproot);
+int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index);
+int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index);
+int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);
+void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);
 
 #endif

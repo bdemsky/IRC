@@ -2,6 +2,7 @@
 //#include "WaitingQueue.h"
 #include "mlp_lock.h"
 #include "mem.h"
+#include "classdefs.h"
 
 //NOTE: this is only temporary (for testing) and will be removed in favor of thread local variables
 //It's basically an array of hashStructures so we can simulate what would happen in a many-threaded version
@@ -10,6 +11,8 @@ HashStructure ** allHashStructures;
 #define ISREADBIN(x) (!(x&BINMASK))
 //#define POPCOUNT(x) __builtin_popcountll(x)
 //__builtin_popcountll
+#define RESOLVE(x) 
+
 
 //NOTE: only temporary
 void rcr_createMasterHashTableArray(int maxSize){
@@ -58,13 +61,13 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
 
   if (val==NULL) {
     BinItem_rcr * b=(BinItem_rcr*)rcr_createWriteBinItem();
-    TraverserData * td = &((WriteBinItem_rcr*)b)->val;
+    WriteBinItem_rcr * td = (WriteBinItem_rcr*)b;
     b->total=1;
     b->status=READY;
     
     //common to both types
     td->task=task;
-    td->bitindex=1<<index;
+    td->bitindexrd=td->bitindexwr=1<<index;
     be->tail=b;
     
     //release lock
@@ -73,7 +76,7 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
   }
 
   BinItem_rcr *bintail=be->tail;
-  bitv rdmask=0,wrmask=0;
+  bitvt rdmask=0,wrmask=0;
   int status=NOTREADY;
 
   if (ISWRITEBIN(bintail->type)) {
@@ -81,7 +84,7 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
     //last one is to check for SESE blocks in a while loop.
     if(unlikely(td->task == task)) {
       be->head=val;
-      bitv bit=1<<index;
+      bitvt bit=1<<index;
       if (!(bit & td->bitindexwr)) {
 	td->bitindexwr|=bit;
 	td->bitindexrd|=bit;
@@ -95,7 +98,7 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
       //if it matches, then we remove it and the code below will upgrade it to a write.
       ((ReadBinItem_rcr *)bintail)->index--;
       atomic_dec(&bintail->total);
-      rdmask=tr->bitindex;
+      rdmask=td->bitindex;
       if (bintail->status!=READY)
 	wrmask=rdmask;
       status=SPECNOTREADY;
@@ -106,7 +109,7 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
   b->item.total=1;
   b->task=task;
 
-  bitv bit=1<<index;
+  bitvt bit=1<<index;
   if (wrmask&bit) {
     //count already includes this
     status=READY;
@@ -120,7 +123,7 @@ int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
   if (bintail->status==READY&&bintail->total==0) {
     //we may have to set write as ready
     while(val->total==0) {
-      if (val==b) {
+      if (val==((BinItem_rcr *)b)) {
 	b->item.status=READY;
 	be->head=val;
 	return READY;
@@ -168,16 +171,16 @@ int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index) {
 
   //check if already added item or not.
   if (ISWRITEBIN(bintail->type)) {
-    WriteBinItem_rcr td = (WriteBinItem_rcr *)bintail;
+    WriteBinItem_rcr * td = (WriteBinItem_rcr *)bintail;
     if(unlikely(td->task==task)) {
       //RELEASE LOCK
-      bitv bit=1<<index;
+      bitvt bit=1<<index;
       int status=bintail->status;
       if (!(td->bitindexrd & bit)) {
 	td->bitindexrd|=bit;
 	td->bitindexwr|=bit;
 	if (status==NOTREADY)
-	  status=SNOTREADY;
+	  status=SPECNOTREADY;
       } else 
 	status=READY;
       be->head=val;
@@ -187,12 +190,12 @@ int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index) {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
     if (unlikely(td->task==task)) {
       //RELEASE LOCK
-      bitv bit=1<<index;
+      bitvt bit=1<<index;
       int status=bintail->status;
       if (!(td->bitindex & bit)) {
 	td->bitindex|=bit;
 	if (status==NOTREADY)
-	  status=SNOTREADY;
+	  status=SPECNOTREADY;
       } else 
 	status=READY;
       be->head=val;
@@ -247,7 +250,6 @@ void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rc
   rb->item.total=1;
   rb->item.status=NOTREADY;
 
-  td->binitem = (BinItem_rcr *) rb;
   td->task=task;
   td->bitindex=1<<index;
 
@@ -256,8 +258,8 @@ void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rc
   T->array[key].head=val;//released lock
 }
 
-RETIREHASHTABLE(HashStructure *T, SESECommon *task, int key) {
-  BinElement_rcr * be = &(T->array[key]);  
+rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
+  BinElement_rcr * be = &(T->array[key]);
   BinItem_rcr *b=be->head;
 
   if(ISREADBIN(READBIN)) {
@@ -285,7 +287,7 @@ RETIREHASHTABLE(HashStructure *T, SESECommon *task, int key) {
 	  ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)ptr;
 	  for (i=0;i<rptr->index;i++) {
 	    RESOLVE(rptr->array[i]);
-            if (((INTPTR)rptr->array[i]->task)&PARENTBIN) {
+            if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
               //parents go immediately
               atomic_dec(&rptr->item.total);
             }
@@ -306,7 +308,7 @@ RETIREHASHTABLE(HashStructure *T, SESECommon *task, int key) {
           break;
 	if(ptr->status==NOTREADY) {
 	  WriteBinItem_rcr* wptr=(WriteBinItem_rcr*)ptr;
-	  RESOLVE(wptr->val);
+	  RESOLVE(wptr);
 	  ptr->status=READY;
 	  if(((INTPTR)wptr->task)&PARENTBIN) {
 	    val=val->next;
