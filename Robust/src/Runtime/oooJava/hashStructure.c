@@ -3,6 +3,7 @@
 #include "mlp_lock.h"
 #include "mem.h"
 #include "classdefs.h"
+#include "rcr_runtime.h"
 
 //NOTE: this is only temporary (for testing) and will be removed in favor of thread local variables
 //It's basically an array of hashStructures so we can simulate what would happen in a many-threaded version
@@ -11,7 +12,6 @@ HashStructure ** allHashStructures;
 #define ISREADBIN(x) (!(x&BINMASK))
 //#define POPCOUNT(x) __builtin_popcountll(x)
 //__builtin_popcountll
-#define RESOLVE(x) 
 
 
 //NOTE: only temporary
@@ -288,7 +288,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
 	if (ptr->status==NOTREADY) {
 	  ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)ptr;
 	  for (i=0;i<rptr->index;i++) {
-	    TaskDescriptor * td=&rptr->array[i];
+	    TraverserData * td=&rptr->array[i];
 	    RESOLVE(td->task, td->bitindex);
             if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
               //parents go immediately
@@ -329,14 +329,14 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
 
 void RESOLVE(SESEcommon *record, bitvt mask) {
   int index=-1;
-  struct rcrRecord * array=(struct rcrRecord *)(((char *)record)+record->common.offsetToParamRecords);
+  struct rcrRecord * array=(struct rcrRecord *)(((char *)record)+record->offsetToParamRecords);
   while(mask!=0) {
     int shift=__builtin_ctzll(mask)+1;
     index+=shift;
     if (atomic_sub_and_test(1,&array[index].count)) {
-      inf flag=LOCKXCHG(&array[index].flag,0);
+      int flag=LOCKXCHG32(&array[index].flag,0);
       if (flag) {
-	if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) 
+	if(atomic_sub_and_test(1, &(record->unresolvedDependencies))) 
 	  workScheduleSubmit((void *)record);
       }
     }

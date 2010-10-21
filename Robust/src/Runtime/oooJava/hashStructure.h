@@ -83,6 +83,7 @@ inline int rcr_generateKey(void * ptr);
 //Method signatures are not in their final form since I have still not decided what is the optimum amount of data
 //to store in each entry.
 
+void RESOLVE(SESEcommon *record, bitvt mask);
 int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index);
 int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index);
 int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);

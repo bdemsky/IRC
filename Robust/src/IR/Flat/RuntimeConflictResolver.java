@@ -674,6 +674,7 @@ public class RuntimeConflictResolver {
       //need to add this
     } else {
       cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
+      cFile.println("    record->rcrRecords["+index+"].index=0;\n");
     }
     
     if(cSideDebug) {
@@ -701,7 +702,7 @@ public class RuntimeConflictResolver {
       //need to add this
     } else {
       cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");
-      cFile.println("        int flag=LOCKXCHG(&(record->rcrRecords["+index+"].flag),0);");
+      cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");
       cFile.println("        if(flag) {");
       //we have resolved a heap root...see if this was the last dependence
       cFile.println("            if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) workScheduleSubmit((void *)record);");
@@ -767,24 +768,27 @@ public class RuntimeConflictResolver {
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
       if (objConfRead)
-	currCase.append("    int tmpvar=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
       else
-	currCase.append("    int tmpvar=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
       if (objConfRead) 
-	currCase.append("    int tmpvar=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
       else
-	currCase.append("    int tmpvar=rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
     }
 
-    currCase.append("if (!(tmpvar&READYMASK)) totalcount--;\n");
-    currCase.append("if (!(tmpvar&SPEC)) ; //add record\n");
-    
-    //Conflicts
+    if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
+      currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
+      currCase.append("if (!(tmpvar"+depth+"&SPEC)) {\n");
+      currCase.append("  struct rcrRecord * rcrrec=&record->rcrRecords["+index+"];");
+      currCase.append("  rcrrec->array[rcrrec->index++];");
+      currCase.append("}\n");
+    }
     
     //Array Case
     if(node.isObjectArray() && node.decendantsConflict()) {
