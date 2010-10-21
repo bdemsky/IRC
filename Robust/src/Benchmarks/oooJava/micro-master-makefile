@@ -14,20 +14,20 @@ SOURCE_FILES=test.java
 BUILDSCRIPT=../../../buildscript
 
 
-COREPROFOVERFLOW= #-coreprof-checkoverflow
+COREPROFOVERFLOW= -coreprof-checkoverflow
 USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*512 \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_runmalloc \
 	-coreprof-enable cpe_taskexecute \
 	-coreprof-enable cpe_taskdispatch \
-	-coreprof-enable cpe_poolalloc
+	-coreprof-enable cpe_poolalloc \
+	-coreprof-enable cpe_taskretire \
+	-coreprof-enable cpe_workschedgrab
 #	-coreprof-enable cpe_preparememq
 #	-coreprof-enable cpe_runfree \
 #	-coreprof-enable cpe_count_poolalloc \
 #	-coreprof-enable cpe_count_poolreuse \
-#	-coreprof-enable cpe_workschedgrab \
-#	-coreprof-enable cpe_taskretire \
 #	-coreprof-enable cpe_taskstallvar \
 #	-coreprof-enable cpe_taskstallmem
 

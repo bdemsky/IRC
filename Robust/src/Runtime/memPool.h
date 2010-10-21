@@ -19,14 +19,10 @@
 //////////////////////////////////////////////////////////
 
 #include <stdlib.h>
+#include "runtime.h"
 #include "mem.h"
 #include "mlp_lock.h"
 
-
-// The cache line size is set for the AMD Opteron 6168 (dc-10)
-// that has L1 and L2 cache line sizes of 64 bytes.  Source:
-// http://www.cs.virginia.edu/~skadron/cs451/opteron/opteron.ppt
-#define CACHELINESIZE 64
 
 
 typedef struct MemPoolItem_t {
@@ -113,7 +109,7 @@ static inline void* poolalloc( MemPool* p ) {
 
   if(next == NULL) {
     // only one item, so don't take from pool
-    return RUNMALLOC( p->itemSize );
+    return (void*) RUNMALLOC( p->itemSize );
   }
  
   p->head = next;
@@ -132,7 +128,7 @@ static inline void* poolalloc( MemPool* p ) {
   //__builtin_prefetch( &(p->head->next) );
   asm volatile( "prefetcht0 (%0)" :: "r" (next));
 
-  return headCurrent;
+  return (void*)headCurrent;
 }
 
 

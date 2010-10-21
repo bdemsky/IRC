@@ -28,6 +28,13 @@ void set_affinity();
 #endif
 #endif
 
+#ifndef CACHELINESIZE
+// The L1 and L2 cache line size for the
+// AMD Opteron 6168 (dc-10) is 64 bytes.  Source:
+// http://www.cs.virginia.edu/~skadron/cs451/opteron/opteron.ppt
+#define CACHELINESIZE 64
+#endif
+
 extern void * curr_heapbase;
 extern void * curr_heaptop;
 

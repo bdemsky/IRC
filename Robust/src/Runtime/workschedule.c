@@ -19,6 +19,9 @@
 
 
 
+
+
+
 // for convenience
 typedef struct Queue deq;
 
@@ -71,7 +74,11 @@ void* workerMain( void* arg ) {
   WorkerData* myData = (WorkerData*) arg;
   int         oldState;
   int         haveWork;
-  struct garbagelist emptygarbagelist={0,NULL};
+
+  // the worker threads really have no context relevant to the
+  // user program, so build an empty garbage list struct to
+  // pass to the collector if collection occurs
+  struct garbagelist emptygarbagelist = { 0, NULL };
 
   // once-per-thread stuff
   CP_CREATE();
@@ -92,86 +99,101 @@ void* workerMain( void* arg ) {
   //allocate task record queue
   pthread_t thread;
   pthread_attr_t nattr;  
-  pthread_attr_init(&nattr);
-  pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
-  if (TRqueue==NULL)
-    TRqueue=allocTR();
+  pthread_attr_init( &nattr );
+  pthread_attr_setdetachstate( &nattr, PTHREAD_CREATE_DETACHED );
+
+  if( TRqueue == NULL ) {
+    TRqueue = allocTR();
+  }
+
   int status = pthread_create( &thread,
 			       NULL,
 			       workerTR,
-			       (void*) TRqueue);
-  pthread_attr_destroy(&nattr);
+			       (void*) TRqueue );
+
+  pthread_attr_destroy( &nattr );
+
   if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
 #endif
+
 
   //pthread_setcanceltype ( PTHREAD_CANCEL_ASYNCHRONOUS, &oldState );
   //pthread_setcancelstate( PTHREAD_CANCEL_ENABLE,       &oldState );
 
-  // then continue to process work
-  //NOTE: ADD US TO THE GC LIST
-  
-  pthread_mutex_lock(&gclistlock);
+
+  // Add this worker to the gc list
+  pthread_mutex_lock( &gclistlock );
   threadcount++;
-  litem.prev=NULL;
-  litem.next=list;
-  if(list!=NULL)
-    list->prev=&litem;
-  list=&litem;
-  pthread_mutex_unlock(&gclistlock);
+  litem.prev = NULL;
+  litem.next = list;
+  if( list != NULL ) 
+    list->prev = &litem;
+  list = &litem;
+  pthread_mutex_unlock( &gclistlock );
 
 
-  //ALSO CREATE EMPTY GARBAGELIST TO PASS TO COLLECTOR
-
+  // then continue to process work
   while( 1 ) {
 
     // wait for work
 #ifdef CP_EVENTID_WORKSCHEDGRAB
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
 #endif
+
     haveWork = FALSE;
     while( !haveWork ) {
+
       //NOTE...Fix these things...
       pthread_mutex_lock( &systemLockOut );
       if( headqi->next == NULL ) {
         pthread_mutex_unlock( &systemLockOut );
+
         //NOTE: Do a check to see if we need to collect..
-        if (unlikely(needtocollect)) checkcollect(&emptygarbagelist);
+        if( unlikely( needtocollect ) ) {
+          checkcollect( &emptygarbagelist );
+        }
+
         sched_yield();
         continue;
       } else {
         haveWork = TRUE;
       }
     }
-    struct QI * tmp=headqi;
-    headqi = headqi->next;
-    workUnit = headqi->value;
+
+    struct QI* tmp = headqi;
+    headqi         = headqi->next;
+    workUnit       = headqi->value;
     pthread_mutex_unlock( &systemLockOut );
     free( tmp );
+
 #ifdef CP_EVENTID_WORKSCHEDGRAB
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
 #endif
     
-    //let GC see current work
-    litem.seseCommon=(void*)workUnit;
+    // let GC see current work
+    litem.seseCommon = (void*)workUnit;
 
-    //unclear how useful this is
-    if (unlikely(needtocollect)) checkcollect(&emptygarbagelist);
+    // unclear how useful this is
+    if( unlikely( needtocollect ) ) {
+      checkcollect( &emptygarbagelist );
+    }
 
     workFunc( workUnit );
-  }
+  } 
 
-  //NOTE: Remove from GC LIST DOWN HERE....
-  pthread_mutex_lock(&gclistlock);
+
+  // remove from GC list
+  pthread_mutex_lock( &gclistlock );
   threadcount--;
-  if (litem.prev==NULL) {
-    list=litem.next;
+  if( litem.prev == NULL ) {
+    list = litem.next;
   } else {
-    litem.prev->next=litem.next;
+    litem.prev->next = litem.next;
   }
-  if (litem.next!=NULL) {
-    litem.next->prev=litem.prev;
+  if( litem.next != NULL ) {
+    litem.next->prev = litem.prev;
   }
-  pthread_mutex_unlock(&gclistlock);
+  pthread_mutex_unlock( &gclistlock );
 
 
   //pthread_cleanup_pop( 0 );
@@ -233,6 +255,7 @@ void workScheduleInit( int numProcessors,
     if( sched_yield() == -1 ) { printf( "Error thread trying to yield.\n" ); exit( -1 ); }
   }
 }
+
 
 void workScheduleSubmit( void* workUnit ) {
   struct QI* item=RUNMALLOC(sizeof(struct QI));
