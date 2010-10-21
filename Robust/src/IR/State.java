@@ -11,7 +11,7 @@ public class State {
   public State() {
     this.classes=new SymbolTable();
     this.tasks=new SymbolTable();
-    this.staticblocks=new SymbolTable();
+    this.sclasses=new SymbolTable();
     this.treemethodmap=new Hashtable();
     this.flatmethodmap=new Hashtable();
     this.parsetrees=new HashSet();
@@ -167,7 +167,7 @@ public class State {
   public Vector classpath;
   public SymbolTable classes;
   public SymbolTable tasks;
-  public SymbolTable staticblocks;
+  public SymbolTable sclasses; // table of classes with static field/blocks
   public Set parsetrees;
   public Hashtable treemethodmap;
   public Hashtable flatmethodmap;
@@ -230,11 +230,9 @@ public class State {
       throw new Error("Class "+tdn.getSymbol()+" defined twice");
     classes.add(tdn);
     numclasses++;
-  }
-
-  public void addStaticBlock(MethodDescriptor sbn) {
-    staticblocks.add(sbn);
-    numstaticblocks++;
+    if((tdn.numstaticfields != 0) || (tdn.numstaticblocks != 0)) {
+      sclasses.add(tdn);
+    }
   }
   
   public int numClasses() {
@@ -261,8 +259,8 @@ public class State {
     return tasks;
   }
   
-  public SymbolTable getStaticBlockSymbolTable() {
-    return staticblocks;
+  public SymbolTable getSClassSymbolTable() {
+    return sclasses;
   }
 
   /** Returns Flat IR representation of MethodDescriptor md. */

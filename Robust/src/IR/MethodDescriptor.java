@@ -19,7 +19,8 @@ public class MethodDescriptor extends Descriptor {
   protected ClassDescriptor cd;
   protected VarDescriptor thisvd;
   protected boolean isglobal;
-  protected boolean isstaticblock;
+  protected boolean isstaticblock;  // flag to indicate if this is a static block
+  protected boolean isinvokedbystatic;  // flag to indicate if this method is invoked by some static block
 
   public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
     super(identifier);
@@ -84,6 +85,14 @@ public class MethodDescriptor extends Descriptor {
   
   public void setAsStaticBlock() {
     isstaticblock = true;
+  }
+  
+  public boolean isInvokedByStatic() {
+    return this.isinvokedbystatic;
+  }
+  
+  public void setIsInvokedByStatic(boolean isinvokedbystatic) {
+    this.isinvokedbystatic = isinvokedbystatic;
   }
 
   public void setThis(VarDescriptor vd) {

@@ -1,5 +1,6 @@
 package IR.Tree;
 import IR.*;
+
 import java.util.*;
 
 
@@ -652,23 +653,40 @@ public class BuildIR {
   }
   
   private void parseStaticBlockDecl(ClassDescriptor cn, ParseNode pn) {
-    Modifiers m=new Modifiers();
-    m.addModifier(Modifiers.STATIC);
-    MethodDescriptor md=new MethodDescriptor(m, "staticblock"+cn.getNumStaticBlocks(), false);
-    //md.setClassDesc(cn);
-    md.setAsStaticBlock();
-    ParseNode bodyn=pn.getChild("body");;
-    cn.addMethod(md);
+    // Each class maintains one MethodDecscriptor which combines all its 
+    // static blocks in their declaration order
+    boolean isfirst = false;
+    MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+    if(md == null) {
+      // the first static block for this class
+      Modifiers m=new Modifiers();
+      m.addModifier(Modifiers.STATIC);
+      md = new MethodDescriptor(m, "staticblocks", false);
+      md.setAsStaticBlock();
+      isfirst = true;
+    }
+    ParseNode bodyn=pn.getChild("body");
+    if(isfirst) {
+      cn.addMethod(md);
+    }
     cn.incStaticBlocks();
     BlockNode bn=null;
     if (bodyn!=null&&bodyn.getChild("block_statement_list")!=null)
       bn=parseBlock(bodyn);
     else
       bn=new BlockNode();
-    state.addTreeCode(md,bn);
-    state.addStaticBlock(md);
+    if(isfirst) {
+      state.addTreeCode(md,bn);
+    } else {
+      BlockNode obn = state.getMethodBody(md);
+      for(int i = 0; i < bn.size(); i++) {
+        BlockStatementNode bsn = bn.get(i);
+        obn.addBlockStatement(bsn);
+      }
+      //TODO state.addTreeCode(md, obn);
+      bn = null;
+    }
   }
-
 
   public BlockNode parseBlock(ParseNode pn) {
     this.m_taskexitnum = 0;

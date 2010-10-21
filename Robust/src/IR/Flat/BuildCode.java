@@ -190,6 +190,9 @@ public class BuildCode {
     /* Build the virtual dispatch tables */
     buildVirtualTables(outvirtual);
 
+    /* Tag the methods that are invoked by static blocks */
+    tagMethodInvokedByStaticBlock();
+    
     /* Output includes */
     outmethodheader.println("#ifndef METHODHEADERS_H");
     outmethodheader.println("#define METHODHEADERS_H");
@@ -369,6 +372,44 @@ public class BuildCode {
     }  
   }
   
+  /* This method goes though the call graph and tag those methods that are 
+   * invoked inside static blocks
+   */
+  protected void tagMethodInvokedByStaticBlock() {
+    Iterator it_sclasses = this.state.getSClassSymbolTable().getDescriptorsIterator();
+    MethodDescriptor current_md=null;
+    HashSet tovisit=new HashSet();
+    HashSet visited=new HashSet();
+    
+    while(it_sclasses.hasNext()) {
+      ClassDescriptor cd = (ClassDescriptor)it_sclasses.next();
+      MethodDescriptor md = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
+      tovisit.add(md);
+    }
+    
+    while(!tovisit.isEmpty()) {
+      current_md=(MethodDescriptor)tovisit.iterator().next();
+      tovisit.remove(current_md);
+      visited.add(current_md);
+      Iterator it_callee = this.callgraph.getCalleeSet(current_md).iterator();
+      while(it_callee.hasNext()) {
+        Descriptor d = (Descriptor)it_callee.next();
+        if(d instanceof MethodDescriptor) {
+          if(!visited.contains(d)) {
+            ((MethodDescriptor)d).setIsInvokedByStatic(true);
+            tovisit.add(d);
+          }
+        }
+      }
+    }
+  }
+  
+  /* This code generates code for each static block and static field 
+   * initialization.*/
+  protected void outputStaticBlocks(PrintWriter outmethod) {
+    //  execute all the static blocks and all the static field initializations
+    // TODO
+  }
 
   /* This code just generates the main C method for java programs.
    * The main C method packs up the arguments into a string array
@@ -377,6 +418,8 @@ public class BuildCode {
   protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
+    
+    outputStaticBlocks(outmethod);
 
     if (state.MLP || state.OOOJAVA) {
 
@@ -1452,6 +1495,13 @@ public class BuildCode {
       }
     }
     Vector fields=(Vector)fieldorder.get(cn);
+    
+    if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+      // this class has static fields/blocks, need to add a global flag to 
+      // indicate if its static fields have been initialized and/or if its
+      // static blocks have been executed
+      globaldefout.println("  int "+cn.getSafeSymbol()+"static_block_exe_flag;");
+    }
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
@@ -1991,9 +2041,16 @@ public class BuildCode {
     }
     
     if(fm.getMethod().isStaticBlock()) {
-      // a static block
-    } else if((fm.getMethod().getReturnType() == null) && (cn != null)){
+      // a static block, check if it has been executed
+      output.println("  if(global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag != 0) {");
+      output.println("    return;");
+      output.println("  }");
+      output.println("");
+    }
+    if((!fm.getMethod().isStaticBlock()) && (fm.getMethod().getReturnType() == null) && (cn != null)){
       // is a constructor, check and output initialization of the static fields
+      // here does not initialize the static fields of the class, instead it 
+      // redirect the corresponding fields in the object to the global_defs_p
       Vector fields=(Vector)fieldorder.get(cn);
 
       for(int i=0; i<fields.size(); i++) {
@@ -2537,8 +2594,9 @@ public class BuildCode {
   protected void generateCode(FlatNode first,
                               FlatMethod fm,
                               LocalityBinding lb,
-			      Set<FlatNode> stopset,
-                              PrintWriter output, boolean firstpass) {
+                              Set<FlatNode> stopset,
+                              PrintWriter output, 
+                              boolean firstpass) {
 
     /* Assign labels to FlatNode's if necessary.*/
 
@@ -2626,6 +2684,11 @@ public class BuildCode {
 	  assert fsxn.getFlatEnter().equals( fsen );
 	}
 	if (current_node.kind()!=FKind.FlatReturnNode) {
+      if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
+        // a static block, check if it has been executed
+        output.println("  global_defs_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
+        output.println("");
+      }
 	  output.println("   return;");
 	}
 	current_node=null;
@@ -4553,6 +4616,40 @@ public class BuildCode {
     MethodDescriptor md=fc.getMethod();
     ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? locality.getBinding(lb, fc) : md);
     ClassDescriptor cn=md.getClassDesc();
+    
+    // if the called method is a static block or a static method or a constructor
+    // need to check if it can be invoked inside some static block
+    if((md.isStatic() || md.isStaticBlock() || md.isConstructor()) && 
+        ((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()))) {
+      if(!md.isInvokedByStatic()) {
+        System.err.println("Error: a method that is invoked inside a static block is not tagged!");
+      }
+      // is a static block or is invoked in some static block
+      ClassDescriptor cd = fm.getMethod().getClassDesc();
+      if(cd == cn) {
+        // the same class, do nothing
+        // TODO may want to invoke static field initialization here
+      } else {
+        if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+          // need to check if the class' static fields have been initialized and/or
+          // its static blocks have been executed
+          output.println("#ifdef MGC_STATIC_INIT_CHECK");
+          output.println("if(global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+          if(cn.getNumStaticFields() != 0) {
+            // TODO add static field initialization here
+          }
+          if(cn.getNumStaticBlocks() != 0) {
+            MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+            output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          } else {
+            output.println("  global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+          }
+          output.println("}");
+          output.println("#endif // MGC_STATIC_INIT_CHECK"); 
+        }
+      }
+    }
+    
     output.println("{");
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (lb!=null) {
@@ -4776,7 +4873,35 @@ public class BuildCode {
 // DEBUG  		output.println("within((void*)"+generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+");");
 // DEBUG   	} 
       if(ffn.getField().isStatic()) {
-        // static field, redirect to the global_defs_p structure
+        // static field
+        if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
+          // is a static block or is invoked in some static block
+          ClassDescriptor cd = fm.getMethod().getClassDesc();
+          ClassDescriptor cn = ffn.getSrc().getType().getClassDesc();
+          if(cd == cn) {
+            // the same class, do nothing
+            // TODO may want to invoke static field initialization here
+          } else {
+            if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+              // need to check if the class' static fields have been initialized and/or
+              // its static blocks have been executed
+              output.println("#ifdef MGC_STATIC_INIT_CHECK");
+              output.println("if(global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+              if(cn.getNumStaticFields() != 0) {
+                // TODO add static field initialization here
+              }
+              if(cn.getNumStaticBlocks() != 0) {
+                MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+                output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+              } else {
+                output.println("  global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+              }
+              output.println("}");
+              output.println("#endif // MGC_STATIC_INIT_CHECK"); 
+            }
+          }
+        }
+        // redirect to the global_defs_p structure
         if(ffn.getSrc().getType().isStatic()) {
           // reference to the static field with Class name
           output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ ffn.getSrc().getType().getClassDesc().getSafeSymbol()+ffn.getField().getSafeSymbol()+";");
@@ -4889,7 +5014,35 @@ public class BuildCode {
 // DEBUG		output.println("within((void*)"+generateTemp(fm,fsfn.getSrc(),lb)+");");
 // DEBUG   }  
       if(fsfn.getField().isStatic()) {
-        // static field, redirect to the global_defs_p structure
+        // static field
+        if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
+          // is a static block or is invoked in some static block
+          ClassDescriptor cd = fm.getMethod().getClassDesc();
+          ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
+          if(cd == cn) {
+            // the same class, do nothing
+            // TODO may want to invoke static field initialization here
+          } else {
+            if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+              // need to check if the class' static fields have been initialized and/or
+              // its static blocks have been executed
+              output.println("#ifdef MGC_STATIC_INIT_CHECK");
+              output.println("if(global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+              if(cn.getNumStaticFields() != 0) {
+                // TODO add static field initialization here
+              }
+              if(cn.getNumStaticBlocks() != 0) {
+                MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+                output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+              } else {
+                output.println("  global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+              }
+              output.println("}");
+              output.println("#endif // MGC_STATIC_INIT_CHECK"); 
+            }
+          }
+        }
+        // redirect to the global_defs_p structure
         if(fsfn.getDst().getType().isStatic()) {
           // reference to the static field with Class name
           output.println("global_defs_p->" + fsfn.getDst().getType().getClassDesc().getSafeSymbol() + fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
@@ -5228,6 +5381,11 @@ public class BuildCode {
   }
 
   protected void generateFlatReturnNode(FlatMethod fm, LocalityBinding lb, FlatReturnNode frn, PrintWriter output) {
+    if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
+      // a static block, check if it has been executed
+      output.println("  global_defs_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
+      output.println("");
+    }
     if (frn.getReturnTemp()!=null) {
       if (frn.getReturnTemp().getType().isPtr())
 	output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp(), lb)+";");

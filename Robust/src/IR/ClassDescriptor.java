@@ -17,7 +17,8 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable flags;
   SymbolTable methods;
   
-  int numstaticblocks=0;
+  int numstaticblocks = 0;
+  int numstaticfields = 0;
 
   public ClassDescriptor(String classname) {
     this("", classname);
@@ -123,6 +124,9 @@ public class ClassDescriptor extends Descriptor {
       throw new Error(fd.getSymbol()+" already defined");
     fields.add(fd);
     fieldvec.add(fd);
+    if(fd.isStatic()) {
+      this.incStaticFields();
+    }
   }
 
   public void addMethod(MethodDescriptor md) {
@@ -155,5 +159,13 @@ public class ClassDescriptor extends Descriptor {
   
   public int getNumStaticBlocks() {
     return this.numstaticblocks;
+  }
+  
+  public void incStaticFields() {
+    this.numstaticfields++;
+  }
+  
+  public int getNumStaticFields() {
+    return this.numstaticfields;
   }
 }

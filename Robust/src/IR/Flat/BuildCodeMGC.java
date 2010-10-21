@@ -68,6 +68,9 @@ public class BuildCodeMGC extends BuildCode {
 
     /* Build the virtual dispatch tables */
     super.buildVirtualTables(outvirtual);
+    
+    /* Tag the methods that are invoked by static blocks */
+    super.tagMethodInvokedByStaticBlock();
 
     /* Output includes */
     outmethodheader.println("#ifndef METHODHEADERS_H");
@@ -140,23 +143,7 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("int mgc_main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
     
-    // execute all the static blocks in random order 
-    // TODO may need more careful about the execution order
-    SymbolTable sbt = this.state.getStaticBlockSymbolTable();
-    Iterator it_staticblocks = state.getStaticBlockSymbolTable().getDescriptorsIterator();
-    while(it_staticblocks.hasNext()) {
-      MethodDescriptor t_md = (MethodDescriptor) it_staticblocks.next();
-      ClassDescriptor t_cd = t_md.getClassDesc();
-      outmethod.println("   {");
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-        outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-        outmethod.println("1, NULL};");
-        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-      } else {
-        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-      }
-      outmethod.println("   }");
-    }
+    outputStaticBlocks(outmethod);
     
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
@@ -187,5 +174,26 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("   }");
 
     outmethod.println("}");
+  }
+  
+  protected void outputStaticBlocks(PrintWriter outmethod) {
+    outmethod.println("#define MGC_STATIC_INIT_CHECK");
+    // execute all the static blocks and all the static field initializations
+    SymbolTable sctbl = this.state.getSClassSymbolTable();
+    Iterator it_sclasses = sctbl.getDescriptorsIterator();
+    while(it_sclasses.hasNext()) {
+      ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
+      MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
+      outmethod.println("   {");
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+        outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+        outmethod.println("1, NULL};");
+        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+      } else {
+        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+      }
+      outmethod.println("   }");
+    }
+    outmethod.println("#undef MGC_STATIC_INIT_CHECK");
   }
 }
