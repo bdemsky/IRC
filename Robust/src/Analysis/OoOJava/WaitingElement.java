@@ -1,83 +1,101 @@
 package Analysis.OoOJava;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import IR.Flat.TempDescriptor;
 
 public class WaitingElement {
 
-	private int queueID;
-	private int status;
-	private String dynID="";
-	private TempDescriptor tempDesc;
-	
-	public void setTempDesc(TempDescriptor tempDesc){
-		this.tempDesc=tempDesc;
-	}
-	
-	public TempDescriptor getTempDesc(){
-		return tempDesc;
-	}
+  private int queueID;
+  private int status;
+  private String dynID = "";
+  private TempDescriptor tempDesc;
 
-	public void setQueueID(int queueID) {
-		this.queueID = queueID;
-	}
-	
-	public String getDynID(){
-		return dynID;
-	}
-	
-	public void setDynID(String dynID){
-		this.dynID=dynID;
-	}
-	
-	public int getQueueID() {
-		return queueID;
-	}
+  // a set of tempDescriptors: 
+  // all associated with coarse conflicts for the same queue and the same sese
+  private Set<TempDescriptor> tempSet;
 
-	public void setStatus(int status) {
-		this.status = status;
-	}
+  public WaitingElement() {
+    tempSet = new HashSet<TempDescriptor>();
+  }
 
-	public int getStatus() {
-		return status;
-	}
+  public void addTempDesc(TempDescriptor tempDesc) {
+    tempSet.add(tempDesc);
+  }
 
-	public boolean equals(Object o) {
+  public Set<TempDescriptor> getTempDescSet() {
+    return tempSet;
+  }
 
-		if (o == null) {
-			return false;
-		}
+  public void setTempDesc(TempDescriptor tempDesc) {
+    this.tempDesc = tempDesc;
+  }
 
-		if (!(o instanceof WaitingElement)) {
-			return false;
-		}
+  public TempDescriptor getTempDesc() {
+    return tempDesc;
+  }
 
-		WaitingElement in = (WaitingElement) o;
+  public void setQueueID(int queueID) {
+    this.queueID = queueID;
+  }
 
-		if (queueID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID()) ) {
-			return true;
-		} else {
-			return false;
-		}
+  public String getDynID() {
+    return dynID;
+  }
 
-	}
+  public void setDynID(String dynID) {
+    this.dynID = dynID;
+  }
 
-	public String toString() {
-		return "[waitingID=" + queueID + " status=" + status + " dynID="
-				+ dynID + "]";
-	}
+  public int getQueueID() {
+    return queueID;
+  }
 
-	public int hashCode() {
+  public void setStatus(int status) {
+    this.status = status;
+  }
 
-		int hash = 1;
+  public int getStatus() {
+    return status;
+  }
 
-		hash = hash * 31 + queueID;
+  public boolean equals(Object o) {
 
-		hash += status;
-		
-		hash += dynID.hashCode();
+    if (o == null) {
+      return false;
+    }
 
-		return hash;
+    if (!(o instanceof WaitingElement)) {
+      return false;
+    }
 
-	}
+    WaitingElement in = (WaitingElement) o;
+
+    if (queueID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID())) {
+      return true;
+    } else {
+      return false;
+    }
+
+  }
+
+  public String toString() {
+    return "[waitingID=" + queueID + " status=" + status + " dynID=" + dynID + "]";
+  }
+
+  public int hashCode() {
+
+    int hash = 1;
+
+    hash = hash * 31 + queueID;
+
+    hash += status;
+
+    hash += dynID.hashCode();
+
+    return hash;
+
+  }
 
 }

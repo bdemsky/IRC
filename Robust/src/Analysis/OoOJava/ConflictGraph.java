@@ -627,6 +627,14 @@ public class ConflictGraph {
       if (SCCelement != null) {
         // if there is at lease one SCC element, just enqueue SCC and
         // ignore others.
+        if(state.RCR){
+          // for rcr, we need to label all of coarse tempdescriptors
+          // here assume that all waiting elements are coarse
+          for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+            WaitingElement waitingElement = (WaitingElement) iterator.next();
+            SCCelement.addTempDesc(waitingElement.getTempDesc());
+          }
+        }
         refinedSet.add(SCCelement);
       } else if (numCoarse == 1 && (numRead + numWrite + numCoarse == total)) {
         // if one is a coarse, the othere are reads/write, enqueue SCC.
@@ -636,6 +644,13 @@ public class ConflictGraph {
         refinedSet.add(we);
       } else if (numCoarse == total) {
         // if there are multiple coarses, enqueue just one coarse.
+        if(state.RCR){
+          // for rcr, we need to label all of coarse tempdescriptors
+          for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+            WaitingElement waitingElement = (WaitingElement) iterator.next();
+            coarseElement.addTempDesc(waitingElement.getTempDesc());
+          }
+        }
         refinedSet.add(coarseElement);
       } else if (numWrite == total || (numRead + numWrite) == total) {
         // code generator is going to handle the case for multiple writes &
