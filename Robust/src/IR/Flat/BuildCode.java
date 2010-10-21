@@ -636,8 +636,13 @@ public class BuildCode {
 	  outmethod.println("#include \"multicoreruntime.h\"");
 	  outmethod.println("#include \"runtime_arch.h\"");
     }
-    if (state.THREAD||state.DSM||state.SINGLETM)
-      outmethod.println("#include <thread.h>");
+    if (state.THREAD||state.DSM||state.SINGLETM) {
+      if(state.MGC) {
+        outmethod.println("#include \"thread.h\"");
+      } else {
+        outmethod.println("#include <thread.h>");
+      }
+    }
     if (state.main!=null) {
       outmethod.println("#include <string.h>");
     }

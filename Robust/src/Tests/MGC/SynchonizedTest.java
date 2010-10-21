@@ -6,8 +6,10 @@ public class Counter{
     this.count = 0;
   }
 
-  public synchronized void add(long value){
-    this.count += value;
+  public add(long value){
+	synchronized (this) {
+      this.count += value;
+	}
   }
   
   public synchronized long getCounter() {

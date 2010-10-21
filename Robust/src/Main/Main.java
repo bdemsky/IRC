@@ -148,9 +148,10 @@ public class Main {
 	state.MULTICORE=true;
       else if (option.equals("-multicoregc"))
         state.MULTICOREGC=true;
-      else if (option.equals("-mgc"))
+      else if (option.equals("-mgc")) {
         state.MGC = true;
-      else if (option.equals("-ownership"))
+        state.THREAD = true;
+      } else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
       else if (option.equals("-ownallocdepth")) {
 	state.OWNERSHIPALLOCDEPTH=Integer.parseInt(args[++i]);

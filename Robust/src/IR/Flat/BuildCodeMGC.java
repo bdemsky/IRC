@@ -183,6 +183,9 @@ public class BuildCodeMGC extends BuildCode {
     Iterator it_sclasses = sctbl.getDescriptorsIterator();
     while(it_sclasses.hasNext()) {
       ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
+      if(t_cd.getNumStaticFields() != 0) {
+        // TODO may need to invoke static field initialization here
+      }
       MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
       outmethod.println("   {");
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
