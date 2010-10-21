@@ -4,8 +4,6 @@
 #include "mlp_runtime.h"
 //#include "WaitingQueue.h"
 
-#define ITEM_NOT_AT_FRONT_OF_WAITINGQ 3
-#define TRAVERSER_FINISHED 2
 #define bitvt unsigned long long
 
 //Note READEFFECT = READBIN and WRITEEFFECT=WRITEBIN. They mean the same thing
@@ -80,8 +78,6 @@ void rcr_createMasterHashTableArray(int maxSize); //temporary
 HashStructure* rcr_createHashtable(int sizeofWaitingQueue);
 WriteBinItem_rcr* rcr_createWriteBinItem();
 ReadBinItem_rcr* rcr_createReadBinItem();
-int rcr_isReadBinItem(BinItem_rcr* b);
-int rcr_isWriteBinItem(BinItem_rcr* b);
 inline int rcr_generateKey(void * ptr);
 
 //Method signatures are not in their final form since I have still not decided what is the optimum amount of data

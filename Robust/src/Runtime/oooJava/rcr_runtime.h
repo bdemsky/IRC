@@ -6,6 +6,7 @@ extern __thread struct trQueue * TRqueue;
 void * workerTR(void *);
 
 #define RCRSIZE 32
+#define RUNBIAS 1000000
 
 struct rcrRecord {
   int count;

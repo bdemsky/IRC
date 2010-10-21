@@ -3851,7 +3851,7 @@ public class BuildCode {
     }
     
     if (state.RCR&&fsen.getInVarsForDynamicCoarseConflictResolution().size()>0) {
-      output.println("    seseToIssue->common.offsetToParamRecords=(INTPTR)sizeof("+fsen.getSESErecordName()+") - (INTPTR) & ((("+fsen.getSESErecordName()+"*)0)->rcrRecords);");
+      output.println("    seseToIssue->common.offsetToParamRecords=(INTPTR) & ((("+fsen.getSESErecordName()+"*)0)->rcrRecords);");
     }
 
     // fill in common data

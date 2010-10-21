@@ -47,7 +47,6 @@ inline int rcr_generateKey(void * ptr){
 }
 
 //consider SPEC flag
-
 int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
@@ -261,7 +260,7 @@ void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rc
   T->array[key].head=val;//released lock
 }
 
-rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
+void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
   BinElement_rcr * be = &(T->array[key]);
   BinItem_rcr *b=be->head;
 
@@ -289,7 +288,8 @@ rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
 	if (ptr->status==NOTREADY) {
 	  ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)ptr;
 	  for (i=0;i<rptr->index;i++) {
-	    RESOLVE(rptr->array[i]);
+	    TaskDescriptor * td=&rptr->array[i];
+	    RESOLVE(td->task, td->bitindex);
             if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
               //parents go immediately
               atomic_dec(&rptr->item.total);
@@ -311,7 +311,7 @@ rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
           break;
 	if(ptr->status==NOTREADY) {
 	  WriteBinItem_rcr* wptr=(WriteBinItem_rcr*)ptr;
-	  RESOLVE(wptr);
+	  RESOLVE(wptr->task, wptr->bitindexwr);
 	  ptr->status=READY;
 	  if(((INTPTR)wptr->task)&PARENTBIN) {
 	    val=val->next;
@@ -324,5 +324,22 @@ rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
       ptr=ptr->next;
     }
     be->head=val; // release lock
+  }
+}
+
+void RESOLVE(SESEcommon *record, bitvt mask) {
+  int index=-1;
+  struct rcrRecord * array=(struct rcrRecord *)(((char *)record)+record->common.offsetToParamRecords);
+  while(mask!=0) {
+    int shift=__builtin_ctzll(mask)+1;
+    index+=shift;
+    if (atomic_sub_and_test(1,&array[index].count)) {
+      inf flag=LOCKXCHG(&array[index].flag,0);
+      if (flag) {
+	if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) 
+	  workScheduleSubmit((void *)record);
+      }
+    }
+    mask=mask>>shift;
   }
 }

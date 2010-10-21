@@ -43,6 +43,17 @@ static inline int atomic_sub_and_test(int i, volatile int *v) {
   return c;
 }
 
+static inline int LOCKXCHG32(volatile int* ptr, int val){
+  int retval;
+  //note: xchgl always implies lock 
+  __asm__ __volatile__("xchgl %0,%1"
+		       : "=r"(retval)
+		       : "m"(*ptr), "0"(val)
+		       : "memory");
+  return retval;
+ 
+}
+
 #ifdef BIT64
 static inline INTPTR LOCKXCHG(volatile INTPTR * ptr, INTPTR val){
   INTPTR retval;
@@ -55,16 +66,7 @@ static inline INTPTR LOCKXCHG(volatile INTPTR * ptr, INTPTR val){
  
 }
 #else
-static inline int LOCKXCHG(volatile int* ptr, int val){
-  int retval;
-  //note: xchgl always implies lock 
-  __asm__ __volatile__("xchgl %0,%1"
-		       : "=r"(retval)
-		       : "m"(*ptr), "0"(val)
-		       : "memory");
-  return retval;
- 
-}
+#define LOCKXCHG LOCKXCHG32
 #endif
 
 /*
