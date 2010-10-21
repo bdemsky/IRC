@@ -923,7 +923,7 @@ resolvePointer(REntry* rentry){
   }
   struct Queue* val;
   do {  
-    val=(struct Queue*)0x1;       
+    val=(struct Queue*)0x1;
     val=(struct Queue*)LOCKXCHG((unsigned INTPTR*)&(table->unresolvedQueue), (unsigned INTPTR)val);
   } while(val==(struct Queue*)0x1); 
   if(val!=NULL && getHead(val)->objectptr==rentry){

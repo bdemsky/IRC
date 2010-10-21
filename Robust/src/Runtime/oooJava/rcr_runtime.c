@@ -12,8 +12,6 @@ void * workerTR(void *x) {
 	break;
       sched_yield();
     } while(1);
-    
-    
   }
   return NULL;
 }

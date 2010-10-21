@@ -289,11 +289,14 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
 	  ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)ptr;
 	  for (i=0;i<rptr->index;i++) {
 	    TraverserData * td=&rptr->array[i];
-	    RESOLVE(td->task, td->bitindex);
-            if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
-              //parents go immediately
-              atomic_dec(&rptr->item.total);
-            }
+	    if (task==td->task) {
+	      RESOLVE(td->task, td->bitindex);
+	      if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
+		//parents go immediately
+		atomic_dec(&rptr->item.total);
+	      }
+	      break;
+	    }
           }
 	  ptr->status=READY;
         }

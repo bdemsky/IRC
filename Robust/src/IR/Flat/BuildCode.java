@@ -4308,6 +4308,7 @@ public class BuildCode {
 	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
 	    output.println("       rentry=mlpCreateREntry(" + waitingElement.getStatus() + ", &(seseToIssue->common));");
 	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
 	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
 	    output.println("          dispCount++;");
 	    output.println("       }");
@@ -4444,8 +4445,7 @@ public class BuildCode {
     output.println("           resolvePointer(consumer->rentryArray[idx]);");
     output.println("        }");
     output.println("     }");
-    
-    
+
     output.println("     if( atomic_sub_and_test( 1, &(consumer->unresolvedDependencies) ) ){");
     output.println("       workScheduleSubmit( (void*)consumer );");
     output.println("     }");
@@ -4470,6 +4470,26 @@ public class BuildCode {
 		
     }
     
+
+    if (state.RCR&&fsen.getDynamicInVarSet().size()>0) {
+      output.println("{");
+      output.println("  int idx,idx2;");
+      if (fsen.getDynamicInVarSet().size()==1) {
+	output.println("  idx=0; {");
+      } else {
+	output.println("  for(idx=0;idx<"+fsen.getDynamicInVarSet().size()+";idx++){");
+      }
+      output.println("    struct rcrRecord *rec="+paramsprefix+"->rcrRecords[idx];");
+      output.println("    while(rec!=NULL) {");
+      output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
+      output.println("        rcr_RETIREHASHTABLE(allHashStructures[0],rec,rec->array[idx2]);");
+      output.println("      }");//exit idx2 for loop
+      output.println("      rec=rec->next;");
+      output.println("    }");//exit rec while loop
+      output.println("  }");//exit idx for loop
+      output.println("}");
+    }
+
 
     // last of all, decrement your parent's number of running children    
     output.println("   if( runningSESE->parent != NULL ) {");
