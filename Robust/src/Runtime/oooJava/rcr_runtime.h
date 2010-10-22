@@ -15,4 +15,16 @@ struct rcrRecord {
   int array[RCRSIZE];
   struct rcrRecord *next;
 };
+
+#define STALLCLASSID 1939921
+
+typedef struct SESEstall_t { 
+  SESEcommon common;
+  int size;
+  void * next;
+  struct rcrRecord rcrRecords[1];
+  int tag;
+} SESEstall;
+
+extern __thread SESEstall stallrecord;
 #endif

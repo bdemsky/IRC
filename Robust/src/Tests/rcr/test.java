@@ -17,10 +17,8 @@ public class test {
 	}
       }
     }
-    sese print {
-      for(int i=0;i<10;i++)
-	System.out.println(r[i].f);
-    }
+    for(int i=0;i<10;i++)
+      System.out.println(r[i].f);
   }
 }
 

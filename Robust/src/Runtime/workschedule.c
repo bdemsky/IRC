@@ -102,6 +102,10 @@ void* workerMain( void* arg ) {
   pthread_attr_init( &nattr );
   pthread_attr_setdetachstate( &nattr, PTHREAD_CREATE_DETACHED );
 
+  //set up the stall site SESErecord
+  stallrecord.common.classID=STALLCLASSID;
+  stallrecord.common.offsetToParamRecords=(INTPTR) &((SESEstall *)0)->rcrRecords;
+
   if( TRqueue == NULL ) {
     TRqueue = allocTR();
   }

@@ -294,14 +294,14 @@ public class RuntimeConflictResolver {
       flatname = fn.toString();
     }
     
-    return "traverse___" + removeInvalidChars(invar.getSafeSymbol()) + 
+    return "traverse___" + invar.getSafeSymbol() + 
     removeInvalidChars(flatname) + "___("+varString+");";
   }
   
   public String removeInvalidChars(String in) {
     StringBuilder s = new StringBuilder(in);
     for(int i = 0; i < s.length(); i++) {
-      if(s.charAt(i) == ' ' || s.charAt(i) == '.' || s.charAt(i) == '=') {
+      if(s.charAt(i) == ' ' || s.charAt(i) == '.' || s.charAt(i) == '='||s.charAt(i)=='['||s.charAt(i)==']') {
         s.deleteCharAt(i);
         i--;
       }
@@ -402,17 +402,18 @@ public class RuntimeConflictResolver {
   private void printResumeTraverserInvocation() {
     headerFile.println("\nint traverse(void * startingPtr, SESEcommon * record, int traverserID);");
     cFile.println("\nint traverse(void * startingPtr, SESEcommon *record, int traverserID) {");
-    cFile.println(" switch(traverserID) {");
+    cFile.println("  switch(traverserID) {");
     
     for(Taint t: doneTaints.keySet()) {
       cFile.println("  case " + doneTaints.get(t)+ ":");
       if(t.isRBlockTaint()) {
         cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, ("+t.getSESE().getSESErecordName()+" *)record", t.getSESE()));
       } else if (t.isStallSiteTaint()){
-        cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getStallSite()));
+        cFile.println("/*    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getStallSite())+"*/");
       } else {
         System.out.println("RuntimeConflictResolver encountered a taint that is neither SESE nor stallsite: " + t);
       }
+      cFile.println("    break;");
     }
     
     if(RuntimeConflictResolver.cSideDebug) {
@@ -657,11 +658,9 @@ public class RuntimeConflictResolver {
     int index=-1;
 
     if (taint.isStallSiteTaint()) {
-      methodName= "void traverse___" + removeInvalidChars(inVar) + 
-	removeInvalidChars(rBlock) + "___(void * InVar, SESEcommon *record)";
+      methodName= "void traverse___" + inVar + removeInvalidChars(rBlock) + "___(void * InVar, SESEstall *record)";
     } else {
-      methodName= "void traverse___" + removeInvalidChars(inVar) + 
-	removeInvalidChars(rBlock) + "___(void * InVar, "+taint.getSESE().getSESErecordName() +" *record)";
+      methodName= "void traverse___" + inVar + removeInvalidChars(rBlock) + "___(void * InVar, "+taint.getSESE().getSESErecordName() +" *record)";
       FlatSESEEnterNode fsese=taint.getSESE();
       TempDescriptor tmp=taint.getVar();
       index=fsese.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp);
@@ -671,7 +670,8 @@ public class RuntimeConflictResolver {
     headerFile.println(methodName + ";");
     cFile.println("    int totalcount=RUNBIAS;\n");
     if (taint.isStallSiteTaint()) {
-      //need to add this
+      cFile.println("    record->rcrRecords[0].count=RUNBIAS;\n");
+      cFile.println("    record->rcrRecords[0].index=0;\n");
     } else {
       cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
       cFile.println("    record->rcrRecords["+index+"].index=0;\n");
@@ -700,6 +700,9 @@ public class RuntimeConflictResolver {
     }
     if (taint.isStallSiteTaint()) {
       //need to add this
+      cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords[0].count))) {");
+      cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
+      cFile.println("}");
     } else {
       cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");
       cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");

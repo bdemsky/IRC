@@ -786,7 +786,7 @@ resolveDependencies(REntry* rentry){
       workScheduleSubmit(seseCommon);
     }   
   }else if(rentry->type==PARENTREAD || rentry->type==PARENTWRITE ||rentry->type==PARENTCOARSE){
-     psem_give(&(rentry->parentStallSem));
+    psem_give_tag(&(rentry->parentStallSem), rentry->tag);
   }
 }
 

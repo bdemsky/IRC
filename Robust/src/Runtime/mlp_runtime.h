@@ -110,7 +110,7 @@ typedef struct SESEcommon_t {
   int             numRunningChildren;
 
   struct SESEcommon_t*   parent;
-
+  
   int numMemoryQueue;
   int rentryIdx;
   int unresolvedRentryIdx;
@@ -128,9 +128,7 @@ typedef struct SESEcommon_t {
   // to the parent record's memory pool
   MemPool*     taskRecordMemPool;
   volatile int refCount;
-
 } SESEcommon;
-
 
 // a thread-local var refers to the currently
 // running task
@@ -153,6 +151,7 @@ typedef struct REntry_t{
   struct SCC_t* scc;
   struct MemoryQueue_t* queue;
   psemaphore parentStallSem;
+  int tag;
   SESEcommon* seseRec;
   INTPTR* pointer;
   int isBufMode;

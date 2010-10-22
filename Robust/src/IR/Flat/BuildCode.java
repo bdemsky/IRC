@@ -3245,26 +3245,27 @@ public class BuildCode {
                   output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
                 }         
                 output.println("     psem_init( &(rentry->parentStallSem) );");
+		output.println("     rentry->tag=rentry->parentStallSem.tag;");
                 output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()
-                           + "],rentry)==NOTREADY){");
+                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==NOTREADY){");
                 if( state.COREPROF ) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                   output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
                   output.println("#endif");
                 }
-                output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
+                if(state.RCR) {
+		  //no need to enqueue parent effect if coarse grained conflict clears us
+		  output.println("   stallrecord.common.parentsStallSem=&rentry->parentStallSem;");
+		  output.println("   stallrecord.tag=rentry->tag;");
+                  output.println("   "+rcr.getTraverserInvocation(waitingElement.getTempDesc(), generateTemp(fm, waitingElement.getTempDesc(), null)+", &stallrecord", fn));
+                }
+		output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
                 if( state.COREPROF ) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                   output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
                   output.println("#endif");
                 }
                 output.println("     }  ");
-                
-                if(state.RCR) {
-                  output.println("   "+rcr.getTraverserInvocation(waitingElement.getTempDesc(), 
-                      generateTemp(fm, waitingElement.getTempDesc(), null), fn));
-                }
               }
               output.println("   }");
             }
@@ -3295,14 +3296,13 @@ public class BuildCode {
                   if( waitingElement.getStatus() >= ConflictNode.COARSE ){
                     // HERE! a parent might conflict with a child
                     output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", runningSESE);");
-                  }else{
+                  } else {
                     output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
                   }					
-                  output.println("     psem_init( &(rentry->parentStallSem) );");
+                  output.println("     psem_init(&(rentry->parentStallSem));");
+		  output.println("     rentry->tag=rentry->parentStallSem->tag;");
                   output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-                  output
-                    .println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()
-                             + "],rentry)==NOTREADY){");
+                  output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+"],rentry)==NOTREADY) {");
                   if( state.COREPROF ) {
                     output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                     output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");

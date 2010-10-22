@@ -399,10 +399,15 @@ void RESOLVE(SESEcommon *record, bitvt mask) {
     int shift=__builtin_ctzll(mask)+1;
     index+=shift;
     if (atomic_sub_and_test(1,&array[index].count)) {
-      int flag=LOCKXCHG32(&array[index].flag,0);
-      if (flag) {
-	if(atomic_sub_and_test(1, &(record->unresolvedDependencies))) 
-	  workScheduleSubmit((void *)record);
+      if(unlikely(record->classID==STALLCLASSID)) {
+	//parent stall...clear it
+	psem_give_tag(record->parentsStallSem, ((SESEstall *)record)->tag);
+      } else {
+	int flag=LOCKXCHG32(&array[index].flag,0);
+	if (flag) {
+	  if(atomic_sub_and_test(1, &(record->unresolvedDependencies))) 
+	    workScheduleSubmit((void *)record);
+	}
       }
     }
     mask=mask>>shift;

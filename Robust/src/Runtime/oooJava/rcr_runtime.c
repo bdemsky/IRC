@@ -1,6 +1,7 @@
 #include "trqueue.h"
-#include "rcr_runtime.h"
 #include "mlp_runtime.h"
+#include "rcr_runtime.h"
+
 
 void * workerTR(void *x) {
   struct trQueue * queue=(struct trQueue *)x;
@@ -15,3 +16,5 @@ void * workerTR(void *x) {
   }
   return NULL;
 }
+
+__thread SESEstall stallrecord;
