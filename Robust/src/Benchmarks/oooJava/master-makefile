@@ -30,7 +30,7 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 #	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava 24 2 #-ooodebug-disable-task-mem-pool #-ooodebug 
+USEOOO= -ooojava 24 2 -rcr#-ooodebug-disable-task-mem-pool #-ooodebug 
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize #src-after-pp #-debug
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed

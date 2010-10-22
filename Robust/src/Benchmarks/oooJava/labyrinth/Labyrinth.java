@@ -70,8 +70,8 @@
 
 public class Labyrinth 
 {
-    static String global_inputFile;
-    static boolean global_doPrint;
+static  String global_inputFile;
+static   boolean global_doPrint;
     int numThread;
     int bendCost;
     int xCost;
