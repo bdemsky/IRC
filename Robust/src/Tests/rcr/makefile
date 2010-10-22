@@ -6,7 +6,7 @@ SOURCE_FILES=test.java
 BUILDSCRIPT=../../buildscript
 
 USEOOO= -rcr -ooojava 8 2 -ooodebug
-BSFLAGS= -64bit -mainclass test -nooptimize -debug
+BSFLAGS= -64bit -mainclass test -optimize -debug
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions #-disjoint-desire-determinism
 
 

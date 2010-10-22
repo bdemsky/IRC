@@ -436,7 +436,9 @@ public class BuildCode {
     outmethod.println("  int i;");
     
     outputStaticBlocks(outmethod);
-    outputClassObjects(outmethod);
+    /*
+      outputClassObjects(outmethod);
+    */
 
     if (state.MLP || state.OOOJAVA) {
 

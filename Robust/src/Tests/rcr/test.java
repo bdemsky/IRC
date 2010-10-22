@@ -1,18 +1,26 @@
 public class test {
-  foo f;
+  int f;
   public test() {}
 
-  public static void main(String x[]) {
-    test r=new test();
-    r.f=new foo();
-    int z;
-    sese foo {
-      r.f.x=2;
+  public static void main(String xz[]) {
+    test[] r=new test[10];
+    for(int i=0;i<10;i++) {
+      r[i]=new test();r[i].f=0;
     }
-    sese bar {
-      z=r.f.x;
+
+    for (int z=0;z<100000;z++) {
+      for (int i=0;i<10;i++) {
+	test x=r[i];
+	sese foo {
+	  int t=x.f;
+	  x.f=t+1;
+	}
+      }
     }
-    System.out.println(z);
+    sese print {
+      for(int i=0;i<10;i++)
+	System.out.println(r[i].f);
+    }
   }
 }
 

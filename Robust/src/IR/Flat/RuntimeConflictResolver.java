@@ -800,7 +800,8 @@ public class RuntimeConflictResolver {
         //This is done with the assumption that an array of object stores pointers. 
         currCase.append("{\n  int i;\n");
         currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
-        currCase.append("    struct ___Object___ * arrayElement = ((INTPTR *)(&(((struct ArrayObject *) " + prefix + " )->___length___) + sizeof(int)))[i];\n");
+	//XXXXXXXXX
+        currCase.append("    struct ___Object___ * arrayElement =((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i];\n");
         currCase.append("    if( arrayElement != NULL && (");
         
         for(Integer i: allocSitesWithProblems) {
