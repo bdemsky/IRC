@@ -144,6 +144,7 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("  int i;");
     
     outputStaticBlocks(outmethod);
+    super.outputClassObjects(outmethod);
     
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
@@ -177,26 +178,28 @@ public class BuildCodeMGC extends BuildCode {
   }
   
   protected void outputStaticBlocks(PrintWriter outmethod) {
-    outmethod.println("#define MGC_STATIC_INIT_CHECK");
     // execute all the static blocks and all the static field initializations
     SymbolTable sctbl = this.state.getSClassSymbolTable();
     Iterator it_sclasses = sctbl.getDescriptorsIterator();
-    while(it_sclasses.hasNext()) {
-      ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
-      if(t_cd.getNumStaticFields() != 0) {
-        // TODO may need to invoke static field initialization here
+    if(it_sclasses.hasNext()) {
+      outmethod.println("#define MGC_STATIC_INIT_CHECK");
+      while(it_sclasses.hasNext()) {
+        ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
+        if(t_cd.getNumStaticFields() != 0) {
+          // TODO may need to invoke static field initialization here
+        }
+        MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
+        outmethod.println("   {");
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+          outmethod.println("1, NULL};");
+          outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+        } else {
+          outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+        }
+        outmethod.println("   }");
       }
-      MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
-      outmethod.println("   {");
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-        outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-        outmethod.println("1, NULL};");
-        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-      } else {
-        outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-      }
-      outmethod.println("   }");
+      outmethod.println("#undef MGC_STATIC_INIT_CHECK");
     }
-    outmethod.println("#undef MGC_STATIC_INIT_CHECK");
   }
 }

@@ -150,7 +150,6 @@ public class Main {
         state.MULTICOREGC=true;
       else if (option.equals("-mgc")) {
         state.MGC = true;
-        state.THREAD = true;
       } else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
       else if (option.equals("-ownallocdepth")) {

@@ -410,6 +410,22 @@ public class BuildCode {
     //  execute all the static blocks and all the static field initializations
     // TODO
   }
+  
+  /* This code generates code to create a Class object for each class for 
+   * getClass() method.
+   * */
+  protected void outputClassObjects(PrintWriter outmethod) {
+    // for each class, initialize its Class object
+    SymbolTable ctbl = this.state.getClassSymbolTable();
+    Iterator it_classes = ctbl.getDescriptorsIterator();
+    while(it_classes.hasNext()) {
+      ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
+      outmethod.println(" {");
+      outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj.type="+t_cd.getId()+";");
+      outmethod.println("    initlock((struct ___Object___ *)(&(global_defs_p->"+t_cd.getSafeSymbol()+"classobj)));");
+      outmethod.println(" }");
+    }
+  }
 
   /* This code just generates the main C method for java programs.
    * The main C method packs up the arguments into a string array
@@ -420,6 +436,7 @@ public class BuildCode {
     outmethod.println("  int i;");
     
     outputStaticBlocks(outmethod);
+    outputClassObjects(outmethod);
 
     if (state.MLP || state.OOOJAVA) {
 
@@ -637,12 +654,11 @@ public class BuildCode {
 	  outmethod.println("#include \"runtime_arch.h\"");
     }
     if (state.THREAD||state.DSM||state.SINGLETM) {
-      if(state.MGC) {
-        outmethod.println("#include \"thread.h\"");
-      } else {
-        outmethod.println("#include <thread.h>");
-      }
+      outmethod.println("#include <thread.h>");
     }
+    if(state.MGC) {
+      outmethod.println("#include \"thread.h\"");
+    } 
     if (state.main!=null) {
       outmethod.println("#include <string.h>");
     }
@@ -792,6 +808,16 @@ public class BuildCode {
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
       outclassdefs.println("struct "+cn.getSafeSymbol()+";");
+      
+      if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
+        // this class has static fields/blocks, need to add a global flag to 
+        // indicate if its static fields have been initialized and/or if its
+        // static blocks have been executed
+        outglobaldefs.println("  int "+cn.getSafeSymbol()+"static_block_exe_flag;");
+      }
+      
+      // for each class, create a global object
+      outglobaldefs.println("  struct Class "+cn.getSafeSymbol()+"classobj;");
     }
     outclassdefs.println("");
     //Print out definition for array type
@@ -848,6 +874,52 @@ public class BuildCode {
 
     outclassdefs.println("  int ___length___;");
     outclassdefs.println("};\n");
+    
+    outclassdefs.println("");
+    //Print out definition for Class type 
+    outclassdefs.println("struct Class {");
+    outclassdefs.println("  int type;");
+    if(state.MLP || state.OOOJAVA ){
+      outclassdefs.println("  int oid;");
+      outclassdefs.println("  int allocsite;");
+    }
+    if (state.EVENTMONITOR) {
+      outclassdefs.println("  int objuid;");
+    }
+    if (state.THREAD) {
+      outclassdefs.println("  pthread_t tid;");
+      outclassdefs.println("  void * lockentry;");
+      outclassdefs.println("  int lockcount;");
+    }
+    if(state.MGC) {
+      outclassdefs.println("  int mutex;");  
+      outclassdefs.println("  int objlock;");
+      if(state.MULTICOREGC) {
+        outclassdefs.println("  int marked;");
+      }
+    } 
+    if (state.TASK) {
+      outclassdefs.println("  int flag;");
+      if(!state.MULTICORE) {
+        outclassdefs.println("  void * flagptr;");
+      } else {
+        outclassdefs.println("  int version;");
+        outclassdefs.println("  int * lock;");  // lock entry for this obj
+        outclassdefs.println("  int mutex;");  
+        outclassdefs.println("  int lockcount;");
+        if(state.MULTICOREGC) {
+          outclassdefs.println("  int marked;");
+        }
+      }
+      if(state.OPTIONAL) {
+        outclassdefs.println("  int numfses;");
+        outclassdefs.println("  int * fses;");
+      }
+    }
+    printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs, outglobaldefs);
+    outclassdefs.println("};\n");
+    
+    outclassdefs.println("");
     outclassdefs.println("extern int classsize[];");
     outclassdefs.println("extern int hasflags[];");
     outclassdefs.println("extern unsigned INTPTR * pointerarray[];");
@@ -1500,13 +1572,6 @@ public class BuildCode {
       }
     }
     Vector fields=(Vector)fieldorder.get(cn);
-    
-    if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
-      // this class has static fields/blocks, need to add a global flag to 
-      // indicate if its static fields have been initialized and/or if its
-      // static blocks have been executed
-      globaldefout.println("  int "+cn.getSafeSymbol()+"static_block_exe_flag;");
-    }
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);

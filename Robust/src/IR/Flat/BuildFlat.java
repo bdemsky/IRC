@@ -190,7 +190,7 @@ public class BuildFlat {
 	curran=null;
       NodePair np=flattenBlockNode(bn);
       FlatNode fn=np.getBegin();
-      if (state.THREAD&&currmd.getModifiers().isSynchronized()) {
+      if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
 	MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
 	TempDescriptor thistd=getTempforVar(currmd.getThis());
 	FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
@@ -1170,7 +1170,7 @@ public class BuildFlat {
     FlatReturnNode rnflat=new FlatReturnNode(retval);
     rnflat.addNext(fe);
     FlatNode ln=rnflat;
-    if (state.THREAD&&currmd.getModifiers().isSynchronized()) {
+    if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
       MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
       TempDescriptor thistd=getTempforVar(currmd.getThis());
       FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
