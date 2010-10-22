@@ -495,12 +495,15 @@ public class SemanticCheck {
       fd=FieldDescriptor.arrayLength;
     else 
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
+    if(state.MGC) {
+      // TODO add version for normal Java later
     if(ltd.isStatic()) {
       // check if this field is a static field
       if(!fd.isStatic()) {
         throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
       }
     } 
+    }
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
 
@@ -579,6 +582,8 @@ public class SemanticCheck {
       String varname=nd.toString();
       Descriptor d=(Descriptor)nametable.get(varname);
       if (d==null) {
+        if(state.MGC) {
+          // TODO add version for normal Java later
         ClassDescriptor cd = null;
         if(((MethodDescriptor)md).isStaticBlock()) {
           // this is a static block, all the accessed fields should be static field
@@ -603,6 +608,9 @@ public class SemanticCheck {
           } else {
             throw new Error("Name "+varname+" undefined in: "+md);
           }
+        }
+        } else {
+          throw new Error("Name "+varname+" undefined in: "+md);
         }
       }
       if (d instanceof VarDescriptor) {

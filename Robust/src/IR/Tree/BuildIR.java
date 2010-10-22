@@ -252,7 +252,12 @@ public class BuildIR {
 	} else if (isNode(decl,"constructor")) {
 	  parseConstructorDecl(cn,decl.getChild("constructor_declaration"));
 	} else if (isNode(decl, "static_block")) {
+      if(state.MGC) {
+        // TODO add version for normal Java later
       parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
+      } else {
+        throw new Error("Static blocks not implemented");
+      }
     } else if (isNode(decl,"block")) {
 	} else throw new Error();
       }
