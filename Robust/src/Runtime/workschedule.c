@@ -105,6 +105,7 @@ void* workerMain( void* arg ) {
   //set up the stall site SESErecord
   stallrecord.common.offsetToParamRecords=(INTPTR) &((SESEstall *)0)->rcrRecords;
   stallrecord.common.classID=-1;
+  stallrecord.common.rcrstatus=0;
 
   if( TRqueue == NULL ) {
     TRqueue = allocTR();

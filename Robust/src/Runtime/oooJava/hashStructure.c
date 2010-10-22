@@ -402,6 +402,9 @@ void RESOLVE(SESEcommon *record, bitvt mask) {
       if(unlikely(record->classID<0)) {
 	//parent stall...clear it
 	psem_give_tag(record->parentsStallSem, ((SESEstall *)record)->tag);
+	//mark the record unused
+	BARRIER();
+	((SESEstall *)record)->rcrstatus=0;
       } else {
 	int flag=LOCKXCHG32(&array[index].flag,0);
 	if (flag) {

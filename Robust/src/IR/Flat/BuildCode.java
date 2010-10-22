@@ -3254,10 +3254,14 @@ public class BuildCode {
                 }
                 if(state.RCR) {
 		  //no need to enqueue parent effect if coarse grained conflict clears us
+		  output.println("       while(stallrecord.common.rcrstatus) ;");
+		  output.println("       BARRIER();");
 		  output.println("       stallrecord.common.parentsStallSem=&rentry->parentStallSem;");
 		  output.println("       stallrecord.tag=rentry->tag;");
 		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
 		  output.println("       stallrecord.common.classID=-"+rcr.getTraverserID(waitingElement.getTempDesc(), fn)+";");
+		  //mark the record used..so we won't use it again until it is free
+		  output.println("       stallrecord.common.rcrstatus=1;");
 		  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
                 }
 		output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");

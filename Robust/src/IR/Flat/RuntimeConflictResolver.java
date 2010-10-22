@@ -725,6 +725,8 @@ public class RuntimeConflictResolver {
       //need to add this
       cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords[0].count))) {");
       cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
+      cFile.println("         BARRIER();");
+      cFile.println("         record->common.rcrstatus=0;");
       cFile.println("}");
     } else {
       cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");

@@ -100,7 +100,6 @@ typedef struct SESEcommon_t {
   //ForwardingListElement forwardList;
   struct Queue* forwardList;
 
-
   volatile int    unresolvedDependencies;
 
   pthread_cond_t  doneCond;
@@ -122,6 +121,7 @@ typedef struct SESEcommon_t {
   int offsetToDepSESErecords;
 #ifdef RCR
   int offsetToParamRecords;
+  volatile int rcrstatus;
 #endif
 
   // for determining when task records can be returned
