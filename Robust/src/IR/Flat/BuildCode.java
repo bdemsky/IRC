@@ -3229,8 +3229,7 @@ public class BuildCode {
           Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
           if(graph!=null){
             Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
-            Set<Analysis.OoOJava.WaitingElement> waitingElementSet =
-              graph.getStallSiteWaitingElementSet(fn, seseLockSet);
+            Set<Analysis.OoOJava.WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
             
             if(waitingElementSet.size()>0){
               output.println("// stall on parent's stall sites ");
@@ -3255,9 +3254,11 @@ public class BuildCode {
                 }
                 if(state.RCR) {
 		  //no need to enqueue parent effect if coarse grained conflict clears us
-		  output.println("   stallrecord.common.parentsStallSem=&rentry->parentStallSem;");
-		  output.println("   stallrecord.tag=rentry->tag;");
-                  output.println("   "+rcr.getTraverserInvocation(waitingElement.getTempDesc(), generateTemp(fm, waitingElement.getTempDesc(), null)+", &stallrecord", fn));
+		  output.println("       stallrecord.common.parentsStallSem=&rentry->parentStallSem;");
+		  output.println("       stallrecord.tag=rentry->tag;");
+		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
+		  output.println("       stallrecord.common.classID=-"+rcr.getTraverserID(waitingElement.getTempDesc(), fn)+";");
+		  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
                 }
 		output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
                 if( state.COREPROF ) {

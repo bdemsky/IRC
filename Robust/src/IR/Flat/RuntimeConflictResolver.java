@@ -9,6 +9,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
+import Util.Tuple;
 import Analysis.Disjoint.*;
 import Analysis.MLP.CodePlan;
 import IR.Flat.*;
@@ -37,9 +38,12 @@ public class RuntimeConflictResolver {
   //This keeps track of taints we've traversed to prevent printing duplicate traverse functions
   //The Integer keeps track of the weakly connected group it's in (used in enumerateHeapRoots)
   private Hashtable<Taint, Integer> doneTaints;
+  private Hashtable<Tuple, Integer> idMap=new Hashtable<Tuple,Integer>();
   private Hashtable<Taint, Set<Effect>> globalEffects;
   private Hashtable<Taint, Set<Effect>> globalConflicts;
   private ArrayList<TraversalInfo> toTraverse;
+
+  public int currentID=1;
 
   // initializing variables can be found in printHeader()
   private static final String getAllocSiteInC = "->allocsite";
@@ -297,6 +301,15 @@ public class RuntimeConflictResolver {
     return "traverse___" + invar.getSafeSymbol() + 
     removeInvalidChars(flatname) + "___("+varString+");";
   }
+
+  public int getTraverserID(TempDescriptor invar, FlatNode fn) {
+    Tuple t=new Tuple(invar, fn);
+    if (idMap.containsKey(t))
+      return idMap.get(t).intValue();
+    int value=currentID++;
+    idMap.put(t, new Integer(value));
+    return value;
+  }
   
   public String removeInvalidChars(String in) {
     StringBuilder s = new StringBuilder(in);
@@ -390,6 +403,16 @@ public class RuntimeConflictResolver {
       cFile.println(    "    break;");
     }
     
+    for(Taint t: doneTaints.keySet()) {
+      if (t.isStallSiteTaint()){
+	cFile.println(    "    case -" + getTraverserID(t.getVar(), t.getStallSite())+ ": {");
+	cFile.println(    "      SESEstall * rec=(SESEstall*) record;");
+        cFile.println(    "      " + this.getTraverserInvocation(t.getVar(), "rec->___obj___, rec", t.getStallSite())+";");
+	cFile.println(    "    }");
+	cFile.println("    break;");
+      }
+    }
+
     cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in.\\n\");\n    break;");
     
     cFile.println("  }");
@@ -803,7 +826,6 @@ public class RuntimeConflictResolver {
         //This is done with the assumption that an array of object stores pointers. 
         currCase.append("{\n  int i;\n");
         currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
-	//XXXXXXXXX
         currCase.append("    struct ___Object___ * arrayElement =((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i];\n");
         currCase.append("    if( arrayElement != NULL && (");
         

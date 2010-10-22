@@ -399,7 +399,7 @@ void RESOLVE(SESEcommon *record, bitvt mask) {
     int shift=__builtin_ctzll(mask)+1;
     index+=shift;
     if (atomic_sub_and_test(1,&array[index].count)) {
-      if(unlikely(record->classID==STALLCLASSID)) {
+      if(unlikely(record->classID<0)) {
 	//parent stall...clear it
 	psem_give_tag(record->parentsStallSem, ((SESEstall *)record)->tag);
       } else {

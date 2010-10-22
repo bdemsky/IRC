@@ -16,12 +16,11 @@ struct rcrRecord {
   struct rcrRecord *next;
 };
 
-#define STALLCLASSID 1939921
-
 typedef struct SESEstall_t { 
   SESEcommon common;
   int size;
   void * next;
+  struct ___Object___* ___obj___;
   struct rcrRecord rcrRecords[1];
   int tag;
 } SESEstall;
