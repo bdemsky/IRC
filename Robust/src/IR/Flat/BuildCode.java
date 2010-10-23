@@ -4403,9 +4403,12 @@ public class BuildCode {
 	output.println("       seseToIssue->common.rentryIdx=0;");
 	output.println("       int dispCount;");
 	Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
+	System.out.println(fm.getMethod()+"["+invars+"]");
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+	  if (weset==null)
+	    System.out.println("ERROR:"+td+"  "+fsen+" "+fm.getMethod());
 	  int numqueues=weset.size();
 	  output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
 	  output.println("      dispCount=0;");

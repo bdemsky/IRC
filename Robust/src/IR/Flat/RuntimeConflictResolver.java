@@ -228,16 +228,17 @@ public class RuntimeConflictResolver {
     
     if (inVars.size() == 0)
       return;
-    
+    System.out.println("RBLOCK:"+rblock);
+    System.out.println("["+inVars+"]");
     // For every non-primitive variable, generate unique method
     // Special Note: The Criteria for executing printCMethod in this loop should match
     // exactly the criteria in buildcode.java to invoke the generated C method(s). 
     for (TempDescriptor invar : inVars) {
       TypeDescriptor type = invar.getType();
-      if(type == null || type.isPrimitive()) {
+      if(type.isPrimitive()) {
         continue;
       }
-
+      System.out.println(invar);
       //created stores nodes with specific alloc sites that have been traversed while building
       //internal data structure. It is later traversed sequentially to find inset variables and
       //build output code.
@@ -246,7 +247,7 @@ public class RuntimeConflictResolver {
       Taint taint = getProperTaintForFlatSESEEnterNode(rblock, varNode, globalEffects);
       if (taint == null) {
         printDebug(javaDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + rblock.toPrettyString());
-        return;
+        continue;
       }
       
       //This is to prevent duplicate traversals from being generated 
@@ -259,7 +260,13 @@ public class RuntimeConflictResolver {
       
       //This will add the taint to the printout, there will be NO duplicates (checked above)
       if(!created.isEmpty()) {
-        rblock.addInVarForDynamicCoarseConflictResolution(invar);
+	for(Iterator<ConcreteRuntimeObjNode> it=created.values().iterator();it.hasNext();) {
+	  ConcreteRuntimeObjNode obj=it.next();
+	  if (obj.hasPrimitiveConflicts()||obj.decendantsConflict()) {
+	    rblock.addInVarForDynamicCoarseConflictResolution(invar);
+	    break;
+	  }
+	}
         pendingPrintout.add(new TaintAndInternalHeapStructure(taint, created));
       }
     }
@@ -351,7 +358,7 @@ public class RuntimeConflictResolver {
   //SPECIAL NOTE: Only runs after we've taken all the conflicts 
   private void buildEffectsLookupStructure(){
     effectsLookupTable = new EffectsTable(globalEffects, globalConflicts);
-    effectsLookupTable.runAnaylsis();
+    effectsLookupTable.runAnalysis();
     enumerateHeaproots();
   }
 
@@ -469,7 +476,7 @@ public class RuntimeConflictResolver {
       AllocSite rootKey = singleRoot.allocSite;
 
       if (!created.containsKey(rootKey)) {
-        created.put(rootKey, singleRoot);
+	created.put(rootKey, singleRoot);
         createHelper(singleRoot, edge.getDst().iteratorToReferencees(), created, table, t);
       }
     }
@@ -559,7 +566,7 @@ public class RuntimeConflictResolver {
           
           if (effectsForGivenField.hasConflict()) {
             child.hasPotentialToBeIncorrectDueToConflict = true;
-            propogateObjConflict(curr, child);
+            propagateObjConflict(curr, child);
           }
           
           if(effectsForGivenField.hasReadEffect) {
@@ -571,11 +578,11 @@ public class RuntimeConflictResolver {
             } else {
             //This makes sure that all conflicts below the child is propagated up the referencers.
               if(child.decendantsPrimConflict || child.hasPrimitiveConflicts()) {
-                propogatePrimConflict(child, child.enqueueToWaitingQueueUponConflict);
+                propagatePrimConflict(child, child.enqueueToWaitingQueueUponConflict);
               }
               
               if(child.decendantsObjConflict) {
-                propogateObjConflict(child, child.enqueueToWaitingQueueUponConflict);
+                propagateObjConflict(child, child.enqueueToWaitingQueueUponConflict);
               }
             }
           }
@@ -587,51 +594,51 @@ public class RuntimeConflictResolver {
     curr.primitiveConflictingFields = currEffects.primitiveConflictingFields; 
     if(currEffects.hasPrimitiveConflicts()) {
       //Reminder: primitive conflicts are abstracted to object. 
-      propogatePrimConflict(curr, curr);
+      propagatePrimConflict(curr, curr);
     }
   }
 
   // This will propagate the conflict up the data structure.
-  private void propogateObjConflict(ConcreteRuntimeObjNode curr, HashSet<ConcreteRuntimeObjNode> pointsOfAccess) {
+  private void propagateObjConflict(ConcreteRuntimeObjNode curr, HashSet<ConcreteRuntimeObjNode> pointsOfAccess) {
     for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
       if(curr.parentsThatWillLeadToConflicts.add(referencer) || //case where referencee has never seen referncer
           (pointsOfAccess != null && referencer.addPossibleWaitingQueueEnqueue(pointsOfAccess))) // case where referencer has never seen possible unresolved referencee below 
       {
         referencer.decendantsObjConflict = true;
-        propogateObjConflict(referencer, pointsOfAccess);
+        propagateObjConflict(referencer, pointsOfAccess);
       }
     }
   }
   
-  private void propogateObjConflict(ConcreteRuntimeObjNode curr, ConcreteRuntimeObjNode pointOfAccess) {
+  private void propagateObjConflict(ConcreteRuntimeObjNode curr, ConcreteRuntimeObjNode pointOfAccess) {
     for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
       if(curr.parentsThatWillLeadToConflicts.add(referencer) || //case where referencee has never seen referncer
           (pointOfAccess != null && referencer.addPossibleWaitingQueueEnqueue(pointOfAccess))) // case where referencer has never seen possible unresolved referencee below 
       {
         referencer.decendantsObjConflict = true;
-        propogateObjConflict(referencer, pointOfAccess);
+        propagateObjConflict(referencer, pointOfAccess);
       }
     }
   }
   
-  private void propogatePrimConflict(ConcreteRuntimeObjNode curr, HashSet<ConcreteRuntimeObjNode> pointsOfAccess) {
+  private void propagatePrimConflict(ConcreteRuntimeObjNode curr, HashSet<ConcreteRuntimeObjNode> pointsOfAccess) {
     for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
       if(curr.parentsThatWillLeadToConflicts.add(referencer) || //same cases as above
           (pointsOfAccess != null && referencer.addPossibleWaitingQueueEnqueue(pointsOfAccess))) 
       {
         referencer.decendantsPrimConflict = true;
-        propogatePrimConflict(referencer, pointsOfAccess);
+        propagatePrimConflict(referencer, pointsOfAccess);
       }
     }
   }
   
-  private void propogatePrimConflict(ConcreteRuntimeObjNode curr, ConcreteRuntimeObjNode pointOfAccess) {
+  private void propagatePrimConflict(ConcreteRuntimeObjNode curr, ConcreteRuntimeObjNode pointOfAccess) {
     for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
       if(curr.parentsThatWillLeadToConflicts.add(referencer) || //same cases as above
           (pointOfAccess != null && referencer.addPossibleWaitingQueueEnqueue(pointOfAccess))) 
       {
         referencer.decendantsPrimConflict = true;
-        propogatePrimConflict(referencer, pointOfAccess);
+        propagatePrimConflict(referencer, pointOfAccess);
       }
     }
   }
@@ -1353,7 +1360,7 @@ public class RuntimeConflictResolver {
 
     // Run Analysis will walk the data structure and figure out the weakly
     // connected heap roots. 
-    public void runAnaylsis() {
+    public void runAnalysis() {
       if(javaDebug) {
         printoutTable(this); 
       }
@@ -1398,8 +1405,7 @@ public class RuntimeConflictResolver {
     public int getWaitingQueueBucketNum(ConcreteRuntimeObjNode node) {
       if(allocSiteToWaitingQueueMap.containsKey(node.allocSite)) {
         return allocSiteToWaitingQueueMap.get(node.allocSite);
-      }
-      else {
+      } else {
         allocSiteToWaitingQueueMap.put(node.allocSite, waitingQueueCounter);
         return waitingQueueCounter++;
       }
