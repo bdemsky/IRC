@@ -1294,8 +1294,11 @@ public class RuntimeConflictResolver {
     }
 
     @Override
-    public boolean equals(Object obj) {
-      return original.equals(obj);
+    public boolean equals(Object other) {
+      if(other == null || !(other instanceof ConcreteRuntimeObjNode)) 
+        return false;
+      
+      return original.equals(((ConcreteRuntimeObjNode)other).original);
     }
 
     public int getAllocationSite() {
@@ -1342,8 +1345,9 @@ public class RuntimeConflictResolver {
         ObjRef other = objectRefs.get(objectRefs.indexOf(ref));
         other.mergeWith(ref);
       }
-      else
+      else {
         objectRefs.add(ref);
+      }
     }
     
     public boolean isObjectArray() {
