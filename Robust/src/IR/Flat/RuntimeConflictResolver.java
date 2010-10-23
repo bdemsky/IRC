@@ -801,11 +801,11 @@ public class RuntimeConflictResolver {
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
-      currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
+        currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead)
-	currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
       else
-	currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
@@ -813,28 +813,28 @@ public class RuntimeConflictResolver {
       int traverserID = doneTaints.get(taint);
       currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead) 
-	currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
       else
-	currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
     }
 
     if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
       currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
       currCase.append("if (!(tmpvar"+depth+"&SPEC)) {\n");
       if (taint.isStallSiteTaint()) {
-	currCase.append("  struct rcrRecord * rcrrec=&record->rcrRecords["+index+"];\n");
-	currCase.append("  struct rcrRecord * tmprec;\n");
-	currCase.append("  if(likely(rcrrec->index<RCRSIZE)) {\n");
-	currCase.append("  rcrrec->array[rcrrec->index++]=tmpkey"+depth+";\n");
-	currCase.append("} else if(likely((tmprec=rcrrec->next)!=NULL)&&likely(tmprec->index<RCRSIZE)) {\n");
-	currCase.append("  tmprec->array[tmprec->index++]=tmpkey"+depth+";\n");
-	currCase.append("} else {\n");
-	currCase.append("  struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));");
-	currCase.append("  trec->array[0]=tmpkey"+depth+";\n");
-	currCase.append("  trec->index=1;\n");
-	currCase.append("  trec->next=tmprec;\n");
-	currCase.append("  rcrrec->next=trec;\n");
-	currCase.append("}\n");
+      	currCase.append("  struct rcrRecord * rcrrec=&record->rcrRecords["+index+"];\n");
+      	currCase.append("  struct rcrRecord * tmprec;\n");
+      	currCase.append("  if(likely(rcrrec->index<RCRSIZE)) {\n");
+      	currCase.append("  rcrrec->array[rcrrec->index++]=tmpkey"+depth+";\n");
+      	currCase.append("} else if(likely((tmprec=rcrrec->next)!=NULL)&&likely(tmprec->index<RCRSIZE)) {\n");
+      	currCase.append("  tmprec->array[tmprec->index++]=tmpkey"+depth+";\n");
+      	currCase.append("} else {\n");
+      	currCase.append("  struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));");
+      	currCase.append("  trec->array[0]=tmpkey"+depth+";\n");
+      	currCase.append("  trec->index=1;\n");
+      	currCase.append("  trec->next=tmprec;\n");
+      	currCase.append("  rcrrec->next=trec;\n");
+      	currCase.append("}\n");
       }
       currCase.append("}\n");
     }
@@ -863,9 +863,10 @@ public class RuntimeConflictResolver {
       }
     } else {
     //All other cases
-      for(ObjRef ref: node.objectRefs) {     
+      for(ObjRef ref: node.objectRefs) {
+        currCase.append("{ \n");
         // Will only process edge if there is some sort of conflict with the Child
-        if (ref.hasConflictsDownThisPath()) {  
+        if (ref.hasConflictsDownThisPath()) {
           String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + ref.field + "___";
           int pdepth=depth+1;
           String currPtr = "myPtr" + pdepth;
@@ -893,6 +894,7 @@ public class RuntimeConflictResolver {
           }
           currCase.append("  }\n ");
         }
+        currCase.append("} ");
       }
     }
 
@@ -1186,6 +1188,22 @@ public class RuntimeConflictResolver {
     public boolean hasConflict() {
       return hasReadConflict || hasWriteConflict || hasStrongUpdateConflict;
     }
+
+    public void mergeWith(CombinedObjEffects other) {
+      for(Effect e: other.originalEffects) {
+        if(!originalEffects.contains(e)){
+          originalEffects.add(e);
+        }
+      }
+      
+      hasReadEffect |= other.hasReadEffect;
+      hasWriteEffect |= other.hasWriteEffect;
+      hasStrongUpdateEffect |= other.hasStrongUpdateEffect;
+      
+      hasReadConflict |= other.hasReadConflict;
+      hasWriteConflict |= other.hasWriteConflict;
+      hasStrongUpdateConflict |= other.hasStrongUpdateConflict;
+    }
   }
 
   //This will keep track of a reference
@@ -1214,6 +1232,26 @@ public class RuntimeConflictResolver {
     
     public boolean hasDirectObjConflict() {
       return myEffects.hasConflict();
+    }
+    
+    public boolean equals(Object other) {
+      if(other == null || !(other instanceof ObjRef)) 
+        return false;
+      
+      ObjRef o = (ObjRef) other;
+      
+      if(o.field == this.field && o.allocSite == this.allocSite && this.child.equals(o.child))
+        return true;
+      
+      return false;
+    }
+    
+    public int hashCode() {
+      return child.allocSite.hashCode() ^ field.hashCode();
+    }
+
+    public void mergeWith(ObjRef ref) {
+      myEffects.mergeWith(ref.myEffects);
     }
   }
 
@@ -1295,7 +1333,13 @@ public class RuntimeConflictResolver {
 
     public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
       ObjRef ref = new ObjRef(field, child, ce);
-      objectRefs.add(ref);
+      
+      if(objectRefs.contains(ref)) {
+        ObjRef other = objectRefs.get(objectRefs.indexOf(ref));
+        other.mergeWith(ref);
+      }
+      else
+        objectRefs.add(ref);
     }
     
     public boolean isObjectArray() {
