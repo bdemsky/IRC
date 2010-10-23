@@ -242,7 +242,8 @@ public class RuntimeConflictResolver {
       //created stores nodes with specific alloc sites that have been traversed while building
       //internal data structure. It is later traversed sequentially to find inset variables and
       //build output code.
-      Hashtable<AllocSite, ConcreteRuntimeObjNode> created = new Hashtable<AllocSite, ConcreteRuntimeObjNode>();
+      //NOTE: Integer stores Allocation Site ID
+      Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
       VariableNode varNode = rg.getVariableNodeNoMutation(invar);
       Taint taint = getProperTaintForFlatSESEEnterNode(rblock, varNode, globalEffects);
       if (taint == null) {
@@ -277,7 +278,7 @@ public class RuntimeConflictResolver {
     if(type == null || type.isPrimitive()) {
       return;
     }
-    Hashtable<AllocSite, ConcreteRuntimeObjNode> created = new Hashtable<AllocSite, ConcreteRuntimeObjNode>();
+    Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
     VariableNode varNode = rg.getVariableNodeNoMutation(invar);
     Taint taint = getProperTaintForEnterNode(enterNode, varNode, globalEffects);
     
@@ -458,7 +459,7 @@ public class RuntimeConflictResolver {
 
   private void createConcreteGraph(
       EffectsTable table,
-      Hashtable<AllocSite, ConcreteRuntimeObjNode> created, 
+      Hashtable<Integer, ConcreteRuntimeObjNode> created, 
       VariableNode varNode, 
       Taint t) {
     
@@ -473,10 +474,10 @@ public class RuntimeConflictResolver {
       assert edge != null;
 
       ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true, false);
-      AllocSite rootKey = singleRoot.allocSite;
+      int rootKey = singleRoot.allocSite.getUniqueAllocSiteID();
 
       if (!created.containsKey(rootKey)) {
-	created.put(rootKey, singleRoot);
+        created.put(rootKey, singleRoot);
         createHelper(singleRoot, edge.getDst().iteratorToReferencees(), created, table, t);
       }
     }
@@ -532,7 +533,7 @@ public class RuntimeConflictResolver {
   // propagate up conflicts
   private void createHelper(ConcreteRuntimeObjNode curr, 
                             Iterator<RefEdge> edges, 
-                            Hashtable<AllocSite, ConcreteRuntimeObjNode> created,
+                            Hashtable<Integer, ConcreteRuntimeObjNode> created,
                             EffectsTable table, 
                             Taint taint) {
     assert table != null;
@@ -551,7 +552,7 @@ public class RuntimeConflictResolver {
         //If there are no effects, then there's no point in traversing this edge
         if(effectsForGivenField != null) {
           HeapRegionNode childHRN = edge.getDst();
-          AllocSite childKey = childHRN.getAllocSite();
+          int childKey = childHRN.getAllocSite().getUniqueAllocSiteID();
           boolean isNewChild = !created.containsKey(childKey);
           ConcreteRuntimeObjNode child; 
           
@@ -657,7 +658,7 @@ public class RuntimeConflictResolver {
    *  signal a conflict within itself. 
    */
   
-  private void printCMethod(Hashtable<AllocSite, ConcreteRuntimeObjNode> created, Taint taint) {
+  private void printCMethod(Hashtable<Integer, ConcreteRuntimeObjNode> created, Taint taint) {
     //This hash table keeps track of all the case statements generated. Although it may seem a bit much 
    //for its purpose, I think it may come in handy later down the road to do it this way. 
     //(i.e. what if we want to eliminate some cases? Or build filter for 1 case)
@@ -698,13 +699,6 @@ public class RuntimeConflictResolver {
 
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
-    cFile.println("    int totalcount=RUNBIAS;\n");
-    if (taint.isStallSiteTaint()) {
-      cFile.println("    record->rcrRecords[0].count=RUNBIAS;\n");
-    } else {
-      cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
-      cFile.println("    record->rcrRecords["+index+"].index=0;\n");
-    }
     
     if(cSideDebug) {
       cFile.println("printf(\"The traverser ran for " + methodName + "\\n\");");
@@ -713,6 +707,15 @@ public class RuntimeConflictResolver {
     if(cases.size() == 0) {
       cFile.println(" return;");
     } else {
+      cFile.println("    int totalcount=RUNBIAS;\n");
+      
+      if (taint.isStallSiteTaint()) {
+        cFile.println("    record->rcrRecords[0].count=RUNBIAS;\n");
+      } else {
+        cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
+        cFile.println("    record->rcrRecords["+index+"].index=0;\n");
+      }
+      
       //clears queue and hashtable that keeps track of where we've been. 
       cFile.println(clearQueue + ";\n" + resetVisitedHashTable + ";"); 
       
@@ -726,22 +729,23 @@ public class RuntimeConflictResolver {
       
       cFile.println("  default:\n    break; ");
       cFile.println("  }\n } while((ptr = " + dequeueFromQueueInC + ") != NULL);\n}");
-    }
-    if (taint.isStallSiteTaint()) {
-      //need to add this
-      cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords[0].count))) {");
-      cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
-      cFile.println("         BARRIER();");
-      cFile.println("         record->common.rcrstatus=0;");
-      cFile.println("}");
-    } else {
-      cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");
-      cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");
-      cFile.println("        if(flag) {");
-      //we have resolved a heap root...see if this was the last dependence
-      cFile.println("            if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) workScheduleSubmit((void *)record);");
-      cFile.println("        }");
-      cFile.println("}");
+      
+      if (taint.isStallSiteTaint()) {
+        //need to add this
+        cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords[0].count))) {");
+        cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
+        cFile.println("         BARRIER();");
+        cFile.println("         record->common.rcrstatus=0;");
+        cFile.println("}");
+      } else {
+        cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");
+        cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");
+        cFile.println("        if(flag) {");
+        //we have resolved a heap root...see if this was the last dependence
+        cFile.println("            if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) workScheduleSubmit((void *)record);");
+        cFile.println("        }");
+        cFile.println("}");
+      }
     }
     cFile.println("}");
     cFile.flush();
@@ -1526,9 +1530,9 @@ public class RuntimeConflictResolver {
   
   private class TaintAndInternalHeapStructure {
     public Taint t;
-    public Hashtable<AllocSite, ConcreteRuntimeObjNode> nodesInHeap;
+    public Hashtable<Integer, ConcreteRuntimeObjNode> nodesInHeap;
     
-    public TaintAndInternalHeapStructure(Taint taint, Hashtable<AllocSite, ConcreteRuntimeObjNode> nodesInHeap) {
+    public TaintAndInternalHeapStructure(Taint taint, Hashtable<Integer, ConcreteRuntimeObjNode> nodesInHeap) {
       t = taint;
       this.nodesInHeap = nodesInHeap;
     }
