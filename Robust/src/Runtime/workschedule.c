@@ -107,6 +107,11 @@ void* workerMain( void* arg ) {
   stallrecord.common.classID=-1;
   stallrecord.common.rcrstatus=0;
 
+  //initialize rcrRecord
+  stallrecord.rcrRecords[0].next=NULL;
+  stallrecord.rcrRecords[0].index=0;
+  stallrecord.rcrRecords[0].count=0;
+
   if( TRqueue == NULL ) {
     TRqueue = allocTR();
   }

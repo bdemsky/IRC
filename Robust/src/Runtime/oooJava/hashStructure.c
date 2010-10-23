@@ -46,11 +46,10 @@ inline int rcr_generateKey(void * ptr){
   return (((struct ___Object___ *) ptr)->oid)&RH_MASK;
 }
 
-inline int rcr_BWRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index, int mode) {
+inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index, int mode) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
   BinItem_rcr * val;
-  int key=rcr_generateKey(ptr);
   BinElement_rcr* be= &(T->array[key]); //do not grab head from here since it's locked (i.e. = 0x1)
 
   //LOCK is still needed as different threads will remove items...
@@ -157,9 +156,8 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int 
   }
 }
 
-inline int rcr_BREADBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index, int mode) {
+inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int index, int mode) {
   BinItem_rcr * val;
-  int key=rcr_generateKey(ptr);
   BinElement_rcr * be = &(T->array[key]);
 
   //LOCK is still needed as different threads will remove items...
@@ -236,7 +234,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int i
   }
 
   if (ISREADBIN(bintail->type)) {
-    int stat=rcr_TAILREADCASE(T, ptr, val, bintail, key, task, index);
+    int stat=rcr_TAILREADCASE(T, val, bintail, key, task, index);
     if (mode) {
       struct BinItem_rcr * bt=be->tail;
       while(bt->status!=READY) {
@@ -247,7 +245,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int i
       return stat;
     }
   } else {
-    rcr_TAILWRITECASE(T, ptr, val, bintail, key, task, index);
+    rcr_TAILWRITECASE(T, val, bintail, key, task, index);
     if (mode) {
       struct BinItem_rcr * bt=be->tail;
       while(bt->status!=READY) {
@@ -261,22 +259,22 @@ inline int rcr_BREADBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int i
 }
 
 
-int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
-  return rcr_BWRITEBINCASE(T, ptr, task, index, 0);
+int rcr_WRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index) {
+  return rcr_BWRITEBINCASE(T, key, task, index, 0);
 }
-int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index) {
-  return rcr_BREADBINCASE(T, ptr, task, index, 0);
-}
-
-int rcr_WTWRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index) {
-  return rcr_BWRITEBINCASE(T, ptr, task, index, 1);
+int rcr_READBINCASE(HashStructure *T, int key, SESEcommon * task, int index) {
+  return rcr_BREADBINCASE(T, key, task, index, 0);
 }
 
-int rcr_WTREADBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index) {
-  return rcr_BREADBINCASE(T, ptr, task, index, 1);
+int rcr_WTWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index) {
+  return rcr_BWRITEBINCASE(T, key, task, index, 1);
 }
 
-int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index) {
+int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, int index) {
+  return rcr_BREADBINCASE(T, key, task, index, 1);
+}
+
+int rcr_TAILREADCASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index) {
   ReadBinItem_rcr * readbintail=(ReadBinItem_rcr*)T->array[key].tail;
   int status, retval;
   TraverserData *td;
@@ -308,7 +306,7 @@ int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr
   return retval;
 }
 
-void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index) {
+void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index) {
   ReadBinItem_rcr* rb=rcr_createReadBinItem();
   TraverserData * td = &(rb->array[rb->index++]);
   rb->item.total=1;

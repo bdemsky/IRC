@@ -694,7 +694,6 @@ public class RuntimeConflictResolver {
     cFile.println("    int totalcount=RUNBIAS;\n");
     if (taint.isStallSiteTaint()) {
       cFile.println("    record->rcrRecords[0].count=RUNBIAS;\n");
-      cFile.println("    record->rcrRecords[0].index=0;\n");
     } else {
       cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
       cFile.println("    record->rcrRecords["+index+"].index=0;\n");
@@ -795,26 +794,41 @@ public class RuntimeConflictResolver {
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
+      currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead)
-	currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
       else
-	currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
       int traverserID = doneTaints.get(taint);
+      currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead) 
-	currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
       else
-	currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"],"+prefix+", (SESEcommon *) record, "+index+");\n");
+	currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
     }
 
     if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
       currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
       currCase.append("if (!(tmpvar"+depth+"&SPEC)) {\n");
-      currCase.append("  struct rcrRecord * rcrrec=&record->rcrRecords["+index+"];");
-      currCase.append("  rcrrec->array[rcrrec->index++];");
+      if (taint.isStallSiteTaint()) {
+	currCase.append("  struct rcrRecord * rcrrec=&record->rcrRecords["+index+"];\n");
+	currCase.append("  struct rcrRecord * tmprec;\n");
+	currCase.append("  if(likely(rcrrec->index<RCRSIZE)) {\n");
+	currCase.append("  rcrrec->array[rcrrec->index++]=tmpkey"+depth+";\n");
+	currCase.append("} else if(likely((tmprec=rcrrec->next)!=NULL)&&likely(tmprec->index<RCRSIZE)) {\n");
+	currCase.append("  tmprec->array[tmprec->index++]=tmpkey"+depth+";\n");
+	currCase.append("} else {\n");
+	currCase.append("  struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));");
+	currCase.append("  trec->array[0]=tmpkey"+depth+";\n");
+	currCase.append("  trec->size=1;\n");
+	currCase.append("  trec->next=tmprec;\n");
+	currCase.append("  rcrrec->next=trec;\n");
+	currCase.append("}\n");
+      }
       currCase.append("}\n");
     }
     

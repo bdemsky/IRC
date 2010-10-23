@@ -84,12 +84,12 @@ inline int rcr_generateKey(void * ptr);
 //to store in each entry.
 
 void RESOLVE(SESEcommon *record, bitvt mask);
-int rcr_WRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index);
-int rcr_READBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index);
+int rcr_WRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index);
+int rcr_READBINCASE(HashStructure *T, int key, SESEcommon * task, int index);
 
-int rcr_WTWRITEBINCASE(HashStructure *T, void *ptr, SESEcommon *task, int index);
-int rcr_WTREADBINCASE(HashStructure *T, void *ptr, SESEcommon * task, int index);
-int rcr_TAILREADCASE(HashStructure *T, void * ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);
-void rcr_TAILWRITECASE(HashStructure *T, void *ptr, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);
+int rcr_WTWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index);
+int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, int index);
+int rcr_TAILREADCASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);
+void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index);
 
 #endif
