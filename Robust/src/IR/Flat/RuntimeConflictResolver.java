@@ -824,7 +824,7 @@ public class RuntimeConflictResolver {
 	currCase.append("} else {\n");
 	currCase.append("  struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));");
 	currCase.append("  trec->array[0]=tmpkey"+depth+";\n");
-	currCase.append("  trec->size=1;\n");
+	currCase.append("  trec->index=1;\n");
 	currCase.append("  trec->next=tmprec;\n");
 	currCase.append("  rcrrec->next=trec;\n");
 	currCase.append("}\n");
