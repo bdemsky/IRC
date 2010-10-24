@@ -3943,7 +3943,7 @@ public class BuildCode {
     
     if(state.RCR) {
       //flag the SESE status as 1...it will be reset
-      output.println("     seseToIssue->rcrstatus=1;");
+      output.println("     seseToIssue->common.rcrstatus=1;");
     }
 
     // there are pointers to SESE records the newly-issued SESE
@@ -4603,7 +4603,7 @@ public class BuildCode {
       output.println("    struct rcrRecord *rec="+paramsprefix+"->rcrRecords[idx];");
       output.println("    while(rec!=NULL) {");
       output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
-      output.println("        rcr_RETIREHASHTABLE(allHashStructures[0],rec,rec->array[idx2], rcr->ptrarray[idx2]);");
+      output.println("        rcr_RETIREHASHTABLE(allHashStructures[0],rec,rec->array[idx2], (BinItem_rcr *) rcr->ptrarray[idx2]);");
       output.println("      }");//exit idx2 for loop
       output.println("      rec=rec->next;");
       output.println("    }");//exit rec while loop

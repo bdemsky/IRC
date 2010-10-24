@@ -158,6 +158,29 @@ typedef struct REntry_t{
   int isBufMode;
 } REntry;
 
+#ifdef RCR
+#define RCRSIZE 32
+#define RUNBIAS 1000000
+
+struct rcrRecord {
+  int count;
+  int index;
+  int flag;
+  int array[RCRSIZE];
+  void * ptrarray[RCRSIZE];
+  struct rcrRecord *next;
+};
+
+typedef struct SESEstall_t { 
+  SESEcommon common;
+  int size;
+  void * next;
+  struct ___Object___* ___obj___;
+  struct rcrRecord rcrRecords[1];
+  int tag;
+} SESEstall;
+#endif
+
 typedef struct MemoryQueueItem_t {
   int type; // hashtable:0, vector:1, singleitem:2
   int total;        //total non-retired

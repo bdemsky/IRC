@@ -1,9 +1,10 @@
 #include "hashStructure.h"
 //#include "WaitingQueue.h"
 #include "mlp_lock.h"
+#include "rcr_runtime.h"
 #include "mem.h"
 #include "classdefs.h"
-#include "rcr_runtime.h"
+
 
 //NOTE: this is only temporary (for testing) and will be removed in favor of thread local variables
 //It's basically an array of hashStructures so we can simulate what would happen in a many-threaded version
@@ -19,15 +20,15 @@ inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
     struct rcrRecord * tmprec;
     if(likely(rcrrec->index<RCRSIZE)) {
       int index=rcrrec->index++;
-      rcrrec->ptrarray[index]=item;
+      rcrrec->ptrarray[index]=(void *) item;
       rcrrec->array[index]=tmpkey;
     } else if(likely((tmprec=rcrrec->next)!=NULL)&&likely(tmprec->index<RCRSIZE)) {
       int index=tmprec->index++;
-      tmprec->ptrarray[index]=item;
+      tmprec->ptrarray[index]=(void *) item;
       tmprec->array[index]=tmpkey;
     } else {
       struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));
-      trec->ptrarray[0]=item;
+      trec->ptrarray[0]=(void *) item;
       trec->array[0]=tmpkey;
       trec->index=1;
       trec->next=tmprec;
@@ -161,7 +162,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
 	if (status&SPEC) {
 	  return READY;
 	} else {
-	  enqueuerecord(rcrrec, key, b);
+	  enqueuerecord(rcrrec, key, (BinItem_rcr *) b);
 	  return READY;
 	}
       }
@@ -178,7 +179,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     return status&READY;
   } else {
     if (!(status&SPEC))
-      enqueuerecord(rcrrec, key, b);      
+      enqueuerecord(rcrrec, key, (BinItem_rcr *) b);
     return status&READY;
   }
 }
@@ -186,13 +187,13 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
 inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct rcrRecord *rcrrec, int index, int mode) {
   BinItem_rcr * val;
   BinElement_rcr * be = &(T->array[key]);
-
+  
   //LOCK is still needed as different threads will remove items...
   do {  
     val=(BinItem_rcr *)0x1;       
     val=(BinItem_rcr *)LOCKXCHG((unsigned INTPTR*)&(be->head), (unsigned INTPTR)val);
   } while(val==(BinItem_rcr*)0x1);     
-
+  
   if (val==NULL) {
     BinItem_rcr * b=(BinItem_rcr*)rcr_createReadBinItem();
     ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
@@ -213,7 +214,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
 
 
   BinItem_rcr * bintail=be->tail;
-
+  
   //check if already added item or not.
   if (ISWRITEBIN(bintail->type)) {
     WriteBinItem_rcr * td = (WriteBinItem_rcr *)bintail;
@@ -235,6 +236,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
       } else {
 	return status;
       }
+    }
   } else {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
     if (unlikely(td->task==task)) {
@@ -316,11 +318,11 @@ int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRe
     rb->item.status=status;
     T->array[key].tail->next=(BinItem_rcr*)rb;
     T->array[key].tail=(BinItem_rcr*)rb;
-    enqueuerecord(rcrrec, key, rb);
+    enqueuerecord(rcrrec, key, (BinItem_rcr *) rb);
   } else { // group into old tail
     td = &readbintail->array[readbintail->index++];
     atomic_inc(&readbintail->item.total);
-    enqueuerecord(rcrrec, key, readbintail);
+    enqueuerecord(rcrrec, key, (BinItem_rcr *) readbintail);
   }
 
   td->task=task;
@@ -338,7 +340,7 @@ void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail,
 
   td->task=task;
   td->bitindex=1<<index;
-  enqueuerecord(rcrrec, key, rb);
+  enqueuerecord(rcrrec, key, (BinItem_rcr *) rb);
 
   T->array[key].tail->next=(BinItem_rcr*)rb;
   T->array[key].tail=(BinItem_rcr*)rb;
@@ -352,7 +354,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
       return;
     }
   }
-
+  
   //We either have a write bin or we are at the end of a read bin
   BinElement_rcr * be = &(T->array[key]);
   {
@@ -414,7 +416,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
     be->head=val; // release lock
   }
 }
-
+ 
 void RESOLVE(SESEcommon *record, bitvt mask) {
   int index=-1;
   struct rcrRecord * array=(struct rcrRecord *)(((char *)record)+record->offsetToParamRecords);

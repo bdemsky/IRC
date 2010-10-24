@@ -723,8 +723,8 @@ public class RuntimeConflictResolver {
       //Casts the ptr to a generic object struct so we can get to the ptr->allocsite field. 
       cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable + "(ptr);\n do {");
       if (taint.isRBlockTaint()) {
-	cFile.println("  if(unlikely(record->doneExecuting)) {");
-	cFile.println("    record->rcrstatus=0;");
+	cFile.println("  if(unlikely(record->common.doneExecuting)) {");
+	cFile.println("    record->common.rcrstatus=0;");
 	cFile.println("    return;");
 	cFile.println("  }");
       }

@@ -5,7 +5,11 @@ public class test {
   public static void main(String xz[]) {
     test[] r=new test[10];
     for(int i=0;i<10;i++) {
-      r[i]=new test();r[i].f=new foo();
+      r[i]=new test();
+      //      if (i%2==0)
+	r[i].f=new foo();
+	//      else
+	//	r[i].f=new foo();
     }
 
     for (int z=0;z<100000;z++) {
