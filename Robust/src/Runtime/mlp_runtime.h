@@ -103,7 +103,7 @@ typedef struct SESEcommon_t {
   volatile int    unresolvedDependencies;
 
   pthread_cond_t  doneCond;
-  int             doneExecuting;
+  volatile int             doneExecuting;
 
   pthread_cond_t  runningChildrenCond;
   int             numRunningChildren;
@@ -122,6 +122,7 @@ typedef struct SESEcommon_t {
 #ifdef RCR
   int offsetToParamRecords;
   volatile int rcrstatus;
+  volatile int retired;
 #endif
 
   // for determining when task records can be returned

@@ -395,6 +395,7 @@ public class RuntimeConflictResolver {
   private void printMasterTraverserInvocation() {
     headerFile.println("\nint tasktraverse(SESEcommon * record);");
     cFile.println("\nint tasktraverse(SESEcommon * record) {");
+    cFile.println("  if(!CAS(&record->rcrstatus,1,2)) return;");
     cFile.println("  switch(record->classID) {");
     
     for(Iterator<FlatSESEEnterNode> seseit=oooa.getAllSESEs().iterator();seseit.hasNext();) {
@@ -721,7 +722,12 @@ public class RuntimeConflictResolver {
       
       //Casts the ptr to a generic object struct so we can get to the ptr->allocsite field. 
       cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable + "(ptr);\n do {");
-      
+      if (taint.isRBlockTaint()) {
+	cFile.println("  if(unlikely(record->doneExecuting)) {");
+	cFile.println("    record->rcrstatus=0;");
+	cFile.println("    return;");
+	cFile.println("  }");
+      }
       cFile.println("  switch(ptr->allocsite) {");
       
       for(AllocSite singleCase: cases.keySet())
@@ -744,7 +750,8 @@ public class RuntimeConflictResolver {
         //we have resolved a heap root...see if this was the last dependence
         cFile.println("            if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) workScheduleSubmit((void *)record);");
         cFile.println("        }");
-        cFile.println("}");
+        cFile.println("     }");
+        cFile.println("     record->common.rcrstatus=0;");
       }
     }
     cFile.println("}");
@@ -801,6 +808,8 @@ public class RuntimeConflictResolver {
       index=fsese.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp);
     }
 
+    String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
+    
     //Do call if we need it.
     if(primConfWrite||objConfWrite) {
       int heaprootNum = connectedHRHash.get(taint).id;
@@ -809,9 +818,9 @@ public class RuntimeConflictResolver {
       int traverserID = doneTaints.get(taint);
         currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead)
-        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
       else
-        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
@@ -819,30 +828,13 @@ public class RuntimeConflictResolver {
       int traverserID = doneTaints.get(taint);
       currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead) 
-        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
       else
-        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
     }
 
     if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
       currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
-      currCase.append("if (!(tmpvar"+depth+"&SPEC)) {\n");
-      if (taint.isStallSiteTaint()) {
-      	currCase.append("  struct rcrRecord * rcrrec=&record->rcrRecords["+index+"];\n");
-      	currCase.append("  struct rcrRecord * tmprec;\n");
-      	currCase.append("  if(likely(rcrrec->index<RCRSIZE)) {\n");
-      	currCase.append("  rcrrec->array[rcrrec->index++]=tmpkey"+depth+";\n");
-      	currCase.append("} else if(likely((tmprec=rcrrec->next)!=NULL)&&likely(tmprec->index<RCRSIZE)) {\n");
-      	currCase.append("  tmprec->array[tmprec->index++]=tmpkey"+depth+";\n");
-      	currCase.append("} else {\n");
-      	currCase.append("  struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));");
-      	currCase.append("  trec->array[0]=tmpkey"+depth+";\n");
-      	currCase.append("  trec->index=1;\n");
-      	currCase.append("  trec->next=tmprec;\n");
-      	currCase.append("  rcrrec->next=trec;\n");
-      	currCase.append("}\n");
-      }
-      currCase.append("}\n");
     }
     
     int pdepth=depth+1;

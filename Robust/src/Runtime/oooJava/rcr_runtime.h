@@ -13,6 +13,7 @@ struct rcrRecord {
   int index;
   int flag;
   int array[RCRSIZE];
+  BinItem_rcr *ptrarray[RCRSIZE];
   struct rcrRecord *next;
 };
 

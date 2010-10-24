@@ -14,6 +14,28 @@ HashStructure ** allHashStructures;
 //__builtin_popcountll
 
 
+inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
+  if (likely(rcrrec!=NULL)) {
+    struct rcrRecord * tmprec;
+    if(likely(rcrrec->index<RCRSIZE)) {
+      int index=rcrrec->index++;
+      rcrrec->ptrarray[index]=item;
+      rcrrec->array[index]=tmpkey;
+    } else if(likely((tmprec=rcrrec->next)!=NULL)&&likely(tmprec->index<RCRSIZE)) {
+      int index=tmprec->index++;
+      tmprec->ptrarray[index]=item;
+      tmprec->array[index]=tmpkey;
+    } else {
+      struct rcrRecord *trec=RUNMALLOC(sizeof(struct rcrRecord));
+      trec->ptrarray[0]=item;
+      trec->array[0]=tmpkey;
+      trec->index=1;
+      trec->next=tmprec;
+      rcrrec->next=trec;
+    }
+  }
+}
+
 //NOTE: only temporary
 void rcr_createMasterHashTableArray(int maxSize){
 }
@@ -46,7 +68,7 @@ inline int rcr_generateKey(void * ptr){
   return (((struct ___Object___ *) ptr)->oid)&RH_MASK;
 }
 
-inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index, int mode) {
+inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct rcrRecord *rcrrec, int index, int mode) {
   //chain of bins exists => tail is valid
   //if there is something in front of us, then we are not ready
   BinItem_rcr * val;
@@ -71,6 +93,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int in
     
     //release lock
     be->head=b;
+    enqueuerecord(rcrrec, key, b);
     return READY;
   }
 
@@ -92,13 +115,13 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int in
 	  while(bintail->status!=READY) {
 	    BARRIER();
 	  }
-	  return SPECREADY;
+	  return READY;
 	} else {
-	  return (bintail->status==READY)?SPECREADY:SPECNOTREADY;
+	  return bintail->status;
 	}
       } else {
 	be->head=val;
-	return SPECREADY;
+	return READY;
       }
     }
   } else {
@@ -135,10 +158,12 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int in
       if (val==((BinItem_rcr *)b)) {
 	b->item.status=READY;
 	be->head=val;
-	if (status&SPEC)
-	  return SPECREADY;
-	else
+	if (status&SPEC) {
 	  return READY;
+	} else {
+	  enqueuerecord(rcrrec, key, b);
+	  return READY;
+	}
       }
       val=val->next;
     }
@@ -150,13 +175,15 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int in
     while(b->item.status==NOTREADY) {
       BARRIER();
     }
-    return status&SPEC;
+    return status&READY;
   } else {
-    return status;
+    if (!(status&SPEC))
+      enqueuerecord(rcrrec, key, b);      
+    return status&READY;
   }
 }
 
-inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int index, int mode) {
+inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct rcrRecord *rcrrec, int index, int mode) {
   BinItem_rcr * val;
   BinElement_rcr * be = &(T->array[key]);
 
@@ -180,7 +207,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int ind
     
     //release lock
     be->head=b;
-    
+    enqueuerecord(rcrrec, key, b);    
     return READY;
   }
 
@@ -197,19 +224,17 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int ind
       if (!(td->bitindexrd & bit)) {
 	td->bitindexrd|=bit;
 	td->bitindexwr|=bit;
-	status=status|SPEC;
       } else 
-	status=SPECREADY;
+	status=READY;
       be->head=val;
       if (mode) {
 	while(bintail->status!=READY) {
 	  BARRIER();
 	}
-	return SPECREADY;
+	return READY;
       } else {
 	return status;
       }
-    }
   } else {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
     if (unlikely(td->task==task)) {
@@ -218,23 +243,20 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int ind
       int status=bintail->status;
       if (!(td->bitindex & bit)) {
 	td->bitindex|=bit;
-	status=status|SPEC;
       } else 
-	status=SPECREADY;
+	status=READY;
       be->head=val;
       if (mode) {
 	while(bintail->status!=READY) {
 	  BARRIER();
 	}
-	return status&SPEC;
-      } else {
-	return status;
       }
+      return status;
     }
   }
 
   if (ISREADBIN(bintail->type)) {
-    int stat=rcr_TAILREADCASE(T, val, bintail, key, task, index);
+    int stat=rcr_TAILREADCASE(T, val, bintail, key, task, rcrrec, index);
     if (mode) {
       struct BinItem_rcr * bt=be->tail;
       while(bt->status!=READY) {
@@ -245,7 +267,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int ind
       return stat;
     }
   } else {
-    rcr_TAILWRITECASE(T, val, bintail, key, task, index);
+    rcr_TAILWRITECASE(T, val, bintail, key, task, rcrrec, index);
     if (mode) {
       struct BinItem_rcr * bt=be->tail;
       while(bt->status!=READY) {
@@ -259,22 +281,22 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, int ind
 }
 
 
-int rcr_WRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index) {
-  return rcr_BWRITEBINCASE(T, key, task, index, 0);
+int rcr_WRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct rcrRecord *rcrrec, int index) {
+  return rcr_BWRITEBINCASE(T, key, task, rcrrec, index, 0);
 }
-int rcr_READBINCASE(HashStructure *T, int key, SESEcommon * task, int index) {
-  return rcr_BREADBINCASE(T, key, task, index, 0);
-}
-
-int rcr_WTWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, int index) {
-  return rcr_BWRITEBINCASE(T, key, task, index, 1);
+int rcr_READBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRecord *rcrrec, int index) {
+  return rcr_BREADBINCASE(T, key, task, rcrrec, index, 0);
 }
 
-int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, int index) {
-  return rcr_BREADBINCASE(T, key, task, index, 1);
+int rcr_WTWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct rcrRecord *rcrrec, int index) {
+  return rcr_BWRITEBINCASE(T, key, task, rcrrec, index, 1);
 }
 
-int rcr_TAILREADCASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index) {
+int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRecord *rcrrec, int index) {
+  return rcr_BREADBINCASE(T, key, task, rcrrec, index, 1);
+}
+
+ int rcr_TAILREADCASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, struct rcrRecord * rcrrec, int index) {
   ReadBinItem_rcr * readbintail=(ReadBinItem_rcr*)T->array[key].tail;
   int status, retval;
   TraverserData *td;
@@ -294,9 +316,11 @@ int rcr_TAILREADCASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, i
     rb->item.status=status;
     T->array[key].tail->next=(BinItem_rcr*)rb;
     T->array[key].tail=(BinItem_rcr*)rb;
+    enqueuerecord(rcrrec, key, rb);
   } else { // group into old tail
     td = &readbintail->array[readbintail->index++];
     atomic_inc(&readbintail->item.total);
+    enqueuerecord(rcrrec, key, readbintail);
   }
 
   td->task=task;
@@ -306,7 +330,7 @@ int rcr_TAILREADCASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, i
   return retval;
 }
 
-void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, int index) {
+void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, struct rcrRecord *rcrrec, int index) {
   ReadBinItem_rcr* rb=rcr_createReadBinItem();
   TraverserData * td = &(rb->array[rb->index++]);
   rb->item.total=1;
@@ -314,24 +338,23 @@ void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail,
 
   td->task=task;
   td->bitindex=1<<index;
+  enqueuerecord(rcrrec, key, rb);
 
   T->array[key].tail->next=(BinItem_rcr*)rb;
   T->array[key].tail=(BinItem_rcr*)rb;
   T->array[key].head=val;//released lock
 }
 
-void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
-  BinElement_rcr * be = &(T->array[key]);
-  BinItem_rcr *b=be->head;
-
-  if(ISREADBIN(READBIN)) {
-    atomic_dec(&b->total);
+void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rcr *b) {
+  atomic_dec(&b->total);
+  if(ISREADBIN(b->type)) {
     if (b->next==NULL || b->total>0) {
       return;
     }
   }
-  //We either have a write bin or we are at the end of a read bin
 
+  //We either have a write bin or we are at the end of a read bin
+  BinElement_rcr * be = &(T->array[key]);
   {
     // CHECK FIRST IF next is nonnull to guarantee that b.total cannot change
     BinItem_rcr * val=(BinItem_rcr *)0x1;
@@ -368,6 +391,10 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
         } else if (ptr==val) {
           val=val->next;
         }
+      } else if (ptr->total==0) {
+	//skip past retired item
+	if (ptr==val)
+	  val=val->next;
       } else {
 	//write bin case
         if (haveread)
@@ -380,8 +407,6 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key) {
 	    val=val->next;
 	  } else
 	    break;
-	} else { // write bin is already resolved
-	  val=val->next;
 	}
       }
       ptr=ptr->next;

@@ -3285,7 +3285,7 @@ public class BuildCode {
                 if(state.RCR) {
 		  //no need to enqueue parent effect if coarse grained conflict clears us
 		  output.println("       while(stallrecord.common.rcrstatus) ;");
-		  output.println("       BARRIER();");
+		  output.println("         BARRIER();");
 		  output.println("       stallrecord.common.parentsStallSem=&rentry->parentStallSem;");
 		  output.println("       stallrecord.tag=rentry->tag;");
 		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
@@ -3940,6 +3940,11 @@ public class BuildCode {
     output.println("     struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
     output.println("     gl->size="+calculateSizeOfSESEParamList(fsen)+";");
     output.println("     gl->next = NULL;");
+    
+    if(state.RCR) {
+      //flag the SESE status as 1...it will be reset
+      output.println("     seseToIssue->rcrstatus=1;");
+    }
 
     // there are pointers to SESE records the newly-issued SESE
     // will use to get values it depends on them for--how many
@@ -4564,24 +4569,30 @@ public class BuildCode {
     
     // eom
     // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
-    if( (state.MLP && fsen != mlpa.getMainSESE()) ||
-        (state.OOOJAVA && fsen != oooa.getMainSESE())
-    ) {
-    	
-		output.println();
-		output.println("   /* check memory dependency*/");
-		output.println("  {");			
-		output.println("      int idx;");
-		output.println("      for(idx=0;idx<___params___->common.rentryIdx;idx++){");
-		output.println("           REntry* re=___params___->common.rentryArray[idx];");
-		output.println("           RETIRERENTRY(re->queue,re);");
-		output.println("      }");
-		output.println("   }");
-		
+    if((state.MLP && fsen != mlpa.getMainSESE()) ||
+       (state.OOOJAVA && fsen != oooa.getMainSESE())) {
+      output.println();
+      output.println("   /* check memory dependency*/");
+      output.println("  {");
+      output.println("      int idx;");
+      output.println("      for(idx=0;idx<___params___->common.rentryIdx;idx++){");
+      output.println("           REntry* re=___params___->common.rentryArray[idx];");
+      output.println("           RETIRERENTRY(re->queue,re);");
+      output.println("      }");
+      output.println("   }");
     }
     
 
     if (state.RCR&&fsen.getDynamicInVarSet().size()>0) {
+      /* Make sure the running SESE is finished */
+      output.println("   if (unlikely(runningSESE->rcrstatus!=0)) {");
+      output.println("     if(!CAS(&runningSESE->rcrstatus,1,0)) {");
+      output.println("       while(runningSESE->rcrstatus) {");
+      output.println("         BARRIER();");
+      output.println("         sched_yield();");
+      output.println("       }");
+      output.println("     }");
+      output.println("   }");
       output.println("{");
       output.println("  int idx,idx2;");
       if (fsen.getDynamicInVarSet().size()==1) {
@@ -4592,7 +4603,7 @@ public class BuildCode {
       output.println("    struct rcrRecord *rec="+paramsprefix+"->rcrRecords[idx];");
       output.println("    while(rec!=NULL) {");
       output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
-      output.println("        rcr_RETIREHASHTABLE(allHashStructures[0],rec,rec->array[idx2]);");
+      output.println("        rcr_RETIREHASHTABLE(allHashStructures[0],rec,rec->array[idx2], rcr->ptrarray[idx2]);");
       output.println("      }");//exit idx2 for loop
       output.println("      rec=rec->next;");
       output.println("    }");//exit rec while loop
