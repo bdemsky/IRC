@@ -8,7 +8,7 @@ public class test {
 
   public static void main( String argv[] ) {
     
-    long count  = 5000;
+    long count  = 500;
     int  numFoo = 1000;
     
     if( argv.length > 0 ) {

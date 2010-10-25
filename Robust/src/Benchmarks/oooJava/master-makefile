@@ -30,7 +30,8 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 #	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava 24 2 -rcr#-ooodebug-disable-task-mem-pool #-ooodebug 
+USEOOO= -ooojava 24 2  #-ooodebug #-rcr # -ooodebug-disable-task-mem-pool
+USERCR= -ooojava 24 2  -rcr
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -debug -nooptimize #src-after-pp #-debug
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
@@ -44,6 +45,9 @@ single:
 
 ooo:
 	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+
+rcr:
+	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin
