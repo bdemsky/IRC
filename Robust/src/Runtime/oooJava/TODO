@@ -1,0 +1,8 @@
+Big TODOS:
+1) Handle rapid reuse of SESEStall record - done
+2) Handle linked list of bins - done
+3) Hashtable management (managing links + each SESE should have its own traverser threads + traversers should be generated on demand)
+4) Multiple taint of coarse management [what if one coarse entry supports two parameter conflicts...]
+5) Recycling [recycle entries to improve runtime]
+6) Parallelize traversal
+7) Fix race on enqueue into table vs dequeue at retire... - done
