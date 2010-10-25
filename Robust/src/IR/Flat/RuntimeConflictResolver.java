@@ -413,7 +413,7 @@ public class RuntimeConflictResolver {
       }
     }
 
-    cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in.\\n\");\n    break;");
+    cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in: %d.\\n\",record->classID);\n    break;");
     
     cFile.println("  }");
     cFile.println("}");
@@ -640,10 +640,6 @@ public class RuntimeConflictResolver {
 
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
-    
-    if(cSideDebug) {
-      cFile.println("printf(\"The traverser ran for " + methodName + "\\n\");");
-    }
     
     if(cases.size() == 0) {
       cFile.println(" return;");

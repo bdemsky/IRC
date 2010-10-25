@@ -12,6 +12,9 @@ void * workerTR(void *x) {
       tmp=(SESEcommon *) dequeueTR(queue);
       if (tmp!=NULL) {
 	tasktraverse(tmp);
+#ifndef OOO_DISABLE_TASKMEMPOOL
+	RELEASE_REFERENCE_TO(tmp);
+#endif
       } else {
 	sched_yield();
       }
