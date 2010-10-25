@@ -570,6 +570,9 @@ JAVAOPTS="$JAVAOPTS -rcr"
 RCR=true
 EXTRAOPTIONS="$EXTRAOPTIONS -DRCR -I$ROBUSTROOT/Runtime/oooJava"
 
+elif [[ $1 = '-debug-deque' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DDEBUG_DEQUE"
 
 elif [[ $1 = '-coreprof' ]]
 then
@@ -1222,6 +1225,7 @@ then
 FILES="$FILES $ROBUSTROOT/Runtime/mlp_runtime.c"
 FILES="$FILES $ROBUSTROOT/Runtime/psemaphore.c"
 FILES="$FILES $ROBUSTROOT/Runtime/workschedule.c"
+FILES="$FILES $ROBUSTROOT/Runtime/deque.c"
 fi
 
 if $RECOVERFLAG
