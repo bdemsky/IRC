@@ -1,7 +1,8 @@
 #include "trqueue.h"
 #include "mlp_runtime.h"
 #include "rcr_runtime.h"
-
+#include "structdefs.h"
+#include "RuntimeConflictResolver.h"
 
 void * workerTR(void *x) {
   struct trQueue * queue=(struct trQueue *)x;
@@ -9,9 +10,11 @@ void * workerTR(void *x) {
     SESEcommon * tmp;
     do {
       tmp=(SESEcommon *) dequeueTR(queue);
-      if (tmp!=NULL)
-	break;
-      sched_yield();
+      if (tmp!=NULL) {
+	tasktraverse(tmp);
+      } else {
+	sched_yield();
+      }
     } while(1);
   }
   return NULL;
