@@ -213,7 +213,7 @@ public class RBlockRelationAnalysis {
          itr.hasNext();
          ) {
       FlatSESEEnterNode fsen = itr.next();
-      
+
       boolean hasNoNestedChildren = fsen.getChildren().isEmpty();
       boolean hasNoChildrenByCall = !hasChildrenByCall( fsen );
 
@@ -244,7 +244,9 @@ public class RBlockRelationAnalysis {
         MethodDescriptor mdCallee  = fc.getMethod();
         Set              reachable = new HashSet();
 
+        reachable.add( mdCallee );
         reachable.addAll( callGraph.getAllMethods( mdCallee ) );
+
         reachable.retainAll( methodsContainingSESEs );
         
         if( !reachable.isEmpty() ) {
