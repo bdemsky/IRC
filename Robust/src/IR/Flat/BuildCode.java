@@ -478,6 +478,7 @@ public class BuildCode {
       //initializes data structures needed for the RCR traverser
       if(state.RCR && rcr != null) {
         outmethod.println("  initializeStructsRCR();");
+        outmethod.println("  createAndFillMasterHashStructureArray();");
       }
     }
 

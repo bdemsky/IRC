@@ -39,6 +39,7 @@ inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
 
 //NOTE: only temporary
 void rcr_createMasterHashTableArray(int maxSize){
+  allHashStructures = (HashStructure **) malloc(sizeof(HashStructure *) * maxSize);
 }
 
 HashStructure* rcr_createHashtable(int sizeofWaitingQueue){

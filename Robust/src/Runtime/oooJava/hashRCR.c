@@ -10,9 +10,9 @@
 #define SHIFTBITS 4
 #endif
 
-__thread dchashlistnode_t *dc_c_table;
-__thread dchashlistnode_t *dc_c_list;
-__thread dcliststruct_t *dc_c_structs;
+__thread dchashlistnode_t *dc_c_table = NULL;
+__thread dchashlistnode_t *dc_c_list = NULL;
+__thread dcliststruct_t *dc_c_structs= NULL;
 __thread unsigned int dc_c_size;
 __thread unsigned INTPTR dc_c_mask;
 __thread unsigned int dc_c_numelements;
@@ -33,6 +33,10 @@ void hashRCRCreate(unsigned int size, double loadfactor) {
 }
 
 void hashRCRreset() {
+  if(dc_c_table == NULL) {
+    hashRCRCreate(128, 0.75);
+  }
+
   dchashlistnode_t *ptr = dc_c_table;
 
   if (dc_c_numelements<(dc_c_size>>SHIFTBITS)) {
