@@ -321,7 +321,15 @@ public class ConflictGraph {
                   conflictType = updateConflictType(conflictType, ConflictGraph.COARSE_GRAIN_EDGE);
                 }
               } else {
-                return ConflictGraph.COARSE_GRAIN_EDGE;
+                if (state.RCR) {
+                  // need coarse effects for RCR from just one pass
+                  addCoarseEffect(nodeA, asA, strongUpdateA);
+                  if (!nodeA.equals(nodeB)) {
+                    addCoarseEffect(nodeB, asB, effectB);
+                  }
+                } else {
+                  return ConflictGraph.COARSE_GRAIN_EDGE;
+                }
               }
 
             }
@@ -425,14 +433,15 @@ public class ConflictGraph {
                   }
                 }
               } else {
-		if (state.RCR) {
-		  //need coarse effects for RCR from just one pass
-		  addCoarseEffect(nodeA, asA, effectA);
-		  if (!nodeA.equals(nodeB)) {
-		    addCoarseEffect(nodeB, asB, effectB);
-		  }
-		}
-                return ConflictGraph.COARSE_GRAIN_EDGE;
+                if (state.RCR) {
+                  // need coarse effects for RCR from just one pass
+                  addCoarseEffect(nodeA, asA, effectA);
+                  if (!nodeA.equals(nodeB)) {
+                    addCoarseEffect(nodeB, asB, effectB);
+                  }
+                } else {
+                  return ConflictGraph.COARSE_GRAIN_EDGE;
+                }
               }
             }
           }
