@@ -3977,7 +3977,13 @@ public class BuildCode {
     // will decrement when it retires, to say it is done using its own
     // record, and the other count is for the parent that will remember
     // the static name of this new child below
-    output.println("     seseToIssue->common.refCount = 2;");
+    if( state.RCR ) {
+      // if we're using RCR, ref count is 3 because the traverser has
+      // a reference, too
+      output.println("     seseToIssue->common.refCount = 3;");
+    } else {
+      output.println("     seseToIssue->common.refCount = 2;");
+    }
 
     // all READY in-vars should be copied now and be done with it
     Iterator<TempDescriptor> tempItr = fsen.getReadyInVarSet().iterator();
