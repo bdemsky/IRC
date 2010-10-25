@@ -30,21 +30,17 @@ void workScheduleBegin();
 
 
 
-
+// this is a pattern where whatever the
+// driving runtime component is for your compiler
+// mode should provide the following synchronization
+// variables to share with the garbage collector
+// (so thread.c has them and uses them, too)
+// and the key is you must coordinate with the garbage
+// collector when the runtime wants to block threads
 extern int threadcount;
 extern pthread_mutex_t gclock;
 extern pthread_mutex_t gclistlock;
 extern pthread_cond_t  gccond;
-
-struct QI {
-  struct QI * next;
-  void * value;
-};
-
-struct QI * headqi;
-struct QI * tailqi;
-
-
 
 
 #endif /* __WORK_SCHEDULE__ */

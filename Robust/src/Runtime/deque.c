@@ -40,6 +40,7 @@
 #ifdef DEBUG_DEQUE
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #endif
 
 #include "deque.h"
@@ -54,17 +55,6 @@ void* DQ_POP_ABORT = (void*)0x3;
 #define BOTTOM_NULL_TAG 0x40001
 
 
-// there are 9 bits for the index into a Node's array,
-// so 2^9 = 512 elements per node of the deque
-#define DQNODE_ARRAYSIZE 512
-
-
-typedef struct dequeNode_t {
-  void* itsDataArr[DQNODE_ARRAYSIZE];
-  struct dequeNode_t* next;
-  struct dequeNode_t* prev;
-} dequeNode;
-
 
 // the dequeNode struct must be 4096-byte aligned, 
 // see above, so use the following magic to ask
@@ -74,15 +64,14 @@ typedef struct dequeNode_t {
 const INTPTR DQNODE_SIZETOREQUEST = sizeof( dequeNode ) + 4095;
 
 static inline dequeNode* dqGet4096aligned( void* fromAllocator ) { 
-  return (dequeNode*) ( ((INTPTR)fromAllocator) & (~4095) );
+  INTPTR aligned = ((INTPTR)fromAllocator + 4095) & (~4095);
+#ifdef DEBUG_DEQUE
+  printf( "from allocator: 0x%08x to 0x%08x\n", (INTPTR)fromAllocator, (INTPTR)fromAllocator + DQNODE_SIZETOREQUEST );
+  printf( "aligned:        0x%08x to 0x%08x\n", aligned,               aligned               + sizeof( dequeNode )  );
+  memset( (void*) aligned, 0, sizeof( dequeNode ) );
+#endif
+  return (dequeNode*) aligned;
 }
-
-
-
-static inline int        dqDecodeTag( INTPTR E ) { return (int)        ((0xffffe00000000000 & E) >> 45); }
-static inline dequeNode* dqDecodePtr( INTPTR E ) { return (dequeNode*) ((0x00001ffffffffe00 & E) <<  3); }
-static inline int        dqDecodeIdx( INTPTR E ) { return (int)        ((0x00000000000001ff & E)      ); }
-
 
 
 static inline INTPTR dqEncode( int tag, dequeNode* ptr, int idx ) {
@@ -178,6 +167,10 @@ void* dqPopTop( deque* dq ) {
   int        currTopTag  = dqDecodeTag( currTop );
   dequeNode* currTopNode = dqDecodePtr( currTop );
   int        currTopIndx = dqDecodeIdx( currTop );
+
+  // read of top followed by read of bottom, algorithm
+  // says specifically must be in this order
+  BARRIER();
   
   INTPTR currBottom = dq->bottom;
 
@@ -210,6 +203,10 @@ void* dqPopTop( deque* dq ) {
   void* retVal = currTopNode->itsDataArr[currTopIndx];
 
   INTPTR newTop = dqEncode( newTopTag, newTopNode, newTopIndx );
+
+  // algorithm states above should happen
+  // before attempting the CAS
+  BARRIER();
 
   INTPTR actualTop = (INTPTR)
     CAS( &(dq->top), // location
@@ -251,6 +248,10 @@ void* dqPopBottom ( deque* dq ) {
   void* retVal = newBotNode->itsDataArr[newBotIndx];
 
   dq->bottom = dqEncode( BOTTOM_NULL_TAG, newBotNode, newBotIndx );
+
+  // algorithm states above should happen
+  // before attempting the CAS
+  BARRIER();
 
   INTPTR currTop = dq->top;
 
