@@ -54,7 +54,7 @@ public class JGFMonteCarloBench extends CallAppDemo {
   public static void main(String argv[]) {
 
     JGFMonteCarloBench mc = new JGFMonteCarloBench();
-    int size=0;
+    int size=1;
     int workload=100;
     if(argv.length>0){
       size=Integer.parseInt(argv[0]);
