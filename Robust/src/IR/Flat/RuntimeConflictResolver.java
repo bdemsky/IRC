@@ -469,7 +469,7 @@ public class RuntimeConflictResolver {
 
       if (!created.containsKey(rootKey)) {
         created.put(rootKey, singleRoot);
-        createHelper(singleRoot, edge.getDst().iteratorToReferencees(), created, table, t, false);
+        createHelper(singleRoot, edge.getDst().iteratorToReferencees(), created, table, t);
       }
     }
   }
@@ -480,10 +480,8 @@ public class RuntimeConflictResolver {
                             Iterator<RefEdge> edges, 
                             Hashtable<Integer, ConcreteRuntimeObjNode> created,
                             EffectsTable table, 
-                            Taint taint,
-                            boolean ancestorCanBeIncorrectIn) {
+                            Taint taint) {
     assert table != null;
-    boolean ancestorCanBeIncorrect = ancestorCanBeIncorrectIn;
     AllocSite parentKey = curr.allocSite;
     EffectsGroup currEffects = table.getEffects(parentKey, taint); 
     
@@ -513,17 +511,8 @@ public class RuntimeConflictResolver {
           curr.addObjChild(field, child, effectsForGivenField);
           
           if (effectsForGivenField.hasConflict()) {
+            child.hasPotentialToBeIncorrectDueToConflict |= effectsForGivenField.hasReadConflict;
             propagateObjConflict(curr, child);
-            
-            //Ancestor had a read conflict down this field
-            if(ancestorCanBeIncorrect) {
-              child.hasPotentialToBeIncorrectDueToConflict = true;
-            }
-            //read conflict implies that there's got to be a write somewhere else. 
-            else if(effectsForGivenField.hasReadConflict) {
-              child.hasPotentialToBeIncorrectDueToConflict = true;
-              ancestorCanBeIncorrect = true;
-            }
           }
           
           if(effectsForGivenField.hasReadEffect) {
@@ -531,7 +520,7 @@ public class RuntimeConflictResolver {
             
             //If isNewChild, flag propagation will be handled at recursive call
             if(isNewChild) {
-              createHelper(child, childHRN.iteratorToReferencees(), created, table, taint, ancestorCanBeIncorrect);
+              createHelper(child, childHRN.iteratorToReferencees(), created, table, taint);
             } else {
             //This makes sure that all conflicts below the child is propagated up the referencers.
               if(child.decendantsPrimConflict || child.hasPrimitiveConflicts()) {
