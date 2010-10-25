@@ -920,6 +920,8 @@ public class BuildIR {
 	  m.addModifier(Modifiers.SYNCHRONIZED);
 	else if (isNode(modn,"atomic"))
 	  m.addModifier(Modifiers.ATOMIC);
+    else if (isNode(modn,"abstract"))
+      m.addModifier(Modifiers.ABSTRACT);
 	else throw new Error("Unrecognized Modifier");
       }
     }

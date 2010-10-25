@@ -168,4 +168,8 @@ public class ClassDescriptor extends Descriptor {
   public int getNumStaticFields() {
     return this.numstaticfields;
   }
+  
+  public boolean isAbstract() {
+    return this.modifiers.isAbstract();
+  }
 }

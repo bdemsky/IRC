@@ -121,6 +121,10 @@ public class MethodDescriptor extends Descriptor {
   public boolean isStatic() {
     return modifier.isStatic();
   }
+  
+  public boolean isAbstract() {
+    return modifier.isAbstract();
+  }
 
   public boolean isConstructor() {
     return (returntype==null);

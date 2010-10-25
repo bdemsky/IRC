@@ -5,7 +5,7 @@ public class Modifiers {
   public static final int PROTECTED=2;
   public static final int PRIVATE=4;
   public static final int STATIC=8;
-//	ABSTRACT=16
+  public static final int ABSTRACT=16;
   public static final int FINAL=32;
   public static final int NATIVE=64;
   public static final int SYNCHRONIZED=128;
@@ -33,6 +33,10 @@ public class Modifiers {
 
   public boolean isAtomic() {
     return ((value&ATOMIC)!=0);
+  }
+  
+  public boolean isAbstract() {
+    return ((value&ABSTRACT)!=0);
   }
 
   public boolean isSynchronized() {
@@ -69,6 +73,8 @@ public class Modifiers {
       st+="synchronized ";
     if ((value&ATOMIC)!=0)
       st+="atomic ";
+    if ((value&ABSTRACT)!=0)
+      st+="abstract ";
     return st;
   }
 }

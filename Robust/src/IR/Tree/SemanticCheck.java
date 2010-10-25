@@ -214,6 +214,15 @@ public class SemanticCheck {
   }
 
   public void checkMethod(ClassDescriptor cd, MethodDescriptor md) {
+    if(state.MGC) {
+      // TODO add version for normal Java later
+      /* Check for abstract methods */
+      if(md.isAbstract()) {
+        if(!cd.isAbstract()) {
+          throw new Error("Error! The non-abstract Class " + cd.getSymbol() + "contains an abstract method " + md.getSymbol());
+        }
+      }
+    }
     /* Check return type */
     if (!md.isConstructor())
       if (!md.getReturnType().isVoid())

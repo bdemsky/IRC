@@ -715,7 +715,7 @@ modifier ::=
 	PROTECTED {: RESULT=new ParseNode("protected"); :}|
 	PRIVATE {: RESULT=new ParseNode("private"); :}|
 	STATIC {: RESULT=new ParseNode("static"); :} |
-//	ABSTRACT |
+	ABSTRACT {: RESULT=new ParseNode("abstract"); :}  |
 	FINAL {: RESULT=new ParseNode("final"); :}|
 	NATIVE {: RESULT=new ParseNode("native"); :} |
 	SYNCHRONIZED {: RESULT=new ParseNode("synchronized"); :} |
