@@ -327,6 +327,7 @@ public class ConflictGraph {
                   if (!nodeA.equals(nodeB)) {
                     addCoarseEffect(nodeB, asB, effectB);
                   }
+                  conflictType=ConflictGraph.COARSE_GRAIN_EDGE;
                 } else {
                   return ConflictGraph.COARSE_GRAIN_EDGE;
                 }
@@ -439,6 +440,7 @@ public class ConflictGraph {
                   if (!nodeA.equals(nodeB)) {
                     addCoarseEffect(nodeB, asB, effectB);
                   }
+                  conflictType=ConflictGraph.COARSE_GRAIN_EDGE;
                 } else {
                   return ConflictGraph.COARSE_GRAIN_EDGE;
                 }
