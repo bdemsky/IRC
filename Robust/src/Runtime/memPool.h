@@ -45,9 +45,9 @@ typedef struct MemPool_t {
 // the memory pool must always have at least one
 // item in it
 static MemPool* poolcreate( int itemSize ) {
-  MemPool* p    = calloc( 1, sizeof( MemPool ) );
+  MemPool* p    = RUNMALLOC( sizeof( MemPool ) );
   p->itemSize   = itemSize;
-  p->head       = calloc( 1, itemSize );
+  p->head       = RUNMALLOC( itemSize );
   p->head->next = NULL;
   p->tail       = p->head;
   return p;

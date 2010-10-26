@@ -185,6 +185,12 @@ void* workerMain( void* arg ) {
 
       workUnit = dqPopBottom( myDeque );
 
+#ifdef DEBUG_DEQUE
+      if( workUnit == 0x0 ) {
+        printf( "Got invalid work from the deque bottom.\n" );
+      }
+#endif
+
       if( workUnit != DQ_POP_EMPTY ) {
         haveWork = TRUE;
         break;
@@ -195,6 +201,12 @@ void* workerMain( void* arg ) {
         // your own deque
         for( i = 0; i < numWorkSchedWorkers - 1; ++i ) {
           workUnit = dqPopTop( &(deques[lastVictim]) );
+
+#ifdef DEBUG_DEQUE
+          if( workUnit == 0x0 ) {
+            printf( "Got invalid work from the deque top.\n" );
+          }
+#endif
           
           if( workUnit != DQ_POP_ABORT &&
               workUnit != DQ_POP_EMPTY ) {
@@ -333,6 +345,12 @@ void workScheduleInit( int numProcessors,
 
 
 void workScheduleSubmit( void* workUnit ) {
+
+#ifdef DEBUG_DEQUE
+  if( workUnit == 0x0 ) {
+    printf( "Submitting invalid task record as work.\n" );
+  }
+#endif
 
   if( myWorkerID == workerID_NOTAWORKER ) {
     CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_BEGIN );

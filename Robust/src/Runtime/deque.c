@@ -65,11 +65,13 @@ const INTPTR DQNODE_SIZETOREQUEST = sizeof( dequeNode ) + 4095;
 
 static inline dequeNode* dqGet4096aligned( void* fromAllocator ) { 
   INTPTR aligned = ((INTPTR)fromAllocator + 4095) & (~4095);
+
 #ifdef DEBUG_DEQUE
-  printf( "from allocator: 0x%08x to 0x%08x\n", (INTPTR)fromAllocator, (INTPTR)fromAllocator + DQNODE_SIZETOREQUEST );
-  printf( "aligned:        0x%08x to 0x%08x\n", aligned,               aligned               + sizeof( dequeNode )  );
-  memset( (void*) aligned, 0, sizeof( dequeNode ) );
+  //printf( "from allocator: 0x%08x to 0x%08x\n", (INTPTR)fromAllocator, (INTPTR)fromAllocator + DQNODE_SIZETOREQUEST );
+  //printf( "aligned:        0x%08x to 0x%08x\n", aligned,               aligned               + sizeof( dequeNode )  );
+  //memset( (void*) aligned, 0, sizeof( dequeNode ) );
 #endif
+
   return (dequeNode*) aligned;
 }
 
@@ -136,6 +138,12 @@ void dqInit( deque* dq ) {
 
 
 void dqPushBottom( deque* dq, void* item ) {
+
+#ifdef DEBUG_DEQUE
+  if( item == 0x0 ) {
+    printf( "Pushing invalid work into the deque.\n" );
+  }
+#endif
 
   dequeNode* currNode = dqDecodePtr( dq->bottom );
   int        currIndx = dqDecodeIdx( dq->bottom );
