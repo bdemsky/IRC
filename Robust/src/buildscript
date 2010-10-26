@@ -26,6 +26,7 @@ echo "-ooojava <numberofcores> <maxseseage>"
 echo -ooodebug general OOOJava debugging messages
 echo -ooodebug-disable-task-mem-pool this is a tricky module, disable for simpler runtime
 echo -rcr turn on runtime conflict resolver
+echo -squeue use single queue
 echo
 echo Disjoint Reachability Analysis options
 echo -disjoint enable analysis
@@ -152,6 +153,7 @@ STMRUNTIME=$ROBUSTROOT/Runtime/STM/
 DSMRECOVERYRUNTIME=$ROBUSTROOT/Runtime/DSTM/interface_recovery/
 REPAIRROOT=~/research/Repair/RepairCompiler/
 CURDIR=`pwd`
+SQUEUE=false
 DSMFLAG=false
 DSMRECOVERY=false
 FASTMEMCPY=false
@@ -363,6 +365,10 @@ shift
 elif [[ $1 = '-mac' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
+elif [[ $1 = '-squeue' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DSQUEUE"
+SQUEUE=true
 elif [[ $1 = '-profile' ]]
 then
 PROFILEFLAG=true
@@ -1225,7 +1231,10 @@ then
 FILES="$FILES $ROBUSTROOT/Runtime/mlp_runtime.c"
 FILES="$FILES $ROBUSTROOT/Runtime/psemaphore.c"
 FILES="$FILES $ROBUSTROOT/Runtime/workschedule.c"
+if ! $SQUEUE
+then
 FILES="$FILES $ROBUSTROOT/Runtime/deque.c"
+fi
 fi
 
 if $RECOVERFLAG

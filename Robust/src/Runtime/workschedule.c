@@ -7,7 +7,11 @@
 #include "mlp_runtime.h"
 #include "psemaphore.h"
 #include "coreprof/coreprof.h"
+#ifdef SQUEUE
+#include "squeue.h"
+#else
 #include "deque.h"
+#endif
 #ifdef RCR
 #include "rcr_runtime.h"
 #include "trqueue.h"
@@ -185,7 +189,7 @@ void* workerMain( void* arg ) {
 
       workUnit = dqPopBottom( myDeque );
 
-#ifdef DEBUG_DEQUE
+#if defined(DEBUG_DEQUE)&&!defined(SQUEUE)
       if( workUnit == 0x0 ) {
         printf( "Got invalid work from the deque bottom.\n" );
       }
@@ -202,14 +206,18 @@ void* workerMain( void* arg ) {
         for( i = 0; i < numWorkSchedWorkers - 1; ++i ) {
           workUnit = dqPopTop( &(deques[lastVictim]) );
 
-#ifdef DEBUG_DEQUE
+#if defined(DEBUG_DEQUE)&&!defined(SQUEUE)
           if( workUnit == 0x0 ) {
             printf( "Got invalid work from the deque top.\n" );
           }
 #endif
           
-          if( workUnit != DQ_POP_ABORT &&
-              workUnit != DQ_POP_EMPTY ) {
+#ifdef SQUEUE
+          if( workUnit != DQ_POP_EMPTY ) {
+#else
+	  if( workUnit != DQ_POP_ABORT &&
+	      workUnit != DQ_POP_EMPTY ) {
+#endif
             // successful steal!
             haveWork = TRUE;
             break;

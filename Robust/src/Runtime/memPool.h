@@ -83,8 +83,8 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
     tailCurrent = p->tail;
     tailActual = (MemPoolItem*)
       CAS( &(p->tail),         // ptr to set
-           (long) tailCurrent, // current tail's next should be NULL
-           (long) tailNew      // try set to our new tail
+           (INTPTR) tailCurrent, // current tail's next should be NULL
+           (INTPTR) tailNew      // try set to our new tail
            );   
     if( tailActual == tailCurrent ) {
       // success, update tail

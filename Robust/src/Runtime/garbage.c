@@ -10,7 +10,11 @@
 #include "thread.h"
 #endif
 #ifdef MLP
+#ifdef SQUEUE
+#include "squeue.h"
+#else
 #include "deque.h"
+#endif
 #include "workschedule.h"
 extern int    numWorkSchedWorkers;
 extern deque* deques;
@@ -541,38 +545,25 @@ void collect(struct garbagelist * stackptr) {
 #endif
 
 #ifdef MLP
+#ifdef SQUEUE
   {
     int        i;
     deque*     dq;
-    dequeNode* botNode;
-    int        botIndx;
-    dequeNode* topNode;
-    int        topIndx;
-    dequeNode* n;
+    dequeItem *di;
     int        j;
-    int        jLo;
-    int        jHi;
 
     // goes over ready-to-run SESEs
     for( i = 0; i < numWorkSchedWorkers; ++i ) {
       dq = &(deques[i]);
 
-      botNode = dqDecodePtr( dq->bottom );
-      botIndx = dqDecodeIdx( dq->bottom );
-      
-      topNode = dqDecodePtr( dq->top );
-      topIndx = dqDecodeIdx( dq->top );
+      di=dq->head;
 
-      n = botNode;
       do {
         // check all the relevant indices of this
         // node in the deque, noting if we are in
         // the top/bottom node which can be partially
         // full
-        if( n == botNode ) { jLo = botIndx; } else { jLo = 0; }
-        if( n == topNode ) { jHi = topIndx; } else { jHi = DQNODE_ARRAYSIZE; }
-        
-        for( j = jLo; j < jHi; ++j ) {
+
           // WHAT? 
           //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
           //if(common==seseCommon){
@@ -580,7 +571,7 @@ void collect(struct garbagelist * stackptr) {
           //  continue;
           //}
 
-          SESEcommon* seseRec = (SESEcommon*) n->itsDataArr[j];
+	SESEcommon* seseRec = (SESEcommon*) di->work;
           struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
           struct garbagelist* glroot = gl;
 
@@ -594,18 +585,82 @@ void collect(struct garbagelist * stackptr) {
             }
             gl = gl->next;
           } 
-        }
         
         // we only have to move across the nodes
         // of the deque if the top and bottom are
         // not the same already
+	  di=di->next;
+      } while( di !=NULL) ;
+    }
+  }    
+#else
+  {
+    int        i;
+    deque*     dq;
+    dequeNode* botNode;
+    int        botIndx;
+    dequeNode* topNode;
+    int        topIndx;
+    dequeNode* n;
+    int        j;
+    int        jLo;
+    int        jHi;
+    
+    // goes over ready-to-run SESEs
+    for( i = 0; i < numWorkSchedWorkers; ++i ) {
+      dq = &(deques[i]);
+      
+      botNode = dqDecodePtr( dq->bottom );
+      botIndx = dqDecodeIdx( dq->bottom );
+      
+      topNode = dqDecodePtr( dq->top );
+      topIndx = dqDecodeIdx( dq->top );
+      
+      
+      n = botNode;
+      do {
+	// check all the relevant indices of this
+	// node in the deque, noting if we are in
+	// the top/bottom node which can be partially
+	// full
+	if( n == botNode ) { jLo = botIndx; } else { jLo = 0; }
+	if( n == topNode ) { jHi = topIndx; } else { jHi = DQNODE_ARRAYSIZE; }
+	
+	for( j = jLo; j < jHi; ++j ) {
+	  
+	  // WHAT?
+	  //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
+	  //if(common==seseCommon){
+	  //  continue;
+	  //}
+	  
+          SESEcommon* seseRec = (SESEcommon*) n->itsDataArr[j];
+	  
+	  struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
+          struct garbagelist* glroot = gl;
+	  
+          updateAscendantSESE( seseRec );
+	  
+          while( gl != NULL ) {
+            int k;
+            for( k = 0; k < gl->size; k++ ) {
+              void* orig = gl->array[k];
+              ENQUEUE( orig, gl->array[k] );
+	    }
+	    gl = gl->next;
+	  }
+	}
+	
+	// we only have to move across the nodes
+	// of the deque if the top and bottom are
+	// not the same already
         if( botNode != topNode ) {
           n = n->next;
         }
       } while( n != topNode );
     }
-
-  }    
+  }
+#endif
 #endif
 
 
