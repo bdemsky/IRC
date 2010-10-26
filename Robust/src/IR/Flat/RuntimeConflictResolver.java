@@ -29,7 +29,7 @@ import Analysis.OoOJava.OoOJavaAnalysis;
  */
 public class RuntimeConflictResolver {
   public static final boolean javaDebug = true;
-  public static final boolean cSideDebug = true;
+  public static final boolean cSideDebug = false;
   
   private PrintWriter cFile;
   private PrintWriter headerFile;
@@ -224,7 +224,7 @@ public class RuntimeConflictResolver {
     // For every non-primitive variable, generate unique method
     for (TempDescriptor invar : inVars) {
       TypeDescriptor type = invar.getType();
-      if(type.isPrimitive()) {
+      if(isReallyAPrimitive(type)) {
         continue;
       }
       System.out.println(invar);
@@ -262,10 +262,15 @@ public class RuntimeConflictResolver {
       }
     }
   }
+
+  //This extends a tempDescriptor's isPrimitive test by also excluding primitive arrays. 
+  private boolean isReallyAPrimitive(TypeDescriptor type) {
+    return (type.isPrimitive() && !type.isArray());
+  }
   
   private void traverseStallSite(FlatNode enterNode, TempDescriptor invar, ReachGraph rg) {
     TypeDescriptor type = invar.getType();
-    if(type == null || type.isPrimitive()) {
+    if(type == null || isReallyAPrimitive(type)) {
       return;
     }
     
@@ -641,6 +646,11 @@ public class RuntimeConflictResolver {
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
     
+    if(cSideDebug) {
+      cFile.println("printf(\"The traverser ran for " + methodName + "\\n\");");
+      }
+
+    
     if(cases.size() == 0) {
       cFile.println(" return;");
     } else {
@@ -658,10 +668,10 @@ public class RuntimeConflictResolver {
       //generic cast to ___Object___ to access ptr->allocsite field. 
       cFile.println("struct ___Object___ * ptr = (struct ___Object___ *) InVar;\nif (InVar != NULL) {\n " + queryVistedHashtable + "(ptr);\n do {");
       if (taint.isRBlockTaint()) {
-	cFile.println("  if(unlikely(record->common.doneExecuting)) {");
-	cFile.println("    record->common.rcrstatus=0;");
-	cFile.println("    return;");
-	cFile.println("  }");
+      	cFile.println("  if(unlikely(record->common.doneExecuting)) {");
+      	cFile.println("    record->common.rcrstatus=0;");
+      	cFile.println("    return;");
+      	cFile.println("  }");
       }
       cFile.println("  switch(ptr->allocsite) {");
       
@@ -1216,8 +1226,9 @@ public class RuntimeConflictResolver {
       }
     }
     
+    //TODO check that code is functional after removing the primitive and isImutable check
     public boolean isObjectArray() {
-      return original.getType().isArray() && !original.getType().isPrimitive() && !original.getType().isImmutable();
+      return original.getType().isArray();
     }
     
     public boolean canBeArrayElement() {
@@ -1373,7 +1384,7 @@ public class RuntimeConflictResolver {
         taint2EffectsGroup.put(t, effectsForGivenTaint);
       }
 
-      if (e.getField().getType().isPrimitive()) {
+      if (isReallyAPrimitive(e.getField().getType())) {
         if (conflict) {
           effectsForGivenTaint.addPrimitive(e, true);
         }
