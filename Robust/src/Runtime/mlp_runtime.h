@@ -3,6 +3,8 @@
 
 
 #include <pthread.h>
+#include "runtime.h"
+#include "mem.h"
 #include "Queue.h"
 #include "psemaphore.h"
 #include "mlp_lock.h"
@@ -271,13 +273,13 @@ static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
 }
 
 static MemPool* taskpoolcreate( int itemSize ) {
-  MemPool* p    = RUNMALLOC( 1, sizeof( MemPool ) );
+  MemPool* p    = RUNMALLOC( sizeof( MemPool ) );
   SESEcommon *c = (SESEcommon *) p;
   pthread_cond_init( &(c->runningChildrenCond), NULL );
   pthread_mutex_init( &(c->lock), NULL );
 
   p->itemSize   = itemSize;
-  p->head       = RUNMALLOC( 1, itemSize );
+  p->head       = RUNMALLOC( itemSize );
   p->head->next = NULL;
   p->tail       = p->head;
   return p;

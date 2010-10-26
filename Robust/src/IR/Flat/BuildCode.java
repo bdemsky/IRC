@@ -4212,12 +4212,12 @@ public class BuildCode {
                                      + waitingElement
                                      .getDynID()
                                      + ";");
-                      output.println("       rentry=mlpCreateFineREntry("
+                      output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                      + waitingElement.getStatus()
                                      + ", &(seseToIssue->common),  pointer );");
                     }
                   } else {
-                    output.println("       rentry=mlpCreateFineREntry("
+                    output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                    + waitingElement.getStatus()
                                    + ", &(seseToIssue->common), (void*)&seseToIssue->"
                                    + waitingElement.getDynID()
@@ -4327,7 +4327,7 @@ public class BuildCode {
                                  .getDynID()
                                  + ";");
                       output
-                        .println("     rentry=mlpCreateFineREntry("
+                        .println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                  + waitingElement
                                  .getStatus()
                                  + ", &(seseToIssue->common),  pointer );");
@@ -4335,7 +4335,7 @@ public class BuildCode {
                     }
                   } else {
                     output
-                      .println("     rentry=mlpCreateFineREntry("
+                      .println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                + waitingElement
                                .getStatus()
                                + ", &(seseToIssue->common),  (void*)&seseToIssue->"
