@@ -4615,15 +4615,6 @@ public class BuildCode {
     }
 
 
-    // last of all, decrement your parent's number of running children    
-    output.println("   if( runningSESE->parent != NULL ) {");
-    output.println("     if( atomic_sub_and_test( 1, &(runningSESE->parent->numRunningChildren) ) ) {");
-    output.println("       pthread_mutex_lock  ( &(runningSESE->parent->lock) );");
-    output.println("       pthread_cond_signal ( &(runningSESE->parent->runningChildrenCond) );");
-    output.println("       pthread_mutex_unlock( &(runningSESE->parent->lock) );");
-    output.println("     }");
-    output.println("   }");
-
     // a task has variables to track static/dynamic instances
     // that serve as sources, release the parent's ref of each
     // non-null var of these types
@@ -4664,6 +4655,17 @@ public class BuildCode {
       // the main task has no parent, just free its record
       output.println("   mlpFreeSESErecord( runningSESE );");
     }
+
+
+    // last of all, decrement your parent's number of running children    
+    output.println("   if( runningSESE->parent != NULL ) {");
+    output.println("     if( atomic_sub_and_test( 1, &(runningSESE->parent->numRunningChildren) ) ) {");
+    output.println("       pthread_mutex_lock  ( &(runningSESE->parent->lock) );");
+    output.println("       pthread_cond_signal ( &(runningSESE->parent->runningChildrenCond) );");
+    output.println("       pthread_mutex_unlock( &(runningSESE->parent->lock) );");
+    output.println("     }");
+    output.println("   }");
+
     
     // as this thread is wrapping up the task, make sure the thread-local var
     // for the currently running task record references an invalid task
