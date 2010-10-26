@@ -25,10 +25,11 @@ void * dequeueTR(struct trQueue *q) {
   if(q->head==tail)
     return NULL;
 
-  void * ptr = q->elements[tail];
   tail++;
   if(tail & TRSIZE)
     tail =  0;
+
+  void * ptr = q->elements[tail];
   q->tail=tail;
   return ptr;
 }

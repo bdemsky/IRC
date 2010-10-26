@@ -3266,12 +3266,13 @@ public class BuildCode {
               for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
                 Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
 		if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-                  output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", runningSESE);");
+                  output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],"+waitingElement.getStatus()+ ", runningSESE);");
                 }else{
-                  output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
+                  output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],"+ waitingElement.getStatus()+ ", runningSESE,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
                 }         
-                output.println("     psem_init( &(rentry->parentStallSem) );");
-		output.println("     rentry->tag=rentry->parentStallSem.tag;");
+		output.println("     rentry->parentStallSem=&runningSESEstallSem;");
+                output.println("     psem_reset( &runningSESEstallSem);");
+		output.println("     rentry->tag=runningSESEstallSem.tag;");
                 output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
                 output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==NOTREADY){");
                 if( state.COREPROF ) {
@@ -3283,7 +3284,7 @@ public class BuildCode {
 		  //no need to enqueue parent effect if coarse grained conflict clears us
 		  output.println("       while(stallrecord.common.rcrstatus) ;");
 		  output.println("         BARRIER();");
-		  output.println("       stallrecord.common.parentsStallSem=&rentry->parentStallSem;");
+		  output.println("       stallrecord.common.parentsStallSem=&runningSESEstallSem;");
 		  output.println("       stallrecord.tag=rentry->tag;");
 		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
 		  output.println("       stallrecord.common.classID=-"+rcr.getTraverserID(waitingElement.getTempDesc(), fn)+";");
@@ -3291,7 +3292,7 @@ public class BuildCode {
 		  output.println("       stallrecord.common.rcrstatus=1;");
 		  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
                 }
-		output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
+		output.println("        psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
                 if( state.COREPROF ) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                   output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
@@ -3327,12 +3328,13 @@ public class BuildCode {
   					
                   if( waitingElement.getStatus() >= ConflictNode.COARSE ){
                     // HERE! a parent might conflict with a child
-                    output.println("     rentry=mlpCreateREntry("+ waitingElement.getStatus()+ ", runningSESE);");
+                    output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],"+ waitingElement.getStatus()+ ", runningSESE);");
                   } else {
-                    output.println("     rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", runningSESE,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
+                    output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],"+ waitingElement.getStatus()+ ", runningSESE,  (void*)&___locals___."+ waitingElement.getDynID() + ");");
                   }					
-                  output.println("     psem_init(&(rentry->parentStallSem));");
-		  output.println("     rentry->tag=rentry->parentStallSem->tag;");
+		  output.println("     rentry->parentStallSem=&runningSESEstallSem;");
+		  output.println("     psem_reset( &runningSESEstallSem);");
+		  output.println("     rentry->tag=runningSESEstallSem.tag;");
                   output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
                   output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+"],rentry)==NOTREADY) {");
                   if( state.COREPROF ) {
@@ -3340,7 +3342,7 @@ public class BuildCode {
                     output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
                     output.println("#endif");
                   }
-                  output.println("        psem_take( &(rentry->parentStallSem), (struct garbagelist *)&___locals___ );");
+                  output.println("        psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
                   if( state.COREPROF ) {
                     output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                     output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
@@ -4176,7 +4178,7 @@ public class BuildCode {
                 Analysis.OoOJava.WaitingElement waitingElement 
                   = (Analysis.OoOJava.WaitingElement) iterator2.next();
                 if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-                  output.println("       rentry=mlpCreateREntry("
+                  output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                  + waitingElement.getStatus()
                                  + ", &(seseToIssue->common));");
                 } else {
@@ -4189,7 +4191,7 @@ public class BuildCode {
                                    + "_srcSESE+seseToIssue->"
                                    + waitingElement.getDynID()
                                    + "_srcOffset;");
-                    output.println("       rentry=mlpCreateFineREntry("
+                    output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                    + waitingElement.getStatus()
                                    + ", &(seseToIssue->common),  pointer );");
                   } else if (fsen.getStaticInVarSet().contains(td)) {
@@ -4281,7 +4283,7 @@ public class BuildCode {
                 WaitingElement waitingElement = (WaitingElement) iterator2
                   .next();
                 if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-                  output.println("     rentry=mlpCreateREntry("
+                  output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                  + waitingElement.getStatus()
                                  + ", &(seseToIssue->common));");
                 } else {
@@ -4297,7 +4299,7 @@ public class BuildCode {
                                    + waitingElement.getDynID()
                                    + "_srcOffset;");
                     output
-                      .println("     rentry=mlpCreateFineREntry("
+                      .println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                + waitingElement
                                .getStatus()
                                + ", &(seseToIssue->common),  pointer );");
@@ -4424,7 +4426,7 @@ public class BuildCode {
 	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
 	    int queueID=waitingElement.getQueueID();
 	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
-	    output.println("       rentry=mlpCreateREntry(" + waitingElement.getStatus() + ", &(seseToIssue->common));");
+	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common));");
 	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
 	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
 	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
@@ -4642,6 +4644,9 @@ public class BuildCode {
     output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 
 
+    output.println("{");
+    output.println("SESEcommon *myparent=runningSESE->parent;");
+
     // if this is not the Main sese (which has no parent) then return
     // THIS task's record to the PARENT'S task record pool, and only if
     // the reference count is now zero
@@ -4658,14 +4663,15 @@ public class BuildCode {
 
 
     // last of all, decrement your parent's number of running children    
-    output.println("   if( runningSESE->parent != NULL ) {");
-    output.println("     if( atomic_sub_and_test( 1, &(runningSESE->parent->numRunningChildren) ) ) {");
-    output.println("       pthread_mutex_lock  ( &(runningSESE->parent->lock) );");
-    output.println("       pthread_cond_signal ( &(runningSESE->parent->runningChildrenCond) );");
-    output.println("       pthread_mutex_unlock( &(runningSESE->parent->lock) );");
+    output.println("   if( myparent != NULL ) {");
+    output.println("     if( atomic_sub_and_test( 1, &(myparent->numRunningChildren) ) ) {");
+    output.println("       pthread_mutex_lock  ( &(myparent->lock) );");
+    output.println("       pthread_cond_signal ( &(myparent->runningChildrenCond) );");
+    output.println("       pthread_mutex_unlock( &(myparent->lock) );");
     output.println("     }");
     output.println("   }");
 
+    output.println("}");
     
     // as this thread is wrapping up the task, make sure the thread-local var
     // for the currently running task record references an invalid task

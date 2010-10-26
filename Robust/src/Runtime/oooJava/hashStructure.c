@@ -92,13 +92,13 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     td->task=task;
     td->bitindexrd=td->bitindexwr=1<<index;
     be->tail=b;
-    
+    BARRIER();//do tail before head
     //release lock
     be->head=b;
     enqueuerecord(rcrrec, key, b);
     return READY;
   }
-
+  BARRIER();//read head before tail
   BinItem_rcr *bintail=be->tail;
   bitvt rdmask=0,wrmask=0;
   int status=NOTREADY;

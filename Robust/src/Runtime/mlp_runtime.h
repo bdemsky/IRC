@@ -151,7 +151,7 @@ typedef struct REntry_t{
   struct Vector_t* vector;
   struct SCC_t* scc;
   struct MemoryQueue_t* queue;
-  psemaphore parentStallSem;
+  psemaphore * parentStallSem;
   int tag;
   SESEcommon* seseRec;
   INTPTR* pointer;
@@ -185,7 +185,8 @@ typedef struct MemoryQueueItem_t {
   int type; // hashtable:0, vector:1, singleitem:2
   int total;        //total non-retired
   int status;       //NOTREADY, READY
-  struct MemoryQueueItem_t *next; 
+  struct MemoryQueueItem_t *next;
+  
 } MemoryQueueItem;
 
 typedef struct MemoryQueue_t {
@@ -194,6 +195,9 @@ typedef struct MemoryQueue_t {
   REntry * binbuf[NUMBINS];
   REntry * buf[NUMRENTRY];
   int bufcount;
+#ifndef OOO_DISABLE_TASKMEMPOOL
+  MemPool * rentrypool;
+#endif
 } MemoryQueue;
 
 typedef struct BinItem_t {
@@ -256,8 +260,8 @@ void* mlpAllocSESErecord( int size );
 void  mlpFreeSESErecord( SESEcommon* seseRecord );
 
 MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
-REntry* mlpCreateFineREntry(int type, SESEcommon* seseToIssue, void* dynID);
-REntry* mlpCreateREntry    (int type, SESEcommon* seseToIssue);
+REntry* mlpCreateFineREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue, void* dynID);
+REntry* mlpCreateREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue);
 MemoryQueue* createMemoryQueue();
 void rehashMemoryQueue(SESEcommon* seseParent);
 

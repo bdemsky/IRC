@@ -38,21 +38,24 @@ MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue){
   return newMemoryQueue;
 }
 
-REntry* mlpCreateREntryArray(){
-  REntry* newREntryArray=(REntry*)RUNMALLOC(sizeof(REntry)*NUMRENTRY);
-  return newREntryArray;
-}
-
-REntry* mlpCreateFineREntry(int type, SESEcommon* seseToIssue, void* dynID){
+REntry* mlpCreateFineREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue, void* dynID){
+#ifdef OOO_DISABLE_TASKMEMPOOL
   REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
+#else
+  REntry* newREntry=poolalloc(q->rentrypool);
+#endif
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
   newREntry->pointer=dynID;
   return newREntry;
 }
 
-REntry* mlpCreateREntry(int type, SESEcommon* seseToIssue){
+REntry* mlpCreateREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue){
+#ifdef OOO_DISABLE_TASKMEMPOOL
   REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
+#else
+  REntry* newREntry=poolalloc(q->rentrypool);
+#endif
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
   return newREntry;
@@ -197,6 +200,9 @@ MemoryQueue* createMemoryQueue(){
   dummy->status=READY;
   queue->head = dummy;
   queue->tail = dummy;
+#ifndef OOO_DISABLE_TASKMEMPOOL
+  queue->rentrypool = poolcreate(sizeof(REntry));
+#endif
   return queue;
 }
 
@@ -568,6 +574,9 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r) {
   } else if (isSCC(r)) {
     RETIRESCC(Q, r);
   }
+#ifndef OOO_DISABLE_TASKMEMPOOL
+  poolfreeinto(Q->rentrypool, r);
+#endif
 }
 
 RETIRESCC(MemoryQueue *Q, REntry *r) {
@@ -786,7 +795,7 @@ resolveDependencies(REntry* rentry){
       workScheduleSubmit(seseCommon);
     }   
   }else if(rentry->type==PARENTREAD || rentry->type==PARENTWRITE ||rentry->type==PARENTCOARSE){
-    psem_give_tag(&(rentry->parentStallSem), rentry->tag);
+    psem_give_tag(rentry->parentStallSem, rentry->tag);
   }
 }
 

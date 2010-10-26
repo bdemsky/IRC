@@ -22,7 +22,7 @@
 #include "runtime.h"
 #include "mem.h"
 #include "mlp_lock.h"
-
+#define CACHELINESIZE 64
 
 
 typedef struct MemPoolItem_t {
@@ -106,7 +106,7 @@ static inline void* poolalloc( MemPool* p ) {
   // it doesn't require an atomic op
   MemPoolItem* headCurrent = p->head;
   MemPoolItem* next=headCurrent->next;
-
+  int i;
   if(next == NULL) {
     // only one item, so don't take from pool
     return (void*) RUNMALLOC( p->itemSize );
@@ -126,6 +126,8 @@ static inline void* poolalloc( MemPool* p ) {
   //  but this built-in gcc one seems the most portable:
   //////////////////////////////////////////////////////////
   //__builtin_prefetch( &(p->head->next) );
+  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
   asm volatile( "prefetcht0 (%0)" :: "r" (next));
 
   return (void*)headCurrent;
