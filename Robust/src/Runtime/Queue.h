@@ -15,6 +15,7 @@ struct QueueItem {
 
 #define isEmpty(x) ((x)->head==NULL)
 
+void initQueue(struct Queue *);
 struct Queue * createQueue();
 void freeQueue(struct Queue * q);
 

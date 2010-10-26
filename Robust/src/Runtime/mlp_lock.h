@@ -43,6 +43,13 @@ static inline int atomic_sub_and_test(int i, volatile int *v) {
   return c;
 }
 
+
+static inline void atomic_add(int i, volatile int *v) {
+  __asm__ __volatile__ (LOCK_PREFIX "addl %1,%0"
+                        : "+m" (*v)
+                        : "ir" (i));
+}
+
 static inline int LOCKXCHG32(volatile int* ptr, int val){
   int retval;
   //note: xchgl always implies lock 

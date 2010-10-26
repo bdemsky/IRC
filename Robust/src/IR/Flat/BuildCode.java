@@ -2487,6 +2487,7 @@ public class BuildCode {
     output.println("   ");
     output.println("   // code of this task's body should use this to access the running task record");
     output.println("   runningSESE = &(___params___->common);");
+    output.println("   childSESE = 0;");
     output.println("   ");
     
     // setup memory queue
@@ -2535,7 +2536,7 @@ public class BuildCode {
     // don't bother if the task never has children (a leaf task)
     output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
     if( !fsen.getIsLeafSESE() ) {
-      output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
+      output.println("   runningSESE->taskRecordMemPool = taskpoolcreate( "+
                      maxTaskRecSizeStr+" );");
     } else {
       // make it clear we purposefully did not initialize this
@@ -3900,8 +3901,8 @@ public class BuildCode {
     // before doing anything, lock your own record and increment the running children
     if( (state.MLP     && fsen != mlpa.getMainSESE()) || 
         (state.OOOJAVA && fsen != oooa.getMainSESE())
-    ) {      
-      output.println("     atomic_inc(&(runningSESE->numRunningChildren));");
+    ) {
+	output.println("     childSESE++;");
     }
 
     // allocate the space for this record
@@ -3915,7 +3916,7 @@ public class BuildCode {
         ) {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
-                     fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
+                     fsen.getSESErecordName()+"*) taskpoolalloc( runningSESE->taskRecordMemPool );");
     } else {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
@@ -3968,12 +3969,14 @@ public class BuildCode {
     // fill in common data
     output.println("     int localCount=0;");
     output.println("     seseToIssue->common.classID = "+fsen.getIdentifier()+";");
-    output.println("     seseToIssue->common.parentsStallSem = NULL;");
-    output.println("     seseToIssue->common.forwardList = createQueue();");
     output.println("     seseToIssue->common.unresolvedDependencies = 10000;");
+    output.println("     seseToIssue->common.parentsStallSem = NULL;");
+    output.println("     initQueue(&seseToIssue->common.forwardList);");
     output.println("     seseToIssue->common.doneExecuting = FALSE;");    
-    output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
     output.println("     seseToIssue->common.numRunningChildren = 0;");
+    output.println( "#ifdef OOO_DISABLE_TASKMEMPOOL" );
+    output.println("     pthread_cond_init( &(seseToIssue->common.runningChildrenCond), NULL );");
+    output.println("#endif");
     output.println("     seseToIssue->common.parent = runningSESE;");
     // start with refCount = 2, one being the count that the child itself
     // will decrement when it retires, to say it is done using its own
@@ -4017,8 +4020,9 @@ public class BuildCode {
     
     // before potentially adding this SESE to other forwarding lists,
     // create it's lock
+    output.println( "#ifdef OOO_DISABLE_TASKMEMPOOL" );
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
-
+    output.println("#endif");
   
     if( (state.MLP && fsen != mlpa.getMainSESE()) ||
         (state.OOOJAVA && fsen != oooa.getMainSESE())    
@@ -4032,7 +4036,7 @@ public class BuildCode {
 	output.println("       pthread_mutex_lock( &(src->lock) );");
         // FORWARD TODO
 	output.println("       if( !src->doneExecuting ) {");
-        output.println("         addNewItem( src->forwardList, seseToIssue );");	
+        output.println("         addNewItem( &src->forwardList, seseToIssue );");	
 	output.println("         ++(localCount);");
 	output.println("       }");
         output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
@@ -4064,10 +4068,10 @@ public class BuildCode {
 
         // FORWARD TODO
 
-	output.println("         if( isEmpty( src->forwardList ) ||");
-	output.println("             seseToIssue != peekItem( src->forwardList ) ) {");
+	output.println("         if( isEmpty( &src->forwardList ) ||");
+	output.println("             seseToIssue != peekItem( &src->forwardList ) ) {");
 	output.println("           if( !src->doneExecuting ) {");
-	output.println("             addNewItem( src->forwardList, seseToIssue );");
+	output.println("             addNewItem( &src->forwardList, seseToIssue );");
 	output.println("             ++(localCount);");
 	output.println("           }");
 	output.println("         }");
@@ -4490,6 +4494,7 @@ public class BuildCode {
     // this SESE cannot be done until all of its children are done
     // so grab your own lock with the condition variable for watching
     // that the number of your running children is greater than zero    
+    output.println("   atomic_add(childSESE, &runningSESE->numRunningChildren);");
     output.println("   pthread_mutex_lock( &(runningSESE->lock) );");
     output.println("   if( runningSESE->numRunningChildren > 0 ) {");
     output.println("     stopforgc( (struct garbagelist *)&___locals___ );");
@@ -4554,8 +4559,8 @@ public class BuildCode {
     // decrement dependency count for all SESE's on your forwarding list
 
     // FORWARD TODO
-    output.println("   while( !isEmpty( runningSESE->forwardList ) ) {");
-    output.println("     SESEcommon* consumer = (SESEcommon*) getItem( runningSESE->forwardList );");
+    output.println("   while( !isEmpty( &runningSESE->forwardList ) ) {");
+    output.println("     SESEcommon* consumer = (SESEcommon*) getItem( &runningSESE->forwardList );");
     
    
     output.println("     if(consumer->rentryIdx>0){");

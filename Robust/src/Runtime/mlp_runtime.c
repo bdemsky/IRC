@@ -11,6 +11,7 @@
 
 
 __thread SESEcommon* runningSESE;
+__thread int childSESE=0;
 
 __thread psemaphore runningSESEstallSem;
 

@@ -1051,7 +1051,7 @@ updateForwardList(struct Queue *forwardList, int prevUpdate){
       gl=gl->next;
     }    
     // iterate forwarding list of seseRec
-    struct Queue* fList=seseRec->forwardList;
+    struct Queue* fList=&seseRec->forwardList;
     updateForwardList(fList,prevUpdate);   
     fqItem=getNextQueueItem(fqItem);
   }   

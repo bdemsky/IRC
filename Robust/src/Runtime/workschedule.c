@@ -335,11 +335,15 @@ void workScheduleInit( int numProcessors,
 void workScheduleSubmit( void* workUnit ) {
 
   if( myWorkerID == workerID_NOTAWORKER ) {
+    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_BEGIN );
     dqPushBottom( &(deques[0]), workUnit );
+    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_END );
     return;
   }
 
+    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_BEGIN );
   dqPushBottom( &(deques[myWorkerID]), workUnit );
+    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_END );
 }
 
 

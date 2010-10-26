@@ -16,6 +16,11 @@ struct Queue * createQueue() {
   return queue;
 }
 
+void initQueue(struct Queue * q) {
+  q->head=NULL;
+  q->tail=NULL;
+}
+
 void freeQueue(struct Queue * q) {
   RUNFREE(q);
 }

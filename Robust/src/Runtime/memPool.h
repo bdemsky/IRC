@@ -22,13 +22,14 @@
 #include "runtime.h"
 #include "mem.h"
 #include "mlp_lock.h"
+
+
 #define CACHELINESIZE 64
 
 
 typedef struct MemPoolItem_t {
   void* next;
 } MemPoolItem;
-
 
 typedef struct MemPool_t {
   int itemSize;
@@ -94,8 +95,6 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
     // if CAS failed, retry entire operation
   }
 }
-
-
 
 static inline void* poolalloc( MemPool* p ) {
 

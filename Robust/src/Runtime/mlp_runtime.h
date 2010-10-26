@@ -56,8 +56,6 @@
 #define OBJPTRPTR_2_OBJTYPE( opp ) ((int*)(opp))[0]
 #define OBJPTRPTR_2_OBJOID(  opp ) ((int*)(opp))[1]
 
-
-
 // forwarding list elements is a linked
 // structure of arrays, should help task
 // dispatch because the first element is
@@ -71,7 +69,7 @@ typedef struct ForwardingListElement_t {
   INTPTR                          items[FLIST_ITEMS_PER_ELEMENT];
 } ForwardingListElement;
 
-
+struct MemPool_t;
 
 // these fields are common to any SESE, and casting the
 // generated SESE record to this can be used, because
@@ -84,56 +82,52 @@ typedef struct SESEcommon_t {
   // IMPORTANT: the class ID must be the first field of
   // the task record so task dispatch works correctly!
   int classID;
-
+  volatile int    unresolvedDependencies;
 
   // a parent waits on this semaphore when stalling on
   // this child, the child gives it at its SESE exit
   psemaphore* parentsStallSem;
 
   
-  // the lock guards the following data SESE's
-  // use to coordinate with one another
-  pthread_mutex_t lock;
-
   // NOTE: first element is embedded in the task
   // record, so don't free it!
   //ForwardingListElement forwardList;
-  struct Queue* forwardList;
+  struct Queue forwardList;
 
-  volatile int    unresolvedDependencies;
-
-  pthread_cond_t  doneCond;
   volatile int             doneExecuting;
-
-  pthread_cond_t  runningChildrenCond;
-  int             numRunningChildren;
+  volatile int             numRunningChildren;
 
   struct SESEcommon_t*   parent;
   
   int numMemoryQueue;
   int rentryIdx;
   int unresolvedRentryIdx;
+  volatile int refCount;
+  int numDependentSESErecords;
+  int offsetToDepSESErecords;
+  struct MemPool_t *     taskRecordMemPool;
+
   struct MemoryQueue_t** memoryQueueArray;
   struct REntry_t* rentryArray[NUMRENTRY];
   struct REntry_t* unresolvedRentryArray[NUMRENTRY];
 
-  int numDependentSESErecords;
-  int offsetToDepSESErecords;
+
 #ifdef RCR
   int offsetToParamRecords;
   volatile int rcrstatus;
   volatile int retired;
 #endif
 
-  // for determining when task records can be returned
-  // to the parent record's memory pool
-  MemPool*     taskRecordMemPool;
-  volatile int refCount;
+  // the lock guards the following data SESE's
+  // use to coordinate with one another
+  pthread_mutex_t lock;
+  pthread_cond_t  runningChildrenCond;
 } SESEcommon;
 
 // a thread-local var refers to the currently
 // running task
 extern __thread SESEcommon* runningSESE;
+extern __thread int childSESE;
 
 // there only needs to be one stall semaphore
 // per thread, just give a reference to it to
@@ -276,5 +270,61 @@ static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
   }
 }
 
+static MemPool* taskpoolcreate( int itemSize ) {
+  MemPool* p    = calloc( 1, sizeof( MemPool ) );
+  SESEcommon *c = (SESEcommon *) p;
+  pthread_cond_init( &(c->runningChildrenCond), NULL );
+  pthread_mutex_init( &(c->lock), NULL );
+
+  p->itemSize   = itemSize;
+  p->head       = calloc( 1, itemSize );
+  p->head->next = NULL;
+  p->tail       = p->head;
+  return p;
+}
+
+
+static inline void* taskpoolalloc( MemPool* p ) {
+
+  // to protect CAS in poolfree from dereferencing
+  // null, treat the queue as empty when there is
+  // only one item.  The dequeue operation is only
+  // executed by the thread that owns the pool, so
+  // it doesn't require an atomic op
+  MemPoolItem* headCurrent = p->head;
+  MemPoolItem* next=headCurrent->next;
+  int i;
+  if(next == NULL) {
+    // only one item, so don't take from pool
+    SESEcommon *c = (SESEcommon*) RUNMALLOC( p->itemSize );
+    pthread_cond_init( &(c->runningChildrenCond), NULL );
+    pthread_mutex_init( &(c->lock), NULL );
+    return c;
+  }
+ 
+  p->head = next;
+
+  //////////////////////////////////////////////////////////
+  //
+  //
+  //  static inline void prefetch(void *x) 
+  //  { 
+  //    asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
+  //  } 
+  //
+  //
+  //  but this built-in gcc one seems the most portable:
+  //////////////////////////////////////////////////////////
+  //__builtin_prefetch( &(p->head->next) );
+  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
+  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
+  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
+  asm volatile( "prefetcht0 (%0)" :: "r" (next));
+
+  return (void*)headCurrent;
+}
 
 #endif /* __MLP_RUNTIME__ */
