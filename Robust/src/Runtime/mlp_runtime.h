@@ -274,12 +274,12 @@ static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
 
 static MemPool* taskpoolcreate( int itemSize ) {
   MemPool* p    = RUNMALLOC( sizeof( MemPool ) );
-  SESEcommon *c = (SESEcommon *) p;
+  SESEcommon *c = (SESEcommon *) RUNMALLOC(itemSize);
   pthread_cond_init( &(c->runningChildrenCond), NULL );
   pthread_mutex_init( &(c->lock), NULL );
 
   p->itemSize   = itemSize;
-  p->head       = RUNMALLOC( itemSize );
+  p->head       = (void *)c;
   p->head->next = NULL;
   p->tail       = p->head;
   return p;
