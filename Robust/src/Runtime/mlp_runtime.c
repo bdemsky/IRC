@@ -927,7 +927,7 @@ resolvePointer(REntry* rentry){
  
   Hashtable* table=rentry->hashtable;
   MemoryQueue* queue;
-  if(table==NULL){
+  if(table==NULL || table->unresolvedQueue==NULL){
     //resolved already before related rentry is enqueued to the waiting queue
     return;
   }
