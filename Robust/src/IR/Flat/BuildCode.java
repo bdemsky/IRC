@@ -2540,7 +2540,7 @@ public class BuildCode {
                      maxTaskRecSizeStr+" );");
     } else {
       // make it clear we purposefully did not initialize this
-      output.println("   runningSESE->taskRecordMemPool = (MemPool*)0x1;");
+      output.println("   runningSESE->taskRecordMemPool = (MemPool*)0x7;");
     }
     output.println( "#endif // OOO_DISABLE_TASKMEMPOOL" );
 
@@ -2652,7 +2652,7 @@ public class BuildCode {
     outmethod.println(      "  char errmsg[128];");
 
     // generate a case for each SESE class that can be invoked
-    outmethod.println(      "  switch( *((int*)seseRecord) ) {");
+    outmethod.println(      "  switch( ((SESEcommon*)seseRecord)->classID ) {");
     outmethod.println(      "    ");
     Iterator<FlatSESEEnterNode> seseit;
     if(state.MLP){

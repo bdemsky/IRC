@@ -50,11 +50,13 @@ public class test {
       }
 
       // force a coarse grained conflict
-      //array[numFoo - 1].f++;
-      
+      long z = 1;
+      for( int i = 0; i < numFoo; i++ ) {
+        z += array[i].f;
+      }
+
 
       e1 = System.currentTimeMillis();
-      long z = 1;
     }
     // just read vars so compile doesn't throw them out
     // and force parent of parent to depend on z, for
