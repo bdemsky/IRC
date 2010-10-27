@@ -225,8 +225,10 @@ public class BuildCode {
       outmethodheader.println("#include \"psemaphore.h\"");
       outmethodheader.println("#include \"memPool.h\"");
 
-      if (state.RCR) 
-	outmethodheader.println("#include \"rcr_runtime.h\"");
+      if (state.RCR) {
+        outmethodheader.println("#include \"rcr_runtime.h\"");
+        outmethodheader.println("#include \"oooJava/hashStructure.h\"");
+      }
 
       // spit out a global to inform all worker threads with
       // the maximum size is for any task record
