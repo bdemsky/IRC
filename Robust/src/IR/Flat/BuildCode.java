@@ -394,7 +394,9 @@ public class BuildCode {
       while(it_sclasses.hasNext()) {
         ClassDescriptor cd = (ClassDescriptor)it_sclasses.next();
         MethodDescriptor md = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
-        tovisit.add(md);
+        if(md != null) {
+          tovisit.add(md);
+        }
       }
 
       while(!tovisit.isEmpty()) {
@@ -1191,6 +1193,14 @@ public class BuildCode {
     /* Get inherited methods */
     if (cd.getSuperDesc()!=null)
       fillinRow(cd.getSuperDesc(), virtualtable, rownum);
+    if(state.MGC) {
+      // TODO add version for normal Java later
+      Iterator it_sifs = cd.getSuperInterfaces();
+      while(it_sifs.hasNext()) {
+        ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
+        fillinRow(superif, virtualtable, rownum);
+      }
+    }
     /* Override them with our methods */
     for(Iterator it=cd.getMethods(); it.hasNext();) {
       MethodDescriptor md=(MethodDescriptor)it.next();

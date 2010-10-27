@@ -7,11 +7,14 @@ public class SymbolTable {
   private Hashtable table;
   private SymbolTable parent;
   private HashSet valueset;
+  
+  private Vector<SymbolTable> parentIFs;
 
   public SymbolTable() {
     table = new Hashtable();
     valueset = new HashSet();
     this.parent = null;
+    this.parentIFs = null;
   }
 
   public SymbolTable(SymbolTable parent) {
@@ -99,6 +102,11 @@ public class SymbolTable {
       hs=(HashSet) parent.getAllValueSet();
     else
       hs=new HashSet();
+    if (this.parentIFs != null) {
+      for(int i = 0; i < this.parentIFs.size(); i++) {
+        hs.addAll(this.parentIFs.elementAt(i).getAllValueSet());
+      }
+    }
     hs.addAll(valueset);
     return hs;
   }
@@ -118,6 +126,18 @@ public class SymbolTable {
   public void setParent(SymbolTable parent) {
     this.parent = parent;
   }
+  
+  public Vector<SymbolTable> getParentIFs() {
+    return this.parentIFs;
+  }
+
+  public void addParentIF(SymbolTable parentif) {
+    if(this.parentIFs == null) {
+      this.parentIFs = new Vector<SymbolTable>();
+    }
+    this.parentIFs.addElement(parentif);
+  }
+
 
   public String toString() {
     return "ST: " + table.toString();

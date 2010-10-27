@@ -88,5 +88,8 @@ class Keyword extends Token {
     //Keywords for coarse-grain parallelization
     key_table.put("sese", new Integer(Sym.SESE));
     key_table.put("rblock", new Integer(Sym.RBLOCK));
+    // Keywords for interface of mgc
+    key_table.put("interface", new Integer(Sym.INTERFACE));
+    key_table.put("implements", new Integer(Sym.IMPLEMENTS));
   }
 }

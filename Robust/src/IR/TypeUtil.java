@@ -1,5 +1,7 @@
 package IR;
 import java.util.*;
+
+import IR.Flat.FlatNode;
 import IR.Tree.*;
 import java.io.File;
 import Main.Main;
@@ -15,6 +17,9 @@ public class TypeUtil {
   Hashtable supertable;
   Hashtable subclasstable;
   BuildIR bir;
+  
+  // for interfaces
+  Hashtable superIFtbl;
 
   public TypeUtil(State state, BuildIR bir) {
     this.state=state;
@@ -63,11 +68,23 @@ public class TypeUtil {
 	supertable.put(cd,cd_super);
       }
     }
+    if (!this.superIFtbl.containsKey(cd)) {
+      // add inherited interfaces
+      superIFtbl.put(cd,new HashSet());
+      HashSet hs=(HashSet)superIFtbl.get(cd);
+      Vector<String> superifv = cd.getSuperInterface();
+      for(int i = 0; i < superifv.size(); i++) {
+        String superif = superifv.elementAt(i);
+        ClassDescriptor if_super = getClass(superif, todo);
+        hs.add(if_super);
+      }
+    }
     return cd;
   }
 
   private void createTables() {
     supertable=new Hashtable();
+    superIFtbl = new Hashtable();
   }
 
   public ClassDescriptor getMainClass() {
@@ -181,18 +198,69 @@ NextMethod:
 
   public void createFullTable() {
     subclasstable=new Hashtable();
+    //subIFclasstable = new Hashtable();
+    HashSet tovisit=new HashSet();
+    HashSet visited=new HashSet();
 
     Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       ClassDescriptor tmp=cd.getSuperDesc();
+      
+      if(state.MGC) {
+        // TODO add version for normal Java later
+        // check tmp's interface ancestors
+        Iterator it_sifs = cd.getSuperInterfaces();
+        while(it_sifs.hasNext()) {
+          ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+          if(!tovisit.contains(cdt)){
+            tovisit.add(cdt);
+          }
+        }
+      }
 
       while(tmp!=null) {
-	if (!subclasstable.containsKey(tmp))
-	  subclasstable.put(tmp,new HashSet());
-	HashSet hs=(HashSet)subclasstable.get(tmp);
-	hs.add(cd);
-	tmp=tmp.getSuperDesc();
+        if (!subclasstable.containsKey(tmp))
+          subclasstable.put(tmp,new HashSet());
+        HashSet hs=(HashSet)subclasstable.get(tmp);
+        hs.add(cd);
+        if(state.MGC) {
+          // TODO add version for normal Java later
+          // check tmp's interface ancestors
+          Iterator it_sifs = tmp.getSuperInterfaces();
+          while(it_sifs.hasNext()) {
+            ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+            if(!tovisit.contains(cdt)){
+              tovisit.add(cdt);
+            }
+          }
+        }
+        tmp=tmp.getSuperDesc();
+      }
+      
+      if(state.MGC) {
+        // TODO add version for normal Java later
+        while(!tovisit.isEmpty()) {
+          ClassDescriptor sif = (ClassDescriptor)tovisit.iterator().next();
+          tovisit.remove(sif);
+          
+          if(!visited.contains(sif)) {
+            if(!this.subclasstable.containsKey(sif)) {
+              this.subclasstable.put(sif, new HashSet());
+            }
+            HashSet hs = (HashSet)this.subclasstable/*subIFclasstable*/.get(sif);
+            hs.add(cd);
+            
+            Iterator it_sifs = sif.getSuperInterfaces();
+            while(it_sifs.hasNext()) {
+              ClassDescriptor siftmp = (ClassDescriptor)it_sifs.next();
+              if(!tovisit.contains(siftmp)){
+                tovisit.add(siftmp);
+              }
+            }
+            visited.add(sif);
+          }
+        }
       }
     }
   }
@@ -203,6 +271,10 @@ NextMethod:
 
   public ClassDescriptor getSuper(ClassDescriptor cd) {
     return (ClassDescriptor)supertable.get(cd);
+  }
+  
+  public Set getSuperIFs(ClassDescriptor cd) {
+    return (Set)this.superIFtbl.get(cd);
   }
 
   public boolean isCastable(TypeDescriptor original, TypeDescriptor casttype) {
@@ -327,11 +399,65 @@ NextMethod:
   }
 
   private boolean isSuper(ClassDescriptor possiblesuper, ClassDescriptor cd2) {
+    HashSet tovisit=new HashSet();
+    HashSet visited=new HashSet();
+    
+    if(state.MGC) {
+      // TODO add version for normal Java later
+      // check cd2's interface ancestors
+      Iterator it_sifs = getSuperIFs(cd2).iterator();
+      while(it_sifs.hasNext()) {
+        ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
+        if(cd == possiblesuper) {
+          return true;
+        } else if(!tovisit.contains(cd)){
+          tovisit.add(cd);
+        }
+      }
+    }
 
     while(cd2!=null) {
       cd2=getSuper(cd2);
       if (cd2==possiblesuper)
 	return true;
+      
+      if(state.MGC) {
+        // TODO add version for normal Java later
+        // check cd2's interface ancestors
+        if(cd2 != null) {
+          Iterator it_sifs = getSuperIFs(cd2).iterator();
+          while(it_sifs.hasNext()) {
+            ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
+            if(cd == possiblesuper) {
+              return true;
+            } else if(!tovisit.contains(cd)){
+              tovisit.add(cd);
+            }
+          }
+        }
+      }
+    }
+    
+    if(state.MGC) {
+      // TODO add version for normal Java later
+      while(!tovisit.isEmpty()) {
+        ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
+        tovisit.remove(cd);
+        
+        if(!visited.contains(cd)) {
+          Iterator it_sifs = getSuperIFs(cd).iterator();
+          while(it_sifs.hasNext()) {
+            ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+            if(cdt == possiblesuper) {
+              return true;
+            } else if(!tovisit.contains(cdt)){
+              tovisit.add(cdt);
+            }
+          }
+          visited.add(cd);
+        }
+      }
+        
     }
     return false;
   }

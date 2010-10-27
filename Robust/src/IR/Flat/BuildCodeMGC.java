@@ -189,15 +189,17 @@ public class BuildCodeMGC extends BuildCode {
           // TODO may need to invoke static field initialization here
         }
         MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
-        outmethod.println("   {");
-        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-          outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-          outmethod.println("1, NULL};");
-          outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-        } else {
-          outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+        if(t_md != null) {
+          outmethod.println("   {");
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+            outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+            outmethod.println("1, NULL};");
+            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+          } else {
+            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          }
+          outmethod.println("   }");
         }
-        outmethod.println("   }");
       }
       outmethod.println("#undef MGC_STATIC_INIT_CHECK");
     }

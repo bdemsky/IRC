@@ -38,6 +38,18 @@ public class SemanticCheck {
 	cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
 	cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
 	cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
+    if(state.MGC) {
+      // TODO add version for normal Java later
+      // Link together Field, Method tables do classes inherit these from 
+      // their ancestor interfaces
+      Vector<String> sifv = cd.getSuperInterface();
+      for(int i = 0; i < sifv.size(); i++) {
+        ClassDescriptor superif = getClass(sifv.elementAt(i));
+        cd.addSuperInterfaces(superif);
+        cd.getFieldTable().addParentIF(superif.getFieldTable());
+        cd.getMethodTable().addParentIF(superif.getMethodTable());
+      }
+    }
       }
       
       /* Check to see that fields are well typed */
@@ -218,8 +230,8 @@ public class SemanticCheck {
       // TODO add version for normal Java later
       /* Check for abstract methods */
       if(md.isAbstract()) {
-        if(!cd.isAbstract()) {
-          throw new Error("Error! The non-abstract Class " + cd.getSymbol() + "contains an abstract method " + md.getSymbol());
+        if(!cd.isAbstract() && !cd.isInterface()) {
+          throw new Error("Error! The non-abstract Class " + cd.getSymbol() + " contains an abstract method " + md.getSymbol());
         }
       }
     }

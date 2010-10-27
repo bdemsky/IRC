@@ -19,6 +19,11 @@ public class ClassDescriptor extends Descriptor {
   
   int numstaticblocks = 0;
   int numstaticfields = 0;
+  
+  // for interfaces
+  boolean isInterface=false;
+  Vector<String> superinterfaces;
+  SymbolTable superIFdesc;
 
   public ClassDescriptor(String classname) {
     this("", classname);
@@ -33,6 +38,8 @@ public class ClassDescriptor extends Descriptor {
     methods=new SymbolTable();
     classid=UIDCount++;
     this.packagename=packagename;
+    superinterfaces = new Vector<String>();
+    superIFdesc = new SymbolTable();
   }
 
   public int getId() {
@@ -50,6 +57,10 @@ public class ClassDescriptor extends Descriptor {
   public Iterator getFlags() {
     return flags.getDescriptorsIterator();
   }
+  
+  public Iterator getSuperInterfaces() {
+    return this.superIFdesc.getDescriptorsIterator();
+  }
 
   public SymbolTable getFieldTable() {
     return fields;
@@ -66,6 +77,10 @@ public class ClassDescriptor extends Descriptor {
   public SymbolTable getMethodTable() {
     return methods;
   }
+  
+  public SymbolTable getSuperInterfaceTable() {
+    return this.superIFdesc;
+  }
 
   public String getSafeDescriptor() {
     return "L"+safename.replace('.','/');
@@ -76,6 +91,17 @@ public class ClassDescriptor extends Descriptor {
     String st=modifiers.toString()+"class "+getSymbol();
     if (superclass!=null)
       st+="extends "+superclass.toString();
+    if(this.superinterfaces != null) {
+      st += "implements ";
+      boolean needcomma = false;
+      for(int i = 0; i < this.superinterfaces.size(); i++) {
+        if(needcomma) {
+          st += ", ";
+        }
+        st += this.superinterfaces.elementAt(i);
+        needcomma = true;
+      }
+    }
     st+=" {\n";
     indent=TreeNode.INDENT;
     boolean printcr=false;
@@ -153,6 +179,18 @@ public class ClassDescriptor extends Descriptor {
     return superclass;
   }
   
+  public void addSuperInterface(String superif) {
+    this.superinterfaces.addElement(superif);
+  }
+  
+  public Vector<String> getSuperInterface() {
+    return this.superinterfaces;
+  }
+  
+  public void addSuperInterfaces(ClassDescriptor sif) {
+    this.superIFdesc.add(sif);
+  }
+  
   public void incStaticBlocks() {
     this.numstaticblocks++;
   }
@@ -171,5 +209,13 @@ public class ClassDescriptor extends Descriptor {
   
   public boolean isAbstract() {
     return this.modifiers.isAbstract();
+  }
+  
+  public boolean isInterface() {
+    return this.isInterface;
+  }
+  
+  public void setAsInterface() {
+    this.isInterface = true;
   }
 }

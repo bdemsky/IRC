@@ -52,11 +52,11 @@ terminal STATIC; // modifier
 terminal ABSTRACT, FINAL, NATIVE, SYNCHRONIZED, TRANSIENT, VOLATILE;
 terminal CLASS; // class_declaration
 terminal EXTENDS; // super
-//terminal IMPLEMENTS; // interfaces
+terminal IMPLEMENTS; // interfaces
 terminal VOID; // method_header
 terminal THROWS; // throws
 terminal THIS, SUPER; // explicit_constructor_invocation
-//terminal INTERFACE; // interface_declaration
+terminal INTERFACE; // interface_declaration
 terminal IF, ELSE; // if_then_statement, if_then_else_statement
 terminal SWITCH; // switch_statement
 terminal CASE, DEFAULT; // switch_label
@@ -117,7 +117,7 @@ non terminal ParseNode integral_type, floating_point_type;
 non terminal ParseNode reference_type;
 non terminal ParseNode class_or_interface_type;
 non terminal ParseNode class_type;
-//non terminal ParseNode interface_type;
+non terminal ParseNode interface_type;
 non terminal ParseNode array_type;
 // 19.5) Names
 non terminal ParseNode name, simple_name, qualified_name;
@@ -134,7 +134,7 @@ non terminal ParseNode type_declaration;
 non terminal ParseNode modifiers_opt, modifiers, modifier;
 // 19.8.1) Class Declaration
 non terminal ParseNode class_declaration, super, super_opt;
-//non terminal interfaces, interfaces_opt, interface_type_list;
+non terminal ParseNode interfaces, interfaces_opt, interface_type_list;
 non terminal ParseNode class_body;
 non terminal ParseNode class_body_declarations, class_body_declarations_opt;
 non terminal ParseNode class_body_declaration, class_member_declaration;
@@ -157,12 +157,12 @@ non terminal ParseNode constructor_declaration, constructor_declarator;
 non terminal ParseNode constructor_body;
 non terminal ParseNode explicit_constructor_invocation;
 // 19.9.1) Interface Declarations
-//non terminal ParseNode interface_declaration;
-//non terminal ParseNode extends_interfaces_opt, extends_interfaces;
-//non terminal ParseNode interface_body;
-//non terminal ParseNode interface_member_declarations_opt, interface_member_declarations;
-//non terminal ParseNode interface_member_declaration, constant_declaration;
-//non terminal ParseNode abstract_method_declaration;
+non terminal ParseNode interface_declaration;
+non terminal ParseNode extends_interfaces_opt, extends_interfaces;
+non terminal ParseNode interface_body;
+non terminal ParseNode interface_member_declarations_opt, interface_member_declarations;
+non terminal ParseNode interface_member_declaration, constant_declaration;
+non terminal ParseNode abstract_method_declaration;
 // 19.10) Arrays
 non terminal ParseNode array_initializer;
 non terminal ParseNode variable_initializers;
@@ -569,7 +569,7 @@ class_or_interface_type ::= name:name {:
 	:};
 
 class_type ::=	class_or_interface_type:type {: RESULT=type; :};
-//interface_type ::= class_or_interface_type;
+interface_type ::= class_or_interface_type:type {: RESULT=type; :};
 
 array_type ::=	primitive_type:prim dims:dims {: 
 		ParseNode pn=(new ParseNode("type")).addChild("array");
@@ -689,7 +689,10 @@ type_declaration ::=
 		{:
 			RESULT=td;
 		:}
-//      |       interface_declaration
+    |   interface_declaration:in
+        {:
+			RESULT=in;
+		:}
 	|	SEMICOLON {: RESULT=new ParseNode("empty"); :}
 	;
 
@@ -730,13 +733,14 @@ modifier ::=
 
 // 19.8.1) Class Declaration:
 class_declaration ::= 
-	modifiers_opt:mo CLASS IDENTIFIER:id super_opt:so //interfaces_opt
-class_body:body 
+	modifiers_opt:mo CLASS IDENTIFIER:id super_opt:so interfaces_opt:ifo 
+	class_body:body 
 	{:
 	ParseNode pn=new ParseNode("class_declaration");
 	pn.addChild("modifiers").addChild(mo);
 	pn.addChild("name").addChild(id);
 	pn.addChild("super").addChild(so);
+	pn.addChild("superIF").addChild(ifo);
 	pn.addChild("classbody").addChild(body);
 	RESULT=pn;
 	:}
@@ -752,15 +756,23 @@ super_opt ::=
 	:}
 	;
 
-//interfaces ::= IMPLEMENTS interface_type_list
-//       ;
-//interfaces_opt::=
-//       |       interfaces
-//       ;
-//interface_type_list ::=
-//               interface_type
-//       |       interface_type_list COMMA interface_type
-//       ;
+interfaces ::= IMPLEMENTS interface_type_list:iftl {: RESULT=iftl; :}
+       ;
+interfaces_opt ::=
+       {: RESULT=new ParseNode("empty"); :}
+       |       interfaces:ifs {: RESULT=ifs; :}
+       ;
+interface_type_list ::=
+               interface_type:ift {: 
+			ParseNode pn=new ParseNode("interface_type_list");
+			pn.addChild(ift);
+			RESULT=pn;
+		:}
+       |       interface_type_list:iftl COMMA interface_type:ift {: 
+			iftl.addChild(ift);
+			RESULT=iftl;
+		:}
+       ;
 
 class_body ::=	LBRACE class_body_declarations_opt:cbdo RBRACE {: RESULT=cbdo; :}
 	;
@@ -809,7 +821,9 @@ class_member_declaration ::=
 	:}
 	/* repeat the prod for 'class_declaration' here: */
 //	|	modifiers_opt CLASS IDENTIFIER super_opt class_body
-//      |       interface_declaration
+    |       interface_declaration:interfaced {: 
+	RESULT=(new ParseNode("interface")).addChild(interfaced).getRoot(); 
+	:}
 	|	SEMICOLON	{: RESULT=new ParseNode("empty"); :}
 	;
 
@@ -1048,43 +1062,81 @@ SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
 // 19.9) Interfaces
 
 // 19.9.1) Interface Declarations
-//interface_declaration ::=
-//               modifiers_opt INTERFACE IDENTIFIER extends_interfaces_opt
-//                       interface_body
-//       ;
-//extends_interfaces_opt ::=
-//       |       extends_interfaces
-//       ;
-//extends_interfaces ::=
-//               EXTENDS interface_type
-//       |       extends_interfaces COMMA interface_type
-//       ;
-//interface_body ::=
-//               LBRACE interface_member_declarations_opt RBRACE
-//       ;
-//interface_member_declarations_opt ::=
-//       |       interface_member_declarations
-//       ;
-//interface_member_declarations ::=
-//               interface_member_declaration
-//       |       interface_member_declarations interface_member_declaration
-//       ;
-//interface_member_declaration ::=
-//               constant_declaration
-//       |       abstract_method_declaration
-//       |       class_declaration
-//       |       interface_declaration
-//       |       SEMICOLON
-//       ;
-//constant_declaration ::=
-//               field_declaration
-//       // need to semantically check that modifiers of field declaration
-//       // include only PUBLIC, STATIC, or FINAL.  Other modifiers are
-//       // disallowed.
-//       ;
-//abstract_method_declaration ::=
-//               method_header SEMICOLON
-//       ;
+interface_declaration ::=
+               modifiers_opt:mo INTERFACE IDENTIFIER:id extends_interfaces_opt:io
+                       interface_body:body
+       {:
+	ParseNode pn=new ParseNode("interface_declaration");
+	pn.addChild("modifiers").addChild(mo);
+	pn.addChild("name").addChild(id);
+	pn.addChild("superIF").addChild(io);
+	pn.addChild("interfacebody").addChild(body);
+	RESULT=pn;
+	:}
+       ;
+extends_interfaces_opt ::=
+       {: RESULT=new ParseNode("empty"); :}
+       |       extends_interfaces:eifs {: RESULT=eifs; :}
+       ;
+extends_interfaces ::=
+               EXTENDS interface_type:ift 
+               {: 
+               ParseNode pn=new ParseNode("extend_interface_list");
+               pn.addChild(ift);
+               RESULT=pn; 
+               :}
+     |       extends_interfaces:eifs COMMA interface_type:ift
+             {:
+             eifs.addChild(ift);
+             RESULT=eifs;
+             :}
+       ;
+interface_body ::=
+               LBRACE interface_member_declarations_opt:imdo RBRACE
+               {: RESULT=imdo; :}
+       ;
+interface_member_declarations_opt ::=
+       {: RESULT=new ParseNode("empty"); :}
+       |       interface_member_declarations:imd {: RESULT=imd; :}
+       ;
+interface_member_declarations ::=
+               interface_member_declaration:imd {: 
+			ParseNode pn=new ParseNode("interface_member_declaration_list");
+			pn.addChild(imd);
+			RESULT=pn;
+		:}
+       |       interface_member_declarations:imds interface_member_declaration:imd {: 
+			imds.addChild(imd);
+			RESULT=imds;
+		:}
+       ;
+interface_member_declaration ::=
+               constant_declaration:constant {: 
+		RESULT=(new ParseNode("constant")).addChild(constant).getRoot();
+	:}
+       |       abstract_method_declaration:method {:
+	RESULT=(new ParseNode("method")).addChild(method).getRoot(); 
+	:}
+//       |       class_declaration:class 
+//       |       interface_declaration:interface 
+       |       SEMICOLON {: 
+       RESULT=new ParseNode("empty"); 
+       :}
+       ;
+constant_declaration ::=
+               field_declaration:fd {: RESULT=fd; :}
+       // need to semantically check that modifiers of field declaration
+       // include only PUBLIC, STATIC, or FINAL.  Other modifiers are
+       // disallowed.
+       ;
+abstract_method_declaration ::=
+               method_header:header SEMICOLON {:
+		ParseNode pn=new ParseNode("method_declaration");
+		pn.addChild("header").addChild(header);
+		pn.addChild("body").addChild(new ParseNode("empty"));
+		RESULT=pn;
+	:}
+       ;
 
 
 // 19.10) Arrays

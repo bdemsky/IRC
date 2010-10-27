@@ -60,10 +60,92 @@ public class BuildIR {
 	  if (toanalyze!=null)
 	    toanalyze.add(td);
 	  state.addTask(td);
-	} else {
+	} else if ((state.MGC) && isNode(type_pn,"interface_declaration")) {
+      // TODO add version for normal Java later
+      ClassDescriptor cn = parseInterfaceDecl(type_pn);
+      if (toanalyze!=null)
+        toanalyze.add(cn);
+      state.addClass(cn);
+    } else {
 	  throw new Error(type_pn.getLabel());
 	}
       }
+    }
+  }
+  
+  public ClassDescriptor parseInterfaceDecl(ParseNode pn) {
+    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal());
+    cn.setAsInterface();
+    if (!isEmpty(pn.getChild("superIF").getTerminal())) {
+      /* parse inherited interface name */
+      ParseNode snlist=pn.getChild("superIF").getChild("extend_interface_list");
+      ParseNodeVector pnv=snlist.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"type")) {
+          NameDescriptor nd=parseName(decl.getChild("class").getChild("name"));
+          cn.addSuperInterface(nd.toString());
+        }
+      }
+    }
+    cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
+    parseInterfaceBody(cn, pn.getChild("interfacebody"));
+    return cn;
+  }
+  
+  private void parseInterfaceBody(ClassDescriptor cn, ParseNode pn) {
+    assert(cn.isInterface());
+    ParseNode decls=pn.getChild("interface_member_declaration_list");
+    if (decls!=null) {
+      ParseNodeVector pnv=decls.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"constant")) {
+          parseInterfaceConstant(cn,decl);
+        } else if (isNode(decl,"method")) {
+          parseInterfaceMethod(cn,decl.getChild("method_declaration"));
+        } else throw new Error();
+      }
+    }
+  }
+  
+  private void parseInterfaceConstant(ClassDescriptor cn, ParseNode pn) {
+    if (pn!=null) {
+      parseFieldDecl(cn,pn.getChild("field_declaration"));
+      return;
+    }
+    throw new Error();
+  }
+  
+  private void parseInterfaceMethod(ClassDescriptor cn, ParseNode pn) {
+    ParseNode headern=pn.getChild("header");
+    ParseNode bodyn=pn.getChild("body");
+    MethodDescriptor md=parseMethodHeader(headern.getChild("method_header"));
+    md.getModifiers().addModifier(Modifiers.PUBLIC);
+    md.getModifiers().addModifier(Modifiers.ABSTRACT);
+    try {
+      BlockNode bn=parseBlock(bodyn);
+      cn.addMethod(md);
+      state.addTreeCode(md,bn);
+
+      // this is a hack for investigating new language features
+      // at the AST level, someday should evolve into a nice compiler
+      // option *wink*
+      //if( cn.getSymbol().equals( ***put a class in here like:     "Test" ) &&
+      //    md.getSymbol().equals( ***put your method in here like: "main" ) 
+      //) {
+      //  bn.setStyle( BlockNode.NORMAL );
+      //  System.out.println( bn.printNode( 0 ) );
+      //}
+
+    } catch (Exception e) {
+      System.out.println("Error with method:"+md.getSymbol());
+      e.printStackTrace();
+      throw new Error();
+    } catch (Error e) {
+      System.out.println("Error with method:"+md.getSymbol());
+      e.printStackTrace();
+      throw new Error();
     }
   }
 
@@ -236,6 +318,19 @@ public class BuildIR {
             cn.getSymbol().equals(TypeUtil.TagClass)))
 	cn.setSuper(TypeUtil.ObjectClass);
     }
+    // check inherited interfaces
+    if (!isEmpty(pn.getChild("superIF").getTerminal())) {
+      /* parse inherited interface name */
+      ParseNode snlist=pn.getChild("superIF").getChild("interface_type_list");
+      ParseNodeVector pnv=snlist.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"type")) {
+          NameDescriptor nd=parseName(decl.getChild("class").getChild("name"));
+          cn.addSuperInterface(nd.toString());
+        }
+      }
+    }
     cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
     parseClassBody(cn, pn.getChild("classbody"));
     return cn;
@@ -339,6 +434,17 @@ public class BuildIR {
   private void parseFieldDecl(ClassDescriptor cn,ParseNode pn) {
     ParseNode mn=pn.getChild("modifier");
     Modifiers m=parseModifiersList(mn);
+    if((state.MGC) && cn.isInterface()) {
+      // TODO add version for normal Java later
+      // Can only be PUBLIC or STATIC or FINAL
+      if((m.isAbstract()) || (m.isAtomic()) || (m.isNative()) 
+          || (m.isSynchronized())) {
+        throw new Error("Error: field in Interface " + cn.getSymbol() + "can only be PUBLIC or STATIC or FINAL");
+      }
+      m.addModifier(Modifiers.PUBLIC);
+      m.addModifier(Modifiers.STATIC);
+      m.addModifier(Modifiers.FINAL);
+    }
 
     ParseNode tn=pn.getChild("type");
     TypeDescriptor t=parseTypeDescriptor(tn);
