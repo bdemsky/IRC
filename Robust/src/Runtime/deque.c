@@ -46,8 +46,8 @@
 #include "deque.h"
 
 
-void* DQ_POP_EMPTY = (void*)0x1;
-void* DQ_POP_ABORT = (void*)0x3;
+void* DQ_POP_EMPTY = (void*)0x17;
+void* DQ_POP_ABORT = (void*)0x33;
 
 
 // define a 19-bit dummy tag for the bottom
@@ -69,7 +69,7 @@ static inline dequeNode* dqGet4096aligned( void* fromAllocator ) {
 #ifdef DEBUG_DEQUE
   //printf( "from allocator: 0x%08x to 0x%08x\n", (INTPTR)fromAllocator, (INTPTR)fromAllocator + DQNODE_SIZETOREQUEST );
   //printf( "aligned:        0x%08x to 0x%08x\n", aligned,               aligned               + sizeof( dequeNode )  );
-  //memset( (void*) aligned, 0, sizeof( dequeNode ) );
+  memset( (void*) aligned, 0x9, sizeof( dequeNode ) );
 #endif
 
   return (dequeNode*) aligned;
@@ -175,6 +175,7 @@ void* dqPopTop( deque* dq ) {
   int        currTopTag  = dqDecodeTag( currTop );
   dequeNode* currTopNode = dqDecodePtr( currTop );
   int        currTopIndx = dqDecodeIdx( currTop );
+
 
   // read of top followed by read of bottom, algorithm
   // says specifically must be in this order
