@@ -17,6 +17,22 @@ __thread psemaphore runningSESEstallSem;
 
 
 
+// this is for using a memPool to allocate task records,
+// pass this into the poolcreate so it will run your
+// custom init code ONLY for fresh records, reused records
+// can be returned as is
+void freshTaskRecordInitializer( void* seseRecord ) {
+  SESEcommon* c = (SESEcommon*) seseRecord;
+  pthread_cond_init( &(c->runningChildrenCond), NULL );
+  pthread_mutex_init( &(c->lock), NULL );
+
+  // no need to use return value yet, future maybe
+  //return NULL;
+}
+
+
+
+
 void* mlpAllocSESErecord( int size ) {
   void* newrec = RUNMALLOC( size );  
   if( newrec == 0 ) {
@@ -202,7 +218,7 @@ MemoryQueue* createMemoryQueue(){
   queue->head = dummy;
   queue->tail = dummy;
 #ifndef OOO_DISABLE_TASKMEMPOOL
-  queue->rentrypool = poolcreate(sizeof(REntry));
+  queue->rentrypool = poolcreate( sizeof(REntry), NULL );
 #endif
   return queue;
 }

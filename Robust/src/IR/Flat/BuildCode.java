@@ -2548,8 +2548,8 @@ public class BuildCode {
     // don't bother if the task never has children (a leaf task)
     output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
     if( !fsen.getIsLeafSESE() ) {
-      output.println("   runningSESE->taskRecordMemPool = taskpoolcreate( "+
-                     maxTaskRecSizeStr+" );");
+      output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
+                     maxTaskRecSizeStr+", freshTaskRecordInitializer );");
     } else {
       // make it clear we purposefully did not initialize this
       output.println("   runningSESE->taskRecordMemPool = (MemPool*)0x7;");
@@ -3928,7 +3928,7 @@ public class BuildCode {
         ) {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
-                     fsen.getSESErecordName()+"*) taskpoolalloc( runningSESE->taskRecordMemPool );");
+                     fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
     } else {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+

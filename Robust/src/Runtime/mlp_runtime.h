@@ -272,61 +272,12 @@ static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
   }
 }
 
-static MemPool* taskpoolcreate( int itemSize ) {
-  MemPool* p    = RUNMALLOC( sizeof( MemPool ) );
-  SESEcommon *c = (SESEcommon *) RUNMALLOC(itemSize);
-  pthread_cond_init( &(c->runningChildrenCond), NULL );
-  pthread_mutex_init( &(c->lock), NULL );
 
-  p->itemSize   = itemSize;
-  p->head       = (void *)c;
-  p->head->next = NULL;
-  p->tail       = p->head;
-  return p;
-}
-
-
-static inline void* taskpoolalloc( MemPool* p ) {
-
-  // to protect CAS in poolfree from dereferencing
-  // null, treat the queue as empty when there is
-  // only one item.  The dequeue operation is only
-  // executed by the thread that owns the pool, so
-  // it doesn't require an atomic op
-  MemPoolItem* headCurrent = p->head;
-  MemPoolItem* next=headCurrent->next;
-  int i;
-  if(next == NULL) {
-    // only one item, so don't take from pool
-    SESEcommon *c = (SESEcommon*) RUNMALLOC( p->itemSize );
-    pthread_cond_init( &(c->runningChildrenCond), NULL );
-    pthread_mutex_init( &(c->lock), NULL );
-    return c;
-  }
- 
-  p->head = next;
-
-  //////////////////////////////////////////////////////////
-  //
-  //
-  //  static inline void prefetch(void *x) 
-  //  { 
-  //    asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
-  //  } 
-  //
-  //
-  //  but this built-in gcc one seems the most portable:
-  //////////////////////////////////////////////////////////
-  //__builtin_prefetch( &(p->head->next) );
-  asm volatile( "prefetcht0 (%0)" :: "r" (next));
-  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
-  asm volatile( "prefetcht0 (%0)" :: "r" (next));
-  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
-  asm volatile( "prefetcht0 (%0)" :: "r" (next));
-  next=(MemPoolItem*)(((char *)next)+CACHELINESIZE);
-  asm volatile( "prefetcht0 (%0)" :: "r" (next));
-
-  return (void*)headCurrent;
-}
+// this is for using a memPool to allocate task records,
+// pass this into the poolcreate so it will run your
+// custom init code ONLY for fresh records, reused records
+// can be returned as is
+void freshTaskRecordInitializer( void* seseRecord );
+  
 
 #endif /* __MLP_RUNTIME__ */

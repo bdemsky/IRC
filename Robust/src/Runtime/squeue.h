@@ -22,11 +22,30 @@
 #include "runtime.h"
 #include "mem.h"
 #include "mlp_lock.h"
-#include "memPool.h"
+
 
 #define CACHELINESIZE 64
 #define DQ_POP_EMPTY NULL
 #define DQ_POP_ABORT NULL
+
+
+typedef struct sqMemPoolItem_t {
+  void* next;
+} sqMemPoolItem;
+
+
+typedef struct sqMemPool_t {
+  int itemSize;
+
+  sqMemPoolItem* head;
+
+  // avoid cache line contention between producer/consumer...
+  char buffer[CACHELINESIZE];
+
+  sqMemPoolItem* tail;
+
+} sqMemPool;
+
 
 
 typedef struct dequeItem_t {
@@ -43,7 +62,7 @@ typedef struct deque_t {
 
   dequeItem* tail;
   
-  MemPool objret;
+  sqMemPool objret;
 } deque;
 
 #define EXTRACTPTR(x) (x&0x0000ffffffffffff)
@@ -61,13 +80,13 @@ static void dqInit(deque *q) {
   q->objret.tail=q->objret.head;
 }
 
-static inline void tagpoolfreeinto( MemPool* p, void* ptr, void *realptr ) {
-  MemPoolItem* tailCurrent;
-  MemPoolItem* tailActual;
+static inline void tagpoolfreeinto( sqMemPool* p, void* ptr, void *realptr ) {
+  sqMemPoolItem* tailCurrent;
+  sqMemPoolItem* tailActual;
   
   // set up the now unneeded record to as the tail of the
   // free list by treating its first bytes as next pointer,
-  MemPoolItem* tailNew = (MemPoolItem*) realptr;
+  sqMemPoolItem* tailNew = (sqMemPoolItem*) realptr;
   tailNew->next = NULL;
 
   while( 1 ) {
@@ -76,14 +95,14 @@ static inline void tagpoolfreeinto( MemPool* p, void* ptr, void *realptr ) {
     BARRIER();
 
     tailCurrent = p->tail;
-    tailActual = (MemPoolItem*)
+    tailActual = (sqMemPoolItem*)
       CAS( &(p->tail),         // ptr to set
            (INTPTR) tailCurrent, // current tail's next should be NULL
            (INTPTR) realptr);  // try set to our new tail
     
     if( tailActual == tailCurrent ) {
       // success, update tail
-      tailCurrent->next = (MemPoolItem *) ptr;
+      tailCurrent->next = (sqMemPoolItem *) ptr;
       return;
     }
 
@@ -91,16 +110,16 @@ static inline void tagpoolfreeinto( MemPool* p, void* ptr, void *realptr ) {
   }
 }
 
-static inline void* tagpoolalloc( MemPool* p ) {
+static inline void* tagpoolalloc( sqMemPool* p ) {
 
   // to protect CAS in poolfree from dereferencing
   // null, treat the queue as empty when there is
   // only one item.  The dequeue operation is only
   // executed by the thread that owns the pool, so
   // it doesn't require an atomic op
-  MemPoolItem* headCurrent = p->head;
-  MemPoolItem* realHead=(MemPoolItem *) EXTRACTPTR((INTPTR)headCurrent);
-  MemPoolItem* next=realHead->next;
+  sqMemPoolItem* headCurrent = p->head;
+  sqMemPoolItem* realHead=(sqMemPoolItem *) EXTRACTPTR((INTPTR)headCurrent);
+  sqMemPoolItem* next=realHead->next;
   int i;
   if(next == NULL) {
     // only one item, so don't take from pool
@@ -121,9 +140,9 @@ static inline void* tagpoolalloc( MemPool* p ) {
   //  but this built-in gcc one seems the most portable:
   //////////////////////////////////////////////////////////
   //__builtin_prefetch( &(p->head->next) );
-  MemPoolItem* realNext=(MemPoolItem *) EXTRACTPTR((INTPTR)next);
+  sqMemPoolItem* realNext=(sqMemPoolItem *) EXTRACTPTR((INTPTR)next);
   asm volatile( "prefetcht0 (%0)" :: "r" (realNext));
-  realNext=(MemPoolItem*)(((char *)realNext)+CACHELINESIZE);
+  realNext=(sqMemPoolItem*)(((char *)realNext)+CACHELINESIZE);
   asm volatile( "prefetcht0 (%0)" :: "r" (realNext));
 
   return (void*)headCurrent;
