@@ -109,43 +109,43 @@ public class Virtual {
     for(Iterator it=cd.getMethods(); it.hasNext();) {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
-	continue;
+        continue;
       if (superdesc!=null) {
-	Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-	boolean foundmatch=false;
-	for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
-	  MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	  if (md.matches(matchmd)) {
-	    int num=((Integer)methodnumber.get(matchmd)).intValue();
-	    methodnumber.put(md, new Integer(num));
-	    foundmatch=true;
-	    break;
-	  }
-	}
-    if(state.MGC) {
-      // TODO add version for normal Java later
-      if(!foundmatch) {
-        // check if there is a matched method in inherited interfaces
-        Iterator it_sifs = cd.getSuperInterfaces();
-        while(it_sifs.hasNext() && !foundmatch) {
-          ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
-          Set possiblematches_if=superif.getMethodTable().getSet(md.getSymbol());
-          for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext();) {
-            MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-            if (md.matches(matchmd)) {
-              int num=((Integer)methodnumber.get(matchmd)).intValue();
-              methodnumber.put(md, new Integer(num));
-              foundmatch=true;
-              break;
+        Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
+        boolean foundmatch=false;
+        for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            int num=((Integer)methodnumber.get(matchmd)).intValue();
+            methodnumber.put(md, new Integer(num));
+            foundmatch=true;
+            break;
+          }
+        }
+        if(state.MGC) {
+          // TODO add version for normal Java later
+          if(!foundmatch) {
+            // check if there is a matched method in inherited interfaces
+            Iterator it_sifs = cd.getSuperInterfaces();
+            while(it_sifs.hasNext() && !foundmatch) {
+              ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
+              Set possiblematches_if=superif.getMethodTable().getSet(md.getSymbol());
+              for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext();) {
+                MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+                if (md.matches(matchmd)) {
+                  int num=((Integer)methodnumber.get(matchmd)).intValue();
+                  methodnumber.put(md, new Integer(num));
+                  foundmatch=true;
+                  break;
+                }
+              }
             }
           }
         }
-      }
-    }
-	if (!foundmatch)
-	  methodnumber.put(md, new Integer(start++));
+        if (!foundmatch)
+          methodnumber.put(md, new Integer(start++));
       } else {
-	methodnumber.put(md, new Integer(start++));
+        methodnumber.put(md, new Integer(start++));
       }
     }
     classmethodcount.put(cd, new Integer(start));

@@ -21,22 +21,25 @@ public class ClassDescriptor extends Descriptor {
   int numstaticfields = 0;
   
   // for interfaces
-  boolean isInterface=false;
   Vector<String> superinterfaces;
   SymbolTable superIFdesc;
 
-  public ClassDescriptor(String classname) {
-    this("", classname);
+  public ClassDescriptor(String classname, boolean isInterface) {
+    this("", classname, isInterface);
   }
 
-  public ClassDescriptor(String packagename, String classname) {
+  public ClassDescriptor(String packagename, String classname, boolean isInterface) {
     super(classname);
     superclass=null;
     flags=new SymbolTable();
     fields=new SymbolTable();
     fieldvec=new Vector();
     methods=new SymbolTable();
-    classid=UIDCount++;
+    if(isInterface) {
+      classid = -2;
+    } else {
+      classid=UIDCount++;
+    }
     this.packagename=packagename;
     superinterfaces = new Vector<String>();
     superIFdesc = new SymbolTable();
@@ -212,10 +215,6 @@ public class ClassDescriptor extends Descriptor {
   }
   
   public boolean isInterface() {
-    return this.isInterface;
-  }
-  
-  public void setAsInterface() {
-    this.isInterface = true;
+    return this.classid == -2;
   }
 }

@@ -74,8 +74,8 @@ public class BuildIR {
   }
   
   public ClassDescriptor parseInterfaceDecl(ParseNode pn) {
-    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal());
-    cn.setAsInterface();
+    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
+    //cn.setAsInterface();
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
       /* parse inherited interface name */
       ParseNode snlist=pn.getChild("superIF").getChild("extend_interface_list");
@@ -307,7 +307,7 @@ public class BuildIR {
   }
 
   public ClassDescriptor parseTypeDecl(ParseNode pn) {
-    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal());
+    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");

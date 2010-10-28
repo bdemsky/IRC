@@ -6,7 +6,12 @@ public interface Instrument {
   void adjust();
 }
 
-class Wind implements Instrument {
+public interface Instrument2 {
+  // Cannot have method definitions:
+  void play(int n); // Automatically public
+}
+
+class Wind implements Instrument,Instrument2 {
   public Wind(){}
   public void play(int n) {
     System.out.println("Wind.play() " + n);
@@ -15,7 +20,7 @@ class Wind implements Instrument {
   public void adjust() { System.out.println("Wind.adjust()"); }
 }
 
-class Percussion implements Instrument {
+class Percussion implements Instrument,Instrument2 {
   public Percussion(){}
   public void play(int n) {
     System.out.println("Percussion.play() " + n);
@@ -24,7 +29,7 @@ class Percussion implements Instrument {
   public void adjust() { System.out.println("Percussion.adjust()"); }
 }
 
-class Stringed implements Instrument {
+class Stringed implements Instrument,Instrument2 {
   public Stringed(){}
   public void play(int n) {
     System.out.println("Stringed.play() " + n);
@@ -58,6 +63,16 @@ public class InterfaceTest {
       tune(i);
     }
   }
+  static void tune2(Instrument2 i) {
+    // ...
+    i.play(9);
+  }
+  static void tuneAll2(Instrument2[] e) {
+    for(int k = 0; k < e.length; k++) {
+      Instrument2 i = e[k];
+      tune2(i);
+    }
+  }
   public static void main(String[] args) {
     // Upcasting during addition to the array:
     Instrument.VALUE=5;
@@ -68,6 +83,13 @@ public class InterfaceTest {
     orchestra[3] = new Brass();
     orchestra[4] = new Woodwind();
     tuneAll(orchestra);
+    Instrument2[] orchestra2 = new Instrument2[5];
+    orchestra2[0] = new Wind();
+    orchestra2[1] = new Percussion();
+    orchestra2[2] = new Stringed();
+    orchestra2[3] = new Brass();
+    orchestra2[4] = new Woodwind();
+    tuneAll2(orchestra2);
   }
 } /* Output:
 Wind.play() MIDDLE_C

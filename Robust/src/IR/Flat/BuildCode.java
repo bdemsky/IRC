@@ -1150,6 +1150,9 @@ public class BuildCode {
     classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
+      if(cd.isInterface()) {
+        continue;
+      }
       if (state.DSM||state.SINGLETM)
 	fillinRow(cd, lbvirtualtable, cd.getId());
       else
@@ -1272,7 +1275,9 @@ public class BuildCode {
     cdarray[0] = null;
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
-      cdarray[cd.getId()]=cd;
+      if(!cd.isInterface()) {
+        cdarray[cd.getId()]=cd;
+      }
     }
 
     arraytable=new TypeDescriptor[state.numArrays()];
