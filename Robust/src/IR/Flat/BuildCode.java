@@ -227,7 +227,6 @@ public class BuildCode {
 
       if (state.RCR) {
         outmethodheader.println("#include \"rcr_runtime.h\"");
-        outmethodheader.println("#include \"oooJava/hashStructure.h\"");
       }
 
       // spit out a global to inform all worker threads with
@@ -693,6 +692,7 @@ public class BuildCode {
         outmethod.println("#include \"trqueue.h\"");
         outmethod.println("#include \"RuntimeConflictResolver.h\"");
         outmethod.println("#include \"rcr_runtime.h\"");
+        outmethod.println("#include \"hashStructure.h\"");
       }
     }
 
