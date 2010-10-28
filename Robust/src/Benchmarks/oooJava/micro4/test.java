@@ -8,8 +8,10 @@ public class test {
 
   public static void main( String argv[] ) {
     
-    long count  = 500;
-    int  numFoo = 1000;
+    //long count  = 500;
+    //int  numFoo = 1000;
+    long count  = 80;
+    int  numFoo = 10;
     
     if( argv.length > 0 ) {
       count = count * Integer.parseInt( argv[0] );

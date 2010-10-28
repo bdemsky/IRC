@@ -53,6 +53,7 @@ typedef struct MemPool_t {
 
 #ifdef MEMPOOL_DETECT_MISUSE
   int allocSize;
+  int protectSize;
 #else
   //normal version
   MemPoolItem* head;
@@ -83,11 +84,18 @@ static MemPool* poolcreate( int itemSize,
 
   if( itemSize % pageSize == 0 ) {
     // if the item size is already an exact multiple
-    // of the page size, just increase by one page
+    // of the page size, just increase alloc by one page
     p->allocSize = itemSize + pageSize;
+
+    // and size for mprotect should be exact page multiple
+    p->protectSize = itemSize;
   } else {
     // otherwise, round down to a page size, then add two
     p->allocSize = (itemSize & ~(pageSize-1)) + 2*pageSize;
+
+    // and size for mprotect should be exact page multiple
+    // so round down, add one
+    p->protectSize = (itemSize & ~(pageSize-1)) + pageSize;
   }
 #else
 
@@ -113,8 +121,18 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
   // don't actually return memory to the pool, just lock
   // it up tight so first code to touch it badly gets caught
   // also, mprotect automatically protects full pages
-  if( mprotect( ptr, p->itemSize, PROT_NONE ) != 0 ) {
-    printf( "mprotect failed, %s.\n", strerror( errno ) );
+  if( mprotect( ptr, p->protectSize, PROT_NONE ) != 0 ) {
+
+    switch( errno ) {
+      
+    case ENOMEM: {
+      printf( "mprotect failed, ENOMEM.\n" );
+    } break;
+
+    default:
+      printf( "mprotect failed, errno=%d.\n", errno );
+    } 
+
     exit( -1 );
   }
 }
@@ -165,6 +183,19 @@ static inline void* poolalloc( MemPool* p ) {
   INTPTR nonAligned = (INTPTR) RUNMALLOC( p->allocSize );
 
   void* newRec = (void*)((nonAligned + pageSize-1) & ~(pageSize-1));
+
+  //printf( "PageSize is %d or 0x%x.\n", (INTPTR)pageSize, (INTPTR)pageSize );
+  //printf( "itemSize is 0x%x and allocSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize );
+  //printf( "Allocation returned 0x%x to 0x%x,\n",   (INTPTR)nonAligned, (INTPTR)nonAligned + (INTPTR)(p->allocSize) );
+  //printf( "Intend to use       0x%x to 0x%x,\n\n", (INTPTR)newRec,     (INTPTR)newRec     + (INTPTR)(p->itemSize)  );
+  
+  // intentionally touch the top of the new, aligned record in terms of the
+  // pages that will be locked when it eventually is free'd
+  INTPTR topOfRec = (INTPTR)newRec;
+  topOfRec += p->protectSize - 1;
+  ((char*)topOfRec)[0] = 0x1;
+
+
 
   if( p->initFreshlyAllocated != NULL ) {
     p->initFreshlyAllocated( newRec );
