@@ -307,9 +307,9 @@ void workScheduleInit( int numProcessors,
   // protect memory allocation events coming
   CP_CREATE();
 
-  // the original thread will not become a worker, remember
-  myWorkerID = workerID_NOTAWORKER;
-
+  // the original thread is a worker
+  myWorkerID = 0;
+  oid = 1;
 
   pthread_mutex_init( &gclock,     NULL );
   pthread_mutex_init( &gclistlock, NULL );
@@ -337,7 +337,7 @@ void workScheduleInit( int numProcessors,
   pthread_attr_setdetachstate( &attr, 
                                PTHREAD_CREATE_JOINABLE );
 
-  for( i = 0; i < numWorkSchedWorkers; ++i ) {
+  for( i = 1; i < numWorkSchedWorkers; ++i ) {
 
     workerDataArray[i].id = i;
 
@@ -360,15 +360,8 @@ void workScheduleSubmit( void* workUnit ) {
   }
 #endif
 
-  if( myWorkerID == workerID_NOTAWORKER ) {
     CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_BEGIN );
-    dqPushBottom( &(deques[0]), workUnit );
-    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_END );
-    return;
-  }
-
-    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_BEGIN );
-  dqPushBottom( &(deques[myWorkerID]), workUnit );
+    dqPushBottom( &(deques[myWorkerID]), workUnit );
     CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_END );
 }
 
@@ -378,7 +371,7 @@ void workScheduleBegin() {
   int i;
 
   // wait for all workers to exit gracefully
-  for( i = 0; i < numWorkSchedWorkers; ++i ) {
+  for( i = 1; i < numWorkSchedWorkers; ++i ) {
     pthread_join( workerDataArray[i].workerThread, NULL );
   }
 
