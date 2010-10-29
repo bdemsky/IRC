@@ -497,8 +497,13 @@ public class VarSrcTokTable {
 	    forRemoval.add( vstPossibleOtherSrc );  
 
 	  } else {
-	    assert vstPossibleOtherSrc.getSESE().equals( exiter );
-	    assert vstPossibleOtherSrc.getAge().equals( 0 );
+            if( !vstPossibleOtherSrc.getSESE().equals( exiter ) ||
+                !vstPossibleOtherSrc.getAge().equals( 0 )
+                ) {
+              System.out.println( "For refVar="+refVar+" at exit of "+exiter+
+                                  ", unexpected possible variable source "+vstPossibleOtherSrc );
+              assert false;
+            }
 	  }
 	}
       }
