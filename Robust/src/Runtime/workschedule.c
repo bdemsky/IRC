@@ -337,6 +337,8 @@ void workScheduleInit( int numProcessors,
   pthread_attr_setdetachstate( &attr, 
                                PTHREAD_CREATE_JOINABLE );
 
+  workerDataArray[0].id = 0;
+
   for( i = 1; i < numWorkSchedWorkers; ++i ) {
 
     workerDataArray[i].id = i;
@@ -370,7 +372,10 @@ void workScheduleSubmit( void* workUnit ) {
 void workScheduleBegin() {
   int i;
 
-  // wait for all workers to exit gracefully
+  // original thread becomes a worker
+  workerMain( (void*) &(workerDataArray[0]) );
+
+  // then wait for all other workers to exit gracefully
   for( i = 1; i < numWorkSchedWorkers; ++i ) {
     pthread_join( workerDataArray[i].workerThread, NULL );
   }
