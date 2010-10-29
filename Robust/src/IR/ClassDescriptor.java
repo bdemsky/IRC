@@ -23,6 +23,12 @@ public class ClassDescriptor extends Descriptor {
   // for interfaces
   Vector<String> superinterfaces;
   SymbolTable superIFdesc;
+  
+  // for inner classes
+  boolean isInnerClass=false;
+  String surroundingclass=null;
+  ClassDescriptor surroudingdesc=null;
+  SymbolTable innerdescs;
 
   public ClassDescriptor(String classname, boolean isInterface) {
     this("", classname, isInterface);
@@ -43,6 +49,7 @@ public class ClassDescriptor extends Descriptor {
     this.packagename=packagename;
     superinterfaces = new Vector<String>();
     superIFdesc = new SymbolTable();
+    this.innerdescs = new SymbolTable();
   }
 
   public int getId() {
@@ -122,6 +129,14 @@ public class ClassDescriptor extends Descriptor {
     for(Iterator it=getFields(); it.hasNext();) {
       FieldDescriptor fd=(FieldDescriptor)it.next();
       st+=TreeNode.printSpace(indent)+fd.toString()+"\n";
+      printcr=true;
+    }
+    if (printcr)
+      st+="\n";
+    
+    for(Iterator it=this.getInnerClasses(); it.hasNext();) {
+      ClassDescriptor icd=(ClassDescriptor)it.next();
+      st+=icd.printTree(state)+"\n";
       printcr=true;
     }
     if (printcr)
@@ -217,4 +232,60 @@ public class ClassDescriptor extends Descriptor {
   public boolean isInterface() {
     return this.classid == -2;
   }
+  
+  public boolean isStatic() {
+    return this.modifiers.isStatic();
+  }
+  
+  public void setAsInnerClass() {
+    this.isInnerClass = true;
+  }
+  
+  public boolean isInnerClass() {
+    return this.isInnerClass;
+  }
+  
+  public void setSurroundingClass(String sclass) {
+    this.surroundingclass=sclass;
+  }
+
+  public String getSurrounding() {
+    return this.surroundingclass;
+  }
+
+  public ClassDescriptor getSurroundingDesc() {
+    return this.surroudingdesc;
+  }
+
+  public void setSurrounding(ClassDescriptor scd) {
+    this.surroudingdesc=scd;
+  }
+  
+  public void addInnerClass(ClassDescriptor icd) {
+    this.innerdescs.add(icd);
+  }
+  
+  public Iterator getInnerClasses() {
+    return this.innerdescs.getDescriptorsIterator();
+  }
+
+  public SymbolTable getInnerClassTable() {
+    return this.innerdescs;
+  }
+  
+  /*public String getSymbol() {
+    if(this.isInnerClass) {
+      return this.surroudingdesc.getSymbol() + "." + name;
+    } else {
+      return name;
+    }
+  }
+
+  public String getSafeSymbol() {
+    if(this.isInnerClass) {
+      return this.surroudingdesc.getSafeSymbol()+ "." + safename;
+    } else {
+      return safename;
+    }
+  }*/
 }

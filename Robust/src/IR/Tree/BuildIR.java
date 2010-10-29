@@ -55,6 +55,30 @@ public class BuildIR {
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
 	  state.addClass(cn);
+      // for inner classes
+      if(state.MGC) {
+        // TODO add version for normal Java later
+        HashSet tovisit = new HashSet();
+        Iterator it_icds = cn.getInnerClasses();
+        while(it_icds.hasNext()) {
+          tovisit.add(it_icds.next());
+        }
+        
+        while(!tovisit.isEmpty()) {
+          ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
+          tovisit.remove(cd);
+          
+          if(toanalyze != null) {
+            toanalyze.add(cd);
+          }
+          state.addClass(cd);
+          
+          Iterator it_ics = cd.getInnerClasses();
+          while(it_ics.hasNext()) {
+            tovisit.add(it_ics.next());
+          }
+        }
+      }
 	} else if (isNode(type_pn,"task_declaration")) {
 	  TaskDescriptor td=parseTaskDecl(type_pn);
 	  if (toanalyze!=null)
@@ -361,7 +385,6 @@ public class BuildIR {
   
   private void parseClassMember(ClassDescriptor cn, ParseNode pn) {
     ParseNode fieldnode=pn.getChild("field");
-
     if (fieldnode!=null) {
       parseFieldDecl(cn,fieldnode.getChild("field_declaration"));
       return;
@@ -371,12 +394,60 @@ public class BuildIR {
       parseMethodDecl(cn,methodnode.getChild("method_declaration"));
       return;
     }
+    ParseNode innerclassnode=pn.getChild("inner_class_declaration");
+    if (innerclassnode!=null) {
+      if(state.MGC){
+        parseInnerClassDecl(cn,innerclassnode);
+        return;
+      } else {
+        // TODO add version for noraml Java later
+        throw new Error("Error: inner class in Class " + cn.getSymbol() + " is not supported yet");
+      }
+    }
     ParseNode flagnode=pn.getChild("flag");
     if (flagnode!=null) {
       parseFlagDecl(cn, flagnode.getChild("flag_declaration"));
       return;
     }
     throw new Error();
+  }
+  
+  private ClassDescriptor parseInnerClassDecl(ClassDescriptor cn, ParseNode pn) {
+    ClassDescriptor icn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+    icn.setAsInnerClass();
+    icn.setSurroundingClass(cn.getSymbol());
+    icn.setSurrounding(cn);
+    cn.addInnerClass(icn);
+    if (!isEmpty(pn.getChild("super").getTerminal())) {
+      /* parse superclass name */
+      ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
+      NameDescriptor nd=parseName(snn);
+      icn.setSuper(nd.toString());
+    } else {
+      if (!(icn.getSymbol().equals(TypeUtil.ObjectClass)||
+          icn.getSymbol().equals(TypeUtil.TagClass)))
+        icn.setSuper(TypeUtil.ObjectClass);
+    }
+    // check inherited interfaces
+    if (!isEmpty(pn.getChild("superIF").getTerminal())) {
+      /* parse inherited interface name */
+      ParseNode snlist=pn.getChild("superIF").getChild("interface_type_list");
+      ParseNodeVector pnv=snlist.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"type")) {
+          NameDescriptor nd=parseName(decl.getChild("class").getChild("name"));
+          icn.addSuperInterface(nd.toString());
+        }
+      }
+    }
+    icn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
+    if(!icn.isStatic()) {
+      throw new Error("Error: inner class " + icn.getSymbol() + " in Class " + 
+          cn.getSymbol() + " is not a nested class and is not supported yet!");
+    }
+    parseClassBody(icn, pn.getChild("classbody"));
+    return icn;
   }
 
   private TypeDescriptor parseTypeDescriptor(ParseNode pn) {
