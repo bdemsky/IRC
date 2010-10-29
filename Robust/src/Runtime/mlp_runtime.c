@@ -25,9 +25,8 @@ void freshTaskRecordInitializer( void* seseRecord ) {
   SESEcommon* c = (SESEcommon*) seseRecord;
   pthread_cond_init( &(c->runningChildrenCond), NULL );
   pthread_mutex_init( &(c->lock), NULL );
-
-  // no need to use return value yet, future maybe
-  //return NULL;
+  c->refCount = 0;
+  //c->fresh = 1;
 }
 
 

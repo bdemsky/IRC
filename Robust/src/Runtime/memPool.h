@@ -133,6 +133,9 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
       printf( "mprotect failed, errno=%d.\n", errno );
     } 
 
+    printf( "itemSize is 0x%x, allocSize is 0x%x, protectSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize, (INTPTR)p->protectSize );
+    printf( "Intended to protect 0x%x to 0x%x,\n\n", (INTPTR)ptr, (INTPTR)ptr + (INTPTR)(p->protectSize) );
+
     exit( -1 );
   }
 }
@@ -148,6 +151,7 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
   // set up the now unneeded record to as the tail of the
   // free list by treating its first bytes as next pointer,
   MemPoolItem* tailNew = (MemPoolItem*) ptr;
+
   tailNew->next = NULL;
 
   while( 1 ) {
@@ -180,12 +184,13 @@ static inline void* poolalloc( MemPool* p ) {
   // put the memory we intend to expose to client
   // on a page-aligned boundary, always return
   // new memory
+
   INTPTR nonAligned = (INTPTR) RUNMALLOC( p->allocSize );
 
   void* newRec = (void*)((nonAligned + pageSize-1) & ~(pageSize-1));
 
   //printf( "PageSize is %d or 0x%x.\n", (INTPTR)pageSize, (INTPTR)pageSize );
-  //printf( "itemSize is 0x%x and allocSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize );
+  //printf( "itemSize is 0x%x, allocSize is 0x%x, protectSize is 0x%x.\n", (INTPTR)p->itemSize, (INTPTR)p->allocSize, (INTPTR)p->protectSize );
   //printf( "Allocation returned 0x%x to 0x%x,\n",   (INTPTR)nonAligned, (INTPTR)nonAligned + (INTPTR)(p->allocSize) );
   //printf( "Intend to use       0x%x to 0x%x,\n\n", (INTPTR)newRec,     (INTPTR)newRec     + (INTPTR)(p->itemSize)  );
   
@@ -194,8 +199,6 @@ static inline void* poolalloc( MemPool* p ) {
   INTPTR topOfRec = (INTPTR)newRec;
   topOfRec += p->protectSize - 1;
   ((char*)topOfRec)[0] = 0x1;
-
-
 
   if( p->initFreshlyAllocated != NULL ) {
     p->initFreshlyAllocated( newRec );

@@ -2,6 +2,10 @@
 #define __MLP_RUNTIME__
 
 
+#include <stdlib.h>
+#include <stdio.h>
+
+
 #include <pthread.h>
 #include "runtime.h"
 #include "mem.h"
@@ -9,6 +13,8 @@
 #include "psemaphore.h"
 #include "mlp_lock.h"
 #include "memPool.h"
+
+
 
 #ifndef FALSE
 #define FALSE 0
@@ -112,7 +118,6 @@ typedef struct SESEcommon_t {
   struct MemoryQueue_t** memoryQueueArray;
   struct REntry_t* rentryArray[NUMRENTRY];
   struct REntry_t* unresolvedRentryArray[NUMRENTRY];
-
 
 #ifdef RCR
   int offsetToParamRecords;
@@ -262,15 +267,44 @@ MemoryQueue* createMemoryQueue();
 void rehashMemoryQueue(SESEcommon* seseParent);
 
 
+
+
 static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
   atomic_inc( &(seseRec->refCount) );
 }
 
-static inline void RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
+static inline int RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
   if( atomic_sub_and_test( 1, &(seseRec->refCount) ) ) {
     poolfreeinto( seseRec->parent->taskRecordMemPool, seseRec );
+    return 1;
   }
+  return 0;
 }
+
+#define CHECK_RECORD(x) ;
+
+
+////////////////////////////////////////////////
+// 
+//  Some available debug versions of the above
+//  pool allocation-related helpers.  The lower
+//  'x' appended to names means they are not hooked
+//  up, but check em in so we can switch names and
+//  use them for debugging
+//
+////////////////////////////////////////////////
+#define ADD_REFERENCE_TOx(x) atomic_inc( &((x)->refCount) ); printf("0x%x ADD 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__);
+
+#define RELEASE_REFERENCE_TOx(x) if (atomic_sub_and_test(1, &((x)->refCount))) {poolfreeinto(x->parent->taskRecordMemPool, x);printf("0x%x REL 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__);}
+
+#define CHECK_RECORDx(x) { \
+  if( ((SESEcommon*)(x))->refCount != 0 ) {                             \
+    printf( "Acquired 0x%x from poolalloc, with refCount=%d\n", (INTPTR)(x), ((SESEcommon*)(x))->refCount ); } \
+  if( ((SESEcommon*)(x))->fresh != 1 ) {                              \
+    printf("0x%x reclaimed 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__); } \
+  ((SESEcommon*)(x))->fresh = 0; \
+}
+
 
 
 // this is for using a memPool to allocate task records,

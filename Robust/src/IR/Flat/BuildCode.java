@@ -3934,6 +3934,7 @@ public class BuildCode {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
+      output.println("     CHECK_RECORD( seseToIssue );");
     } else {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
