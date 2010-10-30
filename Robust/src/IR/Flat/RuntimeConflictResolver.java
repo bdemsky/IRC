@@ -185,7 +185,8 @@ public class RuntimeConflictResolver {
    * 5) Print c methods by walking internal representation
    */
   
-  public void addToTraverseToDoList(FlatSESEEnterNode rblock, ReachGraph rg, Hashtable<Taint, Set<Effect>> conflicts) {
+  public void addToTraverseToDoList(FlatSESEEnterNode rblock, ReachGraph rg, 
+      Hashtable<Taint, Set<Effect>> conflicts) {
     //Add to todo list
     toTraverse.add(new TraversalInfo(rblock, rg));
 
@@ -228,8 +229,8 @@ public class RuntimeConflictResolver {
         continue;
       }
       System.out.println(invar);
-      //created stores nodes with specific alloc sites that have been traversed while building
-      //internal data structure. It is later traversed sequentially to find inset variables and
+      //"created" stores nodes with specific alloc sites that have been traversed while building
+      //internal data structure. Created is later traversed sequentially to find inset variables and
       //build output code.
       //NOTE: Integer stores Allocation Site ID in hashtable
       Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
@@ -469,7 +470,7 @@ public class RuntimeConflictResolver {
       RefEdge edge = possibleEdges.next();
       assert edge != null;
 
-      ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true, false);
+      ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true);
       int rootKey = singleRoot.allocSite.getUniqueAllocSiteID();
 
       if (!created.containsKey(rootKey)) {
@@ -507,7 +508,7 @@ public class RuntimeConflictResolver {
           ConcreteRuntimeObjNode child; 
           
           if(isNewChild) {
-            child = new ConcreteRuntimeObjNode(childHRN, false, curr.isObjectArray());
+            child = new ConcreteRuntimeObjNode(childHRN, false);
             created.put(childKey, child);
           } else {
             child = created.get(childKey);
@@ -783,27 +784,24 @@ public class RuntimeConflictResolver {
     }
     
     //Handle conflicts further down. 
-    if(node.decendantsConflict()) {  
+    if(node.decendantsConflict()) {
       int pdepth=depth+1;
       currCase.append("{\n");
+      
       //Array Case
-      if(node.isObjectArray() && node.decendantsConflict()) {   
-        ArrayList<Integer> allocSitesWithProblems = node.getReferencedAllocSites();
-        if(!allocSitesWithProblems.isEmpty()) {
-          String childPtr = "((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i]";
-          String currPtr = "arrayElement" + pdepth;
-          
-          currCase.append("{\n  int i;\n");
-          currCase.append("    struct ___Object___ * "+currPtr+";\n");
-          currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
-          
-          //There should be only one field, hence we only take the first field in the keyset.
-          assert node.objectRefs.keySet().size() <= 1;
-          ObjRefList refsAtParticularField = node.objectRefs.get(node.objectRefs.keySet().iterator().next());
-          
-          printObjRefSwitchStatement(taint,cases,pdepth,currCase,refsAtParticularField,childPtr,currPtr);
-          currCase.append("      }}\n");
-        }
+      if(node.isArray() && node.decendantsConflict()) {
+        String childPtr = "((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i]";
+        String currPtr = "arrayElement" + pdepth;
+        
+        currCase.append("{\n  int i;\n");
+        currCase.append("    struct ___Object___ * "+currPtr+";\n");
+        currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
+        
+        //There should be only one field, hence we only take the first field in the keyset.
+        assert node.objectRefs.keySet().size() <= 1;
+        ObjRefList refsAtParticularField = node.objectRefs.get(node.objectRefs.keySet().iterator().next());
+        printObjRefSwitchStatement(taint,cases,pdepth,currCase,refsAtParticularField,childPtr,currPtr);
+        currCase.append("      }}\n");
       } else {
       //All other cases
         String currPtr = "myPtr" + pdepth;
@@ -846,7 +844,8 @@ public class RuntimeConflictResolver {
           addChecker(taint, ref.child, cases, currCase, currPtr, pDepth + 1);
         }
         else {
-          //if we are going to insert something into the queue, we should be able to resume traverser from it. 
+          //if we are going to insert something into the queue, 
+          //we should be able to resume traverser from it. 
           assert qualifiesForCaseStatement(ref.child);
           currCase.append("        " + addToQueueInC + childPtr + ");\n ");
         }
@@ -1136,11 +1135,10 @@ public class RuntimeConflictResolver {
     boolean decendantsObjConflict;
     boolean hasPotentialToBeIncorrectDueToConflict;
     boolean isInsetVar;
-    boolean isArrayElement;
     AllocSite allocSite;
     HeapRegionNode original;
 
-    public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar, boolean isArrayElement) {
+    public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar) {
       objectRefs = new Hashtable<String, ObjRefList>(5);
       primitiveConflictingFields = null;
       parentsThatWillLeadToConflicts = new HashSet<ConcreteRuntimeObjNode>();
@@ -1152,7 +1150,6 @@ public class RuntimeConflictResolver {
       decendantsPrimConflict = false;
       decendantsObjConflict = false;
       hasPotentialToBeIncorrectDueToConflict = false;
-      this.isArrayElement = isArrayElement;
     }
 
     public void addReachableParent(ConcreteRuntimeObjNode curr) {
@@ -1232,13 +1229,8 @@ public class RuntimeConflictResolver {
       }
     }
     
-    //TODO check that code is functional after removing the primitive and isImutable check
-    public boolean isObjectArray() {
+    public boolean isArray() {
       return original.getType().isArray();
-    }
-    
-    public boolean canBeArrayElement() {
-      return isArrayElement;
     }
     
     public ArrayList<Integer> getReferencedAllocSites() {
