@@ -730,14 +730,14 @@ public class RuntimeConflictResolver {
     boolean objConfRead=false;
     boolean objConfWrite=false;
 
-    //Primitives Test
+    //Direct Primitives Test
     for(String field: node.primitiveConflictingFields.keySet()) {
       CombinedObjEffects effect=node.primitiveConflictingFields.get(field);
       primConfRead|=effect.hasReadConflict;
       primConfWrite|=effect.hasWriteConflict;
     }
 
-    //Object Reference Test
+    //Direct Object Reference Test
     for(String field: node.objectRefs.keySet()) {
       for(ObjRef ref: node.objectRefs.get(field)) {
         CombinedObjEffects effect=ref.myEffects;
@@ -782,54 +782,55 @@ public class RuntimeConflictResolver {
       currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
     }
     
-    int pdepth=depth+1;
-    currCase.append("{\n");
-    //Array Case
-    if(node.isObjectArray() && node.decendantsConflict()) {
-      //since each array element will get its own case statement, we just need to enqueue each item into the queue
-      //note that the ref would be the actual object and node would be of struct ArrayObject
-      
-      ArrayList<Integer> allocSitesWithProblems = node.getReferencedAllocSites();
-      if(!allocSitesWithProblems.isEmpty()) {
-        String childPtr = "((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i]";
-        String currPtr = "arrayElement" + pdepth;
-        
-        //This is done with the assumption that an array of object stores pointers. 
-        currCase.append("{\n  int i;\n");
-        currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
-        currCase.append("    struct ___Object___ *"+currPtr+" = "+childPtr+";\n");
-        currCase.append("    if( arrayElement"+pdepth+" != NULL) {\n");
-        
-        //There should be only one field, hence we only take the first field in the keyset.
-        assert node.objectRefs.keySet().size() <= 1;
-        ArrayList<ObjRef> refsAtParticularField = node.objectRefs.get(node.objectRefs.keySet().iterator().next());
-        printObjRefSwitchStatement(taint,cases,pdepth,currCase,refsAtParticularField,childPtr,currPtr);
-        currCase.append("      }}}\n");
-      }
-    } else {
-    //All other cases
-      for(String field: node.objectRefs.keySet()) {
-        ArrayList<ObjRef> refsAtParticularField = node.objectRefs.get(field);
-        String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + field + "___";
+    //Handle conflicts further down. 
+    if(node.decendantsConflict()) {  
+      int pdepth=depth+1;
+      currCase.append("{\n");
+      //Array Case
+      if(node.isObjectArray() && node.decendantsConflict()) {   
+        ArrayList<Integer> allocSitesWithProblems = node.getReferencedAllocSites();
+        if(!allocSitesWithProblems.isEmpty()) {
+          String childPtr = "((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i]";
+          String currPtr = "arrayElement" + pdepth;
+          
+          currCase.append("{\n  int i;\n");
+          currCase.append("    struct ___Object___ * "+currPtr+";\n");
+          currCase.append("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {\n");
+          
+          //There should be only one field, hence we only take the first field in the keyset.
+          assert node.objectRefs.keySet().size() <= 1;
+          ObjRefList refsAtParticularField = node.objectRefs.get(node.objectRefs.keySet().iterator().next());
+          
+          printObjRefSwitchStatement(taint,cases,pdepth,currCase,refsAtParticularField,childPtr,currPtr);
+          currCase.append("      }}\n");
+        }
+      } else {
+      //All other cases
         String currPtr = "myPtr" + pdepth;
-        currCase.append("    struct ___Object___ * "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";\n");
-        currCase.append("    if (" + currPtr + " != NULL) { ");
-        
-        printObjRefSwitchStatement(taint, cases, depth, currCase, refsAtParticularField, childPtr, currPtr);
-        currCase.append("}");
-      }      
+        currCase.append("    struct ___Object___ * "+currPtr+";\n");
+        for(String field: node.objectRefs.keySet()) {
+          ObjRefList refsAtParticularField = node.objectRefs.get(field);
+          
+          if(refsAtParticularField.hasConflicts()) {
+            String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + field + "___";
+            printObjRefSwitchStatement(taint, cases, depth, currCase, refsAtParticularField, childPtr, currPtr);
+          }
+        }      
+      }
+      
+      currCase.append("}\n"); //For particular top level case statement. 
     }
-    
-    currCase.append("}\n"); //For particular top level case statement. 
-
     if(qualifiesForCaseStatement(node)) {
       currCase.append("  }\n  break;\n");
     }
   }
 
   private void printObjRefSwitchStatement(Taint taint, Hashtable<AllocSite, StringBuilder> cases,
-      int pDepth, StringBuilder currCase, ArrayList<ObjRef> refsAtParticularField, String childPtr,
+      int pDepth, StringBuilder currCase, ObjRefList refsAtParticularField, String childPtr,
       String currPtr) {
+    
+    currCase.append("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";\n");
+    currCase.append("    if (" + currPtr + " != NULL) { \n");
     currCase.append("    switch(" + currPtr + getAllocSiteInC + ") {\n");
     
     for(ObjRef ref: refsAtParticularField) {
@@ -838,10 +839,15 @@ public class RuntimeConflictResolver {
         //The hash insert is here because we don't want to enqueue things unless we know it conflicts. 
         currCase.append("        if (" + queryVistedHashtable +"("+ currPtr + ")) {\n");
         
-        if (ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) {
+        //Either it's an in-lineable case or we're just handling primitive conflicts
+        if ((ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) ||
+            (ref.child.hasPrimitiveConflicts() && !qualifiesForCaseStatement(ref.child)))
+        {
           addChecker(taint, ref.child, cases, currCase, currPtr, pDepth + 1);
         }
         else {
+          //if we are going to insert something into the queue, we should be able to resume traverser from it. 
+          assert qualifiesForCaseStatement(ref.child);
           currCase.append("        " + addToQueueInC + childPtr + ");\n ");
         }
         currCase.append("    }\n");  //close for queryVistedHashtable
@@ -852,7 +858,7 @@ public class RuntimeConflictResolver {
     
     currCase.append("    default:\n" +
     		            "       break;\n"+
-    		            "    }\n"); //internal switch. 
+    		            "    }}\n"); //internal switch. 
   }
   
   private boolean qualifiesForCaseStatement(ConcreteRuntimeObjNode node) {
@@ -1120,7 +1126,7 @@ public class RuntimeConflictResolver {
   }
 
   private class ConcreteRuntimeObjNode {
-    Hashtable<String, ArrayList<ObjRef>> objectRefs;
+    Hashtable<String, ObjRefList> objectRefs;
     Hashtable<String, CombinedObjEffects> primitiveConflictingFields;
     HashSet<ConcreteRuntimeObjNode> parentsWithReadToNode;
     HashSet<ConcreteRuntimeObjNode> parentsThatWillLeadToConflicts;
@@ -1135,7 +1141,7 @@ public class RuntimeConflictResolver {
     HeapRegionNode original;
 
     public ConcreteRuntimeObjNode(HeapRegionNode me, boolean isInVar, boolean isArrayElement) {
-      objectRefs = new Hashtable<String, ArrayList<ObjRef>>(5);
+      objectRefs = new Hashtable<String, ObjRefList>(5);
       primitiveConflictingFields = null;
       parentsThatWillLeadToConflicts = new HashSet<ConcreteRuntimeObjNode>();
       parentsWithReadToNode = new HashSet<ConcreteRuntimeObjNode>();
@@ -1203,7 +1209,7 @@ public class RuntimeConflictResolver {
       ObjRef ref = new ObjRef(field, child, ce);
       
       if(objectRefs.containsKey(field)){
-        ArrayList<ObjRef> array = objectRefs.get(field);
+        ObjRefList array = objectRefs.get(field);
         
         if(array.contains(ref)) {
           ObjRef other = array.get(array.indexOf(ref));
@@ -1219,7 +1225,7 @@ public class RuntimeConflictResolver {
         }
       }
       else {
-        ArrayList<ObjRef> array = new ArrayList<ObjRef>(3);
+        ObjRefList array = new ObjRefList(3);
         
         array.add(ref);
         objectRefs.put(field, array);
@@ -1253,6 +1259,28 @@ public class RuntimeConflictResolver {
       return "AllocSite=" + getAllocationSite() + " myConflict=" + !parentsThatWillLeadToConflicts.isEmpty() + 
               " decCon="+decendantsObjConflict+ 
               " NumOfConParents=" + getNumOfReachableParents() + " ObjectChildren=" + objectRefs.size();
+    }
+  }
+  
+  //Simple extension of the ArrayList to allow it to find if any ObjRefs conflict.
+  private class ObjRefList extends ArrayList<ObjRef> {
+    private static final long serialVersionUID = 326523675530835596L;
+    
+    public ObjRefList(int size) {
+      super(size);
+    }
+    
+    public boolean add(ObjRef o){
+      return super.add(o);
+    }
+    
+    public boolean hasConflicts() {
+      for(ObjRef r: this) {
+        if(r.hasConflictsDownThisPath() || r.child.hasPrimitiveConflicts())
+          return true;
+      }
+      
+      return false;
     }
   }
   
