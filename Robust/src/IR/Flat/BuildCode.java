@@ -4610,8 +4610,8 @@ public class BuildCode {
       output.println("   }");
     }
     
-
-    if (state.RCR&&fsen.getDynamicInVarSet().size()>0) {
+    
+    if (state.RCR && fsen.getDynamicInVarSet().size() > 0) {
       /* Make sure the running SESE is finished */
       output.println("   if (unlikely(runningSESE->rcrstatus!=0)) {");
       output.println("     if(!CAS(&runningSESE->rcrstatus,1,0)) {");
@@ -4622,20 +4622,21 @@ public class BuildCode {
       output.println("     }");
       output.println("   }");
       output.println("{");
-      output.println("  int idx,idx2;");
-      if (fsen.getDynamicInVarSet().size()==1) {
-	output.println("  idx=0; {");
+      output.println("  int idx,idx2;");      
+      if (fsen.getDynamicInVarSet().size() == 1) {
+        output.println("  idx=0; {");
       } else {
-	output.println("  for(idx=0;idx<"+fsen.getDynamicInVarSet().size()+";idx++){");
+        output.println("  for(idx=0;idx<" + fsen.getDynamicInVarSet().size() + ";idx++){");
       }
-      output.println("    struct rcrRecord *rec="+paramsprefix+"->rcrRecords[idx];");
+      output.println("    struct rcrRecord *rec=&" + paramsprefix + "->rcrRecords[idx];");
       output.println("    while(rec!=NULL) {");
       output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
-      output.println("        rcr_RETIREHASHTABLE(allHashStructures[0],rec,rec->array[idx2], (BinItem_rcr *) rcr->ptrarray[idx2]);");
-      output.println("      }");//exit idx2 for loop
+      output
+          .println("        rcr_RETIREHASHTABLE(allHashStructures[0],&(___params___->common),rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
+      output.println("      }");// exit idx2 for loop
       output.println("      rec=rec->next;");
-      output.println("    }");//exit rec while loop
-      output.println("  }");//exit idx for loop
+      output.println("    }");// exit rec while loop
+      output.println("  }");// exit idx for loop
       output.println("}");
     }
 
