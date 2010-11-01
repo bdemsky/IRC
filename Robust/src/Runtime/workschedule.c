@@ -182,7 +182,6 @@ void* workerMain( void* arg ) {
 #ifdef CP_EVENTID_WORKSCHEDGRAB
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
 #endif
-    workUnit = (void*) 0x5;
     haveWork = FALSE;
 
     while( !haveWork ) {
@@ -190,15 +189,14 @@ void* workerMain( void* arg ) {
       workUnit = dqPopBottom( myDeque );
 
 #if defined(DEBUG_DEQUE)&&!defined(SQUEUE)
-      if( workUnit == 0x0 ) {
+      if( workUnit == NULL ) {
         printf( "Got invalid work from the deque bottom.\n" );
       }
 #endif
 
       if( workUnit != DQ_POP_EMPTY ) {
         haveWork = TRUE;
-        break;
-        
+        goto dowork;
       } else {
         // try to steal from another queue, starting
         // with the last successful victim, don't check
@@ -207,7 +205,7 @@ void* workerMain( void* arg ) {
           workUnit = dqPopTop( &(deques[lastVictim]) );
 
 #if defined(DEBUG_DEQUE)&&!defined(SQUEUE)
-          if( workUnit == 0x0 ) {
+          if( workUnit == NULL ) {
             printf( "Got invalid work from the deque top.\n" );
           }
 #endif
@@ -220,7 +218,7 @@ void* workerMain( void* arg ) {
 #endif
             // successful steal!
             haveWork = TRUE;
-            break;
+            goto dowork;
           }
        
           // choose next victim
@@ -237,7 +235,7 @@ void* workerMain( void* arg ) {
         // while-not-have-work loop, otherwise we looked
         // everywhere, so drop down to "I'm idle" code below
         if( haveWork ) {
-          break;
+	  goto dowork;
         }
       }
 
@@ -260,18 +258,13 @@ void* workerMain( void* arg ) {
 #ifdef CP_EVENTID_WORKSCHEDGRAB
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
 #endif
-    
+
+    dowork:
     // when is no work left we will pop out
     // here, so only do work if any left
     if( haveWork ) {
       // let GC see current work
       litem.seseCommon = (void*)workUnit;
-
-      // unclear how useful this is
-      if( unlikely( needtocollect ) ) {
-        checkcollect( &emptygarbagelist );
-      }
-
       workFunc( workUnit );
     }
   } 
