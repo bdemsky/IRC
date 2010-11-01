@@ -16,7 +16,6 @@ __thread int childSESE=0;
 __thread psemaphore runningSESEstallSem;
 
 
-
 // this is for using a memPool to allocate task records,
 // pass this into the poolcreate so it will run your
 // custom init code ONLY for fresh records, reused records

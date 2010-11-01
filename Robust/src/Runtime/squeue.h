@@ -33,17 +33,13 @@ typedef struct sqMemPoolItem_t {
   void* next;
 } sqMemPoolItem;
 
-
 typedef struct sqMemPool_t {
   int itemSize;
-
   sqMemPoolItem* head;
 
   // avoid cache line contention between producer/consumer...
   char buffer[CACHELINESIZE];
-
   sqMemPoolItem* tail;
-
 } sqMemPool;
 
 
@@ -56,12 +52,9 @@ typedef struct dequeItem_t {
 
 typedef struct deque_t {
   dequeItem* head;
-
   // avoid cache line contention between producer/consumer...
   char buffer[CACHELINESIZE - sizeof(void*)];
-
   dequeItem* tail;
-  
   sqMemPool objret;
 } deque;
 
@@ -81,37 +74,16 @@ static void dqInit(deque *q) {
 }
 
 static inline void tagpoolfreeinto( sqMemPool* p, void* ptr, void *realptr ) {
-  sqMemPoolItem* tailCurrent;
-  sqMemPoolItem* tailActual;
-  
   // set up the now unneeded record to as the tail of the
   // free list by treating its first bytes as next pointer,
   sqMemPoolItem* tailNew = (sqMemPoolItem*) realptr;
   tailNew->next = NULL;
-
-  while( 1 ) {
-    // make sure the null happens before the insertion,
-    // also makes sure that we reload tailCurrent, etc..
-    BARRIER();
-
-    tailCurrent = p->tail;
-    tailActual = (sqMemPoolItem*)
-      CAS( &(p->tail),         // ptr to set
-           (INTPTR) tailCurrent, // current tail's next should be NULL
-           (INTPTR) realptr);  // try set to our new tail
-    
-    if( tailActual == tailCurrent ) {
-      // success, update tail
-      tailCurrent->next = (sqMemPoolItem *) ptr;
-      return;
-    }
-
-    // if CAS failed, retry entire operation
-  }
+  CFENCE;
+  sqMemPoolItem* tailCurrent=(sqMemPoolItem *)LOCKXCHG((INTPTR *) &p->tail, (INTPTR) realptr);
+  tailCurrent->next=(sqMemPoolItem *) ptr;
 }
 
 static inline void* tagpoolalloc( sqMemPool* p ) {
-
   // to protect CAS in poolfree from dereferencing
   // null, treat the queue as empty when there is
   // only one item.  The dequeue operation is only
@@ -123,23 +95,12 @@ static inline void* tagpoolalloc( sqMemPool* p ) {
   int i;
   if(next == NULL) {
     // only one item, so don't take from pool
-    return (void*) RUNMALLOC( p->itemSize );
+    sqMemPoolItem * newitem=(sqMemPoolItem *) RUNMALLOC( p->itemSize );
+    ((dequeItem *)newitem)->next=NULL;
+    return newitem;
   }
- 
   p->head = next;
 
-  //////////////////////////////////////////////////////////
-  //
-  //
-  //  static inline void prefetch(void *x) 
-  //  { 
-  //    asm volatile("prefetcht0 %0" :: "m" (*(unsigned long *)x));
-  //  } 
-  //
-  //
-  //  but this built-in gcc one seems the most portable:
-  //////////////////////////////////////////////////////////
-  //__builtin_prefetch( &(p->head->next) );
   sqMemPoolItem* realNext=(sqMemPoolItem *) EXTRACTPTR((INTPTR)next);
   asm volatile( "prefetcht0 (%0)" :: "r" (realNext));
   realNext=(sqMemPoolItem*)(((char *)realNext)+CACHELINESIZE);
@@ -163,9 +124,8 @@ static inline void* tagpoolalloc( sqMemPool* p ) {
 
 static inline void dqPushBottom( deque* p, void* work ) {
   dequeItem *ptr=(dequeItem *) tagpoolalloc(&p->objret);
-  //  dequeItem *ptr=(dequeItem *) calloc(1,sizeof(dequeItem));
-  dequeItem *realptr=(dequeItem *) EXTRACTPTR((INTPTR)ptr);
-  ptr=(dequeItem *) (((INTPTR)ptr)+INCREMENTTAG);
+  dequeItem *realptr=(dequeItem *) EXTRACTPTR((unsigned INTPTR)ptr);
+  ptr=(dequeItem *) (((unsigned INTPTR)ptr)+INCREMENTTAG);
   realptr->work=work;
   BARRIER();
   p->tail->next=ptr;
@@ -194,7 +154,6 @@ static inline void* dqPopTop(deque *p) {
 }
 
 #define dqPopBottom dqPopTop
-
 
 #endif // ___MEMPOOL_H__
 

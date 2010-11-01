@@ -28,7 +28,6 @@
 #include <string.h>
 static INTPTR pageSize;
 #endif
-
 #include "runtime.h"
 #include "mem.h"
 #include "mlp_lock.h"
@@ -142,37 +141,14 @@ static inline void poolfreeinto( MemPool* p, void* ptr ) {
 
 #else
 
+
 // normal version
 static inline void poolfreeinto( MemPool* p, void* ptr ) {
-
-  MemPoolItem* tailCurrent;
-  MemPoolItem* tailActual;
-  
-  // set up the now unneeded record to as the tail of the
-  // free list by treating its first bytes as next pointer,
   MemPoolItem* tailNew = (MemPoolItem*) ptr;
-
   tailNew->next = NULL;
-
-  while( 1 ) {
-    // make sure the null happens before the insertion,
-    // also makes sure that we reload tailCurrent, etc..
-    BARRIER();
-
-    tailCurrent = p->tail;
-    tailActual = (MemPoolItem*)
-      CAS( &(p->tail),         // ptr to set
-           (INTPTR) tailCurrent, // current tail's next should be NULL
-           (INTPTR) tailNew      // try set to our new tail
-           );   
-    if( tailActual == tailCurrent ) {
-      // success, update tail
-      tailCurrent->next = tailNew;
-      return;
-    }
-
-    // if CAS failed, retry entire operation
-  }
+  CFENCE;
+  MemPoolItem *tailCurrent=(MemPoolItem *) LOCKXCHG((INTPTR *) &p->tail, (INTPTR) tailNew);
+  tailCurrent->next=tailNew;
 }
 #endif
 
@@ -220,14 +196,14 @@ static inline void* poolalloc( MemPool* p ) {
   MemPoolItem* headCurrent = p->head;
   MemPoolItem* next=headCurrent->next;
   int i;
+
+
   if(next == NULL) {
     // only one item, so don't take from pool
-    void* newRec = RUNMALLOC( p->itemSize );
-
+    void *newRec=RUNMALLOC(p->itemSize);
     if( p->initFreshlyAllocated != NULL ) {
       p->initFreshlyAllocated( newRec );
     }
-
     return newRec;
   }
  
@@ -261,13 +237,3 @@ static void pooldestroy( MemPool* p ) {
 
 
 #endif // ___MEMPOOL_H__
-
-
-
-
-
-
-
-
-
-
