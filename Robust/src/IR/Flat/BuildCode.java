@@ -3958,7 +3958,8 @@ public class BuildCode {
     output.println("     struct garbagelist * gl= (struct garbagelist *)&(((SESEcommon*)(seseToIssue))[1]);");
     output.println("     gl->size="+calculateSizeOfSESEParamList(fsen)+";");
     output.println("     gl->next = NULL;");
-    
+    output.println("     seseToIssue->common.rentryIdx=0;");
+
     if(state.RCR) {
       //flag the SESE status as 1...it will be reset
       output.println("     seseToIssue->common.rcrstatus=1;");
