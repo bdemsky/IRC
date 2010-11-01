@@ -2,7 +2,7 @@ public class test {
 
   public static void main( String argv[] ) {
     
-    long count = 500000;
+    long count = 50000;
     
     if( argv.length > 0 ) {
       count = count * Integer.parseInt( argv[0] );
@@ -12,8 +12,9 @@ public class test {
     long e1;
     long e2;
 
-   
-    rblock parent {
+    // THIS PARENT SHOULD NOT AFFECT ANYTHING
+    // BUT IT BREAKS THE OOO BINARY!!
+    //rblock parent {
 
       long y = 0;
       
@@ -33,12 +34,12 @@ public class test {
 
       }
       e1 = System.currentTimeMillis();
-      long z = 1;
-    }
+    //long z = 1;
+    //}
     // just read vars so compile doesn't throw them out
     // and force parent of parent to depend on z, for
     // timing
-    System.out.println( "ignore: "+z+", "+y );
+    System.out.println( "ignore: "+y );
     e2 = System.currentTimeMillis();
 
 
