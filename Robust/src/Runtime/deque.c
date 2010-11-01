@@ -124,7 +124,7 @@ static inline int dqIndicateEmpty( INTPTR bottom, INTPTR top ) {
 
 void dqInit( deque* dq ) {
 
-  dq->memPool = poolcreate( DQNODE_SIZETOREQUEST );
+  dq->memPool = poolcreate( DQNODE_SIZETOREQUEST, NULL );
 
   dequeNode* a = dqGet4096aligned( poolalloc( dq->memPool ) );
   dequeNode* b = dqGet4096aligned( poolalloc( dq->memPool ) );
