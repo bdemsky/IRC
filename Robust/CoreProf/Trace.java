@@ -71,8 +71,8 @@ public class Trace {
   public static void main( String args[] ) {
     if( args.length < 2 ||
         args.length > 3 ) {
-      System.out.println( "usage: [-2txt] <coreprof.dat file> <trace out file>" );
-      System.out.println( "The -2txt option will take the raw binary events and spit\n"+
+      System.out.println( "usage: <coreprof.dat file> <trace out file> [-2txt]\n"+
+                          "\nThe -2txt option will take the raw binary events and spit\n"+
                           "out every event as text in events.txt, useful for debugging\n"+
                           "event mis-matches." );
       System.exit( 0 );
@@ -99,11 +99,17 @@ public class Trace {
   boolean        convert2txt;
   BufferedWriter txtStream;
 
+  boolean             convert2plot;
+  BufferedWriter      bwPlot;
+  long                tSysZero;
+  Hashtable<Integer, Integer> plottedEvents;
+
 
 
   public Trace( boolean c2txt, String inFile, String outFile ) {
 
-    convert2txt = c2txt;
+    convert2txt  = c2txt;
+    convert2plot = true;
 
     openInputStreams( inFile );
 
@@ -114,6 +120,10 @@ public class Trace {
     }
 
     printStats( outFile );
+
+    if( convert2plot ) {
+      printPlotCmd();
+    }
   }
 
 
@@ -173,10 +183,6 @@ public class Trace {
       offset = readHeader( bis );
       bis.close();
 
-      if( convert2txt ) {
-        txtStream = new BufferedWriter( new FileWriter( "events.txt" ) );
-      }
-
     } catch( Exception e ) {
       e.printStackTrace();
       System.exit( -1 );
@@ -235,6 +241,8 @@ public class Trace {
 
     if( convert2txt ) {
       try {
+        txtStream = new BufferedWriter( new FileWriter( "events.txt" ) );
+
         txtStream.write( "\n\n\n\n" );
         txtStream.write( "*************************************************\n" );
         txtStream.write( "**  Thread "+tNum+"\n" );
@@ -244,6 +252,18 @@ public class Trace {
         System.exit( -1 );
       }
     }
+
+    if( convert2plot ) {
+      try {
+        bwPlot = new BufferedWriter( new FileWriter( "plot-t"+tNum+".dat" ) );
+      } catch( IOException e ) {
+        e.printStackTrace();
+        System.exit( -1 );
+      }
+
+      plottedEvents = new Hashtable<Integer, Integer>();
+    }
+
 
     ThreadData tdata = threadData[tNum];
     tdata.stackDepth = 0;
@@ -279,13 +299,21 @@ public class Trace {
       switch( eventType ) {
 
         case CP_EVENTTYPE_BEGIN: {
-          pushEvent( tdata, eventID, timeStamp );
+          if( eventID == CP_EVENTID_MAIN ) {
+            tSysZero = timeStamp;
+          }
+
+          pushEvent( tdata, eventID, timeStamp );          
         } break;
 
         case CP_EVENTTYPE_END: {
           popEvent( tdata, eventID, timeStamp );
         } break;    
     
+      }
+
+      if( convert2plot ) {
+        addPointToPlot( timeStamp, eventID );
       }
     }
 
@@ -306,6 +334,16 @@ public class Trace {
       popEvent( tdata, eventSummary.eventID, timeStamp );
 
       --tdata.stackDepth;
+    }
+
+
+    if( convert2plot ) {
+      try {
+        bwPlot.close();
+      } catch( IOException e ) {
+        e.printStackTrace();
+        System.exit( -1 );
+      }
     }
   }
 
@@ -436,6 +474,24 @@ public class Trace {
   }
 
 
+  public void addPointToPlot( long timeStamp, int eventID ) {
+
+    if( !plottedEvents.containsKey( eventID ) ) {
+      plottedEvents.put( eventID, plottedEvents.size() );
+    }
+
+    try {
+      bwPlot.write( (timeStamp - tSysZero)+" "+
+                    plottedEvents.get( eventID )+" "+
+                    getEventName( eventID )+"\n"
+                    );
+    } catch( IOException e ) {
+      e.printStackTrace();
+      System.exit( -1 );
+    }
+  }
+
+
 
   public void printStats( String filename ) {
 
@@ -530,6 +586,31 @@ public class Trace {
          ) {
       EventSummary esChild = itr.next();
       printEventSummary( bw, esChild, depth + 1 );
+    }    
+  }
+
+
+  public void printPlotCmd() {
+    try {
+      BufferedWriter bw = 
+        new BufferedWriter( new FileWriter( "plot.cmd" ) );
+
+      bw.write( "set ytics\n" );
+      bw.write( "plot \\\n" );
+
+      for( int i = 0; i < numThreads; ++i ) {
+        bw.write( "\"plot-t"+i+".dat\" using 1:2:yticlabels(3) "+
+                  "title 't"+i+"' with linespoints" );
+        if( i != numThreads - 1 ) {
+          bw.write( ", \\" );
+        }
+        bw.write( "\n" );
+      }      
+
+      bw.close();
+    } catch( IOException e ) {
+      e.printStackTrace();
+      System.exit( -1 );
     }    
   }
 }
