@@ -626,7 +626,6 @@ public class RuntimeConflictResolver {
     //Generate C cases 
     for (ConcreteRuntimeObjNode node : created.values()) {
       printDebug(javaDebug, "Considering " + node.allocSite + " for traversal");
-      System.out.println("\t"+cases.contains(node.allocSite));
       if (!cases.containsKey(node.allocSite) && qualifiesForCaseStatement(node)) {
         printDebug(javaDebug, "+\t" + node.allocSite + " qualified for case statement");
         addChecker(taint, node, cases, null, "ptr", 0);
@@ -862,8 +861,6 @@ public class RuntimeConflictResolver {
   }
   
   private boolean qualifiesForCaseStatement(ConcreteRuntimeObjNode node) {
-    
-    System.out.println(node.isInsetVar+""+node.decendantsConflict()+node.hasPrimitiveConflicts()+node.hasDirectObjConflict);
     return (          
         //insetVariable case
         (node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts()) || node.hasDirectObjConflict) ||
