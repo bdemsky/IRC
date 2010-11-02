@@ -373,9 +373,6 @@ void workScheduleBegin() {
     pthread_join( workerDataArray[i].workerThread, NULL );
   }
 
-  // for the original, non-worker thread to close up its events
-  CP_EXIT();
-
   // write all thread's events to disk
   CP_DUMP();
 }
