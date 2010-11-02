@@ -626,6 +626,7 @@ public class RuntimeConflictResolver {
     //Generate C cases 
     for (ConcreteRuntimeObjNode node : created.values()) {
       printDebug(javaDebug, "Considering " + node.allocSite + " for traversal");
+      System.out.println("\t"+cases.contains(node.allocSite));
       if (!cases.containsKey(node.allocSite) && qualifiesForCaseStatement(node)) {
         printDebug(javaDebug, "+\t" + node.allocSite + " qualified for case statement");
         addChecker(taint, node, cases, null, "ptr", 0);
@@ -861,9 +862,11 @@ public class RuntimeConflictResolver {
   }
   
   private boolean qualifiesForCaseStatement(ConcreteRuntimeObjNode node) {
+    
+    System.out.println(node.isInsetVar+""+node.decendantsConflict()+node.hasPrimitiveConflicts()+node.hasDirectObjConflict);
     return (          
         //insetVariable case
-        (node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts())) ||
+        (node.isInsetVar && (node.decendantsConflict() || node.hasPrimitiveConflicts()) || node.hasDirectObjConflict) ||
         //non-inline-able code cases
         (node.getNumOfReachableParents() != 1 && node.decendantsConflict()) ||
         //Cases where resumes are possible
@@ -1133,6 +1136,7 @@ public class RuntimeConflictResolver {
     HashSet<ConcreteRuntimeObjNode> enqueueToWaitingQueueUponConflict;
     boolean decendantsPrimConflict;
     boolean decendantsObjConflict;
+    boolean hasDirectObjConflict;
     boolean hasPotentialToBeIncorrectDueToConflict;
     boolean isInsetVar;
     AllocSite allocSite;
@@ -1149,6 +1153,7 @@ public class RuntimeConflictResolver {
       isInsetVar = isInVar;
       decendantsPrimConflict = false;
       decendantsObjConflict = false;
+      hasDirectObjConflict = false;
       hasPotentialToBeIncorrectDueToConflict = false;
     }
 
@@ -1180,7 +1185,6 @@ public class RuntimeConflictResolver {
       return decendantsPrimConflict || decendantsObjConflict;
     }
     
-    
     //returns true if at least one of the objects in points of access has been added
     public boolean addPossibleWaitingQueueEnqueue(HashSet<ConcreteRuntimeObjNode> pointsOfAccess) {
       boolean addedNew = false;
@@ -1203,6 +1207,7 @@ public class RuntimeConflictResolver {
 
     public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
       printDebug(javaDebug,this.allocSite.getUniqueAllocSiteID() + " added child at " + child.getAllocationSite());
+      hasDirectObjConflict |= ce.hasConflict();
       ObjRef ref = new ObjRef(field, child, ce);
       
       if(objectRefs.containsKey(field)){
