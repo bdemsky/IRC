@@ -253,7 +253,7 @@ public class RuntimeConflictResolver {
       if(!created.isEmpty()) {
         for(Iterator<ConcreteRuntimeObjNode> it=created.values().iterator();it.hasNext();) {
           ConcreteRuntimeObjNode obj=it.next();
-          if (obj.hasPrimitiveConflicts()||obj.decendantsConflict()) {
+          if (obj.hasPrimitiveConflicts()||obj.decendantsConflict()||obj.hasDirectObjConflict) {
             rblock.addInVarForDynamicCoarseConflictResolution(invar);
             break;
           }
@@ -642,7 +642,7 @@ public class RuntimeConflictResolver {
       FlatSESEEnterNode fsese=taint.getSESE();
       TempDescriptor tmp=taint.getVar();
       index=fsese.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp);
-    }
+     }
 
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
