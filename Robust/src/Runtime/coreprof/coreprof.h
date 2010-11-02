@@ -64,6 +64,10 @@
 #define CP_EVENTID_WORKSCHEDGRAB      0x20
 #endif
 
+#ifdef cpe_workschedsubmit
+#define CP_EVENTID_WORKSCHEDSUBMIT    0x21
+#endif
+
 #ifdef cpe_taskdispatch
 #define CP_EVENTID_TASKDISPATCH       0x30
 #endif

@@ -182,17 +182,12 @@ void* workerMain( void* arg ) {
 #ifdef CP_EVENTID_WORKSCHEDGRAB
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_BEGIN );
 #endif
-    haveWork = FALSE;
 
+    haveWork = FALSE;
     while( !haveWork ) {
 
       workUnit = dqPopBottom( myDeque );
 
-#if defined(DEBUG_DEQUE)&&!defined(SQUEUE)
-      if( workUnit == NULL ) {
-        printf( "Got invalid work from the deque bottom.\n" );
-      }
-#endif
 
       if( workUnit != DQ_POP_EMPTY ) {
         haveWork = TRUE;
@@ -202,13 +197,8 @@ void* workerMain( void* arg ) {
         // with the last successful victim, don't check
         // your own deque
         for( i = 0; i < numWorkSchedWorkers - 1; ++i ) {
-          workUnit = dqPopTop( &(deques[lastVictim]) );
 
-#if defined(DEBUG_DEQUE)&&!defined(SQUEUE)
-          if( workUnit == NULL ) {
-            printf( "Got invalid work from the deque top.\n" );
-          }
-#endif
+          workUnit = dqPopTop( &(deques[lastVictim]) );
           
 #ifdef SQUEUE
           if( workUnit != DQ_POP_EMPTY ) {
@@ -255,11 +245,12 @@ void* workerMain( void* arg ) {
 
     } // end the while-not-have-work loop
 
+    dowork:
+
 #ifdef CP_EVENTID_WORKSCHEDGRAB
     CP_LOGEVENT( CP_EVENTID_WORKSCHEDGRAB, CP_EVENTTYPE_END );
 #endif
 
-    dowork:
     // when is no work left we will pop out
     // here, so only do work if any left
     if( haveWork ) {
@@ -348,16 +339,9 @@ void workScheduleInit( int numProcessors,
 
 
 void workScheduleSubmit( void* workUnit ) {
-
-#ifdef DEBUG_DEQUE
-  if( workUnit == 0x0 ) {
-    printf( "Submitting invalid task record as work.\n" );
-  }
-#endif
-
-    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_BEGIN );
-    dqPushBottom( &(deques[myWorkerID]), workUnit );
-    CP_LOGEVENT( CP_EVENTID_DEBUG_A, CP_EVENTTYPE_END );
+  CP_LOGEVENT( CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_BEGIN );
+  dqPushBottom( &(deques[myWorkerID]), workUnit );
+  CP_LOGEVENT( CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_END );
 }
 
 

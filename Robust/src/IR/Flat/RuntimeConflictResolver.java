@@ -718,7 +718,8 @@ public class RuntimeConflictResolver {
                           int depth) {
     StringBuilder currCase = possibleContinuingCase;
     if(qualifiesForCaseStatement(node)) {
-      assert prefix.equals("ptr") && !cases.containsKey(node.allocSite);
+      assert prefix.equals("ptr");
+      assert !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
       cases.put(node.allocSite, currCase);
       currCase.append("  case " + node.getAllocationSite() + ": {\n");
