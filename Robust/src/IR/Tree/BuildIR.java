@@ -55,7 +55,7 @@ public class BuildIR {
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
 	  state.addClass(cn);
-      // for inner classes
+      // for inner classes/enum
       if(state.MGC) {
         // TODO add version for normal Java later
         HashSet tovisit = new HashSet();
@@ -77,6 +77,24 @@ public class BuildIR {
           while(it_ics.hasNext()) {
             tovisit.add(it_ics.next());
           }
+          
+          Iterator it_ienums = cd.getEnum();
+          while(it_ienums.hasNext()) {
+            ClassDescriptor iecd = (ClassDescriptor)it_ienums.next();
+            if(toanalyze != null) {
+              toanalyze.add(iecd);
+            }
+            state.addClass(iecd);
+          }
+        }
+        
+        Iterator it_enums = cn.getEnum();
+        while(it_enums.hasNext()) {
+          ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
+          if(toanalyze != null) {
+            toanalyze.add(ecd);
+          }
+          state.addClass(ecd);
         }
       }
 	} else if (isNode(type_pn,"task_declaration")) {
@@ -90,11 +108,64 @@ public class BuildIR {
       if (toanalyze!=null)
         toanalyze.add(cn);
       state.addClass(cn);
+      
+      // for enum
+      if(state.MGC) {
+        // TODO add version for normal Java later        
+        Iterator it_enums = cn.getEnum();
+        while(it_enums.hasNext()) {
+          ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
+          if(toanalyze != null) {
+            toanalyze.add(ecd);
+          }
+          state.addClass(ecd);
+        }
+      }
+    } else if ((state.MGC) && isNode(type_pn,"enum_declaration")) {
+      // TODO add version for normal Java later
+      ClassDescriptor cn = parseEnumDecl(null, type_pn);
+      if (toanalyze!=null)
+        toanalyze.add(cn);
+      state.addClass(cn);
     } else {
 	  throw new Error(type_pn.getLabel());
 	}
       }
     }
+  }
+  
+  private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
+    ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+    ecd.setAsEnum();
+    if(cn != null) {
+      ecd.setSurroundingClass(cn.getSymbol());
+      ecd.setSurrounding(cn);
+    }
+    cn.addEnum(ecd);
+    if (!(ecd.getSymbol().equals(TypeUtil.ObjectClass)||
+        ecd.getSymbol().equals(TypeUtil.TagClass))) {
+      ecd.setSuper(TypeUtil.ObjectClass);
+    }
+    ecd.setModifiers(parseModifiersList(pn.getChild("modifiers")));
+    parseEnumBody(ecd, pn.getChild("enumbody"));
+    return ecd;
+  }
+  
+  private void parseEnumBody(ClassDescriptor cn, ParseNode pn) {
+    ParseNode decls=pn.getChild("enum_constants_list");
+    if (decls!=null) {
+      ParseNodeVector pnv=decls.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode decl=pnv.elementAt(i);
+        if (isNode(decl,"enum_constant")) {
+          parseEnumConstant(cn,decl);
+        } else throw new Error();
+      }
+    }
+  }
+  
+  private void parseEnumConstant(ClassDescriptor cn, ParseNode pn) {
+    cn.addEnumConstant(pn.getChild("name").getTerminal());
   }
   
   public ClassDescriptor parseInterfaceDecl(ParseNode pn) {
@@ -402,6 +473,16 @@ public class BuildIR {
       } else {
         // TODO add version for noraml Java later
         throw new Error("Error: inner class in Class " + cn.getSymbol() + " is not supported yet");
+      }
+    }
+    ParseNode enumnode=pn.getChild("enum_declaration");
+    if (enumnode!=null) {
+      if(state.MGC){
+        parseEnumDecl(cn,enumnode);
+        return;
+      } else {
+        // TODO add version for noraml Java later
+        throw new Error("Error: enumerated type in Class " + cn.getSymbol() + " is not supported yet");
       }
     }
     ParseNode flagnode=pn.getChild("flag");
@@ -1099,6 +1180,8 @@ public class BuildIR {
 	  m.addModifier(Modifiers.ATOMIC);
     else if (isNode(modn,"abstract"))
       m.addModifier(Modifiers.ABSTRACT);
+    else if (isNode(modn,"volatile"))
+      m.addModifier(Modifiers.VOLATILE);
 	else throw new Error("Unrecognized Modifier");
       }
     }

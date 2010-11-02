@@ -274,6 +274,12 @@ terminal SESE;
 terminal RBLOCK;
 non terminal ParseNode sese_statement;
 
+// mgc
+// JSR-201) Enum Declaration
+non terminal ParseNode enum_declaration;
+non terminal ParseNode enum_body, enum_constants_opt, enum_constants, enum_constant;
+//non terminal ParseNode enum_arguments_opt, enum_body_declarations_opt;
+
 
 start with goal;
 
@@ -685,6 +691,10 @@ type_declaration ::=
 		{:
 			RESULT=cd;
 		:}
+	|	enum_declaration:ed
+	    {:
+	        RESULT=ed;
+	    :}
 	|	task_declaration:td 
 		{:
 			RESULT=td;
@@ -722,9 +732,10 @@ modifier ::=
 	FINAL {: RESULT=new ParseNode("final"); :}|
 	NATIVE {: RESULT=new ParseNode("native"); :} |
 	SYNCHRONIZED {: RESULT=new ParseNode("synchronized"); :} |
-	ATOMIC {: RESULT=new ParseNode("atomic"); :}
+	ATOMIC {: RESULT=new ParseNode("atomic"); :} |
+	VOLATILE {: RESULT=new ParseNode("volatile"); :}
 //	TRANSIENT | 
-//	VOLATILE |
+
 //	STRICTFP // note that semantic analysis must check that the
 	                 // context of the modifier allows strictfp.
 	;
@@ -830,11 +841,65 @@ class_member_declaration ::=
 	pn.addChild("classbody").addChild(body);
 	RESULT=pn;
 	:}
+	|	enum_declaration:ed
+	{:
+	RESULT=ed; 
+	:}
 //    |       interface_declaration:interfaced {: 
 //	RESULT=(new ParseNode("interface")).addChild(interfaced).getRoot(); 
 //	:}
 	|	SEMICOLON	{: RESULT=new ParseNode("empty"); :}
 	;
+	
+// mgc
+// JSR-201) Enum Declaration
+enum_declaration ::=
+		modifiers_opt:mo ENUM IDENTIFIER:id /*interfaces_opt:io*/ enum_body:body
+		{:
+			ParseNode pn=new ParseNode("enum_declaration");
+			pn.addChild("modifiers").addChild(mo);
+			pn.addChild("name").addChild(id);
+			//pn.addChild("superIF").addChild(ifo);
+			pn.addChild("enumbody").addChild(body);
+			RESULT=pn;
+		:}
+	;
+enum_body ::=
+		LBRACE enum_constants_opt:eco /*enum_body_declarations_opt:ebdo*/ RBRACE
+		{: RESULT=eco; :}
+	;
+enum_constants_opt ::=
+   {: RESULT=new ParseNode("empty"); :}
+	|	enum_constants:ecs
+	{: RESULT=ecs; :}
+	;
+enum_constants ::=
+		enum_constant:ec {: 
+		ParseNode pn=new ParseNode("enum_constants_list");
+		pn.addChild(ec);
+		RESULT=pn;
+	:}
+	|	enum_constants:ecs COMMA enum_constant:ec {:
+	    ecs.addChild(ec);
+	    RESULT=ecs;
+	:}
+	;
+enum_constant ::=
+		IDENTIFIER:id /*enum_arguments_opt*/
+		{: 
+		    ParseNode pn=new ParseNode("enum_constant");
+		    pn.addChild("name").addChild(id);
+		    RESULT=pn; 
+		:}
+//	|	IDENTIFIER enum_arguments_opt class_body
+	;
+//enum_arguments_opt ::=
+//	|	LPAREN argument_list_opt RPAREN
+//	;
+//enum_body_declarations_opt ::=
+//	|	SEMICOLON class_body_declarations_opt:cbdo
+//	;
+
 
 //Failure aware computation
 flag_declaration ::= 
@@ -1126,6 +1191,9 @@ interface_member_declaration ::=
        |       abstract_method_declaration:method {:
 	RESULT=(new ParseNode("method")).addChild(method).getRoot(); 
 	:}
+	   |	enum_declaration:ed {:
+	   RESULT=(new ParseNode("enum_declaration")).addChild(ed).getRoot();
+	   :}
 //       |       class_declaration:class 
 //       |       interface_declaration:interface 
        |       SEMICOLON {: 
@@ -1207,6 +1275,9 @@ block_statement ::=
 	|	statement:statement {: 
 		RESULT=statement;
 	:}
+//	|	enum_declaration:ed {:
+//		RESULT=ed;
+//	:}
 //	|	class_declaration
 //	|	interface_declaration
 	;
@@ -2059,6 +2130,8 @@ expression_opt ::=
 expression ::=	assignment_expression:exp {: 
 		RESULT=exp; :}
 	;
+// note that this constraint must be enforced during semantic checking
+// 'constant_expression' should include enumerated constants.
 //constant_expression ::=
 //		expression
 //	;

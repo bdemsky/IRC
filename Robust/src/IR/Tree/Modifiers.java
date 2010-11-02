@@ -10,7 +10,7 @@ public class Modifiers {
   public static final int NATIVE=64;
   public static final int SYNCHRONIZED=128;
 //	TRANSIENT=256
-//	VOLATILE=512
+  public static final int VOLATILE=512;
 //	STRICTFP=1024
   public static final int ATOMIC=2048;
 
@@ -54,6 +54,10 @@ public class Modifiers {
   public boolean isFinal() {
     return ((value&FINAL)!=0);
   }
+  
+  public boolean isVolatile() {
+    return ((value&VOLATILE)!= 0);
+  }
 
   public String toString() {
     String st="";
@@ -75,6 +79,8 @@ public class Modifiers {
       st+="atomic ";
     if ((value&ABSTRACT)!=0)
       st+="abstract ";
+    if((value&VOLATILE)!=0)
+      st += "volatile ";
     return st;
   }
 }

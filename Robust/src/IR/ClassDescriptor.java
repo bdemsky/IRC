@@ -26,9 +26,17 @@ public class ClassDescriptor extends Descriptor {
   
   // for inner classes
   boolean isInnerClass=false;
+  
+  // inner classes/enum can have these
   String surroundingclass=null;
   ClassDescriptor surroudingdesc=null;
   SymbolTable innerdescs;
+  
+  // for enum type
+  boolean isEnum = false;
+  SymbolTable enumdescs;
+  HashMap<String, Integer> enumConstantTbl;
+  int enumconstantid = 0;
 
   public ClassDescriptor(String classname, boolean isInterface) {
     this("", classname, isInterface);
@@ -50,6 +58,7 @@ public class ClassDescriptor extends Descriptor {
     superinterfaces = new Vector<String>();
     superIFdesc = new SymbolTable();
     this.innerdescs = new SymbolTable();
+    this.enumdescs = new SymbolTable();
   }
 
   public int getId() {
@@ -141,6 +150,28 @@ public class ClassDescriptor extends Descriptor {
     }
     if (printcr)
       st+="\n";
+    
+    for(Iterator it=this.getEnum(); it.hasNext();) {
+      ClassDescriptor icd = (ClassDescriptor)it.next();
+      st += icd.getModifier().toString() + " enum " + icd.getSymbol() + " {\n  ";
+      Set keys = icd.getEnumConstantTbl().keySet();
+      String[] econstants = new String[keys.size()];
+      Iterator it_keys = keys.iterator();
+      while(it_keys.hasNext()) {
+        String key = (String)it_keys.next();
+        econstants[icd.getEnumConstant(key)] = key;
+      }
+      for(int i = 0; i < econstants.length; i++) {
+        st += econstants[i];
+        if(i < econstants.length-1) {
+          st += ", ";
+        }
+      }
+      st+="\n}\n";
+      printcr=true;
+    }
+    if (printcr)
+      st+="\n";
 
     for(Iterator it=getMethods(); it.hasNext();) {
       MethodDescriptor md=(MethodDescriptor)it.next();
@@ -168,7 +199,7 @@ public class ClassDescriptor extends Descriptor {
       throw new Error(fd.getSymbol()+" already defined");
     fields.add(fd);
     fieldvec.add(fd);
-    if(fd.isStatic()) {
+    if((fd.isStatic()) || (fd.isVolatile())) {
       this.incStaticFields();
     }
   }
@@ -273,19 +304,51 @@ public class ClassDescriptor extends Descriptor {
     return this.innerdescs;
   }
   
-  /*public String getSymbol() {
-    if(this.isInnerClass) {
-      return this.surroudingdesc.getSymbol() + "." + name;
-    } else {
-      return name;
-    }
+  public void setAsEnum() {
+    this.isEnum = true;
+  }
+  
+  public boolean isEnum() {
+    return this.isEnum;
+  }
+  
+  public void addEnum(ClassDescriptor icd) {
+    this.enumdescs.add(icd);
+  }
+  
+  public Iterator getEnum() {
+    return this.enumdescs.getDescriptorsIterator();
   }
 
-  public String getSafeSymbol() {
-    if(this.isInnerClass) {
-      return this.surroudingdesc.getSafeSymbol()+ "." + safename;
-    } else {
-      return safename;
+  public SymbolTable getEnumTable() {
+    return this.enumdescs;
+  }
+  
+  public void addEnumConstant(String econstant) {
+    if(this.enumConstantTbl == null) {
+      this.enumConstantTbl = new HashMap<String, Integer>();
     }
-  }*/
+    if(this.enumConstantTbl.containsKey(econstant)) {
+      return;
+    } else {
+      this.enumConstantTbl.put(econstant, this.enumconstantid++);
+    }
+    return;
+  }
+  
+  public int getEnumConstant(String econstant) {
+    if(this.enumConstantTbl.containsKey(econstant)) {
+      return this.enumConstantTbl.get(econstant).intValue();
+    } else {
+      return -1;
+    }
+  }
+  
+  public HashMap<String, Integer> getEnumConstantTbl() {
+    return this.enumConstantTbl;
+  }
+  
+  public Modifiers getModifier() {
+    return this.modifiers;
+  }
 }

@@ -611,7 +611,7 @@ public class SemanticCheck {
           cd = ((MethodDescriptor)md).getClassDesc();
           SymbolTable fieldtbl = cd.getFieldTable();
           FieldDescriptor fd=(FieldDescriptor)fieldtbl.get(varname);
-          if((fd == null) || (!fd.isStatic())){
+          if((fd == null) || (!fd.isStatic()) || (!fd.isVolatile())){
             // no such field in the class or it is not a static field
             throw new Error("Name "+varname+" should not be used in static block: "+md);
           } else {

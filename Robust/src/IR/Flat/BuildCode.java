@@ -1623,7 +1623,16 @@ public class BuildCode {
       else if ((state.MGC) && (fd.isStatic())) {
         // TODO add version for normal Java later
         // static field
-        globaldefout.println("  "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+        if(fd.isVolatile()) {
+          globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+        } else {
+          globaldefout.println("  "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+        }
+        classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
+      } else if ((state.MGC) && (fd.isVolatile())) {
+        // TODO add version for normal Java later
+        // static field
+        globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
         classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
       } else
 	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
@@ -2171,8 +2180,8 @@ public class BuildCode {
 
       for(int i=0; i<fields.size(); i++) {
         FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-        if(fd.isStatic()) {
-          // static field
+        if((fd.isStatic()) || (fd.isVolatile())) {
+          // static/volatile field
           output.println(generateTemp(fm,fm.getParameter(0),lb)+"->"+fd.getSafeSymbol()+"=&(global_defs_p->"+cn.getSafeSymbol()+fd.getSafeSymbol()+");");
         }
       }
@@ -5054,7 +5063,7 @@ public class BuildCode {
 // DEBUG   	} 
       if(state.MGC) {
         // TODO add version for normal Java later
-      if(ffn.getField().isStatic()) {
+      if((ffn.getField().isStatic()) || (ffn.getField().isVolatile())) {
         // static field
         if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
           // is a static block or is invoked in some static block
@@ -5200,7 +5209,7 @@ public class BuildCode {
 // DEBUG   } 
       if(state.MGC) {
         // TODO add version for normal Java later
-      if(fsfn.getField().isStatic()) {
+      if((fsfn.getField().isStatic()) || (fsfn.getField().isVolatile())) {
         // static field
         if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
           // is a static block or is invoked in some static block

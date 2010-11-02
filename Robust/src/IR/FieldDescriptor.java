@@ -33,6 +33,10 @@ public class FieldDescriptor extends Descriptor {
     return modifier.isStatic();
   }
   
+  public boolean isVolatile() {
+    return modifier.isVolatile();
+  }
+  
   public boolean isGlobal() {
     return isglobal;
   }
