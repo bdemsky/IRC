@@ -3309,8 +3309,17 @@ public class BuildCode {
                 }
                 if(state.RCR) {
 		  //no need to enqueue parent effect if coarse grained conflict clears us
-		  output.println("       while(stallrecord.common.rcrstatus) ;");
-		  output.println("         BARRIER();");
+
+                                    
+		  output.println("       while(stallrecord.common.rcrstatus) {;}");
+		  output.println("       BARRIER();");
+                  // was the code above actually meant to look like this?
+                  //output.println("       while(stallrecord.common.rcrstatus) {");
+                  //output.println("         BARRIER();");
+                  //output.println("         sched_yield();");
+		  //output.println("       }");
+
+
 		  output.println("       stallrecord.common.parentsStallSem=&runningSESEstallSem;");
 		  output.println("       stallrecord.tag=rentry->tag;");
 		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
@@ -3323,7 +3332,13 @@ public class BuildCode {
 		  output.println("       stallrecord.common.rcrstatus=1;");
 		  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
                 }
-		output.println("        psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+
+		output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+
+                if( state.RCR ) {
+                  output.println("       stallrecord.common.rcrstatus=0;");
+                }
+
                 if( state.COREPROF ) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
                   output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
@@ -4609,7 +4624,6 @@ public class BuildCode {
     output.println("   }");
     
     
-    // eom
     // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
     if((state.MLP && fsen != mlpa.getMainSESE()) ||
        (state.OOOJAVA && fsen != oooa.getMainSESE())) {
