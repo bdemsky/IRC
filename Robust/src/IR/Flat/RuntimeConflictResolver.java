@@ -748,7 +748,7 @@ public class RuntimeConflictResolver {
       }
     }
 
-    int index=-1;
+    int index=0;
     if (taint.isRBlockTaint()) {
       FlatSESEEnterNode fsese=taint.getSESE();
       TempDescriptor tmp=taint.getVar();
@@ -756,6 +756,7 @@ public class RuntimeConflictResolver {
     }
 
     String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
+    String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)&1LL), ";
     
     //Do call if we need it.
     if(primConfWrite||objConfWrite) {
@@ -765,9 +766,9 @@ public class RuntimeConflictResolver {
       int traverserID = doneTaints.get(taint);
         currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead)
-        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
       else
-        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+ tasksrc+strrcr+index+");\n");
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
@@ -775,9 +776,9 @@ public class RuntimeConflictResolver {
       int traverserID = doneTaints.get(taint);
       currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (objConfRead) 
-        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
       else
-        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", (SESEcommon *) record, "+strrcr+index+");\n");
+        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
     }
 
     if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
