@@ -3316,6 +3316,10 @@ public class BuildCode {
 		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
 		  output.println("       stallrecord.common.classID=-"+rcr.getTraverserID(waitingElement.getTempDesc(), fn)+";");
 		  //mark the record used..so we won't use it again until it is free
+		  //clear rcrRecord
+		  output.println("       stallrecord.rcrRecords[0].index=0;");
+		  output.println("       stallrecord.rcrRecords[0].flag=0;");
+		  output.println("       stallrecord.rcrRecords[0].next=NULL;");
 		  output.println("       stallrecord.common.rcrstatus=1;");
 		  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
                 }
