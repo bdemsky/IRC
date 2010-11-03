@@ -756,7 +756,7 @@ public class RuntimeConflictResolver {
     }
 
     String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
-    String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)&1LL), ";
+    String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
     
     //Do call if we need it.
     if(primConfWrite||objConfWrite) {
