@@ -13,6 +13,7 @@ HashStructure ** allHashStructures;
 #define ISREADBIN(x) (!(x&BINMASK))
 //#define POPCOUNT(x) __builtin_popcountll(x)
 //__builtin_popcountll
+#define ONEVAL 1ULL
 
 
 inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
@@ -90,7 +91,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     
     //common to both types
     td->task=task;
-    td->bitindexrd=td->bitindexwr=1<<index;
+    td->bitindexrd=td->bitindexwr=ONEVAL<<index;
     be->tail=b;
     BARRIER();//do tail before head
     //release lock
@@ -108,7 +109,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     //last one is to check for SESE blocks in a while loop.
     if(unlikely(td->task == task)) {
 
-      bitvt bit=1<<index;
+      bitvt bit=ONEVAL<<index;
       if (!(bit & td->bitindexwr)) {
 	td->bitindexwr|=bit;
 	td->bitindexrd|=bit;
@@ -143,7 +144,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   b->item.total=1;
   b->task=task;
 
-  bitvt bit=1<<index;
+  bitvt bit=ONEVAL<<index;
   if (wrmask&bit) {
     //count already includes this
     status=SPECREADY;
@@ -204,7 +205,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
     
     //common to both types
     td->task=task;
-    td->bitindex=1<<index;
+    td->bitindex=ONEVAL<<index;
     be->tail=b;
     
     //release lock
@@ -221,7 +222,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
     WriteBinItem_rcr * td = (WriteBinItem_rcr *)bintail;
     if(unlikely(td->task==task)) {
       //RELEASE LOCK
-      bitvt bit=1<<index;
+      bitvt bit=ONEVAL<<index;
       int status=bintail->status;
       if (!(td->bitindexrd & bit)) {
 	td->bitindexrd|=bit;
@@ -242,7 +243,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
     if (unlikely(td->task==task)) {
       //RELEASE LOCK
-      bitvt bit=1<<index;
+      bitvt bit=ONEVAL<<index;
       int status=bintail->status;
       if (!(td->bitindex & bit)) {
 	td->bitindex|=bit;
@@ -327,7 +328,7 @@ int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRe
   }
 
   td->task=task;
-  td->bitindex=1<<index;
+  td->bitindex=ONEVAL<<index;
 
   T->array[key].head=val;//released lock
   return retval;
@@ -340,7 +341,7 @@ void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail,
   rb->item.status=NOTREADY;
 
   td->task=task;
-  td->bitindex=1<<index;
+  td->bitindex=ONEVAL<<index;
   enqueuerecord(rcrrec, key, (BinItem_rcr *) rb);
 
   T->array[key].tail->next=(BinItem_rcr*)rb;
@@ -376,11 +377,13 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
 	  for (i=0;i<rptr->index;i++) {
 	    TraverserData * td=&rptr->array[i];
 	    if (task==td->task) {
-	      RESOLVE(td->task, td->bitindex);
+	      SESEcommon *record=td->task;
 	      if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
 		//parents go immediately
 		atomic_dec(&rptr->item.total);
+		record=(SESEcommon *)(((INTPTR)record)&~1ULL);
 	      }
+	      RESOLVE(record, td->bitindex);
 	      break;
 	    }
           }
@@ -404,7 +407,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
           break;
 	if(ptr->status==NOTREADY) {
 	  WriteBinItem_rcr* wptr=(WriteBinItem_rcr*)ptr;
-	  RESOLVE(wptr->task, wptr->bitindexwr);
+	  RESOLVE((SESEcommon *)(((INTPTR)wptr->task)&~1ULL), wptr->bitindexwr);
 	  ptr->status=READY;
 	  if(((INTPTR)wptr->task)&PARENTBIN) {
 	    val=val->next;
