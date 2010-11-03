@@ -2180,8 +2180,8 @@ public class BuildCode {
 
       for(int i=0; i<fields.size(); i++) {
         FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-        if((fd.isStatic()) || (fd.isVolatile())) {
-          // static/volatile field
+        if(fd.isStatic()) {
+          // static field
           output.println(generateTemp(fm,fm.getParameter(0),lb)+"->"+fd.getSafeSymbol()+"=&(global_defs_p->"+cn.getSafeSymbol()+fd.getSafeSymbol()+");");
         }
       }
@@ -5086,7 +5086,7 @@ public class BuildCode {
 // DEBUG   	} 
       if(state.MGC) {
         // TODO add version for normal Java later
-      if((ffn.getField().isStatic()) || (ffn.getField().isVolatile())) {
+      if(ffn.getField().isStatic()) {
         // static field
         if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
           // is a static block or is invoked in some static block
@@ -5232,7 +5232,7 @@ public class BuildCode {
 // DEBUG   } 
       if(state.MGC) {
         // TODO add version for normal Java later
-      if((fsfn.getField().isStatic()) || (fsfn.getField().isVolatile())) {
+      if(fsfn.getField().isStatic()) {
         // static field
         if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
           // is a static block or is invoked in some static block

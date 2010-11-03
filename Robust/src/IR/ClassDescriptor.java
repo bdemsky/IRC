@@ -199,7 +199,7 @@ public class ClassDescriptor extends Descriptor {
       throw new Error(fd.getSymbol()+" already defined");
     fields.add(fd);
     fieldvec.add(fd);
-    if((fd.isStatic()) || (fd.isVolatile())) {
+    if(fd.isStatic()) {
       this.incStaticFields();
     }
   }
