@@ -718,6 +718,9 @@ public class RuntimeConflictResolver {
                           int depth) {
     StringBuilder currCase = possibleContinuingCase;
     if(qualifiesForCaseStatement(node)) {
+      if( !prefix.equals("ptr") ) {
+        System.out.println("Adding checker, decided "+node+" qualifies for case statement but expected ptr instead of prefix="+prefix);
+      }
       assert prefix.equals("ptr");
       assert !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
