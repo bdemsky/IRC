@@ -55,7 +55,7 @@ rcr:
 	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 clean:
-	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin
+	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin
 	rm -fr par sing rcr
 	rm -f tmp.c
 	rm -f  *~
