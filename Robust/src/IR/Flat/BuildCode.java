@@ -4620,8 +4620,8 @@ public class BuildCode {
       output.println("   }");
     }
     
-    
-    if (state.RCR && fsen.getDynamicInVarSet().size() > 0) {
+    Vector<TempDescriptor> inset=fsen.getInVarsForDynamicCoarseConflictResolution();
+    if (state.RCR && inset.size() > 0) {
       /* Make sure the running SESE is finished */
       output.println("   if (unlikely(runningSESE->rcrstatus!=0)) {");
       output.println("     if(!CAS(&runningSESE->rcrstatus,1,0)) {");
@@ -4632,11 +4632,11 @@ public class BuildCode {
       output.println("     }");
       output.println("   }");
       output.println("{");
-      output.println("  int idx,idx2;");      
-      if (fsen.getDynamicInVarSet().size() == 1) {
+      output.println("  int idx,idx2;");
+      if(inset.size()==1){
         output.println("  idx=0; {");
       } else {
-        output.println("  for(idx=0;idx<" + fsen.getDynamicInVarSet().size() + ";idx++){");
+        output.println("  for(idx=0;idx<" + inset.size() + ";idx++){");
       }
       output.println("    struct rcrRecord *rec=&" + paramsprefix + "->rcrRecords[idx];");
       output.println("    while(rec!=NULL) {");
