@@ -718,9 +718,6 @@ public class RuntimeConflictResolver {
                           int depth) {
     StringBuilder currCase = possibleContinuingCase;
     if(qualifiesForCaseStatement(node)) {
-      if( !prefix.equals("ptr") ) {
-        System.out.println("Adding checker, decided "+node+" qualifies for case statement but expected ptr instead of prefix="+prefix);
-      }
       assert prefix.equals("ptr");
       assert !cases.containsKey(node.allocSite);
       currCase = new StringBuilder();
@@ -730,63 +727,7 @@ public class RuntimeConflictResolver {
     //either currCase is continuing off a parent case or is its own. 
     assert currCase !=null;
     
-    boolean primConfRead=false;
-    boolean primConfWrite=false;
-    boolean objConfRead=false;
-    boolean objConfWrite=false;
-
-    //Direct Primitives Test
-    for(String field: node.primitiveConflictingFields.keySet()) {
-      CombinedObjEffects effect=node.primitiveConflictingFields.get(field);
-      primConfRead|=effect.hasReadConflict;
-      primConfWrite|=effect.hasWriteConflict;
-    }
-
-    //Direct Object Reference Test
-    for(String field: node.objectRefs.keySet()) {
-      for(ObjRef ref: node.objectRefs.get(field)) {
-        CombinedObjEffects effect=ref.myEffects;
-        objConfRead|=effect.hasReadConflict;
-        objConfWrite|=effect.hasWriteConflict;
-      }
-    }
-
-    int index=0;
-    if (taint.isRBlockTaint()) {
-      FlatSESEEnterNode fsese=taint.getSESE();
-      TempDescriptor tmp=taint.getVar();
-      index=fsese.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp);
-    }
-
-    String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
-    String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
-    
-    //Do call if we need it.
-    if(primConfWrite||objConfWrite) {
-      int heaprootNum = connectedHRHash.get(taint).id;
-      assert heaprootNum != -1;
-      int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
-      int traverserID = doneTaints.get(taint);
-        currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
-      if (objConfRead)
-        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
-      else
-        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+ tasksrc+strrcr+index+");\n");
-    } else if (primConfRead||objConfRead) {
-      int heaprootNum = connectedHRHash.get(taint).id;
-      assert heaprootNum != -1;
-      int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(node);
-      int traverserID = doneTaints.get(taint);
-      currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
-      if (objConfRead) 
-        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
-      else
-        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
-    }
-
-    if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
-      currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
-    }
+    insertEntriesIntoHashStructure(taint, node, prefix, depth, currCase);
     
     //Handle conflicts further down. 
     if(node.decendantsConflict()) {
@@ -816,7 +757,7 @@ public class RuntimeConflictResolver {
           
           if(refsAtParticularField.hasConflicts()) {
             String childPtr = "((struct "+node.original.getType().getSafeSymbol()+" *)"+prefix +")->___" + field + "___";
-            printObjRefSwitchStatement(taint, cases, depth, currCase, refsAtParticularField, childPtr, currPtr);
+            printObjRefSwitchStatement(taint,cases, pdepth, currCase, refsAtParticularField, childPtr, currPtr);
           }
         }      
       }
@@ -825,6 +766,67 @@ public class RuntimeConflictResolver {
     }
     if(qualifiesForCaseStatement(node)) {
       currCase.append("  }\n  break;\n");
+    }
+  }
+
+  private void insertEntriesIntoHashStructure(Taint taint, ConcreteRuntimeObjNode curr,
+      String prefix, int depth, StringBuilder currCase) {
+    boolean primConfRead=false;
+    boolean primConfWrite=false;
+    boolean objConfRead=false;
+    boolean objConfWrite=false;
+
+    //Direct Primitives Test
+    for(String field: curr.primitiveConflictingFields.keySet()) {
+      CombinedObjEffects effect=curr.primitiveConflictingFields.get(field);
+      primConfRead|=effect.hasReadConflict;
+      primConfWrite|=effect.hasWriteConflict;
+    }
+
+    //Direct Object Reference Test
+    for(String field: curr.objectRefs.keySet()) {
+      for(ObjRef ref: curr.objectRefs.get(field)) {
+        CombinedObjEffects effect=ref.myEffects;
+        objConfRead|=effect.hasReadConflict;
+        objConfWrite|=effect.hasWriteConflict;
+      }
+    }
+
+    int index=0;
+    if (taint.isRBlockTaint()) {
+      FlatSESEEnterNode fsese=taint.getSESE();
+      TempDescriptor tmp=taint.getVar();
+      index=fsese.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp);
+    }
+
+    String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
+    String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
+    
+    //Do call if we need it.
+    if(primConfWrite||objConfWrite) {
+      int heaprootNum = connectedHRHash.get(taint).id;
+      assert heaprootNum != -1;
+      int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
+      int traverserID = doneTaints.get(taint);
+        currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
+      if (objConfRead)
+        currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
+      else
+        currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+ tasksrc+strrcr+index+");\n");
+    } else if (primConfRead||objConfRead) {
+      int heaprootNum = connectedHRHash.get(taint).id;
+      assert heaprootNum != -1;
+      int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
+      int traverserID = doneTaints.get(taint);
+      currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
+      if (objConfRead) 
+        currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
+      else
+        currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
+    }
+
+    if(primConfWrite||objConfWrite||primConfRead||objConfRead) {
+      currCase.append("if (!(tmpvar"+depth+"&READYMASK)) totalcount--;\n");
     }
   }
 
@@ -842,18 +844,12 @@ public class RuntimeConflictResolver {
         //The hash insert is here because we don't want to enqueue things unless we know it conflicts. 
         currCase.append("        if (" + queryVistedHashtable +"("+ currPtr + ")) {\n");
         
-        //Either it's an in-lineable case or we're just handling primitive conflicts
-        if ((ref.child.getNumOfReachableParents() == 1 && !ref.child.isInsetVar) ||
-            (ref.child.hasPrimitiveConflicts() && !qualifiesForCaseStatement(ref.child)))
-        {
+        if(qualifiesForCaseStatement(ref.child)){
+            currCase.append("        " + addToQueueInC + childPtr + ");\n "); 
+        } else {
           addChecker(taint, ref.child, cases, currCase, currPtr, pDepth + 1);
         }
-        else {
-          //if we are going to insert something into the queue, 
-          //we should be able to resume traverser from it. 
-          assert qualifiesForCaseStatement(ref.child);
-          currCase.append("        " + addToQueueInC + childPtr + ");\n ");
-        }
+        
         currCase.append("    }\n");  //close for queryVistedHashtable
         
         currCase.append("}\n"); //close for internal case statement
