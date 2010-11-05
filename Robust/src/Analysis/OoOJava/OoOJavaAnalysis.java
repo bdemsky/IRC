@@ -1320,15 +1320,23 @@ public class OoOJavaAnalysis {
                 // and it is not parent
                 type = ConflictNode.SCC;
               } else {
-                type = ConflictNode.PARENT_WRITE;
+                if(state.RCR){
+                  type = ConflictNode.PARENT_COARSE;
+                }else{
+                  type = ConflictNode.PARENT_WRITE;
+                }
               }
               seseLock.addConflictNode(edge.getVertexU(), type);
             } else {
               if (edge.getVertexU().isStallSiteNode()) {
-                if (edge.getVertexU().getWriteEffectSet().isEmpty()) {
-                  type = ConflictNode.PARENT_READ;
-                } else {
-                  type = ConflictNode.PARENT_WRITE;
+                if(state.RCR){
+                  type = ConflictNode.PARENT_COARSE;
+                }else{
+                  if (edge.getVertexU().getWriteEffectSet().isEmpty()) {
+                    type = ConflictNode.PARENT_READ;
+                  } else {
+                    type = ConflictNode.PARENT_WRITE;
+                  }
                 }
               } else {
                 type = ConflictNode.COARSE;
@@ -1341,15 +1349,23 @@ public class OoOJavaAnalysis {
                 // and it is not parent
                 type = ConflictNode.SCC;
               } else {
-                type = ConflictNode.PARENT_WRITE;
+                if(state.RCR){
+                  type = ConflictNode.PARENT_COARSE;
+                }else{
+                  type = ConflictNode.PARENT_WRITE;
+                }
               }
               seseLock.addConflictNode(edge.getVertexV(), type);
             } else {
               if (edge.getVertexV().isStallSiteNode()) {
-                if (edge.getVertexV().getWriteEffectSet().isEmpty()) {
-                  type = ConflictNode.PARENT_READ;
-                } else {
-                  type = ConflictNode.PARENT_WRITE;
+                if(state.RCR){
+                  type = ConflictNode.PARENT_COARSE;
+                }else{
+                  if (edge.getVertexV().getWriteEffectSet().isEmpty()) {
+                    type = ConflictNode.PARENT_READ;
+                  } else {
+                    type = ConflictNode.PARENT_WRITE;
+                  }
                 }
               } else {
                 type = ConflictNode.COARSE;

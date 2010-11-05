@@ -3285,61 +3285,81 @@ public class BuildCode {
             Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
             Set<Analysis.OoOJava.WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
             
-            if(waitingElementSet.size()>0){
+            if (waitingElementSet.size() > 0) {
               output.println("// stall on parent's stall sites ");
               output.println("   {");
               output.println("     REntry* rentry;");
-          
+
               for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-                Analysis.OoOJava.WaitingElement waitingElement = (Analysis.OoOJava.WaitingElement) iterator.next();
-		if( waitingElement.getStatus() >= ConflictNode.COARSE ){
-                  output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],"+waitingElement.getStatus()+ ", runningSESE);");
-                }else{
-                  output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],"+ waitingElement.getStatus()+ ", runningSESE,  (void*)&" +generateTemp(fm,waitingElement.getTempDesc(),lb)+ ");");
-                }         
-		output.println("     rentry->parentStallSem=&runningSESEstallSem;");
+                Analysis.OoOJava.WaitingElement waitingElement =
+                    (Analysis.OoOJava.WaitingElement) iterator.next();
+                if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+                  if (state.RCR) {
+                    output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+                        + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                        + ", runningSESE, 1LL);");
+                  } else {
+                    output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+                        + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                        + ", runningSESE);");
+                  }
+                } else {
+                  output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
+                      + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                      + ", runningSESE,  (void*)&"
+                      + generateTemp(fm, waitingElement.getTempDesc(), lb) + ");");
+                }
+                output.println("     rentry->parentStallSem=&runningSESEstallSem;");
                 output.println("     psem_reset( &runningSESEstallSem);");
-		output.println("     rentry->tag=runningSESEstallSem.tag;");
-                output.println("     rentry->queue=runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "];");
-                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==NOTREADY){");
-                if( state.COREPROF ) {
+                output.println("     rentry->tag=runningSESEstallSem.tag;");
+                output.println("     rentry->queue=runningSESE->memoryQueueArray["
+                    + waitingElement.getQueueID() + "];");
+                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
+                    + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
+                if (state.COREPROF) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-                  output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                  output
+                      .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
                   output.println("#endif");
                 }
-                if(state.RCR) {
-		  //no need to enqueue parent effect if coarse grained conflict clears us
+                if (state.RCR) {
+                  // no need to enqueue parent effect if coarse grained conflict
+                  // clears us
 
-		  output.println("       while(stallrecord.common.rcrstatus) BARRIER();");
+                  output.println("       while(stallrecord.common.rcrstatus) BARRIER();");
                   // was the code above actually meant to look like this?
-                  //output.println("       while(stallrecord.common.rcrstatus) {");
-                  //output.println("         BARRIER();");
-                  //output.println("         sched_yield();");
-		  //output.println("       }");
+                  // output.println("       while(stallrecord.common.rcrstatus) {");
+                  // output.println("         BARRIER();");
+                  // output.println("         sched_yield();");
+                  // output.println("       }");
 
-
-		  output.println("       stallrecord.common.parentsStallSem=&runningSESEstallSem;");
-		  output.println("       stallrecord.tag=rentry->tag;");
-		  output.println("       stallrecord.___obj___=(struct ___Object___ *)"+generateTemp(fm, waitingElement.getTempDesc(), null)+";");
-		  output.println("       stallrecord.common.classID=-"+rcr.getTraverserID(waitingElement.getTempDesc(), fn)+";");
-		  //mark the record used..so we won't use it again until it is free
-		  //clear rcrRecord
-		  output.println("       stallrecord.rcrRecords[0].index=0;");
-		  output.println("       stallrecord.rcrRecords[0].flag=0;");
-		  output.println("       stallrecord.rcrRecords[0].next=NULL;");
-		  output.println("       stallrecord.common.rcrstatus=1;");
-		  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
+                  output.println("       stallrecord.common.parentsStallSem=&runningSESEstallSem;");
+                  output.println("       stallrecord.tag=rentry->tag;");
+                  output.println("       stallrecord.___obj___=(struct ___Object___ *)"
+                      + generateTemp(fm, waitingElement.getTempDesc(), null) + ";");
+                  output.println("       stallrecord.common.classID=-"
+                      + rcr.getTraverserID(waitingElement.getTempDesc(), fn) + ";");
+                  // mark the record used..so we won't use it again until it is
+                  // free
+                  // clear rcrRecord
+                  output.println("       stallrecord.rcrRecords[0].index=0;");
+                  output.println("       stallrecord.rcrRecords[0].flag=0;");
+                  output.println("       stallrecord.rcrRecords[0].next=NULL;");
+                  output.println("       stallrecord.common.rcrstatus=1;");
+                  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
                 }
 
-		output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+                output
+                    .println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
 
-                if( state.RCR ) {
+                if (state.RCR) {
                   output.println("       stallrecord.common.rcrstatus=0;");
                 }
 
-                if( state.COREPROF ) {
+                if (state.COREPROF) {
                   output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-                  output.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                  output
+                      .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
                   output.println("#endif");
                 }
                 output.println("     }  ");
