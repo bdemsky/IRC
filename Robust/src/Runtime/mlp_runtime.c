@@ -820,6 +820,7 @@ void resolveDependencies(REntry* rentry){
     int index=-1;
     while(mask!=0) {
       int shift=__builtin_ctzll(mask)+1;
+      mask=mask>>shift;
       index+=shift;
       if(atomic_sub_and_test(1, &array[index].flag)) {
 	if(atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies))) 
