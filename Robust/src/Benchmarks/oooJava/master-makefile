@@ -47,17 +47,17 @@ rcr-remake-c:
 
 single: $(PROGRAM)s.bin
 
-$(PROGRAM)s.bin: $(SOURCE_FILES)
+$(PROGRAM)s.bin: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) -thread $(BSFLAGS) $(USECOREPROF)                       -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo: $(PROGRAM)p.bin
 
-$(PROGRAM)p.bin: $(SOURCE_FILES)
+$(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 rcr: $(PROGRAM)r.bin
 
-$(PROGRAM)r.bin: $(SOURCE_FILES)
+$(PROGRAM)r.bin: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 clean:
