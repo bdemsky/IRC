@@ -978,7 +978,9 @@ void resolvePointer(REntry* rentry){
     val=(struct Queue*)0x1;
     val=(struct Queue*)LOCKXCHG((unsigned INTPTR*)&(table->unresolvedQueue), (unsigned INTPTR)val);
   } while(val==(struct Queue*)0x1); 
-  if(val!=NULL && getHead(val)->objectptr==rentry){
+  if(val!=NULL && 
+     getHead(val)!=NULL &&
+     getHead(val)->objectptr==rentry){
     // handling pointer is the first item of the queue
     // start to resolve until it reaches unresolved pointer or end of queue
     INTPTR currentSESE=0;
