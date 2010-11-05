@@ -429,7 +429,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   return retval;
 }
 
-void READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
+int READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   BinItem * bintail=T->array[key]->tail;
   if (isReadBinItem(bintail)) {
     return TAILREADCASE(T, r, val, bintail, key, inc);
@@ -494,7 +494,7 @@ void TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int 
   T->array[key]->head=val;//released lock
 }
 
-void ADDVECTOR(MemoryQueue *Q, REntry *r) {
+int ADDVECTOR(MemoryQueue *Q, REntry *r) {
   if(!isVector(Q->tail)) {
     //Fast Case
     if (isParentCoarse(r) && Q->tail->total==0 && Q->tail==Q->head) { 
@@ -558,7 +558,7 @@ void ADDVECTOR(MemoryQueue *Q, REntry *r) {
 
 
 //SCC's don't come in parent variety
-void ADDSCC(MemoryQueue *Q, REntry *r) {
+int ADDSCC(MemoryQueue *Q, REntry *r) {
   //added SCC
   SCC* S=createSCC();
   S->item.total=1; 
@@ -708,11 +708,11 @@ void RESOLVECHAIN(MemoryQueue *Q) {
         //need to update status
         head->status=READY;
         if (isHashtable(head)) {
-          RESOLVEHASHTABLE(Q, head);
+          RESOLVEHASHTABLE(Q, (Hashtable *) head);
         } else if (isVector(head)) {
-          RESOLVEVECTOR(Q, head);
+          RESOLVEVECTOR(Q, (Vector *) head);
         } else if (isSingleItem(head)) {
-          RESOLVESCC(head);
+          RESOLVESCC((SCC *)head);
         }
         if (head->next==NULL)
           break;

@@ -148,7 +148,7 @@ typedef struct REntry_t{
   // parent write:3 coarse: 4, parent coarse:5, scc: 6
   int type;
   int tag;
-  MemoryQueueItem *qitem;
+  struct MemoryQueueItem_t *qitem;
   struct BinItem_t* binitem;
   struct MemoryQueue_t* queue;
   SESEcommon* seseRec;
@@ -267,6 +267,17 @@ REntry* mlpCreateREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue);
 #endif
 MemoryQueue* createMemoryQueue();
 void rehashMemoryQueue(SESEcommon* seseParent);
+void TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, int inc);
+void RETIRESCC(MemoryQueue *Q, REntry *r);
+void RETIREHASHTABLE(MemoryQueue *q, REntry *r);
+void RETIREBIN(Hashtable *T, REntry *r, BinItem *b);
+void RETIREVECTOR(MemoryQueue *Q, REntry *r);
+void RESOLVECHAIN(MemoryQueue *Q);
+void RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T);
+void RESOLVEVECTOR(MemoryQueue *q, Vector *V);
+void RESOLVESCC(SCC *S);
+void resolveDependencies(REntry* rentry);
+
 
 static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
   atomic_inc( &(seseRec->refCount) );

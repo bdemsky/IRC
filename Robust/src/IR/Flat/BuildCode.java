@@ -4475,8 +4475,8 @@ public class BuildCode {
 	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
 	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
 	    int queueID=waitingElement.getQueueID();
-	    if (queueID>queuetovar.size())
-	      queuetovar.setSize(queueID);
+	    if (queueID>=queuetovar.size())
+	      queuetovar.setSize(queueID+1);
 	    Long l=queuetovar.get(queueID);
 	    long val=(l!=null)?l.longValue():0;
 	    val=val|(1<<queueID);
@@ -4499,7 +4499,7 @@ public class BuildCode {
 
 	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
 	    long mask=queuetovar.get(queueID);
-	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common)"+mask+"LL);");
+	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common), "+mask+"LL);");
 	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
 	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
 	    
