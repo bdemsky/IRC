@@ -4479,7 +4479,7 @@ public class BuildCode {
 	      queuetovar.setSize(queueID+1);
 	    Long l=queuetovar.get(queueID);
 	    long val=(l!=null)?l.longValue():0;
-	    val=val|(1<<queueID);
+	    val=val|(1<<i);
 	    queuetovar.set(queueID, new Long(val));
 	  }
 	}
