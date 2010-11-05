@@ -830,7 +830,7 @@ void resolveDependencies(REntry* rentry){
   } else if (type==PARENTCOARSE) {
     psem_give_tag(rentry->parentStallSem, rentry->tag);
   } else {
-    printf("ERROR...\n");
+    printf("ERROR: REntry type %d should never be generated in RCR..\n");
   }
 #else
   if(type==READ || type==WRITE || type==COARSE || type==SCCITEM){   
