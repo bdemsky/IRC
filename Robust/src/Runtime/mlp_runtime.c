@@ -969,8 +969,13 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon){
 void resolvePointer(REntry* rentry){  
   Hashtable* table=(Hashtable *)rentry->qitem;
   MemoryQueue* queue;
-  if(table==NULL || table->unresolvedQueue==NULL){
-    //resolved already before related rentry is enqueued to the waiting queue
+  // we don't need to consider unresolved cases for coarse rentries.
+  // or if resolved already before related rentry is enqueued to the waiting queue
+  if(rentry->type==COARSE || 
+     rentry->type==PARENTCOARSE ||
+     rentry->type==SCCITEM || 
+     table==NULL ||
+     table->unresolvedQueue==NULL){   
     return;
   }
   struct Queue* val;
