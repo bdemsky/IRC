@@ -662,6 +662,7 @@ public class RuntimeConflictResolver {
       } else {
         cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
         cFile.println("    record->rcrRecords["+index+"].index=0;\n");
+        cFile.println("    record->rcrRecords["+index+"].next=NULL;\n");
       }
       
       //clears queue and hashtable that keeps track of where we've been. 

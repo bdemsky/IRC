@@ -147,15 +147,16 @@ typedef struct REntry_t{
   // fine read:0, fine write:1, parent read:2, 
   // parent write:3 coarse: 4, parent coarse:5, scc: 6
   int type;
-  struct Hashtable_t* hashtable;
-  struct BinItem_t* binitem;
-  struct Vector_t* vector;
-  struct SCC_t* scc;
-  struct MemoryQueue_t* queue;
-  psemaphore * parentStallSem;
   int tag;
+  MemoryQueueItem *qitem;
+  struct BinItem_t* binitem;
+  struct MemoryQueue_t* queue;
   SESEcommon* seseRec;
   INTPTR* pointer;
+  psemaphore * parentStallSem;
+#ifdef RCR
+  INTPTR mask;
+#endif
   int isBufMode;
 } REntry;
 
@@ -252,9 +253,6 @@ static inline void ADD_FORWARD_ITEM( ForwardingListElement* e,
   //atomic_inc( &(s->refCount) );
 }
 
-
-
-
 // simple mechanical allocation and 
 // deallocation of SESE records
 void* mlpAllocSESErecord( int size );
@@ -262,12 +260,13 @@ void  mlpFreeSESErecord( SESEcommon* seseRecord );
 
 MemoryQueue** mlpCreateMemoryQueueArray(int numMemoryQueue);
 REntry* mlpCreateFineREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue, void* dynID);
+#ifdef RCR
+REntry* mlpCreateREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue, INTPTR mask);
+#else
 REntry* mlpCreateREntry(MemoryQueue *q, int type, SESEcommon* seseToIssue);
+#endif
 MemoryQueue* createMemoryQueue();
 void rehashMemoryQueue(SESEcommon* seseParent);
-
-
-
 
 static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
   atomic_inc( &(seseRec->refCount) );

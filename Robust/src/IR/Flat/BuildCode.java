@@ -3310,9 +3310,7 @@ public class BuildCode {
                 if(state.RCR) {
 		  //no need to enqueue parent effect if coarse grained conflict clears us
 
-                                    
-		  output.println("       while(stallrecord.common.rcrstatus) {;}");
-		  output.println("       BARRIER();");
+		  output.println("       while(stallrecord.common.rcrstatus) BARRIER();");
                   // was the code above actually meant to look like this?
                   //output.println("       while(stallrecord.common.rcrstatus) {");
                   //output.println("         BARRIER();");
@@ -4462,40 +4460,67 @@ public class BuildCode {
 	output.println("       REntry* rentry=NULL;");
 	output.println("       INTPTR* pointer=NULL;");
 	output.println("       seseToIssue->common.rentryIdx=0;");
-	output.println("       int dispCount;");
 	Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
 	System.out.println(fm.getMethod()+"["+invars+"]");
+	
+	Vector<Long> queuetovar=new Vector<Long>();
+	
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
-	  if (weset==null)
-	    System.out.println("ERROR:"+td+"  "+fsen+" "+fm.getMethod());
 	  int numqueues=weset.size();
 	  output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+	  output.println("      int dispCount"+i+"=0;");
 
-	  //output.println("      seseToIssue->rcrRecords["+i+"].count=0;");
-	  //output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
-	  //output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
-
-	  output.println("      dispCount=0;");
 	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
 	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
 	    int queueID=waitingElement.getQueueID();
+	    if (queueID>queuetovar.size())
+	      queuetovar.setSize(queueID);
+	    Long l=queuetovar.get(queueID);
+	    long val=(l!=null)?l.longValue():0;
+	    val=val|(1<<queueID);
+	    queuetovar.set(queueID, new Long(val));
+	  }
+	}
+
+	HashSet generatedqueueentry=new HashSet();
+	for(int i=0;i<invars.size();i++) {
+	  TempDescriptor td=invars.get(i);
+	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+	  int numqueues=weset.size();
+	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
+	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
+	    int queueID=waitingElement.getQueueID();
+	    if (generatedqueueentry.contains(queueID))
+	      continue;
+	    else 
+	      generatedqueueentry.add(queueID);
+
 	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
-	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common));");
+	    long mask=queuetovar.get(queueID);
+	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common)"+mask+"LL);");
 	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
 	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
+	    
 	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
-	    output.println("          dispCount++;");
+	    for(int j=0;mask!=0;j++) {
+	      if ((mask&1)==1)
+		output.println("          dispCount"+j+"++;");
+	      mask=mask>>1;
+	    }
 	    output.println("       }");
 	  }
-	  output.println("     if(!dispCount || !atomic_sub_and_test(dispCount,&(seseToIssue->rcrRecords["+i+"].flag)))");
-	  output.println("       localCount++;");
+
 	  if (fsen.getDynamicInVarSet().contains(td)) {
 	    // dynamic in-var case
 	    //output.println("       pointer=seseToIssue->" + waitingElement.getDynID()+ "_srcSESE+seseToIssue->"+ waitingElement.getDynID()+ "_srcOffset;");
 	    //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", &(seseToIssue->common),  pointer );");
 	  }
+	}
+	for(int i=0;i<invars.size();i++) {
+	  output.println("     if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
+	  output.println("       localCount++;");
 	}
 	output.println("    }");
       }

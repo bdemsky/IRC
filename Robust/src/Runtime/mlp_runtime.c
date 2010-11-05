@@ -65,7 +65,11 @@ REntry* mlpCreateFineREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue, v
   return newREntry;
 }
 
-REntry* mlpCreateREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue){
+#ifdef RCR
+REntry* mlpCreateREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue, INTPTR mask) {
+#else
+REntry* mlpCreateREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue) {
+#endif
 #ifdef OOO_DISABLE_TASKMEMPOOL
   REntry* newREntry=(REntry*)RUNMALLOC(sizeof(REntry));
 #else
@@ -73,6 +77,9 @@ REntry* mlpCreateREntry(MemoryQueue* q, int type, SESEcommon* seseToIssue){
 #endif
   newREntry->type=type;
   newREntry->seseRec=seseToIssue;
+#ifdef RCR
+  newREntry->mask=mask;
+#endif
   return newREntry;
 }
 
@@ -256,7 +263,7 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
 
   //at this point, have table
   Hashtable* table=(Hashtable*)q->tail;
-  r->hashtable=table; // set rentry's hashtable
+  r->qitem=(MemoryQueueItem *) table; // set rentry's hashtable
   if( *(r->pointer)==0 || 
       ( *(r->pointer)!=0 && 
         BARRIER() && 
@@ -366,7 +373,7 @@ int EMPTYBINCASE(Hashtable *T, BinElement* be, REntry *r, int inc) {
   if(inc){
     atomic_inc(&T->item.total);
   }
-  r->hashtable=T;
+  r->qitem=(MemoryQueueItem *)T;
   r->binitem=b;
   be->tail=b;
   be->head=b;//released lock
@@ -393,7 +400,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
     atomic_inc(&T->item.total);
   }
 
-  r->hashtable=T;
+  r->qitem=(MemoryQueueItem *)T;
   r->binitem=(BinItem*)b;
 
   be->tail->next=(BinItem*)b;
@@ -422,7 +429,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   return retval;
 }
 
-READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
+void READBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
   BinItem * bintail=T->array[key]->tail;
   if (isReadBinItem(bintail)) {
     return TAILREADCASE(T, r, val, bintail, key, inc);
@@ -463,12 +470,12 @@ int TAILREADCASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int ke
   if(inc){
     atomic_inc(&T->item.total);
   }
-  r->hashtable=T;
+  r->qitem=(MemoryQueueItem *)T;
   T->array[key]->head=val;//released lock
   return retval;
 }
 
-TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, int inc) {
+void TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, int inc) {
   //  WriteBinItem* wb=createWriteBinItem();
   //wb->val=r;
   //wb->item.total=1;//safe because item could not have started
@@ -480,14 +487,14 @@ TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int key, 
   if(inc){
     atomic_inc(&T->item.total);
   }
-  r->hashtable=T;
+  r->qitem=(MemoryQueueItem *)T;
   r->binitem=(BinItem*)rb;
   T->array[key]->tail->next=(BinItem*)rb;
   T->array[key]->tail=(BinItem*)rb;
   T->array[key]->head=val;//released lock
 }
 
-ADDVECTOR(MemoryQueue *Q, REntry *r) {
+void ADDVECTOR(MemoryQueue *Q, REntry *r) {
   if(!isVector(Q->tail)) {
     //Fast Case
     if (isParentCoarse(r) && Q->tail->total==0 && Q->tail==Q->head) { 
@@ -531,7 +538,7 @@ ADDVECTOR(MemoryQueue *Q, REntry *r) {
   BARRIER();
   V->index++;
   //*****NEED memory barrier here to ensure compiler does not cache V.status*********
-  r->vector=V;
+  r->qitem=(MemoryQueueItem *)V;
   if (BARRIER() && V->item.status==READY) {
     void* flag=NULL;
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag); 
@@ -551,12 +558,12 @@ ADDVECTOR(MemoryQueue *Q, REntry *r) {
 
 
 //SCC's don't come in parent variety
-ADDSCC(MemoryQueue *Q, REntry *r) {
+void ADDSCC(MemoryQueue *Q, REntry *r) {
   //added SCC
   SCC* S=createSCC();
   S->item.total=1; 
   S->val=r;
-  r->scc=S;
+  r->qitem=(MemoryQueueItem *)S;
   Q->tail->next=(MemoryQueueItem*)S;
   //*** NEED BARRIER HERE
   if (BARRIER() && Q->tail->status==READY && Q->tail->total==0 && Q->tail==Q->head) {
@@ -594,15 +601,15 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r) {
 #endif
 }
 
-RETIRESCC(MemoryQueue *Q, REntry *r) {
-  SCC* s=r->scc;
+void RETIRESCC(MemoryQueue *Q, REntry *r) {
+  SCC* s=(SCC *)r->qitem;
   s->item.total=0;//don't need atomicdec
   RESOLVECHAIN(Q);
 }
 
 
-RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
-  Hashtable *T=r->hashtable;
+void RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
+  Hashtable *T=(Hashtable *)r->qitem;
   BinItem *b=r->binitem;
   RETIREBIN(T,r,b);
   atomic_dec(&T->item.total);
@@ -611,7 +618,7 @@ RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
   }
 }
 
-RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
+void RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
   int key=generateKey( OBJPTRPTR_2_OBJOID( r->pointer ) );
   if(isFineRead(r)) {
     atomic_dec(&b->total);
@@ -684,15 +691,15 @@ RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
 }
 
 
-RETIREVECTOR(MemoryQueue *Q, REntry *r) {
-  Vector* V=r->vector;
+void RETIREVECTOR(MemoryQueue *Q, REntry *r) {
+  Vector* V=(Vector *)r->qitem;
   atomic_dec(&V->item.total);
   if (V->item.next!=NULL && V->item.total==0) { //NOTE: ORDERING CRUCIAL HERE
     RESOLVECHAIN(Q);
   }
 }
 
-RESOLVECHAIN(MemoryQueue *Q) {
+void RESOLVECHAIN(MemoryQueue *Q) {
   while(TRUE) {
     MemoryQueueItem* head=Q->head;
     if (head->next==NULL||head->total!=0) { 
@@ -721,7 +728,7 @@ RESOLVECHAIN(MemoryQueue *Q) {
 }
 
 
-RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {  
+void RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {  
   int binidx;
   for (binidx=0;binidx<NUMBINS;binidx++) {    
     BinElement* bin=T->array[binidx];
@@ -769,7 +776,7 @@ RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T) {
   }
 }
 
-RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
+void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
   int i;
   Vector* tmp=V;
   //handle ready cases
@@ -793,7 +800,7 @@ RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
   }
 }
 
-RESOLVESCC(SCC *S) {
+void RESOLVESCC(SCC *S) {
   //precondition: SCC's state is READY
   void* flag=NULL;
   flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag); 
@@ -803,15 +810,36 @@ RESOLVESCC(SCC *S) {
 }
 
 
-resolveDependencies(REntry* rentry){
+void resolveDependencies(REntry* rentry){
   SESEcommon* seseCommon=(SESEcommon*)rentry->seseRec;
-  if(rentry->type==READ || rentry->type==WRITE || rentry->type==COARSE || rentry->type==SCCITEM){   
+  int type=rentry->type;
+#ifdef RCR
+  if (type==COARSE||type==SCCITEM) {
+    struct rcrRecord * array=(struct rcrRecord *)(((char *)seseCommon)+seseCommon->offsetToParamRecords);
+    INTPTR mask=rentry->mask;
+    int index=-1;
+    while(mask!=0) {
+      int shift=__builtin_ctzll(mask)+1;
+      index+=shift;
+      if(atomic_sub_and_test(1, &array[index].flag)) {
+	if(atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies))) 
+	  workScheduleSubmit((void *)seseCommon);
+      }
+    }
+  } else if (type==PARENTCOARSE) {
+    psem_give_tag(rentry->parentStallSem, rentry->tag);
+  } else {
+    printf("ERROR...\n");
+  }
+#else
+  if(type==READ || type==WRITE || type==COARSE || type==SCCITEM){   
     if( atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies)) ){
       workScheduleSubmit(seseCommon);
     }   
-  }else if(rentry->type==PARENTREAD || rentry->type==PARENTWRITE ||rentry->type==PARENTCOARSE){
+  }else if(type==PARENTREAD || type==PARENTWRITE || type==PARENTCOARSE){
     psem_give_tag(rentry->parentStallSem, rentry->tag);
   }
+#endif
 }
 
 void INITIALIZEBUF(MemoryQueue * q){  
@@ -937,9 +965,8 @@ int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon){
 }
 
 
-resolvePointer(REntry* rentry){  
- 
-  Hashtable* table=rentry->hashtable;
+void resolvePointer(REntry* rentry){  
+  Hashtable* table=(Hashtable *)rentry->qitem;
   MemoryQueue* queue;
   if(table==NULL || table->unresolvedQueue==NULL){
     //resolved already before related rentry is enqueued to the waiting queue
@@ -1005,60 +1032,4 @@ resolvePointer(REntry* rentry){
 }
 
 void rehashMemoryQueue(SESEcommon* seseParent){    
-#if 0
-  // update memory queue
-  int i,binidx;
-  for(i=0; i<seseParent->numMemoryQueue; i++){
-    MemoryQueue *memoryQueue=seseParent->memoryQueueArray[i];
-    MemoryQueueItem *memoryItem=memoryQueue->head;
-    MemoryQueueItem *prevItem=NULL;
-    while(memoryItem!=NULL){
-      if(memoryItem->type==HASHTABLE){
-	//do re-hash!
-	Hashtable* ht=(Hashtable*)memoryItem;
-	Hashtable* newht=createHashtable();	
-	int binidx;
-	for(binidx=0; binidx<NUMBINS; binidx++){
-	  BinElement *bin=ht->array[binidx];
-	  BinItem *binItem=bin->head;
-	  //traverse over the list of each bin
-	  while(binItem!=NULL){
-	    if(binItem->type==READBIN){
-	      ReadBinItem* readBinItem=(ReadBinItem*)binItem;
-	      int ridx;
-	      for(ridx=0; ridx<readBinItem->index; ridx++){
-		REntry *rentry=readBinItem->array[ridx];
-		int newkey=generateKey((unsigned int)(unsigned INTPTR)*(rentry->pointer));	
-		int status=rentry->binitem->status;	      
-		ADDTABLEITEM(newht,rentry,TRUE);
-		rentry->binitem->status=status; // update bin status as before rehash
-	      }
-	    }else{//write bin
-	      REntry *rentry=((WriteBinItem*)binItem)->val;
-	      int newkey=generateKey((unsigned int)(unsigned INTPTR)*(rentry->pointer));	
-	      int status=rentry->binitem->status;	      
-	      ADDTABLEITEM(newht,rentry,TRUE);    	      
-	      int newstatus=rentry->binitem->status;
-	      //printf("[%d]old status=%d new status=%d\n",i,status,newstatus);
-	      rentry->binitem->status=status; // update bin status as before rehash
-	    }
-	    binItem=binItem->next;
-	  }
-	}
-	newht->item.status=ht->item.status; // update hashtable status
-	if(prevItem!=NULL){
-	  prevItem->next=(MemoryQueueItem*)newht;
-	}else{
-	  if(memoryQueue->head==memoryQueue->tail){
-	    memoryQueue->tail=(MemoryQueueItem*)newht;
-	  }
-	  memoryQueue->head=(MemoryQueueItem*)newht;
-	}
-	newht->item.next=ht->item.next;	
-      }
-      prevItem=memoryItem;
-      memoryItem=memoryItem->next;
-    }
-  }
-#endif
 }
