@@ -4490,6 +4490,8 @@ public class BuildCode {
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
 	  int numqueues=weset.size();
 	  output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+	  output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
+	  output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
 	  output.println("      int dispCount"+i+"=0;");
 
 	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {

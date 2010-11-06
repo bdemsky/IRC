@@ -655,14 +655,15 @@ public class RuntimeConflictResolver {
     if(cases.size() == 0) {
       cFile.println(" return;");
     } else {
-      cFile.println("    int totalcount=RUNBIAS;\n");
-      
+      cFile.println("    int totalcount=RUNBIAS;");      
       if (taint.isStallSiteTaint()) {
-        cFile.println("    record->rcrRecords[0].count=RUNBIAS;\n");
+        cFile.println("    record->rcrRecords[0].count=RUNBIAS;");
+        cFile.println("    record->rcrRecords[0].index=0;");
+        cFile.println("    record->rcrRecords[0].next=NULL;");
       } else {
-        cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;\n");
-        cFile.println("    record->rcrRecords["+index+"].index=0;\n");
-        cFile.println("    record->rcrRecords["+index+"].next=NULL;\n");
+        cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;");
+        cFile.println("    record->rcrRecords["+index+"].index=0;");
+        cFile.println("    record->rcrRecords["+index+"].next=NULL;");
       }
       
       //clears queue and hashtable that keeps track of where we've been. 
