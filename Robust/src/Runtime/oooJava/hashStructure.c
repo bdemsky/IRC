@@ -434,6 +434,9 @@ void RESOLVE(SESEcommon *record, bitvt mask) {
 	//mark the record unused
 	BARRIER();
 	record->rcrstatus=0;
+#ifndef OOO_DISABLE_TASKMEMPOOL
+	RELEASE_REFERENCE_TO(record);
+#endif
       } else {
 	int flag=LOCKXCHG32(&array[index].flag,0);
 	if (flag) {

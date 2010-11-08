@@ -417,6 +417,11 @@ public class RuntimeConflictResolver {
         TempDescriptor tmp=invars.get(i);
         cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
       }
+      //release traverser reference...traversal finished...
+      //executing thread will clean bins for us
+      cFile.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+      cFile.println("    RELEASE_REFERENCE_TO(record);");
+      cFile.println("#endif");
       cFile.println(    "    }");
       cFile.println(    "    break;");
     }
@@ -432,13 +437,7 @@ public class RuntimeConflictResolver {
     }
 
     cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in: %d.\\n\",record->classID);\n    break;");
-    
     cFile.println("  }");
-    //release traverser reference...traversal finished...
-    //executing thread will clean bins for us
-    cFile.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-    cFile.println("    RELEASE_REFERENCE_TO(record);");
-    cFile.println("#endif");
     cFile.println("}");
   }
 
