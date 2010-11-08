@@ -7,3 +7,4 @@ Big TODOS:
 6) Parallelize traversal
 7) Fix race on enqueue into table vs dequeue at retire... - done
 8) Fix stall stie handling -- done
+9) Traversers should stall if in-set var is dynamic and currently unknown until value is known
