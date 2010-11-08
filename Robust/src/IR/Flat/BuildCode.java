@@ -4499,7 +4499,9 @@ public class BuildCode {
 
     // Enqueue Task Record
     if (state.RCR) {
-      output.println("    enqueueTR(TRqueue, (void *)seseToIssue);");
+      if( fsen != oooa.getMainSESE() ){
+        output.println("    enqueueTR(TRqueue, (void *)seseToIssue);");
+      }
     }
 
     // if there were no outstanding dependencies, issue here
