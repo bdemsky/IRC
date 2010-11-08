@@ -1,11 +1,13 @@
 #include "trqueue.h"
 #include "mlp_runtime.h"
 #include "rcr_runtime.h"
+#include "hashStructure.h"
 #include "structdefs.h"
 #include "RuntimeConflictResolver.h"
 
 void * workerTR(void *x) {
   struct trQueue * queue=(struct trQueue *)x;
+  allHashStructures=queue->allHashStructures;
   while(1) {
     SESEcommon * tmp;
     do {
@@ -23,4 +25,3 @@ void * workerTR(void *x) {
   return NULL;
 }
 
-__thread SESEstall stallrecord;

@@ -8,7 +8,7 @@
 
 //NOTE: this is only temporary (for testing) and will be removed in favor of thread local variables
 //It's basically an array of hashStructures so we can simulate what would happen in a many-threaded version
-HashStructure ** allHashStructures;
+__thread HashStructure ** allHashStructures;
 #define ISWRITEBIN(x) (x&BINMASK)
 #define ISREADBIN(x) (!(x&BINMASK))
 //#define POPCOUNT(x) __builtin_popcountll(x)
@@ -39,8 +39,8 @@ inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
 }
 
 //NOTE: only temporary
-void rcr_createMasterHashTableArray(int maxSize){
-  allHashStructures = (HashStructure **) malloc(sizeof(HashStructure *) * maxSize);
+HashStructure ** rcr_createMasterHashTableArray(int maxSize){
+  return (HashStructure **) malloc(sizeof(HashStructure *) * maxSize);
 }
 
 HashStructure* rcr_createHashtable(int sizeofWaitingQueue){

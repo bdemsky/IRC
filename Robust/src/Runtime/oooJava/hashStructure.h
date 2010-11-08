@@ -72,9 +72,9 @@ typedef struct ReadBinItem_rcr {
   int index;
 } ReadBinItem_rcr;
 
-extern HashStructure ** allHashStructures;
+extern __thread HashStructure ** allHashStructures;
 
-void rcr_createMasterHashTableArray(int maxSize); //temporary
+HashStructure ** rcr_createMasterHashTableArray(int maxSize); //temporary
 HashStructure* rcr_createHashtable(int sizeofWaitingQueue);
 WriteBinItem_rcr* rcr_createWriteBinItem();
 ReadBinItem_rcr* rcr_createReadBinItem();

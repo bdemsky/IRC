@@ -379,7 +379,7 @@ public class BuildCode {
     if(rcr != null) {
       rcr.close();
       System.out.println("Runtime Conflict Resolver Done.");
-    }  
+    }
   }
   
   /* This method goes though the call graph and tag those methods that are 
@@ -2564,6 +2564,10 @@ public class BuildCode {
     if( !fsen.getIsLeafSESE() ) {
       output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
                      maxTaskRecSizeStr+", freshTaskRecordInitializer );");
+      if (state.RCR) {
+	output.println("   createTR();");
+	output.println("   runningSESE->allHashStructures=TRqueue->allHashStructures;");
+      }
     } else {
       // make it clear we purposefully did not initialize this
       output.println("   runningSESE->taskRecordMemPool = (MemPool*)0x7;");
@@ -3102,6 +3106,87 @@ public class BuildCode {
     throw new Error();
   }
 
+
+  void stallMEMRCR(FlatMethod fm, FlatNode fn, Set<Analysis.OoOJava.WaitingElement> waitingElementSet, PrintWriter output) {
+    output.println("// stall on parent's stall sites ");
+    output.println("   {");
+    output.println("     REntry* rentry;");
+    output.println("     SESEstall * stallrecord=(SESEstall *) poolalloc(runningSESE->taskRecordMemPool);");
+    output.println("     stallrecord->common.unresolvedDependencies=10000;");
+    output.println("     stallrecord->common.rcrstatus=1;");
+    output.println("     stallrecord->common.offsetToParamRecords=(INTPTR) & (((SESEstall *)0)->rcrRecords);");
+    output.println("     stallrecord->common.refCount = 3;");
+    output.println("     stallrecord->tag=rentry->tag;");
+    output.println("     int localCount=10000;");
+    output.println("     stallrecord->rcrRecords[0].index=0;");
+    output.println("     stallrecord->rcrRecords[0].flag=0;");
+    output.println("     stallrecord->rcrRecords[0].next=NULL;");
+    output.println("     stallrecord->common.parentsStallSem=&runningSESEstallSem;");
+
+    TempDescriptor stalltd=null;
+    for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+      Analysis.OoOJava.WaitingElement waitingElement =(Analysis.OoOJava.WaitingElement) iterator.next();
+      if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+	output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+		       + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+		       + ", (SESEcommon *) stallrecord, 1LL);");
+      } else {
+	throw new Error("Fine-grained conflict: This should not happen in RCR");
+      }
+      output.println("     rentry->parentStallSem=&runningSESEstallSem;");
+      output.println("     psem_reset( &runningSESEstallSem);");
+      output.println("     rentry->tag=runningSESEstallSem.tag;");
+      output.println("     rentry->queue=runningSESE->memoryQueueArray["
+		     + waitingElement.getQueueID() + "];");
+      output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
+		     + waitingElement.getQueueID() + "],rentry)==READY) ");
+      output.println("       localCount--;");
+      if (stalltd==null) {
+	stalltd=waitingElement.getTempDesc();
+      } else if (stalltd!=waitingElement.getTempDesc()) {
+	throw new Error("Multiple temp descriptors at stall site"+stalltd+"!="+waitingElement.getTempDesc());
+      }
+    }
+
+    //did all of the course grained stuff
+    output.println("     if(!atomic_sub_and_test(localCount, &(stallrecord->common.unresolvedDependencies))) {");
+    //have to do fine-grained work also
+    output.println("       stallrecord->___obj___=(struct ___Object___ *)"
+		   + generateTemp(fm, stalltd, null) + ";");
+    output.println("       stallrecord->common.classID=-"
+		   + rcr.getTraverserID(stalltd, fn) + ";");
+
+    output.println("       enqueueTR(TRqueue, (void *)stallrecord);");
+
+    if (state.COREPROF) {
+      output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+      output
+	.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+      output.println("#endif");
+    }    
+    
+    output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+    
+    if (state.COREPROF) {
+      output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+      output
+	.println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+      output.println("#endif");
+    }
+
+    output.println("     } else {");//exit if condition
+    //release traversers reference if we didn't use traverser
+    output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+    output.println("  RELEASE_REFERENCE_TO((SESEcommon *)stallrecord);");
+    output.println("#endif");
+    output.println("     }");
+    //release our reference to stall record
+    output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+    output.println("  RELEASE_REFERENCE_TO((SESEcommon *)stallrecord);");
+    output.println("#endif");
+    output.println("   }");//exit block
+  }
+
   protected void generateFlatNode(FlatMethod fm, LocalityBinding lb, FlatNode fn, PrintWriter output) {
 
     // insert pre-node actions from the code plan
@@ -3286,88 +3371,55 @@ public class BuildCode {
             Set<Analysis.OoOJava.WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
             
             if (waitingElementSet.size() > 0) {
-              output.println("// stall on parent's stall sites ");
-              output.println("   {");
-              output.println("     REntry* rentry;");
-
-              for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-                Analysis.OoOJava.WaitingElement waitingElement =
-                    (Analysis.OoOJava.WaitingElement) iterator.next();
-                if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-                  if (state.RCR) {
-                    output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
-                        + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-                        + ", runningSESE, 1LL);");
-                  } else {
-                    output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
-                        + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-                        + ", runningSESE);");
-                  }
-                } else {
-                  output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
-                      + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-                      + ", runningSESE,  (void*)&"
-                      + generateTemp(fm, waitingElement.getTempDesc(), lb) + ");");
-                }
-                output.println("     rentry->parentStallSem=&runningSESEstallSem;");
-                output.println("     psem_reset( &runningSESEstallSem);");
-                output.println("     rentry->tag=runningSESEstallSem.tag;");
-                output.println("     rentry->queue=runningSESE->memoryQueueArray["
-                    + waitingElement.getQueueID() + "];");
-                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
-                    + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
-                if (state.COREPROF) {
-                  output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-                  output
+	      if (state.RCR) {
+		stallMEMRCR(fm, fn, waitingElementSet, output);
+	      } else {
+		output.println("// stall on parent's stall sites ");
+		output.println("   {");
+		output.println("     REntry* rentry;");
+		
+		for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+		  Analysis.OoOJava.WaitingElement waitingElement =
+		    (Analysis.OoOJava.WaitingElement) iterator.next();
+		  if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+		    output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+				   + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+				   + ", runningSESE);");
+		  } else {
+		    output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
+				   + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+				   + ", runningSESE,  (void*)&"
+				   + generateTemp(fm, waitingElement.getTempDesc(), lb) + ");");
+		  }
+		  output.println("     rentry->parentStallSem=&runningSESEstallSem;");
+		  output.println("     psem_reset( &runningSESEstallSem);");
+		  output.println("     rentry->tag=runningSESEstallSem.tag;");
+		  output.println("     rentry->queue=runningSESE->memoryQueueArray["
+				 + waitingElement.getQueueID() + "];");
+		  output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
+				 + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
+		  if (state.COREPROF) {
+		    output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+		    output
                       .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
-                  output.println("#endif");
-                }
-                if (state.RCR) {
-                  // no need to enqueue parent effect if coarse grained conflict
-                  // clears us
-
-                  output.println("       while(stallrecord.common.rcrstatus) BARRIER();");
-                  // was the code above actually meant to look like this?
-                  // output.println("       while(stallrecord.common.rcrstatus) {");
-                  // output.println("         BARRIER();");
-                  // output.println("         sched_yield();");
-                  // output.println("       }");
-
-                  output.println("       stallrecord.common.parentsStallSem=&runningSESEstallSem;");
-                  output.println("       stallrecord.tag=rentry->tag;");
-                  output.println("       stallrecord.___obj___=(struct ___Object___ *)"
-                      + generateTemp(fm, waitingElement.getTempDesc(), null) + ";");
-                  output.println("       stallrecord.common.classID=-"
-                      + rcr.getTraverserID(waitingElement.getTempDesc(), fn) + ";");
-                  // mark the record used..so we won't use it again until it is
-                  // free
-                  // clear rcrRecord
-                  output.println("       stallrecord.rcrRecords[0].index=0;");
-                  output.println("       stallrecord.rcrRecords[0].flag=0;");
-                  output.println("       stallrecord.rcrRecords[0].next=NULL;");
-                  output.println("       stallrecord.common.rcrstatus=1;");
-                  output.println("       enqueueTR(TRqueue, (void *)&stallrecord);");
-                }
-
-                output
-                    .println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
-
-                if (state.RCR) {
-                  output.println("       stallrecord.common.rcrstatus=0;");
-                }
-
-                if (state.COREPROF) {
-                  output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-                  output
+		    output.println("#endif");
+		  }
+		  
+		  output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+		  
+		  if (state.COREPROF) {
+		    output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+		    output
                       .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
-                  output.println("#endif");
-                }
-                output.println("     }  ");
-              }
-              output.println("   }");
-            }
-          }
-        }else{
+		    output.println("#endif");
+		  }
+		  output.println("     }  ");
+		}
+		output.println("   }");
+	      }
+	    }
+	  }
+        } else{
           ParentChildConflictsMap conflictsMap = mlpa.getConflictsResults().get(fn);
           if (conflictsMap != null) {
             Set<Long> allocSet = conflictsMap.getAllocationSiteIDSetofStallSite();
@@ -4205,8 +4257,6 @@ public class BuildCode {
         output.println("     }");
       }
 
-
-
       if( state.COREPROF ) {
         output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
         output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_BEGIN );");
@@ -4703,20 +4753,20 @@ public class BuildCode {
       output.println("   }");
       output.println("{");
       output.println("  int idx,idx2;");
-      if(inset.size()==1){
-        output.println("  idx=0; {");
-      } else {
-        output.println("  for(idx=0;idx<" + inset.size() + ";idx++){");
+
+      //NEED TO FIX THIS
+      //XXXXXXXXX
+      output.println("    struct rcrRecord *rec;");
+      output.println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
+      for(int i=0;i<inset.size();i++) {
+	output.println("    rec=&" + paramsprefix + "->rcrRecords["+i+"];");
+	output.println("    while(rec!=NULL) {");
+	output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
+	output.println("        rcr_RETIREHASHTABLE(hashstruct["+rcr.getWeakID(inset.get(i),fsen)+"],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
+	output.println("      }");// exit idx2 for loop
+	output.println("      rec=rec->next;");
+	output.println("    }");// exit rec while loop
       }
-      output.println("    struct rcrRecord *rec=&" + paramsprefix + "->rcrRecords[idx];");
-      output.println("    while(rec!=NULL) {");
-      output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
-      output
-          .println("        rcr_RETIREHASHTABLE(allHashStructures[0],&(___params___->common),rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
-      output.println("      }");// exit idx2 for loop
-      output.println("      rec=rec->next;");
-      output.println("    }");// exit rec while loop
-      output.println("  }");// exit idx for loop
       output.println("}");
     }
 
@@ -4744,6 +4794,9 @@ public class BuildCode {
     // destroy this task's mempool if it is not a leaf task
     if( !fsen.getIsLeafSESE() ) {
       output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
+      if (state.RCR) {
+        output.println("     returnTR();");
+      }
     }
     output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
 

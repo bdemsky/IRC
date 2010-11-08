@@ -10,9 +10,12 @@ struct trQueue {
   volatile unsigned int head;
   char buffer[60];//buffer us to the next cache line
   volatile unsigned int tail;
+  struct trQueue *next;
+  struct Hashtable_rcr ** allHashStructures;
 };
 
 void enqueueTR(struct trQueue *, void * ptr);
 void * dequeueTR(struct trQueue *);
-struct trQueue * allocTR();
+void createTR();
+void returnTR();
 #endif

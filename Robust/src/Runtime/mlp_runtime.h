@@ -120,6 +120,7 @@ typedef struct SESEcommon_t {
   struct REntry_t* unresolvedRentryArray[NUMRENTRY];
 
 #ifdef RCR
+  struct Hashtable_rcr ** allHashStructures;
   int offsetToParamRecords;
   volatile int rcrstatus;
   volatile int retired;

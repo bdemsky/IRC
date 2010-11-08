@@ -27,7 +27,9 @@ int threadcount;
 pthread_mutex_t gclock;
 pthread_mutex_t gclistlock;
 pthread_cond_t gccond;
-
+#ifdef RCR
+extern pthread_mutex_t queuelock;
+#endif
 // in garbage.h, listitem is a struct with a pointer
 // to a stack, objects, etc. such that the garbage
 // collector can find pointers for garbage collection
@@ -127,38 +129,6 @@ void* workerMain( void* arg ) {
   // user program, so build an empty garbage list struct to
   // pass to the collector if collection occurs
   struct garbagelist emptygarbagelist = { 0, NULL };
-
-#ifdef RCR
-  //allocate task record queue
-  pthread_t thread;
-  pthread_attr_t nattr;  
-  pthread_attr_init( &nattr );
-  pthread_attr_setdetachstate( &nattr, PTHREAD_CREATE_DETACHED );
-
-  //set up the stall site SESErecord
-  stallrecord.common.offsetToParamRecords=(INTPTR) &((SESEstall *)0)->rcrRecords;
-  stallrecord.common.classID=-1;
-  stallrecord.common.rcrstatus=0;
-
-  //initialize rcrRecord
-  stallrecord.rcrRecords[0].next=NULL;
-  stallrecord.rcrRecords[0].index=0;
-  stallrecord.rcrRecords[0].count=0;
-
-  if( TRqueue == NULL ) {
-    TRqueue = allocTR();
-  }
-
-  int status = pthread_create( &thread,
-			       NULL,
-			       workerTR,
-			       (void*) TRqueue );
-
-  pthread_attr_destroy( &nattr );
-
-  if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
-#endif
-
 
   // Add this worker to the gc list
   pthread_mutex_lock( &gclistlock );
@@ -295,6 +265,9 @@ void workScheduleInit( int numProcessors,
   myWorkerID = 0;
   oid = 1;
 
+#ifdef RCR
+  pthread_mutex_init( &queuelock,     NULL );
+#endif
   pthread_mutex_init( &gclock,     NULL );
   pthread_mutex_init( &gclistlock, NULL );
   pthread_cond_init ( &gccond,     NULL );
@@ -311,12 +284,6 @@ void workScheduleInit( int numProcessors,
     dqInit( &(deques[i]) );
   }
   
-#ifdef RCR
-  //make sure the queue is initialized
-  if (TRqueue==NULL)
-    TRqueue=allocTR();
-#endif
-
   pthread_attr_init( &attr );
   pthread_attr_setdetachstate( &attr, 
                                PTHREAD_CREATE_JOINABLE );

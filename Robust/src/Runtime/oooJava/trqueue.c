@@ -2,6 +2,12 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "mlp_lock.h"
+#include <pthread.h>
+#include "structdefs.h"
+#include "RuntimeConflictResolver.h"
+
+struct trQueue * queuelist=NULL;
+pthread_mutex_t queuelock;
 
 //0 would mean sucess
 //1 would mean fail
@@ -34,10 +40,35 @@ void * dequeueTR(struct trQueue *q) {
   return ptr;
 }
 
-struct trQueue * allocTR() {
-  struct trQueue *ptr=malloc(sizeof(struct trQueue));
-  ptr->head=0;
-  ptr->tail=0;
-  return ptr;
+void createTR() {
+  struct trQueue *ptr=NULL;
+  pthread_mutex_lock(&queuelock);
+  ptr=queuelist;
+  if (ptr!=NULL)
+    queuelist=ptr->next;
+  pthread_mutex_unlock(&queuelock);
+  if (ptr==NULL) {
+    pthread_t thread;
+    pthread_attr_t nattr;
+    pthread_attr_init(&nattr);
+    pthread_attr_setdetachstate( &nattr, PTHREAD_CREATE_DETACHED);
+    ptr=malloc(sizeof(struct trQueue));
+    ptr->head=0;
+    ptr->tail=0;
+    ptr->allHashStructures=createAndFillMasterHashStructureArray();
+    int status=pthread_create( &thread, NULL, workerTR, (void *) ptr);
+    if (status!=0) {printf("ERROR\n");exit(-1);}
+    pthread_attr_destroy(&nattr);
+  }
+  TRqueue=ptr;
 }
 
+void returnTR() {
+  //return worker thread to pool
+  pthread_mutex_lock(&queuelock);
+  TRqueue->next=queuelist;
+  queuelist=TRqueue;
+  pthread_mutex_unlock(&queuelock);
+  //release our worker thread
+  TRqueue=NULL;
+}

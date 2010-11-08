@@ -5,5 +5,4 @@ extern __thread struct trQueue * TRqueue;
 
 void * workerTR(void *);
 
-extern __thread SESEstall stallrecord;
 #endif

@@ -38,6 +38,7 @@ public class RuntimeConflictResolver {
   //The Integer keeps track of the weakly connected group it's in (used in enumerateHeapRoots)
   private Hashtable<Taint, Integer> doneTaints;
   private Hashtable<Tuple, Integer> idMap=new Hashtable<Tuple,Integer>();
+  private Hashtable<Tuple, Integer> weakMap=new Hashtable<Tuple,Integer>();
   private Hashtable<Taint, Set<Effect>> globalEffects;
   private Hashtable<Taint, Set<Effect>> globalConflicts;
   private ArrayList<TraversalInfo> toTraverse;
@@ -307,6 +308,10 @@ public class RuntimeConflictResolver {
     removeInvalidChars(flatname) + "___("+varString+");";
   }
 
+  public int getWeakID(TempDescriptor invar, FlatNode fn) {
+    return weakMap.get(new Tuple(invar, fn)).intValue();
+  }
+
   public int getTraverserID(TempDescriptor invar, FlatNode fn) {
     Tuple t=new Tuple(invar, fn);
     if (idMap.containsKey(t))
@@ -379,20 +384,27 @@ public class RuntimeConflictResolver {
 
   //TODO: This is only temporary, remove when thread local variables are functional. 
   private void createMasterHashTableArray() {
-    headerFile.println("void createAndFillMasterHashStructureArray();");
-    cFile.println("void createAndFillMasterHashStructureArray() {\n" +
-    		"  rcr_createMasterHashTableArray("+weaklyConnectedHRCounter + ");");
+    headerFile.println("struct Hashtable_rcr ** createAndFillMasterHashStructureArray();");
+    cFile.println("struct Hashtable_rcr ** createAndFillMasterHashStructureArray() {");
+    cFile.println("  struct Hashtable_rcr **table=rcr_createMasterHashTableArray("+weaklyConnectedHRCounter + ");");
     
     for(int i = 0; i < weaklyConnectedHRCounter; i++) {
-      cFile.println("  allHashStructures["+i+"] = (HashStructure *) rcr_createHashtable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");");
+      cFile.println("  table["+i+"] = (struct Hashtable_rcr *) rcr_createHashtable("+num2WeaklyConnectedHRGroup.get(i).connectedHRs.size()+");");
     }
+    cFile.println("  return table;");
     cFile.println("}");
   }
 
   private void printMasterTraverserInvocation() {
     headerFile.println("\nint tasktraverse(SESEcommon * record);");
     cFile.println("\nint tasktraverse(SESEcommon * record) {");
-    cFile.println("  if(!CAS(&record->rcrstatus,1,2)) return;");
+    cFile.println("  if(!CAS(&record->rcrstatus,1,2)) {");
+    //release traverser reference...no traversal necessary
+    cFile.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+    cFile.println("    RELEASE_REFERENCE_TO(record);");
+    cFile.println("#endif");
+    cFile.println("    return;");
+    cFile.println("  }");
     cFile.println("  switch(record->classID) {");
     
     for(Iterator<FlatSESEEnterNode> seseit=oooa.getAllSESEs().iterator();seseit.hasNext();) {
@@ -422,6 +434,11 @@ public class RuntimeConflictResolver {
     cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in: %d.\\n\",record->classID);\n    break;");
     
     cFile.println("  }");
+    //release traverser reference...traversal finished...
+    //executing thread will clean bins for us
+    cFile.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+    cFile.println("    RELEASE_REFERENCE_TO(record);");
+    cFile.println("#endif");
     cFile.println("}");
   }
 
@@ -656,14 +673,10 @@ public class RuntimeConflictResolver {
       cFile.println(" return;");
     } else {
       cFile.println("    int totalcount=RUNBIAS;");      
-      if (taint.isStallSiteTaint()) {
+      if (!taint.isStallSiteTaint()) {
         cFile.println("    record->rcrRecords[0].count=RUNBIAS;");
-        cFile.println("    record->rcrRecords[0].index=0;");
-        cFile.println("    record->rcrRecords[0].next=NULL;");
       } else {
         cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;");
-        cFile.println("    record->rcrRecords["+index+"].index=0;");
-        cFile.println("    record->rcrRecords["+index+"].next=NULL;");
       }
       
       //clears queue and hashtable that keeps track of where we've been. 
@@ -690,8 +703,8 @@ public class RuntimeConflictResolver {
         cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords[0].count))) {");
         cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
         cFile.println("         BARRIER();");
-        cFile.println("         record->common.rcrstatus=0;");
         cFile.println("}");
+        cFile.println("         record->common.rcrstatus=0;");
       } else {
         cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");
         cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");
@@ -913,6 +926,14 @@ public class RuntimeConflictResolver {
         hg.id = weaklyConnectedHRCounter;
         num2WeaklyConnectedHRGroup.add(weaklyConnectedHRCounter, hg);
         weaklyConnectedHRCounter++;
+      }
+      if(t.isRBlockTaint()) {
+	int id=connectedHRHash.get(t).id;
+	Tuple tup=new Tuple(t.getVar(),t.getSESE());
+	if (weakMap.containsKey(tup)) {
+	  if (weakMap.get(tup).intValue()!=id)
+	    throw new Error("Var/SESE not unique for weak component.");
+	} else weakMap.put(tup, new Integer(id));
       }
     }
   }

@@ -828,7 +828,13 @@ void resolveDependencies(REntry* rentry){
       }
     }
   } else if (type==PARENTCOARSE) {
-    psem_give_tag(rentry->parentStallSem, rentry->tag);
+    if (atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies))) {
+      psem_give_tag(rentry->parentStallSem, rentry->tag);
+      //release our reference to stallrecord
+#ifndef OOO_DISABLE_TASKMEMPOOL
+      RELEASE_REFERENCE_TO(seseCommon);
+#endif
+    }
   } else {
     printf("ERROR: REntry type %d should never be generated in RCR..\n", rentry->type);
   }
