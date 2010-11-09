@@ -3111,12 +3111,15 @@ public class BuildCode {
     output.println("// stall on parent's stall sites ");
     output.println("   {");
     output.println("     REntry* rentry;");
-    output.println("     SESEstall * stallrecord=(SESEstall *) poolalloc(runningSESE->taskRecordMemPool);");
+    output.println("     // stallrecord sometimes is used as a task record for instance ");
+    output.println("     // when you call RELEASE_REFERENCE_TO on a stall record.");
+    output.println("     // so the parent field must be initialized.");
+    output.println("     SESEstall * stallrecord=(SESEstall *) poolalloc(runningSESE->taskRecordMemPool);");    
+    output.println("     stallrecord->common.parent=runningSESE;");    
     output.println("     stallrecord->common.unresolvedDependencies=10000;");
     output.println("     stallrecord->common.rcrstatus=1;");
     output.println("     stallrecord->common.offsetToParamRecords=(INTPTR) & (((SESEstall *)0)->rcrRecords);");
     output.println("     stallrecord->common.refCount = 3;");
-    output.println("     stallrecord->tag=rentry->tag;");
     output.println("     int localCount=10000;");
     output.println("     stallrecord->rcrRecords[0].index=0;");
     output.println("     stallrecord->rcrRecords[0].flag=0;");
@@ -3136,10 +3139,11 @@ public class BuildCode {
       output.println("     rentry->parentStallSem=&runningSESEstallSem;");
       output.println("     psem_reset( &runningSESEstallSem);");
       output.println("     rentry->tag=runningSESEstallSem.tag;");
+      output.println("     stallrecord->tag=rentry->tag;");
       output.println("     rentry->queue=runningSESE->memoryQueueArray["
 		     + waitingElement.getQueueID() + "];");
       output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
-		     + waitingElement.getQueueID() + "],rentry)==READY) ");
+		     + waitingElement.getQueueID() + "],rentry)==NOTREADY) ");
       output.println("       localCount--;");
       if (stalltd==null) {
 	stalltd=waitingElement.getTempDesc();
