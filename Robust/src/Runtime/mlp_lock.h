@@ -61,6 +61,11 @@ static inline int LOCKXCHG32(volatile int* ptr, int val){
  
 }
 
+
+// LOCKXCH atomically does the following:
+// INTPTR retval=*ptr; 
+// *ptr=val; 
+// return retval
 #ifdef BIT64
 static inline INTPTR LOCKXCHG(volatile INTPTR * ptr, INTPTR val){
   INTPTR retval;
