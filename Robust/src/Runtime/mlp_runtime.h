@@ -301,6 +301,14 @@ static inline int RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
   return 0;
 }
 
+static inline int RELEASE_REFERENCES_TO( SESEcommon* seseRec, int refCount) {
+  if( atomic_sub_and_test( refCount, &(seseRec->refCount) ) ) {
+    poolfreeinto( seseRec->parent->taskRecordMemPool, seseRec );
+    return 1;
+  }
+  return 0;
+}
+
 #define CHECK_RECORD(x) ;
 
 
