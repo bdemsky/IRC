@@ -3125,6 +3125,8 @@ public class BuildCode {
     output.println("     stallrecord->rcrRecords[0].flag=0;");
     output.println("     stallrecord->rcrRecords[0].next=NULL;");
     output.println("     stallrecord->common.parentsStallSem=&runningSESEstallSem;");
+    output.println("     psem_reset( &runningSESEstallSem);");
+    output.println("     stallrecord->tag=runningSESEstallSem.tag;");
 
     TempDescriptor stalltd=null;
     for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
@@ -3136,10 +3138,6 @@ public class BuildCode {
       } else {
 	throw new Error("Fine-grained conflict: This should not happen in RCR");
       }
-      output.println("     rentry->parentStallSem=&runningSESEstallSem;");
-      output.println("     psem_reset( &runningSESEstallSem);");
-      output.println("     rentry->tag=runningSESEstallSem.tag;");
-      output.println("     stallrecord->tag=rentry->tag;");
       output.println("     rentry->queue=runningSESE->memoryQueueArray["
 		     + waitingElement.getQueueID() + "];");
       output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
