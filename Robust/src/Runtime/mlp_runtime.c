@@ -829,7 +829,7 @@ void resolveDependencies(REntry* rentry){
     }
   } else if (type==PARENTCOARSE) {
     if (atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies))) {
-      psem_give_tag(rentry->parentStallSem, rentry->tag);
+      psem_give_tag(seseCommon->parentsStallSem, ((SESEstall *) seseCommon)->tag);
       //release our reference to stallrecord
 #ifndef OOO_DISABLE_TASKMEMPOOL
       RELEASE_REFERENCE_TO(seseCommon);

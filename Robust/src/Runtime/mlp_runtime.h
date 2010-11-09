@@ -148,17 +148,18 @@ typedef struct REntry_t{
   // fine read:0, fine write:1, parent read:2, 
   // parent write:3 coarse: 4, parent coarse:5, scc: 6
   int type;
-  int tag;
+  int isBufMode;
   struct MemoryQueueItem_t *qitem;
   struct BinItem_t* binitem;
   struct MemoryQueue_t* queue;
   SESEcommon* seseRec;
   INTPTR* pointer;
-  psemaphore * parentStallSem;
 #ifdef RCR
   INTPTR mask;
+#else
+  psemaphore * parentStallSem;
+  int tag;
 #endif
-  int isBufMode;
 } REntry;
 
 #ifdef RCR
@@ -308,13 +309,11 @@ static inline int RELEASE_REFERENCE_TO( SESEcommon* seseRec ) {
 
 #define RELEASE_REFERENCE_TOx(x) if (atomic_sub_and_test(1, &((x)->refCount))) {poolfreeinto(x->parent->taskRecordMemPool, x);printf("0x%x REL 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__);}
 
-#define CHECK_RECORDx(x) { \
-  if( ((SESEcommon*)(x))->refCount != 0 ) {                             \
-    printf( "Acquired 0x%x from poolalloc, with refCount=%d\n", (INTPTR)(x), ((SESEcommon*)(x))->refCount ); } \
-  if( ((SESEcommon*)(x))->fresh != 1 ) {                              \
-    printf("0x%x reclaimed 0x%x on %d\n",(INTPTR)runningSESE,(INTPTR)(x),__LINE__); } \
-  ((SESEcommon*)(x))->fresh = 0; \
-}
+#define CHECK_RECORDx(x) {                                              \
+    if( ((SESEcommon*)(x))->refCount < 0 ||                             \
+        ((SESEcommon*)(x))->refCount < 0 ) {                            \
+      printf( "Acquired 0x%x from poolalloc, with refCount=%d\n", (INTPTR)(x), ((SESEcommon*)(x))->refCount ); } \
+  }
 
 
 
