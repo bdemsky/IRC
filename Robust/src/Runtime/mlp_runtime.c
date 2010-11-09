@@ -608,13 +608,15 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r) {
 void RETIRESCC(MemoryQueue *Q, REntry *r) {
   SCC* s=(SCC *)r->qitem;
   s->item.total=0;//don't need atomicdec
+#ifdef RCR
   void *flag=NULL;
   flag=(void*)LOCKXCHG((unsigned INTPTR*)&(s->val), (unsigned INTPTR)flag); 
   if (flag!=NULL) {
-#if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
+#ifdef OOO_DISABLE_TASKMEMPOOL
     RELEASE_REFERENCE_TO(((REntry*)flag)->seseRec);
 #endif
   }
+#endif
   RESOLVECHAIN(Q);
 }
 
@@ -804,6 +806,7 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
       REntry* val=NULL;
       val=(REntry*)LOCKXCHG((unsigned INTPTR*)&(tmp->array[i]), (unsigned INTPTR)val); 
       if (val!=NULL) { 
+        SESEcommon *seseCommon=val->seseRec;
 	resolveDependencies(val);
 	if (isParent(val)) {
 	  atomic_dec(&tmp->item.total);
@@ -814,6 +817,7 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
 #if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
 	else if (atomic_sub_and_test(1, &((REntry *)val)->count))
 	  poolfreeinto(q->rentrypool,val);
+        RELEASE_REFERENCE_TO(seseCommon);
 #endif
       }
     }
@@ -830,10 +834,12 @@ void RESOLVESCC(SCC *S) {
   void* flag=NULL;
   flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag); 
   if (flag!=NULL) {
+    SESEcommon *seseCommon=((REntry *)flag)->seseRec;
     resolveDependencies(flag);
 #if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
     if (atomic_sub_and_test(1, &((REntry *)flag)->count))
       poolfreeinto(q->rentrypool, flag);
+    RELEASE_REFERENCE_TO(seseCommon);
 #endif
   }
 }
@@ -856,16 +862,10 @@ void resolveDependencies(REntry* rentry){
 	  workScheduleSubmit((void *)seseCommon);
       }
     }
-#ifndef OOO_DISABLE_TASKMEMPOOL
-    RELEASE_REFERENCE_TO(seseCommon);
-#endif
   } else if (type==PARENTCOARSE) {
     if (atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies))) {
       psem_give_tag(seseCommon->parentsStallSem, ((SESEstall *) seseCommon)->tag);
       //release our reference to stallrecord
-#ifndef OOO_DISABLE_TASKMEMPOOL
-      RELEASE_REFERENCE_TO(seseCommon);
-#endif
     }
   } else {
     printf("ERROR: REntry type %d should never be generated in RCR..\n", rentry->type);
