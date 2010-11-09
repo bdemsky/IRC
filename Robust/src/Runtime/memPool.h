@@ -38,7 +38,7 @@ static INTPTR pageSize;
 
 
 typedef struct MemPoolItem_t {
-  void* next;
+  struct MemPoolItem_t* next;
 } MemPoolItem;
 
 

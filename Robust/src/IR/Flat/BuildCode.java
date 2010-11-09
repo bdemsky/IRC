@@ -4748,7 +4748,7 @@ public class BuildCode {
     if (state.RCR && inset.size() > 0) {
       /* Make sure the running SESE is finished */
       output.println("   if (unlikely(runningSESE->rcrstatus!=0)) {");
-      output.println("     if(!CAS(&runningSESE->rcrstatus,1,0)) {");
+      output.println("     if(CAS(&runningSESE->rcrstatus,1,0)==2) {");
       output.println("       while(runningSESE->rcrstatus) {");
       output.println("         BARRIER();");
       output.println("         sched_yield();");
