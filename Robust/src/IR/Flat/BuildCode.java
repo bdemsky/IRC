@@ -3115,7 +3115,7 @@ public class BuildCode {
     output.println("     // when you call RELEASE_REFERENCE_TO on a stall record.");
     output.println("     // so the parent field must be initialized.");
     output.println("     SESEstall * stallrecord=(SESEstall *) poolalloc(runningSESE->taskRecordMemPool);");    
-    output.println("     stallrecord->common.parent=runningSESE;");    
+    output.println("     stallrecord->common.parent=runningSESE;");
     output.println("     stallrecord->common.unresolvedDependencies=10000;");
     output.println("     stallrecord->common.rcrstatus=1;");
     output.println("     stallrecord->common.offsetToParamRecords=(INTPTR) & (((SESEstall *)0)->rcrRecords);");
@@ -3141,8 +3141,12 @@ public class BuildCode {
       output.println("     rentry->queue=runningSESE->memoryQueueArray["
 		     + waitingElement.getQueueID() + "];");
       output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
-		     + waitingElement.getQueueID() + "],rentry)==NOTREADY) ");
+		     + waitingElement.getQueueID() + "],rentry)==NOTREADY) {");
       output.println("       localCount--;");
+      output.println("     }");
+      output.println("#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)");
+      output.println("     else poolfreeinto(runningSESE->memoryQueueArray["+waitingElement.getQueueID()+"]->rentrypool, rentry);");
+      output.println("#endif");
       if (stalltd==null) {
 	stalltd=waitingElement.getTempDesc();
       } else if (stalltd!=waitingElement.getTempDesc()) {
@@ -4576,6 +4580,7 @@ public class BuildCode {
 	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
 	    long mask=queuetovar.get(queueID);
 	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common), "+mask+"LL);");
+	    output.println("       rentry->count=2;");
 	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
 	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
 	    
@@ -4716,13 +4721,15 @@ public class BuildCode {
     output.println("     SESEcommon* consumer = (SESEcommon*) getItem( &runningSESE->forwardList );");
     
    
-    output.println("     if(consumer->rentryIdx>0){");
-    output.println("        // resolved null pointer");
-    output.println("        int idx;");
-    output.println("        for(idx=0;idx<consumer->rentryIdx;idx++){");
-    output.println("           resolvePointer(consumer->rentryArray[idx]);");
-    output.println("        }");
-    output.println("     }");
+    if (!state.RCR) {
+      output.println("     if(consumer->rentryIdx>0){");
+      output.println("        // resolved null pointer");
+      output.println("        int idx;");
+      output.println("        for(idx=0;idx<consumer->rentryIdx;idx++){");
+      output.println("           resolvePointer(consumer->rentryArray[idx]);");
+      output.println("        }");
+      output.println("     }");
+    }
 
     output.println("     if( atomic_sub_and_test( 1, &(consumer->unresolvedDependencies) ) ){");
     output.println("       workScheduleSubmit( (void*)consumer );");

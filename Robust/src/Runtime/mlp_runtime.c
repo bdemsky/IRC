@@ -497,15 +497,15 @@ void TAILWRITECASE(Hashtable *T, REntry *r, BinItem *val, BinItem *bintail, int 
 int ADDVECTOR(MemoryQueue *Q, REntry *r) {
   if(!isVector(Q->tail)) {
     //Fast Case
-    if (isParentCoarse(r) && Q->tail->total==0 && Q->tail==Q->head) { 
+    if (isParentCoarse(r) && Q->tail->total==0 && Q->tail==Q->head) {
       return READY;
     }
 
     //added vector
     Vector* V=createVector();
-    Q->tail->next=(MemoryQueueItem*)V;     
+    Q->tail->next=(MemoryQueueItem*)V;
     //************NEED memory barrier here to ensure compiler does not cache Q.tail.status******
-    if (BARRIER() && Q->tail->status==READY&&Q->tail->total==0) { 
+    if (BARRIER() && Q->tail->status==READY&&Q->tail->total==0) {
       //previous Q item is finished
       V->item.status=READY;
     }
@@ -541,7 +541,7 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
   r->qitem=(MemoryQueueItem *)V;
   if (BARRIER() && V->item.status==READY) {
     void* flag=NULL;
-    flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag); 
+    flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag);
     if (flag!=NULL) {
       if (isParentCoarse(r)) { //parent's retire immediately
         atomic_dec(&V->item.total);
@@ -597,7 +597,10 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r) {
     RETIRESCC(Q, r);
   }
 #ifndef OOO_DISABLE_TASKMEMPOOL
-  poolfreeinto(Q->rentrypool, r);
+#ifdef RCR
+  if(atomic_sub_and_test(1, &r->count))
+#endif
+    poolfreeinto(Q->rentrypool, r);
 #endif
 }
 
@@ -788,8 +791,15 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
       if (val!=NULL) { 
 	resolveDependencies(val);
 	if (isParent(val)) {
-          atomic_dec(&tmp->item.total);
-        }
+	  atomic_dec(&tmp->item.total);
+#ifdef RCR
+	  poolfreeinto(q->rentrypool,val);
+#endif
+	}
+#if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
+	else if (atomic_sub_and_test(1, &((REntry *)val)->count))
+	  poolfreeinto(q->rentrypool,val);
+#endif
       }
     }
     if (tmp->item.next!=NULL&&isVector(tmp->item.next)) {
@@ -806,6 +816,10 @@ void RESOLVESCC(SCC *S) {
   flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag); 
   if (flag!=NULL) {
     resolveDependencies(flag);
+#if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
+    if (atomic_sub_and_test(1, &((REntry *)flag)->count))
+      poolfreeinto(q->rentrypool, flag);
+#endif
   }
 }
 
@@ -905,6 +919,7 @@ int RESOLVEBUFFORHASHTABLE(MemoryQueue * q, Hashtable* table, SESEcommon *seseCo
   }
 }
 
+#ifndef RCR
 int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon){
   int localCount=0;
   int i;
@@ -1044,6 +1059,4 @@ void resolvePointer(REntry* rentry){
     table->unresolvedQueue=val;//released lock;
   }  
 }
-
-void rehashMemoryQueue(SESEcommon* seseParent){    
-}
+#endif

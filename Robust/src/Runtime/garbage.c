@@ -723,17 +723,6 @@ void collect(struct garbagelist * stackptr) {
   fixtags();
 #endif
 
-#ifdef MLP
-  {
-    //rehash memory queues of current running SESEs
-    struct listitem *listptr=list;
-    while(listptr!=NULL){
-      rehashMemoryQueue((SESEcommon*)(listptr->seseCommon));
-      listptr=listptr->next;
-    }
-  }
-#endif
-
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   needtocollect=0;
   pthread_mutex_unlock(&gclistlock);

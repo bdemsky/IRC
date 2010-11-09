@@ -148,7 +148,11 @@ typedef struct REntry_t{
   // fine read:0, fine write:1, parent read:2, 
   // parent write:3 coarse: 4, parent coarse:5, scc: 6
   int type;
+#ifdef RCR
+  int count;
+#else
   int isBufMode;
+#endif
   struct MemoryQueueItem_t *qitem;
   struct BinItem_t* binitem;
   struct MemoryQueue_t* queue;
@@ -280,6 +284,10 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V);
 void RESOLVESCC(SCC *S);
 void resolveDependencies(REntry* rentry);
 
+#ifndef RCR
+int RESOLVEBUF(MemoryQueue * q, SESEcommon *seseCommon);
+void resolvePointer(REntry* rentry);
+#endif
 
 static inline void ADD_REFERENCE_TO( SESEcommon* seseRec ) {
   atomic_inc( &(seseRec->refCount) );
