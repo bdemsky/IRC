@@ -160,6 +160,7 @@ typedef struct REntry_t{
   INTPTR* pointer;
 #ifdef RCR
   INTPTR mask;
+  int index;
 #else
   psemaphore * parentStallSem;
   int tag;

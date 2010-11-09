@@ -3120,7 +3120,6 @@ public class BuildCode {
     output.println("     stallrecord->common.rcrstatus=1;");
     output.println("     stallrecord->common.offsetToParamRecords=(INTPTR) & (((SESEstall *)0)->rcrRecords);");
     output.println("     stallrecord->common.refCount = 10003;");
-    output.println("     int refCount=10000;");
     output.println("     int localCount=10000;");
     output.println("     stallrecord->rcrRecords[0].index=0;");
     output.println("     stallrecord->rcrRecords[0].flag=0;");
@@ -3144,7 +3143,6 @@ public class BuildCode {
       output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
 		     + waitingElement.getQueueID() + "],rentry)==NOTREADY) {");
       output.println("       localCount--;");
-      output.println("       refCount--;");
       output.println("     }");
       output.println("#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)");
       output.println("     else poolfreeinto(runningSESE->memoryQueueArray["+waitingElement.getQueueID()+"]->rentrypool, rentry);");
@@ -3190,7 +3188,7 @@ public class BuildCode {
     output.println("     }");
     //release our reference to stall record
     output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-    output.println("  RELEASE_REFERENCES_TO((SESEcommon *)stallrecord, refCount);");
+    output.println("  RELEASE_REFERENCE_TO((SESEcommon *)stallrecord);");
     output.println("#endif");
     output.println("   }");//exit block
   }
@@ -4588,13 +4586,14 @@ public class BuildCode {
 	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
 	    
 	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
-	    output.println("         refCount--;");
 	    for(int j=0;mask!=0;j++) {
 	      if ((mask&1)==1)
 		output.println("          dispCount"+j+"++;");
 	      mask=mask>>1;
 	    }
-	    output.println("       }");
+	    output.println("       } else ");
+	    output.println("         refCount--;");
+
 	  }
 
 	  if (fsen.getDynamicInVarSet().contains(td)) {

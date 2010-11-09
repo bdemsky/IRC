@@ -534,6 +534,7 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
   //expose entry
   int index=V->index;
   V->array[index]=r;
+  r->index=index;
   //*****NEED memory barrier here to ensure compiler does not reorder writes to V.array and V.index
   BARRIER();
   V->index++;
@@ -598,7 +599,7 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r) {
   }
 #ifndef OOO_DISABLE_TASKMEMPOOL
 #ifdef RCR
-  if(atomic_sub_and_test(1, &r->count))
+  if (atomic_sub_and_test(1, &r->count))
 #endif
     poolfreeinto(Q->rentrypool, r);
 #endif
@@ -607,6 +608,13 @@ void RETIRERENTRY(MemoryQueue* Q, REntry * r) {
 void RETIRESCC(MemoryQueue *Q, REntry *r) {
   SCC* s=(SCC *)r->qitem;
   s->item.total=0;//don't need atomicdec
+  void *flag=NULL;
+  flag=(void*)LOCKXCHG((unsigned INTPTR*)&(s->val), (unsigned INTPTR)flag); 
+  if (flag!=NULL) {
+#if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
+    RELEASE_REFERENCE_TO(((REntry*)flag)->seseRec);
+#endif
+  }
   RESOLVECHAIN(Q);
 }
 
@@ -697,6 +705,13 @@ void RETIREBIN(Hashtable *T, REntry *r, BinItem *b) {
 void RETIREVECTOR(MemoryQueue *Q, REntry *r) {
   Vector* V=(Vector *)r->qitem;
   atomic_dec(&V->item.total);
+#ifdef RCR
+  REntry* val=NULL;
+  val=(REntry*)LOCKXCHG((unsigned INTPTR*)&(V->array[r->index]), (unsigned INTPTR)val); 
+  if (val!=NULL) { 
+    RELEASE_REFERENCE_TO( ((REntry*)val)->seseRec);
+  }
+#endif
   if (V->item.next!=NULL && V->item.total==0) { //NOTE: ORDERING CRUCIAL HERE
     RESOLVECHAIN(Q);
   }
@@ -705,24 +720,24 @@ void RETIREVECTOR(MemoryQueue *Q, REntry *r) {
 void RESOLVECHAIN(MemoryQueue *Q) {
   while(TRUE) {
     MemoryQueueItem* head=Q->head;
-    if (head->next==NULL||head->total!=0) { 
+    if (head->next==NULL||head->total!=0) {
       //item is not finished
-      if (head->status!=READY) {  
-        //need to update status
-        head->status=READY;
-        if (isHashtable(head)) {
-          RESOLVEHASHTABLE(Q, (Hashtable *) head);
-        } else if (isVector(head)) {
-          RESOLVEVECTOR(Q, (Vector *) head);
-        } else if (isSingleItem(head)) {
-          RESOLVESCC((SCC *)head);
-        }
-        if (head->next==NULL)
-          break;
-        if (head->total!=0)
-          break;
+      if (head->status!=READY) {
+	//need to update status
+	head->status=READY;
+	if (isHashtable(head)) {
+	  RESOLVEHASHTABLE(Q, (Hashtable *) head);
+	} else if (isVector(head)) {
+	  RESOLVEVECTOR(Q, (Vector *) head);
+	} else if (isSingleItem(head)) {
+	  RESOLVESCC((SCC *)head);
+	}
+	if (head->next==NULL)
+	  break;
+	if (head->total!=0)
+	  break;
       } else
-        break;
+	break;
     }
     MemoryQueueItem* nextitem=head->next;
     CAS((unsigned INTPTR*)&(Q->head), (unsigned INTPTR)head, (unsigned INTPTR)nextitem);
@@ -841,6 +856,9 @@ void resolveDependencies(REntry* rentry){
 	  workScheduleSubmit((void *)seseCommon);
       }
     }
+#ifndef OOO_DISABLE_TASKMEMPOOL
+    RELEASE_REFERENCE_TO(seseCommon);
+#endif
   } else if (type==PARENTCOARSE) {
     if (atomic_sub_and_test(1, &(seseCommon->unresolvedDependencies))) {
       psem_give_tag(seseCommon->parentsStallSem, ((SESEstall *) seseCommon)->tag);
