@@ -672,7 +672,7 @@ public class RuntimeConflictResolver {
       cFile.println(" return;");
     } else {
       cFile.println("    int totalcount=RUNBIAS;");      
-      if (!taint.isStallSiteTaint()) {
+      if (taint.isStallSiteTaint()) {
         cFile.println("    record->rcrRecords[0].count=RUNBIAS;");
       } else {
         cFile.println("    record->rcrRecords["+index+"].count=RUNBIAS;");
@@ -699,13 +699,13 @@ public class RuntimeConflictResolver {
       
       if (taint.isStallSiteTaint()) {
         //need to add this
-        cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords[0].count))) {");
+        cFile.println("     if(atomic_sub_and_test(totalcount,&(record->rcrRecords[0].count))) {");
         cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
         cFile.println("         BARRIER();");
         cFile.println("}");
         cFile.println("         record->common.rcrstatus=0;");
       } else {
-        cFile.println("     if(atomic_sub_and_test(RUNBIAS-totalcount,&(record->rcrRecords["+index+"].count))) {");
+        cFile.println("     if(atomic_sub_and_test(totalcount,&(record->rcrRecords["+index+"].count))) {");
         cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");
         cFile.println("        if(flag) {");
         //we have resolved a heap root...see if this was the last dependence
