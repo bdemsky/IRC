@@ -226,6 +226,13 @@ void* workerMain( void* arg ) {
     if( haveWork ) {
       // let GC see current work
       litem.seseCommon = (void*)workUnit;
+
+#ifdef DEBUG_DEQUE
+      if( workUnit == NULL ) {
+        printf( "About to execute a null work item\n" );
+      }
+#endif
+
       workFunc( workUnit );
     }
   } 
@@ -273,7 +280,7 @@ void workScheduleInit( int numProcessors,
   pthread_cond_init ( &gccond,     NULL );
 
 
-  numWorkSchedWorkers = numProcessors + 1;
+  numWorkSchedWorkers = numProcessors;
 
   workFunc = func;
 
