@@ -4784,11 +4784,7 @@ public class BuildCode {
 	output.println("    while(rec!=NULL) {");
 	output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
 
-        // HACK!!! PART OF THE allHashStructures HACK in
-        // RuntimeConflictResolver.java as well, the problem
-        // is that we are just using ONE hashtable for the momen
-        //int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i),fsen);
-        int weaklyConnectedComponentIndex = 0;
+        int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i),fsen);
 
 	output.println("        rcr_RETIREHASHTABLE(hashstruct["+
                        weaklyConnectedComponentIndex+

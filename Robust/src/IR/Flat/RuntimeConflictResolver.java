@@ -815,18 +815,10 @@ public class RuntimeConflictResolver {
 
     String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
     String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
-
-
-    // YUCKY HACK FOR NOW, ALWAYS USE ONE HASH TABLE
-    // (CONSVERATIVELY PUT ALL PARAMS INTO ONE CONNECTED COMPONENT)
-    // UNTIL WE FIGURE OUT WHY YOU SOMETIMES GET DIFFERENT
-    // heaprootNum VALUES WHEN THEY SHOULD BE THE SAME
-    // We should use the commented lines in the if statements...
-    int heaprootNum = 0;
     
     //Do call if we need it.
     if(primConfWrite||objConfWrite) {
-      //int heaprootNum = connectedHRHash.get(taint).id;
+      int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
       int traverserID = doneTaints.get(taint);
@@ -836,7 +828,7 @@ public class RuntimeConflictResolver {
       else
         currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+ tasksrc+strrcr+index+");\n");
     } else if (primConfRead||objConfRead) {
-      //int heaprootNum = connectedHRHash.get(taint).id;
+      int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
       int traverserID = doneTaints.get(taint);
@@ -934,13 +926,15 @@ public class RuntimeConflictResolver {
         num2WeaklyConnectedHRGroup.add(weaklyConnectedHRCounter, hg);
         weaklyConnectedHRCounter++;
       }
+      
       if(t.isRBlockTaint()) {
-	int id=connectedHRHash.get(t).id;
-	Tuple tup=new Tuple(t.getVar(),t.getSESE());
-	if (weakMap.containsKey(tup)) {
-	  if (weakMap.get(tup).intValue()!=id)
-	    throw new Error("Var/SESE not unique for weak component.");
-	} else weakMap.put(tup, new Integer(id));
+        int id=connectedHRHash.get(t).id;
+        Tuple tup=new Tuple(t.getVar(),t.getSESE());
+        if (weakMap.containsKey(tup)) {
+          if (weakMap.get(tup).intValue()!=id) 
+            throw new Error("Var/SESE not unique for weak component.");
+        } else 
+            weakMap.put(tup, new Integer(id));
       }
     }
   }
@@ -1403,8 +1397,10 @@ public class RuntimeConflictResolver {
         Iterator<Taint> it = oldGroup.connectedHRs.iterator();
         Taint relatedTaint;
         
-        while((relatedTaint = it.next()) != null && !connectedHRs.contains(relatedTaint)) {
-          this.add(relatedTaint);
+        while(it.hasNext() && (relatedTaint = it.next()) != null) {
+          if(!connectedHRs.contains(relatedTaint)){
+            this.add(relatedTaint);
+          }
         }
       }
     }
