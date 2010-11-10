@@ -815,11 +815,18 @@ public class RuntimeConflictResolver {
 
     String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
     String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
+
+
+    //int heaprootNum = connectedHRHash.get(taint).id;
+    // YUCKY HACK FOR NOW, ALWAYS USE ONE HASH TABLE
+    // (CONSVERATIVELY PUT ALL PARAMS INTO ONE CONNECTED COMPONENT)
+    // UNTIL WE FIGURE OUT WHY YOU SOMETIMES GET DIFFERENT
+    // heaprootNum VALUES WHEN THEY SHOULD BE THE SAME
+    int heaprootNum = 0;
+    assert heaprootNum != -1;
     
     //Do call if we need it.
     if(primConfWrite||objConfWrite) {
-      int heaprootNum = connectedHRHash.get(taint).id;
-      assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
       int traverserID = doneTaints.get(taint);
         currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
@@ -828,8 +835,6 @@ public class RuntimeConflictResolver {
       else
         currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+ tasksrc+strrcr+index+");\n");
     } else if (primConfRead||objConfRead) {
-      int heaprootNum = connectedHRHash.get(taint).id;
-      assert heaprootNum != -1;
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
       int traverserID = doneTaints.get(taint);
       currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
