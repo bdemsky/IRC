@@ -92,6 +92,11 @@
 #define CP_EVENTID_TASKSTALLMEM       0x61
 #endif
 
+#ifdef cpe_rcr_traverse
+#define CP_EVENTID_RCR_TRAVERSE       0x80
+#endif
+
+
 // debug events don't require a preprocessor
 // guard because normally they are not in the code
 // base--its helpful to define them in case you

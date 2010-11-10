@@ -313,9 +313,13 @@ void workScheduleInit( int numProcessors,
 
 
 void workScheduleSubmit( void* workUnit ) {
+#ifdef CP_EVENTID_WORKSCHEDSUBMIT
   CP_LOGEVENT( CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_BEGIN );
+#endif
   dqPushBottom( &(deques[myWorkerID]), workUnit );
+#ifdef CP_EVENTID_WORKSCHEDSUBMIT
   CP_LOGEVENT( CP_EVENTID_WORKSCHEDSUBMIT, CP_EVENTTYPE_END );
+#endif
 }
 
 
