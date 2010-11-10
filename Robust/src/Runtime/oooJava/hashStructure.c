@@ -50,20 +50,23 @@ HashStructure* rcr_createHashtable(int sizeofWaitingQueue){
     newTable->array[i].head=NULL;
     newTable->array[i].tail=NULL;
   }
-
+  newTable->memPoolRead = poolcreate( sizeof(ReadBinItem_rcr), NULL );
+  newTable->memPoolWrite = poolcreate( sizeof(WriteBinItem_rcr), NULL );
   return newTable;
 }
 
-WriteBinItem_rcr* rcr_createWriteBinItem(){
-  WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)RUNMALLOC(sizeof(WriteBinItem_rcr));
+WriteBinItem_rcr* rcr_createWriteBinItem( HashStructure* htable ){
+  WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)poolalloc( htable->memPoolWrite );
   binitem->item.type=WRITEBIN;
+  binitem->item.next=NULL;
   return binitem;
 }
 
-ReadBinItem_rcr* rcr_createReadBinItem(){
-  ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)RUNMALLOC(sizeof(ReadBinItem_rcr));
+ReadBinItem_rcr* rcr_createReadBinItem( HashStructure* htable ){
+  ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)poolalloc( htable->memPoolRead );
   binitem->index=0;
   binitem->item.type=READBIN;
+  binitem->item.next=NULL;
   return binitem;
 }
 
@@ -84,7 +87,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   } while(val==(BinItem_rcr*)0x1);     
 
   if (val==NULL) {
-    BinItem_rcr * b=(BinItem_rcr*)rcr_createWriteBinItem();
+    BinItem_rcr * b=(BinItem_rcr*)rcr_createWriteBinItem( T );
     WriteBinItem_rcr * td = (WriteBinItem_rcr*)b;
     b->total=1;
     b->status=READY;
@@ -140,7 +143,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     }
   }
 
-  WriteBinItem_rcr *b=rcr_createWriteBinItem();
+  WriteBinItem_rcr *b=rcr_createWriteBinItem( T );
   b->item.total=1;
   b->task=task;
 
@@ -197,7 +200,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
   } while(val==(BinItem_rcr*)0x1);     
   
   if (val==NULL) {
-    BinItem_rcr * b=(BinItem_rcr*)rcr_createReadBinItem();
+    BinItem_rcr * b=(BinItem_rcr*)rcr_createReadBinItem( T );
     ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
     TraverserData * td = &(readbin->array[readbin->index++]);
     b->total=1;
@@ -313,7 +316,7 @@ int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRe
   }
 
   if (readbintail->index==RNUMREAD) { // create new read group
-    ReadBinItem_rcr* rb=rcr_createReadBinItem();
+    ReadBinItem_rcr* rb=rcr_createReadBinItem( T );
     td = &rb->array[rb->index++];
 
     rb->item.total=1;
@@ -335,7 +338,7 @@ int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRe
 }
 
 void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail, int key, SESEcommon * task, struct rcrRecord *rcrrec, int index) {
-  ReadBinItem_rcr* rb=rcr_createReadBinItem();
+  ReadBinItem_rcr* rb=rcr_createReadBinItem( T );
   TraverserData * td = &(rb->array[rb->index++]);
   rb->item.total=1;
   rb->item.status=NOTREADY;
@@ -368,9 +371,11 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
     
     // at this point have locked bin
     BinItem_rcr *ptr=val;
+    BinItem_rcr *next;
     int haveread=FALSE;
     int i;
     while (ptr!=NULL) {
+      next = ptr->next;
       if (ISREADBIN(ptr->type)) {
 	if (ptr->status==NOTREADY) {
 	  ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)ptr;
@@ -396,11 +401,14 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
           haveread=TRUE;
         } else if (ptr==val) {
           val=val->next;
+          poolfreeinto( T->memPoolRead, ptr );
         }
       } else if (ptr->total==0) {
 	//skip past retired item
-	if (ptr==val)
+	if (ptr==val) {
 	  val=val->next;
+          poolfreeinto( T->memPoolWrite, ptr );
+        }
       } else {
 	//write bin case
         if (haveread)
@@ -411,11 +419,12 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
 	  ptr->status=READY;
 	  if(((INTPTR)wptr->task)&PARENTBIN) {
 	    val=val->next;
+            poolfreeinto( T->memPoolWrite, ptr );
 	  } else
 	    break;
 	}
       }
-      ptr=ptr->next;
+      ptr = next;
     }
     be->head=val; // release lock
   }
