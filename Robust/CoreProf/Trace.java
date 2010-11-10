@@ -19,12 +19,14 @@ public class Trace {
   public static final int CP_EVENTID_COUNT_POOLALLOC  = 0x15;
   public static final int CP_EVENTID_COUNT_POOLREUSE  = 0x16;
   public static final int CP_EVENTID_WORKSCHEDGRAB    = 0x20;
+  public static final int CP_EVENTID_WORKSCHEDSUBMIT  = 0x21;
   public static final int CP_EVENTID_TASKDISPATCH     = 0x30;
   public static final int CP_EVENTID_PREPAREMEMQ      = 0x31;
   public static final int CP_EVENTID_TASKEXECUTE      = 0x40;
   public static final int CP_EVENTID_TASKRETIRE       = 0x50;
   public static final int CP_EVENTID_TASKSTALLVAR     = 0x60;
   public static final int CP_EVENTID_TASKSTALLMEM     = 0x61;
+  public static final int CP_EVENTID_RCR_TRAVERSE     = 0x80;
   public static final int CP_EVENTID_DEBUG_A          = 0x180;
   public static final int CP_EVENTID_DEBUG_B          = 0x181;
   public static final int CP_EVENTID_DEBUG_C          = 0x182;
@@ -39,29 +41,31 @@ public class Trace {
 
   void initNames() {
     eid2name = new Hashtable<Integer, String>();
-    eid2name.put( CP_EVENTID_MAIN,              "MAIN         " );
-    eid2name.put( CP_EVENTID_RUNMALLOC,         "RUNMALLOC    " );
-    eid2name.put( CP_EVENTID_RUNFREE,           "RUNFREE      " );
-    eid2name.put( CP_EVENTID_POOLALLOC,         "POOLALLOC    " );
-    eid2name.put( CP_EVENTID_COUNT_POOLALLOC,   "POOLALLOC CNT" );
-    eid2name.put( CP_EVENTID_COUNT_POOLREUSE,   "POOLREUSE CNT" );
-    eid2name.put( CP_EVENTID_WORKSCHEDGRAB,     "WORKSCHEDGRAB" );
-    eid2name.put( CP_EVENTID_TASKDISPATCH,      "TASKDISPATCH " );
-    eid2name.put( CP_EVENTID_PREPAREMEMQ,       "PREPAREMEMQ  " );
-    eid2name.put( CP_EVENTID_TASKEXECUTE,       "TASKEXECUTE  " );
-    eid2name.put( CP_EVENTID_TASKRETIRE,        "TASKRETIRE   " );
-    eid2name.put( CP_EVENTID_TASKSTALLVAR,      "TASKSTALLVAR " );
-    eid2name.put( CP_EVENTID_TASKSTALLMEM,      "TASKSTALLMEM " );
-    eid2name.put( CP_EVENTID_DEBUG_A,           "DEBUG A      " );
-    eid2name.put( CP_EVENTID_DEBUG_B,           "DEBUG B      " );
-    eid2name.put( CP_EVENTID_DEBUG_C,           "DEBUG C      " );
-    eid2name.put( CP_EVENTID_DEBUG_D,           "DEBUG D      " );
-    eid2name.put( CP_EVENTID_DEBUG_E,           "DEBUG E      " );
-    eid2name.put( CP_EVENTID_DEBUG_F,           "DEBUG F      " );
-    eid2name.put( CP_EVENTID_DEBUG_G,           "DEBUG G      " );
-    eid2name.put( CP_EVENTID_DEBUG_H,           "DEBUG H      " );
-    eid2name.put( CP_EVENTID_DEBUG_I,           "DEBUG I      " );
-    eid2name.put( CP_EVENTID_DEBUG_J,           "DEBUG J      " );
+    eid2name.put( CP_EVENTID_MAIN,              "MAIN           " );
+    eid2name.put( CP_EVENTID_RUNMALLOC,         "RUNMALLOC      " );
+    eid2name.put( CP_EVENTID_RUNFREE,           "RUNFREE        " );
+    eid2name.put( CP_EVENTID_POOLALLOC,         "POOLALLOC      " );
+    eid2name.put( CP_EVENTID_COUNT_POOLALLOC,   "POOLALLOC CNT  " );
+    eid2name.put( CP_EVENTID_COUNT_POOLREUSE,   "POOLREUSE CNT  " );
+    eid2name.put( CP_EVENTID_WORKSCHEDGRAB,     "WORKSCHEDGRAB  " );
+    eid2name.put( CP_EVENTID_WORKSCHEDSUBMIT,   "WORKSCHEDSUBMIT" );
+    eid2name.put( CP_EVENTID_TASKDISPATCH,      "TASKDISPATCH   " );
+    eid2name.put( CP_EVENTID_PREPAREMEMQ,       "PREPAREMEMQ    " );
+    eid2name.put( CP_EVENTID_TASKEXECUTE,       "TASKEXECUTE    " );
+    eid2name.put( CP_EVENTID_TASKRETIRE,        "TASKRETIRE     " );
+    eid2name.put( CP_EVENTID_TASKSTALLVAR,      "TASKSTALLVAR   " );
+    eid2name.put( CP_EVENTID_TASKSTALLMEM,      "TASKSTALLMEM   " );
+    eid2name.put( CP_EVENTID_RCR_TRAVERSE,      "RCR TRAVERSE   " );
+    eid2name.put( CP_EVENTID_DEBUG_A,           "DEBUG A        " );
+    eid2name.put( CP_EVENTID_DEBUG_B,           "DEBUG B        " );
+    eid2name.put( CP_EVENTID_DEBUG_C,           "DEBUG C        " );
+    eid2name.put( CP_EVENTID_DEBUG_D,           "DEBUG D        " );
+    eid2name.put( CP_EVENTID_DEBUG_E,           "DEBUG E        " );
+    eid2name.put( CP_EVENTID_DEBUG_F,           "DEBUG F        " );
+    eid2name.put( CP_EVENTID_DEBUG_G,           "DEBUG G        " );
+    eid2name.put( CP_EVENTID_DEBUG_H,           "DEBUG H        " );
+    eid2name.put( CP_EVENTID_DEBUG_I,           "DEBUG I        " );
+    eid2name.put( CP_EVENTID_DEBUG_J,           "DEBUG J        " );
   }
 
   Hashtable<Integer, String> eid2name;
@@ -522,7 +526,8 @@ public class Trace {
 	  globendtime=nend;
 	if (nstart<0)
 	  nstart=0;
-	bwPlot.write( "set arrow from "+(nstart/scale)+","+thread+" to "+(nend/scale)+","+thread+" lt "+eventID+" nohead\n");
+	bwPlot.write( "set arrow from "+(nstart/scale)+","+thread+
+                      " to "+(nend/scale)+","+thread+" lt palette cb "+eventID+" nohead\n");
       }
     } catch( IOException e ) {
       e.printStackTrace();
