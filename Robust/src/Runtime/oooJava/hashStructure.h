@@ -28,9 +28,8 @@
 #define TRUE 1
 #define FALSE 0
 
-#define RNUMBINS 64
-#define RNUMREAD 64
-#define RNUMRENTRY 256
+#define RNUMBINS 131072
+#define RNUMREAD 24
 #define RH_MASK (RNUMBINS)-1
 
 //Note: put resolved things at the end and unresolved at the front.
