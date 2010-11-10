@@ -401,13 +401,20 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
           haveread=TRUE;
         } else if (ptr==val) {
           val=val->next;
-          poolfreeinto( T->memPoolRead, ptr );
+
+          // THE 3 POOLFREE's IN THIS FUNCTION ARE TOO EARLY:
+          // OTHER FUNCTIONS IN THIS COMPILATION UNIT LOCK THE BIN ELEMENT
+          // BUT MAY TOUCH THE STATUS FIELDS OF BIN ITEMS AFTER RELEASING
+          // THE LOCK, WE HAVE TO MAKE SOME CAREFUL CHANGES TO ALLOW THE
+          // POOLFREE's TO WORK!
+
+          //poolfreeinto( T->memPoolRead, ptr );
         }
       } else if (ptr->total==0) {
 	//skip past retired item
 	if (ptr==val) {
 	  val=val->next;
-          poolfreeinto( T->memPoolWrite, ptr );
+          //poolfreeinto( T->memPoolWrite, ptr );
         }
       } else {
 	//write bin case
@@ -419,7 +426,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
 	  ptr->status=READY;
 	  if(((INTPTR)wptr->task)&PARENTBIN) {
 	    val=val->next;
-            poolfreeinto( T->memPoolWrite, ptr );
+            //poolfreeinto( T->memPoolWrite, ptr );
 	  } else
 	    break;
 	}
