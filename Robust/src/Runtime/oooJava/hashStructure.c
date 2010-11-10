@@ -50,20 +50,22 @@ HashStructure* rcr_createHashtable(int sizeofWaitingQueue){
     newTable->array[i].head=NULL;
     newTable->array[i].tail=NULL;
   }
-  newTable->memPoolRead = poolcreate( sizeof(ReadBinItem_rcr), NULL );
-  newTable->memPoolWrite = poolcreate( sizeof(WriteBinItem_rcr), NULL );
+  //newTable->memPoolRead = poolcreate( sizeof(ReadBinItem_rcr), NULL );
+  //newTable->memPoolWrite = poolcreate( sizeof(WriteBinItem_rcr), NULL );
   return newTable;
 }
 
 WriteBinItem_rcr* rcr_createWriteBinItem( HashStructure* htable ){
-  WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)poolalloc( htable->memPoolWrite );
+  //WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)poolalloc( htable->memPoolWrite );
+  WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)RUNMALLOC(sizeof(WriteBinItem_rcr));
   binitem->item.type=WRITEBIN;
   binitem->item.next=NULL;
   return binitem;
 }
 
 ReadBinItem_rcr* rcr_createReadBinItem( HashStructure* htable ){
-  ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)poolalloc( htable->memPoolRead );
+  //ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)poolalloc( htable->memPoolRead );
+  ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)RUNMALLOC(sizeof(ReadBinItem_rcr));
   binitem->index=0;
   binitem->item.type=READBIN;
   binitem->item.next=NULL;
