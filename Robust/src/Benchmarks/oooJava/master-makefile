@@ -17,21 +17,22 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*128 \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_taskexecute \
-	-coreprof-enable cpe_taskretire \
+	-coreprof-enable cpe_taskdispatch \
+	-coreprof-enable cpe_runmalloc \
+	-coreprof-enable cpe_rcr_traverse
+#	-coreprof-enable cpe_taskretire \
 	-coreprof-enable cpe_workschedsubmit \
 	-coreprof-enable cpe_workschedgrab \
-	-coreprof-enable cpe_taskdispatch
-#	-coreprof-enable cpe_runmalloc \
-#	-coreprof-enable cpe_poolalloc \
-#	-coreprof-enable cpe_preparememq \
-#	-coreprof-enable cpe_runfree \
-#	-coreprof-enable cpe_count_poolalloc \
-#	-coreprof-enable cpe_count_poolreuse \
-#	-coreprof-enable cpe_taskstallvar \
-#	-coreprof-enable cpe_taskstallmem
+	-coreprof-enable cpe_poolalloc \
+	-coreprof-enable cpe_preparememq \
+	-coreprof-enable cpe_runfree \
+	-coreprof-enable cpe_count_poolalloc \
+	-coreprof-enable cpe_count_poolreuse \
+	-coreprof-enable cpe_taskstallvar \
+	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava 24 2  -ooodebug -squeue #-ooodebug-disable-task-mem-pool
+USEOOO= -ooojava 24 2 -ooodebug -squeue #-ooodebug-disable-task-mem-pool
 USERCR= -ooojava 23 2 -rcr -ooodebug -squeue
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp #-debug
 

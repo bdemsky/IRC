@@ -6,6 +6,7 @@
 #include "structdefs.h"
 #include "RuntimeConflictResolver.h"
 
+
 struct trQueue * queuelist=NULL;
 pthread_mutex_t queuelock;
 
