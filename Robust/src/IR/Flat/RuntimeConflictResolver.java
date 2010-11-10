@@ -28,7 +28,11 @@ import Analysis.OoOJava.OoOJavaAnalysis;
  * Note: All computation is done upon closing the object. Steps 1-3 only input data
  */
 public class RuntimeConflictResolver {
-  public static final boolean javaDebug = true;
+  public static final boolean generalDebug = true;
+//Prints out effects and data structure used to steer RCR traversals
+  public static final boolean printEffectsAndEffectsTable = false;  
+//Prints steps taken to build internal representation of pruned reach graph
+  public static final boolean traceDataStructureBuild = false;  
   public static final boolean cSideDebug = false;
   
   private PrintWriter cFile;
@@ -97,7 +101,7 @@ public class RuntimeConflictResolver {
   public void setGlobalEffects(Hashtable<Taint, Set<Effect>> effects) {
     globalEffects = effects;
     
-    if(javaDebug) {
+    if(printEffectsAndEffectsTable) {
       System.out.println("============EFFECTS LIST AS PASSED IN============");
       for(Taint t: globalEffects.keySet()) {
         System.out.println("For Taint " + t);
@@ -238,7 +242,7 @@ public class RuntimeConflictResolver {
       VariableNode varNode = rg.getVariableNodeNoMutation(invar);
       Taint taint = getProperTaintForFlatSESEEnterNode(rblock, varNode, globalEffects);
       if (taint == null) {
-        printDebug(javaDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + rblock.toPrettyString());
+        printDebug(generalDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + rblock.toPrettyString());
         continue;
       }
       
@@ -281,7 +285,7 @@ public class RuntimeConflictResolver {
     Taint taint = getProperTaintForEnterNode(enterNode, varNode, globalEffects);
     
     if (taint == null) {
-      printDebug(javaDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + enterNode.toString());
+      printDebug(generalDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + enterNode.toString());
       return;
     }        
     
@@ -367,7 +371,7 @@ public class RuntimeConflictResolver {
 
   private void runAllTraversals() {
     for(TraversalInfo t: toTraverse) {
-      printDebug(javaDebug, "Running Traversal a traversal on " + t.f);
+      printDebug(generalDebug, "Running Traversal a traversal on " + t.f);
       
       if(t.f instanceof FlatSESEEnterNode) {
         traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
@@ -641,9 +645,9 @@ public class RuntimeConflictResolver {
     
     //Generate C cases 
     for (ConcreteRuntimeObjNode node : created.values()) {
-      printDebug(javaDebug, "Considering " + node.allocSite + " for traversal");
+      printDebug(generalDebug, "Considering " + node.allocSite + " for traversal");
       if (!cases.containsKey(node.allocSite) && qualifiesForCaseStatement(node)) {
-        printDebug(javaDebug, "+\t" + node.allocSite + " qualified for case statement");
+        printDebug(generalDebug, "+\t" + node.allocSite + " qualified for case statement");
         addChecker(taint, node, cases, null, "ptr", 0);
       }
     }
@@ -937,6 +941,21 @@ public class RuntimeConflictResolver {
             weakMap.put(tup, new Integer(id));
       }
     }
+    
+    //output weakly connected groups for verification
+    if(generalDebug) {
+      System.out.println("==============Weakly Connected HeapRoots==============");
+      
+      for(int i=0; i < num2WeaklyConnectedHRGroup.size(); i++){
+        System.out.println("Heap Group #" + i);
+        WeaklyConectedHRGroup hg = num2WeaklyConnectedHRGroup.get(i);
+        for(Taint t: hg.connectedHRs) {
+          System.out.println("\t" + t);
+        }
+      }
+      
+      System.out.println("=======================END LIST=======================");
+    }
   }
   
   private void printoutTable(EffectsTable table) {
@@ -1228,7 +1247,7 @@ public class RuntimeConflictResolver {
     }
 
     public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
-      printDebug(javaDebug,this.allocSite.getUniqueAllocSiteID() + " added child at " + child.getAllocationSite());
+      printDebug(traceDataStructureBuild,this.allocSite.getUniqueAllocSiteID() + " added child at " + child.getAllocationSite());
       hasDirectObjConflict |= ce.hasConflict();
       ObjRef ref = new ObjRef(field, child, ce);
       
@@ -1238,14 +1257,14 @@ public class RuntimeConflictResolver {
         if(array.contains(ref)) {
           ObjRef other = array.get(array.indexOf(ref));
           other.mergeWith(ref);
-          printDebug(javaDebug,"    Merged with old");
-          printDebug(javaDebug,"    Old="+ other.child.original + "\n    new="+ref.child.original);
+          printDebug(traceDataStructureBuild,"    Merged with old");
+          printDebug(traceDataStructureBuild,"    Old="+ other.child.original + "\n    new="+ref.child.original);
         }
         else {
           array.add(ref);
-          printDebug(javaDebug,"    Just added new;\n      Field: " + field);
-          printDebug(javaDebug,"      AllocSite: " + child.getAllocationSite());
-          printDebug(javaDebug,"      Child: "+child.original);
+          printDebug(traceDataStructureBuild,"    Just added new;\n      Field: " + field);
+          printDebug(traceDataStructureBuild,"      AllocSite: " + child.getAllocationSite());
+          printDebug(traceDataStructureBuild,"      Child: "+child.original);
         }
       }
       else {
@@ -1319,7 +1338,7 @@ public class RuntimeConflictResolver {
             bucket = new BucketOfEffects();
             table.put(e.getAffectedAllocSite(), bucket);
           }
-          printDebug(javaDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false)+" localConflicts = "+localConflicts);
+          printDebug(printEffectsAndEffectsTable, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false)+" localConflicts = "+localConflicts);
           bucket.add(t, e, localConflicts!=null?localConflicts.contains(e):false);
         }
       }
@@ -1339,7 +1358,7 @@ public class RuntimeConflictResolver {
     // Run Analysis will walk the data structure and figure out the weakly
     // connected heap roots. 
     public void runAnalysis() {
-      if(javaDebug) {
+      if(printEffectsAndEffectsTable) {
         printoutTable(this); 
       }
       
