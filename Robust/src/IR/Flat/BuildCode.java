@@ -4778,11 +4778,22 @@ public class BuildCode {
       //XXXXXXXXX
       output.println("    struct rcrRecord *rec;");
       output.println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
+
       for(int i=0;i<inset.size();i++) {
 	output.println("    rec=&" + paramsprefix + "->rcrRecords["+i+"];");
 	output.println("    while(rec!=NULL) {");
 	output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
-	output.println("        rcr_RETIREHASHTABLE(hashstruct["+rcr.getWeakID(inset.get(i),fsen)+"],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
+
+        // HACK!!! PART OF THE allHashStructures HACK in
+        // RuntimeConflictResolver.java as well, the problem
+        // is that we are just using ONE hashtable for the momen
+        //int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i),fsen);
+        int weaklyConnectedComponentIndex = 0;
+
+	output.println("        rcr_RETIREHASHTABLE(hashstruct["+
+                       weaklyConnectedComponentIndex+
+                       "],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
+
 	output.println("      }");// exit idx2 for loop
 	output.println("      rec=rec->next;");
 	output.println("    }");// exit rec while loop
