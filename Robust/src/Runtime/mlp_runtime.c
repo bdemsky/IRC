@@ -534,7 +534,9 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
   //expose entry
   int index=V->index;
   V->array[index]=r;
+#ifdef RCR
   r->index=index;
+#endif
   //*****NEED memory barrier here to ensure compiler does not reorder writes to V.array and V.index
   BARRIER();
   V->index++;
