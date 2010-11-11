@@ -162,7 +162,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   
   if (bintail->status==READY&&bintail->total==0) {
     //we may have to set write as ready
-    while(val->total==0) {
+    while(1) {
       if (val==((BinItem_rcr *)b)) {
 	b->item.status=READY;
 	be->head=val;
@@ -172,7 +172,10 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
 	  enqueuerecord(rcrrec, key, (BinItem_rcr *) b);
 	  return READY;
 	}
+      } else if (val->total!=0) {
+	break;
       }
+      //TODO: WHEN WE DO POOLALLOC, WE LEAK NODES HERE AND ACCESS THEM W/O LOCKING BIN...
       val=val->next;
     }
   }
