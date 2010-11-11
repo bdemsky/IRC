@@ -419,10 +419,14 @@ public class RuntimeConflictResolver {
       Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
       for(int i=0;i<invars.size();i++) {
         TempDescriptor tmp=invars.get(i);
+      	if (i!=0) {
+      	    cFile.println("      if (record->rcrstatus!=0)");
+      	}
         cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
       }
       //release traverser reference...traversal finished...
       //executing thread will clean bins for us
+      cFile.println("     record->rcrstatus=0;");
       cFile.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
       cFile.println("    RELEASE_REFERENCE_TO(record);");
       cFile.println("#endif");
@@ -435,6 +439,7 @@ public class RuntimeConflictResolver {
         cFile.println(    "    case -" + getTraverserID(t.getVar(), t.getStallSite())+ ": {");
         cFile.println(    "      SESEstall * rec=(SESEstall*) record;");
         cFile.println(    "      " + this.getTraverserInvocation(t.getVar(), "rec->___obj___, rec", t.getStallSite())+";");
+	cFile.println(    "     record->rcrstatus=0;");
         cFile.println(    "    }");
         cFile.println("    break;");
       }
@@ -707,7 +712,6 @@ public class RuntimeConflictResolver {
         cFile.println("         psem_give_tag(record->common.parentsStallSem, record->tag);");
         cFile.println("         BARRIER();");
         cFile.println("}");
-        cFile.println("         record->common.rcrstatus=0;");
       } else {
         cFile.println("     if(atomic_sub_and_test(totalcount,&(record->rcrRecords["+index+"].count))) {");
         cFile.println("        int flag=LOCKXCHG32(&(record->rcrRecords["+index+"].flag),0);");
@@ -716,7 +720,6 @@ public class RuntimeConflictResolver {
         cFile.println("            if(atomic_sub_and_test(1, &(record->common.unresolvedDependencies))) workScheduleSubmit((void *)record);");
         cFile.println("        }");
         cFile.println("     }");
-        cFile.println("     record->common.rcrstatus=0;");
       }
     }
     cFile.println("}");
