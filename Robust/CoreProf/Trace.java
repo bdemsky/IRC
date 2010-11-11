@@ -138,6 +138,10 @@ public class Trace {
   long mintime;
   long scale;
 
+  long minObservedTime = Long.MAX_VALUE;
+  long maxObservedTime = Long.MIN_VALUE;
+
+
   public Trace( boolean c2txt, String inFile, String outFile,  HashSet<Integer> eventset, long mintime, long maxtime, long scale) {
     this.eventset=eventset;
     this.maxtime=maxtime;
@@ -157,6 +161,12 @@ public class Trace {
     for( int i = 0; i < numThreads; i++ ) {
       readThread( i );
     }
+
+    System.out.println( "Minimum observed time stamp: "+minObservedTime );
+    System.out.println( "Maximum observed time stamp: "+maxObservedTime );
+    
+    System.out.println( "\nelapsed time: "+(maxObservedTime - minObservedTime) );
+
 
     printStats( outFile );
 
@@ -334,6 +344,16 @@ public class Trace {
       int eventRaw = readInt ( tdata.dataStream );
       timeStamp    = readLong( tdata.dataStream );
       i += 3;
+
+      
+      if( timeStamp < minObservedTime ) {
+        minObservedTime = timeStamp;
+      }
+
+      if( timeStamp > maxObservedTime ) {
+        maxObservedTime = timeStamp;
+      }
+
 
       int eventType = eventRaw &  CP_EVENT_MASK;
       int eventID   = eventRaw >> CP_EVENT_BASESHIFT;
@@ -527,7 +547,7 @@ public class Trace {
 	if (nstart<0)
 	  nstart=0;
 	bwPlot.write( "set arrow from "+(nstart/scale)+","+thread+
-                      " to "+(nend/scale)+","+thread+" lt palette cb "+eventID+" nohead\n");
+                      " to "+(nend/scale)+","+thread+" lt "+eventID+"\n");
       }
     } catch( IOException e ) {
       e.printStackTrace();
