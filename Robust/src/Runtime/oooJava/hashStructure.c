@@ -359,11 +359,36 @@ void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail,
 
 void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rcr *b) {
   atomic_dec(&b->total);
+  //Need to clear ourself out of the read bin so that we aren't resolved after being freed
   if(ISREADBIN(b->type)) {
+    //Have to clear our entry out of bin if we retired early
+
+    if (b->status==NOTREADY) {
+      ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)b;
+      BinElement_rcr * be = &(T->array[key]);
+      int i;
+      // CHECK FIRST IF next is nonnull to guarantee that b.total cannot change
+      BinItem_rcr * val=(BinItem_rcr *)0x1;
+      do {
+	val=(BinItem_rcr*)LOCKXCHG((unsigned INTPTR*)&(be->head), (unsigned INTPTR)val);
+      } while(val==(BinItem_rcr*)0x1);
+      
+      for (i=0;i<rptr->index;i++) {
+	TraverserData * td=&rptr->array[i];
+	if (task==td->task) {
+	  //remove item from bin...
+	  td->task=NULL;
+	  break;
+	}
+      }
+      be->head=val;
+    }
+    
     if (b->next==NULL || b->total>0) {
       return;
     }
   }
+    
   
   //We either have a write bin or we are at the end of a read bin
   BinElement_rcr * be = &(T->array[key]);
@@ -373,7 +398,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
     do {
       val=(BinItem_rcr*)LOCKXCHG((unsigned INTPTR*)&(be->head), (unsigned INTPTR)val);
     } while(val==(BinItem_rcr*)0x1);
-    
+
     // at this point have locked bin
     BinItem_rcr *ptr=val;
     BinItem_rcr *next;
@@ -386,16 +411,14 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
 	  ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)ptr;
 	  for (i=0;i<rptr->index;i++) {
 	    TraverserData * td=&rptr->array[i];
-	    if (task==td->task) {
-	      SESEcommon *record=td->task;
-	      if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
-		//parents go immediately
-		atomic_dec(&rptr->item.total);
-		record=(SESEcommon *)(((INTPTR)record)&~1ULL);
-	      }
-	      RESOLVE(record, td->bitindex);
-	      break;
+	    SESEcommon *record=td->task;
+	    if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
+	      //parents go immediately
+	      atomic_dec(&rptr->item.total);
+	      record=(SESEcommon *)(((INTPTR)record)&~1ULL);
 	    }
+	    if (record!=NULL)
+	      RESOLVE(record, td->bitindex);
           }
 	  ptr->status=READY;
         }
