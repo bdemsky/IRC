@@ -796,6 +796,7 @@ public class RuntimeConflictResolver {
     boolean primConfWrite=false;
     boolean objConfRead=false;
     boolean objConfWrite=false;
+    boolean descendantConflict=false;
 
     //Direct Primitives Test
     for(String field: curr.primitiveConflictingFields.keySet()) {
@@ -811,6 +812,10 @@ public class RuntimeConflictResolver {
         objConfRead|=effect.hasReadConflict;
         objConfWrite|=effect.hasWriteConflict;
       }
+    }
+
+    if (objConfRead) {
+	descendantConflict=curr.decendantsConflict();
     }
 
     int index=0;
@@ -830,7 +835,7 @@ public class RuntimeConflictResolver {
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
       int traverserID = doneTaints.get(taint);
         currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
-      if (objConfRead)
+      if (descendantConflict)
         currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
       else
         currCase.append("    int tmpvar"+depth+"=rcr_WRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+ tasksrc+strrcr+index+");\n");
@@ -840,7 +845,7 @@ public class RuntimeConflictResolver {
       int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
       int traverserID = doneTaints.get(taint);
       currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
-      if (objConfRead) 
+      if (descendantConflict)
         currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
       else
         currCase.append("    int tmpvar"+depth+"=rcr_READBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
