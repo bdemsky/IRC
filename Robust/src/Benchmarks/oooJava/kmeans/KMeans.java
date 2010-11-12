@@ -292,7 +292,7 @@ public class KMeans /*extends Thread*/ {
     */
 
     System.out.println("Finished......");
-    System.exit(0);
+
   }
 
   public static void parseCmdLine(String args[], KMeans km) {
