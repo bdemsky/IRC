@@ -29,7 +29,7 @@ public class JGFMolDynBenchSizeB {
       System.printString("The no of threads has not been specified, defaulting to 1\n");
       System.printString("  " + "\n");
       nthreads = 1;
-      workload=100;
+      workload=300;
     }
 
 //    JGFInstrumentor instr = new JGFInstrumentor();

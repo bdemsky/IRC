@@ -259,7 +259,7 @@ class mdRunner {
   public void doinit(int mdsize) {
     for (int j = 0; j < 3; j++) {
       double[] sh = sh_force[j];
-      for (int i = 0; i < mdsize; i++) {
+      for (int i = 0; i < sh.length; i++) {
         sh[i] = 0.0;
       }
     }
@@ -357,7 +357,7 @@ class mdRunner {
 
     for (int move = 0; move < movemx; move++) {
       /* move the particles and update velocities */
-      for (int i = 0; i < mdsize; i++) {
+      for (int i = 0; i < one.length; i++) {
         one[i].domove(side, i);
       }
 
@@ -423,11 +423,12 @@ class mdRunner {
       }
       
       mymd.epot[0] =l_epot;
+//      System.out.println("SEQ_START");
       mymd.vir[0] = l_vir;
       mymd.interactions = l_interacts;
       
       for (int k = 0; k < 3; k++) {
-        for (int j = 0; j < mdsize; j++) {
+        for (int j = 0; j <  sh_force[k].length; j++) {
           sh_force[k][j] = sh_force[k][j] * hsq2;
         }
       }
@@ -438,10 +439,12 @@ class mdRunner {
       // }
 
       /* scale forces, update velocities */
-      sum = 0.0;
-      for (int i = 0; i < mdsize; i++) {
-        sum = sum + one[i].mkekin(hsq2, i);
+      double l_sum=0.0;
+      int maxIdx=one.length;
+      for (int i = 0; i < maxIdx; i++) {
+        l_sum = l_sum + one[i].mkekin(hsq2, i);
       }
+      sum=l_sum;
 
       ekin = sum / hsq;
 
