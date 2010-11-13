@@ -148,7 +148,8 @@ static inline void* dqPopTop(deque *p) {
     return item;
   } else {
     void * item=NULL;
-    item=(void *) LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
+    if (realptr->work!=NULL)
+      item=(void *) LOCKXCHG((unsigned INTPTR*) &(realptr->work), (unsigned INTPTR) item);
     return item;
   }
 }
