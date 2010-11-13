@@ -16,7 +16,7 @@
 #define READBIN 0
 #define WRITEBIN 1
 #define BINMASK 1
-#define PARENTBIN 1
+#define PARENTBIN 1ULL
 
 #define SPEC 2
 #define READY 1          //Item is ready and we haven't seen this bin before

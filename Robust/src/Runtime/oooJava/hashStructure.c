@@ -89,6 +89,11 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   } while(val==(BinItem_rcr*)0x1);     
 
   if (val==NULL) {
+    if (((INTPTR)task)&PARENTBIN) {
+      be->head=val;
+      return READY;
+    }
+
     BinItem_rcr * b=(BinItem_rcr*)rcr_createWriteBinItem( T );
     WriteBinItem_rcr * td = (WriteBinItem_rcr*)b;
     b->total=1;
@@ -205,6 +210,11 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
   } while(val==(BinItem_rcr*)0x1);     
   
   if (val==NULL) {
+    if (((INTPTR)task)&PARENTBIN) {
+      be->head=val;
+      return READY;
+    }
+
     BinItem_rcr * b=(BinItem_rcr*)rcr_createReadBinItem( T );
     ReadBinItem_rcr* readbin=(ReadBinItem_rcr*)b;
     TraverserData * td = &(readbin->array[readbin->index++]);
@@ -268,6 +278,11 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
   }
 
   if (ISREADBIN(bintail->type)) {
+    if ((((INTPTR)task)&PARENTBIN)&&(bintail->status==READY)) {
+      be->head=val;
+      return READY;
+    }
+
     int stat=rcr_TAILREADCASE(T, val, bintail, key, task, rcrrec, index);
     if (mode) {
       struct BinItem_rcr * bt=be->tail;
@@ -457,7 +472,8 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
             //poolfreeinto( T->memPoolWrite, ptr );
 	  } else
 	    break;
-	}
+	} else
+	  break;
       }
       ptr = next;
     }
