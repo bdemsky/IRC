@@ -43,8 +43,11 @@ public class RBlockRelationAnalysis {
   // to support calculation of leaf SESEs (no children even
   // through method calls) for optimization during code gen
   protected Set<MethodDescriptor> methodsContainingSESEs;
-
-
+  
+  // maps method descriptor to SESE defined inside of it
+  // only contains top-level SESE definition in corresponding method
+  protected Hashtable<MethodDescriptor, Set<FlatSESEEnterNode>> md2seseSet;
+  
   public RBlockRelationAnalysis( State     state,
                                  TypeUtil  typeUtil,
                                  CallGraph callGraph ) {
@@ -59,6 +62,8 @@ public class RBlockRelationAnalysis {
 
     fm2relmap = 
       new Hashtable< FlatMethod, Hashtable< FlatNode, Stack<FlatSESEEnterNode> > >();
+    
+    md2seseSet = new Hashtable<MethodDescriptor, Set<FlatSESEEnterNode>>();
 
     
     MethodDescriptor mdSourceEntry = typeUtil.getMain();
@@ -68,7 +73,7 @@ public class RBlockRelationAnalysis {
     mainSESE.setfmEnclosing( fmMain );
     mainSESE.setmdEnclosing( fmMain.getMethod() );
     mainSESE.setcdEnclosing( fmMain.getMethod().getClassDesc() );
-
+    
     // add all methods transitively reachable from the
     // source's main to set for analysis    
     Set<MethodDescriptor> descriptorsToAnalyze = 
@@ -176,7 +181,16 @@ public class RBlockRelationAnalysis {
       fsen.setfmEnclosing( fm );
       fsen.setmdEnclosing( fm.getMethod() );
       fsen.setcdEnclosing( fm.getMethod().getClassDesc() );
-
+      
+      if(!fsen.getIsCallerSESEplaceholder() && fsen.getParent()==null ){
+        Set<FlatSESEEnterNode> seseSet=md2seseSet.get(fm.getMethod());
+        if(seseSet==null){
+          seseSet=new HashSet<FlatSESEEnterNode>();
+        }
+        seseSet.add(fsen);
+        md2seseSet.put(fm.getMethod(), seseSet);
+      }
+      
       if( seseStack.empty() ) {
         rootSESEs.add( fsen );
         fsen.setParent( null );
@@ -223,52 +237,71 @@ public class RBlockRelationAnalysis {
   }
 
 
-  protected boolean hasChildrenByCall( FlatSESEEnterNode fsen ) {
+  protected boolean hasChildrenByCall(FlatSESEEnterNode fsen) {
+    
+    boolean hasChildrenByCall=false;
 
     // visit every flat node in SESE body, find method calls that
     // may transitively call methods with SESEs enclosed
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fsen );
-    
-    Set<FlatNode> visited = new HashSet<FlatNode>();    
+    flatNodesToVisit.add(fsen);
 
-    while( !flatNodesToVisit.isEmpty() ) {
+    Set<FlatNode> visited = new HashSet<FlatNode>();
+
+    while (!flatNodesToVisit.isEmpty()) {
       Iterator<FlatNode> fnItr = flatNodesToVisit.iterator();
       FlatNode fn = fnItr.next();
 
-      flatNodesToVisit.remove( fn );
-      visited.add( fn );      
+      flatNodesToVisit.remove(fn);
+      visited.add(fn);
 
-      if( fn.kind() == FKind.FlatCall ) {
-        FlatCall         fc        = (FlatCall) fn;
-        MethodDescriptor mdCallee  = fc.getMethod();
-        Set              reachable = new HashSet();
+      if (fn.kind() == FKind.FlatCall) {
+        FlatCall fc = (FlatCall) fn;
+        MethodDescriptor mdCallee = fc.getMethod();
+        Set reachable = new HashSet();
 
-        reachable.add( mdCallee );
-        reachable.addAll( callGraph.getAllMethods( mdCallee ) );
+        reachable.add(mdCallee);
+        reachable.addAll(callGraph.getAllMethods(mdCallee));
 
-        reachable.retainAll( methodsContainingSESEs );
-        
-        if( !reachable.isEmpty() ) {
-          return true;
+        reachable.retainAll(methodsContainingSESEs);
+
+        if (!reachable.isEmpty()) {
+          hasChildrenByCall = true;
+
+          Set reachableSESEMethodSet =
+              callGraph.getFirstReachableMethodContainingSESE(mdCallee, methodsContainingSESEs);
+
+          if (methodsContainingSESEs.contains(mdCallee)) {
+            reachableSESEMethodSet.add(mdCallee);
+          }
+
+          for (Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext();) {
+            MethodDescriptor md = (MethodDescriptor) iterator.next();
+            Set<FlatSESEEnterNode> seseSet = md2seseSet.get(md);
+            if (seseSet != null) {
+              fsen.addSESEChildren(seseSet);
+            }
+          }
+
         }
       }
 
-      if( fn == fsen.getFlatExit() ) {
+      if (fn == fsen.getFlatExit()) {
         // don't enqueue any futher nodes
         continue;
       }
-      
-      for( int i = 0; i < fn.numNext(); i++ ) {
-	FlatNode nn = fn.getNext( i );
-        
-	if( !visited.contains( nn ) ) {
-	  flatNodesToVisit.add( nn );
-	}
-      }
-    }      
 
-    return false;
+      for (int i = 0; i < fn.numNext(); i++) {
+        FlatNode nn = fn.getNext(i);
+
+        if (!visited.contains(nn)) {
+          flatNodesToVisit.add(nn);
+        }
+      }
+    }
+
+    return hasChildrenByCall;
   }
+  
 
 }

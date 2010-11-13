@@ -909,6 +909,18 @@ public class RuntimeConflictResolver {
     return null;
   }
   
+  // decide whether the given SESE doesn't have traversers at all
+  public boolean hasEmptyTraversers(FlatSESEEnterNode fsen) {
+    boolean hasEmpty = true;
+
+    Set<FlatSESEEnterNode> children = fsen.getSESEChildren();
+    for (Iterator iterator = children.iterator(); iterator.hasNext();) {
+      FlatSESEEnterNode child = (FlatSESEEnterNode) iterator.next();
+      hasEmpty &= child.getInVarsForDynamicCoarseConflictResolution().size() == 0;
+    }
+    return hasEmpty;
+    
+  }  
   
   private Taint getProperTaintForEnterNode(FlatNode stallSite, VariableNode var,
       Hashtable<Taint, Set<Effect>> effects) {

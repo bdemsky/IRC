@@ -75,7 +75,10 @@ public class FlatSESEEnterNode extends FlatNode {
   // records which is relevant to garbage collection
   protected String firstDepRecField;
   protected int    numDepRecs;
-
+  
+  // a set of sese located at the first in transitive call chain 
+  // starting from the current sese 
+  protected Set<FlatSESEEnterNode> seseChildren;
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id              = identifier++;
@@ -92,6 +95,7 @@ public class FlatSESEEnterNode extends FlatNode {
     staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
     dynamicVars          = new HashSet<TempDescriptor>();
+    seseChildren         = new HashSet<FlatSESEEnterNode>();
 
     inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
     
@@ -350,6 +354,17 @@ public class FlatSESEEnterNode extends FlatNode {
     return isCallerSESEplaceholder;
   }
 
+  public void addSESEChildren(FlatSESEEnterNode child){
+    seseChildren.add(child);
+  }
+  
+  public void addSESEChildren(Set<FlatSESEEnterNode> children){
+    seseChildren.addAll(children);
+  }
+  
+  public Set<FlatSESEEnterNode> getSESEChildren(){
+    return seseChildren;
+  }
 
   public boolean equals( Object o ) {
     if( o == null ) {

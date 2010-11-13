@@ -2564,9 +2564,9 @@ public class BuildCode {
     if( !fsen.getIsLeafSESE() ) {
       output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
                      maxTaskRecSizeStr+", freshTaskRecordInitializer );");
-      if (state.RCR) {
-	output.println("   createTR();");
-	output.println("   runningSESE->allHashStructures=TRqueue->allHashStructures;");
+      if (state.RCR && !rcr.hasEmptyTraversers(fsen)) {
+        output.println("   createTR();");
+        output.println("   runningSESE->allHashStructures=TRqueue->allHashStructures;");
       }
     } else {
       // make it clear we purposefully did not initialize this
@@ -3161,7 +3161,7 @@ public class BuildCode {
 		   + generateTemp(fm, stalltd, null) + ";");
     output.println("       stallrecord->common.classID=-"
 		   + rcr.getTraverserID(stalltd, fn) + ";");
-
+    
     output.println("       enqueueTR(TRqueue, (void *)stallrecord);");
 
     if (state.COREPROF) {
@@ -4274,7 +4274,7 @@ public class BuildCode {
       ////////////////
       // count up memory conflict dependencies,
       if(state.RCR) {
-	dispatchMEMRC(fm, lb, fsen, output);
+        dispatchMEMRC(fm, lb, fsen, output);
       } else if(state.OOOJAVA){
         FlatSESEEnterNode parent = fsen.getParent();
         Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
@@ -4506,7 +4506,7 @@ public class BuildCode {
 
     // Enqueue Task Record
     if (state.RCR) {
-      if( fsen != oooa.getMainSESE() ){
+      if( fsen != oooa.getMainSESE() && fsen.getInVarsForDynamicCoarseConflictResolution().size()>0){
         output.println("    enqueueTR(TRqueue, (void *)seseToIssue);");
       }
     }
@@ -4774,25 +4774,23 @@ public class BuildCode {
       output.println("{");
       output.println("  int idx,idx2;");
 
-      //NEED TO FIX THIS
-      //XXXXXXXXX
       output.println("    struct rcrRecord *rec;");
-      output.println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
+      output
+          .println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
 
-      for(int i=0;i<inset.size();i++) {
-	output.println("    rec=&" + paramsprefix + "->rcrRecords["+i+"];");
-	output.println("    while(rec!=NULL) {");
-	output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
+      for (int i = 0; i < inset.size(); i++) {
+        output.println("    rec=&" + paramsprefix + "->rcrRecords[" + i + "];");
+        output.println("    while(rec!=NULL) {");
+        output.println("      for(idx2=0;idx2<rec->index;idx2++) {");
 
-        int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i),fsen);
+        int weaklyConnectedComponentIndex = rcr.getWeakID(inset.get(i), fsen);
 
-	output.println("        rcr_RETIREHASHTABLE(hashstruct["+
-                       weaklyConnectedComponentIndex+
-                       "],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
+        output.println("        rcr_RETIREHASHTABLE(hashstruct[" + weaklyConnectedComponentIndex
+            + "],&(___params___->common), rec->array[idx2], (BinItem_rcr *) rec->ptrarray[idx2]);");
 
-	output.println("      }");// exit idx2 for loop
-	output.println("      rec=rec->next;");
-	output.println("    }");// exit rec while loop
+        output.println("      }");// exit idx2 for loop
+        output.println("      rec=rec->next;");
+        output.println("    }");// exit rec while loop
       }
       output.println("}");
     }
@@ -4821,7 +4819,7 @@ public class BuildCode {
     // destroy this task's mempool if it is not a leaf task
     if( !fsen.getIsLeafSESE() ) {
       output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
-      if (state.RCR) {
+      if (state.RCR && fsen.getInVarsForDynamicCoarseConflictResolution().size() > 0 ) {
         output.println("     returnTR();");
       }
     }

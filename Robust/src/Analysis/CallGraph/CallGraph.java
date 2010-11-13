@@ -166,6 +166,35 @@ public class CallGraph {
     }
     return callable;
   }
+  
+  // Returns a set of methods containing SESEs and located at the first   
+  // in transitive call chain starting from d 
+  public Set getFirstReachableMethodContainingSESE(Descriptor d,
+      Set<MethodDescriptor> methodsContainingSESEs) {
+    HashSet tovisit = new HashSet();
+    tovisit.add(d);
+    HashSet callable = new HashSet();
+    while (!tovisit.isEmpty()) {
+      Descriptor md = (Descriptor) tovisit.iterator().next();
+      tovisit.remove(md);
+      Set s = (Set) mapCaller2CalleeSet.get(md);
+      if (s != null) {
+        for (Iterator it = s.iterator(); it.hasNext();) {
+          MethodDescriptor md2 = (MethodDescriptor) it.next();
+          if (!callable.contains(md2)) {
+            callable.add(md2);
+            if (!methodsContainingSESEs.contains(md2)) {
+              // if current method has sese, do not need to go down
+              tovisit.add(md2);
+            }
+          }
+        }
+      }
+    }
+    callable.retainAll(methodsContainingSESEs);
+    return callable;
+  }
+  
 
   private void buildGraph() {
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
