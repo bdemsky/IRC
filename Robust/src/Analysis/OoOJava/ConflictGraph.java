@@ -634,7 +634,6 @@ public class ConflictGraph {
           SCCelement = waitingElement;
         }
       }
-
       if (SCCelement != null) {
         // if there is at lease one SCC element, just enqueue SCC and
         // ignore others.
@@ -644,10 +643,14 @@ public class ConflictGraph {
           for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
             WaitingElement waitingElement = (WaitingElement) iterator.next();
             SCCelement.addTempDesc(waitingElement.getTempDesc());
+            if(waitingElement!=SCCelement){
+              waitingElement.setBogus(true);
+              refinedSet.add(waitingElement);
+            }
           }
         }
         refinedSet.add(SCCelement);
-      } else if (numCoarse == 1 && (numRead + numWrite + numCoarse == total)) {
+      } else if (numCoarse == 1 && (numRead + numWrite  == total)) {
         // if one is a coarse, the othere are reads/write, enqueue SCC.
         WaitingElement we = new WaitingElement();
         we.setQueueID(queueID);
@@ -659,7 +662,11 @@ public class ConflictGraph {
           // for rcr, we need to label all of coarse tempdescriptors
           for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
             WaitingElement waitingElement = (WaitingElement) iterator.next();
-            coarseElement.addTempDesc(waitingElement.getTempDesc());
+            if(waitingElement!=coarseElement){
+              coarseElement.addTempDesc(waitingElement.getTempDesc());
+              waitingElement.setBogus(true);
+              refinedSet.add(waitingElement);
+            }
           }
         }
         refinedSet.add(coarseElement);

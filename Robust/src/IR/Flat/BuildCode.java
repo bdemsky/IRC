@@ -4543,36 +4543,49 @@ public class BuildCode {
 	System.out.println(fm.getMethod()+"["+invars+"]");
 	
 	Vector<Long> queuetovar=new Vector<Long>();
-	
+
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
-	  int numqueues=weset.size();
-	  output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
-	  output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
-	  output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
-	  output.println("      int dispCount"+i+"=0;");
+	  int numqueues=0;
+	  Set<Integer> queueSet=new HashSet<Integer>();
+	  for (Iterator iterator = weset.iterator(); iterator.hasNext();) {
+	    Analysis.OoOJava.WaitingElement  we = (Analysis.OoOJava.WaitingElement) iterator.next();
+	    Integer queueID=new Integer( we.getQueueID());
+	    if(!queueSet.contains(queueID)){
+	      numqueues++;
+	      queueSet.add(queueID);
+	    }	   
+    }
+    output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+    output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
+    output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
+    output.println("      int dispCount"+i+"=0;");
 
-	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
-	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
-	    int queueID=waitingElement.getQueueID();
-	    if (queueID>=queuetovar.size())
-	      queuetovar.setSize(queueID+1);
-	    Long l=queuetovar.get(queueID);
-	    long val=(l!=null)?l.longValue():0;
-	    val=val|(1<<i);
-	    queuetovar.set(queueID, new Long(val));
-	  }
+    for (Iterator<Analysis.OoOJava.WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
+      Analysis.OoOJava.WaitingElement waitingElement = wtit.next();
+      int queueID = waitingElement.getQueueID();
+      if (queueID >= queuetovar.size())
+        queuetovar.setSize(queueID + 1);
+      Long l = queuetovar.get(queueID);
+      long val = (l != null) ? l.longValue() : 0;
+      val = val | (1 << i);
+      queuetovar.set(queueID, new Long(val));
+    }
 	}
 
 	HashSet generatedqueueentry=new HashSet();
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
-	  int numqueues=weset.size();
 	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
 	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
 	    int queueID=waitingElement.getQueueID();
+	    
+	    if(waitingElement.isBogus()){
+	      continue;
+	    }
+	    
 	    if (generatedqueueentry.contains(queueID))
 	      continue;
 	    else 

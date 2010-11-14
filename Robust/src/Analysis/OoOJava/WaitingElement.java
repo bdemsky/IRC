@@ -11,6 +11,10 @@ public class WaitingElement {
   private int status;
   private String dynID = "";
   private TempDescriptor tempDesc;
+  
+  // if scc/coarse represents more than one waiting elements
+  // ignored waiting element is inserted into a set of waiting element as a bogus element
+  private boolean bogus = false;
 
   // a set of tempDescriptors: 
   // all associated with coarse conflicts for the same queue and the same sese
@@ -72,7 +76,7 @@ public class WaitingElement {
 
     WaitingElement in = (WaitingElement) o;
 
-    if (queueID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID())) {
+    if (queueID == in.getQueueID() && status == in.getStatus() && dynID.equals(in.getDynID()) && tempDesc.equals(in.getTempDesc())) {
       return true;
     } else {
       return false;
@@ -81,7 +85,7 @@ public class WaitingElement {
   }
 
   public String toString() {
-    return "[waitingID=" + queueID + " status=" + status + " dynID=" + dynID + "]";
+    return "[waitingID=" + queueID + " status=" + status + " dynID=" + dynID + " td= "+tempDesc+" isBogus="+ bogus+"]";
   }
 
   public int hashCode() {
@@ -96,6 +100,14 @@ public class WaitingElement {
 
     return hash;
 
+  }
+  
+  public boolean isBogus(){
+    return bogus;
+  }
+  
+  public void setBogus(boolean b){
+    bogus=b;
   }
 
 }
