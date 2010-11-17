@@ -1,5 +1,8 @@
 #ifndef AFFINITY_H
 #define AFFINITY_H
+#include <sys/syscall.h>
+#include <sched.h>
+#include <errno.h>
 
 static void set_affinity(unsigned long cpu) {
   int err;
