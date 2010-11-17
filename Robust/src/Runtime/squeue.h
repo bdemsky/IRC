@@ -128,6 +128,7 @@ static inline void dqPushBottom( deque* p, void* work ) {
   ptr=(dequeItem *) (((unsigned INTPTR)ptr)+INCREMENTTAG);
   realptr->work=work;
   BARRIER();
+  //thread unsafe enqueue...only works if one thread enqueue to a queue
   p->tail->next=ptr;
   p->tail=realptr;
 }

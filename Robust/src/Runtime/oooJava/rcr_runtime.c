@@ -10,6 +10,7 @@
 void * workerTR(void *x) {
   struct trQueue * queue=(struct trQueue *)x;
   allHashStructures=queue->allHashStructures;
+  myWorkerID=queue->id;
 
   CP_CREATE();
 

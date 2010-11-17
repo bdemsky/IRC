@@ -6,6 +6,7 @@
 #include "structdefs.h"
 #include "RuntimeConflictResolver.h"
 
+extern volatile int numWorkSchedWorkers;
 
 struct trQueue * queuelist=NULL;
 pthread_mutex_t queuelock;
@@ -43,10 +44,15 @@ void * dequeueTR(struct trQueue *q) {
 
 void createTR() {
   struct trQueue *ptr=NULL;
+  int myid;
   pthread_mutex_lock(&queuelock);
   ptr=queuelist;
-  if (ptr!=NULL)
+  if (ptr!=NULL) {
     queuelist=ptr->next;
+  } else {
+    myid=numWorkSchedWorkers;
+    numWorkSchedWorkers++;
+  }  
   pthread_mutex_unlock(&queuelock);
   if (ptr==NULL) {
     pthread_t thread;
@@ -56,6 +62,7 @@ void createTR() {
     ptr=malloc(sizeof(struct trQueue));
     ptr->head=0;
     ptr->tail=0;
+    ptr->id=myid;
     ptr->allHashStructures=createAndFillMasterHashStructureArray();
     int status=pthread_create( &thread, NULL, workerTR, (void *) ptr);
     if (status!=0) {printf("ERROR\n");exit(-1);}

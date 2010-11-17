@@ -12,6 +12,7 @@ struct trQueue {
   volatile unsigned int tail;
   struct trQueue *next;
   struct Hashtable_rcr ** allHashStructures;
+  int id;
 };
 
 void enqueueTR(struct trQueue *, void * ptr);

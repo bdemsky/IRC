@@ -61,15 +61,16 @@ typedef struct workerData_t {
 
 // a thread should know its worker id in any
 // functions below
-static __thread int myWorkerID;
+__thread int myWorkerID;
 
 // the original thread starts up the work scheduler
 // and sleeps while it is running, it has no worker
 // ID so use this to realize that
-static const int workerID_NOTAWORKER = 0xffffff0;
+const int workerID_NOTAWORKER = 0xffffff0;
 
 
-int numWorkSchedWorkers;
+volatile int numWorkSchedWorkers;
+int realnumWorkSchedWorkers;
 static WorkerData*  workerDataArray;
 static pthread_t*   workerArray;
 
@@ -166,7 +167,8 @@ void* workerMain( void* arg ) {
         // try to steal from another queue, starting
         // with the last successful victim, don't check
         // your own deque
-        for( i = 0; i < numWorkSchedWorkers - 1; ++i ) {
+	int mynumWorkSchedWorkers=numWorkSchedWorkers;
+        for( i = 0; i < mynumWorkSchedWorkers - 1; ++i ) {
 
           workUnit = dqPopTop( &(deques[lastVictim]) );
           
@@ -182,10 +184,10 @@ void* workerMain( void* arg ) {
           }
        
           // choose next victim
-          lastVictim++; if( lastVictim == numWorkSchedWorkers ) { lastVictim = 0; }
+          lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) { lastVictim = 0; }
           
           if( lastVictim == myWorkerID ) {
-            lastVictim++; if( lastVictim == numWorkSchedWorkers ) { lastVictim = 0; }
+            lastVictim++; if( lastVictim == mynumWorkSchedWorkers ) { lastVictim = 0; }
           }
         }
         // end steal attempts
@@ -281,13 +283,22 @@ void workScheduleInit( int numProcessors,
 
 
   numWorkSchedWorkers = numProcessors;
+  realnumWorkSchedWorkers=numProcessors;
 
   workFunc = func;
 
+#ifdef RCR
+  deques          = RUNMALLOC( sizeof( deque      )*numWorkSchedWorkers*2);
+#else
   deques          = RUNMALLOC( sizeof( deque      )*numWorkSchedWorkers );
+#endif
   workerDataArray = RUNMALLOC( sizeof( WorkerData )*numWorkSchedWorkers );
 
+#ifdef RCR
+  for( i = 0; i < numWorkSchedWorkers*2; ++i ) {
+#else
   for( i = 0; i < numWorkSchedWorkers; ++i ) {
+#endif
     dqInit( &(deques[i]) );
   }
   
@@ -331,7 +342,7 @@ void workScheduleBegin() {
   workerMain( (void*) &(workerDataArray[0]) );
 
   // then wait for all other workers to exit gracefully
-  for( i = 1; i < numWorkSchedWorkers; ++i ) {
+  for( i = 1; i < realnumWorkSchedWorkers; ++i ) {
     pthread_join( workerDataArray[i].workerThread, NULL );
   }
 
