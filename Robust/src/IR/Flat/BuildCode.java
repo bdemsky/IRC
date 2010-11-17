@@ -4108,7 +4108,11 @@ public class BuildCode {
     if( state.RCR ) {
       // if we're using RCR, ref count is 3 because the traverser has
       // a reference, too
-      output.println("     seseToIssue->common.refCount = 10003;");
+      if( fsen != oooa.getMainSESE() && fsen.getInVarsForDynamicCoarseConflictResolution().size()>0){
+        output.println("     seseToIssue->common.refCount = 10003;");
+      } else {
+        output.println("     seseToIssue->common.refCount = 10002;");
+      }
       output.println("     int refCount=10000;");
     } else {
       output.println("     seseToIssue->common.refCount = 2;");
@@ -4543,7 +4547,7 @@ public class BuildCode {
 	System.out.println(fm.getMethod()+"["+invars+"]");
 	
 	Vector<Long> queuetovar=new Vector<Long>();
-
+        
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
@@ -4556,22 +4560,22 @@ public class BuildCode {
 	      numqueues++;
 	      queueSet.add(queueID);
 	    }	   
-    }
-    output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
-    output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
-    output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
-    output.println("      int dispCount"+i+"=0;");
-
-    for (Iterator<Analysis.OoOJava.WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
-      Analysis.OoOJava.WaitingElement waitingElement = wtit.next();
-      int queueID = waitingElement.getQueueID();
-      if (queueID >= queuetovar.size())
-        queuetovar.setSize(queueID + 1);
-      Long l = queuetovar.get(queueID);
-      long val = (l != null) ? l.longValue() : 0;
-      val = val | (1 << i);
-      queuetovar.set(queueID, new Long(val));
-    }
+          }
+          output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+          output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
+          output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
+          output.println("      int dispCount"+i+"=0;");
+          
+          for (Iterator<Analysis.OoOJava.WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
+            Analysis.OoOJava.WaitingElement waitingElement = wtit.next();
+            int queueID = waitingElement.getQueueID();
+            if (queueID >= queuetovar.size())
+              queuetovar.setSize(queueID + 1);
+            Long l = queuetovar.get(queueID);
+            long val = (l != null) ? l.longValue() : 0;
+            val = val | (1 << i);
+            queuetovar.set(queueID, new Long(val));
+          }
 	}
 
 	HashSet generatedqueueentry=new HashSet();
@@ -4619,15 +4623,12 @@ public class BuildCode {
 	  output.println("     if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
 	  output.println("       localCount++;");
 	}
-
-	output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-	output.println("  RELEASE_REFERENCES_TO((SESEcommon *)seseToIssue, refCount);");
-	output.println("#endif");
-
-
 	output.println("    }");
       }
     }
+    output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
+    output.println("  RELEASE_REFERENCES_TO((SESEcommon *)seseToIssue, refCount);");
+    output.println("#endif");
   }
 
   public void generateFlatSESEExitNode( FlatMethod fm,
