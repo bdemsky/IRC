@@ -292,9 +292,11 @@ public class JGFCryptBench {
   }
 
   public void JGFkernel(){
-    long startT=System.currentTimeMillis();
+
     byte [] crypt1 =  new byte [array_rows];
     byte [] plain2 =  new byte [array_rows];
+
+    long startT=System.currentTimeMillis();
 
     int nW=nWorker;
     // Encrypt plain1.    
@@ -386,7 +388,7 @@ public class JGFCryptBench {
     JGFCryptBench cb = new JGFCryptBench();
 
     int problem_size = 2;
-    int nWorker = 30;
+    int nWorker = 2;
     if (argv.length > 0) {
       problem_size = Integer.parseInt(argv[0]);
     }
