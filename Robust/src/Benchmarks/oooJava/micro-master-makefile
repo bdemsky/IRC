@@ -15,13 +15,13 @@ BUILDSCRIPT=../../../buildscript
 
 
 COREPROFOVERFLOW= #-coreprof-checkoverflow
-USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
+USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*512 \
 	-coreprof-enable cpe_main \
-	-coreprof-enable cpe_workschedgrab
-#	-coreprof-enable cpe_runmalloc \
+	-coreprof-enable cpe_taskdispatch
+#	-coreprof-enable cpe_workschedgrab \
+	-coreprof-enable cpe_runmalloc \
 	-coreprof-enable cpe_taskexecute \
-	-coreprof-enable cpe_taskdispatch \
 	-coreprof-enable cpe_poolalloc \
 	-coreprof-enable cpe_taskretire \
 	-coreprof-enable cpe_preparememq \
@@ -32,8 +32,9 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava 24 2 -squeue #-mempool-detect-misuse #-ooodebug-disable-task-mem-pool #-ooodebug 
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 1000 -garbagestats -joptimize -noloop -debug -debug-deque # -optimize src-after-pp
+USEOOO= -ooojava 24 2      -squeue #-mempool-detect-misuse #-ooodebug-disable-task-mem-pool #-ooodebug 
+USERCR= -ooojava 23 2 -rcr -squeue #-mempool-detect-misuse #-ooodebug-disable-task-mem-pool #-ooodebug 
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 1000 -garbagestats -joptimize -optimize -noloop #-debug -debug-deque # src-after-pp
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
@@ -47,10 +48,13 @@ single:
 ooo:
 	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
+rcr:
+	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+
 clean:
-	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin
-	rm -fr par sing
-	rm -f tmp.c
+	rm -f  $(PROGRAM)p.bin $(PROGRAM)r.bin $(PROGRAM)s.bin
+	rm -fr par rcr sing
+	rm -f  tmp.c
 	rm -f  *~
 	rm -f  *.dot
 	rm -f  *.png
@@ -58,5 +62,5 @@ clean:
 	rm -f  aliases.txt
 	rm -f  mlpReport*txt
 	rm -f  results*txt
-	rm -f coreprof.dat
-	rm -f trace.out
+	rm -f  coreprof.dat
+	rm -f  trace.out
