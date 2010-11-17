@@ -42,12 +42,8 @@ void psem_give_tag( psemaphore* sem, int tag) {
 
 
 void psem_reset( psemaphore* sem ) {
-  // this should NEVER BE CALLED if it is possible
-  // the semaphore is still in use, NEVER
-  if( pthread_mutex_trylock( &(sem->lock) ) == EBUSY ) {
-    exit( -1 );
-  }
-  pthread_mutex_unlock( &(sem->lock) );
+  pthread_mutex_lock  ( &(sem->lock) );
   sem->tag++;
   sem->signaled = 0;
+  pthread_mutex_unlock( &(sem->lock) );
 }
