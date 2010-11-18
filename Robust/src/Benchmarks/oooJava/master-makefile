@@ -13,7 +13,7 @@ BUILDSCRIPT=../../../buildscript
 
 
 COREPROFOVERFLOW= #-coreprof-checkoverflow
-USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
+USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*128 \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_taskexecute \

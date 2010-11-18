@@ -69,6 +69,7 @@ __thread int myWorkerID;
 const int workerID_NOTAWORKER = 0xffffff0;
 
 
+int oidIncrement;
 volatile int numWorkSchedWorkers;
 int realnumWorkSchedWorkers;
 static WorkerData*  workerDataArray;
@@ -284,6 +285,21 @@ void workScheduleInit( int numProcessors,
 
   numWorkSchedWorkers = numProcessors;
   realnumWorkSchedWorkers=numProcessors;
+  oidIncrement=numProcessors;
+  while(1) {
+    int x=2;
+    //check primality
+    for(;x<oidIncrement;x++) {
+      //not prime
+      if (oidIncrement%x==0) {
+        oidIncrement++;
+        break;
+      }
+    }
+    //have prime
+    if (x==oidIncrement)
+      break;
+  }
 
   workFunc = func;
 

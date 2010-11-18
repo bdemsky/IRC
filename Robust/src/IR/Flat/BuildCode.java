@@ -1267,7 +1267,7 @@ public class BuildCode {
     outclassdefs.print("int numprefetchsites = " + pa.prefetchsiteid + ";\n");
     if(this.state.MLP || state.OOOJAVA ){
     	outclassdefs.print("extern __thread int oid;\n");
-    	outclassdefs.print("extern int numWorkSchedWorkers;\n");
+    	outclassdefs.print("extern int oidIncrement;\n");
     }
 
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
@@ -5631,7 +5631,7 @@ public class BuildCode {
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
     	  if(this.state.MLP || state.OOOJAVA){
             output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray_mlp("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+", oid, "+oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+");");
-	output.println("    oid += numWorkSchedWorkers;");
+	output.println("    oid += oidIncrement;");
     	  }else{
     output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_newarray("+localsprefixaddr+", "+arrayid+", "+generateTemp(fm, fn.getSize(),lb)+");");    		  
     	  }
@@ -5644,7 +5644,7 @@ public class BuildCode {
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
     	  if (this.state.MLP || state.OOOJAVA){
 	output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new_mlp("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+", oid, "+oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew(fn).getUniqueAllocSiteID()+");");
-	output.println("    oid += numWorkSchedWorkers;");
+	output.println("    oid += oidIncrement;");
     	  } else {
     output.println(generateTemp(fm,fn.getDst(),lb)+"=allocate_new("+localsprefixaddr+", "+fn.getType().getClassDesc().getId()+");");    		  
     	  }

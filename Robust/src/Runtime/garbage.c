@@ -16,7 +16,7 @@
 #include "deque.h"
 #endif
 #include "workschedule.h"
-extern int    numWorkSchedWorkers;
+extern volatile int    numWorkSchedWorkers;
 extern deque* deques;
 #endif
 
