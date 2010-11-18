@@ -2,6 +2,7 @@
 CUR=`pwd`
 for i in *
 do
+cd $i
 make rcr > rcrlog &
 make single > singlelog &
 cd $CUR
