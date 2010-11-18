@@ -3371,7 +3371,15 @@ public class BuildCode {
         // eom
         // handling stall site
         if (state.OOOJAVA) {
-          Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
+          // NEED TO FIX IT 
+          // assumes that there is only one parent, but it is possible that
+          // currentSESE has more than one so we need to generate
+          // conditional case for each parent case        
+          Analysis.OoOJava.ConflictGraph graph = null;
+          if(currentSESE.getSESEParent().size()>0){
+            graph = oooa.getConflictGraph(currentSESE.getSESEParent().iterator().next());
+          }          
+//          Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
           if(graph!=null){
             Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
             Set<Analysis.OoOJava.WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
@@ -4280,8 +4288,13 @@ public class BuildCode {
       if(state.RCR) {
         dispatchMEMRC(fm, lb, fsen, output);
       } else if(state.OOOJAVA){
-        FlatSESEEnterNode parent = fsen.getParent();
-        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
+        // NEED TO FIX IT 
+        // assumes that there is only one parent, but it is possible that
+        // currentSESE has more than one so we need to generate
+        // conditional case for each parent case        
+        assert fsen.getSESEParent().size()>0;
+        FlatSESEEnterNode parent =  fsen.getSESEParent().iterator().next();
+        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);        
         if (graph != null && graph.hasConflictEdge()) {
           Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
           output.println();
@@ -4533,7 +4546,12 @@ public class BuildCode {
   }
 
   void dispatchMEMRC(FlatMethod fm,  LocalityBinding lb, FlatSESEEnterNode fsen, PrintWriter output) {
-    FlatSESEEnterNode parent = fsen.getParent();
+    // NEED TO FIX IT 
+    // assumes that there is only one parent, but it is possible that
+    // currentSESE has more than one so we need to generate
+    // conditional case for each parent case        
+    assert fsen.getSESEParent().size()>0;
+    FlatSESEEnterNode parent =  fsen.getSESEParent().iterator().next();
     Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
     if (graph != null && graph.hasConflictEdge()) {
       Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
@@ -4547,7 +4565,7 @@ public class BuildCode {
 	System.out.println(fm.getMethod()+"["+invars+"]");
 	
 	Vector<Long> queuetovar=new Vector<Long>();
-        
+
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
 	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
@@ -4560,22 +4578,22 @@ public class BuildCode {
 	      numqueues++;
 	      queueSet.add(queueID);
 	    }	   
-          }
-          output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
-          output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
-          output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
-          output.println("      int dispCount"+i+"=0;");
-          
-          for (Iterator<Analysis.OoOJava.WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
-            Analysis.OoOJava.WaitingElement waitingElement = wtit.next();
-            int queueID = waitingElement.getQueueID();
-            if (queueID >= queuetovar.size())
-              queuetovar.setSize(queueID + 1);
-            Long l = queuetovar.get(queueID);
-            long val = (l != null) ? l.longValue() : 0;
-            val = val | (1 << i);
-            queuetovar.set(queueID, new Long(val));
-          }
+    }
+    output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+    output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
+    output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
+    output.println("      int dispCount"+i+"=0;");
+
+    for (Iterator<Analysis.OoOJava.WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
+      Analysis.OoOJava.WaitingElement waitingElement = wtit.next();
+      int queueID = waitingElement.getQueueID();
+      if (queueID >= queuetovar.size())
+        queuetovar.setSize(queueID + 1);
+      Long l = queuetovar.get(queueID);
+      long val = (l != null) ? l.longValue() : 0;
+      val = val | (1 << i);
+      queuetovar.set(queueID, new Long(val));
+    }
 	}
 
 	HashSet generatedqueueentry=new HashSet();

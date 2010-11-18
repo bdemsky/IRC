@@ -79,6 +79,10 @@ public class FlatSESEEnterNode extends FlatNode {
   // a set of sese located at the first in transitive call chain 
   // starting from the current sese 
   protected Set<FlatSESEEnterNode> seseChildren;
+  
+  // a set of complete parent sese, not bogus one
+  protected Set<FlatSESEEnterNode> seseParent;
+
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id              = identifier++;
@@ -96,6 +100,7 @@ public class FlatSESEEnterNode extends FlatNode {
     dynamicInVars        = new HashSet<TempDescriptor>();
     dynamicVars          = new HashSet<TempDescriptor>();
     seseChildren         = new HashSet<FlatSESEEnterNode>();
+    seseParent            = new HashSet<FlatSESEEnterNode>();
 
     inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
     
@@ -359,6 +364,7 @@ public class FlatSESEEnterNode extends FlatNode {
   }
   
   public void addSESEChildren(Set<FlatSESEEnterNode> children){
+    
     seseChildren.addAll(children);
   }
   
@@ -439,4 +445,13 @@ public class FlatSESEEnterNode extends FlatNode {
 
     return isLeafSESE == ISLEAF_TRUE;
   }
+  
+  public Set<FlatSESEEnterNode> getSESEParent() {
+    return seseParent;
+  }
+
+  public void addSESEParent(FlatSESEEnterNode  seseParent) {
+    this.seseParent.add(seseParent);
+  }
+
 }

@@ -123,17 +123,29 @@ public class RuntimeConflictResolver {
       System.out.println(fsen);
       System.out.println(fsen.getIsCallerSESEplaceholder());
       System.out.println(fsen.getParent());
-
-      if (fsen.getParent() != null) {
-        conflictGraph = oooa.getConflictGraph(fsen.getParent());
+      
+//      if (fsen.getParent() != null) {
+      FlatSESEEnterNode parentSESE = null;
+      if (fsen.getSESEParent().size() > 0) {
+         parentSESE = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next();
+        System.out.println("fsen getParent=" + parentSESE);
+        conflictGraph = oooa.getConflictGraph(parentSESE);
         System.out.println("CG=" + conflictGraph);
         if (conflictGraph != null)
           System.out.println("Conflicts=" + conflictGraph.getConflictEffectSet(fsen));
+        // conflictGraph = oooa.getConflictGraph(fsen.getParent());
+        // System.out.println("CG=" + conflictGraph);
+        // if (conflictGraph != null)
+        // System.out.println("Conflicts=" +
+        // conflictGraph.getConflictEffectSet(fsen));
       }
 
-      if (!fsen.getIsCallerSESEplaceholder() && fsen.getParent() != null
-          && (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null
-          && (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null) {
+//      if (!fsen.getIsCallerSESEplaceholder() && fsen.getParent() != null
+//          && (conflictGraph = oooa.getConflictGraph(fsen.getParent())) != null
+//          && (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null) {
+      if(!fsen.getIsCallerSESEplaceholder() && fsen.getSESEParent().size() > 0
+          && (conflictGraph = oooa.getConflictGraph(parentSESE)) != null
+          && (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null ){
         FlatMethod fm = fsen.getfmEnclosing();
         ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
         if (cSideDebug)
@@ -147,7 +159,13 @@ public class RuntimeConflictResolver {
       FlatNode fn = codeit.next();
       CodePlan cp = oooa.getCodePlan(fn);
       FlatSESEEnterNode currentSESE = cp.getCurrentSESE();
-      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
+      
+      if(currentSESE.getSESEParent().size()==0){
+        continue;
+      }
+      FlatSESEEnterNode parent=(FlatSESEEnterNode)currentSESE.getSESEParent().iterator().next();
+//      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
+      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
 
       if (graph != null) {
         Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);

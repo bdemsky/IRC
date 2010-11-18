@@ -32,6 +32,9 @@ public class RBlockRelationAnalysis {
   // simply a set of every reachable SESE in the program, not
   // including caller placeholder SESEs
   protected Set<FlatSESEEnterNode> allSESEs;
+  
+  // a set of every bogus palceholder SESEs 
+  protected Set<FlatSESEEnterNode> allBogusSESEs;
 
   // per method-per node-rblock stacks
   protected Hashtable< FlatMethod, 
@@ -57,6 +60,7 @@ public class RBlockRelationAnalysis {
 
     rootSESEs = new HashSet<FlatSESEEnterNode>();
     allSESEs  = new HashSet<FlatSESEEnterNode>();
+    allBogusSESEs  = new HashSet<FlatSESEEnterNode>();
 
     methodsContainingSESEs = new HashSet<MethodDescriptor>();
 
@@ -176,6 +180,8 @@ public class RBlockRelationAnalysis {
       if( !fsen.getIsCallerSESEplaceholder() ) {
         allSESEs.add( fsen );
         methodsContainingSESEs.add( fm.getMethod() );
+      }else{
+        allBogusSESEs.add(fsen);
       }
 
       fsen.setfmEnclosing( fm );
@@ -223,17 +229,31 @@ public class RBlockRelationAnalysis {
 
 
   protected void computeLeafSESEs() {
-    for( Iterator<FlatSESEEnterNode> itr = allSESEs.iterator();
-         itr.hasNext();
-         ) {
+    
+    Set<FlatSESEEnterNode> all=new HashSet<FlatSESEEnterNode>();
+    all.addAll(allSESEs);
+    all.addAll(allBogusSESEs);
+    
+    for (Iterator<FlatSESEEnterNode> itr = all.iterator(); itr.hasNext();) {
       FlatSESEEnterNode fsen = itr.next();
 
       boolean hasNoNestedChildren = fsen.getChildren().isEmpty();
-      boolean hasNoChildrenByCall = !hasChildrenByCall( fsen );
+      boolean hasNoChildrenByCall = !hasChildrenByCall(fsen);
 
-      fsen.setIsLeafSESE( hasNoNestedChildren &&
-                          hasNoChildrenByCall );
+      fsen.setIsLeafSESE(hasNoNestedChildren && hasNoChildrenByCall);
     }
+
+    // for( Iterator<FlatSESEEnterNode> itr = allSESEs.iterator();
+    // itr.hasNext();
+    // ) {
+    // FlatSESEEnterNode fsen = itr.next();
+    //
+    // boolean hasNoNestedChildren = fsen.getChildren().isEmpty();
+    // boolean hasNoChildrenByCall = !hasChildrenByCall( fsen );
+    //
+    // fsen.setIsLeafSESE( hasNoNestedChildren &&
+    // hasNoChildrenByCall );
+    // }
   }
 
 
@@ -268,22 +288,45 @@ public class RBlockRelationAnalysis {
         if (!reachable.isEmpty()) {
           hasChildrenByCall = true;
 
-          Set reachableSESEMethodSet =
-              callGraph.getFirstReachableMethodContainingSESE(mdCallee, methodsContainingSESEs);
+          if (!fsen.getIsCallerSESEplaceholder()) {
+            // System.out.println("%%%mdCallee="+mdCallee+" from fsen="+fsen);
+            Set reachableSESEMethodSet =
+                callGraph.getFirstReachableMethodContainingSESE(mdCallee, methodsContainingSESEs);
 
-          if (methodsContainingSESEs.contains(mdCallee)) {
+            // if (methodsContainingSESEs.contains(mdCallee)) {
             reachableSESEMethodSet.add(mdCallee);
-          }
+            // }
 
-          for (Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext();) {
-            MethodDescriptor md = (MethodDescriptor) iterator.next();
-            Set<FlatSESEEnterNode> seseSet = md2seseSet.get(md);
-            if (seseSet != null) {
-              fsen.addSESEChildren(seseSet);
+            // System.out.println("#");
+            // System.out.println("fsen"+fsen);
+            // System.out.println("reachableSESEMethodSet="+reachableSESEMethodSet);
+
+            for (Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext();) {
+              MethodDescriptor md = (MethodDescriptor) iterator.next();
+              // Set<FlatSESEEnterNode> seseSet = md2seseSet.get(md);
+              FlatMethod fm = state.getMethodFlat(md);
+              FlatSESEEnterNode fsenBogus = (FlatSESEEnterNode) fm.getNext(0);
+              fsenBogus.addSESEParent(fsen);
+              // System.out.println("% "+fm+"->"+fsen);
             }
-          }
 
+            reachableSESEMethodSet.retainAll(methodsContainingSESEs);
+
+            for (Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext();) {
+              MethodDescriptor md = (MethodDescriptor) iterator.next();
+              Set<FlatSESEEnterNode> seseSet = md2seseSet.get(md);
+              if (seseSet != null) {
+                fsen.addSESEChildren(seseSet);
+                for (Iterator iterator2 = seseSet.iterator(); iterator2.hasNext();) {
+                  FlatSESEEnterNode child = (FlatSESEEnterNode) iterator2.next();
+                  child.addSESEParent(fsen);
+                }
+              }
+            }
+
+          }
         }
+        
       }
 
       if (fn == fsen.getFlatExit()) {

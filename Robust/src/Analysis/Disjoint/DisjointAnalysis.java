@@ -1288,7 +1288,6 @@ public class DisjointAnalysis {
       // before transfer func, possibly inject
       // stall-site taint
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          
         if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
@@ -1443,7 +1442,7 @@ public class DisjointAnalysis {
       }
 
 
-  
+      
       boolean debugCallSite =
         mdCaller.getSymbol().equals( state.DISJOINTDEBUGCALLER ) &&
         mdCallee.getSymbol().equals( state.DISJOINTDEBUGCALLEE );
@@ -1602,6 +1601,16 @@ public class DisjointAnalysis {
       // now that we've taken care of building heap models for
       // callee analysis, finish this transformation
       rg = rgMergeOfPossibleCallers;
+
+      //XXXXXXXXXXXXXXXXXXXXXXXXX
+      //need to consider more
+      FlatNode nextFN=fmCallee.getNext(0);
+      assert nextFN instanceof FlatSESEEnterNode;
+      FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
+      if(!calleeSESE.getIsLeafSESE()){
+        rg.makeInaccessible( liveness.getLiveInTemps( fmContaining, fn ) );
+      }      
+      
     } break;
       
 

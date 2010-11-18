@@ -6,13 +6,18 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Set;
 import java.util.Stack;
+import java.util.TreeSet;
 import java.util.Map.Entry;
 
 import Analysis.CallGraph.CallGraph;
+import Analysis.Disjoint.ReachGraph;
+import IR.Descriptor;
 import IR.MethodDescriptor;
 import IR.State;
+import IR.TypeDescriptor;
 import IR.TypeUtil;
 import IR.Flat.FKind;
+import IR.Flat.FlatCall;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatSESEEnterNode;
@@ -50,7 +55,7 @@ public class RBlockStatusAnalysis {
 
     analyzeMethods(descriptorsToAnalyze);
 
-    // analyzeMethodsDebug(descriptorsToAnalyze);
+     //analyzeMethodsDebug(descriptorsToAnalyze);
   }
 
   protected void analyzeMethods(Set<MethodDescriptor> descriptorsToAnalyze) {
@@ -138,9 +143,9 @@ public class RBlockStatusAnalysis {
     Hashtable<FlatNode, Hashtable<FlatSESEEnterNode, Boolean>> statusMap =
         fm2statusmap.get(fmContaining);
     Hashtable<FlatSESEEnterNode, Boolean> status = statusMap.get(fn);
-    
+
     if(status.get(seseContaining).booleanValue()==true){
-      //System.out.println(fn+" is in the critical region in according to "+seseContaining);
+//      System.out.println(fn+" is in the critical region in according to "+seseContaining);
     }
     
     return status.get(seseContaining).booleanValue();
@@ -158,6 +163,53 @@ public class RBlockStatusAnalysis {
       }
     }
       break;
+      
+    case FKind.FlatCall: {
+      Descriptor mdCaller = fm.getMethod();
+
+      FlatCall         fc       = (FlatCall) fn;
+      MethodDescriptor mdCallee = fc.getMethod();
+      FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
+
+         Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
+
+      if (mdCallee.isStatic()) {
+        setPossibleCallees.add(mdCallee);
+      } else {
+        TypeDescriptor typeDesc = fc.getThis().getType();
+        setPossibleCallees.addAll(callGraph.getMethods(mdCallee, typeDesc));
+      }
+      
+      Iterator<MethodDescriptor> mdItr = setPossibleCallees.iterator();
+      while( mdItr.hasNext() ) {
+        MethodDescriptor mdPossible = mdItr.next();
+        FlatMethod       fmPossible = state.getMethodFlat( mdPossible );
+      }
+      
+      boolean hasSESECallee=false;
+      for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
+        MethodDescriptor md = (MethodDescriptor) iterator.next();
+        FlatMethod flatMethod = state.getMethodFlat(md);
+        FlatNode flatNode = flatMethod.getNext(0);
+        assert flatNode instanceof FlatSESEEnterNode;
+        FlatSESEEnterNode flatSESE = (FlatSESEEnterNode) flatNode;
+        hasSESECallee |= (!flatSESE.getIsLeafSESE());
+      }
+
+      Stack<FlatSESEEnterNode> seseStack = rra.getRBlockStacks(fm, fn);
+      if (!seseStack.isEmpty()) {
+        FlatSESEEnterNode currentParent = seseStack.peek();
+        if(!status.containsKey(currentParent)){
+//          System.out.println("currentParent="+currentParent+" fm="+currentParent.getfmEnclosing()+" hasSESECallee="+hasSESECallee);
+          status.put(currentParent, new Boolean(hasSESECallee));
+        }else{
+          boolean currentParentStatus=status.get(currentParent).booleanValue();
+//          System.out.println("currentParent="+currentParent+" fm="+currentParent.getfmEnclosing()+" hasSESECallee="+hasSESECallee+" currentParentStatus="+currentParentStatus);
+          status.put(currentParent, new Boolean(hasSESECallee|currentParentStatus));
+        }
+      }
+      
+    } break;
 
     default: {
       if (!(fn instanceof FlatMethod)) {

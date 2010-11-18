@@ -178,6 +178,7 @@ public class CallGraph {
       Descriptor md = (Descriptor) tovisit.iterator().next();
       tovisit.remove(md);
       Set s = (Set) mapCaller2CalleeSet.get(md);
+
       if (s != null) {
         for (Iterator it = s.iterator(); it.hasNext();) {
           MethodDescriptor md2 = (MethodDescriptor) it.next();
@@ -191,7 +192,7 @@ public class CallGraph {
         }
       }
     }
-    callable.retainAll(methodsContainingSESEs);
+//    callable.retainAll(methodsContainingSESEs);
     return callable;
   }
   
