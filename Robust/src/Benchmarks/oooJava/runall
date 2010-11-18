@@ -1,0 +1,16 @@
+#!/bin/bash
+CUR=`pwd`
+for i in *
+do
+echo ENTERING $i
+cd $i
+for p in run*
+do
+echo Running $p
+for c in 1 2 3 4 5 6 7 8 9 10
+do
+./$p
+done
+done
+cd $CUR
+done
