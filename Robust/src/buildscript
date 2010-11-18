@@ -369,6 +369,9 @@ EXTRAOPTIONS="$EXTRAOPTIONS -DMAC"
 elif [[ $1 = '-squeue' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DSQUEUE"
+elif [[ $1 = '-corepin' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DCOREPIN"
 SQUEUE=true
 elif [[ $1 = '-profile' ]]
 then
