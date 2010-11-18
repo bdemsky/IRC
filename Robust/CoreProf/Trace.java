@@ -154,6 +154,12 @@ public class Trace {
 
     initNames();
 
+    if( convert2txt ) {
+      try { 
+        txtStream = new BufferedWriter( new FileWriter( "events.txt" ) ); 
+      } catch( Exception e ) { e.printStackTrace(); System.exit( -1 ); }
+    }
+
     if (convert2plot) {
       printPlotCmd();
     }
@@ -169,6 +175,12 @@ public class Trace {
 
 
     printStats( outFile );
+
+    if( convert2txt ) {
+      try {
+        txtStream.close();
+      } catch( Exception e ) { e.printStackTrace(); System.exit( -1 ); }
+    }
 
     if( convert2plot ) {
       try {
@@ -303,8 +315,6 @@ public class Trace {
 
     if( convert2txt ) {
       try {
-        txtStream = new BufferedWriter( new FileWriter( "events.txt" ) );
-
         txtStream.write( "\n\n\n\n" );
         txtStream.write( "*************************************************\n" );
         txtStream.write( "**  Thread "+tNum+"\n" );
