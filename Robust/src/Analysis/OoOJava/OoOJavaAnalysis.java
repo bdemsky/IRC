@@ -1041,17 +1041,10 @@ public class OoOJavaAnalysis {
     
     EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
 
-//    System.out.println("current="+currentSESE.getmdEnclosing()+" PARENT=" + currentSESE.getSESEParent());
-
     switch (fn.kind()) {
 
     case FKind.FlatFieldNode:
     case FKind.FlatElementNode: {
-
-      // conflictGraph = sese2conflictGraph.get(currentSESE);
-      // if (conflictGraph == null) {
-      // conflictGraph = new ConflictGraph(state);
-      // }
 
       if (fn instanceof FlatFieldNode) {
         FlatFieldNode ffn = (FlatFieldNode) fn;

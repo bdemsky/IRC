@@ -129,11 +129,17 @@ public class RBlockStatusAnalysis {
       Entry inEntry = (Entry) inIter.next();
       FlatSESEEnterNode seseContaining = (FlatSESEEnterNode) inEntry.getKey();
       Boolean isAfter = (Boolean) inEntry.getValue();
-
-      Boolean currentIsAfter = current.get(seseContaining);
-      if (currentIsAfter == null || currentIsAfter == Boolean.FALSE) {
-        current.put(seseContaining, isAfter);
+      
+      if(isAfter==null){
+        isAfter=Boolean.FALSE;
       }
+      Boolean currentIsAfter = current.get(seseContaining);
+      
+      if (currentIsAfter == null){
+        currentIsAfter=Boolean.FALSE;
+      }
+      current.put(seseContaining, (isAfter|currentIsAfter));
+
     }
 
   }
@@ -167,11 +173,11 @@ public class RBlockStatusAnalysis {
     case FKind.FlatCall: {
       Descriptor mdCaller = fm.getMethod();
 
-      FlatCall         fc       = (FlatCall) fn;
+      FlatCall fc = (FlatCall) fn;
       MethodDescriptor mdCallee = fc.getMethod();
-      FlatMethod       fmCallee = state.getMethodFlat( mdCallee );
+      FlatMethod fmCallee = state.getMethodFlat(mdCallee);
 
-         Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
+      Set<MethodDescriptor> setPossibleCallees = new HashSet<MethodDescriptor>();
 
       if (mdCallee.isStatic()) {
         setPossibleCallees.add(mdCallee);
@@ -179,14 +185,14 @@ public class RBlockStatusAnalysis {
         TypeDescriptor typeDesc = fc.getThis().getType();
         setPossibleCallees.addAll(callGraph.getMethods(mdCallee, typeDesc));
       }
-      
+
       Iterator<MethodDescriptor> mdItr = setPossibleCallees.iterator();
-      while( mdItr.hasNext() ) {
+      while (mdItr.hasNext()) {
         MethodDescriptor mdPossible = mdItr.next();
-        FlatMethod       fmPossible = state.getMethodFlat( mdPossible );
+        FlatMethod fmPossible = state.getMethodFlat(mdPossible);
       }
-      
-      boolean hasSESECallee=false;
+
+      boolean hasSESECallee = false;
       for (Iterator iterator = setPossibleCallees.iterator(); iterator.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) iterator.next();
         FlatMethod flatMethod = state.getMethodFlat(md);
@@ -199,16 +205,14 @@ public class RBlockStatusAnalysis {
       Stack<FlatSESEEnterNode> seseStack = rra.getRBlockStacks(fm, fn);
       if (!seseStack.isEmpty()) {
         FlatSESEEnterNode currentParent = seseStack.peek();
-        if(!status.containsKey(currentParent)){
-//          System.out.println("currentParent="+currentParent+" fm="+currentParent.getfmEnclosing()+" hasSESECallee="+hasSESECallee);
+        if (!status.containsKey(currentParent)) {
           status.put(currentParent, new Boolean(hasSESECallee));
-        }else{
-          boolean currentParentStatus=status.get(currentParent).booleanValue();
-//          System.out.println("currentParent="+currentParent+" fm="+currentParent.getfmEnclosing()+" hasSESECallee="+hasSESECallee+" currentParentStatus="+currentParentStatus);
-          status.put(currentParent, new Boolean(hasSESECallee|currentParentStatus));
+        } else {
+          boolean currentParentStatus = status.get(currentParent).booleanValue();
+          status.put(currentParent, new Boolean(hasSESECallee | currentParentStatus));
         }
       }
-      
+
     } break;
 
     default: {
