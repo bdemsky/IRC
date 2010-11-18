@@ -13,7 +13,7 @@ BUILDSCRIPT=../../../buildscript
 
 
 COREPROFOVERFLOW= #-coreprof-checkoverflow
-USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
+USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-eventwords 1024*1024*128 \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_taskexecute \
@@ -33,7 +33,7 @@ USECOREPROF= -coreprof $(COREPROFOVERFLOW) \
 
 
 USEOOO= -ooojava $(NUM_OOO_WORKERS) 2      -ooodebug -squeue #-ooodebug-disable-task-mem-pool
-USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -ooodebug -squeue
+USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -ooodebug -squeue 
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp #-debug
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
@@ -43,7 +43,7 @@ default:
 	$(BUILDSCRIPT) -nojava $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
 
 rcr-remake-c:
-	$(BUILDSCRIPT) -nojava $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) -nojava $(COREPINFLAG) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 
 single: $(PROGRAM)s.bin
@@ -59,7 +59,7 @@ $(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
 rcr: $(PROGRAM)r.bin
 
 $(PROGRAM)r.bin: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+	$(BUILDSCRIPT)  $(COREPINFLAG) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin

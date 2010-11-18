@@ -28,6 +28,7 @@ echo -ooodebug-disable-task-mem-pool this is a tricky module, disable for simple
 echo -mempool-detect-misuse turn on to find code misusing pool-allocated records
 echo -rcr turn on runtime conflict resolver
 echo -squeue use single queue
+echo -corepin use core pinning
 echo
 echo Disjoint Reachability Analysis options
 echo -disjoint enable analysis

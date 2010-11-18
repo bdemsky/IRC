@@ -370,7 +370,6 @@ void workScheduleInit( int numProcessors,
 			     workerMain,
 			     (void*) &(workerDataArray[idx])
 			     );
-    printf("assign %d on %d",idx,coreidx);
 
   }
 #endif

@@ -1,1 +1,1 @@
-time ./MergeSort4r.bin 134217728 32
+time numactl --interleave=all ./MergeSort4r.bin 134217728 32
