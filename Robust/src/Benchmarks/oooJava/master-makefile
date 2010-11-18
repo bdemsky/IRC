@@ -18,8 +18,8 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-enable cpe_main \
 	-coreprof-enable cpe_taskexecute \
 	-coreprof-enable cpe_taskdispatch \
-	-coreprof-enable cpe_runmalloc \
 	-coreprof-enable cpe_rcr_traverse
+#	-coreprof-enable cpe_runmalloc \
 #	-coreprof-enable cpe_taskretire \
 	-coreprof-enable cpe_workschedsubmit \
 	-coreprof-enable cpe_workschedgrab \

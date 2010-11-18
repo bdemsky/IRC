@@ -35,7 +35,7 @@ public class Power {
 	 **/
 	public static void main(String args[]) {
 
-		boolean printResults = true;
+		boolean printResults = false;
 		boolean printMsgs =true;
 		// the input size is fixed, but the user may want the result printed
 		// parseCmdLine(args);
@@ -43,7 +43,10 @@ public class Power {
 		// initial pass
 		long start0 = System.currentTimeMillis();
 //		Root r = new Root(10, 20, 5, 10);
-		Root r = new Root(24, 18, 5, 10);
+//		Root r = new Root(24, 18, 5, 10);
+//		Root r = new Root(22, 20, 5, 10);
+		Root r = new Root(21, 20, 5, 10);
+//		Root r = new Root(20, 20, 5, 10);
 		long end0 = System.currentTimeMillis();
 
 		long start1 = System.currentTimeMillis();
