@@ -1,0 +1,8 @@
+#!/bin/bash
+CUR=`pwd`
+for i in *
+do
+make rcr > rcrlog &
+make single > singlelog &
+cd $CUR
+done
