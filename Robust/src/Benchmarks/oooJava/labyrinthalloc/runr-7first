@@ -1,1 +1,1 @@
-time numactl --interleave=all ./Labyrinthr.bin -w 22 -i ./inputs/random-x7-y512-z512-n512.txt
+time numactl --interleave=all ./Labyrinthr.bin -w 22 -i ../labyrinth/inputs/random-x7-y512-z512-n512.txt

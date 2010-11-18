@@ -1,1 +1,1 @@
-./Labyrinths.bin -w 1 -i ./inputs/random-x7-y512-z512-n512.txt
+./Labyrinths.bin -w 1 -i ../labyrinth//inputs/random-x7-y512-z512-n512.txt
