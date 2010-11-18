@@ -1,6 +1,8 @@
+#define _GNU_SOURCE
 #include "trqueue.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include <sched.h>
 #include "mlp_lock.h"
 #include <pthread.h>
 #include "structdefs.h"
@@ -63,8 +65,16 @@ void createTR() {
     ptr->head=0;
     ptr->tail=0;
     ptr->id=myid;
+#if COREPIN
+    cpu_set_t cpuset;    
+    CPU_ZERO(&cpuset);
+    CPU_SET(myid, &cpuset);
+    pthread_attr_setaffinity_np(&nattr, sizeof(cpuset), &cpuset);    
+    printf("assign workerTR to core %d\n",myid);
+#endif
     ptr->allHashStructures=createAndFillMasterHashStructureArray();
-    int status=pthread_create( &thread, NULL, workerTR, (void *) ptr);
+    int status=pthread_create( &thread, &nattr, workerTR, (void *) ptr);
+    //    int status=pthread_create( &thread, NULL, workerTR, (void *) ptr);
     if (status!=0) {printf("ERROR\n");exit(-1);}
     pthread_attr_destroy(&nattr);
   }

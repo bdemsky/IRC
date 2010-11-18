@@ -1,6 +1,9 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
+#include <sched.h>
+#include <sys/syscall.h>
 
 #include "mem.h"
 #include "workschedule.h"
@@ -16,6 +19,8 @@
 #include "rcr_runtime.h"
 #include "trqueue.h"
 #endif
+
+
 
 
 //////////////////////////////////////////////////
@@ -317,6 +322,8 @@ void workScheduleInit( int numProcessors,
 #endif
     dqInit( &(deques[i]) );
   }
+
+#ifndef COREPIN
   
   pthread_attr_init( &attr );
   pthread_attr_setdetachstate( &attr, 
@@ -336,6 +343,37 @@ void workScheduleInit( int numProcessors,
 
     if( status != 0 ) { printf( "Error\n" ); exit( -1 ); }
   }
+#else
+  int numCore=24;
+  cpu_set_t cpuset;
+  pthread_attr_t thread_attr[numWorkSchedWorkers];
+  int idx;
+
+  workerDataArray[0].id = 0;
+  CPU_ZERO(&cpuset);
+  CPU_SET(0, &cpuset);
+  sched_setaffinity(syscall(SYS_gettid), sizeof(cpuset), &cpuset);  
+  
+  for(idx=1;idx<numWorkSchedWorkers;idx++){
+    int coreidx=idx%numCore;    
+    pthread_attr_t* attr = &thread_attr[idx];
+    pthread_attr_init(attr);
+    pthread_attr_setdetachstate(attr, PTHREAD_CREATE_JOINABLE);
+    CPU_ZERO(&cpuset);
+    CPU_SET(coreidx, &cpuset);
+    pthread_attr_setaffinity_np(attr, sizeof(cpuset), &cpuset);
+    
+    workerDataArray[idx].id = idx;
+    
+    status = pthread_create( &(workerDataArray[idx].workerThread), 
+			     attr,
+			     workerMain,
+			     (void*) &(workerDataArray[idx])
+			     );
+    printf("assign %d on %d",idx,coreidx);
+
+  }
+#endif
 }
 
 
