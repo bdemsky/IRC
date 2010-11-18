@@ -1,0 +1,1 @@
+./Labyrinths.bin -w 1 -i ./inputs/random-x512-y512-z7-n512.txt
