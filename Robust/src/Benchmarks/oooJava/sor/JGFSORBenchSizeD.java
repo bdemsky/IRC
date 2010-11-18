@@ -39,13 +39,7 @@ public class JGFSORBenchSizeD{
 
     sor.JGFsetsize(size); 
     JGFSORBench.JGFkernel(sor); 
-    int retval = 0;
-    /*
-       retval = sor.JGFvalidate(); 
-    */
-    if(retval!=0) {
-      System.printString("Validation failed\n");
-    }
+    sor.JGFvalidate(); 
 
     int jacobi;
     jacobi = sor.JACOBI_NUM_ITER;

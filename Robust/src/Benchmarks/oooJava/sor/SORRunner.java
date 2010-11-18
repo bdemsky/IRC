@@ -40,6 +40,7 @@ class SORRunner  {
     double omega_over_four, one_minus_omega;
     int numiterations;
     int ilow, iupper, slice, tslice, ttslice, Mm1, Nm1;
+    
 
     N = M = G.length;
 
@@ -70,6 +71,8 @@ class SORRunner  {
         R[j]=rand.nextDouble() * 1e-6;
     }
 
+    System.out.println("Starting computation!");
+    
     // update interior points
     //
 
@@ -147,5 +150,6 @@ class SORRunner  {
       }
       //barrier
     }//end of for
+        
   } //end of run()
 }
