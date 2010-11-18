@@ -257,6 +257,16 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
 	return status;
       }
     }
+    rcr_TAILWRITECASE(T, val, bintail, key, task, rcrrec, index);
+    if (mode) {
+      struct BinItem_rcr * bt=be->tail;
+      while(bt->status!=READY) {
+	BARRIER();
+      }
+      return READY;
+    } else {
+      return NOTREADY;
+    }
   } else {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
     if (unlikely(td->task==task)) {
@@ -275,9 +285,7 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
       }
       return status;
     }
-  }
 
-  if (ISREADBIN(bintail->type)) {
     if ((((INTPTR)task)&PARENTBIN)&&(bintail->status==READY)) {
       be->head=val;
       return READY;
@@ -292,17 +300,6 @@ inline int rcr_BREADBINCASE(HashStructure *T, int key, SESEcommon *task, struct 
       return READY;
     } else {
       return stat;
-    }
-  } else {
-    rcr_TAILWRITECASE(T, val, bintail, key, task, rcrrec, index);
-    if (mode) {
-      struct BinItem_rcr * bt=be->tail;
-      while(bt->status!=READY) {
-	BARRIER();
-      }
-      return READY;
-    } else {
-      return NOTREADY;
     }
   }
 }
