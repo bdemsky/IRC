@@ -283,6 +283,12 @@ public class Normal {
 			// Work in parallel with other threads
 			thread_work(args);
 			delta = args.global_delta;
+			
+			// put stall site here rather than having inside of loop
+	    nclusters=clusters.length;
+	    int newCenterLen=new_centers_len.length;
+	    int new_centersLen=new_centers.length;
+      //
 
 			/* Replace old cluster centers with new_centers */
 			for (int i = 0; i < nclusters; i++) {
