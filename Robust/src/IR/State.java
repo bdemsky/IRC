@@ -105,6 +105,7 @@ public class State {
   public boolean OOOJAVA=false;
   public boolean OOODEBUG=false;
   public boolean RCR=false;
+  public boolean NOSTALLTR=false;
 
 
   public boolean OPTIONAL=false;

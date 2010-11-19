@@ -301,7 +301,7 @@ public class BuildCode {
       //TODO signal the object that will report errors
       if(state.RCR) {
         try {
-          rcr = new RuntimeConflictResolver(PREFIX, oooa);
+          rcr = new RuntimeConflictResolver(PREFIX, oooa, state);
           rcr.setGlobalEffects(oooa.getDisjointAnalysis().getEffectsAnalysis().getAllEffects());
         } catch (FileNotFoundException e) {
           System.out.println("Runtime Conflict Resolver could not create output file.");

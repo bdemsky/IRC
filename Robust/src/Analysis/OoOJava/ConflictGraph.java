@@ -802,5 +802,9 @@ public class ConflictGraph {
     bw.close();
 
   }
+  
+  public Hashtable<String, ConflictNode> getId2cn() {
+    return id2cn;
+  }
 
 }

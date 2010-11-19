@@ -39,7 +39,7 @@ public class ConflictNode {
 
   public static final int INVAR = 0;
   public static final int STALLSITE = 1;
-
+  
   public ConflictNode(String id, int nodeType, TempDescriptor var, FlatNode stallSite) {
     this(id, var, nodeType);
     this.stallSite = stallSite;
@@ -222,5 +222,34 @@ public class ConflictNode {
   public String toString() {
     return id;
   }
+  
+  public boolean IsValidToPrune() {
+
+    for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
+      ConflictEdge edge = (ConflictEdge) iterator.next();
+
+      if (edge.getVertexU() == edge.getVertexV()) {
+        // self-conflict, need to generate traverser
+        return false;
+      } else {
+
+        if (edge.getVertexU() == this) {
+          if (edge.getVertexV().isInVarNode()) {
+            // has a conflict with invar, need to generate traverser
+            return false;
+          }
+        } else {
+          if (edge.getVertexU().isInVarNode()) {
+            // has a conflict with invar, need to generate traverser
+            return false;
+          }
+        }
+
+      }
+
+    }
+    return true;
+  }
+  
 
 }

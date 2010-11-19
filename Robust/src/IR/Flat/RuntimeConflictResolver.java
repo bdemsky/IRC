@@ -12,7 +12,10 @@ import java.util.Vector;
 import Util.Tuple;
 import Analysis.Disjoint.*;
 import Analysis.MLP.CodePlan;
+import IR.State;
 import IR.TypeDescriptor;
+import Analysis.OoOJava.ConflictGraph;
+import Analysis.OoOJava.ConflictNode;
 import Analysis.OoOJava.OoOJavaAnalysis;
 
 /* An instance of this class manages all OoOJava coarse-grained runtime conflicts
@@ -68,10 +71,12 @@ public class RuntimeConflictResolver {
   private ArrayList<TaintAndInternalHeapStructure> pendingPrintout;
   private EffectsTable effectsLookupTable;
   private OoOJavaAnalysis oooa;
+  private State state;
 
-  public RuntimeConflictResolver(String buildir, OoOJavaAnalysis oooa) throws FileNotFoundException {
+  public RuntimeConflictResolver(String buildir, OoOJavaAnalysis oooa, State state) throws FileNotFoundException {
     String outputFile = buildir + "RuntimeConflictResolver";
     this.oooa=oooa;
+    this.state=state;
 
     cFile = new PrintWriter(new File(outputFile + ".c"));
     headerFile = new PrintWriter(new File(outputFile + ".h"));
@@ -437,10 +442,23 @@ public class RuntimeConflictResolver {
       Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
       for(int i=0;i<invars.size();i++) {
         TempDescriptor tmp=invars.get(i);
+        
+        // FIX IT LATER! Right now, we assume that there is only one parent
+        FlatSESEEnterNode parentSESE = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next();
+        ConflictGraph graph=oooa.getConflictGraph(parentSESE);
+        String id = tmp + "_sese" + fsen.getPrettyIdentifier();
+        ConflictNode node = graph.getId2cn().get(id);        
+        
       	if (i!=0) {
       	    cFile.println("      if (record->rcrstatus!=0)");
       	}
-        cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
+      	
+        if(state.NOSTALLTR && node.IsValidToPrune()){
+          cFile.println("    /*  " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen)+"*/");
+        }else{
+          cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
+        }
+        
       }
       //release traverser reference...traversal finished...
       //executing thread will clean bins for us

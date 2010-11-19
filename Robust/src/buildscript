@@ -29,6 +29,7 @@ echo -mempool-detect-misuse turn on to find code misusing pool-allocated records
 echo -rcr turn on runtime conflict resolver
 echo -squeue use single queue
 echo -corepin use core pinning
+echo -nostalltr turn off RCR traversers that only handle conflicts between task and stallsite
 echo
 echo Disjoint Reachability Analysis options
 echo -disjoint enable analysis
@@ -578,6 +579,10 @@ elif [[ $1 = '-heapsize-mb' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DINITIALHEAPSIZE_MB=($2)"
 shift
+
+elif [[ $1 = '-nostalltr' ]]
+then
+JAVAOPTS="$JAVAOPTS -nostalltr"
 
 elif [[ $1 = '-rcr' ]]
 then

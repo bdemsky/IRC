@@ -77,20 +77,18 @@ public class JGFMolDynBench {
 
     // spawn threads
     MDWrap[] thobjects = new MDWrap[numthreads];
-
     for (int i = 0; i < numthreads; i++) {
       thobjects[i] = new MDWrap(new mdRunner(i, mold.mm, sh_force, sh_force2, mold.nthreads, mold,mold.workload));
     }
-
     /*
      * boolean waitfordone=true; while(waitfordone) { if (mybarr.done)
      * waitfordone=false; }
      */
     long start=System.currentTimeMillis();
-    for (int i = 0; i < numthreads; i++) {
+//    for (int i = 0; i < numthreads; i++) {
       // thobjects[i].md.start(mid[i]);
-      thobjects[i].md.run();
-    }
+      thobjects[0].md.run();
+//    }
     long end=System.currentTimeMillis();
 //    System.out.println("Total="+(end-start));
   }
