@@ -203,6 +203,10 @@ public class RBlockRelationAnalysis {
       } else {
 	seseStack.peek().addChild( fsen );
 	fsen.setParent( seseStack.peek() );
+	// if the top of stack is not bogus one, it should be a non-bogus parent to the current sese
+	if(!seseStack.peek().getIsCallerSESEplaceholder()){
+	  fsen.addSESEParent(seseStack.peek());
+	}
       }
 
       seseStack.push( fsen );
@@ -258,7 +262,6 @@ public class RBlockRelationAnalysis {
 
 
   protected boolean hasChildrenByCall(FlatSESEEnterNode fsen) {
-    
     boolean hasChildrenByCall=false;
 
     // visit every flat node in SESE body, find method calls that
@@ -274,7 +277,7 @@ public class RBlockRelationAnalysis {
 
       flatNodesToVisit.remove(fn);
       visited.add(fn);
-
+      
       if (fn.kind() == FKind.FlatCall) {
         FlatCall fc = (FlatCall) fn;
         MethodDescriptor mdCallee = fc.getMethod();
@@ -289,25 +292,16 @@ public class RBlockRelationAnalysis {
           hasChildrenByCall = true;
 
           if (!fsen.getIsCallerSESEplaceholder()) {
-            // System.out.println("%%%mdCallee="+mdCallee+" from fsen="+fsen);
             Set reachableSESEMethodSet =
                 callGraph.getFirstReachableMethodContainingSESE(mdCallee, methodsContainingSESEs);
 
-            // if (methodsContainingSESEs.contains(mdCallee)) {
             reachableSESEMethodSet.add(mdCallee);
-            // }
-
-            // System.out.println("#");
-            // System.out.println("fsen"+fsen);
-            // System.out.println("reachableSESEMethodSet="+reachableSESEMethodSet);
 
             for (Iterator iterator = reachableSESEMethodSet.iterator(); iterator.hasNext();) {
               MethodDescriptor md = (MethodDescriptor) iterator.next();
-              // Set<FlatSESEEnterNode> seseSet = md2seseSet.get(md);
               FlatMethod fm = state.getMethodFlat(md);
               FlatSESEEnterNode fsenBogus = (FlatSESEEnterNode) fm.getNext(0);
               fsenBogus.addSESEParent(fsen);
-              // System.out.println("% "+fm+"->"+fsen);
             }
 
             reachableSESEMethodSet.retainAll(methodsContainingSESEs);

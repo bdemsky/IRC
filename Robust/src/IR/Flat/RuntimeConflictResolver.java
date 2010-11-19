@@ -133,16 +133,8 @@ public class RuntimeConflictResolver {
       FlatSESEEnterNode parentSESE = null;
       if (fsen.getSESEParent().size() > 0) {
          parentSESE = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next();
-        System.out.println("fsen getParent=" + parentSESE);
         conflictGraph = oooa.getConflictGraph(parentSESE);
         System.out.println("CG=" + conflictGraph);
-        if (conflictGraph != null)
-          System.out.println("Conflicts=" + conflictGraph.getConflictEffectSet(fsen));
-        // conflictGraph = oooa.getConflictGraph(fsen.getParent());
-        // System.out.println("CG=" + conflictGraph);
-        // if (conflictGraph != null)
-        // System.out.println("Conflicts=" +
-        // conflictGraph.getConflictEffectSet(fsen));
       }
 
 //      if (!fsen.getIsCallerSESEplaceholder() && fsen.getParent() != null

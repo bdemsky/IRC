@@ -188,9 +188,6 @@ public class OoOJavaAnalysis {
           FlatSESEEnterNode child = (FlatSESEEnterNode) iterator2.next();
           Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(child);
           conflictGraph.addLiveIn(taint2Effects);
-          if(taint2Effects!=null)
-            System.out.println("#add ="+taint2Effects+"currentSESE="+child+" into conflictGraph="+conflictGraph);
-          
           sese2conflictGraph.put(parent, conflictGraph);
         }
       }
