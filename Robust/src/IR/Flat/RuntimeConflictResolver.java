@@ -17,6 +17,7 @@ import IR.TypeDescriptor;
 import Analysis.OoOJava.ConflictGraph;
 import Analysis.OoOJava.ConflictNode;
 import Analysis.OoOJava.OoOJavaAnalysis;
+import Util.CodePrinter;
 
 /* An instance of this class manages all OoOJava coarse-grained runtime conflicts
  * by generating C-code to either rule out the conflict at runtime or resolve one.
@@ -78,8 +79,8 @@ public class RuntimeConflictResolver {
     this.oooa=oooa;
     this.state=state;
 
-    cFile = new PrintWriter(new File(outputFile + ".c"));
-    headerFile = new PrintWriter(new File(outputFile + ".h"));
+    cFile = new CodePrinter(new File(outputFile + ".c"));
+    headerFile = new CodePrinter(new File(outputFile + ".h"));
     
     cFile.println("#include \"" + hashAndQueueCFileDir + "hashRCR.h\"\n#include \""
         + hashAndQueueCFileDir + "Queue_RCR.h\"\n#include <stdlib.h>");

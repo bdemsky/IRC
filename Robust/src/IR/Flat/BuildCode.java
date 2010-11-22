@@ -44,6 +44,7 @@ import Analysis.MLP.VSTWrapper;
 import Analysis.MLP.CodePlan;
 import Analysis.MLP.SESEandAgePair;
 import Analysis.MLP.WaitingElement;
+import Util.CodePrinter;
 
 public class BuildCode {
   State state;
@@ -163,27 +164,27 @@ public class BuildCode {
 
     try {
       if (state.SANDBOX) {
-	outsandbox=new PrintWriter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
+	outsandbox=new CodePrinter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
       }
-      outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
-      outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
-      outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
+      outstructs=new CodePrinter(new FileOutputStream(PREFIX+"structdefs.h"), true);
+      outmethodheader=new CodePrinter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
+      outclassdefs=new CodePrinter(new FileOutputStream(PREFIX+"classdefs.h"), true);
       if(state.MGC) {
         // TODO add version for normal Java later
-      outglobaldefs=new PrintWriter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
+      outglobaldefs=new CodePrinter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
       }
-      outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
-      outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
+      outmethod=new CodePrinter(new FileOutputStream(PREFIX+"methods.c"), true);
+      outvirtual=new CodePrinter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       if (state.TASK) {
-	outtask=new PrintWriter(new FileOutputStream(PREFIX+"task.h"), true);
-	outtaskdefs=new PrintWriter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
+	outtask=new CodePrinter(new FileOutputStream(PREFIX+"task.h"), true);
+	outtaskdefs=new CodePrinter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
 	if (state.OPTIONAL) {
-	  outoptionalarrays=new PrintWriter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
-	  optionalheaders=new PrintWriter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
+	  outoptionalarrays=new CodePrinter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
+	  optionalheaders=new CodePrinter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
 	}
       }
       if (state.structfile!=null) {
-	outrepairstructs=new PrintWriter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
+	outrepairstructs=new CodePrinter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
       }
     } catch (Exception e) {
       e.printStackTrace();

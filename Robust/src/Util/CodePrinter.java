@@ -2,9 +2,11 @@ package Util;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.io.OutputStream;
+import java.io.File;
 
 public class CodePrinter extends PrintWriter {
   int braceCount=0;
+  boolean seenChar=false;
   StringBuffer sb=new StringBuffer();
   public CodePrinter(Writer w) {
     super(w);
@@ -12,6 +14,10 @@ public class CodePrinter extends PrintWriter {
 
   public CodePrinter(Writer w, boolean af) {
     super(w,af);
+  }
+
+  public CodePrinter(File w) throws java.io.FileNotFoundException {
+    super(w);
   }
 
   public CodePrinter(OutputStream w) {
@@ -108,13 +114,15 @@ public class CodePrinter extends PrintWriter {
   public void addString(String str) {
     char[] string=str.toCharArray();
     int lastcr=0;
-    boolean seenChar=false;
+
     for(int i=0;i<string.length;i++) {
       char c=string[i];
+
       switch(c) {
       case '\n': {
-	sb.append(string, lastcr, i-lastcr);
-	super.println(sb.toString());
+	//get the cr
+	sb.append(string, lastcr, (i-lastcr)+1);
+	super.write(sb.toString());
 	sb=genSpacing();
 	lastcr=i+1;//skip carriage return
 	seenChar=false;
@@ -126,6 +134,9 @@ public class CodePrinter extends PrintWriter {
 	break;
       case '}':
 	braceCount--;
+	//fix up close brace...
+	if (!seenChar)
+	  sb=genSpacing();
 	seenChar=true;
 	break;
       case ' ':
@@ -144,12 +155,13 @@ public class CodePrinter extends PrintWriter {
   }
 
   public void flush() {
-    super.println(sb.toString());
+    super.write(sb.toString());
     sb=genSpacing();
+    super.flush();
   }
 
   public void close() {
-    super.println(sb.toString());
+    super.write(sb.toString());
     super.close();
   }
 }
