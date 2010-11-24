@@ -1,2 +1,1 @@
-#!/bin/sh
 time numactl --interleave=all ./JGFSORBenchSizeDp.bin
