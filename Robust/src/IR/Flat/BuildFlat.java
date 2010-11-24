@@ -1,6 +1,7 @@
 package IR.Flat;
 import IR.*;
 import IR.Tree.*;
+
 import java.util.*;
 
 public class BuildFlat {
@@ -1050,7 +1051,95 @@ public class BuildFlat {
 
     return new NodePair(cond.getBegin(), nopend);
   }
+  
+  private NodePair flattenSwitchStatementNode(SwitchStatementNode ssn) {
+    TempDescriptor cond_temp=TempDescriptor.tempFactory("condition",new TypeDescriptor(TypeDescriptor.INT));
+    NodePair cond=flattenExpressionNode(ssn.getCondition(),cond_temp);
+    FlatNop nopend=new FlatNop();
+    NodePair sbody = flattenSwitchBodyNode(ssn.getSwitchBody(), cond_temp, nopend);
+    
+    cond.getEnd().addNext(sbody.getBegin());
 
+    return new NodePair(cond.getBegin(), sbody.getEnd());
+  }
+  
+  private NodePair flattenSwitchBodyNode(BlockNode bn, TempDescriptor cond_temp, FlatNode endnode) {
+    FlatNode begin=null;
+    FlatNode end=endnode;
+    NodePair prev_true_branch = null;
+    NodePair prev_false_branch = null;
+    for(int i=0; i<bn.size(); i++) {
+      SwitchBlockNode sbn = (SwitchBlockNode)bn.get(i);
+      HashSet oldbs=breakset;
+      breakset=new HashSet();
+      
+      NodePair body=flattenBlockNode(sbn.getSwitchBlockStatement());
+      Vector<SwitchLabelNode> slnv = sbn.getSwitchConditions();
+      FlatNode cond_begin = null;
+      NodePair prev_fnp = null;
+      for(int j = 0; j < slnv.size(); j++) {
+        SwitchLabelNode sln = slnv.elementAt(j);
+        NodePair left = null;
+        NodePair false_np = null;
+        if(sln.isDefault()) {
+          left = body;
+        } else {
+          TempDescriptor cond_tmp=TempDescriptor.tempFactory("condition", new TypeDescriptor(TypeDescriptor.BOOLEAN));
+          TempDescriptor temp_left=TempDescriptor.tempFactory("leftop", sln.getCondition().getType());
+          Operation op=new Operation(Operation.EQUAL);
+          left=flattenExpressionNode(sln.getCondition(), temp_left);
+          FlatOpNode fon=new FlatOpNode(cond_tmp, temp_left, cond_temp, op);
+          left.getEnd().addNext(fon);
+
+          FlatCondBranch fcb=new FlatCondBranch(cond_tmp);
+          fcb.setTrueProb(State.TRUEPROB);
+
+          FlatNop nop=new FlatNop();
+          false_np=new NodePair(nop,nop);
+
+          fon.addNext(fcb);
+          fcb.addTrueNext(body.getBegin());
+          fcb.addFalseNext(false_np.getBegin());
+        }
+        if((prev_fnp != null) && (prev_fnp.getEnd() != null)) {
+          prev_fnp.getEnd().addNext(left.getBegin());
+        }
+        prev_fnp = false_np;
+        
+        if (begin==null) {
+          begin = left.getBegin();
+        }
+        if(cond_begin == null) {
+          cond_begin = left.getBegin();
+        }
+      }
+      if((prev_false_branch != null) && (prev_false_branch.getEnd() != null)) {
+        prev_false_branch.getEnd().addNext(cond_begin);
+      }
+      prev_false_branch = prev_fnp;
+      if((prev_true_branch != null) && (prev_true_branch.getEnd() != null)) {
+        prev_true_branch.getEnd().addNext(body.getBegin());
+      }
+      prev_true_branch = body;
+      for(Iterator breakit=breakset.iterator();breakit.hasNext();) {
+        FlatNode fn=(FlatNode)breakit.next();
+        breakit.remove();
+        fn.addNext(endnode);
+      }
+      breakset=oldbs;
+    }
+    if((prev_true_branch != null) && (prev_true_branch.getEnd() != null)) {
+      prev_true_branch.getEnd().addNext(endnode);
+    }
+    if((prev_false_branch != null) && (prev_false_branch.getEnd() != null)) {
+      prev_false_branch.getEnd().addNext(endnode);
+    }
+    if(begin == null) {
+      end=begin=new FlatNop();
+    }
+    return new NodePair(begin,end);
+  }
+  
   private NodePair flattenLoopNode(LoopNode ln) {
     HashSet oldbs=breakset;
     HashSet oldcs=continueset;
@@ -1380,6 +1469,9 @@ public class BuildFlat {
 
     case Kind.IfStatementNode:
       return flattenIfStatementNode((IfStatementNode)bsn);
+      
+    case Kind.SwitchStatementNode:
+      return flattenSwitchStatementNode((SwitchStatementNode)bsn);
 
     case Kind.LoopNode:
       return flattenLoopNode((LoopNode)bsn);

@@ -177,10 +177,10 @@ non terminal ParseNode empty_statement;
 non terminal ParseNode expression_statement, statement_expression;
 non terminal ParseNode if_then_statement;
 non terminal ParseNode if_then_else_statement, if_then_else_statement_no_short_if;
-//non terminal ParseNode switch_statement, switch_block;
-//non terminal ParseNode switch_block_statement_groups;
-//non terminal ParseNode switch_block_statement_group;
-//non terminal ParseNode switch_labels, switch_label;
+non terminal ParseNode switch_statement, switch_block;
+non terminal ParseNode switch_block_statement_groups;
+non terminal ParseNode switch_block_statement_group;
+non terminal ParseNode switch_labels, switch_label;
 non terminal ParseNode while_statement, while_statement_no_short_if;
 non terminal ParseNode do_statement;
 non terminal ParseNode for_statement, for_statement_no_short_if;
@@ -223,7 +223,7 @@ non terminal ParseNode assignment_expression;
 non terminal ParseNode assignment;
 non terminal ParseNode assignment_operator;
 non terminal ParseNode expression_opt, expression;
-//non terminal ParseNode constant_expression;
+non terminal ParseNode constant_expression;
 //failure aware computation keywords
 terminal FLAG;
 terminal OPTIONAL;
@@ -1328,7 +1328,7 @@ statement_without_trailing_substatement ::=
 		block:st {: RESULT=st; :}
 	|	empty_statement:st {: RESULT=st; :}
 	|	expression_statement:st {: RESULT=st; :}
-//	|	switch_statement
+	|	switch_statement:st {: RESULT=st; :}
 	|	do_statement:dos {:RESULT=dos; :}
 	|	break_statement:st {: RESULT=st; :}
 	|	continue_statement:st {: RESULT=st; :}
@@ -1394,30 +1394,86 @@ if_then_else_statement_no_short_if ::=
 		RESULT=pn;
 	:}
 	;
-//switch_statement ::=
-//		SWITCH LPAREN expression RPAREN switch_block
-//	;
-//switch_block ::=
-//		LBRACE switch_block_statement_groups switch_labels RBRACE
-//	|	LBRACE switch_block_statement_groups RBRACE
-//	|	LBRACE switch_labels RBRACE
-//	|	LBRACE RBRACE
-//	;
-//switch_block_statement_groups ::=
-//		switch_block_statement_group
-//	|	switch_block_statement_groups switch_block_statement_group
-//	;
-//switch_block_statement_group ::=
-//		switch_labels block_statements
-//	;
-//switch_labels ::=
-//		switch_label
-//	|	switch_labels switch_label
-//	;
-//switch_label ::=
-//		CASE constant_expression COLON
-//	|	DEFAULT COLON
-//	;
+switch_statement ::=
+		SWITCH LPAREN expression:exp RPAREN switch_block:body
+		{:
+		    ParseNode pn=new ParseNode("switch_statement");
+		    pn.addChild("condition").addChild(exp);
+		    pn.addChild("statement").addChild(body);
+		    RESULT=pn;
+		:}
+	;
+switch_block ::=
+		LBRACE switch_block_statement_groups:sbsg switch_labels:sl RBRACE
+		{: 
+		    ParseNode pn = new ParseNode("switch_block");
+		    pn.addChild("switch_labels").addChild(sl);
+		    pn.addChild("switch_statements").addChild(new ParseNode("empty"));
+		    sbsg.addChild(pn);
+		    RESULT=sbsg; 
+		:}
+	|	LBRACE switch_block_statement_groups:sbsg RBRACE
+	    {: 
+		    RESULT=sbsg; 
+		:}
+	|	LBRACE switch_labels:sl RBRACE 
+	    {: 
+	        ParseNode pnb = new ParseNode("switch_block_list");
+		    ParseNode pn = new ParseNode("switch_block");
+		    pn.addChild("switch_labels").addChild(sl);
+		    pn.addChild("switch_statements").addChild(new ParseNode("empty"));
+		    pnb.addChild(pn);
+		    RESULT=pnb; 
+		:}
+	|	LBRACE RBRACE {: RESULT=new ParseNode("empty"); :}
+	;
+switch_block_statement_groups ::=
+		switch_block_statement_group:sbsg
+		{: 
+		    ParseNode pn = new ParseNode("switch_block_list");
+		    pn.addChild(sbsg);
+		    RESULT=pn;
+		:}
+	|	switch_block_statement_groups:sbsgs switch_block_statement_group:sbsg
+	    {:
+	        sbsgs.addChild(sbsg);
+	        RESULT=sbsgs;
+	    :}
+	;
+switch_block_statement_group ::=
+		switch_labels:sls block_statements:body
+		{: 
+		    ParseNode pn=new ParseNode("switch_block");
+		    pn.addChild("switch_labels").addChild(sls);
+		    pn.addChild("switch_statements").addChild(body);
+		    RESULT=pn; 
+		:}
+	;
+switch_labels ::=
+		switch_label:sl
+		{: 
+		    ParseNode pn=new ParseNode("switch_label_list");
+		    pn.addChild(sl);
+		    RESULT=pn; 
+		:}
+	|	switch_labels:sls switch_label:sl
+	    {: 
+		    sls.addChild(sl); 
+		    RESULT=sls;
+		:}
+	;
+switch_label ::=
+		CASE constant_expression:ce COLON
+		{: 
+		    ParseNode pn=new ParseNode("switch_label");
+		    pn.addChild(ce);
+		    RESULT=pn;
+		:}
+	|	DEFAULT COLON
+	    {: 
+		    RESULT=new ParseNode("default_switch_label"); 
+		:}
+	;
 
 while_statement ::=
 		WHILE LPAREN expression:exp RPAREN statement:st {: 
@@ -2132,9 +2188,14 @@ expression ::=	assignment_expression:exp {:
 	;
 // note that this constraint must be enforced during semantic checking
 // 'constant_expression' should include enumerated constants.
-//constant_expression ::=
-//		expression
-//	;
+constant_expression ::=
+		expression:exp 
+		{:
+		    ParseNode pn = new ParseNode("constant_expression");
+		    pn.addChild(exp);
+		    RESULT=pn;
+		:}
+	;
 
 
 genreach_statement ::=

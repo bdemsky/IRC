@@ -30,4 +30,7 @@ public class Kind {
   public final static int ArrayInitializerNode=27;
   public final static int SynchronizedNode=28;
   public final static int GenReachNode=29;
+  public final static int SwitchStatementNode=30;
+  public final static int SwitchLabelNode=31;
+  public final static int SwitchBlockNode=32;
 }

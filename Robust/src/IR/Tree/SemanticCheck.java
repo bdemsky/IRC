@@ -297,6 +297,10 @@ public class SemanticCheck {
     case Kind.IfStatementNode:
       checkIfStatementNode(md, nametable, (IfStatementNode)bsn);
       return;
+      
+    case Kind.SwitchStatementNode:
+      checkSwitchStatementNode(md, nametable, (SwitchStatementNode)bsn);
+      return;
 
     case Kind.LoopNode:
       checkLoopNode(md, nametable, (LoopNode)bsn);
@@ -411,6 +415,51 @@ public class SemanticCheck {
     checkBlockNode(md, nametable, isn.getTrueBlock());
     if (isn.getFalseBlock()!=null)
       checkBlockNode(md, nametable, isn.getFalseBlock());
+  }
+  
+  void checkSwitchStatementNode(Descriptor md, SymbolTable nametable, SwitchStatementNode ssn) {
+    checkExpressionNode(md, nametable, ssn.getCondition(), new TypeDescriptor(TypeDescriptor.INT));
+    
+    BlockNode sbn = ssn.getSwitchBody();
+    boolean hasdefault = false;
+    for(int i = 0; i < sbn.size(); i++) {
+      boolean containdefault = checkSwitchBlockNode(md, nametable, (SwitchBlockNode)sbn.get(i));
+      if(hasdefault && containdefault) {
+        throw new Error("Error: duplicate default branch in switch-case statement in Method: " + md.getSymbol());
+      }
+      hasdefault = containdefault;
+    }
+  }
+  
+  boolean checkSwitchBlockNode(Descriptor md, SymbolTable nametable, SwitchBlockNode sbn) {
+    Vector<SwitchLabelNode> slnv = sbn.getSwitchConditions();
+    int defaultb = 0;
+    for(int i = 0; i < slnv.size(); i++) {
+      if(slnv.elementAt(i).isdefault) {
+        defaultb++;
+      } else {
+        checkConstantExpressionNode(md, nametable, slnv.elementAt(i).getCondition(), new TypeDescriptor(TypeDescriptor.INT));
+      }
+    }
+    if(defaultb > 1) {
+      throw new Error("Error: duplicate default branch in switch-case statement in Method: " + md.getSymbol());
+    } else {
+      checkBlockNode(md, nametable, sbn.getSwitchBlockStatement());
+      return (defaultb > 0);
+    }
+  }
+  
+  void checkConstantExpressionNode(Descriptor md, SymbolTable nametable, ExpressionNode en, TypeDescriptor td) {
+    switch(en.kind()) {
+    case Kind.FieldAccessNode:
+      checkFieldAccessNode(md,nametable,(FieldAccessNode)en,td);
+      return;
+     
+    case Kind.LiteralNode:
+      checkLiteralNode(md,nametable,(LiteralNode)en,td);
+      return;
+    }
+    throw new Error();
   }
 
   void checkExpressionNode(Descriptor md, SymbolTable nametable, ExpressionNode en, TypeDescriptor td) {
@@ -611,7 +660,7 @@ public class SemanticCheck {
           cd = ((MethodDescriptor)md).getClassDesc();
           SymbolTable fieldtbl = cd.getFieldTable();
           FieldDescriptor fd=(FieldDescriptor)fieldtbl.get(varname);
-          if((fd == null) || (!fd.isStatic()) || (!fd.isVolatile())){
+          if((fd == null) || (!fd.isStatic())){
             // no such field in the class or it is not a static field
             throw new Error("Name "+varname+" should not be used in static block: "+md);
           } else {

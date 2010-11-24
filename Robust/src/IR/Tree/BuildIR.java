@@ -1030,6 +1030,34 @@ public class BuildIR {
       blockstatements.add(new IfStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
                                               parseSingleBlock(pn.getChild("statement").getFirstChild()),
                                               pn.getChild("else_statement")!=null ? parseSingleBlock(pn.getChild("else_statement").getFirstChild()) : null));
+    } else if ((state.MGC) && (isNode(pn,"switch_statement"))) {
+      // TODO add version for normal Java later
+      blockstatements.add(new SwitchStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
+          parseSingleBlock(pn.getChild("statement").getFirstChild())));
+    } else if ((state.MGC) && (isNode(pn,"switch_block_list"))) {
+      // TODO add version for normal Java later
+      ParseNodeVector pnv=pn.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode sblockdecl=pnv.elementAt(i);
+        
+        if(isNode(sblockdecl, "switch_block")) {
+          ParseNode lpn=sblockdecl.getChild("switch_labels").getChild("switch_label_list");
+          ParseNodeVector labelv=lpn.getChildren();
+          Vector<SwitchLabelNode> slv = new Vector<SwitchLabelNode>();
+          for(int j=0; j<labelv.size(); j++) {
+            ParseNode labeldecl=labelv.elementAt(j);
+            if(isNode(labeldecl, "switch_label")) {
+              slv.addElement(new SwitchLabelNode(parseExpression(labeldecl.getChild("constant_expression").getFirstChild()), false));
+            } else if(isNode(labeldecl, "default_switch_label")) {
+              slv.addElement(new SwitchLabelNode(null, true));
+            }
+          }
+          
+          blockstatements.add(new SwitchBlockNode(slv, 
+              parseSingleBlock(sblockdecl.getChild("switch_statements").getFirstChild())));
+          
+        }
+      }
     } else if (isNode(pn,"taskexit")) {
       Vector vfe=null;
       if (pn.getChild("flag_effects_list")!=null)
