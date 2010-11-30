@@ -72,5 +72,6 @@ clean:
 	rm -f  aliases.txt
 	rm -f  mlpReport*txt
 	rm -f  results*txt
+	rm -f *log
 	rm -f coreprof.dat
 	rm -f trace.out
