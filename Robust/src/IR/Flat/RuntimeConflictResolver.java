@@ -33,11 +33,13 @@ import Util.CodePrinter;
  */
 public class RuntimeConflictResolver {
   public static final boolean generalDebug = true;
-//Prints out effects and data structure used to steer RCR traversals
-  public static final boolean printEffectsAndEffectsTable = false;  
-//Prints steps taken to build internal representation of pruned reach graph
-  public static final boolean traceDataStructureBuild = false;  
   public static final boolean cSideDebug = false;
+
+  //Prints out effects and data structure used to steer RCR traversals
+  public static final boolean printEffectsAndEffectsTable = false;  
+
+  //Prints steps taken to build internal representation of pruned reach graph
+  public static final boolean traceDataStructureBuild = false;  
   
   private PrintWriter cFile;
   private PrintWriter headerFile;
@@ -274,7 +276,9 @@ public class RuntimeConflictResolver {
       if(!created.isEmpty()) {
         for(Iterator<ConcreteRuntimeObjNode> it=created.values().iterator();it.hasNext();) {
           ConcreteRuntimeObjNode obj=it.next();
-          if (obj.hasPrimitiveConflicts()||obj.decendantsConflict()||obj.hasDirectObjConflict) {
+          if (obj.hasPrimitiveConflicts() ||
+              obj.decendantsConflict()    ||
+              obj.hasDirectObjConflict       ) {
             rblock.addInVarForDynamicCoarseConflictResolution(invar);
             break;
           }
@@ -344,7 +348,12 @@ public class RuntimeConflictResolver {
   public String removeInvalidChars(String in) {
     StringBuilder s = new StringBuilder(in);
     for(int i = 0; i < s.length(); i++) {
-      if(s.charAt(i) == ' ' || s.charAt(i) == '.' || s.charAt(i) == '='||s.charAt(i)=='['||s.charAt(i)==']') {
+      if(s.charAt(i) == ' ' || 
+         s.charAt(i) == '.' || 
+         s.charAt(i) == '=' ||
+         s.charAt(i) == '[' ||
+         s.charAt(i) == ']'    ) {
+
         s.deleteCharAt(i);
         i--;
       }
@@ -387,7 +396,7 @@ public class RuntimeConflictResolver {
 
   private void runAllTraversals() {
     for(TraversalInfo t: toTraverse) {
-      printDebug(generalDebug, "Running Traversal a traversal on " + t.f);
+      printDebug(generalDebug, "Running Traversal on " + t.f);
       
       if(t.f instanceof FlatSESEEnterNode) {
         traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
@@ -419,10 +428,12 @@ public class RuntimeConflictResolver {
     headerFile.println("\nint tasktraverse(SESEcommon * record);");
     cFile.println("\nint tasktraverse(SESEcommon * record) {");
     cFile.println("  if(!CAS(&record->rcrstatus,1,2)) {");
+
     //release traverser reference...no traversal necessary
     cFile.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
     cFile.println("    RELEASE_REFERENCE_TO(record);");
     cFile.println("#endif");
+
     cFile.println("    return;");
     cFile.println("  }");
     cFile.println("  switch(record->classID) {");
@@ -437,10 +448,12 @@ public class RuntimeConflictResolver {
         TempDescriptor tmp=invars.get(i);
         
         // FIX IT LATER! Right now, we assume that there is only one parent
+        // JCJ ask yong hun what we should do in the multi-parent future!
         FlatSESEEnterNode parentSESE = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next();
-        ConflictGraph graph=oooa.getConflictGraph(parentSESE);
-        String id = tmp + "_sese" + fsen.getPrettyIdentifier();
-        ConflictNode node = graph.getId2cn().get(id);        
+        ConflictGraph     graph      = oooa.getConflictGraph(parentSESE);
+        // JCJ should ConflictGraph create this id string properly for this code?
+        String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
+        ConflictNode      node       = graph.getId2cn().get(id);        
         
       	if (i!=0) {
       	    cFile.println("      if (record->rcrstatus!=0)");
@@ -491,6 +504,7 @@ public class RuntimeConflictResolver {
       if(t.isRBlockTaint()) {
         cFile.println("    " + this.getTraverserInvocation(t.getVar(), "startingPtr, ("+t.getSESE().getSESErecordName()+" *)record", t.getSESE()));
       } else if (t.isStallSiteTaint()){
+        // JCJ either remove this or consider writing a comment explaining what it is commented out for
         cFile.println("/*    " + this.getTraverserInvocation(t.getVar(), "startingPtr, record", t.getStallSite())+"*/");
       } else {
         System.out.println("RuntimeConflictResolver encountered a taint that is neither SESE nor stallsite: " + t);
@@ -536,6 +550,7 @@ public class RuntimeConflictResolver {
 
   // Plan is to add stuff to the tree depth-first sort of way. That way, we can
   // propagate up conflicts
+  // JCJ what does this method do, exactly?
   private void createHelper(ConcreteRuntimeObjNode curr, 
                             Iterator<RefEdge> edges, 
                             Hashtable<Integer, ConcreteRuntimeObjNode> created,
@@ -548,7 +563,7 @@ public class RuntimeConflictResolver {
     if (currEffects == null || currEffects.isEmpty()) 
       return;
     
-    //Handle Objects (and primitives if child is new)
+    //Handle Objects (and primitives if child is new) JCJ what does this mean?
     if(currEffects.hasObjectEffects()) {
       while(edges.hasNext()) {
         RefEdge edge = edges.next();
@@ -583,6 +598,7 @@ public class RuntimeConflictResolver {
               createHelper(child, childHRN.iteratorToReferencees(), created, table, taint);
             } else {
             //This makes sure that all conflicts below the child is propagated up the referencers.
+              // JCJ spelling of descencents?
               if(child.decendantsPrimConflict || child.hasPrimitiveConflicts()) {
                 propagatePrimConflict(child, child.enqueueToWaitingQueueUponConflict);
               }
@@ -618,7 +634,7 @@ public class RuntimeConflictResolver {
   
   private void propagateObjConflict(ConcreteRuntimeObjNode curr, ConcreteRuntimeObjNode pointOfAccess) {
     for(ConcreteRuntimeObjNode referencer: curr.parentsWithReadToNode) {
-      if(curr.parentsThatWillLeadToConflicts.add(referencer) || //case where referencee has never seen referncer
+      if( curr.parentsThatWillLeadToConflicts.add(referencer) || //case where referencee has never seen referncer
           (pointOfAccess != null && referencer.addPossibleWaitingQueueEnqueue(pointOfAccess))) // case where referencer has never seen possible unresolved referencee below 
       {
         referencer.decendantsObjConflict = true;
@@ -656,9 +672,9 @@ public class RuntimeConflictResolver {
    * checking code for each object based on its allocation site. The switch statement is 
    * surrounded by a while statement which dequeues objects to be checked from a queue. An
    * object is added to a queue only if it contains a conflict (in itself or in its referencees)
-   *  and we came across it while checking through it's referencer. Because of this property, 
-   *  conflicts will be signaled by the referencer; the only exception is the inset variable which can 
-   *  signal a conflict within itself. 
+   * and we came across it while checking through it's referencer. Because of this property, 
+   * conflicts will be signaled by the referencer; the only exception is the inset variable which can 
+   * signal a conflict within itself. 
    */
   
   private void printCMethod(Hashtable<Integer, ConcreteRuntimeObjNode> created, Taint taint) {
@@ -703,7 +719,7 @@ public class RuntimeConflictResolver {
     
     if(cSideDebug) {
       cFile.println("printf(\"The traverser ran for " + methodName + "\\n\");");
-      }
+    }
 
     
     if(cases.size() == 0) {
@@ -820,7 +836,7 @@ public class RuntimeConflictResolver {
   }
 
   private void insertEntriesIntoHashStructure(Taint taint, ConcreteRuntimeObjNode curr,
-      String prefix, int depth, StringBuilder currCase) {
+                                              String prefix, int depth, StringBuilder currCase) {
     boolean primConfRead=false;
     boolean primConfWrite=false;
     boolean objConfRead=false;
@@ -857,6 +873,7 @@ public class RuntimeConflictResolver {
     String strrcr=taint.isRBlockTaint()?"&record->rcrRecords["+index+"], ":"NULL, ";
     String tasksrc=taint.isRBlockTaint()?"(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
     
+    // JCJ could clean this section up a bit
     //Do call if we need it.
     if(primConfWrite||objConfWrite) {
       int heaprootNum = connectedHRHash.get(taint).id;
@@ -885,9 +902,13 @@ public class RuntimeConflictResolver {
     }
   }
 
-  private void printObjRefSwitchStatement(Taint taint, Hashtable<AllocSite, StringBuilder> cases,
-      int pDepth, StringBuilder currCase, ObjRefList refsAtParticularField, String childPtr,
-      String currPtr) {
+  private void printObjRefSwitchStatement(Taint taint, 
+                                          Hashtable<AllocSite, StringBuilder> cases,
+                                          int pDepth, 
+                                          StringBuilder currCase, 
+                                          ObjRefList refsAtParticularField, 
+                                          String childPtr,
+                                          String currPtr) {
     
     currCase.append("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";\n");
     currCase.append("    if (" + currPtr + " != NULL) { \n");
@@ -927,11 +948,14 @@ public class RuntimeConflictResolver {
   }
   
   private Taint getProperTaintForFlatSESEEnterNode(FlatSESEEnterNode rblock, VariableNode var,
-      Hashtable<Taint, Set<Effect>> effects) {
+                                                   Hashtable<Taint, Set<Effect>> effects) {
     Set<Taint> taints = effects.keySet();
     for (Taint t : taints) {
       FlatSESEEnterNode sese = t.getSESE();
-      if(sese != null && sese.equals(rblock) && t.getVar().equals(var.getTempDescriptor())) {
+      if(sese != null                                 && 
+         sese.equals(rblock)                          && 
+         t.getVar().equals( var.getTempDescriptor() )
+         ) {
         return t;
       }
     }
@@ -968,6 +992,7 @@ public class RuntimeConflictResolver {
       System.out.println(debugStatements);
   }
   
+  // JCJ drop a blurb saying what this method assumes is already set up?
   private void enumerateHeaproots() {
     weaklyConnectedHRCounter = 0;
     num2WeaklyConnectedHRGroup = new ArrayList<WeaklyConectedHRGroup>();
@@ -1251,6 +1276,7 @@ public class RuntimeConflictResolver {
       parentsWithReadToNode.add(curr);
     }
 
+    // JCJ why is this here?!?!?!?!
     @Override
     public boolean equals(Object other) {
       if(other == null || !(other instanceof ConcreteRuntimeObjNode)) 
@@ -1333,7 +1359,9 @@ public class RuntimeConflictResolver {
       
       for(String key: objectRefs.keySet()) {
         for(ObjRef r: objectRefs.get(key)) {
-          if(r.hasDirectObjConflict() || (r.child.parentsWithReadToNode.contains(this) && r.hasConflictsDownThisPath())) {
+          if( r.hasDirectObjConflict() || 
+              (r.child.parentsWithReadToNode.contains(this) && r.hasConflictsDownThisPath())
+              ) {
             list.add(r.allocSite);
           }
         }
