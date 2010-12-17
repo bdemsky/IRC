@@ -42,9 +42,11 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 default:
 	$(BUILDSCRIPT) -nojava $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
 
+single-remake-c:
+	$(BUILDSCRIPT) -nojava -thread $(BSFLAGS) $(USECOREPROF) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+
 rcr-remake-c:
 	$(BUILDSCRIPT) -nojava $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
-
 
 single: $(PROGRAM)s.bin
 
