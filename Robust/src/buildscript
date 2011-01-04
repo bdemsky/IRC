@@ -27,6 +27,8 @@ echo -ooodebug general OOOJava debugging messages
 echo -ooodebug-disable-task-mem-pool this is a tricky module, disable for simpler runtime
 echo -mempool-detect-misuse turn on to find code misusing pool-allocated records
 echo -rcr turn on runtime conflict resolver
+echo -rcr_debug Shows weakly connected heaproots and which allocation sites were considered for traversal
+echo -rcr_debug_verbose in addition to above, also prints out effects passed in, internal representation of effects, and internal representation of reach graph
 echo -squeue use single queue
 echo -corepin use core pinning
 echo -nostalltr turn off RCR traversers that only handle conflicts between task and stallsite
@@ -169,6 +171,8 @@ CHECKFLAG=false
 RECOVERFLAG=false
 MLP_ON=false
 RCR=false
+RCR_DEBUG=false
+RCR_DEBUG_VERBOSE=false
 MLPDEBUG=false
 MULTICOREFLAG=false
 RAWFLAG=false
@@ -589,6 +593,16 @@ then
 JAVAOPTS="$JAVAOPTS -rcr"
 RCR=true
 EXTRAOPTIONS="$EXTRAOPTIONS -DRCR -I$ROBUSTROOT/Runtime/oooJava"
+
+elif [[ $1 = '-rcr_debug' ]]
+then
+JAVAOPTS="$JAVAOPTS -rcr_debug"
+RCR_DEBUG=true
+
+elif [[ $1 = '-rcr_debug_verbose' ]]
+then
+JAVAOPTS="$JAVAOPTS -rcr_debug_verbose"
+RCR_DEBUG_VERBOSE=true
 
 elif [[ $1 = '-debug-deque' ]]
 then

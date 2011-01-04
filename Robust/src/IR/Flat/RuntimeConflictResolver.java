@@ -32,14 +32,11 @@ import Util.CodePrinter;
  * Note: All computation is done upon closing the object. Steps 1-3 only input data
  */
 public class RuntimeConflictResolver {
-  public static final boolean generalDebug = true;
-  public static final boolean cSideDebug = false;
-
-  //Prints out effects and data structure used to steer RCR traversals
-  public static final boolean printEffectsAndEffectsTable = false;  
-
-  //Prints steps taken to build internal representation of pruned reach graph
-  public static final boolean traceDataStructureBuild = false;  
+  //Shows weakly connected heaproots and which allocation sites were considered for traversal
+  private boolean generalDebug = false;
+  
+  //Prints out effects passed in, internal representation of effects, and internal representation of reach graph
+  private boolean verboseDebug = false;
   
   private PrintWriter cFile;
   private PrintWriter headerFile;
@@ -104,12 +101,15 @@ public class RuntimeConflictResolver {
     toTraverse = new ArrayList<TraversalInfo>();
     globalConflicts = new Hashtable<Taint, Set<Effect>>(); 
     //Note: globalEffects is not instantiated since it'll be passed in whole while conflicts comes in chunks
+    
+    generalDebug = state.RCR_DEBUG || state.RCR_DEBUG_VERBOSE;
+    verboseDebug = state.RCR_DEBUG_VERBOSE;
   }
 
   public void setGlobalEffects(Hashtable<Taint, Set<Effect>> effects) {
     globalEffects = effects;
     
-    if(printEffectsAndEffectsTable) {
+    if(verboseDebug) {
       System.out.println("============EFFECTS LIST AS PASSED IN============");
       for(Taint t: globalEffects.keySet()) {
         System.out.println("For Taint " + t);
@@ -123,21 +123,24 @@ public class RuntimeConflictResolver {
 
   public void init() {
     // Go through the SESE's
+    printDebug(generalDebug, "======================SESE's======================");
     for (Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator(); seseit.hasNext();) {
       FlatSESEEnterNode fsen = seseit.next();
       Analysis.OoOJava.ConflictGraph conflictGraph;
       Hashtable<Taint, Set<Effect>> conflicts;
-      System.out.println("-------");
-      System.out.println(fsen);
-      System.out.println(fsen.getIsCallerSESEplaceholder());
-      System.out.println(fsen.getParent());
       
 //      if (fsen.getParent() != null) {
       FlatSESEEnterNode parentSESE = null;
       if (fsen.getSESEParent().size() > 0) {
          parentSESE = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next();
         conflictGraph = oooa.getConflictGraph(parentSESE);
-        System.out.println("CG=" + conflictGraph);
+        
+        if(generalDebug) {
+          System.out.println(fsen);
+          System.out.println(fsen.getIsCallerSESEplaceholder());
+          System.out.println(fsen.getParent());
+          System.out.println("CG=" + conflictGraph);
+        }
       }
 
 //      if (!fsen.getIsCallerSESEplaceholder() && fsen.getParent() != null
@@ -148,12 +151,14 @@ public class RuntimeConflictResolver {
           && (conflicts = conflictGraph.getConflictEffectSet(fsen)) != null ){
         FlatMethod fm = fsen.getfmEnclosing();
         ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(fm.getMethod());
-        if (cSideDebug)
+        if (generalDebug)
           rg.writeGraph("RCR_RG_SESE_DEBUG");
 
         addToTraverseToDoList(fsen, rg, conflicts);
       }
     }
+    printDebug(generalDebug, "====================END  LIST====================");
+    
     // Go through the stall sites
     for (Iterator<FlatNode> codeit = oooa.getNodesWithPlans().iterator(); codeit.hasNext();) {
       FlatNode fn = codeit.next();
@@ -180,7 +185,7 @@ public class RuntimeConflictResolver {
             Analysis.OoOJava.ConflictGraph conflictGraph = graph;
             Hashtable<Taint, Set<Effect>> conflicts;
             ReachGraph rg = oooa.getDisjointAnalysis().getReachGraph(currentSESE.getmdEnclosing());
-            if (cSideDebug) {
+            if (generalDebug) {
               rg.writeGraph("RCR_RG_STALLSITE_DEBUG");
             }
             if ((conflictGraph != null) && (conflicts = graph.getConflictEffectSet(fn)) != null
@@ -242,8 +247,6 @@ public class RuntimeConflictResolver {
     
     if (inVars.size() == 0)
       return;
-    System.out.println("RBLOCK:"+rblock);
-    System.out.println("["+inVars+"]");
     
     // For every non-primitive variable, generate unique method
     for (TempDescriptor invar : inVars) {
@@ -251,7 +254,7 @@ public class RuntimeConflictResolver {
       if(isReallyAPrimitive(type)) {
         continue;
       }
-      System.out.println(invar);
+      
       //"created" stores nodes with specific alloc sites that have been traversed while building
       //internal data structure. Created is later traversed sequentially to find inset variables and
       //build output code.
@@ -512,11 +515,7 @@ public class RuntimeConflictResolver {
       cFile.println("    break;");
     }
     
-    if(RuntimeConflictResolver.cSideDebug) {
-      cFile.println("  default:\n    printf(\"Invalid traverser ID %u was passed in.\\n\", traverserID);\n    break;");
-    } else {
-      cFile.println("  default:\n    break;");
-    }
+    cFile.println("  default:\n    break;");
     
     cFile.println(" }");
     cFile.println("}");
@@ -716,11 +715,6 @@ public class RuntimeConflictResolver {
 
     cFile.println(methodName + " {");
     headerFile.println(methodName + ";");
-    
-    if(cSideDebug) {
-      cFile.println("printf(\"The traverser ran for " + methodName + "\\n\");");
-    }
-
     
     if(cases.size() == 0) {
       cFile.println(" return;");
@@ -1322,7 +1316,7 @@ public class RuntimeConflictResolver {
     }
 
     public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
-      printDebug(traceDataStructureBuild,this.allocSite.getUniqueAllocSiteID() + " added child at " + child.getAllocationSite());
+      printDebug(verboseDebug,this.allocSite.getUniqueAllocSiteID() + " added child at " + child.getAllocationSite());
       hasDirectObjConflict |= ce.hasConflict();
       ObjRef ref = new ObjRef(field, child, ce);
       
@@ -1332,14 +1326,14 @@ public class RuntimeConflictResolver {
         if(array.contains(ref)) {
           ObjRef other = array.get(array.indexOf(ref));
           other.mergeWith(ref);
-          printDebug(traceDataStructureBuild,"    Merged with old");
-          printDebug(traceDataStructureBuild,"    Old="+ other.child.original + "\n    new="+ref.child.original);
+          printDebug(verboseDebug,"    Merged with old");
+          printDebug(verboseDebug,"    Old="+ other.child.original + "\n    new="+ref.child.original);
         }
         else {
           array.add(ref);
-          printDebug(traceDataStructureBuild,"    Just added new;\n      Field: " + field);
-          printDebug(traceDataStructureBuild,"      AllocSite: " + child.getAllocationSite());
-          printDebug(traceDataStructureBuild,"      Child: "+child.original);
+          printDebug(verboseDebug,"    Just added new;\n      Field: " + field);
+          printDebug(verboseDebug,"      AllocSite: " + child.getAllocationSite());
+          printDebug(verboseDebug,"      Child: "+child.original);
         }
       }
       else {
@@ -1415,7 +1409,7 @@ public class RuntimeConflictResolver {
             bucket = new BucketOfEffects();
             table.put(e.getAffectedAllocSite(), bucket);
           }
-          printDebug(printEffectsAndEffectsTable, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false)+" localConflicts = "+localConflicts);
+          printDebug(verboseDebug, "Added Taint" + t + " Effect " + e + "Conflict Status = " + (localConflicts!=null?localConflicts.contains(e):false)+" localConflicts = "+localConflicts);
           bucket.add(t, e, localConflicts!=null?localConflicts.contains(e):false);
         }
       }
@@ -1435,7 +1429,7 @@ public class RuntimeConflictResolver {
     // Run Analysis will walk the data structure and figure out the weakly
     // connected heap roots. 
     public void runAnalysis() {
-      if(printEffectsAndEffectsTable) {
+      if(verboseDebug) {
         printoutTable(this); 
       }
       

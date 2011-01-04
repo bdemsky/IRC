@@ -34,6 +34,8 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 
 USEOOO= -ooojava $(NUM_OOO_WORKERS) 2      -ooodebug -squeue #-ooodebug-disable-task-mem-pool
 USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -ooodebug -squeue 
+RCRDEBUG= -rcr_debug
+RCRDEBUGV= -rcr_debug_verbose
 BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp #-debug
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
@@ -58,10 +60,14 @@ ooo: $(PROGRAM)p.bin
 $(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
-rcr: $(PROGRAM)r.bin
-
-$(PROGRAM)r.bin: $(SOURCE_FILES) ../master-makefile
+rcr: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT)  $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+
+rcr-debug: $(SOURCE_FILES) ../master-makefile
+	$(BUILDSCRIPT)  $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUG) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+
+rcr-debug-v: $(SOURCE_FILES) ../master-makefile
+	$(BUILDSCRIPT)  $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUGV) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin

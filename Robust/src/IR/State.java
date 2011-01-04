@@ -105,6 +105,8 @@ public class State {
   public boolean OOOJAVA=false;
   public boolean OOODEBUG=false;
   public boolean RCR=false;
+  public boolean RCR_DEBUG=false;
+  public boolean RCR_DEBUG_VERBOSE=false;
   public boolean NOSTALLTR=false;
 
 

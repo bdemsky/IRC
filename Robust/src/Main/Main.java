@@ -336,11 +336,15 @@ public class Main {
 	state.MLP_MAXSESEAGE = Integer.parseInt( args[++i] );
 
       } else if (option.equals("-ooodebug") ){ 
-  state.OOODEBUG  = true;
+	state.OOODEBUG  = true;
       } else if (option.equals("-rcr")){
-  state.RCR = true;
+	state.RCR = true;
+      } else if (option.equals("-rcr_debug")){
+	state.RCR_DEBUG = true;
+      } else if (option.equals("-rcr_debug_verbose")){
+  state.RCR_DEBUG_VERBOSE = true;
       } else if (option.equals("-nostalltr")){
-  state.NOSTALLTR = true;     
+	state.NOSTALLTR = true;     
       }else if (option.equals("-help")) {      
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
