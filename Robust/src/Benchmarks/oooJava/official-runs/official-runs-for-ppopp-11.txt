@@ -1,0 +1,2223 @@
+ENTERING C-crypt
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING crypt
+Running runp
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.027s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.004s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFCryptBenchp.bin: No such file or directory
+
+real	0m0.033s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+0runningtime=5357
+init=5429
+0runningtime=5336
+init=5425
+0runningtime=5362
+init=5430
+0runningtime=5337
+init=5443
+0runningtime=5334
+init=5437
+0runningtime=5348
+init=5446
+0runningtime=5326
+init=5444
+0runningtime=5337
+init=5447
+0runningtime=5321
+init=5434
+0runningtime=5331
+init=5449
+Running runs
+0runningtime=78922
+init=5319
+0runningtime=78737
+init=5269
+0runningtime=78808
+init=5402
+0runningtime=78780
+init=5378
+0runningtime=78879
+init=5273
+0runningtime=78725
+init=5270
+0runningtime=78779
+init=5280
+0runningtime=78882
+init=5278
+0runningtime=79154
+init=5286
+0runningtime=79451
+init=5538
+ENTERING CVS
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING kmeans
+Running runp
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.027s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.007s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./KMeansp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=6413
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m8.205s
+user	1m48.696s
+sys	1m19.944s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=11088
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m12.910s
+user	2m34.032s
+sys	2m27.131s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=11110
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m12.941s
+user	2m34.851s
+sys	2m27.060s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=6422
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m8.225s
+user	1m48.145s
+sys	1m20.741s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=11148
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m12.963s
+user	2m32.109s
+sys	2m30.454s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=6484
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m8.253s
+user	1m48.068s
+sys	1m21.337s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=6243
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m8.053s
+user	1m46.320s
+sys	1m18.332s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=6447
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m8.263s
+user	1m48.497s
+sys	1m21.222s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=10505
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m12.312s
+user	2m27.585s
+sys	2m19.656s
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=10496
+Printing output......
+Best_nclusters= 40
+Finished......
+
+real	0m12.305s
+user	2m27.804s
+sys	2m18.843s
+Running runs
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55027
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55752
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55176
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55553
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55039
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=53864
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55086
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55049
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55764
+Printing output......
+Best_nclusters= 40
+Finished......
+numObjects= 65536 numAttributes= 32
+Finished Reading from file ......
+Finished Starting threads......
+running time=55029
+Printing output......
+Best_nclusters= 40
+Finished......
+ENTERING labyrinth
+Running runp
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.006s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.005s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.005s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.063s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.031s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.005s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.014s
+user	0m0.000s
+sys	0m0.000s
+Running runr-512first
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 260421
+Paths routed    = 512
+Elapsed time    = 260.421000
+Verification passed.
+Finished
+
+real	4m21.089s
+user	41m31.388s
+sys	58m20.437s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 259773
+Paths routed    = 512
+Elapsed time    = 259.773000
+Verification passed.
+Finished
+
+real	4m20.474s
+user	41m40.963s
+sys	57m55.407s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 264154
+Paths routed    = 512
+Elapsed time    = 264.154000
+Verification passed.
+Finished
+
+real	4m24.886s
+user	44m41.192s
+sys	56m36.368s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 263873
+Paths routed    = 512
+Elapsed time    = 263.873000
+Verification passed.
+Finished
+
+real	4m24.557s
+user	43m2.218s
+sys	58m8.708s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 260158
+Paths routed    = 512
+Elapsed time    = 260.158000
+Verification passed.
+Finished
+
+real	4m20.804s
+user	43m3.639s
+sys	56m41.985s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 260321
+Paths routed    = 512
+Elapsed time    = 260.321000
+Verification passed.
+Finished
+
+real	4m21.018s
+user	41m41.111s
+sys	58m8.077s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 260026
+Paths routed    = 512
+Elapsed time    = 260.026000
+Verification passed.
+Finished
+
+real	4m20.746s
+user	43m17.749s
+sys	56m25.132s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 260324
+Paths routed    = 512
+Elapsed time    = 260.324000
+Verification passed.
+Finished
+
+real	4m21.026s
+user	42m47.831s
+sys	57m1.500s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 264001
+Paths routed    = 512
+Elapsed time    = 264.001000
+Verification passed.
+Finished
+
+real	4m24.683s
+user	43m36.836s
+sys	57m36.948s
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 263737
+Paths routed    = 512
+Elapsed time    = 263.737000
+Verification passed.
+Finished
+
+real	4m24.393s
+user	44m18.439s
+sys	56m49.741s
+Running runr-7first
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16447
+Paths routed    = 511
+Elapsed time    = 16.447000
+Verification passed.
+Finished
+
+real	0m16.628s
+user	4m54.946s
+sys	1m26.247s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16591
+Paths routed    = 511
+Elapsed time    = 16.591000
+Verification passed.
+Finished
+
+real	0m16.763s
+user	4m55.232s
+sys	1m29.097s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16486
+Paths routed    = 511
+Elapsed time    = 16.486000
+Verification passed.
+Finished
+
+real	0m16.683s
+user	4m54.368s
+sys	1m27.941s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16255
+Paths routed    = 511
+Elapsed time    = 16.255000
+Verification passed.
+Finished
+
+real	0m16.468s
+user	4m51.936s
+sys	1m24.895s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16564
+Paths routed    = 511
+Elapsed time    = 16.564000
+Verification passed.
+Finished
+
+real	0m16.728s
+user	4m54.424s
+sys	1m29.482s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16169
+Paths routed    = 511
+Elapsed time    = 16.169000
+Verification passed.
+Finished
+
+real	0m16.322s
+user	4m51.124s
+sys	1m23.582s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16151
+Paths routed    = 511
+Elapsed time    = 16.151000
+Verification passed.
+Finished
+
+real	0m16.399s
+user	4m50.505s
+sys	1m23.920s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16395
+Paths routed    = 511
+Elapsed time    = 16.395000
+Verification passed.
+Finished
+
+real	0m16.663s
+user	4m53.819s
+sys	1m26.035s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16268
+Paths routed    = 511
+Elapsed time    = 16.268000
+Verification passed.
+Finished
+
+real	0m16.457s
+user	4m51.069s
+sys	1m26.218s
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 16144
+Paths routed    = 511
+Elapsed time    = 16.144000
+Verification passed.
+Finished
+
+real	0m16.325s
+user	4m50.818s
+sys	1m23.248s
+Running runs-512first
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 186125
+Paths routed    = 512
+Elapsed time    = 186.125000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 185038
+Paths routed    = 512
+Elapsed time    = 185.038000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 186618
+Paths routed    = 512
+Elapsed time    = 186.618000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 186144
+Paths routed    = 512
+Elapsed time    = 186.144000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 185968
+Paths routed    = 512
+Elapsed time    = 185.968000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 185453
+Paths routed    = 512
+Elapsed time    = 185.453000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 185904
+Paths routed    = 512
+Elapsed time    = 185.904000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 185238
+Paths routed    = 512
+Elapsed time    = 185.238000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 186840
+Paths routed    = 512
+Elapsed time    = 186.840000
+Verification passed.
+Finished
+Maze dimensions = 512 x 512 x 7
+Paths to route  = 512
+TIME= 187031
+Paths routed    = 512
+Elapsed time    = 187.031000
+Verification passed.
+Finished
+Running runs-7first
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 175564
+Paths routed    = 511
+Elapsed time    = 175.564000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 176693
+Paths routed    = 511
+Elapsed time    = 176.693000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 175201
+Paths routed    = 511
+Elapsed time    = 175.201000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 175297
+Paths routed    = 511
+Elapsed time    = 175.297000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 175206
+Paths routed    = 511
+Elapsed time    = 175.206000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 176538
+Paths routed    = 511
+Elapsed time    = 176.538000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 174810
+Paths routed    = 511
+Elapsed time    = 174.810000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 174992
+Paths routed    = 511
+Elapsed time    = 174.992000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 174688
+Paths routed    = 511
+Elapsed time    = 174.688000
+Verification passed.
+Finished
+Maze dimensions = 7 x 512 x 512
+Paths to route  = 512
+TIME= 174798
+Paths routed    = 511
+Elapsed time    = 174.798000
+Verification passed.
+Finished
+ENTERING labyrinthalloc
+Running runp
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.047s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.004s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.029s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.005s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 3: ./Labyrinthp.bin: No such file or directory
+
+real	0m0.006s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.055s
+sys	0m0.099s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.012s
+user	0m0.054s
+sys	0m0.080s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.037s
+user	0m0.039s
+sys	0m0.084s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.012s
+user	0m0.044s
+sys	0m0.091s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.032s
+user	0m0.049s
+sys	0m0.087s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.012s
+user	0m0.044s
+sys	0m0.085s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.013s
+user	0m0.044s
+sys	0m0.093s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.040s
+user	0m0.036s
+sys	0m0.096s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.017s
+user	0m0.047s
+sys	0m0.076s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.012s
+user	0m0.037s
+sys	0m0.087s
+Running runr-512first
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.084s
+user	0m0.054s
+sys	0m0.121s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.054s
+sys	0m0.104s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.067s
+sys	0m0.086s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.016s
+user	0m0.053s
+sys	0m0.104s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.052s
+sys	0m0.100s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.021s
+user	0m0.059s
+sys	0m0.101s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.013s
+user	0m0.041s
+sys	0m0.113s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.060s
+sys	0m0.096s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.049s
+user	0m0.051s
+sys	0m0.100s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.026s
+user	0m0.055s
+sys	0m0.092s
+Running runr-7first
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.044s
+user	0m0.058s
+sys	0m0.098s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.015s
+user	0m0.057s
+sys	0m0.108s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.053s
+sys	0m0.101s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.015s
+user	0m0.064s
+sys	0m0.096s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.025s
+user	0m0.055s
+sys	0m0.101s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.061s
+sys	0m0.092s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.042s
+user	0m0.044s
+sys	0m0.105s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.013s
+user	0m0.053s
+sys	0m0.107s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.014s
+user	0m0.056s
+sys	0m0.096s
+Error : Invalid dimensions ( -1, -1, -1)
+
+real	0m0.038s
+user	0m0.043s
+sys	0m0.111s
+Running runs
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Running runs-512first
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Running runs-7first
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+Error : Invalid dimensions ( -1, -1, -1)
+ENTERING mergesort
+Running runp
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.006s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.001s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.011s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.011s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./MergeSort4p.bin: No such file or directory
+
+real	0m0.035s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+init time=8802
+running time=15367
+
+real	0m24.657s
+user	4m7.109s
+sys	5m30.802s
+init time=6385
+running time=16751
+
+real	0m23.662s
+user	4m4.340s
+sys	5m0.657s
+init time=6355
+running time=16122
+
+real	0m22.946s
+user	4m22.230s
+sys	4m37.575s
+init time=8780
+running time=15108
+
+real	0m24.402s
+user	3m58.709s
+sys	5m29.503s
+init time=8997
+running time=16749
+
+real	0m26.275s
+user	5m11.524s
+sys	5m1.538s
+init time=6332
+running time=16023
+
+real	0m22.898s
+user	4m3.455s
+sys	4m50.915s
+init time=8841
+running time=16076
+
+real	0m25.385s
+user	4m4.402s
+sys	5m48.884s
+init time=5855
+running time=14065
+
+real	0m20.480s
+user	3m52.418s
+sys	3m55.669s
+init time=6332
+running time=13262
+
+real	0m20.169s
+user	3m56.255s
+sys	3m54.408s
+init time=8809
+running time=13968
+
+real	0m23.352s
+user	4m1.034s
+sys	5m3.520s
+Running runs
+init time=26518
+running time=170998
+
+real	3m17.932s
+user	3m14.776s
+sys	0m3.062s
+init time=26712
+running time=170962
+
+real	3m18.063s
+user	3m15.018s
+sys	0m2.983s
+init time=26656
+running time=171399
+
+real	3m18.435s
+user	3m15.310s
+sys	0m3.048s
+init time=26646
+running time=170889
+
+real	3m17.906s
+user	3m14.920s
+sys	0m2.932s
+init time=26529
+running time=170886
+
+real	3m17.887s
+user	3m14.653s
+sys	0m3.088s
+init time=26905
+running time=170947
+
+real	3m18.231s
+user	3m15.078s
+sys	0m3.086s
+init time=26797
+running time=170993
+
+real	3m18.150s
+user	3m15.028s
+sys	0m3.085s
+init time=26621
+running time=171020
+
+real	3m18.043s
+user	3m14.966s
+sys	0m2.992s
+init time=26605
+running time=171014
+
+real	3m18.014s
+user	3m14.871s
+sys	0m3.067s
+init time=26694
+running time=171017
+
+real	3m18.135s
+user	3m14.956s
+sys	0m3.083s
+ENTERING micro
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING micro2
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING micro2.5
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING micro3
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING micro4
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING micro4.5
+Running run*
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+./runall: line 13: ./run*: No such file or directory
+ENTERING moldyn
+Running runp
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.004s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.011s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.044s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.024s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMolDynBenchSizeBp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+Finished
+
+real	0m10.859s
+user	2m32.364s
+sys	1m35.151s
+Finished
+
+real	0m10.712s
+user	2m30.499s
+sys	1m33.186s
+Finished
+
+real	0m10.628s
+user	2m29.705s
+sys	1m32.313s
+Finished
+
+real	0m10.878s
+user	2m32.439s
+sys	1m34.526s
+Finished
+
+real	0m10.553s
+user	2m31.781s
+sys	1m29.143s
+Finished
+
+real	0m10.746s
+user	2m32.467s
+sys	1m32.822s
+Finished
+
+real	0m10.849s
+user	2m33.743s
+sys	1m32.972s
+Finished
+
+real	0m10.825s
+user	2m32.545s
+sys	1m33.784s
+Finished
+
+real	0m10.764s
+user	2m32.661s
+sys	1m33.549s
+Finished
+
+real	0m10.799s
+user	2m30.985s
+sys	1m34.753s
+ENTERING monte
+Running runp
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.010s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./JGFMonteCarloBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+Validation success
+
+real	0m2.213s
+user	0m29.391s
+sys	0m16.635s
+Validation success
+
+real	0m2.150s
+user	0m29.490s
+sys	0m16.304s
+Validation success
+
+real	0m2.142s
+user	0m29.371s
+sys	0m16.481s
+Validation success
+
+real	0m2.144s
+user	0m29.369s
+sys	0m16.295s
+Validation success
+
+real	0m2.163s
+user	0m29.160s
+sys	0m16.360s
+Validation success
+
+real	0m2.216s
+user	0m29.545s
+sys	0m16.416s
+Validation success
+
+real	0m2.213s
+user	0m29.556s
+sys	0m16.445s
+Validation success
+
+real	0m2.208s
+user	0m29.541s
+sys	0m16.474s
+Validation success
+
+real	0m2.150s
+user	0m29.401s
+sys	0m16.368s
+Validation success
+
+real	0m2.182s
+user	0m29.551s
+sys	0m16.520s
+ENTERING power
+Running runp
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.004s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.016s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./Powerp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+Power build time 0.003000
+Power compute time 1.670000
+Power total time 1.673000
+Done!
+Power build time 0.004000
+Power compute time 1.819000
+Power total time 1.823000
+Done!
+Power build time 0.003000
+Power compute time 1.641000
+Power total time 1.644000
+Done!
+Power build time 0.003000
+Power compute time 1.653000
+Power total time 1.656000
+Done!
+Power build time 0.003000
+Power compute time 1.771000
+Power total time 1.774000
+Done!
+Power build time 0.003000
+Power compute time 1.644000
+Power total time 1.647000
+Done!
+Power build time 0.003000
+Power compute time 1.641000
+Power total time 1.644000
+Done!
+Power build time 0.003000
+Power compute time 1.678000
+Power total time 1.681000
+Done!
+Power build time 0.004000
+Power compute time 1.669000
+Power total time 1.673000
+Done!
+Power build time 0.003000
+Power compute time 1.638000
+Power total time 1.641000
+Done!
+Running runs
+Power build time 0.005000
+Power compute time 32.501000
+Power total time 32.506000
+Done!
+Power build time 0.005000
+Power compute time 32.484000
+Power total time 32.489000
+Done!
+Power build time 0.005000
+Power compute time 32.471000
+Power total time 32.476000
+Done!
+Power build time 0.005000
+Power compute time 32.442000
+Power total time 32.447000
+Done!
+Power build time 0.004000
+Power compute time 32.163000
+Power total time 32.167000
+Done!
+Power build time 0.005000
+Power compute time 32.493000
+Power total time 32.498000
+Done!
+Power build time 0.004000
+Power compute time 32.168000
+Power total time 32.172000
+Done!
+Power build time 0.005000
+Power compute time 32.144000
+Power total time 32.149000
+Done!
+Power build time 0.004000
+Power compute time 32.474000
+Power total time 32.478000
+Done!
+Power build time 0.005000
+Power compute time 32.488000
+Power total time 32.493000
+Done!
+ENTERING raytracer
+Running runp
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.074s
+user	0m0.000s
+sys	0m0.001s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.045s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.054s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 2: ./testp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.318s
+user	0m42.178s
+sys	0m4.477s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.316s
+user	0m42.033s
+sys	0m4.444s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.354s
+user	0m42.011s
+sys	0m4.524s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.284s
+user	0m41.919s
+sys	0m4.447s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.304s
+user	0m42.101s
+sys	0m4.355s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.312s
+user	0m41.932s
+sys	0m4.493s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.278s
+user	0m41.798s
+sys	0m4.543s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.337s
+user	0m41.911s
+sys	0m4.445s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.287s
+user	0m41.943s
+sys	0m4.351s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+END OF WORK
+CHECKSUM=29827635
+
+real	0m2.313s
+user	0m41.869s
+sys	0m4.527s
+Running runs
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.881s
+user	0m40.317s
+sys	0m3.523s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m44.192s
+user	0m40.388s
+sys	0m3.337s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.393s
+user	0m39.772s
+sys	0m3.603s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.621s
+user	0m40.055s
+sys	0m3.497s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.256s
+user	0m39.763s
+sys	0m3.452s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.603s
+user	0m40.166s
+sys	0m3.391s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.567s
+user	0m40.226s
+sys	0m3.273s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m42.853s
+user	0m39.526s
+sys	0m3.296s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m43.496s
+user	0m40.047s
+sys	0m3.419s
+Java Grande Forum Benchmark Suite - Version 2.0 - Section 3 - Size A
+
+CHECKSUM=29827635
+END OF WORK
+
+real	0m42.996s
+user	0m39.436s
+sys	0m3.487s
+ENTERING sor
+Running runp
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.087s
+user	0m0.001s
+sys	0m0.001s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.011s
+user	0m0.000s
+sys	0m0.001s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.001s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.029s
+user	0m0.000s
+sys	0m0.000s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.014s
+user	0m0.000s
+sys	0m0.000s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.005s
+user	0m0.000s
+sys	0m0.000s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.031s
+user	0m0.000s
+sys	0m0.000s
+numactl: execution of `./JGFSORBenchSizeDp.bin': No such file or directory
+
+
+real	0m0.003s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m41.047s
+user	10m44.031s
+sys	5m19.194s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m40.580s
+user	10m46.965s
+sys	5m5.343s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m38.185s
+user	10m22.058s
+sys	4m34.614s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m36.510s
+user	10m6.556s
+sys	4m11.410s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m37.002s
+user	10m9.071s
+sys	4m20.314s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m38.631s
+user	10m26.160s
+sys	4m41.941s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m38.687s
+user	10m25.891s
+sys	4m43.952s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m38.377s
+user	10m24.158s
+sys	4m36.738s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m38.817s
+user	10m30.563s
+sys	4m40.951s
+assign workerTR to core 23
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	0m38.679s
+user	10m22.915s
+sys	4m46.367s
+Running runs
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m54.299s
+user	3m53.939s
+sys	0m0.245s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.630s
+user	3m53.281s
+sys	0m0.257s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m54.446s
+user	3m54.083s
+sys	0m0.241s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.508s
+user	3m53.151s
+sys	0m0.249s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m52.733s
+user	3m52.386s
+sys	0m0.247s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.399s
+user	3m53.027s
+sys	0m0.239s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.337s
+user	3m52.902s
+sys	0m0.291s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m55.615s
+user	3m55.266s
+sys	0m0.248s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	3m53.814s
+user	3m53.461s
+sys	0m0.226s
+Starting computation!
+Validataion Success! dev=0.000000
+Section2:SOR:Kernel	0.000000 (s) 	 inf	 (Iterations/s)Finished
+
+real	5m27.701s
+user	5m27.325s
+sys	0m0.260s
+ENTERING tracking
+Running runp
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.018s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.011s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+./runp: line 1: ./TrackingBenchp.bin: No such file or directory
+
+real	0m0.002s
+user	0m0.000s
+sys	0m0.000s
+Running runr
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.827s
+user	7m42.530s
+sys	0m38.850s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.770s
+user	7m41.226s
+sys	0m39.010s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.865s
+user	7m43.957s
+sys	0m36.845s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.762s
+user	7m42.042s
+sys	0m38.391s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.817s
+user	7m41.756s
+sys	0m38.758s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.831s
+user	7m42.665s
+sys	0m37.738s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.858s
+user	7m41.120s
+sys	0m39.486s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.837s
+user	7m43.043s
+sys	0m37.634s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.819s
+user	7m42.699s
+sys	0m37.742s
+read image: 1.bmp
+read image: 2.bmp
+this.m_rows_f=2
+this.m_cols_=3
+m_features.length=6
+228.182449
+201.374619
+340.630829
+141.686951
+70.490982
+242.187393
+
+real	0m21.838s
+user	7m42.062s
+sys	0m38.697s
