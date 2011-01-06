@@ -26,7 +26,10 @@ public class FieldDescriptor extends Descriptor {
     this.safename = "___" + name + "___";
     this.uniqueid=count++;
     this.isglobal=isglobal;
-    if (en!=null) throw new Error("Field initializers not implemented");
+  }
+
+  public ExpressionNode getExpressionNode(){
+      return en;
   }
 
   public boolean isStatic() {

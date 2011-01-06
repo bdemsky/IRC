@@ -52,6 +52,7 @@ public class BuildIR {
 	  continue;
 	if (isNode(type_pn,"class_declaration")) {
 	  ClassDescriptor cn=parseTypeDecl(type_pn);
+	  parseInitializers(cn);
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
 	  state.addClass(cn);
@@ -67,7 +68,7 @@ public class BuildIR {
         while(!tovisit.isEmpty()) {
           ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
           tovisit.remove(cd);
-          
+	  parseInitializers(cd);
           if(toanalyze != null) {
             toanalyze.add(cd);
           }
@@ -133,7 +134,26 @@ public class BuildIR {
       }
     }
   }
-  
+
+ public void parseInitializers(ClassDescriptor cn){
+	Vector fv=cn.getFieldVec();
+	for(int i=0;i<fv.size();i++) {
+	    FieldDescriptor fd=(FieldDescriptor)fv.get(i);
+ 	    if(fd.getExpressionNode()!=null) {
+		Iterator methodit = cn.getMethods();
+		while(methodit.hasNext()){
+		    MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+		    if(currmd.isConstructor()){
+			BlockNode bn=state.getMethodBody(currmd);
+			NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
+			AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
+			bn.addFirstBlockStatement(new BlockExpressionNode(an));			
+		    }
+		}
+	    }
+	}
+    }  
+
   private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
     ecd.setAsEnum();
