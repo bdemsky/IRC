@@ -296,6 +296,11 @@ NextMethod:
   }
 
   public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
+    if(state.MGC) {
+      if(possiblesuper.isClass() && possiblesuper.class_desc.isEnum() && cd2.isInt()) {
+        return true;
+      }
+    }
     if (possiblesuper.isOffset() || cd2.isOffset()) return true;
     //Matching type are always okay
     if (possiblesuper.equals(cd2))

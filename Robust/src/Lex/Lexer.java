@@ -289,7 +289,7 @@ public class Lexer {
     if (s.equals("false")) return new BooleanLiteral(false);
     // Check against keywords.
     //  pre-java 1.5 compatibility:
-    if (!isJava15 && s.equals("enum")) return new Identifier(s);
+    //if (!isJava15 && s.equals("enum")) return new Identifier(s);
     //  pre-java 1.4 compatibility:
     if (!isJava14 && s.equals("assert")) return new Identifier(s);
     //  pre-java 1.2 compatibility:

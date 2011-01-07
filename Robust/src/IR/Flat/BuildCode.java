@@ -1618,7 +1618,10 @@ public class BuildCode {
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-      if (fd.getType().isClass()||fd.getType().isArray())
+      if (state.MGC && fd.getType().isClass()
+          && fd.getType().getClassDesc().isEnum()) {
+        classdefout.println("  int " + fd.getSafeSymbol() + ";");
+      } else if (fd.getType().isClass()||fd.getType().isArray())
 	classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
       else if ((state.MGC) && (fd.isStatic())) {
         // TODO add version for normal Java later
@@ -2058,7 +2061,9 @@ public class BuildCode {
       TypeDescriptor type=td.getType();
       if (type.isNull())
 	output.println("   void * "+td.getSafeSymbol()+";");
-      else if (type.isClass()||type.isArray())
+      else if (state.MGC && type.isClass() && type.getClassDesc().isEnum()) {
+        output.println("   int " + td.getSafeSymbol() + ";");
+      } else if (type.isClass()||type.isArray())
 	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
 	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
@@ -5280,7 +5285,10 @@ public class BuildCode {
           output.println(generateTemp(fm, ffn.getDst(),lb)+"=*"+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
         }
         //output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ffn.getSrc().getType().getClassDesc().getSafeSymbol()+"->"+ ffn.getField().getSafeSymbol()+";");
-      } else {
+      } else if (ffn.getField().isEnum()) {
+          // an Enum value, directly replace the field access as int
+          output.println(generateTemp(fm, ffn.getDst(), lb) + "=" + ffn.getField().enumValue() + ";");
+	  } else {
         output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
       } 
     } else {

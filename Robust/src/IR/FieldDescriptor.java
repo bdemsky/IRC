@@ -17,6 +17,8 @@ public class FieldDescriptor extends Descriptor {
   protected String identifier;
   protected ExpressionNode en;
   private boolean isglobal;
+  private boolean isenum;
+  private int enumvalue;
 
   public FieldDescriptor(Modifiers m, TypeDescriptor t, String identifier, ExpressionNode e, boolean isglobal) {
     super(identifier);
@@ -26,6 +28,24 @@ public class FieldDescriptor extends Descriptor {
     this.safename = "___" + name + "___";
     this.uniqueid=count++;
     this.isglobal=isglobal;
+    this.isenum = false;
+    this.enumvalue = -1;
+  }
+  
+  public boolean isEnum() {
+    return this.isenum;
+  }
+  
+  public int enumValue() {
+    return this.enumvalue;
+  }
+  
+  public void setAsEnum() {
+    this.isenum = true;
+  }
+  
+  public void setEnumValue(int value) {
+    this.enumvalue = value;
   }
 
   public ExpressionNode getExpressionNode(){

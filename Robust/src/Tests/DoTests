@@ -16,4 +16,4 @@ dotest WriteFile WriteFile.java
 dotest ReadFile ReadFile.java
 dotest FileLength FileLength.java
 dotest IntegerTest IntegerTest.java
-dotest InitializerTest InitializerTest.java
+#dotest InitializerTest InitializerTest.java

@@ -58,9 +58,20 @@ public class SemanticCheck {
 	checkField(cd,fd);
       }
       
+      boolean hasConstructor = false;
       for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
 	MethodDescriptor md=(MethodDescriptor)method_it.next();
 	checkMethod(cd,md);
+    hasConstructor |= md.isConstructor();
+      }
+      if(!hasConstructor) {
+        // add a default constructor for this class
+        MethodDescriptor md = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC),
+            cd.getSymbol(), false);
+        BlockNode bn=new BlockNode();
+        state.addTreeCode(md,bn);
+        cd.addMethod(md);
+        checkMethod(cd,md);
       }
     }
   }
@@ -563,13 +574,22 @@ public class SemanticCheck {
     FieldDescriptor fd=null;
     if (ltd.isArray()&&fieldname.equals("length"))
       fd=FieldDescriptor.arrayLength;
-    else 
+    else
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
     if(state.MGC) {
       // TODO add version for normal Java later
     if(ltd.isStatic()) {
-      // check if this field is a static field
-      if(!fd.isStatic()) {
+      if(ltd.getClassDesc().isEnum()) {
+        int value = ltd.getClassDesc().getEnumConstant(fieldname);
+        if(-1 == value) {
+          // check if this field is an enum constant
+          throw new Error(fieldname + " is not an enum constant in "+fan.printNode(0)+" in "+md);
+        }
+        fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), fieldname, null, false);
+        fd.setAsEnum();
+        fd.setEnumValue(value);
+      } else if(!fd.isStatic()) {
+        // check if this field is a static field
         throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
       }
     } 
@@ -958,6 +978,9 @@ NextMethod:
       ExpressionNode en=min.getArg(i);
       checkExpressionNode(md,nametable,en,null);
       tdarray[i]=en.getType();
+      if(state.MGC && en.getType().isClass() && en.getType().getClassDesc().isEnum()) {
+        tdarray[i] = new TypeDescriptor(TypeDescriptor.INT);
+      }
     }
     TypeDescriptor typetolookin=null;
     if (min.getExpression()!=null) {

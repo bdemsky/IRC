@@ -869,7 +869,7 @@ enum_body ::=
 		{: RESULT=eco; :}
 	;
 enum_constants_opt ::=
-   {: RESULT=new ParseNode("empty"); :}
+  {: RESULT=new ParseNode("empty"); :}
 	|	enum_constants:ecs
 	{: RESULT=ecs; :}
 	;

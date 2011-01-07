@@ -160,8 +160,8 @@ public class BuildIR {
     if(cn != null) {
       ecd.setSurroundingClass(cn.getSymbol());
       ecd.setSurrounding(cn);
+      cn.addEnum(ecd);
     }
-    cn.addEnum(ecd);
     if (!(ecd.getSymbol().equals(TypeUtil.ObjectClass)||
         ecd.getSymbol().equals(TypeUtil.TagClass))) {
       ecd.setSuper(TypeUtil.ObjectClass);
