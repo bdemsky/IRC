@@ -242,8 +242,9 @@ public class RuntimeConflictResolver {
       return;
     
     // For every non-primitive variable, generate unique method
-    for (TempDescriptor invar : inVars) {      
-      if(isReallyAPrimitive(invar.getType())) {
+    for (TempDescriptor invar : inVars) {   
+      TypeDescriptor type = invar.getType();
+      if(type == null || isReallyAPrimitive(type)) {
         continue;
       }
       
@@ -253,7 +254,7 @@ public class RuntimeConflictResolver {
       //NOTE: Integer stores Allocation Site ID in hashtable
       Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
       VariableNode varNode = rg.getVariableNodeNoMutation(invar);
-      Taint taint = getProperTaintForFlatSESEEnterNode(rblock, varNode);
+      Taint taint = getProperTaintForEnterNode(rblock, varNode);
       
       if (taint == null) {
         printDebug(generalDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + rblock.toPrettyString());
@@ -285,18 +286,14 @@ public class RuntimeConflictResolver {
     }
   }
   
-  private void traverseStallSite(FlatNode enterNode, TempDescriptor invar, ReachGraph rg) {
-    TypeDescriptor type = invar.getType();
-    if(type == null || isReallyAPrimitive(type)) {
-      return;
-    }
-    
+  private void traverseStallSite(FlatNode enterNode, TempDescriptor invar, ReachGraph rg) {   
     Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
     VariableNode varNode = rg.getVariableNodeNoMutation(invar);
-    Taint taint = getProperTaintForEnterNode(enterNode, varNode, globalEffects);
+    Taint taint = getProperTaintForEnterNode(enterNode, varNode);
+    TypeDescriptor type = invar.getType();
     
-    if (taint == null) {
-      printDebug(generalDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + enterNode.toString());
+    if (taint == null || type == null || isReallyAPrimitive(type)) {
+      printDebug(generalDebug, "Site " +varNode.getTempDescriptor().getSafeSymbol() + enterNode.toString() + " not traversed");
       return;
     }        
     
@@ -318,9 +315,9 @@ public class RuntimeConflictResolver {
   
   public String getTraverserInvocation(TempDescriptor invar, String varString, FlatNode fn) {
     String flatname;
-    if(fn instanceof FlatSESEEnterNode) {
+    if(fn instanceof FlatSESEEnterNode) {  //is SESE block
       flatname = ((FlatSESEEnterNode) fn).getPrettyIdentifier();
-    } else {
+    } else {  //is stallsite
       flatname = fn.toString();
     }
     
@@ -394,16 +391,13 @@ public class RuntimeConflictResolver {
     for(TraversalInfo t: traverserTODO) {
       printDebug(generalDebug, "Running Traversal on " + t.f);
       
-      if(t.f instanceof FlatSESEEnterNode) {
-        traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
-      } else {
-        if(t.invar == null) {
-          System.out.println("RCR ERROR: Attempted to run a stall site traversal with NO INVAR");
-        } else {
-          traverseStallSite(t.f, t.invar, t.rg);
-        }
+      if(t.isStallSite()) {
+        assert t.invar != null;
+        traverseStallSite(t.f, t.invar, t.rg);
       }
-        
+      else {
+        traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
+      }        
     }
   }
 
@@ -560,7 +554,7 @@ public class RuntimeConflictResolver {
       while(edges.hasNext()) {
         RefEdge edge = edges.next();
         String field = edge.getField();
-        CombinedObjEffects effectsForGivenField = currEffects.getObjEffect(field);
+        CombinedEffects effectsForGivenField = currEffects.getObjEffect(field);
         //If there are no effects, then there's no point in traversing this edge
         if(effectsForGivenField != null) {
           HeapRegionNode childHRN = edge.getDst();
@@ -832,7 +826,7 @@ public class RuntimeConflictResolver {
 
     //Direct Primitives Test
     for(String field: curr.primitiveConflictingFields.keySet()) {
-      CombinedObjEffects effect=curr.primitiveConflictingFields.get(field);
+      CombinedEffects effect=curr.primitiveConflictingFields.get(field);
       primConfRead|=effect.hasReadConflict;
       primConfWrite|=effect.hasWriteConflict;
     }
@@ -840,7 +834,7 @@ public class RuntimeConflictResolver {
     //Direct Object Reference Test
     for(String field: curr.objectRefs.keySet()) {
       for(ObjRef ref: curr.objectRefs.get(field)) {
-        CombinedObjEffects effect=ref.myEffects;
+        CombinedEffects effect=ref.myEffects;
         objConfRead|=effect.hasReadConflict;
         objConfWrite|=effect.hasWriteConflict;
       }
@@ -865,8 +859,6 @@ public class RuntimeConflictResolver {
     if(primConfWrite||objConfWrite) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
-      int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
-      int traverserID = doneTaints.get(taint);
         currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (descendantConflict)
         currCase.append("    int tmpvar"+depth+"=rcr_WTWRITEBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
@@ -875,8 +867,6 @@ public class RuntimeConflictResolver {
     } else if (primConfRead||objConfRead) {
       int heaprootNum = connectedHRHash.get(taint).id;
       assert heaprootNum != -1;
-      int allocSiteID = connectedHRHash.get(taint).getWaitingQueueBucketNum(curr);
-      int traverserID = doneTaints.get(taint);
       currCase.append("    int tmpkey"+depth+"=rcr_generateKey("+prefix+");\n");
       if (descendantConflict)
         currCase.append("    int tmpvar"+depth+"=rcr_WTREADBINCASE(allHashStructures["+heaprootNum+"], tmpkey"+depth+", "+tasksrc+strrcr+index+");\n");
@@ -934,20 +924,6 @@ public class RuntimeConflictResolver {
         (node.hasPotentialToBeIncorrectDueToConflict) && node.decendantsObjConflict);
   }
   
-  private Taint getProperTaintForFlatSESEEnterNode(FlatSESEEnterNode rblock, VariableNode var) {
-    Set<Taint> taints = globalEffects.keySet();
-    for (Taint t : taints) {
-      FlatSESEEnterNode sese = t.getSESE();
-      if(sese != null                                 && 
-         sese.equals(rblock)                          && 
-         t.getVar().equals( var.getTempDescriptor() )
-         ) {
-        return t;
-      }
-    }
-    return null;
-  }
-  
   // decide whether the given SESE doesn't have traversers at all
   public boolean hasEmptyTraversers(FlatSESEEnterNode fsen) {
     boolean hasEmpty = true;
@@ -960,13 +936,18 @@ public class RuntimeConflictResolver {
     return hasEmpty;
     
   }  
-  
-  private Taint getProperTaintForEnterNode(FlatNode stallSite, VariableNode var,
-      Hashtable<Taint, Set<Effect>> effects) {
-    Set<Taint> taints = effects.keySet();
+  //Note we assume instance of FlatSESEEnterNode to be sese blocks else they are considered stallsites.
+  private Taint getProperTaintForEnterNode(FlatNode fn, VariableNode var) {
+    FlatNode flatnode;
+    Set<Taint> taints = globalEffects.keySet();
+    boolean isStallSite = !(fn instanceof FlatSESEEnterNode);
+    
     for (Taint t : taints) {
-      FlatNode flatnode = t.getStallSite();
-      if(flatnode != null && flatnode.equals(stallSite) && t.getVar().equals(var.getTempDescriptor())) {
+      flatnode = (isStallSite) ? t.getStallSite():t.getSESE();
+        
+      if( flatnode != null        && 
+          flatnode.equals(fn)     && 
+          t.getVar().equals(var.getTempDescriptor())) {
         return t;
       }
     }
@@ -1044,8 +1025,8 @@ public class RuntimeConflictResolver {
           }
           System.out.println();
         }
-        for(String fieldKey: eg.myEffects.keySet()) {
-          CombinedObjEffects ce = eg.myEffects.get(fieldKey);
+        for(String fieldKey: eg.myObjEffects.keySet()) {
+          CombinedEffects ce = eg.myObjEffects.get(fieldKey);
           System.out.println("\n\t\t\tFor allocSite " + as.getUniqueAllocSiteID() + " && field " + fieldKey);
           System.out.println("\t\t\t\tread " + ce.hasReadEffect + "/"+ce.hasReadConflict + 
               " write " + ce.hasWriteEffect + "/" + ce.hasWriteConflict + 
@@ -1061,55 +1042,56 @@ public class RuntimeConflictResolver {
   }
   
   private class EffectsGroup {
-    Hashtable<String, CombinedObjEffects> myEffects;
-    Hashtable<String, CombinedObjEffects> primitiveConflictingFields;
+    Hashtable<String, CombinedEffects> myObjEffects;
+    //In the end, we don't really care what the primitive fields are.
+    Hashtable<String, CombinedEffects> primitiveConflictingFields;
     
     public EffectsGroup() {
-      myEffects = new Hashtable<String, CombinedObjEffects>();
-      primitiveConflictingFields = new Hashtable<String, CombinedObjEffects>();
+      myObjEffects = new Hashtable<String, CombinedEffects>();
+      primitiveConflictingFields = new Hashtable<String, CombinedEffects>();
     }
 
     public void addPrimitive(Effect e, boolean conflict) {
-      CombinedObjEffects effects;
+      CombinedEffects effects;
       if((effects = primitiveConflictingFields.get(e.getField().getSymbol())) == null) {
-        effects = new CombinedObjEffects();
+        effects = new CombinedEffects();
         primitiveConflictingFields.put(e.getField().getSymbol(), effects);
       }
       effects.add(e, conflict);
     }
     
     public void addObjEffect(Effect e, boolean conflict) {
-      CombinedObjEffects effects;
-      if((effects = myEffects.get(e.getField().getSymbol())) == null) {
-        effects = new CombinedObjEffects();
-        myEffects.put(e.getField().getSymbol(), effects);
+      CombinedEffects effects;
+      if((effects = myObjEffects.get(e.getField().getSymbol())) == null) {
+        effects = new CombinedEffects();
+        myObjEffects.put(e.getField().getSymbol(), effects);
       }
       effects.add(e, conflict);
     }
     
     public boolean isEmpty() {
-      return myEffects.isEmpty() && primitiveConflictingFields.isEmpty();
+      return myObjEffects.isEmpty() && primitiveConflictingFields.isEmpty();
     }
     
     public boolean hasPrimitiveConflicts(){
       return !primitiveConflictingFields.isEmpty();
     }
     
-    public CombinedObjEffects getPrimEffect(String field) {
+    public CombinedEffects getPrimEffect(String field) {
       return primitiveConflictingFields.get(field);
     }
 
     public boolean hasObjectEffects() {
-      return !myEffects.isEmpty();
+      return !myObjEffects.isEmpty();
     }
     
-    public CombinedObjEffects getObjEffect(String field) {
-      return myEffects.get(field);
+    public CombinedEffects getObjEffect(String field) {
+      return myObjEffects.get(field);
     }
   }
   
   //Is the combined effects for all effects with the same affectedAllocSite and field
-  private class CombinedObjEffects {
+  private class CombinedEffects {
     ArrayList<Effect> originalEffects;
     
     public boolean hasReadEffect;
@@ -1121,7 +1103,7 @@ public class RuntimeConflictResolver {
     public boolean hasStrongUpdateConflict;
     
     
-    public CombinedObjEffects() {
+    public CombinedEffects() {
       originalEffects = new ArrayList<Effect>();
       
       hasReadEffect = false;
@@ -1162,7 +1144,7 @@ public class RuntimeConflictResolver {
       return hasReadConflict || hasWriteConflict || hasStrongUpdateConflict;
     }
 
-    public void mergeWith(CombinedObjEffects other) {
+    public void mergeWith(CombinedEffects other) {
       for(Effect e: other.originalEffects) {
         if(!originalEffects.contains(e)){
           originalEffects.add(e);
@@ -1183,7 +1165,7 @@ public class RuntimeConflictResolver {
   private class ObjRef {
     String field;
     int allocSite;
-    CombinedObjEffects myEffects;
+    CombinedEffects myEffects;
     
     //This keeps track of the parent that we need to pass by inorder to get
     //to the conflicting child (if there is one). 
@@ -1191,7 +1173,7 @@ public class RuntimeConflictResolver {
 
     public ObjRef(String fieldname, 
                   ConcreteRuntimeObjNode ref, 
-                  CombinedObjEffects myEffects) {
+                  CombinedEffects myEffects) {
       field = fieldname;
       allocSite = ref.getAllocationSite();
       child = ref;
@@ -1230,7 +1212,7 @@ public class RuntimeConflictResolver {
 
   private class ConcreteRuntimeObjNode {
     Hashtable<String, ObjRefList> objectRefs;
-    Hashtable<String, CombinedObjEffects> primitiveConflictingFields;
+    Hashtable<String, CombinedEffects> primitiveConflictingFields;
     HashSet<ConcreteRuntimeObjNode> parentsWithReadToNode;
     HashSet<ConcreteRuntimeObjNode> parentsThatWillLeadToConflicts;
     //this set keeps track of references down the line that need to be enqueued if traverser is "paused"
@@ -1238,6 +1220,13 @@ public class RuntimeConflictResolver {
     boolean decendantsPrimConflict;
     boolean decendantsObjConflict;
     boolean hasDirectObjConflict;
+    
+    boolean primConfRead=false;
+    boolean primConfWrite=false;
+    boolean objConfRead=false;
+    boolean objConfWrite=false;
+    boolean descendantConflict=false;
+    
     boolean hasPotentialToBeIncorrectDueToConflict;
     boolean isInsetVar;
     AllocSite allocSite;
@@ -1256,14 +1245,19 @@ public class RuntimeConflictResolver {
       decendantsObjConflict = false;
       hasDirectObjConflict = false;
       hasPotentialToBeIncorrectDueToConflict = false;
+      
+      
+      
+      primConfRead=false;
+      primConfWrite=false;
+      objConfRead=false;
+      objConfWrite=false;  
     }
 
     public void addReachableParent(ConcreteRuntimeObjNode curr) {
       parentsWithReadToNode.add(curr);
     }
 
-    // JCJ why is this here?!?!?!?!
-    @Override
     public boolean equals(Object other) {
       if(other == null || !(other instanceof ConcreteRuntimeObjNode)) 
         return false;
@@ -1307,7 +1301,7 @@ public class RuntimeConflictResolver {
       return false;
     }
 
-    public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedObjEffects ce) {
+    public void addObjChild(String field, ConcreteRuntimeObjNode child, CombinedEffects ce) {
       printDebug(verboseDebug,this.allocSite.getUniqueAllocSiteID() + " added child at " + child.getAllocationSite());
       hasDirectObjConflict |= ce.hasConflict();
       ObjRef ref = new ObjRef(field, child, ce);
@@ -1389,7 +1383,7 @@ public class RuntimeConflictResolver {
     private Hashtable<AllocSite, BucketOfEffects> table;
 
     public EffectsTable(Hashtable<Taint, Set<Effect>> effects,
-        Hashtable<Taint, Set<Effect>> conflicts) {
+                        Hashtable<Taint, Set<Effect>> conflicts) {
       table = new Hashtable<AllocSite, BucketOfEffects>();
 
       // rehash all effects (as a 5-tuple) by their affected allocation site
@@ -1443,30 +1437,16 @@ public class RuntimeConflictResolver {
   
   private class WeaklyConectedHRGroup {
     HashSet<Taint> connectedHRs;
-    //This is to keep track of unique waitingQueue positions for each allocsite. 
-    Hashtable<AllocSite, Integer> allocSiteToWaitingQueueMap;
-    int waitingQueueCounter;
     int id;
     
     public WeaklyConectedHRGroup() {
       connectedHRs = new HashSet<Taint>();
-      id = -1; //this will be later modified
-      waitingQueueCounter = 0;
-      allocSiteToWaitingQueueMap = new Hashtable<AllocSite, Integer>();
+      id = -1;
     }
     
     public void add(ArrayList<Taint> list) {
       for(Taint t: list) {
         this.add(t);
-      }
-    }
-    
-    public int getWaitingQueueBucketNum(ConcreteRuntimeObjNode node) {
-      if(allocSiteToWaitingQueueMap.containsKey(node.allocSite)) {
-        return allocSiteToWaitingQueueMap.get(node.allocSite);
-      } else {
-        allocSiteToWaitingQueueMap.put(node.allocSite, waitingQueueCounter);
-        return waitingQueueCounter++;
       }
     }
     
@@ -1556,16 +1536,24 @@ public class RuntimeConflictResolver {
     public ReachGraph rg;
     public TempDescriptor invar;
     
-    public TraversalInfo(FlatNode fn, ReachGraph g) {
+    public TraversalInfo(FlatNode fn, ReachGraph rg1) {
       f = fn;
-      rg =g;
+      rg = rg1;
       invar = null;
     }
 
-    public TraversalInfo(FlatNode fn, ReachGraph rg2, TempDescriptor tempDesc) {
+    public TraversalInfo(FlatNode fn, ReachGraph rg1, TempDescriptor tempDesc) {
       f = fn;
-      rg =rg2;
+      rg =rg1;
       invar = tempDesc;
+    }
+    
+    public boolean isStallSite() {
+      return !(f instanceof FlatSESEEnterNode);
+    }
+    
+    public boolean isRblock() {
+      return (f instanceof FlatSESEEnterNode);
     }
   }
 }
