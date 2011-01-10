@@ -1496,6 +1496,10 @@ public class DisjointAnalysis {
                            writeDebugDOTs
                            );
 
+      // enforce that a call site contribution can only
+      // monotonically increase
+      heapForThisCall_cur.merge( heapForThisCall_old );
+
       if( !heapForThisCall_cur.equals( heapForThisCall_old ) ) {        
         // if heap at call site changed, update the contribution,
         // and reschedule the callee for analysis
@@ -2394,7 +2398,7 @@ private ReachGraph createInitialTaskReachGraph(FlatMethod fm) {
 	    }	    
 	}	    
     }	
-//    debugSnapshot(rg, fm, true);
+
     return rg;
 }
 
@@ -2593,7 +2597,7 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
                      false,  // hide reachability
                      false,  // hide subset reachability states
                      true,   // hide predicates
-                     false );// hide edge taints
+                     true ); // hide edge taints
     }
   }
 
