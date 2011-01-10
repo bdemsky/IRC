@@ -192,10 +192,10 @@ non terminal ParseNode break_statement, continue_statement;
 non terminal ParseNode return_statement;
 //non terminal ParseNode throw_statement;
 non terminal ParseNode synchronized_statement;
-//non terminal ParseNode try_statement;
-//non terminal ParseNode catches_opt;
-//non terminal ParseNode catches, catch_clause;
-//non terminal ParseNode finally;
+non terminal ParseNode try_statement;
+non terminal ParseNode catches_opt;
+non terminal ParseNode catches, catch_clause;
+non terminal ParseNode finally;
 //non terminal ParseNode assert_statement;
 non terminal ParseNode genreach_statement;
 // 19.12) Expressions
@@ -1339,7 +1339,7 @@ statement_without_trailing_substatement ::=
 	|	synchronized_statement:st {: RESULT=st; :}
 	|       genreach_statement:st {: RESULT=st; :}
 //	|	throw_statement
-//	|	try_statement
+	|	try_statement:st {: RESULT=st; :}
 //	|	assert_statement
 	;
 empty_statement ::=
@@ -1604,21 +1604,54 @@ sese_statement ::=
 	       RESULT=pn;
 	:}
 	;
-//try_statement ::=
-//		TRY block catches
-//	|	TRY block catches_opt finally
-//	;
-//catches_opt ::=
-//	|	catches
-//	;
-//catches ::=	catch_clause
-//	|	catches catch_clause
-//	;
-//catch_clause ::=
-//		CATCH LPAREN formal_parameter RPAREN block
-//	;
-//finally ::=	FINALLY block
-//	;
+try_statement ::=
+		TRY block:bk catches:ca
+		{: 
+		ParseNode pn=new ParseNode("trycatchstatement");
+		pn.addChild("tryblock").addChild(bk); 
+		pn.addChild("catchblock").addChild(ca);
+		RESULT=pn;
+		:}
+	|	TRY block:bk catches_opt:ca finally:fi
+	    {: 
+		ParseNode pn=new ParseNode("trycatchstatement");
+		pn.addChild("tryblock").addChild(bk); 
+		pn.addChild("catchblock").addChild(ca);
+		pn.addChild("finallyblock").addChild(fi);
+		RESULT=pn;
+		:}
+	;
+catches_opt ::=
+    {: RESULT=new ParseNode("empty"); :}
+	|	catches:ca
+	{: RESULT=ca; :}
+	;
+catches ::=	catch_clause:ca
+        {:
+        ParseNode pn=new ParseNode("catchlist");
+        pn.addChild(ca);
+        RESULT=pn;
+        :}
+	|	catches:cas catch_clause:ca 
+	    {:
+	    cas.addChild(ca);
+	    RESULT=cas;
+	    :}
+	;
+catch_clause ::=
+		CATCH LPAREN formal_parameter:fp RPAREN block:bk
+		{:
+		ParseNode pn=new ParseNode("catchclause");
+		pn.addChild("parameter").addChild(fp);
+		pn.addChild("block").addChild(bk);
+		RESULT=pn;
+		:}
+	;
+finally ::=	FINALLY block:bk
+    {:
+    RESULT=bk;
+    :}
+	;
 //assert_statement ::=
 //		ASSERT expression SEMICOLON
 //	|	ASSERT expression COLON expression SEMICOLON

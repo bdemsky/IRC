@@ -510,6 +510,11 @@ public class BuildIR {
       parseFlagDecl(cn, flagnode.getChild("flag_declaration"));
       return;
     }
+    // in case there are empty node
+    ParseNode emptynode=pn.getChild("empty");
+    if(emptynode != null) {
+      return;
+    }
     throw new Error();
   }
   
@@ -1077,6 +1082,20 @@ public class BuildIR {
               parseSingleBlock(sblockdecl.getChild("switch_statements").getFirstChild())));
           
         }
+      }
+    } else if (state.MGC && isNode(pn, "trycatchstatement")) {
+      // TODO add version for normal Java later
+      // Do not fully support exceptions now. Only make sure that if there are no
+      // exceptions thrown, the execution is right
+      ParseNode tpn = pn.getChild("tryblock").getFirstChild();
+      BlockNode bn=parseBlockHelper(tpn);
+      blockstatements.add(new SubBlockNode(bn));
+      
+      ParseNode fbk = pn.getChild("finallyblock");
+      if(fbk != null) {
+        ParseNode fpn = fbk.getFirstChild();
+        BlockNode fbn=parseBlockHelper(fpn);
+        blockstatements.add(new SubBlockNode(fbn));
       }
     } else if (isNode(pn,"taskexit")) {
       Vector vfe=null;
