@@ -229,8 +229,7 @@ public class OoOJavaAnalysis {
       // 9th pass, ask disjoint analysis to compute reachability
       // for objects that may cause heap conflicts so the most
       // efficient method to deal with conflict can be computed
-      // later
-      
+      // later      
       disjointAnalysisReach =
         new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, sitesToFlag,
 			     null, // don't do effects analysis again!

@@ -1111,8 +1111,10 @@ public class DisjointAnalysis {
     switch( fn.kind() ) {
 
     case FKind.FlatGenReachNode: {
+      FlatGenReachNode fgrn = (FlatGenReachNode) fn;
+      
       System.out.println( "Generating a reach graph!" );
-      rg.writeGraph( "genReach"+d,
+      rg.writeGraph( "genReach"+fgrn.getGraphName(),
                      true,    // write labels (variables)                
                      true,    // selectively hide intermediate temp vars 
                      true,    // prune unreachable heap regions          
@@ -1606,14 +1608,18 @@ public class DisjointAnalysis {
       // callee analysis, finish this transformation
       rg = rgMergeOfPossibleCallers;
 
+
+      // jjenista: what is this?  It breaks compilation
+      // of programs with no tasks/SESEs/rblocks...
       //XXXXXXXXXXXXXXXXXXXXXXXXX
       //need to consider more
       FlatNode nextFN=fmCallee.getNext(0);
-      assert nextFN instanceof FlatSESEEnterNode;
-      FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
-      if(!calleeSESE.getIsLeafSESE()){
-        rg.makeInaccessible( liveness.getLiveInTemps( fmContaining, fn ) );
-      }      
+      if( nextFN instanceof FlatSESEEnterNode ) {
+        FlatSESEEnterNode calleeSESE=(FlatSESEEnterNode)nextFN;
+        if(!calleeSESE.getIsLeafSESE()){
+          rg.makeInaccessible( liveness.getLiveInTemps( fmContaining, fn ) );
+        }      
+      }
       
     } break;
       

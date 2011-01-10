@@ -37,6 +37,7 @@ public class DeadCode {
 	case FKind.FlatPrefetchNode:
 	case FKind.FlatSESEEnterNode:
 	case FKind.FlatSESEExitNode:
+        case FKind.FlatGenReachNode:
 	  if (!useful.contains(fn)) {
 	    useful.add(fn);
 	    changed=true;
