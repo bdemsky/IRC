@@ -36,10 +36,48 @@ USEOOO= -ooojava $(NUM_OOO_WORKERS) 2      -ooodebug -squeue #-ooodebug-disable-
 USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -ooodebug -squeue 
 RCRDEBUG= -rcr_debug
 RCRDEBUGV= -rcr_debug_verbose
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp #-debug
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp
+
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
 DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-desire-determinism
+
+
+#####################################
+#
+#  There are a lot of options for
+#  output and debugging disjoint
+#  reachability analysis:
+#
+#####################################
+
+# -disjoint-write-dots final (get the final reach graph for each method, or use "all" instead of "final" to get every updated result)
+# -disjoint-write-ihms       (get the initial heap model (IHM) for callees to see what the analysis started with, and which call sites contributed)
+# -disjoint-debug-scheduling (use to get messages about WHY a method is rescheduled for analysis)
+
+# to use -disjoint-debug-callsite flag, arguments are:
+# 1. callee symbol, ex: MainClass.foo() has symbol "foo"
+# 2. caller symbol
+# 3. numCallSiteVisitsToSkip, the analysis sometimes revisits a call site many, MANY times, but usually use 1
+# 4. numCallSiteVisitsToCapture, if you choose a really high number you'll get every visit, could be a lot
+# 5. true/false, whether to immediately halt compiler after number of visits specified have been captured
+# EX:
+# -disjoint-debug-callsite foo main 1 1 true
+
+# to use -disjoint-debug-snap-method, arguments are:
+# 1. method symbol to take program point snapshots of
+# 2. numVisitsToSkip, sometimes the early visits tell you nothing, context is too empty
+# 3. numVisitsToCapture
+# 4. true/false, halt compiler after number of specified visits are captured
+# EX: (skip first 10 visits, capture the next 3, then halt)
+# -disjoint-debug-snap-method Remove 10 3 true
+
+DISJOINTDEBUG= -justanalyze -disjoint -disjoint-k 1 -enable-assertions \
+	-flatirusermethods \
+	-disjoint-desire-determinism
+#	-disjoint-debug-scheduling
+#	-disjoint-debug-snap-method ComputeCenterOfMass 6 2 true
+
 
 default:
 	$(BUILDSCRIPT) -nojava $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
@@ -58,16 +96,19 @@ $(PROGRAM)s.bin: $(SOURCE_FILES) ../master-makefile
 ooo: $(PROGRAM)p.bin
 
 $(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT)         $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+
+disjoint-debug: $(SOURCE_FILES) ../master-makefile
+	$(BUILDSCRIPT) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 rcr: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT)  $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 rcr-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT)  $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUG) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUG) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 rcr-debug-v: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT)  $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUGV) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUGV) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 clean:
 	rm -f  $(PROGRAM)p.bin $(PROGRAM)s.bin $(PROGRAM)r.bin
