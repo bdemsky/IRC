@@ -275,7 +275,7 @@ public class RefEdge {
 
     if( !hideEdgeTaints ) {      
       if( !taints.isEmpty() ) {
-        s += "\\nt: "+taints.toString();
+        s += "\\n"+taints.toStringEscNewline();
       }
     }
 

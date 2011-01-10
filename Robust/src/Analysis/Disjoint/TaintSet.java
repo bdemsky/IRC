@@ -111,6 +111,22 @@ public class TaintSet extends Canonical {
   public int hashCodeSpecific() {
     return taints.hashCode();
   }
+
+  public String toStringEscNewline() {
+    String s = "taints[";
+
+    Iterator<Taint> tItr = taints.iterator();
+    while( tItr.hasNext() ) {
+      Taint t = tItr.next();
+
+      s += t.toString();
+      if( tItr.hasNext() ) {
+        s += ",\\n";
+      }
+    }
+    s += "]";
+    return s;
+  }
   
   public String toString() {
     return taints.toString();
