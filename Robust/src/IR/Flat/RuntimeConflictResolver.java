@@ -8,7 +8,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.Vector;
-import Util.Tuple;
+import Util.Pair;
 import Analysis.Disjoint.*;
 import Analysis.MLP.CodePlan;
 import IR.State;
@@ -45,8 +45,8 @@ public class RuntimeConflictResolver {
   //This keeps track of taints we've traversed to prevent printing duplicate traverse functions
   //The Integer keeps track of the weakly connected group it's in (used in enumerateHeapRoots)
   private Hashtable<Taint, Integer> doneTaints;
-  private Hashtable<Tuple, Integer> idMap=new Hashtable<Tuple,Integer>();
-  private Hashtable<Tuple, Integer> weakMap=new Hashtable<Tuple,Integer>();
+  private Hashtable<Pair, Integer> idMap=new Hashtable<Pair,Integer>();
+  private Hashtable<Pair, Integer> weakMap=new Hashtable<Pair,Integer>();
   private Hashtable<Taint, Set<Effect>> globalEffects;
   private Hashtable<Taint, Set<Effect>> globalConflicts;
   
@@ -326,11 +326,11 @@ public class RuntimeConflictResolver {
   }
 
   public int getWeakID(TempDescriptor invar, FlatNode fn) {
-    return weakMap.get(new Tuple(invar, fn)).intValue();
+    return weakMap.get(new Pair(invar, fn)).intValue();
   }
 
   public int getTraverserID(TempDescriptor invar, FlatNode fn) {
-    Tuple t=new Tuple(invar, fn);
+    Pair t=new Pair(invar, fn);
     if (idMap.containsKey(t))
       return idMap.get(t).intValue();
     int value=currentID++;
@@ -974,7 +974,7 @@ public class RuntimeConflictResolver {
       
       if(t.isRBlockTaint()) {
         int id=connectedHRHash.get(t).id;
-        Tuple tup=new Tuple(t.getVar(),t.getSESE());
+        Pair tup=new Pair(t.getVar(),t.getSESE());
         if (weakMap.containsKey(tup)) {
           if (weakMap.get(tup).intValue()!=id) 
             throw new Error("Var/SESE not unique for weak component.");
