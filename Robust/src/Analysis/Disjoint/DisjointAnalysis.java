@@ -529,7 +529,9 @@ public class DisjointAnalysis {
 
   protected PointerMethod pm;
 
-  static protected Hashtable<FlatNode, ReachGraph> fn2rg =
+  //Keeps track of all the reach graphs at every program point
+  //DO NOT USE UNLESS YOU REALLY NEED IT
+  static protected Hashtable<FlatNode, ReachGraph> fn2rgAtEnter =
     new Hashtable<FlatNode, ReachGraph>();
 
   private Hashtable<FlatCall, Descriptor> fc2enclosing;  
@@ -1106,6 +1108,9 @@ public class DisjointAnalysis {
     FlatSESEEnterNode sese;
     FlatSESEExitNode  fsexn;
 
+    //Stores the flatnode's reach graph at enter
+    fn2rgAtEnter.put(fn, rg);
+    
     // use node type to decide what transfer function
     // to apply to the reachability graph
     switch( fn.kind() ) {
@@ -2558,6 +2563,9 @@ getFlaggedAllocationSitesReachableFromTaskPRIVATE(TaskDescriptor td) {
     return mapDescriptorToCompleteReachGraph.get(d);
   }
   
+  public ReachGraph getEnterReachGraph(FlatNode fn){
+    return fn2rgAtEnter.get(fn);
+  }
   
   // get successive captures of the analysis state, use compiler
   // flags to control

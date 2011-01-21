@@ -337,12 +337,15 @@ public class Main {
 
       } else if (option.equals("-ooodebug") ){ 
 	state.OOODEBUG  = true;
-      } else if (option.equals("-rcr")){
+      } else if (option.equals("-rcr")){      
 	state.RCR = true;
+	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-rcr_debug")){
 	state.RCR_DEBUG = true;
+	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-rcr_debug_verbose")){
   state.RCR_DEBUG_VERBOSE = true;
+  state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-nostalltr")){
 	state.NOSTALLTR = true;     
       }else if (option.equals("-help")) {      

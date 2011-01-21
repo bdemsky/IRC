@@ -107,22 +107,9 @@ public class RuntimeConflictResolver {
     setGlobalEffects(globalEffects);
     getAllTasksAndConflicts();
     buildEffectsLookupStructure();
-    runAllTraversals();
-  }
-  
-  private void setGlobalEffects(Hashtable<Taint, Set<Effect>> effects) {
-    globalEffects = effects;
-    
-    if(verboseDebug) {
-      System.out.println("============EFFECTS LIST AS PASSED IN============");
-      for(Taint t: globalEffects.keySet()) {
-        System.out.println("For Taint " + t);
-        for(Effect e: globalEffects.get(t)) {
-          System.out.println("\t" + e);
-        }
-      }
-      System.out.println("====================END  LIST====================");
-    }
+    createInternalGraphs();
+    //After the internal graphs are created, we can print,
+    //but printing is done in close();
   }
 
   private void setupOutputFiles(String buildir) throws FileNotFoundException {
@@ -140,6 +127,21 @@ public class RuntimeConflictResolver {
     headerFile.println("#ifndef __3_RCR_H_");
     headerFile.println("#define __3_RCR_H_");
   }
+  
+  private void setGlobalEffects(Hashtable<Taint, Set<Effect>> effects) {
+    globalEffects = effects;
+    
+    if(verboseDebug) {
+      System.out.println("============EFFECTS LIST AS PASSED IN============");
+      for(Taint t: globalEffects.keySet()) {
+        System.out.println("For Taint " + t);
+        for(Effect e: globalEffects.get(t)) {
+          System.out.println("\t" + e);
+        }
+      }
+      System.out.println("====================END  LIST====================");
+    }
+  }
 
   private void getAllTasksAndConflicts() {
     FlatSESEEnterNode fsen;
@@ -154,12 +156,12 @@ public class RuntimeConflictResolver {
     for(Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator();seseit.hasNext();) {
       fsen = seseit.next();
       
-      if ( fsen.getSESEParent().size() > 0                                                              &&
-          !fsen.getIsCallerSESEplaceholder()                                                            &&
-          (parentSESE     = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next())         != null &&
-          (conflictGraph  = oooa.getConflictGraph(parentSESE))                                  != null &&
-          (conflicts      = conflictGraph.getConflictEffectSet(fsen))                           != null &&
-          (rg             = disjointAnaylsis.getReachGraph(fsen.getfmEnclosing().getMethod()))  != null ){
+      if ( fsen.getSESEParent().size() > 0                                                        &&
+          !fsen.getIsCallerSESEplaceholder()                                                      &&
+          (parentSESE     = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next())   != null &&
+          (conflictGraph  = oooa.getConflictGraph(parentSESE))                            != null &&
+          (conflicts      = conflictGraph.getConflictEffectSet(fsen))                     != null &&
+          (rg             = disjointAnaylsis.getEnterReachGraph(fsen))                    != null ){
         
         addToTraverseToDoList(fsen, rg, conflicts, conflictGraph);
       }
@@ -177,6 +179,7 @@ public class RuntimeConflictResolver {
           (parentSESE     = (FlatSESEEnterNode)fsen.getSESEParent().iterator().next())  != null &&
           (conflictGraph  = oooa.getConflictGraph(parentSESE))                          != null &&
           (conflicts      = conflictGraph.getConflictEffectSet(fn))                     != null &&
+          //TODO this still uses the old method of getting reachGraphs. 
           (rg             = disjointAnaylsis.getReachGraph(fsen.getmdEnclosing()))      != null ){
 
         Set<SESELock> seseLockSet = oooa.getLockMappings(conflictGraph);
@@ -213,8 +216,9 @@ public class RuntimeConflictResolver {
 
   public void addToTraverseToDoList(FlatNode fn, 
                                     TempDescriptor tempDesc, 
-                                    ReachGraph rg, Hashtable<Taint, 
-                                    Set<Effect>> conflicts) {
+                                    ReachGraph rg, 
+                                    Hashtable<Taint, Set<Effect>> conflicts) 
+  {
     
     traverserTODO.add(new TraversalInfo(fn, rg, tempDesc));
     addToGlobalConflicts(conflicts);
@@ -233,79 +237,45 @@ public class RuntimeConflictResolver {
     }
   }
 
-  
-  //TODO come back and refactor traverse blocks
-  private void traverseSESEBlock(FlatSESEEnterNode rblock, ReachGraph rg) {
-    Collection<TempDescriptor> inVars = rblock.getInVarSet();
+  private void traverseFlatnodeAndTempDesc(FlatNode fn, TempDescriptor invar, ReachGraph rg) {
+    //created maps allocation site to RuntimeObjNode; keeps track of which parts of rg are visited. 
+    Hashtable<Integer, ConcreteRuntimeObjNode> created;
+    VariableNode varNode = rg.getVariableNodeNoMutation(invar);
+    Taint taint = getProperTaintForEnterNode(fn, varNode);
     
-    if (inVars.size() == 0)
+    if (taint == null || invar.getType() == null || isReallyAPrimitive(invar.getType())) {
+      printDebug(generalDebug, "Site " +varNode.getTempDescriptor().getSafeSymbol() + fn.toString() + " not traversed");
+      return;
+    }  
+    
+    //If already done, don't need to redoit.
+    if(doneTaints.containsKey(taint))
       return;
     
-    // For every non-primitive variable, generate unique method
-    for (TempDescriptor invar : inVars) {   
-      TypeDescriptor type = invar.getType();
-      if(type == null || isReallyAPrimitive(type)) {
-        continue;
-      }
+    
+    created = new Hashtable<Integer, ConcreteRuntimeObjNode>(); //Pass 0: Create empty graph
+    createPrunedGraph(created, varNode, taint);                 //Pass 1: Create graph pruned graph
+    propagateConflicts(created);                                //Pass 2: Flag referencers with conflicts
+    
+    //If there are valid nodes, add to printout queue
+    if (!created.isEmpty()) {
+      pendingPrintout.add(new TaintAndInternalHeapStructure(taint, created));      
       
-      //"created" stores nodes with specific alloc sites that have been traversed while building
-      //internal data structure. Created is later traversed sequentially to find inset variables and
-      //build output code.
-      //NOTE: Integer stores Allocation Site ID in hashtable
-      Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
-      VariableNode varNode = rg.getVariableNodeNoMutation(invar);
-      Taint taint = getProperTaintForEnterNode(rblock, varNode);
-      
-      if (taint == null) {
-        printDebug(generalDebug, "Null FOR " +varNode.getTempDescriptor().getSafeSymbol() + rblock.toPrettyString());
-        continue;
-      }
-      
-      //This is to prevent duplicate traversals from being generated 
-      if(doneTaints.containsKey(taint))
-        return;
-      
-      doneTaints.put(taint, traverserIDCounter++);
-      createConcreteGraph(effectsLookupTable, created, varNode, taint);
-      
-      
-      //This will add the taint to the printout, there will be NO duplicates (checked above)
-      if(!created.isEmpty()) {
+      //IF is SESE we need to tell the SESE that it has a traverser waiting for it. 
+      if(fn instanceof FlatSESEEnterNode) {
         for(Iterator<ConcreteRuntimeObjNode> it=created.values().iterator();it.hasNext();) {
           ConcreteRuntimeObjNode obj=it.next();
           if (obj.hasPrimitiveConflicts()   ||
               obj.descendantsConflict()     ||
               obj.hasDirectObjConflict()    ){
-            rblock.addInVarForDynamicCoarseConflictResolution(invar);
+            ((FlatSESEEnterNode) fn).addInVarForDynamicCoarseConflictResolution(invar);
             break;
           }
         }
-        
-        pendingPrintout.add(new TaintAndInternalHeapStructure(taint, created));
       }
     }
-  }
-  
-  private void traverseStallSite(FlatNode enterNode, TempDescriptor invar, ReachGraph rg) {   
-    Hashtable<Integer, ConcreteRuntimeObjNode> created = new Hashtable<Integer, ConcreteRuntimeObjNode>();
-    VariableNode varNode = rg.getVariableNodeNoMutation(invar);
-    Taint taint = getProperTaintForEnterNode(enterNode, varNode);
-    TypeDescriptor type = invar.getType();
-    
-    if (taint == null || type == null || isReallyAPrimitive(type)) {
-      printDebug(generalDebug, "Site " +varNode.getTempDescriptor().getSafeSymbol() + enterNode.toString() + " not traversed");
-      return;
-    }        
-    
-    if(doneTaints.containsKey(taint))
-      return;
     
     doneTaints.put(taint, traverserIDCounter++);
-    createConcreteGraph(effectsLookupTable, created, varNode, taint);
-    
-    if (!created.isEmpty()) {
-      pendingPrintout.add(new TaintAndInternalHeapStructure(taint, created));
-    }
   }
   
   //This extends a tempDescriptor's isPrimitive test by also excluding primitive arrays. 
@@ -324,19 +294,6 @@ public class RuntimeConflictResolver {
     return "traverse___" + invar.getSafeSymbol() + 
     removeInvalidChars(flatname) + "___("+varString+");";
   }
-
-  public int getWeakID(TempDescriptor invar, FlatNode fn) {
-    return weakMap.get(new Pair(invar, fn)).intValue();
-  }
-
-  public int getTraverserID(TempDescriptor invar, FlatNode fn) {
-    Pair t=new Pair(invar, fn);
-    if (idMap.containsKey(t))
-      return idMap.get(t).intValue();
-    int value=currentID++;
-    idMap.put(t, new Integer(value));
-    return value;
-  }
   
   public String removeInvalidChars(String in) {
     StringBuilder s = new StringBuilder(in);
@@ -353,6 +310,20 @@ public class RuntimeConflictResolver {
     }
     return s.toString();
   }
+
+  public int getWeakID(TempDescriptor invar, FlatNode fn) {
+    return weakMap.get(new Pair(invar, fn)).intValue();
+  }
+
+  public int getTraverserID(TempDescriptor invar, FlatNode fn) {
+    Pair t=new Pair(invar, fn);
+    if (idMap.containsKey(t))
+      return idMap.get(t).intValue();
+    int value=currentID++;
+    idMap.put(t, new Integer(value));
+    return value;
+  }
+
 
   public void close() {
     //prints out all generated code
@@ -387,16 +358,22 @@ public class RuntimeConflictResolver {
     enumerateHeaproots();
   }
 
-  private void runAllTraversals() {
+  private void createInternalGraphs() {
     for(TraversalInfo t: traverserTODO) {
       printDebug(generalDebug, "Running Traversal on " + t.f);
       
+      //Runs stallsite graph creation
       if(t.isStallSite()) {
         assert t.invar != null;
-        traverseStallSite(t.f, t.invar, t.rg);
-      }
+        traverseFlatnodeAndTempDesc(t.f, t.invar, t.rg);
+      } 
+      //runs rblock graph creation
       else {
-        traverseSESEBlock((FlatSESEEnterNode)t.f, t.rg);
+        FlatSESEEnterNode rblock = (FlatSESEEnterNode)t.f;
+        
+        for (TempDescriptor invar : rblock.getInVarSet()) {
+          traverseFlatnodeAndTempDesc(rblock, invar, t.rg);
+        }
       }        
     }
   }
@@ -471,7 +448,7 @@ public class RuntimeConflictResolver {
         cFile.println(    "    case -" + getTraverserID(t.getVar(), t.getStallSite())+ ": {");
         cFile.println(    "      SESEstall * rec=(SESEstall*) record;");
         cFile.println(    "      " + this.getTraverserInvocation(t.getVar(), "rec->___obj___, rec", t.getStallSite())+";");
-	cFile.println(    "     record->rcrstatus=0;");
+        cFile.println(    "     record->rcrstatus=0;");
         cFile.println(    "    }");
         cFile.println("    break;");
       }
@@ -508,16 +485,10 @@ public class RuntimeConflictResolver {
     cFile.println("}");
   }
 
-  private void createConcreteGraph(
-      EffectsTable table,
+  private void createPrunedGraph(
       Hashtable<Integer, ConcreteRuntimeObjNode> created, 
       VariableNode varNode, 
       Taint t) {
-    
-    // if table is null that means there's no conflicts, therefore we need not
-    // create a traversal
-    if (table == null)
-      return;
     
     Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();
     while (possibleEdges.hasNext()) {
@@ -527,17 +498,20 @@ public class RuntimeConflictResolver {
       ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true);
       int rootKey = singleRoot.allocSite.getUniqueAllocSiteID();
 
-      //Pass 1: Create graph pruned graph
       if (!created.containsKey(rootKey)) {
         created.put(rootKey, singleRoot);
-        buildGraph(singleRoot, edge.getDst().iteratorToReferencees(), created, table, t);
+        buildPrunedGraphFromRG(singleRoot, edge.getDst().iteratorToReferencees(), created, t);
       }
-      
-      //Pass 2: Mark viable paths
-      for(ConcreteRuntimeObjNode node: created.values()) {
-        if(node.objConfRead || node.objConfWrite || node.primConfRead || node.primConfWrite) {
-          markReferencers(node, node.objConfRead || node.objConfWrite, node.primConfRead || node.primConfWrite);
-        }
+    }
+  }
+  
+  //Performs a reverse traversal from the conflict nodes up to the
+  //inset variables and sets the flag for conflicts down the road 
+  //in the nodes it passes by.
+  private void propagateConflicts(Hashtable<Integer, ConcreteRuntimeObjNode> created) {
+    for(ConcreteRuntimeObjNode node: created.values()) {
+      if(node.hasConflict()) {
+        markReferencers(node, node.objConfRead || node.objConfWrite, node.primConfRead || node.primConfWrite);
       }
     }
   }
@@ -557,17 +531,14 @@ public class RuntimeConflictResolver {
     }
   }
 
-  // Plan is to add stuff to the tree depth-first sort of way. That way, we can
-  // propagate up conflicts
-  // JCJ what does this method do, exactly?
-  //TODO only build ONE GRAPH!
-  private void buildGraph(ConcreteRuntimeObjNode curr, 
+  //Performs Depth First Traversal on the ReachGraph to build an
+  //internal representation of it. It prunes ptrs not reachable
+  //by read Effects and stores in each node the effects by it.
+  private void buildPrunedGraphFromRG(  ConcreteRuntimeObjNode curr, 
                             Iterator<RefEdge> edges, 
                             Hashtable<Integer, ConcreteRuntimeObjNode> created,
-                            EffectsTable table, 
                             Taint taint) {
-    assert table != null;
-    EffectsGroup currEffects = table.getEffects(curr.allocSite, taint); 
+    EffectsGroup currEffects = effectsLookupTable.getEffects(curr.allocSite, taint); 
     
     if (currEffects == null || currEffects.isEmpty()) 
       return;
@@ -610,7 +581,7 @@ public class RuntimeConflictResolver {
             child.addReferencer(reference);
             
             if(isNewChild) {
-              buildGraph(child, childHRN.iteratorToReferencees(), created, table, taint);
+              buildPrunedGraphFromRG(child, childHRN.iteratorToReferencees(), created, taint);
             }
           }          
         }
@@ -887,7 +858,7 @@ public class RuntimeConflictResolver {
     
     for (Taint t : taints) {
       flatnode = (isStallSite) ? t.getStallSite():t.getSESE();
-        
+
       if( flatnode != null        && 
           flatnode.equals(fn)     && 
           t.getVar().equals(var.getTempDescriptor())) {
@@ -1193,6 +1164,22 @@ public class RuntimeConflictResolver {
       isInsetVar = isInset;
     }
     
+
+    public void addReferencer(ObjRef refToMe) {
+      referencers.add(refToMe);
+    }
+    
+    public void addReferencee(String field, ObjRef refToChild) {
+      ObjRefList array;
+      
+      if((array = referencees.get(field)) == null) {
+        array = new ObjRefList();
+        referencees.put(field, array);
+      }
+      
+      array.add(refToChild);
+    }
+    
     public boolean hasDirectObjConflict() {
       return objConfRead || objConfWrite;
     }
@@ -1208,24 +1195,13 @@ public class RuntimeConflictResolver {
     public boolean hasPrimitiveConflicts() {
       return primConfRead || primConfWrite;
     }
-
-    public void addReferencer(ObjRef refToMe) {
-      referencers.add(refToMe);
+    
+    public boolean hasConflict() {
+      return objConfRead || objConfWrite || primConfRead || primConfWrite;
     }
     
     public boolean descendantsConflict() {
       return descendantsObjConflict||descendantsPrimConflict;
-    }
-    
-    public void addReferencee(String field, ObjRef refToChild) {
-      ObjRefList array;
-      
-      if((array = referencees.get(field)) == null) {
-        array = new ObjRefList();
-        referencees.put(field, array);
-      }
-      
-      array.add(refToChild);
     }
   }
   
