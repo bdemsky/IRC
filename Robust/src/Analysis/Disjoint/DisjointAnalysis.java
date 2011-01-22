@@ -1109,7 +1109,9 @@ public class DisjointAnalysis {
     FlatSESEExitNode  fsexn;
 
     //Stores the flatnode's reach graph at enter
-    fn2rgAtEnter.put(fn, rg);
+    ReachGraph rgOnEnter = new ReachGraph();
+    rgOnEnter.merge( rg );
+    fn2rgAtEnter.put(fn, rgOnEnter);
     
     // use node type to decide what transfer function
     // to apply to the reachability graph

@@ -175,12 +175,20 @@ public class RuntimeConflictResolver {
       CodePlan cp = oooa.getCodePlan(fn);
       fsen = cp.getCurrentSESE();
       
+      // jjenista - I think the following code is WRONG!!! (but right... :(  )
+      // see note in OoOJavaAnalysis.java explaining that conflict graphs are
+      // correct but stored in a parent's parent by mistake, and then in places
+      // like this we look to the parent's parent for the correct conflict graph.
+      // It should be oooa.getConflictGraph(fsen) which is the task enclosing the
+      // stall site, and who's children might conflict with the stall site.
+      // DON'T CHANGE IT unless you are willing to find the many, many dependent
+      // code sections based on this behavior, but understand what is happening.
+      
       if(  fsen.getSESEParent().size() != 0                                                     &&
           (parentSESE     = (FlatSESEEnterNode)fsen.getSESEParent().iterator().next())  != null &&
           (conflictGraph  = oooa.getConflictGraph(parentSESE))                          != null &&
           (conflicts      = conflictGraph.getConflictEffectSet(fn))                     != null &&
-          //TODO this still uses the old method of getting reachGraphs. 
-          (rg             = disjointAnaylsis.getReachGraph(fsen.getmdEnclosing()))      != null ){
+          (rg             = disjointAnaylsis.getEnterReachGraph(fn))                    != null ){
 
         Set<SESELock> seseLockSet = oooa.getLockMappings(conflictGraph);
         Set<WaitingElement> waitingElementSet =
@@ -858,7 +866,7 @@ public class RuntimeConflictResolver {
     
     for (Taint t : taints) {
       flatnode = (isStallSite) ? t.getStallSite():t.getSESE();
-
+      
       if( flatnode != null        && 
           flatnode.equals(fn)     && 
           t.getVar().equals(var.getTempDescriptor())) {

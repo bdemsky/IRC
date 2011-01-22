@@ -1050,6 +1050,17 @@ public class OoOJavaAnalysis {
         rhs = fen.getSrc();
       }
 
+      // jjenista - I think the following code is WRONG!!!
+      // We are looking at some non-task FlatNode fn that is a stall site and
+      // considering what conflicts it might have with CHILDREN of the CURRENT TASK
+      // that contains fn.  WE SHOULD NOT BE GETTING THE PARENT OF currentSESE
+      // because in this scenario currentSESE IS the parent in relation to other
+      // tasks that might conflict with this fn.
+      // OK, why not fix it?  Because code all over the place is built on
+      // being able to retrieve the correct conflict graph, which is associated
+      // with the wrong task, but at least consistently, SO LEAVE IT BUT REALIZE
+      // WHAT IS HAPPENING
+
       Set<FlatSESEEnterNode> parentSet = currentSESE.getSESEParent();
       for (Iterator iterator = parentSet.iterator(); iterator.hasNext();) {
         FlatSESEEnterNode parent = (FlatSESEEnterNode) iterator.next();
@@ -1087,6 +1098,17 @@ public class OoOJavaAnalysis {
         rhs = fsen.getSrc();
       }
 
+      // jjenista - I think the following code is WRONG!!!
+      // We are looking at some non-task FlatNode fn that is a stall site and
+      // considering what conflicts it might have with CHILDREN of the CURRENT TASK
+      // that contains fn.  WE SHOULD NOT BE GETTING THE PARENT OF currentSESE
+      // because in this scenario currentSESE IS the parent in relation to other
+      // tasks that might conflict with this fn.
+      // OK, why not fix it?  Because code all over the place is built on
+      // being able to retrieve the correct conflict graph, which is associated
+      // with the wrong task, but at least consistently, SO LEAVE IT BUT REALIZE
+      // WHAT IS HAPPENING
+
       // collects effects of stall site and generates stall site node
       Set<FlatSESEEnterNode> parentSet = currentSESE.getSESEParent();
       for (Iterator iterator = parentSet.iterator(); iterator.hasNext();) {
@@ -1119,6 +1141,17 @@ public class OoOJavaAnalysis {
 
       // collects effects of stall site and generates stall site node
       Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+
+      // jjenista - I think the following code is WRONG!!!
+      // We are looking at some non-task FlatNode fn that is a stall site and
+      // considering what conflicts it might have with CHILDREN of the CURRENT TASK
+      // that contains fn.  WE SHOULD NOT BE GETTING THE PARENT OF currentSESE
+      // because in this scenario currentSESE IS the parent in relation to other
+      // tasks that might conflict with this fn.
+      // OK, why not fix it?  Because code all over the place is built on
+      // being able to retrieve the correct conflict graph, which is associated
+      // with the wrong task, but at least consistently, SO LEAVE IT BUT REALIZE
+      // WHAT IS HAPPENING
 
       Set<FlatSESEEnterNode> parentSet = currentSESE.getSESEParent();
       for (Iterator iterator = parentSet.iterator(); iterator.hasNext();) {
