@@ -41,6 +41,29 @@ public class String {
     this.count=length;
     this.offset=0;
   }
+  
+  public String(byte str[], String encoding) {
+    int length = this.count;
+    if (length>(str.length))
+      length=str.length;
+    char charstr[]=new char[length];
+    for(int i=0; i<length; i++)
+      charstr[i]=(char)str[i];
+    this.value=charstr;
+    this.count=length;
+    this.offset=0;
+  }
+  
+  public String(char str[], int offset, int length) {
+    if (length>(str.length-offset))
+      length=str.length-offset;
+    char charstr[]=new char[length];
+    for(int i=0; i<length; i++)
+      charstr[i]=str[i+offset];
+    this.value=charstr;
+    this.count=length;
+    this.offset=0;
+  }
 
   public String(String str) {
     this.value=str.value;
@@ -227,6 +250,19 @@ public class String {
     for(int i=0; i<count; i++)
       str[i]=(byte)value[i+offset];
     return str;
+  }
+  
+  public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
+    if((srcBegin < 0) || (srcEnd > count) || (srcBegin > srcEnd)) {
+      // FIXME
+      System.printString("Index error: "+srcBegin+" "+srcEnd+" "+count+"\n"+this);
+      System.exit(-1);
+    }
+    int len = srcEnd - srcBegin;
+    int j = dstBegin;
+    for(int i=srcBegin; i<srcEnd; i++)
+      dst[j++]=value[i+offset];
+    return;
   }
 
   public int length() {

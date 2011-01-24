@@ -736,6 +736,17 @@ public class BuildIR {
 	con.addArgument((ExpressionNode)args.get(i));
       }
       return con;
+    } if (isNode(pn,"createarray2") && state.MGC) {
+      TypeDescriptor td=parseTypeDescriptor(pn);
+      int num=0;
+      if (pn.getChild("dims_opt").getLiteral()!=null)
+    num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
+      for(int i=0; i<num; i++)
+    td=td.makeArray(state);
+      CreateObjectNode con=new CreateObjectNode(td, false, null);
+      // TODO array initializers
+      pn.getChild("initializer");
+      return con;
     } else if (isNode(pn,"name")) {
       NameDescriptor nd=parseName(pn);
       return new NameNode(nd);
@@ -795,10 +806,16 @@ public class BuildIR {
       return new InstanceOfNode(exp,t);
     } else if (isNode(pn, "array_initializer")) {
       System.out.println( "Array initializers not implemented yet." );
-      throw new Error();
+      return null; // TODO MGC
+      //throw new Error();
       //TypeDescriptor td=parseTypeDescriptor(pn);      
       //Vector initializers=parseVariableInitializerList(pn);
       //return new ArrayInitializerNode(td, initializers);
+    } else if (isNode(pn, "class_type") && state.MGC) {
+      TypeDescriptor td=parseTypeDescriptor(pn);
+      return new ClassTypeNode(td);
+    } else if (isNode(pn, "empty") && state.MGC) {
+      return null;
     } else {
       System.out.println("---------------------");
       System.out.println(pn.PPrint(3,true));
@@ -1097,6 +1114,9 @@ public class BuildIR {
         BlockNode fbn=parseBlockHelper(fpn);
         blockstatements.add(new SubBlockNode(fbn));
       }
+    } else if (isNode(pn, "throwstatement")) {
+      // TODO Simply return here
+      blockstatements.add(new ReturnNode());
     } else if (isNode(pn,"taskexit")) {
       Vector vfe=null;
       if (pn.getChild("flag_effects_list")!=null)
@@ -1249,6 +1269,8 @@ public class BuildIR {
       m.addModifier(Modifiers.ABSTRACT);
     else if (isNode(modn,"volatile"))
       m.addModifier(Modifiers.VOLATILE);
+    else if (isNode(modn,"transient"))
+      m.addModifier(Modifiers.TRANSIENT);
 	else throw new Error("Unrecognized Modifier");
       }
     }

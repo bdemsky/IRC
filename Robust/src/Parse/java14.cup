@@ -146,9 +146,9 @@ non terminal ParseNode variable_initializer;
 non terminal ParseNode method_declaration, method_header, method_declarator;
 non terminal ParseNode formal_parameter_list_opt, formal_parameter_list;
 non terminal ParseNode formal_parameter;
-//non terminal ParseNode throws_opt;
-//non terminal ParseNode throws;
-//non terminal ParseNode class_type_list;
+non terminal ParseNode throws_opt;
+non terminal ParseNode throws;
+non terminal ParseNode class_type_list;
 non terminal ParseNode method_body;
 // 19.8.4) Static Initializers
 non terminal ParseNode static_initializer;
@@ -190,7 +190,7 @@ non terminal ParseNode statement_expression_list;
 //non terminal ParseNode identifier_opt;
 non terminal ParseNode break_statement, continue_statement;
 non terminal ParseNode return_statement;
-//non terminal ParseNode throw_statement;
+non terminal ParseNode throw_statement;
 non terminal ParseNode synchronized_statement;
 non terminal ParseNode try_statement;
 non terminal ParseNode catches_opt;
@@ -203,7 +203,7 @@ non terminal ParseNode primary, primary_no_new_array;
 non terminal ParseNode class_instance_creation_expression;
 non terminal ParseNode cons_argument_list_opt, cons_argument_list;
 non terminal ParseNode argument_list_opt, argument_list;
-//non terminal ParseNode array_creation_init;
+non terminal ParseNode array_creation_init;
 non terminal ParseNode array_creation_uninit;
 non terminal ParseNode dim_exprs, dim_expr;
 non terminal Integer dims_opt, dims;
@@ -733,8 +733,8 @@ modifier ::=
 	NATIVE {: RESULT=new ParseNode("native"); :} |
 	SYNCHRONIZED {: RESULT=new ParseNode("synchronized"); :} |
 	ATOMIC {: RESULT=new ParseNode("atomic"); :} |
-	VOLATILE {: RESULT=new ParseNode("volatile"); :}
-//	TRANSIENT | 
+	VOLATILE {: RESULT=new ParseNode("volatile"); :} |
+	TRANSIENT {: RESULT=new ParseNode("transient"); :} 
 
 //	STRICTFP // note that semantic analysis must check that the
 	                 // context of the modifier allows strictfp.
@@ -967,7 +967,7 @@ variable_declarator_id ::=
 	;
 variable_initializer ::=
 		expression:exp {: RESULT=exp; :}
-	|	array_initializer {: RESULT=new ParseNode("array_initializer"); :}
+	|	array_initializer:ai {: RESULT=(new ParseNode("array_initializer")).addChild(ai).getRoot(); :}
 	;
 
 // 19.8.3) Method Declarations
@@ -980,18 +980,20 @@ method_declaration ::=
 	:}
 	;
 method_header ::=
-		modifiers_opt:mo type:type method_declarator:decl //throws_opt 
+		modifiers_opt:mo type:type method_declarator:decl throws_opt:to 
 	{:
 		ParseNode pn=new ParseNode("method_header");
 		pn.addChild("modifiers").addChild(mo);
 		pn.addChild("returntype").addChild(type);
+		pn.addChild("throws").addChild(to);
 		pn.addChild(decl);
 		RESULT=pn;
 	:}
-	|	modifiers_opt:mo VOID method_declarator:decl //throws_opt
+	|	modifiers_opt:mo VOID method_declarator:decl throws_opt:to
 	{:
 		ParseNode pn=new ParseNode("method_header");
 		pn.addChild("modifiers").addChild(mo);
+		pn.addChild("throws").addChild(to);
 		pn.addChild(decl);
 		RESULT=pn;
 	:}
@@ -1043,15 +1045,27 @@ formal_parameter ::=
 		RESULT=pn;
 	:}
 	;
-//throws_opt ::=	
-//	|	throws
-//	;
-//throws ::=	THROWS class_type_list
-//	;
-//class_type_list ::=
-//		class_type
-//	|	class_type_list COMMA class_type
-//	;
+throws_opt ::=	
+        {: RESULT=new ParseNode("empty"); :}
+	|	throws:trs
+	    {: RESULT=trs; :}
+	;
+throws ::=	THROWS class_type_list:ctl
+        {: RESULT=(new ParseNode("throw_list")).addChild(ctl).getRoot(); :}
+	;
+class_type_list ::=
+		class_type:ct
+		{: 
+		ParseNode pn=new ParseNode("class_type_list");
+		pn.addChild(ct);
+		RESULT=pn; 
+		:}
+	|	class_type_list:ctl COMMA class_type:ct
+	    {: 
+	    ctl.addChild(ct);
+	    RESULT=ctl; 
+	    :}
+	;
 method_body ::=	block:block {: 
 		RESULT=block;
 	:}
@@ -1069,21 +1083,21 @@ static_initializer ::=
 
 // 19.8.5) Constructor Declarations
 constructor_declaration ::=
-		modifiers_opt:mo constructor_declarator:cd
-//throws_opt 
+		modifiers_opt:mo constructor_declarator:cd throws_opt:to 
 			constructor_body:body	{:
 		ParseNode pn=new ParseNode("constructor_declaration");
 		pn.addChild("modifiers").addChild(mo);
+		pn.addChild("throws").addChild(to);
 		pn.addChild(cd);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
 	:} |
-		modifiers_opt:mo GLOBAL constructor_declarator:cd
-//throws_opt 
+		modifiers_opt:mo GLOBAL constructor_declarator:cd throws_opt:to 
 			constructor_body:body	{:
 		ParseNode pn=new ParseNode("constructor_declaration");
 		pn.addChild("global");
 		pn.addChild("modifiers").addChild(mo);
+		pn.addChild("throws").addChild(to);
 		pn.addChild(cd);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
@@ -1338,7 +1352,7 @@ statement_without_trailing_substatement ::=
 	|	sese_statement:st {: RESULT=st; :}
 	|	synchronized_statement:st {: RESULT=st; :}
 	|       genreach_statement:st {: RESULT=st; :}
-//	|	throw_statement
+	|	throw_statement:st {: RESULT=st; :}
 	|	try_statement:st {: RESULT=st; :}
 //	|	assert_statement
 	;
@@ -1564,9 +1578,11 @@ return_statement ::=
 		RETURN expression_opt:exp SEMICOLON {: 
 	RESULT=(new ParseNode("return")).addChild(exp).getRoot(); :}
 	;
-//throw_statement ::=
-//		THROW expression SEMICOLON
-//	;
+throw_statement ::=
+		THROW expression:exp SEMICOLON {:
+		RESULT=(new ParseNode("throwstatement")).addChild(exp).getRoot();
+		:}
+	;
 synchronized_statement ::=
 		SYNCHRONIZED LPAREN expression:e RPAREN block:b {: 
 		ParseNode pn=new ParseNode("synchronized");
@@ -1660,9 +1676,9 @@ finally ::=	FINALLY block:bk
 // 19.12) Expressions
 primary ::=	primary_no_new_array:st {: 
 		RESULT=st; :}
-//	|	array_creation_init:st {: 
-//		RESULT=st;
-//	:}
+	|	array_creation_init:st {: 
+		RESULT=st;
+	:}
 	|	array_creation_uninit:st {:
 		RESULT=st;
 	:}
@@ -1680,10 +1696,22 @@ primary_no_new_array ::=
 		pn.addChild(id);
 		RESULT=pn;
 	:}
-//	|	primitive_type DOT CLASS
+	|	primitive_type:pt DOT CLASS {:
+	    ParseNode pn=new ParseNode("class_type");
+	    pn.addChild(pt);
+	    RESULT=pn;
+	:}
 //	|	VOID DOT CLASS
-//	|	array_type DOT CLASS
-//	|	name DOT CLASS
+	|	array_type:at DOT CLASS {:
+	    ParseNode pn=new ParseNode("class_type");
+	    pn.addChild(at);
+	    RESULT=pn;
+	:}
+	|	name:name DOT CLASS {:
+	    ParseNode pn=new ParseNode("class_type");
+	    pn.addChild("type").addChild("class").addChild(name);
+	    RESULT=pn;
+	:}
 //	|	name DOT THIS
 	;
 class_instance_creation_expression ::=
@@ -1850,10 +1878,22 @@ array_creation_uninit ::=
 		RESULT=pn;
 		:}
 	;
-//array_creation_init ::=
-//		NEW primitive_type dims array_initializer
-//	|	NEW class_or_interface_type dims array_initializer
-//	;
+array_creation_init ::=
+		NEW primitive_type:type dims:dims array_initializer:ai {: 
+		ParseNode pn=new ParseNode("createarray2");
+		pn.addChild(type);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("initializer").addChild(ai);
+		RESULT=pn;
+		:}
+	|	NEW class_or_interface_type:type dims:dims array_initializer:ai {: 
+		ParseNode pn=new ParseNode("createarray2");
+		pn.addChild(type);
+		pn.addChild("dims_opt").setLiteral(dims);
+		pn.addChild("initializer").addChild(ai);
+		RESULT=pn;
+		:}
+	;
 dim_exprs ::=	dim_expr:exp {: 
 		ParseNode pn=new ParseNode("dim_exprs");
 		pn.addChild(exp);
@@ -1992,7 +2032,19 @@ else {
 		RESULT=pn;
 
 	:}
-//	|	LPAREN name dims RPAREN unary_expression_not_plus_minus
+	|	LPAREN name:name dims:dims RPAREN unary_expression_not_plus_minus:exp {: 
+		ParseNode pn=new ParseNode("cast1");
+if (dims.intValue()==0)
+		pn.addChild("type").addChild("class").addChild(name);
+else {
+		ParseNode arrayt=pn.addChild("type").addChild("type").addChild("array");
+		arrayt.addChild("basetype").addChild("type").addChild("class").addChild(name);
+		arrayt.addChild("dims").setLiteral(dims);
+}
+		pn.addChild("exp").addChild(exp);
+		RESULT=pn;
+
+	:}
 	;
 multiplicative_expression ::=
 		unary_expression:exp {: 

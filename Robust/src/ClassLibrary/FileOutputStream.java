@@ -1,3 +1,5 @@
+import java.io.FileDescriptor;
+
 public class FileOutputStream extends OutputStream {
   private int fd;
 
@@ -25,6 +27,10 @@ public class FileOutputStream extends OutputStream {
 
   public FileOutputStreamOpen(String pathname) {
     fd = nativeOpen(pathname.getBytes());
+  }
+  
+  public FileOutputStream(FileDescriptor fdObj) {
+    fd = nativeOpen(fdObj.channel.getBytes());
   }
 
   private static native int nativeOpen(byte[] filename);
