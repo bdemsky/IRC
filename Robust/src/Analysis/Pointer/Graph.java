@@ -10,20 +10,24 @@ public class Graph {
    * graph. */
 
   Graph parent;
-  HashSet<TempDescriptor> tempset;
-  HashSet<AllocNode> allocset;
-
-  HashMap<AllocNode, Vector<Edge>> nodeMap;
-  HashMap<TempDescriptor, Vector<Edge>> tmpMap;
+  HashMap<AllocNode, HashSet<Edge>> nodeMap;
+  HashMap<TempDescriptor, HashSet<Edge>> varMap;
+  HashMap<AllocNode, HashSet<Edge>> backMap;
 
   public Graph(Graph parent) {
-    nodeMap=new HashMap<AllocNode, Vector<Edge>>();
-    tmpMap=new HashMap<TempDescriptor, Vector<Edge>>();
-    tempset=new HashSet<TempDescriptor>();
-    allocset=new HashSet<AllocNode>();
-    
+    nodeMap=new HashMap<AllocNode, HashSet<Edge>>();
+    backMap=new HashMap<AllocNode, HashSet<Edge>>();
+    varMap=new HashMap<TempDescriptor, HashSet<Edge>>();
     this.parent=parent;
   }
 
-  
+  public HashSet<Edge> getEdges(AllocNode node) {
+    if (nodeMap.containsKey(node))
+      return nodeMap.get(node);
+    else if (parent!=null&&parent.nodeMap.containsKey(node))
+      return parent.nodeMap.get(node);
+    else return emptySet;
+  }
+
+  public static HashSet<Edge> emptySet=new HashSet<Edge>();
 }

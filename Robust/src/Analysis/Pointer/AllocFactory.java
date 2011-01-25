@@ -30,7 +30,8 @@ public class AllocFactory {
   }
 
   public AllocFactory(State state, TypeUtil typeUtil) {
-    allocMap=new HashMap<FlatNode, Integer>();
+    allocMap=new HashMap<FlatNew, Integer>();
+    allocNodeMap=new HashMap<AllocNode, AllocNode>();
     this.typeUtil=typeUtil;
     ClassDescriptor stringcd=typeUtil.getClass(TypeUtil.StringClass);
     TypeDescriptor stringtd=new TypeDescriptor(stringcd);
@@ -38,8 +39,27 @@ public class AllocFactory {
     StringArray=new AllocNode(0, stringarraytd, false);
     Strings=new AllocNode(1, stringtd, true);
   }
-  
-  HashMap<FlatNode, Integer> allocMap;
+
+  public int getSiteNumber(FlatNew node) {
+    if (allocMap.containsKey(node))
+      return allocMap.get(node);
+    int index=siteCounter++;
+    allocMap.put(node, index);
+    return index;
+  }
+
+  public AllocNode getAllocNode(FlatNew node, boolean isSummary) {
+    int site=getSiteNumber();
+    AllocNode key=new AllocNode(site, node.getType(), isSummary);
+    if (!allocNodeMap.containsKey(key)) {
+      allocNodeMap.put(key, key);
+      return key;
+    } else
+      return allocNodeMap.get(key);
+  }
+
+  HashMap<AllocNode, AllocNode> allocNodeMap;
+  HashMap<FlatNew, Integer> allocMap;
   TypeUtil typeUtil;
   int siteCounter=2;
 
