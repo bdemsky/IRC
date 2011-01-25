@@ -21,6 +21,14 @@ public class Graph {
     this.parent=parent;
   }
 
+  public HashSet<Edge> getEdges(TempDescriptor tmp) {
+    if (varMap.containsKey(tmp))
+      return varMap.get(tmp);
+    else if (parent!=null&&parent.varMap.containsKey(tmp))
+      return parent.varMap.get(tmp);
+    else return emptySet;
+  }
+
   public HashSet<Edge> getEdges(AllocNode node) {
     if (nodeMap.containsKey(node))
       return nodeMap.get(node);

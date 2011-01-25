@@ -74,8 +74,9 @@ public class Pointer {
     switch(node.kind()) {
     case FKind.FlatNew:
       return processNewNode((FlatNew)node, delta, newgraph);
-    case FKind.FlatCall:
     case FKind.FlatFieldNode:
+      return processFieldNode((FlatFieldNode)node, delta, newgraph);
+    case FKind.FlatCall:
     case FKind.FlatSetFieldNode:
     case FKind.FlatReturnNode:
     case FKind.FlatElementNode:
@@ -154,6 +155,36 @@ public class Pointer {
     }
   }
 
+  HashSet<AllocNode> getTemps(Graph graph, Delta delta, TempDescriptor tmp) {
+    HashSet<AllocNode> nodes=new HashSet<AllocNode>();
+    HashSet<Edge> removeedges=delta.varedgeremove.get(tmp);
+
+    for(Edge e:graph.getEdges(tmp)) {
+      if (removeedges==null||!removeedges.contains(e))
+	nodes.add(e.dst);
+    }
+    if (delta.varedgeadd.containsKey(tmp))
+      for(Edge e:delta.varedgeadd.get(tmp)) {
+	nodes.add(e.dst);
+      }
+    return nodes;
+  }
+
+  Delta processFieldNode(FlatFieldNode node, Delta delta, Graph graph) {
+    TempDescriptor src=node.getSrc();
+    FieldDescriptor fd=node.getField();
+    TempDescriptor dst=node.getDst();
+    if (delta.getInit()) {
+      HashSet<AllocNode> nodes=getTemps(graph, delta, src);
+      
+      
+      applyDiffs(graph, delta);
+    } else {
+
+    }
+    return delta;
+  }
+
   Delta processNewNode(FlatNew node, Delta delta, Graph graph) {
     AllocNode summary=allocFactory.getAllocNode(node, true);
     AllocNode single=allocFactory.getAllocNode(node, false);
@@ -168,7 +199,7 @@ public class Pointer {
       //Add it into the diffs
       delta.varedgeadd.put(tmp, newedges);
       //Remove the old edges
-      delta.varedgeremove.put(tmp, delta.basevaredge.get(tmp));
+      delta.varedgeremove.put(tmp, graph.getEdges(tmp));
       //Apply incoming diffs to graph
       applyDiffs(graph, delta);
     } else {
