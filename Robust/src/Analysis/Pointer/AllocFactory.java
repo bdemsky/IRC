@@ -49,7 +49,7 @@ public class AllocFactory {
   }
 
   public AllocNode getAllocNode(FlatNew node, boolean isSummary) {
-    int site=getSiteNumber();
+    int site=getSiteNumber(node);
     AllocNode key=new AllocNode(site, node.getType(), isSummary);
     if (!allocNodeMap.containsKey(key)) {
       allocNodeMap.put(key, key);
