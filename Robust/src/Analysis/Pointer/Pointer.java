@@ -176,16 +176,41 @@ public class Pointer {
     if (delta.getInit()) {
       HashSet<AllocNode> srcNodes=GraphManip.getNodes(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
-      HashSet<Edges> edgesToAdd=GraphManip.genEdges(srcNodes, fd, dstNodes);
+      HashSet<Edge> edgesToAdd=GraphManip.genEdges(srcNodes, fd, dstNodes);
+      HashSet<Edge> edgesToRemove=null;
       if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()) {
 	/* Can do a strong update */
-	
-
+	edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
       }
+      /* Update diff */
+      updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
+      applyDiffs(graph, delta);
     } else {
-      
-      
+      /* First look at new sources */
+      HashSet<Edge> edgesToAdd=new HashSet<Edge>();
+      HashSet<AllocNode> newSrcNodes=GraphManip.getDiffNodes(delta, src);
+      HashSet<AllocNode> dstNodes=GraphManip.getDiffNodes(delta, dst);
+      edgesToAdd.addAll(GraphManip.genEdges(newSrcNodes, fd, dstNodes));
+      HashSet<AllocNode> newDstNodes=GraphManip.getDiffNodes(delta, dst);
+      HashSet<Edge> edgesToRemove=null;
+      if (newDstNodes.size()!=0) {
+	if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()) {
+	  /* Need to undo strong update */
+	  if (graph.strongUpdateSet!=null) {
+	    edgesToAdd.addAll(graph.strongUpdateSet);
+	    graph.strongUpdateSet.clear();
+	  }
+	} else if (dstNodes.size()==0&&newDstNodes.size()==1&&!newDstNodes.iterator().next().isSummary()&&graph.strongUpdateSet==null) {
+	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
+	}
+	HashSet<AllocNode> srcNodes=GraphManip.getDiffNodes(delta, src);
+	edgesToAdd.addAll(GraphManip.genEdges(srcNodes, fd, newDstNodes));
+      }
+      /* Update diff */
+      updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
+      applyDiffs(graph, delta);
     }
+    return delta;
   }
 
   Delta processCopyNode(FlatNode node, Delta delta, Graph graph) {
@@ -193,8 +218,8 @@ public class Pointer {
     TempDescriptor dst;
     if (node.kind()==FKind.FlatOpNode) {
       FlatOpNode fon=(FlatOpNode) node;
-      src=fcn.getLeft();
-      dst=fcn.getDst();
+      src=fon.getLeft();
+      dst=fon.getDest();
     } else {
       FlatCastNode fcn=(FlatCastNode) node;
       src=fcn.getSrc();
@@ -289,23 +314,29 @@ public class Pointer {
   }
 
   static void updateHeapDelta(Graph graph, Delta delta, HashSet<Edge> edgestoAdd, HashSet<Edge> edgestoRemove) {
-    /* Fix all of this */
-    HashSet<Edge> edgeAdd=delta.varedgeadd.get(tmp);
-    HashSet<Edge> edgeRemove=delta.varedgeremove.get(tmp);
-    HashSet<Edge> existingEdges=graph.getEdges(tmp);
     for(Edge e: edgestoRemove) {
+      AllocNode src=e.src;
+      HashSet<Edge> edgeAdd=delta.heapedgeadd.get(src);
+      HashSet<Edge> existingEdges=graph.getEdges(src);
       //remove edge from delta
       edgeAdd.remove(e);
       //if the edge is already in the graph, add an explicit remove to the delta
-      if (existingEdges.contains(e))
+      if (existingEdges.contains(e)) {
+	HashSet<Edge> edgeRemove=delta.heapedgeremove.get(src);
 	edgeRemove.add(e);
+      }
     }
     for(Edge e: edgestoAdd) {
+      AllocNode src=e.src;
+      HashSet<Edge> edgeRemove=delta.heapedgeremove.get(src);
+      HashSet<Edge> existingEdges=graph.getEdges(src);
       //Remove the edge from the remove set
       edgeRemove.remove(e);
       //Explicitly add it to the add set unless it is already in the graph
-      if (!existingEdges.contains(e))
+      if (!existingEdges.contains(e)) {
+	HashSet<Edge> edgeAdd=delta.heapedgeadd.get(src);
 	edgeAdd.add(e);
+      }
     }
   }
 
@@ -379,7 +410,7 @@ public class Pointer {
 
       for(Map.Entry<AllocNode, HashSet<Edge>> entry:addheapedge.entrySet()) {
 	AllocNode allocnode=entry.getKey();
-	Util.relationUpdate(delta.heapedgeadd, allocnode, null. entry.getValue());
+	Util.relationUpdate(delta.heapedgeadd, allocnode, null, entry.getValue());
       }
 
       /* 4. Fix up the base heap edges */

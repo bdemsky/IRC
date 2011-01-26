@@ -5,7 +5,6 @@ import Analysis.Pointer.AllocFactory.AllocNode;
 import IR.Flat.*;
 
 public class Graph {
-
   /* This is field is set is this Graph is just a delta on the parent
    * graph. */
 
@@ -13,6 +12,7 @@ public class Graph {
   HashMap<AllocNode, HashSet<Edge>> nodeMap;
   HashMap<TempDescriptor, HashSet<Edge>> varMap;
   HashMap<AllocNode, HashSet<Edge>> backMap;
+  HashSet<Edge> strongUpdateSet;
 
   public Graph(Graph parent) {
     nodeMap=new HashMap<AllocNode, HashSet<Edge>>();

@@ -1,4 +1,8 @@
 package Analysis.Pointer;
+import IR.Flat.*;
+import IR.*;
+import Analysis.Pointer.AllocFactory.AllocNode;
+import java.util.*;
 
 public class GraphManip {
   static HashSet<Edge> genEdges(TempDescriptor tmp, HashSet<AllocNode> dstSet) {
@@ -47,6 +51,23 @@ public class GraphManip {
 	edges.add(e);
       }
     return edges;
+  }
+
+  static HashSet<Edge> getEdges(Graph graph, Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
+    HashSet<Edge> nodes=new HashSet<Edge>();
+    for(AllocNode node:srcNodes) {
+      HashSet<Edge> removeedges=delta.heapedgeremove.get(node);
+      for(Edge e:graph.getEdges(node)) {
+	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+	  nodes.add(e);
+      }
+      if (delta.heapedgeadd.containsKey(node))
+	for(Edge e:delta.heapedgeadd.get(node)) {
+	  if (e.fd==fd)
+	    nodes.add(e);
+	}
+    }
+    return nodes;
   }
 
   static HashSet<AllocNode> getDiffNodes(Delta delta, TempDescriptor tmp) {
