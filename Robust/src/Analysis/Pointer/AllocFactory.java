@@ -15,6 +15,10 @@ public class AllocFactory {
       this.summary=summary;
       this.type=type;
     }
+
+    public boolean isSummary() {
+      return summary;
+    }
     
     public int hashCode() {
       return allocsite<<1^(summary?0:1);
