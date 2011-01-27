@@ -5,9 +5,6 @@
 #include "mem.h"
 #include "classdefs.h"
 
-
-//NOTE: this is only temporary (for testing) and will be removed in favor of thread local variables
-//It's basically an array of hashStructures so we can simulate what would happen in a many-threaded version
 __thread HashStructure ** allHashStructures;
 #define ISWRITEBIN(x) (x&BINMASK)
 #define ISREADBIN(x) (!(x&BINMASK))
@@ -38,12 +35,11 @@ inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
   }
 }
 
-//NOTE: only temporary
 HashStructure ** rcr_createMasterHashTableArray(int maxSize){
   return (HashStructure **) malloc(sizeof(HashStructure *) * maxSize);
 }
 
-HashStructure* rcr_createHashtable(int sizeofWaitingQueue){
+HashStructure* rcr_createHashtable(){
   int i=0;
   HashStructure* newTable=(HashStructure*)RUNMALLOC(sizeof(HashStructure));
   for(i=0;i<RNUMBINS;i++){

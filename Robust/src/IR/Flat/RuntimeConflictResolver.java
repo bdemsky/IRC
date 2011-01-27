@@ -80,7 +80,7 @@ public class RuntimeConflictResolver {
    *     2a) Use Effects to verify we can access something (reads)
    *     2b) Use conflicts to mark conflicts (read/write/strongupdate)
    *     2c) At second level of hash, store Heaproots that can cause conflicts at the field
-   * 3) Walk hash structure to identify and enumerate weakly connected groups and generate waiting queue slots. 
+   * 3) Walk hash structure to identify and enumerate weakly connected groups
    * 4) Build internal representation of the rgs (pruned)
    * 5) Print c methods by walking internal representation
    */
@@ -474,9 +474,7 @@ public class RuntimeConflictResolver {
     
     //Prints out the master traverser Invocation that'll call all other traversers
     //based on traverserID
-    printMasterTraverserInvocation();
-    printResumeTraverserInvocation();
-    
+    printMasterTraverserInvocation();    
     createMasterHashTableArray();
     
     // Adds Extra supporting methods
@@ -570,6 +568,7 @@ public class RuntimeConflictResolver {
   }
 
 
+  //Currently UNUSED method but may be useful in the future.
   //This will print the traverser invocation that takes in a traverserID and starting ptr
   private void printResumeTraverserInvocation() {
     headerFile.println("\nint traverse(void * startingPtr, SESEcommon * record, int traverserID);");
@@ -699,7 +698,7 @@ public class RuntimeConflictResolver {
   
   /*
    * addChecker creates a case statement for every object that is an inset variable, has more
-   * than 1 parent && has conflicts, or where resumes are possible (from waiting queue). 
+   * than 1 parent && has conflicts, or where resumes are possible 
    * See .qualifiesForCaseStatement
    */
   private void addChecker(Taint taint, 

@@ -80,8 +80,8 @@ typedef struct ReadBinItem_rcr {
 
 extern __thread HashStructure ** allHashStructures;
 
-HashStructure ** rcr_createMasterHashTableArray(int maxSize); //temporary
-HashStructure* rcr_createHashtable(int sizeofWaitingQueue);
+HashStructure ** rcr_createMasterHashTableArray(int maxSize);
+HashStructure* rcr_createHashtable();
 WriteBinItem_rcr* rcr_createWriteBinItem( HashStructure* htable );
 ReadBinItem_rcr* rcr_createReadBinItem( HashStructure* htable );
 inline int rcr_generateKey(void * ptr);
