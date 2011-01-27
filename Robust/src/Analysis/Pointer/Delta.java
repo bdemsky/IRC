@@ -29,8 +29,27 @@ public class Delta {
     this.block=block;
   }
 
+  private Delta() {
+  }
+
   public BBlock getBlock() {
     return block;
+  }
+
+  public void setBlock(BBLock block) {
+    this.block=block;
+  }
+
+  public Delta diffBlock(BBLock bblock) {
+    Delta newdelta=new Delta();
+    newdelta.baseheapedge=baseheapedge;
+    newdelta.basevaredge=basevaredge;
+    newdelta.heapedgeadd=heapedgeadd;
+    newdelta.heapedgeremove=heapedgeremove;
+    newdelta.varedgeadd=varedgeadd;
+    newdelta.varedgeremove=varedgeremove;
+    newdelta.block=bblock;
+    return newdelta;
   }
 
   public boolean getInit() {

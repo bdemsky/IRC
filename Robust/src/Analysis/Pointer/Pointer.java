@@ -66,8 +66,47 @@ public class Pointer {
 	Graph nodeGraph=graphMap.get(currNode);
 	delta=processNode(currNode, delta, nodeGraph);
       }
-      //XXXX: Need to generate new delta
+      generateFinalDelta(nodeGraph, delta)
     }    
+  }
+
+  void generateFinalDelta(Delta delta, Graph graph) {
+    Delta newDelta=new Delta(null, false);
+    if (delta.isInit()) {
+      //First compute the set of temps
+      HashSet<TempDescriptor> tmpSet=new HashSet<TempDescriptor>();
+      tmpSet.addAll(graph.varMap.keySet());
+      tmpSet.addAll(graph.parent.varMap.keySet());
+
+      //Next build the temp map part of the delta
+      for(tmp:tmpSet) {
+	HashSet<Edge> edgeSet=new HashSet<Edge>();
+	/* Get target set */
+	if (graph.varMap.containsKey(tmp))
+	  edgeSet.addAll(graph.varMap.get(tmp));
+	else
+	  edgeSet.addAll(graph.parent.varMap.get(tmp));
+	newdelta.varedgeadd.put(tmp, edgeset);
+      }
+
+      //Next compute the set of src allocnodes
+      HashSet<AllocNode> nodeSet=new HashSet<AllocNode>();
+      nodeSet.addAll(graph.nodeMap.keySet());
+      nodeSet.addAll(graph.parent.nodeMap.keySet());
+
+      for(node:nodeSet) {
+	HashSet<Edge> edgeSet=new HashSet<Edge>();
+	/* Get edge set */
+	if (graph.nodeMap.containsKey(node))
+	  edgeSet.addAll(graph.nodeMap.get(node));
+	else
+	  edgeSet.addAll(graph.parent.nodeMap.get(node));
+	newdelta.heapedgeadd.put(node, edgeset);
+      }
+    } else {
+      
+      
+    }
   }
 
   Delta processNode(FlatNode node, Delta delta, Graph newgraph) {
@@ -81,15 +120,15 @@ public class Pointer {
     case FKind.FlatOpNode:
       return processCopyNode(node, delta, newgraph);
     case FKind.FlatSetFieldNode:
+    case FKind.FlatSetElementNode:
       return processSetFieldElementNode(node, delta, newgraph);
     case FKind.FlatMethod:
     case FKind.FlatCall:
     case FKind.FlatReturnNode:
-    case FKind.FlatSetElementNode:
     case FKind.FlatExit:
+
     case FKind.FlatSESEEnterNode:
     case FKind.FlatSESEExitNode:
-
       throw new Error("Unimplemented node:"+node);
     default:
       throw new Error("Unrecognized node:"+node);
