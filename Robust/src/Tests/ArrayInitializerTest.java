@@ -25,5 +25,16 @@ public class ArrayInitializerTest {
     for(int i = 0; i < ait.sa.length; i++) {
       System.out.println(ait.sa[i]);
     }
+    
+    int[][] ja = new int[][]{null, {3,4}};
+    for (int i = 0; i < 2; i++) {
+      if(ja[i] != null) {
+        for (int j = 0; j < 2; j++) {
+            System.out.println(ja[i][j]);
+        }
+      } else {
+        System.out.println("ja[" + i + "] is null");
+      }
+    }
   }
 }

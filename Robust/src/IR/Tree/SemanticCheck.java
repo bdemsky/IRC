@@ -900,6 +900,11 @@ public class SemanticCheck {
 
     if (td!=null&&!typeutil.isSuperorType(td, typetolookin))
       throw new Error(typetolookin + " isn't a "+td);
+    
+    /* Check Array Initializers */
+    if(state.MGC && (con.getArrayInitializer() != null)) {
+      checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), td);
+    }
 
     /* Check flag effects */
     if (con.getFlagEffects()!=null) {

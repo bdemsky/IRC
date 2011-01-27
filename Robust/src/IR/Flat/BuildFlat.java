@@ -360,6 +360,7 @@ public class BuildFlat {
       }
       return new NodePair(fn,last);
     } else {
+      if(con.getArrayInitializer() == null) {
       FlatNode first=null;
       FlatNode last=null;
       TempDescriptor[] temps=new TempDescriptor[con.numArgs()];
@@ -390,6 +391,11 @@ public class BuildFlat {
 	return new NodePair(first,np.getEnd());
       } else
 	return new NodePair(first, fn);
+      } else if(state.MGC) {
+      // array creation with initializers
+        return flattenArrayInitializerNode(con.getArrayInitializer(), out_temp);
+      }
+      return null;
     }
   }
 
