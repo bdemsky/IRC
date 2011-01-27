@@ -57,36 +57,37 @@ public class Pointer {
       delta=applyInitDelta(delta, bblock);
       Graph graph=bbgraphMap.get(bblock);
 
+      Graph nodeGraph=null;
       //Compute delta at exit of each node
       for(int i=0; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
 	if (!graphMap.containsKey(currNode)) {
 	  graphMap.put(currNode, new Graph(graph));
 	}
-	Graph nodeGraph=graphMap.get(currNode);
+	nodeGraph=graphMap.get(currNode);
 	delta=processNode(currNode, delta, nodeGraph);
       }
-      generateFinalDelta(nodeGraph, delta)
+      generateFinalDelta(delta, nodeGraph);
     }    
   }
 
   void generateFinalDelta(Delta delta, Graph graph) {
     Delta newDelta=new Delta(null, false);
-    if (delta.isInit()) {
+    if (delta.getInit()) {
       //First compute the set of temps
       HashSet<TempDescriptor> tmpSet=new HashSet<TempDescriptor>();
       tmpSet.addAll(graph.varMap.keySet());
       tmpSet.addAll(graph.parent.varMap.keySet());
 
       //Next build the temp map part of the delta
-      for(tmp:tmpSet) {
+      for(TempDescriptor tmp:tmpSet) {
 	HashSet<Edge> edgeSet=new HashSet<Edge>();
 	/* Get target set */
 	if (graph.varMap.containsKey(tmp))
 	  edgeSet.addAll(graph.varMap.get(tmp));
 	else
 	  edgeSet.addAll(graph.parent.varMap.get(tmp));
-	newdelta.varedgeadd.put(tmp, edgeset);
+	newDelta.varedgeadd.put(tmp, edgeSet);
       }
 
       //Next compute the set of src allocnodes
@@ -94,18 +95,67 @@ public class Pointer {
       nodeSet.addAll(graph.nodeMap.keySet());
       nodeSet.addAll(graph.parent.nodeMap.keySet());
 
-      for(node:nodeSet) {
+      for(AllocNode node:nodeSet) {
 	HashSet<Edge> edgeSet=new HashSet<Edge>();
 	/* Get edge set */
 	if (graph.nodeMap.containsKey(node))
 	  edgeSet.addAll(graph.nodeMap.get(node));
 	else
 	  edgeSet.addAll(graph.parent.nodeMap.get(node));
-	newdelta.heapedgeadd.put(node, edgeset);
+	newDelta.heapedgeadd.put(node, edgeSet);
       }
     } else {
-      
-      
+      /* We can break the old delta...it is done being used */
+      /* First we will build variable edges */
+      HashSet<TempDescriptor> tmpSet=new HashSet<TempDescriptor>();
+      tmpSet.addAll(delta.basevaredge.keySet());
+      tmpSet.addAll(delta.varedgeadd.keySet());
+      for(TempDescriptor tmp:tmpSet) {
+	/* Start with the new incoming edges */
+	HashSet<Edge> newbaseedge=delta.basevaredge.get(tmp);
+	/* Remove the remove set */
+	newbaseedge.removeAll(delta.varedgeremove.get(tmp));
+	/* Add in the new set*/
+	newbaseedge.addAll(delta.varedgeadd.get(tmp));
+	/* Store the results */
+	newDelta.varedgeadd.put(tmp, newbaseedge);
+      }
+
+      /* Next we build heap edges */
+      HashSet<AllocNode> nodeSet=new HashSet<AllocNode>();
+      nodeSet.addAll(delta.baseheapedge.keySet());
+      nodeSet.addAll(delta.heapedgeadd.keySet());
+      nodeSet.addAll(delta.heapedgeremove.keySet());
+      for(AllocNode node:nodeSet) {
+	/* Start with the new incoming edges */
+	HashSet<Edge> newheapedge=(HashSet<Edge>) delta.baseheapedge.get(node).clone();
+	/* Remove the remove set */
+	newheapedge.removeAll(delta.heapedgeremove.get(node));
+	/* Add in the add set */
+	newheapedge.addAll(delta.heapedgeadd.get(node));
+	newDelta.heapedgeadd.put(node, newheapedge);
+
+	/* Also need to subtract off some edges */
+	HashSet<Edge> removeset=delta.heapedgeremove.get(node);
+	/* Remove the newly created edges..no need to propagate a diff for those */
+	removeset.removeAll(delta.baseheapedge.get(node));
+	newDelta.heapedgeremove.put(node, removeset);
+      }
+    }
+    /* Now we need to propagate newdelta */
+    if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()) {
+      /* We have a delta to propagate */
+      BBlock curr=delta.getBlock();
+      Vector<BBlock> blockvector=curr.next();
+      for(int i=0;i<blockvector.size();i++) {
+	if (i==0) {
+	  newDelta.setBlock(blockvector.get(i));
+	  toprocess.add(newDelta);
+	} else {
+	  toprocess.add(newDelta.diffBlock(blockvector.get(i)));
+	}
+      }
+
     }
   }
 

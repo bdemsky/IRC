@@ -36,11 +36,11 @@ public class Delta {
     return block;
   }
 
-  public void setBlock(BBLock block) {
+  public void setBlock(BBlock block) {
     this.block=block;
   }
 
-  public Delta diffBlock(BBLock bblock) {
+  public Delta diffBlock(BBlock bblock) {
     Delta newdelta=new Delta();
     newdelta.baseheapedge=baseheapedge;
     newdelta.basevaredge=basevaredge;
