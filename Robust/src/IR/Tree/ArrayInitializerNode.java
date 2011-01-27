@@ -1,10 +1,14 @@
 package IR.Tree;
 import java.util.Vector;
 
+import IR.TypeDescriptor;
+
 public class ArrayInitializerNode extends ExpressionNode {
+  TypeDescriptor type;
   Vector varInitList;
 
   public ArrayInitializerNode(Vector vil) {
+    this.type = null;
     varInitList=vil;
   }
 
@@ -14,6 +18,14 @@ public class ArrayInitializerNode extends ExpressionNode {
 
   public ExpressionNode getVarInitializer(int i) {
     return (ExpressionNode) varInitList.get(i);
+  }
+  
+  public void setType(TypeDescriptor type) {
+    this.type = type;
+  }
+  
+  public TypeDescriptor getType() {
+    return this.type;
   }
 
   public String printNode(int indent) {

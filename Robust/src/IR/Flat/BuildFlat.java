@@ -1390,7 +1390,7 @@ public class BuildFlat {
     boolean isGlobal = false;
     String disjointId = null;
     // get the type the array to be initialized
-    TypeDescriptor td = out_temp.getType();
+    TypeDescriptor td = ain.getType();
 
     // create a new array of size equal to the array initializer
     FlatNode first=null;

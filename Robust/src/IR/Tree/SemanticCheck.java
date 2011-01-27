@@ -773,9 +773,49 @@ public class SemanticCheck {
   }
 
   void checkArrayInitializerNode(Descriptor md, SymbolTable nametable, ArrayInitializerNode ain, TypeDescriptor td) {
+    Vector<TypeDescriptor> vec_type = new Vector<TypeDescriptor>();
     for( int i = 0; i < ain.numVarInitializers(); ++i ) {
-      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td.dereference()); 
+      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td==null?td:td.dereference());
+      vec_type.add(ain.getVarInitializer(i).getType());
     }
+    // descide the type of this variableInitializerNode
+    TypeDescriptor out_type = vec_type.elementAt(0);
+    for(int i = 1; i < vec_type.size(); i++) {
+      TypeDescriptor tmp_type = vec_type.elementAt(i);
+      if(out_type == null) {
+        if(tmp_type != null) {
+          out_type = tmp_type;
+        }
+      } else if(out_type.isNull()) {
+        if(!tmp_type.isNull() ) {
+          if(!tmp_type.isArray()) {
+            throw new Error("Error: mixed type in var initializer list");
+          } else {
+            out_type = tmp_type;
+          }
+        }
+      } else if(out_type.isArray()) {
+        if(tmp_type.isArray()) {
+          if(tmp_type.getArrayCount() > out_type.getArrayCount()) {
+            out_type = tmp_type;
+          }
+        } else if((tmp_type != null) && (!tmp_type.isNull())) {
+          throw new Error("Error: mixed type in var initializer list");
+        }
+      } else if(out_type.isInt()) {
+        if(!tmp_type.isInt()) {
+          throw new Error("Error: mixed type in var initializer list");
+        }
+      } else if(out_type.isString()) {
+        if(!tmp_type.isString()) {
+          throw new Error("Error: mixed type in var initializer list");
+        }
+      }
+    }
+    if(out_type != null) {
+      out_type = out_type.makeArray(state);
+    }
+    ain.setType(out_type);
   }
 
   void checkAssignmentNode(Descriptor md, SymbolTable nametable, AssignmentNode an, TypeDescriptor td) {

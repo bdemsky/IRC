@@ -1,4 +1,9 @@
 public class ArrayInitializerTest {
+  
+  public String[] sa = {"hello ", "world ", "!"};
+  
+  public ArrayInitializerTest(){}
+  
   static public void main( String[] args ) {
     
     int[] a = { 1, 2, 3 };
@@ -14,6 +19,11 @@ public class ArrayInitializerTest {
       } else {
         System.out.println("ia[" + i + "] is null");
       }
+    }
+    
+    ArrayInitializerTest ait = new ArrayInitializerTest();
+    for(int i = 0; i < ait.sa.length; i++) {
+      System.out.println(ait.sa[i]);
     }
   }
 }
