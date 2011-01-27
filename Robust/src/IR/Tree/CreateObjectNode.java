@@ -10,12 +10,14 @@ public class CreateObjectNode extends ExpressionNode {
   FlagEffects fe;
   boolean isglobal;
   String disjointId;
+  ArrayInitializerNode ain;
 
   public CreateObjectNode(TypeDescriptor type, boolean isglobal, String disjointId) {
     td=type;
     argumentlist=new Vector();
     this.isglobal=isglobal;
     this.disjointId=disjointId;
+    this.ain = null;
   }
 
   public boolean isGlobal() {
@@ -57,6 +59,14 @@ public class CreateObjectNode extends ExpressionNode {
   public ExpressionNode getArg(int i) {
     return (ExpressionNode) argumentlist.get(i);
   }
+  
+  public void addArrayInitializer(ArrayInitializerNode ain) {
+   this.ain = ain; 
+  }
+  
+  public ArrayInitializerNode getArrayInitializer() {
+    return this.ain;
+  }
 
   public String printNode(int indent) {
     String st;
@@ -76,9 +86,15 @@ public class CreateObjectNode extends ExpressionNode {
       }
     }
     if (isarray)
-      return st+"]";
+      st += "]";
     else
-      return st+")";
+      st += ")";
+    if(isarray && this.ain != null) {
+      st += "{";
+      st += this.ain.printNode(indent);
+      st += "}";
+    }
+    return st;
   }
 
   public int kind() {

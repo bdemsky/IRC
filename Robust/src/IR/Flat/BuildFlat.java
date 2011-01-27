@@ -1387,43 +1387,44 @@ public class BuildFlat {
   }
 
   private NodePair flattenArrayInitializerNode(ArrayInitializerNode ain, TempDescriptor out_temp) {
-    /*
-    TempDescriptor expr_temp=TempDescriptor.tempFactory("arry_init",ain.getType());
+    boolean isGlobal = false;
+    String disjointId = null;
+    // get the type the array to be initialized
+    TypeDescriptor td = out_temp.getType();
 
     // create a new array of size equal to the array initializer
-    //FlatNode first=null;
-    //FlatNode last=null;
-    TempDescriptor[] temps=new TempDescriptor[ain.numVarInitializers()];
-
-      for (int i=0; i<con.numArgs(); i++) {
-	ExpressionNode en=con.getArg(i);
-	TempDescriptor tmp=TempDescriptor.tempFactory("arg",en.getType());
-	temps[i]=tmp;
-	NodePair np=flattenExpressionNode(en, tmp);
-	if (first==null)
-	  first=np.getBegin();
-	else
-	  last.addNext(np.getBegin());
-	last=np.getEnd();
-
-	TempDescriptor tmp2=(i==0) ?
-	                     out_temp :
-	                     TempDescriptor.tempFactory("arg",en.getType());
-      }
-      FlatNew fn=new FlatNew(td, out_temp, temps[0], con.isGlobal(), con.getDisjointId());
-      last.addNext(fn);
-
-
-    // assign each element of the new array to the flattened expression
-
-
-    FlatOpNode fonAssignArray=new FlatOpNode(out_temp, newarry_temp, null, new Operation(Operation.ASSIGN));
-    */
-    //return new NodePair( , fonAssignArray );
-    ain.printNode(0);
-    System.out.println( "Array initializers not implemented yet." );
-    System.exit( -1 );
-    return null;
+    FlatNode first=null;
+    FlatNode last=null;
+    TempDescriptor tmp=TempDescriptor.tempFactory("arg", new TypeDescriptor(TypeDescriptor.INT));
+    FlatLiteralNode fln_tmp=new FlatLiteralNode(tmp.getType(), new Integer(ain.numVarInitializers()), tmp);
+    first = last=fln_tmp;
+    
+    // create the new array
+    FlatNew fn=new FlatNew(td, out_temp, tmp, isGlobal, disjointId);
+    last.addNext(fn);
+    last = fn;
+    
+    // initialize the new array
+    for(int i = 0; i < ain.numVarInitializers(); i++) {
+      ExpressionNode var_init_node = ain.getVarInitializer(i);
+      TempDescriptor tmp_toinit = out_temp;
+      TempDescriptor tmp_init=TempDescriptor.tempFactory("array_init", td.dereference());
+      // index=i
+      TempDescriptor index=TempDescriptor.tempFactory("index", new TypeDescriptor(TypeDescriptor.INT));
+      FlatLiteralNode fln=new FlatLiteralNode(index.getType(), new Integer(i), index);
+      // calculate the initial value
+      NodePair np_init = flattenExpressionNode(var_init_node, tmp_init);
+      // TODO wrapper class process is missing now
+      /*if(td.isArray() && td.dereference().iswrapper()) {
+      }*/
+      FlatSetElementNode fsen=new FlatSetElementNode(tmp_toinit, index, tmp_init);
+      last.addNext(fln);
+      fln.addNext(np_init.getBegin());
+      np_init.getEnd().addNext(fsen);
+      last = fsen;
+    }
+    
+    return new NodePair(first, last);
   }
 
   private NodePair flattenTertiaryNode(TertiaryNode tn, TempDescriptor out_temp) {

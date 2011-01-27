@@ -745,7 +745,10 @@ public class BuildIR {
     td=td.makeArray(state);
       CreateObjectNode con=new CreateObjectNode(td, false, null);
       // TODO array initializers
-      pn.getChild("initializer");
+      ParseNode ipn = pn.getChild("initializer");     
+      Vector initializers=parseVariableInitializerList(ipn);
+      ArrayInitializerNode ain = new ArrayInitializerNode(initializers);
+      con.addArrayInitializer(ain);
       return con;
     } else if (isNode(pn,"name")) {
       NameDescriptor nd=parseName(pn);
@@ -804,13 +807,9 @@ public class BuildIR {
       ExpressionNode exp=parseExpression(pn.getChild("exp").getFirstChild());
       TypeDescriptor t=parseTypeDescriptor(pn);
       return new InstanceOfNode(exp,t);
-    } else if (isNode(pn, "array_initializer")) {
-      System.out.println( "Array initializers not implemented yet." );
-      return null; // TODO MGC
-      //throw new Error();
-      //TypeDescriptor td=parseTypeDescriptor(pn);      
-      //Vector initializers=parseVariableInitializerList(pn);
-      //return new ArrayInitializerNode(td, initializers);
+    } else if (isNode(pn, "array_initializer")) {  
+      Vector initializers=parseVariableInitializerList(pn);
+      return new ArrayInitializerNode(initializers);
     } else if (isNode(pn, "class_type") && state.MGC) {
       TypeDescriptor td=parseTypeDescriptor(pn);
       return new ClassTypeNode(td);
@@ -866,7 +865,7 @@ public class BuildIR {
 
   private Vector parseVariableInitializerList(ParseNode pn) {
     Vector varInitList=new Vector();
-    ParseNode vin=pn.getChild("variable_init_list");
+    ParseNode vin=pn.getChild("var_init_list");
     if (vin==null)       /* No argument list */
       return varInitList;
     ParseNodeVector vinv=vin.getChildren();

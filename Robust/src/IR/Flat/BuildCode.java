@@ -1621,9 +1621,25 @@ public class BuildCode {
       if (state.MGC && fd.getType().isClass()
           && fd.getType().getClassDesc().isEnum()) {
         classdefout.println("  int " + fd.getSafeSymbol() + ";");
-      } else if (fd.getType().isClass()||fd.getType().isArray())
+      } else if (fd.getType().isClass()||fd.getType().isArray()) {
+        if ((state.MGC) && (fd.isStatic())) {
+          // TODO add version for normal Java later
+          // static field
+          if(fd.isVolatile()) {
+            globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+          } else {
+            globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+          }
+          classdefout.println("  struct "+fd.getType().getSafeSymbol()+" ** "+fd.getSafeSymbol()+";");
+        } else if ((state.MGC) && (fd.isVolatile())) {
+          // TODO add version for normal Java later
+          // static field
+          globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+          classdefout.println("  struct"+fd.getType().getSafeSymbol()+" ** "+fd.getSafeSymbol()+";");
+        } else {
 	classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
-      else if ((state.MGC) && (fd.isStatic())) {
+        }
+      } else if ((state.MGC) && (fd.isStatic())) {
         // TODO add version for normal Java later
         // static field
         if(fd.isVolatile()) {

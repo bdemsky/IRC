@@ -1,19 +1,11 @@
 package IR.Tree;
 import java.util.Vector;
-import IR.TypeDescriptor;
-import IR.MethodDescriptor;
 
 public class ArrayInitializerNode extends ExpressionNode {
-  TypeDescriptor td;
   Vector varInitList;
 
-  public ArrayInitializerNode(TypeDescriptor type, Vector vil) {
-    td=type;
+  public ArrayInitializerNode(Vector vil) {
     varInitList=vil;
-  }
-
-  public TypeDescriptor getType() {
-    return td;
   }
 
   public int numVarInitializers() {

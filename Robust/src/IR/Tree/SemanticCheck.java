@@ -774,7 +774,7 @@ public class SemanticCheck {
 
   void checkArrayInitializerNode(Descriptor md, SymbolTable nametable, ArrayInitializerNode ain, TypeDescriptor td) {
     for( int i = 0; i < ain.numVarInitializers(); ++i ) {
-      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td); 
+      checkExpressionNode(md, nametable, ain.getVarInitializer(i), td.dereference()); 
     }
   }
 
