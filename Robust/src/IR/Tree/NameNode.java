@@ -97,4 +97,18 @@ public class NameNode extends ExpressionNode {
   public int kind() {
     return Kind.NameNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    if(fd != null ) {
+      if(fd.isFinal() && fd.isStatic()) {
+        eval = fd.getExpressionNode().evaluate();
+      } else if(fd.isEnum()) {
+        eval = Long.valueOf((long)fd.enumValue());
+      } 
+    } else if(en!= null) {
+      eval = en.evaluate();
+    }
+    return eval; //null;
+  }
 }

@@ -542,9 +542,13 @@ public class BuildFlat {
 
     //Get src value
     if (an.getSrc()!=null) {
-      NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
-      first=np_src.getBegin();
-      last=np_src.getEnd();
+      if(an.getSrc().getEval() != null) {
+        first = last = new FlatLiteralNode(an.getSrc().getType(), an.getSrc().getEval().longValue(), src_tmp);
+      } else {
+        NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
+        first=np_src.getBegin();
+        last=np_src.getEnd();
+      }
     } else if (!pre) {
       FlatLiteralNode fln=new FlatLiteralNode(new TypeDescriptor(TypeDescriptor.INT),new Integer(1),src_tmp);
       first=fln;

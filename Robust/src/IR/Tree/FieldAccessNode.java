@@ -38,4 +38,14 @@ public class FieldAccessNode extends ExpressionNode {
     return getField().getType();
   }
 
+  public Long evaluate() {
+    // if the field is a constant value then OK
+    eval = null;
+    if(field.isStatic() && field.isFinal()) {
+      eval = field.getExpressionNode().evaluate();
+    } else if (field.isEnum()) {
+      eval = Long.valueOf((long)field.enumValue());
+    }
+    return eval;
+  }
 }

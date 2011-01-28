@@ -30,4 +30,9 @@ public class InstanceOfNode extends ExpressionNode {
   public int kind() {
     return Kind.InstanceOfNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    return eval; //null;
+  }
 }

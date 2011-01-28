@@ -37,4 +37,23 @@ public class TertiaryNode extends ExpressionNode {
   public int kind() {
     return Kind.TertiaryNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    Long c = this.cond.evaluate();
+    if(c != null) {
+      Long t = this.trueExpr.evaluate();
+      if(t != null) {
+        Long f = this.falseExpr.evaluate();
+        if(f != null) {
+          if(c.intValue() > 0) {
+            eval = t;
+          } else {
+            eval = f;
+          }
+        }
+      }
+    }
+    return eval;
+  }
 }

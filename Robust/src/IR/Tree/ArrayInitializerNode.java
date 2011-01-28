@@ -43,4 +43,9 @@ public class ArrayInitializerNode extends ExpressionNode {
   public int kind() {
     return Kind.ArrayInitializerNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    return eval; //null;
+  }
 }

@@ -39,4 +39,9 @@ public class AssignmentNode extends ExpressionNode {
   public int kind() {
     return Kind.AssignmentNode;
   }
+  
+  public Long evaluate() {
+    eval = left.evaluate();
+    return eval;
+  }
 }

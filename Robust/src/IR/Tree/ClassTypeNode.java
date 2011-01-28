@@ -28,4 +28,9 @@ public class ClassTypeNode extends ExpressionNode {
   public int kind() {
     return Kind.ClassTypeNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    return eval; //null;
+  }
 }

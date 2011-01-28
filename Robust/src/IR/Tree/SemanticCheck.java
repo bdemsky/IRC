@@ -588,8 +588,12 @@ public class SemanticCheck {
         fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), fieldname, null, false);
         fd.setAsEnum();
         fd.setEnumValue(value);
-      } else if(!fd.isStatic()) {
+      } else if(fd.isStatic()) {
         // check if this field is a static field
+        if(fd.getExpressionNode() != null) {
+          checkExpressionNode(md,nametable,fd.getExpressionNode(),null);
+        }
+      } else {
         throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
       }
     } 
@@ -656,8 +660,25 @@ public class SemanticCheck {
     }
 
     if (td!=null)
-      if (!typeutil.isSuperorType(td,ln.getType()))
-	throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
+      if (!typeutil.isSuperorType(td,ln.getType())) {
+        Long l = ln.evaluate();
+        if((ln.getType().isByte() || ln.getType().isShort() 
+            || ln.getType().isChar() || ln.getType().isInt()) 
+            && (l != null) 
+            && (td.isByte() || td.isShort() || td.isChar() 
+                || td.isInt() || td.isLong())) {
+          long lnvalue = l.longValue();
+          if((td.isByte() && ((lnvalue > 127) || (lnvalue < -128))) 
+              || (td.isShort() && ((lnvalue > 32767) || (lnvalue < -32768)))
+              || (td.isChar() && ((lnvalue > 65535) || (lnvalue < 0)))
+              || (td.isInt() && ((lnvalue > 2147483647) || (lnvalue < -2147483648)))
+              || (td.isLong() && ((lnvalue > 9223372036854775807L) || (lnvalue < -9223372036854775808L)))) {
+            throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
+          }
+        } else {
+          throw new Error("Field node returns "+ln.getType()+", but need "+td+" in "+md);
+        }
+      }
   }
 
   void checkNameNode(Descriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
@@ -860,7 +881,23 @@ public class SemanticCheck {
     }
 
     if (!postinc&&!typeutil.isSuperorType(an.getDest().getType(),an.getSrc().getType())) {
-      throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
+      TypeDescriptor dt = an.getDest().getType();
+      TypeDescriptor st = an.getSrc().getType();
+      Long l = an.getSrc().evaluate();
+      if((st.isByte() || st.isShort() || st.isChar() || st.isInt()) 
+          && (l != null) 
+          && (dt.isByte() || dt.isShort() || dt.isChar() || dt.isInt() || dt.isLong())) {
+        long lnvalue = l.longValue();
+        if((dt.isByte() && ((lnvalue > 127) || (lnvalue < -128))) 
+            || (dt.isShort() && ((lnvalue > 32767) || (lnvalue < -32768)))
+            || (dt.isChar() && ((lnvalue > 65535) || (lnvalue < 0)))
+            || (dt.isInt() && ((lnvalue > 2147483647) || (lnvalue < -2147483648)))
+            || (dt.isLong() && ((lnvalue > 9223372036854775807L) || (lnvalue < -9223372036854775808L)))) {
+          throw new Error("Field node returns "+st+", but need "+dt+" in "+md);
+        }
+      } else {
+        throw new Error("Type of rside ("+an.getSrc().getType().toPrettyString()+") not compatible with type of lside ("+an.getDest().getType().toPrettyString()+")"+an.printNode(0));
+      }
     }
   }
 

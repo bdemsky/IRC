@@ -41,4 +41,9 @@ public class OffsetNode extends ExpressionNode {
   public int kind() {
     return Kind.OffsetNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    return eval; //null;
+  }
 }

@@ -52,6 +52,10 @@ public class FieldDescriptor extends Descriptor {
       return en;
   }
 
+  public boolean isFinal() {
+    return modifier.isFinal();
+  }
+  
   public boolean isStatic() {
     return modifier.isStatic();
   }

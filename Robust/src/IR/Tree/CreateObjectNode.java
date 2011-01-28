@@ -100,4 +100,9 @@ public class CreateObjectNode extends ExpressionNode {
   public int kind() {
     return Kind.CreateObjectNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    return eval; //null;
+  }
 }

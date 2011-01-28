@@ -87,4 +87,9 @@ public class MethodInvokeNode extends ExpressionNode {
   public int kind() {
     return Kind.MethodInvokeNode;
   }
+  
+  public Long evaluate() {
+    eval = null;
+    return eval; //null;
+  }
 }
