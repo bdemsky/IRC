@@ -48,6 +48,7 @@ import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Loops.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
+import Analysis.Pointer.Pointer;
 import IR.MethodDescriptor;
 import IR.Flat.FlatMethod;
 import Interface.*;
@@ -170,11 +171,10 @@ public class Main {
 	state.OWNERSHIPDEBUGCALLER=args[++i];
       } else if (option.equals("-owndebugcallcount")) {
 	state.OWNERSHIPDEBUGCALLCOUNT=Integer.parseInt(args[++i]);
-      }
-
-      else if (option.equals("-disjoint"))
+      } else if (option.equals("-pointer")) {
+	state.POINTER=true;
+      } else if (option.equals("-disjoint"))
 	state.DISJOINT=true;
-
       else if (option.equals("-disjoint-k")) {
 	state.DISJOINTALLOCDEPTH=Integer.parseInt(args[++i]);
 
@@ -451,6 +451,10 @@ public class Main {
 	  Inliner.inlineAtomic(state, tu, fm, state.inlineatomicdepth);
 	}
       }
+    }
+    if (state.POINTER) {
+      Pointer pointgraph=new Pointer(state, tu);
+      pointgraph.doAnalysis();
     }
 
 

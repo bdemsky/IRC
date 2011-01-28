@@ -13,6 +13,7 @@ public class Pointer {
   TypeUtil typeUtil;
   AllocFactory allocFactory;
   LinkedList<Delta> toprocess;
+  TempDescriptor returntmp;
 
   public Pointer(State state, TypeUtil typeUtil) {
     this.state=state;
@@ -22,6 +23,8 @@ public class Pointer {
     this.typeUtil=typeUtil;
     this.allocFactory=new AllocFactory(state, typeUtil);
     this.toprocess=new LinkedList<Delta>();
+    ClassDescriptor stringcd=typeUtil.getClass(TypeUtil.ObjectClass);
+    this.returntmp=new TempDescriptor("RETURNVAL", stringcd);
   }
 
   public BasicBlock getBBlock(FlatMethod fm) {
@@ -45,7 +48,7 @@ public class Pointer {
     return delta;
   }
 
-  void doAnalysis() {
+  public void doAnalysis() {
     toprocess.add(buildInitialContext());
 
     while(!toprocess.isEmpty()) {
@@ -67,11 +70,11 @@ public class Pointer {
 	nodeGraph=graphMap.get(currNode);
 	delta=processNode(currNode, delta, nodeGraph);
       }
-      generateFinalDelta(delta, nodeGraph);
+      generateFinalDelta(bblock, delta, nodeGraph);
     }    
   }
 
-  void generateFinalDelta(Delta delta, Graph graph) {
+  void generateFinalDelta(BBlock bblock, Delta delta, Graph graph) {
     Delta newDelta=new Delta(null, false);
     if (delta.getInit()) {
       //First compute the set of temps
@@ -145,8 +148,7 @@ public class Pointer {
     /* Now we need to propagate newdelta */
     if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()) {
       /* We have a delta to propagate */
-      BBlock curr=delta.getBlock();
-      Vector<BBlock> blockvector=curr.next();
+      Vector<BBlock> blockvector=bblock.next();
       for(int i=0;i<blockvector.size();i++) {
 	if (i==0) {
 	  newDelta.setBlock(blockvector.get(i));
@@ -155,7 +157,6 @@ public class Pointer {
 	  toprocess.add(newDelta.diffBlock(blockvector.get(i)));
 	}
       }
-
     }
   }
 
@@ -168,15 +169,15 @@ public class Pointer {
       return processFieldElementNode(node, delta, newgraph);
     case FKind.FlatCastNode:
     case FKind.FlatOpNode:
+    case FKind.FlatReturnNode:
       return processCopyNode(node, delta, newgraph);
     case FKind.FlatSetFieldNode:
     case FKind.FlatSetElementNode:
       return processSetFieldElementNode(node, delta, newgraph);
     case FKind.FlatMethod:
-    case FKind.FlatCall:
-    case FKind.FlatReturnNode:
     case FKind.FlatExit:
-
+      return processFlatNop(node, delta, newgraph);
+    case FKind.FlatCall:
     case FKind.FlatSESEEnterNode:
     case FKind.FlatSESEExitNode:
       throw new Error("Unimplemented node:"+node);
@@ -309,6 +310,10 @@ public class Pointer {
       FlatOpNode fon=(FlatOpNode) node;
       src=fon.getLeft();
       dst=fon.getDest();
+    } else if (node.kind()==FKind.FlatReturnNode) {
+      FlatReturnNode frn=(FlatReturnNode)node;
+      src=frn.getReturnTemp();
+      dst=returntmp;
     } else {
       FlatCastNode fcn=(FlatCastNode) node;
       src=fcn.getSrc();
@@ -427,6 +432,11 @@ public class Pointer {
 	edgeAdd.add(e);
       }
     }
+  }
+
+  Delta processFlatNop(FlatNode node, Delta delta, Graph graph) {
+    applyDiffs(graph, delta);
+    return delta;
   }
 
   Delta processNewNode(FlatNew node, Delta delta, Graph graph) {
