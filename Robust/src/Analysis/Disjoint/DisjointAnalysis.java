@@ -4,7 +4,6 @@ import Analysis.CallGraph.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
 import Analysis.OoOJava.RBlockRelationAnalysis;
-import Analysis.OoOJava.RBlockStatusAnalysis;
 import IR.*;
 import IR.Flat.*;
 import IR.Tree.Modifiers;
@@ -386,7 +385,6 @@ public class DisjointAnalysis {
   public Liveness         liveness;
   public ArrayReferencees arrayReferencees;
   public RBlockRelationAnalysis rblockRel;
-  public RBlockStatusAnalysis rblockStatus;
   public TypeUtil         typeUtil;
   public int              allocationDepth;
 
@@ -618,10 +616,9 @@ public class DisjointAnalysis {
 			   Liveness         l,
 			   ArrayReferencees ar,
                            Set<FlatNew> sitesToFlag,
-                           RBlockRelationAnalysis rra,
-                           RBlockStatusAnalysis rsa
+                           RBlockRelationAnalysis rra
                            ) {
-    init( s, tu, cg, l, ar, sitesToFlag, rra, rsa, false );
+    init( s, tu, cg, l, ar, sitesToFlag, rra, false );
   }
 
   public DisjointAnalysis( State            s,
@@ -631,10 +628,9 @@ public class DisjointAnalysis {
 			   ArrayReferencees ar,
                            Set<FlatNew> sitesToFlag,
                            RBlockRelationAnalysis rra,
-                           RBlockStatusAnalysis rsa,
                            boolean suppressOutput
                            ) {
-    init( s, tu, cg, l, ar, sitesToFlag, rra, rsa, suppressOutput );
+    init( s, tu, cg, l, ar, sitesToFlag, rra, suppressOutput );
   }
   
   protected void init( State            state,
@@ -644,7 +640,6 @@ public class DisjointAnalysis {
                        ArrayReferencees arrayReferencees,
                        Set<FlatNew> sitesToFlag,
                        RBlockRelationAnalysis rra,
-                       RBlockStatusAnalysis rsa,
                        boolean suppressOutput
                        ) {
 	  
@@ -657,7 +652,6 @@ public class DisjointAnalysis {
     this.arrayReferencees = arrayReferencees;
     this.sitesToFlag      = sitesToFlag;
     this.rblockRel        = rra;
-    this.rblockStatus     = rsa;
 
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
@@ -1120,13 +1114,14 @@ public class DisjointAnalysis {
     case FKind.FlatGenReachNode: {
       FlatGenReachNode fgrn = (FlatGenReachNode) fn;
       
-      System.out.println( "Generating a reach graph!" );
+      System.out.println( "  Generating reach graph for program point: "+fgrn.getGraphName() );
+
       rg.writeGraph( "genReach"+fgrn.getGraphName(),
                      true,    // write labels (variables)                
-                     true,    // selectively hide intermediate temp vars 
+                     false,    // selectively hide intermediate temp vars 
                      true,    // prune unreachable heap regions          
                      false,   // hide reachability altogether
-                     true,    // hide subset reachability states         
+                     false,   // hide subset reachability states         
                      true,    // hide predicates
                      true );  // hide edge taints      
     } break;
@@ -1170,7 +1165,7 @@ public class DisjointAnalysis {
 
         // before transfer, do effects analysis support
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-          if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+          if(rblockRel.isPotentialStallSite(fn)){
             // x gets status of y
             if(!rg.isAccessible(rhs)){
               rg.makeInaccessible(lhs);
@@ -1193,7 +1188,7 @@ public class DisjointAnalysis {
 
       // before transfer, do effects analysis support
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+        if(rblockRel.isPotentialStallSite(fn)){
           // x gets status of y
           if(!rg.isAccessible(rhs)){
             rg.makeInaccessible(lhs);
@@ -1216,7 +1211,7 @@ public class DisjointAnalysis {
       // a stall-site taint
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+        if(rblockRel.isPotentialStallSite(fn)){
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
           if(!rg.isAccessible(rhs)) {
@@ -1254,7 +1249,7 @@ public class DisjointAnalysis {
       // stall-site taints
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
 
-        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+        if(rblockRel.isPotentialStallSite(fn)){
           // x.y=f , stall x and y if they are not accessible
           // also contribute write effects on stall site of x
           if(!rg.isAccessible(lhs)) {
@@ -1297,7 +1292,7 @@ public class DisjointAnalysis {
       // before transfer func, possibly inject
       // stall-site taint
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+        if(rblockRel.isPotentialStallSite(fn)){
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
           // after this, x and y are accessbile. 
@@ -1337,7 +1332,7 @@ public class DisjointAnalysis {
       // stall-site taints
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           
-        if(rblockStatus.isInCriticalRegion(fmContaining, fn)){
+        if(rblockRel.isPotentialStallSite(fn)){
           // x.y=f , stall x and y if they are not accessible
           // also contribute write effects on stall site of x
           if(!rg.isAccessible(lhs)) {
@@ -1377,7 +1372,7 @@ public class DisjointAnalysis {
 
         // before transform, support effects analysis
         if (doEffectsAnalysis && fmContaining != fmAnalysisEntry) {
-          if (rblockStatus.isInCriticalRegion(fmContaining, fn)) {
+          if (rblockRel.isPotentialStallSite(fn)) {
             // after creating new object, lhs is accessible
             rg.makeAccessible(lhs);
           }
@@ -1390,11 +1385,6 @@ public class DisjointAnalysis {
 
     case FKind.FlatSESEEnterNode:
       sese = (FlatSESEEnterNode) fn;
-
-      if( sese.getIsCallerSESEplaceholder() ) {
-        // ignore these dummy rblocks!
-        break;
-      }
 
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         
@@ -1582,7 +1572,6 @@ public class DisjointAnalysis {
           if( state.DISJOINTDEBUGSCHEDULING ) {
             System.out.println( "  callee hasn't been analyzed, scheduling: "+mdPossible );
           }
-
 
         } else {
           // calculate the method call transform         

@@ -244,13 +244,19 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     for (int step = 0; step < local_ntimesteps; step++) { // time-step the system
       ComputeCenterAndDiameter();
       ArrayIndexedGraph octree = new ArrayIndexedGraph(8);
+      genreach q1;
       ArrayIndexedNode root = octree.createNode(new OctTreeNodeData(centerx, centery, centerz)); // create the tree's root
+      genreach q2;
       octree.addNode(root);
+      genreach q3;
       double radius = diameter * 0.5;
     
       for (int i = 0; i < local_nbodies; i++) {
+        genreach r0;
         Insert(octree, root, body[i], radius); // grow the tree by inserting each body
+        genreach r1;
         body[i].root=root;
+        genreach r2;
       }
       curr = 0;
       // summarize subtree info in each internal node (plus restructure tree and sort bodies for performance reasons)
@@ -265,7 +271,7 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
         double dt=dthf;
         double ep=epssq;   
         sese parallel{
-            eachbody.ComputeForce(octree, di, it, step, dt, ep);
+          eachbody.ComputeForce(octree, di, it, step, dt, ep);
         }
       }
 

@@ -1,4 +1,4 @@
-package Analysis.MLP;
+package Analysis.OoOJava;
 
 import IR.*;
 import IR.Flat.*;
@@ -438,15 +438,15 @@ public class VarSrcTokTable {
 
     Set<TempDescriptor> virtReadSet = new HashSet<TempDescriptor>();
 
-    FlatSESEEnterNode parent = exiter.getParent();
-    if( parent == null ) {
+    Set<FlatSESEEnterNode> parents = null; //exiter.getParents();
+    if( parents.isEmpty() ) {
       // having no parent means no siblings, too
       return virtReadSet;
     }
 
     Set<FlatSESEEnterNode> alternateSESEs = new HashSet<FlatSESEEnterNode>();
-    alternateSESEs.add( parent );
-    Iterator<FlatSESEEnterNode> childItr = parent.getChildren().iterator();
+    alternateSESEs.addAll( parents );
+    Iterator<FlatSESEEnterNode> childItr = null; //parents.getChildren().iterator();
     while( childItr.hasNext() ) {
       FlatSESEEnterNode sibling = childItr.next();      
       if( !sibling.equals( exiter ) ) {
@@ -616,7 +616,7 @@ public class VarSrcTokTable {
 
         // if we ever have at least one child source with an
         // unknown age, have to treat var as dynamic
-        if( vst.getAge().equals( MLPAnalysis.maxSESEage ) ) {
+        if( vst.getAge().equals( OoOJavaAnalysis.maxSESEage ) ) {
           return SrcType_DYNAMIC;
         }
 

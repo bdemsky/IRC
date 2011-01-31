@@ -1,9 +1,9 @@
 package IR.Flat;
-import Analysis.MLP.VSTWrapper;
+import Analysis.OoOJava.VSTWrapper;
 import java.util.Hashtable;
 
 
-// This node is inserted by the MLP analysis
+// This node is inserted by the OOOJava analysis
 // in between a (tail -> head) IR graph edge.
 // It is for tracking SESE variables with
 // dynamic sources

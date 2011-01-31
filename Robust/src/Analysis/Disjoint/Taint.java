@@ -194,12 +194,7 @@ public class Taint extends Canonical {
     String s;
 
     if( isRBlockTaint() ) {
-      if( sese.getIsCallerSESEplaceholder() ) {
-        s = "placeh";
-      } else {
-        s = sese.getPrettyIdentifier();
-      }
-
+      s = sese.getPrettyIdentifier();
     } else {
       s = stallSite.toString();
     }

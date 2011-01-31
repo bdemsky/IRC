@@ -42,7 +42,6 @@ import Analysis.Locality.GenerateConversions;
 import Analysis.Prefetch.PrefetchAnalysis;
 import Analysis.FlatIRGraph.FlatIRGraph;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
-import Analysis.MLP.MLPAnalysis;
 import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Loops.*;
@@ -314,16 +313,7 @@ public class Main {
       else if (option.equals("-abcclose"))
 	state.ARRAYBOUNDARYCHECK=false;
 
-      else if (option.equals("-mlp")) {
-	state.MLP            = true;
-	state.OWNERSHIP      = true;
-	state.MLP_NUMCORES   = Integer.parseInt( args[++i] );
-	state.MLP_MAXSESEAGE = Integer.parseInt( args[++i] );
-
-      } else if (option.equals("-mlpdebug")) {
-	state.MLPDEBUG=true;
-
-      } else if (option.equals("-methodeffects")) {
+      else if (option.equals("-methodeffects")) {
 	state.METHODEFFECTS=true;
 	
       } else if (option.equals("-coreprof")) {
@@ -332,8 +322,8 @@ public class Main {
       } else if (option.equals("-ooojava")) {
 	state.OOOJAVA  = true;
 	state.DISJOINT = true;
-	state.MLP_NUMCORES   = Integer.parseInt( args[++i] );
-	state.MLP_MAXSESEAGE = Integer.parseInt( args[++i] );
+	state.OOO_NUMCORES   = Integer.parseInt( args[++i] );
+	state.OOO_MAXSESEAGE = Integer.parseInt( args[++i] );
 
       } else if (option.equals("-ooodebug") ){ 
 	state.OOODEBUG  = true;
@@ -437,7 +427,6 @@ public class Main {
     bf.buildFlat();
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
-    MLPAnalysis mlpa=null;
     OoOJavaAnalysis  oooa=null;
     if (state.INLINEATOMIC) {
       Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
@@ -499,7 +488,7 @@ public class Main {
                                          state.FLATIRGRAPHLIBMETHODS);
     }
     
-    if (state.OWNERSHIP && !state.MLP) {
+    if (state.OWNERSHIP) {
       CallGraph callGraph = new CallGraph(state);
       Liveness liveness = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
@@ -515,31 +504,11 @@ public class Main {
                                                    state.METHODEFFECTS);
     }
 
-    if (state.MLP) {
-      CallGraph callGraph = new CallGraph(state);
-      Liveness liveness = new Liveness();
-      ArrayReferencees ar = new ArrayReferencees(state);
-      OwnershipAnalysis oa = new OwnershipAnalysis(state,
-                                                   tu,
-                                                   callGraph,
-						   liveness,
-                                                   ar,
-						   state.OWNERSHIPALLOCDEPTH,
-                                                   state.OWNERSHIPWRITEDOTS,
-                                                   state.OWNERSHIPWRITEALL,
-                                                   state.OWNERSHIPALIASFILE,
-                                                   state.METHODEFFECTS);
-      mlpa = new MLPAnalysis(state,
-                             tu,
-                             callGraph,
-                             oa);
-    }    
-
     if (state.DISJOINT && !state.OOOJAVA) {
       CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
-      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar, null, null, null);
+      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar, null, null);
     }
 
     if (state.OOOJAVA) {
@@ -659,10 +628,10 @@ public class Main {
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa, mlpa,oooa);
+	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa, oooa);
 	bc.buildCode();
       } else {
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa, mlpa,oooa);
+	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa, oooa);
 	bc.buildCode();
       }
     }

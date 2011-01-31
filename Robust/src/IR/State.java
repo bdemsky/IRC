@@ -118,10 +118,8 @@ public class State {
   public boolean THREAD=false;
   public boolean CONSCHECK=false;
   public boolean INSTRUCTIONFAILURE=false;
-  public boolean MLP=false;
-  public boolean MLPDEBUG=false;
-  public int MLP_NUMCORES=0;
-  public int MLP_MAXSESEAGE=0;
+  public int OOO_NUMCORES=0;
+  public int OOO_MAXSESEAGE=0;
   public boolean METHODEFFECTS=false;
   public static double TRUEPROB=0.8;
   public static boolean PRINTFLAT=false;

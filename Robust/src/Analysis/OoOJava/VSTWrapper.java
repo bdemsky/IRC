@@ -1,4 +1,4 @@
-package Analysis.MLP;
+package Analysis.OoOJava;
 
 import IR.*;
 import IR.Flat.*;

@@ -73,10 +73,13 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions $(DRELEASEMODE) #-disjoint-
 # -disjoint-debug-snap-method Remove 10 3 true
 
 DISJOINTDEBUG= -justanalyze -disjoint -disjoint-k 1 -enable-assertions \
-	-flatirusermethods \
-	-disjoint-desire-determinism
-#	-disjoint-debug-scheduling
+	-disjoint-debug-callsite createNode run 100 50 false
+#	-disjoint-desire-determinism
 #	-disjoint-debug-snap-method ComputeCenterOfMass 6 2 true
+#	-disjoint-debug-scheduling
+#	-flatirusermethods
+
+
 
 
 default:

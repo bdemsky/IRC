@@ -1174,7 +1174,7 @@ public class ReachGraph {
       // so we capture the full change from the old alpha:
       ReachSet localDelta = Canonical.applyChangeSet( n.getAlpha(),
                                                       C,
-                                                      true 
+                                                      true
                                                       );
       // but this propagation may be only one of many concurrent
       // possible changes, so keep a running union with the node's
@@ -1281,9 +1281,6 @@ public class ReachGraph {
 
 
   public void taintInSetVars( FlatSESEEnterNode sese ) {
-    if( sese.getIsCallerSESEplaceholder() ) {
-      return;
-    }
 
     Iterator<TempDescriptor> isvItr = sese.getInVarSet().iterator();
     while( isvItr.hasNext() ) {
@@ -1339,9 +1336,6 @@ public class ReachGraph {
   }
   
   public void removeInContextTaints( FlatSESEEnterNode sese ) {
-    if( sese.getIsCallerSESEplaceholder() ) {
-      return;
-    }
 
     Iterator meItr = id2hrn.entrySet().iterator();
     while( meItr.hasNext() ) {
@@ -2199,10 +2193,10 @@ public class ReachGraph {
   private static boolean resolveMethodDebugDOTwriteLabels     = true;
   private static boolean resolveMethodDebugDOTselectTemps     = true;
   private static boolean resolveMethodDebugDOTpruneGarbage    = true;
-  private static boolean resolveMethodDebugDOThideReach       = true;
-  private static boolean resolveMethodDebugDOThideSubsetReach = true;
+  private static boolean resolveMethodDebugDOThideReach       = false;
+  private static boolean resolveMethodDebugDOThideSubsetReach = false;
   private static boolean resolveMethodDebugDOThidePreds       = true;
-  private static boolean resolveMethodDebugDOThideEdgeTaints  = false;
+  private static boolean resolveMethodDebugDOThideEdgeTaints  = true;
 
   static String debugGraphPrefix;
   static int debugCallSiteVisitCounter;
@@ -2220,6 +2214,7 @@ public class ReachGraph {
                        ) {
 
     if( writeDebugDOTs ) {
+
       System.out.println( "  Writing out visit "+
                           debugCallSiteVisitCounter+
                           " to debug call site" );
@@ -4400,7 +4395,6 @@ public class ReachGraph {
                           boolean      hideEdgeTaints,
                           Set<Integer> callerNodeIDsCopiedToCallee
                           ) {
-    
     try {
       // remove all non-word characters from the graph name so
       // the filename and identifier in dot don't cause errors

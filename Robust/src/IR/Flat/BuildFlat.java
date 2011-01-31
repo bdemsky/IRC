@@ -157,29 +157,24 @@ public class BuildFlat {
     while(methodit.hasNext()) {     
       currmd=(MethodDescriptor)methodit.next();
       
-      // if MLP is on, splice a special SESE in to
-      // enclose the main method, and a special SESE
-      // in around every other method that statically
-      // represents the SESE instance that will call
-      // that method at runtime
+      // if OOOJava is on, splice a special SESE in to
+      // enclose the main method
+      boolean spliceInImplicitMain = 
+        state.OOOJAVA &&
+        currmd.equals( typeutil.getMain() );
+
       FlatSESEEnterNode spliceSESE = null;
       FlatSESEExitNode  spliceExit = null;
-      if( state.MLP || state.OOOJAVA ) {
-	if( currmd.equals( typeutil.getMain() ) ) {
-	  SESENode mainTree = new SESENode( "main" );
-	  spliceSESE = new FlatSESEEnterNode( mainTree );
-	  spliceExit = new FlatSESEExitNode ( mainTree );
-	  spliceSESE.setFlatExit ( spliceExit );
-	  spliceExit.setFlatEnter( spliceSESE );
-	} else {
-	  SESENode callerSESETree = new SESENode( "caller SESE placeholder" );
-	  spliceSESE = new FlatSESEEnterNode( callerSESETree );
-	  spliceSESE.setCallerSESEplaceholder();
-	  spliceExit = new FlatSESEExitNode ( callerSESETree );
-	  spliceSESE.setFlatExit ( spliceExit );
-	  spliceExit.setFlatEnter( spliceSESE );
-	}
-      }
+
+      if( spliceInImplicitMain ) {
+        SESENode mainTree = new SESENode( "main" );
+        spliceSESE = new FlatSESEEnterNode( mainTree );
+        spliceExit = new FlatSESEExitNode ( mainTree );
+        spliceSESE.setFlatExit ( spliceExit );
+        spliceExit.setFlatEnter( spliceSESE );
+        spliceSESE.setIsMainSESE();
+      } 
+
 
       fe=new FlatExit();
 
@@ -216,8 +211,7 @@ public class BuildFlat {
 
       } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	FlatNode rnflat=null;
-	// splice implicit SESE exit after method body
-	if( state.MLP || state.OOOJAVA ) {
+	if( spliceInImplicitMain ) {
 	  np.getEnd().addNext(spliceExit);
 	  rnflat=spliceReturn(spliceExit);
 	} else {
@@ -225,16 +219,14 @@ public class BuildFlat {
 	}
 	rnflat.addNext(fe);
       } else if (np.getEnd()!=null) {
-	// splice implicit SESE exit after method body
-	if( state.MLP || state.OOOJAVA ) {
+	if( spliceInImplicitMain ) {
 	  FlatReturnNode rnflat=(FlatReturnNode)np.getEnd();
 	  np.getEnd().addNext(spliceExit);
 	  spliceExit.addNext(fe);
 	}
       }
 
-      // splice an implicit SESE enter before method body
-      if( state.MLP || state.OOOJAVA ) {
+      if( spliceInImplicitMain ) {
 	spliceSESE.addNext(fn);
 	fn=spliceSESE;	 
       }

@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.Vector;
 import Util.Pair;
 import Analysis.Disjoint.*;
-import Analysis.MLP.CodePlan;
 import IR.State;
 import IR.TypeDescriptor;
 import Analysis.OoOJava.ConflictGraph;
@@ -17,6 +16,7 @@ import Analysis.OoOJava.ConflictNode;
 import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.OoOJava.SESELock;
 import Analysis.OoOJava.WaitingElement;
+import Analysis.OoOJava.CodePlan;
 import Util.CodePrinter;
 
 /* An instance of this class manages all OoOJava coarse-grained runtime conflicts
@@ -155,9 +155,8 @@ public class RuntimeConflictResolver {
     for(Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator();seseit.hasNext();) {
       fsen = seseit.next();
       
-      if ( fsen.getSESEParent().size() > 0                                                        &&
-          !fsen.getIsCallerSESEplaceholder()                                                      &&
-          (parentSESE     = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next())   != null &&
+      if ( fsen.getParents().size() > 0                                                           &&
+          (parentSESE     = (FlatSESEEnterNode) fsen.getParents().iterator().next())   != null &&
           (conflictGraph  = oooa.getConflictGraph(parentSESE))                            != null &&
           (conflicts      = conflictGraph.getConflictEffectSet(fsen))                     != null &&
           (rg             = disjointAnaylsis.getEnterReachGraph(fsen))                    != null ){
@@ -173,19 +172,9 @@ public class RuntimeConflictResolver {
       FlatNode fn = codeit.next();
       CodePlan cp = oooa.getCodePlan(fn);
       fsen = cp.getCurrentSESE();
-      
-      // jjenista - I think the following code is WRONG!!! (but right... :(  )
-      // see note in OoOJavaAnalysis.java explaining that conflict graphs are
-      // correct but stored in a parent's parent by mistake, and then in places
-      // like this we look to the parent's parent for the correct conflict graph.
-      // It should be oooa.getConflictGraph(fsen) which is the task enclosing the
-      // stall site, and who's children might conflict with the stall site.
-      // DON'T CHANGE IT unless you are willing to find the many, many dependent
-      // code sections based on this behavior, but understand what is happening.
-      
-      if(  fsen.getSESEParent().size() != 0                                                     &&
-          (parentSESE     = (FlatSESEEnterNode)fsen.getSESEParent().iterator().next())  != null &&
-          (conflictGraph  = oooa.getConflictGraph(parentSESE))                          != null &&
+            
+      if(  fsen.getParents().size() != 0                                                     &&
+          (conflictGraph  = oooa.getConflictGraph(fsen))                                != null &&
           (conflicts      = conflictGraph.getConflictEffectSet(fn))                     != null &&
           (rg             = disjointAnaylsis.getEnterReachGraph(fn))                    != null ){
 
@@ -214,8 +203,7 @@ public class RuntimeConflictResolver {
     
     if(generalDebug) {
       System.out.println(rblock);
-      System.out.println(rblock.getIsCallerSESEplaceholder());
-      System.out.println(rblock.getParent());
+      System.out.println(rblock.getParents());
       System.out.println("CG=" + conflictGraph);
       if(verboseDebug)
     	  rg.writeGraph("RCR_RG_SESE_DEBUG"+removeInvalidChars(rblock.getPrettyIdentifier()));
@@ -525,7 +513,7 @@ public class RuntimeConflictResolver {
         
         // FIX IT LATER! Right now, we assume that there is only one parent
         // JCJ ask yong hun what we should do in the multi-parent future!
-        FlatSESEEnterNode parentSESE = (FlatSESEEnterNode) fsen.getSESEParent().iterator().next();
+        FlatSESEEnterNode parentSESE = (FlatSESEEnterNode) fsen.getParents().iterator().next();
         ConflictGraph     graph      = oooa.getConflictGraph(parentSESE);
         String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
         ConflictNode      node       = graph.getId2cn().get(id);        
@@ -846,7 +834,7 @@ public class RuntimeConflictResolver {
   public boolean hasEmptyTraversers(FlatSESEEnterNode fsen) {
     boolean hasEmpty = true;
 
-    Set<FlatSESEEnterNode> children = fsen.getSESEChildren();
+    Set<FlatSESEEnterNode> children = fsen.getChildren();
     for (Iterator iterator = children.iterator(); iterator.hasNext();) {
       FlatSESEEnterNode child = (FlatSESEEnterNode) iterator.next();
       hasEmpty &= child.getInVarsForDynamicCoarseConflictResolution().size() == 0;

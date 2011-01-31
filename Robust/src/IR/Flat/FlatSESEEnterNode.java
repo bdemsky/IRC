@@ -5,11 +5,8 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.Iterator;
 import java.util.Collection;
-
-import Analysis.MLP.SESEEffectsKey;
-import Analysis.MLP.SESEEffectsSet;
-import Analysis.MLP.SESEandAgePair;
-import Analysis.MLP.VariableSourceToken;
+import Analysis.OoOJava.VariableSourceToken;
+import Analysis.OoOJava.SESEandAgePair;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
 import IR.ClassDescriptor;
 import IR.FieldDescriptor;
@@ -26,16 +23,32 @@ public class FlatSESEEnterNode extends FlatNode {
   private   int               id;
   protected FlatSESEExitNode  exit;
   protected SESENode          treeNode;
-  protected FlatSESEEnterNode parent;
   protected Integer           oldestAgeToTrack;
-  protected boolean           isCallerSESEplaceholder;
 
+  // a leaf tasks simply has no children, ever
   protected static final int ISLEAF_UNINIT = 1;
   protected static final int ISLEAF_FALSE  = 2;
   protected static final int ISLEAF_TRUE   = 3;
   protected int isLeafSESE;
 
+  // there is only one main sese that is implicit
+  // (spliced in by the compiler around whole program)
+  protected boolean isMainSESE;
+
+  // all children tasks, INCLUDING those that are reachable
+  // by calling methods
   protected Set<FlatSESEEnterNode> children;
+  
+  // all possible parents
+  protected Set<FlatSESEEnterNode> parents;
+
+  // sometimes it is useful to know the locally defined
+  // parent or children of an SESE for various analysis,
+  // and by local it is one SESE nested within another
+  // in a single method context
+  protected Set<FlatSESEEnterNode> localChildren;  
+  protected FlatSESEEnterNode localParent;
+
 
   protected Set<TempDescriptor> inVars;
   protected Set<TempDescriptor> outVars;
@@ -52,7 +65,6 @@ public class FlatSESEEnterNode extends FlatNode {
 
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
   
-  private SESEEffectsSet seseEffectsSet;
 
   // a subset of the in-set variables that shouuld be traversed during
   // the dynamic coarse grained conflict strategy, remember them here so
@@ -76,21 +88,15 @@ public class FlatSESEEnterNode extends FlatNode {
   protected String firstDepRecField;
   protected int    numDepRecs;
   
-  // a set of sese located at the first in transitive call chain 
-  // starting from the current sese 
-  protected Set<FlatSESEEnterNode> seseChildren;
-  
-  // a set of complete parent sese, not bogus one
-  protected Set<FlatSESEEnterNode> seseParent;
-
 
   public FlatSESEEnterNode( SESENode sn ) {
     this.id              = identifier++;
     treeNode             = sn;
-    parent               = null;
     oldestAgeToTrack     = new Integer( 0 );
-
     children             = new HashSet<FlatSESEEnterNode>();
+    parents              = new HashSet<FlatSESEEnterNode>();
+    localChildren        = new HashSet<FlatSESEEnterNode>();
+    localParent          = null;
     inVars               = new HashSet<TempDescriptor>();
     outVars              = new HashSet<TempDescriptor>();
     needStaticNameInCode = new HashSet<SESEandAgePair>();
@@ -99,22 +105,18 @@ public class FlatSESEEnterNode extends FlatNode {
     staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
     dynamicVars          = new HashSet<TempDescriptor>();
-    seseChildren         = new HashSet<FlatSESEEnterNode>();
-    seseParent            = new HashSet<FlatSESEEnterNode>();
 
     inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
     
     staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
     
-    seseEffectsSet = new SESEEffectsSet();
-
     fmEnclosing = null;
     mdEnclosing = null;
     cdEnclosing = null;
 
-    isCallerSESEplaceholder = false;
-
     isLeafSESE = ISLEAF_UNINIT;
+
+    isMainSESE = false;
 
     firstDepRecField = null;
     numDepRecs       = 0;
@@ -132,6 +134,14 @@ public class FlatSESEEnterNode extends FlatNode {
 
   public FlatSESEExitNode getFlatExit() {
     return exit;
+  }
+
+  public void setIsMainSESE() {
+    isMainSESE = true;
+  }
+
+  public boolean getIsMainSESE() {
+    return isMainSESE;
   }
 
   public int kind() {
@@ -161,21 +171,45 @@ public class FlatSESEEnterNode extends FlatNode {
     return "sese "+getPrettyIdentifier()+getIdentifier();
   }
 
-  public void setParent( FlatSESEEnterNode parent ) {
-    this.parent = parent;
+
+
+  public void addParent( FlatSESEEnterNode parent ) {
+    parents.add( parent );
   }
 
-  public FlatSESEEnterNode getParent() {
-    return parent;
+  public Set<FlatSESEEnterNode> getParents() {
+    return parents;
+  }
+
+  public void setLocalParent( FlatSESEEnterNode parent ) {
+    localParent = parent;
+  }
+
+  public FlatSESEEnterNode getLocalParent() {
+    return localParent;
   }
 
   public void addChild( FlatSESEEnterNode child ) {
     children.add( child );
   }
 
+  public void addChildren( Set<FlatSESEEnterNode> batch ) {
+    children.addAll( batch );
+  }
+
   public Set<FlatSESEEnterNode> getChildren() {
     return children;
   }
+
+  public void addLocalChild( FlatSESEEnterNode child ) {
+    localChildren.add( child );
+  }
+
+  public Set<FlatSESEEnterNode> getLocalChildren() {
+    return localChildren;
+  }
+
+
 
   public void addInVar( TempDescriptor td ) {
     if (!inVars.contains(td))
@@ -351,27 +385,6 @@ public class FlatSESEEnterNode extends FlatNode {
       "_SESErec";
   }
 
-  public void setCallerSESEplaceholder() {
-    isCallerSESEplaceholder = true;
-  }
-
-  public boolean getIsCallerSESEplaceholder() {
-    return isCallerSESEplaceholder;
-  }
-
-  public void addSESEChildren(FlatSESEEnterNode child){
-    seseChildren.add(child);
-  }
-  
-  public void addSESEChildren(Set<FlatSESEEnterNode> children){
-    
-    seseChildren.addAll(children);
-  }
-  
-  public Set<FlatSESEEnterNode> getSESEChildren(){
-    return seseChildren;
-  }
-
   public boolean equals( Object o ) {
     if( o == null ) {
       return false;
@@ -389,20 +402,6 @@ public class FlatSESEEnterNode extends FlatNode {
     return 31*id;
   }
   
-  public void writeEffects(TempDescriptor td, String fd, TypeDescriptor type, HeapRegionNode hrn, boolean strongUpdate){
-	  seseEffectsSet.addWritingVar(td, new SESEEffectsKey(fd, type, hrn.getID(), hrn.getGloballyUniqueIdentifier()));
-	  if(strongUpdate){
-		  seseEffectsSet.addStrongUpdateVar(td, new SESEEffectsKey(fd, type, hrn.getID(), hrn.getGloballyUniqueIdentifier()));
-	  }
-  }
-  
-  public void readEffects(TempDescriptor td, String fd, TypeDescriptor type, HeapRegionNode hrn ){
-	  seseEffectsSet.addReadingVar(td, new SESEEffectsKey(fd, type, hrn.getID(), hrn.getGloballyUniqueIdentifier()));
-  }
-  
-  public SESEEffectsSet getSeseEffectsSet(){
-	  return seseEffectsSet;
-  }
 
 
   public void setFirstDepRecField( String field ) {
@@ -444,14 +443,6 @@ public class FlatSESEEnterNode extends FlatNode {
     }
 
     return isLeafSESE == ISLEAF_TRUE;
-  }
-  
-  public Set<FlatSESEEnterNode> getSESEParent() {
-    return seseParent;
-  }
-
-  public void addSESEParent(FlatSESEEnterNode  seseParent) {
-    this.seseParent.add(seseParent);
   }
 
 }
