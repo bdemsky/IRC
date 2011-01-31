@@ -131,6 +131,7 @@ JAVAFILES=IR/*.java \
 	Analysis/OwnershipAnalysis/*.java \
 	Analysis/Disjoint/*.java \
 	Analysis/OoOJava/*.java \
+	Analysis/Pointer/*.java \
 	Analysis/Prefetch/*.java \
 	Analysis/Scheduling/*.java \
 	Analysis/TaskStateAnalysis/*.java \
@@ -184,10 +185,10 @@ javadoc:
 	javadoc -classpath ../cup:.:$(CLASSPATH) -sourcepath . -private -d javadoc Lex Util IR IR.Tree IR.Flat Analysis Analysis.CallGraph Analysis.Flag Analysis.TaskStateAnalysis Analysis.Locality Analysis.Prefetch Main Analysis.OwnershipAnalysis Analysis.Disjoint Analysis.Scheduling
 
 clean:
-	rm -f IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Disjoint/*.class Analysis/OoOJava/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class
+	rm -f IR/*.class IR/Tree/*.class Main/*.class Lex/*.class Parse/*.class Parse/Sym.java Parse/Parser.java IR/Flat/*.class classdefs.h methodheaders.h methods.c structdefs.h virtualtable.h task.h taskdefs.c taskdefs.h Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Disjoint/*.class Analysis/OoOJava/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class Analysis/Pointer/*.class
 
 cleanclass:
-	rm -f IR/*.class IR/Tree/*.class Main/*.class IR/Flat/*.class Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Disjoint/*.class Analysis/OoOJava/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class
+	rm -f IR/*.class IR/Tree/*.class Main/*.class IR/Flat/*.class Analysis/*.class Analysis/Flag/*.class Analysis/CallGraph/*.class  Analysis/TaskStateAnalysis/*.class Interface/*.class Util/*.class Analysis/Locality/*.class Analysis/Prefetch/*.class Analysis/FlatIRGraph/*.class Analysis/OwnershipAnalysis/*.class Analysis/Disjoint/*.class Analysis/OoOJava/*.class Analysis/Scheduling/*.class Analysis/Loops/*.class Analysis/Pointer/*.class
 
 cleandoc:
 	rm -rf javadoc
