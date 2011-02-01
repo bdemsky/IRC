@@ -164,7 +164,6 @@ public class OoOJavaAnalysis {
                              rblockRel,
                              true ); // suppress output--this is an intermediate pass
 
-    /*
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -178,7 +177,7 @@ public class OoOJavaAnalysis {
 
     // 7th pass, make conflict graph
     // conflict graph is maintained by each parent sese,
-    
+    // where its' own stall sites and children may appear
     Set<FlatSESEEnterNode> allSESEs=rblockRel.getAllSESEs();
     for (Iterator iterator = allSESEs.iterator(); iterator.hasNext();) {
 
@@ -205,15 +204,15 @@ public class OoOJavaAnalysis {
     while (descItr.hasNext()) {
       Descriptor d = (Descriptor) descItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-      if (fm != null)
+      if (fm != null) {
         makeConflictGraph(fm);
+      }
     }    
 
-
-    // 8th pass, calculate all possible conflicts without using reachability
-    // info
-    // and identify set of FlatNew that next disjoint reach. analysis should
-    // flag
+    /*
+    // 8th pass, calculate all possible conflicts without using
+    // reachability info and identify set of FlatNew that next
+    // disjoint reach. analysis should flag
     Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
     calculateConflicts(sitesToFlag, false);
 
@@ -224,12 +223,15 @@ public class OoOJavaAnalysis {
       // efficient method to deal with conflict can be computed
       // later      
       disjointAnalysisReach =
-        new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, sitesToFlag,
+        new DisjointAnalysis(state, typeUtil, callGraph, liveness, 
+                             arrayReferencees, sitesToFlag,
 			     null // don't do effects analysis again!
 			     );
+
       // 10th pass, calculate conflicts with reachability info
       calculateConflicts(null, true);
     }
+
     // 11th pass, compiling locks
     synthesizeLocks();
 
@@ -255,11 +257,12 @@ public class OoOJavaAnalysis {
     if (state.OOODEBUG) {
       try {
         writeReports("");
-        //disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
-        //writeConflictGraph();
+        disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
+        writeConflictGraph();
       } catch (IOException e) {}
     }
     
+
     System.out.println("\n\n\n##########################################################\n"+
                        "Warning, lots of code changes going on, OoOJava and RCR/DFJ\n"+
                        "systems are being cleaned up.  Until the analyses and code gen\n"+
@@ -590,9 +593,6 @@ public class OoOJavaAnalysis {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
       flatNodesToVisit.remove(fn);
 
-      Stack<FlatSESEEnterNode> seseStack = null; //rblockRel.getRBlockStacks(fm, fn);
-      assert seseStack != null;
-
       Set<TempDescriptor> prev = notAvailableResults.get(fn);
 
       Set<TempDescriptor> curr = new HashSet<TempDescriptor>();
@@ -604,9 +604,12 @@ public class OoOJavaAnalysis {
         }
       }
 
-      if (!seseStack.empty()) {
-        notAvailable_nodeActions(fn, curr, seseStack.peek());
+      FlatSESEEnterNode currentSESE = rblockRel.getLocalInnerRBlock( fn );
+      if( currentSESE == null ) {
+        currentSESE = rblockRel.getCallerProxySESE();
       }
+
+      notAvailable_nodeActions(fn, curr, currentSESE);
 
       // if a new result, schedule forward nodes for analysis
       if (!curr.equals(prev)) {
@@ -620,8 +623,10 @@ public class OoOJavaAnalysis {
     }
   }
 
-  private void notAvailable_nodeActions(FlatNode fn, Set<TempDescriptor> notAvailSet,
-      FlatSESEEnterNode currentSESE) {
+  private void notAvailable_nodeActions(FlatNode            fn, 
+                                        Set<TempDescriptor> notAvailSet,
+                                        FlatSESEEnterNode   currentSESE
+                                        ) {
 
     // any temps that are removed from the not available set
     // at this node should be marked in this node's code plan
@@ -631,7 +636,6 @@ public class OoOJavaAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      assert fsen.equals(currentSESE);
 
       // keep a copy of what's not available into the SESE
       // and restore it at the matching exit node
@@ -643,26 +647,22 @@ public class OoOJavaAnalysis {
       notAvailableIntoSESE.put(fsen, notAvailCopy);
 
       notAvailSet.clear();
-    }
-      break;
+    } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
       FlatSESEEnterNode fsen = fsexn.getFlatEnter();
-      assert currentSESE.getChildren().contains(fsen);
 
       notAvailSet.addAll(fsen.getOutVarSet());
 
       Set<TempDescriptor> notAvailIn = notAvailableIntoSESE.get(fsen);
       assert notAvailIn != null;
       notAvailSet.addAll(notAvailIn);
-
-    }
-      break;
+    } break;
 
     case FKind.FlatMethod: {
       notAvailSet.clear();
-    }
+    } break;
 
     case FKind.FlatOpNode: {
       FlatOpNode fon = (FlatOpNode) fn;
@@ -731,11 +731,11 @@ public class OoOJavaAnalysis {
           }
         }
       }
-    }
-      break;
+    } break;
 
     } // end switch
   }
+
 
   private void codePlansForward(FlatMethod fm) {
 
@@ -752,9 +752,6 @@ public class OoOJavaAnalysis {
 
       flatNodesToVisit.remove(fn);
       visited.add(fn);
-
-      Stack<FlatSESEEnterNode> seseStack = null; //rblockRel.getRBlockStacks(fm, fn);
-      assert seseStack != null;
 
       // use incoming results as "dot statement" or just
       // before the current statement
@@ -776,9 +773,12 @@ public class OoOJavaAnalysis {
 
       Set<TempDescriptor> dotSTlive = livenessGlobalView.get(fn);
 
-      if (!seseStack.empty()) {
-        codePlans_nodeActions(fn, dotSTlive, dotSTtable, dotSTnotAvailSet, seseStack.peek());
+      FlatSESEEnterNode currentSESE = rblockRel.getLocalInnerRBlock( fn );
+      if( currentSESE == null ) {
+        currentSESE = rblockRel.getCallerProxySESE();
       }
+
+      codePlans_nodeActions(fn, dotSTlive, dotSTtable, dotSTnotAvailSet, currentSESE);
 
       for (int i = 0; i < fn.numNext(); i++) {
         FlatNode nn = fn.getNext(i);
@@ -790,8 +790,11 @@ public class OoOJavaAnalysis {
     }
   }
 
-  private void codePlans_nodeActions(FlatNode fn, Set<TempDescriptor> liveSetIn,
-      VarSrcTokTable vstTableIn, Set<TempDescriptor> notAvailSetIn, FlatSESEEnterNode currentSESE) {
+  private void codePlans_nodeActions(FlatNode fn, 
+                                     Set<TempDescriptor> liveSetIn,
+                                     VarSrcTokTable vstTableIn, 
+                                     Set<TempDescriptor> notAvailSetIn, 
+                                     FlatSESEEnterNode currentSESE) {
 
     CodePlan plan = new CodePlan(currentSESE);
 
@@ -799,7 +802,6 @@ public class OoOJavaAnalysis {
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      assert fsen.equals(currentSESE);
 
       // track the source types of the in-var set so generated
       // code at this SESE issue can compute the number of
@@ -814,8 +816,21 @@ public class OoOJavaAnalysis {
         // in order to classify in-vars correctly, pass
         // the parent SESE in--at other FlatNode types just
         // use the currentSESE
+        FlatSESEEnterNode parent = rblockRel.getLocalInnerRBlock( fn );
+
+        System.out.println( "-----\nfsen="+fsen+", parent="+parent );
+
+        assert fsen == parent;
+
+        System.exit( 0 );
+
+        if( currentSESE == null ) {
+          currentSESE = rblockRel.getCallerProxySESE();
+        }
+        
+        /*
         VSTWrapper vstIfStatic = new VSTWrapper();
-        Integer srcType = null; //vstTableIn.getRefVarSrcType(inVar, fsen.getParent(), vstIfStatic);
+        Integer srcType = vstTableIn.getRefVarSrcType(inVar, fsen.getParent(), vstIfStatic);
 
         // the current SESE needs a local space to track the dynamic
         // variable and the child needs space in its SESE record
@@ -832,6 +847,7 @@ public class OoOJavaAnalysis {
           assert srcType.equals(VarSrcTokTable.SrcType_READY);
           fsen.addReadyInVar(inVar);
         }
+        */
       }
 
     }
@@ -1012,9 +1028,10 @@ public class OoOJavaAnalysis {
     }
   }
 
+
   private void makeConflictGraph(FlatMethod fm) {
 
-    System.out.println( "Creating conflict graph for "+fm );
+    //System.out.println( "Creating conflict graph for "+fm );
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
@@ -1026,12 +1043,10 @@ public class OoOJavaAnalysis {
       flatNodesToVisit.remove(fn);
       visited.add(fn);
 
-      Stack<FlatSESEEnterNode> seseStack = null; //rblockRel.getRBlockStacks(fm, fn);
-      assert seseStack != null;
+      Set<FlatSESEEnterNode> currentSESEs = 
+        rblockRel.getPossibleExecutingRBlocks( fn );
 
-      if (!seseStack.isEmpty()) {
-        conflictGraph_nodeAction(fn, seseStack.peek());
-      }
+      conflictGraph_nodeAction(fn, currentSESEs);
 
       // schedule forward nodes for analysis
       for (int i = 0; i < fn.numNext(); i++) {
@@ -1045,8 +1060,9 @@ public class OoOJavaAnalysis {
 
   }
 
-  private void conflictGraph_nodeAction(FlatNode fn, FlatSESEEnterNode currentSESE) {
-
+  private void conflictGraph_nodeAction(FlatNode fn, 
+                                        Set<FlatSESEEnterNode> currentSESEs
+                                        ) {
     ConflictGraph conflictGraph;
     TempDescriptor lhs;
     TempDescriptor rhs;
@@ -1068,17 +1084,23 @@ public class OoOJavaAnalysis {
         rhs = fen.getSrc();
       }
 
-      conflictGraph = sese2conflictGraph.get(currentSESE);
-      if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph(state);
-      }
+      for( Iterator<FlatSESEEnterNode> itr = currentSESEs.iterator();
+           itr.hasNext();
+           ) {
+        FlatSESEEnterNode currentSESE = itr.next();
 
-      // add stall site
-      Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
-      conflictGraph.addStallSite(taint2Effects, rhs);
+        conflictGraph = sese2conflictGraph.get(currentSESE);
+        if (conflictGraph == null) {
+          conflictGraph = new ConflictGraph(state);
+        }
 
-      if (conflictGraph.id2cn.size() > 0) {
-        sese2conflictGraph.put(currentSESE, conflictGraph);
+        // add stall site
+        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+        conflictGraph.addStallSite(taint2Effects, rhs);
+
+        if (conflictGraph.id2cn.size() > 0) {
+          sese2conflictGraph.put(currentSESE, conflictGraph);
+        }
       }
     } break;
 
@@ -1096,38 +1118,50 @@ public class OoOJavaAnalysis {
         rhs = fsen.getSrc();
       }
 
-      conflictGraph = sese2conflictGraph.get(currentSESE);
-      if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph(state);
-      }
+      for( Iterator<FlatSESEEnterNode> itr = currentSESEs.iterator();
+           itr.hasNext();
+           ) {
+        FlatSESEEnterNode currentSESE = itr.next();
 
-      Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
-      conflictGraph.addStallSite(taint2Effects, rhs);
-      conflictGraph.addStallSite(taint2Effects, lhs);
+        conflictGraph = sese2conflictGraph.get(currentSESE);
+        if (conflictGraph == null) {
+          conflictGraph = new ConflictGraph(state);
+        }
 
-      if (conflictGraph.id2cn.size() > 0) {
-        sese2conflictGraph.put(currentSESE, conflictGraph);
+        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+        conflictGraph.addStallSite(taint2Effects, rhs);
+        conflictGraph.addStallSite(taint2Effects, lhs);
+
+        if (conflictGraph.id2cn.size() > 0) {
+          sese2conflictGraph.put(currentSESE, conflictGraph);
+        }
       }
     } break;
 
-    case FKind.FlatCall: {
-      conflictGraph = sese2conflictGraph.get(currentSESE);
-      if (conflictGraph == null) {
-        conflictGraph = new ConflictGraph(state);
-      }
 
+    case FKind.FlatCall: {
       FlatCall fc = (FlatCall) fn;
       lhs = fc.getThis();
 
-      // collects effects of stall site and generates stall site node
-      Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+      for( Iterator<FlatSESEEnterNode> itr = currentSESEs.iterator();
+           itr.hasNext();
+           ) {
+        FlatSESEEnterNode currentSESE = itr.next();
 
-      conflictGraph.addStallSite(taint2Effects, lhs);
-      if (conflictGraph.id2cn.size() > 0) {
-        sese2conflictGraph.put(currentSESE, conflictGraph);
-      }          
+        conflictGraph = sese2conflictGraph.get(currentSESE);
+        if (conflictGraph == null) {
+          conflictGraph = new ConflictGraph(state);
+        }
+
+        // collects effects of stall site and generates stall site node
+        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
+
+        conflictGraph.addStallSite(taint2Effects, lhs);
+        if (conflictGraph.id2cn.size() > 0) {
+          sese2conflictGraph.put(currentSESE, conflictGraph);
+        }          
+      }
     } break;
-
 
     }
   }

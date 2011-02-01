@@ -132,7 +132,11 @@ public class RBlockRelationAnalysis {
   }
   
   public Set<FlatSESEEnterNode> getPossibleExecutingRBlocks( FlatNode fn ) {
-    return fn2currentSESEs.get( fn );
+    Set<FlatSESEEnterNode> out = fn2currentSESEs.get( fn );
+    if( out == null ) {
+      out = new HashSet<FlatSESEEnterNode>();
+    }
+    return out;
   }
 
   public FlatSESEEnterNode getLocalInnerRBlock( FlatNode fn ) {
