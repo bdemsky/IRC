@@ -157,7 +157,6 @@ public class OoOJavaAnalysis {
       livenessAnalysisBackward(fm);
     }
 
-    /*
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
     disjointAnalysisTaints =
@@ -165,6 +164,7 @@ public class OoOJavaAnalysis {
                              rblockRel,
                              true ); // suppress output--this is an intermediate pass
 
+    /*
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {

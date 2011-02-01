@@ -511,6 +511,9 @@ public class DisjointAnalysis {
   static protected Hashtable<TypeDescriptor, FieldDescriptor>
     mapTypeToArrayField;
 
+
+  protected boolean suppressOutput;
+
   // for controlling DOT file output
   protected boolean writeFinalDOTs;
   protected boolean writeAllIncrementalDOTs;
@@ -652,6 +655,7 @@ public class DisjointAnalysis {
     this.arrayReferencees = arrayReferencees;
     this.sitesToFlag      = sitesToFlag;
     this.rblockRel        = rra;
+    this.suppressOutput   = suppressOutput;
 
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
@@ -697,7 +701,9 @@ public class DisjointAnalysis {
     ReachGraph.debugCallSiteVisitCounter 
       = 0; // count visits from 1, is incremented before first visit
     
-    
+    if( suppressOutput ) {
+      System.out.println( "* Running disjoint reachability analysis with output suppressed! *" );
+    }
 
     allocateStructures();
 
@@ -784,7 +790,9 @@ public class DisjointAnalysis {
     // reachable from the roots that will be analyzed
     
     if( state.TASK ) {
-      System.out.println( "Bamboo mode..." );
+      if( !suppressOutput ) {
+        System.out.println( "Bamboo mode..." );
+      }
       
       Iterator taskItr = state.getTaskSymbolTable().getDescriptorsIterator();      
       while( taskItr.hasNext() ) {
@@ -798,7 +806,9 @@ public class DisjointAnalysis {
       }
       
     } else {
-      System.out.println( "Java mode..." );
+      if( !suppressOutput ) {
+        System.out.println( "Java mode..." );
+      }
 
       // add all methods transitively reachable from the
       // source's main to set for analysis
@@ -887,7 +897,9 @@ public class DisjointAnalysis {
       // If there is a change detected, add any methods/tasks
       // that depend on this one to the "to visit" set.
 
-      System.out.println( "Analyzing " + d );
+      if( !suppressOutput ) {
+        System.out.println( "Analyzing " + d );
+      }
 
       if( state.DISJOINTDVISITSTACKEESONTOP ) {
         assert calleesToEnqueue.isEmpty();
