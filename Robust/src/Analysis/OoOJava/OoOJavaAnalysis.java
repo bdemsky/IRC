@@ -62,6 +62,9 @@ public class OoOJavaAnalysis {
 
   private Hashtable<FlatEdge, FlatWriteDynamicVarNode> wdvNodesToSpliceIn;
 
+  private Hashtable<FlatNode, ContextTaskNames> fn2contextTaskNames;
+
+
   // temporal data structures to track analysis progress.
   static private int uniqueLockSetId = 0;
   // mapping of a conflict graph to its compiled lock
@@ -83,6 +86,22 @@ public class OoOJavaAnalysis {
 
   public Set<FlatNode> getNodesWithPlans() {
     return codePlans.keySet();
+  }
+
+  public ContextTaskNames getContextTaskNames( FlatMethod fm ) {
+    ContextTaskNames out = fn2contextTaskNames.get( fm );
+    if( out == null ) {
+      out = new ContextTaskNames();
+    }
+    return out;
+  }
+
+  public ContextTaskNames getContextTaskNames( FlatSESEEnterNode fsen ) {
+    ContextTaskNames out = fn2contextTaskNames.get( fsen );
+    if( out == null ) {
+      out = new ContextTaskNames();
+    }
+    return out;
   }
 
   public DisjointAnalysis getDisjointAnalysis() {
@@ -112,6 +131,7 @@ public class OoOJavaAnalysis {
     notAvailableIntoSESE   = new Hashtable<FlatSESEEnterNode, Set<TempDescriptor>>();
     sese2conflictGraph     = new Hashtable<FlatNode, ConflictGraph>();
     conflictGraph2SESELock = new Hashtable<ConflictGraph, HashSet<SESELock>>();
+    fn2contextTaskNames    = new Hashtable<FlatNode, ContextTaskNames>();
 
     // add all methods transitively reachable from the
     // source's main to set for analysis
@@ -209,7 +229,7 @@ public class OoOJavaAnalysis {
       }
     }    
 
-    /*
+    
     // 8th pass, calculate all possible conflicts without using
     // reachability info and identify set of FlatNew that next
     // disjoint reach. analysis should flag
@@ -252,7 +272,7 @@ public class OoOJavaAnalysis {
       FlatWriteDynamicVarNode fwdvn = (FlatWriteDynamicVarNode) me.getValue();
       fwdvn.spliceIntoIR();
     }
-    */
+
 
     if (state.OOODEBUG) {
       try {
@@ -778,7 +798,9 @@ public class OoOJavaAnalysis {
         currentSESE = rblockRel.getCallerProxySESE();
       }
 
-      codePlans_nodeActions(fn, dotSTlive, dotSTtable, dotSTnotAvailSet, currentSESE);
+      codePlans_nodeActions(fm, fn, 
+                            dotSTlive, dotSTtable, dotSTnotAvailSet, 
+                            currentSESE);
 
       for (int i = 0; i < fn.numNext(); i++) {
         FlatNode nn = fn.getNext(i);
@@ -789,8 +811,9 @@ public class OoOJavaAnalysis {
       }
     }
   }
-
-  private void codePlans_nodeActions(FlatNode fn, 
+      
+  private void codePlans_nodeActions(FlatMethod fm,
+                                     FlatNode fn,
                                      Set<TempDescriptor> liveSetIn,
                                      VarSrcTokTable vstTableIn, 
                                      Set<TempDescriptor> notAvailSetIn, 
@@ -817,26 +840,18 @@ public class OoOJavaAnalysis {
         // the parent SESE in--at other FlatNode types just
         // use the currentSESE
         FlatSESEEnterNode parent = rblockRel.getLocalInnerRBlock( fn );
-
-        System.out.println( "-----\nfsen="+fsen+", parent="+parent );
-
-        assert fsen == parent;
-
-        System.exit( 0 );
-
-        if( currentSESE == null ) {
-          currentSESE = rblockRel.getCallerProxySESE();
+        if( parent == null ) {
+          parent = rblockRel.getCallerProxySESE();
         }
-        
-        /*
+                
         VSTWrapper vstIfStatic = new VSTWrapper();
-        Integer srcType = vstTableIn.getRefVarSrcType(inVar, fsen.getParent(), vstIfStatic);
+        Integer srcType = vstTableIn.getRefVarSrcType(inVar, parent, vstIfStatic);
 
         // the current SESE needs a local space to track the dynamic
         // variable and the child needs space in its SESE record
         if (srcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
           fsen.addDynamicInVar(inVar);
-          // %@%@%@%@%@%@%@% TODO!!!! @%@%@%@%@% fsen.getParent().addDynamicVar(inVar);
+          addDynamicVar( fsen, fm, inVar );
 
         } else if (srcType.equals(VarSrcTokTable.SrcType_STATIC)) {
           fsen.addStaticInVar(inVar);
@@ -847,16 +862,17 @@ public class OoOJavaAnalysis {
           assert srcType.equals(VarSrcTokTable.SrcType_READY);
           fsen.addReadyInVar(inVar);
         }
-        */
       }
-
-    }
-      break;
+    } break;
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-    }
-      break;
+      //TODO! Shouldn't there be a code plan for task exit
+      // where the exiting task calculates whether its own
+      // siblings need variables from its children, so the
+      // exiter should copy those variables into its own out-set
+      // and make the available?
+    } break;
 
     case FKind.FlatOpNode: {
       FlatOpNode fon = (FlatOpNode) fn;
@@ -876,9 +892,9 @@ public class OoOJavaAnalysis {
         if (rhsSrcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
           // if rhs is dynamic going in, lhs will definitely be dynamic
           // going out of this node, so track that here
-          plan.addDynAssign(lhs, rhs);
-          currentSESE.addDynamicVar(lhs);
-          currentSESE.addDynamicVar(rhs);
+          plan.addDynAssign( lhs, rhs );
+          addDynamicVar( currentSESE, fm, lhs );
+          addDynamicVar( currentSESE, fm, rhs );
 
         } else if (lhsSrcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
           // otherwise, if the lhs is dynamic, but the rhs is not, we
@@ -920,8 +936,8 @@ public class OoOJavaAnalysis {
           // come from, so dynamically we must keep track
           // along various control paths, and therefore when we stall,
           // just stall for the exact thing we need and move on
-          plan.addDynamicStall(readtmp);
-          currentSESE.addDynamicVar(readtmp);
+          plan.addDynamicStall( readtmp );
+          addDynamicVar( currentSESE, fm, readtmp );
 
         } else if (srcType.equals(VarSrcTokTable.SrcType_STATIC)) {
           // 2) Single token/age pair: Stall for token/age pair, and copy
@@ -970,24 +986,26 @@ public class OoOJavaAnalysis {
     // identify sese-age pairs that are statically useful
     // and should have an associated SESE variable in code
     // JUST GET ALL SESE/AGE NAMES FOR NOW, PRUNE LATER,
-    // AND ALWAYS GIVE NAMES TO PARENTS
+    // AND ALWAYS GIVE NAMES TO LOCAL PARENTS
     Set<VariableSourceToken> staticSet = vstTableIn.get();
     Iterator<VariableSourceToken> vstItr = staticSet.iterator();
     while (vstItr.hasNext()) {
       VariableSourceToken vst = vstItr.next();
 
-      // placeholder source tokens are useful results, but
-      // the placeholder static name is never needed
-      //if (vst.getSESE().getIsCallerSESEplaceholder()) {
-      //  continue;
-      //}
+      // the caller proxy generates useful analysis facts, but we
+      // never need to generate another name for it in code (it is
+      // ALWAYS the task executing the local method context)
+      if( vst.getSESE().getIsCallerProxySESE() ) {
+        continue;
+      }
+
+      SESEandAgePair sap = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+      sap.getSESE().mustTrackAtLeastAge( sap.getAge() );
 
       FlatSESEEnterNode sese = currentSESE;
-      while (sese != null) {
-        sese.addNeededStaticName(new SESEandAgePair(vst.getSESE(), vst.getAge()));
-        sese.mustTrackAtLeastAge(vst.getAge());
-
-        //@%@%@%@%@%@% TODO!!!!! @%@%@%@%@%@% sese = sese.getParent();
+      while( sese != null ) {
+        addNeededStaticName( sese, fm, sap );      
+        sese = sese.getLocalParent();
       }
     }
 
@@ -1028,10 +1046,55 @@ public class OoOJavaAnalysis {
     }
   }
 
+  private void addDynamicVar( FlatSESEEnterNode fsen, 
+                              FlatMethod        fm, 
+                              TempDescriptor    var ) {
+    FlatNode fnContext;
+
+    if( fsen.getIsCallerProxySESE() ) {
+      // attach the dynamic variable to track to
+      // the flat method, so it can be declared at entry
+      fnContext = fm;
+    } else {
+      // otherwise the code context is a task body
+      fnContext = fsen;
+    }
+
+    ContextTaskNames ctn = fn2contextTaskNames.get( fnContext );
+    if( ctn == null ) {
+      ctn = new ContextTaskNames();
+    }
+
+    ctn.addDynamicVar( var );
+    fn2contextTaskNames.put( fnContext, ctn );
+  }
+
+  private void addNeededStaticName( FlatSESEEnterNode fsen, 
+                                    FlatMethod        fm, 
+                                    SESEandAgePair    sap ) {
+    FlatNode fnContext;
+
+    if( fsen.getIsCallerProxySESE() ) {
+      // attach the dynamic variable to track to
+      // the flat method, so it can be declared at entry
+      fnContext = fm;
+    } else {
+      // otherwise the code context is a task body
+      fnContext = fsen;
+    }
+
+    ContextTaskNames ctn = fn2contextTaskNames.get( fnContext );
+    if( ctn == null ) {
+      ctn = new ContextTaskNames();
+    }
+
+    ctn.addNeededStaticName( sap );
+
+    fn2contextTaskNames.put( fnContext, ctn );
+  }
+
 
   private void makeConflictGraph(FlatMethod fm) {
-
-    //System.out.println( "Creating conflict graph for "+fm );
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
     flatNodesToVisit.add(fm);
@@ -1167,14 +1230,16 @@ public class OoOJavaAnalysis {
   }
 
 
-  private void calculateConflicts(Set<FlatNew> sitesToFlag, boolean useReachInfo) {
+  private void calculateConflicts( Set<FlatNew> sitesToFlag, 
+                                   boolean      useReachInfo ) {
+
     // decide fine-grain edge or coarse-grain edge among all vertexes by
     // pair-wise comparison
     Iterator<FlatNode> seseIter = sese2conflictGraph.keySet().iterator();
     while (seseIter.hasNext()) {
       FlatSESEEnterNode sese = (FlatSESEEnterNode) seseIter.next();
       ConflictGraph conflictGraph = sese2conflictGraph.get(sese);
-//      System.out.println("# CALCULATING SESE CONFLICT="+sese);
+
       if (useReachInfo) {
         // clear current conflict before recalculating with reachability info
         conflictGraph.clearAllConflictEdge();
@@ -1185,6 +1250,7 @@ public class OoOJavaAnalysis {
       sese2conflictGraph.put(sese, conflictGraph);
     }
   }
+
 
   private void writeConflictGraph() {
     Enumeration<FlatNode> keyEnum = sese2conflictGraph.keys();
@@ -1515,6 +1581,10 @@ public class OoOJavaAnalysis {
     return rblockRel.getMainSESE();
   }
 
+  public FlatSESEEnterNode getCallerProxySESE() {
+    return rblockRel.getCallerProxySESE();
+  }
+
 
   public void writeReports(String timeReport) throws java.io.IOException {
 
@@ -1537,18 +1607,12 @@ public class OoOJavaAnalysis {
                                                ".txt"));
         bw.write("OoOJava Results for " + md + "\n-------------------\n");
 
-        //FlatSESEEnterNode implicitSESE = (FlatSESEEnterNode) fm.getNext(0);
-        //if (!implicitSESE.getIsCallerSESEplaceholder() && implicitSESE != rblockRel.getMainSESE()) {
-        //  System.out.println(implicitSESE + " is not implicit?!");
-        //  System.exit(-1);
-        //}
-        //bw.write("Dynamic vars to manage:\n  " + implicitSESE.getDynamicVarSet());
+        bw.write("Dynamic vars to manage:\n  " + getContextTaskNames( fm ).getDynamicVarSet() );
 
         bw.write("\n\nLive-In, Root View\n------------------\n" + fm.printMethod(livenessGlobalView));
         bw.write("\n\nVariable Results-Out\n----------------\n" + fm.printMethod(variableResults));
-        //bw.write("\n\nNot Available Results-Out\n---------------------\n"
-        //    + fm.printMethod(notAvailableResults));
-        //bw.write("\n\nCode Plans\n----------\n" + fm.printMethod(codePlans));
+        bw.write("\n\nNot Available Results-Out\n---------------------\n" + fm.printMethod(notAvailableResults));
+        bw.write("\n\nCode Plans\n----------\n" + fm.printMethod(codePlans));
         bw.close();
       }
     }
@@ -1606,7 +1670,7 @@ public class OoOJavaAnalysis {
         }
       }
 
-      bw.write("   Dynamic vars to manage: " + fsen.getDynamicVarSet() + "\n");
+      bw.write("   Dynamic vars to manage: " + getContextTaskNames( fsen ).getDynamicVarSet() + "\n");
 
       bw.write("  out-set: " + fsen.getOutVarSet() + "\n");
 

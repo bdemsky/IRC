@@ -97,6 +97,7 @@ Analysis/OoOJava/SVKey.class						\
 Analysis/OoOJava/VSTWrapper.class					\
 Analysis/OoOJava/VarSrcTokTable.class					\
 Analysis/OoOJava/VariableSourceToken.class				\
+Analysis/OoOJava/ContextTaskNames.class					\
 Util/GraphNode.class Util/Namer.class Util/Relation.class		\
 Util/UtilAlgorithms.class                                               \
 Interface/HTTPHeader.class Interface/HTTPResponse.class			\

@@ -23,7 +23,6 @@ public class FlatSESEEnterNode extends FlatNode {
   private   int               id;
   protected FlatSESEExitNode  exit;
   protected SESENode          treeNode;
-  protected Integer           oldestAgeToTrack;
 
   // a leaf tasks simply has no children, ever
   protected static final int ISLEAF_UNINIT = 1;
@@ -57,23 +56,24 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Set<TempDescriptor> inVars;
   protected Set<TempDescriptor> outVars;
 
-  protected Set<SESEandAgePair> needStaticNameInCode;
-
-  protected Set<SESEandAgePair> staticInVarSrcs;
-
   protected Set<TempDescriptor> readyInVars;
   protected Set<TempDescriptor> staticInVars;
   protected Set<TempDescriptor> dynamicInVars;  
 
-  protected Set<TempDescriptor> dynamicVars;
+  protected Set<SESEandAgePair> staticInVarSrcs;
 
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
+
+  // get the oldest age of this task that other contexts
+  // have a static name for when tracking variables
+  protected Integer oldestAgeToTrack;
   
 
   // a subset of the in-set variables that shouuld be traversed during
   // the dynamic coarse grained conflict strategy, remember them here so
   // buildcode can be dumb and just gen the traversals
   protected Vector<TempDescriptor> inVarsForDynamicCoarseConflictResolution;
+
 
   // scope info for this SESE
   protected FlatMethod       fmEnclosing;
@@ -96,23 +96,22 @@ public class FlatSESEEnterNode extends FlatNode {
   public FlatSESEEnterNode( SESENode sn ) {
     this.id              = identifier++;
     treeNode             = sn;
-    oldestAgeToTrack     = new Integer( 0 );
     children             = new HashSet<FlatSESEEnterNode>();
     parents              = new HashSet<FlatSESEEnterNode>();
     localChildren        = new HashSet<FlatSESEEnterNode>();
     localParent          = null;
     inVars               = new HashSet<TempDescriptor>();
     outVars              = new HashSet<TempDescriptor>();
-    needStaticNameInCode = new HashSet<SESEandAgePair>();
-    staticInVarSrcs      = new HashSet<SESEandAgePair>();
     readyInVars          = new HashSet<TempDescriptor>();
     staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
-    dynamicVars          = new HashSet<TempDescriptor>();
+    staticInVarSrcs      = new HashSet<SESEandAgePair>();
+    oldestAgeToTrack     = new Integer( 0 );
+
+    staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
 
     inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
     
-    staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
     
     fmEnclosing = null;
     mdEnclosing = null;
@@ -184,6 +183,16 @@ public class FlatSESEEnterNode extends FlatNode {
     return "sese "+getPrettyIdentifier()+getIdentifier();
   }
 
+
+  public void mustTrackAtLeastAge( Integer age ) {
+    if( age > oldestAgeToTrack ) {
+      oldestAgeToTrack = new Integer( age );
+    }    
+  }
+
+  public Integer getOldestAgeToTrack() {
+    return oldestAgeToTrack;
+  }
 
 
   public void addParent( FlatSESEEnterNode parent ) {
@@ -292,14 +301,6 @@ public class FlatSESEEnterNode extends FlatNode {
     return outVars;
   }
 
-  public void addNeededStaticName( SESEandAgePair p ) {
-    needStaticNameInCode.add( p );
-  }
-
-  public Set<SESEandAgePair> getNeededStaticNames() {
-    return needStaticNameInCode;
-  }
-
   public void addStaticInVarSrc( SESEandAgePair p ) {
     staticInVarSrcs.add( p );
   }
@@ -341,23 +342,6 @@ public class FlatSESEEnterNode extends FlatNode {
     return dynamicInVars;
   }
 
-  public void addDynamicVar( TempDescriptor td ) {
-    dynamicVars.add( td );
-  }
-
-  public Set<TempDescriptor> getDynamicVarSet() {
-    return dynamicVars;
-  }
-
-  public void mustTrackAtLeastAge( Integer age ) {
-    if( age > oldestAgeToTrack ) {
-      oldestAgeToTrack = new Integer( age );
-    }    
-  }
-
-  public Integer getOldestAgeToTrack() {
-    return oldestAgeToTrack;
-  }
 
   public void setfmEnclosing( FlatMethod fm ) { fmEnclosing = fm; }
   public FlatMethod getfmEnclosing() { return fmEnclosing; }

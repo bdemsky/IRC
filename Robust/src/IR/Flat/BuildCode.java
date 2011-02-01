@@ -2067,57 +2067,58 @@ public class BuildCode {
 
 
     if( state.OOOJAVA ) {      
-      if( fm.getNext(0) instanceof FlatSESEEnterNode ) {
-	FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-	if( callerSESEplaceholder != oooa.getMainSESE() ) {
-	  // declare variables for naming static SESE's
-	  output.println("   /* static SESE names */");
-	  Iterator<SESEandAgePair> pItr = callerSESEplaceholder.getNeededStaticNames().iterator();
-	  while( pItr.hasNext() ) {
-	    SESEandAgePair pair = pItr.next();
-	    output.println("   void* "+pair+" = NULL;");
-	  }
-
-	  // declare variables for tracking dynamic sources
-	  output.println("   /* dynamic variable sources */");
-	  Iterator<TempDescriptor> dynSrcItr = callerSESEplaceholder.getDynamicVarSet().iterator();
-	  while( dynSrcItr.hasNext() ) {
-	    TempDescriptor dynSrcVar = dynSrcItr.next();
-	    output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
-	    output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
-	  }    
-	}
-      }
-      
-      // set up related allocation sites's waiting queues
-      // eom
-
-      FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-      if(callerSESEplaceholder!= oooa.getMainSESE()){
-        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);       
-        if (graph != null && graph.hasConflictEdge()) {          
-          output.println("   // set up waiting queues ");
-          output.println("   int numMemoryQueue=0;");
-          output.println("   int memoryQueueItemID=0;");
-          Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
-          System.out.println("#lockSet="+lockSet.hashCode());
-          System.out.println("lockset="+lockSet);
-          for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-            Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
-            System.out.println("id="+seseLock.getID());
-            System.out.println("#="+seseLock);
-          }
-          System.out.println("size="+lockSet.size());
-          if (lockSet.size() > 0) {
-            output.println("   numMemoryQueue=" + lockSet.size() + ";");
-            output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
-            output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-            output.println();
-          }
-        }
-      }
-      
-        
+      //  TODO!!!!!!!!!
+//      if( fm.getNext(0) instanceof FlatSESEEnterNode ) {
+//	FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
+//	if( callerSESEplaceholder != oooa.getMainSESE() ) {
+//	  // declare variables for naming static SESE's
+//	  output.println("   /* static SESE names */");
+//	  Iterator<SESEandAgePair> pItr = callerSESEplaceholder.getNeededStaticNames().iterator();
+//	  while( pItr.hasNext() ) {
+//	    SESEandAgePair pair = pItr.next();
+//	    output.println("   void* "+pair+" = NULL;");
+//	  }
+//
+//	  // declare variables for tracking dynamic sources
+//	  output.println("   /* dynamic variable sources */");
+//	  Iterator<TempDescriptor> dynSrcItr = callerSESEplaceholder.getDynamicVarSet().iterator();
+//	  while( dynSrcItr.hasNext() ) {
+//	    TempDescriptor dynSrcVar = dynSrcItr.next();
+//	    output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
+//	    output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
+//	  }    
+//	}
+//      }
+//      
+//      // set up related allocation sites's waiting queues
+//      // eom
+//
+//      FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
+//      if(callerSESEplaceholder!= oooa.getMainSESE()){
+//        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);       
+//        if (graph != null && graph.hasConflictEdge()) {          
+//          output.println("   // set up waiting queues ");
+//          output.println("   int numMemoryQueue=0;");
+//          output.println("   int memoryQueueItemID=0;");
+//          Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
+//          System.out.println("#lockSet="+lockSet.hashCode());
+//          System.out.println("lockset="+lockSet);
+//          for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
+//            Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
+//            System.out.println("id="+seseLock.getID());
+//            System.out.println("#="+seseLock);
+//          }
+//          System.out.println("size="+lockSet.size());
+//          if (lockSet.size() > 0) {
+//            output.println("   numMemoryQueue=" + lockSet.size() + ";");
+//            output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+//            output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+//            output.println();
+//          }
+//        }
+//      }
+//      
+//  
     }    
 
 
@@ -2438,21 +2439,22 @@ public class BuildCode {
 
 
     // declare variables for naming static SESE's
-    output.println("   /* static SESE names */");
-    Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
-    while( pItr.hasNext() ) {
-      SESEandAgePair pair = pItr.next();
-      output.println("   SESEcommon* "+pair+" = NULL;");
-    }
-
-    // declare variables for tracking dynamic sources
-    output.println("   /* dynamic variable sources */");
-    Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
-    while( dynSrcItr.hasNext() ) {
-      TempDescriptor dynSrcVar = dynSrcItr.next();
-      output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
-      output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
-    }    
+    // TODO
+    //output.println("   /* static SESE names */");
+    //Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
+    //while( pItr.hasNext() ) {
+    //  SESEandAgePair pair = pItr.next();
+    //  output.println("   SESEcommon* "+pair+" = NULL;");
+    //}
+    //
+    //// declare variables for tracking dynamic sources
+    //output.println("   /* dynamic variable sources */");
+    //Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
+    //while( dynSrcItr.hasNext() ) {
+    //  TempDescriptor dynSrcVar = dynSrcItr.next();
+    //  output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
+    //  output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
+    //}    
 
     // declare local temps for in-set primitives, and if it is
     // a ready-source variable, get the value from the record
@@ -3301,7 +3303,9 @@ public class BuildCode {
 	dynItr = cp.getDynAssignCurr().iterator();
 	while( dynItr.hasNext() ) {
 	  TempDescriptor dynVar = dynItr.next();	  
-          assert currentSESE.getDynamicVarSet().contains( dynVar );
+
+          // TODO
+          //assert currentSESE.getDynamicVarSet().contains( dynVar );
 
           // first release a reference to current record
           output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
@@ -4116,6 +4120,7 @@ public class BuildCode {
 
       // maintain pointers for finding dynamic SESE 
       // instances from static names      
+      // TODO
       SESEandAgePair pairNewest = new SESEandAgePair( fsen, 0 );
       SESEandAgePair pairOldest = new SESEandAgePair( fsen, fsen.getOldestAgeToTrack() );
       if(  true//fsen.getParent() != null && 
@@ -4569,21 +4574,22 @@ public class BuildCode {
     // non-null var of these types
     output.println("   // releasing static SESEs");
     output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
-    Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
-    while( pItr.hasNext() ) {
-      SESEandAgePair pair = pItr.next();
-      output.println("   if( "+pair+" != NULL ) {");
-      output.println("     RELEASE_REFERENCE_TO( "+pair+" );");
-      output.println("   }");
-    }
-    output.println("   // releasing dynamic variable sources");
-    Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
-    while( dynSrcItr.hasNext() ) {
-      TempDescriptor dynSrcVar = dynSrcItr.next();
-      output.println("   if( "+dynSrcVar+"_srcSESE != NULL ) {");
-      output.println("     RELEASE_REFERENCE_TO( "+dynSrcVar+"_srcSESE );");
-      output.println("   }");
-    }    
+    // TODO
+    //Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
+    //while( pItr.hasNext() ) {
+    //  SESEandAgePair pair = pItr.next();
+    //  output.println("   if( "+pair+" != NULL ) {");
+    //  output.println("     RELEASE_REFERENCE_TO( "+pair+" );");
+    //  output.println("   }");
+    //}
+    //output.println("   // releasing dynamic variable sources");
+    //Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
+    //while( dynSrcItr.hasNext() ) {
+    //  TempDescriptor dynSrcVar = dynSrcItr.next();
+    //  output.println("   if( "+dynSrcVar+"_srcSESE != NULL ) {");
+    //  output.println("     RELEASE_REFERENCE_TO( "+dynSrcVar+"_srcSESE );");
+    //  output.println("   }");
+    //}    
     // destroy this task's mempool if it is not a leaf task
     if( !fsen.getIsLeafSESE() ) {
       output.println("     pooldestroy( runningSESE->taskRecordMemPool );");
