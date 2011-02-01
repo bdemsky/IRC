@@ -85,6 +85,11 @@ public class OoOJavaAnalysis {
     return codePlans.keySet();
   }
 
+  public DisjointAnalysis getDisjointAnalysis() {
+    return disjointAnalysisTaints;
+  }
+
+
   public OoOJavaAnalysis(State state, 
                          TypeUtil typeUtil, 
                          CallGraph callGraph, 
@@ -119,6 +124,7 @@ public class OoOJavaAnalysis {
 
     // 1st pass, find basic rblock relations & potential stall sites
     rblockRel = new RBlockRelationAnalysis(state, typeUtil, callGraph);
+    VarSrcTokTable.rblockRel = rblockRel;
 
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
     Iterator<MethodDescriptor> methItr = descriptorsToAnalyze.iterator();
@@ -131,7 +137,6 @@ public class OoOJavaAnalysis {
       livenessAnalysisBackward(fm);
     }
 
-    /*
     // 3rd pass, variable analysis
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -152,6 +157,7 @@ public class OoOJavaAnalysis {
       livenessAnalysisBackward(fm);
     }
 
+    /*
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
     disjointAnalysisTaints =
@@ -246,15 +252,13 @@ public class OoOJavaAnalysis {
     }
     */
 
-    /*
     if (state.OOODEBUG) {
       try {
         writeReports("");
-        disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
-        writeConflictGraph();
+        //disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
+        //writeConflictGraph();
       } catch (IOException e) {}
     }
-    */
     
     System.out.println("\n\n\n##########################################################\n"+
                        "Warning, lots of code changes going on, OoOJava and RCR/DFJ\n"+
@@ -411,12 +415,12 @@ public class OoOJavaAnalysis {
         curr.merge(incoming);
       }
 
-      Set<FlatSESEEnterNode> possiblyExecuting =
-        rblockRel.getPossibleExecutingRBlocks( fn );
-      
-      if (!possiblyExecuting.isEmpty()) {
-        variable_nodeActions(fn, curr, possiblyExecuting);
+      FlatSESEEnterNode currentSESE = rblockRel.getLocalInnerRBlock( fn );
+      if( currentSESE == null ) {
+        currentSESE = rblockRel.getCallerProxySESE();
       }
+      
+      variable_nodeActions(fn, curr, currentSESE);
 
       // if a new result, schedule forward nodes for analysis
       if (!curr.equals(prev)) {
@@ -430,19 +434,21 @@ public class OoOJavaAnalysis {
     }
   }
 
-  private void variable_nodeActions(FlatNode fn, 
-                                    VarSrcTokTable vstTable,
-                                    Set<FlatSESEEnterNode> currentSESEs) {
+  private void variable_nodeActions(FlatNode          fn, 
+                                    VarSrcTokTable    vstTable,
+                                    FlatSESEEnterNode currentSESE) {
     switch (fn.kind()) {
+
 
     case FKind.FlatSESEEnterNode: {
       FlatSESEEnterNode fsen = (FlatSESEEnterNode) fn;
-      // ignore currently executing SESEs, at this point
+      // ignore currently executing SESE, at this point
       // the analysis considers a new instance is becoming
       // the current SESE
       vstTable.age(fsen);
       vstTable.assertConsistency();
     } break;
+
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
@@ -460,7 +466,8 @@ public class OoOJavaAnalysis {
       // of parent or sibling sources
       Set<TempDescriptor> liveVars = livenessGlobalView.get(fn);
       Set<TempDescriptor> fsenVirtReads =
-        vstTable.calcVirtReadsAndPruneParentAndSiblingTokens(fsen, liveVars);
+        vstTable.calcVirtReadsAndPruneParentAndSiblingTokens(fsen, 
+                                                             liveVars);
 
       Set<TempDescriptor> fsenVirtReadsOld = livenessVirtualReads.get(fn);
       if (fsenVirtReadsOld != null) {
@@ -483,6 +490,7 @@ public class OoOJavaAnalysis {
       vstTable.assertConsistency();
     } break;
 
+
     case FKind.FlatOpNode: {
       FlatOpNode fon = (FlatOpNode) fn;
 
@@ -501,20 +509,36 @@ public class OoOJavaAnalysis {
           HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
           ts.add(lhs);
 
-          ///////////////// TODO !!!!!!!!!!!!!!!!!////////////////
-          // @$@$@$@$#%@%$^@%^@$&@#$^&%&*$&*(%^*(%^*()%^*()
-          /*
-          if (currentSESE.getChildren().contains(vst.getSESE())) {
+          // when we do x = y for variables, just copy over from a child,
+          // there are two cases:
+          //  1. if the current task is the caller proxy, any local root is a child
+          boolean case1 = 
+            currentSESE.getIsCallerProxySESE() &&
+            rblockRel.getLocalRootSESEs().contains( vst.getSESE() );
+
+          //  2. if the child task is a locally-defined child of the current task
+          boolean case2 = currentSESE.getLocalChildren().contains( vst.getSESE() );
+            
+          if( case1 || case2 ) {
             // if the source comes from a child, copy it over
-            forAddition.add(new VariableSourceToken(ts, vst.getSESE(), vst.getAge(), vst.getAddrVar()));
+            forAddition.add( new VariableSourceToken( ts, 
+                                                      vst.getSESE(), 
+                                                      vst.getAge(), 
+                                                      vst.getAddrVar()
+                                                      )
+                             );
           } else {
             // otherwise, stamp it as us as the source
-            forAddition.add(new VariableSourceToken(ts, currentSESE, new Integer(0), lhs));
+            forAddition.add( new VariableSourceToken( ts, 
+                                                      currentSESE, 
+                                                      new Integer( 0 ), 
+                                                      lhs
+                                                      )
+                             );
           }
-          */
         }
 
-        vstTable.addAll(forAddition);
+        vstTable.addAll( forAddition );
 
         // only break if this is an ASSIGN op node,
         // otherwise fall through to default case
@@ -527,33 +551,35 @@ public class OoOJavaAnalysis {
       // fall through to this default case
     default: {
       TempDescriptor[] writeTemps = fn.writesTemps();
-      if (writeTemps.length > 0) {
+      if( writeTemps.length > 0 ) {
 
         // for now, when writeTemps > 1, make sure
         // its a call node, programmer enforce only
         // doing stuff like calling a print routine
-        // assert writeTemps.length == 1;
-        if (writeTemps.length > 1) {
+        if( writeTemps.length > 1 ) {
           assert fn.kind() == FKind.FlatCall || fn.kind() == FKind.FlatMethod;
           break;
         }
 
-        vstTable.remove(writeTemps[0]);
+        vstTable.remove( writeTemps[0] );
 
         HashSet<TempDescriptor> ts = new HashSet<TempDescriptor>();
-        ts.add(writeTemps[0]);
+        ts.add( writeTemps[0] );
 
-        ///////////////// TODO !!!!!!!!!!!!!!!!!////////////////
-        // @$@$@$@$#%@%$^@%^@$&@#$^&%&*$&*(%^*(%^*()%^*()
-        //vstTable.add(new VariableSourceToken(ts, currentSESE, new Integer(0), writeTemps[0]));
+        vstTable.add( new VariableSourceToken( ts,
+                                               currentSESE, 
+                                               new Integer( 0 ), 
+                                               writeTemps[0]
+                                               )
+                      );
       }
 
       vstTable.assertConsistency();
-    }
-      break;
+    } break;
 
     } // end switch
   }
+
 
   private void notAvailableForward(FlatMethod fm) {
 
@@ -1458,8 +1484,8 @@ public class OoOJavaAnalysis {
 
   public void writeReports(String timeReport) throws java.io.IOException {
 
-    BufferedWriter bw = new BufferedWriter(new FileWriter("mlpReport_summary.txt"));
-    bw.write("MLP Analysis Results\n\n");
+    BufferedWriter bw = new BufferedWriter(new FileWriter("ooojReport_summary.txt"));
+    bw.write("OoOJava Analysis Results\n\n");
     bw.write(timeReport + "\n\n");
     printSESEHierarchy(bw);
     bw.write("\n");
@@ -1477,46 +1503,42 @@ public class OoOJavaAnalysis {
                                                ".txt"));
         bw.write("OoOJava Results for " + md + "\n-------------------\n");
 
-        FlatSESEEnterNode implicitSESE = (FlatSESEEnterNode) fm.getNext(0);
+        //FlatSESEEnterNode implicitSESE = (FlatSESEEnterNode) fm.getNext(0);
         //if (!implicitSESE.getIsCallerSESEplaceholder() && implicitSESE != rblockRel.getMainSESE()) {
         //  System.out.println(implicitSESE + " is not implicit?!");
         //  System.exit(-1);
         //}
-        bw.write("Dynamic vars to manage:\n  " + implicitSESE.getDynamicVarSet());
+        //bw.write("Dynamic vars to manage:\n  " + implicitSESE.getDynamicVarSet());
 
         bw.write("\n\nLive-In, Root View\n------------------\n" + fm.printMethod(livenessGlobalView));
         bw.write("\n\nVariable Results-Out\n----------------\n" + fm.printMethod(variableResults));
-        bw.write("\n\nNot Available Results-Out\n---------------------\n"
-            + fm.printMethod(notAvailableResults));
-        bw.write("\n\nCode Plans\n----------\n" + fm.printMethod(codePlans));
+        //bw.write("\n\nNot Available Results-Out\n---------------------\n"
+        //    + fm.printMethod(notAvailableResults));
+        //bw.write("\n\nCode Plans\n----------\n" + fm.printMethod(codePlans));
         bw.close();
       }
     }
   }
 
   private void printSESEHierarchy(BufferedWriter bw) throws java.io.IOException {
-    bw.write("SESE Hierarchy\n--------------\n");
-    Iterator<FlatSESEEnterNode> rootItr = rblockRel.getAllSESEs().iterator();
+    bw.write("SESE Local Hierarchy\n--------------\n");
+    Iterator<FlatSESEEnterNode> rootItr = rblockRel.getLocalRootSESEs().iterator();
     while (rootItr.hasNext()) {
       FlatSESEEnterNode root = rootItr.next();
-      //if (root.getIsCallerSESEplaceholder()) {
-      //  if (!root.getChildren().isEmpty()) {
-      //    printSESEHierarchyTree(bw, root, 0);
-      //  }
-      //} else {
-        printSESEHierarchyTree(bw, root, 0);
-      //}
+      printSESEHierarchyTree(bw, root, 0);      
     }
   }
 
-  private void printSESEHierarchyTree(BufferedWriter bw, FlatSESEEnterNode fsen, int depth)
-      throws java.io.IOException {
+  private void printSESEHierarchyTree(BufferedWriter    bw, 
+                                      FlatSESEEnterNode fsen, 
+                                      int               depth
+                                      ) throws java.io.IOException {
     for (int i = 0; i < depth; ++i) {
       bw.write("  ");
     }
     bw.write("- " + fsen.getPrettyIdentifier() + "\n");
 
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
+    Iterator<FlatSESEEnterNode> childItr = fsen.getLocalChildren().iterator();
     while (childItr.hasNext()) {
       FlatSESEEnterNode fsenChild = childItr.next();
       printSESEHierarchyTree(bw, fsenChild, depth + 1);
@@ -1525,57 +1547,42 @@ public class OoOJavaAnalysis {
 
   private void printSESEInfo(BufferedWriter bw) throws java.io.IOException {
     bw.write("\nSESE info\n-------------\n");
-    Iterator<FlatSESEEnterNode> rootItr = null; //rblockRel.getRootSESEs().iterator();
-    while (rootItr.hasNext()) {
-      FlatSESEEnterNode root = rootItr.next();
-      //if (root.getIsCallerSESEplaceholder()) {
-      //  if (!root.getChildren().isEmpty()) {
-      //    printSESEInfoTree(bw, root);
-      //  }
-      //} else {
-        printSESEInfoTree(bw, root);
-      //}
+    Iterator<FlatSESEEnterNode> fsenItr = rblockRel.getAllSESEs().iterator();
+    while( fsenItr.hasNext() ) {
+      FlatSESEEnterNode fsen = fsenItr.next();
+
+      bw.write("SESE " + fsen.getPrettyIdentifier());
+      if( fsen.getIsLeafSESE() ) {
+        bw.write(" (leaf)");
+      }
+      bw.write(" {\n");
+
+      bw.write("  in-set: " + fsen.getInVarSet() + "\n");
+      Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
+      while (tItr.hasNext()) {
+        TempDescriptor inVar = tItr.next();
+        if (fsen.getReadyInVarSet().contains(inVar)) {
+          bw.write("    (ready)  " + inVar + "\n");
+        }
+        if (fsen.getStaticInVarSet().contains(inVar)) {
+          bw.write("    (static) " + inVar + " from " + fsen.getStaticInVarSrc(inVar) + "\n");
+        }
+        if (fsen.getDynamicInVarSet().contains(inVar)) {
+          bw.write("    (dynamic)" + inVar + "\n");
+        }
+      }
+
+      bw.write("   Dynamic vars to manage: " + fsen.getDynamicVarSet() + "\n");
+
+      bw.write("  out-set: " + fsen.getOutVarSet() + "\n");
+
+      bw.write("  local parent:   " + fsen.getLocalParent() + "\n");
+      bw.write("  local children: " + fsen.getLocalChildren() + "\n");
+
+      bw.write("  possible parents:  " + fsen.getParents() + "\n");
+      bw.write("  possible children: " + fsen.getChildren() + "\n");
+
+      bw.write("}\n");
     }
   }
-
-  public DisjointAnalysis getDisjointAnalysis() {
-    return disjointAnalysisTaints;
-  }
-
-  private void printSESEInfoTree(BufferedWriter bw, FlatSESEEnterNode fsen)
-      throws java.io.IOException {
-
-    bw.write("SESE " + fsen.getPrettyIdentifier());
-    if( fsen.getIsLeafSESE() ) {
-      bw.write(" (leaf)");
-    }
-    bw.write(" {\n");
-
-    bw.write("  in-set: " + fsen.getInVarSet() + "\n");
-    Iterator<TempDescriptor> tItr = fsen.getInVarSet().iterator();
-    while (tItr.hasNext()) {
-      TempDescriptor inVar = tItr.next();
-      if (fsen.getReadyInVarSet().contains(inVar)) {
-        bw.write("    (ready)  " + inVar + "\n");
-      }
-      if (fsen.getStaticInVarSet().contains(inVar)) {
-        bw.write("    (static) " + inVar + " from " + fsen.getStaticInVarSrc(inVar) + "\n");
-      }
-      if (fsen.getDynamicInVarSet().contains(inVar)) {
-        bw.write("    (dynamic)" + inVar + "\n");
-      }
-    }
-
-    bw.write("   Dynamic vars to manage: " + fsen.getDynamicVarSet() + "\n");
-
-    bw.write("  out-set: " + fsen.getOutVarSet() + "\n");
-    bw.write("}\n");
-
-    Iterator<FlatSESEEnterNode> childItr = fsen.getChildren().iterator();
-    while (childItr.hasNext()) {
-      FlatSESEEnterNode fsenChild = childItr.next();
-      printSESEInfoTree(bw, fsenChild);
-    }
-  }
-
 }

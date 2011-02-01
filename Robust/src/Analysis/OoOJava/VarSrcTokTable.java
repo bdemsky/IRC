@@ -34,6 +34,9 @@ public class VarSrcTokTable {
   public static final Integer SrcType_STATIC  = new Integer( 35 );
   public static final Integer SrcType_DYNAMIC = new Integer( 36 );
 
+  public static RBlockRelationAnalysis rblockRel;
+
+
 
   public VarSrcTokTable() {
     trueSet  = new HashSet<VariableSourceToken>();
@@ -386,7 +389,7 @@ public class VarSrcTokTable {
   // for the given SESE, change child tokens into this parent
   public void remapChildTokens( FlatSESEEnterNode curr ) {
 
-    Iterator<FlatSESEEnterNode> childItr = curr.getChildren().iterator();
+    Iterator<FlatSESEEnterNode> childItr = curr.getLocalChildren().iterator();
     if( childItr.hasNext() ) {
       FlatSESEEnterNode child = childItr.next();
       
@@ -433,26 +436,43 @@ public class VarSrcTokTable {
   // whether it ends up writing to it or not.  It will always, then,
   // appear in curr's out-set.
   public Set<TempDescriptor>
-    calcVirtReadsAndPruneParentAndSiblingTokens( FlatSESEEnterNode exiter,
+    calcVirtReadsAndPruneParentAndSiblingTokens( FlatSESEEnterNode   exiter,
 						 Set<TempDescriptor> liveVars ) {
 
     Set<TempDescriptor> virtReadSet = new HashSet<TempDescriptor>();
 
-    Set<FlatSESEEnterNode> parents = null; //exiter.getParents();
-    if( parents.isEmpty() ) {
-      // having no parent means no siblings, too
+    // this calculation is unneeded for the main task, just return an
+    // empty set of virtual reads
+    if( rblockRel.getMainSESE() == exiter ) {
       return virtReadSet;
     }
 
+    // who are the parent and siblings?
     Set<FlatSESEEnterNode> alternateSESEs = new HashSet<FlatSESEEnterNode>();
-    alternateSESEs.addAll( parents );
-    Iterator<FlatSESEEnterNode> childItr = null; //parents.getChildren().iterator();
+    Iterator<FlatSESEEnterNode> childItr;
+
+    FlatSESEEnterNode parent = exiter.getLocalParent();
+
+    if( parent == null ) {
+      // when some caller task is the exiter's parent, the siblings
+      // of the exiter are other local root tasks
+      parent = rblockRel.getCallerProxySESE();      
+      childItr = rblockRel.getLocalRootSESEs( exiter.getfmEnclosing() ).iterator();
+      
+    } else {
+      // otherwise, the siblings are locally-defined
+      childItr = parent.getLocalChildren().iterator();
+    }
+
+    alternateSESEs.add( parent );
     while( childItr.hasNext() ) {
       FlatSESEEnterNode sibling = childItr.next();      
       if( !sibling.equals( exiter ) ) {
         alternateSESEs.add( sibling );
       }
     }
+
+
     
     // VSTs to remove if they are alternate sources for exiter VSTs
     // whose variables will become virtual reads
@@ -519,21 +539,6 @@ public class VarSrcTokTable {
     return virtReadSet;
   }
   
-  
-  // get the set of VST's that come from a child
-  public Set<VariableSourceToken> getChildrenVSTs( FlatSESEEnterNode curr ) {
-    
-    Set<VariableSourceToken> out = new HashSet<VariableSourceToken>();
-    
-    Iterator<FlatSESEEnterNode> cItr = curr.getChildren().iterator();
-    while( cItr.hasNext() ) {
-      FlatSESEEnterNode child = cItr.next();
-      out.addAll( get( child ) );
-    }
-
-    return out;
-  }
-
 
   // given a table from a subsequent program point, decide
   // which variables are going from a non-dynamic to a
@@ -587,7 +592,7 @@ public class VarSrcTokTable {
   // 3. Dynamic -- we don't know where the value will come
   //      from statically, so we'll track it dynamically
   public Integer getRefVarSrcType( TempDescriptor    refVar,
-				   FlatSESEEnterNode current,
+				   FlatSESEEnterNode currentSESE,
                                    VSTWrapper        vstIfStatic ) {
     assert refVar      != null;
     assert vstIfStatic != null;
@@ -597,7 +602,7 @@ public class VarSrcTokTable {
     // when the current SESE is null, that simply means it is
     // an unknown placeholder, in which case the system will
     // ensure that any variables are READY
-    if( current == null ) {
+    if( currentSESE == null ) {
       return SrcType_READY;
     }
 
@@ -611,9 +616,18 @@ public class VarSrcTokTable {
       VariableSourceToken vst = itrSrcs.next();
 
       // to make the refVar non-READY we have to find at least
-      // one child token
-      if( current.getChildren().contains( vst.getSESE() ) ) {
+      // one child token, there are two cases
+      //  1. if the current task invoked the local method context,
+      //     its children are the locally-defined root tasks
+      boolean case1 = 
+        currentSESE.getIsCallerProxySESE() &&
+        rblockRel.getLocalRootSESEs().contains( vst.getSESE() );
 
+      //  2. if the child task is a locally-defined child of the current task
+      boolean case2 = currentSESE.getLocalChildren().contains( vst.getSESE() );
+            
+      if( case1 || case2 ) {
+      
         // if we ever have at least one child source with an
         // unknown age, have to treat var as dynamic
         if( vst.getAge().equals( OoOJavaAnalysis.maxSESEage ) ) {

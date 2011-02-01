@@ -115,16 +115,20 @@ public class RBlockRelationAnalysis {
     return mainSESE;
   }
 
-  public FlatSESEEnterNode getCallerProxySESE() {
-    return callerProxySESE;
-  }
-
   public Set<FlatSESEEnterNode> getAllSESEs() {
     return allSESEs;
   }
 
   public Set<FlatSESEEnterNode> getLocalRootSESEs() {
     return allLocalRootSESEs;
+  }
+
+  public Set<FlatSESEEnterNode> getLocalRootSESEs( FlatMethod fm ) {
+    Set<FlatSESEEnterNode> out = md2localRootSESEs.get( fm );
+    if( out == null ) {
+      out = new HashSet<FlatSESEEnterNode>();
+    }
+    return out;
   }
   
   public Set<FlatSESEEnterNode> getPossibleExecutingRBlocks( FlatNode fn ) {
@@ -133,6 +137,16 @@ public class RBlockRelationAnalysis {
 
   public FlatSESEEnterNode getLocalInnerRBlock( FlatNode fn ) {
     return fn2localInnerSESE.get( fn );
+  }
+
+  // the "caller proxy" is a static name for whichever
+  // task invoked the current method context.  It is very
+  // convenient to know this is ALWAYS a different instance
+  // of any task defined within the current method context,
+  // and so using its name simplifies many intraprocedural
+  // analyses
+  public FlatSESEEnterNode getCallerProxySESE() {
+    return callerProxySESE;
   }
 
   public boolean isPotentialStallSite( FlatNode fn ) {
@@ -152,6 +166,7 @@ public class RBlockRelationAnalysis {
     this.callGraph = callGraph;
 
     callerProxySESE = new FlatSESEEnterNode( null );
+    callerProxySESE.setIsCallerProxySESE();
 
     allSESEs                = new HashSet<FlatSESEEnterNode>();
     allLocalRootSESEs       = new HashSet<FlatSESEEnterNode>();

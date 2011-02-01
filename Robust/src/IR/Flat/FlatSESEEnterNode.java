@@ -35,6 +35,10 @@ public class FlatSESEEnterNode extends FlatNode {
   // (spliced in by the compiler around whole program)
   protected boolean isMainSESE;
 
+  // this is a useful static name for whichever task
+  // invoked the current local method context
+  protected boolean isCallerProxySESE;
+
   // all children tasks, INCLUDING those that are reachable
   // by calling methods
   protected Set<FlatSESEEnterNode> children;
@@ -116,7 +120,8 @@ public class FlatSESEEnterNode extends FlatNode {
 
     isLeafSESE = ISLEAF_UNINIT;
 
-    isMainSESE = false;
+    isMainSESE        = false;
+    isCallerProxySESE = false;
 
     firstDepRecField = null;
     numDepRecs       = 0;
@@ -144,6 +149,14 @@ public class FlatSESEEnterNode extends FlatNode {
     return isMainSESE;
   }
 
+  public void setIsCallerProxySESE() {
+    isCallerProxySESE = true;
+  }
+
+  public boolean getIsCallerProxySESE() {
+    return isCallerProxySESE;
+  }
+
   public int kind() {
     return FKind.FlatSESEEnterNode;
   }
@@ -157,7 +170,7 @@ public class FlatSESEEnterNode extends FlatNode {
   }
 
   public String getPrettyIdentifier() {
-    if( treeNode.getID() != null ) {
+    if( treeNode != null && treeNode.getID() != null ) {
       return treeNode.getID();
     }     
     return ""+id;
