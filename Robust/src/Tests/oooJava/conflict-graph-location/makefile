@@ -25,7 +25,7 @@ DISJOINT= -disjoint -disjoint-k 1 -enable-assertions #-disjoint-desire-determini
 USEOOO= -ooojava 24 2      -ooodebug -squeue
 USERCR= -ooojava 23 2 -rcr -ooodebug -squeue 
 
-BSFLAGS= -justanalyze -64bit -mainclass $(PROGRAM) -heapsize-mb 1024 -garbagestats -noloop -joptimize -debug #-ooodebug-disable-task-mem-pool
+BSFLAGS=  -mainclass $(PROGRAM) -heapsize-mb 1024 -garbagestats -noloop -joptimize -debug #-ooodebug-disable-task-mem-pool -justanalyze -64bit
 
 
 all: ooo

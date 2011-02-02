@@ -18,6 +18,7 @@ import IR.Flat.BuildCodeMultiCore;
 import IR.Flat.BuildCodeMGC;
 import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
+import IR.Flat.BuildOoOJavaCode;
 import IR.Flat.Inliner;
 import IR.ClassDescriptor;
 import IR.State;
@@ -515,7 +516,7 @@ public class Main {
       CallGraph        cg  = new CallGraph(state);
       Liveness         l   = new Liveness();
       ArrayReferencees ar  = new ArrayReferencees(state);
-      oooa  = new OoOJavaAnalysis(state, tu, cg, l, ar);
+      oooa = new OoOJavaAnalysis(state, tu, cg, l, ar);
     }
 
 
@@ -619,6 +620,8 @@ public class Main {
     }
   
     if(!state.MULTICORE) {
+      BuildCode bc;
+
       if (state.DSM||state.SINGLETM) {
 	CallGraph callgraph=new CallGraph(state);
 	if (state.PREFETCH) {
@@ -628,12 +631,16 @@ public class Main {
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, la, pa, oooa);
-	bc.buildCode();
+	bc=new BuildCode(state, bf.getMap(), tu, la, pa);
       } else {
-	BuildCode bc=new BuildCode(state, bf.getMap(), tu, sa, pa, oooa);
-	bc.buildCode();
+        if( state.OOOJAVA ) {
+          bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, pa, oooa);
+        } else {
+          bc=new BuildCode(state, bf.getMap(), tu, sa, pa);
+        }
       }
+
+      bc.buildCode();
     }
 
     System.out.println("Lines="+state.lines);

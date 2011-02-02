@@ -15,6 +15,7 @@ IR/State.class IR/SymbolTable.class IR/TagDescriptor.class		\
 IR/TagVarDescriptor.class IR/TaskDescriptor.class			\
 IR/TypeDescriptor.class IR/TypeUtil.class IR/VarDescriptor.class	\
 IR/Virtual.class IR/Flat/BuildCode.class IR/Flat/BuildFlat.class	\
+IR/Flat/BuildOoOJavaCode.class						\
 IR/Flat/FKind.class IR/Flat/FlatAtomicEnterNode.class			\
 IR/Flat/FlatAtomicExitNode.class IR/Flat/FlatBackEdge.class		\
 IR/Flat/FlatCall.class IR/Flat/FlatCastNode.class			\
