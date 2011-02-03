@@ -1337,10 +1337,10 @@ public class BuildOoOJavaCode extends BuildCode {
       // and also release references that have become too old
       if( !fsen.getIsMainSESE() ) {
 
-        FlatSESEEnterNode currentSESE = fsen.getLocalParent();
+        FlatSESEEnterNode currentSESE = fsen.getLocalParent();        
 
         ContextTaskNames contextTaskNames;
-        if( currentSESE.getIsCallerProxySESE() ) {
+        if( currentSESE == null ) {
           contextTaskNames = oooa.getContextTaskNames( oooa.getContainingFlatMethod( fsen ) );
         } else {
           contextTaskNames = oooa.getContextTaskNames( currentSESE );
@@ -1817,14 +1817,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("   // releasing static SESEs");
     output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
 
-    FlatSESEEnterNode currentSESE = fsen.getLocalParent();
-
-    ContextTaskNames contextTaskNames;
-    if( currentSESE.getIsCallerProxySESE() ) {
-      contextTaskNames = oooa.getContextTaskNames( oooa.getContainingFlatMethod( fsen ) );
-    } else {
-      contextTaskNames = oooa.getContextTaskNames( currentSESE );
-    }
+    ContextTaskNames contextTaskNames = oooa.getContextTaskNames( fsen );
 
     Iterator<SESEandAgePair> pItr = contextTaskNames.getNeededStaticNames().iterator();
     while( pItr.hasNext() ) {

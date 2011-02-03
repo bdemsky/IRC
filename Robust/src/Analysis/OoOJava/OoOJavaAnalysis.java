@@ -140,6 +140,8 @@ public class OoOJavaAnalysis {
     sese2conflictGraph     = new Hashtable<FlatNode, ConflictGraph>();
     conflictGraph2SESELock = new Hashtable<ConflictGraph, HashSet<SESELock>>();
     fn2contextTaskNames    = new Hashtable<FlatNode, ContextTaskNames>();
+    fn2fm                  = new Hashtable<FlatNode, FlatMethod>();
+
 
     // add all methods transitively reachable from the
     // source's main to set for analysis
@@ -268,21 +270,12 @@ public class OoOJavaAnalysis {
       } catch (IOException e) {}
     }
     
-
-    System.out.println("\n\n\n##########################################################\n"+
-                       "Warning, lots of code changes going on, OoOJava and RCR/DFJ\n"+
-                       "systems are being cleaned up.  Until the analyses and code gen\n"+
-                       "are fully altered and coordinated, these systems will not run\n"+
-                       "to completion.  Partial stable check-ins are necessary to manage\n"+
-                       "the number of files getting touched.\n"+
-                       "##########################################################" );
-    System.exit( 0 );
   }
 
 
   private void buildFlatNodeToFlatMethod( FlatMethod fm ) {
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fm.getFlatExit() );
+    flatNodesToVisit.add( fm );
 
     Set<FlatNode> flatNodesVisited = new HashSet<FlatNode>();
 
@@ -1118,9 +1111,7 @@ public class OoOJavaAnalysis {
       EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
       ConflictGraph conflictGraph = sese2conflictGraph.get( parent );
       assert conflictGraph == null;
-      //if (conflictGraph == null) {
       conflictGraph = new ConflictGraph( state );
-      //}
 
       Set<FlatSESEEnterNode> children = parent.getChildren();
       for( Iterator iterator2 = children.iterator(); iterator2.hasNext(); ) {
@@ -1188,10 +1179,10 @@ public class OoOJavaAnalysis {
       FlatSESEEnterNode currentSESE = seseItr.next();
 
       ConflictGraph conflictGraph = sese2conflictGraph.get( currentSESE );
-      assert conflictGraph != null;
-      //if (conflictGraph == null) {
-      //  conflictGraph = new ConflictGraph(state);
-      //}
+      if( conflictGraph == null ) {
+        assert currentSESE.getIsLeafSESE();
+        continue;
+      }
 
       TempDescriptor lhs;
       TempDescriptor rhs;
