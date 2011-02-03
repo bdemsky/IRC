@@ -117,11 +117,11 @@ public class OoOJavaAnalysis {
   }
 
 
-  public OoOJavaAnalysis(State state, 
-                         TypeUtil typeUtil, 
-                         CallGraph callGraph, 
-                         Liveness liveness,
-                         ArrayReferencees arrayReferencees) {
+  public OoOJavaAnalysis( State            state, 
+                          TypeUtil         typeUtil, 
+                          CallGraph        callGraph, 
+                          Liveness         liveness,
+                          ArrayReferencees arrayReferencees ) {
 
     double timeStartAnalysis = (double) System.nanoTime();
 
@@ -212,47 +212,15 @@ public class OoOJavaAnalysis {
       notAvailableForward(fm);
     }
 
-    // 7th pass, make conflict graph
-    // conflict graph is maintained by each parent sese,
-    // where its' own stall sites and children may appear
-    Set<FlatSESEEnterNode> allSESEs=rblockRel.getAllSESEs();
-    for (Iterator iterator = allSESEs.iterator(); iterator.hasNext();) {
-
-      FlatSESEEnterNode parent = (FlatSESEEnterNode) iterator.next();
-      if (!parent.getIsLeafSESE()) {
-
-        EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
-        ConflictGraph conflictGraph = sese2conflictGraph.get(parent);     
-        if (conflictGraph == null) {
-          conflictGraph = new ConflictGraph(state);
-        }
-
-        Set<FlatSESEEnterNode> children = parent.getChildren();
-        for (Iterator iterator2 = children.iterator(); iterator2.hasNext();) {
-          FlatSESEEnterNode child = (FlatSESEEnterNode) iterator2.next();
-          Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(child);
-          conflictGraph.addLiveIn(taint2Effects);
-          sese2conflictGraph.put(parent, conflictGraph);
-        }
-      }
-    }
-    
-    Iterator descItr = descriptorsToAnalyze.iterator();
-    while (descItr.hasNext()) {
-      Descriptor d = (Descriptor) descItr.next();
-      FlatMethod fm = state.getMethodFlat(d);
-      if (fm != null) {
-        makeConflictGraph(fm);
-      }
-    }    
-
+    // 7th pass, start conflict graphs where a parent's graph has a
+    // node for possibly conflicting children and its own stall sites
+    startConflictGraphs();
     
     // 8th pass, calculate all possible conflicts without using
     // reachability info and identify set of FlatNew that next
     // disjoint reach. analysis should flag
     Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
     calculateConflicts(sitesToFlag, false);
-
 
     if (!state.RCR) {
       // 9th pass, ask disjoint analysis to compute reachability
@@ -269,7 +237,8 @@ public class OoOJavaAnalysis {
       calculateConflicts(null, true);
     }
 
-    // 11th pass, compiling locks
+    // 11th pass, compiling memory Qs!  The name "lock" is a legacy
+    // term for the heap dependence queue, or memQ as the runtime calls it
     synthesizeLocks();
 
     // 12th pass, compute a plan for code injections
@@ -1133,138 +1102,148 @@ public class OoOJavaAnalysis {
   }
 
 
-  private void makeConflictGraph(FlatMethod fm) {
+  private void startConflictGraphs() {
+
+    // first, for each task, consider whether it has any children, and if
+    // effects analysis says they should be a conflict node in the that
+    // parent's conflict graph
+    Set<FlatSESEEnterNode> allSESEs = rblockRel.getAllSESEs();
+    for( Iterator iterator = allSESEs.iterator(); iterator.hasNext(); ) {
+
+      FlatSESEEnterNode parent = (FlatSESEEnterNode) iterator.next();
+      if( parent.getIsLeafSESE() ) {
+        continue;
+      }
+
+      EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
+      ConflictGraph conflictGraph = sese2conflictGraph.get( parent );
+      assert conflictGraph == null;
+      //if (conflictGraph == null) {
+      conflictGraph = new ConflictGraph( state );
+      //}
+
+      Set<FlatSESEEnterNode> children = parent.getChildren();
+      for( Iterator iterator2 = children.iterator(); iterator2.hasNext(); ) {
+        FlatSESEEnterNode child = (FlatSESEEnterNode) iterator2.next();
+        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get( child );
+        conflictGraph.addLiveIn( taint2Effects );
+      }
+
+      sese2conflictGraph.put( parent, conflictGraph );
+    }
+
+    // then traverse all methods looking for potential stall sites, and
+    // add those stall sites as nodes in any task's conflict graph that
+    // might be executing at the point of the stall site
+    Iterator<MethodDescriptor> descItr = descriptorsToAnalyze.iterator();
+    while( descItr.hasNext() ) {
+      MethodDescriptor md = descItr.next();
+      FlatMethod       fm = state.getMethodFlat( md );
+      if( fm != null ) {
+        addStallSitesToConflictGraphs( fm );
+      }
+    }    
+  }
+
+  private void addStallSitesToConflictGraphs( FlatMethod fm ) {
 
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add(fm);
+    flatNodesToVisit.add( fm );
 
     Set<FlatNode> visited = new HashSet<FlatNode>();
 
-    while (!flatNodesToVisit.isEmpty()) {
+    while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
-      flatNodesToVisit.remove(fn);
-      visited.add(fn);
+      flatNodesToVisit.remove( fn );
+      visited.add( fn );
 
       Set<FlatSESEEnterNode> currentSESEs = 
         rblockRel.getPossibleExecutingRBlocks( fn );
 
-      conflictGraph_nodeAction(fn, currentSESEs);
+      conflictGraph_nodeAction( fn, currentSESEs );
 
       // schedule forward nodes for analysis
-      for (int i = 0; i < fn.numNext(); i++) {
-        FlatNode nn = fn.getNext(i);
-        if (!visited.contains(nn)) {
-          flatNodesToVisit.add(nn);
+      for( int i = 0; i < fn.numNext(); i++ ) {
+        FlatNode nn = fn.getNext( i );
+        if( !visited.contains( nn ) ) {
+          flatNodesToVisit.add( nn );
         }
       }
-
     }
-
   }
 
-  private void conflictGraph_nodeAction(FlatNode fn, 
-                                        Set<FlatSESEEnterNode> currentSESEs
-                                        ) {
-    ConflictGraph conflictGraph;
-    TempDescriptor lhs;
-    TempDescriptor rhs;
-    
+  private void conflictGraph_nodeAction( FlatNode fn, 
+                                         Set<FlatSESEEnterNode> currentSESEs
+                                         ) {
+
     EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
 
+    Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get( fn );
 
-    switch (fn.kind()) {
+
+    // repeat the process of adding a stall site to a conflict graph
+    // for each task that might be executing at a possible stall site
+    Iterator<FlatSESEEnterNode> seseItr = currentSESEs.iterator();
+    while( seseItr.hasNext() ) {
+      FlatSESEEnterNode currentSESE = seseItr.next();
+
+      ConflictGraph conflictGraph = sese2conflictGraph.get( currentSESE );
+      assert conflictGraph != null;
+      //if (conflictGraph == null) {
+      //  conflictGraph = new ConflictGraph(state);
+      //}
+
+      TempDescriptor lhs;
+      TempDescriptor rhs;
+   
+      switch( fn.kind() ) {
 
 
-    case FKind.FlatFieldNode:
-    case FKind.FlatElementNode: {
+      case FKind.FlatFieldNode:
+      case FKind.FlatElementNode: {
 
-      if (fn instanceof FlatFieldNode) {
-        FlatFieldNode ffn = (FlatFieldNode) fn;
-        rhs = ffn.getSrc();
-      } else {
-        FlatElementNode fen = (FlatElementNode) fn;
-        rhs = fen.getSrc();
-      }
-
-      for( Iterator<FlatSESEEnterNode> itr = currentSESEs.iterator();
-           itr.hasNext();
-           ) {
-        FlatSESEEnterNode currentSESE = itr.next();
-
-        conflictGraph = sese2conflictGraph.get(currentSESE);
-        if (conflictGraph == null) {
-          conflictGraph = new ConflictGraph(state);
+        if( fn instanceof FlatFieldNode ) {
+          FlatFieldNode ffn = (FlatFieldNode) fn;
+          rhs = ffn.getSrc();
+        } else {
+          FlatElementNode fen = (FlatElementNode) fn;
+          rhs = fen.getSrc();
         }
 
-        // add stall site
-        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
-        conflictGraph.addStallSite(taint2Effects, rhs);
-
-        if (conflictGraph.id2cn.size() > 0) {
-          sese2conflictGraph.put(currentSESE, conflictGraph);
-        }
-      }
-    } break;
+        conflictGraph.addStallSite( taint2Effects, rhs );
+      } break;
 
 
-    case FKind.FlatSetFieldNode:
-    case FKind.FlatSetElementNode: {
+      case FKind.FlatSetFieldNode:
+      case FKind.FlatSetElementNode: {
 
-      if (fn instanceof FlatSetFieldNode) {
-        FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
-        lhs = fsfn.getDst();
-        rhs = fsfn.getSrc();
-      } else {
-        FlatSetElementNode fsen = (FlatSetElementNode) fn;
-        lhs = fsen.getDst();
-        rhs = fsen.getSrc();
-      }
-
-      for( Iterator<FlatSESEEnterNode> itr = currentSESEs.iterator();
-           itr.hasNext();
-           ) {
-        FlatSESEEnterNode currentSESE = itr.next();
-
-        conflictGraph = sese2conflictGraph.get(currentSESE);
-        if (conflictGraph == null) {
-          conflictGraph = new ConflictGraph(state);
+        if( fn instanceof FlatSetFieldNode ) {
+          FlatSetFieldNode fsfn = (FlatSetFieldNode) fn;
+          lhs = fsfn.getDst();
+          rhs = fsfn.getSrc();
+        } else {
+          FlatSetElementNode fsen = (FlatSetElementNode) fn;
+          lhs = fsen.getDst();
+          rhs = fsen.getSrc();
         }
 
-        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
-        conflictGraph.addStallSite(taint2Effects, rhs);
-        conflictGraph.addStallSite(taint2Effects, lhs);
+        conflictGraph.addStallSite( taint2Effects, rhs );
+        conflictGraph.addStallSite( taint2Effects, lhs );
+      } break;
 
-        if (conflictGraph.id2cn.size() > 0) {
-          sese2conflictGraph.put(currentSESE, conflictGraph);
-        }
+
+      case FKind.FlatCall: {
+        FlatCall fc = (FlatCall) fn;
+        lhs = fc.getThis();
+
+        conflictGraph.addStallSite( taint2Effects, lhs );
+      } break;
+
       }
-    } break;
-
-
-    case FKind.FlatCall: {
-      FlatCall fc = (FlatCall) fn;
-      lhs = fc.getThis();
-
-      for( Iterator<FlatSESEEnterNode> itr = currentSESEs.iterator();
-           itr.hasNext();
-           ) {
-        FlatSESEEnterNode currentSESE = itr.next();
-
-        conflictGraph = sese2conflictGraph.get(currentSESE);
-        if (conflictGraph == null) {
-          conflictGraph = new ConflictGraph(state);
-        }
-
-        // collects effects of stall site and generates stall site node
-        Hashtable<Taint, Set<Effect>> taint2Effects = effectsAnalysis.get(fn);
-
-        conflictGraph.addStallSite(taint2Effects, lhs);
-        if (conflictGraph.id2cn.size() > 0) {
-          sese2conflictGraph.put(currentSESE, conflictGraph);
-        }          
+      
+      if( conflictGraph.id2cn.size() > 0 ) {
+        sese2conflictGraph.put( currentSESE, conflictGraph );
       }
-    } break;
-
     }
   }
 
@@ -1307,7 +1286,10 @@ public class OoOJavaAnalysis {
     }
   }
 
+
   private void synthesizeLocks() {
+    // for every conflict graph, generate a set of memory queues
+    // (called SESELock in this code!) to cover the graph
     Set<Entry<FlatNode, ConflictGraph>> graphEntrySet = sese2conflictGraph.entrySet();
     for (Iterator iterator = graphEntrySet.iterator(); iterator.hasNext();) {
       Entry<FlatNode, ConflictGraph> graphEntry = (Entry<FlatNode, ConflictGraph>) iterator.next();
@@ -1622,6 +1604,10 @@ public class OoOJavaAnalysis {
 
   public FlatSESEEnterNode getCallerProxySESE() {
     return rblockRel.getCallerProxySESE();
+  }
+
+  public Set<FlatSESEEnterNode> getPossibleExecutingRBlocks( FlatNode fn ) {
+    return rblockRel.getPossibleExecutingRBlocks( fn );
   }
 
 
