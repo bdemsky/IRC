@@ -1,45 +1,21 @@
 package IR.Flat;
-import IR.Tree.Modifiers;
-import IR.Tree.FlagExpressionNode;
-import IR.Tree.DNFFlag;
-import IR.Tree.DNFFlagAtom;
-import IR.Tree.TagExpressionList;
-import IR.Tree.OffsetNode;
 import IR.*;
+import IR.Tree.*;
 
 import java.util.*;
 import java.io.*;
 
-import Util.Relation;
-import Analysis.TaskStateAnalysis.FlagState;
-import Analysis.TaskStateAnalysis.FlagComparator;
-import Analysis.TaskStateAnalysis.OptionalTaskDescriptor;
-import Analysis.TaskStateAnalysis.Predicate;
-import Analysis.TaskStateAnalysis.SafetyAnalysis;
-import Analysis.TaskStateAnalysis.TaskIndex;
-import Analysis.Locality.LocalityAnalysis;
-import Analysis.Locality.LocalityBinding;
-import Analysis.Locality.DiscoverConflicts;
-import Analysis.Locality.DCWrapper;
-import Analysis.Locality.DelayComputation;
-import Analysis.Locality.BranchAnalysis;
-import Analysis.CallGraph.CallGraph;
-import Analysis.Disjoint.AllocSite;
-import Analysis.Disjoint.Effect;
-import Analysis.Disjoint.ReachGraph;
-import Analysis.Disjoint.Taint;
-import Analysis.OoOJava.OoOJavaAnalysis;
-import Analysis.OoOJava.SESEandAgePair;
-import Analysis.OoOJava.VariableSourceToken;
-import Analysis.OoOJava.CodePlan;
-import Analysis.OoOJava.ConflictNode;
-import Analysis.OoOJava.SESEWaitingQueue;
-import Analysis.OoOJava.VSTWrapper;
+import Util.*;
+import Analysis.TaskStateAnalysis.*;
+import Analysis.Locality.*;
+import Analysis.CallGraph.*;
+import Analysis.Disjoint.*;
+import Analysis.OoOJava.*;
 import Analysis.Prefetch.*;
-import Analysis.Loops.WriteBarrier;
-import Analysis.Loops.GlobalFieldType;
-import Analysis.Locality.TypeAnalysis;
-import Util.CodePrinter;
+import Analysis.Loops.*;
+import Analysis.Locality.*;
+
+
 
 public class BuildOoOJavaCode extends BuildCode {
 
@@ -51,8 +27,6 @@ public class BuildOoOJavaCode extends BuildCode {
     "if(status != 0) { "+
     "sprintf(errmsg, \"MLP error at %s:%d\", __FILE__, __LINE__); "+
     "perror(errmsg); exit(-1); }";
-
-  boolean nonSESEpass = true;
 
   RuntimeConflictResolver rcr = null;
 
@@ -83,7 +57,7 @@ public class BuildOoOJavaCode extends BuildCode {
       outmethodheader.println("#include \"rcr_runtime.h\"");
     }
 
-    // spit out a global to inform all worker threads with
+    // spit out a global to inform all worker threads what
     // the maximum size is for any task record
     outmethodheader.println("extern int "+maxTaskRecSizeStr+";");
   }
@@ -117,6 +91,66 @@ public class BuildOoOJavaCode extends BuildCode {
   }
 
 
+  protected void initializeSESE( FlatSESEEnterNode fsen ) {
+
+    FlatMethod       fm = fsen.getfmEnclosing();
+    MethodDescriptor md = fm.getMethod();
+    ClassDescriptor  cn = md.getClassDesc();    
+        
+    // Creates bogus method descriptor to index into tables
+    Modifiers modBogus = new Modifiers();
+    MethodDescriptor mdBogus = 
+      new MethodDescriptor( modBogus, 
+			    new TypeDescriptor( TypeDescriptor.VOID ), 
+			    "sese_"+fsen.getPrettyIdentifier()+fsen.getIdentifier()
+			    );
+    
+    mdBogus.setClassDesc( fsen.getcdEnclosing() );
+    FlatMethod fmBogus = new FlatMethod( mdBogus, null );
+    fsen.setfmBogus( fmBogus );
+    fsen.setmdBogus( mdBogus );
+
+    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
+    inSetAndOutSet.addAll( fsen.getInVarSet() );
+    inSetAndOutSet.addAll( fsen.getOutVarSet() );
+
+    // Build paramsobj for bogus method descriptor
+    ParamsObject objectparams = new ParamsObject( mdBogus, tag++ );
+    paramstable.put( mdBogus, objectparams );
+    
+    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
+    while( itr.hasNext() ) {
+      TempDescriptor temp = itr.next();
+      TypeDescriptor type = temp.getType();
+      if( type.isPtr() ) {
+	objectparams.addPtr( temp );
+      } else {
+	objectparams.addPrim( temp );
+      }
+    }
+        
+    // Build normal temp object for bogus method descriptor
+    TempObject objecttemps = new TempObject( objectparams, mdBogus, tag++ );
+    tempstable.put( mdBogus, objecttemps );
+
+    for( Iterator nodeit = fsen.getNodeSet().iterator(); nodeit.hasNext(); ) {
+      FlatNode         fn     = (FlatNode)nodeit.next();
+      TempDescriptor[] writes = fn.writesTemps();
+
+      for( int i = 0; i < writes.length; i++ ) {
+	TempDescriptor temp = writes[i];
+	TypeDescriptor type = temp.getType();
+
+	if( type.isPtr() ) {
+	  objecttemps.addPtr( temp );
+	} else {
+	  objecttemps.addPrim( temp );
+	}
+      }
+    }
+  }
+
+
   protected void postCodeGenCleanUp() {
     if(rcr != null) {
       rcr.close();
@@ -133,15 +167,11 @@ public class BuildOoOJavaCode extends BuildCode {
 
     // spit out a global to inform all worker threads with
     // the maximum size is for any task record
-    outmethod.println("int "+maxTaskRecSizeStr+" = 0;");
-
-    // used to differentiate, during code generation, whether we are
-    // passing over SESE body code, or non-SESE code
-    nonSESEpass = false;
+    outmethod.println( "int "+maxTaskRecSizeStr+" = 0;" );
 
     // first generate code for each sese's internals     
     Iterator<FlatSESEEnterNode> seseit;
-    seseit=oooa.getAllSESEs().iterator();
+    seseit = oooa.getAllSESEs().iterator();
       
     while( seseit.hasNext() ) {
       FlatSESEEnterNode fsen = seseit.next();
@@ -223,139 +253,62 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   protected void additionalCodeAtTopFlatMethodBody( PrintWriter output, FlatMethod fm ) {
-   
-    //  TODO!!!!!!!!!
-    //      if( fm.getNext(0) instanceof FlatSESEEnterNode ) {
-    //	FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-    //	if( callerSESEplaceholder != oooa.getMainSESE() ) {
-    //	  // declare variables for naming static SESE's
-    //	  output.println("   /* static SESE names */");
-    //	  Iterator<SESEandAgePair> pItr = callerSESEplaceholder.getNeededStaticNames().iterator();
-    //	  while( pItr.hasNext() ) {
-    //	    SESEandAgePair pair = pItr.next();
-    //	    output.println("   void* "+pair+" = NULL;");
-    //	  }
-    //
-    //	  // declare variables for tracking dynamic sources
-    //	  output.println("   /* dynamic variable sources */");
-    //	  Iterator<TempDescriptor> dynSrcItr = callerSESEplaceholder.getDynamicVarSet().iterator();
-    //	  while( dynSrcItr.hasNext() ) {
-    //	    TempDescriptor dynSrcVar = dynSrcItr.next();
-    //	    output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
-    //	    output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
-    //	  }    
-    //	}
-    //      }
-    //      
-    //      // set up related allocation sites's waiting queues
-    //      // eom
-    //
-    //      FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
-    //      if(callerSESEplaceholder!= oooa.getMainSESE()){
-    //        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);       
-    //        if (graph != null && graph.hasConflictEdge()) {          
-    //          output.println("   // set up waiting queues ");
-    //          output.println("   int numMemoryQueue=0;");
-    //          output.println("   int memoryQueueItemID=0;");
-    //          Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
-    //          System.out.println("#lockSet="+lockSet.hashCode());
-    //          System.out.println("lockset="+lockSet);
-    //          for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
-    //            Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
-    //            System.out.println("id="+seseLock.getID());
-    //            System.out.println("#="+seseLock);
-    //          }
-    //          System.out.println("size="+lockSet.size());
-    //          if (lockSet.size() > 0) {
-    //            output.println("   numMemoryQueue=" + lockSet.size() + ";");
-    //            output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
-    //            output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-    //            output.println();
-    //          }
-    //        }
-    //      }
-    //      
-    //  
-  }
 
+    // declare variables for naming static and dynamic SESE's
+    ContextTaskNames context = oooa.getContextTaskNames( fm );
 
-  protected void initializeSESE( FlatSESEEnterNode fsen ) {
-
-    FlatMethod       fm = fsen.getfmEnclosing();
-    MethodDescriptor md = fm.getMethod();
-    ClassDescriptor  cn = md.getClassDesc();
+    output.println("   /* static SESE names */");
+    Iterator<SESEandAgePair> pItr = context.getNeededStaticNames().iterator();
+    while( pItr.hasNext() ) {
+      SESEandAgePair pair = pItr.next();
+      output.println("   void* "+pair+" = NULL;");
+    }
     
-        
-    // Creates bogus method descriptor to index into tables
-    Modifiers modBogus = new Modifiers();
-    MethodDescriptor mdBogus = 
-      new MethodDescriptor( modBogus, 
-			    new TypeDescriptor( TypeDescriptor.VOID ), 
-			    "sese_"+fsen.getPrettyIdentifier()+fsen.getIdentifier()
-			    );
-    
-    mdBogus.setClassDesc( fsen.getcdEnclosing() );
-    FlatMethod fmBogus = new FlatMethod( mdBogus, null );
-    fsen.setfmBogus( fmBogus );
-    fsen.setmdBogus( mdBogus );
+    output.println("   /* dynamic variable sources */");
+    Iterator<TempDescriptor> dynSrcItr = context.getDynamicVarSet().iterator();
+    while( dynSrcItr.hasNext() ) {
+      TempDescriptor dynSrcVar = dynSrcItr.next();
+      output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
+      output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
+    }    
 
-    Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
-    inSetAndOutSet.addAll( fsen.getInVarSet() );
-    inSetAndOutSet.addAll( fsen.getOutVarSet() );
-
-    // Build paramsobj for bogus method descriptor
-    ParamsObject objectparams = new ParamsObject( mdBogus, tag++ );
-    paramstable.put( mdBogus, objectparams );
-    
-    Iterator<TempDescriptor> itr = inSetAndOutSet.iterator();
-    while( itr.hasNext() ) {
-      TempDescriptor temp = itr.next();
-      TypeDescriptor type = temp.getType();
-      if( type.isPtr() ) {
-	objectparams.addPtr( temp );
-      } else {
-	objectparams.addPrim( temp );
+          
+    // eom - set up related allocation sites's waiting queues
+    // TODO: we have to do a table-based thing here...
+    /*
+    FlatSESEEnterNode callerSESEplaceholder = (FlatSESEEnterNode) fm.getNext( 0 );
+    if(callerSESEplaceholder!= oooa.getMainSESE()){
+      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(callerSESEplaceholder);       
+      if (graph != null && graph.hasConflictEdge()) {          
+        output.println("   // set up waiting queues ");
+        output.println("   int numMemoryQueue=0;");
+        output.println("   int memoryQueueItemID=0;");
+        Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
+        System.out.println("#lockSet="+lockSet.hashCode());
+        System.out.println("lockset="+lockSet);
+        for (Iterator iterator = lockSet.iterator(); iterator.hasNext();) {
+          Analysis.OoOJava.SESELock seseLock = (Analysis.OoOJava.SESELock) iterator.next();
+          System.out.println("id="+seseLock.getID());
+          System.out.println("#="+seseLock);
+        }
+        System.out.println("size="+lockSet.size());
+        if (lockSet.size() > 0) {
+          output.println("   numMemoryQueue=" + lockSet.size() + ";");
+          output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+          output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+          output.println();
+        }
       }
     }
-        
-    // Build normal temp object for bogus method descriptor
-    TempObject objecttemps = new TempObject( objectparams, mdBogus, tag++ );
-    tempstable.put( mdBogus, objecttemps );
-
-    for( Iterator nodeit = fsen.getNodeSet().iterator(); nodeit.hasNext(); ) {
-      FlatNode         fn     = (FlatNode)nodeit.next();
-      TempDescriptor[] writes = fn.writesTemps();
-
-      for( int i = 0; i < writes.length; i++ ) {
-	TempDescriptor temp = writes[i];
-	TypeDescriptor type = temp.getType();
-
-	if( type.isPtr() ) {
-	  objecttemps.addPtr( temp );
-	} else {
-	  objecttemps.addPrim( temp );
-	}
-      }
-    }
+    */
   }
 
-  // used when generating the specific SESE record struct
-  // to remember the FIRST field name of sese records 
-  // that the current SESE depends on--we need to know the
-  // offset to the first one for garbage collection
-  protected void addingDepRecField( FlatSESEEnterNode fsen,
-                                    String            field ) {
-    if( fsen.getFirstDepRecField() == null ) {
-      fsen.setFirstDepRecField( field );
-    }
-    fsen.incNumDepRecs();
-  }
 
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
-                                    LocalityBinding lb,
-                                    PrintWriter outputStructs,
-                                    PrintWriter outputMethHead,
-                                    PrintWriter outputMethods
+                                    LocalityBinding   lb,
+                                    PrintWriter       outputStructs,
+                                    PrintWriter       outputMethHead,
+                                    PrintWriter       outputMethods
                                     ) {
 
     ParamsObject objectparams = (ParamsObject) paramstable.get( fsen.getmdBogus() );                
@@ -367,8 +320,10 @@ public class BuildOoOJavaCode extends BuildCode {
 			  fsen.getmdBogus().getSafeSymbol()+"_"+
 			  fsen.getmdBogus().getSafeMethodDescriptor()+
 			  "_locals {");
+    
     outputStructs.println("  int size;");
     outputStructs.println("  void * next;");
+
     for(int i=0; i<objecttemps.numPointers(); i++) {
       TempDescriptor temp=objecttemps.getPointer(i);
 
@@ -451,7 +406,8 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = itrPrims.next();
       TypeDescriptor type = temp.getType();
       if(type.isPrimitive()){
-    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol()+"; /* in-set or out-set primitive */");
+    	  outputStructs.println("  "+temp.getType().getSafeSymbol()+" "+
+                                temp.getSafeSymbol()+"; /* in-set or out-set primitive */");
       }      
     }
     
@@ -508,14 +464,27 @@ public class BuildOoOJavaCode extends BuildCode {
 			    outputMethods );
   }
 
-  private void generateFlatMethodSESE(FlatMethod fm, 
-                                      ClassDescriptor cn, 
+  // used when generating the specific SESE record struct
+  // to remember the FIRST field name of sese records 
+  // that the current SESE depends on--we need to know the
+  // offset to the first one for garbage collection
+  protected void addingDepRecField( FlatSESEEnterNode fsen,
+                                    String            field ) {
+    if( fsen.getFirstDepRecField() == null ) {
+      fsen.setFirstDepRecField( field );
+    }
+    fsen.incNumDepRecs();
+  }
+
+
+  private void generateFlatMethodSESE(FlatMethod        fm, 
+                                      ClassDescriptor   cn, 
                                       FlatSESEEnterNode fsen, 
                                       FlatSESEExitNode  seseExit, 
-                                      PrintWriter output
+                                      PrintWriter       output
                                       ) {
 
-    MethodDescriptor md=fm.getMethod();
+    MethodDescriptor md = fm.getMethod();
 
     output.print("void ");
     output.print(fsen.getSESEmethodName()+"(");
@@ -526,7 +495,11 @@ public class BuildOoOJavaCode extends BuildCode {
     TempObject objecttemp=(TempObject) tempstable.get(md);
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-      output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_locals "+localsprefix+"={");
+      output.print("   struct "+
+                   cn.getSafeSymbol()+
+                   md.getSafeSymbol()+"_"+
+                   md.getSafeMethodDescriptor()+
+                   "_locals "+localsprefix+"={");
       output.print(objecttemp.numPointers()+",");
       output.print("&(((SESEcommon*)(___params___))[1])");
       for(int j=0; j<objecttemp.numPointers(); j++)
@@ -547,23 +520,25 @@ public class BuildOoOJavaCode extends BuildCode {
     }
 
 
-    // declare variables for naming static SESE's
-    // TODO
-    //output.println("   /* static SESE names */");
-    //Iterator<SESEandAgePair> pItr = fsen.getNeededStaticNames().iterator();
-    //while( pItr.hasNext() ) {
-    //  SESEandAgePair pair = pItr.next();
-    //  output.println("   SESEcommon* "+pair+" = NULL;");
-    //}
-    //
-    //// declare variables for tracking dynamic sources
-    //output.println("   /* dynamic variable sources */");
-    //Iterator<TempDescriptor> dynSrcItr = fsen.getDynamicVarSet().iterator();
-    //while( dynSrcItr.hasNext() ) {
-    //  TempDescriptor dynSrcVar = dynSrcItr.next();
-    //  output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
-    //  output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
-    //}    
+    // declare variables for naming static and dynamic SESE's
+    ContextTaskNames context = oooa.getContextTaskNames( fsen );
+
+    output.println("   /* static SESE names */");
+    Iterator<SESEandAgePair> pItr = context.getNeededStaticNames().iterator();
+    while( pItr.hasNext() ) {
+      SESEandAgePair pair = pItr.next();
+      output.println("   SESEcommon* "+pair+" = NULL;");
+    }
+    
+    // declare variables for tracking dynamic sources
+    output.println("   /* dynamic variable sources */");
+    Iterator<TempDescriptor> dynSrcItr = context.getDynamicVarSet().iterator();
+    while( dynSrcItr.hasNext() ) {
+      TempDescriptor dynSrcVar = dynSrcItr.next();
+      output.println("   SESEcommon*  "+dynSrcVar+"_srcSESE = NULL;");
+      output.println("   INTPTR       "+dynSrcVar+"_srcOffset = 0x1;");
+    }    
+
 
     // declare local temps for in-set primitives, and if it is
     // a ready-source variable, get the value from the record
@@ -602,25 +577,23 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("   childSESE = 0;");
     output.println("   ");
     
-    // setup memory queue
-    // eom
-    if(state.OOOJAVA){
-      output.println("   // set up memory queues ");
-      output.println("   int numMemoryQueue=0;");
-      output.println("   int memoryQueueItemID=0;");
-      Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(fsen);
-      if (graph != null && graph.hasConflictEdge()) {
-	output.println("   {");
-	Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings(graph);
-	System.out.println("#lockSet="+lockSet);
-	if (lockSet.size() > 0) {
-	  output.println("   numMemoryQueue=" + lockSet.size() + ";");
-	  output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
-	  output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
-	  output.println();
-	}
-	output.println("   }");
+
+    // eom - setup memory queue
+    output.println("   // set up memory queues ");
+    output.println("   int numMemoryQueue=0;");
+    output.println("   int memoryQueueItemID=0;");
+    Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph( fsen );
+    if( graph != null && graph.hasConflictEdge() ) {
+      output.println("   {");
+      Set<Analysis.OoOJava.SESELock> lockSet = oooa.getLockMappings( graph );
+      System.out.println("#lockSet="+lockSet);
+      if( lockSet.size() > 0 ) {
+        output.println("   numMemoryQueue=" + lockSet.size() + ";");
+        output.println("   runningSESE->numMemoryQueue=numMemoryQueue;");
+        output.println("   runningSESE->memoryQueueArray=mlpCreateMemoryQueueArray(numMemoryQueue);");
+        output.println();
       }
+      output.println("   }");
     }
 
 
@@ -727,8 +700,7 @@ public class BuildOoOJavaCode extends BuildCode {
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);    
     generateCode(fsen.getNext(0), fm, null, exitset, output, true);
-    output.println("}\n\n");
-    
+    output.println("}\n\n");    
   }
 
 
@@ -751,16 +723,16 @@ public class BuildOoOJavaCode extends BuildCode {
     outmethod.println(      "  switch( ((SESEcommon*)seseRecord)->classID ) {");
     outmethod.println(      "    ");
     Iterator<FlatSESEEnterNode> seseit;
-    seseit=oooa.getAllSESEs().iterator();
+    seseit = oooa.getAllSESEs().iterator();
 
-    while(seseit.hasNext()){
+    while( seseit.hasNext() ) {
       FlatSESEEnterNode fsen = seseit.next();
 
       outmethod.println(    "    /* "+fsen.getPrettyIdentifier()+" */");
       outmethod.println(    "    case "+fsen.getIdentifier()+":");
       outmethod.println(    "      "+fsen.getSESEmethodName()+"( seseRecord );");  
       
-      if( fsen.equals( oooa.getMainSESE() ) ) {
+      if( fsen.getIsMainSESE() ) {
         outmethod.println(  "      workScheduleExit();");
       }
 
@@ -780,7 +752,9 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
 
-  void stallMEMRCR(FlatMethod fm, FlatNode fn, Set<Analysis.OoOJava.WaitingElement> waitingElementSet, PrintWriter output) {
+  protected void stallMEMRCR( FlatMethod fm, 
+                              FlatNode fn, 
+                              Set<WaitingElement> waitingElementSet, PrintWriter output) {
     output.println("// stall on parent's stall sites ");
     output.println("   {");
     output.println("     REntry* rentry;");
@@ -803,7 +777,7 @@ public class BuildOoOJavaCode extends BuildCode {
 
     TempDescriptor stalltd=null;
     for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-      Analysis.OoOJava.WaitingElement waitingElement =(Analysis.OoOJava.WaitingElement) iterator.next();
+      WaitingElement waitingElement =(WaitingElement) iterator.next();
       if (waitingElement.getStatus() >= ConflictNode.COARSE) {
 	output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
 		       + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
@@ -818,7 +792,9 @@ public class BuildOoOJavaCode extends BuildCode {
       output.println("       localCount--;");
       output.println("     }");
       output.println("#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)");
-      output.println("     else poolfreeinto(runningSESE->memoryQueueArray["+waitingElement.getQueueID()+"]->rentrypool, rentry);");
+      output.println("     else poolfreeinto(runningSESE->memoryQueueArray["+
+                     waitingElement.getQueueID()+
+                     "]->rentrypool, rentry);");
       output.println("#endif");
       if (stalltd==null) {
 	stalltd=waitingElement.getTempDesc();
@@ -876,9 +852,27 @@ public class BuildOoOJavaCode extends BuildCode {
     CodePlan cp = oooa.getCodePlan(fn);
 
     if( cp != null ) {
-	
+
+      // the current task for a code plan is either the
+      // locally-defined enclosing task, or the caller proxy task.
+      // When it is the caller proxy, it is possible to ask what are
+      // all the possible tasks that the proxy might stand for
       FlatSESEEnterNode currentSESE = cp.getCurrentSESE();
-	
+
+      FlatMethod fmContext;
+      if( currentSESE.getIsCallerProxySESE() ) {
+        fmContext = oooa.getContainingFlatMethod( fn );
+      } else {
+        fmContext = currentSESE.getfmBogus();
+      }
+
+      ContextTaskNames contextTaskNames;
+      if( currentSESE.getIsCallerProxySESE() ) {
+        contextTaskNames = oooa.getContextTaskNames( oooa.getContainingFlatMethod( fn ) );
+      } else {
+        contextTaskNames = oooa.getContextTaskNames( currentSESE );
+      }
+
       // for each sese and age pair that this parent statement
       // must stall on, take that child's stall semaphore, the
       // copying of values comes after the statement
@@ -889,7 +883,8 @@ public class BuildOoOJavaCode extends BuildCode {
         SESEandAgePair pair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
 
         output.println("   {");
-        output.println("     "+pair.getSESE().getSESErecordName()+"* child = ("+
+        output.println("     "+
+                       pair.getSESE().getSESErecordName()+"* child = ("+
                        pair.getSESE().getSESErecordName()+"*) "+pair+";");
 
         output.println("     SESEcommon* childCom = (SESEcommon*) "+pair+";");
@@ -914,12 +909,6 @@ public class BuildOoOJavaCode extends BuildCode {
         Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
         while( tdItr.hasNext() ) {
           TempDescriptor td = tdItr.next();
-          FlatMethod fmContext;
-          //if( currentSESE.getIsCallerSESEplaceholder() ) {
-          //  fmContext = currentSESE.getfmEnclosing();
-          //} else {
-          fmContext = currentSESE.getfmBogus();
-          //}
           output.println("       "+generateTemp( fmContext, td, null )+
                          " = child->"+vst.getAddrVar().getSafeSymbol()+";");
         }
@@ -960,13 +949,6 @@ public class BuildOoOJavaCode extends BuildCode {
         output.println("     } else {");
         output.println("       pthread_mutex_unlock( &(childCom->lock) );");
         output.println("     }");
-
-        FlatMethod fmContext;
-        //if( currentSESE.getIsCallerSESEplaceholder() ) {
-        //  fmContext = currentSESE.getfmEnclosing();
-        //} else {
-        fmContext = currentSESE.getfmBogus();
-        //}
 	  
         TypeDescriptor type = dynVar.getType();
         String typeStr;
@@ -1027,8 +1009,7 @@ public class BuildOoOJavaCode extends BuildCode {
       while( dynItr.hasNext() ) {
         TempDescriptor dynVar = dynItr.next();	  
 
-        // TODO
-        //assert currentSESE.getDynamicVarSet().contains( dynVar );
+        assert contextTaskNames.getDynamicVarSet().contains( dynVar );
 
         // first release a reference to current record
         output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
@@ -1040,67 +1021,65 @@ public class BuildOoOJavaCode extends BuildCode {
         output.println("   "+dynVar+"_srcSESE = NULL;");
       }
 	
-      // eom
-      // handling stall site
-      if (state.OOOJAVA) {
-        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(currentSESE);
-        if(graph!=null){
-          Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
-          Set<Analysis.OoOJava.WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet(fn, seseLockSet);
+      // eom - handling stall site
+      // TODO, this is an iterate over situation
+      ConflictGraph graph = oooa.getConflictGraph( currentSESE );
+      if( graph != null ) {
+        Set<SESELock> seseLockSet = oooa.getLockMappings( graph );
+        Set<WaitingElement> waitingElementSet = graph.getStallSiteWaitingElementSet( fn, seseLockSet );
             
-          if (waitingElementSet.size() > 0) {
-            if (state.RCR) {
-              stallMEMRCR(fm, fn, waitingElementSet, output);
-            } else {
-              output.println("// stall on parent's stall sites ");
-              output.println("   {");
-              output.println("     REntry* rentry;");
+        if (waitingElementSet.size() > 0) {
+          if (state.RCR) {
+            stallMEMRCR(fm, fn, waitingElementSet, output);
+          } else {
+            output.println("// stall on parent's stall sites ");
+            output.println("   {");
+            output.println("     REntry* rentry;");
 		
-              for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-                Analysis.OoOJava.WaitingElement waitingElement =
-                  (Analysis.OoOJava.WaitingElement) iterator.next();
-                if (waitingElement.getStatus() >= ConflictNode.COARSE) {
-                  output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
-                                 + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-                                 + ", runningSESE);");
-                } else {
-                  output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
-                                 + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
-                                 + ", runningSESE,  (void*)&"
-                                 + generateTemp(fm, waitingElement.getTempDesc(), lb) + ");");
-                }
-                output.println("     rentry->parentStallSem=&runningSESEstallSem;");
-                output.println("     psem_reset( &runningSESEstallSem);");
-                output.println("     rentry->tag=runningSESEstallSem.tag;");
-                output.println("     rentry->queue=runningSESE->memoryQueueArray["
-                               + waitingElement.getQueueID() + "];");
-                output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
-                               + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
-                if (state.COREPROF) {
-                  output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-                  output
-                    .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
-                  output.println("#endif");
-                }
-		  
-                output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
-		  
-                if (state.COREPROF) {
-                  output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
-                  output
-                    .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
-                  output.println("#endif");
-                }
-                output.println("     }  ");
+            for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+              WaitingElement waitingElement =
+                (WaitingElement) iterator.next();
+              if (waitingElement.getStatus() >= ConflictNode.COARSE) {
+                output.println("     rentry=mlpCreateREntry(runningSESE->memoryQueueArray["
+                               + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                               + ", runningSESE);");
+              } else {
+                output.println("     rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
+                               + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
+                               + ", runningSESE,  (void*)&"
+                               + generateTemp(fm, waitingElement.getTempDesc(), lb) + ");");
               }
-              output.println("   }");
+              output.println("     rentry->parentStallSem=&runningSESEstallSem;");
+              output.println("     psem_reset( &runningSESEstallSem);");
+              output.println("     rentry->tag=runningSESEstallSem.tag;");
+              output.println("     rentry->queue=runningSESE->memoryQueueArray["
+                             + waitingElement.getQueueID() + "];");
+              output.println("     if(ADDRENTRY(runningSESE->memoryQueueArray["
+                             + waitingElement.getQueueID() + "],rentry)==NOTREADY){");
+              if (state.COREPROF) {
+                output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+                output
+                  .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_BEGIN );");
+                output.println("#endif");
+              }
+		  
+              output.println("       psem_take( &runningSESEstallSem, (struct garbagelist *)&___locals___ );");
+		  
+              if (state.COREPROF) {
+                output.println("#ifdef CP_EVENTID_TASKSTALLMEM");
+                output
+                  .println("        CP_LOGEVENT( CP_EVENTID_TASKSTALLMEM, CP_EVENTTYPE_END );");
+                output.println("#endif");
+              }
+              output.println("     }  ");
             }
+            output.println("   }");
           }
         }
       }
     }
   }
-
+  
 
   protected void additionalCodePostNode( FlatMethod      fm, 
                                          LocalityBinding lb, 
@@ -1117,14 +1096,14 @@ public class BuildOoOJavaCode extends BuildCode {
 					 PrintWriter       output ) {
 
     // there may be an SESE in an unreachable method, skip over
-    if( !oooa.getAllSESEs().contains(fsen) ) {
+    if( !oooa.getAllSESEs().contains( fsen ) ) {
       return;
     }
 
-    // also, if we have encountered a placeholder, just skip it
-    //if( fsen.getIsCallerSESEplaceholder() ) {
-    //  return;
-    //}
+    // assert we are never generating code for the caller proxy
+    // it should only appear in analysis results
+    assert !fsen.getIsCallerProxySESE();
+
 
     output.println("   {");
 
@@ -1136,8 +1115,8 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
     // before doing anything, lock your own record and increment the running children
-    if( fsen != oooa.getMainSESE() ) {
-	output.println("     childSESE++;");
+    if( !fsen.getIsMainSESE() ) {
+      output.println("     childSESE++;");
     }
 
     // allocate the space for this record
@@ -1146,7 +1125,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println( "#ifdef CP_EVENTID_POOLALLOC");
     output.println( "     CP_LOGEVENT( CP_EVENTID_POOLALLOC, CP_EVENTTYPE_BEGIN );");
     output.println( "#endif");
-    if( fsen != oooa.getMainSESE() ) {
+    if( !fsen.getIsMainSESE() ) {
       output.println("     "+
                      fsen.getSESErecordName()+"* seseToIssue = ("+
                      fsen.getSESErecordName()+"*) poolalloc( runningSESE->taskRecordMemPool );");
@@ -1197,8 +1176,11 @@ public class BuildOoOJavaCode extends BuildCode {
                      );
     }
     
-    if (state.RCR&&fsen.getInVarsForDynamicCoarseConflictResolution().size()>0) {
-      output.println("    seseToIssue->common.offsetToParamRecords=(INTPTR) & ((("+fsen.getSESErecordName()+"*)0)->rcrRecords);");
+    if( state.RCR &&
+        fsen.getInVarsForDynamicCoarseConflictResolution().size() > 0 
+        ) {
+      output.println("    seseToIssue->common.offsetToParamRecords=(INTPTR) & ((("+
+                     fsen.getSESErecordName()+"*)0)->rcrRecords);");
     }
 
     // fill in common data
@@ -1220,7 +1202,7 @@ public class BuildOoOJavaCode extends BuildCode {
     if( state.RCR ) {
       // if we're using RCR, ref count is 3 because the traverser has
       // a reference, too
-      if( fsen != oooa.getMainSESE() && fsen.getInVarsForDynamicCoarseConflictResolution().size()>0){
+      if( !fsen.getIsMainSESE() && fsen.getInVarsForDynamicCoarseConflictResolution().size()>0){
         output.println("     seseToIssue->common.refCount = 10003;");
       } else {
         output.println("     seseToIssue->common.refCount = 10002;");
@@ -1235,27 +1217,17 @@ public class BuildOoOJavaCode extends BuildCode {
     while( tempItr.hasNext() ) {
       TempDescriptor temp = tempItr.next();
 
-      // when we are issuing the main SESE or an SESE with placeholder
-      // caller SESE as parent, generate temp child child's eclosing method,
-      // otherwise use the parent's enclosing method as the context
-      boolean useParentContext = false;
-
-      if( fsen != oooa.getMainSESE() ) {
-	assert fsen.getParents() != null;
-	//if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
-	  useParentContext = true;
-        //}
-      }
-
-      /*
-      if( useParentContext ) {
+      // determine whether this new task instance is in a method context,
+      // or within the body of another task
+      assert !fsen.getIsCallerProxySESE();
+      FlatSESEEnterNode parent = fsen.getLocalParent();
+      if( parent != null && !parent.getIsCallerProxySESE() ) {
 	output.println("     seseToIssue->"+temp+" = "+
-		       generateTemp( fsen.getParent().getfmBogus(), temp, null )+";");	 
+		       generateTemp( parent.getfmBogus(), temp, null )+";");	 
       } else {
 	output.println("     seseToIssue->"+temp+" = "+
 		       generateTemp( fsen.getfmEnclosing(), temp, null )+";");
       }
-      */
     }
     
     // before potentially adding this SESE to other forwarding lists,
@@ -1264,7 +1236,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("     pthread_mutex_init( &(seseToIssue->common.lock), NULL );");
     output.println("#endif");
   
-    if( fsen != oooa.getMainSESE() ) {
+    if( !fsen.getIsMainSESE() ) {
       // count up outstanding dependencies, static first, then dynamic
       Iterator<SESEandAgePair> staticSrcsItr = fsen.getStaticInVarSrcs().iterator();
       while( staticSrcsItr.hasNext() ) {
@@ -1272,7 +1244,7 @@ public class BuildOoOJavaCode extends BuildCode {
 	output.println("     {");
 	output.println("       SESEcommon* src = (SESEcommon*)"+srcPair+";");
 	output.println("       pthread_mutex_lock( &(src->lock) );");
-        // FORWARD TODO
+        // FORWARD TODO - ...what? make it a chain of arrays instead of true linked-list?
 	output.println("       if( !src->doneExecuting ) {");
         output.println("         addNewItem( &src->forwardList, seseToIssue );");	
 	output.println("         ++(localCount);");
@@ -1320,20 +1292,18 @@ public class BuildOoOJavaCode extends BuildCode {
 	output.println("         seseToIssue->"+dynInVar+"_srcOffset = "+dynInVar+"_srcOffset;");
 	output.println("       } else {");
 
-	boolean useParentContext = false;
-	if( fsen != oooa.getMainSESE() ) {          
-	  //assert fsen.getParent() != null;
-	  //if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
-	    useParentContext = true;
-          //}
-	}       
-	//if( useParentContext ) {
-	//  output.println("         seseToIssue->"+dynInVar+" = "+
-	//		 generateTemp( fsen.getParent().getfmBogus(), dynInVar, null )+";");
-	//} else {
-	//  output.println("         seseToIssue->"+dynInVar+" = "+
-	//		 generateTemp( fsen.getfmEnclosing(), dynInVar, null )+";");
-	//}
+
+        // determine whether this new task instance is in a method context,
+        // or within the body of another task
+        assert !fsen.getIsCallerProxySESE();
+        FlatSESEEnterNode parent = fsen.getLocalParent();
+        if( parent != null && !parent.getIsCallerProxySESE() ) {
+          output.println("         seseToIssue->"+dynInVar+" = "+
+          		 generateTemp( parent.getfmBogus(), dynInVar, null )+";");
+        } else {
+          output.println("         seseToIssue->"+dynInVar+" = "+
+			 generateTemp( fsen.getfmEnclosing(), dynInVar, null )+";");
+        }
 	
 	output.println("       }");
 	output.println("     }");
@@ -1343,16 +1313,15 @@ public class BuildOoOJavaCode extends BuildCode {
 	output.println("     seseToIssue->"+dynInVar+"_srcSESE = "+dynInVar+"_srcSESE;");
       }
 
-      
-
 
       // maintain pointers for finding dynamic SESE 
       // instances from static names      
-      // TODO
+      // TODO: what to do here?!
+      /*
       SESEandAgePair pairNewest = new SESEandAgePair( fsen, 0 );
       SESEandAgePair pairOldest = new SESEandAgePair( fsen, fsen.getOldestAgeToTrack() );
-      if(  true//fsen.getParent() != null && 
-	   //fsen.getParent().getNeededStaticNames().contains( pairNewest ) 
+      if(  fsen.getParent() != null && 
+	   fsen.getParent().getNeededStaticNames().contains( pairNewest ) 
 	) {       
         output.println("     {");
         output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
@@ -1376,7 +1345,7 @@ public class BuildOoOJavaCode extends BuildCode {
         output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
         output.println("     }");
       }
-
+      */
       if( state.COREPROF ) {
         output.println("#ifdef CP_EVENTID_PREPAREMEMQ");
         output.println("     CP_LOGEVENT( CP_EVENTID_PREPAREMEMQ, CP_EVENTTYPE_BEGIN );");
@@ -1388,19 +1357,19 @@ public class BuildOoOJavaCode extends BuildCode {
       // count up memory conflict dependencies,
       if(state.RCR) {
         dispatchMEMRC(fm, lb, fsen, output);
-      } else if(state.OOOJAVA){
-        // NEED TO FIX IT 
+      } else {
+        // NEED TO FIX IT, TODO
         // assumes that there is only one parent, but it is possible that
         // currentSESE has more than one so we need to generate
         // conditional case for each parent case        
         assert fsen.getParents().size()>0;
         FlatSESEEnterNode parent =  fsen.getParents().iterator().next();
-        Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
+        ConflictGraph graph = oooa.getConflictGraph(parent);
         if (graph != null && graph.hasConflictEdge()) {
-          Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
+          Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
           output.println();
           output.println("     //add memory queue element");
-          Analysis.OoOJava.SESEWaitingQueue seseWaitingQueue=
+          SESEWaitingQueue seseWaitingQueue=
             graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
           if(seseWaitingQueue.getWaitingElementSize()>0) {
             output.println("     {");
@@ -1412,15 +1381,15 @@ public class BuildOoOJavaCode extends BuildCode {
             for (Iterator iterator = queueIDSet.iterator(); iterator.hasNext();) {
               Integer key = (Integer) iterator.next();
               int queueID=key.intValue();
-              Set<Analysis.OoOJava.WaitingElement> waitingQueueSet =  
+              Set<WaitingElement> waitingQueueSet =  
                 seseWaitingQueue.getWaitingElementSet(queueID);
               int enqueueType=seseWaitingQueue.getType(queueID);
               if(enqueueType==SESEWaitingQueue.EXCEPTION) {
                 output.println("       INITIALIZEBUF(runningSESE->memoryQueueArray[" + queueID+ "]);");
               }
               for (Iterator iterator2 = waitingQueueSet.iterator(); iterator2.hasNext();) {
-                Analysis.OoOJava.WaitingElement waitingElement 
-                  = (Analysis.OoOJava.WaitingElement) iterator2.next();
+                WaitingElement waitingElement 
+                  = (WaitingElement) iterator2.next();
                 if (waitingElement.getStatus() >= ConflictNode.COARSE) {
                   output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ queueID+ "],"
                                  + waitingElement.getStatus()
@@ -1526,16 +1495,16 @@ public class BuildOoOJavaCode extends BuildCode {
                       LocalityBinding   lb, 
                       FlatSESEEnterNode fsen, 
                       PrintWriter       output ) {
-    // NEED TO FIX IT 
+    // NEED TO FIX IT, TODO
     // assumes that there is only one parent, but it is possible that
     // currentSESE has more than one so we need to generate
     // conditional case for each parent case        
     assert fsen.getParents().size()>0;
     FlatSESEEnterNode parent =  fsen.getParents().iterator().next();
-    Analysis.OoOJava.ConflictGraph graph = oooa.getConflictGraph(parent);
+    ConflictGraph graph = oooa.getConflictGraph(parent);
     if (graph != null && graph.hasConflictEdge()) {
-      Set<Analysis.OoOJava.SESELock> seseLockSet = oooa.getLockMappings(graph);
-      Analysis.OoOJava.SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
+      Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
+      SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
       if(seseWaitingQueue.getWaitingElementSize()>0) {
 	output.println("     {");
 	output.println("       REntry* rentry=NULL;");
@@ -1548,40 +1517,41 @@ public class BuildOoOJavaCode extends BuildCode {
 
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
-	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+	  Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
 	  int numqueues=0;
 	  Set<Integer> queueSet=new HashSet<Integer>();
 	  for (Iterator iterator = weset.iterator(); iterator.hasNext();) {
-	    Analysis.OoOJava.WaitingElement  we = (Analysis.OoOJava.WaitingElement) iterator.next();
+	    WaitingElement  we = (WaitingElement) iterator.next();
 	    Integer queueID=new Integer( we.getQueueID());
 	    if(!queueSet.contains(queueID)){
 	      numqueues++;
 	      queueSet.add(queueID);
 	    }	   
-    }
-    output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
-    output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
-    output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
-    output.println("      int dispCount"+i+"=0;");
+          }
 
-    for (Iterator<Analysis.OoOJava.WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
-      Analysis.OoOJava.WaitingElement waitingElement = wtit.next();
-      int queueID = waitingElement.getQueueID();
-      if (queueID >= queuetovar.size())
-        queuetovar.setSize(queueID + 1);
-      Long l = queuetovar.get(queueID);
-      long val = (l != null) ? l.longValue() : 0;
-      val = val | (1 << i);
-      queuetovar.set(queueID, new Long(val));
-    }
+          output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+          output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
+          output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
+          output.println("      int dispCount"+i+"=0;");
+
+          for (Iterator<WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
+            WaitingElement waitingElement = wtit.next();
+            int queueID = waitingElement.getQueueID();
+            if (queueID >= queuetovar.size())
+              queuetovar.setSize(queueID + 1);
+            Long l = queuetovar.get(queueID);
+            long val = (l != null) ? l.longValue() : 0;
+            val = val | (1 << i);
+            queuetovar.set(queueID, new Long(val));
+          }
 	}
 
 	HashSet generatedqueueentry=new HashSet();
 	for(int i=0;i<invars.size();i++) {
 	  TempDescriptor td=invars.get(i);
-	  Set<Analysis.OoOJava.WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
-	  for(Iterator<Analysis.OoOJava.WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
-	    Analysis.OoOJava.WaitingElement waitingElement=wtit.next();
+	  Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+	  for(Iterator<WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
+	    WaitingElement waitingElement=wtit.next();
 	    int queueID=waitingElement.getQueueID();
 	    
 	    if(waitingElement.isBogus()){
@@ -1613,8 +1583,11 @@ public class BuildOoOJavaCode extends BuildCode {
 
 	  if (fsen.getDynamicInVarSet().contains(td)) {
 	    // dynamic in-var case
-	    //output.println("       pointer=seseToIssue->" + waitingElement.getDynID()+ "_srcSESE+seseToIssue->"+ waitingElement.getDynID()+ "_srcOffset;");
-	    //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+ ", &(seseToIssue->common),  pointer );");
+	    //output.println("       pointer=seseToIssue->"+waitingElement.getDynID()+ 
+            //               "_srcSESE+seseToIssue->"+waitingElement.getDynID()+ 
+            //               "_srcOffset;");
+	    //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+
+            //               ", &(seseToIssue->common),  pointer );");
 	  }
 	}
 	for(int i=0;i<invars.size();i++) {
@@ -1629,6 +1602,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("#endif");
   }
 
+
   public void generateFlatSESEExitNode( FlatMethod       fm,
 					LocalityBinding  lb,
 					FlatSESEExitNode fsexn,
@@ -1642,10 +1616,10 @@ public class BuildOoOJavaCode extends BuildCode {
       return;
     }
 
-    // also, if we have encountered a placeholder, just jump it
-    //if( fsen.getIsCallerSESEplaceholder() ) {
-    //  return;
-    //}
+    // assert we are never generating code for the caller proxy
+    // it should only appear in analysis results
+    assert !fsen.getIsCallerProxySESE();
+
     
     if( state.COREPROF ) {
       output.println("#ifdef CP_EVENTID_TASKEXECUTE");
@@ -1689,22 +1663,17 @@ public class BuildOoOJavaCode extends BuildCode {
 	continue;
       }
 
-      // have to determine the context enclosing this sese
-      boolean useParentContext = false;
-
-      if( fsen != oooa.getMainSESE() ) {
-	assert fsen.getParents() != null;
-	//if( !fsen.getParent().getIsCallerSESEplaceholder() ) {
-	  useParentContext = true;
-        //}
-      }
-
       String from;
-      //if( useParentContext ) {
-      //from = generateTemp( fsen.getParent().getfmBogus(), temp, null );
-      //} else {
-	from = generateTemp( fsen.getfmEnclosing(),         temp, null );
-      //}
+
+      // determine whether this new task instance is in a method context,
+      // or within the body of another task
+      assert !fsen.getIsCallerProxySESE();
+      FlatSESEEnterNode parent = fsen.getLocalParent();
+      if( parent != null && !parent.getIsCallerProxySESE() ) {
+        from = generateTemp( parent.getfmBogus(),   temp, null );
+      } else {
+	from = generateTemp( fsen.getfmEnclosing(), temp, null );
+      }
 
       output.println("   "+paramsprefix+
 		     "->"+temp.getSafeSymbol()+
@@ -1715,7 +1684,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("   runningSESE->doneExecuting = TRUE;");
 
     // if parent is stalling on you, let them know you're done
-    if( fsexn.getFlatEnter() != oooa.getMainSESE() ) {
+    if( !fsen.getIsMainSESE() ) {
       output.println("   if( runningSESE->parentsStallSem != NULL ) {");
       output.println("     psem_give( runningSESE->parentsStallSem );");
       output.println("   }");
@@ -1747,7 +1716,7 @@ public class BuildOoOJavaCode extends BuildCode {
     
     
     // clean up its lock element from waiting queue, and decrement dependency count for next SESE block
-    if( fsen != oooa.getMainSESE() ) {
+    if( !fsen.getIsMainSESE() ) {
       output.println();
       output.println("   /* check memory dependency*/");
       output.println("  {");
@@ -1774,8 +1743,7 @@ public class BuildOoOJavaCode extends BuildCode {
       output.println("  int idx,idx2;");
 
       output.println("    struct rcrRecord *rec;");
-      output
-          .println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
+      output.println("    struct Hashtable_rcr ** hashstruct=runningSESE->parent->allHashStructures;");
 
       for (int i = 0; i < inset.size(); i++) {
         output.println("    rec=&" + paramsprefix + "->rcrRecords[" + i + "];");
@@ -1832,7 +1800,7 @@ public class BuildOoOJavaCode extends BuildCode {
     // if this is not the Main sese (which has no parent) then return
     // THIS task's record to the PARENT'S task record pool, and only if
     // the reference count is now zero
-    if( fsen != oooa.getMainSESE() ) {
+    if( !fsen.getIsMainSESE() ) {
       output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       output.println("   RELEASE_REFERENCE_TO( runningSESE );");
       output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
@@ -1977,6 +1945,7 @@ public class BuildOoOJavaCode extends BuildCode {
 	  	  
     return tdSet.size();
   }
+
   
   private String calculateSizeOfSESEParamSize(FlatSESEEnterNode fsen){
     HashMap <String,Integer> map=new HashMap();
@@ -2023,9 +1992,3 @@ public class BuildOoOJavaCode extends BuildCode {
   }
 
 }
-
-
-
-
-
-

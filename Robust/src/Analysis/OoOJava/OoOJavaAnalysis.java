@@ -64,6 +64,8 @@ public class OoOJavaAnalysis {
 
   private Hashtable<FlatNode, ContextTaskNames> fn2contextTaskNames;
 
+  // get the flat method that contains any given flat node
+  private Hashtable<FlatNode, FlatMethod> fn2fm;
 
   // temporal data structures to track analysis progress.
   static private int uniqueLockSetId = 0;
@@ -104,6 +106,12 @@ public class OoOJavaAnalysis {
     return out;
   }
 
+  public FlatMethod getContainingFlatMethod( FlatNode fn ) {
+    FlatMethod fm = fn2fm.get( fn );
+    assert fm != null;
+    return fm;
+  }
+
   public DisjointAnalysis getDisjointAnalysis() {
     return disjointAnalysisTaints;
   }
@@ -142,12 +150,21 @@ public class OoOJavaAnalysis {
 
     descriptorsToAnalyze.add(mdSourceEntry);
 
+    // 0th pass, setup a useful mapping of any flat node to the
+    // flat method it is a part of
+    Iterator<MethodDescriptor> methItr = descriptorsToAnalyze.iterator();
+    while (methItr.hasNext()) {
+      Descriptor d = methItr.next();
+      FlatMethod fm = state.getMethodFlat( d );
+      buildFlatNodeToFlatMethod( fm );
+    }
+
     // 1st pass, find basic rblock relations & potential stall sites
     rblockRel = new RBlockRelationAnalysis(state, typeUtil, callGraph);
     VarSrcTokTable.rblockRel = rblockRel;
 
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
-    Iterator<MethodDescriptor> methItr = descriptorsToAnalyze.iterator();
+    methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
@@ -293,6 +310,28 @@ public class OoOJavaAnalysis {
     System.exit( 0 );
   }
 
+
+  private void buildFlatNodeToFlatMethod( FlatMethod fm ) {
+    Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
+    flatNodesToVisit.add( fm.getFlatExit() );
+
+    Set<FlatNode> flatNodesVisited = new HashSet<FlatNode>();
+
+    while( !flatNodesToVisit.isEmpty() ) {
+      FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
+      flatNodesToVisit.remove( fn );
+      flatNodesVisited.add( fn );
+
+      fn2fm.put( fn, fm );
+
+      for( int i = 0; i < fn.numNext(); i++ ) {
+        FlatNode nn = fn.getNext( i );
+        if( !flatNodesVisited.contains( nn ) ) {
+          flatNodesToVisit.add( nn );
+        }
+      }
+    }
+  }
 
 
     // debug routine
