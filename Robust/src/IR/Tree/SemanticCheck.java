@@ -247,7 +247,7 @@ public class SemanticCheck {
       }
     }
     /* Check return type */
-    if (!md.isConstructor())
+    if (!md.isConstructor() && !md.isStaticBlock())
       if (!md.getReturnType().isVoid())
 	checkTypeDescriptor(md.getReturnType());
 
@@ -710,8 +710,18 @@ public class SemanticCheck {
           SymbolTable fieldtbl = cd.getFieldTable();
           FieldDescriptor fd=(FieldDescriptor)fieldtbl.get(varname);
           if((fd == null) || (!fd.isStatic())){
-            // no such field in the class or it is not a static field
-            throw new Error("Name "+varname+" should not be used in static block: "+md);
+            // no such field in the class, check if this is a class
+            if(varname.equals("this")) {
+              throw new Error("Error: access this obj in a static block");
+            }
+            cd=getClass(varname);
+            if(cd != null) {
+              // this is a class name
+              nn.setClassDesc(cd);
+              return;
+            } else {
+              throw new Error("Name "+varname+" should not be used in static block: "+md);
+            }
           } else {
             // this is a static field
             nn.setField(fd);

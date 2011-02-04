@@ -127,7 +127,7 @@ public class MethodDescriptor extends Descriptor {
   }
 
   public boolean isConstructor() {
-    return (returntype==null);
+    return (returntype==null) && !isstaticblock;
   }
 
   public TypeDescriptor getReturnType() {

@@ -672,7 +672,7 @@ public class BuildIR {
               BlockStatementNode bsn = bn.get(ii);
               obn.addBlockStatement(bsn);
             }
-            //TODO state.addTreeCode(md, obn);
+            state.addTreeCode(md, obn);
             bn = null;
           }
           en = null;
@@ -1022,7 +1022,7 @@ public class BuildIR {
         BlockStatementNode bsn = bn.get(i);
         obn.addBlockStatement(bsn);
       }
-      //TODO state.addTreeCode(md, obn);
+      state.addTreeCode(md, obn);
       bn = null;
     }
   }
