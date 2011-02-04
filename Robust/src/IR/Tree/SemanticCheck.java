@@ -526,10 +526,18 @@ public class SemanticCheck {
     case Kind.ArrayInitializerNode:
       checkArrayInitializerNode(md, nametable, (ArrayInitializerNode) en, td);
       return;
+     
+    case Kind.ClassTypeNode:
+      checkClassTypeNode(md, nametable, (ClassTypeNode) en, td);
+      return;
     }
     throw new Error();
   }
 
+  void checkClassTypeNode(Descriptor md, SymbolTable nametable, ClassTypeNode tn, TypeDescriptor td) {
+    checkTypeDescriptor(tn.getType());
+  }
+  
   void checkCastNode(Descriptor md, SymbolTable nametable, CastNode cn, TypeDescriptor td) {
     /* Get type descriptor */
     if (cn.getType()==null) {

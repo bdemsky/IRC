@@ -188,8 +188,15 @@ public class BuildFlat {
       FlatNode fn=np.getBegin();
       if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
 	MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
-	TempDescriptor thistd=getTempforVar(currmd.getThis());
-	FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+    TempDescriptor thistd=null;
+    if(currmd.getModifiers().isStatic()) {
+      // need to lock the Class object
+      thistd=new TempDescriptor("classobj", cn);
+    } else {
+      // lock this object
+      thistd=getTempforVar(currmd.getThis());
+    }
+    FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
 	fc.addNext(fn);
 	fn=fc;
 	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
@@ -1263,7 +1270,14 @@ public class BuildFlat {
     FlatNode ln=rnflat;
     if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
       MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-      TempDescriptor thistd=getTempforVar(currmd.getThis());
+      TempDescriptor thistd=null;
+      if(currmd.getModifiers().isStatic()) {
+        // need to lock the Class object
+        thistd=new TempDescriptor("classobj", currmd.getClassDesc());
+      } else {
+        // lock this object
+        thistd=getTempforVar(currmd.getThis());
+      }
       FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
       fc.addNext(ln);
       ln=fc;
@@ -1325,8 +1339,17 @@ public class BuildFlat {
   }
 
   private NodePair flattenSynchronizedNode(SynchronizedNode sbn) {
-    TempDescriptor montmp=TempDescriptor.tempFactory("monitor",sbn.getExpr().getType());
-    NodePair npexp=flattenExpressionNode(sbn.getExpr(), montmp);
+    TempDescriptor montmp=null;
+    FlatNode first = null;
+    FlatNode end = null;
+    if(sbn.getExpr() instanceof ClassTypeNode) {
+      montmp=new TempDescriptor("classobj", ((ClassTypeNode)sbn.getExpr()).getType().getClassDesc());
+    } else {
+      montmp = TempDescriptor.tempFactory("monitor",sbn.getExpr().getType());
+      NodePair npexp=flattenExpressionNode(sbn.getExpr(), montmp);
+      first = npexp.getBegin();
+      end = npexp.getEnd();
+    }
     NodePair npblock=flattenBlockNode(sbn.getBlockNode());
 
     MethodDescriptor menmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
@@ -1335,10 +1358,14 @@ public class BuildFlat {
     MethodDescriptor mexmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
     FlatCall fcex=new FlatCall(mexmd, null, montmp, new TempDescriptor[0]);
 
-    npexp.getEnd().addNext(fcen);
+    if(first != null) {
+      end.addNext(fcen);
+    } else {
+      first = fcen;
+    }
     fcen.addNext(npblock.getBegin());
     npblock.getEnd().addNext(fcex);
-    return new NodePair(npexp.getBegin(), fcex);
+    return new NodePair(first, fcex);
   }
 
   private NodePair flattenAtomicNode(AtomicNode sbn) {

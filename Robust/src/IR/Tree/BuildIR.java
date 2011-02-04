@@ -641,8 +641,43 @@ public class BuildIR {
       ParseNode epn=vardecl.getChild("initializer");
 
       ExpressionNode en=null;
-      if (epn!=null)
-	en=parseExpression(epn.getFirstChild());
+      if (epn!=null) {
+        en=parseExpression(epn.getFirstChild());
+        if(state.MGC && m.isStatic()) {
+          // for static field, the initializer should be considered as a 
+          // static block
+          boolean isfirst = false;
+          MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+          if(md == null) {
+            // the first static block for this class
+            Modifiers m_i=new Modifiers();
+            m_i.addModifier(Modifiers.STATIC);
+            md = new MethodDescriptor(m_i, "staticblocks", false);
+            md.setAsStaticBlock();
+            isfirst = true;
+          }
+          if(isfirst) {
+            cn.addMethod(md);
+          }
+          cn.incStaticBlocks();
+          BlockNode bn=new BlockNode();
+          NameNode nn=new NameNode(new NameDescriptor(identifier));
+          AssignmentNode an=new AssignmentNode(nn,en,new AssignOperation(1));
+          bn.addBlockStatement(new BlockExpressionNode(an));
+          if(isfirst) {
+            state.addTreeCode(md,bn);
+          } else {
+            BlockNode obn = state.getMethodBody(md);
+            for(int ii = 0; ii < bn.size(); ii++) {
+              BlockStatementNode bsn = bn.get(ii);
+              obn.addBlockStatement(bsn);
+            }
+            //TODO state.addTreeCode(md, obn);
+            bn = null;
+          }
+          en = null;
+        }
+      }
 
       cn.addField(new FieldDescriptor(m, arrayt, identifier, en, isglobal));
     }

@@ -4,7 +4,9 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Set;
 
+import Analysis.Locality.LocalityBinding;
 import Analysis.Prefetch.*;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import IR.ClassDescriptor;
@@ -20,7 +22,11 @@ import IR.TypeUtil;
 import IR.VarDescriptor;
 import IR.Tree.DNFFlag;
 import IR.Tree.DNFFlagAtom;
+import IR.Tree.ExpressionNode;
+import IR.Tree.FlagEffect;
+import IR.Tree.FlagEffects;
 import IR.Tree.FlagExpressionNode;
+import IR.Tree.TagEffect;
 import IR.Tree.TagExpressionList;
 
 public class BuildCodeMGC extends BuildCode {
@@ -98,6 +104,8 @@ public class BuildCodeMGC extends BuildCode {
       ClassDescriptor cn=(ClassDescriptor)it.next();
       super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
     }
+    // TODO add version for normal Java later
+    outclassdefs.println("#include \"globaldefs.h\"");
     outclassdefs.println("#endif");
     outclassdefs.close();
     outglobaldefs.println("};");
@@ -144,7 +152,7 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("  int i;");
     
     outputStaticBlocks(outmethod);
-    super.outputClassObjects(outmethod);
+    outputClassObjects(outmethod);
     
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
@@ -203,5 +211,133 @@ public class BuildCodeMGC extends BuildCode {
       }
       outmethod.println("#undef MGC_STATIC_INIT_CHECK");
     }
+  }
+  
+  protected void outputClassObjects(PrintWriter outmethod) {
+    // for each class, initialize its Class object
+    if(state.MGC) {
+      SymbolTable ctbl = this.state.getClassSymbolTable();
+      Iterator it_classes = ctbl.getDescriptorsIterator();
+
+      /*TypeDescriptor[] tdarray=new TypeDescriptor[1];
+      tdarray[0] = new TypeDescriptor(((ClassDescriptor)this.state.getClassSymbolTable().get("Object")));
+      
+      TypeDescriptor typetolookin=new TypeDescriptor(((ClassDescriptor)this.state.getClassSymbolTable().get("Class")));;
+
+      //find the constructor for 'Class' class
+      ClassDescriptor classtolookin=typetolookin.getClassDesc();
+
+      Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
+      MethodDescriptor bestmd=null;
+NextMethod:
+      for(Iterator methodit=methoddescriptorset.iterator(); methodit.hasNext();) {
+        MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+        // Need correct number of parameters 
+        if (1!=currmd.numParameters())
+          continue;
+        for(int i=0; i<1; i++) {
+          if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
+            continue NextMethod;
+        }
+        // Local allocations can't call global allocator 
+        if (currmd.isGlobal())
+          continue;
+
+        // Method okay so far 
+        if (bestmd==null)
+          bestmd=currmd;
+        else {
+          if (typeutil.isMoreSpecific(currmd,bestmd)) {
+            bestmd=currmd;
+          } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
+            throw new Error("No method is most specific");
+          }
+
+          // Is this more specific than bestmd 
+        }
+      }
+      if (bestmd==null)
+        throw new Error("No constructor found for Class in ");
+      */
+      while(it_classes.hasNext()) {
+        ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
+        /*if(t_cd.getSymbol().equals("Class") || t_cd.getSymbol().equals("VMClass")) {
+          continue;
+        }*/
+        // TODO initialize the Class object for this class  ++
+        outmethod.println(" {");
+        /*
+        // create the vmdata object that record the class's type
+        if(this.state.MULTICOREGC) {
+          outmethod.println("    void * " + t_cd.getSafeSymbol() + "vmdata=allocate_new("+localsprefixaddr+", "+t_cd.getId()+");");              
+        } else {
+          outmethod.println("    void * " + t_cd.getSafeSymbol() + "vmdata=allocate_new("+t_cd.getId()+");");
+        }
+        // invoke the Class.constructor
+        ParamsObject objectparams=(ParamsObject)paramstable.get(bestmd);
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          outmethod.print("    struct "+classtolookin.getSafeSymbol()+bestmd.getSafeSymbol()+"_"+bestmd.getSafeMethodDescriptor()+"_params __parameterlist__={");
+          outmethod.print(objectparams.numPointers());
+          outmethod.print(", "+localsprefixaddr);
+          if (bestmd.getThis()!=null) {
+            outmethod.print(", ");
+            outmethod.print("(struct "+bestmd.getThis().getType().getSafeSymbol() +" *)&(global_defs_p->"+t_cd.getSafeSymbol()+"classobj)");
+          }
+
+          Descriptor var=bestmd.getParameter(0);
+          TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
+          if (objectparams.isParamPtr(paramtemp)) {
+            outmethod.print(", ");
+            TypeDescriptor td=bestmd.getParamType(0);
+            outmethod.print("(struct "+bestmd.getParamType(0).getSafeSymbol()  +" *)" + t_cd.getSafeSymbol() + "vmdata");
+          }
+          outmethod.println("};");
+        }
+        outmethod.print("    ");
+
+        outmethod.print(classtolookin.getSafeSymbol()+bestmd.getSafeSymbol()+"_"+bestmd.getSafeMethodDescriptor());
+
+        outmethod.print("(");
+        boolean needcomma=false;
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          outmethod.print("&__parameterlist__");
+          needcomma=true;
+        }
+
+        if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
+          TypeDescriptor ptd=null;
+          if(bestmd.getThis() != null) {
+            ptd = bestmd.getThis().getType();
+          }
+          if (needcomma)
+            outmethod.print(",");
+          if (ptd.isClass()&&!ptd.isArray())
+            outmethod.print("(struct "+ptd.getSafeSymbol()+" *) ");
+          outmethod.print("&(global_defs_p->"+t_cd.getSafeSymbol()+"classobj)");
+          needcomma=true;
+        }
+
+        Descriptor var=bestmd.getParameter(0);
+        TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
+        if (objectparams.isParamPrim(paramtemp)) {
+          if (needcomma)
+            outmethod.print(", ");
+
+          TypeDescriptor ptd=bestmd.getParamType(0);
+          if (ptd.isClass()&&!ptd.isArray())
+            outmethod.print("(struct "+ptd.getSafeSymbol()+" *) ");
+          outmethod.print(t_cd.getSafeSymbol() + "vmdata");
+          needcomma=true;
+        }
+        outmethod.println(");");
+        */
+        outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj.type = " + t_cd.getId() + ";");
+        
+        outmethod.println("    initlock((struct ___Object___ *)(&(global_defs_p->"+t_cd.getSafeSymbol()+"classobj)));");
+        outmethod.println(" }");
+        
+      }
+    } // else TODO normal java version
+    
   }
 }

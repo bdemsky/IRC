@@ -346,17 +346,7 @@ public class BuildCode {
    * */
   protected void outputClassObjects(PrintWriter outmethod) {
     // for each class, initialize its Class object
-    if(state.MGC) {
-      SymbolTable ctbl = this.state.getClassSymbolTable();
-      Iterator it_classes = ctbl.getDescriptorsIterator();
-      while(it_classes.hasNext()) {
-        ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
-        outmethod.println(" {");
-        outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj.type="+t_cd.getId()+";");
-        outmethod.println("    initlock((struct ___Object___ *)(&(global_defs_p->"+t_cd.getSafeSymbol()+"classobj)));");
-        outmethod.println(" }");
-      }
-    } // else TODO normal java version
+    // TODO
   }
 
   /* This code just generates the main C method for java programs.
@@ -585,6 +575,12 @@ public class BuildCode {
 
     //Store table of supertypes
     generateSuperTypeTable(outmethod);
+    
+    // Store table of classnames
+    /*if(state.MGC) {
+      // TODO add code for normal Java later
+      generateClassNameTable(outmethod);
+    }*/
 
     //Store the layout of classes
     generateLayoutStructs(outmethod);
@@ -719,7 +715,7 @@ public class BuildCode {
       }
       
       // for each class, create a global object
-      outglobaldefs.println("  struct Class "+cn.getSafeSymbol()+"classobj;");
+      outglobaldefs.println("  struct ___Object___ "+cn.getSafeSymbol()+"classobj;");
       }
     }
     outclassdefs.println("");
@@ -833,10 +829,10 @@ public class BuildCode {
     outclassdefs.println("extern int hasflags[];");
     outclassdefs.println("extern unsigned INTPTR * pointerarray[];");
     outclassdefs.println("extern int supertypes[];");
-    if(state.MGC) {
+    /*if(state.MGC) {
       // TODO add version for normal Java later
-    outclassdefs.println("#include \"globaldefs.h\"");
-    }
+    outclassdefs.println("extern char * classname[];");
+    }*/
     outclassdefs.println("");
   }
 
@@ -1474,6 +1470,23 @@ public class BuildCode {
     }
     output.println("};");
   }
+  
+  /** Print out table to give us classnames */
+  /*private void generateClassNameTable(PrintWriter output) {
+    output.println("char * classname[]={");
+    boolean needcomma=false;
+    for(int i=0; i<state.numClasses(); i++) {
+      ClassDescriptor cn=cdarray[i];
+      if (needcomma)
+    output.println(",");
+      needcomma=true;
+      if ((cn != null) && (cn.getSuperDesc()!=null)) {
+    output.print("\"" + cn.getSymbol() + "\"");
+      } else
+    output.print("\"\"");
+    }
+    output.println("};");
+  }*/
 
   /** Force consistent field ordering between inherited classes. */
 
@@ -3009,6 +3022,13 @@ public class BuildCode {
           output.println("#endif // MGC_STATIC_INIT_CHECK"); 
         }
       }
+    }
+    if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
+      // call MonitorEnter/MonitorExit on a class obj
+      output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
+          +md.getSafeMethodDescriptor() + "((struct ___Object___*)(&global_defs_p->" 
+          + fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj));");
+      return;
     }
     }
     

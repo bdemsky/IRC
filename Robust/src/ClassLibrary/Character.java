@@ -1,5 +1,5 @@
 public class Character {
-
+  
   public static int digit(char ch, int radix) {
     if (ch>='0'&&ch<='9')
       return ch-'0';
@@ -13,6 +13,15 @@ public class Character {
 	return val;
     }
     return -1;
+  }
+  
+  public static boolean isDigit(char ch) {
+    // TODO This is a temparory implementation, there are other groups of digits
+    // besides '0' ~ '9'
+    if (ch>='0'&&ch<='9')
+      return true;
+    else 
+      return false;
   }
 
   char value;
