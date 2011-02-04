@@ -70,6 +70,21 @@ public class GraphManip {
     return nodes;
   }
 
+  static HashSet<Edge> getEdges(Graph graph, Delta delta, AllocNode node) {
+    HashSet<Edge> nodes=new HashSet<Edge>();
+    HashSet<Edge> removeedges=delta.heapedgeremove.get(node);
+    for(Edge e:graph.getEdges(node)) {
+      if ((removeedges==null||!removeedges.contains(e)))
+	nodes.add(e);
+    }
+    if (delta.heapedgeadd.containsKey(node))
+      for(Edge e:delta.heapedgeadd.get(node)) {
+	nodes.add(e);
+      }
+    
+    return nodes;
+  }
+
   static HashSet<AllocNode> getDiffNodes(Delta delta, TempDescriptor tmp) {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
     HashSet<Edge> removeedges=delta.varedgeremove.get(tmp);

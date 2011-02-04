@@ -29,7 +29,7 @@ public class Pointer {
 
   public BasicBlock getBBlock(FlatMethod fm) {
     if (!blockMap.containsKey(fm))
-      blockMap.put(fm, BasicBlock.getBBlock(fm));
+      blockMap.put(fm, BasicBlock.getBBlock(fm, true));
     return blockMap.get(fm);
   }
   
@@ -178,11 +178,80 @@ public class Pointer {
     case FKind.FlatExit:
       return processFlatNop(node, delta, newgraph);
     case FKind.FlatCall:
+      return processFlatCall((FlatCall) node, delta, newgraph);
     case FKind.FlatSESEEnterNode:
     case FKind.FlatSESEExitNode:
       throw new Error("Unimplemented node:"+node);
     default:
       throw new Error("Unrecognized node:"+node);
+    }
+  }
+
+  Delta processFlatCall(FlatCall fcall, Delta delta, Graph newgraph) {
+    Delta newDelta=new Delta(null, false);
+
+    if (delta.getInit()) {
+      HashSet<Edge> edgeset=new HashSet<Edge>();
+      HashSet<AllocNode> nodeset=new HashSet<AllocNode>();
+      HashSet<ClassDescriptor> targetSet=new HashSet<ClassDescriptor>();
+      Stack<AllocNode> tovisit=new Stack<AllocNode>();
+      TempDescriptor tmpthis=fc.getThis();
+
+      //Handle the this temp
+      if (tmpthis!=null) {
+	HashSet<Edge> edges=GraphManip.getEdges(graph, delta, tmpthis);
+	newdelta.varedgeadd.put(tmpthis, (HashSet<Edge>) edges.clone());
+	edgeset.addAll(edges);
+	for(Edge e:edges) {
+	  AllocNode dstnode=e.dst;
+	  if (!nodeset.contains(dstnode)) {
+	    TypeDescriptor type=dstnode.getType();
+	    if (!type.isArray()) {
+	      targetSet.add(type.getClassDesc());
+	    } else {
+	      //arrays don't have code
+	      targetSet.add(typeUtil.getClass(TypeUtil.ObjectClass));
+	    }
+	    nodeset.add(dstnode);
+	    tovisit.add(dstnode);
+	  }
+	}
+      }
+
+      //Go through each temp
+      for(int i=0;i<fc.numArgs();i++) {
+	TempDescriptor tmp=fc.getArg(i);
+	HashSet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
+	newdelta.varedgeadd.put(tmp, (HashSet<Edge>) edges.clone());
+	edgeset.addAll(edges);
+	for(Edge e:edges) {
+	  if (!nodeset.contains(e.dst)) {
+	    nodeset.add(e.dst);
+	    tovisit.add(e.dst);
+	  }
+	}
+      }
+      
+      //Traverse all reachable nodes
+      while(!tovisit.isEmpty()) {
+	AllocNode node=tovisit.pop();
+	HashSet<Edge> edges=GraphManip.getEdges(graph, delta, node);
+	newdelta.heapedgeadd.put(node, (HashSet<Edge>) edges.clone());
+	edgeset.addAll(edges);
+	for(Edge e:edges) {
+	  if (!nodeset.contains(e.dst)) {
+	    nodeset.add(e.dst);
+	    tovisit.add(e.dst);
+	  }
+	}
+      }
+      
+      //Apply diffs to graph
+      applyDiffs(graph, delta);
+    } else {
+
+      //Apply diffs to graph
+      applyDiffs(graph, delta);
     }
   }
 

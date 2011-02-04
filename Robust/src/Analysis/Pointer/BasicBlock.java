@@ -42,7 +42,7 @@ public class BasicBlock {
     }
   }
 
-  public static BasicBlock getBBlock(FlatMethod fm) {
+  public static BasicBlock getBBlock(FlatMethod fm, boolean breakcalls) {
     BBlock exit=null;
     Stack<FlatNode> toprocess=new Stack<FlatNode>();
     HashMap<FlatNode, BBlock> map=new HashMap<FlatNode, BBlock>();
@@ -58,7 +58,7 @@ public class BasicBlock {
       if (fn.kind()==FKind.FlatExit)
 	exit=block;
       do {
-	if (pm.numNext(fn)!=1) {
+	if (pm.numNext(fn)!=1||(fn.kind()==FKind.FlatCall&&breakcalls)) {
 	  for(int i=0;i<pm.numNext(fn);i++) {
 	    FlatNode fnext=pm.getNext(fn,i);
 	    if (!map.containsKey(fnext)) {
