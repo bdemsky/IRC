@@ -354,7 +354,7 @@ public class MPN
 		    zds[j-ny+i] = (int) carry;
 		    carry >>>= 32;
 		  }
-		zds[j] += carry;
+		zds[j] += (int)carry;
 		num = carry - 1;
 	      }
 	  }

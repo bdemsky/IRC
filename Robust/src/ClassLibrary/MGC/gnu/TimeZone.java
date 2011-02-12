@@ -99,7 +99,7 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
    */
   private static synchronized TimeZone defaultZone()
   {
-    /* Look up default timezone */
+    // Look up default timezone 
     if (defaultZone0 == null) 
       {
 	/*defaultZone0 = (TimeZone) AccessController.doPrivileged
@@ -125,6 +125,7 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
 		return zone;
 	      }
 	    });*/
+      defaultZone0 = getTimeZone ("PST");
       }
     
     return defaultZone0; 
@@ -167,6 +168,7 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
 	if (zoneinfo_dir != null && !new File(zoneinfo_dir).isDirectory())
 	  zoneinfo_dir = null;*/
 
+    zoneinfo_dir = null;
 	if (zoneinfo_dir != null)
 	  {
 	    aliases0 = new HashMap();
@@ -1304,10 +1306,10 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
    *
    * @return The name of the time zone.
    */
-  public final String getDisplayName()
+  /*public final String getDisplayName()
   {
     return (getDisplayName(false, LONG, Locale.getDefault()));
-  }
+  }*/
 
   /**
    * This method returns a string name of the time zone suitable
@@ -1319,10 +1321,10 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
    *
    * @return The name of the time zone.
    */
-  public final String getDisplayName(Locale locale)
+  /*public final String getDisplayName(Locale locale)
   {
     return (getDisplayName(false, LONG, locale));
-  }
+  }*/
 
   /**
    * This method returns a string name of the time zone suitable
@@ -1335,10 +1337,10 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
    *
    * @return The name of the time zone.
    */
-  public final String getDisplayName(boolean dst, int style)
+  /*public final String getDisplayName(boolean dst, int style)
   {
     return (getDisplayName(dst, style, Locale.getDefault()));
-  }
+  }*/
 
 
   /**
@@ -1497,8 +1499,8 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
 	  zonename = ID;
 
 	// Read the file outside of the critical section, it is expensive.
-	tznew = ZoneInfo.readTZFile (ID, zoneinfo_dir
-				     + File.separatorChar + zonename);
+	tznew = null;/*ZoneInfo.readTZFile (ID, zoneinfo_dir
+				     + File.separatorChar + zonename);*/
 	if (tznew == null)
 	  return null;
       }
@@ -1597,7 +1599,7 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
    * offset. For example <code>{"Phoenix", "Denver"}</code>, since both have
    * GMT-07:00, but differ in daylight savings behaviour.
    */
-  public static String[] getAvailableIDs(int rawOffset)
+  /*public static String[] getAvailableIDs(int rawOffset)
   {
     synchronized (TimeZone.class)
       {
@@ -1645,9 +1647,9 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
       ids[count++] = s[i];
 
     return ids;
-  }
+  }*/
 
-  private static int getAvailableIDs(File d, String prefix, ArrayList list)
+  /*private static int getAvailableIDs(File d, String prefix, ArrayList list)
     {
       String[] files = d.list();
       int count = files.length;
@@ -1677,7 +1679,7 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
 	    files[i] = prefix + files[i];
 	}
       return count;
-    }
+    }*/
 
   /**
    * Gets all available IDs.
@@ -1767,7 +1769,9 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
   {
     try
       {
-	return super.clone();
+	//return super.clone();
+      TimeZone tz = new TimeZone();
+      tz.ID = this.ID;
       }
     catch (/*CloneNotSupported*/Exception ex)
       {

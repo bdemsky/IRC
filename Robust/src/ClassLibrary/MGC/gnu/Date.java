@@ -161,10 +161,10 @@ public class Date
    * @param month the month as a value between 0 and 11.
    * @param day the day as a value between 0 and 31.
    */
-  public Date(int year, int month, int day)
+  /*public Date(int year, int month, int day)
   {
     this(year, month, day, 0, 0, 0);
-  }
+  }*/
 
   /**
    * Creates a new Date Object representing the given time.
@@ -178,10 +178,10 @@ public class Date
    *        clock notation.
    * @param min the minute as a value between 0 and 59.
    */
-  public Date(int year, int month, int day, int hour, int min)
+  /*public Date(int year, int month, int day, int hour, int min)
   {
     this(year, month, day, hour, min, 0);
-  }
+  }*/
 
   /**
    * Creates a new Date Object representing the given time.
@@ -197,12 +197,12 @@ public class Date
    * @param sec the second as a value between 0 and 61 (with 60
    *        and 61 being leap seconds).
    */
-  public Date(int year, int month, int day, int hour, int min, int sec)
+  /*public Date(int year, int month, int day, int hour, int min, int sec)
   {
     GregorianCalendar cal =
 	new GregorianCalendar(year + 1900, month, day, hour, min, sec);
     time = cal.getTimeInMillis();
-  }
+  }*/
 
   /**
    * Creates a new Date from the given string representation.  This

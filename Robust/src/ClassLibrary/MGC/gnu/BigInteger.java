@@ -153,7 +153,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
 
   /** HAC (Handbook of Applied Cryptography), Alfred Menezes & al. Table 4.4. */
   private static final int[] k =
-      {100,150,200,250,300,350,400,500,600,800,1250, Integer.MAX_VALUE};
+      {100,150,200,250,300,350,400,500,600,800,1250, 0x7fffffff/*Integer.MAX_VALUE*/};
   private static final int[] t =
       { 27, 18, 15, 12,  9,  8,  7,  6,  5,  4,   3, 2};
 
@@ -865,7 +865,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
     if (x < 0)
       {
 	xNegative = true;
-	if (x == Long.MIN_VALUE)
+	if (x == 0x8000000000000000L/*Long.MIN_VALUE*/)
 	  {
 	    divide(valueOf(x), valueOf(y),
 		   quotient, remainder, rounding_mode);
@@ -879,7 +879,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
     if (y < 0)
       {
 	yNegative = true;
-	if (y == Long.MIN_VALUE)
+	if (y == 0x8000000000000000L/*Long.MIN_VALUE*/)
 	  {
 	    if (rounding_mode == TRUNCATE)
 	      { // x != Long.Min_VALUE implies abs(x) < abs(y)
@@ -966,7 +966,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
       {
 	long x_l = x.longValue();
 	long y_l = y.longValue();
-	if (x_l != Long.MIN_VALUE && y_l != Long.MIN_VALUE)
+	if (x_l != 0x8000000000000000L/*Long.MIN_VALUE*/ && y_l != 0x8000000000000000L/*Long.MIN_VALUE*/)
 	  {
 	    divide(x_l, y_l, quotient, remainder, rounding_mode);
 	    return;
@@ -1222,7 +1222,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
       {
 	if (exponent == 0)
 	  return ONE;
-	  throw new Error/*ArithmeticException*/("negative exponent");
+	  throw new ArithmeticException("negative exponent");
       }
 
     /*if (USING_NATIVE)
@@ -1497,7 +1497,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
 	if (xval == 0)
 	  return abs(y);
 	if (y.words == null
-	    && xval != Integer.MIN_VALUE && yval != Integer.MIN_VALUE)
+	    && xval != 0x80000000/*Integer.MIN_VALUE*/ && yval != 0x80000000/*Integer.MIN_VALUE*/)
 	  {
 	    if (xval < 0)
 	      xval = -xval;
@@ -1929,10 +1929,10 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
     return make(words, size);
   }
 
-  public double doubleValue()
+  /*public double doubleValue()
   {
-    /*if (USING_NATIVE)
-      return mpz.doubleValue();*/
+    if (USING_NATIVE)
+      return mpz.doubleValue();
 
     if (words == null)
       return (double) ival;
@@ -1941,12 +1941,12 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
     if (isNegative())
       return neg(this).roundToDouble(0, true, false);
       return roundToDouble(0, false, false);
-  }
+  }*/
 
-  public float floatValue()
+  /*public float floatValue()
   {
     return (float) doubleValue();
-  }
+  }*/
 
   /** Return true if any of the lowest n bits are one.
    * (false if n is negative).  */
@@ -1971,7 +1971,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
    * @param remainder true if the BigInteger is the result of a truncating
    * division that had non-zero remainder.  To ensure proper rounding in
    * this case, the BigInteger must have at least 54 bits.  */
-  private double roundToDouble(int exp, boolean neg, boolean remainder)
+  /*private double roundToDouble(int exp, boolean neg, boolean remainder)
   {
     // Compute length.
     int il = bitLength();
@@ -2041,7 +2041,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
     long bits_exp = (exp <= 0) ? 0 : ((long)exp) << 52;
     long bits_mant = m & ~(1L << 52);
     return Double.longBitsToDouble(bits_sign | bits_exp | bits_mant);
-  }
+  }*/
 
   /** Copy the abolute value of this into an array of words.
    * Assumes words.length >= (this.words == null ? 1 : this.ival).
@@ -2090,7 +2090,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
     int len = x.ival;
     if (x.words == null)
       {
-	if (len == Integer.MIN_VALUE)
+	if (len == 0x80000000/*Integer.MIN_VALUE*/)
 	  set(- (long) len);
 	else
 	  set(-len);
@@ -2127,7 +2127,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
 
   private static BigInteger neg(BigInteger x)
   {
-    if (x.words == null && x.ival != Integer.MIN_VALUE)
+    if (x.words == null && x.ival != 0x80000000/*Integer.MIN_VALUE*/)
       return valueOf(- x.ival);
     BigInteger result = new BigInteger(0);
     result.setNegative(x);

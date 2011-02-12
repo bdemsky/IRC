@@ -512,10 +512,10 @@ public /*abstract*/ class Calendar
    * Constructs a new Calendar with the default time zone and the default
    * locale.
    */
-  protected Calendar()
+  /*protected Calendar()
   {
-    this(/*TimeZone.getDefault(), */Locale.getDefault());
-  }
+    this(TimeZone.getDefault(), Locale.getDefault());
+  }*/
 
   /**
    * Constructs a new Calendar with the given time zone and the given
@@ -523,34 +523,34 @@ public /*abstract*/ class Calendar
    * @param zone a time zone.
    * @param locale a locale.
    */
-  protected Calendar(/*TimeZone zone, */Locale locale)
+  protected Calendar(TimeZone zone, Locale locale)
   {
-    //this.zone = zone;
+    this.zone = zone;
     lenient = true;
     String[] days = { "", "sun", "mon", "tue", "wed", "thu", "fri", "sat" };
 
-    /*String country = locale.getCountry();
-    String min = properties.getProperty("minDays." + country);
-    if (min == null)
-      min = properties.getProperty("minDays.DEFAULT");
-    String first = properties.getProperty("firstDay." + country);
-    if (first == null)
-      first = properties.getProperty("firstDay.DEFAULT");
+    String country = locale.getCountry();
+    String min = "1";//properties.getProperty("minDays." + country);
+    /*if (min == null)
+      min = properties.getProperty("minDays.DEFAULT");*/
+    String first = "sun";//properties.getProperty("firstDay." + country);
+    /*if (first == null)
+      first = properties.getProperty("firstDay.DEFAULT");*/
     try
       {
 	if (min != null)
 	  minimalDaysInFirstWeek = Integer.parseInt(min);
       }
-    catch (NumberFormatException ex)
+    catch (/*NumberFormat*/Exception ex)
       {
 	minimalDaysInFirstWeek = 1;
-      }*/
+      }
 
     firstDayOfWeek = 1;
-    /*if (first != null)
+    if (first != null)
       for (int i = 0; i < 8; i++)
 	if (days[i].equals(first))
-	  firstDayOfWeek = i;*/
+	  firstDayOfWeek = i;
 
     clear();
   }
@@ -563,7 +563,7 @@ public /*abstract*/ class Calendar
    */
   public static synchronized Calendar getInstance()
   {
-    return getInstance(/*TimeZone.getDefault(), */Locale.getDefault());
+    return new GregorianCalendar/*getInstance*/(TimeZone.getDefault(), Locale.getDefault());
   }
 
   /**
@@ -576,10 +576,10 @@ public /*abstract*/ class Calendar
    * 
    * @throws NullPointerException if <code>zone</code> is <code>null</code>.
    */
-  /*public static synchronized Calendar getInstance(TimeZone zone)
+  public static synchronized Calendar getInstance(TimeZone zone)
   {
-    return getInstance(zone, Locale.getDefault());
-  }*/
+    return new GregorianCalendar/*getInstance*/(zone, Locale.getDefault());
+  }
 
   /**
    * Creates a calendar representing the actual time, using the default
@@ -620,26 +620,26 @@ public /*abstract*/ class Calendar
    * @throws NullPointerException if <code>zone</code> or <code>locale</code>
    *     is <code>null</code>.
    */
-  public static synchronized Calendar getInstance(/*TimeZone zone, */Locale locale)
+  /*public static synchronized Calendar getInstance(TimeZone zone, Locale locale)
   {
     Class calendarClass = (Class)cache.get(locale);
-    //Throwable exception = null;
+    Throwable exception = null;
 
-    /*try
+    try
       {
 	if (calendarClass == null)
 	  {
 	    calendarClass = Class.forName(calendarClassName);
 	    if (Calendar.class.isAssignableFrom(calendarClass))
 	      cache.put(locale, calendarClass);
-	  }*/
+	  }
 
 	// GregorianCalendar is by far the most common case. Optimize by 
 	// avoiding reflection.
-	//if (calendarClass == GregorianCalendar.class)
+	if (calendarClass == GregorianCalendar.class)
 	  return new GregorianCalendar(zone, locale);
 
-	/*if (Calendar.class.isAssignableFrom(calendarClass))
+	if (Calendar.class.isAssignableFrom(calendarClass))
 	  {
 	    Constructor ctor = calendarClass.getConstructor(ctorArgTypes);
 	    return (Calendar) ctor.newInstance(new Object[] { zone, locale });
@@ -667,8 +667,8 @@ public /*abstract*/ class Calendar
       }
 
     throw new RuntimeException("Error instantiating calendar for locale "
-                               + locale, exception);*/
-  }
+                               + locale, exception);
+  }*/
 
   /**
    * Gets the set of locales for which a Calendar is available.
@@ -725,12 +725,12 @@ public /*abstract*/ class Calendar
    * @return the time in milliseconds since the epoch.
    * @specnote This was made public in 1.4.
    */
-  /*public long getTimeInMillis()
+  public long getTimeInMillis()
   {
     if (! isTimeSet)
       computeTime();
     return time;
-  }*/
+  }
 
   /**
    * Sets this Calendar's time to the given Time.  All time fields
@@ -790,7 +790,7 @@ public /*abstract*/ class Calendar
    *         <= <code>FIELD_COUNT</code>.
    * @specnote Not final since JDK 1.4
    */
-  /*public void set(int field, int value)
+  public void set(int field, int value)
   {
     if (isTimeSet)
       for (int i = 0; i < FIELD_COUNT; i++)
@@ -881,7 +881,7 @@ public /*abstract*/ class Calendar
     // May have crossed over a DST boundary.
     if (! explicitDSTOffset && (field != DST_OFFSET && field != ZONE_OFFSET))
       isSet[DST_OFFSET] = false;
-  }*/
+  }
 
   /**
    * Sets the fields for year, month, and date
@@ -949,7 +949,7 @@ public /*abstract*/ class Calendar
   {
     isTimeSet = false;
     areFieldsSet = false;
-    int zoneOffs = 0;//zone.getRawOffset();
+    int zoneOffs = zone.getRawOffset();
     int[] tempFields = 
                        {
                          1, 1970, JANUARY, 1, 1, 1, 1, THURSDAY, 1, AM, 0, 0, 0,
@@ -972,7 +972,7 @@ public /*abstract*/ class Calendar
     int[] tempFields = 
                        {
                          1, 1970, JANUARY, 1, 1, 1, 1, THURSDAY, 1, AM, 0, 0, 0,
-                         0, 0, 0/*zone.getRawOffset()*/, 0
+                         0, 0, zone.getRawOffset(), 0
                        };
     complete();
     isTimeSet = false;
@@ -1144,10 +1144,10 @@ public /*abstract*/ class Calendar
    * Gets the time zone of this calendar
    * @return the current time zone.
    */
-  /*public TimeZone getTimeZone()
+  public TimeZone getTimeZone()
   {
     return zone;
-  }*/
+  }
 
   /**
    * Specifies if the date/time interpretation should be lenient.
@@ -1321,11 +1321,11 @@ public /*abstract*/ class Calendar
   /**
    * Return a clone of this object.
    */
-  public Object clone()
+  /*public Object clone()
   {
     try
       {
-	Calendar cal = (Calendar) super.clone();
+	Calendar cal = super.clone();
 	cal.fields = (int[]) fields.clone();
 	cal.isSet = (boolean[]) isSet.clone();
 	return cal;
@@ -1334,7 +1334,7 @@ public /*abstract*/ class Calendar
       {
 	return null;
       }
-  }
+  }*/
 
   private static final String[] fieldNames = 
                                              {

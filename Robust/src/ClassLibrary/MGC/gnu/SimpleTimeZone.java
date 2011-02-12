@@ -965,7 +965,7 @@ public class SimpleTimeZone extends TimeZone
    * Reads a serialized simple time zone from stream.
    * @see #writeObject
    */
-  private void readObject(java.io.ObjectInputStream input)
+  /*private void readObject(java.io.ObjectInputStream input)
     //throws java.io.IOException, ClassNotFoundException
   {
     input.defaultReadObject();
@@ -994,7 +994,7 @@ public class SimpleTimeZone extends TimeZone
 	    endDayOfWeek = byteArray[3];
 	  }
       }
-  }
+  }*/
 
   /**
    * Serializes this object to a stream.  @serialdata The object is
@@ -1012,7 +1012,7 @@ public class SimpleTimeZone extends TimeZone
    * approximative values are written to the required section, as
    * described above.
    */
-  private void writeObject(java.io.ObjectOutputStream output)
+  /*private void writeObject(java.io.ObjectOutputStream output)
     //throws java.io.IOException
   {
     byte[] byteArray = new byte[]
@@ -1021,7 +1021,7 @@ public class SimpleTimeZone extends TimeZone
                          (byte) endDayOfWeek
                        };
 
-    /* calculate the approximation for JDK 1.1 */
+    // calculate the approximation for JDK 1.1 
     switch (startMode)
       {
       case DOM_MODE:
@@ -1048,5 +1048,5 @@ public class SimpleTimeZone extends TimeZone
     // the optional part:
     output.writeInt(byteArray.length);
     output.write(byteArray, 0, byteArray.length);
-  }
+  }*/
 }

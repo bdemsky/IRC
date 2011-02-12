@@ -112,6 +112,10 @@ public class String {
     return this.lastindexOf(ch, count - 1);
   }
 
+  public int lastIndexOf(char ch) {
+    return this.lastindexOf((int)ch, count - 1);
+  }
+  
   public static String concat2(String s1, String s2) {
     if (s1==null)
       return "null".concat(s2);
@@ -485,5 +489,20 @@ public class String {
 
     return false;
 
+  }
+  
+  public String trim() {
+    int len = count;
+    int st = 0;
+    int off = offset;      /* avoid getfield opcode */
+    char[] val = value;    /* avoid getfield opcode */
+
+    while ((st < len) && (val[off + st] <= ' ')) {
+      st++;
+    }
+    while ((st < len) && (val[off + len - 1] <= ' ')) {
+      len--;
+    }
+    return ((st > 0) || (len < count)) ? substring(st, len) : this;
   }
 }

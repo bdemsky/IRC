@@ -128,7 +128,7 @@ public class Throwable //implements Serializable
    * @serial the cause, or null if unknown, or this if not yet set
    * @since 1.4
    */
-  private Throwable cause = this;
+  private Throwable cause = null;//this;
 
   /**
    * The stack trace, in a serialized form.
@@ -146,7 +146,8 @@ public class Throwable //implements Serializable
    */
   public Throwable()
   {
-    this((String) null);
+    //this((String) null);
+    detailMessage = null;
   }
 
   /**
@@ -173,7 +174,8 @@ public class Throwable //implements Serializable
    */
   public Throwable(String message, Throwable cause)
   {
-    this(message);
+    //this(message);
+    detailMessage = message;
     this.cause = cause;
   }
 
@@ -187,7 +189,10 @@ public class Throwable //implements Serializable
    */
   public Throwable(Throwable cause)
   {
-    this(cause == null ? null : cause.toString(), cause);
+    //this(cause == null ? null : cause.toString(), cause);
+    String message = cause == null ? null : cause.toString();
+    detailMessage = message;
+    this.cause = cause;
   }
 
   /**

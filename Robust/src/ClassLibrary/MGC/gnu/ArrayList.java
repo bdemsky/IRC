@@ -85,6 +85,7 @@ import java.lang.reflect.Array;
 //  implements List<E>, RandomAccess, Cloneable, Serializable
 public class ArrayList
 {
+  protected transient int modCount;
   /**
    * Compatible with JDK 1.2
    */
@@ -241,27 +242,32 @@ public class ArrayList
         return i;
     return -1;
   }
+  
+  boolean equals(Object o1, Object o2)
+  {
+    return o1 == null ? o2 == null : o1.equals(o2);
+  }
 
   /**
    * Creates a shallow copy of this ArrayList (elements are not cloned).
    *
    * @return the cloned object
    */
-  public Object clone()
+  /*public Object clone()
   {
-    ArrayList/*<E>*/ clone = null;
-    //try
+    ArrayList<E> clone = null;
+    try
       {
-        //clone = (ArrayList<E>) super.clone();
-        clone = new ArrayList();
-        clone.data = /*(E[])*/ data.clone();
+        clone = (ArrayList<E>) super.clone();
+        //clone = new ArrayList();
+        clone.data = (E[]) data.clone();
       }
-    /*catch (CloneNotSupportedException e)
+    catch (CloneNotSupportedException e)
       {
         // Impossible to get here.
-      }*/
+      }
     return clone;
-  }
+  }*/
 
   /**
    * Returns an Object array containing all of the elements in this ArrayList.
@@ -394,7 +400,10 @@ public class ArrayList
       {
         modCount++;
         // Allow for garbage collection.
-        Arrays.fill(data, 0, size, null);
+        //Arrays.fill(data, 0, size, null);
+        for(int i = 0; i < size; i++) {
+          this.data[i] = null;
+        }
         size = 0;
       }
   }

@@ -1,4 +1,4 @@
-public class Vector {
+public class Vector implements Set {
   Object[] array;
   int size;
   int capacityIncrement;
@@ -95,6 +95,14 @@ public class Vector {
     }
     array[size++]=obj;
   }
+  
+  public boolean add(Object obj) {
+    if (size==array.length) {
+      ensureCapacity(size+1);
+    }
+    array[size++]=obj;
+    return true;
+  }
 
   public void insertElementAt(Object obj, int index) {
     if (index<0||index>size) {
@@ -130,4 +138,20 @@ public class Vector {
       removeElementAt(0);
     }
   }
+  
+  public Object[] toArray() {
+    Object[] tarray = new Object[this.size];
+    for(int i = 0; i < this.size; i++) {
+      tarray[i] = this.array[i];
+    }
+    return tarray;
+  }
+  
+  public Vector(Set s) {
+    Object[] sarray = s.toArray();
+    capacityIncrement=0;
+    this.size=sarray.length;
+    array=sarray;
+  }
+  
 }

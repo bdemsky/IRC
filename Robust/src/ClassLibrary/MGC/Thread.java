@@ -1,5 +1,16 @@
-public class Thread {
+public class Thread implements Runnable {
   private boolean finished;
+  Runnable target;
+  
+  public Thread(){
+    finished = false;
+    target = null;
+  }
+  
+  public Thread(Runnable r) {
+    finished = false;
+    target = r;
+  }
 
   public void start() {
     nativeCreate();
@@ -20,6 +31,9 @@ public class Thread {
   public native static void sleep(long millis);
 
   public void run() {
+    if(target != null) {
+      target.run();
+    }
   }
 
   private native void nativeCreate();

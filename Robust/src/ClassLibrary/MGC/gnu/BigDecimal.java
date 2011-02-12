@@ -361,10 +361,10 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
    * representation
    * @since 1.5
    */
-  public BigDecimal(char[] in)
+  /*public BigDecimal(char[] in)
   {
     this(in, 0, in.length);
-  }
+  }*/
   
   /**
    * Constructs a BigDecimal from a char subarray, accepting the same sequence
@@ -376,7 +376,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
    * BigDecimal representation.
    * @since 1.5
    */
-  public BigDecimal(char[] in, int offset, int len)
+  /*public BigDecimal(char[] in, int offset, int len)
   {
     //  start is the index into the char array where the significand starts
     int start = offset;
@@ -437,7 +437,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
           {
             // If dot != -1 then we've seen more than one decimal point.
             if (dot != -1)
-              throw new Error/*NumberFormatException*/("multiple `.'s in number");
+              throw new NumberFormatException("multiple `.'s in number");
             dot = point;
           }
         // Break when we reach the start of the exponent.
@@ -446,14 +446,14 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
         // Throw an exception if the character was not a decimal or an 
         // exponent and is not a digit.
         else if (!Character.isDigit(c))
-          throw new Error/*NumberFormatException*/("unrecognized character at " + point
+          throw new NumberFormatException("unrecognized character at " + point
                                           + ": " + c);
         ++point;
       }
 
     // val is a StringBuilder from which we'll create a BigInteger
     // which will be the unscaled value for this BigDecimal
-    CPStringBuilder val = new CPStringBuilder(point - start - 1);
+    String val = new CPStringBuilder(point - start - 1);
     if (dot != -1)
       {
         // If there was a decimal we must combine the two parts that 
@@ -470,12 +470,12 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
         scale = 0;
       }
     if (val.length() == 0)
-      throw new Error/*NumberFormatException*/("no digits seen");
+      throw new NumberFormatException("no digits seen");
 
     // Prepend a negative sign if necessary.
     if (negative)
       val.insert(0, '-');
-    intVal = new BigInteger(val.toString());
+    intVal = new BigInteger(val);
 
     // Now parse exponent.
     // If point < end that means we broke out of the previous loop when we
@@ -490,7 +490,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
         // Throw an exception if there were no digits found after the 'e'
         // or 'E'.
         if (point >= end)
-          throw new Error/*NumberFormatException*/("no exponent following e or E");
+          throw new NumberFormatException("no exponent following e or E");
 
         try
           {
@@ -499,12 +499,12 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
             // unscaledValue x Math.pow(10, -scale)
             scale -= Integer.parseInt(new String(in, point, end - point));
           }
-        catch (Error/*NumberFormatException*/ ex)
+        catch (NumberFormatException ex)
           {
-            throw new Error/*NumberFormatException*/("malformed exponent");
+            throw new NumberFormatException("malformed exponent");
           }
       }
-  }
+  }*/
   
   public BigDecimal (String num) //throws NumberFormatException 
   {
@@ -1354,7 +1354,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
     return toBigInteger().longValue();
   }
 
-  public float floatValue() 
+  /*public float floatValue() 
   {
     return Float.valueOf(toString()).floatValue();
   }
@@ -1362,7 +1362,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
   public double doubleValue() 
   {
     return Double.valueOf(toString()).doubleValue();
-  }
+  }*/
 
   public BigDecimal setScale (int scale) //throws ArithmeticException
   {
@@ -1436,7 +1436,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
   public BigDecimal pow(int n)
   {
     if (n < 0 || n > 999999999)
-      throw new Error/*ArithmeticException*/("n must be between 0 and 999999999");
+      throw new EArithmeticException("n must be between 0 and 999999999");
     BigDecimal result = new BigDecimal(intVal.pow(n), scale * n);
     return result;
   }
@@ -1495,7 +1495,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
     BigInteger tempVal = temp.intVal;
     // Check for overflow.
     long result = intVal.longValue();
-    if (tempVal.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 1
+    if (tempVal.compareTo(BigInteger.valueOf(0x7fffffffffffffffL/*Long.MAX_VALUE*/)) > 1
         || (result < 0 && signum() == 1) || (result > 0 && signum() == -1))
       throw new Error/*ArithmeticException*/("this BigDecimal is too " +
             "large to fit into the return type");

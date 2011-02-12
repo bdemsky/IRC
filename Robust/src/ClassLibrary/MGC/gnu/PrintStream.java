@@ -71,7 +71,7 @@ public class PrintStream extends FilterOutputStream //implements Appendable
 
   // Line separator string.
   private static final char[] line_separator
-    = {}/*SystemProperties.getProperty("line.separator", "\n").toCharArray()*/;
+    = {'\n'}/*SystemProperties.getProperty("line.separator", "\n").toCharArray()*/;
 
   /**
    *  Encoding name
@@ -449,10 +449,10 @@ public class PrintStream extends FilterOutputStream //implements Appendable
    * printed is determined by the system property <xmp>line.separator</xmp>
    * and is not necessarily the Unix '\n' newline character.
    */
-  /*public void println ()
+  public void println ()
   {
     print(line_separator, 0, line_separator.length, false);
-  }*/
+  }
 
   /**
    * This methods prints a boolean value to the stream.  <code>true</code>

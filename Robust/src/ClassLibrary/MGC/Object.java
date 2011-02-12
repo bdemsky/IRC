@@ -34,5 +34,6 @@ public class Object {
     return false;
   }
   
-  //public final native Class getClass();
+  public final native void notify();
+  public final native void wait();
 }

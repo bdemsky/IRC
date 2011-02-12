@@ -39,7 +39,7 @@ exception statement from your version. */
  
 //import java.nio.CharBuffer;
 
-///* Written using "Java Class Libraries", 2nd edition, plus online
+/* Written using "Java Class Libraries", 2nd edition, plus online
  * API docs for JDK 1.2 beta from http://www.javasoft.com.
  * Status:  Believed complete and correct.
  */

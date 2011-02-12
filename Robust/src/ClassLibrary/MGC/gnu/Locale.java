@@ -330,9 +330,9 @@ public final class Locale //implements Serializable, Cloneable
         language = convertLanguage(language);
         country = country.toUpperCase();
       }
-    this.language = language.intern();
-    this.country = country.intern();
-    this.variant = variant.intern();
+    this.language = language;//.intern();
+    this.country = country;//.intern();
+    this.variant = variant;//.intern();
     hashcode = language.hashCode() ^ country.hashCode() ^ variant.hashCode();
   }
 
@@ -387,7 +387,7 @@ public final class Locale //implements Serializable, Cloneable
   public static void setDefault(Locale newLocale)
   {
     if (newLocale == null)
-      throw new NullPointerException();
+      throw new Exception/*NullPointerException*/("NullPointerException");
     /*SecurityManager sm = System.getSecurityManager();
     if (sm != null)
       sm.checkPermission(new PropertyPermission("user.language", "write"));*/
@@ -399,7 +399,7 @@ public final class Locale //implements Serializable, Cloneable
    *
    * @return the installed locales
    */
-  public static synchronized Locale[] getAvailableLocales()
+  /*public static synchronized Locale[] getAvailableLocales()
   {
     if (availableLocales == null)
       {
@@ -430,7 +430,7 @@ public final class Locale //implements Serializable, Cloneable
       }
     
     return (Locale[]) availableLocales.clone();
-  }
+  }*/
 
   /**
    * Returns a list of all 2-letter uppercase country codes as defined
@@ -438,7 +438,7 @@ public final class Locale //implements Serializable, Cloneable
    *
    * @return a list of acceptable country codes
    */
-  public static String[] getISOCountries()
+  /*public static String[] getISOCountries()
   {
     if (countryCache == null)
       {
@@ -446,7 +446,7 @@ public final class Locale //implements Serializable, Cloneable
       }
 
     return (String[]) countryCache.clone();
-  }
+  }*/
 
   /**
    * Returns a list of all 2-letter lowercase language codes as defined
@@ -454,14 +454,14 @@ public final class Locale //implements Serializable, Cloneable
    *
    * @return a list of acceptable language codes
    */
-  public static String[] getISOLanguages()
+  /*public static String[] getISOLanguages()
   {
     if (languageCache == null)
       {
 	languageCache = getISOStrings("languages");
       }
     return (String[]) languageCache.clone();
-  }
+  }*/
 
   /**
    * Returns the set of keys from the specified resource hashtable, filtered
@@ -563,7 +563,7 @@ public final class Locale //implements Serializable, Cloneable
    *
    * @throws MissingResourceException if the three-letter code is not known
    */
-  public String getISO3Language()
+  /*public String getISO3Language()
   {
     // We know all strings are interned so we can use '==' for better performance.
     if (language == "")
@@ -593,14 +593,14 @@ public final class Locale //implements Serializable, Cloneable
        + "srpsswsotsunsweswatamteltgkthatirtuktgltsntonturtsotattwiuigukrurd"
        + "uzbvievolwolxhoyidyorzhazhozul")
       .substring(index, index + 3);
-  }
+  }*/
 
   /**
    * Returns the three-letter ISO country abbrevation of the locale.
    *
    * @throws MissingResourceException if the three-letter code is not known
    */
-  public String getISO3Country()
+  /*public String getISO3Country()
   {
     // We know all strings are interned so we can use '==' for better performance.
     if (country == "")
@@ -639,7 +639,7 @@ public final class Locale //implements Serializable, Cloneable
        + "SLVSYRSWZTCATCDATFTGOTHATJKTKLTKMTUNTONTMPTURTTOTUVTWNTZAUKRUGAUMI"
        + "USAURYUZBVATVCTVENVGBVIRVNMVUTWLFWSMYEMMYTYUGZAFZMBZARZWE")
       .substring(index, index + 3);
-  }
+  }*/
 
   /**
    * Gets the country name suitable for display to the user, formatted
@@ -651,10 +651,10 @@ public final class Locale //implements Serializable, Cloneable
    * @return the language name of this locale localized to the default locale,
    *         with the ISO code as backup
    */
-  public String getDisplayLanguage()
+  /*public String getDisplayLanguage()
   {
     return getDisplayLanguage(defaultLocale);
-  }
+  }*/
 
   /**
    * <p>
@@ -730,10 +730,10 @@ public final class Locale //implements Serializable, Cloneable
    * @return the country name of this locale localized to the given locale,
    *         with the ISO code as backup
    */
-  public String getDisplayCountry()
+  /*public String getDisplayCountry()
   {
-    return null;//getDisplayCountry(defaultLocale);
-  }
+    return getDisplayCountry(defaultLocale);
+  }*/
 
   /**
    * <p>
@@ -809,10 +809,10 @@ public final class Locale //implements Serializable, Cloneable
    * @return the variant code of this locale localized to the given locale,
    *         with the ISO code as backup
    */
-  public String getDisplayVariant()
+  /*public String getDisplayVariant()
   {
     return getDisplayVariant(defaultLocale);
-  }
+  }*/
 
 
   /**
@@ -897,10 +897,10 @@ public final class Locale //implements Serializable, Cloneable
    *
    * @return String version of this locale, suitable for display to the user
    */
-  public String getDisplayName()
+  /*public String getDisplayName()
   {
     return getDisplayName(defaultLocale);
-  }
+  }*/
 
   /**
    * Gets all local components suitable for display to the user, formatted
@@ -989,9 +989,9 @@ public final class Locale //implements Serializable, Cloneable
       return false;
     Locale l = (Locale) obj;
 
-    return (language == l.language 
-            && country == l.country 
-            && variant == l.variant);
+    return (language.equals(l.language)// == l.language 
+            && country.equals(l.country)// == l.country 
+            && variant.equals(l.variant)/* == l.variant*/);
   }
 
   /**

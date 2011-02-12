@@ -154,7 +154,7 @@ public class GregorianCalendar extends Calendar
    */
   private long gregorianCutover = (new Date((24 * 60 * 60 * 1000L) * (((1582 * (365 * 4
                                             + 1)) / 4
-                                            + (java.util.Calendar.OCTOBER * (31
+                                            + (/*java.util.*/Calendar.OCTOBER * (31
                                             + 30 + 31 + 30 + 31) - 9) / 5 + 5)
                                             - ((1970 * (365 * 4 + 1)) / 4 + 1
                                             - 13)))).getTime();
@@ -187,7 +187,7 @@ public class GregorianCalendar extends Calendar
    */
   public GregorianCalendar()
   {
-    this(/*TimeZone.getDefault(), */Locale.getDefault());
+    this(TimeZone.getDefault(), Locale.getDefault());
   }
 
   /**
@@ -207,10 +207,10 @@ public class GregorianCalendar extends Calendar
    *
    * @param locale a locale.
    */
-  public GregorianCalendar(Locale locale)
+  /*public GregorianCalendar(Locale locale)
   {
-    this(/*TimeZone.getDefault(), */locale);
-  }
+    this(TimeZone.getDefault(), locale);
+  }*/
 
   /**
    * Constructs a new GregorianCalender representing the current
@@ -219,11 +219,11 @@ public class GregorianCalendar extends Calendar
    * @param zone a time zone.
    * @param locale a locale.
    */
-  /*public GregorianCalendar(TimeZone zone, Locale locale)
+  public GregorianCalendar(TimeZone zone, Locale locale)
   {
     this(zone, locale, false);
     setTimeInMillis(System.currentTimeMillis());
-  }*/
+  }
 
   /**
    * Common constructor that all constructors should call.
@@ -232,9 +232,9 @@ public class GregorianCalendar extends Calendar
    * @param unused unused parameter to make the signature differ from
    * the public constructor (TimeZone, Locale).
    */
-  private GregorianCalendar(/*TimeZone zone, */Locale locale, boolean unused)
+  private GregorianCalendar(TimeZone zone, Locale locale, boolean unused)
   {
-    super(/*zone, */locale);
+    super(zone, locale);
   }
 
   /**
@@ -245,11 +245,11 @@ public class GregorianCalendar extends Calendar
    * @param month corresponds to the MONTH time field.
    * @param day corresponds to the DAY time field.
    */
-  public GregorianCalendar(int year, int month, int day)
+  /*public GregorianCalendar(int year, int month, int day)
   {
-    this(/*TimeZone.getDefault(), */Locale.getDefault(), false);
+    this(TimeZone.getDefault(), Locale.getDefault(), false);
     set(year, month, day);
-  }
+  }*/
 
   /**
    * Constructs a new GregorianCalendar representing midnight on the
@@ -261,11 +261,11 @@ public class GregorianCalendar extends Calendar
    * @param hour corresponds to the HOUR_OF_DAY time field.
    * @param minute corresponds to the MINUTE time field.
    */
-  public GregorianCalendar(int year, int month, int day, int hour, int minute)
+  /*public GregorianCalendar(int year, int month, int day, int hour, int minute)
   {
-    this(/*TimeZone.getDefault(), */Locale.getDefault(), false);
+    this(TimeZone.getDefault(), Locale.getDefault(), false);
     set(year, month, day, hour, minute);
-  }
+  }*/
 
   /**
    * Constructs a new GregorianCalendar representing midnight on the
@@ -278,12 +278,12 @@ public class GregorianCalendar extends Calendar
    * @param minute corresponds to the MINUTE time field.
    * @param second corresponds to the SECOND time field.
    */
-  public GregorianCalendar(int year, int month, int day, int hour, int minute,
+  /*public GregorianCalendar(int year, int month, int day, int hour, int minute,
                            int second)
   {
-    this(/*TimeZone.getDefault(), */Locale.getDefault(), false);
+    this(TimeZone.getDefault(), Locale.getDefault(), false);
     set(year, month, day, hour, minute, second);
-  }
+  }*/
 
   /**
    * Sets the date of the switch from Julian dates to Gregorian dates.
@@ -614,7 +614,7 @@ public class GregorianCalendar extends Calendar
     // Calculate number of milliseconds into the day
     // This takes care of both h, m, s, ms over/underflows.
     long allMillis = (((hour * 60L) + minute) * 60L + second) * 1000L + millis;
-    day += allMillis / (24 * 60 * 60 * 1000L);
+    day += (int)(allMillis / (24 * 60 * 60 * 1000L));
     millisInDay = (int) (allMillis % (24 * 60 * 60 * 1000L));
 
     if (month < 0)
