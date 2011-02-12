@@ -647,7 +647,7 @@ public class BuildIR {
           // for static field, the initializer should be considered as a 
           // static block
           boolean isfirst = false;
-          MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+          MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().getFromSameScope("staticblocks");
           if(md == null) {
             // the first static block for this class
             Modifiers m_i=new Modifiers();
@@ -995,12 +995,12 @@ public class BuildIR {
     // Each class maintains one MethodDecscriptor which combines all its 
     // static blocks in their declaration order
     boolean isfirst = false;
-    MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
+    MethodDescriptor md = (MethodDescriptor)cn.getMethodTable().getFromSameScope("staticblocks");
     if(md == null) {
       // the first static block for this class
-      Modifiers m=new Modifiers();
-      m.addModifier(Modifiers.STATIC);
-      md = new MethodDescriptor(m, "staticblocks", false);
+      Modifiers m_i=new Modifiers();
+      m_i.addModifier(Modifiers.STATIC);
+      md = new MethodDescriptor(m_i, "staticblocks", false);
       md.setAsStaticBlock();
       isfirst = true;
     }
@@ -1150,7 +1150,7 @@ public class BuildIR {
       }
     } else if (isNode(pn, "throwstatement")) {
       // TODO Simply return here
-      blockstatements.add(new ReturnNode());
+      //blockstatements.add(new ReturnNode());
     } else if (isNode(pn,"taskexit")) {
       Vector vfe=null;
       if (pn.getChild("flag_effects_list")!=null)
@@ -1192,14 +1192,26 @@ public class BuildIR {
       BlockNode update=parseSingleBlock(pn.getChild("update").getFirstChild());
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
+      if(condition == null) {
+        // no condition clause, make a 'true' expression as the condition
+        condition = (ExpressionNode)new LiteralNode("boolean", new Boolean(true));
+      }
       blockstatements.add(new LoopNode(init,condition,update,body));
     } else if (isNode(pn,"whilestatement")) {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
+      if(condition == null) {
+        // no condition clause, make a 'true' expression as the condition
+        condition = (ExpressionNode)new LiteralNode("boolean", new Boolean(true));
+      }
       blockstatements.add(new LoopNode(condition,body,LoopNode.WHILELOOP));
     } else if (isNode(pn,"dowhilestatement")) {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
+      if(condition == null) {
+        // no condition clause, make a 'true' expression as the condition
+        condition = (ExpressionNode)new LiteralNode("boolean", new Boolean(true));
+      }
       blockstatements.add(new LoopNode(condition,body,LoopNode.DOWHILELOOP));
     } else if (isNode(pn,"sese")) {
       ParseNode pnID=pn.getChild("identifier");

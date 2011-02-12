@@ -4,30 +4,14 @@ import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.Set;
 
-import Analysis.Locality.LocalityBinding;
 import Analysis.Prefetch.*;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import IR.ClassDescriptor;
-import IR.Descriptor;
-import IR.FlagDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
 import IR.SymbolTable;
-import IR.TagVarDescriptor;
-import IR.TaskDescriptor;
-import IR.TypeDescriptor;
 import IR.TypeUtil;
-import IR.VarDescriptor;
-import IR.Tree.DNFFlag;
-import IR.Tree.DNFFlagAtom;
-import IR.Tree.ExpressionNode;
-import IR.Tree.FlagEffect;
-import IR.Tree.FlagEffects;
-import IR.Tree.FlagExpressionNode;
-import IR.Tree.TagEffect;
-import IR.Tree.TagExpressionList;
 
 public class BuildCodeMGC extends BuildCode {
   int coreNum;

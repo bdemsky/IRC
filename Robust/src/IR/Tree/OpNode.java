@@ -77,6 +77,10 @@ public class OpNode extends ExpressionNode {
         eval = Long.valueOf(l.longValue() > 0 ? 0 : 1);
       else if (this.op.getOp() == Operation.COMP)
         eval = Long.valueOf((long)(~l.longValue()));
+      else if (this.op.getOp() == Operation.UNARYMINUS)
+        eval = Long.valueOf(-l.longValue() );
+      else if (this.op.getOp() == Operation.UNARYPLUS)
+        eval = Long.valueOf(+l.longValue());
       else {
         Long r = this.right.evaluate();
         if(r != null) {
@@ -118,10 +122,6 @@ public class OpNode extends ExpressionNode {
             eval = Long.valueOf(l.longValue() / r.longValue());
           else if (this.op.getOp() == Operation.MOD)
             eval = Long.valueOf(l.longValue() % r.longValue());
-          else if (this.op.getOp() == Operation.UNARYPLUS)
-            eval = Long.valueOf(+l.longValue());
-          else if (this.op.getOp() == Operation.UNARYMINUS)
-            eval = Long.valueOf(-l.longValue() );
           else if (this.op.getOp() == Operation.ASSIGN)
             eval = Long.valueOf(r.longValue());
         }

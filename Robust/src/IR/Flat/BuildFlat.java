@@ -856,7 +856,14 @@ public class BuildFlat {
       /* Hack - use subtree instead */
       return flattenExpressionNode(nn.getExpression(),out_temp);
     } else if (nn.getField()!=null) {
-      TempDescriptor tmp=getTempforVar(nn.getVar());
+      TempDescriptor tmp= null;
+      if(state.MGC && (nn.getClassDesc() != null)) {
+        // this is a static field
+        tmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
+        
+      } else {
+      tmp=getTempforVar(nn.getVar());
+      }
       FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp);
       return new NodePair(ffn,ffn);
     } else {

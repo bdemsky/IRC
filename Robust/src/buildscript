@@ -757,7 +757,7 @@ JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
 elif $MGCFLAG
 then
 #base multicore gc files
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC"
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu"
 fi
 #base java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
@@ -767,9 +767,9 @@ fi
 
 if $MULTICOREFLAG
 then
-if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
-$ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ \
--dir $BUILDDIR $JAVAOPTS $SRCFILES
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main \
+-dir $BUILDDIR $JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/ \
+-classlibrary $ROBUSTROOT/ClassLibrary/gnu/ $SRCFILES
 then exit $?
 fi
 else

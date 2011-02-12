@@ -34,8 +34,6 @@ public class TypeDescriptor extends Descriptor {
 	return false;
       if ((type==CLASS)&&(!t.getSymbol().equals(getSymbol())))
 	return false;
-      if (isStatic != t.isStatic)
-        return false;
       if (t.arraycount!=arraycount)
 	return false;
       return true;

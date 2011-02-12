@@ -3271,9 +3271,6 @@ public class BuildCode {
               // its static blocks have been executed
               output.println("#ifdef MGC_STATIC_INIT_CHECK");
               output.println("if(global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
-              if(cn.getNumStaticFields() != 0) {
-                // TODO add static field initialization here
-              }
               if(cn.getNumStaticBlocks() != 0) {
                 MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
                 output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
@@ -3286,7 +3283,7 @@ public class BuildCode {
           }
         }
         // redirect to the global_defs_p structure
-        if(ffn.getSrc().getType().isStatic()) {
+        if((ffn.getField().isStatic()) || (ffn.getSrc().getType().isStatic())) {
           // reference to the static field with Class name
           output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ ffn.getSrc().getType().getClassDesc().getSafeSymbol()+ffn.getField().getSafeSymbol()+";");
         } else {

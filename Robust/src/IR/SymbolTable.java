@@ -44,6 +44,13 @@ public class SymbolTable {
       hs=parent.getPSet(name);
     else
       hs=new HashSet();
+    if(this.parentIFs != null) {
+      for(int i = 0; i < this.parentIFs.size(); i++) {
+        if(this.parentIFs.elementAt(i).contains(name)) {
+          hs.addAll((HashSet)(this.parentIFs.elementAt(i).getPSet(name)));
+        }
+      }
+    }
     if (table.containsKey(name)) {
       hs.addAll((HashSet)table.get(name));
     }
@@ -64,11 +71,20 @@ public class SymbolTable {
 
   public Descriptor get(String name) {
     Descriptor d = getFromSameScope(name);
-    if (d == null && parent != null) {
-      return parent.get(name);
-    } else {
-      return d;
+    if (d == null){
+      if(parent != null) {
+        d = parent.get(name);
+      }
+      if((d == null) && (this.parentIFs != null)) {
+        for(int i = 0; i < this.parentIFs.size(); i++) {
+          d = this.parentIFs.elementAt(i).get(name);
+          if(d != null) {
+            return d;
+          }
+        }
+      }
     }
+    return d;
   }
 
   public Descriptor getFromSameScope(String name) {
@@ -79,7 +95,7 @@ public class SymbolTable {
       return null;
 
   }
-
+  
   public Enumeration getNames() {
     return table.keys();
   }

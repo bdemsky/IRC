@@ -1919,7 +1919,7 @@ field_access ::=
 		pn.addChild("base").addChild(base);
 		pn.addChild("field").addChild(id);
 		RESULT=pn;
-:}
+    :}
 //	|	SUPER DOT IDENTIFIER
 //	|	name DOT SUPER DOT IDENTIFIER
 	;
