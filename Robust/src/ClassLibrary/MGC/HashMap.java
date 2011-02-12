@@ -1,4 +1,4 @@
-public class HashMap{
+public class HashMap implements Map {
   HashEntry[] table;
   float loadFactor;
   int numItems;
@@ -56,8 +56,8 @@ public class HashMap{
   }
 
   /* 0=keys, 1=values */
-  public HashMapIterator iterator(int type) {
-    return (new HashMapIterator(this, type));
+  public Iterator iterator(int type) {
+    return (Iterator)(new HashMapIterator(this, type));
   }
 
   Object remove(Object key) {

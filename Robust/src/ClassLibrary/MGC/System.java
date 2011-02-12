@@ -1,4 +1,12 @@
-public class System {  
+import java.util.Properties;
+
+public class System {
+  PrintStream out;
+  
+  public System() {
+    out = new PrintStream("System.out");
+  }
+  
   public static void printInt(int x) {
     String s=String.valueOf(x);
     printString(s);
@@ -86,4 +94,11 @@ public class System {
 
   // for disjoint reachability analysis
   public static void genReach();
+  
+  private static Properties props;
+  private static native Properties initProperties(Properties props);
+  
+  public static Properties getProperties() {
+    return props;
+  }
 }
