@@ -1,6 +1,9 @@
+import java.io.FileSystem;
+import java.io.FilenameFilter;
+import java.util.ArrayList;
+
 public class File {
   String path;
-  private static final char separator = '\n';
 
   public File(String path) {
     this.path=path;

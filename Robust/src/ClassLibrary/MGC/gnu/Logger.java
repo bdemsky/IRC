@@ -1041,17 +1041,19 @@ public class Logger
    * {@link #setUseParentHandlers(boolean) setUseParentHandlers}, the log
    * record will be passed to the parent's handlers.
    */
-  /*public Handler[] getHandlers()
+  public Handler[] getHandlers()
   {
-    synchronized (lock)
+    /*synchronized (lock)
       {
         /*
          * We cannot return our internal handlers array because we do not have
          * any guarantee that the caller would not change the array entries.
          */
         /*return (Handler[]) handlerList.toArray(new Handler[handlerList.size()]);
-      }
-  }*/
+      }*/
+    System.println("Unimplemented Logger.getHandlers()");
+    return new Handler[0];
+  }
 
   /**
    * Returns whether or not this Logger forwards log records to handlers
@@ -1086,7 +1088,7 @@ public class Logger
    *             anonymous logger through the static factory method
    *             {@link #getAnonymousLogger(java.lang.String) getAnonymousLogger}.
    */
-  /*public void setUseParentHandlers(boolean useParentHandlers)
+  public void setUseParentHandlers(boolean useParentHandlers)
   {
     synchronized (lock)
       {
@@ -1095,11 +1097,11 @@ public class Logger
          * having the permission to control the logging infrastructure.
          */
         /*if (! anonymous)
-          LogManager.getLogManager().checkAccess();
+          LogManager.getLogManager().checkAccess();*/
 
         this.useParentHandlers = useParentHandlers;
       }
-  }*/
+  }
 
   /**
    * Returns the parent of this logger. By default, the parent is assigned by

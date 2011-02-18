@@ -299,13 +299,19 @@ public class DecimalFormat //extends NumberFormat
    *
    * @return A hash code.
    */
-  public int hashCode()
+  /*public int hashCode()
   {
     return toPattern().hashCode();
-  }
+  }*/
   
   public StringBuffer format(long l) {
-    return null;
+    System.println("Unimplemented DecimalFormat.format(long)");
+    return new StringBuffer("");
+  }
+  
+  public StringBuffer format(double l) {
+    System.println("Unimplemented DecimalFormat.format(double)");
+    return new StringBuffer("");
   }
   
   /**
@@ -2096,7 +2102,7 @@ public class DecimalFormat //extends NumberFormat
    * The integer totalDigitCount defines the total number of digits
    * of the number to which we are appending zeroes.
    */
-  private void appendZero(StringBuffer dest, int zeroes, int totalDigitCount)
+  /*private void appendZero(StringBuffer dest, int zeroes, int totalDigitCount)
   {
     char ch = symbols.getZeroDigit();
     char gSeparator = symbols.getGroupingSeparator();
@@ -2118,7 +2124,7 @@ public class DecimalFormat //extends NumberFormat
         (this.groupingUsed && this.groupingSize != 0) &&
         (gPos % groupingSize == 0))
       dest.append(gSeparator);
-  }
+  }*/
   
   /**
    * Append src to <code>dest</code>.
@@ -2126,7 +2132,7 @@ public class DecimalFormat //extends NumberFormat
    * Grouping is added if <code>groupingUsed</code> is set
    * to <code>true</code>.
    */
-  private void appendDigit(String src, StringBuffer dest,
+  /*private void appendDigit(String src, StringBuffer dest,
                              boolean groupingUsed)
   {
     int zero = symbols.getZeroDigit() - '0';
@@ -2144,7 +2150,7 @@ public class DecimalFormat //extends NumberFormat
 
         dest.append((char) (zero + ch));
       }
-  }
+  }*/
   
   /**
    * Calculate the exponent to use if eponential notation is used.
@@ -2152,7 +2158,7 @@ public class DecimalFormat //extends NumberFormat
    * <code>number</code> should be positive, if is zero, or less than zero,
    * zero is returned.
    */
-  private long getExponent(BigDecimal number)
+  /*private long getExponent(BigDecimal number)
   {
     long exponent = 0;
     
@@ -2176,7 +2182,7 @@ public class DecimalFormat //extends NumberFormat
       }
     
     return exponent;
-  }
+  }*/
  
   /**
    * Remove contiguos zeros from the end of the <code>src</code> string,
@@ -2252,7 +2258,7 @@ public class DecimalFormat //extends NumberFormat
     // Anyway, these seem to be good values for a default in most languages.
     // Note that most of these will change based on the format string.
     
-    this.negativePrefix = String.valueOf(symbols.getMinusSign());
+    this.negativePrefix = "-";//String.valueOf(symbols.getMinusSign());
     this.negativeSuffix = "";
     this.positivePrefix = "";
     this.positiveSuffix = "";
@@ -2263,10 +2269,10 @@ public class DecimalFormat //extends NumberFormat
     
     this.hasNegativePrefix = false;
     
-    this.minimumIntegerDigits = 1;
+    /*this.minimumIntegerDigits = 1;
     this.maximumIntegerDigits = DEFAULT_INTEGER_DIGITS;
     this.minimumFractionDigits = 0;
-    this.maximumFractionDigits = DEFAULT_FRACTION_DIGITS;
+    this.maximumFractionDigits = DEFAULT_FRACTION_DIGITS;*/
     this.minExponentDigits = 0;
     
     this.groupingSize = 0;
@@ -2274,7 +2280,7 @@ public class DecimalFormat //extends NumberFormat
     this.decimalSeparatorAlwaysShown = false;
     this.showDecimalSeparator = false;
     this.useExponentialNotation = false;
-    this.groupingUsed = false;
+    //this.groupingUsed = false;
     this.groupingSeparatorInPattern = false;
     
     this.useCurrencySeparator = false;

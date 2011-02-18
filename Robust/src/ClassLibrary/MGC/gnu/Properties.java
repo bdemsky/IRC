@@ -522,7 +522,7 @@ label   = Name:\\u0020</pre>
   }
   
   public Set keySet() {
-    HashMapIterator it = this.proptbl.iterator(0);
+    HashMapIterator it = (HashMapIterator)this.proptbl.iterator(0);
     Set keys = new Vector();
     while(it.hasNext()) {
       keys.add(it.next());

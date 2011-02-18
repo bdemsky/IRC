@@ -170,7 +170,7 @@ public final class Short
    */
   public static short parseShort(String s, int radix)
   {
-    int i = Integer.parseInt(s, radix, false);
+    int i = Integer.parseInt(s, radix);
     if ((short) i != i)
       throw new /*NumberFormat*/Exception("NumberFormatException");
     return (short) i;
@@ -258,7 +258,7 @@ public final class Short
    */
   public static Short decode(String s)
   {
-    int i = Integer.parseInt(s, 10, true);
+    int i = Integer.parseInt(s, 10);
     if ((short) i != i)
       throw new /*NumberFormat*/Exception("NumberFormatException");
     return valueOf((short) i);

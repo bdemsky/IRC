@@ -319,7 +319,7 @@ public class LogManager
      * When adding "foo.bar", the logger "foo.bar.baz" should change
      * its parent to "foo.bar".
      */
-    for (HashMapIterator iter = loggers./*.keySet().*/iterator(0); iter.hasNext();)
+    for (HashMapIterator iter = (HashMapIterator)loggers./*.keySet().*/iterator(0); iter.hasNext();)
       {
 	Logger possChild = (Logger) /*((WeakReference) */loggers.get(iter.next());//)
 	 // .get();
@@ -369,7 +369,7 @@ public class LogManager
       return null;
 
     //for (String candName : loggers.keySet())
-    HashMapIterator it_key = loggers.iterator(0);
+    HashMapIterator it_key = (HashMapIterator)loggers.iterator(0);
     while(it_key.hasNext())
       {
       String candName = (String)it_key.next();
@@ -380,7 +380,7 @@ public class LogManager
 	    && childName.startsWith(candName)
 	    && childName.charAt(candNameLength) == '.')
 	  {
-	    cand = loggers.get(candName);//.get();
+	    cand = (Logger)loggers.get(candName);//.get();
 	    if ((cand == null) || (cand == child))
 	      continue;
 
@@ -615,7 +615,7 @@ public class LogManager
      * be determined that the Sun J2SE 1.4 reference
      * implementation uses null for the property name.
      */
-    pcs.firePropertyChange(null, null, null);
+    /*pcs.firePropertyChange(null, null, null);
   }*/
 
   /**

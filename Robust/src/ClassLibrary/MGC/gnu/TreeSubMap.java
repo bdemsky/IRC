@@ -25,7 +25,7 @@ public final class TreeSubMap
   TreeSubMap(TreeMap map, Object minKey, Object maxKey)
   {
     this.map = map;
-    if (minKey != nil && maxKey != nil && map.compare(minKey, maxKey) > 0)
+    if (minKey != TreeMap.nil && maxKey != TreeMap.nil && map.compare(minKey, maxKey) > 0)
       throw new /*IllegalArgument*/Exception("IllegalArgumentException: fromKey > toKey");
     this.minKey = minKey;
     this.maxKey = maxKey;

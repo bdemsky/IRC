@@ -1,10 +1,9 @@
-import java.util.Properties;
-
 public class System {
-  PrintStream out;
+  public static PrintStream out = new PrintStream("System.out");
+  public static PrintStream err = new PrintStream("System.err");
+  public static InputStream in = new InputStream();
   
   public System() {
-    out = new PrintStream("System.out");
   }
   
   public static void printInt(int x) {
@@ -100,5 +99,27 @@ public class System {
   
   public static Properties getProperties() {
     return props;
+  }
+  
+  public static String getProperty(String key) {
+    if(props != null) {
+      return (String)props.getProperty(key);
+    }
+    return "";
+  }
+  
+  public static String setProperty(String key, String value) {
+    if(props != null) {
+      return (String)props.setProperty(key, value);
+    }
+    return "";
+  }
+  
+  public static void setOut(PrintStream out) {
+    out = out;
+  }
+
+  public static void setErr(PrintStream err) {
+    err = err;
   }
 }

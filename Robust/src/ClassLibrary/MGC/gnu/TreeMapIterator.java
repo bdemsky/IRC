@@ -1,4 +1,4 @@
-public final class TreeMapIterator implements Iterator
+public final class TreeMapIterator extends Iterator
 {
   /**
    * The type of this Iterator: {@link #KEYS}, {@link #VALUES},
@@ -6,7 +6,7 @@ public final class TreeMapIterator implements Iterator
    */
   private final int type;
   /** The number of modifications to the backing Map that we know about. */
-  private int knownMod = modCount;
+  private int knownMod;
   /** The last Entry returned by a next() call. */
   private TreeNode last;
   /** The next entry that should be returned by next(). */
@@ -25,7 +25,7 @@ public final class TreeMapIterator implements Iterator
    */
   TreeMapIterator(TreeMap map, int type)
   {
-    this(type, map, map.firstNode(), nil);
+    this(map, type, map.firstNode(), TreeMap.nil);
   }
 
   /**
@@ -36,12 +36,13 @@ public final class TreeMapIterator implements Iterator
    * @param first where to start iteration, nil for empty iterator
    * @param max the cutoff for iteration, nil for all remaining nodes
    */
-  TreeIterator(int type, TreeMap map, TreeNode first, TreeNode max)
+  TreeMapIterator(TreeMap map, int type, TreeNode first, TreeNode max)
   {
     this.map = map;
     this.type = type;
     this.next = first;
     this.max = max;
+    this.knownMod = this.map.modCount;
   }
 
   /**
@@ -61,10 +62,10 @@ public final class TreeMapIterator implements Iterator
    */
   public Object next()
   {
-    if (knownMod != modCount)
+    if (knownMod != this.map.modCount)
       throw new /*ConcurrentModification*/Exception("ConcurrentModificationException");
     if (next == max)
-      throw new /*NoSuchElementException*/("NoSuchElementException");
+      throw new /*NoSuchElement*/Exception("NoSuchElementException");
     last = next;
     next = map.successor(last);
 
@@ -85,7 +86,7 @@ public final class TreeMapIterator implements Iterator
   {
     if (last == null)
       throw new /*IllegalState*/Exception("IllegalStateException");
-    if (knownMod != modCount)
+    if (knownMod != this.map.modCount)
       throw new /*ConcurrentModification*/Exception("ConcurrentModificationException");
 
     map.removeNode(last);

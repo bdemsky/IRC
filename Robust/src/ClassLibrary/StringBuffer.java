@@ -85,8 +85,58 @@ public class StringBuffer {
     }
     return this;
   }
+  
+  public int indexOf(String str) {
+    return indexOf(str, 0);
+  }
+  
+  public synchronized int indexOf(String str, int fromIndex) {
+    String vstr = new String(value, 0, count);
+    return vstr.indexOf(str, fromIndex);
+  }
 
   public String toString() {
     return new String(this);
+  }
+  
+  public synchronized StringBuffer replace(int start, int end, String str) {
+    if (start < 0) {
+      // FIXME
+      System.printString("StringIndexOutOfBoundsException: "+start+"\n");
+    }
+    if (start > count) {
+      // FIXME
+      System.printString("StringIndexOutOfBoundsException: start > length()\n");
+    }
+    if (start > end) {
+      // FIXME
+      System.printString("StringIndexOutOfBoundsException: start > end\n");
+    }
+    if (end > count)
+      end = count;
+
+    if (end > count)
+      end = count;
+    int len = str.length();
+    int newCount = count + len - (end - start);
+    if (newCount > value.length)
+      expandCapacity(newCount);
+
+    System.arraycopy(value, end, value, start + len, count - end);
+    str.getChars(value, start);
+    count = newCount;
+    return this;
+  }
+  
+  void expandCapacity(int minimumCapacity) {
+    int newCapacity = (value.length + 1) * 2;
+    if (newCapacity < 0) {
+      newCapacity = 0x7fffffff/*Integer.MAX_VALUE*/;
+    } else if (minimumCapacity > newCapacity) {
+      newCapacity = minimumCapacity;
+    }   
+    char newValue[] = new char[newCapacity];
+    System.arraycopy(value, 0, newValue, 0, count);
+    value = newValue;
   }
 }

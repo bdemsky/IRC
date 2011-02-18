@@ -39,9 +39,6 @@ exception statement from your version. */
 
 package java.util;
 
-import java.util.TreeMap.Node;
-
-
 /**
  * This class provides a red-black tree implementation of the SortedMap
  * interface.  Elements in the Map will be sorted by either a user-provided
@@ -90,7 +87,7 @@ import java.util.TreeMap.Node;
  * @status updated to 1.6
  */
 public class TreeMap//<K, V> extends AbstractMap<K, V>
-  implements Map, SortedMap //NavigableMap<K, V>, Cloneable, Serializable
+  implements Map//, SortedMap //NavigableMap<K, V>, Cloneable, Serializable
 {
   // Implementation note:
   // A red-black tree is a binary search tree with the additional properties
@@ -994,9 +991,9 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
     node.parent = child;
   }
   
-  public TreeMap subMap(Object fromKey, Object toKey)
+  public TreeSubMap subMap(Object fromKey, Object toKey)
   {
-    new SubMap(fromKey, toKey)
+    return new TreeSubMap(this, fromKey, toKey);
   }
   
   /**

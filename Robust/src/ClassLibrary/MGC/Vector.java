@@ -1,3 +1,5 @@
+import java.util.NoSuchElementException;
+
 public class Vector implements Set {
   Object[] array;
   int size;
@@ -40,10 +42,23 @@ public class Vector implements Set {
     return indexOf(e)!=-1;
   }
 
-  public void remove(Object o) {
+  /*public boolean remove(Object o) {
     int in=indexOf(o);
-    if (in!=-1)
+    if (in!=-1) {
       removeElementAt(in);
+      return true;
+    } else {
+      return false;
+    }
+  }*/
+  
+  public Object remove(int index) {
+    Object r = null;
+    if (index!=-1) {
+      r = array[index];
+      removeElementAt(index);
+    }
+    return r;
   }
 
   public Object elementAt(int index) {
@@ -154,4 +169,10 @@ public class Vector implements Set {
     array=sarray;
   }
   
+  public synchronized Object firstElement() {
+    if (size == 0) {
+      throw new /*NoSuchElement*/Exception("NoSuchElement");
+    }
+    return array[0];
+  }
 }

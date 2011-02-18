@@ -116,7 +116,7 @@ h.setFormatter(h.getFormatter());</pre>
    * of this <code>Handler</code> will be informed, but the caller
    * of this method will not receive an exception.
    */
-  //public abstract void flush();
+  public /*abstract */void flush(){}
 
 
   /**
@@ -135,7 +135,7 @@ h.setFormatter(h.getFormatter());</pre>
    *         the caller is not granted the permission to control
    *         the logging infrastructure.
    */
-  //public abstract void close()
+  public /*abstract*/ void close(){}
   //  throws SecurityException;
 
 

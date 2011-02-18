@@ -80,6 +80,8 @@ public class PrintWriter extends Writer
    * to
    */
   protected Writer out;
+  
+  protected Object lock;
 
   /**
    * This method intializes a new <code>PrintWriter</code> object to write
@@ -92,6 +94,7 @@ public class PrintWriter extends Writer
   {
     //super(wr.lock);
     this.out = wr;
+    this.lock = wr;
   }
 
   /**
@@ -109,6 +112,7 @@ public class PrintWriter extends Writer
     //super(wr.lock);
     this.out = wr;
     this.autoflush = autoflush;
+    this.lock = wr;
   }
 
   /**
@@ -380,7 +384,7 @@ public class PrintWriter extends Writer
    * This is the system dependent line separator
    */
   private static final char[] line_separator
-    = {"\n"}; //System.getProperty("line.separator", "\n").toCharArray(); 
+    = {'\n'}; //System.getProperty("line.separator", "\n").toCharArray(); 
 
   /**
    * This method prints a line separator sequence to the stream.  The value
@@ -568,7 +572,7 @@ public class PrintWriter extends Writer
   {
     try
       {
-	out.write(ch);
+	out.write(new String((char)ch));
       }
     catch (/*IO*/Exception ex)
       {
@@ -588,7 +592,7 @@ public class PrintWriter extends Writer
   {
     try
       {
-	out.write(charArray, offset, count);
+	out.write(new String(charArray, offset, count));
       }
     catch (/*IO*/Exception ex)
       {

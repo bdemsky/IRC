@@ -256,6 +256,10 @@ public class String {
     return str;
   }
   
+  public void getChars(char dst[], int dstBegin) {
+    getChars(0, count, dst, dstBegin);
+  }
+  
   public void getChars(int srcBegin, int srcEnd, char dst[], int dstBegin) {
     if((srcBegin < 0) || (srcEnd > count) || (srcBegin > srcEnd)) {
       // FIXME
@@ -504,5 +508,10 @@ public class String {
       len--;
     }
     return ((st > 0) || (len < count)) ? substring(st, len) : this;
+  }
+  
+  public boolean matches(String regex) {
+    System.println("String.matches() is not fully supported");
+    return this.equals(regex);
   }
 }

@@ -189,7 +189,7 @@ public interface Set//<E> extends Collection<E>
    * @throws NullPointerException if o is null and this set doesn't allow
    *         the removal of a null value.
    */
-  boolean remove(Object o);
+  //boolean remove(Object o);
 
   /**
    * Removes from this set all elements contained in the specified collection

@@ -695,7 +695,7 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
   private void set(BigInteger y)
   {
     if (y.words == null)
-      set(y.ival);
+      set((long)y.ival);
     else if (this != y)
       {
 	realloc(y.ival);

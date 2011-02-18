@@ -37,5 +37,7 @@ public class Thread implements Runnable {
   }
 
   private native void nativeCreate();
+  
+  public final native boolean isAlive();
 
 }

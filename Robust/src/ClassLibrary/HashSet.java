@@ -25,6 +25,6 @@ public class HashSet {
     return map.size();
   }
   public HashMapIterator iterator() {
-    return map.iterator(0);
+    return (HashMapIterator)map.iterator(0);
   }
 }

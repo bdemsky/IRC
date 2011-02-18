@@ -612,4 +612,10 @@ public class ArrayList
     for (int i = 0; i < size; i++)
       data[i] = (E) s.readObject();
   }*/
+  
+  public ArrayListIterator iterator()
+  {
+    // Bah, Sun's implementation forbids using listIterator(0).
+    return new ArrayListIterator(this);
+  }
 }

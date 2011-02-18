@@ -139,7 +139,7 @@ public class Level //implements Serializable
    *
    * @see Logger#setLevel(java.util.logging.Level)
    */
-  public static final Level ALL = new Level ("ALL", Integer.MIN_VALUE);
+  public static final Level ALL = new Level ("ALL", 0x80000000/*Integer.MIN_VALUE*/);
 
 
   private static final Level[] knownLevels = {

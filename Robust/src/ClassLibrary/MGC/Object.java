@@ -35,5 +35,6 @@ public class Object {
   }
   
   public final native void notify();
+  public final native void notifyAll();
   public final native void wait();
 }

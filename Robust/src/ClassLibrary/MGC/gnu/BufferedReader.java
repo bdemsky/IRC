@@ -540,7 +540,7 @@ public class BufferedReader extends Reader
 
 	if (count < avail)
 	  {
-	    pos += count;
+	    pos += (int)count;
 	    return count;
 	  }
 
