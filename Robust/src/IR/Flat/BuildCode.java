@@ -664,22 +664,22 @@ public class BuildCode {
 
     outstructs.println("#define STRINGARRAYTYPE "+
                        (state.getArrayNumber(
-                          (new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass))).makeArray(state, true))+state.numClasses()));
+                          (new TypeDescriptor(typeutil.getClass(TypeUtil.StringClass))).makeArray(state))+state.numClasses()));
 
     outstructs.println("#define OBJECTARRAYTYPE "+
                        (state.getArrayNumber(
-                          (new TypeDescriptor(typeutil.getClass(TypeUtil.ObjectClass))).makeArray(state, true))+state.numClasses()));
+                          (new TypeDescriptor(typeutil.getClass(TypeUtil.ObjectClass))).makeArray(state))+state.numClasses()));
 
 
     outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
     outstructs.println("#define CHARARRAYTYPE "+
-                       (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state, true))+state.numClasses()));
+                       (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
 
     outstructs.println("#define BYTEARRAYTYPE "+
-                       (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state, true))+state.numClasses()));
+                       (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state))+state.numClasses()));
 
     outstructs.println("#define BYTEARRAYARRAYTYPE "+
-                       (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state, true).makeArray(state, true))+state.numClasses()));
+                       (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state).makeArray(state))+state.numClasses()));
 
     outstructs.println("#define NUMCLASSES "+state.numClasses());
     int totalClassSize = state.numClasses() + state.numArrays();
@@ -688,7 +688,7 @@ public class BuildCode {
       outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
       outstructs.println("#define TAGTYPE "+typeutil.getClass(TypeUtil.TagClass).getId());
       outstructs.println("#define TAGARRAYTYPE "+
-                         (state.getArrayNumber(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass)).makeArray(state, true))+state.numClasses()));
+                         (state.getArrayNumber(new TypeDescriptor(typeutil.getClass(TypeUtil.TagClass)).makeArray(state))+state.numClasses()));
     }
   }
 
@@ -1212,7 +1212,7 @@ public class BuildCode {
       if (needcomma)
 	outclassdefs.print(", ");
       TypeDescriptor tdelement=arraytable[i].dereference();
-      if (tdelement.isArray()||tdelement.isClass())
+      if (tdelement.isArray()||tdelement.isClass()||tdelement.isNull())
 	outclassdefs.print("sizeof(void *)");
       else
 	outclassdefs.print("sizeof("+tdelement.getSafeSymbol()+")");
@@ -2075,7 +2075,7 @@ public class BuildCode {
     for(int i=0; i<objecttemp.numPrimitives(); i++) {
       TempDescriptor td=objecttemp.getPrimitive(i);
       TypeDescriptor type=td.getType();
-      if (type.isNull())
+      if (type.isNull() && !type.isArray())
 	output.println("   void * "+td.getSafeSymbol()+";");
       else if (state.MGC && type.isClass() && type.getClassDesc().isEnum()) {
         output.println("   int " + td.getSafeSymbol() + ";");

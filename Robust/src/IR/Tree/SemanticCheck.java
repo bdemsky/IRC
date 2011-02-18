@@ -896,7 +896,7 @@ public class SemanticCheck {
       }
     }
     if(out_type != null) {
-      out_type = out_type.makeArray(state, false);
+      out_type = out_type.makeArray(state);
       //out_type.setStatic();
     }
     ain.setType(out_type);

@@ -82,14 +82,12 @@ public class TypeDescriptor extends Descriptor {
 	    name.equals("Objectwrapper"));
   }
 
-  public TypeDescriptor makeArray(State state, boolean addflag) {
+  public TypeDescriptor makeArray(State state) {
     TypeDescriptor td=new TypeDescriptor(getSymbol());
     td.arraycount=arraycount+1;
     td.type=type;
     td.class_desc=class_desc;
-    if(addflag) {
-      state.addArrayType(td);
-    }
+    state.addArrayType(td);
     return td;
   }
 
@@ -143,7 +141,8 @@ public class TypeDescriptor extends Descriptor {
       return "float";
     else if (isOffset())
       return "short";
-    else throw new Error("Error Type: "+type);
+    else 
+      throw new Error("Error Type: "+type);
   }
 
   public String getRepairSymbol() {
@@ -347,7 +346,7 @@ public class TypeDescriptor extends Descriptor {
     else if (type==VOID)
       return "void";
     else if (type==NULL)
-      return "null";
+      return "NULL";
     else if (type==TAG)
       return TypeUtil.TagClass;
     else if (type==OFFSET)
