@@ -732,6 +732,11 @@ fi
 
 # Setup class path
 
+if $MGCFLAG
+then
+#base multicore gc files
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+else
 if $RECOVERFLAG
 then
 if $FASTCHECK
@@ -754,13 +759,10 @@ elif $THREADFLAG
 then
 #threading java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
-elif $MGCFLAG
-then
-#base multicore gc files
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu"
 fi
 #base java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
+fi
 fi
 
 # Build bristlecone/java sources

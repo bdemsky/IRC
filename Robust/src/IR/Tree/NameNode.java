@@ -69,18 +69,22 @@ public class NameNode extends ExpressionNode {
       return fd.getType();
     } else if (isTag())
       return new TypeDescriptor(TypeDescriptor.TAG);
-    else if(cd != null) {
-      TypeDescriptor tp = new TypeDescriptor(cd);
-      tp.setStatic();
-      return tp;
-    } else
+    else if(vd != null) {
       return ((VarDescriptor)vd).getType();
+    } if(cd != null) {
+      TypeDescriptor tp = new TypeDescriptor(cd);
+      tp.setClassNameRef();
+      return tp;
+    } else {
+      return null;
+    }
+      
   }
   
   public TypeDescriptor getClassType() {
     if(cd != null) {
       TypeDescriptor tp = new TypeDescriptor(cd);
-      tp.setStatic();
+      tp.setClassNameRef();
       return tp;
     } else
       return null;

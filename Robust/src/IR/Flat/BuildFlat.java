@@ -450,7 +450,11 @@ public class BuildFlat {
     TempDescriptor thisarg=null;
 
     if (min.getExpression()!=null) {
-      thisarg=TempDescriptor.tempFactory("thisarg",min.getExpression().getType());
+      TypeDescriptor mtd = min.getExpression().getType();
+      if(state.MGC && mtd.isClass() && mtd.getClassDesc().isEnum()) {
+        mtd = new TypeDescriptor(TypeDescriptor.INT);
+      }
+      thisarg=TempDescriptor.tempFactory("thisarg", mtd);
       NodePair np=flattenExpressionNode(min.getExpression(),thisarg);
       first=np.getBegin();
       last=np.getEnd();
@@ -459,7 +463,11 @@ public class BuildFlat {
     //Build arguments
     for(int i=0; i<min.numArgs(); i++) {
       ExpressionNode en=min.getArg(i);
-      TempDescriptor td=TempDescriptor.tempFactory("arg",en.getType());
+      TypeDescriptor etd = en.getType();
+      if(state.MGC && etd.isClass() && etd.getClassDesc().isEnum()) {
+        etd = new TypeDescriptor(TypeDescriptor.INT);
+      }
+      TempDescriptor td=TempDescriptor.tempFactory("arg", etd);
       temps[i]=td;
       NodePair np=flattenExpressionNode(en, td);
       if (first==null)
@@ -487,7 +495,7 @@ public class BuildFlat {
 
   private NodePair flattenFieldAccessNode(FieldAccessNode fan,TempDescriptor out_temp) {
     TempDescriptor tmp=null;
-    if(fan.getExpression().getType().isStatic()) {
+    if(fan.getExpression().getType().isClassNameRef()) {
       // static field dereference with class name
       tmp = new TempDescriptor(fan.getExpression().getType().getClassDesc().getSymbol(), fan.getExpression().getType());
       FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
@@ -561,7 +569,7 @@ public class BuildFlat {
       ExpressionNode en=fan.getExpression();
       TempDescriptor dst_tmp=null;
       NodePair np_baseexp=null;
-      if(en.getType().isStatic()) {
+      if(en.getType().isClassNameRef()) {
         // static field dereference with class name
         dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
         FlatNop nop=new FlatNop();
@@ -690,7 +698,7 @@ public class BuildFlat {
 	ExpressionNode en=fan.getExpression();
     TempDescriptor dst_tmp=null;
     NodePair np_baseexp=null;
-    if(en.getType().isStatic()) {
+    if(en.getType().isClassNameRef()) {
       // static field dereference with class name
       dst_tmp = new TempDescriptor(en.getType().getClassDesc().getSymbol(), en.getType());
       FlatNop nop=new FlatNop();
@@ -751,8 +759,17 @@ public class BuildFlat {
 	    //If it is a preinc we need to store the initial value
 	    TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
 	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
+        
+        TempDescriptor ftmp= null;
+        if(state.MGC && (nn.getClassDesc() != null)) {
+          // this is a static field
+          ftmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
 
-	    FlatFieldNode ffn=new FlatFieldNode(nn.getField(), getTempforVar(nn.getVar()), src_tmp2);
+        } else {
+          ftmp=getTempforVar(nn.getVar());
+        }
+        FlatFieldNode ffn=new FlatFieldNode(nn.getField(), ftmp, src_tmp2);
+
 	    if (first==null)
 	      first=ffn;
 	    else {
@@ -1371,7 +1388,9 @@ public class BuildFlat {
       first = fcen;
     }
     fcen.addNext(npblock.getBegin());
-    npblock.getEnd().addNext(fcex);
+    if(npblock.getEnd() != null) {
+      npblock.getEnd().addNext(fcex);
+    }
     return new NodePair(first, fcex);
   }
 

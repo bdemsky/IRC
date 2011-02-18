@@ -33,6 +33,9 @@ public class SemanticCheck {
       //Set superclass link up
       if (cd.getSuper()!=null) {
 	cd.setSuper(getClass(cd.getSuper()));
+    if(cd.getSuperDesc().isInterface()) {
+      throw new Error("Error! Class " + cd.getSymbol() + " extends interface " + cd.getSuper());
+    }
 	// Link together Field, Method, and Flag tables so classes
 	// inherit these from their superclasses
 	cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
@@ -46,6 +49,9 @@ public class SemanticCheck {
         Vector<String> sifv = cd.getSuperInterface();
         for(int i = 0; i < sifv.size(); i++) {
           ClassDescriptor superif = getClass(sifv.elementAt(i));
+          if(!superif.isInterface()) {
+            throw new Error("Error! Class " + cd.getSymbol() + " implements non-interface " + superif.getSymbol());
+          }
           cd.addSuperInterfaces(superif);
           cd.getFieldTable().addParentIF(superif.getFieldTable());
           cd.getMethodTable().addParentIF(superif.getMethodTable());
@@ -64,7 +70,7 @@ public class SemanticCheck {
 	checkMethod(cd,md);
     hasConstructor |= md.isConstructor();
       }
-      if(!hasConstructor) {
+      if((!hasConstructor) && (!cd.isEnum())) {
         // add a default constructor for this class
         MethodDescriptor md = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC),
             cd.getSymbol(), false);
@@ -603,7 +609,7 @@ public class SemanticCheck {
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
     if(state.MGC) {
       // TODO add version for normal Java later
-    if(ltd.isStatic()) {
+    if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
       if(ltd.getClassDesc().isEnum()) {
         int value = ltd.getClassDesc().getEnumConstant(fieldname);
@@ -890,8 +896,8 @@ public class SemanticCheck {
       }
     }
     if(out_type != null) {
-      out_type = out_type.makeArray(state);
-      out_type.setStatic();
+      out_type = out_type.makeArray(state, false);
+      //out_type.setStatic();
     }
     ain.setType(out_type);
   }
@@ -1228,7 +1234,12 @@ NextMethod:
 	continue;
       for(int i=0; i<min.numArgs(); i++) {
 	if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
-	  continue NextMethod;
+      if(state.MGC && ((!tdarray[i].isArray() &&( tdarray[i].isInt() || tdarray[i].isLong())) 
+          && currmd.getParamType(i).isClass() && currmd.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
+        // primitive parameters vs object
+      } else {
+        continue NextMethod;
+      }
       }
       /* Method okay so far */
       if (bestmd==null)
@@ -1254,6 +1265,32 @@ NextMethod:
 	ExpressionNode en=new NameNode(new NameDescriptor("this"));
 	min.setExpression(en);
 	checkExpressionNode(md, nametable, min.getExpression(), null);
+      }
+    }
+    
+    if(state.MGC) {
+      /* Check if we need to wrap primitive paratmeters to objects */
+      for(int i=0; i<min.numArgs(); i++) {
+        if(!tdarray[i].isArray() && (tdarray[i].isInt() || tdarray[i].isLong())
+            && min.getMethod().getParamType(i).isClass() && min.getMethod().getParamType(i).getClassDesc().getSymbol().equals("Object")) {
+          // Shall wrap this primitive parameter as a object
+          ExpressionNode exp = min.getArg(i);
+          TypeDescriptor ptd = null;
+          NameDescriptor nd=null;
+          if(exp.getType().isInt()) {
+            nd = new NameDescriptor("Integer");
+            ptd = state.getTypeDescriptor(nd);
+          } else if(exp.getType().isLong()) {
+            nd = new NameDescriptor("Long");
+            ptd = state.getTypeDescriptor(nd);
+          }
+          boolean isglobal = false;
+          String disjointId = null;
+          CreateObjectNode con=new CreateObjectNode(ptd, isglobal, disjointId);
+          con.addArgument(exp);
+          checkExpressionNode(md, nametable, con, null);
+          min.setArgument(con, i);
+        }
       }
     }
   }
@@ -1341,8 +1378,11 @@ NextMethod:
 	  throw new Error();
 	righttype=lefttype=new TypeDescriptor(TypeDescriptor.BOOLEAN);
       } else if (ltd.isPtr()||rtd.isPtr()) {
-	if (!(ltd.isPtr()&&rtd.isPtr()))
-	  throw new Error();
+	if (!(ltd.isPtr()&&rtd.isPtr())) {
+      if(!rtd.isEnum()) {
+        throw new Error();
+      }
+    }
 	righttype=rtd;
 	lefttype=ltd;
       } else if (ltd.isDouble()||rtd.isDouble())

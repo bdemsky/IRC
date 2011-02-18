@@ -624,7 +624,9 @@ public class BuildCodeMultiCore extends BuildCode {
       TypeDescriptor type=td.getType();
       if (type.isNull())
 	output.println("   void * "+td.getSafeSymbol()+";");
-      else if (type.isClass()||type.isArray())
+      else if (state.MGC && type.isClass() && type.getClassDesc().isEnum()) {
+        output.println("   int " + td.getSafeSymbol()+";");
+      } else if (type.isClass()||type.isArray())
 	output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
       else
 	output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");

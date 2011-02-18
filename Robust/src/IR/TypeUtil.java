@@ -149,8 +149,15 @@ public class TypeUtil {
     if (md1.numParameters()!=md2.numParameters())
       throw new Error();
     for(int i=0; i<md1.numParameters(); i++) {
-      if (!this.isSuperorType(md2.getParamType(i), md1.getParamType(i)))
-	return false;
+      if (!this.isSuperorType(md2.getParamType(i), md1.getParamType(i))) {
+        if(state.MGC && ((!md1.getParamType(i).isArray() && 
+            (md1.getParamType(i).isInt() || md1.getParamType(i).isLong() || md1.getParamType(i).isDouble() || md1.getParamType(i).isFloat()))
+            && md2.getParamType(i).isClass() && md2.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
+          // primitive parameters vs Object
+        } else {
+          return false;
+        }
+      }
     }
     if (md1.getReturnType()==null||md2.getReturnType()==null) {
 	if (md1.getReturnType()!=md2.getReturnType())

@@ -583,7 +583,7 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(nn.getChild("basetype"));
       Integer numdims=(Integer)nn.getChild("dims").getLiteral();
       for(int i=0; i<numdims.intValue(); i++)
-	td=td.makeArray(state);
+	td=td.makeArray(state, true);
       return td;
     } else {
       System.out.println(pn.PPrint(2, true));
@@ -634,7 +634,7 @@ public class BuildIR {
       ParseNode tmp=vardecl;
       TypeDescriptor arrayt=t;
       while (tmp.getChild("single")==null) {
-	arrayt=arrayt.makeArray(state);
+	arrayt=arrayt.makeArray(state, true);
 	tmp=tmp.getChild("array");
       }
       String identifier=tmp.getChild("single").getTerminal();
@@ -765,7 +765,7 @@ public class BuildIR {
       if (pn.getChild("dims_opt").getLiteral()!=null)
 	num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
       for(int i=0; i<(args.size()+num); i++)
-	td=td.makeArray(state);
+	td=td.makeArray(state, true);
       CreateObjectNode con=new CreateObjectNode(td, isglobal, disjointId);
       for(int i=0; i<args.size(); i++) {
 	con.addArgument((ExpressionNode)args.get(i));
@@ -777,7 +777,7 @@ public class BuildIR {
       if (pn.getChild("dims_opt").getLiteral()!=null)
     num=((Integer)pn.getChild("dims_opt").getLiteral()).intValue();
       for(int i=0; i<num; i++)
-    td=td.makeArray(state);
+    td=td.makeArray(state, true);
       CreateObjectNode con=new CreateObjectNode(td, false, null);
       // TODO array initializers
       ParseNode ipn = pn.getChild("initializer");     
@@ -1084,7 +1084,7 @@ public class BuildIR {
 	ParseNode tmp=vardecl;
 	TypeDescriptor arrayt=t;
 	while (tmp.getChild("single")==null) {
-	  arrayt=arrayt.makeArray(state);
+	  arrayt=arrayt.makeArray(state, true);
 	  tmp=tmp.getChild("array");
 	}
 	String identifier=tmp.getChild("single").getTerminal();
@@ -1278,7 +1278,7 @@ public class BuildIR {
 
 	ParseNode tmp=paramn;
 	while (tmp.getChild("single")==null) {
-	  type=type.makeArray(state);
+	  type=type.makeArray(state, true);
 	  tmp=tmp.getChild("array");
 	}
 	String paramname=tmp.getChild("single").getTerminal();

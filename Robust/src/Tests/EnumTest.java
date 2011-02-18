@@ -17,7 +17,7 @@ public class EnumTest {
     System.out.println(howHot);
     
     EnumTest et = new EnumTest();
-    et.howHot = Spiciness1.MEDIUM;
+    et.howHot = Spiciness1.MEDIUM; // EnumTest.Spiciness1.MEDIUM;
     System.out.println(et.howHot);
   }
 } /* Output:

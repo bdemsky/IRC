@@ -177,9 +177,6 @@ public class BuildCodeMGC extends BuildCode {
       outmethod.println("#define MGC_STATIC_INIT_CHECK");
       while(it_sclasses.hasNext()) {
         ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
-        if(t_cd.getNumStaticFields() != 0) {
-          // TODO may need to invoke static field initialization here
-        }
         MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
         if(t_md != null) {
           outmethod.println("   {");

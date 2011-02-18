@@ -25,7 +25,7 @@ public class TypeDescriptor extends Descriptor {
   int arraycount;
   private int type;
   ClassDescriptor class_desc;
-  boolean isStatic = false;
+  boolean isClassNameRef = false;
 
   public boolean equals(Object o) {
     if (o instanceof TypeDescriptor) {
@@ -36,6 +36,8 @@ public class TypeDescriptor extends Descriptor {
 	return false;
       if (t.arraycount!=arraycount)
 	return false;
+      if (t.isClassNameRef != this.isClassNameRef)
+        return false;
       return true;
     }
     return false;
@@ -51,12 +53,12 @@ public class TypeDescriptor extends Descriptor {
     return true;
   }
   
-  public boolean isStatic() {
-    return this.isStatic;
+  public boolean isClassNameRef() {
+    return this.isClassNameRef;
   }
   
-  public void setStatic() {
-    this.isStatic = true;
+  public void setClassNameRef() {
+    this.isClassNameRef = true;
   }
 
   public int hashCode() {
@@ -80,12 +82,14 @@ public class TypeDescriptor extends Descriptor {
 	    name.equals("Objectwrapper"));
   }
 
-  public TypeDescriptor makeArray(State state) {
+  public TypeDescriptor makeArray(State state, boolean addflag) {
     TypeDescriptor td=new TypeDescriptor(getSymbol());
     td.arraycount=arraycount+1;
     td.type=type;
     td.class_desc=class_desc;
-    state.addArrayType(td);
+    if(addflag) {
+      state.addArrayType(td);
+    }
     return td;
   }
 
@@ -117,9 +121,9 @@ public class TypeDescriptor extends Descriptor {
   public String getSafeSymbol() {
     if (isArray())
       return IR.Flat.BuildCode.arraytype;
-    else if (isClass())
+    else if (isClass()) {
       return class_desc.getSafeSymbol();
-    else if (isByte())
+    } else if (isByte())
       return "char";
     else if (isChar())
       return "short";
@@ -145,9 +149,9 @@ public class TypeDescriptor extends Descriptor {
   public String getRepairSymbol() {
     if (isArray())
       return IR.Flat.BuildCode.arraytype;
-    else if (isClass())
+    else if (isClass()) {
       return class_desc.getSymbol();
-    else if (isByte())
+    } else if (isByte())
       return "byte";
     else if (isChar())
       return "short";
@@ -235,11 +239,11 @@ public class TypeDescriptor extends Descriptor {
   }
 
   public boolean isPtr() {
-    return (isClass()||isNull()||isTag()||isArray());
+    return ((isClass()&&!isEnum())||isNull()||isTag()||isArray());
   }
 
   public boolean isIntegerType() {
-    return (isInt()||isLong()||isShort()||isChar()||isByte());
+    return (isInt()||isLong()||isShort()||isChar()||isByte()||isEnum());
   }
 
   public void setClassDescriptor(ClassDescriptor cd) {
@@ -250,6 +254,15 @@ public class TypeDescriptor extends Descriptor {
     return ((type>=BYTE)&&(type<=DOUBLE));
   }
 
+  public boolean isEnum() {
+    if(this.type != CLASS) {
+      return false;
+    } else if(this.class_desc != null){
+      return this.class_desc.isEnum();
+    }
+    return false;
+  }
+  
   public boolean isClass() {
     return type==CLASS;
   }
@@ -267,7 +280,7 @@ public class TypeDescriptor extends Descriptor {
     this.type=CLASS;
     this.class_desc=null;
     this.arraycount=0;
-    this.isStatic =false;
+    this.isClassNameRef =false;
   }
 
   public TypeDescriptor(String st) {
@@ -275,7 +288,7 @@ public class TypeDescriptor extends Descriptor {
     this.type=CLASS;
     this.class_desc=null;
     this.arraycount=0;
-    this.isStatic =false;
+    this.isClassNameRef =false;
   }
 
   public ClassDescriptor getClassDesc() {
@@ -287,14 +300,14 @@ public class TypeDescriptor extends Descriptor {
     this.type=CLASS;
     this.class_desc=cd;
     this.arraycount=0;
-    this.isStatic =false;
+    this.isClassNameRef =false;
   }
 
   public TypeDescriptor(int t) {
     super(decodeInt(t));
     this.type=t;
     this.arraycount=0;
-    this.isStatic =false;
+    this.isClassNameRef =false;
   }
 
   public String toString() {

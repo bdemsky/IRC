@@ -60,6 +60,10 @@ public class MethodInvokeNode extends ExpressionNode {
   public void addArgument(ExpressionNode en) {
     argumentlist.add(en);
   }
+  
+  public void setArgument(ExpressionNode en, int index) {
+    argumentlist.setElementAt(en, index);
+  }
 
   public int numArgs() {
     return argumentlist.size();
