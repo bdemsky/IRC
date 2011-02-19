@@ -5,6 +5,7 @@
 #include "runtime_arch.h"
 #include "GenericHashtable.h"
 #include "structdefs.h"
+#include "methodheaders.h"
 #include "mem.h"
 #ifndef RAW
 #include <stdio.h>
@@ -63,7 +64,7 @@ void injectinstructionfailure() {
 
 #ifdef D___Double______nativeparsedouble____L___String___
 double CALL01(___Double______nativeparsedouble____L___String___,struct ___String___ * ___str___) {
-  int length=VAR(___str___)->___count___;
+  /*int length=VAR(___str___)->___count___;
   int maxlength=(length>60) ? 60 : length;
   char str[maxlength+1];
   struct ArrayObject * chararray=VAR(___str___)->___value___;
@@ -73,13 +74,32 @@ double CALL01(___Double______nativeparsedouble____L___String___,struct ___String
     str[i]=((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
   }
   str[i]=0;
-  double d=atof(str);
+  double d=atof(str);*/
+  printf("Unimplemented Double.nativeparsedouble(S) \n");
+  double d = 0.0;
+  return d;
+}
+#endif
+
+#ifdef D___Double______nativeparsedouble_____AR_B_I_I 
+double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int length,int start,int length,struct ArrayObject * ___str___) {
+  /*int maxlength=(length>60)?60:length;
+  char str[maxlength+1];
+  struct ArrayObject * bytearray=VAR(___str___);
+  int i;
+  for(i=0; i<maxlength; i++) {
+    str[i]=(((char *)&bytearray->___length___)+sizeof(int))[i+start];
+  }
+  str[i]=0;
+  double d=atof(str);*/
+  printf("Unimplemented Double.nativeparsedouble() \n");
+  double d = 0.0;
   return d;
 }
 #endif
 
 #ifdef D___String______convertdoubletochar____D__AR_C
-int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, double ___val___, struct ArrayObject ___chararray___) {
+int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, double ___val___, struct ArrayObject * ___chararray___) {
   int length=VAR(___chararray___)->___length___;
   char str[length];
   int i;
@@ -97,21 +117,107 @@ int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, doub
 }
 #endif
 
+#ifdef D___System______deepArrayCopy____L___Object____L___Object___
+void deepArrayCopy(struct ___Object___ * dst, struct ___Object___ * src) {
+  int dsttype=((int *)dst)[0];
+  int srctype=((int *)src)[0];
+  if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
+    return;
+  struct ArrayObject *aodst=(struct ArrayObject *)dst;
+  struct ArrayObject *aosrc=(struct ArrayObject *)src;
+  int dstlength=aodst->___length___;
+  int srclength=aosrc->___length___;
+  if (dstlength!=srclength)
+    return;
+  unsigned INTPTR *pointer=pointerarray[srctype];
+  if (pointer==0) {
+    int elementsize=classsize[srctype];
+    int size=srclength*elementsize;
+    //primitives
+    memcpy(((char *)&aodst->___length___)+sizeof(int) , ((char *)&aosrc->___length___)+sizeof(int), size);
+  } else {
+    //objects
+    int i;
+    for(i=0;i<srclength;i++) {
+      struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i];
+      int ptrtype=((int *)ptr)[0];
+      if (ptrtype>=NUMCLASSES) {
+	struct ___Object___ * dstptr=((struct ___Object___**)(((char*) &aodst->___length___)+sizeof(int)))[i];
+	deepArrayCopy(dstptr,ptr);
+      } else {
+	//hit an object
+	((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i]=ptr;
+      }
+    }
+  }
+}
+
+void CALL02(___System______deepArrayCopy____L___Object____L___Object___, struct ___Object___ * ___dst___, struct ___Object___ * ___src___) {
+  deepArrayCopy(VAR(___dst___), VAR(___src___));
+}
+#endif
+
+#ifdef D___System______arraycopy____L___Object____I_L___Object____I_I
+void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, int destPos, int length) {
+  int dsttype=((int *)dst)[0];
+  int srctype=((int *)src)[0];
+
+  //not an array or type mismatch
+  if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
+    return;
+
+  struct ArrayObject *aodst=(struct ArrayObject *)dst;
+  struct ArrayObject *aosrc=(struct ArrayObject *)src;
+  int dstlength=aodst->___length___;
+  int srclength=aosrc->___length___;
+
+  if (length<=0)
+    return;
+  if (srcPos+length>srclength)
+    return;
+  if (destPos+length>dstlength)
+    return;
+
+  unsigned INTPTR *pointer=pointerarray[srctype];
+  if (pointer==0) {
+    int elementsize=classsize[srctype];
+    int size=length*elementsize;
+    //primitives
+    memcpy(((char *)&aodst->___length___)+sizeof(int)+destPos*elementsize, ((char *)&aosrc->___length___)+sizeof(int)+srcPos*elementsize, size);
+  } else {
+    //objects
+    int i;
+    for(i=0;i<length;i++) {
+      struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i+srcPos];
+      int ptrtype=((int *)ptr)[0];
+      //hit an object
+      ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i+destPos]=ptr;
+    }
+  }
+}
+
+void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int ___srcPos___, int ___destPos___, int ___length___, struct ___Object___ * ___src___, int ___srcPos___, struct ___Object___ * ___dst___, int  ___destPos___, int ___length___) {
+  arraycopy(VAR(___src___), ___srcPos___, VAR(___dst___), ___destPos___, ___length___);
+}
+#endif
+
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
   BAMBOO_EXIT(___status___);
 }
 
+#ifdef D___Vector______removeElement_____AR_L___Object____I_I
 void CALL23(___Vector______removeElement_____AR_L___Object____I_I, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
   char* offset=((char *)(&VAR(___array___)->___length___))+sizeof(unsigned int)+sizeof(void *)*___index___;
   memmove(offset, offset+sizeof(void *),(___size___-___index___-1)*sizeof(void *));
 }
+#endif
 
 void CALL11(___System______printI____I,int ___status___, int ___status___) {
   BAMBOO_DEBUGPRINT(0x1111);
   BAMBOO_DEBUGPRINT_REG(___status___);
 }
 
-long CALL00(___System______currentTimeMillis____) {
+long long CALL00(___System______currentTimeMillis____) {
   // not supported in MULTICORE version
   return -1;
 }

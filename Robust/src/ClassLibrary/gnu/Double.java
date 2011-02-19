@@ -287,7 +287,7 @@ public final class Double extends Number //implements Comparable<Double>
   }
 
   public static native double nativeparsedouble(String str);
-    public static native double nativeparsedouble(byte[] str, int start, int length);
+    public static native double nativeparsedouble(int start, int length, byte[] str);
 
   /**
    * Return <code>true</code> if the <code>double</code> has the same
