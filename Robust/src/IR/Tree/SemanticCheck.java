@@ -64,20 +64,17 @@ public class SemanticCheck {
 	checkField(cd,fd);
       }
       
-      boolean hasConstructor = false;
       for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
-	MethodDescriptor md=(MethodDescriptor)method_it.next();
-	checkMethod(cd,md);
-    hasConstructor |= md.isConstructor();
-      }
-      if((!hasConstructor) && (!cd.isEnum())) {
-        // add a default constructor for this class
-        MethodDescriptor md = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC),
-            cd.getSymbol(), false);
-        BlockNode bn=new BlockNode();
-        state.addTreeCode(md,bn);
-        cd.addMethod(md);
+        MethodDescriptor md=(MethodDescriptor)method_it.next();
         checkMethod(cd,md);
+        if(md.isDefaultConstructor() && (cd.getSuperDesc() != null)) {
+          // add the construction of it super class, can only be super()
+          NameDescriptor nd=new NameDescriptor("super");
+          MethodInvokeNode min=new MethodInvokeNode(nd);
+          BlockExpressionNode ben=new BlockExpressionNode(min);
+          BlockNode bn = state.getMethodBody(md);
+          bn.addFirstBlockStatement(ben);
+        }
       }
     }
   }

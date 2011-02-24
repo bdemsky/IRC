@@ -448,6 +448,21 @@ public class BuildIR {
     }
     cn.setModifiers(parseModifiersList(pn.getChild("modifiers")));
     parseClassBody(cn, pn.getChild("classbody"));
+    
+    boolean hasConstructor = false;
+    for(Iterator method_it=cn.getMethods(); method_it.hasNext();) {
+      MethodDescriptor md=(MethodDescriptor)method_it.next();
+      hasConstructor |= md.isConstructor();
+    }
+    if((!hasConstructor) && (!cn.isEnum())) {
+      // add a default constructor for this class
+      MethodDescriptor md = new MethodDescriptor(new Modifiers(Modifiers.PUBLIC),
+          cn.getSymbol(), false);
+      BlockNode bn=new BlockNode();
+      state.addTreeCode(md,bn);
+      md.setDefaultConstructor();
+      cn.addMethod(md);
+    }
     return cn;
   }
 

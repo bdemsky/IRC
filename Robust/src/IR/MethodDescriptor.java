@@ -21,6 +21,8 @@ public class MethodDescriptor extends Descriptor {
   protected boolean isglobal;
   protected boolean isstaticblock;  // flag to indicate if this is a static block
   protected boolean isinvokedbystatic;  // flag to indicate if this method is invoked by some static block
+  
+  protected boolean isdefaultconstructor; // flag to indicate if this is a default constructor
 
   public MethodDescriptor(Modifiers m, TypeDescriptor rt, String identifier) {
     super(identifier);
@@ -33,6 +35,8 @@ public class MethodDescriptor extends Descriptor {
     paramtable=new SymbolTable();
     thisvd=null;
     isstaticblock = false;
+    this.isinvokedbystatic = false;
+    this.isdefaultconstructor = false;
   }
 
   public Modifiers getModifiers() {
@@ -207,5 +211,13 @@ public class MethodDescriptor extends Descriptor {
     }
     st+=")";
     return st;
+  }
+  
+  public boolean isDefaultConstructor() {
+    return this.isdefaultconstructor;
+  }
+  
+  public void setDefaultConstructor() {
+    this.isdefaultconstructor = true;
   }
 }
