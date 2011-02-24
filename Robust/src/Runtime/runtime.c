@@ -387,10 +387,10 @@ long long CALL00(___System______getticks____) {
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
-  struct ArrayObject * chararray=VAR(___s___)->___value___;
+  struct ArrayObject * chararray=VAR(___s___)->___String______value___;
   int i;
-  int offset=VAR(___s___)->___offset___;
-  for(i=0; i<VAR(___s___)->___count___; i++) {
+  int offset=VAR(___s___)->___String______offset___;
+  for(i=0; i<VAR(___s___)->___String______count___; i++) {
     short sc=((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
     putchar(sc);
   }
@@ -733,9 +733,9 @@ __attribute__((malloc)) struct ___String___ * NewString(const char *str,int leng
   struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
   struct ___String___ * strobj=allocate_new(STRINGTYPE);
 #endif
-  strobj->___value___=chararray;
-  strobj->___count___=length;
-  strobj->___offset___=0;
+  strobj->___String______value___=chararray;
+  strobj->___String______count___=length;
+  strobj->___String______offset___=0;
 
   for(i=0; i<length; i++) {
     ((short *)(((char *)&chararray->___length___)+sizeof(int)))[i]=(short)str[i];

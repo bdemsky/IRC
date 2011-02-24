@@ -19,6 +19,8 @@ public class FieldDescriptor extends Descriptor {
   private boolean isglobal;
   private boolean isenum;
   private int enumvalue;
+  
+  private ClassDescriptor cn;
 
   public FieldDescriptor(Modifiers m, TypeDescriptor t, String identifier, ExpressionNode e, boolean isglobal) {
     super(identifier);
@@ -30,6 +32,14 @@ public class FieldDescriptor extends Descriptor {
     this.isglobal=isglobal;
     this.isenum = false;
     this.enumvalue = -1;
+  }
+  
+  public ClassDescriptor getClassDescriptor() {
+    return this.cn;
+  }
+  
+  public void setClassDescriptor(ClassDescriptor cn) {
+    this.cn = cn;
   }
   
   public boolean isEnum() {

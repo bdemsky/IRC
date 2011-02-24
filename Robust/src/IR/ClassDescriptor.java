@@ -202,6 +202,7 @@ public class ClassDescriptor extends Descriptor {
     if(fd.isStatic()) {
       this.incStaticFields();
     }
+    fd.setClassDescriptor(this);
   }
 
   public void addMethod(MethodDescriptor md) {
