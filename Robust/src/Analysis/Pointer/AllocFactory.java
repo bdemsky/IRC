@@ -16,6 +16,10 @@ public class AllocFactory {
       this.type=type;
     }
 
+    public TypeDescriptor getType() {
+      return type;
+    }
+
     public boolean isSummary() {
       return summary;
     }

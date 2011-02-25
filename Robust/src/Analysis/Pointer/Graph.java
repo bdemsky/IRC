@@ -9,19 +9,28 @@ public class Graph {
    * graph. */
 
   Graph parent;
-  HashMap<AllocNode, HashSet<Edge>> nodeMap;
-  HashMap<TempDescriptor, HashSet<Edge>> varMap;
-  HashMap<AllocNode, HashSet<Edge>> backMap;
-  HashSet<Edge> strongUpdateSet;
+  HashMap<AllocNode, MySet<Edge>> nodeMap;
+  HashMap<TempDescriptor, MySet<Edge>> varMap;
+  HashMap<AllocNode, MySet<Edge>> backMap;
+  MySet<Edge> strongUpdateSet;
+  MySet<Edge> reachEdge;
+  HashSet<AllocNode> reachNode;
+
+  /* Need this information for mapping in callee results */
+  HashMap<AllocNode, Integer> nodeAges;
+  public static final Integer OLD=new Integer(1); 
+  public static final Integer NEW=new Integer(2); 
+  public static final Integer EITHER=new Integer(3);
 
   public Graph(Graph parent) {
-    nodeMap=new HashMap<AllocNode, HashSet<Edge>>();
-    backMap=new HashMap<AllocNode, HashSet<Edge>>();
-    varMap=new HashMap<TempDescriptor, HashSet<Edge>>();
+    nodeMap=new HashMap<AllocNode, MySet<Edge>>();
+    backMap=new HashMap<AllocNode, MySet<Edge>>();
+    varMap=new HashMap<TempDescriptor, MySet<Edge>>();
+    nodeAges=new HashMap<AllocNode, Integer>();
     this.parent=parent;
   }
 
-  public HashSet<Edge> getEdges(TempDescriptor tmp) {
+  public MySet<Edge> getEdges(TempDescriptor tmp) {
     if (varMap.containsKey(tmp))
       return varMap.get(tmp);
     else if (parent!=null&&parent.varMap.containsKey(tmp))
@@ -29,7 +38,7 @@ public class Graph {
     else return emptySet;
   }
 
-  public HashSet<Edge> getEdges(AllocNode node) {
+  public MySet<Edge> getEdges(AllocNode node) {
     if (nodeMap.containsKey(node))
       return nodeMap.get(node);
     else if (parent!=null&&parent.nodeMap.containsKey(node))
@@ -37,5 +46,5 @@ public class Graph {
     else return emptySet;
   }
 
-  public static HashSet<Edge> emptySet=new HashSet<Edge>();
+  public static MySet<Edge> emptySet=new MySet<Edge>();
 }

@@ -8,6 +8,17 @@ public class Edge {
   AllocNode src;
   TempDescriptor srcvar;
   AllocNode dst;
+  int statuspredicate;
+  public static final int SNGSNG=1;
+  public static final int SNGSUM=2;
+  public static final int SUMSNG=4;
+  public static final int SUMSUM=8;
+  public static final int NEW=16;
+
+  public static int mergeStatus(int stat1, int stat2) {
+    int status=stat1|stat2;
+    return ((status&NEW)==NEW)?NEW:status;
+  }
 
   private Edge() {
   }
@@ -16,6 +27,13 @@ public class Edge {
     this.src=src;
     this.fd=fd;
     this.dst=dst;
+  }
+
+  public Edge(AllocNode src, FieldDescriptor fd, AllocNode dst, int statuspredicate) {
+    this.src=src;
+    this.fd=fd;
+    this.dst=dst;
+    this.statuspredicate=statuspredicate;
   }
   
   public Edge(TempDescriptor tmp, AllocNode dst) {
@@ -54,6 +72,27 @@ public class Edge {
     e.src=src;
     e.srcvar=srcvar;
     e.dst=dst;
+    e.statuspredicate=statuspredicate;
+    return e;
+  }
+
+  public boolean statusDominates(Edge other) {
+    return (statuspredicate==NEW)||
+      ((other.statuspredicate|statuspredicate)==statuspredicate);
+  }
+
+  public Edge makeOld() {
+    Edge e=new Edge();
+    e.fd=fd;
+    e.src=src;
+    e.srcvar=srcvar;
+    e.dst=dst;
+    int val=1;
+    if (dst.isSummary())
+      val=val<<1;
+    if (src.isSummary())
+      val=val<<2;
+    e.statuspredicate=val;
     return e;
   }
 }

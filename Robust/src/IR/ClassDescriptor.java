@@ -183,6 +183,26 @@ public class ClassDescriptor extends Descriptor {
     return st;
   }
 
+  public MethodDescriptor getCalledMethod(MethodDescriptor md) {
+    ClassDescriptor cn=this;
+    while(true) {
+      Iterator methodit=cn.getMethods();
+      //Iterator through methods
+      while(methodit.hasNext()) {
+	Set possiblematches=cn.getMethodTable().getSet(md.getSymbol());
+	boolean foundmatch=false;
+	for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	  MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+	  if (md.matches(matchmd)) {
+	    return matchmd;
+	  }
+	}
+      }
+      //Not found...walk one level up
+      cn=cn.getSuperDesc();
+    }
+  }
+
   public void addFlag(FlagDescriptor fd) {
     if (flags.contains(fd.getSymbol()))
       throw new Error(fd.getSymbol()+" already defined");

@@ -5,27 +5,27 @@ import Analysis.Pointer.AllocFactory.AllocNode;
 import java.util.*;
 
 public class GraphManip {
-  static HashSet<Edge> genEdges(TempDescriptor tmp, HashSet<AllocNode> dstSet) {
-    HashSet<Edge> edgeset=new HashSet<Edge>();
+  static MySet<Edge> genEdges(TempDescriptor tmp, HashSet<AllocNode> dstSet) {
+    MySet<Edge> edgeset=new MySet<Edge>();
     for(AllocNode node:dstSet) {
       edgeset.add(new Edge(tmp, node));
     }
     return edgeset;
   }
 
-  static HashSet<Edge> genEdges(HashSet<AllocNode> srcSet, FieldDescriptor fd, HashSet<AllocNode> dstSet) {
-    HashSet<Edge> edgeset=new HashSet<Edge>();
+  static MySet<Edge> genEdges(HashSet<AllocNode> srcSet, FieldDescriptor fd, HashSet<AllocNode> dstSet) {
+    MySet<Edge> edgeset=new MySet<Edge>();
     for(AllocNode srcnode:srcSet) {
       for(AllocNode dstnode:dstSet) {
-	edgeset.add(new Edge(srcnode, fd, dstnode));
+	edgeset.add(new Edge(srcnode, fd, dstnode, Edge.NEW));
       }
     }
     return edgeset;
   }
 
-  static HashSet<Edge> getDiffEdges(Delta delta, TempDescriptor tmp) {
-    HashSet<Edge> edges=new HashSet<Edge>();
-    HashSet<Edge> removeedges=delta.varedgeremove.get(tmp);
+  static MySet<Edge> getDiffEdges(Delta delta, TempDescriptor tmp) {
+    MySet<Edge> edges=new MySet<Edge>();
+    MySet<Edge> removeedges=delta.varedgeremove.get(tmp);
 
     for(Edge e:delta.basevaredge.get(tmp)) {
       if (removeedges==null||!removeedges.contains(e))
@@ -38,9 +38,9 @@ public class GraphManip {
     return edges;
   }
 
-  static HashSet<Edge> getEdges(Graph graph, Delta delta, TempDescriptor tmp) {
-    HashSet<Edge> edges=new HashSet<Edge>();
-    HashSet<Edge> removeedges=delta.varedgeremove.get(tmp);
+  static MySet<Edge> getEdges(Graph graph, Delta delta, TempDescriptor tmp) {
+    MySet<Edge> edges=new MySet<Edge>();
+    MySet<Edge> removeedges=delta.varedgeremove.get(tmp);
 
     for(Edge e:graph.getEdges(tmp)) {
       if (removeedges==null||!removeedges.contains(e))
@@ -53,10 +53,10 @@ public class GraphManip {
     return edges;
   }
 
-  static HashSet<Edge> getEdges(Graph graph, Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
-    HashSet<Edge> nodes=new HashSet<Edge>();
+  static MySet<Edge> getEdges(Graph graph, Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
+    MySet<Edge> nodes=new MySet<Edge>();
     for(AllocNode node:srcNodes) {
-      HashSet<Edge> removeedges=delta.heapedgeremove.get(node);
+      MySet<Edge> removeedges=delta.heapedgeremove.get(node);
       for(Edge e:graph.getEdges(node)) {
 	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
 	  nodes.add(e);
@@ -70,9 +70,9 @@ public class GraphManip {
     return nodes;
   }
 
-  static HashSet<Edge> getEdges(Graph graph, Delta delta, AllocNode node) {
-    HashSet<Edge> nodes=new HashSet<Edge>();
-    HashSet<Edge> removeedges=delta.heapedgeremove.get(node);
+  static MySet<Edge> getEdges(Graph graph, Delta delta, AllocNode node) {
+    MySet<Edge> nodes=new MySet<Edge>();
+    MySet<Edge> removeedges=delta.heapedgeremove.get(node);
     for(Edge e:graph.getEdges(node)) {
       if ((removeedges==null||!removeedges.contains(e)))
 	nodes.add(e);
@@ -87,7 +87,7 @@ public class GraphManip {
 
   static HashSet<AllocNode> getDiffNodes(Delta delta, TempDescriptor tmp) {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
-    HashSet<Edge> removeedges=delta.varedgeremove.get(tmp);
+    MySet<Edge> removeedges=delta.varedgeremove.get(tmp);
 
     for(Edge e:delta.basevaredge.get(tmp)) {
       if (removeedges==null||!removeedges.contains(e))
@@ -102,7 +102,7 @@ public class GraphManip {
 
   static HashSet<AllocNode> getNodes(Graph graph, Delta delta, TempDescriptor tmp) {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
-    HashSet<Edge> removeedges=delta.varedgeremove.get(tmp);
+    MySet<Edge> removeedges=delta.varedgeremove.get(tmp);
 
     for(Edge e:graph.getEdges(tmp)) {
       if (removeedges==null||!removeedges.contains(e))
@@ -118,7 +118,7 @@ public class GraphManip {
   static HashSet<AllocNode> getDiffNodes(Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
     for(AllocNode node:srcNodes) {
-      HashSet<Edge> removeedges=delta.heapedgeremove.get(node);
+      MySet<Edge> removeedges=delta.heapedgeremove.get(node);
       for(Edge e:delta.baseheapedge.get(node)) {
 	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
 	  nodes.add(e.dst);
@@ -132,10 +132,42 @@ public class GraphManip {
     return nodes;
   }
 
+  static MySet<Edge> getDiffEdges(Delta delta, HashSet<AllocNode> srcNodes) {
+    MySet<Edge> newedges=new MySet<Edge>();
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.baseheapedge.entrySet()) {
+      AllocNode node=entry.getKey();
+      if (srcNodes.contains(node)) {
+	MySet<Edge> edges=entry.getValue();
+	MySet<Edge> removeedges=delta.heapedgeremove.get(node);
+	for(Edge e:edges) {
+	  if (!removeedges.contains(e)) {
+	    newedges.add(e);
+	  }
+	}
+      }
+    }
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.heapedgeadd.entrySet()) {
+      AllocNode node=entry.getKey();
+      if (srcNodes.contains(node)) {
+	MySet<Edge> edges=entry.getValue();
+	newedges.addAll(edges);
+      }
+    }
+    return newedges;
+  }
+
+  static MySet<Edge> makeOld(MySet<Edge> edgesin) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    for(Edge e:edgesin) {
+      edgeset.add(e.makeOld());
+    }
+    return edgeset;
+  }
+
   static HashSet<AllocNode> getNodes(Graph graph, Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
     for(AllocNode node:srcNodes) {
-      HashSet<Edge> removeedges=delta.heapedgeremove.get(node);
+      MySet<Edge> removeedges=delta.heapedgeremove.get(node);
       for(Edge e:graph.getEdges(node)) {
 	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
 	  nodes.add(e.dst);
