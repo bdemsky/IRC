@@ -299,7 +299,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 #else
   struct sockaddr_in sin;
   unsigned int sinlen=sizeof(sin);
-  int fd=VAR(___this___)->___ServerSocket______fd___;
+  int fd=VAR(___this___)->___fd___;
   int newfd;
 #if defined(THREADS)||defined(DSTM)||defined(STM)
 #ifdef PRECISE_GC
@@ -348,7 +348,7 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
 void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, struct ___Socket___ * ___this___, struct ArrayObject * ___b___, int offset, int length) {
 #ifdef MULTICORE
 #else
-  int fd=VAR(___this___)->___Socket______fd___;
+  int fd=VAR(___this___)->___fd___;
   char * charstr=((char *)&VAR(___b___)->___length___)+sizeof(int)+offset;
   while(1) {
     int offset=0;
@@ -374,7 +374,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 #ifdef MULTICORE
   return -1;
 #else
-  int fd=VAR(___this___)->___Socket______fd___;
+  int fd=VAR(___this___)->___fd___;
   int length=VAR(___b___)->___length___;
 
   char * charstr=malloc(length);
@@ -426,7 +426,7 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
 void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
 #ifdef MULTICORE
 #else
-  int fd=VAR(___this___)->___Socket______fd___;
+  int fd=VAR(___this___)->___fd___;
   int data;
 #ifdef TASK
   RuntimeHashget(fdtoobject, fd, &data);
