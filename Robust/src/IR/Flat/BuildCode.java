@@ -136,32 +136,35 @@ public class BuildCode {
 
     try {
       if (state.SANDBOX) {
-	outsandbox=new CodePrinter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
+				outsandbox=new CodePrinter(new FileOutputStream(PREFIX+"sandboxdefs.c"), true);
       }
       outstructs=new CodePrinter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new CodePrinter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new CodePrinter(new FileOutputStream(PREFIX+"classdefs.h"), true);
       if(state.MGC) {
         // TODO add version for normal Java later
-      outglobaldefs=new CodePrinter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
+				outglobaldefs=new CodePrinter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
       }
       outmethod=new CodePrinter(new FileOutputStream(PREFIX+"methods.c"), true);
       outvirtual=new CodePrinter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       if (state.TASK) {
-	outtask=new CodePrinter(new FileOutputStream(PREFIX+"task.h"), true);
-	outtaskdefs=new CodePrinter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
-	if (state.OPTIONAL) {
-	  outoptionalarrays=new CodePrinter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
-	  optionalheaders=new CodePrinter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
-	}
+				outtask=new CodePrinter(new FileOutputStream(PREFIX+"task.h"), true);
+				outtaskdefs=new CodePrinter(new FileOutputStream(PREFIX+"taskdefs.c"), true);
+				if (state.OPTIONAL) {
+					outoptionalarrays=new CodePrinter(new FileOutputStream(PREFIX+"optionalarrays.c"), true);
+					optionalheaders=new CodePrinter(new FileOutputStream(PREFIX+"optionalstruct.h"), true);
+				}
       }
       if (state.structfile!=null) {
-	outrepairstructs=new CodePrinter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
+				outrepairstructs=new CodePrinter(new FileOutputStream(PREFIX+state.structfile+".struct"), true);
       }
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(-1);
     }
+		
+		/* Fix field safe symbols due to shadowing */
+		FieldShadow.handleFieldShadow(state);
 
     /* Build the virtual dispatch tables */
     buildVirtualTables(outvirtual);
@@ -1412,7 +1415,7 @@ public class BuildCode {
 	if (type.isPtr()) {
 	  output.println(",");
 	  output.print("((unsigned INTPTR)&(((struct "+cn.getSafeSymbol() +" *)0)->"+
-          (fd.getClassDescriptor()==null?"":fd.getClassDescriptor().getSafeSymbol())+fd.getSafeSymbol()+"))");
+								 fd.getSafeSymbol()+"))");
 	}
       }
       output.println("};");
@@ -1557,49 +1560,49 @@ public class BuildCode {
       }
       if (state.MGC && fd.getType().isClass()
           && fd.getType().getClassDesc().isEnum()) {
-        classdefout.println("  int " + cn.getSafeSymbol() + fd.getSafeSymbol() + ";");
+        classdefout.println("  int " + fd.getSafeSymbol() + ";");
       } else if (fd.getType().isClass()||fd.getType().isArray()) {
         if ((state.MGC) && (fd.isStatic())) {
           // TODO add version for normal Java later
           // static field
           if(globaldefout != null) {
             if(fd.isVolatile()) {
-              globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+              globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
             } else {
-              globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+              globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
             }
           }
-          classdefout.println("  struct "+fd.getType().getSafeSymbol()+" ** "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+          classdefout.println("  struct "+fd.getType().getSafeSymbol()+" ** "+fd.getSafeSymbol()+";");
         } else if ((state.MGC) && (fd.isVolatile())) {
           // TODO add version for normal Java later
           // static field
           if(globaldefout != null) {
-            globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+            globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
           }
-          classdefout.println("  struct"+fd.getType().getSafeSymbol()+" ** "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+          classdefout.println("  struct"+fd.getType().getSafeSymbol()+" ** "+fd.getSafeSymbol()+";");
         } else {
-	classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+	classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
         }
       } else if ((state.MGC) && (fd.isStatic())) {
         // TODO add version for normal Java later
         // static field
         if(globaldefout != null) {
           if(fd.isVolatile()) {
-            globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+            globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
           } else {
-            globaldefout.println("  "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+            globaldefout.println("  "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
           }
         }
-        classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+        classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
       } else if ((state.MGC) && (fd.isVolatile())) {
         // TODO add version for normal Java later
         // static field
         if(globaldefout != null) {
-          globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+          globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
         }
-        classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+        classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
       } else
-	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+cn.getSafeSymbol()+fd.getSafeSymbol()+";");
+	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
     }
   }
 
@@ -2082,7 +2085,7 @@ public class BuildCode {
         FieldDescriptor fd=(FieldDescriptor)fields.get(i);
         if(fd.isStatic()) {
           // static field
-          output.println(generateTemp(fm,fm.getParameter(0),lb)+"->"+cn.getSafeSymbol()+fd.getSafeSymbol()+"=&(global_defs_p->"+fd.getClassDescriptor().getSafeSymbol()+fd.getSafeSymbol()+");");
+          output.println(generateTemp(fm,fm.getParameter(0),lb)+"->"+fd.getSafeSymbol()+"=&(global_defs_p->"+fd.getSafeSymbol()+");");
         }
       }
     }
@@ -2624,7 +2627,7 @@ public class BuildCode {
     output.println("/* FlatOffsetNode */");
     FieldDescriptor fd=fofn.getField();
     output.println(generateTemp(fm, fofn.getDst(),lb)+ " = (short)(int) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+ 
-        (fd.getClassDescriptor()==null?"":fd.getClassDescriptor().getSafeSymbol()) + fd.getSafeSymbol()+");");
+									 fd.getSafeSymbol()+");");
     output.println("/* offset */");
   }
 
@@ -2739,10 +2742,10 @@ public class BuildCode {
 	    teststr+="&&";
 	  teststr+="((prefptr="+basestr+")!=NULL)";
 	  basestr="((struct "+lasttype.getSafeSymbol()+" *)prefptr)->"+
-      (fd.getClassDescriptor()==null?"":fd.getClassDescriptor().getSafeSymbol())+fd.getSafeSymbol();
+			fd.getSafeSymbol();
 	} else {
 	  basestr=basestr+"->"+
-      (fd.getClassDescriptor()==null?"":fd.getClassDescriptor().getSafeSymbol())+fd.getSafeSymbol();
+			fd.getSafeSymbol();
 	  maybenull=true;
 	}
 	lasttype=fd.getType();
@@ -2776,8 +2779,7 @@ public class BuildCode {
       Object desc = pp.getDescAt(i);
       if(desc instanceof FieldDescriptor) {
 	FieldDescriptor fd=(FieldDescriptor)desc;
-	newfieldoffset = new String("(unsigned int)(&(((struct "+ lasttype.getSafeSymbol()+" *)0)->"+ 
-        (fd.getClassDescriptor()==null?"":fd.getClassDescriptor().getSafeSymbol()) + fd.getSafeSymbol()+ "))");
+	newfieldoffset = new String("(unsigned int)(&(((struct "+ lasttype.getSafeSymbol()+" *)0)->"+ fd.getSafeSymbol()+ "))");
 	lasttype=fd.getType();
       } else {
 	newfieldoffset = "";
