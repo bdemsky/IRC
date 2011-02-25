@@ -82,6 +82,10 @@ public class FieldDescriptor extends Descriptor {
     return td;
   }
 
+	public void changeSafeSymbol(int id) {
+		safename+=id;
+	}
+	
   public String toString() {
     if (en==null)
       return modifier.toString()+td.toString()+" "+getSymbol()+";";
