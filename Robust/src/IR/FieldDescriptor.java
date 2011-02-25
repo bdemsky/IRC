@@ -44,7 +44,7 @@ public class FieldDescriptor extends Descriptor {
 
   public String getSafeSymbol() {
     if (isStatic()) {
-      cn.getSafeSymbol()+safename;
+      return cn.getSafeSymbol()+safename;
     } else
       return safename;
   }
