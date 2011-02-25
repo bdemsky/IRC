@@ -1551,7 +1551,7 @@ public class BuildCode {
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-      String fstring = (fd.getClassDescriptor()==null?"":fd.getClassDescriptor().getSymbol()) + fd.getSymbol();
+      String fstring = fd.getSymbol();
       if(printedfieldstbl.containsKey(fstring)) {
         printedfieldstbl.put(fstring, cn);
         continue;
