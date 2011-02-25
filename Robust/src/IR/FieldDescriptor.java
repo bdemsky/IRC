@@ -41,6 +41,13 @@ public class FieldDescriptor extends Descriptor {
   public void setClassDescriptor(ClassDescriptor cn) {
     this.cn = cn;
   }
+
+  public String getSafeSymbol() {
+    if (isStatic()) {
+      cn.getSafeSymbol()+safename;
+    } else
+      return safename;
+  }
   
   public boolean isEnum() {
     return this.isenum;
