@@ -66,7 +66,7 @@ public class BuildCode {
   DiscoverConflicts recorddc;
   DCWrapper delaycomp;
   CallGraph callgraph;
-  Hashtable<String, ClassDescriptor> printedfieldstbl;
+  Hashtable<String, Integer> printedfieldstbl;
 
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
@@ -111,7 +111,7 @@ public class BuildCode {
       recorddc=new DiscoverConflicts(locality, st, typeanalysis, delaycomp.getCannotDelayMap(), true, true, null);
       recorddc.doAnalysis();
     }
-    printedfieldstbl = new Hashtable<String, ClassDescriptor>();
+    printedfieldstbl = new Hashtable<String, Integer>();
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -1489,7 +1489,7 @@ public class BuildCode {
 	printClassStruct(si, classdefout, /*globaldefout*/ null);
       }
     }
-
+    
     if (!fieldorder.containsKey(cn)) {
       Vector fields=new Vector();
       fieldorder.put(cn,fields);
@@ -1522,18 +1522,24 @@ public class BuildCode {
 	}
       }
     }
-    Vector fields=(Vector)fieldorder.get(cn);
+    //Vector fields=(Vector)fieldorder.get(cn);
 
-    /*Vector */ fields = cn.getFieldVec();
+    Vector fields = cn.getFieldVec();
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-      String fstring = fd.getSymbol();
+      String fstring = fd.isStatic()?fd.getSafeSymbol():fd.getSymbol();
       if(printedfieldstbl.containsKey(fstring)) {
-	printedfieldstbl.put(fstring, cn);
-	continue;
+        if(!fd.isStatic()) {
+          int index = printedfieldstbl.get(fstring).intValue();
+          index++;
+          fd.changeSafeSymbol(index);
+          printedfieldstbl.put(fstring, index);
+        } else {
+          continue;
+        }
       } else {
-	printedfieldstbl.put(fstring, cn);
+        printedfieldstbl.put(fstring, 0);
       }
       if (state.MGC && fd.getType().isClass()
           && fd.getType().getClassDesc().isEnum()) {
@@ -1664,7 +1670,7 @@ public class BuildCode {
       }
     }
     printClassStruct(cn, classdefout, globaldefout);
-    printedfieldstbl.clear();
+    printedfieldstbl.clear();// = new Hashtable<String, ClassDescriptor>();
     classdefout.println("};\n");
 
     if (state.DSM||state.SINGLETM) {
@@ -3313,8 +3319,7 @@ public class BuildCode {
 	  // redirect to the global_defs_p structure
 	  if((ffn.getField().isStatic()) || (ffn.getSrc().getType().isClassNameRef())) {
 	    // reference to the static field with Class name
-	    output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+
-	                   ffn.getField().getClassDescriptor().getSafeSymbol()+ffn.getField().getSafeSymbol()+";");
+	    output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
 	  } else {
 	    output.println(generateTemp(fm, ffn.getDst(),lb)+"=*"+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
 	  }
