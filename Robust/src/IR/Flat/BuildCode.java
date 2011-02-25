@@ -3406,11 +3406,11 @@ public class BuildCode {
       }
       if (srcptr&!fsfn.getSrc().getType().isNull()) {
 	output.println("*((unsigned INTPTR *)&("+dst+"->"+ 
-        (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"))=srcoid;");
+								 fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	output.println("}");
       } else {
 	output.println(dst+"->"+ 
-        (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ src+";");
+								 fsfn.getField().getSafeSymbol()+"="+ src+";");
       }
     } else if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(lb,fsfn).get(fsfn.getSrc());
@@ -3430,10 +3430,10 @@ public class BuildCode {
 	  output.println("*((unsigned int *)&("+dst+"->___localcopy___))|=DIRTY;");
 	if (srcglobal) {
 	  output.println("*((unsigned INTPTR *)&("+glbdst+"->"+ 
-          (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"))=srcoid;");
+									 fsfn.getField().getSafeSymbol()+"))=srcoid;");
 	} else
 	  output.println(glbdst+"->"+ 
-          (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ src+";");
+									 fsfn.getField().getSafeSymbol()+"="+ src+";");
       } else if (statusdst.equals(LocalityAnalysis.LOCAL)) {
 	/** Check if we need to copy */
 	output.println("if(!"+dst+"->"+localcopystr+") {");
@@ -3449,20 +3449,20 @@ public class BuildCode {
 	output.println("}");
 	if (srcglobal)
 	  output.println(dst+"->"+ 
-          (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
+									 fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
 	else
 	  output.println(dst+"->"+ 
-          (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ src+";");
+									 fsfn.getField().getSafeSymbol()+"="+ src+";");
       } else if (statusdst.equals(LocalityAnalysis.EITHER)) {
 	//writing to a null...bad
 	output.println("if ("+dst+") {");
 	output.println("printf(\"BIG ERROR 2\\n\");exit(-1);}");
 	if (srcglobal)
 	  output.println(dst+"->"+ 
-          (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
+									 fsfn.getField().getSafeSymbol()+"=(void *) srcoid;");
 	else
 	  output.println(dst+"->"+ 
-          (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ src+";");
+									 fsfn.getField().getSafeSymbol()+"="+ src+";");
       }
       if (srcglobal) {
 	output.println("}");
@@ -3518,18 +3518,19 @@ public class BuildCode {
         // redirect to the global_defs_p structure
         if(fsfn.getDst().getType().isClassNameRef()) {
           // reference to the static field with Class name 
-          output.println("global_defs_p->" + fsfn.getField().getClassDescriptor().getSafeSymbol() + fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+          output.println("global_defs_p->" + 
+												 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
         } else {
           output.println("*"+generateTemp(fm, fsfn.getDst(),lb)+"->"+ 
-              (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+												 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
         }
       } else {
         output.println(generateTemp(fm, fsfn.getDst(),lb)+"->"+ 
-            (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+											 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
       } 
       } else {
         output.println(generateTemp(fm, fsfn.getDst(),lb)+"->"+ 
-            (fsfn.getField().getClassDescriptor()==null?"":fsfn.getField().getClassDescriptor().getSafeSymbol()) + fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
+											 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc(),lb)+";");
       }
     }
   }

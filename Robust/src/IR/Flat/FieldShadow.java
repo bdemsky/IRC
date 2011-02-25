@@ -25,10 +25,10 @@ public class FieldShadow {
 			if (supermap.containsKey(fd.getSymbol())) {
 				Integer oldint=supermap.get(fd.getSymbol());
 				int newint=oldint.intValue()+1;
-				supermap.put(fd.getSymbol(), new Integer(newint));
+				namemap.put(fd.getSymbol(), new Integer(newint));
 				fd.changeSafeSymbol(newint);
 			} else {
-				supermap.put(fd.getSymbol(), new Integer(0));
+				namemap.put(fd.getSymbol(), new Integer(0));
 			}
 		}
 	}
