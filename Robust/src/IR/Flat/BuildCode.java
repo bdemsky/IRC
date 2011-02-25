@@ -104,7 +104,6 @@ public class BuildCode {
       dc.doAnalysis();
     }
     if (state.DELAYCOMP) {
-      //TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
       TypeAnalysis typeanalysis=new TypeAnalysis(locality, st, typeutil,callgraph);
       GlobalFieldType gft=new GlobalFieldType(callgraph, st, typeutil.getMain());
       delaycomp=new DCWrapper(locality, st, typeanalysis, gft);
@@ -206,10 +205,10 @@ public class BuildCode {
     
     if(state.MGC) {
       // TODO add version for normal Java later
-    outglobaldefs.println("#ifndef __GLOBALDEF_H_");
-    outglobaldefs.println("#define __GLOBALDEF_H_");
-    outglobaldefs.println("");
-    outglobaldefs.println("struct global_defs_t {");
+			outglobaldefs.println("#ifndef __GLOBALDEF_H_");
+			outglobaldefs.println("#define __GLOBALDEF_H_");
+			outglobaldefs.println("");
+			outglobaldefs.println("struct global_defs_t {");
     }
     
     outclassdefs.println("#ifndef __CLASSDEF_H_");
@@ -226,12 +225,12 @@ public class BuildCode {
     outclassdefs.close();
     if(state.MGC) {
       // TODO add version for normal Java later
-    outglobaldefs.println("};");
-    outglobaldefs.println("");
-    outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
-    outglobaldefs.println("#endif");
-    outglobaldefs.flush();
-    outglobaldefs.close();
+			outglobaldefs.println("};");
+			outglobaldefs.println("");
+			outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
+			outglobaldefs.println("#endif");
+			outglobaldefs.flush();
+			outglobaldefs.close();
     }
 
     if (state.TASK) {
@@ -448,7 +447,6 @@ public class BuildCode {
     }
 
     if (state.DSM||state.SINGLETM) {
-      //outmethod.println("#if defined(TRANSSTATS) || defined(RECOVERYSTATS) \n");
       outmethod.println("#if defined(TRANSSTATS) \n");
       outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
       outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
@@ -581,12 +579,6 @@ public class BuildCode {
     //Store table of supertypes
     generateSuperTypeTable(outmethod);
     
-    // Store table of classnames
-    /*if(state.MGC) {
-      // TODO add code for normal Java later
-      generateClassNameTable(outmethod);
-    }*/
-
     //Store the layout of classes
     generateLayoutStructs(outmethod);
 
@@ -836,10 +828,6 @@ public class BuildCode {
     outclassdefs.println("extern int hasflags[];");
     outclassdefs.println("extern unsigned INTPTR * pointerarray[];");
     outclassdefs.println("extern int supertypes[];");
-    /*if(state.MGC) {
-      // TODO add version for normal Java later
-    outclassdefs.println("extern char * classname[];");
-    }*/
     outclassdefs.println("");
   }
 
@@ -893,13 +881,6 @@ public class BuildCode {
       outrepairstructs.println("  int __type__;");
       printRepairStruct(typeutil.getClass(TypeUtil.ObjectClass), outrepairstructs);
       outrepairstructs.println("  int length;");
-      /*
-         // Need to add support to repair tool for this
-         if (tdelement.isClass()||tdelement.isArray())
-          outrepairstructs.println("  "+tdelement.getRepairSymbol()+" * elem[this.length];");
-         else
-          outrepairstructs.println("  "+tdelement.getRepairSymbol()+" elem[this.length];");
-       */
       outrepairstructs.println("}\n");
     }
   }
@@ -964,7 +945,6 @@ public class BuildCode {
       }
 
       output.println("int parametertag_"+i+"_"+task.getSafeSymbol()+"[]={");
-      //BUG...added next line to fix, test with any task program
       if (param_tag!=null)
 	for(int j=0; j<param_tag.numTags(); j++) {
 	  if (j!=0)
@@ -984,8 +964,6 @@ public class BuildCode {
       output.println("/* number of DNF terms */"+dnfterms+",");
       output.println("parameterdnf_"+i+"_"+task.getSafeSymbol()+",");
       output.println("0,");
-      //BUG, added next line to fix and else statement...test
-      //with any task program
       if (param_tag!=null)
 	output.println("/* number of tags */"+param_tag.numTags()+",");
       else
@@ -2806,7 +2784,6 @@ public class BuildCode {
     /* Have to generate flat globalconv */
     if (fgcn.getMakePtr()) {
       if (state.DSM) {
-	//DEBUG: output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+",\" "+fm+":"+fgcn+"\");");
 	   output.println("TRANSREAD("+generateTemp(fm, fgcn.getSrc(),lb)+", (unsigned int) "+generateTemp(fm, fgcn.getSrc(),lb)+");");
       } else {
 	if ((dc==null)||!state.READSET&&dc.getNeedTrans(lb, fgcn)||state.READSET&&dc.getNeedWriteTrans(lb, fgcn)) {
@@ -3279,25 +3256,8 @@ public class BuildCode {
 	String dst=generateTemp(fm, ffn.getDst(),lb);
 
 	if (ffn.getField().getType().isPtr()) {
-
-	  //TODO: Uncomment this when we have runtime support
-	  //if (ffn.getSrc()==ffn.getDst()) {
-	  //output.println("{");
-	  //output.println("void * temp="+src+";");
-	  //output.println("if (temp&0x1) {");
-	  //output.println("temp=(void *) transRead(trans, (unsigned int) temp);");
-	  //output.println(src+"->"+field+"="+temp+";");
-	  //output.println("}");
-	  //output.println(dst+"=temp;");
-	  //output.println("}");
-	  //} else {
 	  output.println(dst+"="+ src +"->"+field+ ";");
-	  //output.println("if ("+dst+"&0x1) {");
-	  //DEBUG: output.println("TRANSREAD("+dst+", (unsigned int) "+dst+",\""+fm+":"+ffn+"\");");
-      output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
-	  //output.println(src+"->"+field+"="+src+"->"+field+";");
-	  //output.println("}");
-	  //}
+		output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
 	} else {
 	  output.println(dst+"="+ src+"->"+field+";");
 	}
@@ -3309,7 +3269,6 @@ public class BuildCode {
 	  String dst=generateTemp(fm, ffn.getDst(),lb);
 	  output.println(dst+"="+ src +"->"+field+ ";");
 	  if (locality.getAtomic(lb).get(ffn).intValue()>0)
-	    //DEBUG: output.println("TRANSREAD("+dst+", (unsigned int) "+dst+",\""+fm+":"+ffn+"\");");
 	    output.println("TRANSREAD("+dst+", (unsigned int) "+dst+");");
 	} else
 	  output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
@@ -3324,9 +3283,6 @@ public class BuildCode {
       } else
 	throw new Error("Read from non-global/non-local in:"+lb.getExplanation());
     } else{
-// DEBUG 	if(!ffn.getDst().getType().isPrimitive()){
-// DEBUG  		output.println("within((void*)"+generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+");");
-// DEBUG   	} 
       if(state.MGC) {
         // TODO add version for normal Java later
       if(ffn.getField().isStatic()) {
@@ -3386,28 +3342,28 @@ public class BuildCode {
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       output.println("//"+srcptr+" "+fsfn.getSrc().getType().isNull());
       if (srcptr&&!fsfn.getSrc().getType().isNull()) {
-	output.println("{");
-	if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)&&
-	    locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
-	  output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
-	} else {
-	  output.println("INTPTR srcoid=(INTPTR)"+src+";");
-	}
+				output.println("{");
+				if ((dc==null)||dc.getNeedSrcTrans(lb, fsfn)&&
+						locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getSrc())!=LocalityAnalysis.SCRATCH) {
+					output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+				} else {
+					output.println("INTPTR srcoid=(INTPTR)"+src+";");
+				}
       }
       if (wb.needBarrier(fsfn)&&
           locality.getNodePreTempInfo(lb, fsfn).get(fsfn.getDst())!=LocalityAnalysis.SCRATCH) {
-	if (state.EVENTMONITOR) {
-	  output.println("if ("+dst+"->___objstatus___&DIRTY) EVLOGEVENTOBJ(EV_WRITE,"+dst+"->objuid)");
-	}
-	output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
+				if (state.EVENTMONITOR) {
+					output.println("if ("+dst+"->___objstatus___&DIRTY) EVLOGEVENTOBJ(EV_WRITE,"+dst+"->objuid)");
+				}
+				output.println("*((unsigned int *)&("+dst+"->___objstatus___))|=DIRTY;");
       }
       if (srcptr&!fsfn.getSrc().getType().isNull()) {
-	output.println("*((unsigned INTPTR *)&("+dst+"->"+ 
-								 fsfn.getField().getSafeSymbol()+"))=srcoid;");
-	output.println("}");
+				output.println("*((unsigned INTPTR *)&("+dst+"->"+ 
+											 fsfn.getField().getSafeSymbol()+"))=srcoid;");
+				output.println("}");
       } else {
-	output.println(dst+"->"+ 
-								 fsfn.getField().getSafeSymbol()+"="+ src+";");
+				output.println(dst+"->"+ 
+											 fsfn.getField().getSafeSymbol()+"="+ src+";");
       }
     } else if (state.DSM && locality.getAtomic(lb).get(fsfn).intValue()>0) {
       Integer statussrc=locality.getNodePreTempInfo(lb,fsfn).get(fsfn.getSrc());
@@ -3417,8 +3373,8 @@ public class BuildCode {
       String src=generateTemp(fm,fsfn.getSrc(),lb);
       String dst=generateTemp(fm,fsfn.getDst(),lb);
       if (srcglobal) {
-	output.println("{");
-	output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
+				output.println("{");
+				output.println("INTPTR srcoid=("+src+"!=NULL?((INTPTR)"+src+"->"+oidstr+"):0);");
       }
       if (statusdst.equals(LocalityAnalysis.GLOBAL)) {
 	String glbdst=dst;
@@ -3477,10 +3433,6 @@ public class BuildCode {
 	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
 	output.println("}");
       }
-      
-// DEBUG 	if(!fsfn.getField().getType().isPrimitive()){
-// DEBUG		output.println("within((void*)"+generateTemp(fm,fsfn.getSrc(),lb)+");");
-// DEBUG   } 
       if(state.MGC) {
         // TODO add version for normal Java later
       if(fsfn.getField().isStatic()) {
@@ -3573,7 +3525,6 @@ public class BuildCode {
 	String dst=generateTemp(fm, fen.getDst(),lb);
 	if (elementtype.isPtr()) {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
-	  //DEBUG: output.println("TRANSREAD("+dst+", "+dst+",\""+fm+":"+fen+"\");");
 	  output.println("TRANSREAD("+dst+", "+dst+");");
 	} else {
 	  output.println(dst +"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
@@ -3591,7 +3542,6 @@ public class BuildCode {
       } else
 	throw new Error("Read from non-global/non-local in:"+lb.getExplanation());
     } else {
-// DEBUG output.println("within((void*)"+generateTemp(fm,fen.getSrc(),lb)+");");
         output.println(generateTemp(fm, fen.getDst(),lb)+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex(),lb)+"];");
     }
   }
@@ -3696,7 +3646,6 @@ public class BuildCode {
 	output.println(fcrevert+"=(struct ___Object___ *)"+dst+";");
 	output.println("}");
       }
-// DEBUG      output.println("within((void*)"+generateTemp(fm,fsen.getDst(),lb)+");");
       output.println("(("+type +"*)(((char *) &("+ generateTemp(fm,fsen.getDst(),lb)+"->___length___))+sizeof(int)))["+generateTemp(fm, fsen.getIndex(),lb)+"]="+generateTemp(fm,fsen.getSrc(),lb)+";");
     }
   }
