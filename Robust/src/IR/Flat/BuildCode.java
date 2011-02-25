@@ -3254,7 +3254,7 @@ public class BuildCode {
   private void generateFlatFieldNode(FlatMethod fm, LocalityBinding lb, FlatFieldNode ffn, PrintWriter output) {
     if (state.SINGLETM) {
       //single machine transactional memory case
-      String field=(ffn.getField().getClassDescriptor()==null?"":ffn.getField().getClassDescriptor().getSafeSymbol()) + ffn.getField().getSafeSymbol();
+      String field=ffn.getField().getSafeSymbol();
       String src=generateTemp(fm, ffn.getSrc(),lb);
       String dst=generateTemp(fm, ffn.getDst(),lb);
 
@@ -3274,7 +3274,7 @@ public class BuildCode {
     } else if (state.DSM) {
       Integer status=locality.getNodePreTempInfo(lb,ffn).get(ffn.getSrc());
       if (status==LocalityAnalysis.GLOBAL) {
-	String field=(ffn.getField().getClassDescriptor()==null?"":ffn.getField().getClassDescriptor().getSafeSymbol()) + ffn.getField().getSafeSymbol();
+	String field=ffn.getField().getSafeSymbol();
 	String src=generateTemp(fm, ffn.getSrc(),lb);
 	String dst=generateTemp(fm, ffn.getDst(),lb);
 
@@ -3304,7 +3304,7 @@ public class BuildCode {
       } else if (status==LocalityAnalysis.LOCAL) {
 	if (ffn.getField().getType().isPtr()&&
 	    ffn.getField().isGlobal()) {
-	  String field=(ffn.getField().getClassDescriptor()==null?"":ffn.getField().getClassDescriptor().getSafeSymbol()) + ffn.getField().getSafeSymbol();
+	  String field=ffn.getField().getSafeSymbol();
 	  String src=generateTemp(fm, ffn.getSrc(),lb);
 	  String dst=generateTemp(fm, ffn.getDst(),lb);
 	  output.println(dst+"="+ src +"->"+field+ ";");
@@ -3351,7 +3351,7 @@ public class BuildCode {
                 output.println("  global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
               }
               output.println("}");
-              output.println("#endif // MGC_STATIC_INIT_CHECK"); 
+              output.println("#endif // MGC_STATIC_INIT_CHECK");
             }
           }
         }
@@ -3361,19 +3361,16 @@ public class BuildCode {
           output.println(generateTemp(fm, ffn.getDst(),lb)+"=global_defs_p->"+ 
               ffn.getField().getClassDescriptor().getSafeSymbol()+ffn.getField().getSafeSymbol()+";");
         } else {
-          output.println(generateTemp(fm, ffn.getDst(),lb)+"=*"+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ 
-              (ffn.getField().getClassDescriptor()==null?"":ffn.getField().getClassDescriptor().getSafeSymbol()) + ffn.getField().getSafeSymbol()+";");
+          output.println(generateTemp(fm, ffn.getDst(),lb)+"=*"+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
         }
       } else if (ffn.getField().isEnum()) {
           // an Enum value, directly replace the field access as int
           output.println(generateTemp(fm, ffn.getDst(), lb) + "=" + ffn.getField().enumValue() + ";");
 	  } else {
-        output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ 
-            (ffn.getField().getClassDescriptor()==null?"":ffn.getField().getClassDescriptor().getSafeSymbol()) + ffn.getField().getSafeSymbol()+";");
-      } 
+        output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
+      }
     } else {
-        output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ 
-            (ffn.getField().getClassDescriptor()==null?"":ffn.getField().getClassDescriptor().getSafeSymbol()) + ffn.getField().getSafeSymbol()+";");
+        output.println(generateTemp(fm, ffn.getDst(),lb)+"="+ generateTemp(fm,ffn.getSrc(),lb)+"->"+ ffn.getField().getSafeSymbol()+";");
       }
     }
   }
