@@ -55,6 +55,9 @@ public class BuildCodeMGC extends BuildCode {
       e.printStackTrace();
       System.exit(-1);
     }
+    
+    /* Fix field safe symbols due to shadowing */
+    FieldShadow.handleFieldShadow(state);
 
     /* Build the virtual dispatch tables */
     super.buildVirtualTables(outvirtual);
