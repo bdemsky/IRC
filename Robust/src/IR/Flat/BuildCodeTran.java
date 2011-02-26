@@ -185,7 +185,7 @@ public class BuildCodeTran extends BuildCode {
     outmethod.println("threadcount--;");
     outmethod.println("pthread_cond_signal(&gccond);");
     outmethod.println("pthread_mutex_unlock(&gclistlock);");
-    
+
     outmethod.println("#if defined(TRANSSTATS) \n");
     outmethod.println("printf(\"******  Transaction Stats   ******\\n\");");
     outmethod.println("printf(\"numTransCommit= %d\\n\", numTransCommit);");
@@ -213,12 +213,12 @@ public class BuildCodeTran extends BuildCode {
       outmethod.println("fflush(stdout);");
     }
     outmethod.println("#endif\n");
-    
-    
+
+
     if (state.EVENTMONITOR) {
       outmethod.println("dumpdata();");
     }
-    
+
     if (state.SINGLETM)
       outmethod.println("pthread_exit(NULL);");
     additionalCodeAtBottomOfMain(outmethod);
@@ -251,7 +251,7 @@ public class BuildCodeTran extends BuildCode {
     LocalityBinding lbrun=new LocalityBinding(typeutil.getRun(), false);
     if (state.DSM) {
       lbrun.setGlobalThis(LocalityAnalysis.GLOBAL);
-    } else if (state.SINGLETM)   {
+    } else if (state.SINGLETM) {
       lbrun.setGlobalThis(LocalityAnalysis.NORMAL);
     }
     outstructs.println("#define RUNMETHOD "+virtualcalls.getLocalityNumber(lbrun));
@@ -540,7 +540,7 @@ public class BuildCodeTran extends BuildCode {
     output.println("};");
   }
 
-  
+
   protected void generateCallStructsMethods(ClassDescriptor cn, PrintWriter output, PrintWriter headersout) {
     /* Cycle through LocalityBindings */
     HashSet<MethodDescriptor> nativemethods=new HashSet<MethodDescriptor>();

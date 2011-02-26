@@ -89,7 +89,7 @@ public class BuildCode {
     PrintWriter outglobaldefs=null;
 
     try {
-      buildCodeSetup();//EXTENSION POINT
+      buildCodeSetup(); //EXTENSION POINT
       outstructs=new CodePrinter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new CodePrinter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new CodePrinter(new FileOutputStream(PREFIX+"classdefs.h"), true);
@@ -1178,13 +1178,13 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
-        output.println(",");
+	output.println(",");
       needcomma=true;
       if ((cn != null) && (cn.getSuperDesc()!=null)) {
-        ClassDescriptor cdsuper=cn.getSuperDesc();
-        output.print(cdsuper.getId());
+	ClassDescriptor cdsuper=cn.getSuperDesc();
+	output.print(cdsuper.getId());
       } else
-        output.print("-1");
+	output.print("-1");
     }
     output.println("};");
   }
@@ -1205,7 +1205,7 @@ public class BuildCode {
 	printClassStruct(si, classdefout, /*globaldefout*/ null);
       }
     }
-    
+
     if (!fieldorder.containsKey(cn)) {
       Vector fields=new Vector();
       fieldorder.put(cn,fields);
@@ -1244,18 +1244,18 @@ public class BuildCode {
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-      String fstring = fd.isStatic()?fd.getSafeSymbol():fd.getSymbol();
+      String fstring = fd.isStatic() ? fd.getSafeSymbol() : fd.getSymbol();
       if(printedfieldstbl.containsKey(fstring)) {
-        if(!fd.isStatic()) {
-          int index = printedfieldstbl.get(fstring).intValue();
-          index++;
-          fd.changeSafeSymbol(index);
-          printedfieldstbl.put(fstring, index);
-        } else {
-          continue;
-        }
+	if(!fd.isStatic()) {
+	  int index = printedfieldstbl.get(fstring).intValue();
+	  index++;
+	  fd.changeSafeSymbol(index);
+	  printedfieldstbl.put(fstring, index);
+	} else {
+	  continue;
+	}
       } else {
-        printedfieldstbl.put(fstring, 0);
+	printedfieldstbl.put(fstring, 0);
       }
       if (state.MGC && fd.getType().isClass()
           && fd.getType().getClassDesc().isEnum()) {
@@ -1386,7 +1386,7 @@ public class BuildCode {
       }
     }
     printClassStruct(cn, classdefout, globaldefout);
-    printedfieldstbl.clear();// = new Hashtable<String, ClassDescriptor>();
+    printedfieldstbl.clear(); // = new Hashtable<String, ClassDescriptor>();
     classdefout.println("};\n");
     generateCallStructsMethods(cn, output, headersout);
   }
@@ -1396,7 +1396,7 @@ public class BuildCode {
     for(Iterator methodit=cn.getMethods(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)methodit.next();
       generateMethod(cn, md, headersout, output);
-    }    
+    }
   }
 
   protected void generateMethodParam(ClassDescriptor cn, MethodDescriptor md, PrintWriter output) {
@@ -1902,7 +1902,7 @@ public class BuildCode {
 
   public void generateFlatBackEdge(FlatMethod fm, FlatBackEdge fn, PrintWriter output) {
     if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
-	|| (this.state.MULTICOREGC)) {
+        || (this.state.MULTICOREGC)) {
       if(this.state.MULTICOREGC) {
 	output.println("if (gcflag) gc("+localsprefixaddr+");");
       } else {
@@ -2240,7 +2240,7 @@ public class BuildCode {
       if(fsfn.getField().isStatic()) {
 	// static field
 	if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
-	    // is a static block or is invoked in some static block
+	  // is a static block or is invoked in some static block
 	  ClassDescriptor cd = fm.getMethod().getClassDesc();
 	  ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
 	  if(cd == cn) {
@@ -2270,21 +2270,21 @@ public class BuildCode {
 	if(fsfn.getDst().getType().isClassNameRef()) {
 	  // reference to the static field with Class name
 	  output.println("global_defs_p->" +
-			 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+	                 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
 	} else {
 	  output.println("*"+generateTemp(fm, fsfn.getDst())+"->"+
-			 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+	                 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
 	}
       } else {
 	output.println(generateTemp(fm, fsfn.getDst())+"->"+
-		       fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+	               fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
       }
     } else {
       output.println(generateTemp(fm, fsfn.getDst())+"->"+
-		     fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+                     fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     }
   }
-  
+
   protected void generateFlatElementNode(FlatMethod fm, FlatElementNode fen, PrintWriter output) {
     TypeDescriptor elementtype=fen.getSrc().getType().dereference();
     String type="";
