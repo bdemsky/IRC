@@ -313,9 +313,10 @@ NextMethod:
         }
         outmethod.println(");");
         */
-        outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj.type = " + t_cd.getId() + ";");
+        outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(" + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
+        outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj->type = " + t_cd.getId() + ";");
         
-        outmethod.println("    initlock((struct ___Object___ *)(&(global_defs_p->"+t_cd.getSafeSymbol()+"classobj)));");
+        outmethod.println("    initlock((struct ___Object___ *)((global_defs_p->"+t_cd.getSafeSymbol()+"classobj)));");
         outmethod.println(" }");
         
       }

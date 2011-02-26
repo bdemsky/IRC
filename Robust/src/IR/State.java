@@ -232,9 +232,7 @@ public class State {
     if (classes.contains(tdn.getSymbol()))
       throw new Error("Class "+tdn.getSymbol()+" defined twice");
     classes.add(tdn);
-    if(!tdn.isInterface()) {
-      numclasses++;
-    }
+    numclasses++;
     if((tdn.numstaticfields != 0) || (tdn.numstaticblocks != 0)) {
       sclasses.add(tdn);
     }

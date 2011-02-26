@@ -48,8 +48,7 @@ public class BuildCode {
   TypeDescriptor[] arraytable;
   SafetyAnalysis sa;
   CallGraph callgraph;
-  Hashtable<String, Integer> printedfieldstbl;
-
+  Hashtable<String, ClassDescriptor> printedfieldstbl;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
     this(st, temptovar, typeutil, null);
@@ -66,7 +65,7 @@ public class BuildCode {
     flagorder=new Hashtable();
     this.typeutil=typeutil;
     virtualcalls=new Virtual(state, null);
-    printedfieldstbl = new Hashtable<String, Integer>();
+    printedfieldstbl = new Hashtable<String, ClassDescriptor>();
   }
 
   /** The buildCode method outputs C code for all the methods.  The Flat
@@ -545,7 +544,7 @@ public class BuildCode {
 	}
 
 	// for each class, create a global object
-	outglobaldefs.println("  struct ___Object___ "+cn.getSafeSymbol()+"classobj;");
+	outglobaldefs.println("  struct ___Object___ *"+cn.getSafeSymbol()+"classobj;");
       }
     }
     outclassdefs.println("");
@@ -654,7 +653,7 @@ public class BuildCode {
     outclassdefs.println("extern int classsize[];");
     outclassdefs.println("extern int hasflags[];");
     outclassdefs.println("extern unsigned INTPTR * pointerarray[];");
-    outclassdefs.println("extern int supertypes[];");
+    outclassdefs.println("extern int* supertypes[];");
     outclassdefs.println("");
   }
 
@@ -836,9 +835,6 @@ public class BuildCode {
     classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
-      if(cd.isInterface()) {
-	continue;
-      }
       fillinRow(cd, virtualtable, cd.getId());
     }
 
@@ -903,11 +899,10 @@ public class BuildCode {
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     cdarray=new ClassDescriptor[state.numClasses()];
     cdarray[0] = null;
+    int interfaceid = 0;
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
-      if(!cd.isInterface()) {
-	cdarray[cd.getId()]=cd;
-      }
+      cdarray[cd.getId()] = cd;
     }
 
     arraytable=new TypeDescriptor[state.numArrays()];
@@ -1120,6 +1115,9 @@ public class BuildCode {
       allit=cn.getFieldTable().getAllDescriptorsIterator();
       while(allit.hasNext()) {
 	FieldDescriptor fd=(FieldDescriptor)allit.next();
+    if(fd.isStatic() || fd.isVolatile()) {
+      continue;
+    }
 	TypeDescriptor type=fd.getType();
 	if (type.isPtr()) {
 	  output.println(",");
@@ -1173,18 +1171,53 @@ public class BuildCode {
 
   /** Print out table to give us supertypes */
   protected void generateSuperTypeTable(PrintWriter output) {
-    output.println("int supertypes[]={");
+    for(int i=0; i<state.numClasses(); i++) {
+      ClassDescriptor cn=cdarray[i];
+      if(cn == null) {
+        continue;
+      }
+      output.print("int supertypes" + cn.getSafeSymbol() + "[] = {");
+      boolean ncomma = false;
+      int snum = 0;
+      if((cn != null) && (cn.getSuperDesc() != null)) {
+        snum++;
+      }
+      Iterator it_sifs = cn != null? cn.getSuperInterfaces() : null;
+      while(it_sifs != null && it_sifs.hasNext()) {
+        snum++;
+        it_sifs.next();
+      }
+      output.print(snum);
+      ncomma = true;
+      if ((cn != null) && (cn.getSuperDesc()!=null)) {
+        if(ncomma) {
+          output.print(",");
+        }
+    ClassDescriptor cdsuper=cn.getSuperDesc();
+    output.print(cdsuper.getId());
+      } 
+      it_sifs = cn != null? cn.getSuperInterfaces() : null;
+      while(it_sifs != null && it_sifs.hasNext()) {
+        if(ncomma) {
+          output.print(",");
+        }
+        output.print(((ClassDescriptor)it_sifs.next()).getId());
+      }
+      
+      output.println("};");
+    }
+    output.println("int* supertypes[]={");
     boolean needcomma=false;
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if (needcomma)
 	output.println(",");
       needcomma=true;
-      if ((cn != null) && (cn.getSuperDesc()!=null)) {
-	ClassDescriptor cdsuper=cn.getSuperDesc();
-	output.print(cdsuper.getId());
-      } else
-	output.print("-1");
+      if(cn != null) {
+        output.print("supertypes" + cn.getSafeSymbol());
+      } else {
+        output.print(0);
+      }
     }
     output.println("};");
   }
@@ -1244,18 +1277,12 @@ public class BuildCode {
 
     for(int i=0; i<fields.size(); i++) {
       FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-      String fstring = fd.isStatic() ? fd.getSafeSymbol() : fd.getSymbol();
+      String fstring = fd.getSafeSymbol();
       if(printedfieldstbl.containsKey(fstring)) {
-	if(!fd.isStatic()) {
-	  int index = printedfieldstbl.get(fstring).intValue();
-	  index++;
-	  fd.changeSafeSymbol(index);
-	  printedfieldstbl.put(fstring, index);
-	} else {
-	  continue;
-	}
+        printedfieldstbl.put(fstring, cn);
+        continue;
       } else {
-	printedfieldstbl.put(fstring, 0);
+        printedfieldstbl.put(fstring, cn);
       }
       if (state.MGC && fd.getType().isClass()
           && fd.getType().getClassDesc().isEnum()) {
@@ -1271,14 +1298,12 @@ public class BuildCode {
 	      globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
 	    }
 	  }
-	  classdefout.println("  struct "+fd.getType().getSafeSymbol()+" ** "+fd.getSafeSymbol()+";");
 	} else if ((state.MGC) && (fd.isVolatile())) {
 	  // TODO add version for normal Java later
 	  // static field
 	  if(globaldefout != null) {
 	    globaldefout.println("  volatile struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
 	  }
-	  classdefout.println("  struct"+fd.getType().getSafeSymbol()+" ** "+fd.getSafeSymbol()+";");
 	} else {
 	  classdefout.println("  struct "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
 	}
@@ -1292,14 +1317,12 @@ public class BuildCode {
 	    globaldefout.println("  "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
 	  }
 	}
-	classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
-      } else if ((state.MGC) && (fd.isVolatile())) {
+	  } else if ((state.MGC) && (fd.isVolatile())) {
 	// TODO add version for normal Java later
 	// static field
 	if(globaldefout != null) {
 	  globaldefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
 	}
-	classdefout.println("  "+fd.getType().getSafeSymbol()+" * "+fd.getSafeSymbol()+";");
       } else
 	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
     }
@@ -1605,20 +1628,6 @@ public class BuildCode {
 	output.println("  }");
 	output.println("");
       }
-      if((!fm.getMethod().isStaticBlock()) && (fm.getMethod().getReturnType() == null) && (cn != null)) {
-	// is a constructor, check and output initialization of the static fields
-	// here does not initialize the static fields of the class, instead it
-	// redirect the corresponding fields in the object to the global_defs_p
-	Vector fields=cn.getFieldVec();
-
-	for(int i=0; i<fields.size(); i++) {
-	  FieldDescriptor fd=(FieldDescriptor)fields.get(i);
-	  if(fd.isStatic()) {
-	    // static field
-	    output.println(generateTemp(fm,fm.getParameter(0))+"->"+fd.getSafeSymbol()+"=&(global_defs_p->"+fd.getSafeSymbol()+");");
-	  }
-	}
-      }
     }
 
     generateCode(fm.getNext(0), fm, null, output);
@@ -1915,8 +1924,10 @@ public class BuildCode {
   public void generateFlatOffsetNode(FlatMethod fm, FlatOffsetNode fofn, PrintWriter output) {
     output.println("/* FlatOffsetNode */");
     FieldDescriptor fd=fofn.getField();
+    if(!fd.isStatic() && !fd.isVolatile()) {
     output.println(generateTemp(fm, fofn.getDst())+ " = (short)(int) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+
                    fd.getSafeSymbol()+");");
+    }
     output.println("/* offset */");
   }
 
@@ -2029,7 +2040,7 @@ public class BuildCode {
       if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
 	// call MonitorEnter/MonitorExit on a class obj
 	output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-	               +md.getSafeMethodDescriptor() + "((struct ___Object___*)(&global_defs_p->"
+	               +md.getSafeMethodDescriptor() + "((struct ___Object___*)(global_defs_p->"
 	               + fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj));");
 	return;
       }
@@ -2175,7 +2186,7 @@ public class BuildCode {
   protected void generateFlatFieldNode(FlatMethod fm, FlatFieldNode ffn, PrintWriter output) {
     if(state.MGC) {
       // TODO add version for normal Java later
-      if(ffn.getField().isStatic()) {
+      if(ffn.getField().isStatic() || ffn.getField().isVolatile()) {
 	// static field
 	if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
 	  // is a static block or is invoked in some static block
@@ -2202,7 +2213,7 @@ public class BuildCode {
 	  }
 	}
 	// redirect to the global_defs_p structure
-	if((ffn.getField().isStatic()) || (ffn.getSrc().getType().isClassNameRef())) {
+	if((ffn.getField().isStatic()) || (ffn.getField().isVolatile()) || (ffn.getSrc().getType().isClassNameRef())) {
 	  // reference to the static field with Class name
 	  output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
 	} else {
@@ -2267,7 +2278,7 @@ public class BuildCode {
 	  }
 	}
 	// redirect to the global_defs_p structure
-	if(fsfn.getDst().getType().isClassNameRef()) {
+	if((fsfn.getDst().getType().isClassNameRef()) || (fsfn.getField().isStatic()) || (fsfn.getField().isVolatile())) {
 	  // reference to the static field with Class name
 	  output.println("global_defs_p->" +
 	                 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");

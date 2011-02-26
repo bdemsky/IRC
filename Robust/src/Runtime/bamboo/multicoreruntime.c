@@ -18,6 +18,7 @@
 extern int classsize[];
 extern int typearray[];
 extern int typearray2[];
+extern int* supertypes[];
 
 #ifdef TASK
 extern struct genhashtable * activetasks;
@@ -34,20 +35,39 @@ int debugtask=0;
 int corenum = 0;
 #endif
 
+int instanceofif(int otype, int type) {
+  if(otype == type) {
+	return 1;
+  }
+  int num = supertypes[otype][0];
+  for(int i = 1; i < num + 1; i++) {
+	int t = supertypes[otype][i];
+	if(instanceofif(t, type) == 1) {
+	  return 1;
+	}
+  }
+  return 0;
+}
+
 int instanceof(struct ___Object___ *ptr, int type) {
   int i=ptr->type;
-  do {
+  /*do {
     if (i==type)
       return 1;
     i=typearray[i];
   } while(i!=-1);
-  i=ptr->type;
+  i=ptr->type;*/
+  /*if(instanceofif(i, type) == 1) {
+	return 1;
+  }*/
   if (i>NUMCLASSES) {
     do {
       if (i==type)
 	return 1;
       i=typearray2[i-NUMCLASSES];
     } while(i!=-1);
+  } else {
+	return instanceofif(i, type);
   }
   return 0;
 }

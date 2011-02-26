@@ -23,6 +23,7 @@ public class ClassDescriptor extends Descriptor {
   // for interfaces
   Vector<String> superinterfaces;
   SymbolTable superIFdesc;
+  private boolean isInterface;
   
   // for inner classes
   boolean isInnerClass=false;
@@ -49,11 +50,8 @@ public class ClassDescriptor extends Descriptor {
     fields=new SymbolTable();
     fieldvec=new Vector();
     methods=new SymbolTable();
-    if(isInterface) {
-      classid = -2;
-    } else {
-      classid=UIDCount++;
-    }
+    this.isInterface = isInterface;
+    classid=UIDCount++;
     this.packagename=packagename;
     superinterfaces = new Vector<String>();
     superIFdesc = new SymbolTable();
@@ -282,7 +280,7 @@ public class ClassDescriptor extends Descriptor {
   }
   
   public boolean isInterface() {
-    return this.classid == -2;
+    return this.isInterface;
   }
   
   public boolean isStatic() {
