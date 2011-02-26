@@ -10,7 +10,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.Vector;
 
-import Analysis.Locality.LocalityBinding;
 import Analysis.Scheduling.Schedule;
 import Analysis.TaskStateAnalysis.FEdge;
 import Analysis.TaskStateAnalysis.FlagState;
@@ -50,8 +49,8 @@ public class BuildCodeMultiCore extends BuildCode {
   String otqueueprefix = "___otqueue";
   int startupcorenum;    // record the core containing startup task, suppose only one core can hava startup object
 
-  private OwnershipAnalysis m_oa;
-  private Vector<Vector<Integer>> m_aliasSets;
+  protected OwnershipAnalysis m_oa;
+  protected Vector<Vector<Integer>> m_aliasSets;
   Hashtable<Integer, Vector<FlatNew>> m_aliasFNTbl4Para;
   Hashtable<FlatNew, Vector<FlatNew>> m_aliasFNTbl;
   Hashtable<FlatNew, Vector<Integer>> m_aliaslocksTbl4FN;
@@ -62,9 +61,8 @@ public class BuildCodeMultiCore extends BuildCode {
 	                    SafetyAnalysis sa, 
 	                    Vector<Schedule> scheduling, 
 	                    int coreNum, 
-                        int gcoreNum,
-	                    PrefetchAnalysis pa) {
-    super(st, temptovar, typeutil, sa, pa);
+			    int gcoreNum) {
+    super(st, temptovar, typeutil, sa);
     this.scheduling = scheduling;
     this.coreNum = coreNum; // # of the active cores
     this.tcoreNum = coreNum;  // # of the cores setup by users
@@ -135,10 +133,11 @@ public class BuildCodeMultiCore extends BuildCode {
     FieldShadow.handleFieldShadow(state);
 
     /* Build the virtual dispatch tables */
-    super.buildVirtualTables(outvirtual);
+
+    buildVirtualTables(outvirtual);
     
     /* Tag the methods that are invoked by static blocks */
-    super.tagMethodInvokedByStaticBlock();
+    tagMethodInvokedByStaticBlock();
 
     /* Output includes */
     outmethodheader.println("#ifndef METHODHEADERS_H");
@@ -148,20 +147,20 @@ public class BuildCodeMultiCore extends BuildCode {
         outmethodheader.println("#include \"dstm.h\"");*/
 
     /* Output Structures */
-    super.outputStructs(outstructs);
+    outputStructs(outstructs);
 
     // Output the C class declarations
     // These could mutually reference each other
     outclassdefs.println("#ifndef __CLASSDEF_H_");
     outclassdefs.println("#define __CLASSDEF_H_");
-    super.outputClassDeclarations(outclassdefs, outglobaldefs);
+    outputClassDeclarations(outclassdefs, outglobaldefs);
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     int numclasses = this.state.numClasses();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
-      super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
+      generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
     }
     outclassdefs.println("#endif");
     outclassdefs.close();
@@ -172,7 +171,7 @@ public class BuildCodeMultiCore extends BuildCode {
       it=state.getClassSymbolTable().getDescriptorsIterator();
       while(it.hasNext()) {
 	ClassDescriptor cn=(ClassDescriptor)it.next();
-	super.mapFlags(cn);
+	mapFlags(cn);
       }
       /* Generate Tasks */
       generateTaskStructs(outstructs, outmethodheader);
@@ -183,7 +182,7 @@ public class BuildCodeMultiCore extends BuildCode {
     }
 
     /* Build the actual methods */
-    super.outputMethods(outmethod);
+    outputMethods(outmethod);
 
     if (state.TASK) {
       Iterator[] taskits = new Iterator[this.coreNum];
@@ -346,7 +345,7 @@ public class BuildCodeMultiCore extends BuildCode {
    * passed in (when PRECISE GC is enabled) and (2) function
    * prototypes for the tasks */
 
-  private void generateTaskStructs(PrintWriter output, 
+  protected void generateTaskStructs(PrintWriter output, 
 	                           PrintWriter headersout) {
     /* Cycle through tasks */
     for(int i = 0; i < this.scheduling.size(); ++i) {
@@ -358,7 +357,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	/* Classify parameters */
 	TaskDescriptor task=taskit.next();
 	FlatMethod fm=state.getMethodFlat(task);
-	super.generateTempStructs(fm, null);
+	generateTempStructs(fm);
 
 	ParamsObject objectparams=(ParamsObject) paramstable.get(task);
 	TempObject objecttemps=(TempObject) tempstable.get(task);
@@ -412,7 +411,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
   /* This method outputs code for each task. */
 
-  private void outputTaskCode(PrintWriter outtaskdefs, 
+  protected void outputTaskCode(PrintWriter outtaskdefs, 
 	                          PrintWriter outmethod, 
 	                          PrintWriter outtask, 
 	                          Iterator[] taskits, 
@@ -435,7 +434,7 @@ public class BuildCodeMultiCore extends BuildCode {
     while(taskit.hasNext()) {
       TaskDescriptor td=taskit.next();
       FlatMethod fm=state.getMethodFlat(td);
-      generateTaskMethod(fm, null, outmethod);
+      generateTaskMethod(fm, outmethod);
       generateTaskDescriptor(outtaskdefs, outtask, fm, td, qnames);
     }
 
@@ -486,7 +485,7 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   /** Prints out definitions for generic task structures */
-  private void outputTaskTypes(PrintWriter outtask) {
+  protected void outputTaskTypes(PrintWriter outtask) {
     outtask.println("#ifndef _TASK_H");
     outtask.println("#define _TASK_H");
     outtask.println("#include \"ObjectHash.h\"");
@@ -554,7 +553,7 @@ public class BuildCodeMultiCore extends BuildCode {
     outtask.println();
   }
 
-  private void generateObjectTransQueues(PrintWriter output) {
+  protected void generateObjectTransQueues(PrintWriter output) {
     if(this.fsate2qnames == null) {
       this.fsate2qnames = new Hashtable[this.coreNum];
       for(int i = 0; i < this.fsate2qnames.length; ++i) {
@@ -598,22 +597,18 @@ public class BuildCodeMultiCore extends BuildCode {
     output.println();
   }
 
-  private void generateTaskMethod(FlatMethod fm, 
-	                              LocalityBinding lb, 
-	                              PrintWriter output) {
+  protected void generateTaskMethod(FlatMethod fm, 
+				  PrintWriter output) {
     /*if (State.PRINTFLAT)
         System.out.println(fm.printMethod());*/
     TaskDescriptor task=fm.getTask();
     assert(task != null);
     int num = this.currentSchedule.getCoreNum();
 
-    //ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null?lb:task);
-    generateTaskHeader(fm, lb, task,output);
+    //ParamsObject objectparams=(ParamsObject)paramstable.get(task);
+    generateTaskHeader(fm, task,output);
 
-    TempObject objecttemp=(TempObject) tempstable.get(lb!=null ? lb : task);
-    /*if (state.DSM&&lb.getHasAtomic()) {
-        output.println("transrecord_t * trans;");
-       }*/
+    TempObject objecttemp=(TempObject) tempstable.get(task);
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("   struct "+task.getCoreSafeSymbol(num)+"_locals "+localsprefix+"={");
@@ -640,26 +635,19 @@ public class BuildCodeMultiCore extends BuildCode {
 
     for(int i = 0; i < fm.numParameters(); ++i) {
       TempDescriptor temp = fm.getParameter(i);
-      output.println("   int "+generateTempFlagName(fm, temp, lb)+" = "+super.generateTemp(fm, temp, lb)+
+      output.println("   int "+generateTempFlagName(fm, temp)+" = "+generateTemp(fm, temp)+
                      "->flag;");
     }
 
     /* Assign labels to FlatNode's if necessary.*/
 
-    Hashtable<FlatNode, Integer> nodetolabel=super.assignLabels(fm);
+    Hashtable<FlatNode, Integer> nodetolabel=assignLabels(fm, null);
 
     /* Check to see if we need to do a GC if this is a
      * multi-threaded program...*/
     if(this.state.MULTICOREGC) {
       output.println("if(gcflag) gc("+localsprefixaddr+");");
     }
-
-    /*if ((state.THREAD||state.DSM)&&GENERATEPRECISEGC) {
-        if (state.DSM&&lb.isAtomic())
-            output.println("checkcollect2(&"+localsprefix+",trans);");
-        else
-            output.println("checkcollect(&"+localsprefix+");");
-       }*/
 
     /* Create queues to store objects need to be transferred to other cores and their destination*/
     //output.println("   struct Queue * totransobjqueue = createQueue();");
@@ -670,7 +658,7 @@ public class BuildCodeMultiCore extends BuildCode {
     this.m_aliasFNTbl4Para = null;
     this.m_aliasFNTbl = null;
     this.m_aliaslocksTbl4FN = null;
-    outputAliasLockCode(fm, lb, output);
+    outputAliasLockCode(fm, output);
 
     /* generate print information for RAW version */
     output.println("#ifdef MULTICORE");
@@ -712,7 +700,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
     for(int i = 0; i < fm.numParameters(); ++i) {
       TempDescriptor temp = fm.getParameter(i);
-      output.println("   ++" + super.generateTemp(fm, temp, lb)+"->version;");
+      output.println("   ++" + generateTemp(fm, temp)+"->version;");
     }
 
     /* Do the actual code generation */
@@ -737,7 +725,7 @@ public class BuildCodeMultiCore extends BuildCode {
          }*/
       if (current_node.numNext()==0) {
 	output.print("   ");
-	super.generateFlatNode(fm, lb, current_node, output);
+	generateFlatNode(fm, current_node, output);
 	if (current_node.kind()!=FKind.FlatReturnNode) {
 	  //output.println("   flushAll();");
 	  output.println("#ifdef CACHEFLUSH");
@@ -757,7 +745,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	current_node=null;
       } else if(current_node.numNext()==1) {
 	output.print("   ");
-	super.generateFlatNode(fm, lb, current_node, output);
+	generateFlatNode(fm, current_node, output);
 	FlatNode nextnode=current_node.getNext(0);
 	if (visited.contains(nextnode)) {
 	  output.println("goto L"+nodetolabel.get(nextnode)+";");
@@ -767,7 +755,7 @@ public class BuildCodeMultiCore extends BuildCode {
       } else if (current_node.numNext()==2) {
 	/* Branch */
 	output.print("   ");
-	super.generateFlatCondBranch(fm, lb, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
+	generateFlatCondBranch(fm, (FlatCondBranch)current_node, "L"+nodetolabel.get(current_node.getNext(1)), output);
 	if (!visited.contains(current_node.getNext(1)))
 	  tovisit.add(current_node.getNext(1));
 	if (visited.contains(current_node.getNext(0))) {
@@ -782,7 +770,7 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   /** This method outputs TaskDescriptor information */
-  private void generateTaskDescriptor(PrintWriter output, 
+  protected void generateTaskDescriptor(PrintWriter output, 
 	                              PrintWriter outtask, 
 	                              FlatMethod fm, 
 	                              TaskDescriptor task, 
@@ -916,12 +904,11 @@ public class BuildCodeMultiCore extends BuildCode {
   /** This method generates header information for the task
    *  referenced by the Descriptor des. */
 
-  private void generateTaskHeader(FlatMethod fm, 
-	                          LocalityBinding lb, 
+  protected void generateTaskHeader(FlatMethod fm, 
 	                          Descriptor des, 
 	                          PrintWriter output) {
     /* Print header */
-    ParamsObject objectparams=(ParamsObject)paramstable.get(lb!=null ? lb : des);
+    ParamsObject objectparams=(ParamsObject)paramstable.get(des);
     TaskDescriptor task=(TaskDescriptor) des;
 
     int num = this.currentSchedule.getCoreNum();
@@ -934,13 +921,6 @@ public class BuildCodeMultiCore extends BuildCode {
       output.print("struct "+task.getCoreSafeSymbol(num)+"_params * "+paramsprefix);
       printcomma=true;
     }
-
-    /*if (state.DSM&&lb.isAtomic()) {
-        if (printcomma)
-            output.print(", ");
-        output.print("transrecord_t * trans");
-        printcomma=true;
-       }*/
 
     if (!GENERATEPRECISEGC && !this.state.MULTICOREGC) {
       /* Imprecise Task */
@@ -963,13 +943,12 @@ public class BuildCodeMultiCore extends BuildCode {
 
   protected void generateFlagOrAnd(FlatFlagActionNode ffan, 
 	                           FlatMethod fm, 
-	                           LocalityBinding lb, 
 	                           TempDescriptor temp,
                                    PrintWriter output, 
                                    int ormask, 
                                    int andmask) {
     if (ffan.getTaskType()==FlatFlagActionNode.NEWOBJECT) {
-      output.println("flagorandinit("+super.generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
+      output.println("flagorandinit("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+", 0x"+Integer.toHexString(andmask)+");");
     } else {
       int num = this.currentSchedule.getCoreNum();
       ClassDescriptor cd = temp.getType().getClassDesc();
@@ -978,7 +957,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	FlagState tmpFState = initfstates.elementAt(i);
 	output.println("{");
 	QueueInfo qinfo = outputqueues(tmpFState, num, output, false);
-	output.println("flagorand("+super.generateTemp(fm, temp, lb)+", 0x"+Integer.toHexString(ormask)+
+	output.println("flagorand("+generateTemp(fm, temp)+", 0x"+Integer.toHexString(ormask)+
 	               ", 0x"+Integer.toHexString(andmask)+", " + qinfo.qname +
 	               ", " + qinfo.length + ");");
 	output.println("}");
@@ -994,7 +973,6 @@ public class BuildCodeMultiCore extends BuildCode {
 
   protected void generateObjectDistribute(FlatFlagActionNode ffan, 
 	                                      FlatMethod fm, 
-	                                      LocalityBinding lb, 
 	                                      TempDescriptor temp,
                                           PrintWriter output) {
     ClassDescriptor cd = temp.getType().getClassDesc();
@@ -1034,7 +1012,7 @@ public class BuildCodeMultiCore extends BuildCode {
       for(int j = 0; j < targetFStates.length; ++j) {
 	if(initfstates != null) {
 	  FlagState fs = initfstates.elementAt(j);
-	  output.println("if(" + generateTempFlagName(fm, temp, lb) + "&(0x" + Integer.toHexString(fs.getAndmask())
+	  output.println("if(" + generateTempFlagName(fm, temp) + "&(0x" + Integer.toHexString(fs.getAndmask())
 	                 + ")==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
 	}
 	Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
@@ -1043,7 +1021,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	  // TODO
 	  // may have bugs here
 	  output.println("/* reside on this core*");
-	  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+	  output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
 	}
 	if(initfstates != null) {
 	  output.println("}");
@@ -1058,7 +1036,7 @@ public class BuildCodeMultiCore extends BuildCode {
       FlagState fs = null;
       if(initfstates != null) {
 	fs = initfstates.elementAt(j);
-	output.println("if((" + generateTempFlagName(fm, temp, lb) + "&(0x" + Integer.toHexString(fs.getAndmask())
+	output.println("if((" + generateTempFlagName(fm, temp) + "&(0x" + Integer.toHexString(fs.getAndmask())
 	               + "))==(0x" + Integer.toHexString(fs.getCheckmask()) + ")) {");
       }
       Vector<FlagState> tmpfstates = (Vector<FlagState>)targetFStates[j];
@@ -1100,21 +1078,21 @@ public class BuildCodeMultiCore extends BuildCode {
 		if(isolate) {
 		  output.println("{");
 		  QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
-		  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname +
+		  output.println("enqueueObject("+generateTemp(fm, temp)+", " + qinfo.qname +
 		                 ", " + qinfo.length + ");");
 		  output.println("}");
 		} /*else {
 		  // TODO
 		  // really needed?
 		  output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-		  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+		  output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
 		}*/  // deleted 09/07/06, multi-param tasks are pinned to one core now
 	      } else {
 		/*if(!isolate) {
 		  // TODO
 		  // Is it possible to decide the actual queues?
 		  output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-		  output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+		  output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
 		}*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
 		output.println("/* transfer to core " + targetcore.toString() + "*/");
 		output.println("{");
@@ -1122,7 +1100,7 @@ public class BuildCodeMultiCore extends BuildCode {
 		// all the possible queues
 		QueueInfo qinfo = null;
 		TranObjInfo tmpinfo = new TranObjInfo();
-		tmpinfo.name = super.generateTemp(fm, temp, lb);
+		tmpinfo.name = generateTemp(fm, temp);
 		tmpinfo.targetcore = targetcore;
 		FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 		if(targetFS != null) {
@@ -1147,7 +1125,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	      // TODO
 	      // Is it possible to decide the actual queues?
 	      output.println("/* possibly needed by multi-parameter tasks on this core*//*");
-	      output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+	      output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
 	    }*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
 	    output.println("/* transfer to core " + targetcore.toString() + "*/");
 	    output.println("{");
@@ -1155,7 +1133,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	    // all the possible queues
 	    QueueInfo qinfo = null;
 	    TranObjInfo tmpinfo = new TranObjInfo();
-	    tmpinfo.name = super.generateTemp(fm, temp, lb);
+	    tmpinfo.name = generateTemp(fm, temp);
 	    tmpinfo.targetcore = targetcore;
 	    FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 	    if(targetFS != null) {
@@ -1180,13 +1158,13 @@ public class BuildCodeMultiCore extends BuildCode {
 	  if(isolate) {
 	    output.println("{");
 	    QueueInfo qinfo = outputqueues(tmpFState, num, output, true);
-	    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", " + qinfo.qname +
+	    output.println("enqueueObject("+generateTemp(fm, temp)+", " + qinfo.qname +
 	                   ", " + qinfo.length + ");");
 	    output.println("}");
 	  } /*else {
 	    // TODO
 	    // really needed?
-	    output.println("enqueueObject("+super.generateTemp(fm, temp, lb)+", NULL, 0);");
+	    output.println("enqueueObject("+generateTemp(fm, temp)+", NULL, 0);");
 	  }*/ // deleted 09/07/06, multi-param tasks are pinned to one core now
 	}
 
@@ -1209,7 +1187,7 @@ public class BuildCodeMultiCore extends BuildCode {
 	    // all the possible queues
 	    QueueInfo qinfo = null;
 	    TranObjInfo tmpinfo = new TranObjInfo();
-	    tmpinfo.name = super.generateTemp(fm, temp, lb);
+	    tmpinfo.name = generateTemp(fm, temp);
 	    tmpinfo.targetcore = targetcore;
 	    FlagState targetFS = this.currentSchedule.getTargetFState(tmpFState);
 	    if(targetFS != null) {
@@ -1237,7 +1215,7 @@ public class BuildCodeMultiCore extends BuildCode {
     }
   }
 
-  private QueueInfo outputqueues(FlagState tmpFState, 
+  protected QueueInfo outputqueues(FlagState tmpFState, 
 	                         int num, 
 	                         PrintWriter output, 
 	                         boolean isEnqueue) {
@@ -1274,7 +1252,7 @@ public class BuildCodeMultiCore extends BuildCode {
     return qinfo;
   }
 
-  private QueueInfo outputtransqueues(FlagState tmpFState, 
+  protected QueueInfo outputtransqueues(FlagState tmpFState, 
 	                              int targetcore, 
 	                              PrintWriter output) {
     // queue array
@@ -1313,17 +1291,16 @@ public class BuildCodeMultiCore extends BuildCode {
     return qinfo;
   }
 
-  private class QueueInfo {
+  protected class QueueInfo {
     public int length;
     public String qname;
   }
 
-  private String generateTempFlagName(FlatMethod fm, 
-	                              TempDescriptor td, 
-	                              LocalityBinding lb) {
+  protected String generateTempFlagName(FlatMethod fm, 
+	                              TempDescriptor td) {
     MethodDescriptor md=fm.getMethod();
     TaskDescriptor task=fm.getTask();
-    TempObject objecttemps=(TempObject) tempstable.get(lb!=null ? lb : md!=null ? md : task);
+    TempObject objecttemps=(TempObject) tempstable.get(md!=null ? md : task);
 
     if (objecttemps.isLocalPrim(td)||objecttemps.isParamPrim(td)) {
       return td.getSafeSymbol() + "_oldflag";
@@ -1350,7 +1327,6 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   protected void outputAliasLockCode(FlatMethod fm, 
-	                                 LocalityBinding lb, 
 	                                 PrintWriter output) {
     if(this.m_oa == null) {
       return;
@@ -1538,7 +1514,7 @@ public class BuildCodeMultiCore extends BuildCode {
         output.println("void * tmpptrs_" + lockindex + "[] = {");
         for(int j = 0; j < toadd.size(); j++) {
           int para = toadd.elementAt(j).intValue();
-          output.print(super.generateTemp(fm, fm.getParameter(para), lb));
+          output.print(generateTemp(fm, fm.getParameter(para)));
           if(j < toadd.size() - 1) {
             output.print(", ");
           } else {
@@ -1549,7 +1525,7 @@ public class BuildCodeMultiCore extends BuildCode {
 
         for(int j = 0; j < toadd.size(); j++) {
           int para = toadd.elementAt(j).intValue();
-          output.println("addAliasLock("  + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + i + "]);");
+          output.println("addAliasLock("  + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + i + "]);");
         }
         // check if this lock is also associated with any FlatNew nodes
         if(this.m_aliasFNTbl4Para.containsKey(toadd.elementAt(0))) {
@@ -1573,10 +1549,10 @@ public class BuildCodeMultiCore extends BuildCode {
       for(int i = 0; i < key.length; i++) {
 	int para = ((Integer)key[i]).intValue();
 
-	output.println("void * tmpptrs_" + lockindex + "[] = {" + super.generateTemp(fm, fm.getParameter(para), lb) + "};");
+	output.println("void * tmpptrs_" + lockindex + "[] = {" + generateTemp(fm, fm.getParameter(para)) + "};");
 	output.println("aliaslocks[tmpi++] = getAliasLock(tmpptrs_" + lockindex + ", 1, lockRedirectTbl);");
 	
-	output.println("addAliasLock(" + super.generateTemp(fm, fm.getParameter(para), lb) + ", aliaslocks[" + lockindex + "]);");
+	output.println("addAliasLock(" + generateTemp(fm, fm.getParameter(para)) + ", aliaslocks[" + lockindex + "]);");
 	Vector<FlatNew> tmpv = this.m_aliasFNTbl4Para.get(para);
 	for(int j = 0; j < tmpv.size(); j++) {
 	  FlatNew fn = tmpv.elementAt(j);
@@ -1619,14 +1595,13 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   protected void generateFlatReturnNode(FlatMethod fm, 
-	                                LocalityBinding lb, 
 	                                FlatReturnNode frn, 
 	                                PrintWriter output) {
     if (frn.getReturnTemp()!=null) {
       if (frn.getReturnTemp().getType().isPtr())
-	output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp(), lb)+";");
+	output.println("return (struct "+fm.getMethod().getReturnType().getSafeSymbol()+"*)"+generateTemp(fm, frn.getReturnTemp())+";");
       else
-	output.println("return "+generateTemp(fm, frn.getReturnTemp(), lb)+";");
+	output.println("return "+generateTemp(fm, frn.getReturnTemp())+";");
     } else {
       if(fm.getTask() != null) {
 	output.println("#ifdef CACHEFLUSH");
@@ -1647,57 +1622,45 @@ public class BuildCodeMultiCore extends BuildCode {
   }
 
   protected void generateFlatNew(FlatMethod fm, 
-	                         LocalityBinding lb, 
 	                         FlatNew fn,
                                  PrintWriter output) {
-    if (state.DSM && locality.getAtomic(lb).get(fn).intValue() > 0
-        && !fn.isGlobal()) {
-      // Stash pointer in case of GC
-      String revertptr = super.generateTemp(fm, reverttable.get(lb), lb);
-      output.println(revertptr + "=trans->revertlist;");
-    }
     if (fn.getType().isArray()) {
       int arrayid = state.getArrayNumber(fn.getType())
                     + state.numClasses();
       if (fn.isGlobal()) {
-	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	output.println(generateTemp(fm, fn.getDst())
 	               + "=allocate_newarrayglobal(trans, " + arrayid + ", "
-	               + super.generateTemp(fm, fn.getSize(), lb) + ");");
+	               + generateTemp(fm, fn.getSize()) + ");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	output.println(generateTemp(fm, fn.getDst())
 	               + "=allocate_newarray(&" + localsprefix + ", "
-	               + arrayid + ", " + super.generateTemp(fm, fn.getSize(), lb)
+	               + arrayid + ", " + generateTemp(fm, fn.getSize())
 	               + ");");
       } else {
-	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	output.println(generateTemp(fm, fn.getDst())
 	               + "=allocate_newarray(" + arrayid + ", "
-	               + super.generateTemp(fm, fn.getSize(), lb) + ");");
+	               + generateTemp(fm, fn.getSize()) + ");");
       }
     } else {
       if (fn.isGlobal()) {
-	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	output.println(generateTemp(fm, fn.getDst())
 	               + "=allocate_newglobal(trans, "
 	               + fn.getType().getClassDesc().getId() + ");");
       } else if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	output.println(generateTemp(fm, fn.getDst())
 	               + "=allocate_new(&" + localsprefix + ", "
 	               + fn.getType().getClassDesc().getId() + ");");
       } else {
-	output.println(super.generateTemp(fm, fn.getDst(), lb)
+	output.println(generateTemp(fm, fn.getDst())
 	               + "=allocate_new("
 	               + fn.getType().getClassDesc().getId() + ");");
       }
-    }
-    if (state.DSM && locality.getAtomic(lb).get(fn).intValue() > 0
-        && !fn.isGlobal()) {
-      String revertptr = super.generateTemp(fm, reverttable.get(lb), lb);
-      output.println("trans->revertlist=" + revertptr + ";");
     }
     // create alias lock if necessary
     if((this.m_aliaslocksTbl4FN != null) && (this.m_aliaslocksTbl4FN.containsKey(fn))) {
       Vector<Integer> tmpv = this.m_aliaslocksTbl4FN.get(fn);
       for(int i = 0; i < tmpv.size(); i++) {
-	output.println("addAliasLock(" + super.generateTemp(fm, fn.getDst(), lb) + ", aliaslocks[" + tmpv.elementAt(i).intValue() + "]);");
+	output.println("addAliasLock(" + generateTemp(fm, fn.getDst()) + ", aliaslocks[" + tmpv.elementAt(i).intValue() + "]);");
       }
     }
     // generate codes for profiling, recording how many new objects are created
@@ -1716,7 +1679,7 @@ public class BuildCodeMultiCore extends BuildCode {
     public FlagState fs;
   }
 
-  private boolean contains(Vector<TranObjInfo> sendto, 
+  protected boolean contains(Vector<TranObjInfo> sendto, 
 	                   TranObjInfo t) {
     if(sendto.size() == 0) {
       return false;

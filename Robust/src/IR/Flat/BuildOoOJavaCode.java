@@ -7,11 +7,9 @@ import java.io.*;
 
 import Util.*;
 import Analysis.TaskStateAnalysis.*;
-import Analysis.Locality.*;
 import Analysis.CallGraph.*;
 import Analysis.Disjoint.*;
 import Analysis.OoOJava.*;
-import Analysis.Prefetch.*;
 import Analysis.Loops.*;
 import Analysis.Locality.*;
 
@@ -34,11 +32,10 @@ public class BuildOoOJavaCode extends BuildCode {
                            Hashtable        temptovar, 
                            TypeUtil         typeutil, 
                            SafetyAnalysis   sa, 
-                           PrefetchAnalysis pa, 
                            OoOJavaAnalysis  oooa
                            ) {
 
-    super( st, temptovar, typeutil, sa, pa );
+    super( st, temptovar, typeutil, sa);
 
     this.oooa = oooa;
   }
@@ -175,7 +172,7 @@ public class BuildOoOJavaCode extends BuildCode {
       
     while( seseit.hasNext() ) {
       FlatSESEEnterNode fsen = seseit.next();
-      generateMethodSESE( fsen, null, outstructs, outmethodheader, outmethod );
+      generateMethodSESE( fsen, outstructs, outmethodheader, outmethod );
     }
 
     // then write the invokeSESE switch to decouple scheduler
@@ -306,11 +303,9 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   protected void generateMethodSESE(FlatSESEEnterNode fsen,
-                                    LocalityBinding   lb,
                                     PrintWriter       outputStructs,
                                     PrintWriter       outputMethHead,
-                                    PrintWriter       outputMethods
-                                    ) {
+                                    PrintWriter       outputMethods) {
 
     ParamsObject objectparams = (ParamsObject) paramstable.get( fsen.getmdBogus() );                
     TempObject   objecttemps  = (TempObject)   tempstable .get( fsen.getmdBogus() );
@@ -626,7 +621,7 @@ public class BuildOoOJavaCode extends BuildCode {
       TempDescriptor temp = tempItr.next();
       VariableSourceToken vst = fsen.getStaticInVarSrc( temp );
       SESEandAgePair srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
-      output.println("   "+generateTemp( fsen.getfmBogus(), temp, null )+
+      output.println("   "+generateTemp( fsen.getfmBogus(), temp)+
 		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
     }
     
@@ -661,7 +656,7 @@ public class BuildOoOJavaCode extends BuildCode {
 	typeStr = type.getSafeSymbol();
       }
       
-      output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
+      output.println("     "+generateTemp( fsen.getfmBogus(), temp)+
 		     " = *(("+typeStr+"*) ((void*)"+
 		     paramsprefix+"->"+temp+"_srcSESE + "+
 		     paramsprefix+"->"+temp+"_srcOffset));");
@@ -673,7 +668,7 @@ public class BuildOoOJavaCode extends BuildCode {
 
       // or if the source was our parent, its already in our record to grab
       output.println("   } else {");
-      output.println("     "+generateTemp( fsen.getfmBogus(), temp, null )+
+      output.println("     "+generateTemp( fsen.getfmBogus(), temp)+
 		           " = "+paramsprefix+"->"+temp+";");
       output.println("   }");
     }
@@ -700,7 +695,7 @@ public class BuildOoOJavaCode extends BuildCode {
 
     HashSet<FlatNode> exitset=new HashSet<FlatNode>();
     exitset.add(seseExit);    
-    generateCode(fsen.getNext(0), fm, null, exitset, output, true);
+    generateCode(fsen.getNext(0), fm, exitset, output);
     output.println("}\n\n");    
   }
 
@@ -808,7 +803,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("     if(!atomic_sub_and_test(localCount, &(stallrecord->common.unresolvedDependencies))) {");
     //have to do fine-grained work also
     output.println("       stallrecord->___obj___=(struct ___Object___ *)"
-		   + generateTemp(fm, stalltd, null) + ";");
+		   + generateTemp(fm, stalltd) + ";");
     output.println("       stallrecord->common.classID=-"
 		   + rcr.getTraverserID(stalltd, fn) + ";");
     
@@ -845,7 +840,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   protected void additionalCodePreNode( FlatMethod      fm, 
-                                        LocalityBinding lb, 
                                         FlatNode        fn, 
                                         PrintWriter     output ) {
     // insert pre-node actions from the code plan
@@ -910,7 +904,7 @@ public class BuildOoOJavaCode extends BuildCode {
         Iterator<TempDescriptor> tdItr = cp.getCopySet( vst ).iterator();
         while( tdItr.hasNext() ) {
           TempDescriptor td = tdItr.next();
-          output.println("       "+generateTemp( fmContext, td, null )+
+          output.println("       "+generateTemp( fmContext, td)+
                          " = child->"+vst.getAddrVar().getSafeSymbol()+";");
         }
 
@@ -961,7 +955,7 @@ public class BuildOoOJavaCode extends BuildCode {
           typeStr = type.getSafeSymbol();
         }
       
-        output.println("       "+generateTemp( fmContext, dynVar, null )+
+        output.println("       "+generateTemp( fmContext, dynVar )+
                        " = *(("+typeStr+"*) ((void*)"+
                        dynVar+"_srcSESE + "+dynVar+"_srcOffset));");
 
@@ -1073,7 +1067,7 @@ public class BuildOoOJavaCode extends BuildCode {
               output.println("       rentry=mlpCreateFineREntry(runningSESE->memoryQueueArray["
                              + waitingElement.getQueueID() + "]," + waitingElement.getStatus()
                              + ", runningSESE,  (void*)&"
-                             + generateTemp(fm, waitingElement.getTempDesc(), lb) + ");");
+                             + generateTemp(fm, waitingElement.getTempDesc()) + ");");
             }
             output.println("       rentry->parentStallSem=&runningSESEstallSem;");
             output.println("       psem_reset( &runningSESEstallSem);");
@@ -1110,7 +1104,6 @@ public class BuildOoOJavaCode extends BuildCode {
   
 
   protected void additionalCodePostNode( FlatMethod      fm, 
-                                         LocalityBinding lb, 
                                          FlatNode        fn, 
                                          PrintWriter     output ) {
 
@@ -1119,7 +1112,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   public void generateFlatSESEEnterNode( FlatMethod        fm,  
-					 LocalityBinding   lb, 
 					 FlatSESEEnterNode fsen, 
 					 PrintWriter       output ) {
 
@@ -1251,10 +1243,10 @@ public class BuildOoOJavaCode extends BuildCode {
       FlatSESEEnterNode parent = fsen.getLocalParent();
       if( parent != null && !parent.getIsCallerProxySESE() ) {
 	output.println("     seseToIssue->"+temp+" = "+
-		       generateTemp( parent.getfmBogus(), temp, null )+";");	 
+		       generateTemp( parent.getfmBogus(), temp )+";");	 
       } else {
 	output.println("     seseToIssue->"+temp+" = "+
-		       generateTemp( fsen.getfmEnclosing(), temp, null )+";");
+		       generateTemp( fsen.getfmEnclosing(), temp )+";");
       }
     }
     
@@ -1327,10 +1319,10 @@ public class BuildOoOJavaCode extends BuildCode {
         FlatSESEEnterNode parent = fsen.getLocalParent();
         if( parent != null && !parent.getIsCallerProxySESE() ) {
           output.println("         seseToIssue->"+dynInVar+" = "+
-          		 generateTemp( parent.getfmBogus(), dynInVar, null )+";");
+          		 generateTemp( parent.getfmBogus(), dynInVar )+";");
         } else {
           output.println("         seseToIssue->"+dynInVar+" = "+
-			 generateTemp( fsen.getfmEnclosing(), dynInVar, null )+";");
+			 generateTemp( fsen.getfmEnclosing(), dynInVar )+";");
         }
 	
 	output.println("       }");
@@ -1397,7 +1389,7 @@ public class BuildOoOJavaCode extends BuildCode {
       }
 
       if(state.RCR) {
-        dispatchMEMRC(fm, lb, fsen, output);
+        dispatchMEMRC(fm, fsen, output);
       } else {
 
         // there may be several task types that can get to this
@@ -1554,7 +1546,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   void dispatchMEMRC( FlatMethod        fm,  
-                      LocalityBinding   lb, 
                       FlatSESEEnterNode fsen, 
                       PrintWriter       output ) {
     // NEED TO FIX IT, TODO
@@ -1669,7 +1660,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   public void generateFlatSESEExitNode( FlatMethod       fm,
-					LocalityBinding  lb,
 					FlatSESEExitNode fsexn,
 					PrintWriter      output ) {
 
@@ -1735,9 +1725,9 @@ public class BuildOoOJavaCode extends BuildCode {
       assert !fsen.getIsCallerProxySESE();
       FlatSESEEnterNode parent = fsen.getLocalParent();
       if( parent != null && !parent.getIsCallerProxySESE() ) {
-        from = generateTemp( parent.getfmBogus(),   temp, null );
+        from = generateTemp( parent.getfmBogus(),   temp );
       } else {
-	from = generateTemp( fsen.getfmEnclosing(), temp, null );
+	from = generateTemp( fsen.getfmEnclosing(), temp );
       }
 
       output.println("   "+paramsprefix+
@@ -1902,7 +1892,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
  
   public void generateFlatWriteDynamicVarNode( FlatMethod              fm,  
-					       LocalityBinding         lb, 
 					       FlatWriteDynamicVarNode fwdvn,
 					       PrintWriter             output
 					     ) {
@@ -1952,7 +1941,6 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   protected void generateFlatNew( FlatMethod      fm, 
-                                  LocalityBinding lb, 
                                   FlatNew         fn, 
                                   PrintWriter     output ) {
 
@@ -1960,24 +1948,24 @@ public class BuildOoOJavaCode extends BuildCode {
       int arrayid = state.getArrayNumber( fn.getType() )+state.numClasses();
 
       if( GENERATEPRECISEGC ) {
-        output.println(generateTemp( fm, fn.getDst(), lb )+
+        output.println(generateTemp( fm, fn.getDst())+
                        "=allocate_newarray_mlp("+localsprefixaddr+
-                       ", "+arrayid+", "+generateTemp( fm, fn.getSize(), lb )+
+                       ", "+arrayid+", "+generateTemp( fm, fn.getSize())+
                        ", oid, "+
                        oooa.getDisjointAnalysis().getAllocationSiteFromFlatNew( fn ).getUniqueAllocSiteID()+
                        ");");
         output.println("    oid += oidIncrement;");
       } else {
-	output.println(generateTemp( fm, fn.getDst(), lb )+
+	output.println(generateTemp( fm, fn.getDst())+
                        "=allocate_newarray("+arrayid+
-                       ", "+generateTemp( fm, fn.getSize(), lb )+
+                       ", "+generateTemp( fm, fn.getSize())+
                        ");");
       }
 
     } else {
       // not an array
       if( GENERATEPRECISEGC ) {
-        output.println( generateTemp( fm, fn.getDst(), lb )+
+        output.println( generateTemp( fm, fn.getDst())+
                         "=allocate_new_mlp("+localsprefixaddr+
                         ", "+fn.getType().getClassDesc().getId()+
                         ", oid, "+
@@ -1985,7 +1973,7 @@ public class BuildOoOJavaCode extends BuildCode {
                         ");");
         output.println("    oid += oidIncrement;");        
       } else {
-	output.println( generateTemp( fm, fn.getDst(), lb )+
+	output.println( generateTemp( fm, fn.getDst())+
                         "=allocate_new("+fn.getType().getClassDesc().getId()+
                         ");");
       }

@@ -18,6 +18,7 @@ import IR.Flat.BuildCodeMultiCore;
 import IR.Flat.BuildCodeMGC;
 import IR.Flat.BuildFlat;
 import IR.Flat.BuildCode;
+import IR.Flat.BuildCodeTran;
 import IR.Flat.BuildOoOJavaCode;
 import IR.Flat.Inliner;
 import IR.ClassDescriptor;
@@ -593,8 +594,7 @@ public class Main {
 			                                      sa,
 			                                      scheduling,
 			                                      mcImplSynthesis.getCoreNum(),
-                                                  state.CORENUM4GC,
-			                                      pa);
+							      state.CORENUM4GC);
 		bcm.setOwnershipAnalysis(oa);
 		bcm.buildCode();
 	    }
@@ -613,8 +613,7 @@ public class Main {
                                             sa,
                                             state.CORENUM,
                                             state.CORENUM,
-                                            state.CORENUM4GC,
-                                            pa);
+                                            state.CORENUM4GC);
         bcmgc.buildCode();
       }
     }
@@ -631,12 +630,12 @@ public class Main {
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
-	bc=new BuildCode(state, bf.getMap(), tu, la, pa);
+	bc=new BuildCodeTran(state, bf.getMap(), tu, la, pa);
       } else {
         if( state.OOOJAVA ) {
-          bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, pa, oooa);
+          bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, oooa);
         } else {
-          bc=new BuildCode(state, bf.getMap(), tu, sa, pa);
+          bc=new BuildCode(state, bf.getMap(), tu, sa);
         }
       }
 

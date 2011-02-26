@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 import java.util.Hashtable;
 import java.util.Iterator;
 
-import Analysis.Prefetch.*;
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
 import IR.ClassDescriptor;
 import IR.MethodDescriptor;
@@ -26,9 +25,8 @@ public class BuildCodeMGC extends BuildCode {
                       SafetyAnalysis sa,
                       int coreNum, 
                       int tcoreNum,
-                      int gcoreNum,
-                      PrefetchAnalysis pa) {
-    super(st, temptovar, typeutil, sa, pa);
+                      int gcoreNum) {
+    super(st, temptovar, typeutil, sa);
     this.coreNum = coreNum; // # of the active cores
     this.tcoreNum = tcoreNum; // # of the total number of cores
     this.gcoreNum = gcoreNum; // # of the cores for gc if any
