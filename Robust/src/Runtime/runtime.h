@@ -1,5 +1,6 @@
 #ifndef RUNTIME
 #define RUNTIME
+#include <stdlib.h>
 #ifndef MULTICORE
 #include <setjmp.h>
 extern jmp_buf error_handler;
