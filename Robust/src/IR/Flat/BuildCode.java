@@ -49,6 +49,7 @@ public class BuildCode {
   SafetyAnalysis sa;
   CallGraph callgraph;
   Hashtable<String, ClassDescriptor> printedfieldstbl;
+  int globaldefscount=0;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
     this(st, temptovar, typeutil, null);
@@ -303,7 +304,13 @@ public class BuildCode {
   protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
-
+    if (GENERATEPRECISEGC) {
+      outmethod.println("  global_defs_p->size="+globaldefscount+";");
+      outmethod.println("  for(i=0;i<"+globaldefscount+";i++) {");
+      outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NUL
+L;");
+      outmethod.println("  }");
+    }
     outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
 
@@ -546,6 +553,7 @@ public class BuildCode {
       
       // for each class, create a global object
       outglobaldefs.println("  struct ___Object___ *"+cn.getSafeSymbol()+"classobj;");
+      globaldefscount++;
     }
     outclassdefs.println("");
     //Print out definition for array type
@@ -1287,6 +1295,7 @@ public class BuildCode {
 	    } else {
 	      globaldefout.println("  struct "+fd.getType().getSafeSymbol()+ " * "+fd.getSafeSymbol()+";");
 	    }
+	    globaldefscount++;
 	  }
 	} else if (fd.isVolatile()) {
 	  //volatile field
@@ -1303,12 +1312,11 @@ public class BuildCode {
 	  } else {
 	    globaldefprimout.println("  "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
 	  }
+	  globaldefscount++;
 	}
       } else if (fd.isVolatile()) {
 	//volatile field
-	if(globaldefout != null) {
-	  classdefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
-	}
+	classdefout.println("  volatile "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
       } else
 	classdefout.println("  "+fd.getType().getSafeSymbol()+" "+fd.getSafeSymbol()+";");
     }
