@@ -287,7 +287,28 @@ public class BuildCode {
    * initialization.*/
   protected void outputStaticBlocks(PrintWriter outmethod) {
     //  execute all the static blocks and all the static field initializations
-    // TODO
+        // execute all the static blocks and all the static field initializations
+    SymbolTable sctbl = this.state.getSClassSymbolTable();
+    Iterator it_sclasses = sctbl.getDescriptorsIterator();
+    if(it_sclasses.hasNext()) {
+      outmethod.println("#define MGC_STATIC_INIT_CHECK");
+      while(it_sclasses.hasNext()) {
+        ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
+        MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
+        if(t_md != null) {
+          outmethod.println("   {");
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+            outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+            outmethod.println("0, NULL};");
+            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+          } else {
+            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          }
+          outmethod.println("   }");
+        }
+      }
+      outmethod.println("#undef MGC_STATIC_INIT_CHECK");
+    }
   }
 
   /* This code generates code to create a Class object for each class for
@@ -295,7 +316,18 @@ public class BuildCode {
    * */
   protected void outputClassObjects(PrintWriter outmethod) {
     // for each class, initialize its Class object
-    // TODO
+    SymbolTable ctbl = this.state.getClassSymbolTable();
+    for(Iterator it_classes = ctbl.getDescriptorsIterator();it_classes.hasNext();) {
+      ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
+      outmethod.println(" {");
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+	outmethod.println("    struct garbagelist dummy={0,NULL};");
+	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(&dummy, " + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
+      } else 
+	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new("+typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
+      outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj->type = " + t_cd.getId() + ";");
+      outmethod.println(" }");
+    }
   }
 
   /* This code just generates the main C method for java programs.

@@ -187,31 +187,6 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("}");
   }
   
-  protected void outputStaticBlocks(PrintWriter outmethod) {
-    // execute all the static blocks and all the static field initializations
-    SymbolTable sctbl = this.state.getSClassSymbolTable();
-    Iterator it_sclasses = sctbl.getDescriptorsIterator();
-    if(it_sclasses.hasNext()) {
-      outmethod.println("#define MGC_STATIC_INIT_CHECK");
-      while(it_sclasses.hasNext()) {
-        ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
-        MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
-        if(t_md != null) {
-          outmethod.println("   {");
-          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-            outmethod.print("       struct "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-            outmethod.println("1, NULL};");
-            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-          } else {
-            outmethod.println("     "+t_cd.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-          }
-          outmethod.println("   }");
-        }
-      }
-      outmethod.println("#undef MGC_STATIC_INIT_CHECK");
-    }
-  }
-  
   protected void outputClassObjects(PrintWriter outmethod) {
     // for each class, initialize its Class object
     if(state.MGC) {
