@@ -77,6 +77,8 @@ public class BuildCodeMGC extends BuildCode {
     outglobaldefs.println("#define __GLOBALDEF_H_");
     outglobaldefs.println("");
     outglobaldefs.println("struct global_defs_t {");
+    outglobaldefs.println("  int size;");
+    outglobaldefs.println("  void * next;");
 
     outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");

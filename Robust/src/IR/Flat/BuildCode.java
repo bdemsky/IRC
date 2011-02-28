@@ -145,6 +145,7 @@ public class BuildCode {
     outglobaldefs.println("");
     outglobaldefs.println("struct global_defs_t {");
     outglobaldefs.println("  int size;");
+    outglobaldefs.println("  void * next;");
     outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("");
@@ -304,11 +305,12 @@ public class BuildCode {
   protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
+    outmethod.println("  global_defs_p=calloc(1, sizeof(struct global_defs_t));");
+    outmethod.println("  global_defsprim_p=calloc(1, sizeof(struct global_defsprim_t));");
     if (GENERATEPRECISEGC) {
       outmethod.println("  global_defs_p->size="+globaldefscount+";");
       outmethod.println("  for(i=0;i<"+globaldefscount+";i++) {");
-      outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NUL
-L;");
+      outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
       outmethod.println("  }");
     }
     outputStaticBlocks(outmethod);

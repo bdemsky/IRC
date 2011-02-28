@@ -117,6 +117,15 @@ public class BuildCodeTran extends BuildCode {
   protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
+    outmethod.println("  global_defs_p=calloc(1, sizeof(struct global_defs_t));");
+    outmethod.println("  global_defsprim_p=calloc(1, sizeof(struct global_defsprim_t));");
+    if (GENERATEPRECISEGC) {
+      outmethod.println("  global_defs_p->size="+globaldefscount+";");
+      outmethod.println("  for(i=0;i<"+globaldefscount+";i++) {");
+      outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
+      outmethod.println("  }");
+    }
+
     outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
     additionalCodeAtTopOfMain(outmethod);
@@ -928,7 +937,7 @@ public class BuildCodeTran extends BuildCode {
 	    // TODO add version for normal Java later
 	    if((fm.getMethod() != null) && (fm.getMethod().isStaticBlock())) {
 	      // a static block, check if it has been executed
-	      output.println("  global_defs_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
+	      output.println("  global_defsprim_p->" + fm.getMethod().getClassDesc().getSafeSymbol()+"static_block_exe_flag = 1;");
 	      output.println("");
 	    }
 	  }
@@ -1562,12 +1571,12 @@ public class BuildCodeTran extends BuildCode {
 	    // need to check if the class' static fields have been initialized and/or
 	    // its static blocks have been executed
 	    output.println("#ifdef MGC_STATIC_INIT_CHECK");
-	    output.println("if(global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
+	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	    if(cn.getNumStaticBlocks() != 0) {
 	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
 	      output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
 	    } else {
-	      output.println("  global_defs_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
+	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	    }
 	    output.println("}");
 	    output.println("#endif // MGC_STATIC_INIT_CHECK");
