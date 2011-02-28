@@ -380,7 +380,7 @@ void collect(struct garbagelist * stackptr) {
 #if defined(STM)||defined(THREADS)||defined(MLP)
   memorybase=NULL;
 #endif
- 
+
   /* Check current stack */
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   {
@@ -449,6 +449,17 @@ void collect(struct garbagelist * stackptr) {
 
 #ifdef FASTCHECK
   ENQUEUE(___fcrevert___, ___fcrevert___);
+#endif
+
+#if defined(THREADS)||defined(DSTM)||defined(STM)
+  {
+    int i;
+    stackptr=(struct garbagelist *)global_defs_p;
+    for(i=0; i<stackptr->size; i++) {
+      void * orig=stackptr->array[i];
+      ENQUEUE(orig, stackptr->array[i]);
+    }
+  }
 #endif
 
 #ifdef TASK
