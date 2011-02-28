@@ -42,20 +42,17 @@ public class SemanticCheck {
 	cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
 	cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
       }
-      if(state.MGC) {
-        // TODO add version for normal Java later
-        // Link together Field, Method tables do classes inherit these from 
-        // their ancestor interfaces
-        Vector<String> sifv = cd.getSuperInterface();
-        for(int i = 0; i < sifv.size(); i++) {
-          ClassDescriptor superif = getClass(sifv.elementAt(i));
-          if(!superif.isInterface()) {
-            throw new Error("Error! Class " + cd.getSymbol() + " implements non-interface " + superif.getSymbol());
-          }
-          cd.addSuperInterfaces(superif);
-          cd.getFieldTable().addParentIF(superif.getFieldTable());
-          cd.getMethodTable().addParentIF(superif.getMethodTable());
-        }
+      // Link together Field, Method tables do classes inherit these from 
+      // their ancestor interfaces
+      Vector<String> sifv = cd.getSuperInterface();
+      for(int i = 0; i < sifv.size(); i++) {
+	ClassDescriptor superif = getClass(sifv.elementAt(i));
+	if(!superif.isInterface()) {
+	  throw new Error("Error! Class " + cd.getSymbol() + " implements non-interface " + superif.getSymbol());
+	}
+	cd.addSuperInterfaces(superif);
+	cd.getFieldTable().addParentIF(superif.getFieldTable());
+	cd.getMethodTable().addParentIF(superif.getMethodTable());
       }
       
       /* Check to see that fields are well typed */
@@ -244,15 +241,13 @@ public class SemanticCheck {
   }
 
   public void checkMethod(ClassDescriptor cd, MethodDescriptor md) {
-    if(state.MGC) {
-      // TODO add version for normal Java later
-      /* Check for abstract methods */
-      if(md.isAbstract()) {
-        if(!cd.isAbstract() && !cd.isInterface()) {
-          throw new Error("Error! The non-abstract Class " + cd.getSymbol() + " contains an abstract method " + md.getSymbol());
-        }
+    /* Check for abstract methods */
+    if(md.isAbstract()) {
+      if(!cd.isAbstract() && !cd.isInterface()) {
+	throw new Error("Error! The non-abstract Class " + cd.getSymbol() + " contains an abstract method " + md.getSymbol());
       }
     }
+
     /* Check return type */
     if (!md.isConstructor() && !md.isStaticBlock())
       if (!md.getReturnType().isVoid())
@@ -604,8 +599,7 @@ public class SemanticCheck {
       fd=FieldDescriptor.arrayLength;
     else
       fd=(FieldDescriptor) ltd.getClassDesc().getFieldTable().get(fieldname);
-    if(state.MGC) {
-      // TODO add version for normal Java later
+
     if(ltd.isClassNameRef()) {
       // the field access is using a class name directly
       if(ltd.getClassDesc().isEnum()) {
@@ -626,7 +620,7 @@ public class SemanticCheck {
         throw new Error("Dereference of the non-static field "+ fieldname + " in "+fan.printNode(0)+" in "+md);
       }
     } 
-    }
+
     if (fd==null)
       throw new Error("Unknown field "+fieldname + " in "+fan.printNode(0)+" in "+md);
 
@@ -727,8 +721,6 @@ public class SemanticCheck {
       }
       Descriptor d=(Descriptor)nametable.get(varname);
       if (d==null) {
-        if(state.MGC) {
-          // TODO add version for normal Java later
         ClassDescriptor cd = null;
         if(((MethodDescriptor)md).isStaticBlock()) {
           // this is a static block, all the accessed fields should be static field
@@ -778,9 +770,6 @@ public class SemanticCheck {
           } else {
             throw new Error("Name "+varname+" undefined in: "+md);
           }
-        }
-        } else {
-          throw new Error("Name "+varname+" undefined in: "+md);
         }
       }
       if (d instanceof VarDescriptor) {
@@ -1016,7 +1005,7 @@ public class SemanticCheck {
       throw new Error(typetolookin + " isn't a "+td);
     
     /* Check Array Initializers */
-    if(state.MGC && (con.getArrayInitializer() != null)) {
+    if((con.getArrayInitializer() != null)) {
       checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), td);
     }
 
@@ -1084,7 +1073,7 @@ NextMethod:
 	    else if (currmd.isGlobal()&&bestmd.isGlobal())
 	      throw new Error();
 	  } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
-	    throw new Error("No method is most specific");
+	    throw new Error("No method is most specific:"+bestmd+" and "+currmd);
 	  }
 
 	  /* Is this more specific than bestmd */
@@ -1133,17 +1122,15 @@ NextMethod:
        and get types for expressions*/
 
     boolean isstatic = false;
-    if(state.MGC) {
-      if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStatic()) {
-        isstatic = true;
-      }
+    if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStatic()) {
+      isstatic = true;
     }
     TypeDescriptor[] tdarray=new TypeDescriptor[min.numArgs()];
     for(int i=0; i<min.numArgs(); i++) {
       ExpressionNode en=min.getArg(i);
       checkExpressionNode(md,nametable,en,null);
       tdarray[i]=en.getType();
-      if(state.MGC && en.getType().isClass() && en.getType().getClassDesc().isEnum()) {
+      if(en.getType().isClass() && en.getType().getClassDesc().isEnum()) {
         tdarray[i] = new TypeDescriptor(TypeDescriptor.INT);
       }
     }
@@ -1171,40 +1158,27 @@ NextMethod:
 	checkExpressionNode(md, nametable, min.getExpression(), null);
 	typetolookin=min.getExpression().getType();
       } else {
-        if(state.MGC) {
-          if(!min.getBaseName().getSymbol().equals("System.out")) {
-            ExpressionNode nn = translateNameDescriptorintoExpression(min.getBaseName());
-            checkExpressionNode(md, nametable, nn, null);
-            typetolookin = nn.getType();
-            if(!((nn.kind()== Kind.NameNode) && (((NameNode)nn).getField() == null)
-                && (((NameNode)nn).getVar() == null) && (((NameNode)nn).getExpression() == null))) {
-              // this is not a pure class name, need to add to 
-              min.setExpression(nn);
-            }
-          } else {
-            //we have a type
-            ClassDescriptor cd = null;
-            //if (min.getBaseName().getSymbol().equals("System.out"))
-            cd=getClass("System");
-            /*else {
+	if(!min.getBaseName().getSymbol().equals("System.out")) {
+	  ExpressionNode nn = translateNameDescriptorintoExpression(min.getBaseName());
+	  checkExpressionNode(md, nametable, nn, null);
+	  typetolookin = nn.getType();
+	  if(!((nn.kind()== Kind.NameNode) && (((NameNode)nn).getField() == null)
+	       && (((NameNode)nn).getVar() == null) && (((NameNode)nn).getExpression() == null))) {
+	    // this is not a pure class name, need to add to 
+	    min.setExpression(nn);
+	  }
+	} else {
+	  //we have a type
+	  ClassDescriptor cd = null;
+	  //if (min.getBaseName().getSymbol().equals("System.out"))
+	  cd=getClass("System");
+	  /*else {
             cd=getClass(min.getBaseName().getSymbol());
-          }*/
-            if (cd==null)
-              throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
-            typetolookin=new TypeDescriptor(cd);
-          }
-        } else {
-          // we have a type
-          ClassDescriptor cd = null;
-          if (min.getBaseName().getSymbol().equals("System.out"))
-            cd=getClass("System");
-          else {
-            cd=getClass(min.getBaseName().getSymbol());
-          }
-          if (cd==null)
-            throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
-          typetolookin=new TypeDescriptor(cd);
-        }
+	    }*/
+	  if (cd==null)
+	    throw new Error("md = "+ md.toString()+ "  "+min.getBaseName()+" undefined");
+	  typetolookin=new TypeDescriptor(cd);
+	}
       }
     } else if ((md instanceof MethodDescriptor)&&min.getMethodName().equals("super")) {
       ClassDescriptor supercd=((MethodDescriptor)md).getClassDesc().getSuperDesc();
@@ -1231,12 +1205,12 @@ NextMethod:
 	continue;
       for(int i=0; i<min.numArgs(); i++) {
 	if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
-      if(state.MGC && ((!tdarray[i].isArray() &&( tdarray[i].isInt() || tdarray[i].isLong())) 
-          && currmd.getParamType(i).isClass() && currmd.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
-        // primitive parameters vs object
-      } else {
-        continue NextMethod;
-      }
+	  if(((!tdarray[i].isArray() &&( tdarray[i].isInt() || tdarray[i].isLong())) 
+	      && currmd.getParamType(i).isClass() && currmd.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
+	    // primitive parameters vs object
+	  } else {
+	    continue NextMethod;
+	  }
       }
       /* Method okay so far */
       if (bestmd==null)
@@ -1245,7 +1219,7 @@ NextMethod:
 	if (typeutil.isMoreSpecific(currmd,bestmd)) {
 	  bestmd=currmd;
 	} else if (!typeutil.isMoreSpecific(bestmd, currmd))
-	  throw new Error("No method is most specific");
+	  throw new Error("No method is most specific:"+bestmd+" and "+currmd);
 
 	/* Is this more specific than bestmd */
       }
@@ -1265,29 +1239,27 @@ NextMethod:
       }
     }
     
-    if(state.MGC) {
-      /* Check if we need to wrap primitive paratmeters to objects */
-      for(int i=0; i<min.numArgs(); i++) {
-        if(!tdarray[i].isArray() && (tdarray[i].isInt() || tdarray[i].isLong())
-            && min.getMethod().getParamType(i).isClass() && min.getMethod().getParamType(i).getClassDesc().getSymbol().equals("Object")) {
-          // Shall wrap this primitive parameter as a object
-          ExpressionNode exp = min.getArg(i);
-          TypeDescriptor ptd = null;
-          NameDescriptor nd=null;
-          if(exp.getType().isInt()) {
-            nd = new NameDescriptor("Integer");
-            ptd = state.getTypeDescriptor(nd);
-          } else if(exp.getType().isLong()) {
-            nd = new NameDescriptor("Long");
-            ptd = state.getTypeDescriptor(nd);
-          }
-          boolean isglobal = false;
-          String disjointId = null;
-          CreateObjectNode con=new CreateObjectNode(ptd, isglobal, disjointId);
-          con.addArgument(exp);
-          checkExpressionNode(md, nametable, con, null);
-          min.setArgument(con, i);
-        }
+    /* Check if we need to wrap primitive paratmeters to objects */
+    for(int i=0; i<min.numArgs(); i++) {
+      if(!tdarray[i].isArray() && (tdarray[i].isInt() || tdarray[i].isLong())
+	 && min.getMethod().getParamType(i).isClass() && min.getMethod().getParamType(i).getClassDesc().getSymbol().equals("Object")) {
+	// Shall wrap this primitive parameter as a object
+	ExpressionNode exp = min.getArg(i);
+	TypeDescriptor ptd = null;
+	NameDescriptor nd=null;
+	if(exp.getType().isInt()) {
+	  nd = new NameDescriptor("Integer");
+	  ptd = state.getTypeDescriptor(nd);
+	} else if(exp.getType().isLong()) {
+	  nd = new NameDescriptor("Long");
+	  ptd = state.getTypeDescriptor(nd);
+	}
+	boolean isglobal = false;
+	String disjointId = null;
+	CreateObjectNode con=new CreateObjectNode(ptd, isglobal, disjointId);
+	con.addArgument(exp);
+	checkExpressionNode(md, nametable, con, null);
+	min.setArgument(con, i);
       }
     }
   }

@@ -26,7 +26,7 @@ public class BuildIR {
   public void parseFile(ParseNode pn, Set toanalyze) {
     singleimports=new Vector();
     multiimports=new Vector();
-
+    
     ParseNode ipn=pn.getChild("imports").getChild("import_decls_list");
     if (ipn!=null) {
       ParseNodeVector pnv=ipn.getChildren();
@@ -56,79 +56,73 @@ public class BuildIR {
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
 	  state.addClass(cn);
-      // for inner classes/enum
-      if(state.MGC) {
-        // TODO add version for normal Java later
-        HashSet tovisit = new HashSet();
-        Iterator it_icds = cn.getInnerClasses();
-        while(it_icds.hasNext()) {
-          tovisit.add(it_icds.next());
-        }
-        
-        while(!tovisit.isEmpty()) {
-          ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
-          tovisit.remove(cd);
-	  parseInitializers(cd);
-          if(toanalyze != null) {
-            toanalyze.add(cd);
-          }
-          state.addClass(cd);
-          
-          Iterator it_ics = cd.getInnerClasses();
-          while(it_ics.hasNext()) {
-            tovisit.add(it_ics.next());
-          }
-          
-          Iterator it_ienums = cd.getEnum();
-          while(it_ienums.hasNext()) {
-            ClassDescriptor iecd = (ClassDescriptor)it_ienums.next();
-            if(toanalyze != null) {
-              toanalyze.add(iecd);
-            }
-            state.addClass(iecd);
-          }
-        }
-        
-        Iterator it_enums = cn.getEnum();
-        while(it_enums.hasNext()) {
-          ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
-          if(toanalyze != null) {
-            toanalyze.add(ecd);
-          }
-          state.addClass(ecd);
-        }
-      }
+	  // for inner classes/enum
+	  HashSet tovisit = new HashSet();
+	  Iterator it_icds = cn.getInnerClasses();
+	  while(it_icds.hasNext()) {
+	    tovisit.add(it_icds.next());
+	  }
+	  
+	  while(!tovisit.isEmpty()) {
+	    ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
+	    tovisit.remove(cd);
+	    parseInitializers(cd);
+	    if(toanalyze != null) {
+	      toanalyze.add(cd);
+	    }
+	    state.addClass(cd);
+	    
+	    Iterator it_ics = cd.getInnerClasses();
+	    while(it_ics.hasNext()) {
+	      tovisit.add(it_ics.next());
+	    }
+	    
+	    Iterator it_ienums = cd.getEnum();
+	    while(it_ienums.hasNext()) {
+	      ClassDescriptor iecd = (ClassDescriptor)it_ienums.next();
+	      if(toanalyze != null) {
+		toanalyze.add(iecd);
+	      }
+	      state.addClass(iecd);
+	    }
+	  }
+	  
+	  Iterator it_enums = cn.getEnum();
+	  while(it_enums.hasNext()) {
+	    ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
+	    if(toanalyze != null) {
+	      toanalyze.add(ecd);
+	    }
+	    state.addClass(ecd);
+	  }
 	} else if (isNode(type_pn,"task_declaration")) {
 	  TaskDescriptor td=parseTaskDecl(type_pn);
 	  if (toanalyze!=null)
 	    toanalyze.add(td);
 	  state.addTask(td);
-	} else if ((state.MGC) && isNode(type_pn,"interface_declaration")) {
-      // TODO add version for normal Java later
-      ClassDescriptor cn = parseInterfaceDecl(type_pn);
-      if (toanalyze!=null)
-        toanalyze.add(cn);
-      state.addClass(cn);
-      
-      // for enum
-      if(state.MGC) {
-        // TODO add version for normal Java later        
-        Iterator it_enums = cn.getEnum();
-        while(it_enums.hasNext()) {
-          ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
-          if(toanalyze != null) {
-            toanalyze.add(ecd);
-          }
-          state.addClass(ecd);
-        }
-      }
-    } else if ((state.MGC) && isNode(type_pn,"enum_declaration")) {
-      // TODO add version for normal Java later
-      ClassDescriptor cn = parseEnumDecl(null, type_pn);
-      if (toanalyze!=null)
-        toanalyze.add(cn);
-      state.addClass(cn);
-    } else {
+	} else if (isNode(type_pn,"interface_declaration")) {
+	  // TODO add version for normal Java later
+	  ClassDescriptor cn = parseInterfaceDecl(type_pn);
+	  if (toanalyze!=null)
+	    toanalyze.add(cn);
+	  state.addClass(cn);
+	  
+	  // for enum
+	  Iterator it_enums = cn.getEnum();
+	  while(it_enums.hasNext()) {
+	    ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
+	    if(toanalyze != null) {
+	      toanalyze.add(ecd);
+	    }
+	    state.addClass(ecd);
+	  }
+	} else if (isNode(type_pn,"enum_declaration")) {
+	  // TODO add version for normal Java later
+	  ClassDescriptor cn = parseEnumDecl(null, type_pn);
+	  if (toanalyze!=null)
+	    toanalyze.add(cn);
+	  state.addClass(cn);
+	} else {
 	  throw new Error(type_pn.getLabel());
 	}
       }
@@ -477,13 +471,8 @@ public class BuildIR {
 	} else if (isNode(decl,"constructor")) {
 	  parseConstructorDecl(cn,decl.getChild("constructor_declaration"));
 	} else if (isNode(decl, "static_block")) {
-      if(state.MGC) {
-        // TODO add version for normal Java later
-      parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
-      } else {
-        throw new Error("Static blocks not implemented");
-      }
-    } else if (isNode(decl,"block")) {
+	  parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
+	} else if (isNode(decl,"block")) {
 	} else throw new Error();
       }
     }
@@ -502,23 +491,12 @@ public class BuildIR {
     }
     ParseNode innerclassnode=pn.getChild("inner_class_declaration");
     if (innerclassnode!=null) {
-      if(state.MGC){
-        parseInnerClassDecl(cn,innerclassnode);
-        return;
-      } else {
-        // TODO add version for noraml Java later
-        throw new Error("Error: inner class in Class " + cn.getSymbol() + " is not supported yet");
-      }
+      parseInnerClassDecl(cn,innerclassnode);
+      return;
     }
     ParseNode enumnode=pn.getChild("enum_declaration");
     if (enumnode!=null) {
-      if(state.MGC){
-        parseEnumDecl(cn,enumnode);
-        return;
-      } else {
-        // TODO add version for noraml Java later
-        throw new Error("Error: enumerated type in Class " + cn.getSymbol() + " is not supported yet");
-      }
+      parseEnumDecl(cn,enumnode);
     }
     ParseNode flagnode=pn.getChild("flag");
     if (flagnode!=null) {
@@ -626,7 +604,7 @@ public class BuildIR {
   private void parseFieldDecl(ClassDescriptor cn,ParseNode pn) {
     ParseNode mn=pn.getChild("modifier");
     Modifiers m=parseModifiersList(mn);
-    if((state.MGC) && cn.isInterface()) {
+    if(cn.isInterface()) {
       // TODO add version for normal Java later
       // Can only be PUBLIC or STATIC or FINAL
       if((m.isAbstract()) || (m.isAtomic()) || (m.isNative()) 
@@ -658,7 +636,7 @@ public class BuildIR {
       ExpressionNode en=null;
       if (epn!=null) {
         en=parseExpression(epn.getFirstChild());
-        if(state.MGC && m.isStatic()) {
+        if(m.isStatic()) {
           // for static field, the initializer should be considered as a 
           // static block
           boolean isfirst = false;
@@ -786,7 +764,7 @@ public class BuildIR {
 	con.addArgument((ExpressionNode)args.get(i));
       }
       return con;
-    } if (isNode(pn,"createarray2") && state.MGC) {
+    } if (isNode(pn,"createarray2")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
       int num=0;
       if (pn.getChild("dims_opt").getLiteral()!=null)
@@ -860,10 +838,10 @@ public class BuildIR {
     } else if (isNode(pn, "array_initializer")) {  
       Vector initializers=parseVariableInitializerList(pn);
       return new ArrayInitializerNode(initializers);
-    } else if (isNode(pn, "class_type") && state.MGC) {
+    } else if (isNode(pn, "class_type")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
       return new ClassTypeNode(td);
-    } else if (isNode(pn, "empty") && state.MGC) {
+    } else if (isNode(pn, "empty")) {
       return null;
     } else {
       System.out.println("---------------------");
@@ -1121,11 +1099,11 @@ public class BuildIR {
       blockstatements.add(new IfStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
                                               parseSingleBlock(pn.getChild("statement").getFirstChild()),
                                               pn.getChild("else_statement")!=null ? parseSingleBlock(pn.getChild("else_statement").getFirstChild()) : null));
-    } else if ((state.MGC) && (isNode(pn,"switch_statement"))) {
+    } else if (isNode(pn,"switch_statement")) {
       // TODO add version for normal Java later
       blockstatements.add(new SwitchStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
           parseSingleBlock(pn.getChild("statement").getFirstChild())));
-    } else if ((state.MGC) && (isNode(pn,"switch_block_list"))) {
+    } else if (isNode(pn,"switch_block_list")) {
       // TODO add version for normal Java later
       ParseNodeVector pnv=pn.getChildren();
       for(int i=0; i<pnv.size(); i++) {
@@ -1149,7 +1127,7 @@ public class BuildIR {
           
         }
       }
-    } else if (state.MGC && isNode(pn, "trycatchstatement")) {
+    } else if (isNode(pn, "trycatchstatement")) {
       // TODO add version for normal Java later
       // Do not fully support exceptions now. Only make sure that if there are no
       // exceptions thrown, the execution is right

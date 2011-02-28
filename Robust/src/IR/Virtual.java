@@ -97,8 +97,7 @@ public class Virtual {
     int start=0;
     if (superdesc!=null)
       start=numberMethods(superdesc);
-    if(state.MGC) {
-      // TODO add version for normal Java later
+    {
       // check the inherited interfaces
       Iterator it_sifs = cd.getSuperInterfaces();
       while(it_sifs.hasNext()) {
@@ -122,8 +121,7 @@ public class Virtual {
             break;
           }
         }
-        if(state.MGC) {
-          // TODO add version for normal Java later
+	{
           if(!foundmatch) {
             // check if there is a matched method in inherited interfaces
             Iterator it_sifs = cd.getSuperInterfaces();

@@ -150,7 +150,7 @@ public class TypeUtil {
       throw new Error();
     for(int i=0; i<md1.numParameters(); i++) {
       if (!this.isSuperorType(md2.getParamType(i), md1.getParamType(i))) {
-        if(state.MGC && ((!md1.getParamType(i).isArray() && 
+        if(((!md1.getParamType(i).isArray() && 
             (md1.getParamType(i).isInt() || md1.getParamType(i).isLong() || md1.getParamType(i).isDouble() || md1.getParamType(i).isFloat()))
             && md2.getParamType(i).isClass() && md2.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
           // primitive parameters vs Object
@@ -214,16 +214,15 @@ NextMethod:
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       ClassDescriptor tmp=cd.getSuperDesc();
       
-      if(state.MGC) {
-        // TODO add version for normal Java later
-        // check tmp's interface ancestors
-        Iterator it_sifs = cd.getSuperInterfaces();
-        while(it_sifs.hasNext()) {
-          ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
-          if(!tovisit.contains(cdt)){
-            tovisit.add(cdt);
-          }
-        }
+      // check tmp's interface ancestors
+      {
+	Iterator it_sifs = cd.getSuperInterfaces();
+	while(it_sifs.hasNext()) {
+	  ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+	  if(!tovisit.contains(cdt)){
+	    tovisit.add(cdt);
+	  }
+	}
       }
 
       while(tmp!=null) {
@@ -231,43 +230,38 @@ NextMethod:
           subclasstable.put(tmp,new HashSet());
         HashSet hs=(HashSet)subclasstable.get(tmp);
         hs.add(cd);
-        if(state.MGC) {
-          // TODO add version for normal Java later
-          // check tmp's interface ancestors
-          Iterator it_sifs = tmp.getSuperInterfaces();
-          while(it_sifs.hasNext()) {
-            ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
-            if(!tovisit.contains(cdt)){
-              tovisit.add(cdt);
-            }
-          }
-        }
+	// check tmp's interface ancestors
+	Iterator it_sifs = tmp.getSuperInterfaces();
+	while(it_sifs.hasNext()) {
+	  ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+	  if(!tovisit.contains(cdt)){
+	    tovisit.add(cdt);
+	  }
+	}
+	
         tmp=tmp.getSuperDesc();
       }
       
-      if(state.MGC) {
-        // TODO add version for normal Java later
-        while(!tovisit.isEmpty()) {
-          ClassDescriptor sif = (ClassDescriptor)tovisit.iterator().next();
-          tovisit.remove(sif);
+      while(!tovisit.isEmpty()) {
+	ClassDescriptor sif = (ClassDescriptor)tovisit.iterator().next();
+	tovisit.remove(sif);
+        
+	if(!visited.contains(sif)) {
+	  if(!this.subclasstable.containsKey(sif)) {
+	    this.subclasstable.put(sif, new HashSet());
+	  }
+	  HashSet hs = (HashSet)this.subclasstable/*subIFclasstable*/.get(sif);
+	  hs.add(cd);
           
-          if(!visited.contains(sif)) {
-            if(!this.subclasstable.containsKey(sif)) {
-              this.subclasstable.put(sif, new HashSet());
-            }
-            HashSet hs = (HashSet)this.subclasstable/*subIFclasstable*/.get(sif);
-            hs.add(cd);
-            
-            Iterator it_sifs = sif.getSuperInterfaces();
-            while(it_sifs.hasNext()) {
-              ClassDescriptor siftmp = (ClassDescriptor)it_sifs.next();
-              if(!tovisit.contains(siftmp)){
-                tovisit.add(siftmp);
-              }
-            }
-            visited.add(sif);
-          }
-        }
+	  Iterator it_sifs = sif.getSuperInterfaces();
+	  while(it_sifs.hasNext()) {
+	    ClassDescriptor siftmp = (ClassDescriptor)it_sifs.next();
+	    if(!tovisit.contains(siftmp)){
+	      tovisit.add(siftmp);
+	    }
+	  }
+	  visited.add(sif);
+	}
       }
     }
   }
@@ -303,11 +297,10 @@ NextMethod:
   }
 
   public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
-    if(state.MGC) {
-      if(possiblesuper.isClass() && possiblesuper.class_desc.isEnum() && cd2.isInt()) {
-        return true;
-      }
+    if(possiblesuper.isClass() && possiblesuper.class_desc.isEnum() && cd2.isInt()) {
+      return true;
     }
+
     if (possiblesuper.isOffset() || cd2.isOffset()) return true;
     //Matching type are always okay
     if (possiblesuper.equals(cd2))
@@ -414,17 +407,16 @@ NextMethod:
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
     
-    if(state.MGC) {
-      // TODO add version for normal Java later
+    {
       // check cd2's interface ancestors
       Iterator it_sifs = getSuperIFs(cd2).iterator();
       while(it_sifs.hasNext()) {
-        ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
-        if(cd == possiblesuper) {
-          return true;
-        } else if(!tovisit.contains(cd)){
-          tovisit.add(cd);
-        }
+	ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
+	if(cd == possiblesuper) {
+	  return true;
+	} else if(!tovisit.contains(cd)){
+	  tovisit.add(cd);
+	}
       }
     }
 
@@ -433,43 +425,36 @@ NextMethod:
       if (cd2==possiblesuper)
 	return true;
       
-      if(state.MGC) {
-        // TODO add version for normal Java later
-        // check cd2's interface ancestors
-        if(cd2 != null) {
-          Iterator it_sifs = getSuperIFs(cd2).iterator();
-          while(it_sifs.hasNext()) {
-            ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
-            if(cd == possiblesuper) {
-              return true;
-            } else if(!tovisit.contains(cd)){
-              tovisit.add(cd);
-            }
-          }
-        }
+      // check cd2's interface ancestors
+      if(cd2 != null) {
+	Iterator it_sifs = getSuperIFs(cd2).iterator();
+	while(it_sifs.hasNext()) {
+	  ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
+	  if(cd == possiblesuper) {
+	    return true;
+	  } else if(!tovisit.contains(cd)){
+	    tovisit.add(cd);
+	  }
+	}
       }
     }
     
-    if(state.MGC) {
-      // TODO add version for normal Java later
-      while(!tovisit.isEmpty()) {
-        ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
-        tovisit.remove(cd);
-        
-        if(!visited.contains(cd)) {
-          Iterator it_sifs = getSuperIFs(cd).iterator();
-          while(it_sifs.hasNext()) {
-            ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
-            if(cdt == possiblesuper) {
-              return true;
-            } else if(!tovisit.contains(cdt)){
-              tovisit.add(cdt);
-            }
-          }
-          visited.add(cd);
-        }
+    while(!tovisit.isEmpty()) {
+      ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
+      tovisit.remove(cd);
+      
+      if(!visited.contains(cd)) {
+	Iterator it_sifs = getSuperIFs(cd).iterator();
+	while(it_sifs.hasNext()) {
+	  ClassDescriptor cdt = (ClassDescriptor)it_sifs.next();
+	  if(cdt == possiblesuper) {
+	    return true;
+	  } else if(!tovisit.contains(cdt)){
+	    tovisit.add(cdt);
+	  }
+	}
+	visited.add(cd);
       }
-        
     }
     return false;
   }

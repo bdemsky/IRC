@@ -37,6 +37,7 @@ public class BuildCodeMGC extends BuildCode {
     /* Create output streams to write to */
     PrintWriter outclassdefs=null;
     PrintWriter outglobaldefs=null;
+    PrintWriter outglobaldefsprim=null;
     PrintWriter outstructs=null;
     PrintWriter outmethodheader=null;
     PrintWriter outmethod=null;
@@ -47,6 +48,7 @@ public class BuildCodeMGC extends BuildCode {
       outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
       outglobaldefs=new PrintWriter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
+      outglobaldefsprim=new PrintWriter(new FileOutputStream(PREFIX+"globaldefsprim.h"), true);
       outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
     } catch (Exception e) {
@@ -75,22 +77,28 @@ public class BuildCodeMGC extends BuildCode {
     outglobaldefs.println("#define __GLOBALDEF_H_");
     outglobaldefs.println("");
     outglobaldefs.println("struct global_defs_t {");
+
+    outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
+    outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
+    outglobaldefsprim.println("");
+    outglobaldefsprim.println("struct global_defsprim_t {");
     
     // Output the C class declarations
     // These could mutually reference each other    
     outclassdefs.println("#ifndef __CLASSDEF_H_");
     outclassdefs.println("#define __CLASSDEF_H_");
-    super.outputClassDeclarations(outclassdefs, outglobaldefs);
+    super.outputClassDeclarations(outclassdefs, outglobaldefs, outglobaldefsprim);
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     int numclasses = this.state.numClasses();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
-      super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
+      super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs, outglobaldefsprim);
     }
     // TODO add version for normal Java later
     outclassdefs.println("#include \"globaldefs.h\"");
+    outclassdefs.println("#include \"globaldefsprim.h\"");
     outclassdefs.println("#endif");
     outclassdefs.close();
     outglobaldefs.println("};");
@@ -99,6 +107,13 @@ public class BuildCodeMGC extends BuildCode {
     outglobaldefs.println("#endif");
     outglobaldefs.flush();
     outglobaldefs.close();
+
+    outglobaldefsprim.println("};");
+    outglobaldefsprim.println("");
+    outglobaldefsprim.println("extern struct global_defsprim_t * global_defsprim_p;");
+    outglobaldefsprim.println("#endif");
+    outglobaldefsprim.flush();
+    outglobaldefsprim.close();
 
     /* Build the actual methods */
     super.outputMethods(outmethod);

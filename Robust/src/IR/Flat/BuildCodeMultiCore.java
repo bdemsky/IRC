@@ -96,6 +96,7 @@ public class BuildCodeMultiCore extends BuildCode {
     /* Create output streams to write to */
     PrintWriter outclassdefs=null;
     PrintWriter outglobaldefs=null;
+    PrintWriter outglobaldefsprim=null;
     PrintWriter outstructs=null;
     PrintWriter outmethodheader=null;
     PrintWriter outmethod=null;
@@ -109,7 +110,7 @@ public class BuildCodeMultiCore extends BuildCode {
       outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
-      outglobaldefs=new PrintWriter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
+      outglobaldefsprim=new PrintWriter(new FileOutputStream(PREFIX+"globaldefsprim.h"), true);
       outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
       if (state.TASK) {
@@ -153,14 +154,14 @@ public class BuildCodeMultiCore extends BuildCode {
     // These could mutually reference each other
     outclassdefs.println("#ifndef __CLASSDEF_H_");
     outclassdefs.println("#define __CLASSDEF_H_");
-    outputClassDeclarations(outclassdefs, outglobaldefs);
+    outputClassDeclarations(outclassdefs, outglobaldefs, outglobaldefsprim);
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     int numclasses = this.state.numClasses();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
-      generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs);
+      generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs, outglobaldefsprim);
     }
     outclassdefs.println("#endif");
     outclassdefs.close();
