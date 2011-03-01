@@ -1067,6 +1067,12 @@ public class BuildIR {
 
       blockstatements.add(new TagDeclarationNode(name, type));
     } else if (isNode(pn,"local_variable_declaration")) {
+      
+      ParseNode mn=pn.getChild("modifiers");
+      if(mn!=null){
+        Modifiers m=parseModifiersList(mn);
+        // TODO: add annotations to corresponding descriptor
+      }      
       TypeDescriptor t=parseTypeDescriptor(pn);
       ParseNode vn=pn.getChild("variable_declarators_list");
       ParseNodeVector pnv=vn.getChildren();
@@ -1287,7 +1293,7 @@ public class BuildIR {
     if (modlist!=null) {
       ParseNodeVector pnv=modlist.getChildren();
       for(int i=0; i<pnv.size(); i++) {
-	ParseNode modn=pnv.elementAt(i);
+	ParseNode modn=pnv.elementAt(i);	
 	if (isNode(modn,"public"))
 	  m.addModifier(Modifiers.PUBLIC);
 	else if (isNode(modn,"protected"))
@@ -1310,10 +1316,30 @@ public class BuildIR {
       m.addModifier(Modifiers.VOLATILE);
     else if (isNode(modn,"transient"))
       m.addModifier(Modifiers.TRANSIENT);
-	else throw new Error("Unrecognized Modifier");
+    else if(isNode(modn,"annotation_list"))
+      parseAnnotationList(modn,m);    
+	else{	  
+	  throw new Error("Unrecognized Modifier:"+modn.getLabel());}
       }
     }
     return m;
+  }
+  
+  private void parseAnnotationList(ParseNode pn, Modifiers m){
+      ParseNodeVector pnv=pn.getChildren();
+      for(int i=0; i<pnv.size(); i++) {
+        ParseNode body_list=pnv.elementAt(i);
+        if(isNode(body_list,"annotation_body")){
+          ParseNode body_node=body_list.getFirstChild();
+          if (isNode(body_node,"marker_annotation")){          
+            m.addAnnotation(new AnnotationNode(body_node.getChild("name").getTerminal()));
+          }else if(isNode(body_node,"single_annotation")){
+            throw new Error("Annotation with single piece of data is not supported yet.");
+          } else if(isNode(body_node,"normal_annotation")){
+            throw new Error("Annotation with multiple data members is not supported yet.");
+          }   
+        }
+      }    
   }
 
   private boolean isNode(ParseNode pn, String label) {

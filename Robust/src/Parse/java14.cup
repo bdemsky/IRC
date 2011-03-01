@@ -85,6 +85,7 @@ terminal QUESTION; // conditional_expression
 terminal MULTEQ, DIVEQ, MODEQ, PLUSEQ, MINUSEQ; // assignment_operator
 terminal LSHIFTEQ, RSHIFTEQ, URSHIFTEQ; // assignment_operator
 terminal ANDEQ, XOREQ, OREQ; // assignment_operator
+terminal AT;           // support annotations
 
 terminal java.lang.Number INTEGER_LITERAL;
 terminal java.lang.Number FLOATING_POINT_LITERAL;
@@ -131,7 +132,8 @@ non terminal ParseNode single_type_import_declaration;
 non terminal ParseNode type_import_on_demand_declaration;
 non terminal ParseNode type_declaration;
 // 19.7) Productions used only in the LALR(1) grammar
-non terminal ParseNode modifiers_opt, modifiers, modifier;
+non terminal ParseNode modifiers_opt, modifiers, modifiers_at, modifier;
+non terminal ParseNode mixed_modifiers, mixed_modifiers_at;
 // 19.8.1) Class Declaration
 non terminal ParseNode class_declaration, super, super_opt;
 non terminal ParseNode interfaces, interfaces_opt, interface_type_list;
@@ -158,6 +160,7 @@ non terminal ParseNode constructor_body;
 non terminal ParseNode explicit_constructor_invocation;
 // 19.9.1) Interface Declarations
 non terminal ParseNode interface_declaration;
+non terminal normal_interface_declaration, annotation_type_declaration;
 non terminal ParseNode extends_interfaces_opt, extends_interfaces;
 non terminal ParseNode interface_body;
 non terminal ParseNode interface_member_declarations_opt, interface_member_declarations;
@@ -280,6 +283,15 @@ non terminal ParseNode enum_declaration;
 non terminal ParseNode enum_body, enum_constants_opt, enum_constants, enum_constant;
 //non terminal ParseNode enum_arguments_opt, enum_body_declarations_opt;
 
+// annotation expressions
+non terminal ParseNode annotations_opt, annotations, annotations_at, annotation, annotation_body;
+non terminal ParseNode normal_annotation_body, marker_annotation_body;
+non terminal ParseNode single_element_annotation_body;
+non terminal ParseNode annotation_type_body, annotation_type_element_declarations;
+non terminal ParseNode annotation_type_element_declarations_opt;
+non terminal ParseNode annotation_type_element_declaration, default_value_opt, default_value;
+non terminal ParseNode element_value_pairs_opt, element_value_pairs, element_value_pair;
+non terminal ParseNode element_values_opt, element_values, element_value, element_value_array_initializer;
 
 start with goal;
 
@@ -661,7 +673,7 @@ type_declarations ::=
 	;
 
 package_declaration ::=
-               PACKAGE name:name SEMICOLON {: 
+                PACKAGE name:name SEMICOLON {: 
 	ParseNode pn=new ParseNode("package");
 	pn.addChild(name);
 	RESULT=pn;
@@ -713,15 +725,44 @@ modifiers_opt::=
 		RESULT=mo;
 	:}
 	;
-modifiers ::= 	modifier:mo {: 
+modifiers_at ::=
+		mixed_modifiers_at
+	|	annotations_at
+	;
+modifiers ::=   mixed_modifiers : mmo {:
+	        RESULT=mmo; 
+	:}
+	|	annotations : an {:
 		ParseNode pn=new ParseNode("modifier_list");
-		pn.addChild(mo);
+		pn.addChild(an);
 		RESULT=pn;
 	:}
-	|	modifiers:mos modifier:mo {: 
-		mos.addChild(mo);
-		RESULT=mos;
+	;
+mixed_modifiers_at ::=
+		mixed_modifiers : mmos AT {:
+		RESULT=mmos;
+        :}
+	;
+mixed_modifiers ::=
+		modifier : mo {:
+                ParseNode pn=new ParseNode("modifier_list");
+		pn.addChild(mo);
+		RESULT=pn;
+        :}
+	|	annotations:as modifier:mo {:
+	        ParseNode pn=new ParseNode("modifier_list");
+		pn.addChild(mo);
+		pn.addChild(as);
+		RESULT=pn;
+        :}
+	|	mixed_modifiers : mmos modifier : mo {:
+                mmos.addChild(mo);
+		RESULT=mmos;
 	:}
+  	|	mixed_modifiers_at:mma annotation_body:ab {:
+                mma.addChild("annotation_list").addChild(ab); 
+		RESULT=mma;             
+        :}
 	;
 modifier ::=	
 	PUBLIC {: RESULT=new ParseNode("public"); :}|
@@ -739,7 +780,100 @@ modifier ::=
 //	STRICTFP // note that semantic analysis must check that the
 	                 // context of the modifier allows strictfp.
 	;
-
+//annotations_opt ::=
+//	{: RESULT=new ParseNode("empty"); :}
+//	|       annotations:an {: 
+//		RESULT=an;
+//	:}
+//	;
+annotations ::= 
+	        AT annotation_body:ab {:
+                ParseNode pn=new ParseNode("annotation_list");
+		pn.addChild(ab);
+		RESULT=pn;
+        :}
+	|    	annotations_at:aat annotation_body:ab {:
+		aat.addChild(ab);
+		RESULT=aat;
+	:}
+	;
+annotations_at ::=
+	       annotations:as AT {:
+	       RESULT=as;
+        :}
+	;
+annotation ::=
+	       AT annotation_body:ab {:
+               RESULT=ab;
+	:}
+	;
+annotation_body ::=
+	        normal_annotation_body:nab {:
+		ParseNode pn=new ParseNode("annotation_body");
+		pn.addChild(nab);
+                RESULT = pn;
+        :}
+        |       marker_annotation_body:mab {:
+		ParseNode pn=new ParseNode("annotation_body");
+		pn.addChild(mab);
+		RESULT = pn;
+        :}
+        |	single_element_annotation_body:seab {:
+		ParseNode pn=new ParseNode("annotation_body");
+		pn.addChild(seab);
+                RESULT = pn;
+        :}
+        ;
+normal_annotation_body ::=
+	        IDENTIFIER LPAREN element_value_pairs_opt RPAREN
+        ;
+marker_annotation_body ::=
+                IDENTIFIER:id
+	{:
+	ParseNode pn=new ParseNode("marker_annotation");
+	pn.addChild("name").addChild(id);
+	RESULT=pn;
+	:}
+        ;
+single_element_annotation_body ::=
+                IDENTIFIER:id LPAREN element_value:ev RPAREN {:
+                ParseNode pn=new ParseNode("single_annotation");
+		pn.addChild("name").addChild(id);
+		pn.addChild("element_value").addChild(ev);
+		RESULT=pn;
+        :}
+        ;
+element_value_pairs_opt ::=
+  	|	element_value_pairs
+	;		
+element_value_pairs ::=
+		element_value_pair
+	|	element_value_pairs COMMA element_value_pair
+	;
+element_value_pair ::=
+		IDENTIFIER EQ element_value
+	;
+element_value ::=
+	        annotation:an {:
+		RESULT=an;
+	:}  
+	|	element_value_array_initializer:evai {:	
+	        RESULT=evai;
+        :}
+	|	conditional_expression:ce {:
+		RESULT=ce;
+	:}
+	;
+element_value_array_initializer ::=
+		LBRACE element_values_opt RBRACE
+	;
+element_values_opt ::=
+	|	element_values
+	;
+element_values ::=
+	        element_value
+	|	element_values COMMA element_value
+	;
 // 19.8) Classes
 
 // 19.8.1) Class Declaration:
@@ -1161,6 +1295,7 @@ interface_declaration ::=
 	pn.addChild("interfacebody").addChild(body);
 	RESULT=pn;
 	:}
+       | annotation_type_declaration
        ;
 extends_interfaces_opt ::=
        {: RESULT=new ParseNode("empty"); :}
@@ -1229,6 +1364,28 @@ abstract_method_declaration ::=
 	:}
        ;
 
+annotation_type_declaration ::=
+		AT INTERFACE IDENTIFIER annotation_type_body
+	|	modifiers_at INTERFACE IDENTIFIER annotation_type_body
+	;
+annotation_type_body ::=
+        	LBRACE annotation_type_element_declarations_opt RBRACE
+	;
+annotation_type_element_declarations_opt ::=
+	|       annotation_type_element_declarations
+	;
+annotation_type_element_declarations ::=
+	        annotation_type_element_declaration
+        |	annotation_type_element_declarations annotation_type_element_declaration
+	;
+annotation_type_element_declaration ::=
+        	constant_declaration
+	|	modifiers_opt type IDENTIFIER LPAREN RPAREN default_value_opt SEMICOLON
+        |	class_declaration 
+        |	enum_declaration 
+        |	interface_declaration 
+	|	SEMICOLON
+        ;
 
 // 19.10) Arrays
 array_initializer ::=
@@ -1315,10 +1472,13 @@ local_variable_declaration ::=
 		pn.addChild(var);
 		RESULT=pn;
 	:}
-	|	FINAL type:type variable_declarators:var {: 
+//	|	FINAL type:type variable_declarators:var {: 
+         /* CAUTION:  only FINAL and annotations are legal modifiers here */
+	|	modifiers:mo type:type variable_declarators:var {:
 		ParseNode pn=new ParseNode("local_variable_declaration");
 		pn.addChild(type);
 		pn.addChild(var);
+		pn.addChild("modifiers").addChild(mo);
 		RESULT=pn;
 	:}
 	;

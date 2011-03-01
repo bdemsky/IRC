@@ -207,6 +207,7 @@ public class Lexer {
     case ']':
     case ';':
     case ',':
+    case '@':
       return new Separator(consume());
 
       // Operators:

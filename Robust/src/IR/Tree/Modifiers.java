@@ -1,5 +1,7 @@
 package IR.Tree;
 
+import java.util.Vector;
+
 public class Modifiers {
   public static final int PUBLIC=1;
   public static final int PROTECTED=2;
@@ -14,15 +16,22 @@ public class Modifiers {
 //	STRICTFP=1024
   public static final int ATOMIC=2048;
 
-
+  // java annotation can be intermixed freely with modifiers
+  // so Modifiers  maintains the list of annotations for later usage
+  Vector<AnnotationNode> annotations;  
   private int value;
 
   public Modifiers() {
     value=0;
+    annotations=new Vector<AnnotationNode>();
   }
 
   public Modifiers(int v) {
     value=v;
+  }
+  
+  public void addAnnotation(AnnotationNode an){
+    annotations.add(an);
   }
 
   public void addModifier(int mod) {

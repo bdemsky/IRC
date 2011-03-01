@@ -29,6 +29,8 @@ class Separator extends Token {
 
     case '.': return new Symbol(Sym.DOT);
 
+    case '@': return new Symbol(Sym.AT);
+
     case '\u2026':  return new Symbol(Sym.ELLIPSIS);
 
     default:
