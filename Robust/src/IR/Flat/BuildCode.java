@@ -608,6 +608,7 @@ public class BuildCode {
     }
     if(state.MGC) {
       outclassdefs.println("  int mutex;");
+      outclassdefs.println("  volatile int notifycount;");
       outclassdefs.println("  int objlock;");
       if(state.MULTICOREGC) {
 	outclassdefs.println("  int marked;");
@@ -663,6 +664,7 @@ public class BuildCode {
       }
       if(state.MGC) {
 	outclassdefs.println("  int mutex;");
+	outclassdefs.println("  volatile int notifycount;");
 	outclassdefs.println("  int objlock;");
 	if(state.MULTICOREGC) {
 	  outclassdefs.println("  int marked;");
@@ -1411,10 +1413,13 @@ public class BuildCode {
       classdefout.println("  void * lockentry;");
       classdefout.println("  int lockcount;");
     }
-    classdefout.println("  int mutex;");
-    classdefout.println("  int objlock;");
-    if(state.MULTICOREGC) {
-      classdefout.println("  int marked;");
+    if (state.MGC) {
+      classdefout.println("  int mutex;");
+      classdefout.println("  volatile int notifycount;");
+      classdefout.println("  int objlock;");
+      if(state.MULTICOREGC) {
+	classdefout.println("  int marked;");
+      }
     }
     if (state.TASK) {
       classdefout.println("  int flag;");
