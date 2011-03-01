@@ -2,6 +2,8 @@ package IR.Tree;
 
 import java.util.Vector;
 
+import IR.AnnotationDescriptor;
+
 public class Modifiers {
   public static final int PUBLIC=1;
   public static final int PROTECTED=2;
@@ -18,20 +20,24 @@ public class Modifiers {
 
   // java annotation can be intermixed freely with modifiers
   // so Modifiers  maintains the list of annotations for later usage
-  Vector<AnnotationNode> annotations;  
+  Vector<AnnotationDescriptor> annotations;  
   private int value;
 
   public Modifiers() {
     value=0;
-    annotations=new Vector<AnnotationNode>();
+    annotations=new Vector<AnnotationDescriptor>();
   }
 
   public Modifiers(int v) {
     value=v;
   }
   
-  public void addAnnotation(AnnotationNode an){
+  public void addAnnotation(AnnotationDescriptor an){
     annotations.add(an);
+  }
+  
+  public Vector<AnnotationDescriptor> getAnnotations(){
+    return annotations;
   }
 
   public void addModifier(int mod) {

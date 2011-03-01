@@ -618,6 +618,7 @@ public class BuildIR {
 
     ParseNode tn=pn.getChild("type");
     TypeDescriptor t=parseTypeDescriptor(tn);
+    assignAnnotationsToType(m,t);
     ParseNode vn=pn.getChild("variables").getChild("variable_declarators_list");
     ParseNodeVector pnv=vn.getChildren();
     boolean isglobal=pn.getChild("global")!=null;
@@ -674,6 +675,15 @@ public class BuildIR {
 
       cn.addField(new FieldDescriptor(m, arrayt, identifier, en, isglobal));
     }
+  }
+  
+  private void assignAnnotationsToType(Modifiers modifiers, TypeDescriptor type){
+    Vector<AnnotationDescriptor> annotations=modifiers.getAnnotations();
+    for(int i=0; i<annotations.size(); i++) {
+      // it only supports a marker annotation
+      AnnotationDescriptor an=annotations.elementAt(i);
+      type.addAnnotationMarker(an);           
+    }    
   }
 
   private ExpressionNode parseExpression(ParseNode pn) {
@@ -1068,12 +1078,12 @@ public class BuildIR {
       blockstatements.add(new TagDeclarationNode(name, type));
     } else if (isNode(pn,"local_variable_declaration")) {
       
-      ParseNode mn=pn.getChild("modifiers");
+      ParseNode mn=pn.getChild("modifiers");         
+      TypeDescriptor t=parseTypeDescriptor(pn);
       if(mn!=null){
         Modifiers m=parseModifiersList(mn);
-        // TODO: add annotations to corresponding descriptor
-      }      
-      TypeDescriptor t=parseTypeDescriptor(pn);
+        assignAnnotationsToType(m, t);        
+      }   
       ParseNode vn=pn.getChild("variable_declarators_list");
       ParseNodeVector pnv=vn.getChildren();
       for(int i=0; i<pnv.size(); i++) {
@@ -1082,6 +1092,7 @@ public class BuildIR {
 
 	ParseNode tmp=vardecl;
 	TypeDescriptor arrayt=t;
+
 	while (tmp.getChild("single")==null) {
 	  arrayt=arrayt.makeArray(state);
 	  tmp=tmp.getChild("array");
@@ -1332,7 +1343,7 @@ public class BuildIR {
         if(isNode(body_list,"annotation_body")){
           ParseNode body_node=body_list.getFirstChild();
           if (isNode(body_node,"marker_annotation")){          
-            m.addAnnotation(new AnnotationNode(body_node.getChild("name").getTerminal()));
+            m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
           }else if(isNode(body_node,"single_annotation")){
             throw new Error("Annotation with single piece of data is not supported yet.");
           } else if(isNode(body_node,"normal_annotation")){

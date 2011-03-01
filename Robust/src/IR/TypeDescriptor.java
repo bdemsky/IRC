@@ -1,5 +1,8 @@
 package IR;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Descriptor
  *
@@ -26,6 +29,8 @@ public class TypeDescriptor extends Descriptor {
   private int type;
   ClassDescriptor class_desc;
   boolean isClassNameRef = false;
+  
+  private HashSet<AnnotationDescriptor> annotationSet;
 
   public boolean equals(Object o) {
     if (o instanceof TypeDescriptor) {
@@ -280,6 +285,7 @@ public class TypeDescriptor extends Descriptor {
     this.class_desc=null;
     this.arraycount=0;
     this.isClassNameRef =false;
+    this.annotationSet=new HashSet<AnnotationDescriptor>();
   }
 
   public TypeDescriptor(String st) {
@@ -288,6 +294,7 @@ public class TypeDescriptor extends Descriptor {
     this.class_desc=null;
     this.arraycount=0;
     this.isClassNameRef =false;
+    this.annotationSet=new HashSet<AnnotationDescriptor>();
   }
 
   public ClassDescriptor getClassDesc() {
@@ -300,6 +307,7 @@ public class TypeDescriptor extends Descriptor {
     this.class_desc=cd;
     this.arraycount=0;
     this.isClassNameRef =false;
+    this.annotationSet=new HashSet<AnnotationDescriptor>();
   }
 
   public TypeDescriptor(int t) {
@@ -307,6 +315,7 @@ public class TypeDescriptor extends Descriptor {
     this.type=t;
     this.arraycount=0;
     this.isClassNameRef =false;
+    this.annotationSet=new HashSet<AnnotationDescriptor>();
   }
 
   public String toString() {
@@ -353,4 +362,13 @@ public class TypeDescriptor extends Descriptor {
       return "offset";
     else throw new Error();
   }
+  
+  public void addAnnotationMarker(AnnotationDescriptor an){
+    annotationSet.add(an);
+  }
+  
+  public Set getAnnotationMarkerSet(){
+    return annotationSet;
+  }
+  
 }
