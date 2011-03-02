@@ -211,6 +211,79 @@ public class Pointer {
     }
   }
 
+
+  void processThisTargets(HashSet<ClassDescriptor> targetSet, Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, TempDescriptor tmpthis, HashSet<AllocNode> oldnodeset) {
+    //Handle the this temp
+    if (tmpthis!=null) {
+      MySet<Edge> edges=(oldnodeset!=null)?GraphManip.getDiffEdges(delta, tmpthis):GraphManip.getEdges(graph, delta, tmpthis);
+      newDelta.varedgeadd.put(tmpthis, (MySet<Edge>) edges.clone());
+      edgeset.addAll(edges);
+      for(Edge e:edges) {
+	AllocNode dstnode=e.dst;
+	if (!nodeset.contains(dstnode)&&(oldnodeset==null||!oldnodeset.contains(dstnode))) {
+	  TypeDescriptor type=dstnode.getType();
+	  if (!type.isArray()) {
+	    targetSet.add(type.getClassDesc());
+	  } else {
+	    //arrays don't have code
+	    targetSet.add(typeUtil.getClass(TypeUtil.ObjectClass));
+	  }
+	  nodeset.add(dstnode);
+	  tovisit.add(dstnode);
+	}
+      }
+    }
+  }
+
+  void processParams(Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, FlatCall fcall, boolean diff) {
+    //Go through each temp
+    for(int i=0;i<fcall.numArgs();i++) {
+      TempDescriptor tmp=fcall.getArg(i);
+      MySet<Edge> edges=diff?GraphManip.getDiffEdges(delta, tmp):GraphManip.getEdges(graph, delta, tmp);
+      newDelta.varedgeadd.put(tmp, (MySet<Edge>) edges.clone());
+      edgeset.addAll(edges);
+      for(Edge e:edges) {
+	if (!nodeset.contains(e.dst)) {
+	  nodeset.add(e.dst);
+	  tovisit.add(e.dst);
+	}
+      }
+    }
+  }
+
+  void computeReachableNodes(Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, HashSet<AllocNode> oldnodeset) {
+      while(!tovisit.isEmpty()) {
+	AllocNode node=tovisit.pop();
+	MySet<Edge> edges=GraphManip.getEdges(graph, delta, node);
+	newDelta.heapedgeadd.put(node, edges);
+	edgeset.addAll(edges);
+	for(Edge e:edges) {
+	  if (!nodeset.contains(e.dst)&&(oldnodeset==null||!oldnodeset.contains(e.dst))) {
+	    nodeset.add(e.dst);
+	    tovisit.add(e.dst);
+	  }
+	}
+      }
+  }
+
+  HashSet<MethodDescriptor> computeTargets(FlatCall fcall, Delta newDelta) {
+    TempDescriptor tmpthis=fcall.getThis();
+    MethodDescriptor md=fcall.getMethod();
+    HashSet<MethodDescriptor> targets=new HashSet<MethodDescriptor>();
+    if (md.isStatic()) {
+      targets.add(md);
+    } else {
+      //Compute Edges
+      for(Edge e:newDelta.varedgeadd.get(tmpthis)) {
+	AllocNode node=e.dst;
+	ClassDescriptor cd=node.getType().getClassDesc();
+	//Figure out exact method called and add to set
+	targets.add(cd.getCalledMethod(md));
+      }
+    }
+    return targets;
+  }
+
   Delta processFlatCall(BBlock callblock, int callindex, FlatCall fcall, Delta delta, Graph graph) {
     Delta newDelta=new Delta(null, false);
 
@@ -222,69 +295,16 @@ public class Pointer {
       TempDescriptor tmpthis=fcall.getThis();
 
       //Handle the this temp
-      if (tmpthis!=null) {
-	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmpthis);
-	newDelta.varedgeadd.put(tmpthis, (MySet<Edge>) edges.clone());
-	edgeset.addAll(edges);
-	for(Edge e:edges) {
-	  AllocNode dstnode=e.dst;
-	  if (!nodeset.contains(dstnode)) {
-	    TypeDescriptor type=dstnode.getType();
-	    if (!type.isArray()) {
-	      targetSet.add(type.getClassDesc());
-	    } else {
-	      //arrays don't have code
-	      targetSet.add(typeUtil.getClass(TypeUtil.ObjectClass));
-	    }
-	    nodeset.add(dstnode);
-	    tovisit.add(dstnode);
-	  }
-	}
-      }
+      processThisTargets(targetSet, graph, delta, newDelta, nodeset, tovisit, edgeset, tmpthis, null);
 
       //Go through each temp
-      for(int i=0;i<fcall.numArgs();i++) {
-	TempDescriptor tmp=fcall.getArg(i);
-	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
-	newDelta.varedgeadd.put(tmp, (MySet<Edge>) edges.clone());
-	edgeset.addAll(edges);
-	for(Edge e:edges) {
-	  if (!nodeset.contains(e.dst)) {
-	    nodeset.add(e.dst);
-	    tovisit.add(e.dst);
-	  }
-	}
-      }
+      processParams(graph, delta, newDelta, nodeset, tovisit, edgeset, fcall, false);
       
       //Traverse all reachable nodes
-      while(!tovisit.isEmpty()) {
-	AllocNode node=tovisit.pop();
-	MySet<Edge> edges=GraphManip.getEdges(graph, delta, node);
-	newDelta.heapedgeadd.put(node, edges);
-	edgeset.addAll(edges);
-	for(Edge e:edges) {
-	  if (!nodeset.contains(e.dst)) {
-	    nodeset.add(e.dst);
-	    tovisit.add(e.dst);
-	  }
-	}
-      }
+      computeReachableNodes(graph, delta, newDelta, nodeset, tovisit, edgeset, null);
 
       //Compute call targets
-      MethodDescriptor md=fcall.getMethod();
-      HashSet<MethodDescriptor> targets=new HashSet<MethodDescriptor>();
-      if (md.isStatic()) {
-	targets.add(md);
-      } else {
-	//Compute Edges
-	for(Edge e:newDelta.varedgeadd.get(tmpthis)) {
-	  AllocNode node=e.dst;
-	  ClassDescriptor cd=node.getType().getClassDesc();
-	  //Figure out exact method called and add to set
-	  targets.add(cd.getCalledMethod(md));
-	}
-      }
-
+      HashSet<MethodDescriptor> targets=computeTargets(fcall, newDelta);
 
       //Fix mapping
       for(MethodDescriptor calledmd:targets) {
@@ -355,39 +375,10 @@ public class Pointer {
       TempDescriptor tmpthis=fcall.getThis();
 
       //Handle the this temp
-      if (tmpthis!=null) {
-	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmpthis);
-	newDelta.varedgeadd.put(tmpthis, (MySet<Edge>) edges.clone());
-	edgeset.addAll(edges);
-	for(Edge e:edges) {
-	  AllocNode dstnode=e.dst;
-	  if (!nodeset.contains(dstnode)&&!oldnodeset.contains(dstnode)) {
-	    TypeDescriptor type=dstnode.getType();
-	    if (!type.isArray()) {
-	      targetSet.add(type.getClassDesc());
-	    } else {
-	      //arrays don't have code
-	      targetSet.add(typeUtil.getClass(TypeUtil.ObjectClass));
-	    }
-	    nodeset.add(dstnode);
-	    tovisit.add(dstnode);
-	  }
-	}
-      }
+      processThisTargets(targetSet, graph, delta, newDelta, nodeset, tovisit, edgeset, tmpthis, oldnodeset);
 
       //Go through each temp
-      for(int i=0;i<fcall.numArgs();i++) {
-	TempDescriptor tmp=fcall.getArg(i);
-	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
-	newDelta.varedgeadd.put(tmp, (MySet<Edge>) edges.clone());
-	edgeset.addAll(edges);
-	for(Edge e:edges) {
-	  if (!nodeset.contains(e.dst)&&!oldnodeset.contains(e.dst)) {
-	    nodeset.add(e.dst);
-	    tovisit.add(e.dst);
-	  }
-	}
-      }
+      processParams(graph, delta, newDelta, nodeset, tovisit, edgeset, fcall, true);
 
       //Go through each new heap edge that starts from old node
       MySet<Edge> newedges=GraphManip.getDiffEdges(delta, oldnodeset);
@@ -400,34 +391,10 @@ public class Pointer {
       }
       
       //Traverse all reachable nodes
-      while(!tovisit.isEmpty()) {
-	AllocNode node=tovisit.pop();
-	MySet<Edge> edges=GraphManip.getEdges(graph, delta, node);
-
-	newDelta.heapedgeadd.put(node, edges);
-	edgeset.addAll(edges);
-	for(Edge e:edges) {
-	  if (!nodeset.contains(e.dst)&&!oldnodeset.contains(e.dst)) {
-	    nodeset.add(e.dst);
-	    tovisit.add(e.dst);
-	  }
-	}
-      }
+      computeReachableNodes(graph, delta, newDelta, nodeset, tovisit, edgeset, oldnodeset);
 
       //Compute call targets
-      MethodDescriptor md=fcall.getMethod();
-      HashSet<MethodDescriptor> targets=new HashSet<MethodDescriptor>();
-      if (md.isStatic()) {
-	targets.add(md);
-      } else {
-	//Compute Edges
-	for(Edge e:newDelta.varedgeadd.get(tmpthis)) {
-	  AllocNode node=e.dst;
-	  ClassDescriptor cd=node.getType().getClassDesc();
-	  //Figure out exact method called and add to set
-	  targets.add(cd.getCalledMethod(md));
-	}
-      }
+      HashSet<MethodDescriptor> targets=computeTargets(fcall, newDelta);
 
       //add in new nodeset and edgeset
       oldnodeset.addAll(nodeset);
