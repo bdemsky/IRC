@@ -65,9 +65,9 @@ void threadexit() {
 #ifdef THREADS
   struct ___Object___ *ll=pthread_getspecific(threadlocks);
   while(ll!=NULL) {
-    struct ___Object___ *llnext=ll->___Object______nextlockobject___;
-    ll->___Object______nextlockobject___=NULL;
-    ll->___Object______prevlockobject___=NULL;
+    struct ___Object___ *llnext=ll->___nextlockobject___;
+    ll->___nextlockobject___=NULL;
+    ll->___prevlockobject___=NULL;
     ll->lockcount=0;
     ll->tid=0; //unlock it
     ll=llnext;
@@ -346,7 +346,7 @@ void initthread(struct ___Thread___ * ___this___) {
 #else
   ___Thread______staticStart____L___Thread___(___this___);
 #endif
-  ___this___->___Thread______finished___=1;
+  ___this___->___finished___=1;
   pthread_mutex_lock(&joinlock);
   pthread_cond_signal(&joincond);
   pthread_mutex_unlock(&joinlock);
@@ -477,7 +477,7 @@ transstart:
 #if defined(THREADS)||defined(STM)
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
   pthread_mutex_lock(&joinlock);
-  while(!VAR(___this___)->___Thread______finished___) {
+  while(!VAR(___this___)->___finished___) {
 #ifdef PRECISE_GC
   stopforgc((struct garbagelist *)___params___);
 #endif
