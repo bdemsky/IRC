@@ -497,6 +497,7 @@ public class BuildIR {
     ParseNode enumnode=pn.getChild("enum_declaration");
     if (enumnode!=null) {
       parseEnumDecl(cn,enumnode);
+      return;
     }
     ParseNode flagnode=pn.getChild("flag");
     if (flagnode!=null) {
