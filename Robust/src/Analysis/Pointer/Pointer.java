@@ -284,6 +284,84 @@ public class Pointer {
     return targets;
   }
 
+
+  void fixMapping(FlatCall fcall, HashSet<MethodDescriptor> targets, MySet<Edge> oldedgeset, Delta newDelta, BBlock callblock, int callindex) {
+    Delta basedelta=null;
+    TempDescriptor tmpthis=fcall.getThis();
+
+    for(MethodDescriptor calledmd:targets) {
+      FlatMethod fm=state.getMethodFlat(calledmd);
+      boolean newmethod=false;
+      
+      //Build tmpMap
+      HashMap<TempDescriptor, TempDescriptor> tmpMap=new HashMap<TempDescriptor, TempDescriptor>();
+      int offset=0;
+      if(tmpthis!=null) {
+	tmpMap.put(tmpthis, fm.getParameter(offset++));
+      }
+      for(int i=0;i<fcall.numArgs();i++) {
+	TempDescriptor tmp=fcall.getArg(i);
+	tmpMap.put(tmp,fm.getParameter(i+offset));
+      }
+
+      //Get basicblock for the method
+      BasicBlock block=getBBlock(fm);
+      
+      //Hook up exits
+      if (!callMap.containsKey(fcall)) {
+	callMap.put(fcall, new HashSet<BBlock>());
+      }
+      
+      Delta returnDelta=null;
+      
+      if (!callMap.get(fcall).contains(block.getStart())) {
+	callMap.get(fcall).add(block.getStart());
+	newmethod=true;
+	
+	//Hook up return
+	if (!returnMap.containsKey(block.getExit())) {
+	  returnMap.put(block.getExit(), new HashSet<PPoint>());
+	}
+	returnMap.get(block.getExit()).add(new PPoint(callblock, callindex));
+	
+	if (bbgraphMap.containsKey(block.getExit())) {
+	  //Need to push existing results to current node
+	  if (returnDelta==null) {
+	    returnDelta=new Delta(null, false);
+	    buildInitDelta(bbgraphMap.get(block.getExit()), returnDelta);
+	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
+	      returnDelta.setBlock(new PPoint(callblock, callindex));
+	      toprocess.add(returnDelta);
+	    }
+	  } else {
+	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
+	      toprocess.add(returnDelta.diffBlock(new PPoint(callblock, callindex)));
+	    }
+	  }
+	}
+      }
+      
+      if (oldedgeset==null) {
+	//First build of this graph
+	//Build and enqueue delta...safe to just use existing delta
+	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
+	toprocess.add(d);
+      } else if (newmethod) {
+	if (basedelta==null) {
+	  basedelta=newDelta.buildBase(oldedgeset);
+	}
+	//Build and enqueue delta
+	Delta d=basedelta.changeParams(tmpMap, new PPoint(block.getStart()));
+	toprocess.add(d);
+      } else  {
+	//Build and enqueue delta
+	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
+	toprocess.add(d);
+      }
+    }
+  }
+  
+
   Delta processFlatCall(BBlock callblock, int callindex, FlatCall fcall, Delta delta, Graph graph) {
     Delta newDelta=new Delta(null, false);
 
@@ -307,58 +385,8 @@ public class Pointer {
       HashSet<MethodDescriptor> targets=computeTargets(fcall, newDelta);
 
       //Fix mapping
-      for(MethodDescriptor calledmd:targets) {
-	FlatMethod fm=state.getMethodFlat(calledmd);
+      fixMapping(fcall, targets, null, newDelta, callblock, callindex);
 
-	//Build tmpMap
-	HashMap<TempDescriptor, TempDescriptor> tmpMap=new HashMap<TempDescriptor, TempDescriptor>();
-	int offset=0;
-	if(tmpthis!=null) {
-	  tmpMap.put(tmpthis, fm.getParameter(offset++));
-	}
-	for(int i=0;i<fcall.numArgs();i++) {
-	  TempDescriptor tmp=fcall.getArg(i);
-	  tmpMap.put(tmp,fm.getParameter(i+offset));
-	}
-
-	//Get basicblock for the method
-	BasicBlock block=getBBlock(fm);
-
-	//Build and enqueue delta
-	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	toprocess.add(d);
-
-	//Hook up exits
-	if (!callMap.containsKey(fcall)) {
-	  callMap.put(fcall, new HashSet<BBlock>());
-	}
-	callMap.get(fcall).add(block.getStart());
-	
-	//If we have an existing exit, build delta
-	Delta returnDelta=null;
-
-	//Hook up return
-	if (!returnMap.containsKey(block.getExit())) {
-	  returnMap.put(block.getExit(), new HashSet<PPoint>());
-	}
-	returnMap.get(block.getExit()).add(new PPoint(callblock, callindex));
-	
-	if (bbgraphMap.containsKey(block.getExit())) {
-	  //Need to push existing results to current node
-	  if (returnDelta==null) {
-	    returnDelta=new Delta(null, false);
-	    buildInitDelta(bbgraphMap.get(block.getExit()), returnDelta);
-	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
-	      returnDelta.setBlock(new PPoint(callblock, callindex));
-	      toprocess.add(returnDelta);
-	    }
-	  } else {
-	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
-	      toprocess.add(returnDelta.diffBlock(new PPoint(callblock, callindex)));
-	    }
-	  }
-	}
-      }
       graph.reachNode=nodeset;
       graph.reachEdge=edgeset;
       
@@ -399,74 +427,9 @@ public class Pointer {
       //add in new nodeset and edgeset
       oldnodeset.addAll(nodeset);
       oldedgeset.addAll(edgeset);
-      Delta basedelta=null;
 
       //Fix mapping
-      for(MethodDescriptor calledmd:targets) {
-	FlatMethod fm=state.getMethodFlat(calledmd);
-	boolean newmethod=false;
-
-	//Get basicblock for the method
-	BasicBlock block=getBBlock(fm);
-
-	//Hook up exits
-	if (!callMap.containsKey(fcall)) {
-	  callMap.put(fcall, new HashSet<BBlock>());
-	}
-
-	Delta returnDelta=null;
-
-	if (!callMap.get(fcall).contains(block.getStart())) {
-	  callMap.get(fcall).add(block.getStart());
-	  newmethod=true;
-
-	  //Hook up exits
-	  if (!returnMap.containsKey(block.getExit())) {
-	    returnMap.put(block.getExit(), new HashSet<PPoint>());
-	  }
-	  returnMap.get(block.getExit()).add(new PPoint(callblock, callindex));
-	  
-	  if (bbgraphMap.containsKey(block.getExit())) {
-	    //Need to push existing results to current node
-	    if (returnDelta==null) {
-	      returnDelta=new Delta(null, false);
-	      buildInitDelta(bbgraphMap.get(block.getExit()), returnDelta);
-	      if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
-		returnDelta.setBlock(new PPoint(callblock, callindex));
-		toprocess.add(returnDelta);
-	      }
-	    } else {
-	      if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
-		toprocess.add(returnDelta.diffBlock(new PPoint(callblock, callindex)));
-	      }
-	    }
-	  }
-	}
-	
-	//Build tmpMap
-	HashMap<TempDescriptor, TempDescriptor> tmpMap=new HashMap<TempDescriptor, TempDescriptor>();
-	int offset=0;
-	if(tmpthis!=null) {
-	  tmpMap.put(tmpthis, fm.getParameter(offset++));
-	}
-	for(int i=0;i<fcall.numArgs();i++) {
-	  TempDescriptor tmp=fcall.getArg(i);
-	  tmpMap.put(tmp,fm.getParameter(i+offset));
-	}
-
-	if (newmethod) {
-	  if (basedelta==null) {
-	    basedelta=newDelta.buildBase(oldedgeset);
-	  }
-	  //Build and enqueue delta
-	  Delta d=basedelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	  toprocess.add(d);
-	} else  {
-	  //Build and enqueue delta
-	  Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	  toprocess.add(d);
-	}
-      }
+      fixMapping(fcall, targets, oldedgeset, newDelta, callblock, callindex);
 
       //Apply diffs to graph
       applyDiffs(graph, delta);
