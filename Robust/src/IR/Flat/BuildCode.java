@@ -50,6 +50,7 @@ public class BuildCode {
   CallGraph callgraph;
   Hashtable<String, ClassDescriptor> printedfieldstbl;
   int globaldefscount=0;
+  boolean mgcstaticinit = false;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
     this(st, temptovar, typeutil, null);
@@ -291,7 +292,6 @@ public class BuildCode {
     SymbolTable sctbl = this.state.getSClassSymbolTable();
     Iterator it_sclasses = sctbl.getDescriptorsIterator();
     if(it_sclasses.hasNext()) {
-      outmethod.println("#define MGC_STATIC_INIT_CHECK");
       while(it_sclasses.hasNext()) {
         ClassDescriptor t_cd = (ClassDescriptor)it_sclasses.next();
         MethodDescriptor t_md = (MethodDescriptor)t_cd.getMethodTable().get("staticblocks");
@@ -307,7 +307,6 @@ public class BuildCode {
           outmethod.println("   }");
         }
       }
-      outmethod.println("#undef MGC_STATIC_INIT_CHECK");
     }
   }
 
@@ -1208,10 +1207,41 @@ public class BuildCode {
     }
     output.println("};");
   }
+  
+  private int checkarraysupertype(ClassDescriptor arraycd, TypeDescriptor arraytd) {
+    int type=-1;
+    
+    TypeDescriptor supertd=new TypeDescriptor(arraycd);
+    supertd.setArrayCount(arraytd.getArrayCount());
+    type=state.getArrayNumber(supertd);
+    if (type!=-1) {
+      return type;
+    }
+    
+    ClassDescriptor cd = arraycd.getSuperDesc();
+    if(cd != null) {
+      type = checkarraysupertype(cd, arraytd);
+      if(type != -1) {
+        return type;
+      }
+    }
+
+    Iterator it_sifs = arraycd.getSuperInterfaces();
+    while(it_sifs.hasNext()) {
+      ClassDescriptor ifcd = (ClassDescriptor)it_sifs.next();
+      type = checkarraysupertype(ifcd, arraytd);
+      if(type != -1) {
+        return type;
+      }
+    }
+    
+    return type;
+  }
 
 
   /** Print out table to give us supertypes */
   protected void generateSuperTypeTable(PrintWriter output) {
+    ClassDescriptor objectclass=typeutil.getClass(TypeUtil.ObjectClass);
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cn=cdarray[i];
       if(cn == null) {
@@ -1234,8 +1264,8 @@ public class BuildCode {
         if(ncomma) {
           output.print(",");
         }
-    ClassDescriptor cdsuper=cn.getSuperDesc();
-    output.print(cdsuper.getId());
+        ClassDescriptor cdsuper=cn.getSuperDesc();
+        output.print(cdsuper.getId());
       } 
       it_sifs = cn != null? cn.getSuperInterfaces() : null;
       while(it_sifs != null && it_sifs.hasNext()) {
@@ -1247,6 +1277,58 @@ public class BuildCode {
       
       output.println("};");
     }
+    
+    for(int i=0; i<state.numArrays(); i++) {
+      TypeDescriptor arraytd=arraytable[i];
+      ClassDescriptor arraycd=arraytd.getClassDesc();
+      output.print("int supertypes___arraytype___" + (i+state.numClasses()) + "[] = {");
+      boolean ncomma = false;
+      int snum = 0;
+      if (arraycd==null) {
+        snum++;
+        output.print(snum);
+        output.print(", ");
+        output.print(objectclass.getId());
+        output.println("};");
+        continue;
+      }
+      if((arraycd != null) && (arraycd.getSuperDesc() != null)) {
+        snum++;
+      }
+      Iterator it_sifs = arraycd != null? arraycd.getSuperInterfaces() : null;
+      while(it_sifs != null && it_sifs.hasNext()) {
+        snum++;
+        it_sifs.next();
+      }
+      output.print(snum);
+      ncomma = true;
+      if ((arraycd != null) && (arraycd.getSuperDesc()!=null)) {
+        ClassDescriptor cd=arraycd.getSuperDesc();
+        int type=-1;
+        if(cd!=null) {
+          type = checkarraysupertype(cd, arraytd);
+          if(type != -1) {
+            type += state.numClasses();
+          }
+        }
+        if (ncomma)
+          output.print(", ");
+        output.print(type);
+      } 
+      it_sifs = arraycd != null? arraycd.getSuperInterfaces() : null;
+      while(it_sifs != null && it_sifs.hasNext()) {
+        ClassDescriptor ifcd = (ClassDescriptor)it_sifs.next();
+        int type = checkarraysupertype(ifcd , arraytd);
+        if(type != -1) {
+          type += state.numClasses();
+        }
+        if (ncomma)
+          output.print(", ");
+        output.print(type);
+      }
+      output.println("};");
+    }
+    
     output.println("int* supertypes[]={");
     boolean needcomma=false;
     for(int i=0; i<state.numClasses(); i++) {
@@ -1259,6 +1341,13 @@ public class BuildCode {
       } else {
         output.print(0);
       }
+    }
+    
+    for(int i=0; i<state.numArrays(); i++) {
+      if (needcomma)
+        output.println(",");
+      needcomma = true;
+      output.print("supertypes___arraytype___" + (i+state.numClasses()));
     }
     output.println("};");
   }
@@ -1456,6 +1545,25 @@ public class BuildCode {
   protected void generateMethodParam(ClassDescriptor cn, MethodDescriptor md, PrintWriter output) {
     /* Output parameter structure */
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      if(md.isInvokedByStatic() && !md.isStaticBlock() && !md.getModifiers().isNative()) {
+        // generate the staticinit version
+        String mdstring = md.getSafeMethodDescriptor() + "staticinit";
+        
+        ParamsObject objectparams=(ParamsObject) paramstable.get(md);
+        output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params {");
+        output.println("  int size;");
+        output.println("  void * next;");
+        for(int i=0; i<objectparams.numPointers(); i++) {
+          TempDescriptor temp=objectparams.getPointer(i);
+          if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+            output.println("  int " + temp.getSafeSymbol() + ";");
+          } else {
+            output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+          }
+        }
+        output.println("};\n");
+      }
+      
       ParamsObject objectparams=(ParamsObject) paramstable.get(md);
       output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params {");
       output.println("  int size;");
@@ -1478,8 +1586,66 @@ public class BuildCode {
 
     ParamsObject objectparams=(ParamsObject) paramstable.get(md);
     TempObject objecttemps=(TempObject) tempstable.get(md);
-
+    
+    boolean printcomma = false;
+    
     generateMethodParam(cn, md, output);
+    
+    if(md.isInvokedByStatic()) {
+      // generate the staticinit version
+      String mdstring = md.getSafeMethodDescriptor() + "staticinit";
+
+      /* Output temp structure */
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+        output.println("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals {");
+        output.println("  int size;");
+        output.println("  void * next;");
+        for(int i=0; i<objecttemps.numPointers(); i++) {
+          TempDescriptor temp=objecttemps.getPointer(i);
+          if (temp.getType().isNull())
+            output.println("  void * "+temp.getSafeSymbol()+";");
+          else
+            output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
+        }
+        output.println("};\n");
+      }
+      
+      headersout.println("#define D"+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+" 1");
+      /* First the return type */
+      if (md.getReturnType()!=null) {
+        if(md.getReturnType().isClass() && md.getReturnType().getClassDesc().isEnum()) {
+          headersout.println("  int ");
+        } else if (md.getReturnType().isClass()||md.getReturnType().isArray())
+          headersout.print("struct " + md.getReturnType().getSafeSymbol()+" * ");
+        else
+          headersout.print(md.getReturnType().getSafeSymbol()+" ");
+      } else
+        //catch the constructor case
+        headersout.print("void ");
+
+      /* Next the method name */
+      headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"(");
+      printcomma=false;
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+        headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
+        printcomma=true;
+      }
+
+      /*  Output parameter list*/
+      for(int i=0; i<objectparams.numPrimitives(); i++) {
+        TempDescriptor temp=objectparams.getPrimitive(i);
+        if (printcomma)
+          headersout.print(", ");
+        printcomma=true;
+        if(temp.getType().isClass() && temp.getType().getClassDesc().isEnum()) {
+          headersout.print("int " + temp.getSafeSymbol());
+        } else if (temp.getType().isClass()||temp.getType().isArray())
+          headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
+        else
+          headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+      }
+      headersout.println(");\n");
+    }
 
     /* Output temp structure */
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
@@ -1512,7 +1678,7 @@ public class BuildCode {
 
     /* Next the method name */
     headersout.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
-    boolean printcomma=false;
+    printcomma=false;
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       headersout.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
       printcomma=true;
@@ -1605,8 +1771,67 @@ public class BuildCode {
     TaskDescriptor task=fm.getTask();
     ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
     ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null ? md : task);
+    
+    if((md != null) && md.isInvokedByStatic() && !md.isStaticBlock()) {
+      // generate a special static init version
+      mgcstaticinit = true;
+      String mdstring = md.getSafeMethodDescriptor() + "staticinit";
+      
+      generateHeader(fm, md!=null ? md : task,output);
+      TempObject objecttemp=(TempObject) tempstable.get(md!=null ? md : task);
+      
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+        output.print("   struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_locals "+localsprefix+"={");
+        output.print(objecttemp.numPointers()+",");
+        output.print(paramsprefix);
+        for(int j=0; j<objecttemp.numPointers(); j++)
+          output.print(", NULL");
+        output.println("};");
+      }
+
+      for(int i=0; i<objecttemp.numPrimitives(); i++) {
+        TempDescriptor td=objecttemp.getPrimitive(i);
+        TypeDescriptor type=td.getType();
+        if (type.isNull() && !type.isArray())
+          output.println("   void * "+td.getSafeSymbol()+";");
+        else if (type.isClass() && type.getClassDesc().isEnum()) {
+          output.println("   int " + td.getSafeSymbol() + ";");
+        } else if (type.isClass()||type.isArray())
+          output.println("   struct "+type.getSafeSymbol()+" * "+td.getSafeSymbol()+";");
+        else
+          output.println("   "+type.getSafeSymbol()+" "+td.getSafeSymbol()+";");
+      }
+
+      additionalCodeAtTopFlatMethodBody(output, fm);
+
+      /* Check to see if we need to do a GC if this is a
+       * multi-threaded program...*/
+
+      if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
+          || this.state.MULTICOREGC) {
+        //Don't bother if we aren't in recursive methods...The loops case will catch it
+        if (callgraph.getAllMethods(md).contains(md)) {
+          if (this.state.MULTICOREGC) {
+            output.println("if(gcflag) gc("+localsprefixaddr+");");
+          } else {
+            output.println("if (unlikely(needtocollect)) checkcollect("+localsprefixaddr+");");
+          }
+        }
+      }
+      
+      generateCode(fm.getNext(0), fm, null, output);
+
+      output.println("}\n\n");
+      
+      mgcstaticinit = false;
+    }
+    
     generateHeader(fm, md!=null ? md : task,output);
     TempObject objecttemp=(TempObject) tempstable.get(md!=null ? md : task);
+
+    if((md != null) && (md.isStaticBlock())) {
+      mgcstaticinit = true;
+    }
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null)
@@ -1661,6 +1886,8 @@ public class BuildCode {
     generateCode(fm.getNext(0), fm, null, output);
 
     output.println("}\n\n");
+    
+    mgcstaticinit = false;
   }
 
   protected void generateCode(FlatNode first,
@@ -1964,16 +2191,23 @@ public class BuildCode {
 
   public void generateFlatInstanceOfNode(FlatMethod fm,  FlatInstanceOfNode fion, PrintWriter output) {
     int type;
+    int otype;
     if (fion.getType().isArray()) {
       type=state.getArrayNumber(fion.getType())+state.numClasses();
     } else {
       type=fion.getType().getClassDesc().getId();
     }
+    if (fion.getSrc().getType().isArray()) {
+      otype=state.getArrayNumber(fion.getSrc().getType())+state.numClasses();
+    } else {
+      otype=fion.getSrc().getType().getClassDesc().getId();
+    }
 
     if (fion.getType().getSymbol().equals(TypeUtil.ObjectClass))
-      output.println(generateTemp(fm, fion.getDst())+"=1;");
-    else
+      output.println(generateTemp(fm, fion.getDst())+"=(" + generateTemp(fm,fion.getSrc()) + "!= NULL);");
+    else {
       output.println(generateTemp(fm, fion.getDst())+"=instanceof("+generateTemp(fm,fion.getSrc())+","+type+");");
+    }
   }
 
   public void generateFlatAtomicEnterNode(FlatMethod fm, FlatAtomicEnterNode faen, PrintWriter output) {
@@ -2030,6 +2264,10 @@ public class BuildCode {
     MethodDescriptor md=fc.getMethod();
     ParamsObject objectparams=(ParamsObject)paramstable.get(md);
     ClassDescriptor cn=md.getClassDesc();
+    String mdstring = md.getSafeMethodDescriptor();
+    if(mgcstaticinit && !md.getModifiers().isNative()) {
+      mdstring += "staticinit";
+    }
 
     // if the called method is a static block or a static method or a constructor
     // need to check if it can be invoked inside some static block
@@ -2042,12 +2280,11 @@ public class BuildCode {
       ClassDescriptor cd = fm.getMethod().getClassDesc();
       if(cd == cn) {
 	// the same class, do nothing
-	// TODO may want to invoke static field initialization here
-      } else {
+      } else if(mgcstaticinit) {
+        // generate static init check code if it has not done static init in main()
 	if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
 	  // need to check if the class' static fields have been initialized and/or
 	  // its static blocks have been executed
-	  output.println("#ifdef MGC_STATIC_INIT_CHECK");
 	  output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	  if(cn.getNumStaticBlocks() != 0) {
 	    MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
@@ -2056,21 +2293,20 @@ public class BuildCode {
 	    output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	  }
 	  output.println("}");
-	  output.println("#endif // MGC_STATIC_INIT_CHECK");
 	}
       }
     }
     if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
       // call MonitorEnter/MonitorExit on a class obj
       output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-		     +md.getSafeMethodDescriptor() + "((struct ___Object___*)(global_defs_p->"
+		     + md.getSafeMethodDescriptor() + "((struct ___Object___*)(global_defs_p->"
 		     + fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj));");
       return;
     }
     
     output.println("{");
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-      output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+      output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params __parameterlist__={");
       output.print(objectparams.numPointers());
       output.print(", "+localsprefixaddr);
       if (md.getThis()!=null) {
@@ -2107,7 +2343,7 @@ public class BuildCode {
     /* Do we need to do virtual dispatch? */
     if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
       //no
-      output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor());
+      output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring);
     } else {
       //yes
       output.print("((");
@@ -2121,7 +2357,7 @@ public class BuildCode {
 
       boolean printcomma=false;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * ");
+	output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * ");
 	printcomma=true;
       }
 
@@ -2208,18 +2444,17 @@ public class BuildCode {
   protected void generateFlatFieldNode(FlatMethod fm, FlatFieldNode ffn, PrintWriter output) {
     if(ffn.getField().isStatic() || ffn.getField().isVolatile()) {
       // static field
-      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
+      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()/* && mgcstaticinit*/)) {
 	// is a static block or is invoked in some static block
 	ClassDescriptor cd = fm.getMethod().getClassDesc();
 	ClassDescriptor cn = ffn.getSrc().getType().getClassDesc();
 	if(cd == cn) {
 	  // the same class, do nothing
-	  // TODO may want to invoke static field initialization here
-	} else {
+	} else if(mgcstaticinit) {
+      // generate the static init check code if has not done the static init in main()
 	  if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
 	    // need to check if the class' static fields have been initialized and/or
 	    // its static blocks have been executed
-	    output.println("#ifdef MGC_STATIC_INIT_CHECK");
 	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	    if(cn.getNumStaticBlocks() != 0) {
 	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
@@ -2228,7 +2463,6 @@ public class BuildCode {
 	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	    }
 	    output.println("}");
-	    output.println("#endif // MGC_STATIC_INIT_CHECK");
 	  }
 	}
       }
@@ -2269,22 +2503,18 @@ public class BuildCode {
 
     if(fsfn.getField().isStatic()) {
       // static field
-      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
+      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()/* && mgcstaticinit*/)) {
 	// is a static block or is invoked in some static block
 	ClassDescriptor cd = fm.getMethod().getClassDesc();
 	ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
 	if(cd == cn) {
 	  // the same class, do nothing
-	  // TODO may want to invoke static field initialization here
-	} else {
+	} else if(mgcstaticinit){
+      // generate static init check code if has not done the static init in main()
 	  if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
 	    // need to check if the class' static fields have been initialized and/or
 	    // its static blocks have been executed
-	    output.println("#ifdef MGC_STATIC_INIT_CHECK");
 	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
-	    if(cn.getNumStaticFields() != 0) {
-	      // TODO add static field initialization here
-	    }
 	    if(cn.getNumStaticBlocks() != 0) {
 	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
 	      output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
@@ -2292,7 +2522,6 @@ public class BuildCode {
 	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	    }
 	    output.println("}");
-	    output.println("#endif // MGC_STATIC_INIT_CHECK");
 	  }
 	}
       }
@@ -2496,6 +2725,7 @@ public class BuildCode {
       md=(MethodDescriptor) des;
     else
       task=(TaskDescriptor) des;
+    String mdstring = md != null ? md.getSafeMethodDescriptor() : null;
 
     ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
 
@@ -2510,14 +2740,17 @@ public class BuildCode {
       //catch the constructor case
       output.print("void ");
     if (md!=null) {
-      output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(");
+      if(mgcstaticinit) {
+        mdstring += "staticinit";
+      }
+      output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"(");
     } else
       output.print(task.getSafeSymbol()+"(");
 
     boolean printcomma=false;
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       if (md!=null) {
-	output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params * "+paramsprefix);
+	output.print("struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params * "+paramsprefix);
       } else
 	output.print("struct "+task.getSafeSymbol()+"_params * "+paramsprefix);
       printcomma=true;

@@ -153,6 +153,10 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("int mgc_main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
     
+    if (state.MULTICOREGC) {
+      outmethod.println("  global_defs_p->size="+globaldefscount+";");
+    }
+    
     outputStaticBlocks(outmethod);
     outputClassObjects(outmethod);
     

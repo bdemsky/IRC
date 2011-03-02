@@ -39,6 +39,9 @@ int instanceofif(int otype, int type) {
   if(otype == type) {
 	return 1;
   }
+  if(otype == -1) {
+	return 0;
+  }
   int num = supertypes[otype][0];
   for(int i = 1; i < num + 1; i++) {
 	int t = supertypes[otype][i];
@@ -50,24 +53,19 @@ int instanceofif(int otype, int type) {
 }
 
 int instanceof(struct ___Object___ *ptr, int type) {
+  if(ptr == NULL) {
+	return 0;
+  }
   int i=ptr->type;
-  /*do {
-    if (i==type)
-      return 1;
-    i=typearray[i];
-  } while(i!=-1);
-  i=ptr->type;*/
-  /*if(instanceofif(i, type) == 1) {
+  if(instanceofif(i, type) == 1) {
 	return 1;
-  }*/
+  }
   if (i>NUMCLASSES) {
     do {
       if (i==type)
 	return 1;
       i=typearray2[i-NUMCLASSES];
     } while(i!=-1);
-  } else {
-	return instanceofif(i, type);
   }
   return 0;
 }
@@ -183,7 +181,7 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
   int srctype=((int *)src)[0];
 
   //not an array or type mismatch
-  if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
+  if (dsttype<NUMCLASSES||srctype<NUMCLASSES/*||srctype!=dsttype*/)
     return;
 
   struct ArrayObject *aodst=(struct ArrayObject *)dst;

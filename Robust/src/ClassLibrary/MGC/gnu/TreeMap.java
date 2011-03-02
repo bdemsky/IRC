@@ -114,7 +114,7 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
    * to be black. This object must never be used as a key in a TreeMap, or
    * it will break bounds checking of a SubMap.
    */
-  static final TreeNode nil = new TreeNode(null, null, BLACK);
+  static final TreeNode nil = new TreeNode(/*null, null, */BLACK);
   static
     {
       // Nil is self-referential, so we must initialize it after creation.

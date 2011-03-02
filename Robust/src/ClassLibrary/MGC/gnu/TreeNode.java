@@ -13,11 +13,11 @@ public static final class TreeNode//<K, V> extends AbstractMap.SimpleEntry<K, V>
   Object value;
 
   /** The left child node. */
-  TreeNode left = TreeMap.nil;
+  TreeNode left;// = TreeMap.nil;
   /** The right child node. */
-  TreeNode right = TreeMap.nil;
+  TreeNode right;// = TreeMap.nil;
   /** The parent node. */
-  TreeNode parent = TreeMap.nil;
+  TreeNode parent;// = TreeMap.nil;
 
   /**
    * Simple constructor.
@@ -28,6 +28,16 @@ public static final class TreeNode//<K, V> extends AbstractMap.SimpleEntry<K, V>
   {
     key = key;
     value = value;
+    this.color = color;
+    left = TreeMap.nil;
+    right = TreeMap.nil;
+    parent = TreeMap.nil;
+  }
+  
+  TreeNode(int color)
+  {
+    key = null;
+    value = null;
     this.color = color;
   }
 

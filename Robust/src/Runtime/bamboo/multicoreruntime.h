@@ -39,9 +39,11 @@ bool reside;
 #ifdef GC_SMALLPAGESIZE
 #define BAMBOO_THREAD_QUEUE_SIZE (1024 * 1024)
 #define BAMBOO_GLOBAL_DEFS_SIZE (1024 * 1024)
+#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (1024 * 512)
 #else
 #define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
 #define BAMBOO_GLOBAL_DEFS_SIZE (BAMBOO_SMEM_SIZE)
+#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (BAMBOO_SMEM_SIZE/2)
 #endif
 // data structures for threads
 INTPTR * bamboo_thread_queue;
