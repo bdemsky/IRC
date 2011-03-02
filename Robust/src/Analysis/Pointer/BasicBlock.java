@@ -24,6 +24,7 @@ public class BasicBlock {
     Vector<FlatNode> nodes;
     Vector<BBlock> prevb;
     Vector<BBlock> nextb;
+    boolean callReturn;
 
     public BBlock() {
       nodes=new Vector<FlatNode>();
@@ -42,7 +43,7 @@ public class BasicBlock {
     }
   }
 
-  public static BasicBlock getBBlock(FlatMethod fm, boolean breakcalls) {
+  public static BasicBlock getBBlock(FlatMethod fm) {
     BBlock exit=null;
     Stack<FlatNode> toprocess=new Stack<FlatNode>();
     HashMap<FlatNode, BBlock> map=new HashMap<FlatNode, BBlock>();
@@ -58,7 +59,7 @@ public class BasicBlock {
       if (fn.kind()==FKind.FlatExit)
 	exit=block;
       do {
-	if (pm.numNext(fn)!=1||(fn.kind()==FKind.FlatCall&&breakcalls)) {
+	if (pm.numNext(fn)!=1) {
 	  for(int i=0;i<pm.numNext(fn);i++) {
 	    FlatNode fnext=pm.getNext(fn,i);
 	    if (!map.containsKey(fnext)) {

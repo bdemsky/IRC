@@ -17,17 +17,18 @@ public class Graph {
   HashSet<AllocNode> reachNode;
 
   /* Need this information for mapping in callee results */
-  HashMap<AllocNode, Integer> nodeAges;
-  public static final Integer OLD=new Integer(1); 
-  public static final Integer NEW=new Integer(2); 
-  public static final Integer EITHER=new Integer(3);
+  HashSet<AllocNode> nodeAges;
 
   public Graph(Graph parent) {
     nodeMap=new HashMap<AllocNode, MySet<Edge>>();
     backMap=new HashMap<AllocNode, MySet<Edge>>();
     varMap=new HashMap<TempDescriptor, MySet<Edge>>();
-    nodeAges=new HashMap<AllocNode, Integer>();
+    nodeAges=new HashSet<AllocNode>();
     this.parent=parent;
+  }
+
+  public boolean containsNode(AllocNode node) {
+    return nodeAges.contains(node)||parent!=null&&parent.nodeAges.contains(node);
   }
 
   public MySet<Edge> getEdges(TempDescriptor tmp) {

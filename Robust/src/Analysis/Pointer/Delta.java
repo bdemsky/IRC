@@ -11,15 +11,17 @@ public class Delta {
   HashMap<TempDescriptor, MySet<Edge>> varedgeremove;
   HashMap<AllocNode, MySet<Edge>> baseheapedge;
   HashMap<TempDescriptor, MySet<Edge>> basevaredge;
-  HashMap<AllocNode, Integer> addNodeAges;
+  HashSet<AllocNode> baseNodeAges;
+  HashSet<AllocNode> addNodeAges;
 
   boolean init;
-  BBlock block;
+  PPoint block;
+  boolean callStart;
 
   /* Init is set for false for delta propagations inside of one basic block.
    */
   
-  public Delta(BBlock block, boolean init) {
+  public Delta(PPoint block, boolean init) {
     this.init=init;
     this.baseheapedge=new HashMap<AllocNode, MySet<Edge>>();
     this.basevaredge=new HashMap<TempDescriptor, MySet<Edge>>();
@@ -27,22 +29,23 @@ public class Delta {
     this.heapedgeremove=new HashMap<AllocNode, MySet<Edge>>();
     this.varedgeadd=new HashMap<TempDescriptor, MySet<Edge>>();
     this.varedgeremove=new HashMap<TempDescriptor, MySet<Edge>>();
-    this.addNodeAges=new HashMap<AllocNode, Integer>();
+    this.baseNodeAges=new HashSet<AllocNode>();
+    this.addNodeAges=new HashSet<AllocNode>();
     this.block=block;
   }
 
   private Delta() {
   }
 
-  public BBlock getBlock() {
+  public PPoint getBlock() {
     return block;
   }
 
-  public void setBlock(BBlock block) {
+  public void setBlock(PPoint block) {
     this.block=block;
   }
 
-  public Delta changeParams(HashMap<TempDescriptor, TempDescriptor> tmpMap, BBlock bblock) {
+  public Delta changeParams(HashMap<TempDescriptor, TempDescriptor> tmpMap, PPoint bblock) {
     Delta newdelta=new Delta();
     newdelta.baseheapedge=baseheapedge;
     newdelta.basevaredge=basevaredge;
@@ -81,7 +84,7 @@ public class Delta {
     return newdelta;
   }
 
-  public Delta diffBlock(BBlock bblock) {
+  public Delta diffBlock(PPoint bblock) {
     Delta newdelta=new Delta();
     newdelta.baseheapedge=baseheapedge;
     newdelta.basevaredge=basevaredge;
