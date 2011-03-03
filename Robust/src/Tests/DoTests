@@ -16,4 +16,11 @@ dotest WriteFile WriteFile.java
 dotest ReadFile ReadFile.java
 dotest FileLength FileLength.java
 dotest IntegerTest IntegerTest.java
-#dotest InitializerTest InitializerTest.java
+dotest AbstractTest AbstractTest.java
+dotest EnumTest EnumTest.java
+dotest InitializerTest InitializerTest.java
+dotest InterfaceTest InterfaceTest.java
+dotest StaticInnerClassTest StaticInnerClassTest.java
+dotest StaticTest StaticTest.java
+dotest SwitchCaseTest SwitchCaseTest.java
+dotest TryCatchTest TryCatchTest.java

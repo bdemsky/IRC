@@ -2,8 +2,6 @@ public class ArrayInitializerTest {
   
   public String[] sa = {"hello ", "world ", "!"};
   
-  public ArrayInitializerTest(){}
-  
   static public void main( String[] args ) {
     
     int[] a = { 1, 2, 3 };

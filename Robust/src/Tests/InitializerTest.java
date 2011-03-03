@@ -1,4 +1,4 @@
-public class Test{
+public class InitializerTest{
     static public void main(String[] args){
 	int mainInt = 10;
 	Foo f1=new Foo();
