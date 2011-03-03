@@ -91,5 +91,7 @@ class Keyword extends Token {
     // Keywords for interface of mgc
     key_table.put("interface", new Integer(Sym.INTERFACE));
     key_table.put("implements", new Integer(Sym.IMPLEMENTS));
+    // Keywords for Self-Stabilizing Java
+    key_table.put("locdef", new Integer(Sym.LOCDEF));
   }
 }

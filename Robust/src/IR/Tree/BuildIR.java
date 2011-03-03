@@ -1,5 +1,6 @@
 package IR.Tree;
 import IR.*;
+import Util.Lattice;
 
 import java.util.*;
 
@@ -473,9 +474,23 @@ public class BuildIR {
 	} else if (isNode(decl, "static_block")) {
 	  parseStaticBlockDecl(cn, decl.getChild("static_block_declaration"));
 	} else if (isNode(decl,"block")) {
-	} else throw new Error();
+	} else if (isNode(decl,"location_order_declaration")) {
+	  parseLocationOrder(cn,decl.getChild("location_order_list"));
+  } else throw new Error();
       }
     }
+  }
+  
+  private void parseLocationOrder(ClassDescriptor cn, ParseNode pn){
+    ParseNodeVector pnv=pn.getChildren();
+    Lattice<String> locOrder=new Lattice<String>();
+    for(int i=0; i<pnv.size(); i++) {
+      ParseNode loc=pnv.elementAt(i);
+      String lowerLoc=loc.getChildren().elementAt(0).getLabel();
+      String higherLoc=loc.getChildren().elementAt(1).getLabel();
+      locOrder.put(higherLoc, lowerLoc);      
+    }
+    cn.setLocOrder(locOrder);
   }
   
   private void parseClassMember(ClassDescriptor cn, ParseNode pn) {

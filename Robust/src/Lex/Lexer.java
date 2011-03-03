@@ -267,7 +267,7 @@ public class Lexer {
     "import", "instanceof", "int",
     "interface",
     "isavailable",
-    "long",
+    "locdef", "long", 
     "native", "new", "optional", "package", "private", "protected", "public", 
     "rblock", "return",
     "scratch", "sese", "short", "static", "strictfp", "super", "switch", "synchronized",

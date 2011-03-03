@@ -1,6 +1,7 @@
 package IR;
 import java.util.*;
 import IR.Tree.*;
+import Util.Lattice;
 
 public class ClassDescriptor extends Descriptor {
   private static int UIDCount=1; // start from 1 instead of 0 for multicore gc
@@ -38,6 +39,9 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable enumdescs;
   HashMap<String, Integer> enumConstantTbl;
   int enumconstantid = 0;
+  
+  // for SSJava
+  Lattice<String> locOrder;
 
   public ClassDescriptor(String classname, boolean isInterface) {
     this("", classname, isInterface);
@@ -57,6 +61,7 @@ public class ClassDescriptor extends Descriptor {
     superIFdesc = new SymbolTable();
     this.innerdescs = new SymbolTable();
     this.enumdescs = new SymbolTable();
+    this.locOrder=new Lattice<String>();
   }
 
   public int getId() {
@@ -370,4 +375,13 @@ public class ClassDescriptor extends Descriptor {
   public Modifiers getModifier() {
     return this.modifiers;
   }
+  
+  public Lattice<String> getLocOrder(){
+    return this.locOrder;
+  }
+  
+  public void setLocOrder(Lattice<String> locOrder){
+    this.locOrder=locOrder;
+  }
+  
 }

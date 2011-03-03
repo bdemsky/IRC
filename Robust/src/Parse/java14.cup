@@ -86,6 +86,7 @@ terminal MULTEQ, DIVEQ, MODEQ, PLUSEQ, MINUSEQ; // assignment_operator
 terminal LSHIFTEQ, RSHIFTEQ, URSHIFTEQ; // assignment_operator
 terminal ANDEQ, XOREQ, OREQ; // assignment_operator
 terminal AT;           // support annotations
+terminal LOCDEF;          // declaration of location hierarchy
 
 terminal java.lang.Number INTEGER_LITERAL;
 terminal java.lang.Number FLOATING_POINT_LITERAL;
@@ -158,6 +159,8 @@ non terminal ParseNode static_initializer;
 non terminal ParseNode constructor_declaration, constructor_declarator;
 non terminal ParseNode constructor_body;
 non terminal ParseNode explicit_constructor_invocation;
+// 19.8.6) Location Hierarchy Declarations
+non terminal ParseNode location_order_declaration, location_order_list, location_order;
 // 19.9.1) Interface Declarations
 non terminal ParseNode interface_declaration;
 non terminal normal_interface_declaration, annotation_type_declaration;
@@ -950,14 +953,17 @@ class_body_declaration ::=
 	:}
 	|	block:block {:
 		RESULT=(new ParseNode("block")).addChild(block).getRoot();
-:}
+        :}
+        |       location_order_declaration:lod {:
+                RESULT=(new ParseNode("location_order_declaration")).addChild(lod).getRoot();
+        :}
 	;
 class_member_declaration ::=
 	//failure aware computation
 	flag_declaration:flag {: 
 	RESULT=(new ParseNode("flag")).addChild(flag).getRoot(); 
-	:}
-	|
+	:}	
+        |
 	field_declaration:field {: 
 	RESULT=(new ParseNode("field")).addChild(field).getRoot(); 
 	:}
@@ -1033,7 +1039,6 @@ enum_constant ::=
 //enum_body_declarations_opt ::=
 //	|	SEMICOLON class_body_declarations_opt:cbdo
 //	;
-
 
 //Failure aware computation
 flag_declaration ::= 
@@ -1280,6 +1285,31 @@ SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
 //	|	primary DOT THIS LPAREN argument_list_opt RPAREN SEMICOLON
 //	|	primary DOT SUPER LPAREN argument_list_opt RPAREN SEMICOLON
 	;
+
+// 19.8.6) Location Hierarchy Declarations
+location_order_declaration ::= LOCDEF LBRACE location_order_list:lol RBRACE {:
+                RESULT=lol;			   
+        :}
+        ;
+location_order_list ::= 
+                location_order:lo {:
+                ParseNode pn=new ParseNode("location_order_list");
+		pn.addChild(lo);
+		RESULT=pn;
+        :}
+        |       location_order_list:lol COMMA location_order:lo {:
+                lol.addChild(lo);
+		RESULT=lol;
+        :}
+        ;
+location_order ::= 
+                IDENTIFIER:loc1 LT IDENTIFIER:loc2{:
+         	ParseNode pn=new ParseNode("location_order");
+		pn.addChild(loc1);
+		pn.addChild(loc2);
+		RESULT=pn;         
+        :}
+        ;
 
 // 19.9) Interfaces
 
