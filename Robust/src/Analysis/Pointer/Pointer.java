@@ -314,6 +314,8 @@ public class Pointer {
     return targets;
   }
 
+      
+
 
   void fixMapping(FlatCall fcall, HashSet<MethodDescriptor> targets, MySet<Edge> oldedgeset, Delta newDelta, BBlock callblock, int callindex) {
     Delta basedelta=null;
@@ -513,6 +515,9 @@ public class Pointer {
       graph.reachNode=nodeset;
       graph.reachEdge=edgeset;
       
+      graph.callNodeAges=new HashSet<AllocNode>();
+      graph.callOldNodes=new HashSet<AllocNode>();
+
       //Apply diffs to graph
       applyDiffs(graph, delta, true);
     } else {
@@ -567,15 +572,115 @@ public class Pointer {
     return delta;
   }
 
+  
+
   Delta applyCallDelta(Delta delta, BBlock bblock) {
+    Delta newDelta=new Delta(null, false);
     Vector<FlatNode> nodes=bblock.nodes();
     PPoint ppoint=delta.getBlock();
     FlatCall fcall=(FlatCall)nodes.get(ppoint.getIndex());
     Graph graph=graphMap.get(fcall);
+    Graph oldgraph=(ppoint.getIndex()==0)?
+      bbgraphMap.get(bblock):
+      graphMap.get(nodes.get(ppoint.getIndex()-1));
     
+    //Age outside edges if necessary
+    for(Iterator<AllocNode> nodeit=delta.addNodeAges.iterator();nodeit.hasNext();) {
+      AllocNode node=nodeit.next();
+      if (!graph.callNodeAges.contains(node)) {
+	graph.callNodeAges.add(node);
+      } else {
+	nodeit.remove();
+      }
+      if (!graph.reachNode.contains(node)&&!node.isSummary()) {
+	/* Need to age node in existing graph*/
+	summarizeInGraph(graph, newDelta, node);
+      }
+    }
+    
+    //Add heap edges in
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.heapedgeadd.entrySet()) {
+      for(Edge e:entry.getValue()) {
+	boolean addedge=false;
+	Edge edgetoadd=null;
+	if (e.statuspredicate==Edge.NEW) {
+	  edgetoadd=e;
+	} else {
+	  Edge origEdgeKey=e.makeStatus(allocFactory);
+	  if (oldgraph.nodeMap.containsKey(origEdgeKey.src)&&
+	      oldgraph.nodeMap.get(origEdgeKey.src).contains(origEdgeKey)) {
+	    Edge origEdge=oldgraph.nodeMap.get(origEdgeKey.src).get(origEdgeKey);
+	    //copy the predicate
+	    origEdgeKey.statuspredicate=origEdge.statuspredicate;
+	    edgetoadd=origEdgeKey;
+	  }
+	}
+	if (edgetoadd!=null) {
+	  if (newDelta.heapedgeadd.containsKey(edgetoadd.src)) 
+	    newDelta.heapedgeadd.put(edgetoadd.src, new MySet<Edge>(edgetoadd));
+	  else
+	    newDelta.heapedgeadd.get(edgetoadd.src).add(edgetoadd);
+	}
+      }
+    }
+    
+    
+    return newDelta;
+  }
 
+  /* Summarizes out of context nodes in graph */
+  void summarizeInGraph(Graph graph, Delta newDelta, AllocNode singleNode) {
+    AllocNode summaryNode=allocFactory.getAllocNode(singleNode, true);
 
-    return null;
+    //Handle outgoing heap edges
+    MySet<Edge> edgeset=graph.getEdges(singleNode);
+
+    for(Edge e:edgeset) {
+      Edge rewrite=e.rewrite(singleNode, summaryNode);
+      //Remove old edge
+      if (!newDelta.heapedgeremove.containsKey(singleNode))
+	newDelta.heapedgeremove.put(singleNode, new MySet<Edge>(e));
+      else
+	newDelta.heapedgeremove.get(singleNode).add(e);
+
+      //Add new edge
+      if (!newDelta.heapedgeremove.containsKey(summaryNode))
+	newDelta.heapedgeremove.put(summaryNode, new MySet<Edge>(rewrite));
+      else
+	newDelta.heapedgeremove.get(summaryNode).add(rewrite);
+    }
+    
+    //Handle incoming edges
+    MySet<Edge> backedges=graph.getBackEdges(singleNode);
+    for(Edge e:backedges) {
+      if (e.dst==singleNode) {
+	Edge rewrite=e.rewrite(singleNode, summaryNode);
+	if (e.src!=null) {
+	  //Have heap edge
+	  if (!newDelta.heapedgeremove.containsKey(e.src))
+	    newDelta.heapedgeremove.put(e.src, new MySet<Edge>(e));
+	  else
+	    newDelta.heapedgeremove.get(e.src).add(e);
+
+	  if (!newDelta.heapedgeadd.containsKey(summaryNode))
+	    newDelta.heapedgeadd.put(summaryNode, new MySet<Edge>(rewrite));
+	  else
+	    newDelta.heapedgeadd.get(summaryNode).add(rewrite);
+
+	} else {
+	  //Have var edge
+	  if (!newDelta.varedgeremove.containsKey(e.srcvar))
+	    newDelta.varedgeremove.put(e.srcvar, new MySet<Edge>(e));
+	  else
+	    newDelta.varedgeremove.get(e.srcvar).add(e);
+
+	  if (!newDelta.varedgeadd.containsKey(e.srcvar))
+	    newDelta.varedgeadd.put(e.srcvar, new MySet<Edge>(rewrite));
+	  else
+	    newDelta.varedgeadd.get(e.srcvar).add(rewrite);
+	}
+      }
+    }
   }
 
   void applyDiffs(Graph graph, Delta delta) {

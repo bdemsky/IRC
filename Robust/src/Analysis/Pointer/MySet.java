@@ -7,6 +7,11 @@ public class MySet<T> extends AbstractSet<T> {
     map=new HashMap<T,T>();
   }
 
+  public MySet(T obj) {
+    map=new HashMap<T,T>();
+    add(obj);
+  }
+
   public MySet(MySet base) {
     map=new HashMap<T,T>();
     addAll(base);

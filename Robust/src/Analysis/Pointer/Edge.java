@@ -76,9 +76,26 @@ public class Edge {
     return e;
   }
 
+  public Edge rewrite(AllocNode single, AllocNode summary) {
+    Edge e=copy();
+    if (e.src==single)
+      e.src=summary;
+    if (e.dst==single)
+      e.dst=summary;
+    return e;
+  }
+
   public boolean statusDominates(Edge other) {
     return (statuspredicate==NEW)||
       ((other.statuspredicate|statuspredicate)==statuspredicate);
+  }
+
+  public Edge makeStatus(AllocFactory factory) {
+    Edge e=new Edge();
+    e.fd=fd;
+    e.src=factory.getAllocNode(src, (statuspredicate|3)==0);
+    e.dst=factory.getAllocNode(dst, (statuspredicate|5)==0);
+    return e;
   }
 
   public Edge makeOld() {

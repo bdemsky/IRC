@@ -20,12 +20,23 @@ public class Graph {
   HashSet<AllocNode> nodeAges;
   HashMap<AllocNode, Boolean> oldNodes;
 
+  /* Need this information for mapping in callee results */
+  HashSet<AllocNode> callNodeAges;
+  HashSet<AllocNode> callOldNodes;
+
   public Graph(Graph parent) {
     nodeMap=new HashMap<AllocNode, MySet<Edge>>();
     varMap=new HashMap<TempDescriptor, MySet<Edge>>();
     nodeAges=new HashSet<AllocNode>();
     oldNodes=new HashMap<AllocNode, Boolean>();
     this.parent=parent;
+  }
+
+  public MySet<Edge> getBackEdges(AllocNode node) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    edgeset.addAll(backMap.get(node));
+    edgeset.addAll(parent.backMap.get(node));
+    return edgeset;
   }
 
   public boolean containsNode(AllocNode node) {

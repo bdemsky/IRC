@@ -66,6 +66,16 @@ public class AllocFactory {
       return allocNodeMap.get(key);
   }
 
+  public AllocNode getAllocNode(AllocNode node, boolean isSummary) {
+    int site=node.allocsite;
+    AllocNode key=new AllocNode(site, node.getType(), isSummary);
+    if (!allocNodeMap.containsKey(key)) {
+      allocNodeMap.put(key, key);
+      return key;
+    } else
+      return allocNodeMap.get(key);
+  }
+
   HashMap<AllocNode, AllocNode> allocNodeMap;
   HashMap<FlatNew, Integer> allocMap;
   TypeUtil typeUtil;
