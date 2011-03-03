@@ -1155,7 +1155,7 @@ public class BuildCode {
       allit=cn.getFieldTable().getAllDescriptorsIterator();
       while(allit.hasNext()) {
 	FieldDescriptor fd=(FieldDescriptor)allit.next();
-    if(fd.isStatic() /*|| fd.isVolatile()*/) {
+    if(fd.isStatic()) {
       continue;
     }
 	TypeDescriptor type=fd.getType();
@@ -2176,7 +2176,7 @@ public class BuildCode {
   public void generateFlatOffsetNode(FlatMethod fm, FlatOffsetNode fofn, PrintWriter output) {
     output.println("/* FlatOffsetNode */");
     FieldDescriptor fd=fofn.getField();
-    if(!fd.isStatic() /*&& !fd.isVolatile()*/) {
+    if(!fd.isStatic()) {
     output.println(generateTemp(fm, fofn.getDst())+ " = (short)(int) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+
                    fd.getSafeSymbol()+");");
     }
@@ -2442,9 +2442,9 @@ public class BuildCode {
   }
 
   protected void generateFlatFieldNode(FlatMethod fm, FlatFieldNode ffn, PrintWriter output) {
-    if(ffn.getField().isStatic()/* || ffn.getField().isVolatile()*/) {
+    if(ffn.getField().isStatic()) {
       // static field
-      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()/* && mgcstaticinit*/)) {
+      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
 	// is a static block or is invoked in some static block
 	ClassDescriptor cd = fm.getMethod().getClassDesc();
 	ClassDescriptor cn = ffn.getSrc().getType().getClassDesc();
@@ -2526,7 +2526,7 @@ public class BuildCode {
 	}
       }
       // redirect to the global_defs_p structure
-      if((fsfn.getDst().getType().isClassNameRef()) || (fsfn.getField().isStatic()) /*|| (fsfn.getField().isVolatile())*/) {
+      if((fsfn.getDst().getType().isClassNameRef()) || (fsfn.getField().isStatic())) {
 	// reference to the static field with Class name
 	if (fsfn.getField().getType().isPtr())
 	  output.println("global_defs_p->" +
