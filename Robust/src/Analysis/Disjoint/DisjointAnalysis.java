@@ -1130,9 +1130,9 @@ public class DisjointAnalysis {
 
       rg.writeGraph( "genReach"+fgrn.getGraphName(),
                      true,    // write labels (variables)                
-                     false,    // selectively hide intermediate temp vars 
+                     true,   // selectively hide intermediate temp vars 
                      true,    // prune unreachable heap regions          
-                     false,   // hide reachability altogether
+                     true,   // hide reachability altogether
                      false,   // hide subset reachability states         
                      true,    // hide predicates
                      true );  // hide edge taints      
