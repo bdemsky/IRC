@@ -18,12 +18,13 @@ public class Graph {
 
   /* Need this information for mapping in callee results */
   HashSet<AllocNode> nodeAges;
+  HashMap<AllocNode, Boolean> oldNodes;
 
   public Graph(Graph parent) {
     nodeMap=new HashMap<AllocNode, MySet<Edge>>();
-    backMap=new HashMap<AllocNode, MySet<Edge>>();
     varMap=new HashMap<TempDescriptor, MySet<Edge>>();
     nodeAges=new HashSet<AllocNode>();
+    oldNodes=new HashMap<AllocNode, Boolean>();
     this.parent=parent;
   }
 

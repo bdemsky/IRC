@@ -13,6 +13,9 @@ public class Delta {
   HashMap<TempDescriptor, MySet<Edge>> basevaredge;
   HashSet<AllocNode> baseNodeAges;
   HashSet<AllocNode> addNodeAges;
+  HashMap<AllocNode, Boolean> baseOldNodes;
+  HashMap<AllocNode, Boolean> addOldNodes;
+
 
   boolean init;
   PPoint block;
@@ -31,6 +34,8 @@ public class Delta {
     this.varedgeremove=new HashMap<TempDescriptor, MySet<Edge>>();
     this.baseNodeAges=new HashSet<AllocNode>();
     this.addNodeAges=new HashSet<AllocNode>();
+    this.baseOldNodes=new HashMap<AllocNode, Boolean>();
+    this.addOldNodes=new HashMap<AllocNode, Boolean>();
     this.block=block;
   }
 
