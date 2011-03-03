@@ -63,14 +63,19 @@ public class Pointer {
       PPoint ppoint=delta.getBlock();
       BBlock bblock=ppoint.getBBlock();
       Vector<FlatNode> nodes=bblock.nodes();
+      int startindex=0;
+      if (ppoint.getIndex()==-1) {
+	//Build base graph for entrance to this basic block
+	delta=applyInitDelta(delta, bblock);
+      } else {
+	startindex=ppoint.getIndex()+1;
+	delta=applyCallDelta(delta, bblock);
+      }
 
-      //Build base graph for entrance to this basic block
-      delta=applyInitDelta(delta, bblock);
       Graph graph=bbgraphMap.get(bblock);
-
       Graph nodeGraph=null;
       //Compute delta at exit of each node
-      for(int i=0; i<nodes.size();i++) {
+      for(int i=startindex; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
 	if (!graphMap.containsKey(currNode)) {
 	  graphMap.put(currNode, new Graph(graph));
@@ -560,6 +565,17 @@ public class Pointer {
       applyDiffs(graph, delta);
     }
     return delta;
+  }
+
+  Delta applyCallDelta(Delta delta, BBlock bblock) {
+    Vector<FlatNode> nodes=bblock.nodes();
+    PPoint ppoint=delta.getBlock();
+    FlatCall fcall=(FlatCall)nodes.get(ppoint.getIndex());
+    Graph graph=graphMap.get(fcall);
+    
+
+
+    return null;
   }
 
   void applyDiffs(Graph graph, Delta delta) {
