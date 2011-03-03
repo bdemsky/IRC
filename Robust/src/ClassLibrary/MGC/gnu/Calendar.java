@@ -545,7 +545,6 @@ public /*abstract*/ class Calendar
       {
 	minimalDaysInFirstWeek = 1;
       }
-
     firstDayOfWeek = 1;
     if (first != null)
       for (int i = 0; i < 8; i++)

@@ -1,4 +1,4 @@
-class Contents {
+interface Contents {
   int value();
 }
 

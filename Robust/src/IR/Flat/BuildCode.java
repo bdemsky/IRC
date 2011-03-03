@@ -1155,7 +1155,7 @@ public class BuildCode {
       allit=cn.getFieldTable().getAllDescriptorsIterator();
       while(allit.hasNext()) {
 	FieldDescriptor fd=(FieldDescriptor)allit.next();
-    if(fd.isStatic() || fd.isVolatile()) {
+    if(fd.isStatic() /*|| fd.isVolatile()*/) {
       continue;
     }
 	TypeDescriptor type=fd.getType();
@@ -2176,7 +2176,7 @@ public class BuildCode {
   public void generateFlatOffsetNode(FlatMethod fm, FlatOffsetNode fofn, PrintWriter output) {
     output.println("/* FlatOffsetNode */");
     FieldDescriptor fd=fofn.getField();
-    if(!fd.isStatic() && !fd.isVolatile()) {
+    if(!fd.isStatic() /*&& !fd.isVolatile()*/) {
     output.println(generateTemp(fm, fofn.getDst())+ " = (short)(int) (&((struct "+fofn.getClassType().getSafeSymbol() +" *)0)->"+
                    fd.getSafeSymbol()+");");
     }
@@ -2442,7 +2442,7 @@ public class BuildCode {
   }
 
   protected void generateFlatFieldNode(FlatMethod fm, FlatFieldNode ffn, PrintWriter output) {
-    if(ffn.getField().isStatic() || ffn.getField().isVolatile()) {
+    if(ffn.getField().isStatic()/* || ffn.getField().isVolatile()*/) {
       // static field
       if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()/* && mgcstaticinit*/)) {
 	// is a static block or is invoked in some static block
@@ -2467,7 +2467,7 @@ public class BuildCode {
 	}
       }
       // redirect to the global_defs_p structure
-      if((ffn.getField().isStatic()) || (ffn.getField().isVolatile()) || (ffn.getSrc().getType().isClassNameRef())) {
+      if((ffn.getField().isStatic()) || (ffn.getSrc().getType().isClassNameRef())) {
 	// reference to the static field with Class name
 	if (ffn.getField().getType().isPtr())
 	  output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
@@ -2526,7 +2526,7 @@ public class BuildCode {
 	}
       }
       // redirect to the global_defs_p structure
-      if((fsfn.getDst().getType().isClassNameRef()) || (fsfn.getField().isStatic()) || (fsfn.getField().isVolatile())) {
+      if((fsfn.getDst().getType().isClassNameRef()) || (fsfn.getField().isStatic()) /*|| (fsfn.getField().isVolatile())*/) {
 	// reference to the static field with Class name
 	if (fsfn.getField().getType().isPtr())
 	  output.println("global_defs_p->" +

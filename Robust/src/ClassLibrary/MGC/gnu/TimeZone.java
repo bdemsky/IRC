@@ -1772,6 +1772,7 @@ public abstract class TimeZone //implements java.io.Serializable, Cloneable
 	//return super.clone();
       TimeZone tz = new TimeZone();
       tz.ID = this.ID;
+      return tz;
       }
     catch (/*CloneNotSupported*/Exception ex)
       {

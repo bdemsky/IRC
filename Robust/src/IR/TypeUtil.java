@@ -205,16 +205,17 @@ NextMethod:
 
   public void createFullTable() {
     subclasstable=new Hashtable();
-    //subIFclasstable = new Hashtable();
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
 
     Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
+      tovisit.clear();
+      visited.clear();
       ClassDescriptor cd=(ClassDescriptor)classit.next();
       ClassDescriptor tmp=cd.getSuperDesc();
       
-      // check tmp's interface ancestors
+      // check cd's interface ancestors
       {
 	Iterator it_sifs = cd.getSuperInterfaces();
 	while(it_sifs.hasNext()) {
@@ -250,7 +251,7 @@ NextMethod:
 	  if(!this.subclasstable.containsKey(sif)) {
 	    this.subclasstable.put(sif, new HashSet());
 	  }
-	  HashSet hs = (HashSet)this.subclasstable/*subIFclasstable*/.get(sif);
+	  HashSet hs = (HashSet)this.subclasstable.get(sif);
 	  hs.add(cd);
           
 	  Iterator it_sifs = sif.getSuperInterfaces();

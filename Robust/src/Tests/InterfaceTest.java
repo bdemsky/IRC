@@ -1,6 +1,6 @@
 public interface Instrument {
   // Compile-time constant:
-  int VALUE;// = 5; // static & final
+  int VALUE = 5; // static & final
   // Cannot have method definitions:
   void play(int n); // Automatically public
   void adjust();
@@ -75,7 +75,6 @@ public class InterfaceTest {
   }
   public static void main(String[] args) {
     // Upcasting during addition to the array:
-    Instrument.VALUE=5;
     Instrument[] orchestra = new Instrument[5];
     orchestra[0] = new Wind();
     orchestra[1] = new Percussion();
