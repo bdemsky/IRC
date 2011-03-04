@@ -105,6 +105,58 @@ public class Delta {
     return init;
   }
 
+  public void addEdge(Edge e) {
+    if (e.src!=null) {
+      addHeapEdge(e);
+    } else {
+      addVarEdge(e);
+    }
+  }
+
+  public void addHeapEdge(Edge e) {
+    if (!heapedgeadd.containsKey(e.src))
+      heapedgeadd.put(e.src, new MySet<Edge>(e));
+    else
+      heapedgeadd.get(e.src).add(e);
+  }
+
+  public void addVarEdge(Edge e) {
+    if (!varedgeadd.containsKey(e.srcvar))
+      varedgeadd.put(e.srcvar, new MySet<Edge>(e));
+    else
+      varedgeadd.get(e.srcvar).add(e);
+  }
+
+  public void removeEdge(Edge e) {
+    if (e.src!=null) {
+      removeHeapEdge(e);
+    } else {
+      removeVarEdge(e);
+    }
+  }
+
+  public void removeHeapEdge(Edge e) {
+    if (heapedgeadd.containsKey(e.src)&&heapedgeadd.get(e.src).contains(e))
+      heapedgeadd.get(e.src).remove(e);
+    else {
+      if (!heapedgeremove.containsKey(e.src))
+	heapedgeremove.put(e.src, new MySet<Edge>(e));
+      else
+	heapedgeremove.get(e.src).add(e);
+    }
+  }
+
+  public void removeVarEdge(Edge e) {
+    if (varedgeadd.containsKey(e.src)&&varedgeadd.get(e.src).contains(e))
+      varedgeadd.get(e.src).remove(e);
+    else {
+      if (!varedgeremove.containsKey(e.srcvar))
+	varedgeremove.put(e.srcvar, new MySet<Edge>(e));
+      else
+	varedgeremove.get(e.srcvar).add(e);
+    }
+  }
+
   public void setInit(boolean init) {
     this.init=init;
   }

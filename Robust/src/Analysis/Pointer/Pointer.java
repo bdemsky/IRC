@@ -47,11 +47,10 @@ public class Pointer {
     MySet<Edge> arrayset=new MySet<Edge>();
     MySet<Edge> varset=new MySet<Edge>();
     Edge arrayedge=new Edge(allocFactory.StringArray, null, allocFactory.Strings);
-    arrayset.add(arrayedge);
     Edge stringedge=new Edge(fm.getParameter(0), allocFactory.StringArray);
-    varset.add(stringedge);
-    delta.heapedgeadd.put(allocFactory.StringArray, arrayset);
-    delta.varedgeadd.put(fm.getParameter(0), varset);
+    delta.addHeapEdge(arrayedge);
+    delta.addVarEdge(stringedge);
+
     return delta;
   }
 
@@ -241,7 +240,6 @@ public class Pointer {
     }
   }
 
-
   void processThisTargets(HashSet<ClassDescriptor> targetSet, Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, TempDescriptor tmpthis, HashSet<AllocNode> oldnodeset) {
     //Handle the this temp
     if (tmpthis!=null) {
@@ -313,9 +311,6 @@ public class Pointer {
     }
     return targets;
   }
-
-      
-
 
   void fixMapping(FlatCall fcall, HashSet<MethodDescriptor> targets, MySet<Edge> oldedgeset, Delta newDelta, BBlock callblock, int callindex) {
     Delta basedelta=null;
@@ -440,42 +435,14 @@ public class Pointer {
     //Want to remove the set of internal edges
     for(Edge e:edgeset) {
       if (e.src!=null) {
-	if (delta.heapedgeadd.containsKey(e.src)&&delta.heapedgeadd.get(e.src).contains(e)) {
-	  //remove edge if it is in the add set
-	  delta.heapedgeadd.get(e.src).remove(e);
-	} else {
-	  //add edge to to the remove set
-	  if (!delta.heapedgeremove.containsKey(e.src))
-	    delta.heapedgeremove.put(e.src, new MySet<Edge>());
-	  delta.heapedgeremove.get(e.src).add(e);
-	}
+	delta.removeHeapEdge(e);
       }
     }
 
     //Want to remove the set of external edges
     for(Edge e:externaledgeset) {
       //want to remove the set of internal edges
-      if (e.src!=null) {
-	if (delta.heapedgeadd.containsKey(e.src)&&delta.heapedgeadd.get(e.src).contains(e)) {
-	  //remove edge if it is in the add set
-	  delta.heapedgeadd.get(e.src).remove(e);
-	} else {
-	  //add edge to to the remove set
-	  if (!delta.heapedgeremove.containsKey(e.src))
-	    delta.heapedgeremove.put(e.src, new MySet<Edge>());
-	  delta.heapedgeremove.get(e.src).add(e);
-	}
-      } else {
-	if (delta.varedgeadd.containsKey(e.srcvar)&&delta.varedgeadd.get(e.srcvar).contains(e)) {
-	  //remove edge if it is in the add set
-	  delta.varedgeadd.get(e.srcvar).remove(e);
-	} else {
-	  //add edge to to the remove set
-	  if (!delta.varedgeremove.containsKey(e.srcvar))
-	    delta.varedgeremove.put(e.srcvar,new MySet<Edge>());
-	  delta.varedgeremove.get(e.srcvar).add(e);
-	}
-      }
+      delta.removeEdge(e);
     }
   }
   
@@ -512,6 +479,8 @@ public class Pointer {
       //Splice out internal edges
       removeEdges(delta, nodeset, edgeset, externaledgeset);
 
+      //store data structures
+      graph.externalEdgeSet=externaledgeset;
       graph.reachNode=nodeset;
       graph.reachEdge=edgeset;
       
@@ -566,6 +535,9 @@ public class Pointer {
       //Splice out internal edges
       removeEdges(delta, nodeset, edgeset, externaledgeset);
 
+      //Add in new external edges
+      graph.externalEdgeSet.addAll(externaledgeset);
+
       //Apply diffs to graph
       applyDiffs(graph, delta);
     }
@@ -616,14 +588,34 @@ public class Pointer {
 	  }
 	}
 	if (edgetoadd!=null) {
-	  if (newDelta.heapedgeadd.containsKey(edgetoadd.src)) 
-	    newDelta.heapedgeadd.put(edgetoadd.src, new MySet<Edge>(edgetoadd));
-	  else
-	    newDelta.heapedgeadd.get(edgetoadd.src).add(edgetoadd);
+	  newDelta.addHeapEdge(edgetoadd);
 	}
       }
     }
-    
+
+    //Add external edges in
+    for(Edge e:graph.externalEdgeSet) {
+      //First did we age the source
+      Edge newedge=e.copy();
+      if (newedge.src!=null&&!e.src.isSummary()&&graph.callNodeAges.contains(e.src)) {
+	AllocNode summaryNode=allocFactory.getAllocNode(newedge.src, true);
+	newedge.src=summaryNode;
+      }
+      //Compute target
+      if (graph.callNodeAges.contains(e.dst)&&!e.dst.isSummary()) {
+	if (graph.callOldNodes.contains(e.dst)) {
+	  //Need two edges
+	  Edge copy=newedge.copy();
+	  newDelta.addEdge(copy);
+	}
+	//Now add summarized node
+	newedge.dst=allocFactory.getAllocNode(newedge.dst, true);
+	newDelta.addEdge(newedge);
+      } else {
+	//Add edge to single node
+	newDelta.addEdge(newedge);
+      }
+    }
     
     return newDelta;
   }
@@ -638,16 +630,8 @@ public class Pointer {
     for(Edge e:edgeset) {
       Edge rewrite=e.rewrite(singleNode, summaryNode);
       //Remove old edge
-      if (!newDelta.heapedgeremove.containsKey(singleNode))
-	newDelta.heapedgeremove.put(singleNode, new MySet<Edge>(e));
-      else
-	newDelta.heapedgeremove.get(singleNode).add(e);
-
-      //Add new edge
-      if (!newDelta.heapedgeremove.containsKey(summaryNode))
-	newDelta.heapedgeremove.put(summaryNode, new MySet<Edge>(rewrite));
-      else
-	newDelta.heapedgeremove.get(summaryNode).add(rewrite);
+      newDelta.removeHeapEdge(e);
+      newDelta.addHeapEdge(rewrite);
     }
     
     //Handle incoming edges
@@ -655,30 +639,8 @@ public class Pointer {
     for(Edge e:backedges) {
       if (e.dst==singleNode) {
 	Edge rewrite=e.rewrite(singleNode, summaryNode);
-	if (e.src!=null) {
-	  //Have heap edge
-	  if (!newDelta.heapedgeremove.containsKey(e.src))
-	    newDelta.heapedgeremove.put(e.src, new MySet<Edge>(e));
-	  else
-	    newDelta.heapedgeremove.get(e.src).add(e);
-
-	  if (!newDelta.heapedgeadd.containsKey(summaryNode))
-	    newDelta.heapedgeadd.put(summaryNode, new MySet<Edge>(rewrite));
-	  else
-	    newDelta.heapedgeadd.get(summaryNode).add(rewrite);
-
-	} else {
-	  //Have var edge
-	  if (!newDelta.varedgeremove.containsKey(e.srcvar))
-	    newDelta.varedgeremove.put(e.srcvar, new MySet<Edge>(e));
-	  else
-	    newDelta.varedgeremove.get(e.srcvar).add(e);
-
-	  if (!newDelta.varedgeadd.containsKey(e.srcvar))
-	    newDelta.varedgeadd.put(e.srcvar, new MySet<Edge>(rewrite));
-	  else
-	    newDelta.varedgeadd.get(e.srcvar).add(rewrite);
-	}
+	newDelta.removeEdge(e);
+	newDelta.addEdge(rewrite);
       }
     }
   }

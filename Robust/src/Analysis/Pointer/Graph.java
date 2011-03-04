@@ -3,6 +3,7 @@ import java.util.*;
 import Analysis.Disjoint.PointerMethod;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import IR.Flat.*;
+import java.io.PrintWriter;
 
 public class Graph {
   /* This is field is set is this Graph is just a delta on the parent
@@ -13,8 +14,11 @@ public class Graph {
   HashMap<TempDescriptor, MySet<Edge>> varMap;
   HashMap<AllocNode, MySet<Edge>> backMap;
   MySet<Edge> strongUpdateSet;
+
+  /* Need this information for mapping in callee results */
   MySet<Edge> reachEdge;
   HashSet<AllocNode> reachNode;
+  MySet<Edge> externalEdgeSet;
 
   /* Need this information for mapping in callee results */
   HashSet<AllocNode> nodeAges;
@@ -60,4 +64,43 @@ public class Graph {
   }
 
   public static MySet<Edge> emptySet=new MySet<Edge>();
+
+  public void printGraph(PrintWriter output) {
+    output.println("digraph graph {");
+    output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
+    output.println("\tedge [fontsize=6];");
+    outputTempEdges(output, varMap, null);
+    if (parent!=null)
+      outputTempEdges(output, parent.varMap, varMap);
+    outputHeapEdges(output, nodeMap, null);
+    if (parent!=null)
+      outputHeapEdges(output, parent.nodeMap, nodeMap);
+    output.println("}\n");
+  }
+
+  private void outputTempEdges(PrintWriter output, HashMap<TempDescriptor, MySet<Edge>> varMap, 
+			       HashMap<TempDescriptor, MySet<Edge>> childvarMap) {
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varMap.entrySet()) {
+      TempDescriptor tmp=entry.getKey();
+      if (childvarMap!=null&&childvarMap.containsKey(tmp))
+	continue;
+      for(Edge e:entry.getValue()) {
+	AllocNode n=e.dst;
+	output.println("\t"+tmp.getSymbol()+"->"+n.getID()+";");
+      }
+    }
+  }
+
+  private void outputHeapEdges(PrintWriter output, HashMap<AllocNode, MySet<Edge>> nodeMap, 
+			       HashMap<AllocNode, MySet<Edge>> childNodeMap) {
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:nodeMap.entrySet()) {
+      AllocNode node=entry.getKey();
+      if (childNodeMap!=null&&childNodeMap.containsKey(node))
+	continue;
+      for(Edge e:entry.getValue()) {
+	AllocNode n=e.dst;
+	output.println("\t"+node.getID()+"->"+n.getID()+"[label=\""+e.fd.getSymbol()+"\";");
+      }
+    }
+  }
 }

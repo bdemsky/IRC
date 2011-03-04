@@ -35,6 +35,13 @@ public class AllocFactory {
       }
       return false;
     }
+
+    public String getID() {
+      if (summary)
+	return "SUM"+allocsite;
+      else
+	return "SING"+allocsite;
+    }
   }
 
   public AllocFactory(State state, TypeUtil typeUtil) {
