@@ -29,6 +29,7 @@ public class ReachGraph {
   // from DisjointAnalysis for convenience
   protected static int      allocationDepth   = -1;
   protected static TypeUtil typeUtil          = null;
+  protected static State    state             = null;
 
 
   // variable and heap region nodes indexed by unique ID
@@ -1286,32 +1287,46 @@ public class ReachGraph {
     while( isvItr.hasNext() ) {
       TempDescriptor isv = isvItr.next();
       
+      // use this where defined flatnode to support RCR/DFJ
+      FlatNode whereDefined = null;
+      if( state.RCR ) {
+        whereDefined = sese;
+      }
+
       // in-set var taints should NOT propagate back into callers
       // so give it FALSE(EMPTY) predicates
       taintTemp( sese,
                  null,
                  isv,
+                 whereDefined,
                  predsEmpty
-                 );
-      
+                 );      
     }
   }
 
   public void taintStallSite( FlatNode stallSite,
                               TempDescriptor var ) {
+
+    // use this where defined flatnode to support RCR/DFJ
+    FlatNode whereDefined = null;
+    if( state.RCR ) {
+      whereDefined = stallSite;
+    }
     
     // stall site taint should propagate back into callers
     // so give it TRUE predicates
-    taintTemp( null,
-               stallSite,
-               var,
-               predsTrue 
-               );
+      taintTemp( null,
+                 stallSite,
+                 var,
+                 whereDefined,
+                 predsTrue 
+                 );
   }
 
   protected void taintTemp( FlatSESEEnterNode sese,
                             FlatNode          stallSite,
                             TempDescriptor    var,
+                            FlatNode          whereDefined,
                             ExistPredSet      preds
                             ) {
     
@@ -1325,6 +1340,7 @@ public class ReachGraph {
                                    stallSite,
                                    var,
                                    re.getDst().getAllocSite(),
+                                   whereDefined,
                                    preds
                                    );
             
@@ -1695,6 +1711,7 @@ public class ReachGraph {
                                            tCallee.stallSite,
                                            tCallee.var,
                                            tCallee.allocSite,
+                                           tCallee.fnDefined,
                                            ExistPredSet.factory() ),
                             calleeTaintsSatisfied.get( tCallee )
                             );

@@ -1533,6 +1533,7 @@ abstract public class Canonical {
                            t.stallSite,
                            t.var,
                            t.allocSite,
+                           t.fnDefined,
                            preds
                            );
     

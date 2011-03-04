@@ -44,16 +44,25 @@ public class Taint extends Canonical {
   protected TempDescriptor var;
   protected AllocSite      allocSite;
 
+  // taints have a new, possibly null element which is
+  // the FlatNode at which the tainted reference was
+  // defined, which currently supports DFJ but doesn't
+  // hinder other analysis modes
+  protected FlatNode fnDefined;
+
   // existance predicates must be true in a caller
   // context for this taint's effects to transfer from this
   // callee to that context
   protected ExistPredSet preds;
 
+
+
   public static Taint factory( FlatSESEEnterNode sese,
                                TempDescriptor    insetVar,
                                AllocSite         as,
+                               FlatNode          whereDefined,
                                ExistPredSet      eps ) {
-    Taint out = new Taint( sese, null, insetVar, as, eps );
+    Taint out = new Taint( sese, null, insetVar, as, whereDefined, eps );
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
@@ -61,8 +70,9 @@ public class Taint extends Canonical {
   public static Taint factory( FlatNode       stallSite,
                                TempDescriptor var,
                                AllocSite      as,
+                               FlatNode       whereDefined,
                                ExistPredSet   eps ) {
-    Taint out = new Taint( null, stallSite, var, as, eps );
+    Taint out = new Taint( null, stallSite, var, as, whereDefined, eps );
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
@@ -71,8 +81,9 @@ public class Taint extends Canonical {
                                FlatNode          stallSite,
                                TempDescriptor    var,
                                AllocSite         as,
+                               FlatNode          whereDefined,
                                ExistPredSet      eps ) {
-    Taint out = new Taint( sese, stallSite, var, as, eps );
+    Taint out = new Taint( sese, stallSite, var, as, whereDefined, eps );
     out = (Taint) Canonical.makeCanonical( out );
     return out;
   }
@@ -81,6 +92,7 @@ public class Taint extends Canonical {
                    FlatNode          stallSite,
                    TempDescriptor    v,
                    AllocSite         as,
+                   FlatNode          fnDefined,
                    ExistPredSet      eps ) {
     assert 
       (sese == null && stallSite != null) ||
@@ -94,6 +106,7 @@ public class Taint extends Canonical {
     this.stallSite = stallSite;
     this.var       = v;
     this.allocSite = as;
+    this.fnDefined = fnDefined;
     this.preds     = eps;
   }
 
@@ -102,6 +115,7 @@ public class Taint extends Canonical {
           t.stallSite, 
           t.var, 
           t.allocSite, 
+          t.fnDefined,
           t.preds );
   }
 
@@ -127,6 +141,10 @@ public class Taint extends Canonical {
 
   public AllocSite getAllocSite() {
     return allocSite;
+  }
+
+  public FlatNode getWhereDefined() {
+    return fnDefined;
   }
 
   public ExistPredSet getPreds() {
@@ -167,9 +185,17 @@ public class Taint extends Canonical {
       stallSiteEqual = stallSite.equals( t.stallSite );
     }
 
+    boolean fnDefinedEqual;
+    if( fnDefined == null ) {
+      fnDefinedEqual = (t.fnDefined == null);
+    } else {
+      fnDefinedEqual = fnDefined.equals( t.fnDefined );
+    }
+
     return 
       seseEqual                      && 
       stallSiteEqual                 &&
+      fnDefinedEqual                 &&
       var      .equals( t.var  )     &&
       allocSite.equals( t.allocSite );
   }
@@ -186,6 +212,10 @@ public class Taint extends Canonical {
       hash = hash ^ stallSite.hashCode();
     }
 
+    if( fnDefined != null ) {
+      hash = hash ^ fnDefined.hashCode();
+    }
+
     return hash;
   }
 
@@ -199,10 +229,16 @@ public class Taint extends Canonical {
       s = stallSite.toString();
     }
 
+    String f = "";
+    if( fnDefined != null ) {
+      f += ", "+fnDefined;
+    }
+
     return 
       "("+s+
       "-"+var+
       ", "+allocSite.toStringBrief()+
+      f+
       "):"+preds;
   }
 }

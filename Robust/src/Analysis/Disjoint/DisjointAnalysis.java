@@ -688,6 +688,8 @@ public class DisjointAnalysis {
     // set some static configuration for ReachGraphs
     ReachGraph.allocationDepth = allocationDepth;
     ReachGraph.typeUtil        = typeUtil;
+    ReachGraph.state           = state;
+
 
     ReachGraph.debugCallSiteVisitStartCapture
       = state.DISJOINTDEBUGCALLVISITTOSTART;
@@ -1135,7 +1137,7 @@ public class DisjointAnalysis {
                      true,   // hide reachability altogether
                      false,   // hide subset reachability states         
                      true,    // hide predicates
-                     true );  // hide edge taints      
+                     false );  // hide edge taints      
     } break;
 
 

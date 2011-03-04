@@ -61,6 +61,7 @@ public class TaintSet extends Canonical {
                                   t.stallSite,
                                   t.var,
                                   t.allocSite,
+                                  t.fnDefined,
                                   preds );
       out.taints.add( tOut );
     }
