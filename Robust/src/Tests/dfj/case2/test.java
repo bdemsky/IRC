@@ -58,6 +58,10 @@ public class Test {
       }
     }
 
+    rblock S {
+      a.g.g.g = getFoo4();
+    }
+
     System.out.println( total );
   }
 
