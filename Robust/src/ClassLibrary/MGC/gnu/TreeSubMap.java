@@ -29,12 +29,16 @@ public final class TreeSubMap
       throw new /*IllegalArgument*/Exception("IllegalArgumentException: fromKey > toKey");
     this.minKey = minKey;
     this.maxKey = maxKey;
+    System.out.println("TreeSubMap() " + (String)this.minKey + " " + (String)this.maxKey);
   }
 
   public int size()
   {
+    System.out.println("TreeSubMap.size() " + (String)this.minKey + " " + (String)this.maxKey);
     TreeNode node = map.lowestGreaterThan(minKey, true);
     TreeNode max = map.lowestGreaterThan(maxKey, false);
+    System.out.println((String)node.key);
+    System.out.println((String)max.key);
     int count = 0;
     while (node != max)
     {

@@ -7,12 +7,15 @@ import Analysis.Locality.LocalityAnalysis;
 public class Virtual {
   State state;
   LocalityAnalysis locality;
-  Hashtable<MethodDescriptor, Integer> methodnumber;
+  Hashtable<MethodDescriptor, Vector<Integer>> methodnumber;
   Hashtable<ClassDescriptor, Integer> classmethodcount;
   Hashtable<LocalityBinding, Integer> localitynumber;
+  
+  // for interfaces
+  int if_starts;
 
-  public int getMethodNumber(MethodDescriptor md) {
-    return methodnumber.get(md).intValue();
+  public Vector<Integer> getMethodNumber(MethodDescriptor md) {
+    return methodnumber.get(md);
   }
 
   public int getMethodCount(ClassDescriptor md) {
@@ -26,11 +29,12 @@ public class Virtual {
   public Virtual(State state, LocalityAnalysis locality) {
     this.state=state;
     this.locality=locality;
+    this.if_starts = 0;
     classmethodcount=new Hashtable<ClassDescriptor, Integer>();
     if (state.DSM||state.SINGLETM)
       localitynumber=new Hashtable<LocalityBinding, Integer>();
     else
-      methodnumber=new Hashtable<MethodDescriptor, Integer>();
+      methodnumber=new Hashtable<MethodDescriptor, Vector<Integer>>();
     doAnalysis();
   }
 
@@ -38,10 +42,23 @@ public class Virtual {
     Iterator classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
+      numberMethodsIF(cd);
+    }
+    classit=state.getClassSymbolTable().getDescriptorsIterator();
+    while(classit.hasNext()) {
+      ClassDescriptor cd=(ClassDescriptor)classit.next();
       if (state.DSM||state.SINGLETM)
 	numberLocality(cd);
       else
 	numberMethods(cd);
+    }
+    classit=state.getClassSymbolTable().getDescriptorsIterator();
+    while(classit.hasNext()) {
+      ClassDescriptor cd=(ClassDescriptor)classit.next();
+      if(!cd.isInterface()) {
+        int count = classmethodcount.get(cd).intValue();
+        classmethodcount.put(cd, new Integer(count+this.if_starts));
+      }
     }
   }
 
@@ -89,65 +106,108 @@ public class Virtual {
     classmethodcount.put(cd, new Integer(start));
     return start;
   }
-
-  private int numberMethods(ClassDescriptor cd) {
+  
+  private int numberMethodsIF(ClassDescriptor cd) {
+    if(!cd.isInterface()) {
+      return 0;
+    }
+    int start = 0;
     if (classmethodcount.containsKey(cd))
       return classmethodcount.get(cd).intValue();
-    ClassDescriptor superdesc=cd.getSuperDesc();
-    int start=0;
-    if (superdesc!=null)
-      start=numberMethods(superdesc);
-    {
-      // check the inherited interfaces
-      Iterator it_sifs = cd.getSuperInterfaces();
-      while(it_sifs.hasNext()) {
-        ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
-        start += numberMethods(superif); // TODO Can there be duplicated methods from multiple ancestors?
-      }
+    // check the inherited interfaces
+    Iterator it_sifs = cd.getSuperInterfaces();
+    while(it_sifs.hasNext()) {
+      ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
+      start += numberMethodsIF(superif);
     }
     for(Iterator it=cd.getMethods(); it.hasNext();) {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
         continue;
-      if (superdesc!=null) {
-        Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-        boolean foundmatch=false;
-        for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+      boolean foundmatch=false;
+      // check if there is a matched method in inherited interfaces
+      it_sifs = cd.getSuperInterfaces();
+      while(it_sifs.hasNext() && !foundmatch) {
+        ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
+        Set possiblematches_if=superif.getMethodTable().getSet(md.getSymbol());
+        for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext();) {
           MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
           if (md.matches(matchmd)) {
-            int num=((Integer)methodnumber.get(matchmd)).intValue();
-            methodnumber.put(md, new Integer(num));
-            foundmatch=true;
-            break;
-          }
-        }
-	{
-          if(!foundmatch) {
-            // check if there is a matched method in inherited interfaces
-            Iterator it_sifs = cd.getSuperInterfaces();
-            while(it_sifs.hasNext() && !foundmatch) {
-              ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
-              Set possiblematches_if=superif.getMethodTable().getSet(md.getSymbol());
-              for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext();) {
-                MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-                if (md.matches(matchmd)) {
-                  int num=((Integer)methodnumber.get(matchmd)).intValue();
-                  methodnumber.put(md, new Integer(num));
-                  foundmatch=true;
-                  break;
-                }
-              }
+            Vector<Integer> num=methodnumber.get(matchmd);
+            if(!methodnumber.containsKey(md)) {
+              methodnumber.put(md, new Vector<Integer>());
             }
+            Vector<Integer> toadd = methodnumber.get(md);
+            toadd.addAll(num);
+            foundmatch=true;
           }
         }
-        if (!foundmatch)
-          methodnumber.put(md, new Integer(start++));
-      } else {
-        methodnumber.put(md, new Integer(start++));
+      }
+      if(!foundmatch) {
+        Vector<Integer> vec = new Vector<Integer>();
+        vec.add(new Integer(if_starts++));
+        methodnumber.put(md, vec);
+        start++;
       }
     }
     classmethodcount.put(cd, new Integer(start));
     return start;
+  }
+
+  private int numberMethods(ClassDescriptor cd) {
+    if (classmethodcount.containsKey(cd))
+      return classmethodcount.get(cd).intValue();
+    ClassDescriptor superdesc=cd.getSuperDesc();
+    int start=if_starts;
+    int mnum = 0;
+    if (superdesc!=null) {
+      mnum = numberMethods(superdesc);
+      start += mnum;
+    }
+    for(Iterator it=cd.getMethods(); it.hasNext();) {
+      MethodDescriptor md=(MethodDescriptor)it.next();
+      if (md.isStatic()||md.getReturnType()==null)
+        continue;
+      boolean foundmatch=false;
+      if (superdesc!=null) {
+        Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
+        for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            Vector<Integer> num = methodnumber.get(matchmd);
+            methodnumber.put(md, num);
+            foundmatch=true;
+            break;
+          }
+        }
+      }
+      // check if there is a matched method in inherited interfaces
+      Iterator it_sifs = cd.getSuperInterfaces();
+      while(it_sifs.hasNext()) {
+        ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
+        Set possiblematches_if=superif.getMethodTable().getSet(md.getSymbol());
+        for(Iterator matchit=possiblematches_if.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            Vector<Integer> num = methodnumber.get(matchmd);
+            if(!methodnumber.containsKey(md)) {
+              methodnumber.put(md, new Vector<Integer>());
+            }
+            Vector<Integer> toadd = methodnumber.get(md);
+            toadd.addAll(num);
+            foundmatch=true;
+          }
+        }
+      }
+      if (!foundmatch) {
+        Vector<Integer> vec = new Vector<Integer>();
+        vec.add(new Integer(start++));
+        methodnumber.put(md, vec);
+        mnum++;
+      }
+    }
+    classmethodcount.put(cd, new Integer(mnum));
+    return mnum;
   }
 }
 

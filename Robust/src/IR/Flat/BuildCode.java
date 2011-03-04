@@ -911,20 +911,23 @@ public class BuildCode {
 
   protected void fillinRow(ClassDescriptor cd, MethodDescriptor[][] virtualtable, int rownum) {
     /* Get inherited methods */
-    if (cd.getSuperDesc()!=null)
-      fillinRow(cd.getSuperDesc(), virtualtable, rownum);
     Iterator it_sifs = cd.getSuperInterfaces();
     while(it_sifs.hasNext()) {
       ClassDescriptor superif = (ClassDescriptor)it_sifs.next();
       fillinRow(superif, virtualtable, rownum);
     }
+    if (cd.getSuperDesc()!=null)
+      fillinRow(cd.getSuperDesc(), virtualtable, rownum);
     /* Override them with our methods */
     for(Iterator it=cd.getMethods(); it.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
 	continue;
-      int methodnum=virtualcalls.getMethodNumber(md);
-      virtualtable[rownum][methodnum]=md;
+      Vector<Integer> numvec = virtualcalls.getMethodNumber(md);
+      for(int i = 0; i < numvec.size(); i++) {
+        int methodnum = numvec.elementAt(i).intValue();
+        virtualtable[rownum][methodnum]=md;
+      }
     }
   }
 
@@ -2375,7 +2378,7 @@ public class BuildCode {
       }
 
 
-      output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
+      output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md).elementAt(0)+"])");
     }
 
     output.print("(");
@@ -2426,6 +2429,10 @@ public class BuildCode {
   }
 
   protected boolean singleCall(ClassDescriptor thiscd, MethodDescriptor md) {
+    if(thiscd.isInterface()) {
+      // for interfaces, always need virtual dispatch
+      return false;
+    } else {
     Set subclasses=typeutil.getSubClasses(thiscd);
     if (subclasses==null)
       return true;
@@ -2437,6 +2444,7 @@ public class BuildCode {
 	if (md.matches(matchmd))
 	  return false;
       }
+    }
     }
     return true;
   }

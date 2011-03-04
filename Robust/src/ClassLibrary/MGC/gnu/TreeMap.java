@@ -412,6 +412,7 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
    */
   public Object put(Object key, Object value)
   {
+    System.out.println("TreeMap.put() " + (String)root.key);
     TreeNode current = root;
     TreeNode parent = nil;
     int comparison = 0;
@@ -449,6 +450,7 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
 
     // Rebalance after insert.
     insertFixup(n);
+    System.out.println("==== " + (String)root.key);
     return null;
   }
 
@@ -766,13 +768,11 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
   final int compare(Object o1, Object o2)
   {
     if((o1 instanceof Integer) && (o2 instanceof Integer)) {
-      if(((Integer)o1).intValue() > ((Integer)o2).intValue()) {
-        return 1;
-      } else if(((Integer)o1).intValue() > ((Integer)o2).intValue()) {
-        return 0;
-      } else {
-        return -1;
-      }
+      return ((Integer)o1).compareTo((Integer)o2);
+    } else if((o1 instanceof Long) && (o2 instanceof Long)) {
+      return ((Long)o1).compareTo((Long)o2);
+    } else if((o1 instanceof String) && (o2 instanceof String)) {
+      return ((String)o1).compareTo((String)o2);
     }
     System.println("Compare non-int values in TreeMap.compare(Object, Object)");
     return 0;
@@ -1022,6 +1022,7 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
    */
   final TreeNode lowestGreaterThan(Object key, boolean first, boolean equal)
   {
+    System.out.println("TreeMap.lowestGreaterThan(Object, boolean, boolean)() " + (String)key + " " + (String)root.key);
     if (key == nil)
       return first ? firstNode() : nil;
 
@@ -1031,8 +1032,10 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
 
     while (current != nil)
       {
+      System.out.println("AAAA");
         last = current;
         comparison = compare(key, current.key);
+        System.out.println(comparison);
         if (comparison > 0)
           current = current.right;
         else if (comparison < 0)

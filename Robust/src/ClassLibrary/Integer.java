@@ -109,4 +109,11 @@ public class Integer {
       return false;
     return true;
   }
+  
+  public int compareTo(Integer i) {
+    if (value == i.value)
+      return 0;
+    // Returns just -1 or 1 on inequality; doing math might overflow.
+    return value > i.value ? 1 : -1;
+  }
 }
