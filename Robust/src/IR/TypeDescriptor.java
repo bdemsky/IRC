@@ -2,6 +2,7 @@ package IR;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Vector;
 
 /**
  * Descriptor
@@ -30,7 +31,7 @@ public class TypeDescriptor extends Descriptor {
   ClassDescriptor class_desc;
   boolean isClassNameRef = false;
   
-  private HashSet<AnnotationDescriptor> annotationSet;
+  private Vector<AnnotationDescriptor> annotationSet;
 
   public boolean equals(Object o) {
     if (o instanceof TypeDescriptor) {
@@ -285,7 +286,7 @@ public class TypeDescriptor extends Descriptor {
     this.class_desc=null;
     this.arraycount=0;
     this.isClassNameRef =false;
-    this.annotationSet=new HashSet<AnnotationDescriptor>();
+    this.annotationSet=new Vector<AnnotationDescriptor>();
   }
 
   public TypeDescriptor(String st) {
@@ -294,7 +295,7 @@ public class TypeDescriptor extends Descriptor {
     this.class_desc=null;
     this.arraycount=0;
     this.isClassNameRef =false;
-    this.annotationSet=new HashSet<AnnotationDescriptor>();
+    this.annotationSet=new Vector<AnnotationDescriptor>();
   }
 
   public ClassDescriptor getClassDesc() {
@@ -307,7 +308,7 @@ public class TypeDescriptor extends Descriptor {
     this.class_desc=cd;
     this.arraycount=0;
     this.isClassNameRef =false;
-    this.annotationSet=new HashSet<AnnotationDescriptor>();
+    this.annotationSet=new Vector<AnnotationDescriptor>();
   }
 
   public TypeDescriptor(int t) {
@@ -315,7 +316,7 @@ public class TypeDescriptor extends Descriptor {
     this.type=t;
     this.arraycount=0;
     this.isClassNameRef =false;
-    this.annotationSet=new HashSet<AnnotationDescriptor>();
+    this.annotationSet=new Vector<AnnotationDescriptor>();
   }
 
   public String toString() {
@@ -367,7 +368,7 @@ public class TypeDescriptor extends Descriptor {
     annotationSet.add(an);
   }
   
-  public Set getAnnotationMarkerSet(){
+  public Vector<AnnotationDescriptor> getAnnotationMarkers(){
     return annotationSet;
   }
   

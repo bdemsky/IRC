@@ -100,6 +100,9 @@ echo "-gccacheadapt setup as cacheadaptable mode (should be used together with -
 echo -gcprofile build with gcprofile options
 echo -mgc generate Multicore GC binary without task stuff
 echo
+echo SSJava options
+echo -ssjava enables SSJava
+echo
 echo Other options
 echo -abcclose turnoff array boundary checks
 echo -builddir setup different build directory

@@ -2,6 +2,8 @@ package IR;
 import IR.Tree.*;
 import IR.Flat.*;
 import IR.*;
+import Util.Lattice;
+
 import java.util.*;
 import Analysis.TaskStateAnalysis.*;
 
@@ -21,6 +23,7 @@ public class State {
     this.selfloops=new HashSet();
     this.excprefetch=new HashSet();
     this.classpath=new Vector();
+    this.cd2locationOrderMap=new Hashtable();
     this.lines=0;
   }
 
@@ -110,6 +113,9 @@ public class State {
   public boolean RCR_DEBUG=false;
   public boolean RCR_DEBUG_VERBOSE=false;
   public boolean NOSTALLTR=false;
+  
+  //SSJava
+  public boolean SSJAVA=false;
 
 
   public boolean OPTIONAL=false;
@@ -180,6 +186,7 @@ public class State {
   private int numtasks=0;
   private int numstaticblocks=0;
   private int arraycount=0;
+  public Hashtable cd2locationOrderMap;
   public boolean OPTIMIZE=false;
 
   private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
@@ -313,4 +320,13 @@ public class State {
     tasks.add(td);
     numtasks++;
   }
+  
+  public void addLocationOrder(ClassDescriptor cd, Lattice order){
+    cd2locationOrderMap.put(cd,order);
+  }
+  
+  public Hashtable getCd2LocationOrder(){
+    return cd2locationOrderMap;
+  }
+  
 }

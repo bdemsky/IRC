@@ -25,6 +25,7 @@ import IR.ClassDescriptor;
 import IR.State;
 import IR.TaskDescriptor;
 import IR.TypeUtil;
+import Analysis.SSJava.SSJavaAnalysis;
 import Analysis.Scheduling.MCImplSynthesis;
 import Analysis.Scheduling.Schedule;
 import Analysis.Scheduling.ScheduleAnalysis;
@@ -340,7 +341,9 @@ public class Main {
   state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-nostalltr")){
 	state.NOSTALLTR = true;     
-      }else if (option.equals("-help")) {      
+      } else if (option.equals("-ssjava")){
+  state.SSJAVA = true;     
+      } else if (option.equals("-help")) {      
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
 	System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -395,15 +398,14 @@ public class Main {
     if (state.classpath.size()==1)
       state.classpath.add(ClassLibraryPrefix);
 
+    SSJavaAnalysis ssjava=new SSJavaAnalysis(state);
     BuildIR bir=new BuildIR(state);
     TypeUtil tu=new TypeUtil(state, bir);
-    
 
     SemanticCheck sc=new SemanticCheck(state,tu);
 
     for(int i=0;i<sourcefiles.size();i++)
       loadClass(state, bir,(String)sourcefiles.get(i));
-
 
     //Stuff the runtime wants to see
     sc.getClass("String");
@@ -424,6 +426,12 @@ public class Main {
     sc.semanticCheck();
 
     tu.createFullTable();
+    
+    // SSJava
+    if(state.SSJAVA){
+      ssjava.doCheck();
+    }
+    
 
     BuildFlat bf=new BuildFlat(state,tu);
     bf.buildFlat();

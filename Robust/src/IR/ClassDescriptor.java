@@ -40,9 +40,8 @@ public class ClassDescriptor extends Descriptor {
   HashMap<String, Integer> enumConstantTbl;
   int enumconstantid = 0;
   
-  // for SSJava
-  Lattice<String> locOrder;
-
+  boolean isClassLibrary=false;
+  
   public ClassDescriptor(String classname, boolean isInterface) {
     this("", classname, isInterface);
   }
@@ -61,7 +60,6 @@ public class ClassDescriptor extends Descriptor {
     superIFdesc = new SymbolTable();
     this.innerdescs = new SymbolTable();
     this.enumdescs = new SymbolTable();
-    this.locOrder=new Lattice<String>();
   }
 
   public int getId() {
@@ -376,12 +374,12 @@ public class ClassDescriptor extends Descriptor {
     return this.modifiers;
   }
   
-  public Lattice<String> getLocOrder(){
-    return this.locOrder;
+  public void setClassLibrary(){
+    this.isClassLibrary=true;
   }
   
-  public void setLocOrder(Lattice<String> locOrder){
-    this.locOrder=locOrder;
+  public boolean isClassLibrary(){
+    return isClassLibrary;
   }
   
 }

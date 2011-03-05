@@ -4,6 +4,8 @@ import Util.Lattice;
 
 import java.util.*;
 
+import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
+
 
 public class BuildIR {
   State state;
@@ -481,16 +483,20 @@ public class BuildIR {
     }
   }
   
-  private void parseLocationOrder(ClassDescriptor cn, ParseNode pn){
+  private void parseLocationOrder(ClassDescriptor cd, ParseNode pn){
     ParseNodeVector pnv=pn.getChildren();
     Lattice<String> locOrder=new Lattice<String>();
     for(int i=0; i<pnv.size(); i++) {
       ParseNode loc=pnv.elementAt(i);
       String lowerLoc=loc.getChildren().elementAt(0).getLabel();
       String higherLoc=loc.getChildren().elementAt(1).getLabel();
-      locOrder.put(higherLoc, lowerLoc);      
+      locOrder.put(higherLoc, lowerLoc);
+      locOrder.put(lowerLoc,null);
+      if(locOrder.isIntroducingCycle(higherLoc)){
+        throw new Error("Error: the order relation "+lowerLoc+" < "+higherLoc+" introduces a cycle.");
+      }
     }
-    cn.setLocOrder(locOrder);
+    state.addLocationOrder(cd, locOrder);
   }
   
   private void parseClassMember(ClassDescriptor cn, ParseNode pn) {

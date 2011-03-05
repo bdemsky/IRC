@@ -21,7 +21,7 @@ public class Lattice<T> {
       s = new HashSet<T>();
       table.put(key, s);
     }
-    if (!s.contains(value)) {
+    if (value!=null && !s.contains(value)) {
       size++;
       s.add(value);
       return true;
@@ -29,10 +29,44 @@ public class Lattice<T> {
       return false;
   }
 
+  public boolean isIntroducingCycle(T key) {
+
+    Set<T> reachableSet = new HashSet<T>();
+    Set<T> neighborSet = get(key);
+
+    if (neighborSet == null) {
+      return false;
+    } else {
+      reachableSet.addAll(neighborSet);
+    }
+
+    int oldReachableSize;
+    do {
+      oldReachableSize = reachableSet.size();
+      Set<T> nextLevelNeighbors = new HashSet<T>();
+      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext();) {
+        T element = iterator.next();
+        Set<T> neighbors = get(element);
+        if (neighbors != null) {
+          nextLevelNeighbors.addAll(neighbors);
+          reachableSet.addAll(neighbors);
+        }
+
+        if (reachableSet.contains(key)) {
+          // found cycle
+          return true;
+        }
+      }
+      neighborSet = nextLevelNeighbors;
+    } while (oldReachableSize != reachableSet.size());
+
+    return false;
+  }
+
   public Set<T> get(T key) {
     return table.get(key);
   }
-  
+
   public boolean containsKey(T o) {
     return table.containsKey(o);
   }
@@ -40,7 +74,6 @@ public class Lattice<T> {
   public boolean isGreaterThan(T a, T b) {
 
     Set<T> neighborSet = get(a);
-    System.out.println("neightborSet of " + a + "=" + neighborSet);
 
     if (neighborSet == null) {
       return false;
