@@ -30,6 +30,14 @@ public class StateMachineForEffects {
     initialState = getState( fnInitial );
   }
 
+  public void addEffect( FlatNode fnState,
+                         Effect e ) {
+
+    assert fn2state.containsKey( fnState );
+    SMFEState state = getState( fnState );
+    state.addEffect( e );
+  }
+
   public void addTransition( FlatNode fnFrom,
                              FlatNode fnTo,
                              Effect e ) {
@@ -49,7 +57,7 @@ public class StateMachineForEffects {
   protected SMFEState getState( FlatNode fn ) {
     SMFEState state = fn2state.get( fn );
     if( state == null ) {
-      state = new SMFEState();
+      state = new SMFEState( fn );
     }
     return state;
   }
@@ -65,7 +73,7 @@ public class StateMachineForEffects {
 
       bw.write( "digraph "+graphName+" {\n" );
 
-      Iterator<Effect> fnItr = fn2state.entrySet().iterator();
+      Iterator<FlatNode> fnItr = fn2state.keySet().iterator();
       while( fnItr.hasNext() ) {
         SMFEState state = fn2state.get( fnItr.next() );
         bw.write( state.toStringDOT()+"\n" );

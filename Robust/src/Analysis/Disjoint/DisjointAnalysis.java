@@ -390,6 +390,8 @@ public class DisjointAnalysis {
 
   protected boolean doEffectsAnalysis = false;
   protected EffectsAnalysis effectsAnalysis;
+  protected BuildStateMachines buildStateMachines;
+
   
   // data structure for public interface
   private Hashtable< Descriptor, HashSet<AllocSite> > 
@@ -662,6 +664,10 @@ public class DisjointAnalysis {
       effectsAnalysis   = new EffectsAnalysis();
     }
 
+    if( state.RCR ) {
+      buildStateMachines = new BuildStateMachines();
+    }
+
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
     this.releaseMode             = state.DISJOINTRELEASEMODE;
     this.determinismDesired      = state.DISJOINTDETERMINISM;
@@ -690,7 +696,6 @@ public class DisjointAnalysis {
     ReachGraph.typeUtil        = typeUtil;
     ReachGraph.state           = state;
 
-
     ReachGraph.debugCallSiteVisitStartCapture
       = state.DISJOINTDEBUGCALLVISITTOSTART;
 
@@ -703,6 +708,11 @@ public class DisjointAnalysis {
     ReachGraph.debugCallSiteVisitCounter 
       = 0; // count visits from 1, is incremented before first visit
     
+
+    EffectsAnalysis.state              = state;
+    EffectsAnalysis.buildStateMachines = buildStateMachines;
+
+
     if( suppressOutput ) {
       System.out.println( "* Running disjoint reachability analysis with output suppressed! *" );
     }
@@ -1246,7 +1256,7 @@ public class DisjointAnalysis {
       // after transfer, use updated graph to
       // do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld );          
+        effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fld, fn );          
       }
       break;
 
@@ -1287,7 +1297,7 @@ public class DisjointAnalysis {
 
       // use transformed graph to do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, strongUpdate );          
+        effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fld, fn, strongUpdate );          
       }
       break;
 
@@ -1326,7 +1336,7 @@ public class DisjointAnalysis {
 
       // use transformed graph to do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement );                    
+        effectsAnalysis.analyzeFlatFieldNode( rg, rhs, fdElement, fn );                    
       }        
       break;
 
@@ -1373,7 +1383,7 @@ public class DisjointAnalysis {
 
       // use transformed graph to do effects analysis
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement,
+        effectsAnalysis.analyzeFlatSetFieldNode( rg, lhs, fdElement, fn,
                                                  false );          
       }
       break;

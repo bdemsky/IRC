@@ -4,12 +4,8 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.io.*;
 
-import IR.FieldDescriptor;
-import IR.Flat.FlatCall;
-import IR.Flat.FlatMethod;
-import IR.Flat.FlatNode;
-import IR.Flat.TempDescriptor;
-import IR.Flat.FlatSESEEnterNode;
+import IR.*;
+import IR.Flat.*;
 
 /////////////////////////////////////////////
 // 
@@ -39,6 +35,9 @@ public class EffectsAnalysis {
   private Hashtable<FlatSESEEnterNode, Hashtable<Taint, Set<Effect>> > sese2te;
   private Hashtable<FlatNode,          Hashtable<Taint, Set<Effect>> > stallSite2te;
 
+  public static State              state;
+  public static BuildStateMachines buildStateMachines;
+
 
   public EffectsAnalysis() {
     taint2effects = new Hashtable<Taint, Set<Effect>>();
@@ -59,11 +58,15 @@ public class EffectsAnalysis {
     return taint2effects.entrySet().iterator();
   }
 
-  protected void add(Taint t, Effect e) {
+  protected void add(Taint t, Effect e, FlatNode currentProgramPoint) {
 
     Taint tNoPreds = Canonical.changePredsTo( t,
                                               ReachGraph.predsEmpty
                                               );
+
+    if( state.RCR ) {
+      buildStateMachines.addToStateMachine( t, e, currentProgramPoint );
+    }
 
     // add to the global bag
     Set<Effect> effectSet = taint2effects.get(tNoPreds);
@@ -121,7 +124,7 @@ public class EffectsAnalysis {
 
 
 
-  public void analyzeFlatFieldNode(ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld) {
+  public void analyzeFlatFieldNode(ReachGraph rg, TempDescriptor rhs, FieldDescriptor fld, FlatNode currentProgramPoint) {
 
     VariableNode vn = rg.td2vn.get(rhs);
     if( vn == null ) {
@@ -136,12 +139,12 @@ public class EffectsAnalysis {
 
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
         Taint taint = taintSetIter.next();        
-        add(taint, effect);
+        add(taint, effect, currentProgramPoint);
       }
     }
   }
 
-  public void analyzeFlatSetFieldNode(ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, boolean strongUpdate) {
+  public void analyzeFlatSetFieldNode(ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, FlatNode currentProgramPoint, boolean strongUpdate) {
 
     VariableNode vn = rg.td2vn.get(lhs);
     if( vn == null ) {
@@ -161,10 +164,10 @@ public class EffectsAnalysis {
 
       for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
         Taint taint = taintSetIter.next();
-        add( taint, effect );
+        add( taint, effect, currentProgramPoint );
 
         if (strongUpdate) {
-          add( taint, effectSU );
+          add( taint, effectSU, currentProgramPoint );
         }
       }
     }

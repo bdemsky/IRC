@@ -102,14 +102,19 @@ public class SMFEState {
     s += "\"];";
 
     // then each transition is an edge
-    Iterator<Effect> eItr = e2states.entrySet().iterator();
+    Iterator<Effect> eItr = e2states.keySet().iterator();
     while( eItr.hasNext() ) {
-      Effect    e     = eItr.next();
-      SMFEState state = e2states.get( e );
+      Effect         e      = eItr.next();
+      Set<SMFEState> states = e2states.get( e );
 
-      s += "\n  "+
-        id.nodeid+" -> "+state.id.nodeid+
-        "[label=\""+e+"\"];"
+      Iterator<SMFEState> sItr = states.iterator();
+      while( sItr.hasNext() ) {
+        SMFEState state = sItr.next();
+
+        s += "\n  "+
+          id.nodeid+" -> "+state.id.nodeid+
+          "[label=\""+e+"\"];";
+      }
     }
 
     return s;
