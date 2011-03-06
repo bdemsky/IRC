@@ -305,7 +305,7 @@ public class BuildCodeMultiCore extends BuildCode {
       /* Record maximum number of task parameters */
       outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
       /* Record maximum number of all types, i.e. length of classsize[] */
-      outstructs.println("#define NUMTYPES "+(state.numClasses() + state.numArrays()));
+      outstructs.println("#define NUMTYPES "+(state.numClasses() + state.numArrays() + state.numInterfaces()));
       /* Record number of total cores */
       outstructs.println("#define NUMCORES "+this.tcoreNum);
       /* Record number of active cores */

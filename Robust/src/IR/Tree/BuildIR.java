@@ -19,6 +19,16 @@ public class BuildIR {
 
   public void buildtree(ParseNode pn, Set toanalyze) {
     parseFile(pn, toanalyze);
+    
+    // numering the interfaces
+    int if_num = 0;
+    Iterator it_classes = state.getClassSymbolTable().getValueSet().iterator();
+    while(it_classes.hasNext()) {
+      ClassDescriptor cd = (ClassDescriptor)it_classes.next();
+      if(cd.isInterface()) {
+        cd.setInterfaceId(if_num++);
+      }
+    }
   }
 
   Vector singleimports;

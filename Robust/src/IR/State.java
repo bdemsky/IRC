@@ -16,6 +16,8 @@ public class State {
     this.sclasses=new SymbolTable();
     this.treemethodmap=new Hashtable();
     this.flatmethodmap=new Hashtable();
+    this.genAllMethods = true;
+    this.methods2gen = new SymbolTable();
     this.parsetrees=new HashSet();
     this.arraytypes=new HashSet();
     this.arraytonumber=new Hashtable();
@@ -180,9 +182,12 @@ public class State {
   public Set parsetrees;
   public Hashtable treemethodmap;
   public Hashtable flatmethodmap;
+  SymbolTable methods2gen;
+  boolean genAllMethods;
   private HashSet arraytypes;
   public Hashtable arraytonumber;
   private int numclasses=1; // start from 1 instead of 0 for multicore gc
+  private int numinterfaces = 0;
   private int numtasks=0;
   private int numstaticblocks=0;
   private int arraycount=0;
@@ -239,14 +244,37 @@ public class State {
     if (classes.contains(tdn.getSymbol()))
       throw new Error("Class "+tdn.getSymbol()+" defined twice");
     classes.add(tdn);
-    numclasses++;
+    if(tdn.isInterface()) {
+      numinterfaces++;
+    } else {
+      numclasses++;
+    }
     if((tdn.numstaticfields != 0) || (tdn.numstaticblocks != 0)) {
       sclasses.add(tdn);
     }
   }
   
+  public void setGenAllMethods(boolean flag) {
+    this.genAllMethods = flag;
+  }
+  
+  public void addMethod2gen(MethodDescriptor md) {
+    if(this.genAllMethods) {
+      throw new Error("The state.genAllMethods is TRUE, do not need to check methods to genenrate");
+    }
+    this.methods2gen.add(md);
+  }
+  
+  public SymbolTable getMethod2gen() {
+    return this.methods2gen;
+  }
+  
   public int numClasses() {
     return numclasses;
+  }
+  
+  public int numInterfaces() {
+    return numinterfaces;
   }
   
   public int numStaticBlocks() {

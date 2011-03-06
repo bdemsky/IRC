@@ -45,6 +45,7 @@ public class BuildCode {
   protected int maxtaskparams=0;
   protected int maxcount=0;
   ClassDescriptor[] cdarray;
+  ClassDescriptor[] ifarray;
   TypeDescriptor[] arraytable;
   SafetyAnalysis sa;
   CallGraph callgraph;
@@ -66,6 +67,7 @@ public class BuildCode {
     fieldorder=new Hashtable();
     flagorder=new Hashtable();
     this.typeutil=typeutil;
+    checkMethods2Gen();
     virtualcalls=new Virtual(state, null);
     printedfieldstbl = new Hashtable<String, ClassDescriptor>();
   }
@@ -248,6 +250,34 @@ public class BuildCode {
     postCodeGenCleanUp();
   }
 
+  /* This method goes though the call graph and check which methods are really
+   * invoked and should be generated
+   */
+  protected void checkMethods2Gen() {
+    MethodDescriptor md=typeutil.getMain();
+    
+    if(md != null) {
+      // check the methods to be generated
+      state.setGenAllMethods(false);
+    } else {
+      // generate all methods
+      return;
+    }
+    this.state.addMethod2gen(md);
+    
+    Iterator it_classes = this.state.getClassSymbolTable().getDescriptorsIterator();
+    while(it_classes.hasNext()) {
+      ClassDescriptor cd = (ClassDescriptor)it_classes.next();
+      Iterator it_methods = cd.getMethodTable().getDescriptorsIterator();
+      while(it_methods.hasNext()) {
+        md = (MethodDescriptor)it_methods.next();
+        if(md.isStaticBlock() || md.getModifiers().isNative() || this.callgraph.getCallerSet(md).size() > 0
+            || (cd.getSymbol().equals("Thread") && md.getSymbol().equals("staticStart"))) {
+          this.state.addMethod2gen(md);
+        }
+      }
+    }
+  }
 
 
   /* This method goes though the call graph and tag those methods that are
@@ -500,6 +530,18 @@ public class BuildCode {
       while(methodit.hasNext()) {
 	/* Classify parameters */
 	MethodDescriptor md=(MethodDescriptor)methodit.next();
+    Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+    boolean foundmatch = false;
+    for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+      MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+      if (md.matches(matchmd)) {
+        foundmatch=true;
+        break;
+      }
+    }
+    if(!foundmatch) {
+      continue;
+    }
 	FlatMethod fm=state.getMethodFlat(md);
 	if (!md.getModifiers().isNative()) {
 	  generateFlatMethod(fm, outmethod);
@@ -548,7 +590,7 @@ public class BuildCode {
                        (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.BYTE)).makeArray(state).makeArray(state))+state.numClasses()));
 
     outstructs.println("#define NUMCLASSES "+state.numClasses());
-    int totalClassSize = state.numClasses() + state.numArrays();
+    int totalClassSize = state.numClasses() + state.numArrays() + state.numInterfaces();
     outstructs.println("#define TOTALNUMCLASSANDARRAY "+ totalClassSize);
     if (state.TASK) {
       outstructs.println("#define STARTUPTYPE "+typeutil.getClass(TypeUtil.StartupClass).getId());
@@ -878,6 +920,9 @@ public class BuildCode {
     classit=state.getClassSymbolTable().getDescriptorsIterator();
     while(classit.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)classit.next();
+      if(cd.isInterface()) {
+        continue;
+      }        
       fillinRow(cd, virtualtable, cd.getId());
     }
 
@@ -923,11 +968,20 @@ public class BuildCode {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
 	continue;
-      Vector<Integer> numvec = virtualcalls.getMethodNumber(md);
-      for(int i = 0; i < numvec.size(); i++) {
-        int methodnum = numvec.elementAt(i).intValue();
-        virtualtable[rownum][methodnum]=md;
+      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+      boolean foundmatch = false;
+      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        if (md.matches(matchmd)) {
+          foundmatch=true;
+          break;
+        }
       }
+      if(!foundmatch) {
+        continue;
+      }
+      int methodnum = virtualcalls.getMethodNumber(md);
+      virtualtable[rownum][methodnum]=md;
     }
   }
 
@@ -941,11 +995,16 @@ public class BuildCode {
 
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
     cdarray=new ClassDescriptor[state.numClasses()];
+    ifarray = new ClassDescriptor[state.numInterfaces()];
     cdarray[0] = null;
     int interfaceid = 0;
     while(it.hasNext()) {
       ClassDescriptor cd=(ClassDescriptor)it.next();
-      cdarray[cd.getId()] = cd;
+      if(cd.isInterface()) {
+        ifarray[cd.getId()] = cd;
+      } else {
+        cdarray[cd.getId()] = cd;
+      }
     }
 
     arraytable=new TypeDescriptor[state.numArrays()];
@@ -971,6 +1030,11 @@ public class BuildCode {
     for(int i=0; i<state.numArrays(); i++) {
       TypeDescriptor arraytd=arraytable[i];
       outclassdefs.println(arraytd.toPrettyString() +"  "+(i+state.numClasses()));
+    }
+    
+    for(int i=0; i<state.numInterfaces(); i++) {
+      ClassDescriptor ifcd = ifarray[i];
+      outclassdefs.println(ifcd +"  "+(i+state.numClasses()+state.numArrays()));
     }
 
     outclassdefs.println("*/");
@@ -1001,6 +1065,13 @@ public class BuildCode {
 	outclassdefs.print("sizeof("+tdelement.getSafeSymbol()+")");
       needcomma=true;
     }
+    
+    for(int i=0; i<state.numInterfaces(); i++) {
+      if (needcomma)
+        outclassdefs.print(", ");
+      outclassdefs.print("sizeof(struct "+ifarray[i].getSafeSymbol()+")");
+      needcomma=true;
+    }
 
     outclassdefs.println("};");
 
@@ -1010,6 +1081,9 @@ public class BuildCode {
     for(int i=0; i<state.numClasses(); i++) {
       ClassDescriptor cd=cdarray[i];
       ClassDescriptor supercd=i>0 ? cd.getSuperDesc() : null;
+      if(supercd != null && supercd.isInterface()) {
+        throw new Error("Super class can not be interfaces");
+      }
       if (needcomma)
 	outclassdefs.print(", ");
       if (supercd==null)
@@ -1044,6 +1118,21 @@ public class BuildCode {
       if (needcomma)
 	outclassdefs.print(", ");
       outclassdefs.print(type);
+      needcomma=true;
+    }
+    
+    for(int i=0; i<state.numInterfaces(); i++) {
+      ClassDescriptor cd=ifarray[i];
+      ClassDescriptor supercd=cd.getSuperDesc();
+      if(supercd != null && supercd.isInterface()) {
+        throw new Error("Super class can not be interfaces");
+      }
+      if (needcomma)
+    outclassdefs.print(", ");
+      if (supercd==null)
+    outclassdefs.print("-1");
+      else
+    outclassdefs.print(supercd.getId());
       needcomma=true;
     }
 
@@ -1275,7 +1364,7 @@ public class BuildCode {
         if(ncomma) {
           output.print(",");
         }
-        output.print(((ClassDescriptor)it_sifs.next()).getId());
+        output.print(((ClassDescriptor)it_sifs.next()).getId()+state.numClasses()+state.numArrays());
       }
       
       output.println("};");
@@ -1332,6 +1421,42 @@ public class BuildCode {
       output.println("};");
     }
     
+    for(int i=0; i<state.numInterfaces(); i++) {
+      ClassDescriptor cn=ifarray[i];
+      if(cn == null) {
+        continue;
+      }
+      output.print("int supertypes" + cn.getSafeSymbol() + "[] = {");
+      boolean ncomma = false;
+      int snum = 0;
+      if((cn != null) && (cn.getSuperDesc() != null)) {
+        snum++;
+      }
+      Iterator it_sifs = cn != null? cn.getSuperInterfaces() : null;
+      while(it_sifs != null && it_sifs.hasNext()) {
+        snum++;
+        it_sifs.next();
+      }
+      output.print(snum);
+      ncomma = true;
+      if ((cn != null) && (cn.getSuperDesc()!=null)) {
+        if(ncomma) {
+          output.print(",");
+        }
+        ClassDescriptor cdsuper=cn.getSuperDesc();
+        output.print(cdsuper.getId());
+      } 
+      it_sifs = cn != null? cn.getSuperInterfaces() : null;
+      while(it_sifs != null && it_sifs.hasNext()) {
+        if(ncomma) {
+          output.print(",");
+        }
+        output.print(((ClassDescriptor)it_sifs.next()).getId()+state.numClasses()+state.numArrays());
+      }
+      
+      output.println("};");
+    }
+    
     output.println("int* supertypes[]={");
     boolean needcomma=false;
     for(int i=0; i<state.numClasses(); i++) {
@@ -1351,6 +1476,14 @@ public class BuildCode {
         output.println(",");
       needcomma = true;
       output.print("supertypes___arraytype___" + (i+state.numClasses()));
+    }
+    
+    for(int i=0; i<state.numInterfaces(); i++) {
+      ClassDescriptor cn=ifarray[i];
+      if (needcomma)
+    output.println(",");
+      needcomma=true;
+      output.print("supertypes" + cn.getSafeSymbol());
     }
     output.println("};");
   }
@@ -1541,7 +1674,18 @@ public class BuildCode {
   protected void generateCallStructsMethods(ClassDescriptor cn, PrintWriter output, PrintWriter headersout) {
     for(Iterator methodit=cn.getMethods(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)methodit.next();
-      generateMethod(cn, md, headersout, output);
+      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+      boolean foundmatch = false;
+      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        if (md.matches(matchmd)) {
+          foundmatch=true;
+          break;
+        }
+      }
+      if(foundmatch) {
+        generateMethod(cn, md, headersout, output);
+      }
     }
   }
 
@@ -2197,11 +2341,15 @@ public class BuildCode {
     int otype;
     if (fion.getType().isArray()) {
       type=state.getArrayNumber(fion.getType())+state.numClasses();
+    } else if (fion.getType().getClassDesc().isInterface()) {
+      type=fion.getType().getClassDesc().getId()+state.numClasses()+state.numArrays();
     } else {
       type=fion.getType().getClassDesc().getId();
     }
     if (fion.getSrc().getType().isArray()) {
       otype=state.getArrayNumber(fion.getSrc().getType())+state.numClasses();
+    } else if (fion.getSrc().getType().getClassDesc().isInterface()) {
+      otype=fion.getSrc().getType().getClassDesc().getId()+state.numClasses()+state.numArrays();
     } else {
       otype=fion.getSrc().getType().getClassDesc().getId();
     }
@@ -2378,7 +2526,7 @@ public class BuildCode {
       }
 
 
-      output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md).elementAt(0)+"])");
+      output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
     }
 
     output.print("(");

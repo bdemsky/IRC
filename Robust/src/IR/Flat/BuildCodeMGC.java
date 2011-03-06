@@ -93,7 +93,6 @@ public class BuildCodeMGC extends BuildCode {
 
     // Output function prototypes and structures for parameters
     Iterator it=state.getClassSymbolTable().getDescriptorsIterator();
-    int numclasses = this.state.numClasses();
     while(it.hasNext()) {
       ClassDescriptor cn=(ClassDescriptor)it.next();
       super.generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs, outglobaldefsprim);
@@ -123,7 +122,7 @@ public class BuildCodeMGC extends BuildCode {
     /* Record maximum number of task parameters */
     //outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
     /* Record maximum number of all types, i.e. length of classsize[] */
-    outstructs.println("#define NUMTYPES "+(state.numClasses() + state.numArrays()));
+    outstructs.println("#define NUMTYPES "+(state.numClasses() + state.numArrays() + state.numInterfaces()));
     /* Record number of total cores */
     outstructs.println("#define NUMCORES "+this.tcoreNum);
     /* Record number of active cores */
@@ -316,7 +315,6 @@ NextMethod:
         outmethod.println(" }");
         
       }
-    } // else TODO normal java version
-    
+    } // else TODO normal java version 
   }
 }
