@@ -412,7 +412,6 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
    */
   public Object put(Object key, Object value)
   {
-    System.out.println("TreeMap.put() " + (String)root.key);
     TreeNode current = root;
     TreeNode parent = nil;
     int comparison = 0;
@@ -443,14 +442,14 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
         root = n;
         return null;
       }
-    if (comparison > 0)
+    if (comparison > 0) {
       parent.right = n;
-    else
+    } else {
       parent.left = n;
+    }
 
     // Rebalance after insert.
     insertFixup(n);
-    System.out.println("==== " + (String)root.key);
     return null;
   }
 
@@ -1022,7 +1021,6 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
    */
   final TreeNode lowestGreaterThan(Object key, boolean first, boolean equal)
   {
-    System.out.println("TreeMap.lowestGreaterThan(Object, boolean, boolean)() " + (String)key + " " + (String)root.key);
     if (key == nil)
       return first ? firstNode() : nil;
 
@@ -1032,10 +1030,8 @@ public class TreeMap//<K, V> extends AbstractMap<K, V>
 
     while (current != nil)
       {
-      System.out.println("AAAA");
         last = current;
         comparison = compare(key, current.key);
-        System.out.println(comparison);
         if (comparison > 0)
           current = current.right;
         else if (comparison < 0)
