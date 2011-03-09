@@ -50,7 +50,7 @@ import Analysis.OoOJava.OoOJavaAnalysis;
 import Analysis.Loops.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
-//import Analysis.Pointer.Pointer;
+import Analysis.Pointer.Pointer;
 import IR.MethodDescriptor;
 import IR.Flat.FlatMethod;
 import Interface.*;
@@ -452,8 +452,8 @@ public class Main {
       }
     }
     if (state.POINTER) {
-      //      Pointer pointgraph=new Pointer(state, tu);
-      //pointgraph.doAnalysis();
+      Pointer pointgraph=new Pointer(state, tu);
+      pointgraph.doAnalysis();
     }
 
 
