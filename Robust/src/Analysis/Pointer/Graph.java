@@ -47,6 +47,16 @@ public class Graph {
     return nodeAges.contains(node)||parent!=null&&parent.nodeAges.contains(node);
   }
 
+  public Edge getMatch(Edge old) {
+    if (old.srcvar!=null) {
+      MySet<Edge> edges=varMap.get(old.srcvar);
+      return edges.get(old);
+    } else {
+      MySet<Edge> edges=nodeMap.get(old.src);
+      return edges.get(old);
+    }
+  }
+
   public MySet<Edge> getEdges(TempDescriptor tmp) {
     if (varMap.containsKey(tmp))
       return varMap.get(tmp);

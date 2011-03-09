@@ -76,6 +76,14 @@ public class Edge {
     return e;
   }
 
+  public Edge merge(Edge e) {
+    if (e==null)
+      return this;
+    Edge newe=copy();
+    newe.statuspredicate=mergeStatus(statuspredicate, e.statuspredicate);
+    return newe;
+  }
+
   public Edge rewrite(AllocNode single, AllocNode summary) {
     Edge e=copy();
     if (e.src==single)
@@ -96,6 +104,14 @@ public class Edge {
     e.src=factory.getAllocNode(src, (statuspredicate|3)==0);
     e.dst=factory.getAllocNode(dst, (statuspredicate|5)==0);
     return e;
+  }
+
+  public boolean subsumes(Edge e) {
+    return subsumes(this.statuspredicate, e.statuspredicate);
+  }
+
+  public static boolean subsumes(int status1, int status2) {
+    return ((status1&NEW)==NEW)&&((status1|status2)==status1);
   }
 
   public Edge makeOld() {

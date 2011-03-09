@@ -86,6 +86,10 @@ public class Pointer {
     }
   }
 
+  /* This function builds the last delta for a basic block.  It
+   * handles the case for the first time the basic block is
+   * evaluated.*/
+
   void buildInitDelta(Graph graph, Delta newDelta) {
     //First compute the set of temps
     HashSet<TempDescriptor> tmpSet=new HashSet<TempDescriptor>();
@@ -133,6 +137,8 @@ public class Pointer {
       }
     }
   }
+
+  /* This function build the delta for the exit of a basic block. */
 
   void generateFinalDelta(BBlock bblock, Delta delta, Graph graph) {
     Delta newDelta=new Delta(null, false);
@@ -240,6 +246,9 @@ public class Pointer {
     }
   }
 
+  /* This function compute the edges for the this variable for a
+   * callee if it exists. */
+
   void processThisTargets(HashSet<ClassDescriptor> targetSet, Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, TempDescriptor tmpthis, HashSet<AllocNode> oldnodeset) {
     //Handle the this temp
     if (tmpthis!=null) {
@@ -263,6 +272,8 @@ public class Pointer {
     }
   }
 
+  /* This function compute the edges for a call's parameters. */
+
   void processParams(Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, FlatCall fcall, boolean diff) {
     //Go through each temp
     for(int i=0;i<fcall.numArgs();i++) {
@@ -278,6 +289,8 @@ public class Pointer {
       }
     }
   }
+
+  /* This function computes the reachable nodes for a callee. */
 
   void computeReachableNodes(Graph graph, Delta delta, Delta newDelta, HashSet<AllocNode> nodeset, Stack<AllocNode> tovisit, MySet<Edge> edgeset, HashSet<AllocNode> oldnodeset) {
       while(!tovisit.isEmpty()) {
@@ -430,6 +443,9 @@ public class Pointer {
       }
     }
   }
+
+  /* This function removes the caller reachable edges from the
+   * callee's heap. */
   
   void removeEdges(Delta delta, HashSet<AllocNode> nodeset, MySet<Edge> edgeset, MySet<Edge> externaledgeset) {
     //Want to remove the set of internal edges
@@ -544,7 +560,7 @@ public class Pointer {
     return delta;
   }
 
-  
+  /* This function applies callee deltas to the caller heap. */
 
   Delta applyCallDelta(Delta delta, BBlock bblock) {
     Delta newDelta=new Delta(null, false);
@@ -588,7 +604,12 @@ public class Pointer {
 	  }
 	}
 	if (edgetoadd!=null) {
-	  newDelta.addHeapEdge(edgetoadd);
+	  Edge match=graph.getMatch(edgetoadd);
+	  if (match==null||!match.subsumes(edgetoadd)) {
+	    Edge mergededge=edgetoadd.merge(match);
+	    //XXXXXXXXXXXXX;
+	    newDelta.addHeapEdge(mergededge);
+	  }
 	}
       }
     }
@@ -616,7 +637,7 @@ public class Pointer {
 	newDelta.addEdge(newedge);
       }
     }
-    
+
     return newDelta;
   }
 
@@ -638,8 +659,10 @@ public class Pointer {
     MySet<Edge> backedges=graph.getBackEdges(singleNode);
     for(Edge e:backedges) {
       if (e.dst==singleNode) {
-	Edge rewrite=e.rewrite(singleNode, summaryNode);
-	newDelta.removeEdge(e);
+	//Need to get original edge so that predicate will be correct
+	Edge match=graph.getMatch(e);
+	Edge rewrite=match.rewrite(singleNode, summaryNode);
+	newDelta.removeEdge(match);
 	newDelta.addEdge(rewrite);
       }
     }
@@ -1189,6 +1212,13 @@ public class Pointer {
 	  //We have a new edge
 	  diffedges.add(e);
 	  dstedges.add(e);
+	} else {
+	  Edge origedge=dstedges.get(e);
+	  if (!origedge.subsumes(e)) {
+	    Edge mergededge=origedge.merge(e);
+	    diffedges.add(mergededge);
+	    dstedges.add(mergededge);
+	  }
 	}
       }
       //Done with edge set...
