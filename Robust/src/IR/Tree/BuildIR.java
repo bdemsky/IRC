@@ -144,19 +144,21 @@ public class BuildIR {
 
  public void parseInitializers(ClassDescriptor cn){
 	Vector fv=cn.getFieldVec();
+    int pos = 0;
 	for(int i=0;i<fv.size();i++) {
 	    FieldDescriptor fd=(FieldDescriptor)fv.get(i);
  	    if(fd.getExpressionNode()!=null) {
-		Iterator methodit = cn.getMethods();
-		while(methodit.hasNext()){
-		    MethodDescriptor currmd=(MethodDescriptor)methodit.next();
-		    if(currmd.isConstructor()){
-			BlockNode bn=state.getMethodBody(currmd);
-			NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
-			AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
-			bn.addFirstBlockStatement(new BlockExpressionNode(an));			
-		    }
-		}
+         Iterator methodit = cn.getMethods();
+          while(methodit.hasNext()){
+            MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+            if(currmd.isConstructor()){
+              BlockNode bn=state.getMethodBody(currmd);
+          NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
+          AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
+          bn.addBlockStatementAt(new BlockExpressionNode(an), pos);
+            }
+          }
+          pos++;
 	    }
 	}
     }  
@@ -814,7 +816,6 @@ public class BuildIR {
       for(int i=0; i<num; i++)
     td=td.makeArray(state);
       CreateObjectNode con=new CreateObjectNode(td, false, null);
-      // TODO array initializers
       ParseNode ipn = pn.getChild("initializer");     
       Vector initializers=parseVariableInitializerList(ipn);
       ArrayInitializerNode ain = new ArrayInitializerNode(initializers);

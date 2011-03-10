@@ -17,6 +17,7 @@ class Foo{
     private float f=6;
     private boolean g=true;
     private char h='h';
+    private int[] i = new int[3];
     
      public Foo(int alpha){
 	 a=alpha;
@@ -35,6 +36,7 @@ class Foo{
 	System.out.println("f="+f);
 	System.out.println("g="+g);
 	System.out.println("h="+h);
+    System.out.println("i.length = " + i.length);
     }
 
 }

@@ -27,6 +27,10 @@ public class BlockNode extends TreeNode {
   public void addFirstBlockStatement(BlockStatementNode bsn) {
     blockstatements.insertElementAt(bsn,0);
   }
+  
+  public void addBlockStatementAt(BlockStatementNode bsn, int i) {
+    blockstatements.insertElementAt(bsn,i);
+  }
 
   public void setStyle(int style) {
     printStyle=style;
