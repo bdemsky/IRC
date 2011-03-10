@@ -62,6 +62,10 @@ public class Delta {
       varedgeadd.put(tmpMap.get(entry.getKey()), entry.getValue());
     }
     newdelta.varedgeremove=varedgeremove;
+    newdelta.addNodeAges=addNodeAges;
+    newdelta.baseNodeAges=baseNodeAges;
+    newdelta.addOldNodes=addOldNodes;
+    newdelta.baseOldNodes=baseOldNodes;
     newdelta.block=bblock;
     return newdelta;
   }
@@ -73,6 +77,10 @@ public class Delta {
     newdelta.heapedgeadd=heapedgeadd;
     newdelta.heapedgeremove=heapedgeremove;
     newdelta.varedgeadd=varedgeadd;
+    newdelta.addNodeAges=addNodeAges;
+    newdelta.baseNodeAges=baseNodeAges;
+    newdelta.addOldNodes=addOldNodes;
+    newdelta.baseOldNodes=baseOldNodes;
     for(Edge e:edges) {
       if (e.srcvar!=null) {
 	if (!newdelta.varedgeadd.containsKey(e.srcvar)) {
@@ -98,6 +106,10 @@ public class Delta {
     newdelta.varedgeadd=varedgeadd;
     newdelta.varedgeremove=varedgeremove;
     newdelta.block=bblock;
+    newdelta.addNodeAges=addNodeAges;
+    newdelta.baseNodeAges=baseNodeAges;
+    newdelta.addOldNodes=addOldNodes;
+    newdelta.baseOldNodes=baseOldNodes;
     return newdelta;
   }
 
@@ -138,23 +150,20 @@ public class Delta {
   public void removeHeapEdge(Edge e) {
     if (heapedgeadd.containsKey(e.src)&&heapedgeadd.get(e.src).contains(e))
       heapedgeadd.get(e.src).remove(e);
-    else {
-      if (!heapedgeremove.containsKey(e.src))
-	heapedgeremove.put(e.src, new MySet<Edge>(e));
-      else
-	heapedgeremove.get(e.src).add(e);
-    }
+    if (!heapedgeremove.containsKey(e.src))
+      heapedgeremove.put(e.src, new MySet<Edge>(e));
+    else
+      heapedgeremove.get(e.src).add(e);
+
   }
 
   public void removeVarEdge(Edge e) {
     if (varedgeadd.containsKey(e.src)&&varedgeadd.get(e.src).contains(e))
       varedgeadd.get(e.src).remove(e);
-    else {
-      if (!varedgeremove.containsKey(e.srcvar))
-	varedgeremove.put(e.srcvar, new MySet<Edge>(e));
-      else
-	varedgeremove.get(e.srcvar).add(e);
-    }
+    if (!varedgeremove.containsKey(e.srcvar))
+      varedgeremove.put(e.srcvar, new MySet<Edge>(e));
+    else
+      varedgeremove.get(e.srcvar).add(e);
   }
 
   public void setInit(boolean init) {

@@ -14,7 +14,8 @@ public class MySet<T> extends AbstractSet<T> {
 
   public MySet(MySet base) {
     map=new HashMap<T,T>();
-    addAll(base);
+    if (base!=null)
+      addAll(base);
   }
 
   public int size() {

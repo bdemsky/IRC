@@ -50,12 +50,18 @@ public class Graph {
   public Edge getMatch(Edge old) {
     if (old.srcvar!=null) {
       MySet<Edge> edges=varMap.get(old.srcvar);
+      if (edges==null)
+	edges=parent.varMap.get(old.srcvar);
       return edges.get(old);
     } else {
       MySet<Edge> edges=nodeMap.get(old.src);
+      if (edges==null)
+	edges=parent.nodeMap.get(old.src);
       return edges.get(old);
     }
   }
+  
+  
 
   public MySet<Edge> getEdges(TempDescriptor tmp) {
     if (varMap.containsKey(tmp))
@@ -75,8 +81,8 @@ public class Graph {
 
   public static MySet<Edge> emptySet=new MySet<Edge>();
 
-  public void printGraph(PrintWriter output) {
-    output.println("digraph graph {");
+  public void printGraph(PrintWriter output, String name) {
+    output.println("digraph \""+name+"\" {");
     output.println("\tnode [fontsize=10,height=\"0.1\", width=\"0.1\"];");
     output.println("\tedge [fontsize=6];");
     outputTempEdges(output, varMap, null);
@@ -109,7 +115,10 @@ public class Graph {
 	continue;
       for(Edge e:entry.getValue()) {
 	AllocNode n=e.dst;
-	output.println("\t"+node.getID()+"->"+n.getID()+"[label=\""+e.fd.getSymbol()+"\";");
+	String src=node.getID();
+	String dst=n.getID();
+	String field=e.fd!=null?e.fd.getSymbol():"[]";
+	output.println("\t"+src+"->"+dst+"[label=\""+field+"\"];");
       }
     }
   }

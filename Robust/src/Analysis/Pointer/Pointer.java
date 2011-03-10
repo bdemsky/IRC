@@ -4,6 +4,7 @@ import IR.Flat.*;
 import IR.*;
 import Analysis.Pointer.BasicBlock.BBlock;
 import Analysis.Pointer.AllocFactory.AllocNode;
+import java.io.*;
 
 public class Pointer {
   HashMap<FlatMethod, BasicBlock> blockMap;
@@ -84,6 +85,34 @@ public class Pointer {
       }
       generateFinalDelta(bblock, delta, nodeGraph);
     }
+
+    //DEBUG
+    int debugindex=0;
+    for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
+      Graph g=e.getValue();
+      try {
+	PrintWriter pw=new PrintWriter(new FileWriter("BB"+debugindex+".dot"));
+	g.printGraph(pw, "BB");
+	pw.close();
+      } catch (Exception ex) {
+	ex.printStackTrace();
+      }
+      debugindex++;
+    }
+
+    for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
+      FlatNode fn=e.getKey();
+      Graph g=e.getValue();
+      try {
+	PrintWriter pw=new PrintWriter(new FileWriter("FN"+fn.toString().replace(' ','_')+".dot"));
+	g.printGraph(pw, fn.toString());
+	pw.close();
+      } catch (Exception ex) {
+	ex.printStackTrace();
+      }
+      debugindex++;
+    }
+
   }
 
   /* This function builds the last delta for a basic block.  It
@@ -170,17 +199,22 @@ public class Pointer {
 	/* Start with the new incoming edges */
 	MySet<Edge> newheapedge=(MySet<Edge>) delta.baseheapedge.get(node).clone();
 	/* Remove the remove set */
-	newheapedge.removeAll(delta.heapedgeremove.get(node));
-	/* Add in the add set */
-	newheapedge.addAll(delta.heapedgeadd.get(node));
-	newDelta.heapedgeadd.put(node, newheapedge);
-
-	/* Also need to subtract off some edges */
 	MySet<Edge> removeset=delta.heapedgeremove.get(node);
 
+	if (removeset!=null)
+	  newheapedge.removeAll(removeset);
+
+	/* Add in the add set */
+	MySet<Edge> settoadd=delta.heapedgeadd.get(node);
+	if (settoadd!=null)
+	  newheapedge.addAll(settoadd);
+	newDelta.heapedgeadd.put(node, newheapedge);
+
 	/* Remove the newly created edges..no need to propagate a diff for those */
-	removeset.removeAll(delta.baseheapedge.get(node));
-	newDelta.heapedgeremove.put(node, removeset);
+	if (removeset!=null) {
+	  removeset.removeAll(delta.baseheapedge.get(node));
+	  newDelta.heapedgeremove.put(node, removeset);
+	}
       }
 
       /* Compute new ages */
@@ -572,7 +606,7 @@ public class Pointer {
       bbgraphMap.get(bblock):
       graphMap.get(nodes.get(ppoint.getIndex()-1));
     
-    //Age outside edges if necessary
+    //Age outside nodes if necessary
     for(Iterator<AllocNode> nodeit=delta.addNodeAges.iterator();nodeit.hasNext();) {
       AllocNode node=nodeit.next();
       if (!graph.callNodeAges.contains(node)) {
@@ -603,14 +637,7 @@ public class Pointer {
 	    edgetoadd=origEdgeKey;
 	  }
 	}
-	if (edgetoadd!=null) {
-	  Edge match=graph.getMatch(edgetoadd);
-	  if (match==null||!match.subsumes(edgetoadd)) {
-	    Edge mergededge=edgetoadd.merge(match);
-	    //XXXXXXXXXXXXX;
-	    newDelta.addHeapEdge(mergededge);
-	  }
-	}
+	mergeEdge(graph, newDelta, edgetoadd);
       }
     }
 
@@ -627,19 +654,42 @@ public class Pointer {
 	if (graph.callOldNodes.contains(e.dst)) {
 	  //Need two edges
 	  Edge copy=newedge.copy();
-	  newDelta.addEdge(copy);
+	  mergeEdge(graph, newDelta, copy);
 	}
 	//Now add summarized node
 	newedge.dst=allocFactory.getAllocNode(newedge.dst, true);
-	newDelta.addEdge(newedge);
+	mergeEdge(graph, newDelta, newedge);
       } else {
 	//Add edge to single node
-	newDelta.addEdge(newedge);
+	mergeEdge(graph, newDelta, newedge);
+      }
+    }
+    //Add edge for return value
+    if (fcall.getReturnTemp()!=null) {
+      MySet<Edge> returnedge=newDelta.varedgeadd.get(returntmp);
+      for(Edge e:returnedge) {
+	Edge newedge=e.copy();
+	newedge.srcvar=fcall.getReturnTemp();
+	if (graph.getEdges(fcall.getReturnTemp())==null||!graph.getEdges(fcall.getReturnTemp()).contains(newedge))
+	  newDelta.addEdge(newedge);
       }
     }
 
+    applyDiffs(graph, newDelta);
     return newDelta;
   }
+  
+  public void mergeEdge(Graph graph, Delta newDelta, Edge edgetoadd) {
+    if (edgetoadd!=null) {
+      Edge match=graph.getMatch(edgetoadd);
+
+      if (match==null||!match.subsumes(edgetoadd)) {
+	Edge mergededge=edgetoadd.merge(match);
+	newDelta.addHeapEdge(mergededge);
+      }
+    }
+  }
+
 
   /* Summarizes out of context nodes in graph */
   void summarizeInGraph(Graph graph, Delta newDelta, AllocNode singleNode) {
@@ -652,7 +702,7 @@ public class Pointer {
       Edge rewrite=e.rewrite(singleNode, summaryNode);
       //Remove old edge
       newDelta.removeHeapEdge(e);
-      newDelta.addHeapEdge(rewrite);
+      mergeEdge(graph, newDelta, rewrite);
     }
     
     //Handle incoming edges
@@ -663,7 +713,7 @@ public class Pointer {
 	Edge match=graph.getMatch(e);
 	Edge rewrite=match.rewrite(singleNode, summaryNode);
 	newDelta.removeEdge(match);
-	newDelta.addEdge(rewrite);
+	mergeEdge(graph, newDelta, rewrite);
       }
     }
   }
@@ -727,7 +777,10 @@ public class Pointer {
       //If we have not done a subtract, then 
       if (!graph.nodeMap.containsKey(node)) {
 	//Copy the parent entry
-	graph.nodeMap.put(node, (MySet<Edge>)graph.parent.nodeMap.get(node).clone());
+	if (graph.parent.nodeMap.containsKey(node))
+	  graph.nodeMap.put(node, (MySet<Edge>)graph.parent.nodeMap.get(node).clone());
+	else
+	  graph.nodeMap.put(node, new MySet<Edge>());
       }
       graph.nodeMap.get(node).addAll(edgestoadd);
       if (genbackwards) {
@@ -747,7 +800,7 @@ public class Pointer {
       if (graph.varMap.containsKey(tmp)) {
 	//Just apply diff to current map
 	graph.varMap.get(tmp).removeAll(edgestoremove);
-      } else {
+      } else if (graph.parent.varMap.containsKey(tmp)) {
 	//Generate diff from parent graph
 	MySet<Edge> parentedges=graph.parent.varMap.get(tmp);
 	MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
@@ -801,9 +854,9 @@ public class Pointer {
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
       MySet<Edge> edgesToAdd=GraphManip.genEdges(srcNodes, fd, dstNodes);
       MySet<Edge> edgesToRemove=null;
-      if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()) {
+      if (srcNodes.size()==1&&!srcNodes.iterator().next().isSummary()) {
 	/* Can do a strong update */
-	edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
+	edgesToRemove=GraphManip.getEdges(graph, delta, srcNodes, fd);
       }
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
@@ -812,23 +865,28 @@ public class Pointer {
       /* First look at new sources */
       MySet<Edge> edgesToAdd=new MySet<Edge>();
       HashSet<AllocNode> newSrcNodes=GraphManip.getDiffNodes(delta, src);
-      HashSet<AllocNode> dstNodes=GraphManip.getDiffNodes(delta, dst);
-      edgesToAdd.addAll(GraphManip.genEdges(newSrcNodes, fd, dstNodes));
+      HashSet<AllocNode> srcNodes=GraphManip.getNodes(graph, delta, src);
+      HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
       HashSet<AllocNode> newDstNodes=GraphManip.getDiffNodes(delta, dst);
+
+
       MySet<Edge> edgesToRemove=null;
-      if (newDstNodes.size()!=0) {
-	if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()) {
+      if (newSrcNodes.size()!=0) {
+	if (srcNodes.size()==1&&!srcNodes.iterator().next().isSummary()) {
 	  /* Need to undo strong update */
 	  if (graph.strongUpdateSet!=null) {
 	    edgesToAdd.addAll(graph.strongUpdateSet);
 	    graph.strongUpdateSet.clear();
 	  }
-	} else if (dstNodes.size()==0&&newDstNodes.size()==1&&!newDstNodes.iterator().next().isSummary()&&graph.strongUpdateSet==null) {
-	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
+	} else if (srcNodes.size()==0&&newSrcNodes.size()==1&&!newSrcNodes.iterator().next().isSummary()&&graph.strongUpdateSet==null) {
+	  edgesToRemove=GraphManip.getEdges(graph, delta, srcNodes, fd);
 	}
-	HashSet<AllocNode> srcNodes=GraphManip.getDiffNodes(delta, src);
-	edgesToAdd.addAll(GraphManip.genEdges(srcNodes, fd, newDstNodes));
+	edgesToAdd.addAll(GraphManip.genEdges(newSrcNodes, fd, dstNodes));
       }
+
+      //Next look at new destinations
+      edgesToAdd.addAll(GraphManip.genEdges(srcNodes, fd, newDstNodes));
+
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
@@ -847,6 +905,11 @@ public class Pointer {
       FlatReturnNode frn=(FlatReturnNode)node;
       src=frn.getReturnTemp();
       dst=returntmp;
+      if (src==null) {
+	//This is a NOP
+	applyDiffs(graph, delta);
+	return delta;
+      }
     } else {
       FlatCastNode fcn=(FlatCastNode) node;
       src=fcn.getSrc();
@@ -926,45 +989,48 @@ public class Pointer {
     MySet<Edge> existingEdges=graph.getEdges(tmp);
     for(Edge e: edgestoRemove) {
       //remove edge from delta
-      edgeAdd.remove(e);
+      if (edgeAdd!=null)
+	edgeAdd.remove(e);
       //if the edge is already in the graph, add an explicit remove to the delta
       if (existingEdges.contains(e))
-	edgeRemove.add(e);
+	delta.removeVarEdge(e);
     }
     for(Edge e: edgestoAdd) {
       //Remove the edge from the remove set
-      edgeRemove.remove(e);
+      if (edgeRemove!=null)
+	edgeRemove.remove(e);
       //Explicitly add it to the add set unless it is already in the graph
       if (!existingEdges.contains(e))
-	edgeAdd.add(e);
+	delta.addVarEdge(e);
     }
   }
 
   static void updateHeapDelta(Graph graph, Delta delta, MySet<Edge> edgestoAdd, MySet<Edge> edgestoRemove) {
-    for(Edge e: edgestoRemove) {
-      AllocNode src=e.src;
-      MySet<Edge> edgeAdd=delta.heapedgeadd.get(src);
-      MySet<Edge> existingEdges=graph.getEdges(src);
-      //remove edge from delta
-      edgeAdd.remove(e);
-      //if the edge is already in the graph, add an explicit remove to the delta
-      if (existingEdges.contains(e)) {
-	MySet<Edge> edgeRemove=delta.heapedgeremove.get(src);
-	edgeRemove.add(e);
-      }
-    }
-    for(Edge e: edgestoAdd) {
-      AllocNode src=e.src;
-      MySet<Edge> edgeRemove=delta.heapedgeremove.get(src);
-      MySet<Edge> existingEdges=graph.getEdges(src);
-      //Remove the edge from the remove set
-      edgeRemove.remove(e);
-      //Explicitly add it to the add set unless it is already in the graph
-      if (!existingEdges.contains(e)) {
+    if (edgestoRemove!=null)
+      for(Edge e: edgestoRemove) {
+	AllocNode src=e.src;
 	MySet<Edge> edgeAdd=delta.heapedgeadd.get(src);
-	edgeAdd.add(e);
+	MySet<Edge> existingEdges=graph.getEdges(src);
+	//remove edge from delta
+	edgeAdd.remove(e);
+	//if the edge is already in the graph, add an explicit remove to the delta
+	if (existingEdges.contains(e)) {
+	  delta.removeHeapEdge(e);
+	}
       }
-    }
+    if (edgestoAdd!=null)
+      for(Edge e: edgestoAdd) {
+	AllocNode src=e.src;
+	MySet<Edge> edgeRemove=delta.heapedgeremove.get(src);
+	MySet<Edge> existingEdges=graph.getEdges(src);
+	//Remove the edge from the remove set
+	if (edgeRemove!=null)
+	  edgeRemove.remove(e);
+	//Explicitly add it to the add set unless it is already in the graph
+	if (!existingEdges.contains(e)||!existingEdges.get(e).isNew()) {
+	  delta.addHeapEdge(e);
+	}
+      }
   }
 
   Delta processFlatNop(FlatNode node, Delta delta, Graph graph) {

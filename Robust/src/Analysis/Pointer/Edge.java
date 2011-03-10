@@ -20,6 +20,10 @@ public class Edge {
     return ((status&NEW)==NEW)?NEW:status;
   }
 
+  public boolean isNew() {
+    return (statuspredicate&NEW)==NEW;
+  }
+
   private Edge() {
   }
 
