@@ -18,12 +18,16 @@ public class Graph {
   public void check() {
     for(Map.Entry<AllocNode, MySet<Edge>> entry:nodeMap.entrySet()) {
       AllocNode node=entry.getKey();
+      if (node==null)
+	throw new Error("Null node key");
       for(Edge e:entry.getValue())
 	if (e.src!=node)
 	  throw new Error();
     }
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varMap.entrySet()) {
       TempDescriptor tmp=entry.getKey();
+      if (tmp==null)
+	throw new Error("Null tmp key");
       for(Edge e:entry.getValue())
 	if (e.srcvar!=tmp)
 	  throw new Error();

@@ -26,10 +26,13 @@ public class GraphManip {
   static MySet<Edge> getDiffEdges(Delta delta, TempDescriptor tmp) {
     MySet<Edge> edges=new MySet<Edge>();
     MySet<Edge> removeedges=delta.varedgeremove.get(tmp);
-
-    for(Edge e:delta.basevaredge.get(tmp)) {
-      if (removeedges==null||!removeedges.contains(e))
-	edges.add(e);
+    
+    MySet<Edge> baseedges=delta.basevaredge.get(tmp);
+    if (baseedges!=null) {
+      for(Edge e:baseedges) {
+	if (removeedges==null||!removeedges.contains(e))
+	  edges.add(e);
+      }
     }
     if (delta.varedgeadd.containsKey(tmp))
       for(Edge e:delta.varedgeadd.get(tmp)) {
@@ -88,11 +91,14 @@ public class GraphManip {
   static HashSet<AllocNode> getDiffNodes(Delta delta, TempDescriptor tmp) {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
     MySet<Edge> removeedges=delta.varedgeremove.get(tmp);
+    
+    MySet<Edge> baseEdges=delta.basevaredge.get(tmp);
 
-    for(Edge e:delta.basevaredge.get(tmp)) {
-      if (removeedges==null||!removeedges.contains(e))
-	nodes.add(e.dst);
-    }
+    if (baseEdges!=null)
+      for(Edge e:baseEdges) {
+	if (removeedges==null||!removeedges.contains(e))
+	  nodes.add(e.dst);
+      }
     if (delta.varedgeadd.containsKey(tmp))
       for(Edge e:delta.varedgeadd.get(tmp)) {
 	nodes.add(e.dst);

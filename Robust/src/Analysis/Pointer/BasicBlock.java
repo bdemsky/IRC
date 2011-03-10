@@ -89,9 +89,10 @@ public class BasicBlock {
 	  break;
 	}
 	block.nodes.add(fn);
+	if (fn.kind()==FKind.FlatExit)
+	  exit=block;
       } while(true);
     }
-
     return new BasicBlock(map.get(fm), exit);
   }
 }

@@ -71,7 +71,6 @@ public class Pointer {
 	startindex=ppoint.getIndex()+1;
 	delta=applyCallDelta(delta, bblock);
       }
-
       Graph graph=bbgraphMap.get(bblock);
       Graph nodeGraph=null;
       //Compute delta at exit of each node
@@ -185,6 +184,8 @@ public class Pointer {
 	/* Start with the new incoming edges */
 	MySet<Edge> newbaseedge=delta.basevaredge.get(tmp);
 	/* Remove the remove set */
+	if (newbaseedge==null)
+	  newbaseedge=new MySet<Edge>();
 	newbaseedge.removeAll(delta.varedgeremove.get(tmp));
 	/* Add in the new set*/
 	newbaseedge.addAll(delta.varedgeadd.get(tmp));
@@ -200,7 +201,7 @@ public class Pointer {
       nodeSet.addAll(delta.heapedgeremove.keySet());
       for(AllocNode node:nodeSet) {
 	/* Start with the new incoming edges */
-	MySet<Edge> newheapedge=(MySet<Edge>) delta.baseheapedge.get(node).clone();
+	MySet<Edge> newheapedge=new MySet<Edge>(delta.baseheapedge.get(node));
 	/* Remove the remove set */
 	MySet<Edge> removeset=delta.heapedgeremove.get(node);
 
@@ -244,14 +245,32 @@ public class Pointer {
     /* Now we need to propagate newdelta */
     if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()||!newDelta.addNodeAges.isEmpty()||!newDelta.addOldNodes.isEmpty()) {
       /* We have a delta to propagate */
-      Vector<BBlock> blockvector=bblock.next();
-      for(int i=0;i<blockvector.size();i++) {
-	if (i==0) {
-	  newDelta.setBlock(new PPoint(blockvector.get(i)));
-	  toprocess.add(newDelta);
-	} else {
-	  Delta d=newDelta.diffBlock(new PPoint(blockvector.get(i)));
-	  toprocess.add(d);
+
+      if (returnMap.containsKey(bblock)) {
+	//exit of call block
+	boolean first=true;
+
+	for(PPoint caller:returnMap.get(bblock)) {
+	  if (first) {
+	    newDelta.setBlock(caller);
+	    toprocess.add(newDelta);
+	    first=false;
+	  } else {
+	    Delta d=newDelta.diffBlock(caller);
+	    toprocess.add(d);
+	  }
+	}
+      } else {
+	//normal block
+	Vector<BBlock> blockvector=bblock.next();
+	for(int i=0;i<blockvector.size();i++) {
+	  if (i==0) {
+	    newDelta.setBlock(new PPoint(blockvector.get(i)));
+	    toprocess.add(newDelta);
+	  } else {
+	    Delta d=newDelta.diffBlock(new PPoint(blockvector.get(i)));
+	    toprocess.add(d);
+	  }
 	}
       }
     }
@@ -273,6 +292,7 @@ public class Pointer {
       return processSetFieldElementNode(node, delta, newgraph);
     case FKind.FlatMethod:
     case FKind.FlatExit:
+    case FKind.FlatGenReachNode:
       return processFlatNop(node, delta, newgraph);
     case FKind.FlatCall:
       return processFlatCall(bblock, index, (FlatCall) node, delta, newgraph);
@@ -405,7 +425,9 @@ public class Pointer {
 	  //Need to push existing results to current node
 	  if (returnDelta==null) {
 	    returnDelta=new Delta(null, false);
-	    buildInitDelta(bbgraphMap.get(block.getExit()), returnDelta);
+	    Vector<FlatNode> exitblocknodes=block.getExit().nodes();
+	    FlatExit fexit=(FlatExit)exitblocknodes.get(exitblocknodes.size()-1);
+	    buildInitDelta(graphMap.get(fexit), returnDelta);
 	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
 	      returnDelta.setBlock(new PPoint(callblock, callindex));
 	      toprocess.add(returnDelta);
@@ -500,7 +522,6 @@ public class Pointer {
       delta.removeEdge(e);
     }
   }
-  
 
   Delta processFlatCall(BBlock callblock, int callindex, FlatCall fcall, Delta delta, Graph graph) {
     Delta newDelta=new Delta(null, false);
@@ -610,7 +631,7 @@ public class Pointer {
     Graph oldgraph=(ppoint.getIndex()==0)?
       bbgraphMap.get(bblock):
       graphMap.get(nodes.get(ppoint.getIndex()-1));
-    
+
     //Age outside nodes if necessary
     for(Iterator<AllocNode> nodeit=delta.addNodeAges.iterator();nodeit.hasNext();) {
       AllocNode node=nodeit.next();
@@ -624,7 +645,6 @@ public class Pointer {
 	summarizeInGraph(graph, newDelta, node);
       }
     }
-    
     //Add heap edges in
     for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.heapedgeadd.entrySet()) {
       for(Edge e:entry.getValue()) {
@@ -645,7 +665,6 @@ public class Pointer {
 	mergeEdge(graph, newDelta, edgetoadd);
       }
     }
-
     //Add external edges in
     for(Edge e:graph.externalEdgeSet) {
       //First did we age the source
@@ -671,15 +690,15 @@ public class Pointer {
     }
     //Add edge for return value
     if (fcall.getReturnTemp()!=null) {
-      MySet<Edge> returnedge=newDelta.varedgeadd.get(returntmp);
-      for(Edge e:returnedge) {
-	Edge newedge=e.copy();
-	newedge.srcvar=fcall.getReturnTemp();
-	if (graph.getEdges(fcall.getReturnTemp())==null||!graph.getEdges(fcall.getReturnTemp()).contains(newedge))
-	  newDelta.addEdge(newedge);
-      }
+      MySet<Edge> returnedge=delta.varedgeadd.get(returntmp);
+      if (returnedge!=null)
+	for(Edge e:returnedge) {
+	  Edge newedge=e.copy();
+	  newedge.srcvar=fcall.getReturnTemp();
+	  if (graph.getEdges(fcall.getReturnTemp())==null||!graph.getEdges(fcall.getReturnTemp()).contains(newedge))
+	    newDelta.addEdge(newedge);
+	}
     }
-
     applyDiffs(graph, newDelta);
     return newDelta;
   }
@@ -690,7 +709,7 @@ public class Pointer {
 
       if (match==null||!match.subsumes(edgetoadd)) {
 	Edge mergededge=edgetoadd.merge(match);
-	newDelta.addHeapEdge(mergededge);
+	newDelta.addEdge(mergededge);
       }
     }
   }

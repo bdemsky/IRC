@@ -19,6 +19,8 @@ public class Delta {
   public Delta check() {
     for(Map.Entry<AllocNode, MySet<Edge>> entry:heapedgeadd.entrySet()) {
       AllocNode node=entry.getKey();
+      if (node==null)
+	throw new Error("null node key");
       for(Edge e:entry.getValue())
 	if (e.src!=node)
 	  throw new Error(e.src+" is not equal to "+node);
@@ -26,6 +28,8 @@ public class Delta {
 
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
       TempDescriptor tmp=entry.getKey();
+      if (tmp==null)
+	throw new Error("null temp key");
       for(Edge e:entry.getValue())
 	if (e.srcvar!=tmp)
 	  throw new Error(e.srcvar+" is not equal to "+tmp);
