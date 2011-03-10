@@ -57,9 +57,9 @@ public class Pointer {
 
   public void doAnalysis() {
     toprocess.add(buildInitialContext());
-
     while(!toprocess.isEmpty()) {
       Delta delta=toprocess.remove();
+      delta.print();
       PPoint ppoint=delta.getBlock();
       BBlock bblock=ppoint.getBBlock();
       Vector<FlatNode> nodes=bblock.nodes();
@@ -245,7 +245,6 @@ public class Pointer {
     /* Now we need to propagate newdelta */
     if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()||!newDelta.addNodeAges.isEmpty()||!newDelta.addOldNodes.isEmpty()) {
       /* We have a delta to propagate */
-
       if (returnMap.containsKey(bblock)) {
 	//exit of call block
 	boolean first=true;
@@ -292,6 +291,7 @@ public class Pointer {
       return processSetFieldElementNode(node, delta, newgraph);
     case FKind.FlatMethod:
     case FKind.FlatExit:
+    case FKind.FlatBackEdge:
     case FKind.FlatGenReachNode:
       return processFlatNop(node, delta, newgraph);
     case FKind.FlatCall:
@@ -789,8 +789,10 @@ public class Pointer {
       } else {
 	//Generate diff from parent graph
 	MySet<Edge> parentedges=graph.parent.nodeMap.get(node);
-	MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
-	graph.nodeMap.put(node, newedgeset);
+	if (parentedges!=null) {
+	  MySet<Edge> newedgeset=Util.setSubtract(parentedges, edgestoremove);
+	  graph.nodeMap.put(node, newedgeset);
+	}
       }
     }
 

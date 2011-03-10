@@ -60,6 +60,23 @@ public class Delta {
     this.block=block;
   }
 
+  public void print() {
+    System.out.println("----------------------------------------------");
+    System.out.println("baseheapedge empty:"+baseheapedge.isEmpty());
+    System.out.println("basevaredge empty:"+basevaredge.isEmpty());
+    System.out.println("heapedgeadd empty:"+heapedgeadd.isEmpty());
+    System.out.println("heapedgeremove empty:"+heapedgeremove.isEmpty());
+    System.out.println("varedgeadd empty:"+varedgeadd.isEmpty());
+    if (varedgeremove==null)
+      System.out.println("varedge remove: null");
+    else
+      System.out.println("varedgeremove empty:"+varedgeremove.isEmpty());
+    System.out.println("baseNodeAges empty:"+baseNodeAges.isEmpty());
+    System.out.println("addNodeAges empty:"+addNodeAges.isEmpty());
+    System.out.println("baseOldNodes empty:"+baseOldNodes.isEmpty());
+    System.out.println("addOldNodes empty:"+addOldNodes.isEmpty());
+  }
+
   private Delta() {
   }
 

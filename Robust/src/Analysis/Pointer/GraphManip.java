@@ -125,10 +125,12 @@ public class GraphManip {
     HashSet<AllocNode> nodes=new HashSet<AllocNode>();
     for(AllocNode node:srcNodes) {
       MySet<Edge> removeedges=delta.heapedgeremove.get(node);
-      for(Edge e:delta.baseheapedge.get(node)) {
-	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
-	  nodes.add(e.dst);
-      }
+      MySet<Edge> baseEdges=delta.baseheapedge.get(node);
+      if (baseEdges!=null)
+	for(Edge e:baseEdges) {
+	  if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+	    nodes.add(e.dst);
+	}
       if (delta.heapedgeadd.containsKey(node))
 	for(Edge e:delta.heapedgeadd.get(node)) {
 	  if (e.fd==fd)

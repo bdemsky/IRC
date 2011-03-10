@@ -71,11 +71,15 @@ public class Graph {
       MySet<Edge> edges=varMap.get(old.srcvar);
       if (edges==null)
 	edges=parent.varMap.get(old.srcvar);
+      if (edges==null)
+	return null;
       return edges.get(old);
     } else {
       MySet<Edge> edges=nodeMap.get(old.src);
       if (edges==null)
 	edges=parent.nodeMap.get(old.src);
+      if (edges==null)
+	return null;
       return edges.get(old);
     }
   }

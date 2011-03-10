@@ -19,7 +19,8 @@ public class Util {
 	map.get(key).removeAll(toremove);
       map.get(key).addAll(toadd);
     } else {
-      map.put(key, (MySet<V>) toadd.clone());
+      if (toadd!=null)
+	map.put(key, (MySet<V>) toadd.clone());
     }
   }
 

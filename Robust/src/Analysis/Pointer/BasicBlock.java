@@ -63,13 +63,13 @@ public class BasicBlock {
 	  for(int i=0;i<pm.numNext(fn);i++) {
 	    FlatNode fnext=pm.getNext(fn,i);
 	    if (!map.containsKey(fnext)) {
-	      map.put(fn, new BBlock());
-	      toprocess.add(fn);
+	      map.put(fnext, new BBlock());
+	      toprocess.add(fnext);
 	    }
 	    //link block in
-	    if (!block.nextb.contains(map.get(fn))) {
-	      block.nextb.add(map.get(fn));
-	      map.get(fn).prevb.add(block);
+	    if (!block.nextb.contains(map.get(fnext))) {
+	      block.nextb.add(map.get(fnext));
+	      map.get(fnext).prevb.add(block);
 	    }
 	  }
 	  break;
