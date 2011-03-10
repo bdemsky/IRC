@@ -30,6 +30,24 @@ public class SMFEState {
   // set of new states
   protected Hashtable< Effect, Set<SMFEState> > e2states;
 
+
+  // once you get your hands on an SMFEState in the
+  // RuntimeConflictResolver side of things, this is how you
+  // find out what effects are possible in this state
+  public Set<Effect> getEffectsAllowed() {
+    return effects;
+  }
+
+  // some subset of the above effects may transition to
+  // other states
+  public Set<SMFEState> transitionsTo( Effect e ) {
+    Set<SMFEState> statesOut = e2states.get( e );
+    if( statesOut == null ) {
+      statesOut = new HashSet<SMFEState>();
+    }
+    return statesOut;
+  }
+
   
   public SMFEState( FlatNode id ) {
     this.id = id;
@@ -53,6 +71,7 @@ public class SMFEState {
     }
     states.add( stateTo );
   }
+
 
   public FlatNode getID() {
     return id;
