@@ -49,6 +49,7 @@ public class SMFEState {
     Set<SMFEState> states = e2states.get( effect );
     if( states == null ) {
       states = new HashSet<SMFEState>();
+      e2states.put( effect, states );
     }
     states.add( stateTo );
   }

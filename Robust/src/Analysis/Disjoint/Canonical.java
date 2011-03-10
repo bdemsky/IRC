@@ -1572,4 +1572,52 @@ abstract public class Canonical {
     op2result.put( op, out );
     return out;
   }
+
+
+
+  // BOO, HISS! FlatNode operand does NOT extend
+  // Canonical, so we can't cache this op by its
+  // canonical arguments--THINK ABOUT A BETTER WAY!
+  public static Taint changeWhereDefined( Taint    t, 
+                                          FlatNode pp ) {
+    assert t != null;
+    assert t.isCanonical();
+
+    // never a cached result...
+    Taint out = new Taint( t.sese,
+                           t.stallSite,
+                           t.var,
+                           t.allocSite,
+                           pp,
+                           t.preds
+                           );
+    
+    out = (Taint) makeCanonical( out );
+    //op2result.put( op, out ); CRY CRY
+    return out;
+  }
+
+  // BOO, HISS! FlatNode operand does NOT extend
+  // Canonical, so we can't cache this op by its
+  // canonical arguments--THINK ABOUT A BETTER WAY!
+  public static TaintSet changeWhereDefined( TaintSet ts,
+                                             FlatNode pp ) {
+    assert ts != null;
+    assert ts.isCanonical();
+
+    // never a cached result...
+    TaintSet out = TaintSet.factory();
+    Iterator<Taint> itr = ts.iterator();
+    while( itr.hasNext() ) {
+      Taint t = itr.next();
+      out = Canonical.add( out,
+                           Canonical.changeWhereDefined( t, pp )
+                           );
+    }
+    
+    out = (TaintSet) makeCanonical( out );
+    //op2result.put( op, out ); CRY CRY
+    return out;
+  }
+
 }

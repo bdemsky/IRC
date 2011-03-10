@@ -33,7 +33,6 @@ public class StateMachineForEffects {
   public void addEffect( FlatNode fnState,
                          Effect e ) {
 
-    assert fn2state.containsKey( fnState );
     SMFEState state = getState( fnState );
     state.addEffect( e );
   }
@@ -58,13 +57,14 @@ public class StateMachineForEffects {
     SMFEState state = fn2state.get( fn );
     if( state == null ) {
       state = new SMFEState( fn );
+      fn2state.put( fn, state );
     }
     return state;
   }
 
 
-  public void writeAsDOT() {
-    String graphName = initialState.getID().toString();
+  public void writeAsDOT( String graphName ) {
+    //String graphName = initialState.getID().toString();
     graphName = graphName.replaceAll( "[\\W]", "" );
 
     try {

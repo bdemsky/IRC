@@ -730,7 +730,6 @@ public class DisjointAnalysis {
 
     analysisComplete=true;
 
-
     double timeEndAnalysis = (double) System.nanoTime();
     double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
 
@@ -772,10 +771,14 @@ public class DisjointAnalysis {
                               );
         }
       }
+
+      if( state.RCR ) {
+        buildStateMachines.writeStateMachines();
+      }
+
     } catch( IOException e ) {
       throw new Error( "IO Exception while writing disjointness analysis output." );
     }
-
   }
 
 
@@ -1250,7 +1253,7 @@ public class DisjointAnalysis {
 
       if( shouldAnalysisTrack( fld.getType() ) ) {       
         // transfer func
-	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld );
+	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fld, fn );
       }          
 
       // after transfer, use updated graph to
@@ -1292,7 +1295,7 @@ public class DisjointAnalysis {
 
       if( shouldAnalysisTrack( fld.getType() ) ) {
         // transfer func
-        strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs );
+        strongUpdate = rg.assignTempXFieldFEqualToTempY( lhs, fld, rhs, fn );
       }           
 
       // use transformed graph to do effects analysis
@@ -1331,7 +1334,7 @@ public class DisjointAnalysis {
 
       if( shouldAnalysisTrack( lhs.getType() ) ) {
         // transfer func
-	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement );
+	rg.assignTempXEqualToTempYFieldF( lhs, rhs, fdElement, fn );
       }
 
       // use transformed graph to do effects analysis
@@ -1377,7 +1380,7 @@ public class DisjointAnalysis {
         // transfer func, BUT
         // skip this node if it cannot create new reachability paths
         if( !arrayReferencees.doesNotCreateNewReaching( fsen ) ) {
-          rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs );
+          rg.assignTempXFieldFEqualToTempY( lhs, fdElement, rhs, fn );
         }
       }
 

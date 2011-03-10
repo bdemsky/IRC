@@ -28,12 +28,12 @@ public class Test {
       t.f = a;
     }
 
-    genreach p1;
-
     rblock T {
       Foo x = a.f;
       Foo y = x.f;
       y.z = 1;
+
+      genreach pT;
     }
 
     rblock S {
@@ -42,6 +42,8 @@ public class Test {
         w = w.f;
       }
       w.z = 5;
+
+      genreach pS;
     }
 
     int total = 0;

@@ -20,6 +20,8 @@ import IR.Flat.*;
 
 public class BuildStateMachines {
 
+  // map a task or stall site (both a FlatNode) to a variable
+  // and then finally to a state machine
   protected 
     Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >
     fn2var2smfe;
@@ -75,6 +77,27 @@ public class BuildStateMachines {
       smfe.addTransition( whereDefined, 
                           currentProgramPoint,
                           e );
+    }
+  }
+
+
+  public void writeStateMachines() {
+
+    Iterator<FlatNode> fnItr = fn2var2smfe.keySet().iterator();
+    while( fnItr.hasNext() ) {
+      FlatNode fn = fnItr.next();
+      
+      Hashtable<TempDescriptor, StateMachineForEffects> 
+        var2smfe = fn2var2smfe.get( fn );
+        
+      Iterator<TempDescriptor> varItr = var2smfe.keySet().iterator();
+      while( varItr.hasNext() ) {
+        TempDescriptor var = varItr.next();
+
+        StateMachineForEffects smfe = var2smfe.get( var );
+
+        smfe.writeAsDOT( "statemachine_"+fn.toString()+var.toString() );
+      }
     }
   }
 }

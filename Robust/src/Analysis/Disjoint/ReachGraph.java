@@ -443,7 +443,10 @@ public class ReachGraph {
 
   public void assignTempXEqualToTempYFieldF( TempDescriptor  x,
 					     TempDescriptor  y,
-					     FieldDescriptor f ) {
+					     FieldDescriptor f,
+                                             FlatNode        currentProgramPoint
+                                             ) {
+    
     VariableNode lnX = getVariableNodeFromTemp( x );
     VariableNode lnY = getVariableNodeFromTemp( y );
 
@@ -484,6 +487,15 @@ public class ReachGraph {
 	  mostSpecificType( edgeHrn.getType(), 
 			    hrnHrn.getType() 
 			    );
+
+        TaintSet taints = Canonical.unionORpreds( edgeHrn.getTaints(),
+                                                  edgeY.getTaints()
+                                                  );
+        if( state.RCR ) {
+          // the DFJ way to generate taints changes for field statements
+          taints = Canonical.changeWhereDefined( taints,
+                                                 currentProgramPoint );
+        }
 	  
 	RefEdge edgeNew = new RefEdge( lnX,
                                        hrnHrn,
@@ -491,7 +503,7 @@ public class ReachGraph {
                                        null,
                                        Canonical.intersection( betaY, betaHrn ),
                                        predsTrue,
-                                       Canonical.unionORpreds(edgeHrn.getTaints(),edgeY.getTaints())
+                                       taints
                                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
@@ -518,7 +530,9 @@ public class ReachGraph {
   // return whether a strong update was actually effected
   public boolean assignTempXFieldFEqualToTempY( TempDescriptor  x,
                                                 FieldDescriptor f,
-                                                TempDescriptor  y ) {
+                                                TempDescriptor  y,
+                                                FlatNode        currentProgramPoint
+                                                ) {
 
     VariableNode lnX = getVariableNodeFromTemp( x );
     VariableNode lnY = getVariableNodeFromTemp( y );
@@ -646,6 +660,14 @@ public class ReachGraph {
 			    hrnY.getType()
 			    );	
 
+        TaintSet taints = edgeY.getTaints();
+        
+        if( state.RCR ) {
+          // the DFJ way to generate taints changes for field statements
+          taints = Canonical.changeWhereDefined( taints,
+                                                 currentProgramPoint );
+        }
+
 	RefEdge edgeNew = 
           new RefEdge( hrnX,
                        hrnY,
@@ -658,7 +680,7 @@ public class ReachGraph {
                                                predsTrue
                                                ),
                        predsTrue,
-                       edgeY.getTaints()
+                       taints
                        );
 
         addEdgeOrMergeWithExisting( edgeNew );
