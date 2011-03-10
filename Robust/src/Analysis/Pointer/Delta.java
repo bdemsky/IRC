@@ -16,6 +16,16 @@ public class Delta {
   HashMap<AllocNode, Boolean> baseOldNodes;
   HashMap<AllocNode, Boolean> addOldNodes;
 
+  public Delta check() {
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:heapedgeadd.entrySet()) {
+      AllocNode node=entry.getKey();
+      for(Edge e:entry.getValue())
+	if (e.src!=node)
+	  throw new Error(e.src+" is not equal to "+node);
+    }
+    return this;
+  }
+
 
   boolean init;
   PPoint block;

@@ -15,6 +15,21 @@ public class Graph {
   HashMap<AllocNode, MySet<Edge>> backMap;
   MySet<Edge> strongUpdateSet;
 
+  public void check() {
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:nodeMap.entrySet()) {
+      AllocNode node=entry.getKey();
+      for(Edge e:entry.getValue())
+	if (e.src!=node)
+	  throw new Error();
+    }
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varMap.entrySet()) {
+      TempDescriptor tmp=entry.getKey();
+      for(Edge e:entry.getValue())
+	if (e.srcvar!=tmp)
+	  throw new Error();
+    }
+  }
+
   /* Need this information for mapping in callee results */
   MySet<Edge> reachEdge;
   HashSet<AllocNode> reachNode;
@@ -61,8 +76,6 @@ public class Graph {
     }
   }
   
-  
-
   public MySet<Edge> getEdges(TempDescriptor tmp) {
     if (varMap.containsKey(tmp))
       return varMap.get(tmp);
@@ -79,7 +92,7 @@ public class Graph {
     else return emptySet;
   }
 
-  public static MySet<Edge> emptySet=new MySet<Edge>();
+  public static MySet<Edge> emptySet=new MySet<Edge>(true);
 
   public void printGraph(PrintWriter output, String name) {
     output.println("digraph \""+name+"\" {");
@@ -101,6 +114,8 @@ public class Graph {
       if (childvarMap!=null&&childvarMap.containsKey(tmp))
 	continue;
       for(Edge e:entry.getValue()) {
+	if (e.srcvar!=tmp)
+	  throw new Error(e.srcvar +" is not equal to "+tmp);
 	AllocNode n=e.dst;
 	output.println("\t"+tmp.getSymbol()+"->"+n.getID()+";");
       }
@@ -114,6 +129,8 @@ public class Graph {
       if (childNodeMap!=null&&childNodeMap.containsKey(node))
 	continue;
       for(Edge e:entry.getValue()) {
+	if (e.src!=node)
+	  throw new Error(e.src+" is not equal to "+node);
 	AllocNode n=e.dst;
 	String src=node.getID();
 	String dst=n.getID();

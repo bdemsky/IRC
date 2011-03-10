@@ -3,6 +3,12 @@ import java.util.*;
 
 public class MySet<T> extends AbstractSet<T> {
   HashMap<T,T> map;
+  boolean locked;
+  public MySet(boolean locked) {
+    this.locked=locked;
+    map=new HashMap<T,T>();
+  }
+
   public MySet() {
     map=new HashMap<T,T>();
   }
@@ -27,10 +33,14 @@ public class MySet<T> extends AbstractSet<T> {
   }
 
   public boolean remove(Object obj) {
+    if (locked)
+      throw new Error();
     return map.remove(obj)!=null; 
   }
   
   public boolean add(T obj) {
+    if (locked)
+      throw new Error();
     return map.put(obj, obj)==null;
   }
 

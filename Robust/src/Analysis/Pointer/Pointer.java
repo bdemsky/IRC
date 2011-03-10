@@ -112,7 +112,9 @@ public class Pointer {
       }
       debugindex++;
     }
-
+    for(FlatMethod fm:blockMap.keySet()) {
+      fm.printMethod();
+    }
   }
 
   /* This function builds the last delta for a basic block.  It
@@ -247,7 +249,8 @@ public class Pointer {
 	  newDelta.setBlock(new PPoint(blockvector.get(i)));
 	  toprocess.add(newDelta);
 	} else {
-	  toprocess.add(newDelta.diffBlock(new PPoint(blockvector.get(i))));
+	  Delta d=newDelta.diffBlock(new PPoint(blockvector.get(i)));
+	  toprocess.add(d);
 	}
       }
     }
@@ -857,7 +860,9 @@ public class Pointer {
       if (srcNodes.size()==1&&!srcNodes.iterator().next().isSummary()) {
 	/* Can do a strong update */
 	edgesToRemove=GraphManip.getEdges(graph, delta, srcNodes, fd);
-      }
+	graph.strongUpdateSet=edgesToRemove;
+      } else
+	graph.strongUpdateSet=new MySet<Edge>();
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
@@ -872,16 +877,27 @@ public class Pointer {
 
       MySet<Edge> edgesToRemove=null;
       if (newSrcNodes.size()!=0) {
-	if (srcNodes.size()==1&&!srcNodes.iterator().next().isSummary()) {
+	if (srcNodes.size()>1&&!srcNodes.iterator().next().isSummary()) {
 	  /* Need to undo strong update */
 	  if (graph.strongUpdateSet!=null) {
 	    edgesToAdd.addAll(graph.strongUpdateSet);
-	    graph.strongUpdateSet.clear();
+	    graph.strongUpdateSet=null; //Prevent future strong updates
 	  }
-	} else if (srcNodes.size()==0&&newSrcNodes.size()==1&&!newSrcNodes.iterator().next().isSummary()&&graph.strongUpdateSet==null) {
+	} else if (srcNodes.size()==1&&newSrcNodes.size()==1&&!newSrcNodes.iterator().next().isSummary()&&graph.strongUpdateSet!=null) {
 	  edgesToRemove=GraphManip.getEdges(graph, delta, srcNodes, fd);
+	  graph.strongUpdateSet.addAll(edgesToRemove);
 	}
 	edgesToAdd.addAll(GraphManip.genEdges(newSrcNodes, fd, dstNodes));
+      }
+
+      //Kill new edges
+      if (graph.strongUpdateSet!=null) {
+	MySet<Edge> otherEdgesToRemove=GraphManip.getDiffEdges(delta, srcNodes);
+	if (edgesToRemove!=null)
+	  edgesToRemove.addAll(otherEdgesToRemove);
+	else
+	  edgesToRemove=otherEdgesToRemove;
+	graph.strongUpdateSet.addAll(otherEdgesToRemove);
       }
 
       //Next look at new destinations
@@ -905,7 +921,7 @@ public class Pointer {
       FlatReturnNode frn=(FlatReturnNode)node;
       src=frn.getReturnTemp();
       dst=returntmp;
-      if (src==null) {
+      if (src==null||!src.getType().isPtr()) {
 	//This is a NOP
 	applyDiffs(graph, delta);
 	return delta;
@@ -917,7 +933,7 @@ public class Pointer {
     }
     if (delta.getInit()) {
       HashSet<AllocNode> srcnodes=GraphManip.getNodes(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(src, srcnodes);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, srcnodes);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
@@ -926,7 +942,7 @@ public class Pointer {
       HashSet<AllocNode> newSrcNodes=GraphManip.getDiffNodes(delta, src);
 
       /* Compute the union, and then the set of edges */
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(src, newSrcNodes);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, newSrcNodes);
       
       /* Compute set of edges to remove */
       MySet<Edge> edgesToRemove=GraphManip.getDiffEdges(delta, dst);      
@@ -956,7 +972,7 @@ public class Pointer {
     if (delta.getInit()) {
       HashSet<AllocNode> srcnodes=GraphManip.getNodes(graph, delta, src);
       HashSet<AllocNode> fdnodes=GraphManip.getNodes(graph, delta, srcnodes, fd);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(src, fdnodes);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, fdnodes);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
@@ -971,7 +987,7 @@ public class Pointer {
       HashSet<AllocNode> newTargets=new HashSet<AllocNode>();
       newTargets.addAll(newfdnodes);
       newTargets.addAll(difffdnodes);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(src, newTargets);      
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, newTargets);      
       
       /* Compute set of edges to remove */
       MySet<Edge> edgesToRemove=GraphManip.getDiffEdges(delta, dst);      
@@ -1057,7 +1073,7 @@ public class Pointer {
       //Add it into the diffs
       delta.varedgeadd.put(tmp, newedges);
       //Remove the old edges
-      delta.varedgeremove.put(tmp, graph.getEdges(tmp));
+      delta.varedgeremove.put(tmp, (MySet<Edge>) graph.getEdges(tmp).clone());
       //Apply incoming diffs to graph
       applyDiffs(graph, delta);
       //Note that we create a single node
