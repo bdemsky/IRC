@@ -48,6 +48,20 @@ public class MySet<T> extends AbstractSet<T> {
     return map.containsKey(obj);
   }
 
+  public boolean removeAll(Collection c) {
+    if (c!=null)
+      return super.removeAll(c);
+    else
+      return false;
+  }
+
+  public boolean addAll(Collection c) {
+    if (c!=null)
+      return super.addAll(c);
+    else
+      return false;
+  }
+
   public T get(T obj) {
     return map.get(obj);
   }

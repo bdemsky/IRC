@@ -191,6 +191,7 @@ public class Pointer {
 	/* Store the results */
 	newDelta.varedgeadd.put(tmp, newbaseedge);
       }
+      delta.basevaredge.clear();
 
       /* Next we build heap edges */
       HashSet<AllocNode> nodeSet=new HashSet<AllocNode>();
@@ -471,6 +472,7 @@ public class Pointer {
     for(TempDescriptor tmp:temps) {
       //Compute set of edges from given node
       MySet<Edge> edges=new MySet<Edge>(delta.basevaredge.get(tmp));
+      
       edges.removeAll(delta.varedgeremove.get(tmp));
       edges.addAll(delta.varedgeadd.get(tmp));
       
@@ -855,11 +857,11 @@ public class Pointer {
     if (delta.getInit()) {
       HashSet<AllocNode> srcNodes=GraphManip.getNodes(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(srcNodes, fd, dstNodes);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dstNodes, fd, srcNodes);
       MySet<Edge> edgesToRemove=null;
-      if (srcNodes.size()==1&&!srcNodes.iterator().next().isSummary()) {
+      if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()) {
 	/* Can do a strong update */
-	edgesToRemove=GraphManip.getEdges(graph, delta, srcNodes, fd);
+	edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
 	graph.strongUpdateSet=edgesToRemove;
       } else
 	graph.strongUpdateSet=new MySet<Edge>();
@@ -876,23 +878,23 @@ public class Pointer {
 
 
       MySet<Edge> edgesToRemove=null;
-      if (newSrcNodes.size()!=0) {
-	if (srcNodes.size()>1&&!srcNodes.iterator().next().isSummary()) {
+      if (newDstNodes.size()!=0) {
+	if (dstNodes.size()>1&&!dstNodes.iterator().next().isSummary()) {
 	  /* Need to undo strong update */
 	  if (graph.strongUpdateSet!=null) {
 	    edgesToAdd.addAll(graph.strongUpdateSet);
 	    graph.strongUpdateSet=null; //Prevent future strong updates
 	  }
-	} else if (srcNodes.size()==1&&newSrcNodes.size()==1&&!newSrcNodes.iterator().next().isSummary()&&graph.strongUpdateSet!=null) {
-	  edgesToRemove=GraphManip.getEdges(graph, delta, srcNodes, fd);
+	} else if (dstNodes.size()==1&&newDstNodes.size()==1&&!newDstNodes.iterator().next().isSummary()&&graph.strongUpdateSet!=null) {
+	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
 	  graph.strongUpdateSet.addAll(edgesToRemove);
 	}
-	edgesToAdd.addAll(GraphManip.genEdges(newSrcNodes, fd, dstNodes));
+	edgesToAdd.addAll(GraphManip.genEdges(newDstNodes, fd, srcNodes));
       }
 
       //Kill new edges
       if (graph.strongUpdateSet!=null) {
-	MySet<Edge> otherEdgesToRemove=GraphManip.getDiffEdges(delta, srcNodes);
+	MySet<Edge> otherEdgesToRemove=GraphManip.getDiffEdges(delta, dstNodes);
 	if (edgesToRemove!=null)
 	  edgesToRemove.addAll(otherEdgesToRemove);
 	else
@@ -901,7 +903,7 @@ public class Pointer {
       }
 
       //Next look at new destinations
-      edgesToAdd.addAll(GraphManip.genEdges(srcNodes, fd, newDstNodes));
+      edgesToAdd.addAll(GraphManip.genEdges(dstNodes, fd, newSrcNodes));
 
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
@@ -1264,6 +1266,7 @@ public class Pointer {
       mergeVarEdges(graph, delta, newdelta);
       mergeAges(graph, delta, newdelta);
     }
+
     return newdelta;
   }
 

@@ -23,6 +23,13 @@ public class Delta {
 	if (e.src!=node)
 	  throw new Error(e.src+" is not equal to "+node);
     }
+
+    for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
+      TempDescriptor tmp=entry.getKey();
+      for(Edge e:entry.getValue())
+	if (e.srcvar!=tmp)
+	  throw new Error(e.srcvar+" is not equal to "+tmp);
+    }
     return this;
   }
 
@@ -69,7 +76,12 @@ public class Delta {
     //Update variable edge mappings
     newdelta.varedgeadd=new HashMap<TempDescriptor, MySet<Edge>>();
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
-      varedgeadd.put(tmpMap.get(entry.getKey()), entry.getValue());
+      TempDescriptor origTmp=entry.getKey();
+      TempDescriptor newTmp=tmpMap.get(entry.getKey());
+      newdelta.varedgeadd.put(newTmp, new MySet<Edge>());
+      for(Edge e:entry.getValue()) {
+	newdelta.varedgeadd.get(newTmp).add(e.rewrite(origTmp, newTmp));
+      }
     }
     newdelta.varedgeremove=varedgeremove;
     newdelta.addNodeAges=addNodeAges;

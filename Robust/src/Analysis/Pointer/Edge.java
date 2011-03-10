@@ -97,6 +97,14 @@ public class Edge {
     return e;
   }
 
+  public Edge rewrite(TempDescriptor orig, TempDescriptor newtmp) {
+    Edge e=copy();
+    if (e.srcvar!=orig)
+      throw new Error("Mismatched temps");
+    e.srcvar=newtmp;
+    return e;
+  }
+
   public boolean statusDominates(Edge other) {
     return (statuspredicate==NEW)||
       ((other.statuspredicate|statuspredicate)==statuspredicate);
