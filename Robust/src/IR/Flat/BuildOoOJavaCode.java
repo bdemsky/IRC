@@ -1042,6 +1042,8 @@ public class BuildOoOJavaCode extends BuildCode {
           continue;
         }
 
+        // TODO: THIS STRATEGY CAN BE OPTIMIZED EVEN FURTHER, IF THERE
+        // IS EXACTLY ONE CASE, DON'T GENERATE A SWITCH AT ALL
         if( atLeastOneCase == false ) {
           atLeastOneCase = true;
           output.println("   // potential stall site ");      
@@ -1546,113 +1548,126 @@ public class BuildOoOJavaCode extends BuildCode {
 
 
   void dispatchMEMRC( FlatMethod        fm,  
-                      FlatSESEEnterNode fsen, 
+                      FlatSESEEnterNode newChild, 
                       PrintWriter       output ) {
-    // NEED TO FIX IT, TODO
-    // assumes that there is only one parent, but it is possible that
-    // currentSESE has more than one so we need to generate
-    // conditional case for each parent case        
 
-    assert false; // FIX THIS TO UNDERSTAND NO PLACEHOLDER TASKS!!!
+    // what we need to do here is create RCR records for the
+    // new task and insert it into the appropriate parent queues
+    assert newChild.getParents().size() > 0;
 
-    assert fsen.getParents().size()>0;
-    FlatSESEEnterNode parent =  fsen.getParents().iterator().next();
-    ConflictGraph graph = oooa.getConflictGraph(parent);
-    if (graph != null && graph.hasConflictEdge()) {
-      Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
-      SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(fsen.getIdentifier(), seseLockSet);
-      if(seseWaitingQueue.getWaitingElementSize()>0) {
-	output.println("     {");
-	output.println("       REntry* rentry=NULL;");
-	output.println("       INTPTR* pointer=NULL;");
-	output.println("       seseToIssue->common.rentryIdx=0;");
-	Vector<TempDescriptor> invars=fsen.getInVarsForDynamicCoarseConflictResolution();
-	System.out.println(fm.getMethod()+"["+invars+"]");
+    output.println("     switch( seseToIssue->common.classID ) {");
+
+    Iterator<FlatSESEEnterNode> pItr = newChild.getParents().iterator();
+    while( pItr.hasNext() ) {
+
+      FlatSESEEnterNode parent = pItr.next();
+      ConflictGraph     graph  = oooa.getConflictGraph( parent );
+
+      if( graph != null && graph.hasConflictEdge() ) {
+        Set<SESELock> seseLockSet = oooa.getLockMappings(graph);
+        SESEWaitingQueue seseWaitingQueue=graph.getWaitingElementSetBySESEID(newChild.getIdentifier(), seseLockSet);
+        if(seseWaitingQueue.getWaitingElementSize()>0) {
+
+          output.println("       /* "+parent.getPrettyIdentifier()+" */");
+          output.println("       case "+parent.getIdentifier()+": {");
+
+          output.println("         REntry* rentry=NULL;");
+          output.println("         INTPTR* pointer=NULL;");
+          output.println("         seseToIssue->common.rentryIdx=0;");
+          Vector<TempDescriptor> invars=newChild.getInVarsForDynamicCoarseConflictResolution();
+          //System.out.println(fm.getMethod()+"["+invars+"]");
 	
-	Vector<Long> queuetovar=new Vector<Long>();
+          Vector<Long> queuetovar=new Vector<Long>();
 
-	for(int i=0;i<invars.size();i++) {
-	  TempDescriptor td=invars.get(i);
-	  Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
-	  int numqueues=0;
-	  Set<Integer> queueSet=new HashSet<Integer>();
-	  for (Iterator iterator = weset.iterator(); iterator.hasNext();) {
-	    WaitingElement  we = (WaitingElement) iterator.next();
-	    Integer queueID=new Integer( we.getQueueID());
-	    if(!queueSet.contains(queueID)){
-	      numqueues++;
-	      queueSet.add(queueID);
-	    }	   
+          for(int i=0;i<invars.size();i++) {
+            TempDescriptor td=invars.get(i);
+            Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+            int numqueues=0;
+            Set<Integer> queueSet=new HashSet<Integer>();
+            for (Iterator iterator = weset.iterator(); iterator.hasNext();) {
+              WaitingElement  we = (WaitingElement) iterator.next();
+              Integer queueID=new Integer( we.getQueueID());
+              if(!queueSet.contains(queueID)){
+                numqueues++;
+                queueSet.add(queueID);
+              }	   
+            }
+
+            output.println("        seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
+            output.println("        seseToIssue->rcrRecords["+i+"].index=0;");
+            output.println("        seseToIssue->rcrRecords["+i+"].next=NULL;");
+            output.println("        int dispCount"+i+"=0;");
+
+            for (Iterator<WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
+              WaitingElement waitingElement = wtit.next();
+              int queueID = waitingElement.getQueueID();
+              if (queueID >= queuetovar.size())
+                queuetovar.setSize(queueID + 1);
+              Long l = queuetovar.get(queueID);
+              long val = (l != null) ? l.longValue() : 0;
+              val = val | (1 << i);
+              queuetovar.set(queueID, new Long(val));
+            }
           }
 
-          output.println("      seseToIssue->rcrRecords["+i+"].flag="+numqueues+";");
-          output.println("      seseToIssue->rcrRecords["+i+"].index=0;");
-          output.println("      seseToIssue->rcrRecords["+i+"].next=NULL;");
-          output.println("      int dispCount"+i+"=0;");
+          HashSet generatedqueueentry=new HashSet();
+          for(int i=0;i<invars.size();i++) {
+            TempDescriptor td=invars.get(i);
+            Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+            for(Iterator<WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
+              WaitingElement waitingElement=wtit.next();
+              int queueID=waitingElement.getQueueID();
+	    
+              if(waitingElement.isBogus()){
+                continue;
+              }
+	    
+              if (generatedqueueentry.contains(queueID))
+                continue;
+              else 
+                generatedqueueentry.add(queueID);
+              
+              assert(waitingElement.getStatus()>=ConflictNode.COARSE);
+              long mask=queuetovar.get(queueID);
+              output.println("         rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common), "+mask+"LL);");
+              output.println("         rentry->count=2;");
+              output.println("         seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
+              output.println("         rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
+	                        
+              output.println("         if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
+              for(int j=0;mask!=0;j++) {
+                if ((mask&1)==1)
+                  output.println("            dispCount"+j+"++;");
+                mask=mask>>1;
+              }
+              output.println("         } else ");
+              output.println("           refCount--;");
+	  }
 
-          for (Iterator<WaitingElement> wtit = weset.iterator(); wtit.hasNext();) {
-            WaitingElement waitingElement = wtit.next();
-            int queueID = waitingElement.getQueueID();
-            if (queueID >= queuetovar.size())
-              queuetovar.setSize(queueID + 1);
-            Long l = queuetovar.get(queueID);
-            long val = (l != null) ? l.longValue() : 0;
-            val = val | (1 << i);
-            queuetovar.set(queueID, new Long(val));
+            if (newChild.getDynamicInVarSet().contains(td)) {
+              // dynamic in-var case
+              //output.println("       pointer=seseToIssue->"+waitingElement.getDynID()+ 
+              //               "_srcSESE+seseToIssue->"+waitingElement.getDynID()+ 
+              //               "_srcOffset;");
+              //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+
+              //               ", &(seseToIssue->common),  pointer );");
+            }
           }
-	}
-
-	HashSet generatedqueueentry=new HashSet();
-	for(int i=0;i<invars.size();i++) {
-	  TempDescriptor td=invars.get(i);
-	  Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
-	  for(Iterator<WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
-	    WaitingElement waitingElement=wtit.next();
-	    int queueID=waitingElement.getQueueID();
-	    
-	    if(waitingElement.isBogus()){
-	      continue;
-	    }
-	    
-	    if (generatedqueueentry.contains(queueID))
-	      continue;
-	    else 
-	      generatedqueueentry.add(queueID);
-
-	    assert(waitingElement.getStatus()>=ConflictNode.COARSE);
-	    long mask=queuetovar.get(queueID);
-	    output.println("       rentry=mlpCreateREntry(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "]," + waitingElement.getStatus() + ", &(seseToIssue->common), "+mask+"LL);");
-	    output.println("       rentry->count=2;");
-	    output.println("       seseToIssue->common.rentryArray[seseToIssue->common.rentryIdx++]=rentry;");
-	    output.println("       rentry->queue=runningSESE->memoryQueueArray[" + waitingElement.getQueueID()+"];");
-	    
-	    output.println("       if(ADDRENTRY(runningSESE->memoryQueueArray["+ waitingElement.getQueueID()+ "],rentry)==READY) {");
-	    for(int j=0;mask!=0;j++) {
-	      if ((mask&1)==1)
-		output.println("          dispCount"+j+"++;");
-	      mask=mask>>1;
-	    }
-	    output.println("       } else ");
-	    output.println("         refCount--;");
-
-	  }
-
-	  if (fsen.getDynamicInVarSet().contains(td)) {
-	    // dynamic in-var case
-	    //output.println("       pointer=seseToIssue->"+waitingElement.getDynID()+ 
-            //               "_srcSESE+seseToIssue->"+waitingElement.getDynID()+ 
-            //               "_srcOffset;");
-	    //output.println("       rentry=mlpCreateFineREntry("+ waitingElement.getStatus()+
-            //               ", &(seseToIssue->common),  pointer );");
-	  }
-	}
-	for(int i=0;i<invars.size();i++) {
-	  output.println("     if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
-	  output.println("       localCount++;");
-	}
-	output.println("    }");
+          for(int i=0;i<invars.size();i++) {
+            output.println("       if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
+            output.println("         localCount++;");
+          }
+          output.println("      }");
+        }
       }
     }
+
+    output.println("       default: {");
+    output.println("         printf(\"Error: unknown SESE class ID in dispatchMEMRC.\\n\");");
+    output.println("         exit( -1 );");
+    output.println("       }");
+    output.println("     } // end switch");
+
     output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
     output.println("  RELEASE_REFERENCES_TO((SESEcommon *)seseToIssue, refCount);");
     output.println("#endif");
