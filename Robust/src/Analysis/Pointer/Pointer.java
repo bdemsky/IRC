@@ -18,7 +18,6 @@ public class Pointer {
   AllocFactory allocFactory;
   LinkedList<Delta> toprocess;
   TempDescriptor returntmp;
-  int plotcount=0;
 
   public Pointer(State state, TypeUtil typeUtil) {
     this.state=state;
@@ -81,7 +80,6 @@ public class Pointer {
       //Compute delta at exit of each node
       for(int i=startindex; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
-	System.out.println("["+plotcount+"]");
 	System.out.println(currNode);
 	delta.print();
 
@@ -89,10 +87,7 @@ public class Pointer {
 	  graphMap.put(currNode, new Graph(graph));
 	}
 	nodeGraph=graphMap.get(currNode);
-	plotGraph(nodeGraph,"S"+plotcount+currNode);
 	delta=processNode(bblock, i, currNode, delta, nodeGraph);
-	plotGraph(nodeGraph,"N"+plotcount+currNode);
-	plotcount++;
       }
       System.out.println("LOOPEXIT");
       delta.print();
@@ -1255,7 +1250,8 @@ public class Pointer {
 	  removeSet=new MySet<Edge>();
 	}
 
-	removeSet.add(e.copy());
+	removeSet.add(e);
+	e=e.copy();
 	if (e.dst==oldnode)
 	  e.dst=newnode;
 	if (e.src==oldnode)
