@@ -1555,7 +1555,7 @@ public class BuildOoOJavaCode extends BuildCode {
     // new task and insert it into the appropriate parent queues
     assert newChild.getParents().size() > 0;
 
-    output.println("     switch( seseToIssue->common.classID ) {");
+    output.println("     switch( runningSESE->classID ) {");
 
     Iterator<FlatSESEEnterNode> pItr = newChild.getParents().iterator();
     while( pItr.hasNext() ) {
@@ -1657,13 +1657,13 @@ public class BuildOoOJavaCode extends BuildCode {
             output.println("       if(!dispCount"+i+" || !atomic_sub_and_test(dispCount"+i+",&(seseToIssue->rcrRecords["+i+"].flag)))");
             output.println("         localCount++;");
           }
-          output.println("      }");
+          output.println("      } break;");
         }
       }
     }
 
     output.println("       default: {");
-    output.println("         printf(\"Error: unknown SESE class ID in dispatchMEMRC.\\n\");");
+    output.println("         printf(\"Error: unknown SESE class ID %d in dispatchMEMRC.\\n\", runningSESE->classID);");
     output.println("         exit( -1 );");
     output.println("       }");
     output.println("     } // end switch");
