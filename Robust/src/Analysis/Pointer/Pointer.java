@@ -63,15 +63,11 @@ public class Pointer {
       BBlock bblock=ppoint.getBBlock();
       Vector<FlatNode> nodes=bblock.nodes();
       int startindex=0;
-      System.out.println("BB BEGIN");
-      delta.print();
 
       if (ppoint.getIndex()==-1) {
 	//Build base graph for entrance to this basic block
-	System.out.println("INIT");
 	delta=applyInitDelta(delta, bblock);
       } else {
-	System.out.println("CALL");
 	startindex=ppoint.getIndex()+1;
 	delta=applyCallDelta(delta, bblock);
       }
@@ -80,8 +76,6 @@ public class Pointer {
       //Compute delta at exit of each node
       for(int i=startindex; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
-	System.out.println(currNode);
-	delta.print();
 
 	if (!graphMap.containsKey(currNode)) {
 	  graphMap.put(currNode, new Graph(graph));
@@ -89,27 +83,27 @@ public class Pointer {
 	nodeGraph=graphMap.get(currNode);
 	delta=processNode(bblock, i, currNode, delta, nodeGraph);
       }
-      System.out.println("LOOPEXIT");
-      delta.print();
       generateFinalDelta(bblock, delta, nodeGraph);
     }
 
     //DEBUG
-    int debugindex=0;
-    for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
-      Graph g=e.getValue();
-      plotGraph(g,"BB"+debugindex);
-      debugindex++;
-    }
-
-    for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
-      FlatNode fn=e.getKey();
-      Graph g=e.getValue();
-      plotGraph(g,"FN"+fn.toString()+debugindex);
-      debugindex++;
-    }
-    for(FlatMethod fm:blockMap.keySet()) {
-      fm.printMethod();
+    if (false) {
+      int debugindex=0;
+      for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
+	Graph g=e.getValue();
+	plotGraph(g,"BB"+debugindex);
+	debugindex++;
+      }
+      
+      for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
+	FlatNode fn=e.getKey();
+	Graph g=e.getValue();
+	plotGraph(g,"FN"+fn.toString()+debugindex);
+	debugindex++;
+      }
+      for(FlatMethod fm:blockMap.keySet()) {
+	fm.printMethod();
+      }
     }
   }
 
@@ -188,7 +182,6 @@ public class Pointer {
       HashSet<TempDescriptor> tmpSet=new HashSet<TempDescriptor>();
       tmpSet.addAll(delta.basevaredge.keySet());
       tmpSet.addAll(delta.varedgeadd.keySet());
-      System.out.println(tmpSet);
       for(TempDescriptor tmp:tmpSet) {
 	/* Start with the new incoming edges */
 	MySet<Edge> newbaseedge=delta.basevaredge.get(tmp);
@@ -250,8 +243,6 @@ public class Pointer {
 	}
       }
     }
-    System.out.println("FINAL");
-    newDelta.print();
 
     /* Now we need to propagate newdelta */
     if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()||!newDelta.addNodeAges.isEmpty()||!newDelta.addOldNodes.isEmpty()) {
@@ -304,12 +295,11 @@ public class Pointer {
     case FKind.FlatExit:
     case FKind.FlatBackEdge:
     case FKind.FlatGenReachNode:
+    case FKind.FlatSESEEnterNode:
+    case FKind.FlatSESEExitNode:
       return processFlatNop(node, delta, newgraph);
     case FKind.FlatCall:
       return processFlatCall(bblock, index, (FlatCall) node, delta, newgraph);
-    case FKind.FlatSESEEnterNode:
-    case FKind.FlatSESEExitNode:
-      throw new Error("Unimplemented node:"+node);
     default:
       throw new Error("Unrecognized node:"+node);
     }
@@ -1062,7 +1052,8 @@ public class Pointer {
 	MySet<Edge> edgeAdd=delta.heapedgeadd.get(src);
 	MySet<Edge> existingEdges=graph.getEdges(src);
 	//remove edge from delta
-	edgeAdd.remove(e);
+	if (edgeAdd!=null)
+	  edgeAdd.remove(e);
 	//if the edge is already in the graph, add an explicit remove to the delta
 	if (existingEdges.contains(e)) {
 	  delta.removeHeapEdge(e);

@@ -148,7 +148,7 @@ public class GraphManip {
 	MySet<Edge> edges=entry.getValue();
 	MySet<Edge> removeedges=delta.heapedgeremove.get(node);
 	for(Edge e:edges) {
-	  if (!removeedges.contains(e)) {
+	  if (removeedges==null||!removeedges.contains(e)) {
 	    newedges.add(e);
 	  }
 	}
