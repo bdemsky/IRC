@@ -62,19 +62,19 @@ public class Delta {
 
   public void print() {
     System.out.println("----------------------------------------------");
-    System.out.println("baseheapedge empty:"+baseheapedge.isEmpty());
-    System.out.println("basevaredge empty:"+basevaredge.isEmpty());
-    System.out.println("heapedgeadd empty:"+heapedgeadd.isEmpty());
-    System.out.println("heapedgeremove empty:"+heapedgeremove.isEmpty());
-    System.out.println("varedgeadd empty:"+varedgeadd.isEmpty());
+    System.out.println("baseheapedge:"+baseheapedge);
+    System.out.println("basevaredge:"+basevaredge);
+    System.out.println("heapedgeadd:"+heapedgeadd);
+    System.out.println("heapedgeremove:"+heapedgeremove);
+    System.out.println("varedgeadd:"+varedgeadd);
     if (varedgeremove==null)
-      System.out.println("varedge remove: null");
+      System.out.println("varedgeremove: null");
     else
-      System.out.println("varedgeremove empty:"+varedgeremove.isEmpty());
-    System.out.println("baseNodeAges empty:"+baseNodeAges.isEmpty());
-    System.out.println("addNodeAges empty:"+addNodeAges.isEmpty());
-    System.out.println("baseOldNodes empty:"+baseOldNodes.isEmpty());
-    System.out.println("addOldNodes empty:"+addOldNodes.isEmpty());
+      System.out.println("varedgeremove:"+varedgeremove);
+    System.out.println("baseNodeAges:"+baseNodeAges);
+    System.out.println("addNodeAges:"+addNodeAges);
+    System.out.println("baseOldNodes:"+baseOldNodes);
+    System.out.println("addOldNodes:"+addOldNodes);
   }
 
   private Delta() {
@@ -99,9 +99,12 @@ public class Delta {
     for(Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
       TempDescriptor origTmp=entry.getKey();
       TempDescriptor newTmp=tmpMap.get(entry.getKey());
-      newdelta.varedgeadd.put(newTmp, new MySet<Edge>());
-      for(Edge e:entry.getValue()) {
-	newdelta.varedgeadd.get(newTmp).add(e.rewrite(origTmp, newTmp));
+      MySet<Edge> edgeset=entry.getValue();
+      if (!edgeset.isEmpty()) {
+	newdelta.varedgeadd.put(newTmp, new MySet<Edge>());
+	for(Edge e:edgeset) {
+	  newdelta.varedgeadd.get(newTmp).add(e.rewrite(origTmp, newTmp));
+	}
       }
     }
     newdelta.varedgeremove=varedgeremove;

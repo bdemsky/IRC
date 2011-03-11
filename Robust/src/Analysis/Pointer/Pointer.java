@@ -18,6 +18,7 @@ public class Pointer {
   AllocFactory allocFactory;
   LinkedList<Delta> toprocess;
   TempDescriptor returntmp;
+  int plotcount=0;
 
   public Pointer(State state, TypeUtil typeUtil) {
     this.state=state;
@@ -59,15 +60,19 @@ public class Pointer {
     toprocess.add(buildInitialContext());
     while(!toprocess.isEmpty()) {
       Delta delta=toprocess.remove();
-      delta.print();
       PPoint ppoint=delta.getBlock();
       BBlock bblock=ppoint.getBBlock();
       Vector<FlatNode> nodes=bblock.nodes();
       int startindex=0;
+      System.out.println("BB BEGIN");
+      delta.print();
+
       if (ppoint.getIndex()==-1) {
 	//Build base graph for entrance to this basic block
+	System.out.println("INIT");
 	delta=applyInitDelta(delta, bblock);
       } else {
+	System.out.println("CALL");
 	startindex=ppoint.getIndex()+1;
 	delta=applyCallDelta(delta, bblock);
       }
@@ -76,12 +81,21 @@ public class Pointer {
       //Compute delta at exit of each node
       for(int i=startindex; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
+	System.out.println("["+plotcount+"]");
+	System.out.println(currNode);
+	delta.print();
+
 	if (!graphMap.containsKey(currNode)) {
 	  graphMap.put(currNode, new Graph(graph));
 	}
 	nodeGraph=graphMap.get(currNode);
+	plotGraph(nodeGraph,"S"+plotcount+currNode);
 	delta=processNode(bblock, i, currNode, delta, nodeGraph);
+	plotGraph(nodeGraph,"N"+plotcount+currNode);
+	plotcount++;
       }
+      System.out.println("LOOPEXIT");
+      delta.print();
       generateFinalDelta(bblock, delta, nodeGraph);
     }
 
@@ -89,32 +103,31 @@ public class Pointer {
     int debugindex=0;
     for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
       Graph g=e.getValue();
-      try {
-	PrintWriter pw=new PrintWriter(new FileWriter("BB"+debugindex+".dot"));
-	g.printGraph(pw, "BB");
-	pw.close();
-      } catch (Exception ex) {
-	ex.printStackTrace();
-      }
+      plotGraph(g,"BB"+debugindex);
       debugindex++;
     }
 
     for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
       FlatNode fn=e.getKey();
       Graph g=e.getValue();
-      try {
-	PrintWriter pw=new PrintWriter(new FileWriter("FN"+fn.toString().replace(' ','_')+".dot"));
-	g.printGraph(pw, fn.toString());
-	pw.close();
-      } catch (Exception ex) {
-	ex.printStackTrace();
-      }
+      plotGraph(g,"FN"+fn.toString()+debugindex);
       debugindex++;
     }
     for(FlatMethod fm:blockMap.keySet()) {
       fm.printMethod();
     }
   }
+
+  void plotGraph(Graph g, String name) {
+    try {
+      PrintWriter pw=new PrintWriter(new FileWriter(name.toString().replace(' ','_')+".dot"));
+      g.printGraph(pw, name);
+      pw.close();
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+  }
+  
 
   /* This function builds the last delta for a basic block.  It
    * handles the case for the first time the basic block is
@@ -180,6 +193,7 @@ public class Pointer {
       HashSet<TempDescriptor> tmpSet=new HashSet<TempDescriptor>();
       tmpSet.addAll(delta.basevaredge.keySet());
       tmpSet.addAll(delta.varedgeadd.keySet());
+      System.out.println(tmpSet);
       for(TempDescriptor tmp:tmpSet) {
 	/* Start with the new incoming edges */
 	MySet<Edge> newbaseedge=delta.basevaredge.get(tmp);
@@ -241,6 +255,8 @@ public class Pointer {
 	}
       }
     }
+    System.out.println("FINAL");
+    newDelta.print();
 
     /* Now we need to propagate newdelta */
     if (!newDelta.heapedgeadd.isEmpty()||!newDelta.heapedgeremove.isEmpty()||!newDelta.varedgeadd.isEmpty()||!newDelta.addNodeAges.isEmpty()||!newDelta.addOldNodes.isEmpty()) {
@@ -880,7 +896,7 @@ public class Pointer {
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
       MySet<Edge> edgesToAdd=GraphManip.genEdges(dstNodes, fd, srcNodes);
       MySet<Edge> edgesToRemove=null;
-      if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()) {
+      if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
 	/* Can do a strong update */
 	edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
 	graph.strongUpdateSet=edgesToRemove;
@@ -900,13 +916,13 @@ public class Pointer {
 
       MySet<Edge> edgesToRemove=null;
       if (newDstNodes.size()!=0) {
-	if (dstNodes.size()>1&&!dstNodes.iterator().next().isSummary()) {
+	if (dstNodes.size()>1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
 	  /* Need to undo strong update */
 	  if (graph.strongUpdateSet!=null) {
 	    edgesToAdd.addAll(graph.strongUpdateSet);
 	    graph.strongUpdateSet=null; //Prevent future strong updates
 	  }
-	} else if (dstNodes.size()==1&&newDstNodes.size()==1&&!newDstNodes.iterator().next().isSummary()&&graph.strongUpdateSet!=null) {
+	} else if (dstNodes.size()==1&&newDstNodes.size()==1&&!newDstNodes.iterator().next().isSummary()&&graph.strongUpdateSet!=null&&fd!=null) {
 	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
 	  graph.strongUpdateSet.addAll(edgesToRemove);
 	}
@@ -914,7 +930,7 @@ public class Pointer {
       }
 
       //Kill new edges
-      if (graph.strongUpdateSet!=null) {
+      if (graph.strongUpdateSet!=null&&fd!=null) {
 	MySet<Edge> otherEdgesToRemove=GraphManip.getDiffEdges(delta, dstNodes);
 	if (edgesToRemove!=null)
 	  edgesToRemove.addAll(otherEdgesToRemove);
@@ -1364,7 +1380,7 @@ public class Pointer {
 	}
       }
       //Done with edge set...
-      if (diffedges.size()>=0) {
+      if (diffedges.size()>0) {
 	//completely new
 	newdelta.basevaredge.put(tmpsrc,diffedges);
       }

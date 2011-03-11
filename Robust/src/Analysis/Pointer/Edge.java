@@ -15,6 +15,15 @@ public class Edge {
   public static final int SUMSUM=8;
   public static final int NEW=16;
 
+  public String toString() {
+    if (srcvar!=null)
+      return "<"+srcvar+", "+dst+">";
+    else if (fd!=null)
+      return "<"+src+", "+statuspredicate+", "+fd+", "+dst+">";
+    else
+      return "<"+src+", "+statuspredicate+", [], "+dst+">";
+  }
+
   public static int mergeStatus(int stat1, int stat2) {
     int status=stat1|stat2;
     return ((status&NEW)==NEW)?NEW:status;
@@ -123,7 +132,7 @@ public class Edge {
   }
 
   public static boolean subsumes(int status1, int status2) {
-    return ((status1&NEW)==NEW)&&((status1|status2)==status1);
+    return ((status1&NEW)==NEW)||((status1|status2)==status1);
   }
 
   public Edge makeOld() {

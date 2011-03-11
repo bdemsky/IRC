@@ -36,6 +36,10 @@ public class AllocFactory {
       return false;
     }
 
+    public String toString() {
+      return getID();
+    }
+
     public String getID() {
       if (summary)
 	return "SUM"+allocsite;
