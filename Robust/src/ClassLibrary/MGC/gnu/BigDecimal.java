@@ -1061,7 +1061,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
    * as inserted after the first digit, the character 'E' is appended
    * and adjExp is appended.
    */
-  /*public String toString()
+  public String toString()
   {
     // bigStr is the String representation of the unscaled value.  If
     // scale is zero we simply return this.
@@ -1072,7 +1072,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
     boolean negative = (bigStr.charAt(0) == '-');
     int point = bigStr.length() - scale - (negative ? 1 : 0);
 
-    CPStringBuilder val = new CPStringBuilder();
+    /*CP*/StringBuilder val = new /*CP*/StringBuilder();
 
     if (scale >= 0 && (point - 1) >= -6)
       {
@@ -1115,7 +1115,7 @@ public class BigDecimal //extends Number implements Comparable<BigDecimal>
         val.append( point - 1 );
       }
     return val.toString();
-  }*/
+  }
 
   /**
    * Returns the String representation of this BigDecimal, using engineering

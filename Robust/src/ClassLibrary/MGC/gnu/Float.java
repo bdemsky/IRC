@@ -355,8 +355,7 @@ public final class Float
   public static float parseFloat(String str)
   {
     //return VMFloat.parseFloat(str);
-    System.println("Float.parseFloat(String) invoked");
-    return 1.0f;
+    return (float)Double.parseDouble(str);
   }
 
   /**

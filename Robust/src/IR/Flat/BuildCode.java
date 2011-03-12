@@ -1738,7 +1738,7 @@ public class BuildCode {
     
     generateMethodParam(cn, md, output);
     
-    if(md.isInvokedByStatic()) {
+    if(md.isInvokedByStatic() && !md.isStaticBlock() && !md.getModifiers().isNative()) {
       // generate the staticinit version
       String mdstring = md.getSafeMethodDescriptor() + "staticinit";
 
@@ -1919,7 +1919,7 @@ public class BuildCode {
     ClassDescriptor cn=md!=null ? md.getClassDesc() : null;
     ParamsObject objectparams=(ParamsObject)paramstable.get(md!=null ? md : task);
     
-    if((md != null) && md.isInvokedByStatic() && !md.isStaticBlock()) {
+    if((md != null) && md.isInvokedByStatic() && !md.isStaticBlock() && !md.getModifiers().isNative()) {
       // generate a special static init version
       mgcstaticinit = true;
       String mdstring = md.getSafeMethodDescriptor() + "staticinit";
@@ -2416,7 +2416,7 @@ public class BuildCode {
     ParamsObject objectparams=(ParamsObject)paramstable.get(md);
     ClassDescriptor cn=md.getClassDesc();
     String mdstring = md.getSafeMethodDescriptor();
-    if(mgcstaticinit && !md.getModifiers().isNative()) {
+    if(mgcstaticinit && !md.isStaticBlock() && !md.getModifiers().isNative()) {
       mdstring += "staticinit";
     }
 
@@ -2659,7 +2659,7 @@ public class BuildCode {
 
     if(fsfn.getField().isStatic()) {
       // static field
-      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()/* && mgcstaticinit*/)) {
+      if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
 	// is a static block or is invoked in some static block
 	ClassDescriptor cd = fm.getMethod().getClassDesc();
 	ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
@@ -2896,7 +2896,7 @@ public class BuildCode {
       //catch the constructor case
       output.print("void ");
     if (md!=null) {
-      if(mgcstaticinit) {
+      if(mgcstaticinit && !md.isStaticBlock() && !md.getModifiers().isNative()) {
         mdstring += "staticinit";
       }
       output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"(");

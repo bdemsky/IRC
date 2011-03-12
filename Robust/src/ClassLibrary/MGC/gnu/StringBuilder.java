@@ -376,5 +376,56 @@ public final class StringBuilder
   {
     return new String(this.value, 0, this.count);
   }
+  
+  /**
+   * Get the character at the specified index.
+   *
+   * @param index the index of the character to get, starting at 0
+   * @return the character at the specified index
+   * @throws IndexOutOfBoundsException if index is negative or &gt;= length()
+   *         (while unspecified, this is a StringIndexOutOfBoundsException)
+   */
+  public char charAt(int index)
+  {
+    if (index < 0 || index >= count)
+      throw new /*StringIndexOutOfBounds*/Exception("StringIndexOutOfBounds " + index);
+    return value[index];
+  }
+  
+  /**
+   * Set the character at the specified index.
+   *
+   * @param index the index of the character to set starting at 0
+   * @param ch the value to set that character to
+   * @throws IndexOutOfBoundsException if index is negative or &gt;= length()
+   *         (while unspecified, this is a StringIndexOutOfBoundsException)
+   */
+  public void setCharAt(int index, char ch)
+  {
+    if (index < 0 || index >= count)
+      throw new /*StringIndexOutOfBounds*/Exception("StringIndexOutOfBounds " + index);
+    // Call ensureCapacity to enforce copy-on-write.
+    ensureCapacity_unsynchronized(count);
+    value[index] = ch;
+  }
+
+  /**
+   * Insert the <code>char</code> argument into this <code>StringBuffer</code>.
+   *
+   * @param offset the place to insert in this buffer
+   * @param ch the <code>char</code> to insert
+   * @return this <code>StringBuffer</code>
+   * @throws StringIndexOutOfBoundsException if offset is out of bounds
+   */
+  public StringBuffer insert(int offset, char ch)
+  {
+    if (offset < 0 || offset > count)
+      throw new /*StringIndexOutOfBounds*/Exception("StringIndexOutOfBounds " + offset);
+    ensureCapacity_unsynchronized(count + 1);
+    System.arraycopy(value, offset, value, offset + 1, count - offset);
+    value[offset] = ch;
+    count++;
+    return this;
+  }
 
 }

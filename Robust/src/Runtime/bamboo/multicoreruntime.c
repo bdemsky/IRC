@@ -116,6 +116,52 @@ double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int leng
 }
 #endif
 
+typedef union jvalue
+{
+  bool z;
+  char    c;
+  short   s;
+  int     i;
+  long long    j;
+  float   f;
+  double  d;
+} jvalue;
+
+#ifdef D___Double______doubleToRawLongBits____D 
+long long CALL11(___Double______doubleToRawLongBits____D, double dval, double dval) {
+  jvalue val;
+  val.d = dval;
+
+#if defined(__IEEE_BYTES_LITTLE_ENDIAN)
+  /* On little endian ARM processors when using FPA, word order of
+     doubles is still big endian. So take that into account here. When
+     using VFP, word order of doubles follows byte order. */
+
+#define SWAP_DOUBLE(a)    (((a) << 32) | (((a) >> 32) & 0x00000000ffffffff))
+
+  val.j = SWAP_DOUBLE(val.j);
+#endif
+
+  return val.j;
+}
+#endif
+
+#ifdef D___Double______longBitsToDouble____J 
+double CALL11(___Double______longBitsToDouble____J, long long lval, long long lval) {
+  jvalue val;
+  val.j = lval;
+
+#if defined(__IEEE_BYTES_LITTLE_ENDIAN)
+#ifndef SWAP_DOUBLE
+#define SWAP_DOUBLE(a)    (((a) << 32) | (((a) >> 32) & 0x00000000ffffffff))
+#endif
+  val.j = SWAP_DOUBLE(val.j);
+#endif
+
+  return val.d;
+}
+#endif
+
 #ifdef D___String______convertdoubletochar____D__AR_C
 int CALL12(___String______convertdoubletochar____D__AR_C, double ___val___, double ___val___, struct ArrayObject * ___chararray___) {
   int length=VAR(___chararray___)->___length___;

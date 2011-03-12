@@ -475,7 +475,7 @@ public final class Double extends Number //implements Comparable<Double>
     if (isNaN(value))
       return 0x7ff8000000000000L;
     else
-      return 0; //VMDouble.doubleToRawLongBits(value);
+      return /*VMDouble.*/doubleToRawLongBits(value);
   }
 
   /**
@@ -492,10 +492,11 @@ public final class Double extends Number //implements Comparable<Double>
    * @return the bits of the <code>double</code>
    * @see #longBitsToDouble(long)
    */
-  public static long doubleToRawLongBits(double value)
+  /*public static long doubleToRawLongBits(double value)
   {
-    return 0; //VMDouble.doubleToRawLongBits(value);
-  }
+    return VMDouble.doubleToRawLongBits(value);
+  }*/
+  public static native long doubleToRawLongBits(double value);
 
   /**
    * Convert the argument in IEEE 754 floating-point "double format" bit
@@ -510,10 +511,11 @@ public final class Double extends Number //implements Comparable<Double>
    * @see #doubleToLongBits(double)
    * @see #doubleToRawLongBits(double)
    */
-  public static double longBitsToDouble(long bits)
+  /*public static double longBitsToDouble(long bits)
   {
-    return 0.0; //VMDouble.longBitsToDouble(bits);
-  }
+    return VMDouble.longBitsToDouble(bits);
+  }*/
+  public static native double longBitsToDouble(long bits);
 
   /**
    * Compare two Doubles numerically by comparing their <code>double</code>
