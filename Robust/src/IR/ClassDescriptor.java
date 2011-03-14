@@ -194,18 +194,18 @@ public class ClassDescriptor extends Descriptor {
   public MethodDescriptor getCalledMethod(MethodDescriptor md) {
     ClassDescriptor cn=this;
     while(true) {
-      Iterator methodit=cn.getMethods();
-      //Iterator through methods
-      while(methodit.hasNext()) {
-	Set possiblematches=cn.getMethodTable().getSet(md.getSymbol());
-	boolean foundmatch=false;
-	for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
-	  MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	  if (md.matches(matchmd)) {
-	    return matchmd;
-	  }
+      if (cn==null) {
+	return null;
+      }
+      Set possiblematches=cn.getMethodTable().getSet(md.getSymbol());
+      boolean foundmatch=false;
+      for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+	if (md.matches(matchmd)) {
+	  return matchmd;
 	}
       }
+      
       //Not found...walk one level up
       cn=cn.getSuperDesc();
     }
