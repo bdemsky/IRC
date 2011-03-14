@@ -37,7 +37,6 @@ public class Delta {
     return this;
   }
 
-
   boolean init;
   PPoint block;
   boolean callStart;
@@ -60,8 +59,13 @@ public class Delta {
     this.block=block;
   }
 
+  public boolean isEmpty() {
+    return baseheapedge.isEmpty()&&basevaredge.isEmpty()&&heapedgeadd.isEmpty()&&heapedgeremove.isEmpty()&&varedgeadd.isEmpty()&&(varedgeremove==null||varedgeremove.isEmpty())&&baseNodeAges.isEmpty()&&addNodeAges.isEmpty()&&baseOldNodes.isEmpty()&&addOldNodes.isEmpty();
+  }
+
   public void print() {
     System.out.println("----------------------------------------------");
+    System.out.println("init:"+init);
     System.out.println("baseheapedge:"+baseheapedge);
     System.out.println("basevaredge:"+basevaredge);
     System.out.println("heapedgeadd:"+heapedgeadd);
@@ -120,13 +124,23 @@ public class Delta {
     Delta newdelta=new Delta();
     newdelta.baseheapedge=baseheapedge;
     newdelta.basevaredge=basevaredge;
-    newdelta.heapedgeadd=heapedgeadd;
     newdelta.heapedgeremove=heapedgeremove;
-    newdelta.varedgeadd=varedgeadd;
+    newdelta.heapedgeadd=new HashMap<AllocNode, MySet<Edge>>();
+    newdelta.varedgeadd=new HashMap<TempDescriptor, MySet<Edge>>();
     newdelta.addNodeAges=addNodeAges;
     newdelta.baseNodeAges=baseNodeAges;
     newdelta.addOldNodes=addOldNodes;
     newdelta.baseOldNodes=baseOldNodes;
+
+    for (Map.Entry<AllocNode, MySet<Edge>> entry:heapedgeadd.entrySet()) {
+      newdelta.heapedgeadd.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
+    }
+
+    for (Map.Entry<TempDescriptor, MySet<Edge>> entry:varedgeadd.entrySet()) {
+      newdelta.varedgeadd.put(entry.getKey(), new MySet<Edge>(entry.getValue()));
+    }
+
+
     for(Edge e:edges) {
       if (e.srcvar!=null) {
 	if (!newdelta.varedgeadd.containsKey(e.srcvar)) {

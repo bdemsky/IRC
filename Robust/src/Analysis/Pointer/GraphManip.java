@@ -164,6 +164,34 @@ public class GraphManip {
     return newedges;
   }
 
+
+  static MySet<Edge> getDiffEdges(Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
+    MySet<Edge> newedges=new MySet<Edge>();
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.baseheapedge.entrySet()) {
+      AllocNode node=entry.getKey();
+      if (srcNodes.contains(node)) {
+	MySet<Edge> edges=entry.getValue();
+	MySet<Edge> removeedges=delta.heapedgeremove.get(node);
+	for(Edge e:edges) {
+	  if ((removeedges==null||!removeedges.contains(e))&&(e.fd==fd)) {
+	    newedges.add(e);
+	  }
+	}
+      }
+    }
+    for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.heapedgeadd.entrySet()) {
+      AllocNode node=entry.getKey();
+      if (srcNodes.contains(node)) {
+	MySet<Edge> edges=entry.getValue();
+	for(Edge e:edges) {
+	  if (e.fd==fd)
+	    newedges.add(e);
+	}
+      }
+    }
+    return newedges;
+  }
+
   static MySet<Edge> makeOld(MySet<Edge> edgesin) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge e:edgesin) {

@@ -6,10 +6,16 @@ import IR.Flat.*;
 public class BasicBlock {
   public BBlock start;
   public BBlock exit;
+  public Set<BBlock> blockset;
 
-  public BasicBlock(BBlock start, BBlock exit) {
+  public BasicBlock(BBlock start, BBlock exit, Set<BBlock> blockset) {
     this.start=start;
     this.exit=exit;
+    this.blockset=blockset;
+  }
+
+  public Set<BBlock> getBlocks() {
+    return blockset;
   }
 
   public BBlock getStart() {
@@ -48,9 +54,12 @@ public class BasicBlock {
     Stack<FlatNode> toprocess=new Stack<FlatNode>();
     HashMap<FlatNode, BBlock> map=new HashMap<FlatNode, BBlock>();
     PointerMethod pm=new PointerMethod();
+    HashSet<BBlock> blockset=new HashSet<BBlock>();
     pm.analyzeMethod(fm);
     toprocess.add(fm);
-    map.put(fm, new BBlock());
+    BBlock b=new BBlock();
+    blockset.add(b);
+    map.put(fm, b);
 
     while(!toprocess.isEmpty()) {
       FlatNode fn=toprocess.pop();
@@ -63,7 +72,9 @@ public class BasicBlock {
 	  for(int i=0;i<pm.numNext(fn);i++) {
 	    FlatNode fnext=pm.getNext(fn,i);
 	    if (!map.containsKey(fnext)) {
-	      map.put(fnext, new BBlock());
+	      BBlock newb=new BBlock();
+	      blockset.add(newb);
+	      map.put(fnext, newb);
 	      toprocess.add(fnext);
 	    }
 	    //link block in
@@ -78,7 +89,9 @@ public class BasicBlock {
 	if (fn.numPrev()>1) {
 	  //new basic block
 	  if (!map.containsKey(fn)) {
-	    map.put(fn, new BBlock());
+	    BBlock newb=new BBlock();
+	    blockset.add(newb);
+	    map.put(fn, newb);
 	    toprocess.add(fn);
 	  }
 	  //link block in
@@ -93,6 +106,6 @@ public class BasicBlock {
 	  exit=block;
       } while(true);
     }
-    return new BasicBlock(map.get(fm), exit);
+    return new BasicBlock(map.get(fm), exit, blockset);
   }
 }

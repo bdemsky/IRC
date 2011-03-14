@@ -3,6 +3,7 @@ import java.util.*;
 import Analysis.Disjoint.PointerMethod;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import IR.Flat.*;
+import IR.MethodDescriptor;
 import java.io.PrintWriter;
 
 public class Graph {
@@ -46,6 +47,7 @@ public class Graph {
   /* Need this information for mapping in callee results */
   HashSet<AllocNode> callNodeAges;
   HashSet<AllocNode> callOldNodes;
+  HashSet<MethodDescriptor> callTargets;
 
   public Graph(Graph parent) {
     nodeMap=new HashMap<AllocNode, MySet<Edge>>();
