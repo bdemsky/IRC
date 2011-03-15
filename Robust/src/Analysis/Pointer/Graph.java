@@ -125,6 +125,7 @@ public class Graph {
       TempDescriptor tmp=entry.getKey();
       if (childvarMap!=null&&childvarMap.containsKey(tmp))
 	continue;
+      output.println(tmp.getSymbol()+"[shape=rectangle];");
       for(Edge e:entry.getValue()) {
 	if (e.srcvar!=tmp)
 	  throw new Error(e.srcvar +" is not equal to "+tmp);

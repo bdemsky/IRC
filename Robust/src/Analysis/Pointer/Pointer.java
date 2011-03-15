@@ -84,19 +84,19 @@ public class Pointer {
 
       if (ppoint.getIndex()==-1) {
 	//Build base graph for entrance to this basic block
-	System.out.println("Processing "+bblock.nodes.get(0).toString().replace(' ','_'));
-	delta.print();
+	//System.out.println("Processing "+bblock.nodes.get(0).toString().replace(' ','_'));
+	//delta.print();
 	delta=applyInitDelta(delta, bblock);
-	System.out.println("Generating:");
-	delta.print();
+	//System.out.println("Generating:");
+	//delta.print();
       } else {
-	System.out.println("Processing Call "+bblock.nodes.get(ppoint.getIndex()).toString().replace(' ','_'));
-	delta.print();
+	//System.out.println("Processing Call "+bblock.nodes.get(ppoint.getIndex()).toString().replace(' ','_'));
+	//delta.print();
 
 	startindex=ppoint.getIndex()+1;
 	delta=applyCallDelta(delta, bblock);
-	System.out.println("Generating:");
-	delta.print();
+	//System.out.println("Generating:");
+	//delta.print();
       }
       Graph graph=bbgraphMap.get(bblock);
       Graph nodeGraph=null;
@@ -107,14 +107,24 @@ public class Pointer {
       //Compute delta at exit of each node
       for(int i=startindex; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
-	System.out.println("Start Processing "+currNode);
+	//System.out.println("Start Processing "+currNode);
 	if (!graphMap.containsKey(currNode)) {
-	  graphMap.put(currNode, new Graph(graph));
+	  if (isNEEDED(currNode))
+	    graphMap.put(currNode, new Graph(graph));
+	  else {
+	    if (i==0) {
+	      //base graph works for us
+	      graphMap.put(currNode, new Graph(graph));
+	    } else {
+	      //just use previous graph
+	      graphMap.put(currNode, graphMap.get(nodes.get(i-1)));
+	    }
+	  }
 	}
 	nodeGraph=graphMap.get(currNode);
 	delta=processNode(bblock, i, currNode, delta, nodeGraph);
-	System.out.println("Processing "+currNode+" and generating delta:");
-	delta.print();
+	//System.out.println("Processing "+currNode+" and generating delta:");
+	//delta.print();
       }
       generateFinalDelta(bblock, delta, nodeGraph);
     }
@@ -127,10 +137,10 @@ public class Pointer {
 	plotGraph(g,"BB"+e.getKey().nodes.get(0).toString().replace(' ','_'));
 	debugindex++;
       }
+      
       for(FlatMethod fm:blockMap.keySet()) {
 	System.out.println(fm.printMethod());
       }
-      
       for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
 	FlatNode fn=e.getKey();
 	Graph g=e.getValue();
@@ -292,8 +302,8 @@ public class Pointer {
 	boolean first=true;
 
 	for(PPoint caller:returnMap.get(bblock)) {
-	  System.out.println("Sending Return BBlock to "+caller.getBBlock().nodes.get(caller.getIndex()).toString().replace(' ','_'));
-	  newDelta.print();
+	  //System.out.println("Sending Return BBlock to "+caller.getBBlock().nodes.get(caller.getIndex()).toString().replace(' ','_'));
+	  //newDelta.print();
 	  if (first) {
 	    newDelta.setBlock(caller);
 	    toprocess.add(newDelta);
@@ -307,8 +317,8 @@ public class Pointer {
 	//normal block
 	Vector<BBlock> blockvector=bblock.next();
 	for(int i=0;i<blockvector.size();i++) {
-	  System.out.println("Sending BBlock to "+blockvector.get(i).nodes.get(0).toString().replace(' ','_'));
-	  newDelta.print();
+	  //System.out.println("Sending BBlock to "+blockvector.get(i).nodes.get(0).toString().replace(' ','_'));
+	  //newDelta.print();
 	  if (i==0) {
 	    newDelta.setBlock(new PPoint(blockvector.get(i)));
 	    toprocess.add(newDelta);
@@ -319,12 +329,34 @@ public class Pointer {
 	}
       }
     } else {
-      System.out.println("EMPTY DELTA");
-      System.out.println("delta");
-      delta.print();
-      System.out.println("newDelta");
-      newDelta.print();
+      //System.out.println("EMPTY DELTA");
+      //System.out.println("delta");
+      //delta.print();
+      //System.out.println("newDelta");
+      //newDelta.print();
     }
+  }
+
+  boolean isNEEDED(FlatNode node) {
+    switch(node.kind()) {
+    case FKind.FlatSetFieldNode: {
+      FlatSetFieldNode n=(FlatSetFieldNode)node;
+      return n.getSrc().getType().isPtr();
+    }
+    case FKind.FlatSetElementNode: {
+      FlatSetElementNode n=(FlatSetElementNode)node;
+      return n.getSrc().getType().isPtr();
+    }
+    case FKind.FlatFieldNode: {
+      FlatFieldNode n=(FlatFieldNode)node;
+      return n.getDst().getType().isPtr();
+    }
+    case FKind.FlatElementNode: {
+      FlatElementNode n=(FlatElementNode)node;
+      return n.getDst().getType().isPtr();
+    }
+    }
+    return true;
   }
 
   Delta processNode(BBlock bblock, int index, FlatNode node, Delta delta, Graph newgraph) {
@@ -498,8 +530,8 @@ public class Pointer {
 	//First build of this graph
 	//Build and enqueue delta...safe to just use existing delta
 	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	System.out.println("AProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
-	d.print();
+	//System.out.println("AProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
+	//d.print();
 	toprocess.add(d);
       } else if (newmethod) {
 	if (basedelta==null) {
@@ -507,14 +539,14 @@ public class Pointer {
 	}
 	//Build and enqueue delta
 	Delta d=basedelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	System.out.println("BProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
-	d.print();
+	//System.out.println("BProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
+	//d.print();
 	toprocess.add(d);
       } else  {
 	//Build and enqueue delta
 	Delta d=newDelta.changeParams(tmpMap, new PPoint(block.getStart()));
-	System.out.println("CProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
-	d.print();
+	//System.out.println("CProcessing "+block.getStart().nodes.get(0).toString().replace(' ','_'));
+	//d.print();
 	toprocess.add(d);
       }
     }
@@ -886,7 +918,7 @@ public class Pointer {
 	Edge mergededge=edgetoadd.merge(match);
 	newDelta.addEdge(mergededge);
 	graph.callerEdges.add(mergededge);
-	System.out.println("ADDING: "+ mergededge);
+	//System.out.println("ADDING: "+ mergededge);
       }
     }
   }
@@ -1055,6 +1087,10 @@ public class Pointer {
       fd=ffn.getField();
       dst=ffn.getDst();
     }
+    //Do nothing for non pointers
+    if (!src.getType().isPtr())
+      return delta;
+
     if (delta.getInit()) {
       HashSet<AllocNode> srcNodes=GraphManip.getNodes(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
@@ -1172,6 +1208,9 @@ public class Pointer {
       fd=ffn.getField();
       dst=ffn.getDst();
     }
+    //Do nothing for non pointers
+    if (!dst.getType().isPtr())
+      return delta;
     if (delta.getInit()) {
       HashSet<AllocNode> srcnodes=GraphManip.getNodes(graph, delta, src);
       HashSet<AllocNode> fdnodes=GraphManip.getNodes(graph, delta, srcnodes, fd);
