@@ -4,7 +4,6 @@ import Util.Lattice;
 
 import java.util.*;
 
-import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
 
 
 public class BuildIR {
@@ -142,12 +141,12 @@ public class BuildIR {
     }
   }
 
- public void parseInitializers(ClassDescriptor cn){
-	Vector fv=cn.getFieldVec();
+public void parseInitializers(ClassDescriptor cn){
+  Vector fv=cn.getFieldVec();
     int pos = 0;
-	for(int i=0;i<fv.size();i++) {
-	    FieldDescriptor fd=(FieldDescriptor)fv.get(i);
- 	    if(fd.getExpressionNode()!=null) {
+  for(int i=0;i<fv.size();i++) {
+      FieldDescriptor fd=(FieldDescriptor)fv.get(i);
+      if(fd.getExpressionNode()!=null) {
          Iterator methodit = cn.getMethods();
           while(methodit.hasNext()){
             MethodDescriptor currmd=(MethodDescriptor)methodit.next();
@@ -159,8 +158,8 @@ public class BuildIR {
             }
           }
           pos++;
-	    }
-	}
+      }
+  }
     }  
 
   private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
@@ -495,17 +494,18 @@ public class BuildIR {
     }
   }
   
-  private void parseLocationOrder(ClassDescriptor cd, ParseNode pn){
-    ParseNodeVector pnv=pn.getChildren();
-    Lattice<String> locOrder=new Lattice<String>();
-    for(int i=0; i<pnv.size(); i++) {
-      ParseNode loc=pnv.elementAt(i);
+  private void parseLocationOrder(ClassDescriptor cd, ParseNode pn) {
+    ParseNodeVector pnv = pn.getChildren();
+    Lattice<String> locOrder =
+        new Lattice<String>("_top_","_bottom_");
+    for (int i = 0; i < pnv.size(); i++) {
+      ParseNode loc = pnv.elementAt(i);
       String lowerLoc=loc.getChildren().elementAt(0).getLabel();
-      String higherLoc=loc.getChildren().elementAt(1).getLabel();
+      String higherLoc= loc.getChildren().elementAt(1).getLabel();
       locOrder.put(higherLoc, lowerLoc);
-      locOrder.put(lowerLoc,null);
-      if(locOrder.isIntroducingCycle(higherLoc)){
-        throw new Error("Error: the order relation "+lowerLoc+" < "+higherLoc+" introduces a cycle.");
+      if (locOrder.isIntroducingCycle(higherLoc)) {
+        throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
+            + " introduces a cycle.");
       }
     }
     state.addLocationOrder(cd, locOrder);
@@ -1369,21 +1369,22 @@ public class BuildIR {
     return m;
   }
   
-  private void parseAnnotationList(ParseNode pn, Modifiers m){
-      ParseNodeVector pnv=pn.getChildren();
-      for(int i=0; i<pnv.size(); i++) {
-        ParseNode body_list=pnv.elementAt(i);
-        if(isNode(body_list,"annotation_body")){
-          ParseNode body_node=body_list.getFirstChild();
-          if (isNode(body_node,"marker_annotation")){          
-            m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
-          }else if(isNode(body_node,"single_annotation")){
-            throw new Error("Annotation with single piece of data is not supported yet.");
-          } else if(isNode(body_node,"normal_annotation")){
-            throw new Error("Annotation with multiple data members is not supported yet.");
-          }   
+  private void parseAnnotationList(ParseNode pn, Modifiers m) {
+    ParseNodeVector pnv = pn.getChildren();
+    for (int i = 0; i < pnv.size(); i++) {
+      ParseNode body_list = pnv.elementAt(i);
+      if (isNode(body_list, "annotation_body")) {
+        ParseNode body_node = body_list.getFirstChild();
+        if (isNode(body_node, "marker_annotation")) {
+          m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
+        } else if (isNode(body_node, "single_annotation")) {
+          m.addAnnotation(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
+              body_node.getChild("element_value").getTerminal()));
+        } else if (isNode(body_node, "normal_annotation")) {
+          throw new Error("Annotation with multiple data members is not supported yet.");
         }
-      }    
+      }
+    }
   }
 
   private boolean isNode(ParseNode pn, String label) {

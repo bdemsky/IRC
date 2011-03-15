@@ -3,12 +3,14 @@ package Analysis.SSJava;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.Operation;
 import IR.State;
 import IR.SymbolTable;
 import IR.TypeDescriptor;
@@ -20,6 +22,7 @@ import IR.Tree.BlockStatementNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.Kind;
+import IR.Tree.OpNode;
 import Util.Lattice;
 
 public class FlowDownCheck {
@@ -154,6 +157,10 @@ public class FlowDownCheck {
     case Kind.AssignmentNode:
       checkAssignmentNode(md, nametable, (AssignmentNode) en, td);
       return;
+
+    case Kind.OpNode:
+      checkOpNode(md, nametable, (OpNode) en, td);
+      return;
     }
     /*
      * switch(en.kind()) { case Kind.AssignmentNode:
@@ -197,18 +204,114 @@ public class FlowDownCheck {
      */
   }
 
+  void checkOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on, TypeDescriptor td) {
+
+    Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(md.getClassDesc());
+
+    checkExpressionNode(md, nametable, on.getLeft(), null);
+    if (on.getRight() != null)
+      checkExpressionNode(md, nametable, on.getRight(), null);
+
+    TypeDescriptor ltd = on.getLeft().getType();
+    TypeDescriptor rtd = on.getRight() != null ? on.getRight().getType() : null;
+
+    if (ltd.getAnnotationMarkers().size() == 0) {
+      // constant value
+      // TODO
+      // ltd.addAnnotationMarker(new AnnotationDescriptor(Lattice.TOP));
+    }
+    if (rtd != null && rtd.getAnnotationMarkers().size() == 0) {
+      // constant value
+      // TODO
+      // rtd.addAnnotationMarker(new AnnotationDescriptor(Lattice.TOP));
+    }
+
+    System.out.println("checking op node");
+    System.out.println("td=" + td);
+    System.out.println("ltd=" + ltd);
+    System.out.println("rtd=" + rtd);
+
+    Operation op = on.getOp();
+
+    switch (op.getOp()) {
+
+    case Operation.UNARYPLUS:
+    case Operation.UNARYMINUS:
+    case Operation.LOGIC_NOT:
+      // single operand
+      on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
+      break;
+
+    case Operation.LOGIC_OR:
+    case Operation.LOGIC_AND:
+    case Operation.COMP:
+    case Operation.BIT_OR:
+    case Operation.BIT_XOR:
+    case Operation.BIT_AND:
+    case Operation.ISAVAILABLE:
+    case Operation.EQUAL:
+    case Operation.NOTEQUAL:
+    case Operation.LT:
+    case Operation.GT:
+    case Operation.LTE:
+    case Operation.GTE:
+    case Operation.ADD:
+    case Operation.SUB:
+    case Operation.MULT:
+    case Operation.DIV:
+    case Operation.MOD:
+    case Operation.LEFTSHIFT:
+    case Operation.RIGHTSHIFT:
+    case Operation.URIGHTSHIFT:
+
+      Set<String> operandSet = new HashSet<String>();
+      String leftLoc = ltd.getAnnotationMarkers().get(0).getMarker();
+      String rightLoc = rtd.getAnnotationMarkers().get(0).getMarker();
+
+      operandSet.add(leftLoc);
+      operandSet.add(rightLoc);
+
+      // TODO
+      // String glbLoc = locOrder.getGLB(operandSet);
+      // on.getType().addAnnotationMarker(new AnnotationDescriptor(glbLoc));
+      // System.out.println(glbLoc + "<-" + leftLoc + " " + rightLoc);
+
+      break;
+
+    default:
+      throw new Error(op.toString());
+    }
+
+    if (td != null) {
+      String lhsLoc = td.getAnnotationMarkers().get(0).getMarker();
+      if (locOrder.isGreaterThan(lhsLoc, on.getType().getAnnotationMarkers().get(0).getMarker())) {
+        throw new Error("The location of LHS is higher than RHS: " + on.printNode(0));
+      }
+    }
+
+  }
+
   void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an,
       TypeDescriptor td) {
+
+    boolean postinc = true;
+    if (an.getOperation().getBaseOp() == null
+        || (an.getOperation().getBaseOp().getOp() != Operation.POSTINC && an.getOperation()
+            .getBaseOp().getOp() != Operation.POSTDEC))
+      postinc = false;
+    if (!postinc)
+      checkExpressionNode(md, nametable, an.getSrc(), td);
 
     ClassDescriptor cd = md.getClassDesc();
     Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
+    System.out.println("an=" + an.printNode(0));
     String destLocation = an.getDest().getType().getAnnotationMarkers().elementAt(0).getMarker();
     String srcLocation = an.getSrc().getType().getAnnotationMarkers().elementAt(0).getMarker();
 
     if (!locOrder.isGreaterThan(srcLocation, destLocation)) {
-      throw new Error("Value flow from " + srcLocation + " to " + destLocation
-          + "does not respect location hierarchy.");
+      throw new Error("The value flow from " + srcLocation + " to " + destLocation
+          + " does not respect location hierarchy.");
     }
 
   }
@@ -230,13 +333,35 @@ public class FlowDownCheck {
       throw new Error(vd.getSymbol() + " has more than one location.");
     }
 
-    // check if location is defined
-    String locationID = annotationVec.elementAt(0).getMarker();
-    Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+    AnnotationDescriptor ad = annotationVec.elementAt(0);
 
-    if (lattice == null || (!lattice.containsKey(locationID))) {
-      throw new Error("Location " + locationID
-          + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
+    if (ad.getType() == AnnotationDescriptor.MARKER_ANNOTATION) {
+
+      // check if location is defined
+      String locationID = ad.getMarker();
+      Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+
+
+      if (lattice == null || (!lattice.containsKey(locationID))) {
+        throw new Error("Location " + locationID
+            + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
+      }
+
+    } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
+      if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
+
+        if (ad.getData().length() == 0) {
+          throw new Error("Delta function of " + vd.getSymbol() + " does not have any locations: "
+              + cd.getSymbol() + ".");
+        }
+
+        StringTokenizer token = new StringTokenizer(ad.getData(), ",");
+        while (token.hasMoreTokens()) {
+          String deltaOperand = token.nextToken();
+
+        }
+
+      }
     }
 
   }
@@ -276,12 +401,30 @@ public class FlowDownCheck {
     }
 
     // check if location is defined
-    String locationID = annotationVec.elementAt(0).getMarker();
-    Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+    AnnotationDescriptor ad = annotationVec.elementAt(0);
+    if (ad.getType() == AnnotationDescriptor.MARKER_ANNOTATION) {
+      String locationID = annotationVec.elementAt(0).getMarker();
+      Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
-    if (lattice == null || (!lattice.containsKey(locationID))) {
-      throw new Error("Location " + locationID
-          + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
+
+      if (lattice == null || (!lattice.containsKey(locationID))) {
+        throw new Error("Location " + locationID
+            + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
+      }
+    } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
+      if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
+
+        if (ad.getData().length() == 0) {
+          throw new Error("Delta function of " + fd.getSymbol() + " does not have any locations: "
+              + cd.getSymbol() + ".");
+        }
+
+        StringTokenizer token = new StringTokenizer(ad.getData(), ",");
+        while (token.hasMoreTokens()) {
+          String deltaOperand = token.nextToken();
+          // TODO: set delta operand to corresponding type descriptor
+        }
+      }
     }
 
   }

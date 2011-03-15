@@ -839,7 +839,7 @@ marker_annotation_body ::=
 	:}
         ;
 single_element_annotation_body ::=
-                IDENTIFIER:id LPAREN element_value:ev RPAREN {:
+                IDENTIFIER:id LPAREN STRING_LITERAL:ev RPAREN {:
                 ParseNode pn=new ParseNode("single_annotation");
 		pn.addChild("name").addChild(id);
 		pn.addChild("element_value").addChild(ev);

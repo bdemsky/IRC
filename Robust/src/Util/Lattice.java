@@ -6,24 +6,60 @@ import java.util.Iterator;
 import java.util.Set;
 
 public class Lattice<T> {
+
   private Hashtable<T, Set<T>> table;
   int size;
 
-  public Lattice() {
+  private T top;
+  private T bottom;
+
+  public Lattice(T top, T bottom) {
     table = new Hashtable<T, Set<T>>();
+    this.top = top;
+    this.bottom = bottom;
+
+    table.put(top, new HashSet<T>());
+
+  }
+
+  public T getTopItem() {
+    return top;
+  }
+
+  public T getBottomItem() {
+    return bottom;
   }
 
   public boolean put(T key, T value) {
     Set<T> s;
+
+    Set<T> topNeighbor = table.get(top);
+
     if (table.containsKey(key)) {
       s = table.get(key);
     } else {
+      // new key, need to be connected with top
+      topNeighbor.add(key);
+
       s = new HashSet<T>();
       table.put(key, s);
     }
-    if (value!=null && !s.contains(value)) {
+    if (value != null && !s.contains(value)) {
       size++;
       s.add(value);
+
+      if (!table.containsKey(value)) {
+        Set<T> lowerNeighbor = new HashSet<T>();
+        lowerNeighbor.add(bottom);
+        table.put(value, lowerNeighbor);
+      }
+
+      // if value is already connected with top, it is no longer to be
+      topNeighbor.remove(value);
+
+      // if key is already connected with bottom,, it is no longer to be
+      table.get(key).remove(getBottomItem());
+
       return true;
     } else
       return false;

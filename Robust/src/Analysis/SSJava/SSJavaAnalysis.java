@@ -6,6 +6,7 @@ import IR.State;
 
 public class SSJavaAnalysis {
 
+  public static final String DELTA = "delta";
   State state;
   HashSet toanalyze;
 

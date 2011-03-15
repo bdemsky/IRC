@@ -9,7 +9,7 @@ public class AnnotationDescriptor extends Descriptor {
   public static final int FULL_ANNOTATION = 3;
 
   private String marker;
-  private Set arrayedValues; // for single annotation
+  private String data; // for single annotation
   private int type;
 
   public AnnotationDescriptor(String annotationName) {
@@ -17,6 +17,14 @@ public class AnnotationDescriptor extends Descriptor {
     super(annotationName);
     this.marker = annotationName;
     this.type = MARKER_ANNOTATION;
+  }
+
+  public AnnotationDescriptor(String annotationName, String data) {
+    // constructor for marker annotation
+    super(annotationName);
+    this.marker = annotationName;
+    this.type = SINGLE_ANNOTATION;
+    this.data = data;
   }
 
   public int getType() {
@@ -37,6 +45,10 @@ public class AnnotationDescriptor extends Descriptor {
 
   public String getMarker() {
     return marker;
+  }
+  
+  public String getData(){
+    return data;
   }
 
   public boolean equals(Object o) {
