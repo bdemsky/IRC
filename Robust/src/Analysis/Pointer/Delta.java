@@ -199,6 +199,12 @@ public class Delta {
       varedgeadd.get(e.srcvar).add(e);
   }
 
+  public void removeEdges(MySet<Edge> eset) {
+    for(Edge e:eset) {
+      removeEdge(e);
+    }
+  }
+
   public void removeEdge(Edge e) {
     if (e.src!=null) {
       removeHeapEdge(e);
@@ -218,8 +224,8 @@ public class Delta {
   }
 
   public void removeVarEdge(Edge e) {
-    if (varedgeadd.containsKey(e.src)&&varedgeadd.get(e.src).contains(e))
-      varedgeadd.get(e.src).remove(e);
+    if (varedgeadd.containsKey(e.srcvar)&&varedgeadd.get(e.srcvar).contains(e))
+      varedgeadd.get(e.srcvar).remove(e);
     if (!varedgeremove.containsKey(e.srcvar))
       varedgeremove.put(e.srcvar, new MySet<Edge>(e));
     else

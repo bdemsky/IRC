@@ -39,6 +39,8 @@ public class Graph {
   MySet<Edge> reachEdge;
   HashSet<AllocNode> reachNode;
   MySet<Edge> externalEdgeSet;
+  /* These edges were created by the caller */
+  MySet<Edge> callerEdges;
 
   /* Need this information for mapping in callee results */
   HashSet<AllocNode> nodeAges;
