@@ -130,7 +130,7 @@ public class Pointer {
     }
 
     //DEBUG
-    if (true) {
+    if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -944,9 +944,11 @@ public class Pointer {
       if (e.dst==singleNode) {
 	//Need to get original edge so that predicate will be correct
 	Edge match=graph.getMatch(e);
-	Edge rewrite=match.rewrite(singleNode, summaryNode);
-	newDelta.removeEdge(match);
-	mergeCallEdge(graph, newDelta, rewrite);
+	if (match!=null) {
+	  Edge rewrite=match.rewrite(singleNode, summaryNode);
+	  newDelta.removeEdge(match);
+	  mergeCallEdge(graph, newDelta, rewrite);
+	}
       }
     }
   }
