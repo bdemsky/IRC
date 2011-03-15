@@ -43,9 +43,10 @@ public class CounterS{
   public CounterS() {
   }
 
-  public add(long value){
+  public long add(long value){
     synchronized (CounterS.class) {
       CounterS.count += value;
+      return CounterS.count;
     }
   }
   

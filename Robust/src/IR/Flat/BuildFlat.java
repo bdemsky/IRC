@@ -13,6 +13,9 @@ public class BuildFlat {
   HashSet breakset;
   HashSet continueset;
   FlatExit fe;
+  
+  // for synchronized blocks
+  Stack<TempDescriptor> lockStack;
 
   public BuildFlat(State st, TypeUtil typeutil) {
     state=st;
@@ -20,6 +23,7 @@ public class BuildFlat {
     this.typeutil=typeutil;
     this.breakset=new HashSet();
     this.continueset=new HashSet();
+    this.lockStack = new Stack<TempDescriptor>();
   }
 
   public Hashtable getMap() {
@@ -184,28 +188,52 @@ public class BuildFlat {
 	curran=new FlatAtomicEnterNode();
       } else
 	curran=null;
+      if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
+        TempDescriptor thistd = null;
+        if(currmd.getModifiers().isStatic()) {
+          // need to lock the Class object
+          thistd=new TempDescriptor("classobj", cn);
+        } else {
+          // lock this object
+          thistd=getTempforVar(currmd.getThis());
+        }
+        if(!this.lockStack.isEmpty()) {
+          throw new Error("The lock stack for synchronized blocks/methods is not empty!");
+        }
+        this.lockStack.push(thistd);
+      }
       NodePair np=flattenBlockNode(bn);
       FlatNode fn=np.getBegin();
       if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
 	MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
-    TempDescriptor thistd=null;
-    if(currmd.getModifiers().isStatic()) {
-      // need to lock the Class object
-      thistd=new TempDescriptor("classobj", cn);
-    } else {
-      // lock this object
-      thistd=getTempforVar(currmd.getThis());
+    FlatNode first = null;
+    FlatNode end = null;
+    for(int j = 0; j < this.lockStack.size(); j++) {
+      TempDescriptor thistd = this.lockStack.elementAt(j);
+      FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+      if(first == null)  {
+        first = end = fc;
+      } else {
+        end.addNext(fc);
+        end = fc;
+      }
     }
-    FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
-	fc.addNext(fn);
-	fn=fc;
+	end.addNext(fn);
+	fn=first;
+    end = np.getEnd();
 	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	  MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-	  FlatCall fcunlock=new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
-	  np.getEnd().addNext(fcunlock);
-	  FlatNode rnflat=spliceReturn(fcunlock);
+	  while(!this.lockStack.isEmpty()) {
+	    TempDescriptor thistd = this.lockStack.pop();
+	    FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+	    end.addNext(fcunlock);
+	    end = fcunlock;
+	  }
+	  FlatNode rnflat=spliceReturn(end);
 	  rnflat.addNext(fe);
-	}
+	} else {
+   this.lockStack.clear();   
+    }
       } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
 	curran.addNext(fn);
 	fn=curran;
@@ -1292,19 +1320,19 @@ public class BuildFlat {
     FlatReturnNode rnflat=new FlatReturnNode(retval);
     rnflat.addNext(fe);
     FlatNode ln=rnflat;
-    if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
-      MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-      TempDescriptor thistd=null;
-      if(currmd.getModifiers().isStatic()) {
-        // need to lock the Class object
-        thistd=new TempDescriptor("classobj", currmd.getClassDesc());
-      } else {
-        // lock this object
-        thistd=getTempforVar(currmd.getThis());
+    if ((state.THREAD||state.MGC)&&!this.lockStack.isEmpty()) {
+      FlatNode end = null;
+      MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+      for(int j = this.lockStack.size(); j > 0; j--) {
+        TempDescriptor thistd = this.lockStack.elementAt(j-1);
+        FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+        if(end != null) {
+          end.addNext(fcunlock);
+        }
+        end = fcunlock;
       }
-      FlatCall fc=new FlatCall(memd, null, thistd, new TempDescriptor[0]);
-      fc.addNext(ln);
-      ln=fc;
+      end.addNext(ln);
+      ln=end;
     }
     if (state.DSM&&currmd.getModifiers().isAtomic()) {
       FlatAtomicExitNode faen=new FlatAtomicExitNode(curran);
@@ -1374,6 +1402,7 @@ public class BuildFlat {
       first = npexp.getBegin();
       end = npexp.getEnd();
     }
+    this.lockStack.push(montmp);
     NodePair npblock=flattenBlockNode(sbn.getBlockNode());
 
     MethodDescriptor menmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
@@ -1381,6 +1410,7 @@ public class BuildFlat {
 
     MethodDescriptor mexmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
     FlatCall fcex=new FlatCall(mexmd, null, montmp, new TempDescriptor[0]);
+    this.lockStack.pop();
 
     if(first != null) {
       end.addNext(fcen);
@@ -1388,9 +1418,14 @@ public class BuildFlat {
       first = fcen;
     }
     fcen.addNext(npblock.getBegin());
-    if(npblock.getEnd() != null) {
+    
+    if (npblock.getEnd()!=null&&npblock.getEnd().kind()!=FKind.FlatReturnNode) {
       npblock.getEnd().addNext(fcex);
     }
+    
+    /*if(npblock.getEnd() != null) {
+      npblock.getEnd().addNext(fcex);
+    }*/
     return new NodePair(first, fcex);
   }
 
