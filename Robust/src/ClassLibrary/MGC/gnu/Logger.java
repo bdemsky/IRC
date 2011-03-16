@@ -533,7 +533,7 @@ public class Logger
    */
   public void log(LogRecord record)
   {
-    System.println("Unimplemented Logger.log(LogRecord)");
+    // TODO System.println("Unimplemented Logger.log(LogRecord)");
     /*synchronized (lock)
       {
         if (!isLoggable(record.getLevel()))
@@ -980,7 +980,7 @@ public class Logger
    */
   public void addHandler(StreamHandler handler) //throws SecurityException
   {
-    System.println("Unimplemented Logger.addHandler(StreamHandler)");
+    // TODO System.println("Unimplemented Logger.addHandler(StreamHandler)");
     /*synchronized (lock)
       {
         if (handler == null)
@@ -1051,7 +1051,7 @@ public class Logger
          */
         /*return (Handler[]) handlerList.toArray(new Handler[handlerList.size()]);
       }*/
-    System.println("Unimplemented Logger.getHandlers()");
+    // TODO System.println("Unimplemented Logger.getHandlers()");
     return new Handler[0];
   }
 
@@ -1180,7 +1180,7 @@ public class Logger
       index++;
 
     return index < stackTrace.length ? stackTrace[index] : null;*/
-    System.println("Logger.getCallerStackFrame() invoked");
+    // TODO System.println("Logger.getCallerStackFrame() invoked");
     return null;
   }
 

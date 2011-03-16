@@ -318,7 +318,7 @@ public class BuildCode {
    * initialization.*/
   protected void outputStaticBlocks(PrintWriter outmethod) {
     //  execute all the static blocks and all the static field initializations
-        // execute all the static blocks and all the static field initializations
+    // execute all the static blocks and all the static field initializations
     SymbolTable sctbl = this.state.getSClassSymbolTable();
     Iterator it_sclasses = sctbl.getDescriptorsIterator();
     if(it_sclasses.hasNext()) {
@@ -650,7 +650,7 @@ public class BuildCode {
     if(state.MGC) {
       outclassdefs.println("  int mutex;");
       outclassdefs.println("  volatile int notifycount;");
-      outclassdefs.println("  int objlock;");
+      outclassdefs.println("  volatile int objlock;");
       if(state.MULTICOREGC) {
 	outclassdefs.println("  int marked;");
       }
@@ -706,7 +706,7 @@ public class BuildCode {
       if(state.MGC) {
 	outclassdefs.println("  int mutex;");
 	outclassdefs.println("  volatile int notifycount;");
-	outclassdefs.println("  int objlock;");
+	outclassdefs.println("  volatile int objlock;");
 	if(state.MULTICOREGC) {
 	  outclassdefs.println("  int marked;");
 	}
@@ -1641,7 +1641,7 @@ public class BuildCode {
     if (state.MGC) {
       classdefout.println("  int mutex;");
       classdefout.println("  volatile int notifycount;");
-      classdefout.println("  int objlock;");
+      classdefout.println("  volatile int objlock;");
       if(state.MULTICOREGC) {
 	classdefout.println("  int marked;");
       }

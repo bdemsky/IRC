@@ -38,7 +38,7 @@ public class File {
   }
   
   public boolean delete() {
-    System.println("Unimplemented File.delete()");
+    // TODO System.println("Unimplemented File.delete()");
     return false;
   }
   
@@ -54,7 +54,7 @@ public class File {
       }
     }
     return (String[])(v.toArray(new String[0]));*/
-    System.println("Unimplemented File.list()");
+    // TODO System.println("Unimplemented File.list()");
     return null;
   }
 }

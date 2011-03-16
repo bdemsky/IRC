@@ -682,7 +682,6 @@ void * smemalloc_I(int coren,
 	}
 	return NULL;
 #else
-    BAMBOO_DEBUGPRINT(0xe003);
     BAMBOO_EXIT(0xe003);
 #endif
   }

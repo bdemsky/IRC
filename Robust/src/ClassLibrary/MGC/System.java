@@ -95,7 +95,11 @@ public class System {
   public static void genReach();
   
   private static Properties props;
-  private static native Properties initProperties(Properties props);
+  private static native Properties initProperties();
+  
+  static {
+    initProperties();
+  }
   
   public static Properties getProperties() {
     return props;

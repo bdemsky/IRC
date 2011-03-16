@@ -305,12 +305,12 @@ public class DecimalFormat //extends NumberFormat
   }*/
   
   public StringBuffer format(long l) {
-    System.println("Unimplemented DecimalFormat.format(long)");
+    // TODO System.println("Unimplemented DecimalFormat.format(long)");
     return new StringBuffer("");
   }
   
   public StringBuffer format(double l) {
-    System.println("Unimplemented DecimalFormat.format(double)");
+    // TODO System.println("Unimplemented DecimalFormat.format(double)");
     return new StringBuffer("");
   }
   

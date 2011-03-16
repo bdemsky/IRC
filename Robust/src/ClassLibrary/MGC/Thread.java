@@ -18,6 +18,7 @@ public class Thread implements Runnable {
 
   private static void staticStart(Thread t) {
     t.run();
+    t.finished = true;
   }
 
   public static native void yield();
@@ -34,10 +35,13 @@ public class Thread implements Runnable {
     if(target != null) {
       target.run();
     }
+    this.finished = true;
   }
 
   private native void nativeCreate();
   
-  public final native boolean isAlive();
+  public final boolean isAlive() {
+    return !this.finished;
+  }
 
 }

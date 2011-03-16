@@ -359,7 +359,7 @@ label   = Name:\\u0020</pre>
   public void load(InputStream inStream) throws IOException
   {
     //load(new InputStreamReader(inStream, "ISO-8859-1"));
-    System.println("Properties.load(InputStream) invoked");
+    //TODO System.println("Properties.load(InputStream) invoked");
   }
 
   /**

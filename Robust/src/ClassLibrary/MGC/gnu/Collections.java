@@ -94,6 +94,6 @@ public class Collections
 	i.next();
 	i.set(a[pos]);
       }*/
-    System.println("Collections.sort() invoked");
+    //TODO System.println("Collections.sort() invoked");
   }
 } // class Collections

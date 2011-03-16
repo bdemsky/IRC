@@ -9,6 +9,7 @@
 #include "mem.h"
 #ifndef RAW
 #include <stdio.h>
+#include <stdlib.h>
 #endif
 
 #ifndef INLINE
@@ -82,7 +83,7 @@ void injectinstructionfailure() {
 
 #ifdef D___Double______nativeparsedouble____L___String___
 double CALL01(___Double______nativeparsedouble____L___String___,struct ___String___ * ___str___) {
-  /*int length=VAR(___str___)->___count___;
+  int length=VAR(___str___)->___count___;
   int maxlength=(length>60) ? 60 : length;
   char str[maxlength+1];
   struct ArrayObject * chararray=VAR(___str___)->___value___;
@@ -92,16 +93,14 @@ double CALL01(___Double______nativeparsedouble____L___String___,struct ___String
     str[i]=((short *)(((char *)&chararray->___length___)+sizeof(int)))[i+offset];
   }
   str[i]=0;
-  double d=atof(str);*/
-  printf("Unimplemented Double.nativeparsedouble(S) \n");
-  double d = 0.0;
+  double d=0.0; //atof(str); TODO Unimplemented nativeparsedoulbe
   return d;
 }
 #endif
 
 #ifdef D___Double______nativeparsedouble_____AR_B_I_I 
 double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int length,int start,int length,struct ArrayObject * ___str___) {
-  /*int maxlength=(length>60)?60:length;
+  int maxlength=(length>60)?60:length;
   char str[maxlength+1];
   struct ArrayObject * bytearray=VAR(___str___);
   int i;
@@ -109,9 +108,7 @@ double CALL23(___Double______nativeparsedouble_____AR_B_I_I, int start, int leng
     str[i]=(((char *)&bytearray->___length___)+sizeof(int))[i+start];
   }
   str[i]=0;
-  double d=atof(str);*/
-  printf("Unimplemented Double.nativeparsedouble() \n");
-  double d = 0.0;
+  double d=0.0; //atof(str); TODO Unimplemented nativeparsedouble
   return d;
 }
 #endif
@@ -301,6 +298,27 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #endif // TILERA_BME
 #endif // MGC
 }
+
+#ifdef D___System______initProperties____
+struct ___Properties___ * CALL00(___System______initProperties____) {
+#ifdef MGC
+   struct ___Properties___ * ___srctmp31736___;
+  struct ___String___ * ___arg42781___;
+  struct ___String___ * ___arg42782___;
+  struct ___String___ * ___s42780___;
+  ___srctmp31736___=allocate_new(76);
+   {
+       ___Properties______Properties____((struct ___Properties___ *) ___srctmp31736___);
+   }
+   global_defs_p->___System______props___ = ___srctmp31736___;
+   ___arg42781___=NewString("line.separator",14);
+   ___arg42782___=NewString("\n",1);
+   {
+       ___s42780___=___System______setProperty____L___String____L___String___((struct ___String___ *) ___arg42781___, (struct ___String___ *) ___arg42782___);
+   }
+#endif // MGC
+}
+#endif
 
 /* Object allocation function */
 
