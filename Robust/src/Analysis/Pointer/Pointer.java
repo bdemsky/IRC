@@ -5,6 +5,7 @@ import IR.*;
 import Analysis.Liveness;
 import Analysis.Pointer.BasicBlock.BBlock;
 import Analysis.Pointer.AllocFactory.AllocNode;
+import Analysis.Disjoint.Taint;
 import java.io.*;
 
 public class Pointer {
@@ -130,7 +131,7 @@ public class Pointer {
     }
 
     //DEBUG
-    if (false) {
+    if (true) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -386,6 +387,28 @@ public class Pointer {
       throw new Error("Unrecognized node:"+node);
     }
   }
+
+  Delta processSESEEnter(FlatSESEEnterNode sese, Delta delta, Graph graph) {
+    for (TempDescriptor tmp:sese.getInVarSet()) {
+      Taint taint=Taint.factory(sese,  null, tmp, null, sese, null);
+      if (delta.getInit()) {
+	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
+	for(Edge e:edges) {
+	  Edge newe=e.addTaint(taint);
+	  delta.addVarEdge(newe);
+	}
+      } else {
+	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
+	for(Edge e:edges) {
+	  Edge newe=e.addTaint(taint);
+	  delta.addVarEdge(newe);
+	}
+      }
+    }
+    applyDiffs(graph, delta);
+    return delta;
+  }
+  
 
   /* This function compute the edges for the this variable for a
    * callee if it exists. */

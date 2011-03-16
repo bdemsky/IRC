@@ -2,6 +2,8 @@ package Analysis.Pointer;
 import IR.Flat.*;
 import IR.*;
 import Analysis.Pointer.AllocFactory.AllocNode;
+import Analysis.Disjoint.Taint;
+import Analysis.Disjoint.TaintSet;
 
 public class Edge {
   FieldDescriptor fd;
@@ -9,6 +11,8 @@ public class Edge {
   TempDescriptor srcvar;
   AllocNode dst;
   int statuspredicate;
+  TaintSet taints;
+
   public static final int SNGSNG=1;
   public static final int SNGSUM=2;
   public static final int SUMSNG=4;
@@ -67,6 +71,15 @@ public class Edge {
     return hashcode;
   }
 
+  public Edge addTaint(Taint t) {
+    Edge newe=copy();
+    if (newe.taints==null)
+      newe.taints=TaintSet.factory(t);
+    else
+      newe.taints=newe.taints.add(t);
+    return newe;
+  }
+
   public boolean equals(Object o) {
     if (o instanceof Edge) {
       Edge e=(Edge) o;
@@ -86,6 +99,8 @@ public class Edge {
     e.srcvar=srcvar;
     e.dst=dst;
     e.statuspredicate=statuspredicate;
+    if (taints!=null)
+      e.taints=taints;
     return e;
   }
 
@@ -94,6 +109,12 @@ public class Edge {
       return this;
     Edge newe=copy();
     newe.statuspredicate=mergeStatus(statuspredicate, e.statuspredicate);
+    if (e.taints!=null) { 
+      if (newe.taints==null)
+	newe.taints=e.taints;
+      else
+	newe.taints=newe.taints.merge(taints);
+    }
     return newe;
   }
 

@@ -70,6 +70,20 @@ public class TaintSet extends Canonical {
     return out;
   }
 
+  public TaintSet add(Taint t) {
+    TaintSet newt=new TaintSet();
+    newt.taints.addAll(taints);
+    newt.taints.add(t);
+    return (TaintSet) Canonical.makeCanonical(newt);
+  }
+
+  public TaintSet merge(TaintSet ts) {
+    TaintSet newt=new TaintSet();
+    newt.taints.addAll(taints);
+    newt.taints.addAll(ts.taints);
+    return (TaintSet) Canonical.makeCanonical(newt);
+  }
+
   protected TaintSet() {
     taints = new HashSet<Taint>();
   }
