@@ -6,6 +6,7 @@ import Analysis.Liveness;
 import Analysis.Pointer.BasicBlock.BBlock;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import Analysis.Disjoint.Taint;
+import Analysis.CallGraph.CallGraph;
 import java.io.*;
 
 public class Pointer {
@@ -16,11 +17,17 @@ public class Pointer {
   HashMap<BBlock, Set<PPoint>> returnMap;
   HashMap<BBlock, Set<TempDescriptor>> bblivetemps;
 
+  CallGraph callGraph;
   State state;
   TypeUtil typeUtil;
   AllocFactory allocFactory;
   LinkedList<Delta> toprocess;
   TempDescriptor returntmp;
+
+  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph) {
+    this(state, typeUtil);
+    this.callGraph=callGraph;
+  }
 
   public Pointer(State state, TypeUtil typeUtil) {
     this.state=state;
@@ -389,15 +396,20 @@ public class Pointer {
   }
 
   Delta processSESEEnter(FlatSESEEnterNode sese, Delta delta, Graph graph) {
-    for (TempDescriptor tmp:sese.getInVarSet()) {
-      Taint taint=Taint.factory(sese,  null, tmp, null, sese, null);
-      if (delta.getInit()) {
+    if (delta.getInit()) {
+      removeInitTaints(null, delta, graph);
+      for (TempDescriptor tmp:sese.getInVarSet()) {
+	Taint taint=Taint.factory(sese,  null, tmp, null, sese, null);
 	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
 	  delta.addVarEdge(newe);
 	}
-      } else {
+      }
+    } else {
+      removeDiffTaints(null, delta, graph);
+      for (TempDescriptor tmp:sese.getInVarSet()) {
+	Taint taint=Taint.factory(sese,  null, tmp, null, sese, null);
 	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
@@ -405,10 +417,40 @@ public class Pointer {
 	}
       }
     }
+
+
     applyDiffs(graph, delta);
     return delta;
   }
   
+  private boolean isRecursive(FlatSESEEnterNode sese) {
+    MethodDescriptor md=sese.getmdEnclosing();
+    return callGraph.getCalleeSet(md).contains(md);
+  }
+
+
+  Delta processSESEExit(FlatSESEExitNode seseexit, Delta delta, Graph graph) {
+    FlatSESEEnterNode sese=seseexit.getFlatEnter();
+    //Strip Taints from this SESE
+    if (delta.getInit()) {
+      removeInitTaints(isRecursive(sese)?sese:null, delta, graph);
+    } else {
+      removeDiffTaints(isRecursive(sese)?sese:null, delta, graph);
+    }
+    applyDiffs(graph, delta);
+    return delta;
+  }
+
+  void removeInitTaints(FlatSESEEnterNode sese, Delta delta, Graph graph) {
+    
+  }
+
+  void processEdgeMap(FlatSESEEnterNode sese, Delta delta, Graph graph, HashMap<Object, MySet<Edge>> edgemap) {
+  }
+
+  void removeDiffTaints(FlatSESEEnterNode sese, Delta delta, Graph graph) {
+    
+  }
 
   /* This function compute the edges for the this variable for a
    * callee if it exists. */
