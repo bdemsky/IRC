@@ -110,6 +110,7 @@ public class BuildCodeMultiCore extends BuildCode {
       outstructs=new PrintWriter(new FileOutputStream(PREFIX+"structdefs.h"), true);
       outmethodheader=new PrintWriter(new FileOutputStream(PREFIX+"methodheaders.h"), true);
       outclassdefs=new PrintWriter(new FileOutputStream(PREFIX+"classdefs.h"), true);
+      outglobaldefs=new PrintWriter(new FileOutputStream(PREFIX+"globaldefs.h"), true);
       outglobaldefsprim=new PrintWriter(new FileOutputStream(PREFIX+"globaldefsprim.h"), true);
       outvirtual=new PrintWriter(new FileOutputStream(PREFIX+"virtualtable.h"), true);
       outmethod=new PrintWriter(new FileOutputStream(PREFIX+"methods.c"), true);
@@ -149,6 +150,18 @@ public class BuildCodeMultiCore extends BuildCode {
 
     /* Output Structures */
     outputStructs(outstructs);
+    
+    outglobaldefs.println("#ifndef __GLOBALDEF_H_");
+    outglobaldefs.println("#define __GLOBALDEF_H_");
+    outglobaldefs.println("");
+    outglobaldefs.println("struct global_defs_t {");
+    outglobaldefs.println("  int size;");
+    outglobaldefs.println("  void * next;");
+
+    outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
+    outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
+    outglobaldefsprim.println("");
+    outglobaldefsprim.println("struct global_defsprim_t {");
 
     // Output the C class declarations
     // These could mutually reference each other
@@ -163,8 +176,23 @@ public class BuildCodeMultiCore extends BuildCode {
       ClassDescriptor cn=(ClassDescriptor)it.next();
       generateCallStructs(cn, outclassdefs, outstructs, outmethodheader, outglobaldefs, outglobaldefsprim);
     }
+    outclassdefs.println("#include \"globaldefs.h\"");
+    outclassdefs.println("#include \"globaldefsprim.h\"");
     outclassdefs.println("#endif");
     outclassdefs.close();
+    outglobaldefs.println("};");
+    outglobaldefs.println("");
+    outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
+    outglobaldefs.println("#endif");
+    outglobaldefs.flush();
+    outglobaldefs.close();
+
+    outglobaldefsprim.println("};");
+    outglobaldefsprim.println("");
+    outglobaldefsprim.println("extern struct global_defsprim_t * global_defsprim_p;");
+    outglobaldefsprim.println("#endif");
+    outglobaldefsprim.flush();
+    outglobaldefsprim.close();
 
     if (state.TASK) {
       /* Map flags to integers */

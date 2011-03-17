@@ -254,7 +254,7 @@ public class BuildCode {
    * invoked and should be generated
    */
   protected void checkMethods2Gen() {
-    MethodDescriptor md=typeutil.getMain();
+    MethodDescriptor md=(state.main==null)?null:typeutil.getMain();
     
     if(md != null) {
       // check the methods to be generated
@@ -530,17 +530,19 @@ public class BuildCode {
       while(methodit.hasNext()) {
 	/* Classify parameters */
 	MethodDescriptor md=(MethodDescriptor)methodit.next();
-    Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
-    boolean foundmatch = false;
-    for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-      MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-      if (md.matches(matchmd)) {
-        foundmatch=true;
-        break;
+    if(!this.state.genAllMethods) {
+      boolean foundmatch = false;
+      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+        if (md.matches(matchmd)) {
+          foundmatch=true;
+          break;
+        }
       }
-    }
-    if(!foundmatch) {
-      continue;
+      if(!foundmatch) {
+        continue;
+      }
     }
 	FlatMethod fm=state.getMethodFlat(md);
 	if (!md.getModifiers().isNative()) {
@@ -968,13 +970,17 @@ public class BuildCode {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
 	continue;
-      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
       boolean foundmatch = false;
-      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-        if (md.matches(matchmd)) {
-          foundmatch=true;
-          break;
+      if(this.state.genAllMethods) {
+        foundmatch = true;
+      } else {
+        Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+        for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            foundmatch=true;
+            break;
+          }
         }
       }
       if(!foundmatch) {
@@ -1674,13 +1680,17 @@ public class BuildCode {
   protected void generateCallStructsMethods(ClassDescriptor cn, PrintWriter output, PrintWriter headersout) {
     for(Iterator methodit=cn.getMethods(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)methodit.next();
-      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
       boolean foundmatch = false;
-      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-        if (md.matches(matchmd)) {
-          foundmatch=true;
-          break;
+      if(this.state.genAllMethods) {
+        foundmatch = true;
+      } else {
+        Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+        for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            foundmatch=true;
+            break;
+          }
         }
       }
       if(foundmatch) {
@@ -2423,7 +2433,7 @@ public class BuildCode {
     // if the called method is a static block or a static method or a constructor
     // need to check if it can be invoked inside some static block
     if((md.isStatic() || md.isStaticBlock() || md.isConstructor()) &&
-       ((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic()))) {
+       ((fm.getMethod() != null) && ((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())))) {
       if(!md.isInvokedByStatic()) {
 	System.err.println("Error: a method that is invoked inside a static block is not tagged!");
       }

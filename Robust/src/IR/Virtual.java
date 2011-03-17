@@ -127,13 +127,17 @@ public class Virtual {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
         continue;
-      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
       boolean foundmatch = false;
-      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-        if (md.matches(matchmd)) {
-          foundmatch=true;
-          break;
+      if(this.state.genAllMethods) {
+        foundmatch = true;
+      } else {
+        Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+        for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            foundmatch=true;
+            break;
+          }
         }
       }
       if(!foundmatch) {
@@ -175,13 +179,17 @@ public class Virtual {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
         continue;
-      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
       boolean foundmatch = false;
-      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-        if (md.matches(matchmd)) {
-          foundmatch=true;
-          break;
+      if(this.state.genAllMethods) {
+        foundmatch = true;
+      } else {
+        Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
+        for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
+          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+          if (md.matches(matchmd)) {
+            foundmatch=true;
+            break;
+          }
         }
       }
       if(!foundmatch) {

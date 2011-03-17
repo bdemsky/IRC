@@ -183,7 +183,7 @@ public class State {
   public Hashtable treemethodmap;
   public Hashtable flatmethodmap;
   SymbolTable methods2gen;
-  boolean genAllMethods;
+  public boolean genAllMethods;
   private HashSet arraytypes;
   public Hashtable arraytonumber;
   private int numclasses=1; // start from 1 instead of 0 for multicore gc

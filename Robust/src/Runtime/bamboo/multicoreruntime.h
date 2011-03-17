@@ -24,6 +24,16 @@ int totalexetime;
 bool reside;
 #endif
 
+#ifdef MULTICORE
+#ifdef GC_SMALLPAGESIZE
+#define BAMBOO_GLOBAL_DEFS_SIZE (1024 * 1024)
+#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (1024 * 512)
+#else
+#define BAMBOO_GLOBAL_DEFS_SIZE (BAMBOO_SMEM_SIZE)
+#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (BAMBOO_SMEM_SIZE/2)
+#endif // GC_SMALLPAGESIZE
+#endif // MULTICORE
+
 #ifdef MGC
 // shared memory pointer for global thread queue
 // In MGC version, this block of memory is located at the very bottom of the 
@@ -38,12 +48,8 @@ bool reside;
 //     mutex + thread counter + start pointer + end pointer
 #ifdef GC_SMALLPAGESIZE
 #define BAMBOO_THREAD_QUEUE_SIZE (1024 * 1024)
-#define BAMBOO_GLOBAL_DEFS_SIZE (1024 * 1024)
-#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (1024 * 512)
 #else
 #define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
-#define BAMBOO_GLOBAL_DEFS_SIZE (BAMBOO_SMEM_SIZE)
-#define BAMBOO_GLOBAL_DEFS_PRIM_SIZE (BAMBOO_SMEM_SIZE/2)
 #endif
 // data structures for threads
 INTPTR * bamboo_thread_queue;
