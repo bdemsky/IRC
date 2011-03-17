@@ -9,7 +9,9 @@ import Analysis.Disjoint.Taint;
 import Analysis.Disjoint.TaintSet;
 import Analysis.Disjoint.Canonical;
 import Analysis.CallGraph.CallGraph;
+import Analysis.OoOJava.RBlockRelationAnalysis;
 import java.io.*;
+
 
 public class Pointer {
   HashMap<FlatMethod, BasicBlock> blockMap;
@@ -26,10 +28,13 @@ public class Pointer {
   AllocFactory allocFactory;
   LinkedList<Delta> toprocess;
   TempDescriptor returntmp;
+  RBlockRelationAnalysis taskAnalysis;
 
-  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph) {
+  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis) {
     this(state, typeUtil);
     this.callGraph=callGraph;
+    this.OoOJava=true;
+    this.taskAnalysis=taskAnalysis;
   }
 
   public Pointer(State state, TypeUtil typeUtil) {
@@ -1365,6 +1370,8 @@ public class Pointer {
     TempDescriptor src;
     FieldDescriptor fd;
     TempDescriptor dst;
+    TaintSet taint=null;
+
     if (node.kind()==FKind.FlatElementNode) {
       FlatElementNode fen=(FlatElementNode) node;
       src=fen.getSrc();
@@ -1376,22 +1383,26 @@ public class Pointer {
       fd=ffn.getField();
       dst=ffn.getDst();
     }
+    if (OoOJava&&taskAnalysis.isPotentialStallSite(node)) {
+      taint=TaintSet.factory(Taint.factory(node,  src, null, null, null));
+    }
+
     //Do nothing for non pointers
     if (!dst.getType().isPtr())
       return delta;
     if (delta.getInit()) {
       MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node);
+      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node, taint);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
       /* First compute new objects we read fields of */
       MySet<Edge> allsrcedges=GraphManip.getEdges(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd, node);
+      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd, node, taint);
       /* Next compute new targets of fields */
       MySet<Edge> newsrcedges=GraphManip.getDiffEdges(delta, src);
-      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd, node);
+      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd, node, taint);
 
       /* Compute the union, and then the set of edges */
       Edge.mergeEdgesInto(edgesToAdd, newfdedges);

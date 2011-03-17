@@ -4,6 +4,7 @@ import IR.*;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import java.util.*;
 import Analysis.Disjoint.TaintSet;
+import Analysis.Disjoint.Taint;
 
 public class GraphManip {
   static MySet<Edge> genEdges(TempDescriptor tmp, HashSet<AllocNode> dstSet) {
@@ -219,12 +220,17 @@ public class GraphManip {
     return edgeset;
   }
 
-  static MySet<Edge> dereference(Graph graph, Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn) {
+  static MySet<Edge> dereference(Graph graph, Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn, TaintSet taint) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge edge:srcEdges) {
       TaintSet ts=edge.getTaints();
-      if (ts!=null)
-	  ts=ts.reTaint(fn);
+      if (ts!=null) {
+	ts=ts.reTaint(fn);
+	if (taint!=null)
+	  ts=ts.merge(taint);
+      } else {
+	ts=taint;
+      }
       MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
       for(Edge e:graph.getEdges(edge.dst)) {
 	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
@@ -255,12 +261,16 @@ public class GraphManip {
     return edgeset;
   }
 
-  static MySet<Edge> diffDereference(Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn) {
+  static MySet<Edge> diffDereference(Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn, TaintSet taint) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge edge:srcEdges) {
       TaintSet ts=edge.getTaints();
-      if (ts!=null)
-	  ts=ts.reTaint(fn);
+      if (ts!=null) {
+	if (taint!=null)
+	  ts=ts.merge(taint);
+	ts=ts.reTaint(fn);
+      } else
+	ts=taint;
       MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
       if (delta.baseheapedge.containsKey(edge.dst)) {
 	for(Edge e:delta.baseheapedge.get(edge.dst)) {
