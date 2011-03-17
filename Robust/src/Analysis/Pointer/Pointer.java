@@ -6,6 +6,8 @@ import Analysis.Liveness;
 import Analysis.Pointer.BasicBlock.BBlock;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import Analysis.Disjoint.Taint;
+import Analysis.Disjoint.TaintSet;
+import Analysis.Disjoint.Canonical;
 import Analysis.CallGraph.CallGraph;
 import java.io.*;
 
@@ -17,6 +19,7 @@ public class Pointer {
   HashMap<BBlock, Set<PPoint>> returnMap;
   HashMap<BBlock, Set<TempDescriptor>> bblivetemps;
 
+  boolean OoOJava=false;
   CallGraph callGraph;
   State state;
   TypeUtil typeUtil;
@@ -381,12 +384,14 @@ public class Pointer {
     case FKind.FlatSetFieldNode:
     case FKind.FlatSetElementNode:
       return processSetFieldElementNode(node, delta, newgraph);
+    case FKind.FlatSESEEnterNode:
+      return processSESEEnterNode((FlatSESEEnterNode) node, delta, newgraph);
+    case FKind.FlatSESEExitNode:
+      return processSESEExitNode((FlatSESEExitNode) node, delta, newgraph);
     case FKind.FlatMethod:
     case FKind.FlatExit:
     case FKind.FlatBackEdge:
     case FKind.FlatGenReachNode:
-    case FKind.FlatSESEEnterNode:
-    case FKind.FlatSESEExitNode:
       return processFlatNop(node, delta, newgraph);
     case FKind.FlatCall:
       return processFlatCall(bblock, index, (FlatCall) node, delta, newgraph);
@@ -395,7 +400,9 @@ public class Pointer {
     }
   }
 
-  Delta processSESEEnter(FlatSESEEnterNode sese, Delta delta, Graph graph) {
+  Delta processSESEEnterNode(FlatSESEEnterNode sese, Delta delta, Graph graph) {
+    if (!OoOJava)
+      return processFlatNop(sese, delta, graph);
     if (delta.getInit()) {
       removeInitTaints(null, delta, graph);
       for (TempDescriptor tmp:sese.getInVarSet()) {
@@ -428,24 +435,118 @@ public class Pointer {
     return callGraph.getCalleeSet(md).contains(md);
   }
 
-
-  Delta processSESEExit(FlatSESEExitNode seseexit, Delta delta, Graph graph) {
+  Delta processSESEExitNode(FlatSESEExitNode seseexit, Delta delta, Graph graph) {
+    if (!OoOJava)
+      return processFlatNop(seseexit, delta, graph);
     FlatSESEEnterNode sese=seseexit.getFlatEnter();
     //Strip Taints from this SESE
     if (delta.getInit()) {
       removeInitTaints(isRecursive(sese)?sese:null, delta, graph);
     } else {
-      removeDiffTaints(isRecursive(sese)?sese:null, delta, graph);
+      removeDiffTaints(isRecursive(sese)?sese:null, delta);
     }
     applyDiffs(graph, delta);
     return delta;
   }
+  
+  void removeDiffTaints(FlatSESEEnterNode sese, Delta delta) {
+    //Start with variable edges
+    {
+      MySet<Edge> edgestoadd=new MySet<Edge>();
+      MySet<Edge> edgestoremove=new MySet<Edge>();
+      
+      //Process base diff edges
+      processEdgeMap(sese, delta.basevaredge, null, delta.varedgeremove, edgestoremove, edgestoadd); 
+      //Process delta edges
+      processEdgeMap(sese, delta.varedgeadd, null, null, edgestoremove, edgestoadd); 
+      for(Edge e:edgestoremove) {
+	delta.removeVarEdge(e);
+      }
+      for(Edge e:edgestoadd) {
+	delta.addVarEdge(e);
+      }
+    }
 
-  void removeInitTaints(FlatSESEEnterNode sese, Delta delta, Graph graph) {
-    
+    //Now do heap edges
+    {
+      MySet<Edge> edgestoadd=new MySet<Edge>();
+      MySet<Edge> edgestoremove=new MySet<Edge>();
+
+      //Process base diff edges
+      processEdgeMap(sese, delta.baseheapedge, null, delta.heapedgeremove, edgestoremove, edgestoadd); 
+      //Process delta edges
+      processEdgeMap(sese, delta.heapedgeadd, null, null, edgestoremove, edgestoadd); 
+      for(Edge e:edgestoremove) {
+	delta.removeHeapEdge(e);
+      }
+      for(Edge e:edgestoadd) {
+	delta.addHeapEdge(e);
+      }
+    }
   }
 
-  void processEdgeMap(FlatSESEEnterNode sese, Delta delta, Graph graph, HashMap<Object, MySet<Edge>> edgemap) {
+  void removeInitTaints(FlatSESEEnterNode sese, Delta delta, Graph graph) {
+    //Start with variable edges
+    {
+      MySet<Edge> edgestoadd=new MySet<Edge>();
+      MySet<Edge> edgestoremove=new MySet<Edge>();
+      
+      //Process parent edges
+      processEdgeMap(sese, graph.parent.varMap, graph.varMap, delta.varedgeremove, edgestoremove, edgestoadd);
+      //Process graph edges
+      processEdgeMap(sese, graph.varMap, null, delta.varedgeremove, edgestoremove, edgestoadd); 
+      //Process delta edges
+      processEdgeMap(sese, delta.varedgeadd, null, null, edgestoremove, edgestoadd); 
+      for(Edge e:edgestoremove) {
+	delta.removeVarEdge(e);
+      }
+      for(Edge e:edgestoadd) {
+	delta.addVarEdge(e);
+      }
+    }
+
+    //Now do heap edges
+    {
+      MySet<Edge> edgestoadd=new MySet<Edge>();
+      MySet<Edge> edgestoremove=new MySet<Edge>();
+
+      //Process parent edges
+      processEdgeMap(sese, graph.parent.nodeMap, graph.nodeMap, delta.heapedgeremove, edgestoremove, edgestoadd);
+      //Process graph edges
+      processEdgeMap(sese, graph.nodeMap, null, delta.heapedgeremove, edgestoremove, edgestoadd); 
+      //Process delta edges
+      processEdgeMap(sese, delta.heapedgeadd, null, null, edgestoremove, edgestoadd); 
+      for(Edge e:edgestoremove) {
+	delta.removeHeapEdge(e);
+      }
+      for(Edge e:edgestoadd) {
+	delta.addHeapEdge(e);
+      }
+    }
+  }
+
+  void processEdgeMap(FlatSESEEnterNode sese, HashMap<?, MySet<Edge>> edgemap, HashMap<?, MySet<Edge>> childmap, HashMap<?, MySet<Edge>> removemap, MySet<Edge> edgestoremove, MySet<Edge> edgestoadd) {
+    for(Map.Entry<?, MySet<Edge>> entry:edgemap.entrySet()) {
+      //If the parent map exists and overrides this entry, skip it
+      if (childmap!=null&&childmap.containsKey(entry.getKey()))
+	continue;
+      for(Edge e:entry.getValue()) {
+	//check whether this edge has been removed
+	if (removemap==null&&removemap.containsKey(entry.getKey())&&
+	    removemap.get(entry.getKey()).contains(e))
+	  continue;
+	//have real edge
+	TaintSet ts=e.getTaints();
+	TaintSet newts=null;
+	//update non-null taint set
+	if (ts!=null)
+	  newts=Canonical.removeInContextTaintsNP(ts, sese);
+	if (newts!=null) {
+	  edgestoremove.add(e);
+	  edgestoadd.add(e.changeTaintSet(newts));
+	}
+      }
+    }
   }
 
   void removeDiffTaints(FlatSESEEnterNode sese, Delta delta, Graph graph) {

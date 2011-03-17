@@ -88,6 +88,10 @@ public class TaintSet extends Canonical {
     taints = new HashSet<Taint>();
   }
 
+  public Set<Taint> getTaints() {
+    return taints;
+  }
+
   public Iterator iterator() {
     return taints.iterator();
   }

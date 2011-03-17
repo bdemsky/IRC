@@ -1480,6 +1480,33 @@ abstract public class Canonical {
     return out;
   }
 
+  public static TaintSet removeInContextTaintsNP( TaintSet          ts,
+                                                FlatSESEEnterNode sese ) {
+    assert ts != null;
+    assert ts.isCanonical();
+    assert sese != null;
+
+    // NEVER a cached result... (cry)
+    TaintSet out = new TaintSet();
+
+    Iterator<Taint> tItr = ts.iterator();
+    while( tItr.hasNext() ) {
+      Taint t = tItr.next();
+
+      // what is allowed through?  stall site taints always
+      // go through, anything where rblock doesn't match is
+      // unaffected, and if the taint has a non-empty predicate
+      // it is out of context so it should go through, too
+      if( t.getSESE() == null ||
+          t.getSESE()!=sese) {
+        out.taints.add( t );
+      }
+    }
+    
+    out = (TaintSet) makeCanonical( out );
+    return out;
+  }
+
   public static TaintSet removeStallSiteTaints( TaintSet ts ) {
     assert ts != null;
     assert ts.isCanonical();

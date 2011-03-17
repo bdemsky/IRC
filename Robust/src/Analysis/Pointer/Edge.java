@@ -80,6 +80,16 @@ public class Edge {
     return newe;
   }
 
+  public TaintSet getTaints() {
+    return taints;
+  }
+
+  public Edge changeTaintSet(TaintSet ts) {
+    Edge newe=copy();
+    newe.taints=ts;
+    return newe;
+  }
+
   public boolean equals(Object o) {
     if (o instanceof Edge) {
       Edge e=(Edge) o;
