@@ -103,10 +103,25 @@ public class Edge {
     return false;
   }
 
-  public Edge changeSrcVar(TempDescriptor tmp) {
+  public Edge changeSrcVar(TempDescriptor tmp, TaintSet taintset) {
     Edge e=new Edge();
     e.fd=fd;
     e.srcvar=srcvar;
+    e.dst=dst;
+    e.statuspredicate=NEW;
+    if (taints==null)
+      e.taints=taintset;
+    else if (taintset==null)
+      e.taints=taints;
+    else
+      e.taints=taints.merge(taintset);
+    return e;
+  }
+
+  public Edge changeSrc(FieldDescriptor newfd, AllocNode srcnode) {
+    Edge e=new Edge();
+    e.fd=newfd;
+    e.src=srcnode;
     e.dst=dst;
     e.statuspredicate=NEW;
     if (taints!=null)
@@ -201,5 +216,13 @@ public class Edge {
       }
       orig.add(e);
     }
+  }
+
+  public static void mergeEdgeInto(MySet<Edge> orig, Edge e) {
+    if (orig.contains(e)) {
+      Edge old=orig.get(e);
+      e=e.merge(old);
+    }
+    orig.add(e);
   }
 }

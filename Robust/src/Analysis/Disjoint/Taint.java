@@ -55,7 +55,11 @@ public class Taint extends Canonical {
   // callee to that context
   protected ExistPredSet preds;
 
-
+  public Taint reTaint(FlatNode fn) {
+    Taint out=new Taint(sese, stallSite, var, allocSite, fn, preds);
+    out = (Taint) Canonical.makeCanonical( out );
+    return out;
+  }
 
   public static Taint factory( FlatSESEEnterNode sese,
                                TempDescriptor    insetVar,

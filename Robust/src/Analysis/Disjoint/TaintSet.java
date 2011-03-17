@@ -32,6 +32,26 @@ public class TaintSet extends Canonical {
 
   protected HashSet<Taint> taints;
 
+  public static TaintSet factory(HashSet<Taint> taints) {
+    TaintSet out = new TaintSet(taints);
+    out = (TaintSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
+  public TaintSet reTaint(FlatNode fn) {
+    HashSet<Taint> taintset=new HashSet<Taint>();
+    for(Taint t:taints) {
+      if (t.getWhereDefined()!=fn) {
+	t=t.reTaint(fn);
+      }
+      taintset.add(t);
+    }
+    
+    TaintSet out=new TaintSet(taintset);
+    out = (TaintSet) Canonical.makeCanonical( out );
+    return out;
+  }
+
   public static TaintSet factory() {
     TaintSet out = new TaintSet();
     out = (TaintSet) Canonical.makeCanonical( out );
@@ -86,6 +106,10 @@ public class TaintSet extends Canonical {
 
   protected TaintSet() {
     taints = new HashSet<Taint>();
+  }
+
+  protected TaintSet(HashSet<Taint> taints) {
+    this.taints = taints;
   }
 
   public Set<Taint> getTaints() {

@@ -1185,7 +1185,7 @@ public class Pointer {
 	else
 	  graph.nodeMap.put(node, new MySet<Edge>());
       }
-      graph.nodeMap.get(node).addAll(edgestoadd);
+      Edge.mergeEdgesInto(graph.nodeMap.get(node),edgestoadd);
       if (genbackwards) {
 	for(Edge eadd:edgestoadd) {
 	  if (!graph.backMap.containsKey(eadd.dst))
@@ -1216,7 +1216,7 @@ public class Pointer {
       TempDescriptor tmp=e.getKey();
       MySet<Edge> edgestoadd=e.getValue();
       if (graph.varMap.containsKey(tmp)) {
-	graph.varMap.get(tmp).addAll(edgestoadd);
+	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
       } else 
 	graph.varMap.put(tmp, (MySet<Edge>) edgestoadd.clone());
       if (genbackwards) {
@@ -1260,9 +1260,9 @@ public class Pointer {
       return delta;
 
     if (delta.getInit()) {
-      HashSet<AllocNode> srcNodes=GraphManip.getNodes(graph, delta, src);
+      MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(dstNodes, fd, srcNodes);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dstNodes, fd, srcEdges);
       MySet<Edge> edgesToRemove=null;
       if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
 	/* Can do a strong update */
@@ -1276,8 +1276,8 @@ public class Pointer {
     } else {
       /* First look at new sources */
       MySet<Edge> edgesToAdd=new MySet<Edge>();
-      HashSet<AllocNode> newSrcNodes=GraphManip.getDiffNodes(delta, src);
-      HashSet<AllocNode> srcNodes=GraphManip.getNodes(graph, delta, src);
+      MySet<Edge> newSrcEdges=GraphManip.getDiffEdges(delta, src);
+      MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
       HashSet<AllocNode> newDstNodes=GraphManip.getDiffNodes(delta, dst);
 
@@ -1294,7 +1294,7 @@ public class Pointer {
 	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
 	  graph.strongUpdateSet.addAll(edgesToRemove);
 	}
-	edgesToAdd.addAll(GraphManip.genEdges(newDstNodes, fd, srcNodes));
+	Edge.mergeEdgesInto(edgesToAdd, GraphManip.genEdges(newDstNodes, fd, srcEdges));
       }
 
       //Kill new edges
@@ -1308,7 +1308,7 @@ public class Pointer {
       }
 
       //Next look at new destinations
-      edgesToAdd.addAll(GraphManip.genEdges(dstNodes, fd, newSrcNodes));
+      Edge.mergeEdgesInto(edgesToAdd, GraphManip.genEdges(dstNodes, fd, newSrcEdges));
 
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
@@ -1381,17 +1381,17 @@ public class Pointer {
       return delta;
     if (delta.getInit()) {
       MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd);
+      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
       /* First compute new objects we read fields of */
       MySet<Edge> allsrcedges=GraphManip.getEdges(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd);     
+      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd, node);
       /* Next compute new targets of fields */
       MySet<Edge> newsrcedges=GraphManip.getDiffEdges(delta, src);
-      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd);
+      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd, node);
 
       /* Compute the union, and then the set of edges */
       Edge.mergeEdgesInto(edgesToAdd, newfdedges);
@@ -1759,6 +1759,13 @@ public class Pointer {
 	    //We have a new edge
 	    diffedges.add(e);
 	    dstedges.add(e);
+	  } else {
+	    Edge origedge=dstedges.get(e);
+	    if (!origedge.subsumes(e)) {
+	      Edge mergededge=origedge.merge(e);
+	      diffedges.add(mergededge);
+	      dstedges.add(mergededge);
+	    }
 	  }
 	}
 	//Done with edge set...

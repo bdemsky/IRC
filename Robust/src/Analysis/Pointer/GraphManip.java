@@ -3,6 +3,7 @@ import IR.Flat.*;
 import IR.*;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import java.util.*;
+import Analysis.Disjoint.TaintSet;
 
 public class GraphManip {
   static MySet<Edge> genEdges(TempDescriptor tmp, HashSet<AllocNode> dstSet) {
@@ -16,7 +17,7 @@ public class GraphManip {
   static MySet<Edge> genEdges(TempDescriptor tmp, MySet<Edge> dstSet) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge e:dstSet) {
-      edgeset.add(e.changeSrcVar(tmp));
+      edgeset.add(e.changeSrcVar(tmp, null));
     }
     return edgeset;
   }
@@ -26,6 +27,16 @@ public class GraphManip {
     for(AllocNode srcnode:srcSet) {
       for(AllocNode dstnode:dstSet) {
 	edgeset.add(new Edge(srcnode, fd, dstnode, Edge.NEW));
+      }
+    }
+    return edgeset;
+  }
+
+  static MySet<Edge> genEdges(HashSet<AllocNode> srcSet, FieldDescriptor fd, MySet<Edge> dstSet) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    for(AllocNode srcnode:srcSet) {
+      for(Edge dstedge:dstSet) {
+	edgeset.add(dstedge.changeSrc(fd, srcnode));
       }
     }
     return edgeset;
@@ -208,13 +219,16 @@ public class GraphManip {
     return edgeset;
   }
 
-  static MySet<Edge> dereference(Graph graph, Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd) {
+  static MySet<Edge> dereference(Graph graph, Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge edge:srcEdges) {
+      TaintSet ts=edge.getTaints();
+      if (ts!=null)
+	  ts=ts.reTaint(fn);
       MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
       for(Edge e:graph.getEdges(edge.dst)) {
 	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
-	  e=e.changeSrcVar(dst);
+	  e=e.changeSrcVar(dst, ts);
 	  if (!edgeset.contains(e))
 	    edgeset.add(e);
 	  else {
@@ -227,7 +241,7 @@ public class GraphManip {
       if (delta.heapedgeadd.containsKey(edge.dst))
 	for(Edge e:delta.heapedgeadd.get(edge.dst)) {
 	  if (e.fd==fd) {
-	    e=e.changeSrcVar(dst);
+	    e=e.changeSrcVar(dst, ts);
 	    if (!edgeset.contains(e))
 	      edgeset.add(e);
 	    else {
@@ -241,14 +255,17 @@ public class GraphManip {
     return edgeset;
   }
 
-  static MySet<Edge> diffDereference(Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd) {
+  static MySet<Edge> diffDereference(Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge edge:srcEdges) {
+      TaintSet ts=edge.getTaints();
+      if (ts!=null)
+	  ts=ts.reTaint(fn);
       MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
       if (delta.baseheapedge.containsKey(edge.dst)) {
 	for(Edge e:delta.baseheapedge.get(edge.dst)) {
 	  if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
-	    e=e.changeSrcVar(dst);
+	    e=e.changeSrcVar(dst, ts);
 	    if (!edgeset.contains(e))
 	      edgeset.add(e);
 	    else {
@@ -262,7 +279,7 @@ public class GraphManip {
       if (delta.heapedgeadd.containsKey(edge.dst))
 	for(Edge e:delta.heapedgeadd.get(edge.dst)) {
 	  if (e.fd==fd) {
-	    e=e.changeSrcVar(dst);
+	    e=e.changeSrcVar(dst, ts);
 	    if (!edgeset.contains(e))
 	      edgeset.add(e);
 	    else {

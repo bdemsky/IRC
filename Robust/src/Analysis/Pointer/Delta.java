@@ -189,14 +189,14 @@ public class Delta {
     if (!heapedgeadd.containsKey(e.src))
       heapedgeadd.put(e.src, new MySet<Edge>(e));
     else
-      heapedgeadd.get(e.src).add(e);
+      Edge.mergeEdgeInto(heapedgeadd.get(e.src), e);
   }
 
   public void addVarEdge(Edge e) {
     if (!varedgeadd.containsKey(e.srcvar))
       varedgeadd.put(e.srcvar, new MySet<Edge>(e));
     else
-      varedgeadd.get(e.srcvar).add(e);
+      Edge.mergeEdgeInto(varedgeadd.get(e.srcvar), e);
   }
 
   public void removeEdges(MySet<Edge> eset) {
