@@ -9,7 +9,7 @@ public class FlatNode {
   protected Vector prev;
   static int idcounter=0;
   public final int nodeid;
-  public int lineNum;
+  public int numLine;
 
   public FlatNode() {
     next=new Vector();
@@ -137,11 +137,11 @@ public class FlatNode {
     prev=null;
   }
   
-  public void setLineNum(int lineNum){
-    this.lineNum=lineNum;
+  public void setNumLine(int lineNum){
+    this.numLine=lineNum;
   }
   
-  public int getLineNume(){
-    return this.lineNum;
+  public int getNumLine(){
+    return this.numLine;
   }
 }

@@ -58,6 +58,7 @@ public class BuildFlat {
     }
 
     FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.PRE);
+    ffan.setNumLine(bn.getNumLine());
     ffan.addNext(fn);
 
     FlatMethod fm=new FlatMethod(td, fe);
@@ -185,7 +186,9 @@ public class BuildFlat {
       BlockNode bn=state.getMethodBody(currmd);
 
       if (state.DSM&&currmd.getModifiers().isAtomic()) {
-	curran=new FlatAtomicEnterNode();
+        FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
+        faen.setNumLine(bn.getNumLine());
+	curran = faen;
       } else
 	curran=null;
       if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
@@ -211,6 +214,7 @@ public class BuildFlat {
     for(int j = 0; j < this.lockStack.size(); j++) {
       TempDescriptor thistd = this.lockStack.elementAt(j);
       FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+      fc.setNumLine(bn.getNumLine());
       if(first == null)  {
         first = end = fc;
       } else {
@@ -226,6 +230,7 @@ public class BuildFlat {
 	  while(!this.lockStack.isEmpty()) {
 	    TempDescriptor thistd = this.lockStack.pop();
 	    FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+	    fcunlock.setNumLine(bn.getNumLine());
 	    end.addNext(fcunlock);
 	    end = fcunlock;
 	  }
@@ -267,6 +272,7 @@ public class BuildFlat {
       }
 
       FlatMethod fm=new FlatMethod(currmd, fe);
+      fm.setNumLine(bn.getNumLine());
       fm.addNext(fn);
       if (!currmd.isStatic())
 	fm.addParameterTemp(getTempforParam(currmd.getThis()));
@@ -314,17 +320,20 @@ public class BuildFlat {
     TempDescriptor tmp=TempDescriptor.tempFactory("tocast",cn.getExpression().getType());
     NodePair np=flattenExpressionNode(cn.getExpression(), tmp);
     FlatCastNode fcn=new FlatCastNode(cn.getType(), tmp, out_temp);
+    fcn.setNumLine(cn.getNumLine());
     np.getEnd().addNext(fcn);
     return new NodePair(np.getBegin(),fcn);
   }
 
   private NodePair flattenLiteralNode(LiteralNode ln,TempDescriptor out_temp) {
     FlatLiteralNode fln=new FlatLiteralNode(ln.getType(), ln.getValue(), out_temp);
+    fln.setNumLine(ln.getNumLine());
     return new NodePair(fln,fln);
   }
 
   private NodePair flattenOffsetNode(OffsetNode ofn, TempDescriptor out_temp) {
     FlatOffsetNode fln = new FlatOffsetNode(ofn.getClassType(), ofn.getField(), out_temp);
+    fln.setNumLine(ofn.getNumLine());
     return new NodePair(fln, fln);
   }
 
@@ -340,7 +349,9 @@ public class BuildFlat {
 	if (fd.getType().iswrapper()) {
 	  TempDescriptor wrap_tmp=TempDescriptor.tempFactory("wrapper_obj",fd.getType());
 	  FlatNode fnwrapper=new FlatNew(fd.getType(), wrap_tmp, con.isGlobal());
+	  fnwrapper.setNumLine(con.getNumLine());
 	  FlatSetFieldNode fsfn=new FlatSetFieldNode(out_temp, fd, wrap_tmp);
+	  fsfn.setNumLine(con.getNumLine());
 	  last.addNext(fnwrapper);
 	  fnwrapper.addNext(fsfn);
 	  last=fsfn;
@@ -361,11 +372,13 @@ public class BuildFlat {
       MethodDescriptor md=con.getConstructor();
       //Call to constructor
       FlatCall fc=new FlatCall(md, null, out_temp, temps);
+      fc.setNumLine(con.getNumLine());
       last.addNext(fc);
       last=fc;
       if (td.getClassDesc().hasFlags()) {
 	//	    if (con.getFlagEffects()!=null) {
 	FlatFlagActionNode ffan=new FlatFlagActionNode(FlatFlagActionNode.NEWOBJECT);
+	ffan.setNumLine(con.getNumLine());
 	FlagEffects fes=con.getFlagEffects();
 	TempDescriptor flagtemp=out_temp;
 	if (fes!=null) {
@@ -511,9 +524,12 @@ public class BuildFlat {
 
     FlatCall fc;
     if(md.getReturnType()==null||md.getReturnType().isVoid())
-      fc=new FlatCall(md, null, thisarg, temps);
+      fc=new FlatCall(md, null, thisarg, temps);      
     else
       fc=new FlatCall(md, out_temp, thisarg, temps);
+    
+    fc.setNumLine(min.getNumLine());
+    
     if (first==null) {
       first=fc;
     } else
@@ -527,11 +543,13 @@ public class BuildFlat {
       // static field dereference with class name
       tmp = new TempDescriptor(fan.getExpression().getType().getClassDesc().getSymbol(), fan.getExpression().getType());
       FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
+      fn.setNumLine(fan.getNumLine());
       return new NodePair(fn,fn);
     } else {
       tmp=TempDescriptor.tempFactory("temp",fan.getExpression().getType());
       NodePair npe=flattenExpressionNode(fan.getExpression(),tmp);
       FlatFieldNode fn=new FlatFieldNode(fan.getField(),tmp,out_temp);
+      fn.setNumLine(fan.getNumLine());
       npe.getEnd().addNext(fn);
       return new NodePair(npe.getBegin(),fn);
     }
@@ -548,10 +566,12 @@ public class BuildFlat {
       arraytmp=TempDescriptor.tempFactory("temp", aan.getExpression().getType().dereference());
     }
     FlatNode fn=new FlatElementNode(tmp,tmpindex,arraytmp);
+    fn.setNumLine(aan.getNumLine());
     npe.getEnd().addNext(npi.getBegin());
     npi.getEnd().addNext(fn);
     if (aan.iswrapper()) {
       FlatFieldNode ffn=new FlatFieldNode((FieldDescriptor)aan.getExpression().getType().dereference().getClassDesc().getFieldTable().get("value") ,arraytmp,out_temp);
+      ffn.setNumLine(aan.getNumLine());
       fn.addNext(ffn);
       fn=ffn;
     }
@@ -578,7 +598,9 @@ public class BuildFlat {
     //Get src value
     if (an.getSrc()!=null) {
       if(an.getSrc().getEval() != null) {
-        first = last = new FlatLiteralNode(an.getSrc().getType(), an.getSrc().getEval().longValue(), src_tmp);
+        FlatLiteralNode fln=new FlatLiteralNode(an.getSrc().getType(), an.getSrc().getEval().longValue(), src_tmp);
+        fln.setNumLine(an.getSrc().getNumLine());
+        first = last =fln;
       } else {
         NodePair np_src=flattenExpressionNode(an.getSrc(),src_tmp);
         first=np_src.getBegin();
@@ -586,6 +608,7 @@ public class BuildFlat {
       }
     } else if (!pre) {
       FlatLiteralNode fln=new FlatLiteralNode(new TypeDescriptor(TypeDescriptor.INT),new Integer(1),src_tmp);
+      fln.setNumLine(an.getNumLine());
       first=fln;
       last=fln;
     }
@@ -618,6 +641,7 @@ public class BuildFlat {
 	TempDescriptor src_tmp2=pre ? TempDescriptor.tempFactory("src",an.getDest().getType()) : out_temp;
 	TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 	FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
+	ffn.setNumLine(an.getNumLine());
 	last.addNext(ffn);
 	last=ffn;
 
@@ -625,11 +649,13 @@ public class BuildFlat {
 	  ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
 	  MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
 	  FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+	  fc.setNumLine(an.getNumLine());
 	  src_tmp=tmp;
 	  last.addNext(fc);
 	  last=fc;
 	} else {
 	  FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+	  fon.setNumLine(an.getNumLine());
 	  src_tmp=tmp;
 	  last.addNext(fon);
 	  last=fon;
@@ -637,10 +663,12 @@ public class BuildFlat {
       }
 
       FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
+      fsfn.setNumLine(en.getNumLine());
       last.addNext(fsfn);
       last=fsfn;
       if (pre) {
 	FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	fon2.setNumLine(an.getNumLine());
 	fsfn.addNext(fon2);
 	last=fon2;
       }
@@ -672,12 +700,15 @@ public class BuildFlat {
 	  TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
 	  TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
 	  FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
+	  fen.setNumLine(aan.getNumLine());
 	  FlatFieldNode ffn=new FlatFieldNode((FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp3,src_tmp2);
+	  ffn.setNumLine(aan.getNumLine());
 	  last.addNext(fen);
 	  fen.addNext(ffn);
 	  last=ffn;
 	} else {
 	  FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp2);
+	  fen.setNumLine(aan.getNumLine());
 	  last.addNext(fen);
 	  last=fen;
 	}
@@ -685,11 +716,13 @@ public class BuildFlat {
 	  ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
 	  MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
 	  FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+	  fc.setNumLine(an.getNumLine());
 	  src_tmp=tmp;
 	  last.addNext(fc);
 	  last=fc;
 	} else {
 	  FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+	  fon.setNumLine(an.getNumLine());
 	  src_tmp=tmp;
 	  last.addNext(fon);
 	  last=fon;
@@ -700,17 +733,21 @@ public class BuildFlat {
 	TypeDescriptor arrayeltype=aan.getExpression().getType().dereference();
 	TempDescriptor src_tmp3=TempDescriptor.tempFactory("src3",arrayeltype);
 	FlatElementNode fen=new FlatElementNode(dst_tmp, index_tmp, src_tmp3);
+	fen.setNumLine(aan.getNumLine());
 	FlatSetFieldNode fsfn=new FlatSetFieldNode(src_tmp3,(FieldDescriptor)arrayeltype.getClassDesc().getFieldTable().get("value"),src_tmp);
+	fsfn.setNumLine(aan.getExpression().getNumLine());
 	last.addNext(fen);
 	fen.addNext(fsfn);
 	last=fsfn;
       } else { 
 	FlatSetElementNode fsen=new FlatSetElementNode(dst_tmp, index_tmp, src_tmp);
+	fsen.setNumLine(aan.getNumLine());
 	last.addNext(fsen);
 	last=fsen;
       }
       if (pre) {
 	FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	fon2.setNumLine(an.getNumLine());
 	last.addNext(fon2);
 	last=fon2;
       }
@@ -748,6 +785,7 @@ public class BuildFlat {
 	  TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 
 	  FlatFieldNode ffn=new FlatFieldNode(fan.getField(), dst_tmp, src_tmp2);
+	  ffn.setNumLine(an.getNumLine());
 	  last.addNext(ffn);
 	  last=ffn;
 
@@ -756,11 +794,13 @@ public class BuildFlat {
 	    ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
 	    MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
 	    FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+	    fc.setNumLine(an.getNumLine());
 	    src_tmp=tmp;
 	    last.addNext(fc);
 	    last=fc;
 	  } else {
 	    FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+	    fon.setNumLine(an.getNumLine());
 	    src_tmp=tmp;
 	    last.addNext(fon);
 	    last=fon;
@@ -769,10 +809,12 @@ public class BuildFlat {
 
 
 	FlatSetFieldNode fsfn=new FlatSetFieldNode(dst_tmp, fan.getField(), src_tmp);
+	fsfn.setNumLine(en.getNumLine());
 	last.addNext(fsfn);
 	last=fsfn;
 	if (pre) {
 	  FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	  fon2.setNumLine(an.getNumLine());
 	  fsfn.addNext(fon2);
 	  last=fon2;
 	}
@@ -797,6 +839,7 @@ public class BuildFlat {
           ftmp=getTempforVar(nn.getVar());
         }
         FlatFieldNode ffn=new FlatFieldNode(nn.getField(), ftmp, src_tmp2);
+        ffn.setNumLine(an.getNumLine());
 
 	    if (first==null)
 	      first=ffn;
@@ -810,11 +853,13 @@ public class BuildFlat {
 	      ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
 	      MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
 	      FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+	      fc.setNumLine(an.getNumLine());
 	      src_tmp=tmp;
 	      last.addNext(fc);
 	      last=fc;
 	    } else {
 	      FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+	      fon.setNumLine(an.getNumLine());
 	      src_tmp=tmp;
 	      last.addNext(fon);
 	      last=fon;
@@ -825,8 +870,10 @@ public class BuildFlat {
       if(nn.getClassDesc()!=null) {
         // this is a static field access inside of a static block
         fsfn=new FlatSetFieldNode(new TempDescriptor("sfsb", nn.getClassType()), nn.getField(), src_tmp);
+        fsfn.setNumLine(nn.getNumLine());
       } else {
         fsfn=new FlatSetFieldNode(getTempforVar(nn.getVar()), nn.getField(), src_tmp);
+        fsfn.setNumLine(nn.getNumLine());
       }
 	  if (first==null) {
 	    first=fsfn;
@@ -836,6 +883,7 @@ public class BuildFlat {
 	  last=fsfn;
 	  if (pre) {
 	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	    fon2.setNumLine(an.getNumLine());
 	    fsfn.addNext(fon2);
 	    last=fon2;
 	  }
@@ -850,6 +898,7 @@ public class BuildFlat {
 	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
 	    if (!pre) {
 	      FlatOpNode fon=new FlatOpNode(out_temp, src_tmp2, null, new Operation(Operation.ASSIGN));
+	      fon.setNumLine(an.getNumLine());
 	      if (first==null)
 		first=fon;
 	      else
@@ -862,6 +911,7 @@ public class BuildFlat {
 	      ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
 	      MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat2", new TypeDescriptor[] {new TypeDescriptor(stringcd), new TypeDescriptor(stringcd)});
 	      FlatCall fc=new FlatCall(concatmd, tmp, null, new TempDescriptor[] {src_tmp2, src_tmp});
+	      fc.setNumLine(an.getNumLine());
 	      if (first==null)
 		first=fc;
 	      else
@@ -870,6 +920,7 @@ public class BuildFlat {
 	      last=fc;
 	    } else {
 	      FlatOpNode fon=new FlatOpNode(tmp, src_tmp2, src_tmp, base);
+	      fon.setNumLine(an.getNumLine());
 	      if (first==null)
 		first=fon;
 	      else
@@ -880,11 +931,13 @@ public class BuildFlat {
 	  }
 
 	  FlatOpNode fon=new FlatOpNode(getTempforVar(nn.getVar()), src_tmp, null, new Operation(Operation.ASSIGN));
+	  fon.setNumLine(an.getNumLine());
 
 	  last.addNext(fon);
 	  last=fon;
 	  if (pre) {
 	    FlatOpNode fon2=new FlatOpNode(out_temp, src_tmp, null, new Operation(Operation.ASSIGN));
+	    fon2.setNumLine(an.getNumLine());
 	    fon.addNext(fon2);
 	    last=fon2;
 	  }
@@ -910,6 +963,7 @@ public class BuildFlat {
       tmp=getTempforVar(nn.getVar());
       }
       FlatFieldNode ffn=new FlatFieldNode(nn.getField(), tmp, out_temp);
+      ffn.setNumLine(nn.getNumLine());
       return new NodePair(ffn,ffn);
     } else {
       TempDescriptor tmp=getTempforVar(nn.isTag() ? nn.getTagVar() : nn.getVar());
@@ -918,6 +972,7 @@ public class BuildFlat {
 	out_temp.setTag(tmp.getTag());
       }
       FlatOpNode fon=new FlatOpNode(out_temp, tmp, null, new Operation(Operation.ASSIGN));
+      fon.setNumLine(nn.getNumLine());
       return new NodePair(fon,fon);
     }
   }
@@ -941,8 +996,11 @@ public class BuildFlat {
     if (op.getOp()==Operation.LOGIC_OR) {
       /* Need to do shortcircuiting */
       FlatCondBranch fcb=new FlatCondBranch(temp_left);
+      fcb.setNumLine(on.getNumLine());
       FlatOpNode fon1=new FlatOpNode(out_temp,temp_left,null,new Operation(Operation.ASSIGN));
+      fon1.setNumLine(on.getNumLine());
       FlatOpNode fon2=new FlatOpNode(out_temp,temp_right,null,new Operation(Operation.ASSIGN));
+      fon2.setNumLine(on.getNumLine());
       FlatNop fnop=new FlatNop();
       left.getEnd().addNext(fcb);
       fcb.addFalseNext(right.getBegin());
@@ -954,8 +1012,11 @@ public class BuildFlat {
     } else if (op.getOp()==Operation.LOGIC_AND) {
       /* Need to do shortcircuiting */
       FlatCondBranch fcb=new FlatCondBranch(temp_left);
+      fcb.setNumLine(on.getNumLine());
       FlatOpNode fon1=new FlatOpNode(out_temp,temp_left,null,new Operation(Operation.ASSIGN));
+      fon1.setNumLine(on.getNumLine());
       FlatOpNode fon2=new FlatOpNode(out_temp,temp_right,null,new Operation(Operation.ASSIGN));
+      fon2.setNumLine(on.getNumLine());
       FlatNop fnop=new FlatNop();
       left.getEnd().addNext(fcb);
       fcb.addTrueNext(right.getBegin());
@@ -969,12 +1030,14 @@ public class BuildFlat {
       ClassDescriptor stringcd=typeutil.getClass(TypeUtil.StringClass);
       MethodDescriptor concatmd=typeutil.getMethod(stringcd, "concat", new TypeDescriptor[] {new TypeDescriptor(stringcd)});
       FlatCall fc=new FlatCall(concatmd, out_temp, temp_left, new TempDescriptor[] {temp_right});
+      fc.setNumLine(on.getNumLine());
       left.getEnd().addNext(right.getBegin());
       right.getEnd().addNext(fc);
       return new NodePair(left.getBegin(), fc);
     }
 
     FlatOpNode fon=new FlatOpNode(out_temp,temp_left,temp_right,op);
+    fon.setNumLine(on.getNumLine());
     left.getEnd().addNext(right.getBegin());
     right.getEnd().addNext(fon);
     return new NodePair(left.getBegin(),fon);
@@ -1040,6 +1103,7 @@ public class BuildFlat {
     TagDescriptor tag=tvd.getTag();
     TempDescriptor tmp=getTempforVar(tvd);
     FlatTagDeclaration ftd=new FlatTagDeclaration(tag, tmp);
+    ftd.setNumLine(dn.getNumLine());
     return new NodePair(ftd,ftd);
   }
 
@@ -1089,6 +1153,7 @@ public class BuildFlat {
     TempDescriptor cond_temp=TempDescriptor.tempFactory("condition",new TypeDescriptor(TypeDescriptor.BOOLEAN));
     NodePair cond=flattenExpressionNode(isn.getCondition(),cond_temp);
     FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+    fcb.setNumLine(isn.getNumLine());
     NodePair true_np=flattenBlockNode(isn.getTrueBlock());
     NodePair false_np;
     FlatNop nopend=new FlatNop();
@@ -1150,9 +1215,11 @@ public class BuildFlat {
           Operation op=new Operation(Operation.EQUAL);
           left=flattenExpressionNode(sln.getCondition(), temp_left);
           FlatOpNode fon=new FlatOpNode(cond_tmp, temp_left, cond_temp, op);
+          fon.setNumLine(sln.getNumLine());
           left.getEnd().addNext(fon);
 
           FlatCondBranch fcb=new FlatCondBranch(cond_tmp);
+          fcb.setNumLine(bn.getNumLine());
           fcb.setTrueProb(State.TRUEPROB);
 
           FlatNop nop=new FlatNop();
@@ -1215,6 +1282,7 @@ public class BuildFlat {
       NodePair body=flattenBlockNode(ln.getBody());
       FlatNode begin=initializer.getBegin();
       FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+      fcb.setNumLine(ln.getNumLine());
       fcb.setTrueProb(State.TRUEPROB);
       fcb.setLoop();
       FlatNop nopend=new FlatNop();
@@ -1249,6 +1317,7 @@ public class BuildFlat {
       NodePair body=flattenBlockNode(ln.getBody());
       FlatNode begin=condition.getBegin();
       FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+      fcb.setNumLine(ln.getNumLine());
       fcb.setTrueProb(State.TRUEPROB);
       fcb.setLoop();
       FlatNop nopend=new FlatNop();
@@ -1281,6 +1350,7 @@ public class BuildFlat {
       NodePair body=flattenBlockNode(ln.getBody());
       FlatNode begin=body.getBegin();
       FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+      fcb.setNumLine(ln.getNumLine());
       fcb.setTrueProb(State.TRUEPROB);
       fcb.setLoop();
       FlatNop nopend=new FlatNop();
@@ -1318,6 +1388,7 @@ public class BuildFlat {
     }
 
     FlatReturnNode rnflat=new FlatReturnNode(retval);
+    rnflat.setNumLine(rntree.getNumLine());
     rnflat.addNext(fe);
     FlatNode ln=rnflat;
     if ((state.THREAD||state.MGC)&&!this.lockStack.isEmpty()) {
@@ -1326,6 +1397,7 @@ public class BuildFlat {
       for(int j = this.lockStack.size(); j > 0; j--) {
         TempDescriptor thistd = this.lockStack.elementAt(j-1);
         FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+        fcunlock.setNumLine(rntree.getNumLine());
         if(end != null) {
           end.addNext(fcunlock);
         }
@@ -1354,6 +1426,7 @@ public class BuildFlat {
     NodePair fcn=flattenConstraintCheck(ten.getChecks());
     ffan.addNext(fcn.getBegin());
     FlatReturnNode rnflat=new FlatReturnNode(null);
+    rnflat.setNumLine(ten.getNumLine());
     rnflat.addNext(fe);
     fcn.getEnd().addNext(rnflat);
     return new NodePair(ffan, null);
@@ -1407,9 +1480,12 @@ public class BuildFlat {
 
     MethodDescriptor menmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
     FlatCall fcen=new FlatCall(menmd, null, montmp, new TempDescriptor[0]);
+    fcen.setNumLine(sbn.getNumLine());
 
     MethodDescriptor mexmd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
     FlatCall fcex=new FlatCall(mexmd, null, montmp, new TempDescriptor[0]);
+    fcex.setNumLine(sbn.getNumLine());
+    
     this.lockStack.pop();
 
     if(first != null) {
@@ -1432,6 +1508,7 @@ public class BuildFlat {
   private NodePair flattenAtomicNode(AtomicNode sbn) {
     NodePair np=flattenBlockNode(sbn.getBlockNode());
     FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
+    faen.setNumLine(sbn.getNumLine());
     FlatAtomicExitNode faexn=new FlatAtomicExitNode(faen);
     faen.addNext(np.getBegin());
     np.getEnd().addNext(faexn);
@@ -1446,6 +1523,7 @@ public class BuildFlat {
   private NodePair flattenSESENode(SESENode sn) {
     if( sn.isStart() ) {
       FlatSESEEnterNode fsen=new FlatSESEEnterNode(sn);
+      fsen.setNumLine(sn.getNumLine());
       sn.setFlatEnter(fsen);
       return new NodePair(fsen, fsen);
     }
@@ -1472,6 +1550,7 @@ public class BuildFlat {
     TempDescriptor expr_temp=TempDescriptor.tempFactory("expr",tn.getExpr().getType());
     NodePair cond=flattenExpressionNode(tn.getExpr(), expr_temp);
     FlatInstanceOfNode fion=new FlatInstanceOfNode(tn.getExprType(), expr_temp, out_temp);
+    fion.setNumLine(tn.getNumLine());
     cond.getEnd().addNext(fion);
     return new NodePair(cond.getBegin(),fion);
   }
@@ -1487,6 +1566,7 @@ public class BuildFlat {
     FlatNode last=null;
     TempDescriptor tmp=TempDescriptor.tempFactory("arg", new TypeDescriptor(TypeDescriptor.INT));
     FlatLiteralNode fln_tmp=new FlatLiteralNode(tmp.getType(), new Integer(ain.numVarInitializers()), tmp);
+    fln_tmp.setNumLine(ain.getNumLine());
     first = last=fln_tmp;
     
     // create the new array
@@ -1502,12 +1582,14 @@ public class BuildFlat {
       // index=i
       TempDescriptor index=TempDescriptor.tempFactory("index", new TypeDescriptor(TypeDescriptor.INT));
       FlatLiteralNode fln=new FlatLiteralNode(index.getType(), new Integer(i), index);
+      fln.setNumLine(ain.getNumLine());
       // calculate the initial value
       NodePair np_init = flattenExpressionNode(var_init_node, tmp_init);
       // TODO wrapper class process is missing now
       /*if(td.isArray() && td.dereference().iswrapper()) {
       }*/
       FlatSetElementNode fsen=new FlatSetElementNode(tmp_toinit, index, tmp_init);
+      fsen.setNumLine(ain.getNumLine());
       last.addNext(fln);
       fln.addNext(np_init.getBegin());
       np_init.getEnd().addNext(fsen);
@@ -1524,12 +1606,15 @@ public class BuildFlat {
 
     NodePair cond=flattenExpressionNode(tn.getCond(),cond_temp);
     FlatCondBranch fcb=new FlatCondBranch(cond_temp);
+    fcb.setNumLine(tn.getNumLine());
 
     NodePair trueExpr=flattenExpressionNode(tn.getTrueExpr(),true_temp);
     FlatOpNode fonT=new FlatOpNode(out_temp, true_temp, null, new Operation(Operation.ASSIGN));
+    fonT.setNumLine(tn.getNumLine());
 
     NodePair falseExpr=flattenExpressionNode(tn.getFalseExpr(),fals_temp);
     FlatOpNode fonF=new FlatOpNode(out_temp, fals_temp, null, new Operation(Operation.ASSIGN));
+    fonF.setNumLine(tn.getNumLine());
 
     FlatNop nopend=new FlatNop();
 

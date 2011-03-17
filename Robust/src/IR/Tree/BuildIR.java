@@ -691,6 +691,7 @@ public void parseInitializers(ClassDescriptor cn){
           BlockNode bn=new BlockNode();
           NameNode nn=new NameNode(new NameDescriptor(identifier));
           AssignmentNode an=new AssignmentNode(nn,en,new AssignOperation(1));
+          an.setNumLine(pn.getLine());
           bn.addBlockStatement(new BlockExpressionNode(an));
           if(isfirst) {
             state.addTreeCode(md,bn);
@@ -749,14 +750,18 @@ public void parseInitializers(ClassDescriptor cn){
                isNode(pn,"postdec")) {
       ParseNode left=pn.getFirstChild();
       AssignOperation op=new AssignOperation(pn.getLabel());
-      return new AssignmentNode(parseExpression(left),null,op);
+      AssignmentNode an=new AssignmentNode(parseExpression(left),null,op);
+      an.setNumLine(pn.getLine());
+      return an;
 
     } else if (isNode(pn,"preinc")||
                isNode(pn,"predec")) {
       ParseNode left=pn.getFirstChild();
       AssignOperation op=isNode(pn,"preinc") ? new AssignOperation(AssignOperation.PLUSEQ) : new AssignOperation(AssignOperation.MINUSEQ);
-      return new AssignmentNode(parseExpression(left),
-                                new LiteralNode("integer",new Integer(1)),op);
+      AssignmentNode an=new AssignmentNode(parseExpression(left),
+          new LiteralNode("integer",new Integer(1)),op);
+      an.setNumLine(pn.getLine());
+      return an;
     } else if (isNode(pn,"literal")) {
       String literaltype=pn.getTerminal();
       ParseNode literalnode=pn.getChild(literaltype);
@@ -773,6 +778,7 @@ public void parseInitializers(ClassDescriptor cn){
 	disjointId = pn.getChild("disjoint").getTerminal();
       }
       CreateObjectNode con=new CreateObjectNode(td, isglobal, disjointId);
+      con.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
 	con.addArgument((ExpressionNode)args.get(i));
       }
@@ -804,6 +810,7 @@ public void parseInitializers(ClassDescriptor cn){
       for(int i=0; i<(args.size()+num); i++)
 	td=td.makeArray(state);
       CreateObjectNode con=new CreateObjectNode(td, isglobal, disjointId);
+      con.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
 	con.addArgument((ExpressionNode)args.get(i));
       }
@@ -816,17 +823,23 @@ public void parseInitializers(ClassDescriptor cn){
       for(int i=0; i<num; i++)
     td=td.makeArray(state);
       CreateObjectNode con=new CreateObjectNode(td, false, null);
+      con.setNumLine(pn.getLine());
       ParseNode ipn = pn.getChild("initializer");     
       Vector initializers=parseVariableInitializerList(ipn);
       ArrayInitializerNode ain = new ArrayInitializerNode(initializers);
+      ain.setNumLine(pn.getLine());
       con.addArrayInitializer(ain);
       return con;
     } else if (isNode(pn,"name")) {
       NameDescriptor nd=parseName(pn);
-      return new NameNode(nd);
+      NameNode nn=new NameNode(nd);
+      nn.setNumLine(pn.getLine());
+      return nn;
     } else if (isNode(pn,"this")) {
       NameDescriptor nd=new NameDescriptor("this");
-      return new NameNode(nd);
+      NameNode nn=new NameNode(nd);
+      nn.setNumLine(pn.getLine());
+      return nn;
     } else if (isNode(pn,"isavailable")) {
       NameDescriptor nd=new NameDescriptor(pn.getTerminal());
       return new OpNode(new NameNode(nd),null,new Operation(Operation.ISAVAILABLE));
@@ -834,6 +847,7 @@ public void parseInitializers(ClassDescriptor cn){
       NameDescriptor nd=parseName(pn.getChild("name"));
       Vector args=parseArgumentList(pn);
       MethodInvokeNode min=new MethodInvokeNode(nd);
+      min.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
 	min.addArgument((ExpressionNode)args.get(i));
       }
@@ -843,6 +857,7 @@ public void parseInitializers(ClassDescriptor cn){
       ExpressionNode exp=parseExpression(pn.getChild("base").getFirstChild());
       Vector args=parseArgumentList(pn);
       MethodInvokeNode min=new MethodInvokeNode(methodid,exp);
+      min.setNumLine(pn.getLine());
       for(int i=0; i<args.size(); i++) {
 	min.addArgument((ExpressionNode)args.get(i));
       }
@@ -850,40 +865,57 @@ public void parseInitializers(ClassDescriptor cn){
     } else if (isNode(pn,"fieldaccess")) {
       ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
       String fieldname=pn.getChild("field").getTerminal();
-      return new FieldAccessNode(en,fieldname);
+      
+      FieldAccessNode fan=new FieldAccessNode(en,fieldname);
+      fan.setNumLine(pn.getLine());
+      return fan;
     } else if (isNode(pn,"arrayaccess")) {
       ExpressionNode en=parseExpression(pn.getChild("base").getFirstChild());
       ExpressionNode index=parseExpression(pn.getChild("index").getFirstChild());
-      return new ArrayAccessNode(en,index);
+      ArrayAccessNode aan=new ArrayAccessNode(en,index);
+      aan.setNumLine(pn.getLine());
+      return aan;
     } else if (isNode(pn,"cast1")) {
       try {
-	return new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+  CastNode cn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+  cn.setNumLine(pn.getLine());      
+	return cn;
       } catch (Exception e) {
 	System.out.println(pn.PPrint(1,true));
 	e.printStackTrace();
 	throw new Error();
       }
     } else if (isNode(pn,"cast2")) {
-      return new CastNode(parseExpression(pn.getChild("type").getFirstChild()),parseExpression(pn.getChild("exp").getFirstChild()));
+      CastNode cn=new CastNode(parseExpression(pn.getChild("type").getFirstChild()),parseExpression(pn.getChild("exp").getFirstChild()));
+      cn.setNumLine(pn.getLine());
+      return cn;
     } else if (isNode(pn, "getoffset")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
       String fieldname = pn.getChild("field").getTerminal();
       //System.out.println("Checking the values of: "+ " td.toString()= " + td.toString()+ "  fieldname= " + fieldname);
       return new OffsetNode(td, fieldname);
     } else if (isNode(pn, "tert")) {
-      return new TertiaryNode(parseExpression(pn.getChild("cond").getFirstChild()),
-			      parseExpression(pn.getChild("trueexpr").getFirstChild()),
-			      parseExpression(pn.getChild("falseexpr").getFirstChild()) );
+      
+      TertiaryNode tn=new TertiaryNode(parseExpression(pn.getChild("cond").getFirstChild()),
+          parseExpression(pn.getChild("trueexpr").getFirstChild()),
+          parseExpression(pn.getChild("falseexpr").getFirstChild()) );
+      tn.setNumLine(pn.getLine());
+      
+      return tn;
     } else if (isNode(pn, "instanceof")) {
       ExpressionNode exp=parseExpression(pn.getChild("exp").getFirstChild());
       TypeDescriptor t=parseTypeDescriptor(pn);
-      return new InstanceOfNode(exp,t);
+      InstanceOfNode ion=new InstanceOfNode(exp,t);
+      ion.setNumLine(pn.getLine());
+      return ion;
     } else if (isNode(pn, "array_initializer")) {  
       Vector initializers=parseVariableInitializerList(pn);
       return new ArrayInitializerNode(initializers);
     } else if (isNode(pn, "class_type")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
-      return new ClassTypeNode(td);
+      ClassTypeNode ctn=new ClassTypeNode(td);
+      ctn.setNumLine(pn.getLine());
+      return ctn;
     } else if (isNode(pn, "empty")) {
       return null;
     } else {
@@ -951,6 +983,7 @@ public void parseInitializers(ClassDescriptor cn){
     ParseNodeVector pnv=pn.getChild("args").getChildren();
 
     AssignmentNode an=new AssignmentNode(parseExpression(pnv.elementAt(0)),parseExpression(pnv.elementAt(1)),ao);
+    an.setNumLine(pn.getLine());
     return an;
   }
 
@@ -961,6 +994,7 @@ public void parseInitializers(ClassDescriptor cn){
     MethodDescriptor md=parseMethodHeader(headern);
     try {
       BlockNode bn=parseBlock(bodyn);
+      bn.setNumLine(pn.getLine()); // assume that method header is located at the beginning of method body
       cn.addMethod(md);
       state.addTreeCode(md,bn);
 
@@ -1007,6 +1041,7 @@ public void parseInitializers(ClassDescriptor cn){
       NameDescriptor nd=new NameDescriptor("super");
       Vector args=parseArgumentList(sin);
       MethodInvokeNode min=new MethodInvokeNode(nd);
+      min.setNumLine(sin.getLine());
       for(int i=0; i<args.size(); i++) {
 	min.addArgument((ExpressionNode)args.get(i));
       }
@@ -1018,10 +1053,12 @@ public void parseInitializers(ClassDescriptor cn){
       NameDescriptor nd=new NameDescriptor(cn.getSymbol());
       Vector args=parseArgumentList(eci);
       MethodInvokeNode min=new MethodInvokeNode(nd);
+      min.setNumLine(eci.getLine());
       for(int i=0; i<args.size(); i++) {
 	min.addArgument((ExpressionNode)args.get(i));
       }
       BlockExpressionNode ben=new BlockExpressionNode(min);
+      ben.setNumLine(eci.getLine());
       bn.addFirstBlockStatement(ben);
     }
     state.addTreeCode(md,bn);
@@ -1108,7 +1145,10 @@ public void parseInitializers(ClassDescriptor cn){
       String name=pn.getChild("single").getTerminal();
       String type=pn.getChild("type").getTerminal();
 
-      blockstatements.add(new TagDeclarationNode(name, type));
+      TagDeclarationNode tdn=new TagDeclarationNode(name, type);
+      tdn.setNumLine(pn.getLine());
+      
+      blockstatements.add(tdn);
     } else if (isNode(pn,"local_variable_declaration")) {
       
       ParseNode mn=pn.getChild("modifiers");         
@@ -1138,21 +1178,31 @@ public void parseInitializers(ClassDescriptor cn){
 	ExpressionNode en=null;
 	if (epn!=null)
 	  en=parseExpression(epn.getFirstChild());
+	
+	DeclarationNode dn=new DeclarationNode(new VarDescriptor(arrayt, identifier),en);
+	dn.setNumLine(tmp.getLine());
 
-	blockstatements.add(new DeclarationNode(new VarDescriptor(arrayt, identifier),en));
+	blockstatements.add(dn);
       }
     } else if (isNode(pn,"nop")) {
       /* Do Nothing */
     } else if (isNode(pn,"expression")) {
-      blockstatements.add(new BlockExpressionNode(parseExpression(pn.getFirstChild())));
+      BlockExpressionNode ben=new BlockExpressionNode(parseExpression(pn.getFirstChild()));
+      ben.setNumLine(pn.getLine());
+      blockstatements.add(ben);
     } else if (isNode(pn,"ifstatement")) {
-      blockstatements.add(new IfStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
-                                              parseSingleBlock(pn.getChild("statement").getFirstChild()),
-                                              pn.getChild("else_statement")!=null ? parseSingleBlock(pn.getChild("else_statement").getFirstChild()) : null));
+      IfStatementNode isn=new IfStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
+          parseSingleBlock(pn.getChild("statement").getFirstChild()),
+          pn.getChild("else_statement")!=null ? parseSingleBlock(pn.getChild("else_statement").getFirstChild()) : null);
+      isn.setNumLine(pn.getLine());
+      
+      blockstatements.add(isn);
     } else if (isNode(pn,"switch_statement")) {
       // TODO add version for normal Java later
-      blockstatements.add(new SwitchStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
-          parseSingleBlock(pn.getChild("statement").getFirstChild())));
+      SwitchStatementNode ssn=new SwitchStatementNode(parseExpression(pn.getChild("condition").getFirstChild()),
+          parseSingleBlock(pn.getChild("statement").getFirstChild()));
+      ssn.setNumLine(pn.getLine());
+      blockstatements.add(ssn);
     } else if (isNode(pn,"switch_block_list")) {
       // TODO add version for normal Java later
       ParseNodeVector pnv=pn.getChildren();
@@ -1166,14 +1216,21 @@ public void parseInitializers(ClassDescriptor cn){
           for(int j=0; j<labelv.size(); j++) {
             ParseNode labeldecl=labelv.elementAt(j);
             if(isNode(labeldecl, "switch_label")) {
-              slv.addElement(new SwitchLabelNode(parseExpression(labeldecl.getChild("constant_expression").getFirstChild()), false));
+              SwitchLabelNode sln=new SwitchLabelNode(parseExpression(labeldecl.getChild("constant_expression").getFirstChild()), false);
+              sln.setNumLine(labeldecl.getLine());
+              slv.addElement(sln);
             } else if(isNode(labeldecl, "default_switch_label")) {
-              slv.addElement(new SwitchLabelNode(null, true));
+              SwitchLabelNode sln=new SwitchLabelNode(null, true);
+              sln.setNumLine(labeldecl.getLine());
+              slv.addElement(sln);
             }
           }
           
-          blockstatements.add(new SwitchBlockNode(slv, 
-              parseSingleBlock(sblockdecl.getChild("switch_statements").getFirstChild())));
+          SwitchBlockNode sbn=new SwitchBlockNode(slv, 
+              parseSingleBlock(sblockdecl.getChild("switch_statements").getFirstChild()));
+          sbn.setNumLine(sblockdecl.getLine());
+          
+          blockstatements.add(sbn);
           
         }
       }
@@ -1201,21 +1258,28 @@ public void parseInitializers(ClassDescriptor cn){
       Vector ccs=null;
       if (pn.getChild("cons_checks")!=null)
 	ccs=parseChecks(pn.getChild("cons_checks"));
-
-      blockstatements.add(new TaskExitNode(vfe, ccs, this.m_taskexitnum++));
+      TaskExitNode ten=new TaskExitNode(vfe, ccs, this.m_taskexitnum++);
+      ten.setNumLine(pn.getLine());
+      blockstatements.add(ten);
     } else if (isNode(pn,"atomic")) {
       BlockNode bn=parseBlockHelper(pn);
-      blockstatements.add(new AtomicNode(bn));
+      AtomicNode an=new AtomicNode(bn);
+      an.setNumLine(pn.getLine());
+      blockstatements.add(an);
     } else if (isNode(pn,"synchronized")) {
       BlockNode bn=parseBlockHelper(pn.getChild("block"));
       ExpressionNode en=parseExpression(pn.getChild("expr").getFirstChild());
-      blockstatements.add(new SynchronizedNode(en, bn));
+      SynchronizedNode sn=new SynchronizedNode(en, bn);
+      sn.setNumLine(pn.getLine());
+      blockstatements.add(sn);
     } else if (isNode(pn,"return")) {
       if (isEmpty(pn.getTerminal()))
 	blockstatements.add(new ReturnNode());
       else {
 	ExpressionNode en=parseExpression(pn.getFirstChild());
-	blockstatements.add(new ReturnNode(en));
+	ReturnNode rn=new ReturnNode(en);
+	rn.setNumLine(pn.getLine());
+	blockstatements.add(rn);
       }
     } else if (isNode(pn,"block_statement_list")) {
       BlockNode bn=parseBlockHelper(pn);
@@ -1239,7 +1303,9 @@ public void parseInitializers(ClassDescriptor cn){
         // no condition clause, make a 'true' expression as the condition
         condition = (ExpressionNode)new LiteralNode("boolean", new Boolean(true));
       }
-      blockstatements.add(new LoopNode(init,condition,update,body));
+      LoopNode ln=new LoopNode(init,condition,update,body);
+      ln.setNumLine(pn.getLine());
+      blockstatements.add(ln);
     } else if (isNode(pn,"whilestatement")) {
       ExpressionNode condition=parseExpression(pn.getChild("condition").getFirstChild());
       BlockNode body=parseSingleBlock(pn.getChild("statement").getFirstChild());
@@ -1261,6 +1327,7 @@ public void parseInitializers(ClassDescriptor cn){
       String stID=null;
       if( pnID != null ) { stID=pnID.getFirstChild().getTerminal(); }
       SESENode start=new SESENode(stID);
+      start.setNumLine(pn.getLine());
       SESENode end  =new SESENode(stID);
       start.setEnd( end   );
       end.setStart( start );
@@ -1268,9 +1335,13 @@ public void parseInitializers(ClassDescriptor cn){
       blockstatements.addAll(parseSESEBlock(blockstatements,pn.getChild("body").getFirstChild()));
       blockstatements.add(end);
     } else if (isNode(pn,"continue")) {
-      blockstatements.add(new ContinueBreakNode(false));
+      ContinueBreakNode cbn=new ContinueBreakNode(false);
+      cbn.setNumLine(pn.getLine());
+      blockstatements.add(cbn);
     } else if (isNode(pn,"break")) {
-      blockstatements.add(new ContinueBreakNode(true));
+      ContinueBreakNode cbn=new ContinueBreakNode(true);
+      cbn.setNumLine(pn.getLine());
+      blockstatements.add(cbn);
 
     } else if (isNode(pn,"genreach")) {
       String graphName = pn.getChild("graphName").getTerminal();
