@@ -13,6 +13,14 @@ public class GraphManip {
     return edgeset;
   }
 
+  static MySet<Edge> genEdges(TempDescriptor tmp, MySet<Edge> dstSet) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    for(Edge e:dstSet) {
+      edgeset.add(e.changeSrcVar(tmp));
+    }
+    return edgeset;
+  }
+
   static MySet<Edge> genEdges(HashSet<AllocNode> srcSet, FieldDescriptor fd, HashSet<AllocNode> dstSet) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(AllocNode srcnode:srcSet) {
@@ -196,6 +204,74 @@ public class GraphManip {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(Edge e:edgesin) {
       edgeset.add(e.makeOld());
+    }
+    return edgeset;
+  }
+
+  static MySet<Edge> dereference(Graph graph, Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    for(Edge edge:srcEdges) {
+      MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
+      for(Edge e:graph.getEdges(edge.dst)) {
+	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
+	  e=e.changeSrcVar(dst);
+	  if (!edgeset.contains(e))
+	    edgeset.add(e);
+	  else {
+	    Edge preve=edgeset.get(e);
+	    e=e.merge(preve);
+	    edgeset.add(e);
+	  }
+	}
+      }
+      if (delta.heapedgeadd.containsKey(edge.dst))
+	for(Edge e:delta.heapedgeadd.get(edge.dst)) {
+	  if (e.fd==fd) {
+	    e=e.changeSrcVar(dst);
+	    if (!edgeset.contains(e))
+	      edgeset.add(e);
+	    else {
+	      Edge preve=edgeset.get(e);
+	      e=e.merge(preve);
+	      edgeset.add(e);
+	    }
+	  }
+	}
+    }
+    return edgeset;
+  }
+
+  static MySet<Edge> diffDereference(Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    for(Edge edge:srcEdges) {
+      MySet<Edge> removeedges=delta.heapedgeremove.get(edge.dst);
+      if (delta.baseheapedge.containsKey(edge.dst)) {
+	for(Edge e:delta.baseheapedge.get(edge.dst)) {
+	  if (e.fd==fd&&(removeedges==null||!removeedges.contains(e))) {
+	    e=e.changeSrcVar(dst);
+	    if (!edgeset.contains(e))
+	      edgeset.add(e);
+	    else {
+	      Edge preve=edgeset.get(e);
+	      e=e.merge(preve);
+	      edgeset.add(e);
+	    }
+	  }
+	}
+      }
+      if (delta.heapedgeadd.containsKey(edge.dst))
+	for(Edge e:delta.heapedgeadd.get(edge.dst)) {
+	  if (e.fd==fd) {
+	    e=e.changeSrcVar(dst);
+	    if (!edgeset.contains(e))
+	      edgeset.add(e);
+	    else {
+	      Edge preve=edgeset.get(e);
+	      e=e.merge(preve);
+	      edgeset.add(e);
+	    }
+	  }
+	}
     }
     return edgeset;
   }

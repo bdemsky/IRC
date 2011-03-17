@@ -1339,17 +1339,17 @@ public class Pointer {
       dst=fcn.getDst();
     }
     if (delta.getInit()) {
-      HashSet<AllocNode> srcnodes=GraphManip.getNodes(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, srcnodes);
+      MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, srcedges);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
       /* First compute new src nodes */
-      HashSet<AllocNode> newSrcNodes=GraphManip.getDiffNodes(delta, src);
+      MySet<Edge> newSrcEdges=GraphManip.getDiffEdges(delta, src);
 
       /* Compute the union, and then the set of edges */
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, newSrcNodes);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, newSrcEdges);
       
       /* Compute set of edges to remove */
       MySet<Edge> edgesToRemove=GraphManip.getDiffEdges(delta, dst);      
@@ -1380,24 +1380,21 @@ public class Pointer {
     if (!dst.getType().isPtr())
       return delta;
     if (delta.getInit()) {
-      HashSet<AllocNode> srcnodes=GraphManip.getNodes(graph, delta, src);
-      HashSet<AllocNode> fdnodes=GraphManip.getNodes(graph, delta, srcnodes, fd);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, fdnodes);
+      MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
+      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
       /* First compute new objects we read fields of */
-      HashSet<AllocNode> allsrcnodes=GraphManip.getNodes(graph, delta, src);
-      HashSet<AllocNode> difffdnodes=GraphManip.getDiffNodes(delta, allsrcnodes, fd);     
+      MySet<Edge> allsrcedges=GraphManip.getEdges(graph, delta, src);
+      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd);     
       /* Next compute new targets of fields */
-      HashSet<AllocNode> newsrcnodes=GraphManip.getDiffNodes(delta, src);
-      HashSet<AllocNode> newfdnodes=GraphManip.getNodes(graph, delta, newsrcnodes, fd);
+      MySet<Edge> newsrcedges=GraphManip.getDiffEdges(delta, src);
+      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd);
+
       /* Compute the union, and then the set of edges */
-      HashSet<AllocNode> newTargets=new HashSet<AllocNode>();
-      newTargets.addAll(newfdnodes);
-      newTargets.addAll(difffdnodes);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(dst, newTargets);      
+      Edge.mergeEdgesInto(edgesToAdd, newfdedges);
       
       /* Compute set of edges to remove */
       MySet<Edge> edgesToRemove=GraphManip.getDiffEdges(delta, dst);      

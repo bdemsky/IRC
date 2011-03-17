@@ -4,6 +4,7 @@ import IR.*;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import Analysis.Disjoint.Taint;
 import Analysis.Disjoint.TaintSet;
+import Analysis.Pointer.MySet;
 
 public class Edge {
   FieldDescriptor fd;
@@ -102,6 +103,17 @@ public class Edge {
     return false;
   }
 
+  public Edge changeSrcVar(TempDescriptor tmp) {
+    Edge e=new Edge();
+    e.fd=fd;
+    e.srcvar=srcvar;
+    e.dst=dst;
+    e.statuspredicate=NEW;
+    if (taints!=null)
+      e.taints=taints;
+    return e;
+  }
+
   public Edge copy() {
     Edge e=new Edge();
     e.fd=fd;
@@ -179,5 +191,15 @@ public class Edge {
       val=val<<2;
     e.statuspredicate=val;
     return e;
+  }
+
+  public static void mergeEdgesInto(MySet<Edge> orig, MySet<Edge> merge) {
+    for(Edge e:merge) {
+      if (orig.contains(e)) {
+	Edge old=orig.get(e);
+	e=e.merge(old);
+      }
+      orig.add(e);
+    }
   }
 }
