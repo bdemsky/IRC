@@ -29,6 +29,10 @@ public class Lattice<T> {
   public T getBottomItem() {
     return bottom;
   }
+  
+  public Set<T> getKeySet(){
+    return table.keySet();
+  }
 
   public boolean put(T key, T value) {
     Set<T> s;

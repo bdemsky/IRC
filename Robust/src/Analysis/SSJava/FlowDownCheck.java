@@ -1,15 +1,19 @@
 package Analysis.SSJava;
 
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import IR.AnnotationDescriptor;
 import IR.ClassDescriptor;
+import IR.Descriptor;
 import IR.FieldDescriptor;
 import IR.MethodDescriptor;
+import IR.NameDescriptor;
 import IR.Operation;
 import IR.State;
 import IR.SymbolTable;
@@ -21,18 +25,42 @@ import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
+import IR.Tree.FieldAccessNode;
 import IR.Tree.Kind;
+import IR.Tree.NameNode;
 import IR.Tree.OpNode;
 import Util.Lattice;
 
 public class FlowDownCheck {
 
-  State state;
+  static State state;
   HashSet toanalyze;
+  Hashtable<TypeDescriptor, Location> td2loc;
+  Hashtable<String, ClassDescriptor> id2cd;
 
   public FlowDownCheck(State state) {
     this.state = state;
     this.toanalyze = new HashSet();
+    this.td2loc = new Hashtable<TypeDescriptor, Location>();
+    init();
+  }
+
+  public void init() {
+    id2cd = new Hashtable<String, ClassDescriptor>();
+    Hashtable cd2lattice = state.getCd2LocationOrder();
+
+    Set cdSet = cd2lattice.keySet();
+    for (Iterator iterator = cdSet.iterator(); iterator.hasNext();) {
+      ClassDescriptor cd = (ClassDescriptor) iterator.next();
+      Lattice<String> lattice = (Lattice<String>) cd2lattice.get(cd);
+
+      Set<String> locIdSet = lattice.getKeySet();
+      for (Iterator iterator2 = locIdSet.iterator(); iterator2.hasNext();) {
+        String locID = (String) iterator2.next();
+        id2cd.put(locID, cd);
+      }
+    }
+
   }
 
   public void flowDownCheck() {
@@ -161,7 +189,17 @@ public class FlowDownCheck {
     case Kind.OpNode:
       checkOpNode(md, nametable, (OpNode) en, td);
       return;
+
+    case Kind.FieldAccessNode:
+      checkFieldAccessNode(md, nametable, (FieldAccessNode) en, td);
+      return;
+
+    case Kind.NameNode:
+      checkNameNode(md, nametable, (NameNode) en, td);
+      return;
+
     }
+
     /*
      * switch(en.kind()) { case Kind.AssignmentNode:
      * checkAssignmentNode(md,nametable,(AssignmentNode)en,td); return;
@@ -202,6 +240,21 @@ public class FlowDownCheck {
      * case Kind.ClassTypeNode: checkClassTypeNode(md, nametable,
      * (ClassTypeNode) en, td); return; }
      */
+  }
+
+  void checkNameNode(MethodDescriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
+
+  }
+
+  void checkFieldAccessNode(MethodDescriptor md, SymbolTable nametable, FieldAccessNode fan,
+      TypeDescriptor td) {
+
+    ExpressionNode left = fan.getExpression();
+    checkExpressionNode(md, nametable, left, null);
+    TypeDescriptor ltd = left.getType();
+    String fieldname = fan.getFieldName();
+
+
   }
 
   void checkOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on, TypeDescriptor td) {
@@ -302,17 +355,20 @@ public class FlowDownCheck {
     if (!postinc)
       checkExpressionNode(md, nametable, an.getSrc(), td);
 
+
     ClassDescriptor cd = md.getClassDesc();
     Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
-    System.out.println("an=" + an.printNode(0));
-    String destLocation = an.getDest().getType().getAnnotationMarkers().elementAt(0).getMarker();
-    String srcLocation = an.getSrc().getType().getAnnotationMarkers().elementAt(0).getMarker();
 
-    if (!locOrder.isGreaterThan(srcLocation, destLocation)) {
+    Location destLocation = td2loc.get(an.getDest().getType());
+    Location srcLocation = td2loc.get(an.getSrc().getType());
+
+
+    if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
       throw new Error("The value flow from " + srcLocation + " to " + destLocation
-          + " does not respect location hierarchy.");
+          + " does not respect location hierarchy on the assignment " + an.printNode(0));
     }
+
 
   }
 
@@ -341,11 +397,13 @@ public class FlowDownCheck {
       String locationID = ad.getMarker();
       Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
-
       if (lattice == null || (!lattice.containsKey(locationID))) {
         throw new Error("Location " + locationID
             + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
       }
+
+      Location loc = new Location(cd, locationID);
+      td2loc.put(vd.getType(), loc);
 
     } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
       if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
@@ -356,11 +414,24 @@ public class FlowDownCheck {
         }
 
         StringTokenizer token = new StringTokenizer(ad.getData(), ",");
+
+        CompositeLocation compLoc = new CompositeLocation(cd);
+        DeltaLocation deltaLoc = new DeltaLocation(cd);
+
         while (token.hasMoreTokens()) {
           String deltaOperand = token.nextToken();
+          ClassDescriptor deltaCD = id2cd.get(deltaOperand);
+          if (deltaCD == null) {
+            // delta operand is not defined in the location hierarchy
+            throw new Error("Delta operand '" + deltaOperand + "' of declaration node '" + vd
+                + "' is not defined by location hierarchies.");
+          }
 
+          Location loc = new Location(deltaCD, deltaOperand);
+          deltaLoc.addDeltaOperand(loc);
         }
-
+        compLoc.addLocation(deltaLoc);
+        td2loc.put(vd.getType(), compLoc);
       }
     }
 
@@ -406,7 +477,6 @@ public class FlowDownCheck {
       String locationID = annotationVec.elementAt(0).getMarker();
       Lattice<String> lattice = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
-
       if (lattice == null || (!lattice.containsKey(locationID))) {
         throw new Error("Location " + locationID
             + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
@@ -419,13 +489,130 @@ public class FlowDownCheck {
               + cd.getSymbol() + ".");
         }
 
+        CompositeLocation compLoc = new CompositeLocation(cd);
+        DeltaLocation deltaLoc = new DeltaLocation(cd);
+
         StringTokenizer token = new StringTokenizer(ad.getData(), ",");
         while (token.hasMoreTokens()) {
           String deltaOperand = token.nextToken();
-          // TODO: set delta operand to corresponding type descriptor
+          ClassDescriptor deltaCD = id2cd.get(deltaOperand);
+          if (deltaCD == null) {
+            // delta operand is not defined in the location hierarchy
+            throw new Error("Delta operand '" + deltaOperand + "' of field node '" + fd
+                + "' is not defined by location hierarchies.");
+          }
+
+          Location loc = new Location(deltaCD, deltaOperand);
+          deltaLoc.addDeltaOperand(loc);
         }
+        compLoc.addLocation(deltaLoc);
+        td2loc.put(fd.getType(), compLoc);
+
       }
     }
 
   }
+
+  static class CompositeLattice {
+
+    public static boolean isGreaterThan(Location loc1, Location loc2) {
+
+      CompositeLocation compLoc1;
+      CompositeLocation compLoc2;
+
+      if (loc1 instanceof CompositeLocation) {
+        compLoc1 = (CompositeLocation) loc1;
+      } else {
+        // create a bogus composite location for a single location
+        compLoc1 = new CompositeLocation(loc1.getClassDescriptor());
+        compLoc1.addLocation(loc1);
+      }
+
+      if (loc2 instanceof CompositeLocation) {
+        compLoc2 = (CompositeLocation) loc2;
+      } else {
+        // create a bogus composite location for a single location
+        compLoc2 = new CompositeLocation(loc2.getClassDescriptor());
+        compLoc2.addLocation(loc2);
+      }
+
+      // comparing two composite locations
+
+      System.out.println("compare base location=" + compLoc1 + " ? " + compLoc2);
+
+      int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2);
+      if (baseCompareResult == ComparisonResult.EQUAL) {
+        // TODO
+        // need to compare # of delta operand
+      } else if (baseCompareResult == ComparisonResult.GREATER) {
+        return true;
+      } else {
+        return false;
+      }
+
+      return false;
+    }
+
+    private static int compareBaseLocationSet(CompositeLocation compLoc1, CompositeLocation compLoc2) {
+
+      // if compLoc1 is greater than compLoc2, return true
+      // else return false;
+
+      Map<ClassDescriptor, Location> cd2loc1 = compLoc1.getCd2Loc();
+      Map<ClassDescriptor, Location> cd2loc2 = compLoc2.getCd2Loc();
+
+      // compare base locations by class descriptor
+
+      Set<ClassDescriptor> keySet1 = cd2loc1.keySet();
+
+      int numEqualLoc = 0;
+
+      for (Iterator iterator = keySet1.iterator(); iterator.hasNext();) {
+        ClassDescriptor cd1 = (ClassDescriptor) iterator.next();
+
+        Location loc1 = cd2loc1.get(cd1);
+        Location loc2 = cd2loc2.get(cd1);
+
+        if (loc2 == null) {
+          // if comploc2 doesn't have corresponding location, then ignore this
+          // element
+          numEqualLoc++;
+          continue;
+        }
+
+        Lattice<String> locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd1);
+        if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
+          // have the same level of local hierarchy
+          numEqualLoc++;
+        } else if (!locationOrder.isGreaterThan(loc1.getLocIdentifier(), loc2.getLocIdentifier())) {
+          // if one element of composite location 1 is not higher than composite
+          // location 2
+          // then, composite loc 1 is not higher than composite loc 2
+
+          System.out.println(compLoc1 + " < " + compLoc2);
+          return ComparisonResult.LESS;
+        }
+
+      }
+
+      if (numEqualLoc == compLoc1.getTupleSize()) {
+        System.out.println(compLoc1 + " == " + compLoc2);
+        return ComparisonResult.EQUAL;
+      }
+
+      System.out.println(compLoc1 + " > " + compLoc2);
+      return ComparisonResult.GREATER;
+    }
+
+  }
+
+  class ComparisonResult {
+
+    public static final int GREATER = 0;
+    public static final int EQUAL = 1;
+    public static final int LESS = 2;
+    int result;
+
+  }
+
 }

@@ -2,6 +2,7 @@ package IR.Tree;
 
 public class TreeNode {
   public static final int INDENT=2;
+  int numLine;
 
   public String printNode(int indent) {
     return null;
@@ -15,4 +16,13 @@ public class TreeNode {
   public int kind() {
     throw new Error();
   }
+  
+  public void setNumLine(int numLine){
+    this.numLine=numLine;
+  }
+  
+  public int getNumLine(){
+    return this.numLine;
+  }
+  
 }

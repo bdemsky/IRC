@@ -90,7 +90,7 @@ public class NameNode extends ExpressionNode {
       return null;
   }
 
-  NameDescriptor getName() {
+  public NameDescriptor getName() {
     return name;
   }
 

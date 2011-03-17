@@ -8,9 +8,9 @@ public class Location {
   public static final int NORMAL = 2;
   public static final int BOTTOM = 3;
 
-  private int type;
-  private ClassDescriptor cd;
-  private String loc;
+  int type;
+  ClassDescriptor cd;
+  String loc;
 
   public Location(ClassDescriptor cd, String loc) {
     this.cd = cd;
@@ -68,6 +68,10 @@ public class Location {
     }
     return hash;
 
+  }
+
+  public String toString() {
+    return "Loc[" + cd.getSymbol() + "." + loc + "]";
   }
 
 }
