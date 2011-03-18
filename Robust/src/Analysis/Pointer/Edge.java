@@ -26,7 +26,7 @@ public class Edge {
     if (srcvar!=null)
       return "<"+srcvar+", "+dst+">";
     else if (fd!=null)
-      return "<"+src+", "+statuspredicate+", "+fd+", "+dst+">";
+      return "<"+src+", "+statuspredicate+", "+fd+", "+dst+ ">";
     else
       return "<"+src+", "+statuspredicate+", [], "+dst+">";
   }
@@ -94,6 +94,13 @@ public class Edge {
 
   public TaintSet getTaints() {
     return taints;
+  }
+
+  public String taintString() {
+    if (taints==null)
+      return "";
+    else
+      return taints.toString();
   }
 
   public Edge changeTaintSet(TaintSet ts) {

@@ -130,7 +130,7 @@ public class Graph {
 	if (e.srcvar!=tmp)
 	  throw new Error(e.srcvar +" is not equal to "+tmp);
 	AllocNode n=e.dst;
-	output.println("\t"+tmp.getSymbol()+"->"+n.getID()+";");
+	output.println("\t"+tmp.getSymbol()+"->"+n.getID()+"[label=\""+e.taintString()+"\"];");
       }
     }
   }
@@ -148,7 +148,8 @@ public class Graph {
 	String src=node.getID();
 	String dst=n.getID();
 	String field=e.fd!=null?e.fd.getSymbol():"[]";
-	output.println("\t"+src+"->"+dst+"[label=\""+field+"\"];");
+	String taint=e.taints!=null?":"+e.taintString():"";
+	output.println("\t"+src+"->"+dst+"[label=\""+field+" "+taint+"\"];");
       }
     }
   }

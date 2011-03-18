@@ -189,14 +189,13 @@ public class EffectsAnalysis {
 
 
   public void analyzeFlatSetFieldNode(Set<Edge> dstedges, FieldDescriptor fld, FlatNode currentProgramPoint) {
-
     for (Edge edge:dstedges) {
-      TaintSet  taintSet      = edge.getTaints();
+      TaintSet taintSet = edge.getTaints();
       Alloc affectedAlloc = edge.getDst();
-      Effect    effect        = new Effect(affectedAlloc, Effect.write, fld);       
+      Effect effect = new Effect(affectedAlloc, Effect.write, fld);       
       if (taintSet!=null)
 	for (Taint taint:taintSet.getTaints()) {
-	  add( taint, effect, currentProgramPoint );
+	  add(taint, effect, currentProgramPoint );
 	}
     }
   }
