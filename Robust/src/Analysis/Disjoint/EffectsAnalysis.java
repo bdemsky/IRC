@@ -151,10 +151,10 @@ public class EffectsAnalysis {
       Alloc     affectedAlloc = edge.getDst();
       Effect    effect        = new Effect(affectedAlloc, Effect.read, fld);
 
-      for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
-        Taint taint = taintSetIter.next();        
-        add(taint, effect, currentProgramPoint);
-      }
+      if (taintSet!=null)
+	for (Taint taint:taintSet.getTaints()) {
+	  add(taint, effect, currentProgramPoint);
+	}
     }
   }
 
@@ -194,10 +194,10 @@ public class EffectsAnalysis {
       TaintSet  taintSet      = edge.getTaints();
       Alloc affectedAlloc = edge.getDst();
       Effect    effect        = new Effect(affectedAlloc, Effect.write, fld);       
-      for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
-        Taint taint = taintSetIter.next();
-        add( taint, effect, currentProgramPoint );
-      }
+      if (taintSet!=null)
+	for (Taint taint:taintSet.getTaints()) {
+	  add( taint, effect, currentProgramPoint );
+	}
     }
   }
 

@@ -1514,7 +1514,6 @@ abstract public class Canonical {
                                                 FlatSESEEnterNode sese ) {
     assert ts != null;
     assert ts.isCanonical();
-    assert sese != null;
 
     // NEVER a cached result... (cry)
     TaintSet out = new TaintSet();

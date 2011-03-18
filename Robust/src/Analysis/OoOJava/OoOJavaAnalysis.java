@@ -12,9 +12,11 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.Map.Entry;
 
+import Analysis.Pointer.Pointer;
 import Analysis.ArrayReferencees;
 import Analysis.Liveness;
 import Analysis.CallGraph.CallGraph;
+import Analysis.Disjoint.HeapAnalysis;
 import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.EffectsAnalysis;
@@ -47,7 +49,7 @@ public class OoOJavaAnalysis {
   private TypeUtil typeUtil;
   private CallGraph callGraph;
   private RBlockRelationAnalysis rblockRel;
-  private DisjointAnalysis disjointAnalysisTaints;
+  private HeapAnalysis disjointAnalysisTaints;
   private DisjointAnalysis disjointAnalysisReach;
 
   private Set<MethodDescriptor> descriptorsToAnalyze;
@@ -112,10 +114,9 @@ public class OoOJavaAnalysis {
     return fm;
   }
 
-  public DisjointAnalysis getDisjointAnalysis() {
+  public HeapAnalysis getDisjointAnalysis() {
     return disjointAnalysisTaints;
   }
-
 
   public OoOJavaAnalysis( State            state, 
                           TypeUtil         typeUtil, 
@@ -198,7 +199,11 @@ public class OoOJavaAnalysis {
 
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
-    disjointAnalysisTaints =
+    if (state.POINTER) {
+      disjointAnalysisTaints = new Pointer(state, typeUtil, callGraph, rblockRel);
+      ((Pointer)disjointAnalysisTaints).doAnalysis();
+    } else
+      disjointAnalysisTaints =
         new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, null, 
                              rblockRel,
                              true ); // suppress output--this is an intermediate pass
@@ -265,7 +270,7 @@ public class OoOJavaAnalysis {
     if (state.OOODEBUG) {
       try {
         writeReports("");
-        disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
+	disjointAnalysisTaints.getEffectsAnalysis().writeEffects("effects.txt");
         writeConflictGraph();
       } catch (IOException e) {}
     }

@@ -5,17 +5,21 @@ import IR.*;
 import Analysis.Liveness;
 import Analysis.Pointer.BasicBlock.BBlock;
 import Analysis.Pointer.AllocFactory.AllocNode;
+import Analysis.Disjoint.Alloc;
 import Analysis.Disjoint.Taint;
 import Analysis.Disjoint.TaintSet;
 import Analysis.Disjoint.Canonical;
+import Analysis.Disjoint.HeapAnalysis;
 import Analysis.CallGraph.CallGraph;
 import Analysis.OoOJava.RBlockRelationAnalysis;
+import Analysis.Disjoint.ExistPred;
+import Analysis.Disjoint.ReachGraph;
 import Analysis.Disjoint.EffectsAnalysis;
 import Analysis.Disjoint.BuildStateMachines;
 import java.io.*;
 
 
-public class Pointer {
+public class Pointer implements HeapAnalysis{
   HashMap<FlatMethod, BasicBlock> blockMap;
   HashMap<BBlock, Graph> bbgraphMap;
   HashMap<FlatNode, Graph> graphMap;
@@ -23,7 +27,7 @@ public class Pointer {
   HashMap<BBlock, Set<PPoint>> returnMap;
   HashMap<BBlock, Set<TempDescriptor>> bblivetemps;
 
-  boolean OoOJava=false;
+  private boolean OoOJava=false;
   CallGraph callGraph;
   State state;
   TypeUtil typeUtil;
@@ -32,7 +36,6 @@ public class Pointer {
   TempDescriptor returntmp;
   RBlockRelationAnalysis taskAnalysis;
   EffectsAnalysis effectsAnalysis;
-  BuildStateMachines buildStateMachines;
 
   public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis) {
     this(state, typeUtil);
@@ -57,6 +60,10 @@ public class Pointer {
     this.toprocess=new LinkedList<Delta>();
     ClassDescriptor stringcd=typeUtil.getClass(TypeUtil.ObjectClass);
     this.returntmp=new TempDescriptor("RETURNVAL", stringcd);
+  }
+
+  public EffectsAnalysis getEffectsAnalysis() {
+    return effectsAnalysis;
   }
 
   public BasicBlock getBBlock(FlatMethod fm) {
@@ -153,7 +160,7 @@ public class Pointer {
     }
 
     //DEBUG
-    if (true) {
+    if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -170,6 +177,9 @@ public class Pointer {
 	plotGraph(g,"FN"+fn.toString()+debugindex);
 	debugindex++;
       } 
+    }
+    if (OoOJava) {
+      effectsAnalysis.buildStateMachines.writeStateMachines();
     }
   }
 
@@ -418,7 +428,7 @@ public class Pointer {
     if (delta.getInit()) {
       removeInitTaints(null, delta, graph);
       for (TempDescriptor tmp:sese.getInVarSet()) {
-	Taint taint=Taint.factory(sese,  null, tmp, null, sese, null);
+	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummyNode, sese, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
@@ -426,9 +436,9 @@ public class Pointer {
 	}
       }
     } else {
-      removeDiffTaints(null, delta, graph);
+      removeDiffTaints(null, delta);
       for (TempDescriptor tmp:sese.getInVarSet()) {
-	Taint taint=Taint.factory(sese,  null, tmp, null, sese, null);
+	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummyNode, sese, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
@@ -544,7 +554,7 @@ public class Pointer {
 	continue;
       for(Edge e:entry.getValue()) {
 	//check whether this edge has been removed
-	if (removemap==null&&removemap.containsKey(entry.getKey())&&
+	if (removemap!=null&&removemap.containsKey(entry.getKey())&&
 	    removemap.get(entry.getKey()).contains(e))
 	  continue;
 	//have real edge
@@ -559,10 +569,6 @@ public class Pointer {
 	}
       }
     }
-  }
-
-  void removeDiffTaints(FlatSESEEnterNode sese, Delta delta, Graph graph) {
-    
   }
 
   /* This function compute the edges for the this variable for a
@@ -952,7 +958,11 @@ public class Pointer {
       delta.addVarEdge(e);
     }
   }
-  
+ 
+  public Alloc getAllocationSiteFromFlatNew(FlatNew node) {
+    return allocFactory.getAllocNode(node, false);
+  }
+ 
   void processSumHeapEdgeSet(HashMap<AllocNode, MySet<Edge>> map, Delta delta, Graph graph) {
     MySet<Edge> edgestoadd=new MySet<Edge>();
     MySet<Edge> edgestoremove=new MySet<Edge>();
@@ -1055,7 +1065,7 @@ public class Pointer {
 	    edgetoadd=origEdgeKey;
 	  }
 	}
-	if (seseCallers!=null)
+	if (seseCallers!=null&&edgetoadd!=null)
 	  edgetoadd.taintModify(seseCallers);
 	mergeCallEdge(graph, newDelta, edgetoadd);
       }
@@ -1404,7 +1414,7 @@ public class Pointer {
       dst=ffn.getDst();
     }
     if (OoOJava&&taskAnalysis.isPotentialStallSite(node)) {
-      taint=TaintSet.factory(Taint.factory(node,  src, null, null, null));
+      taint=TaintSet.factory(Taint.factory(node,  src, AllocFactory.dummyNode, null, ReachGraph.predsEmpty));
     }
 
     //Do nothing for non pointers

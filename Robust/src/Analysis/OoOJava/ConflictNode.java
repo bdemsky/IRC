@@ -5,6 +5,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Set;
 
+import Analysis.Disjoint.Alloc;
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.Taint;
@@ -16,12 +17,12 @@ import IR.Flat.TempDescriptor;
 public class ConflictNode {
 
   protected HashSet<ConflictEdge> edgeSet;
-  protected HashSet<AllocSite> allocSet;
+  protected HashSet<Alloc> allocSet;
   protected HashSet<Taint> taintSet;
 
-  protected Hashtable<AllocSite, Set<Effect>> alloc2readEffectSet;
-  protected Hashtable<AllocSite, Set<Effect>> alloc2writeEffectSet;
-  protected Hashtable<AllocSite, Set<Effect>> alloc2strongUpdateEffectSet;
+  protected Hashtable<Alloc, Set<Effect>> alloc2readEffectSet;
+  protected Hashtable<Alloc, Set<Effect>> alloc2writeEffectSet;
+  protected Hashtable<Alloc, Set<Effect>> alloc2strongUpdateEffectSet;
 
   protected int nodeType;
   protected String id;
@@ -54,12 +55,12 @@ public class ConflictNode {
     edgeSet = new HashSet<ConflictEdge>();
     // redundant views of access root's
     // allocation sites for efficient retrieval
-    allocSet = new HashSet<AllocSite>();
+    allocSet = new HashSet<Alloc>();
     taintSet = new HashSet<Taint>();
 
-    alloc2readEffectSet = new Hashtable<AllocSite, Set<Effect>>();
-    alloc2writeEffectSet = new Hashtable<AllocSite, Set<Effect>>();
-    alloc2strongUpdateEffectSet = new Hashtable<AllocSite, Set<Effect>>();
+    alloc2readEffectSet = new Hashtable<Alloc, Set<Effect>>();
+    alloc2writeEffectSet = new Hashtable<Alloc, Set<Effect>>();
+    alloc2strongUpdateEffectSet = new Hashtable<Alloc, Set<Effect>>();
 
     this.id = id;
     this.nodeType = nodeType;
@@ -70,7 +71,7 @@ public class ConflictNode {
     taintSet.add(t);
   }
 
-  public Taint getTaint(AllocSite as) {
+  public Taint getTaint(Alloc as) {
     for (Iterator iterator = taintSet.iterator(); iterator.hasNext();) {
       Taint t = (Taint) iterator.next();
       if (t.getAllocSite().equals(as)) {
@@ -80,7 +81,7 @@ public class ConflictNode {
     return null;
   }
 
-  public void addEffect(AllocSite as, Effect e) {
+  public void addEffect(Alloc as, Effect e) {
     if (e.getType() == Effect.read) {
       addReadEffect(as, e);
     } else if (e.getType() == Effect.write) {
@@ -90,7 +91,7 @@ public class ConflictNode {
     }
   }
 
-  public void addReadEffect(AllocSite as, Effect e) {
+  public void addReadEffect(Alloc as, Effect e) {
     allocSet.add(as);
     Set<Effect> effectSet = alloc2readEffectSet.get(as);
     if (effectSet == null) {
@@ -101,7 +102,7 @@ public class ConflictNode {
     alloc2readEffectSet.put(as, effectSet);
   }
 
-  public void addWriteEffect(AllocSite as, Effect e) {
+  public void addWriteEffect(Alloc as, Effect e) {
     allocSet.add(as);
     Set<Effect> effectSet = alloc2writeEffectSet.get(as);
     if (effectSet == null) {
@@ -112,7 +113,7 @@ public class ConflictNode {
     alloc2writeEffectSet.put(as, effectSet);
   }
 
-  public void addStrongUpdateEffect(AllocSite as, Effect e) {
+  public void addStrongUpdateEffect(Alloc as, Effect e) {
     allocSet.add(as);
     Set<Effect> effectSet = alloc2strongUpdateEffectSet.get(as);
     if (effectSet == null) {
@@ -123,15 +124,15 @@ public class ConflictNode {
     alloc2strongUpdateEffectSet.put(as, effectSet);
   }
 
-  public Hashtable<AllocSite, Set<Effect>> getReadEffectSet() {
+  public Hashtable<Alloc, Set<Effect>> getReadEffectSet() {
     return alloc2readEffectSet;
   }
 
-  public Hashtable<AllocSite, Set<Effect>> getWriteEffectSet() {
+  public Hashtable<Alloc, Set<Effect>> getWriteEffectSet() {
     return alloc2writeEffectSet;
   }
 
-  public Hashtable<AllocSite, Set<Effect>> getStrongUpdateEffectSet() {
+  public Hashtable<Alloc, Set<Effect>> getStrongUpdateEffectSet() {
     return alloc2strongUpdateEffectSet;
   }
 
@@ -149,7 +150,7 @@ public class ConflictNode {
   public Set<FlatNew> getFlatNewSet() {
     Set<FlatNew> fnSet = new HashSet<FlatNew>();
     for (Iterator iterator = allocSet.iterator(); iterator.hasNext();) {
-      AllocSite as = (AllocSite) iterator.next();
+      Alloc as = (Alloc) iterator.next();
       FlatNew fn = as.getFlatNew();
       fnSet.add(fn);
     }

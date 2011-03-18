@@ -6,6 +6,8 @@ import IR.*;
 import IR.Flat.*;
 
 public class AllocFactory {
+  public static AllocNode dummyNode=new AllocNode(-1, null, false);
+
   public static class AllocNode implements Alloc {
     int allocsite;
     boolean summary;

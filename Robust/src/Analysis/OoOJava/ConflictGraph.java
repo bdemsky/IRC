@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.Map.Entry;
 import IR.State;
 
+import Analysis.Disjoint.Alloc;
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.DisjointAnalysis;
 import Analysis.Disjoint.Effect;
@@ -93,7 +94,7 @@ public class ConflictGraph {
   public void addStallSiteEffect(Taint t, Effect e) {
     FlatNode fn = t.getStallSite();
     TempDescriptor var = t.getVar();
-    AllocSite as = t.getAllocSite();
+    Alloc as = t.getAllocSite();
 
     String id = var + "_fn" + fn.hashCode();
     ConflictNode node = id2cn.get(id);
@@ -110,7 +111,7 @@ public class ConflictGraph {
 
     FlatSESEEnterNode sese = t.getSESE();
     TempDescriptor invar = t.getVar();
-    AllocSite as = t.getAllocSite();
+    Alloc as = t.getAllocSite();
 
     String id = invar + "_sese" + sese.getPrettyIdentifier();
     ConflictNode node = id2cn.get(id);
@@ -225,9 +226,9 @@ public class ConflictGraph {
   private int calculateConflictType(ConflictNode node, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
-    Hashtable<AllocSite, Set<Effect>> alloc2readEffects = node.getReadEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2readEffects = node.getReadEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet();
 
     conflictType =
         updateConflictType(conflictType, determineConflictType(node, alloc2writeEffects, node,
@@ -244,12 +245,12 @@ public class ConflictGraph {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
-    Hashtable<AllocSite, Set<Effect>> alloc2readEffectsA = nodeA.getReadEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2writeEffectsA = nodeA.getWriteEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2SUEffectsA = nodeA.getStrongUpdateEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2readEffectsB = nodeB.getReadEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2writeEffectsB = nodeB.getWriteEffectSet();
-    Hashtable<AllocSite, Set<Effect>> alloc2SUEffectsB = nodeB.getStrongUpdateEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2readEffectsA = nodeA.getReadEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2writeEffectsA = nodeA.getWriteEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2SUEffectsA = nodeA.getStrongUpdateEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2readEffectsB = nodeB.getReadEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2writeEffectsB = nodeB.getWriteEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2SUEffectsB = nodeB.getStrongUpdateEffectSet();
 
     // if node A has write effects on reading/writing regions of node B
     conflictType =
@@ -284,8 +285,8 @@ public class ConflictGraph {
   }
 
   private int hasStrongUpdateConflicts(ConflictNode nodeA,
-      Hashtable<AllocSite, Set<Effect>> SUEffectsTableA, ConflictNode nodeB,
-      Hashtable<AllocSite, Set<Effect>> readTableB, Hashtable<AllocSite, Set<Effect>> writeTableB,
+      Hashtable<Alloc, Set<Effect>> SUEffectsTableA, ConflictNode nodeB,
+      Hashtable<Alloc, Set<Effect>> readTableB, Hashtable<Alloc, Set<Effect>> writeTableB,
       boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
@@ -293,13 +294,13 @@ public class ConflictGraph {
     Iterator effectItrA = SUEffectsTableA.entrySet().iterator();
     while (effectItrA.hasNext()) {
       Map.Entry meA = (Map.Entry) effectItrA.next();
-      AllocSite asA = (AllocSite) meA.getKey();
+      Alloc asA = (Alloc) meA.getKey();
       Set<Effect> strongUpdateSetA = (Set<Effect>) meA.getValue();
 
       Iterator effectItrB = readTableB.entrySet().iterator();
       while (effectItrB.hasNext()) {
         Map.Entry meB = (Map.Entry) effectItrB.next();
-        AllocSite asB = (AllocSite) meB.getKey();
+        Alloc asB = (Alloc) meB.getKey();
         Set<Effect> esB = (Set<Effect>) meB.getValue();
 
         for (Iterator iterator = strongUpdateSetA.iterator(); iterator.hasNext();) {
@@ -342,7 +343,7 @@ public class ConflictGraph {
       effectItrB = writeTableB.entrySet().iterator();
       while (effectItrB.hasNext()) {
         Map.Entry meB = (Map.Entry) effectItrB.next();
-        AllocSite asB = (AllocSite) meB.getKey();
+        Alloc asB = (Alloc) meB.getKey();
         Set<Effect> esB = (Set<Effect>) meB.getValue();
 
         for (Iterator iterator = strongUpdateSetA.iterator(); iterator.hasNext();) {
@@ -380,21 +381,21 @@ public class ConflictGraph {
   }
 
   private int determineConflictType(ConflictNode nodeA,
-      Hashtable<AllocSite, Set<Effect>> nodeAtable, ConflictNode nodeB,
-      Hashtable<AllocSite, Set<Effect>> nodeBtable, boolean useReachInfo) {
+      Hashtable<Alloc, Set<Effect>> nodeAtable, ConflictNode nodeB,
+      Hashtable<Alloc, Set<Effect>> nodeBtable, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
     Iterator effectItrA = nodeAtable.entrySet().iterator();
     while (effectItrA.hasNext()) {
       Map.Entry meA = (Map.Entry) effectItrA.next();
-      AllocSite asA = (AllocSite) meA.getKey();
+      Alloc asA = (Alloc) meA.getKey();
       Set<Effect> esA = (Set<Effect>) meA.getValue();
 
       Iterator effectItrB = nodeBtable.entrySet().iterator();
       while (effectItrB.hasNext()) {
         Map.Entry meB = (Map.Entry) effectItrB.next();
-        AllocSite asB = (AllocSite) meB.getKey();
+        Alloc asB = (Alloc) meB.getKey();
         Set<Effect> esB = (Set<Effect>) meB.getValue();
 
         for (Iterator iterator = esA.iterator(); iterator.hasNext();) {
@@ -454,7 +455,7 @@ public class ConflictGraph {
     return conflictType;
   }
 
-  private void addCoarseEffect(ConflictNode node, AllocSite as, Effect e) {
+  private void addCoarseEffect(ConflictNode node, Alloc as, Effect e) {
     Taint t = node.getTaint(as);
     addEffectSetByTaint(t, e);
   }

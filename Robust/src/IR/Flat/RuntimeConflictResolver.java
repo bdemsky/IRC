@@ -148,7 +148,7 @@ public class RuntimeConflictResolver {
     ConflictGraph conflictGraph;
     ReachGraph rg;
     Hashtable<Taint, Set<Effect>> conflicts;
-    DisjointAnalysis disjointAnaylsis = oooa.getDisjointAnalysis();
+    DisjointAnalysis disjointAnalysis = (DisjointAnalysis) oooa.getDisjointAnalysis();
     
     //Go through the SESE's
     printDebug(generalDebug, "======================SESE's======================");
@@ -159,7 +159,7 @@ public class RuntimeConflictResolver {
           (parentSESE     = (FlatSESEEnterNode) fsen.getParents().iterator().next())   != null &&
           (conflictGraph  = oooa.getConflictGraph(parentSESE))                            != null &&
           (conflicts      = conflictGraph.getConflictEffectSet(fsen))                     != null &&
-          (rg             = disjointAnaylsis.getEnterReachGraph(fsen))                    != null ){
+          (rg             = disjointAnalysis.getEnterReachGraph(fsen))                    != null ){
         
         addToTraverseToDoList(fsen, rg, conflicts, conflictGraph);
       }
@@ -176,7 +176,7 @@ public class RuntimeConflictResolver {
       if(  fsen.getParents().size() != 0                                                     &&
           (conflictGraph  = oooa.getConflictGraph(fsen))                                != null &&
           (conflicts      = conflictGraph.getConflictEffectSet(fn))                     != null &&
-          (rg             = disjointAnaylsis.getEnterReachGraph(fn))                    != null ){
+          (rg             = disjointAnalysis.getEnterReachGraph(fn))                    != null ){
 
         Set<SESELock> seseLockSet = oooa.getLockMappings(conflictGraph);
         Set<WaitingElement> waitingElementSet =
@@ -909,7 +909,7 @@ public class RuntimeConflictResolver {
   private void printoutTable(EffectsTable table) {
     
     System.out.println("==============EFFECTS TABLE PRINTOUT==============");
-    for(AllocSite as: table.table.keySet()) {
+    for(Alloc as: table.table.keySet()) {
       System.out.println("\tFor AllocSite " + as.getUniqueAllocSiteID());
       
       BucketOfEffects boe = table.table.get(as);
@@ -1227,11 +1227,11 @@ public class RuntimeConflictResolver {
   }
   
   private class EffectsTable {
-    private Hashtable<AllocSite, BucketOfEffects> table;
+    private Hashtable<Alloc, BucketOfEffects> table;
 
     public EffectsTable(Hashtable<Taint, Set<Effect>> effects,
                         Hashtable<Taint, Set<Effect>> conflicts) {
-      table = new Hashtable<AllocSite, BucketOfEffects>();
+      table = new Hashtable<Alloc, BucketOfEffects>();
 
       // rehash all effects (as a 5-tuple) by their affected allocation site
       for (Taint t : effects.keySet()) {
@@ -1266,7 +1266,7 @@ public class RuntimeConflictResolver {
         printoutTable(this); 
       }
       
-      for(AllocSite key: table.keySet()) {
+      for(Alloc key: table.keySet()) {
         BucketOfEffects effects = table.get(key);
         //make sure there are actually conflicts in the bucket
         if(effects.potentiallyConflictingRoots != null && !effects.potentiallyConflictingRoots.isEmpty()){

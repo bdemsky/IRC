@@ -11,7 +11,7 @@ import java.util.*;
 import java.io.*;
 
 
-public class DisjointAnalysis {
+public class DisjointAnalysis implements HeapAnalysis {
 	
   ///////////////////////////////////////////
   //

@@ -42,7 +42,7 @@ public class Taint extends Canonical {
   // either type of taint includes a var
   // and allocation site
   protected TempDescriptor var;
-  protected AllocSite      allocSite;
+  protected Alloc      allocSite;
 
   // taints have a new, possibly null element which is
   // the FlatNode at which the tainted reference was
@@ -63,7 +63,7 @@ public class Taint extends Canonical {
 
   public static Taint factory( FlatSESEEnterNode sese,
                                TempDescriptor    insetVar,
-                               AllocSite         as,
+                               Alloc         as,
                                FlatNode          whereDefined,
                                ExistPredSet      eps ) {
     Taint out = new Taint( sese, null, insetVar, as, whereDefined, eps );
@@ -73,7 +73,7 @@ public class Taint extends Canonical {
 
   public static Taint factory( FlatNode       stallSite,
                                TempDescriptor var,
-                               AllocSite      as,
+                               Alloc      as,
                                FlatNode       whereDefined,
                                ExistPredSet   eps ) {
     Taint out = new Taint( null, stallSite, var, as, whereDefined, eps );
@@ -84,7 +84,7 @@ public class Taint extends Canonical {
   public static Taint factory( FlatSESEEnterNode sese,
                                FlatNode          stallSite,
                                TempDescriptor    var,
-                               AllocSite         as,
+                               Alloc         as,
                                FlatNode          whereDefined,
                                ExistPredSet      eps ) {
     Taint out = new Taint( sese, stallSite, var, as, whereDefined, eps );
@@ -95,7 +95,7 @@ public class Taint extends Canonical {
   protected Taint( FlatSESEEnterNode sese,
                    FlatNode          stallSite,
                    TempDescriptor    v,
-                   AllocSite         as,
+                   Alloc         as,
                    FlatNode          fnDefined,
                    ExistPredSet      eps ) {
     assert 
@@ -143,7 +143,7 @@ public class Taint extends Canonical {
     return var;
   }
 
-  public AllocSite getAllocSite() {
+  public Alloc getAllocSite() {
     return allocSite;
   }
 
