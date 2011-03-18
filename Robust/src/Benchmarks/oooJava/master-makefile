@@ -107,6 +107,10 @@ disjoint-debug: $(SOURCE_FILES) ../master-makefile
 rcr: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
+
+rcrpointer: $(SOURCE_FILES) ../master-makefile
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) -pointer $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+
 rcr-debug: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUG) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
