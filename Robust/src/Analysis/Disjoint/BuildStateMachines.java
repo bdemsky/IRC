@@ -5,6 +5,8 @@ import java.io.*;
 
 import IR.*;
 import IR.Flat.*;
+import Analysis.OoOJava.*;
+
 
 //////////////////////////////////////////////
 //
@@ -31,6 +33,7 @@ public class BuildStateMachines {
       Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >();
   }
 
+
   protected StateMachineForEffects getStateMachine( FlatNode       fn,
                                                     TempDescriptor var ) {
 
@@ -48,7 +51,6 @@ public class BuildStateMachines {
 
     return smfe;
   }
-
 
 
   public void addToStateMachine( Taint t, 

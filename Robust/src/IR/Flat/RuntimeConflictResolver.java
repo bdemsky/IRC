@@ -370,33 +370,32 @@ public class RuntimeConflictResolver {
   }
   
   //This is Pass 1 of internal graph creation. 
-	private void createPrunedGraph(
-			Hashtable<Integer, ConcreteRuntimeObjNode> created,
-			VariableNode varNode, 
-			Taint t) {
-		// For every inset HRN, create a graph node, and run a DFT (buildPrunedGraphFromRG)
-		Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();
-		while (possibleEdges.hasNext()) {
-			RefEdge edge = possibleEdges.next();
-			assert edge != null;
+  private void createPrunedGraph(Hashtable<Integer, ConcreteRuntimeObjNode> created,
+                                 VariableNode varNode, 
+                                 Taint t) {
+    // For every inset HRN, create a graph node, and run a DFT (buildPrunedGraphFromRG)
+    Iterator<RefEdge> possibleEdges = varNode.iteratorToReferencees();
+    while (possibleEdges.hasNext()) {
+      RefEdge edge = possibleEdges.next();
+      assert edge != null;
 
-			ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true);
-			int rootKey = singleRoot.allocSite.getUniqueAllocSiteID();
+      ConcreteRuntimeObjNode singleRoot = new ConcreteRuntimeObjNode(edge.getDst(), true);
+      int rootKey = singleRoot.allocSite.getUniqueAllocSiteID();
 
-			if (!created.containsKey(rootKey)) {
-				created.put(rootKey, singleRoot);
-				buildPrunedGraphFromRG(singleRoot, edge.getDst().iteratorToReferencees(), created, t);
-			}
-		}
-	}
+      if (!created.containsKey(rootKey)) {
+        created.put(rootKey, singleRoot);
+        buildPrunedGraphFromRG(singleRoot, edge.getDst().iteratorToReferencees(), created, t);
+      }
+    }
+  }
 	
   //Performs Depth First Traversal on the ReachGraph to build an
   //internal representation of it. It prunes ptrs not reachable
   //by read Effects and stores in each node the effects by it.
   private void buildPrunedGraphFromRG(  ConcreteRuntimeObjNode curr, 
-                            Iterator<RefEdge> edges, 
-                            Hashtable<Integer, ConcreteRuntimeObjNode> created,
-                            Taint taint) {
+                                        Iterator<RefEdge> edges, 
+                                        Hashtable<Integer, ConcreteRuntimeObjNode> created,
+                                        Taint taint) {
     EffectsGroup currEffects = effectsLookupTable.getEffects(curr.allocSite, taint); 
     
     if (currEffects == null || currEffects.isEmpty()) 

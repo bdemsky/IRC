@@ -1,46 +1,15 @@
 package Analysis.OoOJava;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-import java.util.Map.Entry;
+import java.io.*;
+import java.util.*;
 
-import Analysis.Pointer.Pointer;
-import Analysis.ArrayReferencees;
-import Analysis.Liveness;
-import Analysis.CallGraph.CallGraph;
-import Analysis.Disjoint.HeapAnalysis;
-import Analysis.Disjoint.DisjointAnalysis;
-import Analysis.Disjoint.Effect;
-import Analysis.Disjoint.EffectsAnalysis;
-import Analysis.Disjoint.Taint;
-import IR.Descriptor;
-import IR.MethodDescriptor;
-import IR.Operation;
-import IR.State;
-import IR.TypeUtil;
-import IR.Flat.FKind;
-import IR.Flat.FlatCall;
-import IR.Flat.FlatEdge;
-import IR.Flat.FlatElementNode;
-import IR.Flat.FlatFieldNode;
-import IR.Flat.FlatMethod;
-import IR.Flat.FlatNew;
-import IR.Flat.FlatNode;
-import IR.Flat.FlatOpNode;
-import IR.Flat.FlatSESEEnterNode;
-import IR.Flat.FlatSESEExitNode;
-import IR.Flat.FlatSetElementNode;
-import IR.Flat.FlatSetFieldNode;
-import IR.Flat.FlatWriteDynamicVarNode;
-import IR.Flat.TempDescriptor;
+import Analysis.*;
+import Analysis.CallGraph.*;
+import Analysis.Disjoint.*;
+import Analysis.Pointer.*;
+import IR.*;
+import IR.Flat.*;
+
 
 public class OoOJavaAnalysis {
 
@@ -51,6 +20,7 @@ public class OoOJavaAnalysis {
   private RBlockRelationAnalysis rblockRel;
   private HeapAnalysis disjointAnalysisTaints;
   private DisjointAnalysis disjointAnalysisReach;
+  private BuildStateMachines buildStateMachines;
 
   private Set<MethodDescriptor> descriptorsToAnalyze;
 
@@ -143,6 +113,11 @@ public class OoOJavaAnalysis {
     fn2contextTaskNames    = new Hashtable<FlatNode, ContextTaskNames>();
     fn2fm                  = new Hashtable<FlatNode, FlatMethod>();
 
+    // state machines support heap examiners with
+    // state transitions to improve precision
+    if( state.RCR ) {
+      buildStateMachines = new BuildStateMachines();
+    }
 
     // add all methods transitively reachable from the
     // source's main to set for analysis
@@ -205,7 +180,7 @@ public class OoOJavaAnalysis {
     } else
       disjointAnalysisTaints =
         new DisjointAnalysis(state, typeUtil, callGraph, liveness, arrayReferencees, null, 
-                             rblockRel,
+                             rblockRel, buildStateMachines,
                              true ); // suppress output--this is an intermediate pass
 
     // 6th pass, not available analysis FOR VARIABLES!
@@ -237,11 +212,21 @@ public class OoOJavaAnalysis {
       disjointAnalysisReach =
         new DisjointAnalysis(state, typeUtil, callGraph, liveness, 
                              arrayReferencees, sitesToFlag,
-			     null // don't do effects analysis again!
+			     null, // don't do effects analysis again!
+                             null, // no BuildStateMachines needed
+                             false // don't suppress progress output
 			     );
 
       // 10th pass, calculate conflicts with reachability info
       calculateConflicts(null, true);
+
+    } else {
+      // in RCR/DFJ we want to do some extra processing on the
+      // state machines before they get handed off to code gen,
+      // and we're doing the same effect-conflict traversal needed
+      // to identify heap examiners that are weakly connected, so
+      // accomplish both at the same time
+      pruneMachinesAndFindWeaklyConnectedExaminers();
     }
 
     // 11th pass, compiling memory Qs!  The name "lock" is a legacy
@@ -1283,12 +1268,51 @@ public class OoOJavaAnalysis {
   }
 
 
+
+  // the traversal for pruning state machines and finding
+  // machines that are weakly connected BOTH consider conflicting
+  // effects between heap roots, so it is smart to compute all of
+  // this together
+  public void pruneMachinesAndFindWeaklyConnectedExaminers() {
+
+    EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
+
+    // visit every conflict graph once, so iterate through the
+    // the non-leaf tasks to find them all
+    Set<FlatSESEEnterNode> allSESEs = rblockRel.getAllSESEs();
+    for( Iterator allItr = allSESEs.iterator(); allItr.hasNext(); ) {
+      
+      FlatSESEEnterNode parent = (FlatSESEEnterNode) allItr.next();
+      if( parent.getIsLeafSESE() ) {
+        continue;
+      }
+      
+      ConflictGraph conflictGraph = sese2conflictGraph.get( parent );
+      assert conflictGraph != null;
+      
+      // from the conflict graph we want to extract all conflicting effects
+      // and use them to identify (1) weakly connected heap examiners and
+      // (2) states/examiner nodes with a conflicting effect that will later
+      // support the examiner pruning process
+      Set<ConflictEdge> conflictEdges = conflictGraph.getEdgeSet();
+      for( Iterator edgeItr = conflictEdges.iterator(); edgeItr.hasNext(); ) {
+        ConflictEdge conflictEdge = (ConflictEdge) edgeItr.next();
+        
+        
+      }
+      
+    }
+    
+  }
+
+
+
   private void synthesizeLocks() {
     // for every conflict graph, generate a set of memory queues
     // (called SESELock in this code!) to cover the graph
-    Set<Entry<FlatNode, ConflictGraph>> graphEntrySet = sese2conflictGraph.entrySet();
+    Set<Map.Entry<FlatNode, ConflictGraph>> graphEntrySet = sese2conflictGraph.entrySet();
     for (Iterator iterator = graphEntrySet.iterator(); iterator.hasNext();) {
-      Entry<FlatNode, ConflictGraph> graphEntry = (Entry<FlatNode, ConflictGraph>) iterator.next();
+      Map.Entry<FlatNode, ConflictGraph> graphEntry = (Map.Entry<FlatNode, ConflictGraph>) iterator.next();
       FlatNode sese = graphEntry.getKey();
       ConflictGraph conflictGraph = graphEntry.getValue();
       calculateCovering(conflictGraph);

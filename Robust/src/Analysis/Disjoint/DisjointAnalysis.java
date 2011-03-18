@@ -623,7 +623,7 @@ public class DisjointAnalysis implements HeapAnalysis {
                            Set<FlatNew> sitesToFlag,
                            RBlockRelationAnalysis rra
                            ) {
-    init( s, tu, cg, l, ar, sitesToFlag, rra, false );
+    init( s, tu, cg, l, ar, sitesToFlag, rra, null, false );
   }
 
   public DisjointAnalysis( State            s,
@@ -635,7 +635,20 @@ public class DisjointAnalysis implements HeapAnalysis {
                            RBlockRelationAnalysis rra,
                            boolean suppressOutput
                            ) {
-    init( s, tu, cg, l, ar, sitesToFlag, rra, suppressOutput );
+    init( s, tu, cg, l, ar, sitesToFlag, rra, null, suppressOutput );
+  }
+
+  public DisjointAnalysis( State            s,
+			   TypeUtil         tu,
+			   CallGraph        cg,
+			   Liveness         l,
+			   ArrayReferencees ar,
+                           Set<FlatNew> sitesToFlag,
+                           RBlockRelationAnalysis rra,
+                           BuildStateMachines bsm,
+                           boolean suppressOutput
+                           ) {
+    init( s, tu, cg, l, ar, sitesToFlag, rra, bsm, suppressOutput );
   }
   
   protected void init( State            state,
@@ -645,27 +658,25 @@ public class DisjointAnalysis implements HeapAnalysis {
                        ArrayReferencees arrayReferencees,
                        Set<FlatNew> sitesToFlag,
                        RBlockRelationAnalysis rra,
+                       BuildStateMachines bsm,
                        boolean suppressOutput
                        ) {
 	  
     analysisComplete = false;
     
-    this.state            = state;
-    this.typeUtil         = typeUtil;
-    this.callGraph        = callGraph;
-    this.liveness         = liveness;
-    this.arrayReferencees = arrayReferencees;
-    this.sitesToFlag      = sitesToFlag;
-    this.rblockRel        = rra;
-    this.suppressOutput   = suppressOutput;
+    this.state              = state;
+    this.typeUtil           = typeUtil;
+    this.callGraph          = callGraph;
+    this.liveness           = liveness;
+    this.arrayReferencees   = arrayReferencees;
+    this.sitesToFlag        = sitesToFlag;
+    this.rblockRel          = rra;
+    this.suppressOutput     = suppressOutput;
+    this.buildStateMachines = bsm;
 
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
       effectsAnalysis   = new EffectsAnalysis();
-    }
-
-    if( state.RCR ) {
-      buildStateMachines = new BuildStateMachines();
     }
 
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;

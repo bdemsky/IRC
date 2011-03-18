@@ -206,8 +206,8 @@ public class ConflictGraph {
 
       if ((!currentNode.getID().equals(entryNodeID))
           && !(analyzedIDSet.contains(currentNode.getID() + entryNodeID) || analyzedIDSet
-              .contains(entryNodeID + currentNode.getID()))) {
-
+               .contains(entryNodeID + currentNode.getID()))) {
+        
         conflictType = calculateConflictType(currentNode, entryNode, useReachInfo);
         if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
           addConflictEdge(conflictType, currentNode, entryNode);
@@ -224,11 +224,12 @@ public class ConflictGraph {
   }
 
   private int calculateConflictType(ConflictNode node, boolean useReachInfo) {
-
+    
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
-    Hashtable<Alloc, Set<Effect>> alloc2readEffects = node.getReadEffectSet();
-    Hashtable<Alloc, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();
-    Hashtable<Alloc, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet();
+
+    Hashtable<Alloc, Set<Effect>> alloc2readEffects = node.getReadEffectSet();      
+    Hashtable<Alloc, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();    
+    Hashtable<Alloc, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet(); 
 
     conflictType =
         updateConflictType(conflictType, determineConflictType(node, alloc2writeEffects, node,
