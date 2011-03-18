@@ -2,9 +2,11 @@ package Analysis.Pointer;
 import IR.Flat.*;
 import IR.*;
 import Analysis.Pointer.AllocFactory.AllocNode;
+import Analysis.Disjoint.Canonical;
 import Analysis.Disjoint.Taint;
 import Analysis.Disjoint.TaintSet;
 import Analysis.Pointer.MySet;
+import java.util.*;
 
 public class Edge {
   FieldDescriptor fd;
@@ -81,6 +83,11 @@ public class Edge {
     return newe;
   }
 
+  public void taintModify(Set<FlatSESEEnterNode> seseSet) {
+    if (taints!=null)
+      taints=Canonical.removeSESETaints(taints, seseSet);
+  }
+
   public TaintSet getTaints() {
     return taints;
   }
@@ -106,7 +113,7 @@ public class Edge {
   public Edge changeSrcVar(TempDescriptor tmp, TaintSet taintset) {
     Edge e=new Edge();
     e.fd=fd;
-    e.srcvar=srcvar;
+    e.srcvar=tmp;
     e.dst=dst;
     e.statuspredicate=NEW;
     if (taints==null)
@@ -172,11 +179,6 @@ public class Edge {
     return e;
   }
 
-  public boolean statusDominates(Edge other) {
-    return (statuspredicate==NEW)||
-      ((other.statuspredicate|statuspredicate)==statuspredicate);
-  }
-
   public Edge makeStatus(AllocFactory factory) {
     Edge e=new Edge();
     e.fd=fd;
@@ -186,7 +188,22 @@ public class Edge {
   }
 
   public boolean subsumes(Edge e) {
-    return subsumes(this.statuspredicate, e.statuspredicate);
+    return subsumes(this.statuspredicate, e.statuspredicate)&&subsumes(this.taints, e.taints);
+  }
+
+  public static boolean subsumes(TaintSet ts1, TaintSet ts2) {
+    if (ts2==null)
+      return true;
+    if (ts1==null) {
+      if (ts2.isEmpty())
+	return true;
+      else
+	return false;
+    }
+    //Neither is null
+    //Do a set comparison
+
+    return ts1.getTaints().containsAll(ts2.getTaints());
   }
 
   public static boolean subsumes(int status1, int status2) {

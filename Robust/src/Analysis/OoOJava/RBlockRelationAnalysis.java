@@ -89,6 +89,10 @@ public class RBlockRelationAnalysis {
   // node it will be in this set
   protected Hashtable< FlatNode, Set<FlatSESEEnterNode> > fn2currentSESEs;
 
+  // if you want to know which rblocks might be executing a given flat
+  // node it will be in this set
+  protected Hashtable< FlatNode, Set<FlatSESEEnterNode> > fn2allSESEs;
+
   // if you want to know the method-local, inner-most nested task that
   // is executing a flat node, it is either here or null.
   //
@@ -129,6 +133,33 @@ public class RBlockRelationAnalysis {
       out = new HashSet<FlatSESEEnterNode>();
     }
     return out;
+  }
+  
+  /* Returns all SESE's that this fn can be a member of
+   * transitively. */
+
+  public Set<FlatSESEEnterNode> getTransitiveExecutingRBlocks(FlatNode fn) {
+    if (fn2allSESEs.containsKey(fn))
+      return fn2allSESEs.get(fn);
+
+    //Compute and memoize result
+    HashSet<FlatSESEEnterNode> seseSet=new HashSet<FlatSESEEnterNode>();
+    fn2allSESEs.put(fn, seseSet);
+    Stack<FlatNode> toprocess=new Stack<FlatNode>();
+    toprocess.add(fn);
+    while(!toprocess.isEmpty()) {
+      FlatNode curr=toprocess.pop();
+      Set<FlatSESEEnterNode> callers=fn2currentSESEs.get(curr);
+      if (callers!=null) {
+	for(FlatSESEEnterNode sese:callers) {
+	  if (!seseSet.contains(sese)) {
+	    seseSet.add(sese);
+	    toprocess.add(fn);
+	  }
+	}
+      }
+    }
+    return seseSet;
   }
   
   public Set<FlatSESEEnterNode> getPossibleExecutingRBlocks( FlatNode fn ) {
@@ -179,6 +210,7 @@ public class RBlockRelationAnalysis {
     fn2currentSESEs         = new Hashtable<FlatNode, Set<FlatSESEEnterNode>>();
     fn2localInnerSESE       = new Hashtable<FlatNode, FlatSESEEnterNode>();
     fn2isPotentialStallSite = new Hashtable<FlatNode, Boolean>();
+    fn2allSESEs             = new Hashtable< FlatNode, Set<FlatSESEEnterNode>>();
 
     
     MethodDescriptor mdSourceEntry = typeUtil.getMain();
@@ -405,8 +437,6 @@ public class RBlockRelationAnalysis {
     return hasChildrenByCall;
   }
 
-
-
   protected void findPossibleExecutingRBlocksAndStallSites() {
     for( Iterator<FlatSESEEnterNode> fsenItr = allSESEs.iterator(); fsenItr.hasNext(); ) {
       FlatSESEEnterNode fsen = fsenItr.next();
@@ -479,7 +509,7 @@ public class RBlockRelationAnalysis {
           // your own exit, because one instance can
           // recursively invoke another
           addPossibleExecutingRBlock( child.getFlatExit(), fsen );
-          
+
           continue;
         }
                 

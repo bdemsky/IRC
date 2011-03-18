@@ -1017,6 +1017,7 @@ public class Pointer {
     Graph oldgraph=(ppoint.getIndex()==0)?
       bbgraphMap.get(bblock):
       graphMap.get(nodes.get(ppoint.getIndex()-1));
+    Set<FlatSESEEnterNode> seseCallers=OoOJava?taskAnalysis.getTransitiveExecutingRBlocks(fcall):null;
 
     //Age outside nodes if necessary
     for(Iterator<AllocNode> nodeit=delta.addNodeAges.iterator();nodeit.hasNext();) {
@@ -1047,6 +1048,8 @@ public class Pointer {
 	    edgetoadd=origEdgeKey;
 	  }
 	}
+	if (seseCallers!=null)
+	  edgetoadd.taintModify(seseCallers);
 	mergeCallEdge(graph, newDelta, edgetoadd);
       }
     }
@@ -1060,6 +1063,8 @@ public class Pointer {
 	for(Edge e:returnedge) {
 	  Edge newedge=e.copy();
 	  newedge.srcvar=fcall.getReturnTemp();
+	  if (seseCallers!=null)
+	    newedge.taintModify(seseCallers);
 	  if (graph.getEdges(fcall.getReturnTemp())==null||!graph.getEdges(fcall.getReturnTemp()).contains(newedge))
 	    newDelta.addEdge(newedge);
 	}
