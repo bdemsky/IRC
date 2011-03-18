@@ -1,23 +1,32 @@
 package Analysis.Pointer;
 
+import Analysis.Disjoint.Alloc;
 import java.util.*;
 import IR.*;
 import IR.Flat.*;
 
 public class AllocFactory {
-  public static class AllocNode {
+  public static class AllocNode implements Alloc {
     int allocsite;
     boolean summary;
-    TypeDescriptor type;
+    FlatNew node;
     
-    public AllocNode(int allocsite, TypeDescriptor type, boolean summary) {
+    public AllocNode(int allocsite, FlatNew node, boolean summary) {
       this.allocsite=allocsite;
       this.summary=summary;
-      this.type=type;
+      this.node=node;
     }
 
     public TypeDescriptor getType() {
-      return type;
+      return node.getType();
+    }
+
+    public FlatNew getFlatNew() {
+      return node;
+    }
+
+    public int getUniqueAllocSiteID() {
+      return allocsite;
     }
 
     public boolean isSummary() {
@@ -36,6 +45,10 @@ public class AllocFactory {
       return false;
     }
 
+    public String toStringBrief() {
+      return getID();
+    }
+    
     public String toString() {
       return getID();
     }
@@ -55,8 +68,8 @@ public class AllocFactory {
     ClassDescriptor stringcd=typeUtil.getClass(TypeUtil.StringClass);
     TypeDescriptor stringtd=new TypeDescriptor(stringcd);
     TypeDescriptor stringarraytd=stringtd.makeArray(state);
-    StringArray=new AllocNode(0, stringarraytd, false);
-    Strings=new AllocNode(1, stringtd, true);
+    StringArray=new AllocNode(0, new FlatNew(stringarraytd, null, false), false);
+    Strings=new AllocNode(1, new FlatNew(stringtd, null, false), true);
   }
 
   public int getSiteNumber(FlatNew node) {
@@ -69,7 +82,7 @@ public class AllocFactory {
 
   public AllocNode getAllocNode(FlatNew node, boolean isSummary) {
     int site=getSiteNumber(node);
-    AllocNode key=new AllocNode(site, node.getType(), isSummary);
+    AllocNode key=new AllocNode(site, node, isSummary);
     if (!allocNodeMap.containsKey(key)) {
       allocNodeMap.put(key, key);
       return key;
@@ -79,7 +92,7 @@ public class AllocFactory {
 
   public AllocNode getAllocNode(AllocNode node, boolean isSummary) {
     int site=node.allocsite;
-    AllocNode key=new AllocNode(site, node.getType(), isSummary);
+    AllocNode key=new AllocNode(site, node.node, isSummary);
     if (!allocNodeMap.containsKey(key)) {
       allocNodeMap.put(key, key);
       return key;

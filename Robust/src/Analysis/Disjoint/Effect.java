@@ -11,7 +11,7 @@ public class Effect {
   public static final int strongupdate = 3;
 
   // identify an allocation site of affected object
-  protected AllocSite affectedAllocSite;
+  protected Alloc affectedAllocSite;
 
   // identify operation type
   protected int type;
@@ -19,17 +19,17 @@ public class Effect {
   // identify a field
   protected FieldDescriptor field;
 
-  public Effect(AllocSite affectedAS, int type, FieldDescriptor field) {
+  public Effect(Alloc affectedAS, int type, FieldDescriptor field) {
     this.affectedAllocSite = affectedAS;
     this.type = type;
     this.field = field;
   }
 
-  public AllocSite getAffectedAllocSite() {
+  public Alloc getAffectedAllocSite() {
     return affectedAllocSite;
   }
 
-  public void setAffectedAllocSite(AllocSite affectedAllocSite) {
+  public void setAffectedAllocSite(Alloc affectedAllocSite) {
     this.affectedAllocSite = affectedAllocSite;
   }
 

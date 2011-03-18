@@ -23,7 +23,7 @@ import java.util.*;
 // are Canonical, but specifically so an AllocSite can
 // be an operand to a CanonicalOp
 
-public class AllocSite extends Canonical {
+public class AllocSite extends Canonical implements Alloc {
 
   static protected int uniqueIDcount = 0;
 

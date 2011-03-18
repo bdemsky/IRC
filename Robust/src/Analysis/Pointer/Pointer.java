@@ -10,6 +10,8 @@ import Analysis.Disjoint.TaintSet;
 import Analysis.Disjoint.Canonical;
 import Analysis.CallGraph.CallGraph;
 import Analysis.OoOJava.RBlockRelationAnalysis;
+import Analysis.Disjoint.EffectsAnalysis;
+import Analysis.Disjoint.BuildStateMachines;
 import java.io.*;
 
 
@@ -29,12 +31,17 @@ public class Pointer {
   LinkedList<Delta> toprocess;
   TempDescriptor returntmp;
   RBlockRelationAnalysis taskAnalysis;
+  EffectsAnalysis effectsAnalysis;
+  BuildStateMachines buildStateMachines;
 
   public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis) {
     this(state, typeUtil);
     this.callGraph=callGraph;
     this.OoOJava=true;
     this.taskAnalysis=taskAnalysis;
+    this.effectsAnalysis=new EffectsAnalysis();
+    effectsAnalysis.state=state;
+    effectsAnalysis.buildStateMachines=new BuildStateMachines();
   }
 
   public Pointer(State state, TypeUtil typeUtil) {
@@ -1271,15 +1278,20 @@ public class Pointer {
 
     if (delta.getInit()) {
       MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
-      HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
-      MySet<Edge> edgesToAdd=GraphManip.genEdges(dstNodes, fd, srcEdges);
+      MySet<Edge> dstEdges=GraphManip.getEdges(graph, delta, dst);
+      MySet<Edge> edgesToAdd=GraphManip.genEdges(dstEdges, fd, srcEdges);
       MySet<Edge> edgesToRemove=null;
-      if (dstNodes.size()==1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
+      if (dstEdges.size()==1&&!dstEdges.iterator().next().dst.isSummary()&&fd!=null) {
 	/* Can do a strong update */
-	edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
+	edgesToRemove=GraphManip.getEdges(graph, delta, dstEdges, fd);
 	graph.strongUpdateSet=edgesToRemove;
       } else
 	graph.strongUpdateSet=new MySet<Edge>();
+
+      if (OoOJava) {
+	effectsAnalysis.analyzeFlatSetFieldNode(dstEdges, fd, node);
+      }
+
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
@@ -1289,22 +1301,25 @@ public class Pointer {
       MySet<Edge> newSrcEdges=GraphManip.getDiffEdges(delta, src);
       MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
-      HashSet<AllocNode> newDstNodes=GraphManip.getDiffNodes(delta, dst);
+      MySet<Edge> newDstEdges=GraphManip.getDiffEdges(delta, dst);
 
+      if (OoOJava) {
+	effectsAnalysis.analyzeFlatSetFieldNode(newDstEdges, fd, node);
+      }
 
       MySet<Edge> edgesToRemove=null;
-      if (newDstNodes.size()!=0) {
+      if (newDstEdges.size()!=0) {
 	if (dstNodes.size()>1&&!dstNodes.iterator().next().isSummary()&&fd!=null) {
 	  /* Need to undo strong update */
 	  if (graph.strongUpdateSet!=null) {
 	    edgesToAdd.addAll(graph.strongUpdateSet);
 	    graph.strongUpdateSet=null; //Prevent future strong updates
 	  }
-	} else if (dstNodes.size()==1&&newDstNodes.size()==1&&!newDstNodes.iterator().next().isSummary()&&graph.strongUpdateSet!=null&&fd!=null) {
+	} else if (dstNodes.size()==1&&newDstEdges.size()==1&&!newDstEdges.iterator().next().dst.isSummary()&&graph.strongUpdateSet!=null&&fd!=null) {
 	  edgesToRemove=GraphManip.getEdges(graph, delta, dstNodes, fd);
 	  graph.strongUpdateSet.addAll(edgesToRemove);
 	}
-	Edge.mergeEdgesInto(edgesToAdd, GraphManip.genEdges(newDstNodes, fd, srcEdges));
+	Edge.mergeEdgesInto(edgesToAdd, GraphManip.genEdges(newDstEdges, fd, srcEdges));
       }
 
       //Kill new edges
@@ -1399,6 +1414,9 @@ public class Pointer {
       MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
       MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node, taint);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
+      if (OoOJava)
+	effectsAnalysis.analyzeFlatFieldNode(srcedges, fd, node);
+
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
@@ -1415,10 +1433,14 @@ public class Pointer {
       /* Compute set of edges to remove */
       MySet<Edge> edgesToRemove=GraphManip.getDiffEdges(delta, dst);      
 
+      if (OoOJava)
+	effectsAnalysis.analyzeFlatFieldNode(newsrcedges, fd, node);
+      
       /* Update diff */
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     }
+
     return delta;
   }
 

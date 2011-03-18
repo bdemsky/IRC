@@ -33,6 +33,16 @@ public class GraphManip {
     return edgeset;
   }
 
+  static MySet<Edge> genEdges(MySet<Edge> srcSet, FieldDescriptor fd, MySet<Edge> dstSet) {
+    MySet<Edge> edgeset=new MySet<Edge>();
+    for(Edge srcedge:srcSet) {
+      for(Edge dstedge:dstSet) {
+	edgeset.add(dstedge.changeSrc(fd, srcedge.dst));
+      }
+    }
+    return edgeset;
+  }
+
   static MySet<Edge> genEdges(HashSet<AllocNode> srcSet, FieldDescriptor fd, MySet<Edge> dstSet) {
     MySet<Edge> edgeset=new MySet<Edge>();
     for(AllocNode srcnode:srcSet) {
@@ -74,6 +84,23 @@ public class GraphManip {
 	edges.add(e);
       }
     return edges;
+  }
+
+  static MySet<Edge> getEdges(Graph graph, Delta delta, MySet<Edge> srcNodes, FieldDescriptor fd) {
+    MySet<Edge> nodes=new MySet<Edge>();
+    for(Edge node:srcNodes) {
+      MySet<Edge> removeedges=delta.heapedgeremove.get(node.dst);
+      for(Edge e:graph.getEdges(node.dst)) {
+	if (e.fd==fd&&(removeedges==null||!removeedges.contains(e)))
+	  nodes.add(e);
+      }
+      if (delta.heapedgeadd.containsKey(node.dst))
+	for(Edge e:delta.heapedgeadd.get(node.dst)) {
+	  if (e.fd==fd)
+	    nodes.add(e);
+	}
+    }
+    return nodes;
   }
 
   static MySet<Edge> getEdges(Graph graph, Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
@@ -183,7 +210,6 @@ public class GraphManip {
     }
     return newedges;
   }
-
 
   static MySet<Edge> getDiffEdges(Delta delta, HashSet<AllocNode> srcNodes, FieldDescriptor fd) {
     MySet<Edge> newedges=new MySet<Edge>();

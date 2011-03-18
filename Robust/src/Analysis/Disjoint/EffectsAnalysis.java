@@ -6,6 +6,7 @@ import java.io.*;
 
 import IR.*;
 import IR.Flat.*;
+import Analysis.Pointer.Edge;
 
 /////////////////////////////////////////////
 // 
@@ -144,6 +145,19 @@ public class EffectsAnalysis {
     }
   }
 
+  public void analyzeFlatFieldNode(Set<Edge> sources, FieldDescriptor fld, FlatNode currentProgramPoint) {
+    for (Edge edge:sources) {
+      TaintSet  taintSet      = edge.getTaints();
+      Alloc     affectedAlloc = edge.getDst();
+      Effect    effect        = new Effect(affectedAlloc, Effect.read, fld);
+
+      for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
+        Taint taint = taintSetIter.next();        
+        add(taint, effect, currentProgramPoint);
+      }
+    }
+  }
+
   public void analyzeFlatSetFieldNode(ReachGraph rg, TempDescriptor lhs, FieldDescriptor fld, FlatNode currentProgramPoint, boolean strongUpdate) {
 
     VariableNode vn = rg.td2vn.get(lhs);
@@ -169,6 +183,20 @@ public class EffectsAnalysis {
         if (strongUpdate) {
           add( taint, effectSU, currentProgramPoint );
         }
+      }
+    }
+  }
+
+
+  public void analyzeFlatSetFieldNode(Set<Edge> dstedges, FieldDescriptor fld, FlatNode currentProgramPoint) {
+
+    for (Edge edge:dstedges) {
+      TaintSet  taintSet      = edge.getTaints();
+      Alloc affectedAlloc = edge.getDst();
+      Effect    effect        = new Effect(affectedAlloc, Effect.write, fld);       
+      for (Iterator<Taint> taintSetIter = taintSet.iterator(); taintSetIter.hasNext();) {
+        Taint taint = taintSetIter.next();
+        add( taint, effect, currentProgramPoint );
       }
     }
   }

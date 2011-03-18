@@ -61,6 +61,10 @@ public class Edge {
     this.dst=dst;
   }
   
+  public AllocNode getDst() {
+    return dst;
+  }
+
   public int hashCode() {
     int hashcode=dst.hashCode();
     if (fd!=null) {
