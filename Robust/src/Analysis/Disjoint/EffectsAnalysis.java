@@ -60,7 +60,6 @@ public class EffectsAnalysis {
   }
 
   protected void add(Taint t, Effect e, FlatNode currentProgramPoint) {
-
     Taint tNoPreds = Canonical.changePredsTo( t,
                                               ReachGraph.predsEmpty
                                               );

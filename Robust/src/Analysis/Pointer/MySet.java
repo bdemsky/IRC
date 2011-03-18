@@ -41,7 +41,9 @@ public class MySet<T> extends AbstractSet<T> {
   public boolean add(T obj) {
     if (locked)
       throw new Error();
-    return map.put(obj, obj)==null;
+    boolean retval=map.remove(obj)==null;
+    map.put(obj, obj);
+    return retval;
   }
 
   public boolean contains(Object obj) {

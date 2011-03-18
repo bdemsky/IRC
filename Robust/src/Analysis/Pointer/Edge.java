@@ -23,12 +23,15 @@ public class Edge {
   public static final int NEW=16;
 
   public String toString() {
+    String taintlist="";
+    if (taints!=null)
+      taintlist=", "+taints.toString();
     if (srcvar!=null)
-      return "<"+srcvar+", "+dst+">";
+      return "<"+srcvar+", "+dst+taintlist+">";
     else if (fd!=null)
-      return "<"+src+", "+statuspredicate+", "+fd+", "+dst+ ">";
+      return "<"+src+", "+statuspredicate+", "+fd+", "+dst+taintlist+ ">";
     else
-      return "<"+src+", "+statuspredicate+", [], "+dst+">";
+      return "<"+src+", "+statuspredicate+", [], "+dst+taintlist+">";
   }
 
   public static int mergeStatus(int stat1, int stat2) {
@@ -168,7 +171,7 @@ public class Edge {
       if (newe.taints==null)
 	newe.taints=e.taints;
       else
-	newe.taints=newe.taints.merge(taints);
+	newe.taints=newe.taints.merge(e.taints);
     }
     return newe;
   }

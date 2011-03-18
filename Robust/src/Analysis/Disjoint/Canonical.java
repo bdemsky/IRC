@@ -1526,8 +1526,7 @@ abstract public class Canonical {
       // go through, anything where rblock doesn't match is
       // unaffected, and if the taint has a non-empty predicate
       // it is out of context so it should go through, too
-      if( t.getSESE() == null ||
-          t.getSESE()!=sese) {
+      if( t.getSESE()!=null && t.getSESE()!=sese) {
         out.taints.add( t );
       }
     }

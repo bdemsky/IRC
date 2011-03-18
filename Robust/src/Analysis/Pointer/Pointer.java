@@ -440,21 +440,25 @@ public class Pointer implements HeapAnalysis{
     if (delta.getInit()) {
       removeInitTaints(null, delta, graph);
       for (TempDescriptor tmp:sese.getInVarSet()) {
+	System.out.println("TMP variable:"+tmp);
 	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummyNode, sese, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
 	  delta.addVarEdge(newe);
+	  System.out.println("Adding Edge:"+newe);
 	}
       }
     } else {
       removeDiffTaints(null, delta);
       for (TempDescriptor tmp:sese.getInVarSet()) {
+	System.out.println("TMP variable:"+tmp);
 	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummyNode, sese, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
 	  delta.addVarEdge(newe);
+	  System.out.println("DAdding Edge:"+newe);
 	}
       }
     }
@@ -466,7 +470,8 @@ public class Pointer implements HeapAnalysis{
   
   private boolean isRecursive(FlatSESEEnterNode sese) {
     MethodDescriptor md=sese.getmdEnclosing();
-    return callGraph.getCalleeSet(md).contains(md);
+    boolean isrecursive=callGraph.getCalleeSet(md).contains(md);
+    return isrecursive;
   }
 
   Delta processSESEExitNode(FlatSESEExitNode seseexit, Delta delta, Graph graph) {
@@ -475,9 +480,9 @@ public class Pointer implements HeapAnalysis{
     FlatSESEEnterNode sese=seseexit.getFlatEnter();
     //Strip Taints from this SESE
     if (delta.getInit()) {
-      removeInitTaints(isRecursive(sese)?sese:null, delta, graph);
+      removeInitTaints(isRecursive(sese)?null:sese, delta, graph);
     } else {
-      removeDiffTaints(isRecursive(sese)?sese:null, delta);
+      removeDiffTaints(isRecursive(sese)?null:sese, delta);
     }
     applyDiffs(graph, delta);
     return delta;
@@ -1254,6 +1259,7 @@ public class Pointer implements HeapAnalysis{
     for(Map.Entry<TempDescriptor, MySet<Edge>> e: delta.varedgeadd.entrySet()) {
       TempDescriptor tmp=e.getKey();
       MySet<Edge> edgestoadd=e.getValue();
+      System.out.println("ADDING:"+edgestoadd);
       if (graph.varMap.containsKey(tmp)) {
 	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
       } else 

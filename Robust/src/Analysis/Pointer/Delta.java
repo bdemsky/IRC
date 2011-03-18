@@ -193,9 +193,9 @@ public class Delta {
   }
 
   public void addVarEdge(Edge e) {
-    if (!varedgeadd.containsKey(e.srcvar))
+    if (!varedgeadd.containsKey(e.srcvar)) {
       varedgeadd.put(e.srcvar, new MySet<Edge>(e));
-    else
+    } else
       Edge.mergeEdgeInto(varedgeadd.get(e.srcvar), e);
   }
 
