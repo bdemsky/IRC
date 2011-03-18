@@ -102,6 +102,11 @@ public class Pointer implements HeapAnalysis{
     return delta;
   }
 
+
+  public Graph getGraph(FlatNode fn) {
+    return graphMap.get(fn);
+  }
+
   public void doAnalysis() {
     double timeStartAnalysis = (double) System.nanoTime();
 

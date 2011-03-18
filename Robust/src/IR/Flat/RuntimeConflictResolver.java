@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.Vector;
 import Util.Pair;
 import Analysis.Disjoint.*;
+import Analysis.Pointer.*;
 import IR.State;
 import IR.TypeDescriptor;
 import Analysis.OoOJava.ConflictGraph;
@@ -147,48 +148,93 @@ public class RuntimeConflictResolver {
     FlatSESEEnterNode parentSESE;
     ConflictGraph conflictGraph;
     ReachGraph rg;
+    Graph g;
     Hashtable<Taint, Set<Effect>> conflicts;
-    DisjointAnalysis disjointAnalysis = (DisjointAnalysis) oooa.getDisjointAnalysis();
+    HeapAnalysis heapAnalysis = oooa.getDisjointAnalysis();
     
     //Go through the SESE's
     printDebug(generalDebug, "======================SESE's======================");
-    for(Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator();seseit.hasNext();) {
-      fsen = seseit.next();
-      
-      if ( fsen.getParents().size() > 0                                                           &&
-          (parentSESE     = (FlatSESEEnterNode) fsen.getParents().iterator().next())   != null &&
-          (conflictGraph  = oooa.getConflictGraph(parentSESE))                            != null &&
-          (conflicts      = conflictGraph.getConflictEffectSet(fsen))                     != null &&
-          (rg             = disjointAnalysis.getEnterReachGraph(fsen))                    != null ){
-        
-        addToTraverseToDoList(fsen, rg, conflicts, conflictGraph);
+    if (heapAnalysis instanceof DisjointAnalysis) {
+      DisjointAnalysis disjointAnalysis=(DisjointAnalysis) heapAnalysis;
+      for(Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator();seseit.hasNext();) {
+	fsen = seseit.next();
+	
+	if ( fsen.getParents().size() > 0                                                           &&
+	     (parentSESE     = (FlatSESEEnterNode) fsen.getParents().iterator().next())   != null &&
+	     (conflictGraph  = oooa.getConflictGraph(parentSESE))                            != null &&
+	     (conflicts      = conflictGraph.getConflictEffectSet(fsen))                     != null &&
+	     (rg             = disjointAnalysis.getEnterReachGraph(fsen))                    != null ){
+	  
+	  addToTraverseToDoList(fsen, rg, conflicts, conflictGraph);
+	}
+      }
+    } else {
+      Pointer pointerAnalysis=(Pointer) heapAnalysis;
+      for(Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator();seseit.hasNext();) {
+	fsen = seseit.next();
+	
+	if ( fsen.getParents().size() > 0                                                           &&
+	     (parentSESE     = (FlatSESEEnterNode) fsen.getParents().iterator().next())   != null &&
+	     (conflictGraph  = oooa.getConflictGraph(parentSESE))                            != null &&
+	     (conflicts      = conflictGraph.getConflictEffectSet(fsen))                     != null &&
+	     (g             = pointerAnalysis.getGraph(fsen))                    != null ){
+	  addToTraverseToDoList(fsen, g, conflicts, conflictGraph);
+	}
       }
     }
+
     printDebug(generalDebug, "==================END SESE LIST==================");
     
-    
-    // Go through the stall sites
-    for(Iterator<FlatNode> codeit = oooa.getNodesWithPlans().iterator();codeit.hasNext();){
-      FlatNode fn = codeit.next();
-      CodePlan cp = oooa.getCodePlan(fn);
-      fsen = cp.getCurrentSESE();
-            
-      if(  fsen.getParents().size() != 0                                                     &&
-          (conflictGraph  = oooa.getConflictGraph(fsen))                                != null &&
-          (conflicts      = conflictGraph.getConflictEffectSet(fn))                     != null &&
-          (rg             = disjointAnalysis.getEnterReachGraph(fn))                    != null ){
+    if (heapAnalysis instanceof DisjointAnalysis) {
+      DisjointAnalysis disjointAnalysis=(DisjointAnalysis) heapAnalysis;    
 
-        Set<SESELock> seseLockSet = oooa.getLockMappings(conflictGraph);
-        Set<WaitingElement> waitingElementSet =
+      // Go through the stall sites
+      for(Iterator<FlatNode> codeit = oooa.getNodesWithPlans().iterator();codeit.hasNext();){
+	FlatNode fn = codeit.next();
+	CodePlan cp = oooa.getCodePlan(fn);
+	fsen = cp.getCurrentSESE();
+	
+	if(fsen.getParents().size() != 0 &&
+	   (conflictGraph  = oooa.getConflictGraph(fsen)) != null &&
+	   (conflicts = conflictGraph.getConflictEffectSet(fn)) != null &&
+	   (rg = disjointAnalysis.getEnterReachGraph(fn)) != null) {
+	  Set<SESELock> seseLockSet = oooa.getLockMappings(conflictGraph);
+	  Set<WaitingElement> waitingElementSet =
             conflictGraph.getStallSiteWaitingElementSet(fn, seseLockSet);
-
-        if (waitingElementSet.size() > 0) {
-          for (Iterator<WaitingElement> iterator = waitingElementSet.iterator(); iterator.hasNext();) {
-            
-            WaitingElement waitingElement = (WaitingElement) iterator.next();
-            addToTraverseToDoList(fn, waitingElement.getTempDesc(), rg, conflicts);
-          }
-        }
+	  
+	  if (waitingElementSet.size() > 0) {
+	    for (Iterator<WaitingElement> iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+	      
+	      WaitingElement waitingElement = (WaitingElement) iterator.next();
+	      addToTraverseToDoList(fn, waitingElement.getTempDesc(), rg, conflicts);
+	    }
+	  }
+	}
+      }
+    } else {
+      Pointer pointerAnalysis=(Pointer) heapAnalysis;
+      // Go through the stall sites
+      for(Iterator<FlatNode> codeit = oooa.getNodesWithPlans().iterator();codeit.hasNext();){
+	FlatNode fn = codeit.next();
+	CodePlan cp = oooa.getCodePlan(fn);
+	fsen = cp.getCurrentSESE();
+	
+	if(fsen.getParents().size() != 0 &&
+	   (conflictGraph  = oooa.getConflictGraph(fsen)) != null &&
+	   (conflicts = conflictGraph.getConflictEffectSet(fn)) != null &&
+	   (g = pointerAnalysis.getGraph(fn)) != null) {
+	  Set<SESELock> seseLockSet = oooa.getLockMappings(conflictGraph);
+	  Set<WaitingElement> waitingElementSet =
+            conflictGraph.getStallSiteWaitingElementSet(fn, seseLockSet);
+	  
+	  if (waitingElementSet.size() > 0) {
+	    for (Iterator<WaitingElement> iterator = waitingElementSet.iterator(); iterator.hasNext();) {
+	      
+	      WaitingElement waitingElement = (WaitingElement) iterator.next();
+	      addToTraverseToDoList(fn, waitingElement.getTempDesc(), g, conflicts);
+	    }
+	  }
+	}
       }
     }
   }
@@ -220,6 +266,29 @@ public class RuntimeConflictResolver {
     
     if (verboseDebug)
       rg.writeGraph("RCR_RG_STALLSITE_DEBUG"+removeInvalidChars(fn.toString()));
+  }
+
+  public void addToTraverseToDoList(FlatSESEEnterNode rblock, 
+                                    Graph rg, 
+                                    Hashtable<Taint, Set<Effect>> conflicts, 
+                                    ConflictGraph conflictGraph) {
+    
+    traverserTODO.add(new TraversalInfo(rblock, rg));
+    addToGlobalConflicts(conflicts);
+    
+    if(generalDebug) {
+      System.out.println(rblock);
+      System.out.println(rblock.getParents());
+      System.out.println("CG=" + conflictGraph);
+    } 
+  }
+
+  public void addToTraverseToDoList(FlatNode fn, 
+                                    TempDescriptor tempDesc, 
+                                    Graph rg, 
+                                    Hashtable<Taint, Set<Effect>> conflicts) {
+    traverserTODO.add(new TraversalInfo(fn, rg, tempDesc));
+    addToGlobalConflicts(conflicts);
   }
 
   private void addToGlobalConflicts(Hashtable<Taint, Set<Effect>> conflicts) {
@@ -1381,6 +1450,7 @@ public class RuntimeConflictResolver {
   private class TraversalInfo {
     public FlatNode f;
     public ReachGraph rg;
+    public Graph g;
     public TempDescriptor invar;
     
     public TraversalInfo(FlatNode fn, ReachGraph rg1) {
@@ -1392,6 +1462,18 @@ public class RuntimeConflictResolver {
     public TraversalInfo(FlatNode fn, ReachGraph rg1, TempDescriptor tempDesc) {
       f = fn;
       rg =rg1;
+      invar = tempDesc;
+    }
+
+    public TraversalInfo(FlatNode fn, Graph g1) {
+      f = fn;
+      g = g1;
+      invar = null;
+    }
+
+    public TraversalInfo(FlatNode fn, Graph g1, TempDescriptor tempDesc) {
+      f = fn;
+      g =g1;
       invar = tempDesc;
     }
     
