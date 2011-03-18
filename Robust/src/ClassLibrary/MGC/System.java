@@ -95,10 +95,9 @@ public class System {
   public static void genReach();
   
   private static Properties props;
-  private static native Properties initProperties();
   
   static {
-    initProperties();
+    setProperty("line.separator", "\n");
   }
   
   public static Properties getProperties() {
@@ -113,10 +112,10 @@ public class System {
   }
   
   public static String setProperty(String key, String value) {
-    if(props != null) {
-      return (String)props.setProperty(key, value);
+    if(props == null) {
+      props = new Properties();
     }
-    return "";
+    return (String)props.setProperty(key, value);
   }
   
   public static void setOut(PrintStream out) {

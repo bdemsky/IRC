@@ -1759,7 +1759,7 @@ public class BuildCode {
         output.println("  void * next;");
         for(int i=0; i<objecttemps.numPointers(); i++) {
           TempDescriptor temp=objecttemps.getPointer(i);
-          if (temp.getType().isNull())
+          if (!temp.getType().isArray() && temp.getType().isNull())
             output.println("  void * "+temp.getSafeSymbol()+";");
           else
             output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
@@ -1811,7 +1811,7 @@ public class BuildCode {
       output.println("  void * next;");
       for(int i=0; i<objecttemps.numPointers(); i++) {
 	TempDescriptor temp=objecttemps.getPointer(i);
-	if (temp.getType().isNull())
+	if (!temp.getType().isArray() && temp.getType().isNull())
 	  output.println("  void * "+temp.getSafeSymbol()+";");
 	else
 	  output.println("  struct "+temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol()+";");
@@ -1898,7 +1898,7 @@ public class BuildCode {
 	output.println("  void * next;");
 	for(int i=0; i<objecttemps.numPointers(); i++) {
 	  TempDescriptor temp=objecttemps.getPointer(i);
-	  if (temp.getType().isNull())
+	  if (!temp.getType().isArray() && temp.getType().isNull())
 	    output.println("  void * "+temp.getSafeSymbol()+";");
 	  else if(temp.getType().isTag())
 	    output.println("  struct "+
@@ -2449,7 +2449,13 @@ public class BuildCode {
 	  output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	  if(cn.getNumStaticBlocks() != 0) {
 	    MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	    output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+          output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+          output.println("0, NULL};");
+          output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+        } else {
+          output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+        }
 	  } else {
 	    output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	  }
@@ -2458,10 +2464,18 @@ public class BuildCode {
       }
     }
     if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
+      output.println("{");
       // call MonitorEnter/MonitorExit on a class obj
+      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+        output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+        output.println("1," + localsprefixaddr + ", global_defs_p->"+ fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj};");
+        output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+      } else {
       output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
 		     + md.getSafeMethodDescriptor() + "((struct ___Object___*)(global_defs_p->"
 		     + fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj));");
+      }
+      output.println("}");
       return;
     }
     
@@ -2624,7 +2638,13 @@ public class BuildCode {
 	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	    if(cn.getNumStaticBlocks() != 0) {
 	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	      output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+            output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+            output.println("0, NULL};");
+            output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+          } else {
+            output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          }
 	    } else {
 	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	    }
@@ -2683,7 +2703,13 @@ public class BuildCode {
 	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	    if(cn.getNumStaticBlocks() != 0) {
 	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-	      output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+            output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+            output.println("0, NULL};");
+            output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+          } else {
+            output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+          }
 	    } else {
 	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	    }

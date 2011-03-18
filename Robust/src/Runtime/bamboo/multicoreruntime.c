@@ -125,9 +125,9 @@ typedef union jvalue
 } jvalue;
 
 #ifdef D___Double______doubleToRawLongBits____D 
-long long CALL11(___Double______doubleToRawLongBits____D, double dval, double dval) {
+long long CALL11(___Double______doubleToRawLongBits____D, double ___value___, double ___value___) {
   jvalue val;
-  val.d = dval;
+  val.d = ___value___;
 
 #if defined(__IEEE_BYTES_LITTLE_ENDIAN)
   /* On little endian ARM processors when using FPA, word order of
@@ -144,9 +144,9 @@ long long CALL11(___Double______doubleToRawLongBits____D, double dval, double dv
 #endif
 
 #ifdef D___Double______longBitsToDouble____J 
-double CALL11(___Double______longBitsToDouble____J, long long lval, long long lval) {
+double CALL11(___Double______longBitsToDouble____J, long long ___bits___, long long ___bits___) {
   jvalue val;
-  val.j = lval;
+  val.j = ___bits___;
 
 #if defined(__IEEE_BYTES_LITTLE_ENDIAN)
 #ifndef SWAP_DOUBLE
@@ -298,27 +298,6 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
 #endif // TILERA_BME
 #endif // MGC
 }
-
-#ifdef D___System______initProperties____
-struct ___Properties___ * CALL00(___System______initProperties____) {
-#ifdef MGC
-   struct ___Properties___ * ___srctmp31736___;
-  struct ___String___ * ___arg42781___;
-  struct ___String___ * ___arg42782___;
-  struct ___String___ * ___s42780___;
-  ___srctmp31736___=allocate_new(76);
-   {
-       ___Properties______Properties____((struct ___Properties___ *) ___srctmp31736___);
-   }
-   global_defs_p->___System______props___ = ___srctmp31736___;
-   ___arg42781___=NewString("line.separator",14);
-   ___arg42782___=NewString("\n",1);
-   {
-       ___s42780___=___System______setProperty____L___String____L___String___((struct ___String___ *) ___arg42781___, (struct ___String___ *) ___arg42782___);
-   }
-#endif // MGC
-}
-#endif
 
 /* Object allocation function */
 

@@ -135,7 +135,7 @@ volatile int gcmovepending;
 #else
 #define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
 #endif
-mspace bamboo_rmsp;
+//extern mspace bamboo_rmsp;
 // shared pointer mapping tbl
 mgcsharedhashtbl_t * gcsharedptbl;
 // remote shared pointer tbls
