@@ -103,6 +103,8 @@ public class Pointer implements HeapAnalysis{
   }
 
   public void doAnalysis() {
+    double timeStartAnalysis = (double) System.nanoTime();
+
     toprocess.add(buildInitialContext());
     nextdelta:
     while(!toprocess.isEmpty()) {
@@ -178,6 +180,11 @@ public class Pointer implements HeapAnalysis{
 	debugindex++;
       } 
     }
+
+    double timeEndAnalysis = (double) System.nanoTime();
+    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
+    System.out.println("Time taken: "+dt);
+
     if (OoOJava) {
       effectsAnalysis.buildStateMachines.writeStateMachines();
     }
