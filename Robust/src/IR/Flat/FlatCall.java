@@ -27,6 +27,7 @@ public class FlatCall extends FlatNode {
     TempDescriptor[] nargs=new TempDescriptor[args.length];
     for(int i=0;i<nargs.length;i++)
       nargs[i]=t.tempMap(args[i]);
+    
     return new FlatCall(method, ndst, nthis, nargs);
   }
 

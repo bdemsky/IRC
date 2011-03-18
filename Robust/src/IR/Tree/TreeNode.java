@@ -2,7 +2,7 @@ package IR.Tree;
 
 public class TreeNode {
   public static final int INDENT=2;
-  int numLine;
+  int numLine=-1;
 
   public String printNode(int indent) {
     return null;

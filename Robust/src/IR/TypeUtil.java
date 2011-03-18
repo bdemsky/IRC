@@ -34,7 +34,7 @@ public class TypeUtil {
       if (f.exists()) {
 	try {
 	  ParseNode pn=Main.readSourceFile(state, f.getCanonicalPath());
-	  bir.buildtree(pn, todo);
+	  bir.buildtree(pn, todo,f.getCanonicalPath());
 	  return;
 	} catch (Exception e) {
 	  throw new Error(e);

@@ -193,6 +193,7 @@ public class State {
   private int arraycount=0;
   public Hashtable cd2locationOrderMap;
   public boolean OPTIMIZE=false;
+  public boolean LINENUM=false;
 
   private Hashtable<ClassDescriptor, Hashtable<OptionalTaskDescriptor, OptionalTaskDescriptor>> optionaltaskdescriptors;
   private Hashtable<ClassDescriptor, Hashtable<FlagState, Set<OptionalTaskDescriptor>>> analysisresults;

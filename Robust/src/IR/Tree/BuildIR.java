@@ -16,8 +16,8 @@ public class BuildIR {
     this.m_taskexitnum = 0;
   }
 
-  public void buildtree(ParseNode pn, Set toanalyze) {
-    parseFile(pn, toanalyze);
+  public void buildtree(ParseNode pn, Set toanalyze, String sourcefile) {
+    parseFile(pn, toanalyze,sourcefile);
     
     // numering the interfaces
     int if_num = 0;
@@ -35,7 +35,7 @@ public class BuildIR {
   NameDescriptor packages;
 
   /** Parse the classes in this file */
-  public void parseFile(ParseNode pn, Set toanalyze) {
+  public void parseFile(ParseNode pn, Set toanalyze,String sourcefile) {
     singleimports=new Vector();
     multiimports=new Vector();
     
@@ -64,6 +64,7 @@ public class BuildIR {
 	  continue;
 	if (isNode(type_pn,"class_declaration")) {
 	  ClassDescriptor cn=parseTypeDecl(type_pn);
+	  cn.setSourceFileName(sourcefile);
 	  parseInitializers(cn);
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
@@ -82,6 +83,7 @@ public class BuildIR {
 	    if(toanalyze != null) {
 	      toanalyze.add(cd);
 	    }
+	    cd.setSourceFileName(sourcefile);
 	    state.addClass(cd);
 	    
 	    Iterator it_ics = cd.getInnerClasses();
@@ -95,6 +97,7 @@ public class BuildIR {
 	      if(toanalyze != null) {
 		toanalyze.add(iecd);
 	      }
+	      iecd.setSourceFileName(sourcefile);
 	      state.addClass(iecd);
 	    }
 	  }
@@ -105,6 +108,7 @@ public class BuildIR {
 	    if(toanalyze != null) {
 	      toanalyze.add(ecd);
 	    }
+	    ecd.setSourceFileName(sourcefile);
 	    state.addClass(ecd);
 	  }
 	} else if (isNode(type_pn,"task_declaration")) {
@@ -117,6 +121,7 @@ public class BuildIR {
 	  ClassDescriptor cn = parseInterfaceDecl(type_pn);
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
+	  cn.setSourceFileName(sourcefile);
 	  state.addClass(cn);
 	  
 	  // for enum
@@ -126,6 +131,7 @@ public class BuildIR {
 	    if(toanalyze != null) {
 	      toanalyze.add(ecd);
 	    }
+	    ecd.setSourceFileName(sourcefile);
 	    state.addClass(ecd);
 	  }
 	} else if (isNode(type_pn,"enum_declaration")) {
@@ -133,6 +139,7 @@ public class BuildIR {
 	  ClassDescriptor cn = parseEnumDecl(null, type_pn);
 	  if (toanalyze!=null)
 	    toanalyze.add(cn);
+	  cn.setSourceFileName(sourcefile);
 	  state.addClass(cn);
 	} else {
 	  throw new Error(type_pn.getLabel());
@@ -671,6 +678,7 @@ public void parseInitializers(ClassDescriptor cn){
       ExpressionNode en=null;
       if (epn!=null) {
         en=parseExpression(epn.getFirstChild());
+        en.setNumLine(epn.getFirstChild().getLine());
         if(m.isStatic()) {
           // for static field, the initializer should be considered as a 
           // static block
@@ -690,6 +698,7 @@ public void parseInitializers(ClassDescriptor cn){
           cn.incStaticBlocks();
           BlockNode bn=new BlockNode();
           NameNode nn=new NameNode(new NameDescriptor(identifier));
+          nn.setNumLine(en.getNumLine());
           AssignmentNode an=new AssignmentNode(nn,en,new AssignOperation(1));
           an.setNumLine(pn.getLine());
           bn.addBlockStatement(new BlockExpressionNode(an));
@@ -738,14 +747,18 @@ public void parseInitializers(ClassDescriptor cn){
       ParseNode left=pnv.elementAt(0);
       ParseNode right=pnv.elementAt(1);
       Operation op=new Operation(pn.getLabel());
-      return new OpNode(parseExpression(left),parseExpression(right),op);
+      OpNode on=new OpNode(parseExpression(left),parseExpression(right),op);
+      on.setNumLine(pn.getLine());
+      return on;
     } else if (isNode(pn,"unaryplus")||
                isNode(pn,"unaryminus")||
                isNode(pn,"not")||
                isNode(pn,"comp")) {
       ParseNode left=pn.getFirstChild();
       Operation op=new Operation(pn.getLabel());
-      return new OpNode(parseExpression(left),op);
+      OpNode on=new OpNode(parseExpression(left),op);
+      on.setNumLine(pn.getLine());
+      return on;
     } else if (isNode(pn,"postinc")||
                isNode(pn,"postdec")) {
       ParseNode left=pn.getFirstChild();
@@ -765,8 +778,10 @@ public void parseInitializers(ClassDescriptor cn){
     } else if (isNode(pn,"literal")) {
       String literaltype=pn.getTerminal();
       ParseNode literalnode=pn.getChild(literaltype);
-      Object literal_obj=literalnode.getLiteral();
-      return new LiteralNode(literaltype, literal_obj);
+      Object literal_obj=literalnode.getLiteral();      
+      LiteralNode ln=new LiteralNode(literaltype, literal_obj);
+      ln.setNumLine(pn.getLine());
+      return ln;
     } else if (isNode(pn,"createobject")) {
       TypeDescriptor td=parseTypeDescriptor(pn);
       
@@ -842,7 +857,9 @@ public void parseInitializers(ClassDescriptor cn){
       return nn;
     } else if (isNode(pn,"isavailable")) {
       NameDescriptor nd=new NameDescriptor(pn.getTerminal());
-      return new OpNode(new NameNode(nd),null,new Operation(Operation.ISAVAILABLE));
+      NameNode nn=new NameNode(nd);
+      nn.setNumLine(pn.getLine());
+      return new OpNode(nn,null,new Operation(Operation.ISAVAILABLE));
     } else if (isNode(pn,"methodinvoke1")) {
       NameDescriptor nd=parseName(pn.getChild("name"));
       Vector args=parseArgumentList(pn);

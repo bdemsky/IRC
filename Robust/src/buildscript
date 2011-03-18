@@ -146,6 +146,7 @@ echo -recovery compile recovery code
 echo -dsmtask support work and task class library
 echo -recoverystats print out recovery record 
 echo -src-after-pp prints source code after preprocessor to tmp.c
+echo -printlinenum print out line numbers in generated C codes
 echo -help help
 }
 
@@ -590,6 +591,10 @@ shift
 elif [[ $1 = '-nostalltr' ]]
 then
 JAVAOPTS="$JAVAOPTS -nostalltr"
+
+elif [[ $1 = '-printlinenum' ]]
+then
+JAVAOPTS="$JAVAOPTS -printlinenum"
 
 elif [[ $1 = '-rcr' ]]
 then

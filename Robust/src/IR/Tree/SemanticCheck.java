@@ -626,6 +626,7 @@ public class SemanticCheck {
 
     if (fd.getType().iswrapper()) {
       FieldAccessNode fan2=new FieldAccessNode(left, fieldname);
+      fan2.setNumLine(left.getNumLine());
       fan2.setField(fd);
       fan.left=fan2;
       fan.fieldname="value";
@@ -709,7 +710,7 @@ public class SemanticCheck {
     if (nd.getBase()!=null) {
       /* Big hack */
       /* Rewrite NameNode */
-      ExpressionNode en=translateNameDescriptorintoExpression(nd);
+      ExpressionNode en=translateNameDescriptorintoExpression(nd,nn.getNumLine());
       nn.setExpression(en);
       checkExpressionNode(md,nametable,en,td);
     } else {
@@ -780,9 +781,11 @@ public class SemanticCheck {
 	  String id=nd.getIdentifier();
 	  NameDescriptor base=nd.getBase();
 	  NameNode n=new NameNode(nn.getName());
+	  n.setNumLine(nn.getNumLine());
 	  n.setField(fd);
 	  n.setVar((VarDescriptor)nametable.get("this"));        /* Need a pointer to this */
 	  FieldAccessNode fan=new FieldAccessNode(n,"value");
+	  fan.setNumLine(n.getNumLine());
 	  FieldDescriptor fdval=(FieldDescriptor) fd.getType().getClassDesc().getFieldTable().get("value");
 	  fan.setField(fdval);
 	  nn.setExpression(fan);
@@ -923,6 +926,7 @@ public class SemanticCheck {
 
       if (!(an.getSrc().getType().isString()&&(an.getSrc() instanceof OpNode))) {
 	MethodInvokeNode rightmin=new MethodInvokeNode(valuend);
+	rightmin.setNumLine(an.getSrc().getNumLine());
 	rightmin.addArgument(an.getSrc());
 	an.right=rightmin;
 	checkExpressionNode(md, nametable, an.getSrc(), null);
@@ -1107,13 +1111,18 @@ NextMethod:
 
 
 
-  ExpressionNode translateNameDescriptorintoExpression(NameDescriptor nd) {
+  ExpressionNode translateNameDescriptorintoExpression(NameDescriptor nd, int numLine) {
     String id=nd.getIdentifier();
     NameDescriptor base=nd.getBase();
-    if (base==null)
-      return new NameNode(nd);
-    else
-      return new FieldAccessNode(translateNameDescriptorintoExpression(base),id);
+    if (base==null){
+      NameNode nn=new NameNode(nd);
+      nn.setNumLine(numLine);
+      return nn;
+    }else{
+      FieldAccessNode fan=new FieldAccessNode(translateNameDescriptorintoExpression(base,numLine),id);
+      fan.setNumLine(numLine);
+      return fan;
+    }
   }
 
 
@@ -1154,12 +1163,12 @@ NextMethod:
         typetolookin=new TypeDescriptor(cd);
       } else if (nametable.get(rootname)!=null) {
 	//we have an expression
-	min.setExpression(translateNameDescriptorintoExpression(min.getBaseName()));
+	min.setExpression(translateNameDescriptorintoExpression(min.getBaseName(),min.getNumLine()));
 	checkExpressionNode(md, nametable, min.getExpression(), null);
 	typetolookin=min.getExpression().getType();
       } else {
 	if(!min.getBaseName().getSymbol().equals("System.out")) {
-	  ExpressionNode nn = translateNameDescriptorintoExpression(min.getBaseName());
+	  ExpressionNode nn = translateNameDescriptorintoExpression(min.getBaseName(),min.getNumLine());
 	  checkExpressionNode(md, nametable, nn, null);
 	  typetolookin = nn.getType();
 	  if(!((nn.kind()== Kind.NameNode) && (((NameNode)nn).getField() == null)
@@ -1405,6 +1414,7 @@ NextMethod:
 	NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
 	if (!(ltd.isString()&&(on.getLeft() instanceof OpNode))) {
 	  MethodInvokeNode leftmin=new MethodInvokeNode(valuend);
+	  leftmin.setNumLine(on.getLeft().getNumLine());
 	  leftmin.addArgument(on.getLeft());
 	  on.left=leftmin;
 	  checkExpressionNode(md, nametable, on.getLeft(), null);
@@ -1412,6 +1422,7 @@ NextMethod:
 
 	if (!(rtd.isString()&&(on.getRight() instanceof OpNode))) {
 	  MethodInvokeNode rightmin=new MethodInvokeNode(valuend);
+	  rightmin.setNumLine(on.getRight().getNumLine());
 	  rightmin.addArgument(on.getRight());
 	  on.right=rightmin;
 	  checkExpressionNode(md, nametable, on.getRight(), null);

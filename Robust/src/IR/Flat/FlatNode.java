@@ -9,7 +9,7 @@ public class FlatNode {
   protected Vector prev;
   static int idcounter=0;
   public final int nodeid;
-  public int numLine;
+  public int numLine=-1;
 
   public FlatNode() {
     next=new Vector();

@@ -2202,8 +2202,8 @@ public class BuildCode {
 
 
   protected void generateFlatNode(FlatMethod fm, FlatNode fn, PrintWriter output) {
+    if(state.LINENUM) printSourceLineNumber(fm,fn,output);
     additionalCodePreNode(fm, fn, output);
-
 
     switch(fn.kind()) {
     case FKind.FlatAtomicEnterNode:
@@ -2622,6 +2622,7 @@ public class BuildCode {
   }
 
   protected void generateFlatFieldNode(FlatMethod fm, FlatFieldNode ffn, PrintWriter output) {
+    
     if(ffn.getField().isStatic()) {
       // static field
       if((fm.getMethod().isStaticBlock()) || (fm.getMethod().isInvokedByStatic())) {
@@ -3547,6 +3548,34 @@ public class BuildCode {
   }
   protected void additionalCodePostNode(FlatMethod fm, FlatNode fn, PrintWriter output) {
   }
+  
+  private void printSourceLineNumber(FlatMethod fm, FlatNode fn, PrintWriter output) {
+    // we do not print out line number if no one explicitly set the number
+    if(fn.getNumLine()!=-1){
+      
+      int lineNum=fn.getNumLine();
+
+      // do not generate the line number if it is same as the previous one
+      boolean needtoprint;
+      if(fn.prev.size()==0){
+        needtoprint=true;
+      }else{
+        needtoprint=false;
+      }
+
+      for(int i=0;i<fn.prev.size();i++){
+        int prevLineNum=((FlatNode)fn.prev.get(i)).getNumLine();
+        if(prevLineNum!=lineNum){
+          needtoprint=true;
+          break;
+        }
+      }
+      if(needtoprint){
+        output.println("// "+fm.getMethod().getClassDesc().getSourceFileName()+":"+fn.getNumLine());
+      }
+    }
+  }
+  
 }
 
 

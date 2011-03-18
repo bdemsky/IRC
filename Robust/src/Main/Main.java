@@ -343,7 +343,9 @@ public class Main {
 	state.NOSTALLTR = true;     
       } else if (option.equals("-ssjava")){
   state.SSJAVA = true;     
-      } else if (option.equals("-help")) {      
+      } else if (option.equals("-printlinenum")){
+  state.LINENUM=true;
+      }else if (option.equals("-help")) {      
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
 	System.out.println("-dir outputdirectory -- output code in outputdirectory");
@@ -387,6 +389,7 @@ public class Main {
 	System.out.println("-printscheduling -- print out scheduling graphs");
 	System.out.println("-printschedulesim -- print out scheduling simulation result graphs");
 	System.out.println("-webinterface -- enable web interface");
+	System.out.println("-linenum print out line numbers in generated C codes");
 	System.out.println("-help -- print out help");
 	System.exit(0);
       } else {
@@ -657,7 +660,7 @@ public class Main {
   public static void loadClass(State state, BuildIR bir, String sourcefile) {
     try {
       ParseNode pn=readSourceFile(state, sourcefile);
-      bir.buildtree(pn, null);
+      bir.buildtree(pn, null,sourcefile);
     } catch (Exception e) {
       System.out.println("Error in sourcefile:"+sourcefile);
       e.printStackTrace();

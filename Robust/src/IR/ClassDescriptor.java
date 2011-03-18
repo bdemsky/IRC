@@ -42,6 +42,8 @@ public class ClassDescriptor extends Descriptor {
   
   boolean isClassLibrary=false;
   
+  String sourceFileName;
+  
   public ClassDescriptor(String classname, boolean isInterface) {
     this("", classname, isInterface);
   }
@@ -391,6 +393,14 @@ public class ClassDescriptor extends Descriptor {
   
   public boolean isClassLibrary(){
     return isClassLibrary;
+  }
+  
+  public void setSourceFileName(String sourceFileName){
+    this.sourceFileName=sourceFileName;
+  }
+  
+  public String getSourceFileName(){
+    return this.sourceFileName;
   }
   
 }
