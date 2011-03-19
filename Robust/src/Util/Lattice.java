@@ -29,8 +29,8 @@ public class Lattice<T> {
   public T getBottomItem() {
     return bottom;
   }
-  
-  public Set<T> getKeySet(){
+
+  public Set<T> getKeySet() {
     return table.keySet();
   }
 
@@ -112,6 +112,22 @@ public class Lattice<T> {
   }
 
   public boolean isGreaterThan(T a, T b) {
+
+    if (a.equals(top)) {
+      if (b.equals(top)) {
+        return false;
+      }
+      return true;
+    }
+    if (b.equals(top)) {
+      return false;
+    }
+    if (a.equals(bottom)) {
+      return false;
+    }
+    if (b.equals(bottom)) {
+      return true;
+    }
 
     Set<T> neighborSet = get(a);
 

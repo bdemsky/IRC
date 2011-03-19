@@ -74,4 +74,18 @@ public class Location {
     return "Loc[" + cd.getSymbol() + "." + loc + "]";
   }
 
+  public static Location createTopLocation(ClassDescriptor cd) {
+    Location topLoc = new Location(cd);
+    topLoc.setType(TOP);
+    topLoc.loc = "_top_";
+    return topLoc;
+  }
+
+  public static Location createBottomLocation(ClassDescriptor cd) {
+    Location bottomLoc = new Location(cd);
+    bottomLoc.setType(BOTTOM);
+    bottomLoc.loc = "_bottom_";
+    return bottomLoc;
+  }
+
 }

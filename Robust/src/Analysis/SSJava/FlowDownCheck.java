@@ -19,24 +19,39 @@ import IR.State;
 import IR.SymbolTable;
 import IR.TypeDescriptor;
 import IR.VarDescriptor;
+import IR.Flat.FlatFieldNode;
+import IR.Tree.ArrayAccessNode;
+import IR.Tree.ArrayInitializerNode;
 import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
+import IR.Tree.CastNode;
+import IR.Tree.ClassTypeNode;
+import IR.Tree.CreateObjectNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.FieldAccessNode;
+import IR.Tree.InstanceOfNode;
 import IR.Tree.Kind;
+import IR.Tree.LiteralNode;
+import IR.Tree.MethodInvokeNode;
 import IR.Tree.NameNode;
+import IR.Tree.OffsetNode;
 import IR.Tree.OpNode;
+import IR.Tree.SubBlockNode;
+import IR.Tree.TertiaryNode;
 import Util.Lattice;
 
 public class FlowDownCheck {
 
   static State state;
   HashSet toanalyze;
-  Hashtable<TypeDescriptor, Location> td2loc;
-  Hashtable<String, ClassDescriptor> id2cd;
+  Hashtable<TypeDescriptor, Location> td2loc; // mapping from 'type descriptor'
+  // to 'location'
+  Hashtable<String, ClassDescriptor> id2cd; // mapping from 'locID' to 'class
+
+  // descriptor'
 
   public FlowDownCheck(State state) {
     this.state = state;
@@ -64,12 +79,12 @@ public class FlowDownCheck {
   }
 
   public void flowDownCheck() {
-
     SymbolTable classtable = state.getClassSymbolTable();
+
+    // phase 1 : checking declaration node and creating mapping of 'type
+    // desciptor' & 'location'
     toanalyze.addAll(classtable.getValueSet());
     toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
-
-    // Do methods next
     while (!toanalyze.isEmpty()) {
       Object obj = toanalyze.iterator().next();
       ClassDescriptor cd = (ClassDescriptor) obj;
@@ -78,9 +93,30 @@ public class FlowDownCheck {
         // doesn't care about class libraries now
         continue;
       }
+      checkDeclarationInClass(cd);
+      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+        MethodDescriptor md = (MethodDescriptor) method_it.next();
+        try {
+          checkDeclarationInMethodBody(cd, md);
+        } catch (Error e) {
+          System.out.println("Error in " + md);
+          throw e;
+        }
+      }
+    }
 
+    // phase2 : checking assignments
+    toanalyze.addAll(classtable.getValueSet());
+    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
+    while (!toanalyze.isEmpty()) {
+      Object obj = toanalyze.iterator().next();
+      ClassDescriptor cd = (ClassDescriptor) obj;
+      toanalyze.remove(cd);
+      if (cd.isClassLibrary()) {
+        // doesn't care about class libraries now
+        continue;
+      }
       checkClass(cd);
-
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         try {
@@ -91,21 +127,36 @@ public class FlowDownCheck {
         }
       }
     }
+
+  }
+
+  private void checkDeclarationInMethodBody(ClassDescriptor cd, MethodDescriptor md) {
+    BlockNode bn = state.getMethodBody(md);
+    checkDeclarationInBlockNode(md, md.getParameterTable(), bn);
+  }
+
+  public void checkDeclarationInBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn) {
+    bn.getVarTable().setParent(nametable);
+    for (int i = 0; i < bn.size(); i++) {
+      BlockStatementNode bsn = bn.get(i);
+      checkDeclarationInBlockStatementNode(md, bn.getVarTable(), bsn);
+    }
+  }
+
+  private void checkDeclarationInBlockStatementNode(MethodDescriptor md, SymbolTable nametable,
+      BlockStatementNode bsn) {
+
+    switch (bsn.kind()) {
+    case Kind.SubBlockNode:
+      checkDeclarationInSubBlockNode(md, nametable, (SubBlockNode) bsn);
+      return;
+    case Kind.DeclarationNode:
+      checkDeclarationNode(md, (DeclarationNode) bsn);
+      break;
+    }
   }
 
   public void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
-    ClassDescriptor superdesc = cd.getSuperDesc();
-    if (superdesc != null) {
-      Set possiblematches = superdesc.getMethodTable().getSet(md.getSymbol());
-      for (Iterator methodit = possiblematches.iterator(); methodit.hasNext();) {
-        MethodDescriptor matchmd = (MethodDescriptor) methodit.next();
-        if (md.matches(matchmd)) {
-          if (matchmd.getModifiers().isFinal()) {
-            throw new Error("Try to override final method in method:" + md + " declared in  " + cd);
-          }
-        }
-      }
-    }
     BlockNode bn = state.getMethodBody(md);
     checkBlockNode(md, md.getParameterTable(), bn);
   }
@@ -127,9 +178,6 @@ public class FlowDownCheck {
       checkBlockExpressionNode(md, nametable, (BlockExpressionNode) bsn);
       return;
 
-    case Kind.DeclarationNode:
-      checkDeclarationNode(md, (DeclarationNode) bsn);
-      return;
     }
     /*
      * switch (bsn.kind()) { case Kind.BlockExpressionNode:
@@ -172,6 +220,11 @@ public class FlowDownCheck {
      * check for SESEs return; }
      */
     // throw new Error();
+  }
+
+  private void checkDeclarationInSubBlockNode(MethodDescriptor md, SymbolTable nametable,
+      SubBlockNode sbn) {
+    checkDeclarationInBlockNode(md, nametable, sbn.getBlockNode());
   }
 
   void checkBlockExpressionNode(MethodDescriptor md, SymbolTable nametable, BlockExpressionNode ben) {
@@ -244,16 +297,65 @@ public class FlowDownCheck {
 
   void checkNameNode(MethodDescriptor md, SymbolTable nametable, NameNode nn, TypeDescriptor td) {
 
+    NameDescriptor nd = nn.getName();
+    System.out.println("checkNameNode=" + nn);
+    System.out.println("nn.expression=" + nn.getExpression().printNode(0));
+
+    if (nd.getBase() != null) {
+      /* Big hack */
+      /* Rewrite NameNode */
+      ExpressionNode en = translateNameDescriptorintoExpression(nd);
+      System.out.println("base=" + nd.getBase() + " field=" + nn.getField() + " en="
+          + en.printNode(0));
+      nn.setExpression(en);
+      System.out.println("checking expression node=" + en.printNode(0) + " with td=" + td);
+      checkExpressionNode(md, nametable, en, td);
+    } else {
+      System.out.println("base=" + nd.getBase() + " field=" + nn.getField());
+
+    }
+
+    // ExpressionNode en=nn.getExpression();
+    // if(en instanceof FieldAccessNode){
+    // FieldAccessNode fan=(FieldAccessNode)en;
+    // System.out.println("base="+nd.getBase()+" field="+fan.getFieldName());
+    // }
+
+    // checkExpressionNode(md, nametable, nn.getExpression(), td);
+    // NameDescriptor nd = nn.getName();
+    // if (nd.getBase() != null) {
+    // System.out.println("nd.getBase()="+nd.getBase());
+    // /* Big hack */
+    // /* Rewrite NameNode */
+    // ExpressionNode en = translateNameDescriptorintoExpression(nd);
+    // System.out.println("expressionsNode="+en);
+    // nn.setExpression(en);
+    // checkExpressionNode(md, nametable, en, td);
+    // }
+
+  }
+
+  ExpressionNode translateNameDescriptorintoExpression(NameDescriptor nd) {
+    String id = nd.getIdentifier();
+    NameDescriptor base = nd.getBase();
+    if (base == null) {
+      NameNode nn = new NameNode(nd);
+      return nn;
+    } else {
+      FieldAccessNode fan = new FieldAccessNode(translateNameDescriptorintoExpression(base), id);
+      return fan;
+    }
   }
 
   void checkFieldAccessNode(MethodDescriptor md, SymbolTable nametable, FieldAccessNode fan,
       TypeDescriptor td) {
 
+    System.out.println("fan=" + fan + " field=" + fan.getFieldName());
     ExpressionNode left = fan.getExpression();
+    System.out.println("checking expression from fan=" + left.printNode(0) + " with td=" + td);
     checkExpressionNode(md, nametable, left, null);
     TypeDescriptor ltd = left.getType();
     String fieldname = fan.getFieldName();
-
 
   }
 
@@ -344,36 +446,258 @@ public class FlowDownCheck {
 
   }
 
+  protected void getLocationFromExpressionNode(MethodDescriptor md, SymbolTable nametable,
+      ExpressionNode en, CompositeLocation loc) {
+
+    switch (en.kind()) {
+
+    case Kind.AssignmentNode:
+      getLocationFromAssignmentNode(md, nametable, (AssignmentNode) en, loc);
+      return;
+
+    case Kind.FieldAccessNode:
+      getLocationFromFieldAccessNode(md, nametable, (FieldAccessNode) en, loc);
+      return;
+
+    case Kind.NameNode:
+      getLocationFromNameNode(md, nametable, (NameNode) en, loc);
+      return;
+
+    case Kind.OpNode:
+      getLocationFromOpNode(md, nametable, (OpNode) en, loc);
+      // checkOpNode(md,nametable,(OpNode)en,td);
+      return;
+
+    case Kind.CastNode:
+      // checkCastNode(md,nametable,(CastNode)en,td);
+      return;
+
+    case Kind.CreateObjectNode:
+      // checkCreateObjectNode(md, nametable, (CreateObjectNode) en, td);
+      return;
+
+    case Kind.ArrayAccessNode:
+      // checkArrayAccessNode(md, nametable, (ArrayAccessNode) en, td);
+      return;
+
+    case Kind.LiteralNode:
+      getLocationFromLiteralNode(md, nametable, (LiteralNode) en, loc);
+      return;
+
+    case Kind.MethodInvokeNode:
+      // checkMethodInvokeNode(md,nametable,(MethodInvokeNode)en,td);
+      return;
+
+    case Kind.OffsetNode:
+      // checkOffsetNode(md, nametable, (OffsetNode)en, td);
+      return;
+
+    case Kind.TertiaryNode:
+      // checkTertiaryNode(md, nametable, (TertiaryNode)en, td);
+      return;
+
+    case Kind.InstanceOfNode:
+      // checkInstanceOfNode(md, nametable, (InstanceOfNode) en, td);
+      return;
+
+    case Kind.ArrayInitializerNode:
+      // checkArrayInitializerNode(md, nametable, (ArrayInitializerNode) en,
+      // td);
+      return;
+
+    case Kind.ClassTypeNode:
+      // checkClassTypeNode(md, nametable, (ClassTypeNode) en, td);
+      return;
+
+    }
+
+  }
+
+  private void getLocationFromOpNode(MethodDescriptor md, SymbolTable nametable, OpNode on,
+      CompositeLocation loc) {
+
+    Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(md.getClassDesc());
+
+    ClassDescriptor cd = md.getClassDesc();
+    CompositeLocation leftLoc = new CompositeLocation(cd);
+    getLocationFromExpressionNode(md, nametable, on.getLeft(), leftLoc);
+
+    CompositeLocation rightLoc = new CompositeLocation(cd);
+    if (on.getRight() != null) {
+      getLocationFromExpressionNode(md, nametable, on.getRight(), rightLoc);
+    }
+
+    System.out.println("checking op node");
+    System.out.println("left loc=" + leftLoc);
+    System.out.println("right loc=" + rightLoc);
+
+    Operation op = on.getOp();
+
+    switch (op.getOp()) {
+
+    case Operation.UNARYPLUS:
+    case Operation.UNARYMINUS:
+    case Operation.LOGIC_NOT:
+      // single operand
+      on.setType(new TypeDescriptor(TypeDescriptor.BOOLEAN));
+      break;
+
+    case Operation.LOGIC_OR:
+    case Operation.LOGIC_AND:
+    case Operation.COMP:
+    case Operation.BIT_OR:
+    case Operation.BIT_XOR:
+    case Operation.BIT_AND:
+    case Operation.ISAVAILABLE:
+    case Operation.EQUAL:
+    case Operation.NOTEQUAL:
+    case Operation.LT:
+    case Operation.GT:
+    case Operation.LTE:
+    case Operation.GTE:
+    case Operation.ADD:
+    case Operation.SUB:
+    case Operation.MULT:
+    case Operation.DIV:
+    case Operation.MOD:
+    case Operation.LEFTSHIFT:
+    case Operation.RIGHTSHIFT:
+    case Operation.URIGHTSHIFT:
+
+      // Set<String> operandSet = new HashSet<String>();
+      // String leftLoc = ltd.getAnnotationMarkers().get(0).getMarker();
+      // String rightLoc = rtd.getAnnotationMarkers().get(0).getMarker();
+      //
+      // operandSet.add(leftLoc);
+      // operandSet.add(rightLoc);
+
+      // TODO
+      // String glbLoc = locOrder.getGLB(operandSet);
+      // on.getType().addAnnotationMarker(new AnnotationDescriptor(glbLoc));
+      // System.out.println(glbLoc + "<-" + leftLoc + " " + rightLoc);
+
+      break;
+
+    default:
+      throw new Error(op.toString());
+    }
+
+    // if (td != null) {
+    // String lhsLoc = td.getAnnotationMarkers().get(0).getMarker();
+    // if (locOrder.isGreaterThan(lhsLoc,
+    // on.getType().getAnnotationMarkers().get(0).getMarker())) {
+    // throw new Error("The location of LHS is higher than RHS: " +
+    // on.printNode(0));
+    // }
+    // }
+
+  }
+
+  private void getLocationFromLiteralNode(MethodDescriptor md, SymbolTable nametable,
+      LiteralNode en, CompositeLocation loc) {
+
+    // literal value has the top location so that value can be flowed into any
+    // location
+    Location literalLoc = Location.createTopLocation(md.getClassDesc());
+    loc.addLocation(literalLoc);
+
+  }
+
+  private void getLocationFromNameNode(MethodDescriptor md, SymbolTable nametable, NameNode nn,
+      CompositeLocation loc) {
+
+    NameDescriptor nd = nn.getName();
+    if (nd.getBase() != null) {
+      getLocationFromExpressionNode(md, nametable, nn.getExpression(), loc);
+    } else {
+
+      String varname = nd.toString();
+      Descriptor d = (Descriptor) nametable.get(varname);
+
+      Location localLoc = null;
+      if (d instanceof VarDescriptor) {
+        VarDescriptor vd = (VarDescriptor) d;
+        localLoc = td2loc.get(vd.getType());
+      } else if (d instanceof FieldDescriptor) {
+        FieldDescriptor fd = (FieldDescriptor) d;
+        localLoc = td2loc.get(fd.getType());
+      }
+      assert (localLoc != null);
+      loc.addLocation(localLoc);
+    }
+
+  }
+
+  private void getLocationFromFieldAccessNode(MethodDescriptor md, SymbolTable nametable,
+      FieldAccessNode fan, CompositeLocation loc) {
+    FieldDescriptor fd = fan.getField();
+    Location fieldLoc = td2loc.get(fd.getType());
+    loc.addLocation(fieldLoc);
+
+    ExpressionNode left = fan.getExpression();
+    getLocationFromExpressionNode(md, nametable, left, loc);
+  }
+
+  private CompositeLocation getLocationFromAssignmentNode(Descriptor md, SymbolTable nametable,
+      AssignmentNode en, CompositeLocation loc) {
+    // TODO Auto-generated method stub
+
+    return null;
+  }
+
+  private Location createCompositeLocation(FieldAccessNode fan, Location loc) {
+
+    FieldDescriptor field = fan.getField();
+    ClassDescriptor fieldCD = field.getClassDescriptor();
+
+    assert (field.getType().getAnnotationMarkers().size() == 1);
+
+    AnnotationDescriptor locAnnotation = field.getType().getAnnotationMarkers().elementAt(0);
+    if (locAnnotation.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
+      // single location
+
+    } else {
+      // delta location
+    }
+
+    // Location localLoc=new Location(field.getClassDescriptor(),field.get)
+
+    // System.out.println("creatingComposite's field="+field+" localLoc="+localLoc);
+    ExpressionNode leftNode = fan.getExpression();
+    System.out.println("creatingComposite's leftnode=" + leftNode.printNode(0));
+
+    return loc;
+  }
+
   void checkAssignmentNode(MethodDescriptor md, SymbolTable nametable, AssignmentNode an,
       TypeDescriptor td) {
+
+    CompositeLocation srcLocation = new CompositeLocation(md.getClassDesc());
 
     boolean postinc = true;
     if (an.getOperation().getBaseOp() == null
         || (an.getOperation().getBaseOp().getOp() != Operation.POSTINC && an.getOperation()
             .getBaseOp().getOp() != Operation.POSTDEC))
       postinc = false;
-    if (!postinc)
-      checkExpressionNode(md, nametable, an.getSrc(), td);
-
+    if (!postinc) {
+      // checkExpressionNode(md, nametable, an.getSrc(), td);
+      // calculateLocation(md, nametable, an.getSrc(), td);
+      getLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
+    }
 
     ClassDescriptor cd = md.getClassDesc();
     Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
-
     Location destLocation = td2loc.get(an.getDest().getType());
-    Location srcLocation = td2loc.get(an.getSrc().getType());
-
 
     if (!CompositeLattice.isGreaterThan(srcLocation, destLocation)) {
       throw new Error("The value flow from " + srcLocation + " to " + destLocation
           + " does not respect location hierarchy on the assignment " + an.printNode(0));
     }
 
-
   }
 
   void checkDeclarationNode(MethodDescriptor md, DeclarationNode dn) {
-
     ClassDescriptor cd = md.getClassDesc();
     VarDescriptor vd = dn.getVarDescriptor();
     Vector<AnnotationDescriptor> annotationVec = vd.getType().getAnnotationMarkers();
@@ -438,16 +762,18 @@ public class FlowDownCheck {
   }
 
   private void checkClass(ClassDescriptor cd) {
-    // Check to see that fields are okay
-    for (Iterator field_it = cd.getFields(); field_it.hasNext();) {
-      FieldDescriptor fd = (FieldDescriptor) field_it.next();
-      checkFieldDeclaration(cd, fd);
-    }
-
     // Check to see that methods respects ss property
     for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
       MethodDescriptor md = (MethodDescriptor) method_it.next();
       checkMethodDeclaration(cd, md);
+    }
+  }
+
+  private void checkDeclarationInClass(ClassDescriptor cd) {
+    // Check to see that fields are okay
+    for (Iterator field_it = cd.getFields(); field_it.hasNext();) {
+      FieldDescriptor fd = (FieldDescriptor) field_it.next();
+      checkFieldDeclaration(cd, fd);
     }
   }
 
@@ -481,6 +807,10 @@ public class FlowDownCheck {
         throw new Error("Location " + locationID
             + " is not defined in the location hierarchy of class " + cd.getSymbol() + ".");
       }
+
+      Location localLoc = new Location(cd, locationID);
+      td2loc.put(fd.getType(), localLoc);
+
     } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) {
       if (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
 
@@ -537,7 +867,6 @@ public class FlowDownCheck {
       }
 
       // comparing two composite locations
-
       System.out.println("compare base location=" + compLoc1 + " ? " + compLoc2);
 
       int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2);
