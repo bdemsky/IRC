@@ -5,21 +5,20 @@
 //SIZE is used as mask to check overflow
 #define SIZE 16384
 
-struct RCRQueue {
-  void * elements[SIZE];
-  unsigned int head;
-  unsigned int tail;
-};
-
-
 typedef struct RCRQueueEntry_t {
   void* object;
   int   traverserState;
 } RCRQueueEntry;
 
+struct RCRQueue {
+  RCRQueueEntry elements[SIZE];
+  unsigned int head;
+  unsigned int tail;
+  unsigned int length;
+};
 
-int enqueueRCRQueue(void * ptr);
-void * dequeueRCRQueue();
+int enqueueRCRQueue(void * ptr, int traverserState);
+RCRQueueEntry * dequeueRCRQueue();
 void resetRCRQueue();
 int isEmptyRCRQueue();
 int getSizeRCRQueue();

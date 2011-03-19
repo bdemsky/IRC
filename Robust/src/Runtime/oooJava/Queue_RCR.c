@@ -7,39 +7,40 @@ __thread struct RCRQueue myRCRQueue;
 void resetRCRQueue() {
   myRCRQueue.head = 0;
   myRCRQueue.tail = 0;
+  myRCRQueue.length = 0;
 }
 
-//0 would mean sucess
+//0 would mean success
 //1 would mean fail
-//since if we reach SIZE, we will stop operation, it doesn't matter
-//that we overwrite the element in the queue
-int enqueueRCRQueue(void * ptr) {
-  unsigned int head=myRCRQueue.head+1;
-  if (head&SIZE)
-    head=0;
+int enqueueRCRQueue(void * ptr, int traverserState) {
+  if (myRCRQueue.length & SIZE)
+      return 1;
 
-  if (head==myRCRQueue.tail)
-    return 1;
-  
-  myRCRQueue.elements[head] = ptr;
-  myRCRQueue.head=head;
+  myRCRQueue.length++;
+  myRCRQueue.elements[myRCRQueue.head].object = ptr;
+  myRCRQueue.elements[myRCRQueue.head].traverserState = traverserState;
+  myRCRQueue.head++;
+
+  if (myRCRQueue.head&SIZE)
+    myRCRQueue.head=0;
+
+
   return 0;
 }
 
-void * dequeueRCRQueue() {
-  if(myRCRQueue.head==myRCRQueue.tail)
+RCRQueueEntry * dequeueRCRQueue() {
+  if(!myRCRQueue.length)
     return NULL;
-  unsigned int tail=myRCRQueue.tail;
-  void * ptr = myRCRQueue.elements[tail];
-  tail++;
-  if(tail & SIZE)
-    tail =  0;
-  myRCRQueue.tail=tail;
+
+  myRCRQueue.length--;
+  void * ptr = &myRCRQueue.elements[myRCRQueue.tail++];
+  if(myRCRQueue.tail & SIZE)
+    myRCRQueue.tail =  0;
   return ptr;
 }
 
 int isEmptyRCRQueue() {
-  return myRCRQueue.head=myRCRQueue.tail;
+  return !myRCRQueue.length;
 }
 
 

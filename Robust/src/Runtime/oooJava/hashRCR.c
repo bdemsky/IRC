@@ -46,7 +46,7 @@ void hashRCRreset() {
       dchashlistnode_t *next=tmpptr->lnext;
       if (tmpptr>=ptr&&tmpptr<top) {
 	//zero in list
-	tmpptr->key=NULL;
+	tmpptr->object=NULL;
 	tmpptr->next=NULL;
       }
       tmpptr=next;
@@ -67,10 +67,10 @@ void hashRCRreset() {
 //Store objects and their pointers into hash
 //1 = add success
 //0 = object already exists / Add failed
-int hashRCRInsert(void * key) {
+int hashRCRInsert(void * objectPtr, int traverserState) {
   dchashlistnode_t *ptr;
 
-  if (unlikely(key==NULL)) {
+  if (unlikely(objectPtr==NULL)) {
     return 0;
   }
 
@@ -79,9 +79,10 @@ int hashRCRInsert(void * key) {
     unsigned int newsize = dc_c_size << 1;
     hashRCRResize(newsize);
   }
-  ptr = &dc_c_table[(((unsigned INTPTR)key)&dc_c_mask)>>SHIFTBITS];
-  if(likely(ptr->key==0)) {
-    ptr->key=key;
+  ptr = &dc_c_table[(((unsigned INTPTR)objectPtr)&dc_c_mask)>>SHIFTBITS];
+  if(likely(ptr->object==0)) {
+    ptr->object=objectPtr;
+    ptr->traverserState = traverserState;
     ptr->lnext=dc_c_list;
     dc_c_list=ptr;
     dc_c_numelements++;
@@ -91,8 +92,8 @@ int hashRCRInsert(void * key) {
     
     //make sure it isn't here
     do {
-      if(search->key == key) {
-	return 0;
+      if(search->object == objectPtr && search->traverserState == traverserState) {
+        return 0;
       }
       search=search->next;
     } while(search != NULL);
@@ -109,7 +110,8 @@ int hashRCRInsert(void * key) {
       node=&tcl->array[0];
       tcl->num=1;
     }
-    node->key = key;
+    node->object = objectPtr;
+    node->traverserState=traverserState;
     node->next = ptr->next;
     ptr->next=node;
     node->lnext=dc_c_list;
@@ -148,7 +150,7 @@ unsigned int hashRCRResize(unsigned int newsize) {
       void * key;
       dchashlistnode_t *tmp,*next;
 
-      if ((key=curr->key) == 0) {             //Exit inner loop if there the first element is 0
+      if ((key=curr->object) == 0) {             //Exit inner loop if there the first element is 0
 	break;                  //key = val =0 for element if not present within the hash table
       }
 
@@ -156,10 +158,11 @@ unsigned int hashRCRResize(unsigned int newsize) {
       tmp=&node[index];
       next = curr->next;
       // Insert into the new table
-      if(tmp->key == 0) {
-	tmp->key = key;
-	tmp->lnext=dc_c_list;
-	dc_c_list=tmp;
+      if(tmp->object == 0) {
+        tmp->object = key;
+        tmp->traverserState = curr->traverserState;
+        tmp->lnext=dc_c_list;
+        dc_c_list=tmp;
       } /*
           NOTE:  Add this case if you change this...
           This case currently never happens because of the way things rehash....
@@ -171,10 +174,10 @@ unsigned int hashRCRResize(unsigned int newsize) {
           tmp->next=newnode;
           } */
       else {
-	curr->next=tmp->next;
-	tmp->next=curr;
-	curr->lnext=dc_c_list;
-	dc_c_list=curr;
+        curr->next=tmp->next;
+        tmp->next=curr;
+        curr->lnext=dc_c_list;
+        dc_c_list=curr;
       }
 
       isfirst = 0;
@@ -201,12 +204,12 @@ void hashRCRDelete() {
 }
 
 // Search for an address for a given Address
-INLINE int hashRCRSearch(void * key) {
+INLINE int hashRCRSearch(void * objectPtr, int traverserState) {
   //REMOVE HASH FUNCTION CALL TO MAKE SURE IT IS INLINED HERE
-  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)key) & dc_c_mask)>>SHIFTBITS];
+  dchashlistnode_t *node = &dc_c_table[(((unsigned INTPTR)objectPtr) & dc_c_mask)>>SHIFTBITS];
   
   do {
-    if(node->key == key) {
+    if(node->object == objectPtr && node->traverserState == traverserState) {
       return 1;
     }
     node = node->next;
