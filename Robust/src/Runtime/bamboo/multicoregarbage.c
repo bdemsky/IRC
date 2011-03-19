@@ -1082,6 +1082,7 @@ inline void tomark(struct garbagelist * stackptr) {
   gcbusystatus = true;
   gcnumlobjs = 0;
 
+
   int i,j;
   // enqueue current stack
   while(stackptr!=NULL) {
@@ -1099,14 +1100,16 @@ inline void tomark(struct garbagelist * stackptr) {
   GC_BAMBOO_DEBUGPRINT(0xe502);
 
   // enqueue static pointers global_defs_p
-  struct garbagelist * staticptr=(struct garbagelist *)global_defs_p;
-  while(staticptr != NULL) {
-	for(i=0; i<staticptr->size; i++) {
-	  if(staticptr->array[i] != NULL) {
-		markObj(staticptr->array[i]);
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	struct garbagelist * staticptr=(struct garbagelist *)global_defs_p;
+	while(staticptr != NULL) {
+	  for(i=0; i<staticptr->size; i++) {
+		if(staticptr->array[i] != NULL) {
+		  markObj(staticptr->array[i]);
+		}
 	  }
+	  staticptr = staticptr->next;
 	}
-	staticptr = staticptr->next;
   }
   GC_BAMBOO_DEBUGPRINT(0xe503);
 
@@ -1184,13 +1187,15 @@ inline void tomark(struct garbagelist * stackptr) {
 
 #ifdef MGC
   // enqueue global thread queue
-  lockthreadqueue();
-  unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
-  if(thread_counter > 0) {
-	unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
-	for(i = thread_counter; i > 0; i--) {
-	  markObj((void *)bamboo_thread_queue[4+start]);
-	  start = (start+1)&bamboo_max_thread_num_mask;
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	lockthreadqueue();
+	unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
+	if(thread_counter > 0) {
+	  unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
+	  for(i = thread_counter; i > 0; i--) {
+		markObj((void *)bamboo_thread_queue[4+start]);
+		start = (start+1)&bamboo_max_thread_num_mask;
+	  }
 	}
   }
 
@@ -1331,6 +1336,7 @@ inline void mark(bool isfirst,
 		send_msg_4(STARTUPCORE, GCFINISHMARK, BAMBOO_NUM_OF_CORE,
 				   gcself_numsendobjs, gcself_numreceiveobjs, false);
 		sendStall = true;
+		tprintf("Make finished %x \n", (int)BAMBOO_NUM_OF_CORE);
       }
     }  // if(STARTUPCORE == BAMBOO_NUM_OF_CORE) ...
     GC_BAMBOO_DEBUGPRINT(0xed0a);
@@ -2217,12 +2223,14 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
   }
 
   // flush static pointers global_defs_p
-  struct garbagelist * staticptr=(struct garbagelist *)global_defs_p;
-  for(i=0; i<staticptr->size; i++) {
-	if(staticptr->array[i] != NULL) {
-	  void * dst = flushObj(staticptr->array[i]);
-	  if(dst != NULL) {
-		staticptr->array[i] = dst;
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	struct garbagelist * staticptr=(struct garbagelist *)global_defs_p;
+	for(i=0; i<staticptr->size; i++) {
+	  if(staticptr->array[i] != NULL) {
+		void * dst = flushObj(staticptr->array[i]);
+		if(dst != NULL) {
+		  staticptr->array[i] = dst;
+		}
 	  }
 	}
   }
@@ -2318,17 +2326,18 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 
 #ifdef MGC
   // flush global thread queue
-  unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
-  if(thread_counter > 0) {
-	unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
-	for(i = thread_counter; i > 0; i--) {
-	  bamboo_thread_queue[4+start] = 
-		(INTPTR)(flushObj((void *)bamboo_thread_queue[4+start]));
-	  start = (start+1)&bamboo_max_thread_num_mask;
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
+	if(thread_counter > 0) {
+	  unsigned int start = *((unsigned int*)(bamboo_thread_queue+2));
+	  for(i = thread_counter; i > 0; i--) {
+		bamboo_thread_queue[4+start] = 
+		  (INTPTR)(flushObj((void *)bamboo_thread_queue[4+start]));
+		start = (start+1)&bamboo_max_thread_num_mask;
+	  }
 	}
+	unlockthreadqueue();
   }
-
-  unlockthreadqueue();
 #endif
 } // void flushRuntimeObj(struct garbagelist * stackptr)
 

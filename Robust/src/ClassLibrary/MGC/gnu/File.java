@@ -23,17 +23,17 @@ public class File {
   private static native long nativeLength(byte[] pathname);
   
   public boolean exists() {
-    System.println("Unimplemented File.exists()");
+    // TODO System.println("Unimplemented File.exists()");
     return false;
   }
   
   public boolean isDirectory() {
-    System.println("Unimplemented File.isDirectory()");
+    // TODO System.println("Unimplemented File.isDirectory()");
     return false;
   }
   
   public boolean mkdirs() {
-    System.println("Unimplemented File.mkdirs()");
+    // TODO System.println("Unimplemented File.mkdirs()");
     return false;
   }
   

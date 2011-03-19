@@ -1245,6 +1245,9 @@ public class BuildCode {
       int count=0;
       while(allit.hasNext()) {
 	FieldDescriptor fd=(FieldDescriptor)allit.next();
+    if(fd.isStatic()) {
+      continue;
+    }
 	TypeDescriptor type=fd.getType();
 	if (type.isPtr())
 	  count++;
