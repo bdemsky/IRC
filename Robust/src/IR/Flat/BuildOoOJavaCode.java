@@ -72,8 +72,7 @@ public class BuildOoOJavaCode extends BuildCode {
     if( state.RCR ) {
       try {
         rcr = new RuntimeConflictResolver( PREFIX, 
-                                           oooa, 
-                                           oooa.getDisjointAnalysis().getEffectsAnalysis().getAllEffects(), 
+                                           oooa,
                                            state );
         System.out.println("Runtime Conflict Resolver started.");
       } catch (FileNotFoundException e) {

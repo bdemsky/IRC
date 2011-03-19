@@ -20,8 +20,20 @@ import IR.Flat.*;
 
 public class SMFEState {
 
-  // uniquely identifies this state
-  protected FlatNode id;
+  //  #####################
+  //  ## NOTE NOTE NOTE!!!!
+  //  #####################
+  //  When every state corresponds to exactly one
+  //  FlatNode (whereDefined attribute) then we can
+  //  use the FlatNode's id as an ID.  BUT BUT BUT, if
+  //  we merge nodes together in the future for
+  //  optimizations and whatnot, we need an alternate
+  //  system of unique IDs
+
+  // uniquely identifies this state  
+  protected int id;
+  protected int iHashCode;
+
 
   // all possible effects in this state
   protected Set<Effect> effects;
@@ -30,6 +42,45 @@ public class SMFEState {
   // set of new states
   protected Hashtable< Effect, Set<SMFEState> > e2states;
 
+  // useful for knowing when a state can be inlined during
+  // code gen
+  protected int refCount;
+
+
+  
+  public SMFEState( FlatNode fnWhereDefined ) {
+
+    this.id        = fnWhereDefined.nodeid;
+    this.iHashCode = fnWhereDefined.hashCode();
+
+    effects  = new HashSet<Effect>();
+    e2states = new Hashtable< Effect, Set<SMFEState> >();
+    refCount = 0;
+  }
+
+  public void addEffect( Effect e ) {
+    effects.add( e );
+  }
+
+  // the given effect allows the transition to the new state
+  public void addTransition( Effect    effect,
+                             SMFEState stateTo
+                             ) {
+
+    Set<SMFEState> states = e2states.get( effect );
+    if( states == null ) {
+      states = new HashSet<SMFEState>();
+      e2states.put( effect, states );
+    }
+    states.add( stateTo );
+
+    ++stateTo.refCount;
+  }
+
+
+  public int getID() {
+    return id;
+  }
 
   // once you get your hands on an SMFEState in the
   // RuntimeConflictResolver side of things, this is how you
@@ -48,33 +99,8 @@ public class SMFEState {
     return statesOut;
   }
 
-  
-  public SMFEState( FlatNode id ) {
-    this.id = id;
-    effects  = new HashSet<Effect>();
-    e2states = new Hashtable< Effect, Set<SMFEState> >();
-  }
-
-  public void addEffect( Effect e ) {
-    effects.add( e );
-  }
-
-  // the given effect allows the transition to the new state
-  public void addTransition( Effect    effect,
-                             SMFEState stateTo
-                             ) {
-
-    Set<SMFEState> states = e2states.get( effect );
-    if( states == null ) {
-      states = new HashSet<SMFEState>();
-      e2states.put( effect, states );
-    }
-    states.add( stateTo );
-  }
-
-
-  public FlatNode getID() {
-    return id;
+  public int getRefCount() {
+    return refCount;
   }
 
 
@@ -89,19 +115,18 @@ public class SMFEState {
 
     SMFEState state = (SMFEState) o;
 
-    return id.equals( state.id );
+    return id == state.id;
   }
 
   public int hashCode() {
-    return id.hashCode();
+    return iHashCode;
   }
 
 
   public String toStringDOT() {
     
     // first create the state as a node in DOT graph
-    String s = "  "+id.nodeid+
-      "[shape=box,label=\"";
+    String s = "  "+id+"[shape=box,label=\"";
 
     if( effects.size() == 1 ) {
       s += effects.iterator().next().toString();
@@ -132,11 +157,12 @@ public class SMFEState {
         SMFEState state = sItr.next();
 
         s += "\n  "+
-          id.nodeid+" -> "+state.id.nodeid+
+          id+" -> "+state.id+
           "[label=\""+e+"\"];";
       }
     }
 
     return s;
   }
+
 }

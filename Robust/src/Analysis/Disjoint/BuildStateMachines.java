@@ -6,6 +6,7 @@ import java.io.*;
 import IR.*;
 import IR.Flat.*;
 import Analysis.OoOJava.*;
+import Util.*;
 
 
 //////////////////////////////////////////////
@@ -27,15 +28,22 @@ public class BuildStateMachines {
   protected 
     Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >
     fn2var2smfe;
+  
+  // remember all the FlatNode/TempDescriptor pairs that have a state machines
+  // for easy retrieval of all machines
+  protected Set<Pair> allMachineNamePairs;
+
 
   public BuildStateMachines() {
     fn2var2smfe = new
       Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >();
+
+    allMachineNamePairs = new HashSet<Pair>();
   }
 
 
-  protected StateMachineForEffects getStateMachine( FlatNode       fn,
-                                                    TempDescriptor var ) {
+  public StateMachineForEffects getStateMachine( FlatNode       fn,
+                                                 TempDescriptor var ) {
 
     Hashtable<TempDescriptor, StateMachineForEffects> var2smfe = fn2var2smfe.get( fn );
     if( var2smfe == null ) {
@@ -47,9 +55,16 @@ public class BuildStateMachines {
     if( smfe == null ) {
       smfe = new StateMachineForEffects( fn );
       var2smfe.put( var, smfe );
+
+      allMachineNamePairs.add( new Pair( fn, var ) );
     }
 
     return smfe;
+  }
+
+
+  public Set<Pair> getAllMachineNames() {
+    return allMachineNamePairs;
   }
 
 

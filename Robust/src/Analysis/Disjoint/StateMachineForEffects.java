@@ -48,7 +48,7 @@ public class StateMachineForEffects {
     stateFrom.addTransition( e, stateTo );
   }
 
-  public SMFEState getIntialState() {
+  public SMFEState getInitialState() {
     return initialState;
   }
 

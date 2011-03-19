@@ -11,6 +11,13 @@ struct RCRQueue {
   unsigned int tail;
 };
 
+
+typedef struct RCRQueueEntry_t {
+  void* object;
+  int   traverserState;
+} RCRQueueEntry;
+
+
 int enqueueRCRQueue(void * ptr);
 void * dequeueRCRQueue();
 void resetRCRQueue();

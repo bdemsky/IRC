@@ -88,6 +88,10 @@ public class OoOJavaAnalysis {
     return disjointAnalysisTaints;
   }
 
+  public BuildStateMachines getBuildStateMachines() {
+    return buildStateMachines;
+  }
+
   public OoOJavaAnalysis( State            state, 
                           TypeUtil         typeUtil, 
                           CallGraph        callGraph, 
@@ -1268,12 +1272,15 @@ public class OoOJavaAnalysis {
   }
 
 
-
   // the traversal for pruning state machines and finding
   // machines that are weakly connected BOTH consider conflicting
   // effects between heap roots, so it is smart to compute all of
   // this together
   public void pruneMachinesAndFindWeaklyConnectedExaminers() {
+
+    /*
+    // TODO, calcualte the set of taints that lead to conflicts (for which
+    // traversers must be built...)
 
     EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
 
@@ -1294,15 +1301,10 @@ public class OoOJavaAnalysis {
       // and use them to identify (1) weakly connected heap examiners and
       // (2) states/examiner nodes with a conflicting effect that will later
       // support the examiner pruning process
-      Set<ConflictEdge> conflictEdges = conflictGraph.getEdgeSet();
-      for( Iterator edgeItr = conflictEdges.iterator(); edgeItr.hasNext(); ) {
-        ConflictEdge conflictEdge = (ConflictEdge) edgeItr.next();
-        
-        
-      }
+      Hashtable<Taint, Set<Effect>> conflicts = conflictGraph.getConflictEffectSet( fsen ) );
       
     }
-    
+    */
   }
 
 
