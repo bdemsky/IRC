@@ -1,11 +1,17 @@
 package Util;
 
-public class Pair {
-  private Object a;
-  private Object b;
-  public Pair(Object a, Object b) {
+public class Pair<A,B> {
+  private A a;
+  private B b;
+  public Pair(A a, B b) {
     this.a=a;
     this.b=b;
+  }
+  public A getFirst() {
+    return a;
+  }
+  public B getSecond() {
+    return b;
   }
   public int hashCode() {
     return a.hashCode()*31+b.hashCode();

@@ -134,6 +134,10 @@ public class RBlockRelationAnalysis {
     }
     return out;
   }
+
+  public Set<MethodDescriptor> getMethodsWithSESEs() {
+    return methodsContainingSESEs;
+  }
   
   /* Returns all SESE's that this fn can be a member of
    * transitively. */

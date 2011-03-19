@@ -72,8 +72,18 @@ public class Liveness {
   // Also allow an instantiation of this object that memoizes results
   protected Hashtable< FlatMethod, Hashtable< FlatNode, Set<TempDescriptor> > > fm2liveMap;
 
+  protected Hashtable< FlatMethod, Hashtable< FlatNode, Set<TempDescriptor> > > fm2liveOutMap;
+
   public Liveness() {
     fm2liveMap = new Hashtable< FlatMethod, Hashtable< FlatNode, Set<TempDescriptor> > >();
+    fm2liveOutMap = new Hashtable< FlatMethod, Hashtable< FlatNode, Set<TempDescriptor> > >();
+  }
+
+  public Set<TempDescriptor> getLiveOutTemps( FlatMethod fm, FlatNode fn ) {
+    if( !fm2liveOutMap.containsKey( fm ) ) {
+      fm2liveOutMap.put( fm, Liveness.computeLiveOut( fm ) );
+    }
+    return fm2liveOutMap.get( fm ).get( fn );
   }
 
   public Set<TempDescriptor> getLiveInTemps( FlatMethod fm, FlatNode fn ) {
