@@ -281,4 +281,16 @@ public class Edge {
     }
     orig.add(e);
   }
+  
+  public AllocNode getSrcAlloc() {
+    return src;
+  }
+  
+  public AllocNode getDstAlloc() {
+    return dst;
+  }
+  
+  public FieldDescriptor getFieldDesc() {
+    return fd;
+  }
 }

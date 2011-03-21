@@ -34,9 +34,17 @@ public class SMFEState {
   protected int id;
   protected int iHashCode;
 
-
   // all possible effects in this state
   protected Set<Effect> effects;
+  
+  //TODO Jim! get me the list of conflicts!
+  protected Set<Effect> conflicts;
+  
+  //TODO: Jim! Also give me a list of "inset alloc sites" 
+  //as in for every state, give me starting allocation sites
+  //Useful for determining which allocs within a state need its own case statement
+  //Basically allocs that have transitions TO them. 
+  protected Set<Alloc> startingAllocs;
 
   // the given effect allows a transition to a
   // set of new states
@@ -50,12 +58,12 @@ public class SMFEState {
   
   public SMFEState( FlatNode fnWhereDefined ) {
 
-    this.id        = fnWhereDefined.nodeid;
-    this.iHashCode = fnWhereDefined.hashCode();
+    this.id         = fnWhereDefined.nodeid;
+    this.iHashCode  = fnWhereDefined.hashCode();
 
-    effects  = new HashSet<Effect>();
-    e2states = new Hashtable< Effect, Set<SMFEState> >();
-    refCount = 0;
+    effects         = new HashSet<Effect>();
+    e2states        = new Hashtable< Effect, Set<SMFEState> >();
+    refCount        = 0;
   }
 
   public void addEffect( Effect e ) {
@@ -87,6 +95,18 @@ public class SMFEState {
   // find out what effects are possible in this state
   public Set<Effect> getEffectsAllowed() {
     return effects;
+  }
+  
+  public Set<Effect> getConflicts() {
+    return this.conflicts;
+  }
+  
+  public Set<Alloc> getStartingAllocs() {
+    return startingAllocs;
+  }
+  
+  public Set<Effect> getTransistionEffects() {
+    return this.e2states.keySet();
   }
 
   // some subset of the above effects may transition to
