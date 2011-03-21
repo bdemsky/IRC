@@ -454,11 +454,6 @@ public class Main {
 	}
       }
     }
-    if (state.POINTER) {
-      Pointer pointgraph=new Pointer(state, tu);
-      pointgraph.doAnalysis();
-    }
-
 
     if (state.OPTIMIZE) {
       CallGraph callgraph=new CallGraph(state);
