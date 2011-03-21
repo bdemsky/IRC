@@ -248,6 +248,9 @@ public class GraphManip {
 
   static MySet<Edge> dereference(Graph graph, Delta delta, TempDescriptor dst, MySet<Edge> srcEdges, FieldDescriptor fd, FlatNode fn, TaintSet taint) {
     MySet<Edge> edgeset=new MySet<Edge>();
+    if (taint!=null) {
+      edgeset.addAll(Edge.taintAll(srcEdges, taint));
+    }
     for(Edge edge:srcEdges) {
       TaintSet ts=edge.getTaints();
       if (ts!=null) {

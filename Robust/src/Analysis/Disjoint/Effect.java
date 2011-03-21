@@ -63,7 +63,8 @@ public class Effect {
     
     if (affectedAllocSite.equals(in.getAffectedAllocSite()) 
         && type == in.getType() 
-        && field.equals(in.getField())) {
+        && ((field!=null&&field.equals(in.getField()))||
+	    (field==null&&in.getField()==null))) {
       return true;
     } else {
       return false;
@@ -97,8 +98,11 @@ public class Effect {
       s += "SU";
     }
 
-    s += ", " + field.toStringBrief();
-
+    if (field==null) {
+      s += ", []";
+    } else {
+      s += ", " + field.toStringBrief();
+    }
     return s + ")";
   }
 

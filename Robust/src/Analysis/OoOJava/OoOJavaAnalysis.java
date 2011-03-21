@@ -179,7 +179,7 @@ public class OoOJavaAnalysis {
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
     if (state.POINTER) {
-      disjointAnalysisTaints = new Pointer(state, typeUtil, callGraph, rblockRel);
+      disjointAnalysisTaints = new Pointer(state, typeUtil, callGraph, rblockRel, liveness);
       ((Pointer)disjointAnalysisTaints).doAnalysis();
     } else
       disjointAnalysisTaints =

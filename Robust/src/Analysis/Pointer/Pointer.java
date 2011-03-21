@@ -12,6 +12,7 @@ import Analysis.Disjoint.Canonical;
 import Analysis.Disjoint.HeapAnalysis;
 import Analysis.CallGraph.CallGraph;
 import Analysis.OoOJava.RBlockRelationAnalysis;
+import Analysis.OoOJava.Accessible;
 import Analysis.Disjoint.ExistPred;
 import Analysis.Disjoint.ReachGraph;
 import Analysis.Disjoint.EffectsAnalysis;
@@ -36,8 +37,9 @@ public class Pointer implements HeapAnalysis{
   TempDescriptor returntmp;
   RBlockRelationAnalysis taskAnalysis;
   EffectsAnalysis effectsAnalysis;
+  Accessible accessible;
 
-  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis) {
+  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis, Liveness liveness) {
     this(state, typeUtil);
     this.callGraph=callGraph;
     this.OoOJava=true;
@@ -45,6 +47,8 @@ public class Pointer implements HeapAnalysis{
     this.effectsAnalysis=new EffectsAnalysis();
     effectsAnalysis.state=state;
     effectsAnalysis.buildStateMachines=new BuildStateMachines();
+    accessible=new Accessible(state, callGraph, taskAnalysis, liveness);
+    accessible.doAnalysis();
   }
 
   public Pointer(State state, TypeUtil typeUtil) {
@@ -167,7 +171,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (true) {
+    if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -440,25 +444,21 @@ public class Pointer implements HeapAnalysis{
     if (delta.getInit()) {
       removeInitTaints(null, delta, graph);
       for (TempDescriptor tmp:sese.getInVarSet()) {
-	System.out.println("TMP variable:"+tmp);
 	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummyNode, sese, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
 	  delta.addVarEdge(newe);
-	  System.out.println("Adding Edge:"+newe);
 	}
       }
     } else {
       removeDiffTaints(null, delta);
       for (TempDescriptor tmp:sese.getInVarSet()) {
-	System.out.println("TMP variable:"+tmp);
 	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummyNode, sese, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
 	  delta.addVarEdge(newe);
-	  System.out.println("DAdding Edge:"+newe);
 	}
       }
     }
@@ -1259,7 +1259,6 @@ public class Pointer implements HeapAnalysis{
     for(Map.Entry<TempDescriptor, MySet<Edge>> e: delta.varedgeadd.entrySet()) {
       TempDescriptor tmp=e.getKey();
       MySet<Edge> edgestoadd=e.getValue();
-      System.out.println("ADDING:"+edgestoadd);
       if (graph.varMap.containsKey(tmp)) {
 	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
       } else 
@@ -1307,6 +1306,19 @@ public class Pointer implements HeapAnalysis{
     if (delta.getInit()) {
       MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       MySet<Edge> dstEdges=GraphManip.getEdges(graph, delta, dst);
+
+      if (OoOJava&&!accessible.isAccessible(node, src)) {
+	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummyNode, node, ReachGraph.predsEmpty);
+	srcEdges=Edge.taintAll(srcEdges, srcStallTaint);
+	updateVarDelta(graph, delta, src, srcEdges, null);
+      }
+
+      if (OoOJava&&!accessible.isAccessible(node, dst)) {
+	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummyNode, node, ReachGraph.predsEmpty);
+	dstEdges=Edge.taintAll(dstEdges, dstStallTaint);
+	updateVarDelta(graph, delta, dst, dstEdges, null);
+      }
+
       MySet<Edge> edgesToAdd=GraphManip.genEdges(dstEdges, fd, srcEdges);
       MySet<Edge> edgesToRemove=null;
       if (dstEdges.size()==1&&!dstEdges.iterator().next().dst.isSummary()&&fd!=null) {
@@ -1330,6 +1342,18 @@ public class Pointer implements HeapAnalysis{
       MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
       MySet<Edge> newDstEdges=GraphManip.getDiffEdges(delta, dst);
+
+      if (OoOJava&&!accessible.isAccessible(node, src)) {
+	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummyNode, node, ReachGraph.predsEmpty);
+	newSrcEdges=Edge.taintAll(newSrcEdges, srcStallTaint);
+	updateVarDelta(graph, delta, src, newSrcEdges, null);
+      }
+
+      if (OoOJava&&!accessible.isAccessible(node, dst)) {
+	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummyNode, node, ReachGraph.predsEmpty);
+	newDstEdges=Edge.taintAll(newDstEdges, dstStallTaint);
+	updateVarDelta(graph, delta, dst, newDstEdges, null);
+      }
 
       if (OoOJava) {
 	effectsAnalysis.analyzeFlatSetFieldNode(newDstEdges, fd, node);
@@ -1431,8 +1455,8 @@ public class Pointer implements HeapAnalysis{
       fd=ffn.getField();
       dst=ffn.getDst();
     }
-    if (OoOJava&&taskAnalysis.isPotentialStallSite(node)) {
-      taint=TaintSet.factory(Taint.factory(node,  src, AllocFactory.dummyNode, null, ReachGraph.predsEmpty));
+    if (OoOJava&&!accessible.isAccessible(node, src)) {
+      taint=TaintSet.factory(Taint.factory(node,  src, AllocFactory.dummyNode, node, ReachGraph.predsEmpty));
     }
 
     //Do nothing for non pointers
@@ -1476,21 +1500,31 @@ public class Pointer implements HeapAnalysis{
     MySet<Edge> edgeAdd=delta.varedgeadd.get(tmp);
     MySet<Edge> edgeRemove=delta.varedgeremove.get(tmp);
     MySet<Edge> existingEdges=graph.getEdges(tmp);
-    for(Edge e: edgestoRemove) {
-      //remove edge from delta
-      if (edgeAdd!=null)
-	edgeAdd.remove(e);
-      //if the edge is already in the graph, add an explicit remove to the delta
-      if (existingEdges.contains(e))
-	delta.removeVarEdge(e);
-    }
+    if (edgestoRemove!=null)
+      for(Edge e: edgestoRemove) {
+	//remove edge from delta
+	if (edgeAdd!=null)
+	  edgeAdd.remove(e);
+	//if the edge is already in the graph, add an explicit remove to the delta
+	if (existingEdges.contains(e))
+	  delta.removeVarEdge(e);
+      }
     for(Edge e: edgestoAdd) {
       //Remove the edge from the remove set
       if (edgeRemove!=null)
 	edgeRemove.remove(e);
       //Explicitly add it to the add set unless it is already in the graph
-      if (!existingEdges.contains(e)&&typeUtil.isSuperorType(tmp.getType(),e.dst.getType()))
-	delta.addVarEdge(e);
+      if (typeUtil.isSuperorType(tmp.getType(), e.dst.getType())) {
+	if (!existingEdges.contains(e)) {
+	  delta.addVarEdge(e);
+	} else {
+	  //See if the old edge subsumes the new one
+	  Edge olde=existingEdges.get(e);
+	  if (!olde.subsumes(e)) {
+	    delta.addVarEdge(olde.merge(e));
+	  }
+	}
+      }
     }
   }
 
@@ -1517,8 +1551,14 @@ public class Pointer implements HeapAnalysis{
 	if (edgeRemove!=null)
 	  edgeRemove.remove(e);
 	//Explicitly add it to the add set unless it is already in the graph
-	if (!existingEdges.contains(e)||!existingEdges.get(e).isNew()) {
+	if (!existingEdges.contains(e)) {
 	  delta.addHeapEdge(e);
+	} else {
+	  //See if the old edge subsumes the new one
+	  Edge olde=existingEdges.get(e);
+	  if (!olde.subsumes(e)) {
+	    delta.addHeapEdge(olde.merge(e));
+	  }
 	}
       }
   }

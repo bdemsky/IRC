@@ -24,6 +24,15 @@ public class Accessible {
     this.liveness=liveness;
   }
 
+  public boolean isAccessible(FlatNode fn, TempDescriptor tmp) {
+    for(int i=0;i<fn.numPrev();i++) {
+      FlatNode fprev=fn.getPrev(i);
+      if (inAccessible.containsKey(fprev)&&inAccessible.get(fprev).contains(tmp))
+	return false;
+    }
+    return true;
+  }
+
   public void computeFixPoint() {
     nextNode:
     while(!toprocess.isEmpty()) {
@@ -74,7 +83,9 @@ public class Accessible {
 	      Set<TempDescriptor> inAccess=inAccessible.get(fcall);
 	      if (fcall.getReturnTemp()!=null&&!inAccess.contains(fcall.getReturnTemp())) {
 		inAccess.add(fcall.getReturnTemp());
-		toprocess.add(new Pair<FlatNode, MethodDescriptor>(fcall, fcallpair.getSecond()));
+		for(int i=0;i<fcall.numNext();i++) {
+		  toprocess.add(new Pair<FlatNode, MethodDescriptor>(fcall.getNext(i), fcallpair.getSecond()));
+		}
 	      }
 	    }
 	  }
@@ -91,6 +102,12 @@ public class Accessible {
 	for(Object o:methodsthatcouldbecalled) {
 	  MethodDescriptor md=(MethodDescriptor)o;
 	  FlatMethod fm=state.getMethodFlat(md);
+
+	  if (!methodmap.containsKey(md))
+	    methodmap.put(md, new HashSet<Pair<FlatCall, MethodDescriptor>>());
+
+	  methodmap.get(md).add(new Pair<FlatCall, MethodDescriptor>(fcall, pairmd));
+	    
 	  HashSet<TempDescriptor> tmpinaccess=new HashSet<TempDescriptor>();
 	  for(int i=0;i<fm.numParameters();i++) {
 	    TempDescriptor fmtmp=fm.getParameter(i);
@@ -102,11 +119,15 @@ public class Accessible {
 	  if (!tmpinaccess.isEmpty()&&(!inAccessible.containsKey(fm)||!inAccessible.get(fm).containsAll(tmpinaccess))) {
 	    for(int i=0;i<fm.numNext();i++)
 	      toprocess.add(new Pair<FlatNode, MethodDescriptor>(fm.getNext(i),md));
+	    if (!inAccessible.containsKey(fm))
+	      inAccessible.put(fm, new HashSet<TempDescriptor>());
 	    inAccessible.get(fm).addAll(tmpinaccess);
 	  }
 	}
 	//be sure not to wipe out return value or other inaccessible temps
-	inAccessibleSet.addAll(inAccessible.get(fcall));
+	Set<TempDescriptor> oldtemps=inAccessible.get(fcall);
+	if (oldtemps!=null)
+	  inAccessibleSet.addAll(oldtemps);
       }
 	break;
       default:

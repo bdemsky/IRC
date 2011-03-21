@@ -89,7 +89,8 @@ public class BuildStateMachines {
 
     // reads of pointers make a transition
     if( e.getType() == Effect.read &&
-        e.getField().getType().isPtr() ) {
+        ((e.getField()!=null && e.getField().getType().isPtr())
+	 ||(e.getField()==null && e.getAffectedAllocSite().getFlatNew().getType().dereference().isPtr()))) {
       
       smfe.addTransition( whereDefined, 
                           currentProgramPoint,

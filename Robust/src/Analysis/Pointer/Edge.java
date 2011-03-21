@@ -90,6 +90,15 @@ public class Edge {
     return newe;
   }
 
+  public Edge addTaintSet(TaintSet t) {
+    Edge newe=copy();
+    if (newe.taints==null)
+      newe.taints=t;
+    else
+      newe.taints=newe.taints.merge(t);
+    return newe;
+  }
+
   public void taintModify(Set<FlatSESEEnterNode> seseSet) {
     if (taints!=null)
       taints=Canonical.removeSESETaints(taints, seseSet);
@@ -247,6 +256,22 @@ public class Edge {
       }
       orig.add(e);
     }
+  }
+
+  public static MySet<Edge> taintAll(MySet<Edge> orig, Taint t) {
+    MySet<Edge> taintedEdges=new MySet<Edge>();
+    for(Edge e:orig) {
+      taintedEdges.add(e.addTaint(t));
+    }
+    return taintedEdges;
+  }
+
+  public static MySet<Edge> taintAll(MySet<Edge> orig, TaintSet t) {
+    MySet<Edge> taintedEdges=new MySet<Edge>();
+    for(Edge e:orig) {
+      taintedEdges.add(e.addTaintSet(t));
+    }
+    return taintedEdges;
   }
 
   public static void mergeEdgeInto(MySet<Edge> orig, Edge e) {
