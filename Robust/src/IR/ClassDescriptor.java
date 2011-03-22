@@ -199,10 +199,10 @@ public class ClassDescriptor extends Descriptor {
       if (cn==null) {
 	return null;
       }
-      Set possiblematches=cn.getMethodTable().getSet(md.getSymbol());
-      boolean foundmatch=false;
+      Set possiblematches=cn.getMethodTable().getSetFromSameScope(md.getSymbol());
       for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
 	MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+	
 	if (md.matches(matchmd)) {
 	  return matchmd;
 	}
