@@ -405,7 +405,8 @@ public class ConflictGraph {
             Effect effectB = (Effect) iterator2.next();
 
             if (effectA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
-                && effectA.getField().equals(effectB.getField())) {
+                && ((effectA.getField()!=null&&effectB.getField()!=null&&effectA.getField().equals(effectB.getField()))||
+		    (effectA.getField()==null&&effectB.getField()==null))) {
 
               if (useReachInfo) {
                 FlatNew fnRoot1 = asA.getFlatNew();
