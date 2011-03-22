@@ -98,8 +98,7 @@ public class OoOJavaAnalysis {
                           Liveness         liveness,
                           ArrayReferencees arrayReferencees ) {
 
-    double timeStartAnalysis = (double) System.nanoTime();
-
+    State.logEvent("Starting OoOJavaAnalysis");
     this.state = state;
     this.typeUtil = typeUtil;
     this.callGraph = callGraph;
@@ -132,6 +131,7 @@ public class OoOJavaAnalysis {
 
     descriptorsToAnalyze.add(mdSourceEntry);
 
+
     // 0th pass, setup a useful mapping of any flat node to the
     // flat method it is a part of
     Iterator<MethodDescriptor> methItr = descriptorsToAnalyze.iterator();
@@ -140,10 +140,13 @@ public class OoOJavaAnalysis {
       FlatMethod fm = state.getMethodFlat( d );
       buildFlatNodeToFlatMethod( fm );
     }
+    State.logEvent("OoOJavaAnalysis Oth pass completed");
 
     // 1st pass, find basic rblock relations & potential stall sites
     rblockRel = new RBlockRelationAnalysis(state, typeUtil, callGraph);
     VarSrcTokTable.rblockRel = rblockRel;
+
+    State.logEvent("OoOJavaAnalysis 1st pass completed");
 
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
     methItr = descriptorsToAnalyze.iterator();
@@ -156,6 +159,8 @@ public class OoOJavaAnalysis {
       livenessAnalysisBackward(fm);
     }
 
+    State.logEvent("OoOJavaAnalysis 2nd pass completed");
+
     // 3rd pass, variable analysis
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -166,7 +171,7 @@ public class OoOJavaAnalysis {
       // variable analysis for refinement and stalls
       variableAnalysisForward(fm);
     }
-
+    State.logEvent("OoOJavaAnalysis 3rd pass completed");
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
     methItr = descriptorsToAnalyze.iterator();
@@ -175,6 +180,7 @@ public class OoOJavaAnalysis {
       FlatMethod fm = state.getMethodFlat(d);
       livenessAnalysisBackward(fm);
     }
+    State.logEvent("OoOJavaAnalysis 4th pass completed");
 
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
@@ -187,6 +193,8 @@ public class OoOJavaAnalysis {
                              rblockRel, buildStateMachines,
                              true ); // suppress output--this is an intermediate pass
 
+    State.logEvent("OoOJavaAnalysis 5th pass completed");
+
     // 6th pass, not available analysis FOR VARIABLES!
     methItr = descriptorsToAnalyze.iterator();
     while (methItr.hasNext()) {
@@ -197,17 +205,17 @@ public class OoOJavaAnalysis {
       // point, in a forward fixed-point pass
       notAvailableForward(fm);
     }
-
+    State.logEvent("OoOJavaAnalysis 6th pass completed");
     // 7th pass, start conflict graphs where a parent's graph has a
     // node for possibly conflicting children and its own stall sites
     startConflictGraphs();
-    
+    State.logEvent("OoOJavaAnalysis 7th pass completed");    
     // 8th pass, calculate all possible conflicts without using
     // reachability info and identify set of FlatNew that next
     // disjoint reach. analysis should flag
     Set<FlatNew> sitesToFlag = new HashSet<FlatNew>();
     calculateConflicts(sitesToFlag, false);
-
+    State.logEvent("OoOJavaAnalysis 8th pass completed");    
     if (!state.RCR) {
       // 9th pass, ask disjoint analysis to compute reachability
       // for objects that may cause heap conflicts so the most
@@ -220,10 +228,10 @@ public class OoOJavaAnalysis {
                              null, // no BuildStateMachines needed
                              false // don't suppress progress output
 			     );
-
+      State.logEvent("OoOJavaAnalysis 9th pass completed");    
       // 10th pass, calculate conflicts with reachability info
       calculateConflicts(null, true);
-
+      State.logEvent("OoOJavaAnalysis 10th pass completed");    
     } else {
       // in RCR/DFJ we want to do some extra processing on the
       // state machines before they get handed off to code gen,
@@ -231,11 +239,13 @@ public class OoOJavaAnalysis {
       // to identify heap examiners that are weakly connected, so
       // accomplish both at the same time
       pruneMachinesAndFindWeaklyConnectedExaminers();
+      State.logEvent("OoOJavaAnalysis RCR pruneMachines pass completed");    
     }
 
     // 11th pass, compiling memory Qs!  The name "lock" is a legacy
     // term for the heap dependence queue, or memQ as the runtime calls it
     synthesizeLocks();
+    State.logEvent("OoOJavaAnalysis 11th pass completed");    
 
     // 12th pass, compute a plan for code injections
     methItr = descriptorsToAnalyze.iterator();
@@ -245,6 +255,7 @@ public class OoOJavaAnalysis {
       codePlansForward(fm);
     }
 
+    State.logEvent("OoOJavaAnalysis 12th pass completed");    
     // 13th pass,
     // splice new IR nodes into graph after all
     // analysis passes are complete
@@ -254,7 +265,7 @@ public class OoOJavaAnalysis {
       FlatWriteDynamicVarNode fwdvn = (FlatWriteDynamicVarNode) me.getValue();
       fwdvn.spliceIntoIR();
     }
-
+    State.logEvent("OoOJavaAnalysis 13th pass completed");    
 
     if (state.OOODEBUG) {
       try {

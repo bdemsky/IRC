@@ -66,12 +66,14 @@ public class Main {
     String ClassLibraryPrefix="./ClassLibrary/";
     State state=new State();
     Vector sourcefiles=new Vector();
+    State.initTimer();
     state.classpath.add(".");
 
     String outputdir = null;
     boolean isDistributeInfo = false;
     boolean isDisAll = false;
     int startnum = 0;
+    
 
     for(int i=0; i<args.length; i++) {
       String option=args[i];
@@ -401,6 +403,8 @@ public class Main {
     if (state.classpath.size()==1)
       state.classpath.add(ClassLibraryPrefix);
 
+    State.logEvent("Done Parsing Commands");
+
     SSJavaAnalysis ssjava=new SSJavaAnalysis(state);
     BuildIR bir=new BuildIR(state);
     TypeUtil tu=new TypeUtil(state, bir);
@@ -427,9 +431,11 @@ public class Main {
 
 
     sc.semanticCheck();
+    State.logEvent("Done Semantic Checking");
 
     tu.createFullTable();
-    
+    State.logEvent("Done Creating TypeUtil");
+
     // SSJava
     if(state.SSJAVA){
       ssjava.doCheck();
@@ -438,6 +444,8 @@ public class Main {
 
     BuildFlat bf=new BuildFlat(state,tu);
     bf.buildFlat();
+    State.logEvent("Done Building Flat");
+
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
     OoOJavaAnalysis  oooa=null;
@@ -487,6 +495,7 @@ public class Main {
 	  dc.optimize(fm);
         }
       }
+      State.logEvent("Done Optimizing");
     }
 
     if (state.FLATIRGRAPH) {
@@ -646,6 +655,8 @@ public class Main {
       }
 
       bc.buildCode();
+      State.logEvent("Done With BuildCode");
+	
     }
 
     System.out.println("Lines="+state.lines);

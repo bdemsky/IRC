@@ -49,6 +49,7 @@ public class Pointer implements HeapAnalysis{
     effectsAnalysis.buildStateMachines=new BuildStateMachines();
     accessible=new Accessible(state, callGraph, taskAnalysis, liveness);
     accessible.doAnalysis();
+    State.logEvent("Done Writing Accessible Analysis");
   }
 
   public Pointer(State state, TypeUtil typeUtil) {
@@ -112,7 +113,6 @@ public class Pointer implements HeapAnalysis{
   }
 
   public void doAnalysis() {
-    double timeStartAnalysis = (double) System.nanoTime();
 
     toprocess.add(buildInitialContext());
     nextdelta:
@@ -190,12 +190,12 @@ public class Pointer implements HeapAnalysis{
       } 
     }
 
-    double timeEndAnalysis = (double) System.nanoTime();
-    double dt = (timeEndAnalysis - timeStartAnalysis)/(Math.pow( 10.0, 9.0 ) );
-    System.out.println("Time taken: "+dt);
+    State.logEvent("Done With Pointer Analysis");
+
 
     if (OoOJava) {
       effectsAnalysis.buildStateMachines.writeStateMachines();
+      State.logEvent("Done Writing State Machines");
     }
   }
 

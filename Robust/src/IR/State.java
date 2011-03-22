@@ -8,8 +8,22 @@ import java.util.*;
 import Analysis.TaskStateAnalysis.*;
 
 public class State {
+  public static long startTime;
+  public static long lastTime;
+  public static void logEvent(String event) {
+    long currTime=System.nanoTime();
+    double delta=((double)(currTime-startTime))/1000000000;
+    double deltaLast=((double)(currTime-lastTime))/1000000000;
+    System.out.println("TLOG: Time of "+event+"="+delta);
+    System.out.println("TLOG: Elapsed time "+event+"="+deltaLast);
+    lastTime=currTime;
+  }
 
-    public int lines;
+  public static void initTimer() {
+    startTime=System.nanoTime();
+  }
+
+  public int lines;
   public State() {
     this.classes=new SymbolTable();
     this.tasks=new SymbolTable();
