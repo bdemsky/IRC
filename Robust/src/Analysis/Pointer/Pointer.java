@@ -171,7 +171,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (false) {
+    if (true) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -1299,24 +1299,29 @@ public class Pointer implements HeapAnalysis{
       fd=ffn.getField();
       dst=ffn.getDst();
     }
-    //Do nothing for non pointers
-    if (!src.getType().isPtr())
-      return delta;
 
     if (delta.getInit()) {
-      MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       MySet<Edge> dstEdges=GraphManip.getEdges(graph, delta, dst);
-
-      if (OoOJava&&!accessible.isAccessible(node, src)) {
-	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
-	srcEdges=Edge.taintAll(srcEdges, srcStallTaint);
-	updateVarDelta(graph, delta, src, srcEdges, null);
-      }
 
       if (OoOJava&&!accessible.isAccessible(node, dst)) {
 	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
 	dstEdges=Edge.taintAll(dstEdges, dstStallTaint);
 	updateVarDelta(graph, delta, dst, dstEdges, null);
+      }
+      if (OoOJava) {
+	effectsAnalysis.analyzeFlatSetFieldNode(dstEdges, fd, node);
+      }
+
+      //Do nothing for non pointers
+      if (!src.getType().isPtr()) {
+	return delta;
+      }
+
+      MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
+      if (OoOJava&&!accessible.isAccessible(node, src)) {
+	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
+	srcEdges=Edge.taintAll(srcEdges, srcStallTaint);
+	updateVarDelta(graph, delta, src, srcEdges, null);
       }
 
       MySet<Edge> edgesToAdd=GraphManip.genEdges(dstEdges, fd, srcEdges);
@@ -1328,26 +1333,11 @@ public class Pointer implements HeapAnalysis{
       } else
 	graph.strongUpdateSet=new MySet<Edge>();
 
-      if (OoOJava) {
-	effectsAnalysis.analyzeFlatSetFieldNode(dstEdges, fd, node);
-      }
-
       /* Update diff */
       updateHeapDelta(graph, delta, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
-      /* First look at new sources */
-      MySet<Edge> edgesToAdd=new MySet<Edge>();
-      MySet<Edge> newSrcEdges=GraphManip.getDiffEdges(delta, src);
-      MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
-      HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
       MySet<Edge> newDstEdges=GraphManip.getDiffEdges(delta, dst);
-
-      if (OoOJava&&!accessible.isAccessible(node, src)) {
-	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
-	newSrcEdges=Edge.taintAll(newSrcEdges, srcStallTaint);
-	updateVarDelta(graph, delta, src, newSrcEdges, null);
-      }
 
       if (OoOJava&&!accessible.isAccessible(node, dst)) {
 	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
@@ -1357,6 +1347,23 @@ public class Pointer implements HeapAnalysis{
 
       if (OoOJava) {
 	effectsAnalysis.analyzeFlatSetFieldNode(newDstEdges, fd, node);
+      }
+
+      if (!src.getType().isPtr()) {
+	return delta;
+      }
+
+      /* Next look at new sources */
+
+      MySet<Edge> edgesToAdd=new MySet<Edge>();
+      MySet<Edge> newSrcEdges=GraphManip.getDiffEdges(delta, src);
+      MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
+      HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
+
+      if (OoOJava&&!accessible.isAccessible(node, src)) {
+	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
+	newSrcEdges=Edge.taintAll(newSrcEdges, srcStallTaint);
+	updateVarDelta(graph, delta, src, newSrcEdges, null);
       }
 
       MySet<Edge> edgesToRemove=null;
@@ -1460,24 +1467,40 @@ public class Pointer implements HeapAnalysis{
     }
 
     //Do nothing for non pointers
-    if (!dst.getType().isPtr())
-      return delta;
     if (delta.getInit()) {
       MySet<Edge> srcedges=GraphManip.getEdges(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node, taint);
-      MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
-      if (OoOJava)
+      if (OoOJava) {
+	if (taint!=null) {
+	  srcedges=Edge.taintAll(srcedges, taint);
+	  updateVarDelta(graph, delta, src, srcedges, null);
+	}
 	effectsAnalysis.analyzeFlatFieldNode(srcedges, fd, node);
+      }
+      if (!dst.getType().isPtr())
+	return delta;
+
+      MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node);
+      MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
 
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
       applyDiffs(graph, delta);
     } else {
+      MySet<Edge> newsrcedges=GraphManip.getDiffEdges(delta, src);
+      if (OoOJava) {
+	if (taint!=null) {
+	  newsrcedges=Edge.taintAll(newsrcedges, taint);
+	  updateVarDelta(graph, delta, src, newsrcedges, null);
+	}
+	effectsAnalysis.analyzeFlatFieldNode(newsrcedges, fd, node);
+      }
+      if (!dst.getType().isPtr())
+	return delta;
+
       /* First compute new objects we read fields of */
       MySet<Edge> allsrcedges=GraphManip.getEdges(graph, delta, src);
-      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd, node, taint);
+      MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd, node);
       /* Next compute new targets of fields */
-      MySet<Edge> newsrcedges=GraphManip.getDiffEdges(delta, src);
-      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd, node, taint);
+      MySet<Edge> newfdedges=GraphManip.dereference(graph, delta, dst, newsrcedges, fd, node);
 
       /* Compute the union, and then the set of edges */
       Edge.mergeEdgesInto(edgesToAdd, newfdedges);
@@ -1485,8 +1508,6 @@ public class Pointer implements HeapAnalysis{
       /* Compute set of edges to remove */
       MySet<Edge> edgesToRemove=GraphManip.getDiffEdges(delta, dst);      
 
-      if (OoOJava)
-	effectsAnalysis.analyzeFlatFieldNode(newsrcedges, fd, node);
       
       /* Update diff */
       updateVarDelta(graph, delta, dst, edgesToAdd, edgesToRemove);
