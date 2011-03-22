@@ -513,7 +513,7 @@ public class RuntimeConflictResolver {
     //TODO what if we have more than one way in?! >< i.e. more than 1 temp descriptor...
     Set<Edge> insetVars = ptrGraph.getEdges(var);
     for(Edge invar: insetVars) {
-      Alloc rootKey = invar.getSrcAlloc();
+      Alloc rootKey = invar.getSrcAlloc().getAllocSite();
       
       if(!created.contains(rootKey)) {
         //null       -> no transitions by reading this object (does not apply to its references
@@ -546,7 +546,7 @@ public class RuntimeConflictResolver {
     for(Edge e: edges) {
       //since we're starting from a src, it should match...
       assert e.getSrcAlloc().equals(curr.alloc);
-      Alloc dst = e.getDst();
+      Alloc dst = e.getDst().getAllocSite();
       String field = e.getFieldDesc().getSafeSymbol();
       ce = et.getCombinedEffects(curr.alloc, field);
       ConcreteRuntimeObjNode child;

@@ -7,6 +7,7 @@ import java.io.*;
 import IR.*;
 import IR.Flat.*;
 import Analysis.Pointer.Edge;
+import Analysis.Pointer.AllocFactory.AllocNode;
 
 /////////////////////////////////////////////
 // 
@@ -147,7 +148,7 @@ public class EffectsAnalysis {
   public void analyzeFlatFieldNode(Set<Edge> sources, FieldDescriptor fld, FlatNode currentProgramPoint) {
     for (Edge edge:sources) {
       TaintSet  taintSet      = edge.getTaints();
-      Alloc     affectedAlloc = edge.getDst();
+      Alloc     affectedAlloc = edge.getDst().getAllocSite();
       Effect    effect        = new Effect(affectedAlloc, Effect.read, fld);
 
       if (taintSet!=null)
@@ -190,7 +191,7 @@ public class EffectsAnalysis {
   public void analyzeFlatSetFieldNode(Set<Edge> dstedges, FieldDescriptor fld, FlatNode currentProgramPoint) {
     for (Edge edge:dstedges) {
       TaintSet taintSet = edge.getTaints();
-      Alloc affectedAlloc = edge.getDst();
+      Alloc affectedAlloc = edge.getDst().getAllocSite();
       Effect effect = new Effect(affectedAlloc, Effect.write, fld);       
       if (taintSet!=null)
 	for (Taint taint:taintSet.getTaints()) {
