@@ -363,28 +363,16 @@ public class FlowDownCheck {
 
     Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(md.getClassDesc());
 
-    checkExpressionNode(md, nametable, on.getLeft(), null);
-    if (on.getRight() != null)
-      checkExpressionNode(md, nametable, on.getRight(), null);
+    CompositeLocation leftOpLoc = new CompositeLocation(md.getClassDesc());
+    getLocationFromExpressionNode(md, nametable, on.getLeft(), leftOpLoc);
+
+    CompositeLocation rightOpLoc = new CompositeLocation(md.getClassDesc());
+    if (on.getRight() != null) {
+      getLocationFromExpressionNode(md, nametable, on.getRight(), rightOpLoc);
+    }
 
     TypeDescriptor ltd = on.getLeft().getType();
     TypeDescriptor rtd = on.getRight() != null ? on.getRight().getType() : null;
-
-    if (ltd.getAnnotationMarkers().size() == 0) {
-      // constant value
-      // TODO
-      // ltd.addAnnotationMarker(new AnnotationDescriptor(Lattice.TOP));
-    }
-    if (rtd != null && rtd.getAnnotationMarkers().size() == 0) {
-      // constant value
-      // TODO
-      // rtd.addAnnotationMarker(new AnnotationDescriptor(Lattice.TOP));
-    }
-
-    System.out.println("checking op node");
-    System.out.println("td=" + td);
-    System.out.println("ltd=" + ltd);
-    System.out.println("rtd=" + rtd);
 
     Operation op = on.getOp();
 
@@ -564,32 +552,16 @@ public class FlowDownCheck {
     case Operation.RIGHTSHIFT:
     case Operation.URIGHTSHIFT:
 
-      // Set<String> operandSet = new HashSet<String>();
-      // String leftLoc = ltd.getAnnotationMarkers().get(0).getMarker();
-      // String rightLoc = rtd.getAnnotationMarkers().get(0).getMarker();
-      //
-      // operandSet.add(leftLoc);
-      // operandSet.add(rightLoc);
-
-      // TODO
-      // String glbLoc = locOrder.getGLB(operandSet);
-      // on.getType().addAnnotationMarker(new AnnotationDescriptor(glbLoc));
-      // System.out.println(glbLoc + "<-" + leftLoc + " " + rightLoc);
+      Set<CompositeLocation> inputSet = new HashSet<CompositeLocation>();
+      inputSet.add(leftLoc);
+      inputSet.add(rightLoc);
+      CompositeLattice.calculateGLB(inputSet, cd, loc);
 
       break;
 
     default:
       throw new Error(op.toString());
     }
-
-    // if (td != null) {
-    // String lhsLoc = td.getAnnotationMarkers().get(0).getMarker();
-    // if (locOrder.isGreaterThan(lhsLoc,
-    // on.getType().getAnnotationMarkers().get(0).getMarker())) {
-    // throw new Error("The location of LHS is higher than RHS: " +
-    // on.printNode(0));
-    // }
-    // }
 
   }
 
@@ -686,7 +658,6 @@ public class FlowDownCheck {
     }
 
     ClassDescriptor cd = md.getClassDesc();
-    Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
 
     Location destLocation = td2loc.get(an.getDest().getType());
 
@@ -871,15 +842,26 @@ public class FlowDownCheck {
 
       int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2);
       if (baseCompareResult == ComparisonResult.EQUAL) {
-        // TODO
-        // need to compare # of delta operand
+        if (compareDelta(compLoc1, compLoc2) == ComparisonResult.GREATER) {
+          return true;
+        } else {
+          return false;
+        }
       } else if (baseCompareResult == ComparisonResult.GREATER) {
         return true;
       } else {
         return false;
       }
 
-      return false;
+    }
+
+    private static int compareDelta(CompositeLocation compLoc1, CompositeLocation compLoc2) {
+
+      if (compLoc1.getNumofDelta() < compLoc2.getNumofDelta()) {
+        return ComparisonResult.GREATER;
+      } else {
+        return ComparisonResult.LESS;
+      }
     }
 
     private static int compareBaseLocationSet(CompositeLocation compLoc1, CompositeLocation compLoc2) {
@@ -931,6 +913,54 @@ public class FlowDownCheck {
 
       System.out.println(compLoc1 + " > " + compLoc2);
       return ComparisonResult.GREATER;
+    }
+
+    public static CompositeLocation calculateGLB(Set<CompositeLocation> inputSet,
+        ClassDescriptor enclosingCD, CompositeLocation loc) {
+
+      Hashtable<ClassDescriptor, Set<Location>> cd2locSet =
+          new Hashtable<ClassDescriptor, Set<Location>>();
+
+      // creating mapping from class -> set of locations
+      for (Iterator iterator = inputSet.iterator(); iterator.hasNext();) {
+        CompositeLocation compLoc = (CompositeLocation) iterator.next();
+        Set<Location> baseLocationSet = compLoc.getBaseLocationSet();
+        for (Iterator iterator2 = baseLocationSet.iterator(); iterator2.hasNext();) {
+          Location locElement = (Location) iterator2.next();
+          ClassDescriptor locCD = locElement.getClassDescriptor();
+
+          Set<Location> locSet = cd2locSet.get(locCD);
+          if (locSet == null) {
+            locSet = new HashSet<Location>();
+          }
+          locSet.add(locElement);
+
+          cd2locSet.put(locCD, locSet);
+
+        }
+      }
+
+      // calculating GLB element for each class
+      for (Iterator<ClassDescriptor> iterator = cd2locSet.keySet().iterator(); iterator.hasNext();) {
+        ClassDescriptor localCD = iterator.next();
+
+        Set<Location> locSetofClass = cd2locSet.get(localCD);
+
+        Set<String> locIdentifierSet = new HashSet<String>();
+
+        for (Iterator<Location> locIterator = locSetofClass.iterator(); locIterator.hasNext();) {
+          Location locElement = locIterator.next();
+          locIdentifierSet.add(locElement.getLocIdentifier());
+        }
+
+        Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(localCD);
+        String glbLocIdentifer = locOrder.getGLB(locIdentifierSet);
+
+        Location localGLB = new Location(localCD, glbLocIdentifer);
+        loc.addLocation(localGLB);
+      }
+
+      return loc;
     }
 
   }

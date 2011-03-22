@@ -153,7 +153,24 @@ public class Lattice<T> {
     for (Iterator<T> iterator = inputSet.iterator(); iterator.hasNext();) {
       T element = iterator.next();
       lowerSet.addAll(getLowerSet(element, new HashSet<T>()));
+      lowerSet.add(element);
     }
+
+    // an element of lower bound should be lower than every input set
+    Set<T> toberemoved = new HashSet<T>();
+    for (Iterator<T> inputIterator = inputSet.iterator(); inputIterator.hasNext();) {
+      T inputElement = inputIterator.next();
+
+      for (Iterator iterator = lowerSet.iterator(); iterator.hasNext();) {
+        T lowerElement = (T) iterator.next();
+        if (!inputElement.equals(lowerElement)) {
+          if (!isGreaterThan(inputElement, lowerElement)) {
+            toberemoved.add(lowerElement);
+          }
+        }
+      }
+    }
+    lowerSet.removeAll(toberemoved);
 
     // calculate the greatest element of lower set
     // find an element A, where every lower bound B of lowerSet, B<A

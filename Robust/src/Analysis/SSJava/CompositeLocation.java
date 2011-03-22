@@ -70,7 +70,46 @@ public class CompositeLocation extends Location {
     return baseLocationSet;
   }
 
+  public int getNumofDelta() {
+
+    int result = 0;
+
+    if (locTuple.size() == 1) {
+      Location locElement = locTuple.at(0);
+      if (locElement instanceof DeltaLocation) {
+        result++;
+        result += getNumofDelta((DeltaLocation) locElement);
+      }
+    }
+    return result;
+  }
+
+  public int getNumofDelta(DeltaLocation delta) {
+    int result = 0;
+
+    if (delta.getDeltaOperandLocationVec().size() == 1) {
+      Location locElement = delta.getDeltaOperandLocationVec().get(0);
+      if (locElement instanceof DeltaLocation) {
+        result++;
+        result += getNumofDelta((DeltaLocation) locElement);
+      }
+    }
+
+    return result;
+  }
+
   public String toString() {
+
+    // for better representation
+    // if compositeLoc has only one single location,
+    // just print out single location
+    // if(locTuple.size()==1){
+    // Location locElement=locTuple.at(0);
+    // if(locElement instanceof Location){
+    // return locElement.toString();
+    // }
+    // }
+
     String rtr = "CompLoc[";
 
     int tupleSize = locTuple.size();

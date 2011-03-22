@@ -13,7 +13,7 @@ public class DeltaLocation extends Location {
     super(cd);
     operandVec = new Vector<Location>();
   }
-
+  
   public void addDeltaOperand(Location op) {
     operandVec.add(op);
   }
