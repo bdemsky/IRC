@@ -127,7 +127,9 @@ public class AllocFactory {
     TypeDescriptor stringtd=new TypeDescriptor(stringcd);
     TypeDescriptor stringarraytd=stringtd.makeArray(state);
     StringArray=new AllocNode(0, new FlatNew(stringarraytd, null, false), false);
+    StringArray.as=getAllocSite(StringArray);
     Strings=new AllocNode(1, new FlatNew(stringtd, null, false), true);
+    Strings.as=getAllocSite(Strings);
   }
 
   public int getSiteNumber(FlatNew node) {
