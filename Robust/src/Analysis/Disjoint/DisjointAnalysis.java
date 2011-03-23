@@ -1158,10 +1158,10 @@ public class DisjointAnalysis implements HeapAnalysis {
                      true,    // write labels (variables)                
                      true,   // selectively hide intermediate temp vars 
                      true,    // prune unreachable heap regions          
-                     true,   // hide reachability altogether
+                     false,   // hide reachability altogether
                      false,   // hide subset reachability states         
                      true,    // hide predicates
-                     false );  // hide edge taints      
+                     true );  // hide edge taints      
     } break;
 
 
