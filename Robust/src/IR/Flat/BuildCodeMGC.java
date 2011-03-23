@@ -154,6 +154,7 @@ public class BuildCodeMGC extends BuildCode {
     
     if (state.MULTICOREGC) {
       outmethod.println("  global_defs_p->size="+globaldefscount+";");
+      outmethod.println("  global_defs_p->next=NULL;");
       outmethod.println("  for(i=0;i<"+globaldefscount+";i++) {");
       outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
       outmethod.println("  }");
@@ -191,27 +192,5 @@ public class BuildCodeMGC extends BuildCode {
     outmethod.println("   }");
 
     outmethod.println("}");
-  }
-  
-  protected void outputClassObjects(PrintWriter outmethod) {
-    // for each class, initialize its Class object
-    if(state.MGC) {
-      SymbolTable ctbl = this.state.getClassSymbolTable();
-      Iterator it_classes = ctbl.getDescriptorsIterator();
-
-      while(it_classes.hasNext()) {
-        ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
-        // TODO initialize the Class object for this class  ++
-        outmethod.println(" {");
-        if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-          outmethod.println("    struct garbagelist dummy={0,NULL};");
-          outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(&dummy, " + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
-        } else {
-          outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(" + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
-        }
-        outmethod.println(" }");
-        
-      }
-    } // else TODO normal java version 
   }
 }

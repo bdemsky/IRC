@@ -1581,7 +1581,6 @@ public class BuildCode {
 	  } else {
 	    globaldefprimout.println("  "+fd.getType().getSafeSymbol()+ " "+fd.getSafeSymbol()+";");
 	  }
-	  globaldefscount++;
 	}
       } else if (fd.isVolatile()) {
 	//volatile field

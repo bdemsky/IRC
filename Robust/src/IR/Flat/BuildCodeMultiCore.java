@@ -362,12 +362,32 @@ public class BuildCodeMultiCore extends BuildCode {
         outrepairstructs.close();
        }*/
 
+    outputInitStaticAndGlobalMethod(outmethod);
+    
     /* Close files */
     outmethodheader.println("#endif");
     outmethodheader.close();
     outmethod.close();
     outstructs.println("#endif");
     outstructs.close();
+  }
+  
+  private void outputInitStaticAndGlobalMethod(PrintWriter outmethod) {
+    outmethod.println("void initStaticAndGlobal() {");
+    outmethod.println("  int i;");
+    
+    if (state.MULTICOREGC) {
+      outmethod.println("  global_defs_p->size="+globaldefscount+";");
+      outmethod.println("  global_defs_p->next=NULL;");
+      outmethod.println("  for(i=0;i<"+globaldefscount+";i++) {");
+      outmethod.println("    ((struct garbagelist *)global_defs_p)->array[i]=NULL;");
+      outmethod.println("  }");
+    }
+    
+    outputStaticBlocks(outmethod);
+    outputClassObjects(outmethod);
+
+    outmethod.println("}");
   }
 
   /** This function outputs (1) structures that parameters are

@@ -777,12 +777,16 @@ inline void run(int argc, char** argv) {
     BAMBOO_DEBUGPRINT(0xee00);
 #endif
 
-#ifdef MGC
 	if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+#ifdef TASK
+	  // run the initStaticAndGlobal method to initialize the static blocks and
+	  // global fields
+	  initStaticAndGlobal();
+#elif defined MGC
 	  // run the main method in the specified mainclass
 	  mgc_main(argc, argv);
+#endif // TASK
 	}
-#endif
 
     while(true) {
 
