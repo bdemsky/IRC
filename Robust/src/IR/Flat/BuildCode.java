@@ -354,7 +354,6 @@ public class BuildCode {
 	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(&dummy, " + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
       } else 
 	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new("+typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
-      outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj->type = " + t_cd.getId() + ";");
       outmethod.println(" }");
     }
   }
