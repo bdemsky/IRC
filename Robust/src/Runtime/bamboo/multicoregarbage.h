@@ -13,6 +13,12 @@
 #define bool int
 #endif
 
+#ifdef TASK
+#define BAMBOOMARKBIT 6
+#elif defined MGC
+#define BAMBOOMARKBIT 4
+#endif // TASK
+
 // data structures for GC
 #define BAMBOO_SMEM_SIZE_L (BAMBOO_SMEM_SIZE * 2)
 #define BAMBOO_LARGE_SMEM_BOUND (BAMBOO_SMEM_SIZE_L*NUMCORES4GC)

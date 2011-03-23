@@ -516,9 +516,6 @@ INLINE void initruntimedata() {
   gctomove = false;
   gcmovepending = 0;
   gcblock2fill = 0;
-  gcsbstarttbl = BAMBOO_BASE_VA;
-  bamboo_smemtbl = (void *)gcsbstarttbl
-               + (BAMBOO_SHARED_MEM_SIZE/BAMBOO_SMEM_SIZE)*sizeof(INTPTR);
   if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
 	int t_size = ((BAMBOO_RMSP_SIZE)-sizeof(mgcsharedhashtbl_t)*2
 		-128*sizeof(size_t))/sizeof(mgcsharedhashlistnode_t)-2;
@@ -1441,14 +1438,14 @@ INLINE void processmsg_gcmarkedobj_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
   // received a markedObj msg
-  if(((int *)data1)[6] == INIT) {
+  if(((int *)data1)[BAMBOOMARKBIT] == INIT) {
     // this is the first time that this object is discovered,
     // set the flag as DISCOVERED
-    ((int *)data1)[6] = DISCOVERED;
+    ((int *)data1)[BAMBOOMARKBIT] = DISCOVERED;
     gc_enqueue_I(data1);
   } 
   // set the remote flag
-  ((int *)data1)[6] |= REMOTEM;
+  ((int *)data1)[BAMBOOMARKBIT] |= REMOTEM;
   gcself_numreceiveobjs++;
   gcbusystatus = true;
 }

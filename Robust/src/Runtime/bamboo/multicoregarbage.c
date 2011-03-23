@@ -8,12 +8,6 @@
 #include "ObjectHash.h"
 #include "GCSharedHash.h"
 
-#ifdef TASK
-#define BAMBOOMARKBIT 6
-#elif defined MGC
-#define BAMBOOMARKBIT 4
-#endif // TASK
-
 extern int corenum;
 #ifdef TASK
 extern struct parameterwrapper ** objectqueues[][NUMCLASSES];
@@ -1336,7 +1330,6 @@ inline void mark(bool isfirst,
 		send_msg_4(STARTUPCORE, GCFINISHMARK, BAMBOO_NUM_OF_CORE,
 				   gcself_numsendobjs, gcself_numreceiveobjs, false);
 		sendStall = true;
-		tprintf("Make finished %x \n", (int)BAMBOO_NUM_OF_CORE);
       }
     }  // if(STARTUPCORE == BAMBOO_NUM_OF_CORE) ...
     GC_BAMBOO_DEBUGPRINT(0xed0a);
@@ -1765,8 +1758,8 @@ inline bool moveobj(struct moveHelper * orig,
   int mark = 0;
   int isize = 0;
 innermoveobj:
-  while((char)(*((int*)(orig->ptr))) == (char)(-2)) {
-    orig->ptr = (int*)(orig->ptr) + 1;
+  while((*((char*)(orig->ptr))) == (char)(-2)) {
+	orig->ptr = (void*)(orig->ptr) + 1;
   }
 #ifdef GC_CACHE_ADAPT
   completePageConvert(orig, to, to->ptr, false);
@@ -1788,7 +1781,7 @@ innermoveobj:
   type = ((int *)(origptr))[0];
   size = 0;
   if(type == 0) {
-    // end of this block, go to next one
+	// end of this block, go to next one
     if(!nextSBlock(orig)) {
       // finished, no more data
       return true;
@@ -1866,7 +1859,7 @@ innermoveobj:
 	  }
 	}
     BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    GC_BAMBOO_DEBUGPRINT(0xcdce);
+	GC_BAMBOO_DEBUGPRINT(0xcdce);
     GC_BAMBOO_DEBUGPRINT_REG(origptr);
     GC_BAMBOO_DEBUGPRINT_REG(toptr);
     GC_BAMBOO_DEBUGPRINT_REG(isize);
@@ -2097,7 +2090,6 @@ inline void compact() {
     (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
   struct moveHelper * to =
     (struct moveHelper *)RUNMALLOC(sizeof(struct moveHelper));
-
   if(!initOrig_Dst(orig, to)) {
     // no available data to compact
     // send compact finish msg to STARTUP core
@@ -2121,7 +2113,6 @@ inline void compact() {
   INTPTR heaptopptr = 0;
   bool localcompact = true;
   compacthelper(orig, to, &filledblocks, &heaptopptr, &localcompact);
-
   RUNFREE(orig);
   RUNFREE(to);
 } // compact()
@@ -3286,6 +3277,7 @@ inline void gc_master(struct garbagelist * stackptr) {
   bool isfirst = true;
   bool allStall = false;
 
+
 #ifdef GC_CACHE_ADAPT
   // prepare for cache adaption:
   cacheAdapt_gc(true);
@@ -3668,8 +3660,6 @@ inline bool gc(struct garbagelist * stackptr) {
     return false;
   }
 
-  if(BAMBOO_NUM_OF_CORE==0) tprintf("GC starts!\n"); // TODO
-
 #ifdef GC_CACHE_ADAPT
 #ifdef GC_CACHE_SAMPLING
     // disable the timer interrupt
@@ -3679,7 +3669,7 @@ inline bool gc(struct garbagelist * stackptr) {
   // core coordinator routine
   if(0 == BAMBOO_NUM_OF_CORE) {
 #ifdef GC_DEBUG
-    printf("(%x,%X) Check if can do gc or not\n", udn_tile_coord_x(),
+    printf("(%x,%x) Check if can do gc or not\n", udn_tile_coord_x(),
 		   udn_tile_coord_y());
 #endif
 	bool isallstall = true;
