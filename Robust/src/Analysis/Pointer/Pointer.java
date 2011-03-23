@@ -171,7 +171,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (false) {
+    if (true) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();

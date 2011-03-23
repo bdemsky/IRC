@@ -252,6 +252,7 @@ public class Edge {
     e.src=src;
     e.srcvar=srcvar;
     e.dst=dst;
+    e.taints=taints;
     int val=1;
     if (dst.isSummary())
       val=val<<1;
