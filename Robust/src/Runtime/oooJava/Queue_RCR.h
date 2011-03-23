@@ -14,7 +14,6 @@ struct RCRQueue {
   RCRQueueEntry elements[SIZE];
   unsigned int head;
   unsigned int tail;
-  unsigned int length;
 };
 
 int enqueueRCRQueue(void * ptr, int traverserState);

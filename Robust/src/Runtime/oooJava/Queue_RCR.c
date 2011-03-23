@@ -7,40 +7,40 @@ __thread struct RCRQueue myRCRQueue;
 void resetRCRQueue() {
   myRCRQueue.head = 0;
   myRCRQueue.tail = 0;
-  myRCRQueue.length = 0;
 }
 
 //0 would mean success
 //1 would mean fail
 int enqueueRCRQueue(void * ptr, int traverserState) {
-  if (myRCRQueue.length & SIZE)
-      return 1;
+  unsigned int oldhead=myRCRQueue.head+1;
+  unsigned int head=oldhead;
+  if (head&SIZE)
+    head=0;
 
-  myRCRQueue.length++;
-  myRCRQueue.elements[myRCRQueue.head].object = ptr;
-  myRCRQueue.elements[myRCRQueue.head].traverserState = traverserState;
-  myRCRQueue.head++;
+  if (head==myRCRQueue.tail)
+    return 1;
 
-  if (myRCRQueue.head&SIZE)
-    myRCRQueue.head=0;
-
+  myRCRQueue.elements[oldhead].object = ptr;
+  myRCRQueue.elements[oldhead].traverserState = traverserState;
+  myRCRQueue.head=head;
 
   return 0;
 }
 
 RCRQueueEntry * dequeueRCRQueue() {
-  if(!myRCRQueue.length)
+  unsigned int tail=myRCRQueue.tail;
+  if(myRCRQueue.head==tail)
     return NULL;
-
-  myRCRQueue.length--;
-  void * ptr = &myRCRQueue.elements[myRCRQueue.tail++];
-  if(myRCRQueue.tail & SIZE)
-    myRCRQueue.tail =  0;
+  RCRQueueEntry * ptr = &myRCRQueue.elements[tail];
+  tail++;
+  if (tail & SIZE)
+    tail=0;
+  myRCRQueue.tail=tail;
   return ptr;
 }
 
 int isEmptyRCRQueue() {
-  return !myRCRQueue.length;
+  return myRCRQueue.head==myRCRQueue.tail;
 }
 
 
