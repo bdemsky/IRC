@@ -192,7 +192,7 @@ public class EffectsAnalysis {
     for (Edge edge:dstedges) {
       TaintSet taintSet = edge.getTaints();
       Alloc affectedAlloc = edge.getDst().getAllocSite();
-      Effect effect = new Effect(affectedAlloc, Effect.write, fld);       
+      Effect effect = new Effect(affectedAlloc, Effect.write, fld);
       if (taintSet!=null)
 	for (Taint taint:taintSet.getTaints()) {
 	  add(taint, effect, currentProgramPoint );

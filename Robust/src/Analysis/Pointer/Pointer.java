@@ -171,7 +171,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (true) {
+    if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -1071,7 +1071,7 @@ public class Pointer implements HeapAnalysis{
 	boolean addedge=false;
 	Edge edgetoadd=null;
 	if (e.statuspredicate==Edge.NEW) {
-	  edgetoadd=e;
+	  edgetoadd=e.copy();//we need our own copy to modify below
 	} else {
 	  Edge origEdgeKey=e.makeStatus(allocFactory);
 	  if (oldgraph.nodeMap.containsKey(origEdgeKey.src)&&
@@ -1283,7 +1283,6 @@ public class Pointer implements HeapAnalysis{
       graph.oldNodes.put(node, ispresent);
     }
   }
-
   Delta processSetFieldElementNode(FlatNode node, Delta delta, Graph graph) {
     TempDescriptor src;
     FieldDescriptor fd;

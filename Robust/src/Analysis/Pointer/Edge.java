@@ -100,8 +100,9 @@ public class Edge {
   }
 
   public void taintModify(Set<FlatSESEEnterNode> seseSet) {
-    if (taints!=null)
+    if (taints!=null) {
       taints=Canonical.removeSESETaints(taints, seseSet);
+    }
   }
 
   public TaintSet getTaints() {

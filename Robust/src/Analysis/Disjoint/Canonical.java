@@ -1500,7 +1500,7 @@ abstract public class Canonical {
       // unaffected, and if the taint has a non-empty predicate
       // it is out of context so it should go through, too
       if( t.getSESE() == null ||
-          seseSet.contains(t)) {
+          !seseSet.contains(t)) {
         out.taints.add( t );
       }
     }
