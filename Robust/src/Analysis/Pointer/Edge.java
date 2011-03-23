@@ -21,6 +21,7 @@ public class Edge {
   public static final int SUMSNG=4;
   public static final int SUMSUM=8;
   public static final int NEW=16;
+  public static final int MASK=15;
 
   public String toString() {
     String taintlist="";
@@ -203,12 +204,23 @@ public class Edge {
     return e;
   }
 
-  public Edge makeStatus(AllocFactory factory) {
-    Edge e=new Edge();
-    e.fd=fd;
-    e.src=factory.getAllocNode(src, (statuspredicate|3)==0);
-    e.dst=factory.getAllocNode(dst, (statuspredicate|5)==0);
-    return e;
+  public Edge[] makeStatus(AllocFactory factory) {
+    int numedges=Integer.bitCount(statuspredicate&MASK);
+
+    Edge[] earray=new Edge[numedges];
+    int mask=1;
+    int edgeindex=0;
+    for(int count=0;count<4;count++) {
+      if ((mask&statuspredicate)==mask) {
+	Edge e=new Edge();
+	e.fd=fd;
+	e.src=factory.getAllocNode(src, (mask|3)==0);
+	e.dst=factory.getAllocNode(dst, (mask|5)==0);
+	earray[edgeindex++]=e;
+      }
+      mask=mask<<1;
+    }
+    return earray;
   }
 
   public boolean subsumes(Edge e) {
@@ -247,6 +259,14 @@ public class Edge {
       val=val<<2;
     e.statuspredicate=val;
     return e;
+  }
+
+  public static MySet<Edge> makeOld(MySet<Edge> old) {
+    MySet<Edge> newedge=new MySet<Edge>();
+    for(Edge eold:old) {
+      newedge.add(eold.makeOld());
+    }
+    return newedge;
   }
 
   public static void mergeEdgesInto(MySet<Edge> orig, MySet<Edge> merge) {

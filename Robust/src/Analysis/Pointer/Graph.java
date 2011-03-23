@@ -15,6 +15,29 @@ public class Graph {
   HashMap<TempDescriptor, MySet<Edge>> varMap;
   HashMap<AllocNode, MySet<Edge>> backMap;
   MySet<Edge> strongUpdateSet;
+  HashMap<AllocNode, MySet<Edge>> callNewEdges;
+  HashMap<Edge, MySet<Edge>> callOldEdges;
+
+  public void addCallEdge(Edge e) {
+    MySet<Edge> eset;
+    if ((eset=callNewEdges.get(e.src))==null) {
+      eset=new MySet<Edge>();
+      callNewEdges.put(e.src, eset);
+    }
+    if (eset.contains(e)) {
+      e=e.merge(eset.get(e));
+    }
+    eset.add(e);
+
+    if ((eset=callNewEdges.get(e.dst))==null) {
+      eset=new MySet<Edge>();
+      callNewEdges.put(e.dst, eset);
+    }
+    if (eset.contains(e)) {
+      e=e.merge(eset.get(e));
+    }
+    eset.add(e);
+  }
 
   public void check() {
     for(Map.Entry<AllocNode, MySet<Edge>> entry:nodeMap.entrySet()) {

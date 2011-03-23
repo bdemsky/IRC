@@ -151,7 +151,7 @@ public class Delta {
 	if (!newdelta.heapedgeadd.containsKey(e.src)) {
 	  newdelta.heapedgeadd.put(e.src, new MySet<Edge>());
 	}
-	newdelta.heapedgeadd.get(e.src).add(e);
+	newdelta.heapedgeadd.get(e.src).add(e.makeOld());
       }
     }
     return newdelta;
@@ -197,6 +197,25 @@ public class Delta {
       varedgeadd.put(e.srcvar, new MySet<Edge>(e));
     } else
       Edge.mergeEdgeInto(varedgeadd.get(e.srcvar), e);
+  }
+
+
+  public void addEdgeClear(Edge e) {
+    if (e.src!=null) {
+      addHeapEdgeClear(e);
+    } else {
+      addVarEdgeClear(e);
+    }
+  }
+
+  public void addHeapEdgeClear(Edge e) {
+    if (heapedgeremove.containsKey(e.src))
+      heapedgeremove.get(e.src).remove(e);
+  }
+
+  public void addVarEdgeClear(Edge e) {
+    if (varedgeremove.containsKey(e.srcvar))
+      varedgeremove.get(e.srcvar).remove(e);
   }
 
   public void removeEdges(MySet<Edge> eset) {

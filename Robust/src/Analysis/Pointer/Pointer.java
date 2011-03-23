@@ -639,7 +639,7 @@ public class Pointer implements HeapAnalysis{
 	AllocNode node=tovisit.pop();
 	MySet<Edge> edges=GraphManip.getEdges(graph, delta, node);
 	if (!edges.isEmpty()) {
-	  newDelta.heapedgeadd.put(node, edges);
+	  newDelta.heapedgeadd.put(node, Edge.makeOld(edges));
 	  edgeset.addAll(edges);
 	  for(Edge e:edges) {
 	    if (!nodeset.contains(e.dst)&&(oldnodeset==null||!oldnodeset.contains(e.dst))) {
@@ -859,6 +859,8 @@ public class Pointer implements HeapAnalysis{
       graph.callTargets=newtargets;
       graph.callNodeAges=new HashSet<AllocNode>();
       graph.callOldNodes=new HashSet<AllocNode>();
+      graph.callNewEdges=new HashMap<AllocNode, MySet<Edge>>();
+      graph.callOldEdges=new HashMap<Edge,MySet<Edge>>();
 
       //Apply diffs to graph
       applyDiffs(graph, delta, true);
@@ -904,7 +906,7 @@ public class Pointer implements HeapAnalysis{
 	if (!newDelta.heapedgeadd.containsKey(src)) {
 	  newDelta.heapedgeadd.put(src, new MySet<Edge>());
 	}
-	newDelta.heapedgeadd.get(src).add(e);
+	newDelta.heapedgeadd.get(src).add(e.makeOld());
 	if (!nodeset.contains(e.dst)&&!oldnodeset.contains(e.dst)) {
 	  nodeset.add(e.dst);
 	  tovisit.add(e.dst);
@@ -916,6 +918,7 @@ public class Pointer implements HeapAnalysis{
       //Compute call targets
       HashSet<MethodDescriptor> newtargets=computeTargets(fcall, newDelta);
       graph.callTargets.addAll(newtargets);
+
       //add in new nodeset and edgeset
       oldnodeset.addAll(nodeset);
       oldedgeset.addAll(edgeset);
@@ -932,7 +935,36 @@ public class Pointer implements HeapAnalysis{
 
       //Move new edges that should be summarized
       processSummarization(graph, delta);
-      
+
+      Set<FlatSESEEnterNode> seseCallers=OoOJava?taskAnalysis.getTransitiveExecutingRBlocks(fcall):null;
+      //Check if the new nodes allow us to insert a new edge
+      for(AllocNode node:nodeset) {
+	if (graph.callNewEdges.containsKey(node)) {
+	  for(Iterator<Edge> eit=graph.callNewEdges.get(node).iterator();eit.hasNext();) {
+	    Edge e=eit.next();
+	    if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
+		(graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
+	      Edge edgetoadd=e.copy();//we need our own copy to modify below
+	      eit.remove();
+	      if (seseCallers!=null)
+		edgetoadd.taintModify(seseCallers);
+	      mergeCallEdge(graph, delta, edgetoadd);
+	    }
+	  }
+	}
+      }
+
+      for(Edge e:edgeset) {
+	//See if these edges would allow an old edge to be added
+	if (graph.callOldEdges.containsKey(e)) {
+	  for(Edge adde:graph.callOldEdges.get(e)) {
+	    Edge ecopy=adde.copy();
+	    ecopy.statuspredicate=e.statuspredicate;
+	    mergeCallEdge(graph, delta, ecopy);
+	  }
+	}
+      }
+
       //Add in new external edges
       graph.externalEdgeSet.addAll(externaledgeset);
       //Apply diffs to graph
@@ -1064,22 +1096,58 @@ public class Pointer implements HeapAnalysis{
 	/* Need to age node in existing graph*/
 	summarizeInGraph(graph, newDelta, node);
       }
+      if (graph.callNewEdges.containsKey(node)) {
+	for(Iterator<Edge> eit=graph.callNewEdges.get(node).iterator();eit.hasNext();) {
+	  Edge e=eit.next();
+	  if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
+	      (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
+	    Edge edgetoadd=e.copy();//we need our own copy to modify below
+	    eit.remove();
+	    if (seseCallers!=null)
+	      edgetoadd.taintModify(seseCallers);
+	    mergeCallEdge(graph, newDelta, edgetoadd);
+	  }
+	}
+      }
     }
+
     //Add heap edges in
     for(Map.Entry<AllocNode, MySet<Edge>> entry:delta.heapedgeadd.entrySet()) {
       for(Edge e:entry.getValue()) {
 	boolean addedge=false;
 	Edge edgetoadd=null;
 	if (e.statuspredicate==Edge.NEW) {
-	  edgetoadd=e.copy();//we need our own copy to modify below
+	  if ((graph.callNodeAges.contains(e.src)||graph.reachNode.contains(e.src))&&
+	      (graph.callNodeAges.contains(e.dst)||graph.reachNode.contains(e.dst))) {
+	    edgetoadd=e.copy();//we need our own copy to modify below
+	  } else {
+	    graph.addCallEdge(e);
+	  }
 	} else {
-	  Edge origEdgeKey=e.makeStatus(allocFactory);
-	  if (oldgraph.nodeMap.containsKey(origEdgeKey.src)&&
-	      oldgraph.nodeMap.get(origEdgeKey.src).contains(origEdgeKey)) {
-	    Edge origEdge=oldgraph.nodeMap.get(origEdgeKey.src).get(origEdgeKey);
-	    //copy the predicate
-	    origEdgeKey.statuspredicate=origEdge.statuspredicate;
-	    edgetoadd=origEdgeKey;
+	  Edge[] edgeArray=e.makeStatus(allocFactory);
+
+	  int statuspredicate=0;
+	  for(int i=0;i<edgeArray.length;i++) {
+	    Edge origEdgeKey=edgeArray[i];
+	    if (graph.reachEdge.contains(origEdgeKey)) {
+	      Edge origEdge=graph.reachEdge.get(origEdgeKey);
+	      //copy the predicate
+	      statuspredicate=statuspredicate|origEdge.statuspredicate;
+	    }
+	    if (!graph.callOldEdges.containsKey(origEdgeKey)) {
+	      graph.callOldEdges.put(origEdgeKey, new MySet<Edge>());
+	    }
+	    if (graph.callOldEdges.get(origEdgeKey).contains(e)) {
+	      Edge olde=graph.callOldEdges.get(origEdgeKey).get(e);
+	      graph.callOldEdges.get(origEdgeKey).add(olde.merge(e));
+	    } else {
+	      graph.callOldEdges.get(origEdgeKey).add(e);
+	    }
+	  }
+	  if (statuspredicate!=0) {
+	    Edge newe=e.copy();
+	    newe.statuspredicate=statuspredicate;
+	    edgetoadd=newe;
 	  }
 	}
 	if (seseCallers!=null&&edgetoadd!=null)
@@ -1122,13 +1190,14 @@ public class Pointer implements HeapAnalysis{
 
   public void mergeCallEdge(Graph graph, Delta newDelta, Edge edgetoadd) {
     if (edgetoadd!=null) {
-      Edge match=graph.getMatch(edgetoadd);
+      newDelta.addEdgeClear(edgetoadd);
 
+      Edge match=graph.getMatch(edgetoadd);
+      
       if (match==null||!match.subsumes(edgetoadd)) {
 	Edge mergededge=edgetoadd.merge(match);
 	newDelta.addEdge(mergededge);
 	graph.callerEdges.add(mergededge);
-	//System.out.println("ADDING: "+ mergededge);
       }
     }
   }
