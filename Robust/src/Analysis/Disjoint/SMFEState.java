@@ -62,6 +62,7 @@ public class SMFEState {
     this.iHashCode  = fnWhereDefined.hashCode();
 
     effects         = new HashSet<Effect>();
+    conflicts       = new HashSet<Effect>();
     e2states        = new Hashtable< Effect, Set<SMFEState> >();
     refCount        = 0;
   }
@@ -98,6 +99,8 @@ public class SMFEState {
   }
   
   public Set<Effect> getConflicts() {
+    //TODO JIM! Fix this when have a chance!
+    conflicts.addAll(effects);
     return this.conflicts;
   }
   
