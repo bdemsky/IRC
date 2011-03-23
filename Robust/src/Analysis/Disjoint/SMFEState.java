@@ -39,12 +39,6 @@ public class SMFEState {
   
   //TODO Jim! get me the list of conflicts!
   protected Set<Effect> conflicts;
-  
-  //TODO: Jim! Also give me a list of "inset alloc sites" 
-  //as in for every state, give me starting allocation sites
-  //Useful for determining which allocs within a state need its own case statement
-  //Basically allocs that have transitions TO them. 
-  protected Set<Alloc> startingAllocs;
 
   // the given effect allows a transition to a
   // set of new states
@@ -102,10 +96,6 @@ public class SMFEState {
     //TODO JIM! Fix this when have a chance!
     conflicts.addAll(effects);
     return this.conflicts;
-  }
-  
-  public Set<Alloc> getStartingAllocs() {
-    return startingAllocs;
   }
   
   public Set<Effect> getTransistionEffects() {

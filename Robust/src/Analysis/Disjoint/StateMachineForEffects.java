@@ -20,6 +20,9 @@ public class StateMachineForEffects {
   // states in the machine are uniquely identified 
   // by a flat node (program point)
   protected Hashtable<FlatNode, SMFEState> fn2state;
+  
+  //TODO Jim! Jim! Give me the weakly connected group number here!
+  protected Hashtable<FlatNode, Integer> fn2weaklyConnectedGroupID;
 
   protected SMFEState initialState;
 
@@ -60,6 +63,11 @@ public class StateMachineForEffects {
       fn2state.put( fn, state );
     }
     return state;
+  }
+  
+  public Integer getWeaklyConnectedGroupID(FlatNode fn) {
+    //TODO stubby stubby!
+    return 0;
   }
 
 

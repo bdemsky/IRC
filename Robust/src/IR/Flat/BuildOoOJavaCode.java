@@ -67,6 +67,11 @@ public class BuildOoOJavaCode extends BuildCode {
     // generating SESE internal code
       
     Iterator<FlatSESEEnterNode> seseit = oooa.getAllSESEs().iterator();
+
+    while( seseit.hasNext() ) {
+      FlatSESEEnterNode fsen = seseit.next();
+      initializeSESE( fsen );
+    }
       
     //TODO signal the object that will report errors
     if( state.RCR ) {
@@ -78,11 +83,6 @@ public class BuildOoOJavaCode extends BuildCode {
       } catch (FileNotFoundException e) {
         System.out.println("Runtime Conflict Resolver could not create output file.");
       }
-    }
-      
-    while( seseit.hasNext() ) {
-      FlatSESEEnterNode fsen = seseit.next();
-      initializeSESE( fsen );
     }
   }
 
@@ -105,7 +105,7 @@ public class BuildOoOJavaCode extends BuildCode {
     FlatMethod fmBogus = new FlatMethod( mdBogus, null );
     fsen.setfmBogus( fmBogus );
     fsen.setmdBogus( mdBogus );
-
+    
     Set<TempDescriptor> inSetAndOutSet = new HashSet<TempDescriptor>();
     inSetAndOutSet.addAll( fsen.getInVarSet() );
     inSetAndOutSet.addAll( fsen.getOutVarSet() );
@@ -434,8 +434,9 @@ public class BuildOoOJavaCode extends BuildCode {
     }
 
     if (state.RCR) {
-      if (inset.size()!=0)
-	outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
+      if (inset.size()!=0) {
+        outputStructs.println("struct rcrRecord rcrRecords["+inset.size()+"];");
+      } 
     }
     
     if( fsen.getFirstDepRecField() != null ) {
@@ -1548,10 +1549,10 @@ public class BuildOoOJavaCode extends BuildCode {
 
   void dispatchMEMRC( FlatMethod        fm,  
                       FlatSESEEnterNode newChild, 
-                      PrintWriter       output ) {
-
+                      PrintWriter       output ) {   
     // what we need to do here is create RCR records for the
     // new task and insert it into the appropriate parent queues
+    // IF NEEDED!!!!!!!!
     assert newChild.getParents().size() > 0;
 
     output.println("     switch( runningSESE->classID ) {");
@@ -1581,6 +1582,18 @@ public class BuildOoOJavaCode extends BuildCode {
           for(int i=0;i<invars.size();i++) {
             TempDescriptor td=invars.get(i);
             Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+            
+            //TODO FIX MEEEEE!!!!
+            //Weset is sometimes null which breaks the following code and 
+            //we don't know what weset = null means. For now, we bail when it's null
+            //until we find out what to do....
+//            if(weset == null) {
+//              continue;
+//            }
+            //UPDATE: This hack DOES NOT FIX IT!.
+            
+            
+            
             int numqueues=0;
             Set<Integer> queueSet=new HashSet<Integer>();
             for (Iterator iterator = weset.iterator(); iterator.hasNext();) {
@@ -1613,10 +1626,24 @@ public class BuildOoOJavaCode extends BuildCode {
           for(int i=0;i<invars.size();i++) {
             TempDescriptor td=invars.get(i);
             Set<WaitingElement> weset=seseWaitingQueue.getWaitingElementSet(td);
+            
+            
+            
+            //TODO FIX MEEEEE!!!!
+            //Weset is sometimes null which breaks the following code and 
+            //we don't know what weset = null means. For now, we bail when it's null
+            //until we find out what to do....
+//            if(weset == null) {
+//              continue;
+//            }
+            //UPDATE: This hack DOES NOT FIX IT!.
+            
+            
+            
             for(Iterator<WaitingElement> wtit=weset.iterator();wtit.hasNext();) {
               WaitingElement waitingElement=wtit.next();
               int queueID=waitingElement.getQueueID();
-	    
+              
               if(waitingElement.isBogus()){
                 continue;
               }
@@ -1661,10 +1688,6 @@ public class BuildOoOJavaCode extends BuildCode {
       }
     }
 
-    output.println("       default: {");
-    output.println("         printf(\"Error: unknown SESE class ID %d in dispatchMEMRC.\\n\", runningSESE->classID);");
-    output.println("         exit( -1 );");
-    output.println("       }");
     output.println("     } // end switch");
 
     output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");

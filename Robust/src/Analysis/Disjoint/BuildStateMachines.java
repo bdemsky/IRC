@@ -118,4 +118,11 @@ public class BuildStateMachines {
       }
     }
   }
+
+
+  //TODO JIM! Give me the REAALL number here. 
+  public int getTotalNumOfWeakGroups() {
+    // TODO Auto-generated method stub
+    return 1;
+  }
 }
