@@ -316,8 +316,6 @@ void * fixedmalloc_I(int coren,
   int j = 0;
   int k = 0;
   int gccorenum = (coren < NUMCORES4GC) ? (coren) : (coren % NUMCORES4GC);
-  int coords_x = bamboo_cpu2coords[gccorenum*2];
-  int coords_y = bamboo_cpu2coords[gccorenum*2+1];
   int ii = 1;
   int tofindb = gc_core2block[2*core2test[gccorenum][k]+i]+(NUMCORES4GC*2)*j;
   int totest = tofindb;

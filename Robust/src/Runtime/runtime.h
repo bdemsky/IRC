@@ -100,7 +100,11 @@ void failedboundschk();
 void failednullptr();
 void abort_task();
 void injectinstructionfailure();
+#ifdef MULTICORE
+void createstartupobject(int argc, char ** argv);
+#else
 void createstartupobject();
+#endif
 
 #ifdef PRECISE_GC
 #define VAR(name) ___params___->name

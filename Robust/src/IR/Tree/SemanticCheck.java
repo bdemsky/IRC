@@ -723,7 +723,7 @@ public class SemanticCheck {
       Descriptor d=(Descriptor)nametable.get(varname);
       if (d==null) {
         ClassDescriptor cd = null;
-        if(((MethodDescriptor)md).isStaticBlock()) {
+        if((md instanceof MethodDescriptor) && ((MethodDescriptor)md).isStaticBlock()) {
           // this is a static block, all the accessed fields should be static field
           cd = ((MethodDescriptor)md).getClassDesc();
           SymbolTable fieldtbl = cd.getFieldTable();
