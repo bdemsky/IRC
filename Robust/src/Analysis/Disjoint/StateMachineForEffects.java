@@ -16,6 +16,7 @@ import IR.Flat.*;
 //////////////////////////////////////////////
 
 public class StateMachineForEffects {
+  public final static FlatNode startNode=new FlatNop();
 
   // states in the machine are uniquely identified 
   // by a flat node (program point)
@@ -36,6 +37,8 @@ public class StateMachineForEffects {
   public void addEffect( FlatNode fnState,
                          Effect e ) {
 
+    if (fnState==null)
+      fnState=startNode;
     SMFEState state = getState( fnState );
     state.addEffect( e );
   }
@@ -43,11 +46,13 @@ public class StateMachineForEffects {
   public void addTransition( FlatNode fnFrom,
                              FlatNode fnTo,
                              Effect e ) {
-
+    if (fnFrom==null)
+      fnFrom=startNode;
+    
     assert fn2state.containsKey( fnFrom );
     SMFEState stateFrom = getState( fnFrom );
     SMFEState stateTo   = getState( fnTo );
-
+    
     stateFrom.addTransition( e, stateTo );
   }
 

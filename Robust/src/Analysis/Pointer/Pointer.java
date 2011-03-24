@@ -171,7 +171,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (true) {
+    if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -444,7 +444,7 @@ public class Pointer implements HeapAnalysis{
     if (delta.getInit()) {
       removeInitTaints(null, delta, graph);
       for (TempDescriptor tmp:sese.getInVarSet()) {
-	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, sese, ReachGraph.predsEmpty);
+	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getEdges(graph, delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
@@ -454,7 +454,7 @@ public class Pointer implements HeapAnalysis{
     } else {
       removeDiffTaints(null, delta);
       for (TempDescriptor tmp:sese.getInVarSet()) {
-	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, sese, ReachGraph.predsEmpty);
+	Taint taint=Taint.factory(sese,  null, tmp, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
 	MySet<Edge> edges=GraphManip.getDiffEdges(delta, tmp);
 	for(Edge e:edges) {
 	  Edge newe=e.addTaint(taint);
@@ -1372,7 +1372,7 @@ public class Pointer implements HeapAnalysis{
       MySet<Edge> dstEdges=GraphManip.getEdges(graph, delta, dst);
 
       if (OoOJava&&!accessible.isAccessible(node, dst)) {
-	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
+	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
 	dstEdges=Edge.taintAll(dstEdges, dstStallTaint);
 	updateVarDelta(graph, delta, dst, dstEdges, null);
       }
@@ -1387,7 +1387,7 @@ public class Pointer implements HeapAnalysis{
 
       MySet<Edge> srcEdges=GraphManip.getEdges(graph, delta, src);
       if (OoOJava&&!accessible.isAccessible(node, src)) {
-	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
+	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
 	srcEdges=Edge.taintAll(srcEdges, srcStallTaint);
 	updateVarDelta(graph, delta, src, srcEdges, null);
       }
@@ -1408,7 +1408,7 @@ public class Pointer implements HeapAnalysis{
       MySet<Edge> newDstEdges=GraphManip.getDiffEdges(delta, dst);
 
       if (OoOJava&&!accessible.isAccessible(node, dst)) {
-	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
+	Taint dstStallTaint=Taint.factory(node,  dst, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
 	newDstEdges=Edge.taintAll(newDstEdges, dstStallTaint);
 	updateVarDelta(graph, delta, dst, newDstEdges, null);
       }
@@ -1429,7 +1429,7 @@ public class Pointer implements HeapAnalysis{
       HashSet<AllocNode> dstNodes=GraphManip.getNodes(graph, delta, dst);
 
       if (OoOJava&&!accessible.isAccessible(node, src)) {
-	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty);
+	Taint srcStallTaint=Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty);
 	newSrcEdges=Edge.taintAll(newSrcEdges, srcStallTaint);
 	updateVarDelta(graph, delta, src, newSrcEdges, null);
       }
@@ -1531,7 +1531,7 @@ public class Pointer implements HeapAnalysis{
       dst=ffn.getDst();
     }
     if (OoOJava&&!accessible.isAccessible(node, src)) {
-      taint=TaintSet.factory(Taint.factory(node,  src, AllocFactory.dummySite, node, ReachGraph.predsEmpty));
+      taint=TaintSet.factory(Taint.factory(node,  src, AllocFactory.dummySite, null, ReachGraph.predsEmpty));
     }
 
     //Do nothing for non pointers
