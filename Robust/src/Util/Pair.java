@@ -14,12 +14,16 @@ public class Pair<A,B> {
     return b;
   }
   public int hashCode() {
-    return a.hashCode()*31+b.hashCode();
+    if (b!=null)
+      return a.hashCode()*31+b.hashCode();
+    else
+      return a.hashCode();
   }
   public boolean equals(Object o) {
     if (!(o instanceof Pair))
       return false;
     Pair t=(Pair)o;
-    return a.equals(t.a)&&b.equals(t.b);
+    return a.equals(t.a)&&(((b!=null)&&(t.b!=null)&&b.equals(t.b))||
+			   ((b==null)&&(t.b==null)));
   }
 }
