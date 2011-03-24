@@ -398,8 +398,7 @@ public class RuntimeConflictResolver {
       flatname = fn.toString();
     }
     
-    return "traverse___" + invar.getSafeSymbol() + 
-    removeInvalidChars(flatname) + "___("+varString+");";
+    return "traverse___" + invar.getSafeSymbol() + removeInvalidChars(flatname) + "___("+varString+");";
   }
   
   public String removeInvalidChars(String in) {
@@ -451,8 +450,8 @@ public class RuntimeConflictResolver {
   }
 
   private void printMasterTraverserInvocation() {
-    headerFile.println("\nint tasktraverse(SESEcommon * record);");
-    cFile.println("\nint tasktraverse(SESEcommon * record) {");
+    headerFile.println("int tasktraverse(SESEcommon * record);");
+    cFile.println("int tasktraverse(SESEcommon * record) {");
     cFile.println("  if(!CAS(&record->rcrstatus,1,2)) {");
 
     //release traverser reference...no traversal necessary
@@ -473,32 +472,26 @@ public class RuntimeConflictResolver {
       for(int i=0;i<invars.size();i++) {
         TempDescriptor tmp=invars.get(i);
         
-        // TODO: Blame this on Jim.
-        // what is a conflict node that is valid to prune?  Prune what?
-        // is it a conflict for which the traverser is never invoked?
-        // let's assume NOTHING is valid to prune in order to get the system
-        // running again.
-        boolean isValidToPrune = false;
-        
-        // Jim again: this is what we might want to do...
-        //boolean isValidToPrune = true;
-        //for( FlatSESEEnterNode parentSESE: fsen.getParents() ) {
-        //  ConflictGraph     graph      = oooa.getConflictGraph(parentSESE);
-        //  String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
-        //  ConflictNode      node       = graph.getId2cn().get(id);
-        //  
-        //  isValidToPrune &= node.IsValidToPrune();
-        //}
-        
-      	if (i!=0) {
-      	  cFile.println("      if (record->rcrstatus!=0)");
-      	}
-      	
-        if(globalState.NOSTALLTR && isValidToPrune){
-          cFile.println("    //  " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
-        }else{
-          cFile.println("      " + this.getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
-        }
+	/* In some cases we don't want to a dynamic traversal if it is
+	 * unlikely to increase parallelism...these are cases where we
+	 * are just enabling a stall site to possible clear faster*/
+
+	boolean isValidToPrune=true;
+	for( FlatSESEEnterNode parentSESE: fsen.getParents() ) {
+	  ConflictGraph     graph      = oooa.getConflictGraph(parentSESE);
+          String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
+	  ConflictNode      node       = graph.getId2cn().get(id);
+	  isValidToPrune &= node.IsValidToPrune();
+	}
+	if (i!=0) {
+	  cFile.println("      if (record->rcrstatus!=0)");
+	}
+	
+	if(globalState.NOSTALLTR && isValidToPrune) {
+	  cFile.println("    /*  " + getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen)+"*/");
+	} else {
+	  cFile.println("      " + getTraverserInvocation(tmp, "rec->"+tmp+", rec", fsen));
+	}
       }
       //release traverser reference...traversal finished...
       //executing thread will clean bins for us
@@ -515,13 +508,15 @@ public class RuntimeConflictResolver {
       
       cFile.println(    "    case -" + getTraverserID(var, stallsite)+ ": {");
       cFile.println(    "      SESEstall * rec=(SESEstall*) record;");
-      cFile.println(    "      " + this.getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";");
+      cFile.println(    "      " + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";");
       cFile.println(    "     record->rcrstatus=0;");
       cFile.println(    "    }");
       cFile.println("    break;");
     }
 
-    cFile.println("    default:\n    printf(\"Invalid SESE ID was passed in: %d.\\n\",record->classID);\n    break;");
+    cFile.println("    default:");
+    cFile.println("      printf(\"Invalid SESE ID was passed in: %d.\\n\",record->classID);");
+    cFile.println("      break;");
     cFile.println("  }");
     cFile.println("}");
   }

@@ -185,7 +185,7 @@ public class OoOJavaAnalysis {
     // 5th pass, use disjointness with NO FLAGGED REGIONS
     // to compute taints and effects
     if (state.POINTER) {
-      disjointAnalysisTaints = new Pointer(state, typeUtil, callGraph, rblockRel, liveness);
+      disjointAnalysisTaints = new Pointer(state, typeUtil, callGraph, rblockRel, liveness, buildStateMachines);
       ((Pointer)disjointAnalysisTaints).doAnalysis();
     } else
       disjointAnalysisTaints =
@@ -274,7 +274,7 @@ public class OoOJavaAnalysis {
         writeConflictGraph();
       } catch (IOException e) {}
     }
-    
+    State.logEvent("OoOJavaAnalysis completed");        
   }
 
 

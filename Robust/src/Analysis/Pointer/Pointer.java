@@ -39,14 +39,14 @@ public class Pointer implements HeapAnalysis{
   EffectsAnalysis effectsAnalysis;
   Accessible accessible;
 
-  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis, Liveness liveness) {
+  public Pointer(State state, TypeUtil typeUtil, CallGraph callGraph, RBlockRelationAnalysis taskAnalysis, Liveness liveness, BuildStateMachines bsm) {
     this(state, typeUtil);
     this.callGraph=callGraph;
     this.OoOJava=true;
     this.taskAnalysis=taskAnalysis;
     this.effectsAnalysis=new EffectsAnalysis();
     effectsAnalysis.state=state;
-    effectsAnalysis.buildStateMachines=new BuildStateMachines();
+    effectsAnalysis.buildStateMachines=bsm;
     accessible=new Accessible(state, callGraph, taskAnalysis, liveness);
     accessible.doAnalysis();
     State.logEvent("Done Writing Accessible Analysis");
