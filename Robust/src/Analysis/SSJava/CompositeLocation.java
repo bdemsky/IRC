@@ -11,46 +11,66 @@ import IR.ClassDescriptor;
 public class CompositeLocation extends Location {
 
   private NTuple<Location> locTuple;
-  private Hashtable<ClassDescriptor, Location> cd2loc;
-  private int size;
 
   public CompositeLocation(ClassDescriptor cd) {
     super(cd);
     locTuple = new NTuple<Location>();
-    cd2loc = new Hashtable<ClassDescriptor, Location>();
-    size = 0;
   }
 
   public NTuple<Location> getTuple() {
     return locTuple;
   }
 
-  public int getTupleSize() {
-    return size;
+  public int getBaseLocationSize() {
+    return getBaseLocationSet().size();
   }
 
   public void addLocation(Location loc) {
-    locTuple.addElement(loc);
 
     if (loc instanceof DeltaLocation) {
-      DeltaLocation deltaLoc = (DeltaLocation) loc;
-      for (Iterator iterator = deltaLoc.getDeltaOperandLocationVec().iterator(); iterator.hasNext();) {
-        Location opLoc = (Location) iterator.next();
-        cd2loc.put(opLoc.getClassDescriptor(), opLoc);
-        size++;
-      }
-    } else {
-      cd2loc.put(loc.getClassDescriptor(), loc);
-      size += 1;
+      type = Location.DELTA;
     }
+
+    locTuple.addElement(loc);
+
   }
 
-  public Map<ClassDescriptor, Location> getCd2Loc() {
-    return cd2loc;
+  public void addLocationSet(Set<Location> set) {
+
+    for (Iterator iterator = set.iterator(); iterator.hasNext();) {
+      Location location = (Location) iterator.next();
+      locTuple.addElement(location);
+    }
+
   }
 
   public Location getLocation(ClassDescriptor cd) {
-    return cd2loc.get(cd);
+
+    // need to get more optimization version later
+    Set<Location> locSet = getBaseLocationSet();
+    for (Iterator iterator = locSet.iterator(); iterator.hasNext();) {
+      Location location = (Location) iterator.next();
+      if (location.getClassDescriptor().equals(cd)) {
+        return location;
+      }
+    }
+
+    return null;
+
+  }
+
+  public Map<ClassDescriptor, Location> getCd2Loc() {
+
+    Map<ClassDescriptor, Location> cd2loc = new Hashtable<ClassDescriptor, Location>();
+
+    Set<Location> baseLocSet = getBaseLocationSet();
+    for (Iterator iterator = baseLocSet.iterator(); iterator.hasNext();) {
+      Location location = (Location) iterator.next();
+      cd2loc.put(location.getClassDescriptor(), location);
+    }
+
+    return cd2loc;
+
   }
 
   public Set<Location> getBaseLocationSet() {
@@ -62,7 +82,9 @@ public class CompositeLocation extends Location {
       Location locElement = locTuple.at(i);
 
       if (locElement instanceof DeltaLocation) {
-        baseLocationSet.addAll(((DeltaLocation) locElement).getDeltaOperandLocationVec());
+        // baseLocationSet.addAll(((DeltaLocation)
+        // locElement).getDeltaOperandLocationVec());
+        baseLocationSet.addAll(((DeltaLocation) locElement).getBaseLocationSet());
       } else {
         baseLocationSet.add(locElement);
       }

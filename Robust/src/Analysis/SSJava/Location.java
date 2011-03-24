@@ -7,6 +7,7 @@ public class Location {
   public static final int TOP = 1;
   public static final int NORMAL = 2;
   public static final int BOTTOM = 3;
+  public static final int DELTA = 4;
 
   int type;
   ClassDescriptor cd;
