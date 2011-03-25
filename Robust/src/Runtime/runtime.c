@@ -56,6 +56,10 @@ pthread_barrierattr_t attr;
 
 #include <string.h>
 
+#ifndef bool
+#define bool int
+#endif
+
 extern int classsize[];
 extern int typearray[];
 extern int typearray2[];
