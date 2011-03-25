@@ -60,14 +60,18 @@ public class BuildCode {
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa) {
     this.sa=sa;
     state=st;
+    State.logEvent("Start CallGraph");    
     callgraph=new CallGraph(state);
+    State.logEvent("Finish CallGraph");    
     this.temptovar=temptovar;
     paramstable=new Hashtable();
     tempstable=new Hashtable();
     fieldorder=new Hashtable();
     flagorder=new Hashtable();
     this.typeutil=typeutil;
+    State.logEvent("CheckMethods");    
     checkMethods2Gen();
+    State.logEvent("Virtual");    
     virtualcalls=new Virtual(state, null);
     printedfieldstbl = new Hashtable<String, ClassDescriptor>();
   }
@@ -91,6 +95,7 @@ public class BuildCode {
     PrintWriter optionalheaders=null;
     PrintWriter outglobaldefs=null;
     PrintWriter outglobaldefsprim=null;
+    State.logEvent("Beginning of buildCode");
 
     try {
       buildCodeSetup(); //EXTENSION POINT
@@ -204,10 +209,10 @@ public class BuildCode {
     // initialization
     preCodeGenInitialization();
 
-
+    State.logEvent("Start outputMethods");
     /* Build the actual methods */
     outputMethods(outmethod);
-
+    State.logEvent("End outputMethods");
 
     // opportunity for subclasses to gen extra code
     additionalCodeGen(outmethodheader,
@@ -248,6 +253,7 @@ public class BuildCode {
 
 
     postCodeGenCleanUp();
+    State.logEvent("End of buildCode");
   }
 
   /* This method goes though the call graph and check which methods are really

@@ -15,10 +15,12 @@ public class ProcessStateMachines {
   public ProcessStateMachines(BuildStateMachines bsm, RBlockRelationAnalysis taskAnalysis) {
     this.bsm=bsm;
     this.taskAnalysis=taskAnalysis;
+    groupMap=new HashMap<FlatSESEEnterNode, Set<StateMachineForEffects>>();
   }
 
   public void doProcess() {
     groupStateMachines();
+    computeConflictEffects();
     prune();
   }
 
@@ -40,7 +42,7 @@ public class ProcessStateMachines {
 	if (state.getConflicts().contains(e))
 	  continue;
 	//Does it still have transitions
-	if (state.e2states.contains(e))
+	if (state.e2states.containsKey(e))
 	  continue;
 	//If no to both, remove it
 	efit.remove();

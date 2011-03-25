@@ -25,9 +25,7 @@ public class BuildStateMachines {
 
   // map a task or stall site (both a FlatNode) to a variable
   // and then finally to a state machine
-  protected 
-    Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >
-    fn2var2smfe;
+  protected Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects>> fn2var2smfe;
   
   // remember all the FlatNode/TempDescriptor pairs that have a state machines
   // for easy retrieval of all machines
@@ -35,9 +33,7 @@ public class BuildStateMachines {
 
 
   public BuildStateMachines() {
-    fn2var2smfe = new
-      Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >();
-
+    fn2var2smfe = new Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >();
     allMachineNamePairs = new HashSet<Pair<FlatNode, TempDescriptor>>();
   }
 
@@ -45,9 +41,7 @@ public class BuildStateMachines {
     return getStateMachine(fnpair.getFirst(), fnpair.getSecond());
   }
 
-  public StateMachineForEffects getStateMachine( FlatNode       fn,
-                                                 TempDescriptor var ) {
-
+  public StateMachineForEffects getStateMachine(FlatNode fn, TempDescriptor var) {
     Hashtable<TempDescriptor, StateMachineForEffects> var2smfe = fn2var2smfe.get( fn );
     if( var2smfe == null ) {
       var2smfe = new Hashtable<TempDescriptor, StateMachineForEffects>();
@@ -58,7 +52,6 @@ public class BuildStateMachines {
     if( smfe == null ) {
       smfe = new StateMachineForEffects( fn );
       var2smfe.put( var, smfe );
-
       allMachineNamePairs.add( new Pair<FlatNode, TempDescriptor>( fn, var ) );
     }
 
@@ -74,7 +67,6 @@ public class BuildStateMachines {
   public void addToStateMachine( Taint t, 
                                  Effect e, 
                                  FlatNode currentProgramPoint ) {
-    
     FlatNode taskOrStallSite;
     if( t.isStallSiteTaint() ) {
       taskOrStallSite = t.getStallSite();
@@ -103,6 +95,10 @@ public class BuildStateMachines {
 
 
   public void writeStateMachines() {
+    writeStateMachines("");
+  }
+
+  public void writeStateMachines(String prefix) {
 
     Iterator<FlatNode> fnItr = fn2var2smfe.keySet().iterator();
     while( fnItr.hasNext() ) {
@@ -117,7 +113,7 @@ public class BuildStateMachines {
 
         StateMachineForEffects smfe = var2smfe.get( var );
 
-        smfe.writeAsDOT( "statemachine_"+fn.toString()+var.toString() );
+        smfe.writeAsDOT( prefix+"statemachine_"+fn.toString()+var.toString() );
       }
     }
   }

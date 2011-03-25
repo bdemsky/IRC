@@ -1289,6 +1289,7 @@ public class OoOJavaAnalysis {
   public void pruneMachinesAndFindWeaklyConnectedExaminers() {
     ProcessStateMachines psm=new ProcessStateMachines(buildStateMachines, rblockRel);
     psm.doProcess();
+    buildStateMachines.writeStateMachines("pruned");
   }
 
 

@@ -29,6 +29,14 @@ public class Effect {
     return (effect & Effect.write)==Effect.write;
   }
 
+  public boolean isWrite() {
+    return type==write;
+  }
+
+  public boolean isRead() {
+    return type==read;
+  }
+
   public Alloc getAffectedAllocSite() {
     return affectedAllocSite;
   }

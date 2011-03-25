@@ -34,7 +34,6 @@ public class BuildOoOJavaCode extends BuildCode {
                            SafetyAnalysis   sa, 
                            OoOJavaAnalysis  oooa
                            ) {
-
     super( st, temptovar, typeutil, sa);
 
     this.oooa = oooa;

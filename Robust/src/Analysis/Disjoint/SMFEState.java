@@ -50,9 +50,9 @@ public class SMFEState {
 
 
   
-  public SMFEState( FlatNode fnWhereDefined ) {
+  public SMFEState( FlatNode fnWhereDefined, int id ) {
 
-    this.id         = fnWhereDefined.nodeid;
+    this.id         = id;
     this.iHashCode  = fnWhereDefined.hashCode();
 
     effects         = new HashSet<Effect>();

@@ -29,11 +29,12 @@ public class StateMachineForEffects {
 
   protected SMFEState initialState;
   protected FlatNode fn;
+  protected int id=0;
 
   public StateMachineForEffects( FlatNode fnInitial ) {
     fn2state = new Hashtable<FlatNode, SMFEState>();
     effectsMap = new HashMap<Pair<Alloc, FieldDescriptor>, Integer>();
-    initialState = getState( fnInitial );
+    initialState = getState( startNode );
     this.fn=fnInitial;
   }
 
@@ -48,7 +49,11 @@ public class StateMachineForEffects {
   }
 
   public int getEffects(Alloc affectedNode, FieldDescriptor fd) {
-    return effectsMap.get(new Pair<Alloc, FieldDescriptor>(affectedNode, fd)).intValue();
+    Integer type=effectsMap.get(new Pair<Alloc, FieldDescriptor>(affectedNode, fd));
+    if (type==null)
+      return 0;
+    else
+      return type.intValue();
   }
 
   public void addEffect( FlatNode fnState,
@@ -86,7 +91,7 @@ public class StateMachineForEffects {
   protected SMFEState getState( FlatNode fn ) {
     SMFEState state = fn2state.get( fn );
     if( state == null ) {
-      state = new SMFEState( fn );
+      state = new SMFEState( fn ,id++ );
       fn2state.put( fn, state );
     }
     return state;
@@ -98,7 +103,6 @@ public class StateMachineForEffects {
   }
 
   public void writeAsDOT( String graphName ) {
-    //String graphName = initialState.getID().toString();
     graphName = graphName.replaceAll( "[\\W]", "" );
 
     try {
