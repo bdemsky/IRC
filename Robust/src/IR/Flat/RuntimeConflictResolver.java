@@ -114,6 +114,10 @@ public class RuntimeConflictResolver {
       
       blockName = task.getPrettyIdentifier();
     }
+
+    //No need generate code for empty traverser
+    if (smfe.isEmpty())
+      return;
     
     String methodName = "void traverse___" + inVar + removeInvalidChars(blockName) + "___(void * InVar, ";
     int    index      = -1;
@@ -164,23 +168,29 @@ public class RuntimeConflictResolver {
     //   SWITCH on the concrete object's allocation site THEN
     //     consider conflicts, enqueue more work, inline more SWITCHES, etc.
       
-    cFile.println("  switch( traverserState ) {");
+    boolean needswitch=smfe.getStates().size()>1;
 
+    if (needswitch) {
+      cFile.println("  switch( traverserState ) {");
+    }
     for(SMFEState state: smfe.getStates()) {
 
       if(state.getRefCount() != 1 || initialState == state) {
-        cFile.println("    case "+state.getID()+":");
-        cFile.println("      switch(ptr->allocsite) {");
+	if (needswitch) {
+	  cFile.println("    case "+state.getID()+":");
+	} else {
+	  cFile.println("  if(traverserState=="+state.getID()+") {");
+	}
         
-        printAllocChecksInsideState(state, taskOrStallSite, var, "ptr", 0, weakID);
+        printAllocChecksInsideState("ptr->allocsite", state, taskOrStallSite, var, "ptr", 0, weakID);
         
-        cFile.println("        default: break;");
-        cFile.println("      } // end switch on allocsite");
-        cFile.println("      break;");
+	cFile.println("      break;");
       }
     }
     
-    cFile.println("        default: break;");
+    if (needswitch) {
+      cFile.println("        default: break;");
+    }
     cFile.println("      } // end switch on traverser state");
     cFile.println("      queueEntry = " + dequeueFromQueueInC + ";");
     cFile.println("      if(queueEntry == NULL) {");
@@ -211,22 +221,37 @@ public class RuntimeConflictResolver {
     cFile.flush();
   }
   
-  public void printAllocChecksInsideState(SMFEState state, FlatNode fn, TempDescriptor tmp, String prefix, int depth, int weakID) {
+  public void printAllocChecksInsideState(String input, SMFEState state, FlatNode fn, TempDescriptor tmp, String prefix, int depth, int weakID) {
     EffectsTable et = new EffectsTable(state);
-    
+    boolean needswitch=et.getAllAllocs().size()>1;
+    if (needswitch) {
+      cFile.println("      switch(" + input + ") {");
+    }
+
     //we assume that all allocs given in the effects are starting locs. 
     for(Alloc a: et.getAllAllocs()) {
-      cFile.println("    case "+a.getUniqueAllocSiteID()+":");
+      if (needswitch) {
+	cFile.println("    case "+a.getUniqueAllocSiteID()+": {");
+      } else {
+	cFile.println("     if("+input+"=="+a.getUniqueAllocSiteID()+") {");
+      }
       addChecker(a, fn, tmp, state, et, "ptr", 0, weakID);
-      cFile.println("       break;");
+      if (needswitch) {
+	cFile.println("       }");
+	cFile.println("       break;");
+      }
     }
+    if (needswitch) {
+      cFile.println("      default:");
+      cFile.println("        break;");
+    }
+    cFile.println("      }");
   }
   
   public void addChecker(Alloc a, FlatNode fn, TempDescriptor tmp, SMFEState state, EffectsTable et, String prefix, int depth, int weakID) {
     insertEntriesIntoHashStructureNew(fn, tmp, et, a, prefix, depth, weakID);
     
     int pdepth = depth+1;
-    cFile.println("{");
     
     if(a.getType().isArray()) {
       String childPtr = "((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i]";
@@ -241,7 +266,7 @@ public class RuntimeConflictResolver {
 	  printRefSwitch(fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
 	}
       }
-      cFile.println("      }");
+      cFile.println("}");
     }  else {
       //All other cases
       String currPtr = "myPtr" + pdepth;
@@ -254,7 +279,6 @@ public class RuntimeConflictResolver {
 	}
       }
     }
-    cFile.println("}");
   }
 
   private void printRefSwitch(FlatNode fn, TempDescriptor tmp, int pdepth, String childPtr, String currPtr, Set<SMFEState> transitions, int weakID) {    
@@ -264,13 +288,9 @@ public class RuntimeConflictResolver {
 	//Don't need to update state counter since we don't care really if it's inlined...
 	cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
 	cFile.println("    if (" + currPtr + " != NULL) { ");
-	cFile.println("      switch(" + currPtr + "->"+allocSiteInC + ") {");
 	
-	printAllocChecksInsideState(tr, fn, tmp, currPtr, pdepth+1, weakID);
+	printAllocChecksInsideState(currPtr+"->"+allocSiteInC, tr, fn, tmp, currPtr, pdepth+1, weakID);
         
-	cFile.println("      default:");
-	cFile.println("        break;");
-	cFile.println("      }");
 	cFile.println("    }"); //break for internal switch and if
       } else {                          //non-inlineable cases
 	cFile.println("    " + enqueueInC + childPtr + ", "+tr.getID()+");");
@@ -288,8 +308,6 @@ public class RuntimeConflictResolver {
       index = fsese.getInVarsForDynamicCoarseConflictResolution().indexOf(tmp);
     }
     
-    cFile.println("{");
-
     String strrcr = isRblock ? "&record->rcrRecords[" + index + "], " : "NULL, ";
     String tasksrc =isRblock ? "(SESEcommon *) record, ":"(SESEcommon *)(((INTPTR)record)|1LL), ";
 
@@ -310,8 +328,6 @@ public class RuntimeConflictResolver {
     if (et.hasReadConflict(a) || et.hasWriteConflict(a)) {
       cFile.append("if (!(tmpvar" + depth + "&READYMASK)) totalcount--;\n");
     }
-    
-    cFile.println("}");
   }
 
   private void setupOutputFiles(String buildir) throws FileNotFoundException {

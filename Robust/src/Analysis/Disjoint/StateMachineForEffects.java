@@ -48,6 +48,15 @@ public class StateMachineForEffects {
     return fn;
   }
 
+  public boolean isEmpty() {
+    for(FlatNode fn:fn2state.keySet()) {
+      SMFEState state=fn2state.get(fn);
+      if (!state.getConflicts().isEmpty())
+	return false;
+    }
+    return true;
+  }
+
   public int getEffects(Alloc affectedNode, FieldDescriptor fd) {
     Integer type=effectsMap.get(new Pair<Alloc, FieldDescriptor>(affectedNode, fd));
     if (type==null)
@@ -56,8 +65,7 @@ public class StateMachineForEffects {
       return type.intValue();
   }
 
-  public void addEffect( FlatNode fnState,
-                         Effect e ) {
+  public void addEffect( FlatNode fnState, Effect e ) {
     if (fnState==null)
       fnState=startNode;
     SMFEState state = getState( fnState );
