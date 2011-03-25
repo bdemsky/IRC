@@ -761,7 +761,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("     stallrecord->common.unresolvedDependencies=10000;");
     output.println("     stallrecord->common.rcrstatus=1;");
     output.println("     stallrecord->common.offsetToParamRecords=(INTPTR) & (((SESEstall *)0)->rcrRecords);");
-    output.println("     stallrecord->common.refCount = 10003;");
+    output.println("     stallrecord->common.refCount = 3;");
     output.println("     int localCount=10000;");
     output.println("     stallrecord->rcrRecords[0].index=0;");
     output.println("     stallrecord->rcrRecords[0].flag=0;");
@@ -827,7 +827,7 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("     } else {");//exit if condition
     //release traversers reference if we didn't use traverser
     output.println("#ifndef OOO_DISABLE_TASKMEMPOOL");
-    output.println("  RELEASE_REFERENCE_TO((SESEcommon *)stallrecord);");
+    output.println("  RELEASE_REFERENCES_TO((SESEcommon *)stallrecord, 2);");
     output.println("#endif");
     output.println("     }");
     //release our reference to stall record
