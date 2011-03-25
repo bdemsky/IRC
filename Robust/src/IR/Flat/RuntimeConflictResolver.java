@@ -264,7 +264,7 @@ public class RuntimeConflictResolver {
       cFile.println("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {");
       
       for(Effect e: et.getEffects(a)) {
-	if (state.transitionsTo(e).isEmpty()) {
+	if (!state.transitionsTo(e).isEmpty()) {
 	  printRefSwitch(fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
 	}
       }
