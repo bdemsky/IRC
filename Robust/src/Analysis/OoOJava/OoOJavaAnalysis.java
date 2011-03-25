@@ -10,7 +10,6 @@ import Analysis.Pointer.*;
 import IR.*;
 import IR.Flat.*;
 
-
 public class OoOJavaAnalysis {
 
   // data from the compiler
@@ -1288,34 +1287,8 @@ public class OoOJavaAnalysis {
   // effects between heap roots, so it is smart to compute all of
   // this together
   public void pruneMachinesAndFindWeaklyConnectedExaminers() {
-
-    /*
-    // TODO, calcualte the set of taints that lead to conflicts (for which
-    // traversers must be built...)
-
-    EffectsAnalysis effectsAnalysis = disjointAnalysisTaints.getEffectsAnalysis();
-
-    // visit every conflict graph once, so iterate through the
-    // the non-leaf tasks to find them all
-    Set<FlatSESEEnterNode> allSESEs = rblockRel.getAllSESEs();
-    for( Iterator allItr = allSESEs.iterator(); allItr.hasNext(); ) {
-      
-      FlatSESEEnterNode parent = (FlatSESEEnterNode) allItr.next();
-      if( parent.getIsLeafSESE() ) {
-        continue;
-      }
-      
-      ConflictGraph conflictGraph = sese2conflictGraph.get( parent );
-      assert conflictGraph != null;
-      
-      // from the conflict graph we want to extract all conflicting effects
-      // and use them to identify (1) weakly connected heap examiners and
-      // (2) states/examiner nodes with a conflicting effect that will later
-      // support the examiner pruning process
-      Hashtable<Taint, Set<Effect>> conflicts = conflictGraph.getConflictEffectSet( fsen ) );
-      
-    }
-    */
+    ProcessStateMachines psm=new ProcessStateMachines(buildStateMachines, rblockRel);
+    psm.doProcess();
   }
 
 

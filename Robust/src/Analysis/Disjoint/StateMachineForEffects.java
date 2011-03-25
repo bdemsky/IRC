@@ -5,6 +5,7 @@ import java.io.*;
 
 import IR.*;
 import IR.Flat.*;
+import Util.Pair;
 
 //////////////////////////////////////////////
 //
@@ -17,6 +18,7 @@ import IR.Flat.*;
 
 public class StateMachineForEffects {
   public final static FlatNode startNode=new FlatNop();
+  protected HashMap<Pair<Alloc, FieldDescriptor>, Integer> effectsMap;
 
   // states in the machine are uniquely identified 
   // by a flat node (program point)
@@ -26,21 +28,41 @@ public class StateMachineForEffects {
   protected Hashtable<FlatNode, Integer> fn2weaklyConnectedGroupID;
 
   protected SMFEState initialState;
-
+  protected FlatNode fn;
 
   public StateMachineForEffects( FlatNode fnInitial ) {
     fn2state = new Hashtable<FlatNode, SMFEState>();
-
+    effectsMap = new HashMap<Pair<Alloc, FieldDescriptor>, Integer>();
     initialState = getState( fnInitial );
+    this.fn=fnInitial;
+  }
+
+  public Set<SMFEState> getStates() {
+    HashSet<SMFEState> set=new HashSet<SMFEState>();
+    set.addAll(fn2state.values());
+    return set;
+  }
+
+  public FlatNode getStallorSESE() {
+    return fn;
+  }
+
+  public int getEffects(Alloc affectedNode, FieldDescriptor fd) {
+    return effectsMap.get(new Pair<Alloc, FieldDescriptor>(affectedNode, fd)).intValue();
   }
 
   public void addEffect( FlatNode fnState,
                          Effect e ) {
-
     if (fnState==null)
       fnState=startNode;
     SMFEState state = getState( fnState );
     state.addEffect( e );
+    Pair<Alloc, FieldDescriptor> p=new Pair<Alloc, FieldDescriptor>(e.getAffectedAllocSite(), e.getField());
+    int type=e.getType();
+    if (!effectsMap.containsKey(p))
+      effectsMap.put(p, new Integer(type));
+    else
+      effectsMap.put(p, new Integer(type|effectsMap.get(p).intValue()));
   }
 
   public void addTransition( FlatNode fnFrom,
@@ -74,7 +96,6 @@ public class StateMachineForEffects {
     //TODO stubby stubby!
     return 0;
   }
-
 
   public void writeAsDOT( String graphName ) {
     //String graphName = initialState.getID().toString();

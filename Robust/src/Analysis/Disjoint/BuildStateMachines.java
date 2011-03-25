@@ -31,16 +31,19 @@ public class BuildStateMachines {
   
   // remember all the FlatNode/TempDescriptor pairs that have a state machines
   // for easy retrieval of all machines
-  protected Set<Pair> allMachineNamePairs;
+  protected Set<Pair<FlatNode, TempDescriptor>> allMachineNamePairs;
 
 
   public BuildStateMachines() {
     fn2var2smfe = new
       Hashtable< FlatNode, Hashtable<TempDescriptor, StateMachineForEffects> >();
 
-    allMachineNamePairs = new HashSet<Pair>();
+    allMachineNamePairs = new HashSet<Pair<FlatNode, TempDescriptor>>();
   }
 
+  public StateMachineForEffects getStateMachine(Pair<FlatNode, TempDescriptor> fnpair) {
+    return getStateMachine(fnpair.getFirst(), fnpair.getSecond());
+  }
 
   public StateMachineForEffects getStateMachine( FlatNode       fn,
                                                  TempDescriptor var ) {
@@ -56,14 +59,14 @@ public class BuildStateMachines {
       smfe = new StateMachineForEffects( fn );
       var2smfe.put( var, smfe );
 
-      allMachineNamePairs.add( new Pair( fn, var ) );
+      allMachineNamePairs.add( new Pair<FlatNode, TempDescriptor>( fn, var ) );
     }
 
     return smfe;
   }
 
 
-  public Set<Pair> getAllMachineNames() {
+  public Set<Pair<FlatNode, TempDescriptor>> getAllMachineNames() {
     return allMachineNamePairs;
   }
 
@@ -118,8 +121,6 @@ public class BuildStateMachines {
       }
     }
   }
-
-
   //TODO JIM! Give me the REAALL number here. 
   public int getTotalNumOfWeakGroups() {
     // TODO Auto-generated method stub

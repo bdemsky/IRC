@@ -89,8 +89,8 @@ public class RBlockRelationAnalysis {
   // node it will be in this set
   protected Hashtable< FlatNode, Set<FlatSESEEnterNode> > fn2currentSESEs;
 
-  // if you want to know which rblocks might be executing a given flat
-  // node it will be in this set
+  // if you want to know which rblocks might be TRANSITIVELY executing
+  // a given flat node it will be in this set
   protected Hashtable< FlatNode, Set<FlatSESEEnterNode> > fn2allSESEs;
 
   // if you want to know the method-local, inner-most nested task that

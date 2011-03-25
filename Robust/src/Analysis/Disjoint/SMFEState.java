@@ -76,8 +76,7 @@ public class SMFEState {
       e2states.put( effect, states );
     }
     states.add( stateTo );
-
-    ++stateTo.refCount;
+    stateTo.refCount++;
   }
 
 
@@ -92,10 +91,12 @@ public class SMFEState {
     return effects;
   }
   
+  public void addConflict(Effect e) {
+    conflicts.add(e);
+  }
+
   public Set<Effect> getConflicts() {
-    //TODO JIM! Fix this when have a chance!
-    conflicts.addAll(effects);
-    return this.conflicts;
+    return conflicts;
   }
   
   public Set<Effect> getTransistionEffects() {
@@ -108,6 +109,16 @@ public class SMFEState {
     Set<SMFEState> statesOut = e2states.get( e );
     if( statesOut == null ) {
       statesOut = new HashSet<SMFEState>();
+    }
+    return statesOut;
+  }
+
+  // some subset of the above effects may transition to
+  // other states
+  public Set<SMFEState> transitionsTo() {
+    Set<SMFEState> statesOut = new HashSet<SMFEState>();
+    for(Map.Entry<Effect, Set<SMFEState>> entry:e2states.entrySet()) {
+      statesOut.addAll(entry.getValue());
     }
     return statesOut;
   }

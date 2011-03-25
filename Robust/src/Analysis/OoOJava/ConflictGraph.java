@@ -29,8 +29,6 @@ public class ConflictGraph {
 
   protected Hashtable<String, ConflictNode> id2cn;
   protected Hashtable<FlatNode, Hashtable<Taint, Set<Effect>>> sese2te;
-  protected HashMap<Pair<Alloc, FieldDescriptor>, Integer> seseEffects;
-  protected HashMap<Pair<Alloc, FieldDescriptor>, Integer> stallEffects;
 
   protected DisjointAnalysis da;
   protected FlatMethod fmEnclosing;
@@ -45,16 +43,6 @@ public class ConflictGraph {
     this.state=state;
     id2cn = new Hashtable<String, ConflictNode>();
     sese2te = new Hashtable<FlatNode, Hashtable<Taint, Set<Effect>>>();
-    seseEffects = new HashMap<Pair<Alloc, FieldDescriptor>, Integer>();
-    stallEffects = new HashMap<Pair<Alloc, FieldDescriptor>, Integer>();
-  }
-
-  public int getStallEffects(Alloc affectedNode, FieldDescriptor fd) {
-    return stallEffects.get(new Pair<Alloc, FieldDescriptor>(affectedNode, fd)).intValue();
-  }
-
-  public int getSESEEffects(Alloc affectedNode, FieldDescriptor fd) {
-    return seseEffects.get(new Pair<Alloc, FieldDescriptor>(affectedNode, fd)).intValue();
   }
 
   public void setDisJointAnalysis(DisjointAnalysis da) {
@@ -118,13 +106,6 @@ public class ConflictGraph {
     node.addEffect(as, e);
     node.addTaint(t);
     id2cn.put(id, node);
-
-    Pair<Alloc, FieldDescriptor> p=new Pair<Alloc, FieldDescriptor>(e.getAffectedAllocSite(), e.getField());
-    int type=e.getType();
-    if (!stallEffects.containsKey(p))
-      stallEffects.put(p, new Integer(type));
-    else
-      stallEffects.put(p, new Integer(type|stallEffects.get(p).intValue()));
   }
 
   public void addLiveInNodeEffect(Taint t, Effect e) {
@@ -143,12 +124,6 @@ public class ConflictGraph {
 
     id2cn.put(id, node);
 
-    Pair<Alloc, FieldDescriptor> p=new Pair<Alloc, FieldDescriptor>(e.getAffectedAllocSite(), e.getField());
-    int type=e.getType();
-    if (!seseEffects.containsKey(p))
-      seseEffects.put(p, new Integer(type));
-    else
-      seseEffects.put(p, new Integer(type|seseEffects.get(p).intValue()));
   }
 
   public void addConflictEdge(int type, ConflictNode nodeU, ConflictNode nodeV) {

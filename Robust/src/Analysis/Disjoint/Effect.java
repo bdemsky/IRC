@@ -8,7 +8,7 @@ public class Effect {
   // operation type
   public static final int read = 1;
   public static final int write = 2;
-  public static final int strongupdate = 3;
+  public static final int strongupdate = 4;
 
   // identify an allocation site of affected object
   protected Alloc affectedAllocSite;
@@ -23,6 +23,10 @@ public class Effect {
     this.affectedAllocSite = affectedAS;
     this.type = type;
     this.field = field;
+  }
+
+  public static boolean isWrite(int effect) {
+    return (effect & Effect.write)==Effect.write;
   }
 
   public Alloc getAffectedAllocSite() {
