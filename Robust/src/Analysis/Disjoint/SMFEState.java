@@ -75,8 +75,10 @@ public class SMFEState {
       states = new HashSet<SMFEState>();
       e2states.put( effect, states );
     }
-    states.add( stateTo );
-    stateTo.refCount++;
+    if (!states.contains(stateTo)) {
+      states.add( stateTo );
+      stateTo.refCount++;
+    }
   }
 
 
