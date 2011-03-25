@@ -237,7 +237,7 @@ public class RuntimeConflictResolver {
       } else {
 	cFile.println("     if("+input+"=="+a.getUniqueAllocSiteID()+") {");
       }
-      addChecker(a, fn, tmp, state, et, "ptr", 0, weakID);
+      addChecker(a, fn, tmp, state, et, input, 0, weakID);
       if (needswitch) {
 	cFile.println("       }");
 	cFile.println("       break;");
