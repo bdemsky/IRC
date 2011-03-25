@@ -43,7 +43,7 @@ public class RuntimeConflictResolver {
   private State globalState;
   
   // initializing variables can be found in printHeader()
-  private static final String allocSiteInC = "allocsite";
+  private static final String allocSite = "allocsite";
   private static final String queryAndAddToVistedHashtable = "hashRCRInsert";
   private static final String enqueueInC = "enqueueRCRQueue(";
   private static final String dequeueFromQueueInC = "dequeueRCRQueue()";
@@ -184,7 +184,7 @@ public class RuntimeConflictResolver {
 	  cFile.println("  if(traverserState=="+state.getID()+") {");
 	}
         
-        printAllocChecksInsideState("ptr->allocsite", state, taskOrStallSite, var, "ptr", 0, weakID);
+        printAllocChecksInsideState(state, taskOrStallSite, var, "ptr", 0, weakID);
         
 	cFile.println("      break;");
       }
@@ -223,11 +223,11 @@ public class RuntimeConflictResolver {
     cFile.flush();
   }
   
-  public void printAllocChecksInsideState(String input, SMFEState state, FlatNode fn, TempDescriptor tmp, String prefix, int depth, int weakID) {
+  public void printAllocChecksInsideState(SMFEState state, FlatNode fn, TempDescriptor tmp, String prefix, int depth, int weakID) {
     EffectsTable et = new EffectsTable(state);
     boolean needswitch=et.getAllAllocs().size()>1;
     if (needswitch) {
-      cFile.println("      switch(" + input + ") {");
+      cFile.println("      switch(" + prefix+"->"+allocSite + ") {");
     }
 
     //we assume that all allocs given in the effects are starting locs. 
@@ -235,9 +235,9 @@ public class RuntimeConflictResolver {
       if (needswitch) {
 	cFile.println("    case "+a.getUniqueAllocSiteID()+": {");
       } else {
-	cFile.println("     if("+input+"=="+a.getUniqueAllocSiteID()+") {");
+	cFile.println("     if("+prefix+"->"+allocSite+"=="+a.getUniqueAllocSiteID()+") {");
       }
-      addChecker(a, fn, tmp, state, et, input, 0, weakID);
+      addChecker(a, fn, tmp, state, et, prefix, 0, weakID);
       if (needswitch) {
 	cFile.println("       }");
 	cFile.println("       break;");
@@ -291,7 +291,7 @@ public class RuntimeConflictResolver {
 	cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
 	cFile.println("    if (" + currPtr + " != NULL) { ");
 	
-	printAllocChecksInsideState(currPtr+"->"+allocSiteInC, tr, fn, tmp, currPtr, pdepth+1, weakID);
+	printAllocChecksInsideState(tr, fn, tmp, currPtr, pdepth+1, weakID);
         
 	cFile.println("    }"); //break for internal switch and if
       } else {                          //non-inlineable cases
