@@ -237,7 +237,7 @@ public class RuntimeConflictResolver {
       } else {
 	cFile.println("     if("+prefix+"->"+allocSite+"=="+a.getUniqueAllocSiteID()+") {");
       }
-      addChecker(a, fn, tmp, state, et, prefix, 0, weakID);
+      addChecker(a, fn, tmp, state, et, prefix, depth, weakID);
       if (needswitch) {
 	cFile.println("       }");
 	cFile.println("       break;");
@@ -259,16 +259,21 @@ public class RuntimeConflictResolver {
       String childPtr = "((struct ___Object___ **)(((char *) &(((struct ArrayObject *)"+ prefix+")->___length___))+sizeof(int)))[i]";
       String currPtr = "arrayElement" + pdepth;
       
-      cFile.println("  int i;");
-      cFile.println("  struct ___Object___ * "+currPtr+";");
-      cFile.println("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {");
+      boolean first=true;
       
       for(Effect e: et.getEffects(a)) {
 	if (!state.transitionsTo(e).isEmpty()) {
+	  if (first) {
+	    cFile.println("  int i;");
+	    cFile.println("  struct ___Object___ * "+currPtr+";");
+	    cFile.println("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {");
+	    first=false;
+	  }
 	  printRefSwitch(fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
 	}
       }
-      cFile.println("}");
+      if (!first)
+	cFile.println("}");
     }  else {
       //All other cases
       String currPtr = "myPtr" + pdepth;
