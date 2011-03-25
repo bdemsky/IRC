@@ -102,6 +102,10 @@ public class RuntimeConflictResolver {
     int               weakID        = smfe.getWeaklyConnectedGroupID(taskOrStallSite);
     
     String blockName;    
+    //No need generate code for empty traverser
+    if (smfe.isEmpty())
+      return;
+
     if( isStallSite ) {
       blockName = taskOrStallSite.toString();
       processedStallSites.put(taskOrStallSite, var);
@@ -115,9 +119,7 @@ public class RuntimeConflictResolver {
       blockName = task.getPrettyIdentifier();
     }
 
-    //No need generate code for empty traverser
-    if (smfe.isEmpty())
-      return;
+
     
     String methodName = "void traverse___" + inVar + removeInvalidChars(blockName) + "___(void * InVar, ";
     int    index      = -1;
