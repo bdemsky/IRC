@@ -4,6 +4,7 @@ import IR.*;
 import IR.Flat.*;
 import java.util.*;
 import java.io.*;
+import Analysis.Pointer.MySet;
 
 // This class formerly had lazy consistency properties, but
 // it is being changed so that the full set and the extra
@@ -20,7 +21,7 @@ import java.io.*;
 public class VarSrcTokTable {
 
   // a set of every token in the table
-  private HashSet<VariableSourceToken> trueSet;
+  private MySet<VariableSourceToken> trueSet;
 
   // these hashtables provide an efficient retreival from the true set
   private Hashtable< TempDescriptor,    Set<VariableSourceToken> >  var2vst;
@@ -39,7 +40,7 @@ public class VarSrcTokTable {
 
 
   public VarSrcTokTable() {
-    trueSet  = new HashSet<VariableSourceToken>();
+    trueSet  = new MySet<VariableSourceToken>();
 
     sese2vst = new Hashtable< FlatSESEEnterNode, Set<VariableSourceToken> >();
     var2vst  = new Hashtable< TempDescriptor,    Set<VariableSourceToken> >();
@@ -69,35 +70,25 @@ public class VarSrcTokTable {
       // if something with the same hashcode is in the true set, they might
       // have different reference variable sets because that set is not considered
       // in a token's equality, so make sure we smooth that out right here
-      Iterator<VariableSourceToken> vstItr = trueSet.iterator();
-      while( vstItr.hasNext() ) {
-        VariableSourceToken vstAlready = vstItr.next();
 
-        if( vstAlready.equals( vst ) ) {    
-
-          // take out the one that is in (we dont' want collisions in
-          // any of the other hash map sets either)
-          removePrivate( vstAlready );
-
-          // combine reference variable sets
-          vst.getRefVars().addAll( vstAlready.getRefVars() );
-
-          // now jump back as we are adding in a brand new token
-          break;
-        }
+      VariableSourceToken vstAlready = trueSet.get(vst);
+      if (vstAlready!=null) {
+	removePrivate( vstAlready );
+	HashSet<TempDescriptor> toAddSet=new HashSet<TempDescriptor>();
+	toAddSet.addAll(vstAlready.getRefVars());
+	toAddSet.addAll(vst.getRefVars());
+	vst.setRefVars(toAddSet);
       }
     }
 
     trueSet.add( vst );
 
-    Set<VariableSourceToken> s;
-
-    s = sese2vst.get( vst.getSESE() );
+    Set<VariableSourceToken> s = sese2vst.get( vst.getSESE() );
     if( s == null ) {
       s = new HashSet<VariableSourceToken>();
+      sese2vst.put( vst.getSESE(), s );
     }
     s.add( vst );
-    sese2vst.put( vst.getSESE(), s );
 
     Iterator<TempDescriptor> refVarItr = vst.getRefVars().iterator();
     while( refVarItr.hasNext() ) {
@@ -105,17 +96,17 @@ public class VarSrcTokTable {
       s = var2vst.get( refVar );
       if( s == null ) {
         s = new HashSet<VariableSourceToken>();
+	var2vst.put( refVar, s );
       }
       s.add( vst );
-      var2vst.put( refVar, s );
 
       SVKey key = new SVKey( vst.getSESE(), refVar );
       s = sv2vst.get( key );
       if( s == null ) {
         s = new HashSet<VariableSourceToken>();
+	sv2vst.put( key, s );
       }
       s.add( vst );
-      sv2vst.put( key, s );
     }
   }
 
@@ -300,8 +291,12 @@ public class VarSrcTokTable {
 
       sv2vst.remove( new SVKey( vst.getSESE(), refVar ) );
 
-      refVars.remove( refVar );      
+      HashSet<TempDescriptor> newset=new HashSet<TempDescriptor>();
+      newset.addAll(vst.getRefVars());
+      newset.remove(refVar);
+      vst.setRefVars(newset);
     }
+
 
     var2vst.remove( refVar );    
   }
@@ -683,7 +678,10 @@ public class VarSrcTokTable {
   // use as an aid for debugging, where true-set is checked
   // against the alternate mappings: assert that nothing is
   // missing or extra in the alternates
+
   public void assertConsistency() {
+  }
+  /*  public void assertConsistency() {
 
     Iterator itr; 
     Set s;
@@ -789,7 +787,7 @@ public class VarSrcTokTable {
 
       assert vst.getRefVars().equals( s1 );
     }    
-  }
+    }*/
 
 
   public boolean equals( Object o ) {

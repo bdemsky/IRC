@@ -23,6 +23,10 @@ public class VariableSourceToken {
     this.addrVar = addrVar; 
   }
 
+  public void setRefVars(Set<TempDescriptor> refVars) {
+    this.refVars=refVars;
+  }
+
   public Set<TempDescriptor> getRefVars() {
     return refVars;
   }
@@ -40,14 +44,7 @@ public class VariableSourceToken {
   }
 
   public VariableSourceToken copy() {
-    Set<TempDescriptor> refVarsCopy = new HashSet<TempDescriptor>();
-
-    Iterator<TempDescriptor> rvItr = refVars.iterator();
-    while( rvItr.hasNext() ) {
-      refVarsCopy.add( rvItr.next() );
-    }
-
-    return new VariableSourceToken( refVarsCopy,
+    return new VariableSourceToken( refVars,
                                     sese,
                                     new Integer( seseAge ),
                                     addrVar );
