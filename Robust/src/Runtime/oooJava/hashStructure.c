@@ -187,6 +187,8 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     while(b->item.status==NOTREADY) {
       BARRIER();
     }
+    if (!(status&SPEC))
+      enqueuerecord(rcrrec, key, (BinItem_rcr *) b);
     return status&READY;
   } else {
     if (!(status&SPEC))
