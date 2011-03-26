@@ -35,6 +35,7 @@ public class ProcessStateMachines {
   private void merge(StateMachineForEffects sm) {
     HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> backMap=buildBackMap(sm);
     boolean mergeAgain=false;
+    HashSet<SMFEState> removedStates=new HashSet<SMFEState>();
     do {
       mergeAgain=false;
       HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> revMap=buildReverse(backMap);
@@ -42,6 +43,8 @@ public class ProcessStateMachines {
 	if (entry.getValue().size()>1) {
 	  SMFEState first=null;
 	  for(SMFEState state:entry.getValue()) {
+	    if (removedStates.contains(state))
+	      continue;
 	    if (first==null) {
 	      first=state;
 	    } else {
@@ -53,6 +56,7 @@ public class ProcessStateMachines {
 		first=sm.initialState;
 	      }
 	      mergeTwoStates(first, state, backMap);
+	      removedStates.add(state);
 	      sm.fn2state.remove(state.whereDefined);
 	    }
 	  }
