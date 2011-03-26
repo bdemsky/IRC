@@ -655,7 +655,7 @@ public class Pointer implements HeapAnalysis{
     TempDescriptor tmpthis=fcall.getThis();
     MethodDescriptor md=fcall.getMethod();
     HashSet<MethodDescriptor> targets=new HashSet<MethodDescriptor>();
-    if (md.isStatic()) {
+    if (md.isStatic()||fcall.getSuper()) {
       targets.add(md);
     } else {
       //Compute Edges
@@ -714,6 +714,10 @@ public class Pointer implements HeapAnalysis{
 	    returnDelta=new Delta(null, false);
 	    Vector<FlatNode> exitblocknodes=block.getExit().nodes();
 	    FlatExit fexit=(FlatExit)exitblocknodes.get(exitblocknodes.size()-1);
+	    if (graphMap.get(fexit)==null) {
+	      System.out.println(fcall);
+	      System.out.println(fm);
+	    }
 	    buildInitDelta(graphMap.get(fexit), returnDelta);
 	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
 	      returnDelta.setBlock(new PPoint(callblock, callindex));

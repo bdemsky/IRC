@@ -6,12 +6,18 @@ public class FlatCall extends FlatNode {
   TempDescriptor this_temp;
   TempDescriptor dst;
   MethodDescriptor method;
+  boolean isSuper;
 
   public FlatCall(MethodDescriptor md, TempDescriptor dst, TempDescriptor this_temp, TempDescriptor[] args) {
+    this(md, dst, this_temp, args, false);
+  }
+
+  public FlatCall(MethodDescriptor md, TempDescriptor dst, TempDescriptor this_temp, TempDescriptor[] args, boolean isSuper) {
     this.method=md;
     this.dst=dst;
     this.this_temp=this_temp;
     this.args=args;
+    this.isSuper=isSuper;
   }
   public void rewriteUse(TempMap t) {
     for(int i=0;i<args.length;i++)
@@ -29,6 +35,9 @@ public class FlatCall extends FlatNode {
       nargs[i]=t.tempMap(args[i]);
     
     return new FlatCall(method, ndst, nthis, nargs);
+  }
+  public boolean getSuper() {
+    return isSuper;
   }
 
   public MethodDescriptor getMethod() {

@@ -10,6 +10,7 @@ public class MethodInvokeNode extends ExpressionNode {
   NameDescriptor basename;
   ExpressionNode en;
   MethodDescriptor md;
+  boolean isSuper;
 
   public MethodInvokeNode(NameDescriptor name) {
     methodid=name.getIdentifier();
@@ -19,6 +20,7 @@ public class MethodInvokeNode extends ExpressionNode {
     argumentlist=new Vector();
     en=null;
     md=null;
+    isSuper=false;
   }
 
   public MethodInvokeNode(String methodid, ExpressionNode exp) {
@@ -27,6 +29,15 @@ public class MethodInvokeNode extends ExpressionNode {
     argumentlist=new Vector();
     md=null;
     this.basename=null;
+    isSuper=false;
+  }
+
+  public void setSuper() {
+    isSuper=true;
+  }
+
+  public boolean getSuper() {
+    return isSuper;
   }
 
   public NameDescriptor getBaseName() {

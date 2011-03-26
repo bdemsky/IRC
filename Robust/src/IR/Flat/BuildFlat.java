@@ -524,9 +524,9 @@ public class BuildFlat {
 
     FlatCall fc;
     if(md.getReturnType()==null||md.getReturnType().isVoid())
-      fc=new FlatCall(md, null, thisarg, temps);      
+      fc=new FlatCall(md, null, thisarg, temps, min.getSuper());
     else
-      fc=new FlatCall(md, out_temp, thisarg, temps);
+      fc=new FlatCall(md, out_temp, thisarg, temps, min.getSuper());
     
     fc.setNumLine(min.getNumLine());
     

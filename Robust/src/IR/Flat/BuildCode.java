@@ -2523,7 +2523,7 @@ public class BuildCode {
       output.print(generateTemp(fm,fc.getReturnTemp())+"=");
 
     /* Do we need to do virtual dispatch? */
-    if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)) {
+    if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)||fc.getSuper()) {
       //no
       output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring);
     } else {

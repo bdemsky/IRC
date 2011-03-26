@@ -1155,6 +1155,7 @@ NextMethod:
       if (rootname.equals("super")) {
 	ClassDescriptor supercd=((MethodDescriptor)md).getClassDesc().getSuperDesc();
 	typetolookin=new TypeDescriptor(supercd);
+	min.setSuper();
       } else if (rootname.equals("this")) {
         if(isstatic) {
           throw new Error("use this object in static method md = "+ md.toString());
