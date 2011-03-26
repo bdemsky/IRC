@@ -48,13 +48,13 @@ public class SMFEState {
   // code gen
   protected int refCount;
 
-
+  protected FlatNode whereDefined;
   
   public SMFEState( FlatNode fnWhereDefined, int id ) {
-
     this.id         = id;
     this.iHashCode  = fnWhereDefined.hashCode();
-
+    this.whereDefined=fnWhereDefined;
+    
     effects         = new HashSet<Effect>();
     conflicts       = new HashSet<Effect>();
     e2states        = new Hashtable< Effect, Set<SMFEState> >();

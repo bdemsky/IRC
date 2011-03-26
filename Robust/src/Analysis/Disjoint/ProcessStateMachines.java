@@ -11,7 +11,6 @@ public class ProcessStateMachines {
   protected BuildStateMachines bsm;
   protected RBlockRelationAnalysis taskAnalysis;
 
-
   public ProcessStateMachines(BuildStateMachines bsm, RBlockRelationAnalysis taskAnalysis) {
     this.bsm=bsm;
     this.taskAnalysis=taskAnalysis;
@@ -22,7 +21,122 @@ public class ProcessStateMachines {
     groupStateMachines();
     computeConflictEffects();
     prune();
+    merge();
   }
+
+  private void merge() {
+    for(Pair<FlatNode, TempDescriptor> machinepair: bsm.getAllMachineNames()) {
+      StateMachineForEffects sm=bsm.getStateMachine(machinepair);
+      merge(sm);
+    }
+  }
+
+
+  private void merge(StateMachineForEffects sm) {
+    HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> backMap=buildBackMap(sm);
+    boolean mergeAgain=false;
+    do {
+      mergeAgain=false;
+      HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> revMap=buildReverse(backMap);
+      for(Map.Entry<Pair<SMFEState,FieldDescriptor>, Set<SMFEState>> entry:revMap.entrySet()) {
+	if (entry.getValue().size()>1) {
+	  SMFEState first=null;
+	  for(SMFEState state:entry.getValue()) {
+	    if (first==null) {
+	      first=state;
+	    } else {
+	      mergeAgain=true;
+	      System.out.println("MERGING:"+first+" and "+state);
+	      //Make sure we don't merge the initial state someplace else
+	      if (state==sm.initialState) {
+		state=first;
+		first=sm.initialState;
+	      }
+	      mergeTwoStates(first, state, backMap);
+	      sm.fn2state.remove(state.whereDefined);
+	    }
+	  }
+	}
+      }
+    } while(mergeAgain);
+  }
+
+
+  private HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> buildReverse(HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> backMap) {
+    HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>> revMap=new HashMap<Pair<SMFEState, FieldDescriptor>, Set<SMFEState>>();
+    for(Map.Entry<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>>entry:backMap.entrySet()) {
+      SMFEState state=entry.getKey();
+      for(Pair<SMFEState, FieldDescriptor> pair:entry.getValue()) {
+	if (!revMap.containsKey(pair))
+	  revMap.put(pair, new HashSet<SMFEState>());
+	revMap.get(pair).add(state);
+      }
+    }
+    return revMap;
+  }
+
+  private void mergeTwoStates(SMFEState state1, SMFEState state2, HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> backMap) {
+    //Merge effects and conflicts
+    state1.effects.addAll(state2.effects);
+    state1.conflicts.addAll(state2.conflicts);
+
+    //fix up our backmap
+    backMap.get(state1).addAll(backMap.get(state2));
+
+    //merge outgoing transitions
+    for(Map.Entry<Effect, Set<SMFEState>> entry:state2.e2states.entrySet()) {
+      Effect e=entry.getKey();
+      Set<SMFEState> states=entry.getValue();
+      if (state1.e2states.containsKey(e)) {
+	for(SMFEState statetoadd:states) {
+	  if (!state1.e2states.get(e).add(statetoadd)) {
+	    //already added...reduce reference count
+	    statetoadd.refCount--;
+	  }
+	}
+      } else {
+	state1.e2states.put(e, states);
+      }
+      Set<SMFEState> states1=state1.e2states.get(e);
+
+      //move now-self edges
+      if (states1.contains(state2)) {
+	states1.remove(state2);
+	states1.add(state1);
+      }
+
+      //fix up the backmap of the edges we point to
+      for(SMFEState st:states1) {
+	HashSet<Pair<SMFEState, FieldDescriptor>> toRemove=new HashSet<Pair<SMFEState, FieldDescriptor>>();
+	HashSet<Pair<SMFEState, FieldDescriptor>> toAdd=new HashSet<Pair<SMFEState, FieldDescriptor>>();
+	for(Pair<SMFEState, FieldDescriptor> backpair:backMap.get(st)) {
+	  if (backpair.getFirst()==state2) {
+	    Pair<SMFEState, FieldDescriptor> newpair=new Pair<SMFEState, FieldDescriptor>(state1, backpair.getSecond());
+	    toRemove.add(backpair);
+	    toAdd.add(newpair);
+	  }
+	}
+	backMap.get(st).removeAll(toRemove);
+	backMap.get(st).addAll(toAdd);
+      }
+    }
+
+    //Fix up our new incoming edges
+    for(Pair<SMFEState,FieldDescriptor> fromStatePair:backMap.get(state2)) {
+      SMFEState fromState=fromStatePair.getFirst();
+      for(Map.Entry<Effect, Set<SMFEState>> fromEntry:fromState.e2states.entrySet()) {
+	Effect e=fromEntry.getKey();
+	Set<SMFEState> states=fromEntry.getValue();
+	if (states.contains(state2)) {
+	  states.remove(state2);
+	  states.add(state1);
+	}
+      }
+    }
+    //Clear out unreachable state's backmap
+    backMap.remove(state2);
+  }
+
 
   private void prune() {
     for(Pair<FlatNode, TempDescriptor> machinepair: bsm.getAllMachineNames()) {
@@ -72,33 +186,49 @@ public class ProcessStateMachines {
       }
     }
   }
+  
+  private HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> buildBackMap(StateMachineForEffects sm) {
+    return buildBackMap(sm, null);
+  }
 
-
-  private Set<SMFEState> buildConflictsAndMap(StateMachineForEffects sm) {
-    Set<SMFEState> conflictStates=new HashSet<SMFEState>();
-    HashMap<SMFEState, Set<SMFEState>> backMap=new HashMap<SMFEState, Set<SMFEState>>();
+  private HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> buildBackMap(StateMachineForEffects sm, Set<SMFEState> conflictStates) {
     Stack<SMFEState> toprocess=new Stack<SMFEState>();
+    HashMap<SMFEState, Set<Pair<SMFEState, FieldDescriptor>>> backMap=new HashMap<SMFEState, Set<Pair<SMFEState,FieldDescriptor>>>();
     toprocess.add(sm.initialState);
-    backMap.put(sm.initialState, new HashSet<SMFEState>());
+    backMap.put(sm.initialState, new HashSet<Pair<SMFEState, FieldDescriptor>>());
     while(!toprocess.isEmpty()) {
       SMFEState state=toprocess.pop();
-      if (!state.getConflicts().isEmpty())
+      if (!state.getConflicts().isEmpty()&&conflictStates!=null) {
 	conflictStates.add(state);
-      for(SMFEState stateout:state.transitionsTo()) {
-	if (!backMap.containsKey(stateout)) {
-	  toprocess.add(stateout);
-	  backMap.put(stateout, new HashSet<SMFEState>());	
+      }
+      for(Effect e:state.getEffectsAllowed()) {
+	for(SMFEState stateout:state.transitionsTo(e)) {
+	  if (!backMap.containsKey(stateout)) {
+	    toprocess.add(stateout);
+	    backMap.put(stateout, new HashSet<Pair<SMFEState,FieldDescriptor>>());
+	  }
+	  Pair<SMFEState, FieldDescriptor> p=new Pair<SMFEState, FieldDescriptor>(state, e.getField());
+	  backMap.get(stateout).add(p);
 	}
-	backMap.get(stateout).add(state);
       }
     }
+    return backMap;
+  }
+
+  
+  private Set<SMFEState> buildConflictsAndMap(StateMachineForEffects sm) {
+    Set<SMFEState> conflictStates=new HashSet<SMFEState>();
+    HashMap<SMFEState, Set<Pair<SMFEState,FieldDescriptor>>> backMap=buildBackMap(sm, conflictStates);
+
+    Stack<SMFEState> toprocess=new Stack<SMFEState>();
     Set<SMFEState> canReachConflicts=new HashSet<SMFEState>();
     toprocess.addAll(conflictStates);
     canReachConflicts.addAll(conflictStates);
     while(!toprocess.isEmpty()) {
       SMFEState state=toprocess.pop();
 
-      for(SMFEState instate:backMap.get(state)) {
+      for(Pair<SMFEState,FieldDescriptor> instatepair:backMap.get(state)) {
+	SMFEState instate=instatepair.getFirst();
 	if (!canReachConflicts.contains(instate)) {
 	  toprocess.add(instate);
 	  canReachConflicts.add(instate);
