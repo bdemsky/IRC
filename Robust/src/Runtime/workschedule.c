@@ -242,6 +242,7 @@ void* workerMain( void* arg ) {
 #endif
 
       workFunc( workUnit );
+      litem.seseCommon = NULL;
     }
   } 
 

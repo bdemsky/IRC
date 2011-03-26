@@ -403,7 +403,7 @@ void collect(struct garbagelist * stackptr) {
   if (listptr==&litem) {
 #ifdef MLP
     // update forward list & memory queue for the current SESE
-    updateForwardList(((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
+    updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
     updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
 #endif
     listptr=listptr->next;
@@ -436,8 +436,10 @@ void collect(struct garbagelist * stackptr) {
 #endif
 #ifdef MLP
     // update forward list & memory queue for all running SESEs.
-    updateForwardList(((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
-    updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
+    if (listptr->seseCommon!=NULL) {
+      updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
+      updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
+    }
 #endif
     stackptr=listptr->stackptr;
     listptr=listptr->next;
@@ -581,13 +583,14 @@ void collect(struct garbagelist * stackptr) {
           // skip the current running SESE
           //  continue;
           //}
-
+	di=(dequeItem *) EXTRACTPTR((INTPTR)di);
 	SESEcommon* seseRec = (SESEcommon*) di->work;
+	if (seseRec!=NULL) {
           struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
           struct garbagelist* glroot = gl;
-
+	  
           updateAscendantSESE( seseRec );
-  
+	  
           while( gl != NULL ) {
             int k;
             for( k = 0; k < gl->size; k++ ) {
@@ -596,7 +599,7 @@ void collect(struct garbagelist * stackptr) {
             }
             gl = gl->next;
           } 
-        
+        }
         // we only have to move across the nodes
         // of the deque if the top and bottom are
         // not the same already

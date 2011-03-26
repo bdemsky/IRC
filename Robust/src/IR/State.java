@@ -21,6 +21,7 @@ public class State {
 
   public static void initTimer() {
     startTime=System.nanoTime();
+    lastTime=startTime;
   }
 
   public int lines;
