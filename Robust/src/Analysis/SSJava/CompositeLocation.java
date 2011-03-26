@@ -10,7 +10,7 @@ import IR.ClassDescriptor;
 
 public class CompositeLocation extends Location {
 
-  private NTuple<Location> locTuple;
+  protected NTuple<Location> locTuple;
 
   public CompositeLocation(ClassDescriptor cd) {
     super(cd);
@@ -76,7 +76,6 @@ public class CompositeLocation extends Location {
   public Set<Location> getBaseLocationSet() {
 
     Set<Location> baseLocationSet = new HashSet<Location>();
-
     int tupleSize = locTuple.size();
     for (int i = 0; i < tupleSize; i++) {
       Location locElement = locTuple.at(i);
@@ -110,7 +109,7 @@ public class CompositeLocation extends Location {
     int result = 0;
 
     if (delta.getDeltaOperandLocationVec().size() == 1) {
-      Location locElement = delta.getDeltaOperandLocationVec().get(0);
+      Location locElement = delta.getDeltaOperandLocationVec().at(0);
       if (locElement instanceof DeltaLocation) {
         result++;
         result += getNumofDelta((DeltaLocation) locElement);

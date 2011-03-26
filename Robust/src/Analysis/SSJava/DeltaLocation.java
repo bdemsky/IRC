@@ -8,26 +8,22 @@ import java.util.Vector;
 import IR.ClassDescriptor;
 import IR.TypeDescriptor;
 
-public class DeltaLocation extends Location {
+public class DeltaLocation extends CompositeLocation {
 
-  private Vector<Location> operandVec;
   private TypeDescriptor refOperand = null;
 
   public DeltaLocation(ClassDescriptor cd) {
     super(cd);
-    operandVec = new Vector<Location>();
   }
 
   public DeltaLocation(ClassDescriptor cd, Set<Location> set) {
     super(cd);
-    operandVec = new Vector<Location>();
-    operandVec.addAll(set);
+    locTuple.addSet(set);
   }
 
   public DeltaLocation(ClassDescriptor cd, TypeDescriptor refOperand) {
     super(cd);
     this.refOperand = refOperand;
-    operandVec = new Vector<Location>();
   }
 
   public TypeDescriptor getRefLocationId() {
@@ -35,26 +31,27 @@ public class DeltaLocation extends Location {
   }
 
   public void addDeltaOperand(Location op) {
-    operandVec.add(op);
+    locTuple.addElement(op);
   }
 
-  public List<Location> getDeltaOperandLocationVec() {
-    return operandVec;
+  public NTuple<Location> getDeltaOperandLocationVec() {
+    return locTuple;
   }
 
-  public Set<Location> getBaseLocationSet() {
-
-    if (operandVec.size() == 1 && (operandVec.get(0) instanceof DeltaLocation)) {
-      // nested delta definition
-      DeltaLocation deltaLoc = (DeltaLocation) operandVec.get(0);
-      return deltaLoc.getBaseLocationSet();
-    } else {
-      Set<Location> set = new HashSet<Location>();
-      set.addAll(operandVec);
-      return set;
-    }
-
-  }
+  // public Set<Location> getBaseLocationSet() {
+  //
+  // if (operandVec.size() == 1 && (operandVec.get(0) instanceof DeltaLocation))
+  // {
+  // // nested delta definition
+  // DeltaLocation deltaLoc = (DeltaLocation) operandVec.get(0);
+  // return deltaLoc.getBaseLocationSet();
+  // } else {
+  // Set<Location> set = new HashSet<Location>();
+  // set.addAll(operandVec);
+  // return set;
+  // }
+  //
+  // }
 
   public boolean equals(Object o) {
 
@@ -72,8 +69,9 @@ public class DeltaLocation extends Location {
 
   public int hashCode() {
     int hash = cd.hashCode();
-    if (loc != null) {
-      hash += operandVec.hashCode();
+    hash += locTuple.hashCode();
+    if (refOperand != null) {
+      hash += refOperand.hashCode();
     }
     return hash;
   }
@@ -81,10 +79,10 @@ public class DeltaLocation extends Location {
   public String toString() {
     String rtr = "delta(";
 
-    if (operandVec.size() != 0) {
-      int tupleSize = operandVec.size();
+    if (locTuple.size() != 0) {
+      int tupleSize = locTuple.size();
       for (int i = 0; i < tupleSize; i++) {
-        Location locElement = operandVec.elementAt(i);
+        Location locElement = locTuple.at(i);
         if (i != 0) {
           rtr += ",";
         }

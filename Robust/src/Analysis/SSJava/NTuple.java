@@ -3,6 +3,7 @@ package Analysis.SSJava;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 public class NTuple<T> {
 
@@ -30,6 +31,10 @@ public class NTuple<T> {
 
   public void addElement(T newElement) {
     this.elements.add(newElement);
+  }
+
+  public void addSet(Set<T> set) {
+    this.elements.addAll(set);
   }
 
   public boolean equals(Object o) {
