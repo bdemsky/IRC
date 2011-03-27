@@ -26,6 +26,10 @@ extern unsigned int gcmem_mixed_threshold;
 extern unsigned int gcmem_mixed_usedmem;
 #endif
 
+#ifdef MGC
+extern INTPTR bamboo_threadlocks;
+#endif
+
 struct pointerblock {
   void * ptrs[NUMPTRS];
   struct pointerblock *next;
@@ -1193,6 +1197,11 @@ inline void tomark(struct garbagelist * stackptr) {
 	}
   }
 
+  // enqueue the bamboo_threadlocks
+  if(bamboo_threadlocks != 0) {
+	markObj((void *)bamboo_threadlocks);
+  }
+
   GC_BAMBOO_DEBUGPRINT(0xe50a);
 #endif
 } // void tomark(struct garbagelist * stackptr)
@@ -2316,6 +2325,11 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 #endif
 
 #ifdef MGC
+  // flush the bamboo_threadlocks
+  if(bamboo_threadlocks != 0) {
+	bamboo_threadlocks = (INTPTR)(flushObj((void *)bamboo_threadlocks));
+  }
+
   // flush global thread queue
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
 	unsigned int thread_counter = *((unsigned int*)(bamboo_thread_queue+1));
@@ -3277,7 +3291,6 @@ inline void gc_master(struct garbagelist * stackptr) {
   bool isfirst = true;
   bool allStall = false;
 
-
 #ifdef GC_CACHE_ADAPT
   // prepare for cache adaption:
   cacheAdapt_gc(true);
@@ -3307,7 +3320,6 @@ inline void gc_master(struct garbagelist * stackptr) {
   printf("(%x,%x) Start mark phase \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());
 #endif
-  // all cores have finished compacting
   // restore the gcstatus of all cores
   // Note: all cores have to do mark including non-gc cores
   gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
