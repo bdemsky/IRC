@@ -247,24 +247,14 @@ public class Pointer implements HeapAnalysis{
       
       /* Compute ages */
       if (graph.oldNodes.containsKey(node)) {
-
+	if (graph.oldNodes.get(node).booleanValue())
+	  newDelta.addOldNodes.put(node, Boolean.TRUE);
       } else if (graph.parent.oldNodes.containsKey(node)) {
 	//parent graphs only contain true...no need to check
 	newDelta.addOldNodes.put(node, Boolean.TRUE);
       }
     }
     
-    for(AllocNode node:graph.oldNodes.keySet()) {
-      if (graph.oldNodes.get(node).booleanValue())
-	newDelta.addOldNodes.put(node, Boolean.TRUE);
-    }
-
-    for(AllocNode node:graph.parent.oldNodes.keySet()) {
-      //make sure child doesn't override
-      if (!graph.oldNodes.containsKey(node))
-	newDelta.addOldNodes.put(node, Boolean.TRUE);
-    }
-
     newDelta.addNodeAges.addAll(graph.nodeAges);
     newDelta.addNodeAges.addAll(graph.parent.nodeAges);
   }
@@ -714,10 +704,6 @@ public class Pointer implements HeapAnalysis{
 	    returnDelta=new Delta(null, false);
 	    Vector<FlatNode> exitblocknodes=block.getExit().nodes();
 	    FlatExit fexit=(FlatExit)exitblocknodes.get(exitblocknodes.size()-1);
-	    if (graphMap.get(fexit)==null) {
-	      System.out.println(fcall);
-	      System.out.println(fm);
-	    }
 	    buildInitDelta(graphMap.get(fexit), returnDelta);
 	    if (!returnDelta.heapedgeadd.isEmpty()||!returnDelta.heapedgeremove.isEmpty()||!returnDelta.varedgeadd.isEmpty()) {
 	      returnDelta.setBlock(new PPoint(callblock, callindex));
@@ -1005,7 +991,8 @@ public class Pointer implements HeapAnalysis{
       }
     }
     for(Edge e:edgestoremove) {
-      delta.removeVarEdge(e);
+      if (!graph.callerEdges.contains(e))
+	delta.removeVarEdge(e);
     }
     for(Edge e:edgestoadd) {
       delta.addVarEdge(e);
@@ -1042,7 +1029,8 @@ public class Pointer implements HeapAnalysis{
       }
     }
     for(Edge e:edgestoremove) {
-      delta.removeHeapEdge(e);
+      if (!graph.callerEdges.contains(e))
+	delta.removeHeapEdge(e);
     }
     for(Edge e:edgestoadd) {
       delta.addHeapEdge(e);
@@ -1777,9 +1765,10 @@ public class Pointer implements HeapAnalysis{
 	delta.addOldNodes.put(single, Boolean.FALSE);
       }
       
-      //Apply incoming diffs to graph
-      applyDiffs(graph, delta);      
     }
+    //Apply incoming diffs to graph
+    applyDiffs(graph, delta);      
+
     return delta;
   }
 
