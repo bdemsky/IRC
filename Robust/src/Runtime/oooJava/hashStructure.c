@@ -165,6 +165,11 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     //we may have to set write as ready
     while(1) {
       if (val==((BinItem_rcr *)b)) {
+	if (((INTPTR)task)&PARENTBIN) {
+	  //pull b from bin
+	  be->head=NULL;
+	  return READY;
+	}
 	b->item.status=READY;
 	be->head=val;
 	if (status&SPEC) {
