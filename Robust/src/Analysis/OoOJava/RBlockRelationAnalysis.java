@@ -477,19 +477,6 @@ public class RBlockRelationAnalysis {
         // your IR predecessor pushed on you
         Boolean isPotentialStallSite = isPotentialStallSite( fn );
 
-        if( fn instanceof FlatSESEEnterNode ||
-            fn instanceof FlatSESEExitNode ) {
-          // fix it so this is never a potential stall site, but from
-          // a child definition onward propagate 'true' -> eom's comment: not sure why we need to set isPotentialStallSite=ture
-          setIsPotentialStallSite( fn, false );
-          // isPotentialStallSite = true;
-        }
-        
-        if( fn instanceof FlatSESEExitNode ) {
-          isPotentialStallSite = true;
-        }
-        
-        
         if( fn == fsen.getFlatExit() ) {
           // don't enqueue any futher nodes when you find your exit,
           // NOR mark your own flat as a statement you are currently
@@ -497,11 +484,13 @@ public class RBlockRelationAnalysis {
           continue;
         }
 
-
+        if( fn instanceof FlatSESEExitNode ) {
+	  isPotentialStallSite = true;
+        }
+        
         // the purpose of this traversal is to find program
         // points where rblock 'fsen' might be executing
         addPossibleExecutingRBlock( fn, fsen );
-
 
         if( fn instanceof FlatSESEEnterNode ) {
           // don't visit internal nodes of child,
@@ -510,6 +499,7 @@ public class RBlockRelationAnalysis {
           assert fsen.getChildren().contains( child );
           assert child.getParents().contains( fsen );
           flatNodesToVisit.put( child.getFlatExit(), fm );
+          setIsPotentialStallSite( fn, false );
 
           // explicitly do this to handle the case that you
           // should mark yourself as possibly executing at 
@@ -558,7 +548,7 @@ public class RBlockRelationAnalysis {
         isPotentialStallSite = isPrevPossibleStallSite || isPotentialStallSite;
         
         Boolean currentStatus=fn2isPotentialStallSite.get(fn);
-        if(currentStatus==null || (fn instanceof FlatMethod) ){
+        if(currentStatus==null) {
           //first visit
           hasChanges=true;
         }else{
@@ -575,8 +565,8 @@ public class RBlockRelationAnalysis {
             FlatNode nn = fn.getNext(i);
             flatNodesToVisit.put(nn, fm);
           }
+	  setIsPotentialStallSite(fn, isPotentialStallSite);
         }
-        setIsPotentialStallSite(fn, isPotentialStallSite);
 
         // keep old implementation for possible references:
         // old strategy couldn't handle property 
