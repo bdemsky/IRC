@@ -27,6 +27,7 @@ public class Pointer implements HeapAnalysis{
   HashMap<FlatCall, Set<BBlock>> callMap;
   HashMap<BBlock, Set<PPoint>> returnMap;
   HashMap<BBlock, Set<TempDescriptor>> bblivetemps;
+  HashSet<FlatNode> mustProcess;
 
   private boolean OoOJava=false;
   CallGraph callGraph;
@@ -65,6 +66,7 @@ public class Pointer implements HeapAnalysis{
     this.toprocess=new LinkedList<Delta>();
     ClassDescriptor stringcd=typeUtil.getClass(TypeUtil.ObjectClass);
     this.returntmp=new TempDescriptor("RETURNVAL", stringcd);
+    this.mustProcess=new HashSet<FlatNode>();
   }
 
   public EffectsAnalysis getEffectsAnalysis() {
@@ -153,7 +155,10 @@ public class Pointer implements HeapAnalysis{
 	  if (isNEEDED(currNode))
 	    graphMap.put(currNode, new Graph(graph));
 	  else {
-	    if (i==0) {
+	    if (i==(nodes.size()-1)&&isINACC(currNode)) {
+	      mustProcess.add(currNode);
+	      graphMap.put(currNode, new Graph(graph));
+	    } else if (i==0) {
 	      //base graph works for us
 	      graphMap.put(currNode, new Graph(graph));
 	    } else {
@@ -171,7 +176,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (false) {
+    if (true) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -180,7 +185,7 @@ public class Pointer implements HeapAnalysis{
       }
       
       for(FlatMethod fm:blockMap.keySet()) {
-	System.out.println(fm.printMethod());
+	System.out.println(fm.printMethod(accessible.inAccessible));
       }
       for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
 	FlatNode fn=e.getKey();
@@ -1344,6 +1349,31 @@ public class Pointer implements HeapAnalysis{
       graph.oldNodes.put(node, ispresent);
     }
   }
+
+  boolean isINACC(FlatNode node) {
+    if (!OoOJava)
+      return false;
+    switch(node.kind()) {
+    case FKind.FlatSetFieldNode: {
+      FlatSetFieldNode n=(FlatSetFieldNode)node;
+      return !accessible.isAccessible(n, n.getDst());
+    }
+    case FKind.FlatSetElementNode: {
+      FlatSetElementNode n=(FlatSetElementNode)node;
+      return !accessible.isAccessible(n, n.getDst());
+    }
+    case FKind.FlatFieldNode: {
+      FlatFieldNode n=(FlatFieldNode)node;
+      return !accessible.isAccessible(n, n.getSrc());
+    }
+    case FKind.FlatElementNode: {
+      FlatElementNode n=(FlatElementNode)node;
+      return !accessible.isAccessible(n, n.getSrc());
+    }
+    }
+    return false;
+  }
+
   Delta processSetFieldElementNode(FlatNode node, Delta delta, Graph graph) {
     TempDescriptor src;
     FieldDescriptor fd;
@@ -1374,6 +1404,9 @@ public class Pointer implements HeapAnalysis{
 
       //Do nothing for non pointers
       if (!src.getType().isPtr()) {
+	if (mustProcess.contains(node)) {
+	  applyDiffs(graph, delta);
+	}
 	return delta;
       }
 
@@ -1410,6 +1443,9 @@ public class Pointer implements HeapAnalysis{
       }
 
       if (!src.getType().isPtr()) {
+	if (mustProcess.contains(node)) {
+	  applyDiffs(graph, delta);
+	}
 	return delta;
       }
 
@@ -1536,8 +1572,12 @@ public class Pointer implements HeapAnalysis{
 	}
 	effectsAnalysis.analyzeFlatFieldNode(srcedges, fd, node);
       }
-      if (!dst.getType().isPtr())
+      if (!dst.getType().isPtr()) {
+	if (mustProcess.contains(node)) {
+	  applyDiffs(graph, delta);
+	}
 	return delta;
+      }
 
       MySet<Edge> edgesToAdd=GraphManip.dereference(graph, delta, dst, srcedges, fd, node);
       MySet<Edge> edgesToRemove=GraphManip.getEdges(graph, delta, dst);
@@ -1553,9 +1593,12 @@ public class Pointer implements HeapAnalysis{
 	}
 	effectsAnalysis.analyzeFlatFieldNode(newsrcedges, fd, node);
       }
-      if (!dst.getType().isPtr())
+      if (!dst.getType().isPtr()) {
+	if (mustProcess.contains(node)) {
+	  applyDiffs(graph, delta);
+	}
 	return delta;
-
+      }
       /* First compute new objects we read fields of */
       MySet<Edge> allsrcedges=GraphManip.getEdges(graph, delta, src);
       MySet<Edge> edgesToAdd=GraphManip.diffDereference(delta, dst, allsrcedges, fd, node);
