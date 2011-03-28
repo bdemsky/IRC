@@ -466,7 +466,6 @@ public class RBlockRelationAnalysis {
         FlatMethod fm = (FlatMethod) me.getValue();
 
         flatNodesToVisit.remove( fn );
-        visited.add( fn );
 
         // the "is potential stall site" strategy is to propagate
         // "false" from the beginning of a task until you hit a
@@ -548,10 +547,11 @@ public class RBlockRelationAnalysis {
         isPotentialStallSite = isPrevPossibleStallSite || isPotentialStallSite;
         
         Boolean currentStatus=fn2isPotentialStallSite.get(fn);
-        if(currentStatus==null) {
+        if(currentStatus==null||!visited.contains(fn)) {
           //first visit
           hasChanges=true;
-        }else{
+	  visited.add( fn );
+        } else {
           //not first visit
           if(isPotentialStallSite!=currentStatus){
             hasChanges=true;
