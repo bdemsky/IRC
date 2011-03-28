@@ -243,7 +243,7 @@ public class RBlockRelationAnalysis {
     // Uncomment this phase to debug the marking of potential
     // stall sites for parents between/after children tasks.
     // After this debug thing runs in calls System.exit()
-    //debugPrintPotentialStallSites( descriptorsToAnalyze );
+    // debugPrintPotentialStallSites( descriptorsToAnalyze );
   }
 
 
@@ -455,7 +455,7 @@ public class RBlockRelationAnalysis {
       for( int i = 0; i < fsen.numNext(); i++ ) {
         FlatNode nn = fsen.getNext( i );        
         flatNodesToVisit.put( nn, fsen.getfmEnclosing() );
-        mergeIsPotentialStallSite( nn, false );
+        //mergeIsPotentialStallSite( nn, false );
       }
       
       Set<FlatNode> visited = new HashSet<FlatNode>();
@@ -467,7 +467,6 @@ public class RBlockRelationAnalysis {
 
         flatNodesToVisit.remove( fn );
         visited.add( fn );
-
 
         // the "is potential stall site" strategy is to propagate
         // "false" from the beginning of a task until you hit a
@@ -481,12 +480,16 @@ public class RBlockRelationAnalysis {
         if( fn instanceof FlatSESEEnterNode ||
             fn instanceof FlatSESEExitNode ) {
           // fix it so this is never a potential stall site, but from
-          // a child definition onward propagate 'true'
+          // a child definition onward propagate 'true' -> eom's comment: not sure why we need to set isPotentialStallSite=ture
           setIsPotentialStallSite( fn, false );
+          // isPotentialStallSite = true;
+        }
+        
+        if( fn instanceof FlatSESEExitNode ) {
           isPotentialStallSite = true;
         }
-
-
+        
+        
         if( fn == fsen.getFlatExit() ) {
           // don't enqueue any futher nodes when you find your exit,
           // NOR mark your own flat as a statement you are currently
@@ -543,17 +546,55 @@ public class RBlockRelationAnalysis {
           // flat nodes that flow in the current method context
         }
         
-        // otherwise keep visiting nodes in same context
-        for( int i = 0; i < fn.numNext(); i++ ) {
-          FlatNode nn = fn.getNext( i );
-
-          if( !visited.contains( nn ) ) {
-            flatNodesToVisit.put( nn, fm );
-
-            // propagate your IR graph predecessor's stall site potential
-            mergeIsPotentialStallSite( nn, isPotentialStallSite );
+        // if previous flat nodes have any changes,,
+        // propagate predecessor's status of stall site potential
+        boolean hasChanges=false;
+        boolean isPrevPossibleStallSite=false;
+        for(int i=0;i<fn.numPrev();i++){
+          FlatNode prevNode=fn.getPrev(i);
+          isPrevPossibleStallSite=isPrevPossibleStallSite|| isPotentialStallSite(prevNode);      
+        }
+        
+        isPotentialStallSite = isPrevPossibleStallSite || isPotentialStallSite;
+        
+        Boolean currentStatus=fn2isPotentialStallSite.get(fn);
+        if(currentStatus==null || (fn instanceof FlatMethod) ){
+          //first visit
+          hasChanges=true;
+        }else{
+          //not first visit
+          if(isPotentialStallSite!=currentStatus){
+            hasChanges=true;
           }
         }
+        
+        // only when current flat node has a change on the status of potential stall site,
+        // need to visit following flat nodes
+        if (hasChanges) {
+          for (int i = 0; i < fn.numNext(); i++) {
+            FlatNode nn = fn.getNext(i);
+            flatNodesToVisit.put(nn, fm);
+          }
+        }
+        setIsPotentialStallSite(fn, isPotentialStallSite);
+
+        // keep old implementation for possible references:
+        // old strategy couldn't handle property 
+        // when the status change of backedge is needed to propagate back to the previous nodes   
+
+        // for( int i = 0; i < fn.numNext(); i++ ) {
+        // otherwise keep visiting nodes in same context
+        // FlatNode nn = fn.getNext( i );
+        //
+        // if( !visited.contains( nn ) ) {
+        // flatNodesToVisit.put( nn, fm );
+        //
+        // // propagate your IR graph predecessor's stall site potential
+        // mergeIsPotentialStallSite( nn, isPotentialStallSite );
+        // }
+        // }
+        
+        
       }     
     }
   }
