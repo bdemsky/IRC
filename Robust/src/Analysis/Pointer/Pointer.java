@@ -147,26 +147,44 @@ public class Pointer implements HeapAnalysis{
       if (!init&&delta.isEmpty())
 	continue nextdelta;
       
+      int lasti=-1;
       //Compute delta at exit of each node
       for(int i=startindex; i<nodes.size();i++) {
 	FlatNode currNode=nodes.get(i);
 	//System.out.println("Start Processing "+currNode);
+
 	if (!graphMap.containsKey(currNode)) {
-	  if (isNEEDED(currNode))
+	  if (isNEEDED(currNode)) {
 	    graphMap.put(currNode, new Graph(graph));
-	  else {
-	    if (i==(nodes.size()-1)&&isINACC(currNode)) {
-	      mustProcess.add(currNode);
-	      graphMap.put(currNode, new Graph(graph));
-	    } else if (i==0) {
-	      //base graph works for us
-	      graphMap.put(currNode, new Graph(graph));
-	    } else {
-	      //just use previous graph
-	      graphMap.put(currNode, graphMap.get(nodes.get(i-1)));
+	  } else {
+	    boolean fallthru=true;
+	    if (isINACC(currNode)&&((lasti==-1)||(lasti==i))) {
+	      if (lasti==-1) {
+		for(lasti=nodes.size()-1;lasti>=i;lasti--) {
+		  FlatNode scurrNode=nodes.get(lasti);
+		  if (isNEEDED(scurrNode)||isINACC(scurrNode)) {
+		    break;
+		  }
+		}
+	      }
+	      if (i==lasti) {
+		mustProcess.add(currNode);
+		graphMap.put(currNode, new Graph(graph));
+		fallthru=false;
+	      }
+	    }
+	    if (fallthru) {
+	      if (i==0) {
+		//base graph works for us
+		graphMap.put(currNode, new Graph(graph));
+	      } else {
+		//just use previous graph
+		graphMap.put(currNode, graphMap.get(nodes.get(i-1)));
+	      }
 	    }
 	  }
 	}
+
 	nodeGraph=graphMap.get(currNode);
 	delta=processNode(bblock, i, currNode, delta, nodeGraph);
 	//System.out.println("Processing "+currNode+" and generating delta:");
