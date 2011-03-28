@@ -585,6 +585,7 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
       return NOTREADY;//<- means that some other dispatcher got this one...so need to do accounting correctly
     }
   } else {
+    s->item.status=NOTREADY;
     Q->tail=(MemoryQueueItem*)S;
     return NOTREADY;
   }
@@ -614,7 +615,7 @@ void RETIRESCC(MemoryQueue *Q, REntry *r) {
   void *flag=NULL;
   flag=(void*)LOCKXCHG((unsigned INTPTR*)&(s->val), (unsigned INTPTR)flag); 
   if (flag!=NULL) {
-#ifdef OOO_DISABLE_TASKMEMPOOL
+#ifndef OOO_DISABLE_TASKMEMPOOL
     RELEASE_REFERENCE_TO(((REntry*)flag)->seseRec);
 #endif
   }
@@ -816,7 +817,7 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
 	  poolfreeinto(q->rentrypool,val);
 #endif
 	}
-#if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
+#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
 	else if (atomic_sub_and_test(1, &((REntry *)val)->count))
 	  poolfreeinto(q->rentrypool,val);
         RELEASE_REFERENCE_TO(seseCommon);
@@ -838,7 +839,7 @@ void RESOLVESCC(SCC *S) {
   if (flag!=NULL) {
     SESEcommon *seseCommon=((REntry *)flag)->seseRec;
     resolveDependencies(flag);
-#if defined(RCR)&&defined(OOO_DISABLE_TASKMEMPOOL)
+#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
     if (atomic_sub_and_test(1, &((REntry *)flag)->count))
       poolfreeinto(q->rentrypool, flag);
     RELEASE_REFERENCE_TO(seseCommon);
