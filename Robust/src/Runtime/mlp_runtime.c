@@ -549,6 +549,9 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
       if (isParentCoarse(r)) { //parent's retire immediately
         atomic_dec(&V->item.total);
         V->index--;
+      } else {
+	if (atomic_sub_and_test(1, &r->count))
+	  poolfreeinto(Q->rentrypool, r);
       }
       return READY;
     } else {
@@ -580,6 +583,8 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
     void* flag=NULL;
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag);
     if (flag!=NULL) {
+      if (atomic_sub_and_test(1, &r->count))
+	poolfreeinto(Q->rentrypool, r);
       return READY;
     } else {
       return NOTREADY;//<- means that some other dispatcher got this one...so need to do accounting correctly
