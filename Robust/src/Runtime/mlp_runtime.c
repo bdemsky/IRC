@@ -585,7 +585,7 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
       return NOTREADY;//<- means that some other dispatcher got this one...so need to do accounting correctly
     }
   } else {
-    s->item.status=NOTREADY;
+    S->item.status=NOTREADY;
     Q->tail=(MemoryQueueItem*)S;
     return NOTREADY;
   }
@@ -735,7 +735,7 @@ void RESOLVECHAIN(MemoryQueue *Q) {
 	} else if (isVector(head)) {
 	  RESOLVEVECTOR(Q, (Vector *) head);
 	} else if (isSingleItem(head)) {
-	  RESOLVESCC((SCC *)head);
+	  RESOLVESCC(Q, (SCC *)head);
 	}
 	if (head->next==NULL)
 	  break;
@@ -832,7 +832,7 @@ void RESOLVEVECTOR(MemoryQueue *q, Vector *V) {
   }
 }
 
-void RESOLVESCC(SCC *S) {
+ void RESOLVESCC(MemoryQueue *q, SCC *S) {
   //precondition: SCC's state is READY
   void* flag=NULL;
   flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag); 

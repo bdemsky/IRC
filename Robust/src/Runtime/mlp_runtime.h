@@ -282,7 +282,7 @@ void RETIREVECTOR(MemoryQueue *Q, REntry *r);
 void RESOLVECHAIN(MemoryQueue *Q);
 void RESOLVEHASHTABLE(MemoryQueue *Q, Hashtable *T);
 void RESOLVEVECTOR(MemoryQueue *q, Vector *V);
-void RESOLVESCC(SCC *S);
+void RESOLVESCC(MemoryQueue *q, SCC *S);
 void resolveDependencies(REntry* rentry);
 
 #ifndef RCR
