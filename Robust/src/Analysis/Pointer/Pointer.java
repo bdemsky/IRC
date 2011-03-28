@@ -194,7 +194,7 @@ public class Pointer implements HeapAnalysis{
     }
 
     //DEBUG
-    if (true) {
+    if (false) {
       int debugindex=0;
       for(Map.Entry<BBlock, Graph> e:bbgraphMap.entrySet()) {
 	Graph g=e.getValue();
@@ -203,7 +203,7 @@ public class Pointer implements HeapAnalysis{
       }
       
       for(FlatMethod fm:blockMap.keySet()) {
-	System.out.println(fm.printMethod(accessible.inAccessible));
+	System.out.println(fm.printMethod());
       }
       for(Map.Entry<FlatNode, Graph> e:graphMap.entrySet()) {
 	FlatNode fn=e.getKey();
