@@ -455,7 +455,6 @@ public class RBlockRelationAnalysis {
       for( int i = 0; i < fsen.numNext(); i++ ) {
         FlatNode nn = fsen.getNext( i );        
         flatNodesToVisit.put( nn, fsen.getfmEnclosing() );
-        //mergeIsPotentialStallSite( nn, false );
       }
       
       Set<FlatNode> visited = new HashSet<FlatNode>();
@@ -466,6 +465,7 @@ public class RBlockRelationAnalysis {
         FlatMethod fm = (FlatMethod) me.getValue();
 
         flatNodesToVisit.remove( fn );
+	visited.add( fn );
 
         // the "is potential stall site" strategy is to propagate
         // "false" from the beginning of a task until you hit a
@@ -484,6 +484,7 @@ public class RBlockRelationAnalysis {
         }
 
         if( fn instanceof FlatSESEExitNode ) {
+          setIsPotentialStallSite( fn, false );
 	  isPotentialStallSite = true;
         }
         
@@ -509,6 +510,11 @@ public class RBlockRelationAnalysis {
           continue;
         }
                 
+        
+        // if previous flat nodes have any changes,,
+        // propagate predecessor's status of stall site potential
+
+
         if( fn instanceof FlatCall ) {
           // start visiting nodes in other contexts
           FlatCall         fc       = (FlatCall) fn;
@@ -526,66 +532,30 @@ public class RBlockRelationAnalysis {
           for( Iterator imps = implementations.iterator(); imps.hasNext(); ) {
             MethodDescriptor mdImp = (MethodDescriptor) imps.next();
             FlatMethod       fmImp = state.getMethodFlat( mdImp );
-            flatNodesToVisit.put( fmImp, fmImp );
-
-            // propagate your IR graph predecessor's stall site potential
-            mergeIsPotentialStallSite( fmImp, isPotentialStallSite );
+	    if ((isPotentialStallSite&&!isPotentialStallSite(fmImp))||
+		!visited.contains(fmImp)) {
+	      flatNodesToVisit.put( fmImp, fmImp );
+	      
+	      // propagate your IR graph predecessor's stall site potential
+	      mergeIsPotentialStallSite( fmImp, isPotentialStallSite );
+	    }
           }
           // don't 'continue' out of this loop, also enqueue
           // flat nodes that flow in the current method context
         }
-        
-        // if previous flat nodes have any changes,,
-        // propagate predecessor's status of stall site potential
-        boolean hasChanges=false;
-        boolean isPrevPossibleStallSite=false;
-        for(int i=0;i<fn.numPrev();i++){
-          FlatNode prevNode=fn.getPrev(i);
-          isPrevPossibleStallSite=isPrevPossibleStallSite|| isPotentialStallSite(prevNode);      
-        }
-        
-        isPotentialStallSite = isPrevPossibleStallSite || isPotentialStallSite;
-        
-        Boolean currentStatus=fn2isPotentialStallSite.get(fn);
-        if(currentStatus==null||!visited.contains(fn)) {
-          //first visit
-          hasChanges=true;
-	  visited.add( fn );
-        } else {
-          //not first visit
-          if(isPotentialStallSite!=currentStatus){
-            hasChanges=true;
-          }
-        }
-        
+
+	
         // only when current flat node has a change on the status of potential stall site,
         // need to visit following flat nodes
-        if (hasChanges) {
-          for (int i = 0; i < fn.numNext(); i++) {
-            FlatNode nn = fn.getNext(i);
-            flatNodesToVisit.put(nn, fm);
-          }
-	  setIsPotentialStallSite(fn, isPotentialStallSite);
-        }
-
-        // keep old implementation for possible references:
-        // old strategy couldn't handle property 
-        // when the status change of backedge is needed to propagate back to the previous nodes   
-
-        // for( int i = 0; i < fn.numNext(); i++ ) {
-        // otherwise keep visiting nodes in same context
-        // FlatNode nn = fn.getNext( i );
-        //
-        // if( !visited.contains( nn ) ) {
-        // flatNodesToVisit.put( nn, fm );
-        //
-        // // propagate your IR graph predecessor's stall site potential
-        // mergeIsPotentialStallSite( nn, isPotentialStallSite );
-        // }
-        // }
-        
-        
-      }     
+	for (int i = 0; i < fn.numNext(); i++) {
+	  FlatNode nn = fn.getNext(i);
+	  if ((isPotentialStallSite&&!isPotentialStallSite(nn))||
+	      !visited.contains(nn)) {
+	    flatNodesToVisit.put(nn, fm);
+	    mergeIsPotentialStallSite( nn, isPotentialStallSite );
+	  }
+	}
+      }
     }
   }
   
