@@ -151,27 +151,29 @@ public class LinkedList {
     return o;
   }
 
-  public void remove(Object o) {
+  public boolean remove(Object o) {
     if( head == null ) {
-      System.out.println("LinkedList: illegal remove( Object o )");
-      System.exit(-1);
+//      System.out.println("LinkedList: illegal remove( Object o )");
+//      System.exit(-1);
+      return false;
     }
     LinkedListElement e = head;
-    while( e != null ) {
-      if( e.element == o ) {
-	if( e.prev != null ) {
-	  e.prev.next = e.next;
-	}
-	if( e.next != null ) {
-	  e.next.prev = e.prev;
-	}
-	size--;
-	return;
+    while (e != null) {
+      if (e.element == o) {
+        if (e.prev != null) {
+          e.prev.next = e.next;
+        }
+        if (e.next != null) {
+          e.next.prev = e.prev;
+        }
+        size--;
+        return true;
       }
       e = e.next;
     }
-    System.out.println("LinkedList: illegal remove( Object o ), "+o+" not found");
-    System.exit(-1);
+//    System.out.println("LinkedList: illegal remove( Object o ), "+o+" not found");
+//    System.exit(-1);
+    return false;
   }
 
   public Object pop() {
