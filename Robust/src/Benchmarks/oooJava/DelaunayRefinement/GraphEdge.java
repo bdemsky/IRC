@@ -1,4 +1,4 @@
-public class GraphEdge implements Edge_d {
+public class GraphEdge extends Edge_d {
   protected EdgeGraphNode src;
   protected EdgeGraphNode dest;
   protected Object d;

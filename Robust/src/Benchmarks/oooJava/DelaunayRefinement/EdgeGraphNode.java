@@ -1,4 +1,4 @@
-public class EdgeGraphNode implements Node {
+public class EdgeGraphNode extends Node {
     protected HashMap inEdges;
     protected HashMap outEdges;
     protected Object data;

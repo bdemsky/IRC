@@ -1,10 +1,11 @@
 public class Mesh {
-  protected static final HashMap edge_map = new HashMap();
+  protected HashMap edge_map;
 
   public Mesh() {
+    edge_map = new HashMap();
   }
 
-  public static HashSet getBad(EdgeGraph mesh) {
+  public HashSet getBad(EdgeGraph mesh) {
     HashSet ret = new HashSet();
     for (Iterator iterator = mesh.iterator(); iterator.hasNext();) {
       Node node = (Node) iterator.next();
@@ -16,7 +17,7 @@ public class Mesh {
     return ret;
   }
 
-  private static FileInputStream getScanner(String filename) {
+  private FileInputStream getScanner(String filename) {
     return new FileInputStream(filename);
   }
 
@@ -96,7 +97,7 @@ public class Mesh {
     return node;
   }
 
-  public static boolean verify(EdgeGraph mesh) {
+  public boolean verify(EdgeGraph mesh) {
     for (Iterator iterator = mesh.iterator(); iterator.hasNext();) {
       Node node = (Node) iterator.next();
       Element element = (Element) mesh.getNodeData(node);
@@ -117,10 +118,11 @@ public class Mesh {
     }
 
     Node start = mesh.getRandom();
-    Stack remaining = new Stack();
+//    Stack remaining = new Stack();
+    LinkedList remaining = new LinkedList();
     HashSet found = new HashSet();
     remaining.push(start);
-    while (!remaining.empty()) {
+    while (!remaining.isEmpty()) {
       Node node = (Node) remaining.pop();
       if (!found.contains(node)) {
         found.add(node);

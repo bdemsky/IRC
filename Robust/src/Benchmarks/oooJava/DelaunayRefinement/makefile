@@ -1,6 +1,6 @@
-PROGRAM=DelaunayRefinement
+PROGRAM=SerialDelaunayRefinement
 
-SOURCE_FILES=SerialDelaunayrefinement.java
+SOURCE_FILES=SerialDelaunayRefinement.java
 
 NUM_OOO_WORKERS=24
 NUM_RCR_WORKERS=23

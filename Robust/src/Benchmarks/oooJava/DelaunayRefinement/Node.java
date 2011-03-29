@@ -1,4 +1,4 @@
-public interface Node {
+public class Node {
   
   //None of the program actually uses getData/setData so I use leave Node as a 
   //wrapper interface.

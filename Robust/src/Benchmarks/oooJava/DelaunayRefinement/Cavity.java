@@ -3,15 +3,17 @@ public class Cavity {
   protected Node centerNode;
   protected Element centerElement;
   protected int dim;
-  protected LinkedList frontier = new LinkedList();
+  protected LinkedList frontier;
   protected Subgraph pre = new Subgraph();
   protected Subgraph post = new Subgraph();
   private final EdgeGraph graph;
-  protected HashSet connections = new HashSet();
+  protected HashSet connections;
 
   public Cavity(EdgeGraph mesh) {
     center = null;
     graph = mesh;
+    connections = new HashSet();
+    frontier = new LinkedList();
   }
 
   public Subgraph getPre() {
@@ -31,8 +33,8 @@ public class Cavity {
   public void initialize(Node node) {
     pre.reset();
     post.reset();
-    connections.clear();
-    frontier.clear();
+    connections = new HashSet();
+    frontier = new LinkedList();
     centerNode = node;
     for (centerElement = (Element) graph.getNodeData(centerNode); graph.containsNode(centerNode)
         && centerElement.isObtuse();) {
@@ -65,7 +67,7 @@ public class Cavity {
     for (Iterator iterator = graph.getOutNeighbors(node); iterator.hasNext();) {
       Node neighbor = (Node) iterator.next();
       Edge_d edge = graph.getEdge(node, neighbor);
-      Element.Edge edge_data = (Element.Edge) graph.getEdgeData(edge);
+      ElementEdge edge_data = (ElementEdge) graph.getEdgeData(edge);
       if (element.getObtuse().notEquals(edge_data.getPoint(0))
           && element.getObtuse().notEquals(edge_data.getPoint(1)))
         return edge;
@@ -120,7 +122,7 @@ public class Cavity {
     Node ne_node;
     for (Iterator iterator = connections.iterator(); iterator.hasNext(); post.addNode(ne_node)) {
       Edge_d conn = (Edge_d) iterator.next();
-      Element.Edge edge = (Element.Edge) graph.getEdgeData(conn);
+      ElementEdge edge = (ElementEdge) graph.getEdgeData(conn);
       Element new_element = new Element(center, edge.getPoint(0), edge.getPoint(1));
       ne_node = graph.createNode(new_element);
       Node ne_connection;
@@ -128,7 +130,7 @@ public class Cavity {
         ne_connection = graph.getSource(conn);
       else
         ne_connection = graph.getDest(conn);
-      Element.Edge new_edge =
+      ElementEdge new_edge =
           new_element.getRelatedEdge((Element) graph.getNodeData(ne_connection));
       post.addEdge(graph.createEdge(ne_node, ne_connection, new_edge));
 
@@ -142,7 +144,7 @@ public class Cavity {
         Node node = (Node) iterator1.next();
         Element element = (Element) graph.getNodeData(node);
         if (element.isRelated(new_element)) {
-          Element.Edge ele_edge = new_element.getRelatedEdge(element);
+          ElementEdge ele_edge = new_element.getRelatedEdge(element);
           post.addEdge(graph.createEdge(ne_node, node, ele_edge));
         }
       }

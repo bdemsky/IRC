@@ -1,11 +1,15 @@
-public class SerialDelaunayrefinement {
-
-  private static boolean isFirstRun = true;
-  
-  public SerialDelaunayrefinement() {
+public class SerialDelaunayRefinement {  
+  public boolean isFirstRun;
+  public SerialDelaunayRefinement() {
+    isFirstRun = true;
   }
 
   public static void main(String args[]) {
+    SerialDelaunayRefinement sdr = new SerialDelaunayRefinement();
+    sdr.runMain(args);
+  }
+  
+  public void runMain(String args[]) {
     long runtime = 0;
     //Numbers below are Long.Max_Value
     long lasttime = 0x7fffffffffffffffL;
@@ -20,8 +24,9 @@ public class SerialDelaunayrefinement {
     System.out.println("minimum runtime: " + mintime + " ms");
     System.out.println("");
   }
+  
 
-  public static long run(String args[]) {
+  public long run(String args[]) {
     if (isFirstRun) {
       System.out.println();
       System.out.println("Lonestar Benchmark Suite v2.1");
@@ -44,7 +49,9 @@ public class SerialDelaunayrefinement {
     Mesh m = new Mesh();
     m.read(mesh, args[0]);
 
-    Stack worklist = new Stack();
+    //treat LinkedList as a stack
+//    Stack worklist = new Stack();
+    LinkedList worklist = new LinkedList();
 
     // worklist.addAll(Mesh.getBad(mesh));
     HashMapIterator it = m.getBad(mesh).iterator();
@@ -54,12 +61,12 @@ public class SerialDelaunayrefinement {
 
     Cavity cavity = new Cavity(mesh);
     if (isFirstRun) {
-      System.err.println("configuration: " + mesh.getNumNodes() + " total triangles, " + worklist.size() + " bad triangles");
+      System.out.println("configuration: " + mesh.getNumNodes() + " total triangles, " + worklist.size() + " bad triangles");
       System.out.println();
     }
 //    long id = Time.getNewTimeId();
     long startTime = System.currentTimeMillis();
-    while (!worklist.empty()) {
+    while (!worklist.isEmpty()) {
       Node bad_element = (Node) worklist.pop();
       if (bad_element != null && mesh.containsNode(bad_element)) {
         cavity.initialize(bad_element);
@@ -82,11 +89,11 @@ public class SerialDelaunayrefinement {
         // worklist.addAll(cavity.getPost().newBad(mesh));
         it = cavity.getPost().newBad(mesh).iterator();
         while (it.hasNext()) {
-          worklist.push(it.next());
+          worklist.push((Node)it.next());
         }
 
         if (mesh.containsNode(bad_element)) {
-          worklist.push(bad_element);
+          worklist.push((Node) bad_element);
         }
       }
     }
@@ -99,14 +106,17 @@ public class SerialDelaunayrefinement {
     return time;
   }
 
-  public static void verify(EdgeGraph result) {
-    if (!Mesh.verify(result)) {
+  public void verify(EdgeGraph result) {
+    //Put in cuz of static issues.
+    Mesh m = new Mesh();
+    
+    if (!m.verify(result)) {
 //      throw new IllegalStateException("refinement failed.");
       System.out.println("Refinement Failed.");
       System.exit(-1);
     }
     
-    int size = Mesh.getBad(result).size();
+    int size = m.getBad(result).size();
     if (size != 0) {
       System.out.println("refinement failed\nstill have "+size+" bad triangles left.\n");
       System.exit(-1);
