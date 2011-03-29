@@ -1,9 +1,5 @@
 public class Math {
-
-  public static double setPI() {
-    double PI = 3.14159265358979323846;
-    return PI;
-  }
+  static final double PI=3.14159265358979323846;
 
   // an alias for setPI()
   public static double PI() {
@@ -12,104 +8,60 @@ public class Math {
   }
 
   public static int abs(int x) {
-    if (x < 0) {
-      return -x;
-    } else {
-      return x;
-    }
+    return (x<0)?-x:x;
   }
 
-  public static double fabs(double x) {
-    if (x < 0) {
-      return -x;
-    } else {
-      return x;
-    }
+  public static long abs(long x) {
+    return (x<0)?-x:x;
   }
 
   public static double abs(double x) {
-    if (x < 0) {
-      return -x;
-    } else {
-      return x;
-    }
+    return (x<0)?-x:x;
   }
 
-  public static float abs(float a) {
-    if (a<0)
-      return -a;
-    else return a;
+  public static float abs(float x) {
+    return (x<0)?-x:x;
   }
 
   public static double max(double a, double b) {
-    if(a == b)
-      return a;
-    if(a > b) {
-      return a;
-    } else {
-      return b;
-    }
+    return (a>b)?a:b;
+  }
+
+  public static float max(float a, float b) {
+    return (a>b)?a:b;
   }
 
   public static int max(int a, int b) {
-    if(a == b)
-      return a;
-    if(a > b) {
-      return a;
-    } else {
-      return b;
-    }
+    return (a>b)?a:b;
   }
 
   public static long max(long a, long b) {
-    if(a == b)
-      return a;
-    if(a > b) {
-      return a;
-    } else {
-      return b;
-    }
+    return (a>b)?a:b;
   }
   
-  public static long min(long a, long b) {
-    if(a == b)
-      return a;
-    if(a > b) {
-      return b;
-    } else {
-      return a;
-    }
-  }
-  
-  public static int imax(int a, int b) {
-    if(a == b)
-      return a;
-    if(a > b) {
-      return a;
-    } else {
-      return b;
-    }
+  public static double min(double a, double b) {
+    return (a<b)?a:b;
   }
 
-  public static int imin(int a, int b) {
-    if(a == b)
-      return a;
-    if(a > b) {
-      return b;
-    } else {
-      return a;
-    }
+  public static float min(float a, float b) {
+    return (a<b)?a:b;
+  }
+  public static int min(int a, int b) {
+    return (a<b)?a:b;
+  }
+  public static long min(long a, long b) {
+    return (a<b)?a:b;
   }
 
   /** sqrt(a^2 + b^2) without under/overflow. **/
   public static double hypot(double a, double b) {
     double r;
-    if (fabs(a) > fabs(b)) {
+    if (abs(a) > abs(b)) {
       r = b/a;
-      r = fabs(a)*sqrt(1+r*r);
+      r = abs(a)*sqrt(1+r*r);
     } else if (b != 0) {
       r = a/b;
-      r = fabs(b)*sqrt(1+r*r);
+      r = abs(b)*sqrt(1+r*r);
     } else {
       r = 0.0;
     }
