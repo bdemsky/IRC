@@ -37,10 +37,6 @@ void * mycalloc_share_ngc_I(int m, int size);
 void mycalloc_free_ngc(void * ptr);
 void mycalloc_free_ngc_I(void * ptr);
 #define FREEMALLOC(s, x) mycalloc_share((s),1,(x))
-#define FREEMALLOC_NGC(x) mycalloc_share_ngc(1, (x))
-#define FREEMALLOC_NGC_I(x) mycalloc_share_ngc_I(1, (x))
-#define FREE_NGC(x) mycalloc_free_ngc(x)
-#define FREE_NGC_I(x) mycalloc_free_ngc_I(x)
 #else
 void * mycalloc_share(int m, int size);
 #define FREEMALLOC(x) mycalloc_share(1,x)

@@ -500,14 +500,14 @@ INLINE void initruntimedata() {
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
-#ifdef LOCALHASHTBL_TEST
+/*#ifdef LOCALHASHTBL_TEST
   gcpointertbl = allocateRuntimeHash_I(20);
 #else
   gcpointertbl = mgchashCreate_I(2000, 0.75);
-#endif
+#endif*/
   gcforwardobjtbl = allocateMGCHash_I(20, 3);
-  gcobj2map = 0;
-  gcmappedobj = 0;
+  /*gcobj2map = 0;
+  gcmappedobj = 0;*/
   gcnumlobjs = 0;
   gcheaptop = 0;
   gctopcore = 0;
@@ -516,22 +516,6 @@ INLINE void initruntimedata() {
   gctomove = false;
   gcmovepending = 0;
   gcblock2fill = 0;
-  if(BAMBOO_NUM_OF_CORE < NUMCORES4GC) {
-	int t_size = ((BAMBOO_RMSP_SIZE)-sizeof(mgcsharedhashtbl_t)*2
-		-128*sizeof(size_t))/sizeof(mgcsharedhashlistnode_t)-2;
-	int kk = 0;
-	unsigned int tmp_k = 1 << (sizeof(int)*8 -1);
-	while(((t_size & tmp_k) == 0) && (kk < sizeof(int)*8)) {
-	  t_size = t_size << 1;
-	  kk++;
-	}
-	t_size = tmp_k >> kk;
-	gcsharedptbl = mgcsharedhashCreate_I(t_size,0.30);
-  } else {
-	gcsharedptbl = NULL;
-  }
-  BAMBOO_MEMSET_WH(gcrpointertbls, 0, 
-	  sizeof(mgcsharedhashtbl_t *)*NUMCORES4GC);
 #ifdef SMEMM
   gcmem_mixed_threshold = (unsigned int)((BAMBOO_SHARED_MEM_SIZE
 		-bamboo_reserved_smem*BAMBOO_SMEM_SIZE)*0.8);
@@ -567,11 +551,6 @@ INLINE void initruntimedata() {
 
 INLINE void disruntimedata() {
 #ifdef MULTICORE_GC
-#ifdef LOCALHASHTBL_TEST
-  freeRuntimeHash(gcpointertbl);
-#else
-  mgchashDelete(gcpointertbl);
-#endif
   freeMGCHash(gcforwardobjtbl);
 #endif // MULTICORE_GC
 #ifdef TASK
@@ -879,7 +858,6 @@ INLINE int checkMsgLength_I(int size) {
   case GCSTARTPRE:
   case GCSTARTINIT:
   case GCSTART:
-  case GCSTARTMAPINFO:
   case GCSTARTFLUSH:
   case GCFINISH:
   case GCMARKCONFIRM:
@@ -901,7 +879,6 @@ INLINE int checkMsgLength_I(int size) {
   case GCSTARTCOMPACT:
   case GCMARKEDOBJ:
   case GCFINISHINIT:
-  case GCFINISHMAPINFO:
   case GCFINISHFLUSH:
 #ifdef GC_CACHE_ADAPT
   case GCFINISHPREF:
@@ -914,12 +891,6 @@ INLINE int checkMsgLength_I(int size) {
 
   case MEMREQUEST:
   case MEMRESPONSE:
-#ifdef MULTICORE_GC
-  case GCMAPREQUEST:
-  case GCMAPINFO:
-  case GCMAPTBL:
-  case GCLOBJMAPPING:
-#endif
   {
 	msglength = 3;
 	break;
@@ -1225,10 +1196,6 @@ INLINE void processmsg_gcstartcompact_I() {
   gcphase = COMPACTPHASE;
 }
 
-INLINE void processmsg_gcstartmapinfo_I() {
-  gcphase = MAPPHASE;
-}
-
 INLINE void processmsg_gcstartflush_I() {
   gcphase = FLUSHPHASE;
 }
@@ -1351,24 +1318,6 @@ INLINE void processmsg_gcfinishcompact_I() {
   }  // if(cnum < NUMCORES4GC)
 }
 
-INLINE void processmsg_gcfinishmapinfo_I() {
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  // received a map phase finish msg
-  if(BAMBOO_NUM_OF_CORE != STARTUPCORE) {
-    // non startup core can not receive this msg
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data1);
-#endif
-    BAMBOO_EXIT(0xe018);
-  }
-  // all cores should do flush
-  if(data1 < NUMCORES4GC) {
-    gccorestatus[data1] = 0;
-  }
-}
-
-
 INLINE void processmsg_gcfinishflush_I() {
   int data1 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -1464,57 +1413,6 @@ INLINE void processmsg_gcmovestart_I() {
   MSG_INDEXINC_I();       //msgdata[3];
 }
 
-INLINE void processmsg_gcmaprequest_I() {
-  void * dstptr = NULL;
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-#ifdef LOCALHASHTBL_TEST
-  RuntimeHashget(gcpointertbl, data1, &dstptr);
-#else
-  dstptr = mgchashSearch(gcpointertbl, data1);
-#endif
-  if(NULL == dstptr) {
-    // no such pointer in this core, something is wrong
-#ifndef CLOSE_PRINT
-    BAMBOO_DEBUGPRINT_REG(data1);
-    BAMBOO_DEBUGPRINT_REG(data2);
-#endif
-    BAMBOO_EXIT(0xe01c);
-  } else {
-    // send back the mapping info, cache the msg first
-    if(BAMBOO_CHECK_SEND_MODE()) {
-	  cache_msg_3(data2, GCMAPINFO, data1, (int)dstptr);
-    } else {
-	  send_msg_3(data2, GCMAPINFO, data1, (int)dstptr, true);
-    }
-  }
-}
-
-INLINE void processmsg_gcmapinfo_I() {
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  gcmappedobj = msgdata[msgdataindex];  // [2]
-  MSG_INDEXINC_I();
-#ifdef LOCALHASHTBL_TEST
-  RuntimeHashadd_I(gcpointertbl, data1, gcmappedobj);
-#else
-  mgchashInsert_I(gcpointertbl, data1, gcmappedobj);
-#endif
-  if(data1 == gcobj2map) {
-	gcismapped = true;
-  }
-}
-
-INLINE void processmsg_gcmaptbl_I() {
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  gcrpointertbls[data2] = (mgcsharedhashtbl_t *)data1; 
-}
-
 INLINE void processmsg_gclobjinfo_I() {
   numconfirm--;
 
@@ -1546,19 +1444,6 @@ INLINE void processmsg_gclobjinfo_I() {
     gc_lobjenqueue_I(lobj, length, cnum);
     gcnumlobjs++;
   }  // for(int k = 5; k < msgdata[1];)
-}
-
-INLINE void processmsg_gclobjmapping_I() {
-  int data1 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-  int data2 = msgdata[msgdataindex];
-  MSG_INDEXINC_I();
-#ifdef LOCALHASHTBL_TEST
-  RuntimeHashadd_I(gcpointertbl, data1, data2);
-#else
-  mgchashInsert_I(gcpointertbl, data1, data2);
-#endif
-  mgcsharedhashInsert_I(gcsharedptbl, data1, data2);
 }
 
 #ifdef GC_PROFILE
@@ -1785,12 +1670,6 @@ processmsg:
       break;
     }   // case GCSTARTCOMPACT
 
-	case GCSTARTMAPINFO: {
-      // received a flush phase start msg
-      processmsg_gcstartmapinfo_I();
-      break;
-    }   // case GCSTARTFLUSH
-
     case GCSTARTFLUSH: {
       // received a flush phase start msg
       processmsg_gcstartflush_I();
@@ -1817,11 +1696,6 @@ processmsg:
       processmsg_gcfinishcompact_I();
       break;
     }   // case GCFINISHCOMPACT
-
-	case GCFINISHMAPINFO: {
-      processmsg_gcfinishmapinfo_I();
-      break;
-    }   // case GCFINISHMAPINFO
 
     case GCFINISHFLUSH: {
       processmsg_gcfinishflush_I();
@@ -1857,24 +1731,6 @@ processmsg:
       break;
     }   // case GCMOVESTART
 
-    case GCMAPREQUEST: {
-      // received a mapping info request msg
-      processmsg_gcmaprequest_I();
-      break;
-    }   // case GCMAPREQUEST
-
-    case GCMAPINFO: {
-      // received a mapping info response msg
-      processmsg_gcmapinfo_I();
-      break;
-    }   // case GCMAPINFO
-
-    case GCMAPTBL: {
-      // received a mapping tbl response msg
-      processmsg_gcmaptbl_I();
-      break;
-    }   // case GCMAPTBL
-	
 	case GCLOBJREQUEST: {
       // received a large objs info request msg
       transferMarkResults_I();
@@ -1886,12 +1742,6 @@ processmsg:
       processmsg_gclobjinfo_I();
       break;
     }   // case GCLOBJINFO
-
-    case GCLOBJMAPPING: {
-      // received a large obj mapping info msg
-      processmsg_gclobjmapping_I();
-      break;
-    }  // case GCLOBJMAPPING
 
 #ifdef GC_PROFILE
 	case GCPROFILES: {

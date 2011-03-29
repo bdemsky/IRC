@@ -70,7 +70,7 @@
 #elif defined GC_LARGESHAREDHEAP2
 #define BAMBOO_NUM_BLOCKS ((GC_BAMBOO_NUMCORES)*(2+2))
 #else
-#define BAMBOO_NUM_BLOCKS ((GC_BAMBOO_NUMCORES)*(2+3)) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_NUM_BLOCKS ((GC_BAMBOO_NUMCORES)*(2+30/*3*/)) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
 #ifdef GC_LARGEPAGESIZE
 #define BAMBOO_PAGE_SIZE (4 * 1024 * 1024)  // (4096)

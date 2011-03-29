@@ -129,32 +129,15 @@ volatile bool gctomove;
 int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
 volatile int gcmovepending;
 
-// shared memory pointer for shared pointer mapping tbls
+// shared memory pointer for pointer mapping tbls
 // In GC version, this block of memory is located at the bottom of the 
 // shared memory, right on the top of the smem tbl.
-// The bottom of the shared memory = sbstart tbl + smemtbl 
-//                                  + NUMCORES4GC bamboo_rmsp
+// The bottom of the shared memory = sbstart tbl + smemtbl + bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
-#ifdef GC_SMALLPAGESIZE
-#define BAMBOO_RMSP_SIZE (1024 * 1024)
-#else
-#define BAMBOO_RMSP_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
-#endif
-//extern mspace bamboo_rmsp;
-// shared pointer mapping tbl
-mgcsharedhashtbl_t * gcsharedptbl;
-// remote shared pointer tbls
-mgcsharedhashtbl_t * gcrpointertbls[NUMCORES4GC];
-
-#ifdef LOCALHASHTBL_TEST
-struct RuntimeHash * gcpointertbl;
-#else
-mgchashtable_t * gcpointertbl;
-#endif
-int gcobj2map;
-int gcmappedobj;
-volatile bool gcismapped;
+INTPTR * gcmappingtbl;
+int bamboo_rmsp_size;
+unsigned int bamboo_baseobjsize;
 
 // table recording the starting address of each small block
 // (size is BAMBOO_SMEM_SIZE)
@@ -178,6 +161,8 @@ unsigned int size_cachesamplingtbl_local_r;
 int * gccachepolicytbl;
 unsigned int size_cachepolicytbl;
 #endif // GC_CACHE_ADAPT
+
+#define OBJMAPPINGINDEX(p) (((int)p-gcbaseva)/bamboo_baseobjsize)
 
 #define ISSHAREDOBJ(p) \
   ((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))

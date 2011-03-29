@@ -528,12 +528,14 @@ inline void initGC() {
     gcheaptop = 0;
     gctopcore = 0;
     gctopblock = 0;
+#ifdef MAPPINGTBL_DEBUG
+	// initialize the gcmappingtbl
+	BAMBOO_MEMSET_WH(gcmappingtbl, 0, bamboo_rmsp_size);
+#endif
   } // if(STARTUPCORE == BAMBOO_NUM_OF_CORE)
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
-  gcobj2map = 0;
-  gcmappedobj = 0;
   gcnumlobjs = 0;
   gcmovestartaddr = 0;
   gctomove = false;
@@ -564,21 +566,9 @@ inline void initGC() {
   }
   gclobjhead->next = gclobjhead->prev = NULL;
 
-#ifdef LOCALHASHTBL_TEST
-  freeRuntimeHash(gcpointertbl);
-  gcpointertbl = allocateRuntimeHash(20);
-#else
-  mgchashreset(gcpointertbl);
-#endif
-
   freeMGCHash(gcforwardobjtbl);
   gcforwardobjtbl = allocateMGCHash(20, 3);
 
-  // initialize the mapping info related structures
-  if((BAMBOO_NUM_OF_CORE < NUMCORES4GC) && (gcsharedptbl != NULL)) {
-	// Never free the shared hash table, just reset it
-	mgcsharedhashReset(gcsharedptbl);
-  }
 #ifdef GC_PROFILE
   gc_num_livespace = 0;
   gc_num_freespace = 0;
@@ -892,24 +882,11 @@ inline void moveLObjs() {
 		GC_BAMBOO_DEBUGPRINT_REG(isize);
 		GC_BAMBOO_DEBUGPRINT_REG(base);
 		gcheaptop += size;
-		// cache the mapping info anyway
-		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef LOCALHASHTBL_TEST
-		RuntimeHashadd_I(gcpointertbl, ptr, tmpheaptop);
-#else
-		mgchashInsert_I(gcpointertbl, ptr, tmpheaptop);
-#endif
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		// cache the mapping info 
+		gcmappingtbl[OBJMAPPINGINDEX((int)ptr)] = (INTPTR)tmpheaptop;
 		GC_BAMBOO_DEBUGPRINT(0xcdca);
 		GC_BAMBOO_DEBUGPRINT_REG(ptr);
 		GC_BAMBOO_DEBUGPRINT_REG(tmpheaptop);
-		if(host != BAMBOO_NUM_OF_CORE) {
-		  // send the original host core with the mapping info
-		  send_msg_3(host, GCLOBJMAPPING, ptr, tmpheaptop, false);
-		  GC_BAMBOO_DEBUGPRINT(0xcdcb);
-		  GC_BAMBOO_DEBUGPRINT_REG(ptr);
-		  GC_BAMBOO_DEBUGPRINT_REG(tmpheaptop);
-		} // if(host != BAMBOO_NUM_OF_CORE)
 		tmpheaptop += isize;
 
 		// set the gcsbstarttbl and bamboo_smemtbl
@@ -967,25 +944,12 @@ inline void moveLObjs() {
 
 		gcheaptop += size;
 		cpysize += isize;
-		// cache the mapping info anyway
-		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef LOCALHASHTBL_TEST
-		RuntimeHashadd_I(gcpointertbl, ptr, tmpheaptop);
-#else
-		mgchashInsert_I(gcpointertbl, ptr, tmpheaptop);
-#endif
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		// cache the mapping info
+		gcmappingtbl[OBJMAPPINGINDEX((int)ptr)] = (INTPTR)tmpheaptop;
 		GC_BAMBOO_DEBUGPRINT(0xcdcc);
 		GC_BAMBOO_DEBUGPRINT_REG(ptr);
 		GC_BAMBOO_DEBUGPRINT_REG(tmpheaptop);
 		GC_BAMBOO_DEBUGPRINT_REG(*((int*)tmpheaptop));
-		if(host != BAMBOO_NUM_OF_CORE) {
-		  // send the original host core with the mapping info
-		  send_msg_3(host, GCLOBJMAPPING, ptr, tmpheaptop, false);
-		  GC_BAMBOO_DEBUGPRINT(0xcdcd);
-		  GC_BAMBOO_DEBUGPRINT_REG(ptr);
-		  GC_BAMBOO_DEBUGPRINT_REG(tmpheaptop);
-		}  // if(host != BAMBOO_NUM_OF_CORE)
 		tmpheaptop += isize;
 
 		// update bamboo_smemtbl
@@ -1281,7 +1245,7 @@ inline void mark(bool isfirst,
 			// ptr is not an active obj or has been marked
 			checkfield = false;
 		  } // if(isLarge(ptr, &type, &size)) else ...
-		}  /* can never reach here
+		} /* can never reach here
 		else {
 		  // check if this obj has been forwarded
 		  if(!MGCHashcontains(gcforwardobjtbl, (int)ptr)) {
@@ -1855,19 +1819,7 @@ innermoveobj:
       BAMBOO_MEMSET_WH(toptr+size, -2, isize-size);
     }
     // store mapping info
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef LOCALHASHTBL_TEST
-    RuntimeHashadd_I(gcpointertbl, origptr, toptr);
-#else
-	mgchashInsert_I(gcpointertbl, origptr, toptr);
-#endif
-	if(isremote) {
-	  // add to the sharedptbl
-	  if(gcsharedptbl != NULL) {
-		mgcsharedhashInsert_I(gcsharedptbl, origptr, toptr);
-	  }
-	}
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	gcmappingtbl[OBJMAPPINGINDEX((int)origptr)] = (INTPTR)toptr;
 	GC_BAMBOO_DEBUGPRINT(0xcdce);
     GC_BAMBOO_DEBUGPRINT_REG(origptr);
     GC_BAMBOO_DEBUGPRINT_REG(toptr);
@@ -1890,6 +1842,7 @@ innermoveobj:
 #endif // GC_CACHE_ADAPT
   } // if(mark == 1)
   GC_BAMBOO_DEBUGPRINT(0xe205);
+  
   // move to next obj
   orig->ptr += size;
 
@@ -2140,13 +2093,7 @@ inline void * flushObj(void * objptr) {
     GC_BAMBOO_DEBUGPRINT(0xe402);
     GC_BAMBOO_DEBUGPRINT_REG(objptr);
     // a shared obj ptr, change to new address
-    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef LOCALHASHTBL_TEST
-    RuntimeHashget(gcpointertbl, objptr, &dstptr);
-#else
-	dstptr = mgchashSearch(gcpointertbl, objptr);
-#endif
-    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	dstptr = gcmappingtbl[OBJMAPPINGINDEX((int)objptr)];
     GC_BAMBOO_DEBUGPRINT_REG(dstptr);
 
     if(NULL == dstptr) {
@@ -2154,52 +2101,9 @@ inline void * flushObj(void * objptr) {
       GC_BAMBOO_DEBUGPRINT(0xe403);
       GC_BAMBOO_DEBUGPRINT_REG(objptr);
       GC_BAMBOO_DEBUGPRINT_REG(hostcore(objptr));
-      if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) {
-		// error! the obj is right on this core, but cannot find it
-		GC_BAMBOO_DEBUGPRINT_REG(objptr);
-		BAMBOO_EXIT(0xb003);
-      } else {
-		int hostc = hostcore(objptr);
-		// check the corresponsing sharedptbl
-		BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-		mgcsharedhashtbl_t * sptbl = gcrpointertbls[hostc];
-		if(sptbl != NULL) {
-		  dstptr = mgcsharedhashSearch(sptbl, (int)objptr);
-		  if(dstptr != NULL) {
-#ifdef LOCALHASHTBL_TEST
-			RuntimeHashadd_I(gcpointertbl, (int)objptr, (int)dstptr);
-#else
-			mgchashInsert_I(gcpointertbl, (int)objptr, (int)dstptr);
-#endif
-		  }
-		}
-		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-
-		if(dstptr == NULL) {
-		  // still can not get the mapping info,
-		  // send msg to host core for the mapping info
-		  gcobj2map = (int)objptr;
-		  gcismapped = false;
-		  gcmappedobj = NULL;
-		  // the first time require the mapping, send msg to the hostcore
-		  // for the mapping info
-		  send_msg_3(hostc, GCMAPREQUEST, (int)objptr,
-			  BAMBOO_NUM_OF_CORE, false);
-		  while(true) {
-			if(gcismapped) {
-			  break;
-			}
-		  }
-		  BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-#ifdef LOCALHASHTBL_TEST
-		  RuntimeHashget(gcpointertbl, objptr, &dstptr);
-#else
-		  dstptr = mgchashSearch(gcpointertbl, objptr);
-#endif
-		  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-		} // if(dstptr == NULL)
-	  }    // if(hostcore(objptr) == BAMBOO_NUM_OF_CORE) else ...
-      GC_BAMBOO_DEBUGPRINT_REG(dstptr);
+	  // error! the obj is right on this core, but cannot find it
+	  GC_BAMBOO_DEBUGPRINT_REG(objptr);
+	  BAMBOO_EXIT(0xb003);
     }  // if(NULL == dstptr)
   }   // if(ISSHAREDOBJ(objptr))
   // if not a shared obj, return NULL to indicate no need to flush
@@ -2346,19 +2250,6 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 #endif
 } // void flushRuntimeObj(struct garbagelist * stackptr)
 
-inline void transmappinginfo() {
-  // broadcast the sharedptbl pointer
-  for(int i = 0; i < NUMCORESACTIVE; i++) {
-	if(i != BAMBOO_NUM_OF_CORE) {
-	  send_msg_3(i, GCMAPTBL, gcsharedptbl, BAMBOO_NUM_OF_CORE, false);
-	}
-  }
-
-  if(STARTUPCORE != BAMBOO_NUM_OF_CORE) {
-	send_msg_2(STARTUPCORE, GCFINISHMAPINFO, BAMBOO_NUM_OF_CORE, false);
-  }
-}
-
 inline void flush(struct garbagelist * stackptr) {
 
   flushRuntimeObj(stackptr);
@@ -2435,7 +2326,7 @@ inline void flush(struct garbagelist * stackptr) {
       if(ISSHAREDOBJ(ptr)) {
 		((int *)(ptr))[BAMBOOMARKBIT] = INIT;
       }
-    }  // if((!ISSHAREDOBJ(ptr)) || (((int *)(ptr))[BAMBOOMARKBIT] == COMPACTED))
+    }  //if((!ISSHAREDOBJ(ptr))||(((int *)(ptr))[BAMBOOMARKBIT] == COMPACTED))
   }   // while(gc_moreItems())
   GC_BAMBOO_DEBUGPRINT(0xe308);
 
@@ -3081,21 +2972,6 @@ inline void gc_collect(struct garbagelist * stackptr) {
 #endif
 
   while(true) {
-	if(MAPPHASE == gcphase) {
-	  break;
-	}
-  }
-#ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) Start map phase\n", udn_tile_coord_x(), 
-	     udn_tile_coord_y());
-#endif
-  transmappinginfo();
-#ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) Finish map phase\n", udn_tile_coord_x(),
-	     udn_tile_coord_y());
-#endif
-
-  while(true) {
     if(FLUSHPHASE == gcphase) {
       break;
     }
@@ -3516,40 +3392,6 @@ inline void gc_master(struct garbagelist * stackptr) {
   RUNFREE(to);
   orig = to = NULL;
 
-  gcphase = MAPPHASE;
-  gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
-  // Note: all cores should flush their runtime data including non-gc
-  //       cores
-  for(i = 1; i < NUMCORES4GC; ++i) {
-	// send start flush messages to all cores
-	gccorestatus[i] = 1;
-	send_msg_1(i, GCSTARTMAPINFO, false);
-  }
-#ifdef GC_PROFILE
-  gc_profileItem();
-#endif
-#ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) Start map phase \n", udn_tile_coord_x(), 
-		 udn_tile_coord_y());
-#endif
-  // mapinto phase
-  transmappinginfo();
-#ifdef RAWPATH // TODO GC_DEBUG
-  printf("(%x,%x) Finish map phase \n", udn_tile_coord_x(), 
-		 udn_tile_coord_y());
-#endif
-  gccorestatus[BAMBOO_NUM_OF_CORE] = 0;
-  while(MAPPHASE == gcphase) {
-	// check the status of all cores
-	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-	if(gc_checkCoreStatus_I()) {
-	  // all cores have finished sending mapping info 
-	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-	  break;
-	}
-	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-  }  // while(MAPPHASE == gcphase)
-
   gcphase = FLUSHPHASE;
   gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
   // Note: all cores should flush their runtime data including non-gc
@@ -3677,7 +3519,7 @@ inline bool gc(struct garbagelist * stackptr) {
     // disable the timer interrupt
     bamboo_mask_timer_intr();
 #endif 
-#endif 
+#endif
   // core coordinator routine
   if(0 == BAMBOO_NUM_OF_CORE) {
 #ifdef GC_DEBUG

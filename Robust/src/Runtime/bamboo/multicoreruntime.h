@@ -238,33 +238,27 @@ typedef enum {
   GCSTARTINIT,           // 0xE3
   GCSTART,               // 0xE4
   GCSTARTCOMPACT,        // 0xE5
-  GCSTARTMAPINFO,        // 0xE6
-  GCSTARTFLUSH,          // 0xE7
-  GCFINISHPRE,           // 0xE8
-  GCFINISHINIT,          // 0xE9
-  GCFINISHMARK,          // 0xEa
-  GCFINISHCOMPACT,       // 0xEb
-  GCFINISHMAPINFO,       // 0xEc
-  GCFINISHFLUSH,         // 0xEd
-  GCFINISH,              // 0xEe
-  GCMARKCONFIRM,         // 0xEf
-  GCMARKREPORT,          // 0xF0
-  GCMARKEDOBJ,           // 0xF1
-  GCMOVESTART,           // 0xF2
-  GCMAPREQUEST,          // 0xF3
-  GCMAPINFO,             // 0xF4
-  GCMAPTBL,              // 0xF5
-  GCLOBJREQUEST,         // 0xF6
-  GCLOBJINFO,            // 0xF7
-  GCLOBJMAPPING,         // 0xF8
+  GCSTARTFLUSH,          // 0xE6
+  GCFINISHPRE,           // 0xE7
+  GCFINISHINIT,          // 0xE8
+  GCFINISHMARK,          // 0xE9
+  GCFINISHCOMPACT,       // 0xEa
+  GCFINISHFLUSH,         // 0xEb
+  GCFINISH,              // 0xEc
+  GCMARKCONFIRM,         // 0xEd
+  GCMARKREPORT,          // 0xEe
+  GCMARKEDOBJ,           // 0xEf
+  GCMOVESTART,           // 0xF0
+  GCLOBJREQUEST,         // 0xF1   
+  GCLOBJINFO,            // 0xF2
 #ifdef GC_PROFILE
-  GCPROFILES,            // 0xF9
+  GCPROFILES,            // 0xF3
 #endif // GC_PROFILE
 #ifdef GC_CACHE_ADAPT
-  GCSTARTPOSTINIT,       // 0xFa
-  GCSTARTPREF,           // 0xFb
-  GCFINISHPOSTINIT,      // 0xFc
-  GCFINISHPREF,          // 0xFd
+  GCSTARTPOSTINIT,       // 0xF4
+  GCSTARTPREF,           // 0xF5
+  GCFINISHPOSTINIT,      // 0xF6
+  GCFINISHPREF,          // 0xF7
 #endif // GC_CACHE_ADAPT
 #endif // MULTICORE_GC
   MSGEND
