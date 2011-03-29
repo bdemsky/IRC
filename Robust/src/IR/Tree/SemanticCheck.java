@@ -611,6 +611,8 @@ public class SemanticCheck {
         fd = new FieldDescriptor(new Modifiers(Modifiers.PUBLIC|Modifiers.FINAL), new TypeDescriptor(TypeDescriptor.INT), fieldname, null, false);
         fd.setAsEnum();
         fd.setEnumValue(value);
+      } else if(fd == null) {
+        throw new Error("Could not find field "+ fieldname + " in "+fan.printNode(0)+" in "+md + " (Line: "+fan.getNumLine()+")");
       } else if(fd.isStatic()) {
         // check if this field is a static field
         if(fd.getExpressionNode() != null) {
