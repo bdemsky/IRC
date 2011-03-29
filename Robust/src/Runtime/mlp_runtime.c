@@ -503,6 +503,8 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
 
     //added vector
     Vector* V=createVector();
+    V->item.status=NOTREADY;
+    BARRIER();
     Q->tail->next=(MemoryQueueItem*)V;
     //************NEED memory barrier here to ensure compiler does not cache Q.tail.status******
     if (BARRIER() && Q->tail->status==READY&&Q->tail->total==0) {
@@ -550,8 +552,10 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
         atomic_dec(&V->item.total);
         V->index--;
       } else {
+#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
 	if (atomic_sub_and_test(1, &r->count))
 	  poolfreeinto(Q->rentrypool, r);
+#endif
       }
       return READY;
     } else {
@@ -569,7 +573,10 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
   SCC* S=createSCC();
   S->item.total=1; 
   S->val=r;
+  S->item.status=NOTREADY;
   r->qitem=(MemoryQueueItem *)S;
+  //*** NEED BARRIER HERE -- data structure needs to be complete before exposing
+  BARRIER();
   Q->tail->next=(MemoryQueueItem*)S;
   //*** NEED BARRIER HERE
   if (BARRIER() && Q->tail->status==READY && Q->tail->total==0 && Q->tail==Q->head) {
@@ -583,14 +590,15 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
     void* flag=NULL;
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(S->val), (unsigned INTPTR)flag);
     if (flag!=NULL) {
+#if defined(RCR)&&!defined(OOO_DISABLE_TASKMEMPOOL)
       if (atomic_sub_and_test(1, &r->count))
 	poolfreeinto(Q->rentrypool, r);
+#endif
       return READY;
     } else {
       return NOTREADY;//<- means that some other dispatcher got this one...so need to do accounting correctly
     }
   } else {
-    S->item.status=NOTREADY;
     Q->tail=(MemoryQueueItem*)S;
     return NOTREADY;
   }
@@ -622,6 +630,11 @@ void RETIRESCC(MemoryQueue *Q, REntry *r) {
   if (flag!=NULL) {
 #ifndef OOO_DISABLE_TASKMEMPOOL
     RELEASE_REFERENCE_TO(((REntry*)flag)->seseRec);
+#endif
+    //only release reference if we haven't cleared it before
+#if !defined(OOO_DISABLE_TASKMEMPOOL)&&defined(RCR)
+    if (atomic_sub_and_test(1, &r->count))
+      poolfreeinto(Q->rentrypool, r);
 #endif
   }
 #endif
@@ -719,6 +732,11 @@ void RETIREVECTOR(MemoryQueue *Q, REntry *r) {
   REntry* val=NULL;
   val=(REntry*)LOCKXCHG((unsigned INTPTR*)&(V->array[r->index]), (unsigned INTPTR)val); 
   if (val!=NULL) { 
+    //release reference if we haven't cleared this one
+#if !defined(OOO_DISABLE_TASKMEMPOOL)&&defined(RCR)
+    if (atomic_sub_and_test(1, &r->count))
+      poolfreeinto(Q->rentrypool, r);
+#endif
     RELEASE_REFERENCE_TO( ((REntry*)val)->seseRec);
   }
 #endif
