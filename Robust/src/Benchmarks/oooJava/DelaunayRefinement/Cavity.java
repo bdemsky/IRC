@@ -120,7 +120,7 @@ public class Cavity {
       post.addNode(node2);
     }
     Node ne_node;
-    for (Iterator iterator = connections.iterator(); iterator.hasNext(); post.addNode(ne_node)) {
+    for (HashMapIterator iterator = connections.iterator(); iterator.hasNext(); post.addNode(ne_node)) {
       Edge_d conn = (Edge_d) iterator.next();
       ElementEdge edge = (ElementEdge) graph.getEdgeData(conn);
       Element new_element = new Element(center, edge.getPoint(0), edge.getPoint(1));

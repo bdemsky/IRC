@@ -1,5 +1,6 @@
 public class UndirectedEdgeGraph extends DirectedEdgeGraph {
   public UndirectedEdgeGraph() {
+    super();
   }
 
   public Edge_d createEdge(Node src, Node dest, Object e) {

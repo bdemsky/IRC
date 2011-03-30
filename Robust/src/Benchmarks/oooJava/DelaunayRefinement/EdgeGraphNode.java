@@ -51,9 +51,9 @@ public class EdgeGraphNode extends Node {
     // TODO someone check this for performance.
     protected final Iterator getInNeighborsCopy() {
       LinkedList l = new LinkedList();
-      Iterator o = inEdges.iterator(0);
+      HashMapIterator o = inEdges.iterator(0);
       while (o.hasNext()) {
-        l.addLast(o);
+        l.addLast(o.next());
       }
       return l.iterator();
     }
@@ -95,9 +95,9 @@ public class EdgeGraphNode extends Node {
     // TODO someone check this for performance.
     protected final Iterator getOutNeighborsCopy() {
       LinkedList l = new LinkedList();
-      Iterator o = outEdges.iterator(0);
+      HashMapIterator o = outEdges.iterator(0);
       while (o.hasNext()) {
-        l.addLast(o);
+        l.addLast(o.next());
       }
       return l.iterator();
     }

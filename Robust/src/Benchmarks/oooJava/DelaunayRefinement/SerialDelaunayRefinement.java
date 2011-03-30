@@ -65,25 +65,30 @@ public class SerialDelaunayRefinement {
       System.out.println();
     }
 //    long id = Time.getNewTimeId();
-    long startTime = System.currentTimeMillis();
+    long startTime = System.currentTimeMillis();    
     while (!worklist.isEmpty()) {
+      
       Node bad_element = (Node) worklist.pop();
       if (bad_element != null && mesh.containsNode(bad_element)) {
         cavity.initialize(bad_element);
         cavity.build();
         cavity.update();
+        
         Node node;
-        for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext(); mesh.removeNode(node)) {
+        for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
           node = (Node) iterator.next();
+          mesh.removeNode(node);
         }
 
-        for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext(); mesh.addNode(node)) {
+        for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
           node = (Node) iterator1.next();
+          mesh.addNode(node);
         }
 
         Edge_d edge;
-        for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext(); mesh.addEdge(edge)) {
+        for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
           edge = (Edge_d) iterator2.next();
+          mesh.addEdge(edge);
         }
 
         // worklist.addAll(cavity.getPost().newBad(mesh));
@@ -99,7 +104,8 @@ public class SerialDelaunayRefinement {
     }
     long time = System.currentTimeMillis() - startTime;
     System.out.println("runtime: " + time + " ms");
-    if (isFirstRun && args.length > 1) {
+    //TODO note how we only verify on first run...
+    if (args.length > 1) {
       verify(mesh);
     }
     isFirstRun = false;
@@ -109,7 +115,6 @@ public class SerialDelaunayRefinement {
   public void verify(EdgeGraph result) {
     //Put in cuz of static issues.
     Mesh m = new Mesh();
-    
     if (!m.verify(result)) {
 //      throw new IllegalStateException("refinement failed.");
       System.out.println("Refinement Failed.");

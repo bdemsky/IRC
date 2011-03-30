@@ -98,6 +98,8 @@ public class Mesh {
   }
 
   public boolean verify(EdgeGraph mesh) {
+    
+    
     for (Iterator iterator = mesh.iterator(); iterator.hasNext();) {
       Node node = (Node) iterator.next();
       Element element = (Element) mesh.getNodeData(node);
@@ -115,6 +117,8 @@ public class Mesh {
         System.out.println("-> Figures with " + element.getDim() + " edges");
         return false;
       }
+      
+      
     }
 
     Node start = mesh.getRandom();

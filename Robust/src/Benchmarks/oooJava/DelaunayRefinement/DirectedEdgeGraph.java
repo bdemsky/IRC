@@ -63,8 +63,9 @@ public class DirectedEdgeGraph implements EdgeGraph {
 
   public int getInNeighborsSize(Node node) {
     int i = 0;
-    for (Iterator it = getInNeighbors(node); it.hasNext(); i++)
-      ;
+    for (Iterator it = getInNeighbors(node); it.hasNext(); i++) {
+      it.next();
+    }
     return i;
   }
 
@@ -74,8 +75,9 @@ public class DirectedEdgeGraph implements EdgeGraph {
 
   public int getOutNeighborsSize(Node node) {
     int i = 0;
-    for (Iterator it = getOutNeighbors(node); it.hasNext(); i++)
-      ;
+    for (Iterator it = getOutNeighbors(node); it.hasNext(); i++) {
+     it.next(); 
+    }
     return i;
   }
 
@@ -135,12 +137,14 @@ public class DirectedEdgeGraph implements EdgeGraph {
 
   protected void removeConnectingEdges(EdgeGraphNode n) {
     EdgeGraphNode g;
-    for (Iterator iterator1 = n.getOutNeighborsCopy(); iterator1.hasNext(); removeNeighbor(n, g)) {
+    for (Iterator iterator1 = n.getOutNeighborsCopy(); iterator1.hasNext();) {
       g = (EdgeGraphNode) iterator1.next();
+      removeNeighbor(n, g);
     }
 
-    for (Iterator iterator2 = n.getInNeighborsCopy(); iterator2.hasNext(); removeNeighbor(g, n)) {
+    for (Iterator iterator2 = n.getInNeighborsCopy(); iterator2.hasNext(); ) {
       g = (EdgeGraphNode) iterator2.next();
+      removeNeighbor(g, n);
     }
 
   }
