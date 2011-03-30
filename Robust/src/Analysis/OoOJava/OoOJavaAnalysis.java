@@ -147,16 +147,14 @@ public class OoOJavaAnalysis {
 
     State.logEvent("OoOJavaAnalysis 1st pass completed");
 
+  
     // 2nd pass, liveness, in-set out-set (no virtual reads yet!)
-    methItr = descriptorsToAnalyze.iterator();
-    while (methItr.hasNext()) {
-      Descriptor d = methItr.next();
-      FlatMethod fm = state.getMethodFlat(d);
-
-      // note we can't use the general liveness analysis already in
-      // the compiler because this analysis is task-aware
-      livenessAnalysisBackward(fm);
+    Iterator<FlatSESEEnterNode> seseItr = rblockRel.getLocalRootSESEs().iterator();
+    while (seseItr.hasNext()) {
+      FlatSESEEnterNode sese = seseItr.next();
+      livenessAnalysisBackward(sese,liveness);
     }
+    
 
     State.logEvent("OoOJavaAnalysis 2nd pass completed");
 
@@ -171,14 +169,15 @@ public class OoOJavaAnalysis {
       variableAnalysisForward(fm);
     }
     State.logEvent("OoOJavaAnalysis 3rd pass completed");
+    
     // 4th pass, compute liveness contribution from
     // virtual reads discovered in variable pass
-    methItr = descriptorsToAnalyze.iterator();
-    while (methItr.hasNext()) {
-      Descriptor d = methItr.next();
-      FlatMethod fm = state.getMethodFlat(d);
-      livenessAnalysisBackward(fm);
+    seseItr = rblockRel.getLocalRootSESEs().iterator();
+    while (seseItr.hasNext()) {
+      FlatSESEEnterNode sese = seseItr.next();
+      livenessAnalysisBackward(sese,liveness);
     }
+    
     State.logEvent("OoOJavaAnalysis 4th pass completed");
 
     // 5th pass, use disjointness with NO FLAGGED REGIONS
@@ -251,7 +250,7 @@ public class OoOJavaAnalysis {
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-      codePlansForward(fm);
+      codePlansForward(fm,liveness);
     }
 
     State.logEvent("OoOJavaAnalysis 12th pass completed");    
@@ -334,13 +333,14 @@ public class OoOJavaAnalysis {
   }
 
 
-  private void livenessAnalysisBackward(FlatMethod fm) {
+  private void livenessAnalysisBackward(FlatSESEEnterNode fsen,Liveness liveness) {
 
     // flow backward across nodes to compute liveness, and
     // take special care with sese enter/exit nodes that
     // alter this from normal liveness analysis
     Set<FlatNode> flatNodesToVisit = new HashSet<FlatNode>();
-    flatNodesToVisit.add( fm.getFlatExit() );
+//    flatNodesToVisit.add( fm.getFlatExit() );
+    flatNodesToVisit.add(fsen.getFlatExit());
 
     while( !flatNodesToVisit.isEmpty() ) {
       FlatNode fn = (FlatNode) flatNodesToVisit.iterator().next();
@@ -358,22 +358,24 @@ public class OoOJavaAnalysis {
         }
       }
       
-      Set<TempDescriptor> curr = liveness_nodeActions( fn, livein );
+      Set<TempDescriptor> curr = liveness_nodeActions( fn, livein, liveness );
 
       // if a new result, schedule backward nodes for analysis
       if( !curr.equals( prev ) ) {
-        livenessGlobalView.put( fn, curr );
 
-        for( int i = 0; i < fn.numPrev(); i++ ) {
-          FlatNode nn = fn.getPrev( i );
-          flatNodesToVisit.add( nn );
-        }
+        if(fn!=fsen){        
+          livenessGlobalView.put( fn, curr );
+          for( int i = 0; i < fn.numPrev(); i++ ) {
+            FlatNode nn = fn.getPrev( i );
+            flatNodesToVisit.add( nn );
+          }
+        }  
       }
     }
   }
 
   private Set<TempDescriptor> liveness_nodeActions( FlatNode            fn, 
-                                                    Set<TempDescriptor> liveIn
+                                                    Set<TempDescriptor> liveIn, Liveness liveness
                                                     ) {
     switch( fn.kind() ) {
 
@@ -400,7 +402,9 @@ public class OoOJavaAnalysis {
           // be live-out at the task's exit (and therefore should
           // go in the task's out-var set)
           FlatSESEExitNode fsexn = fsen.getFlatExit();
-          Set<TempDescriptor> livetemps = livenessGlobalView.get( fsexn );
+          //note: liveness analysis can have corresponding decisions 
+          Set<TempDescriptor> livetemps= liveness.getLiveInTemps(fsen.getfmEnclosing(), fsexn);
+//          Set<TempDescriptor> livetemps = livenessGlobalView.get( fsexn );
           if( livetemps != null && livetemps.contains( writeTemps[i] ) ) {
             fsen.addOutVar( writeTemps[i] );
           }          
@@ -762,7 +766,7 @@ public class OoOJavaAnalysis {
   }
 
 
-  private void codePlansForward(FlatMethod fm) {
+  private void codePlansForward(FlatMethod fm, Liveness liveness) {
 
     // start from flat method top, visit every node in
     // method exactly once
@@ -804,7 +808,7 @@ public class OoOJavaAnalysis {
       }
 
       codePlans_nodeActions(fm, fn, 
-                            dotSTlive, dotSTtable, dotSTnotAvailSet, 
+                            /*dotSTlive*/liveness, dotSTtable, dotSTnotAvailSet, 
                             currentSESE);
 
       for (int i = 0; i < fn.numNext(); i++) {
@@ -819,7 +823,8 @@ public class OoOJavaAnalysis {
       
   private void codePlans_nodeActions(FlatMethod fm,
                                      FlatNode fn,
-                                     Set<TempDescriptor> liveSetIn,
+//                                     Set<TempDescriptor> liveSetIn,
+                                     Liveness liveness,
                                      VarSrcTokTable vstTableIn, 
                                      Set<TempDescriptor> notAvailSetIn, 
                                      FlatSESEEnterNode currentSESE) {
@@ -918,9 +923,10 @@ public class OoOJavaAnalysis {
     default: {
 
       // a node with no live set has nothing to stall for
-      if (liveSetIn == null) {
-        break;
-      }
+      // note: no reason to check here, remove this....
+//      if (liveSetIn == null) {
+//        break;
+//      }
 
       TempDescriptor[] readarray = fn.readsTemps();
       for (int i = 0; i < readarray.length; i++) {
@@ -961,11 +967,16 @@ public class OoOJavaAnalysis {
             Set<TempDescriptor> copySet = new HashSet<TempDescriptor>();
 
             Iterator<TempDescriptor> refVarItr = vstAlsoAvail.getRefVars().iterator();
+            
             while (refVarItr.hasNext()) {
               TempDescriptor refVar = refVarItr.next();
-              if (liveSetIn.contains(refVar)) {
-                copySet.add(refVar);
-              }
+              //note: this should just use normal liveness in...only want to copy live variables...
+//              if (liveSetIn.contains(refVar)) {
+//                copySet.add(refVar);
+//              }
+                if(liveness.getLiveInTemps(fm, fn).contains(refVar)){
+                  copySet.add(refVar);
+                }
             }
 
             if (!copySet.isEmpty()) {
@@ -1024,7 +1035,9 @@ public class OoOJavaAnalysis {
     for (int i = 0; i < fn.numNext(); i++) {
       FlatNode nn = fn.getNext(i);
       VarSrcTokTable nextVstTable = variableResults.get(nn);
-      Set<TempDescriptor> nextLiveIn = livenessGlobalView.get(nn);
+      // note: using the result of liveness analysis regardless of task structures 
+      // Set<TempDescriptor> nextLiveIn = livenessGlobalView.get(nn);
+      Set<TempDescriptor> nextLiveIn=liveness.getLiveInTemps(fm, nn);
 
       // the table can be null if it is one of the few IR nodes
       // completely outside of the root SESE scope
@@ -1055,15 +1068,18 @@ public class OoOJavaAnalysis {
                               FlatMethod        fm, 
                               TempDescriptor    var ) {
     FlatNode fnContext;
-
-    if( fsen.getIsCallerProxySESE() ) {
-      // attach the dynamic variable to track to
-      // the flat method, so it can be declared at entry
-      fnContext = fm;
-    } else {
-      // otherwise the code context is a task body
-      fnContext = fsen;
-    }
+    
+    // note: dynamic variable declarations are always located in the flat method that encloses task block
+    // there is no need to set fnContext to fsen
+//    if( fsen.getIsCallerProxySESE() ) {
+//      // attach the dynamic variable to track to
+//      // the flat method, so it can be declared at entry
+//      fnContext = fm;
+//    } else {
+//      // otherwise the code context is a task body
+//      fnContext = fsen;
+//    }
+    fnContext=fm;
 
     ContextTaskNames ctn = fn2contextTaskNames.get( fnContext );
     if( ctn == null ) {
@@ -1072,6 +1088,7 @@ public class OoOJavaAnalysis {
 
     ctn.addDynamicVar( var );
     fn2contextTaskNames.put( fnContext, ctn );
+    
   }
 
   private void addNeededStaticName( FlatSESEEnterNode fsen, 

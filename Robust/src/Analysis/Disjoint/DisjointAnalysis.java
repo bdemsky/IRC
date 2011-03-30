@@ -3,6 +3,7 @@ package Analysis.Disjoint;
 import Analysis.CallGraph.*;
 import Analysis.Liveness;
 import Analysis.ArrayReferencees;
+import Analysis.OoOJava.Accessible;
 import Analysis.OoOJava.RBlockRelationAnalysis;
 import IR.*;
 import IR.Flat.*;
@@ -538,7 +539,8 @@ public class DisjointAnalysis implements HeapAnalysis {
     new Hashtable<FlatNode, ReachGraph>();
 
   private Hashtable<FlatCall, Descriptor> fc2enclosing;  
-
+  
+  Accessible accessible;
 
   // allocate various structures that are not local
   // to a single class method--should be done once
@@ -677,8 +679,13 @@ public class DisjointAnalysis implements HeapAnalysis {
     if( rblockRel != null ) {
       doEffectsAnalysis = true;
       effectsAnalysis   = new EffectsAnalysis();
+      
+      //note: instead of reachgraph's isAccessible, using the result of accessible analysis
+      //since accessible gives us more accurate results
+      accessible=new Accessible(state, callGraph, rra, liveness);
+      accessible.doAnalysis();
     }
-
+    
     this.allocationDepth         = state.DISJOINTALLOCDEPTH;
     this.releaseMode             = state.DISJOINTRELEASEMODE;
     this.determinismDesired      = state.DISJOINTDETERMINISM;
@@ -1205,7 +1212,8 @@ public class DisjointAnalysis implements HeapAnalysis {
         if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
           if(rblockRel.isPotentialStallSite(fn)){
             // x gets status of y
-            if(!rg.isAccessible(rhs)){
+//            if(!rg.isAccessible(rhs)){
+            if(!accessible.isAccessible(fn, rhs)){
               rg.makeInaccessible(lhs);
             }
           }    
@@ -1228,7 +1236,8 @@ public class DisjointAnalysis implements HeapAnalysis {
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
         if(rblockRel.isPotentialStallSite(fn)){
           // x gets status of y
-          if(!rg.isAccessible(rhs)){
+//          if(!rg.isAccessible(rhs)){
+          if(!accessible.isAccessible(fn,rhs)){
             rg.makeInaccessible(lhs);
           }
         }    
@@ -1252,7 +1261,8 @@ public class DisjointAnalysis implements HeapAnalysis {
         if(rblockRel.isPotentialStallSite(fn)){
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
-          if(!rg.isAccessible(rhs)) {
+//          if(!rg.isAccessible(rhs)) {
+          if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
 
@@ -1290,11 +1300,13 @@ public class DisjointAnalysis implements HeapAnalysis {
         if(rblockRel.isPotentialStallSite(fn)){
           // x.y=f , stall x and y if they are not accessible
           // also contribute write effects on stall site of x
-          if(!rg.isAccessible(lhs)) {
+//          if(!rg.isAccessible(lhs)) {
+          if(!accessible.isAccessible(fn,lhs)) {
             rg.taintStallSite(fn, lhs);
           }
 
-          if(!rg.isAccessible(rhs)) {
+//          if(!rg.isAccessible(rhs)) {
+          if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
 
@@ -1334,7 +1346,8 @@ public class DisjointAnalysis implements HeapAnalysis {
           // x=y.f, stall y if not accessible
           // contributes read effects on stall site of y
           // after this, x and y are accessbile. 
-          if(!rg.isAccessible(rhs)) {
+//          if(!rg.isAccessible(rhs)) {
+          if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
 
@@ -1373,11 +1386,13 @@ public class DisjointAnalysis implements HeapAnalysis {
         if(rblockRel.isPotentialStallSite(fn)){
           // x.y=f , stall x and y if they are not accessible
           // also contribute write effects on stall site of x
-          if(!rg.isAccessible(lhs)) {
+//          if(!rg.isAccessible(lhs)) {
+          if(!accessible.isAccessible(fn,lhs)) {
             rg.taintStallSite(fn, lhs);
           }
 
-          if(!rg.isAccessible(rhs)) {
+//          if(!rg.isAccessible(rhs)) {
+          if(!accessible.isAccessible(fn,rhs)) {
             rg.taintStallSite(fn, rhs);
           }
             
@@ -1621,7 +1636,8 @@ public class DisjointAnalysis implements HeapAnalysis {
                                               );
 
           if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-            if( !rgPossibleCallee.isAccessible( ReachGraph.tdReturn ) ) {
+//            if( !rgPossibleCallee.isAccessible( ReachGraph.tdReturn ) ) {
+            if( !accessible.isAccessible(fn, ReachGraph.tdReturn ) ) {
               rgPossibleCaller.makeInaccessible( fc.getReturnTemp() );
             }
           }
@@ -1664,7 +1680,8 @@ public class DisjointAnalysis implements HeapAnalysis {
 
       // before transfer, do effects analysis support
       if( doEffectsAnalysis && fmContaining != fmAnalysisEntry ) {
-        if(!rg.isAccessible(rhs)){
+//        if(!rg.isAccessible(rhs)){
+        if(!accessible.isAccessible(fn,rhs)){
           rg.makeInaccessible(ReachGraph.tdReturn);
         }
       }
