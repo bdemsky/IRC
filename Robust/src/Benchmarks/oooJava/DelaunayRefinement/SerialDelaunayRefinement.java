@@ -1,3 +1,28 @@
+/*
+Lonestar Benchmark Suite for irregular applications that exhibit 
+amorphous data-parallelism.
+
+Center for Grid and Distributed Computing
+The University of Texas at Austin
+
+Copyright (C) 2007, 2008, 2009 The University of Texas at Austin
+
+Licensed under the Eclipse Public License, Version 1.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.eclipse.org/legal/epl-v10.html
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+File: UndirectedEdgeGraph.java 
+
+*/
+
 public class SerialDelaunayRefinement {  
   public boolean isFirstRun;
   public SerialDelaunayRefinement() {
@@ -56,7 +81,7 @@ public class SerialDelaunayRefinement {
     // worklist.addAll(Mesh.getBad(mesh));
     HashMapIterator it = m.getBad(mesh).iterator();
     while (it.hasNext()) {
-      worklist.push(it.next());
+      worklist.add(it.next());
     }
 
     Cavity cavity = new Cavity(mesh);
@@ -65,21 +90,23 @@ public class SerialDelaunayRefinement {
       System.out.println();
     }
 //    long id = Time.getNewTimeId();
-    long startTime = System.currentTimeMillis();    
+    long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {
-      
       Node bad_element = (Node) worklist.pop();
+//      System.out.println("Bad Node"+ ((Element)mesh.getNodeData(bad_element)).toString());
       if (bad_element != null && mesh.containsNode(bad_element)) {
         cavity.initialize(bad_element);
         cavity.build();
         cavity.update();
         
+        //remove old data
         Node node;
         for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
           node = (Node) iterator.next();
           mesh.removeNode(node);
         }
 
+        //add new data
         for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
           node = (Node) iterator1.next();
           mesh.addNode(node);
@@ -105,7 +132,7 @@ public class SerialDelaunayRefinement {
     long time = System.currentTimeMillis() - startTime;
     System.out.println("runtime: " + time + " ms");
     //TODO note how we only verify on first run...
-    if (args.length > 1) {
+    if (isFirstRun && args.length > 1) {
       verify(mesh);
     }
     isFirstRun = false;

@@ -33,10 +33,7 @@ public class DirectedGraph implements Graph {
   }
 
   public int getInNeighborsSize(Node node) {
-    int i = 0;
-    for (Iterator it = getInNeighbors(node); it.hasNext(); i++)
-      ;
-    return i;
+    return ((GraphNode)node).inNeighbors.size();
   }
 
   public int getNumNodes() {
@@ -50,10 +47,7 @@ public class DirectedGraph implements Graph {
   }
 
   public int getOutNeighborsSize(Node node) {
-    int i = 0;
-    for (Iterator it = getInNeighbors(node); it.hasNext(); i++)
-      ;
-    return i;
+    return ((GraphNode)node).outNeighbors.size();
   }
 
   public Node getRandom() {
