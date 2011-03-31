@@ -84,8 +84,7 @@ public class SerialDelaunayRefinement {
     while (it.hasNext()) {
       worklist.push(it.next());
     }
-
-    Cavity cavity = new Cavity(mesh);
+    
     if (isFirstRun) {
       System.out.println("configuration: " + mesh.getNumNodes() + " total triangles, " + worklist.size() + " bad triangles");
       System.out.println();
@@ -96,40 +95,61 @@ public class SerialDelaunayRefinement {
 //    long id = Time.getNewTimeId();
     long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {
-      Node bad_element = (Node) worklist.pop();
-//      System.out.println("Bad Node"+ ((Element)mesh.getNodeData(bad_element)).toString());
-      if (bad_element != null && mesh.containsNode(bad_element)) {
-        cavity.initialize(bad_element);
-        cavity.build();
-        cavity.update();
-        
-        //remove old data
-        Node node;
-        for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
-          node = (Node) iterator.next();
-          mesh.removeNode(node);
+      
+      
+      
+//      Node bad_element = (Node) worklist.pop();
+      Node[] bad_elements = new Node[20];
+      for(int i=0;i<20;i++) {
+        if(worklist.isEmpty()) {
+          bad_elements[i] = null;
+        } else {
+          bad_elements[i] = (Node) worklist.pop();
         }
-
-        //add new data
-        for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
-          node = (Node) iterator1.next();
-          mesh.addNode(node);
-        }
-
-        Edge_d edge;
-        for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
-          edge = (Edge_d) iterator2.next();
-          mesh.addEdge(edge);
-        }
-
-        // worklist.addAll(cavity.getPost().newBad(mesh));
-        it = cavity.getPost().newBad(mesh).iterator();
-        while (it.hasNext()) {
-          worklist.push((Node)it.next());
-        }
-
-        if (mesh.containsNode(bad_element)) {
-          worklist.push((Node) bad_element);
+      }
+      
+      for(int i = 0; i<20;i++)
+      {
+        Node bad_element = bad_elements[i];
+        if (bad_element != null && mesh.containsNode(bad_element)) {
+          
+          rblock P {
+            Cavity cavity = new Cavity(mesh);
+            cavity.initialize(bad_element);
+            cavity.build();
+            cavity.update();
+            
+            //remove old data
+            Node node;
+            for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
+              node = (Node) iterator.next();
+              mesh.removeNode(node);
+            }
+    
+            //add new data
+            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
+              node = (Node) iterator1.next();
+              mesh.addNode(node);
+            }
+    
+            Edge_d edge;
+            for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
+              edge = (Edge_d) iterator2.next();
+              mesh.addEdge(edge);
+            }
+          }
+  
+          rblock S {
+            // worklist.addAll(cavity.getPost().newBad(mesh));
+            it = cavity.getPost().newBad(mesh).iterator();
+            while (it.hasNext()) {
+              worklist.push((Node)it.next());
+            }
+    
+            if (mesh.containsNode(bad_element)) {
+              worklist.push((Node) bad_element);
+            }
+          }
         }
       }
     }
