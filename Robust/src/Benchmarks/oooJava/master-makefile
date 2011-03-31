@@ -32,11 +32,12 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 	-coreprof-enable cpe_taskstallmem
 
 
-USEOOO= -ooojava $(NUM_OOO_WORKERS) 2      -ooodebug -squeue #-ooodebug-disable-task-mem-pool
-USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -ooodebug -squeue 
+USEOOO= -ooojava $(NUM_OOO_WORKERS) 2 -squeue #-ooodebug-disable-task-mem-pool
+USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue 
+OOODEBUG= -ooodebug
 RCRDEBUG= -rcr_debug
 RCRDEBUGV= -rcr_debug_verbose
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug -printlinenum #-nooptimize #src-after-pp
 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed
@@ -83,10 +84,10 @@ DISJOINTDEBUG= -justanalyze -disjoint -disjoint-k 1 -enable-assertions \
 
 
 default:
-	$(BUILDSCRIPT) -nojava $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
+	$(BUILDSCRIPT) -nojava $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES)
 
 single-remake-c:
-	$(BUILDSCRIPT) -nojava -thread $(BSFLAGS) $(USECOREPROF) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) -nojava -thread $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 rcr-remake-c:
 	$(BUILDSCRIPT) -nojava $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
@@ -94,15 +95,19 @@ rcr-remake-c:
 single: $(PROGRAM)s.bin
 
 $(PROGRAM)s.bin: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) -thread $(BSFLAGS) $(USECOREPROF)                       -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
+	$(BUILDSCRIPT) -thread $(BMFLAGS) $(BSFLAGS) $(USECOREPROF)                       -o $(PROGRAM)s -builddir sing $(SOURCE_FILES) 
 
 ooo: $(PROGRAM)p.bin
 
 $(PROGRAM)p.bin: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+
+ooo-debug: $(SOURCE_FILES) ../master-makefile
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(OOODEBUG) $(DISJOINT) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+
 
 disjoint-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USEOOO) $(DISJOINTDEBUG) -o $(PROGRAM)p -builddir par  $(SOURCE_FILES) 
 
 rcr: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
@@ -112,7 +117,7 @@ rcrpointer: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) -pointer $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 rcr-debug: $(SOURCE_FILES) ../master-makefile
-	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUG) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
+	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(OOODEBUG) $(RCRDEBUG) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 
 
 rcr-debug-v: $(SOURCE_FILES) ../master-makefile
 	$(BUILDSCRIPT) $(BMFLAGS) $(BSFLAGS) $(USECOREPROF) $(USERCR) $(RCRDEBUGV) $(DISJOINT) -o $(PROGRAM)r -builddir rcr  $(SOURCE_FILES) 

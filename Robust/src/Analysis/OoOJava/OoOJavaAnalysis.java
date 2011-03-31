@@ -223,7 +223,7 @@ public class OoOJavaAnalysis {
                              arrayReferencees, sitesToFlag,
 			     null, // don't do effects analysis again!
                              null, // no BuildStateMachines needed
-                             false // don't suppress progress output
+                             !state.OOODEBUG // only print out in OoOJava debug mode
 			     );
       State.logEvent("OoOJavaAnalysis 9th pass completed");    
       // 10th pass, calculate conflicts with reachability info
