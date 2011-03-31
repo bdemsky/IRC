@@ -14,7 +14,7 @@ public class Vector_t {
    * =============================================================================
    */
   public Vector_t vector_alloc (int initCapacity) {
-    int capacity = Math.imax(initCapacity, 1);
+    int capacity = Math.max(initCapacity, 1);
     Vector_t vectorPtr = new Vector_t();
     vectorPtr.capacity = capacity;
     vectorPtr.elements = new Object[capacity];
