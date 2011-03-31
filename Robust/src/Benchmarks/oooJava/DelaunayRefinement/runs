@@ -1,1 +1,1 @@
-./SerialDelaunayRefinements.bin ./input/large.2 true
+./SerialDelaunayRefinements.bin ./input/massive.2 true

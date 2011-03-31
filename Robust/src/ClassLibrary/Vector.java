@@ -14,6 +14,18 @@ public class Vector {
     this.size=0;
     array=new Object[size];
   }
+  
+  //used for internal cloning
+  private Vector(int size, int capacityIncrement, Object[] array) {
+    this.size = size;
+    this.capacityIncrement = capacityIncrement;
+    this.array = new Object[array.length];
+    System.arraycopy(array, 0, this.array, 0, size);
+  }
+  
+  public Vector clone() {
+    return new Vector(size,capacityIncrement, array);
+  }
 
   public boolean isEmpty() {
     return size==0;
@@ -40,10 +52,14 @@ public class Vector {
     return indexOf(e)!=-1;
   }
 
-  public void remove(Object o) {
+  public boolean  remove(Object o) {
     int in=indexOf(o);
-    if (in!=-1)
+    if (in!=-1) {
       removeElementAt(in);
+      return true;
+    }
+    
+    return false;
   }
 
   public Object elementAt(int index) {

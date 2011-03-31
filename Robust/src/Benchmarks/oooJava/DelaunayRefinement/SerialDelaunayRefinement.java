@@ -44,6 +44,7 @@ public class SerialDelaunayRefinement {
       if (runtime < mintime) {
         mintime = runtime;
       }
+      System.gc();
     }
 
     System.out.println("minimum runtime: " + mintime + " ms");
@@ -91,7 +92,6 @@ public class SerialDelaunayRefinement {
     }
 
     System.gc();
-    System.out.println("Done with GC");
 
 //    long id = Time.getNewTimeId();
     long startTime = System.currentTimeMillis();

@@ -131,8 +131,9 @@ public class Mesh {
       if (!found.contains(node)) {
         found.add(node);
         Node neighbor;
-        for (Iterator iterator1 = mesh.getOutNeighbors(node); iterator1.hasNext(); remaining
-            .push(neighbor))
+        
+        
+        for (Iterator iterator1 = mesh.getOutNeighbors(node); iterator1.hasNext(); remaining.push(neighbor))
           neighbor = (Node) iterator1.next();
 
       }

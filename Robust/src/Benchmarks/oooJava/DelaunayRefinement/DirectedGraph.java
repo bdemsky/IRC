@@ -29,7 +29,7 @@ public class DirectedGraph implements Graph {
   public Iterator getInNeighbors(Node src) {
     GraphNode src_c = (GraphNode) src;
     // return Collections.unmodifiableCollection(src_c.getInNeighbors());
-    return src_c.getInNeighborsCopy();
+    return src_c.getInNeighborsCopy().iterator();
   }
 
   public int getInNeighborsSize(Node node) {
@@ -43,7 +43,7 @@ public class DirectedGraph implements Graph {
   public Iterator getOutNeighbors(Node src) {
     GraphNode src_c = (GraphNode) src;
     // return Collections.unmodifiableCollection(src_c.getOutNeighbors());
-    return src_c.getOutNeighborsCopy();
+    return src_c.getOutNeighborsCopy().iterator();
   }
 
   public int getOutNeighborsSize(Node node) {
@@ -73,11 +73,12 @@ public class DirectedGraph implements Graph {
 
   protected void removeConnectingEdges(GraphNode n) {
     GraphNode g;
-    for (Iterator iterator1 = n.getOutNeighborsCopy(); iterator1.hasNext(); removeNeighbor(n, g)) {
+
+    for (Iterator iterator1 = n.getOutNeighborsCopy().iterator(); iterator1.hasNext(); removeNeighbor(n, g)) {
       g = (GraphNode) iterator1.next();
     }
-
-    for (Iterator iterator2 = n.getInNeighborsCopy(); iterator2.hasNext(); removeNeighbor(g, n)) {
+    
+    for (Iterator iterator2 = n.getInNeighborsCopy().iterator(); iterator2.hasNext(); removeNeighbor(g, n)) {
       g = (GraphNode) iterator2.next();
     }
 

@@ -2,8 +2,8 @@ public class GraphNode extends Node {
   protected Object data;
   // protected List inNeighbors;
   // protected List outNeighbors;
-  protected LinkedList inNeighbors;
-  protected LinkedList outNeighbors;
+  protected Vector inNeighbors;
+  protected Vector outNeighbors;
 
   protected GraphNode() {
     super();
@@ -12,8 +12,8 @@ public class GraphNode extends Node {
   public GraphNode(Object n) {
     super();
     data = n;
-    inNeighbors = new LinkedList();
-    outNeighbors = new LinkedList();
+    inNeighbors = new Vector();
+    outNeighbors = new Vector();
   }
 
 //  public Object getData() {
@@ -28,7 +28,7 @@ public class GraphNode extends Node {
     if (inNeighbors.contains(n)) {
       return false;
     } else {
-      inNeighbors.addLast(n);
+      inNeighbors.addElement(n);
       return true;
     }
   }
@@ -41,24 +41,19 @@ public class GraphNode extends Node {
     return inNeighbors.contains(n);
   }
 
-  public final Iterator getInNeighbors() {
-    return inNeighbors.iterator();
+  public final Vector getInNeighbors() {
+    return inNeighbors;
   }
 
-  public final Iterator getInNeighborsCopy() {
-    LinkedList l = new LinkedList();
-    Iterator o = inNeighbors.iterator();
-    while (o.hasNext()) {
-      l.addLast(o);
-    }
-    return l.iterator();
+  public final Vector getInNeighborsCopy() {
+    return inNeighbors.clone();
   }
 
   public final boolean addOutNeighbor(GraphNode n) {
     if (outNeighbors.contains(n)) {
       return false;
     } else {
-      outNeighbors.addLast(n);
+      outNeighbors.addElement(n);
       return true;
     }
   }
@@ -66,21 +61,15 @@ public class GraphNode extends Node {
   public final boolean removeOutNeighbor(GraphNode n) {
     return outNeighbors.remove(n);
   }
-
   public final boolean hasOutNeighbor(GraphNode n) {
     return outNeighbors.contains(n);
   }
 
-  public final Iterator getOutNeighbors() {
-    return outNeighbors.iterator();
+  public final Vector getOutNeighbors() {
+    return outNeighbors;
   }
 
-  public final Iterator getOutNeighborsCopy() {
-    LinkedList l = new LinkedList();
-    Iterator o = outNeighbors.iterator();
-    while (o.hasNext()) {
-      l.addLast(o);
-    }
-    return l.iterator();
+  public final Vector getOutNeighborsCopy() {
+    return outNeighbors.clone();
   }
 }
