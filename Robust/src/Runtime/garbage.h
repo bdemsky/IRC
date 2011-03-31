@@ -9,6 +9,15 @@ struct garbagelist {
   void * array[]; 
 };
 
+extern void * curr_heapbase;
+extern void * curr_heapptr;
+extern void * curr_heapgcpoint;
+extern void * curr_heaptop;
+
+extern void * to_heapbase;
+extern void * to_heapptr;
+extern void * to_heaptop;
+
 struct listitem {
   struct listitem * prev;
   struct listitem * next;

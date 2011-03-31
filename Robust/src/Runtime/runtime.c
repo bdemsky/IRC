@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include "option.h"
 #include "methodheaders.h"
+
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+#include "thread.h"
+#endif
+
 #ifdef DSTM
 #ifdef RECOVERY
 #include "DSTM/interface_recovery/dstm.h"
@@ -59,6 +64,8 @@ pthread_barrierattr_t attr;
 #ifndef bool
 #define bool int
 #endif
+#define GCPOINT(x) ((INTPTR)((x)*0.99))
+
 
 extern int classsize[];
 extern int typearray[];
@@ -417,6 +424,56 @@ long long CALL00(___System______currentTimeMillis____) {
   retval*=1000; /* milliseconds */
   retval+= (tv.tv_usec/1000); /* adjust milliseconds & add them in */
   return retval;
+}
+
+void CALL00(___System______gc____) {
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+  while (pthread_mutex_trylock(&gclock)!=0) {
+    stopforgc((struct garbagelist *)___params___);
+    restartaftergc();
+  }
+#endif
+
+  /* Grow the to heap if necessary */
+  {
+    INTPTR curr_heapsize=curr_heaptop-curr_heapbase;
+    INTPTR to_heapsize=to_heaptop-to_heapbase;
+
+    if (curr_heapsize>to_heapsize) {
+      free(to_heapbase);
+      to_heapbase=malloc(curr_heapsize);
+      if (to_heapbase==NULL) {
+	printf("Error Allocating enough memory\n");
+	exit(-1);
+      }
+      to_heaptop=to_heapbase+curr_heapsize;
+      to_heapptr=to_heapbase;
+    }
+  }
+
+
+  collect((struct garbagelist *)___params___);
+
+  {
+  void * tmp=to_heapbase;
+  to_heapbase=curr_heapbase;
+  curr_heapbase=tmp;
+
+  tmp=to_heaptop;
+  to_heaptop=curr_heaptop;
+  curr_heaptop=tmp;
+
+  tmp=to_heapptr;
+  curr_heapptr=to_heapptr;
+  curr_heapgcpoint=((char *) curr_heapbase)+GCPOINT(curr_heaptop-curr_heapbase);
+  to_heapptr=to_heapbase;
+  bzero(tmp, curr_heaptop-tmp);
+
+  }
+
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+  pthread_mutex_unlock(&gclock);
+#endif
 }
 
 long long CALL00(___System______microTimes____) {
