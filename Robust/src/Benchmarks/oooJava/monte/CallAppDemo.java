@@ -23,7 +23,7 @@
   * Wrapper code to invoke the Application demonstrator.
   *
   * @author H W Yau
-  * @version $Revision: 1.1 $ $Date: 2010/07/23 03:44:00 $
+  * @version $Revision: 1.2 $ $Date: 2011/03/31 21:45:51 $
   */
 public class CallAppDemo {
     public int size;
@@ -56,7 +56,9 @@ public class CallAppDemo {
     }
 
     public void runiters () {
+      long sTime=System.currentTimeMillis();
       ap.runSerial();
+      System.out.println("Time="+(System.currentTimeMillis()-sTime));
     }
     
     public AppDemo getAppDemo(){
