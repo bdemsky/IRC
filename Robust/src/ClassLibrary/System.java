@@ -4,6 +4,8 @@ public class System {
     printString(s);
   }
 
+    public static native void gc();
+
   public static native long currentTimeMillis();
   
   public static native long microTimes();

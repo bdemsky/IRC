@@ -18,6 +18,9 @@ public class HashSet {
   public boolean isEmpty() {
     return map.isEmpty();
   }
+  public void clear() {
+    map.clear();
+  }
   public boolean contains(Object o) {
     return map.containsKey(o);
   }
