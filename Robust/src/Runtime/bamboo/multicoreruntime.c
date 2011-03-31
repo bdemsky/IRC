@@ -401,13 +401,13 @@ struct ___String___ * NewString(const char *str,int length) {
 
 /* Generated code calls this if we fail a bounds check */
 
-void failedboundschk() {
+void failedboundschk(int num) {
 #ifndef TASK
   printf("Array out of bounds\n");
 #ifdef THREADS
   threadexit();
 #elif defined MGC
-  BAMBOO_EXIT(0xa002);
+  BAMBOO_EXIT(0xa0000000 + num);
 #else
   exit(-1);
 #endif
@@ -416,7 +416,52 @@ void failedboundschk() {
   printf("Array out of bounds\n");
   longjmp(error_handler,2);
 #else
-  BAMBOO_EXIT(0xa002);
+  BAMBOO_EXIT(0xa0000000 + num);
+#endif
+#endif
+}
+
+/* Generated code calls this if we fail null ptr chk */
+void failednullptr(void * ptr) {
+#ifdef MULTICORE_GC
+#ifndef RAW
+  //print out current stack
+  int i,j;
+  j = 0;
+  struct garbagelist * stackptr = (struct garbagelist *)ptr;
+  while(stackptr!=NULL) {
+    GC_BAMBOO_DEBUGPRINT(0xa501);
+    GC_BAMBOO_DEBUGPRINT_REG(stackptr->size);
+    GC_BAMBOO_DEBUGPRINT_REG(stackptr->next);
+    GC_BAMBOO_DEBUGPRINT_REG(stackptr->array[0]);
+	tprintf("Stack %d: \n\t", j);
+    for(i=0; i<stackptr->size; i++) {
+      if(stackptr->array[i] != NULL) {
+		tprintf("%x, ", stackptr->array[i]);
+      } else {
+		tprintf("NULL, ");
+	  }
+    }
+	tprintf("\n");
+    stackptr=stackptr->next;
+  }
+#endif
+#endif
+#ifndef TASK
+  printf("NULL ptr\n");
+#ifdef THREADS
+  threadexit();
+#elif defined MGC
+  BAMBOO_EXIT(0xa001);
+#else
+  exit(-1);
+#endif
+#else
+#ifndef MULTICORE
+  printf("NULL ptr\n");
+  longjmp(error_handler,2);
+#else
+  BAMBOO_EXIT(0xa001);
 #endif
 #endif
 }
@@ -530,7 +575,7 @@ INLINE void initruntimedata() {
 #ifdef GC_FLUSH_DTLB
   gc_num_flush_dtlb = 0;
 #endif
-  gc_localheap_s = false;
+  //gc_localheap_s = false;
 #ifdef GC_CACHE_ADAPT
   gccachestage = false;
 #endif // GC_CACHE_ADAPT

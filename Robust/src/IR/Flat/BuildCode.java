@@ -52,6 +52,8 @@ public class BuildCode {
   Hashtable<String, ClassDescriptor> printedfieldstbl;
   int globaldefscount=0;
   boolean mgcstaticinit = false;
+  
+  int boundschknum = 0;
 
   public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
     this(st, temptovar, typeutil, null);
@@ -2661,19 +2663,24 @@ public class BuildCode {
 	}
       }
       // redirect to the global_defs_p structure
-      if((ffn.getField().isStatic()) || (ffn.getSrc().getType().isClassNameRef())) {
-	// reference to the static field with Class name
 	if (ffn.getField().getType().isPtr())
 	  output.println(generateTemp(fm, ffn.getDst())+"=global_defs_p->"+ffn.getField().getSafeSymbol()+";");
 	else
 	  output.println(generateTemp(fm, ffn.getDst())+"=global_defsprim_p->"+ffn.getField().getSafeSymbol()+";");
-      } else {
-	output.println(generateTemp(fm, ffn.getDst())+"=*"+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
-      }
     } else if (ffn.getField().isEnum()) {
       // an Enum value, directly replace the field access as int
       output.println(generateTemp(fm, ffn.getDst()) + "=" + ffn.getField().enumValue() + ";");
     } else {
+      output.println("#ifdef MULTICORE_DEBUG");
+      output.println("if (" + generateTemp(fm,ffn.getSrc()) + " == NULL) {");
+      output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
+      if(state.MULTICOREGC) {
+        output.println("failednullptr(&___locals___);");
+      } else {
+        output.println("failednullptr(NULL);");
+      }
+      output.println("}");
+      output.println("#endif //MULTICORE_DEBUG");
       output.println(generateTemp(fm, ffn.getDst())+"="+ generateTemp(fm,ffn.getSrc())+"->"+ ffn.getField().getSafeSymbol()+";");
     }
   }
@@ -2726,19 +2733,23 @@ public class BuildCode {
 	}
       }
       // redirect to the global_defs_p structure
-      if((fsfn.getDst().getType().isClassNameRef()) || (fsfn.getField().isStatic())) {
-	// reference to the static field with Class name
 	if (fsfn.getField().getType().isPtr())
 	  output.println("global_defs_p->" +
 			 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
 	else
 	  output.println("global_defsprim_p->" +
 			 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
-      } else {
-	output.println("*"+generateTemp(fm, fsfn.getDst())+"->"+
-		       fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
-      }
     } else {
+      output.println("#ifdef MULTICORE_DEBUG");
+      output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
+      output.println("printf(\" NULL ptr error: %s, %s, %d \\n\", __FILE__, __func__, __LINE__);");
+      if(state.MULTICOREGC) {
+        output.println("failednullptr(&___locals___);");
+      } else {
+        output.println("failednullptr(NULL);");
+      }
+      output.println("}");
+      output.println("#endif //MULTICORE_DEBUG");
       output.println(generateTemp(fm, fsfn.getDst())+"->"+
 		     fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     }
@@ -2758,7 +2769,7 @@ public class BuildCode {
 
     if (this.state.ARRAYBOUNDARYCHECK && fen.needsBoundsCheck()) {
       output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fen.getIndex())+") >= "+generateTemp(fm,fen.getSrc()) + "->___length___))");
-      output.println("failedboundschk();");
+      output.println("failedboundschk(" + (boundschknum++) + ");");
     }
     output.println(generateTemp(fm, fen.getDst())+"=(("+ type+"*)(((char *) &("+ generateTemp(fm,fen.getSrc())+"->___length___))+sizeof(int)))["+generateTemp(fm, fen.getIndex())+"];");
   }
@@ -2779,7 +2790,7 @@ public class BuildCode {
 
     if (this.state.ARRAYBOUNDARYCHECK && fsen.needsBoundsCheck()) {
       output.println("if (unlikely(((unsigned int)"+generateTemp(fm, fsen.getIndex())+") >= "+generateTemp(fm,fsen.getDst()) + "->___length___))");
-      output.println("failedboundschk();");
+      output.println("failedboundschk(" + (boundschknum++) + ");");
     }
     if (state.FASTCHECK) {
       String dst=generateTemp(fm, fsen.getDst());

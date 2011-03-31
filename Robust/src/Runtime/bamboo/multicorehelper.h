@@ -3,12 +3,12 @@
 
 #ifdef GC_1
 // NUMCORES4GC = 1
-static int gc_core2block[2] = {0,1};
+static unsigned int gc_core2block[2] = {0,1};
 
-static int gc_block2core[2] = { 0,  0};
+static unsigned int gc_block2core[2] = { 0,  0};
 #elif defined GC_56
 // NUMCORES4GC = 56
-static int gc_core2block[112] = {
+static unsigned int gc_core2block[112] = {
   0,111,  15, 96,  16,95,  31,80,  32,79,  47,64,  48,63,
   1,110,  14, 97,  17,94,  30,81,  33,78,  46,65,  49,62,
   2,109,  13, 98,  18,93,  29,82,  34,77,  45,66,  50,61,
@@ -19,7 +19,7 @@ static int gc_core2block[112] = {
   7,104,   8,103,  23,88,  24,87,  39,72,  40,71,  55,56
 };
 
-static int gc_block2core[112] = {
+static unsigned int gc_block2core[112] = {
   0,  7, 14, 21, 28, 35, 42, 49, 50, 43, 36, 29, 22, 15,  8,  1,
   2,  9, 16, 23, 30, 37, 44, 51, 52, 45, 38, 31, 24, 17, 10,  3,
   4, 11, 18, 25, 32, 39, 46, 53, 54, 47, 40, 33, 26, 19, 12,  5,
@@ -30,7 +30,7 @@ static int gc_block2core[112] = {
 };
 #elif defined GC_62
 // NUMCORES4GC = 62
-static int gc_core2block[124] = {
+static unsigned int gc_core2block[124] = {
   0,123,  15,108,  16,107,  31,92,  32,91,  47,76,
   1,122,  14,109,  17,106,  30,93,  33,90,  46,77,  48,75,  61,62,
   2,121,  13,110,  18,105,  29,94,  34,89,  45,78,  49,74,  60,63,
@@ -41,7 +41,7 @@ static int gc_core2block[124] = {
   7,116,   8,115,  23,100,  24,99,  39,84,  40,83,  54,69,  55,68
 };
 
-static int gc_block2core[124] = {
+static unsigned int gc_block2core[124] = {
   0,  6, 14, 22, 30, 38, 46, 54, 55, 47, 39, 31, 23, 15,  7,  1,
   2,  8, 16, 24, 32, 40, 48, 56, 57, 49, 41, 33, 25, 17,  9,  3,
   4, 10, 18, 26, 34, 42, 50, 58, 59, 51, 43, 35, 27, 19, 11,  5,

@@ -96,8 +96,8 @@ __attribute__((malloc)) struct ___TagDescriptor___ * allocate_tag(int index);
 
 
 void initializeexithandler();
-void failedboundschk();
-void failednullptr();
+void failedboundschk(int num);
+void failednullptr(void * stackptr);
 void abort_task();
 void injectinstructionfailure();
 #ifdef MULTICORE

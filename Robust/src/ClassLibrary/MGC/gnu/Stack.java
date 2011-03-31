@@ -75,6 +75,7 @@ public class Stack/*<T>*/ extends Vector/*<T>*/
    */
   public Stack()
   {
+    super();
   }
 
   /**

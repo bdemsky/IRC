@@ -852,7 +852,7 @@ __attribute__((malloc)) struct ___String___ * NewString(const char *str,int leng
 
 /* Generated code calls this if we fail a bounds check */
 
-void failedboundschk() {
+void failedboundschk(int num) {
 #ifndef TASK
   printf("Array out of bounds\n");
 #ifdef THREADS

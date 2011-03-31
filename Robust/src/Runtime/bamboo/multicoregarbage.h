@@ -27,7 +27,7 @@
 
 #ifdef GC_FLUSH_DTLB
 #define GC_NUM_FLUSH_DTLB 1
-int gc_num_flush_dtlb;
+unsigned int gc_num_flush_dtlb;
 #endif
 
 #define NUMPTRS 100
@@ -44,11 +44,11 @@ int gc_num_flush_dtlb;
 
 typedef struct gc_info {
   unsigned long long time[GC_PROFILE_NUM_FIELD];
-  int index;
+  unsigned int index;
 } GCInfo;
 
 GCInfo * gc_infoArray[GCINFOLENGTH];
-int gc_infoIndex;
+unsigned int gc_infoIndex;
 bool gc_infoOverflow;
 unsigned long long gc_num_livespace;
 unsigned long long gc_num_freespace;
@@ -58,7 +58,7 @@ unsigned int gc_num_lobj;
 unsigned int gc_num_liveobj;
 unsigned int gc_num_obj;
 unsigned int gc_num_forwardobj;
-int gc_num_profiles;
+unsigned int gc_num_profiles;
 
 #endif // GC_PROFILE
 
@@ -92,42 +92,42 @@ volatile GCPHASETYPE gcphase; // indicating GC phase
 volatile bool gcpreinform; // counter for stopped cores
 volatile bool gcprecheck; // indicates if there are updated pregc information
 
-int gccurr_heaptop;
+unsigned int gccurr_heaptop;
 struct MGCHash * gcforwardobjtbl; // cache forwarded objs in mark phase
 // for mark phase termination
-volatile int gccorestatus[NUMCORESACTIVE]; // records status of each core
+volatile unsigned int gccorestatus[NUMCORESACTIVE];//records status of each core
                                            // 1: running gc
                                            // 0: stall
-volatile int gcnumsendobjs[2][NUMCORESACTIVE]; // the # of objects sent out
-volatile int gcnumreceiveobjs[2][NUMCORESACTIVE]; // the # of objects received
-volatile int gcnumsrobjs_index;  // indicates which entry to record the info 
-		                         // received before phase 1 of the mark finish 
-						         // checking process
-								 // the info received in phase 2 must be 
-								 // recorded in the other entry
+volatile unsigned int gcnumsendobjs[2][NUMCORESACTIVE];//# of objects sent out
+volatile unsigned int gcnumreceiveobjs[2][NUMCORESACTIVE];//# of objects received
+volatile unsigned int gcnumsrobjs_index;//indicates which entry to record the info 
+		                                // received before phase 1 of the mark finish 
+						                // checking process
+								        // the info received in phase 2 must be 
+								        // recorded in the other entry
 volatile bool gcbusystatus;
-int gcself_numsendobjs;
-int gcself_numreceiveobjs;
+unsigned int gcself_numsendobjs;
+unsigned int gcself_numreceiveobjs;
 
 // for load balancing
-INTPTR gcheaptop;
-int gcloads[NUMCORES4GC];
-int gctopcore; // the core host the top of the heap
-int gctopblock; // the number of current top block
+unsigned int gcheaptop;
+unsigned int gcloads[NUMCORES4GC];
+unsigned int gctopcore; // the core host the top of the heap
+unsigned int gctopblock; // the number of current top block
 
-int gcnumlobjs;
+unsigned int gcnumlobjs;
 
 // compact instruction
-INTPTR gcmarkedptrbound;
-int gcblock2fill;
-int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
-int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
+unsigned int gcmarkedptrbound;
+unsigned int gcblock2fill;
+unsigned int gcstopblock[NUMCORES4GC]; // indicate when to stop compact phase
+unsigned int gcfilledblocks[NUMCORES4GC]; //indicate how many blocks have been fulfilled
 // move instruction;
-INTPTR gcmovestartaddr;
-int gcdstcore;
+unsigned int gcmovestartaddr;
+unsigned int gcdstcore;
 volatile bool gctomove;
-int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
-volatile int gcmovepending;
+unsigned int gcrequiredmems[NUMCORES4GC]; //record pending mem requests
+volatile unsigned int gcmovepending;
 
 // shared memory pointer for pointer mapping tbls
 // In GC version, this block of memory is located at the bottom of the 
@@ -135,8 +135,8 @@ volatile int gcmovepending;
 // The bottom of the shared memory = sbstart tbl + smemtbl + bamboo_rmsp
 // These three types of table are always reside at the bottom of the shared 
 // memory and will never be moved or garbage collected
-INTPTR * gcmappingtbl;
-int bamboo_rmsp_size;
+unsigned int * gcmappingtbl;
+unsigned int bamboo_rmsp_size;
 unsigned int bamboo_baseobjsize;
 
 // table recording the starting address of each small block
@@ -144,12 +144,12 @@ unsigned int bamboo_baseobjsize;
 // Note: 1. this table always resides on the very bottom of the shared memory
 //       2. it is not counted in the shared heap, would never be garbage 
 //          collected
-INTPTR * gcsbstarttbl;
-int gcreservedsb;  // number of reserved sblock for sbstarttbl
-int gcnumblock; // number of total blocks in the shared mem
-int gcbaseva; // base va for shared memory without reserved sblocks
+int * gcsbstarttbl;
+unsigned int gcreservedsb;  // number of reserved sblock for sbstarttbl
+unsigned int gcnumblock; // number of total blocks in the shared mem
+unsigned int gcbaseva; // base va for shared memory without reserved sblocks
 #ifdef GC_CACHE_ADAPT
-int gctopva; // top va for shared memory without reserved sblocks
+unsigned int gctopva; // top va for shared memory without reserved sblocks
 volatile bool gccachestage;
 // table recording the sampling data collected for cache adaption 
 unsigned int * gccachesamplingtbl;
@@ -158,27 +158,27 @@ unsigned int size_cachesamplingtbl_local;
 unsigned int * gccachesamplingtbl_r;
 unsigned int * gccachesamplingtbl_local_r;
 unsigned int size_cachesamplingtbl_local_r;
-int * gccachepolicytbl;
+unsigned int * gccachepolicytbl;
 unsigned int size_cachepolicytbl;
 #endif // GC_CACHE_ADAPT
 
-#define OBJMAPPINGINDEX(p) (((int)p-gcbaseva)/bamboo_baseobjsize)
+#define OBJMAPPINGINDEX(p) (((unsigned int)p-gcbaseva)/bamboo_baseobjsize)
 
 #define ISSHAREDOBJ(p) \
-  ((((int)p)>gcbaseva)&&(((int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
+  ((((unsigned int)p)>gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 #define ALIGNSIZE(s, as) \
-  (*((int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
+  (*((unsigned int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))
 
 // mapping of pointer to block # (start from 0), here the block # is
 // the global index
 #define BLOCKINDEX(p, b) \
   { \
-    int t = (p) - gcbaseva; \
+    unsigned int t = (p) - gcbaseva; \
     if(t < (BAMBOO_LARGE_SMEM_BOUND)) { \
-      (*((int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
+      (*((unsigned int*)b)) = t / (BAMBOO_SMEM_SIZE_L); \
     } else { \
-      (*((int*)b)) = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE)); \
+      (*((unsigned int*)b)) = NUMCORES4GC+((t-(BAMBOO_LARGE_SMEM_BOUND))/(BAMBOO_SMEM_SIZE)); \
     } \
   }
 
@@ -186,11 +186,11 @@ unsigned int size_cachepolicytbl;
 #define RESIDECORE(p, c) \
   { \
     if(1 == (NUMCORES4GC)) { \
-      (*((int*)c)) = 0; \
+      (*((unsigned int*)c)) = 0; \
     } else { \
-      int b; \
+      unsigned int b; \
       BLOCKINDEX((p), &b); \
-      (*((int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
+      (*((unsigned int*)c)) = gc_block2core[(b%(NUMCORES4GC*2))]; \
     } \
   }
 
@@ -201,16 +201,16 @@ unsigned int size_cachepolicytbl;
 // the local heap
 #define NUMBLOCKS(s, n) \
   if(s < (BAMBOO_SMEM_SIZE_L)) { \
-    (*((int*)(n))) = 0; \
+    (*((unsigned int*)(n))) = 0; \
   } else { \
-    (*((int*)(n))) = 1 + ((s) - (BAMBOO_SMEM_SIZE_L)) / (BAMBOO_SMEM_SIZE); \
+    (*((unsigned int*)(n))) = 1 + ((s) - (BAMBOO_SMEM_SIZE_L)) / (BAMBOO_SMEM_SIZE); \
   }
 
 #define OFFSET(s, o) \
   if(s < BAMBOO_SMEM_SIZE_L) { \
-    (*((int*)(o))) = (s); \
+    (*((unsigned int*)(o))) = (s); \
   } else { \
-    (*((int*)(o))) = ((s) - (BAMBOO_SMEM_SIZE_L)) % (BAMBOO_SMEM_SIZE); \
+    (*((unsigned int*)(o))) = ((s) - (BAMBOO_SMEM_SIZE_L)) % (BAMBOO_SMEM_SIZE); \
   }
 
 // mapping of (core #, index of the block) to the global block index
@@ -219,11 +219,11 @@ unsigned int size_cachepolicytbl;
 // mapping of (core #, number of the block) to the base pointer of the block
 #define BASEPTR(c, n, p) \
   { \
-    int b = BLOCKINDEX2((c), (n)); \
+    unsigned int b = BLOCKINDEX2((c), (n)); \
     if(b < (NUMCORES4GC)) { \
-      (*((int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
+      (*((unsigned int*)p)) = gcbaseva + b * (BAMBOO_SMEM_SIZE_L); \
     } else { \
-      (*((int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
+      (*((unsigned int*)p)) = gcbaseva+(BAMBOO_LARGE_SMEM_BOUND)+ \
                      (b-(NUMCORES4GC))*(BAMBOO_SMEM_SIZE); \
     } \
   }
@@ -236,14 +236,14 @@ inline void gc_collect(struct garbagelist* stackptr); //core collector routine
 inline void gc_nocollect(struct garbagelist* stackptr); //non-gc core collector routine
 inline void transferMarkResults_I();
 inline void gc_enqueue_I(void *ptr);
-inline void gc_lobjenqueue_I(void *ptr, int length, int host);
-inline bool gcfindSpareMem_I(int * startaddr,
-                             int * tomove,
-                             int * dstcore,
-                             int requiredmem,
-                             int requiredcore);
+inline void gc_lobjenqueue_I(void *ptr, unsigned int length, unsigned int host);
+inline bool gcfindSpareMem_I(unsigned int * startaddr,
+                             unsigned int * tomove,
+                             unsigned int * dstcore,
+                             unsigned int requiredmem,
+                             unsigned int requiredcore);
 
-inline void * gc_lobjdequeue4(int * length, int * host);
+inline void * gc_lobjdequeue4(unsigned int * length, unsigned int * host);
 inline int gc_lobjmoreItems4();
 inline void gc_lobjqueueinit4();
 
