@@ -168,7 +168,10 @@ public class FlatSESEEnterNode extends FlatNode {
     return id;
   }
 
-  public String getPrettyIdentifier() {
+  public String getPrettyIdentifier() {    
+    if(isCallerProxySESE){
+      return "proxy";
+    }    
     if( treeNode != null && treeNode.getID() != null ) {
       return treeNode.getID();
     }     
