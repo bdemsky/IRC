@@ -159,15 +159,15 @@ public class OoOJavaAnalysis {
     State.logEvent("OoOJavaAnalysis 2nd pass completed");
 
     // 3rd pass, variable analysis
-    methItr = descriptorsToAnalyze.iterator();
+    methItr = rblockRel.getMethodsWithSESEs().iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
-      FlatMethod fm = state.getMethodFlat(d);
-
-      // starting from roots do a forward, fixed-point
-      // variable analysis for refinement and stalls
-      variableAnalysisForward(fm);
+        FlatMethod fm = state.getMethodFlat(d);
+        // starting from roots do a forward, fixed-point
+        // variable analysis for refinement and stalls
+        variableAnalysisForward(fm);
     }
+     
     State.logEvent("OoOJavaAnalysis 3rd pass completed");
     
     // 4th pass, compute liveness contribution from
@@ -194,11 +194,10 @@ public class OoOJavaAnalysis {
     State.logEvent("OoOJavaAnalysis 5th pass completed");
 
     // 6th pass, not available analysis FOR VARIABLES!
-    methItr = descriptorsToAnalyze.iterator();
+    methItr = rblockRel.getMethodsWithSESEs().iterator();
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-
       // compute what is not available at every program
       // point, in a forward fixed-point pass
       notAvailableForward(fm);
