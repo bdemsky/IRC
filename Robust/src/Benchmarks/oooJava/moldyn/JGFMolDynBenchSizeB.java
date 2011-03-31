@@ -32,18 +32,12 @@ public class JGFMolDynBenchSizeB {
       workload=300;
     }
 
-//    JGFInstrumentor instr = new JGFInstrumentor();
-//    JGFInstrumentor.printHeader(3,1,nthreads);
-
     JGFMolDynBench mold;
     mold = new JGFMolDynBench(nthreads,workload); 
     int size = 1;
-//    JGFInstrumentor.addTimer("Section3:MolDyn:Total", "Solutions",size, instr.timers);
-//    JGFInstrumentor.addTimer("Section3:MolDyn:Run", "Interactions",size, instr.timers);
 
     mold.JGFsetsize(size); 
 
-//    JGFInstrumentor.startTimer("Section3:MolDyn:Total", instr.timers);
 
     JGFMolDynBench tmp;
     mold.JGFinitialise(); 
@@ -55,7 +49,7 @@ public class JGFMolDynBenchSizeB {
     refval[1] = 7397.392307839352;
     double dval;
     dval = mold.ek[0];
-    double dev = Math.fabs(dval - refval[size]);
+    double dev = Math.abs(dval - refval[size]);
     long l = (long) refval[size] *1000000;
     long r = (long) dval * 1000000;
     if (l != r ){
@@ -63,15 +57,6 @@ public class JGFMolDynBenchSizeB {
       System.printString("Kinetic Energy = " + (long)dval + "  " + (long)dev + "  " + size + "\n");
     }
 
-//    JGFInstrumentor.stopTimer("Section3:MolDyn:Total", instr.timers);
-//    double interactions;
-//    interactions = mold.interactions;
-
-//    JGFInstrumentor.addOpsToTimer("Section3:MolDyn:Run", (double) interactions, instr.timers);
-//    JGFInstrumentor.addOpsToTimer("Section3:MolDyn:Total", 1, instr.timers);
-
-//    JGFInstrumentor.printTimer("Section3:MolDyn:Run", instr.timers); 
-//    JGFInstrumentor.printTimer("Section3:MolDyn:Total", instr.timers); 
     System.printString("Finished\n");
   }
 }

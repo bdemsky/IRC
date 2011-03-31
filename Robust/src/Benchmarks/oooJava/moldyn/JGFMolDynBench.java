@@ -93,17 +93,6 @@ public class JGFMolDynBench {
 //    System.out.println("Total="+(end-start));
   }
 
-  public void JGFvalidate() {
-    double[] refval = new double[2];
-    refval[0] = 1731.4306625334357;
-    refval[1] = 7397.392307839352;
-    double dev = Math.fabs(ek[0] - refval[size]);
-    if (dev > 1.0e-10) {
-      // System.printString("Validation failed\n");
-      // System.printString("Kinetic Energy = " + (long)ek[0] + "  " + (long)dev
-      // + "  " + size + "\n");
-    }
-  }
 }
 
 class mdRunner {
@@ -413,9 +402,6 @@ class mdRunner {
           l_epot+=store.epot;
           l_vir+=store.vir;
           l_interacts+=store.interacts;
-//          mymd.epot[0] += store.epot;
-//          mymd.vir[0] += store.vir;
-//          mymd.interactions += store.interacts;
         }
 
       }
@@ -483,8 +469,6 @@ class mdRunner {
         rp = (count / mdsize) * 100.0;
       }
 
-      // if (id == 0) JGFInstrumentor.stopTimer("Section3:MolDyn:Run",
-      // instr.timers);
     }
 //    System.out.println("par time="+par_time);
   }
