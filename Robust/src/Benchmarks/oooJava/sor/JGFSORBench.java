@@ -81,7 +81,7 @@ public class JGFSORBench {
 //    refval[3] = 2.654895063582696;
 //    refval[3] = 31.984487737222523;
     refval[3]=31.984779;
-    double dev = Math.fabs(Gtotal - refval[size]);
+    double dev = Math.abs(Gtotal - refval[size]);
     if (dev > 1.0e-6 ){
       System.out.println("Validation failed");
       System.out.println("Gtotal = " + Gtotal + "  dev=" + dev + "  sizeParam=" + size);
