@@ -75,13 +75,13 @@ public class SerialDelaunayRefinement {
     m.read(mesh, args[0]);
 
     //treat LinkedList as a stack
-//    Stack worklist = new Stack();
-    LinkedList worklist = new LinkedList();
+    Stack worklist = new Stack();
+    //    LinkedList worklist = new LinkedList();
 
     // worklist.addAll(Mesh.getBad(mesh));
     HashMapIterator it = m.getBad(mesh).iterator();
     while (it.hasNext()) {
-      worklist.add(it.next());
+      worklist.push(it.next());
     }
 
     Cavity cavity = new Cavity(mesh);
@@ -89,6 +89,10 @@ public class SerialDelaunayRefinement {
       System.out.println("configuration: " + mesh.getNumNodes() + " total triangles, " + worklist.size() + " bad triangles");
       System.out.println();
     }
+
+    System.gc();
+    System.out.println("Done with GC");
+
 //    long id = Time.getNewTimeId();
     long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {

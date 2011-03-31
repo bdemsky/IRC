@@ -122,8 +122,8 @@ public class Mesh {
     }
 
     Node start = mesh.getRandom();
-//    Stack remaining = new Stack();
-    LinkedList remaining = new LinkedList();
+    Stack remaining = new Stack();
+    //    LinkedList remaining = new LinkedList();
     HashSet found = new HashSet();
     remaining.push(start);
     while (!remaining.isEmpty()) {

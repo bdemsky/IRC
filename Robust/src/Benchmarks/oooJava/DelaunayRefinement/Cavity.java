@@ -33,7 +33,7 @@ public class Cavity {
   public void initialize(Node node) {
     pre.reset();
     post.reset();
-    connections = new HashSet();
+    connections.clear();
     frontier = new LinkedList();
     centerNode = node;
     for (centerElement = (Element) graph.getNodeData(centerNode); graph.containsNode(centerNode)
