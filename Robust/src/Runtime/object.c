@@ -20,6 +20,7 @@ int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
 
 #ifdef THREADS
 int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
+#ifndef NOLOCK
   pthread_t self=pthread_self();
   if (self==VAR(___this___)->tid) {
     VAR(___this___)->lockcount++;
@@ -54,9 +55,11 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
       }
     }
   }
+#endif
 }
 
 int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
+#ifndef NOLOCK
   pthread_t self=pthread_self();
   if (self==VAR(___this___)->tid) {
     VAR(___this___)->lockcount--;
@@ -81,5 +84,6 @@ int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
     exit(-1);
 #endif
   }
+#endif
 }
 #endif

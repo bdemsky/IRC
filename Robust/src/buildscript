@@ -32,6 +32,7 @@ echo -rcr_debug_verbose in addition to above, also prints out effects passed in,
 echo -squeue use single queue
 echo -corepin use core pinning
 echo -nostalltr turn off RCR traversers that only handle conflicts between task and stallsite
+echo -nolock turn off synchronization lock
 echo
 echo Disjoint Reachability Analysis options
 echo -disjoint enable analysis
@@ -615,6 +616,10 @@ RCR_DEBUG_VERBOSE=true
 elif [[ $1 = '-debug-deque' ]]
 then
 EXTRAOPTIONS="$EXTRAOPTIONS -DDEBUG_DEQUE"
+
+elif [[ $1 = '-nolock' ]]
+then
+EXTRAOPTIONS="$EXTRAOPTIONS -DNOLOCK"
 
 elif [[ $1 = '-coreprof' ]]
 then
