@@ -152,18 +152,22 @@ public class SMFEState {
   public String toStringDOT() {
     
     // first create the state as a node in DOT graph
-    String s = "  "+id+"[shape=box,label=\"";
+    String s = "  "+id+"[shape=box,";
+    if (conflicts.size()>0 ) {
+      s+="peripheries=2,";
+    }
+    s+="label=\"";
 
-    if( effects.size() == 1 ) {
-      s += effects.iterator().next().toString();
-
-    } else if( effects.size() > 1 ) {
+    if( effects.size() >= 1 ) {
 
       Iterator<Effect> eItr = effects.iterator();
       while( eItr.hasNext() ) {
         Effect e = eItr.next();
-        s += e.toString();
-
+	if (conflicts.contains(e)) {
+	  s += "["+e.toString()+"]";
+	} else {
+	  s += e.toString();
+	}
         if( eItr.hasNext() ) {
           s += "\\n";
         }
@@ -184,7 +188,10 @@ public class SMFEState {
 
         s += "\n  "+
           id+" -> "+state.id+
-          "[label=\""+e+"\"];";
+          "[label=\""+e+"\"";
+	if (conflicts.contains(e))
+	  s+=",style=dashed";
+	s+="];";
       }
     }
 
