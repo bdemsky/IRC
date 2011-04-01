@@ -96,61 +96,46 @@ public class SerialDelaunayRefinement {
     long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {
       
-      
-      
-//      Node bad_element = (Node) worklist.pop();
-      Node[] bad_elements = new Node[20];
-      for(int i=0;i<20;i++) {
+      Node[] bad_elements = new Node[23];
+      for(int i=0;i<23;i++) {
         if(worklist.isEmpty()) {
-          bad_elements[i] = null;
+          bad_elements[i] = null; 
         } else {
           bad_elements[i] = (Node) worklist.pop();
         }
       }
       
-      for(int i = 0; i<20;i++)
-      {
+  //      Node bad_element = (Node) worklist.pop();
+      for(int i=0;i<23;i++) {
         Node bad_element = bad_elements[i];
         if (bad_element != null && mesh.containsNode(bad_element)) {
           
-          rblock P {
-            Cavity cavity = new Cavity(mesh);
-            cavity.initialize(bad_element);
-            cavity.build();
-            cavity.update();
-            
-            //remove old data
-            Node node;
-            for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
-              node = (Node) iterator.next();
-              mesh.removeNode(node);
-            }
-    
-            //add new data
-            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
-              node = (Node) iterator1.next();
-              mesh.addNode(node);
-            }
-    
-            Edge_d edge;
-            for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
-              edge = (Edge_d) iterator2.next();
-              mesh.addEdge(edge);
-            }
+          sese P {
+          //takes < 1 sec 
+          Cavity cavity = new Cavity(mesh);
+          
+          //Appears to only call getters (only possible conflict is inherent in Hashmap)
+          cavity.initialize(bad_element);
+          
+          //Takes up 15% of computation
+          //Problem:: Build is recursive upon building neighbor upon neighbor upon neighbor
+          //This is could be a problem....
+          //TODO check dimensions problem
+          cavity.build();
+          
+          //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
+          cavity.update();                    
           }
   
-          rblock S {
-            // worklist.addAll(cavity.getPost().newBad(mesh));
-            it = cavity.getPost().newBad(mesh).iterator();
-            while (it.hasNext()) {
-              worklist.push((Node)it.next());
-            }
-    
-            if (mesh.containsNode(bad_element)) {
-              worklist.push((Node) bad_element);
-            }
+          sese S {
+            //28% of runtime #Removes stuff out of our mesh
+            middle(mesh, cavity);  
+            
+            //1.5% of runtime # adds stuff back to the work queue. 
+            end(mesh, worklist, bad_element, cavity); 
           }
         }
+      
       }
     }
     long time = System.currentTimeMillis() - startTime;
@@ -161,6 +146,43 @@ public class SerialDelaunayRefinement {
     }
     isFirstRun = false;
     return time;
+  }
+
+  private void end(EdgeGraph mesh, Stack worklist, Node bad_element, Cavity cavity) {
+    HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
+    while (it2.hasNext()) {
+      worklist.push((Node)it2.next());
+    }
+ 
+    if (mesh.containsNode(bad_element)) {
+      worklist.push((Node) bad_element);
+    }
+  }
+
+  private void middle(EdgeGraph mesh, Cavity cavity) {
+    //remove old data
+    Node node;
+    
+    //Takes up 8.9% of runtime
+    for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
+      node = (Node) iterator.next();
+      mesh.removeNode(node);
+    }
+ 
+    //add new data
+    //Takes up 1.7% of runtime
+    for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
+      node = (Node) iterator1.next();
+      mesh.addNode(node);
+    }
+ 
+    
+    //Takes up 7.8% of runtime
+    Edge_d edge;
+    for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
+      edge = (Edge_d) iterator2.next();
+      mesh.addEdge(edge);
+    }
   }
 
   public void verify(EdgeGraph result) {

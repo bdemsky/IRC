@@ -36,14 +36,14 @@ public class Cavity {
     connections.clear();
     frontier = new LinkedList();
     centerNode = node;
-    for (centerElement = (Element) graph.getNodeData(centerNode); graph.containsNode(centerNode)
+    for (centerElement = (Element) getNodeData(centerNode); graph.containsNode(centerNode)
         && centerElement.isObtuse();) {
       Edge_d oppositeEdge = getOpposite(centerNode);
-      if (graph.getSource(oppositeEdge) == centerNode)
-        centerNode = graph.getDest(oppositeEdge);
+      if (getSource(oppositeEdge) == centerNode)
+        centerNode = getDest(oppositeEdge);
       else
-        centerNode = graph.getSource(oppositeEdge);
-      centerElement = (Element) graph.getNodeData(centerNode);
+        centerNode = getSource(oppositeEdge);
+      centerElement = (Element) getNodeData(centerNode);
       if (centerNode == null)
         System.exit(-1);
     }
@@ -55,7 +55,7 @@ public class Cavity {
   }
 
   private Edge_d getOpposite(Node node) {
-    Element element = (Element) graph.getNodeData(node);
+    Element element = (Element) getNodeData(node);
 
     // Don't think we'd run into it but..
     // TODO check this.
@@ -64,10 +64,10 @@ public class Cavity {
     // Integer.valueOf(neighbors.size())
     // }));
 
-    for (Iterator iterator = graph.getOutNeighbors(node); iterator.hasNext();) {
+    for (Iterator iterator = getOutNeighbors(node); iterator.hasNext();) {
       Node neighbor = (Node) iterator.next();
-      Edge_d edge = graph.getEdge(node, neighbor);
-      ElementEdge edge_data = (ElementEdge) graph.getEdgeData(edge);
+      Edge_d edge = getEdge(node, neighbor);
+      ElementEdge edge_data = (ElementEdge) getEdgeData(edge);
       if (element.getObtuse().notEquals(edge_data.getPoint(0))
           && element.getObtuse().notEquals(edge_data.getPoint(1)))
         return edge;
@@ -79,17 +79,17 @@ public class Cavity {
   }
 
   public boolean isMember(Node node) {
-    Element element = (Element) graph.getNodeData(node);
+    Element element = (Element) getNodeData(node);
     return element.inCircle(center);
   }
 
   public void build() {
     while (frontier.size() != 0) {
       Node curr = (Node) frontier.removeFirst();
-      for (Iterator iterator = graph.getOutNeighbors(curr); iterator.hasNext();) {
+      for (Iterator iterator = getOutNeighbors(curr); iterator.hasNext();) {
         Node next = (Node) iterator.next();
-        Element nextElement = (Element) graph.getNodeData(next);
-        Edge_d edge = graph.getEdge(curr, next);
+        Element nextElement = (Element) getNodeData(next);
+        Edge_d edge = getEdge(curr, next);
         if ((dim != 2 || nextElement.getDim() != 2 || next == centerNode) && isMember(next)) {
           if (nextElement.getDim() == 2 && dim != 2) {
             initialize(next);
@@ -122,17 +122,17 @@ public class Cavity {
     Node ne_node;
     for (HashMapIterator iterator = connections.iterator(); iterator.hasNext(); post.addNode(ne_node)) {
       Edge_d conn = (Edge_d) iterator.next();
-      ElementEdge edge = (ElementEdge) graph.getEdgeData(conn);
+      ElementEdge edge = (ElementEdge) getEdgeData(conn);
       Element new_element = new Element(center, edge.getPoint(0), edge.getPoint(1));
       ne_node = graph.createNode(new_element);
       Node ne_connection;
-      if (pre.existsNode(graph.getDest(conn)))
-        ne_connection = graph.getSource(conn);
+      if (pre.existsNode(getDest(conn)))
+        ne_connection = getSource(conn);
       else
-        ne_connection = graph.getDest(conn);
+        ne_connection = getDest(conn);
       ElementEdge new_edge =
-          new_element.getRelatedEdge((Element) graph.getNodeData(ne_connection));
-      post.addEdge(graph.createEdge(ne_node, ne_connection, new_edge));
+          new_element.getRelatedEdge((Element) getNodeData(ne_connection));
+      post.addEdge(createEdge(ne_node, ne_connection, new_edge));
 
       // Collection postnodes = (Collection)post.getNodes().clone();
       LinkedList postnodes = new LinkedList();
@@ -142,12 +142,41 @@ public class Cavity {
 
       for (Iterator iterator1 = postnodes.iterator(); iterator1.hasNext();) {
         Node node = (Node) iterator1.next();
-        Element element = (Element) graph.getNodeData(node);
+        Element element = (Element) getNodeData(node);
         if (element.isRelated(new_element)) {
           ElementEdge ele_edge = new_element.getRelatedEdge(element);
-          post.addEdge(graph.createEdge(ne_node, node, ele_edge));
+          post.addEdge(createEdge(ne_node, node, ele_edge));
         }
       }
     }
+  }
+  
+  private Object getNodeData(Node n) {
+    return ((EdgeGraphNode) n).data;
+  }
+  
+  public Node getSource(Edge_d e) {
+    return ((GraphEdge) e).getSrc();
+  }
+  
+  public Node getDest(Edge_d e) {
+    return ((GraphEdge) e).getDest();
+  }
+  
+  public Edge_d getEdge(Node src, Node dest) {
+    return ((EdgeGraphNode) src).getOutEdge((EdgeGraphNode) dest);
+  }
+  
+  
+  public Edge_d createEdge(Node src, Node dest, Object e) {
+    return new GraphEdge((EdgeGraphNode) src, (EdgeGraphNode) dest, e);
+  }
+  
+  public Iterator getOutNeighbors(Node src) {
+    return ((EdgeGraphNode) src).getOutNeighbors();
+  }
+  
+  public Object getEdgeData(Edge_d e) {
+    return ((GraphEdge) e).d;
   }
 }
