@@ -1178,6 +1178,9 @@ public class Pointer implements HeapAnalysis{
       MySet<Edge> returnedge=delta.varedgeadd.get(returntmp);
       if (returnedge!=null)
 	for(Edge e:returnedge) {
+	  //skip the edge if types don't allow it...
+	  if (!typeUtil.isSuperorType(fcall.getReturnTemp().getType(), e.dst.getType()))
+	    continue;
 	  Edge newedge=e.copy();
 	  newedge.srcvar=fcall.getReturnTemp();
 	  if (seseCallers!=null)
