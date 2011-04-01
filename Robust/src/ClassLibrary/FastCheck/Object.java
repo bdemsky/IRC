@@ -4,19 +4,11 @@ public class Object {
   public Object nextobject;   /* Oid */
   public Object localcopy;
 
-  public native int nativehashCode();
-
   /* DO NOT USE ANY OF THESE - THEY ARE FOR IMPLEMENTING TAGS */
   private Object tags;
 
 
-  public int hashCode() {
-    if (!cachedHash) {
-      cachedCode=nativehashCode();
-      cachedHash=true;
-    }
-    return cachedCode;
-  }
+  public native int hashCode();
 
   /* DON'T USE THIS METHOD UNLESS NECESSARY */
   /* WE WILL DEPRECATE IT AS SOON AS INSTANCEOF WORKS */
