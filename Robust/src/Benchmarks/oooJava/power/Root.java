@@ -41,25 +41,25 @@ final class Root {
 	/**
 	 * Value used to compute convergence
 	 **/
-	private static double ROOT_EPSILON;
+	private double ROOT_EPSILON;
 
 	/**
 	 * Domain of thetaR->P map is 0.65 to 1.00 [index*0.01+0.65]
 	 **/
-	private static double map_P[];
+	private double map_P[];
 
-	private static double MIN_THETA_R;
-	private static double PER_INDEX_R;
-	private static double MAX_THETA_R;
+	private double MIN_THETA_R;
+	private double PER_INDEX_R;
+	private double MAX_THETA_R;
 
 	/**
 	 * Domain of thetaI->Q map is 0.130 to 0.200 [index*0.002+0.130]
 	 **/
-	private static double map_Q[];
+	private double map_Q[];
 
-	private static double MIN_THETA_I;
-	private static double PER_INDEX_I;
-	private static double MAX_THETA_I;
+	private double MIN_THETA_I;
+	private double PER_INDEX_I;
+	private double MAX_THETA_I;
 	
 	/**
 	 * Create the tree used by the power system optimization benchmark. Each

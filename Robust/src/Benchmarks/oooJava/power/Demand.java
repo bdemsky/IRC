@@ -11,9 +11,9 @@ final class Demand {
 	 **/
 	public double Q;
 
-	private static double F_EPSILON;
-	private static double G_EPSILON;
-	private static double H_EPSILON;
+	private double F_EPSILON;
+	private double G_EPSILON;
+	private double H_EPSILON;
 
 	/**
 	 * Create an object that represents power demand and initialize the power
