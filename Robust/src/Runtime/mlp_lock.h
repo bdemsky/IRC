@@ -11,6 +11,7 @@
 #define __xg(x) ((volatile INTPTR *)(x))
 
 #define CFENCE   asm volatile("":::"memory");
+#define MFENCE   asm volatile("mfence":::"memory");
 
 #define LOCK_PREFIX \
   ".section .smp_locks,\"a\"\n"   \
@@ -114,6 +115,11 @@ static inline long CAS(volatile void *ptr, unsigned long old, unsigned long new)
 
 static inline int BARRIER(){
   CFENCE;
+  return 1;
+}
+
+static inline int MBARRIER(){
+  MFENCE;
   return 1;
 }
 
