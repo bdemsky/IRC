@@ -160,7 +160,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   b->item.status=status;
   bintail->next=(BinItem_rcr*)b;
   be->tail=(BinItem_rcr*)b;
-  BARRIER();
+  MBARRIER(); //need to make sure that the read below doesn't pass the write above
   if (bintail->status==READY&&bintail->total==0) {
     //we may have to set write as ready
     while(1) {
@@ -374,6 +374,7 @@ void rcr_TAILWRITECASE(HashStructure *T, BinItem_rcr *val, BinItem_rcr *bintail,
 
 void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rcr *b) {
   atomic_dec(&b->total);
+
   //Need to clear ourself out of the read bin so that we aren't resolved after being freed
   if(ISREADBIN(b->type)) {
     //Have to clear our entry out of bin if we retired early
@@ -398,7 +399,6 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
       }
       be->head=val;
     }
-    
     if (b->next==NULL || b->total>0) {
       return;
     }
