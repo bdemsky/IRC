@@ -244,35 +244,31 @@ public   void ComputeCenterOfMass(ArrayIndexedGraph octree, ArrayIndexedNode roo
     for (int step = 0; step < local_ntimesteps; step++) { // time-step the system
       ComputeCenterAndDiameter();
       ArrayIndexedGraph octree = new ArrayIndexedGraph(8);
-      genreach q1;
       ArrayIndexedNode root = octree.createNode(new OctTreeNodeData(centerx, centery, centerz)); // create the tree's root
-      genreach q2;
       octree.addNode(root);
-      genreach q3;
       double radius = diameter * 0.5;
     
       for (int i = 0; i < local_nbodies; i++) {
-        genreach r0;
         Insert(octree, root, body[i], radius); // grow the tree by inserting each body
-        genreach r1;
         body[i].root=root;
-        genreach r2;
       }
       curr = 0;
       // summarize subtree info in each internal node (plus restructure tree and sort bodies for performance reasons)
       ComputeCenterOfMass(octree, root);
 
-      for(int i=0; i < local_nbodies; i++){
-        // compute the acceleration of each body (consumes most of the total runtime)
-        // n.ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
-        OctTreeLeafNodeData eachbody=body[i];
-        double di=diameter;
-        double it=itolsq;
-        double dt=dthf;
-        double ep=epssq;   
-        sese parallel{
-          eachbody.ComputeForce(octree, di, it, step, dt, ep);
-        }
+      sese force {
+	for(int i=0; i < local_nbodies; i++){
+	  // compute the acceleration of each body (consumes most of the total runtime)
+	  // n.ComputeForce(octree, root, diameter, itolsq, step, dthf, epssq);
+	  OctTreeLeafNodeData eachbody=body[i];
+	  double di=diameter;
+	  double it=itolsq;
+	  double dt=dthf;
+	  double ep=epssq;   
+	  sese parallel{
+	    eachbody.ComputeForce(octree, di, it, step, dt, ep);
+	  }
+	}
       }
 
       for (int i = 0; i < local_nbodies; i++) {        
