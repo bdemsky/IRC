@@ -453,7 +453,7 @@ void collect(struct garbagelist * stackptr) {
   ENQUEUE(___fcrevert___, ___fcrevert___);
 #endif
 
-#if defined(THREADS)||defined(DSTM)||defined(STM)
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   {
     int i;
     stackptr=(struct garbagelist *)global_defs_p;
