@@ -160,7 +160,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   b->item.status=status;
   bintail->next=(BinItem_rcr*)b;
   be->tail=(BinItem_rcr*)b;
-  
+  BARRIER();
   if (bintail->status==READY&&bintail->total==0) {
     //we may have to set write as ready
     while(1) {
