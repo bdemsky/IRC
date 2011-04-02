@@ -44,8 +44,8 @@ public class RuntimeConflictResolver {
   
   // initializing variables can be found in printHeader()
   private static final String allocSite = "allocsite";
-  private static final String queryAndAddToVistedHashtable = "hashRCRInsert";
-  private static final String enqueueInC = "enqueueRCRQueue(";
+  private static final String queryAndAddToVisitedHashtable = "hashRCRInsert";
+  private static final String enqueueInC = "enqueueRCRQueue";
   private static final String dequeueFromQueueInC = "dequeueRCRQueue()";
   private static final String clearQueue = "resetRCRQueue()";
   // Make hashtable; hashRCRCreate(unsigned int size, double loadfactor)
@@ -153,7 +153,7 @@ public class RuntimeConflictResolver {
     //generic cast to ___Object___ to access ptr->allocsite field. 
     cFile.println("  struct ___Object___ * ptr = (struct ___Object___ *) InVar;");
     cFile.println("  if (InVar != NULL) {");
-    cFile.println("    " + queryAndAddToVistedHashtable + "(ptr, "+initialState.getID()+");");
+    cFile.println("    " + queryAndAddToVisitedHashtable + "(ptr, "+initialState.getID()+");");
     cFile.println("    do {");
 
     if( !isStallSite ) {
@@ -300,7 +300,9 @@ public class RuntimeConflictResolver {
         
 	cFile.println("    }"); //break for internal switch and if
       } else {                          //non-inlineable cases
-	cFile.println("    " + enqueueInC + childPtr + ", "+tr.getID()+");");
+	cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");	
+	cFile.println("    if("+queryAndAddToVisitedHashtable+"("+currPtr+","+tr.getID()+"))");
+	cFile.println("    " + enqueueInC +"("+ currPtr + ", "+tr.getID()+");");
       } 
     }
   }
