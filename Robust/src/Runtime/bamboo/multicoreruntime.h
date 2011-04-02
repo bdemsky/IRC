@@ -52,9 +52,9 @@ bool reside;
 #define BAMBOO_THREAD_QUEUE_SIZE (BAMBOO_SMEM_SIZE) // (45 * 16 * 1024)
 #endif
 // data structures for threads
-INTPTR * bamboo_thread_queue;
+unsigned int * bamboo_thread_queue;
 unsigned int bamboo_max_thread_num_mask;
-INTPTR bamboo_current_thread;
+unsigned int bamboo_current_thread;
 
 extern int corenum;
 #endif // MGC

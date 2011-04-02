@@ -1810,6 +1810,9 @@ public class BuildCode {
         else
           headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
       }
+      if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+        headersout.print(", int linenum");
+      }
       headersout.println(");\n");
     }
 
@@ -1862,6 +1865,9 @@ public class BuildCode {
 	headersout.print("struct " + temp.getType().getSafeSymbol()+" * "+temp.getSafeSymbol());
       else
 	headersout.print(temp.getType().getSafeSymbol()+" "+temp.getSafeSymbol());
+    }
+    if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+      headersout.print(", int linenum");
     }
     headersout.println(");\n");
   }
@@ -2474,11 +2480,18 @@ public class BuildCode {
     }
     if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
       output.println("{");
+      if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+        output.println("int monitorenterline = __LINE__;");
+      }
       // call MonitorEnter/MonitorExit on a class obj
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
         output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
         output.println("1," + localsprefixaddr + ", global_defs_p->"+ fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj};");
+        if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+          output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__, monitorenterline);");
+        } else {
         output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+        }
       } else {
       output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
 		     + md.getSafeMethodDescriptor() + "((struct ___Object___*)(global_defs_p->"
@@ -2489,6 +2502,9 @@ public class BuildCode {
     }
     
     output.println("{");
+    if(md.getSymbol().equals("MonitorEnter")) {
+      output.println("int monitorenterline = __LINE__;");
+    }
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params __parameterlist__={");
       output.print(objectparams.numPointers());
@@ -2558,7 +2574,9 @@ public class BuildCode {
 	  output.print(temp.getType().getSafeSymbol());
       }
 
-
+      if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+        output.print(", int");
+      }
       output.print("))virtualtable["+generateTemp(fm,fc.getThis())+"->type*"+maxcount+"+"+virtualcalls.getMethodNumber(md)+"])");
     }
 
@@ -2605,7 +2623,11 @@ public class BuildCode {
 	needcomma=true;
       }
     }
+    if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
+      output.println(", monitorenterline);");
+    } else {
     output.println(");");
+    }
     output.println("   }");
   }
 

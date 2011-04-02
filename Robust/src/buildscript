@@ -100,6 +100,8 @@ echo "-gclargesharedheap(2) set the gc shared memory as large (should be used to
 echo "-gccacheadapt setup as cacheadaptable mode (should be used together with -multicoregc)"
 echo -gcprofile build with gcprofile options
 echo -mgc generate Multicore GC binary without task stuff
+echo -objectlockdebug generate OBJECT_LOCK_DEBUG code
+echo -mappinttbldebug generate MAPPINGTBL_DEBUG code
 echo
 echo SSJava options
 echo -ssjava enables SSJava
@@ -218,6 +220,8 @@ GCCACHEADAPTPOLICYFLAG=false
 GCCACHEADAPTPOLICY=''
 GCCACHESAMPLINGFLAG=false
 MGCFLAG=false
+OBJECTLOCKDEBUGFLAG=false
+MAPPINGTBLDEBUGFLAG=false
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -530,6 +534,13 @@ elif [[ $1 = '-mgc' ]]
 then
 MGCFLAG=true
 JAVAOPTS="$JAVAOPTS -mgc"
+elif [[ $1 = '-objectlockdebug' ]]
+then
+OBJECTLOCKDEBUGFLAG=true
+JAVAOPTS="$JAVAOPTS -objectlockdebug"
+elif [[ $1 = '-mappingtbldebug' ]]
+then
+MAPPINGTBLDEBUGFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -945,6 +956,16 @@ export TILERACFLAGS="-DMULTICORE -DCLOSE_PRINT -DTILERA"
 #-DMAPPINGTBL_DEBUG"
 else
 export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT -DTILERA"
+fi
+
+if $MAPPINGTBLDEBUGFLAG
+then
+TILERACFLAGS="${TILERACFLAGS} -DMAPPINGTBL_DEBUG"
+fi
+
+if $OBJECTLOCKDEBUGFLAG
+then
+TILERACFLAGS="${TILERACFLAGS} -DOBJECT_LOCK_DEBUG"
 fi
 
 if $TILERAMEMPROFFLAG

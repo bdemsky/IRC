@@ -1202,13 +1202,13 @@ INLINE void processmsg_gcstartpre_I() {
   if(gcprocessing) {
 	// already stall for gc
 	// send a update pregc information msg to the master core
-	if(BAMBOO_CHECK_SEND_MODE()) {
+	/*if(BAMBOO_CHECK_SEND_MODE()) {
 	  cache_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
 		  self_numsendobjs, self_numreceiveobjs);
 	} else {
 	  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
 		  self_numsendobjs, self_numreceiveobjs, true);
-	}
+	}*/
   } else {
 	// the first time to be informed to start gc
 	gcflag = true;
@@ -1750,6 +1750,8 @@ processmsg:
     case GCFINISH: {
       // received a GC finish msg
       gcphase = FINISHPHASE;
+	  gcflag = false;
+	  gcprocessing = false;
       break;
     }   // case GCFINISH
 

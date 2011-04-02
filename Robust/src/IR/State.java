@@ -182,6 +182,7 @@ public class State {
   public String outputdir = "/scratch/";
   // MGC options
   public boolean MGC=false;
+  public boolean OBJECTLOCKDEBUG=false;
   
   //Other options
   public String structfile;

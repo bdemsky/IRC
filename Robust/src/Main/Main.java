@@ -155,6 +155,8 @@ public class Main {
         state.MULTICOREGC=true;
       else if (option.equals("-mgc")) {
         state.MGC = true;
+      } else if (option.equals("-objectlockdebug")) {
+        state.OBJECTLOCKDEBUG = true;
       } else if (option.equals("-ownership"))
 	state.OWNERSHIP=true;
       else if (option.equals("-ownallocdepth")) {

@@ -2,6 +2,7 @@ public class HashMap implements Map {
   HashEntry[] table;
   float loadFactor;
   int numItems;
+  int threshold;
 
   public HashMap() {
     init(16, 0.75f);
@@ -16,35 +17,48 @@ public class HashMap implements Map {
   }
 
   private void init(int initialCapacity, float loadFactor) {
-    table=new HashEntry[initialCapacity];
+    table=new HashEntry[computeCapacity(initialCapacity)];
     this.loadFactor=loadFactor;
     this.numItems=0;
+    this.threshold=(int)(loadFactor*table.length);
+  }
+  
+  private static int computeCapacity(int capacity) {
+    int x=16;
+    while(x<capacity)
+      x=x<<1;
+    return x;
   }
 
   private static int hash(Object o, int length) {
-    if (o==null)
-      return 0;
-    int value=o.hashCode()%length;
-    if (value<0)
-      return -value;
-    return value;
+    int orig=o.hashCode();
+    orig=orig^(orig>>>22)^(orig>>>10);
+    orig=orig^(orig>>>8)^(orig>>4);
+    return orig&(length-1);
   }
 
   void resize() {
-    int newCapacity=2*table.length+1;
+    int newCapacity=table.length<<1;
     HashEntry[] oldtable=table;
     this.table=new HashEntry[newCapacity];
+    this.threshold=(int) (newCapacity*loadFactor);
 
     for(int i=0; i<oldtable.length; i++) {
       HashEntry e=oldtable[i];
       while(e!=null) {
-	HashEntry next=e.next;
-	int bin=hash(e.key, newCapacity);
-	e.next=table[bin];
-	table[bin]=e;
-	e=next;
+    HashEntry next=e.next;
+    int bin=hash(e.key, newCapacity);
+    e.next=table[bin];
+    table[bin]=e;
+    e=next;
       }
     }
+  }
+  
+  public void clear() {
+    for(int i=0;i<table.length;i++)
+      table[i]=null;
+    numItems=0;
   }
 
   public boolean isEmpty() {
@@ -108,7 +122,7 @@ public class HashMap implements Map {
 
   Object put(Object key, Object value) {
     numItems++;
-    if (numItems>(loadFactor*table.length)) {
+    if (numItems>threshold) {
       //Resize the table
       resize();
     }

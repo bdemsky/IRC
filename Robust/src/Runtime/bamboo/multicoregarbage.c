@@ -27,7 +27,7 @@ extern unsigned int gcmem_mixed_usedmem;
 #endif
 
 #ifdef MGC
-extern INTPTR bamboo_threadlocks;
+extern unsigned int bamboo_threadlocks;
 #endif
 
 struct pointerblock {
@@ -2238,7 +2238,7 @@ inline void flushRuntimeObj(struct garbagelist * stackptr) {
 #ifdef MGC
   // flush the bamboo_threadlocks
   if(bamboo_threadlocks != 0) {
-	bamboo_threadlocks = (INTPTR)(flushObj((void *)bamboo_threadlocks));
+	bamboo_threadlocks = (unsigned int)(flushObj((void *)bamboo_threadlocks));
   }
 
   // flush global thread queue
@@ -3043,8 +3043,8 @@ inline void gc_collect(struct garbagelist * stackptr) {
     }
   }
 
-  gcflag = false;
-  gcprocessing = false;
+  //gcflag = false;
+  //gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
@@ -3151,8 +3151,8 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
       break;
     }
   }
-  gcflag = false;
-  gcprocessing = false;
+  //gcflag = false;
+  //gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
@@ -3548,9 +3548,6 @@ inline bool gc(struct garbagelist * stackptr) {
 	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	  // some of the cores are still executing the mutator and did not reach
 	  // some gc safe point, therefore it is not ready to do gc
-	  // in case that there are some pregc information msg lost, send a confirm
-	  // msg to the 'busy' core
-	  send_msg_1(ti, GCSTARTPRE, false);
 	  gcflag = true;
 	  return false;
 	} else {
