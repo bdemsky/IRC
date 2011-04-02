@@ -1,8 +1,8 @@
 public class DirectedEdgeGraph implements EdgeGraph {
-  HashSet nodes;
+
   public DirectedEdgeGraph() {
     // nodes = Collections.synchronizedSet(new HashSet());
-    nodes = new HashSet();
+    // nodes = new HashSet();
   }
 
   public boolean addEdge(Edge_d e) {
@@ -90,16 +90,18 @@ public class DirectedEdgeGraph implements EdgeGraph {
     return retval;
   }
 
-  public Iterator iterator() {
-    return nodes.iterator();
-  }
+  //public Iterator iterator() {
+  //  return nodes.iterator();
+  //}
 
   public boolean addNode(Node n) {
-    return nodes.add((EdgeGraphNode) n);
+    boolean notInAlready = !n.inGraph;
+    n.inGraph = true;
+    return notInAlready;
   }
 
   public boolean containsNode(Node n) {
-    return nodes.contains(n);
+    return n.inGraph;
   }
 
   public Object getNodeData(Node n) {
@@ -107,14 +109,14 @@ public class DirectedEdgeGraph implements EdgeGraph {
     return egn.data;
   }
 
-  public int getNumNodes() {
-    return nodes.size();
-  }
+  //public int getNumNodes() {
+  //  return nodes.size();
+  //}
 
-  public Node getRandom() {
-    // return (Node)Sets.getAny(nodes);
-    return (Node) nodes.iterator().next();
-  }
+  //public Node getRandom() {
+  //  // return (Node)Sets.getAny(nodes);
+  //  return (Node) nodes.iterator().next();
+  //}
 
   public boolean hasNeighbor(Node src, Node dest) {
     EdgeGraphNode esrc = (EdgeGraphNode) src;
@@ -123,8 +125,9 @@ public class DirectedEdgeGraph implements EdgeGraph {
   }
 
   public boolean removeNode(Node n) {
+    boolean wasIn = n.inGraph;
     removeConnectingEdges((EdgeGraphNode) n);
-    return nodes.remove(n);
+    return wasIn;
   }
 
   protected void removeConnectingEdges(EdgeGraphNode n) {

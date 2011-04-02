@@ -44,7 +44,9 @@ public class SerialDelaunayRefinement {
       if (runtime < mintime) {
         mintime = runtime;
       }
+      System.out.println( "Post-run garbage collection started..." );
       System.gc();
+      System.out.println( "done gc" );
     }
 
     System.out.println("minimum runtime: " + mintime + " ms");
@@ -65,8 +67,8 @@ public class SerialDelaunayRefinement {
       System.out.println("http://iss.ices.utexas.edu/lonestar/delaunayrefinement.html");
       System.out.println();
     }
-    if (args.length < 1) {
-      System.out.println("Arguments: <input file> [verify]");
+    if (args.length < 2) {
+      System.out.println("Arguments: <input file> <num workers> [verify]");
       System.exit(-1);
     }
 
@@ -75,115 +77,158 @@ public class SerialDelaunayRefinement {
     Mesh m = new Mesh();
     m.read(mesh, args[0]);
 
-    //treat LinkedList as a stack
-    Stack worklist = new Stack();
-    //    LinkedList worklist = new LinkedList();
+    int numWorkers = Integer.parseInt( args[1] );
 
-    // worklist.addAll(Mesh.getBad(mesh));
+    Stack worklist = new Stack();
+
+    // REPLACE worklist.addAll(Mesh.getBad(mesh)); WITH...
     HashMapIterator it = m.getBad(mesh).iterator();
     while (it.hasNext()) {
       worklist.push(it.next());
     }
     
     if (isFirstRun) {
-      System.out.println("configuration: " + mesh.getNumNodes() + " total triangles, " + worklist.size() + " bad triangles");
+      System.out.println("configuration: " + 
+                         mesh.getNumNodes() + " total triangles, " +
+                         worklist.size() + " bad triangles");
       System.out.println();
     }
 
+    System.out.println( "Post-config garbage collection started..." );
     System.gc();
+    System.out.println( "done gc" );
 
-//    long id = Time.getNewTimeId();
+
+    // long id = Time.getNewTimeId();
     long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {
-      
-      Node[] bad_elements = new Node[23];
-      for(int i=0;i<23;i++) {
+
+      // Phase 1, grab enough work from list for
+      // each worker in the parent
+      Node[] nodesForBadTris = new Node[numWorkers];
+      for(int i=0;i<numWorkers;i++) {
         if(worklist.isEmpty()) {
-          bad_elements[i] = null; 
+          nodesForBadTris[i] = null; 
         } else {
-          bad_elements[i] = (Node) worklist.pop();
+          nodesForBadTris[i] = (Node) worklist.pop();
         }
       }
       
-  //      Node bad_element = (Node) worklist.pop();
-      for(int i=0;i<23;i++) {
-        Node bad_element = bad_elements[i];
-        if (bad_element != null && mesh.containsNode(bad_element)) {
+      // Phase 2, read mesh and compute cavities in parallel
+      Cavity[] cavities = new Cavity[numWorkers];
+      for(int i=0;i<numWorkers;i++) {
+        
+        Node nodeForBadTri = nodesForBadTris[i];
+        if (nodeForBadTri != null 
+            //&& mesh.containsNode(nodeForBadTri)
+            && nodeForBadTri.inGraph
+            ) {
           
-          sese P {
-          //takes < 1 sec 
-          Cavity cavity = new Cavity(mesh);
+          sese computeCavity {
+            //takes < 1 sec 
+            Cavity cavity = new Cavity(mesh);
           
-          //Appears to only call getters (only possible conflict is inherent in Hashmap)
-          cavity.initialize(bad_element);
+            //Appears to only call getters (only possible conflict is inherent in Hashmap)
+            cavity.initialize(nodeForBadTri);
           
-          //Takes up 15% of computation
-          //Problem:: Build is recursive upon building neighbor upon neighbor upon neighbor
-          //This is could be a problem....
-          //TODO check dimensions problem
-          cavity.build();
+            //Takes up 15% of computation
+            //Problem:: Build is recursive upon building neighbor upon neighbor upon neighbor
+            //This is could be a problem....
+            //TODO check dimensions problem
+            cavity.build();
           
-          //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
-          cavity.update();                    
+            //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
+            cavity.update();                    
           }
   
-          sese S {
-            //28% of runtime #Removes stuff out of our mesh
-            middle(mesh, cavity);  
-            
-            //1.5% of runtime # adds stuff back to the work queue. 
-            end(mesh, worklist, bad_element, cavity); 
+          sese storeCavity {
+            cavities[i] = cavity;
           }
         }
-      
       }
-    }
+      
+      // Phase 3, apply cavities to mesh, if still applicable
+      // this phase can proceed in parallel when a cavity's
+      // start nodes are still present
+      for(int i=0;i<numWorkers;i++) {
+
+        Cavity cavity = cavities[i];
+
+        Node nodeForBadTri = null;
+        
+        sese applyCavity {
+
+          // go ahead with applying cavity when all of its
+          // pre-nodes are still in
+          if( cavity.getPre().allNodesStillInCompleteGraph() ) {
+
+            //remove old data
+            Node node;
+    
+            //Takes up 8.9% of runtime
+            for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
+              node = (Node) iterator.next();
+              mesh.removeNode(node);
+            }
+ 
+            //add new data
+            //Takes up 1.7% of runtime
+            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
+              node = (Node) iterator1.next();
+              mesh.addNode(node);
+            }
+ 
+            //Takes up 7.8% of runtime
+            Edge_d edge;
+            for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
+              edge = (Edge_d) iterator2.next();
+              mesh.addEdge(edge);
+            }
+
+          } else {
+            // otherwise forget the cavity and reschedule the bad triangle
+            nodeForBadTri = nodesForBadTris[i];
+          }
+        }
+         
+
+        sese scheduleMoreBad {
+          
+          // if we couldn't even apply this cavity, just
+          // throw it back on the worklist
+          if( nodeForBadTri != null ) {
+ 
+            if( nodeForBadTri.inGraph ) {
+              worklist.push( nodeForBadTri );
+            }
+
+          } else {
+            // otherwise we did apply the cavity, but we
+            // may have introduced new bad triangles
+            HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
+            while (it2.hasNext()) {
+              worklist.push((Node)it2.next());
+            }
+          }
+        } // end scheduleMoreBad
+      } // end phase 3
+
+    } // end while( !worklist.isEmpty() )
+
     long time = System.currentTimeMillis() - startTime;
     System.out.println("runtime: " + time + " ms");
     //TODO note how we only verify on first run...
-    if (isFirstRun && args.length > 1) {
+    //TODO verify is outside timing, do it each time
+    // since we MIGHT compute something different when
+    // we have a bug
+    if (//isFirstRun && 
+        args.length > 2) {
       verify(mesh);
     }
     isFirstRun = false;
     return time;
   }
 
-  private void end(EdgeGraph mesh, Stack worklist, Node bad_element, Cavity cavity) {
-    HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
-    while (it2.hasNext()) {
-      worklist.push((Node)it2.next());
-    }
- 
-    if (mesh.containsNode(bad_element)) {
-      worklist.push((Node) bad_element);
-    }
-  }
-
-  private void middle(EdgeGraph mesh, Cavity cavity) {
-    //remove old data
-    Node node;
-    
-    //Takes up 8.9% of runtime
-    for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
-      node = (Node) iterator.next();
-      mesh.removeNode(node);
-    }
- 
-    //add new data
-    //Takes up 1.7% of runtime
-    for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
-      node = (Node) iterator1.next();
-      mesh.addNode(node);
-    }
- 
-    
-    //Takes up 7.8% of runtime
-    Edge_d edge;
-    for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
-      edge = (Edge_d) iterator2.next();
-      mesh.addEdge(edge);
-    }
-  }
 
   public void verify(EdgeGraph result) {
     //Put in cuz of static issues.

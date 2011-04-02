@@ -49,6 +49,17 @@ public class Subgraph {
     edges.clear();
   }
 
+
+  public boolean allNodesStillInCompleteGraph() {
+    for( Iterator i = nodes.iterator(); i.hasNext(); ) {
+      Node node = (Node) i.next();
+      if( !node.inGraph ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public HashSet newBad(EdgeGraph mesh) {
     HashSet ret = new HashSet();
     for (Iterator iter = nodes.iterator(); iter.hasNext();) {
