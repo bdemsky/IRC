@@ -12,8 +12,8 @@ void resetRCRQueue() {
 //0 would mean success
 //1 would mean fail
 int enqueueRCRQueue(void * ptr, int traverserState) {
-  unsigned int oldhead=myRCRQueue.head+1;
-  unsigned int head=oldhead;
+  unsigned int oldhead=myRCRQueue.head;
+  unsigned int head=oldhead+1;
   if (head&SIZE)
     head=0;
 
