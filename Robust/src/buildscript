@@ -220,6 +220,7 @@ GCCACHEADAPTPOLICYFLAG=false
 GCCACHEADAPTPOLICY=''
 GCCACHESAMPLINGFLAG=false
 MGCFLAG=false
+MGCINTELFLAG=false
 OBJECTLOCKDEBUGFLAG=false
 MAPPINGTBLDEBUGFLAG=false
 USEDMALLOC=false
@@ -534,6 +535,9 @@ elif [[ $1 = '-mgc' ]]
 then
 MGCFLAG=true
 JAVAOPTS="$JAVAOPTS -mgc"
+elif [[ $1 = '-mgcintel' ]]
+then
+MGCINTELFLAG=true
 elif [[ $1 = '-objectlockdebug' ]]
 then
 OBJECTLOCKDEBUGFLAG=true
@@ -756,6 +760,10 @@ fi
 
 # Setup class path
 
+if $MGCINTELFLAG
+then
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
+else
 if $MGCFLAG
 then
 #base multicore gc files
@@ -788,6 +796,7 @@ fi
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
 fi
 fi
+fi
 
 # Build bristlecone/java sources
 
@@ -800,12 +809,21 @@ then exit $?
 fi
 else
 #if ! ${ROBUSTROOT}/ourjava -Xms5m -Xmx100m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
+if $MGCINTELFLAG
+then
+if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main $JAVAOPTS -classlibrary \
+$ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
+$SRCFILES
+then exit $?
+fi
+else
 if ! $NOJAVA
 then
 if ! ${ROBUSTROOT}/ourjava -Xms50m -Xmx1500m $JAVAFORWARDOPTS -classpath $ROBUSTROOT/../cup/:$ROBUSTROOT Main.Main -classlibrary \
 $ROBUSTROOT/ClassLibrary/ -classlibrary $ROBUSTROOT/ClassLibrary/gnu/ -dir $BUILDDIR -precise \
 $JAVAOPTS $SRCFILES
 then exit $?
+fi
 fi
 fi
 fi
