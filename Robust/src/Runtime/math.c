@@ -82,9 +82,7 @@ float CALL11(___Math______ceilf____F, float ___a___, float ___a___) {
   return ceilf(___a___);
 }
 
-#ifdef MGC
 float CALL22(___Math______IEEEremainder____F_F, float ___a___, float ___b___,  float ___a___, float ___b___) {
   return fmod(___a___, ___b___);
 }
 
-#endif
