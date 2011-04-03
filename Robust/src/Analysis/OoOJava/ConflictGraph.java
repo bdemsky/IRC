@@ -1,6 +1,7 @@
 package Analysis.OoOJava;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.util.Collection;
 import java.util.HashMap;
@@ -768,7 +769,15 @@ public class ConflictGraph {
       attributes += "label=\"" + node.getID() + "\\n";
 
       if (node.isStallSiteNode()) {
-        attributes += "STALL SITE" + "\\n" + "\"]";
+        String srcFileName = node.getVar().getType().getClassDesc().getSourceFileName();
+        int separatorIdx = srcFileName.lastIndexOf(File.separator);
+        if (separatorIdx > 0) {
+          srcFileName = srcFileName.substring(separatorIdx + 1);
+        }
+        node.stallSite.getNumLine();
+        attributes +=
+            "STALL SITE" + "\\n" + srcFileName + ":" + node.getStallSiteFlatNode().getNumLine()
+                + "\\n" + "\"]";
       } else {
         attributes += "LIVE-IN" + "\\n" + "\"]";
       }
