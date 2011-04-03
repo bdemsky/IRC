@@ -2906,6 +2906,7 @@ public class BuildCode {
       output.println(generateTemp(fm, fln.getDst())+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {
       String str=(String)fln.getValue();
+      output.print("{");
       output.print("short str"+flncount+"[]={");
       for(int i=0;i<str.length();i++) {
 	if (i!=0)
@@ -2913,12 +2914,13 @@ public class BuildCode {
 	output.print(((int)str.charAt(i)));
       }
       output.println("};");
-      flncount++;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort("+localsprefixaddr+", str"+flncount+", "+((String)fln.getValue()).length()+");");
       } else {
 	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
       }
+      output.print("}");
+      flncount++;
     } else if (fln.getType().isBoolean()) {
       if (((Boolean)fln.getValue()).booleanValue())
 	output.println(generateTemp(fm, fln.getDst())+"=1;");
