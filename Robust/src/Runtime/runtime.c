@@ -426,6 +426,7 @@ long long CALL00(___System______currentTimeMillis____) {
   return retval;
 }
 
+#ifdef D___System______gc____
 void CALL00(___System______gc____) {
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   while (pthread_mutex_trylock(&gclock)!=0) {
@@ -475,6 +476,7 @@ void CALL00(___System______gc____) {
   pthread_mutex_unlock(&gclock);
 #endif
 }
+#endif
 
 long long CALL00(___System______microTimes____) {
   struct timeval tv; 
