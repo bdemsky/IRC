@@ -2899,14 +2899,25 @@ public class BuildCode {
       output.println(generateTemp(fm,fcn.getDst())+"=("+fcn.getType().getSafeSymbol()+")"+generateTemp(fm,fcn.getSrc())+";");
   }
 
+  int flncount=0;
+
   protected void generateFlatLiteralNode(FlatMethod fm, FlatLiteralNode fln, PrintWriter output) {
     if (fln.getValue()==null)
       output.println(generateTemp(fm, fln.getDst())+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {
+      String str=(String)fln.getValue();
+      output.print("short str"+flncount+"[]={");
+      for(int i=0;i<str.length();i++) {
+	if (i!=0)
+	  output.print(", ");
+	output.print(((int)str.charAt(i)));
+      }
+      output.println("};");
+      flncount++;
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	output.println(generateTemp(fm, fln.getDst())+"=NewString("+localsprefixaddr+", \""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
+	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort("+localsprefixaddr+", str"+flncount+", "+((String)fln.getValue()).length()+");");
       } else {
-	output.println(generateTemp(fm, fln.getDst())+"=NewString(\""+FlatLiteralNode.escapeString((String)fln.getValue())+"\","+((String)fln.getValue()).length()+");");
+	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
       }
     } else if (fln.getType().isBoolean()) {
       if (((Boolean)fln.getValue()).booleanValue())
@@ -2914,8 +2925,8 @@ public class BuildCode {
       else
 	output.println(generateTemp(fm, fln.getDst())+"=0;");
     } else if (fln.getType().isChar()) {
-      String st=FlatLiteralNode.escapeString(fln.getValue().toString());
-      output.println(generateTemp(fm, fln.getDst())+"='"+st+"';");
+      int val=(int)(((Character)fln.getValue()).charValue());
+      output.println(generateTemp(fm, fln.getDst())+"="+val+";");
     } else if (fln.getType().isLong()) {
       output.println(generateTemp(fm, fln.getDst())+"="+fln.getValue()+"LL;");
     } else
