@@ -105,4 +105,5 @@ public class Math {
   public static native float logf(float a);
   public static native float powf(float a, float b);
   public static native float ceilf(float a);
+  public static native float IEEEremainder(float f1, float f2);
 }
