@@ -21,4 +21,7 @@ public interface EdgeGraph extends Graph {
   public abstract Object getEdgeData(Edge_d edge);
 
   public abstract Object setEdgeData(Edge_d edge, Object obj);
+
+  public abstract void addNodeToAllNodesSet( Node n );
+  public abstract void removeNodeFromAllNodesSet( Node n );
 }

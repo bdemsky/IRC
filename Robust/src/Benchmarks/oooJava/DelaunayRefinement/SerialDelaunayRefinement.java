@@ -203,8 +203,17 @@ public class SerialDelaunayRefinement {
             }
 
           } else {
-            // otherwise we did apply the cavity, but we
-            // may have introduced new bad triangles
+            // otherwise we did apply the cavity, so repair the all-nodes set of the mesh
+            Iterator itrPreNodes = cavity.getPre().getNodes().iterator();
+            while( itrPreNodes.hasNext() ) {
+              mesh.removeNodeFromAllNodesSet( (Node)itrPreNodes.next() );
+            }
+            Iterator itrPostNodes = cavity.getPost().getNodes().iterator();
+            while( itrPostNodes.hasNext() ) {
+              mesh.addNodeToAllNodesSet( (Node)itrPostNodes.next() );
+            }
+
+            // and we may have introduced new bad triangles
             HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
             while (it2.hasNext()) {
               worklist.push((Node)it2.next());

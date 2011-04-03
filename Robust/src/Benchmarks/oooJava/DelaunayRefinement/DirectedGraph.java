@@ -1,9 +1,9 @@
 public class DirectedGraph implements Graph {
-  protected HashSet nodes;
-
+  //protected HashSet nodes;
+  
   public DirectedGraph() {
     // nodes = Collections.synchronizedSet(new HashSet());
-    nodes = new HashSet();
+    //nodes = new HashSet();
   }
 
   public boolean addNeighbor(Node src, Node dest) {
@@ -13,11 +13,13 @@ public class DirectedGraph implements Graph {
   }
 
   public boolean addNode(Node n) {
-    return nodes.add((GraphNode) n);
+    boolean notInAlready = !n.inGraph;
+    n.inGraph = true;
+    return notInAlready;
   }
 
   public boolean containsNode(Node n) {
-    return nodes.contains(n);
+    n.inGraph;
   }
 
   public Node createNode(Object n) {
@@ -36,9 +38,9 @@ public class DirectedGraph implements Graph {
     return ((GraphNode)node).inNeighbors.size();
   }
 
-  public int getNumNodes() {
-    return nodes.size();
-  }
+  //public int getNumNodes() {
+  //  return nodes.size();
+  //}
 
   public Iterator getOutNeighbors(Node src) {
     GraphNode src_c = (GraphNode) src;
@@ -67,8 +69,9 @@ public class DirectedGraph implements Graph {
   }
 
   public boolean removeNode(Node n) {
+    boolean wasIn = n.inGraph;
     removeConnectingEdges((GraphNode) n);
-    return nodes.remove(n);
+    return wasIn;
   }
 
   protected void removeConnectingEdges(GraphNode n) {
@@ -95,9 +98,9 @@ public class DirectedGraph implements Graph {
     return retval;
   }
 
-  public Iterator iterator() {
-    return nodes.iterator();
-  }
+  //public Iterator iterator() {
+  //  return nodes.iterator();
+  //}
 
   public boolean isDirected() {
     return true;
