@@ -2906,7 +2906,7 @@ public class BuildCode {
       output.println(generateTemp(fm, fln.getDst())+"=0;");
     else if (fln.getType().getSymbol().equals(TypeUtil.StringClass)) {
       String str=(String)fln.getValue();
-      output.print("{");
+      output.println("{");
       output.print("short str"+flncount+"[]={");
       for(int i=0;i<str.length();i++) {
 	if (i!=0)
@@ -2919,7 +2919,7 @@ public class BuildCode {
       } else {
 	output.println(generateTemp(fm, fln.getDst())+"=NewStringShort(str"+flncount+" ,"+((String)fln.getValue()).length()+");");
       }
-      output.print("}");
+      output.println("}");
       flncount++;
     } else if (fln.getType().isBoolean()) {
       if (((Boolean)fln.getValue()).booleanValue())
