@@ -187,12 +187,12 @@ public class Throwable //implements Serializable
    * @param cause the cause, may be null
    * @since 1.4
    */
-  public Throwable(Throwable cause)
+  public Throwable(Throwable causem)
   {
     //this(cause == null ? null : cause.toString(), cause);
-    String message = cause == null ? null : cause.toString();
+    String message = causem == null ? null : causem.toString();
     detailMessage = message;
-    this.cause = cause;
+    this.cause = causem;
   }
 
   /**

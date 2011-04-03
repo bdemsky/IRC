@@ -2393,8 +2393,8 @@ public class BigInteger //extends Number implements Comparable<BigInteger>
 	  }
 	if (yi < 0) finish = 2;
 	break;
-      default:
       case 15:  // set
+      default:
 	ni = -1;
 	break;
       }
