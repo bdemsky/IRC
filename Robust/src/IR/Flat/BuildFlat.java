@@ -431,11 +431,10 @@ public class BuildFlat {
 	return new NodePair(first,np.getEnd());
       } else
 	return new NodePair(first, fn);
-      } else if(state.MGC) {
+      } else {
       // array creation with initializers
         return flattenArrayInitializerNode(con.getArrayInitializer(), out_temp);
       }
-      return null;
     }
   }
 
@@ -492,7 +491,7 @@ public class BuildFlat {
 
     if (min.getExpression()!=null) {
       TypeDescriptor mtd = min.getExpression().getType();
-      if(state.MGC && mtd.isClass() && mtd.getClassDesc().isEnum()) {
+      if(mtd.isClass() && mtd.getClassDesc().isEnum()) {
         mtd = new TypeDescriptor(TypeDescriptor.INT);
       }
       thisarg=TempDescriptor.tempFactory("thisarg", mtd);
@@ -505,7 +504,7 @@ public class BuildFlat {
     for(int i=0; i<min.numArgs(); i++) {
       ExpressionNode en=min.getArg(i);
       TypeDescriptor etd = en.getType();
-      if(state.MGC && etd.isClass() && etd.getClassDesc().isEnum()) {
+      if(etd.isClass() && etd.getClassDesc().isEnum()) {
         etd = new TypeDescriptor(TypeDescriptor.INT);
       }
       TempDescriptor td=TempDescriptor.tempFactory("arg", etd);
@@ -831,7 +830,7 @@ public class BuildFlat {
 	    TempDescriptor tmp=TempDescriptor.tempFactory("srctmp3_",an.getDest().getType());
         
         TempDescriptor ftmp= null;
-        if(state.MGC && (nn.getClassDesc() != null)) {
+        if((nn.getClassDesc() != null)) {
           // this is a static field
           ftmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
 
@@ -955,7 +954,7 @@ public class BuildFlat {
       return flattenExpressionNode(nn.getExpression(),out_temp);
     } else if (nn.getField()!=null) {
       TempDescriptor tmp= null;
-      if(state.MGC && (nn.getClassDesc() != null)) {
+      if((nn.getClassDesc() != null)) {
         // this is a static field
         tmp = new TempDescriptor(nn.getClassDesc().getSymbol(), nn.getClassType());
         

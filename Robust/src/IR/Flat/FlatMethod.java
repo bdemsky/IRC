@@ -138,7 +138,7 @@ public class FlatMethod extends FlatNode {
   /** This method returns a string that is a human readable
    * representation of this method. */
 
-  public String printMethod(Hashtable map) {
+  public String printMethod(Map map) {
     String st=method+" {\n";
     HashSet tovisit=new HashSet();
     HashSet visited=new HashSet();
