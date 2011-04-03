@@ -197,6 +197,12 @@ public class ClassDescriptor extends Descriptor {
     ClassDescriptor cn=this;
     while(true) {
       if (cn==null) {
+        // TODO: the original code returned "null" if no super class
+        // ever defines the method.  Is there a situation where this is
+        // fine and the client should take other actions?  If not, we should
+        // change this warning to an error.
+        System.out.println( "ClassDescriptor.java: WARNING "+md+
+                            " did not resolve to an actual method." );
 	return null;
       }
       Set possiblematches=cn.getMethodTable().getSetFromSameScope(md.getSymbol());
