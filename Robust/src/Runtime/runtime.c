@@ -826,6 +826,32 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int len
 
 /* Converts C character arrays into Java strings */
 #ifdef PRECISE_GC
+__attribute__((malloc)) struct ___String___ * NewStringShort(void * ptr, const short *str,int length) {
+#else
+__attribute__((malloc)) struct ___String___ * NewStringShort(const short *str,int length) {
+#endif
+  int i;
+#ifdef PRECISE_GC
+  struct ArrayObject * chararray=allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
+  INTPTR ptrarray[]={1, (INTPTR) ptr, (INTPTR) chararray};
+  struct ___String___ * strobj=allocate_new((struct garbagelist *) &ptrarray, STRINGTYPE);
+  chararray=(struct ArrayObject *) ptrarray[2];
+#else
+  struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
+  struct ___String___ * strobj=allocate_new(STRINGTYPE);
+#endif
+  strobj->___value___=chararray;
+  strobj->___count___=length;
+  strobj->___offset___=0;
+
+  for(i=0; i<length; i++) {
+    ((short *)(((char *)&chararray->___length___)+sizeof(int)))[i]=str[i];
+  }
+  return strobj;
+}
+
+/* Converts C character arrays into Java strings */
+#ifdef PRECISE_GC
 __attribute__((malloc)) struct ___String___ * NewString(void * ptr, const char *str,int length) {
 #else
 __attribute__((malloc)) struct ___String___ * NewString(const char *str,int length) {
