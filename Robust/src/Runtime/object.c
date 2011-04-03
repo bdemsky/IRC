@@ -45,7 +45,6 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 	if (VAR(___this___)->___nextlockobject___!=NULL)
 	  VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
 	pthread_setspecific(threadlocks, VAR(___this___));
-	VAR(___this___)->lockcount=1;
 	VAR(___this___)->tid=self;
 	pthread_mutex_unlock(&objlock);
 	BARRIER();
@@ -85,7 +84,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
     VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___)->___prevlockobject___;
   VAR(___this___)->___nextlockobject___=NULL;
   VAR(___this___)->___prevlockobject___=NULL;
-  VAR(___this___)->lockentry=NULL;
+  //VAR(___this___)->lockentry=NULL;
   VAR(___this___)->tid=0;
   //release lock
   BARRIER();
@@ -107,7 +106,6 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
       if (VAR(___this___)->___nextlockobject___!=NULL)
 	VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
       pthread_setspecific(threadlocks, VAR(___this___));
-      VAR(___this___)->lockcount=1;
       VAR(___this___)->tid=self;
       pthread_mutex_unlock(&objlock);
       BARRIER();
@@ -140,7 +138,7 @@ int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
 	VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___)->___prevlockobject___;
       VAR(___this___)->___nextlockobject___=NULL;
       VAR(___this___)->___prevlockobject___=NULL;
-      VAR(___this___)->lockentry=NULL;
+      //VAR(___this___)->lockentry=NULL;
       VAR(___this___)->tid=0;
     }
     atomic_dec(&VAR(___this___)->lockcount);
