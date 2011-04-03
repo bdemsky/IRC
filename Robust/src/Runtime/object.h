@@ -13,5 +13,14 @@ int CALL01(___Object______getType____, struct ___Object___ * ___this___);
 #ifdef THREADS
 int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___);
 int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___);
+#ifdef D___Object______notify____
+void CALL01(___Object______notify____, struct ___Object___ * ___this___);
+#endif
+#ifdef D___Object______notifyAll____
+void CALL01(___Object______notifyAll____, struct ___Object___ * ___this___);
+#endif
+#ifdef D___Object______wait____
+void CALL01(___Object______wait____, struct ___Object___ * ___this___);
+#endif
 #endif
 #endif
