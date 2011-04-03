@@ -375,7 +375,7 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
   stopforgc((struct garbagelist *)___params___);
 #endif
 #endif
-  usleep(___millis___);
+  usleep(___millis___*1000);
 #if defined(THREADS)||defined(STM)
 #ifdef PRECISE_GC
   restartaftergc();
