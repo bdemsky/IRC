@@ -293,8 +293,10 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
   int srctype=((int *)src)[0];
 
   //not an array or type mismatch
-  if (dsttype<NUMCLASSES||srctype<NUMCLASSES||srctype!=dsttype)
+  if (dsttype<NUMCLASSES||srctype<NUMCLASSES)
     return;
+  if (srctype!=dsttype)
+    printf("Potential type mismatch in arraycopy\n");
 
   struct ArrayObject *aodst=(struct ArrayObject *)dst;
   struct ArrayObject *aosrc=(struct ArrayObject *)src;
@@ -319,7 +321,6 @@ void arraycopy(struct ___Object___ *src, int srcPos, struct ___Object___ *dst, i
     int i;
     for(i=0;i<length;i++) {
       struct ___Object___ * ptr=((struct ___Object___**)(((char*) &aosrc->___length___)+sizeof(int)))[i+srcPos];
-      int ptrtype=((int *)ptr)[0];
       //hit an object
       ((struct ___Object___ **)(((char*) &aodst->___length___)+sizeof(int)))[i+destPos]=ptr;
     }
