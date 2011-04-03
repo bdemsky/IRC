@@ -331,6 +331,34 @@ void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int _
 }
 #endif
 
+#ifdef D___Runtime______availableProcessors____
+int CALL01(___Runtime______availableProcessors____, struct ___Runtime___ * ___this___) {
+  printf("Unimplemented Runtime.availableProcessors\n");
+  return 2;
+}
+#endif
+
+#ifdef D___Runtime______freeMemory____
+long long CALL01(___Runtime______freeMemory____, struct ___Runtime___ * ___this___) {
+  printf("Unimplemented Runtime.freeMemory\n");
+  return 1024*1024*1024;
+}
+#endif
+
+#ifdef D___Runtime______totalMemory____
+long long CALL01(___Runtime______totalMemory____, struct ___Runtime___ * ___this___) {
+  printf("Unimplemented Runtime.totalMemory\n");
+  return 1024*1024*1024;
+}
+#endif
+
+#ifdef D___Runtime______maxMemory____
+long long CALL01(___Runtime______maxMemory____, struct ___Runtime___ * ___this___) {
+  printf("Unimplemented Runtime.maxMemory\n");
+  return 1024*1024*1024;
+}
+#endif
+
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef TRANSSTATS
 #ifndef RECOVERY
