@@ -250,7 +250,8 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
     Hashtable* h=createHashtable();
     tail->next=(MemoryQueueItem*)h;
     //************NEED memory barrier here to ensure compiler does not cache Q.tail.status********
-    if (BARRIER() && tail->status==READY && tail->total==0 && q->tail==q->head) { 
+    MBARRIER();
+    if (tail->status==READY && tail->total==0 && q->tail==q->head) { 
       //previous Q item is finished
       h->item.status=READY;
     }
@@ -405,7 +406,7 @@ int WRITEBINCASE(Hashtable *T, REntry *r, BinItem *val, int key, int inc) {
 
   be->tail->next=(BinItem*)b;
   //need to check if we can go...
-  BARRIER();
+  MBARRIER();
   if (T->item.status==READY) {
     for(;val!=NULL;val=val->next) {
       if (val==((BinItem *)b)) {
@@ -507,7 +508,8 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
     BARRIER();
     Q->tail->next=(MemoryQueueItem*)V;
     //************NEED memory barrier here to ensure compiler does not cache Q.tail.status******
-    if (BARRIER() && Q->tail->status==READY&&Q->tail->total==0) {
+    MBARRIER();
+    if (Q->tail->status==READY&&Q->tail->total==0) {
       //previous Q item is finished
       V->item.status=READY;
     }
@@ -526,7 +528,8 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
     V->item.status=NOTREADY;
     Q->tail->next=(MemoryQueueItem*)V;
     //***NEED memory barrier here to ensure compiler does not cache Q.tail.status******
-    if (BARRIER() && Q->tail->status==READY) { 
+    MBARRIER();
+    if (Q->tail->status==READY) { 
       V->item.status=READY;
     }
     Q->tail=(MemoryQueueItem*)V;
@@ -579,7 +582,8 @@ int ADDSCC(MemoryQueue *Q, REntry *r) {
   BARRIER();
   Q->tail->next=(MemoryQueueItem*)S;
   //*** NEED BARRIER HERE
-  if (BARRIER() && Q->tail->status==READY && Q->tail->total==0 && Q->tail==Q->head) {
+  MBARRIER();
+  if (Q->tail->status==READY && Q->tail->total==0 && Q->tail==Q->head) {
     //previous Q item is finished
     S->item.status=READY;
     Q->tail=(MemoryQueueItem*)S;
@@ -647,6 +651,7 @@ void RETIREHASHTABLE(MemoryQueue *q, REntry *r) {
   BinItem *b=r->binitem;
   RETIREBIN(T,r,b);
   atomic_dec(&T->item.total);
+  BARRIER();
   if (T->item.next!=NULL && T->item.total==0) { 
     RESOLVECHAIN(q);
   }
