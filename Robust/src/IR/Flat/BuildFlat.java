@@ -209,22 +209,22 @@ public class BuildFlat {
       FlatNode fn=np.getBegin();
       if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
 	MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
-    FlatNode first = null;
-    FlatNode end = null;
-    for(int j = 0; j < this.lockStack.size(); j++) {
-      TempDescriptor thistd = this.lockStack.elementAt(j);
-      FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
-      fc.setNumLine(bn.getNumLine());
-      if(first == null)  {
-        first = end = fc;
-      } else {
-        end.addNext(fc);
-        end = fc;
-      }
-    }
+	FlatNode first = null;
+	FlatNode end = null;
+
+	{
+	  if (lockStack.size()!=1) {
+	    throw new Error("TOO MANY THINGS ON LOCKSTACK");
+	  }
+	  TempDescriptor thistd = this.lockStack.elementAt(0);
+	  FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
+	  fc.setNumLine(bn.getNumLine());
+	  first = end = fc;
+	}
+
 	end.addNext(fn);
 	fn=first;
-    end = np.getEnd();
+	end = np.getEnd();
 	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
 	  MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
 	  while(!this.lockStack.isEmpty()) {
@@ -237,8 +237,8 @@ public class BuildFlat {
 	  FlatNode rnflat=spliceReturn(end);
 	  rnflat.addNext(fe);
 	} else {
-   this.lockStack.clear();   
-    }
+	  this.lockStack.clear();   
+	}
       } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
 	curran.addNext(fn);
 	fn=curran;
@@ -279,7 +279,7 @@ public class BuildFlat {
       for(int i=0; i<currmd.numParameters(); i++) {
 	fm.addParameterTemp(getTempforParam(currmd.getParameter(i)));
       }
-
+      
       state.addFlatCode(currmd,fm);
     }
   }
@@ -299,9 +299,9 @@ public class BuildFlat {
       } else {
 	end.addNext(np_begin);
 	if (np_end==null) {
-	    return new NodePair(begin, null);
+	  return new NodePair(begin, null);
 	} else
-	    end=np_end;
+	  end=np_end;
       }
     }
     if (begin==null) {
@@ -1180,17 +1180,16 @@ public class BuildFlat {
   private NodePair flattenSwitchStatementNode(SwitchStatementNode ssn) {
     TempDescriptor cond_temp=TempDescriptor.tempFactory("condition",new TypeDescriptor(TypeDescriptor.INT));
     NodePair cond=flattenExpressionNode(ssn.getCondition(),cond_temp);
-    FlatNop nopend=new FlatNop();
-    NodePair sbody = flattenSwitchBodyNode(ssn.getSwitchBody(), cond_temp, nopend);
+    NodePair sbody = flattenSwitchBodyNode(ssn.getSwitchBody(), cond_temp);
     
     cond.getEnd().addNext(sbody.getBegin());
 
     return new NodePair(cond.getBegin(), sbody.getEnd());
   }
   
-  private NodePair flattenSwitchBodyNode(BlockNode bn, TempDescriptor cond_temp, FlatNode endnode) {
+  private NodePair flattenSwitchBodyNode(BlockNode bn, TempDescriptor cond_temp) {
     FlatNode begin=null;
-    FlatNode end=endnode;
+    FlatNode end=null;
     NodePair prev_true_branch = null;
     NodePair prev_false_branch = null;
     for(int i=0; i<bn.size(); i++) {
@@ -1251,15 +1250,21 @@ public class BuildFlat {
       for(Iterator breakit=breakset.iterator();breakit.hasNext();) {
         FlatNode fn=(FlatNode)breakit.next();
         breakit.remove();
-        fn.addNext(endnode);
+	if (end==null)
+	  end=new FlatNop();
+        fn.addNext(end);
       }
       breakset=oldbs;
     }
     if((prev_true_branch != null) && (prev_true_branch.getEnd() != null)) {
-      prev_true_branch.getEnd().addNext(endnode);
+      if (end==null)
+	end=new FlatNop();
+      prev_true_branch.getEnd().addNext(end);
     }
     if((prev_false_branch != null) && (prev_false_branch.getEnd() != null)) {
-      prev_false_branch.getEnd().addNext(endnode);
+      if (end==null)
+	end=new FlatNop();
+      prev_false_branch.getEnd().addNext(end);
     }
     if(begin == null) {
       end=begin=new FlatNop();
@@ -1496,12 +1501,10 @@ public class BuildFlat {
     
     if (npblock.getEnd()!=null&&npblock.getEnd().kind()!=FKind.FlatReturnNode) {
       npblock.getEnd().addNext(fcex);
+      return new NodePair(first, fcex);
+    } else {
+      return new NodePair(first, null);
     }
-    
-    /*if(npblock.getEnd() != null) {
-      npblock.getEnd().addNext(fcex);
-    }*/
-    return new NodePair(first, fcex);
   }
 
   private NodePair flattenAtomicNode(AtomicNode sbn) {
