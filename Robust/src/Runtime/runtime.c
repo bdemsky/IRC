@@ -1,3 +1,4 @@
+
 #include "runtime.h"
 #include "structdefs.h"
 #include <signal.h>
@@ -335,7 +336,7 @@ void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int _
 #ifdef D___Runtime______availableProcessors____
 int CALL01(___Runtime______availableProcessors____, struct ___Runtime___ * ___this___) {
   printf("Unimplemented Runtime.availableProcessors\n");
-  return 2;
+  return 24;
 }
 #endif
 

@@ -102,6 +102,15 @@ static inline INTPTR CAS(volatile void *ptr, unsigned INTPTR old, unsigned INTPT
 		       : "memory");
   return prev;
 }
+
+static inline long CAS32(volatile void *ptr, unsigned long old, unsigned long new){
+  unsigned long prev;
+  __asm__ __volatile__("lock; cmpxchgl %k1,%2"
+		       : "=a"(prev)
+		       : "r"(new), "m"(*__xg(ptr)), "0"(old)
+		       : "memory");
+  return prev;
+}
 #else
 static inline long CAS(volatile void *ptr, unsigned long old, unsigned long new){
   unsigned long prev;
@@ -111,7 +120,9 @@ static inline long CAS(volatile void *ptr, unsigned long old, unsigned long new)
 		       : "memory");
   return prev;
 }
+#define CAS32 CAS
 #endif
+
 
 static inline int BARRIER(){
   CFENCE;
