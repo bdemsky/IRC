@@ -39,6 +39,7 @@ public class SerialDelaunayRefinement {
     //Numbers below are Long.Max_Value
     long lasttime = 0x7fffffffffffffffL;
     long mintime = 0x7fffffffffffffffL;
+
     for (long run = 0; ((run < 3) || Math.abs(lasttime - runtime) * 64 > Math.min(lasttime, runtime)) && run < 7; run++) {
       runtime = run(args);
       if (runtime < mintime) {
@@ -146,7 +147,41 @@ public class SerialDelaunayRefinement {
             cavity.build();
           
             //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
-            cavity.update();                    
+            cavity.update();
+
+
+            /*
+            LinkedList nodes  = cavity.getPre().getNodes();
+            LinkedList border = cavity.getPre().getBorder();
+            LinkedList edges  = cavity.getPre().getEdges();
+
+            String s = "nodes:  \n";
+    
+            for( Iterator iter = nodes.iterator(); iter.hasNext(); ) {
+              Node    node = (Node) iter.next();
+              Element element = (Element) mesh.getNodeData(node);
+              s += "  "+element+"\n";
+            }
+
+            s += "\nborder: \n";
+
+            for( Iterator iter = border.iterator(); iter.hasNext(); ) {
+              Node    node = (Node) iter.next();
+              Element element = (Element) mesh.getNodeData(node);
+              s += "  "+element+"\n";
+            }
+
+            s += "\nedges:  \n";
+
+            for( Iterator iter = edges.iterator(); iter.hasNext(); ) {
+              Edge_d  edge    = (Edge_d)  iter.next();
+              Element element = (Element) mesh.getEdgeData(edge);
+              s += "  "+element+"\n";
+            }
+
+            System.out.println( "Pre:\n"+s );
+            */
+
           }
           
           sese storeCavity {
@@ -174,7 +209,7 @@ public class SerialDelaunayRefinement {
           // go ahead with applying cavity when all of its
           // pre-nodes are still in
           if( cavity != null &&
-              cavity.getPre().allNodesStillInCompleteGraph() ) {
+              cavity.getPre().allNodesAndBorderStillInCompleteGraph() ) {
 
             appliedCavity     = true;
             lastAppliedCavity = cavity;
@@ -229,6 +264,29 @@ public class SerialDelaunayRefinement {
               //}                        
               mesh.addEdge(edge);
             }
+
+
+
+            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
+                 iterator1.hasNext();) {
+              node = (Node) iterator1.next();
+
+              Element e = (Element)mesh.getNodeData( node );
+
+              int cntOutNeighbors = 0;
+              for (Iterator iterator = mesh.getOutNeighbors(node); iterator.hasNext();) {
+                ++cntOutNeighbors;
+                Node neighbor = (Node) iterator.next();
+              }
+
+              int dim = e.getDim();
+              int out = cntOutNeighbors;
+
+              if( dim == 3 && out < 3 ) {
+                System.out.println( e+" has dim="+dim+" and num out-neighbors in graph="+out );
+              }
+            }
+
           }
         }
          

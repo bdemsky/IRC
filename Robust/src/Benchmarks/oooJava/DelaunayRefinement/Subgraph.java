@@ -4,6 +4,7 @@ public class Subgraph {
   private final LinkedList border = new LinkedList();
   private final LinkedList edges = new LinkedList();
 
+
   public Subgraph() {
   }
 
@@ -50,8 +51,14 @@ public class Subgraph {
   }
 
 
-  public boolean allNodesStillInCompleteGraph() {
+  public boolean allNodesAndBorderStillInCompleteGraph() {
     for( Iterator i = nodes.iterator(); i.hasNext(); ) {
+      Node node = (Node) i.next();
+      if( !node.inGraph ) {
+        return false;
+      }
+    }
+    for( Iterator i = border.iterator(); i.hasNext(); ) {
       Node node = (Node) i.next();
       if( !node.inGraph ) {
         return false;
