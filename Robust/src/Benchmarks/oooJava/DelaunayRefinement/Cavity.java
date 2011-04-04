@@ -55,39 +55,30 @@ public class Cavity {
   }
 
   private Edge_d getOpposite(Node node) {
-    Element element = (Element) getNodeData(node);
+    Element element = (Element) graph.getNodeData(node);
 
-    System.out.println( "\n  element="+element+" with obtuse="+element.getObtuse() );
+    // Don't think we'd run into it but..
+    // TODO check this.
+    // if(neighbors.size() != 3)
+    // throw new Error(String.format("neighbors %d", new Object[] {
+    // Integer.valueOf(neighbors.size())
+    // }));
 
-    int outNeiCnt = 0;
+    int cntOutNeighbors = 0;
 
-    for (Iterator iterator = getOutNeighbors(node); iterator.hasNext();) {
-      ++outNeiCnt;
+    for (Iterator iterator = graph.getOutNeighbors(node); iterator.hasNext();) {
+      ++cntOutNeighbors;
       Node neighbor = (Node) iterator.next();
-      Edge_d edge = getEdge(node, neighbor);
-      ElementEdge edge_data = (ElementEdge) getEdgeData(edge);
-
-      System.out.println( "    is "+edge_data.getPoint(0)+" and "+edge_data.getPoint(1)+
-                          " opposite the obtuse?");
-
-      if (element.getObtuse().notEquals(edge_data.getPoint(0)) &&
-          element.getObtuse().notEquals(edge_data.getPoint(1))
-          )
+      Edge_d edge = graph.getEdge(node, neighbor);
+      ElementEdge edge_data = (ElementEdge) graph.getEdgeData(edge);
+      if (element.getObtuse().notEquals(edge_data.getPoint(0))
+          && element.getObtuse().notEquals(edge_data.getPoint(1)))
         return edge;
     }
 
-    int inNeiCnt = 0;
-
-    for (Iterator iterator = ((EdgeGraphNode)node).getInNeighbors(); iterator.hasNext();) {
-      ++inNeiCnt;
-      Node neighbor = (Node) iterator.next();
-    }
-
-    if( outNeiCnt != 3 ) {
-      System.out.println( "Get opposite when "+outNeiCnt+" out-neighbors? in-nei="+inNeiCnt );
-    }
-    
     System.out.println("Error: \"Edge\" in Cavity.java getOpposite(Node)");
+    System.out.println("  tri="+element+" has "+cntOutNeighbors+" out-neighbors");
+    System.out.println("  obtuse="+element.getObtuse());
     System.exit(-1);
     return null; // it's here so the compiler doesn't complain.
   }

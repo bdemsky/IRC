@@ -16,14 +16,14 @@ public class GraphNode extends Node {
     outNeighbors = new Vector();
   }
 
-//  public Object getData() {
-//    return getNodeData(this);
-//  }
-//
-//  public Object setData(Object n) {
-//    return setNodeData(this, n);
-//  }
-
+  //public Object getData() {
+  //  return getNodeData(this);
+  //}
+  //
+  //public Object setData(Object n) {
+  //  return setNodeData(this, n);
+  //}
+  
   public final boolean addInNeighbor(GraphNode n) {
     if (inNeighbors.contains(n)) {
       return false;

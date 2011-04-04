@@ -59,26 +59,7 @@ public class DirectedEdgeGraph implements EdgeGraph {
         }
       }      
     }
-
-    System.out.println( "Graph has "+nodes.size()+" nodes currently." );
   }
-
-//  // keep the nodes set up-to-date, but use AFTER...
-//  public void addNodeToAllNodesSet( Node n ) {
-//    if( !n.inGraph ) {
-//      System.out.println( "Error: adding a node NOT IN the graph to the all-nodes set!" );
-//      System.exit( -1 );
-//    }
-//    nodes.add( n );
-//  }
-//
-//  public void removeNodeFromAllNodesSet( Node n ) {
-//    if( n.inGraph ) {
-//      System.out.println( "Error: removing a node IN the graph from the all-nodes set!" );
-//      System.exit( -1 );
-//    }
-//    nodes.add( n );
-//  }
 
   // these are the normal methods for truly adding and removing nodes
   // from the graph, nodes know locally if they are in and out but they
@@ -91,6 +72,7 @@ public class DirectedEdgeGraph implements EdgeGraph {
 
   public boolean removeNode(Node n) {
     boolean wasIn = n.inGraph;
+    n.inGraph = false;
     removeConnectingEdges((EdgeGraphNode) n);
     return wasIn;
   }

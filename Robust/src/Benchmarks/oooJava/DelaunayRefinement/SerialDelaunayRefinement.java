@@ -104,6 +104,9 @@ public class SerialDelaunayRefinement {
     Cavity lastAppliedCavity = null;
 
 
+    int zzz = 0;
+
+
     long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {
 
@@ -126,7 +129,8 @@ public class SerialDelaunayRefinement {
             nodeForBadTri.inGraph
             ) {
      
-          System.out.println( "computing a cavity..." );
+          //System.out.println( "computing a cavity for tri "+
+          //                    mesh.getNodeData( nodeForBadTri )+"..." );
      
           sese computeCavity {
             //takes < 1 sec 
@@ -144,7 +148,7 @@ public class SerialDelaunayRefinement {
             //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
             cavity.update();                    
           }
-  
+          
           sese storeCavity {
             cavities[i] = cavity;
           }
@@ -175,32 +179,54 @@ public class SerialDelaunayRefinement {
             appliedCavity     = true;
             lastAppliedCavity = cavity;
 
+
+            //boolean printChange = true; //(zzz % 10 == 0);
+        
+
             //remove old data
             Node node;
-    
+            //if( printChange ) {
+            //  System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( nodeForBadTri ) );
+            //  System.out.println( "\npre nodes: " );
+            //}
             //Takes up 8.9% of runtime
             for (Iterator iterator = cavity.getPre().getNodes().iterator();
                  iterator.hasNext();) {
 
               node = (Node) iterator.next();
+              //if( printChange ) {
+              //  System.out.println( "  "+mesh.getNodeData( node ) );
+              //}          
               mesh.removeNode(node);
             }
  
             //add new data
+            //if( printChange ) {
+            //  System.out.println( "post nodes: " );
+            //}
             //Takes up 1.7% of runtime
             for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
                  iterator1.hasNext();) {
 
               node = (Node) iterator1.next();
+              //if( printChange ) {
+              //  System.out.println( "  "+mesh.getNodeData( node ) );
+              //}          
               mesh.addNode(node);
             }
  
+            //if( printChange ) {
+            //  System.out.println( "post edges: " );
+            //}
             //Takes up 7.8% of runtime
             Edge_d edge;
             for (Iterator iterator2 = cavity.getPost().getEdges().iterator();
                  iterator2.hasNext();) {
               
               edge = (Edge_d) iterator2.next();
+              //if( printChange ) {
+              //  System.out.println( "  "+mesh.getEdgeData( edge ) );
+              //}                        
               mesh.addEdge(edge);
             }
           }
@@ -208,36 +234,53 @@ public class SerialDelaunayRefinement {
          
 
         sese scheduleMoreBad {
+
+          if( appliedCavity ) {
+            // we did apply the cavity, and we may 
+            // have introduced new bad triangles
+            HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
+            while (it2.hasNext()) {
+              worklist.push((Node)it2.next());
+            }
+          }
+        
+          // the logic of having this out here seems wacky, and overconservative,
+          // but it matches the original algorithm and it works...
+          if( nodeForBadTri != null && mesh.containsNode( nodeForBadTri ) ) {
+            worklist.push( nodeForBadTri );
+          }
           
+          /*
           if( !appliedCavity ) {
 
             // if we couldn't even apply this cavity, just
             // throw it back on the worklist
             if( nodeForBadTri != null && nodeForBadTri.inGraph ) {
               worklist.push( nodeForBadTri );
+            } else {
+              System.out.println( "\n\n\nthis tri no longer a concern: "+
+                                  mesh.getNodeData( nodeForBadTri ) );
             }
 
           } else {
-            // otherwise we did apply the cavity, so repair the all-nodes set of the mesh
-            //Iterator itrPreNodes = cavity.getPre().getNodes().iterator();
-            //while( itrPreNodes.hasNext() ) {
-            //  System.out.println( "yere" );
-            //  mesh.removeNodeFromAllNodesSet( (Node)itrPreNodes.next() );
-            //  System.out.println( "yeres" );
-            //}
-            //Iterator itrPostNodes = cavity.getPost().getNodes().iterator();
-            //while( itrPostNodes.hasNext() ) {
-            //  mesh.addNodeToAllNodesSet( (Node)itrPostNodes.next() );
-            //}
-
+            // otherwise we did apply the cavity,
             // and we may have introduced new bad triangles
             HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
             while (it2.hasNext()) {
               worklist.push((Node)it2.next());
             }
           }
+          */
+
         } // end scheduleMoreBad
       } // end phase 3
+
+      //++zzz;
+      //Node aNode = (Node)lastAppliedCavity.getPost().getNodes().iterator().next();      
+      //mesh.discoverAllNodes( aNode );
+      //System.out.println( "\n\ntris="+mesh.getNumNodes()+
+      //                    " [wl="+worklist.size()+"]");
+      //if( zzz == 10 ) { System.exit( 0 ); }
 
     } // end while( !worklist.isEmpty() )
 

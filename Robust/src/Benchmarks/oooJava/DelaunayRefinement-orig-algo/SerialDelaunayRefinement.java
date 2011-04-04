@@ -44,6 +44,7 @@ public class SerialDelaunayRefinement {
       if (runtime < mintime) {
         mintime = runtime;
       }
+      //System.exit( 0 ); // GC STALLS FOREVER????
       System.gc();
     }
 
@@ -93,8 +94,13 @@ public class SerialDelaunayRefinement {
 
     System.gc();
 
+    
+    int zzz = 0;
+    
+
 //    long id = Time.getNewTimeId();
     long startTime = System.currentTimeMillis();
+
     while (!worklist.isEmpty()) {
       Node bad_element = (Node) worklist.pop();
 //      System.out.println("Bad Node"+ ((Element)mesh.getNodeData(bad_element)).toString());
@@ -102,23 +108,45 @@ public class SerialDelaunayRefinement {
         cavity.initialize(bad_element);
         cavity.build();
         cavity.update();
+
+
+        //boolean printChange = true; //(zzz % 10 == 0);
         
         //remove old data
+        //if( printChange ) {
+        //  System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( bad_element ) );
+        //  System.out.println( "\npre nodes: " );
+        //}
         Node node;
         for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
           node = (Node) iterator.next();
+          //if( printChange ) {
+          //  System.out.println( "  "+mesh.getNodeData( node ) );
+          //}          
           mesh.removeNode(node);
         }
 
         //add new data
+        //if( printChange ) {
+        //  System.out.println( "post nodes: " );
+        //}
         for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
           node = (Node) iterator1.next();
+          //if( printChange ) {
+          //  System.out.println( "  "+mesh.getNodeData( node ) );
+          //}          
           mesh.addNode(node);
         }
 
+        //if( printChange ) {
+        //  System.out.println( "post edges: " );
+        //}
         Edge_d edge;
         for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
           edge = (Edge_d) iterator2.next();
+          //if( printChange ) {
+          //  System.out.println( "  "+mesh.getEdgeData( edge ) );
+          //}          
           mesh.addEdge(edge);
         }
 
@@ -131,7 +159,14 @@ public class SerialDelaunayRefinement {
         if (mesh.containsNode(bad_element)) {
           worklist.push((Node) bad_element);
         }
+      } else {
+        //System.out.println( "\n\n\nthis tri no longer a concern: "+mesh.getNodeData( bad_element ) );
       }
+
+      //++zzz;
+      //System.out.println( "\n\ntris="+mesh.getNumNodes()+
+      //                    " [wl="+worklist.size()+"]");
+      //if( zzz == 10 ) { System.exit( 0 ); }
     }
     long time = System.currentTimeMillis() - startTime;
     System.out.println("runtime: " + time + " ms");

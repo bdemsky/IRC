@@ -121,7 +121,15 @@ public class Tuple {
   }
 
   public String toString() {
-    return new String("(" + coords[0] + ", " + coords[1] + ", " + coords[2] + ")");
+    //return new String("(" + coords[0] + ", " + coords[1] + ", " + coords[2] + ")");
+
+    String x = ""+coords[0];
+    x = x.substring( 0, 4 );
+
+    String y = ""+coords[1];
+    y = y.substring( 0, 4 );
+
+    return new String("("+x+", "+y+")");
   }
 
   public static int cmp(Tuple a, Tuple b) {
