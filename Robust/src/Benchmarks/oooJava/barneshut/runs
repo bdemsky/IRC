@@ -1,1 +1,1 @@
-./Barneshuts.bin ./inputs/BarnesHutLarge.in
+time ./Barneshuts.bin ./inputs/BarnesHutLarge.in
