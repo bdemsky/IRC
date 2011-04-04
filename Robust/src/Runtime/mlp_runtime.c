@@ -242,6 +242,7 @@ int ADDTABLE(MemoryQueue *q, REntry *r) {
   if(!isHashtable(q->tail)) {
     //Fast Case
     MemoryQueueItem* tail=q->tail;
+    //optimization only on next line....DO NOT TRUST THIS TO RETIRE PARENTS!!!!
     if (isParent(r) && tail->total==0 && q->tail==q->head) {
       return READY;
     }
@@ -509,9 +510,11 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
     Q->tail->next=(MemoryQueueItem*)V;
     //************NEED memory barrier here to ensure compiler does not cache Q.tail.status******
     MBARRIER();
-    if (Q->tail->status==READY&&Q->tail->total==0) {
+    if (Q->tail->status==READY&&Q->tail->total==0&&Q->head==Q->tail) {
       //previous Q item is finished
       V->item.status=READY;
+      //Get rid of item in front of us...
+      CAS((unsigned INTPTR*)&(Q->head), (unsigned INTPTR)Q->tail, (unsigned INTPTR)V);
     }
     Q->tail=(MemoryQueueItem*)V;
     // handle the the queue item case
@@ -532,6 +535,10 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
     if (Q->tail->status==READY) { 
       V->item.status=READY;
     }
+    if (Q->tail->total==0&&Q->head==Q->tail) {
+      //may need to remove things
+      CAS((unsigned INTPTR*)&(Q->head), (unsigned INTPTR)Q->tail, (unsigned INTPTR)V);
+    }
     Q->tail=(MemoryQueueItem*)V;
   }
 
@@ -547,7 +554,8 @@ int ADDVECTOR(MemoryQueue *Q, REntry *r) {
   V->index++;
   //*****NEED memory barrier here to ensure compiler does not cache V.status*********
   r->qitem=(MemoryQueueItem *)V;
-  if (BARRIER() && V->item.status==READY) {
+  MBARRIER();
+  if (V->item.status==READY) {
     void* flag=NULL;
     flag=(void*)LOCKXCHG((unsigned INTPTR*)&(V->array[index]), (unsigned INTPTR)flag);
     if (flag!=NULL) {
