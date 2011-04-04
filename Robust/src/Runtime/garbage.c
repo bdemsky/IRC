@@ -879,6 +879,12 @@ void restartaftergc() {
   pthread_mutex_lock(&gclistlock);
   listcount--;
   pthread_mutex_unlock(&gclistlock);
+#ifdef MAC
+  struct listitem *litem=pthread_getspecific(litemkey);
+  pthread_setspecific(threadlocks,litem->locklist);
+#else
+  pthread_setspecific(threadlocks,litem.locklist);
+#endif
 }
 #endif
 
