@@ -10,10 +10,8 @@ public class DirectedEdgeGraph implements EdgeGraph {
   // for concurrent add and remove ops that don't collide in terms of
   // modifying the graph elements though.
   //
-  // SOLUTION: let add and remove ops to the true graph happen in
-  // parallel, then use a special update method to keep the set of
-  // all nodes maintained.  It is up the user to invoke a traversal
-  // of the set of all nodes only at points where the set is valid.
+  // SOLUTION: the all-nodes set is invalid after node add/remove ops
+  // until you run discoverAllNodes(src) 
   protected HashSet nodes;
 
   // only use when the nodes set is up-to-date
@@ -22,22 +20,65 @@ public class DirectedEdgeGraph implements EdgeGraph {
   public int getNumNodes()   { return nodes.size();     }
   public Node getRandom()    { return (Node) nodes.iterator().next(); }
 
-  // keep the nodes set up-to-date, but use AFTER...
-  public void addNodeToAllNodesSet( Node n ) {
-    if( !n.inGraph ) {
-      System.out.println( "Error: adding a node NOT IN the graph to the all-nodes set!" );
-      System.exit( -1 );
+  // make the node set up to date
+  public void discoverAllNodes( Node src ) {
+    nodes.clear();
+    Stack toVisit = new Stack();
+    toVisit.push( src );
+    nodes.add( src );
+
+    while( !toVisit.isEmpty() ) {
+      EdgeGraphNode n =(EdgeGraphNode) toVisit.pop();
+
+      if( !n.inGraph ) {
+        System.out.println( "Error: found a node actual in the graph but not marked!" );
+        System.exit( -1 );        
+      }
+
+      for( Iterator itrInNei = n.getInNeighbors(); itrInNei.hasNext(); ) {
+        Node nNei = (Node) itrInNei.next();
+        if (nNei==null) {
+          System.out.println("NULLIN");
+          continue;
+        }
+          
+        if( !nodes.contains( nNei ) ) {
+          toVisit.push( nNei );
+          nodes.add(nNei);
+        }
+      }
+      for( Iterator itrOutNei = n.getOutNeighbors(); itrOutNei.hasNext(); ) {
+        Node nNei = (Node) itrOutNei.next();
+        if (nNei==null) {
+          System.out.println("NULLOUT");
+          continue;
+        }
+        if( !nodes.contains( nNei ) ) {
+          toVisit.push( nNei );
+          nodes.add(nNei);
+        }
+      }      
     }
-    nodes.add( n );
+
+    System.out.println( "Graph has "+nodes.size()+" nodes currently." );
   }
 
-  public void removeNodeFromAllNodesSet( Node n ) {
-    if( n.inGraph ) {
-      System.out.println( "Error: removing a node IN the graph to the all-nodes set!" );
-      System.exit( -1 );
-    }
-    nodes.add( n );
-  }
+//  // keep the nodes set up-to-date, but use AFTER...
+//  public void addNodeToAllNodesSet( Node n ) {
+//    if( !n.inGraph ) {
+//      System.out.println( "Error: adding a node NOT IN the graph to the all-nodes set!" );
+//      System.exit( -1 );
+//    }
+//    nodes.add( n );
+//  }
+//
+//  public void removeNodeFromAllNodesSet( Node n ) {
+//    if( n.inGraph ) {
+//      System.out.println( "Error: removing a node IN the graph from the all-nodes set!" );
+//      System.exit( -1 );
+//    }
+//    nodes.add( n );
+//  }
 
   // these are the normal methods for truly adding and removing nodes
   // from the graph, nodes know locally if they are in and out but they

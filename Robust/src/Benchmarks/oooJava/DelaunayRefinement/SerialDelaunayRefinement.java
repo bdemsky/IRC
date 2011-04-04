@@ -99,13 +99,16 @@ public class SerialDelaunayRefinement {
     System.out.println( "done gc" );
 
 
-    // long id = Time.getNewTimeId();
+    Node  [] nodesForBadTris = new Node  [numWorkers];
+    Cavity[] cavities        = new Cavity[numWorkers];
+    Cavity lastAppliedCavity = null;
+
+
     long startTime = System.currentTimeMillis();
     while (!worklist.isEmpty()) {
 
       // Phase 1, grab enough work from list for
-      // each worker in the parent
-      Node[] nodesForBadTris = new Node[numWorkers];
+      // each worker in the parent      
       for(int i=0;i<numWorkers;i++) {
         if(worklist.isEmpty()) {
           nodesForBadTris[i] = null; 
@@ -115,15 +118,16 @@ public class SerialDelaunayRefinement {
       }
       
       // Phase 2, read mesh and compute cavities in parallel
-      Cavity[] cavities = new Cavity[numWorkers];
       for(int i=0;i<numWorkers;i++) {
         
-        Node nodeForBadTri = nodesForBadTris[i];
-        if (nodeForBadTri != null 
-            //&& mesh.containsNode(nodeForBadTri)
-            && nodeForBadTri.inGraph
+        Node nodeForBadTri = nodesForBadTris[i];        
+
+        if (nodeForBadTri != null &&
+            nodeForBadTri.inGraph
             ) {
-          
+     
+          System.out.println( "computing a cavity..." );
+     
           sese computeCavity {
             //takes < 1 sec 
             Cavity cavity = new Cavity(mesh);
@@ -144,6 +148,11 @@ public class SerialDelaunayRefinement {
           sese storeCavity {
             cavities[i] = cavity;
           }
+
+        } else {
+          sese storeNoCavity {
+            cavities[i] = null;
+          }
         }
       }
       
@@ -152,66 +161,74 @@ public class SerialDelaunayRefinement {
       // start nodes are still present
       for(int i=0;i<numWorkers;i++) {
 
-        Cavity cavity = cavities[i];
-
-        Node nodeForBadTri = null;
+        Cavity  cavity        = cavities[i];
+        boolean appliedCavity = false;
+        Node    nodeForBadTri = nodesForBadTris[i];
         
         sese applyCavity {
 
           // go ahead with applying cavity when all of its
           // pre-nodes are still in
-          if( cavity.getPre().allNodesStillInCompleteGraph() ) {
+          if( cavity != null &&
+              cavity.getPre().allNodesStillInCompleteGraph() ) {
+
+            appliedCavity     = true;
+            lastAppliedCavity = cavity;
 
             //remove old data
             Node node;
     
             //Takes up 8.9% of runtime
-            for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
+            for (Iterator iterator = cavity.getPre().getNodes().iterator();
+                 iterator.hasNext();) {
+
               node = (Node) iterator.next();
               mesh.removeNode(node);
             }
  
             //add new data
             //Takes up 1.7% of runtime
-            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); iterator1.hasNext();) {
+            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
+                 iterator1.hasNext();) {
+
               node = (Node) iterator1.next();
               mesh.addNode(node);
             }
  
             //Takes up 7.8% of runtime
             Edge_d edge;
-            for (Iterator iterator2 = cavity.getPost().getEdges().iterator(); iterator2.hasNext();) {
+            for (Iterator iterator2 = cavity.getPost().getEdges().iterator();
+                 iterator2.hasNext();) {
+              
               edge = (Edge_d) iterator2.next();
               mesh.addEdge(edge);
             }
-
-          } else {
-            // otherwise forget the cavity and reschedule the bad triangle
-            nodeForBadTri = nodesForBadTris[i];
           }
         }
          
 
         sese scheduleMoreBad {
           
-          // if we couldn't even apply this cavity, just
-          // throw it back on the worklist
-          if( nodeForBadTri != null ) {
- 
-            if( nodeForBadTri.inGraph ) {
+          if( !appliedCavity ) {
+
+            // if we couldn't even apply this cavity, just
+            // throw it back on the worklist
+            if( nodeForBadTri != null && nodeForBadTri.inGraph ) {
               worklist.push( nodeForBadTri );
             }
 
           } else {
             // otherwise we did apply the cavity, so repair the all-nodes set of the mesh
-            Iterator itrPreNodes = cavity.getPre().getNodes().iterator();
-            while( itrPreNodes.hasNext() ) {
-              mesh.removeNodeFromAllNodesSet( (Node)itrPreNodes.next() );
-            }
-            Iterator itrPostNodes = cavity.getPost().getNodes().iterator();
-            while( itrPostNodes.hasNext() ) {
-              mesh.addNodeToAllNodesSet( (Node)itrPostNodes.next() );
-            }
+            //Iterator itrPreNodes = cavity.getPre().getNodes().iterator();
+            //while( itrPreNodes.hasNext() ) {
+            //  System.out.println( "yere" );
+            //  mesh.removeNodeFromAllNodesSet( (Node)itrPreNodes.next() );
+            //  System.out.println( "yeres" );
+            //}
+            //Iterator itrPostNodes = cavity.getPost().getNodes().iterator();
+            //while( itrPostNodes.hasNext() ) {
+            //  mesh.addNodeToAllNodesSet( (Node)itrPostNodes.next() );
+            //}
 
             // and we may have introduced new bad triangles
             HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
@@ -232,6 +249,10 @@ public class SerialDelaunayRefinement {
     // we have a bug
     if (//isFirstRun && 
         args.length > 2) {
+
+      Node aNode = (Node)lastAppliedCavity.getPost().getNodes().iterator().next();      
+      mesh.discoverAllNodes( aNode );
+
       verify(mesh);
     }
     isFirstRun = false;

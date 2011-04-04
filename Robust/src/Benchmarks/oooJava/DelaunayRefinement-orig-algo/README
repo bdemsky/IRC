@@ -1,0 +1,2 @@
+This is a version of the benchmark that has been ported to our compiler,
+but the algorithms are unchanged.  It should only be compiled with 'make single'

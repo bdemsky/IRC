@@ -1,8 +1,11 @@
 public class Mesh {
   protected HashMap edge_map;
+  protected Node    aNode;
+
 
   public Mesh() {
     edge_map = new HashMap();
+    aNode    = null;
   }
 
   public HashSet getBad(EdgeGraph mesh) {
@@ -78,11 +81,15 @@ public class Mesh {
     Tuple tuples[] = readNodes(basename);
     readElements(mesh, basename, tuples);
     readPoly(mesh, basename, tuples);
+
+    // after building the initial graph, discover all the nodes
+    mesh.discoverAllNodes( aNode );
   }
 
   protected Node addElement(EdgeGraph mesh, Element element) {
     Node node = mesh.createNode(element);
     mesh.addNode(node);
+    //mesh.addNodeToAllNodesSet( node );
     for (int i = 0; i < element.numEdges(); i++) {
       ElementEdge edge = element.getEdge(i);
       if (!edge_map.containsKey(edge)) {
@@ -93,6 +100,10 @@ public class Mesh {
         edge_map.remove(edge);
       }
     }
+
+    // just remember one node to use for discovering all nodes
+    // in the graph
+    aNode = node;
 
     return node;
   }
