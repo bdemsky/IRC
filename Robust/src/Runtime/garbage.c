@@ -242,6 +242,17 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
 	    }
 	  }
 #endif
+	  {
+	    pointer=pointerarray[OBJECTTYPE];
+	    //handle object class
+	    INTPTR size=pointer[0];
+	    int i;
+	    for(i=1; i<=size; i++) {
+	      unsigned int offset=pointer[i];
+	      void * objptr=*((void **)(((char *)vptr)+offset));
+	      SENQUEUE(objptr, *((void **)(((char *)vptr)+offset)));
+	    }
+	  }
 	} else {
 	  INTPTR size=pointer[0];
 	  int i;
