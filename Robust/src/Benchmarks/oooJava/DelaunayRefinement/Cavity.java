@@ -1,11 +1,12 @@
 public class Cavity {
+
   protected Tuple center;
   protected Node centerNode;
   protected Element centerElement;
   protected int dim;
   protected LinkedList frontier;
-  protected Subgraph pre = new Subgraph();
-  protected Subgraph post = new Subgraph();
+  protected Subgraph pre;
+  protected Subgraph post;
   private final EdgeGraph graph;
   protected HashSet connections;
 
@@ -14,6 +15,8 @@ public class Cavity {
     graph = mesh;
     connections = new HashSet();
     frontier = new LinkedList();
+    pre = new Subgraph();
+    post = new Subgraph();
   }
 
   public Subgraph getPre() {

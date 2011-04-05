@@ -82,7 +82,6 @@ public class SerialDelaunayRefinement {
 
     Stack worklist = new Stack();
 
-    // REPLACE worklist.addAll(Mesh.getBad(mesh)); WITH...
     HashMapIterator it = m.getBad(mesh).iterator();
     while (it.hasNext()) {
       worklist.push(it.next());
@@ -98,9 +97,6 @@ public class SerialDelaunayRefinement {
     System.out.println( "Post-config garbage collection started..." );
     System.gc();
     System.out.println( "done gc" );
-
-
-    //int zzz = 0;
 
 
     long startTime = System.currentTimeMillis();
@@ -122,6 +118,8 @@ public class SerialDelaunayRefinement {
           } else {
             nodesForBadTris[i] = (Node) worklist.pop();
           }
+          
+          cavities[i] = null;
         }
       
         // Phase 2, read mesh and compute cavities in parallel
@@ -133,9 +131,6 @@ public class SerialDelaunayRefinement {
               nodeForBadTri.inGraph
               ) {
      
-            //System.out.println( "computing a cavity for tri "+
-            //                    mesh.getNodeData( nodeForBadTri )+"..." );
-     
             sese computeCavity {
               //takes < 1 sec 
               Cavity cavity = new Cavity(mesh);
@@ -144,57 +139,16 @@ public class SerialDelaunayRefinement {
               cavity.initialize(nodeForBadTri);
           
               //Takes up 15% of computation
-              //Problem:: Build is recursive upon building neighbor upon neighbor upon neighbor
-              //This is could be a problem....
-              //TODO check dimensions problem
               cavity.build();
           
               //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
               cavity.update();
-
-
-              /*
-                LinkedList nodes  = cavity.getPre().getNodes();
-                LinkedList border = cavity.getPre().getBorder();
-                LinkedList edges  = cavity.getPre().getEdges();
-
-                String s = "nodes:  \n";
-    
-                for( Iterator iter = nodes.iterator(); iter.hasNext(); ) {
-                Node    node = (Node) iter.next();
-                Element element = (Element) mesh.getNodeData(node);
-                s += "  "+element+"\n";
-                }
-
-                s += "\nborder: \n";
-
-                for( Iterator iter = border.iterator(); iter.hasNext(); ) {
-                Node    node = (Node) iter.next();
-                Element element = (Element) mesh.getNodeData(node);
-                s += "  "+element+"\n";
-                }
-
-                s += "\nedges:  \n";
-
-                for( Iterator iter = edges.iterator(); iter.hasNext(); ) {
-                Edge_d  edge    = (Edge_d)  iter.next();
-                Element element = (Element) mesh.getEdgeData(edge);
-                s += "  "+element+"\n";
-                }
-
-                System.out.println( "Pre:\n"+s );
-              */
-
             }
           
             sese storeCavity {
               cavities[i] = cavity;
             }
 
-          } else {
-            sese storeNoCavity {
-              cavities[i] = null;
-            }
           }
         }
       
@@ -216,19 +170,12 @@ public class SerialDelaunayRefinement {
             if( cavity != null &&
                 cavity.getPre().allNodesAndBorderStillInCompleteGraph() ) {
 
-              appliedCavity     = 1;
+              appliedCavity = 1;
 
-
-              //boolean printChange = true; //(zzz % 10 == 0);
-        
 
               //remove old data
-              Node node;
-              //if( printChange ) {
-              //  System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( nodeForBadTri ) );
-              //  System.out.println( "\npre nodes: " );
-              //}
               //Takes up 8.9% of runtime
+              Node node;
               for (Iterator iterator = cavity.getPre().getNodes().iterator();
                    iterator.hasNext();) {
 
@@ -349,7 +296,12 @@ public class SerialDelaunayRefinement {
         //if( zzz == 10 ) { System.exit( 0 ); }
 
       } // end while( !worklist.isEmpty() )
+
+      System.out.println( "yuh?" );
     } // end sese workLoop
+    
+    // stall before runtime calc, this is an empty method
+    lastAppliedCavity.triggerAbort();
 
     long time = System.currentTimeMillis() - startTime;
     System.out.println("runtime: " + time + " ms");
