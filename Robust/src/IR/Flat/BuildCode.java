@@ -589,6 +589,7 @@ public class BuildCode {
 
 
     outstructs.println("#define STRINGTYPE "+typeutil.getClass(TypeUtil.StringClass).getId());
+    outstructs.println("#define OBJECTTYPE "+typeutil.getClass(TypeUtil.ObjectClass).getId());
     outstructs.println("#define CHARARRAYTYPE "+
                        (state.getArrayNumber((new TypeDescriptor(TypeDescriptor.CHAR)).makeArray(state))+state.numClasses()));
 
