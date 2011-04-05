@@ -1090,11 +1090,6 @@ public class OoOJavaAnalysis {
     }
 
 
-    if( fsenDoingTracking.getPrettyIdentifier().equals( "workLoop" ) ) {
-      System.out.println( "\n\nWriteDyn for "+fsenDoingTracking+" at "+fn );
-    }
-
-
     VarSrcTokTable thisVstTable = variableResults.get(fn);
     for (int i = 0; i < fn.numNext(); i++) {
       FlatNode nn = fn.getNext(i);
@@ -1111,13 +1106,6 @@ public class OoOJavaAnalysis {
 
         if (!readyOrStatic2dynamicSet.isEmpty()) {
 
-
-
-          if( fsenDoingTracking.getPrettyIdentifier().equals( "workLoop" ) ) {
-            System.out.println( "  found newly dyn vars: "+readyOrStatic2dynamicSet );
-          }
-
-
           // either add these results to partial fixed-point result
           // or make a new one if we haven't made any here yet
           FlatEdge fe = new FlatEdge(fn, nn);
@@ -1131,10 +1119,6 @@ public class OoOJavaAnalysis {
           }
         }
       }
-    }
-
-    if( fsenDoingTracking.getPrettyIdentifier().equals( "workLoop" ) ) {
-      System.out.println( "WriteDyn for "+fsenDoingTracking+" at "+fn+" is done\n\n" );
     }
   }
 
