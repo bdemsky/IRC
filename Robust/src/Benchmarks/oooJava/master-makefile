@@ -33,11 +33,11 @@ USECOREPROF= #-coreprof $(COREPROFOVERFLOW) \
 
 
 USEOOO= -ooojava $(NUM_OOO_WORKERS) 2 -squeue #-ooodebug-disable-task-mem-pool
-USERCR= -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue 
+USERCR= -ooodebug -ooojava $(NUM_RCR_WORKERS) 2 -rcr -squeue 
 OOODEBUG= -ooodebug -printlinenum
 RCRDEBUG= -rcr_debug -printlinenum
 RCRDEBUGV= -rcr_debug_verbose -printlinenum
-BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -optimize -debug #-nooptimize #src-after-pp
+BSFLAGS= -64bit -mainclass $(PROGRAM)  -heapsize-mb 8000 -garbagestats -joptimize -noloop -nooptimize -debug # #src-after-pp  -optimize
 
 
 DRELEASEMODE=-disjoint-release-mode -disjoint-dvisit-stack-callees-on-top -disjoint-alias-file aliases.txt tabbed

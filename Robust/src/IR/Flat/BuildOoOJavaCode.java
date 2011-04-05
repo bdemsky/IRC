@@ -1741,35 +1741,80 @@ public class BuildOoOJavaCode extends BuildCode {
     output.println("   }");
 
 
-    // copy out-set from local temps into the sese record
-    Iterator<TempDescriptor> itr = fsen.getOutVarSet().iterator();
+
+    ////////////////////////////////////////
+    // go through all out-vars and determine where to get them
+    ////////////////////////////////////////
+    output.println("   // copy ready out-set primitive variables from locals into record");
+    Iterator<TempDescriptor> itr = fsen.getReadyOutVarSet().iterator();
     while( itr.hasNext() ) {
       TempDescriptor temp = itr.next();
 
-      // only have to do this for primitives non-arrays
+      // only have to do this for primitives, non-arrays
       if( !(
             temp.getType().isPrimitive() && !temp.getType().isArray()
-           )
-        ) {
+            )
+          ) {
 	continue;
       }
 
-      String from;
-
-      // determine whether this new task instance is in a method context,
-      // or within the body of another task
-      assert !fsen.getIsCallerProxySESE();
-      FlatSESEEnterNode parent = fsen.getLocalParent();
-      if( parent != null && !parent.getIsCallerProxySESE() ) {
-        from = generateTemp( parent.getfmBogus(),   temp );
-      } else {
-	from = generateTemp( fsen.getfmEnclosing(), temp );
-      }
+      String from = generateTemp( fsen.getfmBogus(), temp );
 
       output.println("   "+paramsprefix+
 		     "->"+temp.getSafeSymbol()+
 		     " = "+from+";");
-    }    
+    }
+
+    // static vars are from a known SESE
+    Iterator<TempDescriptor> tempItr;
+    output.println("   // copy out-set from static sources");
+    tempItr = fsen.getStaticOutVarSet().iterator();
+    while( tempItr.hasNext() ) {
+      TempDescriptor      temp    = tempItr.next();
+      VariableSourceToken vst     = fsen.getStaticOutVarSrc( temp );
+      SESEandAgePair      srcPair = new SESEandAgePair( vst.getSESE(), vst.getAge() );
+      output.println("   "+paramsprefix+
+		     "->"+temp.getSafeSymbol()+
+		     " = "+paramsprefix+"->"+srcPair+"->"+vst.getAddrVar()+";");
+    }
+    
+    //output.println("   // decrement references to static sources");
+    //for( Iterator<SESEandAgePair> pairItr = fsen.getStaticOutVarSrcs().iterator(); pairItr.hasNext(); ) {
+    //  SESEandAgePair srcPair = pairItr.next();
+    //  output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
+    //  output.println("   {");
+    //  output.println("     SESEcommon* src = &("+paramsprefix+"->"+srcPair+"->common);");
+    //  output.println("     RELEASE_REFERENCE_TO( src );");
+    //  output.println("   }");
+    //  output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
+    //}
+
+    output.println("     // copy out-set from dynamic sources");
+    tempItr = fsen.getDynamicOutVarSet().iterator();
+    while( tempItr.hasNext() ) {
+      TempDescriptor temp = tempItr.next();
+      TypeDescriptor type = temp.getType();
+      
+      // go grab it from the SESE source, when the source is NULL it is
+      // this exiting task, so nothing to do!
+      output.println("   if( "+temp+"_srcSESE != NULL ) {");
+
+      output.println("     "+paramsprefix+
+		     "->"+temp.getSafeSymbol()+
+		     " =  (void*)"+
+		     temp+"_srcSESE + "+
+		     temp+"_srcOffset;");
+
+      //output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
+      //output.println("     SESEcommon* src = "+paramsprefix+"->"+temp+"_srcSESE;");
+      //output.println("     RELEASE_REFERENCE_TO( src );");
+      //output.println("#endif // OOO_DISABLE_TASKMEMPOOL" );
+      
+      output.println("   }");
+    }
+    
+
+
     
     // mark yourself done, your task data is now read-only
     output.println("   runningSESE->doneExecuting = TRUE;");

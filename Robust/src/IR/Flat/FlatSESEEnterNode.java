@@ -56,13 +56,26 @@ public class FlatSESEEnterNode extends FlatNode {
   protected Set<TempDescriptor> inVars;
   protected Set<TempDescriptor> outVars;
 
+
+  // for in-vars, classify them by source type to drive
+  // code gen for issuing this task
   protected Set<TempDescriptor> readyInVars;
   protected Set<TempDescriptor> staticInVars;
   protected Set<TempDescriptor> dynamicInVars;  
-
   protected Set<SESEandAgePair> staticInVarSrcs;
-
   protected Hashtable<TempDescriptor, VariableSourceToken> staticInVar2src;
+
+  // for out-vars, classify them by source type to drive
+  // code gen for when this task exits: if the exiting task
+  // has to assume the values from any of its children, it needs
+  // to know how to acquire those values before it can truly exit
+  protected Set<TempDescriptor> readyOutVars;
+  protected Set<TempDescriptor> staticOutVars;
+  protected Set<TempDescriptor> dynamicOutVars;  
+  protected Set<SESEandAgePair> staticOutVarSrcs;
+  protected Hashtable<TempDescriptor, VariableSourceToken> staticOutVar2src;
+
+
 
   // get the oldest age of this task that other contexts
   // have a static name for when tracking variables
@@ -106,9 +119,14 @@ public class FlatSESEEnterNode extends FlatNode {
     staticInVars         = new HashSet<TempDescriptor>();
     dynamicInVars        = new HashSet<TempDescriptor>();
     staticInVarSrcs      = new HashSet<SESEandAgePair>();
+    readyOutVars         = new HashSet<TempDescriptor>();
+    staticOutVars        = new HashSet<TempDescriptor>();
+    dynamicOutVars       = new HashSet<TempDescriptor>();
+    staticOutVarSrcs     = new HashSet<SESEandAgePair>();
     oldestAgeToTrack     = new Integer( 0 );
 
-    staticInVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
+    staticInVar2src  = new Hashtable<TempDescriptor, VariableSourceToken>();
+    staticOutVar2src = new Hashtable<TempDescriptor, VariableSourceToken>();
 
     inVarsForDynamicCoarseConflictResolution = new Vector<TempDescriptor>();
     
@@ -344,6 +362,51 @@ public class FlatSESEEnterNode extends FlatNode {
   public Set<TempDescriptor> getDynamicInVarSet() {
     return dynamicInVars;
   }
+
+
+
+  public void addReadyOutVar( TempDescriptor td ) {
+    readyOutVars.add( td );
+  }
+
+  public Set<TempDescriptor> getReadyOutVarSet() {
+    return readyOutVars;
+  }
+
+  public void addStaticOutVarSrc( SESEandAgePair p ) {
+    staticOutVarSrcs.add( p );
+  }
+
+  public Set<SESEandAgePair> getStaticOutVarSrcs() {
+    return staticOutVarSrcs;
+  }
+
+  public void addStaticOutVar( TempDescriptor td ) {
+    staticOutVars.add( td );
+  }
+
+  public Set<TempDescriptor> getStaticOutVarSet() {
+    return staticOutVars;
+  }
+
+  public void putStaticOutVar2src( TempDescriptor staticOutVar,
+				  VariableSourceToken vst ) {
+    staticOutVar2src.put( staticOutVar, vst );
+  }
+
+  public VariableSourceToken getStaticOutVarSrc( TempDescriptor staticOutVar ) {
+    return staticOutVar2src.get( staticOutVar );
+  }
+
+  public void addDynamicOutVar( TempDescriptor td ) {
+    dynamicOutVars.add( td );
+  }
+
+  public Set<TempDescriptor> getDynamicOutVarSet() {
+    return dynamicOutVars;
+  }
+
+
 
 
   public void setfmEnclosing( FlatMethod fm ) { fmEnclosing = fm; }

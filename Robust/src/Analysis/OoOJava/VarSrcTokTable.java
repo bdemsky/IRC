@@ -385,23 +385,25 @@ public class VarSrcTokTable {
   public void remapChildTokens( FlatSESEEnterNode curr ) {
 
     Iterator<FlatSESEEnterNode> childItr = curr.getLocalChildren().iterator();
-    if( childItr.hasNext() ) {
+    while( childItr.hasNext() ) {
       FlatSESEEnterNode child = childItr.next();
       
       // set of VSTs for removal
       HashSet<VariableSourceToken> removalSet=new HashSet<VariableSourceToken>();
       // set of VSTs for additon
       HashSet<VariableSourceToken> additionSet=new HashSet<VariableSourceToken>();
-      
+     
       Iterator<VariableSourceToken> vstItr = get( child ).iterator();
       while( vstItr.hasNext() ) {
         VariableSourceToken vst = vstItr.next();
         removalSet.add(vst);
-        additionSet.add(new VariableSourceToken( vst.getRefVars(),
-			      curr,
-			      new Integer( 0 ),
-			      vst.getAddrVar()
-                                  ));
+
+        additionSet.add( new VariableSourceToken( vst.getRefVars(),
+                                                  curr,
+                                                  new Integer( 0 ),
+                                                  vst.getAddrVar()
+                                                  )
+                         );
       }
       
       // remove( eah item in forremoval )
@@ -466,8 +468,6 @@ public class VarSrcTokTable {
         alternateSESEs.add( sibling );
       }
     }
-
-
     
     // VSTs to remove if they are alternate sources for exiter VSTs
     // whose variables will become virtual reads
@@ -512,8 +512,9 @@ public class VarSrcTokTable {
 	    forRemoval.add( vstPossibleOtherSrc );  
 
 	  } else {
-            if( !vstPossibleOtherSrc.getSESE().equals( exiter ) ||
-                !vstPossibleOtherSrc.getAge().equals( 0 )
+            if( !(vstPossibleOtherSrc.getSESE().equals( exiter ) &&
+                  vstPossibleOtherSrc.getAge().equals( 0 )
+                 )
                 ) {
               System.out.println( "For refVar="+refVar+" at exit of "+exiter+
                                   ", unexpected possible variable source "+vstPossibleOtherSrc );

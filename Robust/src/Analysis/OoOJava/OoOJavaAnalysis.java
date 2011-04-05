@@ -16,6 +16,7 @@ public class OoOJavaAnalysis {
   private State state;
   private TypeUtil typeUtil;
   private CallGraph callGraph;
+  private Liveness liveness;
   private RBlockRelationAnalysis rblockRel;
   private HeapAnalysis disjointAnalysisTaints;
   private DisjointAnalysis disjointAnalysisReach;
@@ -98,9 +99,10 @@ public class OoOJavaAnalysis {
                           ArrayReferencees arrayReferencees ) {
 
     State.logEvent("Starting OoOJavaAnalysis");
-    this.state = state;
-    this.typeUtil = typeUtil;
-    this.callGraph = callGraph;
+    this.state      = state;
+    this.typeUtil   = typeUtil;
+    this.callGraph  = callGraph;
+    this.liveness   = liveness;
     this.maxSESEage = state.OOO_MAXSESEAGE;
 
     livenessGlobalView     = new Hashtable<FlatNode, Set<TempDescriptor>>();
@@ -152,7 +154,7 @@ public class OoOJavaAnalysis {
     Iterator<FlatSESEEnterNode> seseItr = rblockRel.getLocalRootSESEs().iterator();
     while (seseItr.hasNext()) {
       FlatSESEEnterNode sese = seseItr.next();
-      livenessAnalysisBackward(sese,liveness);
+      livenessAnalysisBackward(sese);
     }
     
 
@@ -175,7 +177,7 @@ public class OoOJavaAnalysis {
     seseItr = rblockRel.getLocalRootSESEs().iterator();
     while (seseItr.hasNext()) {
       FlatSESEEnterNode sese = seseItr.next();
-      livenessAnalysisBackward(sese,liveness);
+      livenessAnalysisBackward(sese);
     }
     
     State.logEvent("OoOJavaAnalysis 4th pass completed");
@@ -249,7 +251,7 @@ public class OoOJavaAnalysis {
     while (methItr.hasNext()) {
       Descriptor d = methItr.next();
       FlatMethod fm = state.getMethodFlat(d);
-      codePlansForward(fm,liveness);
+      codePlansForward(fm);
     }
 
     State.logEvent("OoOJavaAnalysis 12th pass completed");    
@@ -332,7 +334,7 @@ public class OoOJavaAnalysis {
   }
 
 
-  private void livenessAnalysisBackward(FlatSESEEnterNode fsen,Liveness liveness) {
+  private void livenessAnalysisBackward(FlatSESEEnterNode fsen) {
 
     // flow backward across nodes to compute liveness, and
     // take special care with sese enter/exit nodes that
@@ -357,7 +359,7 @@ public class OoOJavaAnalysis {
         }
       }
       
-      Set<TempDescriptor> curr = liveness_nodeActions( fn, livein, liveness );
+      Set<TempDescriptor> curr = liveness_nodeActions( fn, livein );
 
       // if a new result, schedule backward nodes for analysis
       if( !curr.equals( prev ) ) {
@@ -374,7 +376,7 @@ public class OoOJavaAnalysis {
   }
 
   private Set<TempDescriptor> liveness_nodeActions( FlatNode            fn, 
-                                                    Set<TempDescriptor> liveIn, Liveness liveness
+                                                    Set<TempDescriptor> liveIn
                                                     ) {
     switch( fn.kind() ) {
 
@@ -403,7 +405,6 @@ public class OoOJavaAnalysis {
           FlatSESEExitNode fsexn = fsen.getFlatExit();
           //note: liveness analysis can have corresponding decisions 
           Set<TempDescriptor> livetemps= liveness.getLiveInTemps(fsen.getfmEnclosing(), fsexn);
-//          Set<TempDescriptor> livetemps = livenessGlobalView.get( fsexn );
           if( livetemps != null && livetemps.contains( writeTemps[i] ) ) {
             fsen.addOutVar( writeTemps[i] );
           }          
@@ -495,7 +496,9 @@ public class OoOJavaAnalysis {
       // written by an SESE and should be added to the in-set
       // anything virtually read by this SESE should be pruned
       // of parent or sibling sources
-      Set<TempDescriptor> liveVars = livenessGlobalView.get(fn);
+      Set<TempDescriptor> liveVars = liveness.getLiveInTemps(fsen.getfmEnclosing(),
+                                                             fn);
+
       Set<TempDescriptor> fsenVirtReads =
         vstTable.calcVirtReadsAndPruneParentAndSiblingTokens(fsen, 
                                                              liveVars);
@@ -505,6 +508,10 @@ public class OoOJavaAnalysis {
         fsenVirtReads.addAll(fsenVirtReadsOld);
       }
       livenessVirtualReads.put(fn, fsenVirtReads);
+
+      // virtual reads are forced in-vars!
+      fsen.addInVarSet( fsenVirtReads );
+
 
       // then all child out-set tokens are guaranteed
       // to be filled in, so clobber those entries with
@@ -765,7 +772,7 @@ public class OoOJavaAnalysis {
   }
 
 
-  private void codePlansForward(FlatMethod fm, Liveness liveness) {
+  private void codePlansForward(FlatMethod fm) {
 
     // start from flat method top, visit every node in
     // method exactly once
@@ -807,7 +814,7 @@ public class OoOJavaAnalysis {
       }
 
       codePlans_nodeActions(fm, fn, 
-                            /*dotSTlive*/liveness, dotSTtable, dotSTnotAvailSet, 
+                            dotSTtable, dotSTnotAvailSet, 
                             currentSESE);
 
       for (int i = 0; i < fn.numNext(); i++) {
@@ -822,8 +829,6 @@ public class OoOJavaAnalysis {
       
   private void codePlans_nodeActions(FlatMethod fm,
                                      FlatNode fn,
-//                                     Set<TempDescriptor> liveSetIn,
-                                     Liveness liveness,
                                      VarSrcTokTable vstTableIn, 
                                      Set<TempDescriptor> notAvailSetIn, 
                                      FlatSESEEnterNode currentSESE) {
@@ -860,13 +865,14 @@ public class OoOJavaAnalysis {
         // variable and the child needs space in its SESE record
         if (srcType.equals(VarSrcTokTable.SrcType_DYNAMIC)) {
           fsen.addDynamicInVar(inVar);
-          addDynamicVar( fsen, fm, inVar );
+          addDynamicVar( parent, fm, inVar );
 
         } else if (srcType.equals(VarSrcTokTable.SrcType_STATIC)) {
           fsen.addStaticInVar(inVar);
           VariableSourceToken vst = vstIfStatic.vst;
           fsen.putStaticInVar2src(inVar, vst);
           fsen.addStaticInVarSrc(new SESEandAgePair(vst.getSESE(), vst.getAge()));
+
         } else {
           assert srcType.equals(VarSrcTokTable.SrcType_READY);
           fsen.addReadyInVar(inVar);
@@ -876,11 +882,40 @@ public class OoOJavaAnalysis {
 
     case FKind.FlatSESEExitNode: {
       FlatSESEExitNode fsexn = (FlatSESEExitNode) fn;
-      //TODO! Shouldn't there be a code plan for task exit
-      // where the exiting task calculates whether its own
-      // siblings need variables from its children, so the
-      // exiter should copy those variables into its own out-set
-      // and make the available?
+
+      // Classify the sources of out-set variables so code
+      // gen can acquire them from children if necessary
+      // before this task exits
+      FlatSESEEnterNode exiter = fsexn.getFlatEnter();
+
+      Iterator<TempDescriptor> outVarItr = exiter.getOutVarSet().iterator();
+      while( outVarItr.hasNext() ) {
+        TempDescriptor outVar = outVarItr.next();
+                
+        VSTWrapper vstIfStatic = new VSTWrapper();
+        Integer srcType = vstTableIn.getRefVarSrcType( outVar, 
+                                                       exiter,
+                                                       vstIfStatic
+                                                       );
+
+        if( srcType.equals( VarSrcTokTable.SrcType_DYNAMIC ) ) {
+          // if the out-var is dynamic, put it in the set of dyn out vars
+          // so exiting code gen knows to look for the value, but also put
+          // it in the set of dynamic vars the exiter must track!
+          exiter.addDynamicOutVar( outVar );
+          addDynamicVar( exiter, fm, outVar );
+
+        } else if( srcType.equals( VarSrcTokTable.SrcType_STATIC ) ) {
+          exiter.addStaticOutVar( outVar );
+          VariableSourceToken vst = vstIfStatic.vst;
+          exiter.putStaticOutVar2src( outVar, vst );
+          exiter.addStaticOutVarSrc( new SESEandAgePair( vst.getSESE(), vst.getAge() ) );
+
+        } else {
+          assert srcType.equals( VarSrcTokTable.SrcType_READY );          
+          exiter.addReadyOutVar( outVar );
+        }
+      }
     } break;
 
     case FKind.FlatOpNode: {
@@ -970,12 +1005,9 @@ public class OoOJavaAnalysis {
             while (refVarItr.hasNext()) {
               TempDescriptor refVar = refVarItr.next();
               //note: this should just use normal liveness in...only want to copy live variables...
-//              if (liveSetIn.contains(refVar)) {
-//                copySet.add(refVar);
-//              }
-                if(liveness.getLiveInTemps(fm, fn).contains(refVar)){
-                  copySet.add(refVar);
-                }
+              if(liveness.getLiveInTemps(fm, fn).contains(refVar)){
+                copySet.add(refVar);
+              }
             }
 
             if (!copySet.isEmpty()) {
@@ -1026,16 +1058,48 @@ public class OoOJavaAnalysis {
 
     codePlans.put(fn, plan);
 
-    // if any variables at this-node-*dot* have a static source (exactly one
-    // vst)
+
+
+
+    // if any variables at this-node-*dot* have a static source (exactly one vst)
     // but go to a dynamic source at next-node-*dot*, create a new IR graph
     // node on that edge to track the sources dynamically
+    // NOTE: for this calculation use the currentSESE variable, except when the 
+    // FlatNode fn is an Exit--in that case currentSESE is for the exiting task,
+    // be we want to consider that the parent is tracking a variable coming out
+    // of the exiting task
+    FlatSESEEnterNode fsenDoingTracking;
+    if( fn instanceof FlatSESEExitNode ) {
+      fsenDoingTracking = currentSESE.getLocalParent();
+
+      if( fsenDoingTracking == null ) {
+        // if there is no local parent, there are one of two cases
+        // 1) the current task is main, in which case this FlatNode
+        //    is the main's exit, and doesn't need to do any of the
+        //    following dynamic tracking
+        // 2) the current task is defined in a method, so use the
+        //    caller proxy in the variable source calcs below
+        if( currentSESE.equals( rblockRel.getMainSESE() ) ) {          
+          return;
+        } else {
+          fsenDoingTracking = rblockRel.getCallerProxySESE();
+        }
+      }
+    } else {
+      fsenDoingTracking = currentSESE;
+    }
+
+
+    if( fsenDoingTracking.getPrettyIdentifier().equals( "workLoop" ) ) {
+      System.out.println( "\n\nWriteDyn for "+fsenDoingTracking+" at "+fn );
+    }
+
+
     VarSrcTokTable thisVstTable = variableResults.get(fn);
     for (int i = 0; i < fn.numNext(); i++) {
       FlatNode nn = fn.getNext(i);
       VarSrcTokTable nextVstTable = variableResults.get(nn);
       // note: using the result of liveness analysis regardless of task structures 
-      // Set<TempDescriptor> nextLiveIn = livenessGlobalView.get(nn);
       Set<TempDescriptor> nextLiveIn=liveness.getLiveInTemps(fm, nn);
 
       // the table can be null if it is one of the few IR nodes
@@ -1043,9 +1107,16 @@ public class OoOJavaAnalysis {
       if (nextVstTable != null && nextLiveIn != null) {
 
         Hashtable<TempDescriptor, VSTWrapper> readyOrStatic2dynamicSet =
-            thisVstTable.getReadyOrStatic2DynamicSet(nextVstTable, nextLiveIn, currentSESE);
+            thisVstTable.getReadyOrStatic2DynamicSet(nextVstTable, nextLiveIn, fsenDoingTracking);
 
         if (!readyOrStatic2dynamicSet.isEmpty()) {
+
+
+
+          if( fsenDoingTracking.getPrettyIdentifier().equals( "workLoop" ) ) {
+            System.out.println( "  found newly dyn vars: "+readyOrStatic2dynamicSet );
+          }
+
 
           // either add these results to partial fixed-point result
           // or make a new one if we haven't made any here yet
@@ -1053,13 +1124,17 @@ public class OoOJavaAnalysis {
           FlatWriteDynamicVarNode fwdvn = wdvNodesToSpliceIn.get(fe);
 
           if (fwdvn == null) {
-            fwdvn = new FlatWriteDynamicVarNode(fn, nn, readyOrStatic2dynamicSet, currentSESE);
+            fwdvn = new FlatWriteDynamicVarNode(fn, nn, readyOrStatic2dynamicSet, fsenDoingTracking);
             wdvNodesToSpliceIn.put(fe, fwdvn);
           } else {
             fwdvn.addMoreVar2Src(readyOrStatic2dynamicSet);
           }
         }
       }
+    }
+
+    if( fsenDoingTracking.getPrettyIdentifier().equals( "workLoop" ) ) {
+      System.out.println( "WriteDyn for "+fsenDoingTracking+" at "+fn+" is done\n\n" );
     }
   }
 
@@ -1070,15 +1145,15 @@ public class OoOJavaAnalysis {
     
     // note: dynamic variable declarations are always located in the flat method that encloses task block
     // there is no need to set fnContext to fsen
-//    if( fsen.getIsCallerProxySESE() ) {
-//      // attach the dynamic variable to track to
-//      // the flat method, so it can be declared at entry
-//      fnContext = fm;
-//    } else {
-//      // otherwise the code context is a task body
-//      fnContext = fsen;
-//    }
-    fnContext=fm;
+    if( fsen.getIsCallerProxySESE() ) {
+      // attach the dynamic variable to track to
+      // the flat method, so it can be declared at entry
+      fnContext = fm;
+    } else {
+      // otherwise the code context is a task body
+      fnContext = fsen;
+    }
+    //fnContext=fm;
 
     ContextTaskNames ctn = fn2contextTaskNames.get( fnContext );
     if( ctn == null ) {
@@ -1721,6 +1796,19 @@ public class OoOJavaAnalysis {
       bw.write("   Dynamic vars to manage: " + getContextTaskNames( fsen ).getDynamicVarSet() + "\n");
 
       bw.write("  out-set: " + fsen.getOutVarSet() + "\n");
+      tItr = fsen.getOutVarSet().iterator();
+      while (tItr.hasNext()) {
+        TempDescriptor outVar = tItr.next();
+        if (fsen.getReadyOutVarSet().contains(outVar)) {
+          bw.write("    (ready)  " + outVar + "\n");
+        }
+        if (fsen.getStaticOutVarSet().contains(outVar)) {
+          bw.write("    (static) " + outVar + " from " + fsen.getStaticOutVarSrc(outVar) + "\n");
+        }
+        if (fsen.getDynamicOutVarSet().contains(outVar)) {
+          bw.write("    (dynamic)" + outVar + "\n");
+        }
+      }
 
       bw.write("  local parent:   " + fsen.getLocalParent() + "\n");
       bw.write("  local children: " + fsen.getLocalChildren() + "\n");

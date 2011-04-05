@@ -100,247 +100,256 @@ public class SerialDelaunayRefinement {
     System.out.println( "done gc" );
 
 
-    Node  [] nodesForBadTris = new Node  [numWorkers];
-    Cavity[] cavities        = new Cavity[numWorkers];
-    Cavity lastAppliedCavity = null;
-
-
-    int zzz = 0;
+    //int zzz = 0;
 
 
     long startTime = System.currentTimeMillis();
-    while (!worklist.isEmpty()) {
 
-      // Phase 1, grab enough work from list for
-      // each worker in the parent      
-      for(int i=0;i<numWorkers;i++) {
-        if(worklist.isEmpty()) {
-          nodesForBadTris[i] = null; 
-        } else {
-          nodesForBadTris[i] = (Node) worklist.pop();
+
+    sese workLoop {
+
+      Node  [] nodesForBadTris = new Node  [numWorkers];
+      Cavity[] cavities        = new Cavity[numWorkers];
+      Cavity lastAppliedCavity = null;
+
+      while (!worklist.isEmpty()) {
+
+        // Phase 1, grab enough work from list for
+        // each worker in the parent      
+        for(int i=0;i<numWorkers;i++) {
+          if(worklist.isEmpty()) {
+            nodesForBadTris[i] = null; 
+          } else {
+            nodesForBadTris[i] = (Node) worklist.pop();
+          }
         }
-      }
       
-      // Phase 2, read mesh and compute cavities in parallel
-      for(int i=0;i<numWorkers;i++) {
+        // Phase 2, read mesh and compute cavities in parallel
+        for(int i=0;i<numWorkers;i++) {
         
-        Node nodeForBadTri = nodesForBadTris[i];        
+          Node nodeForBadTri = nodesForBadTris[i];        
 
-        if (nodeForBadTri != null &&
-            nodeForBadTri.inGraph
-            ) {
+          if (nodeForBadTri != null &&
+              nodeForBadTri.inGraph
+              ) {
      
-          //System.out.println( "computing a cavity for tri "+
-          //                    mesh.getNodeData( nodeForBadTri )+"..." );
+            //System.out.println( "computing a cavity for tri "+
+            //                    mesh.getNodeData( nodeForBadTri )+"..." );
      
-          sese computeCavity {
-            //takes < 1 sec 
-            Cavity cavity = new Cavity(mesh);
+            sese computeCavity {
+              //takes < 1 sec 
+              Cavity cavity = new Cavity(mesh);
           
-            //Appears to only call getters (only possible conflict is inherent in Hashmap)
-            cavity.initialize(nodeForBadTri);
+              //Appears to only call getters (only possible conflict is inherent in Hashmap)
+              cavity.initialize(nodeForBadTri);
           
-            //Takes up 15% of computation
-            //Problem:: Build is recursive upon building neighbor upon neighbor upon neighbor
-            //This is could be a problem....
-            //TODO check dimensions problem
-            cavity.build();
+              //Takes up 15% of computation
+              //Problem:: Build is recursive upon building neighbor upon neighbor upon neighbor
+              //This is could be a problem....
+              //TODO check dimensions problem
+              cavity.build();
           
-            //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
-            cavity.update();
+              //Takes up a whooping 50% of computation time and changes NOTHING but cavity :D
+              cavity.update();
 
 
-            /*
-            LinkedList nodes  = cavity.getPre().getNodes();
-            LinkedList border = cavity.getPre().getBorder();
-            LinkedList edges  = cavity.getPre().getEdges();
+              /*
+                LinkedList nodes  = cavity.getPre().getNodes();
+                LinkedList border = cavity.getPre().getBorder();
+                LinkedList edges  = cavity.getPre().getEdges();
 
-            String s = "nodes:  \n";
+                String s = "nodes:  \n";
     
-            for( Iterator iter = nodes.iterator(); iter.hasNext(); ) {
-              Node    node = (Node) iter.next();
-              Element element = (Element) mesh.getNodeData(node);
-              s += "  "+element+"\n";
+                for( Iterator iter = nodes.iterator(); iter.hasNext(); ) {
+                Node    node = (Node) iter.next();
+                Element element = (Element) mesh.getNodeData(node);
+                s += "  "+element+"\n";
+                }
+
+                s += "\nborder: \n";
+
+                for( Iterator iter = border.iterator(); iter.hasNext(); ) {
+                Node    node = (Node) iter.next();
+                Element element = (Element) mesh.getNodeData(node);
+                s += "  "+element+"\n";
+                }
+
+                s += "\nedges:  \n";
+
+                for( Iterator iter = edges.iterator(); iter.hasNext(); ) {
+                Edge_d  edge    = (Edge_d)  iter.next();
+                Element element = (Element) mesh.getEdgeData(edge);
+                s += "  "+element+"\n";
+                }
+
+                System.out.println( "Pre:\n"+s );
+              */
+
             }
-
-            s += "\nborder: \n";
-
-            for( Iterator iter = border.iterator(); iter.hasNext(); ) {
-              Node    node = (Node) iter.next();
-              Element element = (Element) mesh.getNodeData(node);
-              s += "  "+element+"\n";
-            }
-
-            s += "\nedges:  \n";
-
-            for( Iterator iter = edges.iterator(); iter.hasNext(); ) {
-              Edge_d  edge    = (Edge_d)  iter.next();
-              Element element = (Element) mesh.getEdgeData(edge);
-              s += "  "+element+"\n";
-            }
-
-            System.out.println( "Pre:\n"+s );
-            */
-
-          }
           
-          sese storeCavity {
-            cavities[i] = cavity;
-          }
-
-        } else {
-          sese storeNoCavity {
-            cavities[i] = null;
-          }
-        }
-      }
-      
-      // Phase 3, apply cavities to mesh, if still applicable
-      // this phase can proceed in parallel when a cavity's
-      // start nodes are still present
-      for(int i=0;i<numWorkers;i++) {
-
-        Cavity  cavity        = cavities[i];
-        boolean appliedCavity = false;
-        Node    nodeForBadTri = nodesForBadTris[i];
-        
-        sese applyCavity {
-
-          // go ahead with applying cavity when all of its
-          // pre-nodes are still in
-          if( cavity != null &&
-              cavity.getPre().allNodesAndBorderStillInCompleteGraph() ) {
-
-            appliedCavity     = true;
-            lastAppliedCavity = cavity;
-
-
-            //boolean printChange = true; //(zzz % 10 == 0);
-        
-
-            //remove old data
-            Node node;
-            //if( printChange ) {
-            //  System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( nodeForBadTri ) );
-            //  System.out.println( "\npre nodes: " );
-            //}
-            //Takes up 8.9% of runtime
-            for (Iterator iterator = cavity.getPre().getNodes().iterator();
-                 iterator.hasNext();) {
-
-              node = (Node) iterator.next();
-              //if( printChange ) {
-              //  System.out.println( "  "+mesh.getNodeData( node ) );
-              //}          
-              mesh.removeNode(node);
-            }
- 
-            //add new data
-            //if( printChange ) {
-            //  System.out.println( "post nodes: " );
-            //}
-            //Takes up 1.7% of runtime
-            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
-                 iterator1.hasNext();) {
-
-              node = (Node) iterator1.next();
-              //if( printChange ) {
-              //  System.out.println( "  "+mesh.getNodeData( node ) );
-              //}          
-              mesh.addNode(node);
-            }
- 
-            //if( printChange ) {
-            //  System.out.println( "post edges: " );
-            //}
-            //Takes up 7.8% of runtime
-            Edge_d edge;
-            for (Iterator iterator2 = cavity.getPost().getEdges().iterator();
-                 iterator2.hasNext();) {
-              
-              edge = (Edge_d) iterator2.next();
-              //if( printChange ) {
-              //  System.out.println( "  "+mesh.getEdgeData( edge ) );
-              //}                        
-              mesh.addEdge(edge);
-            }
-
-
-
-            for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
-                 iterator1.hasNext();) {
-              node = (Node) iterator1.next();
-
-              Element e = (Element)mesh.getNodeData( node );
-
-              int cntOutNeighbors = 0;
-              for (Iterator iterator = mesh.getOutNeighbors(node); iterator.hasNext();) {
-                ++cntOutNeighbors;
-                Node neighbor = (Node) iterator.next();
-              }
-
-              int dim = e.getDim();
-              int out = cntOutNeighbors;
-
-              if( dim == 3 && out < 3 ) {
-                System.out.println( e+" has dim="+dim+" and num out-neighbors in graph="+out );
-              }
-            }
-
-          }
-        }
-         
-
-        sese scheduleMoreBad {
-
-          if( appliedCavity ) {
-            // we did apply the cavity, and we may 
-            // have introduced new bad triangles
-            HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
-            while (it2.hasNext()) {
-              worklist.push((Node)it2.next());
-            }
-          }
-        
-          // the logic of having this out here seems wacky, and overconservative,
-          // but it matches the original algorithm and it works...
-          if( nodeForBadTri != null && mesh.containsNode( nodeForBadTri ) ) {
-            worklist.push( nodeForBadTri );
-          }
-          
-          /*
-          if( !appliedCavity ) {
-
-            // if we couldn't even apply this cavity, just
-            // throw it back on the worklist
-            if( nodeForBadTri != null && nodeForBadTri.inGraph ) {
-              worklist.push( nodeForBadTri );
-            } else {
-              System.out.println( "\n\n\nthis tri no longer a concern: "+
-                                  mesh.getNodeData( nodeForBadTri ) );
+            sese storeCavity {
+              cavities[i] = cavity;
             }
 
           } else {
-            // otherwise we did apply the cavity,
-            // and we may have introduced new bad triangles
-            HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
-            while (it2.hasNext()) {
-              worklist.push((Node)it2.next());
+            sese storeNoCavity {
+              cavities[i] = null;
             }
           }
-          */
+        }
+      
+        // Phase 3, apply cavities to mesh, if still applicable
+        // this phase can proceed in parallel when a cavity's
+        // start nodes are still present
+        for(int i=0;i<numWorkers;i++) {
 
-        } // end scheduleMoreBad
-      } // end phase 3
+          Cavity  cavity        = cavities[i];
+          Node    nodeForBadTri = nodesForBadTris[i];
 
-      //++zzz;
-      //Node aNode = (Node)lastAppliedCavity.getPost().getNodes().iterator().next();      
-      //mesh.discoverAllNodes( aNode );
-      //System.out.println( "\n\ntris="+mesh.getNumNodes()+
-      //                    " [wl="+worklist.size()+"]");
-      //if( zzz == 10 ) { System.exit( 0 ); }
+        
+          sese applyCavity {
+            
+            int appliedCavity = 0;
 
-    } // end while( !worklist.isEmpty() )
+            // go ahead with applying cavity when all of its
+            // pre-nodes are still in
+            if( cavity != null &&
+                cavity.getPre().allNodesAndBorderStillInCompleteGraph() ) {
+
+              appliedCavity     = 1;
+
+
+              //boolean printChange = true; //(zzz % 10 == 0);
+        
+
+              //remove old data
+              Node node;
+              //if( printChange ) {
+              //  System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( nodeForBadTri ) );
+              //  System.out.println( "\npre nodes: " );
+              //}
+              //Takes up 8.9% of runtime
+              for (Iterator iterator = cavity.getPre().getNodes().iterator();
+                   iterator.hasNext();) {
+
+                node = (Node) iterator.next();
+                //if( printChange ) {
+                //  System.out.println( "  "+mesh.getNodeData( node ) );
+                //}          
+                mesh.removeNode(node);
+              }
+ 
+              //add new data
+              //if( printChange ) {
+              //  System.out.println( "post nodes: " );
+              //}
+              //Takes up 1.7% of runtime
+              for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
+                   iterator1.hasNext();) {
+
+                node = (Node) iterator1.next();
+                //if( printChange ) {
+                //  System.out.println( "  "+mesh.getNodeData( node ) );
+                //}          
+                mesh.addNode(node);
+              }
+ 
+              //if( printChange ) {
+              //  System.out.println( "post edges: " );
+              //}
+              //Takes up 7.8% of runtime
+              Edge_d edge;
+              for (Iterator iterator2 = cavity.getPost().getEdges().iterator();
+                   iterator2.hasNext();) {
+              
+                edge = (Edge_d) iterator2.next();
+                //if( printChange ) {
+                //  System.out.println( "  "+mesh.getEdgeData( edge ) );
+                //}                        
+                mesh.addEdge(edge);
+              }
+
+
+              /*
+              for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
+                   iterator1.hasNext();) {
+                node = (Node) iterator1.next();
+
+                Element e = (Element)mesh.getNodeData( node );
+
+                int cntOutNeighbors = 0;
+                for (Iterator iterator = mesh.getOutNeighbors(node); iterator.hasNext();) {
+                  ++cntOutNeighbors;
+                  Node neighbor = (Node) iterator.next();
+                }
+
+                int dim = e.getDim();
+                int out = cntOutNeighbors;
+
+                if( dim == 3 && out < 3 ) {
+                  System.out.println( e+" has dim="+dim+" and num out-neighbors in graph="+out );
+                }
+              }
+              */
+
+            }
+          }
+         
+
+          sese scheduleMoreBad {
+
+            if( appliedCavity == 1 ) {
+
+              lastAppliedCavity = cavity;
+              
+              // we did apply the cavity, and we may 
+              // have introduced new bad triangles
+              HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
+              while (it2.hasNext()) {
+                worklist.push((Node)it2.next());
+              }
+            }
+        
+            // the logic of having this out here seems wacky, and overconservative,
+            // but it matches the original algorithm and it works...
+            if( nodeForBadTri != null && mesh.containsNode( nodeForBadTri ) ) {
+              worklist.push( nodeForBadTri );
+            }
+          
+            /*
+              if( appliedCavity != 1 ) {
+
+              // if we couldn't even apply this cavity, just
+              // throw it back on the worklist
+              if( nodeForBadTri != null && nodeForBadTri.inGraph ) {
+              worklist.push( nodeForBadTri );
+              } else {
+              System.out.println( "\n\n\nthis tri no longer a concern: "+
+              mesh.getNodeData( nodeForBadTri ) );
+              }
+
+              } else {
+              // otherwise we did apply the cavity,
+              // and we may have introduced new bad triangles
+              HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
+              while (it2.hasNext()) {
+              worklist.push((Node)it2.next());
+              }
+              }
+            */
+
+          } // end scheduleMoreBad
+        } // end phase 3
+
+        //++zzz;
+        //Node aNode = (Node)lastAppliedCavity.getPost().getNodes().iterator().next();      
+        //mesh.discoverAllNodes( aNode );
+        //System.out.println( "\n\ntris="+mesh.getNumNodes()+
+        //                    " [wl="+worklist.size()+"]");
+        //if( zzz == 10 ) { System.exit( 0 ); }
+
+      } // end while( !worklist.isEmpty() )
+    } // end sese workLoop
 
     long time = System.currentTimeMillis() - startTime;
     System.out.println("runtime: " + time + " ms");
