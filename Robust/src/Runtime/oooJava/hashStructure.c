@@ -13,6 +13,22 @@ __thread HashStructure ** allHashStructures;
 #define ONEVAL 1ULL
 
 
+inline reenqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *olditem, BinItem_rcr *newitem) {
+  if (likely(rcrrec!=NULL)) {
+    struct rcrRecord * tmprec=rcrrec;;
+    int i;
+    do {
+      for(i=tmprec->index-1;i>=0;i--) {
+	if (tmprec->ptrarray[i]==olditem&&tmprec->array[i]==tmpkey) {
+	  tmprec->ptrarray[i]=newitem;
+	  return;
+	}
+      }
+      tmprec=tmprec->next;
+    } while(1);
+  }
+}
+
 inline enqueuerecord(struct rcrRecord *rcrrec, int tmpkey, BinItem_rcr *item) {
   if (likely(rcrrec!=NULL)) {
     struct rcrRecord * tmprec;
@@ -110,6 +126,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   bitvt rdmask=0,wrmask=0;
   int status=NOTREADY;
 
+  WriteBinItem_rcr *b;
   if (ISWRITEBIN(bintail->type)) {
     WriteBinItem_rcr * td = (WriteBinItem_rcr *)bintail;
     //last one is to check for SESE blocks in a while loop.
@@ -133,20 +150,34 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
 	return READY;
       }
     }
+    b=rcr_createWriteBinItem( T );
   } else {
     TraverserData * td = &((ReadBinItem_rcr *)bintail)->array[((ReadBinItem_rcr *)bintail)->index - 1];
+    b=rcr_createWriteBinItem( T );
     if(unlikely(td->task == task)) {
       //if it matches, then we remove it and the code below will upgrade it to a write.
       ((ReadBinItem_rcr *)bintail)->index--;
-      atomic_dec(&bintail->total);
+      if (((INTPTR)task)&PARENTBIN) {
+	//have parent task...need to worry about CAS
+	void * val=(void *)LOCKXCHG((unsigned INTPTR*)&(td->task), (unsigned INTPTR)NULL);
+	if (val!=NULL) {
+	  atomic_dec(&bintail->total);
+	}
+      } else
+	atomic_dec(&bintail->total);
       rdmask=td->bitindex;
       if (bintail->status!=READY)
 	wrmask=rdmask;
       status=SPECNOTREADY;
+      {
+	//yank the old one out of the retire list and put us in place
+	int oldindex=__builtin_ctz(rdmask);
+	struct rcrRecord * oldrec=&rcrrec[oldindex-index];
+	reenqueuerecord(oldrec, key, bintail, (BinItem_rcr *) b);
+      }
     }
   }
 
-  WriteBinItem_rcr *b=rcr_createWriteBinItem( T );
   b->item.total=1;
   b->task=task;
 
@@ -157,7 +188,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
   }
   b->bitindexwr=bit|wrmask;
   b->bitindexrd=bit|rdmask;
-  b->item.status=status;
+  b->item.status=status&READYMASK;
   bintail->next=(BinItem_rcr*)b;
   be->tail=(BinItem_rcr*)b;
   MBARRIER(); //need to make sure that the read below doesn't pass the write above
@@ -427,7 +458,7 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
 	  for (i=0;i<rptr->index;i++) {
 	    TraverserData * td=&rptr->array[i];
 	    SESEcommon *record=td->task;
-	    if (((INTPTR)rptr->array[i].task)&PARENTBIN) {
+	    if (((INTPTR)record)&PARENTBIN) {
 	      //parents go immediately
 	      atomic_dec(&rptr->item.total);
 	      record=(SESEcommon *)(((INTPTR)record)&~1ULL);
