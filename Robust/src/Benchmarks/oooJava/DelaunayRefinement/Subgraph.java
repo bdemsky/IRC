@@ -1,11 +1,14 @@
 public class Subgraph {
 
-  private final LinkedList nodes = new LinkedList();
-  private final LinkedList border = new LinkedList();
-  private final LinkedList edges = new LinkedList();
+  private final LinkedList nodes; 
+  private final LinkedList border;
+  private final LinkedList edges; 
 
 
   public Subgraph() {
+    nodes = new LinkedList();
+    border = new LinkedList();
+    edges = new LinkedList();
   }
 
   public boolean existsNode(Node n) {

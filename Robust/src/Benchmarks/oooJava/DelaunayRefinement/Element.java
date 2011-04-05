@@ -7,9 +7,10 @@ public class Element {
   private final int dim;
   private final Tuple center;
   private final double radius_squared;
-  private final double MINANGLE = 30D;
+  private final double MINANGLE;
   
   public Element(Tuple a, Tuple b, Tuple c) {
+    MINANGLE = 30D;
     dim = 3;
     coords = new Tuple[3];
     coords[0] = a;

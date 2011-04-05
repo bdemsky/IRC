@@ -180,65 +180,26 @@ public class SerialDelaunayRefinement {
                    iterator.hasNext();) {
 
                 node = (Node) iterator.next();
-                //if( printChange ) {
-                //  System.out.println( "  "+mesh.getNodeData( node ) );
-                //}          
                 mesh.removeNode(node);
               }
  
               //add new data
-              //if( printChange ) {
-              //  System.out.println( "post nodes: " );
-              //}
               //Takes up 1.7% of runtime
               for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
                    iterator1.hasNext();) {
 
                 node = (Node) iterator1.next();
-                //if( printChange ) {
-                //  System.out.println( "  "+mesh.getNodeData( node ) );
-                //}          
                 mesh.addNode(node);
               }
  
-              //if( printChange ) {
-              //  System.out.println( "post edges: " );
-              //}
               //Takes up 7.8% of runtime
               Edge_d edge;
               for (Iterator iterator2 = cavity.getPost().getEdges().iterator();
                    iterator2.hasNext();) {
               
                 edge = (Edge_d) iterator2.next();
-                //if( printChange ) {
-                //  System.out.println( "  "+mesh.getEdgeData( edge ) );
-                //}                        
                 mesh.addEdge(edge);
               }
-
-
-              /*
-              for (Iterator iterator1 = cavity.getPost().getNodes().iterator(); 
-                   iterator1.hasNext();) {
-                node = (Node) iterator1.next();
-
-                Element e = (Element)mesh.getNodeData( node );
-
-                int cntOutNeighbors = 0;
-                for (Iterator iterator = mesh.getOutNeighbors(node); iterator.hasNext();) {
-                  ++cntOutNeighbors;
-                  Node neighbor = (Node) iterator.next();
-                }
-
-                int dim = e.getDim();
-                int out = cntOutNeighbors;
-
-                if( dim == 3 && out < 3 ) {
-                  System.out.println( e+" has dim="+dim+" and num out-neighbors in graph="+out );
-                }
-              }
-              */
-
             }
           }
          
@@ -263,37 +224,8 @@ public class SerialDelaunayRefinement {
               worklist.push( nodeForBadTri );
             }
           
-            /*
-              if( appliedCavity != 1 ) {
-
-              // if we couldn't even apply this cavity, just
-              // throw it back on the worklist
-              if( nodeForBadTri != null && nodeForBadTri.inGraph ) {
-              worklist.push( nodeForBadTri );
-              } else {
-              System.out.println( "\n\n\nthis tri no longer a concern: "+
-              mesh.getNodeData( nodeForBadTri ) );
-              }
-
-              } else {
-              // otherwise we did apply the cavity,
-              // and we may have introduced new bad triangles
-              HashMapIterator it2 = cavity.getPost().newBad(mesh).iterator();
-              while (it2.hasNext()) {
-              worklist.push((Node)it2.next());
-              }
-              }
-            */
-
           } // end scheduleMoreBad
         } // end phase 3
-
-        //++zzz;
-        //Node aNode = (Node)lastAppliedCavity.getPost().getNodes().iterator().next();      
-        //mesh.discoverAllNodes( aNode );
-        //System.out.println( "\n\ntris="+mesh.getNumNodes()+
-        //                    " [wl="+worklist.size()+"]");
-        //if( zzz == 10 ) { System.exit( 0 ); }
 
       } // end while( !worklist.isEmpty() )
 
@@ -326,7 +258,6 @@ public class SerialDelaunayRefinement {
     //Put in cuz of static issues.
     Mesh m = new Mesh();
     if (!m.verify(result)) {
-//      throw new IllegalStateException("refinement failed.");
       System.out.println("Refinement Failed.");
       System.exit(-1);
     }

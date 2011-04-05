@@ -1,4 +1,5 @@
 public class Mesh {
+
   protected HashMap edge_map;
   protected Node    aNode;
 

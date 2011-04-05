@@ -1,5 +1,9 @@
 public class Tuple {
 
+  private final double coords[];
+  private final int hashvalue;
+
+
   public Tuple(double a, double b, double c) {
     coords = new double[3];
     coords[0] = a;
@@ -147,7 +151,4 @@ public class Tuple {
   public double get(int i) {
     return coords[i];
   }
-
-  private final double coords[];
-  private final int hashvalue;
 }
