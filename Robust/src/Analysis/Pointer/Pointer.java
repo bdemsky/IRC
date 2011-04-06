@@ -1185,8 +1185,7 @@ public class Pointer implements HeapAnalysis{
 	  newedge.srcvar=fcall.getReturnTemp();
 	  if (seseCallers!=null)
 	    newedge.taintModify(seseCallers);
-	  if (graph.getEdges(fcall.getReturnTemp())==null||!graph.getEdges(fcall.getReturnTemp()).contains(newedge))
-	    newDelta.addEdge(newedge);
+	  mergeEdge(graph, newDelta, newedge);
 	}
     }
     applyDiffs(graph, newDelta);
@@ -1348,7 +1347,10 @@ public class Pointer implements HeapAnalysis{
       MySet<Edge> edgestoadd=e.getValue();
       if (graph.varMap.containsKey(tmp)) {
 	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
-      } else 
+      } else if (graph.parent.varMap.containsKey(tmp)) {
+	graph.varMap.put(tmp, new MySet<Edge>(graph.parent.varMap.get(tmp)));
+	Edge.mergeEdgesInto(graph.varMap.get(tmp), edgestoadd);
+      } else
 	graph.varMap.put(tmp, (MySet<Edge>) edgestoadd.clone());
       if (genbackwards) {
 	for(Edge eadd:edgestoadd) {
@@ -1735,8 +1737,6 @@ public class Pointer implements HeapAnalysis{
       MySet<Edge> oldedges=graph.getEdges(tmp);
       if (!oldedges.isEmpty())
 	delta.varedgeremove.put(tmp, (MySet<Edge>) oldedges);
-      //Apply incoming diffs to graph
-      applyDiffs(graph, delta);
       //Note that we create a single node
       delta.addNodeAges.add(single);
       //Kill the old node
@@ -1766,10 +1766,16 @@ public class Pointer implements HeapAnalysis{
 	if (entrytmp==tmp) {
 	  /* Check is this is the tmp we overwrite, if so add to remove set */
 	  Util.relationUpdate(delta.varedgeremove, tmp, null, entry.getValue());
-	} else {
+	} else if (graph.varMap.containsKey(entrytmp)) {
 	  /* Check if the target of the edge is changed */ 
 	  MySet<Edge> newset=(MySet<Edge>)entry.getValue().clone();
 	  MySet<Edge> removeset=shrinkSet(newset, graph.varMap.get(entrytmp), single, summary);
+	  Util.relationUpdate(delta.varedgeremove, entrytmp, newset, removeset);
+	  Util.relationUpdate(delta.varedgeadd, entrytmp, null, newset);
+	} else {
+	  /* Check if the target of the edge is changed */ 
+	  MySet<Edge> newset=(MySet<Edge>)entry.getValue().clone();
+	  MySet<Edge> removeset=shrinkSet(newset, graph.parent.varMap.get(entrytmp), single, summary);
 	  Util.relationUpdate(delta.varedgeremove, entrytmp, newset, removeset);
 	  Util.relationUpdate(delta.varedgeadd, entrytmp, null, newset);
 	}
