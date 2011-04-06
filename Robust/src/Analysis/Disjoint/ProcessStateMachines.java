@@ -133,7 +133,9 @@ public class ProcessStateMachines {
 	Set<SMFEState> states=fromEntry.getValue();
 	if (states.contains(state2)) {
 	  states.remove(state2);
-	  states.add(state1);
+    if(states.add(state1) && !fromState.equals(state2)) {
+      state1.refCount++; 
+    }
 	}
       }
     }
