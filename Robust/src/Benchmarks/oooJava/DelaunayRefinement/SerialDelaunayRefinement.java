@@ -40,14 +40,16 @@ public class SerialDelaunayRefinement {
     long lasttime = 0x7fffffffffffffffL;
     long mintime = 0x7fffffffffffffffL;
 
-    for (long run = 0; ((run < 3) || Math.abs(lasttime - runtime) * 64 > Math.min(lasttime, runtime)) && run < 7; run++) {
+    for (long run = 0; // jjenista - JUST RUN ONCE!
+         run < 1; //((run < 3) || Math.abs(lasttime - runtime) * 64 > Math.min(lasttime, runtime)) && run < 7; 
+         run++) {
       runtime = run(args);
       if (runtime < mintime) {
         mintime = runtime;
       }
-      System.out.println( "Post-run garbage collection started..." );
-      System.gc();
-      System.out.println( "done gc" );
+      //System.out.println( "Post-run garbage collection started..." );
+      //System.gc();
+      //System.out.println( "done gc" );
     }
 
     System.out.println("minimum runtime: " + mintime + " ms");
@@ -229,7 +231,6 @@ public class SerialDelaunayRefinement {
 
       } // end while( !worklist.isEmpty() )
 
-      System.out.println( "yuh?" );
     } // end sese workLoop
     
     // stall before runtime calc, this is an empty method
