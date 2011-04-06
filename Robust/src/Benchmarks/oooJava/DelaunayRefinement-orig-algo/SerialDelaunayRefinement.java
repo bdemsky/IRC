@@ -95,7 +95,7 @@ public class SerialDelaunayRefinement {
     System.gc();
 
     
-    int zzz = 0;
+    //    int zzz = 0;
     
 
 //    long id = Time.getNewTimeId();
@@ -110,13 +110,13 @@ public class SerialDelaunayRefinement {
         cavity.update();
 
 
-        boolean printChange = true; //(zzz % 10 == 0);
+        //        boolean printChange = true; //(zzz % 10 == 0);
         
         //remove old data
-        if( printChange ) {
-          System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( bad_element ) );
+//        if( printChange ) {
+//          System.out.println( "\n\n\nbad tri: "+mesh.getNodeData( bad_element ) );
         //  System.out.println( "\npre nodes: " );
-        }
+        //}
         Node node;
         for (Iterator iterator = cavity.getPre().getNodes().iterator(); iterator.hasNext();) {
           node = (Node) iterator.next();
@@ -159,9 +159,9 @@ public class SerialDelaunayRefinement {
         if (mesh.containsNode(bad_element)) {
           worklist.push((Node) bad_element);
         }
-      } else {
-        //System.out.println( "\n\n\nthis tri no longer a concern: "+mesh.getNodeData( bad_element ) );
-      }
+      }// else {
+      //System.out.println( "\n\n\nthis tri no longer a concern: "+mesh.getNodeData( bad_element ) );
+      //}
 
       //++zzz;
       //System.out.println( "\n\ntris="+mesh.getNumNodes()+
