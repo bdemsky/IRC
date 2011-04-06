@@ -1801,9 +1801,9 @@ public class BuildOoOJavaCode extends BuildCode {
 
       output.println("     "+paramsprefix+
 		     "->"+temp.getSafeSymbol()+
-		     " =  (void*)"+
+		     " = *(void**)( (void*)"+
 		     temp+"_srcSESE + "+
-		     temp+"_srcOffset;");
+		     temp+"_srcOffset);");
 
       //output.println("#ifndef OOO_DISABLE_TASKMEMPOOL" );
       //output.println("     SESEcommon* src = "+paramsprefix+"->"+temp+"_srcSESE;");
@@ -1994,7 +1994,7 @@ public class BuildOoOJavaCode extends BuildCode {
       if( vst == null ) {
 	// if there is no given source, this variable is ready so
 	// mark src pointer NULL to signify that the var is up-to-date
-	output.println("       "+refVar+"_srcSESE = NULL;");
+	output.println("       "+refVar+"_srcSESE   = NULL;");
       } else {
         // otherwise we track where it will come from
         SESEandAgePair instance = new SESEandAgePair( vst.getSESE(), vst.getAge() );
