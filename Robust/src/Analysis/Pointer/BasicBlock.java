@@ -86,7 +86,7 @@ public class BasicBlock {
 	  break;
 	}
 	fn=pm.getNext(fn,0);
-	if (fn.numPrev()>1) {
+	if (pm.numPrev(fn)>1) {
 	  //new basic block
 	  if (!map.containsKey(fn)) {
 	    BBlock newb=new BBlock();
