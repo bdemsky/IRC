@@ -9,7 +9,9 @@
 #ifdef THREADS
 #include "thread.h"
 #endif
+#ifndef MULTICORE
 #include "mlp_lock.h"
+#endif
 
 #ifdef D___Object______nativehashCode____
 int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___) {

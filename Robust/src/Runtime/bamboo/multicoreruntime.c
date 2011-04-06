@@ -279,8 +279,8 @@ void CALL11(___System______printI____I,int ___status___, int ___status___) {
 }
 
 long long CALL00(___System______currentTimeMillis____) {
-  // not supported in MULTICORE version
-  return -1;
+  //TilePro64 is 700mHz
+  return ((unsigned long long)BAMBOO_GET_EXE_TIME())/700000;
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
@@ -370,6 +370,36 @@ struct ArrayObject * allocate_newarray(int type, int length) {
 }
 #endif
 
+/* Converts C character arrays into Java strings */
+#ifdef MULTICORE_GC
+__attribute__((malloc)) struct ___String___ * NewStringShort(void * ptr, 
+	                                                         const short *str,
+															 int length) {
+#else
+__attribute__((malloc)) struct ___String___ * NewStringShort(const short *str,
+	                                                         int length) {
+#endif
+  int i;
+#ifdef MULTICORE_GC
+  struct ArrayObject * chararray=
+	allocate_newarray((struct garbagelist *)ptr, CHARARRAYTYPE, length);
+  INTPTR ptrarray[]={1, (INTPTR) ptr, (INTPTR) chararray};
+  struct ___String___ * strobj=
+	allocate_new((struct garbagelist *) &ptrarray, STRINGTYPE);
+  chararray=(struct ArrayObject *) ptrarray[2];
+#else
+  struct ArrayObject * chararray=allocate_newarray(CHARARRAYTYPE, length);
+  struct ___String___ * strobj=allocate_new(STRINGTYPE);
+#endif
+  strobj->___value___=chararray;
+  strobj->___count___=length;
+  strobj->___offset___=0;
+
+  for(i=0; i<length; i++) {
+    ((short *)(((char *)&chararray->___length___)+sizeof(int)))[i]=str[i];
+  }
+  return strobj;
+}
 
 /* Converts C character arrays into Java strings */
 #ifdef MULTICORE_GC
@@ -586,7 +616,7 @@ INLINE void initruntimedata() {
 
 #ifdef MGC
   initializethreads();
-  bamboo_current_thread = NULL;
+  bamboo_current_thread = 0;
 #endif // MGC
 
 #ifdef TASK
@@ -1010,7 +1040,7 @@ INLINE int checkMsgLength_I(int size) {
     while(i-- > 0) {
       BAMBOO_DEBUGPRINT(msgdata[msgdataindex+i]);
     }
-    BAMBOO_EXIT(0xe004);
+    BAMBOO_EXIT(0xe001);
     break;
   }
   }
@@ -1027,7 +1057,7 @@ INLINE void processmsg_transtall_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[1]*/);
 #endif
-    BAMBOO_EXIT(0xe006);
+    BAMBOO_EXIT(0xe002);
   }
   int num_core = msgdata[msgdataindex]; //[1]
   MSG_INDEXINC_I();
@@ -1049,7 +1079,7 @@ INLINE void processmsg_statusconfirm_I() {
   if((BAMBOO_NUM_OF_CORE == STARTUPCORE)
      || (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
     // wrong core to receive such msg
-    BAMBOO_EXIT(0xe011);
+    BAMBOO_EXIT(0xe003);
   } else {
     // send response msg
 #ifndef CLOSE_PRINT
@@ -1083,7 +1113,7 @@ INLINE void processmsg_statusreport_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe012);
+    BAMBOO_EXIT(0xe004);
   } else {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe888);
@@ -1121,7 +1151,7 @@ INLINE void processmsg_memrequest_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe013);
+    BAMBOO_EXIT(0xe005);
   } else {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT(0xe88a);
@@ -1258,7 +1288,7 @@ INLINE void processmsg_gcfinishpre_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xe014);
+    BAMBOO_EXIT(0xe006);
   }
   // All cores should do init GC
   if(!gcprecheck) {
@@ -1278,7 +1308,7 @@ INLINE void processmsg_gcfinishinit_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xe015);
+    BAMBOO_EXIT(0xe007);
   }
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe88c);
@@ -1303,7 +1333,7 @@ INLINE void processmsg_gcfinishmark_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xe016);
+    BAMBOO_EXIT(0xe008);
   }
   // all cores should do mark
   if(data1 < NUMCORESACTIVE) {
@@ -1328,7 +1358,7 @@ INLINE void processmsg_gcfinishcompact_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[1]*/);
 #endif
-    BAMBOO_EXIT(0xe017);
+    BAMBOO_EXIT(0xe009);
   }
   int cnum = msgdata[msgdataindex];
   MSG_INDEXINC_I();       //msgdata[1];
@@ -1372,7 +1402,7 @@ INLINE void processmsg_gcfinishflush_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xe019);
+    BAMBOO_EXIT(0xe00a);
   }
   // all cores should do flush
   if(data1 < NUMCORESACTIVE) {
@@ -1384,8 +1414,9 @@ INLINE void processmsg_gcmarkconfirm_I() {
   if((BAMBOO_NUM_OF_CORE == STARTUPCORE)
      || (BAMBOO_NUM_OF_CORE > NUMCORESACTIVE - 1)) {
     // wrong core to receive such msg
-    BAMBOO_EXIT(0xe01a);
+    BAMBOO_EXIT(0xe00b);
   } else {
+	gcbusystatus = gc_moreItems2_I();
     // send response msg, cahce the msg first
     if(BAMBOO_CHECK_SEND_MODE()) {
 	  cache_msg_5(STARTUPCORE, GCMARKREPORT, BAMBOO_NUM_OF_CORE,
@@ -1414,7 +1445,7 @@ INLINE void processmsg_gcmarkreport_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe01b);
+    BAMBOO_EXIT(0xe00c);
   } else {
 	int entry_index = 0;
     if(waitconfirm) {
@@ -1423,8 +1454,7 @@ INLINE void processmsg_gcmarkreport_I() {
 	  entry_index = (gcnumsrobjs_index == 0) ? 1 : 0;
     } else {
 	  // can never reach here
-	  // phase 1
-	  entry_index = gcnumsrobjs_index;
+	  BAMBOO_EXIT(0xe00d);
 	}
     gccorestatus[data1] = data2;
     gcnumsendobjs[entry_index][data1] = data3;
@@ -1441,9 +1471,14 @@ INLINE void processmsg_gcmarkedobj_I() {
     // set the flag as DISCOVERED
     ((int *)data1)[BAMBOOMARKBIT] = DISCOVERED;
     gc_enqueue_I(data1);
-  } 
-  // set the remote flag
-  ((int *)data1)[BAMBOOMARKBIT] |= REMOTEM;
+#ifdef GC_TBL_DEBUG
+	// for test
+	gcmappingtbl[OBJMAPPINGINDEX((unsigned int)data1)]=1;
+  } else if((((int *)data1)[BAMBOOMARKBIT] != DISCOVERED) && 
+	  (((int *)data1)[BAMBOOMARKBIT] != MARKED)){
+	BAMBOO_EXIT(0xb0000000+((int *)data1)[0]);
+#endif
+  }
   gcself_numreceiveobjs++;
   gcbusystatus = true;
 }
@@ -1469,7 +1504,7 @@ INLINE void processmsg_gclobjinfo_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe01d);
+    BAMBOO_EXIT(0xe00e);
   }
   // store the mark result info
   int cnum = data2;
@@ -1520,7 +1555,7 @@ INLINE void processmsg_gcfinishpref_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data1);
 #endif
-    BAMBOO_EXIT(0xe01e);
+    BAMBOO_EXIT(0xe00f);
   }
   // all cores should do flush
   if(data1 < NUMCORESACTIVE) {

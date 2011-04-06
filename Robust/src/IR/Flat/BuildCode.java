@@ -694,56 +694,6 @@ public class BuildCode {
     outclassdefs.println("  int ___length___;");
     outclassdefs.println("};\n");
 
-    if(state.MGC) {
-      // TODO add version for normal Java later
-      outclassdefs.println("");
-      //Print out definition for Class type
-      outclassdefs.println("struct Class {");
-      outclassdefs.println("  int type;");
-
-
-      additionalClassObjectFields(outclassdefs);
-
-
-      if (state.EVENTMONITOR) {
-	outclassdefs.println("  int objuid;");
-      }
-      if (state.THREAD) {
-	outclassdefs.println("  pthread_t tid;");
-	outclassdefs.println("  void * lockentry;");
-	outclassdefs.println("  int lockcount;");
-      }
-      if(state.MGC) {
-	outclassdefs.println("  int mutex;");
-	outclassdefs.println("  volatile int notifycount;");
-	outclassdefs.println("  volatile int objlock;");
-	if(state.MULTICOREGC) {
-	  outclassdefs.println("  int marked;");
-	}
-      }
-      if (state.TASK) {
-	outclassdefs.println("  int flag;");
-	if(!state.MULTICORE) {
-	  outclassdefs.println("  void * flagptr;");
-	} else {
-	  outclassdefs.println("  int version;");
-	  outclassdefs.println("  int * lock;"); // lock entry for this obj
-	  outclassdefs.println("  int mutex;");
-	  outclassdefs.println("  int lockcount;");
-	  if(state.MULTICOREGC) {
-	    outclassdefs.println("  int marked;");
-	  }
-	}
-	if(state.OPTIONAL) {
-	  outclassdefs.println("  int numfses;");
-	  outclassdefs.println("  int * fses;");
-	}
-      }
-      printClassStruct(typeutil.getClass(TypeUtil.ObjectClass), outclassdefs, outglobaldefs, outglobaldefsprim);
-      printedfieldstbl.clear();
-      outclassdefs.println("};\n");
-    }
-
     outclassdefs.println("");
     outclassdefs.println("extern int classsize[];");
     outclassdefs.println("extern int hasflags[];");
@@ -1276,6 +1226,7 @@ public class BuildCode {
       }
       output.println("};");
     }
+    
     output.println("unsigned INTPTR * pointerarray[]={");
     boolean needcomma=false;
     for(int i=0; i<state.numClasses(); i++) {

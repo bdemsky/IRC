@@ -65,11 +65,11 @@ unsigned int gc_num_profiles;
 typedef enum {
   INIT = 0,           // 0
   DISCOVERED = 2,     // 2
-  REMOTEM = 4,        // 4
-  MARKED = 8,         // 8
-  COMPACTED = 16,     // 16
-  FLUSHED = 32,       // 32
-  END = 33            // 33
+//  REMOTEM = 4,        // 4
+  MARKED = 4,         // 8
+  COMPACTED = 8,     // 16
+  //FLUSHED = 32,       // 32
+  END = 9            // 33
 } GCOBJFLAG;
 
 typedef enum {
@@ -145,6 +145,9 @@ unsigned int bamboo_baseobjsize;
 //       2. it is not counted in the shared heap, would never be garbage 
 //          collected
 int * gcsbstarttbl;
+#ifdef GC_TBL_DEBUG
+unsigned int gcsbstarttbl_len;
+#endif
 unsigned int gcreservedsb;  // number of reserved sblock for sbstarttbl
 unsigned int gcnumblock; // number of total blocks in the shared mem
 unsigned int gcbaseva; // base va for shared memory without reserved sblocks

@@ -14,7 +14,7 @@
 #define BAMBOO_BASE_VA 0x600000  //0xd000000
 #elif defined TILERA_ZLINUX
 #ifdef MULTICORE_GC
-#define BAMBOO_BASE_VA 0x1000000 //0xd000000
+#define BAMBOO_BASE_VA 0x600000 //0xd000000
 #endif // MULTICORE_GC
 #endif // TILERA_BME
 
@@ -60,7 +60,7 @@
 #elif defined GC_LARGESHAREDHEAP2
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2)))
 #else
-#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+57/*3*/))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+52/*3*/))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
 #ifdef GC_LARGEPAGESIZE
 #define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 1024 * 1024))  // (4096)
@@ -111,6 +111,9 @@ struct freeMemList {
 // Note: this table resides on the bottom of the shared heap for all cores
 //       to access
 volatile unsigned int * bamboo_smemtbl;
+#ifdef GC_TBL_DEBUG
+// the length of the bamboo_smemtbl is gcnumblock
+#endif
 volatile unsigned int bamboo_free_block;
 unsigned int bamboo_reserved_smem; // reserved blocks on the top of the shared 
                                    // heap e.g. 20% of the heap and should not 

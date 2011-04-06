@@ -101,7 +101,7 @@ echo "-gccacheadapt setup as cacheadaptable mode (should be used together with -
 echo -gcprofile build with gcprofile options
 echo -mgc generate Multicore GC binary without task stuff
 echo -objectlockdebug generate OBJECT_LOCK_DEBUG code
-echo -mappinttbldebug generate MAPPINGTBL_DEBUG code
+echo -gctbldebug generate GC_TBL_DEBUG code
 echo
 echo SSJava options
 echo -ssjava enables SSJava
@@ -222,7 +222,7 @@ GCCACHESAMPLINGFLAG=false
 MGCFLAG=false
 MGCINTELFLAG=false
 OBJECTLOCKDEBUGFLAG=false
-MAPPINGTBLDEBUGFLAG=false
+GCTBLDEBUGFLAG=false
 USEDMALLOC=false
 THREADFLAG=false
 FASTCHECK=false
@@ -542,9 +542,9 @@ elif [[ $1 = '-objectlockdebug' ]]
 then
 OBJECTLOCKDEBUGFLAG=true
 JAVAOPTS="$JAVAOPTS -objectlockdebug"
-elif [[ $1 = '-mappingtbldebug' ]]
+elif [[ $1 = '-gctbldebug' ]]
 then
-MAPPINGTBLDEBUGFLAG=true
+GCTBLDEBUGFLAG=true
 elif [[ $1 = '-dmalloc' ]]
 then
 USEDMALLOC=true
@@ -971,14 +971,13 @@ rm ./*
 if $MGCFLAG
 then
 export TILERACFLAGS="-DMULTICORE -DCLOSE_PRINT -DTILERA"
-#-DMAPPINGTBL_DEBUG"
 else
 export TILERACFLAGS="-DTASK -DMULTICORE -DCLOSE_PRINT -DTILERA"
 fi
 
-if $MAPPINGTBLDEBUGFLAG
+if $GCTBLDEBUGFLAG
 then
-TILERACFLAGS="${TILERACFLAGS} -DMAPPINGTBL_DEBUG"
+TILERACFLAGS="${TILERACFLAGS} -DGC_TBL_DEBUG"
 fi
 
 if $OBJECTLOCKDEBUGFLAG

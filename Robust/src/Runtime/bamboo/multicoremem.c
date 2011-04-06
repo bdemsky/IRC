@@ -617,7 +617,7 @@ void * smemalloc_I(int coren,
 	mem = fixedmalloc_I(coren, isize, allocsize);
 #else
 	// not supported yet
-	BAMBOO_EXIT(0xe001);
+	BAMBOO_EXIT(0xe101);
 #endif
     break;
   }
@@ -627,7 +627,7 @@ void * smemalloc_I(int coren,
 	mem = mixedmalloc_I(coren, isize, allocsize);
 #else
 	// not supported yet
-    BAMBOO_EXIT(0xe002);
+    BAMBOO_EXIT(0xe102);
 #endif
     break;
   }
@@ -680,7 +680,7 @@ void * smemalloc_I(int coren,
 	}
 	return NULL;
 #else
-    BAMBOO_EXIT(0xe003);
+    BAMBOO_EXIT(0xe103);
 #endif
   }
   return mem;

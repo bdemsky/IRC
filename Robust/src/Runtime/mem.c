@@ -25,7 +25,7 @@ memalloc:
 			}
 		} else {
 			// no more global shared memory
-			BAMBOO_EXIT(0xc002);
+			BAMBOO_EXIT(0xc001);
 		}
 
 		// try to malloc again
@@ -48,7 +48,7 @@ void * mycalloc_share(int m,
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {
 		// no more global shared memory
-		BAMBOO_EXIT(0xc003);
+		BAMBOO_EXIT(0xc002);
   }
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return 
@@ -63,7 +63,7 @@ void * mycalloc(int m,
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
   if(p == NULL) {
-	  BAMBOO_EXIT(0xc001);
+	  BAMBOO_EXIT(0xc003);
   }
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return p;

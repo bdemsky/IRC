@@ -848,7 +848,7 @@ INLINE void processmsg_transobj_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[2]*/);
 #endif
-    BAMBOO_EXIT(0xe005);
+    BAMBOO_EXIT(0xe201);
   }
   // store the object and its corresponding queue info, enqueue it later
   transObj->objptr = (void *)msgdata[msgdataindex];  //[2]
@@ -940,7 +940,7 @@ INLINE void processmsg_lockgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex] /*[2]*/);
 #endif
-    BAMBOO_EXIT(0xe007);
+    BAMBOO_EXIT(0xe202);
   }
   int data2 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
@@ -960,7 +960,7 @@ INLINE void processmsg_lockgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe008);
+    BAMBOO_EXIT(0xe203);
   }
 }
 
@@ -974,7 +974,7 @@ INLINE void processmsg_lockdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe009);
+    BAMBOO_EXIT(0xe204);
   }
   if((lockobj == data2) && (lock2require == data3)) {
 #ifndef CLOSE_PRINT
@@ -990,7 +990,7 @@ INLINE void processmsg_lockdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe00a);
+    BAMBOO_EXIT(0xe205);
   }
 }
 
@@ -1042,7 +1042,7 @@ INLINE void processmsg_redirectgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe00b);
+    BAMBOO_EXIT(0xe206);
   }
   if(lockobj == data2) {
 #ifndef CLOSE_PRINT
@@ -1061,7 +1061,7 @@ INLINE void processmsg_redirectgrount_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe00c);
+    BAMBOO_EXIT(0xe207);
   }
 }
 
@@ -1075,7 +1075,7 @@ INLINE void processmsg_redirectdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe00d);
+    BAMBOO_EXIT(0xe208);
   }
   if(lockobj == data2) {
 #ifndef CLOSE_PRINT
@@ -1091,7 +1091,7 @@ INLINE void processmsg_redirectdeny_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(data2);
 #endif
-    BAMBOO_EXIT(0xe00e);
+    BAMBOO_EXIT(0xe209);
   }
 }
 
@@ -1110,7 +1110,7 @@ INLINE void processmsg_redirectrelease_I() {
 INLINE void processmsg_profileoutput_I() {
   if(BAMBOO_NUM_OF_CORE == STARTUPCORE) {
     // startup core can not receive profile output finish msg
-    BAMBOO_EXIT(0xe00f);
+    BAMBOO_EXIT(0xe20a);
   }
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe885);
@@ -1137,7 +1137,7 @@ INLINE void processmsg_profilefinish_I() {
 #ifndef CLOSE_PRINT
     BAMBOO_DEBUGPRINT_REG(msgdata[msgdataindex /*1*/]);
 #endif
-    BAMBOO_EXIT(0xe010);
+    BAMBOO_EXIT(0xe20b);
   }
 #ifndef CLOSE_PRINT
   BAMBOO_DEBUGPRINT(0xe886);
@@ -1342,7 +1342,7 @@ void releasewritelock_r(void * lock, void * redirectlock) {
     // reside on this core
     if(!RuntimeHashcontainskey(locktbl, reallock)) {
       // no locks for this object, something is wrong
-      BAMBOO_EXIT(0xe01f);
+      BAMBOO_EXIT(0xe20c);
     } else {
       int rwlock_obj = 0;
       struct LockValue * lockvalue = NULL;
