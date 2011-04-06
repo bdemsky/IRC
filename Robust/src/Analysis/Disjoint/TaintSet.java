@@ -174,20 +174,6 @@ public class TaintSet extends Canonical {
   }
   
   public String toString() {
-    String s = "taints[";
-
-    Iterator<Taint> tItr = taints.iterator();
-    while( tItr.hasNext() ) {
-      Taint t = tItr.next();
-      if (t.toString().indexOf("applyCavity")!=-1) {
-	s += t.toString();
-	if( tItr.hasNext() ) {
-	  s += ",\\n";
-	}
-      }
-    }
-    s += "]";
-    return s;
-    //    return taints.toString();
+    return taints.toString();
   }
 }

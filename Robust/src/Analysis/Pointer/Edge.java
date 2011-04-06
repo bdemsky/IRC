@@ -214,8 +214,8 @@ public class Edge {
       if ((mask&statuspredicate)==mask) {
 	Edge e=new Edge();
 	e.fd=fd;
-	e.src=factory.getAllocNode(src, (mask|3)==0);
-	e.dst=factory.getAllocNode(dst, (mask|5)==0);
+	e.src=factory.getAllocNode(src, (mask&3)==0);
+	e.dst=factory.getAllocNode(dst, (mask&5)==0);
 	earray[edgeindex++]=e;
       }
       mask=mask<<1;
