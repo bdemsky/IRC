@@ -188,7 +188,7 @@ public class SMFEState {
 
         s += "\n  "+
           id+" -> "+state.id+
-          "[label=\""+e+"\"";
+          "[label=\""+e+", RC="+refCount+"\"";
 	if (conflicts.contains(e))
 	  s+=",style=dashed";
 	s+="];";
