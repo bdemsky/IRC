@@ -157,14 +157,7 @@ inline int rcr_BWRITEBINCASE(HashStructure *T, int key, SESEcommon *task, struct
     if(unlikely(td->task == task)) {
       //if it matches, then we remove it and the code below will upgrade it to a write.
       ((ReadBinItem_rcr *)bintail)->index--;
-      if (((INTPTR)task)&PARENTBIN) {
-	//have parent task...need to worry about CAS
-	void * val=(void *)LOCKXCHG((unsigned INTPTR*)&(td->task), (unsigned INTPTR)NULL);
-	if (val!=NULL) {
-	  atomic_dec(&bintail->total);
-	}
-      } else
-	atomic_dec(&bintail->total);
+      atomic_dec(&bintail->total);
       rdmask=td->bitindex;
       if (bintail->status!=READY)
 	wrmask=rdmask;
@@ -369,20 +362,24 @@ int rcr_WTREADBINCASE(HashStructure *T, int key, SESEcommon * task, struct rcrRe
   if (readbintail->index==RNUMREAD) { // create new read group
     ReadBinItem_rcr* rb=rcr_createReadBinItem( T );
     td = &rb->array[rb->index++];
-
+    td->task=task;
+    td->bitindex=ONEVAL<<index;
     rb->item.total=1;
     rb->item.status=status;
     T->array[key].tail->next=(BinItem_rcr*)rb;
     T->array[key].tail=(BinItem_rcr*)rb;
     enqueuerecord(rcrrec, key, (BinItem_rcr *) rb);
   } else { // group into old tail
-    td = &readbintail->array[readbintail->index++];
+    td = &readbintail->array[readbintail->index];
+    td->task=task;
+    td->bitindex=ONEVAL<<index;
+    BARRIER();//ordering is to prevent retiring task from trashing us...
+    readbintail->index++;
     atomic_inc(&readbintail->item.total);
     enqueuerecord(rcrrec, key, (BinItem_rcr *) readbintail);
   }
 
-  td->task=task;
-  td->bitindex=ONEVAL<<index;
+
 
   T->array[key].head=val;//released lock
   return retval;
@@ -419,7 +416,6 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
       do {
 	val=(BinItem_rcr*)LOCKXCHG((unsigned INTPTR*)&(be->head), (unsigned INTPTR)val);
       } while(val==(BinItem_rcr*)0x1);
-      
       for (i=0;i<rptr->index;i++) {
 	TraverserData * td=&rptr->array[i];
 	if (task==td->task) {
@@ -427,10 +423,15 @@ void rcr_RETIREHASHTABLE(HashStructure *T, SESEcommon *task, int key, BinItem_rc
 	  td->task=NULL;
 	  break;
 	}
-      }
+      }      
       be->head=val;
     }
     if (b->next==NULL || b->total>0) {
+      //need to remove ourself to avoid writecombining problems
+      ReadBinItem_rcr* rptr=(ReadBinItem_rcr*)b;
+      TraverserData * td=&rptr->array[rptr->index-1];
+      if (td->task==task)
+	td->task=NULL;
       return;
     }
   }
