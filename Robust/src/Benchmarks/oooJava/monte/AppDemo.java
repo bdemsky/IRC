@@ -34,7 +34,7 @@ import java.util.Vector;
  * </ol>
  * 
  * @author H W Yau
- * @version $Revision: 1.1 $ $Date: 2010/07/23 03:44:00 $
+ * @version $Revision: 1.2 $ $Date: 2011/04/06 00:49:05 $
  */
 public class AppDemo extends Universal {
   // ------------------------------------------------------------------------
@@ -173,8 +173,8 @@ public class AppDemo extends Universal {
       }
       
       int l_size=iupper-ilow;
-      PriceStock psArray[]=new PriceStock[l_size];      
       sese parallel{
+        PriceStock psArray[]=new PriceStock[l_size];      
         for(int idx=ilow;idx<iupper;idx++){
           PriceStock ps = new PriceStock();
           ps.setInitAllTasks(initAllTasks);
