@@ -1336,6 +1336,12 @@ abstract public class Canonical {
     return out;    
   }
 
+
+  public static TaintSet addPTR( TaintSet ts,
+                              Taint    t ) {
+    return add(ts, t);
+  }
+
   public static TaintSet union( TaintSet ts1,
                                 TaintSet ts2 ) {
     assert ts1 != null;
@@ -1387,6 +1393,33 @@ abstract public class Canonical {
     }
 
     out = (TaintSet) makeCanonical( out );
+    op2result.put( op, out );
+    return out;    
+  }
+
+  public static TaintSet unionPTR( TaintSet ts1,
+                                TaintSet ts2 ) {
+    assert ts1 != null;
+    assert ts2 != null;
+    assert ts1.isCanonical();
+    assert ts2.isCanonical();
+    
+    CanonicalOp op = 
+      new CanonicalOp( CanonicalOp.TAINTSET_UNION_TAINTSET,
+                       ts1, 
+                       ts2 );
+    
+    Canonical result = op2result.get( op );
+    if( result != null ) {
+      return (TaintSet) result;
+    }
+    
+    // otherwise, no cached result...    
+    TaintSet out = new TaintSet();
+
+    out.taints.addAll(ts1.taints);
+    out.taints.addAll(ts2.taints);
+    out= (TaintSet) Canonical.makeCanonical(out);
     op2result.put( op, out );
     return out;    
   }

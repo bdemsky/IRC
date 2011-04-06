@@ -91,17 +91,19 @@ public class TaintSet extends Canonical {
   }
 
   public TaintSet add(Taint t) {
-    TaintSet newt=new TaintSet();
+    return Canonical.addPTR(this, t);
+    /*    TaintSet newt=new TaintSet();
     newt.taints.addAll(taints);
     newt.taints.add(t);
-    return (TaintSet) Canonical.makeCanonical(newt);
+    return (TaintSet) Canonical.makeCanonical(newt);*/
   }
 
   public TaintSet merge(TaintSet ts) {
-    TaintSet newt=new TaintSet();
+    return Canonical.unionPTR(this, ts);
+    /*    TaintSet newt=new TaintSet();
     newt.taints.addAll(taints);
     newt.taints.addAll(ts.taints);
-    return (TaintSet) Canonical.makeCanonical(newt);
+    return (TaintSet) Canonical.makeCanonical(newt);*/
   }
 
   protected TaintSet() {
@@ -172,6 +174,20 @@ public class TaintSet extends Canonical {
   }
   
   public String toString() {
-    return taints.toString();
+    String s = "taints[";
+
+    Iterator<Taint> tItr = taints.iterator();
+    while( tItr.hasNext() ) {
+      Taint t = tItr.next();
+      if (t.toString().indexOf("applyCavity")!=-1) {
+	s += t.toString();
+	if( tItr.hasNext() ) {
+	  s += ",\\n";
+	}
+      }
+    }
+    s += "]";
+    return s;
+    //    return taints.toString();
   }
 }

@@ -238,8 +238,9 @@ public class Edge {
     }
     //Neither is null
     //Do a set comparison
-
-    return ts1.getTaints().containsAll(ts2.getTaints());
+    //do merge + equals...faster than subset...
+    TaintSet tsmerge=ts1.merge(ts2);
+    return tsmerge.equals(ts1);
   }
 
   public static boolean subsumes(int status1, int status2) {
