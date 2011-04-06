@@ -2542,6 +2542,13 @@ public class BuildCode {
       output.print(generateTemp(fm,fc.getReturnTemp())+"=");
 
     /* Do we need to do virtual dispatch? */
+    if (!md.isStatic()&&md.getReturnType()!=null&&fc.getThis().getType().getClassDesc()==null) {
+      System.out.println(fm);
+      System.out.println(md);
+      System.out.println(fc);
+      System.out.println(fm.printMethod());
+    }
+
     if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)||fc.getSuper()) {
       //no
       output.print(cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring);

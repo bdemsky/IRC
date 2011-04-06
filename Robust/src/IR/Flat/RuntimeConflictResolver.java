@@ -251,6 +251,10 @@ public class RuntimeConflictResolver {
   }
   
   public void addChecker(Alloc a, FlatNode fn, TempDescriptor tmp, SMFEState state, EffectsTable et, String prefix, int depth, int weakID) {
+    if (depth>30) {
+      System.out.println(fn+"  "+state+" "+state.toStringDOT());
+    }
+
     insertEntriesIntoHashStructureNew(fn, tmp, et, a, prefix, depth, weakID);
     
     int pdepth = depth+1;
@@ -322,13 +326,13 @@ public class RuntimeConflictResolver {
 
     if(et.hasWriteConflict(a)) {
       cFile.append("    int tmpkey" + depth + " = rcr_generateKey(" + prefix + ");\n");
-      if (et.leadsToConflict(a))
+      if (et.conflictDereference(a))
         cFile.append("    int tmpvar" + depth + " = rcr_WTWRITEBINCASE(allHashStructures[" + weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
       else
         cFile.append("    int tmpvar" + depth + " = rcr_WRITEBINCASE(allHashStructures["+ weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
     } else  if(et.hasReadConflict(a)) { 
       cFile.append("    int tmpkey" + depth + " = rcr_generateKey(" + prefix + ");\n");
-      if (et.leadsToConflict(a))
+      if (et.conflictDereference(a))
         cFile.append("    int tmpvar" + depth + " = rcr_WTREADBINCASE(allHashStructures[" + weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
       else
         cFile.append("    int tmpvar" + depth + " = rcr_READBINCASE(allHashStructures["+ weakID + "], tmpkey" + depth + ", " + tasksrc + strrcr + index + ");\n");
@@ -531,9 +535,9 @@ public class RuntimeConflictResolver {
       }
     }
     
-    public boolean leadsToConflict(Alloc a) {
+    public boolean conflictDereference(Alloc a) {
       for(Effect e:getEffects(a)) {
-	if (!state.transitionsTo(e).isEmpty())
+	if (!state.transitionsTo(e).isEmpty()&&state.getConflicts().contains(e))
 	  return true;
       }
       return false;
