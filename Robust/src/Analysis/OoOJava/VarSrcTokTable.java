@@ -444,30 +444,43 @@ public class VarSrcTokTable {
       return virtReadSet;
     }
 
-    // who are the parent and siblings?
+    // who can be the alternate sources?  Your siblings.  Your parent.
+    // your parent's siblings.  Your parent's parent and its siblings, etc.
+    // So find your ancestors and grab siblings along the way.
     Set<FlatSESEEnterNode> alternateSESEs = new HashSet<FlatSESEEnterNode>();
-    Iterator<FlatSESEEnterNode> childItr;
 
-    FlatSESEEnterNode parent = exiter.getLocalParent();
+    FlatSESEEnterNode ancestor = exiter;
+    boolean           findMore = true;
 
-    if( parent == null ) {
-      // when some caller task is the exiter's parent, the siblings
-      // of the exiter are other local root tasks
-      parent = rblockRel.getCallerProxySESE();      
-      childItr = rblockRel.getLocalRootSESEs( exiter.getfmEnclosing() ).iterator();
-      
-    } else {
-      // otherwise, the siblings are locally-defined
-      childItr = parent.getLocalChildren().iterator();
-    }
+    while( findMore ) {
+      // first move up to the next ancestor
+      ancestor = ancestor.getLocalParent();
+      Iterator<FlatSESEEnterNode> childItr;
 
-    alternateSESEs.add( parent );
-    while( childItr.hasNext() ) {
-      FlatSESEEnterNode sibling = childItr.next();      
-      if( !sibling.equals( exiter ) ) {
+      if( ancestor == null ) {
+        // when some caller task is the next parent, the siblings
+        // of the current task are other local root tasks
+        ancestor = rblockRel.getCallerProxySESE();      
+        childItr = rblockRel.getLocalRootSESEs( exiter.getfmEnclosing() ).iterator();
+        findMore = false;
+      } else {
+        // otherwise, the siblings are locally-defined
+        childItr = ancestor.getLocalChildren().iterator();
+
+        // and there is no further ancestry beyond the main task
+        if( ancestor.equals( rblockRel.getMainSESE() ) ) {
+          findMore = false;
+        }
+      }
+     
+      // this ancestor and its children are valid alternate sources
+      alternateSESEs.add( ancestor );
+      while( childItr.hasNext() ) {
+        FlatSESEEnterNode sibling = childItr.next();      
         alternateSESEs.add( sibling );
       }
     }
+
     
     // VSTs to remove if they are alternate sources for exiter VSTs
     // whose variables will become virtual reads
@@ -478,7 +491,7 @@ public class VarSrcTokTable {
     while( vstItr.hasNext() ) {
       VariableSourceToken vstExiterSrc = vstItr.next();
 
-      // only interested in tokens that come from our current instance
+      // only interested in sources from our current instance
       if( vstExiterSrc.getAge() != 0 ) {
 	continue;
       }
@@ -507,7 +520,7 @@ public class VarSrcTokTable {
 	    forRemoval.add( vstPossibleOtherSrc );
 	    
 	  } else if( alternateSESEs.contains( vstPossibleOtherSrc.getSESE() ) ) {
-	    // this is an alternate source from parent or sibling
+	    // this is an alternate source from ancestor or ancestor's sibling
 	    virtReadSet.add( refVar );
 	    forRemoval.add( vstPossibleOtherSrc );  
 
