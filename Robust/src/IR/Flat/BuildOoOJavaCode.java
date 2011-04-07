@@ -595,6 +595,12 @@ public class BuildOoOJavaCode extends BuildCode {
     // set up a task's mem pool to recycle the allocation of children tasks
     // don't bother if the task never has children (a leaf task)
     output.println( "#ifndef OOO_DISABLE_TASKMEMPOOL" );
+    output.println( "/////////////////////////////////////////////" );
+    output.println( "//" );
+    output.println( "//  TODO: use poolcreate to make one record pool" );
+    output.println( "//  per WORKER THREAD and never destroy it..." );
+    output.println( "//" );
+    output.println( "/////////////////////////////////////////////" );
     if( !fsen.getIsLeafSESE() ) {
       output.println("   runningSESE->taskRecordMemPool = poolcreate( "+
                      maxTaskRecSizeStr+", freshTaskRecordInitializer );");
