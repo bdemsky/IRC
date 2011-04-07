@@ -67,13 +67,25 @@ HashStructure* rcr_createHashtable(){
   return newTable;
 }
 
+#define WBMAX 256
+__thread WriteBinItem_rcr* bank=NULL;
+__thread offset=WBMAX;
+
+
 WriteBinItem_rcr* rcr_createWriteBinItem( HashStructure* htable ){
   //WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)poolalloc( htable->memPoolWrite );
-  WriteBinItem_rcr* binitem=(WriteBinItem_rcr*)RUNMALLOC(sizeof(WriteBinItem_rcr));
+  if (offset==WBMAX) {
+    bank=(WriteBinItem_rcr*)RUNMALLOC(sizeof(WriteBinItem_rcr)*WBMAX);
+    offset=0;
+  }
+  
+  WriteBinItem_rcr* binitem=&bank[offset++];
+  //(WriteBinItem_rcr*)RUNMALLOC(sizeof(WriteBinItem_rcr));
   binitem->item.type=WRITEBIN;
   binitem->item.next=NULL;
   return binitem;
 }
+
 
 ReadBinItem_rcr* rcr_createReadBinItem( HashStructure* htable ){
   //ReadBinItem_rcr* binitem=(ReadBinItem_rcr*)poolalloc( htable->memPoolRead );
