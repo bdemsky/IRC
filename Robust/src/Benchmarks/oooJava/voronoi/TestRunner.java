@@ -44,8 +44,8 @@ public class TestRunner //Voronoi
     if(args.length < 2) {
       System.out.println("Usage: <num points> <parallel_threshold>");
       System.out.println("Recommended values:");
-      System.out.println("  Num Points:          6400000");
-      System.out.println("  Parallel_threshold:  3 for an 8 core machine.");
+      System.out.println("  Num Points:          8000000");
+      System.out.println("  Parallel_threshold:  3 for an 8 core, 6 for 24 core.");
       System.exit(-1);
     }
     int npoints           = Integer.parseInt(args[0]);
