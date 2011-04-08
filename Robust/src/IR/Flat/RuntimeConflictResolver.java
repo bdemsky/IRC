@@ -1,4 +1,5 @@
 package IR.Flat;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import Analysis.Pointer.*;
 import Analysis.Pointer.AllocFactory.AllocNode;
 import IR.State;
 import IR.TypeDescriptor;
+import Analysis.OoOJava.ConflictEdge;
 import Analysis.OoOJava.ConflictGraph;
 import Analysis.OoOJava.ConflictNode;
 import Analysis.OoOJava.OoOJavaAnalysis;
@@ -448,6 +450,30 @@ public class RuntimeConflictResolver {
 	  ConflictNode      node       = graph.getId2cn().get(id);
 	  isValidToPrune &= node.IsValidToPrune();
 	}
+	
+	if(isValidToPrune){
+	  // if node is valid to prune examiner, 
+	  // also needs to turn off stall site examiners connected to this node
+	  for( FlatSESEEnterNode parentSESE: fsen.getParents() ) {
+	    ConflictGraph     graph      = oooa.getConflictGraph(parentSESE);
+	    String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
+	    ConflictNode      node       = graph.getId2cn().get(id);
+	    
+	    for (Iterator iterator = node.getEdgeSet().iterator(); iterator.hasNext();) {
+        ConflictEdge edge = (ConflictEdge) iterator.next();
+        if (edge.getVertexU() == node) {
+          if (edge.getVertexV().isStallSiteNode()) {
+            edge.getVertexV().setToBePruned(true);
+          }
+        } else {
+          if (edge.getVertexU().isStallSiteNode()) {
+            edge.getVertexU().setToBePruned(true);
+          }
+        }        
+      }
+	  }
+	}
+		
 	if (i!=0) {
 	  cFile.println("      if (record->rcrstatus!=0)");
 	}
@@ -469,11 +495,25 @@ public class RuntimeConflictResolver {
     }
     
     for(FlatNode stallsite: processedStallSites.keySet()) {
+      
       TempDescriptor var = processedStallSites.get(stallsite);
+      Set<FlatSESEEnterNode> seseSet=oooa.getPossibleExecutingRBlocks(stallsite);
+      boolean isValidToPrune=true;
+      for (Iterator iterator = seseSet.iterator(); iterator.hasNext();) {
+        FlatSESEEnterNode sese = (FlatSESEEnterNode) iterator.next();
+        ConflictGraph     graph      = oooa.getConflictGraph(sese);
+        String id = var + "_fn" + stallsite.hashCode();
+        ConflictNode      node       = graph.getId2cn().get(id);
+        isValidToPrune &= node.isTobePruned();
+      }
       
       cFile.println(    "    case -" + getTraverserID(var, stallsite)+ ": {");
       cFile.println(    "      SESEstall * rec=(SESEstall*) record;");
-      cFile.println(    "      " + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";");
+      if(globalState.NOSTALLTR && isValidToPrune){
+        cFile.println(    "     /*" + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";*/");
+      }else{
+        cFile.println(    "      " + getTraverserInvocation(var, "rec->___obj___, rec", stallsite)+";");
+      }      
       cFile.println(    "     record->rcrstatus=0;");
       cFile.println(    "    }");
       cFile.println("    break;");

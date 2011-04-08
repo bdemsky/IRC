@@ -29,6 +29,15 @@ public class ConflictNode {
   protected FlatNode stallSite;
   protected TempDescriptor var;
   protected FlatSESEEnterNode fsen;
+  protected boolean toBePruned = false;
+
+  public boolean isTobePruned() {
+    return toBePruned;
+  }
+
+  public void setToBePruned(boolean toBePruned) {
+    this.toBePruned = toBePruned;
+  }
 
   public static final int FINE_READ = 0;
   public static final int FINE_WRITE = 1;
@@ -40,7 +49,7 @@ public class ConflictNode {
 
   public static final int INVAR = 0;
   public static final int STALLSITE = 1;
-  
+
   public ConflictNode(String id, int nodeType, TempDescriptor var, FlatNode stallSite) {
     this(id, var, nodeType);
     this.stallSite = stallSite;
@@ -223,7 +232,7 @@ public class ConflictNode {
   public String toString() {
     return id;
   }
-  
+
   public boolean IsValidToPrune() {
 
     for (Iterator iterator = edgeSet.iterator(); iterator.hasNext();) {
@@ -245,12 +254,9 @@ public class ConflictNode {
             return false;
           }
         }
-
       }
-
     }
     return true;
   }
-  
 
 }
