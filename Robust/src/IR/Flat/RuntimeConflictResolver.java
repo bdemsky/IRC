@@ -378,6 +378,9 @@ public class RuntimeConflictResolver {
     // come later, because now we might never be able to find the
     // effects that should block later tasks.  This should be rare!
     cFile.append("// a possibly evil task has been detected!\n");
+    cFile.append("//  |\\_/| \n");
+    cFile.append("//  \\*,*/ \n");
+    cFile.append("//   ^^^  \n");
     cFile.append("BARRIER();\n");
     cFile.append("if( unlikely( record->common.unresolvedDependencies == 0 &&");
     cFile.append(              "BARRIER() &&");
