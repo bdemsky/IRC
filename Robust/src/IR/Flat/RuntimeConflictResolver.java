@@ -387,8 +387,7 @@ public class RuntimeConflictResolver {
     cFile.append(              "record->common.doneExecuting == FALSE ) ) {\n");
     cFile.append("  // first abort this traversal, doesn't matter what the flag is because\n");
     cFile.append("  // the traverser is not going to clear the task, it's already running...\n");
-    cFile.append("  int flag = LOCKXCHG32( &(record->rcrRecords["+rcrRecordIndex+"].flag), 0 );\n");
-    cFile.append("  \n");
+    cFile.println("     record->rcrstatus=0;");
     cFile.append("  // just wait for the the task to retire...\n");
     cFile.append("  while( record->common.doneExecuting == FALSE ) {\n");
     cFile.append("    BARRIER();\n");
