@@ -446,9 +446,11 @@ public class RuntimeConflictResolver {
 	boolean isValidToPrune=true;
 	for( FlatSESEEnterNode parentSESE: fsen.getParents() ) {
 	  ConflictGraph     graph      = oooa.getConflictGraph(parentSESE);
-          String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
-	  ConflictNode      node       = graph.getId2cn().get(id);
-	  isValidToPrune &= node.IsValidToPrune();
+	  if(graph!=null){
+      String            id         = tmp + "_sese" + fsen.getPrettyIdentifier();
+      ConflictNode      node       = graph.getId2cn().get(id);
+      isValidToPrune &= node.IsValidToPrune();
+	  }
 	}
 	
 	if(isValidToPrune){
@@ -502,9 +504,11 @@ public class RuntimeConflictResolver {
       for (Iterator iterator = seseSet.iterator(); iterator.hasNext();) {
         FlatSESEEnterNode sese = (FlatSESEEnterNode) iterator.next();
         ConflictGraph     graph      = oooa.getConflictGraph(sese);
-        String id = var + "_fn" + stallsite.hashCode();
-        ConflictNode      node       = graph.getId2cn().get(id);
-        isValidToPrune &= node.isTobePruned();
+        if(graph!=null){
+          String id = var + "_fn" + stallsite.hashCode();
+          ConflictNode      node       = graph.getId2cn().get(id);
+          isValidToPrune &= node.isTobePruned();
+        }
       }
       
       cFile.println(    "    case -" + getTraverserID(var, stallsite)+ ": {");
