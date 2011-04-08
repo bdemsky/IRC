@@ -131,7 +131,7 @@ class Vertex extends Vec2 {
     
     EdgePair retval = null;
     
-    if(depth==3){
+    if(depth==5){
       return buildDelaunaySerial(extra);
     }else{
       depth++;
