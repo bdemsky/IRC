@@ -1,4 +1,3 @@
-
 /*import java.io.*;
 import java.util.Stack;
 import java.util.Hashtable;*/
@@ -370,7 +369,7 @@ class Edge
    * Print the voronoi diagram and its dual, the delaunay triangle for the
    * diagram.
    **/
-  /*void outputVoronoiDiagram()
+  void outputVoronoiDiagram()
   {
     Edge nex = this;
     //  Plot voronoi diagram edges with one endpoint at infinity.
@@ -395,14 +394,14 @@ class Edge
     } while (nex != this);
   
     // plot delaunay triangle edges and finite VD edges.
-    Stack edges = new Stack();
+    LinkedList edges = new LinkedList();
     Hashtable seen = new Hashtable();
     pushRing(edges, seen);
     System.out.println("no. of edges = " + edges.size());
-    while (!edges.empty()) {
+    while (edges.size()!=0) {
       Edge edge = (Edge)edges.pop();
-      Boolean b = (Boolean)seen.get(edge);
-      if (b != null && b.booleanValue()) {
+      Integer b = (Integer)seen.get(edge);
+      if (b != null && b.intValue()==1) {
 	Edge prev = edge;
 	nex = edge.oNext();
 	do {
@@ -430,7 +429,7 @@ class Edge
 	      System.out.println("Vedge " + vv1.toString() + " " + vv2.toString());
 	    }
 	  }
-	  seen.put(prev, new Boolean(false));
+	  seen.put(prev, new Integer(0));
 	  prev = nex;
 	  nex = nex.oNext();
 	} while (prev != edge);
@@ -439,20 +438,20 @@ class Edge
     }
   }
 
-  /*
-  void pushRing(Stack stack, Hashtable seen)
+  
+  void pushRing(LinkedList stack, Hashtable seen)
   {
     Edge nex = oNext();
     while (nex != this) {
       if (!seen.containsKey(nex)) {
-	seen.put(nex, new Boolean(true));
+	seen.put(nex, new Integer(1));
 	stack.push(nex);
       }
       nex = nex.oNext();
     }
   }
 
-  void pushNonezeroRing(Stack stack, Hashtable seen)
+  void pushNonezeroRing(LinkedList stack, Hashtable seen)
   {
     Edge nex = oNext();
     while (nex != this) {
@@ -462,7 +461,7 @@ class Edge
       }
       nex = nex.oNext();
     }
-  }*/
+  }
 
 }
 

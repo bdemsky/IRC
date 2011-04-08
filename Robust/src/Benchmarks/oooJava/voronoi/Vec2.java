@@ -40,10 +40,10 @@ class Vec2
     norm = d;
   }
 
-  /*public String toString()
+  public String toString()
   {
     return x + " " + y;
-  }*/
+  }
 
   Vec2 circle_center(Vec2 b, Vec2 c)
   {

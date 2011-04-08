@@ -32,12 +32,12 @@ public class TestRunner //Voronoi
    * Set to true to print the voronoi diagram and its dual,
    * the delaunay diagram
    **/
-  //private static boolean printResults; // = false;
+ private boolean printResults; // = false;
   
   public TestRunner(int npoints) {
     this.points = npoints;
     //this.printMsgs = false;
-    //this.printResults = false;
+    this.printResults = true;
   }
   
   public static void main(String[] args) {
@@ -85,8 +85,8 @@ public class TestRunner //Voronoi
       System.out.println("Total time " + (end1-start0)/1000.0);
       System.out.println("Done!");
   
-    /*if (printResults) 
-      edge.outputVoronoiDiagram(); */
+   if (printResults) 
+      edge.outputVoronoiDiagram(); 
 
 //    if (printMsgs) {
 
