@@ -186,7 +186,7 @@ public class RuntimeConflictResolver {
 	  cFile.println("  if(traverserState=="+state.getID()+") {");
 	}
         
-        printAllocChecksInsideState(state, taskOrStallSite, var, "ptr", 0, weakID);
+        printAllocChecksInsideState(smfe, state, taskOrStallSite, var, "ptr", 0, weakID);
         
 	cFile.println("      break;");
       }
@@ -225,7 +225,7 @@ public class RuntimeConflictResolver {
     cFile.flush();
   }
   
-  public void printAllocChecksInsideState(SMFEState state, FlatNode fn, TempDescriptor tmp, String prefix, int depth, int weakID) {
+  public void printAllocChecksInsideState(StateMachineForEffects smfe, SMFEState state, FlatNode fn, TempDescriptor tmp, String prefix, int depth, int weakID) {
     EffectsTable et = new EffectsTable(state);
     boolean needswitch=et.getAllAllocs().size()>1;
     if (needswitch) {
@@ -239,7 +239,7 @@ public class RuntimeConflictResolver {
       } else {
 	cFile.println("     if("+prefix+"->"+allocSite+"=="+a.getUniqueAllocSiteID()+") {");
       }
-      addChecker(a, fn, tmp, state, et, prefix, depth, weakID);
+      addChecker(smfe, a, fn, tmp, state, et, prefix, depth, weakID);
       if (needswitch) {
 	cFile.println("       }");
 	cFile.println("       break;");
@@ -252,7 +252,7 @@ public class RuntimeConflictResolver {
     cFile.println("      }");
   }
   
-  public void addChecker(Alloc a, FlatNode fn, TempDescriptor tmp, SMFEState state, EffectsTable et, String prefix, int depth, int weakID) {
+  public void addChecker(StateMachineForEffects smfe, Alloc a, FlatNode fn, TempDescriptor tmp, SMFEState state, EffectsTable et, String prefix, int depth, int weakID) {
     if (depth>30) {
       System.out.println(fn+"  "+state+" "+state.toStringDOT());
     }
@@ -275,7 +275,18 @@ public class RuntimeConflictResolver {
 	    cFile.println("  for(i = 0; i<((struct ArrayObject *) " + prefix + " )->___length___; i++ ) {");
 	    first=false;
 	  }
-	  printRefSwitch(fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
+	  printRefSwitch(smfe, fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
+
+          // only if we are traversing for a new task, not a stall site
+          if( (fn instanceof FlatSESEEnterNode) &&
+              smfe.getPossiblyEvilEffects().contains( e ) ) {
+
+            FlatSESEEnterNode evilTask = (FlatSESEEnterNode)fn;
+            
+            detectPossiblyEvilExecution( evilTask,
+                                         evilTask.getInVarsForDynamicCoarseConflictResolution().indexOf( tmp )
+                                         );
+          }
 	}
       }
       if (!first)
@@ -288,13 +299,24 @@ public class RuntimeConflictResolver {
       for(Effect e: et.getEffects(a)) {
 	if (!state.transitionsTo(e).isEmpty()) {
 	  String childPtr = "((struct "+a.getType().getSafeSymbol()+" *)"+prefix +")->" + e.getField().getSafeSymbol();
-	  printRefSwitch(fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
+	  printRefSwitch(smfe, fn, tmp, pdepth, childPtr, currPtr, state.transitionsTo(e), weakID);
+
+          // only if we are traversing for a new task, not a stall site
+          if( (fn instanceof FlatSESEEnterNode) &&
+              smfe.getPossiblyEvilEffects().contains( e ) ) {
+
+            FlatSESEEnterNode evilTask = (FlatSESEEnterNode)fn;
+            
+            detectPossiblyEvilExecution( evilTask,
+                                         evilTask.getInVarsForDynamicCoarseConflictResolution().indexOf( tmp )
+                                         );
+          }
 	}
       }
     }
   }
 
-  private void printRefSwitch(FlatNode fn, TempDescriptor tmp, int pdepth, String childPtr, String currPtr, Set<SMFEState> transitions, int weakID) {    
+  private void printRefSwitch(StateMachineForEffects smfe, FlatNode fn, TempDescriptor tmp, int pdepth, String childPtr, String currPtr, Set<SMFEState> transitions, int weakID) {    
     
     for(SMFEState tr: transitions) {
       if(tr.getRefCount() == 1) {       //in-lineable case
@@ -302,7 +324,7 @@ public class RuntimeConflictResolver {
 	cFile.println("    "+currPtr+"= (struct ___Object___ * ) " + childPtr + ";");
 	cFile.println("    if (" + currPtr + " != NULL) { ");
 	
-	printAllocChecksInsideState(tr, fn, tmp, currPtr, pdepth+1, weakID);
+	printAllocChecksInsideState(smfe, tr, fn, tmp, currPtr, pdepth+1, weakID);
         
 	cFile.println("    }"); //break for internal switch and if
       } else {                          //non-inlineable cases
@@ -344,6 +366,36 @@ public class RuntimeConflictResolver {
       cFile.append("if (!(tmpvar" + depth + "&READYMASK)) totalcount--;\n");
     }
   }
+
+
+  private void detectPossiblyEvilExecution( FlatSESEEnterNode possiblyEvilTask,
+                                            int               rcrRecordIndex 
+                                            ) {
+    // We have a situation in which a task can start executing and
+    // "evil-ly" destroy the paths to some objects it will access as
+    // it goes along.  If this is the case, a traverser should not
+    // continue and instead intentionally hold up any tasks that might
+    // come later, because now we might never be able to find the
+    // effects that should block later tasks.  This should be rare!
+    cFile.append("// a possibly evil task has been detected!\n");
+    cFile.append("BARRIER();\n");
+    cFile.append("if( unlikely( record->common.unresolvedDependencies == 0 &&");
+    cFile.append(              "BARRIER() &&");
+    cFile.append(              "record->common.doneExecuting == FALSE ) ) {\n");
+    cFile.append("  // first abort this traversal, doesn't matter what the flag is because\n");
+    cFile.append("  // the traverser is not going to clear the task, it's already running...\n");
+    cFile.append("  int flag = LOCKXCHG32( &(record->rcrRecords["+rcrRecordIndex+"].flag), 0 );\n");
+    cFile.append("  \n");
+    cFile.append("  // just wait for the the task to retire...\n");
+    cFile.append("  while( record->common.doneExecuting == FALSE ) {\n");
+    cFile.append("    BARRIER();\n");
+    cFile.append("  }\n");
+    cFile.append("  \n");
+    cFile.append("  // and now its safe to release the traverser to clear other tasks\n");
+    cFile.append("  return;\n");
+    cFile.append("}\n");
+  }
+
 
   private void setupOutputFiles(String buildir) throws FileNotFoundException {
     cFile = new CodePrinter(new File(buildir + "RuntimeConflictResolver" + ".c"));

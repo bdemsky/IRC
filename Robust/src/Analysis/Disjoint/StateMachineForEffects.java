@@ -31,11 +31,23 @@ public class StateMachineForEffects {
   protected FlatNode fn;
   protected int id=0;
 
+  // We have a situation in which a task can start executing
+  // and "evil-ly" destroy the paths to all the objects it will
+  // access as it goes along.  If this is the case, a traverser
+  // should know which effects these are, and if the traverser
+  // is ever running and detects that the task is also running,
+  // it should not continue (and therefore hold up any tasks that
+  // might come later, because now we might never be able to find
+  // the effects that should block later tasks).  Should be rare!
+  protected Set<Effect> possiblyEvilEffects;
+
+
   public StateMachineForEffects( FlatNode fnInitial ) {
     fn2state = new Hashtable<FlatNode, SMFEState>();
     effectsMap = new HashMap<Pair<Alloc, FieldDescriptor>, Integer>();
     initialState = getState( startNode );
     this.fn=fnInitial;
+    possiblyEvilEffects = new HashSet<Effect>();
   }
 
   public Set<SMFEState> getStates() {
@@ -109,6 +121,16 @@ public class StateMachineForEffects {
     //TODO stubby stubby!
     return 0;
   }
+
+
+  public void addPossiblyEvilEffect( Effect e ) {
+    possiblyEvilEffects.add( e );
+  }
+
+  public Set<Effect> getPossiblyEvilEffects() {
+    return possiblyEvilEffects;
+  }
+
 
   public void writeAsDOT( String graphName ) {
     graphName = graphName.replaceAll( "[\\W]", "" );

@@ -101,7 +101,7 @@ public class SMFEState {
     return conflicts;
   }
   
-  public Set<Effect> getTransistionEffects() {
+  public Set<Effect> getTransitionEffects() {
     return this.e2states.keySet();
   }
 

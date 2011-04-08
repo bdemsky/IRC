@@ -22,6 +22,7 @@ public class ProcessStateMachines {
     computeConflictEffects();
     prune();
     merge();
+    protectAgainstEvilTasks();
   }
 
   private void merge() {
@@ -302,6 +303,43 @@ public class ProcessStateMachines {
 	if (hasConflict) {
 	  state.addConflict(e);
 	}
+      }
+    }
+  }
+
+
+  private void protectAgainstEvilTasks() {
+    for( Pair<FlatNode, TempDescriptor> machinepair: bsm.getAllMachineNames() ) {
+      StateMachineForEffects sm = bsm.getStateMachine( machinepair );
+      protectAgainstEvilTasks( sm );
+    }
+  }
+
+  private void protectAgainstEvilTasks( StateMachineForEffects sm ) {
+    // first identify the set of <Alloc, Field> pairs for which this
+    // traverser will both read and write, remember the read effect
+    Set<Effect> allocAndFieldRW = new HashSet<Effect>();
+    for( Pair<Alloc, FieldDescriptor> af: sm.effectsMap.keySet() ) {
+      Integer effectType = sm.effectsMap.get( af );
+      if( (effectType & Effect.read)  != 0 &&
+          (effectType & Effect.write) != 0
+          ) {
+        allocAndFieldRW.add( new Effect( af.getFirst(),
+                                         Effect.read,
+                                         af.getSecond()
+                                         )
+                             );
+      }
+    }
+
+    // next check the state machine: if an effect that initiates
+    // a transition is in the allocAndFieldRW set, then mark it
+    // as... POSSIBLY EVIL!!!!!
+    for( SMFEState state: sm.getStates() ) {
+      for( Effect effect: state.getTransitionEffects() ) {
+        if( allocAndFieldRW.contains( effect ) ) {
+          sm.addPossiblyEvilEffect( effect );
+        }
       }
     }
   }
