@@ -11,17 +11,39 @@
 
 // data structures for shared memory allocation
 #ifdef TILERA_BME
-#define BAMBOO_BASE_VA 0x600000  //0xd000000
+#ifdef MGC
+#define BAMBOO_BASE_VA 0x600000  
+#else 
+#define BAMBOO_BASE_VA 0xd000000
+#endif
 #elif defined TILERA_ZLINUX
 #ifdef MULTICORE_GC
-#define BAMBOO_BASE_VA 0x600000 //0xd000000
+#ifdef MGC
+#define BAMBOO_BASE_VA 0x600000 
+#else 
+#define BAMBOO_BASE_VA 0xd000000
+#endif
 #endif // MULTICORE_GC
 #endif // TILERA_BME
 
 #ifdef BAMBOO_MEMPROF
 #define GC_BAMBOO_NUMCORES 56
 #else
-#define GC_BAMBOO_NUMCORES 62
+#define GC_BAMBOO_NUMCORES (NUMCORES)
+/*#elif defined GC_2
+#define GC_BAMBOO_NUMCORES 3
+#elif defined GC_4
+#define GC_BAMBOO_NUMCORES 4
+#elif defined GC_8
+#define GC_BAMBOO_NUMCORES 8
+#elif defined GC_16
+#define GC_BAMBOO_NUMCORES 16
+#elif defined GC_32
+#define GC_BAMBOO_NUMCORES 32
+#elif defined GC_50
+#define GC_BAMBOO_NUMCORES 50
+#elif defined GC_62
+#define GC_BAMBOO_NUMCORES 62*/
 #endif
 
 #ifdef GC_DEBUG
@@ -34,6 +56,8 @@
 #elif defined GC_CACHE_ADAPT
 #ifdef GC_LARGESHAREDHEAP
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+24)))
+#elif defined MGC
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(62*4))) // 62M per core
 #else
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+14)))
 #endif
@@ -59,8 +83,10 @@
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2)))
 #elif defined GC_LARGESHAREDHEAP2
 #define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+2)))
+#elif defined MGC
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*72)) // 62M per core
 #else
-#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+52/*3*/))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
+#define BAMBOO_NUM_BLOCKS ((unsigned int)((GC_BAMBOO_NUMCORES)*(2+3))) //(15 * 1024) //(64 * 4 * 0.75) //(1024 * 1024 * 3.5)  3G
 #endif
 #ifdef GC_LARGEPAGESIZE
 #define BAMBOO_PAGE_SIZE ((unsigned int)(4 * 1024 * 1024))  // (4096)
@@ -79,6 +105,7 @@
 #endif // GC_DEBUG
 
 #ifdef MULTICORE_GC
+volatile bool gc_localheap_s;
 #include "multicoregarbage.h"
 
 typedef enum {

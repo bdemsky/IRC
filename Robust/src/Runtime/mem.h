@@ -23,11 +23,11 @@
 #endif
 #else
 #ifdef MULTICORE
-void * mycalloc(int m, int size);
-void * mycalloc_i(int m, int size);
+void * mycalloc(int m, int size, char * file, int line);
+void * mycalloc_i(int m, int size, char * file, int line);
 void myfree(void * ptr);
-#define RUNMALLOC(x) mycalloc(1,x) // handle interruption inside
-#define RUNMALLOC_I(x) mycalloc_i(1,x) //with interruption blocked beforehand
+#define RUNMALLOC(x) mycalloc(1,x,__FILE__,__LINE__) // handle interruption inside
+#define RUNMALLOC_I(x) mycalloc_i(1,x,__FILE__,__LINE__) //with interruption blocked beforehand
 #define RUNFREE(x) myfree(x)
 #ifdef MULTICORE_GC
 #include "multicoregc.h"

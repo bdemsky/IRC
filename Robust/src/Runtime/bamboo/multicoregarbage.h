@@ -30,16 +30,16 @@
 unsigned int gc_num_flush_dtlb;
 #endif
 
-#define NUMPTRS 100
+#define NUMPTRS 120
 
 // for GC profile
 #ifdef GC_PROFILE
 #define GCINFOLENGTH 100
 
 #ifdef GC_CACHE_ADAPT
-#define GC_PROFILE_NUM_FIELD 16
-#else
 #define GC_PROFILE_NUM_FIELD 15
+#else
+#define GC_PROFILE_NUM_FIELD 14
 #endif // GC_CACHE_ADAPT
 
 typedef struct gc_info {
@@ -59,6 +59,10 @@ unsigned int gc_num_liveobj;
 unsigned int gc_num_obj;
 unsigned int gc_num_forwardobj;
 unsigned int gc_num_profiles;
+
+#ifdef MGC_SPEC
+volatile bool gc_profile_flag;
+#endif
 
 #endif // GC_PROFILE
 
@@ -168,7 +172,7 @@ unsigned int size_cachepolicytbl;
 #define OBJMAPPINGINDEX(p) (((unsigned int)p-gcbaseva)/bamboo_baseobjsize)
 
 #define ISSHAREDOBJ(p) \
-  ((((unsigned int)p)>gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
+  ((((unsigned int)p)>=gcbaseva)&&(((unsigned int)p)<(gcbaseva+(BAMBOO_SHARED_MEM_SIZE))))
 
 #define ALIGNSIZE(s, as) \
   (*((unsigned int*)as)) = (((s) & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE))

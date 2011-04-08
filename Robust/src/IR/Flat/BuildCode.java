@@ -483,7 +483,9 @@ public class BuildCode {
 
     // always include: compiler directives will leave out
     // instrumentation when option is not set
+	if(!state.MULTICORE) {
     outmethod.println("#include \"coreprof/coreprof.h\"");
+	}
 
     if (state.FASTCHECK) {
       outmethod.println("#include \"localobjects.h\"");

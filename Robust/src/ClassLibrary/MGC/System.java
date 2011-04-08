@@ -10,6 +10,10 @@ public class System {
     String s=String.valueOf(x);
     printString(s);
   }
+  
+  public static native void setgcprofileflag();
+  
+  public static native void resetgcprofileflag();
 
   public static native long currentTimeMillis();
   

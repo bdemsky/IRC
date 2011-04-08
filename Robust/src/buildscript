@@ -188,6 +188,7 @@ TILERABMEFLAG=false
 TILERAZLINUXFLAG=false
 TILERAMEMPROFFLAG=false
 TILERACONFIG=''
+TILERACORES=''
 CACHEFLUSHFLAG=false
 RAWCONFIG=''
 DEBUGFLAG=false
@@ -424,6 +425,7 @@ JAVAOPTS="$JAVAOPTS -multicore"
 elif [[ $1 = '-numcore' ]]
 then
 JAVAOPTS="$JAVAOPTS -numcore $2"
+TILERACORES="$2"
 if [[ "$2" -gt "1" ]]
 then
 TILERAN1COREFLAG=true
@@ -930,9 +932,9 @@ cp ../Runtime/*.c ./
 cp ../Runtime/*.h ./
 cp ../Runtime/*.S ./
 cp ../Runtime/*.s ./
-mkdir ./coreprof
-cp ../Runtime/coreprof/*.c ./coreprof/
-cp ../Runtime/coreprof/*.h ./coreprof/
+#mkdir ./coreprof
+#cp ../Runtime/coreprof/*.c ./coreprof/
+#cp ../Runtime/coreprof/*.h ./coreprof/
 cp $BAMBOORUNTIME/*.c ./
 cp $BAMBOORUNTIME/*.h ./
 cp $BAMBOORUNTIME/RAW/*.c ./
@@ -950,9 +952,9 @@ TILERADIR="$CURDIR/tilera"
 if $TILERABMEFLAG
 then # TILERABMEFLAG
 TILERA_INDIR="BME"
-MAKEFILE="Makefile.tilera.$TILERACONFIG"
-SIMHVC="sim.hvc.$TILERACONFIG"
-PCIHVC="pci.hvc.$TILERACONFIG"
+MAKEFILE="Makefile.tilera.$TILERACORES"
+#SIMHVC="sim.hvc.$TILERACONFIG"
+PCIHVC="pci.hvc.$TILERACORES"
 if $TILERA56COREFLAG
 then
   PCIHVC="$PCIHVC.56"
@@ -1041,7 +1043,7 @@ fi #INTERRUPT version
 
 if $MGCFLAG
 then #MGCFLAG
-TILERACFLAGS="${TILERACFLAGS} -DMGC"
+TILERACFLAGS="${TILERACFLAGS} -DMGC -DMGC_SPEC"
 fi
 
 if $MULTICOREGCFLAG
@@ -1152,7 +1154,7 @@ cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$MAKEFILE ./Makefile
 fi
 if $TILERABMEFLAG
 then # TILERABMEFLAG
-cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$SIMHVC ./sim.hvc
+#cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$SIMHVC ./sim.hvc
 cp $ROBUSTROOT/Tilera/Runtime/$TILERA_INDIR/$PCIHVC ./pci.hvc
 if $TILERA56COREFLAG
 then

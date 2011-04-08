@@ -263,6 +263,19 @@ void CALL35(___System______arraycopy____L___Object____I_L___Object____I_I, int _
 #endif
 
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
+// gc_profile mode, output gc prfiling data
+#ifdef MULTICORE_GC
+  if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
+	BAMBOO_PRINT(BAMBOO_GET_EXE_TIME());
+	BAMBOO_PRINT(0xbbbbbbbb);
+#ifdef GC_CACHE_ADAPT
+	bamboo_mask_timer_intr(); // disable the TILE_TIMER interrupt
+#endif // GC_CACHE_ADAPT
+#ifdef GC_PROFILE
+	gc_outputProfileData();
+#endif // #ifdef GC_PROFILE
+  }
+#endif // #ifdef MULTICORE_GC
   BAMBOO_EXIT(___status___);
 }
 
@@ -281,6 +294,24 @@ void CALL11(___System______printI____I,int ___status___, int ___status___) {
 long long CALL00(___System______currentTimeMillis____) {
   //TilePro64 is 700mHz
   return ((unsigned long long)BAMBOO_GET_EXE_TIME())/700000;
+}
+
+void CALL00(___System______setgcprofileflag____) {
+#ifdef GC_PROFILE
+#ifdef MGC_SPEC
+  extern volatile bool gc_profile_flag;
+  gc_profile_flag = true;
+#endif
+#endif
+}
+
+void CALL00(___System______resetgcprofileflag____) {
+#ifdef GC_PROFILE
+#ifdef MGC_SPEC
+  extern volatile bool gc_profile_flag;
+  gc_profile_flag = false;
+#endif
+#endif
 }
 
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
@@ -575,14 +606,7 @@ INLINE void initruntimedata() {
   gcself_numsendobjs = 0;
   gcself_numreceiveobjs = 0;
   gcmarkedptrbound = 0;
-/*#ifdef LOCALHASHTBL_TEST
-  gcpointertbl = allocateRuntimeHash_I(20);
-#else
-  gcpointertbl = mgchashCreate_I(2000, 0.75);
-#endif*/
   gcforwardobjtbl = allocateMGCHash_I(20, 3);
-  /*gcobj2map = 0;
-  gcmappedobj = 0;*/
   gcnumlobjs = 0;
   gcheaptop = 0;
   gctopcore = 0;
@@ -602,10 +626,13 @@ INLINE void initruntimedata() {
   gc_num_forwardobj = 0;
   gc_num_profiles = NUMCORESACTIVE - 1;
 #endif
+#ifdef MGC_SPEC
+  gc_profile_flag = false;
+#endif
 #ifdef GC_FLUSH_DTLB
   gc_num_flush_dtlb = 0;
 #endif
-  //gc_localheap_s = false;
+  gc_localheap_s = false;
 #ifdef GC_CACHE_ADAPT
   gccachestage = false;
 #endif // GC_CACHE_ADAPT
@@ -1534,9 +1561,15 @@ INLINE void processmsg_gcprofiles_I() {
   MSG_INDEXINC_I();
   int data3 = msgdata[msgdataindex];
   MSG_INDEXINC_I();
+#ifdef MGC_SPEC
+  if(gc_profile_flag) {
+#endif
   gc_num_obj += data1;
   gc_num_liveobj += data2;
   gc_num_forwardobj += data3;
+#ifdef MGC_SPEC
+  }
+#endif
   gc_num_profiles--;
 }
 #endif // GC_PROFILE

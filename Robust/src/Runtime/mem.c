@@ -57,13 +57,29 @@ void * mycalloc_share(int m,
 #endif
 
 void * mycalloc(int m, 
-		        int size) {
+		        int size,
+				char * file,
+				int line) {
   void * p = NULL;
   int isize = size; 
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+#ifdef MULTICORE_GC
+  extern bool gc_localheap_s;
+inermycalloc_i:
+  p = gc_localheap_s ? BAMBOO_LOCAL_MEM_CALLOC_S(m, isize) : 
+	BAMBOO_LOCAL_MEM_CALLOC(m, isize);
+#else
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
+#endif
   if(p == NULL) {
-	  BAMBOO_EXIT(0xc003);
+#ifdef MULTICORE_GC
+	if(!gc_localheap_s) {
+	  gc_localheap_s = true;
+	  goto inermycalloc_i;
+	}
+#endif
+	printf("mycalloc %s %d \n", file, line);
+	BAMBOO_EXIT(0xc003);
   }
   BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   return p;
@@ -71,18 +87,42 @@ void * mycalloc(int m,
 
 
 void * mycalloc_i(int m, 
-		          int size) {
+		          int size,
+				  char * file,
+				  int line) {
   void * p = NULL;
   int isize = size; 
+#ifdef MULTICORE_GC
+  extern bool gc_localheap_s;
+inermycalloc_i:
+  p = gc_localheap_s ? BAMBOO_LOCAL_MEM_CALLOC_S(m, isize) : 
+	BAMBOO_LOCAL_MEM_CALLOC(m, isize);
+#else
   p = BAMBOO_LOCAL_MEM_CALLOC(m, isize); // calloc(m, isize);
+#endif
   if(p == NULL) {
+#ifdef MULTICORE_GC
+	if(!gc_localheap_s) {
+	  gc_localheap_s = true;
+	  goto inermycalloc_i;
+	}
+#endif
+	tprintf("macalloc_i %s %d \n", file, line);
 	BAMBOO_EXIT(0xc004);
   }
   return p;
 }
 
 void myfree(void * ptr) {
-  BAMBOO_LOCAL_MEM_FREE(ptr);
+#ifdef MULTICORE_GC
+  if(ptr >= BAMBOO_LOCAL_HEAP_START_VA ) {
+#endif
+	BAMBOO_LOCAL_MEM_FREE(ptr);
+#ifdef MULTICORE_GC
+  } else if(ptr >= BAMBOO_LOCAL_HEAP_START_VA_S) {
+	BAMBOO_LOCAL_MEM_FREE_S(ptr);
+  }
+#endif
   return;
 }
 

@@ -31,7 +31,7 @@ extern unsigned int gcmem_mixed_usedmem;
 extern unsigned int bamboo_threadlocks;
 #endif
 
-int gcmarkwaitcounter = -1;
+//int gcmarkwaitcounter = -1;
 
 struct pointerblock {
   void * ptrs[NUMPTRS];
@@ -508,14 +508,16 @@ inline void checkMarkStatue() {
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
       } // if(!gcwaitconfirm) else()
     } else {
-	  if(waitconfirm) {
+	  /*if(waitconfirm) {
 		// There were changes between phase 1 and phase 2, can not decide 
 		// whether the mark phase has been finished
 		waitconfirm = false;
 		// As it fails in phase 2, flip the entries
 		gcnumsrobjs_index = (gcnumsrobjs_index == 0) ? 1 : 0;
-		gcmarkwaitcounter = 1000;
-	  } else if(gcmarkwaitcounter == 0) {
+		//gcmarkwaitcounter = 1000;
+		//BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  }*/ /*else if(gcmarkwaitcounter == 0) {
+		tprintf("mark confirm reques \n");
 		// need to triger status check
 		gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
 		waitconfirm = true;
@@ -529,8 +531,9 @@ inline void checkMarkStatue() {
 		gcmarkwaitcounter = -1;
 	  } else if(gcmarkwaitcounter != -1) {
 		gcmarkwaitcounter--;
-	  }
-      BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	  }*/
+	  BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     } // if(allStall)
   }  // if((!waitconfirm)...
   GC_BAMBOO_DEBUGPRINT(0xee0a);
@@ -539,7 +542,7 @@ inline void checkMarkStatue() {
 inline void initGC() {
   int i;
   if(STARTUPCORE == BAMBOO_NUM_OF_CORE) {
-	gcmarkwaitcounter = -1;
+	//gcmarkwaitcounter = -1;
     for(i = 0; i < NUMCORES4GC; ++i) {
       gccorestatus[i] = 1;
       gcnumsendobjs[0][i] = gcnumsendobjs[1][i] = 0;
@@ -654,7 +657,13 @@ inline bool cacheLObjs() {
     tmp_len = gclobjtail2->lengths[gclobjtailindex2 - 1];
     sumsize += tmp_len;
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if((STARTUPCORE != BAMBOO_NUM_OF_CORE) || gc_profile_flag) {
+#endif
 	gc_num_lobj++;
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
     GC_BAMBOO_DEBUGPRINT_REG(gclobjtail2->lobjs[gclobjtailindex2-1]);
     GC_BAMBOO_DEBUGPRINT_REG(tmp_len);
@@ -696,7 +705,13 @@ inline bool cacheLObjs() {
   }  // while(gc_lobjmoreItems2())
 
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if((STARTUPCORE != BAMBOO_NUM_OF_CORE) || gc_profile_flag) {
+#endif
   gc_num_lobjspace = sumsize;
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
   // check if there are enough space to cache these large objs
   unsigned int dst = gcbaseva + (BAMBOO_SHARED_MEM_SIZE) -sumsize;
@@ -1097,12 +1112,18 @@ inline void moveLObjs() {
 #endif
 
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if((STARTUPCORE != BAMBOO_NUM_OF_CORE) || gc_profile_flag) {
+#endif
   // check how many live space there are
   gc_num_livespace = 0;
   for(int tmpi = 0; tmpi < gcnumblock; tmpi++) {
 	gc_num_livespace += bamboo_smemtbl[tmpi];
   }
   gc_num_freespace = (BAMBOO_SHARED_MEM_SIZE) - gc_num_livespace;
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
   GC_BAMBOO_DEBUGPRINT(0xea08);
   GC_BAMBOO_DEBUGPRINT_REG(gcheaptop);
@@ -1138,7 +1159,13 @@ inline void markObj(void * objptr) {
 		// send a msg to host informing that objptr is active
 		send_msg_2(host, GCMARKEDOBJ, objptr, false);
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if((STARTUPCORE != BAMBOO_NUM_OF_CORE) || gc_profile_flag) {
+#endif
 		gc_num_forwardobj++;
+#ifdef MGC_SPEC
+	}
+#endif
 #endif // GC_PROFILE
 		gcself_numsendobjs++;
 		MGCHashadd(gcforwardobjtbl, (int)objptr);
@@ -1979,7 +2006,13 @@ innermoveobj:
 	unsigned int tobound = (unsigned int)to->bound;
     GC_BAMBOO_DEBUGPRINT(0xe204);
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if((STARTUPCORE != BAMBOO_NUM_OF_CORE) || gc_profile_flag) {
+#endif
 	gc_num_liveobj++;
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
     // marked obj, copy it to current heap top
     // check to see if remaining space is enough
@@ -2092,7 +2125,7 @@ innermoveobj:
 		memcpy(toptr, origptr, size);
       }
       // fill the remaining space with -2
-      BAMBOO_MEMSET_WH(toptr+size, -2, isize-size);
+      BAMBOO_MEMSET_WH((unsigned int)(toptr+size), -2, isize-size);
     }
 #ifdef GC_TBL_DEBUG
 	if((gcmappingtbl[OBJMAPPINGINDEX((unsigned int)origptr)] != 2)) {
@@ -2755,21 +2788,21 @@ inline void flush(struct garbagelist * stackptr) {
 
   flushRuntimeObj(stackptr);
 
-  while(gc_moreItems_I()){//true) {
-    //BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-    //bool hasItems = gc_moreItems_I();
-    //BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
-    //if(!hasItems) {
-    //  break;
-    //}
+  while(true) {
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+    bool hasItems = gc_moreItems_I();
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    if(!hasItems) {
+      break;
+    }
 
     GC_BAMBOO_DEBUGPRINT(0xe301);
-    //BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+    BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
     void * ptr = gc_dequeue_I();
 #ifdef GC_TBL_DEBUG
     unsigned int bkptr = (unsigned int)ptr;
 #endif
-    //BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+    BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
     if(ISSHAREDOBJ(ptr)) {
       // should be a local shared obj and should have mapping info
 #ifdef GC_TBL_DEBUG
@@ -3729,7 +3762,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc_master(struct garbagelist * stackptr) {
-  tprintf("start GC !!!!!!!!!!!!! \n");
+  //tprintf("start GC !!!!!!!!!!!!! \n");
 
   gcphase = INITPHASE;
   int i = 0;
@@ -3765,7 +3798,13 @@ inline void gc_master(struct garbagelist * stackptr) {
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
   }
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileItem();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
 #ifdef GC_CACHE_ADAPT_POLICY_OUTPUT
   gc_output_cache_sampling();
@@ -3811,7 +3850,13 @@ inline void gc_master(struct garbagelist * stackptr) {
 	gcheaptop = gcmarkedptrbound;
   }
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileItem();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) prepare to cache large objs \n", udn_tile_coord_x(),
@@ -3871,7 +3916,13 @@ inline void gc_master(struct garbagelist * stackptr) {
   BAMBOO_CACHE_MF();
 
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileItem();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
 
   // compact phase
@@ -3955,7 +4006,13 @@ inline void gc_master(struct garbagelist * stackptr) {
 	}  // if(gctomove)
   }  // while(COMPACTPHASE == gcphase)
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileItem();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) prepare to move large objs \n", udn_tile_coord_x(),
@@ -3981,7 +4038,13 @@ inline void gc_master(struct garbagelist * stackptr) {
 	send_msg_1(i, GCSTARTFLUSH, false);
   }
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileItem();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Start flush phase \n", udn_tile_coord_x(), 
@@ -4012,7 +4075,13 @@ inline void gc_master(struct garbagelist * stackptr) {
 
 #ifdef GC_CACHE_ADAPT
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileItem();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
   gcphase = PREFINISHPHASE;
   gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
@@ -4069,7 +4138,13 @@ inline void gc_master(struct garbagelist * stackptr) {
   bamboo_smem_zero_top = NULL;
 
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
   gc_profileEnd();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
   gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
   for(i = 1; i < NUMCORESACTIVE; ++i) {
@@ -4084,6 +4159,7 @@ inline void gc_master(struct garbagelist * stackptr) {
   printf("(%x,%x) gc finished   \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());
 #endif
+  //tprintf("finish GC ! \n");
 } // void gc_master(struct garbagelist * stackptr)
 
 inline bool gc(struct garbagelist * stackptr) {
@@ -4123,7 +4199,13 @@ inline bool gc(struct garbagelist * stackptr) {
 	  return false;
 	} else {
 #ifdef GC_PROFILE
+#ifdef MGC_SPEC
+	if(gc_profile_flag) {
+#endif
     gc_profileStart();
+#ifdef MGC_SPEC
+	}
+#endif
 #endif
 pregccheck:
 	  gcnumsendobjs[0][BAMBOO_NUM_OF_CORE] = self_numsendobjs;
