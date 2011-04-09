@@ -176,8 +176,7 @@ class Edge {
     t1 = dest();
     lnexta = lNext();
     t2 = b.orig();
-    Edge e = new Edge();
-    ans = e.makeEdge(t1, t2);
+    ans = makeEdge(t1, t2);
     ans.splice(lnexta);
     ans.symmetric().splice(b);
     return ans;
@@ -191,8 +190,7 @@ class Edge {
     t2 = b.orig();
     oprevb = b.oPrev();
 
-    Edge e = new Edge();
-    ans = e.makeEdge(t1, t2);
+    ans = makeEdge(t1, t2);
     ans.splice(symmetric());
     ans.symmetric().splice(oprevb);
     return ans;

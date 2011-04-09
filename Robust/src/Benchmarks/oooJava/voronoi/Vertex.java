@@ -102,8 +102,7 @@ class Vertex extends Vec2 {
 
     } else if (getLeft() == null) {
       // two points
-      Edge e = new Edge();
-      Edge a = e.makeEdge(this, extra);
+      Edge a = makeEdge(this, extra);
       retval = new EdgePair(a, a.symmetric());
     } else {
       // left, !right three points
@@ -112,8 +111,8 @@ class Vertex extends Vec2 {
       Vertex s2 = this;
       Vertex s3 = extra;
       Edge e = new Edge();
-      Edge a = e.makeEdge(s1, s2);
-      Edge b = e.makeEdge(s2, s3);
+      Edge a = makeEdge(s1, s2);
+      Edge b = makeEdge(s2, s3);
       a.symmetric().splice(b);
       Edge c = b.connectLeft(a);
       if (s1.ccw(s3, s2)) {
@@ -162,8 +161,7 @@ class Vertex extends Vec2 {
 
       } else if (getLeft() == null) {
         // two points
-        Edge e = new Edge();
-        Edge a = e.makeEdge(this, extra);
+        Edge a = makeEdge(this, extra);
         retval = new EdgePair(a, a.symmetric());
       } else {
         // left, !right three points
@@ -171,9 +169,8 @@ class Vertex extends Vec2 {
         Vertex s1 = getLeft();
         Vertex s2 = this;
         Vertex s3 = extra;
-        Edge e = new Edge();
-        Edge a = e.makeEdge(s1, s2);
-        Edge b = e.makeEdge(s2, s3);
+        Edge a = makeEdge(s1, s2);
+        Edge b = makeEdge(s2, s3);
         a.symmetric().splice(b);
         Edge c = b.connectLeft(a);
         if (s1.ccw(s3, s2)) {
@@ -220,8 +217,7 @@ class Vertex extends Vec2 {
 
     } else if (getLeft() == null) {
       // two points
-      Edge e = new Edge();
-      Edge a = e.makeEdge(this, extra);
+      Edge a = makeEdge(this, extra);
       retval = new EdgePair(a, a.symmetric());
     } else {
       // left, !right three points
@@ -229,9 +225,8 @@ class Vertex extends Vec2 {
       Vertex s1 = getLeft();
       Vertex s2 = this;
       Vertex s3 = extra;
-      Edge e = new Edge();
-      Edge a = e.makeEdge(s1, s2);
-      Edge b = e.makeEdge(s2, s3);
+      Edge a = makeEdge(s1, s2);
+      Edge b = makeEdge(s2, s3);
       a.symmetric().splice(b);
       Edge c = b.connectLeft(a);
       if (s1.ccw(s3, s2)) {
@@ -364,6 +359,24 @@ class Vertex extends Vec2 {
   static double drand() {
     double retval = ((double) (Vertex.seed = Vertex.random(Vertex.seed))) / (double) 2147483647;
     return retval;
+  }
+  
+  public Edge makeEdge(Vertex o, Vertex d) {
+    Edge ql[] = new Edge[4];
+    ql[0] = new Edge(ql, 0);
+    ql[1] = new Edge(ql, 1);
+    ql[2] = new Edge(ql, 2);
+    ql[3] = new Edge(ql, 3);
+
+    ql[0].next = ql[0];
+    ql[1].next = ql[3];
+    ql[2].next = ql[2];
+    ql[3].next = ql[1];
+
+    Edge base = ql[0];
+    base.setOrig(o);
+    base.setDest(d);
+    return base;
   }
 
 }
