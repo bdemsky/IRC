@@ -360,7 +360,7 @@ long long CALL01(___Runtime______maxMemory____, struct ___Runtime___ * ___this__
   return 1024*1024*1024;
 }
 #endif
-
+#ifdef D___System______exit____I
 void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #ifdef TRANSSTATS
 #ifndef RECOVERY
@@ -384,7 +384,9 @@ void CALL11(___System______exit____I,int ___status___, int ___status___) {
 #endif
   exit(___status___);
 }
+#endif
 
+#ifdef D___System______logevent____I
 void CALL11(___System______logevent____I,int ___event___, int ___event___) {
 #ifdef STMLOG
   event[counter] = ___event___;
@@ -393,14 +395,18 @@ void CALL11(___System______logevent____I,int ___event___, int ___event___) {
 #endif
   return;
 }
+#endif
 
+#ifdef ___System______logevent____
 void CALL00(___System______logevent____) {
 #ifdef STMLOG
   beginClock= rdtsc();
 #endif
   return;
 }
+#endif
 
+#ifdef ___System______flushToFile____I
 void CALL11(___System______flushToFile____I, int ___threadid___, int ___threadid___) {
 #ifdef STMLOG
   FILE *fp;
@@ -422,7 +428,9 @@ void CALL11(___System______flushToFile____I, int ___threadid___, int ___threadid
 #endif
   return;
 }
+#endif
 
+#ifdef D___System______initLog____
 void CALL00(___System______initLog____) {
 #ifdef STMLOG
   counter=0;
@@ -435,6 +443,7 @@ void CALL00(___System______initLog____) {
 #endif
   return;
 }
+#endif
 
 #ifdef D___Vector______removeElement_____AR_L___Object____I_I
 void CALL23(___Vector______removeElement_____AR_L___Object____I_I, int ___index___, int ___size___, struct ArrayObject * ___array___, int ___index___, int ___size___) {
@@ -443,10 +452,13 @@ void CALL23(___Vector______removeElement_____AR_L___Object____I_I, int ___index_
 }
 #endif
 
+#ifdef D___System______printI____I
 void CALL11(___System______printI____I,int ___status___, int ___status___) {
   printf("%d\n",___status___);
 }
+#endif
 
+#ifdef D___System______currentTimeMillis____
 long long CALL00(___System______currentTimeMillis____) {
   struct timeval tv; long long retval;
   gettimeofday(&tv, NULL);
@@ -455,6 +467,7 @@ long long CALL00(___System______currentTimeMillis____) {
   retval+= (tv.tv_usec/1000); /* adjust milliseconds & add them in */
   return retval;
 }
+#endif
 
 #ifdef D___System______gc____
 void CALL00(___System______gc____) {
@@ -508,6 +521,7 @@ void CALL00(___System______gc____) {
 }
 #endif
 
+#ifdef D___System______microTimes____
 long long CALL00(___System______microTimes____) {
   struct timeval tv; 
   long long retval;
@@ -517,14 +531,18 @@ long long CALL00(___System______microTimes____) {
   retval+= (tv.tv_usec); /* adjust microseconds & add them in */
   return retval;
 }
+#endif
 
+#ifdef D___System______getticks____
 long long CALL00(___System______getticks____) {
   unsigned a, d;
   asm("cpuid");
   asm volatile("rdtsc" : "=a" (a), "=d" (d));
   return (((ticks)a) | (((ticks)d) << 32));
 }
+#endif
 
+#ifdef D___System______printString____L___String___
 void CALL01(___System______printString____L___String___,struct ___String___ * ___s___) {
   struct ArrayObject * chararray=VAR(___s___)->___value___;
   int i;
@@ -538,6 +556,7 @@ void CALL01(___System______printString____L___String___,struct ___String___ * __
   fflush(stdout);
 #endif
 }
+#endif
 
 #ifdef D___RecoveryStat______printRecoveryStat____ 
 #ifdef RECOVERYSTATS
@@ -553,11 +572,14 @@ void CALL00(___RecoveryStat______printRecoveryStat____) {
 #endif
 
 #ifdef DSTM
+#ifdef D___System______clearPrefetchCache____
 void CALL00(___System______clearPrefetchCache____) {
   prehashClear();
 }
+#endif
 
 #ifdef RANGEPREFETCH
+#ifdef D___System______rangePrefetch____L___Object_____AR_S
 void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Object___ * ___o___, struct ArrayObject * ___offsets___) {
   /* Manual Prefetches to be inserted */
   //printf("DEBUG-> %s() ___Object___ * ___o___ = %x\n", __func__, VAR(___o___));
@@ -583,6 +605,7 @@ void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Objec
 void CALL02(___System______rangePrefetch____L___Object_____AR_S, struct ___Object___ * ___o___, struct ArrayObject * ___offsets___) {
   return;
 }
+#endif
 #endif
 
 #ifdef D___Task______execution____ 

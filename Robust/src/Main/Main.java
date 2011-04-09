@@ -34,6 +34,7 @@ import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskTagAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
+import Analysis.CallGraph.JavaCallGraph;
 import Analysis.TaskStateAnalysis.FEdge;
 import Analysis.TaskStateAnalysis.FlagState;
 import Analysis.TaskStateAnalysis.TagAnalysis;
@@ -299,16 +300,16 @@ public class Main {
         startnum = Integer.parseInt(args[++i]);
       else if (option.equals("-useprofile")) {
 	state.USEPROFILE=true;
-    state.profilename = args[++i];
+	state.profilename = args[++i];
       }
       else if (option.equals("-thread"))
 	state.THREAD=true;
       else if (option.equals("-dsm"))
 	state.DSM=true;
       else if (option.equals("-recoverystats"))
-  state.DSMRECOVERYSTATS=true;
+	state.DSMRECOVERYSTATS=true;
       else if (option.equals("-dsmtask"))
-  state.DSMTASK=true;
+	state.DSMTASK=true;
       else if (option.equals("-singleTM"))
 	state.SINGLETM=true;
       else if (option.equals("-readset"))
@@ -341,14 +342,14 @@ public class Main {
 	state.RCR_DEBUG = true;
 	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-rcr_debug_verbose")){
-  state.RCR_DEBUG_VERBOSE = true;
-  state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
+	state.RCR_DEBUG_VERBOSE = true;
+	state.KEEP_RG_FOR_ALL_PROGRAM_POINTS=true;
       } else if (option.equals("-nostalltr")){
 	state.NOSTALLTR = true;     
       } else if (option.equals("-ssjava")){
-  state.SSJAVA = true;     
+	state.SSJAVA = true;     
       } else if (option.equals("-printlinenum")){
-  state.LINENUM=true;
+	state.LINENUM=true;
       }else if (option.equals("-help")) {      
 	System.out.println("-classlibrary classlibrarydirectory -- directory where classlibrary is located");
 	System.out.println("-selfloop task -- this task doesn't self loop its parameters forever");
@@ -444,6 +445,7 @@ public class Main {
     }
     
 
+
     BuildFlat bf=new BuildFlat(state,tu);
     bf.buildFlat();
     State.logEvent("Done Building Flat");
@@ -465,8 +467,9 @@ public class Main {
       }
     }
 
+    CallGraph callgraph=state.TASK?new CallGraph(state, tu):new JavaCallGraph(state, tu);
+
     if (state.OPTIMIZE) {
-      CallGraph callgraph=new CallGraph(state);
       CopyPropagation cp=new CopyPropagation();
       DeadCode dc=new DeadCode();
       GlobalFieldType gft=new GlobalFieldType(callgraph, state, tu.getMain());
@@ -508,12 +511,11 @@ public class Main {
     }
     
     if (state.OWNERSHIP) {
-      CallGraph callGraph = new CallGraph(state);
       Liveness liveness = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
                                                    tu,
-                                                   callGraph,
+                                                   callgraph,
 						   liveness,
                                                    ar,
                                                    state.OWNERSHIPALLOCDEPTH,
@@ -524,28 +526,24 @@ public class Main {
     }
 
     if (state.DISJOINT && !state.OOOJAVA) {
-      CallGraph        cg = new CallGraph(state);
       Liveness         l  = new Liveness();
       ArrayReferencees ar = new ArrayReferencees(state);
-      DisjointAnalysis da = new DisjointAnalysis(state, tu, cg, l, ar, null, null);
+      DisjointAnalysis da = new DisjointAnalysis(state, tu, callgraph, l, ar, null, null);
     }
 
     if (state.OOOJAVA) {
-      CallGraph        cg  = new CallGraph(state);
       Liveness         l   = new Liveness();
       ArrayReferencees ar  = new ArrayReferencees(state);
-      oooa = new OoOJavaAnalysis(state, tu, cg, l, ar);
+      oooa = new OoOJavaAnalysis(state, tu, callgraph, l, ar);
     }
 
 
     if (state.TAGSTATE) {
-      CallGraph callgraph=new CallGraph(state);
       TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
       TaskTagAnalysis tta=new TaskTagAnalysis(state, taganalysis, tu);
     }
 
     if (state.TASKSTATE) {
-      CallGraph callgraph=new CallGraph(state);
       TagAnalysis taganalysis=new TagAnalysis(state, callgraph);
       TaskAnalysis ta=new TaskAnalysis(state, taganalysis, tu);
       ta.taskAnalysis();
@@ -570,7 +568,6 @@ public class Main {
 
       if (state.SCHEDULING) {
 	// Use ownership analysis to get alias information
-	CallGraph callGraph = new CallGraph(state);
 	Liveness liveness = new Liveness();
         ArrayReferencees ar = new ArrayReferencees(state);
 	OwnershipAnalysis oa = null;/*new OwnershipAnalysis(state,
@@ -603,20 +600,20 @@ public class Main {
           System.exit(0);
         }
 
-	    // generate multicore codes
-	    if(state.MULTICORE) {
-		BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
-			                                      bf.getMap(),
-			                                      tu,
-			                                      sa,
-			                                      scheduling,
-			                                      mcImplSynthesis.getCoreNum(),
-							      state.CORENUM4GC);
-		bcm.setOwnershipAnalysis(oa);
-		bcm.buildCode();
-	    }
-	    scheduling.clear();
-	    scheduling = null;
+	// generate multicore codes
+	if(state.MULTICORE) {
+	  BuildCodeMultiCore bcm=new BuildCodeMultiCore(state,
+							bf.getMap(),
+							tu,
+							sa,
+							scheduling,
+							mcImplSynthesis.getCoreNum(),
+							state.CORENUM4GC, callgraph);
+	  bcm.setOwnershipAnalysis(oa);
+	  bcm.buildCode();
+	}
+	scheduling.clear();
+	scheduling = null;
 	}
       }
     }
@@ -630,7 +627,7 @@ public class Main {
                                             sa,
                                             state.CORENUM,
                                             state.CORENUM,
-                                            state.CORENUM4GC);
+                                            state.CORENUM4GC, callgraph);
         bcmgc.buildCode();
       }
     }
@@ -639,7 +636,6 @@ public class Main {
       BuildCode bc;
 
       if (state.DSM||state.SINGLETM) {
-	CallGraph callgraph=new CallGraph(state);
 	if (state.PREFETCH) {
 	  //speed up prefetch generation using locality analysis results
 	  LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
@@ -647,12 +643,12 @@ public class Main {
 	}
 	LocalityAnalysis la=new LocalityAnalysis(state, callgraph, tu);
 	GenerateConversions gc=new GenerateConversions(la, state);
-	bc=new BuildCodeTran(state, bf.getMap(), tu, la, pa);
+	bc=new BuildCodeTran(state, bf.getMap(), tu, la, pa, callgraph);
       } else {
         if( state.OOOJAVA ) {
-          bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, oooa);
+          bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, oooa, callgraph);
         } else {
-          bc=new BuildCode(state, bf.getMap(), tu, sa);
+          bc=new BuildCode(state, bf.getMap(), tu, sa, callgraph);
         }
       }
 

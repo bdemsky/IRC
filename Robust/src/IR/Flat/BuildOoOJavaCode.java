@@ -32,9 +32,9 @@ public class BuildOoOJavaCode extends BuildCode {
                            Hashtable        temptovar, 
                            TypeUtil         typeutil, 
                            SafetyAnalysis   sa, 
-                           OoOJavaAnalysis  oooa
+                           OoOJavaAnalysis  oooa, CallGraph callgraph
                            ) {
-    super( st, temptovar, typeutil, sa);
+    super( st, temptovar, typeutil, sa, callgraph);
 
     this.oooa = oooa;
   }

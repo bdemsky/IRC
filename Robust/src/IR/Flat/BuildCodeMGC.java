@@ -6,6 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 
 import Analysis.TaskStateAnalysis.SafetyAnalysis;
+import Analysis.CallGraph.CallGraph;
 import IR.ClassDescriptor;
 import IR.MethodDescriptor;
 import IR.State;
@@ -25,8 +26,8 @@ public class BuildCodeMGC extends BuildCode {
                       SafetyAnalysis sa,
                       int coreNum, 
                       int tcoreNum,
-                      int gcoreNum) {
-    super(st, temptovar, typeutil, sa);
+                      int gcoreNum, CallGraph callgraph) {
+    super(st, temptovar, typeutil, sa, callgraph);
     this.coreNum = coreNum; // # of the active cores
     this.tcoreNum = tcoreNum; // # of the total number of cores
     this.gcoreNum = gcoreNum; // # of the cores for gc if any

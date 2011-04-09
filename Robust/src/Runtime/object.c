@@ -29,11 +29,14 @@ int CALL01(___Object______hashCode____, struct ___Object___ * ___this___) {
 }
 #endif
 
+#ifdef D___Object______getType____
 int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
   return ((int *)VAR(___this___))[0];
 }
+#endif
 
 #ifdef THREADS
+#ifdef D___Object______MonitorEnter____
 int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 #ifndef NOLOCK
   pthread_t self=pthread_self();
@@ -64,15 +67,19 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
   }
 #endif
 }
+#endif
+
 
 #ifdef D___Object______notify____
 void CALL01(___Object______notify____, struct ___Object___ * ___this___) {
 }
 #endif
+
 #ifdef D___Object______notifyAll____
 void CALL01(___Object______notifyAll____, struct ___Object___ * ___this___) {
 }
 #endif
+
 #ifdef D___Object______wait____
 void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   pthread_t self=pthread_self();
@@ -125,6 +132,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 }
 #endif
 
+#ifdef D___Object______MonitorExit____
 int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
 #ifndef NOLOCK
   pthread_t self=pthread_self();
@@ -154,4 +162,5 @@ int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
   }
 #endif
 }
+#endif
 #endif

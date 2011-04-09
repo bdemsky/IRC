@@ -55,26 +55,22 @@ public class BuildCode {
   
   int boundschknum = 0;
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil) {
-    this(st, temptovar, typeutil, null);
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, CallGraph callgraph) {
+    this(st, temptovar, typeutil, null, callgraph);
   }
 
-  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa) {
+  public BuildCode(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, CallGraph callgraph) {
     this.sa=sa;
     state=st;
-    State.logEvent("Start CallGraph");    
-    callgraph=new CallGraph(state);
-    State.logEvent("Finish CallGraph");    
+    this.callgraph=callgraph;
     this.temptovar=temptovar;
     paramstable=new Hashtable();
     tempstable=new Hashtable();
     fieldorder=new Hashtable();
     flagorder=new Hashtable();
     this.typeutil=typeutil;
-    State.logEvent("CheckMethods");    
-    checkMethods2Gen();
     State.logEvent("Virtual");    
-    virtualcalls=new Virtual(state, null);
+    virtualcalls=new Virtual(state, null, callgraph);
     printedfieldstbl = new Hashtable<String, ClassDescriptor>();
   }
 
@@ -258,36 +254,6 @@ public class BuildCode {
     State.logEvent("End of buildCode");
   }
 
-  /* This method goes though the call graph and check which methods are really
-   * invoked and should be generated
-   */
-  protected void checkMethods2Gen() {
-    MethodDescriptor md=(state.main==null)?null:typeutil.getMain();
-    
-    if(md != null) {
-      // check the methods to be generated
-      state.setGenAllMethods(false);
-    } else {
-      // generate all methods
-      return;
-    }
-    this.state.addMethod2gen(md);
-    
-    Iterator it_classes = this.state.getClassSymbolTable().getDescriptorsIterator();
-    while(it_classes.hasNext()) {
-      ClassDescriptor cd = (ClassDescriptor)it_classes.next();
-      Iterator it_methods = cd.getMethodTable().getDescriptorsIterator();
-      while(it_methods.hasNext()) {
-        md = (MethodDescriptor)it_methods.next();
-        if(md.isStaticBlock() || md.getModifiers().isNative() || this.callgraph.getCallerSet(md).size() > 0
-            || (cd.getSymbol().equals("Thread") && md.getSymbol().equals("staticStart"))) {
-          this.state.addMethod2gen(md);
-        }
-      }
-    }
-  }
-
-
   /* This method goes though the call graph and tag those methods that are
    * invoked inside static blocks
    */
@@ -450,6 +416,7 @@ public class BuildCode {
     while(taskit.hasNext()) {
       TaskDescriptor td=(TaskDescriptor)taskit.next();
       FlatMethod fm=state.getMethodFlat(td);
+
       generateFlatMethod(fm, outmethod);
       generateTaskDescriptor(outtaskdefs, fm, td);
     }
@@ -539,20 +506,10 @@ public class BuildCode {
       while(methodit.hasNext()) {
 	/* Classify parameters */
 	MethodDescriptor md=(MethodDescriptor)methodit.next();
-    if(!this.state.genAllMethods) {
-      boolean foundmatch = false;
-      Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
-      for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-        MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-        if (md.matches(matchmd)) {
-          foundmatch=true;
-          break;
-        }
-      }
-      if(!foundmatch) {
-        continue;
-      }
-    }
+	if (!callgraph.isCallable(md)) {
+	  continue;
+	}
+
 	FlatMethod fm=state.getMethodFlat(md);
 	if (!md.getModifiers().isNative()) {
 	  generateFlatMethod(fm, outmethod);
@@ -930,22 +887,11 @@ public class BuildCode {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
 	continue;
-      boolean foundmatch = false;
-      if(this.state.genAllMethods) {
-        foundmatch = true;
-      } else {
-        Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
-        for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-          if (md.matches(matchmd)) {
-            foundmatch=true;
-            break;
-          }
-        }
+
+      if (!callgraph.isCallable(md)) {
+	continue;
       }
-      if(!foundmatch) {
-        continue;
-      }
+
       int methodnum = virtualcalls.getMethodNumber(md);
       virtualtable[rownum][methodnum]=md;
     }
@@ -1643,22 +1589,12 @@ public class BuildCode {
   protected void generateCallStructsMethods(ClassDescriptor cn, PrintWriter output, PrintWriter headersout) {
     for(Iterator methodit=cn.getMethods(); methodit.hasNext(); ) {
       MethodDescriptor md=(MethodDescriptor)methodit.next();
-      boolean foundmatch = false;
-      if(this.state.genAllMethods) {
-        foundmatch = true;
-      } else {
-        Set vec_md = this.state.getMethod2gen().getSet(md.getSymbol());
-        for(Iterator matchit=vec_md.iterator(); matchit.hasNext();) {
-          MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-          if (md.matches(matchmd)) {
-            foundmatch=true;
-            break;
-          }
-        }
+
+      if (!callgraph.isCallable(md)) {
+	continue;
       }
-      if(foundmatch) {
-        generateMethod(cn, md, headersout, output);
-      }
+
+      generateMethod(cn, md, headersout, output);
     }
   }
 
@@ -2830,10 +2766,17 @@ public class BuildCode {
 	else
 	  output.println(generateTemp(fm, fon.getDest())+" = ((unsigned int)"+generateTemp(fm, fon.getLeft())+")>>"+generateTemp(fm,fon.getRight())+";");
 
-      } else
-	output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+      } else {
+	if (fon.getLeft().getType().isPtr()&&fon.getLeft().getType()!=fon.getRight().getType()&&!fon.getRight().getType().isNull())
+	  output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getRight().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+	else
+	  output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+fon.getOp().toString()+generateTemp(fm,fon.getRight())+";");
+      }
     } else if (fon.getOp().getOp()==Operation.ASSIGN)
-      output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
+      if (fon.getDest().getType().isPtr()&&fon.getDest().getType()!=fon.getLeft().getType())
+	output.println(generateTemp(fm, fon.getDest())+" = (struct "+fon.getDest().getType().getSafeSymbol()+"*)"+generateTemp(fm, fon.getLeft())+";");
+      else
+	output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
     else if (fon.getOp().getOp()==Operation.UNARYPLUS)
       output.println(generateTemp(fm, fon.getDest())+" = "+generateTemp(fm, fon.getLeft())+";");
     else if (fon.getOp().getOp()==Operation.UNARYMINUS)

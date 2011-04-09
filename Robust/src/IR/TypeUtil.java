@@ -19,7 +19,7 @@ public class TypeUtil {
   BuildIR bir;
   
   // for interfaces
-  Hashtable superIFtbl;
+  Hashtable<ClassDescriptor, Set<ClassDescriptor>> superIFtbl;
 
   public TypeUtil(State state, BuildIR bir) {
     this.state=state;
@@ -69,7 +69,7 @@ public class TypeUtil {
 	supertable.put(cd,cd_super);
       }
     }
-    if (!this.superIFtbl.containsKey(cd)) {
+    if (!superIFtbl.containsKey(cd)) {
       // add inherited interfaces
       superIFtbl.put(cd,new HashSet());
       HashSet hs=(HashSet)superIFtbl.get(cd);
@@ -85,7 +85,7 @@ public class TypeUtil {
 
   private void createTables() {
     supertable=new Hashtable();
-    superIFtbl = new Hashtable();
+    superIFtbl = new Hashtable<ClassDescriptor,Set<ClassDescriptor>>();
   }
 
   public ClassDescriptor getMainClass() {
@@ -276,8 +276,8 @@ NextMethod:
     return (ClassDescriptor)supertable.get(cd);
   }
   
-  public Set getSuperIFs(ClassDescriptor cd) {
-    return (Set)this.superIFtbl.get(cd);
+  public Set<ClassDescriptor> getSuperIFs(ClassDescriptor cd) {
+    return superIFtbl.get(cd);
   }
 
   public boolean isCastable(TypeDescriptor original, TypeDescriptor casttype) {
@@ -411,9 +411,9 @@ NextMethod:
     
     {
       // check cd2's interface ancestors
-      Iterator it_sifs = getSuperIFs(cd2).iterator();
+      Iterator<ClassDescriptor> it_sifs = getSuperIFs(cd2).iterator();
       while(it_sifs.hasNext()) {
-	ClassDescriptor cd = (ClassDescriptor)it_sifs.next();
+	ClassDescriptor cd = it_sifs.next();
 	if(cd == possiblesuper) {
 	  return true;
 	} else if(!tovisit.contains(cd)){

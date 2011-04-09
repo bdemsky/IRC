@@ -14,6 +14,7 @@
 
 struct RuntimeHash *fdtoobject;
 
+#ifdef D___Socket______nativeConnect____I__AR_B_I
 int CALL24(___Socket______nativeConnect____I__AR_B_I, int ___fd___, int ___port___, struct ___Socket___ * ___this___, int ___fd___, struct ArrayObject * ___address___,int ___port___) {
 #ifdef MULTICORE
   // not supported in MULTICORE version
@@ -61,8 +62,10 @@ error:
   return -1;
 #endif
 }
+#endif
 
 #ifdef TASK
+#ifdef D___Socket______nativeBindFD____I
 int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ * ___this___, int ___fd___) {
 #ifdef MULTICORE
 #else
@@ -74,8 +77,9 @@ int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ *
   return 0;
 }
 #endif
+#endif
 
-
+#ifdef D___Socket______nativeBind_____AR_B_I
 int CALL12(___Socket______nativeBind_____AR_B_I, int ___port___,  struct ArrayObject * ___address___, int ___port___) {
 #ifdef MULTICORE
   // not supported in MULTICORE version
@@ -133,7 +137,9 @@ error:
 #endif
 #endif
 }
+#endif
 
+#ifdef D___InetAddress______getHostByName_____AR_B
 struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct ArrayObject * ___hostname___) {
 #ifdef MULTICORE
   // not supported in MULTICORE version
@@ -185,8 +191,9 @@ struct ArrayObject * CALL01(___InetAddress______getHostByName_____AR_B, struct A
 	}
 #endif
 }
+#endif
 
-
+#ifdef D___ServerSocket______createSocket____I
 int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSocket___ * ___this___, int port) {
 #ifdef MULTICORE
   // not supported in MULTICORE version
@@ -291,7 +298,9 @@ int CALL12(___ServerSocket______createSocket____I, int port, struct ___ServerSoc
   return fd;
 #endif
 }
+#endif
 
+#ifdef D___ServerSocket______nativeaccept____L___Socket___
 int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSocket___ * ___this___, struct ___Socket___ * ___s___) {
 #ifdef MULTICORE
   // not supported in MULTICORE version
@@ -344,7 +353,9 @@ int CALL02(___ServerSocket______nativeaccept____L___Socket___,struct ___ServerSo
   return newfd;
 #endif
 }
+#endif
 
+#ifdef D___Socket______nativeWrite_____AR_B_I_I
 void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, struct ___Socket___ * ___this___, struct ArrayObject * ___b___, int offset, int length) {
 #ifdef MULTICORE
 #else
@@ -369,7 +380,10 @@ void CALL24(___Socket______nativeWrite_____AR_B_I_I, int offset, int length, str
   }
 #endif
 }
+#endif
 
+
+#ifdef D___Socket______nativeRead_____AR_B
 int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___, struct ArrayObject * ___b___) {
 #ifdef MULTICORE
   return -1;
@@ -422,7 +436,9 @@ int CALL02(___Socket______nativeRead_____AR_B, struct ___Socket___ * ___this___,
   return byteread;
 #endif
 }
+#endif
 
+#ifdef D___Socket______nativeClose____
 void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
 #ifdef MULTICORE
 #else
@@ -438,3 +454,4 @@ void CALL01(___Socket______nativeClose____, struct ___Socket___ * ___this___) {
   close(fd);
 #endif
 }
+#endif

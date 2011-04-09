@@ -43,17 +43,18 @@ public class BuildCodeTran extends BuildCode {
   LocalityBinding currlb;
 
 
-  public BuildCodeTran(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa) {
-    this(st, temptovar, typeutil, null, sa, pa);
+  public BuildCodeTran(State st, Hashtable temptovar, TypeUtil typeutil, SafetyAnalysis sa, PrefetchAnalysis pa, CallGraph callgraph) {
+    this(st, temptovar, typeutil, null, sa, pa, callgraph);
   }
 
-  public BuildCodeTran(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa) {
-    this(st, temptovar, typeutil, locality, null, pa);
+  public BuildCodeTran(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, PrefetchAnalysis pa, CallGraph callgraph) {
+    this(st, temptovar, typeutil, locality, null, pa, callgraph);
   }
 
-  public BuildCodeTran(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa) {
-    super(st, temptovar, typeutil, sa);
+  public BuildCodeTran(State st, Hashtable temptovar, TypeUtil typeutil, LocalityAnalysis locality, SafetyAnalysis sa, PrefetchAnalysis pa, CallGraph callgraph) {
+    super(st, temptovar, typeutil, sa, callgraph);
     this.sa=sa;
+    this.virtualcalls=new Virtual(state, locality, callgraph);
     if (state.SINGLETM)
       oidstr="___objlocation___";
     if (locality!=null) {

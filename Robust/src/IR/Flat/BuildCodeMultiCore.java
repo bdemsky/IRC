@@ -18,6 +18,7 @@ import Analysis.OwnershipAnalysis.AllocationSite;
 import Analysis.OwnershipAnalysis.OwnershipAnalysis;
 import Analysis.OwnershipAnalysis.HeapRegionNode;
 import Analysis.Prefetch.*;
+import Analysis.CallGraph.CallGraph;
 import IR.ClassDescriptor;
 import IR.Descriptor;
 import IR.FlagDescriptor;
@@ -61,8 +62,8 @@ public class BuildCodeMultiCore extends BuildCode {
 	                    SafetyAnalysis sa, 
 	                    Vector<Schedule> scheduling, 
 	                    int coreNum, 
-			    int gcoreNum) {
-    super(st, temptovar, typeutil, sa);
+			    int gcoreNum, CallGraph callgraph) {
+    super(st, temptovar, typeutil, sa, callgraph);
     this.scheduling = scheduling;
     this.coreNum = coreNum; // # of the active cores
     this.tcoreNum = coreNum;  // # of the cores setup by users

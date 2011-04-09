@@ -7,7 +7,9 @@
 #include "structdefs.h"
 #include "mem.h"
 #include "runtime.h"
+#include "methodheaders.h"
 
+#ifdef D___FileOutputStream______nativeWrite____I__AR_B_I_I
 void CALL34(___FileOutputStream______nativeWrite____I__AR_B_I_I, int fd, int off, int len, int fd, struct ArrayObject * ___array___, int off, int len) {
 #ifdef MULTICORE
 #else
@@ -15,14 +17,18 @@ void CALL34(___FileOutputStream______nativeWrite____I__AR_B_I_I, int fd, int off
   int status=write(fd, &string[off], len);
 #endif
 }
+#endif
 
+#ifdef D___FileOutputStream______nativeClose____I
 void CALL11(___FileOutputStream______nativeClose____I, int fd, int fd) {
 #ifdef MULTICORE
 #else
   close(fd);
 #endif
 }
+#endif
 
+#ifdef D___FileOutputStream______nativeFlush____I
 void CALL11(___FileOutputStream______nativeFlush____I, int fd, int fd) {
   // not supported in RAW version
 #ifdef MULTICORE
@@ -30,7 +36,9 @@ void CALL11(___FileOutputStream______nativeFlush____I, int fd, int fd) {
   fsync(fd);
 #endif
 }
+#endif
 
+#ifdef D___FileOutputStream______nativeOpen_____AR_B
 int CALL01(___FileOutputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {
 #ifdef MULTICORE
   return 0;
@@ -41,7 +49,9 @@ int CALL01(___FileOutputStream______nativeOpen_____AR_B, struct ArrayObject * __
   return fd;
 #endif
 }
+#endif
 
+#ifdef D___FileOutputStream______nativeAppend_____AR_B
 int CALL01(___FileOutputStream______nativeAppend_____AR_B, struct ArrayObject * ___filename___) {
 #ifdef MULTICORE
   return 0;
@@ -52,7 +62,9 @@ int CALL01(___FileOutputStream______nativeAppend_____AR_B, struct ArrayObject * 
   return fd;
 #endif
 }
+#endif
 
+#ifdef D___FileInputStream______nativeOpen_____AR_B
 int CALL01(___FileInputStream______nativeOpen_____AR_B, struct ArrayObject * ___filename___) {
 #ifdef MULTICORE
   return 0;
@@ -63,14 +75,18 @@ int CALL01(___FileInputStream______nativeOpen_____AR_B, struct ArrayObject * ___
   return fd;
 #endif
 }
+#endif
 
+#ifdef D___FileInputStream______nativeClose____I
 void CALL11(___FileInputStream______nativeClose____I, int fd, int fd) {
 #ifdef MULTICORE
 #else
   close(fd);
 #endif
 }
+#endif
 
+#ifdef D___FileInputStream______nativeRead____I__AR_B_I
 int CALL23(___FileInputStream______nativeRead____I__AR_B_I, int fd, int numBytes, int fd, struct ArrayObject * ___array___, int numBytes) {
 #ifdef MULTICORE
   return -1;
@@ -86,7 +102,9 @@ int CALL23(___FileInputStream______nativeRead____I__AR_B_I, int fd, int numBytes
   return status;
 #endif
 }
+#endif
 
+#ifdef D___FileInputStream______nativePeek____I
 int CALL11(___FileInputStream______nativePeek____I, int fd, int fd) {
 #ifdef MULTICORE
   return 0;
@@ -102,7 +120,9 @@ int CALL11(___FileInputStream______nativePeek____I, int fd, int fd) {
   return string[0];
 #endif
 }
+#endif
 
+#ifdef D___File______nativeLength_____AR_B
 long long CALL01(___File______nativeLength_____AR_B, struct ArrayObject * ___pathname___) {
 #ifdef MULTICORE
   return 0;
@@ -114,3 +134,4 @@ long long CALL01(___File______nativeLength_____AR_B, struct ArrayObject * ___pat
   return st.st_size;
 #endif
 }
+#endif

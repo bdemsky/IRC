@@ -7,6 +7,7 @@
 #include "thread.h"
 #include "option.h"
 #include <signal.h>
+#include "methodheaders.h"
 
 #ifdef DSTM
 #ifdef RECOVERY
@@ -369,6 +370,7 @@ void initthread(struct ___Thread___ * ___this___) {
 }
 #endif
 
+#ifdef D___Thread______sleep____J
 void CALL11(___Thread______sleep____J, long long ___millis___, long long ___millis___) {
 #if defined(THREADS)||defined(STM)
 #ifdef PRECISE_GC
@@ -382,8 +384,9 @@ void CALL11(___Thread______sleep____J, long long ___millis___, long long ___mill
 #endif
 #endif
 }
+#endif
 
-#if defined(DSTM)|| defined(THREADS)||defined(STM)
+#ifdef D___Thread______yield____
 void CALL00(___Thread______yield____) {
   pthread_yield();
 }
@@ -400,17 +403,22 @@ void CALL00(___Thread______abort____) {
 #ifdef DSTM
 #ifdef RECOVERY
 // return if the machine is dead
+#ifdef D___Thread______nativeGetStatus____I
 int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
   return getStatus(___mid___);
 }
+#endif
 #else 
+#ifdef D___Thread______nativeGetStatus____I
 int CALL12(___Thread______nativeGetStatus____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
   return 0;
 }
 #endif
 #endif
+#endif
 #ifdef DSTM
 /* Add thread join capability */
+#ifdef D___Thread______join____
 void CALL01(___Thread______join____, struct ___Thread___ * ___this___) {
   unsigned int *oidarray;
   unsigned short *versionarray, version;
@@ -473,8 +481,10 @@ transstart:
   return;
 }
 #endif
+#endif
 
 #if defined(THREADS)||defined(STM)
+#ifdef D___Thread______nativeJoin____
 void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
   pthread_mutex_lock(&joinlock);
   while(!VAR(___this___)->___finished___) {
@@ -488,7 +498,9 @@ void CALL01(___Thread______nativeJoin____, struct ___Thread___ * ___this___) {
   }
   pthread_mutex_unlock(&joinlock);
 }
+#endif
 
+#ifdef D___Thread______nativeCreate____
 void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_t thread;
   int retval;
@@ -501,7 +513,6 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_attr_setdetachstate(&nattr, PTHREAD_CREATE_DETACHED);
   INTPTR stacksize;
   pthread_attr_getstacksize(&nattr, &stacksize);
-  printf("STACKSIZE=%u\n",stacksize);
   do {
     retval=pthread_create(&thread, &nattr, (void * (*)(void *)) &initthread, VAR(___this___));
     if (retval!=0)
@@ -512,11 +523,14 @@ void CALL01(___Thread______nativeCreate____, struct ___Thread___ * ___this___) {
   pthread_attr_destroy(&nattr);
 }
 #endif
+#endif
 
 #ifdef DSTM
+#ifdef D___Thread______start____I
 void CALL12(___Thread______start____I, int ___mid___, struct ___Thread___ * ___this___, int ___mid___) {
   startRemoteThread((unsigned int)VAR(___this___), ___mid___);
 }
+#endif
 #endif
 
 #ifdef DSTM

@@ -9,6 +9,7 @@ import IR.ClassDescriptor;
 import IR.MethodDescriptor;
 import IR.TaskDescriptor;
 import IR.TypeDescriptor;
+import IR.TypeUtil;
 import java.util.*;
 import java.io.*;
 
@@ -26,8 +27,12 @@ public class CallGraph {
 
   protected CallGraph() {}
 
-  public CallGraph(State state) {
+  protected TypeUtil typeUtil;
+
+  public CallGraph(State state, TypeUtil typeUtil) {
     this.state=state;
+    this.typeUtil=typeUtil;
+
     mapVirtual2ImplementationSet = new Hashtable();
     mapCaller2CalleeSet          = new Hashtable();
     mapCallee2CallerSet          = new Hashtable();
@@ -74,6 +79,33 @@ public class CallGraph {
 	MethodDescriptor md=(MethodDescriptor)methodit.next();
 	if (md.isStatic()||md.getReturnType()==null)
 	  continue;
+	Stack<ClassDescriptor> possInterfaces=new Stack<ClassDescriptor>();
+	ClassDescriptor tmpcd=cn;
+	while(tmpcd!=null) {
+	  for(Iterator supit=tmpcd.getSuperInterfaces();supit.hasNext();) {
+	    possInterfaces.add((ClassDescriptor)supit.next());
+	  }
+	  tmpcd=tmpcd.getSuperDesc();
+	}
+	while(!possInterfaces.isEmpty()) {
+	  ClassDescriptor IFdesc=possInterfaces.pop();
+	  for(Iterator supit=IFdesc.getSuperInterfaces();supit.hasNext();) {
+	    possInterfaces.add((ClassDescriptor)supit.next());
+	  }
+	  Set possiblematches=IFdesc.getMethodTable().getSet(md.getSymbol());
+	  boolean foundmatch=false;
+	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+	    if (md.matches(matchmd)) {
+	      if (!mapVirtual2ImplementationSet.containsKey(matchmd))
+		mapVirtual2ImplementationSet.put(matchmd,new HashSet());
+	      ((HashSet)mapVirtual2ImplementationSet.get(matchmd)).add(md);
+	      break;
+	    }
+	  }
+	}
+	
+
 	ClassDescriptor superdesc=cn.getSuperDesc();
 	if (superdesc!=null) {
 	  Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
@@ -144,6 +176,10 @@ public class CallGraph {
     return ns;
   }
 
+  public boolean isCallable(MethodDescriptor md) {
+    return true;
+  }
+
   /** Returns all methods transitively callable from d */
 
   public Set getAllMethods(Descriptor d) {
@@ -154,6 +190,7 @@ public class CallGraph {
       Descriptor md=(Descriptor)tovisit.iterator().next();
       tovisit.remove(md);
       Set s=(Set)mapCaller2CalleeSet.get(md);
+
       if (s!=null) {
 	for(Iterator it=s.iterator(); it.hasNext();) {
 	  MethodDescriptor md2=(MethodDescriptor)it.next();
@@ -234,7 +271,7 @@ public class CallGraph {
 	MethodDescriptor calledmethod=fc.getMethod();
 	Set methodsthatcouldbecalled=fc.getThis()==null ? getMethods(calledmethod) :
 	                              getMethods(calledmethod, fc.getThis().getType());
-
+	
 	// add caller -> callee maps
 	if( !mapCaller2CalleeSet.containsKey(caller) ) {
 	  mapCaller2CalleeSet.put(caller, new HashSet() );
