@@ -11,6 +11,7 @@
 #endif
 #include "SimpleHash.h"
 #include "GenericHashtable.h"
+#include "methodheaders.h"
 
 struct RuntimeHash *fdtoobject;
 

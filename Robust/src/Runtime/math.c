@@ -1,6 +1,7 @@
 #include "runtime.h"
 #include "math.h"
 #include "structdefs.h"
+#include "methodheaders.h"
 
 #ifdef D___Math______cos____D
 double CALL11(___Math______cos____D, double ___a___, double ___a___) {

@@ -44,16 +44,18 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
     atomic_inc(&VAR(___this___)->lockcount);
   } else {
     while(1) {
-      if (CAS32(&VAR(___this___)->lockcount, 0, 1)==0) {
-	VAR(___this___)->___prevlockobject___=NULL;
-	VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
-	if (VAR(___this___)->___nextlockobject___!=NULL)
-	  VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
-	pthread_setspecific(threadlocks, VAR(___this___));
-	VAR(___this___)->tid=self;
-	pthread_mutex_unlock(&objlock);
-	BARRIER();
-	return;
+      if (VAR(___this___)->lockcount==0) {
+	if (CAS32(&VAR(___this___)->lockcount, 0, 1)==0) {
+	  VAR(___this___)->___prevlockobject___=NULL;
+	  VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
+	  if (VAR(___this___)->___nextlockobject___!=NULL)
+	    VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
+	  pthread_setspecific(threadlocks, VAR(___this___));
+	  VAR(___this___)->tid=self;
+	  pthread_mutex_unlock(&objlock);
+	  BARRIER();
+	  return;
+	}
       }
       {
 #ifdef PRECISE_GC
@@ -109,16 +111,18 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 #endif
 
   while(1) {
-    if (CAS32(&VAR(___this___)->lockcount, 0, lockcount)==0) {
-      VAR(___this___)->___prevlockobject___=NULL;
-      VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
-      if (VAR(___this___)->___nextlockobject___!=NULL)
-	VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
-      pthread_setspecific(threadlocks, VAR(___this___));
-      VAR(___this___)->tid=self;
-      pthread_mutex_unlock(&objlock);
-      BARRIER();
-      return;
+    if (VAR(___this___)->lockcount==0) {
+      if (CAS32(&VAR(___this___)->lockcount, 0, lockcount)==0) {
+	VAR(___this___)->___prevlockobject___=NULL;
+	VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
+	if (VAR(___this___)->___nextlockobject___!=NULL)
+	  VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
+	pthread_setspecific(threadlocks, VAR(___this___));
+	VAR(___this___)->tid=self;
+	pthread_mutex_unlock(&objlock);
+	BARRIER();
+	return;
+      }
     }
     {
 #ifdef PRECISE_GC

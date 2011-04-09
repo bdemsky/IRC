@@ -76,6 +76,7 @@ public class JavaCallGraph extends CallGraph {
 	      HashSet ns=new HashSet();
 	      ns.addAll(callees);
 	      ns.addAll(getMethods(tu.getRun(), fcall.getThis().getType()));
+	      ns.addAll(getMethods(tu.getStaticStart(), fcall.getThis().getType()));
 	      callees=ns;
 	    }
 	  }

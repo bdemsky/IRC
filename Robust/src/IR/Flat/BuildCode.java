@@ -2627,23 +2627,21 @@ public class BuildCode {
 	// is a static block or is invoked in some static block
 	ClassDescriptor cd = fm.getMethod().getClassDesc();
 	ClassDescriptor cn = fsfn.getDst().getType().getClassDesc();
-	if(cd == cn) {
-	  // the same class, do nothing
-	} else if(mgcstaticinit){
-      // generate static init check code if has not done the static init in main()
+	if(cd != cn && mgcstaticinit){
+	  // generate static init check code if has not done the static init in main()
 	  if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
 	    // need to check if the class' static fields have been initialized and/or
 	    // its static blocks have been executed
 	    output.println("if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag == 0) {");
 	    if(cn.getNumStaticBlocks() != 0) {
 	      MethodDescriptor t_md = (MethodDescriptor)cn.getMethodTable().get("staticblocks");
-          if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-            output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-            output.println("0, NULL};");
-            output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
-          } else {
-            output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
-          }
+	      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+		output.print("       struct "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"_params __parameterlist__={");
+		output.println("0, NULL};");
+		output.println("     "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"(& __parameterlist__);");
+	      } else {
+		output.println("  "+cn.getSafeSymbol()+t_md.getSafeSymbol()+"_"+t_md.getSafeMethodDescriptor()+"();");
+	      }
 	    } else {
 	      output.println("  global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag = 1;");
 	    }
@@ -2652,12 +2650,16 @@ public class BuildCode {
 	}
       }
       // redirect to the global_defs_p structure
-	if (fsfn.getField().getType().isPtr())
+      if (fsfn.getField().getType().isPtr()) {
+	if (fsfn.getField().getType()!=fsfn.getSrc().getType())
+	  output.println("global_defs_p->" +
+			 fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+" *)"+generateTemp(fm,fsfn.getSrc())+";");
+	else
 	  output.println("global_defs_p->" +
 			 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
-	else
-	  output.println("global_defsprim_p->" +
-			 fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+      } else
+	output.println("global_defsprim_p->" +
+		       fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     } else {
       output.println("#ifdef MULTICORE_DEBUG");
       output.println("if (" + generateTemp(fm,fsfn.getDst()) + " == NULL) {");
@@ -2669,8 +2671,12 @@ public class BuildCode {
       }
       output.println("}");
       output.println("#endif //MULTICORE_DEBUG");
-      output.println(generateTemp(fm, fsfn.getDst())+"->"+
-		     fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
+      if (fsfn.getSrc().getType().isPtr()&&fsfn.getSrc().getType()!=fsfn.getField().getType())
+	output.println(generateTemp(fm, fsfn.getDst())+"->"+
+		       fsfn.getField().getSafeSymbol()+"=(struct "+ fsfn.getField().getType().getSafeSymbol()+"*)"+generateTemp(fm,fsfn.getSrc())+";");
+      else
+	output.println(generateTemp(fm, fsfn.getDst())+"->"+
+		       fsfn.getField().getSafeSymbol()+"="+ generateTemp(fm,fsfn.getSrc())+";");
     }
   }
 

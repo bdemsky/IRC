@@ -102,6 +102,17 @@ public class TypeUtil {
     }
     throw new Error("Can't find Thread.run");
   }
+
+  public MethodDescriptor getStaticStart() {
+    ClassDescriptor cd=getClass(TypeUtil.ThreadClass);
+    for(Iterator methodit=cd.getMethodTable().getSet("staticStart").iterator(); methodit.hasNext();) {
+      MethodDescriptor md=(MethodDescriptor) methodit.next();
+      if (md.numParameters()!=1||!md.getModifiers().isStatic()||!md.getParamType(0).isClass()||md.getParamType(0).getClassDesc()!=cd)
+	continue;
+      return md;
+    }
+    throw new Error("Can't find Thread.run");
+  }
   
   public MethodDescriptor getExecute() {
     ClassDescriptor cd = getClass(TypeUtil.TaskClass);
