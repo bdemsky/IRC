@@ -115,7 +115,7 @@ __thread SESEcommon* seseCommon;
     dst=copy; }
 #else
 #define ENQUEUE(orig, dst) \
-  if (orig>=curr_heapbase&&orig<curr_heaptop) {	\
+  if (orig!=NULL) { \
      void *copy; \
      if (gc_createcopy(orig,&copy)) \
          enqueue(copy); \
@@ -242,17 +242,6 @@ void fixtable(chashlistnode_t ** tc_table, chashlistnode_t **tc_list, cliststruc
 	    }
 	  }
 #endif
-	  {
-	    pointer=pointerarray[OBJECTTYPE];
-	    //handle object class
-	    INTPTR size=pointer[0];
-	    int i;
-	    for(i=1; i<=size; i++) {
-	      unsigned int offset=pointer[i];
-	      void * objptr=*((void **)(((char *)vptr)+offset));
-	      SENQUEUE(objptr, *((void **)(((char *)vptr)+offset)));
-	    }
-	  }
 	} else {
 	  INTPTR size=pointer[0];
 	  int i;
@@ -428,6 +417,11 @@ void collect(struct garbagelist * stackptr) {
  {
   struct listitem *litem=pthread_getspecific(litemkey);
   if (listptr==litem) {
+#ifdef THREADS
+    void *orig=pthread_getspecific(threadlocks);
+    ENQUEUE(orig, orig);
+    pthread_setspecific(threadlocks, orig);
+#endif
     listptr=listptr->next;
   }
  }
@@ -722,6 +716,19 @@ void collect(struct garbagelist * stackptr) {
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
       SENQUEUE((void *)ao->___objlocation___, *((void **)&ao_cpy->___objlocation___));
 #endif
+#ifdef THREADS
+      {
+	pointer=pointerarray[OBJECTTYPE];
+	//handle object class
+	INTPTR size=pointer[0];
+	int i;
+	for(i=1; i<=size; i++) {
+	  unsigned int offset=pointer[i];
+	  void * objptr=*((void **)(((char *)ptr)+offset));
+	  ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
+	}
+      }
+#endif
     } else if (((INTPTR)pointer)==1) {
       /* Array of pointers */
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
@@ -739,6 +746,19 @@ void collect(struct garbagelist * stackptr) {
 	void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
 	ENQUEUE(objptr, ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
       }
+#ifdef THREADS
+      {
+	pointer=pointerarray[OBJECTTYPE];
+	//handle object class
+	INTPTR size=pointer[0];
+	int i;
+	for(i=1; i<=size; i++) {
+	  unsigned int offset=pointer[i];
+	  void * objptr=*((void **)(((char *)ptr)+offset));
+	  ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
+	}
+      }
+#endif
     } else {
       INTPTR size=pointer[0];
       int i;
