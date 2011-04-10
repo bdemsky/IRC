@@ -417,6 +417,11 @@ void collect(struct garbagelist * stackptr) {
     updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
     updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
 #endif
+#ifdef THREADS
+    void *orig=pthread_getspecific(threadlocks);
+    ENQUEUE(orig, orig);
+    pthread_setspecific(threadlocks, orig);
+#endif
     listptr=listptr->next;
   }
 #else
