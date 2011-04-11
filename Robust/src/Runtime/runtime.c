@@ -674,7 +674,6 @@ __attribute__((malloc)) void * allocate_newglobal(int type) {
   //printf("DEBUG %s(), type= %x\n", __func__, type);
 #ifdef THREADS
   v->tid=0;
-  v->lockentry=0;
   v->lockcount=0;
 #endif
   return v;
@@ -692,7 +691,6 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, i
   v->___length___=length;
 #ifdef THREADS
   v->tid=0;
-  v->lockentry=0;
   v->lockcount=0;
 #endif
   return v;
@@ -811,7 +809,6 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   v->type=type;
 #ifdef THREADS
   v->tid=0;
-  v->lockentry=0;
   v->lockcount=0;
 #endif
 #ifdef OPTIONAL
@@ -842,7 +839,6 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   v->___length___=length;
 #ifdef THREADS
   v->tid=0;
-  v->lockentry=0;
   v->lockcount=0;
 #endif
 #ifdef OPTIONAL

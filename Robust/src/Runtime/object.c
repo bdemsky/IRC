@@ -47,12 +47,10 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 #else
   struct lockvector *lptr=&lvector;
 #endif
-  struct lockpair *lpair=&lptr->locks[lptr->index];
+  struct lockpair *lpair=&lptr->locks[lptr->index++];
   pthread_t self=pthread_self();
   lpair->object=VAR(___this___);
-  lptr->index++;
 
-  
   if (self==VAR(___this___)->tid) {
     lpair->islastlock=0;
   } else {
@@ -66,10 +64,8 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
       }
       {
 #ifdef PRECISE_GC
-	stopforgc((struct garbagelist *)___params___);
-#endif
-#ifdef PRECISE_GC
-	restartaftergc();
+	if (unlikely(needtocollect))
+	  checkcollect((struct garbagelist *)___params___);
 #endif
       }
     }
@@ -80,30 +76,31 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 
 #ifdef D___Object______notify____
 void CALL01(___Object______notify____, struct ___Object___ * ___this___) {
+  VAR(___this___)->notifycount++;
 }
 #endif
 
 #ifdef D___Object______notifyAll____
 void CALL01(___Object______notifyAll____, struct ___Object___ * ___this___) {
+  VAR(___this___)->notifycount++;
 }
 #endif
 
 #ifdef D___Object______wait____
 void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   pthread_t self=pthread_self();
-
+  int notifycount=VAR(___this___)->notifycount;
+  BARRIER();
   VAR(___this___)->tid=0;
   BARRIER();
   VAR(___this___)->lockcount=0;
   
-  //allow gc
+  while(notifycount==VAR(___this___)->notifycount) {
 #ifdef PRECISE_GC
-  stopforgc((struct garbagelist *)___params___);
+    if (unlikely(needtocollect))
+      checkcollect((struct garbagelist *)___params___);
 #endif
-  sched_yield();
-#ifdef PRECISE_GC
-  restartaftergc();
-#endif
+  }
 
   while(1) {
     if (VAR(___this___)->lockcount==0) {
@@ -113,14 +110,10 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 	return;
       }
     }
-    {
 #ifdef PRECISE_GC
-      stopforgc((struct garbagelist *)___params___);
+    if (unlikely(needtocollect))
+      checkcollect((struct garbagelist *)___params___);
 #endif
-#ifdef PRECISE_GC
-      restartaftergc();
-#endif
-    }
   }
 }
 #endif
@@ -133,11 +126,10 @@ void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
   struct lockvector *lptr=&lvector;
 #endif
   struct lockpair *lpair=&lptr->locks[--lptr->index];
-  pthread_t self=pthread_self();
   
   if (lpair->islastlock) {
     lpair->object->tid=0;
-    BARRIER();
+    MBARRIER();
     lpair->object->lockcount=0;
   }
 }

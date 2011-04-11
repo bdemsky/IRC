@@ -613,8 +613,8 @@ public class BuildCode {
     }
     if (state.THREAD) {
       outclassdefs.println("  pthread_t tid;");
-      outclassdefs.println("  void * lockentry;");
-      outclassdefs.println("  int lockcount;");
+      outclassdefs.println("  volatile int lockcount;");
+      outclassdefs.println("  volatile int notifycount;");
     }
     if(state.MGC) {
       outclassdefs.println("  int mutex;");
@@ -632,7 +632,8 @@ public class BuildCode {
 	outclassdefs.println("  int version;");
 	outclassdefs.println("  int * lock;");  // lock entry for this obj
 	outclassdefs.println("  int mutex;");
-	outclassdefs.println("  int lockcount;");
+	outclassdefs.println("  volatile int lockcount;");
+	outclassdefs.println("  volatile int notifycount;");
 	if(state.MULTICOREGC) {
 	  outclassdefs.println("  int marked;");
 	}
@@ -1550,8 +1551,8 @@ public class BuildCode {
     }
     if (state.THREAD) {
       classdefout.println("  pthread_t tid;");
-      classdefout.println("  void * lockentry;");
-      classdefout.println("  int lockcount;");
+      classdefout.println("  volatile int lockcount;");
+      classdefout.println("  volatile int notifycount;");
     }
     if (state.MGC) {
       classdefout.println("  int mutex;");

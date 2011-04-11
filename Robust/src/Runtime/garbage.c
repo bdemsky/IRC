@@ -405,6 +405,7 @@ void collect(struct garbagelist * stackptr) {
     // update forward list & memory queue for the current SESE
     updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
     updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
+#endif
 #ifdef THREADS
   {
     struct lockvector * lvector=listptr->lvector;
@@ -415,13 +416,22 @@ void collect(struct garbagelist * stackptr) {
     }
   }
 #endif
-#endif
     listptr=listptr->next;
   }
 #else
  {
   struct listitem *litem=pthread_getspecific(litemkey);
   if (listptr==litem) {
+#ifdef THREADS
+  {
+    struct lockvector * lvector=listptr->lvector;
+    int i;
+    for(i=0;i<lvector->index;i++) {
+      struct ___Object___ *orig=lvector->locks[i].object;
+      ENQUEUE(orig, lvector->locks[i].object);
+    }
+  }
+#endif
     listptr=listptr->next;
   }
  }
