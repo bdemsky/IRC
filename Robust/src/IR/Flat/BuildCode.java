@@ -613,7 +613,6 @@ public class BuildCode {
     }
     if (state.THREAD) {
       outclassdefs.println("  pthread_t tid;");
-      outclassdefs.println("  volatile int lockcount;");
       outclassdefs.println("  volatile int notifycount;");
     }
     if(state.MGC) {
@@ -1551,7 +1550,6 @@ public class BuildCode {
     }
     if (state.THREAD) {
       classdefout.println("  pthread_t tid;");
-      classdefout.println("  volatile int lockcount;");
       classdefout.println("  volatile int notifycount;");
     }
     if (state.MGC) {

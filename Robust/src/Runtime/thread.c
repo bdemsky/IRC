@@ -76,8 +76,6 @@ void threadexit() {
     if (lptr->locks[lptr->index].islastlock) {
       struct ___Object___ *ll=lptr->locks[lptr->index].object;
       ll->tid=0;
-      BARRIER();
-      ll->lockcount=0;
     }
   }
 

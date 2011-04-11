@@ -56,9 +56,8 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
   } else {
     lpair->islastlock=1;
     while(1) {
-      if (VAR(___this___)->lockcount==0) {
-	if (LOCKXCHG32(&VAR(___this___)->lockcount, 1)==0) {
-	  VAR(___this___)->tid=self;
+      if (VAR(___this___)->tid==0) {
+	if (CAS32(&VAR(___this___)->tid, 0, self)==0) {
 	  return;
 	}
       }
@@ -93,7 +92,6 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   BARRIER();
   VAR(___this___)->tid=0;
   BARRIER();
-  VAR(___this___)->lockcount=0;
   
   while(notifycount==VAR(___this___)->notifycount) {
 #ifdef PRECISE_GC
@@ -103,9 +101,8 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   }
 
   while(1) {
-    if (VAR(___this___)->lockcount==0) {
-      if (LOCKXCHG32(&VAR(___this___)->lockcount, 1)==0) {
-	VAR(___this___)->tid=self;
+    if (VAR(___this___)->tid==0) {
+      if (CAS32(&VAR(___this___)->tid, 0, self)==0) {
 	BARRIER();
 	return;
       }
@@ -128,9 +125,8 @@ void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
   struct lockpair *lpair=&lptr->locks[--lptr->index];
   
   if (lpair->islastlock) {
-    lpair->object->tid=0;
     MBARRIER();
-    lpair->object->lockcount=0;
+    lpair->object->tid=0;
   }
 }
 #endif
