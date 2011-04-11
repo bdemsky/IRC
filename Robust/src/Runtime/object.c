@@ -94,7 +94,6 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 #else
   int self=mythreadid;
 #endif
-  pthread_t self=pthread_self();
   int notifycount=VAR(___this___)->notifycount;
   BARRIER();
   VAR(___this___)->tid=0;
