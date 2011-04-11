@@ -8,6 +8,9 @@
 #include "option.h"
 #include <signal.h>
 #include "methodheaders.h"
+#ifndef MULTICORE
+#include "mlp_lock.h"
+#endif
 
 #ifdef DSTM
 #ifdef RECOVERY
@@ -171,8 +174,8 @@ void initializethreads() {
   pthread_cond_init(&objcond,NULL);
   pthread_mutex_init(&joinlock,NULL);
   pthread_cond_init(&joincond,NULL);
-  pthread_key_create(&threadlocks, NULL);
 #ifdef MAC
+  pthread_key_create(&threadlocks, NULL);
   pthread_key_create(&litem, NULL);
 #endif
   processOptions();
@@ -245,6 +248,10 @@ void initializethreads() {
 #endif
 #ifdef MAC
   struct listitem *litem=malloc(sizeof(struct listitem));
+  struct lockvector *lvector=malloc(sizeof(struct lockvector));
+  litem->lockvector=lvector;
+  lvector->index=0;
+  pthread_setspecific(threadlocks, lvector);
   pthread_setspecific(litemkey, litem);
   litem->prev=NULL;
   litem->next=list;
@@ -255,6 +262,8 @@ void initializethreads() {
   //Add our litem to list of threads
   litem.prev=NULL;
   litem.next=list;
+  litem.lvector=&lvector;
+  lvector.index=0;
   if(list!=NULL)
     list->prev=&litem;
   list=&litem;
@@ -294,6 +303,7 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_setspecific(threadlocks, &lvector);
 #endif
   litem.lvector=&lvector;
+  lvector.index=0;
   litem.prev=NULL;
   pthread_mutex_lock(&gclistlock);
   litem.next=list;

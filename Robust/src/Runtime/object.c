@@ -14,7 +14,7 @@
 #endif
 
 #ifndef MAC
-extern __thread struct lockvector lvector;
+__thread struct lockvector lvector;
 #endif
 
 #ifdef D___Object______nativehashCode____
@@ -47,7 +47,7 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 #else
   struct lockvector *lptr=&lvector;
 #endif
-  struct lockpair *lpair=lptr->locks[lptr->index];
+  struct lockpair *lpair=&lptr->locks[lptr->index];
   pthread_t self=pthread_self();
   lpair->object=VAR(___this___);
   lptr->index++;
@@ -107,7 +107,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 
   while(1) {
     if (VAR(___this___)->lockcount==0) {
-      if (CAS32(&VAR(___this___)->lockcount, 0, lockcount)==0) {
+      if (CAS32(&VAR(___this___)->lockcount, 0, 1)==0) {
 	VAR(___this___)->tid=self;
 	BARRIER();
 	return;
@@ -132,7 +132,7 @@ void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
 #else
   struct lockvector *lptr=&lvector;
 #endif
-  struct lockpair *lpair=lptr->locks[--lptr->index];
+  struct lockpair *lpair=&lptr->locks[--lptr->index];
   pthread_t self=pthread_self();
   
   if (lpair->islastlock) {

@@ -4,10 +4,6 @@
 #include "structdefs.h"
 #include "methodheaders.h"
 
-#ifndef MAC
-extern __thread struct lockvector lvector;
-#endif
-
 #ifdef D___Object______nativehashCode____
 int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___);
 #endif 

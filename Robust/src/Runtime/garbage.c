@@ -398,16 +398,6 @@ void collect(struct garbagelist * stackptr) {
   }
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   /* Go to next thread */
-#ifdef THREADS
-  {
-    struct lockvector * lvector=listptr->lvector;
-    int i;
-    for(i=0;i<lvector->index;i++) {
-      struct ___Object___ *orig=lvector->locks[i].object
-      ENQUEUE(orig, lvector->locks[i].object);
-    }
-  }
-#endif
 #ifndef MAC
   //skip over us
   if (listptr==&litem) {
@@ -415,6 +405,16 @@ void collect(struct garbagelist * stackptr) {
     // update forward list & memory queue for the current SESE
     updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
     updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
+#ifdef THREADS
+  {
+    struct lockvector * lvector=listptr->lvector;
+    int i;
+    for(i=0;i<lvector->index;i++) {
+      struct ___Object___ *orig=lvector->locks[i].object;
+      ENQUEUE(orig, lvector->locks[i].object);
+    }
+  }
+#endif
 #endif
     listptr=listptr->next;
   }
@@ -429,8 +429,14 @@ void collect(struct garbagelist * stackptr) {
  
   if (listptr!=NULL) {
 #ifdef THREADS
-    void * orig=listptr->locklist;
-    ENQUEUE(orig, listptr->locklist);
+  {
+    struct lockvector * lvector=listptr->lvector;
+    int i;
+    for(i=0;i<lvector->index;i++) {
+      struct ___Object___ *orig=lvector->locks[i].object;
+      ENQUEUE(orig, lvector->locks[i].object);
+    }
+  }
 #endif
 #ifdef STM
     if ((*listptr->tc_table)!=NULL) {
@@ -716,19 +722,6 @@ void collect(struct garbagelist * stackptr) {
       struct ArrayObject *ao_cpy=(struct ArrayObject *) cpy;
       SENQUEUE((void *)ao->___objlocation___, *((void **)&ao_cpy->___objlocation___));
 #endif
-#ifdef THREADS
-      {
-	pointer=pointerarray[OBJECTTYPE];
-	//handle object class
-	INTPTR size=pointer[0];
-	int i;
-	for(i=1; i<=size; i++) {
-	  unsigned int offset=pointer[i];
-	  void * objptr=*((void **)(((char *)ptr)+offset));
-	  ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
-	}
-      }
-#endif
     } else if (((INTPTR)pointer)==1) {
       /* Array of pointers */
       struct ArrayObject *ao=(struct ArrayObject *) ptr;
@@ -746,19 +739,6 @@ void collect(struct garbagelist * stackptr) {
 	void *objptr=((void **)(((char *)&ao->___length___)+sizeof(int)))[i];
 	ENQUEUE(objptr, ((void **)(((char *)&ao_cpy->___length___)+sizeof(int)))[i]);
       }
-#ifdef THREADS
-      {
-	pointer=pointerarray[OBJECTTYPE];
-	//handle object class
-	INTPTR size=pointer[0];
-	int i;
-	for(i=1; i<=size; i++) {
-	  unsigned int offset=pointer[i];
-	  void * objptr=*((void **)(((char *)ptr)+offset));
-	  ENQUEUE(objptr, *((void **)(((char *)cpy)+offset)));
-	}
-      }
-#endif
     } else {
       INTPTR size=pointer[0];
       int i;
@@ -874,9 +854,6 @@ void stopforgc(struct garbagelist * ptr) {
 #endif
 #ifndef MAC
   litem.stackptr=ptr;
-#ifdef THREADS
-  litem.locklist=pthread_getspecific(threadlocks);
-#endif
 #if defined(STM)||defined(THREADS)||defined(MLP)
   litem.base=&memorybase;
 #endif
@@ -894,9 +871,6 @@ void stopforgc(struct garbagelist * ptr) {
   //handle MAC
   struct listitem *litem=pthread_getspecific(litemkey);
   litem->stackptr=ptr;
-#ifdef THREADS
-  litem->locklist=pthread_getspecific(threadlocks);
-#endif
 #endif
   pthread_mutex_lock(&gclistlock);
   listcount++;
@@ -918,9 +892,6 @@ void restartaftergc() {
 #ifdef THREADS
 #ifdef MAC
   struct listitem *litem=pthread_getspecific(litemkey);
-  pthread_setspecific(threadlocks,litem->locklist);
-#else
-  pthread_setspecific(threadlocks,litem.locklist);
 #endif
 #endif
 }

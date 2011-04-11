@@ -157,17 +157,6 @@ inline void setupsmemmode(void);
 #endif
 #endif
 
-#ifdef TASK
-#ifndef MULTICORE
-#include "chash.h"
-#include "ObjectHash.h"
-#include "structdefs.h"
-#endif
-#include "task.h"
-#ifdef OPTIONAL
-#include "optionalstruct.h"
-#endif
-
 #define MAXLOCKS 256
 
 struct lockpair {
@@ -179,6 +168,21 @@ struct lockvector {
   int index;
   struct lockpair locks[MAXLOCKS];
 };
+
+#ifndef MAC
+extern __thread struct lockvector lvector;
+#endif
+
+#ifdef TASK
+#ifndef MULTICORE
+#include "chash.h"
+#include "ObjectHash.h"
+#include "structdefs.h"
+#endif
+#include "task.h"
+#ifdef OPTIONAL
+#include "optionalstruct.h"
+#endif
 
 
 #ifdef OPTIONAL
