@@ -57,7 +57,7 @@ void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
     lpair->islastlock=1;
     while(1) {
       if (VAR(___this___)->lockcount==0) {
-	if (CAS32(&VAR(___this___)->lockcount, 0, 1)==0) {
+	if (LOCKXCHG32(&VAR(___this___)->lockcount, 1)==0) {
 	  VAR(___this___)->tid=self;
 	  return;
 	}
@@ -104,7 +104,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 
   while(1) {
     if (VAR(___this___)->lockcount==0) {
-      if (CAS32(&VAR(___this___)->lockcount, 0, 1)==0) {
+      if (LOCKXCHG32(&VAR(___this___)->lockcount, 1)==0) {
 	VAR(___this___)->tid=self;
 	BARRIER();
 	return;
