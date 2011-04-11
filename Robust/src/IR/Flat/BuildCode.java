@@ -612,7 +612,7 @@ public class BuildCode {
       outclassdefs.println("  int objuid;");
     }
     if (state.THREAD) {
-      outclassdefs.println("  pthread_t tid;");
+      outclassdefs.println("  volatile int tid;");
       outclassdefs.println("  volatile int notifycount;");
     }
     if(state.MGC) {
@@ -1549,7 +1549,7 @@ public class BuildCode {
       classdefout.println("  int objuid;");
     }
     if (state.THREAD) {
-      classdefout.println("  pthread_t tid;");
+      classdefout.println("  volatile int tid;");
       classdefout.println("  volatile int notifycount;");
     }
     if (state.MGC) {
