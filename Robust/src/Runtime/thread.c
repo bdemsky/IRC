@@ -46,6 +46,7 @@ pthread_mutex_t atomiclock;
 pthread_mutex_t joinlock;
 pthread_cond_t joincond;
 pthread_key_t threadlocks;
+pthread_key_t macthreadid;
 pthread_mutex_t threadnotifylock;
 pthread_cond_t threadnotifycond;
 pthread_key_t oidval;
@@ -173,6 +174,7 @@ void initializethreads() {
   pthread_mutex_init(&joinlock,NULL);
   pthread_cond_init(&joincond,NULL);
 #ifdef MAC
+  pthread_key_create(&macthreadid, NULL);
   pthread_key_create(&threadlocks, NULL);
   pthread_key_create(&litem, NULL);
 #endif
@@ -250,6 +252,7 @@ void initializethreads() {
   litem->lockvector=lvector;
   lvector->index=0;
   pthread_setspecific(threadlocks, lvector);
+  pthread_setspecific(macthreadid, 0);
   pthread_setspecific(litemkey, litem);
   litem->prev=NULL;
   litem->next=list;
@@ -258,6 +261,7 @@ void initializethreads() {
   list=litem;
 #else
   //Add our litem to list of threads
+  mythreadid=0;
   litem.prev=NULL;
   litem.next=list;
   litem.lvector=&lvector;
@@ -272,6 +276,8 @@ void initializethreads() {
 }
 
 #if defined(THREADS)||defined(STM)
+int threadcounter=0;
+
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef AFFINITY
   set_affinity();
@@ -304,6 +310,11 @@ void initthread(struct ___Thread___ * ___this___) {
   lvector.index=0;
   litem.prev=NULL;
   pthread_mutex_lock(&gclistlock);
+#ifdef MAC
+  pthread_setspecific(macthreadid, ++threadcounter);
+#else
+  mythreadid=++threadcounter;
+#endif
   litem.next=list;
   if(list!=NULL)
     list->prev=&litem;

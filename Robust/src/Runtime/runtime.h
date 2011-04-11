@@ -171,6 +171,7 @@ struct lockvector {
 
 #ifndef MAC
 extern __thread struct lockvector lvector;
+extern __thread int mythreadid;
 #endif
 
 #ifdef TASK
