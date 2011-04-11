@@ -168,6 +168,19 @@ inline void setupsmemmode(void);
 #include "optionalstruct.h"
 #endif
 
+#define MAXLOCKS 256
+
+struct lockpair {
+  struct ___Object___ *object;
+  int islastlock;
+};
+
+struct lockvector {
+  int index;
+  struct lockpair locks[MAXLOCKS];
+};
+
+
 #ifdef OPTIONAL
 struct failedtasklist {
   struct taskdescriptor *task;

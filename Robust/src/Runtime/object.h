@@ -4,18 +4,6 @@
 #include "structdefs.h"
 #include "methodheaders.h"
 
-#define MAXLOCKS 256
-
-struct lockpair {
-  struct ___Object___ *object;
-  int islastlock;
-};
-
-struct lockvector {
-  int index;
-  struct lockpair locks[MAXLOCKS];
-};
-
 #ifndef MAC
 extern __thread struct lockvector lvector;
 #endif
