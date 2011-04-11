@@ -72,6 +72,25 @@ public class CompositeLocation extends Location {
     return cd2loc;
 
   }
+  
+  public NTuple<Location> getBaseLocationTuple() {
+    
+    NTuple<Location> baseLocationTuple = new NTuple<Location>();
+    int tupleSize = locTuple.size();
+    for (int i = 0; i < tupleSize; i++) {
+      Location locElement = locTuple.at(i);
+
+      if (locElement instanceof DeltaLocation) {
+        // baseLocationSet.addAll(((DeltaLocation)
+        // locElement).getDeltaOperandLocationVec());
+        baseLocationTuple.addAll(((DeltaLocation) locElement).getBaseLocationTuple());
+      } else {
+        baseLocationTuple.addElement(locElement);
+      }
+    }
+    return baseLocationTuple;
+    
+  }
 
   public Set<Location> getBaseLocationSet() {
 

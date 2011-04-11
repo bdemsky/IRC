@@ -18,7 +18,7 @@ public class DeltaLocation extends CompositeLocation {
 
   public DeltaLocation(ClassDescriptor cd, Set<Location> set) {
     super(cd);
-    locTuple.addSet(set);
+    locTuple.addAll(set);
   }
 
   public DeltaLocation(ClassDescriptor cd, TypeDescriptor refOperand) {

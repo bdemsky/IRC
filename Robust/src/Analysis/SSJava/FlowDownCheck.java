@@ -740,10 +740,35 @@ public class FlowDownCheck {
       Map<ClassDescriptor, Location> cd2loc1 = compLoc1.getCd2Loc();
       Map<ClassDescriptor, Location> cd2loc2 = compLoc2.getCd2Loc();
 
-      // compare base locations by class descriptor
+      // start to compare the first item of tuples:
+      // assumes that the first item has priority than other items.
 
+      NTuple<Location> locTuple1 = compLoc1.getBaseLocationTuple();
+      NTuple<Location> locTuple2 = compLoc2.getBaseLocationTuple();
+
+      Location priorityLoc1 = locTuple1.at(0);
+      Location priorityLoc2 = locTuple2.at(0);
+
+      assert (priorityLoc1.getClassDescriptor().equals(priorityLoc2.getClassDescriptor()));
+
+      ClassDescriptor cd = priorityLoc1.getClassDescriptor();
+      Lattice<String> locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd);
+
+      if (priorityLoc1.getLocIdentifier().equals(priorityLoc2.getLocIdentifier())) {
+        // have the same level of local hierarchy
+      } else if (locationOrder.isGreaterThan(priorityLoc1.getLocIdentifier(), priorityLoc2
+          .getLocIdentifier())) {
+        // if priority loc of compLoc1 is higher than compLoc2
+        // then, compLoc 1 is higher than compLoc2
+        return ComparisonResult.GREATER;
+      } else {
+        // if priority loc of compLoc1 is NOT higher than compLoc2
+        // then, compLoc 1 is NOT higher than compLoc2
+        return ComparisonResult.LESS;
+      }
+
+      // compare base locations except priority by class descriptor
       Set<ClassDescriptor> keySet1 = cd2loc1.keySet();
-
       int numEqualLoc = 0;
 
       for (Iterator iterator = keySet1.iterator(); iterator.hasNext();) {
@@ -752,19 +777,19 @@ public class FlowDownCheck {
         Location loc1 = cd2loc1.get(cd1);
         Location loc2 = cd2loc2.get(cd1);
 
-        System.out.println("from " + cd1 + " loc1=" + loc1 + " loc2=" + loc2);
+        if (priorityLoc1.equals(loc1)) {
+          continue;
+        }
 
         if (loc2 == null) {
-          // if comploc2 doesn't have corresponding location, then ignore this
-          // element
-          numEqualLoc++;
-          continue;
+          // if comploc2 doesn't have corresponding location,
+          // then we determines that comploc1 is lower than comploc 2
+          return ComparisonResult.LESS;
         }
 
         System.out.println("lattice comparison:" + loc1.getLocIdentifier() + " ? "
             + loc2.getLocIdentifier());
-
-        Lattice<String> locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd1);
+        locationOrder = (Lattice<String>) state.getCd2LocationOrder().get(cd1);
         if (loc1.getLocIdentifier().equals(loc2.getLocIdentifier())) {
           // have the same level of local hierarchy
           numEqualLoc++;

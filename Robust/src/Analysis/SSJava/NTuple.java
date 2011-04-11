@@ -2,8 +2,8 @@ package Analysis.SSJava;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 public class NTuple<T> {
 
@@ -33,8 +33,14 @@ public class NTuple<T> {
     this.elements.add(newElement);
   }
 
-  public void addSet(Set<T> set) {
-    this.elements.addAll(set);
+  public void addAll(Collection<T> all) {
+    this.elements.addAll(all);
+  }
+
+  public void addAll(NTuple<T> tuple) {
+    for (int i = 0; i < tuple.size(); i++) {
+      elements.add(tuple.at(i));
+    }
   }
 
   public boolean equals(Object o) {
