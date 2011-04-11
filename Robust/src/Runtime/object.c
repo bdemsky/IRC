@@ -13,6 +13,10 @@
 #include "mlp_lock.h"
 #endif
 
+#ifndef MAC
+extern __thread struct lockvector lvector;
+#endif
+
 #ifdef D___Object______nativehashCode____
 int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___) {
   return (int)((INTPTR) VAR(___this___));
@@ -37,23 +41,26 @@ int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
 
 #ifdef THREADS
 #ifdef D___Object______MonitorEnter____
-int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
-#ifndef NOLOCK
+void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
+#ifdef MAC
+  struct lockvector *lptr=(struct lockvector *)pthread_getspecific(threadlocks);
+#else
+  struct lockvector *lptr=&lvector;
+#endif
+  struct lockpair *lpair=lptr->locks[lptr->index];
   pthread_t self=pthread_self();
+  lpair->object=VAR(___this___);
+  lptr->index++;
+
+  
   if (self==VAR(___this___)->tid) {
-    atomic_inc(&VAR(___this___)->lockcount);
+    lpair->islastlock=0;
   } else {
+    lpair->islastlock=1;
     while(1) {
       if (VAR(___this___)->lockcount==0) {
 	if (CAS32(&VAR(___this___)->lockcount, 0, 1)==0) {
-	  VAR(___this___)->___prevlockobject___=NULL;
-	  VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
-	  if (VAR(___this___)->___nextlockobject___!=NULL)
-	    VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
-	  pthread_setspecific(threadlocks, VAR(___this___));
 	  VAR(___this___)->tid=self;
-	  pthread_mutex_unlock(&objlock);
-	  BARRIER();
 	  return;
 	}
       }
@@ -67,7 +74,6 @@ int CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
       }
     }
   }
-#endif
 }
 #endif
 
@@ -85,19 +91,8 @@ void CALL01(___Object______notifyAll____, struct ___Object___ * ___this___) {
 #ifdef D___Object______wait____
 void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   pthread_t self=pthread_self();
-  int lockcount=VAR(___this___)->lockcount;
-  //release lock
-  if (VAR(___this___)->___prevlockobject___==NULL) {
-    pthread_setspecific(threadlocks, VAR(___this___)->___nextlockobject___);
-  } else
-    VAR(___this___)->___prevlockobject___->___nextlockobject___=VAR(___this___)->___nextlockobject___;
-  if (VAR(___this___)->___nextlockobject___!=NULL)
-    VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___)->___prevlockobject___;
-  VAR(___this___)->___nextlockobject___=NULL;
-  VAR(___this___)->___prevlockobject___=NULL;
-  //VAR(___this___)->lockentry=NULL;
+
   VAR(___this___)->tid=0;
-  //release lock
   BARRIER();
   VAR(___this___)->lockcount=0;
   
@@ -113,13 +108,7 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
   while(1) {
     if (VAR(___this___)->lockcount==0) {
       if (CAS32(&VAR(___this___)->lockcount, 0, lockcount)==0) {
-	VAR(___this___)->___prevlockobject___=NULL;
-	VAR(___this___)->___nextlockobject___=(struct ___Object___ *)pthread_getspecific(threadlocks);
-	if (VAR(___this___)->___nextlockobject___!=NULL)
-	  VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___);
-	pthread_setspecific(threadlocks, VAR(___this___));
 	VAR(___this___)->tid=self;
-	pthread_mutex_unlock(&objlock);
 	BARRIER();
 	return;
       }
@@ -137,34 +126,20 @@ void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 #endif
 
 #ifdef D___Object______MonitorExit____
-int CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
-#ifndef NOLOCK
-  pthread_t self=pthread_self();
-  if (self==VAR(___this___)->tid) {
-    //release one lock...
-    BARRIER();
-    if (VAR(___this___)->lockcount==1) {
-      if (VAR(___this___)->___prevlockobject___==NULL) {
-	pthread_setspecific(threadlocks, VAR(___this___)->___nextlockobject___);
-      } else
-	VAR(___this___)->___prevlockobject___->___nextlockobject___=VAR(___this___)->___nextlockobject___;
-      if (VAR(___this___)->___nextlockobject___!=NULL)
-	VAR(___this___)->___nextlockobject___->___prevlockobject___=VAR(___this___)->___prevlockobject___;
-      VAR(___this___)->___nextlockobject___=NULL;
-      VAR(___this___)->___prevlockobject___=NULL;
-      //VAR(___this___)->lockentry=NULL;
-      VAR(___this___)->tid=0;
-    }
-    atomic_dec(&VAR(___this___)->lockcount);
-  } else {
-#ifdef MULTICORE
-    BAMBOO_EXIT(0xf201);
+void CALL01(___Object______MonitorExit____, struct ___Object___ * ___this___) {
+#ifdef MAC
+  struct lockvector *lptr=(struct lockvector *)pthread_getspecific(threadlocks);
 #else
-    printf("ERROR...UNLOCKING LOCK WE DON'T HAVE\n");
-    exit(-1);
+  struct lockvector *lptr=&lvector;
 #endif
+  struct lockpair *lpair=lptr->locks[--lptr->index];
+  pthread_t self=pthread_self();
+  
+  if (lpair->islastlock) {
+    lpair->object->tid=0;
+    BARRIER();
+    lpair->object->lockcount=0;
   }
-#endif
 }
 #endif
 #endif

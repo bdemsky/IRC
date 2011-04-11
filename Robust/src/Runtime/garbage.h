@@ -3,6 +3,7 @@
 #ifdef STM
 #include "stmlookup.h"
 #endif
+
 struct garbagelist {  
   int size;
   struct garbagelist *next;  
@@ -23,7 +24,7 @@ struct listitem {
   struct listitem * next;
   struct garbagelist * stackptr;  
 #ifdef THREADS
-  struct ___Object___ * locklist;
+  struct lockvector * lvector;
 #endif
 #ifdef STM
   unsigned int tc_size;

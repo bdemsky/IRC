@@ -33,10 +33,4 @@ void initDSMthread(int *ptr);
 void startDSMthread(int oid, int objType);
 extern void * virtualtable[];
 #endif
-
-struct locklist {
-  struct locklist * next;
-  struct locklist * prev;
-  struct ___Object___ * object;
-};
 #endif

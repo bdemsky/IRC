@@ -64,23 +64,26 @@ void threadexit() {
   void *value;
 
 #ifdef THREADS
-  struct ___Object___ *ll=pthread_getspecific(threadlocks);
-  while(ll!=NULL) {
-    struct ___Object___ *llnext=ll->___nextlockobject___;
-    ll->___nextlockobject___=NULL;
-    ll->___prevlockobject___=NULL;
-    ll->lockcount=0;
-    ll->tid=0; //unlock it
-    ll=llnext;
+#ifdef MAC
+  struct lockvector *lptr=(struct lockvector *) pthread_getspecific(threadlocks);
+#else
+  struct lockvector *lptr=&lvector;
+#endif
+  for(lptr->index--;lptr->index>=0;lptr->index--) {
+    if (lptr->locks[lptr->index].islastlock) {
+      struct ___Object___ *ll=lptr->locks[lptr->index].object;
+      ll->tid=0;
+      BARRIER();
+      ll->lockcount=0;
+    }
   }
+
   pthread_mutex_lock(&objlock); //wake everyone up
   pthread_cond_broadcast(&objcond);
   pthread_mutex_unlock(&objlock);
 #endif
   pthread_mutex_lock(&gclistlock);
-#ifdef THREADS
-  pthread_setspecific(threadlocks, litem.locklist);
-#endif
+
 #ifndef MAC
   if (litem.prev==NULL) {
     list=litem.next;
@@ -287,7 +290,10 @@ void initthread(struct ___Thread___ * ___this___) {
 #ifdef MAC
   struct listitem litem;
   pthread_setspecific(litemkey, &litem);
+  struct lockvector lvector;
+  pthread_setspecific(threadlocks, &lvector);
 #endif
+  litem.lvector=&lvector;
   litem.prev=NULL;
   pthread_mutex_lock(&gclistlock);
   litem.next=list;
@@ -295,7 +301,6 @@ void initthread(struct ___Thread___ * ___this___) {
     list->prev=&litem;
   list=&litem;
   pthread_mutex_unlock(&gclistlock);
-  
 #ifdef THREADS
   ___Thread______staticStart____L___Thread___((struct ___Thread______staticStart____L___Thread____params *)p);
 #else
@@ -353,9 +358,6 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_mutex_unlock(&joinlock);
 
   pthread_mutex_lock(&gclistlock);
-#ifdef THREADS
-  pthread_setspecific(threadlocks, litem.locklist);
-#endif
   if (litem.prev==NULL) {
     list=litem.next;
   } else {
