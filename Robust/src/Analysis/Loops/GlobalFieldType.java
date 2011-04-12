@@ -223,6 +223,12 @@ public class GlobalFieldType {
 	  containsBarrier.add(md);
 	  containsBarrier.add(mdcall);
 	}
+	//treat lock acquire the same as a barrier
+	if ((mdcall.getSymbol().equals("MonitorEnter")||mdcall.getSymbol().equals("MonitorExit"))&&
+	    mdcall.getClassDesc().getSymbol().equals("Object")) {
+	  containsBarrier.add(md);
+	  containsBarrier.add(mdcall);
+	}
       }
     }
   }
