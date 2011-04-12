@@ -19,29 +19,21 @@ import IR.State;
 import IR.SymbolTable;
 import IR.TypeDescriptor;
 import IR.VarDescriptor;
-import IR.Flat.FlatFieldNode;
-import IR.Tree.ArrayAccessNode;
-import IR.Tree.ArrayInitializerNode;
 import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
-import IR.Tree.CastNode;
-import IR.Tree.ClassTypeNode;
 import IR.Tree.CreateObjectNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
 import IR.Tree.FieldAccessNode;
 import IR.Tree.IfStatementNode;
-import IR.Tree.InstanceOfNode;
 import IR.Tree.Kind;
 import IR.Tree.LiteralNode;
-import IR.Tree.MethodInvokeNode;
+import IR.Tree.LoopNode;
 import IR.Tree.NameNode;
-import IR.Tree.OffsetNode;
 import IR.Tree.OpNode;
 import IR.Tree.SubBlockNode;
-import IR.Tree.TertiaryNode;
 import Util.Lattice;
 
 public class FlowDownCheck {
@@ -187,59 +179,186 @@ public class FlowDownCheck {
     case Kind.DeclarationNode:
       checkDeclarationNode(md, nametable, (DeclarationNode) bsn);
       break;
+    case Kind.LoopNode:
+      checkDeclarationInLoopNode(md, nametable, (LoopNode) bsn);
+    }
+  }
+
+  private void checkDeclarationInLoopNode(MethodDescriptor md, SymbolTable nametable, LoopNode ln) {
+
+    if (ln.getType() == LoopNode.FORLOOP) {
+      // check for loop case
+      ClassDescriptor cd = md.getClassDesc();
+      BlockNode bn = ln.getInitializer();
+      for (int i = 0; i < bn.size(); i++) {
+        BlockStatementNode bsn = bn.get(i);
+        checkDeclarationInBlockStatementNode(md, nametable, bsn);
+      }
     }
   }
 
   private void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
     BlockNode bn = state.getMethodBody(md);
-    checkBlockNode(md, md.getParameterTable(), bn);
+    checkLocationFromBlockNode(md, md.getParameterTable(), bn);
   }
 
-  private void checkBlockNode(MethodDescriptor md, SymbolTable nametable, BlockNode bn) {
-    bn.getVarTable().setParent(nametable);
+  private CompositeLocation checkLocationFromBlockNode(MethodDescriptor md, SymbolTable nametable,
+      BlockNode bn) {
+    // it will return the lowest location in the block node
+    CompositeLocation lowestLoc = null;
     for (int i = 0; i < bn.size(); i++) {
       BlockStatementNode bsn = bn.get(i);
-      checkBlockStatementNode(md, bn.getVarTable(), bsn);
+      CompositeLocation bLoc = checkLocationFromBlockStatementNode(md, bn.getVarTable(), bsn);
+
+      if (lowestLoc == null) {
+        lowestLoc = bLoc;
+      } else {
+        if (CompositeLattice.isGreaterThan(lowestLoc, bLoc, md.getClassDesc())) {
+          lowestLoc = bLoc;
+        }
+      }
     }
+    return lowestLoc;
   }
 
-  private void checkBlockStatementNode(MethodDescriptor md, SymbolTable nametable,
-      BlockStatementNode bsn) {
+  private CompositeLocation checkLocationFromBlockStatementNode(MethodDescriptor md,
+      SymbolTable nametable, BlockStatementNode bsn) {
 
     switch (bsn.kind()) {
     case Kind.BlockExpressionNode:
-      checkLocationFromBlockExpressionNode(md, nametable, (BlockExpressionNode) bsn);
-      return;
+      return checkLocationFromBlockExpressionNode(md, nametable, (BlockExpressionNode) bsn);
 
     case Kind.DeclarationNode:
-      checkLocationFromDeclarationNode(md, nametable, (DeclarationNode) bsn);
-      return;
+      return checkLocationFromDeclarationNode(md, nametable, (DeclarationNode) bsn);
 
     case Kind.IfStatementNode:
-      // checkLocationFromIfStatementNode(md, nametable, (IfStatementNode) bsn);
-      return;
+      return checkLocationFromIfStatementNode(md, nametable, (IfStatementNode) bsn);
 
     case Kind.LoopNode:
-      // checkLocationFromLoopNode(md, nametable, (LoopNode) bsn);
-      return;
+      return checkLocationFromLoopNode(md, nametable, (LoopNode) bsn);
 
     case Kind.ReturnNode:
       // checkLocationFromReturnNode(md, nametable, (ReturnNode) bsn);
-      return;
+      return null;
 
     case Kind.SubBlockNode:
-      // checkLocationFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
-      return;
+      return checkLocationFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
 
     case Kind.ContinueBreakNode:
       // checkLocationFromContinueBreakNode(md, nametable,(ContinueBreakNode)
       // bsn);
-      return;
+      return null;
     }
+    return null;
   }
 
-  private void checkLocationFromDeclarationNode(MethodDescriptor md, SymbolTable nametable,
-      DeclarationNode dn) {
+  private CompositeLocation checkLocationFromLoopNode(MethodDescriptor md, SymbolTable nametable,
+      LoopNode ln) {
+
+    ClassDescriptor cd = md.getClassDesc();
+    if (ln.getType() == LoopNode.WHILELOOP || ln.getType() == LoopNode.DOWHILELOOP) {
+
+      CompositeLocation condLoc =
+          checkLocationFromExpressionNode(md, nametable, ln.getCondition(), new CompositeLocation(
+              cd));
+      CompositeLocation bodyLoc = checkLocationFromBlockNode(md, nametable, ln.getBody());
+
+      if (!CompositeLattice.isGreaterThan(condLoc, bodyLoc, cd)) {
+        // loop condition should be higher than loop body
+        throw new Error(
+            "The location of the while-condition statement is lower than the loop body at "
+                + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
+      }
+
+      return bodyLoc;
+
+    } else {
+      // check for loop case
+      BlockNode bn = ln.getInitializer();
+
+      // calculate glb location of condition and update statements
+      CompositeLocation condLoc =
+          checkLocationFromExpressionNode(md, bn.getVarTable(), ln.getCondition(),
+              new CompositeLocation(cd));
+      CompositeLocation updateLoc =
+          checkLocationFromBlockNode(md, bn.getVarTable(), ln.getUpdate());
+
+      Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
+      glbInputSet.add(condLoc);
+      glbInputSet.add(updateLoc);
+
+      CompositeLocation glbLocOfForLoopCond = CompositeLattice.calculateGLB(cd, glbInputSet, cd);
+      CompositeLocation blockLoc = checkLocationFromBlockNode(md, bn.getVarTable(), ln.getBody());
+
+      if (blockLoc == null) {
+        // when there is no statement in the loop body
+        return glbLocOfForLoopCond;
+      }
+
+      if (!CompositeLattice.isGreaterThan(glbLocOfForLoopCond, blockLoc, cd)) {
+        throw new Error(
+            "The location of the for-condition statement is lower than the for-loop body at "
+                + cd.getSourceFileName() + ":" + ln.getCondition().getNumLine());
+      }
+      return blockLoc;
+    }
+
+  }
+
+  private CompositeLocation checkLocationFromSubBlockNode(MethodDescriptor md,
+      SymbolTable nametable, SubBlockNode sbn) {
+    return checkLocationFromBlockNode(md, nametable, sbn.getBlockNode());
+  }
+
+  private CompositeLocation checkLocationFromIfStatementNode(MethodDescriptor md,
+      SymbolTable nametable, IfStatementNode isn) {
+
+    ClassDescriptor localCD = md.getClassDesc();
+    Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
+
+    CompositeLocation condLoc = new CompositeLocation(localCD);
+    condLoc = checkLocationFromExpressionNode(md, nametable, isn.getCondition(), condLoc);
+    glbInputSet.add(condLoc);
+
+    System.out.println(isn.getCondition().printNode(0) + ":::condLoc=" + condLoc);
+
+    CompositeLocation locTrueBlock = checkLocationFromBlockNode(md, nametable, isn.getTrueBlock());
+    glbInputSet.add(locTrueBlock);
+    System.out.println(isn.getTrueBlock().printNode(0) + ":::trueLoc=" + locTrueBlock);
+
+    // here, the location of conditional block should be higher than the
+    // location of true/false blocks
+
+    if (!CompositeLattice.isGreaterThan(condLoc, locTrueBlock, localCD)) {
+      // error
+      throw new Error(
+          "The location of the if-condition statement is lower than the conditional block at "
+              + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+    }
+
+    if (isn.getFalseBlock() != null) {
+      CompositeLocation locFalseBlock =
+          checkLocationFromBlockNode(md, nametable, isn.getFalseBlock());
+      glbInputSet.add(locFalseBlock);
+      System.out.println(isn.getFalseBlock().printNode(0) + ":::falseLoc=" + locFalseBlock);
+
+      if (!CompositeLattice.isGreaterThan(condLoc, locFalseBlock, localCD)) {
+        // error
+        throw new Error(
+            "The location of the if-condition statement is lower than the conditional block at "
+                + localCD.getSourceFileName() + ":" + isn.getCondition().getNumLine());
+      }
+
+    }
+
+    // return GLB location of condition, true, and false block
+    CompositeLocation glbLoc = CompositeLattice.calculateGLB(localCD, glbInputSet, localCD);
+
+    return glbLoc;
+  }
+
+  private CompositeLocation checkLocationFromDeclarationNode(MethodDescriptor md,
+      SymbolTable nametable, DeclarationNode dn) {
     VarDescriptor vd = dn.getVarDescriptor();
 
     Location destLoc = td2loc.get(vd.getType());
@@ -254,14 +373,15 @@ public class FlowDownCheck {
         System.out.println("expressionLoc=" + expressionLoc + " and destLoc=" + destLoc);
 
         // checking location order
-
         if (!CompositeLattice.isGreaterThan(expressionLoc, destLoc, localCD)) {
           throw new Error("The value flow from " + expressionLoc + " to " + destLoc
               + " does not respect location hierarchy on the assignment " + dn.printNode(0));
         }
-
       }
+      return expressionLoc;
 
+    } else {
+      return null;
     }
 
   }
@@ -271,9 +391,9 @@ public class FlowDownCheck {
     checkDeclarationInBlockNode(md, nametable, sbn.getBlockNode());
   }
 
-  private void checkLocationFromBlockExpressionNode(MethodDescriptor md, SymbolTable nametable,
-      BlockExpressionNode ben) {
-    checkLocationFromExpressionNode(md, nametable, ben.getExpression(), null);
+  private CompositeLocation checkLocationFromBlockExpressionNode(MethodDescriptor md,
+      SymbolTable nametable, BlockExpressionNode ben) {
+    return checkLocationFromExpressionNode(md, nametable, ben.getExpression(), null);
   }
 
   private CompositeLocation checkLocationFromExpressionNode(MethodDescriptor md,
@@ -350,8 +470,8 @@ public class FlowDownCheck {
       rightLoc = checkLocationFromExpressionNode(md, nametable, on.getRight(), rightLoc);
     }
 
-    System.out.println("checking op node");
-    System.out.println("left loc=" + leftLoc);
+    System.out.println("checking op node=" + on.printNode(0));
+    System.out.println("left loc=" + leftLoc + " from " + on.getLeft().getClass());
     System.out.println("right loc=" + rightLoc);
 
     Operation op = on.getOp();
@@ -458,17 +578,25 @@ public class FlowDownCheck {
     System.out.println("checkAssignmentNode=" + an.printNode(0));
 
     ClassDescriptor localCD = md.getClassDesc();
-    CompositeLocation srcLocation = new CompositeLocation(md.getClassDesc());
-    CompositeLocation destLocation = new CompositeLocation(md.getClassDesc());
 
     boolean postinc = true;
     if (an.getOperation().getBaseOp() == null
         || (an.getOperation().getBaseOp().getOp() != Operation.POSTINC && an.getOperation()
             .getBaseOp().getOp() != Operation.POSTDEC))
       postinc = false;
+
+    CompositeLocation srcLocation = new CompositeLocation(localCD);
     if (!postinc) {
-      srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
+      if (an.getSrc() instanceof CreateObjectNode) {
+        srcLocation = new CompositeLocation(localCD);
+        srcLocation.addLocation(Location.createTopLocation(localCD));
+      } else {
+        srcLocation = new CompositeLocation(localCD);
+        srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
+      }
     }
+
+    CompositeLocation destLocation = new CompositeLocation(localCD);
 
     destLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), destLocation);
 
@@ -506,8 +634,6 @@ public class FlowDownCheck {
 
   private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn) {
 
-    System.out.println("*** Check declarationNode=" + dn.printNode(0));
-
     ClassDescriptor cd = md.getClassDesc();
     VarDescriptor vd = dn.getVarDescriptor();
     Vector<AnnotationDescriptor> annotationVec = vd.getType().getAnnotationMarkers();
@@ -524,7 +650,6 @@ public class FlowDownCheck {
     }
 
     AnnotationDescriptor ad = annotationVec.elementAt(0);
-    System.out.println("its ad=" + ad);
 
     if (ad.getType() == AnnotationDescriptor.MARKER_ANNOTATION) {
 
@@ -708,7 +833,7 @@ public class FlowDownCheck {
       // comparing two composite locations
       System.out.println("compare base location=" + compLoc1 + " ? " + compLoc2);
 
-      int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2);
+      int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2, priorityCD);
       if (baseCompareResult == ComparisonResult.EQUAL) {
         if (compareDelta(compLoc1, compLoc2) == ComparisonResult.GREATER) {
           return true;
@@ -732,7 +857,8 @@ public class FlowDownCheck {
       }
     }
 
-    private static int compareBaseLocationSet(CompositeLocation compLoc1, CompositeLocation compLoc2) {
+    private static int compareBaseLocationSet(CompositeLocation compLoc1,
+        CompositeLocation compLoc2, ClassDescriptor priorityCD) {
 
       // if compLoc1 is greater than compLoc2, return true
       // else return false;
@@ -740,14 +866,9 @@ public class FlowDownCheck {
       Map<ClassDescriptor, Location> cd2loc1 = compLoc1.getCd2Loc();
       Map<ClassDescriptor, Location> cd2loc2 = compLoc2.getCd2Loc();
 
-      // start to compare the first item of tuples:
-      // assumes that the first item has priority than other items.
-
-      NTuple<Location> locTuple1 = compLoc1.getBaseLocationTuple();
-      NTuple<Location> locTuple2 = compLoc2.getBaseLocationTuple();
-
-      Location priorityLoc1 = locTuple1.at(0);
-      Location priorityLoc2 = locTuple2.at(0);
+      // compare first the priority loc elements
+      Location priorityLoc1 = cd2loc1.get(priorityCD);
+      Location priorityLoc2 = cd2loc2.get(priorityCD);
 
       assert (priorityLoc1.getClassDescriptor().equals(priorityLoc2.getClassDescriptor()));
 
