@@ -871,11 +871,7 @@ void stopforgc(struct garbagelist * ptr) {
 #ifndef MAC
   litem.stackptr=ptr;
 #if defined(STM)||defined(THREADS)||defined(MLP)
-#ifdef MAC
-  litem.base=pthread_getspecific(memorybasekey);
-#else
   litem.base=&memorybase;
-#endif
 #endif
 #ifdef STM
   litem.tc_size=c_size;
@@ -891,6 +887,9 @@ void stopforgc(struct garbagelist * ptr) {
   //handle MAC
   struct listitem *litem=pthread_getspecific(litemkey);
   litem->stackptr=ptr;
+#if defined(STM)||defined(THREADS)||defined(MLP)
+  litem->base=pthread_getspecific(memorybasekey);
+#endif
 #endif
   pthread_mutex_lock(&gclistlock);
   listcount++;
@@ -935,6 +934,10 @@ void * mygcmalloc(struct garbagelist * stackptr, int size) {
   }
   char *retvalue=memorybase;
   memorybase+=size;
+#ifdef MAC
+  *(char **)pthread_getspecific(memorybasekey)=memorybase;
+  *(char **)pthread_getspecific(memorytopkey)=memorytop;
+#endif
   return retvalue;
 }
 

@@ -190,6 +190,7 @@ void initializethreads() {
   pthread_key_create(&threadlocks, NULL);
   pthread_key_create(&memorybasekey, NULL);
   pthread_key_create(&memorytopkey, NULL);
+  pthread_key_create(&litemkey, NULL);
 #endif
   processOptions();
   initializeexithandler();
