@@ -224,7 +224,7 @@ public class GlobalFieldType {
 	  containsBarrier.add(mdcall);
 	}
 	//treat lock acquire the same as a barrier
-	if ((mdcall.getSymbol().equals("MonitorEnter")||mdcall.getSymbol().equals("MonitorExit"))&&
+	if ((mdcall.getSymbol().equals("MonitorEnter")||mdcall.getSymbol().equals("MonitorExit")||mdcall.getSymbol().equals("wait"))&&
 	    mdcall.getClassDesc().getSymbol().equals("Object")) {
 	  containsBarrier.add(md);
 	  containsBarrier.add(mdcall);
