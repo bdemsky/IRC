@@ -16,6 +16,8 @@
 #ifndef MAC
 __thread struct lockvector lvector;
 __thread int mythreadid;
+#else
+
 #endif
 
 #ifdef D___Object______nativehashCode____
@@ -45,7 +47,7 @@ int CALL01(___Object______getType____, struct ___Object___ * ___this___) {
 void CALL01(___Object______MonitorEnter____, struct ___Object___ * ___this___) {
 #ifdef MAC
   struct lockvector *lptr=(struct lockvector *)pthread_getspecific(threadlocks);
-  int self=pthread_getspecific(macthreadid);
+  int self=(int)(long)pthread_getspecific(macthreadid);
 #else
   struct lockvector *lptr=&lvector;
   int self=mythreadid;
@@ -90,7 +92,7 @@ void CALL01(___Object______notifyAll____, struct ___Object___ * ___this___) {
 #ifdef D___Object______wait____
 void CALL01(___Object______wait____, struct ___Object___ * ___this___) {
 #ifdef MAC
-  int self=pthread_getspecific(macthreadid);
+  int self=(int)(long)pthread_getspecific(macthreadid);
 #else
   int self=mythreadid;
 #endif
