@@ -1,4 +1,3 @@
-
 #include "runtime.h"
 #include "structdefs.h"
 #include <signal.h>
@@ -55,9 +54,11 @@ __thread int objcount=0;
 #endif
 
 #if defined(THREADS)||defined(STM)
+#ifndef MAC
 /* Global barrier for STM */
 pthread_barrier_t barrier;
 pthread_barrierattr_t attr;
+#endif
 #endif
 
 #include <string.h>

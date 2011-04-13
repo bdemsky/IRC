@@ -321,8 +321,10 @@ void enqueuetag(struct ___TagDescriptor___ *ptr) {
 #endif
 
 #if defined(STM)||defined(THREADS)||defined(MLP)
+#ifndef MAC
 __thread char * memorybase=NULL;
 __thread char * memorytop=NULL;
+#endif
 #endif
 
 
@@ -378,7 +380,11 @@ void collect(struct garbagelist * stackptr) {
   }
 #endif
 #if defined(STM)||defined(THREADS)||defined(MLP)
+#ifdef MAC
+  *((char **)pthread_getspecific(memorybasekey))=NULL;
+#else
   memorybase=NULL;
+#endif
 #endif
 
   /* Check current stack */
@@ -865,7 +871,11 @@ void stopforgc(struct garbagelist * ptr) {
 #ifndef MAC
   litem.stackptr=ptr;
 #if defined(STM)||defined(THREADS)||defined(MLP)
+#ifdef MAC
+  litem.base=pthread_getspecific(memorybasekey);
+#else
   litem.base=&memorybase;
+#endif
 #endif
 #ifdef STM
   litem.tc_size=c_size;
@@ -913,6 +923,10 @@ void * helper(struct garbagelist *, int);
 void * mygcmalloc(struct garbagelist * stackptr, int size) {
   if ((size&7)!=0)
     size=(size&~7)+8;
+#ifdef MAC
+  char * memorybase=*(char **)pthread_getspecific(memorybasekey);
+  char * memorytop=*(char **)pthread_getspecific(memorytopkey);
+#endif
   if (memorybase==NULL||size>(memorytop-memorybase)) {
     int toallocate=(size>MEMORYBLOCK)?size:MEMORYBLOCK;
     memorybase=helper(stackptr, toallocate);

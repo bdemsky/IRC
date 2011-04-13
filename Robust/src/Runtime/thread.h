@@ -11,6 +11,12 @@ extern pthread_mutex_t objlock;
 extern pthread_cond_t objcond;
 extern pthread_key_t threadlocks;
 extern pthread_mutex_t atomiclock;
+#ifdef MAC
+extern pthread_key_t litemkey;
+extern pthread_key_t macthreadid;
+extern pthread_key_t memorybasekey;
+extern pthread_key_t memorytopkey;
+#endif
 
 #ifdef PRECISE_GC
 #define ATOMICLOCK if (pthread_mutex_trylock(&atomiclock)!=0) {	\

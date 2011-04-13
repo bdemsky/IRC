@@ -55,6 +55,8 @@ pthread_key_t oidval;
 #ifndef MAC
 extern __thread struct listitem litem;
 #else
+pthread_key_t memorybasekey;
+pthread_key_t memorytopkey;
 pthread_key_t litemkey;
 #endif
 extern struct listitem * list;
@@ -131,6 +133,15 @@ transstart:
   pthread_exit(NULL);
 }
 
+#ifdef MAC
+void threadhandler(int sig) {
+  printf("We just took sig=%d\n",sig);
+  printf("signal\n");
+  printf("To get stack trace, set breakpoint in threadhandler in gdb\n");
+  
+  threadexit();
+}
+#else
 void threadhandler(int sig, struct sigcontext ctx) {
   void *buffer[100];
   char **strings;
@@ -157,6 +168,7 @@ void threadhandler(int sig, struct sigcontext ctx) {
   
   threadexit();
 }
+#endif
 
 #define downpage(x) ((void *)(((INTPTR)x)&~((INTPTR)4095)))
 
@@ -176,7 +188,8 @@ void initializethreads() {
 #ifdef MAC
   pthread_key_create(&macthreadid, NULL);
   pthread_key_create(&threadlocks, NULL);
-  pthread_key_create(&litem, NULL);
+  pthread_key_create(&memorybasekey, NULL);
+  pthread_key_create(&memorytopkey, NULL);
 #endif
   processOptions();
   initializeexithandler();
@@ -249,11 +262,18 @@ void initializethreads() {
 #ifdef MAC
   struct listitem *litem=malloc(sizeof(struct listitem));
   struct lockvector *lvector=malloc(sizeof(struct lockvector));
-  litem->lockvector=lvector;
+  litem->lvector=lvector;
   lvector->index=0;
   pthread_setspecific(threadlocks, lvector);
-  pthread_setspecific(macthreadid, 0);
+  pthread_setspecific(macthreadid, (void *)0);
   pthread_setspecific(litemkey, litem);
+  char ** memorybase=malloc(sizeof(char *));
+  *memorybase=NULL;
+  pthread_setspecific(memorybasekey, memorybase);
+  char ** memorytop=malloc(sizeof(char *));
+  *memorytop=NULL;
+  pthread_setspecific(memorytopkey, memorytop);
+
   litem->prev=NULL;
   litem->next=list;
   if(list!=NULL)
@@ -302,8 +322,12 @@ void initthread(struct ___Thread___ * ___this___) {
   //Add our litem to list of threads
 #ifdef MAC
   struct listitem litem;
-  pthread_setspecific(litemkey, &litem);
   struct lockvector lvector;
+  char * memorybase=NULL;
+  char * memorytop=NULL;
+  pthread_setspecific(litemkey, &litem);
+  pthread_setspecific(memorybasekey, &memorybase);
+  pthread_setspecific(memorytopkey, &memorytop);
   pthread_setspecific(threadlocks, &lvector);
 #endif
   litem.lvector=&lvector;
@@ -311,7 +335,7 @@ void initthread(struct ___Thread___ * ___this___) {
   litem.prev=NULL;
   pthread_mutex_lock(&gclistlock);
 #ifdef MAC
-  pthread_setspecific(macthreadid, ++threadcounter);
+  pthread_setspecific(macthreadid, (void *)((long)(++threadcounter)));
 #else
   mythreadid=++threadcounter;
 #endif
