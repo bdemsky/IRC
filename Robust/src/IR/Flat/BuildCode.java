@@ -323,6 +323,7 @@ public class BuildCode {
     for(Iterator it_classes = ctbl.getDescriptorsIterator();it_classes.hasNext();) {
       ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
       outmethod.println(" {");
+
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
 	outmethod.println("    struct garbagelist dummy={0,NULL};");
 	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(&dummy, " + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
@@ -339,6 +340,9 @@ public class BuildCode {
   protected void outputMainMethod(PrintWriter outmethod) {
     outmethod.println("int main(int argc, const char *argv[]) {");
     outmethod.println("  int i;");
+    if (state.THREAD) {
+      outmethod.println("initializethreads();");
+    }
     outmethod.println("  global_defs_p=calloc(1, sizeof(struct global_defs_t));");
     outmethod.println("  global_defsprim_p=calloc(1, sizeof(struct global_defsprim_t));");
     if (GENERATEPRECISEGC) {
@@ -353,9 +357,6 @@ public class BuildCode {
 
     additionalCodeAtTopOfMain(outmethod);
 
-    if (state.THREAD) {
-      outmethod.println("initializethreads();");
-    }
 
     if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
       outmethod.println("  struct ArrayObject * stringarray=allocate_newarray(NULL, STRINGARRAYTYPE, argc-1);");
