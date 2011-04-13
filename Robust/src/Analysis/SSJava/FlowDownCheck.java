@@ -19,10 +19,13 @@ import IR.State;
 import IR.SymbolTable;
 import IR.TypeDescriptor;
 import IR.VarDescriptor;
+import IR.Tree.ArrayAccessNode;
+import IR.Tree.ArrayInitializerNode;
 import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
+import IR.Tree.ContinueBreakNode;
 import IR.Tree.CreateObjectNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
@@ -31,9 +34,11 @@ import IR.Tree.IfStatementNode;
 import IR.Tree.Kind;
 import IR.Tree.LiteralNode;
 import IR.Tree.LoopNode;
+import IR.Tree.MethodInvokeNode;
 import IR.Tree.NameNode;
 import IR.Tree.OpNode;
 import IR.Tree.SubBlockNode;
+import IR.Tree.TertiaryNode;
 import Util.Lattice;
 
 public class FlowDownCheck {
@@ -181,6 +186,7 @@ public class FlowDownCheck {
       break;
     case Kind.LoopNode:
       checkDeclarationInLoopNode(md, nametable, (LoopNode) bsn);
+      break;
     }
   }
 
@@ -244,10 +250,10 @@ public class FlowDownCheck {
     case Kind.SubBlockNode:
       return checkLocationFromSubBlockNode(md, nametable, (SubBlockNode) bsn);
 
-    case Kind.ContinueBreakNode:
+      // case Kind.ContinueBreakNode:
       // checkLocationFromContinueBreakNode(md, nametable,(ContinueBreakNode)
       // bsn);
-      return null;
+      // return null;
     }
     return null;
   }
@@ -370,7 +376,6 @@ public class FlowDownCheck {
           checkLocationFromExpressionNode(md, nametable, dn.getExpression(), expressionLoc);
 
       if (expressionLoc != null) {
-        System.out.println("expressionLoc=" + expressionLoc + " and destLoc=" + destLoc);
 
         // checking location order
         if (!CompositeLattice.isGreaterThan(expressionLoc, destLoc, localCD)) {
@@ -414,40 +419,36 @@ public class FlowDownCheck {
       return checkLocationFromOpNode(md, nametable, (OpNode) en);
 
     case Kind.CreateObjectNode:
-      // checkCreateObjectNode(md, nametable, (CreateObjectNode) en, td);
-      return null;
+      return checkLocationFromCreateObjectNode(md, nametable, (CreateObjectNode) en);
 
     case Kind.ArrayAccessNode:
-      // checkArrayAccessNode(md, nametable, (ArrayAccessNode) en, td);
-      return null;
+      return checkLocationFromArrayAccessNode(md, nametable, (ArrayAccessNode) en);
 
     case Kind.LiteralNode:
       return checkLocationFromLiteralNode(md, nametable, (LiteralNode) en, loc);
 
     case Kind.MethodInvokeNode:
-      // checkMethodInvokeNode(md,nametable,(MethodInvokeNode)en,td);
-      return null;
-
-    case Kind.OffsetNode:
-      // checkOffsetNode(md, nametable, (OffsetNode)en, td);
-      return null;
+      return checkLocationFromMethodInvokeNode(md, nametable, (MethodInvokeNode) en);
 
     case Kind.TertiaryNode:
-      // checkTertiaryNode(md, nametable, (TertiaryNode)en, td);
-      return null;
+      return checkLocationFromTertiaryNode(md, nametable, (TertiaryNode) en);
 
-    case Kind.InstanceOfNode:
+      // case Kind.InstanceOfNode:
       // checkInstanceOfNode(md, nametable, (InstanceOfNode) en, td);
-      return null;
+      // return null;
 
-    case Kind.ArrayInitializerNode:
+      // case Kind.ArrayInitializerNode:
       // checkArrayInitializerNode(md, nametable, (ArrayInitializerNode) en,
       // td);
-      return null;
+      // return null;
 
-    case Kind.ClassTypeNode:
+      // case Kind.ClassTypeNode:
       // checkClassTypeNode(md, nametable, (ClassTypeNode) en, td);
-      return null;
+      // return null;
+
+      // case Kind.OffsetNode:
+      // checkOffsetNode(md, nametable, (OffsetNode)en, td);
+      // return null;
 
     default:
       return null;
@@ -456,10 +457,132 @@ public class FlowDownCheck {
 
   }
 
+  private CompositeLocation checkLocationFromTertiaryNode(MethodDescriptor md,
+      SymbolTable nametable, TertiaryNode tn) {
+    ClassDescriptor cd = md.getClassDesc();
+
+    CompositeLocation condLoc =
+        checkLocationFromExpressionNode(md, nametable, tn.getCond(), new CompositeLocation(cd));
+    CompositeLocation trueLoc =
+        checkLocationFromExpressionNode(md, nametable, tn.getTrueExpr(), new CompositeLocation(cd));
+    CompositeLocation falseLoc =
+        checkLocationFromExpressionNode(md, nametable, tn.getFalseExpr(), new CompositeLocation(cd));
+
+    // check if condLoc is higher than trueLoc & falseLoc
+    if (!CompositeLattice.isGreaterThan(condLoc, trueLoc, cd)) {
+      throw new Error(
+          "The location of the condition expression is lower than the true expression at "
+              + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
+    }
+
+    if (!CompositeLattice.isGreaterThan(condLoc, falseLoc, cd)) {
+      throw new Error(
+          "The location of the condition expression is lower than the true expression at "
+              + cd.getSourceFileName() + ":" + tn.getCond().getNumLine());
+    }
+
+    // then, return glb of trueLoc & falseLoc
+    Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
+    glbInputSet.add(trueLoc);
+    glbInputSet.add(falseLoc);
+
+    return CompositeLattice.calculateGLB(cd, glbInputSet, cd);
+  }
+
+  private CompositeLocation checkLocationFromMethodInvokeNode(MethodDescriptor md,
+      SymbolTable nametable, MethodInvokeNode min) {
+
+    // all arguments should be higher than the location of return value
+    ClassDescriptor cd = md.getClassDesc();
+
+    // first, calculate glb of arguments
+    Set<CompositeLocation> argLocSet = new HashSet<CompositeLocation>();
+    for (int i = 0; i < min.numArgs(); i++) {
+      ExpressionNode en = min.getArg(i);
+      CompositeLocation argLoc =
+          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
+      argLocSet.add(argLoc);
+    }
+
+    if (argLocSet.size() > 0) {
+      CompositeLocation argGLBLoc = CompositeLattice.calculateGLB(cd, argLocSet, cd);
+      return argGLBLoc;
+    } else {
+      // if there are no arguments,
+      CompositeLocation returnLoc = new CompositeLocation(cd);
+      returnLoc.addLocation(Location.createTopLocation(cd));
+      return returnLoc;
+    }
+  }
+
+  private CompositeLocation checkLocationFromArrayAccessNode(MethodDescriptor md,
+      SymbolTable nametable, ArrayAccessNode aan) {
+
+    // return glb location of array itself and index
+
+    ClassDescriptor cd = md.getClassDesc();
+
+    Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
+
+    CompositeLocation arrayLoc =
+        checkLocationFromExpressionNode(md, nametable, aan.getExpression(), new CompositeLocation(
+            cd));
+    glbInputSet.add(arrayLoc);
+
+    CompositeLocation indexLoc =
+        checkLocationFromExpressionNode(md, nametable, aan.getIndex(), new CompositeLocation(cd));
+    glbInputSet.add(indexLoc);
+
+    CompositeLocation glbLoc = CompositeLattice.calculateGLB(cd, glbInputSet, cd);
+    return glbLoc;
+  }
+
+  private CompositeLocation checkLocationFromCreateObjectNode(MethodDescriptor md,
+      SymbolTable nametable, CreateObjectNode con) {
+
+    ClassDescriptor cd = md.getClassDesc();
+
+    // check arguments
+    Set<CompositeLocation> glbInputSet = new HashSet<CompositeLocation>();
+    for (int i = 0; i < con.numArgs(); i++) {
+      ExpressionNode en = con.getArg(i);
+      CompositeLocation argLoc =
+          checkLocationFromExpressionNode(md, nametable, en, new CompositeLocation(cd));
+      glbInputSet.add(argLoc);
+    }
+
+    // check array initializers
+    // if ((con.getArrayInitializer() != null)) {
+    // checkLocationFromArrayInitializerNode(md, nametable,
+    // con.getArrayInitializer());
+    // }
+
+    if (glbInputSet.size() > 0) {
+      return CompositeLattice.calculateGLB(cd, glbInputSet, cd);
+    }
+
+    CompositeLocation compLoc = new CompositeLocation(cd);
+    compLoc.addLocation(Location.createTopLocation(cd));
+    return compLoc;
+
+  }
+
+  private CompositeLocation checkLocationFromArrayInitializerNode(MethodDescriptor md,
+      SymbolTable nametable, ArrayInitializerNode ain) {
+
+    ClassDescriptor cd = md.getClassDesc();
+    Vector<TypeDescriptor> vec_type = new Vector<TypeDescriptor>();
+    for (int i = 0; i < ain.numVarInitializers(); ++i) {
+      checkLocationFromExpressionNode(md, nametable, ain.getVarInitializer(i),
+          new CompositeLocation(cd));
+      vec_type.add(ain.getVarInitializer(i).getType());
+    }
+
+    return null;
+  }
+
   private CompositeLocation checkLocationFromOpNode(MethodDescriptor md, SymbolTable nametable,
       OpNode on) {
-
-    Lattice<String> locOrder = (Lattice<String>) state.getCd2LocationOrder().get(md.getClassDesc());
 
     ClassDescriptor cd = md.getClassDesc();
     CompositeLocation leftLoc = new CompositeLocation(cd);
@@ -575,7 +698,6 @@ public class FlowDownCheck {
 
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc) {
-    System.out.println("checkAssignmentNode=" + an.printNode(0));
 
     ClassDescriptor localCD = md.getClassDesc();
 
@@ -585,24 +707,17 @@ public class FlowDownCheck {
             .getBaseOp().getOp() != Operation.POSTDEC))
       postinc = false;
 
+    CompositeLocation destLocation =
+        checkLocationFromExpressionNode(md, nametable, an.getDest(), new CompositeLocation(localCD));
+
     CompositeLocation srcLocation = new CompositeLocation(localCD);
     if (!postinc) {
-      if (an.getSrc() instanceof CreateObjectNode) {
-        srcLocation = new CompositeLocation(localCD);
-        srcLocation.addLocation(Location.createTopLocation(localCD));
-      } else {
-        srcLocation = new CompositeLocation(localCD);
-        srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
+      srcLocation = new CompositeLocation(localCD);
+      srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
+      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, localCD)) {
+        throw new Error("The value flow from " + srcLocation + " to " + destLocation
+            + " does not respect location hierarchy on the assignment " + an.printNode(0));
       }
-    }
-
-    CompositeLocation destLocation = new CompositeLocation(localCD);
-
-    destLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), destLocation);
-
-    if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, localCD)) {
-      throw new Error("The value flow from " + srcLocation + " to " + destLocation
-          + " does not respect location hierarchy on the assignment " + an.printNode(0));
     }
 
     return destLocation;
@@ -810,7 +925,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(Location loc1, Location loc2, ClassDescriptor priorityCD) {
 
-      System.out.println("isGreaterThan=" + loc1 + " ? " + loc2);
+      //System.out.println("isGreaterThan=" + loc1 + " ? " + loc2);
       CompositeLocation compLoc1;
       CompositeLocation compLoc2;
 
@@ -831,7 +946,7 @@ public class FlowDownCheck {
       }
 
       // comparing two composite locations
-      System.out.println("compare base location=" + compLoc1 + " ? " + compLoc2);
+      // System.out.println("compare base location=" + compLoc1 + " ? " + compLoc2);
 
       int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2, priorityCD);
       if (baseCompareResult == ComparisonResult.EQUAL) {
@@ -849,7 +964,6 @@ public class FlowDownCheck {
     }
 
     private static int compareDelta(CompositeLocation compLoc1, CompositeLocation compLoc2) {
-
       if (compLoc1.getNumofDelta() < compLoc2.getNumofDelta()) {
         return ComparisonResult.GREATER;
       } else {
@@ -925,8 +1039,7 @@ public class FlowDownCheck {
 
       }
 
-      if (numEqualLoc == compLoc1.getBaseLocationSize()) {
-        System.out.println(compLoc1 + " == " + compLoc2);
+      if (numEqualLoc == (compLoc1.getBaseLocationSize() - 1)) {
         return ComparisonResult.EQUAL;
       }
 
