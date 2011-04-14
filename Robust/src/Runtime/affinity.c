@@ -6,7 +6,7 @@
 #include <sched.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <runtime.h>
+#include "runtime.h"
 #include "mlp_lock.h"
 
 static volatile unsigned int corecount=0;
