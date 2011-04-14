@@ -7,19 +7,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <runtime.h>
+#include "mlp_lock.h"
 
 static volatile unsigned int corecount=0;
-
-
-static inline int atomicinc(volatile unsigned int *lock) {
-  int retval=1;
-  __asm__ __volatile__("lock; xadd %0,%1"
-                       : "=r"(retval)
-                       : "m"(*lock), "0"(retval)
-                       : "memory");
-  return retval;
-}
-
 
 void set_affinity() {
   int err;
@@ -27,7 +17,7 @@ void set_affinity() {
 
   CPU_ZERO(&cpumask);
 
-  int ourcount=atomicinc(&corecount);
+  int ourcount=atomicincandread(&corecount);
   ourcount=ourcount&7;
   int newvalue=ourcount>>1;
   if (ourcount&1) {

@@ -21,6 +21,15 @@
   "661:\n\tlock; "
 
 
+static inline int atomicincandread(volatile unsigned int *lock) {
+  int retval=1;
+  __asm__ __volatile__("lock; xadd %0,%1"
+                       : "=r"(retval)
+                       : "m"(*lock), "0"(retval)
+                       : "memory");
+  return retval;
+}
+
 static inline void atomic_dec(volatile int *v) {
   __asm__ __volatile__ (LOCK_PREFIX "decl %0"
                         : "+m" (*v));
