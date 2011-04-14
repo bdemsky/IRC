@@ -40,6 +40,7 @@ public class State {
     this.excprefetch=new HashSet();
     this.classpath=new Vector();
     this.cd2locationOrderMap=new Hashtable();
+    this.cd2locationPropertyMap=new Hashtable();
     this.lines=0;
   }
 
@@ -206,6 +207,7 @@ public class State {
   private int numstaticblocks=0;
   private int arraycount=0;
   public Hashtable cd2locationOrderMap;
+  public Hashtable cd2locationPropertyMap;
   public boolean OPTIMIZE=false;
   public boolean LINENUM=false;
 
@@ -354,6 +356,14 @@ public class State {
   }
   
   public Hashtable getCd2LocationOrder(){
+    return cd2locationOrderMap;
+  }
+  
+  public void addLocationPropertySet(ClassDescriptor cd, Set<String> set){
+    cd2locationPropertyMap.put(cd,set);
+  }
+  
+  public Hashtable getCd2LocationPropertyMap(){
     return cd2locationOrderMap;
   }
   

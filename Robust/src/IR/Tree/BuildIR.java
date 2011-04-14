@@ -504,16 +504,25 @@ public void parseInitializers(ClassDescriptor cn){
   private void parseLocationOrder(ClassDescriptor cd, ParseNode pn) {
     ParseNodeVector pnv = pn.getChildren();
     Lattice<String> locOrder =
-        new Lattice<String>("_top_","_bottom_");
+        new Lattice<String>("_top_","_bottom_");            
+    Set<String> spinLocSet=new HashSet<String>();
     for (int i = 0; i < pnv.size(); i++) {
       ParseNode loc = pnv.elementAt(i);
-      String lowerLoc=loc.getChildren().elementAt(0).getLabel();
-      String higherLoc= loc.getChildren().elementAt(1).getLabel();
-      locOrder.put(higherLoc, lowerLoc);
-      if (locOrder.isIntroducingCycle(higherLoc)) {
-        throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
-            + " introduces a cycle.");
+      if(isNode(loc,"location_property")){
+        String spinLoc=loc.getChildren().elementAt(0).getLabel();
+        spinLocSet.add(spinLoc);
+      }else{
+        String lowerLoc=loc.getChildren().elementAt(0).getLabel();
+        String higherLoc= loc.getChildren().elementAt(1).getLabel();
+        locOrder.put(higherLoc, lowerLoc);
+        if (locOrder.isIntroducingCycle(higherLoc)) {
+          throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
+              + " introduces a cycle.");
+        }
       }
+    }
+    if(spinLocSet.size()>0){
+      state.addLocationPropertySet(cd, spinLocSet);
     }
     state.addLocationOrder(cd, locOrder);
   }

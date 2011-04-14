@@ -1309,6 +1309,11 @@ location_order ::=
 		pn.addChild(loc2);
 		RESULT=pn;         
         :}
+	|	IDENTIFIER:loc MULT{:
+	      	ParseNode pn=new ParseNode("location_property",parser.lexer.line_num);		
+		pn.addChild(loc);
+		RESULT=pn;
+	:}
         ;
 
 // 19.9) Interfaces

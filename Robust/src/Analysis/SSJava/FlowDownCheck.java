@@ -201,6 +201,9 @@ public class FlowDownCheck {
         checkDeclarationInBlockStatementNode(md, nametable, bsn);
       }
     }
+
+    // check loop body
+    checkDeclarationInBlockNode(md, nametable, ln.getBody());
   }
 
   private void checkMethodBody(ClassDescriptor cd, MethodDescriptor md) {
@@ -925,7 +928,7 @@ public class FlowDownCheck {
 
     public static boolean isGreaterThan(Location loc1, Location loc2, ClassDescriptor priorityCD) {
 
-      //System.out.println("isGreaterThan=" + loc1 + " ? " + loc2);
+      // System.out.println("isGreaterThan=" + loc1 + " ? " + loc2);
       CompositeLocation compLoc1;
       CompositeLocation compLoc2;
 
@@ -946,7 +949,8 @@ public class FlowDownCheck {
       }
 
       // comparing two composite locations
-      // System.out.println("compare base location=" + compLoc1 + " ? " + compLoc2);
+      // System.out.println("compare base location=" + compLoc1 + " ? " +
+      // compLoc2);
 
       int baseCompareResult = compareBaseLocationSet(compLoc1, compLoc2, priorityCD);
       if (baseCompareResult == ComparisonResult.EQUAL) {
@@ -991,8 +995,8 @@ public class FlowDownCheck {
 
       if (priorityLoc1.getLocIdentifier().equals(priorityLoc2.getLocIdentifier())) {
         // have the same level of local hierarchy
-      } else if (locationOrder.isGreaterThan(priorityLoc1.getLocIdentifier(), priorityLoc2
-          .getLocIdentifier())) {
+      } else if (locationOrder.isGreaterThan(priorityLoc1.getLocIdentifier(),
+          priorityLoc2.getLocIdentifier())) {
         // if priority loc of compLoc1 is higher than compLoc2
         // then, compLoc 1 is higher than compLoc2
         return ComparisonResult.GREATER;
