@@ -1,7 +1,4 @@
 public class Object {
-  public int cachedCode;   //first field has to be a primitive
-  public boolean cachedHash;
-
   public native int hashCode();
 
   /* DON'T USE THIS METHOD UNLESS NECESSARY */

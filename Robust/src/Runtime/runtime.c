@@ -672,6 +672,7 @@ void CALL00(___Barrier______enterBarrier____) {
 __attribute__((malloc)) void * allocate_newglobal(int type) {
   struct ___Object___ * v=(struct ___Object___ *) transCreateObj(classsize[type]);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   //printf("DEBUG %s(), type= %x\n", __func__, type);
 #ifdef THREADS
   v->tid=0;
@@ -688,6 +689,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarrayglobal(int type, i
     return NULL;
   }
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   v->___length___=length;
 #ifdef THREADS
   v->tid=0;
@@ -709,6 +711,7 @@ __attribute__((malloc)) void * allocate_newtrans(void * ptr, int type) {
 #endif
   ASSIGNUID(v);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   v->___objlocation___=v;
   return v;
 }
@@ -739,6 +742,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarraytrans(void * ptr, 
   }
   v->___objlocation___=(struct ___Object___*)v;
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   v->___length___=length;
   return v;
 }
@@ -751,6 +755,7 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
   tmp->version = 1;
   v->___objlocation___=v;
   v->type = type;
+  v->hashcode=(int)(INTPTR)v;
   return v;
 }
 
@@ -784,6 +789,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
   tmp->version=1;
   ASSIGNUID(v);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   if (length<0) {
     printf("ERROR: negative array %d\n", length);
     return NULL;
@@ -806,6 +812,7 @@ __attribute__((malloc)) void * allocate_new(void * ptr, int type) {
 #endif
   struct ___Object___ * v=(struct ___Object___ *) mygcmalloc((struct garbagelist *) ptr, classsize[type]);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
 #ifdef THREADS
   v->tid=0;
 #endif
@@ -830,6 +837,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 #endif
   struct ArrayObject * v=mygcmalloc((struct garbagelist *) ptr, sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   if (length<0) {
     printf("ERROR: negative array\n");
     return NULL;
@@ -852,6 +860,7 @@ __attribute__((malloc)) struct ArrayObject * allocate_newarray(void * ptr, int t
 __attribute__((malloc)) void * allocate_new(int type) {
   struct ___Object___ * v=FREEMALLOC(classsize[type]);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
 #ifdef OPTIONAL
   v->fses=0;
 #endif
@@ -863,6 +872,7 @@ __attribute__((malloc)) void * allocate_new(int type) {
 __attribute__((malloc)) struct ArrayObject * allocate_newarray(int type, int length) {
   __attribute__((malloc))  struct ArrayObject * v=FREEMALLOC(sizeof(struct ArrayObject)+length*classsize[type]);
   v->type=type;
+  v->hashcode=(int)(INTPTR)v;
   v->___length___=length;
 #ifdef OPTIONAL
   v->fses=0;

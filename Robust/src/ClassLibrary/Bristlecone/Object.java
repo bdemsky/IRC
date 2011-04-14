@@ -1,7 +1,4 @@
 public class Object {
-  private int cachedCode;  //first field has to be a primitive
-  private boolean cachedHash;
-
   /* DO NOT USE ANY OF THESE - THEY ARE FOR IMPLEMENTING TAGS */
   private Object tags;
 

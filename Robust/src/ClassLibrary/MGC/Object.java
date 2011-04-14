@@ -1,7 +1,4 @@
 public class Object {
-  public int cachedCode;   //first field has to be a primitive
-  public boolean cachedHash;
-
   // temporary extra unused int filed to align objects for Java
   //int wkhqwemnbmwnb;
 

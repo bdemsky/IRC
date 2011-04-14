@@ -20,19 +20,9 @@ __thread int mythreadid;
 
 #endif
 
-#ifdef D___Object______nativehashCode____
-int CALL01(___Object______nativehashCode____, struct ___Object___ * ___this___) {
-  return (int)((INTPTR) VAR(___this___));
-}
-#endif
-
 #ifdef D___Object______hashCode____
 int CALL01(___Object______hashCode____, struct ___Object___ * ___this___) {
-  if (!VAR(___this___)->___cachedHash___) {
-    VAR(___this___)->___cachedHash___=1;
-    VAR(___this___)->___cachedCode___=(int)((INTPTR)VAR(___this___));
-  }
-  return VAR(___this___)->___cachedCode___;
+  return VAR(___this___)->hashcode;
 }
 #endif
 
