@@ -604,7 +604,7 @@ public class BuildCode {
     //Print out definition for array type
     outclassdefs.println("struct "+arraytype+" {");
     outclassdefs.println("  int type;");
-
+    outclassdefs.println("  int hashcode;");
 
     additionalClassObjectFields(outclassdefs);
 
@@ -1541,7 +1541,7 @@ public class BuildCode {
     /* Output class structure */
     classdefout.println("struct "+cn.getSafeSymbol()+" {");
     classdefout.println("  int type;");
-
+    classdefout.println("  int hashcode;");
 
     additionalClassObjectFields(classdefout);
 
