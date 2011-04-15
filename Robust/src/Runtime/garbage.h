@@ -3,6 +3,9 @@
 #ifdef STM
 #include "stmlookup.h"
 #endif
+#ifdef JNI
+#include "jni-private.h"
+#endif
 
 struct garbagelist {  
   int size;

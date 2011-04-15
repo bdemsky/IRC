@@ -2,6 +2,8 @@
 #include<jni-private.h>
 
 #ifndef MAC
+__thread struct jnireferences * jnirefs;
+
 struct _jobject * getwrapped(void * objptr) {
   if ((jnirefs->index)>=MAXJNIREFS)
     printf("OVERFLOW IN JOBJECT\n");

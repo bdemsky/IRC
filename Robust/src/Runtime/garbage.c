@@ -37,7 +37,6 @@ extern deque* deques;
 #include "delaycomp.h"
 #endif
 
-
 #define NUMPTRS 100
 
 #ifndef INITIALHEAPSIZE_MB
@@ -73,10 +72,6 @@ int listcount=0;
 #ifndef MAC
 __thread struct listitem litem;
 #endif
-#endif
-
-#ifdef MLP
-__thread SESEcommon* seseCommon;
 #endif
 
 //Need to check if pointers are transaction pointers
@@ -305,20 +300,6 @@ int moreItems() {
   return 1;
 }
 
-#ifdef TASK
-struct pointerblock *taghead=NULL;
-int tagindex=0;
-
-void enqueuetag(struct ___TagDescriptor___ *ptr) {
-  if (tagindex==NUMPTRS) {
-    struct pointerblock * tmp=malloc(sizeof(struct pointerblock));
-    tmp->next=taghead;
-    taghead=tmp;
-    tagindex=0;
-  }
-  taghead->ptrs[tagindex++]=ptr;
-}
-#endif
 
 #if defined(STM)||defined(THREADS)||defined(MLP)
 #ifndef MAC
@@ -384,128 +365,6 @@ void doinitstuff() {
 #endif
 }
 
-void searchoojroots() {
-#ifdef MLP
-#ifdef SQUEUE
-  {
-    int        i;
-    deque*     dq;
-    dequeItem *di;
-    int        j;
-
-    // goes over ready-to-run SESEs
-    for( i = 0; i < numWorkSchedWorkers; ++i ) {
-      dq = &(deques[i]);
-
-      di=dq->head;
-
-      do {
-        // check all the relevant indices of this
-        // node in the deque, noting if we are in
-        // the top/bottom node which can be partially
-        // full
-
-          // WHAT? 
-          //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
-          //if(common==seseCommon){
-          // skip the current running SESE
-          //  continue;
-          //}
-	di=(dequeItem *) EXTRACTPTR((INTPTR)di);
-	SESEcommon* seseRec = (SESEcommon*) di->work;
-	if (seseRec!=NULL) {
-          struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
-          struct garbagelist* glroot = gl;
-	  
-          updateAscendantSESE( seseRec );
-	  
-          while( gl != NULL ) {
-            int k;
-            for( k = 0; k < gl->size; k++ ) {
-              void* orig = gl->array[k];
-              ENQUEUE( orig, gl->array[k] );
-            }
-            gl = gl->next;
-          } 
-        }
-        // we only have to move across the nodes
-        // of the deque if the top and bottom are
-        // not the same already
-	  di=di->next;
-      } while( di !=NULL) ;
-    }
-  }    
-#else
-  {
-    int        i;
-    deque*     dq;
-    dequeNode* botNode;
-    int        botIndx;
-    dequeNode* topNode;
-    int        topIndx;
-    dequeNode* n;
-    int        j;
-    int        jLo;
-    int        jHi;
-    
-    // goes over ready-to-run SESEs
-    for( i = 0; i < numWorkSchedWorkers; ++i ) {
-      dq = &(deques[i]);
-      
-      botNode = dqDecodePtr( dq->bottom );
-      botIndx = dqDecodeIdx( dq->bottom );
-      
-      topNode = dqDecodePtr( dq->top );
-      topIndx = dqDecodeIdx( dq->top );
-      
-      
-      n = botNode;
-      do {
-	// check all the relevant indices of this
-	// node in the deque, noting if we are in
-	// the top/bottom node which can be partially
-	// full
-	if( n == botNode ) { jLo = botIndx; } else { jLo = 0; }
-	if( n == topNode ) { jHi = topIndx; } else { jHi = DQNODE_ARRAYSIZE; }
-	
-	for( j = jLo; j < jHi; ++j ) {
-	  
-	  // WHAT?
-	  //SESEcommon* common = (SESEcommon*) n->itsDataArr[j];
-	  //if(common==seseCommon){
-	  //  continue;
-	  //}
-	  
-          SESEcommon* seseRec = (SESEcommon*) n->itsDataArr[j];
-	  
-	  struct garbagelist* gl     = (struct garbagelist*) &(seseRec[1]);
-          struct garbagelist* glroot = gl;
-	  
-          updateAscendantSESE( seseRec );
-	  
-          while( gl != NULL ) {
-            int k;
-            for( k = 0; k < gl->size; k++ ) {
-              void* orig = gl->array[k];
-              ENQUEUE( orig, gl->array[k] );
-	    }
-	    gl = gl->next;
-	  }
-	}
-	
-	// we only have to move across the nodes
-	// of the deque if the top and bottom are
-	// not the same already
-        if( botNode != topNode ) {
-          n = n->next;
-        }
-      } while( n != topNode );
-    }
-  }
-#endif
-#endif
-}
-
 void searchglobalroots() {
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   {
@@ -520,100 +379,7 @@ void searchglobalroots() {
 }
 
 
-void searchtaskroots() {
-#ifdef TASK
-  {
-    /* Update objectsets */
-    int i;
-    for(i=0; i<NUMCLASSES; i++) {
-#if !defined(MULTICORE)
-      struct parameterwrapper * p=objectqueues[i];
-      while(p!=NULL) {
-	struct ObjectHash * set=p->objectset;
-	struct ObjectNode * ptr=set->listhead;
-	while(ptr!=NULL) {
-	  void *orig=(void *)ptr->key;
-	  ENQUEUE(orig, *((void **)(&ptr->key)));
-	  ptr=ptr->lnext;
-	}
-	ObjectHashrehash(set); /* Rehash the table */
-	p=p->next;
-      }
-#endif
-    }
-  }
 
-#ifndef FASTCHECK
-  if (forward!=NULL) {
-    struct cnode * ptr=forward->listhead;
-    while(ptr!=NULL) {
-      void * orig=(void *)ptr->key;
-      ENQUEUE(orig, *((void **)(&ptr->key)));
-      ptr=ptr->lnext;
-    }
-    crehash(forward); /* Rehash the table */
-  }
-
-  if (reverse!=NULL) {
-    struct cnode * ptr=reverse->listhead;
-    while(ptr!=NULL) {
-      void *orig=(void *)ptr->val;
-      ENQUEUE(orig, *((void**)(&ptr->val)));
-      ptr=ptr->lnext;
-    }
-  }
-#endif
-
-  {
-    struct RuntimeNode * ptr=fdtoobject->listhead;
-    while(ptr!=NULL) {
-      void *orig=(void *)ptr->data;
-      ENQUEUE(orig, *((void**)(&ptr->data)));
-      ptr=ptr->lnext;
-    }
-  }
-
-  {
-    /* Update current task descriptor */
-    int i;
-    for(i=0; i<currtpd->numParameters; i++) {
-      void *orig=currtpd->parameterArray[i];
-      ENQUEUE(orig, currtpd->parameterArray[i]);
-    }
-
-  }
-
-  /* Update active tasks */
-  {
-    struct genpointerlist * ptr=activetasks->list;
-    while(ptr!=NULL) {
-      struct taskparamdescriptor *tpd=ptr->src;
-      int i;
-      for(i=0; i<tpd->numParameters; i++) {
-	void * orig=tpd->parameterArray[i];
-	ENQUEUE(orig, tpd->parameterArray[i]);
-      }
-      ptr=ptr->inext;
-    }
-    genrehash(activetasks);
-  }
-
-  /* Update failed tasks */
-  {
-    struct genpointerlist * ptr=failedtasks->list;
-    while(ptr!=NULL) {
-      struct taskparamdescriptor *tpd=ptr->src;
-      int i;
-      for(i=0; i<tpd->numParameters; i++) {
-	void * orig=tpd->parameterArray[i];
-	ENQUEUE(orig, tpd->parameterArray[i]);
-      }
-      ptr=ptr->inext;
-    }
-    genrehash(failedtasks);
-  }
-#endif
-}
 
 void searchstack(struct garbagelist *stackptr) {
   while(stackptr!=NULL) {
@@ -625,6 +391,20 @@ void searchstack(struct garbagelist *stackptr) {
     stackptr=stackptr->next;
   }
 }
+
+#ifdef JNI
+void searchjnitable(struct jnireferences *jniptr) {
+  while(jniptr!=NULL) {
+    int i;
+    //update table
+    for(i=0;i<jniptr->index;i++) {
+      ENQUEUE(jniptr->array[i]->ref, jniptr->array[i]->ref);
+    }
+    //go to next table
+    jniptr=jniptr->next;
+  } 
+}
+#endif
 
 
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
@@ -647,6 +427,9 @@ void searchthreadroots(struct garbagelist * stackptr) {
       struct ___Object___ *orig=lvector->locks[i].object;
       ENQUEUE(orig, lvector->locks[i].object);
     }
+#endif
+#ifdef JNI
+    searchjnitable(*listptr->jnirefs);
 #endif
 #ifdef STM
     if ((*listptr->tc_table)!=NULL) {
@@ -684,8 +467,12 @@ void searchroots(struct garbagelist * stackptr) {
   ENQUEUE(___fcrevert___, ___fcrevert___);
 #endif
   searchglobalroots();
+#ifdef TASK
   searchtaskroots();
+#endif
+#ifdef MLP
   searchoojroots();
+#endif
 }
 
 
@@ -768,65 +555,6 @@ void collect(struct garbagelist * stackptr) {
 #endif
 }
 
-#ifdef TASK
-/* Fix up the references from tags.  This can't be done earlier,
-   because we don't want tags to keep objects alive */
-void fixtags() {
-  while(taghead!=NULL) {
-    int i;
-    struct pointerblock *tmp=taghead->next;
-    for(i=0; i<tagindex; i++) {
-      struct ___TagDescriptor___ *tagd=taghead->ptrs[i];
-      struct ___Object___ *obj=tagd->flagptr;
-      struct ___TagDescriptor___ *copy=((struct ___TagDescriptor___**)tagd)[1];
-      if (obj==NULL) {
-	/* Zero object case */
-      } else if (obj->type==-1) {
-	/* Single object case */
-	copy->flagptr=((struct ___Object___**)obj)[1];
-      } else if (obj->type==OBJECTARRAYTYPE) {
-	/* Array case */
-	struct ArrayObject *ao=(struct ArrayObject *) obj;
-	int livecount=0;
-	int j;
-	int k=0;
-	struct ArrayObject *aonew;
-
-	/* Count live objects */
-	for(j=0; j<ao->___cachedCode___; j++) {
-	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
-	  if (tobj->type==-1)
-	    livecount++;
-	}
-
-	livecount=((livecount-1)/OBJECTARRAYINTERVAL+1)*OBJECTARRAYINTERVAL;
-	aonew=(struct ArrayObject *) tomalloc(sizeof(struct ArrayObject)+sizeof(struct ___Object___*)*livecount);
-	memcpy(aonew, ao, sizeof(struct ArrayObject));
-	aonew->type=OBJECTARRAYTYPE;
-	aonew->___length___=livecount;
-	copy->flagptr=aonew;
-	for(j=0; j<ao->___cachedCode___; j++) {
-	  struct ___Object___ * tobj=ARRAYGET(ao, struct ___Object___ *, j);
-	  if (tobj->type==-1) {
-	    struct ___Object___ * tobjcpy=((struct ___Object___**)tobj)[1];
-	    ARRAYSET(aonew, struct ___Object___*, k++,tobjcpy);
-	  }
-	}
-	aonew->___cachedCode___=k;
-	for(; k<livecount; k++) {
-	  ARRAYSET(aonew, struct ___Object___*, k, NULL);
-	}
-      } else {
-	/* No object live anymore */
-	copy->flagptr=NULL;
-      }
-    }
-    free(taghead);
-    taghead=tmp;
-    tagindex=NUMPTRS;
-  }
-}
-#endif
 
 void * tomalloc(int size) {
   void * ptr=to_heapptr;
@@ -1123,147 +851,6 @@ int gc_createcopy(void * orig, void ** copy_ptr) {
     }
   }
 }
-
-#ifdef MLP
-updateForwardList(struct Queue *forwardList, int prevUpdate){
-
-  struct QueueItem * fqItem=getHead(forwardList);
-  while(fqItem!=NULL){
-    SESEcommon* seseRec = (SESEcommon*)(fqItem->objectptr);
-    struct garbagelist * gl=(struct garbagelist *)&(seseRec[1]);
-    if(prevUpdate==TRUE){
-      updateAscendantSESE(seseRec);	
-    }
-    // do something here
-    while(gl!=NULL) {
-      int i;
-      for(i=0; i<gl->size; i++) {
-        void * orig=gl->array[i];
-        ENQUEUE(orig, gl->array[i]);
-      }
-      gl=gl->next;
-    }    
-    // iterate forwarding list of seseRec
-    struct Queue* fList=&seseRec->forwardList;
-    updateForwardList(fList,prevUpdate);   
-    fqItem=getNextQueueItem(fqItem);
-  }   
-
-}
-
-updateMemoryQueue(SESEcommon* seseParent){
-  // update memory queue
-  int i,binidx;
-  for(i=0; i<seseParent->numMemoryQueue; i++){
-    MemoryQueue *memoryQueue=seseParent->memoryQueueArray[i];
-    MemoryQueueItem *memoryItem=memoryQueue->head;
-    while(memoryItem!=NULL){
-      if(memoryItem->type==HASHTABLE){
-	Hashtable *ht=(Hashtable*)memoryItem;
-	for(binidx=0; binidx<NUMBINS; binidx++){
-	  BinElement *bin=ht->array[binidx];
-	  BinItem *binItem=bin->head;
-	  while(binItem!=NULL){
-	    if(binItem->type==READBIN){
-	      ReadBinItem* readBinItem=(ReadBinItem*)binItem;
-	      int ridx;
-	      for(ridx=0; ridx<readBinItem->index; ridx++){
-		REntry *rentry=readBinItem->array[ridx];
-                SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-		struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-		updateAscendantSESE(seseRec);
-		while(gl!=NULL) {
-		  int i;
-		  for(i=0; i<gl->size; i++) {
-		    void * orig=gl->array[i];
-		    ENQUEUE(orig, gl->array[i]);
-		  }
-		  gl=gl->next;
-		} 
-	      }	
-	    }else{ //writebin
-	      REntry *rentry=((WriteBinItem*)binItem)->val;
-              SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-              struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-	      updateAscendantSESE(seseRec);
-	      while(gl!=NULL) {
-		int i;
-		for(i=0; i<gl->size; i++) {
-		  void * orig=gl->array[i];
-		  ENQUEUE(orig, gl->array[i]);
-		}
-		gl=gl->next;
-	      } 
-	    }
-	    binItem=binItem->next;
-	  }
-	}
-      }else if(memoryItem->type==VECTOR){
-	Vector *vt=(Vector*)memoryItem;
-	int idx;
-	for(idx=0; idx<vt->index; idx++){
-	  REntry *rentry=vt->array[idx];
-	  if(rentry!=NULL){
-            SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-	    struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-	    updateAscendantSESE(seseRec);
-	    while(gl!=NULL) {
-	      int i;
-	      for(i=0; i<gl->size; i++) {
-		void * orig=gl->array[i];
-		ENQUEUE(orig, gl->array[i]);
-	      }
-	      gl=gl->next;
-	    } 
-	  }
-	}
-      }else if(memoryItem->type==SINGLEITEM){
-	SCC *scc=(SCC*)memoryItem;
-	REntry *rentry=scc->val;
-	if(rentry!=NULL){
-          SESEcommon* seseRec = (SESEcommon*)(rentry->seseRec);
-	  struct garbagelist * gl= (struct garbagelist *)&(seseRec[1]);
-	  updateAscendantSESE(seseRec);
-	  while(gl!=NULL) {
-	    int i;
-	    for(i=0; i<gl->size; i++) {
-	      void * orig=gl->array[i];
-	      ENQUEUE(orig, gl->array[i]);
-	    }
-	    gl=gl->next;
-	  } 
-	}
-      }
-      memoryItem=memoryItem->next;
-    }
-  }     
- }
- 
- updateAscendantSESE(SESEcommon* seseRec){   
-  int prevIdx;
-  for(prevIdx=0; prevIdx<(seseRec->numDependentSESErecords); prevIdx++){
-    SESEcommon* prevSESE = (SESEcommon*) 
-      (
-       ((INTPTR)seseRec) + 
-       seseRec->offsetToDepSESErecords +
-       (sizeof(INTPTR)*prevIdx)
-      );
-       
-    if(prevSESE!=NULL){
-      struct garbagelist * prevgl=(struct garbagelist *)&(((SESEcommon*)(prevSESE))[1]);
-      while(prevgl!=NULL) {
-	int i;
-	for(i=0; i<prevgl->size; i++) {
-	  void * orig=prevgl->array[i];
-	  ENQUEUE(orig, prevgl->array[i]);
-	}
-	prevgl=prevgl->next;
-      } 
-    }
-  }
-  
- }
-#endif
 
 int within(void *ptr){ //debug function
   if(ptr>curr_heapptr || ptr<curr_heapbase){

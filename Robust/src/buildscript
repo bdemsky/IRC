@@ -1242,6 +1242,7 @@ $ROBUSTROOT/Runtime/file.c $ROBUSTROOT/Runtime/Queue.c \
 $ROBUSTROOT/Runtime/SimpleHash.c $ROBUSTROOT/Runtime/option.c \
 $ROBUSTROOT/Runtime/ObjectHash.c \
 $ROBUSTROOT/Runtime/garbage.c $ROBUSTROOT/Runtime/socket.c \
+$ROBUSTROOT/Runtime/taskgarbage.c $ROBUSTROOT/Runtime/oojgarbage.c \
 $ROBUSTROOT/Runtime/math.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
 

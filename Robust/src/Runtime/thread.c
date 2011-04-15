@@ -286,6 +286,10 @@ void initializethreads() {
   litem.prev=NULL;
   litem.next=list;
   litem.lvector=&lvector;
+#ifdef JNI
+  litem.jnirefs=&jnirefs;
+  jnirefs=NULL;
+#endif
   lvector.index=0;
   if(list!=NULL)
     list->prev=&litem;
@@ -330,6 +334,10 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_setspecific(memorybasekey, &memorybase);
   pthread_setspecific(memorytopkey, &memorytop);
   pthread_setspecific(threadlocks, &lvector);
+#endif
+#ifdef JNI
+  litem.jnirefs=&jnirefs;
+  jnirefs=NULL;
 #endif
   litem.lvector=&lvector;
   lvector.index=0;
