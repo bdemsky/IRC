@@ -1,2 +1,4 @@
-1) Make typecasts really work
-2) Logical xor's
+1) Compile of OOO raytracer sometimes problematic
+2) Tracking --- seg fault with OOO
+3) Speedup variable analysis --- don't analyze methods w/o seses...
+4) SOR -- validation failure for OOO (SOR had same bug...stall site for validation...first access is just to read length...)

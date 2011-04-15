@@ -143,20 +143,7 @@ public class BuildCode {
     /* Output Structures */
     outputStructs(outstructs);
 
-    // Output the C class declarations
-    // These could mutually reference each other
-
-    outglobaldefs.println("#ifndef __GLOBALDEF_H_");
-    outglobaldefs.println("#define __GLOBALDEF_H_");
-    outglobaldefs.println("");
-    outglobaldefs.println("struct global_defs_t {");
-    outglobaldefs.println("  int size;");
-    outglobaldefs.println("  void * next;");
-    outglobaldefs.println("  struct ArrayObject * classobjs;");
-    outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
-    outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
-    outglobaldefsprim.println("");
-    outglobaldefsprim.println("struct global_defsprim_t {");
+    initOutputGlobals(outglobaldefs, outglobaldefsprim);
 
     outclassdefs.println("#ifndef __CLASSDEF_H_");
     outclassdefs.println("#define __CLASSDEF_H_");
@@ -172,20 +159,8 @@ public class BuildCode {
     outclassdefs.println("#include \"globaldefsprim.h\"");
     outclassdefs.println("#endif");
     outclassdefs.close();
-    
-    outglobaldefs.println("};");
-    outglobaldefs.println("");
-    outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
-    outglobaldefs.println("#endif");
-    outglobaldefs.flush();
-    outglobaldefs.close();
 
-    outglobaldefsprim.println("};");
-    outglobaldefsprim.println("");
-    outglobaldefsprim.println("extern struct global_defsprim_t * global_defsprim_p;");
-    outglobaldefsprim.println("#endif");
-    outglobaldefsprim.flush();
-    outglobaldefsprim.close();
+    finalOutputGlobals(outglobaldefs, outglobaldefsprim);
 
     if (state.TASK) {
       /* Map flags to integers */
@@ -203,7 +178,6 @@ public class BuildCode {
       outputTaskTypes(outtask);
     }
 
-
     // an opportunity for subclasses to do extra
     // initialization
     preCodeGenInitialization();
@@ -214,10 +188,7 @@ public class BuildCode {
     State.logEvent("End outputMethods");
 
     // opportunity for subclasses to gen extra code
-    additionalCodeGen(outmethodheader,
-                      outstructs,
-                      outmethod);
-
+    additionalCodeGen(outmethodheader, outstructs, outmethod);
 
     if (state.TASK) {
       /* Output code for tasks */
@@ -249,10 +220,40 @@ public class BuildCode {
     outstructs.println("#endif");
     outstructs.close();
 
-
-
     postCodeGenCleanUp();
     State.logEvent("End of buildCode");
+  }
+
+  protected void initOutputGlobals(PrintWriter outglobaldefs, PrintWriter outglobaldefsprim) {
+    // Output the C class declarations
+    // These could mutually reference each other
+    outglobaldefs.println("#ifndef __GLOBALDEF_H_");
+    outglobaldefs.println("#define __GLOBALDEF_H_");
+    outglobaldefs.println("");
+    outglobaldefs.println("struct global_defs_t {");
+    outglobaldefs.println("  int size;");
+    outglobaldefs.println("  void * next;");
+    outglobaldefs.println("  struct ArrayObject * classobjs;");
+    outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
+    outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
+    outglobaldefsprim.println("");
+    outglobaldefsprim.println("struct global_defsprim_t {");
+  }
+
+  protected void finalOutputGlobals(PrintWriter outglobaldefs, PrintWriter outglobaldefsprim) {
+    outglobaldefs.println("};");
+    outglobaldefs.println("");
+    outglobaldefs.println("extern struct global_defs_t * global_defs_p;");
+    outglobaldefs.println("#endif");
+    outglobaldefs.flush();
+    outglobaldefs.close();
+
+    outglobaldefsprim.println("};");
+    outglobaldefsprim.println("");
+    outglobaldefsprim.println("extern struct global_defsprim_t * global_defsprim_p;");
+    outglobaldefsprim.println("#endif");
+    outglobaldefsprim.flush();
+    outglobaldefsprim.close();
   }
 
   /* This method goes though the call graph and tag those methods that are
@@ -1428,25 +1429,20 @@ public class BuildCode {
       fieldorder.put(cn,fields);
 
       Vector fieldvec=cn.getFieldVec();
+      fldloop:
       for(int i=0; i<fieldvec.size(); i++) {
 	FieldDescriptor fd=(FieldDescriptor)fieldvec.get(i);
 	if((sp != null) && sp.getFieldTable().contains(fd.getSymbol())) {
 	  // a shadow field
 	} else {
 	  it_sifs = sitbl.getDescriptorsIterator();
-	  boolean hasprinted = false;
 	  while(it_sifs.hasNext()) {
 	    ClassDescriptor si = (ClassDescriptor)it_sifs.next();
 	    if(si.getFieldTable().contains(fd.getSymbol())) {
-	      hasprinted = true;
-	      break;
+	      continue fldloop;
 	    }
 	  }
-	  if(hasprinted) {
-	    // this field has been defined in the super class
-	  } else {
-	    fields.add(fd);
-	  }
+	  fields.add(fd);
 	}
       }
     }

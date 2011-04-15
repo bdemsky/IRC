@@ -107,6 +107,7 @@ echo SSJava options
 echo -ssjava enables SSJava
 echo
 echo Other options
+echo -jni enable jni
 echo -abcclose turnoff array boundary checks
 echo -builddir setup different build directory
 echo -robustroot set up the ROBUSTROOT to directory other than default one
@@ -154,6 +155,7 @@ echo -help help
 }
 
 tmpbuilddirectory="tmpbuilddirectory"
+JNI=false
 SRCAFTERPP=false;
 COREPROF=false;
 NUMA=false;
@@ -252,7 +254,10 @@ if [[ $1 = '-help' ]]
 then
 printhelp
 exit
-
+elif [[ $1 = '-jni' ]]
+then
+JNI=true
+JAVAOPTS="$JAVAOPTS -jni"
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true

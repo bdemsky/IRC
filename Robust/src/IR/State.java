@@ -68,6 +68,7 @@ public class State {
 
   /** Boolean flag which indicates whether compiler is compiling a task-based
    * program. */
+  public boolean JNI=false;
   public boolean POINTER=false;
   public boolean COREPROF=false;
   public boolean WEBINTERFACE=false;
