@@ -932,9 +932,6 @@ cp ../Runtime/*.c ./
 cp ../Runtime/*.h ./
 cp ../Runtime/*.S ./
 cp ../Runtime/*.s ./
-#mkdir ./coreprof
-#cp ../Runtime/coreprof/*.c ./coreprof/
-#cp ../Runtime/coreprof/*.h ./coreprof/
 cp $BAMBOORUNTIME/*.c ./
 cp $BAMBOORUNTIME/*.h ./
 cp $BAMBOORUNTIME/RAW/*.c ./
@@ -1185,9 +1182,6 @@ cp ../Runtime/ObjectHash.h ./
 cp ../Runtime/Queue.h ./
 cp ../Runtime/runtime.h ./
 cp ../Runtime/SimpleHash.h ./
-mkdir ./coreprof
-cp ../Runtime/coreprof/coreprof.c ./coreprof/
-cp ../Runtime/coreprof/coreprof.h ./coreprof/
 cp $BAMBOORUNTIME/multicoretask.c ./
 cp $BAMBOORUNTIME/multicoreruntime.c ./
 cp $BAMBOORUNTIME/multicoremem.c ./

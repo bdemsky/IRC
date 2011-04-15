@@ -1217,7 +1217,7 @@ NextMethod:
 	continue;
       for(int i=0; i<min.numArgs(); i++) {
 	if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
-	  if(((!tdarray[i].isArray() &&( tdarray[i].isInt() || tdarray[i].isLong())) 
+	  if(((!tdarray[i].isArray() &&(tdarray[i].isInt() || tdarray[i].isLong())) 
 	      && currmd.getParamType(i).isClass() && currmd.getParamType(i).getClassDesc().getSymbol().equals("Object"))) {
 	    // primitive parameters vs object
 	  } else {

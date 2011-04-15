@@ -134,6 +134,8 @@ public class TypeDescriptor extends Descriptor {
       return "short";
     else if (isShort())
       return "short";
+    else if (isEnum())
+      return "int";
     else if (isInt())
       return "int";
     else if (isBoolean())     //Booleans are ints in C
@@ -163,6 +165,8 @@ public class TypeDescriptor extends Descriptor {
       return "short";
     else if (isShort())
       return "short";
+    else if (isEnum())
+      return "int";
     else if (isInt())
       return "int";
     else if (isBoolean())     //Booleans are ints in C
@@ -245,7 +249,7 @@ public class TypeDescriptor extends Descriptor {
   }
 
   public boolean isPtr() {
-    return ((isClass()&&!isEnum())||isNull()||isTag()||isArray());
+    return (isClass()||isNull()||isTag()||isArray());
   }
 
   public boolean isIntegerType() {
@@ -257,7 +261,7 @@ public class TypeDescriptor extends Descriptor {
   }
 
   public boolean isPrimitive() {
-    return ((type>=BYTE)&&(type<=DOUBLE));
+    return (((type>=BYTE)&&(type<=DOUBLE)) || isEnum());
   }
 
   public boolean isEnum() {
@@ -270,7 +274,7 @@ public class TypeDescriptor extends Descriptor {
   }
   
   public boolean isClass() {
-    return type==CLASS;
+    return (type==CLASS && !isEnum());
   }
 
   public boolean isTag() {

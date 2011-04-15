@@ -152,6 +152,7 @@ public class BuildCode {
     outglobaldefs.println("struct global_defs_t {");
     outglobaldefs.println("  int size;");
     outglobaldefs.println("  void * next;");
+    outglobaldefs.println("  struct ArrayObject * classobjs;");
     outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("");
@@ -318,19 +319,25 @@ public class BuildCode {
    * getClass() method.
    * */
   protected void outputClassObjects(PrintWriter outmethod) {
-    // for each class, initialize its Class object
-    SymbolTable ctbl = this.state.getClassSymbolTable();
-    for(Iterator it_classes = ctbl.getDescriptorsIterator();it_classes.hasNext();) {
-      ClassDescriptor t_cd = (ClassDescriptor)it_classes.next();
-      outmethod.println(" {");
-
-      if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
-	outmethod.println("    struct garbagelist dummy={0,NULL};");
-	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new(&dummy, " + typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
-      } else 
-	outmethod.println("    global_defs_p->"+t_cd.getSafeSymbol()+"classobj = allocate_new("+typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
-      outmethod.println(" }");
+    // create a global classobj array
+    outmethod.println(" {");
+    outmethod.println("    int i = 0;");
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    outmethod.println("    struct garbagelist dummy={0,NULL};");
+    outmethod.println("    global_defs_p->classobjs = allocate_newarray(&dummy, OBJECTARRAYTYPE, "  
+        + (state.numClasses()+state.numArrays()+state.numInterfaces()) + ");");
+    } else {
+    outmethod.println("    global_defs_p->classobjs = allocate_newarray(OBJECTARRAYTYPE, "
+        + (state.numClasses()+state.numArrays()+state.numInterfaces()) + ");");
     }
+    outmethod.println("    for(i = 0; i < " + (state.numClasses()+state.numArrays()+state.numInterfaces()) + "; i++) {");
+    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+      outmethod.println("        ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[i] = allocate_new(NULL, " +typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
+    } else {
+      outmethod.println("        ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[i] = allocate_new(" +typeutil.getClass(TypeUtil.ObjectClass).getId() + ");");
+    }
+    outmethod.println("    }");
+    outmethod.println(" }");
   }
 
   /* This code just generates the main C method for java programs.
@@ -595,10 +602,6 @@ public class BuildCode {
 	// static blocks have been executed
 	outglobaldefsprim.println("  int "+cn.getSafeSymbol()+"static_block_exe_flag;");
       }
-      
-      // for each class, create a global object
-      outglobaldefs.println("  struct ___Object___ *"+cn.getSafeSymbol()+"classobj;");
-      globaldefscount++;
     }
     outclassdefs.println("");
     //Print out definition for array type
@@ -2376,7 +2379,7 @@ public class BuildCode {
       // call MonitorEnter/MonitorExit on a class obj
       if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
         output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"_params __parameterlist__={");
-        output.println("1," + localsprefixaddr + ", global_defs_p->"+ fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj};");
+        output.println("1," + localsprefixaddr + ", ((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" + fc.getThis().getType().getClassDesc().getId() + "]};");
         if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
           output.println("     "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+md.getSafeMethodDescriptor()+"(& __parameterlist__, monitorenterline);");
         } else {
@@ -2384,8 +2387,8 @@ public class BuildCode {
         }
       } else {
       output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-		     + md.getSafeMethodDescriptor() + "((struct ___Object___*)(global_defs_p->"
-		     + fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj));");
+		     + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" 
+             + fc.getThis().getType().getClassDesc().getId() + "]));");
       }
       output.println("}");
       return;

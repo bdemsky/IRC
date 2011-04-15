@@ -310,10 +310,6 @@ NextMethod:
   }
 
   public boolean isSuperorType(TypeDescriptor possiblesuper, TypeDescriptor cd2) {
-    if(possiblesuper.isClass() && possiblesuper.class_desc.isEnum() && cd2.isInt()) {
-      return true;
-    }
-
     if (possiblesuper.isOffset() || cd2.isOffset()) return true;
     //Matching type are always okay
     if (possiblesuper.equals(cd2))
@@ -371,8 +367,14 @@ NextMethod:
                          possiblesuper.isFloat()||possiblesuper.isDouble()))
 	return true;
       if (cd2.isInt()&&(possiblesuper.isInt()||possiblesuper.isLong()||
-                        possiblesuper.isFloat()||possiblesuper.isDouble()))
+                        possiblesuper.isFloat()||possiblesuper.isDouble()
+                        ||possiblesuper.isEnum()))
 	return true;
+      if (cd2.isEnum()&&(possiblesuper.isInt()||possiblesuper.isLong()||
+                         possiblesuper.isFloat()||possiblesuper.isDouble()))
+        return true;
+      if(cd2.isEnum()&&possiblesuper.isEnum()&&cd2.class_desc.equals(possiblesuper.class_desc))
+        return true;
       if (cd2.isLong()&&(possiblesuper.isLong()||
                          possiblesuper.isFloat()||possiblesuper.isDouble()))
 	return true;
