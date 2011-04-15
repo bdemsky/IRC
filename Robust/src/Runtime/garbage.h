@@ -26,6 +26,9 @@ struct listitem {
 #ifdef THREADS
   struct lockvector * lvector;
 #endif
+#ifdef JNI
+  struct jnireferences ** jnirefs;
+#endif
 #ifdef STM
   unsigned int tc_size;
   cliststruct_t **tc_structs;

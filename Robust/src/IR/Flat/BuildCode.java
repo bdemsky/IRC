@@ -1831,7 +1831,7 @@ public class BuildCode {
     ClassDescriptor cd=md.getClassDesc();
     generateHeader(fm, md, outmethod);
     int startindex=0;
-    
+    outmethod.println("JNIPUSHFRAME();");    
     if (md.getModifiers().isStatic()) {
       outmethod.println("jobject rec=JNIWRAP(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" + cd.getId() + "]);");
     } else {
@@ -1874,10 +1874,10 @@ public class BuildCode {
     if (md.getReturnType()!=null) {
       if (md.getReturnType().isPtr()) {
 	outmethod.println("struct ___Object___ * retobj=JNIUNWRAP(retval);");
-	outmethod.println("JNIclearstack();");
+	outmethod.println("JNIPOPFRAME();");
 	outmethod.println("return retobj;");
       } else {
-	outmethod.println("JNIclearstack();");
+	outmethod.println("JNIPOPFRAME();");
 	outmethod.println("return retval;");
       }
     }

@@ -18,6 +18,29 @@ struct jfieldID {
   char *fieldname;
 };
 
+struct _jobject {
+  void * ref;
+};
+
+#define MAXJNIREFS 2048
+struct jnireferences {
+  struct jnireferences * next;
+  int index
+  struct _jobject array[MAXJNIREFS];
+};
+
+#ifndef MAC
+struct _jobject * getwrapped(void * objptr);
+void jnipushframe();
+void jnipopframe();
+
+extern __thread struct jnireferences * jnirefs;
+#define JNIUNWRAP(x) ((x==NULL)?NULL:x->ref)
+#define JNIWRAP(x) getwrapper(x);
+#define JNIPUSHFRAME() jnipushframe();
+#define JNIPOPFRAME() jnipopframe();
+#endif
+
 jint RC_GetVersion(JNIEnv *);
 jclass RC_DefineClass(JNIEnv * env, const char * c, jobject loader, const jbyte * buf, jsize bufLen);
 jclass RC_FindClass(JNIEnv * env, const char *classname);

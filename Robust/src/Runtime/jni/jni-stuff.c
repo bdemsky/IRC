@@ -1,6 +1,28 @@
 #include<jni.h>
 #include<jni-private.h>
 
+#ifndef MAC
+struct _jobject * getwrapped(void * objptr) {
+  if ((jnirefs->index)>=MAXJNIREFS)
+    printf("OVERFLOW IN JOBJECT\n");
+  struct _jobject *ptr=&jnirefs->array[jnirefs->index++];
+  ptr->ref=objptr;
+  return ptr;
+}
+
+void jnipushframe() {
+  struct jnireferences *ptr=calloc(1, sizeof(struct jnireferences));
+  ptr->next=jnirefs;
+  jnirefs=ptr;
+}
+
+void jnipopframe() {
+  struct jnireferences *ptr=jnirefs;
+  jnirefs=ptr->next;
+  free(ptr);
+}
+#endif
+
 jint RC_GetVersion(JNIEnv * env) {
   return JNI_VERSION_1_1;
 }
