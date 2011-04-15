@@ -1586,9 +1586,9 @@ public class BuildCodeTran extends BuildCode {
       }
       if((md.getSymbol().equals("MonitorEnter") || md.getSymbol().equals("MonitorExit")) && fc.getThis().getSymbol().equals("classobj")) {
 	// call MonitorEnter/MonitorExit on a class obj
-	output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
-	               +md.getSafeMethodDescriptor() + "((struct ___Object___*)(&global_defs_p->"
-	               + fc.getThis().getType().getClassDesc().getSafeSymbol() +"classobj));");
+    output.println("       " + cn.getSafeSymbol()+md.getSafeSymbol()+"_"
+         + md.getSafeMethodDescriptor() + "((struct ___Object___*)(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" 
+        + fc.getThis().getType().getClassDesc().getId() + "]));");
 	return;
       }
     }

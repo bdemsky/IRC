@@ -958,8 +958,8 @@ INLINE int checkMsgLength_I(int size) {
   case TERMINATE:
 #ifdef MULTICORE_GC
   case GCSTARTPRE:
-  case GCSTARTINIT:
   case GCSTART:
+  case GCSTARTINIT:
   case GCSTARTFLUSH:
   case GCFINISH:
   case GCMARKCONFIRM:

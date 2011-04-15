@@ -67,7 +67,7 @@ error:
 
 #ifdef TASK
 #ifdef D___Socket______nativeBindFD____I
-int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ * ___this___, int ___fd___) {
+void CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ * ___this___, int ___fd___) {
 #ifdef MULTICORE
 #else
   if (RuntimeHashcontainskey(fdtoobject, ___fd___))
@@ -75,7 +75,7 @@ int CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ *
   RuntimeHashadd(fdtoobject, ___fd___, (int) VAR(___this___));
   addreadfd(___fd___);
 #endif
-  return 0;
+  //return 0;
 }
 #endif
 #endif

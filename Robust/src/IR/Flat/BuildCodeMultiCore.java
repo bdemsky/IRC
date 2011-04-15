@@ -158,6 +158,7 @@ public class BuildCodeMultiCore extends BuildCode {
     outglobaldefs.println("struct global_defs_t {");
     outglobaldefs.println("  int size;");
     outglobaldefs.println("  void * next;");
+    outglobaldefs.println("  struct ArrayObject * classobjs;");
 
     outglobaldefsprim.println("#ifndef __GLOBALDEFPRIM_H_");
     outglobaldefsprim.println("#define __GLOBALDEFPRIM_H_");
