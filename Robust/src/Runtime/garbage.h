@@ -9,6 +9,12 @@
 
 #define NUMPTRS 100
 
+struct pointerblock {
+  void * ptrs[NUMPTRS];
+  struct pointerblock *next;
+};
+
+
 struct garbagelist {  
   int size;
   struct garbagelist *next;  

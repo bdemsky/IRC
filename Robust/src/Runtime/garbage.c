@@ -106,11 +106,6 @@ __thread struct listitem litem;
 #endif
 
 
-struct pointerblock {
-  void * ptrs[NUMPTRS];
-  struct pointerblock *next;
-};
-
 void * curr_heapbase=0;
 void * curr_heapptr=0;
 void * curr_heapgcpoint=0;
