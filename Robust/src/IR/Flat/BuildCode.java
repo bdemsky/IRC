@@ -193,6 +193,7 @@ public class BuildCode {
       /* Output code for tasks */
       outputTaskCode(outtaskdefs, outmethod);
       outtaskdefs.close();
+      outtask.close();
       /* Record maximum number of task parameters */
       outstructs.println("#define MAXTASKPARAMS "+maxtaskparams);
     } else if (state.main!=null) {
@@ -204,6 +205,7 @@ public class BuildCode {
     if (state.TASK&&state.OPTIONAL) {
       generateOptionalArrays(outoptionalarrays, optionalheaders, state.getAnalysisResult(), state.getOptionalTaskDescriptors());
       outoptionalarrays.close();
+      optionalheaders.close();
     }
 
     /* Output structure definitions for repair tool */
@@ -631,6 +633,7 @@ public class BuildCode {
     }
     if (state.TASK) {
       outclassdefs.println("  int flag;");
+      outclassdefs.println("  int ___cachedCode___;");
       if(!state.MULTICORE) {
 	outclassdefs.println("  void * flagptr;");
       } else {
@@ -1563,6 +1566,7 @@ public class BuildCode {
     }
     if (state.TASK) {
       classdefout.println("  int flag;");
+      classdefout.println("  int ___cachedCode___;");
       if((!state.MULTICORE) || (cn.getSymbol().equals("TagDescriptor"))) {
 	classdefout.println("  void * flagptr;");
       } else if (state.MULTICORE) {
