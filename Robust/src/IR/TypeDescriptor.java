@@ -186,7 +186,7 @@ public class TypeDescriptor extends Descriptor {
     //Can't safely use [ in C
     if (isArray())
       return "_AR_"+this.dereference().getSafeDescriptor();
-    else if (isClass())
+    else if (isClass()||isEnum())
       return class_desc.getSafeDescriptor();
     else if (isByte())
       return "B";
@@ -206,7 +206,7 @@ public class TypeDescriptor extends Descriptor {
       return "F";
     else if (isTag())
       return "T";
-    else throw new Error();
+    else throw new Error(toString());
   }
 
   public boolean isNumber() {
