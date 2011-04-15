@@ -133,6 +133,15 @@ jobject RC_NewObjectA(JNIEnv * env, jclass cls, jmethodID mid, const jvalue * va
   return NULL;
 }
 
+jobject RC_GetObjectArrayElement(JNIEnv * env, jobjectArray array, jsize size) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return NULL;
+}
+
+void RC_SetObjectArrayElement(JNIEnv * env, jobjectArray array, jsize size, jobject obj) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+}
+
 jclass RC_GetObjectClass(JNIEnv * env, jobject obj) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
   return NULL;
@@ -180,12 +189,12 @@ jmethodID RC_GetMethodID(JNIEnv * env, jclass cls, const char * str1, const char
     return (R)0;							\
   }									
 
-#define GETFIELD(R, T) R Get ## T ## Field(JNIEnv *env, jobject obj, jfieldID fld) { \
+#define GETFIELD(R, T) R RC_Get ## T ## Field(JNIEnv *env, jobject obj, jfieldID fld) { \
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
     return (R)0;							\
   }
 
-#define SETFIELD(R, T) void Set ## T ## Field(JNIEnv *env, jobject obj, jfieldID fld, R src) { \
+#define SETFIELD(R, T) void RC_Set ## T ## Field(JNIEnv *env, jobject obj, jfieldID fld, R src) { \
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
   }
 
@@ -228,11 +237,11 @@ jmethodID RC_GetMethodID(JNIEnv * env, jclass cls, const char * str1, const char
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
   }
 
-#define GETARRAYREGION(R, T) void Get ## T ## ArrayRegion(JNIEnv *env, R ## Array array, jsize size1, jsize size2, R * ptr) { \
+#define GETARRAYREGION(R, T) void RC_Get ## T ## ArrayRegion(JNIEnv *env, R ## Array array, jsize size1, jsize size2, R * ptr) { \
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
   }
 
-#define SETARRAYREGION(R, T) void Set ## T ## ArrayRegion(JNIEnv *env, R ## Array array, jsize size1, jsize size2, const R * ptr) { \
+#define SETARRAYREGION(R, T) void RC_Set ## T ## ArrayRegion(JNIEnv *env, R ## Array array, jsize size1, jsize size2, const R * ptr) { \
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
   }
 
@@ -291,7 +300,7 @@ void RC_CallVoidMethodA(JNIEnv * env, jobject obj, jmethodID mid, const jvalue *
 void RC_CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jmethodID mid, ...) {
   va_list va;							       
   va_start(va, mid);							
-  RC_CallVoidMethodV(env, obj, mid, va);			
+  RC_CallNonvirtualVoidMethodV(env, obj, mid, va);			
 }
 
 void RC_CallNonvirtualVoidMethodV(JNIEnv * env, jobject obj, jmethodID mid, va_list va) {
@@ -299,6 +308,20 @@ void RC_CallNonvirtualVoidMethodV(JNIEnv * env, jobject obj, jmethodID mid, va_l
 }									
 
 void RC_CallNonvirtualVoidMethodA(JNIEnv * env, jobject obj, jmethodID mid, const jvalue * valarray) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+}									
+
+void RC_CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID mid, ...) {
+  va_list va;							       
+  va_start(va, mid);							
+  RC_CallStaticVoidMethodV(env, obj, mid, va);			
+}
+
+void RC_CallStaticVoidMethodV(JNIEnv * env, jclass cls, jmethodID mid, va_list va) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);				
+}									
+
+void RC_CallStaticVoidMethodA(JNIEnv * env, jclass cls, jmethodID mid, const jvalue * valarray) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
 }									
 
@@ -338,6 +361,49 @@ jint RC_MonitorExit(JNIEnv * env, jobject obj) {
 }
 
 jint RC_GetJavaVM(JNIEnv * env, JavaVM ** jvm) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return 0;
+}
+
+jstring  RC_NewString(JNIEnv * env, const jchar * str, jsize size) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return NULL;
+}
+
+jsize RC_GetStringLength(JNIEnv *env, jstring str) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return 0;
+}
+
+const jchar * RC_GetStringChars(JNIEnv * env, jstring str, jboolean * flag) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return NULL;
+}
+
+void RC_ReleaseStringChars(JNIEnv * env, jstring str, const jchar * str2) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+}
+
+jstring RC_NewStringUTF(JNIEnv * env, const char *str) 
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return NULL;
+}
+
+jsize RC_GetStringUTFLength(JNIEnv * env, jstring str) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return 0;
+}
+
+const char * RC_GetStringUTFChars(JNIEnv * env, jstring str, jboolean * flag) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return NULL;
+}
+
+void RC_ReleaseStringUTFChars(JNIEnv * env, jstring str, const char * str2) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+}
+
+jsize RC_GetArrayLength(JNIEnv * env, jarray array) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
   return 0;
 }

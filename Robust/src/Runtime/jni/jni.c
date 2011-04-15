@@ -1,7 +1,7 @@
 #include <jni.h>
 #include <jni-private.h>
 
-struct JNINativeInterface JNI_vtable = {
+struct JNINativeInterface_ JNI_vtable = {
   NULL, //void *reserved0;
   NULL, //void *reserved1;
   NULL, //void *reserved2;
@@ -10,7 +10,7 @@ struct JNINativeInterface JNI_vtable = {
   RC_DefineClass, //jclass   (JNICALL *DefineClass)                  (JNIEnv *, const char *, jobject, const jbyte *, jsize);
   RC_FindClass, //jclass   (JNICALL *FindClass)                    (JNIEnv *, const char *);
   RC_FromReflectedMethod, // jmethodID (JNICALL *FromReflectedMethod)	   (JNIEnv *, jobject);
-  RC_FromRefectedField, //jfieldID  (JNICALL *FromReflectedField)	   (JNIEnv *, jobject);
+  RC_FromReflectedField, //jfieldID  (JNICALL *FromReflectedField)	   (JNIEnv *, jobject);
   RC_ToReflectedMethod, //jobject   (JNICALL *ToReflectedMethod)	   (JNIEnv *, jclass, jmethodID, jboolean);
   RC_GetSuperclass, // jclass   (JNICALL *GetSuperclass)                (JNIEnv *, jclass);
   RC_IsAssignableFrom, //jboolean (JNICALL *IsAssignableFrom)             (JNIEnv *, jclass, jclass);
@@ -66,9 +66,9 @@ struct JNINativeInterface JNI_vtable = {
   RC_CallVoidMethod, //void  (JNICALL *CallVoidMethod)	   (JNIEnv *, jobject, jmethodID, ...);
   RC_CallVoidMethodV, //void  (JNICALL *CallVoidMethodV)	   (JNIEnv *, jobject, jmethodID,                                            va_list);
   RC_CallVoidMethodA, //void  (JNICALL *CallVoidMethodA)	   (JNIEnv *, jobject, jmethodID,                                            const jvalue *);
-  RC_CallNonVirtualObjectMethod,// jobject   (JNICALL *CallNonvirtualObjectMethod)  (JNIEnv *, jobject, jclass,                                                    jmethodID, ...);
-  RC_CallNonVirtualObjectMethodV, //jobject   (JNICALL *CallNonvirtualObjectMethodV) (JNIEnv *, jobject, jclass,		            jmethodID, va_list);
-  RC_CallNonVirtualObjectMethodA, //jobject   (JNICALL *CallNonvirtualObjectMethodA) (JNIEnv *, jobject, jclass,					            jmethodID, const jvalue *);
+  RC_CallNonvirtualObjectMethod,// jobject   (JNICALL *CallNonvirtualObjectMethod)  (JNIEnv *, jobject, jclass,                                                    jmethodID, ...);
+  RC_CallNonvirtualObjectMethodV, //jobject   (JNICALL *CallNonvirtualObjectMethodV) (JNIEnv *, jobject, jclass,		            jmethodID, va_list);
+  RC_CallNonvirtualObjectMethodA, //jobject   (JNICALL *CallNonvirtualObjectMethodA) (JNIEnv *, jobject, jclass,					            jmethodID, const jvalue *);
   RC_CallNonvirtualBooleanMethod,//jboolean  (JNICALL *CallNonvirtualBooleanMethod) (JNIEnv *, jobject, jclass,					            jmethodID, ...);
   RC_CallNonvirtualBooleanMethodV, // jboolean  (JNICALL *CallNonvirtualBooleanMethodV) (JNIEnv *, jobject, jclass,					             jmethodID, va_list);
   RC_CallNonvirtualBooleanMethodA, // jboolean  (JNICALL *CallNonvirtualBooleanMethodA) (JNIEnv *, jobject, jclass,					             jmethodID, const jvalue *);
