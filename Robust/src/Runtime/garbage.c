@@ -378,9 +378,6 @@ void searchglobalroots() {
 #endif
 }
 
-
-
-
 void searchstack(struct garbagelist *stackptr) {
   while(stackptr!=NULL) {
     int i;
@@ -405,7 +402,6 @@ void searchjnitable(struct jnireferences *jniptr) {
   } 
 }
 #endif
-
 
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
 void searchthreadroots(struct garbagelist * stackptr) {
@@ -455,14 +451,12 @@ void searchthreadroots(struct garbagelist * stackptr) {
 }
 #endif
 
-
 void searchroots(struct garbagelist * stackptr) {
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
   searchthreadroots(stackptr);
 #else
   searchstack(stackptr);
 #endif
-
 #ifdef FASTCHECK
   ENQUEUE(___fcrevert___, ___fcrevert___);
 #endif
@@ -474,7 +468,6 @@ void searchroots(struct garbagelist * stackptr) {
   searchoojroots();
 #endif
 }
-
 
 void collect(struct garbagelist * stackptr) {
   doinitstuff();
@@ -554,7 +547,6 @@ void collect(struct garbagelist * stackptr) {
   pthread_mutex_unlock(&gclistlock);
 #endif
 }
-
 
 void * tomalloc(int size) {
   void * ptr=to_heapptr;

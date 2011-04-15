@@ -1994,7 +1994,7 @@ public class BuildCode {
       }
     }
 
-    if(fm.getMethod().isStaticBlock()) {
+    if(fm.getMethod()!=null&&fm.getMethod().isStaticBlock()) {
       // a static block, check if it has been executed
       output.println("  if(global_defsprim_p->" + cn.getSafeSymbol()+"static_block_exe_flag != 0) {");
       output.println("    return;");
