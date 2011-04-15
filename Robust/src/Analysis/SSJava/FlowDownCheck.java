@@ -25,7 +25,6 @@ import IR.Tree.AssignmentNode;
 import IR.Tree.BlockExpressionNode;
 import IR.Tree.BlockNode;
 import IR.Tree.BlockStatementNode;
-import IR.Tree.ContinueBreakNode;
 import IR.Tree.CreateObjectNode;
 import IR.Tree.DeclarationNode;
 import IR.Tree.ExpressionNode;
@@ -46,10 +45,9 @@ public class FlowDownCheck {
   static State state;
   HashSet toanalyze;
   Hashtable<TypeDescriptor, Location> td2loc; // mapping from 'type descriptor'
-  // to 'location'
+                                              // to 'location'
   Hashtable<String, ClassDescriptor> id2cd; // mapping from 'locID' to 'class
-
-  // descriptor'
+                                            // descriptor'
 
   public FlowDownCheck(State state) {
     this.state = state;
@@ -329,11 +327,8 @@ public class FlowDownCheck {
     condLoc = checkLocationFromExpressionNode(md, nametable, isn.getCondition(), condLoc);
     glbInputSet.add(condLoc);
 
-    System.out.println(isn.getCondition().printNode(0) + ":::condLoc=" + condLoc);
-
     CompositeLocation locTrueBlock = checkLocationFromBlockNode(md, nametable, isn.getTrueBlock());
     glbInputSet.add(locTrueBlock);
-    System.out.println(isn.getTrueBlock().printNode(0) + ":::trueLoc=" + locTrueBlock);
 
     // here, the location of conditional block should be higher than the
     // location of true/false blocks
@@ -702,7 +697,7 @@ public class FlowDownCheck {
   private CompositeLocation checkLocationFromAssignmentNode(MethodDescriptor md,
       SymbolTable nametable, AssignmentNode an, CompositeLocation loc) {
 
-    ClassDescriptor localCD = md.getClassDesc();
+    ClassDescriptor cd = md.getClassDesc();
 
     boolean postinc = true;
     if (an.getOperation().getBaseOp() == null
@@ -711,16 +706,27 @@ public class FlowDownCheck {
       postinc = false;
 
     CompositeLocation destLocation =
-        checkLocationFromExpressionNode(md, nametable, an.getDest(), new CompositeLocation(localCD));
+        checkLocationFromExpressionNode(md, nametable, an.getDest(), new CompositeLocation(cd));
 
-    CompositeLocation srcLocation = new CompositeLocation(localCD);
+    CompositeLocation srcLocation = new CompositeLocation(cd);
     if (!postinc) {
-      srcLocation = new CompositeLocation(localCD);
+      srcLocation = new CompositeLocation(cd);
       srcLocation = checkLocationFromExpressionNode(md, nametable, an.getSrc(), srcLocation);
-      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, localCD)) {
+
+      if (!CompositeLattice.isGreaterThan(srcLocation, destLocation, cd)) {
         throw new Error("The value flow from " + srcLocation + " to " + destLocation
             + " does not respect location hierarchy on the assignment " + an.printNode(0));
       }
+    } else {
+      destLocation =
+          srcLocation = checkLocationFromExpressionNode(md, nametable, an.getDest(), srcLocation);
+
+      if (!((Set<String>) state.getCd2LocationPropertyMap().get(cd)).contains(destLocation
+          .getLocation(cd).getLocIdentifier())) {
+        throw new Error("Location " + destLocation + " is not allowed to have spinning values at "
+            + cd.getSourceFileName() + ":" + an.getNumLine());
+      }
+
     }
 
     return destLocation;
@@ -995,6 +1001,13 @@ public class FlowDownCheck {
 
       if (priorityLoc1.getLocIdentifier().equals(priorityLoc2.getLocIdentifier())) {
         // have the same level of local hierarchy
+
+        if (((Set<String>) state.getCd2LocationPropertyMap().get(cd)).contains(priorityLoc1
+            .getLocIdentifier())) {
+          // this location can be spinning
+          return ComparisonResult.GREATER;
+        }
+
       } else if (locationOrder.isGreaterThan(priorityLoc1.getLocIdentifier(),
           priorityLoc2.getLocIdentifier())) {
         // if priority loc of compLoc1 is higher than compLoc2

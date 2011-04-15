@@ -522,6 +522,14 @@ public void parseInitializers(ClassDescriptor cn){
       }
     }
     if(spinLocSet.size()>0){
+      //checking if location is actually defined in the hierarchy
+      for (Iterator iterator = spinLocSet.iterator(); iterator.hasNext();) {
+        String locID = (String) iterator.next();
+        if(!locOrder.containsKey(locID)){
+          throw new Error("Error: The spinning location '"+
+              locID + "' is not defined in the hierarchy of the class '"+cd +"'.");
+        }
+      }
       state.addLocationPropertySet(cd, spinLocSet);
     }
     state.addLocationOrder(cd, locOrder);

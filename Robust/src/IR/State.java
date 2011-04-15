@@ -365,7 +365,7 @@ public class State {
   }
   
   public Hashtable getCd2LocationPropertyMap(){
-    return cd2locationOrderMap;
+    return cd2locationPropertyMap;
   }
   
 }

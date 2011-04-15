@@ -441,13 +441,6 @@ public class Main {
     tu.createFullTable();
     State.logEvent("Done Creating TypeUtil");
 
-    // SSJava
-    if(state.SSJAVA){
-      ssjava.doCheck();
-    }
-    
-
-
     BuildFlat bf=new BuildFlat(state,tu);
     bf.buildFlat();
     State.logEvent("Done Building Flat");
@@ -470,6 +463,13 @@ public class Main {
     }
 
     CallGraph callgraph=state.TASK?new CallGraph(state, tu):new JavaCallGraph(state, tu);
+    
+    // SSJava
+    if(state.SSJAVA){
+      ssjava.doFlowDownCheck();
+      ssjava.doLoopCheck();
+      State.logEvent("Done SSJava Checking");
+    }
 
     if (state.OPTIMIZE) {
       CopyPropagation cp=new CopyPropagation();
