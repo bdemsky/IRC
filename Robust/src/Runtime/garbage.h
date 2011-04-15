@@ -7,6 +7,8 @@
 #include "jni-private.h"
 #endif
 
+#define NUMPTRS 100
+
 struct garbagelist {  
   int size;
   struct garbagelist *next;  
@@ -52,6 +54,8 @@ struct listitem {
 
 #ifdef TASK
 void fixtags();
+extern struct pointerblock *taghead;
+extern int tagindex;
 #endif
 
 #if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)

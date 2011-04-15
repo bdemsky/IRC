@@ -1,5 +1,23 @@
 #include "garbage.h"
+#include "runtime.h"
+#include "structdefs.h"
+#include "SimpleHash.h"
+#include "GenericHashtable.h"
+
 #ifdef TASK
+
+extern struct genhashtable * activetasks;
+extern struct genhashtable * failedtasks;
+extern struct taskparamdescriptor *currtpd;
+extern struct ctable *forward;
+extern struct ctable *reverse;
+extern struct RuntimeHash *fdtoobject;
+
+#ifndef MULTICORE
+extern struct parameterwrapper * objectqueues[NUMCLASSES];
+#endif
+
+
 void searchtaskroots() {
   {
     /* Update objectsets */

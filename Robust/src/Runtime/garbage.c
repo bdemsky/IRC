@@ -37,7 +37,6 @@ extern deque* deques;
 #include "delaycomp.h"
 #endif
 
-#define NUMPTRS 100
 
 #ifndef INITIALHEAPSIZE_MB
 #define INITIALHEAPSIZE_MB (256)
@@ -47,18 +46,6 @@ extern deque* deques;
 #define GCPOINT(x) ((INTPTR)((x)*0.99))
 /* This define takes in how full the heap is initially and returns a new heap size to use */
 #define HEAPSIZE(x,y) ((INTPTR)(x+y))*2
-
-#ifdef TASK
-extern struct genhashtable * activetasks;
-#ifndef MULTICORE
-extern struct parameterwrapper * objectqueues[NUMCLASSES];
-#endif
-extern struct genhashtable * failedtasks;
-extern struct taskparamdescriptor *currtpd;
-extern struct ctable *forward;
-extern struct ctable *reverse;
-extern struct RuntimeHash *fdtoobject;
-#endif
 
 #ifdef GARBAGESTATS
 #define MAXSTATS 500
