@@ -258,14 +258,13 @@ elif [[ $1 = '-jni' ]]
 then
 JNI=true
 JAVAOPTS="$JAVAOPTS -jni"
+EXTRAOPTIONS="$EXTRAOPTIONS -DJNI"
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true
-
 elif [[ $1 = '-src-after-pp' ]]
 then
 SRCAFTERPP=true
-
 elif [[ $1 = '-assembly' ]]
 then
 ASSEMBLY=true

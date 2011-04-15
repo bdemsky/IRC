@@ -78,7 +78,6 @@ public class BuildCode {
    * versions of the methods must already be generated and stored in
    * the State object. */
 
-
   public void buildCode() {
     /* Create output streams to write to */
     PrintWriter outclassdefs=null;
@@ -522,6 +521,8 @@ public class BuildCode {
 	FlatMethod fm=state.getMethodFlat(md);
 	if (!md.getModifiers().isNative()) {
 	  generateFlatMethod(fm, outmethod);
+	} else if (state.JNI) {
+	  generateNativeFlatMethod(fm, outmethod);
 	}
       }
     }
@@ -1824,6 +1825,64 @@ public class BuildCode {
       headersout.println(");\n");
     }
   }
+  
+  protected void generateNativeFlatMethod(FlatMethod fm, PrintWriter outmethod) {
+    MethodDescriptor md=fm.getMethod();
+    ClassDescriptor cd=md.getClassDesc();
+    generateHeader(fm, md, outmethod);
+    int startindex=0;
+    
+    if (md.getModifiers().isStatic()) {
+      outmethod.println("jobject rec=JNIWRAP(((void **)(((char *) &(global_defs_p->classobjs->___length___))+sizeof(int)))[" + cd.getId() + "]);");
+    } else {
+      outmethod.println("jobject rec=JNIWRAP("+generateTemp(fm, fm.getParameter(0))+");");
+      startindex=1;
+    }
+    for(int i=startindex;i<fm.numParameters();i++) {
+      TempDescriptor tmp=fm.getParameter(i);
+      if (tmp.getType().isPtr()) {
+	outmethod.println("jobject param"+i+"=JNIWRAP("+generateTemp(fm, fm.getParameter(i))+");");
+      }
+    }
+    if (GENERATEPRECISEGC) {
+      outmethod.println("stopforgc((struct garbagelist *)___params___)");
+    }
+    if (md.getReturnType()!=null) {
+      if (md.getReturnType().isPtr()) 
+	outmethod.print("jobject retval=");
+      else
+	outmethod.print(md.getReturnType().getSafeSymbol()+" retval=");
+    }
+    outmethod.print("Java_");
+    outmethod.print(cd.getPackage().replace('.','_'));
+    outmethod.print("_"+md.getSymbol()+"(");
+    outmethod.print("JNI_vtable, rec");
+
+    for(int i=startindex;i<fm.numParameters();i++) {
+      outmethod.print(", ");
+      TempDescriptor tmp=fm.getParameter(i);
+      if (tmp.getType().isPtr()) {
+	outmethod.print("param"+i);
+      } else {
+	outmethod.print(generateTemp(fm, tmp));
+      }
+    }
+    outmethod.println(");");
+    if (GENERATEPRECISEGC) {
+      outmethod.println("restartaftergc()");
+    }
+    if (md.getReturnType()!=null) {
+      if (md.getReturnType().isPtr()) {
+	outmethod.println("struct ___Object___ * retobj=JNIUNWRAP(retval);");
+	outmethod.println("JNIclearstack();");
+	outmethod.println("return retobj;");
+      } else {
+	outmethod.println("JNIclearstack();");
+	outmethod.println("return retval;");
+      }
+    }
+    outmethod.println("}");
+  }
 
   protected void generateFlatMethod(FlatMethod fm, PrintWriter output) {
     if (State.PRINTFLAT)
@@ -1868,8 +1927,7 @@ public class BuildCode {
       /* Check to see if we need to do a GC if this is a
        * multi-threaded program...*/
 
-      if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC)
-          || this.state.MULTICOREGC) {
+      if (((state.OOOJAVA||state.THREAD)&&GENERATEPRECISEGC) || state.MULTICOREGC) {
         //Don't bother if we aren't in recursive methods...The loops case will catch it
         if (callgraph.getAllMethods(md).contains(md)) {
           if (this.state.MULTICOREGC) {
@@ -2343,9 +2401,7 @@ public class BuildCode {
       }
       // is a static block or is invoked in some static block
       ClassDescriptor cd = fm.getMethod().getClassDesc();
-      if(cd == cn) {
-	// the same class, do nothing
-      } else if(mgcstaticinit) {
+      if(cd != cn && mgcstaticinit) {
         // generate static init check code if it has not done static init in main()
 	if((cn.getNumStaticFields() != 0) || (cn.getNumStaticBlocks() != 0)) {
 	  // need to check if the class' static fields have been initialized and/or
@@ -2394,7 +2450,7 @@ public class BuildCode {
     if(md.getSymbol().equals("MonitorEnter")) {
       output.println("int monitorenterline = __LINE__;");
     }
-    if ((GENERATEPRECISEGC) || (this.state.MULTICOREGC)) {
+    if (GENERATEPRECISEGC || state.MULTICOREGC) {
       output.print("       struct "+cn.getSafeSymbol()+md.getSafeSymbol()+"_"+mdstring+"_params __parameterlist__={");
       output.print(objectparams.numPointers());
       output.print(", "+localsprefixaddr);
@@ -2406,8 +2462,7 @@ public class BuildCode {
 	System.out.println("WARNING!!!!!!!!!!!!");
 	System.out.println("Source code calls static method "+md+" on an object in "+fm.getMethod()+"!");
       }
-
-
+      
       for(int i=0; i<fc.numArgs(); i++) {
 	Descriptor var=md.getParameter(i);
 	TempDescriptor paramtemp=(TempDescriptor)temptovar.get(var);
@@ -2430,12 +2485,6 @@ public class BuildCode {
       output.print(generateTemp(fm,fc.getReturnTemp())+"=");
 
     /* Do we need to do virtual dispatch? */
-    if (!md.isStatic()&&md.getReturnType()!=null&&fc.getThis().getType().getClassDesc()==null) {
-      System.out.println(fm);
-      System.out.println(md);
-      System.out.println(fc);
-      System.out.println(fm.printMethod());
-    }
 
     if (md.isStatic()||md.getReturnType()==null||singleCall(fc.getThis().getType().getClassDesc(),md)||fc.getSuper()) {
       //no
@@ -2522,7 +2571,7 @@ public class BuildCode {
     if(md.getSymbol().equals("MonitorEnter") && state.OBJECTLOCKDEBUG) {
       output.println(", monitorenterline);");
     } else {
-    output.println(");");
+      output.println(");");
     }
     output.println("   }");
   }

@@ -99,6 +99,10 @@ public class ClassDescriptor extends Descriptor {
     return fieldvec;
   }
 
+  public String getPackage() {
+    return packagename;
+  }
+
   public SymbolTable getFlagTable() {
     return flags;
   }
