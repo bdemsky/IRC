@@ -327,35 +327,7 @@ __thread char * memorytop=NULL;
 #endif
 #endif
 
-
-void collect(struct garbagelist * stackptr) {
-#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
-  needtocollect=1;
-  pthread_mutex_lock(&gclistlock);
-  while(1) {
-    if ((listcount+1)==threadcount) {
-      break; /* Have all other threads stopped */
-    }
-    pthread_cond_wait(&gccond, &gclistlock);
-  }
-#endif
-#ifdef DELAYCOMP
-  ptrstack.prev=stackptr;
-  stackptr=(struct garbagelist *) &ptrstack;
-#if defined(STMARRAY)&&!defined(DUALVIEW)
-  arraystack.prev=stackptr;
-  stackptr=(struct garbagelist *) &arraystack;
-#endif
-#endif
-
-#ifdef GARBAGESTATS
-  {
-    int i;
-    for(i=0;i<MAXSTATS;i++)
-      garbagearray[i]=0;
-  }
-#endif
-
+void initqueues() {
   if (head==NULL) {
     headindex=0;
     tailindex=0;
@@ -369,226 +341,50 @@ void collect(struct garbagelist * stackptr) {
     taghead->next=NULL;
   }
 #endif
+}
+
+void doinitstuff() {
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+  needtocollect=1;
+  pthread_mutex_lock(&gclistlock);
+  while(1) {
+    if ((listcount+1)==threadcount) {
+      break; /* Have all other threads stopped */
+    }
+    pthread_cond_wait(&gccond, &gclistlock);
+  }
+#endif
+
+#ifdef GARBAGESTATS
+  {
+    int i;
+    for(i=0;i<MAXSTATS;i++)
+      garbagearray[i]=0;
+  }
+#endif
+  initqueues();
 
 #ifdef STM
-  if (c_table!=NULL) {
-    fixtable(&c_table, &c_list, &c_structs, c_size);
-    fixobjlist(newobjs);
+  litem.tc_size=c_size;
+  litem.tc_table=&c_table;
+  litem.tc_list=&c_list;
+  litem.tc_structs=&c_structs;
+  litem.objlist=newobjs;
 #ifdef STMSTATS
-    fixobjlist(lockedobjs);
+  litem.lockedlist=lockedobjs;
 #endif
-  }
 #endif
 #if defined(STM)||defined(THREADS)||defined(MLP)
 #ifdef MAC
-  *((char **)pthread_getspecific(memorybasekey))=NULL;
-#else
-  memorybase=NULL;
-#endif
-#endif
-
-  /* Check current stack */
-#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
-  {
-    struct listitem *listptr=list;
-    while(1) {
-#endif
-      
-  while(stackptr!=NULL) {
-    int i;
-    for(i=0; i<stackptr->size; i++) {
-      void * orig=stackptr->array[i];
-      ENQUEUE(orig, stackptr->array[i]);
-    }
-    stackptr=stackptr->next;
-  }
-#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
-  /* Go to next thread */
-#ifndef MAC
-  //skip over us
-  if (listptr==&litem) {
-#ifdef MLP
-    // update forward list & memory queue for the current SESE
-    updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
-    updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
-#endif
-#ifdef THREADS
-  {
-    struct lockvector * lvector=listptr->lvector;
-    int i;
-    for(i=0;i<lvector->index;i++) {
-      struct ___Object___ *orig=lvector->locks[i].object;
-      ENQUEUE(orig, lvector->locks[i].object);
-    }
-  }
-#endif
-    listptr=listptr->next;
-  }
-#else
- {
   struct listitem *litem=pthread_getspecific(litemkey);
-  if (listptr==litem) {
-#ifdef THREADS
-  {
-    struct lockvector * lvector=listptr->lvector;
-    int i;
-    for(i=0;i<lvector->index;i++) {
-      struct ___Object___ *orig=lvector->locks[i].object;
-      ENQUEUE(orig, lvector->locks[i].object);
-    }
-  }
+  litem->base=((char **)pthread_getspecific(memorybasekey));
+#else
+  litem.base=&memorybase;
 #endif
-    listptr=listptr->next;
-  }
- }
 #endif
- 
-  if (listptr!=NULL) {
-#ifdef THREADS
-  {
-    struct lockvector * lvector=listptr->lvector;
-    int i;
-    for(i=0;i<lvector->index;i++) {
-      struct ___Object___ *orig=lvector->locks[i].object;
-      ENQUEUE(orig, lvector->locks[i].object);
-    }
-  }
-#endif
-#ifdef STM
-    if ((*listptr->tc_table)!=NULL) {
-      fixtable(listptr->tc_table, listptr->tc_list, listptr->tc_structs, listptr->tc_size);
-      fixobjlist(listptr->objlist);
-#ifdef STMSTATS
-      fixobjlist(listptr->lockedlist);
-#endif
-    }
-#endif
-#if defined(STM)||defined(THREADS)||defined(MLP)
-    *(listptr->base)=NULL;
-#endif
-#ifdef MLP
-    // update forward list & memory queue for all running SESEs.
-    if (listptr->seseCommon!=NULL) {
-      updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
-      updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
-    }
-#endif
-    stackptr=listptr->stackptr;
-    listptr=listptr->next;
-  } else
-    break;
 }
-}
-#endif
 
-#ifdef FASTCHECK
-  ENQUEUE(___fcrevert___, ___fcrevert___);
-#endif
-
-#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
-  {
-    int i;
-    stackptr=(struct garbagelist *)global_defs_p;
-    for(i=0; i<stackptr->size; i++) {
-      void * orig=stackptr->array[i];
-      ENQUEUE(orig, stackptr->array[i]);
-    }
-  }
-#endif
-
-#ifdef TASK
-  {
-    /* Update objectsets */
-    int i;
-    for(i=0; i<NUMCLASSES; i++) {
-#if !defined(MULTICORE)
-      struct parameterwrapper * p=objectqueues[i];
-      while(p!=NULL) {
-	struct ObjectHash * set=p->objectset;
-	struct ObjectNode * ptr=set->listhead;
-	while(ptr!=NULL) {
-	  void *orig=(void *)ptr->key;
-	  ENQUEUE(orig, *((void **)(&ptr->key)));
-	  ptr=ptr->lnext;
-	}
-	ObjectHashrehash(set); /* Rehash the table */
-	p=p->next;
-      }
-#endif
-    }
-  }
-
-#ifndef FASTCHECK
-  if (forward!=NULL) {
-    struct cnode * ptr=forward->listhead;
-    while(ptr!=NULL) {
-      void * orig=(void *)ptr->key;
-      ENQUEUE(orig, *((void **)(&ptr->key)));
-      ptr=ptr->lnext;
-    }
-    crehash(forward); /* Rehash the table */
-  }
-
-  if (reverse!=NULL) {
-    struct cnode * ptr=reverse->listhead;
-    while(ptr!=NULL) {
-      void *orig=(void *)ptr->val;
-      ENQUEUE(orig, *((void**)(&ptr->val)));
-      ptr=ptr->lnext;
-    }
-  }
-#endif
-
-  {
-    struct RuntimeNode * ptr=fdtoobject->listhead;
-    while(ptr!=NULL) {
-      void *orig=(void *)ptr->data;
-      ENQUEUE(orig, *((void**)(&ptr->data)));
-      ptr=ptr->lnext;
-    }
-  }
-
-  {
-    /* Update current task descriptor */
-    int i;
-    for(i=0; i<currtpd->numParameters; i++) {
-      void *orig=currtpd->parameterArray[i];
-      ENQUEUE(orig, currtpd->parameterArray[i]);
-    }
-
-  }
-
-  /* Update active tasks */
-  {
-    struct genpointerlist * ptr=activetasks->list;
-    while(ptr!=NULL) {
-      struct taskparamdescriptor *tpd=ptr->src;
-      int i;
-      for(i=0; i<tpd->numParameters; i++) {
-	void * orig=tpd->parameterArray[i];
-	ENQUEUE(orig, tpd->parameterArray[i]);
-      }
-      ptr=ptr->inext;
-    }
-    genrehash(activetasks);
-  }
-
-  /* Update failed tasks */
-  {
-    struct genpointerlist * ptr=failedtasks->list;
-    while(ptr!=NULL) {
-      struct taskparamdescriptor *tpd=ptr->src;
-      int i;
-      for(i=0; i<tpd->numParameters; i++) {
-	void * orig=tpd->parameterArray[i];
-	ENQUEUE(orig, tpd->parameterArray[i]);
-      }
-      ptr=ptr->inext;
-    }
-    genrehash(failedtasks);
-  }
-#endif
-
+void searchoojroots() {
 #ifdef MLP
 #ifdef SQUEUE
   {
@@ -708,7 +504,204 @@ void collect(struct garbagelist * stackptr) {
   }
 #endif
 #endif
+}
 
+void searchglobalroots() {
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+  {
+    int i;
+    struct garbagelist * stackptr=(struct garbagelist *)global_defs_p;
+    for(i=0; i<stackptr->size; i++) {
+      void * orig=stackptr->array[i];
+      ENQUEUE(orig, stackptr->array[i]);
+    }
+  }
+#endif
+}
+
+
+void searchtaskroots() {
+#ifdef TASK
+  {
+    /* Update objectsets */
+    int i;
+    for(i=0; i<NUMCLASSES; i++) {
+#if !defined(MULTICORE)
+      struct parameterwrapper * p=objectqueues[i];
+      while(p!=NULL) {
+	struct ObjectHash * set=p->objectset;
+	struct ObjectNode * ptr=set->listhead;
+	while(ptr!=NULL) {
+	  void *orig=(void *)ptr->key;
+	  ENQUEUE(orig, *((void **)(&ptr->key)));
+	  ptr=ptr->lnext;
+	}
+	ObjectHashrehash(set); /* Rehash the table */
+	p=p->next;
+      }
+#endif
+    }
+  }
+
+#ifndef FASTCHECK
+  if (forward!=NULL) {
+    struct cnode * ptr=forward->listhead;
+    while(ptr!=NULL) {
+      void * orig=(void *)ptr->key;
+      ENQUEUE(orig, *((void **)(&ptr->key)));
+      ptr=ptr->lnext;
+    }
+    crehash(forward); /* Rehash the table */
+  }
+
+  if (reverse!=NULL) {
+    struct cnode * ptr=reverse->listhead;
+    while(ptr!=NULL) {
+      void *orig=(void *)ptr->val;
+      ENQUEUE(orig, *((void**)(&ptr->val)));
+      ptr=ptr->lnext;
+    }
+  }
+#endif
+
+  {
+    struct RuntimeNode * ptr=fdtoobject->listhead;
+    while(ptr!=NULL) {
+      void *orig=(void *)ptr->data;
+      ENQUEUE(orig, *((void**)(&ptr->data)));
+      ptr=ptr->lnext;
+    }
+  }
+
+  {
+    /* Update current task descriptor */
+    int i;
+    for(i=0; i<currtpd->numParameters; i++) {
+      void *orig=currtpd->parameterArray[i];
+      ENQUEUE(orig, currtpd->parameterArray[i]);
+    }
+
+  }
+
+  /* Update active tasks */
+  {
+    struct genpointerlist * ptr=activetasks->list;
+    while(ptr!=NULL) {
+      struct taskparamdescriptor *tpd=ptr->src;
+      int i;
+      for(i=0; i<tpd->numParameters; i++) {
+	void * orig=tpd->parameterArray[i];
+	ENQUEUE(orig, tpd->parameterArray[i]);
+      }
+      ptr=ptr->inext;
+    }
+    genrehash(activetasks);
+  }
+
+  /* Update failed tasks */
+  {
+    struct genpointerlist * ptr=failedtasks->list;
+    while(ptr!=NULL) {
+      struct taskparamdescriptor *tpd=ptr->src;
+      int i;
+      for(i=0; i<tpd->numParameters; i++) {
+	void * orig=tpd->parameterArray[i];
+	ENQUEUE(orig, tpd->parameterArray[i]);
+      }
+      ptr=ptr->inext;
+    }
+    genrehash(failedtasks);
+  }
+#endif
+}
+
+void searchstack(struct garbagelist *stackptr) {
+  while(stackptr!=NULL) {
+    int i;
+    for(i=0; i<stackptr->size; i++) {
+      void * orig=stackptr->array[i];
+      ENQUEUE(orig, stackptr->array[i]);
+    }
+    stackptr=stackptr->next;
+  }
+}
+
+
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+void searchthreadroots(struct garbagelist * stackptr) {
+  /* Check current stack */
+  struct listitem *listptr=list;
+#ifdef MAC
+  struct listitem *litem=pthread_getspecific(litemkey);
+  litem->stackptr=stackptr;
+#else
+  litem.stackptr=stackptr;
+#endif
+  
+  while(listptr!=NULL) {
+    searchstack(listptr->stackptr);
+#ifdef THREADS
+    struct lockvector * lvector=listptr->lvector;
+    int i;
+    for(i=0;i<lvector->index;i++) {
+      struct ___Object___ *orig=lvector->locks[i].object;
+      ENQUEUE(orig, lvector->locks[i].object);
+    }
+#endif
+#ifdef STM
+    if ((*listptr->tc_table)!=NULL) {
+      fixtable(listptr->tc_table, listptr->tc_list, listptr->tc_structs, listptr->tc_size);
+      fixobjlist(listptr->objlist);
+#ifdef STMSTATS
+      fixobjlist(listptr->lockedlist);
+#endif
+    }
+#endif
+#if defined(STM)||defined(THREADS)||defined(MLP)
+    *(listptr->base)=NULL;
+#endif
+#ifdef MLP
+    // update forward list & memory queue for all running SESEs.
+    if (listptr->seseCommon!=NULL) {
+      updateForwardList(&((SESEcommon*)listptr->seseCommon)->forwardList,FALSE);
+      updateMemoryQueue((SESEcommon*)(listptr->seseCommon));
+    }
+#endif
+    listptr=listptr->next;
+  }
+}
+#endif
+
+
+void searchroots(struct garbagelist * stackptr) {
+#if defined(THREADS)||defined(DSTM)||defined(STM)||defined(MLP)
+  searchthreadroots(stackptr);
+#else
+  searchstack(stackptr);
+#endif
+
+#ifdef FASTCHECK
+  ENQUEUE(___fcrevert___, ___fcrevert___);
+#endif
+  searchglobalroots();
+  searchtaskroots();
+  searchoojroots();
+}
+
+
+void collect(struct garbagelist * stackptr) {
+  doinitstuff();
+
+#ifdef DELAYCOMP
+  ptrstack.prev=stackptr;
+  stackptr=(struct garbagelist *) &ptrstack;
+#if defined(STMARRAY)&&!defined(DUALVIEW)
+  arraystack.prev=stackptr;
+  stackptr=(struct garbagelist *) &arraystack;
+#endif
+#endif
+  
+  searchroots(stackptr);
 
   while(moreItems()) {
     void * ptr=dequeue();
