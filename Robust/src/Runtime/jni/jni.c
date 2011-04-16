@@ -1,4 +1,3 @@
-#include <jni.h>
 #include <jni-private.h>
 
 struct JNINativeInterface_ JNI_vtable = {

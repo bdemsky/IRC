@@ -303,6 +303,7 @@ void initializethreads() {
 #if defined(THREADS)||defined(STM)
 int threadcounter=0;
 
+#ifdef D___Thread______nativeCreate____
 void initthread(struct ___Thread___ * ___this___) {
 #ifdef AFFINITY
   set_affinity();
@@ -422,6 +423,7 @@ void initthread(struct ___Thread___ * ___this___) {
   pthread_cond_signal(&gccond);
   pthread_mutex_unlock(&gclistlock);
 }
+#endif
 #endif
 
 #ifdef D___Thread______sleep____J

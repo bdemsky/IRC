@@ -328,7 +328,7 @@ void searchjnitable(struct jnireferences *jniptr) {
     int i;
     //update table
     for(i=0;i<jniptr->index;i++) {
-      ENQUEUE(jniptr->array[i]->ref, jniptr->array[i]->ref);
+      ENQUEUE((struct ___Object___ *)jniptr->array[i].ref, *((struct ___Object___**)&jniptr->array[i].ref));
     }
     //go to next table
     jniptr=jniptr->next;

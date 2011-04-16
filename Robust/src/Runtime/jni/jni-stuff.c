@@ -1,5 +1,7 @@
 #include<jni.h>
 #include<jni-private.h>
+#include<stdlib.h>
+#include<stdio.h>
 
 #ifndef MAC
 __thread struct jnireferences * jnirefs;
@@ -47,7 +49,7 @@ jmethodID RC_FromReflectedMethod(JNIEnv * env, jobject mthdobj) {
   return NULL;
 }
 
-jmethodID RC_FromReflectedField(JNIEnv * env, jobject fldobj) {
+jfieldID RC_FromReflectedField(JNIEnv * env, jobject fldobj) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
   return NULL;
 }
@@ -197,18 +199,18 @@ jmethodID RC_GetMethodID(JNIEnv * env, jclass cls, const char * str1, const char
     return (R)0;							\
   }									
 
-#define CALLNVMETHOD(R, T) R RC_CallNonvirtual ## T ## Method(JNIEnv *env, jobject obj, jmethodID mid, ...) { \
+#define CALLNVMETHOD(R, T) R RC_CallNonvirtual ## T ## Method(JNIEnv *env, jobject obj, jclass cls, jmethodID mid, ...) { \
     va_list va;								\
     va_start(va, mid);							\
-    return RC_CallNonvirtual ## T ## MethodV(env, obj, mid, va);	\
+    return RC_CallNonvirtual ## T ## MethodV(env, obj, cls, mid, va);	\
   }
 
-#define CALLNVMETHODV(R, T) R RC_CallNonvirtual ## T ## MethodV(JNIEnv * env, jobject obj, jmethodID mid, va_list va) { \
+#define CALLNVMETHODV(R, T) R RC_CallNonvirtual ## T ## MethodV(JNIEnv * env, jobject obj, jclass cls, jmethodID mid, va_list va) { \
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
     return (R)0;							\
   }									
 
-#define CALLNVMETHODA(R, T) R RC_CallNonvirtual ## T ## MethodA(JNIEnv * env, jobject obj, jmethodID mid, const jvalue * valarray) { \
+#define CALLNVMETHODA(R, T) R RC_CallNonvirtual ## T ## MethodA(JNIEnv * env, jobject obj, jclass cls, jmethodID mid, const jvalue * valarray) { \
     printf("MISSING FEATURE IN %d\n",__LINE__);				\
     return (R)0;							\
   }									
@@ -289,22 +291,36 @@ jmethodID RC_GetMethodID(JNIEnv * env, jclass cls, const char * str1, const char
   GETARRAYREGION(R, T)				\
   SETARRAYREGION(R, T)
 
-CALLSET(jobject, Object);
+jobjectArray RC_NewObjectArray(JNIEnv *env, jsize size, jclass cls, jobject obj) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);
+  return NULL;
+}
+
+CALLMETHODV(jobject, Object)
+CALLMETHOD(jobject, Object)
+CALLMETHODA(jobject, Object)
+CALLNVMETHODV(jobject, Object)
+CALLNVMETHOD(jobject, Object)
+CALLNVMETHODA(jobject, Object)
+GETFIELD(jobject, Object)
+SETFIELD(jobject, Object)
+CALLSTMETHODV(jobject, Object)
+CALLSTMETHOD(jobject, Object)
+CALLSTMETHODA(jobject, Object)
+GETSTFIELD(jobject, Object)
+SETSTFIELD(jobject, Object)
+GETARRAY(jobject, Object)
+RELEASEARRAY(jobject, Object)
+GETARRAYREGION(jobject, Object)
+SETARRAYREGION(jobject, Object)
 
 CALLSET(jboolean, Boolean);
-
 CALLSET(jbyte, Byte);
-
 CALLSET(jchar, Char);
-
 CALLSET(jshort, Short);
-
 CALLSET(jint, Int);
-
 CALLSET(jlong, Long);
-
 CALLSET(jfloat, Float);
-
 CALLSET(jdouble, Double);
 
 void RC_CallVoidMethodV(JNIEnv * env, jobject obj, jmethodID mid, va_list va) {
@@ -321,29 +337,29 @@ void RC_CallVoidMethodA(JNIEnv * env, jobject obj, jmethodID mid, const jvalue *
   printf("MISSING FEATURE IN %d\n",__LINE__);
 }									
 
-void RC_CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jmethodID mid, ...) {
+void RC_CallNonvirtualVoidMethod(JNIEnv *env, jobject obj, jclass cls, jmethodID mid, ...) {
   va_list va;							       
   va_start(va, mid);							
-  RC_CallNonvirtualVoidMethodV(env, obj, mid, va);			
+  RC_CallNonvirtualVoidMethodV(env, obj, cls, mid, va);			
 }
 
-void RC_CallNonvirtualVoidMethodV(JNIEnv * env, jobject obj, jmethodID mid, va_list va) {
+void RC_CallNonvirtualVoidMethodV(JNIEnv * env, jobject obj, jclass cls, jmethodID mid, va_list va) {
   printf("MISSING FEATURE IN %d\n",__LINE__);				
 }									
 
-void RC_CallNonvirtualVoidMethodA(JNIEnv * env, jobject obj, jmethodID mid, const jvalue * valarray) {
+void RC_CallNonvirtualVoidMethodA(JNIEnv * env, jobject obj, jclass cls, jmethodID mid, const jvalue * valarray) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
+}									
+
+void RC_CallStaticVoidMethodV(JNIEnv * env, jclass cls, jmethodID mid, va_list va) {
+  printf("MISSING FEATURE IN %d\n",__LINE__);				
 }									
 
 void RC_CallStaticVoidMethod(JNIEnv *env, jclass cls, jmethodID mid, ...) {
   va_list va;							       
   va_start(va, mid);							
-  RC_CallStaticVoidMethodV(env, obj, mid, va);			
+  RC_CallStaticVoidMethodV(env, cls, mid, va);			
 }
-
-void RC_CallStaticVoidMethodV(JNIEnv * env, jclass cls, jmethodID mid, va_list va) {
-  printf("MISSING FEATURE IN %d\n",__LINE__);				
-}									
 
 void RC_CallStaticVoidMethodA(JNIEnv * env, jclass cls, jmethodID mid, const jvalue * valarray) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
@@ -408,7 +424,7 @@ void RC_ReleaseStringChars(JNIEnv * env, jstring str, const jchar * str2) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
 }
 
-jstring RC_NewStringUTF(JNIEnv * env, const char *str) 
+jstring RC_NewStringUTF(JNIEnv * env, const char *str) {
   printf("MISSING FEATURE IN %d\n",__LINE__);
   return NULL;
 }
