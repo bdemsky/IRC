@@ -1246,6 +1246,11 @@ $ROBUSTROOT/Runtime/taskgarbage.c $ROBUSTROOT/Runtime/oojgarbage.c \
 $ROBUSTROOT/Runtime/math.c \
 $ROBUSTROOT/Runtime/GenericHashtable.c $ROBUSTROOT/Runtime/object.c"
 
+if $JNI
+then
+FILES="$FILES $ROBUSTROOT/Runtime/jni/jni.c $ROBUSTROOT/Runtime/jni/jni-stuff.c"
+fi
+
 if $NUMA
 then
 FILES="$FILES $ROBUSTROOT/Runtime/affinity.c"
