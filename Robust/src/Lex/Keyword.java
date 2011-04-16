@@ -51,6 +51,7 @@ class Keyword extends Token {
     key_table.put("long", new Integer(Sym.LONG));
     key_table.put("native", new Integer(Sym.NATIVE));
     key_table.put("new", new Integer(Sym.NEW));
+    key_table.put("newflag", new Integer(Sym.NEWFLAG));
     key_table.put("package", new Integer(Sym.PACKAGE));
     key_table.put("private", new Integer(Sym.PRIVATE));
     key_table.put("protected", new Integer(Sym.PROTECTED));

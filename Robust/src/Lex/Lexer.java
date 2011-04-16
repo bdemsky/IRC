@@ -268,7 +268,7 @@ public class Lexer {
     "interface",
     "isavailable",
     "locdef", "long", 
-    "native", "new", "optional", "package", "private", "protected", "public", 
+    "native", "new", "newflag", "optional", "package", "private", "protected", "public", 
     "rblock", "return",
     "scratch", "sese", "short", "static", "strictfp", "super", "switch", "synchronized",
     "tag", "task", "taskexit", //keywords for failure aware computation
