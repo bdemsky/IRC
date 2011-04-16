@@ -765,17 +765,17 @@ JAVAOPTS="$JAVAOPTS -struct structfile"
 fi
 
 # Setup class path
-
-if $MGCINTELFLAG
+if $JNI
+then
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/java/lang/ -classlibrary $ROBUSTROOT/ClassLibrary/java/io/"
+elif $MGCINTELFLAG
 then
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
-else
-if $MGCFLAG
+elif $MGCFLAG
 then
 #base multicore gc files
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
-else
-if $RECOVERFLAG
+elif $RECOVERFLAG
 then
 if $FASTCHECK
 then
@@ -785,8 +785,7 @@ else
 #base bristlecone files
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Bristlecone"
 fi
-else
-if $DSMFLAG
+elif $DSMFLAG
 then
 #dsm stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaDSM"
