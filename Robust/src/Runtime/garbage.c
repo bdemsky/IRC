@@ -63,48 +63,6 @@ __thread struct listitem litem;
 
 //Need to check if pointers are transaction pointers
 //this also catches the special flag value of 1 for local copies
-#ifdef DSTM
-#define ENQUEUE(orig, dst) \
-  if ((!(((unsigned int)orig)&0x1))) { \
-    if (orig>=curr_heapbase&&orig<curr_heaptop) { \
-      void *copy; \
-      if (gc_createcopy(orig,&copy)) \
-	enqueue(copy);\
-      dst=copy; \
-    } \
-  }
-#elif defined(STM)
-#define ENQUEUE(orig, dst) \
-  if (orig>=curr_heapbase&&orig<curr_heaptop) { \
-    void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy);\
-    dst=copy; \
-  }
-#define SENQUEUE(orig, dst) \
-  { \
-    void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy);\
-    dst=copy; \
-  }
-#elif defined(FASTCHECK)
-#define ENQUEUE(orig, dst) \
-  if (((unsigned int)orig)!=1) { \
-    void *copy; \
-    if (gc_createcopy(orig,&copy)) \
-      enqueue(copy);\
-    dst=copy; }
-#else
-#define ENQUEUE(orig, dst) \
-  if (orig!=NULL) { \
-     void *copy; \
-     if (gc_createcopy(orig,&copy)) \
-         enqueue(copy); \
-     dst=copy; \
-  }
-#endif
-
 
 void * curr_heapbase=0;
 void * curr_heapptr=0;
