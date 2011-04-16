@@ -796,11 +796,9 @@ elif $THREADFLAG
 then
 #threading java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
-fi
+else
 #base java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
-fi
-fi
 fi
 
 # Build bristlecone/java sources
