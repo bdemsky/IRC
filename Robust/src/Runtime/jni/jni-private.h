@@ -10,7 +10,7 @@ struct _jfieldID {
   char *fieldname;
 };
 
-struct _jobject {
+struct __jobject {
   void * ref;
 };
 
@@ -28,11 +28,11 @@ struct c_class {
 struct jnireferences {
   struct jnireferences * next;
   int index;
-  struct _jobject array[MAXJNIREFS];
+  struct __jobject array[MAXJNIREFS];
 };
 
 #ifndef MAC
-struct _jobject * getwrapped(void * objptr);
+struct __jobject * getwrapper(void * objptr);
 void jnipushframe();
 void jnipopframe();
 extern __thread struct jnireferences * jnirefs;

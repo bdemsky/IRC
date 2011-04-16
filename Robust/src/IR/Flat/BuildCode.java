@@ -457,6 +457,7 @@ public class BuildCode {
     outmethod.println("#include \"methodheaders.h\"");
     outmethod.println("#include \"virtualtable.h\"");
     outmethod.println("#include \"runtime.h\"");
+    outmethod.println("#include \"jni-private.h\"");
 
     // always include: compiler directives will leave out
     // instrumentation when option is not set
@@ -1849,9 +1850,9 @@ public class BuildCode {
       }
     }
     if (GENERATEPRECISEGC) {
-      outmethod.println("stopforgc((struct garbagelist *)___params___)");
+      outmethod.println("stopforgc((struct garbagelist *)___params___);");
     }
-    if (md.getReturnType()!=null) {
+    if (!md.getReturnType().isVoid()) {
       if (md.getReturnType().isPtr()) 
 	outmethod.print("jobject retval=");
       else
@@ -1873,9 +1874,9 @@ public class BuildCode {
     }
     outmethod.println(");");
     if (GENERATEPRECISEGC) {
-      outmethod.println("restartaftergc()");
+      outmethod.println("restartaftergc();");
     }
-    if (md.getReturnType()!=null) {
+    if (!md.getReturnType().isVoid()) {
       if (md.getReturnType().isPtr()) {
 	outmethod.println("struct ___Object___ * retobj=JNIUNWRAP(retval);");
 	outmethod.println("JNIPOPFRAME();");
@@ -1884,8 +1885,11 @@ public class BuildCode {
 	outmethod.println("JNIPOPFRAME();");
 	outmethod.println("return retval;");
       }
-    }
+    } else
+      outmethod.println("JNIPOPFRAME();");
+    
     outmethod.println("}");
+    outmethod.println("");
   }
 
   protected void generateFlatMethod(FlatMethod fm, PrintWriter output) {

@@ -6,10 +6,10 @@
 #ifndef MAC
 __thread struct jnireferences * jnirefs;
 
-struct _jobject * getwrapped(void * objptr) {
+struct __jobject * getwrapper(void * objptr) {
   if ((jnirefs->index)>=MAXJNIREFS)
     printf("OVERFLOW IN JOBJECT\n");
-  struct _jobject *ptr=&jnirefs->array[jnirefs->index++];
+  struct __jobject *ptr=&jnirefs->array[jnirefs->index++];
   ptr->ref=objptr;
   return ptr;
 }
