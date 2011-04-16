@@ -457,7 +457,9 @@ public class BuildCode {
     outmethod.println("#include \"methodheaders.h\"");
     outmethod.println("#include \"virtualtable.h\"");
     outmethod.println("#include \"runtime.h\"");
-    outmethod.println("#include \"jni-private.h\"");
+    if (state.JNI) {
+      outmethod.println("#include \"jni-private.h\"");
+    }
 
     // always include: compiler directives will leave out
     // instrumentation when option is not set
