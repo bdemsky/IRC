@@ -1,20 +1,12 @@
 #ifndef JNI_PRIVATE_H
 #define JNI_PRIVATE_H
-struct c_class {
-  int type;
-  char * packagename;
-  char * classname;
-  int numMethods;
-  jmethodID * methods;
-  int numFields;
-  jfieldID *fields;
-};
+#include "jni.h"
 
-struct jmethodID {
+struct _jmethodID {
   char *methodname;
 };
 
-struct jfieldID {
+struct _jfieldID {
   char *fieldname;
 };
 
@@ -22,10 +14,20 @@ struct _jobject {
   void * ref;
 };
 
+struct c_class {
+  int type;
+  char * packagename;
+  char * classname;
+  int numMethods;
+  struct _jmethodID * methods;
+  int numFields;
+  struct _jfieldID *fields;
+};
+
 #define MAXJNIREFS 2048
 struct jnireferences {
   struct jnireferences * next;
-  int index
+  int index;
   struct _jobject array[MAXJNIREFS];
 };
 
@@ -33,7 +35,6 @@ struct jnireferences {
 struct _jobject * getwrapped(void * objptr);
 void jnipushframe();
 void jnipopframe();
-
 extern __thread struct jnireferences * jnirefs;
 #define JNIUNWRAP(x) ((x==NULL)?NULL:x->ref)
 #define JNIWRAP(x) getwrapper(x);
@@ -41,7 +42,7 @@ extern __thread struct jnireferences * jnirefs;
 #define JNIPOPFRAME() jnipopframe();
 #endif
 
-jint RC_GetVersion(JNIEnv *);
+jint RC_GetVersion(JNIEnv * env);
 jclass RC_DefineClass(JNIEnv * env, const char * c, jobject loader, const jbyte * buf, jsize bufLen);
 jclass RC_FindClass(JNIEnv * env, const char *classname);
 jmethodID RC_FromReflectedMethod(JNIEnv * env, jobject mthdobj);

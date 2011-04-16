@@ -258,7 +258,7 @@ elif [[ $1 = '-jni' ]]
 then
 JNI=true
 JAVAOPTS="$JAVAOPTS -jni"
-EXTRAOPTIONS="$EXTRAOPTIONS -DJNI"
+EXTRAOPTIONS="$EXTRAOPTIONS -DJNI -I$ROBUSTROOT/Runtime/jni"
 elif [[ $1 = '-justanalyze' ]]
 then
 EXITAFTERANALYSIS=true
