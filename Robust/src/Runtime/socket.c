@@ -75,7 +75,6 @@ void CALL12(___Socket______nativeBindFD____I, int ___fd___, struct ___Socket___ 
   RuntimeHashadd(fdtoobject, ___fd___, (int) VAR(___this___));
   addreadfd(___fd___);
 #endif
-  //return 0;
 }
 #endif
 #endif
