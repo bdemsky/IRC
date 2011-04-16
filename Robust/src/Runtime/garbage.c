@@ -10,14 +10,7 @@
 #include "thread.h"
 #endif
 #ifdef MLP
-#ifdef SQUEUE
-#include "squeue.h"
-#else
-#include "deque.h"
-#endif
 #include "workschedule.h"
-extern volatile int    numWorkSchedWorkers;
-extern deque* deques;
 #endif
 
 #ifdef DMALLOC

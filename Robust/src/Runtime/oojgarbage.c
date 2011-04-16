@@ -1,6 +1,15 @@
-#include "garbage.h"
-
 #ifdef MLP
+#include "garbage.h"
+#ifdef SQUEUE
+#include "squeue.h"
+#else
+#include "deque.h"
+#endif
+#include "mlp_runtime.h"
+#include "workschedule.h"
+extern volatile int    numWorkSchedWorkers;
+extern deque* deques;
+
 __thread SESEcommon* seseCommon;
 
 void searchoojroots() {
