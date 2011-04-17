@@ -795,7 +795,7 @@ JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaSTM"
 elif $THREADFLAG
 then
 #threading java stuff
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread -classlibrary $ROBUSTROOT/ClassLibrary/Java"
 else
 #base java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
