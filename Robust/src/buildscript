@@ -775,7 +775,8 @@ elif $MGCFLAG
 then
 #base multicore gc files
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
-elif $RECOVERFLAG
+else
+if $RECOVERFLAG
 then
 if $FASTCHECK
 then
@@ -795,8 +796,8 @@ JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaSTM"
 elif $THREADFLAG
 then
 #threading java stuff
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread -classlibrary $ROBUSTROOT/ClassLibrary/Java"
-else
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/JavaThread"
+fi
 #base java stuff
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/Java"
 fi
