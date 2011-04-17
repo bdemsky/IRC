@@ -70,6 +70,7 @@ terminal TRY; // try_statement
 terminal CATCH; // catch_clause
 terminal FINALLY; // finally
 terminal NEW; // class_instance_creation_expression
+terminal NEWFLAG; // class_instance_creation_expression
 terminal PLUSPLUS; // postincrement_expression
 terminal MINUSMINUS; // postdecrement_expression
 terminal PLUS, MINUS, COMP, NOT, DIV, MOD;
@@ -1910,19 +1911,24 @@ primary_no_new_array ::=
 //	|	name DOT THIS
 	;
 class_instance_creation_expression ::=
-		NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+	NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(feo);
 		RESULT=pn;
-	:} 
-	//Global object
-	| GLOBAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+	:} |
+	NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
-		pn.addChild(feo);
+		RESULT=pn;
+	:} 
+	//Global object
+	| GLOBAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
+		pn.addChild(type);
+		pn.addChild(args);
 		pn.addChild("global");
 		RESULT=pn;
 	:}
@@ -1930,27 +1936,25 @@ class_instance_creation_expression ::=
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
-		pn.addChild(feo);
 		pn.addChild("scratch");
 		RESULT=pn;
 	:}
 	// Objects we want to track in disjointness analysis
-	| DISJOINT IDENTIFIER:id NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
+	| DISJOINT IDENTIFIER:id NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
-		pn.addChild(feo);
 		pn.addChild("disjoint").addChild(id);
 		RESULT=pn;
 	:}
-	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
+	| NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(tl);
 		RESULT=pn;
 	:}
-	| NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE flag_list:fl RBRACE LBRACE tag_list:tl RBRACE {: 
+	| NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE flag_list:fl RBRACE LBRACE tag_list:tl RBRACE {: 
 		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
@@ -1958,8 +1962,13 @@ class_instance_creation_expression ::=
 		pn.addChild(tl);
 		RESULT=pn;
 	:}
-
-//	|	NEW class_or_interface_type LPAREN argument_list_opt RPAREN class_body
+	|	NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN class_body:body {: 
+		ParseNode pn=new ParseNode("createobjectcls",parser.lexer.line_num);	      
+		pn.addChild(type);
+		pn.addChild(args);
+		pn.addChild("decl").addChild("classbody").addChild(body);
+		RESULT=pn;
+	:}
 //	|	primary DOT NEW IDENTIFIER
 //			LPAREN argument_list_opt RPAREN {: 
 //		

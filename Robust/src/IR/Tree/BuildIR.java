@@ -1,10 +1,7 @@
 package IR.Tree;
 import IR.*;
 import Util.Lattice;
-
 import java.util.*;
-
-
 
 public class BuildIR {
   State state;
@@ -148,27 +145,27 @@ public class BuildIR {
     }
   }
 
-public void parseInitializers(ClassDescriptor cn){
-  Vector fv=cn.getFieldVec();
+  public void parseInitializers(ClassDescriptor cn){
+    Vector fv=cn.getFieldVec();
     int pos = 0;
-  for(int i=0;i<fv.size();i++) {
+    for(int i=0;i<fv.size();i++) {
       FieldDescriptor fd=(FieldDescriptor)fv.get(i);
       if(fd.getExpressionNode()!=null) {
-         Iterator methodit = cn.getMethods();
-          while(methodit.hasNext()){
-            MethodDescriptor currmd=(MethodDescriptor)methodit.next();
-            if(currmd.isConstructor()){
-              BlockNode bn=state.getMethodBody(currmd);
-          NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
-          AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
-          bn.addBlockStatementAt(new BlockExpressionNode(an), pos);
-            }
-          }
-          pos++;
+	Iterator methodit = cn.getMethods();
+	while(methodit.hasNext()){
+	  MethodDescriptor currmd=(MethodDescriptor)methodit.next();
+	  if(currmd.isConstructor()){
+	    BlockNode bn=state.getMethodBody(currmd);
+	    NameNode nn=new NameNode(new NameDescriptor(fd.getSymbol()));
+	    AssignmentNode an=new AssignmentNode(nn,fd.getExpressionNode(),new AssignOperation(1));
+	    bn.addBlockStatementAt(new BlockExpressionNode(an), pos);
+	  }
+	}
+	pos++;
       }
-  }
-    }  
-
+    }
+  }  
+  
   private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
     ecd.setAsEnum();
@@ -747,6 +744,8 @@ public void parseInitializers(ClassDescriptor cn){
     }    
   }
 
+  int innerCount=0;
+
   private ExpressionNode parseExpression(ParseNode pn) {
     if (isNode(pn,"assignment"))
       return parseAssignmentExpression(pn);
@@ -823,6 +822,22 @@ public void parseInitializers(ClassDescriptor cn){
 	if (pn.getChild("tag_list")!=null)
 	  parseTagEffect(fe, pn.getChild("tag_list"));
 	con.addFlagEffects(fe);
+      }
+
+      return con;
+    } else if (isNode(pn,"createobjectcls")) {
+      //TODO:::  FIX BUG!!!  static fields in caller context need to become parameters
+      TypeDescriptor td=parseTypeDescriptor(pn);
+      innerCount++;
+      ClassDescriptor cnnew=new ClassDescriptor(td.getSymbol()+"$"+innerCount, false);
+      cnnew.setSuper(td.getSymbol());
+      parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
+      Vector args=parseArgumentList(pn);
+
+      CreateObjectNode con=new CreateObjectNode(td, false, null);
+      con.setNumLine(pn.getLine());
+      for(int i=0; i<args.size(); i++) {
+	con.addArgument((ExpressionNode)args.get(i));
       }
 
       return con;

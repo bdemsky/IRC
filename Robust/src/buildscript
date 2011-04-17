@@ -767,7 +767,7 @@ fi
 # Setup class path
 if $JNI
 then
-JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/java/lang/ -classlibrary $ROBUSTROOT/ClassLibrary/java/io/"
+JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/classpath/java/lang/ -classlibrary $ROBUSTROOT/classpath/java/io/ -classlibrary $ROBUSTROOT/classpath/java/lang/reflect/ -classlibrary $ROBUSTROOT/classpath/java/text/ -classlibrary $ROBUSTROOT/classpath/java/security/ -classlibrary $ROBUSTROOT/classpath/java/net/"
 elif $MGCINTELFLAG
 then
 JAVAOPTS="$JAVAOPTS -classlibrary $ROBUSTROOT/ClassLibrary/MGC/ -classlibrary $ROBUSTROOT/ClassLibrary/MGC/gnu/"
