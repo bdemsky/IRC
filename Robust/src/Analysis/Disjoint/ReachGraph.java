@@ -791,7 +791,7 @@ public class ReachGraph {
 
       // retrieve the summary node, or make it
       // from scratch
-      HeapRegionNode hrnSummary = getSummaryNode( as, false );      
+      HeapRegionNode hrnSummary = getSummaryNode( as, false );
       
       mergeIntoSummary( hrnK, hrnSummary );
     }
@@ -825,25 +825,14 @@ public class ReachGraph {
     wipeOut( hrn0, true );
 
     // now tokens in reachability sets need to "age" also
-    Iterator itrAllVariableNodes = td2vn.entrySet().iterator();
-    while( itrAllVariableNodes.hasNext() ) {
-      Map.Entry    me = (Map.Entry)    itrAllVariableNodes.next();
-      VariableNode ln = (VariableNode) me.getValue();
-
-      Iterator<RefEdge> itrEdges = ln.iteratorToReferencees();
-      while( itrEdges.hasNext() ) {
-	ageTuplesFrom( as, itrEdges.next() );
-      }
-    }
-
     Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
     while( itrAllHRNodes.hasNext() ) {
       Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
       HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
-
+      
       ageTuplesFrom( as, hrnToAge );
 
-      Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencees();
+      Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencers();
       while( itrEdges.hasNext() ) {
 	ageTuplesFrom( as, itrEdges.next() );
       }
@@ -1007,10 +996,10 @@ public class ReachGraph {
     // then merge hrn reachability into hrnSummary
     hrnSummary.setAlpha( 
                         Canonical.unionORpreds( hrnSummary.getAlpha(),
-                                         hrn.getAlpha() 
-                                         )
+                                                hrn.getAlpha() 
+                                                )
                          );
-
+    
     hrnSummary.setPreds(
                         Canonical.join( hrnSummary.getPreds(),
                                         hrn.getPreds()
@@ -2908,6 +2897,7 @@ public class ReachGraph {
       AllocSite as = asItr.next();
       int ageNorm = 0;
       int ageShad = 0;
+
       while( ageNorm < allocationDepth &&
              ageShad < allocationDepth ) {
 
@@ -2951,6 +2941,21 @@ public class ReachGraph {
         // yes, a normal node exists, so get the shadow summary
         HeapRegionNode summShad = getSummaryNode( as, true );
         mergeIntoSummary( hrnNorm, summShad );
+
+        // now tokens in reachability sets need to age also
+        Iterator itrAllHRNodes = id2hrn.entrySet().iterator();
+        while( itrAllHRNodes.hasNext() ) {
+          Map.Entry      me       = (Map.Entry)      itrAllHRNodes.next();
+          HeapRegionNode hrnToAge = (HeapRegionNode) me.getValue();
+          
+          ageTuplesFrom( as, hrnToAge );
+          
+          Iterator<RefEdge> itrEdges = hrnToAge.iteratorToReferencers();
+          while( itrEdges.hasNext() ) {
+            ageTuplesFrom( as, itrEdges.next() );
+          }
+        }
+
         ageNorm++;
       }
 

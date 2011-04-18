@@ -19,13 +19,17 @@ public class Test {
   }
 
   static public void main( String[] args ) {
-    //Graph[] a = new Graph[3];
+    Graph[] a = new Graph[3];
 
     for( int i = 0; i < 3; ++i ) {
+
       Graph g  = disjoint G new Graph();
 
+      genreach p0BeforeUVgen;
       Node  u  = nodeFactory();
+      genreach p1afterUgen;
       Node  v  = nodeFactory();
+      genreach p2afterVgen;
 
       //Node u = disjoint U new Node();
       //Node v = disjoint V new Node();
@@ -37,17 +41,29 @@ public class Test {
       //        v = disjoint N new Node();
       //      } while(false);
 
-      genreach p0;
-
       Config c = disjoint C new Config();
 
       g.n = u;
-      u.n = v; u.c = c;
-      v.n = u; v.c = c;
+      genreach p3AfterConnectG2U;
 
-      //a[i] = g;
+      u.n = v; 
+      genreach p4AfterConnectU2V;
+
+      v.n = u; 
+      genreach p5AfterConnectV2U;
+
+      u.c = c;
+      v.c = c;
+      genreach p6AfterConfig;
+
+      
+
+      a[i] = g;
+
     }
     
-    //System.out.println( a );
+    genreach p7Last;
+
+    System.out.println( a );
   }
 }
