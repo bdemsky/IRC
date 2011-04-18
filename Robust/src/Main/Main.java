@@ -34,6 +34,7 @@ import Analysis.TaskStateAnalysis.TaskAnalysis;
 import Analysis.TaskStateAnalysis.TaskTagAnalysis;
 import Analysis.TaskStateAnalysis.TaskGraph;
 import Analysis.CallGraph.CallGraph;
+import Analysis.CallGraph.BaseCallGraph;
 import Analysis.CallGraph.JavaCallGraph;
 import Analysis.TaskStateAnalysis.FEdge;
 import Analysis.TaskStateAnalysis.FlagState;
@@ -66,7 +67,7 @@ public class Main {
   public static void main(String args[]) throws Exception {
     String ClassLibraryPrefix="./ClassLibrary/";
     State state=new State();
-    Vector sourcefiles=new Vector();
+    Vector<String> sourcefiles=new Vector<String>();
     State.initTimer();
     state.classpath.add(".");
 
@@ -417,7 +418,7 @@ public class Main {
     SemanticCheck sc=new SemanticCheck(state,tu);
 
     for(int i=0;i<sourcefiles.size();i++)
-      loadClass(state, bir,(String)sourcefiles.get(i));
+      loadClass(state, bir, sourcefiles.get(i));
 
     //Stuff the runtime wants to see
 
@@ -452,7 +453,7 @@ public class Main {
       }
     }
 
-    CallGraph callgraph=state.TASK?new CallGraph(state, tu):new JavaCallGraph(state, tu);
+    CallGraph callgraph=state.TASK?new BaseCallGraph(state, tu):new JavaCallGraph(state, tu);
     
     // SSJava
     if(state.SSJAVA){

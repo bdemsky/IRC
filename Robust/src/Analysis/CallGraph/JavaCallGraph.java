@@ -13,7 +13,7 @@ import IR.TypeUtil;
 import java.util.*;
 import java.io.*;
 
-public class JavaCallGraph extends CallGraph {
+public class JavaCallGraph extends BaseCallGraph {
   TypeUtil tu;
   HashSet discovered;
 
