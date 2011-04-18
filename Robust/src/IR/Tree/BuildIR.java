@@ -42,6 +42,7 @@ public class BuildIR {
       for(int i=0; i<pnv.size(); i++) {
 	ParseNode pnimport=pnv.elementAt(i);
 	NameDescriptor nd=parseName(pnimport.getChild("name"));
+	// TODO need to implement
 	if (isNode(pnimport,"import_single"))
 	  singleimports.add(nd);
 	else
@@ -50,6 +51,7 @@ public class BuildIR {
     }
     ParseNode ppn=pn.getChild("packages").getChild("package");
     if (ppn!=null) {
+	// TODO need to implement
       packages=parseName(ppn.getChild("name"));
     }
     ParseNode tpn=pn.getChild("type_declaration_list");
