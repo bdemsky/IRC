@@ -69,7 +69,6 @@ public class TypeDescriptor extends Descriptor {
 
   public int hashCode() {
     int hashcode=type^arraycount;
-    hashcode+=annotationSet.hashCode();
     if (type==CLASS)
       hashcode^=getSymbol().hashCode();
     return hashcode;
