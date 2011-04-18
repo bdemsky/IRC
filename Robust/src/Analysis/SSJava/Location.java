@@ -88,5 +88,9 @@ public class Location {
     bottomLoc.loc = "_bottom_";
     return bottomLoc;
   }
+  
+  public boolean isTop(){
+    return type==TOP;
+  }
 
 }

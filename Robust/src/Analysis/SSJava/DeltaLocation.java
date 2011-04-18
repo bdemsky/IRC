@@ -1,16 +1,14 @@
 package Analysis.SSJava;
 
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.Vector;
 
 import IR.ClassDescriptor;
+import IR.Descriptor;
 import IR.TypeDescriptor;
 
 public class DeltaLocation extends CompositeLocation {
 
-  private TypeDescriptor refOperand = null;
+  private Descriptor refOperand = null;
 
   public DeltaLocation(ClassDescriptor cd) {
     super(cd);
@@ -21,12 +19,12 @@ public class DeltaLocation extends CompositeLocation {
     locTuple.addAll(set);
   }
 
-  public DeltaLocation(ClassDescriptor cd, TypeDescriptor refOperand) {
+  public DeltaLocation(ClassDescriptor cd, Descriptor refOperand) {
     super(cd);
     this.refOperand = refOperand;
   }
 
-  public TypeDescriptor getRefLocationId() {
+  public Descriptor getRefLocationId() {
     return this.refOperand;
   }
 
