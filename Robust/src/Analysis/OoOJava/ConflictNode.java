@@ -9,6 +9,7 @@ import Analysis.Disjoint.Alloc;
 import Analysis.Disjoint.AllocSite;
 import Analysis.Disjoint.Effect;
 import Analysis.Disjoint.Taint;
+import IR.ClassDescriptor;
 import IR.Flat.FlatNew;
 import IR.Flat.FlatNode;
 import IR.Flat.FlatSESEEnterNode;
@@ -31,6 +32,8 @@ public class ConflictNode {
   protected FlatSESEEnterNode fsen;
   protected boolean toBePruned = false;
 
+  protected ClassDescriptor cd;
+
   public boolean isTobePruned() {
     return toBePruned;
   }
@@ -50,9 +53,11 @@ public class ConflictNode {
   public static final int INVAR = 0;
   public static final int STALLSITE = 1;
 
-  public ConflictNode(String id, int nodeType, TempDescriptor var, FlatNode stallSite) {
+  public ConflictNode(String id, int nodeType, TempDescriptor var, FlatNode stallSite,
+      ClassDescriptor cd) {
     this(id, var, nodeType);
     this.stallSite = stallSite;
+    this.cd = cd;
   }
 
   public ConflictNode(String id, int nodeType, TempDescriptor var, FlatSESEEnterNode fsen) {
@@ -257,6 +262,10 @@ public class ConflictNode {
       }
     }
     return true;
+  }
+
+  public String getSourceFileName() {
+    return cd.getSourceFileName();
   }
 
 }

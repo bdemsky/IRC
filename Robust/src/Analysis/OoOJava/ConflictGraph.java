@@ -11,6 +11,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+
+import IR.ClassDescriptor;
 import IR.State;
 
 import Util.Pair;
@@ -37,11 +39,11 @@ public class ConflictGraph {
   public static final int NON_WRITE_CONFLICT = 0;
   public static final int FINE_GRAIN_EDGE = 1;
   public static final int COARSE_GRAIN_EDGE = 2;
- 
+
   State state;
 
   public ConflictGraph(State state) {
-    this.state=state;
+    this.state = state;
     id2cn = new Hashtable<String, ConflictNode>();
     sese2te = new Hashtable<FlatNode, Hashtable<Taint, Set<Effect>>>();
   }
@@ -73,7 +75,8 @@ public class ConflictGraph {
     }
   }
 
-  public void addStallSite(Hashtable<Taint, Set<Effect>> taint2Effects, TempDescriptor var) {
+  public void addStallSite(Hashtable<Taint, Set<Effect>> taint2Effects, TempDescriptor var,
+      ClassDescriptor cd) {
     if (taint2Effects == null) {
       return;
     }
@@ -87,14 +90,14 @@ public class ConflictGraph {
         while (effectIter.hasNext()) {
           Effect effect = (Effect) effectIter.next();
           if (taint.getVar().equals(var)) {
-            addStallSiteEffect(taint, effect);
+            addStallSiteEffect(taint, effect, cd);
           }
         }
       }
     }
   }
 
-  public void addStallSiteEffect(Taint t, Effect e) {
+  public void addStallSiteEffect(Taint t, Effect e, ClassDescriptor cd) {
     FlatNode fn = t.getStallSite();
     TempDescriptor var = t.getVar();
     Alloc as = t.getAllocSite();
@@ -102,7 +105,7 @@ public class ConflictGraph {
     String id = var + "_fn" + fn.hashCode();
     ConflictNode node = id2cn.get(id);
     if (node == null) {
-      node = new ConflictNode(id, ConflictNode.STALLSITE, t.getVar(), t.getStallSite());
+      node = new ConflictNode(id, ConflictNode.STALLSITE, t.getVar(), t.getStallSite(), cd);
     }
     node.addEffect(as, e);
     node.addTaint(t);
@@ -209,8 +212,8 @@ public class ConflictGraph {
 
       if ((!currentNode.getID().equals(entryNodeID))
           && !(analyzedIDSet.contains(currentNode.getID() + entryNodeID) || analyzedIDSet
-               .contains(entryNodeID + currentNode.getID()))) {
-        
+              .contains(entryNodeID + currentNode.getID()))) {
+
         conflictType = calculateConflictType(currentNode, entryNode, useReachInfo);
         if (conflictType > ConflictGraph.NON_WRITE_CONFLICT) {
           addConflictEdge(conflictType, currentNode, entryNode);
@@ -227,20 +230,22 @@ public class ConflictGraph {
   }
 
   private int calculateConflictType(ConflictNode node, boolean useReachInfo) {
-    
+
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
-    Hashtable<Alloc, Set<Effect>> alloc2readEffects = node.getReadEffectSet();      
-    Hashtable<Alloc, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();    
-    Hashtable<Alloc, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet(); 
+    Hashtable<Alloc, Set<Effect>> alloc2readEffects = node.getReadEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2writeEffects = node.getWriteEffectSet();
+    Hashtable<Alloc, Set<Effect>> alloc2SUEffects = node.getStrongUpdateEffectSet();
 
     conflictType =
-        updateConflictType(conflictType, determineConflictType(node, alloc2writeEffects, node,
-            alloc2writeEffects, useReachInfo));
+        updateConflictType(conflictType,
+            determineConflictType(node, alloc2writeEffects, node, alloc2writeEffects, useReachInfo));
 
     conflictType =
-        updateConflictType(conflictType, hasStrongUpdateConflicts(node, alloc2SUEffects, node,
-            alloc2readEffects, alloc2writeEffects, useReachInfo));
+        updateConflictType(
+            conflictType,
+            hasStrongUpdateConflicts(node, alloc2SUEffects, node, alloc2readEffects,
+                alloc2writeEffects, useReachInfo));
 
     return conflictType;
   }
@@ -258,31 +263,41 @@ public class ConflictGraph {
 
     // if node A has write effects on reading/writing regions of node B
     conflictType =
-        updateConflictType(conflictType, determineConflictType(nodeA, alloc2writeEffectsA, nodeB,
-            alloc2readEffectsB, useReachInfo));
+        updateConflictType(
+            conflictType,
+            determineConflictType(nodeA, alloc2writeEffectsA, nodeB, alloc2readEffectsB,
+                useReachInfo));
     conflictType =
-        updateConflictType(conflictType, determineConflictType(nodeA, alloc2writeEffectsA, nodeB,
-            alloc2writeEffectsB, useReachInfo));
+        updateConflictType(
+            conflictType,
+            determineConflictType(nodeA, alloc2writeEffectsA, nodeB, alloc2writeEffectsB,
+                useReachInfo));
 
     // if node B has write effects on reading regions of node A
     conflictType =
-        updateConflictType(conflictType, determineConflictType(nodeB, alloc2writeEffectsB, nodeA,
-            alloc2readEffectsA, useReachInfo));
+        updateConflictType(
+            conflictType,
+            determineConflictType(nodeB, alloc2writeEffectsB, nodeA, alloc2readEffectsA,
+                useReachInfo));
 
     // strong udpate effects conflict with all effects
     // on objects that are reachable from the same heap roots
     // if node A has SU on regions of node B
     if (!alloc2SUEffectsA.isEmpty()) {
       conflictType =
-          updateConflictType(conflictType, hasStrongUpdateConflicts(nodeA, alloc2SUEffectsA, nodeB,
-              alloc2readEffectsB, alloc2writeEffectsB, useReachInfo));
+          updateConflictType(
+              conflictType,
+              hasStrongUpdateConflicts(nodeA, alloc2SUEffectsA, nodeB, alloc2readEffectsB,
+                  alloc2writeEffectsB, useReachInfo));
     }
 
     // if node B has SU on regions of node A
     if (!alloc2SUEffectsB.isEmpty()) {
       conflictType =
-          updateConflictType(conflictType, hasStrongUpdateConflicts(nodeB, alloc2SUEffectsB, nodeA,
-              alloc2readEffectsA, alloc2writeEffectsA, useReachInfo));
+          updateConflictType(
+              conflictType,
+              hasStrongUpdateConflicts(nodeB, alloc2SUEffectsB, nodeA, alloc2readEffectsA,
+                  alloc2writeEffectsA, useReachInfo));
     }
 
     return conflictType;
@@ -332,7 +347,7 @@ public class ConflictGraph {
                   if (!nodeA.equals(nodeB)) {
                     addCoarseEffect(nodeB, asB, effectB);
                   }
-                  conflictType=ConflictGraph.COARSE_GRAIN_EDGE;
+                  conflictType = ConflictGraph.COARSE_GRAIN_EDGE;
                 } else {
                   return ConflictGraph.COARSE_GRAIN_EDGE;
                 }
@@ -384,9 +399,8 @@ public class ConflictGraph {
 
   }
 
-  private int determineConflictType(ConflictNode nodeA,
-      Hashtable<Alloc, Set<Effect>> nodeAtable, ConflictNode nodeB,
-      Hashtable<Alloc, Set<Effect>> nodeBtable, boolean useReachInfo) {
+  private int determineConflictType(ConflictNode nodeA, Hashtable<Alloc, Set<Effect>> nodeAtable,
+      ConflictNode nodeB, Hashtable<Alloc, Set<Effect>> nodeBtable, boolean useReachInfo) {
 
     int conflictType = ConflictGraph.NON_WRITE_CONFLICT;
 
@@ -408,8 +422,9 @@ public class ConflictGraph {
             Effect effectB = (Effect) iterator2.next();
 
             if (effectA.getAffectedAllocSite().equals(effectB.getAffectedAllocSite())
-                && ((effectA.getField()!=null&&effectB.getField()!=null&&effectA.getField().equals(effectB.getField()))||
-		    (effectA.getField()==null&&effectB.getField()==null))) {
+                && ((effectA.getField() != null && effectB.getField() != null && effectA.getField()
+                    .equals(effectB.getField())) || (effectA.getField() == null && effectB
+                    .getField() == null))) {
 
               if (useReachInfo) {
                 FlatNew fnRoot1 = asA.getFlatNew();
@@ -446,7 +461,7 @@ public class ConflictGraph {
                   if (!nodeA.equals(nodeB)) {
                     addCoarseEffect(nodeB, asB, effectB);
                   }
-                  conflictType=ConflictGraph.COARSE_GRAIN_EDGE;
+                  conflictType = ConflictGraph.COARSE_GRAIN_EDGE;
                 } else {
                   return ConflictGraph.COARSE_GRAIN_EDGE;
                 }
@@ -467,12 +482,12 @@ public class ConflictGraph {
 
   private void addEffectSetByTaint(Taint t, Effect e) {
 
-    FlatNode node=t.getSESE();
-    if(node==null){
+    FlatNode node = t.getSESE();
+    if (node == null) {
       // stall site case
-      node=t.getStallSite();
+      node = t.getStallSite();
     }
-    
+
     Hashtable<Taint, Set<Effect>> taint2Conflicts = sese2te.get(node);
     if (taint2Conflicts == null) {
       taint2Conflicts = new Hashtable<Taint, Set<Effect>>();
@@ -566,7 +581,7 @@ public class ConflictGraph {
                 newElement.setStatus(seseLock.getNodeType(node));
                 newElement.setTempDesc(node.getVar());
                 if (isFineElement(newElement.getStatus())) {
-                  newElement.setDynID(node.getVar().toString());                  
+                  newElement.setDynID(node.getVar().toString());
                 }
                 if (!waitingElementSet.contains(newElement)) {
                   waitingElementSet.add(newElement);
@@ -583,7 +598,7 @@ public class ConflictGraph {
 
     // handle the case that multiple enqueues by an SESE for different live-in
     // into the same queue
-     return refineQueue(waitingElementSet);  
+    return refineQueue(waitingElementSet);
 
   }
 
@@ -602,7 +617,7 @@ public class ConflictGraph {
       set.add(waitingElement);
       map.put(new Integer(waitingElement.getQueueID()), set);
     }
-    
+
     Set<Integer> keySet = map.keySet();
     for (Iterator iterator = keySet.iterator(); iterator.hasNext();) {
       Integer queueID = (Integer) iterator.next();
@@ -643,20 +658,20 @@ public class ConflictGraph {
       if (SCCelement != null) {
         // if there is at lease one SCC element, just enqueue SCC and
         // ignore others.
-        if(state.RCR){
+        if (state.RCR) {
           // for rcr, we need to label all of coarse tempdescriptors
           // here assume that all waiting elements are coarse
           for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
             WaitingElement waitingElement = (WaitingElement) iterator.next();
             SCCelement.addTempDesc(waitingElement.getTempDesc());
-            if(waitingElement!=SCCelement){
+            if (waitingElement != SCCelement) {
               waitingElement.setBogus(true);
               refinedSet.add(waitingElement);
             }
           }
         }
         refinedSet.add(SCCelement);
-      } else if (numCoarse == 1 && (numRead + numWrite  == total)) {
+      } else if (numCoarse == 1 && (numRead + numWrite == total)) {
         // if one is a coarse, the othere are reads/write, enqueue SCC.
         WaitingElement we = new WaitingElement();
         we.setQueueID(queueID);
@@ -664,11 +679,11 @@ public class ConflictGraph {
         refinedSet.add(we);
       } else if (numCoarse == total) {
         // if there are multiple coarses, enqueue just one coarse.
-        if(state.RCR){
+        if (state.RCR) {
           // for rcr, we need to label all of coarse tempdescriptors
           for (Iterator iterator = waitingElementSet.iterator(); iterator.hasNext();) {
             WaitingElement waitingElement = (WaitingElement) iterator.next();
-            if(waitingElement!=coarseElement){
+            if (waitingElement != coarseElement) {
               coarseElement.addTempDesc(waitingElement.getTempDesc());
               waitingElement.setBogus(true);
               refinedSet.add(waitingElement);
@@ -769,7 +784,7 @@ public class ConflictGraph {
       attributes += "label=\"" + node.getID() + "\\n";
 
       if (node.isStallSiteNode()) {
-        String srcFileName = node.getVar().getType().getClassDesc().getSourceFileName();
+        String srcFileName = node.getSourceFileName();
         int separatorIdx = srcFileName.lastIndexOf(File.separator);
         if (separatorIdx > 0) {
           srcFileName = srcFileName.substring(separatorIdx + 1);
@@ -816,7 +831,7 @@ public class ConflictGraph {
     bw.close();
 
   }
-  
+
   public Hashtable<String, ConflictNode> getId2cn() {
     return id2cn;
   }
