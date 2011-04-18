@@ -11,6 +11,11 @@ public class SSJavaAnalysis {
     this.state = state;
   }
 
+  public void doCheck() {
+    doFlowDownCheck();
+    doLoopCheck();
+  }
+
   public void doFlowDownCheck() {
     FlowDownCheck checker = new FlowDownCheck(state);
     checker.flowDownCheck();

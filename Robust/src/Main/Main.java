@@ -466,8 +466,7 @@ public class Main {
     
     // SSJava
     if(state.SSJAVA){
-      ssjava.doFlowDownCheck();
-      ssjava.doLoopCheck();
+      ssjava.doCheck();
       State.logEvent("Done SSJava Checking");
     }
 
