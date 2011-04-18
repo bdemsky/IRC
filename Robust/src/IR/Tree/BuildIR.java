@@ -1436,7 +1436,8 @@ public class BuildIR {
 	String paramname=paramn.getChild("single").getTerminal();
 	TypeDescriptor type=new TypeDescriptor(TypeDescriptor.TAG);
 	md.addTagParameter(type, paramname);
-      } else {
+      } else  {
+        
 	TypeDescriptor type=parseTypeDescriptor(paramn);
 
 	ParseNode tmp=paramn;
@@ -1447,6 +1448,11 @@ public class BuildIR {
 	String paramname=tmp.getChild("single").getTerminal();
 
 	md.addParameter(type, paramname);
+  if(isNode(paramn, "annotation_parameter")){
+    ParseNode bodynode=paramn.getChild("annotation_body");
+    parseParameterAnnotation(bodynode,type);
+  }
+  
       }
     }
   }
@@ -1506,7 +1512,19 @@ public class BuildIR {
       }
     }
   }
-
+  
+  private void parseParameterAnnotation(ParseNode body_list,TypeDescriptor type){
+    ParseNode body_node = body_list.getFirstChild();
+    if (isNode(body_node, "marker_annotation")) {
+      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal()));
+    } else if (isNode(body_node, "single_annotation")) {
+      type.addAnnotationMarker(new AnnotationDescriptor(body_node.getChild("name").getTerminal(),
+          body_node.getChild("element_value").getTerminal()));
+    } else if (isNode(body_node, "normal_annotation")) {
+      throw new Error("Annotation with multiple data members is not supported yet.");
+    }
+  }
+  
   private boolean isNode(ParseNode pn, String label) {
     if (pn.getLabel().equals(label))
       return true;

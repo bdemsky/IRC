@@ -1184,6 +1184,13 @@ formal_parameter ::=
 		pn.addChild(name);
 		RESULT=pn;
 	:}
+	|	annotation:an type:type variable_declarator_id:name {:
+		ParseNode pn=new ParseNode("annotation_parameter",parser.lexer.line_num);
+		pn.addChild(type);
+		pn.addChild(name);
+		pn.addChild(an);
+		RESULT=pn;
+	:}
 	;
 throws_opt ::=	
         {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
