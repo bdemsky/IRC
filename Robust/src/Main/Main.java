@@ -420,20 +420,10 @@ public class Main {
       loadClass(state, bir,(String)sourcefiles.get(i));
 
     //Stuff the runtime wants to see
-    sc.getClass("String");
-    sc.getClass("Math");
-    sc.getClass("File");
-    sc.getClass("Socket");
-    sc.getClass("ServerSocket");
-    sc.getClass("FileInputStream");
-    sc.getClass("FileOutputStream");
+
     if (state.TASK) {
       sc.getClass("TagDescriptor");
     }
-    if (state.THREAD||state.DSM||state.SINGLETM||state.MGC) {
-      sc.getClass("Thread");
-    }
-
 
     sc.semanticCheck();
     State.logEvent("Done Semantic Checking");
