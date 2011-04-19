@@ -502,12 +502,6 @@ public class FlowDownCheck {
       // caller needs to guarantee that it passes arguments in regarding to
       // callee's hierarchy
 
-      for (int i = 0; i < md.numParameters(); i++) {
-        // process annotations on method parameters
-        VarDescriptor vd = (VarDescriptor) md.getParameter(i);
-        // assignLocationOfVarDescriptor(vd, md, md.getParameterTable(), bn);
-      }
-
       for (int i = 0; i < min.numArgs(); i++) {
         ExpressionNode en = min.getArg(i);
         CompositeLocation callerArg1 =
@@ -531,11 +525,16 @@ public class FlowDownCheck {
               boolean callerResult = CompositeLattice.isGreaterThan(callerArg1, callerArg2, cd);
               boolean calleeResult =
                   CompositeLattice.isGreaterThan(calleeLoc1, calleeLoc2, calleecd);
+              
+              if (calleeResult && !callerResult) {
+                // in callee, calleeLoc1 is higher than calleeLoc2
+                // then, caller should have same ordering relation in-bet
+                // callerLoc1 & callerLoc2
 
-              if (callerResult != calleeResult) {
                 throw new Error("Caller doesn't respect ordering relations among method arguments:"
                     + cd.getSourceFileName() + ":" + min.getNumLine());
               }
+
             }
           }
         }
@@ -902,84 +901,8 @@ public class FlowDownCheck {
   }
 
   private void checkDeclarationNode(MethodDescriptor md, SymbolTable nametable, DeclarationNode dn) {
-
     VarDescriptor vd = dn.getVarDescriptor();
     assignLocationOfVarDescriptor(vd, md, nametable, dn);
-    /*
-     * Vector<AnnotationDescriptor> annotationVec =
-     * vd.getType().getAnnotationMarkers();
-     * 
-     * // currently enforce every variable to have corresponding location if
-     * (annotationVec.size() == 0) { throw new
-     * Error("Location is not assigned to variable " + vd.getSymbol() +
-     * " in the method " + md.getSymbol() + " of the class " + cd.getSymbol());
-     * }
-     * 
-     * if (annotationVec.size() > 1) { // variable can have at most one location
-     * throw new Error(vd.getSymbol() + " has more than one location."); }
-     * 
-     * AnnotationDescriptor ad = annotationVec.elementAt(0);
-     * 
-     * if (ad.getType() == AnnotationDescriptor.MARKER_ANNOTATION) {
-     * 
-     * // check if location is defined String locationID = ad.getMarker();
-     * Lattice<String> lattice = (Lattice<String>)
-     * state.getCd2LocationOrder().get(cd);
-     * 
-     * if (lattice == null || (!lattice.containsKey(locationID))) { throw new
-     * Error("Location " + locationID +
-     * " is not defined in the location hierarchy of class " + cd.getSymbol() +
-     * "."); }
-     * 
-     * Location loc = new Location(cd, locationID); td2loc.put(vd.getType(),
-     * loc);
-     * 
-     * } else if (ad.getType() == AnnotationDescriptor.SINGLE_ANNOTATION) { if
-     * (ad.getMarker().equals(SSJavaAnalysis.DELTA)) {
-     * 
-     * CompositeLocation compLoc = new CompositeLocation(cd);
-     * 
-     * if (ad.getData().length() == 0) { throw new Error("Delta function of " +
-     * vd.getSymbol() + " does not have any locations: " + cd.getSymbol() +
-     * "."); }
-     * 
-     * String deltaStr = ad.getData(); if (deltaStr.startsWith("LOC(")) {
-     * 
-     * if (!deltaStr.endsWith(")")) { throw new
-     * Error("The declaration of the delta location is wrong at " +
-     * cd.getSourceFileName() + ":" + dn.getNumLine()); } String locationOperand
-     * = deltaStr.substring(4, deltaStr.length() - 1);
-     * 
-     * nametable.get(locationOperand); Descriptor d = (Descriptor)
-     * nametable.get(locationOperand);
-     * 
-     * if (d instanceof VarDescriptor) { VarDescriptor varDescriptor =
-     * (VarDescriptor) d; DeltaLocation deltaLoc = new DeltaLocation(cd,
-     * varDescriptor.getType()); // td2loc.put(vd.getType(), compLoc);
-     * compLoc.addLocation(deltaLoc); } else if (d instanceof FieldDescriptor) {
-     * throw new Error("Applying delta operation to the field " +
-     * locationOperand + " is not allowed at " + cd.getSourceFileName() + ":" +
-     * dn.getNumLine()); } } else { StringTokenizer token = new
-     * StringTokenizer(deltaStr, ","); DeltaLocation deltaLoc = new
-     * DeltaLocation(cd);
-     * 
-     * while (token.hasMoreTokens()) { String deltaOperand = token.nextToken();
-     * ClassDescriptor deltaCD = id2cd.get(deltaOperand); if (deltaCD == null) {
-     * // delta operand is not defined in the location hierarchy throw new
-     * Error("Delta operand '" + deltaOperand + "' of declaration node '" + vd +
-     * "' is not defined by location hierarchies."); }
-     * 
-     * Location loc = new Location(deltaCD, deltaOperand);
-     * deltaLoc.addDeltaOperand(loc); } compLoc.addLocation(deltaLoc);
-     * 
-     * }
-     * 
-     * td2loc.put(vd.getType(), compLoc); System.out.println("vd=" + vd +
-     * " is assigned by " + compLoc);
-     * 
-     * } }
-     */
-
   }
 
   private void checkClass(ClassDescriptor cd) {
