@@ -16,7 +16,7 @@ task t1(StartupObject s{initialstate}) {
   args[4] = 81; //51; // 501;
   args[5] = 240; //0; // 1500;
   for(int i = 0; i < threadnum; ++i) {
-    TestRunner tr = new TestRunner(args){run};
+    TestRunner tr = newflag TestRunner(args){run};
   }
 
   taskexit(s{!initialstate});

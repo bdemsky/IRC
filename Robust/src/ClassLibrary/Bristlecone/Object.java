@@ -1,6 +1,5 @@
 public class Object {
   /* DO NOT USE ANY OF THESE - THEY ARE FOR IMPLEMENTING TAGS */
-  private int cachedCode;  //first field has to be a primitive
   private Object tags;  
 
   public native int hashCode();

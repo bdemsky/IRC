@@ -10,7 +10,7 @@ task t1(StartupObject s{initialstate}) {
   int threadnum = 62; // 56;
   int npoints = 32000; //30000;
   for(int i = 0; i < threadnum; ++i) {
-    TestRunner tr = new TestRunner(npoints){run};
+    TestRunner tr = newflag TestRunner(npoints){run};
   }
 
   taskexit(s{!initialstate});

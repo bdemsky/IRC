@@ -3,11 +3,11 @@ task t1(StartupObject s{initialstate}) {
 
   int threadnum = 62; // 56;
   int size = threadnum * 25;
-  Composer comp = new Composer(threadnum, size){compose};
+  Composer comp = newflag Composer(threadnum, size){compose};
   RayTracer rt = new RayTracer();
   Scene scene = rt.createScene();
   for(int i = 0; i < threadnum; ++i) {
-    TestRunner tr = new TestRunner(i, threadnum, size, scene){run};
+    TestRunner tr = newflag TestRunner(i, threadnum, size, scene){run};
   }
 
   taskexit(s{!initialstate});

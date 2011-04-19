@@ -27,15 +27,15 @@ task t1(StartupObject s{initialstate}) {
     int nruns = 62 * 62;  //16 * 16;
     int group = 62; // 16;
     
-    AppDemo ad = new AppDemo(datasize, nruns, group){merge};
+    AppDemo ad = newflag AppDemo(datasize, nruns, group){merge};
     
     ad.initSerial();
     
     for(int i = 0; i < group; i++) {
-	AppDemoRunner adr = new AppDemoRunner(i, 
-		                              nruns, 
-		                              group, 
-		                              ad){run};
+	AppDemoRunner adr = newflag AppDemoRunner(i, 
+		                                      nruns, 
+		                                      group, 
+		                                      ad){run};
     }
     
     taskexit(s{!initialstate});

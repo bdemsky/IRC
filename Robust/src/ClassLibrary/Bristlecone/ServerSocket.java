@@ -18,7 +18,7 @@ public class ServerSocket {
   }
 
   public Socket accept(tag td) {
-    Socket s=new Socket() {
+    Socket s=newflag Socket() {
     } {td};
     int newfd=nativeaccept(s);
     s.setFD(newfd);

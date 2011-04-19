@@ -14,8 +14,10 @@
 #endif
 
 #ifndef MAC
+#ifdef THREADS
 __thread struct lockvector lvector;
 __thread int mythreadid;
+#endif
 #else
 
 #endif

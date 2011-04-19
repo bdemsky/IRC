@@ -157,6 +157,7 @@ inline void setupsmemmode(void);
 #endif
 #endif
 
+#ifdef THREADS
 #define MAXLOCKS 256
 
 struct lockpair {
@@ -172,6 +173,7 @@ struct lockvector {
 #ifndef MAC
 extern __thread struct lockvector lvector;
 extern __thread int mythreadid;
+#endif
 #endif
 
 #ifdef TASK

@@ -5,7 +5,7 @@ task t1(StartupObject s{initialstate}) {
     int size = 40000;
     int nodenum = size*10;
 	for(int i = 0; i < threadnum; ++i) {
-		TestRunner tr = new TestRunner(i, size, nodenum){run};
+		TestRunner tr = newflag TestRunner(i, size, nodenum){run};
 	}
 
 	taskexit(s{!initialstate});
