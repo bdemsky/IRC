@@ -1,4 +1,4 @@
-import java.io.FileDescriptor;
+//import java.io.FileDescriptor;
 
 public class FileOutputStream extends OutputStream {
   private int fd;
