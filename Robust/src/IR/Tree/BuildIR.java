@@ -1427,6 +1427,11 @@ public class BuildIR {
       String graphName = pn.getChild("graphName").getTerminal();
       blockstatements.add( new GenReachNode( graphName ) );
 
+    } else if(isNode(pn,"labeledstatement")){
+      String label = pn.getChild("name").getTerminal();
+      BlockNode bn=parseSingleBlock(pn.getChild("statement").getFirstChild());
+      bn.setLabel(label);
+      blockstatements.add(new SubBlockNode(bn));  
     } else {
       System.out.println("---------------");
       System.out.println(pn.PPrint(3,true));

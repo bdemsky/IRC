@@ -180,7 +180,7 @@ non terminal ParseNode local_variable_declaration_statement, local_variable_decl
 non terminal ParseNode statement, statement_no_short_if;
 non terminal ParseNode statement_without_trailing_substatement;
 non terminal ParseNode empty_statement;
-//non terminal ParseNode labeled_statement, labeled_statement_no_short_if;
+non terminal ParseNode labeled_statement, labeled_statement_no_short_if;
 non terminal ParseNode expression_statement, statement_expression;
 non terminal ParseNode if_then_statement;
 non terminal ParseNode if_then_else_statement, if_then_else_statement_no_short_if;
@@ -1406,7 +1406,7 @@ abstract_method_declaration ::=
 		RESULT=pn;
 	:}
        ;
-
+/*
 annotation_type_declaration ::=
 		AT INTERFACE IDENTIFIER annotation_type_body
 	|	modifiers_at INTERFACE IDENTIFIER annotation_type_body
@@ -1429,7 +1429,7 @@ annotation_type_element_declaration ::=
         |	interface_declaration 
 	|	SEMICOLON
         ;
-
+*/
 // 19.10) Arrays
 array_initializer ::=
 		LBRACE variable_initializers:var_init_list COMMA RBRACE {:
@@ -1528,7 +1528,7 @@ local_variable_declaration ::=
 statement ::=	statement_without_trailing_substatement:st {: 
 		RESULT=st;
 	:}
-//	|	labeled_statement:st {: RESULT=st; :}
+	|	labeled_statement:st {: RESULT=st; :}
 	|	if_then_statement:st {: RESULT=st; :}
 	|	if_then_else_statement:st {: RESULT=st; :}
 	|	while_statement:st {: RESULT=st; :}
@@ -1536,7 +1536,7 @@ statement ::=	statement_without_trailing_substatement:st {:
 	;
 statement_no_short_if ::=
 		statement_without_trailing_substatement:st {: RESULT=st; :}
-//	|	labeled_statement_no_short_if:st {: RESULT=st; :}
+	|	labeled_statement_no_short_if:st {: RESULT=st; :}
 	|	if_then_else_statement_no_short_if:st {: RESULT=st; :}
 	|	while_statement_no_short_if:st {: RESULT=st; :}
 	|	for_statement_no_short_if:st {: RESULT=st; :}
@@ -1562,12 +1562,22 @@ statement_without_trailing_substatement ::=
 empty_statement ::=
 		SEMICOLON {: RESULT=new ParseNode("nop",parser.lexer.line_num); :}
 	;
-//labeled_statement ::=
-//		IDENTIFIER COLON statement
-//	;
-//labeled_statement_no_short_if ::=
-//		IDENTIFIER COLON statement_no_short_if
-//	;
+labeled_statement ::=
+		IDENTIFIER:id COLON statement:st {:
+		ParseNode pn=new ParseNode("labeledstatement",parser.lexer.line_num);
+		pn.addChild("name").addChild(id);
+		pn.addChild("statement").addChild(st);
+		RESULT=pn;				
+		:}
+	;
+labeled_statement_no_short_if ::=
+		IDENTIFIER:id COLON statement_no_short_if:st {:
+		ParseNode pn=new ParseNode("labeledstatement",parser.lexer.line_num);
+		pn.addChild("name").addChild(id);
+		pn.addChild("statement").addChild(st);
+		RESULT=pn;				
+		:}
+	;
 expression_statement ::=
 		statement_expression:se SEMICOLON {: 
 		ParseNode pn=new ParseNode("expression",parser.lexer.line_num);
