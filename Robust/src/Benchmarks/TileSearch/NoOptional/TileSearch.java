@@ -54,7 +54,7 @@
 task Startup( StartupObject s{ initialstate } )
 {
   //System.printString("Top of task Startup\n");
-  SubProblem top = new SubProblem(){ findingNewFits, main };
+  SubProblem top = newflag SubProblem(){ findingNewFits, main };
 
 
     // use this initialization to solve the above example
@@ -111,7 +111,7 @@ task Startup( StartupObject s{ initialstate } )
                          [top.tilesFitted[0].y] = 0;
 
     top.highScore      = 0;
-    GlobalCounter counter = new GlobalCounter() {Init};
+    GlobalCounter counter = newflag GlobalCounter() {Init};
     taskexit( s{ !initialstate } );
 }
 
@@ -150,10 +150,10 @@ task findNewFits(/*optional*/ SubProblem sp{ findingNewFits }, GlobalCounter cou
 	//System.printString( "North: \n" );
 	SubProblem newSP = null;
 	if(sp.tilesToFit.length == 1 ) {
-	    newSP = new SubProblem() { !scored, leaf };
+	    newSP = newflag SubProblem() { !scored, leaf };
 	    ++counter.counter;
 	} else {
-	    newSP = new SubProblem() { findingNewFits };
+	    newSP = newflag SubProblem() { findingNewFits };
 	}
 	sp.initializeSubProblem( newSP, 1 );
 	//System.printString( "match! new a SubProblem\n" );
@@ -167,10 +167,10 @@ task findNewFits(/*optional*/ SubProblem sp{ findingNewFits }, GlobalCounter cou
 	//System.printString( "South: \n" );
 	SubProblem newSP = null;
 	if(sp.tilesToFit.length == 1) {
-	    newSP = new SubProblem() { !scored, leaf };
+	    newSP = newflag SubProblem() { !scored, leaf };
 	    ++counter.counter;
 	} else {
-	    newSP = new SubProblem() { findingNewFits };
+	    newSP = newflag SubProblem() { findingNewFits };
 	}
 	sp.initializeSubProblem( newSP, 2 );
 	//System.printString( "match! new a SubProblem\n" );
@@ -184,10 +184,10 @@ task findNewFits(/*optional*/ SubProblem sp{ findingNewFits }, GlobalCounter cou
 	//System.printString( "East: \n" );
 	SubProblem newSP = null; 
 	if(sp.tilesToFit.length == 1) {
-	    newSP = new SubProblem() { !scored, leaf };
+	    newSP = newflag SubProblem() { !scored, leaf };
 	    ++counter.counter;
 	} else {
-	    newSP = new SubProblem() { findingNewFits };
+	    newSP = newflag SubProblem() { findingNewFits };
 	}
 	sp.initializeSubProblem( newSP, 3 );
 	//System.printString( "match! new a SubProblem\n" );
@@ -201,10 +201,10 @@ task findNewFits(/*optional*/ SubProblem sp{ findingNewFits }, GlobalCounter cou
 	//System.printString( "West:\n" );
 	SubProblem newSP = null;
 	if(sp.tilesToFit.length == 1) {
-	    newSP = new SubProblem() { !scored, leaf };
+	    newSP = newflag SubProblem() { !scored, leaf };
 	    ++counter.counter;
 	} else {
-	    newSP = new SubProblem() { findingNewFits };
+	    newSP = newflag SubProblem() { findingNewFits };
 	}
 	sp.initializeSubProblem( newSP, 4 );
 	//System.printString( "match! new a SubProblem\nSpawn finished! Go on find new fits.\n" );

@@ -219,6 +219,7 @@ public class BuildCode {
     outmethodheader.close();
     outmethod.close();
     outstructs.println("#endif");
+    outstructs.println();
     outstructs.close();
 
     postCodeGenCleanUp();
@@ -534,8 +535,8 @@ public class BuildCode {
   }
 
   protected void outputStructs(PrintWriter outstructs) {
-    outstructs.println("#ifndef STRUCTDEFS_H");
-    outstructs.println("#define STRUCTDEFS_H");
+    outstructs.println("#ifndef __STRUCTDEFS_H__");
+    outstructs.println("#define __STRUCTDEFS_H__");
     outstructs.println("#include \"classdefs.h\"");
     outstructs.println("#ifndef INTPTR");
     outstructs.println("#ifdef BIT64");
@@ -644,7 +645,6 @@ public class BuildCode {
 	outclassdefs.println("  int * lock;");  // lock entry for this obj
 	outclassdefs.println("  int mutex;");
 	outclassdefs.println("  volatile int lockcount;");
-	outclassdefs.println("  volatile int notifycount;");
 	if(state.MULTICOREGC) {
 	  outclassdefs.println("  int marked;");
 	}
@@ -1576,7 +1576,7 @@ public class BuildCode {
 	classdefout.println("  int version;");
 	classdefout.println("  int * lock;"); // lock entry for this obj
 	classdefout.println("  int mutex;");
-	classdefout.println("  int lockcount;");
+	classdefout.println("  volatile int lockcount;");
 	if(state.MULTICOREGC) {
 	  classdefout.println("  int marked;");
 	}

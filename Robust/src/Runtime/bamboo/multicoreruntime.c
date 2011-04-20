@@ -1187,16 +1187,24 @@ INLINE void processmsg_memrequest_I() {
     void * mem = NULL;
 #ifdef MULTICORE_GC
     if(gcprocessing) {
-      // is currently doing gc, dump this msg
-      if(INITPHASE == gcphase) {
-		// if still in the initphase of gc, send a startinit msg again,
-		// cache the msg first
+      // is currently doing gc, dump this msg if at the beginning of the gc
+	  // if at the end of the gc, send a msg with a block with size of -1
+	  // to ask the request core to send the mem request again
+      if(FINISHPHASE == gcphase) {
+		// if still in the finishphase of gc, send a memresponse msg with 
+		// invalid block: addr 0, size -1
+		if(BAMBOO_CHECK_SEND_MODE()) {
+		  cache_msg_3(data2, MEMRESPONSE, 0, -1);
+		} else {
+		  send_msg_3(data2, MEMRESPONSE, 0, -1, true);
+		}
+      } else if(INITPHASE == gcphase) {
 		if(BAMBOO_CHECK_SEND_MODE()) {
 		  cache_msg_1(data2, GCSTARTINIT);
 		} else {
 		  send_msg_1(data2, GCSTARTINIT, true);
 		}
-      }
+	  }
     } else {
 #endif
     mem = smemalloc_I(data2, data1, &allocsize);
@@ -1235,6 +1243,9 @@ INLINE void processmsg_memresponse_I() {
 #ifdef MULTICORE_GC
 	bamboo_smem_zero_top = 0;
 #endif
+  } else if(data2 == -1) {
+	bamboo_smem_size = data2;
+	bamboo_cur_msp = (void *)data1;
   } else {
 #ifdef MULTICORE_GC
     // fill header to store the size of this mem block
@@ -1258,14 +1269,6 @@ INLINE void processmsg_memresponse_I() {
 INLINE void processmsg_gcstartpre_I() {
   if(gcprocessing) {
 	// already stall for gc
-	// send a update pregc information msg to the master core
-	/*if(BAMBOO_CHECK_SEND_MODE()) {
-	  cache_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
-		  self_numsendobjs, self_numreceiveobjs);
-	} else {
-	  send_msg_4(STARTUPCORE, GCFINISHPRE, BAMBOO_NUM_OF_CORE, 
-		  self_numsendobjs, self_numreceiveobjs, true);
-	}*/
   } else {
 	// the first time to be informed to start gc
 	gcflag = true;

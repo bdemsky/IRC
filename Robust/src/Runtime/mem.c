@@ -5,24 +5,31 @@
 #include "runtime_arch.h"
 
 #ifdef MULTICORE_GC
+extern volatile bool gcflag;
 void * mycalloc_share(struct garbagelist * stackptr, 
 		              int m, 
 					  int size) {
-	void * p = NULL;
+  void * p = NULL;
   //int isize = 2*BAMBOO_CACHE_LINE_SIZE-4+(size-1)&(~BAMBOO_CACHE_LINE_MASK);
   int isize = (size & (~(BAMBOO_CACHE_LINE_MASK))) + (BAMBOO_CACHE_LINE_SIZE);
-	int hasgc = 0;
+  int hasgc = 0;
 memalloc:
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  if(gcflag) {
+	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
+	gc(stackptr);
+	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
+  }
   p = BAMBOO_SHARE_MEM_CALLOC_I(m, isize); // calloc(m, isize);
   if(p == NULL) {
 		// no more global shared memory
 		BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 		if(hasgc < 5) {
 		    // start gc
-			if(gc(stackptr)) {
-			  hasgc++;
+			while(gcflag) {
+			  gc(stackptr);
 			}
+			hasgc++;
 		} else {
 			// no more global shared memory
 			BAMBOO_EXIT(0xc001);

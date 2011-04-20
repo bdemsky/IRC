@@ -3628,8 +3628,6 @@ inline void gc_collect(struct garbagelist * stackptr) {
     }
   }
 
-  //gcflag = false;
-  //gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
@@ -3736,15 +3734,13 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
       break;
     }
   }
-  //gcflag = false;
-  //gcprocessing = false;
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) Finish gc! \n", udn_tile_coord_x(), udn_tile_coord_y());
 #endif
 } // void gc_collect(struct garbagelist * stackptr)
 
 inline void gc_master(struct garbagelist * stackptr) {
-  //tprintf("start GC !!!!!!!!!!!!! \n");
+  tprintf("start GC !!!!!!!!!!!!! \n");
 
   gcphase = INITPHASE;
   int i = 0;
@@ -4147,7 +4143,7 @@ inline void gc_master(struct garbagelist * stackptr) {
   printf("(%x,%x) gc finished   \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());
 #endif
-  //tprintf("finish GC ! \n");
+  tprintf("finish GC ! \n");
 } // void gc_master(struct garbagelist * stackptr)
 
 inline bool gc(struct garbagelist * stackptr) {

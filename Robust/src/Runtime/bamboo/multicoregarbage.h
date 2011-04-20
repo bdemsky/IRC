@@ -14,7 +14,7 @@
 #endif
 
 #ifdef TASK
-#define BAMBOOMARKBIT 6
+#define BAMBOOMARKBIT 8
 #elif defined MGC
 #define BAMBOOMARKBIT 5
 #endif // TASK
