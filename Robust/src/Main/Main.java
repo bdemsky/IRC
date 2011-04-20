@@ -13,6 +13,7 @@ import java.util.Vector;
 
 import IR.Tree.ParseNode;
 import IR.Tree.BuildIR;
+import IR.Tree.JavaBuilder;
 import IR.Tree.SemanticCheck;
 import IR.Flat.BuildCodeMultiCore;
 import IR.Flat.BuildCodeMGC;
@@ -412,30 +413,40 @@ public class Main {
     State.logEvent("Done Parsing Commands");
 
     SSJavaAnalysis ssjava=new SSJavaAnalysis(state);
-    BuildIR bir=new BuildIR(state);
-    TypeUtil tu=new TypeUtil(state, bir);
 
-    SemanticCheck sc=new SemanticCheck(state,tu);
+    TypeUtil tu;
+    BuildFlat bf;
 
-    for(int i=0;i<sourcefiles.size();i++)
-      loadClass(state, bir, sourcefiles.get(i));
-
-    //Stuff the runtime wants to see
-
-    if (state.TASK) {
-      sc.getClass("TagDescriptor");
+    if (true) {
+      BuildIR bir=new BuildIR(state);
+      tu=new TypeUtil(state, bir);
+      SemanticCheck sc=new SemanticCheck(state,tu);
+      
+      for(int i=0;i<sourcefiles.size();i++)
+	loadClass(state, bir, sourcefiles.get(i));
+      
+      //Stuff the runtime wants to see
+      
+      if (state.TASK) {
+	sc.getClass(null, "TagDescriptor");
+      }
+      
+      sc.semanticCheck();
+      State.logEvent("Done Semantic Checking");
+      
+      tu.createFullTable();
+      State.logEvent("Done Creating TypeUtil");
+      
+      bf=new BuildFlat(state,tu);
+      bf.buildFlat();
+      State.logEvent("Done Building Flat");
+    } else {
+      JavaBuilder jb=new JavaBuilder(state);
+      jb.build();
+      tu=jb.getTypeUtil();
+      bf=jb.getBuildFlat();
     }
-
-    sc.semanticCheck();
-    State.logEvent("Done Semantic Checking");
-
-    tu.createFullTable();
-    State.logEvent("Done Creating TypeUtil");
-
-    BuildFlat bf=new BuildFlat(state,tu);
-    bf.buildFlat();
-    State.logEvent("Done Building Flat");
-
+    
     SafetyAnalysis sa=null;
     PrefetchAnalysis pa=null;
     OoOJavaAnalysis  oooa=null;

@@ -9,73 +9,86 @@ public class SemanticCheck {
   TypeUtil typeutil;
   Stack loopstack;
   HashSet toanalyze;
-  HashSet completed;
+  HashMap<ClassDescriptor, Integer> completed;
   
-  //This is the class mappings for a particular file based 
-  //on the import names. Maps class to canonical class name. 
-  Hashtable classnameMappings;
-
+  public static final int NOCHECK=0;
+  public static final int REFERENCE=1;
+  public static final int INIT=2;
+  
+  boolean checkAll;
 
   public SemanticCheck(State state, TypeUtil tu) {
+    this(state, tu, true);
+  }
+
+  public SemanticCheck(State state, TypeUtil tu, boolean checkAll) {
     this.state=state;
     this.typeutil=tu;
     this.loopstack=new Stack();
     this.toanalyze=new HashSet();
-    this.completed=new HashSet();
+    this.completed=new HashMap<ClassDescriptor, Integer>();
+    this.checkAll=checkAll;
   }
 
-  public ClassDescriptor getClass(String classname) {
+  public ClassDescriptor getClass(ClassDescriptor context, String classname) {
+    return getClass(context, classname, INIT);
+  }
+
+  public ClassDescriptor getClass(ClassDescriptor context, String classname, int fullcheck) {
+    if (context!=null) {
+      Hashtable remaptable=context.getSingleImportMappings();
+      classname=remaptable.containsKey(classname)?((String)remaptable.get(classname)):classname;
+    }
     ClassDescriptor cd=typeutil.getClass(classname, toanalyze);
-    checkClass(cd);
+    checkClass(cd, fullcheck);
     return cd;
   }
 
   private void checkClass(ClassDescriptor cd) {
-    if (!completed.contains(cd)) {
-      completed.add(cd);
+    checkClass(cd, INIT);
+  }
+
+  private void checkClass(ClassDescriptor cd, int fullcheck) {
+    if (!completed.containsKey(cd)||completed.get(cd)<fullcheck) {
+      int oldstatus=completed.containsKey(cd)?completed.get(cd):0;
+      completed.put(cd, fullcheck);
       
-      //Set superclass link up
-      if (cd.getSuper()!=null) {
-	cd.setSuper(getClass(cd.getSuper()));
-    if(cd.getSuperDesc().isInterface()) {
-      throw new Error("Error! Class " + cd.getSymbol() + " extends interface " + cd.getSuper());
-    }
-	// Link together Field, Method, and Flag tables so classes
-	// inherit these from their superclasses
-	cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
-	cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
-	cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
-      }
-      // Link together Field, Method tables do classes inherit these from 
-      // their ancestor interfaces
-      Vector<String> sifv = cd.getSuperInterface();
-      for(int i = 0; i < sifv.size(); i++) {
-	ClassDescriptor superif = getClass(sifv.elementAt(i));
-	if(!superif.isInterface()) {
-	  throw new Error("Error! Class " + cd.getSymbol() + " implements non-interface " + superif.getSymbol());
+      if (fullcheck>=REFERENCE&&oldstatus<REFERENCE) {
+	//Set superclass link up
+	if (cd.getSuper()!=null) {
+	  cd.setSuper(getClass(cd, cd.getSuper(), fullcheck));
+	  if(cd.getSuperDesc().isInterface()) {
+	    throw new Error("Error! Class " + cd.getSymbol() + " extends interface " + cd.getSuper());
+	  }
+	  // Link together Field, Method, and Flag tables so classes
+	  // inherit these from their superclasses
+	  cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
+	  cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
+	  cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
 	}
-	cd.addSuperInterfaces(superif);
-	cd.getFieldTable().addParentIF(superif.getFieldTable());
-	cd.getMethodTable().addParentIF(superif.getMethodTable());
+	// Link together Field, Method tables do classes inherit these from 
+	// their ancestor interfaces
+	Vector<String> sifv = cd.getSuperInterface();
+	for(int i = 0; i < sifv.size(); i++) {
+	  ClassDescriptor superif = getClass(cd, sifv.elementAt(i), fullcheck);
+	  if(!superif.isInterface()) {
+	    throw new Error("Error! Class " + cd.getSymbol() + " implements non-interface " + superif.getSymbol());
+	  }
+	  cd.addSuperInterfaces(superif);
+	  cd.getFieldTable().addParentIF(superif.getFieldTable());
+	  cd.getMethodTable().addParentIF(superif.getMethodTable());
+	}
       }
-      
-      /* Check to see that fields are well typed */
-      for(Iterator field_it=cd.getFields(); field_it.hasNext();) {
-	FieldDescriptor fd=(FieldDescriptor)field_it.next();
-	checkField(cd,fd);
-      }
-      
-      for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
-        MethodDescriptor md=(MethodDescriptor)method_it.next();
-        checkMethod(cd,md);
-        if(md.isDefaultConstructor() && (cd.getSuperDesc() != null)) {
-          // add the construction of it super class, can only be super()
-          NameDescriptor nd=new NameDescriptor("super");
-          MethodInvokeNode min=new MethodInvokeNode(nd);
-          BlockExpressionNode ben=new BlockExpressionNode(min);
-          BlockNode bn = state.getMethodBody(md);
-          bn.addFirstBlockStatement(ben);
-        }
+      if (oldstatus<INIT&&fullcheck>=INIT) {
+	/* Check to see that fields are well typed */
+	for(Iterator field_it=cd.getFields(); field_it.hasNext();) {
+	  FieldDescriptor fd=(FieldDescriptor)field_it.next();
+	  checkField(cd,fd);
+	}
+	for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
+	  MethodDescriptor md=(MethodDescriptor)method_it.next();
+	  checkMethod(cd,md);
+	}
       }
     }
   }
@@ -100,12 +113,10 @@ public class SemanticCheck {
       } else {
         ClassDescriptor cd = (ClassDescriptor) obj;
         toanalyze.remove(cd);
-        //set the class mappings based on imports. 
-        classnameMappings = cd.getSingleImportMappings();
         
         // need to initialize typeutil object here...only place we can
         // get class descriptors without first calling getclass
-        getClass(cd.getSymbol());
+        getClass(cd, cd.getSymbol());
         for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
           MethodDescriptor md = (MethodDescriptor) method_it.next();
           try {
@@ -119,7 +130,7 @@ public class SemanticCheck {
     }
   }
 
-  public void checkTypeDescriptor(TypeDescriptor td) {
+  private void checkTypeDescriptor(ClassDescriptor cd, TypeDescriptor td) {
     if (td.isPrimitive())
       return;       /* Done */
     else if (td.isClass()) {
@@ -128,7 +139,8 @@ public class SemanticCheck {
       if(index != -1) {
         name = name.substring(index+1);
       }
-      ClassDescriptor field_cd=getClass(getFullName(name));
+      ClassDescriptor field_cd=checkAll?getClass(cd, name):getClass(cd, name, REFERENCE);
+
       if (field_cd==null)
 	throw new Error("Undefined class "+name);
       td.setClassDescriptor(field_cd);
@@ -140,7 +152,7 @@ public class SemanticCheck {
   }
 
   public void checkField(ClassDescriptor cd, FieldDescriptor fd) {
-    checkTypeDescriptor(fd.getType());
+    checkTypeDescriptor(cd, fd.getType());
   }
 
   public void checkConstraintCheck(TaskDescriptor td, SymbolTable nametable, Vector ccs) {
@@ -203,7 +215,7 @@ public class SemanticCheck {
     for(int i=0; i<td.numParameters(); i++) {
       /* Check that parameter is well typed */
       TypeDescriptor param_type=td.getParamType(i);
-      checkTypeDescriptor(param_type);
+      checkTypeDescriptor(null, param_type);
 
       /* Check the parameter's flag expression is well formed */
       FlagExpressionNode fen=td.getFlag(td.getParameter(i));
@@ -257,12 +269,12 @@ public class SemanticCheck {
 
     /* Check return type */
     if (!md.isConstructor() && !md.isStaticBlock())
-      if (!md.getReturnType().isVoid())
-	checkTypeDescriptor(md.getReturnType());
-
+      if (!md.getReturnType().isVoid()) {
+	checkTypeDescriptor(cd, md.getReturnType());
+      }
     for(int i=0; i<md.numParameters(); i++) {
       TypeDescriptor param_type=md.getParamType(i);
-      checkTypeDescriptor(param_type);
+      checkTypeDescriptor(cd, param_type);
     }
     /* Link the naming environments */
     if (!md.isStatic())     /* Fields aren't accessible directly in a static method, so don't link in this table */
@@ -271,6 +283,14 @@ public class SemanticCheck {
     if (!md.isStatic()) {
       VarDescriptor thisvd=new VarDescriptor(new TypeDescriptor(cd),"this");
       md.setThis(thisvd);
+    }
+    if(md.isDefaultConstructor() && (cd.getSuperDesc() != null)) {
+      // add the construction of it super class, can only be super()
+      NameDescriptor nd=new NameDescriptor("super");
+      MethodInvokeNode min=new MethodInvokeNode(nd);
+      BlockExpressionNode ben=new BlockExpressionNode(min);
+      BlockNode bn = state.getMethodBody(md);
+      bn.addFirstBlockStatement(ben);
     }
   }
 
@@ -365,7 +385,7 @@ public class SemanticCheck {
 
   void checkDeclarationNode(Descriptor md, SymbolTable nametable,  DeclarationNode dn) {
     VarDescriptor vd=dn.getVarDescriptor();
-    checkTypeDescriptor(vd.getType());
+    checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), vd.getType());
     Descriptor d=nametable.get(vd.getSymbol());
     if ((d==null)||
         (d instanceof FieldDescriptor)) {
@@ -557,21 +577,20 @@ public class SemanticCheck {
   }
 
   void checkClassTypeNode(Descriptor md, SymbolTable nametable, ClassTypeNode tn, TypeDescriptor td) {
-    checkTypeDescriptor(tn.getType());
+    checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), tn.getType());
   }
   
   void checkCastNode(Descriptor md, SymbolTable nametable, CastNode cn, TypeDescriptor td) {
     /* Get type descriptor */
     if (cn.getType()==null) {
       NameDescriptor typenamed=cn.getTypeName().getName();
-      String typename=getFullName(typenamed.toString());
-      TypeDescriptor ntd=new TypeDescriptor(getClass(typename));
+      TypeDescriptor ntd=new TypeDescriptor(getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), typenamed.toString()));
       cn.setType(ntd);
     }
 
     /* Check the type descriptor */
     TypeDescriptor cast_type=cn.getType();
-    checkTypeDescriptor(cast_type);
+    checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null),cast_type);
 
     /* Type check */
     if (td!=null) {
@@ -689,7 +708,7 @@ public class SemanticCheck {
     } else if (o instanceof Character) {
       ln.setType(new TypeDescriptor(TypeDescriptor.CHAR));
     } else if (o instanceof String) {
-      ln.setType(new TypeDescriptor(getClass(TypeUtil.StringClass)));
+      ln.setType(new TypeDescriptor(getClass(null, TypeUtil.StringClass)));
     }
 
     if (td!=null)
@@ -742,7 +761,7 @@ public class SemanticCheck {
             if(varname.equals("this")) {
               throw new Error("Error: access this obj in a static block");
             }
-            cd=getClass(getFullName(varname));
+            cd=getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), varname);
             if(cd != null) {
               // this is a class name
               nn.setClassDesc(cd);
@@ -772,7 +791,7 @@ public class SemanticCheck {
               throw new Error("Name "+varname+" should not be used in " + md);
             }
           }
-          cd=getClass(varname);
+          cd=getClass(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), varname);
           if(cd != null) {
             // this is a class name
             nn.setClassDesc(cd);
@@ -813,7 +832,7 @@ public class SemanticCheck {
 
   void checkOffsetNode(Descriptor md, SymbolTable nameTable, OffsetNode ofn, TypeDescriptor td) {
     TypeDescriptor ltd=ofn.td;
-    checkTypeDescriptor(ltd);
+    checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null),ltd);
     
     String fieldname = ofn.fieldname;
     FieldDescriptor fd=null;
@@ -849,7 +868,7 @@ public class SemanticCheck {
     if (td!=null&&!td.isBoolean())
       throw new Error("Expecting type "+td+"for instanceof expression");
     
-    checkTypeDescriptor(tn.getExprType());
+    checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), tn.getExprType());
     checkExpressionNode(md, nametable, tn.getExpr(), null);
   }
 
@@ -928,7 +947,7 @@ public class SemanticCheck {
 
     if (an.getDest().getType().isString()&&an.getOperation().getOp()==AssignOperation.PLUSEQ) {
       //String add
-      ClassDescriptor stringcl=getClass(TypeUtil.StringClass);
+      ClassDescriptor stringcl=getClass(null, TypeUtil.StringClass);
       TypeDescriptor stringtd=new TypeDescriptor(stringcl);
       NameDescriptor nd=new NameDescriptor("String");
       NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
@@ -1013,7 +1032,7 @@ public class SemanticCheck {
     }
 
     TypeDescriptor typetolookin = con.getType();
-    checkTypeDescriptor(typetolookin);
+    checkTypeDescriptor(((md instanceof MethodDescriptor)?((MethodDescriptor)md).getClassDesc():null), typetolookin);
 
     if (td != null && !typeutil.isSuperorType(td, typetolookin))
       throw new Error(typetolookin + " isn't a " + td);
@@ -1190,7 +1209,7 @@ public class SemanticCheck {
 	  //we have a type
 	  ClassDescriptor cd = null;
 	  //if (min.getBaseName().getSymbol().equals("System.out"))
-	  cd=getClass("System");
+	  cd=getClass(null, "System");
 	  /*else {
             cd=getClass(min.getBaseName().getSymbol());
 	    }*/
@@ -1418,7 +1437,7 @@ NextMethod:
 
     case Operation.ADD:
       if (ltd.isString()||rtd.isString()) {
-	ClassDescriptor stringcl=getClass(TypeUtil.StringClass);
+	ClassDescriptor stringcl=getClass(null, TypeUtil.StringClass);
 	TypeDescriptor stringtd=new TypeDescriptor(stringcl);
 	NameDescriptor nd=new NameDescriptor("String");
 	NameDescriptor valuend=new NameDescriptor(nd, "valueOf");
@@ -1511,7 +1530,4 @@ NextMethod:
       }
   }
   
-  public String getFullName(String classIn) {
-    return (String) ((this.classnameMappings.containsKey(classIn))?classnameMappings.get(classIn):classIn);
-  }
 }

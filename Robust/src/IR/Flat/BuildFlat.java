@@ -161,127 +161,122 @@ public class BuildFlat {
     Iterator methodit=cn.getMethods();
     while(methodit.hasNext()) {     
       currmd=(MethodDescriptor)methodit.next();
-      
-      // if OOOJava is on, splice a special SESE in to
-      // enclose the main method
-      boolean spliceInImplicitMain = 
-        state.OOOJAVA &&
-        currmd.equals( typeutil.getMain() );
+      flattenMethod(cn, currmd);
+    }
+  }
+  
+  public void flattenMethod(ClassDescriptor cn, MethodDescriptor currmd) {
+    // if OOOJava is on, splice a special SESE in to
+    // enclose the main method
+    boolean spliceInImplicitMain = state.OOOJAVA && currmd.equals( typeutil.getMain() );
+    
+    FlatSESEEnterNode spliceSESE = null;
+    FlatSESEExitNode  spliceExit = null;
+    
+    if( spliceInImplicitMain ) {
+      SESENode mainTree = new SESENode( "main" );
+      spliceSESE = new FlatSESEEnterNode( mainTree );
+      spliceExit = new FlatSESEExitNode ( mainTree );
+      spliceSESE.setFlatExit ( spliceExit );
+      spliceExit.setFlatEnter( spliceSESE );
+      spliceSESE.setIsMainSESE();
+    } 
+    
+    fe=new FlatExit();
+    BlockNode bn=state.getMethodBody(currmd);
 
-      FlatSESEEnterNode spliceSESE = null;
-      FlatSESEExitNode  spliceExit = null;
-
-      if( spliceInImplicitMain ) {
-        SESENode mainTree = new SESENode( "main" );
-        spliceSESE = new FlatSESEEnterNode( mainTree );
-        spliceExit = new FlatSESEExitNode ( mainTree );
-        spliceSESE.setFlatExit ( spliceExit );
-        spliceExit.setFlatEnter( spliceSESE );
-        spliceSESE.setIsMainSESE();
-      } 
-
-
-      fe=new FlatExit();
-
-      BlockNode bn=state.getMethodBody(currmd);
-
-      if (state.DSM&&currmd.getModifiers().isAtomic()) {
-        FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
-        faen.setNumLine(bn.getNumLine());
-	curran = faen;
-      } else
-	curran=null;
-      if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
-        TempDescriptor thistd = null;
-        if(currmd.getModifiers().isStatic()) {
-          // need to lock the Class object
-          thistd=new TempDescriptor("classobj", cn);
-        } else {
-          // lock this object
-          thistd=getTempforVar(currmd.getThis());
-        }
-        if(!this.lockStack.isEmpty()) {
-          throw new Error("The lock stack for synchronized blocks/methods is not empty!");
-        }
-        this.lockStack.push(thistd);
+    if (state.DSM&&currmd.getModifiers().isAtomic()) {
+      FlatAtomicEnterNode faen=new FlatAtomicEnterNode();
+      faen.setNumLine(bn.getNumLine());
+      curran = faen;
+    } else
+      curran=null;
+    if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
+      TempDescriptor thistd = null;
+      if(currmd.getModifiers().isStatic()) {
+	// need to lock the Class object
+	thistd=new TempDescriptor("classobj", cn);
+      } else {
+	// lock this object
+	thistd=getTempforVar(currmd.getThis());
       }
-      NodePair np=flattenBlockNode(bn);
-      FlatNode fn=np.getBegin();
-      if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
-	MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
-	FlatNode first = null;
-	FlatNode end = null;
-
-	{
-	  if (lockStack.size()!=1) {
-	    throw new Error("TOO MANY THINGS ON LOCKSTACK");
-	  }
-	  TempDescriptor thistd = this.lockStack.elementAt(0);
+      if(!this.lockStack.isEmpty()) {
+	throw new Error("The lock stack for synchronized blocks/methods is not empty!");
+      }
+      this.lockStack.push(thistd);
+    }
+    NodePair np=flattenBlockNode(bn);
+    FlatNode fn=np.getBegin();
+    if ((state.THREAD||state.MGC)&&currmd.getModifiers().isSynchronized()) {
+      MethodDescriptor memd=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorEnter");
+      FlatNode first = null;
+      FlatNode end = null;
+      
+      {
+	if (lockStack.size()!=1) {
+	  throw new Error("TOO MANY THINGS ON LOCKSTACK");
+	}
+	TempDescriptor thistd = this.lockStack.elementAt(0);
 	  FlatCall fc = new FlatCall(memd, null, thistd, new TempDescriptor[0]);
 	  fc.setNumLine(bn.getNumLine());
 	  first = end = fc;
-	}
-
-	end.addNext(fn);
-	fn=first;
-	end = np.getEnd();
-	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-	  MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
-	  while(!this.lockStack.isEmpty()) {
-	    TempDescriptor thistd = this.lockStack.pop();
-	    FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
-	    fcunlock.setNumLine(bn.getNumLine());
-	    end.addNext(fcunlock);
-	    end = fcunlock;
-	  }
-	  FlatNode rnflat=spliceReturn(end);
-	  rnflat.addNext(fe);
-	} else {
-	  this.lockStack.clear();   
-	}
-      } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
-	curran.addNext(fn);
-	fn=curran;
-	if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-	  FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
-	  np.getEnd().addNext(aen);
-	  FlatNode rnflat=spliceReturn(aen);
-	  rnflat.addNext(fe);
-	}	
-
-      } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
-	FlatNode rnflat=null;
-	if( spliceInImplicitMain ) {
-	  np.getEnd().addNext(spliceExit);
-	  rnflat=spliceReturn(spliceExit);
-	} else {
-	  rnflat=spliceReturn(np.getEnd());
-	}
-	rnflat.addNext(fe);
-      } else if (np.getEnd()!=null) {
-	if( spliceInImplicitMain ) {
-	  FlatReturnNode rnflat=(FlatReturnNode)np.getEnd();
-	  np.getEnd().addNext(spliceExit);
-	  spliceExit.addNext(fe);
-	}
-      }
-
-      if( spliceInImplicitMain ) {
-	spliceSESE.addNext(fn);
-	fn=spliceSESE;	 
-      }
-
-      FlatMethod fm=new FlatMethod(currmd, fe);
-      fm.setNumLine(bn.getNumLine());
-      fm.addNext(fn);
-      if (!currmd.isStatic())
-	fm.addParameterTemp(getTempforParam(currmd.getThis()));
-      for(int i=0; i<currmd.numParameters(); i++) {
-	fm.addParameterTemp(getTempforParam(currmd.getParameter(i)));
       }
       
-      state.addFlatCode(currmd,fm);
+      end.addNext(fn);
+      fn=first;
+      end = np.getEnd();
+      if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
+	MethodDescriptor memdex=(MethodDescriptor)typeutil.getClass("Object").getMethodTable().get("MonitorExit");
+	while(!this.lockStack.isEmpty()) {
+	  TempDescriptor thistd = this.lockStack.pop();
+	  FlatCall fcunlock = new FlatCall(memdex, null, thistd, new TempDescriptor[0]);
+	  fcunlock.setNumLine(bn.getNumLine());
+	  end.addNext(fcunlock);
+	  end = fcunlock;
+	}
+	FlatNode rnflat=spliceReturn(end);
+	rnflat.addNext(fe);
+      } else {
+	this.lockStack.clear();   
+      }
+    } else if (state.DSM&&currmd.getModifiers().isAtomic()) {
+      curran.addNext(fn);
+      fn=curran;
+      if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
+	FlatAtomicExitNode aen=new FlatAtomicExitNode(curran);
+	np.getEnd().addNext(aen);
+	FlatNode rnflat=spliceReturn(aen);
+	rnflat.addNext(fe);
+      }	
+    } else if (np.getEnd()!=null&&np.getEnd().kind()!=FKind.FlatReturnNode) {
+      FlatNode rnflat=null;
+      if( spliceInImplicitMain ) {
+	np.getEnd().addNext(spliceExit);
+	rnflat=spliceReturn(spliceExit);
+      } else {
+	rnflat=spliceReturn(np.getEnd());
+      }
+      rnflat.addNext(fe);
+    } else if (np.getEnd()!=null) {
+      if( spliceInImplicitMain ) {
+	FlatReturnNode rnflat=(FlatReturnNode)np.getEnd();
+	np.getEnd().addNext(spliceExit);
+	spliceExit.addNext(fe);
+      }
     }
+    if( spliceInImplicitMain ) {
+      spliceSESE.addNext(fn);
+      fn=spliceSESE;	 
+    }
+    FlatMethod fm=new FlatMethod(currmd, fe);
+    fm.setNumLine(bn.getNumLine());
+    fm.addNext(fn);
+    if (!currmd.isStatic())
+      fm.addParameterTemp(getTempforParam(currmd.getThis()));
+    for(int i=0; i<currmd.numParameters(); i++) {
+      fm.addParameterTemp(getTempforParam(currmd.getParameter(i)));
+    }
+    state.addFlatCode(currmd,fm);
   }
 
   private NodePair flattenBlockNode(BlockNode bn) {

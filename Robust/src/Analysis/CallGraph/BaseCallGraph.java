@@ -93,7 +93,6 @@ public class BaseCallGraph implements CallGraph {
 	    possInterfaces.add((ClassDescriptor)supit.next());
 	  }
 	  Set possiblematches=IFdesc.getMethodTable().getSet(md.getSymbol());
-	  boolean foundmatch=false;
 	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
 	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 	    if (md.matches(matchmd)) {
@@ -109,7 +108,6 @@ public class BaseCallGraph implements CallGraph {
 	ClassDescriptor superdesc=cn.getSuperDesc();
 	if (superdesc!=null) {
 	  Set possiblematches=superdesc.getMethodTable().getSet(md.getSymbol());
-	  boolean foundmatch=false;
 	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
 	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
 	    if (md.matches(matchmd)) {

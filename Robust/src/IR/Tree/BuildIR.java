@@ -512,7 +512,7 @@ public class BuildIR {
 	} else if (isNode(decl,"block")) {
 	} else if (isNode(decl,"location_order_declaration")) {
 	  parseLocationOrder(cn,decl.getChild("location_order_list"));
-  } else throw new Error();
+	} else throw new Error();
       }
     }
   }
@@ -527,7 +527,7 @@ public class BuildIR {
       if(isNode(loc,"location_property")){
         String spinLoc=loc.getChildren().elementAt(0).getLabel();
         spinLocSet.add(spinLoc);
-      }else{
+      } else {
         String lowerLoc=loc.getChildren().elementAt(0).getLabel();
         String higherLoc= loc.getChildren().elementAt(1).getLabel();
         locOrder.put(higherLoc, lowerLoc);
