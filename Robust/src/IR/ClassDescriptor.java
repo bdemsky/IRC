@@ -18,6 +18,9 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable flags;
   SymbolTable methods;
   
+  Hashtable singleImports;
+  Vector multiImports;
+  
   int numstaticblocks = 0;
   int numstaticfields = 0;
   
@@ -49,6 +52,7 @@ public class ClassDescriptor extends Descriptor {
   }
 
   public ClassDescriptor(String packagename, String classname, boolean isInterface) {
+    //make the name canonical by class file path (i.e. package)
     super(classname);
     superclass=null;
     flags=new SymbolTable();
@@ -409,8 +413,17 @@ public class ClassDescriptor extends Descriptor {
     this.sourceFileName=sourceFileName;
   }
   
+  public void setImports(Hashtable singleImports, Vector multiImports) {
+    this.singleImports = singleImports;
+    this.multiImports  = multiImports;
+  }
+  
   public String getSourceFileName(){
     return this.sourceFileName;
+  }
+  
+  public Hashtable getSingleImportMappings() {
+    return this.singleImports;
   }
   
 }
