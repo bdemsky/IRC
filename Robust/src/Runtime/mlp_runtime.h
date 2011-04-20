@@ -62,7 +62,8 @@
 // Object at runtime to retrieve the object's type
 // or object id (OID), 64-bit safe
 #define OBJPTRPTR_2_OBJTYPE( opp ) ((int*)*(opp))[0]
-#define OBJPTRPTR_2_OBJOID(  opp ) ((int*)*(opp))[1]
+// int hashcode is the [1] NOW!!!
+#define OBJPTRPTR_2_OBJOID(  opp ) ((int*)*(opp))[2]
 
 // forwarding list elements is a linked
 // structure of arrays, should help task
