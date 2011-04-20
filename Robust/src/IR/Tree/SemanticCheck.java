@@ -10,6 +10,10 @@ public class SemanticCheck {
   Stack loopstack;
   HashSet toanalyze;
   HashSet completed;
+  
+  //This is the class mappings for a particular file based 
+  //on the import names. Maps class to canonical class name. 
+  Hashtable classnameMappings;
 
 
   public SemanticCheck(State state, TypeUtil tu) {
@@ -77,37 +81,40 @@ public class SemanticCheck {
   }
 
   public void semanticCheck() {
-    SymbolTable classtable=state.getClassSymbolTable();
+    SymbolTable classtable = state.getClassSymbolTable();
     toanalyze.addAll(classtable.getValueSet());
     toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
 
     // Do methods next
-    while(!toanalyze.isEmpty()) {
-      Object obj=toanalyze.iterator().next();
+    while (!toanalyze.isEmpty()) {
+      Object obj = toanalyze.iterator().next();
       if (obj instanceof TaskDescriptor) {
-	toanalyze.remove(obj);
-	TaskDescriptor td=(TaskDescriptor)obj;
-	try {
-	  checkTask(td);
-	} catch( Error e ) {
-	    System.out.println( "Error in "+td );
-	    throw e;
-	}
+        toanalyze.remove(obj);
+        TaskDescriptor td = (TaskDescriptor) obj;
+        try {
+          checkTask(td);
+        } catch (Error e) {
+          System.out.println("Error in " + td);
+          throw e;
+        }
       } else {
-	ClassDescriptor cd=(ClassDescriptor)obj;
-	toanalyze.remove(cd);
-	//need to initialize typeutil object here...only place we can
-	//get class descriptors without first calling getclass
-	getClass(cd.getSymbol());
-	for(Iterator method_it=cd.getMethods(); method_it.hasNext();) {
-	  MethodDescriptor md=(MethodDescriptor)method_it.next();
-	  try {
-	    checkMethodBody(cd,md);
-	  } catch( Error e ) {
-	    System.out.println( "Error in "+md );
-	    throw e;
-	  }
-	}
+        ClassDescriptor cd = (ClassDescriptor) obj;
+        toanalyze.remove(cd);
+        //set the class mappings based on imports. 
+        classnameMappings = cd.getSingleImportMappings();
+        
+        // need to initialize typeutil object here...only place we can
+        // get class descriptors without first calling getclass
+        getClass(cd.getSymbol());
+        for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+          MethodDescriptor md = (MethodDescriptor) method_it.next();
+          try {
+            checkMethodBody(cd, md);
+          } catch (Error e) {
+            System.out.println("Error in " + md);
+            throw e;
+          }
+        }
       }
     }
   }
@@ -121,7 +128,7 @@ public class SemanticCheck {
       if(index != -1) {
         name = name.substring(index+1);
       }
-      ClassDescriptor field_cd=getClass(name);
+      ClassDescriptor field_cd=getClass(getFullName(name));
       if (field_cd==null)
 	throw new Error("Undefined class "+name);
       td.setClassDescriptor(field_cd);
@@ -557,7 +564,7 @@ public class SemanticCheck {
     /* Get type descriptor */
     if (cn.getType()==null) {
       NameDescriptor typenamed=cn.getTypeName().getName();
-      String typename=typenamed.toString();
+      String typename=getFullName(typenamed.toString());
       TypeDescriptor ntd=new TypeDescriptor(getClass(typename));
       cn.setType(ntd);
     }
@@ -735,7 +742,7 @@ public class SemanticCheck {
             if(varname.equals("this")) {
               throw new Error("Error: access this obj in a static block");
             }
-            cd=getClass(varname);
+            cd=getClass(getFullName(varname));
             if(cd != null) {
               // this is a class name
               nn.setClassDesc(cd);
@@ -996,97 +1003,97 @@ public class SemanticCheck {
   }
 
 
-  void checkCreateObjectNode(Descriptor md, SymbolTable nametable, CreateObjectNode con, TypeDescriptor td) {
-    TypeDescriptor[] tdarray=new TypeDescriptor[con.numArgs()];
-    for(int i=0; i<con.numArgs(); i++) {
-      ExpressionNode en=con.getArg(i);
-      checkExpressionNode(md,nametable,en,null);
-      tdarray[i]=en.getType();
+  void checkCreateObjectNode(Descriptor md, SymbolTable nametable, CreateObjectNode con,
+      TypeDescriptor td) {
+    TypeDescriptor[] tdarray = new TypeDescriptor[con.numArgs()];
+    for (int i = 0; i < con.numArgs(); i++) {
+      ExpressionNode en = con.getArg(i);
+      checkExpressionNode(md, nametable, en, null);
+      tdarray[i] = en.getType();
     }
 
-    TypeDescriptor typetolookin=con.getType();
+    TypeDescriptor typetolookin = con.getType();
     checkTypeDescriptor(typetolookin);
 
-    if (td!=null&&!typeutil.isSuperorType(td, typetolookin))
-      throw new Error(typetolookin + " isn't a "+td);
-    
+    if (td != null && !typeutil.isSuperorType(td, typetolookin))
+      throw new Error(typetolookin + " isn't a " + td);
+
     /* Check Array Initializers */
-    if((con.getArrayInitializer() != null)) {
+    if ((con.getArrayInitializer() != null)) {
       checkArrayInitializerNode(md, nametable, con.getArrayInitializer(), td);
     }
 
     /* Check flag effects */
-    if (con.getFlagEffects()!=null) {
-      FlagEffects fe=con.getFlagEffects();
-      ClassDescriptor cd=typetolookin.getClassDesc();
+    if (con.getFlagEffects() != null) {
+      FlagEffects fe = con.getFlagEffects();
+      ClassDescriptor cd = typetolookin.getClassDesc();
 
-      for(int j=0; j<fe.numEffects(); j++) {
-	FlagEffect flag=fe.getEffect(j);
-	String name=flag.getName();
-	FlagDescriptor flag_d=(FlagDescriptor)cd.getFlagTable().get(name);
-	//Make sure the flag is declared
-	if (flag_d==null)
-	  throw new Error("Flag descriptor "+name+" undefined in class: "+cd.getSymbol());
-	if (flag_d.getExternal())
-	  throw new Error("Attempting to modify external flag: "+name);
-	flag.setFlag(flag_d);
+      for (int j = 0; j < fe.numEffects(); j++) {
+        FlagEffect flag = fe.getEffect(j);
+        String name = flag.getName();
+        FlagDescriptor flag_d = (FlagDescriptor) cd.getFlagTable().get(name);
+        // Make sure the flag is declared
+        if (flag_d == null)
+          throw new Error("Flag descriptor " + name + " undefined in class: " + cd.getSymbol());
+        if (flag_d.getExternal())
+          throw new Error("Attempting to modify external flag: " + name);
+        flag.setFlag(flag_d);
       }
-      for(int j=0; j<fe.numTagEffects(); j++) {
-	TagEffect tag=fe.getTagEffect(j);
-	String name=tag.getName();
+      for (int j = 0; j < fe.numTagEffects(); j++) {
+        TagEffect tag = fe.getTagEffect(j);
+        String name = tag.getName();
 
-	Descriptor d=(Descriptor)nametable.get(name);
-	if (d==null)
-	  throw new Error("Tag descriptor "+name+" undeclared");
-	else if (!(d instanceof TagVarDescriptor))
-	  throw new Error(name+" is not a tag descriptor");
-	tag.setTag((TagVarDescriptor)d);
+        Descriptor d = (Descriptor) nametable.get(name);
+        if (d == null)
+          throw new Error("Tag descriptor " + name + " undeclared");
+        else if (!(d instanceof TagVarDescriptor))
+          throw new Error(name + " is not a tag descriptor");
+        tag.setTag((TagVarDescriptor) d);
       }
     }
 
-    if ((!typetolookin.isClass())&&(!typetolookin.isArray()))
-      throw new Error("Can't allocate primitive type:"+con.printNode(0));
+    if ((!typetolookin.isClass()) && (!typetolookin.isArray()))
+      throw new Error("Can't allocate primitive type:" + con.printNode(0));
 
     if (!typetolookin.isArray()) {
-      //Array's don't need constructor calls
-      ClassDescriptor classtolookin=typetolookin.getClassDesc();
+      // Array's don't need constructor calls
+      ClassDescriptor classtolookin = typetolookin.getClassDesc();
 
-      Set methoddescriptorset=classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
-      MethodDescriptor bestmd=null;
-NextMethod:
-      for(Iterator methodit=methoddescriptorset.iterator(); methodit.hasNext();) {
-	MethodDescriptor currmd=(MethodDescriptor)methodit.next();
-	/* Need correct number of parameters */
-	if (con.numArgs()!=currmd.numParameters())
-	  continue;
-	for(int i=0; i<con.numArgs(); i++) {
-	  if (!typeutil.isSuperorType(currmd.getParamType(i),tdarray[i]))
-	    continue NextMethod;
-	}
-	/* Local allocations can't call global allocator */
-	if (!con.isGlobal()&&currmd.isGlobal())
-	  continue;
+      Set methoddescriptorset = classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
+      MethodDescriptor bestmd = null;
+      NextMethod: for (Iterator methodit = methoddescriptorset.iterator(); methodit.hasNext();) {
+        MethodDescriptor currmd = (MethodDescriptor) methodit.next();
+        /* Need correct number of parameters */
+        if (con.numArgs() != currmd.numParameters())
+          continue;
+        for (int i = 0; i < con.numArgs(); i++) {
+          if (!typeutil.isSuperorType(currmd.getParamType(i), tdarray[i]))
+            continue NextMethod;
+        }
+        /* Local allocations can't call global allocator */
+        if (!con.isGlobal() && currmd.isGlobal())
+          continue;
 
-	/* Method okay so far */
-	if (bestmd==null)
-	  bestmd=currmd;
-	else {
-	  if (typeutil.isMoreSpecific(currmd,bestmd)) {
-	    bestmd=currmd;
-	  } else if (con.isGlobal()&&match(currmd, bestmd)) {
-	    if (currmd.isGlobal()&&!bestmd.isGlobal())
-	      bestmd=currmd;
-	    else if (currmd.isGlobal()&&bestmd.isGlobal())
-	      throw new Error();
-	  } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
-	    throw new Error("No method is most specific:"+bestmd+" and "+currmd);
-	  }
+        /* Method okay so far */
+        if (bestmd == null)
+          bestmd = currmd;
+        else {
+          if (typeutil.isMoreSpecific(currmd, bestmd)) {
+            bestmd = currmd;
+          } else if (con.isGlobal() && match(currmd, bestmd)) {
+            if (currmd.isGlobal() && !bestmd.isGlobal())
+              bestmd = currmd;
+            else if (currmd.isGlobal() && bestmd.isGlobal())
+              throw new Error();
+          } else if (!typeutil.isMoreSpecific(bestmd, currmd)) {
+            throw new Error("No method is most specific:" + bestmd + " and " + currmd);
+          }
 
-	  /* Is this more specific than bestmd */
-	}
+          /* Is this more specific than bestmd */
+        }
       }
-      if (bestmd==null)
-	throw new Error("No method found for "+con.printNode(0)+" in "+md);
+      if (bestmd == null)
+        throw new Error("No method found for " + con.printNode(0) + " in " + md);
       con.setConstructor(bestmd);
     }
   }
@@ -1502,5 +1509,9 @@ NextMethod:
 	System.out.println(on.getType());
 	throw new Error("Type of rside not compatible with type of lside"+on.printNode(0));
       }
+  }
+  
+  public String getFullName(String classIn) {
+    return (String) ((this.classnameMappings.containsKey(classIn))?classnameMappings.get(classIn):classIn);
   }
 }

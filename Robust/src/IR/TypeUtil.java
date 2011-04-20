@@ -28,20 +28,21 @@ public class TypeUtil {
   }
 
   public void addNewClass(String cl, Set todo) {
-    for(int i=0;i<state.classpath.size();i++) {
-      String path=(String)state.classpath.get(i);
-      File f=new File(path, cl+".java");
+    for (int i = 0; i < state.classpath.size(); i++) {
+      String path = (String) state.classpath.get(i);
+      //The name has ___________ to separate out packages
+      File f = new File(path, cl.replaceAll("___________", "/") + ".java");
       if (f.exists()) {
-	try {
-	  ParseNode pn=Main.readSourceFile(state, f.getCanonicalPath());
-	  bir.buildtree(pn, todo,f.getCanonicalPath());
-	  return;
-	} catch (Exception e) {
-	  throw new Error(e);
-	}
+        try {
+          ParseNode pn = Main.readSourceFile(state, f.getCanonicalPath());
+          bir.buildtree(pn, todo, f.getCanonicalPath());
+          return;
+        } catch (Exception e) {
+          throw new Error(e);
+        }
       }
     }
-    throw new Error("Couldn't find class "+cl);
+    throw new Error("Couldn't find class " + cl);
   }
 
 

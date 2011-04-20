@@ -257,6 +257,11 @@ public class State {
     TypeDescriptor td=new TypeDescriptor(n);
     return td;
   }
+  
+  public static TypeDescriptor getTypeDescriptor(String n) {
+    TypeDescriptor td=new TypeDescriptor(n);
+    return td;
+  }
 
   public void addClass(ClassDescriptor tdn) {
     if (classes.contains(tdn.getSymbol()))

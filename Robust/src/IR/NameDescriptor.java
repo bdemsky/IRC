@@ -5,13 +5,13 @@ public class NameDescriptor extends Descriptor {
   NameDescriptor nd;
   public NameDescriptor(NameDescriptor nd, String id) {
     super(nd.toString()+"."+id);
-    identifier=id;
+    identifier=getPathFromRootToHere(id);
     this.nd=nd;
   }
 
   public NameDescriptor(String id) {
     super(id);
-    identifier=id;
+    identifier=getPathFromRootToHere(id);
     nd=null;
   }
 
@@ -29,7 +29,18 @@ public class NameDescriptor extends Descriptor {
     else
       return nd.getRoot();
   }
-
+  
+  public String getPathFromRootToHere(String id) {
+    String path = id;
+    NameDescriptor temp = this.nd;
+    while(temp!=null) {
+      path =  temp.identifier + "___________" + path;
+      temp = temp.nd;
+    }
+    
+    return path;
+  }
+ 
   public String toString() {
     if (nd==null)
       return identifier;

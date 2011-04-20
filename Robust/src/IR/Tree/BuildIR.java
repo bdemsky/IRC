@@ -27,15 +27,14 @@ public class BuildIR {
     }
   }
 
-  Vector singleimports;
+  Hashtable singleimports;
   Vector multiimports;
   NameDescriptor packages;
 
   /** Parse the classes in this file */
   public void parseFile(ParseNode pn, Set toanalyze,String sourcefile) {
-    singleimports=new Vector();
+    singleimports= new Hashtable();
     multiimports=new Vector();
-    
     ParseNode ipn=pn.getChild("imports").getChild("import_decls_list");
     if (ipn!=null) {
       ParseNodeVector pnv=ipn.getChildren();
@@ -44,105 +43,115 @@ public class BuildIR {
 	NameDescriptor nd=parseName(pnimport.getChild("name"));
 	// TODO need to implement
 	if (isNode(pnimport,"import_single"))
-	  singleimports.add(nd);
+	  if(!singleimports.containsKey(nd.getIdentifier())) {
+      //map name to full name (includes package/directory
+      singleimports.put(nd.getIdentifier(), nd.getPathFromRootToHere(nd.getIdentifier()));
+    } else {
+      throw new Error("Error: class " + nd.getIdentifier() + " is already more than once in a single type import inside "+sourcefile);
+    }
 	else
+	//TODO MULTI-IMPORTS!
 	  multiimports.add(nd);
       }
     }
+    
+    
+    
     ParseNode ppn=pn.getChild("packages").getChild("package");
+    String packageName = null;
     if (ppn!=null) {
-	// TODO need to implement
-      packages=parseName(ppn.getChild("name"));
+      packageName = ppn.getChild("name").getChild("identifier").getTerminal();
     }
     ParseNode tpn=pn.getChild("type_declaration_list");
-    if (tpn!=null) {
-      ParseNodeVector pnv=tpn.getChildren();
-      for(int i=0; i<pnv.size(); i++) {
-	ParseNode type_pn=pnv.elementAt(i);
-	if (isEmpty(type_pn))         /* Skip the semicolon */
-	  continue;
-	if (isNode(type_pn,"class_declaration")) {
-	  ClassDescriptor cn=parseTypeDecl(type_pn);
-	  cn.setSourceFileName(sourcefile);
-	  parseInitializers(cn);
-	  if (toanalyze!=null)
-	    toanalyze.add(cn);
-	  state.addClass(cn);
-	  // for inner classes/enum
-	  HashSet tovisit = new HashSet();
-	  Iterator it_icds = cn.getInnerClasses();
-	  while(it_icds.hasNext()) {
-	    tovisit.add(it_icds.next());
-	  }
-	  
-	  while(!tovisit.isEmpty()) {
-	    ClassDescriptor cd = (ClassDescriptor)tovisit.iterator().next();
-	    tovisit.remove(cd);
-	    parseInitializers(cd);
-	    if(toanalyze != null) {
-	      toanalyze.add(cd);
-	    }
-	    cd.setSourceFileName(sourcefile);
-	    state.addClass(cd);
-	    
-	    Iterator it_ics = cd.getInnerClasses();
-	    while(it_ics.hasNext()) {
-	      tovisit.add(it_ics.next());
-	    }
-	    
-	    Iterator it_ienums = cd.getEnum();
-	    while(it_ienums.hasNext()) {
-	      ClassDescriptor iecd = (ClassDescriptor)it_ienums.next();
-	      if(toanalyze != null) {
-		toanalyze.add(iecd);
-	      }
-	      iecd.setSourceFileName(sourcefile);
-	      state.addClass(iecd);
-	    }
-	  }
-	  
-	  Iterator it_enums = cn.getEnum();
-	  while(it_enums.hasNext()) {
-	    ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
-	    if(toanalyze != null) {
-	      toanalyze.add(ecd);
-	    }
-	    ecd.setSourceFileName(sourcefile);
-	    state.addClass(ecd);
-	  }
-	} else if (isNode(type_pn,"task_declaration")) {
-	  TaskDescriptor td=parseTaskDecl(type_pn);
-	  if (toanalyze!=null)
-	    toanalyze.add(td);
-	  state.addTask(td);
-	} else if (isNode(type_pn,"interface_declaration")) {
-	  // TODO add version for normal Java later
-	  ClassDescriptor cn = parseInterfaceDecl(type_pn);
-	  if (toanalyze!=null)
-	    toanalyze.add(cn);
-	  cn.setSourceFileName(sourcefile);
-	  state.addClass(cn);
-	  
-	  // for enum
-	  Iterator it_enums = cn.getEnum();
-	  while(it_enums.hasNext()) {
-	    ClassDescriptor ecd = (ClassDescriptor)it_enums.next();
-	    if(toanalyze != null) {
-	      toanalyze.add(ecd);
-	    }
-	    ecd.setSourceFileName(sourcefile);
-	    state.addClass(ecd);
-	  }
-	} else if (isNode(type_pn,"enum_declaration")) {
-	  // TODO add version for normal Java later
-	  ClassDescriptor cn = parseEnumDecl(null, type_pn);
-	  if (toanalyze!=null)
-	    toanalyze.add(cn);
-	  cn.setSourceFileName(sourcefile);
-	  state.addClass(cn);
-	} else {
-	  throw new Error(type_pn.getLabel());
-	}
+    if (tpn != null) {
+      ParseNodeVector pnv = tpn.getChildren();
+      for (int i = 0; i < pnv.size(); i++) {
+        ParseNode type_pn = pnv.elementAt(i);
+        if (isEmpty(type_pn)) /* Skip the semicolon */
+          continue;
+        if (isNode(type_pn, "class_declaration")) {
+          ClassDescriptor cn = parseTypeDecl(type_pn, packageName);
+          cn.setImports(singleimports, multiimports);
+          cn.setSourceFileName(sourcefile);
+          parseInitializers(cn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          state.addClass(cn);
+          // for inner classes/enum
+          HashSet tovisit = new HashSet();
+          Iterator it_icds = cn.getInnerClasses();
+          while (it_icds.hasNext()) {
+            tovisit.add(it_icds.next());
+          }
+
+          while (!tovisit.isEmpty()) {
+            ClassDescriptor cd = (ClassDescriptor) tovisit.iterator().next();
+            tovisit.remove(cd);
+            parseInitializers(cd);
+            if (toanalyze != null) {
+              toanalyze.add(cd);
+            }
+            cd.setSourceFileName(sourcefile);
+            state.addClass(cd);
+
+            Iterator it_ics = cd.getInnerClasses();
+            while (it_ics.hasNext()) {
+              tovisit.add(it_ics.next());
+            }
+
+            Iterator it_ienums = cd.getEnum();
+            while (it_ienums.hasNext()) {
+              ClassDescriptor iecd = (ClassDescriptor) it_ienums.next();
+              if (toanalyze != null) {
+                toanalyze.add(iecd);
+              }
+              iecd.setSourceFileName(sourcefile);
+              state.addClass(iecd);
+            }
+          }
+
+          Iterator it_enums = cn.getEnum();
+          while (it_enums.hasNext()) {
+            ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
+            if (toanalyze != null) {
+              toanalyze.add(ecd);
+            }
+            ecd.setSourceFileName(sourcefile);
+            state.addClass(ecd);
+          }
+        } else if (isNode(type_pn, "task_declaration")) {
+          TaskDescriptor td = parseTaskDecl(type_pn);
+          if (toanalyze != null)
+            toanalyze.add(td);
+          state.addTask(td);
+        } else if (isNode(type_pn, "interface_declaration")) {
+          // TODO add version for normal Java later
+          ClassDescriptor cn = parseInterfaceDecl(type_pn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          cn.setSourceFileName(sourcefile);
+          state.addClass(cn);
+
+          // for enum
+          Iterator it_enums = cn.getEnum();
+          while (it_enums.hasNext()) {
+            ClassDescriptor ecd = (ClassDescriptor) it_enums.next();
+            if (toanalyze != null) {
+              toanalyze.add(ecd);
+            }
+            ecd.setSourceFileName(sourcefile);
+            state.addClass(ecd);
+          }
+        } else if (isNode(type_pn, "enum_declaration")) {
+          // TODO add version for normal Java later
+          ClassDescriptor cn = parseEnumDecl(null, type_pn);
+          if (toanalyze != null)
+            toanalyze.add(cn);
+          cn.setSourceFileName(sourcefile);
+          state.addClass(cn);
+        } else {
+          throw new Error(type_pn.getLabel());
+        }
       }
     }
   }
@@ -435,8 +444,16 @@ public class BuildIR {
     return tel;
   }
 
-  public ClassDescriptor parseTypeDecl(ParseNode pn) {
-    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+  public ClassDescriptor parseTypeDecl(ParseNode pn, String packageName) {
+    ClassDescriptor cn;
+    // if is in no package, then create a class descriptor with just the name.
+    // else add the package on and replace "." with "___________"
+    if(packageName == null) {
+      cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false); 
+    } else  {
+      String newClassname = packageName + "___________" + pn.getChild("name").getTerminal();
+      cn= new ClassDescriptor(packageName, newClassname.replaceAll("\\.", "___________") , false);
+    }
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
@@ -644,10 +661,23 @@ public class BuildIR {
   private NameDescriptor parseName(ParseNode nn) {
     ParseNode base=nn.getChild("base");
     ParseNode id=nn.getChild("identifier");
-    if (base==null)
+    //TODO check for bugs with naming things like classes...
+    String terminal = (String) (singleimports.containsKey(id.getTerminal())?singleimports.get(id.getTerminal()):id.getTerminal());
+    if (base==null) {
+      return new NameDescriptor(terminal);
+    }
+    return new NameDescriptor(parseName(base.getChild("name")),terminal);
+  }
+  
+  //only function difference between this and parseName() is that this
+  //does not look for a import mapping. 
+  private NameDescriptor parseNameRaw(ParseNode nn) {
+    ParseNode base=nn.getChild("base");
+    ParseNode id=nn.getChild("identifier");
+    if (base==null) {
       return new NameDescriptor(id.getTerminal());
+    }
     return new NameDescriptor(parseName(base.getChild("name")),id.getTerminal());
-
   }
 
   private void parseFlagDecl(ClassDescriptor cn,ParseNode pn) {
@@ -800,30 +830,29 @@ public class BuildIR {
       LiteralNode ln=new LiteralNode(literaltype, literal_obj);
       ln.setNumLine(pn.getLine());
       return ln;
-    } else if (isNode(pn,"createobject")) {
-      TypeDescriptor td=parseTypeDescriptor(pn);
-      
-      Vector args=parseArgumentList(pn);
-      boolean isglobal=pn.getChild("global")!=null||
-	pn.getChild("scratch")!=null;
-      String disjointId=null;
-      if( pn.getChild("disjoint") != null) {
-	disjointId = pn.getChild("disjoint").getTerminal();
+    } else if (isNode(pn, "createobject")) {
+      TypeDescriptor td = parseTypeDescriptor(pn);
+
+      Vector args = parseArgumentList(pn);
+      boolean isglobal = pn.getChild("global") != null || pn.getChild("scratch") != null;
+      String disjointId = null;
+      if (pn.getChild("disjoint") != null) {
+        disjointId = pn.getChild("disjoint").getTerminal();
       }
-      CreateObjectNode con=new CreateObjectNode(td, isglobal, disjointId);
+      CreateObjectNode con = new CreateObjectNode(td, isglobal, disjointId);
       con.setNumLine(pn.getLine());
-      for(int i=0; i<args.size(); i++) {
-	con.addArgument((ExpressionNode)args.get(i));
+      for (int i = 0; i < args.size(); i++) {
+        con.addArgument((ExpressionNode) args.get(i));
       }
       /* Could have flag set or tag added here */
-      if (pn.getChild("flag_list")!=null||pn.getChild("tag_list")!=null) {
-	FlagEffects fe=new FlagEffects(null);
-	if (pn.getChild("flag_list")!=null)
-	  parseFlagEffect(fe, pn.getChild("flag_list"));
+      if (pn.getChild("flag_list") != null || pn.getChild("tag_list") != null) {
+        FlagEffects fe = new FlagEffects(null);
+        if (pn.getChild("flag_list") != null)
+          parseFlagEffect(fe, pn.getChild("flag_list"));
 
-	if (pn.getChild("tag_list")!=null)
-	  parseTagEffect(fe, pn.getChild("tag_list"));
-	con.addFlagEffects(fe);
+        if (pn.getChild("tag_list") != null)
+          parseTagEffect(fe, pn.getChild("tag_list"));
+        con.addFlagEffects(fe);
       }
 
       return con;
