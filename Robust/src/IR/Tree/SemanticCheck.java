@@ -11,6 +11,9 @@ public class SemanticCheck {
   HashSet toanalyze;
   HashMap<ClassDescriptor, Integer> completed;
   
+  //This is the class mappings for a particular file based 
+  //on the import names. Maps class to canonical class name. 
+  static Hashtable singleImportMap;
   public static final int NOCHECK=0;
   public static final int REFERENCE=1;
   public static final int INIT=2;
@@ -37,7 +40,6 @@ public class SemanticCheck {
   public ClassDescriptor getClass(ClassDescriptor context, String classname) {
     return getClass(context, classname, INIT);
   }
-
   public ClassDescriptor getClass(ClassDescriptor context, String classname, int fullcheck) {
     if (context!=null) {
       Hashtable remaptable=context.getSingleImportMappings();
@@ -47,7 +49,7 @@ public class SemanticCheck {
     checkClass(cd, fullcheck);
     return cd;
   }
-
+  
   public void checkClass(ClassDescriptor cd) {
     checkClass(cd, INIT);
   }
@@ -121,6 +123,8 @@ public class SemanticCheck {
       } else {
         ClassDescriptor cd = (ClassDescriptor) obj;
         toanalyze.remove(cd);
+        //set the class mappings based on imports. 
+        singleImportMap = cd.getSingleImportMappings();
         
         // need to initialize typeutil object here...only place we can
         // get class descriptors without first calling getclass

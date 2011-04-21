@@ -28,6 +28,7 @@ public class TypeUtil {
   }
 
   public void addNewClass(String cl, Set todo) {
+    //search through the default locations for the file.
     for (int i = 0; i < state.classpath.size(); i++) {
       String path = (String) state.classpath.get(i);
       //The name has ___________ to separate out packages
@@ -41,7 +42,7 @@ public class TypeUtil {
           throw new Error(e);
         }
       }
-    }
+    }    
     throw new Error("Couldn't find class " + cl);
   }
 

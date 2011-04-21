@@ -1,6 +1,8 @@
 package IR.Tree;
 import IR.*;
 import Util.Lattice;
+
+import java.io.File;
 import java.util.*;
 
 public class BuildIR {
@@ -27,35 +29,65 @@ public class BuildIR {
     }
   }
 
-  Hashtable singleimports;
-  Vector multiimports;
+  //This is all single imports and a subset of the
+  //multi imports that have been resolved. 
+  Hashtable mandatoryImports;
+  //maps class names in file to full name
+  //Note may map a name to an ERROR. 
+  Hashtable multiimports;
   NameDescriptor packages;
 
   /** Parse the classes in this file */
   public void parseFile(ParseNode pn, Set toanalyze, String sourcefile) {
-    singleimports=new Hashtable();
-    multiimports=new Vector();
-    ParseNode ipn=pn.getChild("imports").getChild("import_decls_list");
-    if (ipn!=null) {
-      ParseNodeVector pnv=ipn.getChildren();
-      for(int i=0; i<pnv.size(); i++) {
-	ParseNode pnimport=pnv.elementAt(i);
-	NameDescriptor nd=parseName(pnimport.getChild("name"));
-	// TODO need to implement
-	if (isNode(pnimport,"import_single"))
-	  if(!singleimports.containsKey(nd.getIdentifier())) {
-	    //map name to full name (includes package/directory
-	    singleimports.put(nd.getIdentifier(), nd.getPathFromRootToHere(nd.getIdentifier()));
-	  } else {
-	    throw new Error("Error: class " + nd.getIdentifier() + " is already more than once in a single type import inside "+sourcefile);
-	  }
-	else
-	  //TODO MULTI-IMPORTS!
-	  multiimports.add(nd);
+    mandatoryImports = new Hashtable();
+    multiimports = new Hashtable();
+    ParseNode ipn = pn.getChild("imports").getChild("import_decls_list");
+    if (ipn != null) {
+      ParseNodeVector pnv = ipn.getChildren();
+      for (int i = 0; i < pnv.size(); i++) {
+        ParseNode pnimport = pnv.elementAt(i);
+        NameDescriptor nd = parseNameRaw(pnimport.getChild("name"));
+        if (isNode(pnimport, "import_single"))
+          if (!mandatoryImports.containsKey(nd.getIdentifier())) {
+            // map name to full name (includes package/directory
+            mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere(nd.getIdentifier()));
+          } else {
+            throw new Error("An ambiguous class "+ nd.getIdentifier() +" has been found. It is included for " +
+            		((String)mandatoryImports.get(nd.getIdentifier())).replace("___________", ".") + " and " +
+            		nd.getPathFromRootToHere(nd.getIdentifier()).replace("___________", "."));
+          }
+        else {
+          // This kind of breaks away from tradition a little bit by doing the file checks here
+          // instead of in Semantic check, but doing it here is easier because we have a mapping early on
+          // if I wait until semantic check, I have to change ALL the type descriptors to match the new
+          // mapping and that's both ugly and tedious.
+          File folder = new File(nd.getPathFromRootToHere(nd.getIdentifier()).replace('.', '/'));
+          if (folder.exists()) {
+            for (String file : folder.list()) {
+              // if the file is of type *.java add to multiImport list.
+              if (file.lastIndexOf('.') != -1
+                  && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
+                String classname = file.substring(0, file.length() - 5);
+                // single imports have precedence over multi-imports
+                if (!mandatoryImports.containsKey(classname)) {
+                  if (multiimports.containsKey(classname)) {
+                    // put error in for later, in case we try to import.
+                    multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
+                        + " is defined more than once in a multi-import in " + sourcefile));
+                  } else {
+                    multiimports.put(classname, nd.getIdentifier().replace("\\.", "___________")
+                        + "___________" + classname);
+                  }
+                }
+              }
+            }
+          } else {
+            throw new Error("Import package " + folder.getAbsolutePath() + " in  " + sourcefile
+                + " cannot be resolved.");
+          }
+        }
       }
     }
-    
-    
     
     ParseNode ppn=pn.getChild("packages").getChild("package");
     String packageName = null;
@@ -178,7 +210,7 @@ public class BuildIR {
   
   private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
-    ecd.setImports(singleimports, multiimports);
+    ecd.setImports(mandatoryImports);
     ecd.setAsEnum();
     if(cn != null) {
       ecd.setSurroundingClass(cn.getSymbol());
@@ -213,7 +245,7 @@ public class BuildIR {
   
   public ClassDescriptor parseInterfaceDecl(ParseNode pn) {
     ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
-    cn.setImports(singleimports, multiimports);
+    cn.setImports(mandatoryImports);
     //cn.setAsInterface();
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
       /* parse inherited interface name */
@@ -412,7 +444,7 @@ public class BuildIR {
 	System.out.println("OPTIONAL FOUND!!!!!!!");
       } else { optional = false;
 	       System.out.println("NOT OPTIONAL");}
-
+      
       TypeDescriptor type=parseTypeDescriptor(paramn);
 
       String paramname=paramn.getChild("single").getTerminal();
@@ -455,7 +487,7 @@ public class BuildIR {
       String newClassname = packageName + "___________" + pn.getChild("name").getTerminal();
       cn= new ClassDescriptor(packageName, newClassname.replaceAll("\\.", "___________") , false);
     }
-    cn.setImports(singleimports, multiimports);
+    cn.setImports(mandatoryImports);
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
@@ -589,7 +621,7 @@ public class BuildIR {
   
   private ClassDescriptor parseInnerClassDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor icn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
-    icn.setImports(singleimports, multiimports);
+    icn.setImports(mandatoryImports);
     icn.setAsInnerClass();
     icn.setSurroundingClass(cn.getSymbol());
     icn.setSurrounding(cn);
@@ -664,12 +696,34 @@ public class BuildIR {
   private NameDescriptor parseName(ParseNode nn) {
     ParseNode base=nn.getChild("base");
     ParseNode id=nn.getChild("identifier");
-    //TODO check for bugs with naming things like classes...
-    String terminal = (String) (singleimports.containsKey(id.getTerminal())?singleimports.get(id.getTerminal()):id.getTerminal());
+    String classname = resolveName(id.getTerminal());
     if (base==null) {
-      return new NameDescriptor(terminal);
+      return new NameDescriptor(classname);
     }
-    return new NameDescriptor(parseName(base.getChild("name")),terminal);
+    return new NameDescriptor(parseName(base.getChild("name")),classname);
+  }
+  
+  //This will get the mapping of a terminal class name
+  //to a canonical classname (with imports/package locations in them)
+  private String resolveName(String terminal) {
+    if(mandatoryImports.containsKey(terminal)) {
+      return  (String) mandatoryImports.get(terminal);
+    } else {
+      if(multiimports.containsKey(terminal)) {
+        //Test for error
+        Object o = multiimports.get(terminal);
+        if(o instanceof Error) {
+          throw new Error("Class " + terminal + " is ambiguous. Cause: more than 1 package import contain the same class.");
+        } else {
+          //At this point, if we found a unique class
+          //we can treat it as a single, mandatory import.
+          mandatoryImports.put(terminal, o);
+          return (String) o;
+        }
+      }
+    }
+    
+    return terminal;
   }
   
   //only function difference between this and parseName() is that this
@@ -864,7 +918,7 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(pn);
       innerCount++;
       ClassDescriptor cnnew=new ClassDescriptor(td.getSymbol()+"$"+innerCount, false);
-      cnnew.setImports(singleimports, multiimports);
+      cnnew.setImports(mandatoryImports);
       cnnew.setSuper(td.getSymbol());
       parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
       Vector args=parseArgumentList(pn);

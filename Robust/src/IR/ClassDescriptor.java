@@ -19,7 +19,6 @@ public class ClassDescriptor extends Descriptor {
   SymbolTable methods;
   
   Hashtable singleImports;
-  Vector multiImports;
   
   int numstaticblocks = 0;
   int numstaticfields = 0;
@@ -413,9 +412,8 @@ public class ClassDescriptor extends Descriptor {
     this.sourceFileName=sourceFileName;
   }
   
-  public void setImports(Hashtable singleImports, Vector multiImports) {
+  public void setImports(Hashtable singleImports) {
     this.singleImports = singleImports;
-    this.multiImports  = multiImports;
   }
   
   public String getSourceFileName(){
