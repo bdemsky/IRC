@@ -7,12 +7,12 @@ import java.io.File;
 import Main.Main;
 
 public class TypeUtil {
-  public static final String StringClass="String";
-  public static final String ObjectClass="Object";
-  public static final String StartupClass="StartupObject";
-  public static final String TagClass="TagDescriptor";
-  public static final String ThreadClass="Thread";
-  public static final String TaskClass="Task";
+  public static String StringClass;
+  public static String ObjectClass;
+  public static String StartupClass;
+  public static String TagClass;
+  public static String ThreadClass;
+  public static String TaskClass;
   State state;
   Hashtable supertable;
   Hashtable subclasstable;
@@ -24,6 +24,21 @@ public class TypeUtil {
   public TypeUtil(State state, BuildIR bir) {
     this.state=state;
     this.bir=bir;
+    if (state.JNI) {
+      StringClass="java.lang.String";
+      ObjectClass="java.lang.Object";
+      StartupClass="StartupObject";
+      TagClass="TagDescriptor";
+      ThreadClass="java.lang.Thread";
+      TaskClass="Task";
+    } else {
+      StringClass="String";
+      ObjectClass="Object";
+      StartupClass="StartupObject";
+      TagClass="TagDescriptor";
+      ThreadClass="Thread";
+      TaskClass="Task";
+    }
     createTables();
   }
 
