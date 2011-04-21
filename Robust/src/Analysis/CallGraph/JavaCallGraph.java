@@ -28,6 +28,10 @@ public class JavaCallGraph extends BaseCallGraph {
     buildGraph();
   }
 
+  public boolean isCalled(MethodDescriptor md) {
+    return false;
+  }
+
   public boolean isCallable(MethodDescriptor md) {
     return discovered.contains(md);
   }

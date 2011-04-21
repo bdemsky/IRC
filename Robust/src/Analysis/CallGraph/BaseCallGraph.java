@@ -40,6 +40,15 @@ public class BaseCallGraph implements CallGraph {
     buildGraph();
   }
 
+  public boolean isCalled(MethodDescriptor md) {
+    return false;
+  }
+
+
+  public boolean isInit(ClassDescriptor cd) {
+    return true;
+  }
+
   // this method returns the set of Descriptors
   // (MethodDescriptors and/or TaskDescriptors)
   //  that call the given method

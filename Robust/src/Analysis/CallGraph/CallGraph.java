@@ -23,4 +23,6 @@ public interface CallGraph {
   public boolean isCallable(MethodDescriptor md);
   public Set getMethodCalls(Descriptor d);
   public Set getFirstReachableMethodContainingSESE(Descriptor d, Set<MethodDescriptor> methodsContainingSESEs);
+  public boolean isInit(ClassDescriptor cd);
+  public boolean isCalled(MethodDescriptor md);
 }
