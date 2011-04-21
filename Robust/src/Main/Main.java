@@ -416,6 +416,7 @@ public class Main {
 
     TypeUtil tu;
     BuildFlat bf;
+    JavaBuilder jb=null;
 
     if (true) {
       BuildIR bir=new BuildIR(state);
@@ -441,7 +442,7 @@ public class Main {
       bf.buildFlat();
       State.logEvent("Done Building Flat");
     } else {
-      JavaBuilder jb=new JavaBuilder(state);
+      jb=new JavaBuilder(state);
       jb.build();
       tu=jb.getTypeUtil();
       bf=jb.getBuildFlat();
@@ -464,7 +465,7 @@ public class Main {
       }
     }
 
-    CallGraph callgraph=state.TASK?new BaseCallGraph(state, tu):new JavaCallGraph(state, tu);
+    CallGraph callgraph=jb!=null?jb:(state.TASK?new BaseCallGraph(state, tu):new JavaCallGraph(state, tu));
     
     // SSJava
     if(state.SSJAVA){
@@ -489,6 +490,8 @@ public class Main {
           /* Classify parameters */
           MethodDescriptor md=(MethodDescriptor)methodit.next();
           FlatMethod fm=state.getMethodFlat(md);
+	  if (fm==null)
+	    continue;
 	  cp.optimize(fm);
 	  dc.optimize(fm);
 	  if (!state.NOLOOP)
@@ -651,7 +654,7 @@ public class Main {
         if( state.OOOJAVA ) {
           bc=new BuildOoOJavaCode(state, bf.getMap(), tu, sa, oooa, callgraph);
         } else {
-          bc=new BuildCode(state, bf.getMap(), tu, sa, callgraph);
+          bc=new BuildCode(state, bf.getMap(), tu, sa, callgraph, jb);
         }
       }
 

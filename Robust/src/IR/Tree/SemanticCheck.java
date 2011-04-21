@@ -17,6 +17,10 @@ public class SemanticCheck {
   
   boolean checkAll;
 
+  public boolean hasLayout(ClassDescriptor cd) {
+    return completed.get(cd)!=null&&completed.get(cd)==INIT;
+  }
+
   public SemanticCheck(State state, TypeUtil tu) {
     this(state, tu, true);
   }
@@ -44,16 +48,16 @@ public class SemanticCheck {
     return cd;
   }
 
-  private void checkClass(ClassDescriptor cd) {
+  public void checkClass(ClassDescriptor cd) {
     checkClass(cd, INIT);
   }
 
-  private void checkClass(ClassDescriptor cd, int fullcheck) {
+  public void checkClass(ClassDescriptor cd, int fullcheck) {
     if (!completed.containsKey(cd)||completed.get(cd)<fullcheck) {
       int oldstatus=completed.containsKey(cd)?completed.get(cd):0;
       completed.put(cd, fullcheck);
       
-      if (fullcheck>=REFERENCE&&oldstatus<REFERENCE) {
+      if (fullcheck>=REFERENCE&&oldstatus<INIT) {
 	//Set superclass link up
 	if (cd.getSuper()!=null) {
 	  cd.setSuper(getClass(cd, cd.getSuper(), fullcheck));
@@ -62,9 +66,11 @@ public class SemanticCheck {
 	  }
 	  // Link together Field, Method, and Flag tables so classes
 	  // inherit these from their superclasses
-	  cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
-	  cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
-	  cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
+	  if (oldstatus<REFERENCE) {
+	    cd.getFieldTable().setParent(cd.getSuperDesc().getFieldTable());
+	    cd.getMethodTable().setParent(cd.getSuperDesc().getMethodTable());
+	    cd.getFlagTable().setParent(cd.getSuperDesc().getFlagTable());
+	  }
 	}
 	// Link together Field, Method tables do classes inherit these from 
 	// their ancestor interfaces
@@ -74,9 +80,11 @@ public class SemanticCheck {
 	  if(!superif.isInterface()) {
 	    throw new Error("Error! Class " + cd.getSymbol() + " implements non-interface " + superif.getSymbol());
 	  }
-	  cd.addSuperInterfaces(superif);
-	  cd.getFieldTable().addParentIF(superif.getFieldTable());
-	  cd.getMethodTable().addParentIF(superif.getMethodTable());
+	  if (oldstatus<REFERENCE) {
+	    cd.addSuperInterfaces(superif);
+	    cd.getFieldTable().addParentIF(superif.getFieldTable());
+	    cd.getMethodTable().addParentIF(superif.getMethodTable());
+	  }
 	}
       }
       if (oldstatus<INIT&&fullcheck>=INIT) {
@@ -1077,6 +1085,7 @@ public class SemanticCheck {
     if (!typetolookin.isArray()) {
       // Array's don't need constructor calls
       ClassDescriptor classtolookin = typetolookin.getClassDesc();
+      checkClass(classtolookin, INIT);
 
       Set methoddescriptorset = classtolookin.getMethodTable().getSet(typetolookin.getSymbol());
       MethodDescriptor bestmd = null;
@@ -1231,6 +1240,7 @@ public class SemanticCheck {
     if (!typetolookin.isClass())
       throw new Error("Error with method call to "+min.getMethodName());
     ClassDescriptor classtolookin=typetolookin.getClassDesc();
+    checkClass(classtolookin, INIT);
     //System.out.println("Method name="+min.getMethodName());
 
     Set methoddescriptorset=classtolookin.getMethodTable().getSet(min.getMethodName());

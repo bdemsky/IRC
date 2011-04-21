@@ -5,8 +5,9 @@ import IR.Flat.*;
 import java.util.*;
 import java.io.*;
 import Util.Pair;
+import Analysis.CallGraph.CallGraph;
 
-public class JavaBuilder {
+public class JavaBuilder implements CallGraph {
   State state;
   HashSet<Descriptor> checkedDesc=new HashSet<Descriptor>();
   HashMap<ClassDescriptor, Integer> classStatus=new HashMap<ClassDescriptor, Integer>();
@@ -19,6 +20,8 @@ public class JavaBuilder {
   BuildFlat bf;
   Stack<MethodDescriptor> toprocess=new Stack<MethodDescriptor>();
   HashSet<MethodDescriptor> discovered=new HashSet<MethodDescriptor>();
+  HashMap<MethodDescriptor, Set<MethodDescriptor>> canCall=new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
+  MethodDescriptor mainMethod;
 
   /* Maps class/interfaces to all instantiated classes that extend or
    * implement those classes or interfaces */
@@ -29,9 +32,82 @@ public class JavaBuilder {
   
   HashMap<MethodDescriptor, Set<MethodDescriptor>> callMap=new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
 
+  HashMap<MethodDescriptor, Set<MethodDescriptor>> revCallMap=new HashMap<MethodDescriptor, Set<MethodDescriptor>>();
+
   /* Invocation map */
   HashMap<ClassDescriptor, Set<Pair<MethodDescriptor, MethodDescriptor>>> invocationMap=new HashMap<ClassDescriptor, Set<Pair<MethodDescriptor, MethodDescriptor>>>();
+
+  public Set getAllMethods(Descriptor d) {
+    HashSet tovisit=new HashSet();
+    tovisit.add(d);
+    HashSet callable=new HashSet();
+    while(!tovisit.isEmpty()) {
+      Descriptor md=(Descriptor)tovisit.iterator().next();
+      tovisit.remove(md);
+      Set s=getCalleeSet(md);
+      
+      if (s!=null) {
+	for(Iterator it=s.iterator(); it.hasNext();) {
+	  MethodDescriptor md2=(MethodDescriptor)it.next();
+	  if( !callable.contains(md2) ) {
+	    callable.add(md2);
+	    tovisit.add(md2);
+	  }
+	}
+      }
+    }
+    return callable;
+  }
+
+  public Set getMethods(MethodDescriptor md, TypeDescriptor type) {
+    if (canCall.containsKey(md))
+      return canCall.get(md);
+    else
+      return new HashSet();
+  }
+
+  public Set getMethods(MethodDescriptor md) {
+    return getMethods(md, null);
+  }
+
+  public Set getMethodCalls(Descriptor d) {
+    Set set=getAllMethods(d);
+    set.add(d);
+    return set;
+  }
   
+  public boolean isCalled(MethodDescriptor md) {
+    return !getMethods(md).isEmpty();
+  }
+
+  public boolean isCallable(MethodDescriptor md) {
+    return !getCallerSet(md).isEmpty()||md==mainMethod;
+  }
+
+  public Set getCalleeSet(Descriptor d) {
+    Set calleeset=callMap.get((MethodDescriptor)d);
+    if (calleeset==null)
+      return new HashSet();
+    else
+      return calleeset;
+  }
+
+  public Set getCallerSet(MethodDescriptor md) {
+    Set callerset=revCallMap.get(md);
+    if (callerset==null)
+      return new HashSet();
+    else
+      return callerset;
+  }
+
+  public Set getFirstReachableMethodContainingSESE(Descriptor d,
+      Set<MethodDescriptor> methodsContainingSESEs) {
+    throw new Error("");
+  }
+
+  public boolean hasLayout(ClassDescriptor cd) {
+    return sc.hasLayout(cd);
+  }
 
   public JavaBuilder(State state) {
     this.state=state;
@@ -50,10 +126,19 @@ public class JavaBuilder {
   }
 
   public void build() {
+    //Initialize Strings to keep runtime happy
+    ClassDescriptor stringClass=sc.getClass(null, TypeUtil.StringClass, SemanticCheck.INIT);
+    instantiateClass(stringClass);
+
     ClassDescriptor mainClass=sc.getClass(null, state.main, SemanticCheck.INIT);
-    MethodDescriptor mainMethod=tu.getMain();
+    mainMethod=tu.getMain();
+
+    canCall.put(mainMethod, new HashSet<MethodDescriptor>());
+    canCall.get(mainMethod).add(mainMethod);
+
     toprocess.push(mainMethod);
     computeFixPoint();
+    tu.createFullTable();
   }
 
   void checkMethod(MethodDescriptor md) {
@@ -65,10 +150,20 @@ public class JavaBuilder {
     }
   }
   
-  void initClassDesc(ClassDescriptor cd) {
-    if (classStatus.get(cd)==null) {
-      classStatus.put(cd, CDINIT);
-      //TODO...LOOK FOR STATIC INITIALIZERS
+  public boolean isInit(ClassDescriptor cd) {
+    return classStatus.get(cd)!=null&&classStatus.get(cd)>=CDINIT;
+  }
+
+  void initClassDesc(ClassDescriptor cd, int init) {
+    if (classStatus.get(cd)==null||classStatus.get(cd)!=init) {
+      if (classStatus.get(cd)==null) {
+        MethodDescriptor mdstaticinit = (MethodDescriptor)cd.getMethodTable().get("staticblocks");
+	if (mdstaticinit!=null) {
+	  discovered.add(mdstaticinit);
+	  toprocess.push(mdstaticinit);
+	}
+      }
+      classStatus.put(cd, init);
     }
   }
   
@@ -76,14 +171,21 @@ public class JavaBuilder {
     while(!toprocess.isEmpty()) {
       MethodDescriptor md=toprocess.pop();
       checkMethod(md);
-      initClassDesc(md.getClassDesc());
+      initClassDesc(md.getClassDesc(), CDINIT);
       bf.flattenMethod(md.getClassDesc(), md);
       processFlatMethod(md);
     }
+
+    //make sure every called method descriptor has a flat method
+    for(MethodDescriptor callmd:canCall.keySet())
+      bf.addJustFlatMethod(callmd);
   }
   
   void processCall(MethodDescriptor md, FlatCall fcall) {
     MethodDescriptor callmd=fcall.getMethod();
+    //make sure we have a FlatMethod for the base method...
+    if (!canCall.containsKey(callmd))
+      canCall.put(callmd, new HashSet<MethodDescriptor>());
 
     //First handle easy cases...
     if (callmd.isStatic()||callmd.isConstructor()) {
@@ -91,7 +193,11 @@ public class JavaBuilder {
 	discovered.add(callmd);
 	toprocess.push(callmd);
       }
+      if (!revCallMap.containsKey(callmd))
+	revCallMap.put(callmd, new HashSet<MethodDescriptor>());
+      revCallMap.get(callmd).add(md);
       callMap.get(md).add(callmd);
+      canCall.get(callmd).add(callmd);
       return;
     }
 
@@ -102,28 +208,35 @@ public class JavaBuilder {
     if (!invocationMap.containsKey(cn))
       invocationMap.put(cn, new HashSet<Pair<MethodDescriptor,MethodDescriptor>>());
     invocationMap.get(cn).add(new Pair<MethodDescriptor, MethodDescriptor>(md, callmd));
+    
+    if (impSet!=null) {
+      for(ClassDescriptor cdactual:impSet) {
+	searchimp:
+	while(cdactual!=null) {
+	  Set possiblematches=cdactual.getMethodTable().getSetFromSameScope(callmd.getSymbol());
+	  
+	  for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
+	    MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
+	    if (callmd.matches(matchmd)) {
+	      //Found the method that will be called
+	      if (!discovered.contains(matchmd)) {
+		discovered.add(matchmd);
+		toprocess.push(matchmd);
+	      }
 
-    for(ClassDescriptor cdactual:impSet) {
-      searchimp:
-      while(cdactual!=null) {
-	Set possiblematches=cdactual.getMethodTable().getSetFromSameScope(callmd.getSymbol());
+	      if (!revCallMap.containsKey(matchmd))
+		revCallMap.put(matchmd, new HashSet<MethodDescriptor>());
+	      revCallMap.get(matchmd).add(md);
 
-	for(Iterator matchit=possiblematches.iterator(); matchit.hasNext();) {
-	  MethodDescriptor matchmd=(MethodDescriptor)matchit.next();
-	  if (callmd.matches(matchmd)) {
-	    //Found the method that will be called
-	    if (!discovered.contains(matchmd)) {
-	      discovered.add(matchmd);
-	      toprocess.push(matchmd);
+	      callMap.get(md).add(matchmd);
+	      canCall.get(callmd).add(matchmd);
+	      break searchimp;
 	    }
-	    callMap.get(md).add(matchmd);
-	    
-	    break searchimp;
 	  }
+	  
+	  //Didn't find method...look in super class
+	  cdactual=cdactual.getSuperDesc();
 	}
-
-	//Didn't find method...look in super class
-	cdactual=cdactual.getSuperDesc();
       }
     }
   }
@@ -133,6 +246,16 @@ public class JavaBuilder {
     if (!tdnew.isClass())
       return;
     ClassDescriptor cdnew=tdnew.getClassDesc();
+    //Make sure class is fully initialized
+    sc.checkClass(cdnew, SemanticCheck.INIT);
+    instantiateClass(cdnew);
+  }
+
+  void instantiateClass(ClassDescriptor cdnew) {
+    if (classStatus.containsKey(cdnew)&&classStatus.get(cdnew)==CDINSTANTIATED)
+      return;
+    initClassDesc(cdnew, CDINSTANTIATED);
+
     Stack<ClassDescriptor> tovisit=new Stack<ClassDescriptor>();
     tovisit.add(cdnew);
     
@@ -159,7 +282,11 @@ public class JavaBuilder {
 		    discovered.add(matchmd);
 		    toprocess.push(matchmd);
 		  }
+		  if (!revCallMap.containsKey(matchmd))
+		    revCallMap.put(matchmd, new HashSet<MethodDescriptor>());
+		  revCallMap.get(matchmd).add(md);
 		  callMap.get(md).add(matchmd);
+		  canCall.get(callmd).add(matchmd);
 		  break searchimp;
 		}
 	      }
@@ -197,48 +324,6 @@ public class JavaBuilder {
 	break;
       }
       }
-    }
-  }
-
-  public static ParseNode readSourceFile(State state, String sourcefile) {
-    try {
-      Reader fr= new BufferedReader(new FileReader(sourcefile));
-      Lex.Lexer l = new Lex.Lexer(fr);
-      java_cup.runtime.lr_parser g;
-      g = new Parse.Parser(l);
-      ParseNode p=null;
-      try {
-	p=(ParseNode) g./*debug_*/parse().value;
-      } catch (Exception e) {
-	System.err.println("Error parsing file:"+sourcefile);
-	e.printStackTrace();
-	System.exit(-1);
-      }
-      state.addParseNode(p);
-      if (l.numErrors()!=0) {
-	System.out.println("Error parsing "+sourcefile);
-	System.exit(l.numErrors());
-      }
-      state.lines+=l.line_num;
-      return p;
-
-    } catch (Exception e) {
-      throw new Error(e);
-    }
-  }
-
-  public void loadClass(BuildIR bir, String sourcefile) {
-    try {
-      ParseNode pn=readSourceFile(state, sourcefile);
-      bir.buildtree(pn, null,sourcefile);
-    } catch (Exception e) {
-      System.out.println("Error in sourcefile:"+sourcefile);
-      e.printStackTrace();
-      System.exit(-1);
-    } catch (Error e) {
-      System.out.println("Error in sourcefile:"+sourcefile);
-      e.printStackTrace();
-      System.exit(-1);
     }
   }
 }

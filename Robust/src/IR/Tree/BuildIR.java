@@ -14,7 +14,7 @@ public class BuildIR {
   }
 
   public void buildtree(ParseNode pn, Set toanalyze, String sourcefile) {
-    parseFile(pn, toanalyze,sourcefile);
+    parseFile(pn, toanalyze, sourcefile);
     
     // numering the interfaces
     int if_num = 0;
@@ -32,8 +32,8 @@ public class BuildIR {
   NameDescriptor packages;
 
   /** Parse the classes in this file */
-  public void parseFile(ParseNode pn, Set toanalyze,String sourcefile) {
-    singleimports= new Hashtable();
+  public void parseFile(ParseNode pn, Set toanalyze, String sourcefile) {
+    singleimports=new Hashtable();
     multiimports=new Vector();
     ParseNode ipn=pn.getChild("imports").getChild("import_decls_list");
     if (ipn!=null) {
@@ -44,13 +44,13 @@ public class BuildIR {
 	// TODO need to implement
 	if (isNode(pnimport,"import_single"))
 	  if(!singleimports.containsKey(nd.getIdentifier())) {
-      //map name to full name (includes package/directory
-      singleimports.put(nd.getIdentifier(), nd.getPathFromRootToHere(nd.getIdentifier()));
-    } else {
-      throw new Error("Error: class " + nd.getIdentifier() + " is already more than once in a single type import inside "+sourcefile);
-    }
+	    //map name to full name (includes package/directory
+	    singleimports.put(nd.getIdentifier(), nd.getPathFromRootToHere(nd.getIdentifier()));
+	  } else {
+	    throw new Error("Error: class " + nd.getIdentifier() + " is already more than once in a single type import inside "+sourcefile);
+	  }
 	else
-	//TODO MULTI-IMPORTS!
+	  //TODO MULTI-IMPORTS!
 	  multiimports.add(nd);
       }
     }
@@ -71,7 +71,6 @@ public class BuildIR {
           continue;
         if (isNode(type_pn, "class_declaration")) {
           ClassDescriptor cn = parseTypeDecl(type_pn, packageName);
-          cn.setImports(singleimports, multiimports);
           cn.setSourceFileName(sourcefile);
           parseInitializers(cn);
           if (toanalyze != null)
@@ -179,6 +178,7 @@ public class BuildIR {
   
   private ClassDescriptor parseEnumDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor ecd=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+    ecd.setImports(singleimports, multiimports);
     ecd.setAsEnum();
     if(cn != null) {
       ecd.setSurroundingClass(cn.getSymbol());
@@ -213,6 +213,7 @@ public class BuildIR {
   
   public ClassDescriptor parseInterfaceDecl(ParseNode pn) {
     ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
+    cn.setImports(singleimports, multiimports);
     //cn.setAsInterface();
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
       /* parse inherited interface name */
@@ -454,6 +455,7 @@ public class BuildIR {
       String newClassname = packageName + "___________" + pn.getChild("name").getTerminal();
       cn= new ClassDescriptor(packageName, newClassname.replaceAll("\\.", "___________") , false);
     }
+    cn.setImports(singleimports, multiimports);
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
@@ -587,6 +589,7 @@ public class BuildIR {
   
   private ClassDescriptor parseInnerClassDecl(ClassDescriptor cn, ParseNode pn) {
     ClassDescriptor icn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
+    icn.setImports(singleimports, multiimports);
     icn.setAsInnerClass();
     icn.setSurroundingClass(cn.getSymbol());
     icn.setSurrounding(cn);
@@ -861,6 +864,7 @@ public class BuildIR {
       TypeDescriptor td=parseTypeDescriptor(pn);
       innerCount++;
       ClassDescriptor cnnew=new ClassDescriptor(td.getSymbol()+"$"+innerCount, false);
+      cnnew.setImports(singleimports, multiimports);
       cnnew.setSuper(td.getSymbol());
       parseClassBody(cnnew, pn.getChild("decl").getChild("classbody"));
       Vector args=parseArgumentList(pn);
@@ -957,8 +961,8 @@ public class BuildIR {
       return aan;
     } else if (isNode(pn,"cast1")) {
       try {
-  CastNode cn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
-  cn.setNumLine(pn.getLine());      
+	CastNode cn=new CastNode(parseTypeDescriptor(pn.getChild("type")),parseExpression(pn.getChild("exp").getFirstChild()));
+	cn.setNumLine(pn.getLine());      
 	return cn;
       } catch (Exception e) {
 	System.out.println(pn.PPrint(1,true));
