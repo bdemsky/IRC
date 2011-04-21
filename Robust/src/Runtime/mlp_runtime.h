@@ -15,6 +15,9 @@
 #include "memPool.h"
 
 
+#include "classdefs.h"
+
+
 
 #ifndef FALSE
 #define FALSE 0
@@ -60,10 +63,10 @@
 
 // these are useful for interpreting an INTPTR to an
 // Object at runtime to retrieve the object's type
-// or object id (OID), 64-bit safe
-#define OBJPTRPTR_2_OBJTYPE( opp ) ((int*)*(opp))[0]
-// int hashcode is the [1] NOW!!!
-#define OBJPTRPTR_2_OBJOID(  opp ) ((int*)*(opp))[2]
+// or object id (OID)
+#define OBJPTRPTR_2_OBJTYPE( opp ) ((struct ___Object___*)*(opp))->type
+#define OBJPTRPTR_2_OBJOID(  opp ) ((struct ___Object___*)*(opp))->oid
+
 
 // forwarding list elements is a linked
 // structure of arrays, should help task
