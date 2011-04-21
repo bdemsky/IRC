@@ -2075,7 +2075,7 @@ innermoveobj:
 		  unsigned int tt_size=tt_pointer[0];
 		  int tt_i;
 		  for(tt_i=1; tt_i<=tt_size; tt_i++) {
-			unsigned int tt_offset=tt_pointer[i];
+			unsigned int tt_offset=tt_pointer[tt_i];
 			void * objptr=*((void **)(((char *)origptr)+tt_offset));
 			if((objptr!= 0) && 
 			  ((gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)] == 0) || 
@@ -2140,7 +2140,7 @@ innermoveobj:
 		if((objptr != 0) && 
 			(gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)] == 0)) {
 		  tprintf("Error moveobj, missing live obj ++: %x, %x, %d, %d, %d, %d, %d, %d, %d, %d \n", 
-			  (int)origptr, (int)objptr, __LINE__, tt_i, 
+			  (int)origptr, (int)objptr, __LINE__, tt_j, 
 			  ((int *)(origptr))[0], ((int *)(objptr))[0], 
 			  ((int *)(objptr))[BAMBOOMARKBIT], 
 			  gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)], 
@@ -2172,7 +2172,7 @@ innermoveobj:
 		  unsigned int tt_size=tt_pointer[0];
 		  int tt_i;
 		  for(tt_i=1; tt_i<=tt_size; tt_i++) {
-			unsigned int tt_offset=tt_pointer[i];
+			unsigned int tt_offset=tt_pointer[tt_i];
 			void * objptr=*((void **)(((char *)origptr)+tt_offset));
 			if((objptr!= 0) && 
 			  ((gcmappingtbl[OBJMAPPINGINDEX((unsigned int)objptr)] == 0) || 
@@ -2330,7 +2330,7 @@ innercompact:
     }
   }
 #ifdef GC_TBL_DEBUG
-  tprintf("finish mark %x \n", (int)gcmarkedptrbound);
+  //tprintf("finish mark %x \n", (int)gcmarkedptrbound);
 #endif
 #ifdef GC_CACHE_ADAPT
   // end of an to page, wrap up its information
@@ -2907,8 +2907,7 @@ inline void flush(struct garbagelist * stackptr) {
 #endif
     GC_BAMBOO_DEBUGPRINT(0xe30a);
     GC_BAMBOO_DEBUGPRINT_REG(ptr);
-    GC_BAMBOO_DEBUGPRINT_REG(tptr);
-    GC_BAMBOO_DEBUGPRINT_REG(((int *)(tptr))[0]);
+    GC_BAMBOO_DEBUGPRINT_REG(((int *)(ptr))[0]);
     if(ptr == NULL) {
       BAMBOO_EXIT(0xb02a);
     }
@@ -3622,6 +3621,7 @@ inline void gc_collect(struct garbagelist * stackptr) {
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
 
+  gcflag = false;
   while(true) {
     if(FINISHPHASE == gcphase) {
       break;
@@ -3729,6 +3729,7 @@ inline void gc_nocollect(struct garbagelist * stackptr) {
   bamboo_smem_size = 0;
   bamboo_smem_zero_top = NULL;
 
+  gcflag = false;
   while(true) {
     if(FINISHPHASE == gcphase) {
       break;
@@ -4130,6 +4131,7 @@ inline void gc_master(struct garbagelist * stackptr) {
 	}
 #endif
 #endif
+  gcflag = false;
   gccorestatus[BAMBOO_NUM_OF_CORE] = 1;
   for(i = 1; i < NUMCORESACTIVE; ++i) {
 	// send gc finish messages to all cores
@@ -4137,8 +4139,22 @@ inline void gc_master(struct garbagelist * stackptr) {
 	gccorestatus[i] = 1;
   }
 
-  gcflag = false;
   gcprocessing = false;
+  if(gcflag) {
+	// inform other cores to stop and wait for gc
+	gcprecheck = true;
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  // reuse the gcnumsendobjs & gcnumreceiveobjs
+	  gccorestatus[i] = 1;
+	  gcnumsendobjs[0][i] = 0;
+	  gcnumreceiveobjs[0][i] = 0;
+	}
+	for(int i = 0; i < NUMCORESACTIVE; i++) {
+	  if(i != BAMBOO_NUM_OF_CORE) {
+		send_msg_1(i, GCSTARTPRE, false);
+	  }
+	}
+  }
 #ifdef RAWPATH // TODO GC_DEBUG
   printf("(%x,%x) gc finished   \n", udn_tile_coord_x(), 
 		 udn_tile_coord_y());

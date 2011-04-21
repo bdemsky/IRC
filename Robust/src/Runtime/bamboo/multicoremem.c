@@ -880,20 +880,22 @@ void * smemalloc_I(int coren,
 #ifdef MULTICORE_GC
 	if(!gcflag) {
 	  gcflag = true;
-	  // inform other cores to stop and wait for gc
-	  gcprecheck = true;
-	  for(int i = 0; i < NUMCORESACTIVE; i++) {
-		// reuse the gcnumsendobjs & gcnumreceiveobjs
-		gccorestatus[i] = 1;
-		gcnumsendobjs[0][i] = 0;
-		gcnumreceiveobjs[0][i] = 0;
-	  }
-	  for(int i = 0; i < NUMCORESACTIVE; i++) {
-		if(i != BAMBOO_NUM_OF_CORE) {
-		  if(BAMBOO_CHECK_SEND_MODE()) {
-			cache_msg_1(i, GCSTARTPRE);
-		  } else {
-			send_msg_1(i, GCSTARTPRE, true);
+	  if(!gcprocessing) {
+		// inform other cores to stop and wait for gc
+		gcprecheck = true;
+		for(int i = 0; i < NUMCORESACTIVE; i++) {
+		  // reuse the gcnumsendobjs & gcnumreceiveobjs
+		  gccorestatus[i] = 1;
+		  gcnumsendobjs[0][i] = 0;
+		  gcnumreceiveobjs[0][i] = 0;
+		}
+		for(int i = 0; i < NUMCORESACTIVE; i++) {
+		  if(i != BAMBOO_NUM_OF_CORE) {
+			if(BAMBOO_CHECK_SEND_MODE()) {
+			  cache_msg_1(i, GCSTARTPRE);
+			} else {
+			  send_msg_1(i, GCSTARTPRE, true);
+			}
 		  }
 		}
 	  }

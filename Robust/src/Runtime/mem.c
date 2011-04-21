@@ -15,7 +15,7 @@ void * mycalloc_share(struct garbagelist * stackptr,
   int hasgc = 0;
 memalloc:
   BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
-  if(gcflag) {
+  while(gcflag) {
 	BAMBOO_ENTER_CLIENT_MODE_FROM_RUNTIME();
 	gc(stackptr);
 	BAMBOO_ENTER_RUNTIME_MODE_FROM_CLIENT();
