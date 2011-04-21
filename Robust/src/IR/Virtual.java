@@ -130,7 +130,7 @@ public class Virtual {
       if (md.isStatic()||md.getReturnType()==null)
         continue;
 
-      if (!callgraph.isCallable(md))
+      if (!callgraph.isCallable(md)&&!callgraph.isCalled(md))
 	continue;
       boolean foundmatch=false;
       // check if there is a matched method that has been assigned method num
@@ -169,7 +169,7 @@ public class Virtual {
       MethodDescriptor md=(MethodDescriptor)it.next();
       if (md.isStatic()||md.getReturnType()==null)
         continue;
-      if (!callgraph.isCallable(md))
+      if (!callgraph.isCallable(md)&&!callgraph.isCalled(md))
 	continue;
       // check if there is a matched method in methods defined in interfaces
       Set possiblematches_if=if_methods.getSet(md.getSymbol());

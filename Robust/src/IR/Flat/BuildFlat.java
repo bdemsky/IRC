@@ -160,14 +160,26 @@ public class BuildFlat {
   private void flattenClass(ClassDescriptor cn) {
     Iterator methodit=cn.getMethods();
     while(methodit.hasNext()) {     
-      currmd=(MethodDescriptor)methodit.next();
-      flattenMethod(cn, currmd);
+      flattenMethod(cn, (MethodDescriptor)methodit.next());
+    }
+  }
+
+  public void addJustFlatMethod(MethodDescriptor md) {
+    if (state.getMethodFlat(md)==null) {
+      FlatMethod fm=new FlatMethod(md, fe);
+      if (!md.isStatic())
+	fm.addParameterTemp(getTempforParam(md.getThis()));
+      for(int i=0; i<md.numParameters(); i++) {
+	fm.addParameterTemp(getTempforParam(md.getParameter(i)));
+      }
+      state.addFlatCode(md,fm);
     }
   }
   
-  public void flattenMethod(ClassDescriptor cn, MethodDescriptor currmd) {
+  public void flattenMethod(ClassDescriptor cn, MethodDescriptor md) {
     // if OOOJava is on, splice a special SESE in to
     // enclose the main method
+    currmd=md;
     boolean spliceInImplicitMain = state.OOOJAVA && currmd.equals( typeutil.getMain() );
     
     FlatSESEEnterNode spliceSESE = null;
@@ -268,6 +280,7 @@ public class BuildFlat {
       spliceSESE.addNext(fn);
       fn=spliceSESE;	 
     }
+
     FlatMethod fm=new FlatMethod(currmd, fe);
     fm.setNumLine(bn.getNumLine());
     fm.addNext(fn);
