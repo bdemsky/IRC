@@ -30,6 +30,10 @@ public class NameDescriptor extends Descriptor {
       return nd.getRoot();
   }
   
+  public String getPathFromRootToHere() {
+    return getPathFromRootToHere(identifier);
+  }
+  
   public String getPathFromRootToHere(String id) {
     String path = id;
     NameDescriptor temp = this.nd;

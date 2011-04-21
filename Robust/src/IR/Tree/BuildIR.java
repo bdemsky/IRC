@@ -50,7 +50,7 @@ public class BuildIR {
         if (isNode(pnimport, "import_single"))
           if (!mandatoryImports.containsKey(nd.getIdentifier())) {
             // map name to full name (includes package/directory
-            mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere(nd.getIdentifier()));
+            mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere());
           } else {
             throw new Error("An ambiguous class "+ nd.getIdentifier() +" has been found. It is included for " +
             		((String)mandatoryImports.get(nd.getIdentifier())).replace("___________", ".") + " and " +
@@ -92,8 +92,10 @@ public class BuildIR {
     ParseNode ppn=pn.getChild("packages").getChild("package");
     String packageName = null;
     if (ppn!=null) {
-      packageName = ppn.getChild("name").getChild("identifier").getTerminal();
+      NameDescriptor nd = parseName(ppn.getChild("name"));
+      packageName = nd.getPathFromRootToHere();
     }
+    
     ParseNode tpn=pn.getChild("type_declaration_list");
     if (tpn != null) {
       ParseNodeVector pnv = tpn.getChildren();
