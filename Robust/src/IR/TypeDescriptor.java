@@ -32,6 +32,7 @@ public class TypeDescriptor extends Descriptor {
   boolean isClassNameRef = false;
   
   private Vector<AnnotationDescriptor> annotationSet;
+  private TypeExtension typeExtension;
 
   public boolean equals(Object o) {
     if (o instanceof TypeDescriptor) {
@@ -374,6 +375,14 @@ public class TypeDescriptor extends Descriptor {
   
   public Vector<AnnotationDescriptor> getAnnotationMarkers(){
     return annotationSet;
+  }
+  
+  public void setExtension(TypeExtension te){
+    typeExtension=te;
+  }
+  
+  public TypeExtension getExtension(){
+    return typeExtension;
   }
   
 }
