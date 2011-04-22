@@ -38,7 +38,7 @@ public class NameDescriptor extends Descriptor {
     String path = id;
     NameDescriptor temp = this.nd;
     while(temp!=null) {
-      path =  temp.identifier + "___________" + path;
+      path =  temp.identifier + "." + path;
       temp = temp.nd;
     }
     
@@ -51,5 +51,4 @@ public class NameDescriptor extends Descriptor {
     else
       return nd+"."+identifier;
   }
-
 }

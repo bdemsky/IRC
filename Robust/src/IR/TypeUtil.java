@@ -43,11 +43,11 @@ public class TypeUtil {
   }
 
   public void addNewClass(String cl, Set todo) {
+    System.out.println("I'm looking for "+cl.replace(".", "/"));
     //search through the default locations for the file.
     for (int i = 0; i < state.classpath.size(); i++) {
       String path = (String) state.classpath.get(i);
-      //The name has ___________ to separate out packages
-      File f = new File(path, cl.replaceAll("___________", "/") + ".java");
+      File f = new File(path, cl.replace('.', '/') + ".java");
       if (f.exists()) {
         try {
           ParseNode pn = Main.readSourceFile(state, f.getCanonicalPath());
