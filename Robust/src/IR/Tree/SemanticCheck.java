@@ -147,10 +147,6 @@ public class SemanticCheck {
       return;       /* Done */
     else if (td.isClass()) {
       String name=td.toString();
-      int index = name.lastIndexOf('.');
-      if(index != -1) {
-        name = name.substring(index+1);
-      }
       ClassDescriptor field_cd=checkAll?getClass(cd, name):getClass(cd, name, REFERENCE);
 
       if (field_cd==null)

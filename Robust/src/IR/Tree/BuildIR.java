@@ -53,15 +53,15 @@ public class BuildIR {
             mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere());
           } else {
             throw new Error("An ambiguous class "+ nd.getIdentifier() +" has been found. It is included for " +
-            		((String)mandatoryImports.get(nd.getIdentifier())).replace("___________", ".") + " and " +
-            		nd.getPathFromRootToHere(nd.getIdentifier()).replace("___________", "."));
+            		((String)mandatoryImports.get(nd.getIdentifier())) + " and " +
+            		nd.getPathFromRootToHere());
           }
         else {
           // This kind of breaks away from tradition a little bit by doing the file checks here
           // instead of in Semantic check, but doing it here is easier because we have a mapping early on
           // if I wait until semantic check, I have to change ALL the type descriptors to match the new
           // mapping and that's both ugly and tedious.
-          File folder = new File(nd.getPathFromRootToHere(nd.getIdentifier()).replace('.', '/'));
+          File folder = new File(nd.getPathFromRootToHere().replace('.', '/'));
           if (folder.exists()) {
             for (String file : folder.list()) {
               // if the file is of type *.java add to multiImport list.
@@ -75,8 +75,7 @@ public class BuildIR {
                     multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
                         + " is defined more than once in a multi-import in " + sourcefile));
                   } else {
-                    multiimports.put(classname, nd.getIdentifier().replace("\\.", "___________")
-                        + "___________" + classname);
+                    multiimports.put(classname, nd.getIdentifier() + "." + classname);
                   }
                 }
               }
@@ -486,8 +485,8 @@ public class BuildIR {
     if(packageName == null) {
       cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false); 
     } else  {
-      String newClassname = packageName + "___________" + pn.getChild("name").getTerminal();
-      cn= new ClassDescriptor(packageName, newClassname.replaceAll("\\.", "___________") , false);
+      String newClassname = packageName + "." + pn.getChild("name").getTerminal();
+      cn= new ClassDescriptor(packageName, newClassname, false);
     }
     cn.setImports(mandatoryImports);
     if (!isEmpty(pn.getChild("super").getTerminal())) {
