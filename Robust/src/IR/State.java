@@ -41,6 +41,7 @@ public class State {
     this.classpath=new Vector();
     this.cd2locationOrderMap=new Hashtable();
     this.cd2locationPropertyMap=new Hashtable();
+    this.fn2labelMap=new Hashtable(); 
     this.lines=0;
   }
 
@@ -209,6 +210,7 @@ public class State {
   private int arraycount=0;
   public Hashtable cd2locationOrderMap;
   public Hashtable cd2locationPropertyMap;
+  public Hashtable fn2labelMap;
   public boolean OPTIMIZE=false;
   public boolean LINENUM=false;
 

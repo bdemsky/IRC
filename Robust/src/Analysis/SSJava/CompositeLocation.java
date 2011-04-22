@@ -8,7 +8,7 @@ import java.util.Set;
 
 import IR.ClassDescriptor;
 
-public class CompositeLocation extends Location {
+public class CompositeLocation extends Location{
 
   protected NTuple<Location> locTuple;
 
@@ -72,9 +72,9 @@ public class CompositeLocation extends Location {
     return cd2loc;
 
   }
-  
+
   public NTuple<Location> getBaseLocationTuple() {
-    
+
     NTuple<Location> baseLocationTuple = new NTuple<Location>();
     int tupleSize = locTuple.size();
     for (int i = 0; i < tupleSize; i++) {
@@ -89,7 +89,7 @@ public class CompositeLocation extends Location {
       }
     }
     return baseLocationTuple;
-    
+
   }
 
   public Set<Location> getBaseLocationSet() {

@@ -299,6 +299,10 @@ public class BuildFlat {
       NodePair np=flattenBlockStatementNode(bn.get(i));
       FlatNode np_begin=np.getBegin();
       FlatNode np_end=np.getEnd();
+      if(bn.getLabel()!=null){
+        // interim implementation to have the labeled statement
+        state.fn2labelMap.put(np_begin, bn.getLabel());
+      }
       if (begin==null) {
 	begin=np_begin;
       }
