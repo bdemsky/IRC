@@ -42,8 +42,6 @@ public class ClassDescriptor extends Descriptor {
   HashMap<String, Integer> enumConstantTbl;
   int enumconstantid = 0;
   
-  boolean isClassLibrary=false;
-  
   String sourceFileName;
   
   public ClassDescriptor(String classname, boolean isInterface) {
@@ -398,14 +396,6 @@ public class ClassDescriptor extends Descriptor {
   
   public Modifiers getModifier() {
     return this.modifiers;
-  }
-  
-  public void setClassLibrary(){
-    this.isClassLibrary=true;
-  }
-  
-  public boolean isClassLibrary(){
-    return isClassLibrary;
   }
   
   public void setSourceFileName(String sourceFileName){

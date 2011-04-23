@@ -73,7 +73,6 @@ public class TypeUtil {
       //have to find class
       addNewClass(classname, todo);
       cd=(ClassDescriptor)state.getClassSymbolTable().get(classname);
-      cd.setClassLibrary();
       
       System.out.println("Build class:"+cd);
       todo.add(cd);
