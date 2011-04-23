@@ -85,10 +85,10 @@ public class FlowDownCheck {
       Object obj = toanalyze.iterator().next();
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
-      if (cd.isClassLibrary()) {
+//      if (cd.isClassLibrary()) {
         // doesn't care about class libraries now
-        continue;
-      }
+//        continue;
+//      }
       checkDeclarationInClass(cd);
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
@@ -141,10 +141,10 @@ public class FlowDownCheck {
       Object obj = toanalyze.iterator().next();
       ClassDescriptor cd = (ClassDescriptor) obj;
       toanalyze.remove(cd);
-      if (cd.isClassLibrary()) {
+//      if (cd.isClassLibrary()) {
         // doesn't care about class libraries now
-        continue;
-      }
+//        continue;
+//      }
       checkClass(cd);
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
@@ -810,7 +810,9 @@ public class FlowDownCheck {
       }
 
     }
-    addTypeLocation(an.getSrc().getType(), srcLocation);
+    if(an.getSrc()!=null){
+      addTypeLocation(an.getSrc().getType(), srcLocation);
+    }
     addTypeLocation(an.getDest().getType(), destLocation);
 
     return destLocation;

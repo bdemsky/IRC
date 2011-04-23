@@ -40,6 +40,31 @@ public class DefinitelyWrittenCheck {
 
   public void definitelyWrittenCheck() {
 
+    SymbolTable classtable = state.getClassSymbolTable();
+    toanalyze.addAll(classtable.getValueSet());
+    toanalyze.addAll(state.getTaskSymbolTable().getValueSet());
+    while (!toanalyze.isEmpty()) {
+      Object obj = toanalyze.iterator().next();
+      ClassDescriptor cd = (ClassDescriptor) obj;
+      toanalyze.remove(cd);
+
+//      if (cd.isClassLibrary()) {
+        // doesn't care about class libraries now
+//        continue;
+//      }
+      for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
+        MethodDescriptor md = (MethodDescriptor) method_it.next();
+        FlatMethod fm = state.getMethodFlat(md);
+        if (fm != null) {
+          
+        }
+
+      }
+    }
+
+    
+    
+    /*
     // creating map
     SymbolTable classtable = state.getClassSymbolTable();
     toanalyze.addAll(classtable.getValueSet());
@@ -51,12 +76,12 @@ public class DefinitelyWrittenCheck {
 
       if (cd.isClassLibrary()) {
         // doesn't care about class libraries now
-//        continue;
+        continue;
       }
       for (Iterator method_it = cd.getMethods(); method_it.hasNext();) {
         MethodDescriptor md = (MethodDescriptor) method_it.next();
         FlatMethod fm = state.getMethodFlat(md);
-        if(fm!=null){
+        if (fm != null) {
           LoopFinder loopFinder = new LoopFinder(fm);
           Loops loops = loopFinder.getRootloop(fm);
           Set loopSet = loops.nestedLoops();
@@ -66,7 +91,6 @@ public class DefinitelyWrittenCheck {
             Set loopEntranceSet = rootLoops.loopEntrances();
             for (Iterator iterator2 = loopEntranceSet.iterator(); iterator2.hasNext();) {
               FlatNode loopEnter = (FlatNode) iterator2.next();
-
               String flatNodeLabel = (String) state.fn2labelMap.get(loopEnter);
               if (flatNodeLabel != null && flatNodeLabel.equals("ssjava")) {
                 System.out.println("encounting ss loop:" + loopEnter);
@@ -101,8 +125,12 @@ public class DefinitelyWrittenCheck {
         }
       }
     }
+    */
 
   }
+  
+
+  
 
   private void checkMethodBody(FlatMethod fm) {
 
