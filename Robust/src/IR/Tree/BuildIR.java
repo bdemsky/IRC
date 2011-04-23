@@ -1481,7 +1481,9 @@ public class BuildIR {
       ContinueBreakNode cbn=new ContinueBreakNode(true);
       cbn.setNumLine(pn.getLine());
       blockstatements.add(cbn);
-
+      ParseNode idopt_pn=pn.getChild("identifier_opt");
+      ParseNode name_pn=idopt_pn.getChild("name");
+      // name_pn.getTerminal() gives you the label
     } else if (isNode(pn,"genreach")) {
       String graphName = pn.getChild("graphName").getTerminal();
       blockstatements.add( new GenReachNode( graphName ) );

@@ -194,7 +194,7 @@ non terminal ParseNode for_statement, for_statement_no_short_if;
 non terminal ParseNode for_init_opt, for_init;
 non terminal ParseNode for_update_opt, for_update;
 non terminal ParseNode statement_expression_list;
-//non terminal ParseNode identifier_opt;
+non terminal ParseNode identifier_opt;
 non terminal ParseNode break_statement, continue_statement;
 non terminal ParseNode return_statement;
 non terminal ParseNode throw_statement;
@@ -1771,14 +1771,21 @@ statement_expression_list ::=
 	:}
 	;
 
-//identifier_opt ::= 
-//	|	IDENTIFIER
-//	;
+identifier_opt ::= {: RESULT=new ParseNode("identifier_opt",parser.lexer.line_num);
+	:} 
+	|	IDENTIFIER:id {:
+		ParseNode pn=new ParseNode("identifier_opt",parser.lexer.line_num);
+		pn.addChild("name").addChild(id);
+		RESULT=pn;
+	:}
+	;
 
 break_statement ::=
-		BREAK
-//identifier_opt 
-SEMICOLON {: RESULT=new ParseNode("break",parser.lexer.line_num); :}
+		BREAK identifier_opt:id SEMICOLON {: 
+		ParseNode pn=new ParseNode("break",parser.lexer.line_num); 		
+		pn.addChild(id);
+		RESULT=pn;
+	:}
 	;
 
 continue_statement ::=
