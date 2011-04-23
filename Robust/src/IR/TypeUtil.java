@@ -42,7 +42,7 @@ public class TypeUtil {
     createTables();
   }
 
-  public void addNewClass(String cl, Set todo) {
+  public void addNewClass(String cl, Set todo) {    
     //search through the default locations for the file.
     for (int i = 0; i < state.classpath.size(); i++) {
       String path = (String) state.classpath.get(i);

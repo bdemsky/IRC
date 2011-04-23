@@ -41,12 +41,46 @@ public class BuildIR {
   public void parseFile(ParseNode pn, Set toanalyze, String sourcefile) {
     mandatoryImports = new Hashtable();
     multiimports = new Hashtable();
+    
+    ParseNode ppn=pn.getChild("packages").getChild("package");
+    String packageName = null;
+    if (ppn!=null) {
+      NameDescriptor nd = parseClassName(ppn.getChild("name"));
+      packageName = nd.getPathFromRootToHere();
+      
+      //Trick -> import the package directory as a multi-import and it'll 
+      //automatically recognize files in the same directory.
+      for (int i = 0; i < state.classpath.size(); i++) {
+        String path = (String) state.classpath.get(i);
+        File folder = new File(path, nd.getPathFromRootToHere().replace('.', '/'));
+         if(folder.exists()) {
+          for (String file : folder.list()) {
+            // if the file is of type *.java add to multiImport list.
+            if (file.lastIndexOf('.') != -1
+                && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
+              String classname = file.substring(0, file.length() - 5);
+              // single imports have precedence over multi-imports
+              if (!mandatoryImports.containsKey(classname)) {
+                if (multiimports.containsKey(classname)) {
+                  // put error in for later, in case we try to import.
+                  multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
+                      + " is defined more than once in a multi-import in " + sourcefile));
+                } else {
+                  multiimports.put(classname, nd.getPathFromRootToHere() + "." + classname);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
     ParseNode ipn = pn.getChild("imports").getChild("import_decls_list");
     if (ipn != null) {
       ParseNodeVector pnv = ipn.getChildren();
       for (int i = 0; i < pnv.size(); i++) {
         ParseNode pnimport = pnv.elementAt(i);
-        NameDescriptor nd = parseNameRaw(pnimport.getChild("name"));
+        NameDescriptor nd = parseName(pnimport.getChild("name"));
         if (isNode(pnimport, "import_single"))
           if (!mandatoryImports.containsKey(nd.getIdentifier())) {
             // map name to full name (includes package/directory
@@ -61,38 +95,34 @@ public class BuildIR {
           // instead of in Semantic check, but doing it here is easier because we have a mapping early on
           // if I wait until semantic check, I have to change ALL the type descriptors to match the new
           // mapping and that's both ugly and tedious.
-          File folder = new File(nd.getPathFromRootToHere().replace('.', '/'));
-          if (folder.exists()) {
-            for (String file : folder.list()) {
-              // if the file is of type *.java add to multiImport list.
-              if (file.lastIndexOf('.') != -1
-                  && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
-                String classname = file.substring(0, file.length() - 5);
-                // single imports have precedence over multi-imports
-                if (!mandatoryImports.containsKey(classname)) {
-                  if (multiimports.containsKey(classname)) {
-                    // put error in for later, in case we try to import.
-                    multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
-                        + " is defined more than once in a multi-import in " + sourcefile));
-                  } else {
-                    multiimports.put(classname, nd.getIdentifier() + "." + classname);
+          for (int j = 0; j < state.classpath.size(); j++) {
+            String path = (String) state.classpath.get(j);
+            File folder = new File(path, nd.getPathFromRootToHere().replace('.', '/'));
+            if (folder.exists()) {
+              for (String file : folder.list()) {
+                // if the file is of type *.java add to multiImport list.
+                if (file.lastIndexOf('.') != -1
+                    && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
+                  String classname = file.substring(0, file.length() - 5);
+                  // single imports have precedence over multi-imports
+                  if (!mandatoryImports.containsKey(classname)) {
+                    if (multiimports.containsKey(classname)) {
+                      // put error in for later, in case we try to import.
+                      multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
+                          + " is defined more than once in a multi-import in " + sourcefile));
+                    } else {
+                      multiimports.put(classname, nd.getPathFromRootToHere() + "." + classname);
+                    }
                   }
                 }
               }
+            } else {
+              throw new Error("Import package " + folder.getAbsolutePath() + " in  " + sourcefile
+                  + " cannot be resolved.");
             }
-          } else {
-            throw new Error("Import package " + folder.getAbsolutePath() + " in  " + sourcefile
-                + " cannot be resolved.");
           }
         }
       }
-    }
-    
-    ParseNode ppn=pn.getChild("packages").getChild("package");
-    String packageName = null;
-    if (ppn!=null) {
-      NameDescriptor nd = parseName(ppn.getChild("name"));
-      packageName = nd.getPathFromRootToHere();
     }
     
     ParseNode tpn=pn.getChild("type_declaration_list");
@@ -158,7 +188,7 @@ public class BuildIR {
           state.addTask(td);
         } else if (isNode(type_pn, "interface_declaration")) {
           // TODO add version for normal Java later
-          ClassDescriptor cn = parseInterfaceDecl(type_pn);
+          ClassDescriptor cn = parseInterfaceDecl(type_pn, packageName);
           if (toanalyze != null)
             toanalyze.add(cn);
           cn.setSourceFileName(sourcefile);
@@ -244,8 +274,15 @@ public class BuildIR {
     cn.addEnumConstant(pn.getChild("name").getTerminal());
   }
   
-  public ClassDescriptor parseInterfaceDecl(ParseNode pn) {
-    ClassDescriptor cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true);
+  public ClassDescriptor parseInterfaceDecl(ParseNode pn, String packageName) {
+    ClassDescriptor cn;
+    if(packageName == null) {
+      cn=new ClassDescriptor(pn.getChild("name").getTerminal(), true); 
+    } else  {
+      String newClassname = packageName + "." + pn.getChild("name").getTerminal();
+      cn= new ClassDescriptor(packageName, newClassname, true);
+    }
+    
     cn.setImports(mandatoryImports);
     //cn.setAsInterface();
     if (!isEmpty(pn.getChild("superIF").getTerminal())) {
@@ -255,7 +292,7 @@ public class BuildIR {
       for(int i=0; i<pnv.size(); i++) {
         ParseNode decl=pnv.elementAt(i);
         if (isNode(decl,"type")) {
-          NameDescriptor nd=parseName(decl.getChild("class").getChild("name"));
+          NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
           cn.addSuperInterface(nd.toString());
         }
       }
@@ -481,7 +518,7 @@ public class BuildIR {
   public ClassDescriptor parseTypeDecl(ParseNode pn, String packageName) {
     ClassDescriptor cn;
     // if is in no package, then create a class descriptor with just the name.
-    // else add the package on and replace "." with "___________"
+    // else add the package on
     if(packageName == null) {
       cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false); 
     } else  {
@@ -492,7 +529,7 @@ public class BuildIR {
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
-      NameDescriptor nd=parseName(snn);
+      NameDescriptor nd=parseClassName(snn);
       cn.setSuper(nd.toString());
     } else {
       if (!(cn.getSymbol().equals(TypeUtil.ObjectClass)||
@@ -507,7 +544,7 @@ public class BuildIR {
       for(int i=0; i<pnv.size(); i++) {
         ParseNode decl=pnv.elementAt(i);
         if (isNode(decl,"type")) {
-          NameDescriptor nd=parseName(decl.getChild("class").getChild("name"));
+          NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
           cn.addSuperInterface(nd.toString());
         }
       }
@@ -630,7 +667,7 @@ public class BuildIR {
     if (!isEmpty(pn.getChild("super").getTerminal())) {
       /* parse superclass name */
       ParseNode snn=pn.getChild("super").getChild("type").getChild("class").getChild("name");
-      NameDescriptor nd=parseName(snn);
+      NameDescriptor nd=parseClassName(snn);
       icn.setSuper(nd.toString());
     } else {
       if (!(icn.getSymbol().equals(TypeUtil.ObjectClass)||
@@ -645,7 +682,7 @@ public class BuildIR {
       for(int i=0; i<pnv.size(); i++) {
         ParseNode decl=pnv.elementAt(i);
         if (isNode(decl,"type")) {
-          NameDescriptor nd=parseName(decl.getChild("class").getChild("name"));
+          NameDescriptor nd=parseClassName(decl.getChild("class").getChild("name"));
           icn.addSuperInterface(nd.toString());
         }
       }
@@ -680,7 +717,7 @@ public class BuildIR {
       return state.getTypeDescriptor(TypeDescriptor.DOUBLE);
     } else if(type_st.equals("class")) {
       ParseNode nn=tn.getChild("class");
-      return state.getTypeDescriptor(parseName(nn.getChild("name")));
+      return state.getTypeDescriptor(parseClassName(nn.getChild("name")));
     } else if(type_st.equals("array")) {
       ParseNode nn=tn.getChild("array");
       TypeDescriptor td=parseTypeDescriptor(nn.getChild("basetype"));
@@ -694,14 +731,14 @@ public class BuildIR {
     }
   }
 
-  private NameDescriptor parseName(ParseNode nn) {
+  private NameDescriptor parseClassName(ParseNode nn) {
     ParseNode base=nn.getChild("base");
     ParseNode id=nn.getChild("identifier");
     String classname = resolveName(id.getTerminal());
     if (base==null) {
       return new NameDescriptor(classname);
     }
-    return new NameDescriptor(parseName(base.getChild("name")),classname);
+    return new NameDescriptor(parseClassName(base.getChild("name")),classname);
   }
   
   //This will get the mapping of a terminal class name
@@ -729,7 +766,7 @@ public class BuildIR {
   
   //only function difference between this and parseName() is that this
   //does not look for a import mapping. 
-  private NameDescriptor parseNameRaw(ParseNode nn) {
+  private NameDescriptor parseName(ParseNode nn) {
     ParseNode base=nn.getChild("base");
     ParseNode id=nn.getChild("identifier");
     if (base==null) {
@@ -1163,7 +1200,7 @@ public class BuildIR {
     Modifiers m=parseModifiersList(mn);
     ParseNode cdecl=pn.getChild("constructor_declarator");
     boolean isglobal=cdecl.getChild("global")!=null;
-    String name=cdecl.getChild("name").getChild("identifier").getTerminal();
+    String name=resolveName(cn.getSymbol());
     MethodDescriptor md=new MethodDescriptor(m, name, isglobal);
     ParseNode paramnode=cdecl.getChild("parameters");
     parseParameterList(md,paramnode);
