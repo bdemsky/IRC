@@ -42,38 +42,8 @@ public class BuildIR {
     mandatoryImports = new Hashtable();
     multiimports = new Hashtable();
     
-    ParseNode ppn=pn.getChild("packages").getChild("package");
-    String packageName = null;
-    if (ppn!=null) {
-      NameDescriptor nd = parseClassName(ppn.getChild("name"));
-      packageName = nd.getPathFromRootToHere();
-      
-      //Trick -> import the package directory as a multi-import and it'll 
-      //automatically recognize files in the same directory.
-      for (int i = 0; i < state.classpath.size(); i++) {
-        String path = (String) state.classpath.get(i);
-        File folder = new File(path, nd.getPathFromRootToHere().replace('.', '/'));
-         if(folder.exists()) {
-          for (String file : folder.list()) {
-            // if the file is of type *.java add to multiImport list.
-            if (file.lastIndexOf('.') != -1
-                && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
-              String classname = file.substring(0, file.length() - 5);
-              // single imports have precedence over multi-imports
-              if (!mandatoryImports.containsKey(classname)) {
-                if (multiimports.containsKey(classname)) {
-                  // put error in for later, in case we try to import.
-                  multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
-                      + " is defined more than once in a multi-import in " + sourcefile));
-                } else {
-                  multiimports.put(classname, nd.getPathFromRootToHere() + "." + classname);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    //add java.lang as our default multi-import
+    this.addMultiImport(sourcefile, "java.lang", false);
     
     ParseNode ipn = pn.getChild("imports").getChild("import_decls_list");
     if (ipn != null) {
@@ -81,7 +51,7 @@ public class BuildIR {
       for (int i = 0; i < pnv.size(); i++) {
         ParseNode pnimport = pnv.elementAt(i);
         NameDescriptor nd = parseName(pnimport.getChild("name"));
-        if (isNode(pnimport, "import_single"))
+        if (isNode(pnimport, "import_single")) {
           if (!mandatoryImports.containsKey(nd.getIdentifier())) {
             // map name to full name (includes package/directory
             mandatoryImports.put(nd.getIdentifier(), nd.getPathFromRootToHere());
@@ -90,39 +60,22 @@ public class BuildIR {
             		((String)mandatoryImports.get(nd.getIdentifier())) + " and " +
             		nd.getPathFromRootToHere());
           }
+        }
         else {
-          // This kind of breaks away from tradition a little bit by doing the file checks here
-          // instead of in Semantic check, but doing it here is easier because we have a mapping early on
-          // if I wait until semantic check, I have to change ALL the type descriptors to match the new
-          // mapping and that's both ugly and tedious.
-          for (int j = 0; j < state.classpath.size(); j++) {
-            String path = (String) state.classpath.get(j);
-            File folder = new File(path, nd.getPathFromRootToHere().replace('.', '/'));
-            if (folder.exists()) {
-              for (String file : folder.list()) {
-                // if the file is of type *.java add to multiImport list.
-                if (file.lastIndexOf('.') != -1
-                    && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
-                  String classname = file.substring(0, file.length() - 5);
-                  // single imports have precedence over multi-imports
-                  if (!mandatoryImports.containsKey(classname)) {
-                    if (multiimports.containsKey(classname)) {
-                      // put error in for later, in case we try to import.
-                      multiimports.put(classname, new Error("Error: class " + nd.getIdentifier()
-                          + " is defined more than once in a multi-import in " + sourcefile));
-                    } else {
-                      multiimports.put(classname, nd.getPathFromRootToHere() + "." + classname);
-                    }
-                  }
-                }
-              }
-            } else {
-              throw new Error("Import package " + folder.getAbsolutePath() + " in  " + sourcefile
-                  + " cannot be resolved.");
-            }
-          }
+          addMultiImport(sourcefile, nd.getPathFromRootToHere(), false);
         }
       }
+    }
+    
+    ParseNode ppn=pn.getChild("packages").getChild("package");
+    String packageName = null;
+    if (ppn!=null) {
+      NameDescriptor nd = parseClassName(ppn.getChild("name"));
+      packageName = nd.getPathFromRootToHere();
+      
+      //Trick -> import the package directory as a multi-import and it'll 
+      //automatically recognize files in the same directory.
+      addMultiImport(sourcefile, packageName, true);
     }
     
     ParseNode tpn=pn.getChild("type_declaration_list");
@@ -215,6 +168,44 @@ public class BuildIR {
           throw new Error(type_pn.getLabel());
         }
       }
+    }
+  }
+  
+  //This kind of breaks away from tradition a little bit by doing the file checks here
+  // instead of in Semantic check, but doing it here is easier because we have a mapping early on
+  // if I wait until semantic check, I have to change ALL the type descriptors to match the new
+  // mapping and that's both ugly and tedious.
+  private void addMultiImport(String currentSource, String importPath, boolean isPackageDirectory) {
+    boolean found = false;
+    for (int j = 0; j < state.classpath.size(); j++) {
+      String path = (String) state.classpath.get(j);
+      File folder = new File(path, importPath.replace('.', '/'));
+      System.out.println("Trying " + folder.getAbsolutePath());
+      if (folder.exists()) {
+        found = true;
+        for (String file : folder.list()) {
+          // if the file is of type *.java add to multiImport list.
+          if (file.lastIndexOf('.') != -1 && file.substring(file.lastIndexOf('.')).equalsIgnoreCase(".java")) {
+            String classname = file.substring(0, file.length() - 5);
+            // single imports have precedence over multi-imports
+            if (!mandatoryImports.containsKey(classname)) {
+              //package files have precedence over multi-imports. 
+              if (multiimports.containsKey(classname)  && !isPackageDirectory) {
+                // put error in for later, in case we try to import
+                multiimports.put(classname, new Error("Error: class " + classname + " is defined more than once in a multi-import in " + currentSource));
+              } else {
+                multiimports.put(classname, importPath + "." + classname);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    
+    if(!found) {
+      throw new Error("Import package " + importPath + " in  " + currentSource
+          + " cannot be resolved.");
     }
   }
 

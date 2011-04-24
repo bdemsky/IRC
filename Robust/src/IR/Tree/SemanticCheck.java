@@ -42,7 +42,7 @@ public class SemanticCheck {
   }
   public ClassDescriptor getClass(ClassDescriptor context, String classname, int fullcheck) {
     if (context!=null) {
-      System.out.println(context.getSymbol() + " is looking for " + classname);
+//      System.out.println(context.getSymbol() + " is looking for " + classname);
       Hashtable remaptable=context.getSingleImportMappings();
       classname=remaptable.containsKey(classname)?((String)remaptable.get(classname)):classname;
     }
