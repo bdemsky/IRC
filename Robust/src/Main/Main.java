@@ -418,7 +418,7 @@ public class Main {
     BuildFlat bf;
     JavaBuilder jb=null;
 
-    if (state.JNI) {
+    if (!state.JNI) {
       BuildIR bir=new BuildIR(state);
       tu=new TypeUtil(state, bir);
       SemanticCheck sc=new SemanticCheck(state,tu);
