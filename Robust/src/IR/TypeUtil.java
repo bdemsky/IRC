@@ -148,6 +148,7 @@ public class TypeUtil {
   public MethodDescriptor getMain() {
     ClassDescriptor cd=getMainClass();
     Set mainset=cd.getMethodTable().getSet("main");
+
     for(Iterator mainit=mainset.iterator(); mainit.hasNext();) {
       MethodDescriptor md=(MethodDescriptor)mainit.next();
       if (md.numParameters()!=1)
@@ -157,9 +158,8 @@ public class TypeUtil {
                           .getType();
       if (tpd.getArrayCount()!=1)
 	continue;
-      if (!tpd.getSymbol().equals("String"))
+      if (!tpd.getSymbol().equals(StringClass))
 	continue;
-
       if (!md.getModifiers().isStatic())
 	throw new Error("Error: Non static main");
       return md;
