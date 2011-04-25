@@ -13,12 +13,8 @@
 
 package Analysis;
 
-import IR.State;
-import IR.Descriptor;
-import IR.ClassDescriptor;
-import IR.MethodDescriptor;
-import IR.TaskDescriptor;
-import IR.TypeDescriptor;
+import IR.*;
+import Analysis.CallGraph.*;
 import IR.Flat.TempDescriptor;
 import IR.Flat.FlatMethod;
 import IR.Flat.FlatNode;
@@ -35,8 +31,8 @@ public class ArrayReferencees {
   ////////////////////////////////
   // public interface
   ////////////////////////////////
-  public ArrayReferencees( State state ) {
-    init( state );
+  public ArrayReferencees( State state, TypeUtil typeUtil, CallGraph callGraph ) {
+    init( state, typeUtil, callGraph );
   }
 
   public boolean doesNotCreateNewReaching( FlatSetElementNode fsen ) {
@@ -48,7 +44,9 @@ public class ArrayReferencees {
 
 
 
-  protected State state;
+  protected State     state;
+  protected TypeUtil  typeUtil;
+  protected CallGraph callGraph;
 
   // maintain the relation at every program point
   protected Hashtable<FlatNode, InArrayRelation> fn2rel;
@@ -60,27 +58,29 @@ public class ArrayReferencees {
 
   protected ArrayReferencees() {}
 
-  protected void init( State state ) {
-    this.state = state;
+  protected void init( State     state, 
+                       TypeUtil  typeUtil, 
+                       CallGraph callGraph ) {
+    this.state     = state;
+    this.typeUtil  = typeUtil;
+    this.callGraph = callGraph;
     fn2rel = new Hashtable<FlatNode, InArrayRelation>();
     noNewReaching = new HashSet<FlatSetElementNode>();
     buildRelation();
   }
 
   protected void buildRelation() {
-    // just analyze every method of every class that the
-    // compiler has code for, fix if this is too costly
-    Iterator classItr = state.getClassSymbolTable().getDescriptorsIterator();
-    while( classItr.hasNext() ) {
-      ClassDescriptor cd = (ClassDescriptor)classItr.next();
 
-      Iterator methodItr = cd.getMethods();
-      while( methodItr.hasNext() ) {
-	MethodDescriptor md = (MethodDescriptor)methodItr.next();
-
-	FlatMethod fm =	state.getMethodFlat( md );
-	analyzeMethod( fm );
-      }
+    // analyze all methods transitively reachable from main
+    MethodDescriptor mdSourceEntry = typeUtil.getMain();
+    FlatMethod       fmMain        = state.getMethodFlat( mdSourceEntry );
+    
+    Set<MethodDescriptor> descriptorsToAnalyze = callGraph.getAllMethods( mdSourceEntry );
+    descriptorsToAnalyze.add( mdSourceEntry );
+    
+    for( MethodDescriptor md: descriptorsToAnalyze ) {
+      FlatMethod fm =	state.getMethodFlat( md );
+      analyzeMethod( fm );
     }
   }  
 

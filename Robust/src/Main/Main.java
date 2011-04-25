@@ -518,7 +518,7 @@ public class Main {
     
     if (state.OWNERSHIP) {
       Liveness liveness = new Liveness();
-      ArrayReferencees ar = new ArrayReferencees(state);
+      ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
       OwnershipAnalysis oa = new OwnershipAnalysis(state,
                                                    tu,
                                                    callgraph,
@@ -533,13 +533,13 @@ public class Main {
 
     if (state.DISJOINT && !state.OOOJAVA) {
       Liveness         l  = new Liveness();
-      ArrayReferencees ar = new ArrayReferencees(state);
+      ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
       DisjointAnalysis da = new DisjointAnalysis(state, tu, callgraph, l, ar, null, null);
     }
 
     if (state.OOOJAVA) {
       Liveness         l   = new Liveness();
-      ArrayReferencees ar  = new ArrayReferencees(state);
+      ArrayReferencees ar  = new ArrayReferencees(state, tu, callgraph);
       oooa = new OoOJavaAnalysis(state, tu, callgraph, l, ar);
     }
 
@@ -575,7 +575,7 @@ public class Main {
       if (state.SCHEDULING) {
 	// Use ownership analysis to get alias information
 	Liveness liveness = new Liveness();
-        ArrayReferencees ar = new ArrayReferencees(state);
+        ArrayReferencees ar = new ArrayReferencees(state, tu, callgraph);
 	OwnershipAnalysis oa = null;/*new OwnershipAnalysis(state,
 	                                             tu,
 	                                             callGraph,
