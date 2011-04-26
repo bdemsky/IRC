@@ -1,6 +1,11 @@
 package java_cup;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import java.util.Enumeration;
 import java.util.Date;
@@ -312,8 +317,6 @@ public class emit {
   protected static void emit_action_code(PrintWriter out, production start_prod)
     throws internal_error
     {
-      production prod;
-
       long start_time = System.currentTimeMillis();
 
       /* class header */
@@ -359,15 +362,67 @@ public class emit {
       out.println("      java_cup.runtime.Symbol " + pre("result") + ";");
       out.println();
 
+      // hack: divide a production table into halves and generates two methods of switch cases
+      // since we have an issue with Java 64K size limitation.      
+      int median=production.number()/2;   
+      // divide production table 
+      List firsthalf=new ArrayList();
+      List secondhalf=new ArrayList();
+      for(int i=0;i<median;i++){
+        firsthalf.add(production.find(i));
+      }      
+      for(int i=median;i<production.number();i++){
+        secondhalf.add(production.find(i));
+      }   
+      
+      // invoke emit_switch_code
+      out.println("    if("+pre("act_num")+" < "+median+" )");
+      out.println("       "+pre("result=")+pre("do_action")+"_1("+ pre("act_num,") +pre("parser,")+ pre("stack,")+ pre("top)")+";");
+      out.println("    else");
+      out.println("       "+pre("result=")+pre("do_action")+"_2("+ pre("act_num,") +pre("parser,") +pre("stack,")+ pre("top)")+";");
+      
+      out.println();
+      out.println("     return "+pre("result")+";");
+      out.println("     }");
+      out.println();
+      
+      emit_switch_code(1,out,start_prod,firsthalf);      
+      emit_switch_code(2,out,start_prod,secondhalf);
+      
+      /* end of class */
+      out.println("}");
+      out.println();
+      
+      action_code_time = System.currentTimeMillis() - start_time;
+    }
+  
+  protected static void emit_switch_code(int funcIdx, PrintWriter out, production start_prod, List prodList)   throws internal_error{
+   
+
+    out.println("  /** Method with the generated switch code. */");
+    out.println("  public final java_cup.runtime.Symbol " + 
+       pre("do_action")+"_"+funcIdx + "(");
+    out.println("    int                        " + pre("act_num,"));
+    out.println("    java_cup.runtime.lr_parser " + pre("parser,"));
+    out.println("    java.util.Stack            " + pre("stack,"));
+    out.println("    int                        " + pre("top)"));
+    out.println("    throws java.lang.Exception");
+    out.println("    {");
+    
+    out.println("      /* Symbol object for return from actions */");
+    out.println("      java_cup.runtime.Symbol " + pre("result") + ";");
+    out.println();
+    
+    production prod;
+
       /* switch top */
       out.println("      /* select the action based on the action number */");
       out.println("      switch (" + pre("act_num") + ")");
       out.println("        {");
 
       /* emit action code for each production as a separate case */
-      for (Enumeration p = production.all(); p.hasMoreElements(); )
-	{
-	  prod = (production)p.nextElement();
+ for (Iterator iterator = prodList.iterator(); iterator.hasNext();) {
+     prod = (production) iterator.next();
 
 	  /* case label */
           out.println("          /*. . . . . . . . . . . . . . . . . . . .*/");
@@ -467,15 +522,10 @@ public class emit {
 				  "internal parse table\");");
       out.println();
       out.println("        }");
-
+      
       /* end of method */
       out.println("    }");
 
-      /* end of class */
-      out.println("}");
-      out.println();
-
-      action_code_time = System.currentTimeMillis() - start_time;
     }
 
   /*. . . . . . . . . . . . . . . . . . . . . . . . . . . . . .*/
