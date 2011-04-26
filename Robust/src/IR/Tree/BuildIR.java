@@ -181,7 +181,6 @@ public class BuildIR {
     for (int j = 0; j < state.classpath.size(); j++) {
       String path = (String) state.classpath.get(j);
       File folder = new File(path, importPath.replace('.', '/'));
-      System.out.println("Trying " + folder.getAbsolutePath());
       if (folder.exists()) {
         found = true;
         for (String file : folder.list()) {
@@ -512,7 +511,7 @@ public class BuildIR {
     // if is in no package, then create a class descriptor with just the name.
     // else add the package on
     if(packageName == null) {
-      cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false); 
+      cn=new ClassDescriptor(pn.getChild("name").getTerminal(), false);
     } else  {
       String newClassname = packageName + "." + pn.getChild("name").getTerminal();
       cn= new ClassDescriptor(packageName, newClassname, false);
@@ -723,19 +722,32 @@ public class BuildIR {
     }
   }
 
+  //Needed to separate out top level call since if a base exists, 
+  //we do not want to apply our resolveName function (i.e. deal with imports)
+  //otherwise, if base == null, we do just want to resolve name. 
   private NameDescriptor parseClassName(ParseNode nn) {
     ParseNode base=nn.getChild("base");
     ParseNode id=nn.getChild("identifier");
-    String classname = resolveName(id.getTerminal());
+    String classname = id.getTerminal();
+    if (base==null) {
+      return new NameDescriptor(resolveName(classname));
+    }
+    return new NameDescriptor(parseClassNameRecursive(base.getChild("name")),classname);
+  }
+  
+  private NameDescriptor parseClassNameRecursive(ParseNode nn) {
+    ParseNode base=nn.getChild("base");
+    ParseNode id=nn.getChild("identifier");
+    String classname = id.getTerminal();
     if (base==null) {
       return new NameDescriptor(classname);
     }
-    return new NameDescriptor(parseClassName(base.getChild("name")),classname);
+    return new NameDescriptor(parseClassNameRecursive(base.getChild("name")),classname);
   }
   
   //This will get the mapping of a terminal class name
   //to a canonical classname (with imports/package locations in them)
-  private String resolveName(String terminal) {    
+  private String resolveName(String terminal) {
     if(mandatoryImports.containsKey(terminal)) {
       return  (String) mandatoryImports.get(terminal);
     } else {
