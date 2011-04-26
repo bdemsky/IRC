@@ -34,9 +34,6 @@ parser code  {:
   public void report_error(String message, java_cup.runtime.Symbol info) {
     lexer.errorMsg(message, info);
   }
-  public int n(){
-  	 return lexer.line_num;
-  }
 :};
 
 scan with {: return lexer.nextToken(); :};
@@ -309,7 +306,7 @@ task_declaration ::=
 	flag_effects_opt:feo
 	method_body:body 
 	{: 
-	ParseNode pn=new ParseNode("task_declaration",parser.n());
+	ParseNode pn=new ParseNode("task_declaration",parser.lexer.line_num);
 	pn.addChild("name").addChild(id);
 	pn.addChild(tpl);
 	pn.addChild(feo);
@@ -319,7 +316,7 @@ task_declaration ::=
 
 task_parameter_list ::=
 		task_parameter:fp {: 
-		ParseNode pn=new ParseNode("task_parameter_list",parser.n());
+		ParseNode pn=new ParseNode("task_parameter_list",parser.lexer.line_num);
 		pn.addChild(fp);
 		RESULT=pn;
 	:}
@@ -331,14 +328,14 @@ task_parameter_list ::=
 
 task_parameter ::=
 		type:type variable_declarator_id:name LBRACE flag_expression:exp RBRACE {:
-		ParseNode pn=new ParseNode("task_parameter",parser.n());
+		ParseNode pn=new ParseNode("task_parameter",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(name);
 		pn.addChild("flag").addChild(exp);
 		RESULT=pn;
 	:} 
         | type:type variable_declarator_id:name LBRACE flag_expression:exp RBRACE LBRACE tag_expression_list:texp RBRACE {:
-		ParseNode pn=new ParseNode("task_parameter",parser.n());
+		ParseNode pn=new ParseNode("task_parameter",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(name);
 		pn.addChild("flag").addChild(exp);
@@ -346,14 +343,14 @@ task_parameter ::=
 		RESULT=pn;
 	:}
         | type:type variable_declarator_id:name LBRACE RBRACE LBRACE tag_expression_list:texp RBRACE {:
-		ParseNode pn=new ParseNode("task_parameter",parser.n());
+		ParseNode pn=new ParseNode("task_parameter",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(name);
 		pn.addChild("tag").addChild(texp);
 		RESULT=pn;
 	:}
 	| OPTIONAL task_parameter:fp {:
-		ParseNode pn=new ParseNode("task_parameter",parser.n());
+		ParseNode pn=new ParseNode("task_parameter",parser.lexer.line_num);
 		pn.addChild("optional").addChild(fp);
 		RESULT=pn;
 	:}		
@@ -361,7 +358,7 @@ task_parameter ::=
 	;
 
 tag_expression_list ::= tag_expression:te {: 
-	ParseNode pn=new ParseNode("tag_expression_list",parser.n());
+	ParseNode pn=new ParseNode("tag_expression_list",parser.lexer.line_num);
 	pn.addChild(te);
 	RESULT=pn;
 	:}
@@ -372,7 +369,7 @@ tag_expression_list ::= tag_expression:te {:
 	;
 
 tag_expression ::= IDENTIFIER:type IDENTIFIER:id {: 
-		ParseNode pn=new ParseNode("tag_expression",parser.n());
+		ParseNode pn=new ParseNode("tag_expression",parser.lexer.line_num);
 		pn.addChild("type").addChild(type);
 		pn.addChild("single").addChild(id);
 		RESULT=pn;
@@ -380,12 +377,12 @@ tag_expression ::= IDENTIFIER:type IDENTIFIER:id {:
 	;
 
 tag_list_opt ::= LBRACE tag_list:fl RBRACE {:RESULT=fl;:}
-	| LBRACE RBRACE {: RESULT = new ParseNode("empty",parser.n()); :}	
-	| {: RESULT = new ParseNode("empty",parser.n()); :}
+	| LBRACE RBRACE {: RESULT = new ParseNode("empty",parser.lexer.line_num); :}	
+	| {: RESULT = new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 tag_list ::= tag_change:fc {: 
-		ParseNode pn=new ParseNode("tag_list",parser.n());
+		ParseNode pn=new ParseNode("tag_list",parser.lexer.line_num);
 		pn.addChild(fc);
 		RESULT=pn;
 	:}
@@ -395,10 +392,10 @@ tag_list ::= tag_change:fc {:
 	:};
 
 tag_change ::= IDENTIFIER:id {: 
-		RESULT=new ParseNode("name",parser.n()).addChild(id).getRoot();
+		RESULT=new ParseNode("name",parser.lexer.line_num).addChild(id).getRoot();
 	:}
 	| NOT IDENTIFIER:id {: 
-		RESULT=new ParseNode("not",parser.n()).addChild("name").addChild(id).getRoot();
+		RESULT=new ParseNode("not",parser.lexer.line_num).addChild("name").addChild(id).getRoot();
 	:};
 
 flag_expression ::= 
@@ -406,7 +403,7 @@ flag_expression ::=
 		RESULT=exp;
 	:}
 	| flag_expression:exp1 OROR flag_andexpression:exp2 {: 
-		ParseNode pn=new ParseNode("or",parser.n());
+		ParseNode pn=new ParseNode("or",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -416,7 +413,7 @@ flag_expression ::=
 flag_andexpression ::= 
 	flag_notexpression:exp {: RESULT=exp; :}
 	| flag_notexpression:exp1 ANDAND flag_andexpression:exp2 {: 
-		ParseNode pn=new ParseNode("and",parser.n());
+		ParseNode pn=new ParseNode("and",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -425,7 +422,7 @@ flag_andexpression ::=
 
 flag_notexpression ::=
 	NOT flag_notexpression:exp {: 
-		ParseNode pn=new ParseNode("not",parser.n());
+		ParseNode pn=new ParseNode("not",parser.lexer.line_num);
 		pn.addChild(exp);
 		RESULT=pn;
 	:}
@@ -433,22 +430,22 @@ flag_notexpression ::=
 		RESULT=exp;
 	:}
 	| IDENTIFIER:id {:
-		ParseNode pn=new ParseNode("name",parser.n());
+		ParseNode pn=new ParseNode("name",parser.lexer.line_num);
 		pn.addChild(id);
 		RESULT=pn;
 	:}
 	;
 
 task_exitstatement ::= TASKEXIT flag_effects_opt:opt cons_checks_opt:cco SEMICOLON {: 
-		RESULT=(new ParseNode("taskexit",parser.n())).addChild(opt).getRoot().addChild(cco).getRoot();
+		RESULT=(new ParseNode("taskexit",parser.lexer.line_num)).addChild(opt).getRoot().addChild(cco).getRoot();
 	:};
 
 cons_checks_opt ::= ASSERT LPAREN cons_checks:cc RPAREN {: RESULT=cc; :}
-	| {: RESULT = new ParseNode("empty",parser.n()); :}
+	| {: RESULT = new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 cons_checks ::= cons_check:cc {: 
-		ParseNode pn=new ParseNode("cons_checks",parser.n());
+		ParseNode pn=new ParseNode("cons_checks",parser.lexer.line_num);
 		pn.addChild(cc);
 		RESULT=pn;
 	:}
@@ -458,18 +455,18 @@ cons_checks ::= cons_check:cc {:
 	:};
 
 cons_check ::=	IDENTIFIER:name LPAREN cons_argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("cons_check",parser.n());
+		ParseNode pn=new ParseNode("cons_check",parser.lexer.line_num);
 		pn.addChild("name").addChild("identifier").addChild(name);
 		pn.addChild(args);
 		RESULT=pn;
 	:};
 
 flag_effects_opt ::= LPAREN flag_effects:fe RPAREN {:RESULT=fe;:}
-	| {: RESULT = new ParseNode("empty",parser.n()); :}
+	| {: RESULT = new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 flag_effects ::= flag_effect:fe {: 
-		ParseNode pn=new ParseNode("flag_effects_list",parser.n());
+		ParseNode pn=new ParseNode("flag_effects_list",parser.lexer.line_num);
 		pn.addChild(fe);
 		RESULT=pn;
 	:}
@@ -479,27 +476,27 @@ flag_effects ::= flag_effect:fe {:
 	:};
 
 flag_effect ::= IDENTIFIER:id LBRACE flag_list:fl RBRACE tag_list_opt:tlo {: 
-		ParseNode pn=new ParseNode("flag_effect",parser.n());
+		ParseNode pn=new ParseNode("flag_effect",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild(fl);
 		pn.addChild(tlo);
 		RESULT=pn;
 	:}
 	| IDENTIFIER:id LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
-		ParseNode pn=new ParseNode("flag_effect",parser.n());
+		ParseNode pn=new ParseNode("flag_effect",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild(tl);
 		RESULT=pn;
 	:};
 
 flag_list_opt ::= LBRACE flag_list:fl RBRACE {:RESULT=fl;:}
-	| LBRACE RBRACE {: RESULT = new ParseNode("empty",parser.n()); :}	
+	| LBRACE RBRACE {: RESULT = new ParseNode("empty",parser.lexer.line_num); :}	
 	| 
-	{: RESULT = new ParseNode("empty",parser.n()); :}
+	{: RESULT = new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 flag_list ::= flag_change:fc {: 
-		ParseNode pn=new ParseNode("flag_list",parser.n());
+		ParseNode pn=new ParseNode("flag_list",parser.lexer.line_num);
 		pn.addChild(fc);
 		RESULT=pn;
 	:}
@@ -509,10 +506,10 @@ flag_list ::= flag_change:fc {:
 	:};
 
 flag_change ::= IDENTIFIER:id {: 
-		RESULT=new ParseNode("name",parser.n()).addChild(id).getRoot();
+		RESULT=new ParseNode("name",parser.lexer.line_num).addChild(id).getRoot();
 	:} |
 	NOT IDENTIFIER:id {: 
-		RESULT=new ParseNode("not",parser.n()).addChild("name").addChild(id).getRoot();
+		RESULT=new ParseNode("not",parser.lexer.line_num).addChild("name").addChild(id).getRoot();
 	:};
 
 // 19.2) The Syntactic Grammar
@@ -527,37 +524,37 @@ goal ::=	compilation_unit:cu
 
 literal ::=	INTEGER_LITERAL:integer_lit
 	{:
-		ParseNode pn=new ParseNode("literal",parser.n());
+		ParseNode pn=new ParseNode("literal",parser.lexer.line_num);
 		pn.addChild("integer").setLiteral(integer_lit);
 		RESULT=pn;
 	:}
 	|	FLOATING_POINT_LITERAL:float_lit
 	{:
-		ParseNode pn=new ParseNode("literal",parser.n());
+		ParseNode pn=new ParseNode("literal",parser.lexer.line_num);
 		pn.addChild("float").setLiteral(float_lit);
 		RESULT=pn;
 	:}
 	|	BOOLEAN_LITERAL:boolean_lit
 	{:
-		ParseNode pn=new ParseNode("literal",parser.n());
+		ParseNode pn=new ParseNode("literal",parser.lexer.line_num);
 		pn.addChild("boolean").setLiteral(boolean_lit);
 		RESULT=pn;
 	:}
 	|	CHARACTER_LITERAL:char_lit
 	{:
-		ParseNode pn=new ParseNode("literal",parser.n());
+		ParseNode pn=new ParseNode("literal",parser.lexer.line_num);
 		pn.addChild("char").setLiteral(char_lit);
 		RESULT=pn;
 	:}
 	|	STRING_LITERAL:string_lit
 	{:
-		ParseNode pn=new ParseNode("literal",parser.n());
+		ParseNode pn=new ParseNode("literal",parser.lexer.line_num);
 		pn.addChild("string").setLiteral(string_lit);
 		RESULT=pn;
 	:}
 	|	NULL_LITERAL 
 	{:
-		RESULT=(new ParseNode("literal",parser.n())).addChild("null").getRoot();
+		RESULT=(new ParseNode("literal",parser.lexer.line_num)).addChild("null").getRoot();
 	:}
 	;
 
@@ -568,21 +565,21 @@ type	::=	primitive_type:type {: RESULT=type; :}
 
 primitive_type ::=
 		numeric_type:type {: RESULT=type; :}
-	|	BOOLEAN {: RESULT=(new ParseNode("type",parser.n())).addChild("boolean").getRoot(); :}
+	|	BOOLEAN {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("boolean").getRoot(); :}
 	;
 numeric_type::=	integral_type:type {: RESULT=type; :}
 	|	floating_point_type:type {: RESULT=type; :}
 	;
 integral_type ::= 
-		BYTE {: RESULT=(new ParseNode("type",parser.n())).addChild("byte").getRoot(); :}
-	|	SHORT  {: RESULT=(new ParseNode("type",parser.n())).addChild("short").getRoot(); :}
-	|	INT  {: RESULT=(new ParseNode("type",parser.n())).addChild("int").getRoot(); :}
-	|	LONG  {: RESULT=(new ParseNode("type",parser.n())).addChild("long").getRoot(); :}
-	|	CHAR  {: RESULT=(new ParseNode("type",parser.n())).addChild("char").getRoot(); :}
+		BYTE {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("byte").getRoot(); :}
+	|	SHORT  {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("short").getRoot(); :}
+	|	INT  {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("int").getRoot(); :}
+	|	LONG  {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("long").getRoot(); :}
+	|	CHAR  {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("char").getRoot(); :}
 	;
 floating_point_type ::= 
-		FLOAT  {: RESULT=(new ParseNode("type",parser.n())).addChild("float").getRoot(); :}
-	|	DOUBLE  {: RESULT=(new ParseNode("type",parser.n())).addChild("double").getRoot(); :}
+		FLOAT  {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("float").getRoot(); :}
+	|	DOUBLE  {: RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("double").getRoot(); :}
 	;
 
 reference_type ::=
@@ -590,20 +587,20 @@ reference_type ::=
 	|	array_type:type {: RESULT=type; :}
 	;
 class_or_interface_type ::= name:name {: 
-	RESULT=(new ParseNode("type",parser.n())).addChild("class").addChild(name).getRoot(); 
+	RESULT=(new ParseNode("type",parser.lexer.line_num)).addChild("class").addChild(name).getRoot(); 
 	:};
 
 class_type ::=	class_or_interface_type:type {: RESULT=type; :};
 interface_type ::= class_or_interface_type:type {: RESULT=type; :};
 
 array_type ::=	primitive_type:prim dims:dims {: 
-		ParseNode pn=(new ParseNode("type",parser.n())).addChild("array");
+		ParseNode pn=(new ParseNode("type",parser.lexer.line_num)).addChild("array");
 		pn.addChild("basetype").addChild(prim);
 		pn.addChild("dims").setLiteral(dims);
 		RESULT=pn.getRoot();
 	:}
 	|	name:name dims:dims {: 
-		ParseNode pn=(new ParseNode("type",parser.n())).addChild("array");
+		ParseNode pn=(new ParseNode("type",parser.lexer.line_num)).addChild("array");
 		pn.addChild("basetype").addChild("type").addChild("class").addChild(name);
 		pn.addChild("dims").setLiteral(dims);
 		RESULT=pn.getRoot();
@@ -615,11 +612,11 @@ name	::=	simple_name:name {: RESULT=name; :}
 	|	qualified_name:name {: RESULT=name; :}
 	;
 simple_name ::=	IDENTIFIER:id {: 
-	RESULT=(new ParseNode("name",parser.n())).addChild("identifier").addChild(id).getRoot(); 
+	RESULT=(new ParseNode("name",parser.lexer.line_num)).addChild("identifier").addChild(id).getRoot(); 
 	:}
 	;
 qualified_name ::= name:name DOT IDENTIFIER:id {: 
-	ParseNode pn=new ParseNode("name",parser.n());
+	ParseNode pn=new ParseNode("name",parser.lexer.line_num);
 	pn.addChild("base").addChild(name);
 	pn.addChild("identifier").addChild(id);
 	RESULT=pn;
@@ -631,7 +628,7 @@ compilation_unit ::=
                 package_declaration_opt:pdo
                 import_declarations_opt:ido
 		type_declarations_opt:tdo {: 
-		ParseNode pn=new ParseNode("compilation_unit",parser.n());
+		ParseNode pn=new ParseNode("compilation_unit",parser.lexer.line_num);
 		pn.addChild(tdo);
 		pn.addChild("packages").addChild(pdo);
 		pn.addChild("imports").addChild(ido);
@@ -641,23 +638,23 @@ compilation_unit ::=
 package_declaration_opt ::= package_declaration:pdo {:
 		RESULT=pdo;
 	:} |
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 ;
 
 import_declarations_opt ::= import_declarations:ido {: 
 		RESULT=ido;
 	:} | 
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 ;
 type_declarations_opt   ::= type_declarations:tds {:
 		RESULT=tds;
 		:}   | 
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 import_declarations ::=
                import_declaration:id {: 
-		ParseNode pn=new ParseNode("import_decls_list",parser.n());
+		ParseNode pn=new ParseNode("import_decls_list",parser.lexer.line_num);
 		pn.addChild(id);
 		RESULT=pn;
 	:}
@@ -669,7 +666,7 @@ import_declarations ::=
 
 type_declarations ::= 
 		type_declaration:td {:
-		ParseNode pn=new ParseNode("type_declaration_list",parser.n());
+		ParseNode pn=new ParseNode("type_declaration_list",parser.lexer.line_num);
 		pn.addChild(td);
 		RESULT=pn;
 		:}
@@ -681,7 +678,7 @@ type_declarations ::=
 
 package_declaration ::=
                 PACKAGE name:name SEMICOLON {: 
-	ParseNode pn=new ParseNode("package",parser.n());
+	ParseNode pn=new ParseNode("package",parser.lexer.line_num);
 	pn.addChild(name);
 	RESULT=pn;
 	:}
@@ -692,14 +689,14 @@ import_declaration ::=
        ;
 single_type_import_declaration ::=
                IMPORT name:name SEMICOLON {: 
-	ParseNode pn=new ParseNode("import_single",parser.n());
+	ParseNode pn=new ParseNode("import_single",parser.lexer.line_num);
 	pn.addChild(name);
 	RESULT=pn;
 :}
        ;
 type_import_on_demand_declaration ::=
                IMPORT name:name DOT MULT SEMICOLON {:
-	ParseNode pn=new ParseNode("import_ondemand",parser.n());
+	ParseNode pn=new ParseNode("import_ondemand",parser.lexer.line_num);
 	pn.addChild(name);
 	RESULT=pn;
 	:}       
@@ -722,12 +719,12 @@ type_declaration ::=
         {:
 			RESULT=in;
 		:}
-	|	SEMICOLON {: RESULT=new ParseNode("empty",parser.n()); :}
+	|	SEMICOLON {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 // 19.7) Productions used only in the LALR(1) grammar
 modifiers_opt::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	modifiers:mo {: 
 		RESULT=mo;
 	:}
@@ -740,7 +737,7 @@ modifiers ::=   mixed_modifiers : mmo {:
 	        RESULT=mmo; 
 	:}
 	|	annotations : an {:
-		ParseNode pn=new ParseNode("modifier_list",parser.n());
+		ParseNode pn=new ParseNode("modifier_list",parser.lexer.line_num);
 		pn.addChild(an);
 		RESULT=pn;
 	:}
@@ -752,12 +749,12 @@ mixed_modifiers_at ::=
 	;
 mixed_modifiers ::=
 		modifier : mo {:
-                ParseNode pn=new ParseNode("modifier_list",parser.n());
+                ParseNode pn=new ParseNode("modifier_list",parser.lexer.line_num);
 		pn.addChild(mo);
 		RESULT=pn;
         :}
 	|	annotations:as modifier:mo {:
-	        ParseNode pn=new ParseNode("modifier_list",parser.n());
+	        ParseNode pn=new ParseNode("modifier_list",parser.lexer.line_num);
 		pn.addChild(mo);
 		pn.addChild(as);
 		RESULT=pn;
@@ -767,35 +764,35 @@ mixed_modifiers ::=
 		RESULT=mmos;
 	:}
   	|	mixed_modifiers_at:mma annotation_body:ab {:
-                mma.addChild("annotation_list",parser.n()).addChild(ab); 
+                mma.addChild("annotation_list",parser.lexer.line_num).addChild(ab); 
 		RESULT=mma;             
         :}
 	;
 modifier ::=	
-	PUBLIC {: RESULT=new ParseNode("public",parser.n()); :}|
-	PROTECTED {: RESULT=new ParseNode("protected",parser.n()); :}|
-	PRIVATE {: RESULT=new ParseNode("private",parser.n()); :}|
-	STATIC {: RESULT=new ParseNode("static",parser.n()); :} |
-	ABSTRACT {: RESULT=new ParseNode("abstract",parser.n()); :}  |
-	FINAL {: RESULT=new ParseNode("final",parser.n()); :}|
-	NATIVE {: RESULT=new ParseNode("native",parser.n()); :} |
-	SYNCHRONIZED {: RESULT=new ParseNode("synchronized",parser.n()); :} |
-	ATOMIC {: RESULT=new ParseNode("atomic",parser.n()); :} |
-	VOLATILE {: RESULT=new ParseNode("volatile",parser.n()); :} |
-	TRANSIENT {: RESULT=new ParseNode("transient",parser.n()); :} 
+	PUBLIC {: RESULT=new ParseNode("public",parser.lexer.line_num); :}|
+	PROTECTED {: RESULT=new ParseNode("protected",parser.lexer.line_num); :}|
+	PRIVATE {: RESULT=new ParseNode("private",parser.lexer.line_num); :}|
+	STATIC {: RESULT=new ParseNode("static",parser.lexer.line_num); :} |
+	ABSTRACT {: RESULT=new ParseNode("abstract",parser.lexer.line_num); :}  |
+	FINAL {: RESULT=new ParseNode("final",parser.lexer.line_num); :}|
+	NATIVE {: RESULT=new ParseNode("native",parser.lexer.line_num); :} |
+	SYNCHRONIZED {: RESULT=new ParseNode("synchronized",parser.lexer.line_num); :} |
+	ATOMIC {: RESULT=new ParseNode("atomic",parser.lexer.line_num); :} |
+	VOLATILE {: RESULT=new ParseNode("volatile",parser.lexer.line_num); :} |
+	TRANSIENT {: RESULT=new ParseNode("transient",parser.lexer.line_num); :} 
 
 //	STRICTFP // note that semantic analysis must check that the
 	                 // context of the modifier allows strictfp.
 	;
 //annotations_opt ::=
-//	{: RESULT=new ParseNode("empty",parser.n()); :}
+//	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 //	|       annotations:an {: 
 //		RESULT=an;
 //	:}
 //	;
 annotations ::= 
 	        AT annotation_body:ab {:
-                ParseNode pn=new ParseNode("annotation_list",parser.n());
+                ParseNode pn=new ParseNode("annotation_list",parser.lexer.line_num);
 		pn.addChild(ab);
 		RESULT=pn;
         :}
@@ -816,17 +813,17 @@ annotation ::=
 	;
 annotation_body ::=
 	        normal_annotation_body:nab {:
-		ParseNode pn=new ParseNode("annotation_body",parser.n());
+		ParseNode pn=new ParseNode("annotation_body",parser.lexer.line_num);
 		pn.addChild(nab);
                 RESULT = pn;
         :}
         |       marker_annotation_body:mab {:
-		ParseNode pn=new ParseNode("annotation_body",parser.n());
+		ParseNode pn=new ParseNode("annotation_body",parser.lexer.line_num);
 		pn.addChild(mab);
 		RESULT = pn;
         :}
         |	single_element_annotation_body:seab {:
-		ParseNode pn=new ParseNode("annotation_body",parser.n());
+		ParseNode pn=new ParseNode("annotation_body",parser.lexer.line_num);
 		pn.addChild(seab);
                 RESULT = pn;
         :}
@@ -837,14 +834,14 @@ normal_annotation_body ::=
 marker_annotation_body ::=
                 IDENTIFIER:id
 	{:
-	ParseNode pn=new ParseNode("marker_annotation",parser.n());
+	ParseNode pn=new ParseNode("marker_annotation",parser.lexer.line_num);
 	pn.addChild("name").addChild(id);
 	RESULT=pn;
 	:}
         ;
 single_element_annotation_body ::=
                 IDENTIFIER:id LPAREN STRING_LITERAL:ev RPAREN {:
-                ParseNode pn=new ParseNode("single_annotation",parser.n());
+                ParseNode pn=new ParseNode("single_annotation",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild("element_value").addChild(ev);
 		RESULT=pn;
@@ -888,7 +885,7 @@ class_declaration ::=
 	modifiers_opt:mo CLASS IDENTIFIER:id super_opt:so interfaces_opt:ifo 
 	class_body:body 
 	{:
-	ParseNode pn=new ParseNode("class_declaration",parser.n());
+	ParseNode pn=new ParseNode("class_declaration",parser.lexer.line_num);
 	pn.addChild("modifiers").addChild(mo);
 	pn.addChild("name").addChild(id);
 	pn.addChild("super").addChild(so);
@@ -902,7 +899,7 @@ super ::=	EXTENDS class_type:classtype {:
 	:}
 	;
 super_opt ::=	
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	super:su {: 
 		RESULT=su;
 	:}
@@ -911,12 +908,12 @@ super_opt ::=
 interfaces ::= IMPLEMENTS interface_type_list:iftl {: RESULT=iftl; :}
        ;
 interfaces_opt ::=
-       {: RESULT=new ParseNode("empty",parser.n()); :}
+       {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
        |       interfaces:ifs {: RESULT=ifs; :}
        ;
 interface_type_list ::=
                interface_type:ift {: 
-			ParseNode pn=new ParseNode("interface_type_list",parser.n());
+			ParseNode pn=new ParseNode("interface_type_list",parser.lexer.line_num);
 			pn.addChild(ift);
 			RESULT=pn;
 		:}
@@ -930,12 +927,12 @@ class_body ::=	LBRACE class_body_declarations_opt:cbdo RBRACE {: RESULT=cbdo; :}
 	;
 
 class_body_declarations_opt ::= 
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	class_body_declarations:cbd {: RESULT=cbd; :};
 
 class_body_declarations ::= 
 		class_body_declaration:cbd {: 
-			ParseNode pn=new ParseNode("class_body_declaration_list",parser.n());
+			ParseNode pn=new ParseNode("class_body_declaration_list",parser.lexer.line_num);
 			pn.addChild(cbd);
 			RESULT=pn;
 		:}
@@ -947,37 +944,37 @@ class_body_declarations ::=
 
 class_body_declaration ::=
 		class_member_declaration:member {: 
-		RESULT=(new ParseNode("member",parser.n())).addChild(member).getRoot();
+		RESULT=(new ParseNode("member",parser.lexer.line_num)).addChild(member).getRoot();
 	:}
 	|	static_initializer:block{:
-		RESULT=(new ParseNode("static_block",parser.n())).addChild(block).getRoot();
+		RESULT=(new ParseNode("static_block",parser.lexer.line_num)).addChild(block).getRoot();
 	:}
 	|	constructor_declaration:constructor {: 
-		RESULT=(new ParseNode("constructor",parser.n())).addChild(constructor).getRoot();
+		RESULT=(new ParseNode("constructor",parser.lexer.line_num)).addChild(constructor).getRoot();
 	:}
 	|	block:block {:
-		RESULT=(new ParseNode("block",parser.n())).addChild(block).getRoot();
+		RESULT=(new ParseNode("block",parser.lexer.line_num)).addChild(block).getRoot();
         :}
         |       location_order_declaration:lod {:
-                RESULT=(new ParseNode("location_order_declaration",parser.n())).addChild(lod).getRoot();
+                RESULT=(new ParseNode("location_order_declaration",parser.lexer.line_num)).addChild(lod).getRoot();
         :}
 	;
 class_member_declaration ::=
 	//failure aware computation
 	flag_declaration:flag {: 
-	RESULT=(new ParseNode("flag",parser.n())).addChild(flag).getRoot(); 
+	RESULT=(new ParseNode("flag",parser.lexer.line_num)).addChild(flag).getRoot(); 
 	:}	
         |
 	field_declaration:field {: 
-	RESULT=(new ParseNode("field",parser.n())).addChild(field).getRoot(); 
+	RESULT=(new ParseNode("field",parser.lexer.line_num)).addChild(field).getRoot(); 
 	:}
 	|	method_declaration:method {:
-	RESULT=(new ParseNode("method",parser.n())).addChild(method).getRoot(); 
+	RESULT=(new ParseNode("method",parser.lexer.line_num)).addChild(method).getRoot(); 
 	:}
 	/* repeat the prod for 'class_declaration' here: */
 	|	modifiers_opt:mo CLASS IDENTIFIER:id super_opt:so interfaces_opt:ifo class_body:body
 	{:
-	ParseNode pn=new ParseNode("inner_class_declaration",parser.n());
+	ParseNode pn=new ParseNode("inner_class_declaration",parser.lexer.line_num);
 	pn.addChild("modifiers").addChild(mo);
 	pn.addChild("name").addChild(id);
 	pn.addChild("super").addChild(so);
@@ -990,9 +987,9 @@ class_member_declaration ::=
 	RESULT=ed; 
 	:}
 //    |       interface_declaration:interfaced {: 
-//	RESULT=(new ParseNode("interface",parser.n())).addChild(interfaced).getRoot(); 
+//	RESULT=(new ParseNode("interface",parser.lexer.line_num)).addChild(interfaced).getRoot(); 
 //	:}
-	|	SEMICOLON	{: RESULT=new ParseNode("empty",parser.n()); :}
+	|	SEMICOLON	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 	
 // mgc
@@ -1000,7 +997,7 @@ class_member_declaration ::=
 enum_declaration ::=
 		modifiers_opt:mo ENUM IDENTIFIER:id /*interfaces_opt:io*/ enum_body:body
 		{:
-			ParseNode pn=new ParseNode("enum_declaration",parser.n());
+			ParseNode pn=new ParseNode("enum_declaration",parser.lexer.line_num);
 			pn.addChild("modifiers").addChild(mo);
 			pn.addChild("name").addChild(id);
 			//pn.addChild("superIF").addChild(ifo);
@@ -1013,13 +1010,13 @@ enum_body ::=
 		{: RESULT=eco; :}
 	;
 enum_constants_opt ::=
-  {: RESULT=new ParseNode("empty",parser.n()); :}
+  {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	enum_constants:ecs
 	{: RESULT=ecs; :}
 	;
 enum_constants ::=
 		enum_constant:ec {: 
-		ParseNode pn=new ParseNode("enum_constants_list",parser.n());
+		ParseNode pn=new ParseNode("enum_constants_list",parser.lexer.line_num);
 		pn.addChild(ec);
 		RESULT=pn;
 	:}
@@ -1031,7 +1028,7 @@ enum_constants ::=
 enum_constant ::=
 		IDENTIFIER:id /*enum_arguments_opt*/
 		{: 
-		    ParseNode pn=new ParseNode("enum_constant",parser.n());
+		    ParseNode pn=new ParseNode("enum_constant",parser.lexer.line_num);
 		    pn.addChild("name").addChild(id);
 		    RESULT=pn; 
 		:}
@@ -1047,12 +1044,12 @@ enum_constant ::=
 //Failure aware computation
 flag_declaration ::= 
 		FLAG IDENTIFIER:id SEMICOLON {: 
-		ParseNode pn=new ParseNode("flag_declaration",parser.n());
+		ParseNode pn=new ParseNode("flag_declaration",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		RESULT=pn;
 	:}	|
 		EXTERNAL FLAG IDENTIFIER:id SEMICOLON {: 
-		ParseNode pn=new ParseNode("flag_declaration",parser.n());
+		ParseNode pn=new ParseNode("flag_declaration",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild("external");
 		RESULT=pn;
@@ -1062,14 +1059,14 @@ flag_declaration ::=
 // 19.8.2) Field Declarations
 field_declaration ::= 
 		modifiers_opt:mo type:type variable_declarators:var SEMICOLON {: 
-		ParseNode pn=new ParseNode("field_declaration",parser.n());
+		ParseNode pn=new ParseNode("field_declaration",parser.lexer.line_num);
 		pn.addChild("modifier").addChild(mo);
 		pn.addChild("type").addChild(type);
 		pn.addChild("variables").addChild(var);
 		RESULT=pn;
 	:} |
 		modifiers_opt:mo GLOBAL type:type variable_declarators:var SEMICOLON {: 
-		ParseNode pn=new ParseNode("field_declaration",parser.n());
+		ParseNode pn=new ParseNode("field_declaration",parser.lexer.line_num);
 		pn.addChild("modifier").addChild(mo);
 		pn.addChild("type").addChild(type);
 		pn.addChild("variables").addChild(var);
@@ -1080,7 +1077,7 @@ field_declaration ::=
 
 variable_declarators ::=
 		variable_declarator:vd {: 
-		ParseNode pn=new ParseNode("variable_declarators_list",parser.n());
+		ParseNode pn=new ParseNode("variable_declarators_list",parser.lexer.line_num);
 		pn.addChild(vd);
 		RESULT=pn;
 	:}
@@ -1091,12 +1088,12 @@ variable_declarators ::=
 	;
 variable_declarator ::=
 		variable_declarator_id:id {:
-		ParseNode pn=new ParseNode("variable_declarator",parser.n());
+		ParseNode pn=new ParseNode("variable_declarator",parser.lexer.line_num);
 		pn.addChild(id);
 		RESULT=pn;
 	:}
 	|	variable_declarator_id:id EQ variable_initializer:init {: 
-		ParseNode pn=new ParseNode("variable_declarator",parser.n());
+		ParseNode pn=new ParseNode("variable_declarator",parser.lexer.line_num);
 		pn.addChild(id);
 		pn.addChild("initializer").addChild(init);
 		RESULT=pn;
@@ -1104,19 +1101,19 @@ variable_declarator ::=
 	;
 variable_declarator_id ::=
 		IDENTIFIER:id {: 
-		RESULT=(new ParseNode("single",parser.n())).addChild(id).getRoot();:}
+		RESULT=(new ParseNode("single",parser.lexer.line_num)).addChild(id).getRoot();:}
 	|	variable_declarator_id:id LBRACK RBRACK {:
-		RESULT=(new ParseNode("array",parser.n())).addChild(id).getRoot();:}
+		RESULT=(new ParseNode("array",parser.lexer.line_num)).addChild(id).getRoot();:}
 	;
 variable_initializer ::=
 		expression:exp {: RESULT=exp; :}
-	|	array_initializer:ai {: RESULT=(new ParseNode("array_initializer",parser.n())).addChild(ai).getRoot(); :}
+	|	array_initializer:ai {: RESULT=(new ParseNode("array_initializer",parser.lexer.line_num)).addChild(ai).getRoot(); :}
 	;
 
 // 19.8.3) Method Declarations
 method_declaration ::=
 		method_header:header method_body:body {:
-		ParseNode pn=new ParseNode("method_declaration",parser.n());
+		ParseNode pn=new ParseNode("method_declaration",parser.lexer.line_num);
 		pn.addChild(header);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
@@ -1125,7 +1122,7 @@ method_declaration ::=
 method_header ::=
 		modifiers_opt:mo type:type method_declarator:decl throws_opt:to 
 	{:
-		ParseNode pn=new ParseNode("method_header",parser.n());
+		ParseNode pn=new ParseNode("method_header",parser.lexer.line_num);
 		pn.addChild("modifiers").addChild(mo);
 		pn.addChild("returntype").addChild(type);
 		pn.addChild("throws").addChild(to);
@@ -1134,7 +1131,7 @@ method_header ::=
 	:}
 	|	modifiers_opt:mo VOID method_declarator:decl throws_opt:to
 	{:
-		ParseNode pn=new ParseNode("method_header",parser.n());
+		ParseNode pn=new ParseNode("method_header",parser.lexer.line_num);
 		pn.addChild("modifiers").addChild(mo);
 		pn.addChild("throws").addChild(to);
 		pn.addChild(decl);
@@ -1143,7 +1140,7 @@ method_header ::=
 	;
 method_declarator ::=
 		IDENTIFIER:id LPAREN formal_parameter_list_opt:params RPAREN {: 
-		ParseNode pn=new ParseNode("method_declarator",parser.n());
+		ParseNode pn=new ParseNode("method_declarator",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild("parameters").addChild(params);
 		RESULT=pn;
@@ -1152,14 +1149,14 @@ method_declarator ::=
 // be careful; the above production also allows 'void foo() []'
 	;
 formal_parameter_list_opt ::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	formal_parameter_list:fpl {: 
 		RESULT=fpl;
 	:}
 	;
 formal_parameter_list ::=
 		formal_parameter:fp {: 
-		ParseNode pn=new ParseNode("formal_parameter_list",parser.n());
+		ParseNode pn=new ParseNode("formal_parameter_list",parser.lexer.line_num);
 		pn.addChild(fp);
 		RESULT=pn;
 	:}
@@ -1170,25 +1167,25 @@ formal_parameter_list ::=
 	;
 formal_parameter ::=
 		type:type variable_declarator_id:name {:
-		ParseNode pn=new ParseNode("formal_parameter",parser.n());
+		ParseNode pn=new ParseNode("formal_parameter",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(name);
 		RESULT=pn;
 	:}
 	|
 		TAG variable_declarator_id:name {:
-		ParseNode pn=new ParseNode("tag_parameter",parser.n());
+		ParseNode pn=new ParseNode("tag_parameter",parser.lexer.line_num);
 		pn.addChild(name);
 		RESULT=pn;
 	:}
 	|	FINAL type:type variable_declarator_id:name {:
-		ParseNode pn=new ParseNode("formal_parameter",parser.n());
+		ParseNode pn=new ParseNode("formal_parameter",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(name);
 		RESULT=pn;
 	:}
 	|	annotation:an type:type variable_declarator_id:name {:
-		ParseNode pn=new ParseNode("annotation_parameter",parser.n());
+		ParseNode pn=new ParseNode("annotation_parameter",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(name);
 		pn.addChild(an);
@@ -1196,17 +1193,17 @@ formal_parameter ::=
 	:}
 	;
 throws_opt ::=	
-        {: RESULT=new ParseNode("empty",parser.n()); :}
+        {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	throws:trs
 	    {: RESULT=trs; :}
 	;
 throws ::=	THROWS class_type_list:ctl
-        {: RESULT=(new ParseNode("throw_list",parser.n())).addChild(ctl).getRoot(); :}
+        {: RESULT=(new ParseNode("throw_list",parser.lexer.line_num)).addChild(ctl).getRoot(); :}
 	;
 class_type_list ::=
 		class_type:ct
 		{: 
-		ParseNode pn=new ParseNode("class_type_list",parser.n());
+		ParseNode pn=new ParseNode("class_type_list",parser.lexer.line_num);
 		pn.addChild(ct);
 		RESULT=pn; 
 		:}
@@ -1219,13 +1216,13 @@ class_type_list ::=
 method_body ::=	block:block {: 
 		RESULT=block;
 	:}
-	|	SEMICOLON	{: RESULT=new ParseNode("empty",parser.n()); :}
+	|	SEMICOLON	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 
 // 19.8.4) Static Initializers
 static_initializer ::=
 		STATIC block:body {:
-		ParseNode pn=new ParseNode("static_block_declaration",parser.n());
+		ParseNode pn=new ParseNode("static_block_declaration",parser.lexer.line_num);
 		pn.addChild("body").addChild(body);
 		RESULT=pn;
 	:}
@@ -1235,7 +1232,7 @@ static_initializer ::=
 constructor_declaration ::=
 		modifiers_opt:mo constructor_declarator:cd throws_opt:to 
 			constructor_body:body	{:
-		ParseNode pn=new ParseNode("constructor_declaration",parser.n());
+		ParseNode pn=new ParseNode("constructor_declaration",parser.lexer.line_num);
 		pn.addChild("modifiers").addChild(mo);
 		pn.addChild("throws").addChild(to);
 		pn.addChild(cd);
@@ -1244,7 +1241,7 @@ constructor_declaration ::=
 	:} |
 		modifiers_opt:mo GLOBAL constructor_declarator:cd throws_opt:to 
 			constructor_body:body	{:
-		ParseNode pn=new ParseNode("constructor_declaration",parser.n());
+		ParseNode pn=new ParseNode("constructor_declaration",parser.lexer.line_num);
 		pn.addChild("global");
 		pn.addChild("modifiers").addChild(mo);
 		pn.addChild("throws").addChild(to);
@@ -1256,7 +1253,7 @@ constructor_declaration ::=
 
 constructor_declarator ::=
 		simple_name:name LPAREN formal_parameter_list_opt:fplo RPAREN {: 
-		ParseNode pn=new ParseNode("constructor_declarator",parser.n());
+		ParseNode pn=new ParseNode("constructor_declarator",parser.lexer.line_num);
 		pn.addChild(name);
 		pn.addChild("parameters").addChild(fplo);
 		RESULT=pn;
@@ -1264,32 +1261,32 @@ constructor_declarator ::=
 	;
 constructor_body ::=
 		LBRACE explicit_constructor_invocation:eci block_statements:bs RBRACE {: 
-			ParseNode pn=new ParseNode("constructor_body",parser.n());
+			ParseNode pn=new ParseNode("constructor_body",parser.lexer.line_num);
 			pn.addChild(eci);
 			pn.addChild(bs);
 			RESULT=pn;
 	:} |
 		LBRACE explicit_constructor_invocation:eci RBRACE {: 
-			ParseNode pn=new ParseNode("constructor_body",parser.n());
+			ParseNode pn=new ParseNode("constructor_body",parser.lexer.line_num);
 			pn.addChild(eci);
 			RESULT=pn;
 	:} |
 		LBRACE block_statements:block RBRACE {: 
-		ParseNode pn=new ParseNode("constructor_body",parser.n());
+		ParseNode pn=new ParseNode("constructor_body",parser.lexer.line_num);
 		pn.addChild(block);
 		RESULT=pn;
 	:}
-	|	LBRACE RBRACE {: RESULT=new ParseNode("empty",parser.n()); :}
+	|	LBRACE RBRACE {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 explicit_constructor_invocation ::=
 	THIS LPAREN argument_list_opt:alo RPAREN SEMICOLON {:
-	     ParseNode pn=new ParseNode("explconstrinv",parser.n());
+	     ParseNode pn=new ParseNode("explconstrinv",parser.lexer.line_num);
 	     pn.addChild(alo);
 	     RESULT=pn;
 	:}
 	|	
 SUPER LPAREN argument_list_opt:alo RPAREN SEMICOLON {: 
-	ParseNode pn=new ParseNode("superinvoke",parser.n());
+	ParseNode pn=new ParseNode("superinvoke",parser.lexer.line_num);
 	pn.addChild(alo);
 	RESULT=pn;
 :}
@@ -1304,7 +1301,7 @@ location_order_declaration ::= LOCDEF LBRACE location_order_list:lol RBRACE {:
         ;
 location_order_list ::= 
                 location_order:lo {:
-                ParseNode pn=new ParseNode("location_order_list",parser.n());
+                ParseNode pn=new ParseNode("location_order_list",parser.lexer.line_num);
 		pn.addChild(lo);
 		RESULT=pn;
         :}
@@ -1315,13 +1312,13 @@ location_order_list ::=
         ;
 location_order ::= 
                 IDENTIFIER:loc1 LT IDENTIFIER:loc2{:
-         	ParseNode pn=new ParseNode("location_order",parser.n());
+         	ParseNode pn=new ParseNode("location_order",parser.lexer.line_num);
 		pn.addChild(loc1);
 		pn.addChild(loc2);
 		RESULT=pn;         
         :}
 	|	IDENTIFIER:loc MULT{:
-	      	ParseNode pn=new ParseNode("location_property",parser.n());		
+	      	ParseNode pn=new ParseNode("location_property",parser.lexer.line_num);		
 		pn.addChild(loc);
 		RESULT=pn;
 	:}
@@ -1334,7 +1331,7 @@ interface_declaration ::=
                modifiers_opt:mo INTERFACE IDENTIFIER:id extends_interfaces_opt:io
                        interface_body:body
        {:
-	ParseNode pn=new ParseNode("interface_declaration",parser.n());
+	ParseNode pn=new ParseNode("interface_declaration",parser.lexer.line_num);
 	pn.addChild("modifiers").addChild(mo);
 	pn.addChild("name").addChild(id);
 	pn.addChild("superIF").addChild(io);
@@ -1344,13 +1341,13 @@ interface_declaration ::=
        | annotation_type_declaration
        ;
 extends_interfaces_opt ::=
-       {: RESULT=new ParseNode("empty",parser.n()); :}
+       {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
        |       extends_interfaces:eifs {: RESULT=eifs; :}
        ;
 extends_interfaces ::=
                EXTENDS interface_type:ift 
                {: 
-               ParseNode pn=new ParseNode("extend_interface_list",parser.n());
+               ParseNode pn=new ParseNode("extend_interface_list",parser.lexer.line_num);
                pn.addChild(ift);
                RESULT=pn; 
                :}
@@ -1365,12 +1362,12 @@ interface_body ::=
                {: RESULT=imdo; :}
        ;
 interface_member_declarations_opt ::=
-       {: RESULT=new ParseNode("empty",parser.n()); :}
+       {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
        |       interface_member_declarations:imd {: RESULT=imd; :}
        ;
 interface_member_declarations ::=
                interface_member_declaration:imd {: 
-			ParseNode pn=new ParseNode("interface_member_declaration_list",parser.n());
+			ParseNode pn=new ParseNode("interface_member_declaration_list",parser.lexer.line_num);
 			pn.addChild(imd);
 			RESULT=pn;
 		:}
@@ -1381,18 +1378,18 @@ interface_member_declarations ::=
        ;
 interface_member_declaration ::=
                constant_declaration:constant {: 
-		RESULT=(new ParseNode("constant",parser.n())).addChild(constant).getRoot();
+		RESULT=(new ParseNode("constant",parser.lexer.line_num)).addChild(constant).getRoot();
 	:}
        |       abstract_method_declaration:method {:
-	RESULT=(new ParseNode("method",parser.n())).addChild(method).getRoot(); 
+	RESULT=(new ParseNode("method",parser.lexer.line_num)).addChild(method).getRoot(); 
 	:}
 	   |	enum_declaration:ed {:
-	   RESULT=(new ParseNode("enum_declaration",parser.n())).addChild(ed).getRoot();
+	   RESULT=(new ParseNode("enum_declaration",parser.lexer.line_num)).addChild(ed).getRoot();
 	   :}
 //       |       class_declaration:class 
 //       |       interface_declaration:interface 
        |       SEMICOLON {: 
-       RESULT=new ParseNode("empty",parser.n()); 
+       RESULT=new ParseNode("empty",parser.lexer.line_num); 
        :}
        ;
 constant_declaration ::=
@@ -1403,9 +1400,9 @@ constant_declaration ::=
        ;
 abstract_method_declaration ::=
                method_header:header SEMICOLON {:
-		ParseNode pn=new ParseNode("method_declaration",parser.n());
+		ParseNode pn=new ParseNode("method_declaration",parser.lexer.line_num);
 		pn.addChild("header").addChild(header);
-		pn.addChild("body").addChild(new ParseNode("empty",parser.n()));
+		pn.addChild("body").addChild(new ParseNode("empty",parser.lexer.line_num));
 		RESULT=pn;
 	:}
        ;
@@ -1442,15 +1439,15 @@ array_initializer ::=
 		       RESULT=var_init_list;
 		:}
 	|	LBRACE COMMA RBRACE {:
-		       RESULT=new ParseNode("empty",parser.n());		       
+		       RESULT=new ParseNode("empty",parser.lexer.line_num);		       
 		:}
 	|	LBRACE RBRACE {:
-		       RESULT=new ParseNode("empty",parser.n());
+		       RESULT=new ParseNode("empty",parser.lexer.line_num);
 		:}
 	;
 variable_initializers ::=
 		variable_initializer:var_init {:
-		       ParseNode pn=new ParseNode("var_init_list",parser.n());
+		       ParseNode pn=new ParseNode("var_init_list",parser.lexer.line_num);
 		       pn.addChild(var_init);
 		       RESULT=pn;
 		:}
@@ -1466,14 +1463,14 @@ block ::=	LBRACE block_statements_opt:bso RBRACE {:
 	:}
 	;
 block_statements_opt ::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	block_statements:bs {: 
 	RESULT=bs;
 	:}
 	;
 block_statements ::=
 		block_statement:bs {:
-	ParseNode pn=new ParseNode("block_statement_list",parser.n());
+	ParseNode pn=new ParseNode("block_statement_list",parser.lexer.line_num);
 	pn.addChild(bs);
 	RESULT=pn;
 	:}
@@ -1500,7 +1497,7 @@ block_statement ::=
 	;
 tag_variable_declaration_statement ::=
 		TAG IDENTIFIER:id EQ NEW TAG LPAREN IDENTIFIER:type RPAREN SEMICOLON {: 
-		ParseNode pn=new ParseNode("tag_declaration",parser.n());
+		ParseNode pn=new ParseNode("tag_declaration",parser.lexer.line_num);
 		pn.addChild("single").addChild(id);
 		pn.addChild("type").addChild(type);
 		RESULT=pn;
@@ -1513,7 +1510,7 @@ local_variable_declaration_statement ::=
 	;
 local_variable_declaration ::=
 		type:type variable_declarators:var {: 
-		ParseNode pn=new ParseNode("local_variable_declaration",parser.n());
+		ParseNode pn=new ParseNode("local_variable_declaration",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(var);
 		RESULT=pn;
@@ -1521,7 +1518,7 @@ local_variable_declaration ::=
 //	|	FINAL type:type variable_declarators:var {: 
          /* CAUTION:  only FINAL and annotations are legal modifiers here */
 	|	modifiers:mo type:type variable_declarators:var {:
-		ParseNode pn=new ParseNode("local_variable_declaration",parser.n());
+		ParseNode pn=new ParseNode("local_variable_declaration",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(var);
 		pn.addChild("modifiers").addChild(mo);
@@ -1563,11 +1560,11 @@ statement_without_trailing_substatement ::=
 //	|	assert_statement
 	;
 empty_statement ::=
-		SEMICOLON {: RESULT=new ParseNode("nop",parser.n()); :}
+		SEMICOLON {: RESULT=new ParseNode("nop",parser.lexer.line_num); :}
 	;
 labeled_statement ::=
 		IDENTIFIER:id COLON statement:st {:
-		ParseNode pn=new ParseNode("labeledstatement",parser.n());
+		ParseNode pn=new ParseNode("labeledstatement",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild("statement").addChild(st);
 		RESULT=pn;				
@@ -1575,7 +1572,7 @@ labeled_statement ::=
 	;
 labeled_statement_no_short_if ::=
 		IDENTIFIER:id COLON statement_no_short_if:st {:
-		ParseNode pn=new ParseNode("labeledstatement",parser.n());
+		ParseNode pn=new ParseNode("labeledstatement",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		pn.addChild("statement").addChild(st);
 		RESULT=pn;				
@@ -1583,7 +1580,7 @@ labeled_statement_no_short_if ::=
 	;
 expression_statement ::=
 		statement_expression:se SEMICOLON {: 
-		ParseNode pn=new ParseNode("expression",parser.n());
+		ParseNode pn=new ParseNode("expression",parser.lexer.line_num);
 		pn.addChild(se);
 		RESULT=pn; :}
 	;
@@ -1598,7 +1595,7 @@ statement_expression ::=
 	;
 if_then_statement ::=
 		IF LPAREN expression:exp RPAREN statement:st {: 
-		ParseNode pn=new ParseNode("ifstatement",parser.n());
+		ParseNode pn=new ParseNode("ifstatement",parser.lexer.line_num);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("statement").addChild(st);
 		RESULT=pn;
@@ -1607,7 +1604,7 @@ if_then_statement ::=
 if_then_else_statement ::=
 		IF LPAREN expression:exp RPAREN statement_no_short_if:st
 			ELSE statement:else_st {:
-		ParseNode pn=new ParseNode("ifstatement",parser.n());
+		ParseNode pn=new ParseNode("ifstatement",parser.lexer.line_num);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("statement").addChild(st);
 		pn.addChild("else_statement").addChild(else_st);
@@ -1617,7 +1614,7 @@ if_then_else_statement ::=
 if_then_else_statement_no_short_if ::=
 		IF LPAREN expression:exp RPAREN statement_no_short_if:st
 			ELSE statement_no_short_if:else_st {:
-		ParseNode pn=new ParseNode("ifstatement",parser.n());
+		ParseNode pn=new ParseNode("ifstatement",parser.lexer.line_num);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("statement").addChild(st);
 		pn.addChild("else_statement").addChild(else_st);
@@ -1627,7 +1624,7 @@ if_then_else_statement_no_short_if ::=
 switch_statement ::=
 		SWITCH LPAREN expression:exp RPAREN switch_block:body
 		{:
-		    ParseNode pn=new ParseNode("switch_statement",parser.n());
+		    ParseNode pn=new ParseNode("switch_statement",parser.lexer.line_num);
 		    pn.addChild("condition").addChild(exp);
 		    pn.addChild("statement").addChild(body);
 		    RESULT=pn;
@@ -1636,9 +1633,9 @@ switch_statement ::=
 switch_block ::=
 		LBRACE switch_block_statement_groups:sbsg switch_labels:sl RBRACE
 		{: 
-		    ParseNode pn = new ParseNode("switch_block",parser.n());
+		    ParseNode pn = new ParseNode("switch_block",parser.lexer.line_num);
 		    pn.addChild("switch_labels").addChild(sl);
-		    pn.addChild("switch_statements").addChild(new ParseNode("empty",parser.n()));
+		    pn.addChild("switch_statements").addChild(new ParseNode("empty",parser.lexer.line_num));
 		    sbsg.addChild(pn);
 		    RESULT=sbsg; 
 		:}
@@ -1648,19 +1645,19 @@ switch_block ::=
 		:}
 	|	LBRACE switch_labels:sl RBRACE 
 	    {: 
-	        ParseNode pnb = new ParseNode("switch_block_list",parser.n());
-		    ParseNode pn = new ParseNode("switch_block",parser.n());
+	        ParseNode pnb = new ParseNode("switch_block_list",parser.lexer.line_num);
+		    ParseNode pn = new ParseNode("switch_block",parser.lexer.line_num);
 		    pn.addChild("switch_labels").addChild(sl);
-		    pn.addChild("switch_statements").addChild(new ParseNode("empty",parser.n()));
+		    pn.addChild("switch_statements").addChild(new ParseNode("empty",parser.lexer.line_num));
 		    pnb.addChild(pn);
 		    RESULT=pnb; 
 		:}
-	|	LBRACE RBRACE {: RESULT=new ParseNode("empty",parser.n()); :}
+	|	LBRACE RBRACE {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	;
 switch_block_statement_groups ::=
 		switch_block_statement_group:sbsg
 		{: 
-		    ParseNode pn = new ParseNode("switch_block_list",parser.n());
+		    ParseNode pn = new ParseNode("switch_block_list",parser.lexer.line_num);
 		    pn.addChild(sbsg);
 		    RESULT=pn;
 		:}
@@ -1673,7 +1670,7 @@ switch_block_statement_groups ::=
 switch_block_statement_group ::=
 		switch_labels:sls block_statements:body
 		{: 
-		    ParseNode pn=new ParseNode("switch_block",parser.n());
+		    ParseNode pn=new ParseNode("switch_block",parser.lexer.line_num);
 		    pn.addChild("switch_labels").addChild(sls);
 		    pn.addChild("switch_statements").addChild(body);
 		    RESULT=pn; 
@@ -1682,7 +1679,7 @@ switch_block_statement_group ::=
 switch_labels ::=
 		switch_label:sl
 		{: 
-		    ParseNode pn=new ParseNode("switch_label_list",parser.n());
+		    ParseNode pn=new ParseNode("switch_label_list",parser.lexer.line_num);
 		    pn.addChild(sl);
 		    RESULT=pn; 
 		:}
@@ -1695,19 +1692,19 @@ switch_labels ::=
 switch_label ::=
 		CASE constant_expression:ce COLON
 		{: 
-		    ParseNode pn=new ParseNode("switch_label",parser.n());
+		    ParseNode pn=new ParseNode("switch_label",parser.lexer.line_num);
 		    pn.addChild(ce);
 		    RESULT=pn;
 		:}
 	|	DEFAULT COLON
 	    {: 
-		    RESULT=new ParseNode("default_switch_label",parser.n()); 
+		    RESULT=new ParseNode("default_switch_label",parser.lexer.line_num); 
 		:}
 	;
 
 while_statement ::=
 		WHILE LPAREN expression:exp RPAREN statement:st {: 
-		ParseNode pn=new ParseNode("whilestatement",parser.n());
+		ParseNode pn=new ParseNode("whilestatement",parser.lexer.line_num);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("statement").addChild(st);
 		RESULT=pn;
@@ -1715,7 +1712,7 @@ while_statement ::=
 	;
 while_statement_no_short_if ::=
 		WHILE LPAREN expression:exp RPAREN statement_no_short_if:st {:
-		ParseNode pn=new ParseNode("whilestatement",parser.n());
+		ParseNode pn=new ParseNode("whilestatement",parser.lexer.line_num);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("statement").addChild(st);
 		RESULT=pn;
@@ -1723,7 +1720,7 @@ while_statement_no_short_if ::=
 	;
 do_statement ::=
 		DO statement:st WHILE LPAREN expression:exp RPAREN SEMICOLON {: 
-		ParseNode pn=new ParseNode("dowhilestatement",parser.n());
+		ParseNode pn=new ParseNode("dowhilestatement",parser.lexer.line_num);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("statement").addChild(st);
 		RESULT=pn;
@@ -1732,7 +1729,7 @@ do_statement ::=
 for_statement ::=
 		FOR LPAREN for_init_opt:init SEMICOLON expression_opt:exp SEMICOLON
 			for_update_opt:update RPAREN statement:st {: 
-		ParseNode pn=new ParseNode("forstatement",parser.n());
+		ParseNode pn=new ParseNode("forstatement",parser.lexer.line_num);
 		pn.addChild("initializer").addChild(init);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("update").addChild(update);
@@ -1743,7 +1740,7 @@ for_statement ::=
 for_statement_no_short_if ::=
 		FOR LPAREN for_init_opt:init SEMICOLON expression_opt:exp SEMICOLON
 			for_update_opt:update RPAREN statement_no_short_if:st {:
-		ParseNode pn=new ParseNode("forstatement",parser.n());
+		ParseNode pn=new ParseNode("forstatement",parser.lexer.line_num);
 		pn.addChild("initializer").addChild(init);
 		pn.addChild("condition").addChild(exp);
 		pn.addChild("update").addChild(update);
@@ -1752,21 +1749,21 @@ for_statement_no_short_if ::=
 		:}
 	;
 for_init_opt ::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	for_init:init {: RESULT=init; :}
 	;
 for_init ::=	statement_expression_list:list {: RESULT=list; :}
 	|	local_variable_declaration:decl {: RESULT=decl; :}
 	;
 for_update_opt ::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	for_update:update {: RESULT=update; :}
 	;
 for_update ::=	statement_expression_list:list {: RESULT=list; :}
 	;
 statement_expression_list ::=
 		statement_expression:expr {: 
-		RESULT=(new ParseNode("statement_expression_list",parser.n())).addChild(expr).getRoot();
+		RESULT=(new ParseNode("statement_expression_list",parser.lexer.line_num)).addChild(expr).getRoot();
 	:}
 	|	statement_expression_list:list COMMA statement_expression:expr {: 
 		list.addChild(expr);
@@ -1774,10 +1771,10 @@ statement_expression_list ::=
 	:}
 	;
 
-identifier_opt ::= {: RESULT=new ParseNode("identifier_opt",parser.n());
+identifier_opt ::= {: RESULT=new ParseNode("identifier_opt",parser.lexer.line_num);
 	:} 
 	|	IDENTIFIER:id {:
-		ParseNode pn=new ParseNode("identifier_opt",parser.n());
+		ParseNode pn=new ParseNode("identifier_opt",parser.lexer.line_num);
 		pn.addChild("name").addChild(id);
 		RESULT=pn;
 	:}
@@ -1785,7 +1782,7 @@ identifier_opt ::= {: RESULT=new ParseNode("identifier_opt",parser.n());
 
 break_statement ::=
 		BREAK identifier_opt:id SEMICOLON {: 
-		ParseNode pn=new ParseNode("break",parser.n()); 		
+		ParseNode pn=new ParseNode("break",parser.lexer.line_num); 		
 		pn.addChild(id);
 		RESULT=pn;
 	:}
@@ -1795,20 +1792,20 @@ continue_statement ::=
 		CONTINUE  
 //identifier_opt 
 SEMICOLON
-{: RESULT=new ParseNode("continue",parser.n()); :}
+{: RESULT=new ParseNode("continue",parser.lexer.line_num); :}
 	;
 return_statement ::=
 		RETURN expression_opt:exp SEMICOLON {: 
-	RESULT=(new ParseNode("return",parser.n())).addChild(exp).getRoot(); :}
+	RESULT=(new ParseNode("return",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	;
 throw_statement ::=
 		THROW expression:exp SEMICOLON {:
-		RESULT=(new ParseNode("throwstatement",parser.n())).addChild(exp).getRoot();
+		RESULT=(new ParseNode("throwstatement",parser.lexer.line_num)).addChild(exp).getRoot();
 		:}
 	;
 synchronized_statement ::=
 		SYNCHRONIZED LPAREN expression:e RPAREN block:b {: 
-		ParseNode pn=new ParseNode("synchronized",parser.n());
+		ParseNode pn=new ParseNode("synchronized",parser.lexer.line_num);
 		pn.addChild("expr").addChild(e);
 		pn.addChild("block").addChild(b);
 		RESULT=pn;
@@ -1816,28 +1813,28 @@ synchronized_statement ::=
 	;
 atomic_statement ::=
 		ATOMIC block:blk {: 
-	RESULT=(new ParseNode("atomic",parser.n())).addChild(blk).getRoot();
+	RESULT=(new ParseNode("atomic",parser.lexer.line_num)).addChild(blk).getRoot();
 	:}
 	;
 sese_statement ::=
 	       SESE block:blk {: 
-	       ParseNode pn = new ParseNode("sese",parser.n());
+	       ParseNode pn = new ParseNode("sese",parser.lexer.line_num);
 	       pn.addChild("body").addChild(blk);
 	       RESULT=pn;
 	:}
 	|      SESE variable_declarator_id:id block:blk {: 
-	       ParseNode pn = new ParseNode("sese",parser.n());
+	       ParseNode pn = new ParseNode("sese",parser.lexer.line_num);
 	       pn.addChild("body").addChild(blk);
 	       pn.addChild("identifier").addChild(id);
 	       RESULT=pn;
 	:}
 	|      RBLOCK block:blk {: 
-	       ParseNode pn = new ParseNode("sese",parser.n());
+	       ParseNode pn = new ParseNode("sese",parser.lexer.line_num);
 	       pn.addChild("body").addChild(blk);
 	       RESULT=pn;
 	:}
 	|      RBLOCK variable_declarator_id:id block:blk {: 
-	       ParseNode pn = new ParseNode("sese",parser.n());
+	       ParseNode pn = new ParseNode("sese",parser.lexer.line_num);
 	       pn.addChild("body").addChild(blk);
 	       pn.addChild("identifier").addChild(id);
 	       RESULT=pn;
@@ -1846,14 +1843,14 @@ sese_statement ::=
 try_statement ::=
 		TRY block:bk catches:ca
 		{: 
-		ParseNode pn=new ParseNode("trycatchstatement",parser.n());
+		ParseNode pn=new ParseNode("trycatchstatement",parser.lexer.line_num);
 		pn.addChild("tryblock").addChild(bk); 
 		pn.addChild("catchblock").addChild(ca);
 		RESULT=pn;
 		:}
 	|	TRY block:bk catches_opt:ca finally:fi
 	    {: 
-		ParseNode pn=new ParseNode("trycatchstatement",parser.n());
+		ParseNode pn=new ParseNode("trycatchstatement",parser.lexer.line_num);
 		pn.addChild("tryblock").addChild(bk); 
 		pn.addChild("catchblock").addChild(ca);
 		pn.addChild("finallyblock").addChild(fi);
@@ -1861,13 +1858,13 @@ try_statement ::=
 		:}
 	;
 catches_opt ::=
-    {: RESULT=new ParseNode("empty",parser.n()); :}
+    {: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	catches:ca
 	{: RESULT=ca; :}
 	;
 catches ::=	catch_clause:ca
         {:
-        ParseNode pn=new ParseNode("catchlist",parser.n());
+        ParseNode pn=new ParseNode("catchlist",parser.lexer.line_num);
         pn.addChild(ca);
         RESULT=pn;
         :}
@@ -1880,7 +1877,7 @@ catches ::=	catch_clause:ca
 catch_clause ::=
 		CATCH LPAREN formal_parameter:fp RPAREN block:bk
 		{:
-		ParseNode pn=new ParseNode("catchclause",parser.n());
+		ParseNode pn=new ParseNode("catchclause",parser.lexer.line_num);
 		pn.addChild("parameter").addChild(fp);
 		pn.addChild("block").addChild(bk);
 		RESULT=pn;
@@ -1908,30 +1905,30 @@ primary ::=	primary_no_new_array:st {:
 	;
 primary_no_new_array ::=
 		literal:lit {: RESULT=lit; :}
-	|	THIS {: RESULT=new ParseNode("this",parser.n()); :}
+	|	THIS {: RESULT=new ParseNode("this",parser.lexer.line_num); :}
 	|	LPAREN expression:exp RPAREN {: RESULT=exp; :}
 	|	class_instance_creation_expression:exp {: RESULT=exp; :}
 	|	field_access:exp {: RESULT=exp; :}
 	|	method_invocation:exp {: RESULT=exp; :}
 	|	array_access:exp {: RESULT=exp; :}
 	|	ISAVAILABLE LPAREN IDENTIFIER:id RPAREN {: 
-		ParseNode pn=new ParseNode("isavailable",parser.n());
+		ParseNode pn=new ParseNode("isavailable",parser.lexer.line_num);
 		pn.addChild(id);
 		RESULT=pn;
 	:}
 //	|	primitive_type:pt DOT CLASS {:
-//	    ParseNode pn=new ParseNode("class_type",parser.n());
+//	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
 //	    pn.addChild(pt);
 //	    RESULT=pn;
 //	:}
 //	|	VOID DOT CLASS
 //	|	array_type:at DOT CLASS {:
-//	    ParseNode pn=new ParseNode("class_type",parser.n());
+//	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
 //	    pn.addChild(at);
 //	    RESULT=pn;
 //	:}
 	|	name:name DOT CLASS {:
-	    ParseNode pn=new ParseNode("class_type",parser.n());
+	    ParseNode pn=new ParseNode("class_type",parser.lexer.line_num);
 	    pn.addChild("type").addChild("class").addChild(name);
 	    RESULT=pn;
 	:}
@@ -1939,28 +1936,28 @@ primary_no_new_array ::=
 	;
 class_instance_creation_expression ::=
 	NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(feo);
 		RESULT=pn;
 	:} |
 	NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		RESULT=pn;
 	:} 
 	//Global object
 	| GLOBAL NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild("global");
 		RESULT=pn;
 	:}
 	| SCRATCH NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN flag_list_opt:feo {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild("scratch");
@@ -1968,21 +1965,21 @@ class_instance_creation_expression ::=
 	:}
 	// Objects we want to track in disjointness analysis
 	| DISJOINT IDENTIFIER:id NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild("disjoint").addChild(id);
 		RESULT=pn;
 	:}
 	| NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE RBRACE LBRACE tag_list:tl RBRACE {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(tl);
 		RESULT=pn;
 	:}
 	| NEWFLAG class_or_interface_type:type LPAREN argument_list_opt:args RPAREN LBRACE flag_list:fl RBRACE LBRACE tag_list:tl RBRACE {: 
-		ParseNode pn=new ParseNode("createobject",parser.n());
+		ParseNode pn=new ParseNode("createobject",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild(fl);
@@ -1990,7 +1987,7 @@ class_instance_creation_expression ::=
 		RESULT=pn;
 	:}
 	|	NEW class_or_interface_type:type LPAREN argument_list_opt:args RPAREN class_body:body {: 
-		ParseNode pn=new ParseNode("createobjectcls",parser.n());	      
+		ParseNode pn=new ParseNode("createobjectcls",parser.lexer.line_num);	      
 		pn.addChild(type);
 		pn.addChild(args);
 		pn.addChild("decl").addChild("classbody").addChild(body);
@@ -2008,20 +2005,20 @@ class_instance_creation_expression ::=
 //			LPAREN argument_list_opt RPAREN class_body
 	;
 cons_argument_list_opt ::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	cons_argument_list:args {: RESULT=args; :}
 	;
 
 cons_argument_list ::=
 		IDENTIFIER:id COLON expression:exp {:
-		ParseNode pn=new ParseNode("cons_argument_list",parser.n());
+		ParseNode pn=new ParseNode("cons_argument_list",parser.lexer.line_num);
 		ParseNode pnarg=pn.addChild("binding");
 		pnarg.addChild("var").addChild(id);
 		pnarg.addChild("exp").addChild(exp);
 		RESULT=pn;
 	:}
 	|	argument_list:list COMMA IDENTIFIER:id COLON expression:exp {:
-		ParseNode pnarg=new ParseNode("binding",parser.n());
+		ParseNode pnarg=new ParseNode("binding",parser.lexer.line_num);
 		pnarg.addChild("var").addChild(id);
 		pnarg.addChild("exp").addChild(exp);
 		list.addChild(pnarg);
@@ -2030,13 +2027,13 @@ cons_argument_list ::=
 	;
 
 argument_list_opt ::=
-	{: RESULT=new ParseNode("empty",parser.n()); :}
+	{: RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	argument_list:args {: RESULT=args; :}
 	;
 
 argument_list ::=
 		expression:exp {:
-		ParseNode pn=new ParseNode("argument_list",parser.n());
+		ParseNode pn=new ParseNode("argument_list",parser.lexer.line_num);
 		pn.addChild(exp);
 		RESULT=pn;
 	:}
@@ -2047,21 +2044,21 @@ argument_list ::=
 	;
 array_creation_uninit ::=
 		NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
 		RESULT=pn;
 		:}
 	|	NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
 		RESULT=pn;
 	:}
 	|	GLOBAL NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
@@ -2069,7 +2066,7 @@ array_creation_uninit ::=
 		RESULT=pn;
 		:}
 	|	SCRATCH NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
@@ -2077,7 +2074,7 @@ array_creation_uninit ::=
 		RESULT=pn;
 		:}
 	|	DISJOINT IDENTIFIER:id NEW primitive_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
@@ -2085,7 +2082,7 @@ array_creation_uninit ::=
 		RESULT=pn;
 		:}
 	|	GLOBAL NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
@@ -2093,7 +2090,7 @@ array_creation_uninit ::=
 		RESULT=pn;
 		:}
 	|	SCRATCH NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
@@ -2101,7 +2098,7 @@ array_creation_uninit ::=
 		RESULT=pn;
 		:}
 	|	DISJOINT IDENTIFIER:id NEW class_or_interface_type:type dim_exprs:dimexpr dims_opt:dims {: 
-		ParseNode pn=new ParseNode("createarray",parser.n());
+		ParseNode pn=new ParseNode("createarray",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild(dimexpr);
 		pn.addChild("dims_opt").setLiteral(dims);
@@ -2111,14 +2108,14 @@ array_creation_uninit ::=
 	;
 array_creation_init ::=
 		NEW primitive_type:type dims:dims array_initializer:ai {: 
-		ParseNode pn=new ParseNode("createarray2",parser.n());
+		ParseNode pn=new ParseNode("createarray2",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild("dims_opt").setLiteral(dims);
 		pn.addChild("initializer").addChild(ai);
 		RESULT=pn;
 		:}
 	|	NEW class_or_interface_type:type dims:dims array_initializer:ai {: 
-		ParseNode pn=new ParseNode("createarray2",parser.n());
+		ParseNode pn=new ParseNode("createarray2",parser.lexer.line_num);
 		pn.addChild(type);
 		pn.addChild("dims_opt").setLiteral(dims);
 		pn.addChild("initializer").addChild(ai);
@@ -2126,7 +2123,7 @@ array_creation_init ::=
 		:}
 	;
 dim_exprs ::=	dim_expr:exp {: 
-		ParseNode pn=new ParseNode("dim_exprs",parser.n());
+		ParseNode pn=new ParseNode("dim_exprs",parser.lexer.line_num);
 		pn.addChild(exp);
 		RESULT=pn; :}
 	|	dim_exprs:base dim_expr:exp {: 
@@ -2146,7 +2143,7 @@ dims ::=	LBRACK RBRACK {: RESULT=new Integer(1); :}
 
 field_access ::=
 		primary:base DOT IDENTIFIER:id {: 
-		ParseNode pn=new ParseNode("fieldaccess",parser.n());
+		ParseNode pn=new ParseNode("fieldaccess",parser.lexer.line_num);
 		pn.addChild("base").addChild(base);
 		pn.addChild("field").addChild(id);
 		RESULT=pn;
@@ -2156,23 +2153,23 @@ field_access ::=
 	;
 method_invocation ::=
 		name:name LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("methodinvoke1",parser.n());
+		ParseNode pn=new ParseNode("methodinvoke1",parser.lexer.line_num);
 		pn.addChild(name);
 		pn.addChild(args);
 		RESULT=pn;
 	:}
 	|	primary:base DOT IDENTIFIER:name LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode pn=new ParseNode("methodinvoke2",parser.n());
+		ParseNode pn=new ParseNode("methodinvoke2",parser.lexer.line_num);
 		pn.addChild("base").addChild(base);
 		pn.addChild("id").addChild(name);
 		pn.addChild(args);
 		RESULT=pn;
 	:}
 	|	SUPER DOT IDENTIFIER:id LPAREN argument_list_opt:args RPAREN {: 
-		ParseNode name=new ParseNode("name",parser.n());
+		ParseNode name=new ParseNode("name",parser.lexer.line_num);
 		name.addChild("base").addChild("name").addChild("identifier").addChild("super");
 		name.addChild("identifier").addChild(id);
-		ParseNode pn=new ParseNode("methodinvoke1",parser.n());
+		ParseNode pn=new ParseNode("methodinvoke1",parser.lexer.line_num);
 		pn.addChild(name);
 		pn.addChild(args);
 		RESULT=pn;
@@ -2181,19 +2178,19 @@ method_invocation ::=
 	;
 array_access ::=
 		name:name LBRACK expression:exp RBRACK {: 
-		ParseNode pn=new ParseNode("arrayaccess",parser.n());
+		ParseNode pn=new ParseNode("arrayaccess",parser.lexer.line_num);
 		pn.addChild("base").addChild(name);
 		pn.addChild("index").addChild(exp);
 		RESULT=pn;
 	:}
 	|	primary_no_new_array:base LBRACK expression:exp RBRACK {: 
-		ParseNode pn=new ParseNode("arrayaccess",parser.n());
+		ParseNode pn=new ParseNode("arrayaccess",parser.lexer.line_num);
 		pn.addChild("base").addChild(base);
 		pn.addChild("index").addChild(exp);
 		RESULT=pn;
 	:}
 //	|	array_creation_init:init LBRACK expression:exp RBRACK {: 
-//		ParseNode pn=new ParseNode("arrayaccess",parser.n());
+//		ParseNode pn=new ParseNode("arrayaccess",parser.lexer.line_num);
 //		pn.addChild("init").addChild(init);
 //		pn.addChild("index").addChild(exp);
 //		RESULT=pn;
@@ -2209,43 +2206,43 @@ postfix_expression ::=
 	;
 postincrement_expression ::=
 		postfix_expression:exp PLUSPLUS 
-		{: RESULT=(new ParseNode("postinc",parser.n())).addChild(exp).getRoot(); :}
+		{: RESULT=(new ParseNode("postinc",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	;
 postdecrement_expression ::=
 		postfix_expression:exp MINUSMINUS
-		{: RESULT=(new ParseNode("postdec",parser.n())).addChild(exp).getRoot(); :}
+		{: RESULT=(new ParseNode("postdec",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	;
 unary_expression ::=
 		preincrement_expression:exp {: RESULT=exp; :}
 	|	predecrement_expression:exp {: RESULT=exp; :}
 	|	PLUS unary_expression:exp 
-	{: RESULT=(new ParseNode("unaryplus",parser.n())).addChild(exp).getRoot(); :}
+	{: RESULT=(new ParseNode("unaryplus",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	|	MINUS unary_expression:exp
-	{: RESULT=(new ParseNode("unaryminus",parser.n())).addChild(exp).getRoot(); :}
+	{: RESULT=(new ParseNode("unaryminus",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	|	unary_expression_not_plus_minus:exp {: 
 			RESULT=exp; :}
 	;
 preincrement_expression ::=
 		PLUSPLUS unary_expression:exp
-		{: RESULT=(new ParseNode("preinc",parser.n())).addChild(exp).getRoot(); :}
+		{: RESULT=(new ParseNode("preinc",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	;
 predecrement_expression ::=
 		MINUSMINUS unary_expression:exp
-		{: RESULT=(new ParseNode("predec",parser.n())).addChild(exp).getRoot(); :}
+		{: RESULT=(new ParseNode("predec",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	;
 unary_expression_not_plus_minus ::=
 		postfix_expression:exp {: 
 		RESULT=exp; :}
 	|	COMP unary_expression:exp
-		{: RESULT=(new ParseNode("comp",parser.n())).addChild(exp).getRoot(); :}
+		{: RESULT=(new ParseNode("comp",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	|	NOT unary_expression:exp 
-		{: RESULT=(new ParseNode("not",parser.n())).addChild(exp).getRoot(); :}
+		{: RESULT=(new ParseNode("not",parser.lexer.line_num)).addChild(exp).getRoot(); :}
 	|	cast_expression:exp {: RESULT=exp; :}
 	;
 cast_expression ::=
 		LPAREN primitive_type:type dims_opt:dims
 		RPAREN unary_expression:exp {: 
-		ParseNode pn=new ParseNode("cast1",parser.n());
+		ParseNode pn=new ParseNode("cast1",parser.lexer.line_num);
 if (dims.intValue()==0)
 		pn.addChild("type").addChild(type);
 else {
@@ -2257,14 +2254,14 @@ else {
 		RESULT=pn;
 	:}
 	|	LPAREN expression:type RPAREN unary_expression_not_plus_minus:exp {: 
-		ParseNode pn=new ParseNode("cast2",parser.n());
+		ParseNode pn=new ParseNode("cast2",parser.lexer.line_num);
 		pn.addChild("type").addChild(type);
 		pn.addChild("exp").addChild(exp);
 		RESULT=pn;
 
 	:}
 	|	LPAREN name:name dims:dims RPAREN unary_expression_not_plus_minus:exp {: 
-		ParseNode pn=new ParseNode("cast1",parser.n());
+		ParseNode pn=new ParseNode("cast1",parser.lexer.line_num);
 if (dims.intValue()==0)
 		pn.addChild("type").addChild("class").addChild(name);
 else {
@@ -2281,19 +2278,19 @@ multiplicative_expression ::=
 		unary_expression:exp {: 
 			RESULT=exp; :}
 	|	multiplicative_expression:exp1 MULT unary_expression:exp2 {: 
-		ParseNode pn=new ParseNode("mult",parser.n());
+		ParseNode pn=new ParseNode("mult",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	multiplicative_expression:exp1 DIV unary_expression:exp2 {:
-		ParseNode pn=new ParseNode("div",parser.n());
+		ParseNode pn=new ParseNode("div",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	multiplicative_expression:exp1 MOD unary_expression:exp2 {:
-		ParseNode pn=new ParseNode("mod",parser.n());
+		ParseNode pn=new ParseNode("mod",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2303,13 +2300,13 @@ additive_expression ::=
 		multiplicative_expression:exp {: 
 			RESULT=exp; :}
 	|	additive_expression:exp1 PLUS multiplicative_expression:exp2 {: 
-		ParseNode pn=new ParseNode("add",parser.n());
+		ParseNode pn=new ParseNode("add",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	additive_expression:exp1 MINUS multiplicative_expression:exp2 {: 
-		ParseNode pn=new ParseNode("sub",parser.n());
+		ParseNode pn=new ParseNode("sub",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2319,19 +2316,19 @@ shift_expression ::=
 		additive_expression:exp {: 
 			RESULT=exp; :}
 	|	shift_expression:exp1 LSHIFT additive_expression:exp2 {: 
-		ParseNode pn=new ParseNode("leftshift",parser.n());
+		ParseNode pn=new ParseNode("leftshift",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	shift_expression:exp1 RSHIFT additive_expression:exp2 {: 
-		ParseNode pn=new ParseNode("rightshift",parser.n());
+		ParseNode pn=new ParseNode("rightshift",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	shift_expression:exp1 URSHIFT additive_expression:exp2 {:
-		ParseNode pn=new ParseNode("urightshift",parser.n());
+		ParseNode pn=new ParseNode("urightshift",parser.lexer.line_num);
 		pn.addChild(exp1);	
 		pn.addChild(exp2);	
 		RESULT=pn;
@@ -2341,31 +2338,31 @@ relational_expression ::=
 		shift_expression:exp {: 
 			RESULT=exp; :}
 	|	relational_expression:exp1 LT shift_expression:exp2 {:
-		ParseNode pn=new ParseNode("comp_lt",parser.n());
+		ParseNode pn=new ParseNode("comp_lt",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	relational_expression:exp1 GT shift_expression:exp2 {:
-		ParseNode pn=new ParseNode("comp_gt",parser.n());
+		ParseNode pn=new ParseNode("comp_gt",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	relational_expression:exp1 LTEQ shift_expression:exp2 {:
-		ParseNode pn=new ParseNode("comp_lte",parser.n());
+		ParseNode pn=new ParseNode("comp_lte",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	relational_expression:exp1 GTEQ shift_expression:exp2 {:
-		ParseNode pn=new ParseNode("comp_gte",parser.n());
+		ParseNode pn=new ParseNode("comp_gte",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	relational_expression:exp INSTANCEOF reference_type:type {: 
-		ParseNode pn=new ParseNode("instanceof",parser.n());
+		ParseNode pn=new ParseNode("instanceof",parser.lexer.line_num);
 		pn.addChild("exp").addChild(exp);
 		pn.addChild(type);
 		RESULT=pn;
@@ -2376,13 +2373,13 @@ equality_expression ::=
 		relational_expression:exp {: 
 			RESULT=exp; :}
 	|	equality_expression:exp1 EQEQ relational_expression:exp2 {: 
-		ParseNode pn=new ParseNode("equal",parser.n());
+		ParseNode pn=new ParseNode("equal",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
 	:}
 	|	equality_expression:exp1 NOTEQ relational_expression:exp2 {: 
-		ParseNode pn=new ParseNode("not_equal",parser.n());
+		ParseNode pn=new ParseNode("not_equal",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2392,7 +2389,7 @@ and_expression ::=
 		equality_expression:exp {: 
 		RESULT=exp; :}
 	|	and_expression:exp1 AND equality_expression:exp2 {: 
-		ParseNode pn=new ParseNode("bitwise_and",parser.n());
+		ParseNode pn=new ParseNode("bitwise_and",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2403,7 +2400,7 @@ exclusive_or_expression ::=
 			RESULT=expr;
 		:}
 	|	exclusive_or_expression:exp1 XOR and_expression:exp2 {: 
-		ParseNode pn=new ParseNode("bitwise_xor",parser.n());
+		ParseNode pn=new ParseNode("bitwise_xor",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2413,7 +2410,7 @@ inclusive_or_expression ::=
 		exclusive_or_expression:exclor {: 
 			RESULT=exclor; :}
 	|	inclusive_or_expression:exp1 OR exclusive_or_expression:exp2 {: 
-		ParseNode pn=new ParseNode("bitwise_or",parser.n());
+		ParseNode pn=new ParseNode("bitwise_or",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2423,7 +2420,7 @@ conditional_and_expression ::=
 		inclusive_or_expression:inclor {: 
 			RESULT=inclor; :}
 	|	conditional_and_expression:exp1 ANDAND inclusive_or_expression:exp2 {:
-		ParseNode pn=new ParseNode("logical_and",parser.n());
+		ParseNode pn=new ParseNode("logical_and",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2433,7 +2430,7 @@ conditional_or_expression ::=
 		conditional_and_expression:condand {: 
 			RESULT=condand; :}
 	|	conditional_or_expression:exp1 OROR conditional_and_expression:exp2 {: 
-		ParseNode pn=new ParseNode("logical_or",parser.n());
+		ParseNode pn=new ParseNode("logical_or",parser.lexer.line_num);
 		pn.addChild(exp1);
 		pn.addChild(exp2);
 		RESULT=pn;
@@ -2444,7 +2441,7 @@ conditional_expression ::=
 			RESULT=condor; :}
 	|	conditional_or_expression:condor QUESTION expression:exptrue
 			COLON conditional_expression:expfalse {: 
-			ParseNode pn=new ParseNode("tert",parser.n());
+			ParseNode pn=new ParseNode("tert",parser.lexer.line_num);
 			pn.addChild("cond").addChild(condor);
 			pn.addChild("trueexpr").addChild(exptrue);
 			pn.addChild("falseexpr").addChild(expfalse);
@@ -2453,7 +2450,7 @@ conditional_expression ::=
 	;
 getoffset_expression ::=
         GETOFFSET LBRACE class_or_interface_type:type COMMA IDENTIFIER:id RBRACE {:
-        ParseNode pn = new ParseNode("getoffset",parser.n());
+        ParseNode pn = new ParseNode("getoffset",parser.lexer.line_num);
         pn.addChild(type);
         pn.addChild("field").addChild(id);
         RESULT = pn;
@@ -2472,7 +2469,7 @@ assignment_expression ::=
 // allowing a parenthesized variable here on the lhs was introduced in
 // JLS 2; thanks to Eric Blake for pointing this out.
 assignment ::=	postfix_expression:lvalue assignment_operator:op assignment_expression:rvalue {:
-		ParseNode pn=new ParseNode("assignment",parser.n());
+		ParseNode pn=new ParseNode("assignment",parser.lexer.line_num);
 		pn.addChild("op").addChild(op);
 		ParseNode pnargs=pn.addChild("args");
 		pnargs.addChild(lvalue);
@@ -2481,21 +2478,21 @@ assignment ::=	postfix_expression:lvalue assignment_operator:op assignment_expre
 	 :}
 	;
 assignment_operator ::=
-		EQ {: RESULT=new ParseNode("eq",parser.n()); :}
-	|	MULTEQ {: RESULT=new ParseNode("multeq",parser.n()); :}
-	|	DIVEQ {: RESULT=new ParseNode("diveq",parser.n()); :}
-	|	MODEQ {: RESULT=new ParseNode("modeq",parser.n()); :}
-	|	PLUSEQ {: RESULT=new ParseNode("pluseq",parser.n()); :}
-	|	MINUSEQ {: RESULT=new ParseNode("minuseq",parser.n()); :}
-	|	LSHIFTEQ {: RESULT=new ParseNode("lshifteq",parser.n()); :}
-	|	RSHIFTEQ {: RESULT=new ParseNode("rshifteq",parser.n()); :}
-	|	URSHIFTEQ {: RESULT=new ParseNode("urshifteq",parser.n()); :}
-	|	ANDEQ {: RESULT=new ParseNode("andeq",parser.n()); :}
-	|	XOREQ {: RESULT=new ParseNode("xoreq",parser.n()); :}
-	|	OREQ {: RESULT=new ParseNode("oreq",parser.n()); :}
+		EQ {: RESULT=new ParseNode("eq",parser.lexer.line_num); :}
+	|	MULTEQ {: RESULT=new ParseNode("multeq",parser.lexer.line_num); :}
+	|	DIVEQ {: RESULT=new ParseNode("diveq",parser.lexer.line_num); :}
+	|	MODEQ {: RESULT=new ParseNode("modeq",parser.lexer.line_num); :}
+	|	PLUSEQ {: RESULT=new ParseNode("pluseq",parser.lexer.line_num); :}
+	|	MINUSEQ {: RESULT=new ParseNode("minuseq",parser.lexer.line_num); :}
+	|	LSHIFTEQ {: RESULT=new ParseNode("lshifteq",parser.lexer.line_num); :}
+	|	RSHIFTEQ {: RESULT=new ParseNode("rshifteq",parser.lexer.line_num); :}
+	|	URSHIFTEQ {: RESULT=new ParseNode("urshifteq",parser.lexer.line_num); :}
+	|	ANDEQ {: RESULT=new ParseNode("andeq",parser.lexer.line_num); :}
+	|	XOREQ {: RESULT=new ParseNode("xoreq",parser.lexer.line_num); :}
+	|	OREQ {: RESULT=new ParseNode("oreq",parser.lexer.line_num); :}
 	;
 expression_opt ::=
-	{: 	RESULT=new ParseNode("empty",parser.n()); :}
+	{: 	RESULT=new ParseNode("empty",parser.lexer.line_num); :}
 	|	expression:exp {: 
 		RESULT=exp; :}
 	;
@@ -2507,7 +2504,7 @@ expression ::=	assignment_expression:exp {:
 constant_expression ::=
 		expression:exp 
 		{:
-		    ParseNode pn = new ParseNode("constant_expression",parser.n());
+		    ParseNode pn = new ParseNode("constant_expression",parser.lexer.line_num);
 		    pn.addChild(exp);
 		    RESULT=pn;
 		:}
@@ -2516,7 +2513,7 @@ constant_expression ::=
 
 genreach_statement ::=
 		GENREACH IDENTIFIER:graphName SEMICOLON {: 
-		ParseNode pn=new ParseNode("genreach",parser.n());
+		ParseNode pn=new ParseNode("genreach",parser.lexer.line_num);
 		pn.addChild("graphName").addChild(graphName);
 		RESULT=pn; :}
 	;
