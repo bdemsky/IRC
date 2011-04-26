@@ -16,15 +16,21 @@ public class Lexer {
   boolean isJava12;
   boolean isJava14;
   boolean isJava15;
+  boolean taskExt;
   String line = null;
   int line_pos = 1;
-    public int line_num = 0;
+  public int line_num = 0;
   LineList lineL = new LineList(-line_pos, null); // sentinel for line #0
 
   public Lexer(Reader reader) {
+    this(reader, true);
+  }
+
+  public Lexer(Reader reader, boolean task) {
     this.reader = new LineNumberReader(new EscapedUnicodeReader(reader));
     this.isJava12 = true;
     this.isJava14 = true;
+    taskExt=task;
   }
 
   public java_cup.runtime.Symbol nextToken() throws java.io.IOException {
@@ -292,6 +298,12 @@ public class Lexer {
     //  pre-java 1.5 compatibility:
     //if (!isJava15 && s.equals("enum")) return new Identifier(s);
     //  pre-java 1.4 compatibility:
+
+    if (!taskExt && s.equals("taskexit")) return new Identifier(s);
+    if (!taskExt && s.equals("tag")) return new Identifier(s);
+    if (!taskExt && s.equals("flag")) return new Identifier(s);
+    if (!taskExt && s.equals("newflag")) return new Identifier(s);
+
     if (!isJava14 && s.equals("assert")) return new Identifier(s);
     //  pre-java 1.2 compatibility:
     if (!isJava12 && s.equals("strictfp")) return new Identifier(s);

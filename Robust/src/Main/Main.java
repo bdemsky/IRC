@@ -687,7 +687,7 @@ public class Main {
   public static ParseNode readSourceFile(State state, String sourcefile) {
     try {
       Reader fr= new BufferedReader(new FileReader(sourcefile));
-      Lex.Lexer l = new Lex.Lexer(fr);
+      Lex.Lexer l = new Lex.Lexer(fr, state.TASK);
       java_cup.runtime.lr_parser g;
       g = new Parse.Parser(l);
       ParseNode p=null;
