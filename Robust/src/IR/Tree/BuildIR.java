@@ -42,8 +42,10 @@ public class BuildIR {
     mandatoryImports = new Hashtable();
     multiimports = new Hashtable();
     
-    //add java.lang as our default multi-import
-    this.addMultiImport(sourcefile, "java.lang", false);
+    if(state.JNI) {
+      //add java.lang as our default multi-import
+      this.addMultiImport(sourcefile, "java.lang", false);
+    }
     
     ParseNode ipn = pn.getChild("imports").getChild("import_decls_list");
     if (ipn != null) {
@@ -71,8 +73,7 @@ public class BuildIR {
     String packageName = null;
     if (ppn!=null) {
       NameDescriptor nd = parseClassName(ppn.getChild("name"));
-      packageName = nd.getPathFromRootToHere();
-      
+      packageName = nd.getPathFromRootToHere();      
       //Trick -> import the package directory as a multi-import and it'll 
       //automatically recognize files in the same directory.
       addMultiImport(sourcefile, packageName, true);
@@ -734,7 +735,7 @@ public class BuildIR {
   
   //This will get the mapping of a terminal class name
   //to a canonical classname (with imports/package locations in them)
-  private String resolveName(String terminal) {
+  private String resolveName(String terminal) {    
     if(mandatoryImports.containsKey(terminal)) {
       return  (String) mandatoryImports.get(terminal);
     } else {

@@ -80,7 +80,7 @@ public class Vector {
     }
   }
 
-  private ensureCapacity(int minCapacity) {
+  private void ensureCapacity(int minCapacity) {
     if (minCapacity>array.length) {
       int newsize;
       if (capacityIncrement<=0)
