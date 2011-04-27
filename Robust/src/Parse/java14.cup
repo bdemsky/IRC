@@ -1322,6 +1322,11 @@ location_order ::=
 		pn.addChild(loc);
 		RESULT=pn;
 	:}
+	|       IDENTIFIER:loc {:
+		ParseNode pn=new ParseNode("location_order",parser.lexer.line_num);
+		pn.addChild(loc);
+		RESULT=pn;
+	:}
         ;
 
 // 19.9) Interfaces

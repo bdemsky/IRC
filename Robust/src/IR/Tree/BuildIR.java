@@ -638,12 +638,17 @@ public class BuildIR {
         String spinLoc=loc.getChildren().elementAt(0).getLabel();
         spinLocSet.add(spinLoc);
       } else {
-        String lowerLoc=loc.getChildren().elementAt(0).getLabel();
-        String higherLoc= loc.getChildren().elementAt(1).getLabel();
-        locOrder.put(higherLoc, lowerLoc);
-        if (locOrder.isIntroducingCycle(higherLoc)) {
-          throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
-                          + " introduces a cycle.");
+        if(loc.getChildren().size()==1){
+          String locIentifier=loc.getChildren().elementAt(0).getLabel();
+          locOrder.put(locIentifier);
+        }else{
+          String lowerLoc=loc.getChildren().elementAt(0).getLabel();
+          String higherLoc= loc.getChildren().elementAt(1).getLabel();
+          locOrder.put(higherLoc, lowerLoc);
+          if (locOrder.isIntroducingCycle(higherLoc)) {
+            throw new Error("Error: the order relation " + lowerLoc + " < " + higherLoc
+                + " introduces a cycle.");
+          }
         }
       }
     }

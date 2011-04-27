@@ -34,6 +34,20 @@ public class Lattice<T> {
     return table.keySet();
   }
 
+  public boolean put(T key) {
+    if (table.containsKey(key)) {
+      return false;
+    } else {
+      // new key, need to be connected with top/bottom
+      size++;
+      table.get(top).add(key);
+      Set<T> neightborSet = new HashSet<T>();
+      neightborSet.add(bottom);
+      table.put(key, neightborSet);
+      return true;
+    }
+  }
+
   public boolean put(T key, T value) {
     Set<T> s;
 
@@ -84,7 +98,7 @@ public class Lattice<T> {
     do {
       oldReachableSize = reachableSet.size();
       Set<T> nextLevelNeighbors = new HashSet<T>();
-      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext(); ) {
+      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext();) {
         T element = iterator.next();
         Set<T> neighbors = get(element);
         if (neighbors != null) {
@@ -137,7 +151,7 @@ public class Lattice<T> {
       return true;
     } else {
       boolean reachable = false;
-      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext(); ) {
+      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext();) {
         T neighbor = iterator.next();
         reachable = reachable || isGreaterThan(neighbor, b);
       }
@@ -150,7 +164,7 @@ public class Lattice<T> {
     Set<T> lowerSet = new HashSet<T>();
 
     // get lower set of input locations
-    for (Iterator<T> iterator = inputSet.iterator(); iterator.hasNext(); ) {
+    for (Iterator<T> iterator = inputSet.iterator(); iterator.hasNext();) {
       T element = iterator.next();
       lowerSet.addAll(getLowerSet(element, new HashSet<T>()));
       lowerSet.add(element);
@@ -158,10 +172,10 @@ public class Lattice<T> {
 
     // an element of lower bound should be lower than every input set
     Set<T> toberemoved = new HashSet<T>();
-    for (Iterator<T> inputIterator = inputSet.iterator(); inputIterator.hasNext(); ) {
+    for (Iterator<T> inputIterator = inputSet.iterator(); inputIterator.hasNext();) {
       T inputElement = inputIterator.next();
 
-      for (Iterator iterator = lowerSet.iterator(); iterator.hasNext(); ) {
+      for (Iterator iterator = lowerSet.iterator(); iterator.hasNext();) {
         T lowerElement = (T) iterator.next();
         if (!inputElement.equals(lowerElement)) {
           if (!isGreaterThan(inputElement, lowerElement)) {
@@ -174,10 +188,10 @@ public class Lattice<T> {
 
     // calculate the greatest element of lower set
     // find an element A, where every lower bound B of lowerSet, B<A
-    for (Iterator<T> iterator = lowerSet.iterator(); iterator.hasNext(); ) {
+    for (Iterator<T> iterator = lowerSet.iterator(); iterator.hasNext();) {
       T lowerElement = iterator.next();
       boolean isGreaterThanAll = true;
-      for (Iterator<T> iterator2 = lowerSet.iterator(); iterator2.hasNext(); ) {
+      for (Iterator<T> iterator2 = lowerSet.iterator(); iterator2.hasNext();) {
         T e = iterator2.next();
         if (!lowerElement.equals(e)) {
           if (!isGreaterThan(lowerElement, e)) {
@@ -198,7 +212,7 @@ public class Lattice<T> {
     Set<T> neighborSet = get(element);
     if (neighborSet != null) {
       lowerSet.addAll(neighborSet);
-      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext(); ) {
+      for (Iterator<T> iterator = neighborSet.iterator(); iterator.hasNext();) {
         T neighbor = iterator.next();
         lowerSet = getLowerSet(neighbor, lowerSet);
       }
